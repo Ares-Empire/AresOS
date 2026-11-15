@@ -790,11 +790,16 @@ class IntentTest(unittest.TestCase):
     """update and previous journal their intent before any change (review 2)."""
 
     POINTS = ('before', 'after', 'observe', 'record')
+    # update's step failing before or after it staged ends in the stop routine, whose clean end
+    # proves the list is as before and closes the intent (22c review 8, finding 2). At every other
+    # point the intent stays open, as after a kill or a power cut in the step.
+    CLOSED = {('update', 'before'), ('update', 'after')}
 
     @contextlib.contextmanager
     def interrupted(self, kind, point):
         start = pair() if kind == 'update' else updated()
-        with route(start, wheel=kind != 'update') as (tools, host, store):
+        # No finalizer is masked here, so the stop routine never reads the runner's own /etc.
+        with route(start, wheel=kind != 'update') as (tools, host, store), patch.object(owner, 'finalizer_masks', return_value=[]):
             command = tools.update if kind == 'update' else tools.previous
             real_save = owner.Tools.save
             def save(obj, name, value):
@@ -805,7 +810,11 @@ class IntentTest(unittest.TestCase):
                 host.interrupt = ('update' if kind == 'update' else 'start-next', point)
             with patch.object(owner.Tools, 'save', new=save), self.assertRaises((owner.Stop, OSError)):
                 command()
-            intent = tools.load(owner.OUTCOME)
+            if (kind, point) in self.CLOSED:
+                self.assertFalse((store / (owner.OUTCOME + '.json')).exists(), 'a clean stop left its intent open')
+                intent, = [json.loads(p.read_text()) for p in store.glob('*-outcome-stopped-not-applied.json')]
+            else:
+                intent = tools.load(owner.OUTCOME)
             self.assertEqual((intent['status'], intent['word'], intent['boot']), ('intent', kind, 'boot-1'))
             self.assertEqual(intent['before'], [list(owner.key(d)) for d in start['rpm']['deployments']])
             yield tools, host, store, command, start
@@ -831,7 +840,7 @@ class IntentTest(unittest.TestCase):
                     before = copy.deepcopy(host.state)
                     changes = list(host.changes)
                     for method in (tools.check, tools.title, tools.records):
-                        if kind == 'update':
+                        if kind == 'update' and (kind, point) not in self.CLOSED:
                             UpdateCommandTest.unchanged(self, tools, host, store, method,
                                 'run sudo /var/lib/ares/at update')
                         else:
@@ -849,7 +858,8 @@ class IntentTest(unittest.TestCase):
                     tools.boot[0], host.state = 'boot-2', copy.deepcopy(start)
                     tools.check()
                     self.assertFalse((store / (owner.OUTCOME + '.json')).exists())
-                    self.assertEqual(len(list(store.glob('*-outcome-not-applied.json'))), 1)
+                    # A clean stop closed its intent already: nothing is left to resolve.
+                    self.assertEqual(len(list(store.glob('*-outcome-not-applied.json'))), int((kind, point) not in self.CLOSED))
 
     def test_the_same_command_redoes_an_unmade_change_or_records_a_made_one(self):
         for kind in ('update', 'previous'):
@@ -892,7 +902,7 @@ class IntentTest(unittest.TestCase):
                 self.assertEqual(tools.load(owner.OUTCOME)['status'], 'recorded')
 
     def test_other_commands_never_continue_an_intent_and_a_wrong_change_is_not_recorded(self):
-        with self.interrupted('update', 'after') as (tools, host, store, command, start):
+        with self.interrupted('update', 'observe') as (tools, host, store, command, start):
             UpdateCommandTest.unchanged(self, tools, host, store, tools.previous, 'interrupted before its result was recorded')
             # The target staged over a different running deployment is not the intended change.
             host.state = machine([release_row(R21, staged=True), release_row(R13, booted=True, checksum='d5' * 32), stock_row()])
@@ -2228,9 +2238,10 @@ class UpdateStopTest(unittest.TestCase):
                 # By start time too, so a reused PID is never killed.
                 self.spawned.append((pid, self.started(pid)))
                 self.addCleanup(self.kill, pid, self.started(pid))
-            intent = tools.load(owner.OUTCOME)
+            intent = tools.load(owner.OUTCOME) if (store / (owner.OUTCOME + '.json')).exists() else None
+            closed = [json.loads(p.read_text()) for p in sorted(store.glob('*-outcome-stopped-not-applied.json'))]
             settled = None if host.state != pair() else tools.qualified(host.state, tools.load('prepared'), retry='update')
-            return SimpleNamespace(outcome=outcome, links=links, pids=pids, host=host, intent=intent, settled=settled,
+            return SimpleNamespace(outcome=outcome, links=links, pids=pids, host=host, intent=intent, closed=closed, settled=settled,
                                    elapsed=elapsed, printed=printed.getvalue() if stdout is None else '',
                                    calls=(root / 'calls').read_text().splitlines())
 
@@ -2277,10 +2288,18 @@ class UpdateStopTest(unittest.TestCase):
         self.assertIn(words, str(run.outcome))
         self.assertIn('was stopped safely', str(run.outcome))
         self.assertIn('Nothing changes at the next start', str(run.outcome))
-        # The running release, its rollback and the pinned stock are as before; the same command may retry.
-        self.assertEqual((run.intent['status'], run.intent['before']),
-                         ('intent', [list(owner.key(d)) for d in pair()['rpm']['deployments']]))
-        self.assertEqual(run.settled, 'retry')
+        # The running release, its rollback and the pinned stock are as before, so the routine closed
+        # the intent (22c review 8, finding 2): no command of this start stops on it, and update
+        # starts afresh.
+        self.assertIsNone(run.intent, 'a clean stop left its intent open')
+        self.assertEqual([(c['status'], c['word'], c['before']) for c in run.closed],
+                         [('intent', 'update', [list(owner.key(d)) for d in pair()['rpm']['deployments']])])
+        self.assertIsNone(run.settled)
+
+    def stopped_with_errors(self, run):
+        # Nothing claimed a clean stop, so the intent stays open for rule 5.
+        self.assertNotIn('stopped safely', str(run.outcome))
+        self.assertEqual((run.intent['status'], run.closed), ('intent', []))
 
     def step(self, run):
         return [row for row in run.host.trace if row.get('script') == 'update' and row.get('stopped')][-1]
@@ -2344,6 +2363,7 @@ class UpdateStopTest(unittest.TestCase):
         self.assertIn('stopping it did not finish: deployments: injected status read failure', str(run.outcome))
         self.assertIn('Do not reboot', str(run.outcome))
         self.assertNotIn('stopped safely', str(run.outcome))
+        self.stopped_with_errors(run)
 
     def test_a_foreign_staged_deployment_is_never_deleted(self):
         run = self.run_stopped('stage-then-run', foreign=R30)
@@ -2353,6 +2373,7 @@ class UpdateStopTest(unittest.TestCase):
         self.assertEqual(run.links, self.MASKED, 'the masks this run removed are not back')
         self.assertIn('a staged deployment this update did not make is present; nothing was deleted', str(run.outcome))
         self.assertIn('Do not reboot', str(run.outcome))
+        self.stopped_with_errors(run)
 
     def test_a_process_that_survives_kill_is_reported_and_nothing_is_deleted_behind_it(self):
         run = self.run_stopped('hang', swallow_kill=True)
@@ -2363,6 +2384,7 @@ class UpdateStopTest(unittest.TestCase):
         self.assertNotIn(('rpm-ostree', 'cleanup', '--pending'), run.host.changes)
         self.assertEqual(run.links, self.MASKED, 'the masks this run removed are not back')
         self.assertIn('Do not reboot', str(run.outcome))
+        self.stopped_with_errors(run)
 
     def test_names_that_are_not_utf8_inside_and_outside_the_step_do_not_stop_the_stop(self):
         import signal
@@ -2388,6 +2410,7 @@ class UpdateStopTest(unittest.TestCase):
                       str(run.outcome))
         self.assertIn('Do not reboot', str(run.outcome))
         self.assertNotIn('stopped safely', str(run.outcome))
+        self.stopped_with_errors(run)
 
     def test_an_exception_in_stop_and_a_failed_mask_check_are_both_reported(self):
         def broken(step):
@@ -2399,6 +2422,7 @@ class UpdateStopTest(unittest.TestCase):
                       str(run.outcome))
         self.assertIn('finalizer masks: The mask of ', str(run.outcome))
         self.assertIn('Do not reboot', str(run.outcome))
+        self.stopped_with_errors(run)
 
     def test_a_successful_step_through_the_real_runner_stages_and_keeps_the_finalizers_unmasked(self):
         run = self.run_stopped('stage-ok', timeout=60)
