@@ -253,9 +253,12 @@ Updated 2026-11-14. The live truth is `git log`, `gh pr list` and `git worktree 
    - **Main fix (2026-11-15, brief 20-main-fix, PR #68, squash `bdc16064`).** Every qualification job now also runs
      on pull requests, and CI checks attestations without GitHub's anonymous quota. Main published the first attested
      Chrome qualification record (data branch `chrome-qualification`): stable 157 passes every group.
-     - Its beta 159 entry is wrongly all-false: a version-parsing bug, issue #74.
-     - The fix is on `pkg/20-popup-race`, in review (brief 20-popup-race, P4), with two popup admission fixes
-       (P1, P2) and notify by issue only.
+     - Its beta 159 entry was wrongly all-false: a version-parsing bug, issue #74.
+   - **Popup races (2026-11-15, brief 20-popup-race, PR #77, squash `635872e2`).** A replayed breakpoint no longer
+     drops a popup (P1), and the slow-load fallback says what happened (P2). P4 fixed the beta version parsing and
+     makes the qualification publisher report by issue only. Main's run on it qualified the new build on stable 157
+     and beta 159 with every group passing. The shipped-copy update waits as issue #79 for `linux-tools`.
+     P3 (naming an uncontrolled popup) is in brief 28a.
    - **Since 2026-11-13 the AresOS-side session `linux-tools` leads the tools** (`docs/control/TOOLS-HANDOFF.md`):
      - **Brief 18c, the image test with the tools inside** (`briefs/18c-image-test.md`, PR #42, `25c0df62`), with
        the `os/` change agreed with `linux-aresos` (sixteen changes, in the brief). Its container part is on main

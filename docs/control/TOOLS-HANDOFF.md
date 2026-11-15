@@ -13,9 +13,9 @@ and `git worktree list` first.
   - Merged the Chrome tool, PR #27, on 2026-11-14 (merge commit `09cedc84`), and the main fix, PR #68, on
     2026-11-15 (squash `bdc16064`). Chrome is now `linux-tools`' own; its notes are in "Chrome merged" and "Main fix
     merged" below.
-  - Finishing brief 20-popup-race (`pkg/20-popup-race`, in review; it changes `background.js` and `qualify.py`).
-  - Keeps board #185 (the optional owner oracle's re-pin, running on `pkg/19b-oracle-repin`) until it says
-    otherwise.
+  - Merged brief 20-popup-race, PR #77, on 2026-11-15 (squash `635872e2`); notes in "Popup races merged" below.
+  - Finishing brief 20-restore-lock (`pkg/20-restore-lock`): two restore-lock regressions from PR #27 and board
+    #185, the optional owner oracle's re-pin. It changes `engine.py` and the oracle. It hands over when merged.
 - **`linux-aresos`**: `os/`, the accounts and the releases. Every `os/` change is agreed with it first, it reads
   the `os/` diff before a merge, and it is told before `.github/workflows/os-image.yml` is touched.
 - **`mac-capacity`** (Mac): the owner's coordinator. Ask it for a limit check before starting builders; tell it
@@ -120,7 +120,8 @@ PR #68 (brief 20-main-fix) is on main as squash `bdc16064`; report in `reviews/2
   - Why it matters: `switches()` lets beta evidence cover the first stable of a major. So that entry would turn
     every group off on a laptop with build `4c1eccb9…` and stable 159, until a later passing 159 entry for that
     build overrides it.
-  - The fix is P4 of brief 20-popup-race.
+  - Fixed by P4 of brief 20-popup-race (PR #77). Main's run 43726046022 on `635872e2` qualified the new build
+    `e08ec851…` on stable 157 and beta 159 with every group passing. #74 stays open: see "Popup races merged".
   - **Design question for you:** an identity mismatch (measured version or build differs from the plan) is not
     evidence about the browser, yet it is recorded all-false forever. I'd make it refuse publication and turn the
     run red, and keep all-false for an incomplete suite. That changes the trust model, so it needs its own brief.
@@ -131,10 +132,15 @@ PR #68 (brief 20-main-fix) is on main as squash `bdc16064`; report in `reviews/2
     command for a session to run.
 
 **Latency gate and the runner's disk: it now fails often.**
-- **The evidence.** Four latency jobs failed on p95 tails alone, with medians normal and no reference regression:
+- **The evidence.** Six latency jobs failed on p95 tails alone, with medians normal and no reference regression:
   - main's `latency (audit)` 43647781438;
   - PR #68's `latency (plain)` 43687610984, attempt 1;
-  - PR #77's `latency (plain)` and `latency (audit)` 43712049957, attempt 1.
+  - PR #77's `latency (plain)` and `latency (audit)` 43712049957, attempt 1;
+  - main's `latency (plain)` and `latency (audit)` 43726046014 on `635872e2` (PR #77's merge): audit
+    history-4000 `asking_click` p95 129 ms against 100 (median 27); plain `navigate` p95 169 ms at history-1000 and
+    160 ms at history-4000 against 150 (medians 44 and 59). The slowest samples spent 92 to 250 ms in
+    `store_write`, the bridge 6 ms or 26 to 31 ms as usual. Not re-run: main's Chrome workflow stays red on that
+    commit for this reason alone.
 
   In every slow sample, H5's stages put the extra time in `store_write`: up to 940 ms, against a median of 10 to
   50 ms. `bridge_round_trip` and `extension_total` stayed normal. The re-runs were clean.
@@ -152,6 +158,25 @@ PR #68 (brief 20-main-fix) is on main as squash `bdc16064`; report in `reviews/2
 - **Path filters:** a pull request's path filters see the whole PR's diff. Every push to an open Chrome PR starts
   both Chrome workflows again, even a docs-only push. Use `[skip ci]` for those.
 - **Daily schedule:** both Chrome workflows also run daily at 04:19 UTC on main.
+
+## Popup races merged (2026-11-15, notes from `mac-aresos-control`)
+
+PR #77 (brief 20-popup-race) is on main as squash `635872e2`; report in `reviews/20-popup-race/REPORT.md`.
+- **P1, P2** are in `background.js`: a duplicate-breakpoint refusal re-arms once, and the slow-load fallback says
+  whether the page is still loading. **P3** (naming an uncontrolled popup) is yours in brief 28a, together with the
+  accepted ordering residual (security NOTE 1: a possible "pause still live" check before installing).
+- **P4**, the publisher: `pair` reads the version after the browser's name; notify writes issues only, one open
+  issue per title, and counts only `github-actions[bot]`'s own issues and comments.
+- **Issue #79, the shipped copy.** Notify opened it on the first run after the merge: the data branch holds four
+  entries that `control/chrome/qualification.json` on main lacks. Not urgent, since runtime delivery uses the
+  attested record. When you run its `gh pr create` command, **merge that PR with a merge commit, not a squash**. The
+  file is one JSON line, and the data branch forks from main at `4214526f`. After a squash the merge base stays
+  there, so the next update conflicts on that line. A merge commit moves the base to the data branch's head. Never
+  merge main into the data branch: it is the publisher's append-only record.
+- **Notify reports old builds' failures forever.** `notify` lists failing groups over the whole record, so the old
+  build `4c1eccb9…`'s all-false beta entry is reported on every run. That is why #74 is open again: closed, the
+  next daily run would open a duplicate. My suggestion: report only the entries this run published. Small, in
+  `qualify.py notify` plus `test_publisher.py`; the trust path doesn't change. Close #74 once it is in.
 
 ## The owner's answers, written into the briefs (#254: into the service-fix brief)
 

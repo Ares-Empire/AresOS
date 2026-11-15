@@ -63,6 +63,18 @@ Each review was by a fresh agent that didn't build the code.
 - P3 → brief 28a (`linux-tools`).
 - An identity mismatch in a qualification pair is recorded all-false forever → `linux-tools`, as a design question
   (`docs/control/TOOLS-HANDOFF.md`, "Main fix merged").
+- The shipped-copy update, issue #79 → `linux-tools` (merge it with a merge commit; `docs/control/TOOLS-HANDOFF.md`,
+  "Popup races merged").
+
+## On main after the merge
+
+Main's runs on `635872e2`:
+- qualification 43726046022 green. The new build `e08ec851…` is qualified on stable 157.0.8103.78 and beta
+  159.0.8154.6 with every group passing, so P4's version parse works on the beta channel. Notify opened #79 for
+  the shipped copy, and added nothing to #74, whose failure list was unchanged. That list still names the old build's
+  all-false beta entry, because notify reports over the whole record; #74 stays open for that (`linux-tools`);
+- Control Chrome 43726046014: everything green except both latency jobs, on p95 tails alone. As before, the slowest
+  samples' extra time was in the service's store write on the runner's disk (`TOOLS-HANDOFF.md`, "Main fix merged").
 
 ## Local preflight
 
