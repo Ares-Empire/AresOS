@@ -1,4 +1,4 @@
-# 18c image part: progress (Part A, step 1; B2, steps 2a to 2c)
+# 18c image part: progress (Part A, step 1; B2, steps 2a to 2c; the Chrome follow-up)
 
 Branch `pkg/18c-image`, draft PR #58. Step 1 builds Part A of `briefs/18c-image-test.md` as amended by the sixteen
 changes agreed with `linux-aresos` and by `briefs/18c-image-start.md`. It has no VM test (B2), no `os-image.yml` change
@@ -65,7 +65,7 @@ has only `git-core`. See "gh" below.
 | # | Status |
 |---|---|
 | 1 Sources through the source stage | done |
-| 2 Base with 23 and Chrome | built on `main` with 23, without PR #27 (lead's decision, start note); Chrome follow-up later |
+| 2 Base with 23 and Chrome | done: `main` merged with PR #27 (`4cf76e63`); Chrome's startup files in the image, its checks in B2 (Chrome follow-up) |
 | 3 Lists that pin enabled units | done as far as `main` has them: no list pins enabled units or users except release 27's `ci/release_diff.py` (the next release extends its own diff); image check proves the updater audit saw the unit; polkit unaffected (no rules) |
 | 4 `gh` | check-resolve step done, resolve run done; **install open** (stop rule, below) |
 | 5 Fixed UID/GID | done (250) |
@@ -77,7 +77,7 @@ has only `git-core`. See "gh" below.
 | 11 Folders by tmpfiles | done |
 | 12 Rehearsal check actions | done (step 2a): `os/ci/control/release_checks.py` |
 | 13 Reserved words test | done |
-| 14 Idle footprint | measured (step 2a): ~32 MB, 10 wake-ups/s, 0.35–0.67 % of one CPU |
+| 14 Idle footprint | measured (step 2a): ~32 MB, 10 wake-ups/s, 0.35–0.67 % of one CPU; with Chrome (follow-up): 32.9–33.2 MB, 10.0–10.4/s, 0.43–1.32 % |
 | 15 `os-image.yml` additive, lead first | done: one option (`1ee81d1b`), the VM pass's own step (`0af04070`), its limits sized (`2d1ad22f`); each its own commit |
 | 16 `linux-aresos` reads the `os/` diff | before merge |
 
@@ -730,37 +730,296 @@ model double's string results (step 2b).
 13 s (boot to channel 39.5 s, the pass 372.7 s from QEMU's start: idle 59.4, check 6 110.7, check 9 107.0, check 7
 34.9, the rest under 10 s each); the job 48 min 19 s (attempt 2: 50 min 56 s). Run 3: build 40 min 4 s, VM step 6 min 21 s.
 
-## Left, in order (step 2c on)
+## Chrome follow-up (after PR #27; 2026-11-15)
 
-1. The lead: append the "For the report: B2" text above to `reviews/18c-image-test/REPORT.md` (a Claude builder
-   can't create that file name), with Part A's section and the JUDGMENT-CALLs; take check 6's question to the owner.
-2. The Chrome follow-up after PR #27: two map entries (`chrome/qualification.json`, `chrome/build-id.json`), their
-   checks, `SOCKET_MODES` from the merged `daemon.py`, and one more `check_build=control` run (a new budget).
-3. The reviews (the lead's job): a package review and a high-stakes security review of the whole package.
-4. `linux-aresos` reads the `os/` diff (agreed change 16), now including `os/ci/control/` and the workflow's limits.
+Built by a Claude agent on Opus 5.5. Commits `4cf76e63` (merge of `origin/main` at `32fd16ec`, with Chrome's
+`09cedc84`), `c58517fa` (startup files and checks), `4cf908a2` (the workflow's limits, own commit, `rebind.py pending`),
+`3c7c3c66` (check 6 reads the offered tools from the session's last request).
+
+### Done
+
+- **Merge** (`4cf76e63`, a merge commit). Two conflicts: `control/ci/setup.sh` (main's Chrome lines, copying
+  `control/chrome` and writing `chrome/build-id.json`, kept with this branch's config folder `/usr/share/aresos/control`)
+  and `os/manifest/ci/16/pending-rebind.json` (main's list after 22c's rehearsal, then `rebind.py pending` re-recorded
+  18c's three workflow notes plus one saying why they wait again). `os-image.yml`, `daemon.py`, `launch.py`, the
+  README and the tests merged cleanly; the merged `daemon.py` keeps the config default `/usr/share/aresos/control`.
+- **What the merged service needs to start** (**read** `aresos_control/engine.py`, `chrome/adapter.py`, `daemon.py`;
+  **run** locally on a `control-tree` copy): the Engine builds the Chrome adapter, whose `__init__` reads
+  `<code>/chrome/build-id.json` (else it runs `<code>/chrome/build.py`, which the image doesn't carry: the service would
+  not start) and `<code>/chrome/qualification.json`. Nothing else: the excluded-sites file is read only once a browser
+  is connected (`mode()` refuses `chrome_unavailable` first), the upload folder only on an upload, `gh` and the record
+  fetch only after a native host connects. An `Engine` built from the installed tree copy started with build
+  `966c2737…4352` and 0 qualification entries and answered `chrome tabs` with `chrome_unavailable` "Chrome is not
+  connected; start normal Chrome with the installed extension."
+- `os/build.sh`: `FILES` gains `chrome/qualification.json` → `/usr/libexec/aresos-control/chrome/qualification.json`
+  (0644), `DERIVED` gains `chrome/build-id.json` = `{"build":"<hash>"}` from `python3 -I -B control/chrome/build.py`
+  over `control/` of the commit (the README's rule). Both are in `control.json` like every other file, so
+  `image-checks.sh` (in the image as recorded) and `check-image.sh` (equal to the checkout's `control-tree`) check them
+  with no new code. The build prints `CONTROL_CHROME_BUILD <hash>` (for the lead's `control/chrome/builds.json`) and its
+  self-check reads both files the way the adapter does, with the installed code (`validate_record`):
+  `CONTROL_CHROME_STARTUP_FILES build <hash>, 0 qualification entries`. `control-tree` now installs 73 files.
+- `os/ci/control/actions.py`:
+  - `SOCKET_MODES` = `act.sock` 0666, `admin.sock` 0600, **`chrome.sock` 0666** and `SOCKET_FOLDER_MODE` 0711, the
+    merged `daemon.py`'s. `os/tests/test_control_vm.py` (`ServiceModesTest`) reads them from `daemon.py` itself (the
+    `for kind in (...)` loop's `os.chmod` expression and `directory.mkdir(mode=...)`), so a change there fails the
+    test until the check follows. No other mode the checks assert comes from `daemon.py` (the password folder and
+    file are Mail's `transport.py`, the state folders tmpfiles').
+  - Check 3: `aresos-mcp chrome` answers `initialize` and `tools/list` with exactly `generated/chrome-tools.json` and
+    `chrome-instructions.txt` (beside `mail` and `control`); a `tools/call` of `tabs` with no browser is an MCP error
+    result naming `chrome_unavailable` (its time recorded: never a hang); `aresos chrome tabs` as `ares` is refused
+    `chrome_unavailable`; another user on `chrome.sock` gets `permission_denied` ("Chrome native host must run as the
+    configured owner.").
+  - Check 5 needed no change: it installs every entry of `user-mcp.json`, now with `chrome`, and requires `claude mcp
+    list` to show each one connected.
+  - Check 6: the session's first model request must offer every shipped Chrome tool (`mcp__chrome__<name>` for all
+    30), with tool search off; the summary records the offered tools per server (`tools_offered`).
+  - New `control-storage-tests` (`CONTROL_STORAGE_TESTS_PASS {summary}`), last before the restart: main's handoff
+    rule. The layer carries `control/chrome_tests/*.py` and `control/mail_tests/storage_faults.py` only; the action
+    copies them to `/var/tmp/aresos-ci-storage/control/` (`test_engine.py` keeps scratch in `<root>/.work`), and runs
+    `/usr/bin/python3 -B -m unittest -v test_full_disk_reads test_open_index_timing` as `ares` with
+    `PYTHONPATH=<tests>:/usr/libexec/aresos-control:/usr/lib/aresos-control/vendor`, so the **installed**
+    `aresos_control` runs on the image's own Python and SQLite (a probe first requires `aresos_control.__file__` to be
+    the installed one and records Python's and SQLite's versions; the timing test's `step7-timing` line goes into the
+    summary). Locally the same layout against a `control-tree` copy: 11 tests OK in 22 s, Python 3.14.8, SQLite 3.51.2.
+- `os/README.md`: the paragraph names Chrome's two startup files and what 18c-b adds.
+- Time limits (`4cf908a2`, own commit, `rebind.py pending`): the Control VM pass step from 10 to 12 minutes and the
+  job's control limit from 125 to 127, before the first run, from an estimate (the pass took 6 min 13 s to 6 min 54 s;
+  Chrome adds the storage tests, about 30 s on the laptop, and a few seconds of checks). Confirmed against the
+  measured pass below.
+
+### Decisions the code doesn't show (JUDGMENT-CALLs for the report)
+
+15. **No excluded-sites file in 18c.** The merged service starts and answers without
+    `/etc/aresos/control/chrome-excluded-sites.json` (it is read only once a browser is connected), and the brief puts
+    it in Part C with the rest of the browser side. So 18c ships no file under `/etc/aresos/`; 18c-b adds it (root,
+    0640, the service's group, `{"format":1,"hosts":[]}`). Changing later: one `FILES`-like entry with a group, which
+    the map doesn't support yet (everything it installs is root:root).
+16. **The storage tests run against the installed `aresos_control`**, not a copy of the checkout's, as `ares`, with the
+    service's import path; only the test modules come into the layer. Alternative: run the whole Python suite in the
+    guest (main's handoff says "the normal Python suite"; this step's brief names the two tests).
+17. **`build-id.json`'s bytes** are `{"build":"<hash>"}` and a newline, the README's form; `control/ci/setup.sh` writes
+    `{"build": "<hash>"}` without one. The adapter reads only the key.
+18. **The time limit was raised before the first run** (an estimate, checked against the measured pass), so the two
+    greens fall on one head within this step's budget of three runs.
+
+### PLAN-GAPs (Chrome follow-up)
+
+6. Main's Chrome CI image (`control/chrome/ci/Dockerfile`, out of reach) still makes `/etc/aresos-control`; nothing
+   there reads it (its service gets its config in-process), so it is harmless, but the brief's list of places for the
+   moved config path named it.
+
+### Findings for the lead (Chrome follow-up; `control/aresos_control/` is out of reach, nothing changed there)
+
+- **A session started while the service is down never gets the AresOS tools, also after the service is back.** Run
+  43669126392, `control/ordinary/failed-fresh-session.tar.gz` (`model/requests.json`): with the service failed at
+  the session's start, every request of turns 4 and 5 offered the same tools (Claude Code's 25 and his own `notes`,
+  digest `c768872a…`, 71,309 bytes), also turn 5 after the service recovered. Our proxies don't connect without the
+  service, and Claude Code doesn't retry them during the session. For the owner: after a service failure his open
+  Claude Code sessions stay without `chrome`, `mail` and `control` until he restarts them (or reconnects with
+  `/mcp`, not tried). Worth a line in his guide or in the service-down notice of #254.
+- **The first request of every session goes out before our MCP servers have connected** (run 43669126392, all five
+  sessions with a request record): request 1 carried only Claude Code's tools and `notes` (his stdlib server, fast);
+  our servers' tools arrive from the second or third request on (digest `5f5a32aa…`, 136,504 bytes, the same in
+  checks 6, 7 and 9). A first prompt given on the command line, as the checks do, is answered without our tools; typed
+  by hand a few seconds later it most likely has them. The proxies' start-up (the MCP SDK's import under
+  `python3 -I -S`) is the likely cost; not measured.
+- Chrome added nothing to the idle cost (below): the adapter's minute maintenance returns at once without a browser.
+
+### Runs (Chrome follow-up; budget 3 `check_build=control`)
+
+- **run 43669126392** (`control`, head `4cf908a2`; build step 02:48:03 to 02:58:48 = 10 min 45 s, Control VM step
+  02:58:48 to 03:05:08 = 6 min 20 s, the pass 379.2 s from QEMU's start): failure, one check, the new assertion of
+  check 6 (the first request carried no Chrome tools; see the finding above, fixed in `3c7c3c66` by reading the
+  session's last request). Every other line green: `CLAUDE_CODE_PINNED 2.1.319 …`, `CONTROL_CHROME_BUILD
+  966c27379ac28abafe17c8017059186d847e75fb6048e4cbea7307b13abc4352`, `CONTROL_INSTALLED 73 files, 28 wheels, 2024
+  vendored paths from 4cf908a2…`, `CONTROL_CHROME_STARTUP_FILES build 966c2737…4352, 0 qualification entries`,
+  `CONTROL_GENERATED_MATCH 15 files`, image check "Control: every file, folder and vendored path control.json records
+  is in the image as recorded …", `CHECK_BUILD_PASSED`, `CONTROL_IMAGE_FILES_PASS`, `CONTROL_ETC_CLAUDE_CODE_PASS`,
+  `CONTROL_RELEASE_CHECKS_PASS`, `CONTROL_IDLE_FOOTPRINT_RECORDED`, `CONTROL_FIXTURES_REACHABLE`,
+  `CONTROL_ENTRY_POINTS_PASS`, `CONTROL_PRECONDITION_PASS`, `CONTROL_USER_MCP_INSTALL_PASS`,
+  `CONTROL_SERVICE_SANDBOX_PASS`, `CONTROL_MAIL_FLOWS_PASS`, `CONTROL_PERMISSION_REQUEST_RECORDED
+  {"normal-permission-user": {"hook_calls": 1, "owner_answers": 0, "prompt_shown": false, "send_arrivals": 1}}` (the
+  flash not caught this time: timing dependent, recorded, not pinned), `CONTROL_INTERACTIVE_ASK_PASS`,
+  `CONTROL_PASSWORDS_PRIVATE_PASS`, `CONTROL_SELINUX_AFTER_CHECKS_PASS`, `CONTROL_STORAGE_TESTS_PASS`,
+  `CONTROL_SERVICE_RESTART_PASS`, `CONTROL_VM_POWEROFF_CLEAN`.
+  - Chrome in check 3: `aresos-mcp chrome` served `aresos-chrome` 0.1.0, protocol `2025-06-18`, 30 tools equal to
+    `generated/` (no keys beyond them; `mail` 28, `control` 4); `tools/call tabs` answered in 0.01 s with
+    `isError: true`, `chrome_unavailable` "Chrome is not connected; start normal Chrome with the installed
+    extension."; the CLI the same; another user on `chrome.sock`: `permission_denied` "Chrome native host must run as
+    the configured owner.". Check 5: `chrome` installed from `user-mcp.json` and "✔ Connected" beside `control`,
+    `mail`, `notes`, `testapp`.
+  - Check 2: `act.sock` 0666, `admin.sock` 0600, `chrome.sock` 0666, all 250:250, folder 0711.
+  - Idle footprint with Chrome (60 s, one process, one thread): `memory.current` 33,218,560 B (peak 33,480,704), anon
+    23,969,792 B, RSS 37,164 KiB, PSS 25,328 KiB, swap 0; 602 switches = **10.0 wake-ups/s**; CPU 256 ms =
+    **0.43 %** of one CPU (without Chrome: 31.9 to 32.3 MB, 10.0 to 12.5/s, 0.35 to 1.62 %).
+  - Storage tests in the guest: **Python 3.14.8, SQLite 3.51.2** (`/usr/lib64/python3.14/sqlite3`), the installed
+    `aresos_control`, 11 tests OK in 27.8 s; `step7-timing` at 4,000 operations: indexed shapes 0.005 ms against scans
+    of 19 to 63 ms, a Chrome read's service time 4.09 ms median (ceiling 35), `engine_pending` 52.3 ms.
+  - Times (s): boot to channel 26.8, files 3.6, idle 60.0, entry points 3.9, user MCP 4.8, check 6 108.7, check 7
+    32.4, check 9 104.7, storage tests 27.9, restart 1.3.
+
+- **run 43671243430 attempt 1** (`control`, head `3c7c3c66`; job 03:13:38 to 04:09:36; tools 03:15:46 to 03:17:57,
+  build step 03:18:04 to 04:01:31 = 43 min 27 s, Control VM step 04:01:31 to 04:09:31 = **8 min 0 s**, the pass 478.8 s
+  from QEMU's start): **success**, every line in this order: `CLAUDE_CODE_PINNED 2.1.319 sha512-FO4Sd23B…oOQ==
+  dabafec8…8eed`, `CONTROL_CHROME_BUILD 966c27379ac28abafe17c8017059186d847e75fb6048e4cbea7307b13abc4352`,
+  `CONTROL_INSTALLED 73 files, 28 wheels, 2024 vendored paths from 3c7c3c66…`, `CONTROL_CHROME_STARTUP_FILES build
+  966c2737…4352, 0 qualification entries`, `CONTROL_GENERATED_MATCH 15 files`, `CONTROL_FILES_RECORDED 73 files, 2024
+  vendored paths, 28 wheels from 3c7c3c66…`, `CHECK_BUILD_PASSED`, `CHECK_BUILD_CONTROL_DISK_READY`,
+  `CONTROL_IMAGE_FILES_PASS`, `CONTROL_ETC_CLAUDE_CODE_PASS`, `CONTROL_RELEASE_CHECKS_PASS`,
+  `CONTROL_IDLE_FOOTPRINT_RECORDED {…}`, `CONTROL_FIXTURES_REACHABLE`, `CONTROL_ENTRY_POINTS_PASS`,
+  `CONTROL_PRECONDITION_PASS`, `CONTROL_USER_MCP_INSTALL_PASS`, `CONTROL_SERVICE_SANDBOX_PASS`,
+  `CONTROL_ORDINARY_SESSION_PASS {…}`, `CONTROL_MAIL_FLOWS_PASS`, `CONTROL_PERMISSION_REQUEST_RECORDED
+  {"normal-permission-user": {"hook_calls": 1, "owner_answers": 0, "prompt_shown": false, "send_arrivals": 1}}`,
+  `CONTROL_INTERACTIVE_ASK_PASS`, `CONTROL_PASSWORDS_PRIVATE_PASS`, `CONTROL_SELINUX_AFTER_CHECKS_PASS`,
+  `CONTROL_STORAGE_TESTS_PASS {…}`, `CONTROL_SERVICE_RESTART_PASS`, `CONTROL_VM_POWEROFF_CLEAN`,
+  `CHECK_BUILD_CONTROL_PASSED`; the fixture stop step green.
+  - Chrome in check 3 and 2: as in run 43669126392 (30 tools equal to `generated/`, `tabs` refused
+    `chrome_unavailable` in 0.01 s by MCP and CLI, another user `permission_denied` on `chrome.sock`; `chrome.sock`
+    0666 250:250).
+  - Check 6: the tools per request of the first session: requests 1 and 2 (turn 1) Claude Code's 25 and `notes` 1;
+    from request 3 on also `chrome` 30, `control` 4, `mail` 28, `testapp` 13. The turns as in step 2c: model requests
+    2, 3, 2, 3, 2; Stop continuations 0, 1, 0, 1, 0; his tool ran in every turn; his Stop hook once per turn (on the
+    attempt that ends it).
+  - Idle footprint with Chrome: `memory.current` 32,903,168 B (peak 33,689,600), RSS 36,852 KiB, PSS 25,224 KiB, swap
+    0; 622 switches in 60 s = **10.4 wake-ups/s**; CPU 793.4 ms = **1.32 %** of one CPU.
+  - Storage tests: Python 3.14.8, SQLite 3.51.2, the installed `aresos_control`, 11 tests OK in **60.2 s** (27.8 s in
+    run 43669126392: the runner's speed).
+  - Times (s): boot to channel 50.4, files 5.0, idle 60.3, entry points 5.0, precondition 2.2, user MCP 12.2, check 6
+    112.6, check 7 41.5, check 9 123.2, storage tests 60.3, restart 1.9.
+- **run 43671243430 attempt 2** (`gh run rerun`, head `3c7c3c66`; job 04:12:40 to 04:33:34; tools 04:14:19 to
+  04:16:16, build step 04:16:21 to 04:27:07 = 10 min 46 s, Control VM step 04:27:07 to 04:33:31 = 6 min 24 s, the pass
+  383.9 s): **success**, the same lines as attempt 1 in the same order, with the same
+  `CONTROL_PERMISSION_REQUEST_RECORDED {"normal-permission-user": {"hook_calls": 1, "owner_answers": 0,
+  "prompt_shown": false, "send_arrivals": 1}}`; check 6 the same numbers (2, 3, 2, 3, 2 model requests; 0, 1, 0, 1, 0
+  continuations; his Stop hook once per turn) and the same tools per request (our servers from request 3 on); idle
+  33,161,216 B, 600 switches in 60 s = **10.0 wake-ups/s**, 248.2 ms = **0.41 %** of one CPU; storage tests 11 OK in
+  28.8 s on Python 3.14.8 and SQLite 3.51.2; the fixture stop step green. Times (s): boot to channel 29.4, check 6
+  108.6, check 7 32.4, check 9 105.4, storage tests 28.8.
+- **run 43675804962** (`build`, head `3c7c3c66`; job 04:33:37 to 05:17:33 = 43 min 56 s, build step 04:37:06 to
+  05:17:28 = 40 min 22 s, the Control VM step skipped as it should be in this mode): **success**,
+  `CONTROL_CHROME_BUILD 966c2737…4352`, `CONTROL_INSTALLED 73 files, 28 wheels, 2024 vendored paths from 3c7c3c66…`,
+  `CONTROL_CHROME_STARTUP_FILES build 966c2737…4352, 0 qualification entries`, `CONTROL_GENERATED_MATCH 15 files`,
+  `CONTROL_FILES_RECORDED 73 files, 2024 vendored paths, 28 wheels from 3c7c3c66…`, `CHECK_BUILD_PASSED`,
+  `CHECK_BUILD_VM_PASSED` (the policy VM pass sees the image with Chrome's files).
+- **The time limit:** the Control VM step took 6 min 20 s (run 43669126392) and 8 min 0 s (run 43671243430); the
+  12 minutes set in `4cf908a2` are 1.5 times the slower one. The old 10 would have been 1.25 times it: the raise was
+  needed.
+- PR #58's own workflows on `3c7c3c66`: Control base, boundary and Mail green; **Control Chrome** failed `latency
+  (audit)` (main's known p95 tail, board #276) and `fixtures (policy, recheck2)` with its `aggregate (policy)`:
+  "GROUP 8 closing or releasing an opener ends popup control and clears badges FAIL Error: opener badge before close:
+  undefined" (run 43671248371, job 132684122631), a browser-timing case. Not this branch's: `3c7c3c66` changes only
+  `os/` against `4cf908a2`, whose Control Chrome run 43669130757 passed every job. Noted, not fixed (`control/chrome/`
+  is out of reach).
+
+- **What ran locally** (quick tests only): `os/tests` `test_control_image.py` and `test_control_vm.py` (27 run, OK),
+  `test_checkout_sources.py` (6), `test_owner_equality.py` (10), `test_owner_path.py` (47), `test_owner_step_limits.py`
+  (4), `test_ways_back_probe.py` (57), all OK after the merge (they read the pending list); `test_ways_back_model.py`
+  did not finish within 10 minutes on the laptop (a heavy model run, untouched here; the checks-only job runs it). The
+  two storage tests against a `control-tree` copy: 11 OK.
+- **Done:** `check_build=control` green twice on the final head `3c7c3c66` (run 43671243430, attempts 1 and 2) and
+  `check_build=build` green once on it (run 43675804962). Only this file changed after `3c7c3c66`. **Runs used:** 2 of
+  3 `check_build=control` (43669126392, 43671243430 with its rerun as the second green) and 1 `check_build=build`. In
+  the whole package: 1 resolve, 4 build, 9 control runs (2a 2, 2b 2, 2c 3, this step 2 plus one rerun).
+
+### For the report: Chrome follow-up (append to `reviews/18c-image-test/REPORT.md`)
+
+**Done.** `main` with the Chrome tool (PR #27) merged into the branch. The image now carries what the merged service
+needs to start with its Chrome adapter, and nothing of the browser side: `chrome/qualification.json` (the shipped,
+empty baseline: conservative mode) and `chrome/build-id.json` (the hash `control/chrome/build.py` computes over
+`control/` of the build commit; without it the adapter would run `build.py`, which the image doesn't carry, and the
+service would not start). Both are in `control.json`, checked in the image and against the checkout like every
+other file; the build prints the hash for `control/chrome/builds.json`. The VM test's socket modes now come from the
+merged `daemon.py` (`chrome.sock` 0666, pinned by a static test that reads `daemon.py`), and its checks cover Chrome
+as far as no browser is needed. Chrome's storage plan and timing tests ran on the image's own Python and SQLite.
+
+**Verified** (**run**, head `3c7c3c66`, run 43671243430 attempts 1 and 2, `check_build=build` run 43675804962):
+`CONTROL_CHROME_BUILD 966c2737…4352` and `CONTROL_CHROME_STARTUP_FILES … 0 qualification entries` at build; check 1
+with the two files; check 2 with `chrome.sock` 0666 `aresos-tools`; check 3: `aresos-mcp chrome` serves exactly the
+30 generated tools and instructions, a read with no browser is a clear refusal (`chrome_unavailable` "Chrome is not
+connected; start normal Chrome with the installed extension.", 0.01 s, MCP and CLI), another user is refused on
+`chrome.sock`; check 5: the `chrome` entry installed from `user-mcp.json` and connected; check 6: his session offers
+all 30 Chrome tools once the servers are up; `CONTROL_STORAGE_TESTS_PASS`: 11 tests on **Python 3.14.8 and SQLite
+3.51.2** against the installed code (CI had 3.45.1, the Mac 3.50.4). Every earlier B2 line stays green.
+
+**Idle footprint with Chrome** (60 s, nothing using the service): 32.9 to 33.2 MB, 10.0 to 10.4 wake-ups a second,
+0.43 to 1.32 % of one CPU: the same as without Chrome.
+
+**Not verified** (18c-b): everything that needs the extension, the native host or a real Chrome (the list below).
+
+**Findings for the owner's picture:** a Claude Code session started while the service is down keeps going without
+our tools, also after the service is back, until he restarts it; and the first request of a session may go out before
+our tools are connected (a prompt typed at once may not see them).
+
+**Measured time:** the Control VM pass 6 min 20 s and 8 min 0 s (the step's limit now 12 minutes, about 1.5 times the
+slower); the build to the disk 10 min 45 s to 43 min 27 s (the runner's cache and speed).
+
+### For 18c-b (the Chrome lines of B2 that need the browser side)
+
+- The extension, its policy (force-install, toolbar pin), the native host manifest and launcher, the excluded-sites
+  file, the polkit action and `/usr/bin/pkcheck`, and `gh`, each in the install map and `control.json` with its image
+  check.
+- In the VM: the native host reaches `chrome.sock` as `ares` (this step proves only the socket's mode and that another
+  user is refused); Chrome's asking tools ask through B's interactive driver; a read with a browser connected (today
+  only the `chrome_unavailable` refusal); "Allow editing" through his real polkit agent; the daily record refresh
+  once under the real unit as `aresos-tools` (`gh attestation verify` in the sandbox, its cache under
+  `/var/lib/aresos-tools`), the "refused, held record retained" path and an offline bundle verification.
+- Test group 12 in 18d's container harness.
+
+## Left, in order (after the Chrome follow-up)
+
+1. The lead: assemble `reviews/18c-image-test/REPORT.md` (a Claude builder can't create that file name): Part A's
+   section, "For the report: B2" (step 2c) and "For the report: Chrome follow-up" (above), the JUDGMENT-CALLs (1 to 18)
+   and the findings. Check 6's question is with the owner (board #254, answered "Quiet unless used"; into the
+   service-fix brief, not this branch).
+2. The reviews (the lead's job): a package review and a high-stakes security review of the whole package.
+3. `linux-aresos` reads the `os/` diff (agreed change 16): the section below is up to date.
+4. The owner's yes to a release carrying Control (agreed change 10), with check 6's numbers.
 5. The last step deletes this file.
 
-Lead, 2026-11-14 (after step 2c): the report is assembled once, by the lead, after the Chrome follow-up and before
-the reviews (Codex from 2026-11-17: a package review and a high-stakes security review of the whole package). Check
-6's question is with the owner (board #254); its answer goes into the service-fix brief (board #233, #235, #237), not
-this branch. Before `linux-aresos` reads the section below, bring it up to date: `check-resolve.sh` is back to main's
-(`gh` is in 18c-b), and `os-image.yml`, `os/ci/control/`, `os/ci/overlay/checks.py` and `os/ci/check-build.sh` did
-change (step 2a on).
+Lead, 2026-11-14 (after step 2c), kept for the record: the report is assembled once, by the lead, after the Chrome
+follow-up and before the reviews (Codex from 2026-11-17).
 
 ## The `os/` diff for `linux-aresos`
 
-- `os/Containerfile`: aresos stage copies `/source/control` from the existing source stage and runs `build.sh control`
-  before `configure`; `FROM` lines and the other stages unchanged.
+Against `origin/main` (`32fd16ec`, after the Chrome follow-up's merge `4cf76e63`); brought up to date in the Chrome
+follow-up (2026-11-15). Image side first, then CI only.
+
+- `os/Containerfile`: the aresos stage copies `/source/control` from the existing source stage and runs `build.sh
+  control` before `configure`; `FROM` lines and the other stages unchanged.
 - `os/build.sh`: `source` also extracts `AresOS-<commit>/control`; new `control` mode (pip vendor, install map,
-  manifest, self-checks) and `control-tree` (the map alone, for checks and tests). `packages` and `configure`
-  unchanged.
+  manifest, self-checks) and `control-tree` (the map alone, for checks and tests). The map includes Chrome's two
+  startup files in `/usr/libexec/aresos-control/chrome/` (`qualification.json` as shipped, `build-id.json` from
+  `control/chrome/build.py` over `control/` of the commit; the build prints `CONTROL_CHROME_BUILD <hash>` and its
+  self-check reads both with the installed code). `packages` and `configure` unchanged.
 - `os/ci/image-checks.sh`: early not-at-build check for `aresos-tools`/250 and the two folders; a Control section at
   the end (files, managed files, unit policy, sysusers, tmpfiles, config, launcher, no fixture traces).
 - `os/ci/check-image.sh`: a new block after the existing lock check: `control.json` equals what `build.sh control-tree`
   makes from the checkout, from `HEAD`, wheels from `requirements.lock`.
-- `os/ci/check-resolve.sh`: the one `gh` step and `gh` in the candidate request.
-- `os/tests/test_control_image.py`: new, 11 tests.
-- `os/tests/test_aresos_desktop.py`: the source-stage test expects `control/` beside `mod/` (JUDGMENT-CALL 6).
-- `os/README.md`: one paragraph on Control in the image.
+- `os/ci/check-resolve.sh`: **unchanged** (equal to main's; `gh` moved to 18c-b).
+- `os/README.md`: one paragraph on Control in the image (with Chrome's startup files).
+- `os/tests/test_control_image.py` (9 tests, new) and `os/tests/test_aresos_desktop.py` (the source-stage test
+  expects `control/` beside `mod/`, JUDGMENT-CALL 6).
+- CI only, never in a release:
+  - `.github/workflows/os-image.yml` (`check-build` job only, no new permission or secret): `check_build` gains
+    `control`; the job's limit is `${{ inputs.check_build == 'control' && 127 || 120 }}`; two steps run only for
+    `control`: "Control VM pass" (`check-build.sh control-pass`, `timeout-minutes: 12`) and an `always()` step
+    stopping the fixture servers (`runner.sh stop`). The build step keeps its 80 minutes for every mode. Four
+    commits, each its own (`1ee81d1b`, `0af04070`, `2d1ad22f`, `4cf908a2`), each recorded with `rebind.py pending`.
+  - `os/manifest/ci/16/pending-rebind.json`: the workflow's bytes wait for the next rehearsal; after main's 22c
+    rehearsal the merge re-recorded 18c's notes (22c's bindings don't include them).
+  - `os/ci/check-build.sh`: `control|build)` share the build; `control` starts the fixtures first, builds the Control
+    layer after the CI layer and makes the disk from `localhost/aresos:control` (`CHECK_BUILD_CONTROL_DISK_READY`);
+    new `control-pass` boots it with `control_vm.py` (`CHECK_BUILD_CONTROL_PASSED`). `build` mode unchanged.
+  - `os/ci/overlay/checks.py`: the hook (agreed change 8): `layer_actions()` loads `actions.d/*.py` after the fixed
+    actions; a layer adds actions, never replaces one.
+  - `os/ci/control/` (new): `Containerfile` (the test layer `FROM localhost/aresos:vm`), `runner.sh` (fixture CA,
+    GreenMail and Dovecot on the runner's loopback, Claude Code from the boundary's lock, the layer, the stop and
+    password-leak check), `control_vm.py` (boots the disk, runs the checks, prints the PASS lines), `actions.py`
+    (the guest's checks), `sessions.py` (Claude Code sessions with B1's driver), `release_checks.py` (agreed change
+    12: the rehearsal's check actions), `own-mcp.py` and `own-hook.py` (his own server and hooks). The layer also
+    carries `control/boundary/interactive_{driver,model}.py`, `control/ci/image/mail_flows.py` and, for the storage
+    tests, `control/chrome_tests/*.py` and `control/mail_tests/storage_faults.py`.
+  - `os/tests/test_control_vm.py` (18 tests, new).
 - Not changed: base digest, `packages.lock.json`, Chrome pin, accounts, sudo, polkit, masks, session, PATH,
-  repositories, `os/config/`, `os/policy/`, `os/release/`, `os/owner-tools/`, `os/manifest/`, `os-image.yml`.
+  repositories, `os/config/`, `os/policy/`, `os/release/`, `os/owner-tools/`, `os/manifest/` (except the pending
+  list above), `ci/check-resolve.sh`, and every other job of `os-image.yml`.
