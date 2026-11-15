@@ -919,7 +919,7 @@ Built by a Claude agent on Opus 5.5. Commits `4cf76e63` (merge of `origin/main` 
 - **Done:** `check_build=control` green twice on the final head `3c7c3c66` (run 43671243430, attempts 1 and 2) and
   `check_build=build` green once on it (run 43675804962). Only this file changed after `3c7c3c66`. **Runs used:** 2 of
   3 `check_build=control` (43669126392, 43671243430 with its rerun as the second green) and 1 `check_build=build`. In
-  the whole package: 1 resolve, 4 build, 9 control runs (2a 2, 2b 2, 2c 3, this step 2 plus one rerun).
+  the whole package: 1 resolve, 4 build, 10 control (2a 2, 2b 2, 2c 3 with its rerun, this step 3 with its rerun).
 
 ### For the report: Chrome follow-up (append to `reviews/18c-image-test/REPORT.md`)
 
