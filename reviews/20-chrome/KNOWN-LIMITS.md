@@ -32,4 +32,6 @@ The lead accepted the all-borrowed-native A-3 limit in `briefs/20-recheck-fixes-
   binding is large can't be sent at all. The approval carries the whole binding in its description, and a select's
   binding lists every option, so a form with a 200-option country list exceeds the 16,384-byte approval limit
   (`asking_input_too_large`, nothing reserved, nothing sent). The failure is closed: Claude tells the owner to send it
-  himself. Brief 28a (PR #48) bounds what the approval describes.
+  himself. Brief 28a (PR #48) bounds what the approval describes. From reading the code (not yet run): when the
+  page itself submits such a form, the held step's refusal is uncaught, so every later read of that tab fails the
+  same way until the document goes; nothing is sent. Brief 28a item 3a fixes that too.
