@@ -4,9 +4,9 @@
 
 Reads the rig folder of run.sh (settings.txt, marks.txt, frames.txt, gc.txt, snap-*.json, samples.csv, game.txt)
 and writes <out>/summary.json, plus copies of the small files (settings, marks, snapshots, the GC log as gc.txt,
-the samples). Frame time is the gap between the starts of two frames (frames.txt); a window counts the frames that
-start inside it. GC pauses come from -Xlog:gc with the timenanos decoration (System.nanoTime, the same clock); the JVM prints
-uptime first, then timenanos."""
+the samples). Frame time is the gap between the starts of two frames (frames.txt); a window counts the gaps that end
+inside it, so the gap in progress at its start counts too. GC pauses come from -Xlog:gc with the timenanos decoration
+(System.nanoTime, the same clock); the JVM prints uptime first, then timenanos."""
 import glob, json, os, re, shutil, statistics, sys
 
 rig, out = sys.argv[1], sys.argv[2]
@@ -33,8 +33,8 @@ for line in open(os.path.join(rig, 'gc.txt')) if os.path.exists(os.path.join(rig
         heap = re.search(r'(\d+)M->(\d+)M\((\d+)M\)', rest)
         if heap:
             committed.append((end, int(heap[1]), int(heap[2]), int(heap[3])))
-    elif kind.startswith('Concurrent'):
-        cycles.append((end, kind))
+    elif kind.startswith('Concurrent') and not rest:
+        cycles.append((end, kind))  # a cycle's opening line; its closing line carries the duration (in rest)
 
 
 samples = []  # (monotonic ns, CPU s)
@@ -59,7 +59,11 @@ def cpu_percent(start, end):
 
 def window(start, end):
     stats = {'seconds': round((end - start) / 1e9, 1), 'cpu_percent': cpu_percent(start, end)}
-    inside = [t for t in frames if start <= t < end]
+    # The frames that start inside the window, plus the last one before it: a window counts every gap that ends inside
+    # it, so the gap in progress at its start (the frame that handles the Create click, a few ms before the mark)
+    # counts here, and the one in progress at its end counts in the next window.
+    before = [t for t in frames if t < start]
+    inside = before[-1:] + [t for t in frames if start <= t < end]
     if len(inside) > 1:
         gaps = sorted((b - a) / 1e6 for a, b in zip(inside, inside[1:]))
         stats.update(frames=len(gaps), fps=round(len(gaps) / ((inside[-1] - inside[0]) / 1e9), 1),

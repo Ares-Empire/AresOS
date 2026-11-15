@@ -11,13 +11,17 @@
   "REFRESH": "144",
   "SETTLE": "120",
   "WINDOW": "60",
-  "COVER": "0"
+  "COVER": "0",
+  "MODE": "measure",
+  "HOMEKIND": null,
+  "BASE": null,
+  "FLIGHT": null
  },
  "windows": {
   "stand": {
    "seconds": 57.1,
    "cpu_percent": 34,
-   "frames": 6846,
+   "frames": 6847,
    "fps": 120.0,
    "avg_ms": 8.33,
    "p50_ms": 8.33,
@@ -37,12 +41,16 @@
     "Pause Young (Concurrent Start) (G1 Evacuation Pause)",
     "Pause Young (Mixed) (G1 Evacuation Pause)",
     "Pause Young (Prepare Mixed) (G1 Evacuation Pause)"
-   ]
+   ],
+   "rss_max_mib": 1294,
+   "scope_max_mib": 1107,
+   "heap_before_gc_max_mib": 490,
+   "heap_committed_max_mib": 518
   },
   "flight": {
    "seconds": 60.0,
    "cpu_percent": 77,
-   "frames": 7196,
+   "frames": 7197,
    "fps": 119.9,
    "avg_ms": 8.34,
    "p50_ms": 8.33,
@@ -63,12 +71,16 @@
     "Pause Young (Mixed) (G1 Evacuation Pause)",
     "Pause Young (Prepare Mixed) (G1 Evacuation Pause)",
     "Pause Young (Prepare Mixed) (G1 Evacuation Pause) (Evacuation Failure: Pinned)"
-   ]
+   ],
+   "rss_max_mib": 1409,
+   "scope_max_mib": 1231,
+   "heap_before_gc_max_mib": 571,
+   "heap_committed_max_mib": 607
   },
   "whole_run": {
    "seconds": 260.7,
    "cpu_percent": 46,
-   "frames": 25333,
+   "frames": 25334,
    "fps": 97.2,
    "avg_ms": 10.29,
    "p50_ms": 8.34,
@@ -89,7 +101,11 @@
     "Pause Young (Mixed) (G1 Evacuation Pause)",
     "Pause Young (Prepare Mixed) (G1 Evacuation Pause)",
     "Pause Young (Prepare Mixed) (G1 Evacuation Pause) (Evacuation Failure: Pinned)"
-   ]
+   ],
+   "rss_max_mib": 1409,
+   "scope_max_mib": 1233,
+   "heap_before_gc_max_mib": 574,
+   "heap_committed_max_mib": 610
   }
  },
  "snapshots": {
@@ -190,7 +206,7 @@
   "pauses": 64,
   "max_ms": 17.59,
   "full": 0,
-  "concurrent_cycles": 26
+  "concurrent_cycles": 13
  },
  "gc_before_join": {
   "pauses": 36,

@@ -11,13 +11,17 @@
   "REFRESH": "144",
   "SETTLE": "120",
   "WINDOW": "60",
-  "COVER": "0"
+  "COVER": "0",
+  "MODE": "measure",
+  "HOMEKIND": null,
+  "BASE": null,
+  "FLIGHT": null
  },
  "windows": {
   "stand": {
    "seconds": 57.1,
    "cpu_percent": null,
-   "frames": 6845,
+   "frames": 6846,
    "fps": 120.0,
    "avg_ms": 8.34,
    "p50_ms": 8.33,
@@ -37,12 +41,16 @@
     "Pause Young (Concurrent Start) (G1 Evacuation Pause)",
     "Pause Young (Mixed) (G1 Evacuation Pause)",
     "Pause Young (Prepare Mixed) (G1 Evacuation Pause)"
-   ]
+   ],
+   "rss_max_mib": 1378,
+   "scope_max_mib": 1194,
+   "heap_before_gc_max_mib": 489,
+   "heap_committed_max_mib": 518
   },
   "flight": {
    "seconds": 60.0,
    "cpu_percent": null,
-   "frames": 7197,
+   "frames": 7198,
    "fps": 119.9,
    "avg_ms": 8.34,
    "p50_ms": 8.33,
@@ -62,21 +70,25 @@
     "Pause Young (Concurrent Start) (G1 Evacuation Pause)",
     "Pause Young (Mixed) (G1 Evacuation Pause)",
     "Pause Young (Prepare Mixed) (G1 Evacuation Pause)"
-   ]
+   ],
+   "rss_max_mib": 1431,
+   "scope_max_mib": 1252,
+   "heap_before_gc_max_mib": 489,
+   "heap_committed_max_mib": 518
   },
   "whole_run": {
    "seconds": 257.8,
    "cpu_percent": null,
-   "frames": 25030,
+   "frames": 25031,
    "fps": 97.1,
    "avg_ms": 10.3,
    "p50_ms": 8.34,
    "p99_ms": 33.44,
-   "max_ms": 86.5,
-   "over_17ms": 1963,
-   "over_33ms": 444,
-   "over_50ms": 4,
-   "over_100ms": 0,
+   "max_ms": 130.6,
+   "over_17ms": 1964,
+   "over_33ms": 445,
+   "over_50ms": 5,
+   "over_100ms": 1,
    "gc_pauses": 46,
    "gc_max_ms": 15.98,
    "gc_total_ms": 169.6,
@@ -87,7 +99,11 @@
     "Pause Young (Concurrent Start) (G1 Evacuation Pause)",
     "Pause Young (Mixed) (G1 Evacuation Pause)",
     "Pause Young (Prepare Mixed) (G1 Evacuation Pause)"
-   ]
+   ],
+   "rss_max_mib": 1432,
+   "scope_max_mib": 1253,
+   "heap_before_gc_max_mib": 489,
+   "heap_committed_max_mib": 518
   }
  },
  "snapshots": {
@@ -186,7 +202,7 @@
   "pauses": 50,
   "max_ms": 15.98,
   "full": 0,
-  "concurrent_cycles": 20
+  "concurrent_cycles": 10
  },
  "gc_before_join": {
   "pauses": 32,

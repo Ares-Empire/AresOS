@@ -4,7 +4,8 @@
 
 Set 1 (runs a*) flew only sometimes (a key tap shorter than a game tick), so its flight columns read "not valid".
 A run that created its world (MODE=create) is marked "new world" and also gets a row in the creation table; a run whose
-flight was the rig's glide straight through the terrain (FLIGHT=glide, the Nether) is marked "glide"."""
+flight was the rig's glide straight through the terrain (FLIGHT=glide, the Nether) is marked "glide"; a run that settled
+for other than 120 s says so (its "RSS settled" is after that time)."""
 import glob, json, os, sys
 
 runs = sys.argv[1] if len(sys.argv) > 1 else os.path.join(os.path.dirname(os.path.abspath(__file__)), '../runs')
@@ -42,7 +43,8 @@ for s in rows:
     peak = lambda key: max((v.get(key) or 0) for v in sn.values()) if sn else '-'
     fly = frames(w, 'flight') if valid else 'not valid'
     gcf = f"{g(w, 'flight', 'gc_pauses')}, {g(w, 'flight', 'gc_max_ms')} ms" if valid else 'not valid'
-    notes = [note for note, on in (('new world', 'create' in w), ('glide', st.get('FLIGHT') == 'glide')) if on]
+    notes = [note for note, on in (('new world', 'create' in w), ('glide', st.get('FLIGHT') == 'glide'),
+                                   (f"settled {st.get('SETTLE')} s", st.get('SETTLE') not in (None, '120'))) if on]
     label = s['name'] + (f" ({', '.join(notes)})" if notes else '')
     print(f"| {label} | {st['RD']} / {st['SD']} | {st['HEAP']} / {st['MIN_HEAP']} | {st['GC'] or 'default'} | "
           f"{g(settled, 'rss')} | {g(settled, 'pss')} | {g(settled, 'heap_used')} / {g(settled, 'heap_committed')} | "

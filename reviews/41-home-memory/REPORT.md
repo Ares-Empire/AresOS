@@ -21,19 +21,26 @@ every ceiling from 3072 down to 768 MiB, G1 committed at most about 620 MiB in t
   ratio (`-XX:MaxHeapFreeRatio=30 -XX:MinHeapFreeRatio=10` with `-Xms256m`) keeps the heap at about 390 MiB and saves
   **about 50 to 95 MiB** at every moment, covered too, for more GC work while flying over new ground.
 - **A first creation and the Nether home pass too** (review 1's runs at the recommended settings): creating the flat
-  home and building its town (f1), creating the Nether home (n0) and loading new Nether ground at full flight speed
-  (n1) kept every GC pause after joining under 15 ms, the committed heap at most 605 MiB (650 while n0 saved and quit)
-  and the game's scope at most 1262 MiB, with no `high` event. In the Nether the flags save more than at home: 1217 against 1407 MiB settled and
-  about 1.35 against 1.72 GiB covered after the flight (n2, today's settings).
+  home and building its town (f1), creating the Nether home (n0, n4) and loading new Nether ground at full flight speed
+  (n1) kept every GC pause after joining under 15 ms, the committed heap at most 605 MiB while measuring (629 and 650
+  only while the game was stopped: n4 by the rig, n0 saving and quitting) and the game's scope at most 1262 MiB, with
+  no `high` event. In the Nether the saving that can be pinned on the flags is the heap's: the committed heap about
+  80 MiB lower settled and 120 to 200 lower after loading new ground (n1 against n2, today's settings). RSS differed
+  more (190 MiB settled, 340 to 420 after the glide), but that is one pair of runs, and memory outside the JVM's
+  tracking varies by about 150 MiB between runs of the same settings.
+- **Creating a world freezes the picture at the Create click,** at today's settings too: about 2 s for the flat home
+  (2.1 s with the recommendation, 2.0 s at today's) and about 4 s for the Nether (3.7 s at either). Once, in two Nether
+  creations at the recommended settings, it took 5.7 s (n0), not from GC; the cause was not found, and one slow run in
+  two cannot rule the settings in or out. It is a one-time wait on the create screen, not a stall in daily use.
 
 ## Recommendation
 
 | Setting (`aresos-desktop`) | Today | Recommended | Why |
 |---|---|---|---|
-| `HEAP_MB` | 3072 | **1024** | The live heap after GC is 250 to 375 MiB in every run; G1 never committed more than about 620 MiB. 1024 passed the brief's floor test (no `OutOfMemoryError`, no GC pause over 50 ms in the flight, longest 14.3 ms after joining; frame times as at 3072). The 768 probe passed too but ran its heap at 607 of 768 MiB in the flight, so 1024 is the lowest listed ceiling with real margin (about 3x the live heap) for a bigger town and long sessions. It also held for a first creation and the Nether home, both measured with the flags (f1, n0, n1): the Nether's live heap reached about 410 MiB and its committed heap 605. |
+| `HEAP_MB` | 3072 | **1024** | The live heap after GC is 250 to 375 MiB in every run; G1 never committed more than about 620 MiB. 1024 passed the brief's floor test (no `OutOfMemoryError`, no GC pause over 50 ms in the flight, longest 14.3 ms after joining; frame times as at 3072). The 768 probe passed too but ran its heap at 607 of 768 MiB in the flight, so 1024 is the lowest listed ceiling with real margin (about 3x the live heap) for a bigger town and long sessions. It also held for a first creation and the Nether home, both measured with the flags (f1, n0, n1, n4): the Nether's live heap reached about 410 MiB and its committed heap 605 while measuring. |
 | `MIN_HEAP_MB` | 512 | **256** | With G1's defaults `-Xms` changes nothing measurable (c3: the heap grew to 623 MiB anyway). With the free-ratio flags below it is the floor the heap can shrink to: G1 never shrinks the heap below `-Xms` (G1's rule; no run combined the flags with `-Xms512m`). |
 | JVM flags | none | **`-XX:MaxHeapFreeRatio=30 -XX:MinHeapFreeRatio=10`** | Keeps the committed heap near the live data (about 390 MiB instead of 510 to 620): RSS about 50 MiB lower settled (c4, v1: 1223, 1194 against 1257 to 1290 in every default run at 1024 or less: c1 to c3, h3, h4), about 95 lower after the flight (1291, 1304 against 1384 to 1456 in the same runs) and about 85 lower covered (1271, 1282 against c2's 1362). Cost: about four times as many GC pauses while flying at full speed over new ground (165 and 174 instead of about 38: 99 and 106 young pauses plus 33 and 34 each of Remark and Cleanup, from about four times as many concurrent cycles; pauses still short, longest under 10 ms, together 331 and 324 ms in that minute instead of about 140; 99 and 104 % of a core instead of about 80 %); standing (36 to 37 %) and covered (7 to 8 %) CPU unchanged, and frames no worse (their worst frames, 11.2 to 13.6 ms, lie inside the default runs' 8.6 to 25.4). **Not** `G1PeriodicGCInterval`: it measured no gain (c2 against c1, c4). See JUDGMENT-CALL 1 and the m1 run. |
-| `MEMORY_HIGH` | `5G` | **`2560M`** | The game's own scope peaked at 1136 to 1304 MiB in every run with room (`memory.peak`, anon plus a little cache). With a 1024 MiB heap its anonymous memory can reasonably reach the full heap plus about 0.7 GiB of the rest (scope anon minus the committed heap reached at most 717 MiB after a flight), about 1.75 GiB; 2560M sits above that, so it only acts on something abnormal (a native leak). In the product the scope also carries page cache the rig's did not: after a boot the game is the first to read its jars, libraries, assets and world, so `aresos-game-<id>.scope` will read higher than this table's scope peak (up to about RSS plus what it read); clean cache is the first thing reclaimed under `MemoryHigh`, so 2560M still holds (Known limits). f1, which wrote its new world itself, shows it: its scope carried about 200 MiB of file pages and peaked at 1187 MiB. The Nether home with new ground loading at full flight speed peaked at 1262 MiB (n1), with no `high` event. v1 ran with it: no `high` event, scope peak 1136 MiB. v2 (1100M, below the game's need) shows the cost of too low a value: 322 throttle events, 165 MiB of the game pushed into swap, worst frames up to 32 ms. |
+| `MEMORY_HIGH` | `5G` | **`2560M`** | The game's own scope peaked at 1136 to 1304 MiB in every flat-home run with room (`memory.peak`, anon plus a little cache; in the Nether 1071 to 1262 at the recommended settings, 1330 and 1605 at today's). Only the heap is capped (1024 MiB); the rest is not. The rest (scope anon minus the committed heap) reached 839 MiB (n2, today's settings, covered after the glide; 732 and 736 standing in the new Nether home, n4 and n3; at most 717 in the flat home), almost all of the increase native memory outside the JVM's tracking. With the heap full and the most rest measured, the game's anonymous memory would be about 1.82 GiB (1024 + 839 MiB); 2560M sits about 0.7 GiB (697 MiB) above that, room for page cache and more native memory (the glide did not draw all the ground it loaded, see Known limits), so it only acts on something abnormal (a native leak). In the product the scope also carries page cache the rig's did not: after a boot the game is the first to read its jars, libraries, assets and world, so `aresos-game-<id>.scope` will read higher than this table's scope peak (up to about RSS plus what it read); clean cache is the first thing reclaimed under `MemoryHigh`, so 2560M still holds (Known limits). f1 shows it: its scope carried about 200 MiB of file pages it was the first to read since they left the cache, and peaked at 1187 MiB. The Nether home with new ground loading at full flight speed peaked at 1262 MiB (n1), with no `high` event. v1 ran with it: no `high` event, scope peak 1136 MiB. v2 (1100M, below the game's need) shows the cost of too low a value: 322 throttle events, 165 MiB of the game pushed into swap, worst frames up to 32 ms. |
 | `RENDER_DISTANCE` | 8 | **8** (unchanged) | No RAM to gain: render 6 used the same memory as 8 (after the flight 1462 against 1476 MiB, within the spread). 5 is the least that has the rig's 40-app town (28 in System & Tools) drawn and loaded from home, 6 from 30 apps in that group, and his laptop's full list (42 in System & Tools) needs 7. 4 would save about 50 to 130 MiB but leaves two logos of the biggest road (S3R3, S4R3) out of view from home. Render 6 would only save GPU memory (306 instead of up to 434 MiB of the RTX 4060's 8 GiB) and some CPU (74 against 80 % of a core flying). |
 | `SIMULATION_DISTANCE` | 5 | **5** (unchanged) | 2 measured the same memory and CPU as 5 at render 6 (d4 against d2). Nothing in the town ticks. |
 
@@ -41,17 +48,22 @@ every ceiling from 3072 down to 768 MiB, G1 committed at most about 620 MiB in t
 
 - **In the world: nothing.** Same view distance (the terrain fades out 115 to 128 blocks away, as today), the same
   120 frames a second, no stutter: no GC pause over about 21 ms after joining in any run; with the flags the longest after
-  joining was 13.7 ms (16.4 ms while the world loaded), and their frames were no worse than with G1's defaults.
+  joining was 14.7 ms (n1; 16.4 ms while the world loaded), and their frames were no worse than with G1's defaults.
+- **When he creates a home: a short wait, as today.** After the Create click the create screen stands still for about
+  2 s (flat) or about 4 s (Nether) before the loading screen shows, the same at today's settings. Once in two Nether
+  creations with the recommendation it took 5.7 s, for a reason not found (not garbage collection). It happens once per
+  world, never in daily use.
 - **In memory:** the home screen takes about 1.2 GiB while he stands at home and about 1.3 GiB after flying around,
   instead of about 1.3 and 1.45 GiB today; about 1.25 GiB instead of about 1.42 (a1) while an app covers it. The bigger
   change is the ceiling: today the game may grow to a 3 GiB heap plus about 1 GiB more before anything holds it back
-  (and `MemoryHigh` at 5G); with the recommendation its own memory stops at about 1.75 GiB, and systemd starts holding
-  it back at 2.5 GiB.
+  (and `MemoryHigh` at 5G); with the recommendation the heap stops at 1 GiB and the game should stay under about
+  1.82 GiB (the heap is capped, the rest is not: the most measured beside the heap was 839 MiB), and systemd starts
+  holding it back at 2.5 GiB.
 - **Battery, maybe:** flying fast over ground the world has not loaded before costs a fifth to a quarter of a core
   more with the flags (more garbage collections). Standing, walking the town and covered cost the same.
 - **The Nether home**, if he goes back to it, takes more (about 1.2 GiB standing, 1.3 to 1.4 GiB after new ground
-  has loaded, and twice the flat home's memory on the graphics card), and the recommendation saves more there: today's
-  settings took about 1.4 and 1.7 GiB.
+  has loaded, and twice the flat home's memory on the graphics card), and the recommendation saves there too (the heap
+  about 80 to 200 MiB less); in the one pair of runs today's settings took about 1.4 and 1.7 GiB.
 
 ## What the town needs
 
@@ -108,7 +120,7 @@ road and needs render 7 (S5R5, the 42nd); its other groups (9, 5 and 5 apps) nee
 | a3-rd4-sd5-h3072 | 4 / 5 | 3072 / 512 | default | 1338 | 1221 | 349 / 512 | 864 | not valid | 1444 | 1259 | 316 / - | 120, 8.33, 8.46, 8.6 | not valid | not valid | 14.67 ms |
 | a4-rd6-sd2-h3072 | 6 / 2 | 3072 / 512 | default | 1369 | 1254 | 391 / 518 | 870 | not valid | 1431 | 1252 | 306 / - | 120, 8.34, 8.47, 23.2 | not valid | not valid | 15.98 ms |
 | d1-rd8-sd5-h3072 | 8 / 5 | 3072 / 512 | default | 1332 | 1215 | 392 / 524 | 878 | 1476 | 1476 | 1299 | 306 / 424 | 120, 8.33, 8.47, 9.4, 36 % | 120, 8.34, 8.49, 20.4, 80 % | 38, 19.37 ms | 19.37 ms |
-| d2-rd6-sd5-h3072 | 6 / 5 | 3072 / 512 | default | 1358 | 1243 | 435 / 514 | 870 | 1462 | 1462 | 1284 | 306 / 306 | 120, 8.34, 8.45, 23.4, 34 % | 120, 8.34, 8.52, 13.0, 74 % | 34, 8.8 ms | 17.79 ms |
+| d2-rd6-sd5-h3072 | 6 / 5 | 3072 / 512 | default | 1358 | 1243 | 435 / 514 | 870 | 1462 | 1462 | 1284 | 306 / 306 | 120, 8.34, 8.45, 23.4, 34 % | 120, 8.34, 8.51, 13.0, 74 % | 34, 8.8 ms | 17.79 ms |
 | d3-rd4-sd5-h3072 | 4 / 5 | 3072 / 512 | default | 1284 | 1173 | 481 / 512 | 869 | 1342 | 1342 | 1164 | 308 / 308 | 120, 8.33, 8.5, 8.8, 26 % | 120, 8.34, 8.52, 25.4, 55 % | 25, 21.33 ms | 21.33 ms |
 | d4-rd6-sd2-h3072 | 6 / 2 | 3072 / 512 | default | 1331 | 1216 | 424 / 514 | 869 | 1436 | 1436 | 1258 | 306 / 306 | 120, 8.34, 8.47, 23.8, 35 % | 120, 8.34, 8.5, 13.1, 76 % | 34, 7.36 ms | 16.3 ms |
 | h1-rd8-sd5-h2048 | 8 / 5 | 2048 / 512 | default | 1316 | 1204 | 301 / 517 | 870 | 1475 | 1475 | 1296 | 306 / 434 | 120, 8.33, 8.47, 10.5, 36 % | 120, 8.34, 8.5, 18.6, 78 % | 36, 17.75 ms | 17.75 ms |
@@ -127,7 +139,7 @@ road and needs render 7 (S5R5, the 42nd); its other groups (9, 5 and 5 apps) nee
 | n1-nether (glide) | 8 / 5 | 1024 / 256 | -XX:MaxHeapFreeRatio=30,-XX:MinHeapFreeRatio=10 | 1217 | 1102 | 345 / 445 | 796 | 1422 | 1422 | 1262 | 603 / 582 | 120, 8.33, 8.45, 9.7, 41 % | 119, 8.39, 10.81, 25.4, 175 % | 142, 8.42 ms | 14.71 ms |
 | n2-nether-today (glide) | 8 / 5 | 3072 / 512 | default | 1407 | 1294 | 418 / 528 | 899 | 1762 | 1763 | 1605 | 593 / 582 | 120, 8.34, 8.47, 22.9, 40 % | 120, 8.36, 9.66, 22.6, 159 % | 60, 9.0 ms | 20.38 ms |
 | n3-create-nether-today (new world) | 8 / 5 | 3072 / 512 | default | 1515 | 1393 | 345 / 574 | 934 | - | 1529 | 1330 | 594 / - | 120, 8.33, 8.45, 9.1, 40 % | - | -, - ms | 14.43 ms |
-| n4-create-nether-repeat (new world) | 8 / 5 | 1024 / 256 | -XX:MaxHeapFreeRatio=30,-XX:MinHeapFreeRatio=10 | 1341 | 1220 | 387 / 448 | 791 | - | 1394 | 1200 | 604 / - | 120, 8.33, 8.48, 10.3, 49 % | - | -, - ms | 10.85 ms |
+| n4-create-nether-repeat (new world, settled 30 s) | 8 / 5 | 1024 / 256 | -XX:MaxHeapFreeRatio=30,-XX:MinHeapFreeRatio=10 | 1341 | 1220 | 387 / 448 | 791 | - | 1394 | 1200 | 604 / - | 120, 8.33, 8.48, 10.3, 49 % | - | -, - ms | 10.85 ms |
 
 ### Covered by a maximized app for 5 minutes (RSS in MiB)
 
@@ -167,67 +179,112 @@ or less (h3, h4, c1 to c3): settled 1316 to 1343 against 1257 to 1290 MiB, after
 1384 to 1456. But they all ran first (09:10 to 10:09 against 10:14 on), and 3072 gives G1 2 MiB regions where the
 others use 1 MiB, so whether the lower ceiling saves about 50 MiB too is not measurable here: it is confounded with
 run order. The flags' saving is not: c4 and v1 sit below every default run, and v2 ran last of these 19 (11:17)
-with the defaults and still settled at 1290 MiB.
+with the defaults and still settled at 1290 MiB. Review 1's runs show a wider spread between runs of the same
+settings, about 150 MiB, from native memory outside the JVM's tracking (Known limits, "Single runs per setting").
 
 ### Review 1's runs: a first creation and the Nether home
 
 All at the recommended settings, except n2 and n3, which repeat n1 and n0 at today's (3072 / 512, G1's defaults,
 `MemoryHigh` 5G) to tell the Nether's own cost from the settings'. Their rows are in the tables above too; n0, n3 and
 n4 have no flight, and n4 settled for 30 s only. The creation table's windows: from the Create click to joining, the
-town build (joining to "The town is built"), and the first 30 s after joining; its heap, GC, RSS and scope columns
-cover the creation and those 30 s.
+town build (joining to "The town is built"), and the first 30 s after joining. Each window also counts the frame in
+progress at its start (Method), so the worst frame from the Create click to joining is the freeze at the click. Its
+heap, GC, RSS and scope columns cover the creation and those 30 s.
 
 | Run (new world) | Home | Create to joining: s, worst frame ms | Heap before GC, most / committed, most | GC pauses, longest, over 50 ms | RSS, most | Scope, most | Town build: s, worst frame ms, frames over 17 / 33 / 50 ms | First 30 s: worst frame ms, frames over 17 / 33 / 50 ms |
 |---|---|---|---|---|---|---|---|---|
-| f1-create-flat | flat | 3.0 s, 201.5 | 470 / 499 | 65, 12.47 ms, 0 | 1164 | 1147 | 3.0 s, 136.4, 7 / 2 / 1 | 136.4, 8 / 2 / 1 |
-| n0-create-nether | nether | 7.6 s, 5693.2 | 517 / 546 | 130, 11.21 ms, 0 | 1257 | 1066 | - | 67.5, 11 / 5 / 2 |
-| n3-create-nether-today | nether | 5.5 s, 63.2 | 543 / 574 | 43, 14.43 ms, 0 | 1444 | 1246 | - | 50.9, 10 / 3 / 1 |
-| n4-create-nether-repeat | nether | 6.1 s, 233.3 | 474 / 511 | 107, 12.04 ms, 0 | 1367 | 1168 | - | 56.0, 11 / 2 / 1 |
+| f1-create-flat | flat | 3.0 s, 2143.4 | 470 / 499 | 65, 12.47 ms, 0 | 1164 | 1147 | 3.0 s, 136.4, 7 / 2 / 1 | 136.4, 8 / 2 / 1 |
+| n0-create-nether | nether | 7.6 s, 5693.2 | 517 / 546 | 130, 11.21 ms, 0 | 1257 | 1066 | - | 206.4, 12 / 6 / 3 |
+| n3-create-nether-today | nether | 5.5 s, 3673.1 | 543 / 574 | 43, 14.43 ms, 0 | 1444 | 1246 | - | 244.3, 11 / 4 / 2 |
+| n4-create-nether-repeat | nether | 6.1 s, 3748.4 | 474 / 511 | 107, 12.04 ms, 0 | 1367 | 1168 | - | 56.0, 11 / 2 / 1 |
+
+The base world (made by hand at today's settings, 3072 / 512, G1's defaults; its rig folder `setup-world` stays local)
+has no Create mark and no row: its longest frame before joining, 1981 ms, is the same freeze (the server's "Time
+elapsed: 1432 ms").
+
+**The freeze at the Create click.** In every creation the picture stops at the click and comes back when the server
+has picked the spawn and saved once, just before "Loading N chunks for player spawn": the data packs load, the server
+starts, "Selecting global world spawn" runs and the first saves are written. It is the game's own creation flow, about
+as long at both settings: flat 2.1 s (f1) against 2.0 s (the base world), Nether 3.7 s (n4) against 3.7 s (n3). GC
+inside the freezes: f1 19 pauses, 47 ms together; n4 16, 60 ms; n3 7, 36 ms; the base world 6, 22 ms; none over
+12 ms. n0 froze for 5.7 s, and not from GC:
+
+- its GC paused 30 times in the freeze, 86 ms of the 5.7 s, at most 10.0 ms;
+- the committed heap stayed at 308 MiB throughout, so nothing waited for the heap to grow;
+- no humongous-allocation GC, to-space exhaustion or Full GC fell inside it (the one "Evacuation Failure: Pinned"
+  came 6.9 s after the click).
+
+Its extra 2 s sat in the server's spawn search: "Selecting global world spawn" to the first save took about 3 s,
+against 1 to 2 s in n3 and n4 (the log counts whole seconds), with fewer cores busy than in n4 and n3 (2.6 in the 2 s
+sample around the click, against 4.3 and 3.9). Not excluded: safepoints other than GC (the rig logs none), and the
+flags keep G1 marking almost continuously during a creation (6 concurrent cycles in n0's freeze, 1 in n3's), though n4
+had about the same rate (3 in its 3.7 s) and was as fast as n3. So nothing points at the settings, but one slow run in
+two cannot rule them in or out; two more Nether creations per setting with `-Xlog:safepoint` (about 4 minutes each
+with `SETTLE=30 SHOTS=0`) would settle it. Around joining each creation had one more long frame, 200 to 245 ms: the
+loading screen's last one (f1 202 ms, n4 233, both in the creation window) or the one across the joining mark (n0 206,
+n3 244, in the first 30 s); the base world's was 126 ms.
 
 The brief's pass line: no `OutOfMemoryError`, no GC pause over 50 ms after joining, the scope below `MEMORY_HIGH`
-with no `high` events, frames no worse than the flat runs. Both runs pass:
+with no `high` events, frames no worse than the flat runs. The runs at the recommended settings pass (n2, at today's,
+for comparison):
 
 | Run | Settings | `OutOfMemoryError` | Longest GC pause after joining | Scope peak, `high` events | Heap committed, most | Frames over 17 ms (worst ms): standing / flying |
 |---|---|---|---|---|---|---|
 | f1, the flat home created | recommended | none | 12.5 ms | 1187 MiB, 0 | 499 MiB | 0 (9.7) / 0 (12.5) |
 | n0, the Nether home created | recommended | none | 11.2 ms | 1071 MiB, 0 | 650 MiB (while it saved and quit) | 0 (13.8) / - |
+| n4, the Nether home created again (settled 30 s) | recommended | none | 10.9 ms | 1200 MiB, 0 | 511 MiB (629 0.3 s after its end, while the rig stopped the game) | 0 (10.3) / - |
 | n1, the Nether home, glide | recommended | none | 14.7 ms | 1262 MiB, 0 | 605 MiB | 0 (9.7) / 5 (25.4) |
 | n2, the Nether home, glide | today's | none | 20.4 ms | 1605 MiB, 0 | 726 MiB | 1 (22.9) / 3 (22.6) |
 | v1, the flat home (base world) | recommended | none | 13.3 ms | 1136 MiB, 0 | 394 MiB | 0 (11.2) / 0 (13.0) |
 
-No run had a Full GC, a `high` event or anything in swap.
+No run had a Full GC, a `high` event or anything in swap. The one place the frames are worse than in the flat runs is
+the freeze at the Create click, which is the same at today's settings.
 
-- **Creating the flat home (f1):** 3.0 s from the Create click to joining, and 3.0 s more until "The town is built:
-  40 logos". Until 30 s after joining the heap reached at most 470 MiB before a collection and 499 committed, RSS at
-  most 1164 MiB and the scope 1147; GC paused at most 5.1 ms during the creation and 12.5 ms while the town was built
-  (14.3 ms on the title screen before). One frame took 136 ms at the moment the town appeared, with 2 over 33 ms in
-  the first 30 s. When the base world was made the same way at today's settings (by hand, 3072 / 512, G1's defaults),
-  that moment took 110 ms, with 3 frames over 33 ms in the first 30 s; neither is a GC pause. The loading screen's
-  slowest frame was 202 ms. Then f1 measured like the other runs, lower than v1 at every moment: settled 1132 MiB,
-  after the flight 1197, covered 1136 to 1161 from the first minute on (v1: 1194, 1304, 1275 to 1282). Its native
-  memory outside the JVM's tracking was about 125 to 145 MiB against v1's 270 to 365, for a reason not found here. Its scope
-  carried about 200 MiB of file pages, the world files the game had just written, so its peak (1187 MiB) sat close
-  to RSS, as Known limits ("Page cache in the game's scope") expects on his laptop, and still under half of
-  `MEMORY_HIGH`.
-- **Creating the Nether home (n0, n4, n3):** 7.6 s from the Create click to joining in n0. Right after the click the
-  game drew no frame for 5.7 s while the server generated the spawn area ("Time elapsed: 6113 ms") with about six cores busy;
-  GC paused 61 times then, at most 10 ms and 141 ms together, so the wait was not GC. It did not come back: n4
-  repeated n0 at the same settings (6.1 s, spawn area 4341 ms, slowest frame 233 ms), and n3 at today's took 5.5 s
-  (4315 ms, slowest frame 63 ms). In the first 30 s the Nether's chunks arriving gave 10 or 11 frames over 17 ms and
-  1 or 2 over 50 ms in all three (worst 50.9 to 67.5 ms), the same at both settings. The heap reached at most 474 to
-  517 MiB before a collection and 511 to 546 committed (n3: 543 and 574), RSS at most 1257 to 1367 MiB (n3: 1444).
-  Standing in the new Nether home the frames were as at home (worst 13.8 ms); RSS settled at 1236 MiB (n3: 1515)
-  with 604 MiB on the GPU, twice the flat home's 306: the Nether's terrain has far more faces to draw. n0's heap
-  reached 650 MiB committed only while it saved and quit.
+- **Creating the flat home (f1):** 3.0 s from the Create click to joining, and 3.0 s more until "The town is built: 40
+  logos". The picture froze for 2.1 s at the click (2143 ms; the server's "Time elapsed: 1502 ms"), the base world's
+  at today's settings for 2.0 s. Until 30 s after joining the heap reached at most 470 MiB before a collection and 499
+  committed, RSS at most 1164 MiB and the scope 1147; GC paused at most 5.1 ms during the creation and 12.5 ms while
+  the town was built (14.3 ms on the title screen before). One frame took 136 ms at the moment the town appeared, with
+  2 over 33 ms in the first 30 s. When the base world was made the same way at today's settings (by hand, 3072 / 512,
+  G1's defaults), that moment took 110 ms, with 3 frames over 33 ms in the first 30 s; neither is a GC pause. Then f1
+  measured like the other runs, lower than v1 at every moment: settled 1132 MiB, after the flight 1197, covered 1136
+  to 1161 from the first minute on (v1: 1194, 1304, 1275 to 1282). Its native memory outside the JVM's tracking was
+  117 to 147 MiB against v1's 271 to 370, for a reason not found here; that part varies by about 150 MiB between runs
+  of the same settings (the Nether runs below). Its scope carried about 200 MiB of file pages it was the first to read
+  since they left the page cache. 172 MiB of them were there 20 s before the Create click, while the game started, so
+  they are most likely the game's jars, libraries and assets, out of the cache after the half hour since the previous
+  run (v2); not its world, which did not exist yet then (the flat base world is 8.3 MiB on disk). So its peak (1187
+  MiB) sat close to RSS, as Known limits ("Page cache in the game's scope") expects on his laptop, and still under
+  half of `MEMORY_HIGH`.
+- **Creating the Nether home (n0, n4, n3):** 7.6 s from the Create click to joining in n0, 6.1 s when n4 repeated it
+  at the same settings, and 5.5 s at today's (n3). The picture froze at the click for 5.7, 3.7 and 3.7 s (the server's
+  "Time elapsed" 6113, 4341 and 4315 ms; see "The freeze at the Create click" above). Apart from the frame at joining,
+  the Nether's chunks arriving in the first 30 s gave 10 or 11 frames over 17 ms and 1 or 2 over 50 ms in all three
+  (worst 50.9 to 67.5 ms), the same at both settings; the table's first-30-s column also holds the frame at joining
+  for n0 and n3. The heap reached at most 474 to 517 MiB before a collection and 511 to 546 committed (n3: 543 and
+  574), RSS at most 1257 to 1367 MiB (n3: 1444). Standing in the new Nether home the frames were as at home (worst
+  13.8 ms); RSS settled at 1236 MiB (n4: 1341 after 30 s; n3: 1515) with 604 MiB on the GPU, twice the flat home's
+  306: the Nether's terrain has far more faces to draw. n0's heap reached 650 MiB committed only while it saved and
+  quit, n4's 629 and n3's 628 only 0.3 s after the run's end, while the rig stopped the game. n0 and n4, the same
+  creation at the same settings, stood 159 MiB apart (1235 against 1394 MiB) with the same heap (456 and 448
+  committed): their native memory outside the JVM's tracking was 229 against 388 MiB.
 - **The Nether home with the glide (n1, against n2 at today's settings):** settled 1217 against 1407 MiB, after the
   glide 1422 against 1762, covered 1344 to 1399 against 1759 to 1763; the committed heap 445 to 605 against 528 to
-  726 (today's never shrank), the scope's peak 1262 against 1605 MiB. The free-ratio flags save more here than at
-  home: about 190 MiB settled and 340 to 420 after loading new ground. The live heap after collections was 308 to
+  726 (today's never shrank), the scope's peak 1262 against 1605 MiB. Of the 340 MiB that n2 held above n1 after the
+  glide, the committed heap explains 121 (726 against 605) and native memory outside the JVM's tracking about 200
+  (452 against 255). The heap's part is what can be pinned on the flags: about 80 MiB settled (445 against 528)
+  and 120 to 200 after new ground. The native part varies as much between runs of the same settings (n0 and n4
+  above; f1 and v1 after the flight 1197 against 1304 MiB, native 144 against 365), so the RSS differences, 190 MiB
+  settled and 340 to 420 after the glide, are one pair of runs, and n2 ran after n1 (as n3 after n0). The direction
+  holds in all three Nether pairs, also in n4 against n3, where the recommended run came last: committed heap settled
+  445, 456 and 448 against 528 and 574 MiB (n1, n0, n4 against n2, n3). The live heap after collections was 308 to
   412 MiB (the flat home: 270 to 375), so the 1024 ceiling still leaves about 2.5 times it. The glide minute took
   142 GC pauses, at most 8.4 ms and 346 ms together (n2: 60, 9.0 ms, 198 ms), and 175 % of a core (n2: 159; the
   flat flights 104 and about 80). Its frames: 119 a second, p99 10.8 ms, 5 over 17 ms, none over 33, worst 25.4;
-  n2 had 3 over 17 ms and a worst of 22.6. Both carry the glide's teleport every tick; the difference between them
-  is the size of the flat runs' noise (0 to 2 frames over 17 ms per window, worst frames up to 25.4 ms), so no worse.
+  n2 had p99 9.7 ms, 3 over 17 ms, none over 33 and a worst of 22.6. Both carry the glide's teleport every tick. No
+  more hitches: the difference in frames over 17 ms is the size of the flat runs' noise (0 to 2 per window, worst
+  frames up to 25.4 ms). The p99 is about 1 ms higher (the flat flights about 8.5 ms) from the extra GC pauses: 142
+  against 60, 2.4 ms on average, so about 2 % of n1's frames carry one.
 
 So the recommended values hold for a first creation and for the Nether home; none changes.
 
@@ -268,8 +325,12 @@ runClient`, inside a scope of its own). One run is `rig/run.sh <name> KEY=value 
   defaults is today's product.
 - **Frame times:** `frames/`, a 3 KB Fabric mod added with `-Dfabric.addMods` (never part of the mod): a mixin at the
   head of `Minecraft.runTick`, which runs once per frame, writes `System.nanoTime()` into a fixed 512 KB ring that a
-  daemon thread writes out every 250 ms. Frame time is the gap between two frame starts. GC pauses come from the GC
-  log with the same clock (`timenanos`), so each pause falls into its window. The raw frame logs (`frames.txt`, about
+  daemon thread writes out every 250 ms. Frame time is the gap between two frame starts. A window (standing, the
+  flight, covered, the creation's) counts every gap that ends inside it, so the gap in progress at its start counts
+  too and the one in progress at its end counts in the next window; until review 2 the gap in progress at the start
+  was left out, which hid the freeze at the Create click (the frame that handles the click starts 2 to 10 ms before
+  the rig's mark). GC pauses come from the GC log with the same clock (`timenanos`), so each pause falls into the
+  window it starts in. The raw frame logs (`frames.txt`, about
   0.4 MB a run) stay local in `.work/pkg41/rigs/<name>/` with the game's and Gradle's logs, too big for the repo; the
   frame columns can be checked against each run's `summary.json`.
 - **Memory:** `rig/snap.py` per snapshot: RSS (`VmRSS`, `VmHWM`), PSS (`smaps_rollup`), the heap
@@ -307,10 +368,11 @@ render 8, simulation 5):
   placeholder hub), and "Create AresOS world" (the screen positions of HomeCreateScreen at GUI scale 4; a picture of
   each screen before the click stays in the rig folder). Marks: the Create click, joining, and for the flat home the
   log's "The town is built: 40 logos". `analyze.py` adds three windows: Create to joining, the town build (joining to
-  that line), and the first 30 s in the world (a minute would reach vanilla's 30-frames limit, which starts 60 s
-  after the last input, the Create click). Inside each, the 2 s samples give the most RSS and scope use, and the GC
-  log the most heap before a collection and the most committed. f1 then went on as `MODE=measure` does (settle,
-  stand, the roads' flight, 5 minutes covered) in the same game.
+  that line), and the first 30 s in the world (a minute would reach vanilla's 30-frames limit, which starts 60 s after
+  the last input, the Create click). Each counts its frames as every window does (the gap in progress at its start
+  included, so the creation window holds the freeze at the click). Inside each, the 2 s samples give the most RSS and
+  scope use, and the GC log the most heap before a collection and the most committed. f1 then went on as
+  `MODE=measure` does (settle, stand, the roads' flight, 5 minutes covered) in the same game.
 - **The Nether home:** n0 created it (`HOMEKIND=nether FLIGHT=none QUIT=1`: settle and stand, then the rig closed
   the game's window, so it saved and quit). Its save, readied by `rig/prepare-glide.py`, is n1's base
   (`BASE=AresHub-nether-base`, untracked); n1 is an ordinary `MODE=measure` run from a fresh copy of it.
@@ -320,10 +382,17 @@ render 8, simulation 5):
   whose `level.dat` also gets commands allowed) moves him: `/function glide` teleports him 1.08 blocks every server
   tick, sprint-flying's 21.6 blocks a second, level at the height he reached after the flat route's start (H, Shift,
   double jump, 2.5 s up), straight through rock and caves along the flat route's legs: north 15 s, south 30 s back
-  over home, north 15 s (1200 ticks, about 1300 blocks); the camera turns with him as in the flat flight, and no key
-  is held. `check-flight.sh <rig> glide` checked it with F3: Z 37 at the start, -259 after the first leg and +335
-  after the second, at height 64. It loads new Nether ground as fast as a full-speed flight would; he cannot fly
-  that fast or that straight there, so it is a heavier case than his own.
+  over home, north 15 s (1200 ticks, about 1300 blocks), and no key is held. `check-flight.sh <rig> glide` checked
+  it with F3: Z 37 at the start, -259 after the first leg and +335 after the second, at height 64. The camera did
+  not turn with him: F3 said "Facing: south" after both legs, although the rig's half turn ran between them (most
+  likely the teleport every tick keeps setting the camera to the server's rotation). The Nether home faces south and
+  the glide copies the flat route's legs, north first, so on the two northbound legs, 30 of the 60 s, the camera
+  looked backwards. For the server it is still a heavier case than his own: it loads and generates new Nether ground
+  all around him, wherever he looks, as fast as a full-speed flight would, and he cannot fly that fast or that
+  straight there. For drawing it is not: the game builds meshes for the chunk sections in view, so new ground behind
+  the camera was not meshed until the southbound leg looked at it. The heap does not depend on it (the client keeps
+  the same chunks whichever way he looks), but the meshes' native and GPU memory and the compile threads' work are
+  not shown to be an upper case (Known limits).
 
 Before every run `mod/dev/env.sh`'s check passed (6 GiB available, no Lunar Client) and the run held
 `~/.cache/aresos-dev/client-test.lock`; one game at a time, and `run.sh` refuses to start next to another run of the
@@ -380,14 +449,15 @@ distances; G1 against G1 with periodic uncommit, 5 minutes covered; 1920 x 1080.
   the heap, the chunks, the town and the graphics work are the same. Absolute numbers may differ by a few tens of
   MiB; the comparisons between settings hold.
 - **Page cache in the game's scope.** In the rig the game's scope held almost no file pages (`memory.stat` file at
-  most 38 MiB): its jars, libraries and assets had been read by Gradle and earlier runs, whose cgroups keep the
-  charge (`RssFile` 143 to 149 MiB, `RssShmem` 54 to 58). On his laptop after a boot the game is the first reader of
-  the client jar, the libraries, the assets and the world, so `aresos-game-<id>.scope` carries those pages and its
-  `memory.current` and `MemoryPeak` read higher than this report's scope peak, up to about RSS plus what it read.
-  `MEMORY_HIGH` must leave room for the anonymous memory, at most about 1.75 GiB with a 1024 MiB heap (1024 plus the
-  at most 717 MiB of the rest measured after a flight); clean cache is reclaimed first under `MemoryHigh`, so 2560M
-  holds. The rig's scope also ran in `app.slice` with `--collect`, the product's in `aresos.slice` without it;
-  neither slice has limits, so the numbers are the same.
+  most 38 MiB, except f1's 200 to 202, see "Review 1's runs"): its jars, libraries and assets had been read by Gradle
+  and earlier runs, whose cgroups keep the charge (`RssFile` 143 to 156 MiB, `RssShmem` 54 to 66). On his laptop after
+  a boot the game is the first reader of the client jar, the libraries, the assets and the world, so
+  `aresos-game-<id>.scope` carries those pages and its `memory.current` and `MemoryPeak` read higher than this
+  report's scope peak, up to about RSS plus what it read. `MEMORY_HIGH` must leave room for the anonymous memory. Only
+  the heap is capped: with the heap full at 1024 MiB and the most rest measured (839 MiB beside the heap, n2) that is
+  about 1.82 GiB, and the rest is not capped. Clean cache is reclaimed first under `MemoryHigh`, so 2560M holds, about
+  0.7 GiB above that. The rig's scope also ran in `app.slice` with `--collect`, the product's in `aresos.slice`
+  without it; neither slice has limits, so the numbers are the same.
 - **The frame recorder** adds a 512 KB array and one daemon thread, the same in every run.
 - **A test town, not his.** 40 test apps with plain generated pictures in his laptop's group proportions. His own
   pictures do not change the memory (a logo is blocks), but a town of all 61 of his programs would reach row 5.
@@ -397,14 +467,31 @@ distances; G1 against G1 with periodic uncommit, 5 minutes covered; 1920 x 1080.
   300 MiB at home, up to about 410 in the Nether) is the number to watch there; the recommended ceiling leaves about
   2.5 to 3 times that.
 - **Single runs per setting,** with set 1 and set 2 as repeats of the distance settings for their settled and standing
-  parts, and c4 / v1 as repeats of the free-ratio flags. Differences under about 50 MiB settled and about 90 MiB
-  after the flight are noise, and the runs' order is mixed in (see "The spread between runs").
+  parts, c4 / v1 as repeats of the free-ratio flags, and n0 / n4 of the Nether creation. Native memory outside the
+  JVM's tracking varies by about 150 MiB between runs of the same settings: n0 and n4 stood 159 MiB apart (native 229
+  against 388), f1 and v1 107 apart after the flight (native 144 against 365). So RSS differences under about 150 MiB
+  between single runs are noise (the first 19 runs spread about 50 MiB settled and 90 after the flight between runs of
+  the same settings), and the runs' order is mixed in (see "The spread between runs"). The flags' case rests on the
+  committed heap, which G1 sizes the same way every time: c4 and v1 at 385 to 394 MiB against 470 to 623 in every
+  default run, with their native part settled (288 and 271 MiB) inside the default runs' 194 to 299. The Nether
+  savings rest on single pairs (n1 / n2, and n0, n4 against n3); only their heap part, about 80 MiB settled and 120 to
+  200 after new ground, can be pinned on the flags.
 - **The frame rate is capped** by the game's default (120 frames a second, `maxFps:120`, vsync on) in every window, so
   the frame numbers show hitches (the worst frame), not how much faster a setting could draw.
 - **CPU** is the game process's own time from `/proc`, sampled every 2 s, from set 2 on.
 - **The Nether flight is the rig's glide,** not a flight of his: a teleport every tick, straight through rock and
-  caves. It loads new ground at full flight speed, which he cannot do in the Nether, so its memory is an upper case;
-  its frames carry the teleports (see "Review 1's runs" under Measurements).
+  caves, with the camera facing south (F3 after both legs of the rig's glide check), so backwards on the two
+  northbound legs (30 of its 60 s). For the server it is an upper case: it loads and generates new ground at full
+  flight speed all around him, which he cannot do in the Nether. For drawing it is not: the game meshes the ground in
+  view, so the meshes' native and GPU memory after new ground could be higher in a flight that looks ahead, and so
+  could the rest beside the heap that `MEMORY_HIGH` must leave room for. The heap does not depend on it. Its frames
+  carry the teleports (see "Review 1's runs" under Measurements). To close it: give the pack's teleports an explicit
+  rotation (`tp @s ^ ^ ^1.08 180 20` northbound, `0 20` southbound), drop the mouse turns for `FLIGHT=glide`, and
+  repeat n1 and n2 (about 10 minutes each).
+- **The freeze at the Create click** was measured in five creations (f1, the base world, n0, n3, n4): about 2 s for
+  the flat home and about 4 s for the Nether at both settings, and once 5.7 s at the recommended settings (n0), not
+  from GC and for a reason not found (safepoints other than GC were not logged). For him it is a one-time wait on the
+  create screen when a home is made, as today, not a stall in daily use.
 
 ## Done
 
@@ -421,6 +508,12 @@ distances; G1 against G1 with periodic uncommit, 5 minutes covered; 1920 x 1080.
   The cover pausing the world: "Saving and pausing game" in the game log and 10.0 frames a second in every covered
   window. No measured run opened a test app (their helper logs list no start). The glide ran its whole route in n1 and n2 ("pkg41 glide ticks: 1200" in the game's log). No `OutOfMemoryError`, no Full GC, and
   the town never frozen in any run.
+- After review 2, every run's `summary.json` was rebuilt from its local raw data with the corrected windows (the gap
+  in progress at a window's start now counts; `rig/analyze.py`, no new game runs). In the tables this changed the
+  creation table's freeze and first-30-s columns and d2's flying p99 (8.52 to 8.51 ms), and `rig/table.py` now marks
+  n4's 30 s settle; the summaries
+  of the first 19 runs also gained the per-window memory fields the script had added for review 1, and
+  `gc_after_join.concurrent_cycles` now counts each cycle once (it counted a cycle's opening and closing lines).
 
 ## Not verified
 
@@ -429,7 +522,10 @@ distances; G1 against G1 with periodic uncommit, 5 minutes covered; 1920 x 1080.
   `memory.stat`'s `anon` and `memory.events`' `high`. Not `MemoryPeak` alone: it also counts the page cache the game
   read first after a boot, so it will read higher than this report's scope peak without anything being wrong.
 - Hours-long sessions and a heavily built world.
-- A flight of his own in the Nether home: the glide stands in for it, and loads new ground faster than he can.
+- A flight of his own in the Nether home: the glide stands in for it and loads new ground faster than he can, but
+  with the camera facing south on both legs, so it does not show the meshing of new ground ahead of him.
+- Why n0's creation froze for 5.7 s: two more Nether creations per setting with `-Xlog:safepoint` (about 4 minutes
+  each with `SETTLE=30 SHOTS=0`) would tell whether the settings play a part.
 
 ## JUDGMENT-CALL
 
