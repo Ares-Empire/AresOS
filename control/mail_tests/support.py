@@ -18,6 +18,38 @@ check_responses()
 
 WORK = Path(__file__).resolve().parents[2] / '.work' / 'mail-tests'
 WORK.mkdir(parents=True, exist_ok=True)
+
+
+def install_build_identity():
+    """Give the Chrome adapter an installed chrome/build-id.json, as packaging does.
+
+    A source checkout has none, so every Engine start would hash all runtime
+    files again (92 files, about 1.3 MB; two or three starts per sweep case).
+    The fixture holds the same hash, computed once per process, beside a copy
+    of the shipped qualification record. test_build_identity keeps the
+    missing-file path (hashing the source tree) covered.
+    """
+    import atexit
+    import importlib.util
+    import json
+    import shutil
+    from aresos_control.chrome import adapter
+    source = adapter.RUNTIME
+    if (source / 'chrome' / 'build-id.json').exists():
+        return source  # Already an installed runtime.
+    spec = importlib.util.spec_from_file_location('aresos_chrome_build_fixture', source / 'chrome' / 'build.py')
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    runtime = Path(tempfile.mkdtemp(prefix='installed-runtime-', dir=WORK))
+    atexit.register(shutil.rmtree, runtime, True)
+    (runtime / 'chrome').mkdir()
+    shutil.copyfile(source / 'chrome' / 'qualification.json', runtime / 'chrome' / 'qualification.json')
+    (runtime / 'chrome' / 'build-id.json').write_text(json.dumps({'build': module.build_hash()}))
+    adapter.RUNTIME = runtime
+    return source
+
+
+SOURCE_RUNTIME = install_build_identity()
 CERT = Path(os.environ.get('MAIL_CERT_DIR', str(WORK / 'certs')))
 
 

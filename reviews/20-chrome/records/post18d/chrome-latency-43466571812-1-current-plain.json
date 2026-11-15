@@ -1,0 +1,351 @@
+{
+  "runtime": "current",
+  "privacy": "plain",
+  "chrome": "Google Chrome 157.0.8103.78",
+  "build": "1ed9248c7136763a545f5f9a79a9da47fd597444c57e37aaa3e21ce6f1655df0",
+  "calls": {
+    "approval_to_done": {
+      "client_total": {
+        "samples": 20,
+        "median_ms": 604.8501204999993,
+        "p95_ms": 626.1726349999954
+      },
+      "extension_total": {
+        "samples": 20,
+        "median_ms": 551.9999999999927,
+        "p95_ms": 562.7000000000116
+      },
+      "bridge_round_trip": {
+        "samples": 20,
+        "median_ms": 556.4779044999852,
+        "p95_ms": 567.4463709999884
+      },
+      "compose_binding": {
+        "samples": 20,
+        "median_ms": 0.5,
+        "p95_ms": 0.6999999999970896
+      },
+      "frame_facts": {
+        "samples": 20,
+        "median_ms": 7.30000000000291,
+        "p95_ms": 7.7000000000261934
+      },
+      "session_rule_update": {
+        "samples": 20,
+        "median_ms": 0.8999999999941792,
+        "p95_ms": 1.4000000000087311
+      },
+      "session_rule_add": {
+        "samples": 20,
+        "median_ms": 0.9000000000014552,
+        "p95_ms": 1.4000000000087311
+      },
+      "finish_input": {
+        "samples": 20,
+        "median_ms": 4.900000000001455,
+        "p95_ms": 13.5
+      },
+      "session_rule_remove": {
+        "samples": 20,
+        "median_ms": 1.25,
+        "p95_ms": 1.5999999999912689
+      },
+      "post_input_observation_wait": {
+        "samples": 20,
+        "median_ms": 525.1500000000015,
+        "p95_ms": 525.3000000000029
+      },
+      "post_input_steps": {
+        "samples": 20,
+        "median_ms": 526.6999999999971,
+        "p95_ms": 528.5999999999913
+      },
+      "clipboard_hooks": {
+        "samples": 20,
+        "median_ms": 0.0,
+        "p95_ms": 0.0
+      },
+      "page_observation": {
+        "samples": 20,
+        "median_ms": 1.3999999999941792,
+        "p95_ms": 4.900000000008731
+      },
+      "service_total": {
+        "samples": 20,
+        "median_ms": 599.6116644999959,
+        "p95_ms": 619.1644909999923
+      },
+      "service_without_bridge": {
+        "samples": 20,
+        "median_ms": 44.41124150000775,
+        "p95_ms": 52.40062800000089
+      }
+    },
+    "asking_click": {
+      "client_total": {
+        "samples": 20,
+        "median_ms": 34.275580499999705,
+        "p95_ms": 47.56018700000277
+      },
+      "compose_binding": {
+        "samples": 20,
+        "median_ms": 0.19999999999708962,
+        "p95_ms": 0.20000000001164153
+      },
+      "frame_facts": {
+        "samples": 20,
+        "median_ms": 2.6000000000058208,
+        "p95_ms": 2.900000000008731
+      },
+      "extension_total": {
+        "samples": 20,
+        "median_ms": 5.150000000008731,
+        "p95_ms": 5.5
+      },
+      "bridge_round_trip": {
+        "samples": 20,
+        "median_ms": 8.558909500003153,
+        "p95_ms": 9.58678099999588
+      },
+      "service_total": {
+        "samples": 20,
+        "median_ms": 30.145240499997783,
+        "p95_ms": 38.60585600000377
+      },
+      "service_without_bridge": {
+        "samples": 20,
+        "median_ms": 21.174362999985874,
+        "p95_ms": 29.973853000001327
+      }
+    },
+    "fill": {
+      "client_total": {
+        "samples": 20,
+        "median_ms": 581.7893175000008,
+        "p95_ms": 589.469291999998
+      },
+      "compose_binding": {
+        "samples": 20,
+        "median_ms": 0.40000000000873115,
+        "p95_ms": 0.6999999999825377
+      },
+      "frame_facts": {
+        "samples": 20,
+        "median_ms": 7.349999999998545,
+        "p95_ms": 7.900000000008731
+      },
+      "extension_total": {
+        "samples": 20,
+        "median_ms": 549.0999999999985,
+        "p95_ms": 557.9000000000087
+      },
+      "bridge_round_trip": {
+        "samples": 20,
+        "median_ms": 552.0566539999976,
+        "p95_ms": 560.7611259999885
+      },
+      "session_rule_update": {
+        "samples": 20,
+        "median_ms": 0.9000000000087311,
+        "p95_ms": 1.1000000000058208
+      },
+      "session_rule_add": {
+        "samples": 20,
+        "median_ms": 0.9500000000043656,
+        "p95_ms": 1.1000000000058208
+      },
+      "finish_input": {
+        "samples": 20,
+        "median_ms": 4.5,
+        "p95_ms": 13.0
+      },
+      "session_rule_remove": {
+        "samples": 20,
+        "median_ms": 1.1999999999970896,
+        "p95_ms": 1.3999999999941792
+      },
+      "post_input_observation_wait": {
+        "samples": 20,
+        "median_ms": 525.1000000000058,
+        "p95_ms": 525.2000000000116
+      },
+      "post_input_steps": {
+        "samples": 20,
+        "median_ms": 526.6999999999971,
+        "p95_ms": 526.8999999999942
+      },
+      "clipboard_hooks": {
+        "samples": 20,
+        "median_ms": 0.0,
+        "p95_ms": 0.10000000000582077
+      },
+      "page_observation": {
+        "samples": 20,
+        "median_ms": 1.3999999999941792,
+        "p95_ms": 1.6000000000058208
+      },
+      "service_total": {
+        "samples": 20,
+        "median_ms": 578.0109145000054,
+        "p95_ms": 584.4692430000009
+      },
+      "service_without_bridge": {
+        "samples": 20,
+        "median_ms": 23.36812099999719,
+        "p95_ms": 32.040581000003954
+      }
+    },
+    "free_click": {
+      "client_total": {
+        "samples": 20,
+        "median_ms": 590.7264220000015,
+        "p95_ms": 604.2544310000012
+      },
+      "compose_binding": {
+        "samples": 20,
+        "median_ms": 1.1999999999825377,
+        "p95_ms": 1.4000000000087311
+      },
+      "frame_facts": {
+        "samples": 20,
+        "median_ms": 8.89999999999418,
+        "p95_ms": 9.80000000000291
+      },
+      "extension_total": {
+        "samples": 20,
+        "median_ms": 558.0999999999985,
+        "p95_ms": 567.4000000000087
+      },
+      "bridge_round_trip": {
+        "samples": 20,
+        "median_ms": 560.5251879999997,
+        "p95_ms": 570.4274579999975
+      },
+      "session_rule_update": {
+        "samples": 20,
+        "median_ms": 1.0,
+        "p95_ms": 1.6999999999970896
+      },
+      "session_rule_add": {
+        "samples": 20,
+        "median_ms": 1.0,
+        "p95_ms": 1.6999999999970896
+      },
+      "clipboard_hooks": {
+        "samples": 20,
+        "median_ms": 0.20000000000436557,
+        "p95_ms": 0.3000000000029104
+      },
+      "finish_input": {
+        "samples": 20,
+        "median_ms": 8.650000000001455,
+        "p95_ms": 16.10000000000582
+      },
+      "session_rule_remove": {
+        "samples": 20,
+        "median_ms": 1.1000000000058208,
+        "p95_ms": 2.5
+      },
+      "post_input_observation_wait": {
+        "samples": 20,
+        "median_ms": 525.1999999999971,
+        "p95_ms": 525.3000000000029
+      },
+      "post_input_steps": {
+        "samples": 20,
+        "median_ms": 526.75,
+        "p95_ms": 527.1999999999971
+      },
+      "page_observation": {
+        "samples": 20,
+        "median_ms": 1.5999999999985448,
+        "p95_ms": 1.8999999999941792
+      },
+      "service_total": {
+        "samples": 20,
+        "median_ms": 585.8540474999998,
+        "p95_ms": 597.8024009999956
+      },
+      "service_without_bridge": {
+        "samples": 20,
+        "median_ms": 23.007858499994427,
+        "p95_ms": 31.986981000002856
+      }
+    },
+    "navigate": {
+      "client_total": {
+        "samples": 20,
+        "median_ms": 62.209955000000264,
+        "p95_ms": 78.77078599999732
+      },
+      "extension_total": {
+        "samples": 20,
+        "median_ms": 27.049999999995634,
+        "p95_ms": 32.80000000000291
+      },
+      "bridge_round_trip": {
+        "samples": 20,
+        "median_ms": 32.77243099999083,
+        "p95_ms": 38.53719300001046
+      },
+      "clipboard_hooks": {
+        "samples": 19,
+        "median_ms": 0.0,
+        "p95_ms": 0.09999999999126885
+      },
+      "page_observation": {
+        "samples": 20,
+        "median_ms": 16.999999999992724,
+        "p95_ms": 23.10000000000582
+      },
+      "service_total": {
+        "samples": 20,
+        "median_ms": 58.04875149999589,
+        "p95_ms": 72.890220000005
+      },
+      "service_without_bridge": {
+        "samples": 20,
+        "median_ms": 24.595639999994034,
+        "p95_ms": 34.35302699999454
+      }
+    },
+    "read": {
+      "client_total": {
+        "samples": 20,
+        "median_ms": 20.60493350000138,
+        "p95_ms": 29.59513799999695
+      },
+      "frame_facts": {
+        "samples": 20,
+        "median_ms": 2.7000000000043656,
+        "p95_ms": 3.599999999991269
+      },
+      "extension_total": {
+        "samples": 20,
+        "median_ms": 2.75,
+        "p95_ms": 3.6000000000058208
+      },
+      "bridge_round_trip": {
+        "samples": 20,
+        "median_ms": 4.840062999996064,
+        "p95_ms": 7.08261600000526
+      },
+      "service_total": {
+        "samples": 20,
+        "median_ms": 17.21982749999995,
+        "p95_ms": 23.027071999990767
+      },
+      "service_without_bridge": {
+        "samples": 20,
+        "median_ms": 11.197906500001409,
+        "p95_ms": 18.463136999983476
+      }
+    }
+  },
+  "notes": [
+    "20 samples per call; owner think time absent.",
+    "Page handlers are synthetic no-op or local receiver; browser dispatch is not claimed to be pure tool CPU.",
+    "Nested stages overlap. Missing historical stages are absent, never a fabricated zero.",
+    "The fixed post-input wait is holdMs + 25 ms (525 ms at holdMs=500)."
+  ]
+}

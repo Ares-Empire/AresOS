@@ -1,0 +1,104 @@
+{
+  "attack": "hostile",
+  "arrivalsBefore": 0,
+  "result": {
+    "operation_id": "7f30a7e80505477fb0667a05a5631818:7e5c0318c73b49f79f5f30d0bf22baec",
+    "untrusted_content": {
+      "checked": true,
+      "dispatched": true,
+      "steps": [
+        {
+          "id": "h1",
+          "kind": "native_submit",
+          "document": "22db3c5c9292bfba619b66a525f4645e",
+          "label": "",
+          "element": "e7",
+          "submitter": null,
+          "cancellable": true,
+          "frame": 0
+        }
+      ],
+      "dialog": null,
+      "uncertain_finish": false,
+      "confirmations": [],
+      "page": "Input dispatched once; inspect a fresh read for what the page shows."
+    },
+    "followups": [
+      {
+        "approval": {
+          "question": "On http://fixture.test:8765/?case=hostile, as the page shows it, activate 'resume native_submit' to http://fixture.test:8765/receive?case=hostile (post, 1 fields, 1 hidden)?",
+          "operation_id": "7f30a7e80505477fb0667a05a5631818:c9065dcfef9d46868e5eef44f68eb822",
+          "description": {
+            "action": "chrome_submit",
+            "untrusted_content": {
+              "page_state": {
+                "session": "ab2d0c97-baa6-4300-af9b-c7b0ccddf304",
+                "tab": 428743947,
+                "control": "bbeb4e91-eafc-41e0-902f-3b69dbc1643a",
+                "url": "http://fixture.test:8765/?case=hostile",
+                "document": "22db3c5c9292bfba619b66a525f4645e",
+                "frame": 0,
+                "frame_url": "http://fixture.test:8765/?case=hostile",
+                "target": {
+                  "element": "e7",
+                  "role": "form",
+                  "name": "",
+                  "label": "",
+                  "title": "",
+                  "href": null,
+                  "states": {
+                    "checked": false,
+                    "selected": false,
+                    "disabled": false,
+                    "required": false,
+                    "invalid": false,
+                    "expanded": null
+                  },
+                  "editable": false,
+                  "search": false,
+                  "submit": false,
+                  "page_dialog": null
+                },
+                "form": {
+                  "element": "e7",
+                  "action": "http://fixture.test:8765/receive?case=hostile",
+                  "method": "post",
+                  "encoding": "application/x-www-form-urlencoded",
+                  "target": "sink",
+                  "search": false,
+                  "fields": [
+                    {
+                      "element": "e8",
+                      "name": "source",
+                      "label": "",
+                      "type": "hidden",
+                      "hidden": true,
+                      "checked": false,
+                      "disabled": false,
+                      "multiple": false,
+                      "readOnly": false,
+                      "value": "hostile"
+                    }
+                  ]
+                },
+                "editable": null,
+                "item": null,
+                "adapter": null,
+                "dialog": null
+              },
+              "input": {
+                "verb": "resume_submission",
+                "kind": "native_submit"
+              },
+              "resume_kind": "native_submit",
+              "file": null,
+              "confirmation": null
+            },
+            "expires_at": 1794264383.3889823
+          }
+        },
+        "state": "reserved"
+      }
+    ]
+  }
+}

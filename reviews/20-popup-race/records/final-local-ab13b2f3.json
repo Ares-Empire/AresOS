@@ -1,0 +1,141 @@
+{
+  "head": "ab13b2f3",
+  "successful": true,
+  "note": "Full local preflight on ab13b2f3 (brief 20-popup-race: P1 re-arms a replayed duplicate breakpoint once, P2 flags the slow-load fallback's admission line and names loading in its message), the brief's driver .work/20-popup-race/preflight.py: four Python shards, every Node test file (seven new popuprace tests), the complete mutation audit (537: 523 + 14 popuprace-, with P1-preexisting-detach and P1-preexisting-recover re-pointed to the changed lines), generator, whitespace and service-unit checks. The Linux-only socket case is skipped on the Mac. No browser was started. Two earlier runs on da0fb019 and b5894de6 stopped on the Chrome instruction's 4096-character limit and on the two probes whose text had moved; both fixed in b5894de6 and ab13b2f3.",
+  "commands": [
+    {
+      "name": "python-shard-0",
+      "command": [
+        "python3",
+        "-B",
+        "control/chrome/ci/python-shard.py"
+      ],
+      "returncode": 0,
+      "seconds": 32
+    },
+    {
+      "name": "python-shard-1",
+      "command": [
+        "python3",
+        "-B",
+        "control/chrome/ci/python-shard.py"
+      ],
+      "returncode": 0,
+      "seconds": 1117
+    },
+    {
+      "name": "python-shard-2",
+      "command": [
+        "python3",
+        "-B",
+        "control/chrome/ci/python-shard.py"
+      ],
+      "returncode": 0,
+      "seconds": 25
+    },
+    {
+      "name": "python-shard-3",
+      "command": [
+        "python3",
+        "-B",
+        "control/chrome/ci/python-shard.py"
+      ],
+      "returncode": 0,
+      "seconds": 387
+    },
+    {
+      "name": "node",
+      "command": [
+        "node",
+        "--test",
+        "control/chrome_tests/activation-evidence.test.mjs",
+        "control/chrome_tests/background.test.mjs",
+        "control/chrome_tests/compatibility.test.mjs",
+        "control/chrome_tests/destination-evidence.test.mjs",
+        "control/chrome_tests/details.test.mjs",
+        "control/chrome_tests/failure.test.mjs",
+        "control/chrome_tests/fixture.test.mjs",
+        "control/chrome_tests/ingress-scan.test.mjs",
+        "control/chrome_tests/latency.test.mjs",
+        "control/chrome_tests/owner-evidence.test.mjs",
+        "control/chrome_tests/owner-ui.test.mjs",
+        "control/chrome_tests/pack.test.mjs",
+        "control/chrome_tests/page.test.mjs",
+        "control/chrome_tests/password-ingress.test.mjs",
+        "control/chrome_tests/popup.test.mjs",
+        "control/chrome_tests/popups.test.mjs",
+        "control/chrome_tests/precedence-evidence.test.mjs",
+        "control/chrome_tests/qualification-completion.test.mjs",
+        "control/chrome_tests/qualification-reader.test.mjs",
+        "control/chrome_tests/reader.test.mjs",
+        "control/chrome_tests/receiver-evidence.test.mjs",
+        "control/chrome_tests/recheck3-evidence.test.mjs",
+        "control/chrome_tests/review-reload.test.mjs",
+        "control/chrome_tests/shards.test.mjs",
+        "control/chrome_tests/site-results.test.mjs",
+        "control/chrome_tests/sites.test.mjs",
+        "control/chrome_tests/state-catalogues.test.mjs",
+        "control/chrome_tests/tabs.test.mjs",
+        "control/chrome_tests/verdicts.test.mjs"
+      ],
+      "returncode": 0,
+      "seconds": 9
+    },
+    {
+      "name": "mutations",
+      "command": [
+        "python3",
+        "-B",
+        "reviews/20-chrome/mutation-audit.py",
+        ".work/20-popup-race/preflight-ab13b2f3/mutations.json"
+      ],
+      "returncode": 0,
+      "seconds": 364
+    },
+    {
+      "name": "generate-check",
+      "command": [
+        "python3",
+        "control/generate.py",
+        "--check"
+      ],
+      "returncode": 0,
+      "seconds": 0
+    },
+    {
+      "name": "diff-check",
+      "command": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "returncode": 0,
+      "seconds": 0
+    },
+    {
+      "name": "service-unit-pin",
+      "command": [
+        "git",
+        "diff",
+        "--exit-code",
+        "8b7e799c",
+        "--",
+        "control/packaging/aresos-toold.service"
+      ],
+      "returncode": 0,
+      "seconds": 0
+    }
+  ],
+  "python_tests": 335,
+  "python_shards": [
+    68,
+    57,
+    49,
+    161
+  ],
+  "python_skipped": 1,
+  "node_tests": 435,
+  "node_failures": 0,
+  "removal_mutations": 537,
+  "every_mutation_baseline_passed": true
+}

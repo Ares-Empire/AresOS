@@ -1,0 +1,66 @@
+import hashlib,json,pathlib,re
+pointer=json.loads(pathlib.Path('.work/recheck-active-ci.json').read_text())
+manifest_path=pathlib.Path(pointer['directory'])/'completed.json'
+manifest=json.loads(manifest_path.read_text()) if manifest_path.exists() else {'head':pointer['head'],'runs':[json.loads(p.read_text()) for p in pathlib.Path(pointer['directory']).glob('completed-*.json')]}
+pathlib.Path('reviews/20-chrome/records/recheck/closing').mkdir(exist_ok=True)
+root=pathlib.Path('.work/recheck-final-evidence')
+records=[]
+for run in manifest['runs']:
+ if run['workflowName']=='Control Chrome':continue
+ assert run['headSha']==manifest['head'] and run['conclusion']=='success'
+ assert all(job['conclusion'] in {'success','skipped'} for job in run['jobs'])
+ files=[];checks={}
+ for p in sorted((root/str(run['databaseId'])).rglob('*')):
+  if not p.is_file() or p.name.startswith('.'):continue
+  digest=hashlib.sha256()
+  with p.open('rb') as source:
+   for block in iter(lambda:source.read(1024*1024),b''):digest.update(block)
+  row={'file':str(p.relative_to(root)),'bytes':p.stat().st_size,'sha256':digest.hexdigest()}
+  if p.suffix in {'.txt','.log','.json','.jsonl'} and p.stat().st_size<10000000:
+   text=p.read_text(errors='replace')
+   row['unittest_summaries']=re.findall(r'^Ran [0-9]+ tests? in [0-9.]+s$',text,re.M)
+   row['ok_lines']=len(re.findall(r'^OK$',text,re.M))
+   row['node_totals']=[line for line in text.splitlines() if re.match(r'^(?:# |ℹ )?(tests|pass|fail|cancelled|skipped)\s+[0-9]+$',line)]
+   row['result_lines']=[line for line in text.splitlines() if re.search(r'^(?:PASS|SUMMARY|BOUNDARY|ISOLATION|FILTER|ATTACK|SHARD|MAIL|seccomp|Run identity|ATTEST)',line)][:200]
+  files.append(row)
+ folder=root/str(run['databaseId'])
+ if run['workflowName']=='Control base':
+  text=next(folder.rglob('results.txt')).read_text()
+  assert re.search(r'^Ran 142 tests in [0-9.]+s$',text,re.M) and re.search(r'^OK$',text,re.M) and 'Control base suite PASS' in text
+  checks={'base_tests':142,'suite_pass':True}
+ elif run['workflowName']=='Control Chrome qualification':
+  text=next(folder.rglob('qualification-tests.txt')).read_text()
+  node=next(folder.rglob('node-tests.txt')).read_text()
+  totals={m[0]:int(m[1]) for m in re.findall(r'^(?:# |ℹ )?(tests|pass|fail|cancelled|skipped)\s+(\d+)',node,re.M)}
+  assert re.search(r'^Ran 47 tests in [0-9.]+s$',text,re.M) and re.search(r'^OK$',text,re.M)
+  assert totals=={'tests':257,'pass':257,'fail':0,'cancelled':0,'skipped':0}
+  checks={'qualification_tests':47,'node':totals}
+ elif run['workflowName']=='Control Mail':
+  main=folder/('control-mail-'+str(run['databaseId'])+'-'+str(run['attempt']))
+  base=(main/'base.txt').read_text();mail=(main/'mail.txt').read_text()
+  assert re.search(r'^Ran 142 tests in [0-9.]+s$',base,re.M) and re.search(r'^OK$',base,re.M)
+  assert re.search(r'^Ran 309 tests in [0-9.]+s$',mail,re.M) and re.search(r'^OK$',mail,re.M)
+  shards=[]
+  for shard in range(4):
+   directory=folder/('control-mail-sweep-'+str(shard)+'-'+str(run['databaseId'])+'-'+str(run['attempt']))
+   text=(directory/'mail.txt').read_text()
+   assert re.search(r'^Ran 4 tests in [0-9.]+s$',text,re.M) and re.search(r'^OK$',text,re.M)
+   assert 'Mail fixture isolation PASS' in (directory/'isolation.txt').read_text()
+   shards.append({'shard':shard,'tests':4,'result':'OK','isolation_pass':True})
+  assert 'Mail fixture isolation PASS' in (main/'isolation.txt').read_text()
+  checks={'base_tests':142,'mail_tests':309,'fault_shards':shards,'suite_isolation_pass':True}
+ elif run['workflowName']=='Control boundary':
+  modes=[]
+  for mode in ['present','absent']:
+   console=next(folder.rglob(mode+'-console.txt'))
+   lines=[line for line in console.read_text().splitlines() if line.startswith('BOUNDARY_OK ')]
+   native=console.parent/mode/'native-hostile-rows.json';rows=json.loads(native.read_text())
+   assert len(rows)==127 and all(row['blocked'] for row in rows)
+   assert len(lines)==1 and 'attacks=127 unchanged=42 hostile_connections=0' in lines[0]
+   modes.append({'mode':mode,'attacks':127,'all_blocked':True,'summary':lines[0]})
+  checks={'modes':modes}
+ records.append({'checks':checks,'run_id':run['databaseId'],'workflow':run['workflowName'],'source':run['headSha'],'url':run['url'],'jobs':[{'name':job['name'],'conclusion':job['conclusion']} for job in run['jobs']],'files':files})
+assert len(records)==8 and all(sum(row['workflow']==name for row in records)==2 for name in ['Control base','Control Mail','Control boundary','Control Chrome qualification'])
+output=pathlib.Path('reviews/20-chrome/records/recheck/closing/shared-audit.json')
+output.write_text(json.dumps(records,indent=2)+'\n')
+print('Shared workflow metadata and artifact outputs inventoried:',len(records))

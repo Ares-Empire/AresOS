@@ -1,0 +1,88 @@
+fixtures (external)	Browser fixtures only inside Linux container, sandbox on	﻿2026-11-12T15:20:24.3862522Z ##[group]Run set -euo pipefail
+fixtures (external)	Browser fixtures only inside Linux container, sandbox on	2026-11-12T15:20:24.3862867Z ^[[36;1mset -euo pipefail^[[0m
+fixtures (external)	Browser fixtures only inside Linux container, sandbox on	2026-11-12T15:20:24.3863135Z ^[[36;1mmkdir -p .work/20-chrome/ci^[[0m
+fixtures (external)	Browser fixtures only inside Linux container, sandbox on	2026-11-12T15:20:24.3864451Z ^[[36;1mtimeout --signal=TERM --kill-after=30s 240m docker run --rm --network none --cap-add SYS_ADMIN --security-opt seccomp=unconfined --security-opt apparmor=unconfined --shm-size=512m -e INSTALL_MODE -e QUALIFICATION_VERSION -e INJECTION_PROBE -e GITHUB_RUN_ID -e GITHUB_SHA -v "$PWD/.work/20-chrome/ci:/out" aresos-chrome-fixture^[[0m
+fixtures (external)	Browser fixtures only inside Linux container, sandbox on	2026-11-12T15:20:24.3886899Z shell: /usr/bin/bash -e {0}
+fixtures (external)	Browser fixtures only inside Linux container, sandbox on	2026-11-12T15:20:24.3887186Z env:
+fixtures (external)	Browser fixtures only inside Linux container, sandbox on	2026-11-12T15:20:24.3887390Z   INSTALL_MODE: external
+fixtures (external)	Browser fixtures only inside Linux container, sandbox on	2026-11-12T15:20:24.3887640Z   QUALIFICATION_VERSION: 157.0.8103.78
+fixtures (external)	Browser fixtures only inside Linux container, sandbox on	2026-11-12T15:20:24.3887909Z   INJECTION_PROBE: true
+fixtures (external)	Browser fixtures only inside Linux container, sandbox on	2026-11-12T15:20:24.3888133Z ##[endgroup]
+fixtures (external)	Browser fixtures only inside Linux container, sandbox on	2026-11-12T15:20:24.5886243Z Google Chrome 157.0.8103.78 
+fixtures (external)	Browser fixtures only inside Linux container, sandbox on	2026-11-12T15:20:24.7062928Z Generated artifacts match definitions
+fixtures (external)	Browser fixtures only inside Linux container, sandbox on	2026-11-12T15:20:25.3440895Z dbus-daemon[39]: [session uid=1000 pid=39] Activating service name='org.a11y.Bus' requested by ':1.2' (uid=1000 pid=61 comm="/opt/google/chrome/chrome --user-data-dir=/tmp/are" label="chrome (unconfined)")
+fixtures (external)	Browser fixtures only inside Linux container, sandbox on	2026-11-12T15:20:25.3458846Z dbus-daemon[39]: [session uid=1000 pid=39] Successfully activated service 'org.a11y.Bus'
+fixtures (external)	Browser fixtures only inside Linux container, sandbox on	2026-11-12T15:20:25.6856423Z {"phase":"ready"}
+fixtures (external)	Browser fixtures only inside Linux container, sandbox on	2026-11-12T15:20:25.7352477Z {"phase":"context","context":{"auxData":{"frameId":"6002A13C9EEFE2811082FFE1CB27C1E6","isDefault":true,"type":"default"},"id":1,"name":"","origin":"://","uniqueId":"2567771591484412122.-165780816523201482"}}
+fixtures (external)	Browser fixtures only inside Linux container, sandbox on	2026-11-12T15:20:25.7400372Z {"phase":"browser-capability","method":"Target.attachToBrowserTarget","error":"Error: {\"code\":-32000,\"message\":\"Not allowed\"}"}
+fixtures (external)	Browser fixtures only inside Linux container, sandbox on	2026-11-12T15:20:25.7413787Z {"phase":"browser-capability","method":"Target.autoAttachRelated","error":"Error: {\"code\":-32000,\"message\":\"Target.autoAttachRelated is only supported on the Browser target\"}"}
+fixtures (external)	Browser fixtures only inside Linux container, sandbox on	2026-11-12T15:20:25.7437341Z {"phase":"browser-attach","error":"Error: No target with given id browser."}
+fixtures (external)	Browser fixtures only inside Linux container, sandbox on	2026-11-12T15:20:25.7847787Z {"phase":"context","context":{"auxData":{"frameId":"6002A13C9EEFE2811082FFE1CB27C1E6","isDefault":true,"type":"default"},"id":2,"name":"","origin":"http://fixture.test:8765","uniqueId":"-552691697792973092.6530030993857171851"}}
+fixtures (external)	Browser fixtures only inside Linux container, sandbox on	2026-11-12T15:20:25.7868672Z {"phase":"context","context":{"auxData":{"frameId":"6002A13C9EEFE2811082FFE1CB27C1E6","isDefault":false,"type":"isolated"},"id":3,"name":"Controlled injection experiment","origin":"chrome-extension://edcemihoeogiehegmjcbkekenfbnmppc","uniqueId":"-5292644940435604210.-7627334630313549552"}}
+fixtures (external)	Browser fixtures only inside Linux container, sandbox on	2026-11-12T15:20:25.8008185Z {"phase":"private-extension-evaluation-before-resume","evaluated":{"result":{"type":"string","value":"{\"runtime\":\"edcemihoeogiehegmjcbkekenfbnmppc\",\"closedShadowAPI\":\"function\"}"}}}
+fixtures (external)	Browser fixtures only inside Linux container, sandbox on	2026-11-12T15:20:25.8094429Z {"phase":"native-entry-installed","breakpoint":"7:1"}
+fixtures (external)	Browser fixtures only inside Linux container, sandbox on	2026-11-12T15:20:25.8107695Z {"phase":"isolated-before-resume","elapsed":28,"result":"Extension world installed before page scripts"}
+fixtures (external)	Browser fixtures only inside Linux container, sandbox on	2026-11-12T15:20:25.8214386Z {"phase":"native-dispatch-entry","tab":1690872196,"roots":0}
+fixtures (external)	Browser fixtures only inside Linux container, sandbox on	2026-11-12T15:20:25.8333145Z {"phase":"native-dispatch-entry","tab":1690872196,"roots":0}
+fixtures (external)	Browser fixtures only inside Linux container, sandbox on	2026-11-12T15:20:25.8365671Z {"phase":"original-event-native-delivery","error":"TypeError: Cannot read properties of null (reading 'event')"}
+fixtures (external)	Browser fixtures only inside Linux container, sandbox on	2026-11-12T15:20:25.8389832Z {"phase":"native-dispatch-entry","tab":1690872196,"roots":0}
+fixtures (external)	Browser fixtures only inside Linux container, sandbox on	2026-11-12T15:20:25.8442677Z {"phase":"native-dispatch-entry","tab":1690872196,"roots":0}
+fixtures (external)	Browser fixtures only inside Linux container, sandbox on	2026-11-12T15:20:25.8529425Z {"phase":"native-dispatch-entry","tab":1690872196,"roots":0}
+fixtures (external)	Browser fixtures only inside Linux container, sandbox on	2026-11-12T15:20:25.8561110Z {"phase":"native-relay-delivery","result":false}
+fixtures (external)	Browser fixtures only inside Linux container, sandbox on	2026-11-12T15:20:25.8572516Z {"phase":"first-page-script","preloadMarker":"boolean","result":false,"handlers":0,"same":false,"relaySame":true,"relayDetail":{"fixture":9},"relayReturn":false,"relayPrevented":true,"originalPrevented":false,"privateVisible":"undefined"}
+fixtures (external)	Browser fixtures only inside Linux container, sandbox on	2026-11-12T15:20:27.4986264Z {"phase":"native-borrowed-open","handlers":1}
+fixtures (external)	Browser fixtures only inside Linux container, sandbox on	2026-11-12T15:20:27.5000866Z {"phase":"native-borrowed-closed","handlers":1}
+fixtures (external)	Browser fixtures only inside Linux container, sandbox on	2026-11-12T15:20:27.5114189Z {"phase":"popup-observation","root":1690872196,"popups":[]}
+fixtures (external)	Browser fixtures only inside Linux container, sandbox on	2026-11-12T15:21:25.5132493Z file:///workspace/control/chrome/ci/probe.mjs:28
+fixtures (external)	Browser fixtures only inside Linux container, sandbox on	2026-11-12T15:21:25.5133638Z   if(!reports.some(value=>value.phase==='popup-first-script')||!reports.some(value=>value.phase==='popup-observation'))throw Error('No popup diagnostic result');
+fixtures (external)	Browser fixtures only inside Linux container, sandbox on	2026-11-12T15:21:25.5134679Z                                                                                                                              ^
+fixtures (external)	Browser fixtures only inside Linux container, sandbox on	2026-11-12T15:21:25.5135096Z 
+fixtures (external)	Browser fixtures only inside Linux container, sandbox on	2026-11-12T15:21:25.5135231Z Error: No popup diagnostic result
+fixtures (external)	Browser fixtures only inside Linux container, sandbox on	2026-11-12T15:21:25.5136040Z     at file:///workspace/control/chrome/ci/probe.mjs:28:126
+fixtures (external)	Browser fixtures only inside Linux container, sandbox on	2026-11-12T15:21:25.5136363Z 
+fixtures (external)	Browser fixtures only inside Linux container, sandbox on	2026-11-12T15:21:25.5136466Z Node.js v22.23.5
+fixtures (external)	Browser fixtures only inside Linux container, sandbox on	2026-11-12T15:21:25.5739732Z ##[error]Process completed with exit code 1.
+fixtures (policy)	Browser fixtures only inside Linux container, sandbox on	﻿2026-11-12T15:20:15.6667342Z ##[group]Run set -euo pipefail
+fixtures (policy)	Browser fixtures only inside Linux container, sandbox on	2026-11-12T15:20:15.6667563Z ^[[36;1mset -euo pipefail^[[0m
+fixtures (policy)	Browser fixtures only inside Linux container, sandbox on	2026-11-12T15:20:15.6667713Z ^[[36;1mmkdir -p .work/20-chrome/ci^[[0m
+fixtures (policy)	Browser fixtures only inside Linux container, sandbox on	2026-11-12T15:20:15.6668376Z ^[[36;1mtimeout --signal=TERM --kill-after=30s 240m docker run --rm --network none --cap-add SYS_ADMIN --security-opt seccomp=unconfined --security-opt apparmor=unconfined --shm-size=512m -e INSTALL_MODE -e QUALIFICATION_VERSION -e INJECTION_PROBE -e GITHUB_RUN_ID -e GITHUB_SHA -v "$PWD/.work/20-chrome/ci:/out" aresos-chrome-fixture^[[0m
+fixtures (policy)	Browser fixtures only inside Linux container, sandbox on	2026-11-12T15:20:15.6687763Z shell: /usr/bin/bash -e {0}
+fixtures (policy)	Browser fixtures only inside Linux container, sandbox on	2026-11-12T15:20:15.6687933Z env:
+fixtures (policy)	Browser fixtures only inside Linux container, sandbox on	2026-11-12T15:20:15.6688222Z   INSTALL_MODE: policy
+fixtures (policy)	Browser fixtures only inside Linux container, sandbox on	2026-11-12T15:20:15.6688366Z   QUALIFICATION_VERSION: 157.0.8103.78
+fixtures (policy)	Browser fixtures only inside Linux container, sandbox on	2026-11-12T15:20:15.6688532Z   INJECTION_PROBE: true
+fixtures (policy)	Browser fixtures only inside Linux container, sandbox on	2026-11-12T15:20:15.6688671Z ##[endgroup]
+fixtures (policy)	Browser fixtures only inside Linux container, sandbox on	2026-11-12T15:20:15.8448957Z Google Chrome 157.0.8103.78 
+fixtures (policy)	Browser fixtures only inside Linux container, sandbox on	2026-11-12T15:20:15.9710124Z Generated artifacts match definitions
+fixtures (policy)	Browser fixtures only inside Linux container, sandbox on	2026-11-12T15:20:16.4204986Z dbus-daemon[39]: [session uid=1000 pid=39] Activating service name='org.a11y.Bus' requested by ':1.2' (uid=1000 pid=61 comm="/opt/google/chrome/chrome --user-data-dir=/tmp/are" label="chrome (unconfined)")
+fixtures (policy)	Browser fixtures only inside Linux container, sandbox on	2026-11-12T15:20:16.4264833Z dbus-daemon[39]: [session uid=1000 pid=39] Successfully activated service 'org.a11y.Bus'
+fixtures (policy)	Browser fixtures only inside Linux container, sandbox on	2026-11-12T15:20:16.7029324Z {"phase":"ready"}
+fixtures (policy)	Browser fixtures only inside Linux container, sandbox on	2026-11-12T15:20:16.7441108Z {"phase":"context","context":{"auxData":{"frameId":"B6313037A02F6868AC266BE53F997092","isDefault":true,"type":"default"},"id":1,"name":"","origin":"://","uniqueId":"-6567071314580033250.-4140235017579642995"}}
+fixtures (policy)	Browser fixtures only inside Linux container, sandbox on	2026-11-12T15:20:16.7519115Z {"phase":"browser-capability","method":"Target.attachToBrowserTarget","error":"Error: {\"code\":-32000,\"message\":\"Not allowed\"}"}
+fixtures (policy)	Browser fixtures only inside Linux container, sandbox on	2026-11-12T15:20:16.7538420Z {"phase":"browser-capability","method":"Target.autoAttachRelated","error":"Error: {\"code\":-32000,\"message\":\"Target.autoAttachRelated is only supported on the Browser target\"}"}
+fixtures (policy)	Browser fixtures only inside Linux container, sandbox on	2026-11-12T15:20:16.7557645Z {"phase":"browser-attach","error":"Error: No target with given id browser."}
+fixtures (policy)	Browser fixtures only inside Linux container, sandbox on	2026-11-12T15:20:16.7799599Z {"phase":"context","context":{"auxData":{"frameId":"B6313037A02F6868AC266BE53F997092","isDefault":true,"type":"default"},"id":2,"name":"","origin":"http://fixture.test:8765","uniqueId":"5172258643649477714.6700390851581828427"}}
+fixtures (policy)	Browser fixtures only inside Linux container, sandbox on	2026-11-12T15:20:16.7815281Z {"phase":"context","context":{"auxData":{"frameId":"B6313037A02F6868AC266BE53F997092","isDefault":false,"type":"isolated"},"id":3,"name":"Controlled injection experiment","origin":"chrome-extension://ppejcpfahbcgcpkneldcllklklohfpbb","uniqueId":"-8892655418401493112.2863149512769196774"}}
+fixtures (policy)	Browser fixtures only inside Linux container, sandbox on	2026-11-12T15:20:16.7883000Z {"phase":"private-extension-evaluation-before-resume","evaluated":{"result":{"type":"string","value":"{\"runtime\":\"ppejcpfahbcgcpkneldcllklklohfpbb\",\"closedShadowAPI\":\"function\"}"}}}
+fixtures (policy)	Browser fixtures only inside Linux container, sandbox on	2026-11-12T15:20:16.7972041Z {"phase":"native-entry-installed","breakpoint":"7:1"}
+fixtures (policy)	Browser fixtures only inside Linux container, sandbox on	2026-11-12T15:20:16.7990803Z {"phase":"isolated-before-resume","elapsed":19,"result":"Extension world installed before page scripts"}
+fixtures (policy)	Browser fixtures only inside Linux container, sandbox on	2026-11-12T15:20:16.8093468Z {"phase":"native-dispatch-entry","tab":1357172746,"roots":0}
+fixtures (policy)	Browser fixtures only inside Linux container, sandbox on	2026-11-12T15:20:16.8197529Z {"phase":"native-dispatch-entry","tab":1357172746,"roots":0}
+fixtures (policy)	Browser fixtures only inside Linux container, sandbox on	2026-11-12T15:20:16.8232254Z {"phase":"original-event-native-delivery","error":"TypeError: Cannot read properties of null (reading 'event')"}
+fixtures (policy)	Browser fixtures only inside Linux container, sandbox on	2026-11-12T15:20:16.8252569Z {"phase":"native-dispatch-entry","tab":1357172746,"roots":0}
+fixtures (policy)	Browser fixtures only inside Linux container, sandbox on	2026-11-12T15:20:16.8294212Z {"phase":"native-dispatch-entry","tab":1357172746,"roots":0}
+fixtures (policy)	Browser fixtures only inside Linux container, sandbox on	2026-11-12T15:20:16.8374450Z {"phase":"native-dispatch-entry","tab":1357172746,"roots":0}
+fixtures (policy)	Browser fixtures only inside Linux container, sandbox on	2026-11-12T15:20:16.8419426Z {"phase":"native-relay-delivery","result":false}
+fixtures (policy)	Browser fixtures only inside Linux container, sandbox on	2026-11-12T15:20:16.8427677Z {"phase":"first-page-script","preloadMarker":"boolean","result":false,"handlers":0,"same":false,"relaySame":true,"relayDetail":{"fixture":9},"relayReturn":false,"relayPrevented":true,"originalPrevented":false,"privateVisible":"undefined"}
+fixtures (policy)	Browser fixtures only inside Linux container, sandbox on	2026-11-12T15:20:18.5346456Z {"phase":"native-borrowed-open","handlers":1}
+fixtures (policy)	Browser fixtures only inside Linux container, sandbox on	2026-11-12T15:20:18.5357245Z {"phase":"native-borrowed-closed","handlers":1}
+fixtures (policy)	Browser fixtures only inside Linux container, sandbox on	2026-11-12T15:20:18.5445475Z {"phase":"popup-observation","root":1357172746,"popups":[]}
+fixtures (policy)	Browser fixtures only inside Linux container, sandbox on	2026-11-12T15:21:16.7747385Z file:///workspace/control/chrome/ci/probe.mjs:28
+fixtures (policy)	Browser fixtures only inside Linux container, sandbox on	2026-11-12T15:21:16.7748108Z   if(!reports.some(value=>value.phase==='popup-first-script')||!reports.some(value=>value.phase==='popup-observation'))throw Error('No popup diagnostic result');
+fixtures (policy)	Browser fixtures only inside Linux container, sandbox on	2026-11-12T15:21:16.7748544Z                                                                                                                              ^
+fixtures (policy)	Browser fixtures only inside Linux container, sandbox on	2026-11-12T15:21:16.7748696Z 
+fixtures (policy)	Browser fixtures only inside Linux container, sandbox on	2026-11-12T15:21:16.7749044Z Error: No popup diagnostic result
+fixtures (policy)	Browser fixtures only inside Linux container, sandbox on	2026-11-12T15:21:16.7749231Z     at file:///workspace/control/chrome/ci/probe.mjs:28:126
+fixtures (policy)	Browser fixtures only inside Linux container, sandbox on	2026-11-12T15:21:16.7749367Z 
+fixtures (policy)	Browser fixtures only inside Linux container, sandbox on	2026-11-12T15:21:16.7749416Z Node.js v22.23.5
+fixtures (policy)	Browser fixtures only inside Linux container, sandbox on	2026-11-12T15:21:16.8380949Z ##[error]Process completed with exit code 1.

@@ -1,0 +1,30 @@
+{
+  "groups": {
+    "1": true,
+    "2": false,
+    "3": true,
+    "4": true,
+    "5": true,
+    "6": true,
+    "7": true,
+    "8": false,
+    "9": true,
+    "10": true,
+    "11": true,
+    "13": true
+  },
+  "core": {
+    "classification": true,
+    "page_script": false,
+    "binding": true,
+    "password_exclusion": true
+  },
+  "adapters": {
+    "gmail": true,
+    "whatsapp": true,
+    "github": true,
+    "bank": true,
+    "gemini": true,
+    "deezer": true
+  }
+}

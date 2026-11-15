@@ -1,0 +1,41 @@
+✔ qualification never turns missing or failed named cases into passing groups (7.95825ms)
+✔ failed support suites and owner trust checks cannot publish adapter or core passes (0.490833ms)
+✔ strict owner false hold remains a failing page-script result (0.181792ms)
+✔ every mandatory failure reaches a recorded core or adapter switch, not only the unused group map (5.864292ms)
+✔ duplicate or nonboolean case evidence cannot qualify (0.370666ms)
+✔ unmapped additional checks fail closed until explicitly assigned to recorded groups (0.138208ms)
+✔ every named core popup and adapter case is in the exact required inventory (1.142875ms)
+✔ one adapter failure preserves all independent adapter verdicts (2.721125ms)
+✖ multi-adapter matrices preserve sites outside their actual fixture coverage (0.637084ms)
+✔ shared binding classification isolation and owner prerequisites disable dependent adapters (0.252083ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 9
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 65.953667
+
+✖ failing tests:
+
+test at control/chrome_tests/verdicts.test.mjs:75:1
+✖ multi-adapter matrices preserve sites outside their actual fixture coverage (0.637084ms)
+  AssertionError [ERR_ASSERTION]: GROUP 10 ADAPTER clear merge settings and sharing variants stay guarded -> gmail
+  
+  false !== true
+  
+      at TestContext.<anonymous> (file://<worktree>/control/chrome_tests/verdicts.test.mjs:81:52)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

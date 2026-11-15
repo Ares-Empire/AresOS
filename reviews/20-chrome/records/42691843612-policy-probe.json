@@ -1,0 +1,83 @@
+[
+  {
+    "phase": "ready"
+  },
+  {
+    "phase": "context",
+    "context": {
+      "auxData": {
+        "frameId": "746E179E09ABF591310FBEDD80CE91DC",
+        "isDefault": true,
+        "type": "default"
+      },
+      "id": 1,
+      "name": "",
+      "origin": "://",
+      "uniqueId": "-5464746849035565977.6044837622309415276"
+    }
+  },
+  {
+    "phase": "context",
+    "context": {
+      "auxData": {
+        "frameId": "746E179E09ABF591310FBEDD80CE91DC",
+        "isDefault": true,
+        "type": "default"
+      },
+      "id": 2,
+      "name": "",
+      "origin": "http://fixture.test:8765",
+      "uniqueId": "-928299329072624723.7425694107455696058"
+    }
+  },
+  {
+    "phase": "context",
+    "context": {
+      "auxData": {
+        "frameId": "746E179E09ABF591310FBEDD80CE91DC",
+        "isDefault": false,
+        "type": "isolated"
+      },
+      "id": 3,
+      "name": "Controlled injection experiment",
+      "origin": "chrome-extension://ekmipgbabhdfeogcakjgmhkpmonmnmfm",
+      "uniqueId": "5094164178830108885.-6528630769258208618"
+    }
+  },
+  {
+    "phase": "private-extension-evaluation-before-resume",
+    "evaluated": {
+      "result": {
+        "type": "string",
+        "value": "{\"runtime\":\"ekmipgbabhdfeogcakjgmhkpmonmnmfm\",\"closedShadowAPI\":\"function\"}"
+      }
+    }
+  },
+  {
+    "phase": "isolated-before-resume",
+    "elapsed": 16,
+    "result": "Extension world installed before page scripts"
+  },
+  {
+    "phase": "original-event-native-delivery",
+    "error": "TypeError: Cannot read properties of null (reading 'event')"
+  },
+  {
+    "phase": "native-relay-delivery",
+    "result": false
+  },
+  {
+    "phase": "first-page-script",
+    "result": false,
+    "handlers": 0,
+    "same": false,
+    "relaySame": true,
+    "relayDetail": {
+      "fixture": 9
+    },
+    "relayReturn": false,
+    "relayPrevented": true,
+    "originalPrevented": false,
+    "privateVisible": "undefined"
+  }
+]

@@ -90,8 +90,28 @@ class Timeouts22(EngineCase):
     def test_review22_upload_lost_final_ack_is_unknown_and_import_commits(self):
         raw = b'Synthetic upload'
         file = {'sha256': sha256(raw), 'size': len(raw), 'name': 'synthetic.bin', 'real_path': '/synthetic/synthetic.bin'}
-        with self.server(0.2, transfer=True) as client, patch('aresos_control.protocol.CHANGE_TIMEOUT', 0.05):
+        final_connection, lost_ack = None, False
+
+        def upload_frame(connection, message, **options):
+            nonlocal final_connection
+            send(connection, message, **options)
+            if message == {'end': True, 'offset': len(raw)}:
+                final_connection = connection
+
+        def receive_without_final_ack(connection):
+            nonlocal lost_ack
+            # A short timeout on the whole exchange can expire before the
+            # upload starts. Inject loss only after its real end frame was sent.
+            if connection is final_connection:
+                lost_ack = True
+                raise socket.timeout('Synthetic final upload acknowledgement loss')
+            return receive(connection)
+
+        with self.server(0.2, transfer=True) as client, \
+                patch('aresos_control.protocol.send', side_effect=upload_frame), \
+                patch('aresos_control.protocol.receive', side_effect=receive_without_final_ack):
             result = client.upload('testapp', file, raw)
+        self.assertTrue(lost_ack, 'The loss must target the final acknowledgement after every upload frame')
         self.assert_unknown(result, 'upload')
         self.assertEqual(result['data']['request']['sha256'], file['sha256'])
         self.assertEqual(self.engine.blobs.read(file['sha256']), raw)

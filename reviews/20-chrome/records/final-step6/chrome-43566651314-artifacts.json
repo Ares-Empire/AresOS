@@ -1,0 +1,439 @@
+{
+  "run": "43566651314",
+  "profiles_accessed": false,
+  "extraction": "Root JSON/JSONL/text metadata only; no profile members read or extracted",
+  "artifacts": [
+    {
+      "artifact": "chrome-latency-43566651314-1-ab7aba92-audit",
+      "id": 14102173705,
+      "zip_sha256": "737d3a59bbb72e8a0ad281f9c1665fc9005f5615b778061412c3be597e537521",
+      "files": {
+        "baseline-chrome.txt": {
+          "bytes": 1332,
+          "sha256": "c8776e10d5cfcf3ad3362e43ee79d15a6a02b66e9528bfa0cc8557ec48d0b5e9"
+        },
+        "baseline.txt": {
+          "bytes": 663,
+          "sha256": "68cf1c548d9777d8679d9a14fbd6109f82d585313bb3a5b7dab3011b53ea1100"
+        },
+        "baseline-openbox.txt": {
+          "bytes": 149,
+          "sha256": "95c0b23fa7dc08a3a7816a44ed0ed418004ac3c72977f69174eb7220d35f35ae"
+        },
+        "browser-boundary.jsonl": {
+          "bytes": 2292541,
+          "sha256": "cb7ad59d85cef139606536b3f46fe17b2cba5a9f9ff5cbbc2027e3329df3e581"
+        },
+        "browser.txt": {
+          "bytes": 761,
+          "sha256": "a3543d85e2c4385309a249c522bcb5a238dac17da70de906502d783882400128"
+        },
+        "chrome-version.txt": {
+          "bytes": 29,
+          "sha256": "04ce1829b69f68a11eb8ef036a6ab18a63411689e39b9b3331c0d884b707983a"
+        },
+        "chrome.txt": {
+          "bytes": 3584,
+          "sha256": "261ce294f7fd8cb02ad6511ad59682448d783f0d97ff6550cbbe5c4bb9243783"
+        },
+        "extension.json": {
+          "bytes": 59,
+          "sha256": "f3febd638645c12af4cef6fc99650b4bf4149fe99ba0664bf9756115582af2cf"
+        },
+        "isolation.json": {
+          "bytes": 8319,
+          "sha256": "89bd7ace7e6fd9c50b5565698dc1f3b37b376d5432bc410e7abcec75e7070006"
+        },
+        "latency-client.json": {
+          "bytes": 50835,
+          "sha256": "ee1373abb3af27d16b3c4c7b02fdf887c47c0c34fbbfdcc87ccd8670975b14b0"
+        },
+        "latency-service.jsonl": {
+          "bytes": 651746,
+          "sha256": "80998cc68d55866cb2fe5f8af1aaa5fc843d2eae3b2e2ebd079dc155daaaaa78"
+        },
+        "latency-summary.json": {
+          "bytes": 63975,
+          "sha256": "c2e2e7c351b3df114e06fda83a94caee07dc0823b0f55f69671efd009746bf03"
+        },
+        "launch.json": {
+          "bytes": 275,
+          "sha256": "4923eea4c5e50a1ed5d9f91db18ecfdc1f7f17c0838eb7b736bceb177258f7c7"
+        },
+        "native-baseline.json": {
+          "bytes": 2090,
+          "sha256": "cd85bc90977d71ef3256479fc891ffcf69ad0cd8b446f4748906745f958a5e1d"
+        },
+        "native-compatibility.jsonl": {
+          "bytes": 2827,
+          "sha256": "850790614405220420448ba4c27cedda14fae8b49013ec1413a0240461de08ec"
+        },
+        "native-outside.json": {
+          "bytes": 2090,
+          "sha256": "cd85bc90977d71ef3256479fc891ffcf69ad0cd8b446f4748906745f958a5e1d"
+        },
+        "openbox.txt": {
+          "bytes": 149,
+          "sha256": "95c0b23fa7dc08a3a7816a44ed0ed418004ac3c72977f69174eb7220d35f35ae"
+        },
+        "receiver.jsonl": {
+          "bytes": 9270,
+          "sha256": "99afc1802b6ac0eac2848a2171db1e6a4e187f77d0feb4b994eae8b98c4515ff"
+        },
+        "runtime-build.txt": {
+          "bytes": 65,
+          "sha256": "d47c91052e4165b59ad2786975f9494e13cc4c709d85743515f26ef3b304efad"
+        },
+        "service.txt": {
+          "bytes": 2492412,
+          "sha256": "3ad9e7d61f5586df6bd1c9f35ea2f96f966c9d4a4865a1212ce12629f59332bb"
+        },
+        "tool.jsonl": {
+          "bytes": 1061962,
+          "sha256": "bd2bbc38c8b12e069cbcf09e3355a1ca82d25782763d92b9cc307584a271c8b7"
+        }
+      }
+    },
+    {
+      "artifact": "chrome-latency-43566651314-1-ab7aba92-plain",
+      "id": 14103236989,
+      "zip_sha256": "a66c1915f06a5a4f1ff35e6d4fdb7add2d8600a6321d6c7001fb9cf5ad5f2b28",
+      "files": {
+        "baseline-chrome.txt": {
+          "bytes": 1494,
+          "sha256": "0c3d1c7f94283a3479d002e3c5e78d2577533b3c01fd5ccdf7d04458a5521ab4"
+        },
+        "baseline.txt": {
+          "bytes": 663,
+          "sha256": "68cf1c548d9777d8679d9a14fbd6109f82d585313bb3a5b7dab3011b53ea1100"
+        },
+        "baseline-openbox.txt": {
+          "bytes": 149,
+          "sha256": "95c0b23fa7dc08a3a7816a44ed0ed418004ac3c72977f69174eb7220d35f35ae"
+        },
+        "browser-boundary.jsonl": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "browser.txt": {
+          "bytes": 761,
+          "sha256": "604b2a78d1a3b4c636fb5b7787bb0ca42f8401ae27b546125420fd0b7ea5dd05"
+        },
+        "chrome-version.txt": {
+          "bytes": 29,
+          "sha256": "04ce1829b69f68a11eb8ef036a6ab18a63411689e39b9b3331c0d884b707983a"
+        },
+        "chrome.txt": {
+          "bytes": 3584,
+          "sha256": "db5b8d5ec2948873378ba1384837bd60c18fca7ebd5cb25215e3fb949e1e5a0b"
+        },
+        "extension.json": {
+          "bytes": 59,
+          "sha256": "5f8e76058f6ed0235b5eef59b35bd5a7147f1e20adee0efcb813ab7aaffbaaa3"
+        },
+        "isolation.json": {
+          "bytes": 8346,
+          "sha256": "1c09b03d4652984b03a5e722d3c0c05323e708bdb69883b69ed0c87c44aa7245"
+        },
+        "latency-client.json": {
+          "bytes": 50850,
+          "sha256": "7c5d1d23022ad06bd0bc41e10efc60cdb3c1ac1386b557511ca8dae9fc493bea"
+        },
+        "latency-service.jsonl": {
+          "bytes": 652181,
+          "sha256": "8bb0667a5513ae43d6106d3dde17a33bab8c6698b0c7fdebb03040ceaf6151f6"
+        },
+        "latency-summary.json": {
+          "bytes": 64317,
+          "sha256": "be0fcb4240af12a156cd13ab724dc3f07ba3b6bfe68b206f729a4af622eddb7b"
+        },
+        "launch.json": {
+          "bytes": 275,
+          "sha256": "dffa037fd2fb5b62e8d82d281be71d70f4e6ac43375dfb03bcde069a2c0c5fa3"
+        },
+        "native-baseline.json": {
+          "bytes": 2090,
+          "sha256": "cd85bc90977d71ef3256479fc891ffcf69ad0cd8b446f4748906745f958a5e1d"
+        },
+        "native-compatibility.jsonl": {
+          "bytes": 2827,
+          "sha256": "850790614405220420448ba4c27cedda14fae8b49013ec1413a0240461de08ec"
+        },
+        "native-outside.json": {
+          "bytes": 2090,
+          "sha256": "cd85bc90977d71ef3256479fc891ffcf69ad0cd8b446f4748906745f958a5e1d"
+        },
+        "openbox.txt": {
+          "bytes": 149,
+          "sha256": "95c0b23fa7dc08a3a7816a44ed0ed418004ac3c72977f69174eb7220d35f35ae"
+        },
+        "receiver.jsonl": {
+          "bytes": 9270,
+          "sha256": "8af3d50df0968f8198a0981c4e8efa88e1326497a1d173d47edabf9d22a4621c"
+        },
+        "runtime-build.txt": {
+          "bytes": 65,
+          "sha256": "d47c91052e4165b59ad2786975f9494e13cc4c709d85743515f26ef3b304efad"
+        },
+        "service.txt": {
+          "bytes": 37,
+          "sha256": "1199b1458442401e3f1ba37feb94d86294b8583fadab7867980aa2bc5c942445"
+        },
+        "tool.jsonl": {
+          "bytes": 1063988,
+          "sha256": "32ffd8237d75c0242727b2eddbedf637229cf78daa814ffc1826a4f06c3b12a8"
+        }
+      }
+    },
+    {
+      "artifact": "chrome-latency-43566651314-1-current-audit",
+      "id": 14102552716,
+      "zip_sha256": "65fa17d7c212d7ff59f715319bb2b7601cb8842ee7c9e698d571018cec873051",
+      "files": {
+        "baseline-chrome.txt": {
+          "bytes": 1332,
+          "sha256": "d6af65e6032af743fe6ea2cfaccbd20d5387b21bbee7fa7fb2fc607156645c2e"
+        },
+        "baseline-openbox.txt": {
+          "bytes": 149,
+          "sha256": "95c0b23fa7dc08a3a7816a44ed0ed418004ac3c72977f69174eb7220d35f35ae"
+        },
+        "baseline.txt": {
+          "bytes": 663,
+          "sha256": "68cf1c548d9777d8679d9a14fbd6109f82d585313bb3a5b7dab3011b53ea1100"
+        },
+        "browser-boundary.jsonl": {
+          "bytes": 3919935,
+          "sha256": "7eaba0b35e97ed35460eb28bdea3069b225b2ec116c09dc27d6f8876ea219022"
+        },
+        "browser.txt": {
+          "bytes": 761,
+          "sha256": "2354cc3e623b6f38519046d5a810fa04a3b2c19b207fb931d83a58492b6c5203"
+        },
+        "chrome-version.txt": {
+          "bytes": 29,
+          "sha256": "04ce1829b69f68a11eb8ef036a6ab18a63411689e39b9b3331c0d884b707983a"
+        },
+        "chrome.txt": {
+          "bytes": 3746,
+          "sha256": "2d2b1e29e75a1457ade031a54bd512cab08ad48b53c91696b41efd5a8999ca9f"
+        },
+        "extension.json": {
+          "bytes": 59,
+          "sha256": "fd43b7c31a62b8137c48a5f87a5bdc0c63fb27f0a7b0f8be0fd66ffc6fe8f655"
+        },
+        "isolation.json": {
+          "bytes": 8348,
+          "sha256": "1cd3454ad27d0e9e265e19cdbae8f12fa958b87c6ad7a1027db6dfa4fb2087cc"
+        },
+        "latency-check.json": {
+          "bytes": 10266,
+          "sha256": "a26fc6a9e7a31d7157b8397b841bb3e33cfd3bc935be11cf7311c03fcf577d8f"
+        },
+        "latency-client.json": {
+          "bytes": 50827,
+          "sha256": "ce9195efb8c17c712c81ac3c2c1b74310acefd7832580d3486dbac661fa052b8"
+        },
+        "latency-service.jsonl": {
+          "bytes": 1043516,
+          "sha256": "86f51ed82a0717d33fd71d66c20532d35844f6204bf96e74350da2745cd6579b"
+        },
+        "latency-summary.json": {
+          "bytes": 75663,
+          "sha256": "2ac2a6eda4e75498dbf77375baeb4b905c6a04df79d4abe33f0aa961323900a1"
+        },
+        "launch.json": {
+          "bytes": 275,
+          "sha256": "9c8eab59b9ffddb0a2e74c31fdf47ed436383b563307fe6687f594d08ad6ec36"
+        },
+        "native-baseline.json": {
+          "bytes": 2090,
+          "sha256": "cd85bc90977d71ef3256479fc891ffcf69ad0cd8b446f4748906745f958a5e1d"
+        },
+        "native-compatibility.jsonl": {
+          "bytes": 2827,
+          "sha256": "850790614405220420448ba4c27cedda14fae8b49013ec1413a0240461de08ec"
+        },
+        "native-outside.json": {
+          "bytes": 2090,
+          "sha256": "cd85bc90977d71ef3256479fc891ffcf69ad0cd8b446f4748906745f958a5e1d"
+        },
+        "openbox.txt": {
+          "bytes": 149,
+          "sha256": "95c0b23fa7dc08a3a7816a44ed0ed418004ac3c72977f69174eb7220d35f35ae"
+        },
+        "receiver.jsonl": {
+          "bytes": 9270,
+          "sha256": "17e976745752add82b7def354361ce5881e817188f883b60fdae5bc21370c911"
+        },
+        "runtime-build.txt": {
+          "bytes": 65,
+          "sha256": "5c6df324853b26749747f7f85fe6455a8aaaf057fd76a6a96ade71dcfce23075"
+        },
+        "service.txt": {
+          "bytes": 4278722,
+          "sha256": "d7e2140a19deec6c66dafad45f241b1501585ef47e246d9ca3ae736b7d58a442"
+        },
+        "tool.jsonl": {
+          "bytes": 1183061,
+          "sha256": "86558db92ec1bb0881900203d9835d0aa90f870e798fd140b443547a6f3f2766"
+        }
+      }
+    },
+    {
+      "artifact": "chrome-latency-43566651314-1-current-plain",
+      "id": 14103326304,
+      "zip_sha256": "e7444ff3c0fbffe389aa4d766b511d5a57dc87d46cc6488ffbe35a78dc8c2f6c",
+      "files": {
+        "baseline-chrome.txt": {
+          "bytes": 1332,
+          "sha256": "dd91a5bdef3676fbe40291e749dd9c3d8087bf5493aadda46aa3d9f62fcd0174"
+        },
+        "baseline-openbox.txt": {
+          "bytes": 149,
+          "sha256": "95c0b23fa7dc08a3a7816a44ed0ed418004ac3c72977f69174eb7220d35f35ae"
+        },
+        "baseline.txt": {
+          "bytes": 663,
+          "sha256": "8991e89ac6cb3f233deea7457b777c8b1c750be8fa920ef2aee13d2579fa366d"
+        },
+        "browser-boundary.jsonl": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "browser.txt": {
+          "bytes": 761,
+          "sha256": "2354cc3e623b6f38519046d5a810fa04a3b2c19b207fb931d83a58492b6c5203"
+        },
+        "chrome-version.txt": {
+          "bytes": 29,
+          "sha256": "04ce1829b69f68a11eb8ef036a6ab18a63411689e39b9b3331c0d884b707983a"
+        },
+        "chrome.txt": {
+          "bytes": 3584,
+          "sha256": "40fc63b6ea03f0a3dcee2c50c22253a7ea2c541b976b7355c6248c02bfca269a"
+        },
+        "extension.json": {
+          "bytes": 59,
+          "sha256": "e7d7fbafdcdbd859990d8c4af447f8b25b735826dd0cc315c7c8a80e16b053bf"
+        },
+        "isolation.json": {
+          "bytes": 8323,
+          "sha256": "51502836916471301b4dd676f258c57bd1eb868772f422cd3f12e290b52f2b74"
+        },
+        "latency-check.json": {
+          "bytes": 10479,
+          "sha256": "211a1ab34f7776589ab6e82283bab19fad153021b8043940cb7c1d679fc97238"
+        },
+        "latency-client.json": {
+          "bytes": 50831,
+          "sha256": "3e21863f7cf91ab9e4c6256daa2b3c4930b567b134a5b5da08deea0291111f09"
+        },
+        "latency-service.jsonl": {
+          "bytes": 1043465,
+          "sha256": "092262d103227be99d2eb56b3ecea63e99b0e5b8c0bfaf6a7db14f47a4eedefb"
+        },
+        "latency-summary.json": {
+          "bytes": 75681,
+          "sha256": "4e29a68887cef1c86b3eac93640825931b3a4e74ed3f8b501ed393dfb7cd1e40"
+        },
+        "launch.json": {
+          "bytes": 275,
+          "sha256": "a0a8a9ce2231a346663d3c32676614d038c55302a571e030e856624d57b8e6a9"
+        },
+        "native-baseline.json": {
+          "bytes": 2090,
+          "sha256": "cd85bc90977d71ef3256479fc891ffcf69ad0cd8b446f4748906745f958a5e1d"
+        },
+        "native-outside.json": {
+          "bytes": 2090,
+          "sha256": "cd85bc90977d71ef3256479fc891ffcf69ad0cd8b446f4748906745f958a5e1d"
+        },
+        "native-compatibility.jsonl": {
+          "bytes": 2827,
+          "sha256": "850790614405220420448ba4c27cedda14fae8b49013ec1413a0240461de08ec"
+        },
+        "openbox.txt": {
+          "bytes": 149,
+          "sha256": "95c0b23fa7dc08a3a7816a44ed0ed418004ac3c72977f69174eb7220d35f35ae"
+        },
+        "receiver.jsonl": {
+          "bytes": 9270,
+          "sha256": "91aece04377910fbac745cdc9596dfccb1ebed5de6bc356f25b582a26d8cd69d"
+        },
+        "runtime-build.txt": {
+          "bytes": 65,
+          "sha256": "5c6df324853b26749747f7f85fe6455a8aaaf057fd76a6a96ade71dcfce23075"
+        },
+        "service.txt": {
+          "bytes": 37,
+          "sha256": "1199b1458442401e3f1ba37feb94d86294b8583fadab7867980aa2bc5c942445"
+        },
+        "tool.jsonl": {
+          "bytes": 1184616,
+          "sha256": "3e1c99ebefb4cc6ee3f71422e5d58c4d19b399a744e475dd5766ef1c8df8bc6c"
+        }
+      }
+    },
+    {
+      "artifact": "control-chrome-python-43566651314-1-0",
+      "id": 14102846427,
+      "zip_sha256": "36d61cd7536337c802553d3115df1ca14941d5d0b47b818e790e906bfab3f1fa",
+      "files": {
+        "python-shard-0.json": {
+          "bytes": 273,
+          "sha256": "93f69450e51944417866ea12dea07ee3b8dee1729e7383d68a67386ffe2d2c19"
+        },
+        "python.txt": {
+          "bytes": 9722,
+          "sha256": "6475b8819aa984d4a8ce30200c4e757efaa0be18d30d21d46d2217275eaec048"
+        }
+      }
+    },
+    {
+      "artifact": "control-chrome-python-43566651314-1-1",
+      "id": 14102974211,
+      "zip_sha256": "9bf73628f83827e2a4279557b64f4eeb68e253662cb45c69e19109526426ced5",
+      "files": {
+        "python-shard-1.json": {
+          "bytes": 270,
+          "sha256": "5fc02465488ad291c5d209996ebe3658e70201dfbe18b557dda94a8d4e1f62d4"
+        },
+        "python.txt": {
+          "bytes": 9053,
+          "sha256": "5546530ee57f298de6c8ff566eb69b3cc7665834fd6fed3ce3e82a2d55b6ab2f"
+        }
+      }
+    },
+    {
+      "artifact": "control-chrome-python-43566651314-1-2",
+      "id": 14102568257,
+      "zip_sha256": "aababa8467c210d18408c312fd95c7d9fb194c04e3540516e5d02b5e3faf9350",
+      "files": {
+        "python-shard-2.json": {
+          "bytes": 259,
+          "sha256": "075df60169742708cd8f9aba9bb51dbc4bd0c0f9ed5ff514d2afc46a597c4baa"
+        },
+        "python.txt": {
+          "bytes": 17753,
+          "sha256": "6c333135be363552cb41d7fe93340c3153816f54385154165296ef176533b2c4"
+        }
+      }
+    },
+    {
+      "artifact": "control-chrome-python-43566651314-1-3",
+      "id": 14103170613,
+      "zip_sha256": "017f02e24b5b53ae88228ef849e88c10d186a08c8a300a282e7a3a45b13e5780",
+      "files": {
+        "python-shard-3.json": {
+          "bytes": 248,
+          "sha256": "1d752a362dcd95cfd406256ede1cfa9b3a7fe8f0b34e97539bc88e525503b2e7"
+        },
+        "python.txt": {
+          "bytes": 18976,
+          "sha256": "836c9dad03db018c238f10af80a5a726ba669bc402750f80d0c313c799f7c189"
+        }
+      }
+    }
+  ]
+}

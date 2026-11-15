@@ -1,0 +1,82 @@
+test_clean_runtime_copy_has_same_identity_and_every_runtime_area_changes_it (test_build.Build.test_clean_runtime_copy_has_same_identity_and_every_runtime_area_changes_it) ... ok
+test_complete_installed_runtime_including_shared_approval_changes_identity (test_build.Build.test_complete_installed_runtime_including_shared_approval_changes_identity) ... ok
+test_runtime_inventory_includes_entrypoints_definitions_settings_and_every_extension_asset (test_build.Build.test_runtime_inventory_includes_entrypoints_definitions_settings_and_every_extension_asset) ... ok
+test_every_chrome_durable_writer_single_persistent_cleanup_pairs_restart_space_restored (test_fault_surface.Writers.test_every_chrome_durable_writer_single_persistent_cleanup_pairs_restart_space_restored) ... Chrome isolated fault flow readonly {'single': 52, 'persistent': 52, 'pairs': 202}
+Chrome isolated fault flow allow {'single': 52, 'persistent': 52, 'pairs': 202}
+Chrome isolated fault flow revoke {'single': 53, 'persistent': 53, 'pairs': 208}
+Chrome isolated fault flow trusted {'single': 437, 'persistent': 437, 'pairs': 2148}
+Chrome isolated fault flow qualification {'single': 54, 'persistent': 54, 'pairs': 98}
+Chrome isolated fault flow delivery {'single': 109, 'persistent': 109, 'pairs': 259}
+Chrome isolated fault flow observation {'single': 52, 'persistent': 52, 'pairs': 92}
+Chrome isolated fault flow activation {'single': 113, 'persistent': 113, 'pairs': 203}
+Chrome isolated fault flow stopped {'single': 166, 'persistent': 166, 'pairs': 296}
+Chrome isolated fault flow acknowledgement {'single': 54, 'persistent': 54, 'pairs': 267}
+Chrome isolated fault flow release {'single': 68, 'persistent': 68, 'pairs': 122}
+Chrome isolated fault flow upload_copy {'single': 8, 'persistent': 8, 'pairs': 9}
+Chrome isolated fault flow drop {'single': 68, 'persistent': 68, 'pairs': 333}
+Chrome isolated fault flow retirement {'single': 60, 'persistent': 60, 'pairs': 108}
+Chrome isolated fault flow lost_queue {'single': 106, 'persistent': 106, 'pairs': 628}
+Chrome isolated fault flow stopped_submit {'single': 393, 'persistent': 393, 'pairs': 1925}
+Chrome isolated fault flow restore {'single': 76, 'persistent': 76, 'pairs': 297}
+Chrome isolated fault flow compose_reask {'single': 137, 'persistent': 137, 'pairs': 673}
+Chrome isolated fault flow compose_stop {'single': 72, 'persistent': 72, 'pairs': 425}
+Chrome full writer surface {'single': 2130, 'persistent': 2130, 'pairs': 8495}
+ok
+test_failed_upload_staging_releases_copy_and_idle_cleanup_expires_old_copies (test_fault_surface.Writers.test_failed_upload_staging_releases_copy_and_idle_cleanup_expires_old_copies) ... ok
+test_form_destination_exclusion_added_after_preparation_refuses_before_input (test_fault_surface.Writers.test_form_destination_exclusion_added_after_preparation_refuses_before_input) ... ok
+test_group1_approval_first_exact_and_dispatch_once (test_fault_surface.Writers.test_group1_approval_first_exact_and_dispatch_once) ... ok
+test_group3_current_draft_bound_even_without_prior_fill_and_across_frames (test_fault_surface.Writers.test_group3_current_draft_bound_even_without_prior_fill_and_across_frames) ... ok
+test_group8_drop_deadline_restart_never_dispatch (test_fault_surface.Writers.test_group8_drop_deadline_restart_never_dispatch) ... ok
+test_known_excluded_form_destinations_refuse_before_input (test_fault_surface.Writers.test_known_excluded_form_destinations_refuse_before_input) ... ok
+test_owner_excluded_link_is_refused_before_any_input (test_fault_surface.Writers.test_owner_excluded_link_is_refused_before_any_input) ... ok
+test_r2_created_tab_identity_commits_before_navigation (test_fault_surface.Writers.test_r2_created_tab_identity_commits_before_navigation) ... ok
+test_r2_free_input_has_committed_context_before_dispatch (test_fault_surface.Writers.test_r2_free_input_has_committed_context_before_dispatch) ... ok
+test_review1_password_failure_refuses_before_any_binding_read (test_fault_surface.Writers.test_review1_password_failure_refuses_before_any_binding_read) ... ok
+test_review1_readonly_added_after_prepare_refuses_all_dispatch_kinds (test_fault_surface.Writers.test_review1_readonly_added_after_prepare_refuses_all_dispatch_kinds) ... ok
+test_storage_admission_refusal_recovers_without_restart_and_prevents_dispatch (test_fault_surface.Writers.test_storage_admission_refusal_recovers_without_restart_and_prevents_dispatch) ... ok
+test_taken_read_preserves_document_and_first_input_commits_reload_before_staling (test_fault_surface.Writers.test_taken_read_preserves_document_and_first_input_commits_reload_before_staling) ... ok
+test_taken_reload_warning_requires_explicit_repeat_and_readonly_never_reloads (test_fault_surface.Writers.test_taken_reload_warning_requires_explicit_repeat_and_readonly_never_reloads) ... ok
+test_warning_occurrences_bind_source_document_and_do_not_inherit_old_acknowledgement (test_fault_surface.Writers.test_warning_occurrences_bind_source_document_and_do_not_inherit_old_acknowledgement) ... ok
+test_final_f7_a_real_spoofing_process_on_the_socket_gets_nothing (test_owner_confirm.Confirmation.test_final_f7_a_real_spoofing_process_on_the_socket_gets_nothing) ... skipped 'Linux peer credentials'
+test_final_f7_cached_or_replayed_success_is_refused (test_owner_confirm.Confirmation.test_final_f7_cached_or_replayed_success_is_refused) ... ok
+test_final_f7_listing_revoking_and_readonly_on_need_no_password (test_owner_confirm.Confirmation.test_final_f7_listing_revoking_and_readonly_on_need_no_password) ... ok
+test_final_f7_one_dialog_at_a_time (test_owner_confirm.Confirmation.test_final_f7_one_dialog_at_a_time) ... ok
+test_final_f7_spoofed_allow_and_readonly_off_write_nothing_without_a_success (test_owner_confirm.Confirmation.test_final_f7_spoofed_allow_and_readonly_off_write_nothing_without_a_success) ... ok
+test_final_f7_success_writes_exactly_the_confirmed_change_for_the_connected_process (test_owner_confirm.Confirmation.test_final_f7_success_writes_exactly_the_confirmed_change_for_the_connected_process) ... ok
+test_final_f7_the_subject_is_the_process_that_connected (test_owner_confirm.Confirmation.test_final_f7_the_subject_is_the_process_that_connected) ... ok
+test_final_f7_timeout_missing_polkit_and_unknown_process_refuse (test_owner_confirm.Confirmation.test_final_f7_timeout_missing_polkit_and_unknown_process_refuse) ... ok
+test_final_f7_dialog_text_is_one_bounded_line_without_markup (test_owner_confirm.Policy.test_final_f7_dialog_text_is_one_bounded_line_without_markup) ... ok
+test_final_f7_only_the_real_policy_reaches_the_install_tree (test_owner_confirm.Policy.test_final_f7_only_the_real_policy_reaches_the_install_tree) ... ok
+test_final_f7_policy_asks_the_admin_password_every_time_and_names_the_service_user (test_owner_confirm.Policy.test_final_f7_policy_asks_the_admin_password_every_time_and_names_the_service_user) ... ok
+test_final_f7_policy_ships_with_the_hashed_packaging_and_is_named_for_the_image (test_owner_confirm.Policy.test_final_f7_policy_ships_with_the_hashed_packaging_and_is_named_for_the_image) ... ok
+test_final_f7_the_real_polkit_check_requires_each_dialog_to_name_its_change (test_owner_confirm.Policy.test_final_f7_the_real_polkit_check_requires_each_dialog_to_name_its_change) ... ok
+test_final_f7_the_real_polkit_check_runs_on_pull_requests_and_the_shim_is_gone (test_owner_confirm.Policy.test_final_f7_the_real_polkit_check_runs_on_pull_requests_and_the_shim_is_gone) ... ok
+test_final_f7_tool_text_says_where_the_password_is_asked (test_owner_confirm.Policy.test_final_f7_tool_text_says_where_the_password_is_asked) ... ok
+test_conservative_enter_control_asks_then_dispatches_once (test_qualification_service.Service.test_conservative_enter_control_asks_then_dispatches_once) ... ok
+test_conservative_link_click_asks_then_dispatches_once (test_qualification_service.Service.test_conservative_link_click_asks_then_dispatches_once) ... ok
+test_conservative_list_choice_asks_then_dispatches_once (test_qualification_service.Service.test_conservative_list_choice_asks_then_dispatches_once) ... ok
+test_conservative_mail_uses_generic_rules_and_suspends_existing_owner_entry (test_qualification_service.Service.test_conservative_mail_uses_generic_rules_and_suspends_existing_owner_entry) ... ok
+test_conservative_read_scroll_type_and_address_navigation_remain_free (test_qualification_service.Service.test_conservative_read_scroll_type_and_address_navigation_remain_free) ... ok
+test_conservative_readonly_fill_button_upload_refused_independent_of_adapters (test_qualification_service.Service.test_conservative_readonly_fill_button_upload_refused_independent_of_adapters) ... ok
+test_conservative_search_form_submission_asks_then_dispatches_once (test_qualification_service.Service.test_conservative_search_form_submission_asks_then_dispatches_once) ... ok
+test_conservative_space_control_asks_then_dispatches_once (test_qualification_service.Service.test_conservative_space_control_asks_then_dispatches_once) ... ok
+test_conservative_stopped_form_submission_is_prepared_and_resumes_once (test_qualification_service.Service.test_conservative_stopped_form_submission_is_prepared_and_resumes_once) ... ok
+test_conservative_tick_asks_then_dispatches_once (test_qualification_service.Service.test_conservative_tick_asks_then_dispatches_once) ... ok
+test_each_failed_core_group_refuses_acting_with_reason_and_password_group_refuses_reads (test_qualification_service.Service.test_each_failed_core_group_refuses_acting_with_reason_and_password_group_refuses_reads) ... ok
+test_every_public_result_including_invalid_calls_carries_conservative_notice (test_qualification_service.Service.test_every_public_result_including_invalid_calls_carries_conservative_notice) ... ok
+test_failed_adapter_falls_back_to_generic_without_disabling_healthy_adapters (test_qualification_service.Service.test_failed_adapter_falls_back_to_generic_without_disabling_healthy_adapters) ... ok
+test_failed_patch_stays_off_on_unrecorded_patch_then_passing_patch_restores (test_qualification_service.Service.test_failed_patch_stays_off_on_unrecorded_patch_then_passing_patch_restores) ... ok
+test_installed_build_id_is_used_and_shared_code_new_build_pass_cannot_enable_old_build (test_qualification_service.Service.test_installed_build_id_is_used_and_shared_code_new_build_pass_cannot_enable_old_build) ... ok
+test_runtime_connection_refresh_for_uncovered_version_once_and_daily_caller (test_qualification_service.Service.test_runtime_connection_refresh_for_uncovered_version_once_and_daily_caller) ... ok
+test_s11_actual_process_cuts_before_and_after_input_keep_every_committed_view (test_state_crashes.CrashCuts.test_s11_actual_process_cuts_before_and_after_input_keep_every_committed_view) ... Chrome actual process cuts: 9; raw committed status and all public views checked
+ok
+test_s11_oracle_has_no_production_imports_or_sqlite_dependency (test_state_oracle.Oracle.test_s11_oracle_has_no_production_imports_or_sqlite_dependency) ... ok
+test_s11_r1_missing_warning_and_extra_live_interruption_both_fail (test_state_oracle.Oracle.test_s11_r1_missing_warning_and_extra_live_interruption_both_fail) ... ok
+test_s11_r2_receiver_context_and_duplicate_inputs_are_independent_evidence (test_state_oracle.Oracle.test_s11_r2_receiver_context_and_duplicate_inputs_are_independent_evidence) ... ok
+test_s11_r3_cached_refusal_or_current_verdict_fails_after_live_state_changes (test_state_oracle.Oracle.test_s11_r3_cached_refusal_or_current_verdict_fails_after_live_state_changes) ... ok
+test_s11_round27_check_cannot_close_without_required_warning_result (test_state_oracle.Oracle.test_s11_round27_check_cannot_close_without_required_warning_result) ... ok
+
+----------------------------------------------------------------------
+Ran 56 tests in 479.234s
+
+OK (skipped=1)

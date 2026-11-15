@@ -1,0 +1,19 @@
+{
+  "run": 42728623630,
+  "job": "fixtures (policy)",
+  "browser_started": false,
+  "evidence": [
+    {
+      "line": 137,
+      "text": "2026-11-10T00:30:03.0210607Z \u001b[36;1mwith urllib.request.urlopen(PACKAGES,timeout=20) as response:\u001b[0m"
+    },
+    {
+      "line": 182,
+      "text": "2026-11-10T00:30:23.2157657Z TimeoutError: The read operation timed out"
+    },
+    {
+      "line": 183,
+      "text": "2026-11-10T00:30:23.2249296Z ##[error]Process completed with exit code 1."
+    }
+  ]
+}

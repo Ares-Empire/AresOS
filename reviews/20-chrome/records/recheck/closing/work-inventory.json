@@ -1,0 +1,11 @@
+{
+  "scope": ".work/ regular files; no followed symlinks; profile directories uninspected",
+  "threshold_bytes": 500000000,
+  "files": [],
+  "total_regular_file_bytes": 6637158284,
+  "uninspected_profile_directories": [],
+  "removed_own_superseded_diagnostic_cache": [
+    ".work/recheck-diagnostic/artifacts"
+  ],
+  "final_artifacts_retained_once": true
+}

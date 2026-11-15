@@ -1,0 +1,654 @@
+[
+  {
+    "run": "42762217677",
+    "mode": "external",
+    "cases": 61,
+    "passed": 59,
+    "failed": [
+      {
+        "name": "GROUP 8 opener badges and per-popup Stop preserve windows documents and focus",
+        "passed": false,
+        "error": "AssertionError [ERR_ASSERTION]: Stop creates no window and changes no focus, position, size or type\n+ actual - expected\n\n  [\n    {\n+     focused: false,\n-     focused: true,\n      height: 1000,\n      id: 552257952,\n      left: 0,\n      top: 0,\n      type: 'normal',\n\n    at file:///workspace/control/chrome/ci/popups.mjs:59:12\n    at async check (file:///workspace/control/chrome/ci/matrices.mjs:13:10)\n    at async popupMatrices (file:///workspace/control/chrome/ci/popups.mjs:44:3)\n    at async matrices (file:///workspace/control/chrome/ci/matrices.mjs:47:3)\n    at async file:///workspace/control/chrome/ci/browser.mjs:146:24"
+      },
+      {
+        "name": "GROUP 8 POST popups never resubmit and ordinary openers stay untouched",
+        "passed": false,
+        "error": "AssertionError [ERR_ASSERTION]: {\"ok\":false,\"error\":{\"code\":\"invalid_input\",\"message\":\"input: missing required fields; inspect the tool schema.\"},\"pending\":{\"items\":[{\"operation_id\":\"6e558910ab7640beadc85c54924934ca:cff00e077b36449388ad071f569f3fb4\",\"app\":\"chrome\",\"state\":\"reserved\",\"reason\":\"Browser or service session changed; drop this preparation and prepare again.\",\"validity\":\"refused\",\"refusal_code\":\"stale_approval\"}],\"total\":1,\"cursor\":null,\"restore_required\":false,\"notices\":[{\"operation_id\":\"5d1d1f7562606d479ae2f91dc5ca01baee8ef4bacaf7acab9c8fcac4421e4f75\",\"app\":\"chrome\",\"state\":\"unknown\",\"untrusted_content\":{\"intent_key\":\"intent:chrome:5d1d1f7562606d479ae2f91dc5ca01baee8ef4bacaf7acab9c8fcac4421e4f75\",\"reason\":\"A change was interrupted before its completion was recorded. It may already have changed the server. Inspect the audit and your app before repeating.\",\"recovery_warning\":true}},{\"operation_id\":\"77df7cda56a61e92ec7c627cd4281ee7cfad7a7c341b8665d70f915ef0b05900\",\"app\":\"chrome\",\"state\":\"unknown\",\"untrusted_content\":{\"intent_key\":\"intent:chrome:77df7cda56a61e92ec7c627cd4281ee7cfad7a7c341b8665d70f915ef0b05900\",\"reason\":\"A change was interrupted before its completion was recorded. It may already have changed the server. Inspect the audit and your app before repeating.\",\"recovery_warning\":true}},{\"operation_id\":\"c5d1732d1001e16ea60f410f0c14ab08085e8d84fe468560eae17d3aeee53d51\",\"app\":\"chrome\",\"state\":\"unknown\",\"untrusted_content\":{\"intent_key\":\"intent:chrome:c5d1732d1001e16ea60f410f0c14ab08085e8d84fe468560eae17d3aeee53d51\",\"reason\":\"A change was interrupted before its completion was recorded. It may already have changed the server. Inspect the audit and your app before repeating.\",\"recovery_warning\":true}}],\"notices_more\":{\"count\":11,\"action\":\"control_notices\"}}}\n    at call (file:///workspace/control/chrome/ci/browser.mjs:28:80)\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async nav (file:///workspace/control/chrome/ci/browser.mjs:33:91)\n    at async file:///workspace/control/chrome/ci/popups.mjs:84:27\n    at async check (file:///workspace/control/chrome/ci/matrices.mjs:13:10)\n    at async popupMatrices (file:///workspace/control/chrome/ci/popups.mjs:82:3)\n    at async matrices (file:///workspace/control/chrome/ci/matrices.mjs:47:3)\n    at async file:///workspace/control/chrome/ci/browser.mjs:146:24"
+      }
+    ],
+    "view": {
+      "characters": 221196,
+      "utf8_bytes": 221196,
+      "pages": 14,
+      "milliseconds": 6166,
+      "token_estimate": 55299
+    },
+    "owner": {
+      "ownerInput": "X keyboard Tab then Return, outside the tool",
+      "ownerDelayMs": 127,
+      "ownerArrivals": 1,
+      "scheduledArrivals": 0,
+      "result": {
+        "operation_id": "6e558910ab7640beadc85c54924934ca:f0545d3df34442aa948998b4bb408d10",
+        "untrusted_content": {
+          "checked": true,
+          "dispatched": true,
+          "steps": [
+            {
+              "id": "h7",
+              "kind": "native_submit",
+              "document": "a506127876f1221d75a361dbb33098ad",
+              "label": "",
+              "element": "e10",
+              "submitter": null,
+              "cancellable": true,
+              "frame": 0
+            }
+          ],
+          "dialog": null,
+          "uncertain_finish": false,
+          "confirmations": [],
+          "page": "Input dispatched once; inspect a fresh read for what the page shows."
+        },
+        "followups": [
+          {
+            "approval": {
+              "question": "On http://fixture.test:8765/?case=owner-input, as the page shows it, activate 'resume native_submit' to http://fixture.test:8765/receive?case=scheduled-input (post, 1 fields, 1 hidden)?",
+              "operation_id": "6e558910ab7640beadc85c54924934ca:cff00e077b36449388ad071f569f3fb4",
+              "description": {
+                "action": "chrome_submit",
+                "untrusted_content": {
+                  "page_state": {
+                    "session": "46bd2b82-4e8b-40da-8819-982e235f84fa",
+                    "tab": 552257953,
+                    "control": "ba1e06ff-c64c-43c6-9995-7a7bc0a13904",
+                    "url": "http://fixture.test:8765/?case=owner-input",
+                    "document": "a506127876f1221d75a361dbb33098ad",
+                    "frame": 0,
+                    "frame_url": "http://fixture.test:8765/?case=owner-input",
+                    "target": {
+                      "element": "e10",
+                      "role": "form",
+                      "name": "",
+                      "label": "",
+                      "title": "",
+                      "href": null,
+                      "states": {
+                        "checked": false,
+                        "selected": false,
+                        "disabled": false,
+                        "required": false,
+                        "invalid": false,
+                        "expanded": null
+                      },
+                      "editable": false,
+                      "search": false,
+                      "submit": false,
+                      "page_dialog": null
+                    },
+                    "form": {
+                      "element": "e10",
+                      "action": "http://fixture.test:8765/receive?case=scheduled-input",
+                      "method": "post",
+                      "encoding": "application/x-www-form-urlencoded",
+                      "target": "sink",
+                      "search": false,
+                      "fields": [
+                        {
+                          "element": "e11",
+                          "name": "source",
+                          "label": "",
+                          "type": "hidden",
+                          "hidden": true,
+                          "checked": false,
+                          "disabled": false,
+                          "multiple": false,
+                          "readOnly": false,
+                          "value": "scheduled"
+                        }
+                      ]
+                    },
+                    "editable": null,
+                    "item": null,
+                    "adapter": null,
+                    "dialog": null
+                  },
+                  "input": {
+                    "verb": "resume_submission",
+                    "kind": "native_submit"
+                  },
+                  "resume_kind": "native_submit",
+                  "file": null,
+                  "confirmation": null
+                },
+                "adapter_action": null,
+                "expires_at": 1794290019.4092836
+              }
+            },
+            "state": "reserved"
+          }
+        ]
+      }
+    },
+    "qualification": {
+      "groups": {
+        "1": true,
+        "2": true,
+        "3": true,
+        "4": true,
+        "5": true,
+        "6": true,
+        "7": true,
+        "8": false,
+        "9": true,
+        "10": true,
+        "11": true,
+        "12": false,
+        "13": true
+      },
+      "core": {
+        "classification": true,
+        "page_script": false,
+        "binding": true,
+        "password_exclusion": true
+      },
+      "adapters": {
+        "gmail": false,
+        "whatsapp": false,
+        "github": false,
+        "bank": false,
+        "gemini": false,
+        "deezer": false
+      }
+    }
+  },
+  {
+    "run": "42762217677",
+    "mode": "policy",
+    "cases": 61,
+    "passed": 59,
+    "failed": [
+      {
+        "name": "GROUP 8 opener badges and per-popup Stop preserve windows documents and focus",
+        "passed": false,
+        "error": "AssertionError [ERR_ASSERTION]: Stop creates no window and changes no focus, position, size or type\n+ actual - expected\n\n  [\n    {\n+     focused: false,\n-     focused: true,\n      height: 1000,\n      id: 1663944775,\n      left: 0,\n      top: 0,\n      type: 'normal',\n\n    at file:///workspace/control/chrome/ci/popups.mjs:59:12\n    at async check (file:///workspace/control/chrome/ci/matrices.mjs:13:10)\n    at async popupMatrices (file:///workspace/control/chrome/ci/popups.mjs:44:3)\n    at async matrices (file:///workspace/control/chrome/ci/matrices.mjs:47:3)\n    at async file:///workspace/control/chrome/ci/browser.mjs:146:24"
+      },
+      {
+        "name": "GROUP 8 POST popups never resubmit and ordinary openers stay untouched",
+        "passed": false,
+        "error": "AssertionError [ERR_ASSERTION]: {\"ok\":false,\"error\":{\"code\":\"invalid_input\",\"message\":\"input: missing required fields; inspect the tool schema.\"},\"pending\":{\"items\":[{\"operation_id\":\"d6b45d1dbcad4eaab978767e4f4ea6fa:25055772ba934d11be7add1f71f8297b\",\"app\":\"chrome\",\"state\":\"reserved\",\"reason\":\"Browser or service session changed; drop this preparation and prepare again.\",\"validity\":\"refused\",\"refusal_code\":\"stale_approval\"}],\"total\":1,\"cursor\":null,\"restore_required\":false,\"notices\":[{\"operation_id\":\"7a6d4f5eb9d182bd1a130c3248e63c5b0acd4722f21aaa3e715fff1d2cbc3c1d\",\"app\":\"chrome\",\"state\":\"unknown\",\"untrusted_content\":{\"intent_key\":\"intent:chrome:7a6d4f5eb9d182bd1a130c3248e63c5b0acd4722f21aaa3e715fff1d2cbc3c1d\",\"reason\":\"A change was interrupted before its completion was recorded. It may already have changed the server. Inspect the audit and your app before repeating.\",\"recovery_warning\":true}},{\"operation_id\":\"99ed3e93b47dbbdfaab4aa8f3b3627f2571c399d6f8e92ad94b13e104163ccc0\",\"app\":\"chrome\",\"state\":\"unknown\",\"untrusted_content\":{\"intent_key\":\"intent:chrome:99ed3e93b47dbbdfaab4aa8f3b3627f2571c399d6f8e92ad94b13e104163ccc0\",\"reason\":\"A change was interrupted before its completion was recorded. It may already have changed the server. Inspect the audit and your app before repeating.\",\"recovery_warning\":true}},{\"operation_id\":\"8ee173ab47a35985db91ae6b5d21b2840165e04eb3c7bd5ae86f5cbfc0423e3b\",\"app\":\"chrome\",\"state\":\"unknown\",\"untrusted_content\":{\"intent_key\":\"intent:chrome:8ee173ab47a35985db91ae6b5d21b2840165e04eb3c7bd5ae86f5cbfc0423e3b\",\"reason\":\"A change was interrupted before its completion was recorded. It may already have changed the server. Inspect the audit and your app before repeating.\",\"recovery_warning\":true}}],\"notices_more\":{\"count\":11,\"action\":\"control_notices\"}}}\n    at call (file:///workspace/control/chrome/ci/browser.mjs:28:80)\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async nav (file:///workspace/control/chrome/ci/browser.mjs:33:91)\n    at async file:///workspace/control/chrome/ci/popups.mjs:84:27\n    at async check (file:///workspace/control/chrome/ci/matrices.mjs:13:10)\n    at async popupMatrices (file:///workspace/control/chrome/ci/popups.mjs:82:3)\n    at async matrices (file:///workspace/control/chrome/ci/matrices.mjs:47:3)\n    at async file:///workspace/control/chrome/ci/browser.mjs:146:24"
+      }
+    ],
+    "view": {
+      "characters": 221476,
+      "utf8_bytes": 221476,
+      "pages": 14,
+      "milliseconds": 8540,
+      "token_estimate": 55369
+    },
+    "owner": {
+      "ownerInput": "X keyboard Tab then Return, outside the tool",
+      "ownerDelayMs": 120,
+      "ownerArrivals": 1,
+      "scheduledArrivals": 0,
+      "result": {
+        "operation_id": "d6b45d1dbcad4eaab978767e4f4ea6fa:fd5834ef7f8b46f8b7028bd3d7baf0b3",
+        "untrusted_content": {
+          "checked": true,
+          "dispatched": true,
+          "steps": [
+            {
+              "id": "h7",
+              "kind": "native_submit",
+              "document": "fc920143359210218cc0f8d474624477",
+              "label": "",
+              "element": "e10",
+              "submitter": null,
+              "cancellable": true,
+              "frame": 0
+            }
+          ],
+          "dialog": null,
+          "uncertain_finish": false,
+          "confirmations": [],
+          "page": "Input dispatched once; inspect a fresh read for what the page shows."
+        },
+        "followups": [
+          {
+            "approval": {
+              "question": "On http://fixture.test:8765/?case=owner-input, as the page shows it, activate 'resume native_submit' to http://fixture.test:8765/receive?case=scheduled-input (post, 1 fields, 1 hidden)?",
+              "operation_id": "d6b45d1dbcad4eaab978767e4f4ea6fa:25055772ba934d11be7add1f71f8297b",
+              "description": {
+                "action": "chrome_submit",
+                "untrusted_content": {
+                  "page_state": {
+                    "session": "12aa3149-4f5e-4f3a-9175-ee961a946275",
+                    "tab": 1663944776,
+                    "control": "cbcb23a0-aa2f-4648-bdb4-0bbb5d7a0099",
+                    "url": "http://fixture.test:8765/?case=owner-input",
+                    "document": "fc920143359210218cc0f8d474624477",
+                    "frame": 0,
+                    "frame_url": "http://fixture.test:8765/?case=owner-input",
+                    "target": {
+                      "element": "e10",
+                      "role": "form",
+                      "name": "",
+                      "label": "",
+                      "title": "",
+                      "href": null,
+                      "states": {
+                        "checked": false,
+                        "selected": false,
+                        "disabled": false,
+                        "required": false,
+                        "invalid": false,
+                        "expanded": null
+                      },
+                      "editable": false,
+                      "search": false,
+                      "submit": false,
+                      "page_dialog": null
+                    },
+                    "form": {
+                      "element": "e10",
+                      "action": "http://fixture.test:8765/receive?case=scheduled-input",
+                      "method": "post",
+                      "encoding": "application/x-www-form-urlencoded",
+                      "target": "sink",
+                      "search": false,
+                      "fields": [
+                        {
+                          "element": "e11",
+                          "name": "source",
+                          "label": "",
+                          "type": "hidden",
+                          "hidden": true,
+                          "checked": false,
+                          "disabled": false,
+                          "multiple": false,
+                          "readOnly": false,
+                          "value": "scheduled"
+                        }
+                      ]
+                    },
+                    "editable": null,
+                    "item": null,
+                    "adapter": null,
+                    "dialog": null
+                  },
+                  "input": {
+                    "verb": "resume_submission",
+                    "kind": "native_submit"
+                  },
+                  "resume_kind": "native_submit",
+                  "file": null,
+                  "confirmation": null
+                },
+                "adapter_action": null,
+                "expires_at": 1794290086.32136
+              }
+            },
+            "state": "reserved"
+          }
+        ]
+      }
+    },
+    "qualification": {
+      "groups": {
+        "1": true,
+        "2": true,
+        "3": true,
+        "4": true,
+        "5": true,
+        "6": true,
+        "7": true,
+        "8": false,
+        "9": true,
+        "10": true,
+        "11": true,
+        "12": false,
+        "13": true
+      },
+      "core": {
+        "classification": true,
+        "page_script": false,
+        "binding": true,
+        "password_exclusion": true
+      },
+      "adapters": {
+        "gmail": false,
+        "whatsapp": false,
+        "github": false,
+        "bank": false,
+        "gemini": false,
+        "deezer": false
+      }
+    }
+  },
+  {
+    "run": "42762223715",
+    "mode": "external",
+    "cases": 61,
+    "passed": 59,
+    "failed": [
+      {
+        "name": "GROUP 8 opener badges and per-popup Stop preserve windows documents and focus",
+        "passed": false,
+        "error": "AssertionError [ERR_ASSERTION]: Stop creates no window and changes no focus, position, size or type\n+ actual - expected\n\n  [\n    {\n+     focused: false,\n-     focused: true,\n      height: 1000,\n      id: 1590181333,\n      left: 0,\n      top: 0,\n      type: 'normal',\n\n    at file:///workspace/control/chrome/ci/popups.mjs:59:12\n    at async check (file:///workspace/control/chrome/ci/matrices.mjs:13:10)\n    at async popupMatrices (file:///workspace/control/chrome/ci/popups.mjs:44:3)\n    at async matrices (file:///workspace/control/chrome/ci/matrices.mjs:47:3)\n    at async file:///workspace/control/chrome/ci/browser.mjs:146:24"
+      },
+      {
+        "name": "GROUP 8 POST popups never resubmit and ordinary openers stay untouched",
+        "passed": false,
+        "error": "AssertionError [ERR_ASSERTION]: {\"ok\":false,\"error\":{\"code\":\"invalid_input\",\"message\":\"input: missing required fields; inspect the tool schema.\"},\"pending\":{\"items\":[{\"operation_id\":\"ef4762bcb1fe471bb6fc1fd46b56f01e:13fbc405ae334fb5a486f2c6796d4b7a\",\"app\":\"chrome\",\"state\":\"reserved\",\"reason\":\"Browser or service session changed; drop this preparation and prepare again.\",\"validity\":\"refused\",\"refusal_code\":\"stale_approval\"}],\"total\":1,\"cursor\":null,\"restore_required\":false,\"notices\":[{\"operation_id\":\"ab5b2709cd3262821734079c32279d29f2a24d40683ad747424f44f599cd68ab\",\"app\":\"chrome\",\"state\":\"unknown\",\"untrusted_content\":{\"intent_key\":\"intent:chrome:ab5b2709cd3262821734079c32279d29f2a24d40683ad747424f44f599cd68ab\",\"reason\":\"A change was interrupted before its completion was recorded. It may already have changed the server. Inspect the audit and your app before repeating.\",\"recovery_warning\":true}},{\"operation_id\":\"08460780384ee3d7d0156de3b8a8dfcbbd91d4d10b2bf4692cc54bc340c37cb6\",\"app\":\"chrome\",\"state\":\"unknown\",\"untrusted_content\":{\"intent_key\":\"intent:chrome:08460780384ee3d7d0156de3b8a8dfcbbd91d4d10b2bf4692cc54bc340c37cb6\",\"reason\":\"A change was interrupted before its completion was recorded. It may already have changed the server. Inspect the audit and your app before repeating.\",\"recovery_warning\":true}},{\"operation_id\":\"0154514061a040bcfa46adfb24d991936bc596f3066e950081a9fd51cf8c0119\",\"app\":\"chrome\",\"state\":\"unknown\",\"untrusted_content\":{\"intent_key\":\"intent:chrome:0154514061a040bcfa46adfb24d991936bc596f3066e950081a9fd51cf8c0119\",\"reason\":\"A change was interrupted before its completion was recorded. It may already have changed the server. Inspect the audit and your app before repeating.\",\"recovery_warning\":true}}],\"notices_more\":{\"count\":11,\"action\":\"control_notices\"}}}\n    at call (file:///workspace/control/chrome/ci/browser.mjs:28:80)\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async nav (file:///workspace/control/chrome/ci/browser.mjs:33:91)\n    at async file:///workspace/control/chrome/ci/popups.mjs:84:27\n    at async check (file:///workspace/control/chrome/ci/matrices.mjs:13:10)\n    at async popupMatrices (file:///workspace/control/chrome/ci/popups.mjs:82:3)\n    at async matrices (file:///workspace/control/chrome/ci/matrices.mjs:47:3)\n    at async file:///workspace/control/chrome/ci/browser.mjs:146:24"
+      }
+    ],
+    "view": {
+      "characters": 221477,
+      "utf8_bytes": 221477,
+      "pages": 14,
+      "milliseconds": 10793,
+      "token_estimate": 55370
+    },
+    "owner": {
+      "ownerInput": "X keyboard Tab then Return, outside the tool",
+      "ownerDelayMs": 113,
+      "ownerArrivals": 1,
+      "scheduledArrivals": 0,
+      "result": {
+        "operation_id": "ef4762bcb1fe471bb6fc1fd46b56f01e:edfda6e50ab34864aa5c9f52725243e8",
+        "untrusted_content": {
+          "checked": true,
+          "dispatched": true,
+          "steps": [
+            {
+              "id": "h7",
+              "kind": "native_submit",
+              "document": "9620fca285627cb138443dd2cba0a946",
+              "label": "",
+              "element": "e10",
+              "submitter": null,
+              "cancellable": true,
+              "frame": 0
+            }
+          ],
+          "dialog": null,
+          "uncertain_finish": false,
+          "confirmations": [],
+          "page": "Input dispatched once; inspect a fresh read for what the page shows."
+        },
+        "followups": [
+          {
+            "approval": {
+              "question": "On http://fixture.test:8765/?case=owner-input, as the page shows it, activate 'resume native_submit' to http://fixture.test:8765/receive?case=scheduled-input (post, 1 fields, 1 hidden)?",
+              "operation_id": "ef4762bcb1fe471bb6fc1fd46b56f01e:13fbc405ae334fb5a486f2c6796d4b7a",
+              "description": {
+                "action": "chrome_submit",
+                "untrusted_content": {
+                  "page_state": {
+                    "session": "c9e5957e-2ee0-4cfc-8caa-d19e581fce55",
+                    "tab": 1590181334,
+                    "control": "154369d4-c5d2-451e-8c81-e23ef1fee98f",
+                    "url": "http://fixture.test:8765/?case=owner-input",
+                    "document": "9620fca285627cb138443dd2cba0a946",
+                    "frame": 0,
+                    "frame_url": "http://fixture.test:8765/?case=owner-input",
+                    "target": {
+                      "element": "e10",
+                      "role": "form",
+                      "name": "",
+                      "label": "",
+                      "title": "",
+                      "href": null,
+                      "states": {
+                        "checked": false,
+                        "selected": false,
+                        "disabled": false,
+                        "required": false,
+                        "invalid": false,
+                        "expanded": null
+                      },
+                      "editable": false,
+                      "search": false,
+                      "submit": false,
+                      "page_dialog": null
+                    },
+                    "form": {
+                      "element": "e10",
+                      "action": "http://fixture.test:8765/receive?case=scheduled-input",
+                      "method": "post",
+                      "encoding": "application/x-www-form-urlencoded",
+                      "target": "sink",
+                      "search": false,
+                      "fields": [
+                        {
+                          "element": "e11",
+                          "name": "source",
+                          "label": "",
+                          "type": "hidden",
+                          "hidden": true,
+                          "checked": false,
+                          "disabled": false,
+                          "multiple": false,
+                          "readOnly": false,
+                          "value": "scheduled"
+                        }
+                      ]
+                    },
+                    "editable": null,
+                    "item": null,
+                    "adapter": null,
+                    "dialog": null
+                  },
+                  "input": {
+                    "verb": "resume_submission",
+                    "kind": "native_submit"
+                  },
+                  "resume_kind": "native_submit",
+                  "file": null,
+                  "confirmation": null
+                },
+                "adapter_action": null,
+                "expires_at": 1794290254.804836
+              }
+            },
+            "state": "reserved"
+          }
+        ]
+      }
+    },
+    "qualification": {
+      "groups": {
+        "1": true,
+        "2": true,
+        "3": true,
+        "4": true,
+        "5": true,
+        "6": true,
+        "7": true,
+        "8": false,
+        "9": true,
+        "10": true,
+        "11": true,
+        "12": false,
+        "13": true
+      },
+      "core": {
+        "classification": true,
+        "page_script": false,
+        "binding": true,
+        "password_exclusion": true
+      },
+      "adapters": {
+        "gmail": false,
+        "whatsapp": false,
+        "github": false,
+        "bank": false,
+        "gemini": false,
+        "deezer": false
+      }
+    }
+  },
+  {
+    "run": "42762223715",
+    "mode": "policy",
+    "cases": 61,
+    "passed": 59,
+    "failed": [
+      {
+        "name": "GROUP 8 opener badges and per-popup Stop preserve windows documents and focus",
+        "passed": false,
+        "error": "AssertionError [ERR_ASSERTION]: Stop creates no window and changes no focus, position, size or type\n+ actual - expected\n\n  [\n    {\n+     focused: false,\n-     focused: true,\n      height: 1000,\n      id: 1333632665,\n      left: 0,\n      top: 0,\n      type: 'normal',\n\n    at file:///workspace/control/chrome/ci/popups.mjs:59:12\n    at async check (file:///workspace/control/chrome/ci/matrices.mjs:13:10)\n    at async popupMatrices (file:///workspace/control/chrome/ci/popups.mjs:44:3)\n    at async matrices (file:///workspace/control/chrome/ci/matrices.mjs:47:3)\n    at async file:///workspace/control/chrome/ci/browser.mjs:146:24"
+      },
+      {
+        "name": "GROUP 8 POST popups never resubmit and ordinary openers stay untouched",
+        "passed": false,
+        "error": "AssertionError [ERR_ASSERTION]: {\"ok\":false,\"error\":{\"code\":\"invalid_input\",\"message\":\"input: missing required fields; inspect the tool schema.\"},\"pending\":{\"items\":[{\"operation_id\":\"b529cf91e2564909b38356cd157a1cee:d8a34ba268ea43cebbe71a34f2373aad\",\"app\":\"chrome\",\"state\":\"reserved\",\"reason\":\"Browser or service session changed; drop this preparation and prepare again.\",\"validity\":\"refused\",\"refusal_code\":\"stale_approval\"}],\"total\":1,\"cursor\":null,\"restore_required\":false,\"notices\":[{\"operation_id\":\"b7643eb574f6720d7acf444b933462be3da770dd5e8e1aa98803fb71f0872c57\",\"app\":\"chrome\",\"state\":\"unknown\",\"untrusted_content\":{\"intent_key\":\"intent:chrome:b7643eb574f6720d7acf444b933462be3da770dd5e8e1aa98803fb71f0872c57\",\"reason\":\"A change was interrupted before its completion was recorded. It may already have changed the server. Inspect the audit and your app before repeating.\",\"recovery_warning\":true}},{\"operation_id\":\"3a4084b2062c236b63b89d431fd6473722f2a62eaeeb3c2220d3af9438ef3a4a\",\"app\":\"chrome\",\"state\":\"unknown\",\"untrusted_content\":{\"intent_key\":\"intent:chrome:3a4084b2062c236b63b89d431fd6473722f2a62eaeeb3c2220d3af9438ef3a4a\",\"reason\":\"A change was interrupted before its completion was recorded. It may already have changed the server. Inspect the audit and your app before repeating.\",\"recovery_warning\":true}},{\"operation_id\":\"195a6309eb3776433a1b303c881f0b13dcca6869faa7c950937726c395313584\",\"app\":\"chrome\",\"state\":\"unknown\",\"untrusted_content\":{\"intent_key\":\"intent:chrome:195a6309eb3776433a1b303c881f0b13dcca6869faa7c950937726c395313584\",\"reason\":\"A change was interrupted before its completion was recorded. It may already have changed the server. Inspect the audit and your app before repeating.\",\"recovery_warning\":true}}],\"notices_more\":{\"count\":11,\"action\":\"control_notices\"}}}\n    at call (file:///workspace/control/chrome/ci/browser.mjs:28:80)\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async nav (file:///workspace/control/chrome/ci/browser.mjs:33:91)\n    at async file:///workspace/control/chrome/ci/popups.mjs:84:27\n    at async check (file:///workspace/control/chrome/ci/matrices.mjs:13:10)\n    at async popupMatrices (file:///workspace/control/chrome/ci/popups.mjs:82:3)\n    at async matrices (file:///workspace/control/chrome/ci/matrices.mjs:47:3)\n    at async file:///workspace/control/chrome/ci/browser.mjs:146:24"
+      }
+    ],
+    "view": {
+      "characters": 221476,
+      "utf8_bytes": 221476,
+      "pages": 14,
+      "milliseconds": 10245,
+      "token_estimate": 55369
+    },
+    "owner": {
+      "ownerInput": "X keyboard Tab then Return, outside the tool",
+      "ownerDelayMs": 112,
+      "ownerArrivals": 1,
+      "scheduledArrivals": 0,
+      "result": {
+        "operation_id": "b529cf91e2564909b38356cd157a1cee:b4e59c3763c940de99647c8e72629ccf",
+        "untrusted_content": {
+          "checked": true,
+          "dispatched": true,
+          "steps": [
+            {
+              "id": "h7",
+              "kind": "native_submit",
+              "document": "15fd6ff1a985e5526f9ac3d02e1d1345",
+              "label": "",
+              "element": "e10",
+              "submitter": null,
+              "cancellable": true,
+              "frame": 0
+            }
+          ],
+          "dialog": null,
+          "uncertain_finish": false,
+          "confirmations": [],
+          "page": "Input dispatched once; inspect a fresh read for what the page shows."
+        },
+        "followups": [
+          {
+            "approval": {
+              "question": "On http://fixture.test:8765/?case=owner-input, as the page shows it, activate 'resume native_submit' to http://fixture.test:8765/receive?case=scheduled-input (post, 1 fields, 1 hidden)?",
+              "operation_id": "b529cf91e2564909b38356cd157a1cee:d8a34ba268ea43cebbe71a34f2373aad",
+              "description": {
+                "action": "chrome_submit",
+                "untrusted_content": {
+                  "page_state": {
+                    "session": "52e4aa67-5aef-4b12-b240-f48a572e63c0",
+                    "tab": 1333632666,
+                    "control": "d1202e18-615d-4b82-9d23-7f4929d49d54",
+                    "url": "http://fixture.test:8765/?case=owner-input",
+                    "document": "15fd6ff1a985e5526f9ac3d02e1d1345",
+                    "frame": 0,
+                    "frame_url": "http://fixture.test:8765/?case=owner-input",
+                    "target": {
+                      "element": "e10",
+                      "role": "form",
+                      "name": "",
+                      "label": "",
+                      "title": "",
+                      "href": null,
+                      "states": {
+                        "checked": false,
+                        "selected": false,
+                        "disabled": false,
+                        "required": false,
+                        "invalid": false,
+                        "expanded": null
+                      },
+                      "editable": false,
+                      "search": false,
+                      "submit": false,
+                      "page_dialog": null
+                    },
+                    "form": {
+                      "element": "e10",
+                      "action": "http://fixture.test:8765/receive?case=scheduled-input",
+                      "method": "post",
+                      "encoding": "application/x-www-form-urlencoded",
+                      "target": "sink",
+                      "search": false,
+                      "fields": [
+                        {
+                          "element": "e11",
+                          "name": "source",
+                          "label": "",
+                          "type": "hidden",
+                          "hidden": true,
+                          "checked": false,
+                          "disabled": false,
+                          "multiple": false,
+                          "readOnly": false,
+                          "value": "scheduled"
+                        }
+                      ]
+                    },
+                    "editable": null,
+                    "item": null,
+                    "adapter": null,
+                    "dialog": null
+                  },
+                  "input": {
+                    "verb": "resume_submission",
+                    "kind": "native_submit"
+                  },
+                  "resume_kind": "native_submit",
+                  "file": null,
+                  "confirmation": null
+                },
+                "adapter_action": null,
+                "expires_at": 1794290547.8174856
+              }
+            },
+            "state": "reserved"
+          }
+        ]
+      }
+    },
+    "qualification": {
+      "groups": {
+        "1": true,
+        "2": true,
+        "3": true,
+        "4": true,
+        "5": true,
+        "6": true,
+        "7": true,
+        "8": false,
+        "9": true,
+        "10": true,
+        "11": true,
+        "12": false,
+        "13": true
+      },
+      "core": {
+        "classification": true,
+        "page_script": false,
+        "binding": true,
+        "password_exclusion": true
+      },
+      "adapters": {
+        "gmail": false,
+        "whatsapp": false,
+        "github": false,
+        "bank": false,
+        "gemini": false,
+        "deezer": false
+      }
+    }
+  }
+]

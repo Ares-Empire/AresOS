@@ -1,0 +1,20 @@
+{
+  "browser": false,
+  "acceptance": false,
+  "environment": "Mac, plain Python production Engine, fake native bridge, real private temporary Store",
+  "history": 1000,
+  "baseline_ms": {
+    "read": 64.21783356927335,
+    "click": 86.08897950034589
+  },
+  "optimized_ms": {
+    "read": 1.7322710482403636,
+    "click": 22.07604143768549
+  },
+  "samples_per_category": 20,
+  "notes": [
+    "Does not include browser/hold wait or represent Linux CI latency.",
+    "No journal writes removed; optional SQLite expression index filters same working rows before decoding.",
+    "Chronological baseline and optimized runs; final paired CI measurement is required."
+  ]
+}

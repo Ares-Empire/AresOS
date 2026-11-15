@@ -1,0 +1,331 @@
+{
+  "passed": true,
+  "failures": [],
+  "measurements": [
+    {
+      "phase": "fresh",
+      "call": "approval_to_done",
+      "runner_factor": 0.8517212270237355,
+      "paired_work_ms": {
+        "median_ms": 48.22237649999897,
+        "p95_ms": 49.77512700000079
+      },
+      "regression_threshold_ms": {
+        "median_ms": 109.0745927500111,
+        "p95_ms": 168.8490972499808
+      },
+      "client_ms": {
+        "median_ms": 573.4076790000017,
+        "p95_ms": 574.7751270000008
+      },
+      "target_miss": false
+    },
+    {
+      "phase": "fresh",
+      "call": "asking_click",
+      "runner_factor": 0.8517212270237355,
+      "paired_work_ms": {
+        "median_ms": 13.210097000000133,
+        "p95_ms": 13.991201000004367
+      },
+      "regression_threshold_ms": {
+        "median_ms": 34.77883225000096,
+        "p95_ms": 50.465748249998796
+      },
+      "client_ms": {
+        "median_ms": 13.210097000000133,
+        "p95_ms": 13.991201000004367
+      },
+      "target_miss": false
+    },
+    {
+      "phase": "fresh",
+      "call": "fill",
+      "runner_factor": 0.8517212270237355,
+      "paired_work_ms": {
+        "median_ms": 34.371444499985955,
+        "p95_ms": 35.45980600000985
+      },
+      "regression_threshold_ms": {
+        "median_ms": 63.20655924998664,
+        "p95_ms": 108.43109975001653
+      },
+      "client_ms": {
+        "median_ms": 559.5413854999988,
+        "p95_ms": 560.5974189999979
+      },
+      "target_miss": false
+    },
+    {
+      "phase": "fresh",
+      "call": "free_click",
+      "runner_factor": 0.8517212270237355,
+      "paired_work_ms": {
+        "median_ms": 35.50664500001403,
+        "p95_ms": 48.28971099999035
+      },
+      "regression_threshold_ms": {
+        "median_ms": 74.72534650000762,
+        "p95_ms": 135.3566242500192
+      },
+      "client_ms": {
+        "median_ms": 560.6566450000009,
+        "p95_ms": 573.3897109999962
+      },
+      "target_miss": false
+    },
+    {
+      "phase": "fresh",
+      "call": "navigate",
+      "runner_factor": 0.8517212270237355,
+      "paired_work_ms": {
+        "median_ms": 33.21695400000044,
+        "p95_ms": 37.3000400000019
+      },
+      "regression_threshold_ms": {
+        "median_ms": 72.33009700000002,
+        "p95_ms": 157.65132150000863
+      },
+      "client_ms": {
+        "median_ms": 33.21695400000044,
+        "p95_ms": 37.3000400000019
+      },
+      "target_miss": false
+    },
+    {
+      "phase": "fresh",
+      "call": "read",
+      "runner_factor": 0.8517212270237355,
+      "paired_work_ms": {
+        "median_ms": 7.545992500000466,
+        "p95_ms": 8.756479000000127
+      },
+      "regression_threshold_ms": {
+        "median_ms": 23.1053042500007,
+        "p95_ms": 43.30342000000019
+      },
+      "client_ms": {
+        "median_ms": 7.545992500000466,
+        "p95_ms": 8.756479000000127
+      },
+      "target_miss": false
+    },
+    {
+      "phase": "history-1000",
+      "call": "approval_to_done",
+      "runner_factor": 1.0233564406485987,
+      "paired_work_ms": {
+        "median_ms": 57.53860600000553,
+        "p95_ms": 59.4305289999902
+      },
+      "regression_threshold_ms": {
+        "median_ms": 108.30721550738781,
+        "p95_ms": 171.0444393242981
+      },
+      "client_ms": {
+        "median_ms": 582.6886059999997,
+        "p95_ms": 584.530528999996
+      },
+      "target_miss": false
+    },
+    {
+      "phase": "history-1000",
+      "call": "asking_click",
+      "runner_factor": 1.0233564406485987,
+      "paired_work_ms": {
+        "median_ms": 16.97576300000219,
+        "p95_ms": 18.11652000000322
+      },
+      "regression_threshold_ms": {
+        "median_ms": 41.04695943062511,
+        "p95_ms": 76.92881658110312
+      },
+      "client_ms": {
+        "median_ms": 16.97576300000219,
+        "p95_ms": 18.11652000000322
+      },
+      "target_miss": false
+    },
+    {
+      "phase": "history-1000",
+      "call": "fill",
+      "runner_factor": 1.0233564406485987,
+      "paired_work_ms": {
+        "median_ms": 30.667303999991418,
+        "p95_ms": 36.17665900002612
+      },
+      "regression_threshold_ms": {
+        "median_ms": 82.44055366501779,
+        "p95_ms": 110.92109434597464
+      },
+      "client_ms": {
+        "median_ms": 555.8859250000023,
+        "p95_ms": 561.2766590000028
+      },
+      "target_miss": false
+    },
+    {
+      "phase": "history-1000",
+      "call": "free_click",
+      "runner_factor": 1.0233564406485987,
+      "paired_work_ms": {
+        "median_ms": 45.78717950000646,
+        "p95_ms": 48.07232099999965
+      },
+      "regression_threshold_ms": {
+        "median_ms": 89.15248965005344,
+        "p95_ms": 128.0626557604154
+      },
+      "client_ms": {
+        "median_ms": 570.9371795000006,
+        "p95_ms": 573.1723210000055
+      },
+      "target_miss": false
+    },
+    {
+      "phase": "history-1000",
+      "call": "navigate",
+      "runner_factor": 1.0233564406485987,
+      "paired_work_ms": {
+        "median_ms": 35.92971050000051,
+        "p95_ms": 38.43180900000152
+      },
+      "regression_threshold_ms": {
+        "median_ms": 75.37962294471959,
+        "p95_ms": 127.62380214276372
+      },
+      "client_ms": {
+        "median_ms": 35.92971050000051,
+        "p95_ms": 38.43180900000152
+      },
+      "target_miss": false
+    },
+    {
+      "phase": "history-1000",
+      "call": "read",
+      "runner_factor": 1.0233564406485987,
+      "paired_work_ms": {
+        "median_ms": 10.41744800000015,
+        "p95_ms": 11.269111999994493
+      },
+      "regression_threshold_ms": {
+        "median_ms": 25.808864533025396,
+        "p95_ms": 41.00416452670115
+      },
+      "client_ms": {
+        "median_ms": 10.41744800000015,
+        "p95_ms": 11.269111999994493
+      },
+      "target_miss": false
+    },
+    {
+      "phase": "history-4000",
+      "call": "approval_to_done",
+      "runner_factor": 1.0146325045923439,
+      "paired_work_ms": {
+        "median_ms": 66.51553050002258,
+        "p95_ms": 68.31024999998044
+      },
+      "regression_threshold_ms": {
+        "median_ms": 120.17620670250525,
+        "p95_ms": 172.37464218820585
+      },
+      "client_ms": {
+        "median_ms": 591.7100569999966,
+        "p95_ms": 593.6102499999979
+      },
+      "target_miss": false
+    },
+    {
+      "phase": "history-4000",
+      "call": "asking_click",
+      "runner_factor": 1.0146325045923439,
+      "paired_work_ms": {
+        "median_ms": 29.70802349999576,
+        "p95_ms": 30.399092999999993
+      },
+      "regression_threshold_ms": {
+        "median_ms": 59.17108695466602,
+        "p95_ms": 79.08191452799065
+      },
+      "client_ms": {
+        "median_ms": 29.70802349999576,
+        "p95_ms": 30.399092999999993
+      },
+      "target_miss": false
+    },
+    {
+      "phase": "history-4000",
+      "call": "fill",
+      "runner_factor": 1.0146325045923439,
+      "paired_work_ms": {
+        "median_ms": 52.39625999999407,
+        "p95_ms": 53.65351700001338
+      },
+      "regression_threshold_ms": {
+        "median_ms": 91.12100944273759,
+        "p95_ms": 136.0727873858492
+      },
+      "client_ms": {
+        "median_ms": 577.5570745000005,
+        "p95_ms": 578.8035069999896
+      },
+      "target_miss": false
+    },
+    {
+      "phase": "history-4000",
+      "call": "free_click",
+      "runner_factor": 1.0146325045923439,
+      "paired_work_ms": {
+        "median_ms": 51.63115349999134,
+        "p95_ms": 63.65794600000663
+      },
+      "regression_threshold_ms": {
+        "median_ms": 98.40956040057648,
+        "p95_ms": 135.40172517405733
+      },
+      "client_ms": {
+        "median_ms": 576.7311534999972,
+        "p95_ms": 588.7579460000125
+      },
+      "target_miss": false
+    },
+    {
+      "phase": "history-4000",
+      "call": "navigate",
+      "runner_factor": 1.0146325045923439,
+      "paired_work_ms": {
+        "median_ms": 50.356252999998105,
+        "p95_ms": 53.44919899999513
+      },
+      "regression_threshold_ms": {
+        "median_ms": 93.37377364152601,
+        "p95_ms": 127.07801036925412
+      },
+      "client_ms": {
+        "median_ms": 50.356252999998105,
+        "p95_ms": 53.44919899999513
+      },
+      "target_miss": false
+    },
+    {
+      "phase": "history-4000",
+      "call": "read",
+      "runner_factor": 1.0146325045923439,
+      "paired_work_ms": {
+        "median_ms": 21.376048999998602,
+        "p95_ms": 22.135719999991124
+      },
+      "regression_threshold_ms": {
+        "median_ms": 41.636171229881455,
+        "p95_ms": 58.87028081240122
+      },
+      "client_ms": {
+        "median_ms": 21.376048999998602,
+        "p95_ms": 22.135719999991124
+      },
+      "target_miss": false
+    }
+  ],
+  "policy": "Lead ceilings and reference regression in every measured history phase; median and p95 must both cross. Common paired runner slowdown scales allowance; Matched per-sample waits are subtracted before percentiles; the 525 ms wait is checked separately."
+}

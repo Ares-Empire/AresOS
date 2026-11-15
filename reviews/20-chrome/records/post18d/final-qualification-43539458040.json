@@ -1,0 +1,270 @@
+{
+  "head": "a41435867c875964bf80f9f25dbc9c066a2a0279",
+  "run": "43539458040",
+  "workflow": "qualification",
+  "both_passed": true,
+  "attempts": [
+    {
+      "metadata": {
+        "attempt": 1,
+        "conclusion": "success",
+        "event": "pull_request",
+        "headSha": "a41435867c875964bf80f9f25dbc9c066a2a0279",
+        "jobs": [
+          {
+            "completedAt": "2026-11-14T01:15:51Z",
+            "conclusion": "success",
+            "databaseId": 132276334927,
+            "name": "qualification-tests",
+            "startedAt": "2026-11-14T01:15:23Z",
+            "status": "completed",
+            "steps": [
+              {
+                "completedAt": "2026-11-14T01:15:26Z",
+                "conclusion": "success",
+                "name": "Set up job",
+                "number": 1,
+                "startedAt": "2026-11-14T01:15:23Z",
+                "status": "completed"
+              },
+              {
+                "completedAt": "2026-11-14T01:15:34Z",
+                "conclusion": "success",
+                "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+                "number": 2,
+                "startedAt": "2026-11-14T01:15:26Z",
+                "status": "completed"
+              },
+              {
+                "completedAt": "2026-11-14T01:15:49Z",
+                "conclusion": "success",
+                "name": "Browser-free build, service, delivery and hermetic publisher tests",
+                "number": 3,
+                "startedAt": "2026-11-14T01:15:34Z",
+                "status": "completed"
+              },
+              {
+                "completedAt": "2026-11-14T01:15:50Z",
+                "conclusion": "success",
+                "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+                "number": 4,
+                "startedAt": "2026-11-14T01:15:49Z",
+                "status": "completed"
+              },
+              {
+                "completedAt": "2026-11-14T01:15:50Z",
+                "conclusion": "success",
+                "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+                "number": 8,
+                "startedAt": "2026-11-14T01:15:50Z",
+                "status": "completed"
+              },
+              {
+                "completedAt": "2026-11-14T01:15:50Z",
+                "conclusion": "success",
+                "name": "Complete job",
+                "number": 9,
+                "startedAt": "2026-11-14T01:15:50Z",
+                "status": "completed"
+              }
+            ],
+            "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43539458040/job/132276334927"
+          },
+          {
+            "completedAt": "2026-11-14T01:15:21Z",
+            "conclusion": "skipped",
+            "databaseId": 132276336421,
+            "name": "delivery-attestation",
+            "startedAt": "2026-11-14T01:15:21Z",
+            "status": "completed",
+            "steps": [],
+            "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43539458040/job/132276336421"
+          },
+          {
+            "completedAt": "2026-11-14T01:15:21Z",
+            "conclusion": "skipped",
+            "databaseId": 132276336950,
+            "name": "qualification-plan",
+            "startedAt": "2026-11-14T01:15:21Z",
+            "status": "completed",
+            "steps": [],
+            "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43539458040/job/132276336950"
+          },
+          {
+            "completedAt": "2026-11-14T01:15:21Z",
+            "conclusion": "skipped",
+            "databaseId": 132276337619,
+            "name": "qualification-pairs",
+            "startedAt": "2026-11-14T01:15:21Z",
+            "status": "completed",
+            "steps": [],
+            "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43539458040/job/132276337619"
+          },
+          {
+            "completedAt": "2026-11-14T01:15:21Z",
+            "conclusion": "skipped",
+            "databaseId": 132276337796,
+            "name": "qualification-combine",
+            "startedAt": "2026-11-14T01:15:21Z",
+            "status": "completed",
+            "steps": [],
+            "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43539458040/job/132276337796"
+          },
+          {
+            "completedAt": "2026-11-14T01:15:51Z",
+            "conclusion": "skipped",
+            "databaseId": 132276515279,
+            "name": "qualification-publish",
+            "startedAt": "2026-11-14T01:15:51Z",
+            "status": "completed",
+            "steps": [],
+            "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43539458040/job/132276515279"
+          }
+        ],
+        "status": "completed",
+        "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43539458040",
+        "workflowName": "Control Chrome qualification"
+      },
+      "log_sha256": "3d81bfd05c02880c82d974d823cda3b1a1d1ce6229682bfc02c4d01d7d0f2fc3",
+      "log_bytes": 407193,
+      "test_summary_lines": [
+        "Ran 47 tests in 1.002s",
+        "# tests 368",
+        "# pass 368",
+        "# fail 0",
+        "# skipped 0"
+      ]
+    },
+    {
+      "metadata": {
+        "attempt": 2,
+        "conclusion": "success",
+        "event": "pull_request",
+        "headSha": "a41435867c875964bf80f9f25dbc9c066a2a0279",
+        "jobs": [
+          {
+            "completedAt": "2026-11-14T01:24:24Z",
+            "conclusion": "success",
+            "databaseId": 132276547573,
+            "name": "qualification-tests",
+            "startedAt": "2026-11-14T01:23:54Z",
+            "status": "completed",
+            "steps": [
+              {
+                "completedAt": "2026-11-14T01:23:55Z",
+                "conclusion": "success",
+                "name": "Set up job",
+                "number": 1,
+                "startedAt": "2026-11-14T01:23:55Z",
+                "status": "completed"
+              },
+              {
+                "completedAt": "2026-11-14T01:24:06Z",
+                "conclusion": "success",
+                "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+                "number": 2,
+                "startedAt": "2026-11-14T01:23:55Z",
+                "status": "completed"
+              },
+              {
+                "completedAt": "2026-11-14T01:24:22Z",
+                "conclusion": "success",
+                "name": "Browser-free build, service, delivery and hermetic publisher tests",
+                "number": 3,
+                "startedAt": "2026-11-14T01:24:06Z",
+                "status": "completed"
+              },
+              {
+                "completedAt": "2026-11-14T01:24:22Z",
+                "conclusion": "success",
+                "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+                "number": 4,
+                "startedAt": "2026-11-14T01:24:22Z",
+                "status": "completed"
+              },
+              {
+                "completedAt": "2026-11-14T01:24:23Z",
+                "conclusion": "success",
+                "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+                "number": 8,
+                "startedAt": "2026-11-14T01:24:22Z",
+                "status": "completed"
+              },
+              {
+                "completedAt": "2026-11-14T01:24:23Z",
+                "conclusion": "success",
+                "name": "Complete job",
+                "number": 9,
+                "startedAt": "2026-11-14T01:24:23Z",
+                "status": "completed"
+              }
+            ],
+            "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43539458040/job/132276547573"
+          },
+          {
+            "completedAt": "2026-11-14T01:15:57Z",
+            "conclusion": "skipped",
+            "databaseId": 132276549308,
+            "name": "delivery-attestation",
+            "startedAt": "2026-11-14T01:15:57Z",
+            "status": "completed",
+            "steps": [],
+            "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43539458040/job/132276549308"
+          },
+          {
+            "completedAt": "2026-11-14T01:15:57Z",
+            "conclusion": "skipped",
+            "databaseId": 132276549333,
+            "name": "qualification-pairs",
+            "startedAt": "2026-11-14T01:15:57Z",
+            "status": "completed",
+            "steps": [],
+            "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43539458040/job/132276549333"
+          },
+          {
+            "completedAt": "2026-11-14T01:15:57Z",
+            "conclusion": "skipped",
+            "databaseId": 132276549658,
+            "name": "qualification-plan",
+            "startedAt": "2026-11-14T01:15:57Z",
+            "status": "completed",
+            "steps": [],
+            "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43539458040/job/132276549658"
+          },
+          {
+            "completedAt": "2026-11-14T01:15:57Z",
+            "conclusion": "skipped",
+            "databaseId": 132276549705,
+            "name": "qualification-combine",
+            "startedAt": "2026-11-14T01:15:57Z",
+            "status": "completed",
+            "steps": [],
+            "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43539458040/job/132276549705"
+          },
+          {
+            "completedAt": "2026-11-14T01:24:24Z",
+            "conclusion": "skipped",
+            "databaseId": 132279355576,
+            "name": "qualification-publish",
+            "startedAt": "2026-11-14T01:24:24Z",
+            "status": "completed",
+            "steps": [],
+            "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43539458040/job/132279355576"
+          }
+        ],
+        "status": "completed",
+        "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43539458040",
+        "workflowName": "Control Chrome qualification"
+      },
+      "log_sha256": "55a9b0c1517b1e9f10c12dae2e584a86d12be476f32276dd0f1942afc8d7f7b5",
+      "log_bytes": 407946,
+      "test_summary_lines": [
+        "Ran 47 tests in 2.507s",
+        "# tests 368",
+        "# pass 368",
+        "# fail 0",
+        "# skipped 0"
+      ]
+    }
+  ]
+}

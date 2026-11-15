@@ -1,0 +1,20 @@
+{
+  "kind": "FAILURE EVIDENCE, NOT ACCEPTANCE",
+  "fixture_sha256": "a4284f1804669a302c6cf8c2eda3314c917f1604157f205f38263009b1b69cec",
+  "rows": [
+    {
+      "mode": "open",
+      "handlers": 1,
+      "held": 0,
+      "expected_handlers": 0,
+      "expected_held": 1
+    },
+    {
+      "mode": "closed",
+      "handlers": 1,
+      "held": 0,
+      "expected_handlers": 0,
+      "expected_held": 1
+    }
+  ]
+}

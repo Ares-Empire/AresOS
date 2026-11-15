@@ -1,0 +1,52 @@
+import collections,json,pathlib,urllib.parse
+closing=pathlib.Path('reviews/20-chrome/records/recheck/closing')
+manifest=json.loads((closing/'completed.json').read_text())
+artifacts=json.loads((closing/'receiver-audit.json').read_text())
+results=[]
+def case(row):return urllib.parse.parse_qs(urllib.parse.urlsplit(row['url']).query).get('case',[''])[0]
+for artifact in artifacts:
+ folder=pathlib.Path('.work/recheck-final-evidence')/str(artifact['run_id'])/artifact['artifact']
+ assert artifact['source_head']==manifest['head']
+ rows=collections.defaultdict(list);snapshots=collections.defaultdict(list)
+ with (folder/'receiver.jsonl').open() as source:
+  for line in source:
+   row=json.loads(line);identifier=case(row)
+   if identifier.startswith(('review-bind-','recheck-search-','review-fallback-','handler-review-fallback-')) or identifier in {'owner-recheck-owner-overlap','recheck-owner-overlap'}:
+    rows[identifier].append({key:row[key] for key in ['time','url','method','body']})
+ with (folder/'page-receiver.jsonl').open() as source:
+  for line in source:
+   row=json.loads(line);snapshots[row['id']].append({'phase':row['phase'],'count':row['count']})
+ fixed=[]
+ for variant in ['pay','delete','editable-native','editable-aria']:
+  identifier='recheck-search-'+variant
+  assert len(rows[identifier])==1
+  assert {'phase':'script handler stopped','count':0} in snapshots[identifier]
+  fixed.append({'case':identifier,'before_own_approval':0,'final_arrivals':rows[identifier]})
+ bodies={**{'review-bind-confirmation-'+variant:'Different draft' for variant in ['', 'form','submit','submit-send']},'review-bind-compose-key-':'Different draft','review-bind-quantity-':'2',**{'review-bind-shadow-binding-'+variant:'Invoice B' for variant in ['li-open','li-closed','row-open','row-closed','slot-li-open','slot-li-closed','slot-row-open','slot-row-closed']}}
+ for identifier,body in bodies.items():
+  assert {'phase':'changed approval refused','count':0} in snapshots[identifier]
+  assert len(rows[identifier])==1 and rows[identifier][0]['body']==body
+  fixed.append({'case':identifier,'stale_approval_arrivals':0,'fresh_body':body,'final_arrivals':rows[identifier]})
+ fallback=[]
+ for native in ['false','true']:
+  for mode in ['open','closed']:
+   for composed in ['false','true']:
+    for cancel in ['false','true']:
+     identifier=f'review-fallback-{native}-{mode}-{composed}-{cancel}';handler='handler-'+identifier
+     assert {'phase':'borrowed native handler held','count':0} in snapshots[handler]
+     approval=[row for row in snapshots[identifier] if row['phase'] in {'before approval','after approval','after repeat'}]
+     if cancel=='true':
+      assert len(rows[identifier])==1 and len(rows[handler])<=1
+      assert approval==[{'phase':'before approval','count':0},{'phase':'after approval','count':1},{'phase':'after repeat','count':1}]
+     else:
+      assert not approval
+      observed=[row for row in snapshots[identifier] if row['phase']=='uncancellable native default is unknown'];assert len(observed)==1 and observed[0]['count']<=1
+      assert len(rows[identifier])<=1 and len(rows[handler])==0
+     fallback.append({'case':identifier,'native_root':native=='true','composed':composed=='true','cancellable':cancel=='true','handler_before_approval':0,'final_handler_arrivals':len(rows[handler]),'final_default_arrivals':len(rows[identifier]),'approval_sequence':approval,'unknown_receiver_snapshot':observed[0] if cancel=='false' else None})
+ assert len(rows['owner-recheck-owner-overlap'])==1 and rows['owner-recheck-owner-overlap'][0]['body']=='draft=Saved'
+ assert len(rows['recheck-owner-overlap'])==1 and rows['recheck-owner-overlap'][0]['body']=='draft=Other'
+ assert artifact['owner_overlap']['owner_arrival']['body']=='draft=Saved'
+ results.append({'run_id':artifact['run_id'],'artifact':artifact['artifact'],'source':artifact['source_head'],'fixed_cases':fixed,'native_fallback_cases':fallback,'owner_body':'draft=Saved','timer_body_after_own_approval':'draft=Other','result':'PASS'})
+ print(artifact['artifact'],'fixed-case raw receiver cross-check PASS',flush=True)
+assert len(results)==4
+(closing/'fixed-case-audit.json').write_text(json.dumps(results,indent=2)+'\n')

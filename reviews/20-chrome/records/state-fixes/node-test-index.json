@@ -1,0 +1,78 @@
+[
+  {
+    "run": 42846669867,
+    "mode": "external",
+    "record": "reviews/20-chrome/records/integrate-42846669867-external/node.txt",
+    "matches": [
+      {
+        "line": 909,
+        "text": "# tests 151"
+      },
+      {
+        "line": 911,
+        "text": "# pass 151"
+      },
+      {
+        "line": 912,
+        "text": "# fail 0"
+      }
+    ]
+  },
+  {
+    "run": 42846669867,
+    "mode": "policy",
+    "record": "reviews/20-chrome/records/integrate-42846669867-policy/node.txt",
+    "matches": [
+      {
+        "line": 909,
+        "text": "# tests 151"
+      },
+      {
+        "line": 911,
+        "text": "# pass 151"
+      },
+      {
+        "line": 912,
+        "text": "# fail 0"
+      }
+    ]
+  },
+  {
+    "run": 42888182810,
+    "mode": "external",
+    "record": "reviews/20-chrome/records/integrate-42888182810-external/node.txt",
+    "matches": [
+      {
+        "line": 909,
+        "text": "# tests 151"
+      },
+      {
+        "line": 911,
+        "text": "# pass 151"
+      },
+      {
+        "line": 912,
+        "text": "# fail 0"
+      }
+    ]
+  },
+  {
+    "run": 42888182810,
+    "mode": "policy",
+    "record": "reviews/20-chrome/records/integrate-42888182810-policy/node.txt",
+    "matches": [
+      {
+        "line": 909,
+        "text": "# tests 151"
+      },
+      {
+        "line": 911,
+        "text": "# pass 151"
+      },
+      {
+        "line": 912,
+        "text": "# fail 0"
+      }
+    ]
+  }
+]

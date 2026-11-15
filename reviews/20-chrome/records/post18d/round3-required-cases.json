@@ -1,0 +1,562 @@
+{
+  "source": "63c81414",
+  "source_run": "43437786144",
+  "artifact": "completed policy browser matrix before sibling external timeout",
+  "cases": [
+    {
+      "name": "GROUP 2 first-script natives are guarded in pages and frames",
+      "shards": [
+        "core"
+      ]
+    },
+    {
+      "name": "GROUP 2 RECHECK3 every single wrapped step holds across roots events and registration order",
+      "shards": [
+        "recheck3"
+      ]
+    },
+    {
+      "name": "GROUP 2 RECHECK3 every hyperlink and form submitter default is neutralised",
+      "shards": [
+        "recheck3"
+      ]
+    },
+    {
+      "name": "GROUP 3 RECHECK3 rendered whitespace survives questions reasking stopping and final dispatch",
+      "shards": [
+        "recheck3"
+      ]
+    },
+    {
+      "name": "GROUP 2 RECHECK2 every borrowed native insertion route captures noncomposed shadow events",
+      "shards": [
+        "recheck2"
+      ]
+    },
+    {
+      "name": "GROUP 2 RECHECK2 native defaults cover new tabs frames ping forms and downloads",
+      "shards": [
+        "recheck2"
+      ]
+    },
+    {
+      "name": "GROUP 2 RECHECK2 the owner navigates during the network hold",
+      "shards": [
+        "recheck2"
+      ]
+    },
+    {
+      "name": "GROUP 3 RECHECK2 live compose text reasks once while outside text stays free",
+      "shards": [
+        "recheck2"
+      ]
+    },
+    {
+      "name": "GROUP 13 RECHECK2B all-native limit records user activation and honest after-click reporting",
+      "shards": [
+        "recheck2"
+      ]
+    },
+    {
+      "name": "GROUP 5 RECHECK2C clipboard writes are reported without reading contents",
+      "shards": [
+        "recheck2"
+      ]
+    },
+    {
+      "name": "GROUP 8 RECHECK2 extension restart reconciles leftover session network rules",
+      "shards": [
+        "recheck2"
+      ]
+    },
+    {
+      "name": "GROUP 2 RECHECK Claude timer fires inside the owner Enter mark",
+      "shards": [
+        "review"
+      ]
+    },
+    {
+      "name": "GROUP 2 RECHECK explicit payment and delete labels override GET search",
+      "shards": [
+        "review"
+      ]
+    },
+    {
+      "name": "GROUP 4 REVIEW ordinary native dialogs from Claude owner and page tasks keep working",
+      "shards": [
+        "review"
+      ]
+    },
+    {
+      "name": "GROUP 4 REVIEW blank and srcdoc native dialogs answer with a held continuation",
+      "shards": [
+        "review"
+      ]
+    },
+    {
+      "name": "GROUP 8 REVIEW preexisting dialogs hand off within bounds and recover after the owner answers",
+      "shards": [
+        "review"
+      ]
+    },
+    {
+      "name": "GROUP 4 REVIEW borrowed native dialogs always ask bind the answer and never replay",
+      "shards": [
+        "review"
+      ]
+    },
+    {
+      "name": "GROUP 3 REVIEW ordinary blank and srcdoc editors bind drafts and send normally",
+      "shards": [
+        "review"
+      ]
+    },
+    {
+      "name": "GROUP 3 REVIEW owner chosen attachments show byte digests and bind identical metadata replacements",
+      "shards": [
+        "review"
+      ]
+    },
+    {
+      "name": "GROUP 2 REVIEW inherited and newly created frames hold submissions",
+      "shards": [
+        "review"
+      ]
+    },
+    {
+      "name": "GROUP 2 REVIEW borrowed wrappers respect another controlled tab and an ordinary document",
+      "shards": [
+        "review"
+      ]
+    },
+    {
+      "name": "GROUP 11 REVIEW explicit pay and delete evidence overrides an owner allowed adapter",
+      "shards": [
+        "review"
+      ]
+    },
+    {
+      "name": "GROUP 2 REVIEW synchronous new shadow roots keep all submission kinds held",
+      "shards": [
+        "review"
+      ]
+    },
+    {
+      "name": "GROUP 2 REVIEW new shadow roots capture borrowed native events including noncomposed ones",
+      "shards": [
+        "review"
+      ]
+    },
+    {
+      "name": "GROUP 1 REVIEW modified deletion keys normalized words malformed URLs and visible names",
+      "shards": [
+        "review"
+      ]
+    },
+    {
+      "name": "GROUP 3 REVIEW item confirmation file rich text and title mutations refuse",
+      "shards": [
+        "review"
+      ]
+    },
+    {
+      "name": "GROUP 2 REVIEW owner mark exact form submitter and unconsumed delayed work",
+      "shards": [
+        "review"
+      ]
+    },
+    {
+      "name": "GROUP 8 REVIEW iframe drafts and detached or Web Audio report before reload",
+      "shards": [
+        "review"
+      ]
+    },
+    {
+      "name": "GROUP 8 REVIEW script-started POST documents in tabs and popups never reload",
+      "shards": [
+        "review"
+      ]
+    },
+    {
+      "name": "GROUP 8 REVIEW no-op checks and isolated choices leave the owner tab selected",
+      "shards": [
+        "review"
+      ]
+    },
+    {
+      "name": "GROUP 8 REVIEW Stop removes navigation blocks while a frozen wrapper awaits cleanup",
+      "shards": [
+        "review"
+      ]
+    },
+    {
+      "name": "GROUP 5 REVIEW page outcome records the actual post-input notice",
+      "shards": [
+        "review"
+      ]
+    },
+    {
+      "name": "GROUP 8 popups preserve opener flow and guard first input without moving windows",
+      "shards": [
+        "recheck2"
+      ]
+    },
+    {
+      "name": "GROUP 8 opener badges and per-popup Stop preserve windows documents and focus",
+      "shards": [
+        "recheck2"
+      ]
+    },
+    {
+      "name": "GROUP 8 closing or releasing an opener ends popup control and clears badges",
+      "shards": [
+        "recheck2"
+      ]
+    },
+    {
+      "name": "GROUP 8 POST popups never resubmit and ordinary openers stay untouched",
+      "shards": [
+        "recheck2"
+      ]
+    },
+    {
+      "name": "GROUP 7 native compatibility inside and outside Claude tabs",
+      "shards": [
+        "core"
+      ]
+    },
+    {
+      "name": "GROUP 8 Stop under a native modal revokes input before deferred cleanup",
+      "shards": [
+        "core"
+      ]
+    },
+    {
+      "name": "GROUP 8 taken tabs preserve reads and guard the first input reload",
+      "shards": [
+        "core"
+      ]
+    },
+    {
+      "name": "GROUP 10 ADAPTER Gmail full compose and every bound field",
+      "shards": [
+        "adapters"
+      ]
+    },
+    {
+      "name": "GROUP 10 ADAPTER two Gmail compose windows and inbox shortcut",
+      "shards": [
+        "adapters"
+      ]
+    },
+    {
+      "name": "GROUP 11 ADAPTER Gmail exact To Cc Bcc roles account revocation and widening",
+      "shards": [
+        "adapters"
+      ]
+    },
+    {
+      "name": "GROUP 10 ADAPTER WhatsApp every message chat text attachments and free activity",
+      "shards": [
+        "adapters"
+      ]
+    },
+    {
+      "name": "GROUP 10 ADAPTER GitHub actions and all named confirmations",
+      "shards": [
+        "adapters"
+      ]
+    },
+    {
+      "name": "GROUP 10 ADAPTER clear merge settings and sharing variants stay guarded",
+      "shards": [
+        "adapters"
+      ]
+    },
+    {
+      "name": "GROUP 4 ADAPTER every named GitHub confirmation mismatch",
+      "shards": [
+        "adapters"
+      ]
+    },
+    {
+      "name": "GROUP 10 ADAPTER Gemini question content and always asking chat changes",
+      "shards": [
+        "adapters"
+      ]
+    },
+    {
+      "name": "GROUP 11 ADAPTER Gemini exact account owner entry and revocation",
+      "shards": [
+        "adapters"
+      ]
+    },
+    {
+      "name": "GROUP 10 ADAPTER Deezer playback additions removals posts shares and payments",
+      "shards": [
+        "adapters"
+      ]
+    },
+    {
+      "name": "GROUP 10 ADAPTER bank owner restriction all inputs and positive reads links scroll",
+      "shards": [
+        "adapters"
+      ]
+    },
+    {
+      "name": "GROUP 10 ADAPTER unfamiliar pages and qualification fallback on all sites",
+      "shards": [
+        "adapters"
+      ]
+    },
+    {
+      "name": "GROUP 10 ADAPTER Gemini question uses its required semantic name",
+      "shards": [
+        "adapters"
+      ]
+    },
+    {
+      "name": "GROUP 10 ADAPTER Gmail question names its attachments",
+      "shards": [
+        "adapters"
+      ]
+    },
+    {
+      "name": "GROUP 10 ADAPTER Gmail deletion shortcut question names the deletion",
+      "shards": [
+        "adapters"
+      ]
+    },
+    {
+      "name": "GROUP 1 submit compose deletion and free-input matrix",
+      "shards": [
+        "core"
+      ]
+    },
+    {
+      "name": "GROUP 1 what asks word/label/key matrix",
+      "shards": [
+        "word-0",
+        "word-1",
+        "word-2",
+        "word-3"
+      ]
+    },
+    {
+      "name": "GROUP 1 Unicode word matching agrees across service and guard",
+      "shards": [
+        "core"
+      ]
+    },
+    {
+      "name": "GROUP 2 stopped page steps handler/resume matrix",
+      "shards": [
+        "core"
+      ]
+    },
+    {
+      "name": "GROUP 2 script activations never replay",
+      "shards": [
+        "core"
+      ]
+    },
+    {
+      "name": "GROUP 2 loop with uncancelled enclosing submit sends once",
+      "shards": [
+        "core"
+      ]
+    },
+    {
+      "name": "GROUP 2 delayed submission stays held after slow frame arming",
+      "shards": [
+        "core"
+      ]
+    },
+    {
+      "name": "GROUP 2 nested validation and fresh-frame fallback",
+      "shards": [
+        "core"
+      ]
+    },
+    {
+      "name": "GROUP 2 owner synchronous task delayed work and in-flight interleavings",
+      "shards": [
+        "core"
+      ]
+    },
+    {
+      "name": "GROUP 2 after his mark timers never exempt forms submitters or validation repairs",
+      "shards": [
+        "core"
+      ]
+    },
+    {
+      "name": "GROUP 2 uncancellable self navigation is stopped before its source document changes",
+      "shards": [
+        "core"
+      ]
+    },
+    {
+      "name": "GROUP 3 binding every form fact and generic sibling draft",
+      "shards": [
+        "core"
+      ]
+    },
+    {
+      "name": "GROUP 4 page confirmations bind their full text and ask independently",
+      "shards": [
+        "core"
+      ]
+    },
+    {
+      "name": "GROUP 3 cross-frame adapter empty and oversized drafts",
+      "shards": [
+        "core"
+      ]
+    },
+    {
+      "name": "GROUP 4 exact native confirmation and mismatch matrix",
+      "shards": [
+        "core"
+      ]
+    },
+    {
+      "name": "GROUP 4 a native-dialog handler submission is prepared separately",
+      "shards": [
+        "core"
+      ]
+    },
+    {
+      "name": "GROUP 5 question fields, hidden values, password label, upload path and hash",
+      "shards": [
+        "core"
+      ]
+    },
+    {
+      "name": "GROUP 6 exclusions through frame, popup, redirect, taking and history",
+      "shards": [
+        "core"
+      ]
+    },
+    {
+      "name": "GROUP 7 all password kinds across open closed and cross-site roots",
+      "shards": [
+        "core"
+      ]
+    },
+    {
+      "name": "GROUP 6 schemes links and forward routes",
+      "shards": [
+        "core"
+      ]
+    },
+    {
+      "name": "GROUP 8 drop release close and stale references never dispatch prepared work",
+      "shards": [
+        "core"
+      ]
+    },
+    {
+      "name": "GROUP 3 changed read-only preview reasks with its changed content",
+      "shards": [
+        "core"
+      ]
+    },
+    {
+      "name": "GROUP 8 deadline and tabs outside the group",
+      "shards": [
+        "core"
+      ]
+    },
+    {
+      "name": "GROUP 10 adapter gmail",
+      "shards": [
+        "core"
+      ]
+    },
+    {
+      "name": "GROUP 10 adapter whatsapp",
+      "shards": [
+        "core"
+      ]
+    },
+    {
+      "name": "GROUP 10 adapter github",
+      "shards": [
+        "core"
+      ]
+    },
+    {
+      "name": "GROUP 10 adapter gemini",
+      "shards": [
+        "core"
+      ]
+    },
+    {
+      "name": "GROUP 10 adapter deezer",
+      "shards": [
+        "core"
+      ]
+    },
+    {
+      "name": "GROUP 10 read-only bank",
+      "shards": [
+        "core"
+      ]
+    },
+    {
+      "name": "GROUP 10 adapter shortcuts and account-specific questions",
+      "shards": [
+        "core"
+      ]
+    },
+    {
+      "name": "GROUP 11 exact owner kind, recipients, account and revocation",
+      "shards": [
+        "core"
+      ]
+    },
+    {
+      "name": "QUALIFICATION conservative activations ask and core failures gate before reads",
+      "shards": [
+        "core"
+      ]
+    },
+    {
+      "name": "GROUP 13 autosave and after-limit submissions are not held",
+      "shards": [
+        "core"
+      ]
+    },
+    {
+      "name": "VIEW representative long article/form complete paging",
+      "shards": [
+        "core"
+      ]
+    },
+    {
+      "name": "FEATURE tools forms options find wait fill_form scroll and full catalogues",
+      "shards": [
+        "core"
+      ]
+    },
+    {
+      "name": "GROUP 8 actual popup Stop button drops all prepared work",
+      "shards": [
+        "core"
+      ]
+    },
+    {
+      "name": "GROUP 9 Chrome host service crash cutpoints never replay",
+      "shards": [
+        "core"
+      ]
+    },
+    {
+      "name": "GROUP 7 no listening port after tool suite",
+      "shards": [
+        "core"
+      ]
+    }
+  ]
+}

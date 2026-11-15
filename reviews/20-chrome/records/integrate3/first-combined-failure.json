@@ -1,0 +1,126 @@
+[
+  {
+    "run": 42955378005,
+    "artifact": "control-chrome-42955378005-1-external",
+    "failed_case": [
+      {
+        "line": 18,
+        "text": "GROUP 4 REVIEW ordinary native dialogs from Claude owner and page tasks keep working FAIL Error: native alert from claude: undefined"
+      }
+    ],
+    "last_read_keys": [
+      "tab",
+      "document",
+      "untrusted_content",
+      "view",
+      "characters",
+      "offset",
+      "cursor",
+      "version_notice"
+    ],
+    "untrusted_dialog": {
+      "id": "9566c000-b6e2-4cb4-820f-394ed43d5692",
+      "kind": "alert",
+      "text": "Continue?",
+      "frame_url": "http://fixture.test:8765/?case=review-page&mode=native-dialog&dialog=alert&id=review-dialog-alert-claude-true",
+      "button": "OK",
+      "frame": 0,
+      "browser_document": "08C2481C1E73E2D416FFFBAED8C56446"
+    },
+    "top_level_dialog_present": false,
+    "diagnosis": "The service returned its S12-marked native dialog correctly; the Part P review fixture used the obsolete top-level selector."
+  },
+  {
+    "run": 42955378005,
+    "artifact": "control-chrome-42955378005-1-policy",
+    "failed_case": [
+      {
+        "line": 18,
+        "text": "GROUP 4 REVIEW ordinary native dialogs from Claude owner and page tasks keep working FAIL Error: native alert from claude: undefined"
+      }
+    ],
+    "last_read_keys": [
+      "tab",
+      "document",
+      "untrusted_content",
+      "view",
+      "characters",
+      "offset",
+      "cursor",
+      "version_notice"
+    ],
+    "untrusted_dialog": {
+      "id": "75161c78-4c52-4d2c-b42b-fe9757f0fac4",
+      "kind": "alert",
+      "text": "Continue?",
+      "frame_url": "http://fixture.test:8765/?case=review-page&mode=native-dialog&dialog=alert&id=review-dialog-alert-claude-true",
+      "button": "OK",
+      "frame": 0,
+      "browser_document": "11A6F6BD168C2A12AFE1BB05FD4A52BD"
+    },
+    "top_level_dialog_present": false,
+    "diagnosis": "The service returned its S12-marked native dialog correctly; the Part P review fixture used the obsolete top-level selector."
+  },
+  {
+    "run": 42955382845,
+    "artifact": "control-chrome-42955382845-1-external",
+    "failed_case": [
+      {
+        "line": 18,
+        "text": "GROUP 4 REVIEW ordinary native dialogs from Claude owner and page tasks keep working FAIL Error: native alert from claude: undefined"
+      }
+    ],
+    "last_read_keys": [
+      "tab",
+      "document",
+      "untrusted_content",
+      "view",
+      "characters",
+      "offset",
+      "cursor",
+      "version_notice"
+    ],
+    "untrusted_dialog": {
+      "id": "7d99d5bf-50f2-4208-8062-9f6b3704e13e",
+      "kind": "alert",
+      "text": "Continue?",
+      "frame_url": "http://fixture.test:8765/?case=review-page&mode=native-dialog&dialog=alert&id=review-dialog-alert-claude-true",
+      "button": "OK",
+      "frame": 0,
+      "browser_document": "1879EFB54B76BE9F39B657ED7ED36FF1"
+    },
+    "top_level_dialog_present": false,
+    "diagnosis": "The service returned its S12-marked native dialog correctly; the Part P review fixture used the obsolete top-level selector."
+  },
+  {
+    "run": 42955382845,
+    "artifact": "control-chrome-42955382845-1-policy",
+    "failed_case": [
+      {
+        "line": 18,
+        "text": "GROUP 4 REVIEW ordinary native dialogs from Claude owner and page tasks keep working FAIL Error: native alert from claude: undefined"
+      }
+    ],
+    "last_read_keys": [
+      "tab",
+      "document",
+      "untrusted_content",
+      "view",
+      "characters",
+      "offset",
+      "cursor",
+      "version_notice"
+    ],
+    "untrusted_dialog": {
+      "id": "7ebe5f98-680b-4e7b-b7a5-c036d591d4d8",
+      "kind": "alert",
+      "text": "Continue?",
+      "frame_url": "http://fixture.test:8765/?case=review-page&mode=native-dialog&dialog=alert&id=review-dialog-alert-claude-true",
+      "button": "OK",
+      "frame": 0,
+      "browser_document": "F5303200CBE54F9434A176ED97ED0379"
+    },
+    "top_level_dialog_present": false,
+    "diagnosis": "The service returned its S12-marked native dialog correctly; the Part P review fixture used the obsolete top-level selector."
+  }
+]

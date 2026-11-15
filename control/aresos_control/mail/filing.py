@@ -256,7 +256,7 @@ def public_notice(store, notice):
             'untrusted_content': visible(content)}
 
 
-def notice_page(store, args=None, app=None, checks=()):
+def notice_page(store, args=None, app=None, checks=(), extras=None, exclude_apps=()):
     from ..recovery import recovery_notices
     args = args or {}
     checks = tuple(checks)
@@ -267,11 +267,13 @@ def notice_page(store, args=None, app=None, checks=()):
         from itertools import chain
         for notice in chain((v for k, v in store.iter_items('notice:') if k not in deferred),
                             deferred.values(), recovery_notices(store), checks):
-            if (notice.get('ack') or (app is not None and notice['app'] != app) or
+            if (notice.get('ack') or notice['app'] in exclude_apps or (app is not None and notice['app'] != app) or
                     'notice:' + notice['id'] in deferred and notice is not deferred['notice:' + notice['id']]):
                 continue
             key = (notice.get('created_at', 0), notice['id'])
             yield key, notice
+        if extras:
+            yield from extras()
     page = ordered_page(values, args, ['notices', app], NOTICE_LIMIT, newest=True)
     page['items'] = [public_notice(store, notice) for notice in page['items']]
     return page

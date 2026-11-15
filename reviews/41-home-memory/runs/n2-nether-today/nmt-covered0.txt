@@ -1,0 +1,70 @@
+886862:
+
+Native Memory Tracking:
+
+(Omitting categories weighting less than 1MB)
+
+Total: reserved=4750MB, committed=1094MB
+       malloc: 104MB #574140, peak=172MB #546754
+       mmap:   reserved=4647MB, committed=990MB
+
+-                 Java Heap (reserved=3072MB, committed=726MB)
+                            (mmap: reserved=3072MB, committed=726MB, at peak)
+
+-                     Class (reserved=1027MB, committed=27MB)
+                            (classes #37463)
+                            (  instance classes #35948, array classes #1515)
+                            (malloc=3MB tag=Class #66219) (peak=3MB #66976)
+                            (mmap: reserved=1024MB, committed=24MB, at peak)
+                            (  Metadata:   )
+                            (    reserved=128MB, committed=122MB)
+                            (    used=121MB)
+                            (    waste=1MB =0.62%)
+                            (  Class space:)
+                            (    reserved=1024MB, committed=24MB)
+                            (    used=24MB)
+                            (    waste=1MB =2.33%)
+
+-                    Thread (reserved=72MB, committed=8MB)
+                            (threads #72)
+                            (stack: reserved=72MB, committed=7MB, peak=7MB)
+                            (arena=0MB #132) (peak=1MB #62)
+
+-                      Code (reserved=257MB, committed=65MB)
+                            (malloc=15MB tag=Code #53277) (peak=23MB #104976)
+                            (mmap: reserved=242MB, committed=51MB, at peak)
+
+-                        GC (reserved=121MB, committed=75MB)
+                            (malloc=29MB tag=GC #18775) (peak=29MB #26067)
+                            (mmap: reserved=93MB, committed=47MB, at peak)
+
+-                  Compiler (reserved=1MB, committed=1MB)
+                            (malloc=0MB tag=Compiler #542) (peak=1MB #561)
+                            (arena=0MB #14) (peak=89MB #37)
+
+-                  Internal (reserved=2MB, committed=2MB)
+                            (malloc=2MB tag=Internal #29948) (at peak)
+
+-                     Other (reserved=4MB, committed=4MB)
+                            (malloc=4MB tag=Other #84) (peak=20MB #560)
+
+-                    Symbol (reserved=24MB, committed=24MB)
+                            (malloc=22MB tag=Symbol #367789) (at peak)
+                            (arena=2MB #1) (at peak)
+
+-    Native Memory Tracking (reserved=10MB, committed=10MB)
+                            (tracking overhead=10MB)
+
+-        Shared class space (reserved=16MB, committed=14MB, readonly=0MB)
+                            (mmap: reserved=16MB, committed=14MB, peak=14MB)
+
+-               Arena Chunk (reserved=14MB, committed=14MB)
+                            (malloc=14MB tag=Arena Chunk #663) (peak=102MB #1924)
+
+-           Synchronization (reserved=3MB, committed=3MB)
+                            (malloc=3MB tag=Synchronization #28286) (at peak)
+
+-                 Metaspace (reserved=129MB, committed=123MB)
+                            (malloc=1MB tag=Metaspace #136) (at peak)
+                            (mmap: reserved=128MB, committed=122MB, at peak)
+

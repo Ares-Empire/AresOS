@@ -1,0 +1,1597 @@
+{
+  "run": "43472898643",
+  "cases": 66,
+  "audit": {
+    "sources": 7,
+    "cases": 66,
+    "complete_0_1_1": 66,
+    "independent_arrivals_match": true
+  },
+  "contexts": [
+    {
+      "id": "post18d-destination-a-top-base",
+      "source": "a",
+      "frame": "top",
+      "change": "base",
+      "context": {
+        "id": "post18d-destination-a-top-base",
+        "phase": "destination-context",
+        "name": "sink-first",
+        "top": false,
+        "url": "http://fixture.test:8765/second/receive?case=post18d-destination-a-top-base"
+      },
+      "nativeTab": {
+        "tab": 1615218694,
+        "window": 1615218693,
+        "index": 0,
+        "active": true,
+        "focused": true,
+        "title": "Synthetic fixture",
+        "url": "http://fixture.test:8765/?case=review-page&mode=destination&source=a&frame=top&change=base&id=post18d-destination-a-top-base",
+        "controlled": true,
+        "cleanup_pending": false
+      }
+    },
+    {
+      "id": "post18d-destination-a-top-attribute",
+      "source": "a",
+      "frame": "top",
+      "change": "attribute",
+      "context": {
+        "id": "post18d-destination-a-top-attribute",
+        "phase": "destination-context",
+        "name": "sink-first",
+        "top": false,
+        "url": "http://fixture.test:8765/second/receive?case=post18d-destination-a-top-attribute"
+      },
+      "nativeTab": {
+        "tab": 1615218694,
+        "window": 1615218693,
+        "index": 0,
+        "active": true,
+        "focused": true,
+        "title": "Synthetic fixture",
+        "url": "http://fixture.test:8765/?case=review-page&mode=destination&source=a&frame=top&change=attribute&id=post18d-destination-a-top-attribute",
+        "controlled": true,
+        "cleanup_pending": false
+      }
+    },
+    {
+      "id": "post18d-destination-area-top-base",
+      "source": "area",
+      "frame": "top",
+      "change": "base",
+      "context": {
+        "id": "post18d-destination-area-top-base",
+        "phase": "destination-context",
+        "name": "sink-first",
+        "top": false,
+        "url": "http://fixture.test:8765/second/receive?case=post18d-destination-area-top-base"
+      },
+      "nativeTab": {
+        "tab": 1615218694,
+        "window": 1615218693,
+        "index": 0,
+        "active": true,
+        "focused": true,
+        "title": "Synthetic fixture",
+        "url": "http://fixture.test:8765/?case=review-page&mode=destination&source=area&frame=top&change=base&id=post18d-destination-area-top-base",
+        "controlled": true,
+        "cleanup_pending": false
+      }
+    },
+    {
+      "id": "post18d-destination-area-top-attribute",
+      "source": "area",
+      "frame": "top",
+      "change": "attribute",
+      "context": {
+        "id": "post18d-destination-area-top-attribute",
+        "phase": "destination-context",
+        "name": "sink-first",
+        "top": false,
+        "url": "http://fixture.test:8765/second/receive?case=post18d-destination-area-top-attribute"
+      },
+      "nativeTab": {
+        "tab": 1615218694,
+        "window": 1615218693,
+        "index": 0,
+        "active": true,
+        "focused": true,
+        "title": "Synthetic fixture",
+        "url": "http://fixture.test:8765/?case=review-page&mode=destination&source=area&frame=top&change=attribute&id=post18d-destination-area-top-attribute",
+        "controlled": true,
+        "cleanup_pending": false
+      }
+    },
+    {
+      "id": "post18d-destination-svg-href-top-base",
+      "source": "svg-href",
+      "frame": "top",
+      "change": "base",
+      "context": {
+        "id": "post18d-destination-svg-href-top-base",
+        "phase": "destination-context",
+        "name": "sink-first",
+        "top": false,
+        "url": "http://fixture.test:8765/second/receive?case=post18d-destination-svg-href-top-base"
+      },
+      "nativeTab": {
+        "tab": 1615218694,
+        "window": 1615218693,
+        "index": 0,
+        "active": true,
+        "focused": true,
+        "title": "Synthetic fixture",
+        "url": "http://fixture.test:8765/?case=review-page&mode=destination&source=svg-href&frame=top&change=base&id=post18d-destination-svg-href-top-base",
+        "controlled": true,
+        "cleanup_pending": false
+      }
+    },
+    {
+      "id": "post18d-destination-svg-href-top-attribute",
+      "source": "svg-href",
+      "frame": "top",
+      "change": "attribute",
+      "context": {
+        "id": "post18d-destination-svg-href-top-attribute",
+        "phase": "destination-context",
+        "name": "sink-first",
+        "top": false,
+        "url": "http://fixture.test:8765/second/receive?case=post18d-destination-svg-href-top-attribute"
+      },
+      "nativeTab": {
+        "tab": 1615218694,
+        "window": 1615218693,
+        "index": 0,
+        "active": true,
+        "focused": true,
+        "title": "Synthetic fixture",
+        "url": "http://fixture.test:8765/?case=review-page&mode=destination&source=svg-href&frame=top&change=attribute&id=post18d-destination-svg-href-top-attribute",
+        "controlled": true,
+        "cleanup_pending": false
+      }
+    },
+    {
+      "id": "post18d-destination-svg-xlink-top-base",
+      "source": "svg-xlink",
+      "frame": "top",
+      "change": "base",
+      "context": {
+        "id": "post18d-destination-svg-xlink-top-base",
+        "phase": "destination-context",
+        "name": "sink-first",
+        "top": false,
+        "url": "http://fixture.test:8765/second/receive?case=post18d-destination-svg-xlink-top-base"
+      },
+      "nativeTab": {
+        "tab": 1615218694,
+        "window": 1615218693,
+        "index": 0,
+        "active": true,
+        "focused": true,
+        "title": "Synthetic fixture",
+        "url": "http://fixture.test:8765/?case=review-page&mode=destination&source=svg-xlink&frame=top&change=base&id=post18d-destination-svg-xlink-top-base",
+        "controlled": true,
+        "cleanup_pending": false
+      }
+    },
+    {
+      "id": "post18d-destination-svg-xlink-top-attribute",
+      "source": "svg-xlink",
+      "frame": "top",
+      "change": "attribute",
+      "context": {
+        "id": "post18d-destination-svg-xlink-top-attribute",
+        "phase": "destination-context",
+        "name": "sink-first",
+        "top": false,
+        "url": "http://fixture.test:8765/second/receive?case=post18d-destination-svg-xlink-top-attribute"
+      },
+      "nativeTab": {
+        "tab": 1615218694,
+        "window": 1615218693,
+        "index": 0,
+        "active": true,
+        "focused": true,
+        "title": "Synthetic fixture",
+        "url": "http://fixture.test:8765/?case=review-page&mode=destination&source=svg-xlink&frame=top&change=attribute&id=post18d-destination-svg-xlink-top-attribute",
+        "controlled": true,
+        "cleanup_pending": false
+      }
+    },
+    {
+      "id": "post18d-destination-form-action-top-base",
+      "source": "form-action",
+      "frame": "top",
+      "change": "base",
+      "context": {
+        "id": "post18d-destination-form-action-top-base",
+        "phase": "destination-context",
+        "name": "sink-first",
+        "top": false,
+        "url": "http://fixture.test:8765/second/receive?case=post18d-destination-form-action-top-base"
+      },
+      "nativeTab": {
+        "tab": 1615218694,
+        "window": 1615218693,
+        "index": 0,
+        "active": true,
+        "focused": true,
+        "title": "Synthetic fixture",
+        "url": "http://fixture.test:8765/?case=review-page&mode=destination&source=form-action&frame=top&change=base&id=post18d-destination-form-action-top-base",
+        "controlled": true,
+        "cleanup_pending": false
+      }
+    },
+    {
+      "id": "post18d-destination-form-action-top-attribute",
+      "source": "form-action",
+      "frame": "top",
+      "change": "attribute",
+      "context": {
+        "id": "post18d-destination-form-action-top-attribute",
+        "phase": "destination-context",
+        "name": "sink-first",
+        "top": false,
+        "url": "http://fixture.test:8765/second/receive?case=post18d-destination-form-action-top-attribute"
+      },
+      "nativeTab": {
+        "tab": 1615218694,
+        "window": 1615218693,
+        "index": 0,
+        "active": true,
+        "focused": true,
+        "title": "Synthetic fixture",
+        "url": "http://fixture.test:8765/?case=review-page&mode=destination&source=form-action&frame=top&change=attribute&id=post18d-destination-form-action-top-attribute",
+        "controlled": true,
+        "cleanup_pending": false
+      }
+    },
+    {
+      "id": "post18d-destination-button-formaction-top-base",
+      "source": "button-formaction",
+      "frame": "top",
+      "change": "base",
+      "context": {
+        "id": "post18d-destination-button-formaction-top-base",
+        "phase": "destination-context",
+        "name": "sink-first",
+        "top": false,
+        "url": "http://fixture.test:8765/second/receive?case=post18d-destination-button-formaction-top-base"
+      },
+      "nativeTab": {
+        "tab": 1615218694,
+        "window": 1615218693,
+        "index": 0,
+        "active": true,
+        "focused": true,
+        "title": "Synthetic fixture",
+        "url": "http://fixture.test:8765/?case=review-page&mode=destination&source=button-formaction&frame=top&change=base&id=post18d-destination-button-formaction-top-base",
+        "controlled": true,
+        "cleanup_pending": false
+      }
+    },
+    {
+      "id": "post18d-destination-button-formaction-top-attribute",
+      "source": "button-formaction",
+      "frame": "top",
+      "change": "attribute",
+      "context": {
+        "id": "post18d-destination-button-formaction-top-attribute",
+        "phase": "destination-context",
+        "name": "sink-first",
+        "top": false,
+        "url": "http://fixture.test:8765/second/receive?case=post18d-destination-button-formaction-top-attribute"
+      },
+      "nativeTab": {
+        "tab": 1615218694,
+        "window": 1615218693,
+        "index": 0,
+        "active": true,
+        "focused": true,
+        "title": "Synthetic fixture",
+        "url": "http://fixture.test:8765/?case=review-page&mode=destination&source=button-formaction&frame=top&change=attribute&id=post18d-destination-button-formaction-top-attribute",
+        "controlled": true,
+        "cleanup_pending": false
+      }
+    },
+    {
+      "id": "post18d-destination-input-formaction-top-base",
+      "source": "input-formaction",
+      "frame": "top",
+      "change": "base",
+      "context": {
+        "id": "post18d-destination-input-formaction-top-base",
+        "phase": "destination-context",
+        "name": "sink-first",
+        "top": false,
+        "url": "http://fixture.test:8765/second/receive?case=post18d-destination-input-formaction-top-base"
+      },
+      "nativeTab": {
+        "tab": 1615218694,
+        "window": 1615218693,
+        "index": 0,
+        "active": true,
+        "focused": true,
+        "title": "Synthetic fixture",
+        "url": "http://fixture.test:8765/?case=review-page&mode=destination&source=input-formaction&frame=top&change=base&id=post18d-destination-input-formaction-top-base",
+        "controlled": true,
+        "cleanup_pending": false
+      }
+    },
+    {
+      "id": "post18d-destination-input-formaction-top-attribute",
+      "source": "input-formaction",
+      "frame": "top",
+      "change": "attribute",
+      "context": {
+        "id": "post18d-destination-input-formaction-top-attribute",
+        "phase": "destination-context",
+        "name": "sink-first",
+        "top": false,
+        "url": "http://fixture.test:8765/second/receive?case=post18d-destination-input-formaction-top-attribute"
+      },
+      "nativeTab": {
+        "tab": 1615218694,
+        "window": 1615218693,
+        "index": 0,
+        "active": true,
+        "focused": true,
+        "title": "Synthetic fixture",
+        "url": "http://fixture.test:8765/?case=review-page&mode=destination&source=input-formaction&frame=top&change=attribute&id=post18d-destination-input-formaction-top-attribute",
+        "controlled": true,
+        "cleanup_pending": false
+      }
+    },
+    {
+      "id": "post18d-destination-button-formaction-top-owner",
+      "source": "button-formaction",
+      "frame": "top",
+      "change": "owner",
+      "context": {
+        "id": "post18d-destination-button-formaction-top-owner",
+        "phase": "destination-context",
+        "name": "sink-first",
+        "top": false,
+        "url": "http://fixture.test:8765/second/receive?case=post18d-destination-button-formaction-top-owner"
+      },
+      "nativeTab": {
+        "tab": 1615218694,
+        "window": 1615218693,
+        "index": 0,
+        "active": true,
+        "focused": true,
+        "title": "Synthetic fixture",
+        "url": "http://fixture.test:8765/?case=review-page&mode=destination&source=button-formaction&frame=top&change=owner&id=post18d-destination-button-formaction-top-owner",
+        "controlled": true,
+        "cleanup_pending": false
+      }
+    },
+    {
+      "id": "post18d-destination-input-formaction-top-owner",
+      "source": "input-formaction",
+      "frame": "top",
+      "change": "owner",
+      "context": {
+        "id": "post18d-destination-input-formaction-top-owner",
+        "phase": "destination-context",
+        "name": "sink-first",
+        "top": false,
+        "url": "http://fixture.test:8765/second/receive?case=post18d-destination-input-formaction-top-owner"
+      },
+      "nativeTab": {
+        "tab": 1615218694,
+        "window": 1615218693,
+        "index": 0,
+        "active": true,
+        "focused": true,
+        "title": "Synthetic fixture",
+        "url": "http://fixture.test:8765/?case=review-page&mode=destination&source=input-formaction&frame=top&change=owner&id=post18d-destination-input-formaction-top-owner",
+        "controlled": true,
+        "cleanup_pending": false
+      }
+    },
+    {
+      "id": "post18d-destination-a-top-target",
+      "source": "a",
+      "frame": "top",
+      "change": "target",
+      "context": {
+        "id": "post18d-destination-a-top-target",
+        "phase": "destination-context",
+        "name": "sink-second",
+        "top": false,
+        "url": "http://fixture.test:8765/first/receive?case=post18d-destination-a-top-target"
+      },
+      "nativeTab": {
+        "tab": 1615218694,
+        "window": 1615218693,
+        "index": 0,
+        "active": true,
+        "focused": true,
+        "title": "Synthetic fixture",
+        "url": "http://fixture.test:8765/?case=review-page&mode=destination&source=a&frame=top&change=target&id=post18d-destination-a-top-target",
+        "controlled": true,
+        "cleanup_pending": false
+      }
+    },
+    {
+      "id": "post18d-destination-form-action-top-target",
+      "source": "form-action",
+      "frame": "top",
+      "change": "target",
+      "context": {
+        "id": "post18d-destination-form-action-top-target",
+        "phase": "destination-context",
+        "name": "sink-second",
+        "top": false,
+        "url": "http://fixture.test:8765/first/receive?case=post18d-destination-form-action-top-target"
+      },
+      "nativeTab": {
+        "tab": 1615218694,
+        "window": 1615218693,
+        "index": 0,
+        "active": true,
+        "focused": true,
+        "title": "Synthetic fixture",
+        "url": "http://fixture.test:8765/?case=review-page&mode=destination&source=form-action&frame=top&change=target&id=post18d-destination-form-action-top-target",
+        "controlled": true,
+        "cleanup_pending": false
+      }
+    },
+    {
+      "id": "post18d-destination-button-formaction-top-target",
+      "source": "button-formaction",
+      "frame": "top",
+      "change": "target",
+      "context": {
+        "id": "post18d-destination-button-formaction-top-target",
+        "phase": "destination-context",
+        "name": "sink-second",
+        "top": false,
+        "url": "http://fixture.test:8765/first/receive?case=post18d-destination-button-formaction-top-target"
+      },
+      "nativeTab": {
+        "tab": 1615218694,
+        "window": 1615218693,
+        "index": 0,
+        "active": true,
+        "focused": true,
+        "title": "Synthetic fixture",
+        "url": "http://fixture.test:8765/?case=review-page&mode=destination&source=button-formaction&frame=top&change=target&id=post18d-destination-button-formaction-top-target",
+        "controlled": true,
+        "cleanup_pending": false
+      }
+    },
+    {
+      "id": "post18d-destination-input-formaction-top-target",
+      "source": "input-formaction",
+      "frame": "top",
+      "change": "target",
+      "context": {
+        "id": "post18d-destination-input-formaction-top-target",
+        "phase": "destination-context",
+        "name": "sink-second",
+        "top": false,
+        "url": "http://fixture.test:8765/first/receive?case=post18d-destination-input-formaction-top-target"
+      },
+      "nativeTab": {
+        "tab": 1615218694,
+        "window": 1615218693,
+        "index": 0,
+        "active": true,
+        "focused": true,
+        "title": "Synthetic fixture",
+        "url": "http://fixture.test:8765/?case=review-page&mode=destination&source=input-formaction&frame=top&change=target&id=post18d-destination-input-formaction-top-target",
+        "controlled": true,
+        "cleanup_pending": false
+      }
+    },
+    {
+      "id": "post18d-destination-a-blank-base",
+      "source": "a",
+      "frame": "blank",
+      "change": "base",
+      "context": {
+        "id": "post18d-destination-a-blank-base",
+        "phase": "destination-context",
+        "name": "sink-first",
+        "top": false,
+        "url": "http://fixture.test:8765/second/receive?case=post18d-destination-a-blank-base"
+      },
+      "nativeTab": {
+        "tab": 1615218694,
+        "window": 1615218693,
+        "index": 0,
+        "active": true,
+        "focused": true,
+        "title": "Synthetic fixture",
+        "url": "http://fixture.test:8765/?case=review-page&mode=destination&source=a&frame=blank&change=base&id=post18d-destination-a-blank-base",
+        "controlled": true,
+        "cleanup_pending": false
+      }
+    },
+    {
+      "id": "post18d-destination-a-blank-attribute",
+      "source": "a",
+      "frame": "blank",
+      "change": "attribute",
+      "context": {
+        "id": "post18d-destination-a-blank-attribute",
+        "phase": "destination-context",
+        "name": "sink-first",
+        "top": false,
+        "url": "http://fixture.test:8765/second/receive?case=post18d-destination-a-blank-attribute"
+      },
+      "nativeTab": {
+        "tab": 1615218694,
+        "window": 1615218693,
+        "index": 0,
+        "active": true,
+        "focused": true,
+        "title": "Synthetic fixture",
+        "url": "http://fixture.test:8765/?case=review-page&mode=destination&source=a&frame=blank&change=attribute&id=post18d-destination-a-blank-attribute",
+        "controlled": true,
+        "cleanup_pending": false
+      }
+    },
+    {
+      "id": "post18d-destination-area-blank-base",
+      "source": "area",
+      "frame": "blank",
+      "change": "base",
+      "context": {
+        "id": "post18d-destination-area-blank-base",
+        "phase": "destination-context",
+        "name": "sink-first",
+        "top": false,
+        "url": "http://fixture.test:8765/second/receive?case=post18d-destination-area-blank-base"
+      },
+      "nativeTab": {
+        "tab": 1615218694,
+        "window": 1615218693,
+        "index": 0,
+        "active": true,
+        "focused": true,
+        "title": "Synthetic fixture",
+        "url": "http://fixture.test:8765/?case=review-page&mode=destination&source=area&frame=blank&change=base&id=post18d-destination-area-blank-base",
+        "controlled": true,
+        "cleanup_pending": false
+      }
+    },
+    {
+      "id": "post18d-destination-area-blank-attribute",
+      "source": "area",
+      "frame": "blank",
+      "change": "attribute",
+      "context": {
+        "id": "post18d-destination-area-blank-attribute",
+        "phase": "destination-context",
+        "name": "sink-first",
+        "top": false,
+        "url": "http://fixture.test:8765/second/receive?case=post18d-destination-area-blank-attribute"
+      },
+      "nativeTab": {
+        "tab": 1615218694,
+        "window": 1615218693,
+        "index": 0,
+        "active": true,
+        "focused": true,
+        "title": "Synthetic fixture",
+        "url": "http://fixture.test:8765/?case=review-page&mode=destination&source=area&frame=blank&change=attribute&id=post18d-destination-area-blank-attribute",
+        "controlled": true,
+        "cleanup_pending": false
+      }
+    },
+    {
+      "id": "post18d-destination-svg-href-blank-base",
+      "source": "svg-href",
+      "frame": "blank",
+      "change": "base",
+      "context": {
+        "id": "post18d-destination-svg-href-blank-base",
+        "phase": "destination-context",
+        "name": "sink-first",
+        "top": false,
+        "url": "http://fixture.test:8765/second/receive?case=post18d-destination-svg-href-blank-base"
+      },
+      "nativeTab": {
+        "tab": 1615218694,
+        "window": 1615218693,
+        "index": 0,
+        "active": true,
+        "focused": true,
+        "title": "Synthetic fixture",
+        "url": "http://fixture.test:8765/?case=review-page&mode=destination&source=svg-href&frame=blank&change=base&id=post18d-destination-svg-href-blank-base",
+        "controlled": true,
+        "cleanup_pending": false
+      }
+    },
+    {
+      "id": "post18d-destination-svg-href-blank-attribute",
+      "source": "svg-href",
+      "frame": "blank",
+      "change": "attribute",
+      "context": {
+        "id": "post18d-destination-svg-href-blank-attribute",
+        "phase": "destination-context",
+        "name": "sink-first",
+        "top": false,
+        "url": "http://fixture.test:8765/second/receive?case=post18d-destination-svg-href-blank-attribute"
+      },
+      "nativeTab": {
+        "tab": 1615218694,
+        "window": 1615218693,
+        "index": 0,
+        "active": true,
+        "focused": true,
+        "title": "Synthetic fixture",
+        "url": "http://fixture.test:8765/?case=review-page&mode=destination&source=svg-href&frame=blank&change=attribute&id=post18d-destination-svg-href-blank-attribute",
+        "controlled": true,
+        "cleanup_pending": false
+      }
+    },
+    {
+      "id": "post18d-destination-svg-xlink-blank-base",
+      "source": "svg-xlink",
+      "frame": "blank",
+      "change": "base",
+      "context": {
+        "id": "post18d-destination-svg-xlink-blank-base",
+        "phase": "destination-context",
+        "name": "sink-first",
+        "top": false,
+        "url": "http://fixture.test:8765/second/receive?case=post18d-destination-svg-xlink-blank-base"
+      },
+      "nativeTab": {
+        "tab": 1615218694,
+        "window": 1615218693,
+        "index": 0,
+        "active": true,
+        "focused": true,
+        "title": "Synthetic fixture",
+        "url": "http://fixture.test:8765/?case=review-page&mode=destination&source=svg-xlink&frame=blank&change=base&id=post18d-destination-svg-xlink-blank-base",
+        "controlled": true,
+        "cleanup_pending": false
+      }
+    },
+    {
+      "id": "post18d-destination-svg-xlink-blank-attribute",
+      "source": "svg-xlink",
+      "frame": "blank",
+      "change": "attribute",
+      "context": {
+        "id": "post18d-destination-svg-xlink-blank-attribute",
+        "phase": "destination-context",
+        "name": "sink-first",
+        "top": false,
+        "url": "http://fixture.test:8765/second/receive?case=post18d-destination-svg-xlink-blank-attribute"
+      },
+      "nativeTab": {
+        "tab": 1615218694,
+        "window": 1615218693,
+        "index": 0,
+        "active": true,
+        "focused": true,
+        "title": "Synthetic fixture",
+        "url": "http://fixture.test:8765/?case=review-page&mode=destination&source=svg-xlink&frame=blank&change=attribute&id=post18d-destination-svg-xlink-blank-attribute",
+        "controlled": true,
+        "cleanup_pending": false
+      }
+    },
+    {
+      "id": "post18d-destination-form-action-blank-base",
+      "source": "form-action",
+      "frame": "blank",
+      "change": "base",
+      "context": {
+        "id": "post18d-destination-form-action-blank-base",
+        "phase": "destination-context",
+        "name": "sink-first",
+        "top": false,
+        "url": "http://fixture.test:8765/second/receive?case=post18d-destination-form-action-blank-base"
+      },
+      "nativeTab": {
+        "tab": 1615218694,
+        "window": 1615218693,
+        "index": 0,
+        "active": true,
+        "focused": true,
+        "title": "Synthetic fixture",
+        "url": "http://fixture.test:8765/?case=review-page&mode=destination&source=form-action&frame=blank&change=base&id=post18d-destination-form-action-blank-base",
+        "controlled": true,
+        "cleanup_pending": false
+      }
+    },
+    {
+      "id": "post18d-destination-form-action-blank-attribute",
+      "source": "form-action",
+      "frame": "blank",
+      "change": "attribute",
+      "context": {
+        "id": "post18d-destination-form-action-blank-attribute",
+        "phase": "destination-context",
+        "name": "sink-first",
+        "top": false,
+        "url": "http://fixture.test:8765/second/receive?case=post18d-destination-form-action-blank-attribute"
+      },
+      "nativeTab": {
+        "tab": 1615218694,
+        "window": 1615218693,
+        "index": 0,
+        "active": true,
+        "focused": true,
+        "title": "Synthetic fixture",
+        "url": "http://fixture.test:8765/?case=review-page&mode=destination&source=form-action&frame=blank&change=attribute&id=post18d-destination-form-action-blank-attribute",
+        "controlled": true,
+        "cleanup_pending": false
+      }
+    },
+    {
+      "id": "post18d-destination-button-formaction-blank-base",
+      "source": "button-formaction",
+      "frame": "blank",
+      "change": "base",
+      "context": {
+        "id": "post18d-destination-button-formaction-blank-base",
+        "phase": "destination-context",
+        "name": "sink-first",
+        "top": false,
+        "url": "http://fixture.test:8765/second/receive?case=post18d-destination-button-formaction-blank-base"
+      },
+      "nativeTab": {
+        "tab": 1615218694,
+        "window": 1615218693,
+        "index": 0,
+        "active": true,
+        "focused": true,
+        "title": "Synthetic fixture",
+        "url": "http://fixture.test:8765/?case=review-page&mode=destination&source=button-formaction&frame=blank&change=base&id=post18d-destination-button-formaction-blank-base",
+        "controlled": true,
+        "cleanup_pending": false
+      }
+    },
+    {
+      "id": "post18d-destination-button-formaction-blank-attribute",
+      "source": "button-formaction",
+      "frame": "blank",
+      "change": "attribute",
+      "context": {
+        "id": "post18d-destination-button-formaction-blank-attribute",
+        "phase": "destination-context",
+        "name": "sink-first",
+        "top": false,
+        "url": "http://fixture.test:8765/second/receive?case=post18d-destination-button-formaction-blank-attribute"
+      },
+      "nativeTab": {
+        "tab": 1615218694,
+        "window": 1615218693,
+        "index": 0,
+        "active": true,
+        "focused": true,
+        "title": "Synthetic fixture",
+        "url": "http://fixture.test:8765/?case=review-page&mode=destination&source=button-formaction&frame=blank&change=attribute&id=post18d-destination-button-formaction-blank-attribute",
+        "controlled": true,
+        "cleanup_pending": false
+      }
+    },
+    {
+      "id": "post18d-destination-input-formaction-blank-base",
+      "source": "input-formaction",
+      "frame": "blank",
+      "change": "base",
+      "context": {
+        "id": "post18d-destination-input-formaction-blank-base",
+        "phase": "destination-context",
+        "name": "sink-first",
+        "top": false,
+        "url": "http://fixture.test:8765/second/receive?case=post18d-destination-input-formaction-blank-base"
+      },
+      "nativeTab": {
+        "tab": 1615218694,
+        "window": 1615218693,
+        "index": 0,
+        "active": true,
+        "focused": true,
+        "title": "Synthetic fixture",
+        "url": "http://fixture.test:8765/?case=review-page&mode=destination&source=input-formaction&frame=blank&change=base&id=post18d-destination-input-formaction-blank-base",
+        "controlled": true,
+        "cleanup_pending": false
+      }
+    },
+    {
+      "id": "post18d-destination-input-formaction-blank-attribute",
+      "source": "input-formaction",
+      "frame": "blank",
+      "change": "attribute",
+      "context": {
+        "id": "post18d-destination-input-formaction-blank-attribute",
+        "phase": "destination-context",
+        "name": "sink-first",
+        "top": false,
+        "url": "http://fixture.test:8765/second/receive?case=post18d-destination-input-formaction-blank-attribute"
+      },
+      "nativeTab": {
+        "tab": 1615218694,
+        "window": 1615218693,
+        "index": 0,
+        "active": true,
+        "focused": true,
+        "title": "Synthetic fixture",
+        "url": "http://fixture.test:8765/?case=review-page&mode=destination&source=input-formaction&frame=blank&change=attribute&id=post18d-destination-input-formaction-blank-attribute",
+        "controlled": true,
+        "cleanup_pending": false
+      }
+    },
+    {
+      "id": "post18d-destination-button-formaction-blank-owner",
+      "source": "button-formaction",
+      "frame": "blank",
+      "change": "owner",
+      "context": {
+        "id": "post18d-destination-button-formaction-blank-owner",
+        "phase": "destination-context",
+        "name": "sink-first",
+        "top": false,
+        "url": "http://fixture.test:8765/second/receive?case=post18d-destination-button-formaction-blank-owner"
+      },
+      "nativeTab": {
+        "tab": 1615218694,
+        "window": 1615218693,
+        "index": 0,
+        "active": true,
+        "focused": true,
+        "title": "Synthetic fixture",
+        "url": "http://fixture.test:8765/?case=review-page&mode=destination&source=button-formaction&frame=blank&change=owner&id=post18d-destination-button-formaction-blank-owner",
+        "controlled": true,
+        "cleanup_pending": false
+      }
+    },
+    {
+      "id": "post18d-destination-input-formaction-blank-owner",
+      "source": "input-formaction",
+      "frame": "blank",
+      "change": "owner",
+      "context": {
+        "id": "post18d-destination-input-formaction-blank-owner",
+        "phase": "destination-context",
+        "name": "sink-first",
+        "top": false,
+        "url": "http://fixture.test:8765/second/receive?case=post18d-destination-input-formaction-blank-owner"
+      },
+      "nativeTab": {
+        "tab": 1615218694,
+        "window": 1615218693,
+        "index": 0,
+        "active": true,
+        "focused": true,
+        "title": "Synthetic fixture",
+        "url": "http://fixture.test:8765/?case=review-page&mode=destination&source=input-formaction&frame=blank&change=owner&id=post18d-destination-input-formaction-blank-owner",
+        "controlled": true,
+        "cleanup_pending": false
+      }
+    },
+    {
+      "id": "post18d-destination-a-blank-target",
+      "source": "a",
+      "frame": "blank",
+      "change": "target",
+      "context": {
+        "id": "post18d-destination-a-blank-target",
+        "phase": "destination-context",
+        "name": "sink-second",
+        "top": false,
+        "url": "http://fixture.test:8765/first/receive?case=post18d-destination-a-blank-target"
+      },
+      "nativeTab": {
+        "tab": 1615218694,
+        "window": 1615218693,
+        "index": 0,
+        "active": true,
+        "focused": true,
+        "title": "Synthetic fixture",
+        "url": "http://fixture.test:8765/?case=review-page&mode=destination&source=a&frame=blank&change=target&id=post18d-destination-a-blank-target",
+        "controlled": true,
+        "cleanup_pending": false
+      }
+    },
+    {
+      "id": "post18d-destination-form-action-blank-target",
+      "source": "form-action",
+      "frame": "blank",
+      "change": "target",
+      "context": {
+        "id": "post18d-destination-form-action-blank-target",
+        "phase": "destination-context",
+        "name": "sink-second",
+        "top": false,
+        "url": "http://fixture.test:8765/first/receive?case=post18d-destination-form-action-blank-target"
+      },
+      "nativeTab": {
+        "tab": 1615218694,
+        "window": 1615218693,
+        "index": 0,
+        "active": true,
+        "focused": true,
+        "title": "Synthetic fixture",
+        "url": "http://fixture.test:8765/?case=review-page&mode=destination&source=form-action&frame=blank&change=target&id=post18d-destination-form-action-blank-target",
+        "controlled": true,
+        "cleanup_pending": false
+      }
+    },
+    {
+      "id": "post18d-destination-button-formaction-blank-target",
+      "source": "button-formaction",
+      "frame": "blank",
+      "change": "target",
+      "context": {
+        "id": "post18d-destination-button-formaction-blank-target",
+        "phase": "destination-context",
+        "name": "sink-second",
+        "top": false,
+        "url": "http://fixture.test:8765/first/receive?case=post18d-destination-button-formaction-blank-target"
+      },
+      "nativeTab": {
+        "tab": 1615218694,
+        "window": 1615218693,
+        "index": 0,
+        "active": true,
+        "focused": true,
+        "title": "Synthetic fixture",
+        "url": "http://fixture.test:8765/?case=review-page&mode=destination&source=button-formaction&frame=blank&change=target&id=post18d-destination-button-formaction-blank-target",
+        "controlled": true,
+        "cleanup_pending": false
+      }
+    },
+    {
+      "id": "post18d-destination-input-formaction-blank-target",
+      "source": "input-formaction",
+      "frame": "blank",
+      "change": "target",
+      "context": {
+        "id": "post18d-destination-input-formaction-blank-target",
+        "phase": "destination-context",
+        "name": "sink-second",
+        "top": false,
+        "url": "http://fixture.test:8765/first/receive?case=post18d-destination-input-formaction-blank-target"
+      },
+      "nativeTab": {
+        "tab": 1615218694,
+        "window": 1615218693,
+        "index": 0,
+        "active": true,
+        "focused": true,
+        "title": "Synthetic fixture",
+        "url": "http://fixture.test:8765/?case=review-page&mode=destination&source=input-formaction&frame=blank&change=target&id=post18d-destination-input-formaction-blank-target",
+        "controlled": true,
+        "cleanup_pending": false
+      }
+    },
+    {
+      "id": "post18d-destination-a-srcdoc-base",
+      "source": "a",
+      "frame": "srcdoc",
+      "change": "base",
+      "context": {
+        "id": "post18d-destination-a-srcdoc-base",
+        "phase": "destination-context",
+        "name": "sink-first",
+        "top": false,
+        "url": "http://fixture.test:8765/second/receive?case=post18d-destination-a-srcdoc-base"
+      },
+      "nativeTab": {
+        "tab": 1615218694,
+        "window": 1615218693,
+        "index": 0,
+        "active": true,
+        "focused": true,
+        "title": "Synthetic fixture",
+        "url": "http://fixture.test:8765/?case=review-page&mode=destination&source=a&frame=srcdoc&change=base&id=post18d-destination-a-srcdoc-base",
+        "controlled": true,
+        "cleanup_pending": false
+      }
+    },
+    {
+      "id": "post18d-destination-a-srcdoc-attribute",
+      "source": "a",
+      "frame": "srcdoc",
+      "change": "attribute",
+      "context": {
+        "id": "post18d-destination-a-srcdoc-attribute",
+        "phase": "destination-context",
+        "name": "sink-first",
+        "top": false,
+        "url": "http://fixture.test:8765/second/receive?case=post18d-destination-a-srcdoc-attribute"
+      },
+      "nativeTab": {
+        "tab": 1615218694,
+        "window": 1615218693,
+        "index": 0,
+        "active": true,
+        "focused": true,
+        "title": "Synthetic fixture",
+        "url": "http://fixture.test:8765/?case=review-page&mode=destination&source=a&frame=srcdoc&change=attribute&id=post18d-destination-a-srcdoc-attribute",
+        "controlled": true,
+        "cleanup_pending": false
+      }
+    },
+    {
+      "id": "post18d-destination-area-srcdoc-base",
+      "source": "area",
+      "frame": "srcdoc",
+      "change": "base",
+      "context": {
+        "id": "post18d-destination-area-srcdoc-base",
+        "phase": "destination-context",
+        "name": "sink-first",
+        "top": false,
+        "url": "http://fixture.test:8765/second/receive?case=post18d-destination-area-srcdoc-base"
+      },
+      "nativeTab": {
+        "tab": 1615218694,
+        "window": 1615218693,
+        "index": 0,
+        "active": true,
+        "focused": true,
+        "title": "Synthetic fixture",
+        "url": "http://fixture.test:8765/?case=review-page&mode=destination&source=area&frame=srcdoc&change=base&id=post18d-destination-area-srcdoc-base",
+        "controlled": true,
+        "cleanup_pending": false
+      }
+    },
+    {
+      "id": "post18d-destination-area-srcdoc-attribute",
+      "source": "area",
+      "frame": "srcdoc",
+      "change": "attribute",
+      "context": {
+        "id": "post18d-destination-area-srcdoc-attribute",
+        "phase": "destination-context",
+        "name": "sink-first",
+        "top": false,
+        "url": "http://fixture.test:8765/second/receive?case=post18d-destination-area-srcdoc-attribute"
+      },
+      "nativeTab": {
+        "tab": 1615218694,
+        "window": 1615218693,
+        "index": 0,
+        "active": true,
+        "focused": true,
+        "title": "Synthetic fixture",
+        "url": "http://fixture.test:8765/?case=review-page&mode=destination&source=area&frame=srcdoc&change=attribute&id=post18d-destination-area-srcdoc-attribute",
+        "controlled": true,
+        "cleanup_pending": false
+      }
+    },
+    {
+      "id": "post18d-destination-svg-href-srcdoc-base",
+      "source": "svg-href",
+      "frame": "srcdoc",
+      "change": "base",
+      "context": {
+        "id": "post18d-destination-svg-href-srcdoc-base",
+        "phase": "destination-context",
+        "name": "sink-first",
+        "top": false,
+        "url": "http://fixture.test:8765/second/receive?case=post18d-destination-svg-href-srcdoc-base"
+      },
+      "nativeTab": {
+        "tab": 1615218694,
+        "window": 1615218693,
+        "index": 0,
+        "active": true,
+        "focused": true,
+        "title": "Synthetic fixture",
+        "url": "http://fixture.test:8765/?case=review-page&mode=destination&source=svg-href&frame=srcdoc&change=base&id=post18d-destination-svg-href-srcdoc-base",
+        "controlled": true,
+        "cleanup_pending": false
+      }
+    },
+    {
+      "id": "post18d-destination-svg-href-srcdoc-attribute",
+      "source": "svg-href",
+      "frame": "srcdoc",
+      "change": "attribute",
+      "context": {
+        "id": "post18d-destination-svg-href-srcdoc-attribute",
+        "phase": "destination-context",
+        "name": "sink-first",
+        "top": false,
+        "url": "http://fixture.test:8765/second/receive?case=post18d-destination-svg-href-srcdoc-attribute"
+      },
+      "nativeTab": {
+        "tab": 1615218694,
+        "window": 1615218693,
+        "index": 0,
+        "active": true,
+        "focused": true,
+        "title": "Synthetic fixture",
+        "url": "http://fixture.test:8765/?case=review-page&mode=destination&source=svg-href&frame=srcdoc&change=attribute&id=post18d-destination-svg-href-srcdoc-attribute",
+        "controlled": true,
+        "cleanup_pending": false
+      }
+    },
+    {
+      "id": "post18d-destination-svg-xlink-srcdoc-base",
+      "source": "svg-xlink",
+      "frame": "srcdoc",
+      "change": "base",
+      "context": {
+        "id": "post18d-destination-svg-xlink-srcdoc-base",
+        "phase": "destination-context",
+        "name": "sink-first",
+        "top": false,
+        "url": "http://fixture.test:8765/second/receive?case=post18d-destination-svg-xlink-srcdoc-base"
+      },
+      "nativeTab": {
+        "tab": 1615218694,
+        "window": 1615218693,
+        "index": 0,
+        "active": true,
+        "focused": true,
+        "title": "Synthetic fixture",
+        "url": "http://fixture.test:8765/?case=review-page&mode=destination&source=svg-xlink&frame=srcdoc&change=base&id=post18d-destination-svg-xlink-srcdoc-base",
+        "controlled": true,
+        "cleanup_pending": false
+      }
+    },
+    {
+      "id": "post18d-destination-svg-xlink-srcdoc-attribute",
+      "source": "svg-xlink",
+      "frame": "srcdoc",
+      "change": "attribute",
+      "context": {
+        "id": "post18d-destination-svg-xlink-srcdoc-attribute",
+        "phase": "destination-context",
+        "name": "sink-first",
+        "top": false,
+        "url": "http://fixture.test:8765/second/receive?case=post18d-destination-svg-xlink-srcdoc-attribute"
+      },
+      "nativeTab": {
+        "tab": 1615218694,
+        "window": 1615218693,
+        "index": 0,
+        "active": true,
+        "focused": true,
+        "title": "Synthetic fixture",
+        "url": "http://fixture.test:8765/?case=review-page&mode=destination&source=svg-xlink&frame=srcdoc&change=attribute&id=post18d-destination-svg-xlink-srcdoc-attribute",
+        "controlled": true,
+        "cleanup_pending": false
+      }
+    },
+    {
+      "id": "post18d-destination-form-action-srcdoc-base",
+      "source": "form-action",
+      "frame": "srcdoc",
+      "change": "base",
+      "context": {
+        "id": "post18d-destination-form-action-srcdoc-base",
+        "phase": "destination-context",
+        "name": "sink-first",
+        "top": false,
+        "url": "http://fixture.test:8765/second/receive?case=post18d-destination-form-action-srcdoc-base"
+      },
+      "nativeTab": {
+        "tab": 1615218694,
+        "window": 1615218693,
+        "index": 0,
+        "active": true,
+        "focused": true,
+        "title": "Synthetic fixture",
+        "url": "http://fixture.test:8765/?case=review-page&mode=destination&source=form-action&frame=srcdoc&change=base&id=post18d-destination-form-action-srcdoc-base",
+        "controlled": true,
+        "cleanup_pending": false
+      }
+    },
+    {
+      "id": "post18d-destination-form-action-srcdoc-attribute",
+      "source": "form-action",
+      "frame": "srcdoc",
+      "change": "attribute",
+      "context": {
+        "id": "post18d-destination-form-action-srcdoc-attribute",
+        "phase": "destination-context",
+        "name": "sink-first",
+        "top": false,
+        "url": "http://fixture.test:8765/second/receive?case=post18d-destination-form-action-srcdoc-attribute"
+      },
+      "nativeTab": {
+        "tab": 1615218694,
+        "window": 1615218693,
+        "index": 0,
+        "active": true,
+        "focused": true,
+        "title": "Synthetic fixture",
+        "url": "http://fixture.test:8765/?case=review-page&mode=destination&source=form-action&frame=srcdoc&change=attribute&id=post18d-destination-form-action-srcdoc-attribute",
+        "controlled": true,
+        "cleanup_pending": false
+      }
+    },
+    {
+      "id": "post18d-destination-button-formaction-srcdoc-base",
+      "source": "button-formaction",
+      "frame": "srcdoc",
+      "change": "base",
+      "context": {
+        "id": "post18d-destination-button-formaction-srcdoc-base",
+        "phase": "destination-context",
+        "name": "sink-first",
+        "top": false,
+        "url": "http://fixture.test:8765/second/receive?case=post18d-destination-button-formaction-srcdoc-base"
+      },
+      "nativeTab": {
+        "tab": 1615218694,
+        "window": 1615218693,
+        "index": 0,
+        "active": true,
+        "focused": true,
+        "title": "Synthetic fixture",
+        "url": "http://fixture.test:8765/?case=review-page&mode=destination&source=button-formaction&frame=srcdoc&change=base&id=post18d-destination-button-formaction-srcdoc-base",
+        "controlled": true,
+        "cleanup_pending": false
+      }
+    },
+    {
+      "id": "post18d-destination-button-formaction-srcdoc-attribute",
+      "source": "button-formaction",
+      "frame": "srcdoc",
+      "change": "attribute",
+      "context": {
+        "id": "post18d-destination-button-formaction-srcdoc-attribute",
+        "phase": "destination-context",
+        "name": "sink-first",
+        "top": false,
+        "url": "http://fixture.test:8765/second/receive?case=post18d-destination-button-formaction-srcdoc-attribute"
+      },
+      "nativeTab": {
+        "tab": 1615218694,
+        "window": 1615218693,
+        "index": 0,
+        "active": true,
+        "focused": true,
+        "title": "Synthetic fixture",
+        "url": "http://fixture.test:8765/?case=review-page&mode=destination&source=button-formaction&frame=srcdoc&change=attribute&id=post18d-destination-button-formaction-srcdoc-attribute",
+        "controlled": true,
+        "cleanup_pending": false
+      }
+    },
+    {
+      "id": "post18d-destination-input-formaction-srcdoc-base",
+      "source": "input-formaction",
+      "frame": "srcdoc",
+      "change": "base",
+      "context": {
+        "id": "post18d-destination-input-formaction-srcdoc-base",
+        "phase": "destination-context",
+        "name": "sink-first",
+        "top": false,
+        "url": "http://fixture.test:8765/second/receive?case=post18d-destination-input-formaction-srcdoc-base"
+      },
+      "nativeTab": {
+        "tab": 1615218694,
+        "window": 1615218693,
+        "index": 0,
+        "active": true,
+        "focused": true,
+        "title": "Synthetic fixture",
+        "url": "http://fixture.test:8765/?case=review-page&mode=destination&source=input-formaction&frame=srcdoc&change=base&id=post18d-destination-input-formaction-srcdoc-base",
+        "controlled": true,
+        "cleanup_pending": false
+      }
+    },
+    {
+      "id": "post18d-destination-input-formaction-srcdoc-attribute",
+      "source": "input-formaction",
+      "frame": "srcdoc",
+      "change": "attribute",
+      "context": {
+        "id": "post18d-destination-input-formaction-srcdoc-attribute",
+        "phase": "destination-context",
+        "name": "sink-first",
+        "top": false,
+        "url": "http://fixture.test:8765/second/receive?case=post18d-destination-input-formaction-srcdoc-attribute"
+      },
+      "nativeTab": {
+        "tab": 1615218694,
+        "window": 1615218693,
+        "index": 0,
+        "active": true,
+        "focused": true,
+        "title": "Synthetic fixture",
+        "url": "http://fixture.test:8765/?case=review-page&mode=destination&source=input-formaction&frame=srcdoc&change=attribute&id=post18d-destination-input-formaction-srcdoc-attribute",
+        "controlled": true,
+        "cleanup_pending": false
+      }
+    },
+    {
+      "id": "post18d-destination-button-formaction-srcdoc-owner",
+      "source": "button-formaction",
+      "frame": "srcdoc",
+      "change": "owner",
+      "context": {
+        "id": "post18d-destination-button-formaction-srcdoc-owner",
+        "phase": "destination-context",
+        "name": "sink-first",
+        "top": false,
+        "url": "http://fixture.test:8765/second/receive?case=post18d-destination-button-formaction-srcdoc-owner"
+      },
+      "nativeTab": {
+        "tab": 1615218694,
+        "window": 1615218693,
+        "index": 0,
+        "active": true,
+        "focused": true,
+        "title": "Synthetic fixture",
+        "url": "http://fixture.test:8765/?case=review-page&mode=destination&source=button-formaction&frame=srcdoc&change=owner&id=post18d-destination-button-formaction-srcdoc-owner",
+        "controlled": true,
+        "cleanup_pending": false
+      }
+    },
+    {
+      "id": "post18d-destination-input-formaction-srcdoc-owner",
+      "source": "input-formaction",
+      "frame": "srcdoc",
+      "change": "owner",
+      "context": {
+        "id": "post18d-destination-input-formaction-srcdoc-owner",
+        "phase": "destination-context",
+        "name": "sink-first",
+        "top": false,
+        "url": "http://fixture.test:8765/second/receive?case=post18d-destination-input-formaction-srcdoc-owner"
+      },
+      "nativeTab": {
+        "tab": 1615218694,
+        "window": 1615218693,
+        "index": 0,
+        "active": true,
+        "focused": true,
+        "title": "Synthetic fixture",
+        "url": "http://fixture.test:8765/?case=review-page&mode=destination&source=input-formaction&frame=srcdoc&change=owner&id=post18d-destination-input-formaction-srcdoc-owner",
+        "controlled": true,
+        "cleanup_pending": false
+      }
+    },
+    {
+      "id": "post18d-destination-a-srcdoc-target",
+      "source": "a",
+      "frame": "srcdoc",
+      "change": "target",
+      "context": {
+        "id": "post18d-destination-a-srcdoc-target",
+        "phase": "destination-context",
+        "name": "sink-second",
+        "top": false,
+        "url": "http://fixture.test:8765/first/receive?case=post18d-destination-a-srcdoc-target"
+      },
+      "nativeTab": {
+        "tab": 1615218694,
+        "window": 1615218693,
+        "index": 0,
+        "active": true,
+        "focused": true,
+        "title": "Synthetic fixture",
+        "url": "http://fixture.test:8765/?case=review-page&mode=destination&source=a&frame=srcdoc&change=target&id=post18d-destination-a-srcdoc-target",
+        "controlled": true,
+        "cleanup_pending": false
+      }
+    },
+    {
+      "id": "post18d-destination-form-action-srcdoc-target",
+      "source": "form-action",
+      "frame": "srcdoc",
+      "change": "target",
+      "context": {
+        "id": "post18d-destination-form-action-srcdoc-target",
+        "phase": "destination-context",
+        "name": "sink-second",
+        "top": false,
+        "url": "http://fixture.test:8765/first/receive?case=post18d-destination-form-action-srcdoc-target"
+      },
+      "nativeTab": {
+        "tab": 1615218694,
+        "window": 1615218693,
+        "index": 0,
+        "active": true,
+        "focused": true,
+        "title": "Synthetic fixture",
+        "url": "http://fixture.test:8765/?case=review-page&mode=destination&source=form-action&frame=srcdoc&change=target&id=post18d-destination-form-action-srcdoc-target",
+        "controlled": true,
+        "cleanup_pending": false
+      }
+    },
+    {
+      "id": "post18d-destination-button-formaction-srcdoc-target",
+      "source": "button-formaction",
+      "frame": "srcdoc",
+      "change": "target",
+      "context": {
+        "id": "post18d-destination-button-formaction-srcdoc-target",
+        "phase": "destination-context",
+        "name": "sink-second",
+        "top": false,
+        "url": "http://fixture.test:8765/first/receive?case=post18d-destination-button-formaction-srcdoc-target"
+      },
+      "nativeTab": {
+        "tab": 1615218694,
+        "window": 1615218693,
+        "index": 0,
+        "active": true,
+        "focused": true,
+        "title": "Synthetic fixture",
+        "url": "http://fixture.test:8765/?case=review-page&mode=destination&source=button-formaction&frame=srcdoc&change=target&id=post18d-destination-button-formaction-srcdoc-target",
+        "controlled": true,
+        "cleanup_pending": false
+      }
+    },
+    {
+      "id": "post18d-destination-input-formaction-srcdoc-target",
+      "source": "input-formaction",
+      "frame": "srcdoc",
+      "change": "target",
+      "context": {
+        "id": "post18d-destination-input-formaction-srcdoc-target",
+        "phase": "destination-context",
+        "name": "sink-second",
+        "top": false,
+        "url": "http://fixture.test:8765/first/receive?case=post18d-destination-input-formaction-srcdoc-target"
+      },
+      "nativeTab": {
+        "tab": 1615218694,
+        "window": 1615218693,
+        "index": 0,
+        "active": true,
+        "focused": true,
+        "title": "Synthetic fixture",
+        "url": "http://fixture.test:8765/?case=review-page&mode=destination&source=input-formaction&frame=srcdoc&change=target&id=post18d-destination-input-formaction-srcdoc-target",
+        "controlled": true,
+        "cleanup_pending": false
+      }
+    },
+    {
+      "id": "post18d-destination-svg-href-top-animation",
+      "source": "svg-href",
+      "frame": "top",
+      "change": "animation",
+      "context": {
+        "id": "post18d-destination-svg-href-top-animation",
+        "phase": "destination-context",
+        "name": "sink-first",
+        "top": false,
+        "url": "http://fixture.test:8765/second/receive?case=post18d-destination-svg-href-top-animation"
+      },
+      "nativeTab": {
+        "tab": 1615218694,
+        "window": 1615218693,
+        "index": 0,
+        "active": true,
+        "focused": true,
+        "title": "Synthetic fixture",
+        "url": "http://fixture.test:8765/?case=review-page&mode=destination&source=svg-href&frame=top&change=animation&id=post18d-destination-svg-href-top-animation",
+        "controlled": true,
+        "cleanup_pending": false
+      }
+    },
+    {
+      "id": "post18d-destination-svg-href-top-animation-target",
+      "source": "svg-href",
+      "frame": "top",
+      "change": "animation-target",
+      "context": {
+        "id": "post18d-destination-svg-href-top-animation-target",
+        "phase": "destination-context",
+        "name": "sink-second",
+        "top": false,
+        "url": "http://fixture.test:8765/first/receive?case=post18d-destination-svg-href-top-animation-target"
+      },
+      "nativeTab": {
+        "tab": 1615218694,
+        "window": 1615218693,
+        "index": 0,
+        "active": true,
+        "focused": true,
+        "title": "Synthetic fixture",
+        "url": "http://fixture.test:8765/?case=review-page&mode=destination&source=svg-href&frame=top&change=animation-target&id=post18d-destination-svg-href-top-animation-target",
+        "controlled": true,
+        "cleanup_pending": false
+      }
+    },
+    {
+      "id": "post18d-destination-svg-href-top-svg-self",
+      "source": "svg-href",
+      "frame": "top",
+      "change": "svg-self",
+      "context": {
+        "id": "post18d-destination-svg-href-top-svg-self",
+        "phase": "destination-context",
+        "name": "",
+        "top": true,
+        "url": "http://fixture.test:8765/second/receive?case=post18d-destination-svg-href-top-svg-self"
+      },
+      "nativeTab": {
+        "tab": 1615218694,
+        "window": 1615218693,
+        "index": 0,
+        "active": true,
+        "focused": true,
+        "title": "Synthetic fixture",
+        "url": "http://fixture.test:8765/second/receive?case=post18d-destination-svg-href-top-svg-self",
+        "controlled": true,
+        "cleanup_pending": false
+      }
+    },
+    {
+      "id": "post18d-destination-svg-xlink-top-animation",
+      "source": "svg-xlink",
+      "frame": "top",
+      "change": "animation",
+      "context": {
+        "id": "post18d-destination-svg-xlink-top-animation",
+        "phase": "destination-context",
+        "name": "sink-first",
+        "top": false,
+        "url": "http://fixture.test:8765/second/receive?case=post18d-destination-svg-xlink-top-animation"
+      },
+      "nativeTab": {
+        "tab": 1615218694,
+        "window": 1615218693,
+        "index": 0,
+        "active": true,
+        "focused": true,
+        "title": "Synthetic fixture",
+        "url": "http://fixture.test:8765/?case=review-page&mode=destination&source=svg-xlink&frame=top&change=animation&id=post18d-destination-svg-xlink-top-animation",
+        "controlled": true,
+        "cleanup_pending": false
+      }
+    },
+    {
+      "id": "post18d-destination-svg-xlink-top-animation-target",
+      "source": "svg-xlink",
+      "frame": "top",
+      "change": "animation-target",
+      "context": {
+        "id": "post18d-destination-svg-xlink-top-animation-target",
+        "phase": "destination-context",
+        "name": "sink-second",
+        "top": false,
+        "url": "http://fixture.test:8765/first/receive?case=post18d-destination-svg-xlink-top-animation-target"
+      },
+      "nativeTab": {
+        "tab": 1615218694,
+        "window": 1615218693,
+        "index": 0,
+        "active": true,
+        "focused": true,
+        "title": "Synthetic fixture",
+        "url": "http://fixture.test:8765/?case=review-page&mode=destination&source=svg-xlink&frame=top&change=animation-target&id=post18d-destination-svg-xlink-top-animation-target",
+        "controlled": true,
+        "cleanup_pending": false
+      }
+    },
+    {
+      "id": "post18d-destination-svg-xlink-top-svg-self",
+      "source": "svg-xlink",
+      "frame": "top",
+      "change": "svg-self",
+      "context": {
+        "id": "post18d-destination-svg-xlink-top-svg-self",
+        "phase": "destination-context",
+        "name": "",
+        "top": true,
+        "url": "http://fixture.test:8765/second/receive?case=post18d-destination-svg-xlink-top-svg-self"
+      },
+      "nativeTab": {
+        "tab": 1615218694,
+        "window": 1615218693,
+        "index": 0,
+        "active": true,
+        "focused": true,
+        "title": "Synthetic fixture",
+        "url": "http://fixture.test:8765/second/receive?case=post18d-destination-svg-xlink-top-svg-self",
+        "controlled": true,
+        "cleanup_pending": false
+      }
+    }
+  ],
+  "full_evidence_sha256": "29483e1a07be6eeeeb7bb0fea5d0a47ee2f0964f93d2af96350232a6cce1171a"
+}

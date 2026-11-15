@@ -1,0 +1,51 @@
+[
+  {
+    "source": "fc4b9e36",
+    "runs": [
+      42734373173,
+      42734379065
+    ],
+    "result": "cancelled while Python fault sweeps were running",
+    "completed_native_matrix": false
+  },
+  {
+    "source": "47763d48",
+    "runs": [
+      42735496341,
+      42735504164
+    ],
+    "result": "cancelled for completed-adapter-failure collector integration; Python sweeps only",
+    "completed_native_matrix": false
+  },
+  {
+    "source": "67d3cb46",
+    "run": 42736102961,
+    "job": 129565767317,
+    "result": "external build failed before browser: curl (56) Recv failure: Connection reset by peer; policy superseded/cancelled",
+    "completed_native_matrix": false
+  },
+  {
+    "source": "67d3cb46",
+    "run": 42736111278,
+    "result": "171 Python tests completed with one strict Workflow error: qualification workflow omitted from Docker context; no browser run",
+    "completed_native_matrix": false
+  },
+  {
+    "source": "12dc1abf",
+    "runs": [
+      42737350121,
+      42737356750
+    ],
+    "result": "bounded transport retry added; superseded/cancelled for workflow context integration",
+    "completed_native_matrix": false
+  },
+  {
+    "source": "9bf6eb64",
+    "runs": [
+      42737693176,
+      42737700315
+    ],
+    "result": "superseded/cancelled to include both files read by the unchanged Workflow assertion",
+    "completed_native_matrix": false
+  }
+]

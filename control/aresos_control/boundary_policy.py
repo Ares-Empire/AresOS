@@ -21,7 +21,7 @@ def asking_rules(apps=None):
     from .definitions import ACTIONS, APPS
     apps = APPS if apps is None else apps
     return [f'mcp__{a.app}__{a.verb}' for a in ACTIONS
-            if a.app in apps and a.effect in {'send', 'delete'} and not a.owner_only and not a.trusted_send]
+            if a.app in apps and (a.effect in {'send', 'delete'} or a.asking_read) and not a.owner_only and not a.trusted_send]
 
 
 def user_mcp(apps=None):

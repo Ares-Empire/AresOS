@@ -1,0 +1,748 @@
+{
+  "source": "651096b296115ef47863c8686807b11252a9093b",
+  "verdict": "partial native disk-byte and cross-tab evidence; whole runs failed cleanup retake",
+  "modes": {
+    "policy": {
+      "run": 42832312713,
+      "receiver": [
+        {
+          "line": 99,
+          "id": "review-owner-file",
+          "phase": "selected bytes changed",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "line": 100,
+          "id": "review-owner-file",
+          "phase": "before approval",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "line": 101,
+          "id": "review-owner-file",
+          "phase": "after approval",
+          "count": 1,
+          "arrivals": [
+            {
+              "time": 1794320313796,
+              "url": "/receive?case=review-owner-file",
+              "method": "POST",
+              "body": "------WebKitFormBoundaryYG2eZ3pkKrwgthYM\r\nContent-Disposition: form-data; name=\"draft\"\r\n\r\nSaved\r\n------WebKitFormBoundaryYG2eZ3pkKrwgthYM\r\nContent-Disposition: form-data; name=\"attachment\"; filename=\"owner-picked.txt\"\r\nContent-Type: application/octet-stream\r\n\r\nEVIL\r\n------WebKitFormBoundaryYG2eZ3pkKrwgthYM--\r\n",
+              "host": "fixture.test:8765"
+            }
+          ]
+        },
+        {
+          "line": 102,
+          "id": "review-owner-file",
+          "phase": "after repeat",
+          "count": 1,
+          "arrivals": [
+            {
+              "time": 1794320313796,
+              "url": "/receive?case=review-owner-file",
+              "method": "POST",
+              "body": "------WebKitFormBoundaryYG2eZ3pkKrwgthYM\r\nContent-Disposition: form-data; name=\"draft\"\r\n\r\nSaved\r\n------WebKitFormBoundaryYG2eZ3pkKrwgthYM\r\nContent-Disposition: form-data; name=\"attachment\"; filename=\"owner-picked.txt\"\r\nContent-Type: application/octet-stream\r\n\r\nEVIL\r\n------WebKitFormBoundaryYG2eZ3pkKrwgthYM--\r\n",
+              "host": "fixture.test:8765"
+            }
+          ]
+        },
+        {
+          "line": 115,
+          "id": "review-cross-tab-false",
+          "phase": "before approval",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "line": 116,
+          "id": "review-cross-tab-false",
+          "phase": "after approval",
+          "count": 1,
+          "arrivals": [
+            {
+              "time": 1794320324646,
+              "url": "/receive?case=review-cross-tab-false",
+              "method": "POST",
+              "body": "draft=Saved",
+              "host": "fixture.test:8765"
+            }
+          ]
+        },
+        {
+          "line": 117,
+          "id": "review-cross-tab-false",
+          "phase": "after repeat",
+          "count": 1,
+          "arrivals": [
+            {
+              "time": 1794320324646,
+              "url": "/receive?case=review-cross-tab-false",
+              "method": "POST",
+              "body": "draft=Saved",
+              "host": "fixture.test:8765"
+            }
+          ]
+        }
+      ],
+      "matrix": [
+        {
+          "name": "GROUP 2 first-script natives are guarded in pages and frames",
+          "passed": true
+        },
+        {
+          "name": "GROUP 4 REVIEW ordinary native dialogs from Claude owner and page tasks keep working",
+          "passed": true
+        },
+        {
+          "name": "GROUP 3 REVIEW ordinary blank and srcdoc editors bind drafts and send normally",
+          "passed": true
+        },
+        {
+          "name": "GROUP 3 REVIEW owner chosen attachments show byte digests and bind identical metadata replacements",
+          "passed": true
+        },
+        {
+          "name": "GROUP 2 REVIEW inherited and newly created frames hold submissions",
+          "passed": true
+        },
+        {
+          "name": "GROUP 2 REVIEW borrowed wrappers respect another controlled tab and an ordinary document",
+          "passed": false,
+          "error": "AssertionError [ERR_ASSERTION]: {\"ok\":false,\"error\":{\"code\":\"stale_reference\",\"message\":\"private cleanup is still pending; leave the tab to the owner until it finishes\"},\"pending\":{\"items\":[{\"operation_id\":\"40254118e3dd45d0b6b71f127c32bd13:ee9073c87eae4cbaa6a40e5da09f3ec3\",\"app\":\"chrome\",\"state\":\"reserved\",\"reason\":\"private password history was lost for this surviving document; ask the owner to reload\",\"validity\":\"refused\",\"refusal_code\":\"refused\"},{\"operation_id\":\"40254118e3dd45d0b6b71f127c32bd13:a7d6390735344d7ca467c052843111e0\",\"app\":\"chrome\",\"state\":\"unknown\",\"reason\":\"Input dispatched, but a page handler completion could not be confirmed. Inspect the page and never replay.\"},{\"operation_id\":\"40254118e3dd45d0b6b71f127c32bd13:c1723eda9aa54a489a467869e53f46b3\",\"app\":\"chrome\",\"state\":\"unknown\",\"reason\":\"Input dispatched, but a page handler completion could not be confirmed. Inspect the page and never replay.\"},{\"operation_id\":\"40254118e3dd45d0b6b71f127c32bd13:0564e13dacdb436e9e60ad06289b243b\",\"app\":\"chrome\",\"state\":\"unknown\",\"reason\":\"Input dispatched, but a page handler completion could not be confirmed. Inspect the page and never replay.\"},{\"operation_id\":\"40254118e3dd45d0b6b71f127c32bd13:f873885f59a54030bb4da75835978468\",\"app\":\"chrome\",\"state\":\"unknown\",\"reason\":\"Input dispatched, but a page handler completion could not be confirmed. Inspect the page and never replay.\"}],\"total\":7,\"cursor\":\"3bbd74ab26f5f23ded6ce1c095e872229f16dfad4e51bd801a4a6a19cde05578:WzE3OTQzMjAyOTAuODYxNzQ4MiwiNDAyNTQxMThlM2RkNDVkMGI2YjcxZjEyN2MzMmJkMTM6Zjg3Mzg4NWY1OWE1NDAzMGJiNGRhNzU4MzU5Nzg0NjgiXQ==\",\"restore_required\":false,\"notices\":[{\"operation_id\":\"recovery-40254118e3dd45d0b6b71f127c32bd13:bc1fc4a8e85d4ae990d3c5b09cef59fd\",\"app\":\"chrome\",\"state\":\"unknown\",\"untrusted_content\":{\"reason\":\"Chrome input has an unfinished committed outcome; it may have run. Never replay it.\",\"operation_id\":\"40254118e3dd45d0b6b71f127c32bd13:bc1fc4a8e85d4ae990d3c5b09cef59fd\"}},{\"operation_id\":\"52db5983d2ad38764ee2456cc8f984b3f31243743af21f3c22cf084f0e55b07e\",\"app\":\"chrome\",\"state\":\"unknown\",\"untrusted_content\":{\"intent_key\":\"intent:chrome:52db5983d2ad38764ee2456cc8f984b3f31243743af21f3c22cf084f0e55b07e\",\"reason\":\"A change was interrupted before its completion was recorded. It may already have changed the server. Inspect the audit and your app before repeating.\",\"recovery_warning\":true}},{\"operation_id\":\"ce7f0b21db2ff63cb0a108db9b46e1a0ba2d21d4e8d6a8c3526cbc4ab3d95c54\",\"app\":\"chrome\",\"state\":\"unknown\",\"untrusted_content\":{\"intent_key\":\"intent:chrome:ce7f0b21db2ff63cb0a108db9b46e1a0ba2d21d4e8d6a8c3526cbc4ab3d95c54\",\"reason\":\"A change was interrupted before its completion was recorded. It may already have changed the server. Inspect the audit and your app before repeating.\",\"recovery_warning\":true}}],\"notices_more\":{\"count\":35,\"action\":\"control_notices\"}}}\n    at call (file:///workspace/control/chrome/ci/browser.mjs:28:80)\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async file:///workspace/control/chrome/ci/review-matrices.mjs:58:93\n    at async check (file:///workspace/control/chrome/ci/matrices.mjs:19:10)\n    at async reviewMatrices (file:///workspace/control/chrome/ci/review-matrices.mjs:49:3)\n    at async matrices (file:///workspace/control/chrome/ci/matrices.mjs:53:3)\n    at async file:///workspace/control/chrome/ci/browser.mjs:146:24"
+        }
+      ],
+      "preparations": [
+        {
+          "line": 222,
+          "question": "On http://fixture.test:8765/?case=review-page&mode=owner-file&id=review-owner-file, page 'Synthetic fixture', as the page shows it, submit 'Submit' to http://fixture.test:8765/receive?case=review-owner-file (post, 3 fields, 0 hidden); selected files: 'owner-picked.txt' (4 bytes, sha256 278f14e96cc67489e5c0d6cebec8a2718fb158ec656fd41fed7ecd031cd472b2)?",
+          "page_state": {
+            "session": "26a39144-f614-4d24-8f74-f354720f21a3",
+            "tab": 1756091814,
+            "control": "17ed447a-eccb-47a9-b8b5-9ec85ab6c81c",
+            "url": "http://fixture.test:8765/?case=review-page&mode=owner-file&id=review-owner-file",
+            "title": "Synthetic fixture",
+            "document": "0405e91065e939e0a3854b9395be4130",
+            "frame": 0,
+            "frame_url": "http://fixture.test:8765/?case=review-page&mode=owner-file&id=review-owner-file",
+            "frame_title": "Synthetic fixture",
+            "effective_url": "http://fixture.test:8765/?case=review-page&mode=owner-file&id=review-owner-file",
+            "target": {
+              "element": "e8",
+              "role": "button",
+              "name": "Submit",
+              "label": "Submit",
+              "title": "",
+              "href": null,
+              "value": "",
+              "states": {
+                "checked": false,
+                "selected": false,
+                "disabled": false,
+                "required": false,
+                "invalid": false,
+                "expanded": null
+              },
+              "editable": false,
+              "search": false,
+              "submit": true,
+              "page_dialog": null
+            },
+            "form": {
+              "element": "e6",
+              "action": "http://fixture.test:8765/receive?case=review-owner-file",
+              "method": "post",
+              "encoding": "multipart/form-data",
+              "target": "sink",
+              "search": false,
+              "fields": [
+                {
+                  "element": "e7",
+                  "name": "draft",
+                  "label": "",
+                  "type": "text",
+                  "hidden": false,
+                  "checked": false,
+                  "disabled": false,
+                  "multiple": false,
+                  "readOnly": false,
+                  "value": "Saved"
+                },
+                {
+                  "element": "e9",
+                  "name": "attachment",
+                  "label": "File",
+                  "type": "file",
+                  "hidden": false,
+                  "checked": false,
+                  "disabled": false,
+                  "multiple": false,
+                  "readOnly": false,
+                  "value": [
+                    {
+                      "name": "owner-picked.txt",
+                      "size": 4,
+                      "lastModified": 1700000000000,
+                      "identity": "642f3d5483304d11a53f29435f49cc02",
+                      "sha256": "278f14e96cc67489e5c0d6cebec8a2718fb158ec656fd41fed7ecd031cd472b2"
+                    }
+                  ]
+                },
+                {
+                  "element": "e8",
+                  "name": "",
+                  "label": "Submit",
+                  "type": "submit",
+                  "hidden": false,
+                  "checked": false,
+                  "disabled": false,
+                  "multiple": false,
+                  "readOnly": false,
+                  "value": ""
+                }
+              ]
+            },
+            "selected_files": [
+              {
+                "frame": 0,
+                "document": "0405e91065e939e0a3854b9395be4130",
+                "fields": [
+                  {
+                    "element": "e9",
+                    "name": "attachment",
+                    "label": "File",
+                    "type": "file",
+                    "hidden": false,
+                    "checked": false,
+                    "disabled": false,
+                    "multiple": false,
+                    "readOnly": false,
+                    "value": [
+                      {
+                        "name": "owner-picked.txt",
+                        "size": 4,
+                        "lastModified": 1700000000000,
+                        "identity": "642f3d5483304d11a53f29435f49cc02",
+                        "sha256": "278f14e96cc67489e5c0d6cebec8a2718fb158ec656fd41fed7ecd031cd472b2"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "frame": 44,
+                "document": "24393eee7dc71529a99193bb179e666a",
+                "fields": []
+              }
+            ],
+            "editable": null,
+            "item": null,
+            "adapter": null,
+            "dialog": null
+          }
+        },
+        {
+          "line": 225,
+          "question": "On http://fixture.test:8765/?case=review-page&mode=owner-file&id=review-owner-file, page 'Synthetic fixture', as the page shows it, submit 'Submit' to http://fixture.test:8765/receive?case=review-owner-file (post, 3 fields, 0 hidden); selected files: 'owner-picked.txt' (4 bytes, sha256 a4cae81b6d0480d3ab6b52a6dfb5eae63346252bd00c4df5e27fcf96851bb84e)?",
+          "page_state": {
+            "session": "26a39144-f614-4d24-8f74-f354720f21a3",
+            "tab": 1756091814,
+            "control": "17ed447a-eccb-47a9-b8b5-9ec85ab6c81c",
+            "url": "http://fixture.test:8765/?case=review-page&mode=owner-file&id=review-owner-file",
+            "title": "Synthetic fixture",
+            "document": "0405e91065e939e0a3854b9395be4130",
+            "frame": 0,
+            "frame_url": "http://fixture.test:8765/?case=review-page&mode=owner-file&id=review-owner-file",
+            "frame_title": "Synthetic fixture",
+            "effective_url": "http://fixture.test:8765/?case=review-page&mode=owner-file&id=review-owner-file",
+            "target": {
+              "element": "e8",
+              "role": "button",
+              "name": "Submit",
+              "label": "Submit",
+              "title": "",
+              "href": null,
+              "value": "",
+              "states": {
+                "checked": false,
+                "selected": false,
+                "disabled": false,
+                "required": false,
+                "invalid": false,
+                "expanded": null
+              },
+              "editable": false,
+              "search": false,
+              "submit": true,
+              "page_dialog": null
+            },
+            "form": {
+              "element": "e6",
+              "action": "http://fixture.test:8765/receive?case=review-owner-file",
+              "method": "post",
+              "encoding": "multipart/form-data",
+              "target": "sink",
+              "search": false,
+              "fields": [
+                {
+                  "element": "e7",
+                  "name": "draft",
+                  "label": "",
+                  "type": "text",
+                  "hidden": false,
+                  "checked": false,
+                  "disabled": false,
+                  "multiple": false,
+                  "readOnly": false,
+                  "value": "Saved"
+                },
+                {
+                  "element": "e9",
+                  "name": "attachment",
+                  "label": "File",
+                  "type": "file",
+                  "hidden": false,
+                  "checked": false,
+                  "disabled": false,
+                  "multiple": false,
+                  "readOnly": false,
+                  "value": [
+                    {
+                      "name": "owner-picked.txt",
+                      "size": 4,
+                      "lastModified": 1700000000000,
+                      "identity": "16c6eb06df19764739f020b1633e3994",
+                      "sha256": "a4cae81b6d0480d3ab6b52a6dfb5eae63346252bd00c4df5e27fcf96851bb84e"
+                    }
+                  ]
+                },
+                {
+                  "element": "e8",
+                  "name": "",
+                  "label": "Submit",
+                  "type": "submit",
+                  "hidden": false,
+                  "checked": false,
+                  "disabled": false,
+                  "multiple": false,
+                  "readOnly": false,
+                  "value": ""
+                }
+              ]
+            },
+            "selected_files": [
+              {
+                "frame": 0,
+                "document": "0405e91065e939e0a3854b9395be4130",
+                "fields": [
+                  {
+                    "element": "e9",
+                    "name": "attachment",
+                    "label": "File",
+                    "type": "file",
+                    "hidden": false,
+                    "checked": false,
+                    "disabled": false,
+                    "multiple": false,
+                    "readOnly": false,
+                    "value": [
+                      {
+                        "name": "owner-picked.txt",
+                        "size": 4,
+                        "lastModified": 1700000000000,
+                        "identity": "16c6eb06df19764739f020b1633e3994",
+                        "sha256": "a4cae81b6d0480d3ab6b52a6dfb5eae63346252bd00c4df5e27fcf96851bb84e"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "frame": 44,
+                "document": "24393eee7dc71529a99193bb179e666a",
+                "fields": []
+              }
+            ],
+            "editable": null,
+            "item": null,
+            "adapter": null,
+            "dialog": null
+          }
+        }
+      ]
+    },
+    "external": {
+      "run": 42832298611,
+      "receiver": [
+        {
+          "line": 99,
+          "id": "review-owner-file",
+          "phase": "selected bytes changed",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "line": 100,
+          "id": "review-owner-file",
+          "phase": "before approval",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "line": 101,
+          "id": "review-owner-file",
+          "phase": "after approval",
+          "count": 1,
+          "arrivals": [
+            {
+              "time": 1794320294534,
+              "url": "/receive?case=review-owner-file",
+              "method": "POST",
+              "body": "------WebKitFormBoundaryRlnLkoB1tv6E3wgh\r\nContent-Disposition: form-data; name=\"draft\"\r\n\r\nSaved\r\n------WebKitFormBoundaryRlnLkoB1tv6E3wgh\r\nContent-Disposition: form-data; name=\"attachment\"; filename=\"owner-picked.txt\"\r\nContent-Type: application/octet-stream\r\n\r\nEVIL\r\n------WebKitFormBoundaryRlnLkoB1tv6E3wgh--\r\n",
+              "host": "fixture.test:8765"
+            }
+          ]
+        },
+        {
+          "line": 102,
+          "id": "review-owner-file",
+          "phase": "after repeat",
+          "count": 1,
+          "arrivals": [
+            {
+              "time": 1794320294534,
+              "url": "/receive?case=review-owner-file",
+              "method": "POST",
+              "body": "------WebKitFormBoundaryRlnLkoB1tv6E3wgh\r\nContent-Disposition: form-data; name=\"draft\"\r\n\r\nSaved\r\n------WebKitFormBoundaryRlnLkoB1tv6E3wgh\r\nContent-Disposition: form-data; name=\"attachment\"; filename=\"owner-picked.txt\"\r\nContent-Type: application/octet-stream\r\n\r\nEVIL\r\n------WebKitFormBoundaryRlnLkoB1tv6E3wgh--\r\n",
+              "host": "fixture.test:8765"
+            }
+          ]
+        },
+        {
+          "line": 115,
+          "id": "review-cross-tab-false",
+          "phase": "before approval",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "line": 116,
+          "id": "review-cross-tab-false",
+          "phase": "after approval",
+          "count": 1,
+          "arrivals": [
+            {
+              "time": 1794320307236,
+              "url": "/receive?case=review-cross-tab-false",
+              "method": "POST",
+              "body": "draft=Saved",
+              "host": "fixture.test:8765"
+            }
+          ]
+        },
+        {
+          "line": 117,
+          "id": "review-cross-tab-false",
+          "phase": "after repeat",
+          "count": 1,
+          "arrivals": [
+            {
+              "time": 1794320307236,
+              "url": "/receive?case=review-cross-tab-false",
+              "method": "POST",
+              "body": "draft=Saved",
+              "host": "fixture.test:8765"
+            }
+          ]
+        }
+      ],
+      "matrix": [
+        {
+          "name": "GROUP 2 first-script natives are guarded in pages and frames",
+          "passed": true
+        },
+        {
+          "name": "GROUP 4 REVIEW ordinary native dialogs from Claude owner and page tasks keep working",
+          "passed": true
+        },
+        {
+          "name": "GROUP 3 REVIEW ordinary blank and srcdoc editors bind drafts and send normally",
+          "passed": true
+        },
+        {
+          "name": "GROUP 3 REVIEW owner chosen attachments show byte digests and bind identical metadata replacements",
+          "passed": true
+        },
+        {
+          "name": "GROUP 2 REVIEW inherited and newly created frames hold submissions",
+          "passed": true
+        },
+        {
+          "name": "GROUP 2 REVIEW borrowed wrappers respect another controlled tab and an ordinary document",
+          "passed": false,
+          "error": "AssertionError [ERR_ASSERTION]: {\"ok\":false,\"error\":{\"code\":\"stale_reference\",\"message\":\"private cleanup is still pending; leave the tab to the owner until it finishes\"},\"pending\":{\"items\":[{\"operation_id\":\"8c4ab1343bdc47408540cc5aa99b2a6a:3fc18bd47f8f4e9cbb828cedd1c97f70\",\"app\":\"chrome\",\"state\":\"reserved\",\"reason\":\"private password history was lost for this surviving document; ask the owner to reload\",\"validity\":\"refused\",\"refusal_code\":\"refused\"},{\"operation_id\":\"8c4ab1343bdc47408540cc5aa99b2a6a:eb623a603c7c423988a279d2d1fb3b42\",\"app\":\"chrome\",\"state\":\"unknown\",\"reason\":\"Input dispatched, but a page handler completion could not be confirmed. Inspect the page and never replay.\"},{\"operation_id\":\"8c4ab1343bdc47408540cc5aa99b2a6a:8ad4dd9737684ac7ab27b5dd3ac6967f\",\"app\":\"chrome\",\"state\":\"unknown\",\"reason\":\"Input dispatched, but a page handler completion could not be confirmed. Inspect the page and never replay.\"},{\"operation_id\":\"8c4ab1343bdc47408540cc5aa99b2a6a:c95feb22bc254ac2bc917e98564c14bb\",\"app\":\"chrome\",\"state\":\"unknown\",\"reason\":\"Input dispatched, but a page handler completion could not be confirmed. Inspect the page and never replay.\"},{\"operation_id\":\"8c4ab1343bdc47408540cc5aa99b2a6a:cf85e8c0dbc94b22b0c4bfecded68dff\",\"app\":\"chrome\",\"state\":\"unknown\",\"reason\":\"Input dispatched, but a page handler completion could not be confirmed. Inspect the page and never replay.\"}],\"total\":7,\"cursor\":\"a4b34792cfab025a1477e573029cb20b65555a87ba03b55efcf64dbe10e72f13:WzE3OTQzMjAyNjguODQ5MTMwNCwiOGM0YWIxMzQzYmRjNDc0MDg1NDBjYzVhYTk5YjJhNmE6Y2Y4NWU4YzBkYmM5NGIyMmIwYzRiZmVjZGVkNjhkZmYiXQ==\",\"restore_required\":false,\"notices\":[{\"operation_id\":\"recovery-8c4ab1343bdc47408540cc5aa99b2a6a:d1135bcaf1eb44018bcd2b37c3a01e0f\",\"app\":\"chrome\",\"state\":\"unknown\",\"untrusted_content\":{\"reason\":\"Chrome input has an unfinished committed outcome; it may have run. Never replay it.\",\"operation_id\":\"8c4ab1343bdc47408540cc5aa99b2a6a:d1135bcaf1eb44018bcd2b37c3a01e0f\"}},{\"operation_id\":\"2f5ce31d06e6e618c0b2743a9ec7737cb0b4e8a37ff1880c7b9f9e9f7eeb323d\",\"app\":\"chrome\",\"state\":\"unknown\",\"untrusted_content\":{\"intent_key\":\"intent:chrome:2f5ce31d06e6e618c0b2743a9ec7737cb0b4e8a37ff1880c7b9f9e9f7eeb323d\",\"reason\":\"A change was interrupted before its completion was recorded. It may already have changed the server. Inspect the audit and your app before repeating.\",\"recovery_warning\":true}},{\"operation_id\":\"5e0bfb8e0b62d14fe476fe0785713720f147a2693aba1d5755b4b04460e431ea\",\"app\":\"chrome\",\"state\":\"unknown\",\"untrusted_content\":{\"intent_key\":\"intent:chrome:5e0bfb8e0b62d14fe476fe0785713720f147a2693aba1d5755b4b04460e431ea\",\"reason\":\"A change was interrupted before its completion was recorded. It may already have changed the server. Inspect the audit and your app before repeating.\",\"recovery_warning\":true}}],\"notices_more\":{\"count\":35,\"action\":\"control_notices\"}}}\n    at call (file:///workspace/control/chrome/ci/browser.mjs:28:80)\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async file:///workspace/control/chrome/ci/review-matrices.mjs:58:93\n    at async check (file:///workspace/control/chrome/ci/matrices.mjs:19:10)\n    at async reviewMatrices (file:///workspace/control/chrome/ci/review-matrices.mjs:49:3)\n    at async matrices (file:///workspace/control/chrome/ci/matrices.mjs:53:3)\n    at async file:///workspace/control/chrome/ci/browser.mjs:146:24"
+        }
+      ],
+      "preparations": [
+        {
+          "line": 219,
+          "question": "On http://fixture.test:8765/?case=review-page&mode=owner-file&id=review-owner-file, page 'Synthetic fixture', as the page shows it, submit 'Submit' to http://fixture.test:8765/receive?case=review-owner-file (post, 3 fields, 0 hidden); selected files: 'owner-picked.txt' (4 bytes, sha256 278f14e96cc67489e5c0d6cebec8a2718fb158ec656fd41fed7ecd031cd472b2)?",
+          "page_state": {
+            "session": "4db771b5-9775-4ab3-80b4-45cf6198976c",
+            "tab": 124717232,
+            "control": "c8caf0d3-2131-4cf1-92e1-f23869494b18",
+            "url": "http://fixture.test:8765/?case=review-page&mode=owner-file&id=review-owner-file",
+            "title": "Synthetic fixture",
+            "document": "435d482a7ffb91164a6b2077df664431",
+            "frame": 0,
+            "frame_url": "http://fixture.test:8765/?case=review-page&mode=owner-file&id=review-owner-file",
+            "frame_title": "Synthetic fixture",
+            "effective_url": "http://fixture.test:8765/?case=review-page&mode=owner-file&id=review-owner-file",
+            "target": {
+              "element": "e8",
+              "role": "button",
+              "name": "Submit",
+              "label": "Submit",
+              "title": "",
+              "href": null,
+              "value": "",
+              "states": {
+                "checked": false,
+                "selected": false,
+                "disabled": false,
+                "required": false,
+                "invalid": false,
+                "expanded": null
+              },
+              "editable": false,
+              "search": false,
+              "submit": true,
+              "page_dialog": null
+            },
+            "form": {
+              "element": "e6",
+              "action": "http://fixture.test:8765/receive?case=review-owner-file",
+              "method": "post",
+              "encoding": "multipart/form-data",
+              "target": "sink",
+              "search": false,
+              "fields": [
+                {
+                  "element": "e7",
+                  "name": "draft",
+                  "label": "",
+                  "type": "text",
+                  "hidden": false,
+                  "checked": false,
+                  "disabled": false,
+                  "multiple": false,
+                  "readOnly": false,
+                  "value": "Saved"
+                },
+                {
+                  "element": "e9",
+                  "name": "attachment",
+                  "label": "File",
+                  "type": "file",
+                  "hidden": false,
+                  "checked": false,
+                  "disabled": false,
+                  "multiple": false,
+                  "readOnly": false,
+                  "value": [
+                    {
+                      "name": "owner-picked.txt",
+                      "size": 4,
+                      "lastModified": 1700000000000,
+                      "identity": "92bbcd9f5032152f490be638d295cb67",
+                      "sha256": "278f14e96cc67489e5c0d6cebec8a2718fb158ec656fd41fed7ecd031cd472b2"
+                    }
+                  ]
+                },
+                {
+                  "element": "e8",
+                  "name": "",
+                  "label": "Submit",
+                  "type": "submit",
+                  "hidden": false,
+                  "checked": false,
+                  "disabled": false,
+                  "multiple": false,
+                  "readOnly": false,
+                  "value": ""
+                }
+              ]
+            },
+            "selected_files": [
+              {
+                "frame": 0,
+                "document": "435d482a7ffb91164a6b2077df664431",
+                "fields": [
+                  {
+                    "element": "e9",
+                    "name": "attachment",
+                    "label": "File",
+                    "type": "file",
+                    "hidden": false,
+                    "checked": false,
+                    "disabled": false,
+                    "multiple": false,
+                    "readOnly": false,
+                    "value": [
+                      {
+                        "name": "owner-picked.txt",
+                        "size": 4,
+                        "lastModified": 1700000000000,
+                        "identity": "92bbcd9f5032152f490be638d295cb67",
+                        "sha256": "278f14e96cc67489e5c0d6cebec8a2718fb158ec656fd41fed7ecd031cd472b2"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "frame": 44,
+                "document": "72af80b17f2cc642055963a9f9d097f2",
+                "fields": []
+              }
+            ],
+            "editable": null,
+            "item": null,
+            "adapter": null,
+            "dialog": null
+          }
+        },
+        {
+          "line": 222,
+          "question": "On http://fixture.test:8765/?case=review-page&mode=owner-file&id=review-owner-file, page 'Synthetic fixture', as the page shows it, submit 'Submit' to http://fixture.test:8765/receive?case=review-owner-file (post, 3 fields, 0 hidden); selected files: 'owner-picked.txt' (4 bytes, sha256 a4cae81b6d0480d3ab6b52a6dfb5eae63346252bd00c4df5e27fcf96851bb84e)?",
+          "page_state": {
+            "session": "4db771b5-9775-4ab3-80b4-45cf6198976c",
+            "tab": 124717232,
+            "control": "c8caf0d3-2131-4cf1-92e1-f23869494b18",
+            "url": "http://fixture.test:8765/?case=review-page&mode=owner-file&id=review-owner-file",
+            "title": "Synthetic fixture",
+            "document": "435d482a7ffb91164a6b2077df664431",
+            "frame": 0,
+            "frame_url": "http://fixture.test:8765/?case=review-page&mode=owner-file&id=review-owner-file",
+            "frame_title": "Synthetic fixture",
+            "effective_url": "http://fixture.test:8765/?case=review-page&mode=owner-file&id=review-owner-file",
+            "target": {
+              "element": "e8",
+              "role": "button",
+              "name": "Submit",
+              "label": "Submit",
+              "title": "",
+              "href": null,
+              "value": "",
+              "states": {
+                "checked": false,
+                "selected": false,
+                "disabled": false,
+                "required": false,
+                "invalid": false,
+                "expanded": null
+              },
+              "editable": false,
+              "search": false,
+              "submit": true,
+              "page_dialog": null
+            },
+            "form": {
+              "element": "e6",
+              "action": "http://fixture.test:8765/receive?case=review-owner-file",
+              "method": "post",
+              "encoding": "multipart/form-data",
+              "target": "sink",
+              "search": false,
+              "fields": [
+                {
+                  "element": "e7",
+                  "name": "draft",
+                  "label": "",
+                  "type": "text",
+                  "hidden": false,
+                  "checked": false,
+                  "disabled": false,
+                  "multiple": false,
+                  "readOnly": false,
+                  "value": "Saved"
+                },
+                {
+                  "element": "e9",
+                  "name": "attachment",
+                  "label": "File",
+                  "type": "file",
+                  "hidden": false,
+                  "checked": false,
+                  "disabled": false,
+                  "multiple": false,
+                  "readOnly": false,
+                  "value": [
+                    {
+                      "name": "owner-picked.txt",
+                      "size": 4,
+                      "lastModified": 1700000000000,
+                      "identity": "24830aecf1425f6dbda798c451ec59b3",
+                      "sha256": "a4cae81b6d0480d3ab6b52a6dfb5eae63346252bd00c4df5e27fcf96851bb84e"
+                    }
+                  ]
+                },
+                {
+                  "element": "e8",
+                  "name": "",
+                  "label": "Submit",
+                  "type": "submit",
+                  "hidden": false,
+                  "checked": false,
+                  "disabled": false,
+                  "multiple": false,
+                  "readOnly": false,
+                  "value": ""
+                }
+              ]
+            },
+            "selected_files": [
+              {
+                "frame": 0,
+                "document": "435d482a7ffb91164a6b2077df664431",
+                "fields": [
+                  {
+                    "element": "e9",
+                    "name": "attachment",
+                    "label": "File",
+                    "type": "file",
+                    "hidden": false,
+                    "checked": false,
+                    "disabled": false,
+                    "multiple": false,
+                    "readOnly": false,
+                    "value": [
+                      {
+                        "name": "owner-picked.txt",
+                        "size": 4,
+                        "lastModified": 1700000000000,
+                        "identity": "24830aecf1425f6dbda798c451ec59b3",
+                        "sha256": "a4cae81b6d0480d3ab6b52a6dfb5eae63346252bd00c4df5e27fcf96851bb84e"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "frame": 44,
+                "document": "72af80b17f2cc642055963a9f9d097f2",
+                "fields": []
+              }
+            ],
+            "editable": null,
+            "item": null,
+            "adapter": null,
+            "dialog": null
+          }
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,58 @@
+// Synthetic fixtures only; no account, real site or external asset.
+export const whitespaceKinds=['pre','pre-wrap','pre-line','break-spaces','PRE','TEXTAREA','CODE'];
+export const whitespaceText={before:'if approved:\n    send()\naudit()',indent:'if approved:\n    send()\n    audit()',line:'if approved:\n    send() audit()',leading:'\nif approved:\n    send()\naudit()'};
+export const whitespaceChanges=kind=>kind==='pre-line'?['line','leading']:['indent','line'];
+export const defaultKinds=['a','area','svg-href','svg-xlink','svg-both','svg-animated-href','svg-animated-xlink','svg-animated-external','svg-animated-target','svg-animated-both','svg-animated-loop','svg-animated-clobber','svg-animated-retarget','svg-animated-detach','button','input-submit','input-image','external-button','button-reset','input-reset'];
+export function defaultRows(){
+  return defaultKinds.flatMap(kind=>(kind.endsWith('reset')?['frame']:['self','blank','frame',...(['a','area'].includes(kind)?['ping','download']:[])]).map(route=>({kind,route,id:'recheck3-default-'+kind+'-'+route})));
+}
+export function recheck3Page(url){
+  const mode=url.searchParams.get('mode'),id=url.searchParams.get('id'),receive='/receive?case='+encodeURIComponent(id);
+  const sink='<iframe name="sink" hidden></iframe>';
+  let body='',script='';
+  if(mode==='mixed-child'){
+    body='<div id="host"></div>';script=`const key=Symbol.for('aresos.chrome.guard.v2'),exposed=document[key]!==undefined;document[key]={watch(){},route(){},clear(){}};fetch('/compat-report',{method:'POST',body:JSON.stringify({id:${JSON.stringify(id)},phase:'mixed-child-ready',exposed})});`;
+  }else if(mode==='mixed'){
+    const mask=Number(url.searchParams.get('mask')),rootMode=url.searchParams.get('root'),order=url.searchParams.get('order'),composed=url.searchParams.get('composed')==='true';
+    const foreign=url.searchParams.get('foreign')==='1',adopted=url.searchParams.get('adopted')==='1';
+    body='<button type="button" id="continue">Continue</button>'+(foreign?'<iframe id="child" width="400" height="160" src="/?case=review-page&mode=mixed-child&id='+id+'"></iframe>':'<div id="host"></div>');
+    script=`${foreign?`const key=Symbol.for('aresos.chrome.guard.v2'),exposed=document[key]!==undefined;document[key]={watch(){},route(){},clear(){}};fetch('/compat-report',{method:'POST',body:JSON.stringify({id:${JSON.stringify(id)},phase:'mixed-parent-ready',exposed})});`:''}document.querySelector('#continue').onclick=()=>{
+      const donor=opener,doc=${foreign?"document.querySelector('#child').contentDocument":'document'},host=doc.querySelector('#host');
+      const root=${mask&1?(foreign?'Element.prototype.attachShadow.call(host,':'host.attachShadow('):'donor.Element.prototype.attachShadow.call(host,'}{mode:${JSON.stringify(rootMode)}});
+      const button=donor.Document.prototype.createElement.call(${adopted?'document':'doc'},'button');button.textContent='Delete';button.type='button';
+      const insert=()=>${mask&2?(foreign?'Node.prototype.appendChild.call(root,button)':'root.appendChild(button)'):'donor.Node.prototype.appendChild.call(root,button)'};
+      const listen=()=>${mask&4?"EventTarget.prototype.addEventListener.call(button,'click',handler)":"donor.EventTarget.prototype.addEventListener.call(button,'click',handler)"};
+      const handler=()=>fetch(${JSON.stringify(receive)},{method:'POST',body:'mixed handler'});
+      ${order==='before'?'listen();insert();':'insert();listen();'}
+      ${foreign?`for(const data of ['clear','allow','release'])donor.EventTarget.prototype.dispatchEvent.call(doc,new donor.InputEvent('aresos-watch-node-v1',{bubbles:true,composed:true,data,targetRanges:[new donor.StaticRange({startContainer:button,startOffset:0,endContainer:button,endOffset:0})]}));`:''}
+      ${foreign?'const until=performance.now()+650;while(performance.now()<until){}':''}
+      ${mask&8?'EventTarget.prototype.dispatchEvent':'donor.EventTarget.prototype.dispatchEvent'}.call(button,new donor.MouseEvent('click',{bubbles:true,composed:${composed},cancelable:true}));
+    };`;
+  }else if(mode==='activation-default'){
+    const kind=url.searchParams.get('kind'),svgKind=kind==='svg-animated-xlink'?'svg-xlink':kind.startsWith('svg-animated-')?'svg-href':kind,route=url.searchParams.get('route'),target=route==='blank'?'_blank':route==='self'?'_self':'sink';
+    const attrs=` id="asking" aria-label="Delete" href="${receive}" target="${target}"`+(route==='ping'?` ping="/receive?case=ping-${id}"`:'')+(route==='download'?' download="proof.txt"':'');
+    let asking;
+    if(kind==='a')asking='<a'+attrs+'>Delete</a>';
+    else if(kind==='area')asking='<img alt="Map" usemap="#deletions" width="160" height="70" src="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22160%22 height=%2270%22%3E%3Crect width=%22160%22 height=%2270%22 fill=%22lightgray%22/%3E%3C/svg%3E"><map name="deletions"><area'+attrs+' alt="Delete" shape="rect" coords="0,0,160,70"></map>';
+    else if(kind.startsWith('svg'))asking='<svg width="160" height="70" xmlns:xlink="http://www.w3.org/1999/xlink"><a'+attrs.replace(svgKind==='svg-xlink'?` href="${receive}"`:'__absent__','')+(svgKind!=='svg-href'?` xlink:href="${receive}"`:'')+'><rect width="160" height="70" fill="lightgray"/><text x="10" y="35">Delete</text></a></svg>';
+    else{
+      const image=kind==='input-image',reset=kind.endsWith('reset');
+      const control=kind.startsWith('input')?`<input id="asking" type="${image?'image':reset?'reset':'submit'}" aria-label="Delete" value="Delete"${image?' alt="Delete" width="160" height="70" src="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22160%22 height=%2270%22%3E%3Ctext x=%2210%22 y=%2235%22%3EDelete%3C/text%3E%3C/svg%3E"':''}>`:'<button id="asking" type="'+(reset?'reset':'submit')+'">Delete</button>';
+      asking='<form id="deletions" method="post" action="'+receive+'" target="'+target+'"><input name="draft" value="Native default">'+(kind==='external-button'?'':control)+'</form>'+(kind==='external-button'?control.replace('id="asking"','id="asking" form="deletions"'):'');
+    }
+    if(kind==='svg-animated-retarget')asking=asking.replace('</svg>','<a id="other" href="/unrelated">Other</a></svg>');
+    body='<button type="button" id="continue">Continue</button>'+asking+sink+(kind==='svg-animated-clobber'?'<form id="clobbered"><input name="querySelectorAll"></form>':'');
+    script=`document.querySelector('#continue').onclick=()=>{const node=document.querySelector('#asking'),tracked=node.querySelector('set');opener.EventTarget.prototype.dispatchEvent.call(node,new MouseEvent('click',{bubbles:true,cancelable:false}));${['svg-animated-loop','svg-animated-retarget','svg-animated-detach'].includes(kind)?`${kind==='svg-animated-retarget'?"tracked.setAttribute('href','#other');":kind==='svg-animated-detach'?"tracked.remove();":''}node.setAttribute('href',${JSON.stringify(receive)});${kind==='svg-animated-loop'?"tracked.setAttribute('attributeName','href');":''}opener.EventTarget.prototype.dispatchEvent.call(node,new MouseEvent('click',{bubbles:true,cancelable:false}));setTimeout(()=>fetch('/compat-report',{method:'POST',body:JSON.stringify({id:${JSON.stringify(id)},phase:'animation-restored',attributeName:tracked.getAttribute('attributeName'),connected:tracked.isConnected})}),20);`:''}};${kind==='svg-animated-clobber'?"document.querySelector('#clobbered').addEventListener('click',()=>{});":''}`;
+    if(kind.startsWith('svg-animated-'))script+=`const animation=document.createElementNS('http://www.w3.org/2000/svg','set');animation.setAttribute('attributeName',${JSON.stringify(svgKind==='svg-xlink'?'xlink:href':'href')});animation.setAttribute('to',${JSON.stringify(receive)});animation.setAttribute('dur','indefinite');const link=document.querySelector('#asking'),outside=${kind==='svg-animated-external'};if(outside)animation.setAttribute('href','#asking');(outside?document.querySelector('svg'):link).append(animation);animation.beginElement();${['svg-animated-target','svg-animated-both'].includes(kind)?`link.setAttribute('target','_self');const targetAnimation=document.createElementNS('http://www.w3.org/2000/svg','set');targetAnimation.setAttribute('attributeName','target');targetAnimation.setAttribute('to',${JSON.stringify(target)});targetAnimation.setAttribute('dur','indefinite');link.append(targetAnimation);targetAnimation.beginElement();`:''}${kind==='svg-animated-both'?`const legacyAnimation=document.createElementNS('http://www.w3.org/2000/svg','set');legacyAnimation.setAttribute('attributeName','xlink:href');legacyAnimation.setAttribute('to',${JSON.stringify(receive)});legacyAnimation.setAttribute('dur','indefinite');link.append(legacyAnimation);legacyAnimation.beginElement();`:''}`;
+    if(kind.endsWith('reset'))script+=`document.querySelector('input[name=draft]').value='Changed';document.querySelector('form').addEventListener('reset',()=>fetch(${JSON.stringify(receive)},{method:'POST',body:'reset'}));`;
+  }else if(mode==='compose-whitespace'){
+    const kind=url.searchParams.get('kind'),tag=['PRE','TEXTAREA','CODE'].includes(kind)?kind.toLowerCase():'div';
+    const style=kind==='CODE'?'pre-wrap':kind==='PRE'?'pre':kind==='TEXTAREA'?'pre-wrap':kind;
+    body='<main><div contenteditable="true" aria-label="Draft">Existing draft</div><'+tag+' id="preview"'+(kind==='PRE'?' hidden':'')+' style="display:block;white-space:'+style+'"></'+tag+'><button type="button">Send</button></main>';
+    script=`const preview=document.querySelector('#preview'),texts=${JSON.stringify(whitespaceText)};let phase=0;
+      const set=text=>${kind==='TEXTAREA'?'preview.value=text':'preview.textContent=text'};set(texts.before);
+      document.querySelector('button').onclick=()=>fetch(${JSON.stringify(receive)},{method:'POST',body:${kind==='TEXTAREA'?'preview.value':'preview.textContent'}});
+      globalThis.reviewChange=()=>{phase++;set(phase===1?texts[${JSON.stringify(url.searchParams.get('change')||'indent')}]:texts.line+'\\n');};`;
+  }else throw Error('Unknown recheck3 fixture');
+  return {body,script};
+}

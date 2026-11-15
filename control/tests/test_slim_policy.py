@@ -29,7 +29,7 @@ class SlimPolicy(EngineCase):
         self.assertTrue(set(asking_rules()) <= installed)
         for action in ACTIONS:
             rule = f'mcp__{action.app}__{action.verb}'
-            expected = action.effect in {'send', 'delete'} and not action.owner_only and not action.trusted_send
+            expected = (action.effect in {'send', 'delete'} or action.asking_read) and not action.owner_only and not action.trusted_send
             self.assertEqual(rule in asking_rules(APPS), expected)
             self.assertEqual(rule in asking_rules(), expected)
 
@@ -39,7 +39,7 @@ class SlimPolicy(EngineCase):
         for app in self.engine.adapters:
             for tool in tools_for(app):
                 action = BY_NAME[f'{app}_{tool["name"]}']
-                if action.effect in {'send', 'delete'} and not action.trusted_send:
+                if (action.effect in {'send', 'delete'} or action.asking_read) and not action.trusted_send:
                     self.assertIn(f'mcp__{app}__{tool["name"]}', rules)
 
     def test_generator_rejects_misnamed_rules_including_harness_tools(self):
@@ -86,7 +86,7 @@ class SlimPolicy(EngineCase):
             for action in (a for a in ACTIONS if a.app == app):
                 self.assertNotIn(COMMON_INSTRUCTIONS, action.description)
                 self.assertNotIn(MAIL_INSTRUCTIONS, action.description)
-                if action.effect in {'send', 'delete'} or action.verb.startswith('prepare_'):
+                if action.effect in {'send', 'delete'} or action.asking_read or action.verb.startswith('prepare_'):
                     self.assertIn('never write or amend the question yourself', action.description)
         notices = BY_NAME['mail_filing_notices'].description
         self.assertIn('page_changed with a restarted first page', notices)

@@ -1,0 +1,141 @@
+{
+  "head": "496018a5",
+  "successful": true,
+  "note": "Full local preflight on 496018a5 (step 5: F3 one-way repeat check off main, named refusals for the rollback and publisher cases), step 4's driver unchanged: four Python shards, every Node test file, the complete mutation audit (512 + 11 new; mainfix-f1-conflicting-repeat-relaxed re-pointed), generator, whitespace and service-unit checks. The Linux-only socket case is skipped on the Mac. No browser was started.",
+  "commands": [
+    {
+      "name": "python-shard-0",
+      "command": [
+        "python3",
+        "-B",
+        "control/chrome/ci/python-shard.py"
+      ],
+      "returncode": 0,
+      "seconds": 32
+    },
+    {
+      "name": "python-shard-1",
+      "command": [
+        "python3",
+        "-B",
+        "control/chrome/ci/python-shard.py"
+      ],
+      "returncode": 0,
+      "seconds": 1101
+    },
+    {
+      "name": "python-shard-2",
+      "command": [
+        "python3",
+        "-B",
+        "control/chrome/ci/python-shard.py"
+      ],
+      "returncode": 0,
+      "seconds": 25
+    },
+    {
+      "name": "python-shard-3",
+      "command": [
+        "python3",
+        "-B",
+        "control/chrome/ci/python-shard.py"
+      ],
+      "returncode": 0,
+      "seconds": 397
+    },
+    {
+      "name": "node",
+      "command": [
+        "node",
+        "--test",
+        "control/chrome_tests/activation-evidence.test.mjs",
+        "control/chrome_tests/background.test.mjs",
+        "control/chrome_tests/compatibility.test.mjs",
+        "control/chrome_tests/destination-evidence.test.mjs",
+        "control/chrome_tests/details.test.mjs",
+        "control/chrome_tests/failure.test.mjs",
+        "control/chrome_tests/fixture.test.mjs",
+        "control/chrome_tests/ingress-scan.test.mjs",
+        "control/chrome_tests/latency.test.mjs",
+        "control/chrome_tests/owner-evidence.test.mjs",
+        "control/chrome_tests/owner-ui.test.mjs",
+        "control/chrome_tests/pack.test.mjs",
+        "control/chrome_tests/page.test.mjs",
+        "control/chrome_tests/password-ingress.test.mjs",
+        "control/chrome_tests/popup.test.mjs",
+        "control/chrome_tests/popups.test.mjs",
+        "control/chrome_tests/precedence-evidence.test.mjs",
+        "control/chrome_tests/qualification-completion.test.mjs",
+        "control/chrome_tests/qualification-reader.test.mjs",
+        "control/chrome_tests/reader.test.mjs",
+        "control/chrome_tests/receiver-evidence.test.mjs",
+        "control/chrome_tests/recheck3-evidence.test.mjs",
+        "control/chrome_tests/review-reload.test.mjs",
+        "control/chrome_tests/shards.test.mjs",
+        "control/chrome_tests/site-results.test.mjs",
+        "control/chrome_tests/sites.test.mjs",
+        "control/chrome_tests/state-catalogues.test.mjs",
+        "control/chrome_tests/tabs.test.mjs",
+        "control/chrome_tests/verdicts.test.mjs"
+      ],
+      "returncode": 0,
+      "seconds": 9
+    },
+    {
+      "name": "mutations",
+      "command": [
+        "python3",
+        "-B",
+        "reviews/20-chrome/mutation-audit.py",
+        ".work/20-main-fix/preflight-496018a5/mutations.json"
+      ],
+      "returncode": 0,
+      "seconds": 374
+    },
+    {
+      "name": "generate-check",
+      "command": [
+        "python3",
+        "control/generate.py",
+        "--check"
+      ],
+      "returncode": 0,
+      "seconds": 0
+    },
+    {
+      "name": "diff-check",
+      "command": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "returncode": 0,
+      "seconds": 0
+    },
+    {
+      "name": "service-unit-pin",
+      "command": [
+        "git",
+        "diff",
+        "--exit-code",
+        "8b7e799c",
+        "--",
+        "control/packaging/aresos-toold.service"
+      ],
+      "returncode": 0,
+      "seconds": 0
+    }
+  ],
+  "python_tests": 335,
+  "python_shards": [
+    68,
+    57,
+    49,
+    161
+  ],
+  "python_skipped": 1,
+  "node_tests": 428,
+  "node_failures": 0,
+  "removal_mutations": 523,
+  "every_mutation_baseline_passed": true
+}
