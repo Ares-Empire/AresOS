@@ -299,6 +299,9 @@ def measured_chrome_version(text):
 def notify(candidate, published, runner=subprocess.run):
     """Only the main-only CLI invokes this; tests inject a recording subprocess runner.
 
+    The failing-groups issue lists only this run's entries (GITHUB_RUN_ID);
+    the shipped-copy issue lists every entry on the data branch.
+
     Every GitHub write is an issue. The repository doesn't let workflows
     create pull requests, so the shipped-copy update is an issue a session
     acts on. Each title keeps one open issue: a run comments on it only when
@@ -329,9 +332,17 @@ def notify(candidate, published, runner=subprocess.run):
         report('Chrome qualification publication refused',
                'Record or attestation verification failed, or a workflow job was interrupted. Nothing new is trusted. Inspect this qualification run: '+run)
         return
+    # The failing-groups issue names only the entries this run published. The
+    # record is append-only, so over the whole of it an old build's failure
+    # would be reported on every run for good (issue #74). Notify runs only
+    # on main, where GitHub always sets the run ID; without one it refuses
+    # rather than fall back to the whole record.
+    this_run=os.environ.get('GITHUB_RUN_ID','')
+    if not this_run:raise SystemExit('Qualification notify needs GITHUB_RUN_ID to tell this run\'s entries apart')
     record=validate_record(json.loads(Path(candidate).read_text()))
     failures=[]
     for entry in record['entries']:
+        if entry['run']!=this_run:continue
         names=[name for name,passed in {**entry['core'],**entry['adapters']}.items() if not passed]
         if names:failures.append(entry['build']+' '+entry['channel']+' '+entry['version']+': '+', '.join(names))
     if failures:
