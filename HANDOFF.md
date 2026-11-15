@@ -72,4 +72,4 @@ Written 2026-11-13 (last update 19:00) by `linux-aresos`, the OS lead, now runni
 
 ## Usage rule until Thu 2026-11-19 00:00 (`mac-capacity`, 2026-11-15)
 
-Up to 75% of the week: build as now. From 75%: only next-release work (22d, 23d's merge, the release cut; linux-tools's #69/#58), all on Opus, reviews to Codex (back Tue 10:53). At 92%: stop; ~5% stays for the owner. If release work is done by Wed noon, held work resumes until 92%. 21b is on hold unless the owner's key test makes it trivial. The lead told `mac-capacity` the release path needs about 10–12 Opus agent steps plus VM reruns.
+Up to 70% of the week: build as now (moved from 75%, `mac-capacity`). From 70%: only next-release work (22d, 23d's merge, the release cut; linux-tools's #69/#58), all on Opus, reviews to Codex (back Tue 10:53). At 92%: stop; ~5% stays for the owner. If release work is done by Wed noon, held work resumes until 92%. 21b is on hold unless the owner's key test makes it trivial. The lead told `mac-capacity` the release path needs about 10–12 Opus agent steps plus VM reruns.
