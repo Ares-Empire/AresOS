@@ -2,6 +2,19 @@
 
 Builder steps keep this file; the last step turns it into the report. Newest state first.
 
+## The lead after run 8 (2026-11-15)
+
+- **Run 8** (43745261932): every fixtures shard green, the two core shards included. So GROUP 7 and `review-shadow`
+  pass with step 7's harness changes under the late-root rule.
+- **Latency:**
+  - Attempt 1: both legs missed targets with `regression: false`.
+  - Attempt 2 (`--failed`, the one rerun): plain green. Audit missed `fresh / navigate` (median 41 ms, p95 194 ms
+    against 150), `regression: false`.
+  - This is the runner-disk tail that brief 20-ci-noise fixes; not rerun again. The next full run comes after
+    20-ci-noise is on `main` and merged into this branch.
+- **From Tue 2026-11-17 the steps go to Codex** (`gpt-6.1-sol` xhigh), from "Left, in order" below: the adapter
+  first.
+
 ## Step 8 (2026-11-15, Claude agent on Opus 5.5): `main` merged (brief 20's popup-race fixes), run 8
 
 Opus: built against the lead's brief. Step 7's PLAN-GAP 1 stays option (a) as built (the lead, step 8's brief; on
