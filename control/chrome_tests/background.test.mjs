@@ -51,7 +51,7 @@ function startupFixture(){
 }
 async function startupContexts(f,prefix,start=1,source={tabId:7}){
   for(const context of [{id:start,uniqueId:prefix+'-main',origin:'http://fixture.test',auxData:{isDefault:true,frameId:'frame'}},{id:start+1,uniqueId:prefix+'-isolated',origin:'chrome-extension://fixture',auxData:{isDefault:false,frameId:'frame'}}])await f.run(`preloadEvent(${JSON.stringify(source)},'Runtime.executionContextCreated',{context:${JSON.stringify(context)}})`);
-  await f.run(`preloadEvent(${JSON.stringify(source)},'Debugger.scriptParsed',{scriptId:${JSON.stringify(prefix)},executionContextId:${start+1},url:'chrome-extension://fixture/context.js',executionContextAuxData:{isDefault:false,frameId:'frame'}})`);
+  await f.run(`preloadEvent(${JSON.stringify(source)},'Debugger.scriptParsed',{scriptId:${JSON.stringify(prefix)},executionContextId:${start+1},url:'chrome-extension://fixture/context.js',embedderName:'chrome-extension://fixture/context.js',executionContextAuxData:{isDefault:false,frameId:'frame'}})`);
 }
 const paused=(f,script,source={tabId:7})=>f.run(`preloadEvent(${JSON.stringify(source)},'Debugger.paused',{hitBreakpoints:['inert-breakpoint'],callFrames:[{location:{scriptId:${JSON.stringify(script)}}}]})`);
 
@@ -292,7 +292,7 @@ test('startup evaluates only fixed bundles in authenticated private contexts bef
   const f=fixture();f.run("globalThis.startup=[];chrome.runtime={getURL:path=>'chrome-extension://fixture/'+path};chrome.debugger={sendCommand:async(source,method,parameters)=>{startup.push({source,method,parameters});if(method==='Debugger.setBreakpointByUrl')return {breakpointId:'inert-breakpoint'};if(method==='Runtime.evaluate')return parameters.returnByValue?{result:{value:'private-document'}}:{result:{objectId:'private-cleanup'}};if(method==='Runtime.callFunctionOn')return parameters.returnByValue?{result:{value:'private-document'}}:{result:{objectId:'relay'}};if(method==='DOM.describeNode')return {node:{backendNodeId:1}};if(method==='DOM.resolveNode')return {object:{objectId:'isolated-relay'}};return {};}};preloadBundle=Promise.resolve(['// guard fixture','// reader fixture','// wrapper fixture']);controlled.set(7,{epoch:'epoch'});");
   await f.run('prepareTarget({tabId:7})');
   for(const context of [{id:1,uniqueId:'main',origin:'http://fixture.test',auxData:{isDefault:true,frameId:'frame'}},{id:2,uniqueId:'isolated',origin:'chrome-extension://fixture',auxData:{isDefault:false,frameId:'frame'}}])await f.run(`preloadEvent({tabId:7},'Runtime.executionContextCreated',{context:${JSON.stringify(context)}})`);
-  await f.run("preloadEvent({tabId:7},'Debugger.scriptParsed',{scriptId:'bootstrap',executionContextId:2,url:'chrome-extension://fixture/context.js',executionContextAuxData:{isDefault:false,frameId:'frame'}})");
+  await f.run("preloadEvent({tabId:7},'Debugger.scriptParsed',{scriptId:'bootstrap',executionContextId:2,url:'chrome-extension://fixture/context.js',embedderName:'chrome-extension://fixture/context.js',executionContextAuxData:{isDefault:false,frameId:'frame'}})");
   await f.run("preloadEvent({tabId:7},'Debugger.paused',{hitBreakpoints:['inert-breakpoint'],callFrames:[{location:{scriptId:'bootstrap'}}]})");
   const commands=Array.from(f.run('startup'));
   const evaluated=commands.filter(value=>value.method==='Runtime.evaluate');
@@ -1024,7 +1024,7 @@ test('P19 root navigation retires descendant records before a renderer reuses co
   f.run(source.slice(source.indexOf('chrome.debugger.onEvent.addListener('),source.indexOf('chrome.debugger.onDetach.addListener(')));
   await f.run("onEvent({tabId:7},'Page.frameNavigated',{frame:{id:'frame',loaderId:'second-native-document'}})");
   assert.equal(f.run("preloadTargets.get('[7,null]').documents.size"),0);assert.equal(f.run("preloadTargets.get('[7,null]').contexts.size"),0);
-  await f.run("preloadEvent({tabId:7},'Debugger.scriptParsed',{scriptId:'reused',executionContextId:2,url:'chrome-extension://fixture/context.js',executionContextAuxData:{isDefault:false,frameId:'frame'}})");await paused(f,'reused');
+  await f.run("preloadEvent({tabId:7},'Debugger.scriptParsed',{scriptId:'reused',executionContextId:2,url:'chrome-extension://fixture/context.js',embedderName:'chrome-extension://fixture/context.js',executionContextAuxData:{isDefault:false,frameId:'frame'}})");await paused(f,'reused');
   assert.equal(f.run("startup.filter(row=>row.method==='Runtime.evaluate'&&row.parameters.expression.includes('guard fixture')).length"),2,'both native documents install before page code');
   assert.equal(f.run("preloadTargets.get('[7,null]').documents.get('isolated-2-navigation-1').ready"),true);
   const before=f.run("preloadTargets.get('[7,null]').documents.size");await f.run("onEvent({tabId:7},'Page.frameNavigated',{frame:{id:'unrelated-child',parentId:'frame'}})");assert.equal(f.run("preloadTargets.get('[7,null]').documents.size"),before,'a child navigation cannot retire the current parent guard');
@@ -1036,7 +1036,7 @@ test('P19 a cancelled startup cannot evaluate or resume a reused native context'
   f.run(source.slice(source.indexOf('chrome.debugger.onEvent.addListener('),source.indexOf('chrome.debugger.onDetach.addListener(')));
   const old=paused(f,'old');await spin(f,"typeof oldBundle==='function'");
   await f.run("onEvent({tabId:7},'Page.frameNavigated',{frame:{id:'frame',loaderId:'replacement'}})");
-  await f.run("preloadEvent({tabId:7},'Debugger.scriptParsed',{scriptId:'replacement',executionContextId:2,url:'chrome-extension://fixture/context.js',executionContextAuxData:{isDefault:false,frameId:'frame'}})");
+  await f.run("preloadEvent({tabId:7},'Debugger.scriptParsed',{scriptId:'replacement',executionContextId:2,url:'chrome-extension://fixture/context.js',embedderName:'chrome-extension://fixture/context.js',executionContextAuxData:{isDefault:false,frameId:'frame'}})");
   f.run("oldBundle(['// guard fixture','// reader fixture','// wrapper fixture'])");await old;
   assert.equal(f.run("startup.filter(row=>row.method==='Runtime.evaluate').length"),0,'old setup cannot run in the replacement context');assert.equal(f.run("startup.filter(row=>row.method==='Debugger.resume').length"),0,'old setup cannot release a replacement pause');
   await paused(f,'replacement');assert.equal(f.run("preloadTargets.get('[7,null]').documents.get('isolated-2-navigation-1').ready"),true);assert.equal(f.run("startup.filter(row=>row.method==='Debugger.resume').length"),1);
@@ -1084,7 +1084,7 @@ test('P1 an old private end query cannot resume a replacement startup',async()=>
   f.run(source.slice(source.indexOf('chrome.debugger.onEvent.addListener('),source.indexOf('chrome.debugger.onDetach.addListener(')));
   await f.run("preloadEvent({tabId:7},'Debugger.scriptParsed',{scriptId:'old-private-end',executionContextId:2,url:'',executionContextAuxData:{isDefault:false,frameId:'frame'}})");
   const old=f.run("preloadEvent({tabId:7},'Debugger.paused',{hitBreakpoints:[],callFrames:[{location:{scriptId:'old-private-end'}}]})");await spin(f,"typeof endReply==='function'");
-  await f.run("onEvent({tabId:7},'Page.frameNavigated',{frame:{id:'frame'}})");await f.run("preloadEvent({tabId:7},'Debugger.scriptParsed',{scriptId:'new-startup',executionContextId:2,url:'chrome-extension://fixture/context.js',executionContextAuxData:{isDefault:false,frameId:'frame'}})");
+  await f.run("onEvent({tabId:7},'Page.frameNavigated',{frame:{id:'frame'}})");await f.run("preloadEvent({tabId:7},'Debugger.scriptParsed',{scriptId:'new-startup',executionContextId:2,url:'chrome-extension://fixture/context.js',embedderName:'chrome-extension://fixture/context.js',executionContextAuxData:{isDefault:false,frameId:'frame'}})");
   f.run("preloadBundle=new Promise(resolve=>{globalThis.newBundle=resolve})");const next=paused(f,'new-startup');await spin(f,"typeof newBundle==='function'");f.run("endReply({result:{value:{document:'private-document',token:'old-token'}}})");await old;
   assert.equal(f.run("startup.filter(row=>row.method==='Debugger.resume').length"),1,'only the first completed startup has resumed');f.run("newBundle(['// guard fixture','// reader fixture','// wrapper fixture'])");await next;assert.equal(f.run("startup.filter(row=>row.method==='Debugger.resume').length"),2);
 });
@@ -1094,7 +1094,7 @@ test('P1 an old dialog return query cannot poison a replacement document',async(
   f.run("const state=preloadTargets.get('[7,null]');state.frameId='frame';const doc=state.documents.get('isolated-2');controlled.get(7).hold={nonce:'old-hold',config:POLICY,inFlight:false,until:0};globalThis.barrierReady=new Promise((resolve,reject)=>{state.dialogBarrier={nonce:'old-hold',token:'old-token',documents:[{state,doc}],source:{state,doc},resolve,reject}});barrierReady.catch(()=>{});const send=chrome.debugger.sendCommand;chrome.debugger.sendCommand=(source,method,args)=>method==='Runtime.evaluate'&&args.expression.includes('dialogBoundary')?new Promise(resolve=>{globalThis.oldReturn=resolve}):send(source,method,args);chrome.debugger.onEvent={addListener:fn=>{globalThis.onEvent=fn}};");
   f.run(source.slice(source.indexOf('chrome.debugger.onEvent.addListener('),source.indexOf('chrome.debugger.onDetach.addListener(')));
   const old=f.run("preloadEvent({tabId:7},'Debugger.paused',{hitBreakpoints:[]})");await spin(f,"typeof oldReturn==='function'");
-  await f.run("onEvent({tabId:7},'Page.frameNavigated',{frame:{id:'frame'}})");await f.run("preloadEvent({tabId:7},'Debugger.scriptParsed',{scriptId:'replacement-startup',executionContextId:2,url:'chrome-extension://fixture/context.js',executionContextAuxData:{isDefault:false,frameId:'frame'}})");
+  await f.run("onEvent({tabId:7},'Page.frameNavigated',{frame:{id:'frame'}})");await f.run("preloadEvent({tabId:7},'Debugger.scriptParsed',{scriptId:'replacement-startup',executionContextId:2,url:'chrome-extension://fixture/context.js',embedderName:'chrome-extension://fixture/context.js',executionContextAuxData:{isDefault:false,frameId:'frame'}})");
   f.run("preloadBundle=new Promise(resolve=>{globalThis.replacementBundle=resolve})");const next=paused(f,'replacement-startup');f.run("oldReturn({result:{value:{document:'private-document',token:'old-token'}}})");await old;
   await assert.rejects(f.run('barrierReady'),/source changed|context disappeared/);assert.equal(f.run('controlled.get(7).dialogPauseFailed'),undefined,'the old failure cannot disable the replacement control');assert.equal(f.run("startup.filter(row=>row.method==='Debugger.resume').length"),1);
   f.run("replacementBundle(['// guard fixture','// reader fixture','// wrapper fixture'])");await next;assert.equal(f.run("preloadTargets.get('[7,null]').documents.get('isolated-2-navigation-1').ready"),true);
@@ -1231,7 +1231,7 @@ test('gate60b the install record names each controlled document\'s path from bac
   const f=startupFixture();await f.run('prepareTarget({tabId:7})');await startupContexts(f,'early');await paused(f,'early');
   // A loaded document of the same tab whose reader joined late: its isolated
   // context is known, and its guard reports its own identity.
-  await f.run("preloadEvent({tabId:7},'Debugger.scriptParsed',{scriptId:'late',executionContextId:9,url:'chrome-extension://fixture/context.js',executionContextAuxData:{isDefault:false,frameId:'loaded-frame'}})");
+  await f.run("preloadEvent({tabId:7},'Debugger.scriptParsed',{scriptId:'late',executionContextId:9,url:'chrome-extension://fixture/context.js',embedderName:'chrome-extension://fixture/context.js',executionContextAuxData:{isDefault:false,frameId:'loaded-frame'}})");
   f.run("const send=chrome.debugger.sendCommand;chrome.debugger.sendCommand=(source,method,parameters)=>method==='Runtime.callFunctionOn'&&parameters.returnByValue&&parameters.functionDeclaration.includes('this.document')?Promise.resolve({result:{value:'late-document'}}):send(source,method,parameters)");
   await f.run('lateReader(7)');
   const record=()=>JSON.parse(JSON.stringify(f.run('installRecord()')));
@@ -1299,10 +1299,10 @@ function swappedPopupFixture(){
     chrome.tabs.get=async tab=>({id:tab,url:tab===8?'http://popup.test/post-document':'http://fixture.test/',windowId:tab===7?1:2,index:0,groupId:tab===7?1:-1,openerTabId:tab===8?7:undefined});
     chrome.windows.get=async window=>({type:window===1?'normal':'popup'});
     chrome.webNavigation.getAllFrames=async({tabId})=>tabId===8?[{frameId:0,parentFrameId:-1,documentId:'post-document',url:'http://popup.test/post-document'}]:[];
-    chrome.scripting.executeScript=async request=>{injections.push(request);if(injectionReports)for(const [scriptId,file]of [['5','guard.js'],['6','reader.js']])await preloadEvent({tabId:8},'Debugger.scriptParsed',{scriptId,executionContextId:2,url:'chrome-extension://fixture/'+file,executionContextAuxData:{isDefault:false,frameId:'popup-frame'}});};
+    chrome.scripting.executeScript=async request=>{injections.push(request);if(injectionReports)for(const [scriptId,file]of [['5','guard.js'],['6','reader.js']])await preloadEvent({tabId:8},'Debugger.scriptParsed',{scriptId,executionContextId:2,url:'chrome-extension://fixture/'+file,embedderName:'chrome-extension://fixture/'+file,executionContextAuxData:{isDefault:false,frameId:'popup-frame'}});};
     chrome.tabs.sendMessage=async(tab,message)=>{messages.push(message.command);return {ok:true,data:message.command==='set_control'?{controlled:true}:[]};};
     chrome.debugger.sendCommand=async(source,method,parameters)=>{lifecycleCalls.push(method);
-      const parsed=(scriptId,executionContextId,url,isDefault)=>preloadEvent(source,'Debugger.scriptParsed',{scriptId,executionContextId,url,executionContextAuxData:{isDefault,frameId:'popup-frame'}});
+      const parsed=(scriptId,executionContextId,url,isDefault)=>preloadEvent(source,'Debugger.scriptParsed',{scriptId,executionContextId,url,embedderName:url,executionContextAuxData:{isDefault,frameId:'popup-frame'}});
       if(method==='Debugger.enable'){await parsed('29',7,'chrome-extension://fixture/context.js',false);return {debuggerId:'opener-renderer'};}
       if(method==='Debugger.setBreakpointByUrl'){if(swapReplay){await parsed('3',2,'chrome-extension://fixture/context.js',false);await parsed('4',1,'http://popup.test/post-document',true);}return {breakpointId:'startup',locations:[{scriptId:'3'}]};}
       if(method==='Runtime.evaluate'){evaluated.push({context:parameters.contextId,dispose:parameters.expression.includes('dispose() ?? true')});if(parameters.contextId===7)throw Error(deadContextErrors.length>1?deadContextErrors.shift():deadContextErrors[0]);return parameters.returnByValue?{result:{value:true}}:{result:{objectId:'factory-'+parameters.contextId}};}
@@ -1498,4 +1498,20 @@ test('brief 28 the read-only commands are refused for a tab without its document
   for(const command of [{name:'outline',tab:7},{name:'page_state',tab:7},{name:'options',tab:7,frame:4,document:'child-private',reader:'reader-child',element:9}])
     await assert.rejects(f.run('dispatch('+JSON.stringify(command)+')'),/could not install its document-start guard/,command.name);
   assert.deepEqual(f.asked(),[]);
+});
+
+// Brief 28, item 8 (PR #27's round-5 security re-check, NOTE 1).
+test('brief 28 item 8 a script is one of ours only when the browser names it so, never by its url alone',async()=>{
+  const ours='chrome-extension://fixture/context.js';
+  for(const [embedderName,taken] of [[ours,true],['http://fixture.test/page.js',false],['chrome-extension://fixture/reader.js',false],['',false],[undefined,false]]){
+    const f=startupFixture();await f.run('prepareTarget({tabId:7})');
+    const event={scriptId:'named',executionContextId:5,url:ours,...(embedderName===undefined?{}:{embedderName}),executionContextAuxData:{isDefault:false,frameId:'frame'}};
+    await f.run("preloadEvent({tabId:7},'Debugger.scriptParsed',"+JSON.stringify(event)+')');
+    assert.equal(f.run("preloadTargets.get('[7,null]').contexts.has(5)"),taken,String(embedderName));
+    assert.equal(f.run("preloadTargets.get('[7,null]').scripts.has('named')"),taken,String(embedderName));
+  }
+  // The browser's name alone, under another url, isn't enough either.
+  const f=startupFixture();await f.run('prepareTarget({tabId:7})');
+  await f.run("preloadEvent({tabId:7},'Debugger.scriptParsed',"+JSON.stringify({scriptId:'renamed',executionContextId:5,url:'http://fixture.test/page.js',embedderName:ours,executionContextAuxData:{isDefault:false,frameId:'frame'}})+')');
+  assert.equal(f.run("preloadTargets.get('[7,null]').contexts.has(5)"),false);
 });

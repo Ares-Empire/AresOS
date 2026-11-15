@@ -123,7 +123,9 @@ async function preloadEvent(source,method,params){
   if(method==='Runtime.executionContextsCleared'){state.contexts.clear();state.scripts.clear();state.documents.clear();state.failures?.clear();contextChanged(state);return;}
   if(method==='Debugger.scriptParsed'){
     if(params.executionContextAuxData?.isDefault===true&&state.factoryContexts?.has(params.executionContextAuxData.frameId))state.factoryContexts.set(params.executionContextAuxData.frameId,params.executionContextId);
-    if(['context.js','guard.js','reader.js'].some(file=>params.url===chrome.runtime.getURL(file))&&params.executionContextAuxData?.isDefault===false){
+    // A sourceURL comment can set a script's url; only the browser sets its
+    // embedderName (brief 28, item 8). One of ours carries both.
+    if(['context.js','guard.js','reader.js'].some(file=>params.url===chrome.runtime.getURL(file)&&params.embedderName===chrome.runtime.getURL(file))&&params.executionContextAuxData?.isDefault===false){
       const context={id:params.executionContextId,uniqueId:'isolated-'+params.executionContextId+(state.contextGeneration?'-navigation-'+state.contextGeneration:''),origin:chrome.runtime.getURL('').replace(/\/$/,''),auxData:params.executionContextAuxData};
       state.contexts.set(context.id,context);state.scripts.set(params.scriptId,context.id);
     }
