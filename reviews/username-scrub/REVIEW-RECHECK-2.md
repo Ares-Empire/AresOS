@@ -140,3 +140,44 @@ rule to leads. That's the owner's call; nothing new.
   - the commit authors, committers and messages from `0ecdfbef` to `e3f0601e`.
 
   The letters appear in 7 file names only inside one longer ordinary word, as review 1 found.
+
+## Delta check (7e2456b5)
+
+Verdict: SAFE
+
+The range `e3f0601e..7e2456b5` changes only three files: one line in `.github/workflows/repo-privacy.yml`, the "Keeping it
+out" section of `RECORD.md`, and this file. This file was committed unchanged: the worktree matched the commit before I
+added this section.
+
+- **Workflow line 40.** `: > "$RUNNER_TEMP/grep.txt"` is a plain command under `set -e`, so if the file can't be
+  created, the step stops there. I extracted the step again and ran it with macOS bash 3.2:
+  - branch: exit 0;
+  - base `3e13fc22`: exit 1, with 1,293 `file:line` lines in 257 files, nothing else and no name;
+  - the probe tree from finding 1 (34 flagged files): exit 1 at that line when `RUNNER_TEMP` points to a missing
+    folder, is unset, or points to a read-only folder. Before this change, the first two passed with exit 0.
+  - a clean tree with a missing folder: also exit 1. That's right, because the check didn't run.
+  - CI run 43768415429 on `7e2456b5`: success.
+- **The new RECORD.md sentences are accurate.**
+  - The forms and placeholders match the pattern:
+    - `Users` or `users` in the Windows forms;
+    - `owner` passes everywhere;
+    - dots and the built-in accounts pass only in the first two forms.
+  - Each spelling in the gap list passes the check in my probes.
+  - "None of these spellings held the name, before or after the scrub": at `3e13fc22` I classified all 1,841
+    occurrences of the name (the scrub's count).
+    - After `Users`, the name followed only `/` (1,518), one backslash (79), two backslashes (8) and the `-Users-`
+      form (5). None was lowercase or capitals, URL-encoded, behind JSON's `\/`, mixed, five or more backslashes or
+      `/./`.
+    - After the scrub, the name doesn't occur at all.
+  - "the bare name did appear, in 115 files": the other 231 occurrences are in 115 files, and the check flags none of
+    them. 220 are author and committer `"name"` fields in run records, and 11 are the `name` lines of the 11 capture
+    scripts.
+  - The reviews bullet is right.
+- **Small, not blocking.**
+  - The gap list leaves out a doubled slash after `Users` and a non-ASCII first letter. The placeholder sentence
+    doesn't mention the `icon.svg` fixture allowance. Neither matters to a reader.
+  - Unchanged line 16 puts the author fields in run records "under `os/manifest/ci/`". 83 of the 104 are there; the
+    other 21 are run JSONs under `reviews/03-os-image/` and `reviews/06-image-release/`. The new sentence about the 115
+    files is right; only that older line is too narrow.
+- The username is in none of the added lines, the commit metadata or the tree. The workflow, RECORD.md and this file
+  don't trip the check.

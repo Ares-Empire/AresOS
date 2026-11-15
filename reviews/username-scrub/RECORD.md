@@ -13,8 +13,9 @@ branch `lead/306-username-scrub`, from main at `3e13fc22`.
   - home paths: macOS `/Users/owner/`, Windows `C:\Users\owner\` (also JSON-escaped), Git Bash `/c/Users/owner/`,
     WSL `/mnt/c/Users/owner/`, `file:/C:/Users/owner/`;
   - Claude Code's scratch and project folder form, `-Users-owner`;
-  - the author and committer name in the GitHub run records under `os/manifest/ci/`. The capture scripts had
-    written the name there in place of the real authors, next to `admin@example.com`. The capture scripts
+  - the author and committer name in 104 saved GitHub run records: 83 under `os/manifest/ci/`, 19 under
+    `reviews/03-os-image/` and 2 under `reviews/06-image-release/`. The capture scripts had written the name there in
+    place of the real authors, next to `admin@example.com`. The capture scripts
     themselves (`reviews/11-two-disk-rehearsal/capture-11*-evidence.py`) now write `owner`.
 - Where:
   - 247 files under `reviews/` and 121 under `os/manifest/ci/`;
@@ -63,7 +64,7 @@ branch `lead/306-username-scrub`, from main at `3e13fc22`.
   - Claude Code's `-Users-<name>` folder form.
 
   `owner` passes everywhere. In the first two forms, `...` and the built-in accounts (GitHub's runners, `Shared`,
-  `Public`, `Default`) pass too.
+  `Public`, `Default`) pass too, and so does `icon.svg`, a test fixture's made-up Windows path that names no user.
 
   It prints only file and line for text and only a count for file names, never the text, because the run log is
   public. On the base `3e13fc22` it flags 257 files (1,293 lines); on this branch none.
@@ -74,7 +75,8 @@ branch `lead/306-username-scrub`, from main at `3e13fc22`.
     - a lowercase `/users/<name>` with no drive letter (ordinary code folders are called `users`), including Git
       Bash `/c/users/`;
     - capital `USERS`;
-    - URL-encoded paths, JSON's `\/`, mixed separators, five or more backslashes, `/Users/./`.
+    - URL-encoded paths, JSON's `\/`, mixed separators, five or more backslashes, `/Users/./`, a doubled slash after
+      `Users`, a name starting with a non-ASCII letter.
 
     None of these spellings held the name, before or after the scrub. Before it, the bare name did appear, in 115
     files: the run records' author fields and the capture scripts above.
