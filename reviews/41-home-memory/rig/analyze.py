@@ -37,12 +37,16 @@ for line in open(os.path.join(rig, 'gc.txt')) if os.path.exists(os.path.join(rig
         cycles.append((end, kind))
 
 
-samples = []
+samples = []  # (monotonic ns, CPU s)
+memory = []  # (monotonic ns, RSS MiB, scope current MiB)
 if os.path.exists(os.path.join(rig, 'samples.csv')):
     rows = [line.strip().split(',') for line in open(os.path.join(rig, 'samples.csv'))]
     if rows and 'cpu_s' in rows[0]:
         column = rows[0].index('cpu_s')
         samples = [(int(row[0]), float(row[column])) for row in rows[1:] if len(row) > column]
+    if rows and 'rss_mib' in rows[0] and 'cgroup_current_mib' in rows[0]:
+        rss, scope = rows[0].index('rss_mib'), rows[0].index('cgroup_current_mib')
+        memory = [(int(row[0]), int(row[rss]), int(row[scope])) for row in rows[1:] if len(row) > max(rss, scope)]
 
 
 def cpu_percent(start, end):
@@ -68,12 +72,28 @@ def window(start, end):
                  gc_total_ms=round(sum(p[1] for p in in_window), 1),
                  gc_over_50ms=sum(p[1] > 50 for p in in_window),
                  gc_kinds=sorted({p[2] for p in in_window}))
+    # The most the 2 s samples and the GC log saw inside the window: RSS, the scope, the heap before a collection and
+    # its committed size.
+    sampled = [m for m in memory if start <= m[0] <= end]
+    heaps = [c for c in committed if start <= c[0] <= end]
+    stats.update(rss_max_mib=max((m[1] for m in sampled), default=None),
+                 scope_max_mib=max((m[2] for m in sampled), default=None),
+                 heap_before_gc_max_mib=max((c[1] for c in heaps), default=None),
+                 heap_committed_max_mib=max((c[3] for c in heaps), default=None))
     return stats
 
 
 summary = {'name': settings.get('name'), 'settings': {k: settings.get(k) for k in
-           ('RD', 'SD', 'HEAP', 'MIN_HEAP', 'GC', 'MEMHIGH', 'SIZE', 'REFRESH', 'SETTLE', 'WINDOW', 'COVER')},
+           ('RD', 'SD', 'HEAP', 'MIN_HEAP', 'GC', 'MEMHIGH', 'SIZE', 'REFRESH', 'SETTLE', 'WINDOW', 'COVER', 'MODE',
+            'HOMEKIND', 'BASE', 'FLIGHT')},
            'windows': {}, 'snapshots': {}}
+# A first creation (MODE=create): from the Create click to joining, then while the town builds (flat), and the first
+# 30 s in the new world (60 s would reach vanilla's 30-frames limit, 60 s after the last input: the Create click).
+if 'create_start' in marks and 'joined' in marks:
+    summary['windows']['create'] = window(marks['create_start'], marks['joined'])
+    if 'town_built' in marks:
+        summary['windows']['town'] = window(marks['joined'], marks['town_built'])
+    summary['windows']['first_30s'] = window(marks['joined'], marks['joined'] + 30 * 10**9)
 for label in ('stand', 'flight', 'covered'):
     if f'{label}_start' in marks and f'{label}_end' in marks:
         summary['windows'][label] = window(marks[f'{label}_start'], marks[f'{label}_end'])

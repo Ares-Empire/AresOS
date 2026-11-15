@@ -11,8 +11,16 @@
 #   SIZE=1920x1080 REFRESH=144   the headless screen
 #   SETTLE=120 WINDOW=60 COVER=0  seconds: settle after joining, each frame window, covered by a maximized app
 #   SHOTS=1          two pictures after the measurements (from the pad and above the south road)
-#   MODE=measure     or MODE=hold: start the game and wait until it quits (setting up the base world by hand)
+#   MODE=measure     or MODE=hold: start the game and wait until it quits (setting up the base world by hand);
+#                    or MODE=create: no AresHub, the title screen's AresOS button, Home: HOMEKIND, Create, then the
+#                    same measurements once the home is ready (flat: "The town is built")
+#   HOMEKIND=flat    flat or nether (MODE=create): the choice on the create screen (the Nether with its default seed)
 #   WORLD=base       base: a fresh copy of the base world each run; keep: the AresHub as it is
+#   BASE=AresHub-base  the base world's folder in .work/pkg41
+#   FLIGHT=roads     roads: the flat town's route; spectator: the same three legs in spectator mode, straight through
+#                    the terrain (the Nether, whose caves stop a flight; needs a save with commands allowed,
+#                    allow-commands.py); none: no flight
+#   QUIT=0           1: at the end close the game's window, so it saves and quits, and keep the save in <rig>/world
 #
 # What it does (MODE=measure): copies the base world into mod/run/saves/AresHub, sets the distances, starts the rig
 # (start.sh: its own headless labwc, the lock, the memory check), waits for the world, lets it settle, takes a
@@ -27,20 +35,28 @@ name=${1:?usage: run.sh <name> [KEY=value ...]}
 [[ $name =~ ^[a-z0-9-]+$ ]] || { echo "name: lowercase letters, digits and dashes" >&2; exit 2; }
 shift
 RD=8 SD=5 HEAP=3072 MIN_HEAP=512 GC= MEMHIGH=5G SIZE=1920x1080 REFRESH=144 SETTLE=120 WINDOW=60 COVER=0 MODE=measure WORLD=base SHOTS=1
+HOMEKIND=flat BASE=AresHub-base FLIGHT=roads QUIT=0
 for setting; do
     key=${setting%%=*}
     case $key in
-        RD|SD|HEAP|MIN_HEAP|GC|MEMHIGH|SIZE|REFRESH|SETTLE|WINDOW|COVER|MODE|WORLD|SHOTS) printf -v "$key" '%s' "${setting#*=}" ;;
+        RD|SD|HEAP|MIN_HEAP|GC|MEMHIGH|SIZE|REFRESH|SETTLE|WINDOW|COVER|MODE|WORLD|SHOTS|HOMEKIND|BASE|FLIGHT|QUIT)
+            printf -v "$key" '%s' "${setting#*=}" ;;
         *) echo "unknown setting $key" >&2; exit 2 ;;
     esac
 done
+case $MODE/$HOMEKIND/$FLIGHT/$QUIT in
+    measure/*/roads/[01] | measure/*/spectator/[01] | measure/*/none/[01] | hold/*/*/0 \
+        | create/flat/roads/[01] | create/flat/none/[01] | create/nether/none/[01]) ;;
+    *) echo "settings do not fit: MODE=$MODE HOMEKIND=$HOMEKIND FLIGHT=$FLIGHT QUIT=$QUIT" >&2; exit 2 ;;
+esac
+[[ $BASE =~ ^[A-Za-z0-9-]+$ ]] || { echo "BASE: a folder name in .work/pkg41" >&2; exit 2; }
 JDK=${JAVA_HOME:-$HOME/.local/opt/jdk-25}
 WORK=$WT/.work/pkg41
 RIG=$WORK/rigs/$name
 OUT=$WT/reviews/41-home-memory/runs/$name
 APPS=$WORK/apps
 HOMEDIR=$WORK/home
-BASE=$WORK/AresHub-base
+BASE=$WORK/$BASE
 SAVE=$WT/mod/run/saves/AresHub
 FRAMES_JAR=$WORK/pkg41-frames.jar
 [[ ! -e $RIG ]] || { echo "$RIG exists already; pick another name" >&2; exit 2; }
@@ -60,6 +76,8 @@ if [[ $MODE == measure && $WORLD == base ]]; then
     rm -rf -- "$SAVE"
     cp -a -- "$BASE" "$SAVE"
 fi
+# A first creation starts with no AresHub (the rig's working copy; the base worlds stay in .work/pkg41).
+[[ $MODE != create ]] || rm -rf -- "$SAVE"
 python3 -I - "$WT/mod/run/options.txt" "$RD" "$SD" <<'PY'
 import os, sys
 path, rd, sd = sys.argv[1], sys.argv[2], sys.argv[3]
@@ -90,11 +108,15 @@ export PKG41_JVM_ARGS=$jvm
 if [[ $MODE == measure || -d $SAVE ]]; then export GAME_ARGS="--quickPlaySingleplayer AresHub"; else export GAME_ARGS=; fi
 printf '%s\n' "name=$name" "RD=$RD" "SD=$SD" "HEAP=$HEAP" "MIN_HEAP=$MIN_HEAP" "GC=$GC" "MEMHIGH=$MEMHIGH" "SIZE=$SIZE" \
     "REFRESH=$REFRESH" "SETTLE=$SETTLE" "WINDOW=$WINDOW" "COVER=$COVER" "MODE=$MODE" "WORLD=$WORLD" \
+    "HOMEKIND=$HOMEKIND" "BASE=$BASE" "FLIGHT=$FLIGHT" "QUIT=$QUIT" \
     "JVM_ARGS=$jvm" "GAME_ARGS=$GAME_ARGS" "started=$(date -Is)" >"$RIG/settings.txt"
 
 mono() { python3 -I -c 'import time; print(time.monotonic_ns())'; }
 mark() { echo "$1 $(mono)" >>"$RIG/marks.txt"; echo "$(date +%T) $1"; }
 vin() { echo "$*" >"$RIG/vin"; }
+# A command through chat: / opens it with the slash typed, the text, Enter.
+chat() { vin key slash; sleep 0.5; vin type "$1"; sleep 0.3; vin key enter; sleep 0.5; }
+shot() { mkdir -p "$RIG/shots"; "$WT/reviews/40-real-home/rig/shot.sh" "$RIG" "$RIG/shots/$1.png" || true; }
 
 "$here/start.sh" >"$RIG/start.txt" 2>&1 &
 start_pid=$!
@@ -135,12 +157,37 @@ echo "$(date +%T) game PID $game in $PKG41_GAME_UNIT"
 python3 -I "$here/sample.py" "$game" "$RIG/samples.csv" 2 &
 sampler=$!
 log=$WT/mod/run/logs/latest.log
+if [[ $MODE == create ]]; then
+    # The title screen (GUI scale 4 at 1920 x 1080: 480 x 270 units). AresOS spans 140..340 x 91..111 with no AresHub;
+    # on the create screen "Home: Flat" spans 100..380 x 53..73 and Create 100..236 x 221..241 (HomeCreateScreen).
+    until [[ $log -nt $RIG/settings.txt ]] && grep -q 'Sound engine started' "$log"; do
+        kill -0 "$game" 2>/dev/null || { echo "the game ended before the title screen" >&2; exit 1; }
+        ((SECONDS < deadline)) || { echo "no title screen after 20 min" >&2; exit 1; }
+        sleep 1
+    done
+    sleep 15
+    shot title
+    vin move 960 404; sleep 0.5; vin click left; sleep 3
+    if [[ $HOMEKIND == nether ]]; then vin move 960 252; sleep 0.5; vin click left; sleep 2; fi
+    shot create-screen
+    vin move 672 924; sleep 0.5
+    mark create_start
+    vin click left
+    vin move 960 1079
+fi
 until [[ $log -nt $RIG/settings.txt ]] && grep -q 'joined the game' "$log"; do
     kill -0 "$game" 2>/dev/null || { echo "the game ended before the world opened" >&2; exit 1; }
     ((SECONDS < deadline)) || { echo "no world after 20 min" >&2; exit 1; }
-    sleep 1
+    sleep 0.5
 done
 mark joined
+if [[ $MODE == create && $HOMEKIND == flat ]]; then
+    until grep -q 'The town is built' "$log"; do
+        ((SECONDS < deadline)) || { echo "no town after 20 min" >&2; exit 1; }
+        sleep 0.5
+    done
+    mark town_built
+fi
 
 if [[ $MODE == hold ]]; then
     echo "$(date +%T) holding: drive it with $RIG/vin, stop it by quitting the game"
@@ -168,24 +215,33 @@ python3 -I "$here/snap.py" "$game" stand "$RIG"
 # (the 28 System & Tools logos), a half turn, and north again towards home.
 # (check-flight.sh confirmed: about 21 blocks up, 21.6 blocks a second, and 1263 counts for the half turn.)
 # Every key press and gap lasts two ticks: a 40 ms tap can fall between two game ticks and go unseen.
+# FLIGHT=spectator flies the same legs in spectator mode (no double jump: spectators always fly), straight through
+# whatever is in the way: in the Nether the caves stop a flight within blocks.
 quarter=$((WINDOW / 4))
-vin key h; sleep 1.5
-vin key lshift down; sleep 1; vin key lshift up; sleep 0.5
-vin key space down; sleep 0.1; vin key space up; sleep 0.1; vin key space down; sleep 0.1; vin key space up
-sleep 0.3
-vin key space down; sleep 2.5; vin key space up
-mark flight_start
-vin key w down; vin key lctrl down
-sleep "$quarter"
-vin rel 1263 0 20
-sleep $((quarter * 2))
-vin rel 1263 0 20
-sleep $((WINDOW - quarter * 3))
-mark flight_end
-vin key w up; vin key lctrl up
-# Outside the windows: a picture of where the flight ended (above home, over the logos), to check it flew.
-[[ $SHOTS != 1 ]] || { mkdir -p "$RIG/shots"; "$WT/reviews/40-real-home/rig/shot.sh" "$RIG" "$RIG/shots/after-flight.png" || true; }
-python3 -I "$here/snap.py" "$game" flight "$RIG"
+if [[ $FLIGHT != none ]]; then
+    vin key h; sleep 1.5
+    if [[ $FLIGHT == roads ]]; then
+        vin key lshift down; sleep 1; vin key lshift up; sleep 0.5
+        vin key space down; sleep 0.1; vin key space up; sleep 0.1; vin key space down; sleep 0.1; vin key space up
+        sleep 0.3
+    else
+        chat "gamemode spectator"; sleep 1
+    fi
+    vin key space down; sleep 2.5; vin key space up
+    mark flight_start
+    vin key w down; vin key lctrl down
+    sleep "$quarter"
+    vin rel 1263 0 20
+    sleep $((quarter * 2))
+    vin rel 1263 0 20
+    sleep $((WINDOW - quarter * 3))
+    mark flight_end
+    vin key w up; vin key lctrl up
+    # Outside the windows: a picture of where the flight ended (above home, over the logos), to check it flew.
+    [[ $SHOTS != 1 ]] || shot after-flight
+    python3 -I "$here/snap.py" "$game" flight "$RIG"
+    if [[ $FLIGHT == spectator ]]; then vin key h; sleep 1.5; chat "gamemode survival"; sleep 1; fi
+fi
 
 if ((COVER > 0)); then
     wayland=$(sed -n 's/^WAYLAND_DISPLAY=//p' "$RIG/env")
@@ -218,6 +274,13 @@ if [[ $SHOTS == 1 ]]; then
     vin key space down; sleep 0.1; vin key space up; sleep 0.1; vin key space down; sleep 0.1; vin key space up
     sleep 0.3; vin key space down; sleep 3; vin key space up; sleep 3
     "$WT/reviews/40-real-home/rig/shot.sh" "$RIG" "$RIG/shots/above-south.png" || true
+fi
+if ((QUIT)); then
+    # Close the game's window as he would: the game saves the world and quits; keep that save.
+    python3 -I "$WT/reviews/40-real-home/rig/tl.py" "$RIG" close aresos-desktop >/dev/null 2>&1 || true
+    for _ in $(seq 240); do kill -0 "$game" 2>/dev/null || break; sleep 0.5; done
+    if kill -0 "$game" 2>/dev/null; then echo "the game did not quit within 2 min" >&2
+    else rm -rf -- "$RIG/world"; cp -a -- "$SAVE" "$RIG/world"; echo "$(date +%T) the save is in $RIG/world"; fi
 fi
 mark done
 trap - EXIT
