@@ -160,19 +160,22 @@ python3 -I "$here/snap.py" "$game" stand "$RIG"
 
 # Flight: H puts him on the pad facing north (standing, so not flying); a double jump starts flying and 2.5 s up
 # take him above the logos (12 blocks) and their signs; then sprint-flying (21.6 blocks a second) north along the
-# road, a half turn (1200 counts = 180 degrees at the default sensitivity), south past home and down the south road
+# road, a half turn (1263 counts of relative motion: 180 degrees, measured), south past home and down the south road
 # (the 28 System & Tools logos), a half turn, and north again towards home.
+# (check-flight.sh confirmed: about 21 blocks up, 21.6 blocks a second, and 1263 counts for the half turn.)
+# Every key press and gap lasts two ticks: a 40 ms tap can fall between two game ticks and go unseen.
 quarter=$((WINDOW / 4))
 vin key h; sleep 1.5
-vin key space; sleep 0.12; vin key space
+vin key lshift down; sleep 1; vin key lshift up; sleep 0.5
+vin key space down; sleep 0.1; vin key space up; sleep 0.1; vin key space down; sleep 0.1; vin key space up
 sleep 0.3
 vin key space down; sleep 2.5; vin key space up
 mark flight_start
 vin key w down; vin key lctrl down
 sleep "$quarter"
-vin rel 1200 0 20
+vin rel 1263 0 20
 sleep $((quarter * 2))
-vin rel 1200 0 20
+vin rel 1263 0 20
 sleep $((WINDOW - quarter * 3))
 mark flight_end
 vin key w up; vin key lctrl up
@@ -205,9 +208,11 @@ if [[ $SHOTS == 1 ]]; then
     python3 -I "$WT/reviews/40-real-home/rig/tl.py" "$RIG" activate aresos-desktop >/dev/null 2>&1 || true
     sleep 1
     mkdir -p "$RIG/shots"
-    vin key h; sleep 2; vin rel 1200 0 20; sleep 3
+    # He may still be flying after H (hovering on the pad); Shift brings him down, and landing ends flying.
+    vin key h; sleep 2; vin key lshift down; sleep 1; vin key lshift up; vin rel 1263 0 20; sleep 3
     "$WT/reviews/40-real-home/rig/shot.sh" "$RIG" "$RIG/shots/home-south.png" || true
-    vin key space; sleep 0.12; vin key space; sleep 0.3; vin key space down; sleep 3; vin key space up; sleep 3
+    vin key space down; sleep 0.1; vin key space up; sleep 0.1; vin key space down; sleep 0.1; vin key space up
+    sleep 0.3; vin key space down; sleep 3; vin key space up; sleep 3
     "$WT/reviews/40-real-home/rig/shot.sh" "$RIG" "$RIG/shots/above-south.png" || true
 fi
 mark done

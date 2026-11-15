@@ -37,8 +37,24 @@ for line in open(os.path.join(rig, 'gc.txt')) if os.path.exists(os.path.join(rig
         cycles.append((end, kind))
 
 
+samples = []
+if os.path.exists(os.path.join(rig, 'samples.csv')):
+    rows = [line.strip().split(',') for line in open(os.path.join(rig, 'samples.csv'))]
+    if rows and 'cpu_s' in rows[0]:
+        column = rows[0].index('cpu_s')
+        samples = [(int(row[0]), float(row[column])) for row in rows[1:] if len(row) > column]
+
+
+def cpu_percent(start, end):
+    """The game's CPU over a window from the 2 s samples (100 = one core), or None without CPU samples."""
+    inside = [sample for sample in samples if start <= sample[0] <= end]
+    if len(inside) < 2:
+        return None
+    return round((inside[-1][1] - inside[0][1]) / ((inside[-1][0] - inside[0][0]) / 1e9) * 100)
+
+
 def window(start, end):
-    stats = {'seconds': round((end - start) / 1e9, 1)}
+    stats = {'seconds': round((end - start) / 1e9, 1), 'cpu_percent': cpu_percent(start, end)}
     inside = [t for t in frames if start <= t < end]
     if len(inside) > 1:
         gaps = sorted((b - a) / 1e6 for a, b in zip(inside, inside[1:]))
