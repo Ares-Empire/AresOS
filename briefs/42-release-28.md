@@ -33,8 +33,8 @@ Not in this release: 21b (backlight, power button; the owner's key test is open)
 backport, unmasking the two finalize units, the online `aresos update` (22d's step 2), 22e, 23c.
 
 The `aresos` command (board #195 and #262: `aresos update` goes forward when a newer AresOS is installed, otherwise
-stages the tools' release; one of the two per run, said before anything changes) is its own small package. It rides
-only if it is merged by the cut; then the rehearsal also runs `aresos update` once (step B.4).
+stages the tools' release; one of the two per run, said before anything changes) is its own package (43, for the release
+after this one; it needs a tools change, see `STATE.md`). It does not ride in this release.
 
 ## Build
 
@@ -99,7 +99,7 @@ tools version 2 installed. Then walk the guides' route exactly as the laptop ses
    - Control, when it rides: `aresos-tools` has UID/GID 250, its state folders have the right owners, its service
      never delays login, `release_checks.py` passes and the sites list's hash is unchanged.
 4. `at previous`: back to R27, `at check`, the sites list's hash unchanged. Then forward again by the guide's route
-   (`at forward`, or `aresos update` if the `aresos` package rides), so the walk ends on R28 as the laptop will.
+   (`at forward`), so the walk ends on R28 as the laptop will.
 5. **Audits at every stage**, all of package 11's: the stand-in Windows disk and its boot entry byte-identical; stock
    untouched and pinned; no deployment lost beyond what 22's JUDGMENT-CALL 1 allows.
 6. **Bindings:** the pending list ends empty; `source-bindings.json` exactly as the walk records it.
