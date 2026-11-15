@@ -44,6 +44,9 @@ RELEASE_IDENTITY = r'https://github\.com/Ares-Empire/AresOS/\.github/workflows/[
 # The only installed tools without a release history: package 15f's bundle,
 # installed on the laptop on 2026-11-08. Any other history-less bundle STOPs.
 LEGACY_TOOLS = ('3ef85c4adab3c8a5daf5bf26c2a40805d24bcb0c17b9327cfc55e7e96aeebefc',)
+# Tools older than version 4 knew one source of a bundle, the stick; version 4 adds the folder.
+SOURCES = ('stick', 'folder')
+LOGIN_UID = pathlib.Path('/proc/self/loginuid')
 def typed(*words):
     """The one place that spells an owner command in a message (os/owner-tools/commands.json is compared with it)."""
     return ' '.join(('sudo', '/var/lib/ares/at', *words))
@@ -175,6 +178,32 @@ def installed_lineage(root, fingerprint):
 def extends(old, new):
     return len(new) >= len(old) and all(a['reference'] == b['reference'] and a['identity'] == b['identity']
         and a['daily_wheel'] is b['daily_wheel'] for a, b in zip(old, new))
+
+
+def bundle_source(payload):
+    """Which start block ran decides the route (brief 22d, decision 7), never whether a stick is plugged in.
+
+    The stick block mounts the tools USB at m beside its private copy and keeps
+    it there until install returns; the folder block makes no m. Anything
+    named m counts as the stick block, so doubt gets the stricter rules. The
+    installed entry has no m beside its toolset: install through it follows
+    the folder rules.
+    """
+    mount = pathlib.Path(payload).parent / 'm'
+    return 'stick' if mount.exists() or mount.is_symlink() else 'folder'
+
+
+def caller():
+    """Who started this command, for the record only: root cannot prove how it became root.
+
+    The login uid is the kernel's (it survives sudo); it reads 4294967295 while
+    no login set it, as for a service or a root shell on a serial console.
+    """
+    try:
+        login = int(LOGIN_UID.read_text().strip())
+    except (OSError, ValueError):
+        login = None
+    return dict(login_uid=None if login == 4294967295 else login, terminal=sys.stdin.isatty())
 
 
 def login_properties(host, session, names, message):
@@ -1963,7 +1992,19 @@ class Tools:
 
     def export(self):
         media = media_module(self.payload)
-        return media.export(self.host, self.store, checked_bundle(self.payload), checked_bundle, require)
+        # A stick that stick-free updates left behind still takes records: beside the installed
+        # bundle, accept each one this laptop installed before, verified in retired-tools/<manifest>.
+        # A retired copy that does not verify is simply not accepted; export stays the help route.
+        accepted = [checked_bundle(self.payload)]
+        retired = self.store.parent / 'retired-tools'
+        if retired.is_dir() and not retired.is_symlink():
+            for path in sorted(retired.iterdir()):
+                try:
+                    if re.fullmatch('[0-9a-f]{64}', path.name) and checked_bundle(path) == path.name:
+                        accepted.append(path.name)
+                except (Stop, OSError, ValueError, KeyError, TypeError):
+                    continue
+        return media.export(self.host, self.store, accepted, checked_bundle, require, caller()['login_uid'])
 
     def repair_notes(self):
         """Rule 7: deployments whose persistent layout an abandoned trial may have left half written."""
@@ -2478,7 +2519,7 @@ def installed_update(fingerprint):
     return isinstance(value, dict) and value.get('phase') == 'complete' and value.get('manifest') != fingerprint
 
 
-def update_tools(payload, fingerprint, host, intent):
+def update_tools(payload, fingerprint, host, intent, source='stick'):
     """Replace the installed tools with a newer reviewed bundle, keeping records.
 
     Runs from the bootstrap's verified private copy, like install, after
@@ -2499,9 +2540,22 @@ def update_tools(payload, fingerprint, host, intent):
     settle_tools (install wraps it), which puts the previous toolset and the
     entry back before publication; a power cut is settled by the next entry.
     The old tools are retired only after publication.
+
+    The source is the start block that ran (bundle_source). Stick: a terminal
+    and the labelled stick holding this bundle, as before version 4. Folder: no
+    terminal test and no stick; an attached stick is not consulted. The journal
+    keeps schema tools-update1 and its fields, which the recovery code of
+    versions 2 and 3 reads after a cut, and names the source beside them;
+    nothing else new is written under /var/lib/ares before publication. An
+    update begun from the folder resumes from either source; one begun from a
+    stick only from that stick.
     """
-    require(sys.stdin.isatty(), 'Tools update runs only from the physical recovery console')
-    device = tools_stick(host, payload, fingerprint)
+    require(source in SOURCES, 'Unknown bundle source')
+    if source == 'stick':
+        require(sys.stdin.isatty(), 'Tools update runs only from the physical recovery console')
+        volume = tools_stick(host, payload, fingerprint)['volume']['uuid']
+    else:
+        volume = None
     owned_directory(HOME)
     for name in ('records', 'diagnostics', 'retired-tools'):
         if (HOME / name).exists() or (HOME / name).is_symlink():
@@ -2564,10 +2618,15 @@ def update_tools(payload, fingerprint, host, intent):
         exclusive()
         system_ready()
         intent = dict(schema='tools-update1', previous=old, previous_directory=old_name, manifest=fingerprint,
-            previous_version=old_version, tools_version=new['tools_version'], tools_volume_uuid=device['volume']['uuid'], phase='copy')
+            previous_version=old_version, tools_version=new['tools_version'], tools_volume_uuid=volume, source=source, phase='copy')
         home.save(TOOLS_JOURNAL, intent)
     else:
-        require(intent['manifest'] == fingerprint and intent.get('tools_volume_uuid') == device['volume']['uuid'],
+        # A journal that names no source was written by older tools, which knew only the stick.
+        began = intent.get('source', 'stick')
+        require(intent['manifest'] != fingerprint or began != 'stick' or source == 'stick',
+            'Interrupted tools update began from the tools USB; finish it from that stick at the recovery console')
+        require(intent['manifest'] == fingerprint and (began == 'folder'
+            or began == 'stick' and intent.get('tools_volume_uuid') == volume),
             'Interrupted tools update does not exactly match this bundle/stick; get help')
         if intent['phase'] in ('copy', 'publish'):
             # A resumed run refuses early too, with the old tools current and usable.
@@ -2616,15 +2675,15 @@ def update_tools(payload, fingerprint, host, intent):
     if intent['phase'] == 'retire':
         notes = system_ready(resolve=True)
         # Only now, with the new tools published, does the old copy retire.
-        source = held if old_name == 'tools' else current
-        if source.exists() or source.is_symlink():
-            require(source.is_dir() and not source.is_symlink() and checked_bundle(source) == old
+        leaving = held if old_name == 'tools' else current
+        if leaving.exists() or leaving.is_symlink():
+            require(leaving.is_dir() and not leaving.is_symlink() and checked_bundle(leaving) == old
                 and not (retired / old).exists(), 'Old tools differ; get help')
             if not retired.exists():
                 retired.mkdir(mode=0o700)
                 sync_directory(HOME)
             owned_directory(retired)
-            source.replace(retired / old)
+            leaving.replace(retired / old)
             sync_directory(retired)
             sync_directory(HOME)
         require(checked_bundle(retired / old) == old, 'Retired tools differ; get help')
@@ -2636,25 +2695,31 @@ def update_tools(payload, fingerprint, host, intent):
         if not (records.store / (intent['receipt'] + '.json')).exists():
             records.save(intent['receipt'], dict(status='passed', command=['install'], manifest=fingerprint, previous_manifest=old,
                 tools_version=intent['tools_version'], previous_version=intent['previous_version'],
-                releases=new['releases'], tools_volume_uuid=device['volume']['uuid'], trace=host.trace))
+                releases=new['releases'], tools_volume_uuid=intent.get('tools_volume_uuid'),
+                # Where the update began, the block of the run that finished it, and who called that run.
+                source=intent.get('source', 'stick'), finished_from=source, caller=caller(), trace=host.trace))
         advance('complete')
     return ['Tools updated from version ' + str(intent['previous_version']) + ' to ' + str(intent['tools_version']),
             'manifest SHA256 ' + fingerprint, 'Previous tools kept in /var/lib/ares/retired-tools (private)',
             'Release target ' + new['releases'][-1]['reference'], *notes]
 
 
-def install(payload, host=None):
+def install(payload, host=None, source='stick'):
+    """source: the start block that ran (main reads it with bundle_source); a caller that
+    names none gets the stick's rules, the stricter ones."""
     payload = pathlib.Path(payload)
     # Recovery first, before any check (main settled already; direct callers get the same).
     intent = settle_tools()
     fingerprint = checked_bundle(payload)
     if installed_update(fingerprint):
         try:
-            return update_tools(payload, fingerprint, host if host is not None else Host(), intent)
+            return update_tools(payload, fingerprint, host if host is not None else Host(), intent, source)
         except BaseException:
             # The one restore path: every refusal or exception of the update ends here.
             settle_tools()
             raise
+    # The first installation takes typed disk serials at the console and the stick: never the folder.
+    require(source == 'stick', 'The first installation runs only from the tools USB at the recovery console; nothing changed')
     require(sys.stdin.isatty(), 'Install requires the two independently recorded disk serials')
     target = input('Photographed Crucial serial: ').strip()
     protected = input('Windows baseline Micron serial: ').strip()
@@ -2808,7 +2873,7 @@ def main():
         require(len(sys.argv) == 2 or command == 'layout' and action == sys.argv[1:] and len(action) in (2, 3),
             'Unexpected arguments; tokens are accepted only at the hidden login prompt')
         if command == 'install':
-            lines = install(payload, host)
+            lines = install(payload, host, bundle_source(payload))
         else:
             # A first-install tools/ runs only from there (the 15f tools have the same
             # rule); a versioned toolset runs only while the entry points at it.

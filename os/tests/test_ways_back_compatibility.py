@@ -169,7 +169,7 @@ class CompatibilityTest(unittest.TestCase):
         self.assertEqual(blob('owner.py'), subprocess.check_output(
             ['git', 'show', COMMIT + ':os/owner-tools/owner.py'], cwd=ROOT))
         self.assertEqual(json.loads(blob('history.json')), dict(tools_version=2, releases=HISTORY))
-        self.assertEqual(owner.lineage(base.PAYLOAD), dict(tools_version=3, releases=HISTORY))
+        self.assertEqual(owner.lineage(base.PAYLOAD), dict(tools_version=4, releases=HISTORY))
         self.assertEqual(version2().Tools.outcome.__code__.co_filename, COMMIT + ':owner.py')
 
     def test_version3_accepts_every_version2_shape_including_before_first_switch(self):
@@ -210,7 +210,7 @@ class CompatibilityTest(unittest.TestCase):
                 writer = object.__new__(owner.Tools)
                 writer.store = home / 'records'
                 writer.save('prepared', saved)
-                self.assertEqual(run()[0], 'Tools updated from version 2 to 3')
+                self.assertEqual(run()[0], 'Tools updated from version 2 to 4')
                 harness.updated(home, fingerprint, previous)
 
     def test_modified_releases_version2_reads_remain_readable(self):
@@ -224,7 +224,7 @@ class CompatibilityTest(unittest.TestCase):
                     tools.title()
                     self.assertEqual(host.changes, [])
                 with installation(state) as (harness, home, run, fingerprint, previous, host):
-                    self.assertEqual(run()[0], 'Tools updated from version 2 to 3')
+                    self.assertEqual(run()[0], 'Tools updated from version 2 to 4')
                     harness.updated(home, fingerprint, previous)
                     self.assertEqual(host.state, state)
 
@@ -236,7 +236,7 @@ class CompatibilityTest(unittest.TestCase):
                     lines = run()
                 except owner.Stop as error:
                     self.fail('new tools refused historical ' + name + ': ' + str(error))
-                self.assertEqual(lines[0], 'Tools updated from version 2 to 3')
+                self.assertEqual(lines[0], 'Tools updated from version 2 to 4')
                 harness.updated(home, fingerprint, previous)
                 self.assertEqual(host.state, before)
                 self.assertFalse(any(t.get('mutation') for t in host.trace))
@@ -262,7 +262,7 @@ class CompatibilityTest(unittest.TestCase):
                             lines = run()
                         except owner.Stop as error:
                             self.fail(name + ' with ' + str(status) + ': ' + str(error))
-                    self.assertEqual(lines[0], 'Tools updated from version 2 to 3')
+                    self.assertEqual(lines[0], 'Tools updated from version 2 to 4')
                     harness.updated(home, fingerprint, previous)
                     record = home / 'records' / (owner.OUTCOME + '.json')
                     if status and name.startswith('stock taken'):
@@ -285,7 +285,7 @@ class CompatibilityTest(unittest.TestCase):
                     write_old_change(legacy, 'previous', status)
                 boot = 'old-boot' if same else 'new-boot'
                 with patch.object(owner, 'boot_id', return_value=boot):
-                    self.assertEqual(run()[0], 'Tools updated from version 2 to 3')
+                    self.assertEqual(run()[0], 'Tools updated from version 2 to 4')
                     checker = owner.Tools(home / ('tools-' + fingerprint), host, home / 'records')
                     expected = (None if order[0] == LATEST else
                         ('applied' if running == OLDER else 'pending') if same else
@@ -504,7 +504,7 @@ class PublicationTest(unittest.TestCase):
             self.assertEqual(legacy.load(owner.OUTCOME), original, 'readiness made the restored v2 tools unable to read their intent')
             with patch.object(version2(), 'boot_id', return_value='new-boot'):
                 self.assertEqual(legacy.qualified(host.state, retry='previous'), 'complete')
-            self.assertEqual(run()[0], 'Tools updated from version 2 to 3')
+            self.assertEqual(run()[0], 'Tools updated from version 2 to 4')
             harness.updated(home, fingerprint, previous)
 
     def test_not_applied_is_archived_and_reported_only_after_publication(self):
@@ -559,7 +559,7 @@ class PublicationTest(unittest.TestCase):
                     raw = json.loads((home / (owner.TOOLS_JOURNAL + '.json')).read_text())
                     self.assertEqual(raw['schema'], 'tools-update1')
                     self.assertEqual(raw['previous_version'], 2)
-                    self.assertEqual(raw['tools_version'], 3)
+                    self.assertEqual(raw['tools_version'], 4)
                     self.assertIn(raw['phase'], ('copy', 'publish'))
                     settled = version2().settle_tools()
                     self.assertEqual(settled, raw)
@@ -569,7 +569,7 @@ class PublicationTest(unittest.TestCase):
                     if open_change:
                         self.assertEqual(legacy.load(owner.OUTCOME), original, 'pre-publication migration broke the old reader')
                         self.assertEqual(legacy.qualified(host.state, retry='previous'), 'complete')
-                    self.assertEqual(run()[0], 'Tools updated from version 2 to 3')
+                    self.assertEqual(run()[0], 'Tools updated from version 2 to 4')
                     harness.updated(home, fingerprint, previous)
             print('B8: v2 settle_tools read v3 tools-update1 at', len(cuts), 'pre-publication cuts; versioned=', versioned,
                   'open_previous_intent=', open_change)

@@ -168,6 +168,10 @@ def history(rows, version=3):
     return dict(tools_version=version, releases=rows)
 
 
+# The reviewed payload's own tools version: the bundle every default fixture stick or folder holds.
+VERSION = json.loads((PAYLOAD / 'history.json').read_text())['tools_version']
+
+
 class Machine(owner.Host):
     """Host adapter over an ordinary JSON machine; mutations only change that model."""
 
@@ -453,7 +457,7 @@ class ShapeTest(unittest.TestCase):
 class HistoryTest(unittest.TestCase):
     def test_reviewed_history_ends_with_the_pinned_release_and_r13_is_not_wheel(self):
         value = owner.lineage(PAYLOAD)
-        self.assertEqual(value['tools_version'], 3)
+        self.assertEqual(value['tools_version'], 4)
         # Package 27 appended release 27, whose daily account is an administrator.
         self.assertEqual(value['releases'][:1], H13)
         self.assertEqual(value['releases'][-1], dict(reference=PINNED['reference'], identity=PINNED['signature']['identity'],
@@ -994,11 +998,17 @@ class ToolsUpdateTest(unittest.TestCase):
         self.addCleanup(bytecode.stop)
 
     @contextlib.contextmanager
-    def installation(self, installed=None, stick=None, state=None, legacy_owner=b'print("15f stand-in ran")\n', versioned=False):
+    def installation(self, installed=None, stick=None, state=None, legacy_owner=b'print("15f stand-in ran")\n', versioned=False,
+                     source='stick'):
         """installed/stick: (history or None for a history-less bundle, target, extra files).
 
         The installed tools live in tools/ (the first install, or the 15f
         stand-in) or, with versioned, in tools-<fingerprint>/ as after an update.
+
+        source: the start block that ran (22d). run() installs by its rules;
+        run(other) is the same bundle arriving by the other block. The folder
+        block's caller has no terminal, and the stick stays plugged in and
+        mounted there too: the folder route fails the test if it looks at it.
         """
         with tempfile.TemporaryDirectory(dir=ROOT / 'os/tests') as temporary, contextlib.ExitStack() as stack:
             root = pathlib.Path(temporary)
@@ -1036,7 +1046,17 @@ class ToolsUpdateTest(unittest.TestCase):
             stack.enter_context(patch.object(owner.sys.stdin, 'isatty', return_value=True))
             stack.enter_context(patch.object(owner.Tools, 'processes', lambda self: []))
             self.private = stack.enter_context(patch.object(owner, 'private_tree'))
-            run = lambda: owner.install(usb / 'ares-tools', host)
+            def run(route=source):
+                if route != 'folder':
+                    return owner.install(usb / 'ares-tools', host, route)
+                consulted, seen = AssertionError('The folder route consulted the stick'), len(host.trace)
+                with patch.object(owner.sys.stdin, 'isatty', return_value=False), patch.object(owner, 'tools_stick', side_effect=consulted):
+                    try:
+                        return owner.install(usb / 'ares-tools', host, route)
+                    finally:
+                        # media.find is the only query that asks for labels; the disk record never does.
+                        if any('LABEL' in ' '.join(row.get('command', [])) for row in host.trace[seen:]):
+                            raise consulted
             yield home, run, fingerprint, old, host
 
     def snapshot(self, home):
@@ -1112,7 +1132,7 @@ class ToolsUpdateTest(unittest.TestCase):
             records = {p.name: p.read_bytes() for p in (home / 'records').iterdir()}
             lines = run()
             self.updated(home, fingerprint, old)
-            self.assertEqual(lines[:2], ['Tools updated from version 1 to 3', 'manifest SHA256 ' + fingerprint])
+            self.assertEqual(lines[:2], ['Tools updated from version 1 to ' + str(VERSION), 'manifest SHA256 ' + fingerprint])
             self.assertEqual({k: v for k, v in records.items()}, {p.name: p.read_bytes() for p in (home / 'records').iterdir()
                                                                 if not p.name.endswith('-tools-update.json')})
             receipt = json.loads(next((home / 'records').glob('*-tools-update.json')).read_text())
@@ -1134,13 +1154,13 @@ class ToolsUpdateTest(unittest.TestCase):
 
     def test_downgrade_same_version_foreign_history_and_unknown_legacy_refuse_without_writes(self):
         cases = {
-            'downgrade': dict(installed=(history(H21, 4), H21[-1])),
-            'same version, other bytes': dict(installed=(history(H13, 3), H13[-1], (), {'media.py': b'# other\n'})),
+            'downgrade': dict(installed=(history(H21, VERSION + 1), H21[-1])),
+            'same version, other bytes': dict(installed=(history(H13, VERSION), H13[-1], (), {'media.py': b'# other\n'})),
             'history rewritten': dict(installed=(history(H13, 2), H13[-1]), stick=(history([record(R13, True), record(R21, True)], 3), H21[-1])),
             'history dropped a release': dict(installed=(history(H21, 2), H21[-1]), stick=(history([record(R13, False), record(R30, True)], 3), record(R30, True))),
         }
         cases['15f rule rewritten'] = dict(stick=(history([record(R13, True), record(R21, True)], 3), H21[-1]))
-        messages = {'downgrade': 'refusing version 3', 'same version, other bytes': 'same version',
+        messages = {'downgrade': 'refusing version ' + str(VERSION), 'same version, other bytes': 'same version',
                     'history rewritten': 'does not extend', 'history dropped a release': 'does not extend',
                     '15f rule rewritten': 'does not extend'}
         for name, options in cases.items():
@@ -1354,6 +1374,11 @@ class ToolsUpdateTest(unittest.TestCase):
     # record at every resume; the stick identity is compared with the journal's at every
     # resume but complete; the new directory exists from cut 2 and is checked until it is
     # published (cut 1 dies before the copy, so it has none to change).
+    # 22d: every row holds for both sources. Only the resume identity differs: the stick
+    # route compares the stick, the folder route refuses an update that began from a stick.
+    FOLDER_REFUSING = {
+        'resume identity': 'Interrupted tools update began from the tools USB; finish it from that stick at the recovery console',
+    }
     REFUSING = {
         'layout trial': (COPY + PUBLISH + RETIRE, 'Layout trial is unfinished; prove it or revert first'),
         'transaction': (COPY + PUBLISH + RETIRE, 'Deployment transaction active or unknown'),
@@ -1364,15 +1389,16 @@ class ToolsUpdateTest(unittest.TestCase):
         'unexpected exception': (COPY + PUBLISH, 'unexpected'),
     }
 
-    def refusals(self):
+    def refusals(self, source='stick'):
+        identity = dict(stick=('tools_volume_uuid', 'OTHER-STICK', 'CAFE-1234'), folder=('source', 'stick', 'folder'))[source]
         return {
             'layout trial': (lambda home, host: self.record(home, 'layout-pending', dict(phase='pin')),
                              lambda home, host: (home / 'records/layout-pending.json').unlink(), owner.Stop),
             'transaction': (lambda home, host: host.state['rpm'].update(transaction=['upgrade', 'uupd', 'socket']),
                             lambda home, host: host.state['rpm'].update(transaction=None), owner.Stop),
             'disk record': (*self.failing(owner, 'disk_record', owner.Stop('Wrong or ambiguous target disk serial')), owner.Stop),
-            'resume identity': (lambda home, host: self.journal_value(home, 'tools_volume_uuid', 'OTHER-STICK'),
-                                lambda home, host: self.journal_value(home, 'tools_volume_uuid', 'CAFE-1234'), owner.Stop),
+            'resume identity': (lambda home, host: self.journal_value(home, identity[0], identity[1]),
+                                lambda home, host: self.journal_value(home, identity[0], identity[2]), owner.Stop),
             # The staged copy (.update-tools) exists only inside the copy, which no cut at a
             # rename reaches; the new directory before publication is where a changed byte can sit.
             'unpublished bundle': (lambda home, host: self.unpublished_bytes(home, lambda raw: raw + b'# changed\n'),
@@ -1381,12 +1407,14 @@ class ToolsUpdateTest(unittest.TestCase):
             'unexpected exception': (*self.failing(owner, 'installed_commands', RuntimeError('unexpected')), RuntimeError),
         }
 
-    def refusal_cell(self, cut, name, change, undo, refusal):
+    def refusal_cell(self, cut, name, change, undo, refusal, source='stick'):
         """One cut, one injected refusal: the outcome the table and the journal phase predict."""
         cuts, message = self.REFUSING[name]
+        if source == 'folder':
+            message = self.FOLDER_REFUSING.get(name, message)
         phase = self.PHASES[cut]
         previous = '15f' if phase in ('copy', 'publish') else 'new'
-        with self.installation() as (home, run, fingerprint, old, host):
+        with self.installation(source=source) as (home, run, fingerprint, old, host):
             with self.power_cut_after(cut), self.assertRaises(OSError):
                 run()
             journal = lambda: json.loads((home / 'tools-update-intent.json').read_text())['phase']
@@ -1421,16 +1449,19 @@ class ToolsUpdateTest(unittest.TestCase):
         The refusals come from every kind of fallible check, not only the
         system preflight: the disk record, the resume identity, the new tools
         before publication, an observation that fails, and an unexpected
-        exception. Each cell's outcome comes from the table above (22c, F).
+        exception. Each cell's outcome comes from the table above (22c, F),
+        for the stick block and for the folder block (22d).
         """
-        refusals = self.refusals()
-        self.assertEqual(set(refusals), set(self.REFUSING))
+        self.assertLessEqual(set(self.FOLDER_REFUSING), set(self.REFUSING))
         for name, (cuts, message) in self.REFUSING.items():
             self.assertTrue(cuts, name + ': a row with no cut where its check runs tests nothing')
-        for cut in range(1, 11):
-            for name, (change, undo, refusal) in refusals.items():
-                with self.subTest(cut=cut, refusal=name):
-                    self.refusal_cell(cut, name, change, undo, refusal)
+        for source in owner.SOURCES:
+            refusals = self.refusals(source)
+            self.assertEqual(set(refusals), set(self.REFUSING))
+            for cut in range(1, 11):
+                for name, (change, undo, refusal) in refusals.items():
+                    with self.subTest(source=source, cut=cut, refusal=name):
+                        self.refusal_cell(cut, name, change, undo, refusal, source)
 
     def test_revert_proof_without_the_layout_check_the_invariant_fails_where_it_runs(self):
         """22c, F: system_ready without its layout-trial check fails exactly the cells where it runs."""

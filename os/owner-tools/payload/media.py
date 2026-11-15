@@ -2,13 +2,18 @@
 
 Mounts are inspection/data access to the uniquely labelled removable USB;
 there is no partitioning, formatting, firmware or deployment operation here.
+Without a stick, export leaves a checked copy of the records under /run.
 """
 import hashlib
+import os
 import pathlib
 import shutil
 
 LABEL = 'ARESTOOLS'
 MOUNT = pathlib.Path('/run/ares-tools-media')
+# Where export puts its copy when no stick is plugged in: on this laptop, gone with the
+# next restart. Never under /var/lib/ares, where older tools require everything root-only.
+LOCAL = pathlib.Path('/run/ares-records')
 
 
 def block_tree(host, require, *options):
@@ -62,16 +67,63 @@ def find(host, require):
     return dict(disk=disk, volume=volume)
 
 
-def export(host, store, fingerprint, checked_bundle, require):
+def private_records(store, require):
+    """The private records and STOP diagnostics, each with the name its exported copy gets."""
+    diagnostics = store.parent / 'diagnostics'
+    require(not diagnostics.is_symlink() and (not diagnostics.exists() or diagnostics.is_dir()), 'Invalid private diagnostic directory')
+    paths = [(p, p.name) for p in sorted(store.glob('*.json'))]
+    if diagnostics.exists():
+        paths += [(p, 'diagnostic-' + p.name) for p in sorted(diagnostics.glob('*.json'))]
+    for path, name in paths:
+        require(path.is_file() and not path.is_symlink(), 'Private record is not an ordinary file')
+    return paths
+
+
+def export_local(host, store, require, reader):
+    """No stick: a checked copy in LOCAL, which proves nothing about a copy off the laptop.
+
+    The folder and its files stay root's. Only the login uid that called is
+    given read access, by one ACL entry, after every copy was read back; with
+    no such uid the copy stays root-only. An earlier export's folder is
+    replaced whole, so the copy is exactly today's records.
+    """
+    paths = private_records(store, require)
+    if LOCAL.exists() or LOCAL.is_symlink():
+        require(not LOCAL.is_symlink() and LOCAL.is_dir() and LOCAL.stat().st_uid == os.geteuid()
+            and all(p.is_file() and not p.is_symlink() for p in LOCAL.iterdir()),
+            'Local records folder is not an earlier export; preserve it and get help')
+        for old in LOCAL.iterdir():
+            old.unlink()
+        LOCAL.rmdir()
+    LOCAL.mkdir(mode=0o700)
+    for path, name in paths:
+        target = LOCAL / name
+        shutil.copyfile(path, target)
+        target.chmod(0o600)
+        require(hashlib.sha256(target.read_bytes()).digest() == hashlib.sha256(path.read_bytes()).digest(), 'Local record copy differs')
+    if reader:
+        # X: search permission for the folder only; the files have no execute bit to keep.
+        host.mutate('setfacl', '--recursive', '--modify', 'user:' + str(reader) + ':rX', '--', str(LOCAL))
+    return ['Tools stick absent: records copied to ' + str(LOCAL) + ' with SHA256 readback',
+            'This copy is on this laptop, not off it; ' + ('uid ' + str(reader) if reader else 'only root')
+            + ' can read it, and a restart deletes it',
+            'For a copy off the laptop plug in the tools stick and run export again']
+
+
+def export(host, store, accepted, checked_bundle, require, reader=None):
+    """accepted: the installed bundle's fingerprint first, then those this laptop installed before.
+
+    reader: the login uid that may read a copy left on this laptop, or None.
+    """
     device = find(host, require)
     if device is None:
-        return ['Tools stick absent; full records remain internal']
+        return export_local(host, store, require, reader)
     volume = device['volume']
     existing = [m for m in volume.get('mountpoints', []) if m]
     require(len(existing) <= 1, 'Tools stick has several mounts; close its users and get help')
     if existing:
         root = pathlib.Path(existing[0])
-        require(checked_bundle(root / 'ares-tools') == fingerprint, 'Mounted tools bundle differs')
+        require(checked_bundle(root / 'ares-tools') in accepted, 'Mounted tools bundle differs')
         host.mutate('umount', '--', str(root))
     require(not MOUNT.is_symlink() and not MOUNT.is_mount(), 'Tools mount point is already in use')
     MOUNT.mkdir(mode=0o700, exist_ok=True)
@@ -80,13 +132,8 @@ def export(host, store, fingerprint, checked_bundle, require):
     def inspect_records():
         destination = MOUNT / 'ares-records'
         require(not destination.is_symlink() and (not destination.exists() or destination.is_dir()), 'USB records path is not a directory')
-        diagnostics = store.parent / 'diagnostics'
-        require(not diagnostics.is_symlink() and (not diagnostics.exists() or diagnostics.is_dir()), 'Invalid private diagnostic directory')
-        paths = [(p, p.name) for p in sorted(store.glob('*.json'))]
-        if diagnostics.exists():
-            paths += [(p, 'diagnostic-' + p.name) for p in sorted(diagnostics.glob('*.json'))]
+        paths = private_records(store, require)
         for path, name in paths:
-            require(path.is_file() and not path.is_symlink(), 'Private record is not an ordinary file')
             target = destination / name
             require(not target.is_symlink() and (not target.exists() or target.is_file()), 'USB record is not an ordinary file')
             if target.exists():
@@ -99,13 +146,14 @@ def export(host, store, fingerprint, checked_bundle, require):
         # Inspect read-only first; no exFAT data is changed on a bad manifest.
         host.mutate('mount', '--read-only', '-o', 'nodev,nosuid,noexec', '--', volume['path'], str(MOUNT))
         mounted = True
-        require(checked_bundle(MOUNT / 'ares-tools') == fingerprint, 'Tools manifest differs; do not copy records')
+        found = checked_bundle(MOUNT / 'ares-tools')
+        require(found in accepted, 'Tools manifest differs; do not copy records')
         inspect_records()
         host.mutate('umount', '--', str(MOUNT))
         mounted = False
         host.mutate('mount', '-o', 'nodev,nosuid,noexec', '--', volume['path'], str(MOUNT))
         mounted = True
-        require(checked_bundle(MOUNT / 'ares-tools') == fingerprint, 'Tools bundle changed between mounts')
+        require(checked_bundle(MOUNT / 'ares-tools') == found, 'Tools bundle changed between mounts')
         destination, paths = inspect_records()
         destination.mkdir(exist_ok=True)
         for path, name in paths:
@@ -119,4 +167,6 @@ def export(host, store, fingerprint, checked_bundle, require):
     after = find(host, require)
     require(after and after['volume']['uuid'] == volume['uuid'] and
         not any(after['volume'].get('mountpoints', [])), 'Stick is not fully unmounted; do not remove it')
-    return ['Records copied with SHA256 readback', 'SAFE TO REMOVE ARESTOOLS; unplug before every shutdown/restart']
+    # A stick that stick-free updates left behind takes records but cannot install: say what it holds.
+    stale = [] if found == accepted[0] else ['The stick holds tools this laptop installed before (SHA256 ' + found + '), not the installed ones']
+    return ['Records copied with SHA256 readback', *stale, 'SAFE TO REMOVE ARESTOOLS; unplug before every shutdown/restart']
