@@ -203,3 +203,37 @@ test('page_state moves with a typed value and a tick, and carries no value',()=>
   assert.deepEqual([typed.address,ticked.address],[first.address,first.address]);
   assert.ok(!JSON.stringify([first,typed,ticked]).includes('two words'));
 });
+
+test('a shadow root met late: a typed field that already holds text is never read, and an empty one is watched from then on',()=>{
+  let host,late,empty;
+  const f=page(h=>[host=h('div',{}),h('input',{'aria-label':'Page field',value:'plain'})]);
+  assert.deepEqual(f.outline().nodes.map(({role,name,value})=>[role,name,value]),[['textbox','Page field','plain']]);
+  // A component attaches its root to an element that is already in the page: no observer sees it.
+  f.h.shadow(host,late=f.h('input',{'aria-label':'Code',value:'typed before the reader came',$secret:true}),empty=f.h('input',{'aria-label':'Nickname'}),
+    f.h('textarea',{'aria-label':'Notes',value:'draft',$secret:true}),f.h('input',{'aria-label':'Password',value:'never',$secret:true}),
+    f.h('input',{type:'checkbox','aria-label':'Tick',checked:''}),f.h('input',{type:'date','aria-label':'Born',value:'2001-02-03'}));
+  const fields=()=>f.outline().nodes.map(({id,parent,...rest})=>rest),after=[{role:'checkbox',name:'Tick',states:['checked']},{role:'textbox',name:'Born',value:'2001-02-03'},{role:'textbox',name:'Page field',value:'plain'}];
+  assert.deepEqual(fields(),[{role:'textbox',name:'Code',unread:true,filled:true},{role:'textbox',name:'Nickname',value:''},{role:'textbox',name:'Notes',unread:true,filled:true},{role:'password',name:'Password',unread:true},...after]);
+  // The asking read may list the two, by the reader's own mark, and never the field named like a credential.
+  const list=f.run({command:'typed_fields'});assert.equal(list.ok,true,JSON.stringify(list));
+  assert.deepEqual(list.data.fields.map(({label,type})=>[label,type]),[['Code','text'],['Notes','textarea']]);
+  // Claude doesn't type into the one it can't read.
+  const code=f.outline().nodes.find(node=>node.name==='Code').id,nickname=f.outline().nodes.find(node=>node.name==='Nickname').id;
+  f.run({command:'set_control',generation:'epoch'});
+  const refused=f.run({command:'focus',element:'e'+code,generation:'epoch'});assert.equal(refused.ok,false);assert.match(refused.error,/^owner_signin: the tool may not read this field/);
+  assert.doesNotMatch(String(f.run({command:'focus',element:'e'+nickname,generation:'epoch'}).error),/^owner_signin/);
+  // For the life of the document: emptied and filled again it stays unread; the one met empty is read; a field added later is watched from its start.
+  late.attrs.value='';empty.attrs.value='typed later';
+  const added=f.h('input',{'aria-label':'Added',value:'new'});added.root=host.shadowRoot;host.shadowRoot.childNodes.push(added);
+  assert.deepEqual(fields(),[{role:'textbox',name:'Code',unread:true,filled:false},{role:'textbox',name:'Nickname',value:'typed later'},{role:'textbox',name:'Notes',unread:true,filled:true},{role:'password',name:'Password',unread:true},
+    ...after.slice(0,2),{role:'textbox',name:'Added',value:'new'},after[2]]);
+  late.attrs.value='again';assert.deepEqual(fields()[0],{role:'textbox',name:'Code',unread:true,filled:true});
+  assert.equal(f.run({command:'page_state'}).ok,true);
+});
+
+test('a shadow root that is in the page when the reader arrives: its filled typed fields are unread too, in a watched document',()=>{
+  // The reader can't tell a component's own default from text typed before it met the root (KNOWN-LIMITS).
+  const f=page(h=>[h.shadow(h('div',{}),h('input',{'aria-label':'Search',value:'a default',$secret:true}),h('input',{'aria-label':'Empty'})),h('input',{'aria-label':'Outside',value:'read'})]);
+  assert.deepEqual(f.outline().nodes.map(({id,parent,...rest})=>rest),[{role:'textbox',name:'Search',unread:true,filled:true},{role:'textbox',name:'Empty',value:''},{role:'textbox',name:'Outside',value:'read'}]);
+});
+

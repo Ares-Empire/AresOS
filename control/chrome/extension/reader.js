@@ -12,6 +12,9 @@
   const privacy=globalThis[privacyKey]??={protectedFields:new WeakSet(),observed:new WeakSet(),fileIdentities:new WeakMap()};
   const watched=privacy.watched??=globalThis[Symbol.for('aresos.chrome.document-start.v1')]===true;
   const {protectedFields,fileIdentities}=privacy;
+  // Shadow roots the reader has met, and the typed fields that already held
+  // text at that first meeting (meet, below). Document lifetime, like the rest.
+  privacy.metRoots??=new WeakSet();privacy.lateFields??=new WeakSet();
   const protectedKey=Symbol.for('aresos.chrome.password-node.v1');
   const protectNode=node=>{protectedFields.add(node);if(!Object.getOwnPropertyDescriptor(node,protectedKey))Object.defineProperty(node,protectedKey,{value:true});};
   const guard=globalThis[Symbol.for('aresos.chrome.guard.v2')];
@@ -68,7 +71,7 @@
     const found = [root];
     for (const element of root.querySelectorAll('*')) {
       const childShadow = shadow(element);
-      if (childShadow) { guard.watch(childShadow); found.push(...roots(childShadow)); }
+      if (childShadow) { guard.watch(childShadow); if(meet(childShadow))observe(childShadow); found.push(...roots(childShadow)); }
     }
     return found;
   }
@@ -156,12 +159,25 @@
     }
     return false;
   }
+  // Brief 28, item 1 (the history rule inside a watched document). A shadow
+  // root attached to an element that is already in the page causes no change
+  // an observer sees, so the owner can type into its field and make it plain
+  // before the reader meets the root at all. A typed field that already
+  // holds text at that first meeting has no known history, for the life of
+  // the document; an empty one is watched from then on. The check looks at
+  // whether a field is filled, never at its value. True when the root is new.
+  function meet(root){
+    if(privacy.metRoots.has(root))return false;
+    privacy.metRoots.add(root);
+    for(const element of root.querySelectorAll('input,textarea'))if(typedField(element)&&!password(element)&&filledStatus(element)==='filled')privacy.lateFields.add(element);
+    return true;
+  }
   function remember(root) {
     if(!watchedRoots.has(root)){watchedRoots.add(root);guard.watch(root);}
     for (const element of root.querySelectorAll('input,textarea,[contenteditable]')) password(element);
     for (const element of root.querySelectorAll('*')) {
       const childShadow = shadow(element);
-      if (childShadow) { guard.watch(childShadow); observe(childShadow); remember(childShadow); }
+      if (childShadow) { guard.watch(childShadow); meet(childShadow); observe(childShadow); remember(childShadow); }
     }
   }
   const changed = changes => {
@@ -286,7 +302,7 @@
   // Whether the reader can't know what a typed field held before it looked
   // (brief 28, item 1, the history rule): its value is not read, the asking
   // read may list it, and Claude doesn't type into it.
-  const unknownHistory=element=>!watched;
+  const unknownHistory=element=>!watched||privacy.lateFields.has(element);
   function typedField(element) {
     // This shared predicate controls normal reads, approval scope and reload warnings.
     return html(element,HTMLTextAreaElement,'textarea')||html(element,HTMLInputElement,'input')&&!['hidden','password','checkbox','radio','date','datetime-local','month','week','time','range','color','file','button','submit','reset','image'].includes(element.type);
@@ -300,7 +316,7 @@
     return element.validity?.badInput||!copy.validity.valueMissing?'filled':'empty';
   }
   function typedFields() {
-    return {document:documentId,reader:readerInstance,fields:watched?[]:all().filter(element=>typedField(element)&&!password(element)).map((element,index)=>({element:id(element),label:name(element)||(html(element,HTMLTextAreaElement,'textarea')?'textarea ':'single-line field ')+(index+1),type:element.type}))};
+    return {document:documentId,reader:readerInstance,fields:all().filter(element=>typedField(element)&&!password(element)&&unknownHistory(element)).map((element,index)=>({element:id(element),label:name(element)||(html(element,HTMLTextAreaElement,'textarea')?'textarea ':'single-line field ')+(index+1),type:element.type}))};
   }
   function readTypedFields(message) {
     if(message.approved!==true||!message.operation||typedReads.has(message.operation))throw Error('refused: typed fields require a fresh one-call approval');
