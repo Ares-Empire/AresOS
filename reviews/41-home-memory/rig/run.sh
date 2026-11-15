@@ -44,6 +44,10 @@ BASE=$WORK/AresHub-base
 SAVE=$WT/mod/run/saves/AresHub
 FRAMES_JAR=$WORK/pkg41-frames.jar
 [[ ! -e $RIG ]] || { echo "$RIG exists already; pick another name" >&2; exit 2; }
+# The world copy below happens before start.sh takes the lock: never next to another run of this rig.
+if [[ -n $(systemctl --user list-units --no-legend --plain 'pkg41-rig-*' 'pkg41-game-*' 2>/dev/null) ]]; then
+    echo "another run of this rig is going; run one at a time" >&2; exit 75
+fi
 mkdir -p "$RIG" "$HOMEDIR" "$WT/mod/run/saves"
 [[ -d $APPS ]] || python3 -I "$here/make-apps.py" "$APPS"
 "$here/../frames/build.sh" "$FRAMES_JAR" >/dev/null
