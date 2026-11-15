@@ -61,6 +61,7 @@ def window(start, end):
         stats.update(frames=len(gaps), fps=round(len(gaps) / ((inside[-1] - inside[0]) / 1e9), 1),
                      avg_ms=round(statistics.fmean(gaps), 2), p50_ms=round(gaps[len(gaps) // 2], 2),
                      p99_ms=round(gaps[min(len(gaps) - 1, int(len(gaps) * 0.99))], 2), max_ms=round(gaps[-1], 1),
+                     over_17ms=sum(g > 17 for g in gaps), over_33ms=sum(g > 33.4 for g in gaps),
                      over_50ms=sum(g > 50 for g in gaps), over_100ms=sum(g > 100 for g in gaps))
     in_window = [p for p in pauses if start <= p[0] - p[1] * 1e6 < end]
     stats.update(gc_pauses=len(in_window), gc_max_ms=round(max((p[1] for p in in_window), default=0), 2),
