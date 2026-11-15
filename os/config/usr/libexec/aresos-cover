@@ -116,7 +116,10 @@ def main(argv=None):
     # Without a GApplication, GTK names the Wayland app-id after the program name.
     GLib.set_prgname(APP_ID)
     GLib.set_application_name(TITLE)
-    if not Gtk.init_check():
+    gi.require_version('Gdk', '4.0')
+    from gi.repository import Gdk
+    # PyGObject may have tried GTK's start already on import; either way there must be a display now.
+    if not Gtk.init_check() or Gdk.Display.get_default() is None:
         print('aresos-cover: no display to draw on', file=sys.stderr)
         return 1
     loop = GLib.MainLoop()
