@@ -355,7 +355,10 @@ class Walk:
             'chmod 0644 /run/aresos-standin.bundle',
             AS_ARES + 'git clone --quiet --bare /run/aresos-standin.bundle ' + GUEST_ORIGIN,
             AS_ARES + 'git -C ' + GUEST_ORIGIN + ' update-ref refs/heads/main ' + commits[V3_COMMIT],
-            AS_ARES + 'git clone --quiet ' + GUEST_ORIGIN + ' ' + self.bootstrap.CHECKOUT,
+            # The bundle carries main but no HEAD: without this the bare clone's HEAD names the guest git's
+            # default branch (master), and the checkout's clone has nothing to check out (VM run 43699785728).
+            AS_ARES + 'git -C ' + GUEST_ORIGIN + ' symbolic-ref HEAD refs/heads/main',
+            AS_ARES + 'git clone --quiet --branch main ' + GUEST_ORIGIN + ' ' + self.bootstrap.CHECKOUT,
             'test "$(' + AS_ARES + 'git -C ' + self.bootstrap.CHECKOUT + ' rev-parse HEAD)" = ' + commits[V3_COMMIT],
             # The tree the guest's lines read is the real commit's (git names a tree by its content).
             'test "$(' + AS_ARES + 'git -C ' + self.bootstrap.CHECKOUT + ' rev-parse HEAD:os/owner-tools)" = '

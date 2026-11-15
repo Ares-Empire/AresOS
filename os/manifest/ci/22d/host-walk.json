@@ -187,7 +187,7 @@
       "path": "os/ci/switch_vm.py"
     },
     {
-      "sha256": "ca164d50982be4685c6074a2bf83b6dd65301324f5b362404268b27c7907e86d",
+      "sha256": "15c59ef3bdc41e819f00f358c60c2a84d7b334cdfe8795cb1502d290ebf6c93e",
       "path": "os/ci/tools_local.py"
     },
     {
