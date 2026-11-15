@@ -4,6 +4,7 @@ import dev.aresos.AresOs;
 import dev.aresos.shell.ShellClient;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
+import net.minecraft.sounds.SoundSource;
 
 import java.util.Locale;
 
@@ -23,7 +24,8 @@ import java.util.Locale;
  * says so ({@code shell_covered}) and the world pauses without a screen and draws at most {@link #COVERED_FRAME_LIMIT}
  * frames a second. A smaller window leaves it moving (owner, 2026-11-15). Heartbeats and {@code world_ready} do not
  * change: they come from the shell client's own threads and from {@link ShellFocusClient#readyWorld}, which a pause
- * without a screen leaves as it is.
+ * without a screen leaves as it is. While covered the home screen is silent, music included, and every sound goes on
+ * where it was when the cover ends (orchestrator, 2026-11-15); with a smaller window in front the sound goes on.
  */
 public final class HomeScreen {
     private static final boolean SESSION = System.getProperty("os.name").toLowerCase(Locale.ROOT).startsWith("linux")
@@ -35,8 +37,8 @@ public final class HomeScreen {
     private static boolean appInFront;
     private static boolean wasFocused = true;
     private static boolean covered;
-    // Client thread only: the pause at the last tick was ours, so its end must start the sounds it stopped.
-    private static boolean pausedForCover;
+    // Client thread only: the sounds were paused for the cover at the last frame, so its end must start them again.
+    private static boolean silenced;
 
     private HomeScreen() { }
 
@@ -69,14 +71,23 @@ public final class HomeScreen {
     }
 
     /**
-     * What {@code Minecraft.runTick} uses to decide the pause, given what the open screen says. Minecraft pauses only
-     * sounds when a pause begins and starts them again only when a screen closes, so the end of a pause without a
-     * screen starts them here.
+     * What {@code Minecraft.runTick} uses to decide the pause, given what the open screen says; once a frame. It also
+     * keeps a covered home screen silent. Minecraft's own pause stops every sound but the music and the interface's,
+     * and starts them again only when a screen closes. So while covered every sound is paused, at every frame: a screen
+     * closing starts them all again, and a sound that begins meanwhile (a toast) is caught at the next frame. The music
+     * starts no new song meanwhile ({@code MusicCoveredMixin}). When the cover ends each sound goes on where it was,
+     * and under a pausing screen Minecraft's own pause stays as it was: its music and its buttons' sounds play.
      */
     public static boolean pausing(Minecraft client, boolean screenPauses) {
         boolean cover = covered(client);
-        if (pausedForCover && !cover && !screenPauses) client.getSoundManager().resume();
-        pausedForCover = cover && !screenPauses;
+        var sounds = client.getSoundManager();
+        if (cover) {
+            sounds.pauseAllExcept();
+        } else if (silenced) {
+            sounds.resume();
+            if (screenPauses) sounds.pauseAllExcept(SoundSource.MUSIC, SoundSource.UI);
+        }
+        silenced = cover;
         return screenPauses || cover;
     }
 
