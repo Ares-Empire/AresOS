@@ -302,13 +302,13 @@ keep brief 20's rule and say so (PLAN-GAP).
      `chrome_take_reload`'s one input is that approval, passed unchanged (main's `APPROVAL_INSTRUCTION`), so Claude
      Code's prompt shows the question. It sits under the managed ask rules like `chrome_submit`, with the rule
      `mcp__chrome__take_reload`. On `main` that rule is generated from the action's effect (`send` or `delete`,
-     `control/generate.py`); `delete` fits, since the reload throws away what the page holds, and needs no change
-     to the base. If it doesn't fit, say why (PLAN-GAP). The approval is used once and expires as main's prepared
-     operations do. The service refuses an approval that doesn't match the tab's present state: it runs the check
-     again, as the last thing before the reload, and if the page changed since the question (a new document, or a
-     loss the question didn't show: another field changed, typing of his where the question showed Claude's, media
-     that started), it changes nothing and answers `reload_required` again, with the new findings and a new
-     approval.
+     `control/generate.py`). The first choice is effect `delete` (the lead, 2026-11-15): the reload throws away
+     what the page holds, and it needs no change to the base. If it doesn't fit, stop and report (PLAN-GAP). The
+     approval is used once and expires as main's prepared operations do. The service refuses an approval that doesn't
+     match the tab's present state: it runs the check again, as the last thing before the reload, and if the page
+     changed since the question (a new document, or a loss the question didn't show: another field changed, typing of
+     his where the question showed Claude's, media that started), it changes nothing and answers `reload_required`
+     again, with the new findings and a new approval.
    - **On a tab already taken, the approval comes from the refusal that sends Claude there** (`chrome_go` or a
      `chrome_do` step, below). The check that prepares it is brief 20's (`requireDiscard` with `reloadState`) on the
      tab's watched document, run as the last thing before the navigation or the reload: it names fields by label
@@ -489,8 +489,8 @@ The owner, 2026-11-13 (board #201): "Yes, when I ask."
   with the reason. **There is no input that closes a kept tab:** where work could be lost, or the tool can't tell,
   he closes the tab himself. A tab he has clicked or typed in is such a tab, so "close these tabs" often closes
   some and keeps some: the result names both lists, and Claude tells him which ones are left for him and why.
-  `discard_unsaved` (brief 28a) is for Claude's tabs: it never overrides item 4a for a tab of his, also when the
-  same call closes a Claude tab with it.
+  `discard_unsaved` (brief 28a) is for Claude's tabs, one tab per call: it never overrides item 4a for a tab of
+  his.
 - The result lists each closed tab with its title and its address in the short form, so Claude tells him.
 - A page of the fixed list or his never-list is never closed by Claude. A taken tab is given back first.
 
@@ -553,18 +553,17 @@ Into the descriptions, each on its own tool only:
 - `chrome_take_reload`: it shows him what the reload would lose and asks; afterwards, repeat a refused `chrome_go`,
   or read before acting.
 
-The size pins of brief 28a move with this package (the lead, 2026-11-15, and after review 4):
+The size pins move with this package (the lead, 2026-11-15, after review 4). Start from brief 28a's final measured
+totals, which its test pins, and add at most:
 
-- descriptions plus instructions at most 12,750 characters: brief 28a's 11,300; the block and the first three
-  description points, about 1,050 together (moving a point between the instructions and a description leaves this
-  total as it is); and about 400 for the description of `chrome_take_reload`, its point above and main's
-  `APPROVAL_INSTRUCTION` included;
-- names plus input schemas at most 7,350 characters: brief 28a's 6,560; about 400 for the inputs this package adds
-  to existing tools (`request` on five tools, about 56 characters each as compact JSON with its length bounds, and
-  `seen` on the three that didn't have it, `chrome_read`, `chrome_close` and `chrome_prepare_read_typed_fields`,
-  about 40 each), with 100 of margin for their exact form; and about 290 for `chrome_take_reload`'s name and input,
-  main's `APPROVAL` (`chrome_read_typed_fields` takes the same input and measures 285 on main: 17 for its name, 268
-  for the schema).
+- 1,300 characters to all descriptions plus the instructions: the block above, the description points, and the
+  description of `chrome_take_reload` (main's `APPROVAL_INSTRUCTION` included); moving a point between the
+  instructions and a description leaves this total as it is;
+- 300 characters to all names plus input schemas: `request` on five tools, `seen` on the three that didn't have it
+  (`chrome_read`, `chrome_close`, `chrome_prepare_read_typed_fields`), and `chrome_take_reload`'s name and input,
+  main's `APPROVAL`.
+
+Pin the exact final totals. If they don't fit, stop and tell the lead (PLAN-GAP).
 
 The tool list grows from brief 28a's nineteen to twenty, with `chrome_take_reload`.
 
@@ -715,9 +714,9 @@ owner with real keys and clicks (`owner-ui.mjs`). Every new rule gets a test tha
 - **Closing:** every tab of the "taking" list above that isn't known clean stays open and is listed as kept with
   its reason, the wizard tab among them with the reason that he used the page; no input of `chrome_close` closes
   it; the known clean ones close and are listed with title and address; a taken tab and a fixed-list tab are
-  refused; a close without `request` or `seen` is refused. A call with `discard_unsaved: true` that names a Claude
-  tab holding Claude's typing and an untaken tab of his that isn't known clean closes the Claude tab and keeps his,
-  with its reason.
+  refused; a close without `request` or `seen` is refused. `chrome_close` with `discard_unsaved: true` and only an
+  untaken tab of his that isn't known clean keeps it, with its reason; with that tab and a Claude tab, the call is
+  refused (brief 28a's one tab per flag) and both stay open.
 - **Passwords:** group 7's known password in a field he switched to plain text **before** Claude's first read,
   with a label that says nothing ("Code"): by its `type` (to `text`, and also to `search`, `email` and `url`),
   once by a removed `autocomplete`, once by a removed mask (as a style and as a class, on an `input` and on a
