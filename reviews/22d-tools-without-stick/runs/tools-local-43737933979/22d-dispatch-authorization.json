@@ -1,0 +1,1036 @@
+{
+  "allowance": "22d",
+  "start": "2026-11-15T02:48:30Z",
+  "cap": 2400,
+  "full_cap": 0,
+  "full_dispatched": 0,
+  "part_b_cap": 0,
+  "part_b_dispatched": 0,
+  "dispatch_caps": {
+    "checks": 20,
+    "tools-local": 6
+  },
+  "dispatch_counts": {
+    "checks": 11,
+    "tools-local": 4
+  },
+  "consumed_minutes": 776,
+  "reserved_minutes": 345,
+  "runs": [
+    {
+      "run": 43729592775,
+      "title": "OS regressions only (no VM)",
+      "sha": "89bc06581e799af7cd901c25840cac3cd89de454",
+      "conclusion": "success",
+      "minutes": 50,
+      "jobs": [
+        {
+          "job": 132858881551,
+          "name": "Regression checks only (no image build or VM)",
+          "response_sha256": "485a843ad212d549a9726e948bade9e8aab98b07e239e0d6aee69eb159d13356",
+          "minutes": 22,
+          "rule": "job-interval",
+          "selected_start": "2026-11-15T16:21:22+00:00",
+          "selected_completion": "2026-11-15T16:43:04+00:00",
+          "seconds": 1302.0,
+          "step_count": 15,
+          "full_bound": 40
+        },
+        {
+          "job": 132858881813,
+          "name": "Full ways-back model when its sources changed (no image build or VM)",
+          "response_sha256": "19576a00de7f35c2b3fc694f32cc432e5277beba435c295c1e643626560c33c8",
+          "minutes": 28,
+          "rule": "job-interval",
+          "selected_start": "2026-11-15T16:24:29+00:00",
+          "selected_completion": "2026-11-15T16:51:34+00:00",
+          "seconds": 1625.0,
+          "step_count": 7,
+          "full_bound": 40
+        },
+        {
+          "job": 132858882861,
+          "name": "Package 27 release build, image diff, VM and publish",
+          "response_sha256": "6167938afaa5ad4d34f7a9cca95c5b5a5fd96291395b6b7d108f53701e5d1b51",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "job": 132858883139,
+          "name": "Throwaway image build and checks (never pushed, signed or published)",
+          "response_sha256": "39fe1404c571968af23ce804f66be9a82e7df0b70c40dec5f0b3a332991ee4ef",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "job": 132858883200,
+          "name": "image",
+          "response_sha256": "34a886d6081d7ef064df09ad2a78cf76b7878c62fe286136e3b199cb22f0d4a2",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "job": 132858883203,
+          "name": "Pinned live ISO inspection and two-disk rehearsal",
+          "response_sha256": "3262e681caf481ab9528b86e4eef7f8331eee3ea497891dc13921e61e6dce426",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "job": 132858883730,
+          "name": "Published-image switch and rollback",
+          "response_sha256": "9c679cb3e7031b4426bffbf256752f3e998346d8a8d306796c7d9df020c34cca",
+          "minutes": 0,
+          "rule": "skipped"
+        }
+      ]
+    },
+    {
+      "run": 43714310216,
+      "title": "Two-disk rehearsal (tools-local)",
+      "sha": "fca1d2a18d9f21f8cfa9ae2b139a1fa52921dad0",
+      "conclusion": "failure",
+      "minutes": 131,
+      "jobs": [
+        {
+          "job": 132812421386,
+          "name": "Pinned live ISO inspection and two-disk rehearsal",
+          "response_sha256": "66ebadfc41c3661d02552c4f111527ec963c695412a8a8b67227a12d03017d5d",
+          "minutes": 131,
+          "rule": "job-interval",
+          "selected_start": "2026-11-15T12:47:38+00:00",
+          "selected_completion": "2026-11-15T14:58:10+00:00",
+          "seconds": 7832.0,
+          "step_count": 23,
+          "full_bound": 345
+        },
+        {
+          "job": 132812422356,
+          "name": "Package 27 release build, image diff, VM and publish",
+          "response_sha256": "9810e174828370876bb7f0cbd06ba8b23a970ef2f714351bc770bd8a1b322ba2",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "job": 132812422466,
+          "name": "image",
+          "response_sha256": "3606d4247ce1c7e4548e4574975705c4dd70f2d3d22e0bbda54dc7230c2c3e37",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "job": 132812422487,
+          "name": "Throwaway image build and checks (never pushed, signed or published)",
+          "response_sha256": "3a6ea0ff8b6ca483e2c318e876d59aeffb43fa09fbfa01a1e753c02c1ae2bb0c",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "job": 132812422559,
+          "name": "Full ways-back model when its sources changed (no image build or VM)",
+          "response_sha256": "ed10ac8f77d8f98349799b4a2278e1f3debd5a094dd5c5ba47fdcdaf9a7e4e0b",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "job": 132812422609,
+          "name": "Regression checks only (no image build or VM)",
+          "response_sha256": "173e0b39d42168c94d9d4157f3bdd7d30ffd42cef4f13b6dfc0c409a961ff588",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "job": 132812423040,
+          "name": "Published-image switch and rollback",
+          "response_sha256": "66d27ac4db5dc4c2a8b4652311313d7082f25c0143167efad64c54df2dff2960",
+          "minutes": 0,
+          "rule": "skipped"
+        }
+      ]
+    },
+    {
+      "run": 43711854369,
+      "title": "OS regressions only (no VM)",
+      "sha": "fca1d2a18d9f21f8cfa9ae2b139a1fa52921dad0",
+      "conclusion": "success",
+      "minutes": 43,
+      "jobs": [
+        {
+          "job": 132804933372,
+          "name": "Full ways-back model when its sources changed (no image build or VM)",
+          "response_sha256": "cb6bdc518e46fc9a2835ffb4be1ba59d87d57093ac362667f7f7c2509698d7ad",
+          "minutes": 19,
+          "rule": "job-interval",
+          "selected_start": "2026-11-15T12:03:11+00:00",
+          "selected_completion": "2026-11-15T12:21:37+00:00",
+          "seconds": 1106.0,
+          "step_count": 7,
+          "full_bound": 40
+        },
+        {
+          "job": 132804933590,
+          "name": "Regression checks only (no image build or VM)",
+          "response_sha256": "4a8606102f4112b5630169222b077c0c8b77954ade5ee264a861fe8d8ca488ad",
+          "minutes": 24,
+          "rule": "job-interval",
+          "selected_start": "2026-11-15T12:07:13+00:00",
+          "selected_completion": "2026-11-15T12:31:12+00:00",
+          "seconds": 1439.0,
+          "step_count": 15,
+          "full_bound": 40
+        },
+        {
+          "job": 132804934101,
+          "name": "Package 27 release build, image diff, VM and publish",
+          "response_sha256": "d40d29dbb422b9c4e451679727b428051b27addaf023ebc783b64a3409b865cc",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "job": 132804934283,
+          "name": "image",
+          "response_sha256": "19225b362465eb50b070b3ce31f5bd4d30e9cf4575641674631c6dfdd612d368",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "job": 132804934588,
+          "name": "Pinned live ISO inspection and two-disk rehearsal",
+          "response_sha256": "99ce01c3bd55a1c1fc7ca36d13ac1c56bf25a1a7b4409bcad15faa97953bb4e9",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "job": 132804934620,
+          "name": "Throwaway image build and checks (never pushed, signed or published)",
+          "response_sha256": "b0cbdf2b9a6d6671c941df82fa63b41e696a0df66f551454c9d602fea05ecb82",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "job": 132804935157,
+          "name": "Published-image switch and rollback",
+          "response_sha256": "74c89e760b2bf3282f5251b05ae748e49117d0bb5f43466de9d228906bc25ebc",
+          "minutes": 0,
+          "rule": "skipped"
+        }
+      ]
+    },
+    {
+      "run": 43708664425,
+      "title": "OS regressions only (no VM)",
+      "sha": "1b733a4fb6e22a20816c0e035f4d29cb498c87c9",
+      "conclusion": "success",
+      "minutes": 49,
+      "jobs": [
+        {
+          "job": 132795230765,
+          "name": "Full ways-back model when its sources changed (no image build or VM)",
+          "response_sha256": "bed11e992c725641c02983c3443e3989e6e379eb28d8d4e32eb17266e4355c66",
+          "minutes": 27,
+          "rule": "job-interval",
+          "selected_start": "2026-11-15T11:23:20+00:00",
+          "selected_completion": "2026-11-15T11:49:55+00:00",
+          "seconds": 1595.0,
+          "step_count": 7,
+          "full_bound": 40
+        },
+        {
+          "job": 132795230932,
+          "name": "Regression checks only (no image build or VM)",
+          "response_sha256": "ab572126d69f4431ad5c3691128037f3563736e52574d8fd16e1d2dc4e1c094d",
+          "minutes": 22,
+          "rule": "job-interval",
+          "selected_start": "2026-11-15T11:24:51+00:00",
+          "selected_completion": "2026-11-15T11:46:16+00:00",
+          "seconds": 1285.0,
+          "step_count": 15,
+          "full_bound": 40
+        },
+        {
+          "job": 132795231808,
+          "name": "Pinned live ISO inspection and two-disk rehearsal",
+          "response_sha256": "51a7fab8d90c95a580450c2c412e25fad68dd0343afb65eeefb889760ce18ba8",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "job": 132795231936,
+          "name": "image",
+          "response_sha256": "d9b080610980e3a3bd7370cc1def732eef5869cb845dc092b4c97ae37ff4cbcb",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "job": 132795231990,
+          "name": "Throwaway image build and checks (never pushed, signed or published)",
+          "response_sha256": "fba2418336abc9d2d1357fbf99cb561aacf7833a50b89ba66f458f237c8a9043",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "job": 132795232001,
+          "name": "Package 27 release build, image diff, VM and publish",
+          "response_sha256": "006b37c3d50412a53d6cb08e0fc3cd5d3e368c6811bd5507833d2b6c35125b99",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "job": 132795232044,
+          "name": "Published-image switch and rollback",
+          "response_sha256": "0d1b927722540d960d7a982362d60d75ee40fed516bc26b01e7be2217c6eaee8",
+          "minutes": 0,
+          "rule": "skipped"
+        }
+      ]
+    },
+    {
+      "run": 43699785728,
+      "title": "Two-disk rehearsal (tools-local)",
+      "sha": "7889ba5e8a3f47b7da983da9d4c35b3bbdd44226",
+      "conclusion": "failure",
+      "minutes": 98,
+      "jobs": [
+        {
+          "job": 132768183382,
+          "name": "Pinned live ISO inspection and two-disk rehearsal",
+          "response_sha256": "fa93fa98dc1c5b2374efc781d533ac52be20c609abe809a51a7da77bf6fbbd90",
+          "minutes": 98,
+          "rule": "job-interval",
+          "selected_start": "2026-11-15T09:38:44+00:00",
+          "selected_completion": "2026-11-15T11:16:33+00:00",
+          "seconds": 5869.0,
+          "step_count": 23,
+          "full_bound": 345
+        },
+        {
+          "job": 132768184343,
+          "name": "Package 27 release build, image diff, VM and publish",
+          "response_sha256": "630b4c170b48b39ac7acf2c6793b6bb49af5fa61af490b862b9cfc5eacb63083",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "job": 132768184386,
+          "name": "image",
+          "response_sha256": "bcf7e4a91d900f32f9fdd089903bbfffe410c3f1fa2668e46e0810a17a5cfae0",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "job": 132768184557,
+          "name": "Published-image switch and rollback",
+          "response_sha256": "58dccc20d1dbf8203205ffc07304d295fcef83d77e1084cde7347f0ee4b2bf55",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "job": 132768184565,
+          "name": "Throwaway image build and checks (never pushed, signed or published)",
+          "response_sha256": "d085df471f91b738875f30ee98f1219955fdcc6754593f84846acb0de02dcc94",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "job": 132768184575,
+          "name": "Full ways-back model when its sources changed (no image build or VM)",
+          "response_sha256": "0d1601400c70218a34a816b162155c8e6569fe8d14162861afb8d42cc6fc7c30",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "job": 132768223539,
+          "name": "Regression checks only (no image build or VM)",
+          "response_sha256": "50074c5fe56bf292b813a00a1234bbff1b4d65af1ce0d3bb9cb8bf206c1f0fa9",
+          "minutes": 0,
+          "rule": "skipped"
+        }
+      ]
+    },
+    {
+      "run": 43697096434,
+      "title": "OS regressions only (no VM)",
+      "sha": "7889ba5e8a3f47b7da983da9d4c35b3bbdd44226",
+      "conclusion": "success",
+      "minutes": 47,
+      "jobs": [
+        {
+          "job": 132759984639,
+          "name": "Regression checks only (no image build or VM)",
+          "response_sha256": "cf630008e09d7f42caa92a609f2ea0d3f3bc53c7c75ae1e912ca95114de3dce2",
+          "minutes": 32,
+          "rule": "job-interval",
+          "selected_start": "2026-11-15T09:00:23+00:00",
+          "selected_completion": "2026-11-15T09:31:45+00:00",
+          "seconds": 1882.0,
+          "step_count": 15,
+          "full_bound": 40
+        },
+        {
+          "job": 132759984892,
+          "name": "Full ways-back model when its sources changed (no image build or VM)",
+          "response_sha256": "6e585f6dc75a1d4a75e21fbe420338f07adbb5bbdc3f6f7515ebb127a7b36fa0",
+          "minutes": 15,
+          "rule": "job-interval",
+          "selected_start": "2026-11-15T09:02:32+00:00",
+          "selected_completion": "2026-11-15T09:17:18+00:00",
+          "seconds": 886.0,
+          "step_count": 7,
+          "full_bound": 40
+        },
+        {
+          "job": 132759985869,
+          "name": "Pinned live ISO inspection and two-disk rehearsal",
+          "response_sha256": "38dcb08c01039688b422b925832edf7a81838629ed181e9f7eca074429b5be13",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "job": 132759985895,
+          "name": "image",
+          "response_sha256": "13778a48595122958c8bc526196eb98e1093df52f30bdd4c6bdd7b583dae0e5e",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "job": 132759985905,
+          "name": "Package 27 release build, image diff, VM and publish",
+          "response_sha256": "adc4bc4915adba9921e88d7af7845411726ad20718571c2677188f367c3e6317",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "job": 132759985922,
+          "name": "Throwaway image build and checks (never pushed, signed or published)",
+          "response_sha256": "deef22f715e21dd60817dd45422313f2b688b200a726faedc86e8abfd9b76b84",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "job": 132759986056,
+          "name": "Published-image switch and rollback",
+          "response_sha256": "f6fe90d4cabab4dfa1e955f3d0463fe6c85e5918e2de4b6a695237a04e1d7b90",
+          "minutes": 0,
+          "rule": "skipped"
+        }
+      ]
+    },
+    {
+      "run": 43694335353,
+      "title": "OS regressions only (no VM)",
+      "sha": "34fb5eacbb8ccb0093d6a22ca84579ef920bcf0f",
+      "conclusion": "failure",
+      "minutes": 50,
+      "jobs": [
+        {
+          "job": 132751444380,
+          "name": "Regression checks only (no image build or VM)",
+          "response_sha256": "f7905218650b03771dab29b15c673d4af59c9f7153ce28b697dccb941d4c3660",
+          "minutes": 31,
+          "rule": "job-interval",
+          "selected_start": "2026-11-15T08:24:17+00:00",
+          "selected_completion": "2026-11-15T08:54:55+00:00",
+          "seconds": 1838.0,
+          "step_count": 15,
+          "full_bound": 40
+        },
+        {
+          "job": 132751444569,
+          "name": "Full ways-back model when its sources changed (no image build or VM)",
+          "response_sha256": "d6823eba60b9b3a2ca5aa8bf6981a34e3d6fd5acd8b876388259eb426cbde29b",
+          "minutes": 19,
+          "rule": "job-interval",
+          "selected_start": "2026-11-15T08:24:17+00:00",
+          "selected_completion": "2026-11-15T08:42:35+00:00",
+          "seconds": 1098.0,
+          "step_count": 7,
+          "full_bound": 40
+        },
+        {
+          "job": 132751445457,
+          "name": "Package 27 release build, image diff, VM and publish",
+          "response_sha256": "3de05fb89053158588282057a6a9813c8b0e6d3ea55035a9daa5b7cc4cbb9d77",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "job": 132751445466,
+          "name": "Pinned live ISO inspection and two-disk rehearsal",
+          "response_sha256": "7cf32dc9d666fbdb47114a9ae8bbe70d7b932e82105ea2218bfaf28928343861",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "job": 132751445524,
+          "name": "Throwaway image build and checks (never pushed, signed or published)",
+          "response_sha256": "7dcb361fbb7853ea14e55a9059d5d0d406ecd2a523d0345cf7df8bc1f7b08a33",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "job": 132751445604,
+          "name": "image",
+          "response_sha256": "0cb8afbc5f30647e3e3afb73c959beef8eb86958003f44a42dd4d22d4f726893",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "job": 132751445703,
+          "name": "Published-image switch and rollback",
+          "response_sha256": "c5540d6ca829f3202f852b8f9d0f7909b07c460ee5636c25194e8eb11d1b670f",
+          "minutes": 0,
+          "rule": "skipped"
+        }
+      ]
+    },
+    {
+      "run": 43690565301,
+      "title": "Two-disk rehearsal (tools-local)",
+      "sha": "cb2a1eeca5de6471cab77ef789b44d885c0f0c42",
+      "conclusion": "failure",
+      "minutes": 27,
+      "jobs": [
+        {
+          "job": 132740142311,
+          "name": "Pinned live ISO inspection and two-disk rehearsal",
+          "response_sha256": "dfbaf4302f4b2902d179c3cfeac4e6545a3a2fdd58e4b4ebfcf70ca1c692297a",
+          "minutes": 27,
+          "rule": "job-interval",
+          "selected_start": "2026-11-15T07:36:22+00:00",
+          "selected_completion": "2026-11-15T08:02:36+00:00",
+          "seconds": 1574.0,
+          "step_count": 23,
+          "full_bound": 345
+        },
+        {
+          "job": 132740142998,
+          "name": "Throwaway image build and checks (never pushed, signed or published)",
+          "response_sha256": "679acd199e6c639a71fdb58bb631a5a01426de7bf70582278a0939f6409b1af1",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "job": 132740143073,
+          "name": "Package 27 release build, image diff, VM and publish",
+          "response_sha256": "a8ef2d7b6a722a223070dbd19f26fe8bba2ef940ec607b2154112eb7e1b55b51",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "job": 132740143124,
+          "name": "Full ways-back model when its sources changed (no image build or VM)",
+          "response_sha256": "f90611abb78a9d9ba83644bdbd17697a2352b286ccfccc2d181ec5e6e7f655d2",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "job": 132740143137,
+          "name": "Published-image switch and rollback",
+          "response_sha256": "c3dea77f54eff10533f0d8c29639dd92092f41de9269e6d29de15547690ac840",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "job": 132740143168,
+          "name": "image",
+          "response_sha256": "6b82399417960c49909bafc6b0646a47c7459137a0aaec0988abea459fe5395c",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "job": 132740143181,
+          "name": "Regression checks only (no image build or VM)",
+          "response_sha256": "25e9ea09ee2905be119f6f575ceb91c6e94233dbd46cabce4fa9504cd0d5cdc7",
+          "minutes": 0,
+          "rule": "skipped"
+        }
+      ]
+    },
+    {
+      "run": 43688080624,
+      "title": "OS regressions only (no VM)",
+      "sha": "cb2a1eeca5de6471cab77ef789b44d885c0f0c42",
+      "conclusion": "success",
+      "minutes": 49,
+      "jobs": [
+        {
+          "job": 132732665724,
+          "name": "Full ways-back model when its sources changed (no image build or VM)",
+          "response_sha256": "545c1bfb618e18e8918fdec830fb6b18b2c5177d68816843366bc53d53e5370e",
+          "minutes": 19,
+          "rule": "job-interval",
+          "selected_start": "2026-11-15T07:02:40+00:00",
+          "selected_completion": "2026-11-15T07:21:00+00:00",
+          "seconds": 1100.0,
+          "step_count": 7,
+          "full_bound": 40
+        },
+        {
+          "job": 132732665913,
+          "name": "Regression checks only (no image build or VM)",
+          "response_sha256": "e00b6e429f9f78f42a5fe767244bab88aca36aabb03b4d7e43b5e439d79ebb3e",
+          "minutes": 30,
+          "rule": "job-interval",
+          "selected_start": "2026-11-15T07:03:28+00:00",
+          "selected_completion": "2026-11-15T07:33:24+00:00",
+          "seconds": 1796.0,
+          "step_count": 15,
+          "full_bound": 40
+        },
+        {
+          "job": 132732666709,
+          "name": "image",
+          "response_sha256": "ecbeefd854b15d7f392944b5b11779df0c3ee14f5961b26f52f88f81c71a1225",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "job": 132732666793,
+          "name": "Package 27 release build, image diff, VM and publish",
+          "response_sha256": "fbb02aa0f1535f0c2381c9c7217247db50f24eaa6e7a4353f8f05ff048a4dbfd",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "job": 132732666874,
+          "name": "Pinned live ISO inspection and two-disk rehearsal",
+          "response_sha256": "38870f99633bf89a81b7cb7e64861acb0e425adbd8911d37ad98e93849cbbf0f",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "job": 132732666928,
+          "name": "Published-image switch and rollback",
+          "response_sha256": "e9bba98f88ff38e2d8937c86d1f5f17ff0f352741893e48b62c2f6b6c4f16817",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "job": 132732692734,
+          "name": "Throwaway image build and checks (never pushed, signed or published)",
+          "response_sha256": "3f19f503c2f87036b92854fe6251c779128e872704ef611e0077d5f25b7f19a1",
+          "minutes": 0,
+          "rule": "skipped"
+        }
+      ]
+    },
+    {
+      "run": 43685656019,
+      "title": "OS regressions only (no VM)",
+      "sha": "f6eaecef90f1c07b1ed17f5c762a3471fc8f161f",
+      "conclusion": "failure",
+      "minutes": 48,
+      "jobs": [
+        {
+          "job": 132725494641,
+          "name": "Full ways-back model when its sources changed (no image build or VM)",
+          "response_sha256": "6130bd05987dc49ec1fb3bedda92c88c947814feaf7a807d6b4d39871cbc5670",
+          "minutes": 18,
+          "rule": "job-interval",
+          "selected_start": "2026-11-15T06:29:24+00:00",
+          "selected_completion": "2026-11-15T06:47:07+00:00",
+          "seconds": 1063.0,
+          "step_count": 7,
+          "full_bound": 40
+        },
+        {
+          "job": 132725494792,
+          "name": "Regression checks only (no image build or VM)",
+          "response_sha256": "d347820112b45d4de77ccd2653dcd4349cf1a7d36b04e6b5974faab5d4b1b6b3",
+          "minutes": 30,
+          "rule": "job-interval",
+          "selected_start": "2026-11-15T06:29:25+00:00",
+          "selected_completion": "2026-11-15T06:58:27+00:00",
+          "seconds": 1742.0,
+          "step_count": 15,
+          "full_bound": 40
+        },
+        {
+          "job": 132725495516,
+          "name": "image",
+          "response_sha256": "dfa27bda3d2b56697338cf66ed6b9173ffc396d8c020533166173305813be3f4",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "job": 132725495931,
+          "name": "Throwaway image build and checks (never pushed, signed or published)",
+          "response_sha256": "d5380d10ca36a7f7b5d2abc79b01d2b532d4ed8f68d0bea5f59d4f4fc59aaf31",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "job": 132725495947,
+          "name": "Package 27 release build, image diff, VM and publish",
+          "response_sha256": "5775a87e1bd483609fb94846d15c483c1f7b9315c9f2581b28d50ea8f8becd2f",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "job": 132725496583,
+          "name": "Published-image switch and rollback",
+          "response_sha256": "dc834600c66e6d00e25ae7475bd1cc1201a53c4c4adbe666a78b13515d041c38",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "job": 132725524497,
+          "name": "Pinned live ISO inspection and two-disk rehearsal",
+          "response_sha256": "93c6f24d7e545c82c90e26e3b8b0d132f50a93ab5892fbe263c2bd775c9e78f6",
+          "minutes": 0,
+          "rule": "skipped"
+        }
+      ]
+    },
+    {
+      "run": 43680654211,
+      "title": "OS regressions only (no VM)",
+      "sha": "3c09cf3a71fbaebf89fd8aed6af2418d14bb016d",
+      "conclusion": "success",
+      "minutes": 49,
+      "jobs": [
+        {
+          "job": 132710329421,
+          "name": "Regression checks only (no image build or VM)",
+          "response_sha256": "98d149b44d1c06a51b07f6ae520df98a6df02320e9da06d3cd0a46ce4422b7f7",
+          "minutes": 21,
+          "rule": "job-interval",
+          "selected_start": "2026-11-15T05:22:01+00:00",
+          "selected_completion": "2026-11-15T05:42:33+00:00",
+          "seconds": 1232.0,
+          "step_count": 15,
+          "full_bound": 40
+        },
+        {
+          "job": 132710329661,
+          "name": "Full ways-back model when its sources changed (no image build or VM)",
+          "response_sha256": "46675f6f43b71120a5ad3225f77a8f8e0a2a556f7ee2f22f30e4052d83374fdb",
+          "minutes": 28,
+          "rule": "job-interval",
+          "selected_start": "2026-11-15T05:22:31+00:00",
+          "selected_completion": "2026-11-15T05:49:36+00:00",
+          "seconds": 1625.0,
+          "step_count": 7,
+          "full_bound": 40
+        },
+        {
+          "job": 132710330483,
+          "name": "Package 27 release build, image diff, VM and publish",
+          "response_sha256": "b0d50b423eaf0842c0dfa3a19d42c996ba1363f053ff81a40cd450fd2d6b0e8a",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "job": 132710330522,
+          "name": "Pinned live ISO inspection and two-disk rehearsal",
+          "response_sha256": "5999221b0d9dbbabda37e022f624aeb3395e58a96b3baa1a185a52f37b60f42a",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "job": 132710330800,
+          "name": "image",
+          "response_sha256": "861c83f2b05d9b35472fd0365d16f1a2820d0b341edbfae429e454dd7f600733",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "job": 132710330823,
+          "name": "Published-image switch and rollback",
+          "response_sha256": "1a52ae44b6f1716b3f0ac947527770d532bcd9c2942fa53094e746d0b8a7704d",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "job": 132710353990,
+          "name": "Throwaway image build and checks (never pushed, signed or published)",
+          "response_sha256": "901d79a588b9135a542a0a8e7b1b9d76ef26873b414bc487d6c9c48f6c3f6759",
+          "minutes": 0,
+          "rule": "skipped"
+        }
+      ]
+    },
+    {
+      "run": 43677461596,
+      "title": "OS regressions only (no VM)",
+      "sha": "aff05fa13f8095fa242773d81199bc1c1a0b629e",
+      "conclusion": "success",
+      "minutes": 36,
+      "jobs": [
+        {
+          "job": 132700626464,
+          "name": "Regression checks only (no image build or VM)",
+          "response_sha256": "c250af7317453865e28ae100ad781abf50cab208544abdfb6f053144d56970b9",
+          "minutes": 21,
+          "rule": "job-interval",
+          "selected_start": "2026-11-15T04:35:52+00:00",
+          "selected_completion": "2026-11-15T04:56:16+00:00",
+          "seconds": 1224.0,
+          "step_count": 15,
+          "full_bound": 40
+        },
+        {
+          "job": 132700626637,
+          "name": "Full ways-back model when its sources changed (no image build or VM)",
+          "response_sha256": "9ac4dccff29bf1b10da044b0942eebbb6065dd6c82e051cfeafe1608b50c7d32",
+          "minutes": 15,
+          "rule": "job-interval",
+          "selected_start": "2026-11-15T04:35:52+00:00",
+          "selected_completion": "2026-11-15T04:50:30+00:00",
+          "seconds": 878.0,
+          "step_count": 7,
+          "full_bound": 40
+        },
+        {
+          "job": 132700627313,
+          "name": "Package 27 release build, image diff, VM and publish",
+          "response_sha256": "58d0805eecb285ca04ee0685e4b7d04a8d861e80b1d9857fe98ccd314dd88857",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "job": 132700627348,
+          "name": "Pinned live ISO inspection and two-disk rehearsal",
+          "response_sha256": "78d8b701526020aa96d0dd965582e25b00338a805d8cb73958a0abfdc95554da",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "job": 132700627740,
+          "name": "Published-image switch and rollback",
+          "response_sha256": "73b9908b823a242bb82c9fb5735bff52afc5a33741e07da70bcd2ae3d56a3990",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "job": 132700627808,
+          "name": "image",
+          "response_sha256": "2c87658a385514f2393d646ad7f2c795c186eb35b6c7ea16492d11cf41d529be",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "job": 132700652626,
+          "name": "Throwaway image build and checks (never pushed, signed or published)",
+          "response_sha256": "c6002ea241bfa6d9aedeada0fcf542c167bb789f7b91cb9a8858331291e95038",
+          "minutes": 0,
+          "rule": "skipped"
+        }
+      ]
+    },
+    {
+      "run": 43673689888,
+      "title": "OS regressions only (no VM)",
+      "sha": "4cdd7b285e2937bcda27d6f7116f18e9c65c4968",
+      "conclusion": "success",
+      "minutes": 54,
+      "jobs": [
+        {
+          "job": 132689088682,
+          "name": "Full ways-back model when its sources changed (no image build or VM)",
+          "response_sha256": "a5d0ec6dcdcfad2aeaf5fa656c57ad5696300a412468a9d0ddf72a6f74f1fb09",
+          "minutes": 27,
+          "rule": "job-interval",
+          "selected_start": "2026-11-15T03:44:50+00:00",
+          "selected_completion": "2026-11-15T04:11:15+00:00",
+          "seconds": 1585.0,
+          "step_count": 7,
+          "full_bound": 40
+        },
+        {
+          "job": 132689088951,
+          "name": "Regression checks only (no image build or VM)",
+          "response_sha256": "81de7a8852f1d7a10a21e9ba1b08485bb263cd8b440215094baaf0ba7fabebb5",
+          "minutes": 27,
+          "rule": "job-interval",
+          "selected_start": "2026-11-15T03:45:27+00:00",
+          "selected_completion": "2026-11-15T04:11:30+00:00",
+          "seconds": 1563.0,
+          "step_count": 15,
+          "full_bound": 40
+        },
+        {
+          "job": 132689089694,
+          "name": "image",
+          "response_sha256": "497b2ed9dcf9c4ea9dda55ea40d6b26d8378fe874b15ec96d4c5336e244373dc",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "job": 132689089707,
+          "name": "Package 27 release build, image diff, VM and publish",
+          "response_sha256": "1b5b20117973f6c294e851649efb17570390f1559a147cc2b7c8e0e417ec3966",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "job": 132689090045,
+          "name": "Throwaway image build and checks (never pushed, signed or published)",
+          "response_sha256": "7dcf232c7dbd3cc2e37ebb47ad9b9e8444913ca952358e090e1a58683960257d",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "job": 132689090097,
+          "name": "Pinned live ISO inspection and two-disk rehearsal",
+          "response_sha256": "dd59304a9e36cf6ab8ec51e4169ea619b08aceecf6a37c338728a39fd6a3a333",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "job": 132689090295,
+          "name": "Published-image switch and rollback",
+          "response_sha256": "e9d63fc8799453a178f45262597a26a9745ec404175a6af5bc7061c48c86e70e",
+          "minutes": 0,
+          "rule": "skipped"
+        }
+      ]
+    },
+    {
+      "run": 43669481694,
+      "title": "OS regressions only (no VM)",
+      "sha": "219efd6eb6efa49516b5cb409b17df3383de8a61",
+      "conclusion": "cancelled",
+      "minutes": 45,
+      "jobs": [
+        {
+          "job": 132676106101,
+          "name": "Full ways-back model when its sources changed (no image build or VM)",
+          "response_sha256": "ee8d3fb19db1c37253883ebdad905162ac6103a46e5423e1733ea143f96b1309",
+          "minutes": 19,
+          "rule": "job-interval",
+          "selected_start": "2026-11-15T02:49:33+00:00",
+          "selected_completion": "2026-11-15T03:07:35+00:00",
+          "seconds": 1082.0,
+          "step_count": 7,
+          "full_bound": 40
+        },
+        {
+          "job": 132676106277,
+          "name": "Regression checks only (no image build or VM)",
+          "response_sha256": "8baca526f0f8eeceea88b4670883653fe0628d256d909ffa4ca717f8b2dfc7b8",
+          "minutes": 26,
+          "rule": "job-interval",
+          "selected_start": "2026-11-15T02:50:28+00:00",
+          "selected_completion": "2026-11-15T03:15:43+00:00",
+          "seconds": 1515.0,
+          "step_count": 15,
+          "full_bound": 40
+        },
+        {
+          "job": 132676107011,
+          "name": "image",
+          "response_sha256": "68824b5e5d69d2c0a419c950fbe95bb70525608a9bc28f62bd10307cab88e4ed",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "job": 132676107163,
+          "name": "Pinned live ISO inspection and two-disk rehearsal",
+          "response_sha256": "e94c4ccc026db399c91079a48f94084ace66158a4233ef18a4ad5a1046865371",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "job": 132676107215,
+          "name": "Published-image switch and rollback",
+          "response_sha256": "b87165815a74dedfc886a966b7e5341276614aef57926dd672e4b7f7e69a0370",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "job": 132676107278,
+          "name": "Throwaway image build and checks (never pushed, signed or published)",
+          "response_sha256": "7b190081285a7a66a236aeca37ff749b00e5b662ab00f7e703e8b630be5d36cd",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "job": 132676136032,
+          "name": "Package 27 release build, image diff, VM and publish",
+          "response_sha256": "4c6725118a281fa0d8670543d37ea377603272facc212b1c353309a60ede79c6",
+          "minutes": 0,
+          "rule": "skipped"
+        }
+      ]
+    }
+  ],
+  "publish_cap": 0,
+  "publish_attempts": [],
+  "history": {
+    "complete": true,
+    "pages_read": 1,
+    "ids_count": 15,
+    "total_count": 15,
+    "page_limit": 20,
+    "snapshot_reads": 1,
+    "pages": [
+      {
+        "page": 1,
+        "returned": 15,
+        "total_count": 15,
+        "ids_sha256": "3ebce3d82b264a9376f4f9f4fca5dffc0f3c163cf16fd7bdb398d27aeaa2dad5"
+      }
+    ],
+    "run_ids": [
+      43737933979,
+      43729592775,
+      43714310216,
+      43711854369,
+      43708664425,
+      43699785728,
+      43697096434,
+      43694335353,
+      43690565301,
+      43688080624,
+      43685656019,
+      43680654211,
+      43677461596,
+      43673689888,
+      43669481694
+    ]
+  },
+  "accounting_policy": "14zz-job-interval-ordered-span-full-bound-v1",
+  "native": {
+    "status": "passed",
+    "sha": "89bc06581e799af7cd901c25840cac3cd89de454",
+    "run": 43729592775,
+    "source": "checks-only dispatch"
+  },
+  "model": {
+    "status": "passed",
+    "scope": "full",
+    "sha": "89bc06581e799af7cd901c25840cac3cd89de454",
+    "run": 43729592775,
+    "job": "Full ways-back model when its sources changed (no image build or VM)",
+    "step": "Run the full ways-back model",
+    "reasons": [
+      "os/ci/installer_webui.py",
+      "os/ci/owner_capabilities.py",
+      "os/ci/owner_devices.py",
+      "os/ci/owner_media.py",
+      "os/ci/owner_vm.py",
+      "os/ci/owner_xhci.py",
+      "os/ci/registry_auth.py",
+      "os/ci/rehearsal_guard.py",
+      "os/ci/tools_local.py",
+      "os/ci/two_disk_vm.py",
+      "os/owner-tools/bootstrap.py",
+      "os/owner-tools/commands.json",
+      "os/owner-tools/history.json",
+      "os/owner-tools/media.py",
+      "os/owner-tools/owner.py",
+      "os/owner-tools/payload/SHA256.json",
+      "os/owner-tools/payload/SHA256SUMS",
+      "os/owner-tools/payload/history.json",
+      "os/owner-tools/payload/media.py",
+      "os/owner-tools/payload/owner.py",
+      "os/tests/test_owner_update.py",
+      "os/tests/test_release27.py",
+      "os/tests/test_ways_back_model.py",
+      "os/tests/ways_back_ledger.py"
+    ],
+    "source": "GitHub completed full-model step of a checks-only dispatch"
+  },
+  "read_retries": []
+}

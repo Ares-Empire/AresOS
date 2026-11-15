@@ -145,7 +145,7 @@ class Guest(td.Guest):
         self.owner_signed_in = False
         self.xhci_context = dict(stage=getattr(self, 'boot_purpose', self.mode), since_usec=0,
             attached=False, needed=self.mode == 'live' or getattr(self, 'boot_purpose', '') == 'tools-stock',
-            expected_disconnect=None)
+            removals=[])
         super().__init__(*args, **kwargs)
         # The CPU has never run. Set carrier before even the firmware starts.
         self.monitor.command('set_link', {'name': 'owner-net', 'up': self.network_up})
@@ -2287,13 +2287,14 @@ def bound_sources(walk_sources, package='27', before='16'):
 def main():
     global PROBE_MEDIA
     mode, = sys.argv[1:]
-    assert mode in ('probe', 'owner-tools', 'update', 'reorder-probe', 'ways-back')
+    assert mode in ('probe', 'owner-tools', 'update', 'reorder-probe', 'ways-back', 'tools-local')
     from owner_media import require_runner
     require_runner()
     package=os.environ['REHEARSAL_PACKAGE']
     assert package!='16' or mode=='probe', 'STOP: package16 permits only the owner-tools probe'
     assert (package=='27') == (mode=='update'), 'STOP: the update rehearsal is package 27 only'
     assert (package=='22c') == (mode in ('reorder-probe', 'ways-back')), 'STOP: the reorder probe and the ways-back rehearsal are package 22c only'
+    assert (package=='22d') == (mode=='tools-local'), 'STOP: the tools-local rehearsal is package 22d only'
     authorization = json.loads(pathlib.Path('evidence/'+package+'-dispatch-authorization.json').read_text())
     assert authorization['allowance'] == package and authorization['native']['status'] == 'passed'
     assert authorization['native']['sha'] == os.environ['GITHUB_SHA']
@@ -2305,7 +2306,7 @@ def main():
         # Package 27's update rehearsal proves its native step in its own run instead.
         assert authorization['probe']['status'] == 'passed' and authorization['probe']['commit'] == os.environ['GITHUB_SHA']
     walk_path={'16':'os/manifest/ci/16/host-walk.json','27':'os/manifest/ci/27/host-walk.json',
-               '22c':'os/manifest/ci/22c/host-walk.json'}.get(package,'os/manifest/ci/14/host-walk/result.json')
+               '22c':'os/manifest/ci/22c/host-walk.json','22d':'os/manifest/ci/22d/host-walk.json'}.get(package,'os/manifest/ci/14/host-walk/result.json')
     walk = json.loads(pathlib.Path(walk_path).read_text())
     assert walk['status'] == 'passed' and walk['stick_across_reboot'] is False
     assert isinstance(walk['sources'], list) and walk['sources']
@@ -2320,6 +2321,9 @@ def main():
     if mode == 'ways-back':
         # Package 22c's rehearsal rebinds package 27's tables (rebind.py rebind, after a pass).
         td.save('22c-bound-sources', bound_sources(walk['sources'], '22c', '27'))
+    if mode == 'tools-local':
+        # Package 22d's rehearsal rebinds package 22c's tables (rebind.py rebind, after a pass).
+        td.save('22d-bound-sources', bound_sources(walk['sources'], '22d', '22c'))
     sw.WORK, sw.EVIDENCE = td.WORK, td.EVIDENCE
     td.Guest = sw.Guest = Guest
     Guest.order = 'protected-second'
@@ -2328,7 +2332,7 @@ def main():
         with (td.WORK / name).open('wb') as output:
             subprocess.run(['bsdtar', '-xOf', str(td.WORK / td.LIVE['filename']), 'images/pxeboot/' + name], stdout=output, check=True)
     media = Media()
-    if mode in ('update', 'reorder-probe', 'ways-back'):
+    if mode in ('update', 'reorder-probe', 'ways-back', 'tools-local'):
         media.create(source=laptop_payload(td.WORK / 'laptop-tools'))
     else:
         media.create()
@@ -2373,6 +2377,17 @@ def main():
             try:
                 ways_back_rehearsal(audit, media, password, hashed, ares_password,
                                     laptop_payload(td.WORK / 'tools-version-2', TOOLS_V2_COMMIT, TOOLS_V2))
+            finally:
+                del ares_password
+        elif mode == 'tools-local':
+            # Package 22d: the owner tools from the desktop's password window (os/ci/tools_local.py).
+            import tools_local
+            ares_password = ''.join(secrets.choice(ARES_LETTERS) for _ in range(24))
+            print(f'::add-mask::{ares_password}', flush=True)
+            try:
+                # This module runs as __main__: the walk gets it, never a second import of owner_vm.
+                tools_local.rehearsal(sys.modules[__name__], audit, media, password, hashed, ares_password,
+                                      laptop_payload(td.WORK / 'tools-version-2', TOOLS_V2_COMMIT, TOOLS_V2))
             finally:
                 del ares_password
         else:

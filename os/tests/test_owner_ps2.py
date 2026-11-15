@@ -11,6 +11,7 @@ import shlex
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 from unittest.mock import Mock, patch
 
@@ -39,8 +40,13 @@ def journal(messages=('i8042: PNP: PS/2 Controller',), stamp=214_000_000):
             for n, m in enumerate(messages)]
 
 
-def context(needed=True, attached=False, expected=None):
-    return dict(stage='synthetic-stage', since_usec=0, needed=needed, attached=attached, expected_disconnect=expected)
+def context(needed=True, attached=False, removals=()):
+    return dict(stage='synthetic-stage', since_usec=0, needed=needed, attached=attached,
+                removals=[list(removal) for removal in removals])
+
+
+def kernel_row(stamp, message):
+    return dict(_TRANSPORT='kernel', _BOOT_ID=BOOT, __MONOTONIC_TIMESTAMP=str(stamp), MESSAGE=message)
 
 
 def kernel_result(rows):
@@ -159,11 +165,45 @@ class Ps2Test(unittest.TestCase):
         with patch.object(subprocess,'run',return_value=kernel_result(journal(Q15[:1]))):
             self.assertFalse(health.kernel_health(context(True,True))['stop'])
         with patch.object(subprocess,'run',return_value=kernel_result(journal(('usb 1-2: USB disconnect, device number 3',)))):
-            self.assertFalse(health.kernel_health(context(True,True,'1-2'))['stop'])
+            self.assertFalse(health.kernel_health(context(True,True,[('1-2',214_000_000)]))['stop'])
         with patch.object(subprocess,'run',return_value=kernel_result(journal(Q15))):
-            self.assertTrue(health.kernel_health(context(True,True,'1-2'))['stop'])
+            self.assertTrue(health.kernel_health(context(True,True,[('1-2',214_000_000)]))['stop'])
         with self.assertRaisesRegex(AssertionError,'repeated'):
-            health.classify(journal(('usb 1-2: USB disconnect, device number 3',)*2),0,BOOT,'1-2')
+            health.classify(journal(('usb 1-2: USB disconnect, device number 3',)*2),0,BOOT,[['1-2',214_000_000]])
+
+    def test_each_requested_removal_excuses_one_disconnect_of_its_port_after_it(self):
+        line=lambda n:'usb 2-2: USB disconnect, device number '+str(n)
+        two=[['2-2',100],['2-2',300]]
+        # Run 43714310216's boot cut-27: two stick cycles, one line after each request. One port
+        # excused once per boot counted 2 at the second unplug and stopped.
+        self.assertEqual(health.classify([kernel_row(150,line(3)),kernel_row(350,line(4))],0,BOOT,two)['counts'],
+                         dict(endpoint_timeout=0,controller_dead=0,usb_disconnect=0,expected_disconnect=2))
+        # Before its first request the port's disconnect is unrequested; a later request does not excuse it.
+        self.assertEqual(health.classify([kernel_row(50,line(2))],0,BOOT,two)['counts']['usb_disconnect'],1)
+        self.assertEqual(health.classify([kernel_row(50,line(2)),kernel_row(150,line(3))],0,BOOT,two)['counts'],
+                         dict(endpoint_timeout=0,controller_dead=0,usb_disconnect=1,expected_disconnect=1))
+        # A request stamped at the line's own microsecond owns it.
+        self.assertEqual(health.classify([kernel_row(100,line(3))],0,BOOT,two)['counts']['expected_disconnect'],1)
+        # Another port is never excused, after any request.
+        self.assertEqual(health.classify([kernel_row(350,'usb 2-1: USB disconnect, device number 4')],0,BOOT,two)['counts'],
+                         dict(endpoint_timeout=0,controller_dead=0,usb_disconnect=1,expected_disconnect=0))
+        # Two lines for one request stop, whichever request it is; so does one between the requests
+        # (the first stick's line is its own: a second line before the next request is repeated).
+        for rows in ([kernel_row(150,line(3)),kernel_row(160,line(4))],
+                     [kernel_row(150,line(3)),kernel_row(350,line(4)),kernel_row(360,line(5))]):
+            with self.subTest(rows=rows),self.assertRaisesRegex(AssertionError,'repeated tools-stick disconnect'):
+                health.classify(rows,0,BOOT,two)
+        # Without requests every disconnect is unrequested.
+        self.assertEqual(health.classify([kernel_row(150,line(3)),kernel_row(350,line(4))],0,BOOT)['counts']['usb_disconnect'],2)
+
+    def test_context_refuses_malformed_or_unordered_removals(self):
+        health.preamble(context(removals=[('2-2',5),('2-2',6)]))
+        for removals in ([['2-2']],[('2-2',1)],[['2-2','1']],[['2-2',-1]],[['2-2',True]],[['x',1]],
+                         [['2-2',5],['2-2',5]],[['2-2',6],['2-2',5]],'2-2',None):
+            with self.subTest(removals=removals),self.assertRaises(AssertionError):
+                health.preamble(dict(context(),removals=removals))
+        # The single-port key of one removal per boot is gone.
+        with self.assertRaises(AssertionError):health.preamble(dict(context(),expected_disconnect='2-2'))
 
     def test_malformed_missing_or_cross_boot_journal_fails_closed(self):
         for rows in ([],journal(),journal()):
@@ -223,6 +263,95 @@ class Ps2Test(unittest.TestCase):
         # only mktemp's /run allocation into an ordinary owned repo directory.
         FramingTest().exercise('python3 -c '+shlex.quote(script),code=1,
             stderr=json.dumps(dict(xhci_health=value))+'\nSTOP: xHCI death/disconnect while tools stick attached or needed\n')
+
+
+
+class StickRemovalsInOneBootTest(unittest.TestCase):
+    """The real attach and detach, twice in one boot, against a modelled kernel journal.
+
+    Run 43714310216 (22d, tools-local) stopped at cut-27's second unplug: its walk is the
+    first to attach and remove the stick twice in one boot (tools-next, export-version-2).
+    """
+
+    def boot(self, unplug_lines=1, stages=('tools-next', 'export-version-2')):
+        import owner_media
+        from types import SimpleNamespace
+        clock = [400_000_000]
+        rows = journal()
+        events, checks = [], []
+
+        def later():
+            clock[0] += 1_000_000
+            return clock[0]
+
+        media = object.__new__(owner_media.Media)
+        media.path, media.expected = pathlib.Path('/nonexistent/owner-tools.raw'), 'e' * 64
+        media.attached, media.fingerprint = False, 'f' * 64
+
+        def qmp(name, args=None):
+            if name == 'query-block':
+                return [dict(inserted={'node-name': 'owner-tools', 'file': str(media.path)})]
+            if name == 'device_del':
+                for _ in range(unplug_lines):
+                    rows.append(kernel_row(later(), 'usb 2-2: USB disconnect, device number ' + str(len(rows))))
+                events.append(dict(event='DEVICE_DELETED', data=dict(device='owner-tools-usb')))
+            return {}
+
+        def capture_json(name, source):
+            later()
+            output = io.StringIO()
+            if name.endswith('-xhci-health'):
+                words = shlex.split(source)
+                with patch.object(subprocess, 'run', return_value=kernel_result(rows)), contextlib.redirect_stdout(output):
+                    exec(words[words.index('python3') + 2], {})
+                checks.append((name, json.loads(output.getvalue())))
+                return checks[-1][1]
+            if name.endswith('-tools-usb-port'):
+                # The guest program itself, over a stand-in for the controller's sysfs folder.
+                program = source.split("<<'PY'\n", 1)[1].split('\nPY\n', 1)[0]
+                sysfs = "'/sys/bus/pci/devices/0000:00:05.0'"
+                self.assertIn(sysfs, program)
+                with tempfile.TemporaryDirectory(dir=ROOT / 'os/tests') as root:
+                    (pathlib.Path(root) / 'usb2/2-2').mkdir(parents=True)
+                    with patch.object(time, 'clock_gettime_ns', return_value=clock[0] * 1000), \
+                            contextlib.redirect_stdout(output):
+                        exec(program.replace(sysfs, repr(root)), {})
+                return json.loads(output.getvalue())
+            if name.endswith('-media-hotplug'):
+                return dict(blockdevices=[dict(label='ARESTOOLS')])
+            raise AssertionError('unexpected capture ' + name)
+
+        guest = SimpleNamespace(xhci_context=dict(context(needed=False), stage='cut-27'), owner_signed_in=True,
+                                owner_physical_signed_in=True, mode='installed', boot_number=12,
+                                monitor=SimpleNamespace(command=qmp, events=events), capture_json=capture_json,
+                                command=lambda name, source: later(), device_inventory=dict)
+        with patch.object(owner_media, 'digest', return_value=media.expected), \
+                patch.object(owner_media.Media, 'verify'), patch.object(owner_media.td, 'save'):
+            for stage in stages:
+                media.attach(guest, stage)
+                media.detach(guest, stage)
+        return guest, rows, dict(checks)
+
+    def test_two_removals_in_one_boot_each_excuse_their_own_line(self):
+        guest, rows, checks = self.boot()
+        removals = guest.xhci_context['removals']
+        lines = [int(r['__MONOTONIC_TIMESTAMP']) for r in rows if 'USB disconnect' in r['MESSAGE']]
+        # The run's shape: two lines of port 2-2 in one boot, each after its own request.
+        self.assertEqual([port for port, _ in removals], ['2-2', '2-2'])
+        self.assertTrue(removals[0][1] < lines[0] < removals[1][1] < lines[1])
+        counts = lambda name: (checks[name]['counts']['expected_disconnect'], checks[name]['counts']['usb_disconnect'])
+        self.assertEqual(counts('tools-next-requested-unplug-xhci-health'), (0, 0))
+        self.assertEqual(counts('tools-next-unplug-confirmed-xhci-health'), (1, 0))
+        self.assertEqual(counts('export-version-2-before-hotplug-xhci-health'), (1, 0))
+        self.assertEqual(counts('export-version-2-requested-unplug-xhci-health'), (1, 0))
+        self.assertEqual(counts('export-version-2-unplug-confirmed-xhci-health'), (2, 0))
+        self.assertFalse(any(value['stop'] for value in checks.values()))
+        self.assertEqual(checks['export-version-2-before-hotplug-xhci-health']['tools_removals_requested'], 1)
+        self.assertEqual(checks['export-version-2-unplug-confirmed-xhci-health']['tools_removals_requested'], 2)
+
+    def test_one_unplug_logging_two_lines_still_stops(self):
+        with self.assertRaisesRegex(AssertionError, 'repeated tools-stick disconnect'):
+            self.boot(unplug_lines=2, stages=('tools-next',))
 
 
 if __name__=='__main__':unittest.main()

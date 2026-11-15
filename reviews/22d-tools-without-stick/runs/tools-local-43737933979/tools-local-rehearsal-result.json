@@ -1,0 +1,224 @@
+{
+  "status": "passed",
+  "commit": "89bc06581e799af7cd901c25840cac3cd89de454",
+  "order": "protected-second",
+  "starting_state": "package 27's route: corrected pinned stock, release 13 by the laptop tools (15f), release 27 by tools version 2",
+  "tools_version_2": "851eb742bfe20bd4b47370b9f2558494edf4b74056d7023cc0d412e32fee6f33",
+  "tools_version_3": "2084c786c29d691a0d8c6ca450c59ef524751e5f6c475de0491f200a80765a3a",
+  "tools": "dcbc375faa4b269bacaf316c5ddc24503b9773b2538bcd017065ce8e312597be",
+  "tools_version": 4,
+  "next_version": {
+    "tools_version": 5,
+    "fingerprint": "4125f556e6d483108437c6165f561519882f7ae3e6b7478a39d011400522836c"
+  },
+  "announced": [
+    {
+      "standin": "49de19e8d98d65c79e5bcd061332eb807924ec69",
+      "real": "58738e5ee4d05641c9f188aef9984fe50a9a7990",
+      "tree": "b322a88ee72868e05ecfd85444a5d2a146ae6599",
+      "trees_equal": true
+    },
+    {
+      "standin": "7e018ac55e054572df04d2ecba4071bdd98c6155",
+      "real": "89bc06581e799af7cd901c25840cac3cd89de454",
+      "tree": "73fb5929cddd36db91662bad7d83e5453b965ca6",
+      "trees_equal": true
+    }
+  ],
+  "dialogs": [
+    {
+      "stage": "tl-v3",
+      "label": "AresOS owner tools 2084c786: install these tools, then check and title",
+      "label_length": 70,
+      "helper": 46163,
+      "sudo": 46142,
+      "screenshot": "tl-v3-window",
+      "answer": "password",
+      "settled": true,
+      "settle_seconds": 3.0,
+      "before": "tl-v3-before",
+      "centre_changed": 0.2815
+    },
+    {
+      "stage": "tl-cancel",
+      "label": "AresOS owner tools dcbc375f: install these tools, then check and title",
+      "label_length": 70,
+      "helper": 47204,
+      "sudo": 47201,
+      "screenshot": "tl-cancel-window",
+      "answer": "escape",
+      "settled": true,
+      "settle_seconds": 4.4,
+      "before": "tl-cancel-before",
+      "centre_changed": 0.2533
+    },
+    {
+      "stage": "tl-unanswered",
+      "label": "AresOS owner tools dcbc375f: install these tools, then check and title",
+      "label_length": 70,
+      "helper": 48083,
+      "sudo": 48066,
+      "screenshot": "tl-unanswered-window",
+      "answer": "none: closed by the caller",
+      "settled": true,
+      "settle_seconds": 3.0,
+      "before": "tl-unanswered-before",
+      "centre_changed": 0.2533
+    },
+    {
+      "stage": "tl-cut",
+      "label": "AresOS owner tools dcbc375f: install these tools, then check and title",
+      "label_length": 70,
+      "helper": 49230,
+      "sudo": 49213,
+      "screenshot": "tl-cut-window",
+      "answer": "password",
+      "settled": true,
+      "settle_seconds": 3.6,
+      "before": "tl-cut-before",
+      "centre_changed": 0.2533
+    },
+    {
+      "stage": "tl-install",
+      "label": "AresOS owner tools dcbc375f: install these tools, then check and title",
+      "label_length": 70,
+      "helper": 16251,
+      "sudo": 16218,
+      "screenshot": "tl-install-window",
+      "answer": "password",
+      "settled": true,
+      "settle_seconds": 3.0,
+      "before": "tl-install-before",
+      "centre_changed": 0.2533
+    },
+    {
+      "stage": "tl-tamper",
+      "label": "AresOS owner tools dcbc375f: install these tools, then check and title",
+      "label_length": 70,
+      "helper": 17433,
+      "sudo": 17414,
+      "screenshot": "tl-tamper-window",
+      "answer": "password",
+      "settled": true,
+      "settle_seconds": 3.0,
+      "before": "tl-tamper-before",
+      "centre_changed": 0.2533
+    },
+    {
+      "stage": "tl-export",
+      "label": "AresOS owner tools dcbc375f: export the records",
+      "label_length": 47,
+      "helper": 26598,
+      "sudo": 26581,
+      "screenshot": "tl-export-window",
+      "answer": "password",
+      "settled": true,
+      "settle_seconds": 4.6,
+      "before": "tl-export-before",
+      "centre_changed": 0.2533
+    }
+  ],
+  "stages": [
+    {
+      "stage": "tl-v3",
+      "lines": "this checkout's, for version 3 (N-e)",
+      "commit": "49de19e8d98d65c79e5bcd061332eb807924ec69",
+      "real_commit": "58738e5ee4d05641c9f188aef9984fe50a9a7990",
+      "tree": "b322a88ee72868e05ecfd85444a5d2a146ae6599",
+      "stop": [
+        "STOP: Tools update runs only from the physical recovery console",
+        "Keep the current administrator session open. Preserve diagnostics; do not reboot or retry a different target. See EMERGENCY / get help.",
+        "STOP bootstrap: verification or install refused"
+      ],
+      "nothing_changed": true
+    },
+    {
+      "stage": "tl-cancel",
+      "status": 1,
+      "stderr": "sudo: no password was provided",
+      "nothing_changed": true
+    },
+    {
+      "stage": "tl-unanswered",
+      "wait_seconds": 30,
+      "signalled": [
+        48083
+      ],
+      "helper": 48083,
+      "sudo": 48066,
+      "status": 1,
+      "stderr": "sudo: no password was provided",
+      "nothing_changed": true
+    },
+    {
+      "stage": "tl-cut",
+      "watcher": {
+        "status": "frozen",
+        "pid": 49498,
+        "state": "T",
+        "phases": [
+          "copy",
+          "publish"
+        ],
+        "phase_after": "publish",
+        "entry_before": "tools-851eb742bfe20bd4b47370b9f2558494edf4b74056d7023cc0d412e32fee6f33/at",
+        "entry_after": "tools-851eb742bfe20bd4b47370b9f2558494edf4b74056d7023cc0d412e32fee6f33/at",
+        "toolsets": [
+          "tools-851eb742bfe20bd4b47370b9f2558494edf4b74056d7023cc0d412e32fee6f33",
+          "tools-dcbc375faa4b269bacaf316c5ddc24503b9773b2538bcd017065ce8e312597be",
+          "tools-update-intent.json"
+        ]
+      },
+      "reset": "QMP system_reset"
+    },
+    {
+      "stage": "tl-install",
+      "resumed_phase": "publish",
+      "passes": [
+        "PASS install",
+        "PASS check",
+        "PASS title"
+      ],
+      "receipt": {
+        "source": "folder",
+        "caller": {
+          "login_uid": 1001,
+          "terminal": false
+        },
+        "manifest": "dcbc375faa4b269bacaf316c5ddc24503b9773b2538bcd017065ce8e312597be"
+      },
+      "sudo_n_true": {
+        "status": 1,
+        "stderr": "sudo: a password is required\n"
+      }
+    },
+    {
+      "stage": "tl-tamper",
+      "stop": "STOP bootstrap: verification or install refused",
+      "nothing_changed": true
+    },
+    {
+      "stage": "tl-stick-next",
+      "tools_version": 5,
+      "fingerprint": "4125f556e6d483108437c6165f561519882f7ae3e6b7478a39d011400522836c",
+      "source": "stick",
+      "console": "tty3"
+    },
+    {
+      "stage": "tl-export",
+      "access": {
+        "files": 42,
+        "ares_read": true,
+        "other_refused": true
+      }
+    },
+    {
+      "stage": "tl-export-stick",
+      "line": "The stick holds tools this laptop installed before (SHA256 851eb742bfe20bd4b47370b9f2558494edf4b74056d7023cc0d412e32fee6f33), not the installed ones"
+    }
+  ],
+  "caller_terminal": false,
+  "keyrings_started": false,
+  "closed_stdin_stage": false,
+  "protected_disk_audits": true
+}

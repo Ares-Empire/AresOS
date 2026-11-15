@@ -1,0 +1,30 @@
+{
+  "uid": 1001,
+  "loginuid": "1001",
+  "stdin_terminal": false,
+  "wayland": true,
+  "runtime": "/run/user/1001",
+  "terminal": false,
+  "tty_errno": 6,
+  "line_sha256": {
+    "folder": "c1b579be56abe84e24c3be1be6a93edc7ccb39cee607988b493cfe55bc4bdd82",
+    "routine": "0b11cfc562841f58393bdb11f7962556418f851241885ce21d11594a4e13c079"
+  },
+  "folder": {
+    "status": 0,
+    "stdout": "SHA256SUMS: OK\n",
+    "stderr": ""
+  },
+  "routine": {
+    "status": 0,
+    "stdout": "SHA256SUMS: OK\nat: OK\nhistory.json: OK\nmedia.py: OK\nowner.py: OK\nrelease.json: OK\nrelease/pause-stock-updates.sh: OK\nrelease/pin-stock.sh: OK\nrelease/start-next.sh: OK\nrelease/stock-session.sh: OK\nrelease/switch.sh: OK\nrelease/system-keyboard.sh: OK\nrelease/update.sh: OK\nrelease/verify.sh: OK\nSHA256.json: OK\nPASS install\nTools updated from version 2 to 4\nmanifest SHA256 dcbc375faa4b269bacaf316c5ddc24503b9773b2538bcd017065ce8e312597be\nPrevious tools kept in /var/lib/ares/retired-tools (private)\nRelease target ghcr.io/ares-empire/aresos@sha256:5fad242fceac7244563913eed96cd72dfcd300fec5e458cdb2ba81bce00d944c\nFull diagnostics: /var/lib/ares/records (private)\nPASS check\nSystem console de; X11 de variant \nLoaded y/z map, cmdline and all retained BLS maps passed\nnewer AresOS 5fad242fceac runs and starts next\nBoot menu at the next start: (ostree:0) newer AresOS 5fad242fceac, starts next; (ostree:1) older AresOS 9b19b7942bc1; (ostree:2) plain Bazzite ed93d2158a1b\nstock aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71 1 default\npin yes; transaction idle\nstaged False; rollback queued False\ntitle Bazzite (ostree:2)\nPrevious title INVALID; use this record until the next reorder\nTitle resolves the exact saved stock serial\nFlatpak sync state saved; unfinished sync is expected and does not block\nAlso prove yz-/!\u00fc by physical typing in the console and labwc terminal\nFull diagnostics: /var/lib/ares/records (private)\nPASS title\nnewer AresOS 5fad242fceac runs and starts next\nBoot menu at the next start: (ostree:0) newer AresOS 5fad242fceac, starts next; (ostree:1) older AresOS 9b19b7942bc1; (ostree:2) plain Bazzite ed93d2158a1b\nstock aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71 1 default\npin yes; transaction idle\nstaged False; rollback queued False\ntitle Bazzite (ostree:2)\nPrevious title INVALID; use this record until the next reorder\nTitle resolves the exact saved stock serial\nFlatpak sync state saved; unfinished sync is expected and does not block\nFull diagnostics: /var/lib/ares/records (private)\n",
+    "stderr": "",
+    "signalled": [],
+    "helper": null,
+    "helper_gone": true
+  },
+  "no_ticket": {
+    "status": 1,
+    "stderr": "sudo: a password is required\n"
+  }
+}
