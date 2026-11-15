@@ -76,7 +76,7 @@ if [[ $1 == control || $1 == control-tree ]]; then
         [[ -d $os_dir && -d $control_dir && -n $dest ]]
     fi
     python3 - "$os_dir" "$control_dir" "$dest" $report <<'PY'
-import hashlib, json, os, pathlib, re, shlex, stat, sys
+import hashlib, json, os, pathlib, re, shlex, stat, subprocess, sys
 os_dir, control, dest = (pathlib.Path(arg) for arg in sys.argv[1:4])
 # The image build passes pip's report of the wheels it installed; control-tree passes none.
 report = pathlib.Path(sys.argv[4]) if len(sys.argv) > 4 else None
@@ -99,6 +99,9 @@ FILES = {
     'etc/claude-code/managed-settings.json': ('settings/managed-settings.draft.json', 0o644),
     'etc/claude-code/CLAUDE.md': ('settings/CLAUDE.md', 0o644),
     f'{CONFIG}/user-mcp.json': ('settings/user-mcp.json', 0o644),
+    # The Chrome adapter's shipped qualification baseline, read when the service starts
+    # (aresos_control/chrome/adapter.py; control/chrome/packaging/README.md).
+    f'{CODE}/chrome/qualification.json': ('chrome/qualification.json', 0o644),
 }
 # Folders that belong to Control alone; the record lists everything under them.
 # The vendored dependencies (DEPENDENCIES) are recorded on their own.
@@ -124,6 +127,20 @@ def settings(name, **values):
 
 
 folders = [f'{home}/{name}' for name in FOLDERS]
+
+
+def chrome_build():
+    """control/chrome/build.py's hash of this source tree: the build the Chrome adapter qualifies, which it reads
+    from chrome/build-id.json when the service starts (the image has no build.py to compute it)."""
+    assert control.name == 'control', f'build.py hashes <root>/control; got {control}'
+    result = subprocess.run([sys.executable, '-I', '-B', str(control / 'chrome/build.py')], capture_output=True,
+                            text=True, timeout=120, check=True)
+    value = result.stdout.strip()
+    assert re.fullmatch('[0-9a-f]{64}', value), result
+    return value
+
+
+build = chrome_build()
 DERIVED = {
     f'{CONFIG}/service.json': (settings('service.json', owner_uid=uid),
                                'control/settings/service.json; owner_uid from os/config/usr/lib/sysusers.d/aresos.conf'),
@@ -136,6 +153,8 @@ DERIVED = {
         "# ':' leaves an existing folder's mode and owner as they are.\n"
         + ''.join(f'd {folder} :0700 :{owner} :{owner} -\n' for folder in folders),
         'package 18c: FOLDERS in os/build.sh; owner from os/config/usr/lib/sysusers.d/aresos.conf'),
+    f'{CODE}/chrome/build-id.json': (json.dumps({'build': build}, separators=(',', ':')) + '\n',
+                                     'control/chrome/build.py over control/ of this commit'),
 }
 
 
@@ -237,6 +256,8 @@ if report:
 manifest = dest / 'usr/share/aresos/manifest/control.json'
 manifest.parent.mkdir(parents=True, exist_ok=True)
 manifest.write_text(json.dumps(record, indent=1) + '\n')
+# For the lead's control/chrome/builds.json: the build hash this image carries.
+print(f'CONTROL_CHROME_BUILD {build}')
 print(f'CONTROL_INSTALLED {len(record["files"])} files' +
       (f', {len(record["wheels"])} wheels, {len(record["vendor"])} vendored paths from {record["source_revision"]}'
        if report else ''))
@@ -248,6 +269,18 @@ PY
     # (root-owned, no symlinks, nothing writable: launch.py checks all of it)...
     /usr/bin/aresos --help > /tmp/ares-control/help.txt
     grep -q '^usage: aresos ' /tmp/ares-control/help.txt
+    # ...Chrome's startup files read the way its adapter reads them when the
+    # service starts, the baseline checked by the installed code...
+    env -i PATH=/usr/bin:/bin LANG=C.UTF-8 /usr/bin/python3 -I -B - <<'PY'
+import json, pathlib, re, sys
+code = pathlib.Path('/usr/libexec/aresos-control')
+sys.path[:0] = [str(code), '/usr/lib/aresos-control/vendor']
+from aresos_control.chrome.qualification import validate_record
+build = json.loads((code / 'chrome/build-id.json').read_text())['build']
+assert re.fullmatch('[0-9a-f]{64}', build), build
+record = validate_record(json.loads((code / 'chrome/qualification.json').read_text()))
+print(f'CONTROL_CHROME_STARTUP_FILES build {build}, {len(record["entries"])} qualification entries')
+PY
     # ...and the shipped generated files equal what control/'s definitions generate
     # (control/generate.py; its docs/control/TOOLS.md is not in the image and
     # control-base checks it on every pull request).

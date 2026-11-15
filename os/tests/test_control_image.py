@@ -28,11 +28,12 @@ FILES = {
     '/usr/lib/systemd/system/aresos-toold.service': ('0644', 'control/packaging/aresos-toold.service'),
     '/usr/lib/sysusers.d/aresos-tools.conf': ('0644', 'control/packaging/aresos-tools.sysusers'),
     '/usr/lib/tmpfiles.d/aresos-tools.conf': ('0644', 'control/packaging/aresos-tools.tmpfiles'),
+    '/usr/libexec/aresos-control/chrome/qualification.json': ('0644', 'control/chrome/qualification.json'),
     '/usr/libexec/aresos-control/launch.py': ('0644', 'control/launch.py'),
     '/usr/share/aresos/control/user-mcp.json': ('0644', 'control/settings/user-mcp.json'),
 }
-DERIVED = ('/usr/lib/tmpfiles.d/aresos-control-folders.conf', '/usr/share/aresos/control/proxy.json',
-           '/usr/share/aresos/control/service.json')
+DERIVED = ('/usr/lib/tmpfiles.d/aresos-control-folders.conf', '/usr/libexec/aresos-control/chrome/build-id.json',
+           '/usr/share/aresos/control/proxy.json', '/usr/share/aresos/control/service.json')
 LINK = ('/etc/systemd/system/multi-user.target.wants/aresos-toold.service', '/usr/lib/systemd/system/aresos-toold.service')
 
 
@@ -70,7 +71,13 @@ class InstallMapTest(unittest.TestCase):
         result, dest = self.tree()
         self.assertEqual(result.returncode, 0, result.stderr)
         record = self.record(dest)
-        self.assertEqual(result.stdout.splitlines(), [f'CONTROL_INSTALLED {len(record["files"])} files'])
+        build = subprocess.run([sys.executable, '-I', '-B', str(CONTROL / 'chrome/build.py')], capture_output=True,
+                               text=True, check=True).stdout.strip()
+        self.assertEqual(result.stdout.splitlines(), [f'CONTROL_CHROME_BUILD {build}',
+                                                      f'CONTROL_INSTALLED {len(record["files"])} files'])
+        # The Chrome adapter reads its build from this file when the service starts (the image has no build.py).
+        self.assertEqual((dest / 'usr/libexec/aresos-control/chrome/build-id.json').read_text(),
+                         '{"build":"%s"}\n' % build)
         self.assertEqual(record['format'], 1)
         self.assertEqual(record['requirements_lock'], sha256((CONTROL / 'requirements.lock').read_bytes()))
         self.assertEqual(record['links'], dict([LINK]))
@@ -94,6 +101,7 @@ class InstallMapTest(unittest.TestCase):
         self.assertEqual(set(record['directories'].values()), {'0755'})
         self.assertEqual(sorted(record['directories']), sorted(
             ['/etc/claude-code', '/usr/libexec/aresos-control', '/usr/libexec/aresos-control/aresos_control',
+             '/usr/libexec/aresos-control/chrome',
              '/usr/libexec/aresos-control/generated', '/usr/share/aresos/control',
              *{'/usr/libexec/aresos-control/aresos_control/' + p.parent.relative_to(CONTROL / 'aresos_control').as_posix()
                for p in tree_files('aresos_control') if p.parent != CONTROL / 'aresos_control'}]))
@@ -120,6 +128,11 @@ class InstallMapTest(unittest.TestCase):
         launcher = '/usr/bin/python3 -I -S /usr/libexec/aresos-control/launch.py'
         for name in ('aresos', 'aresos-mcp', 'aresos-toold', 'aresos-toold.service'):
             self.assertIn(launcher, (CONTROL / 'packaging' / name).read_text(), name)
+        # The Chrome adapter reads its two startup files from chrome/ beside aresos_control/ (the install map's CODE).
+        adapter = (CONTROL / 'aresos_control/chrome/adapter.py').read_text()
+        self.assertIn('RUNTIME = Path(__file__).resolve().parents[2]\n', adapter)
+        for name in ('build-id.json', 'qualification.json'):
+            self.assertIn(f"RUNTIME / 'chrome' / '{name}'", adapter)
         for server in json.loads((CONTROL / 'settings/user-mcp.json').read_text()).values():
             self.assertIn('/usr/libexec/aresos-control/launch.py', server['args'])
         for event in json.loads((CONTROL / 'settings/managed-settings.draft.json').read_text())['hooks'].values():
@@ -155,7 +168,8 @@ class InstallMapTest(unittest.TestCase):
                       (changed / 'usr/lib/tmpfiles.d/aresos-control-folders.conf').read_text())
         same, changed_record = self.record(dest), self.record(changed)
         differ = sorted(name for name in same['files'] if same['files'][name] != changed_record['files'][name])
-        self.assertEqual(differ, sorted(DERIVED))
+        # Chrome's build-id.json is derived from control/ alone, not from the account.
+        self.assertEqual(differ, sorted(name for name in DERIVED if not name.endswith('/chrome/build-id.json')))
         # An owner the file policy cannot use, or more than one account, stops the build.
         for broken in (declaration.replace('/var/home/ares', '/home/ares'), declaration + 'u other 1003 - /var/home/other\n',
                        declaration.replace('1001:1001', '999:999')):

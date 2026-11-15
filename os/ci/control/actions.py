@@ -12,6 +12,7 @@ import os
 import pathlib
 import pwd
 import queue
+import re
 import shutil
 import socket
 import sqlite3
@@ -33,9 +34,11 @@ USER_MCP = pathlib.Path('/usr/share/aresos/control/user-mcp.json')
 MANAGED_SETTINGS = pathlib.Path('/etc/claude-code/managed-settings.json')
 UNIT = 'aresos-toold.service'
 SOCKETS = pathlib.Path('/run/aresos-tools')
-# The modes today's control/aresos_control/daemon.py sets: act for the owner's peer-checked calls, admin and chrome
-# for root only (Chrome's adapter, PR #27, may change chrome's).
-SOCKET_MODES = {'act.sock': 0o666, 'admin.sock': 0o600, 'chrome.sock': 0o600}
+# The modes the merged control/aresos_control/daemon.py sets (PR #27): act and chrome for the owner's peer-checked
+# calls (his CLI and proxies; Chrome's native host), admin for root only; the folder 0711.
+# os/tests/test_control_vm.py reads them from daemon.py itself, so a change there fails until this follows.
+SOCKET_MODES = {'act.sock': 0o666, 'admin.sock': 0o600, 'chrome.sock': 0o666}
+SOCKET_FOLDER_MODE = 0o711
 SANDBOX = {'Type': 'simple', 'User': 'aresos-tools', 'Group': 'aresos-tools', 'NoNewPrivileges': 'yes',
            'ProtectSystem': 'strict', 'ProtectHome': 'yes', 'PrivateTmp': 'yes', 'PrivateDevices': 'yes',
            'UMask': '0077', 'Restart': 'on-failure', 'CapabilityBoundingSet': '', 'AmbientCapabilities': ''}
@@ -281,8 +284,8 @@ def fixtures(request):
     return dict(returncode=0, summary=summary, files=files_out({'fixtures.json': summary}))
 
 
-def mcp_session(argv, timeout=60):
-    """initialize, then tools/list (every page), as an MCP client over stdio."""
+def mcp_session(argv, timeout=60, calls=()):
+    """initialize, then tools/list (every page), then each (name, arguments) of calls, as an MCP client over stdio."""
     process = subprocess.Popen(argv, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                text=True, cwd='/')
     lines, errors = queue.Queue(), []
@@ -321,6 +324,13 @@ def mcp_session(argv, timeout=60):
             cursor = page.get('nextCursor')
             if not cursor:
                 break
+        answers = []
+        for name, arguments in calls:
+            ident += 1
+            began = time.monotonic()
+            send(dict(id=ident, method='tools/call', params=dict(name=name, arguments=arguments)))
+            answers.append(dict(name=name, arguments=arguments, result=receive(ident),
+                                seconds=round(time.monotonic() - began, 2)))
     finally:
         process.stdin.close()
         try:
@@ -328,7 +338,8 @@ def mcp_session(argv, timeout=60):
         except subprocess.TimeoutExpired:
             process.kill()
             process.wait()
-    return dict(initialize=initialized, tools=tools, returncode=process.returncode, stderr=''.join(errors)[-4000:])
+    return dict(initialize=initialized, tools=tools, calls=answers, returncode=process.returncode,
+                stderr=''.join(errors)[-4000:])
 
 
 def raw_request(user, name, request):
@@ -344,8 +355,10 @@ def entry_points(request):
     assert len(listed['data']['items']) <= 3, listed
     log = answered(cli('ares', 'log'))
     servers = {}
-    for app in ('mail', 'control'):
-        session = mcp_session([*as_user('ares'), '/usr/bin/aresos-mcp', app])
+    # Chrome with no browser connected (its browser side is brief 18c-b): a read is a clear refusal, never a hang.
+    no_browser = [('tabs', {})]
+    for app in ('mail', 'control', 'chrome'):
+        session = mcp_session([*as_user('ares'), '/usr/bin/aresos-mcp', app], calls=no_browser if app == 'chrome' else ())
         generated = json.loads((GENERATED / f'{app}-tools.json').read_text())
         instructions = (GENERATED / f'{app}-instructions.txt').read_text()
         assert session['initialize'].get('instructions', '') + '\n' == instructions, (app, session['initialize'])
@@ -357,7 +370,12 @@ def entry_points(request):
                             protocol=session['initialize'].get('protocolVersion'),
                             tools=[tool['name'] for tool in served],
                             keys_beyond_generated=sorted({key for tool, shipped in zip(served, generated)
-                                                          for key in tool.keys() - shipped.keys()}))
+                                                          for key in tool.keys() - shipped.keys()}),
+                            calls=session['calls'])
+    for call in servers['chrome']['calls']:
+        assert call['result'].get('isError') is True and 'chrome_unavailable' in json.dumps(call['result']), call
+    chrome_cli = cli('ares', 'chrome', 'tabs', value={})
+    refused(chrome_cli, 'chrome_unavailable')
     # A throwaway second user, made in this VM only.
     if run(['getent', 'passwd', OTHER])['returncode'] != 0:
         ok(run(['useradd', '--system', '--no-create-home', '--shell', '/usr/sbin/nologin', OTHER]))
@@ -366,9 +384,14 @@ def entry_points(request):
         other_cli_act=refused(cli(OTHER, 'testapp', 'list', value={'limit': 3}), 'permission_denied'),
         other_act_socket=raw_request(OTHER, 'act.sock', {'v': 1, 'method': 'tools', 'app': 'testapp'}),
         ares_admin_socket=raw_request('ares', 'admin.sock', {'v': 1, 'method': 'tools', 'app': 'testapp'}),
+        # chrome.sock is 0666 like act.sock; the service admits only the owner's native host (SO_PEERCRED).
+        other_chrome_socket=raw_request(OTHER, 'chrome.sock', {'v': 1, 'method': 'hello'}),
         ares_admin_cli=refused(cli('ares', 'admin', 'testapp', 'fixture_configure',
                                    value={'failure': 'none', 'refuse': []})))
     assert refusals['other_act_socket'].get('error', {}).get('code') == 'permission_denied', refusals
+    assert refusals['other_chrome_socket'].get('error', {}).get('code') == 'permission_denied', refusals
+    refusals['ares_chrome_cli_no_browser'] = dict(code=chrome_cli['json']['error']['code'],
+                                                  message=chrome_cli['json']['error']['message'])
     # admin.sock is 0600 for aresos-tools: the kernel refuses the connection before the service's own check.
     assert refusals['ares_admin_socket'].get('error_name') == 'PermissionError', refusals
     proxy = run([*as_user(OTHER), '/usr/bin/aresos-mcp', 'testapp'], input='', timeout=60)
@@ -534,7 +557,8 @@ def service(request):
     for key in ('CapInh', 'CapPrm', 'CapEff', 'CapBnd', 'CapAmb'):
         assert int(process[key], 16) == 0, (key, process[key])
     folder = SOCKETS.lstat()
-    assert stat.S_ISDIR(folder.st_mode) and stat.S_IMODE(folder.st_mode) == 0o711 and folder.st_uid == 250, folder
+    assert stat.S_ISDIR(folder.st_mode) and stat.S_IMODE(folder.st_mode) == SOCKET_FOLDER_MODE and \
+        folder.st_uid == 250, folder
     sockets = {}
     for path in sorted(SOCKETS.iterdir()):
         info = path.lstat()
@@ -552,7 +576,8 @@ def service(request):
     assert not ours, ours
     security = run(['systemd-analyze', 'security', UNIT, '--no-pager'], timeout=120)
     unit_journal = run(['journalctl', '-b', '-u', UNIT, '--no-pager', '-o', 'short-monotonic'], timeout=120)
-    summary = dict(properties=properties, process=process, sockets=sockets, socket_folder='0711 aresos-tools',
+    summary = dict(properties=properties, process=process, sockets=sockets,
+                   socket_folder=f'{SOCKET_FOLDER_MODE:04o} aresos-tools',
                    selinux=selinux, invocations=sorted(invocations))
     return dict(returncode=0, summary=dict(user=properties['User'], nrestarts=properties['NRestarts'],
                                            selinux=selinux['getenforce'], avc_total=len(every)),
@@ -766,6 +791,16 @@ def ordinary(request):
             errors.append(traceback.format_exc())
     if len(turns) != 5 or None in own_stops:
         errors.append(f'{len(turns)} turns; his Stop hook outside a turn: {own_stops.get(None)}')
+    # The Chrome tools are offered in his session as installed (user-mcp.json's chrome entry), every one of them.
+    offered = cases.get('stopped-mid-session', {}).get('tools_offered', [])
+    by_server = {}
+    for name in offered:
+        server = name.split('__')[1] if name.startswith('mcp__') else 'built-in'
+        by_server[server] = by_server.get(server, 0) + 1
+    chrome = sorted(name for name in offered if name.startswith('mcp__chrome__'))
+    shipped = sorted(f'mcp__chrome__{tool["name"]}' for tool in json.loads((GENERATED / 'chrome-tools.json').read_text()))
+    if chrome != shipped:
+        errors.append(f'the session offered {chrome} as Chrome tools, not the shipped {shipped}')
     after, _ = wait_sockets()
     if after['total']:
         errors.append(f'pending after check 6: {after}')
@@ -773,7 +808,7 @@ def ordinary(request):
                                                      'stop_continuations', 'own_stop_runs', 'seconds', 'on_screen',
                                                      'own_tool_ran')}
                           for row in rows], own_stop_lines=sum(map(len, own_stops.values())),
-                   pending_after=after['total'])
+                   pending_after=after['total'], tools_offered=by_server)
     files = {'ordinary/summary.json': dict(summary, rows=rows, service=service, settings=settings),
              'ordinary/own-hooks.jsonl': log.read_text() if log.exists() else ''}
     sizes = packed(files, {f'ordinary/{name}.tar.gz': out / name for name in cases}, errors)
@@ -1049,8 +1084,48 @@ def restart(request):
     return dict(returncode=0, summary=summary, files=files_out({'restart.json': summary}))
 
 
+# Main's handoff ("Chrome merged", partial index): the storage plan and timing tests of control/chrome_tests on the
+# image's own Python and SQLite, against the installed aresos_control. The layer carries only the test modules.
+STORAGE_SUITE = HERE / 'storage-suite'
+STORAGE_TESTS = ('test_full_disk_reads', 'test_open_index_timing')
+STORAGE_PROBE = '''import json, sqlite3, sys, aresos_control
+print(json.dumps(dict(python=sys.version.split()[0], executable=sys.executable, sqlite=sqlite3.sqlite_version,
+                      sqlite_module=sqlite3.__file__, aresos_control=aresos_control.__file__)))
+'''
+
+
+def storage_tests(request):
+    work = pathlib.Path('/var/tmp/aresos-ci-storage')
+    shutil.rmtree(work, ignore_errors=True)
+    # test_engine.py keeps its scratch beside the checkout (<root>/.work), so the modules run from a folder the owner
+    # can write; as `ares`, as control-base runs them unprivileged.
+    shutil.copytree(STORAGE_SUITE, work / 'control')
+    for path in (work, *work.rglob('*')):
+        os.chown(path, HOME.stat().st_uid, HOME.stat().st_gid)
+    tests = work / 'control/chrome_tests'
+    # The service's own import path (launch.py: the installed tree, then the vendored dependencies); -B leaves no
+    # bytecode beside the installed code.
+    command = [*as_user('ares'), f'PYTHONPATH={tests}:/usr/libexec/aresos-control:/usr/lib/aresos-control/vendor',
+               '/usr/bin/python3', '-B']
+    probe = json.loads(ok(run([*command, '-c', STORAGE_PROBE], cwd=str(tests)))['stdout'])
+    assert probe['aresos_control'] == '/usr/libexec/aresos-control/aresos_control/__init__.py', probe
+    began = time.monotonic()
+    result = run([*command, '-m', 'unittest', '-v', *STORAGE_TESTS], timeout=600, cwd=str(tests))
+    output = result['stdout'] + result['stderr']
+    ran = re.search(r'^Ran (\d+) tests? in', output, re.M)
+    timing = next((json.loads(line.split(' ', 1)[1]) for line in output.splitlines()
+                   if line.startswith('step7-timing ')), None)
+    passed = result['returncode'] == 0 and re.search(r'^OK$', output, re.M) is not None
+    summary = dict(probe, tests=int(ran[1]) if ran else None, passed=passed,
+                   seconds=round(time.monotonic() - began, 1), timing=timing)
+    shutil.rmtree(work, ignore_errors=True)
+    return dict(returncode=0 if passed else 1, stderr='' if passed else output[-6000:], summary=summary,
+                files=files_out({'storage-tests.json': summary, 'storage-tests.txt': output}))
+
+
 ACTIONS = {'control-files': files, 'control-claude-code-files': claude_code_files, 'control-release': release,
            'control-idle': idle, 'control-fixtures': fixtures, 'control-entry-points': entry_points,
            'control-precondition': precondition, 'control-user-mcp': user_mcp, 'control-service': service,
            'control-ordinary': ordinary, 'control-mail': mail, 'control-interactive': interactive,
-           'control-passwords': passwords, 'control-selinux': selinux_after, 'control-restart': restart}
+           'control-passwords': passwords, 'control-selinux': selinux_after, 'control-storage-tests': storage_tests,
+           'control-restart': restart}

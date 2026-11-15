@@ -117,6 +117,11 @@ commands, the unit `aresos-toold.service` (enabled through `multi-user.target`,
 (UID and GID 250, made by sysusers at boot) and its folders, Claude Code's
 managed files in `/etc/claude-code/` (no `managed-mcp.json`), and
 `/usr/share/aresos/control/` with `user-mcp.json` and the service's config.
+The service's Chrome adapter starts from two files in
+`/usr/libexec/aresos-control/chrome/`: `qualification.json` (the shipped
+baseline) and `build-id.json`, the hash `control/chrome/build.py` computes over
+`control/` at image build. Chrome's browser side (extension, native host,
+policies, the excluded-sites list) and `gh` come with package 18c-b.
 The config's owner UID and home come from `ares`'s `sysusers.d` line; the tools
 may use `~/Downloads` and `~/Documents`, which tmpfiles makes at boot when they
 are missing and leaves alone when they exist. `/usr/share/aresos/manifest/control.json`

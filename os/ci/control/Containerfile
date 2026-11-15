@@ -8,6 +8,10 @@ COPY os/ci/control/release_checks.py os/ci/control/own-mcp.py /usr/libexec/areso
 # flows from control/ci/image/.
 COPY os/ci/control/sessions.py os/ci/control/own-hook.py control/boundary/interactive_driver.py \
      control/boundary/interactive_model.py control/ci/image/mail_flows.py /usr/libexec/aresos-ci/control/
+# The Chrome follow-up: Chrome's storage plan and timing tests (control/chrome_tests, with the Mail suite's storage
+# faults) run on the image's own Python and SQLite against the installed code; only the test modules come in here.
+COPY control/chrome_tests/*.py /usr/libexec/aresos-ci/control/storage-suite/chrome_tests/
+COPY control/mail_tests/storage_faults.py /usr/libexec/aresos-ci/control/storage-suite/mail_tests/
 # Per run: the pinned Claude Code (checked by runner.sh), the fixture CA
 # certificate (never its key) and the fixture servers' names at 10.0.2.2.
 COPY vm-work/control-layer/claude vm-work/control-layer/fixture-ca.crt vm-work/control-layer/hosts /tmp/aresos-ci-control/

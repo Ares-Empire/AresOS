@@ -209,8 +209,11 @@ def session(evidence, steps, flags, answers, before_turn=None, turn_seconds=180)
     answered = [json.loads(line) for line in actions.read_text().splitlines()] if actions.exists() else []
     owner_answers = sum(1 for action in answered if action['option'] in ('Yes', 'No'))
     continuations = model.script.continuations
+    # The tools Claude Code offered the model in its first request (tool search is off here, so every one is listed).
+    offered = next((request['tools'] for request in model.requests if request.get('tools')), [])
     return dict(turns=turns, owner_answers=owner_answers, model_requests=len(model.requests),
-                continuations=continuations, warning_answered=terminal.warning, final_screen=final)
+                continuations=continuations, warning_answered=terminal.warning, final_screen=final,
+                tools_offered=sorted(tool.get('name', '') for tool in offered))
 
 
 TRANSCRIPTS = HOME / '.claude/projects'

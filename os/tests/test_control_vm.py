@@ -234,6 +234,35 @@ class EvidencePackingTest(unittest.TestCase):
         self.assertFalse((self.folder / 'out/work/kept.jsonl').exists())
 
 
+class ServiceModesTest(unittest.TestCase):
+    """Check 2 expects the socket folder's and sockets' modes the merged daemon.py sets, read from daemon.py itself
+    (step 2a assumed chrome.sock 0600; PR #27 made it 0666)."""
+
+    def constant(self, name):
+        tree = ast.parse((CONTROL_CI / 'actions.py').read_text())
+        return next(ast.literal_eval(node.value) for node in tree.body
+                    if isinstance(node, ast.Assign) and [ast.unparse(t) for t in node.targets] == [name])
+
+    def test_the_socket_modes_are_the_ones_daemon_py_sets(self):
+        tree = ast.parse((ROOT / 'control/aresos_control/daemon.py').read_text())
+        daemon = next(node for node in tree.body if isinstance(node, ast.ClassDef) and node.name == 'Daemon')
+        init = next(node for node in daemon.body if isinstance(node, ast.FunctionDef) and node.name == '__init__')
+        loop = next(node for node in ast.walk(init) if isinstance(node, ast.For) and ast.unparse(node.target) == 'kind')
+        chmod = [node for node in ast.walk(loop) if isinstance(node, ast.Call) and ast.unparse(node.func) == 'os.chmod']
+        self.assertEqual(len(chmod), 1)
+        expression = chmod[0].args[1]
+        # Only the loop's kind decides the mode: a constant, or a choice between constants by kind.
+        self.assertEqual({node.id for node in ast.walk(expression) if isinstance(node, ast.Name)}, {'kind'})
+        mode = compile(ast.Expression(expression), 'daemon.py', 'eval')
+        sockets = {f'{kind}.sock': eval(mode, {'__builtins__': {}}, {'kind': kind})
+                   for kind in ast.literal_eval(loop.iter)}
+        self.assertEqual(sockets, self.constant('SOCKET_MODES'))
+        folder = [keyword.value for node in ast.walk(init) if isinstance(node, ast.Call)
+                  and ast.unparse(node.func) == 'directory.mkdir' for keyword in node.keywords if keyword.arg == 'mode']
+        self.assertEqual([ast.literal_eval(value) for value in folder], [self.constant('SOCKET_FOLDER_MODE')])
+        self.assertEqual(sockets, {'act.sock': 0o666, 'admin.sock': 0o600, 'chrome.sock': 0o666})
+
+
 class ReleaseChecksTest(unittest.TestCase):
     """Agreed change 12: the rehearsal's checks, on a stand-in root."""
 

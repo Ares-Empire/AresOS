@@ -43,10 +43,12 @@ CHECKS = [
     ('control-interactive', 'CONTROL_INTERACTIVE_ASK_PASS'),
     ('control-passwords', 'CONTROL_PASSWORDS_PRIVATE_PASS'),
     ('control-selinux', 'CONTROL_SELINUX_AFTER_CHECKS_PASS'),
+    # The Chrome follow-up: Chrome's storage plan and timing tests on the image's Python and SQLite.
+    ('control-storage-tests', 'CONTROL_STORAGE_TESTS_PASS'),
     ('control-restart', 'CONTROL_SERVICE_RESTART_PASS'),
 ]
 # Lines whose summary is printed with them: the numbers the owner is asked about and the recorded PermissionRequest.
-WITH_SUMMARY = {'control-idle', 'control-ordinary'}
+WITH_SUMMARY = {'control-idle', 'control-ordinary', 'control-storage-tests'}
 
 
 def install_step(readme):
