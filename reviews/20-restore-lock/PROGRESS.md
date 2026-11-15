@@ -62,7 +62,12 @@ need a new journal field or a second projection over the summaries, neither smal
   needs `jsonschema` and the container's `/etc/claude-code/managed-settings.json`; locally it was run from a venv in
   the ignored `.work/20-restore-lock/venv` with the managed-settings stand-in from
   `reviews/20-chrome/records/post18d/mail-sweep/hostenv.py`, on this tree and on a copy with HEAD's `engine.py`,
-  to compare the failing sets. Results below.
+  to compare the failing sets. Result: 311 tests; no test fails only with the fix (the five that fail only on the
+  HEAD-engine copy are its client-timeout timing cases). The restore tests pass locally
+  (`test_restore_older_log_rejects_earlier_ids_missing_ops_unknown`, `test_review21_pending_never_reads_...`,
+  `test_restore_batches`, `test_review20_crash_after_first_restore_batch_keeps_lock_until_confirmation_finishes`).
+  The local failures are the Linux-only parts: crash and archive workers started without the venv's path,
+  `os.O_PATH`, `mcp_types`, root-owned boundary files. The container run on the PR is the real base result.
 
 ## Left (step 2, R2: the oracle)
 
@@ -75,4 +80,9 @@ need a new journal field or a second projection over the summaries, neither smal
 
 ## Records
 
-- `reviews/20-restore-lock/records/final-local-<head>.json`: the full local preflight (`.work/20-restore-lock/preflight.py`).
+- `reviews/20-restore-lock/records/final-local-1e770483.json`: the full local preflight (`.work/20-restore-lock/preflight.py`)
+  at `1e770483`, all green: Python 339 tests in 4 shards (90, 70, 52, 127; 1 skipped), Node 428 tests, 0 failures,
+  529 removal mutations rejected with every baseline passing, `generate.py --check`, `git diff --check` and the
+  service-unit pin clean.
+- Also run locally at `1e770483`: the Chrome modules `test_committed`, `test_engine`, `test_fault_surface`,
+  `test_state_fixes`, `test_questions` (118 tests, OK), and the base suite as described above.
