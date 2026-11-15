@@ -219,7 +219,8 @@ state token and its "quiet" (the token unchanged for 150 ms):
 ### 5. `chrome_do` (effect change)
 
 Input: `tab`; `steps`, 1 to 20 objects, each with `do` and what that step needs; `max` (500 to 8,000, default 2,000:
-the bound of the change report); `discard_unsaved` (boolean, for a taken tab's first-input reload, as on `main`).
+the bound of the change report); `discard_unsaved` (boolean, for the first-input reload of a taken tab or of a
+popup, as on `main`).
 
 | `do` | Needs | Is brief 20's |
 |---|---|---|
@@ -430,7 +431,8 @@ package puts the tools that act on the same mechanism:
   the front. For him: to look, to sign in, to answer a dialog. Refused for nothing but an unknown tab.
 - **`chrome_close`** (change; input: `tabs`, 1 to 20; `discard_unsaved`). Closes tabs that are `claude`. In this
   package every other tab is refused, **a taken tab included** ("this is the owner's tab; release it"). Brief 20's
-  `chrome_close_tab` closes any tab in the group, a taken one too, without looking at what it holds: that ends here.
+  `chrome_close_tab` closes any tab in the group, a taken one too: its check reports unsaved work first, but a repeat
+  with `discard_unsaved: true` closes a taken tab of his. That ends here.
   The result lists `closed` and, with the reason, `kept`. **Main's guard stays** (the lead, 2026-11-15): every Claude
   tab first goes through brief 20's check, and one with unsaved typing, playing media or a frame that couldn't be
   inspected is kept, with main's `reload_required` report as its reason, until the call is repeated with
@@ -441,10 +443,13 @@ package puts the tools that act on the same mechanism:
   says whether a reload is still due and what it would lose. `chrome_take` with `reload: true` also does that
   reload now (brief 20's `prepare_control` with its explicit repeat, `discard_unsaved: true` on merged `main`) and
   returns the outline. No other tool has a `reload` input; `discard_unsaved` stays main's flag on `chrome_go`,
-  `chrome_close` and `chrome_do`.
-  - **`chrome_go` in a taken tab that hasn't had its reload** would replace his page without any check in brief
-    20. Here it first goes through `prepare_control`, as a first input does: `reload_required` when brief 20's
-    check finds typing, an editor or playing media, otherwise the guarded reload, and then the navigation.
+  `chrome_close` and `chrome_do`. `reload: true` discards what the flag discards, so `chrome_take`'s description says
+  that it follows the same rule: his OK in the chat first when the report lists his typing, playing media or frames
+  that couldn't be inspected.
+  - **`chrome_go` in a taken tab that hasn't had its reload.** On `main`, `navigate` there runs brief 20's check
+    (`requireDiscard`) and then navigates, without the guarded reload. Here it first goes through `prepare_control`,
+    as a first input does: `reload_required` when brief 20's check finds typing, an editor or playing media,
+    otherwise the guarded reload, and then the navigation.
   - **Brief 20's check before that reload is unchanged in this package.** On merged `main` it is `requireDiscard` in
     `background.js` with `reloadState` in `reader.js`: in a document the reader didn't watch from its start every
     text field, textarea and hidden input counts; in a watched one a field counts when it differs from its default or
@@ -463,11 +468,11 @@ package puts the tools that act on the same mechanism:
   it.** Keep its name unless it collides with one here.
 
   What this package does with it, and nothing more:
-  - **main's two tools stay** (the lead, 2026-11-15): `chrome_prepare_read_typed_fields` names the tab and the fields
-    and returns the approval, and `chrome_read_typed_fields` takes that approval unchanged. They are the eighteenth
-    and nineteenth tools of the new list, with their names, inputs and behaviour unchanged. The managed ask rule
-    stays on `mcp__chrome__read_typed_fields` alone, and it is part of the generated rules that must not change by a
-    byte;
+  - **main's two tools stay** (the lead, 2026-11-15): `chrome_prepare_read_typed_fields` takes the tab and returns
+    the approval, whose question lists the fields, and `chrome_read_typed_fields` takes that approval unchanged.
+    They are the eighteenth and nineteenth tools of the new list, with their names, inputs and behaviour unchanged.
+    The managed ask rule stays on `mcp__chrome__read_typed_fields` alone, and it is part of the generated rules that
+    must not change by a byte;
   - in its result each field is named by its label and by its short reference in place of brief 20's reference
     object, and each value sits in `untrusted_content`, quoted by brief 28's escaping rule;
   - an address in its question is in the public form (item 3);
@@ -509,20 +514,26 @@ package puts the tools that act on the same mechanism:
   together with the list's `seen`; that `chrome_do` stops at the first asking step, that its `prepared` entry goes
   unchanged to `chrome_submit`, and that steps it reports as not run are sent again. Each description keeps only what
   is specific to its action. Write them for Claude: what it does, when to use it, what comes back.
-- **The instructions keep only rules that span tools, in at most 3,800 characters** (the lead, 2026-11-15). Claude
-  Code 2.1.319 passes only the first 4,096 characters of an MCP server's instructions, and
-  `control/chrome_tests/test_questions.py` (`test_fixes_b_server_instructions_fit_the_native_cli_limit`, about line
-  456) fails any app above that; 3,800 leaves a margin. On merged `main` the Chrome server's instructions are 4,052
-  characters. A rule in the list above that belongs to one tool (for example `chrome_do`'s rules for asking steps and
-  steps not run) moves into that tool's description; this package does the move. Measure both early: the instructions
-  against 3,800, and the whole tool list against the sizes below. Add a test that pins the Chrome instructions'
-  length under 3,800, beside the existing 4,096 check for every app. Brief 28b adds its block (its item 8) within the
-  same 3,800. If the rules still can't fit, stop and tell the lead (PLAN-GAP).
+- **The instructions keep only rules that span tools, in at most 2,800 characters in all** (the lead, 2026-11-15,
+  after review 4). 1,652 of them are `COMMON_INSTRUCTIONS`, which every app shares and this package doesn't change,
+  so Chrome's own text gets at most 1,148 characters, less than half of main's 2,400. Brief 28b then has 1,000 left
+  for its rules for his tabs, under a ceiling of 3,800: Claude Code 2.1.319 passes only the first 4,096 characters of
+  an MCP server's instructions, `control/chrome_tests/test_questions.py`
+  (`test_fixes_b_server_instructions_fit_the_native_cli_limit`, about line 456) fails any app above that, and 3,800
+  leaves a margin. On merged `main` the Chrome server's instructions are 4,052 characters. **A rule in the list
+  above that belongs to one tool goes into that tool's description, not the instructions** (for example
+  `chrome_do`'s rules for asking steps and steps not run, or what `reload: true` does on `chrome_take`); this package
+  does the move. Measure both early: the instructions against 2,800, and the whole tool list against the sizes
+  below. Add a test that pins the Chrome instructions at most 2,800 characters, beside the existing 4,096 check for
+  every app; brief 28b moves that pin to 3,800. If the rules still can't fit, stop and tell the lead (PLAN-GAP).
 - **Sizes** (measured as brief 18d measured Mail's), for nineteen tools: all descriptions plus the instructions at
-  most 10,900 characters and not above the baseline; all names plus input schemas at most 6,450 characters. That is
-  the eighteen-tool budget of 10,500 and 6,300, plus `chrome_prepare_read_typed_fields` as main has it (361
-  characters of description, 142 of name and input schema) (the lead, 2026-11-15). A test pins the
-  exact totals; a change that grows them fails until the pin is changed on purpose.
+  most 11,300 characters and not above the baseline; all names plus input schemas at most 6,560 characters. That is
+  the eighteen-tool budget of 10,500 and 6,300; plus `chrome_prepare_read_typed_fields` as main has it (361
+  characters of description, 142 of name and input schema; the lead, 2026-11-15); plus what the lead's decision 2
+  adds (review 4, S8): `discard_unsaved` on `chrome_go`, `chrome_close` and `chrome_do` (37 characters of schema
+  each, about 110 in all), and main's rule for unsaved work (280 characters as `DISCARD_NOTICE` on main) with the
+  guard's mention in three descriptions (about 400 in all). A test pins the exact totals; a change that grows them
+  fails until the pin is changed on purpose.
 - Put the final descriptions and instructions, exactly as generated, into
   `reviews/28a-chrome-act/TOOL-DESCRIPTIONS.md`.
 
@@ -551,8 +562,13 @@ Restructure in steps that keep everything working:
    `chrome_dialog`, `chrome_navigate`, `chrome_take_tab`, `chrome_release_tab`, `chrome_close_tab`,
    `chrome_downloads`, `chrome_bookmarks`, `chrome_history`; `chrome_prepare_read_typed_fields` and
    `chrome_read_typed_fields` stay, item 6), the test-only switch with its `chrome_old_` names,
-   the reader's `read` rows that nothing uses any more, and the old paging of `chrome_tabs`. Regenerate. Pin the
-   sizes.
+   the reader's `read` rows that nothing uses any more, and the old paging of `chrome_tabs`. Every refusal,
+   description and instruction that names a removed tool then names its replacement (review 4, S7). Main's
+   `WITHHELD_FORM` (`adapter.py`, and its copy in `background.js`) says "reload the tab first with chrome_navigate
+   direction=reload": it names `chrome_go` with `to: reload`, and the tests that pin the old text
+   (`test_questions.py`, about lines 471 and 476, and line 446 for the instructions) change with it. A test scans
+   the descriptions, the instructions and the refusal texts in `adapter.py` and `background.js` and fails on any
+   removed tool's name. Regenerate. Pin the sizes.
 4. The full Chrome suite twice on the final head, with the base, Mail, boundary and qualification workflows.
 
 ### 9. The documents that list tools
@@ -610,9 +626,10 @@ Restructure in steps that keep everything working:
   the report.
 
 **What changes in `background.js`, and nothing else:** a `show` command for `chrome_show`; a `tabs` reply that
-holds every tab at once with the fields item 6 needs; the check of `seen` in `take` (item 6); and two additions to
-`input` (item 5: "on screen first", and the check of the command's time right before the dispatch). Not the rest
-of `input`, not `resume`, `dialog`, `prepare_control`, `release`, the debugger methods or the session rules.
+holds every tab at once with the fields item 6 needs; the check of `seen` in `take` (item 6); two additions to
+`input` (item 5: "on screen first", and the check of the command's time right before the dispatch); and the text
+of `WITHHELD_FORM` (item 8, step 3). Not the rest of `input`, not `resume`, `dialog`, `prepare_control`, `release`,
+the debugger methods or the session rules.
 
 ## Tests
 
@@ -761,7 +778,9 @@ redirect's target, and in history, bookmark and download entries.
   taken tab that holds typing answers `reload_required` and the page isn't replaced; in a taken tab without typing
   it reloads under brief 20's guard and then navigates;
 - the conservative mode (an unqualified Chrome major) asks for the same inputs through `chrome_do` as brief 20's
-  tools did.
+  tools did;
+- **the marks of `chrome_tabs`:** a tab that plays sound shows `sound`; muted while it plays, it shows `muted` and
+  not `sound`.
 
 **Group 16, efficiency** (browser, in the latency harness): the scripted tasks below, each run against the baseline
 file brief 28 committed. The read rows are brief 28's, measured again here through `chrome_read`. **Each row names
@@ -784,9 +803,9 @@ baseline.
 | Compare three open tabs: `chrome_read` with `tabs` | 1 call |
 | List 25 open tabs (titles of about 30 characters): `chrome_tabs` | 1 call, at most 3,500 characters |
 | F5: a free click that changes part of the page: from an outline in hand, one `chrome_do` | 1 call, at most 2,500 characters, every changed line named (`more_changes` is 0) |
-| Descriptions plus instructions (19 tools) | at most 10,900 characters, and not above the baseline |
-| The server instructions alone | at most 3,800 characters (and every app within 4,096) |
-| Names plus input schemas (19 tools) | at most 6,450 characters |
+| Descriptions plus instructions (19 tools) | at most 11,300 characters, and not above the baseline |
+| The server instructions alone | at most 2,800 characters, the shared 1,652 included (and every app within 4,096) |
+| Names plus input schemas (19 tools) | at most 6,560 characters |
 | Latency (the comparison in one run, below) | the first read of F1, a free click with its report, and the 6-field form are each at most 1.10 times brief 20's median plus 50 ms; PR #27's latency gate (`latency-targets.json`) stays within its ceilings |
 
 **Latency: old and new in one run.** Runners differ, so old and new tools are timed in **one run**. At step 1 of
@@ -849,10 +868,12 @@ The base's, 18d's and Mail's suites still pass, and the generated artifacts are 
 **May change:** `control/aresos_control/chrome/adapter.py`, `definitions.py`, the view module and new modules
 beside them; `control/aresos_control/chrome/bridge.py` (only the reply wait for an input, item 5, "Time");
 `control/chrome/extension/reader.js` (the fingerprint function, the reveal, the instance id in `facts`) and
-`background.js` (only as items 5 and 6 say); `control/aresos_control/proxy.py` (the Chrome upload branch's field
-names); the generated files; `control/chrome_tests/`, `control/chrome/ci/`;
-`.github/workflows/control-chrome.yml` (not the qualification workflow); `docs/control/TOOLS.md`,
-`docs/control/FEATURES.md` (item 9), `control/README.md`; `reviews/28a-chrome-act/`.
+`background.js` (only as items 5, 6 and 8 say); `control/aresos_control/definitions.py` (only the Chrome branch
+of `instructions_for`, which appends the Chrome text; `COMMON_INSTRUCTIONS` and every other app stay byte-identical);
+`control/aresos_control/proxy.py` (the Chrome upload branch's field names); the generated files;
+`control/chrome_tests/`, `control/chrome/ci/`; `.github/workflows/control-chrome.yml` (not the qualification
+workflow); `docs/control/TOOLS.md`, `docs/control/FEATURES.md` (item 9), `control/README.md`;
+`reviews/28a-chrome-act/`.
 
 **Must not touch:** `os/`, `mod/`, `docs/design/`, `docs/control/PLAN.md`, `docs/control/TOOLS-HANDOFF.md`,
 `STATE.md`, `HANDOFF.md`, `docs/INSTALL*`, `docs/EMERGENCY.md`, `briefs/`; `control/aresos_control/mail/`,
