@@ -5,10 +5,159 @@ Branch `pkg/18c-b-chrome`, one builder at a time. Each step is a fresh agent; th
 
 ## Where it stands
 
-**Steps 1a, 1b and 2 are built; step 2 is not green.** (1a and 2: Claude Fable 5.2; 1b: Claude Opus 5.5, as the
-brief recommends.) Item 2's workflow passes cases 1 to 4 on the image's pinned Chrome; **case 5 fails**: Chrome ran
-no scheduled extension update check in ten minutes, so the log has nothing to judge. Step 2 stopped at its budget.
-Next: finish case 5 (below, "Left"), then 3a.
+**Steps 1a, 1b and 2 are built and green.** (1a, 2 and 2b: Claude Fable 5.2; 1b: Claude Opus 5.5, as the brief
+recommends.) Item 2's workflow passes all five cases on the image's pinned Chrome on head `c4514015`
+(run 43729218613, `CONTROL_CHROME_INSTALL_PROOF_PASSED`). Next: 3a, which waits for PR #58 on `main` and the
+lead's go.
+
+## Step 2b (2026-11-15, Claude Fable 5.2)
+
+### The lead's decisions on step 2's findings
+
+1. **`setEnabled(false)` from another policy-installed extension** is accepted as Chrome's behaviour. Case 1 as
+   step 2 changed it stands (the `uninstall` refusal; ours enabled and connected again at the next start).
+2. **Chrome's own update-service requests** for its own extensions are accepted. Case 5's rule is the brief's
+   fallback: against a run of the probe alone, ours adds no address and no ID.
+3. **Case 5's trigger:** make the update check deterministic instead of waiting for the schedule; first try
+   `chrome.developerPrivate.autoUpdate()` in `chrome://extensions` over the DevTools protocol.
+4. **Case 3's record of the previous ID:** look at what it holds; a check if it grants the old ID anything,
+   otherwise a line under "what the code doesn't show".
+
+### Done
+
+- **`cdp.py`** (new, standard library, 4 tests in `test_cdp.py`): the DevTools protocol over
+  `--remote-debugging-pipe`. Only the Chrome starts that name it get the pipe (case 5's three, and the one below);
+  every other start still refuses the `NEVER` flags. A pipe, not a port: each of those starts checks that Chrome
+  listens on nothing.
+- **Case 5** asks Chrome for each update check. Per run (ours; the probe alone; the policy without
+  `override_update_url`): Chrome starts with the network log, `--disable-component-update` and the pipe; once the
+  extensions are in, `chrome://extensions` is opened and `chrome.developerPrivate.autoUpdate()` is called twice,
+  3 s apart (what the page's "Update" button calls: `ExtensionUpdater::CheckNow` with no IDs, so every extension;
+  read in Chrome 157's `developer_private_functions.cc` and `extension_updater.cc`). After each call the proof waits
+  for the probe's request at the test's own server. Required of every run: the probe's ID is in two update requests
+  in the log, **and the log holds exactly as many as the server answered**.
+- **`netlog.py`** (11 tests): a request's start is the event the log's own constants call `URL_REQUEST_START_JOB`
+  (a log without constants is read as before); `added` counts a mention of the update service that the events
+  don't account for (a line cut off mid-write) as added, also when the baseline has one.
+- **Case 3** writes what the preference files keep under the previous ID to
+  `case3-<n>-previous-record.json` and requires that it holds none of `manifest`, `path`, `location`,
+  `active_permissions`, `granted_permissions`, `runtime_granted_permissions`.
+- **Case 1, an extension loaded by hand** (`case_ordinary`, counted in case 1's verdict): a Chrome start of its own
+  (own profile, the pipe, `--enable-unsafe-extension-debugging`), developer mode on, `Extensions.loadUnpacked` of a
+  two-file extension with the `management` permission, then its page calls `management.setEnabled(<ours>, false)`.
+  Chrome must refuse, and ours must still be enabled and connected. If this Chrome won't load one that way, the
+  result says `asked: false` with the reason and case 1 doesn't fail for it.
+
+### Runs
+
+| Run | Head | Result |
+|---|---|---|
+| 43729218613 | `c4514015` | `pack` green (`Ran 25 tests`, `OK`, `# pass 1`). Proof: `CONTROL_CHROME_INSTALL_CASE_1_PASS` to `_5_PASS`, `CONTROL_CHROME_INSTALL_PROOF_PASSED`. The job took 3 minutes, after 56 in the queue |
+
+Three of the 40 runs of this workflow are used. Cases 1 to 4 repeat step 2's numbers (install 0.8 s, pin 0 and
+819 pixels, both switches of case 3 done 0.89 s after Chrome's start, case 4 held 20 s).
+
+**Other runs, looked at once and not waited for.** On `c4514015`: records 43729218607, base 43729218627 and
+boundary 43729218628 green; Control Chrome 43729218606, Mail 43729218574 and qualification 43729218660 still
+queued. **Control Chrome 43726164356 on `9ac6c8cb` never started** (queued since 14:46 UTC, at both looks); that
+head's Mail and qualification runs were cancelled by this step's push. So the whole matrix has no result on any
+head of this branch since step 2: read 43729218606.
+
+### Case 5 on run 43729218613 (all **run**)
+
+| Run of Chrome | Update checks asked (s after start) | Probe's requests: log / server | Update-service addresses and IDs | Our ID outside a `file:` address |
+|---|---|---|---|---|
+| ours | 1.1, 4.3 | 2 / 2 | `https://clients2.google.com/service/update2/crx`, Chrome's own two IDs | none |
+| the probe alone | 1.07, 4.27 | 2 / 2 | the same | none (it doesn't have it) |
+| without `override_update_url` | 1.12, 4.32 | 2 / 2 | the same, **plus `POST https://update.googleapis.com/service/update2/json`** at each of the two checks | **`X-Goog-Update-AppId: <our ID>`**, twice |
+
+- **Ours adds nothing:** `added_by_our_policy` is empty, and the two runs name the same five hosts.
+- **The negative control fails the scan both ways:** an added address, and our ID named. The POSTs are in the log
+  at the same instant as the probe's two requests (+0.71 s and +3.91 s), so each asked check did take ours in, and
+  with `override_update_url` the same two checks leave nothing.
+- What Chrome asks by itself in every run, all ending in `ERR_INTERNET_DISCONNECTED`: its time service
+  (`clients2.google.com/time/1/current`), a spelling dictionary (`redirector.gvt1.com`), `www.google.com/async/…`,
+  a key list at `www.gstatic.com`, and the store's update address for its own two extensions at 0.2, 2.2 and 6.1 s.
+- Each run lasts about 7 s. `autoUpdate()`'s own answer never came within it (`checks_ended` 0): the check ends
+  only when Chrome gives up on its own store requests.
+
+### Case 3's record of the previous ID (**run**)
+
+After A to B and after B to A, `Default/Preferences` keeps **an empty object, `{}`**, under the previous ID;
+`Secure Preferences` has no entry for it. Nothing Chrome could load, no permission, no host access: bookkeeping
+only. The check above stays as a guard, and the files are in the artifact.
+
+### Case 1, who can switch ours off (**run**)
+
+- An extension installed by policy can (step 2; `after_it`: `enabled` false, the tools `chrome_unavailable`; back
+  0.61 s after the next start).
+- **An extension loaded by hand can't:** `installType` `development`; `setEnabled(false)` answers
+  "Extension … cannot be modified by user."; ours stays enabled and connected. This was read in step 2 and is run
+  now. Chrome's rule: `AdminPolicyIsModifiable` in `standard_management_policy_provider.cc`.
+- He himself in Chrome's own pages: `mayDisable` false (run); the switch on `chrome://extensions` was not clicked.
+
+### Known-limit lines (for the report and `KNOWN-LIMITS.md`; the lead places them)
+
+- An extension installed by policy can switch ours off until the next start of Chrome. Adding one needs root, so
+  that is he himself or whoever has his password. While it is off the tools answer `chrome_unavailable` (fails
+  closed). An extension he loads by hand can't do it.
+- On a fresh profile Chrome asks Google's update service about two extensions of its own, whatever our policy
+  says. Ours adds no address and no ID to that.
+- After an update the profile's `Preferences` keeps an empty record under the previous ID.
+
+### Left, in order
+
+1. **3a**, when PR #58 is on `main` and the lead says go. Then 3b, 4 (4b), 5, 6 as before.
+2. **For step 5 (C9 in the VM):** no scheduled update check comes within a VM run either. C9 needs case 5's
+   trigger in the guest: a Chrome start with `--remote-debugging-pipe` and `cdp.py` (standard library, like
+   `netlog.py`), which the brief's C9 doesn't allow yet. The lead decides; the other way, a policy change (below),
+   is read and not run.
+3. **For step 4 (C2):** the probe can't be refused `setEnabled` (it is policy-installed). With the pipe, C2 can ask
+   an extension loaded by hand, as `case_ordinary` does.
+
+### What the code doesn't show (2b)
+
+- With `override_update_url` the update check of ours leaves **no line in the network log**: Chrome doesn't load a
+  `file:` address through its network stack. That ours is in each check is shown by the negative control (the same
+  two calls give two POSTs) and by Chrome's log having no "can not be updated" line (`chrome_could_not_update`
+  empty in all three runs).
+- Chrome doesn't close the log's JSON on SIGTERM: all three logs end mid-list. The constants are read from the
+  file's first line.
+- The pipe's ends: Chrome's two are passed as descriptors 10 and up and moved to 3 and 4 by a one-line `bash`
+  `exec`, so Chrome keeps its PID. Our reading end is closed by its own thread at the pipe's end.
+- Developer mode is switched on in the profile `ordinary` alone. No other profile sees the pipe except case 5's
+  three.
+- The network logs in the artifact hold Chrome's own built-in API key and request keys in Chrome's addresses.
+  They are Chrome's, the same in every copy; nothing of ours or of the owner's.
+- Step 2's two other ideas (a run with a network; a policy change adding a pending forced ID) were not tried:
+  the first one worked. Read only: a changed policy with at least one `update_url` extension ends in
+  `CheckNow` for every extension (`external_provider_manager.cc`).
+
+### JUDGMENT-CALL (2b)
+
+1. **A DevTools pipe in four Chrome starts**, against the brief's "never `--remote-debugging-*`", on the lead's
+   decision 3. The pipe instead of a port, so nothing listens; cases 1 to 4's own starts are unchanged.
+2. **`--extensions-update-frequency` is no longer passed.** Chrome 157 has no such switch: `extension_service.cc`
+   gives the updater a fixed `kDefaultUpdateFrequency` and `extensions/common/switches.cc` doesn't list it.
+3. **The proof doesn't wait for `autoUpdate()`'s answer**; it waits for the probe's request (the positive
+   control) after each call. Two checks, 3 s apart.
+4. **The positive control is stricter than the brief:** the log's count of the probe's update requests must equal
+   what the test's server answered, not only be at least two.
+5. **Case 3's check names what must not be there** instead of requiring an empty record, so a timestamp Chrome
+   might add later doesn't fail it. Today's record is empty.
+6. **The hand-loaded extension is asked where Chrome can load one**, and reported as not asked otherwise, because
+   the brief requires the question of the probe alone. On the pinned Chrome it was asked.
+
+### PLAN-GAP (2b)
+
+- **No short update schedule exists** in Chrome 157 (JUDGMENT-CALL 2), so "across at least two update checks" can
+  only be had by asking for them. The same holds for C9.
+- **The log does show the IDs sent to the update service.** The brief says they go in a body the log doesn't
+  record; Chrome 157's log has the request's headers (`CORS_REQUEST`), among them `X-Goog-Update-AppId` with every
+  ID asked about. So both of the brief's assertions see the leak, not only the address.
+- **Chrome asks more than the update service by itself** (the four addresses above). They are the same with and
+  without ours and name no extension of ours.
+- Step 2's three points stand.
 
 ## Step 2 (2026-11-15, Claude Fable 5.2)
 
@@ -93,6 +242,8 @@ the run's conclusion still read `failure` when looked at once.
    Not a "Stop and report" case: nothing names our ID.
 
 ### Left, in order
+
+(1 and 2 are closed in step 2b, above.)
 
 1. **Case 5.** The baseline, the comparison and the negative control are written but have never run: the case
    stops at "two scheduled update checks". Find what makes Chrome 157 check all extensions. Untried ideas: the
