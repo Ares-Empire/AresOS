@@ -61,11 +61,17 @@ request is open and no workflow was started. No browser was started on this Mac.
   All 537 probes apply to the current source (checked with a script before the preflight; a probe whose `before`
   text no longer exists stops the whole audit).
 
+- **Preflight:** all green on `ab13b2f3` (`records/final-local-ab13b2f3.json`): 335 Python tests in four shards
+  (68, 57, 49, 161; one Linux-only case skipped on the Mac), 435 Node tests, 537 mutations rejected with every
+  baseline passing, generator, whitespace and service-unit checks. Two earlier runs stopped early: on `da0fb019` the
+  Chrome instruction text was 10 characters over the CLI limit and the moved detach line broke a probe; on `b5894de6`
+  a second probe's text had moved. Both are fixed and the third run is the record.
+
 ## Left, in order
 
-1. Full local preflight (`python3 -B .work/20-popup-race/preflight.py`), copy its `final-local.json` to
-   `reviews/20-popup-race/records/final-local-<head>.json` with a `note`, commit and push.
-2. The lead: fresh package review and fresh security review, the pull request, at most 2 + 2 Chrome runs.
+1. The lead: fresh package review and fresh security review, the pull request, at most 2 + 2 Chrome runs. The
+   `breakpoint_rearmed` audit line in the boundary log will show whether the replay happened in a run, and the
+   `popup_admitted` lines' `owner_dialog` field whether any popup took the fallback.
 
 ## What the code doesn't show
 
