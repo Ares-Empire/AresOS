@@ -753,6 +753,40 @@ case('mainfix-sec-refusal-code-unchecked',AT,"        if error.code != reason:\n
 case('mainfix-sec-publisher-any-exception',AT,"            expected_refusal(lambda: qualify.prepare(publication, [], trusted_baseline, verifier), reason)\n","            try:\n                qualify.prepare(publication, [], trusted_baseline, verifier)\n            except Exception:\n                pass\n            else:\n                raise AssertionError('accepted')\n",PUBLISHER_CASES,True)
 case('mainfix-sec-publisher-baseline-case-unsigned-bytes',AT,"        ('non-append-only shipped baseline', original, ","        ('non-append-only shipped baseline', json.dumps(candidate).encode(), ",PUBLISHER_CASES,True)
 
+# Brief 20-popup-race, P1 (run 43671248371, popup-opener-close): Chrome replays an
+# unanswered Debugger.setBreakpointByUrl into a popup's new renderer, where the
+# breakpoint already is, and V8 refuses the copy. prepareTarget re-arms once on
+# that exact error (disable, enable, set), so the breakpoint id is known and no
+# orphan stays. The probes: the old behaviour (every error ends the admission);
+# a re-arm on any error; a re-arm that keeps the orphan (no disable) or only
+# sets again; a second refusal swallowed; and the adopt-by-pause mistake, where
+# a pause while the id is still unknown counts as the extension's own startup
+# pause although the document may have run already.
+REARM_GUARD="if(!duplicateBreakpoint(error))throw error;"
+REARM_RESET="    await targetCommand(state,'Debugger.disable');\n    await targetCommand(state,'Debugger.enable');\n"
+REARM_SET="breakpoint=await targetCommand(state,'Debugger.setBreakpointByUrl',startupBreakpoint());\n  }"
+case('popuprace-duplicate-ends-admission',B,REARM_GUARD,"throw error;",node('background','popuprace one duplicate-breakpoint reply'))
+case('popuprace-any-error-rearmed',B,REARM_GUARD,"",node('background','popuprace any other breakpoint error'))
+case('popuprace-rearm-keeps-orphan',B,REARM_RESET,"    await targetCommand(state,'Debugger.enable');\n",node('background','popuprace one duplicate-breakpoint reply'))
+case('popuprace-rearm-only-sets-again',B,REARM_RESET,"",node('background','popuprace one duplicate-breakpoint reply'))
+case('popuprace-second-duplicate-admitted',B,REARM_SET,"breakpoint=await targetCommand(state,'Debugger.setBreakpointByUrl',startupBreakpoint()).catch(()=>({}));\n  }",node('background','popuprace a second duplicate reply'))
+case('popuprace-unknown-pause-counts-as-startup',B,"if(!params.hitBreakpoints?.includes(state.breakpoint)){","if(state.breakpoint!==undefined&&!params.hitBreakpoints?.includes(state.breakpoint)){",node('background','popuprace a pause before the re-armed id'),extra=[(B,"if(!params.hitBreakpoints?.includes(state.breakpoint))return;","if(state.breakpoint!==undefined&&!params.hitBreakpoints?.includes(state.breakpoint))return;")])
+# P2: the 5 s Page.enable fallback writes popup_admitted with owner_dialog:true,
+# which the harness's gate does not count, and a page still loading gets a
+# message that says so instead of "answer the dialog". The probes drop or fix
+# the flag, let the gate accept the handoff, pick one message for both cases,
+# ignore the extension's own dialog record, keep the message after recovery,
+# and give the act's error the old text.
+STALL_MESSAGE="return status==='loading'?stillLoadingMessage:ownerDialogMessage;"
+case('popuprace-admitted-line-without-flag',B,",owner_dialog:!!original.modalHandoff}});","}});",node('background','popuprace a popup whose Page.enable stalls'))
+case('popuprace-admitted-line-flag-never-true',B,"owner_dialog:!!original.modalHandoff","owner_dialog:false",node('background','popuprace a popup whose Page.enable stalls'))
+case('popuprace-gate-accepts-handoff',PO,"&&row.owner_dialog===false;",";",POPUPS('the admission line names the opener'))
+case('popuprace-loading-says-dialog',B,STALL_MESSAGE,"return ownerDialogMessage;",node('background','popuprace a popup whose Page.enable stalls'))
+case('popuprace-dialog-says-loading',B,STALL_MESSAGE,"return stillLoadingMessage;",node('background','popuprace a stalled popup that has loaded'))
+case('popuprace-dialog-record-ignored',B,"  if(dialogs.has(tab))return ownerDialogMessage;\n","",node('background','popuprace a stalled popup that has loaded'))
+case('popuprace-handoff-message-kept-after-recovery',B,"owner.modalHandoff=false;delete owner.handoffMessage;","owner.modalHandoff=false;",node('background','popuprace a popup whose Page.enable stalls'))
+case('popuprace-act-error-old-text',B,"throw Error('owner_dialog: '+handoffMessage(owner));","throw Error('owner_dialog: '+ownerDialogMessage);",node('background','popuprace a popup whose Page.enable stalls'))
+
 def command(row):
     if row['python']:return ['python3','-B','-m','unittest',row['test'],'-v']
     file,pattern=row['test']
