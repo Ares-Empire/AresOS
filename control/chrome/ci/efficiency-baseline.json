@@ -1,0 +1,588 @@
+{
+  "format": 1,
+  "what": "Brief 28's efficiency baseline: brief 20's tools on the group 16 fixtures, used as well as they allow (control/chrome/ci/efficiency-probe.mjs). Characters are the JSON text of each tool result as Claude receives it; wall time is the median of the measured runs after one warm-up. A task whose outcome is \"refused\" ends in the refusal listed: brief 20's tools can't finish that row.",
+  "run_id": "43705060936",
+  "sha": "86cac83db6a6d7fbe23fa03116c73e20ef37a27a",
+  "runner": {
+    "runner": {
+      "image_os": "ubuntu24",
+      "image_version": "20261111.370.1",
+      "environment": "github-hosted",
+      "arch": "X64"
+    },
+    "cpu": "AMD EPYC 7763 64-Core Processor",
+    "cpus": 4,
+    "memory_bytes": 16760344576,
+    "node": "v22.23.5",
+    "chrome": "Google Chrome 157.0.8103.78"
+  },
+  "measured_runs": 5,
+  "tasks": {
+    "f1_first_read": {
+      "row": "F1: the first read",
+      "plan": [
+        "read"
+      ],
+      "calls": 1,
+      "tools": [
+        "chrome_read"
+      ],
+      "outcome": "done",
+      "refusals": [],
+      "characters": 17840,
+      "characters_per_run": [
+        17840,
+        17840,
+        17840,
+        17840,
+        17840
+      ],
+      "characters_per_call": [
+        17840
+      ],
+      "milliseconds": 74.6,
+      "milliseconds_per_run": [
+        74.0,
+        73.2,
+        76.2,
+        74.6,
+        75.4
+      ],
+      "warmup_milliseconds": [
+        77.4
+      ]
+    },
+    "f1_everything": {
+      "row": "F1: everything, the read and each cursor it returns",
+      "plan": [
+        "read",
+        "read*"
+      ],
+      "calls": 14,
+      "tools": [
+        "chrome_read",
+        "chrome_read",
+        "chrome_read",
+        "chrome_read",
+        "chrome_read",
+        "chrome_read",
+        "chrome_read",
+        "chrome_read",
+        "chrome_read",
+        "chrome_read",
+        "chrome_read",
+        "chrome_read",
+        "chrome_read",
+        "chrome_read"
+      ],
+      "outcome": "done",
+      "refusals": [],
+      "characters": 252427,
+      "characters_per_run": [
+        252427,
+        252427,
+        252427,
+        252427,
+        252427
+      ],
+      "characters_per_call": [
+        17840,
+        17815,
+        17792,
+        17842,
+        17802,
+        17809,
+        17827,
+        17999,
+        18785,
+        18766,
+        18784,
+        18778,
+        18770,
+        15818
+      ],
+      "milliseconds": 998.6,
+      "milliseconds_per_run": [
+        970.5,
+        979.8,
+        1002.3,
+        998.6,
+        1004.8
+      ],
+      "warmup_milliseconds": [
+        1005.1
+      ]
+    },
+    "f1_fields": {
+      "row": "F1: the 80 fields with their values, after the first read",
+      "plan": [
+        "find",
+        "find*",
+        "read_form",
+        "read_form*"
+      ],
+      "calls": 2,
+      "tools": [
+        "chrome_find",
+        "chrome_read_form"
+      ],
+      "outcome": "done",
+      "refusals": [],
+      "characters": 17910,
+      "characters_per_run": [
+        17910,
+        17910,
+        17910,
+        17910,
+        17910
+      ],
+      "characters_per_call": [
+        3154,
+        14756
+      ],
+      "milliseconds": 160.3,
+      "milliseconds_per_run": [
+        156.8,
+        160.3,
+        158.0,
+        163.1,
+        160.5
+      ],
+      "warmup_milliseconds": [
+        164.5
+      ]
+    },
+    "f2_table": {
+      "row": "F2: the whole table, after the first read",
+      "plan": [
+        "read*"
+      ],
+      "calls": 53,
+      "tools": [
+        "chrome_read",
+        "chrome_read",
+        "chrome_read",
+        "chrome_read",
+        "chrome_read",
+        "chrome_read",
+        "chrome_read",
+        "chrome_read",
+        "chrome_read",
+        "chrome_read",
+        "chrome_read",
+        "chrome_read",
+        "chrome_read",
+        "chrome_read",
+        "chrome_read",
+        "chrome_read",
+        "chrome_read",
+        "chrome_read",
+        "chrome_read",
+        "chrome_read",
+        "chrome_read",
+        "chrome_read",
+        "chrome_read",
+        "chrome_read",
+        "chrome_read",
+        "chrome_read",
+        "chrome_read",
+        "chrome_read",
+        "chrome_read",
+        "chrome_read",
+        "chrome_read",
+        "chrome_read",
+        "chrome_read",
+        "chrome_read",
+        "chrome_read",
+        "chrome_read",
+        "chrome_read",
+        "chrome_read",
+        "chrome_read",
+        "chrome_read",
+        "chrome_read",
+        "chrome_read",
+        "chrome_read",
+        "chrome_read",
+        "chrome_read",
+        "chrome_read",
+        "chrome_read",
+        "chrome_read",
+        "chrome_read",
+        "chrome_read",
+        "chrome_read",
+        "chrome_read",
+        "chrome_read"
+      ],
+      "outcome": "done",
+      "refusals": [],
+      "characters": 992014,
+      "characters_per_run": [
+        992014,
+        992014,
+        992014,
+        992014,
+        992014
+      ],
+      "characters_per_call": [
+        18742,
+        18756,
+        18751,
+        18734,
+        18744,
+        18736,
+        18747,
+        18740,
+        18748,
+        18731,
+        18742,
+        18741,
+        18734,
+        18733,
+        18729,
+        18741,
+        18733,
+        18744,
+        18731,
+        18736,
+        18744,
+        18725,
+        18740,
+        18727,
+        18744,
+        18735,
+        18739,
+        18736,
+        18726,
+        18749,
+        18728,
+        18740,
+        18730,
+        18738,
+        18739,
+        18732,
+        18737,
+        18719,
+        18742,
+        18725,
+        18719,
+        18734,
+        18737,
+        18718,
+        18734,
+        18726,
+        18718,
+        18743,
+        18727,
+        18721,
+        18733,
+        18731,
+        17785
+      ],
+      "milliseconds": 12338.5,
+      "milliseconds_per_run": [
+        12178.6,
+        12284.5,
+        12338.5,
+        12455.0,
+        12519.6
+      ],
+      "warmup_milliseconds": [
+        12745.3
+      ]
+    },
+    "f3_find_link": {
+      "row": "F3: find the one link with the unique name",
+      "plan": [
+        "find",
+        "find*"
+      ],
+      "calls": 1,
+      "tools": [
+        "chrome_find"
+      ],
+      "outcome": "done",
+      "refusals": [],
+      "characters": 1870,
+      "characters_per_run": [
+        1870,
+        1870,
+        1870,
+        1870,
+        1870
+      ],
+      "characters_per_call": [
+        1870
+      ],
+      "milliseconds": 80.7,
+      "milliseconds_per_run": [
+        78.7,
+        83.8,
+        80.7,
+        78.9,
+        84.4
+      ],
+      "warmup_milliseconds": [
+        79.9
+      ]
+    },
+    "open_fact": {
+      "row": "Open a fixture page and return one fact from it",
+      "plan": [
+        "open",
+        "wait"
+      ],
+      "calls": 2,
+      "tools": [
+        "chrome_open",
+        "chrome_wait"
+      ],
+      "outcome": "done",
+      "refusals": [],
+      "characters": 4209,
+      "characters_per_run": [
+        4209,
+        4209,
+        4209,
+        4209,
+        4209
+      ],
+      "characters_per_call": [
+        296,
+        3913
+      ],
+      "milliseconds": 195.9,
+      "milliseconds_per_run": [
+        195.9,
+        192.0,
+        205.8,
+        199.3,
+        191.4
+      ],
+      "warmup_milliseconds": [
+        206.8
+      ]
+    },
+    "f4_fill_send": {
+      "row": "F4: fill 6 fields and send the form",
+      "plan": [
+        "read",
+        "fill_form",
+        "find",
+        "find*",
+        "click"
+      ],
+      "calls": 4,
+      "tools": [
+        "chrome_read",
+        "chrome_fill_form",
+        "chrome_find",
+        "chrome_click"
+      ],
+      "outcome": "refused",
+      "refusals": [
+        {
+          "action": "chrome_click",
+          "code": "asking_input_too_large"
+        }
+      ],
+      "characters": 23953,
+      "characters_per_run": [
+        23953,
+        23953,
+        23953,
+        23953,
+        23953
+      ],
+      "characters_per_call": [
+        18783,
+        2964,
+        1977,
+        229
+      ],
+      "milliseconds": 5210.1,
+      "milliseconds_per_run": [
+        5160.8,
+        5210.1,
+        5222.8,
+        5235.8,
+        5207.3
+      ],
+      "warmup_milliseconds": [
+        5284.3
+      ]
+    },
+    "f7_three_pages": {
+      "row": "F7: three result pages, one click each, the titles collected",
+      "plan": [
+        "click",
+        "wait",
+        "click",
+        "wait",
+        "click",
+        "wait"
+      ],
+      "calls": 6,
+      "tools": [
+        "chrome_click",
+        "chrome_wait",
+        "chrome_click",
+        "chrome_wait",
+        "chrome_click",
+        "chrome_wait"
+      ],
+      "outcome": "done",
+      "refusals": [],
+      "characters": 13212,
+      "characters_per_run": [
+        13212,
+        13212,
+        13212,
+        13212,
+        13212
+      ],
+      "characters_per_call": [
+        491,
+        3913,
+        491,
+        3913,
+        491,
+        3913
+      ],
+      "milliseconds": 1772.2,
+      "milliseconds_per_run": [
+        1767.5,
+        1769.0,
+        1772.2,
+        1773.1,
+        1780.2
+      ],
+      "warmup_milliseconds": [
+        1750.8
+      ]
+    },
+    "f5_free_click": {
+      "row": "F5: a free click that changes part of the page",
+      "plan": [
+        "click",
+        "read"
+      ],
+      "calls": 2,
+      "tools": [
+        "chrome_click",
+        "chrome_read"
+      ],
+      "outcome": "done",
+      "refusals": [],
+      "characters": 8552,
+      "characters_per_run": [
+        8552,
+        8552,
+        8552,
+        8552,
+        8552
+      ],
+      "characters_per_call": [
+        580,
+        7972
+      ],
+      "milliseconds": 582.3,
+      "milliseconds_per_run": [
+        580.5,
+        585.9,
+        582.3,
+        581.3,
+        588.5
+      ],
+      "warmup_milliseconds": [
+        576.7
+      ]
+    },
+    "three_tabs": {
+      "row": "Compare three open tabs (F1, F2, F3)",
+      "plan": [
+        "read",
+        "read",
+        "read"
+      ],
+      "calls": 3,
+      "tools": [
+        "chrome_read",
+        "chrome_read",
+        "chrome_read"
+      ],
+      "outcome": "done",
+      "refusals": [],
+      "characters": 55301,
+      "characters_per_run": [
+        55301,
+        55301,
+        55301,
+        55301,
+        55301
+      ],
+      "characters_per_call": [
+        17840,
+        18747,
+        18714
+      ],
+      "milliseconds": 430.5,
+      "milliseconds_per_run": [
+        438.3,
+        431.8,
+        430.5,
+        427.3,
+        426.4
+      ],
+      "warmup_milliseconds": [
+        453.8
+      ]
+    },
+    "list_25_tabs": {
+      "row": "List 25 open tabs (titles of about 30 characters)",
+      "plan": [
+        "tabs",
+        "tabs*"
+      ],
+      "calls": 3,
+      "tools": [
+        "chrome_tabs",
+        "chrome_tabs",
+        "chrome_tabs"
+      ],
+      "outcome": "done",
+      "refusals": [],
+      "characters": 6834,
+      "characters_per_run": [
+        6834,
+        6834,
+        6834,
+        6834,
+        6834
+      ],
+      "characters_per_call": [
+        2619,
+        2755,
+        1460
+      ],
+      "milliseconds": 14.5,
+      "milliseconds_per_run": [
+        14.5,
+        14.1,
+        14.6,
+        14.7,
+        14.1
+      ],
+      "warmup_milliseconds": [
+        14.6
+      ]
+    }
+  },
+  "sizes": {
+    "tools": 30,
+    "descriptions": 5085,
+    "instructions": 4052,
+    "descriptions_and_instructions": 9137,
+    "names_and_input_schemas": 11080
+  },
+  "latency_comparisons": []
+}

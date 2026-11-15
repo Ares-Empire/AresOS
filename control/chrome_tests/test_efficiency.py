@@ -1,6 +1,8 @@
 """Brief 28, group 16 without a browser: the efficiency summary's counting."""
+import hashlib
 import importlib.util
 import json
+import re
 import sys
 import tempfile
 import unittest
@@ -143,6 +145,103 @@ class EfficiencySummaryTest(unittest.TestCase):
         self.assertEqual(sizes["descriptions_and_instructions"], sizes["descriptions"] + sizes["instructions"])
         compact = sum(len(tool["name"]) + len(json.dumps(tool["inputSchema"], separators=(",", ":"))) for tool in tools)
         self.assertEqual(sizes["names_and_input_schemas"], compact)
+
+
+def probe_tasks():
+    """The tasks of efficiency-probe.mjs as its source lists them: name, row, plan and the refusal a task expects.
+
+    The laptop has no Node, so the list is read from the text; a task written in another shape fails the count.
+    """
+    source = (ROOT / "chrome/ci/efficiency-probe.mjs").read_text()
+    block = source[source.index("export const TASKS=["):source.index("// Checks a recorded call sequence against a plan")]
+    heads = list(re.finditer(r"\{name:'([a-z0-9_]+)',row:'((?:[^'\\]|\\.)*)',plan:\[([^\]]*)\]", block))
+    if len(heads) != len(re.findall(r"\bname:'", block)):
+        raise AssertionError("a task of TASKS isn't written as {name:'…',row:'…',plan:[…]")
+    tasks = []
+    for index, head in enumerate(heads):
+        body = block[head.end():heads[index + 1].start() if index + 1 < len(heads) else len(block)]
+        tasks.append({"name": head.group(1), "row": head.group(2).replace("\\'", "'"),
+                      "plan": re.findall(r"'([a-z_]+\*?)'", head.group(3)),
+                      "refusals": re.findall(r"\{refusal:'([a-z_]+)'\}", body)})
+    return tasks
+
+
+def follows_plan(tools, plan):
+    """followsPlan of efficiency-probe.mjs: `x*` matches zero or more x."""
+    index = 0
+    for step in plan:
+        if step.endswith("*"):
+            while index < len(tools) and tools[index] == step[:-1]:
+                index += 1
+            continue
+        if index >= len(tools) or tools[index] != step:
+            return False
+        index += 1
+    return index == len(tools)
+
+
+class EfficiencyBaselineTest(unittest.TestCase):
+    """control/chrome/ci/efficiency-baseline.json: run 43705060936's efficiency-measured.json, committed unchanged.
+
+    Brief 28a fails a number worse than this file's, so it is frozen: only `latency_comparisons` may grow.
+    """
+
+    BASELINE = ROOT / "chrome/ci/efficiency-baseline.json"
+    # sha256 of the file without `latency_comparisons`, as canonical JSON.
+    FROZEN = "361f7c07e3a779b9f04c03227672f65f0dcf593884523ad41d233ca84fbe56ce"
+
+    def setUp(self):
+        self.baseline = json.loads(self.BASELINE.read_text())
+
+    def test_it_holds_every_task_of_the_probe_with_the_same_plan_and_outcome(self):
+        tasks = probe_tasks()
+        self.assertEqual(len(tasks), 11)
+        self.assertEqual(list(self.baseline["tasks"]), [task["name"] for task in tasks])
+        for task in tasks:
+            with self.subTest(task=task["name"]):
+                row = self.baseline["tasks"][task["name"]]
+                self.assertEqual((row["row"], row["plan"]), (task["row"], task["plan"]))
+                self.assertEqual(row["outcome"], "refused" if task["refusals"] else "done")
+                self.assertEqual([refusal["code"] for refusal in row["refusals"]], task["refusals"])
+                tools = [tool.removeprefix("chrome_") for tool in row["tools"]]
+                self.assertTrue(follows_plan(tools, task["plan"]), tools)
+                self.assertEqual(row["calls"], len(tools))
+                self.assertEqual(len(row["characters_per_call"]), row["calls"])
+                self.assertEqual(len(row["characters_per_run"]), self.baseline["measured_runs"])
+                self.assertEqual(len(row["milliseconds_per_run"]), self.baseline["measured_runs"])
+                self.assertGreater(row["characters"], 0)
+                self.assertGreater(row["milliseconds"], 0)
+
+    def test_f4s_row_is_brief_20s_refusal(self):
+        # The lead's decision (2026-11-15): brief 20's tools can't send F4, and the baseline says so.
+        row = self.baseline["tasks"]["f4_fill_send"]
+        self.assertEqual(row["outcome"], "refused")
+        self.assertEqual(row["refusals"], [{"action": "chrome_click", "code": "asking_input_too_large"}])
+        self.assertEqual(row["tools"], ["chrome_read", "chrome_fill_form", "chrome_find", "chrome_click"])
+        self.assertEqual([name for name, task in self.baseline["tasks"].items() if task["outcome"] != "done"], ["f4_fill_send"])
+
+    def test_it_is_one_green_runs_record_and_stays_as_committed(self):
+        self.assertEqual(self.baseline["format"], summary.FORMAT)
+        self.assertEqual(self.baseline["run_id"], "43705060936")
+        self.assertEqual(self.baseline["measured_runs"], 5)
+        self.assertEqual(self.baseline["runner"]["runner"]["environment"], "github-hosted")
+        self.assertEqual(set(self.baseline["sizes"]), {"tools", "descriptions", "instructions",
+                                                       "descriptions_and_instructions", "names_and_input_schemas"})
+        self.assertIsInstance(self.baseline["latency_comparisons"], list)
+        frozen = {key: value for key, value in self.baseline.items() if key != "latency_comparisons"}
+        digest = hashlib.sha256(json.dumps(frozen, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+        self.assertEqual(digest, self.FROZEN, "the baseline's numbers changed; only latency_comparisons may be added to")
+
+    def test_the_task_list_is_read_whole_and_a_plan_is_followed_exactly(self):
+        self.assertTrue(follows_plan(["read", "read", "read"], ["read", "read*"]))
+        self.assertTrue(follows_plan(["find", "click"], ["find", "find*", "click"]))
+        self.assertFalse(follows_plan(["find", "click", "submit"], ["find", "find*", "click"]))
+        self.assertFalse(follows_plan(["click"], ["find", "find*", "click"]))
+        self.assertFalse(follows_plan([], ["read"]))
+        tasks = {task["name"]: task for task in probe_tasks()}
+        self.assertEqual(tasks["f4_fill_send"]["refusals"], ["asking_input_too_large"])
+        self.assertEqual(tasks["f2_table"]["plan"], ["read*"])
+        self.assertEqual(tasks["f1_everything"]["row"], "F1: everything, the read and each cursor it returns")
 
 
 class EfficiencyWiringTest(unittest.TestCase):

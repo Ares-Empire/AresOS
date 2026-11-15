@@ -146,3 +146,16 @@ test('F4 fails when brief 20 sends it, and a failed run is reported over its aft
     finally{fs.rmSync(out,{recursive:true,force:true});}
   }
 });
+
+test('the committed baseline holds every task with its plan, and only F4 ends in a refusal',()=>{
+  const baseline=JSON.parse(fs.readFileSync(new URL('../chrome/ci/efficiency-baseline.json',import.meta.url),'utf8'));
+  assert.deepEqual(Object.keys(baseline.tasks),TASKS.map(task=>task.name));
+  for(const task of TASKS){
+    const row=baseline.tasks[task.name];
+    assert.equal(row.row,task.row);assert.deepEqual(row.plan,task.plan);
+    assert.ok(followsPlan(row.tools.map(tool=>tool.replace(/^chrome_/,'')),task.plan),task.name);
+    assert.equal(row.outcome,task.name==='f4_fill_send'?'refused':'done');
+  }
+  assert.deepEqual(baseline.tasks.f4_fill_send.refusals,[{action:'chrome_click',code:'asking_input_too_large'}]);
+  assert.equal(baseline.measured_runs,EFFICIENCY_RUNS);
+});
