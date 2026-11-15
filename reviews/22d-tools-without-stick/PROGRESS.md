@@ -1,6 +1,8 @@
 # 22d progress
 
-Kept by each step's builder: done, left in order, what the code doesn't show. The last step deletes this file.
+Kept by each step's builder: done, left in order, what the code doesn't show. **The package's report is
+`REPORT.md`** (committed from the last section below by the integrator, 2026-11-15). This file stays as the build
+history instead of being deleted, because `os/ci/verify_release.py` and REVIEW-5 cite it by section and line.
 
 ## Step 1 (the tools), 2026-11-15, Claude agent on Fable 5.2: done
 
