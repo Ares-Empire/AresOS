@@ -522,7 +522,8 @@ the front when he should look at it or sign in there.
 
 - **What Claude sees.** `chrome_tabs` lists every tab of every normal window of his Chrome profile in one result:
   the title, the address, the window, and whether the tab is Claude's, his, or his and taken. It also says which
-  tab is in front, pinned, playing sound or asleep. Addresses in this list are in the short form ("Reading a
+  tab is in front, pinned, playing sound (Chrome's `audible` flag; brief 20's rows on merged `main` carry it and
+  `muted`) or asleep. Addresses in this list are in the short form ("Reading a
   page"): the site and the path, never what follows `?` or `#`, because his request may have nothing to do with
   most of these tabs. Titles are page text, so they are untrusted content (rule 4.8).
   - **Incognito windows are never listed, read or taken.** The extension's manifest says `"incognito":
@@ -587,9 +588,10 @@ the front when he should look at it or sign in there.
   - Often Claude needs the site, not his tab. Then it leaves his tab alone and opens the same address in a Claude
     tab (`chrome_open` with his tab's number).
 - **Before the tool reloads or closes one of his tabs, it must know that nothing of his is lost.** Unknown is not
-  clean, and work a page holds only in its script's memory is still work. Brief 20 looked for a field that differs
-  from its default, an editor, and playing media (read in its `reloadState`). That misses typing on the many pages
-  that copy it into the field's default, work kept in a canvas, the finished steps of a wizard, and a form on its
+  clean, and work a page holds only in its script's memory is still work. Brief 20 looks for changed fields, an
+  editor and playing media (`requireDiscard` and `reloadState`; *brief 20* on merged `main`): in a document its
+  reader didn't watch from its start every text field counts, and in a watched one a field that differs from its
+  default or got typing since the load. That misses whether he used the page, work kept in a canvas, the finished steps of a wizard, and a form on its
   way to the server. So with brief 28b **a tab he has used is never known clean.** Used means that he has clicked
   or typed in the page since it loaded, or that the page wasn't opened fresh (it was restored, reloaded or reached
   by Back). The browser itself records a click or a key in a page (its sticky user activation), and the reader
@@ -637,7 +639,11 @@ asking.
 **Until brief 28b merges** the tool does what brief 20 built: Claude reads and acts only inside the group. Looking at
 one of his tabs needs `chrome_take` first, which moves the tab and keeps its page; the first input then reloads it,
 and unsaved typing or playing media stops that reload until `chrome_take` is called with `reload: true` (brief
-28a; brief 28b replaces that flag by `chrome_take_reload`, which asks him). The check
+28a; on merged `main` the input itself is repeated with `discard_unsaved: true`; brief 28b replaces that flag by
+`chrome_take_reload`, which asks him). On merged `main` brief 20 also checks before navigating a Claude tab (an
+address, back, forward or reload) and before closing one: unsaved typing (by field label, marked as typed by him or
+by Claude), playing media and frames it couldn't inspect come back as `reload_required`, and Claude repeats the
+call with `discard_unsaved: true` only after his OK in the chat, unless all the typing is Claude's. The check
 before that reload is still brief 20's, with the gaps named above, so briefs 28 and 28a alone don't go onto his
 laptop. Brief 28a already stops two things brief 20 allowed: closing a taken tab, and navigating one before its
 reload without that check.
@@ -1114,7 +1120,10 @@ accounts; a page an adapter doesn't recognise falls back to the generic rules. T
 - **Deleting and paying always ask** (decision 15); WhatsApp messages ask each time (decision 16).
 - **He sets it himself, through a channel Claude can't use:** the extension's details page lists Claude's recently
   approved sends with "Don't ask again for this kind" (Claude can't open extension pages: *checked*, 17c, and the
-  fixed list above), and the owner command `sudo aresos admin chrome allow …` takes his password. Claude Code's own
+  fixed list above), and the owner command `sudo aresos admin chrome allow …` takes his password. On the details page, "Don't ask
+  again" and turning a read-only site off ask for his password in a polkit dialog, once for each change
+  (`org.aresos.control.chrome-loosen`); listing, revoking and turning read-only on don't (*brief 20*, final
+  fix F7). Claude Code's own
   "Yes, and don't ask again" writes an allow rule, which doesn't turn a managed ask off (section 7).
 - **The entries live in the owner-only list** in the tool service, written only through `admin.sock` and the
   details page. `chrome_submit_trusted`, which doesn't ask, checks the entry and the same recorded state at every use
@@ -1126,14 +1135,15 @@ accounts; a page an adapter doesn't recognise falls back to the generic rules. T
 
 ### Actions
 
-*brief 28a*, and *brief 28b* for his tabs. Eighteen tools are offered to Claude, where brief 20 has 29 when it
-merges (28 at `8b7e799c`, and the asking read for typed fields).
+*brief 28a*, and *brief 28b* for his tabs. Eighteen tools are offered to Claude, where brief 20 has 30 on merged
+`main` (28 at `8b7e799c`, and the asking read for typed fields as two tools, `chrome_prepare_read_typed_fields` and
+`chrome_read_typed_fields`).
 
 | Action | Effect | What it does | Replaces (brief 20) |
 |---|---|---|---|
 | `chrome_tabs` | read | every tab of every normal window in one result: number, whose, title, address (short form), marks | `chrome_tabs` (5 to 10 tabs per call) |
 | `chrome_read` | read | the outline of a tab, or of up to five tabs; one part by `ref`; `find`; `until`; paged by `max` and `cursor`. In one of his tabs it reads in place and needs `request` | `chrome_read`, `chrome_read_form`, `chrome_find`, `chrome_wait` |
-| `chrome_read_typed_fields` | **ask** (read) | after his OK, read the typed form fields (single-line and multi-line) that a normal read shows only as filled, because the reader doesn't know their history: the question lists the fields' labels, never a value; credential-like fields never; one approval, one call | the same (brief 20 adds it before it merges) |
+| `chrome_read_typed_fields` | **ask** (read) | after his OK, read the typed form fields (single-line and multi-line) that a normal read shows only as filled, because the reader doesn't know their history: the question lists the fields' labels, never a value; credential-like fields never; one approval, one call | the same (brief 20 added it before it merged; on merged `main` `chrome_prepare_read_typed_fields` prepares its question) |
 | `chrome_open` | change | open a web address in a new Claude tab (an address, a link or a library entry by reference, or the address of one of his tabs), wait, return the outline | `chrome_open`, then wait and read |
 | `chrome_go` | change | in a Claude tab: an address, back, forward or reload; wait, return the outline | `chrome_navigate`, then wait and read |
 | `chrome_do` | change | up to 20 steps in one tab (click, fill, select, check, press, scroll, dialog, wait), each by reference. An asking step isn't dispatched and returns a prepared operation, and so does a submission the page starts while handling a step; an activation the page starts is stopped and reported, never resumed. Returns what changed | `chrome_click`, `chrome_fill`, `chrome_fill_form`, `chrome_select`, `chrome_check`, `chrome_press`, `chrome_scroll`, `chrome_dialog` |
@@ -1159,6 +1169,9 @@ merges (28 at `8b7e799c`, and the asking read for typed fields).
 - **What every server pays once:** the rules shared by all Chrome actions (untrusted page text, what to do on each
   error, the notice on an unqualified Chrome version, the clipboard rule, the rule for his tabs) are in the Chrome
   server's MCP instructions, and each description holds only what is specific to its action (brief 18d's pattern).
+  Claude Code 2.1.319 passes on only the first 4,096 characters of a server's instructions, so they must fit in
+  that: a test checks every app (`control/chrome_tests/test_questions.py`), and on merged `main` Chrome's are
+  already 4,052 characters (*brief 20*).
 
 **Left out on purpose:**
 
@@ -1194,8 +1207,8 @@ is brief 20's tool list on the same fixtures, recorded once before it is replace
 | List 25 open tabs | 3 calls | 1 call, at most 3,500 characters |
 | A free click that changes part of the page | a click, then a read or a find: 2 calls | 1 call, at most 2,500 characters |
 | Read a fact from one of his tabs (*brief 28b*) | list, take, read; the tab moves | list, read; the tab untouched |
-| What a session loads: descriptions and instructions | 29 tools; recorded on main after PR #27 | 18 tools, at most 10,500 characters, and not above the baseline (11,500 with brief 28b's rule for his tabs) |
-| What a session loads: names and input schemas | 28 tools, about 10,600 characters at `8b7e799c`; recorded again on main with the 29th | at most 6,300 characters (6,800 with brief 28b's inputs) |
+| What a session loads: descriptions and instructions | 30 tools; recorded on main after PR #27 | 18 tools, at most 10,500 characters, and not above the baseline (11,500 with brief 28b's rule for his tabs) |
+| What a session loads: names and input schemas | 28 tools, about 10,600 characters at `8b7e799c`; recorded again on main with the 29th and 30th | at most 6,300 characters (6,800 with brief 28b's inputs) |
 
 - Every budget names the exact calls it allows (the tables of briefs 28 and 28a), and the test makes those calls
   and no others. A budget nobody can meet is changed in the brief, never in the test.
@@ -1210,8 +1223,9 @@ is brief 20's tool list on the same fixtures, recorded once before it is replace
 - **Latency:** fewer calls don't prove a faster tool, because a step still reads the page's facts as brief 20 does.
   So brief 20's tools and the new ones are timed in the same CI run, where the runner is the same: the first
   read of the long page (brief 28, and again in 28a), a free click with its report, and the 6-field form (brief
-  28a) must each take at most 1.10 times brief 20's median plus 50 ms. PR #27 has no latency check at `8b7e799c`;
-  one that its later part brings stays green.
+  28a) must each take at most 1.10 times brief 20's median plus 50 ms. PR #27's latency gate stays green: on merged
+  `main`, `control/chrome/ci/latency-targets.json` sets median / p95 ceilings in ms (read 35/60, navigate 100/150,
+  click and fill 650/750, asking click 60/100, approval to done 700/850) over 60 samples per call.
 - The efficiency group is a CI check only. It never turns anything off on the laptop: the qualification record
   ("Tests") counts the safety groups, not the budgets.
 
@@ -1283,6 +1297,12 @@ with real harm is fixed instead (owner, 2026-11-11). Each brief's report keeps t
 
 **Reading and his tabs** (*brief 28*, *brief 28a*, *brief 28b*)
 
+- **A tab taken from another window moves into the Claude group's window** (*brief 20*, until brief 28b; brief 28
+  adds this to its `KNOWN-LIMITS.md` word for word): "Taking a tab from another normal window while a Claude tab
+  group already exists moves the tab into that group's window, because Chrome keeps a tab group in one window; the
+  extension records the tab's original window and position and moves it back on release. The harm is that the
+  owner's tab sits in another window while Claude holds it; it is accepted with the single-group design, and one
+  group per window is a design question for brief 28b." Brief 28b's own group around a taken tab ends the move.
 - **A page that changes what it shows without changing its address.** A read, a take or a close of one of his
   tabs is bound to the document and address the list showed. A page that swaps its content in place (a chat that
   switches conversations) keeps both. *Harm:* Claude reads other content of the same site than the title in the
