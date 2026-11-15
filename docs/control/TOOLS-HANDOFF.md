@@ -27,11 +27,11 @@ and `git worktree list` first.
 |---|---|---|---|
 | Brief 18c | `briefs/18c-image-test.md`, on main (PR #42) | Final; the `os/` change agreed with `linux-aresos` (sixteen changes, in the brief). | - |
 | 18c, container part | on main (PR #43) | The unit may reach the network; 17 interactive Claude Code cases in `control-boundary`. | - |
-| 18c, image part | `pkg/18c-image`, `~/AresOS-18c-image`, draft PR #58, start note `briefs/18c-image-start.md` | Green with Chrome's files and 18e's fixes on `9ee1fbdf` (2026-11-15): `check_build=control` twice (run 43687234953, attempts 1 and 2), `check_build=build` once (43691820743), the six control workflows green. Check 6 shows "quiet unless used" under the real systemd; idle 1 wake-up in 60 s. Results, check 6's numbers, JUDGMENT-CALLs 1-22 and the report texts in `reviews/18c-image-test/PROGRESS.md`. Merging main conflicts only in `os/manifest/ci/16/pending-rebind.json` (regenerate with `rebind.py pending`). | Tue 2026-11-17: Codex package and security review (board #287). After 18e merges: merge main, `check_build=control` twice and `build` once, the lead assembles `REPORT.md` from PROGRESS.md, `linux-aresos` reads the `os/` diff, then the owner's yes (#286). |
+| 18c, image part | `pkg/18c-image`, `~/AresOS-18c-image`, draft PR #58, start note `briefs/18c-image-start.md` | Green with Chrome's files and 18e's fixes on `9ee1fbdf` (2026-11-15): `check_build=control` twice (run 43687234953, attempts 1 and 2), `check_build=build` once (43691820743), the six control workflows green. Check 6 shows "quiet unless used" under the real systemd; idle 1 wake-up in 60 s. Results, check 6's numbers, JUDGMENT-CALLs 1-22 and the report texts in `reviews/18c-image-test/PROGRESS.md`. Merging main conflicts only in `os/manifest/ci/16/pending-rebind.json` (regenerate with `rebind.py pending`). | Tue 2026-11-17: Codex package and security review (board #287). After 18e merges: merge main, `check_build=control` twice and `build` once, the lead assembles `REPORT.md` from PROGRESS.md, `linux-aresos` reads the `os/` diff, the owner said yes on 2026-11-15 (#286), so it merges once the reviews pass. |
 | Service fixes, brief 18e | `briefs/18e-service-fixes.md`, `pkg/18e-service-fixes`, `~/AresOS-18e`, PR #69 | Built on head `13e9e1e4`, the six control workflows green. Proven under systemd by 18c's VM pass (failed state after 10.2 s with `Result=exit-code`, one notice per outage, hooks 0.12-0.18 s with the service down). Report text in `reviews/18e-service-fixes/PROGRESS.md`. | Tue 2026-11-17: Codex package and security review, fix round, merge. A change after `13e9e1e4` means 18c merges it again and reruns. |
 | Chrome briefs 28, 28a, 28b | `briefs/28-chrome-capability`, draft PR #48 | Aligned with merged #27; review 4 NOT READY, fix round done (`reviews/28-chrome-capability/ALIGNMENT.md`). | Tue 2026-11-17: Codex review of the changes since `42aa0370`, `chrome_take_reload` as a whole (board #284). READY, then merge. |
 | Package 28 | `pkg/28-chrome`, `~/AresOS-28-chrome-read` (old `pkg/28-chrome-read` kept as record) | Steps 1/1b (view module) on main's base; step 2 (efficiency fixtures and probe) committed, progress in `reviews/28-chrome-read/PROGRESS.md`. | PR #68 is on main (`bdc16064`): merge main, wire the probe into `latency-pair.sh`, upload, commit the baseline, draft PR. Then the reader, adapter, deadlines, browser groups; then 28a, then 28b after PR #48 merges. |
-| Brief 18c-b | `briefs/18c-b-chrome-image`, `~/AresOS-18c-b`, draft PR #73 | Written (Fable), brief review 1 NOT READY (one blocker, the lead's guard), fix round done (`59814973`); `linux-aresos` agreed the `os/` part and moved the owner's list to `/var`. Research in `reviews/18c-b-chrome-image/RESEARCH.md`. Six steps (1a, 1b, 2, 3a, 3b, 4-6). Owner question #297 (Chrome's "managed" notice) before step 3a. | Re-review; READY, then merge. Steps 1a/1b/2 (`control/` and a container workflow) can start before PR #58 merges; 3a needs #58 on main, #297 and `linux-aresos`'s go. |
+| Brief 18c-b | `briefs/18c-b-chrome-image.md`, on main (PR #73, `a7b5cf52`) | Two Fable brief reviews (NOT READY, then READY with six should-fixes, folded in); `linux-aresos` agreed the `os/` part (owner's list in `/var/lib/aresos-control`, refused placeholder). Owner's answer #297: Chrome's managed notice is fine. Build: `pkg/18c-b-chrome`, `~/AresOS-18c-b-build`, draft PR #76; steps 1a (Fable) and 1b (Opus) built, progress in `reviews/18c-b-chrome-image/PROGRESS.md`. | Step 2 (install proof in a container). Step 3a needs PR #58 on main; tell `linux-aresos` before the first `os-image.yml` commit. |
 | Live tests | the laptop | Waits for a release that carries the tools. | Mail onboarding with him first (he signs in himself), a test mail, then Chrome. His own hosts go on Chrome's never-list in that sitting (board #200). |
 
 ## Chrome merged (2026-11-14, notes from `mac-aresos-control`)
@@ -130,12 +130,23 @@ PR #68 (brief 20-main-fix) is on main as squash `bdc16064`; report in `reviews/2
   - the shipped-copy update becomes an issue whose body has the `gh pr create --head chrome-qualification`
     command for a session to run.
 
-**Latency gate and the runner's disk.** At least two latency jobs since the 60-sample gate failed on p95 tails
-alone, and the others passed: main's `latency (audit)` 43647781438 and PR #68's `latency (plain)` 43687610984, attempt 1.
-- H5's stages put the whole tail in `store_write`, i.e. the runner's disk sync, with the bridge and the extension
-  normal. The re-run was clean.
-- So main's Chrome run can go red without a code cause. Options: a store on tmpfs plus a separate fsync budget, or
-  sync stages measured apart from the ceilings. It's your call; the numbers are in the report.
+**Latency gate and the runner's disk: it now fails often.**
+- **The evidence.** Four latency jobs failed on p95 tails alone, with medians normal and no reference regression:
+  - main's `latency (audit)` 43647781438;
+  - PR #68's `latency (plain)` 43687610984, attempt 1;
+  - PR #77's `latency (plain)` and `latency (audit)` 43712049957, attempt 1.
+
+  In every slow sample, H5's stages put the extra time in `store_write`: up to 940 ms, against a median of 10 to
+  50 ms. `bridge_round_trip` and `extension_total` stayed normal. The re-runs were clean.
+- **What it means.** The gate is measuring the shared runner's disk sync, not the product. Main's Chrome run, the
+  daily one included, and every Chrome pull request can go red without a code cause.
+- **My suggestion** (your call, since you own the gate). In `latency-pair.sh`:
+  - keep the service's store on a tmpfs for the timed phases. Its sync cost is then near the laptop's NVMe (about
+    0.03 ms per fsync in H5's measurement), not the runner's;
+  - gate the **number** of fsyncs per call: `journal_fsync`'s `count`, plus SQLite's commits. Those counts are
+    deterministic, so a change that adds disk syncs is still caught exactly.
+
+  The ceilings and sample counts would stay as they are.
 
 **Two CI facts.**
 - **Path filters:** a pull request's path filters see the whole PR's diff. Every push to an open Chrome PR starts

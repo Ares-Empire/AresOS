@@ -18,6 +18,18 @@ supervisor
   - learns readiness from the helper's status pipe (world_ready/heartbeat),
   - and applies B2's restart policy.
 
+The startup cover (package 23b, /usr/libexec/aresos-cover) hides Minecraft's own
+start (Prism's launch dialog, Mojang's loading screen, joining the world) for
+the session's first hub launch and the owner's retry, never for an automatic
+restart, setup, or the retry after AUTH_REQUIRED (Prism's sign-in must be
+seen). A crash under the cover keeps it through the automatic restart, and the
+restarted hub takes the focus. It ends when the hub is ready, when a message
+window has to be seen, when Prism has not handed the game over 25 s after its
+start (it may be waiting for him in a dialog of its own), when he presses
+Super+Ctrl+Escape for the recovery terminal (`aresos-desktop hide-cover`), and
+when the supervisor stops. It is best effort: a cover that does not start,
+crashes or is missing changes nothing else.
+
 States (B2): SETUP (first start: Prism's own sign-in, then the hub is created
 with the mod's AresOS button), STARTING, IN_WORLD, AUTH_REQUIRED and RECOVERY.
 SETUP, AUTH_REQUIRED and RECOVERY show a foot terminal with what happened and
@@ -83,6 +95,15 @@ VIEW_RC = '/usr/share/aresos/desktop-view.bashrc'
 # The message window: foot with its own app_id (not the session terminal's) and room for the longest message.
 VIEW_COMMAND = [FOOT, '--title=AresOS', '--app-id=aresos.desktop', '--window-size-chars=104x32', BASH, '--rcfile',
                 VIEW_RC, '-i']
+# The startup cover (package 23b), and how long it gets to end after SIGTERM before SIGKILL; never waited for.
+COVER = '/usr/libexec/aresos-cover'
+COVER_STOP_WAIT = 2.0
+# Which starts get the cover: the session's first hub launch, and the owner's retry (its own line).
+COVER_FIRST, COVER_AGAIN = 'first', 'again'
+# How long the cover may hide a Prism that has not handed the game over (the wrapper's jvm_start). A hub start gets
+# there in seconds; a Prism that has not is most likely waiting for him in a dialog of its own (account refresh
+# failed, the offline name, "Continue launch?"), which must not stay hidden (package 23b, PLAN-GAP 1).
+COVER_PRISM_WAIT = 25.0
 # The session's PATH (package 21, JUDGMENT-CALL 9): his ~/.local/bin is never on it.
 SYSTEM_PATH = '/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin'
 # Never handed to Prism, the helper's apps or the views; only the game gets them, from the wrapper.
@@ -1035,6 +1056,9 @@ class Supervisor:
         self.helper_starts = []
         self.helper_restart_at = None
         self.view = None
+        # The startup cover (package 23b): whether one is up, and when stopped covers get SIGKILL.
+        self.cover = False
+        self.cover_kill_at = None
         # After a memory kill: since when every pressure sample was clear (review 2, finding 2). Never persisted, so a
         # supervisor restart starts the minute again instead of skipping it.
         self.pressure_clear_since = None
@@ -1061,6 +1085,10 @@ class Supervisor:
         if (state, reason, detail) != (self.state, self.reason, self.detail):
             LOG.info('state %s%s%s', state, f' ({reason})' if reason else '', f': {detail}' if detail else '')
         self.state, self.reason, self.detail = state, reason, detail
+        if state != STARTING:
+            # The cover only hides a start: the hub (IN_WORLD) and every message window (SETUP, AUTH_REQUIRED,
+            # RECOVERY, the slow-start view among them) must be seen, so it ends before a view opens (package 23b).
+            self.hide_cover()
         if state in (SETUP, AUTH_REQUIRED, RECOVERY):
             text = self.message()
             if self.view != text:
@@ -1072,6 +1100,52 @@ class Supervisor:
 
     def message(self):
         return message(self.state, self.reason, self.detail, self.lock, self.persisted)
+
+    def show_cover(self, again):
+        """The startup cover over this start (package 23b). Best effort: if it does not start, the start goes on
+        exactly as without it."""
+        self.hide_cover()
+        try:
+            self.runner.start_cover(again)
+        except (OSError, subprocess.SubprocessError) as error:
+            LOG.warning('the startup cover did not start (%s); the start goes on without it', error)
+            return
+        self.cover = True
+
+    def hide_cover(self):
+        """SIGTERM to the cover now, SIGKILL after COVER_STOP_WAIT if it is still there (tick): never waits."""
+        if not self.cover:
+            return
+        self.cover = False
+        kill_at = self.clock() + COVER_STOP_WAIT
+        if self.runner.stop_cover(kill_at) and self.cover_kill_at is None:
+            self.cover_kill_at = kill_at
+
+    def kill_covers(self):
+        self.cover_kill_at = self.runner.kill_covers(self.clock())
+
+    def uncover_prism(self):
+        """Prism has not handed the game over COVER_PRISM_WAIT after its start: it may be waiting for him, so the
+        cover ends and its window shows. The launch itself goes on unchanged."""
+        LOG.info('Prism has not started the game %d s after its start; the startup cover ends so that its window '
+                 'can be seen', COVER_PRISM_WAIT)
+        self.hide_cover()
+
+    def owner_hides_cover(self):
+        """Super+Ctrl+Escape (`aresos-desktop hide-cover`): the recovery terminal it opens must be seen (OS-BASE
+        section 6), so the cover ends. Nothing else changes (package 23b, PLAN-GAP 2)."""
+        if not self.cover:
+            LOG.info('hide-cover (Super+Ctrl+Escape): no startup cover is up')
+            return 'No startup cover is up.'
+        LOG.info('hide-cover (Super+Ctrl+Escape): the startup cover ends so that the recovery terminal can be seen')
+        self.hide_cover()
+        return 'The startup cover is gone.'
+
+    def on_cover_exit(self, code):
+        """The cover ended without being stopped (its own limit, a crash): one log line, nothing else changes."""
+        if self.cover:
+            self.cover = False
+            LOG.warning('the startup cover ended by itself (%s); the start goes on', describe_status(code))
 
     def latch(self, reason, detail=''):
         self.persisted.latched, self.persisted.reason, self.persisted.detail = True, reason, detail
@@ -1122,6 +1196,9 @@ class Supervisor:
 
     def start(self):
         runtime = self.read_runtime()
+        # The session's first supervisor: its runtime file (in XDG_RUNTIME_DIR) does not exist yet. Only its first
+        # hub launch gets the cover; a supervisor restarted in the middle of a session never covers his screen.
+        first = not runtime.get('instance')
         self.instance = runtime.get('instance') or 'aresdesktop-' + secrets.token_hex(6)
         if self.adopt(runtime):
             return
@@ -1135,7 +1212,7 @@ class Supervisor:
             return  # a crash restarts after its backoff; a quit or setup end waits for the owner
         if self.restore():
             return
-        self.begin()
+        self.begin(cover=COVER_FIRST if first else None)
 
     def read_runtime(self):
         try:
@@ -1243,8 +1320,10 @@ class Supervisor:
             return 'instance', f'- could not create the instance: {error}'
         return self.validate(inputs=False)
 
-    def begin(self, automatic=False):
-        """Check, provision and launch, or latch recovery with the reason."""
+    def begin(self, automatic=False, cover=None):
+        """Check, provision and launch, or latch recovery with the reason. `cover` (COVER_FIRST or COVER_AGAIN) puts
+        the startup cover over a hub launch; never over setup or an automatic restart (B2: a cover on top would hide
+        the app in front)."""
         self.retry_at = None
         if self.persisted.disposition is not None:
             self.persisted.disposition = None
@@ -1257,15 +1336,17 @@ class Supervisor:
         if problem:
             self.latch(problem, detail)
             return
-        self.start_launch(detail, automatic)
+        self.start_launch(detail, automatic, cover)
 
-    def start_launch(self, mode, automatic=False):
+    def start_launch(self, mode, automatic=False, cover=None):
         self.launch = Launch(id=secrets.token_hex(6), nonce=new_token(), mode=mode, started=self.clock(),
                              automatic=automatic)
         self.save_runtime()
         self.ensure_helper(restart=True)
         world = self.lock['world'] if mode == 'hub' else None
         self.enter(SETUP if mode == 'setup' else STARTING, 'setup' if mode == 'setup' else None)
+        if cover in (COVER_FIRST, COVER_AGAIN) and mode == 'hub' and not automatic:
+            self.show_cover(again=cover == COVER_AGAIN)  # before Prism, so its first window is already covered
         try:
             self.launch.prism = self.runner.start_prism(prism_command(self.lock, self.launch.id, world),
                                                         session_environment(self.environ))
@@ -1293,8 +1374,11 @@ class Supervisor:
         self.helper_restart_at = None
         self.helper_starts = [t for t in self.helper_starts if self.clock() - t < HELPER_BUDGET[1]] + [self.clock()]
         env = session_environment(self.environ)
-        if launch.automatic:
-            # B2: after a crash the restored hub waits below the app in front (the helper keeps it in front).
+        if launch.automatic and not self.cover:
+            # B2: after a crash the restored hub waits below the app in front (the helper keeps it in front). Under
+            # the startup cover (a crash before the hub was ready) nothing of his is in front, only the cover:
+            # keeping the focus there would leave the restarted game without it, and Minecraft pauses itself. So
+            # the hub takes the focus as at a covered start (package 23b, review 1, finding 3).
             env['ARESOS_SHELL_KEEP_FOREGROUND'] = '1'
         try:
             self.runner.start_helper(self.instance, nonce, env)
@@ -1655,6 +1739,11 @@ class Supervisor:
         items = []
         if self.helper_restart_at is not None:
             items.append((self.helper_restart_at, self.restart_helper))
+        if self.cover_kill_at is not None:
+            items.append((self.cover_kill_at, self.kill_covers))
+        if self.cover and launch is not None and not launch.accepted:
+            # The covered launch started Prism a moment after `started` (start_launch); jvm_start ends this wait.
+            items.append((launch.started + COVER_PRISM_WAIT, self.uncover_prism))
         if launch is not None and launch.jvm_ended is not None and launch.jvm_pid is not None:
             # Due at once when the wrapper has reported the exit status, otherwise after a short wait for it.
             items.append((launch.jvm_ended + (0 if launch.jvm_status is not None else EXIT_REPORT_WAIT),
@@ -1776,7 +1865,9 @@ class Supervisor:
                        'setup' if launch.mode == 'setup' else None)
             return True, 'Minecraft is still running; the recovery state is cleared.'
         LOG.info('retry requested by the owner')
-        self.begin()
+        # AUTH_REQUIRED's retry is the moment Prism shows its sign-in ("Prism opens again"): it must be seen, so
+        # that start is never covered (package 23b, review 1, finding 2). Every other retry says "Starting again…".
+        self.begin(cover=None if self.state == AUTH_REQUIRED else COVER_AGAIN)
         return True, f'State: {self.state}'
 
     def forget_hub(self):
@@ -1796,7 +1887,7 @@ class Supervisor:
                     hub_seen=self.persisted.hub_seen, instance=self.instance,
                     launch=launch.id if launch else None, jvm_pid=launch.jvm_pid if launch else None,
                     ready=bool(launch and launch.ready), nvidia=self.nvidia,
-                    helper=self.runner.helper_running(), message=self.message() if self.state else '')
+                    helper=self.runner.helper_running(), cover=self.cover, message=self.message() if self.state else '')
 
 
 # ---------------------------------------------------------------- processes and the event loop
@@ -1821,6 +1912,8 @@ class Runner:
         self.helper_pipe = None
         self.view_process = None
         self.jvm_fd = None
+        self.cover = None
+        self.covers_ending = []  # (process, when it gets SIGKILL): covers sent SIGTERM that have not ended yet
 
     # helper
     def helper_running(self):
@@ -1922,6 +2015,67 @@ class Runner:
         finally:
             os.close(fd)
 
+    # the startup cover (package 23b)
+    def start_cover(self, again):
+        """The cover, a child of the supervisor (its scope, never the game's), with the views' cleaned environment.
+        Started and never waited for: the loop reaps it."""
+        command = [COVER, '--again'] if again else [COVER]
+        process = subprocess.Popen(command, env=session_environment(self.loop.environ), cwd=self.paths.home,
+                                   stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                                   preexec_fn=lambda: set_parent_death_signal(signal.SIGTERM))
+        try:
+            self.loop.watch_cover(process)
+        except OSError:
+            process.kill()
+            process.wait()
+            raise
+        self.cover = process
+
+    def stop_cover(self, kill_at):
+        """SIGTERM to the cover; kill_covers() sends SIGKILL at kill_at if it is still there. False: none ran."""
+        cover, self.cover = self.cover, None
+        if cover is None or cover.poll() is not None:
+            return False
+        cover.terminate()
+        self.covers_ending.append((cover, kill_at))
+        return True
+
+    def kill_covers(self, now):
+        """SIGKILL to each stopped cover still there at its time; returns the next such time, or None."""
+        waiting = []
+        for cover, kill_at in self.covers_ending:
+            if cover.poll() is not None:
+                continue
+            if kill_at <= now:
+                cover.kill()
+            else:
+                waiting.append((cover, kill_at))
+        self.covers_ending = waiting
+        return min((kill_at for _, kill_at in waiting), default=None)
+
+    def cover_ended(self, process):
+        """The loop reaped a cover: True when it was the one up (it ended by itself, not by stop_cover)."""
+        self.covers_ending = [(cover, at) for cover, at in self.covers_ending if cover is not process]
+        if process is self.cover:
+            self.cover = None
+            return True
+        return False
+
+    def end_covers(self):
+        """On shutdown: SIGTERM to every cover, SIGKILL to any still there after COVER_STOP_WAIT."""
+        covers = [cover for cover, _ in self.covers_ending] + ([self.cover] if self.cover is not None else [])
+        self.cover, self.covers_ending = None, []
+        for cover in covers:
+            if cover.poll() is None:
+                cover.terminate()
+        deadline = time.monotonic() + COVER_STOP_WAIT
+        for cover in covers:
+            try:
+                cover.wait(max(0.0, deadline - time.monotonic()))
+            except subprocess.TimeoutExpired:
+                cover.kill()
+                cover.wait()
+
     # views
     def show_view(self, text):
         self.close_view()
@@ -2015,6 +2169,9 @@ class Loop:
 
     def watch_view(self, process):
         self.watch_child('view', process)
+
+    def watch_cover(self, process):
+        self.watch_child('cover', process)
 
     def watch_jvm(self, fd):
         self.selector.register(fd, selectors.EVENT_READ, ('jvm', None))
@@ -2132,6 +2289,8 @@ class Loop:
         if op == 'forget_hub':
             ok, text = supervisor.forget_hub()
             return {'ok': ok, 'message': text}
+        if op == 'hide_cover':
+            return {'ok': True, 'message': supervisor.owner_hides_cover()}
         return {'ok': False, 'error': 'unknown_operation', 'message': f'unknown op {op!r}'}
 
     def reap(self, key, process):
@@ -2196,6 +2355,11 @@ class Loop:
     def on_view(self, key, process):
         self.reap(key, process)
 
+    def on_cover(self, key, process):
+        code = self.reap(key, process)
+        if self.runner.cover_ended(process):
+            self.supervisor.on_cover_exit(code)
+
     def on_jvm(self, key, data):
         self.forget_fd(key.fd)
         if self.runner.jvm_fd == key.fd:
@@ -2205,6 +2369,7 @@ class Loop:
     def close(self):
         self.runner.stop_helper()
         self.runner.close_view(wait=True)
+        self.runner.end_covers()
         # The game keeps running (the next supervisor adopts it); only this process's ends of its pipes close.
         for key in list(self.selector.get_map().values()):
             kind, data = key.data
@@ -2337,7 +2502,7 @@ def reset_instance(paths):
 def main(argv=None):
     parser = argparse.ArgumentParser(prog='aresos-desktop', description='AresOS desktop supervisor (package 23)')
     parser.add_argument('command', choices=['session', 'supervise', 'status', 'retry', 'forget-hub',
-                                            'reset-instance', 'explain'])
+                                            'reset-instance', 'explain', 'hide-cover'])
     args = parser.parse_args(argv)
     paths = Paths.from_environ()
     if args.command == 'session':
@@ -2346,7 +2511,8 @@ def main(argv=None):
         return supervise(paths)
     if args.command == 'reset-instance':
         return reset_instance(paths)
-    op = {'status': 'status', 'explain': 'status', 'retry': 'retry', 'forget-hub': 'forget_hub'}[args.command]
+    op = {'status': 'status', 'explain': 'status', 'retry': 'retry', 'forget-hub': 'forget_hub',
+          'hide-cover': 'hide_cover'}[args.command]
     try:
         reply = request(paths, {'op': op})
     except (OSError, ValueError) as error:
