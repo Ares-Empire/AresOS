@@ -44,6 +44,53 @@ Tuesday's security-review list); step 7's JUDGMENT-CALLs 1-3 are accepted.
 |---|---|---|---|
 | `425f4109` | step 7 + `main` | 43745261932 (run 8; qualification 43745261921) | running |
 
+### Left, in order
+
+1. **Read run 8** (above) if this step didn't: oldest failure first. What it should show is step 7's list, item 2.
+   Before a push that would start run 9, tell the lead.
+2. **The adapter's `chrome_outline` behind the test-only switch** (step 1b's item 3). Not started in code; what I
+   found for it is below.
+3. Time (item 4), groups 14 and 16 in CI, the harness map, the known limits, the report.
+
+### For the adapter (found in step 8, not built)
+
+- **Where the switch goes:** `ACTIONS` and `BY_NAME` are built when `aresos_control.definitions` is imported
+  (`definitions.py:134-138`, `chrome_actions(Action)`), and the service, the MCP proxy (`proxy.py:27,31`) and the
+  `aresos` command (`cli.py:28`) each look the action up in their own `BY_NAME`. So the variable has to be in all
+  three processes' environment: set it on the CI container (`docker run -e`, `control-chrome.yml:91` and `:140`,
+  `latency-pair.sh:15`), not only in `control/chrome/ci/service.py`. In `chrome/definitions.py`'s `actions()`, add
+  `outline` only when the variable is set.
+- **The packaged unit can't pass it on:** `control/packaging/aresos-toold.service:10` starts the service with
+  `env -i PATH=… LANG=…`. The test that "the packaged unit doesn't set it" can pin that line and that the variable's
+  name appears nowhere in `control/packaging/`.
+- **Absent without the switch:** the generated files come from `control/generate.py` (`main`, `:74`); have it refuse
+  to run with the variable set, so no generated file can carry the action. Test in a subprocess without the variable:
+  not in `BY_NAME`, not in `tools_for('chrome')`, not in `generated/*`, and the engine refuses the action as unknown.
+  With the variable (another subprocess): present in all three.
+- **The adapter:** `ChromeAdapter.call` (`adapter.py:882`) routes by verb; add `outline` next to brief 20's
+  `read` (`adapter.py:322`), which shows the checks to keep: `self.mode()`, `allowed_url` on `url` and every frame's
+  `effective_url`, and unless a dialog is open `queued_steps`, `reconcile_checks`, `steps`. Then the view module's
+  order (`view.py:1-12`): `nodes.View(reply)`, `render`, `Reading`, `fit`. One `references.References()` for the
+  adapter's life (it connects per read). The cross-field rules (`tabs` only with `max`; `role` only with `find`;
+  `timeout_ms` only with `until`) are the adapter's: the schema validator has `anyOf` but no dependencies.
+- **`fit`'s `measure`** must count what is sent: `results.py:78-150` (`bound_result`) adds `pending` to the result,
+  and `engine.py:829` bounds the whole response at `RESULT_LIMIT`. Read those two before writing `measure`.
+- **Tests:** `chrome_tests/test_engine.py`'s `Browser` (`:20`) and `Operations.setUp` (`:44`) give an engine with a
+  fake bridge; give the fake an `outline` reply from `view_fixtures.py`. A test that calls `self.chrome.call('outline',
+  …)` reaches the adapter whatever the switch says; the engine path needs the switch at import (a subprocess).
+
+### What the code doesn't show
+
+- Run 8 waited for runners for a long time before its first jobs started: other branches' runs share them.
+
+### JUDGMENT-CALLs (technical; for the lead)
+
+- None this step.
+
+### PLAN-GAPs
+
+- None this step.
+
 ## Step 7 (2026-11-15, Claude agent on Opus 5.5): step 6's runs read, PLAN-GAP 1 by the lead's rule (option a), the F4 comment, F6 and H1. Pushed; no run started (the branch conflicts with `main`)
 
 Opus: built against the lead's brief and decision rule. **None of this step's JavaScript has run:** the push
