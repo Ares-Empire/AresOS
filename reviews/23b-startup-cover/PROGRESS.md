@@ -89,8 +89,8 @@ the harness that failed about 1 in 10 before.
 
 ### Step 2 verification (on the laptop, 2026-11-15)
 
-- Whole module `test_aresos_desktop.py`: `Ran 180 tests in 170.4s OK (skipped=1)` (172 before; 8 new; the skip is
-  the root/user-systemd scope test).
+- Whole module `test_aresos_desktop.py`, twice: `Ran 180 tests in 170.4s OK (skipped=1)`, then `Ran 180 tests in
+  173.7s OK (skipped=1)` (172 before; 8 new; the skip is the root/user-systemd scope test).
 - `test_everyday_account.py`: `Ran 34 tests OK`. `test_aresos_cover.py`: `Ran 9 tests in 6.5s OK` (its headless
   labwc loads the changed rc.xml). `test_aresos_shell_icons.py`: `Ran 43 tests OK`.
 - The new image check's Python block run against the repo's rc.xml: passes; `aresos-desktop hide-cover` with no
