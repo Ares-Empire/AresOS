@@ -137,9 +137,19 @@ EARLY_PRISM_FAILURE = 3.0
 HANDOFF_TIMEOUT = 30.0
 HELPER_RESTART = 2.0
 HELPER_BUDGET = (5, 60.0)
-HEAP_MB = 3072
-MIN_HEAP_MB = 512
-MEMORY_HIGH = '5G'
+# The game's memory, from package 41's measurements (reviews/41-home-memory/REPORT.md; brief 23d). The live heap
+# after GC was about 250 to 410 MiB, so a 1024 MiB ceiling leaves about 2.5 times it. MEMORY_HIGH is the game scope's
+# soft target. Its worst case is about 1.85 GiB of anonymous memory: a full 1 GiB heap (no run reached it) plus the
+# most measured beside the heap, 869 MiB (package 41's REVIEW-3, finding 1), which nothing caps. So 2560M acts only
+# on something abnormal; 1100M throttled the game into swap. The heap values and
+# JVM_ARGS reach a new instance only (provision): one that already exists keeps the values it was created with.
+HEAP_MB = 1024
+MIN_HEAP_MB = 256
+MEMORY_HIGH = '2560M'
+# G1 gives heap back only when more than MaxHeapFreeRatio percent of it is free (70 by default, which the home screen
+# never reached); 30 and 10 keep the committed heap near the live data, about 50 to 95 MiB less resident, never below
+# MIN_HEAP_MB. Prism's instance key JvmArgs (instance_config): a plain value that never sets the heap itself.
+JVM_ARGS = '-XX:MaxHeapFreeRatio=30 -XX:MinHeapFreeRatio=10'
 # B5: after a memory kill, a retry waits until memory pressure has stayed clear for a whole minute: every sample
 # of PSI 'some avg10' at most PRESSURE_CLEAR percent and none unreadable (review 2, finding 2).
 PRESSURE_FILE = '/proc/pressure/memory'
@@ -359,7 +369,11 @@ def verify_inputs(lock, share, java_check=True):
 
 
 def instance_config(lock):
-    # Prism reads this with QSettings; values are plain on purpose (no commas, quotes or semicolons).
+    # Prism reads this with QSettings; values are plain on purpose (no commas, quotes or semicolons). An '=' or a
+    # space inside a value is fine: a line splits at its first '=', and Prism splits JvmArgs at spaces. The keys are
+    # Prism 11.1.1's (MinecraftInstance::loadSpecificSettings): JvmArgs counts only with OverrideJavaArgs=true, and
+    # it must never hold -Xms, -Xmx or the other heap options, or Prism refuses the launch with a dialog
+    # (JavaCommon::checkJVMArgs); the heap is MinMemAlloc and MaxMemAlloc.
     settings = [
         ('ConfigVersion', '1.3'), ('InstanceType', 'OneSix'), ('name', lock['instance']), ('iconKey', 'default'),
         ('OverrideCommands', 'true'), ('PreLaunchCommand', ''), ('WrapperCommand', WRAPPER),
@@ -367,6 +381,7 @@ def instance_config(lock):
         ('OverrideJavaLocation', 'true'), ('JavaPath', lock['java']['path']), ('AutomaticJava', 'false'),
         ('IgnoreJavaCompatibility', 'false'),
         ('OverrideMemory', 'true'), ('MinMemAlloc', str(MIN_HEAP_MB)), ('MaxMemAlloc', str(HEAP_MB)),
+        ('OverrideJavaArgs', 'true'), ('JvmArgs', JVM_ARGS),
         ('OverrideConsole', 'true'), ('ShowConsole', 'false'), ('AutoCloseConsole', 'true'),
         ('ShowConsoleOnError', 'false'),
         ('OverrideWindow', 'true'), ('LaunchMaximized', 'true'),
