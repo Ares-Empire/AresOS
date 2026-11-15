@@ -583,6 +583,10 @@ holds the Anthropic sites only. This package changes none of it.
   again" entries (`list`, `readonly`, `allow`, `revoke`). The file is changed with `sudo`. Don't add a command
   for it here.
 - No host name of his goes into the code, the tests, the fixtures or the report. The tests use fixture hosts.
+- **This package's tools stay behind that gate.** `chrome_take`, `chrome_take_reload` and the in-place reads of his
+  tabs join brief 18c-b's refused-list sweep (`control/chrome_tests/test_excluded_sites_placeholder.py`, its item
+  1), never as named exceptions: with the placeholder in, each answers `chrome_settings_unavailable` before any
+  call to the browser, and the take, take-reload and in-place read tests include that case.
 
 ### 10. Two small items from PR #27's final reviews
 
