@@ -162,6 +162,49 @@ class RecordingOpener(unittest.TestCase):
         self.attestation = importlib.util.module_from_spec(spec); spec.loader.exec_module(self.attestation)
         self.addCleanup(urllib.request.install_opener, None)
 
+    def test_a_refusal_counts_only_as_ghs_failed_verification_naming_its_reason(self):
+        # Security review NOTE 1 (brief 20 main fix): a transient verifier
+        # failure must never pass as the refusal a case expects.
+        held = {'format': 1, 'entries': []}
+
+        class Held:
+            def __init__(self, error=None, changes=False):
+                self.error, self.changes, self.state = error, changes, held
+
+            def accept(self, path, check):
+                if self.changes:
+                    self.state = {'format': 1, 'entries': [{'changed': True}]}
+                if self.error is not None:
+                    raise self.error
+                return self.state
+
+            def record(self):
+                return self.state
+
+        def gh(stderr):
+            return subprocess.CalledProcessError(1, ['gh', 'attestation', 'verify'], b'', stderr.encode())
+
+        a = self.attestation
+        main = a.SOURCE_REF + 'refs/heads/main'
+        for reason, stderr in [(main, '\nError: expected SourceRepositoryRef to be refs/heads/main, got refs/pull/68/merge\n'),
+                               (a.POLICY, '\nError: verifying with issuer "sigstore.dev"\n'),
+                               (a.MISSING, '\nError: could not load content from file path /x/missing.json: open /x/missing.json: no such file or directory\n')]:
+            with self.subTest(reason=reason):
+                a.refused(Held(gh(stderr)), 'record.json', None, reason, held)
+        with self.subTest('text-mode stderr'):
+            a.refused(Held(subprocess.CalledProcessError(1, ['gh'], '', 'Error: verifying with issuer "sigstore.dev"')), 'record.json', None, a.POLICY, held)
+        for name, error in [('another gh failure', gh('Error: failed to create TUF client: connection reset')),
+                            ('a source-ref failure for another ref', gh('Error: expected SourceRepositoryRef to be refs/heads/other, got refs/pull/68/merge'))]:
+            with self.subTest(name), self.assertRaisesRegex(AssertionError, 'another reason'):
+                a.refused(Held(error), 'record.json', None, main, held)
+        for error in [subprocess.TimeoutExpired(['gh'], 30), FileNotFoundError('gh'), Refused('qualification_invalid', 'gh too old'), ValueError('bad record')]:
+            with self.subTest(type(error).__name__), self.assertRaises(type(error)):
+                a.refused(Held(error), 'record.json', None, a.POLICY, held)
+        with self.subTest('accepted'), self.assertRaisesRegex(AssertionError, 'accepted'):
+            a.refused(Held(), 'record.json', None, a.POLICY, held)
+        with self.subTest('held record changed'), self.assertRaisesRegex(AssertionError, 'changed the held record'):
+            a.refused(Held(gh('Error: verifying with issuer "sigstore.dev"'), changes=True), 'record.json', None, a.POLICY, held)
+
     def test_recording_serves_exactly_one_url_offline_and_refuses_every_other(self):
         url = 'https://api.github.com/repos/'+q.REPOSITORY+'/attestations/sha256:'+'0'*64+'?per_page=100'
         payload = json.dumps({'attestations':[{'bundle':{'fixture':'recorded'}}]}).encode()
@@ -343,6 +386,40 @@ MAIN_ONLY_WRITES = {'Verify the new attestation then push only the data branch',
 PULL_REQUEST_COUNTERPARTS = {'Verify the new attestation then publish to a local bare remote (pull-request mode)'}
 
 
+def workflow_runs(source):
+    """(job, step name, run body) for every step's run:, single-line or block, by indentation."""
+    rows, job, step, body, indent = [], None, None, None, None
+    for line in source.split('\njobs:\n', 1)[1].splitlines():
+        if body is not None:
+            if not line.strip() or len(line) - len(line.lstrip()) > indent:
+                body.append(line)
+                continue
+            rows.append((job, step, '\n'.join(body))); body = None
+        if re.match(r'^  \S', line):
+            job, step = line.strip().rstrip(':'), None
+        elif re.match(r'^      - ', line):
+            step = '<unnamed>'
+        found = re.match(r'^(?:      - |        )name: (.*)$', line)
+        if found:
+            step = found[1].strip()
+        found = re.match(r'^( +)(- )?run: ?(.*)$', line)
+        if found:
+            # A block body is every deeper line below the run key's own column.
+            indent = len(found[1]) + len(found[2] or '')
+            if found[3].strip() in {'|', '>', '|-', '>-'}:
+                body = []
+            else:
+                rows.append((job, step, found[3]))
+    if body is not None:
+        rows.append((job, step, '\n'.join(body)))
+    return rows
+
+
+# Commands that write to GitHub. The workflows carry none of them: the only
+# writes are qualify.py publish and notify, whose own guard keeps origin on main.
+WRITE_COMMAND = re.compile(r'\bgit\b[^\n]*?\bpush\b|\bgh\s+(?:issue|pr|release)\b|["\']git["\'],\s*["\']push["\']|["\']gh["\'],\s*["\'](?:issue|pr|release)["\']')
+
+
 def workflow_conditions(source):
     """(job, step name or None, condition) for every if: in a workflow, by indentation."""
     rows, job, step = [], None, None
@@ -431,6 +508,37 @@ class Workflow(unittest.TestCase):
         qualify = (ROOT/'control/chrome/qualify.py').read_text()
         self.assertIn("if not on_main:raise SystemExit('Qualification publication to origin is restricted to main')", qualify)
         self.assertIn("if not on_main:raise SystemExit('Qualification notifications are restricted to main')", qualify)
+
+    def test_write_commands_appear_only_in_the_guarded_publication_steps(self):
+        # Security review NOTE 2 (brief 20 main fix): no run: body of either
+        # workflow pushes or files issues, pull requests or releases itself;
+        # qualify.py publish to origin and notify run only in the allow-listed
+        # main-only steps, and publish elsewhere only with a local --remote.
+        for workflow in [self.QUALIFICATION, self.CHROME]:
+            runs = workflow_runs(workflow.read_text())
+            self.assertTrue(runs)
+            for job, step, body in runs:
+                with self.subTest(workflow=workflow.name, job=job, step=step):
+                    self.assertIsNone(WRITE_COMMAND.search(body), 'Write command outside qualify.py: '+body)
+                    for command in re.findall(r'qualify\.py (?:publish|notify)[^\n]*', body):
+                        if command.startswith('qualify.py notify') or '--remote' not in command:
+                            self.assertIn(step, MAIN_ONLY_WRITES, command)
+                        else:
+                            self.assertIn(step, PULL_REQUEST_COUNTERPARTS, command)
+                            self.assertRegex(command, r'--remote \.work/publish-remote\.git( |$)')
+        steps = {step for _, step, body in workflow_runs(self.QUALIFICATION.read_text()) if 'qualify.py publish' in body or 'qualify.py notify' in body}
+        self.assertEqual(steps, MAIN_ONLY_WRITES | PULL_REQUEST_COUNTERPARTS)
+        # The pull-request step reads the shared GitHub state with no token.
+        publisher = self.QUALIFICATION.read_text().split('      - name: Verify the new attestation then publish to a local bare remote (pull-request mode)\n')[1].split('      - name:')[0]
+        self.assertNotIn('GH_TOKEN', publisher)
+        for line in ['git push', 'gh issue create', 'gh pr create --fill', 'gh release create v1', 'git -C repo push origin HEAD', "subprocess.run(['git', 'push'])", 'subprocess.run(["gh", "pr", "merge"])']:
+            with self.subTest(line=line):
+                self.assertIsNotNone(WRITE_COMMAND.search(line))
+        for line in ['git -C .work/publish-remote.git fetch --quiet "$PWD" refs/remotes/origin/main:refs/heads/main', 'gh api repos/x', 'gh attestation verify x']:
+            with self.subTest(line=line):
+                self.assertIsNone(WRITE_COMMAND.search(line))
+        source = "on: push\njobs:\n  one:\n    steps:\n      - name: A\n        run: echo a\n      - run: |\n          set -e\n          git push origin\n        env:\n          X: 1\n      - name: C\n        run: >-\n          gh release\n          create\n"
+        self.assertEqual(workflow_runs(source), [('one', 'A', 'echo a'), ('one', '<unnamed>', '          set -e\n          git push origin'), ('one', 'C', '          gh release\n          create')])
 
     def test_path_triggers_cover_every_input_of_the_jobs(self):
         # The jobs copy or archive these beside control/**; a change to any of

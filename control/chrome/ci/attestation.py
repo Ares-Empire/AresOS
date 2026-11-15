@@ -22,6 +22,29 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import qualify
 
 
+# gh's own wording for each refusal (cli/cli pkg/cmd/attestation): a source-ref
+# mismatch names the expected and the attested ref; a signature or
+# certificate-identity (signer workflow) policy failure is reported as
+# "verifying with issuer"; a missing bundle file as "could not load content".
+# A refusal counts only as gh's failed verification naming its own reason, so
+# a timeout or a verifier that could not start never passes as one.
+SOURCE_REF = 'expected SourceRepositoryRef to be '
+POLICY = 'verifying with issuer "sigstore.dev"'
+MISSING = 'could not load content from file path'
+
+
+def refused(qualification, path, check, reason, held):
+    try:
+        qualification.accept(path, check)
+    except subprocess.CalledProcessError as error:
+        stderr = error.stderr.decode('utf-8', 'replace') if isinstance(error.stderr, bytes) else error.stderr or ''
+        if reason not in stderr:
+            raise AssertionError('gh refused for another reason than ' + repr(reason) + ': ' + stderr.strip()[-400:]) from error
+    else:
+        raise AssertionError('accepted')
+    assert qualification.record() == held, 'a refusal changed the held record'
+
+
 def attestation_url(path):
     digest = hashlib.sha256(Path(path).read_bytes()).hexdigest()
     return f'https://api.github.com/repos/{REPOSITORY}/attestations/sha256:{digest}?per_page=100'
@@ -135,24 +158,24 @@ def exercise(path, bundle, ref, response):
         altered['dsseEnvelope']['signatures'][0]['sig'] = ('A' if signature[0] != 'A' else 'B') + signature[1:]
         broken = root/'altered-bundle.json'
         broken.write_text(json.dumps(altered))
+        # The genuine bundle passed above with the right policy, so the wrong
+        # workflow, branch and main cases fail on identity or source ref alone.
         cases = [
-            ('missing attestation', lambda subject: verify(subject, ref=ref, bundle=root/'missing.json')),
-            ('altered attestation', lambda subject: verify(subject, ref=ref, bundle=broken)),
-            ('wrong workflow', lambda subject: verify(subject, ref=ref, bundle=bundle, workflow='.github/workflows/untrusted-fixture.yml')),
-            ('wrong branch', lambda subject: verify(subject, branch='untrusted-fixture-branch', bundle=bundle)),
+            ('missing attestation', lambda subject: verify(subject, ref=ref, bundle=root/'missing.json'), MISSING),
+            ('altered attestation', lambda subject: verify(subject, ref=ref, bundle=broken), POLICY),
+            ('wrong workflow', lambda subject: verify(subject, ref=ref, bundle=bundle, workflow='.github/workflows/untrusted-fixture.yml'), POLICY),
+            ('wrong branch', lambda subject: verify(subject, branch='untrusted-fixture-branch', bundle=bundle), SOURCE_REF + 'refs/heads/untrusted-fixture-branch'),
         ]
         if ref != 'refs/heads/main':
             # The installed service's main policy must refuse a bundle attested
             # on this branch or pull request ref, however genuine.
-            cases.append(('production main rejects a bundle attested on ' + ref, lambda subject: verify(subject, bundle=bundle)))
-        for name, check in cases:
+            cases.append(('production main rejects a bundle attested on ' + ref, lambda subject: verify(subject, bundle=bundle), SOURCE_REF + 'refs/heads/main'))
+        for name, check, reason in cases:
             try:
-                qualification.accept(path, check)
-            except Exception:
-                assert qualification.record() == candidate
-            else:
-                raise AssertionError(name + ' was accepted')
-            print('QUALIFICATION DELIVERY ' + name + ' refused; held retained PASS', flush=True)
+                refused(qualification, path, check, reason, candidate)
+            except AssertionError as error:
+                raise AssertionError(name + ': ' + str(error)) from error
+            print('QUALIFICATION DELIVERY ' + name + ' refused (' + reason + '); held retained PASS', flush=True)
         try:
             path.write_bytes(original + b' ')
             try:

@@ -681,6 +681,17 @@ case('mainfix-h6-early-opens-row-document',PO,"export const popupOpenURL=(id,mod
 case('mainfix-h6-start-navigates-before-gate',PO,"script:`fetch(${JSON.stringify(POPUP_GATE+'?id='+encodeURIComponent(id))},{cache:'no-store'}).then(()=>location.replace(${JSON.stringify(child)}));`,","script:`location.replace(${JSON.stringify(child)});fetch(${JSON.stringify(POPUP_GATE+'?id='+encodeURIComponent(id))},{cache:'no-store'});`,",POPUPS('navigates only once the gate answers'))
 case('mainfix-h6-fixture-holds-the-document',FX,"    else if(['popup-opener','popup-start','popup-child'].includes(kind)){\n","    else if(['popup-opener','popup-start','popup-child'].includes(kind)){\n      const held=kind==='popup-child'&&holds.get(url.searchParams.get('id'));if(held)await held.promise;\n",node('fixture','gate60b a held popup gate'))
 
+# Security review NOTEs folded into the main fix (step 3): refusals are gh's
+# own named failures; the workflows write to GitHub only through the guarded steps.
+AT='control/chrome/ci/attestation.py'
+REFUSAL='test_qualification.RecordingOpener.test_a_refusal_counts_only_as_ghs_failed_verification_naming_its_reason'
+WRITES='test_qualification.Workflow.test_write_commands_appear_only_in_the_guarded_publication_steps'
+case('mainfix-sec-refusal-any-exception',AT,"    except subprocess.CalledProcessError as error:\n","    except Exception as error:\n",REFUSAL,True)
+case('mainfix-sec-refusal-reason-unchecked',AT,"        if reason not in stderr:\n            raise AssertionError(","        if False:\n            raise AssertionError(",REFUSAL,True)
+case('mainfix-sec-unconditional-write-step',QW,"          echo 'Pull-request mode: the verified candidate reached only the local bare remote'\n","          echo 'Pull-request mode: the verified candidate reached only the local bare remote'\n      - name: Push the record\n        run: git push origin HEAD:refs/heads/chrome-qualification\n",WRITES,True)
+case('mainfix-sec-pull-request-publish-to-origin',QW,'qualify.py publish --bundle "$BUNDLE" --remote .work/publish-remote.git --ref "$GITHUB_REF"','qualify.py publish --bundle "$BUNDLE" --ref "$GITHUB_REF"',WRITES,True)
+case('mainfix-sec-pull-request-publish-token',QW,"        if: github.ref != 'refs/heads/main' || github.event_name == 'pull_request'\n        env:\n          BUNDLE:","        if: github.ref != 'refs/heads/main' || github.event_name == 'pull_request'\n        env:\n          GH_TOKEN: ${{ github.token }}\n          BUNDLE:",WRITES,True)
+
 def command(row):
     if row['python']:return ['python3','-B','-m','unittest',row['test'],'-v']
     file,pattern=row['test']
