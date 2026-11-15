@@ -24,6 +24,7 @@ file policy": the refusal; "Hooks": quiet unless used). `KNOWN-LIMITS.md`: there
 Tests changed beyond the new ones (no assertion weakened):
 - `test_review22_protocol.py`: the 30 s timeout pin now checks the socket the client creates
   (`factory.return_value.settimeout`), since each connect try uses a fresh socket; the timeout policy it pins is the same.
+- `chrome_tests/test_unit.py`: the second byte-for-byte pin of the unit gains the same three `[Unit]` lines.
 - `test_strict_json.py`: the admin-input case patches `geteuid` to 0, so it tests input parsing on any runner (CI runs as root).
 
 ## Item 6: the process chains (read/run: boundary run 43668437092, Claude Code 2.1.319)
@@ -70,7 +71,9 @@ the base CI container (`test_integration.Integration.test_idle_service_wakes_at_
 | 43668906122 | Control base (dispatch) | 0d27e8d2 (before item 3) | failed as expected: idle 9.95/s; also the `test_review22` timeout pin (pin updated in eaf3eaab) |
 | 43669664617 | Control base (PR) | 386e14ea | idle 0.02/s; **23 integration tests timed out in tearDown**: SIGTERM no longer woke the minute-long select (PEP 475 restarts it). Fixed: `Daemon.stop()` writes to a wake-up pipe in the selector (checked on the laptop: real SIGTERM ends `serve()` at once) |
 | 43669664632 | Control boundary (PR) | 386e14ea | **green**: chains pinned, and the real `usage` code under Claude Code: `stop_used` true exactly in the 7 cases with a tool call; DAA `[true, true, false]` (its new session, denied, stays quiet) |
-| see the PR | all six control workflows | final commit | running at hand-off; the lead checks them (base, boundary, Mail, Chrome with the latency gate, polkit, qualification) |
+| 43670639975 / 43670639979 / 43670639991 / 43670640000 / 43670639999 | base / boundary / Mail / Chrome polkit / Chrome qualification | 4705a4ea | **all green**; base: 339 tests, idle 1 switch in 60 s (0.02/s), "Control base suite PASS" |
+| 43670639964 | Control Chrome | 4705a4ea | **latency (plain) and latency (audit) green** (gate unchanged); fixtures and python-shards (0) failed only on `chrome_tests/test_unit.py`, a second copy of the unit pin I had missed. Updated in the next commit |
+| see the PR | all six control workflows | final commit | running at hand-off; the lead checks them |
 
 Lesson for the next step: every push to the PR, even of this file, restarts all six control workflows (the
 `pull_request` path filter looks at the whole PR diff) and cancels the running ones.
