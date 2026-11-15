@@ -1,8 +1,102 @@
 # 23b: the AresOS startup cover — progress and report
 
-Builder: Claude agent (Opus 5.5), step 1, 2026-11-15. Branch `pkg/23b-startup-cover`, draft PR #70.
-Status: **built as the brief says; stopped on two PLAN-GAPs** (below) that need the integrator's call before review.
+Builders: Claude agents (Opus 5.5), step 1 and step 2, 2026-11-15. Branch `pkg/23b-startup-cover`, draft PR #70.
+Status: **step 2 done: the flaky test's cause found and fixed, both PLAN-GAPs built as the integrator decided.**
+Ready for the check build with VM, the hosted `checks_only` run and a fresh review.
 Nothing here was run on the owner's screen: every graphical run was a headless labwc of its own.
+
+## Step 2 (2026-11-15): the integrator's decisions
+
+### 1. The flaky retry test: cause, evidence, fix (the test's assumption was wrong, not the code)
+
+`LoopTest.test_crash_restart_latch_and_retry_through_the_real_loop` sends `retry` within milliseconds of the third
+crash's latch. **Cause:** the wrapper (`aresos-desktop-java`) reports Java's end, gets the supervisor's answer, and
+only then exits; it holds the desktop lock until it exits. The supervisor concludes the launch right after that
+answer, so a retry that arrives in the wrapper's last milliseconds finds the lock held and is answered
+`RECOVERY locked`. **Not the cover.**
+
+Evidence:
+- A harness wrapped `Runner.jvm_lock_held` and, whenever it said "held", listed the supervisor's descendants with
+  their open files and read `/proc/locks`. Every failure (6 on this branch, 5 on main) looked the same: the only
+  holder was the third launch's `aresos-desktop-java`, in state R (running its exit), holding its own lock fd 4;
+  no child of the supervisor (cover, view, helper, Prism) held it, so no lock was carried across a fork; a moment
+  later `/proc/locks` had no entry and the lock was free.
+- The race is on main too: a temporary worktree from `origin/main` (93e5b64b, removed afterwards) failed
+  **1 of 50** plain runs (`python3 -m unittest discover -s os/tests -p 'test_aresos_desktop.py' -k
+  test_crash_restart_latch_and_retry_through_the_real_loop`, one at a time: runs 1–16 all passed, run 49 failed
+  with `RECOVERY locked`) and **5 of 50** in the in-process harness (same holder). This branch before the fix:
+  2 of 30 plain runs failed, and about 1 in 10 in the harness, the same rate as main there. The rate differs
+  between runs because two 50 ms pollers (the test's `wait` and the fake Java's stop-file loop) meet at a phase
+  set by earlier timing; nothing in the cover takes part in the third crash (it ended at the first `world_ready`).
+- Why the code is right: a held lock means "the wrapper may still report" (`account_for_start` relies on exactly
+  that), and the wrapper writes its exit record and reports before it lets go, so releasing the lock earlier
+  would open a new window with neither a record nor a lock. Refusing a second start while the lock is held is the
+  designed safe answer. Only a script can send a retry within those milliseconds: the owner types it in the
+  recovery window, and the automatic restart waits `BACKOFF` (5 s).
+
+Fix (commit 37140f8b): a `LoopTest` helper, `wait_until_the_launch_has_ended()`, waits until the ended launch's
+Prism stand-in has exited (it waits for its wrapper, so the wrapper is gone) and then asserts that the desktop
+lock is free, which checks the integrator's fork hypothesis on every run. Both real-loop retry tests use it: the
+flaky one and step 1's `test_retry_through_the_real_loop_covers_with_again`, which had the same race after a quit.
+
+After the fix: **40 of 40** plain runs of the flaky test passed on this branch, one at a time, and **50 of 50** in
+the harness that failed about 1 in 10 before.
+
+### 2. PLAN-GAP 1, option (b): Prism's own dialogs are uncovered after 25 s
+
+- `COVER_PRISM_WAIT = 25.0`. One more `pending()` item while the cover is up and the current launch has not been
+  accepted (no `jvm_start` yet): due at `launch.started + 25 s` (the launch starts Prism a moment after
+  `started`), action `uncover_prism()`: one log line, then `hide_cover()` (SIGTERM, SIGKILL 2 s later as for every
+  stop). Nothing else changes: the state stays STARTING, the launch, its Prism, the counts and the views are as
+  without a cover. The item ends with its condition: `jvm_start` (accepted), any stop of the cover (state change,
+  the shortcut, the cover ending by itself or never starting), so it fires at most once.
+- A crash under the cover (JUDGMENT-CALL 2) restarts with the cover still up; the restarted Prism gets its own
+  25 s from its own start.
+- Tests (`CoverTest`): the dialog case (still covered at 24.9 s, stopped at 25 s with the SIGKILL timer, state,
+  launch and Prism unchanged, the later game and hub as usual, no second stop); a 40 s dialog session traced step
+  by step equals the same session with a cover that never started; the normal case (`jvm_start` at 24 s → still
+  covered 60 s later → stopped by `world_ready`); the timer ends cleanly (no item after `jvm_start`, deadline back
+  to `START_TIMEOUT`, after it fired and the SIGKILL ran no cover timer left and nothing fires again, none after a
+  cover that died or never started); the restart under the cover gets its own wait. Disabling the item makes three
+  of them fail. `test_auth_required_stops_the_cover_before_its_window_opens` now lets Prism give up at 14 s (was
+  60 s), so it still proves that AUTH_REQUIRED itself ends the cover (it asserts the cover is still up just
+  before).
+
+### 3. PLAN-GAP 2: Super+Ctrl+Escape also ends the cover
+
+- `rc.xml`: the keybind keeps its first action and gets a second one, plus a comment line above it:
+  `<keybind key="W-C-Escape"><action name="Execute" command="/usr/bin/aresos-terminal --recovery" /><action
+  name="Execute" command="/usr/libexec/aresos-desktop hide-cover" /></keybind>`. Nothing else in rc.xml changed
+  (windowRules untouched beyond step 1's cover rule). Every existing check that reads the keybind's first action
+  (image checks, `test_everyday_account`, `SessionFilesTest`) still finds the terminal.
+- The supervisor: CLI command `hide-cover` → socket op `hide_cover` (same-user socket, like `retry`) →
+  `owner_hides_cover()`: ends the cover if one is up ("The startup cover is gone.") or answers "No startup cover is
+  up."; one log line either way (`hide-cover (Super+Ctrl+Escape): …`), nothing else changes. Without a supervisor
+  the command says so and exits 1.
+- Tests: `CoverTest.test_the_shortcut_ends_the_cover_and_nothing_else` (state, launch, persisted state, runtime
+  file, Prism, helper and views unchanged; a second press does nothing; after the hub too);
+  `LoopTest.test_the_shortcut_command_ends_the_cover_through_the_socket` (the real script against the real loop:
+  exit 0 and the answer, the cover process ends, the game and the hub go on, a second call answers "No startup
+  cover is up.", with the supervisor stopped exit 1 "not running"); `SessionFilesTest` checks the keybind's two
+  actions in order.
+- Image checks: the keybind's actions exactly (terminal, then `hide-cover`); `aresos-desktop hide-cover` as ares
+  with no supervisor exits 1 and says the supervisor is not running (the command is accepted).
+- VM check (`checks.py`, step `shortcut`): the host already presses Super+Ctrl+Escape before that step; the guest
+  now waits for the supervisor's log line `hide-cover (Super+Ctrl+Escape): no startup cover is up` (labwc ran the
+  second action as ares in the real session and it reached the real supervisor), then runs `aresos-desktop
+  hide-cover` itself (exit 0, "No startup cover is up.") and checks that state and reason did not change.
+
+### Step 2 verification (on the laptop, 2026-11-15)
+
+- Whole module `test_aresos_desktop.py`: `Ran 180 tests in 170.4s OK (skipped=1)` (172 before; 8 new; the skip is
+  the root/user-systemd scope test).
+- `test_everyday_account.py`: `Ran 34 tests OK`. `test_aresos_cover.py`: `Ran 9 tests in 6.5s OK` (its headless
+  labwc loads the changed rc.xml). `test_aresos_shell_icons.py`: `Ran 43 tests OK`.
+- The new image check's Python block run against the repo's rc.xml: passes; `aresos-desktop hide-cover` with no
+  supervisor: exit 1, "The AresOS desktop supervisor is not running (…)".
+- Not run: the image checks and the VM steps themselves (they need the check build), the hosted suite.
+
+## Step 1 report (2026-11-15)
 
 ## Done
 
@@ -64,14 +158,8 @@ Nothing here was run on the owner's screen: every graphical run was a headless l
   then `pending() == []` and `deadline() == 30.0`); nothing it checked before was removed. Second whole run (after
   that change): `Ran 172 tests in 183.4s FAILED (failures=1, skipped=1)`; the skip is the root/user-systemd one
   (`test_the_real_jvm_runs_in_its_own_scope_with_the_memory_target`), the failure is the flake below.
-- **Open: a flaky real-loop test.** `LoopTest.test_crash_restart_latch_and_retry_through_the_real_loop` failed 3 of
-  16 runs on this branch (twice alone, once in the whole module; passed in the first whole run) and 0 of 16 on a
-  copy of main (`git archive 64c7be66`), same laptop, one at a time. Each failure: the owner's `retry` right after
-  the third crash's latch finds the desktop lock still held and ends in `RECOVERY locked` (the old wrapper has
-  reported Java's end but not exited yet). That race exists on main (the supervisor's answer is the safe one), but
-  this branch seems to hit it more often and the cause is not found yet; the cover is not up at that moment (it
-  ended at the first `world_ready`). Per AGENTS.md this is a failure until its cause is fixed: first item of the
-  next step.
+- **A flaky real-loop test** (`LoopTest.test_crash_restart_latch_and_retry_through_the_real_loop`, 3 of 16 here,
+  0 of 16 on a copy of main): found and fixed in step 2, above; the race is on main too.
 - `test_aresos_cover.py` (new), twice: `Ran 9 tests in 6.0s OK`, then `OK` again, nothing skipped here.
 - Modules that read files changed here, one at a time: `test_everyday_account` 34 OK, `test_journal_ready` 6 OK,
   `test_aresos_shell_icons` 43 OK, `test_owner_path` 47 OK, `test_release27` 41 OK.
@@ -102,6 +190,9 @@ Tests added:
   labwc or grim are missing (the hosted runner, most likely).
 
 ## What the VM check build can show (dispatch needed: yes)
+
+Step 2 adds: the image checks for the shortcut's two actions and the `hide-cover` command, and in the VM's
+`shortcut` step the supervisor's log line from Super+Ctrl+Escape and `hide-cover`'s answer (above).
 
 The brief's two screenshots (the cover during STARTING, the world after `world_ready`) **cannot be taken in the
 VM**: a fresh VM has no Microsoft account and no hub world, so the supervisor is in SETUP, where the cover is
@@ -135,7 +226,7 @@ rc.xml, image-checks.sh, VM scripts), so the integrator should dispatch a check 
    start after an earlier session's end is explained (`new_session`), show no cover: neither is "session start",
    and both may come while he uses an app. Changing it: one condition in `start()`.
 
-## PLAN-GAPs (the step stops here; nothing below is built)
+## PLAN-GAPs (decided by the integrator 2026-11-15 and built in step 2: 1 → option (b), 2 → the shortcut ends it)
 
 1. **Prism's own dialogs during a hub launch are hidden under the cover.** The brief keeps the cover away from
    SETUP and AUTH_REQUIRED "where his sign-in in Prism must be visible", but in the code a hub launch's sign-in
@@ -162,12 +253,11 @@ rc.xml, image-checks.sh, VM scripts), so the integrator should dispatch a check 
 
 ## Left, in order
 
-1. Find and fix the cause of the flaky `test_crash_restart_latch_and_retry_through_the_real_loop` on this branch
-   (above), then run the whole module twice.
-2. The integrator decides the two PLAN-GAPs (and whether the JUDGMENT-CALLs go to the owner as they are).
-3. Build the chosen fixes (a fresh step), dispatch the check build with VM and `checks_only`.
-4. A fresh review (Opus, or Codex from 2026-11-17). The last step deletes this file; the report text goes to
-   `REPORT.md` through the integrator.
+1. The integrator dispatches the check build with VM (`check_build=build`) and a `checks_only=true` run; neither
+   has run for step 1 or step 2.
+2. A fresh review (Opus, or Codex from 2026-11-17).
+3. JUDGMENT-CALLs 1 to 3 go to the owner as built (integrator's decision 4).
+4. The last step deletes this file; the report text goes to `REPORT.md` through the integrator.
 
 ## What the code doesn't show
 
@@ -175,5 +265,10 @@ rc.xml, image-checks.sh, VM scripts), so the integrator should dispatch a check 
   reboot) decides; a supervisor that crashed before writing it once is treated as the first.
 - The hand-over of focus relies on labwc focusing a newly mapped window under an always-on-top one, and focusing
   the topmost window when a focused one closes (labwc 0.9.6); seen headless only for stacking, not for a game.
-- Retry is impossible to type while the cover is up (no visible terminal); a retry during a covered start (from a
-  TTY) replaces the cover with an `--again` one.
+- Retry is impossible to type while the cover is up until Super+Ctrl+Escape ends it (or the 25 s Prism wait, or
+  the hub); a retry during a covered start (from a TTY) replaces the cover with an `--again` one.
+- The 25 s Prism wait counts from the launch's start, a few milliseconds before Prism's (start_launch starts the
+  helper and the cover first). It never applies once the wrapper's `jvm_start` was accepted, so Mojang's loading
+  screen and joining the world stay covered however long they take (until START_TIMEOUT's view).
+- The flaky retry test's race exists on main as well; this branch's test fix is the only change for it, and it
+  reaches main with this package.
