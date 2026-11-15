@@ -2,6 +2,201 @@
 
 Builder steps keep this file; the last step turns it into the report. Newest state first.
 
+## Step 6 (2026-11-15, Claude agent on Fable 5.2): the background's three commands, the credential words, item 8, the typing refusal, the late shadow root. Pushed, not yet read in CI
+
+Fable because the reader runs inside the extension on hostile pages. Step 5's "Part B", items 2 to 5. **None of this
+step's JavaScript has run** (no Node on the laptop): the three runs below are its first. Group 14's F6 and H1
+fixtures were not started (budget).
+
+### Done
+
+- **`background.js`: `outline`, `options`, `page_state`** (`aa81726b`), tests in `background.test.mjs` (7 tests).
+  - `outline` → `outlineView(tab)`: `facts(tab,null,'outline')`, so every check of a read applies (control, the
+    dialog, the fixed list per frame, the late reader, the pinned private document, the inherited origin). Reply:
+    `{session, tab, control, url, title, effective_url?, needs_reload, uncovered, dialog: null | {kind, text},
+    frames}`; a frame is `{frame, parent, browser_document, effective_url, document, reader, watched, origin, url,
+    title, scroll, height, omitted, nodes}`. The top document stands first. A `frame` node keeps its `frame` only
+    when that frame's outline is in the reply (never the top frame, never its own). 20,000 nodes a tab: each reader
+    is sent what is left (`limit`), and counts the rest in `omitted`.
+  - `options` (`{tab, frame, document, reader, element}`) → `{session, tab, frame, document, reader, options}`. Only
+    a document an outline has read is asked (`privacyDocuments`), and the reader refuses another document or reader
+    instance (`stale_reference`): a number names an element only for the instance that gave it.
+  - `page_state` (`{tab}`) → `{session, tab, control, queued, address, dialog: false, document, ready, token}`;
+    with a dialog open `{…, dialog: true}` and no `token`, `document` or `ready`. `token` is a sha256 over each
+    readable frame's `[frame id, Chrome document id, reader document, reader instance, revision, address digest,
+    fields digest]`; `address` is a sha256 of the tab's address.
+  - `facts()`'s third argument names the one command every frame is asked (`true` stays brief 20's typed-field
+    list). Its guard check, reader parameters and document pin became `requireGuard`, `readerBinding` and
+    `pinDocument`, which the new commands share. Nothing of `input`, `resume`, `dialog`, `take`, `release` changed.
+  - `reader.js`: `outline` takes `limit`; `options` needs `document` and `reader`; `page_state` returns `origin`.
+- **The credential words** (`40d1c650`): `control/aresos_control/chrome/credentials.py` (the brief's list as data,
+  `CREDENTIAL_WORDS_VERSION = 1`), the copy in `reader.js` (`credentialNames`, one line of JSON),
+  `test_credentials.py` (4 tests: the copy equals the definitions; version 1 is the brief's list), and five tests
+  in `reader.test.mjs`. As the lead decided: the merged expressions stay, either list makes a field password-kind,
+  the new list counts only for a field a person types into.
+- **Item 8** (`1ca29fd3`): `Debugger.scriptParsed` takes a script for one of ours only when `params.url` **and**
+  `params.embedderName` are its extension address. The doubles' events carry the name; one new test.
+- **Typing into a field that isn't read** (`421888cd`): the reader's `focus` (every `fill` and key goes through
+  it) refuses a typed field of unknown history with `owner_signin`. `unknownHistory()` is the one predicate.
+- **The shadow root met late** (`85eeffba`, its own commit): `privacy.metRoots`, `privacy.lateFields`, `meet(root)`
+  called where `roots()` and `remember()` find a shadow root. `safeValue`, the asking read's list (`typedFields`)
+  and `focus` follow `unknownHistory()`. Two tests in `outline.test.mjs`.
+
+### Runs (pull_request; not watched, not read)
+
+| Head | Holds | Control Chrome | Qualification | Boundary | Base | Mail |
+|---|---|---|---|---|---|---|
+| `2c8d2332` (step 5) | | 43712993037: **success** (the latency audit job passed on its second attempt) | 43712993128 (was still running) | success | success | success |
+| `40d1c650` | the three commands, the credential words | 43722368284 | cancelled by the next push | cancelled | cancelled | cancelled |
+| `421888cd` | + item 8, the typing refusal | 43722522475 | cancelled by the next push | 43722522498 | 43722522518 | 43722522535 |
+| `85eeffba` | + the late shadow root | 43722792150 | 43722792135 | 43722792144 | 43722792161 | 43722792156 |
+
+Seven full `control-chrome` runs so far for this package (the brief plans about six and wants the lead told
+before nine).
+
+### The lead's decisions on step 5's open points (2026-11-15)
+
+- JUDGMENT-CALL 3, the credential words: as advised (built, above).
+- JUDGMENT-CALLs 4, 5, 6: accepted.
+- Group 16's node lists: the browser fixtures must match `view_fixtures.py` **as the rendered outline** (the
+  browser's extra `text` node around a `<label>`-wrapped field is accepted); the tests compare rendered outlines.
+- `f4()`'s nodes 23 and 24 stay unit-test-only (a document is either watched or not); the fixture's comment must
+  say so (not written yet: it belongs with group 16's browser comparison).
+- The late shadow root leaving a component's prefilled default `(filled, not read)` for good: accepted as the safe
+  direction, a known-limit line. **But see PLAN-GAP 1 below: it also refuses brief 20's own shadow-root forms.**
+- Deep nesting overflowing the reader's recursion: accepted, fails closed, a known-limit line.
+
+### Left, in order
+
+1. **Read the three runs**, oldest first, so a failure is found in the commit that caused it. Expect JavaScript
+   errors in my tests or doubles; fix the cause. A red "Require lead ceilings" is the gate's own result (stop and
+   report). What I expect from each:
+   - 43722368284: the fixtures jobs' `node --test` (`background.test.mjs`, `outline.test.mjs`, `reader.test.mjs`)
+     and `test_credentials.py` in the python shards. The browser groups should be as on `2c8d2332`: nothing in
+     the browser calls the new commands yet, and no fixture field carries one of the new words.
+   - 43722522475: item 8 in a real browser for the first time. If Chrome's `embedderName` for a content script or
+     an injected file isn't the file's extension address, **every** browser job fails at admission (no context is
+     learned). Then: read `browser-boundary.jsonl` of one job for the `Debugger.scriptParsed` events' real
+     `embedderName`, and fix the comparison; the unit test stays.
+   - 43722792150: **I expect red browser jobs here, from the late-root rule** (PLAN-GAP 1): GROUP 7
+     (`matrices.mjs`, "all password kinds across open closed and cross-site roots": the forms of `Submit top 1`,
+     `top 2`, `cross 1`, `cross 2` stand in shadow roots and hold the prefilled plain textarea "Safe draft", so
+     their click is refused with brief 20's withheld-form message), and `review-matrices.mjs`'s `review-shadow-*`
+     cases (a root attached in a click handler, `<input name="draft" value="Saved">`, a held submission whose
+     resume is then refused). The run gives the exact list.
+2. **The lead decides PLAN-GAP 1** before any harness test is changed.
+3. Group 14's F6 and H1 fixtures (not started).
+4. Then step 1b's list from item 3: the adapter (`chrome_outline` behind the test-only switch), time, groups 14
+   and 16 in CI, the harness map, the known limits, the report.
+
+### What the adapter gets (for the next step)
+
+- `bridge.call('outline', tab=…)`: `nodes.View(reply)` takes it as it is. Check the fixed list on `reply['url']`
+  and each frame's `effective_url`, as `read` does. `uncovered` lists frames that weren't read (`eligible: false`:
+  the fixed list; `true`: no reader). **When the top document wasn't read, `frames[0]` is a child frame**
+  (`frames[0]['frame'] != 0`); `nodes.View.top` assumes the first one is the top document.
+- `bridge.call('options', tab=…, frame=…, document=…, reader=…, element=<number>)`: `nodes.options(reply['options'])`.
+- `bridge.call('page_state', tab=…)`: poll this, never a read. A frame whose reader doesn't answer is part of the
+  token as "no reader" (the token moves when it arrives); lost private history refuses, as a read does.
+
+### What the code doesn't show
+
+- **The credential words, how they match** (`namesCredential` in `reader.js`). A name is cut into parts at
+  anything but a letter or digit, at a change from lower to upper case (`otpCode`) and at the end of an acronym
+  (`OTPCode`, `mTAN`). A part counts with its trailing digits dropped (`PIN2`, `cvv2`; `2fa` stays). A paired word
+  (`code`, `key`, `phrase`) counts beside a companion as a neighbour **in either order** (`SMS code`,
+  `Code (SMS)`), or written as one word with the companion first and the `s` German puts between them
+  (`Einmalcode`, `Sicherheitscode`, `apikey`). `ä ö ü ß` are folded (`bestaetigungs_code`). The same six places as
+  the merged check (`name`, `id`, `autocomplete`, `aria-label`, `placeholder`, the labels and `aria-labelledby`).
+  I ported both checks to Python (not committed) and ran every expectation of the new Node tests through it.
+- **"A field a person types into"** is an `input` of any type but `hidden`, a `textarea`, an editable area; not a
+  `select` or a `button`. So a checkbox labelled "Remember this token" is password-kind, as a checkbox labelled
+  "PIN" already was under the merged expressions.
+- **A field's verdict is kept** (`credentialVerdicts`, a WeakMap) while its kind and its name strings are the
+  same. A read asks `credentialLike` many times a field, and the second list would have doubled that work
+  (the latency gate reads F1's 80 fields). The key is the exact strings, so a renamed or retyped field is judged
+  again (tested).
+- **A typed field labelled "Seed" or "Token" is withheld** whatever it is for (a world seed, a filter token):
+  the brief's bare words.
+- **The typing refusal covers a typed field of unknown history whether filled or empty.** The brief names the
+  filled one. An empty one exists only in a document that isn't watched, where brief 20 already refuses input
+  until the guarded reload.
+- **The late root, when a root is "met":** in the reader's sweep after any change it sees (`remember`), or in a
+  read (`roots`), whichever comes first; a root met in a read is observed from then on. A field named or masked
+  like a password is skipped there (it is protected anyway, and its state is never copied). The marks live in
+  `privacy`, so they outlive a release and retake of the same document.
+- **`page_state` pins a document's private identity** like a read does (`pinDocument`), so a later reader of the
+  same document with another identity is refused.
+- **Item 8 asks for both names.** A script with the browser's name under another `url` isn't taken either.
+
+### Local checks
+
+```
+$ PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/chrome_tests python3 -m unittest test_credentials test_efficiency
+Ran 17 tests
+OK
+```
+
+No JavaScript ran. Every edit was an exact, counted replacement; the brackets of the four edited JavaScript files
+balance as they did before.
+
+### JUDGMENT-CALLs (technical; for the lead)
+
+1. **`facts()` shares three small functions with the new commands** instead of the new commands copying its
+   checks. Same behaviour for brief 20's reads; a later fix to a check reaches all three. Rejected: copies.
+2. **`options` is bound to the reader's document and instance, and only a document an outline pinned is asked.**
+   Rejected: the element number alone (after a reinstall it names another element).
+3. **`page_state` with a frame that has no reader:** part of the token, no error. Rejected: refusing, which would
+   end every wait on a page with one slow frame.
+4. **The matching rules of the credential words** (above): digits, acronyms, either order, the linking `s`.
+   Each makes the rule stricter than "whole words and parts of a name" read narrowly.
+5. **The verdict cache touches brief 20's `credentialLike`.** Same verdicts; the alternative was a slower read.
+6. **The typing refusal for an empty unread field too** (above).
+
+### PLAN-GAPs
+
+1. **The late-root rule, built as worded, refuses brief 20's own shadow-root forms.** A component's root is
+   always met after it was filled (the observers run after the script), so every prefilled typed field in a
+   shadow root is `(filled, not read)`, and exception 4 then stops Claude from sending its form: GROUP 7's four
+   shadow-root forms and the `review-shadow` cases (see "Left", 1). GROUP 7 is a core group. Two ways:
+   - **(a) keep the rule, change the harness** (HARNESS-MAP): those fixtures start their plain field empty and
+     fill it in a later task, or the tests expect the refusal. Real sites keep the cost: a web component with a
+     prefilled field (a search box with a default, an edit form) can't be read or sent by Claude without asking.
+   - **(b) narrow the rule with the guard's typing record:** a filled typed field at the first meeting is unread
+     only when the guard saw typing into it since the document's start, or can't vouch for that (`guard.typedBy`,
+     `typingGap`; the reload report already relies on them). That is the brief's own reason ("he can type into
+     its field and make it plain"), it leaves brief 20's groups as they are and removes the known limit. What it
+     gives up: text a page script copied into such a field from a typed one.
+   My advice: (b), after a security look, because (a) withholds far more than the harm the rule names. Not built:
+   it relaxes the rule as worded, so it is the lead's call.
+2. **The merged asking read chose its fields by the document** (`watched ? [] : …`), so it left out the late-root
+   field. Changed to the reader's mark, the one change item 5 allows.
+3. **Item 8 can't be checked without a browser.** I expect `embedderName` to be the file's extension address for
+   a registered content script and for `scripting.executeScript` with `files`; run 43722522475 shows it.
+4. **The tab's node limit needed the background:** the reader limits a document, the service a tab, so three
+   frames of 10,000 nodes would have been refused whole by `nodes.View`.
+
+### For `HARNESS-MAP.md` (the last step writes the file)
+
+- `reader.test.mjs`, "fixes b G4.3 API and key words alone, and token names, stay ordinary fields": the names
+  `Token`, `csrf_token`, `authenticity_token`, `_token` on a **typed** field are withheld now (exception 1). The
+  test keeps the other names; "brief 28 a typed field named token is withheld, and a hidden field named so stays
+  an ordinary field" holds the four, and shows them ordinary on a hidden field.
+- `background.test.mjs`: every `Debugger.scriptParsed` double of one of the extension's files carries
+  `embedderName` (item 8; no exception, the doubles follow the browser).
+- Pending PLAN-GAP 1: GROUP 7 and `review-shadow` (exceptions 2 and 4).
+
+### For `KNOWN-LIMITS.md` (added to step 1's list below)
+
+- **A prefilled field in a web component isn't read.** A typed field that already holds text when the reader
+  first meets its shadow root shows `(filled, not read)` for the life of the document, also when the text is the
+  component's own default. *Harm:* Claude can't read or type into it, and can't send a form that holds it; the
+  owner can let Claude read it through the asking read, or sends the form himself. (Open: PLAN-GAP 1.)
+- **A page nested thousands of levels deep can't be read.** The reader's walk overflows and the read fails;
+  nothing is returned. Beyond 150 levels the service refuses the reply.
+- **A field named like a credential that isn't one is withheld** ("Seed" for a world seed, "Token" for a
+  filter): the owner types it himself.
+
 ## Step 5 (2026-11-15, Claude agent on Fable 5.2): the baseline committed; the reader's three commands in `reader.js`. Stopped at the budget
 
 Fable because the reader runs inside the extension on hostile pages. Stopped at the step's token budget with the
