@@ -7,6 +7,9 @@ from urllib.request import Request, urlopen
 
 sys.path.insert(0, '/opt/aresos-control')
 from aresos_control.definitions import tools_for, instructions_for
+from process_chain import mark, record
+
+record('mcp')
 
 app = sys.argv[1] if len(sys.argv) > 1 else 'testapp'
 for line in sys.stdin:
@@ -19,6 +22,7 @@ for line in sys.stdin:
     elif message['method'] == 'tools/list':
         result = {'tools': tools_for(app)}
     elif message['method'] == 'tools/call':
+        mark()
         name = message['params']['name']
         if app=='chrome':
             assert name in ('tabs','submit','read_typed_fields','submit_trusted'), 'Unexpected Chrome test call'

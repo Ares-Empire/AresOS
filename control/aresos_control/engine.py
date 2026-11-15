@@ -20,6 +20,9 @@ from .paging import ordered_page
 from .testapp import Receiver, TestApp
 from .mail.adapter import Mail
 
+# Deferred owner notices (a background write that failed) are written again this often.
+NOTICE_RETRY = 1.0
+
 
 class Engine:
     def __init__(self, state_dir, evidence_dir, ttl=900, checkpoint=lambda _: None, file_limit=FILE_LIMIT):
@@ -217,6 +220,19 @@ class Engine:
             logging.getLogger(__name__).error('Background maintenance: %s', error)
         else:
             logging.getLogger(__name__).error('Background maintenance failed; inspect service state.')
+
+    def next_deadline(self):
+        """Wall-clock time at which expire() next has timed work, or None; the service loop sleeps until then.
+
+        An open reservation expires at its own time. Deferred notices are written again each NOTICE_RETRY seconds.
+        Retention's day-long limits need no wake-up of their own: the service's periodic pass covers them.
+        """
+        if self.store.locked or self.store.write_failed:
+            return None
+        if self.store.deferred_notices:
+            return time.time() + NOTICE_RETRY
+        return min((op["expires"] for _, op in self.store.iter_operations(states={'reserved'})
+                    if op["state"] == "reserved"), default=None)
 
     def expire(self):
         try:

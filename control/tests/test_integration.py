@@ -67,6 +67,26 @@ class Integration(unittest.TestCase):
         else:
             self.fail("Service did not start")
 
+    def test_idle_service_wakes_at_most_once_a_second(self):
+        # Brief 18e, item 3; measured as brief 18c's VM check measures it (change 14): the voluntary and
+        # nonvoluntary context switches of all the service's threads over 60 s, nothing pending, nobody calling.
+        def switches():
+            total = 0
+            for task in Path(f"/proc/{self.daemon.pid}/task").iterdir():
+                fields = dict(line.split(":", 1) for line in (task / "status").read_text().splitlines() if ":" in line)
+                total += int(fields["voluntary_ctxt_switches"]) + int(fields["nonvoluntary_ctxt_switches"])
+            return total
+        time.sleep(2)
+        before, started = switches(), time.monotonic()
+        time.sleep(60)
+        after, elapsed = switches(), time.monotonic() - started
+        threads = len(list(Path(f"/proc/{self.daemon.pid}/task").iterdir()))
+        rate = (after - before) / elapsed
+        print(f"IDLE_WAKEUPS switches={after - before} seconds={elapsed:.1f} per_second={rate:.2f} threads={threads}",
+              file=sys.stderr, flush=True)
+        self.assertIsNone(self.daemon.poll())
+        self.assertLessEqual(rate, 1.0)
+
     def tearDown(self):
         if hasattr(self, "daemon"):
             self.daemon.terminate()

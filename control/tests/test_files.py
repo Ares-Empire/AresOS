@@ -18,6 +18,24 @@ class Files(EngineCase):
         self.allowed.mkdir(parents=True)
         self.policy = FilePolicy(str(self.home), [str(self.allowed)])
 
+    def test_outside_refusal_names_the_configured_folders_in_a_stable_order(self):
+        # Brief 18e, item 5: the image configures Downloads and Documents only; never name Desktop then.
+        (self.home / "Downloads").mkdir()
+        for folders in ([self.home / "Downloads", self.allowed], [self.allowed, self.home / "Downloads"]):
+            policy = FilePolicy(str(self.home), [str(path) for path in folders])
+            with self.assertRaises(Refused) as caught:
+                policy.locate(str(self.home / "Desktop/x.txt"))
+            self.assertEqual(caught.exception.code, "file_refused")
+            self.assertEqual(str(caught.exception), "Path is outside the allowed folders; choose ~/Documents or ~/Downloads.")
+        with self.assertRaises(Refused) as caught:
+            self.policy.locate("/etc/passwd")
+        self.assertEqual(str(caught.exception), "Path is outside the allowed folders; choose ~/Documents.")
+        nested = FilePolicy(str(self.home), [str(self.home / "Work/Shared"), str(self.allowed), str(self.home / "Downloads")])
+        with self.assertRaises(Refused) as caught:
+            nested.locate("/tmp/x")
+        self.assertIn("choose ~/Documents, ~/Downloads or ~/Work/Shared.", str(caught.exception))
+        self.assertNotIn("Desktop", str(caught.exception))
+
     def test_file_limit_defaults_agree_and_configuration_can_raise_them(self):
         self.assertEqual(FILE_LIMIT, 26214400)
         self.assertEqual(self.policy.limit, FILE_LIMIT)

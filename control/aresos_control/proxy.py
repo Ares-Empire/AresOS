@@ -4,9 +4,10 @@ import sys
 
 from .common import FILE_LIMIT, WIRE_LIMIT, JSONInputError, Refused, cleanup, display_json, require_question, strict_json_loads, validate, storage_refusal
 from .definitions import obj, string
-from .definitions import APPS, BY_NAME, instructions_for
+from .definitions import APPS, BY_NAME, instructions_for, tools_for
 from .files import FilePolicy, safe_name
-from .protocol import Client
+from .protocol import Client, ServiceUnavailable
+from . import usage
 from .results import bounded
 
 
@@ -19,7 +20,13 @@ class Proxy:
         self.files = FilePolicy(config["home"], config["folders"], config.get("file_limit", FILE_LIMIT)) if "home" in config else None
 
     def tools(self):
-        result = self.client.request({"method": "tools", "app": self.app})
+        try:
+            result = self.client.request({"method": "tools", "app": self.app})
+        except ServiceUnavailable:
+            # A session started while the service is down still gets its tools (18c's VM run): the service's catalogue
+            # is this same code's tools_for(app). Calls answer service_unavailable until the service is up, and the
+            # service still checks every call. A catalogue the service returns always wins.
+            result = {"ok": True, "data": {"tools": json.loads(json.dumps(tools_for(self.app)))}}
         if not result["ok"]:
             raise Refused(result["error"]["code"], result["error"]["message"])
         # Defense in depth: never trust a catalogue containing privileged actions.
@@ -116,6 +123,9 @@ class Proxy:
             return self.client.call(action.name, arguments)
         except (Refused, OSError, ValueError) as exc:
             exc = storage_refusal(exc) or exc
+            if isinstance(exc, ServiceUnavailable):
+                # Nothing was sent and nothing can be read: don't wait for the service a second time.
+                return {"ok": False, "error": {"code": exc.code, "message": str(exc)}, "pending": {}}
             pending = self.client.request({'method': 'pending'})
             return {"ok": False, "error": {"code": getattr(exc, "code", "file_refused"), "message": str(exc),
                     **({"notes": list(exc.__notes__)} if getattr(exc, "__notes__", None) else {})},
@@ -179,6 +189,18 @@ class MCPLineInput:
                 yield line
 
 
+def note_use(app, name, result):
+    """Mark this session (the proxy's parent, Claude Code) before a result that names an operation reaches it."""
+    action = BY_NAME.get(app + "_" + name)
+    if action and usage.names_operation(action.effect, result):
+        try:
+            usage.mark()
+        except Exception:
+            # Without a mark the session's Stop hook stays quiet while the service is down; the result itself still
+            # names the operation.
+            pass
+
+
 async def serve(app, config):
     # The official SDK owns MCP framing and validation. AresOS owns app policy.
     import mcp_types as types
@@ -202,6 +224,7 @@ async def serve(app, config):
             result = await asyncio.to_thread(proxy.call, parameters.name, parameters.arguments or {})
         from .results import bound_result
         result = bound_result(result)
+        note_use(app, parameters.name, result)
         return types.CallToolResult(content=[types.TextContent(type="text", text=display_json(result))],
                                     structured_content=result, is_error=not result["ok"])
 
