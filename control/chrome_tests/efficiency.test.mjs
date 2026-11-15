@@ -7,7 +7,7 @@ import os from 'node:os';
 import path from 'node:path';
 import vm from 'node:vm';
 import {fixtures} from '../chrome/ci/fixture.mjs';
-import {efficiencyPage,f1Body,f2Cell,f2Header,f3Name,F3_UNIQUE,F4_FILLED,tabTitle} from '../chrome/ci/efficiency-fixtures.mjs';
+import {efficiencyPage,f1Body,f2Cell,f2Header,f3Name,F3_UNIQUE,F4_FILLED,tabTitle,HOSTILE,H1_ROLES,H1_ELEMENTS,H1_NAME} from '../chrome/ci/efficiency-fixtures.mjs';
 import {TASKS,efficiencyProbe,followsPlan,parseRows,EFFICIENCY_WARMUPS,EFFICIENCY_RUNS,EFFICIENCY_TAB_COUNT} from '../chrome/ci/efficiency-probe.mjs';
 
 const served=async(base,query)=>{const response=await fetch(base+'/?'+query);return {status:response.status,html:await response.text()};};
@@ -54,6 +54,26 @@ test('F4 is a form of 25 fields that posts to the receiver under its run id; F5,
     new vm.Script(efficiencyPage(new URL('http://fixture.test/?'+query)).script);
   assert.match(efficiencyPage(new URL('http://fixture.test/?case=efficiency-f7&page=3')).body,/<h1>Results page 3<\/h1>.*href="\/\?case=efficiency-f7&amp;page=4">Next page</);
   assert.ok(tabTitle(25).length>=28&&tabTitle(25).length<=32);
+});
+
+test('group 14 F6 and H1 pages as served, and H1 puts every hostile string in every place',()=>{
+  for(const query of ['case=efficiency-f6','case=efficiency-f6&mode=child','case=efficiency-f6&mode=nested','case=efficiency-h1','case=efficiency-h1&mode=many','case=efficiency-h1&mode=name','case=efficiency-h1&title=99']){
+    const {body,script}=efficiencyPage(new URL('http://fixture.test/?'+query));assert.ok(body,query);new vm.Script(script);assert.doesNotMatch(script,/<\/script|<!--/i,query);
+  }
+  assert.match(efficiencyPage(new URL('http://fixture.test/?case=efficiency-f6')).body,/src="http:\/\/second\.test:8766\/\?case=efficiency-f6&amp;mode=child"/);
+  assert.equal(HOSTILE.length,14);assert.equal(H1_ROLES[2].length,10000);assert.equal(H1_ELEMENTS,100000);assert.equal(H1_NAME.length,100000);
+  // H1's script against a minimal document: each string in each place, and the chosen title.
+  const made=[],fake=tag=>{const node={tag,attributes:{},children:[],setAttribute(key,value){this.attributes[key]=value;},append(...items){this.children.push(...items);}};made.push(node);return node;};
+  const main=fake('main'),document={title:'',querySelector:selector=>selector==='main'?main:null,createElement:fake,createTextNode:text=>({text})};
+  vm.runInNewContext(efficiencyPage(new URL('http://fixture.test/?case=efficiency-h1&title=13')).script,{document});
+  assert.equal(document.title,HOSTILE[13]);
+  for(const text of HOSTILE){
+    for(const tag of ['section','button'])assert.ok(made.some(node=>node.tag===tag&&node.attributes['aria-label']===text),tag);
+    assert.ok(made.some(node=>node.tag==='textarea'&&node.defaultValue===text),'textarea');
+    for(const tag of ['option','th','td','span','p'])assert.ok(made.some(node=>node.tag===tag&&node.textContent===text),tag);
+  }
+  assert.deepEqual(made.filter(node=>node.tag==='div').map(node=>node.attributes.role),H1_ROLES);
+  assert.equal(main.children.length,HOSTILE.length+H1_ROLES.length);
 });
 
 test('a plan allows repeated cursor calls only where it says so',()=>{

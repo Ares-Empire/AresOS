@@ -1,6 +1,8 @@
 // Brief 28, group 16: the efficiency fixtures, served by fixture.mjs as
 // /?case=efficiency-<name>. Invented content only. F1 to F4 give the node lists
 // of control/chrome_tests/view_fixtures.py; F5 and F7 are for brief 28a's rows.
+// F6 and H1 are group 14's (reading and references).
+import fs from 'node:fs';
 const escape=value=>String(value).replaceAll('&','&amp;').replaceAll('"','&quot;').replaceAll('<','&lt;');
 const titled=title=>'document.title='+JSON.stringify(title)+';';
 
@@ -73,6 +75,45 @@ function f7(page){
   return {body:'<h1>Results page '+page+'</h1><ul aria-label="Results">'+results+'</ul><a href="/?case=efficiency-f7&amp;page='+(page+1)+'">Next page</a>',script:titled('Results page '+page)};
 }
 
+// F6: frames from a second fixture site and open and closed shadow roots. The
+// roots are attached by the page's script and hold no typed text then, so
+// nothing in them is withheld for a late meeting (brief 28, item 1).
+function f6(mode){
+  if(mode==='child')return {body:'<h2>Second site frame</h2><p>Text of the second site</p><a href="/second-link">Second site link</a><div id="frame-host"></div><iframe title="Nested second site" src="/?case=efficiency-f6&amp;mode=nested"></iframe>',
+    script:titled('Second site')+"document.querySelector('#frame-host').attachShadow({mode:'closed'}).innerHTML='<button type=\"button\">Frame root button</button>';"};
+  if(mode==='nested')return {body:'<p>Nested frame text</p><button type="button">Nested frame button</button>',script:titled('Nested frame')};
+  return {body:'<h1>Frames and roots</h1><p>Top document text</p><div id="open-host"></div><div id="closed-host"></div><iframe title="Second site" style="width:100%;height:300px" src="http://second.test:8766/?case=efficiency-f6&amp;mode=child"></iframe>',
+    script:titled('Frames')+"document.querySelector('#open-host').attachShadow({mode:'open'}).innerHTML='<h2>Open root</h2><a href=\"/open-link\">Open root link</a><label>Open search <input type=\"search\"></label>';"
+      +"const closed=document.querySelector('#closed-host').attachShadow({mode:'closed'});closed.innerHTML='<p>Closed root text</p><button type=\"button\">Closed root button</button><span id=\"inner-host\"></span>';"
+      +"closed.querySelector('#inner-host').attachShadow({mode:'open'}).innerHTML='<button type=\"button\">Nested root button</button>';"};
+}
+
+// H1: hostile text. The strings are test_view_hostile.py's HOSTILE (a test
+// compares the file with it). The script sets them through the DOM, so control
+// characters, lone surrogates and line breaks reach the page as they are. Each
+// string stands as a section's name (an ancestor's name), a button's name, a
+// value, an option label, a column header, a cell, an error text and a
+// paragraph; `title` picks the one that is the document's title. The roles are
+// group 14's hostile roles. mode=many is a page of 100,000 elements, mode=name a
+// name of 100,000 characters.
+export const HOSTILE=JSON.parse(fs.readFileSync(new URL('./hostile-text.json',import.meta.url),'utf8')).strings;
+export const H1_ROLES=['button\n  link "Pay now" kqtvm5','button" kqtvm5','b'.repeat(10000),'  BUTTON  '];
+export const H1_ELEMENTS=100000,H1_NAME='Long name '.repeat(10000);
+const inline=value=>JSON.stringify(value).replaceAll('<','\\u003c');
+function h1(mode,title){
+  if(mode==='many')return {body:'<h1>Many elements</h1><div id="many"></div>',script:titled('Many')+"document.querySelector('#many').innerHTML=Array.from({length:"+H1_ELEMENTS+"},(_,index)=>'<i>'+index+'</i>').join('');"};
+  if(mode==='name')return {body:'<h1>Long name</h1><button type="button" id="long"></button>',script:titled('Long name')+"document.querySelector('#long').setAttribute('aria-label',"+inline(H1_NAME)+");"};
+  return {body:'<main><h1>Hostile text</h1></main>',script:'const strings='+inline(HOSTILE)+',roles='+inline(H1_ROLES)+',main=document.querySelector("main");document.title=strings['+title+'];'
+    +'const el=(tag,attributes={},text)=>{const node=document.createElement(tag);for(const [key,value]of Object.entries(attributes))node.setAttribute(key,value);if(text!==undefined)node.textContent=text;return node;};'
+    +'strings.forEach((text,index)=>{const section=el("section",{"aria-label":text});section.append(el("h2",{},"Case "+index),el("button",{type:"button","aria-label":text}));'
+    +'const value=el("textarea",{"aria-label":"Value "+index});value.defaultValue=text;'
+    +'const list=el("select",{"aria-label":"List "+index});list.append(el("option",{value:"plain"},"Plain option"),el("option",{value:"hostile"},text));'
+    +'const table=el("table",{"aria-label":"Table "+index}),head=el("tr"),row=el("tr");head.append(el("th",{},text),el("th",{},"Plain header"));row.append(el("td",{},"Plain cell"),el("td",{},text));table.append(head,row);'
+    +'const checked=el("input",{"aria-label":"Checked "+index,"aria-invalid":"true","aria-describedby":"error-"+index});'
+    +'section.append(value,list,table,checked,el("span",{id:"error-"+index},text),el("p",{},text));main.append(section);});'
+    +'roles.forEach((role,index)=>{const node=el("div",{role,"aria-label":"Role "+index});node.append(document.createTextNode("Text "+index),el("button",{type:"button"},"Real "+index));main.append(node);});'};
+}
+
 // The pages of "list 25 open tabs": titles of about 30 characters.
 export const tabTitle=id=>'Efficiency fixture tab no. '+String(id).padStart(2,'0');
 
@@ -86,6 +127,8 @@ export function efficiencyPage(url){
   if(name==='f4')return {body:f4Body(id),script:titled('Form')};
   if(name==='f5')return f5(url.searchParams.get('mode'));
   if(name==='f7')return f7(page);
+  if(name==='f6')return f6(url.searchParams.get('mode'));
+  if(name==='h1')return h1(url.searchParams.get('mode'),Math.max(0,Math.min(HOSTILE.length-1,Number.parseInt(url.searchParams.get('title')||'0',10)||0)));
   if(name==='tab')return {body:'<p>'+escape(tabTitle(id))+'</p>',script:titled(tabTitle(id))};
   return null;
 }

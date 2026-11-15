@@ -247,5 +247,13 @@ class Addresses(unittest.TestCase):
             self.assertLessEqual(text.count("\n"), 1)
 
 
+class BrowserCopy(unittest.TestCase):
+    def test_the_browser_fixture_h1_serves_these_strings(self):
+        # efficiency-fixtures.mjs builds H1's page from this file; group 14 reads it in a browser.
+        import json
+        served = json.loads((Path(__file__).resolve().parents[1] / "chrome" / "ci" / "hostile-text.json").read_text("utf-8"))
+        self.assertEqual(served, {"version": 1, "strings": HOSTILE})
+
+
 if __name__ == "__main__":
     unittest.main()
