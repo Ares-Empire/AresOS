@@ -1079,12 +1079,16 @@ class OwnerPathTest(unittest.TestCase):
         for value in ('provisional', 'INVALID', '[Failed or bad update](EMERGENCY.md#failed-or-bad-update)',
                       'take only a row your last title named', 'never repeat the update without Help',
                       '**interrupted before its result was recorded; do not reboot**',
+                      '**was stopped safely**, nothing changed and every command works', '(the command killed)',
                       'Help decides each repeat', 'STOPs while anything uses the installed tools',
                       'a STOP always leaves working tools in place', '**Newest installed AresOS starts next**'):
             self.assertIn(value, route)
         # Rule 5 replaced these; the guide never quotes them again (PLAN-GAP 4 of stage 1b, step 1).
         for value in ('did not finish at the restart', 'three deployments', 'refuse with three', 'guessed GRUB title'):
             self.assertNotIn(value, route)
+        # A closed window ends in the stop routine, whose clean end closes the intent, and a power cut
+        # leaves no same start (22c review 8, findings 2 and 7).
+        self.assertNotIn('(power, closed window)', route)
         # One word per meaning: update's reorder and its lines are gone, and update never returns anywhere.
         for value in ('Newest AresOS starts next', 'newer still', 'release of your tools', 'do **not** run update',
                       '**update** the newest', 'update makes', 'start this box over'):
@@ -1093,7 +1097,7 @@ class OwnerPathTest(unittest.TestCase):
         # The quoted tool messages are the ones the tools print.
         source = (ROOT/'os/owner-tools/owner.py').read_text()
         for value in ("' did not finish as recorded ('", "'Another owner command is running;",
-                      "' was interrupted before its result was recorded; do not reboot; run '",
+                      "' was interrupted before its result was recorded; do not reboot; run '", "' and was stopped safely: '",
                       "'An owner command of the installed tools is running (pid '",
                       "' confirmed after the restart'", "'Previous AresOS queued for the next start '",
                       "'Signed exact release staged '", "'Running release stays as rollback '", "'Tools updated from version '",

@@ -1466,7 +1466,7 @@ class ToolsUpdateTest(unittest.TestCase):
     def test_revert_proof_without_the_layout_check_the_invariant_fails_where_it_runs(self):
         """22c, F: system_ready without its layout-trial check fails exactly the cells where it runs."""
         source = textwrap.dedent(inspect.getsource(owner.update_tools))
-        needle = "        require(not (checker.store / 'layout-pending.json').exists(), 'Layout trial is unfinished; prove it or revert first')\n"
+        needle = "        checker.no_layout_trial()\n"
         self.assertEqual(source.count(needle), 1)
         namespace = {}
         exec(compile(source.replace(needle, ''), '<layout check removed>', 'exec'), owner.__dict__, namespace)
