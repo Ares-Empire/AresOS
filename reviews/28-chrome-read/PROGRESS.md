@@ -2,6 +2,106 @@
 
 Builder steps keep this file; the last step turns it into the report. Newest state first.
 
+## Step 2 (2026-11-15, Claude agent on Opus 5.5): the baseline. Built, not yet run in CI
+
+**Stopped as told:** PR #68 (`mac-aresos-control`, green main) was still open at 06:29 UTC after a three-hour wait,
+and it changes `latency-pair.sh`, `run.sh` and `control-chrome.yml`, where the probe still has to be wired in. No
+`control-chrome` run used (0 of 6); no draft PR opened yet, because opening it starts a run on red main.
+
+Brief 28, "Before anything else", and group 16's first half: the fixtures, the scripted tasks with brief 20's
+tools, and `control/chrome/ci/efficiency-baseline.json` from a CI run. No reader, adapter or tool change.
+
+### Built
+
+- `control/chrome/ci/efficiency-fixtures.mjs`, served by `fixture.mjs` as `/?case=efficiency-<name>`: F1 (the
+  same body as brief 20's long page, `case=matrix&mode=long`; a test compares them as served), F2, F3 and F4 as
+  `view_fixtures.py`'s node lists describe them, F5 (a free click changing 8 lines; `mode=load` loads the next
+  document), F7 (result pages with a "Next page" link) and the pages of "list 25 tabs" (titles of 29 characters).
+  F6 and H1 are group 14's alone and are left to the reader step.
+- `control/chrome/ci/efficiency-probe.mjs`: the tasks, each with the exact calls it may make (`plan`), run once
+  as a warm-up and five times measured, every call's whole result recorded. Setup calls (navigation, the "first
+  read" a row starts after, opening the tabs) are neither counted nor timed.
+- `control/chrome/ci/efficiency-summary.py`: characters as the MCP proxy hands a result to Claude
+  (`display_json(bound_result(result))`, `proxy.serve`), calls and tools equal in every measured run or it
+  fails, wall time the median of the five, the catalogue's sizes (`tools_for`/`instructions_for`).
+- `browser.mjs` runs the probe instead of the latency samples when `EFFICIENCY_PROBE=true` (one line).
+- Tests: `control/chrome_tests/efficiency.test.mjs` (fixtures as served, the tasks against a fake service:
+  every task makes exactly its plan) and `test_efficiency.py` (the counting).
+
+### The tasks (brief 20's tools, used as well as they allow)
+
+| Task | Calls |
+|---|---|
+| `f1_first_read` | `read` |
+| `f1_everything` | `read`, then `read` with each cursor |
+| `f1_fields` (after the first read) | `find` "Field 0" (with cursors until the field's row), `read_form` with its reference |
+| `f2_table` (after the first read) | `read` with each cursor the first read left |
+| `f3_find_link` | `find` the unique name (with cursors until the link's row; brief 20's find has no `role`) |
+| `open_fact` | `open` F7 page 1, `wait` for its heading (`timeout_ms` 8000) |
+| `f4_fill_send` | `read`, `fill_form` (6 fields), `find` "Save", `click`, `submit` |
+| `f7_three_pages` (page 1's read in hand) | `click` "Next page", `wait` for the next heading; three times |
+| `f5_free_click` (its read in hand) | `click` "Refresh rows", `read` |
+| `three_tabs` (F1, F2, F3 open) | `read` each tab once |
+| `list_25_tabs` | `tabs` with `limit` 10 and its cursors |
+
+### Left, in order
+
+1. When PR #68 has merged: `git merge origin/main` (a merge commit).
+2. Wire the probe into the latency harness (files #68 touches, so only after the merge):
+   - `latency-pair.sh`: after the loop, when `LATENCY_PRIVACY` is `plain`, run the image `aresos-latency-current`
+     once more with the loop's docker options (as merged, with #68's `--tmpfs /scratch`) plus
+     `-e EFFICIENCY_PROBE=true -e LATENCY_BASELINE=current -e ImageOS -e ImageVersion -e RUNNER_ENVIRONMENT
+     -e RUNNER_ARCH`, writing to `.work/latency-out/efficiency`, then
+     `python3 control/chrome/ci/efficiency-summary.py .work/latency-out/efficiency`. Put the docker command in one
+     shell function both use, so the options can't drift. My advice: make it a mode of the script
+     (`latency-pair.sh efficiency`) and a separate step after "Require lead ceilings", so a failing task can't hide
+     the latency gate's result.
+   - `control-chrome.yml`, latency job: that step (`matrix.privacy == 'plain'`) and an upload of
+     `.work/latency-out/efficiency/` as `chrome-efficiency-<run>-<attempt>`.
+3. Open the draft PR (`pkg/28-chrome` to `main`, "Package 28: Chrome read (in progress)"); its first run checks
+   `efficiency.test.mjs` (the fixtures jobs run `node --test`) and produces `efficiency-measured.json`.
+4. Commit that file as `control/chrome/ci/efficiency-baseline.json` (it carries the run id, the runner and the
+   sizes), and a test that it holds every task of `TASKS` with the same plan. It is edited afterwards only to add
+   `latency_comparisons` (brief 28's F1 comparison, brief 28a's).
+5. Then step 1b's list: the reader, the adapter, time, groups 14 and 16 in CI.
+
+### What the code doesn't show
+
+- **The run's place.** The probe runs in its own container of the current runtime in the latency job's plain leg:
+  the same image, `browser.mjs` and runner as the latency samples (one harness), no audit recording, and a fresh
+  service, so the latency gate's "fresh" phase is untouched by the tasks' history. The later side-by-side timing
+  (brief 28: F1's first read, old and new) belongs in the same container run.
+- **Characters** are the median of the five measured runs; they differ by a few characters between runs as
+  reference ids grow. Every run's total and the median per call are kept.
+- **Sizes** measured locally on this head (they come again from the CI run): 30 tools, descriptions 5,085 plus
+  instructions 4,052 = 9,137; names plus input schemas 11,080 (each tool's name plus its schema as compact JSON;
+  the method brief 28a's numbers match).
+- **Local checks:** `PYTHONPATH=control:control/chrome_tests python3 -m unittest test_efficiency`: 6 tests OK.
+  The laptop has no Node or other JavaScript runtime, so `efficiency.test.mjs` and the JavaScript files have not
+  run yet (read twice by hand); the first CI run is their first run.
+
+### JUDGMENT-CALLs (technical; for the lead)
+
+1. **The baseline also holds brief 28a's acting rows** (open and a fact, F4's six fields and send, F7's three pages,
+   F5's free click, 25 tabs). Brief 28's own table names only the read rows, but brief 28a fails a number "worse than
+   the baseline" for every row, and the file is frozen after this step. Brief 28b's row (his tab) isn't measured:
+   its acceptance asks only for two calls and an untouched tab.
+2. **"Compare three open tabs" is one `read` per tab** (its first page), not each tab paged to its end as the design
+   table's middle column says. The new read's `tabs` returns one outline per tab, not every page, so the first page
+   is the fair counterpart, and it is the smaller baseline, which flatters nothing.
+3. **"After the first read"**: that read is setup, neither counted nor timed, as the new rows count "1 further
+   call". F1's fields are `find` plus `read_form` (2 calls), better than the design's "inside the 14 pages".
+4. **F4** has `novalidate`, so the invalid Email with its error text doesn't stop the send; the task fills Line 0 to
+   Line 5, which are on the read's first page. **F7** serves any page number; the task starts with page 1's read
+   in hand and its three clicks reach pages 2, 3 and 4.
+
+### PLAN-GAPs
+
+- Group 14's fixture list says this package adds F1 to F7 and H1 "because the baseline needs them". The baseline
+  needs F1 to F5 and F7; F6 (frames, shadow roots) and H1 (hostile text) are group 14's alone and are left to the
+  reader step.
+
+
 ## Step 1b (2026-11-14, Claude agent on Opus 5.5): the lead's decisions in the view module. Done.
 
 Section 7 of the brief ("The lead's decisions after step 1") built into the view module. Only files that step 1
