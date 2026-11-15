@@ -38,7 +38,7 @@ LEDGER = guard.PACKAGES['22c']
 VM_MODES = tuple(mode for mode in LEDGER['dispatch_caps'] if mode != 'checks')
 WORKFLOW = yaml.load((ROOT / '.github/workflows/os-image.yml').read_text(), Loader=yaml.BaseLoader)
 JOB = WORKFLOW['jobs']['rehearsal']
-OTHER_MODES = ('inspect', 'fixture', 'probe', 'part-b', 'keyboard', 'owner-tools', 'update')
+OTHER_MODES = ('inspect', 'fixture', 'probe', 'part-b', 'keyboard', 'owner-tools', 'update', 'tools-local')
 
 
 def inputs(mode):
@@ -91,7 +91,7 @@ class DispatchTest(unittest.TestCase):
 
     def test_no_other_branch_can_run_a_package_22c_mode(self):
         for branch in ('main', 'pkg/27-first-update-release', 'pkg/14-owner-tools', 'pkg/16-staged-release',
-                       'pkg/13-keyboard-layout', 'pkg/23-minecraft-starts'):
+                       'pkg/13-keyboard-layout', 'pkg/23-minecraft-starts', 'pkg/22d-tools-without-stick'):
             for name, job in WORKFLOW['jobs'].items():
                 for mode in VM_MODES:
                     with self.subTest(branch=branch, job=name, mode=mode):
@@ -177,7 +177,8 @@ class JobGatesTest(unittest.TestCase):
 REVIEWED = {
     ('os/ci/owner_vm.py', "authorization['allowance'] == package"): "the guard's dispatch authorization names the running package",
     ('os/ci/owner_vm.py', "{'16': 'os/manifest/ci/16/host-walk.json', '27': 'os/manifest/ci/27/host-walk.json', "
-                          "'22c': 'os/manifest/ci/22c/host-walk.json'}.get(package, 'os/manifest/ci/14/host-walk/result.json')"):
+                          "'22c': 'os/manifest/ci/22c/host-walk.json', '22d': 'os/manifest/ci/22d/host-walk.json'}"
+                          ".get(package, 'os/manifest/ci/14/host-walk/result.json')"):
         "each package's own host walk",
     ('os/ci/owner_vm.py', "package == '27'"): 'package 27 recorded its bound sources; package 22c does so in stage 2',
     ('os/ci/owner_vm.py', "mode == 'update'"): "package 27's route after release 27 is confirmed",

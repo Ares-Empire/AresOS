@@ -8,12 +8,13 @@
     "22d steps 1 and 2: the owner tools take a bundle from the folder block (tools version 4, payload refreshed); bootstrap.py generates the routine lines and Claude's folder line, commands.json holds them, the guides gain the routine box first and the routine STOP card, v4's fingerprint is pinned; the checks-only job gets 40 minutes; tests follow; these tool, guide and workflow files wait for 22d's rehearsal, not only tests",
     "22d step 4: review 8 findings 2 and 5",
     "22d fixes after reviews 2 and 3",
-    "22d guide fixes after review 4"
+    "22d guide fixes after review 4",
+    "22d step 6: the tools-local mode's wiring"
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
     {
-      "sha256": "c96b7a9ca4fc3b04824f9cd6f6e4450936028ce777ff0f889d16ed85b1658f82",
+      "sha256": "51bd834110188850b55f78d6f5082e2deafbb32c6d9a0f5f2867d9f29bc9dcae",
       "path": ".github/workflows/os-image.yml"
     },
     {
@@ -25,8 +26,44 @@
       "path": "docs/INSTALL.md"
     },
     {
-      "sha256": "9c0cdf6e9fcdf8f52485fe454008e80de461131739bc0663b5d115fc05199d18",
+      "sha256": "21820f72d679346288ad411cf0f68ab02104b550117ec549c01793b797791028",
+      "path": "os/ci/checkout_sources.py"
+    },
+    {
+      "sha256": "862a97f1de09f6a6b969432bfcb301cc98f70d6bbaa84e2dba8da65a56fadf54",
+      "path": "os/ci/installer_webui.py"
+    },
+    {
+      "sha256": "b921b52398e0968e92f5f898e6d94807a7295d4fa1fe2f847398b42403857411",
+      "path": "os/ci/owner_capabilities.py"
+    },
+    {
+      "sha256": "f621cdc98f772aaba58e056587f48d27cdea64bfc946b3e6f2ec402cc51d74d7",
+      "path": "os/ci/owner_devices.py"
+    },
+    {
+      "sha256": "e782cffc56eea147ccc6f462548eb3595d9fa7b47527d560737f32ca1be9ab83",
+      "path": "os/ci/owner_media.py"
+    },
+    {
+      "sha256": "e0849de1275bceb40062abb1c8efa351754c6292bd63e39cd8e24f7bbfcad229",
+      "path": "os/ci/owner_vm.py"
+    },
+    {
+      "sha256": "cb1da88291d30e964232eb2b351f3378705ad8e9915cf5ccf7dc06785c8c6d53",
+      "path": "os/ci/registry_auth.py"
+    },
+    {
+      "sha256": "dfbf46a55bdc922d76b3a500ac9a843e7a3f4b160d5de126c31ac3627c45b73c",
       "path": "os/ci/rehearsal-packages.json"
+    },
+    {
+      "sha256": "584820e63d27b8c6b5c5819ea53b2b51f45bea42fdbe49357fc0bfbb4edd9c1f",
+      "path": "os/ci/rehearsal_guard.py"
+    },
+    {
+      "sha256": "f048e8bc0a8fc5de8fa69758202f8f404f37c5857c6b0cb0ab4d2a5d1ddf72f8",
+      "path": "os/ci/two_disk_vm.py"
     },
     {
       "sha256": "e481df943e05ac885988b40ffaea5af1010f759d6b7a87444846f8cf6da17c78",
@@ -73,6 +110,10 @@
       "path": "os/tests/test_owner_bootstrap.py"
     },
     {
+      "sha256": "ecd07ef561f3d4da2b9c706daf0f3584fef5f764a0008a3e49877d8b0cf7d571",
+      "path": "os/tests/test_owner_capabilities.py"
+    },
+    {
       "sha256": "07d75e5e7a50d7f229adb5d5488069785a2781f817e9ec8a51751419c7da6dbb",
       "path": "os/tests/test_owner_diagnostics.py"
     },
@@ -89,6 +130,10 @@
       "path": "os/tests/test_owner_export.py"
     },
     {
+      "sha256": "892e347bd49471c053fb1adf07e15dbd0274566f960ed053ac3494a4d5c8643d",
+      "path": "os/tests/test_owner_guard.py"
+    },
+    {
       "sha256": "5b98d331b616ef5be610d69eb4397beb88186373c99fd7fa9dfb22144a72fef5",
       "path": "os/tests/test_owner_path.py"
     },
@@ -97,11 +142,15 @@
       "path": "os/tests/test_owner_update.py"
     },
     {
+      "sha256": "1bfd71afda4144a1339cef92c3d6bdb6c21fb47b9afa29b8cc0d3844751a7d31",
+      "path": "os/tests/test_rehearsal_budget.py"
+    },
+    {
       "sha256": "7a636e9917606974fb4e67dede142ef825146060bf2f11e68857409b53012359",
       "path": "os/tests/test_ways_back.py"
     },
     {
-      "sha256": "cafb2f06aa1a43191d207948238fb4ef3e8aa0b9c20e882daef4b55db4b9ae3a",
+      "sha256": "3dc407213e9fabcb20ef2800f56d441f44612008b452f44fea6f7eb45aa641d0",
       "path": "os/tests/test_ways_back_probe.py"
     }
   ],

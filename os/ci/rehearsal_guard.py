@@ -34,7 +34,10 @@ MODEL_STEP = 'Run the full ways-back model'
 ACCOUNTING_POLICY = '14zz-job-interval-ordered-span-full-bound-v1'
 OWNER_QUALIFICATION_BOUND = 240
 # Packages whose ledger counts every dispatch by its run title.
-TITLED_PACKAGES = ('13', '14', '16', '27', '22c')
+TITLED_PACKAGES = ('13', '14', '16', '27', '22c', '22d')
+# Packages whose every VM mode proves its native step in its own run and, when the full
+# ways-back model's sources changed, needs that model passed on the same head first.
+OWN_RUN_PACKAGES = ('22c', '22d')
 
 
 def configure(package):
@@ -380,7 +383,7 @@ def budget(reserve, current=None):
         bound = None
         if PACKAGE in ('14','16') and run['event']=='workflow_dispatch':
             bound = 72 if run['display_title']==SETTINGS['titles']['probe'] else OWNER_QUALIFICATION_BOUND
-        if PACKAGE in ('27', '22c') and run['event'] == 'workflow_dispatch':
+        if PACKAGE in ('27',) + OWN_RUN_PACKAGES and run['event'] == 'workflow_dispatch':
             # Each kind's own job timeout bounds a job GitHub cannot account.
             bound = SETTINGS['job_bounds'][kind]
         accounts = [job_accounting(job, bound) for job in jobs]
@@ -394,7 +397,7 @@ def budget(reserve, current=None):
     for kind, count in counts.items():
         assert count <= SETTINGS['dispatch_caps'][kind], 'STOP: ' + kind + ' dispatch allowance exhausted'
     if 'vm_dispatch_cap' in SETTINGS:
-        # Package 22c: one allowance for all its VM modes together (every kind but the checks).
+        # Packages 22c and 22d: one allowance for all VM modes together (every kind but the checks).
         assert sum(count for kind, count in counts.items() if kind != 'checks') <= SETTINGS['vm_dispatch_cap'], \
             'STOP: VM dispatch allowance exhausted'
     assert len(publishes) <= SETTINGS.get('publish_cap', 0), 'STOP: publish allowance exceeded'
@@ -432,8 +435,8 @@ def probe_native(run, sha, current=False, kind='probe'):
 
 
 def own_native(kind):
-    """Kinds whose native step is proved in their own run: a probe, package 27's update, every VM mode of package 22c."""
-    return kind in ('probe','update') or PACKAGE == '22c' and kind != 'checks'
+    """Kinds whose native step is proved in their own run: a probe, package 27's update, every VM mode of packages 22c and 22d."""
+    return kind in ('probe','update') or PACKAGE in OWN_RUN_PACKAGES and kind != 'checks'
 
 
 def native_gate(kind, mode, result, sha, current_run=None):
@@ -457,7 +460,7 @@ def native_gate(kind, mode, result, sha, current_run=None):
 
 
 def model_gate(result, sha):
-    """Package 22c's VM dispatches: when the head changed the full model's sources, that model must
+    """Package 22c's and 22d's VM dispatches: when the head changed the full model's sources, that model must
     have passed on the same head (review 4, finding 4).
 
     The rehearsal job's suite explores only the bounded slice; the full model runs in the model job
@@ -511,7 +514,7 @@ def main():
     if mode=='probe-budget-ci':
         assert (PACKAGE in ('13', '14', '16') and os.environ.get('REHEARSAL_MODE')=='probe'
                 or PACKAGE == '27' and os.environ.get('REHEARSAL_MODE')=='update'
-                or PACKAGE == '22c' and os.environ.get('REHEARSAL_MODE') in SETTINGS['dispatch_caps']
+                or PACKAGE in OWN_RUN_PACKAGES and os.environ.get('REHEARSAL_MODE') in SETTINGS['dispatch_caps']
                 and os.environ.get('REHEARSAL_MODE') != 'checks'), 'STOP: native deferral is only for probe budget reservation'
     history = result.get('history')
     assert history and history['complete'] and history['ids_count'] == history['total_count'], 'STOP: no complete run-history proof'
@@ -533,7 +536,7 @@ def main():
         if kind in ('probe', 'keyboard', 'owner-tools', 'update') or own_native(kind):
             sha=os.environ.get('GITHUB_SHA') or subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
             result['native']=native_gate(kind,mode,result,sha,run if ci else None)
-            if PACKAGE == '22c' and own_native(kind):
+            if PACKAGE in OWN_RUN_PACKAGES and own_native(kind):
                 # Checked at the budget step already, so a dispatch without it stops before its minutes.
                 result['model']=model_gate(result,sha)
     if mode == 'part-b':
@@ -607,7 +610,7 @@ def main():
     (directory / suffix).write_text(json.dumps(result, indent=2) + '\n')
     if PACKAGE == '13' and mode != 'publish-ci':
         (directory / '13-dispatch-authorization.json').write_text(json.dumps(result, indent=2) + '\n')
-    if PACKAGE in ('14','16','27','22c'):
+    if PACKAGE in ('14','16','27') + OWN_RUN_PACKAGES:
         (directory / (PACKAGE+'-dispatch-authorization.json')).write_text(json.dumps(result, indent=2) + '\n')
     print(json.dumps(result, indent=2))
 

@@ -39,7 +39,10 @@ def require_runner():
             ('pkg/27-first-update-release','27','update') or
             # Package 22c: its reorder probe and (stage 2) the rehearsal of every way back.
             (os.environ.get('GITHUB_REF_NAME'),os.environ.get('REHEARSAL_PACKAGE')) ==
-            ('pkg/22c-ways-back-after-update','22c') and os.environ.get('REHEARSAL_MODE') in ('reorder-probe', 'ways-back'))
+            ('pkg/22c-ways-back-after-update','22c') and os.environ.get('REHEARSAL_MODE') in ('reorder-probe', 'ways-back') or
+            # Package 22d: new owner tools from the desktop's password window, without the stick.
+            (os.environ.get('GITHUB_REF_NAME'),os.environ.get('REHEARSAL_PACKAGE'),os.environ.get('REHEARSAL_MODE')) ==
+            ('pkg/22d-tools-without-stick','22d','tools-local'))
 
 
 class Media:

@@ -962,14 +962,15 @@ REVIEWED_DECISIONS = {
     ('os/ci/owner_vm.py', "mode == 'owner-tools'"):
         'only the qualification needs a passing probe on the same commit (JUDGMENT-CALL 5)',
     ('os/ci/owner_vm.py', "{'16': 'os/manifest/ci/16/host-walk.json', '27': 'os/manifest/ci/27/host-walk.json', "
-                          "'22c': 'os/manifest/ci/22c/host-walk.json'}.get(package, 'os/manifest/ci/14/host-walk/result.json')"):
+                          "'22c': 'os/manifest/ci/22c/host-walk.json', '22d': 'os/manifest/ci/22d/host-walk.json'}"
+                          ".get(package, 'os/manifest/ci/14/host-walk/result.json')"):
         "each package's own host walk",
     ('os/ci/owner_vm.py', "package == '27'"):
         'package 27 records the checkout bytes it walked (27-bound-sources)',
     ('os/ci/owner_vm.py', "mode == 'update'"):
         "the update rehearsal runs its own route",
-    ('os/ci/owner_vm.py', "mode in ('update', 'reorder-probe', 'ways-back')"):
-        "the update rehearsal (and package 22c's probe and rehearsal) starts from the laptop's tools",
+    ('os/ci/owner_vm.py', "mode in ('update', 'reorder-probe', 'ways-back', 'tools-local')"):
+        "the update rehearsal (and package 22c's probe and rehearsal, and package 22d's) starts from the laptop's tools",
     ('os/ci/rehearsal_auth.py', "mode in ('probe', 'part-b') or release_diff"):
         'owner-secret auth: its create, preflight and pull steps do not run on pkg/27',
 }
