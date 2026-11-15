@@ -5,7 +5,10 @@ else. It lays the browser side out as the image does (the four files under
 /usr/share/aresos/chrome, the two links in /etc, the real launcher), starts
 CI's stand-in service and the pinned Chrome the way browser.mjs starts it
 (sandbox on, no debugging port, no --load-extension), and asks Chrome
-questions through a probe extension and its own native host.
+questions through a probe extension and its own native host. Two questions
+only Chrome's own pages can answer get a Chrome start of their own with a
+DevTools pipe (cdp.py): case 5's update check of every extension, and what an
+extension loaded by hand may do to ours.
 
 Five cases, each with its PASS line; the last line is
 CONTROL_CHROME_INSTALL_PROOF_PASSED. Evidence goes to /out/install.
@@ -33,6 +36,7 @@ if sys.platform != 'linux' or os.environ.get('GITHUB_ACTIONS') != 'true' or not 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[3]
 sys.path[:0] = [str(ROOT / 'control/chrome/packaging'), str(HERE), str(ROOT / 'control')]
+import cdp
 import netlog
 import pack
 from aresos_control.chrome.exclusions import SETTING
@@ -56,12 +60,27 @@ PROBE_FILES = Path('/usr/share/aresos-install-test/probe')
 PROBE_HOST = Path('/usr/libexec/aresos-install-test/probe-host')
 PROBE_NAME = 'org.aresos.install_probe'
 PROBE_POLICY = POLICIES / 'aresos-install-probe.json'
+# Test only: an extension as the owner would load one himself ("Load unpacked"), for one question of case 1.
+ORDINARY = Path('/usr/share/aresos-install-test/ordinary')
 PORT = 18766
 ADDRESS = f'http://localhost:{PORT}'
 # As browser.mjs starts Chrome, without its fixture host rule.
 CHROME_FLAGS = ['--no-first-run', '--no-default-browser-check', '--password-store=basic', '--start-maximized',
                 '--gtk-version=3', '--enable-logging=stderr', '--disable-background-mode']
 NEVER = ('--no-sandbox', '--remote-debugging', '--load-extension', '--disable-extensions-except')
+# Only with the DevTools pipe, and only where a case names it: the switch Chrome's protocol documents
+# for Extensions.loadUnpacked, the way left to load an unpacked extension now that branded Chrome
+# ignores --load-extension.
+LOADING = '--enable-unsafe-extension-debugging'
+# What the "Update" button of chrome://extensions calls: one check of every extension, at once
+# (Chrome 157's developer_private_functions.cc: ExtensionUpdater::CheckNow with no IDs, in the foreground).
+# It answers when the whole check has ended, which without a network takes many minutes (Chrome retries
+# its own store requests), so the page only notes the answer and the proof watches the probe's address.
+CHECK_ALL = ('(() => { const done = chrome.developerPrivate.autoUpdate(); '
+             'if (done && done.then) done.then(() => { window.checksEnded = (window.checksEnded || 0) + 1; }, '
+             'error => { window.checkFailed = String((error && error.message) || error); }); return "asked"; })()')
+# The parts of a profile's record of an extension that Chrome could load or that grant something.
+GRANTING = ('manifest', 'path', 'location', 'active_permissions', 'granted_permissions', 'runtime_granted_permissions')
 REFUSED = 'Access to the specified native messaging host is forbidden.'
 CANNOT_MODIFY = 'cannot be modified by user'
 STARTED = time.monotonic()
@@ -123,6 +142,20 @@ def preference_ids(profile):
         except (OSError, ValueError):
             continue
         found |= set((data.get('extensions') or {}).get('settings') or {})
+    return found
+
+
+def preference_records(profile, identity):
+    """What the profile's preference files hold under one extension ID, read after Chrome has exited."""
+    found = {}
+    for name in ('Preferences', 'Secure Preferences'):
+        try:
+            data = json.loads((profile / 'Default' / name).read_text(encoding='utf-8'))
+        except (OSError, ValueError):
+            continue
+        record = ((data.get('extensions') or {}).get('settings') or {}).get(identity)
+        if record is not None:
+            found[name] = record
     return found
 
 
@@ -247,15 +280,25 @@ class ProbeLink:
 
 
 class Chrome:
-    def __init__(self, session, profile, label, number, extra, url):
+    def __init__(self, session, profile, label, number, extra, url, devtools=None):
         self.profile, self.label = profile, label
         self.arguments = [f'--user-data-dir={profile}', *CHROME_FLAGS, *extra, url]
         expect(not any(argument.startswith(NEVER) for argument in self.arguments), 'a forbidden Chrome flag')
+        command, kept, self.devtools = ['qualification-chrome', *self.arguments], (), None
+        if devtools is not None:
+            # The one exception to NEVER, for the starts that name it: a DevTools pipe (and what
+            # `devtools` adds to it). No port listens; only this process holds the other end.
+            ours, kept = cdp.descriptors()
+            command = cdp.command('qualification-chrome', [cdp.FLAG, *devtools, *self.arguments], kept)
         self.log_path = OUT / f'chrome-{number:02d}-{label}.txt'
         self.log = open(self.log_path, 'wb')
         self.started = time.monotonic()
-        self.process = subprocess.Popen(['qualification-chrome', *self.arguments], **account(OWNER), env=session, cwd='/home/owner',
+        self.process = subprocess.Popen(command, **account(OWNER), env=session, cwd='/home/owner', pass_fds=kept,
                                         stdin=subprocess.DEVNULL, stdout=self.log, stderr=subprocess.STDOUT)
+        if devtools is not None:
+            for descriptor in kept:
+                os.close(descriptor)
+            self.devtools = cdp.Client(*ours)
 
 
 class Proof:
@@ -304,6 +347,10 @@ class Proof:
         self.bundles = {name: self.pack(name) for name in 'abc'}
         expect(len({bundle['id'] for bundle in self.bundles.values()}) == 3, 'three calls of pack.py give three IDs')
         self.probe = self.make_probe()
+        ORDINARY.mkdir(parents=True)
+        (ORDINARY / 'manifest.json').write_text(json.dumps({
+            'manifest_version': 3, 'name': 'AresOS install proof: loaded by hand (test only)', 'version': '1.0.0', 'permissions': ['management']}))
+        (ORDINARY / 'page.html').write_text('<!doctype html><title>Loaded by hand</title>')
         (OUT / 'bundles.json').write_text(json.dumps({'probe': self.probe['id'], **{
             name: {key: bundle[key] for key in ('id', 'version', 'public_key_sha256', 'crx_sha256')} for name, bundle in self.bundles.items()}}, indent=1))
         self.pages = Pages(self.probe)
@@ -392,10 +439,10 @@ class Proof:
 
     # --- Chrome -------------------------------------------------------------------------------------------------
 
-    def launch(self, profile, label, extra=(), url='about:blank'):
+    def launch(self, profile, label, extra=(), url='about:blank', devtools=None):
         self.stop()
         self.launches += 1
-        self.chrome = Chrome(self.environment, profile, label, self.launches, extra, url)
+        self.chrome = Chrome(self.environment, profile, label, self.launches, extra, url, devtools)
         log('Chrome started:', label)
         return self.chrome
 
@@ -412,6 +459,8 @@ class Proof:
                 chrome.process.kill()
                 chrome.process.wait()
         chrome.log.close()
+        if chrome.devtools:
+            chrome.devtools.close()
         eventually(lambda: self.link.hello() is None and not host_processes(), 'the native hosts end with Chrome', 15)
 
     def since(self):
@@ -449,8 +498,26 @@ class Proof:
         listing = subprocess.run(['ps', '-C', 'chrome', '-o', 'args='], capture_output=True, text=True).stdout
         expect(listing.strip(), 'Chrome processes are running')
         expect(not any(flag in listing for flag in NEVER), 'a Chrome process runs with a forbidden flag')
+        self.no_listener()
+
+    def no_listener(self):
         listeners = [line for line in subprocess.run(['ss', '-lntp'], capture_output=True, text=True).stdout.splitlines() if '"chrome"' in line]
         expect(not listeners, f'Chrome listens on a port: {listeners}')
+
+    def page(self, url, ready, label):
+        """A tab of its own over the DevTools pipe, once `ready` (a JavaScript expression) is true in it."""
+        page = self.chrome.devtools.page(url)
+
+        def loaded():
+            try:
+                return page.evaluate(ready) is True
+            except cdp.Error:  # the page is still loading
+                return False
+        eventually(loaded, label, 30)
+        return page
+
+    def extensions_page(self):
+        return self.page('chrome://extensions/', "typeof chrome.developerPrivate?.autoUpdate === 'function'", 'chrome://extensions has loaded')
 
     def log_lines(self, chrome, *words):
         text = chrome.log_path.read_text(errors='replace')
@@ -592,7 +659,7 @@ class Proof:
 
     def report(self):
         verdicts = {number: bool(self.results.get(number, {}).get('pass')) for number in '12345'}
-        verdicts['1'] = verdicts['1'] and bool(self.results.get('1-pin', {}).get('pass'))
+        verdicts['1'] = verdicts['1'] and all(self.results.get(part, {}).get('pass') for part in ('1-pin', '1-ordinary'))
         (OUT / 'result.json').write_text(json.dumps({'setup': self.setup, 'verdicts': verdicts, 'cases': self.results}, indent=1))
         for number, passed in verdicts.items():
             print(f'CONTROL_CHROME_INSTALL_CASE_{number}_{"PASS" if passed else "FAIL"}', flush=True)
@@ -633,9 +700,10 @@ def case_install(p):
     expect(after and after['enabled'] is True, f'still installed and enabled after the uninstall attempt: {after}')
     result = {'seconds_after_start': times, 'management': info, 'uninstall': reply['error']}
     # The brief expected setEnabled(false) to be refused too. Chrome 157 refuses it to the user and to an
-    # ordinary extension, but lets one policy-installed extension switch another off, and the probe is
-    # policy-installed (run 43724239061). What is required instead: the next start of Chrome has ours
-    # enabled and connected again, so not even that survives a restart.
+    # extension he loads himself (case_ordinary), but lets one policy-installed extension switch another
+    # off, and the probe is policy-installed (run 43724239061; AdminPolicyIsModifiable in Chrome's
+    # standard_management_policy_provider.cc). Required instead: the next start of Chrome has ours enabled
+    # and connected again, so not even that survives a restart.
     reply = p.ask('setEnabled', id=a['id'], enabled=False)
     result['set_enabled_false_by_a_policy_installed_extension'] = reply.get('error') or 'allowed'
     if reply['ok']:
@@ -717,9 +785,16 @@ def case_update(p):
         p.refused()
         p.one_host()
         p.stop()
-        # Recorded, not required yet: run 43724239061 failed a combined check here without saying which half.
-        recorded = preference_ids(profile)
-        times['preferences'] = {'current': current['id'] in recorded, 'previous': previous['id'] in recorded, 'entries': len(recorded)}
+        # The preference files may go on naming the previous ID (run 43726164336). What they keep under it
+        # is written to the evidence, and must hold nothing Chrome could load and no permission.
+        recorded, kept = preference_ids(profile), preference_records(profile, previous['id'])
+        (OUT / f'case3-{number}-previous-record.json').write_text(json.dumps(kept, indent=1, sort_keys=True))
+        times['preferences'] = {'current': current['id'] in recorded, 'previous': previous['id'] in recorded, 'entries': len(recorded),
+                                'previous_keys': {name: sorted(record) if isinstance(record, dict) else repr(record)[:80] for name, record in kept.items()}}
+        for name, record in kept.items():
+            expect(isinstance(record, dict), f"the previous ID's record in {name} is an object: {record!r}"[:300])
+            granting = sorted(set(record) & set(GRANTING))
+            expect(not granting, f'{name} keeps {granting} for the previous extension {previous["id"]}')
         expect(extension_folders(profile) == sorted([current['id'], p.probe['id']]), f'the profile keeps the current extension and the probe: {extension_folders(profile)}')
         switches.append({'from': previous['name'], 'to': current['name'], 'seconds_after_start': times})
     return {'switches': switches}
@@ -772,43 +847,85 @@ def case_broken(p):
     return result
 
 
+def case_ordinary(p):
+    """1 (an extension loaded by hand). An extension that is not installed by policy may not switch ours off."""
+    a = p.bundles['a']
+    p.stop()
+    p.place(a)
+    p.launch(p.profile('ordinary'), 'case1-ordinary', devtools=(LOADING,))
+    p.settle(a)
+    p.no_listener()
+    try:
+        # As he would do it: developer mode on, then "Load unpacked".
+        p.extensions_page().evaluate('chrome.developerPrivate.updateProfileConfiguration({inDeveloperMode: true})', wait=True)
+        identity = p.chrome.devtools.call('Extensions.loadUnpacked', {'path': str(ORDINARY)})['id']
+        page = p.page(f'chrome-extension://{identity}/page.html', "typeof chrome.management?.setEnabled === 'function'",
+                      'the page of the extension loaded by hand')
+        own = page.evaluate('chrome.management.getSelf().then(self => [self.id, self.installType])', wait=True)
+    except (cdp.Error, Failure, KeyError) as error:
+        # This Chrome would not load one that way, so the question was not put. The brief asks it of the
+        # probe alone; the rule for an ordinary extension then stays read from Chrome's code.
+        log('an extension loaded by hand: not asked:', error)
+        return {'asked': False, 'why': str(error)[:400]}
+    expect(own == [identity, 'development'], f'the extension loaded by hand is not installed by policy: {own}')
+    try:
+        page.evaluate(f"chrome.management.setEnabled('{a['id']}', false)", wait=True)
+        answer = 'allowed'
+    except cdp.Error as error:
+        answer = str(error)
+    expect(CANNOT_MODIFY in answer, f'setEnabled(false) by an extension loaded by hand is refused: {answer}')
+    info = p.installed(a['id'])
+    expect(info and info['enabled'] is True, f'ours is still enabled: {info}')
+    expect(p.connected(), 'ours is still connected')
+    return {'asked': True, 'install_type': own[1], 'set_enabled_false': answer}
+
+
 def case_store(p):
-    """5. Nothing asks the web store about us: the network log across two update checks, with both controls."""
+    """5. Nothing asks the web store about us: the network log across two update checks of every extension, with both controls."""
     a = p.bundles['a']
 
-    def run(label, policy=None, ours=True):
+    def run(label, policy=None, ours=True, baseline=None):
         p.stop()
         p.place(a, policy)
         record = OUT / f'netlog-{label}.json'
-        # Chrome enforces a minimum of 30 seconds between extension update checks in release builds.
-        p.launch(p.profile('five-' + label), 'case5-' + label,
-                 extra=[f'--log-net-log={record}', '--extensions-update-frequency=30', '--disable-component-update'])
+        # No --extensions-update-frequency: Chrome 157 has no such switch (its schedule is fixed at about
+        # five hours, extension_service.cc), so each check is asked for through chrome://extensions.
+        chrome = p.launch(p.profile('five-' + label), 'case5-' + label, extra=[f'--log-net-log={record}', '--disable-component-update'], devtools=())
         if ours:
             p.settle(a)
         else:
             p.wait_probe()
-        since, started = time.monotonic(), p.chrome.started
-        try:
-            eventually(lambda: len(p.pages.seen('/probe/update.xml', since)) >= 2, "two scheduled update checks of the probe reach the test's server", 600, 1)
-        except Failure as error:
-            # Say what a check of the probe alone does, so the next reader knows whether the address or the schedule is at fault.
-            asked = p.ask('requestUpdateCheck', timeout=30)
-            time.sleep(3)
-            raise Failure(f"{error}; scheduled checks seen at {p.pages.times('/probe/update.xml', since, started)}s after Chrome's start; "
-                          f"the probe's own requestUpdateCheck answered {asked} and the server then saw {len(p.pages.seen('/probe/update.xml', since))} request(s)")
-        log('probe update checks at', p.pages.times('/probe/update.xml', since, started), "seconds after Chrome's start")
-        time.sleep(3)  # the log's writer
-        if label == 'negative':
+        p.no_listener()
+        page = p.extensions_page()
+        served = lambda: len(p.pages.seen('/probe/update.xml', chrome.started))
+        scan = lambda: netlog.scan(record.read_text(errors='replace'), a['id'], p.probe['id'], ADDRESS)
+        asked = []
+        for number in (1, 2):
+            before = served()
+            expect(page.evaluate(CHECK_ALL) == 'asked', 'chrome://extensions starts an update check of every extension')
+            eventually(lambda: served() > before, f"update check {number} of every extension reaches the probe's own address", 60, 0.2)
+            asked.append(p.since())
+            time.sleep(3)  # the rest of this check, and the log's writer
+        if baseline is not None:
             # Give the request this control is there to catch time to reach the log; the scan below decides.
             try:
-                eventually(lambda: netlog.UPDATE_SERVICE in record.read_text(errors='replace'), 'the update service request', 60, 2)
+                eventually(lambda: netlog.added(scan(), baseline), 'a request the run of the probe alone does not have', 60, 2)
             except Failure as error:
                 log(str(error))
-        seconds = p.since()
+        found = {'seconds': p.since(), 'checks_asked_at': asked, 'probe_checks_served': served(),
+                 'checks_ended': page.evaluate('[window.checksEnded || 0, window.checkFailed || null]'),
+                 'chrome_could_not_update': p.log_lines(chrome, 'can not be updated')}
         p.stop()
-        found = netlog.scan(record.read_text(errors='replace'), a['id'], p.probe['id'], ADDRESS)
+        found.update(scan())
         log('network log', label, json.dumps(found)[:1500])
-        return {'seconds': seconds, **found}
+        return found
+
+    def control(name):
+        """The log is one that would have shown it: two checks ran, and it has each request the test's server answered."""
+        found = result[name]
+        expect('control' not in [kind for kind, _ in netlog.problems(found)], f"{name}: the probe's ID is in {found['probe_checks']} update requests, not in two")
+        expect(found['probe_checks'] == found['probe_checks_served'],
+               f"{name}: the log has {found['probe_checks']} update requests of the probe, the test's server answered {found['probe_checks_served']}")
 
     result = {'ours': run('ours')}
     # The pinned Chrome asks the store's update service for two extensions of its own on a fresh profile,
@@ -822,22 +939,24 @@ def case_store(p):
         for link in LINKS:
             link.with_name(link.name + '.aside').rename(link)
     alone = result['probe_alone']
-    expect(not [kind for kind, _ in netlog.problems(alone) if kind != 'update_service'], f'the run of the probe alone is a valid comparison: {netlog.problems(alone)}')
-    problems = [problem for problem in netlog.problems(result['ours']) if problem[0] != 'update_service']
-    expect(not problems, f'the network log with our policy: {problems}')
+    control('probe_alone')
+    expect(not alone['named_elsewhere'], f"the run of the probe alone does not know our ID: {alone['named_elsewhere'][:3]}")
+    control('ours')
+    expect(not result['ours']['named_elsewhere'], f"our ID is named outside a file: address: {result['ours']['named_elsewhere'][:3]}")
+    expect(not any(a['id'] in line for line in result['ours']['chrome_could_not_update']),
+           f"Chrome took our extension into its update checks: {result['ours']['chrome_could_not_update']}")
     result['added_by_our_policy'] = netlog.added(result['ours'], alone)
     expect(not result['added_by_our_policy'], f"our policy adds to what Chrome asks the update service: {result['added_by_our_policy']}")
     # The negative control: the same package under a policy without override_update_url must fail the scan.
     leaky = p.policy(a)
     del leaky['ExtensionSettings'][a['id']]['override_update_url']
     try:
-        result['negative'] = run('negative', leaky)
+        result['negative'] = run('negative', leaky, baseline=alone)
     finally:
         p.place(a)
-    kinds = [kind for kind, _ in netlog.problems(result['negative'])]
-    expect('control' not in kinds, 'the negative run also saw two update checks')
+    control('negative')
     result['added_without_override'] = netlog.added(result['negative'], alone)
-    expect(result['added_without_override'] or 'named' in kinds, f"without override_update_url the scan fails: {result['negative']}")
+    expect(result['added_without_override'] or result['negative']['named_elsewhere'], f"without override_update_url the scan fails: {result['negative']}"[:1500])
     return result
 
 
@@ -845,7 +964,7 @@ def main():
     proof = Proof()
     try:
         proof.prepare()
-        for name, function in (('1', case_install), ('2', case_origin), ('1-pin', case_pin), ('3', case_update),
+        for name, function in (('1', case_install), ('2', case_origin), ('1-pin', case_pin), ('1-ordinary', case_ordinary), ('3', case_update),
                                ('4', case_broken), ('5', case_store)):
             proof.case(name, function)
     except Exception as error:
