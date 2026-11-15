@@ -11,7 +11,7 @@ import test_owner_entry as entry
 
 ROOT = common.ROOT
 OWNER_PAGES = ('INSTALL.md', 'INSTALL-PROCEDURES.md', 'INSTALL-REFERENCE.md',
-               'INSTALL-RECORD.md', 'EMERGENCY.md', 'INSTALL-STATUS.md')
+               'INSTALL-RECORD.md', 'EMERGENCY.md', 'INSTALL-STATUS.md', 'OWNER-TOOLS.md')
 
 
 PENDING = ROOT/'os/manifest/ci/16/pending-rebind.json'
@@ -20,9 +20,9 @@ PENDING = ROOT/'os/manifest/ci/16/pending-rebind.json'
 def fingerprint_documents():
     documents={name:(ROOT/'docs'/name).read_text() for name in OWNER_PAGES}
     # Reports retain historical receipts. Each tools change replaces the
-    # fingerprint the earlier reports gave (packages 14, 15, 15f, 22, then 27),
-    # so those stay history, not rewritten; only the package 22c report is current.
-    documents['22c current report']=(ROOT/'reviews/22c-ways-back-after-update/REPORT.md').read_text()
+    # fingerprint the earlier reports gave (packages 14, 15, 15f, 22, 27, then
+    # 22c), so those stay history, not rewritten. Package 22d's report joins
+    # here when its record step writes it; until then OWNER-TOOLS.md is current.
     return documents
 
 
@@ -37,22 +37,28 @@ def unwalked_commands():
 
 def check_bootstrap(guide, commands):
     """Both literal stick blocks (step 4 and the update route) are exactly what
-    package 14's tamper tests run. Any folder block the guide quotes (22c,
-    addition 3) is exactly the generated one test_owner_bootstrap runs from a
-    folder; a changed copy of either counts as a third stick block and refuses.
-    Returns how many folder blocks the guide quotes."""
+    package 14's tamper tests run. Every other block that starts a shell with
+    bash -c is one of the lines bootstrap.py generates (brief 22d: Claude's
+    folder line and the routine lines), byte for byte, as commands.json holds it.
+    Any prefix counts, not only sudo bash -c (review 1, F17): a changed copy is
+    a block no test runs and refuses. Returns how many generated lines the guide
+    quotes besides the stick blocks."""
     fingerprint=common.bundle.check(ROOT/'os/owner-tools/payload')
     bootstrap=common.module('bootstrap')
     expected=bootstrap.command(fingerprint).encode('utf-8')
-    folder=bootstrap.command(fingerprint,'folder').encode('utf-8')
+    generated={name:line.encode('utf-8') for name,line in bootstrap.lines(fingerprint).items()}
     blocks=re.findall(rb'```bash\n(.*?)\n```',guide,re.S)
-    copies=[block for block in blocks if block.startswith(b'sudo bash -c ')]
-    stick=[block for block in copies if block != folder]
+    shells=[block for block in blocks if b'bash -c' in block]
+    stick=[block for block in shells if block.startswith(b'sudo bash -c ')]
     if stick != [expected, expected] or commands['install'].encode('utf-8') != expected or len(expected.splitlines()) != 13:
         raise AssertionError('Trusted bootstrap differs from the tested 13-line block')
-    if 'install-folder' in commands and (commands['install-folder'].encode('utf-8') != folder or len(folder.splitlines()) != 12):
-        raise AssertionError('Trusted folder bootstrap differs from the tested 12-line block')
-    return len(copies)-len(stick)
+    for name,line in generated.items():
+        if name in commands and commands[name].encode('utf-8') != line:
+            raise AssertionError('Trusted routine line differs from the generated one: '+name)
+    others=[block for block in shells if block not in stick]
+    if any(block not in generated.values() for block in others):
+        raise AssertionError('Trusted routine line differs from the generated one in the guide')
+    return len(others)
 
 
 def check_fingerprints(documents, fingerprint):
@@ -101,7 +107,8 @@ def check_inline_commands(guide, commands):
         words = code.split()
         first = words[1] if len(words) > 1 and words[0] == 'sudo' else words[0]
         if ('/var/lib/ares/at' in code or '/mnt/ares-tools/at' in code or first in verbs
-                or words[:3] == ['sudo', 'bash', '-c']):
+                or words[:3] == ['sudo', 'bash', '-c'] or words[0].startswith('SUDO_ASKPASS=')
+                or '/var/home/ares/ares-tools' in code):
             if code not in allowed:
                 number = text[:match.start()].count('\n') + 1
                 raise AssertionError(f'Noncanonical inline owner command at line {number}: {code}')
@@ -139,40 +146,66 @@ class EqualityTest(unittest.TestCase):
         commands=json.loads((ROOT/'os/owner-tools/commands.json').read_text())
         guide=(ROOT/'docs/INSTALL.md').read_bytes()
         check_bootstrap(guide,commands)
-        for before,after in ((b'ro,nodev,nosuid,noexec',b'ro'),
-                             (b'sha256sum -c --strict SHA256SUMS',b'true'),
-                             (b'bash ./at install',b'bash ./at install ')):
-            self.assertIn(before,guide)
-            # Mutate the step 4 copy, then the update route's copy.
+        # Each mutation in each block that holds it: the two stick blocks, and the tools-only
+        # routine line for the lines it shares with them.
+        for before,after,copies in ((b'ro,nodev,nosuid,noexec',b'ro',2),
+                                    (b'sha256sum -c --strict SHA256SUMS',b'true',3),
+                                    (b'bash ./at install',b'bash ./at install ',3)):
             parts = guide.split(before)
-            self.assertEqual(len(parts), 3)
-            for changed in (parts[0] + after + parts[1] + before + parts[2],
-                            parts[0] + before + parts[1] + after + parts[2]):
-                with self.subTest(mutation=before, copy=changed.index(after)), self.assertRaisesRegex(AssertionError,'Trusted bootstrap differs'):
+            self.assertEqual(len(parts), copies+1)
+            for index in range(copies):
+                changed = before.join(parts[:index+1]) + after + before.join(parts[index+1:])
+                with self.subTest(mutation=before, copy=index), self.assertRaisesRegex(AssertionError,'Trusted (bootstrap|routine line) differs'):
                     check_bootstrap(changed,commands)
         block = b'```bash\n' + commands['install'].encode('utf-8') + b'\n```'
         self.assertEqual(guide.count(block), 2)
         with self.assertRaisesRegex(AssertionError,'Trusted bootstrap differs'):
             check_bootstrap(guide.replace(block, b'', 1), commands)
 
-    def test_a_quoted_folder_block_is_byte_equal_to_the_generated_one(self):
-        """22c, addition 3: the guide quotes the folder block only as bootstrap.py generates it."""
+    def test_every_generated_line_is_quoted_once_byte_equal_and_any_changed_copy_refuses(self):
+        """Brief 22d: Claude's folder line, the tools-only routine line and the routine export line,
+        each generated by bootstrap.py, held in commands.json and quoted once in the update route."""
         commands=json.loads((ROOT/'os/owner-tools/commands.json').read_text())
         guide=(ROOT/'docs/INSTALL.md').read_bytes()
-        quoted=check_bootstrap(guide,commands)
         fingerprint=common.bundle.check(ROOT/'os/owner-tools/payload')
-        folder=common.module('bootstrap').command(fingerprint,'folder').encode('utf-8')
-        self.assertEqual(guide.count(b'```bash\n'+folder+b'\n```'),quoted)
-        with_folder=guide+b'\n```bash\n'+folder+b'\n```\n'
-        self.assertEqual(check_bootstrap(with_folder,commands),quoted+1)
-        self.assertEqual(check_bootstrap(with_folder,dict(commands,**{'install-folder':folder.decode()})),quoted+1)
-        lines=folder.split(b'\n')
-        for index in range(len(lines)):
-            changed=b'\n'.join(lines[:index]+[lines[index]+b' ']+lines[index+1:])
-            with self.subTest(line=index),self.assertRaisesRegex(AssertionError,'Trusted bootstrap differs'):
-                check_bootstrap(guide+b'\n```bash\n'+changed+b'\n```\n',commands)
-        with self.assertRaisesRegex(AssertionError,'Trusted folder bootstrap differs'):
-            check_bootstrap(with_folder,dict(commands,**{'install-folder':commands['install']}))
+        generated=common.module('bootstrap').lines(fingerprint)
+        self.assertEqual(check_bootstrap(guide,commands),len(generated))
+        for name,line in generated.items():
+            with self.subTest(line=name):
+                self.assertEqual(commands[name],line)
+                self.assertEqual(guide.count(b'```bash\n'+line.encode()+b'\n```'),1)
+                with self.assertRaisesRegex(AssertionError,'Trusted routine line differs.*'+name):
+                    check_bootstrap(guide,dict(commands,**{name:line+' '}))
+                lines=line.encode().split(b'\n')
+                for index in range(len(lines)):
+                    changed=b'\n'.join(lines[:index]+[lines[index]+b' ']+lines[index+1:])
+                    with self.subTest(line=name,index=index),self.assertRaisesRegex(AssertionError,'Trusted routine line differs'):
+                        check_bootstrap(guide.replace(line.encode(),changed),commands)
+        # F17: a block with the new prefix, or any other shell start, is pinned too.
+        for extra in (b'SUDO_ASKPASS=/usr/bin/ksshaskpass /usr/bin/sudo -k -A -p x bash -c true',
+                      b'/usr/bin/sudo bash -c true', b'sudo bash -c true'):
+            with self.subTest(extra=extra),self.assertRaisesRegex(AssertionError,'Trusted (bootstrap|routine line) differs'):
+                check_bootstrap(guide+b'\n```bash\n'+extra+b'\n```\n',commands)
+
+    def test_owner_tools_page_is_exactly_the_payload_fingerprint_the_blocks_and_the_labels_carry(self):
+        """Decision 5 (F3): line 1 is what he compares with the window on his phone."""
+        fingerprint=common.bundle.check(ROOT/'os/owner-tools/payload')
+        version=json.loads((ROOT/'os/owner-tools/history.json').read_text())['tools_version']
+        page=(ROOT/'docs/OWNER-TOOLS.md').read_text().split('\n')
+        self.assertEqual(page[:3],['Owner tools version '+str(version)+': '+fingerprint[:8],fingerprint,''])
+        self.assertEqual(page[4:],[''])
+        self.assertEqual(page[3].count('. '),1)
+        self.assertTrue(page[3].endswith('.') and 'AresOS owner tools' in page[3])
+        bootstrap=common.module('bootstrap')
+        commands=json.loads((ROOT/'os/owner-tools/commands.json').read_text())
+        literal='echo "'+fingerprint+'  SHA256SUMS" | sha256sum -c --strict'
+        for name in ('install','tools-folder','tools-routine'):
+            self.assertEqual(commands[name].count(literal),1,name)
+        for name,action in bootstrap.ACTIONS.items():
+            self.assertIn(" -p '"+bootstrap.label(fingerprint,action)+"' ",commands[name])
+            self.assertTrue(bootstrap.label(fingerprint,action).startswith('AresOS owner tools '+page[0].rsplit(': ',1)[1]+': '))
+        guide=(ROOT/'docs/INSTALL.md').read_text()
+        self.assertIn('[OWNER-TOOLS.md](OWNER-TOOLS.md)',guide)
 
     def test_extra_stale_fingerprint_is_rejected_in_every_owner_page(self):
         fingerprint=common.bundle.check(ROOT/'os/owner-tools/payload')

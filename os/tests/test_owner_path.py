@@ -1045,9 +1045,12 @@ class OwnerPathTest(unittest.TestCase):
             self.assertGreaterEqual(found, 0, value)
             position = found + len(value)
         boxes = [line for line in route.splitlines() if line.startswith('- [ ]')]
-        # Windows, tools, tools only, stage, title and stick, restart, check, password, misbehaves, forward again.
-        self.assertEqual(len(boxes), 10)
-        self.assertTrue(boxes[2].startswith('- [ ] **Tools only**') and boxes[-1].startswith('- [ ] **Forward again'))
+        # 22d: the routine box first; then Windows, tools, tools only (the stick route), stage, title and stick,
+        # restart, check, password, misbehaves, forward again.
+        self.assertEqual(len(boxes), 11)
+        self.assertTrue(boxes[0].startswith("- [ ] **New tools from Claude's terminal**"))
+        self.assertTrue(boxes[1].startswith('- [ ] **Windows side** (the stick route for new tools, second after the routine box'))
+        self.assertTrue(boxes[3].startswith('- [ ] **Tools only**') and boxes[-1].startswith('- [ ] **Forward again'))
         self.assertGreaterEqual(route.count('STOP →'), 4)
         self.assertGreaterEqual(route.count('Return to this update route'), 4)
         # A login refusal points to login, then the same update once more.
@@ -1068,7 +1071,8 @@ class OwnerPathTest(unittest.TestCase):
                       'never creates or deletes one', '**forward** the newest installed AresOS (forward again after **previous**, '
                       'back from plain Bazzite)', 'A new release comes only through **update** (the stage box)', '**rollback** (on an AresOS)',
                       '**keep-stock** (on plain Bazzite)', 'Layout trials work', "boot menu's rows",
-                      '**Expected exact stock/AresOS pair**', '**install the current tools first**', 'tools-only box',
+                      '**Expected exact stock/AresOS pair**', '**install the current tools first**', 'the routine box below',
+                      "or the stick's Windows box, tools box and tools-only box after it",
                       '(INSTALL-PROCEDURES.md#recovery-menu)', '(INSTALL-PROCEDURES.md#what-you-notice-on-each-system)',
                       '**Another owner command is running**'):
             self.assertIn(value, intro)
@@ -1649,14 +1653,77 @@ class OwnerPathTest(unittest.TestCase):
                       "\"This system's half-written layout is restored to the settings before its trial\""):
             self.assertIn(value, source)
 
+    def test_routine_box_for_new_tools_comes_first_with_his_rule_its_limit_and_the_stop_card(self):
+        """Brief 22d: the routine box first, the window as it looks, his rule with the limit in plain words,
+        the 8-character compare, the announced commit, the board note, the 10-minute rule and the STOP card."""
+        import test_owner_tools as common
+        texts = documents()
+        commands = json.loads((ROOT/'os/owner-tools/commands.json').read_text())
+        fingerprint = hashlib.sha256((ROOT/'os/owner-tools/payload/SHA256SUMS').read_bytes()).hexdigest()
+        bootstrap = common.module('bootstrap')
+        route = section(texts['INSTALL.md'], UPDATE)
+        box = route.split("- [ ] **New tools from Claude's terminal**", 1)[1].split('- [ ] **Windows side**', 1)[0]
+        gate = route.splitlines()[2]
+        for value in ("the maintainer's board note for you with the full commit hash and the tools fingerprint",
+                      '**announced commit**', 'never the newest one on GitHub by itself'):
+            self.assertIn(value, gate)
+        order = ("as `ares` (no window yet)", "the commit's full hash added at the end",
+                 '```bash\n' + commands['tools-folder'] + '\n```', 'Require `SHA256SUMS: OK`', '**STOP tools folder**',
+                 'waits for your go', '`os/owner-tools/commands.json`', '```bash\n' + commands['tools-routine'] + '\n```',
+                 'Its title bar says **Enter SSH Credentials**', 'it cannot be changed',
+                 'Inside it says **' + bootstrap.label(fingerprint, bootstrap.ACTIONS['tools-routine']) + '**',
+                 '**Password:**', '**OK** and **Cancel**', '**Your rule:**', 'you told Claude to go just now',
+                 'starts with **AresOS owner tools**', '`' + fingerprint[:8] + '`', 'line 1 of [OWNER-TOOLS.md](OWNER-TOOLS.md)',
+                 'on GitHub on your phone', 'press **Cancel**: nothing runs and nothing changes', '**What the window cannot do:**',
+                 'it stops accidents and a Claude that acts without asking',
+                 'It does not stop a Claude that has been tricked into showing you one thing and running another',
+                 'can do anything as administrator, now and later, without asking again', 'use the stick boxes for new tools instead',
+                 'One password runs all three', pass_line('install'), '**Tools updated from version**', pass_line('check'),
+                 pass_line('title'), 'older titles are INVALID', 'no disk serials', 'to the board under topic `aresos`',
+                 'after every later command that changes what starts next', 'within 10 minutes',
+                 'stops that sudo by the process number it started', 'nothing runs',
+                 '**A STOP**', 'word for word', 'runs only the export line below', 'tries nothing else',
+                 '(EMERGENCY.md#a-routine-tools-command-stopped)',
+                 '**' + bootstrap.label(fingerprint, bootstrap.ACTIONS['export-routine']) + '**',
+                 '```bash\n' + commands['export-routine'] + '\n```',
+                 '`Tools stick absent: records copied to /run/ares-records with SHA256 readback`',
+                 '`This copy is on this laptop, not off it; uid 1001 can read it, and a restart deletes it`',
+                 '`Tools stick absent; full records remain internal`', '**SAFE TO REMOVE ARESTOOLS** means a copy off it',
+                 '**Record:**', '[Return to step 8](#8-everyday-boot-and-recovery)', 'go on with the stage box')
+        position = 0
+        for value in order:
+            found = box.find(value, position)
+            self.assertGreaterEqual(found, 0, value)
+            position = found + len(value)
+        # The words he compares and reads come from the tools themselves.
+        media = (ROOT/'os/owner-tools/media.py').read_text()
+        for value in ("'Tools stick absent: records copied to '", "'This copy is on this laptop, not off it; ' + ('uid '",
+                      "' can read it, and a restart deletes it'", "'For a copy off the laptop plug in the tools stick and run export again'"):
+            self.assertIn(value, media)
+        card = section(texts['EMERGENCY.md'], 'a-routine-tools-command-stopped')
+        for value in ('**Action:**', 'word for word', "runs only the routine box's export line", 'tries nothing else',
+                      'no other line, no second try, no restart',
+                      '**' + bootstrap.label(fingerprint, bootstrap.ACTIONS['export-routine']) + '**',
+                      '**Cancel** is not a STOP: nothing ran', '**STOP tools folder** changed nothing',
+                      'the installed tools still work', '`/run/ares-records`', '**SAFE TO REMOVE ARESTOOLS**',
+                      '**STOP → go to [Help](INSTALL-REFERENCE.md#help)**', '(INSTALL.md#update-aresos-to-a-new-release)'):
+            self.assertIn(value, card)
+        stick = section(texts['EMERGENCY.md'], 'a-tools-command-stopped')
+        self.assertIn('**This copy is on this laptop, not off it**', stick)
+        emergency = texts['EMERGENCY.md']
+        self.assertLess(emergency.index('## A tools command stopped'), emergency.index('## A routine tools command stopped'))
+
     def test_status_names_22c_built_rehearsed_and_not_on_the_laptop(self):
         status = documents()['INSTALL-STATUS.md']
         fingerprint = hashlib.sha256((ROOT/'os/owner-tools/payload/SHA256SUMS').read_bytes()).hexdigest()
         row = next(line for line in status.splitlines() if line.startswith('| Ways back after an update (package 22c) |'))
         # The rehearsal passed and its record step rebound the sources: the row links the run the bindings name.
         bindings = json.loads((ROOT/'os/manifest/ci/22c/source-bindings.json').read_text())
+        # 22d: version 3 never goes on the laptop (board #265); its row keeps the short fingerprint.
         for value in ('**BUILT AND REVIEWED; VM REHEARSAL PASSED; NOT ON THE LAPTOP**', "the laptop's tools stay `851eb742…`",
-                      '`' + fingerprint + '`', '(../reviews/22c-ways-back-after-update/REPORT.md)', '**VM rehearsal passed**',
+                      'Tools fingerprint `2084c786…`', 'version 3 never goes on the laptop',
+                      "package 22d's version 4 (next row) carries these ways back over version 2",
+                      '(../reviews/22c-ways-back-after-update/REPORT.md)', '**VM rehearsal passed**',
                       '(' + bindings['run'] + ')', 'every protected-disk audit was unchanged',
                       'tools-only update', '**Before this row may say "on the laptop":**', 'the owner installs these tools',
                       'calm test', "the title's row map", 'stays OPEN',
@@ -1668,6 +1735,16 @@ class OwnerPathTest(unittest.TestCase):
         for value in ('`at update` goes to', 'the newer AresOS from the boot menu, update', 'NOT REHEARSED', 'Not rehearsed yet',
                       'its review follows', 'the rehearsal passes'):
             self.assertNotIn(value, row)
+        self.assertNotIn(fingerprint, row)
+        row = next(line for line in status.splitlines() if line.startswith('| Owner tools without the stick (package 22d) |'))
+        for value in ('**BUILT; NOT REHEARSED; NOT ON THE LAPTOP**', "to install over the laptop's `851eb742…` (version 2)",
+                      'Tools fingerprint `' + fingerprint + '`', '[OWNER-TOOLS.md](OWNER-TOOLS.md)', '**Enter SSH Credentials**',
+                      'not a tricked Claude', 'the first installation stays on the stick', '`/run/ares-records`, on this laptop only',
+                      'the routine box first', '(EMERGENCY.md#a-routine-tools-command-stopped)', '**not rehearsed**',
+                      '**Before this row may say "on the laptop":**'):
+            self.assertIn(value, row)
+        self.assertEqual(status.splitlines().index(row) - 1,
+                         next(i for i, line in enumerate(status.splitlines()) if line.startswith('| Ways back after an update (package 22c) |')))
         update = next(line for line in status.splitlines() if line.startswith('| Update route (packages 22 and 27) |'))
         self.assertIn("the laptop's tools until the owner installs package 22c's", update)
         self.assertNotIn(fingerprint, update)

@@ -228,8 +228,10 @@ class ShapeTest(Unchanged, unittest.TestCase):
 
     def test_one_helper_spells_every_command_as_commands_json_does(self):
         commands = json.loads((ROOT / 'os/owner-tools/commands.json').read_text())
+        # The start block and brief 22d's generated lines (bootstrap.py) are not one owner command.
+        generated = set(base.common.module('bootstrap').lines('0' * 64))
         for name, text in commands.items():
-            if name == 'install':
+            if name == 'install' or name in generated:
                 continue
             words = ['layout', {'us': 'begin us', 'intl': 'begin us-intl', 'de': 'begin de'}.get(name[7:], name[7:])] if name.startswith('layout-') else [name]
             self.assertEqual(text.removeprefix('sudo -k; '), owner.typed(*' '.join(words).split()))

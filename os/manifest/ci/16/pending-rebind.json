@@ -17,8 +17,12 @@
       "path": "os/tests/test_ways_back_probe.py"
     }
   ],
-  "unwalked_commands": [],
-  "unwalked_rule": "Commands added by package 22 are typed by the local walk of package 27's update rehearsal (os/tests/test_owner_walk.py, route update). Package 22c's forward (briefs/22c-forward-command.md) is typed by the local walk of package 22c's rehearsal (route ways-back: from plain Bazzite, after previous, and on the newer AresOS taken in the boot menu) and left this list in stage 2; test_owner_equality refuses a listed command once it is typed.",
+  "unwalked_commands": [
+    "tools-folder",
+    "tools-routine",
+    "export-routine"
+  ],
+  "unwalked_rule": "Commands added by package 22 are typed by the local walk of package 27's update rehearsal (os/tests/test_owner_walk.py, route update). Package 22c's forward (briefs/22c-forward-command.md) is typed by the local walk of package 22c's rehearsal (route ways-back: from plain Bazzite, after previous, and on the newer AresOS taken in the boot menu) and left this list in stage 2. Package 22d's generated lines (Claude's folder line, the tools-only routine line and the routine export line) wait here until 22d's rehearsal types them from the desktop session without a terminal (brief 22d, step 6); test_owner_equality refuses a listed command once it is typed.",
   "rebound": [
     {
       "status": "rebound by package 27's update rehearsal",
