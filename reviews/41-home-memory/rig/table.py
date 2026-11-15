@@ -30,7 +30,7 @@ def frames(w, win):
 print('| Run | Render / sim | -Xmx / -Xms | GC flags | RSS settled | PSS settled | Heap used / committed (settled) | '
       'NMT settled | RSS after flight | Peak RSS | Scope peak | GPU settled / after flight | '
       'Standing: fps, avg, p99, worst ms, CPU | Flying: fps, avg, p99, worst ms, CPU | GC pauses in flight, longest | '
-      'Longest GC pause in the run |')
+      'Longest GC pause after joining |')
 print('|' + '---|' * 16)
 for s in rows:
     st, sn, w = s['settings'], s['snapshots'], s['windows']
