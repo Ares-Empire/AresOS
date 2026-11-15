@@ -9,7 +9,9 @@ from aresos_control import storage as storage_module
 
 MARKER=Path('/out/latency-marker.json')
 OUT=Path('/out/latency-service.jsonl')
-STORE_STAGES={'store_write_ms':0.0,'fsync_ms':0.0,'fsync_count':0}
+STORE_STAGES={'store_write_ms':0.0,'fsync_ms':0.0,'fsync_count':0,'sqlite_commit_count':0}
+# What the sqlite3 module sends when it commits a transaction.
+COMMITS=('COMMIT','END')
 
 class TimedOS:
     """The storage module's os: its fsync calls are timed into the marked sample."""
@@ -43,6 +45,14 @@ def install(daemon):
         finally:account('store_write',(time.perf_counter()-start)*1000)
     store.write=write
     storage_module.os=TimedOS(account)
+    # SQLite commits (brief 20-ci-noise). control.sqlite runs synchronous=FULL,
+    # so each commit syncs the disk inside SQLite, where TimedOS can't see it.
+    # The trace callback sees every COMMIT statement on the store's connection
+    # and only counts it, so the product behaves as without the probe. With the
+    # store on a tmpfs these counts, not the timings, catch an added disk sync.
+    def traced(statement):
+        if active is not None and statement.lstrip().upper().startswith(COMMITS):active['sqlite_commit_count']+=1
+    store.db.set_trace_callback(traced)
     class Wire:
         def __init__(self,connection):self.connection=connection
         def __getattr__(self,name):return getattr(self.connection,name)
@@ -91,6 +101,8 @@ def install(daemon):
                 emit({'sample':active['sample'],'call':active['call'],'stage':'service_without_bridge','milliseconds':max(0,elapsed-active['bridge_ms'])})
                 emit({'sample':active['sample'],'call':active['call'],'stage':'store_write','milliseconds':active['store_write_ms']})
                 emit({'sample':active['sample'],'call':active['call'],'stage':'journal_fsync','milliseconds':active['fsync_ms'],'count':active['fsync_count']})
+                # A count, not a timing: the summary keeps it out of the stage percentiles.
+                emit({'sample':active['sample'],'call':active['call'],'stage':'sqlite_commit','count':active['sqlite_commit_count']})
             active=previous
     daemon.engine.request=request
     original_expire=daemon.engine.expire
