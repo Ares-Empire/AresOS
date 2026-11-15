@@ -2,6 +2,48 @@
 
 Builder steps keep this file; the last step turns it into the report. Newest state first.
 
+## Step 8 (2026-11-15, Claude agent on Opus 5.5): `main` merged (brief 20's popup-race fixes), run 8
+
+Opus: built against the lead's brief. Step 7's PLAN-GAP 1 stays option (a) as built (the lead, step 8's brief; on
+Tuesday's security-review list); step 7's JUDGMENT-CALLs 1-3 are accepted.
+
+### Done
+
+- **`origin/main` merged** (`425f4109`, a merge commit; `main` at `55c0114e`, 32 commits).
+  - One conflict, `control/chrome_tests/background.test.mjs`, two hunks:
+    - the swapped-popup fixture's `Debugger.*` double: `main`'s version (the duplicate-breakpoint replies, `pauseOn`,
+      `swapped`, the `identity()` answer), with the branch's `embedderName:url` on its `parsed` events, because item 8
+      takes our scripts only when `url` and `embedderName` both name them (`background.js:152`);
+    - both sides appended tests at the end: both kept, the branch's first (`readFixture` and the item-8 tests), then
+      `main`'s `popuprace` tests.
+  - Every other file merged without a conflict; `chrome-instructions.txt`, `definitions.py` and `test_publisher.py`
+    are `main`'s (the branch never changed them).
+- **`background.js` checked against both parents:** the merged file's diff from each parent is exactly the other
+  side's diff from the merge base (compared line by line), so nothing was dropped or doubled by the auto-merge.
+- **`main`'s checks, each on the paths it ran on before** (merged `background.js`; each symbol has the same number of
+  callers as on `main`, except `requireTab`, below):
+  - **P1, the re-arm once:** `prepareTarget` (`:87-118`): `duplicateBreakpoint` (`:50`) is the only error that
+    re-arms (`:109`), the audit line (`:110`), disable, enable, set (`:111-113`); a second refusal or any other error
+    throws out of `prepareTarget` as before. Both callers are unchanged: `initializeTab` (`:473`, a taken tab and a
+    popup) and auto-attach of a child frame (`:125`). Step 6's item-8 check in `preloadEvent` (`:152`) runs on the
+    events the re-arm causes as on any other.
+  - **P2, the stall message:** `initializeTab` sets `handoffMessage` from `stallMessage` after the detach
+    (`:479-484`) and deletes it on a normal setup (`:486`); `takenTab` (`:459`) and `requireTab` (`:646`) give it.
+    `requireTab` has two callers more than on `main`: step 6's `listOptions` (`:851`) and `pageState` (`:866`), so a
+    stalled tab refuses those with the same message. `facts` (`:781`, also under `outline`) called it before.
+  - **The admission line's `owner_dialog`:** `admitTab` (`:526`); no branch code writes or reads `popup_admitted`.
+  - The branch adds no code that sets a breakpoint, admits a tab or names a dialog message.
+- **Local checks:** `PYTHONPATH=control:control/chrome_tests python3 -m unittest test_publisher test_qualification
+  test_credentials test_efficiency test_view_address test_view_budgets test_view_hostile test_view_nodes
+  test_view_outline test_view_paging test_view_references`: 213 tests, OK. (A whole `discover` of
+  `control/chrome_tests` ran past ten minutes and was stopped; not repeated.) No Node locally.
+
+### Runs
+
+| Head | Holds | Control Chrome | Result |
+|---|---|---|---|
+| `425f4109` | step 7 + `main` | 43745261932 (run 8; qualification 43745261921) | running |
+
 ## Step 7 (2026-11-15, Claude agent on Opus 5.5): step 6's runs read, PLAN-GAP 1 by the lead's rule (option a), the F4 comment, F6 and H1. Pushed; no run started (the branch conflicts with `main`)
 
 Opus: built against the lead's brief and decision rule. **None of this step's JavaScript has run:** the push
