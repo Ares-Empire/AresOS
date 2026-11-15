@@ -731,3 +731,95 @@ this route, so nothing in `owner_vm.py` or `tools_local.py` changed;** the walk 
 1. The integrator: a checks-only run on the new head, then the VM dispatch
    (`gh workflow run "OS image" --ref pkg/22d-tools-without-stick -f rehearsal=tools-local`).
 2. After a pass: `rebind.py rebind` for 22d, step 7 (record step, final review).
+
+## Step 6, part d (the window before the password; the launcher retried), 2026-11-15, Claude agent on Opus 5.5: done
+
+A read-only preflight before the next VM run found two faults in the walk; the integrator accepted both fixes
+(2026-11-15). Commit `ca6abde5`. Nothing dispatched; no owner tool, sudo, ostree, bootc, rpm-ostree or ksshaskpass ran.
+
+### Done
+
+- **HIGH: the password and Escape were typed before the window existed.** `DIALOG` reported the window as soon as a
+  `/usr/bin/ksshaskpass` process existed under the caller's sudo (at fork); on a cold KF6/Qt start the keys would go
+  to foot (the password, or part of it, plus Enter as a shell command, into `~/.bash_history` and onto the screen).
+  - `SETTLE` (part of `DIALOG`): once the helper is found, `settle(pid)` waits until it is at least 3 s past its first
+    sighting and its utime+stime (`/proc/<pid>/stat` split after the last `)`, fields 11 and 12 of the rest) has not
+    moved for 2 s; it gives up after 20 s (R1's caller closes the window 30 s after its own first sighting; a test
+    holds `most + 10 <= R1_SECONDS`). A zombie or unreadable stat counts as gone. After the wait `DIALOG` reads the
+    processes again (same helper, same sudo; the keyring list then); a helper gone before it settled reports
+    `the window closed before it settled`, which `Walk.window` turns into a STOP. The answer carries `settled`, `gone`
+    and `settle_seconds`; each `dialogs` row of the result records `settled` and `settle_seconds`.
+  - **After a give-up the walk goes on** (the integrator's "give up after about 20 s, must stay under R1"): the picture
+    check below still stands between it and the password.
+  - **The picture check:** `Walk.launch` takes `<stage>-before` just before typing the launcher; `Walk.window` takes
+    `<stage>-window` after DIALOG and compares the middle half of the screen each way (`centre_change`: pixels where
+    any channel differs). At least 1% of it must differ (`CENTRE_CHANGED`), or `STOP: no window on the screen at
+    <stage> (...); nothing was typed`. The result is saved as `<stage>-window-centre` and in the dialog row
+    (`before`, `centre_changed`). labwc places new windows in the middle (its default policy; release 27's `rc.xml`
+    sets none) and maximizes foot.
+  - **My addition: Ctrl+L before the before-picture.** Without it, "differs" would pass whenever foot's own lines in
+    the centre changed (the launcher line, the next prompt, a scroll), so the check would not show a dialog. Ctrl+L
+    (bash's readline `clear-screen`; neither labwc's nor foot's bindings take it) puts foot's prompt at the top, so
+    the centre of foot's maximized window stays empty unless a window opens there. A glyph in the centre is under
+    the 1% (tested); the dialog covers about a third of it.
+- **MODERATE-LOW: the launcher line could be lost after a real VT switch** (tl-v3 from tty4, tl-install and tl-export
+  from tty3), with no retry. `Walk.launch` now sends Ctrl+U (drops a partial line, also keys left by Ctrl+Alt+F1 on
+  an already active tty1) and Ctrl+L, waits 0.5 s, takes the before-picture and types the launcher. `LAUNCHED` waits
+  up to 20 s for `<out>/log` and prints `found` true/false, exiting 0 either way (no `failed_command`). On a miss:
+  screenshot `<stage>-launch-miss`, the same launch again (picture `<stage>-before-retry`, which the window is then
+  compared with), check `<stage>-launched-retry`; a second miss is `STOP: the caller did not start at <stage>: its
+  launcher, typed twice in foot, never ran`. `launcher(out)` starts with `set -C`, so the `> <out>/log` of a second
+  start refuses (`cannot overwrite existing file`, exit 1) and a late first line cannot start a second caller.
+- **The local walk** (`test_owner_walk.ToolsLocal`): a caller starts only once its launcher reached foot (`lost`
+  drops a stage's first lines; the window capture answers `no window` until then); `-launched` captures are answered
+  from that; every screenshot is a picture (foot's typed lines at the top; on `<stage>-window` the stage's dialog in
+  the middle unless `hidden`); the dialog answer carries `settled`.
+
+### Tests (`os/tests/test_tools_local_wiring.py`)
+
+- `SettleTest` (fake `/proc` stat lines, fake clock): the CPU time read after the last `)` (a name with spaces and
+  `)`), zombie/dead/missing/short lines are gone; an idle helper settles at 3 s; one still drawing settles 2 s after
+  its CPU time last moved (7 s); one that never settles is given up at 20 s (and 20 + 10 <= R1's 30); one that
+  vanishes is gone (at 1 s, and at once).
+- `DialogProgramTest`: the real `DIALOG` program here against a stand-in sudo and helper (`exec -a`, `sleep`
+  underneath): reports the window only after 3 s, `settled`, the helper's argv, parent and uid; a helper killed at
+  2 s is `the window closed before it settled`.
+- `WindowPictureTest`: only the centre counts (foot's top lines do not; one glyph is under the threshold; a centred
+  dialog is far over it, with its box); pictures of different sizes STOP.
+- `LauncherTest`: `launcher()` begins `#!/bin/bash`, `set -C`; run twice with bash here, the caller runs once and the
+  second start fails with `cannot overwrite existing file`.
+- `LaunchOrderTest` (`Walk.caller` with a stand-in guest): the exact order switch → foot ready → session → 1 s →
+  Ctrl+U → Ctrl+L → 0.5 s → `<stage>-before` → launcher typed → `<stage>-launched`; a first miss adds
+  `<stage>-launch-miss` and the same sequence with `-before-retry` / `-launched-retry`; a second miss STOPs naming
+  the stage after typing exactly twice.
+- `WalkTest`: every dialog settled, its before-picture is `<stage>-before` and comes before its window picture, its
+  centre changed by at least the threshold; a walk whose tl-install launcher is lost once passes with the launcher
+  typed twice there (once everywhere else) and the miss picture between the two before-pictures; a walk whose tl-v3
+  window stays off the screen STOPs (`no window on the screen at tl-v3`) with nothing typed after the window was seen.
+
+### Tests run here (Python 3.14, one module at a time, `ARESOS_MODEL_SCOPE=slice`)
+
+| Module | Result |
+|---|---|
+| `test_tools_local_wiring` | before `walk-host.py`: only the receipt test failed (`tools_local.py`'s new bytes); after: `Ran 41 tests in 55.230s`, `OK` |
+| `test_owner_walk` | `Ran 27 tests in 104.522s`, `OK` |
+| `test_checkout_sources` | after `rebind.py pending` (38 files wait): `Ran 6 tests`, `OK` |
+| `test_owner_step_limits` | `Ran 4 tests`, `OK` |
+| `test_owner_update` | not run, by the rule |
+
+`walk-host.py`: `PASS package 22d host walk (tools-local): 263 sources`.
+
+### What only the VM can show (watch these in the next run)
+
+- Each dialog row's `settle_seconds` and `settled` (a give-up at 20 s means the helper kept using CPU, e.g. a
+  blinking cursor; the picture check then decided), and `centre_changed` with the `<stage>-before` and
+  `<stage>-window` pictures side by side.
+- Whether any `<stage>-launch-miss` picture exists (a lost first line) and what it shows.
+- That Ctrl+L cleared foot (the before-pictures show the prompt at the top).
+
+### Left, in order (the next agent continues here)
+
+1. The integrator: a checks-only run on the new head (`gh workflow run "OS image" --ref pkg/22d-tools-without-stick
+   -f checks_only=true`), then the VM dispatch (`gh workflow run "OS image" --ref pkg/22d-tools-without-stick
+   -f rehearsal=tools-local`).
+2. After a pass: `rebind.py rebind` for 22d, step 7 (record step, final review).
