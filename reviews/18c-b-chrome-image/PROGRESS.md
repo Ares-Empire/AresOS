@@ -10,6 +10,26 @@ recommends.) Item 2's workflow passes all five cases on the image's pinned Chrom
 (run 43729218613, `CONTROL_CHROME_INSTALL_PROOF_PASSED`). Next: 3a, which waits for PR #58 on `main` and the
 lead's go.
 
+## The lead's decisions after step 2b (2026-11-15)
+
+1. **JUDGMENT-CALL 1 (the DevTools pipe) is accepted**, for the proof's own Chrome starts only. The image's Chrome
+   start and policy never carry a `--remote-debugging-*` flag; step 4's image check asserts that (keep or add it).
+2. **JUDGMENT-CALLs 2 to 5 are accepted** as written.
+3. **JUDGMENT-CALL 6 changes:** on the pinned Chrome, a hand-loaded extension that could not be asked fails case 1
+   instead of passing with `asked: false`. A check that quietly stops running must not look green; if a later
+   Chrome can't load one, that is a finding for the lead. The next step that touches `proof.py` makes the change.
+4. **C9 in the VM (step 5) may use case 5's trigger:** one test-only Chrome start in the guest with
+   `--remote-debugging-pipe` and `cdp.py`, its own throw-away profile, run by the test; it checks that nothing
+   listens, and the positive control (the probe's requests, log count equal to the server's count) is required.
+   `cdp.py` goes into the guest with the test's files, never into the image. This amends the brief's C9.
+5. **C2 in the VM (step 4)** asks an extension loaded by hand over the pipe, as `case_ordinary` does.
+6. **PLAN-GAP 2:** both of the brief's assertions stay. The brief's sentence that the IDs go in a body the log
+   doesn't record is outdated for Chrome 157; the header makes the ID assertion a real one.
+7. **PLAN-GAP 3:** nothing to change; case 5 compares against the probe alone, so Chrome's own start-up requests
+   cancel out.
+8. **The three known-limit lines are accepted**; step 6 places them in `KNOWN-LIMITS.md` and the report.
+9. **3a waits for PR #58 on `main`** (Codex reviews on 2026-11-17 at the earliest), then the lead's go.
+
 ## Step 2b (2026-11-15, Claude Fable 5.2)
 
 ### The lead's decisions on step 2's findings
