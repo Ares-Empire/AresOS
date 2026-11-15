@@ -253,6 +253,11 @@ and cannot know whether the marker is durable.
 
 ## Records
 
+- `reviews/20-restore-lock/records/final-local-2312fa10.json`: the full local preflight at `2312fa10` (step 2's last
+  code head, with `e2240fca` and `9c2a361d`), all green: Python 340 tests in 4 shards (91, 70, 52, 127; 1 skipped),
+  Node 428 tests, 0 failures, 534 removal mutations rejected with every baseline passing, `generate.py --check`,
+  `git diff --check` and the service-unit pin clean. The run at `6019410c` before it was red (shard 2 and the audit
+  baseline, `FullDisk.hit` `TypeError`); see "Step 2", D.
 - `reviews/20-restore-lock/records/final-local-1e770483.json`: the full local preflight (`.work/20-restore-lock/preflight.py`)
   at `1e770483`, all green: Python 339 tests in 4 shards (90, 70, 52, 127; 1 skipped), Node 428 tests, 0 failures,
   529 removal mutations rejected with every baseline passing, `generate.py --check`, `git diff --check` and the
