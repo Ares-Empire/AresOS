@@ -2,6 +2,94 @@
 
 Builder steps keep this file; the last step turns it into the report. Newest state first.
 
+## Step 3 (2026-11-15, Claude agent on Opus 5.5): main merged, the probe wired in, draft PR open. Runs started
+
+Step 2's "Left, in order" items 1 to 3. No reader, adapter or tool change; the latency gate is unchanged.
+
+### Done
+
+- **Main merged** (`d23a5e00`, a merge commit, no conflicts): #68 (`bdc16064`) is in, with its `--tmpfs /scratch`.
+- **`latency-pair.sh`** (`dceafc94`): the docker command is one function, `latency_container <revision> <out>
+  [extra options]`, which the pair loop and the probe both call. The loop is otherwise as it was; with a stubbed
+  `docker` the pair's arguments are byte for byte main's. New mode `latency-pair.sh efficiency` (no argument, or
+  `pair`, is the old loop; anything else exits 64): requires `LATENCY_PRIVACY=plain` and the image
+  `aresos-latency-current` the pair built, runs it once more with `-e EFFICIENCY_PROBE=true -e ImageOS -e
+  ImageVersion -e RUNNER_ENVIRONMENT -e RUNNER_ARCH` into `.work/latency-out/efficiency`, then
+  `efficiency-summary.py` writes `efficiency-measured.json` there.
+- **`control-chrome.yml`, latency job** (`9cd255ac`): the pair step got `id: pair`; a new step "Efficiency tasks
+  with brief 20's tools" right after "Require lead ceilings", `if: !cancelled() && !inputs.latency_probe &&
+  matrix.privacy == 'plain' && steps.pair.outcome == 'success'`; an upload of `.work/latency-out/efficiency/` as
+  `chrome-efficiency-<run>-<attempt>`, `if: always() && matrix.privacy == 'plain'`, 14 days.
+- **Tests:** `test_efficiency.EfficiencyWiringTest` (2 tests) pins one `docker run` in the script, both modes'
+  calls, the probe's options before the mount, the step's place after the gate, its condition, and the upload.
+  Both fail against the files before this step (one failure, one error) and pass now.
+- **Draft PR #72** (https://github.com/Ares-Empire/AresOS/pull/72), "Package 28: Chrome read (in progress)".
+
+### The runs (head `9cd255ac`, pull_request), not watched
+
+| Workflow | Run id |
+|---|---|
+| Control Chrome (the latency job's plain leg makes `efficiency-measured.json`; the fixtures jobs run `efficiency.test.mjs`) | 43698395453 |
+| Control Chrome qualification | 43698395347 |
+| Control boundary | 43698395354 |
+| Control base | 43698395362 |
+| Control Mail | 43698395365 |
+
+Read them with `gh run view <id> --json jobs` (no watching; if you must, `--interval 120`). The baseline is in the
+artifact `chrome-efficiency-43698395453-1` (`efficiency-measured.json`, plus every call's whole result in
+`efficiency-calls.jsonl`, `browser.txt` for a failing task). This is the first run of `efficiency.test.mjs`, the
+fixtures and the probe: JavaScript errors are likely and are fixed in the next step.
+
+### Left, in order
+
+1. Read run 43698395453: the latency job's plain leg ("Efficiency tasks with brief 20's tools") and the fixtures
+   jobs (`node --test`). Fix what fails; a red "Require lead ceilings" is the latency gate's own result and is not
+   fixed by touching the ceilings, samples or `latency-targets.json` (stop and report instead).
+2. Commit the green run's `efficiency-measured.json` as `control/chrome/ci/efficiency-baseline.json` (it carries
+   the run id, the runner and the sizes), and a test that it holds every task of `TASKS` with the same plan. It is
+   edited afterwards only to add `latency_comparisons` (brief 28's F1 comparison, brief 28a's).
+3. Then step 1b's list: the reader, the adapter, time, groups 14 and 16 in CI.
+
+### What the code doesn't show
+
+- **When the probe runs:** also after a red latency gate (the pair built the image, so the counts are still
+  worth having, and the gate's own step stays red), never after a cancel, a failed pair or in a `latency_probe`
+  dispatch (that dispatch is "paired call histories only"). The audit leg neither runs nor uploads it.
+- **The probe's container is a latency container:** `LATENCY_PROBE=true` (from the shared function) means `run.sh`
+  skips its in-container unit tests, puts the service's logs on `/scratch`, and `prepare.mjs` adds the latency
+  timing wrappers to the reader and background, as for the samples. The wrappers time and send side messages;
+  they don't change a result, so the counted characters are the tools' own. The timings carry the same small
+  overhead as the latency samples, which suits the later side-by-side comparison in the same container.
+- **On a failing task** `run.sh` stops before copying `service.txt` and `browser-boundary.jsonl` from `/scratch`,
+  so those two are missing then; `efficiency-calls.jsonl`, `efficiency-tasks.jsonl` and `browser.txt` are written
+  to `/out` directly and are uploaded.
+- **Time:** the pair took about 13 minutes on a recent green run (43687610984); the probe's container is one more
+  build-free run of the same image under the same 50-minute `timeout`, inside the job's 120 minutes.
+- **Pushes start nothing on this branch** (no workflow pushes on `pkg/28-chrome`); the pull request does. A
+  commit whose subject holds `[skip ci]`, or one touching only `reviews/28-chrome-read/`, starts no run.
+
+### Local checks
+
+```
+$ PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/chrome_tests python3 -m unittest test_efficiency
+Ran 8 tests in 0.008s
+OK
+$ PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/chrome_tests python3 -m unittest test_efficiency test_latency test_qualification
+Ran 73 tests in 7.038s
+OK
+```
+
+`test_latency` holds the text check of #68's docker options; `test_qualification` parses both workflows' steps and
+conditions (no ref marker in the new condition). `bash -n` passes; with `GITHUB_ACTIONS=true` an unknown mode exits
+64 and `efficiency` with `LATENCY_PRIVACY=audit` exits 1 before any docker call. No Node on the laptop, so no
+JavaScript ran here.
+
+### JUDGMENT-CALLs (technical; for the lead)
+
+1. **The probe also runs after a red gate** (see above). The alternative, running it only after a green gate,
+   would lose the baseline to a slow runner without making anything safer: the gate's step is red either way.
+2. **Not in a `latency_probe` dispatch**, so that mode stays the pair alone, as its description says.
+
 ## Step 2 (2026-11-15, Claude agent on Opus 5.5): the baseline. Built, not yet run in CI
 
 **Stopped as told:** PR #68 (`mac-aresos-control`, green main) was still open at 06:29 UTC after a three-hour wait,
