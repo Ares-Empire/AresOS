@@ -1,4 +1,4 @@
-- **Low, nonblocking — [os/ci/overlay/checks.py:89](/C:/Users/pab/AresOS-21-everyday-account/os/ci/overlay/checks.py:89):** The profile assertion passes if the probe is missing or records no matching wrapper. **Fix:** require at least one noninteractive, non-login wrapper record before checking its PATH. Run 42743949300 contains that record, so this doesn’t invalidate its evidence.
+- **Low, nonblocking — [os/ci/overlay/checks.py:89](/C:/Users/owner/AresOS-21-everyday-account/os/ci/overlay/checks.py:89):** The profile assertion passes if the probe is missing or records no matching wrapper. **Fix:** require at least one noninteractive, non-login wrapper record before checking its PATH. Run 42743949300 contains that record, so this doesn’t invalidate its evidence.
 
 Both Medium findings are fixed correctly, including the helper commands. The VM verifies both terminals have live system Bash children and none of the 17 shadows ran.
 

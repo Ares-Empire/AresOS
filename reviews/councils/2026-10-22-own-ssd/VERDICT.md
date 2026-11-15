@@ -1,6 +1,6 @@
 Reviewed `46c68e4` and both member reports. **Six distinct findings: three BLOCKING, three NON-BLOCKING.** Physical installation remains unreleased. No files changed; no hardware operations or installation trials performed.
 
-1. **BLOCKING — Battery damage has no explicit inspection or stop condition.** [INSTALL §3](/C:/Users/pab/AresOS-10-own-ssd-install/docs/INSTALL.md:61)
+1. **BLOCKING — Battery damage has no explicit inspection or stop condition.** [INSTALL §3](/C:/Users/owner/AresOS-10-own-ssd-install/docs/INSTALL.md:61)
 
    **Scenario and impact:** The opened laptop reveals a swollen or cracked battery, but normal-looking connectors and screws. The owner continues fitting, reconnects power and worsens an existing hazard. Lenovo explicitly requires stopping use for battery damage. [Lenovo safety guidance](https://download.lenovo.com/pccbbs/pubs/t490/html_en/en/Conditions_that_require_immediate_action.html)
 
@@ -8,7 +8,7 @@ Reviewed `46c68e4` and both member reports. **Six distinct findings: three BLOCK
 
    **Check:** Given a damaged-battery photograph with otherwise normal components, a novice stops before connector work or power reconnection.
 
-2. **BLOCKING — The safety-critical mapping from physical SSD to installer destination is insufficiently explained.** [INSTALL-RECORD C](/C:/Users/pab/AresOS-10-own-ssd-install/docs/INSTALL-RECORD.md:63)
+2. **BLOCKING — The safety-critical mapping from physical SSD to installer destination is insufficiently explained.** [INSTALL-RECORD C](/C:/Users/owner/AresOS-10-own-ssd-install/docs/INSTALL-RECORD.md:63)
 
    **Scenario and impact:** With near-equal drives and reversed enumeration, the owner must infer partition relationships from long key/value lines, then match installer paths. A mistaken mapping can erase Windows. `--pairs` disables the displayed tree; the command supplies no parent-device column, and the comparison sheet has no current-device-path field. Dependency ordering remains, but is not a novice explanation. [util-linux implementation](https://github.com/util-linux/util-linux/blob/master/lsblk-cmd/lsblk.c)
 
@@ -16,7 +16,7 @@ Reviewed `46c68e4` and both member reports. **Six distinct findings: three BLOCK
 
    **Check:** An unaided novice must identify Crucial after renumbering, reject unexpected Crucial partitions and reject a proposed Micron EFI write.
 
-3. **BLOCKING — SSD seating is not verified before the screw is tightened.** [INSTALL §3, step 5](/C:/Users/pab/AresOS-10-own-ssd-install/docs/INSTALL.md:62)
+3. **BLOCKING — SSD seating is not verified before the screw is tightened.** [INSTALL §3, step 5](/C:/Users/owner/AresOS-10-own-ssd-install/docs/INSTALL.md:62)
 
    **Scenario and impact:** A novice inserts the SSD flat or uses its screw to pull a partly engaged board into position, damaging the connector, board or fixing. “Align/seat” and a subsequent seating check do not explain correct engagement. Manufacturer guidance explicitly describes angled insertion without force and warns against overtightening. [M.2 installation guidance](https://www.kingston.com/en/blog/personal-storage/install-m2-ssd)
 
@@ -24,7 +24,7 @@ Reviewed `46c68e4` and both member reports. **Six distinct findings: three BLOCK
 
    **Check:** On expendable hardware, the novice distinguishes fully seated, partly inserted and incorrectly supported examples before touching the screw.
 
-4. **NON-BLOCKING — “Simplest” undo unnecessarily directs the owner back inside the laptop.** [INSTALL §9](/C:/Users/pab/AresOS-10-own-ssd-install/docs/INSTALL.md:108)
+4. **NON-BLOCKING — “Simplest” undo unnecessarily directs the owner back inside the laptop.** [INSTALL §9](/C:/Users/owner/AresOS-10-own-ssd-install/docs/INSTALL.md:108)
 
    **Scenario and impact:** The owner only wants normal Windows startup, yet chooses removal or erasure because those are the offered outcomes. This adds avoidable physical handling or destructive disk work.
 
@@ -34,7 +34,7 @@ Reviewed `46c68e4` and both member reports. **Six distinct findings: three BLOCK
 
    Removal remains a legitimate, explicitly requested option; its existence is not itself a blocker.
 
-5. **NON-BLOCKING — German keyboard setup occurs after the first Linux commands.** [INSTALL §4](/C:/Users/pab/AresOS-10-own-ssd-install/docs/INSTALL.md:73)
+5. **NON-BLOCKING — German keyboard setup occurs after the first Linux commands.** [INSTALL §4](/C:/Users/owner/AresOS-10-own-ssd-install/docs/INSTALL.md:73)
 
    **Scenario and impact:** Reading from a phone, the owner types record C into an English-layout live desktop and mistypes punctuation. The checks fail before documented keyboard setup.
 
@@ -44,7 +44,7 @@ Reviewed `46c68e4` and both member reports. **Six distinct findings: three BLOCK
 
    The documented error-stop rule prevents this from authorizing installation.
 
-6. **NON-BLOCKING — Record B omits reopening an administrator terminal after reboot.** [INSTALL-RECORD B](/C:/Users/pab/AresOS-10-own-ssd-install/docs/INSTALL-RECORD.md:29)
+6. **NON-BLOCKING — Record B omits reopening an administrator terminal after reboot.** [INSTALL-RECORD B](/C:/Users/owner/AresOS-10-own-ssd-install/docs/INSTALL-RECORD.md:29)
 
    **Scenario and impact:** Following the direct link after fitting, the owner opens ordinary PowerShell. Firmware collection fails for insufficient privilege, making a healthy installation appear broken.
 

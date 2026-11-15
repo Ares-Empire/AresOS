@@ -7,7 +7,7 @@ def sha(p):
         while data:=f.read(8*1024*1024):h.update(data)
     return h.hexdigest()
 def cat(path):
-    return subprocess.check_output(['wsl','--exec','unsquashfs','-cat','/mnt/c/Users/pab/AresOS-14-owner-tools/.work/14/14zd-replay-1/work/squashfs.img',path])
+    return subprocess.check_output(['wsl','--exec','unsquashfs','-cat','/mnt/c/Users/owner/AresOS-14-owner-tools/.work/14/14zd-replay-1/work/squashfs.img',path])
 units=[]
 for name in ('ostree-finalize-staged-hold.service','ostree-finalize-staged.service','bootc-finalize-staged.service'):
     path='usr/lib/systemd/system/'+name;data=cat(path);(w/name).write_bytes(data)

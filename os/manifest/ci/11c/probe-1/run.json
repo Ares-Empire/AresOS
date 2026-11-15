@@ -101,11 +101,11 @@
     "message": "Identify the exact public Git-tree false positive without broadening the secret scan",
     "timestamp": "2026-10-23T16:46:15Z",
     "author": {
-      "name": "pab",
+      "name": "owner",
       "email": "admin@example.com"
     },
     "committer": {
-      "name": "pab",
+      "name": "owner",
       "email": "admin@example.com"
     }
   },

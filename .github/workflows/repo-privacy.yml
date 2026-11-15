@@ -1,0 +1,37 @@
+name: Repo privacy
+# The owner's machine username stays out of the repo's current files (owner, 2026-11-15, board #306;
+# reviews/username-scrub/RECORD.md). Write home paths with the placeholder "owner" (/Users/owner/...,
+# C:\Users\owner\..., -Users-owner) or as repo-relative paths. Git history keeps older copies; this checks
+# the files a pull request would merge, not history.
+# It prints file and line only: the matching text would put the name in the public run log.
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: repo-privacy-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  home-paths:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: No real username in a macOS or Windows home path
+        run: |
+          set -uo pipefail
+          # /Users/<name>, C:\Users\<name> (also JSON-escaped) and Claude Code's /-Users-<name> folder form,
+          # where <name> is not owner or one of GitHub's runner accounts. Text files only.
+          pattern='(?:/|\\{1,4})Users(?:/|\\{1,4})(?!(?:owner|runner|runneradmin|Shared|Public|Default)(?![A-Za-z0-9._-]))[A-Za-z0-9._-]+|/-Users-(?!owner(?![A-Za-z0-9._]))[A-Za-z0-9._]+'
+          # The one exclusion: a test fixture's made-up Windows path to an icon file, which names no user.
+          git grep -nIP -e "$pattern" -- . ':!os/tests/test_aresos_shell_hardening.py' | cut -d: -f1,2 > hits.txt
+          status=${PIPESTATUS[0]}
+          case "$status" in
+            0) echo "::error::A home path names a real user. Write owner instead (/Users/owner/..., C:\\Users\\owner\\...):"
+               cat hits.txt
+               exit 1 ;;
+            1) echo "No home path names a real user." ;;
+            *) echo "::error::git grep failed (exit $status)"; exit "$status" ;;
+          esac

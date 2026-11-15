@@ -101,11 +101,11 @@
     "message": "Qualify colorized ISO help, cleanup, serial transport and learned GRUB identities",
     "timestamp": "2026-10-23T00:44:02Z",
     "author": {
-      "name": "pab",
+      "name": "owner",
       "email": "admin@example.com"
     },
     "committer": {
-      "name": "pab",
+      "name": "owner",
       "email": "admin@example.com"
     }
   },

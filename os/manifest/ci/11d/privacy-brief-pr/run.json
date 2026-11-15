@@ -101,11 +101,11 @@
     "message": "Brief 11d: read the signed release with the owner's read-only token secret\n\nCo-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>",
     "timestamp": "2026-10-23T22:35:05Z",
     "author": {
-      "name": "pab",
+      "name": "owner",
       "email": "admin@example.com"
     },
     "committer": {
-      "name": "pab",
+      "name": "owner",
       "email": "admin@example.com"
     }
   },

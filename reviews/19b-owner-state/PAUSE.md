@@ -54,7 +54,7 @@ build because of it until the lead confirms.**
    (A approvals and actions, B storage faults, C owner-visible state, D remote evidence), which is also the final
    review of Mail plus 19b.
 4. Waiting on CI and Codex: one background waiter per job that wakes only when the job ends, a JUDGMENT-CALL or
-   PLAN-GAP appears, or after 3 h (`/private/tmp/claude-501/-Users-pab/5d5bbd0b-a538-400c-b84f-360fe127662f/waiter.sh LOG PID`).
+   PLAN-GAP appears, or after 3 h (`/private/tmp/claude-501/-Users-owner/5d5bbd0b-a538-400c-b84f-360fe127662f/waiter.sh LOG PID`).
    In every Codex brief, require one blocking `gh run watch` per CI run.
 
 ## 4. Where Fable 5.2 would help most next week

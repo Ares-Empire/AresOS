@@ -14,7 +14,7 @@ After Codex opens a PR, one fresh reviewer checks it. It runs in a read-only san
 
 ```bash
 codex exec -m "$REVIEW_MODEL" -c model_reasoning_effort="high" -s read-only \
-  -C /c/Users/pab/AresOS-NN-slug -o /c/Users/pab/AresOS-NN-slug/reviews/NN-slug/REVIEW.md \
+  -C /c/Users/owner/AresOS-NN-slug -o /c/Users/owner/AresOS-NN-slug/reviews/NN-slug/REVIEW.md \
   "You review PR #N of AresOS. Read AGENTS.md, briefs/NN-slug.md and reviews/NN-slug/REPORT.md, then the diff (git diff main...HEAD). Find what is wrong, missing compared to the brief, or will break in the game. Look hardest for things that fail silently: tests pass, but the game behaves wrong. For each finding give severity (blocking / should-fix / nit), where it is, why it matters, and the fix. End with one line: SAFE or CHANGES-NEEDED."
 ```
 

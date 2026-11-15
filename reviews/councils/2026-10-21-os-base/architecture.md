@@ -2,7 +2,7 @@ Reviewed commit `c1908bca7f9d929b2aa40d1b56213977a47c72c6`. Sources checked on 2
 
 1. **Blocking for the base decision — The comparison omits an available signed-NVIDIA atomic path before accepting Ubuntu’s recurring recovery burden.**
 
-   **Where:** [Base comparison and owner decision](/C:/Users/pab/AresOS-02-os-base-design/docs/design/OS-BASE.md:33).
+   **Where:** [Base comparison and owner decision](/C:/Users/owner/AresOS-02-os-base-design/docs/design/OS-BASE.md:33).
 
    **Scenario:** A driver or system-library update breaks the desktop. The owner must repair packages or reinstall root, having chosen Ubuntu without a concrete comparison against a maintained atomic NVIDIA image.
 
@@ -18,7 +18,7 @@ Reviewed commit `c1908bca7f9d929b2aa40d1b56213977a47c72c6`. Sources checked on 2
 
 2. **Should-fix — “OS as code” covers fresh installation, but does not require upgrades to converge to the same system.**
 
-   **Where:** [Updates](/C:/Users/pab/AresOS-02-os-base-design/docs/design/OS-BASE.md:134), [build contract](/C:/Users/pab/AresOS-02-os-base-design/docs/design/OS-BASE.md:178), and [acceptance trials](/C:/Users/pab/AresOS-02-os-base-design/docs/design/OS-BASE.md:229).
+   **Where:** [Updates](/C:/Users/owner/AresOS-02-os-base-design/docs/design/OS-BASE.md:134), [build contract](/C:/Users/owner/AresOS-02-os-base-design/docs/design/OS-BASE.md:178), and [acceptance trials](/C:/Users/owner/AresOS-02-os-base-design/docs/design/OS-BASE.md:229).
 
    **Scenario:** Release B replaces a supervisor package used by release A. A clean B installation passes CI. Updating A installs the new package but leaves the obsolete package and enabled service behind. Both supervisors now react to Minecraft exits. The documented fresh-install inventory check never exercises this path.
 
@@ -30,7 +30,7 @@ Reviewed commit `c1908bca7f9d929b2aa40d1b56213977a47c72c6`. Sources checked on 2
 
 3. **Should-fix — Root-only recovery does not preserve all the private state the design promises to retain.**
 
-   **Where:** [Recovery policy](/C:/Users/pab/AresOS-02-os-base-design/docs/design/OS-BASE.md:140), [partition boundary](/C:/Users/pab/AresOS-02-os-base-design/docs/design/OS-BASE.md:182), and [reinstall mode](/C:/Users/pab/AresOS-02-os-base-design/docs/design/OS-BASE.md:218).
+   **Where:** [Recovery policy](/C:/Users/owner/AresOS-02-os-base-design/docs/design/OS-BASE.md:140), [partition boundary](/C:/Users/owner/AresOS-02-os-base-design/docs/design/OS-BASE.md:182), and [reinstall mode](/C:/Users/owner/AresOS-02-os-base-design/docs/design/OS-BASE.md:218).
 
    **Scenario:** The owner configures Wi-Fi, then repairs a broken release by formatting only root. `/home` and the world survive, but the saved network connection disappears: NetworkManager stores persistent system connection profiles under `/etc/NetworkManager/system-connections`, including potentially necessary credentials. [NetworkManager storage documentation](https://networkmanager.dev/docs/api/latest/nm-settings-keyfile.html).
 
@@ -42,7 +42,7 @@ Reviewed commit `c1908bca7f9d929b2aa40d1b56213977a47c72c6`. Sources checked on 2
 
 4. **Should-fix — The proposed OS-owned app interface has no transition from the mod’s existing command-owned interface.**
 
-   **Where:** [Session/helper contract](/C:/Users/pab/AresOS-02-os-base-design/docs/design/OS-BASE.md:186) versus [frozen first-mod brief](/C:/Users/pab/AresOS-02-os-base-design/briefs/01-first-app.md:13).
+   **Where:** [Session/helper contract](/C:/Users/owner/AresOS-02-os-base-design/docs/design/OS-BASE.md:186) versus [frozen first-mod brief](/C:/Users/owner/AresOS-02-os-base-design/briefs/01-first-app.md:13).
 
    **Scenario:** The mod follows its brief: `apps.json` combines commands, Minecraft item appearances and pinned state; Linux launches through `ProcessBuilder`. The OS follows this design: its helper owns a registered app list and launches by stable IDs. Both components pass their individual tests, but clicking an item either bypasses the helper or references an app it does not recognize.
 
@@ -54,7 +54,7 @@ Reviewed commit `c1908bca7f9d929b2aa40d1b56213977a47c72c6`. Sources checked on 2
 
 5. **Should-fix — The first hardware feasibility gate comes after most base-specific implementation.**
 
-   **Where:** [P1–P12 order](/C:/Users/pab/AresOS-02-os-base-design/docs/design/OS-BASE.md:249).
+   **Where:** [P1–P12 order](/C:/Users/owner/AresOS-02-os-base-design/docs/design/OS-BASE.md:249).
 
    **Scenario:** P1 confirms package availability, then P2–P9 build installation, settings, launching, supervision, updating and presentation. P10 finally discovers that the selected signed driver/compositor combination fails on this laptop or that the intended removable boot path is not discovered.
 

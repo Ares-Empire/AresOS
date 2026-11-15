@@ -15,7 +15,7 @@ def redact_metadata(value):
         if 'email' in result:
             result['email'] = 'admin@example.com'
             if 'name' in result:
-                result['name'] = 'pab'
+                result['name'] = 'owner'
         return result
     if isinstance(value, list):
         return [redact_metadata(item) for item in value]

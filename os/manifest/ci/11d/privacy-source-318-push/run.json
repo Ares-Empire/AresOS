@@ -101,11 +101,11 @@
     "message": "Replay the real IDE QMP identifier and retain pinned-image read and cleanup evidence",
     "timestamp": "2026-10-23T23:11:48Z",
     "author": {
-      "name": "pab",
+      "name": "owner",
       "email": "admin@example.com"
     },
     "committer": {
-      "name": "pab",
+      "name": "owner",
       "email": "admin@example.com"
     }
   },
