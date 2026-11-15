@@ -65,6 +65,12 @@ RELEASE_RUNS = ('The release of these tools already runs and starts next: update
 FORWARD_FIRST = ('Update installs a new release only from a running AresOS that starts next: run '
                  + FORWARD + ', then run this command again; nothing changed')
 BACK_TO_ARESOS = 'run ' + typed('forward') + ' to go back to AresOS'
+# A pending layout trial refuses every change of the list, reboot and the tools update. In the
+# boot it began in, proof or revert ends it; after a restart both refuse, and only abandon from a
+# fresh login does (review 8 of package 22c, finding 5).
+LAYOUT_TRIAL = 'Layout trial is unfinished; prove it or revert first'
+LAYOUT_TRIAL_RESTARTED = ('Layout trial is unfinished and began before the last restart: from a fresh physical '
+                          'administrator login run ' + typed('layout', 'abandon') + ', then run this command again')
 # What update/previous expect the next start to show (records/outcome-pending.json).
 OUTCOME = 'outcome-pending'
 # One owner command at a time, bootstrap install included; /run is root-only.
@@ -1594,10 +1600,24 @@ class Tools:
         settled = self.qualified(state, saved, retry)
         return state, self.shape, settled
 
+    def no_layout_trial(self):
+        """STOP while a layout trial is pending, naming the step that works now: proof or revert
+        in the boot the trial began in, layout abandon from a fresh login after a restart (proof
+        and revert then refuse: 'Trial crossed a reboot'). A record whose boot cannot be read
+        keeps the first wording; it refuses all the same."""
+        if not (self.store / 'layout-pending.json').exists():
+            return
+        try:
+            began = self.load('layout-pending')['administrator']['boot']
+        except (Stop, OSError, ValueError, LookupError, TypeError):
+            began = None
+        require(not isinstance(began, str) or began == boot_id(), LAYOUT_TRIAL_RESTARTED)
+        raise Stop(LAYOUT_TRIAL)
+
     def may_change(self, state, shape, settled):
         """Rule 3's read-only preflight, shared by the reorder, by staging and by a layout trial's begin."""
         require(shape is not None, NOT_INSTALLED)
-        require(not (self.store / 'layout-pending.json').exists(), 'Layout trial is unfinished; prove it or revert first')
+        self.no_layout_trial()
         idle(state, self.processes())
         disk_record(self.host, self.load('disks'))
         if settled == 'pending':
@@ -1832,7 +1852,10 @@ class Tools:
         staged deployment, and only when it is exactly this update's (reconcile_update);
         in every case tries to mask again the finalizers this run removed and checks it,
         as the last line of defence; and claims a clean stop only when every one of those
-        checks passed. Each part is protected, so an error in one never skips the next.
+        checks passed. A clean stop also closes the intent, so that it says the same as the
+        commands of the same start; after an error the intent stays open for rule 5 and
+        every other command STOPs on it. Each part is protected, so an error in one never
+        skips the next.
         update.sh's EXIT trap covers its ordinary failures; this runs after it and is
         idempotent. Its waits are bounded (the printed limit is their sum).
         """
@@ -1869,6 +1892,16 @@ class Tools:
             restore_masks(self.host, removed)
         except Exception as error:
             errors.append('finalizer masks: ' + str(error))
+        if not errors:
+            # Every check passed, so the list is proved as before this update's intent (reconcile_update:
+            # nothing staged, or its staged row removed, and the others unchanged). Close the intent
+            # here, as start_next does for its certain refusal, so that the commands of this start
+            # need not stop on it (review 8 of package 22c, finding 2). With any error it stays open.
+            try:
+                self.archive('stopped-not-applied', dict(self.load(OUTCOME), stopped=reason,
+                                                         staged_release_removed=removed_staging))
+            except Exception as error:
+                errors.append('records: ' + type(error).__name__ + ': ' + str(error))
         if errors:
             return ('The update ' + reason + ', and stopping it did not finish: ' + ' | '.join(errors)
                     + '. Do not reboot; export records and get help')
@@ -1931,7 +1964,7 @@ class Tools:
         return self.select('previous', state, shape, settled, older, 'Previous AresOS queued for the next start ' + image_reference(older))
 
     def reboot(self):
-        require(not (self.store / 'layout-pending.json').exists(), 'Layout trial is unfinished; prove it or revert first')
+        self.no_layout_trial()
         saved = self.load('prepared')
         state = observations(self.host)
         idle(state, self.processes())
@@ -2575,7 +2608,7 @@ def update_tools(payload, fingerprint, host, intent, source='stick'):
     def system_ready(resolve=False):
         # The new tools must accept today's system before they replace the old ones.
         checker = Tools(payload, host, HOME / 'records')
-        require(not (checker.store / 'layout-pending.json').exists(), 'Layout trial is unfinished; prove it or revert first')
+        checker.no_layout_trial()
         if (checker.store / 'prepare-intent.json').exists():
             require(checker.load('prepare-intent').get('phase') == 'complete', 'Prepare is unfinished; get help')
         state = observations(host)

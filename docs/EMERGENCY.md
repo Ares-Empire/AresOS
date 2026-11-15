@@ -63,7 +63,7 @@ Export includes private records and persistent STOP diagnostics from `/var/lib/a
 
 ## A routine tools command stopped
 
-**Action:** for a STOP in Claude's terminal on the routine way for new tools (no stick; the [routine box](INSTALL.md#update-aresos-to-a-new-release)). Claude copies the STOP line to you word for word, runs only the routine box's export line and tries nothing else: no other line, no second try, no restart. The export window says **AresOS owner tools 673803dc: export the records**; type your password by the routine box's rule or press **Cancel**.
+**Action:** for a STOP in Claude's terminal on the routine way for new tools (no stick; the [routine box](INSTALL.md#update-aresos-to-a-new-release)). Claude copies the STOP line to you word for word, runs only the routine box's export line and tries nothing else: no other line, no second try, no restart. The export window says **AresOS owner tools e68fd5fd: export the records**; type your password by the routine box's rule or press **Cancel**.
 **Cancel** is not a STOP: nothing ran. A line starting **STOP tools folder** changed nothing on the laptop. After any STOP the installed tools still work. Without the stick the records stay on this laptop (a restart deletes the `/run/ares-records` copy); only **SAFE TO REMOVE ARESTOOLS** from the stick means a copy off it, so keep the stick for that.
 **STOP → go to [Help](INSTALL-REFERENCE.md#help)**; Return to the [update route](INSTALL.md#update-aresos-to-a-new-release) only after Help.
 
