@@ -1106,6 +1106,70 @@ Tests and their data only; the tools payload is unchanged (`sha256sum os/owner-t
   superseded), each with its pin in `test_owner_path.py`. Or a new rehearsal records its bindings and its own row.
 - A new rehearsal's row needs an entry in `REHEARSED_TOOLS` (the result's field naming its tools); the test says so.
 
+## Step 8 (review 5's findings: main merged in; the report text), 2026-11-15, Claude agent on Opus 5.5: done
+
+Nothing dispatched; no owner tool, sudo, ostree, bootc, rpm-ostree or ksshaskpass ran. No byte under `os/owner-tools/`,
+`os/release/` or `docs/` changed, so no new fingerprint and no new rehearsal.
+
+### Done
+
+1. **F1, main merged in** (merge commits, no rebase): `5869025e` merged `origin/main` at `81225384`; a second merge took
+   `46101d4d` (the integrator's CI fix, `os/ci/release-inputs.py`, not bound) and `54fb8832`.
+   - `os/ci/rehearsal-packages.json`: the branch side. Main's two changes there (the 22c ledger's checks bound 35 to
+     40 and its budget sentence) were already on the branch byte for byte, beside the 22d entry.
+   - `os/manifest/ci/16/pending-rebind.json`: the branch's list after the 22d rebind and its `rebound` history, plus
+     the two `changes` notes main added since the merge base and the branch's history did not hold (`40: …` and
+     `23b …`); `files` left to `rebind.py`.
+   - Checked before committing each merge: `os/owner-tools` tree `73fb5929cddd36db91662bad7d83e5453b965ca6`,
+     `os/release` tree unchanged, and the blobs of `docs/INSTALL.md` `115e4974…`, `docs/EMERGENCY.md` `7e68584f…`,
+     `docs/OWNER-TOOLS.md` `53c075c8…` and `docs/INSTALL-STATUS.md` `118fce5e…` equal to `1d3932eb`'s.
+   - **Only `os/ci/vm.py` joins the waiting list, not three files.** Review 5 expected `.github/workflows/os-image.yml`
+     and `os/ci/rehearsal-packages.json` to wait too, but main's change to each (the 40-minute regressions limit, the
+     22c ledger's 40) is the one the branch made in step 2: both merge to the bytes 22d's bindings hold. `vm.py` gains
+     package 23b's startup-cover screenshots (harness only).
+2. **The waiting list.** After the text fixes below (the docstring is a bound test file), run once:
+   `python3 reviews/27-first-update-release/rebind.py pending "22d step 8: main merged in (bound files main changed wait for the next rehearsal)"`
+   printed **pending: 6 bound files differ from the active bindings, 0 removed**: `os/ci/vm.py` and the five test
+   files (`test_checkout_sources`, `test_owner_equality`, `test_owner_path`, `test_tools_local_wiring`,
+   `test_ways_back_probe`). None under `os/owner-tools/`, `os/release/` or `docs/`.
+3. **F4, the stale rule sentence**, now "nothing under `os/owner-tools/`, `os/release/` or `docs/` may wait" (the
+   rule since `7ef03022`): the list's `status` (which also names `vm.py`) and `decision`, the docstring of
+   `check_rehearsed_rows` in `os/tests/test_checkout_sources.py`, and the report's fingerprint paragraph and open
+   questions. Step 7b's own section keeps its words: it records what that step did before the integrator's decision.
+4. **The report text** (below): the JUDGMENT-CALL section says a wording change before the laptop session means a new VM
+   rehearsal, the reviewer's advice to keep all ten, and the owner's answer (board #307: "Keep as written"); N3 under
+   "Not verified"; N4's two sentences in "Done"; the merge and its own checks run under "Hosted checks"; N1, N2 and N6
+   as open items for later; and "Try this" rewritten as numbered steps (F2's recipe for each line by program with its
+   SHA-256, F3's prechecks and what he may see, N5's words).
+5. **F2's recipe checked against the merge head:** the three entries taken from `5869025e`'s `commands.json` by the
+   recipe hash to `c1b579be…` (folder), `0b11cfc5…` (routine) and `7e1ffa76…` (export), the `line_sha256` values in
+   run 4's `tl-install-`, `tl-cancel-` and `tl-export-caller-result.json`.
+
+### Tests run here (Python 3.14, one module at a time, `ARESOS_MODEL_SCOPE=slice`)
+
+| Module | Result |
+|---|---|
+| `test_checkout_sources` | `Ran 8 tests`, `OK` (after the waiting list; again `OK` after the second merge) |
+| `test_owner_equality` | `Ran 11 tests in 86.190s`, `OK` |
+| `test_owner_path` | `Ran 48 tests`, `OK` |
+| `test_tools_local_wiring` | `Ran 42 tests in 54.950s`, `OK` |
+| `test_owner_sources` | `Ran 13 tests in 74.575s`, `OK` |
+| `test_owner_bootstrap` | `Ran 13 tests`, `OK` |
+| `test_ways_back_probe` (reads the list and the bindings) | `Ran 57 tests in 148.031s`, `OK` |
+| `test_ways_back_model` (main changed it; reads the workflow and the 22c ledger) | `Ran 26 tests in 170.514s`, `OK` |
+| `test_aresos_desktop` (main changed it; reads the workflow) | `Ran 188 tests in 167.383s`, `OK (skipped=1)` |
+| `test_journal_ready` (not changed by main; reads `os/ci/vm.py`) | `Ran 6 tests`, `OK` |
+| `test_owner_update` | not run, by the rule |
+
+Main's other two new modules, `test_aresos_cover` and `test_aresos_shell_home`, read neither `vm.py`, the ledger nor
+the workflow; not run. The merge broke nothing that these modules test, so nothing was fixed.
+
+### Left, for the integrator
+
+- A checks-only run on this head, green with the full model; then merge, and before the board note check the merge
+  commit's `os/owner-tools` tree and guide blobs ("Try this", step 1). Then the laptop session.
+- The report text below goes to `REPORT.md`; this file is deleted with the last step.
+
 ## Report (for the integrator to commit as REPORT.md)
 
 # Package 22d: the owner tools without the stick, from Claude's terminal
