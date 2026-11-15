@@ -10,6 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from aresos_control.common import display_json  # noqa: E402
 from aresos_control.definitions import instructions_for, tools_for  # noqa: E402
+from workflow_steps import workflow_structure  # noqa: E402
 
 SPEC = importlib.util.spec_from_file_location("efficiency_summary", ROOT / "chrome/ci/efficiency-summary.py")
 summary = importlib.util.module_from_spec(SPEC)
@@ -110,6 +111,43 @@ class EfficiencySummaryTest(unittest.TestCase):
         self.assertEqual(sizes["descriptions_and_instructions"], sizes["descriptions"] + sizes["instructions"])
         compact = sum(len(tool["name"]) + len(json.dumps(tool["inputSchema"], separators=(",", ":"))) for tool in tools)
         self.assertEqual(sizes["names_and_input_schemas"], compact)
+
+
+class EfficiencyWiringTest(unittest.TestCase):
+    """The probe runs inside the latency harness: one docker command, the plain leg, after the gate."""
+
+    def test_the_probe_shares_the_latency_pairs_docker_command(self):
+        pair = (ROOT / "chrome/ci/latency-pair.sh").read_text()
+        self.assertEqual(pair.count("docker run"), 1)
+        self.assertIn('      latency_container "$latency_revision" "$latency_out"\n', pair)
+        self.assertIn('    latency_container current "$efficiency_out" -e EFFICIENCY_PROBE=true -e ImageOS -e ImageVersion'
+                      ' -e RUNNER_ENVIRONMENT -e RUNNER_ARCH\n', pair)
+        self.assertIn('    test "${LATENCY_PRIVACY:-}" = plain\n', pair)
+        self.assertIn('    python3 control/chrome/ci/efficiency-summary.py "$efficiency_out"\n', pair)
+        # The probe's options come before the mount and the image, never after.
+        self.assertIn(' -e GITHUB_SHA "$@" -v "$out:/out" "aresos-latency-$revision"\n', pair)
+        browser = (ROOT / "chrome/ci/browser.mjs").read_text()
+        self.assertIn("if(process.env.LATENCY_PROBE==='true'&&process.env.EFFICIENCY_PROBE==='true')", browser)
+
+    def test_the_workflow_runs_it_after_the_gate_in_the_plain_leg_and_keeps_its_record(self):
+        _, steps = workflow_structure((ROOT.parent / ".github/workflows/control-chrome.yml").read_text())
+        latency = [step for step in steps if step["job"] == "latency"]
+        names = [step["name"] for step in latency]
+        pair = dict(latency[names.index("Paired current and historical measurements on the same runner")]["keys"])
+        gate = names.index("Require lead ceilings and reject paired latency regressions")
+        probe = names.index("Efficiency tasks with brief 20's tools")
+        self.assertEqual(probe, gate + 1)
+        self.assertEqual(pair["id"], "pair")
+        self.assertEqual(pair["run"], "bash control/chrome/ci/latency-pair.sh")
+        keys = dict(latency[probe]["keys"])
+        self.assertEqual(keys["run"], "bash control/chrome/ci/latency-pair.sh efficiency")
+        self.assertEqual(keys["if"], "${{ !cancelled() && !inputs.latency_probe && matrix.privacy == 'plain'"
+                                     " && steps.pair.outcome == 'success' }}")
+        self.assertEqual(keys["env.LATENCY_PRIVACY"], "${{ matrix.privacy }}")
+        uploads = [dict(step["keys"]) for step in latency if dict(step["keys"]).get("with.path") == ".work/latency-out/efficiency/"]
+        self.assertEqual(len(uploads), 1)
+        self.assertEqual(uploads[0]["with.name"], "chrome-efficiency-${{ github.run_id }}-${{ github.run_attempt }}")
+        self.assertEqual(uploads[0]["if"], "${{ always() && matrix.privacy == 'plain' }}")
 
 
 if __name__ == "__main__":
