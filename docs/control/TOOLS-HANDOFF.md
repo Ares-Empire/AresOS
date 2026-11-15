@@ -154,6 +154,8 @@ PR #68 (brief 20-main-fix) is on main as squash `bdc16064`; report in `reviews/2
 
   The ceilings and sample counts would stay as they are.
 
+  **The lead (2026-11-15): taken as suggested**, brief 20-ci-noise (branch `ci/20-ci-noise`), Opus builder.
+
 **Two CI facts.**
 - **Path filters:** a pull request's path filters see the whole PR's diff. Every push to an open Chrome PR starts
   both Chrome workflows again, even a docs-only push. Use `[skip ci]` for those.
@@ -177,6 +179,10 @@ PR #77 (brief 20-popup-race) is on main as squash `635872e2`; report in `reviews
   build `4c1eccb9…`'s all-false beta entry is reported on every run. That is why #74 is open again: closed, the
   next daily run would open a duplicate. My suggestion: report only the entries this run published. Small, in
   `qualify.py notify` plus `test_publisher.py`; the trust path doesn't change. Close #74 once it is in.
+- **The lead (2026-11-15):** notify's fix is item 1 of brief 20-ci-noise; #74 closes after it merges. #79 is opened and
+  merged (merge commit) after 20-ci-noise is on main, so its checks aren't red on latency noise. The identity-mismatch
+  question above: agreed (refuse publication, red run; all-false stays for an incomplete suite), its own brief after
+  the release.
 
 ## The owner's answers, written into the briefs (#254: into the service-fix brief)
 
