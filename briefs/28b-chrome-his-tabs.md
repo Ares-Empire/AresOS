@@ -301,11 +301,14 @@ keep brief 20's rule and say so (PLAN-GAP).
      tab, its document, what the check found, and for a tab not yet taken the list's `seen` and `request`.
      `chrome_take_reload`'s one input is that approval, passed unchanged (main's `APPROVAL_INSTRUCTION`), so Claude
      Code's prompt shows the question. It sits under the managed ask rules like `chrome_submit`, with the rule
-     `mcp__chrome__take_reload`. The approval is used once and expires as main's prepared operations do. The service
-     refuses an approval that doesn't match the tab's present state: it runs the check again, as the last thing
-     before the reload, and if the page changed since the question (a new document, or a loss the question didn't
-     show: another field changed, typing of his where the question showed Claude's, media that started), it changes
-     nothing and answers `reload_required` again, with the new findings and a new approval.
+     `mcp__chrome__take_reload`. On `main` that rule is generated from the action's effect (`send` or `delete`,
+     `control/generate.py`); `delete` fits, since the reload throws away what the page holds, and needs no change
+     to the base. If it doesn't fit, say why (PLAN-GAP). The approval is used once and expires as main's prepared
+     operations do. The service refuses an approval that doesn't match the tab's present state: it runs the check
+     again, as the last thing before the reload, and if the page changed since the question (a new document, or a
+     loss the question didn't show: another field changed, typing of his where the question showed Claude's, media
+     that started), it changes nothing and answers `reload_required` again, with the new findings and a new
+     approval.
    - **On a tab already taken, the approval comes from the refusal that sends Claude there** (`chrome_go` or a
      `chrome_do` step, below). The check that prepares it is brief 20's (`requireDiscard` with `reloadState`) on the
      tab's watched document, run as the last thing before the navigation or the reload: it names fields by label
@@ -812,7 +815,8 @@ sync; the Chrome ask rules are `main`'s plus `mcp__chrome__take_reload`, and not
 **May change:** in `control/chrome/extension/`: `background.js`, `reader.js`, `guard.js` (its isolated part, for a
 passive mode only), `manifest.json` (the one entry above), `popup.html`, `popup.js`, `details.html` and
 `details.js` (the profile id); `control/aresos_control/chrome/adapter.py`, `definitions.py`, the view module and
-`bridge.py` (the hello); `control/aresos_control/cli.py` (the one `admin chrome profile` line); the generated
+`bridge.py` (the hello); `control/aresos_control/definitions.py` (only the Chrome branch of `instructions_for`, as
+in brief 28a); `control/aresos_control/cli.py` (the one `admin chrome profile` line); the generated
 files; `control/chrome_tests/`, `control/chrome/ci/`; `.github/workflows/control-chrome.yml` (not the
 qualification workflow); `docs/control/TOOLS.md`, `docs/control/FEATURES.md`, `control/README.md`;
 `reviews/28b-chrome-his-tabs/`.
