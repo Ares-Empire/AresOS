@@ -4,7 +4,7 @@
 package makes it what Claude is offered and builds the rest around it, with the same questions before every send.
 An action names its element by the short reference a read gave, and by nothing else. One call opens a page and
 returns its outline. One call runs several steps and says what changed. The tool list a session loads shrinks from
-29 tools to 18. "Better" is written as budgets, and a CI test group measures them against brief 20's tools on the
+30 tools to 18. "Better" is written as budgets, and a CI test group measures them against brief 20's tools on the
 same fixture pages.
 
 The owner's words (2026-11-11): "I don't just wanna rebuild Claude in Chrome. I wanna make a better tool for AresOS
@@ -22,7 +22,9 @@ all three are merged:** this package still keeps brief 20's check before a taken
 The owner has answered every question of all three ("Already decided" at the end).
 
 **Building starts only after brief 28 is merged** (and with it PR #27). Branch from `main` after that merge. Paths
-and line numbers in this brief come from PR #27 at `8b7e799c`; read them again on merged `main`.
+and line numbers in this brief come from PR #27 at `8b7e799c`; read them again on merged `main`. PR #27 merged as
+`09cedc84` (final head `d25ccbd3`); the names and facts in this brief were checked against it on 2026-11-15
+(`reviews/28-chrome-capability/ALIGNMENT.md`).
 
 **Builder (recommended, the lead confirms at launch):** a Claude agent on Fable 5.2. The work changes a dense,
 security-reviewed code base, replaces the tool list and the way every action names its element, and must not be cut
@@ -47,6 +49,7 @@ Fable 5.2, or Codex's frontier model while it is available. The package review r
 - `reviews/28-chrome-capability/BRIEF-SECURITY-2.md` and `BRIEF-REVIEW-2.md`: the design's last reviews. Where
   this brief names "security re-check 2" or "package re-check 2", that is the file.
 - `reviews/20-chrome/REPORT.md`, `reviews/20-chrome/KNOWN-LIMITS.md` and `reviews/20-chrome/TOOL-DESCRIPTIONS.md`.
+- `docs/control/TOOLS-HANDOFF.md`, "Chrome merged": what PR #27's merge left for these packages.
 - `reviews/18d-base-slim/REPORT.md`: how shared rules go once into the server's MCP instructions, and how the
   description sizes are measured.
 - The code, before you change it:
@@ -370,8 +373,8 @@ package puts the tools that act on the same mechanism:
     committed operation is closed as not dispatched.
   This adds one check in `input`, right before the dispatch. Nothing else: no cancelling of an input that is
   running, no second queue, no commands side by side, and no change to what `input` compares or in what order.
-- **Why 20 steps and not 32:** brief 20 waits out its hold after every input (`collectSteps`, a little over half a
-  second), and reads the page's facts before it. About a dozen input steps fit in one call.
+- **Why 20 steps and not 32:** brief 20 waits out its hold after every input (`collectSteps`, 525 ms: the 500 ms
+  `holdMs` and 25 ms), and reads the page's facts before it. About a dozen input steps fit in one call.
 - **A caller that goes away** changes nothing about this: the list ends at its deadline at the latest, each step
   that ran is its own committed operation (in the log and in `chrome_operation_status`), a prepared step stays
   prepared until it expires, and nothing runs later.
@@ -399,7 +402,8 @@ package puts the tools that act on the same mechanism:
   reloading it follows the rules for his tabs.
 
   Per tab: Chrome's tab number; whose (`claude`, `his`, `taken`); the marks `*` (the tab showing in its window),
-  `pinned`, `sound`, `asleep`, `popup`, `no` (never readable: the fixed list, his never-list, not a web page) and
+  `pinned`, `sound` (Chrome's `audible` flag, which brief 20's `chrome_tabs` rows carry on merged `main`, beside
+  `muted`), `asleep`, `popup`, `no` (never readable: the fixed list, his never-list, not a web page) and
   `look` (a read-only site); the title, quoted and cut at 80 characters; the address in the short form (item 3),
   cut at 60 characters.
 - **The list binds what follows** (section 6, "Which tabs Claude works in"). The result of `chrome_tabs` carries
@@ -426,14 +430,19 @@ package puts the tools that act on the same mechanism:
   this package they are brief 20's `take_tab` and `release_tab`, with one difference:
   the explicit reload has one home. `chrome_take` without `reload` takes the tab and keeps its page, and its result
   says whether a reload is still due and what it would lose. `chrome_take` with `reload: true` also does that
-  reload now (brief 20's `prepare_control` with its explicit repeat) and returns the outline. No other tool has a
+  reload now (brief 20's `prepare_control` with its explicit repeat, `discard_unsaved: true` on merged `main`) and returns the outline. No other tool has a
   `reload` input.
   - **`chrome_go` in a taken tab that hasn't had its reload** would replace his page without any check in brief
     20. Here it first goes through `prepare_control`, as a first input does: `reload_required` when brief 20's
     check finds typing, an editor or playing media, otherwise the guarded reload, and then the navigation.
-  - **Brief 20's check before that reload is unchanged in this package.** It calls a tab clean when no field
-    differs from its default, which many pages defeat by copying his typing into the default. Brief 28b replaces
-    it (its item 4a). Say so in `KNOWN-LIMITS.md`; briefs 28 and 28a must not reach his laptop without 28b.
+  - **Brief 20's check before that reload is unchanged in this package.** On merged `main` it is `requireDiscard` in
+    `background.js` with `reloadState` in `reader.js`: in a document the reader didn't watch from its start every text
+    field, textarea and hidden input counts; in a watched one a field counts when it differs from its default or got
+    typing since the load and still holds text; an editor counts once it got input (always, where that isn't known);
+    playing media counts (an element, or Chrome's `audible`), and so does a frame that doesn't answer. It still
+    doesn't see work kept in a canvas, a wizard's finished steps or a form on its way to the server, and it doesn't
+    know whether he used the page. Brief 28b replaces it (its item 4a). Say so in `KNOWN-LIMITS.md`; briefs 28 and 28a
+    must not reach his laptop without 28b.
 - **`chrome_library`** (read; input: `kind`, one of `downloads`, `bookmarks`, `history`; `text`; `cursor`; `limit`). The
   three brief 20 tools merged, with their snapshot paging. Two differences: every address is in the short form
   (item 3), and every entry carries a reference (from brief 28's table) that `chrome_open` takes as `ref`. The
@@ -484,6 +493,12 @@ package puts the tools that act on the same mechanism:
   `seen`; that `chrome_do` stops at the first asking step, that its `prepared` entry goes unchanged to `chrome_submit`,
   and that steps it reports as not run are sent again. Each description keeps only what is specific to its action. Write
   them for Claude: what it does, when to use it, what comes back.
+- **The instructions fit in 4,096 characters.** Claude Code 2.1.319 passes only the first 4,096 characters of an
+  MCP server's instructions, and `control/chrome_tests/test_questions.py`
+  (`test_fixes_b_server_instructions_fit_the_native_cli_limit`, about line 456) fails any app above that. On
+  merged `main` the Chrome server's instructions are 4,052 characters, and brief 28b adds its block (its item 8)
+  later. Measure the instructions this item writes against that limit early; if they don't fit with room for
+  brief 28b's block, stop and tell the lead (PLAN-GAP) before moving any rule out of the instructions.
 - **Sizes** (measured as brief 18d measured Mail's), for eighteen tools: all descriptions plus the instructions at most
   10,500 characters and not above the baseline; all names plus input schemas at most 6,300 characters. A test pins the
   exact totals; a change that grows them fails until the pin is changed on purpose.
@@ -558,8 +573,9 @@ Restructure in steps that keep everything working:
   only stop a dispatch, never start or change one, and this package's security review looks at it first.
 - **Brief 28's field rules and its read:** the password rule with its two additions, the outline format, the
   reference table and its run letters, the read's deadline. Nothing in them is relaxed or reshaped here.
-- **The hold:** `guard.js`, `page.js`, the 500 ms window, the default block, the owner's own Enter, the three kinds
-  of dialog.
+- **The hold:** `guard.js`, `page.js`, the 500 ms window (`HOLD_MS` in `policy.py`, `holdMs` in the extension) and
+  the 525 ms wait after each input in `collectSteps` (`background.js`), the default block, the owner's own Enter,
+  the three kinds of dialog.
 - The extension still uses no DOM snapshot, no accessibility tree and no form serialisation. No new DevTools
   method. No new permission in the manifest.
 - **Where Claude may go:** the schemes, the fixed list, the owner-only excluded-sites setting, read-only sites.
@@ -748,7 +764,7 @@ baseline.
 | F5: a free click that changes part of the page: from an outline in hand, one `chrome_do` | 1 call, at most 2,500 characters, every changed line named (`more_changes` is 0) |
 | Descriptions plus instructions (18 tools) | at most 10,500 characters, and not above the baseline |
 | Names plus input schemas (18 tools) | at most 6,300 characters |
-| Latency (the comparison in one run, below) | the first read of F1, a free click with its report, and the 6-field form are each at most 1.10 times brief 20's median plus 50 ms; a latency check PR #27 brings stays within its targets |
+| Latency (the comparison in one run, below) | the first read of F1, a free click with its report, and the 6-field form are each at most 1.10 times brief 20's median plus 50 ms; PR #27's latency gate (`latency-targets.json`) stays within its ceilings |
 
 **Latency: old and new in one run.** Runners differ, so old and new tools are timed in **one run**. At step 1 of
 "The order of the change", while both tool sets exist, one job runs each timed task with brief 20's tools (under
@@ -757,8 +773,8 @@ first read of F1, as brief 28 timed it, now through `chrome_read`; a free click 
 brief 20's click and the read or find after it; filling 6 fields and sending the form. The new tools pass at no
 more than 1.10 times the old median plus 50 ms. That run's id and numbers go into the report and into the
 baseline file. After brief 20's tools are removed, the check that stays compares each task with the new tools'
-own median of that run and fails above 1.5 times. Where PR #27 brought a latency harness, this runs inside it,
-as brief 28's baseline does. Fewer calls don't prove a faster tool: a step of `chrome_do` still makes brief 20's
+own median of that run and fails above 1.5 times. This runs inside PR #27's latency harness (brief 28,
+"Latency"), as brief 28's baseline does. Fewer calls don't prove a faster tool: a step of `chrome_do` still makes brief 20's
 full facts read. The timings are what shows it, and the report gives them beside the call counts.
 
 **The rows add up** (package re-check 2, N3). Every budget counts the JSON text of the result, so each quote
@@ -916,8 +932,9 @@ fewer characters. Say what you chose in the report.
   beyond the three exceptions named in "What must not change".
 - Stop if a binding case of the asking read fails through the new list.
 - Stop if any test would need a real site or a real account.
-- The full `control-chrome.yml` suite takes three to four hours a run. Develop against the browser-free tests and
-  the short job. Plan about 10 full runs; tell the lead in the report before passing 14. Wait on each run with one
+- A full `control-chrome.yml` run takes about 40 to 60 minutes in 28 parallel jobs (PR #27's final pair on
+  `d25ccbd3`: runs 43641834739 and 43641839672). Develop against the browser-free tests and the short job. Plan
+  about 10 full runs; tell the lead in the report before passing 14. Wait on each run with one
   blocking call; never poll turn by turn. Mark report-only pushes `[skip ci]`.
 
 ## Rules for this run
