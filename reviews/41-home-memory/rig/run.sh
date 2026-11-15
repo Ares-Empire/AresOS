@@ -16,7 +16,7 @@
 #
 # What it does (MODE=measure): copies the base world into mod/run/saves/AresHub, sets the distances, starts the rig
 # (start.sh: its own headless labwc, the lock, the memory check), waits for the world, lets it settle, takes a
-# snapshot (snap.py), records 60 s standing at home and 60 s flying at full speed down the roads (north 15 s, turn,
+# snapshot (snap.py), records 60 s standing at home looking around and 60 s flying at full speed down the roads (north 15 s, turn,
 # south 30 s, turn, north 15 s), snapshots after each, then optionally covers the world with a maximized window for
 # COVER seconds and snapshots again. Then it stops the game's scope and the rig, and analyze.py writes the summary.
 # Raw data stays in .work/pkg41/rigs/<name>/; the summary and the small files go to reviews/41-home-memory/runs/<name>/.
@@ -147,8 +147,14 @@ fi
 sleep "$SETTLE"
 python3 -I "$here/snap.py" "$game" settled "$RIG"
 
+# Standing at home, looking around: a slow 30-degree turn right and back every 3 s. Without input for 60 s the game
+# drops to 30 frames a second (vanilla's inactivity limit, his default too), which would hide the frame times.
+vin key h; sleep 2
 mark stand_start
-sleep "$WINDOW"
+for ((t = 0; t < WINDOW; t += 6)); do
+    vin rel 200 0 15; sleep 2.85
+    vin rel -200 0 15; sleep 2.85
+done
 mark stand_end
 python3 -I "$here/snap.py" "$game" stand "$RIG"
 
@@ -170,6 +176,8 @@ vin rel 1200 0 20
 sleep $((WINDOW - quarter * 3))
 mark flight_end
 vin key w up; vin key lctrl up
+# Outside the windows: a picture of where the flight ended (above home, over the logos), to check it flew.
+[[ $SHOTS != 1 ]] || { mkdir -p "$RIG/shots"; "$WT/reviews/40-real-home/rig/shot.sh" "$RIG" "$RIG/shots/after-flight.png" || true; }
 python3 -I "$here/snap.py" "$game" flight "$RIG"
 
 if ((COVER > 0)); then
@@ -193,6 +201,9 @@ fi
 # above it. Only the rig's own test logos are in them.
 if [[ $SHOTS == 1 ]]; then
     [[ -z $cover ]] || { kill "$cover" 2>/dev/null || true; cover=; sleep 2; }
+    # The closed cover leaves no keyboard focus; give it back to the world, as a click would.
+    python3 -I "$WT/reviews/40-real-home/rig/tl.py" "$RIG" activate aresos-desktop >/dev/null 2>&1 || true
+    sleep 1
     mkdir -p "$RIG/shots"
     vin key h; sleep 2; vin rel 1200 0 20; sleep 3
     "$WT/reviews/40-real-home/rig/shot.sh" "$RIG" "$RIG/shots/home-south.png" || true

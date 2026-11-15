@@ -5,7 +5,8 @@
 Reads the rig folder of run.sh (settings.txt, marks.txt, frames.txt, gc.txt, snap-*.json, samples.csv, game.txt)
 and writes <out>/summary.json, plus copies of the small files (settings, marks, snapshots, the GC log as gc.txt,
 the samples). Frame time is the gap between the starts of two frames (frames.txt); a window counts the frames that
-start inside it. GC pauses come from -Xlog:gc with the timenanos decoration (System.nanoTime, the same clock)."""
+start inside it. GC pauses come from -Xlog:gc with the timenanos decoration (System.nanoTime, the same clock); the JVM prints
+uptime first, then timenanos."""
 import glob, json, os, re, shutil, statistics, sys
 
 rig, out = sys.argv[1], sys.argv[2]
@@ -20,7 +21,7 @@ if os.path.exists(os.path.join(rig, 'frames.txt')):
     frames = [int(line) for line in open(os.path.join(rig, 'frames.txt')) if line.strip().isdigit()]
 pauses = []  # (end ns, ms, kind)
 cycles = []
-GC_LINE = re.compile(r'^\[(\d+)ns\]\[[\d.]+s\] GC\(\d+\) (Pause [A-Za-z]+(?: \([^)]*\))*|Concurrent [A-Za-z ]+[A-Za-z]) ?(.*?)(?: (\d+\.\d+)ms)?$')
+GC_LINE = re.compile(r'^\[[\d.]+s\]\[(\d+)ns\] GC\(\d+\) (Pause [A-Za-z]+(?: \([^)]*\))*|Concurrent [A-Za-z ]+[A-Za-z]) ?(.*?)(?: (\d+\.\d+)ms)?$')
 committed = []
 for line in open(os.path.join(rig, 'gc.txt')) if os.path.exists(os.path.join(rig, 'gc.txt')) else []:
     match = GC_LINE.match(line.strip())
