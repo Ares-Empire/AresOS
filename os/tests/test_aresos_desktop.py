@@ -1271,8 +1271,12 @@ class RestartPolicyTest(Base):
         sup.on_wrapper_gone(sup.launch.id)
         self.assertEqual((sup.state, sup.reason, sup.persisted.consecutive), ('RECOVERY', 'quit', 0))
 
-    def authorized(self):
+    def authorized(self, cover=True):
+        """A session's first launch, accepted (jvm_start). It starts under the startup cover (package 23b) unless
+        `cover` is False: then the cover program is missing, as before 23b."""
         self.runner = FakeRunner()
+        if not cover:
+            self.runner.cover_error = FileNotFoundError(2, 'No such file or directory')
         desktop.Persisted().save(self.paths.state_file)
         for name in (self.paths.exit_file, self.paths.runtime_file):
             if os.path.exists(name):
@@ -1324,10 +1328,13 @@ class RestartPolicyTest(Base):
     def test_a_failed_start_is_reported_and_counted_never_left_open(self):
         # Review 1, finding 7, with review 2 finding 1: a start that failed for a stated reason is counted like a
         # crash. That includes a report on a new connection after the first broke, and the wrapper's exit record.
-        for case in ('jvm_failed', 'java ended by itself', 'report after the connection broke',
-                     'exit record after a timeout', 'stopped by the wrapper\'s SIGTERM'):
-            with self.subTest(case):
-                sup, launch = self.authorized()
+        # Each case without the startup cover (as before 23b) and under it (the session's first start, 23b).
+        for case, covered in [(case, covered) for case in (
+                'jvm_failed', 'java ended by itself', 'report after the connection broke',
+                'exit record after a timeout', 'stopped by the wrapper\'s SIGTERM') for covered in (False, True)]:
+            with self.subTest(case, covered=covered):
+                sup, launch = self.authorized(cover=covered)
+                self.assertEqual(sup.cover, covered)
                 if case == 'jvm_failed':
                     sup.on_jvm_failed(launch, end(reason='Java could not be started: no such file'))
                 elif case == 'java ended by itself':
@@ -1352,9 +1359,15 @@ class RestartPolicyTest(Base):
                 self.advance(desktop.BACKOFF)
                 sup.tick()
                 self.assertEqual(len(self.runner.prisms), 2)
-                # The automatic restart keeps an app in front (finding 11): the helper is told so.
-                self.assertEqual(self.runner.helpers[-1][2].get('ARESOS_SHELL_KEEP_FOREGROUND'), '1')
                 self.assertNotIn('ARESOS_SHELL_KEEP_FOREGROUND', self.runner.helpers[0][2])
+                if covered:
+                    # Under the cover nothing of his is in front, only the cover: the restarted hub takes the focus
+                    # (23b review 1, finding 3).
+                    self.assertTrue(sup.cover)
+                    self.assertNotIn('ARESOS_SHELL_KEEP_FOREGROUND', self.runner.helpers[-1][2])
+                else:
+                    # The automatic restart keeps an app in front (finding 11): the helper is told so.
+                    self.assertEqual(self.runner.helpers[-1][2].get('ARESOS_SHELL_KEEP_FOREGROUND'), '1')
 
     def test_a_lost_hand_off_answer_after_acceptance_is_a_failed_start(self):
         # Review 2, finding 3: the supervisor accepted the JVM, but the wrapper never got the answer, so it stopped
@@ -2433,6 +2446,17 @@ class CoverTest(Base):
         self.assertEqual(sup.state, 'IN_WORLD')
         return pid
 
+    def fresh(self, cover_error=None):
+        """A new session from scratch: home, runtime folder and runner as at the first login."""
+        shutil.rmtree(self.paths.home)
+        shutil.rmtree(self.paths.runtime)
+        os.makedirs(self.paths.home)
+        os.makedirs(self.paths.runtime)
+        desktop.provision(self.paths, self.lock)
+        make_world(self.paths, self.lock)
+        self.runner = FakeRunner()
+        self.runner.cover_error = cover_error
+
     def test_session_start_covers_the_first_hub_launch_before_prism(self):
         sup = self.supervisor()
         sup.start()
@@ -2504,6 +2528,67 @@ class CoverTest(Base):
         self.assertEqual(self.runner.covers, [False])
         self.assertFalse(sup.cover)
 
+    def test_a_restart_under_the_cover_lets_the_restarted_hub_take_the_focus(self):
+        # Review 1, finding 3 (option a): a crash before the hub was ready restarts under the session's cover. Then
+        # nothing of his is in front, only the cover, and keeping the focus there would leave the restarted game
+        # without it (Minecraft pauses itself). So the restarted helper is not told to keep the window in front.
+        sup = self.supervisor()
+        sup.start()
+        pid, _ = self.run_game(sup)
+        self.advance(10)
+        self.end_game(sup, pid, 1)
+        self.assertEqual((sup.state, sup.reason), ('STARTING', 'restarting'))
+        self.assertTrue(sup.cover)
+        self.advance(desktop.BACKOFF)
+        sup.tick()
+        self.assertEqual(len(self.runner.prisms), 2)
+        self.assertTrue(sup.launch.automatic)
+        self.assertEqual(len(self.runner.helpers), 2)
+        self.assertEqual([env.get('ARESOS_SHELL_KEEP_FOREGROUND') for _, _, env in self.runner.helpers], [None, None])
+        # A helper that fails and is started again while the cover is up: the same.
+        self.runner.helper_alive = False
+        sup.on_helper_exit(1)
+        self.advance(desktop.HELPER_RESTART)
+        sup.tick()
+        self.assertEqual(len(self.runner.helpers), 3)
+        self.assertNotIn('ARESOS_SHELL_KEEP_FOREGROUND', self.runner.helpers[-1][2])
+        # The restarted hub ends the cover as usual; nothing else about the restart changed.
+        self.in_world(sup)
+        self.assertFalse(sup.cover)
+        self.assertEqual((self.runner.covers, len(self.runner.cover_stops)), ([False], 1))
+        self.assertEqual(self.stored()['consecutive'], 1)
+
+    def test_a_restart_without_the_cover_keeps_the_window_in_front(self):
+        # Finding 3's other half: with the cover already gone, something of his may be in front (the recovery
+        # terminal after Super+Ctrl+Escape, Prism's dialog after the Prism wait, an app once the hub was ready), so
+        # the restarted helper keeps it in front exactly as before 23b (B2). The same when no cover ever started.
+        for gone in ('shortcut', 'prism wait', 'hub ready', 'never started'):
+            with self.subTest(gone=gone):
+                self.fresh(FileNotFoundError(2, 'No such file or directory') if gone == 'never started' else None)
+                sup = self.supervisor()
+                sup.start()
+                if gone == 'shortcut':
+                    self.assertEqual(sup.owner_hides_cover(), 'The startup cover is gone.')
+                elif gone == 'prism wait':
+                    self.advance(desktop.COVER_PRISM_WAIT)
+                    sup.tick()
+                pid, _ = self.run_game(sup)
+                if gone == 'hub ready':
+                    self.ready(sup)
+                    self.advance(60)
+                self.assertFalse(sup.cover)
+                self.advance(10)
+                self.end_game(sup, pid, 1)
+                self.assertEqual((sup.state, sup.reason), ('STARTING', 'restarting'))
+                self.advance(desktop.BACKOFF)
+                sup.tick()
+                self.assertEqual(len(self.runner.prisms), 2)
+                self.assertTrue(sup.launch.automatic)
+                self.assertEqual([env.get('ARESOS_SHELL_KEEP_FOREGROUND') for _, _, env in self.runner.helpers],
+                                 [None, '1'])
+                self.assertFalse(sup.cover)
+                self.assertEqual(self.runner.covers, [] if gone == 'never started' else [False])
+
     def test_setup_is_never_covered(self):
         shutil.rmtree(self.world)
         sup = self.supervisor()
@@ -2550,6 +2635,45 @@ class CoverTest(Base):
         self.assertEqual((sup.state, sup.reason), ('AUTH_REQUIRED', 'auth'))
         self.assertEqual(self.runner.events, ['cover', 'prism', 'stop cover', 'view'])
 
+    def prism_gives_up(self, sup):
+        sup.on_prism_exit(1)
+        self.advance(desktop.PRISM_GRACE)
+        sup.tick()
+        self.assertEqual((sup.state, sup.reason), ('AUTH_REQUIRED', 'auth'))
+
+    def test_a_retry_from_auth_required_is_never_covered(self):
+        # Review 1, finding 2: AUTH_REQUIRED's retry is the moment Prism shows its sign-in ("Prism opens again"),
+        # which must be seen; the brief never covers AUTH_REQUIRED.
+        sup = self.supervisor()
+        sup.start()
+        self.advance(10)
+        self.prism_gives_up(sup)
+        self.runner.events.clear()
+        self.assertTrue(sup.retry()[0])
+        self.assertEqual((sup.state, sup.reason), ('STARTING', None))
+        self.assertEqual(self.runner.events, ['prism'])
+        self.assertFalse(sup.cover)
+        self.assertNotIn('uncover_prism', self.timers(sup))
+        # A sign-in loop: Prism gives up again, every retry stays uncovered, then the hub comes as usual.
+        self.advance(60)
+        self.prism_gives_up(sup)
+        self.assertTrue(sup.retry()[0])
+        pid = self.in_world(sup)
+        # The same for AUTH_REQUIRED kept across a supervisor restart (the keeper started a new one meanwhile).
+        self.end_game(sup, pid, 0)
+        self.assertEqual((sup.state, sup.reason), ('RECOVERY', 'quit'))
+        self.assertTrue(sup.retry()[0])
+        self.advance(10)
+        self.prism_gives_up(sup)
+        again = self.supervisor()
+        again.start()
+        self.assertEqual((again.state, again.reason), ('AUTH_REQUIRED', 'auth'))
+        self.assertTrue(again.retry()[0])
+        self.assertEqual(again.state, 'STARTING')
+        self.assertFalse(again.cover)
+        # Only the session's first start and the retry after the quit were covered; no other cover ever started.
+        self.assertEqual(self.runner.covers, [False, True])
+
     def test_recovery_stops_the_cover_before_its_window_opens(self):
         sup = self.supervisor()
         self.runner.start_prism = mock.Mock(side_effect=OSError(2, 'No such file or directory'))
@@ -2590,14 +2714,7 @@ class CoverTest(Base):
         for error in (FileNotFoundError(2, 'No such file or directory'), PermissionError(13, 'Permission denied'),
                       subprocess.SubprocessError('Exception occurred in preexec_fn.')):
             with self.subTest(error=error):
-                shutil.rmtree(self.paths.home)
-                shutil.rmtree(self.paths.runtime)
-                os.makedirs(self.paths.home)
-                os.makedirs(self.paths.runtime)
-                desktop.provision(self.paths, self.lock)
-                make_world(self.paths, self.lock)
-                self.runner = FakeRunner()
-                self.runner.cover_error = error
+                self.fresh(error)
                 sup = self.supervisor()
                 self.assertEqual(self.run_session(sup), with_cover)
                 self.assertFalse(sup.cover)
@@ -2662,14 +2779,7 @@ class CoverTest(Base):
         self.assertEqual(self.runner.covers, [False])
         # Ended by the Prism wait (not by the hub 15 s later).
         self.assertEqual(self.runner.cover_stops, [started + desktop.COVER_PRISM_WAIT + desktop.COVER_STOP_WAIT])
-        shutil.rmtree(self.paths.home)
-        shutil.rmtree(self.paths.runtime)
-        os.makedirs(self.paths.home)
-        os.makedirs(self.paths.runtime)
-        desktop.provision(self.paths, self.lock)
-        make_world(self.paths, self.lock)
-        self.runner = FakeRunner()
-        self.runner.cover_error = FileNotFoundError(2, 'No such file or directory')
+        self.fresh(FileNotFoundError(2, 'No such file or directory'))
         without_cover = self.dialog_session(self.supervisor())
         self.assertEqual([step[:2] + step[3:] for step in without_cover], [step[:2] + step[3:] for step in with_cover])
         self.assertEqual((self.runner.covers, self.runner.cover_stops), ([], []))

@@ -21,12 +21,14 @@ supervisor
 The startup cover (package 23b, /usr/libexec/aresos-cover) hides Minecraft's own
 start (Prism's launch dialog, Mojang's loading screen, joining the world) for
 the session's first hub launch and the owner's retry, never for an automatic
-restart or setup. It ends when the hub is ready, when a message window has to
-be seen, when Prism has not handed the game over 25 s after its start (it may
-be waiting for him in a dialog of its own), when he presses Super+Ctrl+Escape
-for the recovery terminal (`aresos-desktop hide-cover`), and when the
-supervisor stops. It is best effort: a cover that does not start, crashes or is
-missing changes nothing else.
+restart, setup, or the retry after AUTH_REQUIRED (Prism's sign-in must be
+seen). A crash under the cover keeps it through the automatic restart, and the
+restarted hub takes the focus. It ends when the hub is ready, when a message
+window has to be seen, when Prism has not handed the game over 25 s after its
+start (it may be waiting for him in a dialog of its own), when he presses
+Super+Ctrl+Escape for the recovery terminal (`aresos-desktop hide-cover`), and
+when the supervisor stops. It is best effort: a cover that does not start,
+crashes or is missing changes nothing else.
 
 States (B2): SETUP (first start: Prism's own sign-in, then the hub is created
 with the mod's AresOS button), STARTING, IN_WORLD, AUTH_REQUIRED and RECOVERY.
@@ -1357,8 +1359,11 @@ class Supervisor:
         self.helper_restart_at = None
         self.helper_starts = [t for t in self.helper_starts if self.clock() - t < HELPER_BUDGET[1]] + [self.clock()]
         env = session_environment(self.environ)
-        if launch.automatic:
-            # B2: after a crash the restored hub waits below the app in front (the helper keeps it in front).
+        if launch.automatic and not self.cover:
+            # B2: after a crash the restored hub waits below the app in front (the helper keeps it in front). Under
+            # the startup cover (a crash before the hub was ready) nothing of his is in front, only the cover:
+            # keeping the focus there would leave the restarted game without it, and Minecraft pauses itself. So
+            # the hub takes the focus as at a covered start (package 23b, review 1, finding 3).
             env['ARESOS_SHELL_KEEP_FOREGROUND'] = '1'
         try:
             self.runner.start_helper(self.instance, nonce, env)
@@ -1845,7 +1850,9 @@ class Supervisor:
                        'setup' if launch.mode == 'setup' else None)
             return True, 'Minecraft is still running; the recovery state is cleared.'
         LOG.info('retry requested by the owner')
-        self.begin(cover=COVER_AGAIN)
+        # AUTH_REQUIRED's retry is the moment Prism shows its sign-in ("Prism opens again"): it must be seen, so
+        # that start is never covered (package 23b, review 1, finding 2). Every other retry says "Starting again…".
+        self.begin(cover=None if self.state == AUTH_REQUIRED else COVER_AGAIN)
         return True, f'State: {self.state}'
 
     def forget_hub(self):
