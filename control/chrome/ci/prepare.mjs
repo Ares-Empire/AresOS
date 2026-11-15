@@ -1,4 +1,6 @@
 import fs from 'node:fs';
+import path from 'node:path';
+import {execFileSync} from 'node:child_process';
 import {instrumentLatencyBackground,instrumentLatencyReader} from './latency-instrument.mjs';
 import {instrumentOwnerGuard} from './owner-evidence.mjs';
 import {generateKeyPairSync} from 'node:crypto';
@@ -29,9 +31,13 @@ if(process.env.INJECTION_PROBE!=='true'){
 }
 const result=packageExtension(extension,'/workspace/.work/20-package',pair.privateKey.export({type:'pkcs8',format:'pem'}));
 fs.writeFileSync('/out/extension.json',JSON.stringify({id:result.id,version:result.version}));
-fs.mkdirSync('/var/lib/aresos-control',{recursive:true});
-fs.writeFileSync('/var/lib/aresos-control/chrome-excluded-sites.json',JSON.stringify({format:1,hosts:['approval.test']}),{mode:0o640});
-fs.chownSync('/var/lib/aresos-control/chrome-excluded-sites.json',0,1001);
+// The list goes where the runtime under test reads it, asked of its own exclusions.py: the latency pair runs this
+// harness over an older runtime too, which read the list from /etc before 18c-b moved it to /var/lib.
+const excludedSites=execFileSync('python3',['-B','-c','from aresos_control.chrome.exclusions import SETTING;print(SETTING)'],{cwd:'/workspace',env:{...process.env,PYTHONPATH:'/workspace/control'},encoding:'utf8'}).trim();
+if(!/^\/[a-z0-9/._-]+\/chrome-excluded-sites\.json$/.test(excludedSites))throw Error('unexpected excluded-sites path: '+excludedSites);
+fs.mkdirSync(path.dirname(excludedSites),{recursive:true});
+fs.writeFileSync(excludedSites,JSON.stringify({format:1,hosts:['approval.test']}),{mode:0o640});
+fs.chownSync(excludedSites,0,1001);
 fs.mkdirSync('/etc/opt/chrome/native-messaging-hosts',{recursive:true});
 fs.writeFileSync('/etc/opt/chrome/native-messaging-hosts/org.aresos.chrome.json',JSON.stringify({name:'org.aresos.chrome',description:'Synthetic test host',path:'/usr/libexec/aresos-control/chrome/host',type:'stdio',allowed_origins:[`chrome-extension://${result.id}/`]}));
 if(process.env.INSTALL_MODE === 'policy') {

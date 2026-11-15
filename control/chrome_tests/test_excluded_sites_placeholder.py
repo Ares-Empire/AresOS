@@ -6,6 +6,10 @@ service's validator refuses. Until root writes a format 1 list, every Chrome
 read and action must answer chrome_settings_unavailable and reach no page.
 """
 from pathlib import Path, PurePosixPath
+import os
+import re
+import shutil
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -22,6 +26,7 @@ ROOT = Path(__file__).resolve().parents[2]
 WORK = ROOT / '.work/20-chrome'; WORK.mkdir(parents=True, exist_ok=True)
 TMPFILES = ROOT / 'control/chrome/packaging/aresos-control-chrome.tmpfiles'
 UNIT = ROOT / 'control/packaging/aresos-toold.service'
+PREPARE = ROOT / 'control/chrome/ci/prepare.mjs'
 FOLDER = '/var/lib/aresos-control'
 READ = 'aresos_control.chrome.exclusions.Boundary.read'
 MESSAGE = ('Chrome refuses reads and actions: its owner-only excluded-sites setting is not set up yet, or is missing, '
@@ -73,6 +78,60 @@ class Placeholder(unittest.TestCase):
             with self.subTest(path=str(path)):
                 self.assertFalse(path == folder or path in folder.parents or folder in path.parents,
                                  'The tool service must never be able to write its own excluded-sites list.')
+
+
+class CiInstall(unittest.TestCase):
+    """CI writes the list where the runtime under test reads it, never at a path of its own.
+
+    The latency pair runs this harness over an older runtime as well, whose exclusions.py read the list from
+    /etc. With the path written into prepare.mjs that leg's tools answered chrome_settings_unavailable and the
+    extension never counted as connected (run 43705955018).
+    """
+    OLD = '/etc/aresos/control/chrome-excluded-sites.json'
+
+    def prepare(self):
+        return PREPARE.read_text()
+
+    def ask(self, tree):
+        # The exact command prepare.mjs runs, against the given control/ tree.
+        found = re.findall(r"execFileSync\('python3',\[('-B','-c','[^']+')\]", self.prepare())
+        self.assertEqual(len(found), 1)
+        args = [part.strip("'") for part in found[0].split("','")]
+        with tempfile.TemporaryDirectory() as folder:
+            done = subprocess.run(['python3', *args], cwd=folder, capture_output=True, text=True, timeout=60,
+                                  env={'PATH': os.environ.get('PATH', '/usr/bin:/bin'), 'PYTHONPATH': str(tree)})
+        self.assertEqual(done.returncode, 0, done.stderr)
+        return done.stdout.strip()
+
+    def guard(self, path):
+        pattern = re.search(r"if\(!/(.+)/\.test\(excludedSites\)\)throw", self.prepare()).group(1)
+        return re.fullmatch(pattern, path) is not None
+
+    def test_prepare_names_no_path_for_the_list(self):
+        text = self.prepare()
+        for literal in ['/var/lib/aresos-control', '/etc/aresos/control', 'chrome-excluded-sites.json\'']:
+            self.assertNotIn(literal, text)
+        self.assertIn("fs.writeFileSync(excludedSites,JSON.stringify({format:1,hosts:['approval.test']}),{mode:0o640});", text)
+        self.assertIn('fs.chownSync(excludedSites,0,1001);', text)
+
+    def test_the_current_runtime_gets_the_list_at_its_own_path(self):
+        self.assertEqual(self.ask(ROOT / 'control'), exclusions.SETTING)
+        self.assertTrue(self.guard(exclusions.SETTING))
+
+    def test_an_older_runtime_gets_the_list_where_it_reads_it(self):
+        source = ROOT / 'control/aresos_control'
+        with tempfile.TemporaryDirectory() as folder:
+            tree = Path(folder)
+            shutil.copytree(source, tree / 'aresos_control', ignore=shutil.ignore_patterns('__pycache__'))
+            module = tree / 'aresos_control/chrome/exclusions.py'
+            text = module.read_text()
+            line = "SETTING = '" + exclusions.SETTING + "'"
+            self.assertEqual(text.count(line), 1)
+            module.write_text(text.replace(line, "SETTING = '" + self.OLD + "'"))
+            self.assertEqual(self.ask(tree), self.OLD)
+        self.assertTrue(self.guard(self.OLD))
+        self.assertFalse(self.guard('chrome-excluded-sites.json'))
+        self.assertFalse(self.guard('/var/lib/aresos-control/other.json'))
 
 
 class UnconfiguredChrome:
