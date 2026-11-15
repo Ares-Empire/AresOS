@@ -1,4 +1,119 @@
-# Brief 20 main fix: progress
+# Brief 20 main fix: report
+
+Brief `briefs/20-main-fix.md`, branch `pkg/20-main-fix`, PR #68. Builders: steps 1 and 2 Claude Fable 5.2, steps 3 to 5
+Claude Opus 5.5 (2026-11-15). Lead: `mac-aresos-control`. Claude builders can't write `REPORT.md`, so the lead made this
+report from their `PROGRESS.md`. This first part is the summary. The builders' step-by-step record follows it unchanged,
+newest step first.
+
+## Outcome
+
+Main went red after PR #27 because four jobs that only ran on main had never run before, plus one latency tail. All of
+it is fixed or explained, and every job now runs on pull requests too.
+
+- **H1, the qualification layout imports its test modules.** `test_state_crashes`' child process now uses absolute
+  paths built from `__file__`, runs with the temporary root as its working directory and a clean `PYTHONPATH`. "Full
+  Python file partition" still covers every file.
+- **H2, no dependence on GitHub's anonymous quota in CI.** CI fetches the real bundle with the job's token and runs
+  the product's unchanged anonymous `verify()` through a recorded-response opener. That opener answers only the
+  product's own URL and refuses any request that carries a token. The product's fetch is unchanged: the anonymous API
+  answer is never evidence, and `gh attestation verify` checks signature and identity under main's policy. New
+  product tests cover 403, 429, 5xx and timeouts: the held record stays, the service keeps running, and the next try
+  comes a day later.
+- **H3, the first publish.** With no data branch on origin, `prepare` takes the first-record path: the shipped
+  baseline plus this run's entries, still append-only. `publish` verifies the candidate against the bundle the attest
+  step just made. There is no unattested path.
+- **H4, no main-only jobs.**
+  - Every job runs on pull requests and branch dispatches. Only the two steps that write to GitHub are main-only, and a
+    test allows exactly those (`control/chrome_tests/workflow_steps.py` parses every YAML form of `if:` and `run:`).
+  - In pull-request mode, publish goes to a local bare remote.
+  - PR bundles attest on `refs/pull/N/merge`, and a CI case proves main's policy refuses them.
+  - `qualify.py` refuses to publish to origin or notify off main, and refuses `--remote`, `--ref` and `--held-bundle`
+    for origin.
+- **H5, the `latency (audit)` tail on main.** The cause is the runner's disk: synchronous store writes (journal fsync
+  and SQLite commits) stall on it. Nothing in the code differs on main. Changes:
+  - CI-only stages `store_write` and `journal_fsync` now show where a tail sits;
+  - the audit profile's two harness log streams moved to a tmpfs.
+
+  The ceilings, the sample counts and the median-or-p95 rule are unchanged.
+- **H6, the `typed-early` popup row is deterministic.** It opens a same-origin `/popup-gate` first document and holds
+  no document, which avoids the `Page.enable` deadlock.
+- **Review fixes:**
+  - **F1:** off main, the head build is qualified again.
+  - **F2:** `gh api`'s 404 is tolerated, with retries.
+  - **F3:** off main, the repeat check is one-way. A pull request that does worse than the held record fails. One
+    that does better warns and keeps the held entry. On main, any conflicting repeat still fails.
+  - **Security NOTEs 1 to 4:** the refusal cases count only their own named refusal, and any other exception fails the
+    job.
+
+## Final runs (head `bf0bf6e4`, code `496018a5`)
+
+- **Local preflight on `496018a5`:** 335 Python and 428 Node tests, and 523 removal mutations rejected with every
+  baseline passing (`records/final-local-496018a5.json`). No browser was started on the Mac.
+- **`Control Chrome qualification` 43687610978** (pull request, run 5 of 6): 34 of 34 jobs green. The PR-mode publish
+  reached only the local bare remote, and main's policy refused the bundle attested on `refs/pull/68/merge`.
+- **`Control Chrome` 43687610984** (pull request, the brief's run 3 of 3): 27 of 28 jobs green on the first attempt.
+  Only `latency (plain)` failed, on lead-ceiling misses with no regression against the reference. The lead re-ran that
+  one job (attempt 2, job 132750730195): green, with `navigate` p95 51 / 54 / 69 ms and `free_click` 582 / 586 / 596 ms
+  (fresh / history-1000 / history-4000) on a runner whose slowdown factor was 1.24 to 1.27. `latency (audit)` passed
+  in both attempts.
+
+### The `latency (plain)` tail on attempt 1 (the lead's attribution)
+
+The runtime is identical to step 4's green run 43678600076: none of step 5's files is a runtime build input. The
+medians stayed within about 5 ms of step 4. Only the tail rose: p95 for `navigate` was 212 ms fresh and 226 ms at
+history-4000, against 150; `free_click` at history-4000 was 785 ms against 750. Step 4's p95s were 38, 53 and 584.
+
+H5's stages (`latency-service.jsonl` in artifact `chrome-latency-43687610984-1-current-plain`) put every slow sample's
+extra time inside the service's store write. The bridge and the extension were normal:
+
+| Sample | Service total | Store write | Journal fsync | Bridge round trip |
+|---|---|---|---|---|
+| navigate, fresh 15 | 372 | 341 | 1 | 28 |
+| navigate, fresh 14 | 255 | 222 | 1 | 30 |
+| navigate, history-4000 52 | 293 | 252 | 245 | 25 |
+| navigate, history-4000 17 | 242 | 198 | 1 | 28 |
+| free_click, fresh 16 | 1,013 | 452 | 442 | 558 |
+| free_click, history-4000 17 | 849 | 281 | 33 | 552 |
+
+All values are in ms. The medians of the service time outside the bridge were 11 to 30 ms. Where `journal_fsync` is
+small, the stall is in SQLite's own commit sync on the same disk.
+
+So H5's finding holds, now measured directly: the gate's p95 is exposed to the shared runner's disk sync latency, on
+the plain profile too. The product makes 2 to 10 fsyncs per writing call (H5's count), and on a local SSD each returns in about
+0.03 ms (H5's measurement on the Mac). Changing that exposure (for example a store on tmpfs plus a separate fsync budget, or measuring the
+sync stages apart from the ceilings) changes what the gate measures. It is left to the tools lead, `linux-tools`
+(`docs/control/TOOLS-HANDOFF.md`).
+
+## Reviews
+
+Every review was by a fresh agent that didn't build the code.
+
+| File | Reviewer | Range | Verdict |
+|---|---|---|---|
+| `REVIEW-1.md` | package, Claude Opus | to `34c2e888` | FIX: F1, F2 (fixed in step 4) |
+| `SECURITY-1.md` | security, Claude Fable | to `34c2e888` | SAFE, NOTEs 1 to 4 (folded in, steps 3 and 4) |
+| `REVIEW-RECHECK-2.md` | package | `34c2e888` to `5bc7e4aa` | FIX: F3 (fixed in step 5) |
+| `SECURITY-RECHECK-2.md` | security | `34c2e888` to `5bc7e4aa` | SAFE, NOTE on any-exception refusals (fixed in step 5) |
+| `REVIEW-RECHECK-3.md` | package | `5bc7e4aa` to `bf0bf6e4` | SAFE |
+| `SECURITY-RECHECK-3.md` | security | `5bc7e4aa` to `bf0bf6e4` | SAFE, one optional NOTE |
+
+## Left open, none blocking
+
+- **Fork pull requests** (package review, (d)): forks get no `id-token`, so `delivery-attestation` and the publish job
+  fail on them. They fail closed, and nothing is published from a fork.
+- **First-record path without the repeat check** (both re-checks agree it's safe): with no data branch on origin, a
+  duplicate pair fails closed with "Repeated qualification key". It is reachable only after someone deletes the data
+  branch. If that error ever appears, that is the cause.
+- **`::warning::` on stdout** (security re-check 3, optional): `qualify.py` about :248. It is harmless because
+  `prepare`'s output is the candidate file, but stderr would be safer if `prepare` is ever piped.
+- **Latency gate and the runner's disk:** see above. It belongs to `linux-tools`.
+
+**Runs used:** `Control Chrome` 3 runs plus one re-run of a single job (43663583962, 43678600076, 43687610984);
+qualification 5 of 6 (two branch dispatches, three pull-request runs).
+
+---
+
+# The builders' record
 
 Builder step 1 (Claude Fable 5.2, 2026-11-15): diagnoses and the H1 fix. Builder step 2 (Claude Fable 5.2, 2026-11-15):
 H2, H3, H4, H5 built on the lead's decisions. Builder step 3 (Claude Opus 5.5, 2026-11-15): H6 and security NOTEs 1–3.
