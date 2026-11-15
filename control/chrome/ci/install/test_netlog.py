@@ -62,6 +62,19 @@ class Scan(unittest.TestCase):
         # The probe's ID at another server is not its update check.
         self.assertEqual(kinds(log(request(2, CHECK), request(3, 'http://localhost:9/?x=' + PROBE))), ['control'])
 
+    def test_a_request_counts_once_by_the_event_the_log_names_as_its_start(self):
+        # Another kind of event that also carries the address and a method, under a source of its own.
+        echo = {**request(7, CHECK), 'type': 9}
+        self.assertEqual(netlog.request_start(log(request(2, CHECK))), 2)
+        self.assertEqual(netlog.scan(log(request(2, CHECK), echo, request(3, CHECK)), OURS, PROBE, ADDRESS)['probe_checks'], 2)
+        self.assertEqual(kinds(log(request(2, CHECK), echo)), ['control'])
+        # A cut-off log still names its constants on the first line.
+        self.assertEqual(netlog.request_start(log(request(2, CHECK), tail=',\n{"params":{"url":"http')), 2)
+        # A log without constants is read by the method.
+        bare = '{"events": [\n' + ',\n'.join(map(json.dumps, (request(2, CHECK), echo))) + ']}\n'
+        self.assertIsNone(netlog.request_start(bare))
+        self.assertEqual(netlog.scan(bare, OURS, PROBE, ADDRESS)['probe_checks'], 2)
+
     def test_a_log_cut_off_mid_write_is_still_read(self):
         cut = ',\n{"params":{"url":"https://update.googleapis.com/serv'
         self.assertEqual(kinds(log(request(1, FILE), request(2, CHECK), request(3, CHECK), tail=cut)), [])
@@ -91,6 +104,15 @@ class Baseline(unittest.TestCase):
         self.assertEqual(netlog.added(self.scan(request(1, self.STORE), post), baseline), ['https://update.googleapis.com/service/update2/json'])
         named = request(2, self.STORE + '&x=id%3D' + OURS + '%26uc')
         self.assertEqual(netlog.added(self.scan(request(1, self.STORE), named), baseline), [OURS])
+
+    def test_a_mention_the_events_do_not_account_for_counts_as_added(self):
+        cut = ',\n{"params":{"url":"https://clients2.google.com/service/update2/crx?os=li'
+        whole = (request(1, self.STORE), request(8, CHECK), request(9, CHECK))
+        baseline = netlog.scan(log(*whole), OURS, PROBE, ADDRESS)
+        self.assertEqual(netlog.added(netlog.scan(log(*whole, tail=cut), OURS, PROBE, ADDRESS), baseline), [netlog.OUTSIDE])
+        # Also when the baseline's own log was cut the same way.
+        self.assertEqual(netlog.added(netlog.scan(log(*whole, tail=cut), OURS, PROBE, ADDRESS), netlog.scan(log(*whole, tail=cut), OURS, PROBE, ADDRESS)),
+                         [netlog.OUTSIDE])
 
 
 if __name__ == '__main__':

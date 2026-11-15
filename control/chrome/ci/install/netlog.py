@@ -42,6 +42,21 @@ def events(text):
     return found
 
 
+def request_start(text):
+    """Chrome's number for the event that starts a request, from the log's own constants; None when it names none.
+
+    The constants are the file's first line, also in a log that ends mid-list.
+    """
+    for candidate in (text, text.split('\n', 1)[0].strip().rstrip(',') + '}'):
+        try:
+            number = json.loads(candidate)['constants']['logEventTypes']['URL_REQUEST_START_JOB']
+        except (ValueError, KeyError, TypeError):
+            continue
+        if isinstance(number, int):
+            return number
+    return None
+
+
 def _strings(value):
     if isinstance(value, str):
         yield value
@@ -58,7 +73,7 @@ def scan(text, extension_id, probe_id, probe_address):
     """Read one log. Returns what was found; `problems` says whether that is a pass."""
     named, service, checks, hosts, asks = [], [], set(), set(), set()
     counted_id = counted_service = 0
-    found = events(text)
+    found, start = events(text), request_start(text)
     for event in found:
         params = event.get('params')
         for value in _strings(params):
@@ -76,8 +91,10 @@ def scan(text, extension_id, probe_id, probe_address):
         if isinstance(url, str):
             parts = urlsplit(url)
             hosts.add(parts.hostname or parts.scheme + ':')
-            # The event that starts a request carries its method; later events of the same request repeat the address.
-            if 'method' in params and url.startswith(probe_address) and probe_id in url:
+            # One request is one source. Its start is the event the log's constants name; a log without
+            # them is read by the method that only a start carries. Later events repeat the address.
+            starts = 'method' in params if start is None else event.get('type') == start
+            if starts and url.startswith(probe_address) and probe_id in url:
                 checks.add((event.get('source') or {}).get('id'))
     # Every occurrence in the file must be one the events account for, whatever else the log holds.
     if text.count(extension_id) > counted_id:
@@ -95,7 +112,9 @@ def added(result, baseline):
     profile whatever our policy says, so the brief's fallback applies: compared
     with a run of the probe alone, ours must add none.
     """
-    return sorted(set(result['update_service_asks']) - set(baseline['update_service_asks']))
+    more = set(result['update_service_asks']) - set(baseline['update_service_asks'])
+    # A mention the events don't account for (a line cut off mid-write) can't be compared: it counts as added.
+    return sorted(more | ({OUTSIDE} & set(result['update_service'])))
 
 
 def problems(result, checks=2):
