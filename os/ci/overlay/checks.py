@@ -333,6 +333,86 @@ def memory_pressure():
                 survivors=after, supervisor_state=state['state'], evidence=evidence)
 
 
+# Package 23b: the startup cover in the real session. A fresh VM is in SETUP (no account, no hub), where the
+# supervisor never shows it, so the check starts it by hand as ares in the labwc session, over the SETUP view and
+# the recovery terminal; the host takes the screenshot between 'cover' and 'cover-stop'.
+COVER = {}
+COVER_TOP, COVER_BOTTOM = (26, 25, 30), (13, 13, 16)  # #1a191e, #0d0d10
+
+
+def ppm_corners(path):
+    """Top-left and bottom-right pixels of a binary PPM (grim -t ppm)."""
+    data = pathlib.Path(path).read_bytes()
+    fields, offset = [], 0
+    while len(fields) < 4:
+        while data[offset:offset + 1].isspace():
+            offset += 1
+        end = offset
+        while not data[end:end + 1].isspace():
+            end += 1
+        fields.append(data[offset:end])
+        offset = end
+    width, height, pixels = int(fields[1]), int(fields[2]), data[offset + 1:]
+    last = ((height - 1) * width + width - 1) * 3
+    return tuple(pixels[0:3]), tuple(pixels[last:last + 3])
+
+
+def near(pixel, expected):
+    return all(abs(a - b) <= 3 for a, b in zip(pixel, expected))
+
+
+def cover_start():
+    supervisor = [r for r in processes() if r['uid'] == 1001
+                  and r['cmdline'][1:3] == ['/usr/libexec/aresos-desktop', 'supervise']]
+    assert len(supervisor) == 1, supervisor
+    display = supervisor[0]['env'].get('WAYLAND_DISPLAY')
+    assert display, 'the supervisor has no WAYLAND_DISPLAY'
+    env = [*AS_ARES, f'WAYLAND_DISPLAY={display}']
+    COVER['process'] = subprocess.Popen([*env, '/usr/libexec/aresos-cover'], stdin=subprocess.DEVNULL,
+                                        stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    shot = pathlib.Path('/tmp/aresos-ci-cover.ppm')
+    corners = None
+    for _ in range(60):
+        time.sleep(0.5)
+        assert COVER['process'].poll() is None, COVER['process'].communicate()[0]
+        # grim writes the picture to stdout as bytes (run() would decode it as text).
+        result = subprocess.run([*env, '/usr/bin/grim', '-t', 'ppm', '-'], capture_output=True, timeout=60)
+        if result.returncode == 0:
+            shot.write_bytes(result.stdout)
+            corners = ppm_corners(shot)
+            if near(corners[0], COVER_TOP) and near(corners[1], COVER_BOTTOM):
+                break
+    else:
+        raise AssertionError(f'the cover never covered the screen (corners {corners})')
+    pids = [r['pid'] for r in processes() if r['uid'] == 1001 and r['cmdline'][1:2] == ['/usr/libexec/aresos-cover']]
+    assert len(pids) == 1, pids
+    COVER['pid'] = pids[0]
+    row = next(r for r in processes() if r['pid'] == pids[0])
+    assert row['env'].get('WAYLAND_DISPLAY') == display, row['env']
+    return dict(returncode=0, pid=pids[0], corners=corners, display=display, stdout='COVER_UP corners %s' % (corners,))
+
+
+def cover_stop():
+    process, pid = COVER.pop('process'), COVER.pop('pid')
+    started = time.monotonic()
+    os.kill(pid, 15)
+
+    def ended():
+        try:
+            return pathlib.Path(f'/proc/{pid}/stat').read_text().rsplit(')', 1)[1].split()[0] == 'Z'
+        except OSError:
+            return True
+    while not ended() and time.monotonic() - started < 10:
+        time.sleep(0.02)
+    took = time.monotonic() - started
+    # runuser hands on the cover's own exit status.
+    output = process.communicate(timeout=10)[0].decode(errors='replace')
+    assert process.returncode == 0 and took < 2.0, (process.returncode, took, output)
+    assert not pathlib.Path(f'/proc/{pid}').exists()
+    return dict(returncode=0, seconds=round(took, 3), output=output[-2000:],
+                stdout=f'COVER_STOPPED by SIGTERM in {took:.3f} s, exit 0')
+
+
 def check(action, request):
     if action == 'policy':
         wait_session()
@@ -392,6 +472,10 @@ def check(action, request):
         assert not ran.exists(), ('a shadowing program ran', ran.read_text())
         result['shadowed'] = names
         return result
+    if action == 'cover':
+        return cover_start()
+    if action == 'cover-stop':
+        return cover_stop()
     if action == 'export':
         return dict(returncode=0, files={name: export_bytes(pathlib.Path(path).read_bytes())
                                        for name, path in EXPORTS.items() if pathlib.Path(path).exists()})
