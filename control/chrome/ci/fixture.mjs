@@ -4,6 +4,7 @@ import {compatibilityScript} from './compatibility.mjs';
 import {popupPage} from './popups.mjs';
 import {passwordPage} from './password-fixtures.mjs';
 import {reviewPage} from './review-fixtures.mjs';
+import {efficiencyPage} from './efficiency-fixtures.mjs';
 // A React-style controlled field: the page keeps its default (the value
 // attribute) in step with every edit, as React does, and Continue resets both.
 // It reports a synced, non-empty field and the reset to the receiver.
@@ -49,6 +50,7 @@ export async function fixtures(options={}) {
     let body,script='';
     if(kind==='latency'){body='<textarea aria-label="Draft">Synthetic latency draft</textarea><button type="button">Continue</button><button type="button">Send</button>';script="document.querySelectorAll('button')[0].onclick=()=>{if(navigator.clipboard)navigator.clipboard.writeText('Synthetic latency clipboard').catch(()=>{});};document.querySelectorAll('button')[1].onclick=()=>{const draft=document.querySelector('textarea');fetch('/receive?case=latency-'+"+JSON.stringify(url.searchParams.get('id'))+",{method:'POST',body:draft.value});draft.defaultValue='';draft.value='';};";}
     else if(kind==='destination-sink'){res.end(page('<p>Destination sink</p>'));return;}
+    else if(kind.startsWith('efficiency-')){const efficiency=efficiencyPage(url);if(!efficiency){res.writeHead(404);res.end('Unknown efficiency fixture');return;}({body,script}=efficiency);}
     else if(kind==='review-page'){const review=reviewPage(url);if(!review)throw Error('Unknown review fixture');({body,script}=review);}
     else if(['popup-opener','popup-child'].includes(kind)){
       // A held popup document is answered only when the driver releases it
