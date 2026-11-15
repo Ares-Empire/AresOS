@@ -60,15 +60,24 @@ the base CI container (`test_integration.Integration.test_idle_service_wakes_at_
 | | Run | Switches in 60 s | Per second | Threads |
 |---|---|---|---|---|
 | Before (0.1 s loop; items 1, 2, 4, 5 in) | 43668906122 | 597 | 9.95 | 1 |
-| After | AFTER_RUN | AFTER_SWITCHES | AFTER_RATE | 1 |
+| After (deadline loop) | 43669664617 | 1 | 0.02 | 1 |
 
 ## Runs
 
-RUNS_TABLE
+| Run | Workflow | Commit | Result |
+|---|---|---|---|
+| 43668437092 | Control boundary (dispatch) | 05c740cf | green: process chains recorded and pinned, 17 cases |
+| 43668906122 | Control base (dispatch) | 0d27e8d2 (before item 3) | failed as expected: idle 9.95/s; also the `test_review22` timeout pin (pin updated in eaf3eaab) |
+| 43669664617 | Control base (PR) | 386e14ea | idle 0.02/s; **23 integration tests timed out in tearDown**: SIGTERM no longer woke the minute-long select (PEP 475 restarts it). Fixed: `Daemon.stop()` writes to a wake-up pipe in the selector (checked on the laptop: real SIGTERM ends `serve()` at once) |
+| 43669664632 | Control boundary (PR) | 386e14ea | **green**: chains pinned, and the real `usage` code under Claude Code: `stop_used` true exactly in the 7 cases with a tool call; DAA `[true, true, false]` (its new session, denied, stays quiet) |
+| see the PR | all six control workflows | final commit | running at hand-off; the lead checks them (base, boundary, Mail, Chrome with the latency gate, polkit, qualification) |
+
+Lesson for the next step: every push to the PR, even of this file, restarts all six control workflows (the
+`pull_request` path filter looks at the whole PR diff) and cancels the running ones.
 
 ## Verified
 
-- **run** (laptop, `PYTHONPATH=.. python3 -m unittest …` in `control/tests`): `test_service_fixes` 24 tests OK
+- **run** (laptop, `PYTHONPATH=.. python3 -m unittest …` in `control/tests`): `test_service_fixes` 25 tests OK
   (items 1, 2, 3, 6), `test_files.Files.test_outside_refusal…` OK, `test_unit` 2 OK, `test_review22_protocol` OK,
   `test_strict_json.StrictJSON` OK; `control/boundary`: `test_interactive.ProcessChains` 3 OK. The new tests fail on
   today's code (the modules or names they import don't exist, the texts and the unit differ, the idle loop measures
@@ -125,7 +134,7 @@ RUNS_TABLE
    start-limit failure needs `systemctl reset-failed` first (README says so).
 7. **Idle loop:** 60 s (the existing maintenance period) is the longest sleep, so a suspend or clock change delays a
    wall-clock expiry by at most a minute; submission checks the expiry itself. Deferred notices retry every second.
-   Retention's day-long limits run on the periodic passes.
+   Retention's day-long limits run on the periodic passes. SIGTERM wakes the sleep through a pipe (`Daemon.stop()`).
 
 ## PLAN-GAPs
 
@@ -135,4 +144,12 @@ RUNS_TABLE
 
 ## Left, in order
 
-LEFT
+1. CI on the final commit: all six control workflows green, especially base (the SIGTERM fix; idle ≤ 1/s) and
+   Chrome's latency gate (item 3 touches the loop that serves Chrome; the 525 ms hold must stay). If the latency
+   gate moves: stop and report (brief).
+2. Then mark PR #69 ready; the fresh review; the lead hands section "For 18c's next VM pass" to 18c.
+3. The last step deletes this file after the lead has committed its text as the report.
+
+What the code doesn't show: the wake-up pipe exists only because the loop now sleeps long (SIGTERM ignored for up to
+a minute otherwise); `Engine.next_deadline` must stay cheap (it runs before every select); the boundary suite's
+`process_chain.py` is a kept pin, not a diagnostic.
