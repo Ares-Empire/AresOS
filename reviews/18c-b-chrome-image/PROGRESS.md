@@ -73,12 +73,23 @@ Next: step 1b (`record_build.py`), then step 2 (the install proof in the contain
   `test_no_private_key_in_what_is_returned_written_or_left_behind` (tried once, not committed).
 - **Not run:** `pack-crosscheck.test.mjs` and every other `*.mjs` (no node on the laptop); the container; the
   full Chrome and Control suites (GitHub runs them). `test_committed`, `test_fault_surface`, `test_sites` and
-  `control/tests`' `test_policy_sources`, `test_slim_policy`, `test_unit` were started locally and had not
-  finished when this was written: take their result from the GitHub runs below.
+  `control/tests`' `test_policy_sources`, `test_slim_policy`, `test_unit` were started locally and stopped
+  unfinished (slow suites; the laptop is shared): take their result from the GitHub runs below.
 
 ## CI runs
 
-See the end of this file.
+Draft pull request **#76**. Started by its first push, on head `265caa52` (queued when this was written; nobody
+waited for them, so the next agent reads the results first):
+
+| Run | Workflow |
+|---|---|
+| 43705955018 | Control Chrome (runs the two new `control/chrome_tests` files and CI's install with the list at its new path) |
+| 43705955046 | Control Chrome qualification |
+| 43705955015 | Control base |
+| 43705954960 | Control Mail |
+| 43705954998 | Control boundary |
+
+Nothing on GitHub runs `control/chrome/ci/install/` yet (step 2).
 
 ## JUDGMENT-CALL
 
