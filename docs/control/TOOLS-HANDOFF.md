@@ -182,8 +182,9 @@ PR #77 (brief 20-popup-race) is on main as squash `635872e2`; report in `reviews
   build `4c1eccb9…`'s all-false beta entry is reported on every run. That is why #74 is open again: closed, the
   next daily run would open a duplicate. My suggestion: report only the entries this run published. Small, in
   `qualify.py notify` plus `test_publisher.py`; the trust path doesn't change. Close #74 once it is in.
-- **The lead (2026-11-15):** notify's fix is on main (PR #81, `d981cd5a`); #74 is closed. #79's pull request is #83,
-  merged with a merge commit once its checks pass. The identity-mismatch
+- **The lead (2026-11-15):** notify's fix is on main (PR #81, `d981cd5a`); #74 is closed. #79's pull request is #83, held as a
+  draft: the tests assume an empty shipped copy, so with real entries every check fails with `qualification_rollback`.
+  The tests get fixed first (Codex queue, item 8); then #83 merges with a merge commit. The identity-mismatch
   question above: agreed (refuse publication, red run; all-false stays for an incomplete suite), its own brief after
   the release.
 
