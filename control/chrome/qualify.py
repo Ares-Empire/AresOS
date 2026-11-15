@@ -45,7 +45,16 @@ def packages(data):
     return found
 
 
-def plan(registry, versions, record, head, build):
+def plan(registry, versions, record, head, build, *, requalify_head=False):
+    """The (build, version, channel) pairs to qualify, each twice.
+
+    A pair the held record covers is skipped. requalify_head (pull requests and
+    branch runs, never main) qualifies the head build again even when the held
+    record covers it: build.py hashes only the installed runtime, so a change to
+    the test driver, ci/, qualify.py or the workflows keeps main's build hash and
+    would otherwise first run in the runtime/driver layout on main (main fix F1).
+    prepare then skips an identical repeat and refuses a conflicting one.
+    """
     if type(registry) is not dict or set(registry) != {'format', 'builds'} or type(registry['format']) is not int or registry['format'] != 1 or type(registry['builds']) is not list:
         raise ValueError('Invalid shipped build registry')
     identities = set()
@@ -63,11 +72,12 @@ def plan(registry, versions, record, head, build):
     builds = [{'commit':head,'build':build}, *shipped]
     validate_record(record)
     matrix, seen = [], set()
-    for item in builds:
+    for index, item in enumerate(builds):
         validate_identity(item)
         for channel, package in versions.items():
             key = item['build'],package['version'],channel
-            if key in seen or any((entry['build'],entry['version'],entry['channel']) == key for entry in validate_record(record)['entries']):
+            held = any((entry['build'],entry['version'],entry['channel']) == key for entry in validate_record(record)['entries'])
+            if key in seen or (held and not (requalify_head and index == 0)):
                 continue
             seen.add(key)
             for repeat in [1,2]:
@@ -106,6 +116,9 @@ def git(repo, *arguments, check=True):
     return subprocess.run(['git','-C',str(repo),*arguments],check=check,capture_output=True,text=True).stdout.strip()
 
 
+NOT_LISTED = 'No attestation is listed for the held qualification record.'
+
+
 def bundle_from_api(path, runner=subprocess.run):
     """Fetch the held record's attestation list with the job's gh login.
 
@@ -113,14 +126,22 @@ def bundle_from_api(path, runner=subprocess.run):
     GitHub's anonymous quota with other tenants, so the workflow uses its own
     token for the transport. The response is never evidence: gh attestation
     verify checks the signatures, the workflow identity and the source ref.
+    The API answers 404 for a digest it lists no attestation for (gh: "Not
+    Found (HTTP 404)"), the same condition as an empty list; any other gh
+    failure propagates.
     """
     path = Path(path)
     digest = hashlib.sha256(path.read_bytes()).hexdigest()
-    result = runner(['gh', 'api', f'repos/{REPOSITORY}/attestations/sha256:{digest}?per_page=100'],
-                    check=True, capture_output=True, text=True, timeout=60)
+    try:
+        result = runner(['gh', 'api', f'repos/{REPOSITORY}/attestations/sha256:{digest}?per_page=100'],
+                        check=True, capture_output=True, text=True, timeout=60)
+    except subprocess.CalledProcessError as error:
+        if '(HTTP 404)' in (error.stderr or ''):
+            raise Refused('qualification_invalid', NOT_LISTED) from error
+        raise
     attestations = json.loads(result.stdout).get('attestations')
     if not isinstance(attestations, list) or not attestations:
-        raise Refused('qualification_invalid', 'No attestation is listed for the held qualification record.')
+        raise Refused('qualification_invalid', NOT_LISTED)
     serialized = ''.join(json.dumps(attestation['bundle'], ensure_ascii=False, separators=(',', ':')) + '\n'
                          for attestation in attestations).encode('utf-8')
     if len(serialized) > DELIVERY_LIMIT:
@@ -137,6 +158,53 @@ def verify_held(path):
         verify(path, bundle=bundle)
     finally:
         bundle.unlink()
+
+
+def held_bundles(root, output, runner=subprocess.run):
+    """Pull-request mode, read-only: the held record's bundle list, fetched with the job's token.
+
+    The record is the data branch that prepare extended (its remote-tracking
+    ref), which the pull-request publish step seeds into its local bare remote.
+    That step holds no token and verifies the record from this file under the
+    unchanged main policy (held_from_file). Without a data branch nothing is
+    written: the publish takes the first-record path.
+    """
+    tracking = 'refs/remotes/origin/'+DATA_BRANCH
+    if not git(root, 'rev-parse', '--verify', '--quiet', tracking, check=False):
+        print('No data branch on origin: the pull-request publish takes the first-record path.')
+        return None
+    content = subprocess.run(['git', '-C', str(root), 'show', tracking+':'+RECORD], check=True, capture_output=True).stdout
+    (root/'.work').mkdir(exist_ok=True)
+    with tempfile.TemporaryDirectory(dir=root/'.work') as temporary:
+        held = Path(temporary)/'qualification.json'
+        held.write_bytes(content)
+        bundle = bundle_from_api(held, runner)
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_bytes(bundle.read_bytes())
+    print(f'Held record {hashlib.sha256(content).hexdigest()}: bundle list written to {output}')
+    return output
+
+
+def held_from_file(bundles):
+    """The held verifier of the token-free pull-request publish: main policy, bundles from held_bundles."""
+    def check(path):
+        if not bundles.is_file():
+            raise Refused('qualification_invalid', 'The data branch exists but no bundle list was fetched for its record.')
+        verify(path, bundle=bundles)
+    return check
+
+
+def serialized(record, on_main):
+    """Main writes the compact bytes the data branch holds, exactly as before.
+
+    Off main the candidate is indented: same content, never the same bytes as a
+    record main publishes, so a pull request's attestation never joins the
+    listing the laptop and main read for the real record (one page of 100, at
+    most DELIVERY_LIMIT bytes) even when its repeat is identical (main fix F1).
+    """
+    if on_main:
+        return json.dumps(record, separators=(',', ':'))+'\n'
+    return json.dumps(record, indent=1)+'\n'
 
 
 def prepare(repo, entries, baseline, verifier=verify_held):
@@ -256,7 +324,7 @@ def publish(root, candidate, baseline, *, remote=None, verifier=verify, bundle=N
 
 def main():
     parser=argparse.ArgumentParser()
-    parser.add_argument('command',choices=['plan','pair','prepare','publish','notify'])
+    parser.add_argument('command',choices=['plan','pair','prepare','publish','notify','held-bundles'])
     parser.add_argument('--root',default='.')
     parser.add_argument('--artifacts')
     parser.add_argument('--plan')
@@ -266,7 +334,10 @@ def main():
     parser.add_argument('--bundle',help='publish: the Sigstore bundle the attest step made for the candidate')
     parser.add_argument('--remote',help='publish: an existing local bare repository instead of origin (pull-request mode)')
     parser.add_argument('--ref',help='publish --remote only: the full ref this run attested the candidate on')
+    parser.add_argument('--held-bundle',help='publish --remote only: the held record\'s bundle list from held-bundles')
+    parser.add_argument('--output',help='held-bundles: where to write the held record\'s bundle list')
     args=parser.parse_args();root=Path(args.root)
+    on_main=os.environ.get('GITHUB_REF')=='refs/heads/main'
     if args.command=='plan':
         channels=args.channels.split(',')
         if not channels or set(channels)-{'stable','beta'} or len(set(channels))!=len(channels):
@@ -281,8 +352,11 @@ def main():
                 temporary.write(content+'\n');temporary.flush();verify_held(temporary.name)
                 held=append_only(held,json.loads(content))
         versions={channel:package for channel,package in packages(data).items() if channel in channels}
-        matrix=plan(json.loads((root/'control/chrome/builds.json').read_text()),versions,held,git(root,'rev-parse','HEAD'),build_hash(root.resolve()))
+        matrix=plan(json.loads((root/'control/chrome/builds.json').read_text()),versions,held,git(root,'rev-parse','HEAD'),build_hash(root.resolve()),requalify_head=not on_main)
         print(json.dumps(matrix));return
+    if args.command=='held-bundles':
+        if not args.output:raise ValueError('held-bundles requires --output')
+        held_bundles(root,Path(args.output));return
     if args.command=='pair':
         identity=json.loads(os.environ['QUALIFICATION_PAIR'])
         # A result file is emitted only by the complete browser suite. Missing/crashed runs fail every group.
@@ -304,7 +378,6 @@ def main():
     # local bare repository so that every step runs before the merge.
     if os.environ.get('GITHUB_REPOSITORY')!=REPOSITORY:
         raise SystemExit('Qualification publication is restricted to this repository')
-    on_main=os.environ.get('GITHUB_REF')=='refs/heads/main'
     candidate=Path(args.candidate)
     if args.command=='notify':
         if not on_main:raise SystemExit('Qualification notifications are restricted to main')
@@ -317,17 +390,18 @@ def main():
         exists=git(root,'ls-remote','--heads','origin','refs/heads/'+DATA_BRANCH)
         if not exists:
             candidate.parent.mkdir(parents=True,exist_ok=True)
-            candidate.write_text(json.dumps(append_only(baseline,{'format':1,'entries':baseline['entries']+entries}),separators=(',',':'))+'\n');return
+            candidate.write_text(serialized(append_only(baseline,{'format':1,'entries':baseline['entries']+entries}),on_main));return
         git(root,'fetch','origin',DATA_BRANCH)
         current=git(root,'show','FETCH_HEAD:'+RECORD)
         with tempfile.TemporaryDirectory(dir=root/'.work') as temporary:
             publication=Path(temporary);(publication/RECORD).parent.mkdir(parents=True)
             (publication/RECORD).write_text(current+'\n')
             result=prepare(publication,entries,baseline)
-        candidate.parent.mkdir(parents=True,exist_ok=True);candidate.write_text(json.dumps(result,separators=(',',':'))+'\n');return
+        candidate.parent.mkdir(parents=True,exist_ok=True);candidate.write_text(serialized(result,on_main));return
     if args.remote is None:
         if not on_main:raise SystemExit('Qualification publication to origin is restricted to main')
         if args.ref:raise SystemExit('Publication to origin verifies the candidate under the main policy only; --ref is for --remote')
+        if args.held_bundle:raise SystemExit('Publication to origin fetches the held bundles itself; --held-bundle is for --remote')
         remote=None
     else:
         remote=Path(args.remote)
@@ -337,7 +411,12 @@ def main():
     if not args.bundle:
         raise ValueError('publish requires the bundle the attest step made for this candidate')
     baseline=json.loads(git(root,'show','origin/main:'+RECORD))
-    publish(root,candidate,baseline,remote=remote,bundle=Path(args.bundle),ref=args.ref)
+    if args.held_bundle:
+        # The token-free pull-request step: the held record is verified from
+        # the bundle list a read-only step fetched, under main's policy.
+        publish(root,candidate,baseline,remote=remote,bundle=Path(args.bundle),ref=args.ref,held_verifier=held_from_file(Path(args.held_bundle)))
+    else:
+        publish(root,candidate,baseline,remote=remote,bundle=Path(args.bundle),ref=args.ref)
 
 
 if __name__=='__main__':main()

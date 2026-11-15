@@ -182,8 +182,10 @@ jobs:
     needs: [qualification-plan, qualification-pairs, qualification-combine, qualification-tests, delivery-attestation]
     if: always() && (needs.qualification-plan.result == 'failure' || needs.qualification-pairs.result != 'skipped')
     runs-on: ubuntu-24.04
+    # Main keeps its one publisher group. Pull requests and branch runs get one
+    # per ref, so a pull request's publish job never replaces main's pending one.
     concurrency:
-      group: chrome-qualification-publisher
+      group: ${{ github.ref == 'refs/heads/main' && 'chrome-qualification-publisher' || format('chrome-qualification-publisher-{0}', github.ref) }}
       cancel-in-progress: false
     permissions:
       contents: write
@@ -225,6 +227,14 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           BUNDLE: ${{ steps.attest.outputs.bundle-path }}
         run: python3 control/chrome/qualify.py publish --bundle "$BUNDLE"
+      # Pull-request mode, read only: the bundle list of the held record that
+      # prepare extended, fetched with the job's token, so that the publish
+      # step below holds no token. Nothing is written without a data branch.
+      - name: Fetch the held record's attestations for the pull-request publish (read only)
+        if: github.ref != 'refs/heads/main' || github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 control/chrome/qualify.py held-bundles --output .work/held-bundles.jsonl
       - name: Verify the new attestation then publish to a local bare remote (pull-request mode)
         if: github.ref != 'refs/heads/main' || github.event_name == 'pull_request'
         env:
@@ -233,7 +243,13 @@ jobs:
           set -euo pipefail
           git init --quiet --bare .work/publish-remote.git
           git -C .work/publish-remote.git fetch --quiet "$PWD" refs/remotes/origin/main:refs/heads/main
-          python3 control/chrome/qualify.py publish --bundle "$BUNDLE" --remote .work/publish-remote.git --ref "$GITHUB_REF"
+          # With a data branch on origin, publish() takes its second-run path:
+          # the held record is verified (from the read-only step's bundle list,
+          # main's policy) and the candidate appended to it.
+          if git rev-parse --verify --quiet refs/remotes/origin/chrome-qualification > /dev/null; then
+            git -C .work/publish-remote.git fetch --quiet "$PWD" refs/remotes/origin/chrome-qualification:refs/heads/chrome-qualification
+          fi
+          python3 control/chrome/qualify.py publish --bundle "$BUNDLE" --remote .work/publish-remote.git --ref "$GITHUB_REF" --held-bundle .work/held-bundles.jsonl
           git -C .work/publish-remote.git show chrome-qualification:control/chrome/qualification.json > .work/published-record.json
           python3 -c "import json,sys;assert json.load(open(sys.argv[1]))==json.load(open(sys.argv[2])),'The local data branch does not hold the candidate'" .work/published-record.json .work/qualification-candidate.json
           test "$(git -C .work/publish-remote.git rev-parse refs/heads/main)" = "$(git rev-parse origin/main)"
@@ -270,22 +286,30 @@ jobs:
         id: attest
         with:
           subject-path: .work/attestation/record.json
-      - name: Retain this workflow's real Sigstore bundle and test altered copies
+      - name: Record this run's attestation API response with the job's token
         env:
           GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          # Main fix H2: the product's anonymous verify() replays this response
+          # offline; the token stays in this step. Until the fresh attestation
+          # is listed the API answers 404 (or an empty list), so an attempt may
+          # fail and the response decides (main fix F2).
+          DIGEST=$(sha256sum .work/attestation/record.json | cut -d' ' -f1)
+          for attempt in 1 2 3 4 5 6; do
+            gh api "repos/$GITHUB_REPOSITORY/attestations/sha256:$DIGEST?per_page=100" > .work/attestation/api-response.json || true
+            if python3 -c "import json,sys;d=json.loads(open(sys.argv[1]).read() or 'null');sys.exit(0 if isinstance(d,dict) and isinstance(d.get('attestations'),list) and d['attestations'] else 1)" .work/attestation/api-response.json 2> /dev/null; then exit 0; fi
+            echo "attempt $attempt of 6: this run's attestation is not listed yet"
+            if [ "$attempt" -lt 6 ]; then sleep 10; fi
+          done
+          echo "::error::The attestation API listed no attestation for this run's record after 6 attempts over 50 s (it answers 404 while none is listed)."
+          exit 1
+      - name: Retain this workflow's real Sigstore bundle and test altered copies
+        env:
           BUNDLE: ${{ steps.attest.outputs.bundle-path }}
         run: |
           set -euo pipefail
           cp "$BUNDLE" .work/attestation/bundle.json
-          # Record the real attestation API response with the job's token (main
-          # fix H2); the product's anonymous verify() replays it offline. The
-          # token stays in this step; attestation.py's opener serves the file.
-          DIGEST=$(sha256sum .work/attestation/record.json | cut -d' ' -f1)
-          for attempt in 1 2 3 4 5 6; do
-            gh api "repos/$GITHUB_REPOSITORY/attestations/sha256:$DIGEST?per_page=100" > .work/attestation/api-response.json
-            if python3 -c "import json,sys;sys.exit(0 if json.load(open(sys.argv[1])).get('attestations') else 1)" .work/attestation/api-response.json; then break; fi
-            echo "attempt $attempt: this run's attestation is not listed yet"; sleep 10
-          done
           python3 control/chrome/ci/attestation.py .work/attestation/record.json .work/attestation/bundle.json .work/attestation/api-response.json --ref "$GITHUB_REF" 2>&1 | tee .work/attestation/verification.txt
           python3 control/chrome/ci/attestation.py control/chrome_tests/fixtures/qualification/42687597384/record.json control/chrome_tests/fixtures/qualification/42687597384/bundle.json control/chrome_tests/fixtures/qualification/42687597384/api-response.json --ref refs/heads/pkg/20-chrome-qual 2>&1 | tee .work/attestation/retained-fixture-verification.txt
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02

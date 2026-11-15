@@ -692,6 +692,44 @@ case('mainfix-sec-unconditional-write-step',QW,"          echo 'Pull-request mod
 case('mainfix-sec-pull-request-publish-to-origin',QW,'qualify.py publish --bundle "$BUNDLE" --remote .work/publish-remote.git --ref "$GITHUB_REF"','qualify.py publish --bundle "$BUNDLE" --ref "$GITHUB_REF"',WRITES,True)
 case('mainfix-sec-pull-request-publish-token',QW,"        if: github.ref != 'refs/heads/main' || github.event_name == 'pull_request'\n        env:\n          BUNDLE:","        if: github.ref != 'refs/heads/main' || github.event_name == 'pull_request'\n        env:\n          GH_TOKEN: ${{ github.token }}\n          BUNDLE:",WRITES,True)
 
+# Main fix step 4. F1: off main the plan qualifies the head build again; an
+# identical repeat is skipped, a conflicting one fails; a pull request never
+# attests main's bytes; the pull-request publish seeds origin's data branch and
+# verifies the held record from the read-only step's bundle list, main policy.
+PR_PLAN='test_publisher.Publisher.test_off_main_the_plan_qualifies_the_head_build_again_while_main_skips_what_is_held'
+PR_REPEAT='test_publisher.Publisher.test_off_main_an_identical_repeat_is_skipped_and_a_conflicting_one_fails_the_pull_request'
+PR_HELD='test_publisher.PullRequestPublish.test_with_a_data_branch_the_held_record_is_verified_from_the_read_steps_list_under_main_policy_then_appended'
+PR_REFUSE='test_publisher.PullRequestPublish.test_a_held_record_without_a_listing_or_a_bundle_list_refuses_and_nothing_moves'
+GUARD='test_publisher.Publisher.test_writes_to_github_refuse_off_main_while_prepare_and_local_publish_run_anywhere'
+case('mainfix-f1-plan-skips-the-held-head-off-main',QY,"build_hash(root.resolve()),requalify_head=not on_main)","build_hash(root.resolve()),requalify_head=False)",PR_PLAN,True)
+case('mainfix-f1-plan-requalifies-on-main',QY,"build_hash(root.resolve()),requalify_head=not on_main)","build_hash(root.resolve()),requalify_head=True)",PR_PLAN,True)
+case('mainfix-f1-conflicting-repeat-relaxed',QY,"                raise ValueError('Conflicting repeat for an immutable qualification pair; publish nothing')\n","                continue\n",PR_REPEAT,True)
+case('mainfix-f1-pull-request-attests-main-bytes',QY,"    if on_main:\n        return json.dumps(record, separators=(',', ':'))+'\\n'\n","    if True:\n        return json.dumps(record, separators=(',', ':'))+'\\n'\n",PR_REPEAT,True)
+case('mainfix-f1-pull-request-seeds-main-only',QW,"          if git rev-parse --verify --quiet refs/remotes/origin/chrome-qualification > /dev/null; then\n            git -C .work/publish-remote.git fetch --quiet \"$PWD\" refs/remotes/origin/chrome-qualification:refs/heads/chrome-qualification\n          fi\n","",PR_HELD,True)
+case('mainfix-f1-held-record-through-gh-api',QY,"        publish(root,candidate,baseline,remote=remote,bundle=Path(args.bundle),ref=args.ref,held_verifier=held_from_file(Path(args.held_bundle)))","        publish(root,candidate,baseline,remote=remote,bundle=Path(args.bundle),ref=args.ref)",PR_HELD,True)
+case('mainfix-f1-held-record-under-the-pull-request-ref',QY,"        verify(path, bundle=bundles)\n","        verify(path, bundle=bundles, ref=os.environ.get('GITHUB_REF'))\n",PR_HELD,True)
+case('mainfix-f1-held-record-unchecked-without-a-list',QY,"            raise Refused('qualification_invalid', 'The data branch exists but no bundle list was fetched for its record.')\n","            return\n",PR_REFUSE,True)
+case('mainfix-f1-origin-publish-accepts-a-held-bundle',QY,"        if args.held_bundle:raise SystemExit('Publication to origin fetches the held bundles itself; --held-bundle is for --remote')\n","",GUARD,True)
+# F2: the API answers 404 until the fresh attestation is listed.
+RECORDING='test_qualification.Workflow.test_the_api_recording_survives_the_404_of_a_not_yet_listed_attestation'
+case('mainfix-f2-recording-ends-on-the-first-404',QW,'?per_page=100" > .work/attestation/api-response.json || true\n','?per_page=100" > .work/attestation/api-response.json\n',RECORDING,True)
+case('mainfix-f2-recording-passes-after-the-last-attempt',QW,"""(it answers 404 while none is listed)."\n          exit 1\n""","""(it answers 404 while none is listed)."\n""",RECORDING,True)
+case('mainfix-f2-gh-404-not-a-refusal',QY,"        if '(HTTP 404)' in (error.stderr or ''):\n            raise Refused('qualification_invalid', NOT_LISTED) from error\n","",'test_publisher.Publisher.test_held_record_bundle_comes_from_gh_api_with_the_job_login',True)
+case('mainfix-f2-listing-trusts-any-shape',AT,"    try:\n        data = json.loads(recording or b'null')\n    except ValueError:\n        return []\n","    data = json.loads(recording)\n",'test_qualification.RecordingOpener.test_a_recorded_404_an_empty_list_or_no_json_lists_nothing',True)
+# Review NOTE (a): every way of writing a condition or a run body is read.
+CONDITIONS='test_qualification.Workflow.test_no_job_is_main_only_and_only_allow_listed_write_steps_are'
+case('mainfix-note-a-step-if-as-first-key',QW,"      - name: Full Python file partition\n        if: ${{ startsWith(matrix.shard, 'python-') }}\n","      - if: github.ref == 'refs/heads/main' && startsWith(matrix.shard, 'python-')\n        name: Full Python file partition\n",CONDITIONS,True)
+case('mainfix-note-a-job-if-block-scalar',QW,"  qualification-plan:\n    runs-on: ubuntu-24.04\n","  qualification-plan:\n    if: >-\n      github.ref == 'refs/heads/main'\n    runs-on: ubuntu-24.04\n",CONDITIONS,True)
+case('mainfix-note-a-job-if-plain-continuation',QW,"    if: always() && needs.qualification-plan.result == 'success'","    if: always() &&\n      github.event_name != 'pull_request' && needs.qualification-plan.result == 'success'",CONDITIONS,True)
+case('mainfix-note-a-step-if-on-the-next-line',QW,"        if: matrix.shard == 'precedence'\n","        if:\n          github.ref == 'refs/heads/main' && matrix.shard == 'precedence'\n",CONDITIONS,True)
+case('mainfix-note-a-run-plain-continuation',QW,"        run: python3 control/chrome/qualify.py notify\n","        run: python3 control/chrome/qualify.py notify &&\n          git push origin HEAD:refs/heads/chrome-qualification\n",WRITES,True)
+# Review NOTE (b): pull requests never share main's publisher group.
+case('mainfix-note-b-shared-publisher-group',QW,"      group: ${{ github.ref == 'refs/heads/main' && 'chrome-qualification-publisher' || format('chrome-qualification-publisher-{0}', github.ref) }}\n","      group: chrome-qualification-publisher\n",'test_qualification.Workflow.test_the_publisher_keeps_main_s_group_and_gives_every_other_ref_its_own',True)
+# Review NOTE (c): the retained fixture carries no signed download link.
+case('mainfix-note-c-fixture-signed-link','control/chrome_tests/fixtures/qualification/42687597384/api-response.json','   "repository_id": 1443566375,\n','   "repository_id": 1443566375,\n   "bundle_url": "https://fixture.invalid/attestation.json?se=2026-11-15&sig=fixture",\n','test_qualification.RecordingOpener.test_the_retained_fixture_holds_no_signed_link',True)
+# The altered-subject case counts only gh's named policy refusal.
+case('mainfix-sec-altered-subject-any-exception',AT,"        refused(qualification, path, check, POLICY, held)\n","        try:\n            qualification.accept(path, check)\n        except Exception:\n            assert qualification.record() == held\n        else:\n            raise AssertionError('accepted')\n",'test_qualification.RecordingOpener.test_an_altered_subject_counts_only_as_ghs_named_policy_refusal',True)
+
 def command(row):
     if row['python']:return ['python3','-B','-m','unittest',row['test'],'-v']
     file,pattern=row['test']

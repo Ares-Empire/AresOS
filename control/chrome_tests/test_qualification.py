@@ -1,5 +1,6 @@
 """Browser-free qualification, delivery, and workflow contracts."""
 import copy
+import hashlib
 import importlib.util
 import io
 import json
@@ -18,6 +19,7 @@ from aresos_control.chrome import qualification as q
 from aresos_control.common import Refused
 from aresos_control.storage import Store
 from test_policy import entry
+from workflow_steps import StepRunner, workflow_conditions, workflow_runs, workflow_step, workflow_structure
 
 ROOT = Path(__file__).resolve().parents[2]
 WORK = ROOT/'.work/20-chrome'
@@ -217,7 +219,7 @@ class RecordingOpener(unittest.TestCase):
                 opener.open(other, timeout=1)
         with self.assertRaises(urllib.error.URLError):
             opener.open(urllib.request.Request(url, headers={'Authorization':'token private'}), timeout=1)
-        for status in [403, 429, 500]:
+        for status in [403, 404, 429, 500]:
             opener, _ = self.attestation.recorded(url, b'{"message":"private"}', status)
             with self.subTest(status=status), self.assertRaises(urllib.error.HTTPError) as caught:
                 opener.open(url, timeout=1)
@@ -240,8 +242,69 @@ class RecordingOpener(unittest.TestCase):
             self.assertEqual(seen, {'bundle': expected, 'ref': 'refs/heads/pkg/20-chrome-qual'})
             self.assertEqual([request.full_url for request in handler.requests], [self.attestation.attestation_url(path)])
             self.assertIsNone(urllib.request._opener)
-            with patch.object(q.subprocess, 'run', side_effect=runner), self.assertRaises(urllib.error.HTTPError):
-                self.attestation.with_recording(self.attestation.attestation_url(path), b'{}', lambda: q.verify(path, ref='refs/heads/pkg/20-chrome-qual'), 403)
+            # Review F2: the API answers 404 for a digest it lists nothing for;
+            # the product refuses it like the empty list and the transport errors.
+            for status, payload in [(403, b'{}'), (404, self.attestation.NOT_FOUND), (429, b'{}'), (500, b'')]:
+                with self.subTest(status=status), patch.object(q.subprocess, 'run', side_effect=runner), self.assertRaises(urllib.error.HTTPError) as caught:
+                    self.attestation.with_recording(self.attestation.attestation_url(path), payload, lambda: q.verify(path, ref='refs/heads/pkg/20-chrome-qual'), status)
+                self.assertEqual(caught.exception.code, status); caught.exception.close()
+            with patch.object(q.subprocess, 'run', side_effect=runner), self.assertRaises(Refused):
+                self.attestation.with_recording(self.attestation.attestation_url(path), b'{"attestations":[]}', lambda: q.verify(path, ref='refs/heads/pkg/20-chrome-qual'))
+
+    def test_a_recorded_404_an_empty_list_or_no_json_lists_nothing(self):
+        # Review F2: the recording a 404 leaves behind (gh writes the error
+        # body) lists nothing, like an empty list, an empty file or any other
+        # shape; only a non-empty list of attestations counts.
+        def listed(recording):
+            try:
+                return self.attestation.listed(recording)
+            except Exception as error:
+                self.fail(f'{recording!r} raised {error!r} instead of listing nothing')
+        for recording in [self.attestation.NOT_FOUND, b'{"attestations":[]}', b'', b'not json', b'[]', b'{"attestations":{}}', b'null']:
+            with self.subTest(recording=recording):
+                self.assertEqual(listed(recording), [])
+        self.assertEqual(listed(b'{"attestations":[{"bundle":{}}]}'), [{'bundle': {}}])
+        self.assertEqual(len(listed((self.FIXTURE/'api-response.json').read_bytes())), 1)
+
+    def test_the_retained_fixture_holds_no_signed_link(self):
+        # Review NOTE (c): the recorded response keeps what the replay and gh
+        # need (the bundle); the expired signed download link is trimmed.
+        recording = json.loads((self.FIXTURE/'api-response.json').read_text())
+        self.assertEqual([sorted(item) for item in recording['attestations']], [['bundle', 'initiator', 'repository_id']])
+        self.assertNotRegex((self.FIXTURE/'api-response.json').read_text(), r'bundle_url|[?&](?:sig|se|skoid)=')
+
+    def test_an_altered_subject_counts_only_as_ghs_named_policy_refusal(self):
+        # Like the refusal cases (security NOTE 1): an altered record counts as
+        # refused only when gh names its policy failure. Anything else
+        # propagates, and the subject's bytes are restored either way.
+        a, held = self.attestation, {'format': 1, 'entries': []}
+        original, seen = b'{"format":1,"entries":[]}', []
+
+        class Held:
+            def __init__(self, error=None):
+                self.error = error
+
+            def accept(self, subject, check):
+                seen.append(Path(subject).read_bytes())
+                if self.error is not None:
+                    raise self.error
+
+            def record(self):
+                return held
+
+        def gh(stderr):
+            return subprocess.CalledProcessError(1, ['gh', 'attestation', 'verify'], b'', stderr.encode())
+
+        with tempfile.TemporaryDirectory(dir=WORK) as directory:
+            path = Path(directory)/'record.json'; path.write_bytes(original)
+            a.altered_subject(Held(gh('\nError: verifying with issuer "sigstore.dev"\n')), path, None, held)
+            self.assertEqual(seen, [original + b' ']); self.assertEqual(path.read_bytes(), original)
+            for error, raised in [(gh('Error: failed to create TUF client: connection reset'), AssertionError),
+                                  (subprocess.TimeoutExpired(['gh'], 30), subprocess.TimeoutExpired), (FileNotFoundError('gh'), FileNotFoundError),
+                                  (Refused('qualification_invalid', 'gh too old'), Refused), (None, AssertionError)]:
+                with self.subTest(error=repr(error)), self.assertRaises(raised):
+                    a.altered_subject(Held(error), path, None, held)
+                self.assertEqual(path.read_bytes(), original)
 
     def test_the_recording_opener_never_ships(self):
         # Like the CI stand-in polkit rule: the opener and anything that
@@ -384,60 +447,13 @@ PULL_REQUEST_MODE = "github.ref != 'refs/heads/main' || github.event_name == 'pu
 MAIN_ONLY_WRITES = {'Verify the new attestation then push only the data branch',
                     'Publish failure details and propose shipped-copy update'}
 PULL_REQUEST_COUNTERPARTS = {'Verify the new attestation then publish to a local bare remote (pull-request mode)'}
-
-
-def workflow_runs(source):
-    """(job, step name, run body) for every step's run:, single-line or block, by indentation."""
-    rows, job, step, body, indent = [], None, None, None, None
-    for line in source.split('\njobs:\n', 1)[1].splitlines():
-        if body is not None:
-            if not line.strip() or len(line) - len(line.lstrip()) > indent:
-                body.append(line)
-                continue
-            rows.append((job, step, '\n'.join(body))); body = None
-        if re.match(r'^  \S', line):
-            job, step = line.strip().rstrip(':'), None
-        elif re.match(r'^      - ', line):
-            step = '<unnamed>'
-        found = re.match(r'^(?:      - |        )name: (.*)$', line)
-        if found:
-            step = found[1].strip()
-        found = re.match(r'^( +)(- )?run: ?(.*)$', line)
-        if found:
-            # A block body is every deeper line below the run key's own column.
-            indent = len(found[1]) + len(found[2] or '')
-            if found[3].strip() in {'|', '>', '|-', '>-'}:
-                body = []
-            else:
-                rows.append((job, step, found[3]))
-    if body is not None:
-        rows.append((job, step, '\n'.join(body)))
-    return rows
+# Pull-request mode's read-only step: the held record's bundle list, with the token the publish step lacks.
+PULL_REQUEST_READS = {"Fetch the held record's attestations for the pull-request publish (read only)"}
 
 
 # Commands that write to GitHub. The workflows carry none of them: the only
 # writes are qualify.py publish and notify, whose own guard keeps origin on main.
 WRITE_COMMAND = re.compile(r'\bgit\b[^\n]*?\bpush\b|\bgh\s+(?:issue|pr|release)\b|["\']git["\'],\s*["\']push["\']|["\']gh["\'],\s*["\'](?:issue|pr|release)["\']')
-
-
-def workflow_conditions(source):
-    """(job, step name or None, condition) for every if: in a workflow, by indentation."""
-    rows, job, step = [], None, None
-    for line in source.split('\njobs:\n', 1)[1].splitlines():
-        if re.match(r'^  \S', line):
-            job, step = line.strip().rstrip(':'), None
-        elif re.match(r'^      - ', line):
-            step = {'name': None}
-        found = re.match(r'^(?:      - |        )name: (.*)$', line)
-        if found and step is not None:
-            step['name'] = found[1].strip()
-        found = re.match(r'^( +)if: (.*)$', line)
-        if found:
-            rows.append((job, None if len(found[1]) == 4 else step, found[2].strip()))
-    for job, step, condition in rows:
-        if step is not None and step['name'] is None:
-            step['name'] = '<unnamed>'
-    return [(job, step and step['name'], condition) for job, step, condition in rows]
 
 
 class Workflow(unittest.TestCase):
@@ -452,7 +468,6 @@ class Workflow(unittest.TestCase):
         publisher = source.split('  qualification-publish:')[1].split('  delivery-attestation:')[0]
         self.assertIn("QUALIFICATION_CHANNELS: ${{ github.ref == 'refs/heads/main' && 'stable,beta' || 'stable' }}", plan)
         self.assertIn('plan --channels "$QUALIFICATION_CHANNELS"', plan)
-        self.assertIn('group: chrome-qualification-publisher\n      cancel-in-progress: false', publisher)
         for permission in ['contents: write', 'id-token: write', 'attestations: write', 'issues: write', 'pull-requests: write']:
             self.assertIn(permission, publisher)
         self.assertLess(publisher.index('qualify.py prepare'), publisher.index('actions/attest-build-provenance'))
@@ -471,7 +486,7 @@ class Workflow(unittest.TestCase):
         # Main fix H2: the API response is recorded with the job token; the
         # product's anonymous path replays it; the PR-made bundle is checked
         # on the run's own full ref, and the retained fixture offline.
-        self.assertIn('gh api "repos/$GITHUB_REPOSITORY/attestations/sha256:$DIGEST?per_page=100" > .work/attestation/api-response.json', attestation)
+        self.assertIn('gh api "repos/$GITHUB_REPOSITORY/attestations/sha256:$DIGEST?per_page=100" > .work/attestation/api-response.json || true', attestation)
         self.assertIn('.work/attestation/api-response.json --ref "$GITHUB_REF"', attestation)
         self.assertIn('42687597384/api-response.json --ref refs/heads/pkg/20-chrome-qual', attestation)
         self.assertNotIn('GITHUB_HEAD_REF', attestation)
@@ -479,6 +494,73 @@ class Workflow(unittest.TestCase):
         self.assertNotIn("github.event_name == 'push'", attestation)
         # Runner-only browser harness remains in the original fixtures job.
         self.assertNotIn('delivery-attestation:', self.CHROME.read_text())
+
+    def test_the_api_recording_survives_the_404_of_a_not_yet_listed_attestation(self):
+        # Review F2 (brief 20 main fix): the API answers 404 for a digest it
+        # lists no attestation for, and gh exits 1 on it. The step runs under
+        # set -euo pipefail: each attempt may fail and the response decides,
+        # with the bounded backoff and a clear failure after the last attempt.
+        name = "Record this run's attestation API response with the job's token"
+        listed = json.dumps({'attestations': [{'bundle': {'fixture': 'listed'}}]})
+        not_found = {'stdout': '{"message":"Not Found","status":"404"}', 'stderr': 'gh: Not Found (HTTP 404)\n', 'code': 1}
+        with tempfile.TemporaryDirectory(dir=WORK) as directory:
+            runner = StepRunner(Path(directory)/'tools', self.QUALIFICATION)
+            checkout = Path(directory)/'checkout'; (checkout/'.work/attestation').mkdir(parents=True)
+            record = checkout/'.work/attestation/record.json'; record.write_text('{"format":1,"entries":[]}')
+            url = f'repos/{q.REPOSITORY}/attestations/sha256:{hashlib.sha256(record.read_bytes()).hexdigest()}?per_page=100'
+            response = checkout/'.work/attestation/api-response.json'
+            for case, answers, code, calls, sleeps in [
+                    ('404 twice, then listed', [not_found, not_found, {'stdout': listed}], 0, 3, ['10', '10']),
+                    ('an empty list, then listed', [{'stdout': '{"attestations":[]}'}, {'stdout': listed}], 0, 2, ['10']),
+                    ('no answer at all, then listed', [{'stderr': 'connection reset\n', 'code': 1}, {'stdout': listed}], 0, 2, ['10']),
+                    ('never listed', [not_found] * 6, 1, 6, ['10'] * 5)]:
+                with self.subTest(case):
+                    response.unlink(missing_ok=True)
+                    result = runner.run(name, checkout, environment={'GITHUB_REPOSITORY': q.REPOSITORY}, api=answers)
+                    self.assertEqual(result.returncode, code, result.stdout + result.stderr)
+                    self.assertEqual([call['argv'] for call in runner.gh_calls()], [['api', url]] * calls)
+                    self.assertTrue(all(call['token'] for call in runner.gh_calls()))
+                    self.assertEqual(runner.sleeps(), sleeps)
+                    if code == 0:
+                        self.assertEqual(response.read_text(), listed)
+                    else:
+                        self.assertIn("::error::The attestation API listed no attestation for this run's record after 6 attempts", result.stdout)
+
+    def test_the_publisher_keeps_main_s_group_and_gives_every_other_ref_its_own(self):
+        # Review NOTE (b) (brief 20 main fix): GitHub keeps one pending job per
+        # concurrency group, so a pull request's publish job must never share
+        # main's group, while main keeps exactly its one serialized group.
+        jobs, _ = workflow_structure(self.QUALIFICATION.read_text())
+        publisher = dict(jobs['qualification-publish'])
+        self.assertEqual(publisher['concurrency.group'], "${{ github.ref == 'refs/heads/main' && 'chrome-qualification-publisher' || format('chrome-qualification-publisher-{0}', github.ref) }}")
+        self.assertEqual(publisher['concurrency.cancel-in-progress'], 'false')
+        # The form evaluated for main and two other refs.
+        main_group, other = re.fullmatch(r"\$\{\{ github\.ref == 'refs/heads/main' && '([^']+)' \|\| format\('([^']+)\{0\}', github\.ref\) \}\}", publisher['concurrency.group']).groups()
+        groups = {ref: main_group if ref == 'refs/heads/main' else other + ref for ref in ['refs/heads/main', 'refs/pull/68/merge', 'refs/heads/pkg/20-main-fix']}
+        self.assertEqual(groups['refs/heads/main'], 'chrome-qualification-publisher')
+        self.assertEqual(len(set(groups.values())), 3)
+
+    def test_conditions_and_run_bodies_are_found_however_written(self):
+        # Review NOTE (a) (brief 20 main fix): "- if:" as a step's first key, a
+        # block scalar with the condition below, the value on the next line and
+        # a plain scalar continued on deeper lines are all conditions; the same
+        # forms of run: are all scanned for write commands.
+        source = ("on: push\njobs:\n  one:\n    if: >-\n      github.ref == 'refs/heads/main'\n    steps:\n"
+                  "      - if: github.ref == 'refs/heads/main'\n        name: First key\n        run: echo ok &&\n          git push origin\n"
+                  "      - name: Block condition\n        if: |\n          always() &&\n          github.event_name == 'push'\n        run: >-\n          gh release\n          create\n"
+                  "      - name: Next line\n        if:\n          github.ref == 'refs/heads/main'\n        with:\n          if: not a condition\n        env:\n          GH_TOKEN: x\n"
+                  "      -   run: |\n            set -e\n            git push origin\n          env:\n            X: 1\n"
+                  "  # a comment\n  two:\n    runs-on: x\n    if: always() &&\n      github.base_ref == 'main'\n    concurrency:\n      group: g\n")
+        self.assertEqual(workflow_conditions(source), [
+            ('one', None, "github.ref == 'refs/heads/main'"), ('two', None, "always() && github.base_ref == 'main'"),
+            ('one', 'First key', "github.ref == 'refs/heads/main'"), ('one', 'Block condition', "always() && github.event_name == 'push'"),
+            ('one', 'Next line', "github.ref == 'refs/heads/main'")])
+        self.assertEqual(workflow_runs(source), [('one', 'First key', 'echo ok && git push origin'), ('one', 'Block condition', 'gh release create'),
+                                                 ('one', '<unnamed>', 'set -e\ngit push origin')])
+        self.assertTrue(all(WRITE_COMMAND.search(body) for _, _, body in workflow_runs(source)))
+        jobs, steps = workflow_structure(source)
+        self.assertEqual(dict(steps[2]['keys'])['with.if'], 'not a condition'); self.assertEqual(dict(steps[2]['keys'])['env.GH_TOKEN'], 'x')
+        self.assertEqual(dict(jobs['two'])['concurrency.group'], 'g')
 
     def test_no_job_is_main_only_and_only_allow_listed_write_steps_are(self):
         # Main fix H4: every job of both workflows runs on pull requests, so a
@@ -496,12 +578,14 @@ class Workflow(unittest.TestCase):
                     elif condition in {MAIN_ONLY, 'always() && '+MAIN_ONLY}:
                         self.assertIn(step, MAIN_ONLY_WRITES)
                     elif condition == PULL_REQUEST_MODE:
-                        self.assertIn(step, PULL_REQUEST_COUNTERPARTS)
+                        self.assertIn(step, PULL_REQUEST_COUNTERPARTS | PULL_REQUEST_READS)
                     else:
                         self.assertFalse(any(marker in condition for marker in markers), 'Unlisted ref condition: '+condition)
+                    # An alias could carry a ref condition defined elsewhere.
+                    self.assertNotRegex(condition, r'^[*&]', 'YAML anchor or alias in a condition: '+condition)
         rows = workflow_conditions(self.QUALIFICATION.read_text())
         self.assertEqual({step for _, step, condition in rows if condition in {MAIN_ONLY, 'always() && '+MAIN_ONLY}}, MAIN_ONLY_WRITES)
-        self.assertEqual({step for _, step, condition in rows if condition == PULL_REQUEST_MODE}, PULL_REQUEST_COUNTERPARTS)
+        self.assertEqual({step for _, step, condition in rows if condition == PULL_REQUEST_MODE}, PULL_REQUEST_COUNTERPARTS | PULL_REQUEST_READS)
         jobs = set(re.findall(r'^  (\S+):', self.QUALIFICATION.read_text().split('\njobs:\n', 1)[1], re.M))
         self.assertEqual(jobs, {'qualification-tests', 'qualification-plan', 'qualification-pairs', 'qualification-combine', 'qualification-publish', 'delivery-attestation'})
         # The product's own guard, not only the workflow, keeps the real writes on main.
@@ -528,9 +612,18 @@ class Workflow(unittest.TestCase):
                             self.assertRegex(command, r'--remote \.work/publish-remote\.git( |$)')
         steps = {step for _, step, body in workflow_runs(self.QUALIFICATION.read_text()) if 'qualify.py publish' in body or 'qualify.py notify' in body}
         self.assertEqual(steps, MAIN_ONLY_WRITES | PULL_REQUEST_COUNTERPARTS)
-        # The pull-request step reads the shared GitHub state with no token.
-        publisher = self.QUALIFICATION.read_text().split('      - name: Verify the new attestation then publish to a local bare remote (pull-request mode)\n')[1].split('      - name:')[0]
-        self.assertNotIn('GH_TOKEN', publisher)
+        # The pull-request publish step holds no token (security NOTE 3). Its
+        # held record's bundle list comes from the read-only step before it,
+        # which holds the token and runs nothing but held-bundles (NOTE 4).
+        source = self.QUALIFICATION.read_text()
+        for name in PULL_REQUEST_COUNTERPARTS:
+            publisher = workflow_step(source, name)
+            self.assertEqual([key for key, value in publisher.items() if 'TOKEN' in key or 'github.token' in value or 'secrets.' in value], [])
+            self.assertIn('--held-bundle .work/held-bundles.jsonl', publisher['run'])
+        for name in PULL_REQUEST_READS:
+            read = workflow_step(source, name)
+            self.assertEqual(read, {'name': name, 'if': PULL_REQUEST_MODE, 'env': '', 'env.GH_TOKEN': '${{ github.token }}',
+                                    'run': 'python3 control/chrome/qualify.py held-bundles --output .work/held-bundles.jsonl'})
         for line in ['git push', 'gh issue create', 'gh pr create --fill', 'gh release create v1', 'git -C repo push origin HEAD', "subprocess.run(['git', 'push'])", 'subprocess.run(["gh", "pr", "merge"])']:
             with self.subTest(line=line):
                 self.assertIsNotNone(WRITE_COMMAND.search(line))
@@ -538,7 +631,7 @@ class Workflow(unittest.TestCase):
             with self.subTest(line=line):
                 self.assertIsNone(WRITE_COMMAND.search(line))
         source = "on: push\njobs:\n  one:\n    steps:\n      - name: A\n        run: echo a\n      - run: |\n          set -e\n          git push origin\n        env:\n          X: 1\n      - name: C\n        run: >-\n          gh release\n          create\n"
-        self.assertEqual(workflow_runs(source), [('one', 'A', 'echo a'), ('one', '<unnamed>', '          set -e\n          git push origin'), ('one', 'C', '          gh release\n          create')])
+        self.assertEqual(workflow_runs(source), [('one', 'A', 'echo a'), ('one', '<unnamed>', 'set -e\ngit push origin'), ('one', 'C', 'gh release create')])
 
     def test_path_triggers_cover_every_input_of_the_jobs(self):
         # The jobs copy or archive these beside control/**; a change to any of

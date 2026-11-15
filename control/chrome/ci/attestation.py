@@ -24,13 +24,16 @@ import qualify
 
 # gh's own wording for each refusal (cli/cli pkg/cmd/attestation): a source-ref
 # mismatch names the expected and the attested ref; a signature or
-# certificate-identity (signer workflow) policy failure is reported as
-# "verifying with issuer"; a missing bundle file as "could not load content".
+# certificate-identity (signer workflow) policy failure, and a subject whose
+# digest no bundle names (an altered record), are reported as "verifying with
+# issuer"; a missing bundle file as "could not load content".
 # A refusal counts only as gh's failed verification naming its own reason, so
 # a timeout or a verifier that could not start never passes as one.
 SOURCE_REF = 'expected SourceRepositoryRef to be '
 POLICY = 'verifying with issuer "sigstore.dev"'
 MISSING = 'could not load content from file path'
+# The attestation API's answer for a digest it lists no attestation for.
+NOT_FOUND = b'{"message":"Not Found","documentation_url":"https://docs.github.com/rest/repos/attestations#list-attestations","status":"404"}'
 
 
 def refused(qualification, path, check, reason, held):
@@ -43,6 +46,26 @@ def refused(qualification, path, check, reason, held):
     else:
         raise AssertionError('accepted')
     assert qualification.record() == held, 'a refusal changed the held record'
+
+
+def altered_subject(qualification, path, check, held):
+    """An altered record no longer matches its bundle's subject digest: gh's named policy refusal."""
+    original = path.read_bytes()
+    try:
+        path.write_bytes(original + b' ')
+        refused(qualification, path, check, POLICY, held)
+    finally:
+        path.write_bytes(original)
+
+
+def listed(recording):
+    """The attestations a recorded API response lists; none for a 404 body, an empty list or no JSON."""
+    try:
+        data = json.loads(recording or b'null')
+    except ValueError:
+        return []
+    attestations = data.get('attestations') if isinstance(data, dict) else None
+    return attestations if isinstance(attestations, list) else []
 
 
 def attestation_url(path):
@@ -113,8 +136,8 @@ def exercise(path, bundle, ref, response):
     candidate = json.loads(path.read_text())
     baseline = {'format': 1, 'entries': candidate['entries'][:1]}
     recording = Path(response).read_bytes()
-    listed = json.loads(recording).get('attestations')
-    assert isinstance(listed, list) and listed, 'The recorded API response lists no attestation for this record'
+    attestations = listed(recording)
+    assert attestations, 'The recorded API response lists no attestation for this record (the API answers 404 or an empty list while none is listed)'
     url = attestation_url(path)
     with tempfile.TemporaryDirectory(dir=path.parent) as directory:
         root = Path(directory)
@@ -132,10 +155,13 @@ def exercise(path, bundle, ref, response):
         cache = path.parent/'qualification-verifier-cache'
         cache_bytes = sum(file.stat().st_size for file in cache.rglob('*') if file.is_file())
         assert cache_bytes <= VERIFIER_CACHE_RESERVE, 'Verifier cache exceeds admitted reserve'
-        print(f'QUALIFICATION DELIVERY anonymous bundle lookup in launch-equivalent environment PASS; {len(listed)} recorded attestation(s), cache {cache_bytes} bytes', flush=True)
+        print(f'QUALIFICATION DELIVERY anonymous bundle lookup in launch-equivalent environment PASS; {len(attestations)} recorded attestation(s), cache {cache_bytes} bytes', flush=True)
         # Transport failures of the anonymous path refuse without a verdict.
+        # The API answers 404 for a digest it lists nothing for; an empty
+        # list is the same condition in another shape.
         for name, status, payload, expected in [
             ('empty attestation list', 200, b'{"attestations":[]}', Refused),
+            ('nothing listed 404', 404, NOT_FOUND, urllib.error.HTTPError),
             ('rate limit 403', 403, b'{"message":"API rate limit exceeded"}', urllib.error.HTTPError),
             ('secondary rate limit 429', 429, b'{"message":"too many requests"}', urllib.error.HTTPError),
             ('server error 500', 500, b'', urllib.error.HTTPError)]:
@@ -177,16 +203,10 @@ def exercise(path, bundle, ref, response):
                 raise AssertionError(name + ': ' + str(error)) from error
             print('QUALIFICATION DELIVERY ' + name + ' refused (' + reason + '); held retained PASS', flush=True)
         try:
-            path.write_bytes(original + b' ')
-            try:
-                qualification.accept(path, verifier)
-            except Exception:
-                assert qualification.record() == candidate
-            else:
-                raise AssertionError('Altered subject accepted')
-            print('QUALIFICATION DELIVERY altered subject refused; held retained PASS', flush=True)
-        finally:
-            path.write_bytes(original)
+            altered_subject(qualification, path, verifier, candidate)
+        except AssertionError as error:
+            raise AssertionError('altered subject: ' + str(error)) from error
+        print('QUALIFICATION DELIVERY altered subject refused (' + POLICY + '); held retained PASS', flush=True)
         # Authentic signatures do not authorize rollback of local history.
         for name, held in [('dropped held entry', {'format': 1, 'entries': candidate['entries'] + [{**candidate['entries'][-1], 'version': '999.0.1.0'}]}),
                            ('changed held entry', copy.deepcopy(candidate))]:

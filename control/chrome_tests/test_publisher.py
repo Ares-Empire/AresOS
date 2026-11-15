@@ -6,6 +6,7 @@ import importlib.util
 import io
 import json
 from pathlib import Path
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -18,6 +19,28 @@ spec=importlib.util.spec_from_file_location('chrome_qualify',ROOT/'control/chrom
 qualify=importlib.util.module_from_spec(spec);spec.loader.exec_module(qualify)
 from test_policy import entry
 from aresos_control.common import Refused
+from workflow_steps import StepRunner
+
+METADATA='\n\n'.join('Package: google-chrome-'+channel+'\nVersion: '+version+'-1\nFilename: pool/main/g/google-chrome-'+channel+'/google-chrome-'+channel+'_'+version+'-1_amd64.deb\nSHA256: '+'1'*64 for channel,version in [('stable','157.0.1.0'),('beta','158.0.2.0')])
+
+
+def commit(repository,message):
+    qualify.git(repository,'add','.');qualify.git(repository,'-c','user.name=Fixture','-c','user.email=fixture@fixture.test','commit','-q','-m',message)
+
+
+def compact(record):
+    # The bytes main's publish writes to the data branch.
+    return json.dumps(record,separators=(',',':'))+'\n'
+
+
+def origin_with(root,baseline,held=None):
+    """A local stand-in for origin: main ships baseline; the data branch, when given, holds held as main wrote it."""
+    origin=root/'origin';origin.mkdir();qualify.git(origin,'init','-q','-b','main')
+    path=origin/qualify.RECORD;path.parent.mkdir(parents=True);path.write_text(json.dumps(baseline))
+    (origin/'control/chrome/builds.json').write_text('{"format":1,"builds":[]}');commit(origin,'Fixture baseline')
+    if held is not None:
+        qualify.git(origin,'checkout','-q','-b',qualify.DATA_BRANCH);path.write_text(compact(held));commit(origin,'Fixture data branch');qualify.git(origin,'checkout','-q','main')
+    return origin
 
 
 class Publisher(unittest.TestCase):
@@ -207,6 +230,10 @@ class Publisher(unittest.TestCase):
             with patch.object(sys,'argv',['qualify.py','publish','--bundle','bundle.json','--ref','refs/heads/main']), patch.dict(qualify.os.environ,{'GITHUB_REF':'refs/heads/main','GITHUB_REPOSITORY':qualify.REPOSITORY}), no_git, no_publish:
                 with self.assertRaises(SystemExit) as refused:qualify.main()
                 self.assertIn('--ref is for --remote',str(refused.exception))
+            # Main's publication fetches the held bundles itself (verify_held); the file is the token-free pull-request step's.
+            with patch.object(sys,'argv',['qualify.py','publish','--bundle','bundle.json','--held-bundle','held.jsonl']), patch.dict(qualify.os.environ,{'GITHUB_REF':'refs/heads/main','GITHUB_REPOSITORY':qualify.REPOSITORY}), no_git, no_publish:
+                with self.assertRaises(SystemExit) as refused:qualify.main()
+                self.assertIn('--held-bundle is for --remote',str(refused.exception))
             for command in ['prepare','publish','notify']:
                 with self.subTest(repository='foreign',command=command), patch.object(sys,'argv',['qualify.py',command,'--bundle','bundle.json']), patch.dict(qualify.os.environ,{'GITHUB_REF':'refs/heads/main','GITHUB_REPOSITORY':'fixture/repository'}), no_git, no_notify, no_publish:
                     with self.assertRaises(SystemExit):qualify.main()
@@ -227,6 +254,19 @@ class Publisher(unittest.TestCase):
             for stdout in ['{"attestations":[]}','{}','{"attestations":[{"bundle":{"x":"'+'y'*(4*1024*1024)+'"}}]}']:
                 with self.subTest(stdout=stdout[:20]), self.assertRaises(Refused):
                     qualify.bundle_from_api(path,Mock(return_value=Mock(stdout=stdout)))
+            # Review F2: for a digest it lists nothing for, the API answers 404
+            # and gh exits 1 (check=True raises): the same refusal as an empty
+            # list. Any other gh failure propagates unchanged.
+            def gh(stderr):
+                return Mock(side_effect=subprocess.CalledProcessError(1,['gh','api'],'{"message":"Not Found","status":"404"}',stderr))
+            try:qualify.bundle_from_api(path,gh('gh: Not Found (HTTP 404)\n'))
+            except Exception as error:caught=error
+            else:caught=None
+            self.assertIsInstance(caught,Refused,'a 404 must refuse like an empty list')
+            self.assertEqual((caught.code,str(caught)),('qualification_invalid',qualify.NOT_LISTED))
+            for stderr in ['gh: Server Error (HTTP 502)\n','error connecting to api.github.com\n','gh: Not Found (HTTP 4040)\n']:
+                with self.subTest(stderr=stderr), self.assertRaises(subprocess.CalledProcessError):
+                    qualify.bundle_from_api(path,gh(stderr))
             with patch.object(qualify,'bundle_from_api',return_value=bundle), patch.object(qualify,'verify') as verify:
                 qualify.verify_held(path)
             verify.assert_called_once_with(path,bundle=bundle)
@@ -338,3 +378,159 @@ class Publisher(unittest.TestCase):
             self.assertEqual(runner.call_count,1)
             self.assertEqual(qualify.git(remote,'rev-parse','chrome-qualification'),before)
             self.assertEqual(qualify.git(remote,'rev-parse','main'),main)
+
+    def test_off_main_the_plan_qualifies_the_head_build_again_while_main_skips_what_is_held(self):
+        # Review F1 (brief 20 main fix): build.py hashes only the installed
+        # runtime, so a pull request that changes only the test driver, ci/,
+        # qualify.py or the workflows keeps main's build hash. Off main the head
+        # build is qualified again even when the held record covers it; main
+        # skips every held pair exactly as before; shipped builds stay skipped.
+        versions={channel:{'version':version} for channel,version in [('stable','157.0.1.0'),('beta','158.0.1.0')]}
+        shipped={'commit':'2'*40,'build':'2'*64,'shipped_at':'2026-11-09T00:00:00Z'}
+        held={'format':1,'entries':[entry(),entry(build='2'*64)]}
+        for requalify,expected in [(False,[('a'*64,'beta'),('2'*64,'beta')]),(True,[('a'*64,'stable'),('a'*64,'beta'),('2'*64,'beta')])]:
+            with self.subTest(requalify_head=requalify):
+                rows=qualify.plan({'format':1,'builds':[shipped]},versions,held,'a'*40,'a'*64,requalify_head=requalify)['include']
+                self.assertEqual([(row['build'],row['channel']) for row in rows],[key for key in expected for _ in [1,2]])
+                self.assertEqual([row['repeat'] for row in rows],[1,2]*len(expected))
+        # The CLI decides by the run's ref, against a data branch that holds the head build on stable.
+        with tempfile.TemporaryDirectory(dir=ROOT/'.work/20-chrome') as temporary:
+            root=Path(temporary)
+            origin=origin_with(root,{'format':1,'entries':[]},{'format':1,'entries':[entry()]})
+            checkout=root/'clone';qualify.git(root,'clone','-q',str(origin),str(checkout))
+            for ref,rows in [('refs/heads/main',[]),('refs/pull/9/merge',[('a'*64,'157.0.1.0','stable',1),('a'*64,'157.0.1.0','stable',2)]),('refs/heads/pkg/20-main-fix',[('a'*64,'157.0.1.0','stable',1),('a'*64,'157.0.1.0','stable',2)])]:
+                with self.subTest(ref=ref), patch.object(sys,'argv',['qualify.py','plan','--root',str(checkout),'--channels','stable']), patch.dict(qualify.os.environ,{'GITHUB_REF':ref}), patch.object(qualify.urllib.request,'urlopen',return_value=io.BytesIO(gzip.compress(METADATA.encode()))), patch.object(qualify,'build_hash',return_value='a'*64), patch.object(qualify,'verify_held') as verified, patch('sys.stdout',new_callable=io.StringIO) as stdout:
+                    qualify.main()
+                    self.assertEqual(verified.call_count,1)
+                    self.assertEqual([(row['build'],row['version'],row['channel'],row['repeat']) for row in json.loads(stdout.getvalue())['include']],rows)
+
+    def test_off_main_an_identical_repeat_is_skipped_and_a_conflicting_one_fails_the_pull_request(self):
+        # Review F1: the pull request's re-qualification of a held pair adds
+        # nothing when it agrees and fails the run when its verdict differs;
+        # it never relaxes or overwrites the held entry. Off main the candidate
+        # is indented, never main's bytes, so the pull request's attestation
+        # never joins the real record's listing; main writes compact as before.
+        held={'format':1,'entries':[entry()]}
+        with tempfile.TemporaryDirectory(dir=ROOT/'.work/20-chrome') as temporary:
+            root=Path(temporary)
+            origin=origin_with(root,{'format':1,'entries':[]},held)
+            checkout=root/'clone';qualify.git(root,'clone','-q',str(origin),str(checkout));(checkout/'.work').mkdir()
+            plan=root/'plan.json';plan.write_text(json.dumps({'include':[{**entry(),'repeat':repeat} for repeat in [1,2]]}))
+            def artifacts(pair):
+                directory=Path(tempfile.mkdtemp(dir=root))
+                for repeat in [1,2]:
+                    (directory/str(repeat)).mkdir();(directory/str(repeat)/'pair.json').write_text(json.dumps({**pair,'repeat':repeat}))
+                return directory
+            conflicting=entry();conflicting['core']['binding']=False
+            bundles=root/'held.bundles.jsonl';bundles.write_text('{}\n')
+            for ref,pair,expected in [('refs/pull/9/merge',entry(),qualify.serialized(held,False)),('refs/heads/main',entry(),compact(held)),('refs/pull/9/merge',conflicting,None)]:
+                candidate=root/'candidate.json';candidate.unlink(missing_ok=True)
+                with self.subTest(ref=ref,conflicting=expected is None), patch.object(sys,'argv',['qualify.py','prepare','--root',str(checkout),'--artifacts',str(artifacts(pair)),'--plan',str(plan),'--candidate',str(candidate)]), patch.dict(qualify.os.environ,{'GITHUB_REF':ref,'GITHUB_REPOSITORY':qualify.REPOSITORY,'GITHUB_RUN_ID':'9001'}), patch.object(qualify,'bundle_from_api',return_value=bundles) as fetched, patch.object(qualify,'verify') as verified:
+                    if expected is None:
+                        with self.assertRaisesRegex(ValueError,'Conflicting repeat'):qualify.main()
+                        self.assertFalse(candidate.exists())
+                    else:
+                        qualify.main()
+                        self.assertEqual(candidate.read_text(),expected);self.assertEqual(json.loads(candidate.read_text()),held)
+                    self.assertEqual(fetched.call_count,1);self.assertEqual(verified.call_args.kwargs,{'bundle':bundles})
+                bundles.write_text('{}\n')
+            self.assertNotEqual(qualify.serialized(held,False),compact(held))
+
+
+class PullRequestPublish(unittest.TestCase):
+    """Review F1 and security NOTE 4: the pull-request publish steps of the workflow, run as written, offline.
+
+    The read-only step fetches the held record's bundle list with the token;
+    the publish step holds none, seeds its local bare remote with origin's main
+    and, when it exists, origin's data branch, and verifies the held record from
+    that list under main's policy before appending.
+    """
+    WORKFLOW=ROOT/'.github/workflows/control-chrome-qualification.yml'
+    READ="Fetch the held record's attestations for the pull-request publish (read only)"
+    PUBLISH='Verify the new attestation then publish to a local bare remote (pull-request mode)'
+    BASELINE={'format':1,'entries':[entry()]}
+    HELD={'format':1,'entries':[entry(),entry(version='158.0.1.0',run='main-run')]}
+
+    def setUp(self):
+        self.directory=Path(tempfile.mkdtemp(dir=ROOT/'.work/20-chrome'));self.addCleanup(shutil.rmtree,self.directory)
+        self.runner=StepRunner(self.directory/'tools',self.WORKFLOW)
+        self.environment={'GITHUB_REPOSITORY':qualify.REPOSITORY,'GITHUB_REF':'refs/pull/9/merge'}
+
+    def checkout(self,held,candidate):
+        # The publish job's checkout (fetch-depth 0): origin's branches as
+        # remote-tracking refs, this tree, and the files earlier steps left.
+        origin=origin_with(self.directory,self.BASELINE,held)
+        checkout=self.directory/'checkout';checkout.mkdir();qualify.git(checkout,'init','-q','-b','pull-request')
+        qualify.git(checkout,'fetch','-q',str(origin),'+refs/heads/*:refs/remotes/origin/*')
+        (checkout/'control').symlink_to(ROOT/'control',target_is_directory=True);(checkout/'.work').mkdir()
+        (checkout/'.work/qualification-candidate.json').write_text(qualify.serialized(candidate,False))
+        bundle=checkout/'.work/attest-bundle.json';bundle.write_text('{"fixture":"attest step bundle"}')
+        return checkout,bundle
+
+    def read(self,checkout,api=()):
+        return self.runner.run(self.READ,checkout,environment=self.environment,api=api)
+
+    def publish(self,checkout,bundle):
+        return self.runner.run(self.PUBLISH,checkout,expressions={'${{ steps.attest.outputs.bundle-path }}':str(bundle)},environment=self.environment)
+
+    def verifications(self):
+        return [call for call in self.runner.gh_calls() if call['argv'][:2]==['attestation','verify']]
+
+    def assert_policy(self,call,subject,ref,bundle):
+        argv=call['argv']
+        self.assertEqual(call['subject_sha256'],hashlib.sha256(subject).hexdigest())
+        self.assertEqual(argv[argv.index('--source-ref')+1],ref);self.assertTrue(argv[argv.index('--bundle')+1].endswith(bundle),argv)
+        self.assertEqual(argv[argv.index('--signer-workflow')+1],qualify.REPOSITORY+'/'+qualify.WORKFLOW);self.assertIn('--deny-self-hosted-runners',argv)
+
+    def test_without_a_data_branch_the_publish_cuts_it_from_main_and_verifies_only_the_fresh_bundle(self):
+        candidate={'format':1,'entries':[*self.BASELINE['entries'],entry(version='158.0.1.0',run='9001')]}
+        checkout,bundle=self.checkout(None,candidate)
+        result=self.read(checkout)
+        self.assertEqual(result.returncode,0,result.stderr);self.assertIn('first-record path',result.stdout)
+        self.assertEqual(self.runner.gh_calls(),[]);self.assertFalse((checkout/'.work/held-bundles.jsonl').exists())
+        result=self.publish(checkout,bundle)
+        self.assertEqual(result.returncode,0,result.stdout+result.stderr);self.assertIn('reached only the local bare remote',result.stdout)
+        calls=self.runner.gh_calls();verified=self.verifications()
+        self.assertEqual(len(verified),1);self.assert_policy(verified[0],(checkout/'.work/qualification-candidate.json').read_bytes(),'refs/pull/9/merge',str(bundle))
+        self.assertFalse(any(call['argv'][:1]==['api'] or call['token'] for call in calls))
+        remote=checkout/'.work/publish-remote.git'
+        self.assertEqual(qualify.git(remote,'rev-parse','chrome-qualification^'),qualify.git(checkout,'rev-parse','refs/remotes/origin/main'))
+        self.assertEqual(json.loads(qualify.git(remote,'show','chrome-qualification:'+qualify.RECORD)),candidate)
+
+    def test_with_a_data_branch_the_held_record_is_verified_from_the_read_steps_list_under_main_policy_then_appended(self):
+        # A new pair, and an identical repeat (F1): both take publish()'s
+        # second-run path: held record verified, candidate appended to it.
+        listing={'attestations':[{'bundle':{'fixture':'held'}},{'bundle':{'fixture':'other'}}]}
+        for name,candidate in [('new pair',{'format':1,'entries':[*self.HELD['entries'],entry(version='159.0.1.0',run='9001')]}),('identical repeat',self.HELD)]:
+            with self.subTest(name):
+                shutil.rmtree(self.directory/'origin',ignore_errors=True);shutil.rmtree(self.directory/'checkout',ignore_errors=True)
+                checkout,bundle=self.checkout(self.HELD,candidate)
+                result=self.read(checkout,api=[{'stdout':json.dumps(listing)}])
+                self.assertEqual(result.returncode,0,result.stdout+result.stderr)
+                held=compact(self.HELD).encode()
+                self.assertEqual([call['argv'] for call in self.runner.gh_calls()],[['api','repos/'+qualify.REPOSITORY+'/attestations/sha256:'+hashlib.sha256(held).hexdigest()+'?per_page=100']])
+                self.assertTrue(self.runner.gh_calls()[0]['token'])
+                self.assertEqual((checkout/'.work/held-bundles.jsonl').read_text(),'{"fixture":"held"}\n{"fixture":"other"}\n')
+                result=self.publish(checkout,bundle)
+                self.assertEqual(result.returncode,0,result.stdout+result.stderr)
+                calls=self.runner.gh_calls();verified=self.verifications()
+                self.assertEqual(len(verified),2)
+                self.assert_policy(verified[0],(checkout/'.work/qualification-candidate.json').read_bytes(),'refs/pull/9/merge',str(bundle))
+                self.assert_policy(verified[1],held,'refs/heads/main','.work/held-bundles.jsonl')
+                self.assertFalse(any(call['argv'][:1]==['api'] or call['token'] for call in calls))
+                remote=checkout/'.work/publish-remote.git'
+                self.assertEqual(qualify.git(remote,'rev-parse','chrome-qualification^'),qualify.git(checkout,'rev-parse','refs/remotes/origin/chrome-qualification'))
+                self.assertEqual(json.loads(qualify.git(remote,'show','chrome-qualification:'+qualify.RECORD)),candidate)
+                self.assertEqual(qualify.git(remote,'rev-parse','main'),qualify.git(checkout,'rev-parse','refs/remotes/origin/main'))
+
+    def test_a_held_record_without_a_listing_or_a_bundle_list_refuses_and_nothing_moves(self):
+        candidate={'format':1,'entries':[*self.HELD['entries'],entry(version='159.0.1.0',run='9001')]}
+        checkout,bundle=self.checkout(self.HELD,candidate)
+        result=self.read(checkout,api=[{'stdout':'{"message":"Not Found","status":"404"}','stderr':'gh: Not Found (HTTP 404)\n','code':1}])
+        self.assertNotEqual(result.returncode,0);self.assertIn(qualify.NOT_LISTED,result.stderr)
+        self.assertFalse((checkout/'.work/held-bundles.jsonl').exists())
+        result=self.publish(checkout,bundle)
+        self.assertNotEqual(result.returncode,0);self.assertIn('no bundle list was fetched',result.stderr)
+        self.assertFalse(any(call['argv'][:1]==['api'] for call in self.runner.gh_calls()))
+        remote=checkout/'.work/publish-remote.git'
+        self.assertEqual(qualify.git(remote,'rev-parse','chrome-qualification'),qualify.git(checkout,'rev-parse','refs/remotes/origin/chrome-qualification'))

@@ -2,7 +2,6 @@
  "attestations": [
   {
    "repository_id": 1443566375,
-   "bundle_url": "https://tmaproduction.blob.core.windows.net/attestations/1443566375/2026/11/09/65501860.json.sn?se=2026-11-15T00%3A32%3A36Z&sig=PJEpLSi6n4b6n6G9sJzAP2LO7UgLrxDl%2Fm0Gox1Z%2FKg%3D&ske=2026-11-15T01%3A03%3A29Z&skoid=322a4be5-8e0b-4548-9b48-4e436a2c7c75&sks=b&skt=2026-11-14T23%3A03%3A29Z&sktid=398a6654-997b-47e9-b12b-9515b896b4de&skv=2026-12-06&sp=r&spr=https&sr=b&st=2026-11-14T23%3A32%3A36Z&sv=2026-12-06",
    "initiator": "user",
    "bundle": {
     "mediaType": "application/vnd.dev.sigstore.bundle.v0.3+json",
