@@ -335,9 +335,11 @@ def memory_pressure():
 
 # Package 23b: the startup cover in the real session. A fresh VM is in SETUP (no account, no hub), where the
 # supervisor never shows it, so the check starts it by hand as ares in the labwc session, over the SETUP view and
-# the recovery terminal; the host takes the screenshot between 'cover' and 'cover-stop'.
+# the recovery terminal; the host takes the screenshot between 'cover' and 'cover-stop'. Before that, 'cover'
+# requires fontconfig to give the cover Space Grotesk as ares in the session (review 1, finding 1).
 COVER = {}
 COVER_TOP, COVER_BOTTOM = (26, 25, 30), (13, 13, 16)  # #1a191e, #0d0d10
+SPACE_GROTESK = '/usr/share/fonts/aresos/SpaceGrotesk-Variable.ttf'
 
 
 def ppm_corners(path):
@@ -361,6 +363,21 @@ def near(pixel, expected):
     return all(abs(a - b) <= 3 for a, b in zip(pixel, expected))
 
 
+def session_fonts(env):
+    """Review 1, finding 1: the file fontconfig gives the cover's two faces as ares in the real session. In the
+    deployed image /usr has mtime 0, so a font cache made before /usr/share/fonts/aresos existed would hide package
+    31's font here (the image check's container cannot see that); build.sh rebuilds the cache."""
+    found = {}
+    for pattern in ('Space Grotesk:bold', 'Space Grotesk'):
+        result = run(*env, '/usr/bin/fc-match', '-f', '%{file}', pattern)
+        assert result['returncode'] == 0, result
+        found[pattern] = result['stdout']
+    if set(found.values()) != {SPACE_GROTESK}:
+        mtimes = run('stat', '-c', '%n %Y', '/usr/share/fonts', '/usr/share/fonts/aresos')
+        raise AssertionError(f'fontconfig does not give the cover Space Grotesk: {found}; {mtimes}')
+    return found
+
+
 def cover_start():
     supervisor = [r for r in processes() if r['uid'] == 1001
                   and r['cmdline'][1:3] == ['/usr/libexec/aresos-desktop', 'supervise']]
@@ -368,6 +385,7 @@ def cover_start():
     display = supervisor[0]['env'].get('WAYLAND_DISPLAY')
     assert display, 'the supervisor has no WAYLAND_DISPLAY'
     env = [*AS_ARES, f'WAYLAND_DISPLAY={display}']
+    fonts = session_fonts(env)
     COVER['process'] = subprocess.Popen([*env, '/usr/libexec/aresos-cover'], stdin=subprocess.DEVNULL,
                                         stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     shot = pathlib.Path('/tmp/aresos-ci-cover.ppm')
@@ -389,7 +407,8 @@ def cover_start():
     COVER['pid'] = pids[0]
     row = next(r for r in processes() if r['pid'] == pids[0])
     assert row['env'].get('WAYLAND_DISPLAY') == display, row['env']
-    return dict(returncode=0, pid=pids[0], corners=corners, display=display, stdout='COVER_UP corners %s' % (corners,))
+    return dict(returncode=0, pid=pids[0], corners=corners, display=display, fonts=fonts,
+                stdout='COVER_UP corners %s; fontconfig as ares: %s' % (corners, fonts))
 
 
 def cover_stop():

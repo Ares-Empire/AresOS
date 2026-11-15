@@ -229,6 +229,11 @@ PY
 # Package 31: config has been copied by the Containerfile. Compile the desktop
 # defaults now; a bad schema or override must fail the image build.
 glib-compile-schemas --strict /usr/share/glib-2.0/schemas
+# Package 23b, review 1 finding 1: rebuild the system font cache now that config/ added /usr/share/fonts/aresos
+# (package 31's Space Grotesk, which labwc's titles and the startup cover draw with). On the deployed image every
+# directory under /usr has mtime 0, and fontconfig then takes any cache it has for /usr/share/fonts as valid: an
+# older cache, made before aresos/ existed, would hide the font at runtime (the VM drew Noto Sans).
+fc-cache --system-only --really-force
 
 # Use the same declaration at build and boot: local /etc/passwd changes from
 # the installer otherwise hide new accounts in the image's /usr/etc/passwd.

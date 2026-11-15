@@ -3227,6 +3227,55 @@ class PressureCheckTest(unittest.TestCase):
             self.assertIn('did not answer', str(caught.exception))
 
 
+class CoverFontCheckTest(unittest.TestCase):
+    """Package 23b, review 1 finding 1: the VM's cover step requires Space Grotesk from fontconfig as ares in the real
+    session, for both faces the cover draws (checks.py, run in the VM)."""
+
+    ENV = ['runuser', '-u', 'ares', '--', 'env', '-i', 'HOME=/var/home/ares', 'WAYLAND_DISPLAY=wayland-0']
+
+    def setUp(self):
+        sys.path[:0] = [str(ROOT / 'os/ci'), str(ROOT / 'os/ci/overlay')]
+        self.addCleanup(lambda: [sys.path.remove(p) for p in (str(ROOT / 'os/ci'), str(ROOT / 'os/ci/overlay'))])
+        import checks
+        self.checks = checks
+        self.calls = []
+
+    def answer(self, files, returncode=0):
+        def run(*args, **kwargs):
+            self.calls.append(list(args))
+            if args[-3:-1] == ('-f', '%{file}'):
+                return dict(returncode=returncode, stdout=files[args[-1]], stderr='')
+            return dict(returncode=0, stdout='/usr/share/fonts 0\n/usr/share/fonts/aresos 0\n', stderr='')
+        patch = mock.patch.object(self.checks, 'run', run)
+        patch.start()
+        self.addCleanup(patch.stop)
+
+    def test_both_faces_from_the_aresos_font_pass(self):
+        font = '/usr/share/fonts/aresos/SpaceGrotesk-Variable.ttf'
+        self.assertEqual(self.checks.SPACE_GROTESK, font)
+        self.answer({'Space Grotesk:bold': font, 'Space Grotesk': font})
+        self.assertEqual(self.checks.session_fonts(self.ENV), {'Space Grotesk:bold': font, 'Space Grotesk': font})
+        self.assertEqual(self.calls, [[*self.ENV, '/usr/bin/fc-match', '-f', '%{file}', 'Space Grotesk:bold'],
+                                      [*self.ENV, '/usr/bin/fc-match', '-f', '%{file}', 'Space Grotesk']])
+
+    def test_any_other_font_fails(self):
+        font, noto = self.checks.SPACE_GROTESK, '/usr/share/fonts/google-noto-vf/NotoSans[wght].ttf'
+        for files in ({'Space Grotesk:bold': noto, 'Space Grotesk': noto},
+                      {'Space Grotesk:bold': font, 'Space Grotesk': noto},
+                      {'Space Grotesk:bold': noto, 'Space Grotesk': font},
+                      {'Space Grotesk:bold': '', 'Space Grotesk': ''}):
+            with self.subTest(files=files):
+                self.answer(files)
+                with self.assertRaises(AssertionError) as caught:
+                    self.checks.session_fonts(self.ENV)
+                self.assertIn('does not give the cover Space Grotesk', str(caught.exception))
+                self.assertIn(noto if noto in files.values() else "''", str(caught.exception))
+        with self.subTest('fc-match fails'):
+            self.answer({'Space Grotesk:bold': font, 'Space Grotesk': font}, returncode=1)
+            with self.assertRaises(AssertionError):
+                self.checks.session_fonts(self.ENV)
+
+
 class SessionFilesTest(unittest.TestCase):
     def test_autostart_runs_the_supervisor_instead_of_a_terminal(self):
         lines = [l for l in (CONFIG / 'usr/share/aresos/labwc/autostart').read_text().splitlines()
@@ -3264,6 +3313,17 @@ class SessionFilesTest(unittest.TestCase):
                       '</windowRule>\n', (CONFIG / 'usr/share/aresos/labwc/rc.xml').read_text())
         self.assertTrue(os.access(CONFIG / 'usr/libexec/aresos-cover', os.X_OK))
         self.assertIn('/usr/libexec/aresos-cover', (ROOT / 'os/build.sh').read_text())
+
+    def test_the_image_rebuilds_its_font_cache_after_config_is_copied(self):
+        # Review 1, finding 1: on the deployed image (/usr at mtime 0) fontconfig keeps any cache it has, so the
+        # cache is rebuilt in the configure step, which runs after the Containerfile copied config/ (the fonts).
+        script = (ROOT / 'os/build.sh').read_text()
+        lines = script.splitlines()
+        self.assertEqual(lines.count('fc-cache --system-only --really-force'), 1)
+        configure = script.index('\n# Package 23: the mod jar the `mod` stage built')
+        self.assertGreater(script.index('\nfc-cache --system-only --really-force\n'), configure)
+        containerfile = (ROOT / 'os/Containerfile').read_text()
+        self.assertLess(containerfile.index('cp -a /tmp/aresos/config/. /'), containerfile.index('build.sh configure'))
 
     def test_supervisor_and_wrapper_run_absolute_commands_only(self):
         for name in ('aresos-desktop', 'aresos-desktop-java'):

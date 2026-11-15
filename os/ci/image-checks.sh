@@ -604,7 +604,9 @@ grep -q '<windowRule identifier="aresos-desktop" serverDecoration="no"><action n
     /usr/share/aresos/labwc/rc.xml
 pass 'labwc autostart starts the desktop supervisor (no session terminal); the hub window is borderless and maximized'
 # Package 23b: the startup cover. Present and executable, its GTK 4, Pango and cairo load as ares, its labwc rule
-# is there (and the hub's rule above is unchanged), and fontconfig finds package 31's Space Grotesk for it.
+# is there (and the hub's rule above is unchanged), and fontconfig finds package 31's Space Grotesk for it. This
+# container has real directory mtimes, so it cannot see a stale font cache that the deployed image (mtime 0) would
+# use: the VM's cover step checks fc-match in the real session, which proves the drawing (review 1, finding 1).
 test -x /usr/libexec/aresos-cover
 test "$(stat -c '%U:%G %a' /usr/libexec/aresos-cover)" = 'root:root 755'
 grep -q '<windowRule identifier="aresos.cover" serverDecoration="no"><action name="ToggleFullscreen" /><action name="ToggleAlwaysOnTop" /></windowRule>' \
@@ -622,7 +624,7 @@ assert cover.parse(['--again']).again and cover.parse([]).limit == cover.LIMIT =
 PY
 font=$(runuser -u ares -- env -i HOME=/tmp PATH=/usr/bin /usr/bin/fc-match --format '%{file}' 'Space Grotesk:bold')
 test "$font" = /usr/share/fonts/aresos/SpaceGrotesk-Variable.ttf
-pass "the startup cover is installed, loads GTK 4 as ares and draws in Space Grotesk ($font); its labwc rule is set"
+pass "the startup cover is installed and loads GTK 4 as ares; fontconfig finds Space Grotesk ($font); its labwc rule is set"
 # Super+Ctrl+Escape opens the recovery terminal, then ends the cover through the supervisor (PLAN-GAP 2). The
 # supervisor takes the command as ares; with no supervisor running here it says so and exits 1.
 python3 - <<'PY'
