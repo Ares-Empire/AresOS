@@ -1219,8 +1219,8 @@ is brief 20's tool list on the same fixtures, recorded once before it is replace
 | List 25 open tabs | 3 calls | 1 call, at most 3,500 characters |
 | A free click that changes part of the page | a click, then a read or a find: 2 calls | 1 call, at most 2,500 characters |
 | Read a fact from one of his tabs (*brief 28b*) | list, take, read; the tab moves | list, read; the tab untouched |
-| What a session loads: descriptions and instructions | 30 tools; recorded on main after PR #27 | 19 tools, not above main's total measured at brief 28a's start (about 9,137), the final total pinned; the instructions alone at most 2,800 (3,800 with brief 28b); 20 tools with brief 28b's rule for his tabs and `chrome_take_reload`: at most 1,300 above 28a's pinned total (the lead, 2026-11-15) |
-| What a session loads: names and input schemas | 28 tools, about 10,600 characters at `8b7e799c`; recorded again on main with the 29th and 30th | not above main's total measured at brief 28a's start (about 11,080), the final total pinned; with brief 28b's inputs and `chrome_take_reload` at most 300 above 28a's pinned total |
+| What a session loads: descriptions and instructions | 30 tools; recorded on main after PR #27 | 19 tools, not above main's total measured at brief 28a's start (about 9,137), the final total pinned; the instructions alone at most 2,800 (3,800 with brief 28b); 20 tools with brief 28b's rule for his tabs and `chrome_take_reload`: at most 1,550 above 28a's pinned total (the lead, 2026-11-15) |
+| What a session loads: names and input schemas | 28 tools, about 10,600 characters at `8b7e799c`; recorded again on main with the 29th and 30th | not above main's total measured at brief 28a's start (about 11,080), the final total pinned; with brief 28b's inputs and `chrome_take_reload` at most 750 above 28a's pinned total |
 
 - Every budget names the exact calls it allows (the tables of briefs 28 and 28a), and the test makes those calls
   and no others. A budget nobody can meet is changed in the brief, never in the test.

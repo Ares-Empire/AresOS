@@ -556,10 +556,10 @@ Into the descriptions, each on its own tool only:
 The size pins move with this package (the lead, 2026-11-15, after review 4). Start from brief 28a's final measured
 totals, which its test pins, and add at most:
 
-- 1,300 characters to all descriptions plus the instructions: the block above, the description points, and the
+- 1,550 characters to all descriptions plus the instructions: the block above, the description points, and the
   description of `chrome_take_reload` (main's `APPROVAL_INSTRUCTION` included); moving a point between the
   instructions and a description leaves this total as it is;
-- 300 characters to all names plus input schemas: `request` on five tools, `seen` on the three that didn't have it
+- 750 characters to all names plus input schemas: `request` on five tools, `seen` on the three that didn't have it
   (`chrome_read`, `chrome_close`, `chrome_prepare_read_typed_fields`), and `chrome_take_reload`'s name and input,
   main's `APPROVAL`.
 

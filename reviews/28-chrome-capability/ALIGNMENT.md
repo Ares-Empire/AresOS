@@ -105,8 +105,9 @@ the rest of 28b, and `chrome_take_reload`'s input unable to carry its question. 
    the point. Its pins are main's catalogue measured with `tools_for('chrome')` and `instructions_for('chrome')` at
    28a's start: about 9,137 characters for descriptions plus instructions, about 11,080 for names plus input
    schemas. The builder records the exact numbers and pins the final totals; the fixed 11,300 and 6,560 are gone.
-   28b's pins are 28a's final measured totals plus at most 1,300 (descriptions plus instructions) and 300 (names
-   plus schemas); its builder pins the exact totals.
+   28b's pins are 28a's final measured totals plus at most 1,550 (descriptions plus instructions) and 750 (names
+   plus schemas), from the itemised estimates (about 1,450 and 690) with a small margin; first set at 1,300 and 300,
+   raised because a cap the builder will certainly hit is no cap. Its builder pins the exact totals.
 7. **N6: one tab per flag.** `discard_unsaved` on `chrome_close` applies only when the call closes a single tab. A
    call that names several tabs with the flag is refused, with the advice to close them one at a time. 28a has the
    test; 28b's S9 test follows it.
