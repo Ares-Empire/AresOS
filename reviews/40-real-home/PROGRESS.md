@@ -299,7 +299,7 @@ Step 3 ran: `mod/dev/build.sh` seven times. Green with the new tests (103, then 
 runs with parts of the change taken out (results in the table above; the working tree was restored to the commit
 after each); the last on the final code at 05:48, passing (BUILD SUCCESSFUL, "All 104 required tests passed").
 `mod/dev/client-test.sh` five times: the first full run failed only in the new Live part (the speed was checked before
-the server's entity update had reached the client; the other 20 client tests passed); three runs of the home screen
+the server's entity update had reached the client; every client test before it passed, 17 "checks passed" lines); three runs of the home screen
 test alone (the test list cut to it in the working tree, never committed) to fix that and the double space; then the
 full suite on the final code at 05:49 to 05:59, passing: exit 0 after 9 min 48 s, all 18 "checks passed" lines, the
 last "40 home screen checks passed ... Live mode shows only the hotbar, walks faster with the field of view kept,
