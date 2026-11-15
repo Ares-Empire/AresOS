@@ -27,7 +27,7 @@ and `git worktree list` first.
 | Service fixes, brief 18e | `briefs/18e-service-fixes.md`, `pkg/18e-service-fixes`, `~/AresOS-18e`, PR #69 | Built on head `13e9e1e4`, the six control workflows green. Proven under systemd by 18c's VM pass (failed state after 10.2 s with `Result=exit-code`, one notice per outage, hooks 0.12-0.18 s with the service down). Report text in `reviews/18e-service-fixes/PROGRESS.md`. | Tue 2026-11-17: Codex package and security review, fix round, merge. A change after `13e9e1e4` means 18c merges it again and reruns. |
 | Chrome briefs 28, 28a, 28b | `briefs/28-chrome-capability`, draft PR #48 | Aligned with merged #27; review 4 NOT READY, fix round done (`reviews/28-chrome-capability/ALIGNMENT.md`). | Tue 2026-11-17: Codex review of the changes since `42aa0370`, `chrome_take_reload` as a whole (board #284). READY, then merge. |
 | Package 28 | `pkg/28-chrome`, `~/AresOS-28-chrome-read` (old `pkg/28-chrome-read` kept as record) | Steps 1/1b (view module) on main's base; step 2 (efficiency fixtures and probe) committed, progress in `reviews/28-chrome-read/PROGRESS.md`. | PR #68 is on main (`bdc16064`): merge main, wire the probe into `latency-pair.sh`, upload, commit the baseline, draft PR. Then the reader, adapter, deadlines, browser groups; then 28a, then 28b after PR #48 merges. |
-| Brief 18c-b | not written | Design settled: force-install by policy from a `file:` address inside the image, a fresh signing key per image build that is thrown away, symlinks in `/etc` to files in `/usr`. Research with sources: `~/AresOS-18c-b-extension-research.md` on the laptop (put it into the brief's folder). `mac-aresos-control` has no objection. | Write the brief after PR #27 merges; agree the paths with `linux-aresos`; prove it in the CI VM on the shipped Chrome. Board #223, #224. Chrome build hash after 18e: `ccd0fd79190f492dbb0ca9889a288c0c004e0d46da3458e0f4446c80b5f5ce15` (for `control/chrome/builds.json`, board #285). |
+| Brief 18c-b | `briefs/18c-b-chrome-image`, `~/AresOS-18c-b`, draft PR #73 | Written (Fable), brief review 1 NOT READY (one blocker, the lead's guard), fix round done (`59814973`); `linux-aresos` agreed the `os/` part and moved the owner's list to `/var`. Research in `reviews/18c-b-chrome-image/RESEARCH.md`. Six steps (1a, 1b, 2, 3a, 3b, 4-6). Owner question #297 (Chrome's "managed" notice) before step 3a. | Re-review; READY, then merge. Steps 1a/1b/2 (`control/` and a container workflow) can start before PR #58 merges; 3a needs #58 on main, #297 and `linux-aresos`'s go. |
 | Live tests | the laptop | Waits for a release that carries the tools. | Mail onboarding with him first (he signs in himself), a test mail, then Chrome. His own hosts go on Chrome's never-list in that sitting (board #200). |
 
 ## Chrome merged (2026-11-14, notes from `mac-aresos-control`)
@@ -86,9 +86,11 @@ accepted with the single-group design, and one group per window is a design ques
 - **Chrome policy:** `policy.json`, in `/etc/opt/chrome/policies/managed/`.
 - **Native host:** `native-host.json`, in `/etc/opt/chrome/native-messaging-hosts/`.
   - The host launcher is installed with mode 0755, and `native_host.py` beside it with mode 0644.
-- **Excluded sites:** `/etc/aresos/control/chrome-excluded-sites.json`, containing `{"format":1,"hosts":[]}`.
-  - Root-owned, mode 0640, in the service's group.
-  - His own hosts are added in the live test (#200), never in the repo.
+- **Excluded sites:** moving with brief 18c-b (PR #73) to `/var/lib/aresos-control/chrome-excluded-sites.json`, so
+  an update or `previous` keeps his list. tmpfiles creates it as a placeholder the validator refuses
+  (`{"format":0,"hosts":[]}`), so Chrome's tools refuse until he writes a format-1 list with sudo in the live test
+  (#200; an empty list if he excludes nothing). Root-owned, mode 0640, in the service's group; the service can't
+  write the folder. His own hosts never go in the repo.
 - **Build marker:** the build hash goes into `chrome/build-id.json`.
 - **`gh`:** version 2.102 or newer.
 - **Service unit:** `aresos-toold.service` is byte-identical to `8b7e799c`.
