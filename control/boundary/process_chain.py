@@ -36,12 +36,29 @@ def chain(pid, levels=LEVELS):
 
 
 def record(kind):
-    """Called by the container's stand-ins; never fails them. No folder (other suites): no record."""
+    """Called by the container's stand-ins; never fails them. No folder (other suites): no record.
+
+    A hook also records what the real `usage.used()` answers from its place in the real process tree.
+    """
     try:
         if FOLDER.is_dir():
-            (FOLDER / f'{kind}-{os.getpid()}.json').write_text(json.dumps(chain(os.getpid())))
+            found = chain(os.getpid())
+            if kind.startswith('hook-'):
+                from aresos_control import usage
+                found[0]['used'] = usage.used()
+            (FOLDER / f'{kind}-{os.getpid()}.json').write_text(json.dumps(found))
     except Exception:
         pass
+
+
+def mark():
+    """The MCP stand-in marks its session with the real `usage.mark()` on each tool call, as the proxy does."""
+    try:
+        if FOLDER.is_dir():
+            from aresos_control import usage
+            usage.mark()
+    except Exception as exc:
+        (FOLDER / f'mark-error-{os.getpid()}.txt').write_text(repr(exc))
 
 
 def check(folder):
@@ -54,7 +71,16 @@ def check(folder):
         ancestors = [(item['pid'], item['start']) for item in stop[1:LEVELS + 1]]
         assert parents & set(ancestors), ('STOP: the MCP server and the Stop hook have no common Claude Code process',
                                           servers, stop)
+    assert not list(folder.glob('mark-error-*.txt')), [p.read_text() for p in folder.glob('mark-error-*.txt')]
     return {'mcp': servers, 'stop': stops, 'prompt': prompts}
+
+
+def check_used(chains, arrivals):
+    """Quiet unless used, with the real code: a Stop hook finds a mark exactly when its session's tool ran."""
+    used = [stop[0].get('used') for stop in chains['stop']]
+    assert all(type(value) is bool for value in used), used
+    assert any(used) == (arrivals > 0), ('STOP: usage marks disagree with the tool calls', used, arrivals)
+    return used
 
 
 def summary(chains):

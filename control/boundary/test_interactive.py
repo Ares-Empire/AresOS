@@ -226,6 +226,15 @@ class ProcessChains(unittest.TestCase):
             with self.assertRaises(AssertionError):
                 process_chain.check(folder)
 
+    def test_used_marks_must_match_the_tool_calls(self):
+        import process_chain
+        stop = lambda used: [{'pid': 40, 'start': 1, 'comm': 'python3', 'used': used}]
+        self.assertEqual(process_chain.check_used({'stop': [stop(True), stop(False)]}, 1), [True, False])
+        self.assertEqual(process_chain.check_used({'stop': [stop(False)]}, 0), [False])
+        for chains, arrivals in (({'stop': [stop(False)]}, 1), ({'stop': [stop(True)]}, 0), ({'stop': [stop(None)]}, 0)):
+            with self.assertRaises(AssertionError):
+                process_chain.check_used(chains, arrivals)
+
     def test_nothing_recorded_fails(self):
         import process_chain
         with tempfile.TemporaryDirectory() as raw:
