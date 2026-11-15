@@ -55,8 +55,9 @@ jobs:
     if: github.event_name == 'workflow_dispatch' && inputs.checks_only && !inputs.rehearsal && github.ref_name != 'pkg/16-staged-release'
     runs-on: ubuntu-24.04
     # The suite explores a bounded slice of 22c's ways-back model; the full model
-    # runs in the model job below (22c stage 1b, addition 1).
-    timeout-minutes: 25
+    # runs in the model job below (22c stage 1b, addition 1). Main's suite needs
+    # about 23 minutes; run 43669481694 was cut at 25 (22d step 2).
+    timeout-minutes: 40
     permissions:
       contents: read
       packages: read
