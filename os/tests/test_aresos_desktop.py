@@ -416,7 +416,8 @@ class ProvisionTest(Base):
         self.assertIn('\nOverrideJavaArgs=true\nJvmArgs=-XX:MaxHeapFreeRatio=30 -XX:MinHeapFreeRatio=10\n', config)
         settings = desktop.parse_ini(config)
         for key, value in settings.items():
-            self.assertFalse(set(value) & set(',;"\''), f'{key}={value} is not plain')
+            # $ would be expanded by the wrapper's systemd-run, \ is an escape for QSettings (23d review 1, nit 3).
+            self.assertFalse(set(value) & set(',;"\'$\\'), f'{key}={value} is not plain')
         self.assertEqual(settings['JvmArgs'], desktop.JVM_ARGS)
         self.assertEqual(desktop.JVM_ARGS.split(' '), ['-XX:MaxHeapFreeRatio=30', '-XX:MinHeapFreeRatio=10'])
         for refused in ('-Xms', '-Xmx', '-XX:PermSize=', '-XX-MaxHeapSize', '-XX:InitialHeapSize', '-version:'):

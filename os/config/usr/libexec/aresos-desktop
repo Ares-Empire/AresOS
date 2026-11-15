@@ -118,8 +118,9 @@ HELPER_RESTART = 2.0
 HELPER_BUDGET = (5, 60.0)
 # The game's memory, from package 41's measurements (reviews/41-home-memory/REPORT.md; brief 23d). The live heap
 # after GC was about 250 to 410 MiB, so a 1024 MiB ceiling leaves about 2.5 times it. MEMORY_HIGH is the game scope's
-# soft target: the most anonymous memory measured was about 1.85 GiB (the full heap plus 869 MiB beside it, which
-# nothing caps), so 2560M acts only on something abnormal; 1100M throttled the game into swap. The heap values and
+# soft target. Its worst case is about 1.85 GiB of anonymous memory: a full 1 GiB heap (no run reached it) plus the
+# most measured beside the heap, 869 MiB (package 41's REVIEW-3, finding 1), which nothing caps. So 2560M acts only
+# on something abnormal; 1100M throttled the game into swap. The heap values and
 # JVM_ARGS reach a new instance only (provision): one that already exists keeps the values it was created with.
 HEAP_MB = 1024
 MIN_HEAP_MB = 256

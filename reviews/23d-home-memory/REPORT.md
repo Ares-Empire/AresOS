@@ -43,7 +43,7 @@ correction of the margin):
 | `HEAP_MB` | 3072 | 1024 | The live heap after GC was 250 to 375 MiB in the flat home and up to about 410 in the Nether. G1 never committed more than about 620 MiB in the flat home. At 1024 there was no `OutOfMemoryError`, the longest GC pause after joining was about 14 ms, and frame times matched 3072. |
 | `MIN_HEAP_MB` | 512 | 256 | With the flags this is the floor the heap can shrink to; G1 never goes below `-Xms`. |
 | JVM flags | none | `-XX:MaxHeapFreeRatio=30 -XX:MinHeapFreeRatio=10` | The committed heap stays near the live data (about 390 MiB instead of 510 to 620). RSS is about 50 MiB lower settled, about 95 after flying and about 85 while covered. The cost: about four times as many short GC pauses while flying fast over new ground. |
-| `MEMORY_HIGH` | `5G` | `2560M` | The worst case measured was about 1.85 GiB anonymous: the full 1 GiB heap plus 869 MiB beside it (n2, REVIEW-3). That leaves about 0.65 GiB of room. 1100M was shown too low (v2: 322 `high` events, 165 MiB pushed into swap, worst frame 31.7 ms). |
+| `MEMORY_HIGH` | `5G` | `2560M` | The worst case is about 1.85 GiB anonymous, a computed bound: a full 1 GiB heap (no run reached it) plus the most measured beside the heap, 869 MiB (n2, package 41's REVIEW-3, finding 1). That leaves about 0.65 GiB of room. 1100M was shown too low (v2: 322 `high` events, 165 MiB pushed into swap, worst frame 31.7 ms). |
 | `RENDER_DISTANCE` / `SIMULATION_DISTANCE` | 8 / 5 | 8 / 5 | There is no RAM to gain: render 6 used the same memory as 8, his full program list needs render 7, and simulation 2 measured the same as 5. |
 
 ## Prism's key names, and where they were verified
@@ -113,7 +113,7 @@ On the first start, the instance is new. While the game runs:
   - `memory.high` reads `2684354560`.
   - **`memory.stat` `anon`** is the game's own memory. Expect it well under 2 GiB: package 41 measured the scope at
     about 1.1 to 1.3 GiB in the flat home, and 1.85 GiB as the worst case with a full heap.
-  - **`memory.events` `high`** should stay 0. If it counts, the target throttled the game.
+  - **`memory.events` `high`** should stay 0. A count alone can mean the kernel only trimmed clean page cache; the game was throttled when it counts together with a high `memory.stat` `anon` and the scope's `memory.pressure` showing stalls. Read `memory.stat` `file` beside it.
   - **Not `memory.peak` / `MemoryPeak` alone.** After a boot the game is the first to read its jars, libraries, assets
     and world, and that page cache is charged to this scope too. So the peak reads higher than package 41's numbers
     (up to about RSS plus what it read) without anything being wrong. Clean cache is the first thing reclaimed under
