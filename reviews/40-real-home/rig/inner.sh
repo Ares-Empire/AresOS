@@ -1,4 +1,5 @@
 #!/bin/bash
+# DEVELOPMENT AID of package 40, headless use only: this rig calls Gradle directly (inner.sh runs gradlew runClient).
 # Runs inside the rig's labwc (WAYLAND_DISPLAY and DISPLAY are that compositor's).
 set -u
 if [[ ${WAYLAND_DISPLAY:-wayland-0} == wayland-0 || ${DISPLAY:-:0} == :0 ]]; then

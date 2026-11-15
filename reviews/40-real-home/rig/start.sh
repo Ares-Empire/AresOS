@@ -1,4 +1,5 @@
 #!/bin/bash
+# DEVELOPMENT AID of package 40, headless use only: this rig calls Gradle directly (inner.sh runs gradlew runClient).
 # Package 40 reproduction rig: a headless labwc with an rc.xml of choice, the worktree's helper and the dev client.
 # Never the owner's session: the compositor is headless and gets its own socket; inner.sh refuses wayland-0 / :0.
 set -u

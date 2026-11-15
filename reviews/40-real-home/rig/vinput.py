@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+# DEVELOPMENT AID of package 40, headless use only: this rig calls Gradle directly (inner.sh runs gradlew runClient).
 """Rig tool: a virtual keyboard and pointer on the rig compositor's seat (never the owner's). Reads commands from
 <rig>/vin (a FIFO): key <name> [down|up] | mods <alt|shift|ctrl|super ...> | type <text> | move <x> <y> | click <left|right>
 | button <left|right> <down|up> | quit"""

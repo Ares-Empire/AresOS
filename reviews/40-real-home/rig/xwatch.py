@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+# DEVELOPMENT AID of package 40, headless use only: this rig calls Gradle directly (inner.sh runs gradlew runClient).
 """Rig tool: log focus/map/state events of an X window on the rig's Xwayland. usage: xwatch.py <rig> <window id> <seconds>"""
 import os, sys, time
 rig = sys.argv[1]

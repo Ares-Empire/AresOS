@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+# DEVELOPMENT AID of package 40, headless use only: this rig calls Gradle directly (inner.sh runs gradlew runClient).
 """Rig tool: list the rig compositor's toplevels, or act on one. usage: tl.py <rig> [list | activate|close|min|unmin|max|unmax|full|unfull <app_id>]"""
 import importlib.machinery, importlib.util, os, struct, sys, time
 rig = sys.argv[1]

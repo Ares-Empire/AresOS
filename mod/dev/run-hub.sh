@@ -43,7 +43,10 @@
 # helper and the game get that labwc's Wayland socket, Xwayland display and PID instead of this desktop's; the game
 # window is then the maximized, frameless, always-on-bottom desktop window of the session, and apps open over it.
 # Closing the game, Ctrl+C here, or closing the preview window stops all of it; closing the window first asks the
-# game to save and quit, as its close button would. What it cannot show:
+# game to save and quit, as its close button would. The run also ends when the preview's labwc has no screen left
+# (preview-window.py --outputs), so closing the preview ends it even where the watcher never found its window. The
+# preview's labwc and the watchers do not get the launch identity: a terminal started from labwc's own menu, and a
+# development client started in it, must not take themselves for the session. What it cannot show:
 #   - Keys this desktop binds itself reach it first, whatever has the focus: on AresOS Alt+Tab (switches this
 #     desktop's windows, the preview being one), Alt+F4 (closes the whole preview window, and with it the preview),
 #     Super+Ctrl+Escape (this desktop's recovery terminal). labwc offers no way to hand them on. In the preview,
@@ -136,19 +139,23 @@ aresos_cleanup() {
     aresos_say "Stopped the app helper (its log: $HELPER_LOG)."
 }
 
-# --session: starts the preview's labwc and its window watcher, and sets nested_env to the variables that point a
-# program at that labwc instead of this desktop.
+# --session: starts the preview's labwc, the watcher of its window on this desktop and the watcher of its screens, and
+# sets nested_env to the variables that point a program at that labwc instead of this desktop.
 nested_env=()
+nested_wayland=
 labwc_job=
 window_job=
+outputs_job=
+# Neither the preview's labwc nor its watchers get the launch identity (exported below for the helper and the game).
+no_identity=(-u ARESOS_DESKTOP_INSTANCE -u ARESOS_LAUNCH_NONCE)
 start_session() {
     local config="$PRIVATE/labwc" found="$PRIVATE/nested.env" ready="$PRIVATE/window.ready" tries=0 wayland display pid
     /usr/bin/mkdir -m 0700 -- "$config"
     /usr/bin/cp -- "$rc_xml" "$config/rc.xml"
     printf '\n--- %s run-hub.sh --session starts labwc with %s\n' "$(/usr/bin/date -Is)" "$rc_xml" >>"$SESSION_LOG"
     # The watcher lists this desktop's windows first, so the next new labwc window is the preview's.
-    aresos_scope_start run-hub-window -- /usr/bin/python3 -I "$ARESOS_MOD_DIR/dev/preview-window.py" "$ready" \
-        </dev/null >>"$SESSION_LOG" 2>&1
+    aresos_scope_start run-hub-window -- /usr/bin/env "${no_identity[@]}" /usr/bin/python3 -I \
+        "$ARESOS_MOD_DIR/dev/preview-window.py" "$ready" </dev/null >>"$SESSION_LOG" 2>&1
     window_job=$ARESOS_JOB
     until [[ -e $ready ]]; do
         if ! aresos_job_running "$window_job" || ((tries++ >= 50)); then
@@ -158,9 +165,11 @@ start_session() {
         /usr/bin/sleep 0.1
     done
     # Nested on this desktop. LABWC_UPDATE_ACTIVATION_ENV=0: never hand this desktop's D-Bus and systemd user
-    # environment the preview's displays (labwc leaves them alone when nested anyway; this makes it certain).
-    aresos_scope_start run-hub-labwc -- /usr/bin/env -u DISPLAY -u WAYLAND_SOCKET -u LABWC_PID WLR_BACKENDS=wayland \
-        LABWC_UPDATE_ACTIVATION_ENV=0 PATH="$SYSTEM_PATH" /usr/bin/labwc --config-dir "$config" \
+    # environment the preview's displays (labwc leaves them alone when nested anyway; this makes it certain). No
+    # LABWC_FALLBACK_OUTPUT: a stand-in screen would keep the preview going after its window closed.
+    aresos_scope_start run-hub-labwc -- /usr/bin/env "${no_identity[@]}" -u DISPLAY -u WAYLAND_SOCKET -u LABWC_PID \
+        -u LABWC_FALLBACK_OUTPUT WLR_BACKENDS=wayland LABWC_UPDATE_ACTIVATION_ENV=0 PATH="$SYSTEM_PATH" \
+        /usr/bin/labwc --config-dir "$config" \
         --startup "'$ARESOS_MOD_DIR/dev/preview-env.sh' '$found'" </dev/null >>"$SESSION_LOG" 2>&1
     labwc_job=$ARESOS_JOB
     tries=0
@@ -179,6 +188,11 @@ start_session() {
     [[ $pid =~ ^[0-9]+$ ]] || aresos_fail 1 "The preview's labwc reported no PID; see $SESSION_LOG."
     # LABWC_PID too: `labwc --exit` in a terminal opened in the preview must end the preview, not this desktop.
     nested_env=(WAYLAND_DISPLAY="$wayland" DISPLAY="$display" LABWC_PID="$pid")
+    nested_wayland=$wayland
+    # Its window on this desktop closing takes its only screen away; the run ends then (wait_session).
+    aresos_scope_start run-hub-outputs -- /usr/bin/env "${no_identity[@]}" "${nested_env[@]}" /usr/bin/python3 -I \
+        "$ARESOS_MOD_DIR/dev/preview-window.py" --outputs --display "$wayland" </dev/null >>"$SESSION_LOG" 2>&1
+    outputs_job=$ARESOS_JOB
     aresos_say "Session preview running in labwc $pid ($wayland, $display; its log: $SESSION_LOG)."
 }
 
@@ -187,17 +201,18 @@ start_session() {
 close_game() {
     local tries=0
     /usr/bin/env "${nested_env[@]}" /usr/bin/python3 -I "$ARESOS_MOD_DIR/dev/preview-window.py" --close aresos-desktop \
-        </dev/null >>"$SESSION_LOG" 2>&1 || return 0
+        --display "$nested_wayland" </dev/null >>"$SESSION_LOG" 2>&1 || return 0
     while aresos_job_running "$game_job" && ((tries++ < 120)); do /usr/bin/sleep 0.5; done
 }
 
-# --session: waits for the game, and stops when the preview's labwc ends or its window is closed.
+# --session: waits for the game, and stops when the preview's labwc ends, its window is closed or it has no screen left.
 wait_session() {
     local ended status
     while :; do
         status=0
         ended=
-        wait -n -p ended "$game_job" "$labwc_job" ${window_job:+"$window_job"} || status=$?
+        wait -n -p ended "$game_job" "$labwc_job" ${window_job:+"$window_job"} ${outputs_job:+"$outputs_job"} \
+            || status=$?
         case $ended in
             "$game_job") return "$status" ;;
             "$labwc_job") aresos_say "The preview's labwc stopped (status $status; its log: $SESSION_LOG)."; return 1 ;;
@@ -208,6 +223,13 @@ wait_session() {
                     close_game
                     return 0
                 fi ;;  # it could not cover the screen: the preview stays a window
+            "$outputs_job")
+                outputs_job=
+                if ((status == 0)); then
+                    aresos_say "The preview has no screen left; asking the game to save and quit."
+                    close_game
+                    return 0
+                fi ;;  # it lost that labwc: the labwc's own end stops the run
         esac
     done
 }

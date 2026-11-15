@@ -1,6 +1,10 @@
 #!/bin/bash
-# Rig tool: average GPU utilisation/power and the game's CPU and memory over about 6 s. usage: load.sh <label>
-pid=$(pgrep -f 'net.fabricmc.devlaunchinjector.Main' | head -1)
+# DEVELOPMENT AID of package 40, headless use only: this rig calls Gradle directly (inner.sh runs gradlew runClient).
+# Rig tool: average GPU utilisation/power and the game's CPU and memory over about 6 s. usage: load.sh <game pid> <label>
+# The game's PID is given, never searched for: another builder's client or hub-try's may run at the same time.
+[[ $# == 2 && $1 =~ ^[0-9]+$ && -r /proc/$1/stat ]] || { echo "usage: load.sh <game pid> <label>" >&2; exit 2; }
+pid=$1
+shift
 t0=$(awk '{print $14+$15}' /proc/$pid/stat); s0=$(date +%s.%N)
 gpu=0; pw=0; n=0
 for i in 1 2 3 4 5 6; do

@@ -2,7 +2,8 @@
 """DEVELOPMENT AID for run-hub.sh --session: makes the preview's window cover the screen, and says when it closes.
 
 usage: preview-window.py <ready-file>
-       preview-window.py --close <app-id>
+       preview-window.py --close <app-id> [--display <wayland-socket>]
+       preview-window.py --outputs [--display <wayland-socket>]
 
 Talks to the desktop the preview runs on ($WAYLAND_DISPLAY, the owner's own session) through the wlr
 foreign-toplevel protocol, which labwc offers. It lists the windows that exist, then creates <ready-file>; run-hub.sh
@@ -13,9 +14,18 @@ closes (Alt+F4 on it reaches the outer desktop, which closes it), this exits 0 s
 Exit codes: 0 the preview window closed; 3 the desktop does not offer the protocol (the preview stays an ordinary
 window); 4 the connection to the desktop ended.
 
-With --close it asks the compositor at $WAYLAND_DISPLAY (run-hub.sh points it at the preview's own labwc) to close
-every window with that app ID, as its close button would: the game then saves its world and quits. Exit 0 when it
-asked at least one window, 1 when there was none. Standard library only.
+--close and --outputs act on the preview's own labwc, never on the owner's session: the compositor is --display or
+else $WAYLAND_DISPLAY (run-hub.sh gives both as the preview's), and wayland-0 is refused with exit 2, whichever way it
+is given. Once package 23 is installed, the owner's real game window has the same app ID as the preview's game.
+
+With --close it asks that compositor to close every window with that app ID, as its close button would: the game then
+saves its world and quits. Exit 0 when it asked at least one window, 1 when there was none.
+
+With --outputs it waits until that compositor has had a screen and has none left, then exits 0: the preview's window on
+the owner's desktop is gone (the nested labwc outlives it, without a screen). That ends the run also when the watcher
+above never found the preview's window. Exit 4 when the compositor itself ended.
+
+Standard library only.
 """
 import os
 import socket
@@ -27,6 +37,8 @@ MANAGER = 'zwlr_foreign_toplevel_manager_v1'
 # set_fullscreen came with version 2 of the protocol.
 FULLSCREEN_SINCE = 2
 NESTED_APP_ID = 'labwc'
+# The owner's own session: --close and --outputs never act on it.
+OWNER_DISPLAY = 'wayland-0'
 
 
 class Closed(Exception):
@@ -116,6 +128,9 @@ class Client:
             interface, offset = self.read_string(payload, 4)
             (version,) = struct.unpack_from('=I', payload, offset)
             self.globals[name] = (interface, version)
+        elif kind == 'registry' and opcode == 1:
+            (name,) = struct.unpack_from('=I', payload)
+            self.globals.pop(name, None)
         elif kind == 'callback':
             self.callbacks.discard(object_id)
             self.kinds.pop(object_id, None)
@@ -163,21 +178,69 @@ def close(path, app_id):
     return bool(handles)
 
 
+def no_output_left(path):
+    """Waits until the compositor has had a screen and has none left, then returns."""
+    client = Client(path)
+    client.roundtrip()
+    seen = False
+    while True:
+        if any(interface == 'wl_output' for interface, _ in client.globals.values()):
+            seen = True
+        elif seen:
+            return
+        client.receive()
+
+
+def socket_path(display):
+    return display if os.path.isabs(display) else os.path.join(os.environ.get('XDG_RUNTIME_DIR', ''), display)
+
+
+def on_the_preview(argv):
+    """--close <app-id> or --outputs, each with an optional --display, on the preview's own labwc."""
+    mode, rest = argv[1], argv[2:]
+    app_id = None
+    if mode == '--close':
+        if not rest or rest[0].startswith('--'):
+            say(USAGE)
+            return 2
+        app_id, rest = rest[0], rest[1:]
+    display = os.environ.get('WAYLAND_DISPLAY')
+    if len(rest) == 2 and rest[0] == '--display':
+        display, rest = rest[1], []
+    if rest:
+        say(USAGE)
+        return 2
+    if not display:
+        say('WAYLAND_DISPLAY is not set')
+        return 3
+    if os.path.basename(display.rstrip('/')) == OWNER_DISPLAY:
+        say(f"refusing {display}: {mode} acts only on the preview's own labwc, never on the owner's session")
+        return 2
+    try:
+        if mode == '--outputs':
+            no_output_left(socket_path(display))
+            say("the preview's labwc has no screen left")
+            return 0
+        return 0 if close(socket_path(display), app_id) else 1
+    except (OSError, Closed) as error:
+        say(f'lost the compositor: {error}')
+        return 4
+
+
+USAGE = 'usage: preview-window.py <ready-file> | --close <app-id> [--display <socket>] | --outputs [--display <socket>]'
+
+
 def main(argv):
-    if len(argv) not in (2, 3) or (len(argv) == 3 and argv[1] != '--close'):
-        say('usage: preview-window.py <ready-file> | --close <app-id>')
+    if len(argv) >= 2 and argv[1] in ('--close', '--outputs'):
+        return on_the_preview(argv)
+    if len(argv) != 2 or argv[1].startswith('--'):
+        say(USAGE)
         return 2
     display = os.environ.get('WAYLAND_DISPLAY')
     if not display:
         say('WAYLAND_DISPLAY is not set')
         return 3
-    path = display if os.path.isabs(display) else os.path.join(os.environ.get('XDG_RUNTIME_DIR', ''), display)
-    if len(argv) == 3:
-        try:
-            return 0 if close(path, argv[2]) else 1
-        except (OSError, Closed) as error:
-            say(f'lost the compositor: {error}')
-            return 4
+    path = socket_path(display)
     try:
         client = Client(path)
         client.roundtrip()

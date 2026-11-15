@@ -1,4 +1,5 @@
 #!/bin/bash
+# DEVELOPMENT AID of package 40, headless use only: this rig calls Gradle directly (inner.sh runs gradlew runClient).
 # Rig tool: xdotool against the rig's own Xwayland only. usage: x.sh <rig> <xdotool args...>
 rig=$1; shift
 d=$(sed -n 's/^DISPLAY=//p' "$rig/env")
