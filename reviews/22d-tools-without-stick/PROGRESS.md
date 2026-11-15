@@ -823,3 +823,111 @@ A read-only preflight before the next VM run found two faults in the walk; the i
    -f checks_only=true`), then the VM dispatch (`gh workflow run "OS image" --ref pkg/22d-tools-without-stick
    -f rehearsal=tools-local`).
 2. After a pass: `rebind.py rebind` for 22d, step 7 (record step, final review).
+
+## Step 6, part e (two stick removals in one boot; the VM dispatch cap), 2026-11-15, Claude agent on Opus 5.5: done
+
+VM run 43714310216 (tools-local, dispatch 3 of 4, on `fca1d2a1`) stopped at the guest command
+`export-version-2-unplug-confirmed-xhci-health` with `AssertionError: STOP: repeated tools-stick disconnect`
+(`counts['expected_disconnect'] <= 1` in `owner_xhci.classify`). Nothing dispatched here; no owner tool, sudo,
+ostree, bootc, rpm-ostree or ksshaskpass ran.
+
+### Where it stopped: in 22d's own walk, near its end (not in package 27's route)
+
+The run passed package 27's route and almost all of 22d's walk. Recorded stages: `tl-v3`, `tl-cancel`,
+`tl-unanswered`, `tl-cut`, `tl-install`, `tl-tamper`, `tl-stick-next`, `tl-export`; the stick holding version 2 was
+taken with its retired-bundle line (`export-version-2-stick-owner-result`: passed). It stopped at that stick's
+removal, the last step of boot 12 (`cut-27`), before `tl-export-stick`, the restart and `final-27`.
+
+### The cause (harness, not a flake)
+
+The xHCI health context is made once per boot (`owner_vm.Guest.__init__`): `since_usec=0` (package 14's choice: the
+whole boot, so early failures cannot hide) and `expected_disconnect=None`. `Media.detach` set
+`expected_disconnect` to the stick's port and nothing ever reset it, and `classify` excused one disconnect of that
+port per boot. Every route before 22d removes the stick at most once per boot (`tools-stock` boot 7, `update-tools`
+boot 10, 22c's `tools-3`); 22d's walk is the first to remove it twice in one boot: `tools-next` and
+`export-version-2`, both in `cut-27` (`tools_local.py:687-721`). 22d changed no media or xHCI code
+(`git diff 58738e5e..fca1d2a1`: only `require_runner` admits 22d).
+
+From the run's counts-only results (`checked` = kernel lines since boot; the lines' text never leaves the guest):
+
+| Check | boot | expected | unrequested | checked |
+|---|---|---|---|---|
+| `tools-stock-requested-unplug` → `-unplug-confirmed` | 7 | 0 → 1 | 0 | 816 → 819 |
+| `update-tools-requested-unplug` → `-unplug-confirmed` | 10 | 0 → 1 | 0 | 814 → 817 |
+| `tools-next-requested-unplug` → `-unplug-confirmed` | 12 | 0 → 1 | 0 | 817 → 820 |
+| `export-version-2-before-hotplug` (the next stick, same boot) | 12 | **1** | 0 | 820 |
+| `export-version-2-requested-unplug` | 12 | 1 | 0 | 837 |
+| `export-version-2-unplug-confirmed` | 12 | 2: STOP | | |
+
+Each unplug logged exactly one disconnect line of port `2-2` (each `-tools-usb-port` capture resolved `2-2`); the
+second removal's check counted the first removal's line too. Replayed here: HEAD's `owner_media`/`owner_xhci` through
+the real `Media.attach`/`detach` twice in one boot against a modelled kernel journal stop with the run's traceback
+(`<module>` line 50, `kernel_health` line 32, `classify` line 21, `repeated tools-stick disconnect`) at the second
+`unplug-confirmed`.
+
+### The fix: each requested removal excuses one line of its own
+
+- `owner_media.Media.detach`: the `-tools-usb-port` program (run while the stick still exists, just before the
+  `requested-unplug` checkpoint and QMP `device_del`) also prints `requested_usec`, the guest's `CLOCK_MONOTONIC`;
+  the context's new `removals` list gains `[port, requested_usec]`.
+- `owner_xhci.classify(rows, since, boot, removals)`: a disconnect line of a requested port belongs to the latest
+  request for that port at or before its `__MONOTONIC_TIMESTAMP`; each request excuses one (`STOP: repeated
+  tools-stick disconnect` otherwise); a disconnect of the port before its first request, or of any other port, is
+  unrequested (STOP while the stick is attached or needed, as before). `since_usec` stays 0: the whole boot is still
+  read, nothing is excused by moving a window. journald stamps a kernel line on `CLOCK_MONOTONIC` when it receives it
+  (checked on this laptop, systemd 259: `__MONOTONIC_TIMESTAMP` is 0.06 to 0.3 s after `_SOURCE_MONOTONIC_TIMESTAMP`,
+  on the clock `time.clock_gettime(CLOCK_MONOTONIC)` reads), so a removal's line comes after its request, and the
+  previous removal's line was already read by its `unplug-confirmed` check before the next stick was attached.
+- `preamble` refuses a malformed `removals` (not `[str port, int >= 0]`, out of order) and the old key; each health
+  result also carries `tools_removals_requested`. `owner_vm.Guest` starts each boot with `removals=[]`.
+- The explanation is a comment above `classify`, not a docstring: that source goes to the guest over the serial
+  line with every checkpoint and guarded observer (`classify` grows 155 bytes).
+- With one removal per boot (every earlier route) the result is the same, except that a tools-port disconnect logged
+  before the request is no longer excused once the request is made (the `before-unplug` check already stopped on it).
+
+### The VM dispatch cap (integrator's decision, 2026-11-15)
+
+Ledger `22d`: `vm_dispatch_cap` 4 → 6, `tools-local` 4 → 6, with the dated reason in the budget text (the runners are
+free for this public repository, the caps stop runaway loops, three runs stopped on harness issues: 43690565301 before
+the VM, 43699785728 at the stand-in origin, 43714310216 here); the brief's budget line notes it. Minutes 2400 and
+checks 20 stay. At run 3's dispatch the ledger stood at 595 consumed minutes, 10 checks runs and 3 VM dispatches.
+
+### Tests
+
+- `test_owner_ps2`: `context()` takes `removals`; `test_each_requested_removal_excuses_one_disconnect_of_its_port_after_it`
+  (run 3's two lines pass; a line before the first request, another port, two lines for one request, a line between
+  the requests, no requests); `test_context_refuses_malformed_or_unordered_removals`; `StickRemovalsInOneBootTest`
+  runs the real `Media.attach`/`detach` twice in one boot (the real `-tools-usb-port` program over a stand-in sysfs
+  folder, the real checkpoint programs over a modelled journal, `Media.verify` and saving stubbed): counts (0,0) →
+  (1,0) → (1,0) at the second `before-hotplug` → (2,0), never a stop; one unplug logging two lines still STOPs.
+- `test_tools_local_wiring.LedgerTest`: the caps 6/6, the dated sentence; `test_six_vm_dispatches_and_no_seventh`
+  (the guard's budget with six tools-local runs passes, a seventh stops).
+
+### Tests run here (Python 3.14, one module at a time, `ARESOS_MODEL_SCOPE=slice`)
+
+| Module | Result |
+|---|---|
+| `test_owner_ps2` | `Ran 18 tests`, `OK` (14 before) |
+| `test_tools_local_wiring` | before `walk-host.py`: only the receipt test failed (`owner_media.py`'s new bytes); after: `Ran 42 tests`, `OK` |
+| `test_owner_walk` | `Ran 27 tests in 105.176s`, `OK` |
+| `test_checkout_sources` | after `rebind.py pending` (40 files wait): `Ran 6 tests`, `OK` |
+| `test_owner_step_limits`, `test_rehearsal_budget`, `test_organization_budget`, `test_owner_guard`, `test_owner_media` | `OK` each (4, 4, 19, 12, 6) |
+| `test_owner_reset` | with `PYTHONPATH=os/ci` (it imports `owner_vm` directly; without it the import fails, also on HEAD): `Ran 4 tests`, `OK` |
+| `test_ways_back_probe` | `Ran 57 tests in 147.734s`, `OK` |
+| `test_owner_update` | not run, by the rule |
+
+`walk-host.py`: `PASS package 22d host walk (tools-local): 263 sources`. `rebind.py pending` ran (40 files).
+
+### What only the VM can show (watch these in the next run)
+
+- `export-version-2-tools-usb-port` carries `requested_usec`; `export-version-2-unplug-confirmed-xhci-health` should
+  show `expected_disconnect: 2`, `usb_disconnect: 0`, `tools_removals_requested: 2`.
+- The walk's remaining stages: `tl-export-stick`, the restart, `final-27` (check, title, logout), both final markers,
+  `tools-local-rehearsal-result`.
+
+### Left, in order (the next agent continues here)
+
+1. The integrator: a checks-only run on the new head (`gh workflow run "OS image" --ref pkg/22d-tools-without-stick
+   -f checks_only=true`), then VM dispatch 4 of 6 (`gh workflow run "OS image" --ref pkg/22d-tools-without-stick
+   -f rehearsal=tools-local`).
+2. After a pass: `rebind.py rebind` for 22d, step 7 (record step, final review).
