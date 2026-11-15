@@ -116,3 +116,80 @@ the rest of 28b, and `chrome_take_reload`'s input unable to carry its question. 
 9. **Effect `delete` for `chrome_take_reload`:** the builder's first choice, with stop-and-report as the fallback.
 10. **The next review covers `chrome_take_reload` as a whole.** 28a's 1,148 characters for Chrome's own
     instructions is noted as the most likely place for 28a to stop.
+
+## After package 28's baseline, 2026-11-15
+
+Brief 28a gets a fourth narrow exception in the asking path: its new item 3a, "A list's options in a description".
+Written by a Claude agent on Fable 5.2, because it changes what the owner's send approval describes. No review has
+seen it yet; the next one looks at it first.
+
+**The finding** (package 28's baseline, run 43698395453; `reviews/28-chrome-read/PROGRESS.md`, "Step 4"; now the last
+entry of `reviews/20-chrome/KNOWN-LIMITS.md` on `main`). Brief 20's tools can't send fixture F4: the click on Save
+ends in `asking_input_too_large`, nothing reserved, nothing sent. Read again on `main` at `d1a87959`, and it holds:
+
+- `prepare` (`adapter.py`) puts the payload's whole `binding` into the description as `page_state`;
+- `binding()` carries `frame['form']`, and `field()` (`reader.js`) lists every option of a list, in the form's
+  fields, the target, a page dialog's fields, a send's editable fields and an item's fields;
+- `approval_input` (`common.py`) refuses an approval above `ASK_LIMIT`, 16,384 bytes of canonical JSON;
+- F4's 200 options are 14,380 bytes, and its whole approval about 21,700. Enter in a field builds the same binding;
+- the comparison before an approved input is on the payload, never on the description: `command` sends
+  `payload['binding']`, and `input` (`background.js`) compares the whole binding twice.
+
+**The conflict.** 28a's F4 row asks for one question and one arrival, while "What must not change" froze `prepare`
+and what the description holds. Its timing of "filling 6 fields and sending the form" had no old send to time.
+
+**What changed in 28a.**
+
+1. **Item 3a and exception 4.** In a description a list shows `chosen` (its selected options, as the binding holds
+   them) and `option_count`, in place of `options`: for every list, wherever a field's facts appear, in `prepare`
+   and in `free`, by one function on the copy item 3 already makes for the addresses. The payload, `command`,
+   `binding`, `question` and the extension aren't touched, so every option is still compared and a swapped option
+   is refused, listed or not. `ASK_LIMIT` and `QUESTION_LIMIT` stay.
+2. **Nothing a form sends is cut.** Values, hidden fields, chosen options and the text next to Send stay whole
+   (rule 4.1). A form that sends more than fits is still refused: about 90 short fields, about 45 with 80
+   characters each, a text of about 3,800 characters, or about 900 outside ASCII. `chrome_do` reports it as a
+   `refused` step with the refusal's sentence and a fixed piece of advice.
+3. **Sizes** (worked through on main's code, not measured in a run; the builder measures): F4 about 7,300 bytes
+   with the rule; a single-choice list about 265 bytes whatever its length; a plain field about 145 bytes plus its
+   texts.
+4. **Tests added:** without a browser, the description's form in every place a list appears, the payload and the
+   command still whole, F4 within 9,000 bytes and refused without the rule, four forms that are still refused, and
+   a queued submission of such a form. In group 15: F4 asked once and sent; four option swaps after approval
+   refused (three of them invisible in the description); a form too large still not sent.
+5. **The F4 row and the timing.** The row bounds the approval at 9,000 bytes, and its baseline is brief 20's
+   refusal, compared by outcome and calls. The old-against-new timing is "six fills and the click up to the
+   question": `chrome_old_fill_form` and `chrome_old_click`, against one `chrome_do`, each until the click on Save
+   comes back prepared. In that run both tool sets share `prepare`, so with item 3a brief 20's click is prepared
+   too; the refusal is what `main` and brief 28's baseline show. `chrome_submit` is the same code on both sides
+   and stays outside the span.
+6. **The lists that name the exceptions** now say four: the header, "What must not change", the places the
+   security review judges (two are newer than security re-check 2: the time check and this one), "Out of scope",
+   the report and the stop rules.
+
+**Also found, and specified in item 3a.** When the page itself starts a submission of a form that is too large
+(a held step), `steps` gets the same refusal from `prepare` and doesn't catch it. `read` calls `steps`, so on `main`
+every later read of that tab fails with `asking_input_too_large` until the document goes. Nothing is sent. In 28a
+`steps` records such a step as stopped and not resumable, acknowledges it, and the call returns normally.
+
+**Considered and left out.**
+
+- *A digest of the options in the description.* The payload keeps the list itself and is what gets compared; a
+  digest would add bytes he can't read and no check.
+- *Keeping short lists whole.* One form for every list is easier to test and to review. No test on `main` that
+  reads `page_state` reads a list's options (they read the tab, address, title, adapter, editable fields, compose
+  text and an item field's value).
+- *Cutting long values, leaving fields out, or dropping a field's flags that are false.* The first two hide what
+  he approves. The third doubles the room and still leaves a limit, while every form's description reads
+  differently.
+- *A larger `ASK_LIMIT`.* Not needed for F4, and the limit is the base's, shared with Mail.
+- *Chrome's own size check in `prepare`.* It would need a second limit beside the base's; the advice is added
+  where `chrome_do` and `steps` report the refusal.
+
+**Section 6** says the same: "How an asking action runs" (what the content fields show of a list, and that the
+comparison covers every option), the efficiency table's form row and the latency line, two known limits ("A question
+shows a list's chosen option…" and "A large form isn't sent by Claude"), and a line in test group 15.
+
+**For the lead.** Two limits of `main` that this note only names: a text of more than about 900 characters in a
+script outside ASCII can't be sent through a form (each character is 6 bytes after escaping and counts three times),
+and a form with a long hidden value, such as a framework's page state, can't be sent at all. Showing a hidden value
+cut would let such forms through and would reduce what he can inspect; that is a decision, not part of this change.

@@ -30,10 +30,11 @@ and line numbers in this brief come from PR #27 at `8b7e799c`; read them again o
 security-reviewed code base, replaces the tool list and the way every action names its element, and must not be cut
 off halfway; Codex is away from about 2026-11-14 to 11-17 and ends on 11-21. **Review** (`docs/REVIEW.md`, "Tools
 for Claude"): two fresh reviewers at once, a package review and a security review, Codex while it is available,
-otherwise Claude. This is the package that reaches into the asking path itself, in four narrow places: the form of
-addresses in a question and in a stage text (item 3), the reveal before an input and the time check before its
-dispatch (item 5), and the asking read's place in the new list (item 6). So its security review is high-stakes:
-Fable 5.2, or Codex's frontier model while it is available. The package review runs on Opus or Codex's workhorse.
+otherwise Claude. This is the package that reaches into the asking path itself, in five narrow places: the form of
+addresses in a question and in a stage text (item 3), a list's options in a description (item 3a), the reveal
+before an input and the time check before its dispatch (item 5), and the asking read's place in the new list
+(item 6). So its security review is high-stakes: Fable 5.2, or Codex's frontier model while it is available. The
+package review runs on Opus or Codex's workhorse.
 
 ## Background (read first)
 
@@ -172,6 +173,74 @@ The payload isn't touched anywhere, and no comparison reads a projected text. Sh
 Claude uses an address it can't see whole by reference: a link's `ref`, his tab's number, a library entry's `ref`
 (items 4 and 6). So a `…` never blocks a navigation.
 
+### 3a. A list's options in a description (service)
+
+**Why.** On `main` a form that holds a long list can't be sent at all (found by package 28's baseline, run
+43698395453; `reviews/20-chrome/KNOWN-LIMITS.md`, last entry). `prepare` puts the whole binding into the approval's
+description, the binding holds every option of every list in the form (`field` in `reader.js`), and the base refuses
+an approval above 16,384 bytes (`ASK_LIMIT`, `approval_input` in `common.py`). The 200 options of F4's Country list
+alone are 14,380 bytes. So the click on Save, and Enter in a field, end in `asking_input_too_large`. Nothing is sent,
+but Claude can't send F4, or any form with a country list.
+
+**The rule.** In a description, a field that has options shows `chosen` and `option_count` in place of `options`:
+
+```
+{"element": "e20", "name": "country", "label": "Country", "type": "select-one", "value": "c7", …,
+ "chosen": [{"label": "Country 7", "value": "c7", "selected": true, "disabled": false}], "option_count": 200}
+```
+
+- `chosen` holds the selected options, each exactly as the binding holds it. A multiple-choice list shows every
+  chosen option, and a list with none chosen shows `[]`. `option_count` is the number of options in the binding.
+- It holds wherever a description carries a field's facts (read on `d1a87959`): the form's fields, the target when
+  it is a list, a page dialog's fields, the editable fields of a send outside a form, and an affected item's fields.
+- Every list is written this way, whatever its length, so a description has one form.
+- One function does it, on the copy that item 3 makes for the addresses. `prepare` takes the description and the
+  question from that copy, and `free` takes the description it commits from it.
+
+**Nothing else is summarised or cut.** Rule 4.1 of `CONTROL.md` stands: what an action sends is shown whole, or it
+isn't sent. Field names, labels and values (hidden fields included), the chosen options and the text next to Send
+stay as on `main`. The options he didn't choose can go from the description because the form doesn't send them.
+
+**What is bound and compared doesn't change.** The operation's payload keeps the whole `binding` with every option.
+`command` sends it to the extension as on `main`, and `input` compares the whole binding twice before an approved
+input (`background.js`: before the frames are armed, and again at the input boundary). A page that adds, removes,
+renames or re-values an option while the approval waits is refused (`stale_approval`), also when that option is one
+the description doesn't list. `binding`, `question`, `revalidate`, `command`, `execute` and the extension aren't
+changed for this: `question` never read the options. No digest is added: the payload holds the list itself.
+
+**Sizes.** Bytes of canonical JSON after escaping, as `approval_input` counts them. Worked through on main's code
+(`d1a87959`) for F4's page, not yet measured in a run; measure them and give them in the report.
+
+- F4 on `main`: about 21,700 bytes, refused. With the rule: about 7,300, with a question of about 460 characters.
+- A single-choice list costs about 265 bytes with its chosen option, whatever its length (F4's Country: 14,558
+  before). So lists can't fill an approval any more, unless hundreds of their options are chosen and sent.
+- A plain field costs about 145 bytes plus its name, its label and its value. A character costs 1 byte, a quote
+  or a backslash 2, a character outside ASCII 6. A label and a textarea's text each count three times: in the
+  field, and in the text next to Send, which the description holds and the question quotes.
+- What fits, then: about 90 fields with short labels and empty values, about 60 with 40 characters of label and
+  value each, about 45 with 80; a text next to Send of about 3,800 characters (the question's own bound of 4,096),
+  or about 900 in a script outside ASCII.
+- **The worst case is still a refusal, as on `main`.** A form that sends more than fits (more fields, a longer
+  text, a long hidden value such as a framework's page state, a multiple-choice list with hundreds of options
+  chosen) is refused by the base's check, which doesn't change, and neither do `ASK_LIMIT` and `QUESTION_LIMIT`.
+  Nothing is reserved and nothing is sent. This stays a known limit (section 6, "A large form isn't sent by
+  Claude").
+
+**A form that still doesn't fit, said clearly.** `chrome_do` reports that step as `refused` with the code
+`asking_input_too_large`. Its message is the refusal's own sentence and then Chrome's fixed advice: "Shorten the
+text you filled, or ask the owner to send it himself; nothing is cut to make it fit."
+
+**When the page itself starts such a submission** (a held step), `steps` prepares it through the same `prepare`.
+On `main` that refusal leaves `steps` as an error, the step is never acknowledged, and every later read of the tab
+fails the same way (read on `d1a87959`: `read` calls `steps` and doesn't catch it; check it). Here `steps` treats
+this one refusal as it treats a step whose document changed: the submission stays stopped and is never resumed, the
+step is recorded as done and not resumable, it is acknowledged to the extension, and it comes back as a stopped
+step whose reason is the same sentence and advice. The call that met it returns its normal result, with the step
+in `untrusted_content.stopped`.
+
+The entry in `reviews/20-chrome/KNOWN-LIMITS.md` is the lead's to close at the merge. Say in the report what a run
+showed for F4.
+
 ### 4. `chrome_open` and `chrome_go` (effect change)
 
 **`chrome_open`** input: exactly one of `url`; `tab` (open the address that tab shows; with `seen` when the tab is
@@ -283,7 +352,7 @@ Result:
 | `unchanged` | the element was already as asked, for example a box already ticked | no |
 | `prepared` | the step asks; its approval is in `prepared` | no |
 | `stale` | item 2 refused the reference; the element's present line is in `untrusted_content.now` | no |
-| `refused` | a rule refused it: a read-only site, a password field, a form that holds a field the tool may not read, an option that doesn't exist, an address that isn't allowed; `code` and `message` say which | no |
+| `refused` | a rule refused it: a read-only site, a password field, a form that holds a field the tool may not read, an option that doesn't exist, an address that isn't allowed, a form or a text too large to ask about whole (item 3a); `code` and `message` say which | no |
 | `timeout` | a `wait` wasn't met | no |
 | `unknown` | it may have run; its `operation_id` is also in `unknown` | maybe |
 
@@ -590,13 +659,15 @@ Restructure in steps that keep everything working:
   (`sites.py`); `chrome_submit`, `chrome_submit_trusted`, `chrome_drop`, `chrome_operation_status` and the notices;
   the 15-minute deadline; one approval, one run. Brief 20's asking read belongs to it too: `chrome_read_typed_fields`
   with its question, its binding to the prepared read, its one approval for one call, its refusal of
-  credential-like fields and its new question when a field was added, replaced or relabelled. **Three narrow
+  credential-like fields and its new question when a field was added, replaced or relabelled. **Four narrow
   exceptions, each named where it is specified, and nothing beyond them:**
   1. `prepare` and `question` write addresses in the public form, and `execute` writes its two stage texts with
      addresses in the short form, while the payload and every comparison keep the full address (item 3);
   2. `input` brings its target on screen inside the armed hold before brief 20's own hit test (item 5);
   3. `input` checks its command's time once, right before the dispatch, and dispatches nothing when it is up
-     (item 5, "Time").
+     (item 5, "Time");
+  4. `prepare` writes a list into the description as its chosen options and their number, while the payload and
+     every comparison keep every option (item 3a).
   What asks, what is bound, and what is compared before an approved input don't change.
 - **The places where this package touches the asking path stay as security re-check 2 judged them**
   (`reviews/28-chrome-capability/BRIEF-SECURITY-2.md`). Build each exactly so, and show its lines in the report:
@@ -611,8 +682,15 @@ Restructure in steps that keep everything working:
     tested.
   The fourth place it judged, the password additions, is brief 28's and is on `main` when this package starts:
   a form that holds a field withheld for unknown history is refused, not asked. That stays, through `chrome_do`
-  too. **The time check in `input` is newer than that review** (it came with package re-check 2, N2). It can
-  only stop a dispatch, never start or change one, and this package's security review looks at it first.
+  too. **Two places are newer than that review,** and this package's security review looks at them first:
+  - *The time check in `input`* (it came with package re-check 2, N2). It can only stop a dispatch, never start
+    or change one.
+  - *A list's options in a description* (item 3a; it came with package 28's baseline, 2026-11-15). Only the
+    description changes, as for the addresses. The payload and both comparisons in `input` keep every option, so
+    an option can't change after his approval, listed or not. He no longer sees the options he didn't choose;
+    the form doesn't send them, and what it does send is shown whole or the form is refused. That reduced
+    visibility is a known limit (section 6). With it, `steps` keeps a held submission that is too large to ask
+    about stopped for good and acknowledges it; it never resumes one.
 - **Brief 28's field rules and its read:** the password rule with its two additions, the outline format, the
   reference table and its run letters, the read's deadline. Nothing in them is relaxed or reshaped here.
 - **The hold:** `guard.js`, `page.js`, the 500 ms window (`HOLD_MS` in `policy.py`, `holdMs` in the extension) and
@@ -660,7 +738,23 @@ Every new rule gets a test that fails without it.
   present line counts as shown;
 - the addresses of an operation (item 3): for a prepared and for a free operation whose page, form, link and
   frame addresses carry a marker value, the question, the description, both stage texts and the page-step warning
-  hold no marker and the stage texts no query at all, while the payload still holds every full address.
+  hold no marker and the stage texts no query at all, while the payload still holds every full address;
+- a list's options in a description (item 3a), with facts shaped like F4's:
+  - a prepared click on Save shows the Country list as its chosen option and `option_count` 200, without
+    `options`. The same holds for a multiple-choice list with two options chosen, a list with none chosen, a list
+    that is the target, one in a page dialog, one among the editable fields of a send outside a form and one among
+    an item's fields. A free step's committed description has the same form;
+  - every other key of the description equals the binding's, apart from item 3's addresses. The operation's
+    payload holds the binding with all 200 options, and the command the bridge gets on `chrome_submit` carries
+    that binding whole;
+  - F4's approval is at most 9,000 bytes, and the same facts with the options left whole are refused, which is
+    what fails without the rule;
+  - still refused, with no operation written: a form of 120 short fields, a hidden value of 20,000 characters, a
+    multiple-choice list with 250 options all chosen, and a textarea of 5,000 characters. `chrome_do` gives each
+    as a `refused` step with the code `asking_input_too_large` and the message with Chrome's advice;
+  - a queued submission of such a form, met by a read and met between two steps of a list: the call returns its
+    normal result with the step in `stopped`, nothing is resumed, the step is acknowledged, and the next read
+    doesn't meet it again.
 
 **Passwords, in group 14 and in `password_exclusion`.** Brief 28's fixtures and cases stay and run through the
 new list. Group 7's recording runs over every output this package adds: the change report after a "show password"
@@ -752,6 +846,21 @@ redirect's target, and in history, bookmark and download entries.
   evidence: nothing before approval, one arrival after, none on a repeat;
 - a list whose third step asks: the fixture counts the first two inputs, no input from steps three to five, and
   after `chrome_submit` exactly the third;
+- **a form with a long list is asked once and sent** (item 3a), on F4: six fills and the click on Save in one
+  `chrome_do` end `prepared`. The description shows each filled value, and the Country list as `Country 7` with
+  its value and `option_count` 200. The receiver has nothing before `chrome_submit`, the form once after it, with
+  the six values and `c7`, and nothing more on a repeat. Enter in a field of F4 is prepared the same way;
+- **options swapped after approval are refused.** While F4's approval waits, the page changes one thing, in four
+  runs: it renames an option he didn't choose; it gives one another value; it removes one and adds another, so
+  the count stays 200; it changes the chosen option's value under the same label. Each time `chrome_submit` ends
+  with nothing sent, the receiver has nothing, and that approval never runs. After each of the first three, a new
+  preparation shows the same chosen option and count as the old one: the comparison covers what the description
+  doesn't list. These cases join the `binding` group;
+- **a form too large to ask about still isn't sent:** on a fixture form of 120 fields, and on one whose textarea
+  holds 5,000 characters, the click on Send ends `refused` with `asking_input_too_large` and Chrome's advice. No
+  operation is reserved and the receiver has nothing. When the page's own script submits the 120-field form
+  after a free click, the submission stays stopped, the result names it in `stopped`, and a `chrome_read` of that
+  tab right after works;
 - **on screen first:** a click, a fill and a tick on elements 10,000 pixels below the fold, and on one inside a
   scrolled inner box, each land (the fixture counts them). A page that submits a form from its `scroll` handler
   when that scroll comes: the submission is held and asked, with group 2's evidence. An approved click on a Send
@@ -805,7 +914,7 @@ baseline.
 | F2: the whole table: after the first read, `chrome_read` with the table's `ref` and `max` 40,000 | 1 further call, at most the cells' own text plus 7 characters for each cell plus 800: 23,600 characters for this fixture |
 | F3: find the one link with the unique name: `chrome_read` with `find` and `role` | 1 call, at most 800 characters |
 | Open a fixture page and return one fact from it: `chrome_open` with `url` | 1 call |
-| F4: fill 6 fields and send the form: `chrome_open` of the form's page, `chrome_do` with six fills and the click, `chrome_submit` | 2 calls and `chrome_submit`; one question; the receiver has it once |
+| F4: fill 6 fields and send the form: `chrome_open` of the form's page, `chrome_do` with six fills and the click, `chrome_submit` | 2 calls and `chrome_submit`; one question, whose approval is at most 9,000 bytes (item 3a); the receiver has it once. The baseline for this row is brief 20's refusal (below) |
 | F7: three result pages, one click each, the titles collected: from an outline in hand, three `chrome_do` calls of one click, each returning the next page | 3 calls |
 | Compare three open tabs: `chrome_read` with `tabs` | 1 call |
 | List 25 open tabs (titles of about 30 characters): `chrome_tabs` | 1 call, at most 3,500 characters |
@@ -813,18 +922,34 @@ baseline.
 | Descriptions plus instructions (19 tools) | not above main's, measured at the start (about 9,137); the final total pinned |
 | The server instructions alone | at most 2,800 characters, the shared 1,652 included (and every app within 4,096) |
 | Names plus input schemas (19 tools) | not above main's, measured at the start (about 11,080); the final total pinned |
-| Latency (the comparison in one run, below) | the first read of F1, a free click with its report, and the 6-field form are each at most 1.10 times brief 20's median plus 50 ms; PR #27's latency gate (`latency-targets.json`) stays within its ceilings |
+| Latency (the comparison in one run, below) | the first read of F1, a free click with its report, and F4's six fills and click up to the question are each at most 1.10 times brief 20's median plus 50 ms; PR #27's latency gate (`latency-targets.json`) stays within its ceilings |
 
 **Latency: old and new in one run.** Runners differ, so old and new tools are timed in **one run**. At step 1 of
 "The order of the change", while both tool sets exist, one job runs each timed task with brief 20's tools (under
 their `chrome_old_` names) and with the new ones, five times each after a warm-up, and compares the medians: the
 first read of F1, as brief 28 timed it, now through `chrome_read`; a free click with its change report, against
-brief 20's click and the read or find after it; filling 6 fields and sending the form. The new tools pass at no
-more than 1.10 times the old median plus 50 ms. That run's id and numbers go into the report and into the
-baseline file. After brief 20's tools are removed, the check that stays compares each task with the new tools'
+brief 20's click and the read or find after it; and F4's six fills and the click on Save, up to the question. The
+new tools pass at no more than 1.10 times the old median plus 50 ms. That run's id and numbers go into the report
+and into the baseline file.
+
+After brief 20's tools are removed, the check that stays compares each task with the new tools'
 own median of that run and fails above 1.5 times. This runs inside PR #27's latency harness (brief 28,
 "Latency"), as brief 28's baseline does. Fewer calls don't prove a faster tool: a step of `chrome_do` still makes
 brief 20's full facts read. The timings are what shows it, and the report gives them beside the call counts.
+
+**The form is timed up to the question.** On `main` brief 20 has no send to time: its click on Save is refused
+when the approval is prepared (item 3a), and brief 28's baseline records that refusal. At step 1 both tool sets
+run through the same `prepare`, which has item 3a's rule by then, so brief 20's click on Save is prepared too.
+Both sides are timed over the same work, with the read or the outline and the button's reference in hand before
+the clock starts, until the click on Save has come back prepared:
+
+- brief 20's side: `chrome_old_fill_form` with the six fields, then `chrome_old_click` on Save;
+- the new side: one `chrome_do` with the six fills and the click.
+
+A side whose click comes back any other way fails the run, and the receiver has nothing from either side.
+`chrome_submit` isn't part of this comparison: it is the same code on both sides, and PR #27's gate times it
+("approval to done"). If the new side misses the bound, report the numbers (stop rule) and leave the span as it
+is.
 
 **The rows add up** (package re-check 2, N3). Every budget counts the JSON text of the result, so each quote
 of the outline costs 2 characters, each line break 2, and each `…`, `→`, `·` and `›` 6. A read's result has about
@@ -840,7 +965,12 @@ are defined above:
   sent with the result around them. The budget is 2,500, and the default `max` of 2,000 doesn't cut the report.
 - F4, six fills and a click: all 25 fields and the button are in the 4,000 characters `chrome_open` returns,
   because a form's fields follow the form's own fold rule. Seven steps take about 5 seconds of the 12 a list
-  has for its inputs.
+  has for its inputs. The approval for the click is about 7,300 bytes of the 16,384 an approval may have
+  (item 3a), so the `chrome_do` result is about 9,000 characters. The row bounds the approval alone, at 9,000 bytes.
+- **F4's baseline is a refusal.** Brief 28's baseline file records brief 20's F4 task with the outcome `refused`:
+  a read, `chrome_fill_form`, a find and the click, which `main` refuses. For this row "not worse than the
+  baseline" means the outcome and the calls: the new tools end `done`, in the calls the row names. Characters
+  aren't compared for it, because brief 20 never returned this form's approval.
 
 If the built tool misses one of these by more than its fixture explains, the budget or the tool changes in the
 brief (stop rule); the fixture isn't made smaller to fit.
@@ -856,7 +986,8 @@ The base's, 18d's and Mail's suites still pass, and the generated artifacts are 
 ## Out of scope
 
 - His open tabs in place, the **READ** sign, the popup list, incognito, tabs in the background: brief 28b.
-- Anything in the asking path or the hold beyond the three exceptions named in "What must not change".
+- Anything in the asking path or the hold beyond the four exceptions named in "What must not change". That
+  includes showing less of what a form sends (a cut value, a field left out) and a larger `ASK_LIMIT`.
 - **A shorter hold after each input: possible later, not now.** Most of a click or a fill is brief 20's fixed
   hold of about half a second after the input, in which a submission the page starts is stopped (measured on PR
   #27, run 43502970342: a free click 587 ms at the median, a plain read 21 ms). Ending that window when the page's
@@ -906,9 +1037,10 @@ AGENTS.md's format (Done, Verified, Not verified, JUDGMENT-CALL, PLAN-GAP, Open 
 
 - the baseline and the measured numbers side by side, per task, with run ids;
 - the tool descriptions and instructions as Claude will read them, with anything you are unsure reads well;
-- what changed in `adapter.py`'s `payload` and `facts`, line by line; the lines of the three exceptions (the
-  projected addresses in `prepare`, `question` and `execute`; the reveal in `input`; the time check in `input`);
-  and a statement that nothing else in the asking path changed, with the diff command that shows it;
+- what changed in `adapter.py`'s `payload` and `facts`, line by line; the lines of the four exceptions (the
+  projected addresses in `prepare`, `question` and `execute`; the reveal in `input`; the time check in `input`;
+  the lists in a description, with F4's approval in bytes as a run measured it); and a statement that nothing
+  else in the asking path changed, with the diff command that shows it;
 - for the asking read: that its binding cases still pass through the new list, with the run id. The brief claims
   nothing about that binding; the report says what a run showed;
 - the harness map and the inventory mapping;
@@ -964,6 +1096,9 @@ No open JUDGMENT-CALL.
 - `request` isn't an input in this package. An input that is accepted and ignored is dead weight, and it suggests
   a check that doesn't exist. Brief 28b adds it where it means something, and the size pins move then.
 - A list holds at most 20 steps and ends at its deadline (item 5, "Time").
+- A description shows a list's chosen options and their number, not the options he didn't choose, while the
+  binding keeps and compares them all; what a form sends stays shown whole, and a form too large for that still
+  isn't sent (item 3a; after package 28's baseline, 2026-11-15).
 
 Anything you meet that changes how Chrome feels for the owner goes into the report as a JUDGMENT-CALL with what you
 chose, what you rejected, why, and what changing it later costs. Likely candidates: a wait that is too short or too
@@ -980,7 +1115,8 @@ fewer characters. Say what you chose in the report.
 
 - Stop and report, rather than weaken a rule, if a budget can only be met by leaving out something Claude needs to
   act safely, if a budget can't be met with the calls its row names, or if the asking path would have to change
-  beyond the three exceptions named in "What must not change".
+  beyond the four exceptions named in "What must not change". If F4's approval doesn't fit with item 3a's rule
+  alone, stop: don't cut a value, drop a field or raise a limit.
 - Stop if a binding case of the asking read fails through the new list.
 - Stop if any test would need a real site or a real account.
 - A full `control-chrome.yml` run takes about 40 to 60 minutes in 28 parallel jobs (PR #27's final pair on

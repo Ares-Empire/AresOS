@@ -1021,7 +1021,9 @@ without a label that deletes something kept only in the browser (decision 14, ac
 - the target: its reference, role, accessible name and label;
 - for a form submission, the effective destination: the submitter's or form's action address resolved in full, the
   method, the encoding and the target window, as the browser would use them;
-- the values of every field of that form, visible and hidden (password fields only by presence: above);
+- the values of every field of that form, visible and hidden (password fields only by presence: above); a list
+  is recorded and compared with every option, and the question's fields show its chosen options and their number
+  (*brief 28a*, below);
 - files he chose himself in a file field of the page: each by its name, its size and the SHA-256 of its bytes, so
   the question shows them and a swapped file is refused (*brief 20*);
 - what a send outside a form carries (below), read fresh at preparation;
@@ -1062,12 +1064,17 @@ form of "Reading a page"; `…` stands for a value that looks like a sign-in), t
 adapter reads one, the label of the button or key, and what goes where; for example "Post a comment
 on github.com/…/issues/12, as the page shows it: 'Thanks, fixed in #13' (button 'Comment')?". The content fields
 follow: everything in the list above, files with path and hash, the number of hidden fields with their names and
-values, and each password field by its label only.
+values, and each password field by its label only. Of a list they show the options that are chosen, with label and
+value, and how many options the list has; the options he didn't choose aren't sent and aren't listed (*brief 28a*).
+Brief 20 listed them all, and a country list of 200 options then made the approval too large to ask about at all
+(rule 4.1; found by brief 28's baseline). What a form sends is still shown whole, or the form isn't sent.
 
 **What the binding guarantees:** the input goes only if the page still shows what he approved, checked right before it
 is dispatched. The comparison uses full addresses, also where the question shows a value as `…`: a destination whose
-query changed while the approval waited is refused. A page script that changes the page in the instant between that
-check and the input, or that sends something else afterwards, isn't stopped (below).
+query changed while the approval waited is refused. It uses every option of a list too, also the ones the question
+doesn't list: an option that was added, removed, renamed or given another value is refused. A page script that
+changes the page in the instant between that check and the input, or that sends something else afterwards, isn't
+stopped (below).
 
 **Outcomes (rule 4.3 for Chrome).** The tool sees the input, not the network. Its stages are `checked`, then
 `dispatched` (the extension reports that the input or the resumed step ran once), then what the page showed
@@ -1220,7 +1227,7 @@ is brief 20's tool list on the same fixtures, recorded once before it is replace
 | A table of 200 rows and 6 columns (by `ref`, after the first read) | recorded by brief 28 | 1 further call, at most the cells' own text plus 7 characters for each cell plus 800 |
 | Finding one link among 300 | recorded by brief 28 | 1 call, at most 800 characters |
 | Open a page and read a fact from it | open, then wait (which returns the read): 2 calls | 1 call |
-| Fill 6 fields and send the form | read, `chrome_fill_form`, find the button, click: 4 calls and `chrome_submit` | 2 calls and `chrome_submit`, one question |
+| Fill 6 fields and send the form (a form with a list of 200 options) | read, `chrome_fill_form`, find the button, click: 4 calls, and the click is refused, because the approval that lists every option is too large (*checked*, brief 28's baseline) | 2 calls and `chrome_submit`, one question |
 | Three result pages, one click each | a click and a wait per page: 6 calls | 3 calls |
 | Compare three open tabs | a read per tab, each paged | 1 call |
 | List 25 open tabs | 3 calls | 1 call, at most 3,500 characters |
@@ -1241,8 +1248,9 @@ is brief 20's tool list on the same fixtures, recorded once before it is replace
   them unnoticed.
 - **Latency:** fewer calls don't prove a faster tool, because a step still reads the page's facts as brief 20 does.
   So brief 20's tools and the new ones are timed in the same CI run, where the runner is the same: the first
-  read of the long page (brief 28, and again in 28a), a free click with its report, and the 6-field form (brief
-  28a) must each take at most 1.10 times brief 20's median plus 50 ms. PR #27's latency gate stays green: on merged
+  read of the long page (brief 28, and again in 28a), a free click with its report, and the 6-field form's six
+  fills and click up to the question (brief 28a; on `main` brief 20's click is refused there, so it has no send)
+  must each take at most 1.10 times brief 20's median plus 50 ms. PR #27's latency gate stays green: on merged
   `main`, `control/chrome/ci/latency-targets.json` sets median / p95 ceilings in ms (read 35/60, navigate 100/150,
   click and fill 650/750, asking click 60/100, approval to done 700/850) over 60 samples per call.
 - The efficiency group is a CI check only. It never turns anything off on the laptop: the qualification record
@@ -1383,6 +1391,17 @@ with real harm is fixed instead (owner, 2026-11-11). Each brief's report keeps t
   *Accepted:* the hidden part can't change after his approval: the operation keeps the whole destination, and the
   tool compares it right before the input and refuses a changed one. What the form itself sends is shown in
   full, hidden fields included. Showing that value would put a sign-in token into Claude's context.
+- **A question shows a list's chosen option and how many options it has, not the others: he sees less there than
+  the tool binds** (*brief 28a*). *Harm:* he can't see in the question which other options the list offered.
+  *Accepted:* the form doesn't send them; the chosen option is shown with its label and its value; and no option
+  can change after his approval, listed or not, because the operation keeps them all and the tool compares them
+  right before the input. Listing them all made a form with a country list impossible to ask about.
+- **A large form isn't sent by Claude.** What a form sends is shown whole in the question or the form isn't sent
+  (rule 4.1), and an approval holds 16,384 bytes with a question of 4,096 characters. That is about 90 short
+  fields, or 45 with 80 characters each, and a text next to Send of about 3,800 characters, or about 900 in a
+  script outside ASCII; a long hidden value (a framework's page state) or hundreds of chosen options fill it too.
+  *Harm:* he sends such a form himself; the tool says so, and a submission the page starts itself stays stopped.
+  *Accepted:* it fails closed, and cutting what he approves would be worse than not asking.
 - **A reload on take loses what isn't work:** an open menu, a place in an endless list, a selection. *Harm:* he
   finds his tab reset. *Accepted:* the take rule (owner, 2026-11-11); looking needs no take, and Claude can work on
   a copy of the page in its own tab.
@@ -1617,6 +1636,10 @@ itself instead of the first input (brief 28b).
       some inputs still returns them with their operation ids;
     - a form filled and sent in one call and `chrome_submit`: the receiver has nothing before approval, one
       submission after, none on a repeat, and the question shows every field as filled;
+    - a form with a list of 200 options is asked in one question, which shows the chosen option and the count;
+      an option changed while the approval waits is refused, also one the question doesn't list; a form too
+      large to show whole is refused with nothing reserved, and a submission of it that the page starts stays
+      stopped without blocking the next read;
     - the change report names exactly the added, changed and removed lines on the fixture, within its bound;
     - a taken tab stays his: closing it is refused, and navigating it before its reload goes through the same
       check as a first input; a take needs the list's token and is refused when the tab has moved on; opening
