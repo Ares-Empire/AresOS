@@ -7,6 +7,7 @@ from .definitions import obj, string
 from .definitions import APPS, BY_NAME, instructions_for
 from .files import FilePolicy, safe_name
 from .protocol import Client, ServiceUnavailable
+from . import usage
 from .results import bounded
 
 
@@ -182,6 +183,18 @@ class MCPLineInput:
                 yield line
 
 
+def note_use(app, name, result):
+    """Mark this session (the proxy's parent, Claude Code) before a result that names an operation reaches it."""
+    action = BY_NAME.get(app + "_" + name)
+    if action and usage.names_operation(action.effect, result):
+        try:
+            usage.mark()
+        except Exception:
+            # Without a mark the session's Stop hook stays quiet while the service is down; the result itself still
+            # names the operation.
+            pass
+
+
 async def serve(app, config):
     # The official SDK owns MCP framing and validation. AresOS owns app policy.
     import mcp_types as types
@@ -205,6 +218,7 @@ async def serve(app, config):
             result = await asyncio.to_thread(proxy.call, parameters.name, parameters.arguments or {})
         from .results import bound_result
         result = bound_result(result)
+        note_use(app, parameters.name, result)
         return types.CallToolResult(content=[types.TextContent(type="text", text=display_json(result))],
                                     structured_content=result, is_error=not result["ok"])
 

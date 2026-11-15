@@ -37,6 +37,30 @@ the normal machine-administrator powers. A single serialized dispatcher also
 serializes reservation, cancellation, expiry and the submission boundary. Invalid
 or slow clients get a two-second read deadline; large transfers are capped.
 
+The unit stays `Type=simple` (a slow or failing start never holds `multi-user.target`),
+so it is "active" a moment before its sockets exist. The client therefore tries a
+failing connect (`ENOENT`, `ECONNREFUSED`) again for up to 3 seconds in 0.1 s steps:
+nothing has been sent yet. If it still fails, or connect fails in another way, every
+caller (MCP proxies, the CLI, the hooks) gets the error code `service_unavailable`:
+"The AresOS tool service is not running; nothing was sent. Try again later." It never
+points at `operation_status`: there is no operation. A connection lost after the request
+was sent keeps `transport_error`, or `unknown` with the same-id advice for a change.
+`aresos admin …` run without sudo answers `permission_denied` ("Admin commands need
+sudo: run sudo aresos admin …") before touching `admin.sock` or asking for a password.
+
+The service loop sleeps until its next own deadline: the earliest open reservation's
+expiry, a 0.1 s poll only while a loosening Chrome change waits for the owner's
+password, a 1 s retry while owner notices wait to be written after a storage failure,
+and Chrome maintenance every 60 s, which is also its longest sleep (so a clock change
+or a suspend delays a wall-clock expiry by at most a minute; submission checks the
+expiry itself). Requests and Chrome events wake it at once. Idle with nothing pending
+it wakes about once a minute (it woke ten times a second before brief 18e).
+
+The unit restarts a crashed service after 2 s. A service that fails at every start ends
+`failed` after five starts within 30 s (`StartLimitBurst=5`, `StartLimitIntervalSec=30`,
+within about 15 s); `systemctl reset-failed aresos-toold` clears that before a manual
+start.
+
 Ordinary connections carry one UTF-8 JSON object terminated by LF and one response,
 then close. File transfers exchange multiple acknowledged frames on one connection.
 Maximum frame: 6 MiB, protocol `v: 1` on the opening request. No TCP fallback,
@@ -261,9 +285,23 @@ is read in full, including long prompts and final assistant messages. A hook rea
 only `hook_event_name` and `stop_hook_active` and checks their types; every other
 field is accepted and never read, because Claude Code adds and changes input fields
 between versions (2.1.319 sends `prompt_id`, which a closed list refused in every
-turn; found by brief 18c's VM test). `Stop` reminds when the service can't be reached
-(a `block` decision that says so) and reports malformed input or its own failure on
-stderr with exit 2. Both block a stop once: when the input parses and
+turn; found by brief 18c's VM test). When the service can't be reached (`service_unavailable`, or `transport_error` for a
+connection lost), `Stop` is quiet unless the session used the tools (owner, #254): the
+MCP proxy marks its parent, the Claude Code process, before it returns a result that
+names an operation (an `operation_id`, an approval, or an unknown outcome of a change;
+plain reads never mark). The mark is an empty file
+`/run/user/<uid>/aresos-control/used/<pid>-<start>` (`<start>` is field 22 of
+`/proc/<pid>/stat`, so a reused PID never inherits it; folders 0700, file 0600, never
+through a link; the tmpfs empties at logout; the uid names it because the managed
+commands run under `env -i`). The Stop hook looks for a mark of its ancestors, up to
+four levels, never PID 1: Claude Code 2.1.319 starts the MCP server and the hook from
+the same process (the interactive boundary suite pins it). A mark blocks the stop once
+with "AresOS tools are not running. If you prepared or sent something with them in this
+session, its outcome is unknown: tell the owner, and don't repeat it." No mark: no
+output, exit 0. A marks folder or process that can't be read counts as a mark; no marks
+folder at all is a clear no. A mark that can't be written is skipped: that session then
+stays quiet. With the service up nothing changes. `Stop` reports malformed input or its
+own failure on stderr with exit 2. Both block a stop once: when the input parses and
 `stop_hook_active` is already true, it ends quietly. Input it can't parse (over the
 size limit, not strict JSON) exits 2 at every stop, up to Claude Code's own limit on
 blocked stops. `UserPromptSubmit` exits 0 with no output on any failure, including unreadable

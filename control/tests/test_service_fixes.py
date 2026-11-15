@@ -255,3 +255,159 @@ class IdleLoop(unittest.TestCase):
     def test_an_unreadable_deadline_wakes_within_a_second(self):
         with patch.object(self.engine, 'next_deadline', side_effect=OSError('synthetic')):
             self.assertEqual(self.passes(1), [1.0])
+
+
+class QuietUnlessUsed(unittest.TestCase):
+    """Brief 18e, item 6, with fake /proc trees and marks."""
+    def setUp(self):
+        self.folder = tempfile.TemporaryDirectory()
+        self.addCleanup(self.folder.cleanup)
+        self.root = Path(self.folder.name)
+        self.proc, self.run_dir, self.uid = self.root / 'proc', self.root / 'run', os.getuid()
+        (self.run_dir / str(self.uid)).mkdir(parents=True, mode=0o700)
+        # hook 40 <- sh 35 <- claude 20 <- tmux 10 <- init 1
+        for pid, ppid, start, comm in ((40, 35, 900, 'python3'), (35, 20, 899, 'sh'), (20, 10, 500, 'claude (x)'),
+                                       (10, 1, 100, 'tmux: server'), (1, 0, 1, 'systemd')):
+            self.process(pid, ppid, start, comm)
+
+    def process(self, pid, ppid, start, comm):
+        (self.proc / str(pid)).mkdir(parents=True, exist_ok=True)
+        (self.proc / str(pid) / 'stat').write_text(f'{pid} ({comm}) S {ppid} ' + '0 ' * 17 + f'{start} 0 0\n')
+
+    def used(self, pid=35):
+        from aresos_control import usage
+        return usage.used(pid=pid, uid=self.uid, run=self.run_dir, proc=self.proc)
+
+    def mark(self, pid=20):
+        from aresos_control import usage
+        usage.mark(pid=pid, uid=self.uid, run=self.run_dir, proc=self.proc)
+
+    def marks(self):
+        return self.run_dir / str(self.uid) / 'aresos-control' / 'used'
+
+    def test_a_marked_session_is_found_through_the_hook_ancestors(self):
+        self.assertFalse(self.used())
+        self.mark()
+        self.assertEqual(sorted(p.name for p in self.marks().iterdir()), ['20-500'])
+        self.assertEqual(self.marks().stat().st_mode & 0o777, 0o700)
+        self.assertEqual(self.marks().parent.stat().st_mode & 0o777, 0o700)
+        self.assertEqual((self.marks() / '20-500').stat().st_mode & 0o777, 0o600)
+        self.assertEqual((self.marks() / '20-500').read_bytes(), b'')
+        self.assertTrue(self.used())
+        self.mark()  # marking again is harmless
+        self.assertTrue(self.used())
+
+    def test_unmarked_sessions_stay_quiet(self):
+        self.assertFalse(self.used())  # no folder at all
+        self.mark(pid=10)  # another process's mark ...
+        self.assertTrue(self.used())  # ... is an ancestor here (level 3), so make a separate tree:
+        self.process(60, 55, 3, 'python3')
+        self.process(55, 50, 2, 'sh')
+        self.process(50, 1, 1, 'claude')
+        self.assertFalse(self.used(pid=55))
+
+    def test_a_reused_pid_with_another_start_time_has_no_mark(self):
+        self.mark()
+        self.process(20, 10, 777, 'claude')  # pid 20 ended; a new process got its number
+        self.assertFalse(self.used())
+
+    def test_four_levels_and_never_pid_1(self):
+        self.mark(pid=1)
+        self.assertFalse(self.used())
+        chain = [(70 + level, 71 + level) for level in range(5)]  # 70 <- 71 <- ... <- 75 (claude)
+        for pid, ppid in chain:
+            self.process(pid, ppid, pid, 'p')
+        self.process(75, 1, 75, 'claude')
+        self.mark(pid=75)
+        self.assertFalse(self.used(pid=70))  # from a hook whose parent is 70, process 75 is level 6: too far
+        self.assertTrue(self.used(pid=72))
+
+    def test_unreadable_marks_or_processes_count_as_marked(self):
+        self.mark(pid=10)
+        self.process(60, 55, 3, 'python3')
+        (self.proc / '55').mkdir()
+        self.assertTrue(self.used(pid=55))  # no stat for the parent
+        self.marks().chmod(0o755)
+        self.assertTrue(self.used())  # not a private folder
+        self.marks().chmod(0o700)
+        (self.marks() / '35-899').mkdir()
+        self.assertTrue(self.used())  # a folder where a mark should be
+
+    def test_a_link_where_the_folder_should_be_is_never_followed(self):
+        from aresos_control import usage
+        elsewhere = self.root / 'elsewhere'
+        elsewhere.mkdir(mode=0o700)
+        (self.run_dir / str(self.uid) / 'aresos-control').symlink_to(elsewhere)
+        with self.assertRaises(OSError):
+            self.mark()
+        self.assertEqual(list(elsewhere.iterdir()), [])
+        self.assertTrue(self.used())  # can't read: as if marked
+        (self.run_dir / str(self.uid) / 'aresos-control').unlink()
+        (self.run_dir / str(self.uid) / 'aresos-control').mkdir(mode=0o700)
+        (self.run_dir / str(self.uid) / 'aresos-control' / 'used').symlink_to(elsewhere)
+        with self.assertRaises(OSError):
+            self.mark()
+        self.assertEqual(list(elsewhere.iterdir()), [])
+        self.assertTrue(self.used())
+
+    def test_what_names_an_operation(self):
+        from aresos_control.usage import names_operation
+        approval = {'ok': True, 'data': {'approval': {'operation_id': 'op', 'question': 'Send?'}}, 'pending': {}}
+        self.assertTrue(names_operation('change', approval))
+        self.assertTrue(names_operation('send', {'ok': True, 'data': {'items': [{'operation_id': 'op'}]}}))
+        self.assertTrue(names_operation('send', {'ok': False, 'error': {'code': 'unknown'}, 'data': {'state': 'unknown'}}))
+        self.assertFalse(names_operation('read', approval))  # plain reads never count
+        busy = {'ok': True, 'data': {'items': []}, 'pending': {'items': [{'operation_id': 'other'}], 'total': 1}}
+        self.assertFalse(names_operation('change', busy))  # another session's pending work isn't this one's
+        self.assertFalse(names_operation('change', {'ok': False, 'error': {'code': 'service_unavailable'}, 'pending': {}}))
+
+    def test_the_proxy_marks_before_returning_and_never_fails_the_call(self):
+        from aresos_control import proxy
+        approval = {'ok': True, 'data': {'approval': {'operation_id': 'op'}}, 'pending': {}}
+        with patch.object(proxy.usage, 'mark') as mark:
+            proxy.note_use('testapp', 'prepare_send', approval)
+            proxy.note_use('testapp', 'list', {'ok': True, 'data': {'items': [{'operation_id': 'x'}]}})
+            proxy.note_use('testapp', 'no_such_tool', approval)
+        mark.assert_called_once_with()
+        with patch.object(proxy.usage, 'mark', side_effect=OSError('synthetic')):
+            proxy.note_use('testapp', 'prepare_send', approval)
+
+    def stop(self, error, marked, event=None, name='Stop'):
+        from aresos_control import hooks
+        event = event or {'hook_event_name': name, 'session_id': 's', 'prompt_id': 'p'}
+        output = io.StringIO()
+        with patch.object(hooks, 'Client') as client, patch.object(hooks.usage, 'used', return_value=marked) as used, \
+                patch('sys.stdin', io.TextIOWrapper(io.BytesIO(json.dumps(event).encode()))), redirect_stdout(output):
+            client.return_value.call.side_effect = error
+            hooks.main({'act_socket': '/nonexistent'}, name)
+        return output.getvalue(), used
+
+    def test_stop_hook_is_quiet_unless_used(self):
+        for error in (ServiceUnavailable(FileNotFoundError(2, 'No such file')),
+                      Refused('transport_error', 'Service connection lost; inspect operation_status with the same id, never repeat with a new id.')):
+            with self.subTest(code=error.code):
+                printed, _ = self.stop(error, marked=False)
+                self.assertEqual(printed, '')
+                printed, _ = self.stop(error, marked=True)
+                decision = json.loads(printed)
+                self.assertEqual(decision['decision'], 'block')
+                self.assertTrue(decision['reason'].startswith('AresOS tools are not running.'))
+                self.assertIn("don't repeat it", decision['reason'])
+                self.assertNotIn('operation_status', decision['reason'])
+                printed, used = self.stop(error, marked=True, event={'hook_event_name': 'Stop', 'stop_hook_active': True})
+                self.assertEqual(printed, '')
+                printed, used = self.stop(error, marked=True, name='UserPromptSubmit')
+                self.assertEqual(printed, '')
+                used.assert_not_called()
+
+    def test_stop_hook_with_the_service_up_is_unchanged(self):
+        from aresos_control import hooks
+        pending = {'items': [{'operation_id': 'op'}], 'total': 1}
+        output = io.StringIO()
+        with patch.object(hooks, 'Client') as client, patch.object(hooks.usage, 'used') as used, \
+                patch('sys.stdin', io.TextIOWrapper(io.BytesIO(b'{"hook_event_name":"Stop"}'))), redirect_stdout(output):
+            client.return_value.call.return_value = {'ok': True, 'data': pending}
+            hooks.main({'act_socket': '/nonexistent'}, 'Stop')
+        self.assertEqual(json.loads(output.getvalue())['decision'], 'block')
+        self.assertIn('held/unfinished work', json.loads(output.getvalue())['reason'])
+        used.assert_not_called()

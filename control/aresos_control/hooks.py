@@ -8,6 +8,7 @@ import sys
 from .common import WIRE_LIMIT, Refused, display_json, canonical, strict_json_loads, validate, visible
 from .definitions import obj
 from .protocol import Client
+from . import usage
 
 
 # The two fields a hook reads, with their types. Claude Code adds and changes input fields between versions (2.1.319
@@ -15,6 +16,12 @@ from .protocol import Client
 # strict JSON.
 EVENT = {**obj({'hook_event_name': {'type': 'string', 'enum': ['Stop', 'UserPromptSubmit']},
                 'stop_hook_active': {'type': 'boolean'}}, ['hook_event_name']), 'additionalProperties': True}
+
+
+# Codes of a service that can't be reached: not running (nothing sent), or the connection lost on the way.
+UNREACHABLE = {'service_unavailable', 'transport_error'}
+NOT_RUNNING = ("AresOS tools are not running. If you prepared or sent something with them in this session, its outcome "
+               "is unknown: tell the owner, and don't repeat it.")
 
 
 def output(event, pending):
@@ -46,6 +53,11 @@ def main(config, name):
                 **({"observations": result["observations"]} if "observations" in result else {})}
         except Refused as exc:
             if name == "UserPromptSubmit":
+                return
+            if exc.code in UNREACHABLE:
+                # Quiet unless used (owner, #254): only a session that used the tools hears that they are down.
+                if not event.get("stop_hook_active") and usage.used():
+                    print(display_json({"decision": "block", "reason": NOT_RUNNING}))
                 return
             pending = {"service_unavailable": True, "message": str(exc)}
         print(display_json(output(event, pending)))
