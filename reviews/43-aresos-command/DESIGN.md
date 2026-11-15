@@ -152,6 +152,7 @@ The `update` line cannot say which of the two jobs will run: that is known only 
 - A first word that is not one of the 18, no word at all, and `--help` are handed on by exec with the arguments exactly as given. The dispatcher knows none of Control's words, so Control can add apps without an OS change, and an unknown word gets Control's own error. The image check that compares `aresos --help` as root and as `ares` (`18c:os/ci/image-checks.sh:821-823`) passes unchanged and proves the hand-over.
 - If the image has no Control, the same cases print the nine offered words and exit 2.
 - `newest` joins Control's `RESERVED` (`18c:control/tests/test_reserved_words.py:13-14`), a one-line change for `linux-tools`. A new OS-side test reads three sets and requires them equal: the tools' `known` (`owner.py:2890-2891`), Control's `RESERVED`, and the dispatcher's offered plus refused words. So a new tools word fails a test until all three know it.
+- Control drops its top-level `log` shortcut and keeps `aresos control log`, so `aresos logs` (the tools' word) is the only word of that shape (agreed with `linux-tools` on 2026-11-13, board #199, and confirmed 2026-11-15). That change is on Control's side and lands with this package.
 
 **Tests** (`os/tests/test_aresos_command.py`, no root, no fakes of `sudo`):
 - for each offered word, the exact argv and environment; `update` maps to `newest`, and no row holds `at update` or `at forward`;
