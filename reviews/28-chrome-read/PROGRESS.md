@@ -2,6 +2,139 @@
 
 Builder steps keep this file; the last step turns it into the report. Newest state first.
 
+## Step 5 (2026-11-15, Claude agent on Fable 5.2): the baseline committed; the reader's three commands in `reader.js`. Stopped at the budget
+
+Fable because the reader runs inside the extension on hostile pages. Stopped at the step's token budget with the
+reader half done: **nothing of this step's JavaScript has run yet** (no Node on the laptop); run 43712993037 is its
+first run and was not read.
+
+### Done
+
+- **Part A, the baseline** (`525aa67f`): `control/chrome/ci/efficiency-baseline.json` is run 43705060936's
+  `efficiency-measured.json` byte for byte (`cmp`; artifact `chrome-efficiency-43705060936-1`). F4's row is brief
+  20's refusal, the lead's decision. `test_efficiency.EfficiencyBaselineTest` (4 tests): every task of `TASKS`
+  (read from the probe's source text, 11 tasks) with the same row, plan and outcome, the recorded tools follow the
+  plan, only F4 is `refused`, and a sha256 of everything but `latency_comparisons` (the one part that may still
+  grow). `efficiency.test.mjs` got the same comparison against the imported `TASKS`.
+- **Part B, `reader.js`** (`2c8d2332`), three read-only content commands:
+  - `outline`: one document's reply as `nodes.Document` takes it (`document`, `reader`, `watched`, `origin`, `url`,
+    `title`, `scroll`, `height`, `omitted`, `nodes`). Ids are the number of the reader's own element id (`e12` is
+    12, decision 4). Roles only from the list or the tag table. Own text as runs, a child's id where it stands;
+    formatting tags and elements of other namespaces add their text to the run they stand in (decision 6).
+    The password check (`password()`) comes before anything of an element is read; a password-kind field is a
+    leaf `{role: "password", name, unread: true}`. Values go through `safeValue` (the history rule): `unread`
+    with `filled`. A native `select`: `option_count`, `chosen`, the first 50 `options`, no option nodes.
+    Scripts, styles, the head, hidden elements and everything outside an open modal are left out. 20,000 nodes.
+  - `options` (`{element: <number>}`): every option of one native `select`; anything else, a password-kind
+    field included, is `stale_reference`.
+  - `page_state`: the reader's part of the token: `document`, `reader`, `revision`, a sha256 of the address, a
+    sha256 of the fields' live state (a readable value; ticks; chosen options; for an unread field only filled
+    or empty; for a password field only that it is there), `ready`.
+  - Tests: `control/chrome_tests/outline.test.mjs` (7 tests, a tree of DOM doubles in a VM; a protected value's
+    getter throws). `run.sh` runs every `*.test.mjs`, so nothing was wired.
+
+### Runs (pull_request, not watched, not read)
+
+| Head | Control Chrome | Qualification | Boundary | Base | Mail |
+|---|---|---|---|---|---|
+| `525aa67f` (baseline) | 43712012619 | | | | |
+| `2c8d2332` (reader) | 43712993037 | 43712993128 | 43712993103 | 43712993081 | 43712993061 |
+
+### Left, in order
+
+1. **Read run 43712993037**: the fixtures jobs' `node --test` (`outline.test.mjs`, the new test in
+   `efficiency.test.mjs`) and brief 20's own reader tests (`safeValue` and `name` gained a defaulted parameter;
+   nothing else of them changed). Expect JavaScript errors in my doubles or expectations; fix the cause. The
+   latency gate is untouched by this step; a red "Require lead ceilings" is its own result (stop and report).
+2. **`background.js`: the three commands** (not started; `background.js` is unchanged). What I read of it:
+   - `outline`: `facts(tab, reference, typedOnly)` already does every check a read needs (control, the dialog,
+     the fixed list per frame, the late reader, `privacyDocuments`, the inherited origin, which needs the
+     `origin` my reply carries). Let its third argument name the content command (`'typed_fields'` today,
+     `'outline'` new) and dispatch `outline` beside `typed_fields` (about line 922). Drop a node's `frame` when
+     that frame isn't among the readable ones; map brief 20's dialog object to `{kind, text}` (or do it in the
+     adapter). Frames: `{frame, document, reader, watched, url, title, scroll, height, omitted, nodes}`.
+   - `options`: one frame's `content(tab, frame, 'options', {element})` behind the same frame checks.
+   - `page_state`: per readable frame the reader's reply joined with the frame id and Chrome's document id;
+     `document`, `address`, `ready`, `dialog`, `queued`; with a dialog open no token.
+   - Tests in `background.test.mjs`.
+3. **The credential words module** (not started): the words beside `policy.py`, a copy in `reader.js`, a test
+   that compares them. See JUDGMENT-CALL 3 for what the merged reader already has.
+4. **The shadow root met late** (not started): see "What the code doesn't show".
+5. **Item 8** (`embedderName` in `Debugger.scriptParsed`) and the reader-side refusal of typing into an unread
+   field (`focus` refuses only a password field today).
+6. Group 14's F6 and H1 fixtures (not started), then step 1b's list from item 3: the adapter, time, groups 14 and
+   16 in CI.
+
+### What the merged reader already does of item 1 (read, not changed)
+
+- **History:** `watched` (from the document-start mark), and `safeValue` returns `unknown_history` with
+  `value_status` filled or empty for a typed field in a document that isn't watched; `typedField` is the one
+  predicate. The outline uses exactly this.
+- **Names:** `credentialLike` in `ownPassword`, with its own word list as two regular expressions (stems and
+  whole tokens, English and German). It has no bare `token`, on purpose (hidden CSRF fields named `*_token`).
+- **The reader instance:** `readerInstance`, drawn at each install; `outline` and `page_state` return it.
+- **A form with a withheld field isn't sent:** `adapter.py` line 31 and `background.js` line 775
+  (`WITHHELD_FORM`). Not checked further here.
+
+### What the code doesn't show
+
+- **The fixtures' node lists and the browser's differ in two harmless ways.** F1's and F4's fields stand inside
+  `<label>` elements, so the reader sends a `text` node around each (`["Line 0 ", 3]`, the run with its space);
+  `view_fixtures.f4()` has the fields directly under the form. I checked in Python that both forms render to the
+  same outline character for character (F1 normal and `full`, F4 `full`). Group 16 should compare outlines, not
+  node lists.
+- **`f4()`'s nodes 23 and 24 can't come from one page:** it has readable fields and two fields of unknown history
+  side by side. In Claude's own tab F4's `Code` and `Nickname` are read; in a document that isn't watched no
+  typed field is. Only the late shadow root could mix them, and F4 has none.
+- **A field's error text stands once:** an element that `aria-errormessage` or `aria-describedby` of an invalid
+  field points to gets no node and adds no text (`f4()` has it only as the field's `error`).
+- **The outline leaves nothing in brief 20's `trace`:** it reads values with `safeValue(element, false)` and
+  resets the trace list to its length at entry (`name()` of a button input reads through the traced path).
+- **Names:** `name(element, fromContent)`: the outline names only controls by their content (link, button,
+  checkbox, radio, switch, tab, the menu items, option, treeitem). Brief 20's rule, which names every element
+  with a `role` attribute by its whole text, would put a page's text into the name of `<div role="main">`.
+  Brief 20's own callers pass nothing and get the old rule.
+- **A `role` attribute can't claim** `password`, `frame`, `text`, `p` or `h1` to `h6`: the reader gives those
+  itself. `role="password"` on a container would make `nodes.View` refuse the whole reply.
+- **Depth:** `visit` and `emit` recurse; a page nested thousands of levels deep overflows the stack and its
+  read fails (closed). Brief 20's `text()` recurses the same way.
+- **The late shadow root, as I would build it:** `privacy.metRoots` and `privacy.lateFields` (weak sets, kept
+  across a reinstall); `meet(root)` where `roots()` and `remember()` find a shadow root: a typed field in it
+  that is already filled goes into `lateFields`; `safeValue` treats `lateFields.has(element)` like `!watched`.
+  It changes brief 20's reads of prefilled fields in components (exception 2), so brief 20's shadow-root tests
+  will need the harness map. Its own commit, so a red run can be told apart.
+
+### Local checks
+
+```
+$ PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/chrome_tests python3 -m unittest test_efficiency
+Ran 13 tests in 0.008s
+OK
+```
+
+No JavaScript ran. The new block's brackets balance (counted with a script); that is all.
+
+### JUDGMENT-CALLs (technical; for the lead)
+
+1. **The baseline's digest test.** Any edit of the frozen numbers fails a test; adding to `latency_comparisons`
+   doesn't. Rejected: trusting review alone. Changing it: one line.
+2. **The error text once** (above). Rejected: sending it as text too, which `f4()` doesn't show and which says
+   the same sentence twice.
+3. **The credential words, not built, because it needs a decision first.** The brief's list has bare `token`,
+   `seed`, `mnemonic` and the `key`/`phrase` pairs; the merged list leaves `token` out for hidden fields. My
+   advice: keep the merged expressions, add the brief's list as data (Python module and reader copy), let either
+   one make a field password-kind, and apply the new list only to fields a person types into (not
+   `type="hidden"`), as the brief words it. Only stricter, and no CSRF field is withheld.
+4. **Roles a page can't claim** and **names by content only for controls** (above): both keep page text out of
+   places the tool writes.
+
+### PLAN-GAPs
+
+- Group 16's "the browser fixtures must give the node lists of `view_fixtures.py`" can hold only for the
+  rendered outline (labels, spaces), and not for `f4()`'s two unknown-history fields.
+- The brief's late-shadow-root rule also covers a component whose template prefills a field (a default value):
+  it is filled when its root is first met, so it stays `(filled, not read)`. Built as worded, that is the cost.
+
 ## Step 4 (2026-11-15, Claude agent on Opus 5.5): run 43698395453's F4 failure. Fixed, new run started
 
 Step 3's "Left" item 1. No reader, adapter or tool change; the latency gate, `latency-targets.json`, the sample
