@@ -295,5 +295,125 @@ step 6) and `os/ci/owner_vm.py`'s `(2, 3)`. `test_ways_back_model` selects the f
 
 ### Left, in order
 
-Steps 5 to 7 as in the brief: review of step 4, the harness mode `tools-local` with the rehearsal (its walk binds the
-new fingerprint), the record step (with review 8's finding 3).
+Step 5 (review of step 4) is done: `REVIEW-3.md`, SAFE. Then the fix step below, step 6, step 7.
+
+## Fix step after reviews 2 and 3, 2026-11-15, Claude agent on Opus 5.5: done
+
+The brief's section "Decisions after review 2 (integrator, 2026-11-15)", including "From review 3". No PLAN-GAP.
+Line numbers are at this step's commits.
+
+### Each item
+
+- **R1 (decision 10 replaced).** `docs/INSTALL.md:276`: after 10 minutes Claude closes the window by stopping the
+  password helper it opened, never the administrator command; sudo then ends with **sudo: no password was provided**,
+  which shows nothing ran; if he has already answered, Claude stops nothing and waits. No guide holds the walk stage
+  (it is only in the brief, whose section already replaces it); `test_owner_path.py:1721` refuses the old words
+  (`process number`, `stops that sudo`). The harness part is step 6's (below).
+- **R2, R5, N9.** `INSTALL.md:278` and the card `docs/EMERGENCY.md:66-67`: Claude copies every STOP line word for word,
+  asks for his go, and only on his go runs the export line; after a **STOP tools folder** no export and no window; the
+  card says Claude reads `/run/ares-records` to help and never copies it into the repository, a pull request or the
+  board (disk serials, firmware entries), and that the tools' **Keep the current administrator session open** is for
+  the console (on this route nothing is lost). The box says the same about the copy (`INSTALL.md:284`).
+- **R3.** `bootstrap.FROM_COMMIT` (`os/owner-tools/bootstrap.py:44`) is
+  `git -C /var/home/ares/AresOS show <commit>:os/owner-tools/commands.json`; the box (`INSTALL.md:249`) says Claude
+  takes the line from there, entry **tools-routine** (export: **export-routine**), never from its working copy. The
+  checkout check stays. Pinned in `test_owner_path.py` (the box's order list); `test_owner_bootstrap.py:341` runs the
+  command against a dirty checkout and gets the commit's `commands.json`. The entry names are bold, not code: the
+  inline owner-command check reads any code span named like a `commands.json` entry as a command.
+- **N2.** The folder line checks the commit's own `SHA256SUMS` against the pinned fingerprint before it empties the
+  folder (`bootstrap.py:153-154`): `STOP tools folder: <commit> holds other tools than <8 hex>`. Every refusal with
+  its own reason now comes before `rm -rf`; only a failing `git archive` or `tar` after it leaves the folder emptied
+  (still "nothing was installed"). `test_owner_bootstrap.py:349`: a wrong pin refuses with that line and leaves the
+  folder exactly as it was (the other refusals already asserted that). The box says "installed nothing and opened no
+  window (a refusal that names its reason left the tools folder as it was)" (`INSTALL.md:247`).
+- **N7, N8.** `INSTALL.md:230`: a fast-forward pull only, never a reset or a checkout over other sessions' work; from
+  then until the last PASS line no other Claude session runs an owner command.
+- **R4, N6.** `INSTALL.md:272`: line 1 of `github.com/Ares-Empire/AresOS/blob/main/docs/OWNER-TOOLS.md`, opened from
+  his own bookmark, `main` in it, never a link Claude sends at that moment. `docs/OWNER-TOOLS.md` has a blank line
+  between line 1 and the full fingerprint; `test_owner_equality.py:190-210` holds the page's new shape and the address.
+  The brief's decision 5 text ("line 2 the full fingerprint") was left as it is: its section after review 2 replaces it.
+- **R6.** One sentence in the routine box (`INSTALL.md:284`) and one in **A tools command stopped**
+  (`EMERGENCY.md:61`), each quoting `The stick holds tools this laptop installed before (SHA256 …), not the installed
+  ones`, which `test_owner_path.py` holds equal to `media.py`'s string around its fingerprint.
+- **N1, N5.** `bootstrap.routine` (`bootstrap.py:106-116`): `SUDO_ASKPASS=/usr/bin/ksshaskpass SSH_ASKPASS_PROMPT=
+  /usr/bin/sudo -k -A -p '<label>' /usr/bin/bash -c '<script>'`. The empty assignment, not `env -u`: it keeps the
+  decision 2 shape, and ksshaskpass 6.7.5 treats empty as unset (`src/main.cpp:283-289`, the same file as step 2's,
+  SHA-256 `e088570c…`: only `confirm` and `none` change the window). `test_owner_bootstrap.py:194` runs each routine
+  line through bash against a stand-in for `/usr/bin/sudo` with the caller's `SSH_ASKPASS_PROMPT` unset, `confirm`
+  and `none` and a foreign `SUDO_ASKPASS`: the stand-in always gets an empty prompt variable, the fixed helper and
+  `-k -A -p <label> /usr/bin/bash -c <script>`. The labels did not change; the 16-pattern test still passes.
+- **N3.** `owner.caller()` (`owner.py:217`): `sys.stdin is not None and sys.stdin.isatty()`;
+  `test_owner_sources.py:174` with `sys.stdin` None.
+- **N4.** `media.export_local` (`media.py:104-118`): a missing or failing `setfacl` (any exception from the grant)
+  leaves the complete copy root's and export passes with
+  `This copy is on this laptop, not off it; only root can read it, since uid 1001 could not be let in (<reason>), and a restart deletes it`.
+  The reason is the host's message without its `; do not reboot`. `test_owner_export.py:202`: the real `Host` with
+  setfacl missing (`Required tool missing: setfacl`), failing (`Operation failed: setfacl`) and not executable; no
+  line says reboot, modes stay 0700/0600.
+- **Review 3, nit 2.** `owner.LAYOUT_TRIAL` (`owner.py:73`):
+  `Layout trial is unfinished; prove it or revert first; if the console that began it is closed, from a fresh physical administrator login run sudo /var/lib/ares/at layout abandon`.
+  `test_ways_back.py:1176` and `test_owner_update.py:1393` (hosted only) expect it; the model matches by substring and
+  its slice is unchanged.
+- **Review 3, nit 3.** `test_owner_sources.py:255` (`LayoutTrialTest`): the tools update from both blocks with a
+  trial record from an earlier boot refuses with `LAYOUT_TRIAL_RESTARTED`, one from this boot with `LAYOUT_TRIAL`;
+  the tools' home byte for byte as before and no mutation.
+- **N10.** `INSTALL.md:228`: only this box's install line and its export line run this way for now; every other owner
+  command stays at the console until a later release brings it here. In 22d the generated routine lines are exactly
+  `tools-routine` and `export-routine`.
+- **The label's comment** (review 2, question 5) also names the rich-text reason for its character rule.
+- **Fingerprint:** payload refreshed (`bundle.py --refresh`); tools version 4 is now
+  `dcbc375faa4b269bacaf316c5ddc24503b9773b2538bcd017065ce8e312597be` in `commands.json` (equal to `bootstrap.command`
+  and `bootstrap.lines`), `OWNER-TOOLS.md`, `INSTALL.md`, `EMERGENCY.md` and `INSTALL-STATUS.md`; `e68fd5fd` is gone
+  from `docs/` and `os/`. `rebind.py pending "22d fixes after reviews 2 and 3"` ran last.
+
+### What step 6 must assert from these items
+
+- **R1, the unanswered window.** The stand-in caller starts the routine line in the background and, after the
+  harness's (shortened) wait, stops only the `ksshaskpass` process whose parent is that sudo (it runs as uid 1001);
+  it never signals the sudo. Assert: that helper is gone (and the dialog with it, by screenshot); sudo's stderr holds
+  `sudo: no password was provided`; sudo exits 1; nothing changed (no new `/run/ares-bootstrap.*`, the tools' home,
+  records and journal byte for byte, every protected-disk audit unchanged); the only signalled PID is the helper's.
+- **R1, the answered window** (recommended): once the helper is gone the caller signals nothing and the line's result
+  (PASS install, check, title) arrives.
+- **R3:** the stand-in caller takes `tools-routine` and `export-routine` with `bootstrap.FROM_COMMIT` for the
+  announced commit, not from the working tree.
+- **N2:** a stage that feeds version 3's commit through Claude's folder line now sees
+  `STOP tools folder: <commit> holds other tools than dcbc375f` with the folder unchanged. The "v3 refuses" stage must
+  put v3's bundle into the folder another way to reach the root line's own STOP.
+- **N3** (recommended): one routine line run with stdin closed (`<&-`): PASS, and the receipt's
+  `caller.terminal` false, no traceback.
+- **N4:** with the image's `setfacl` the export line names uid 1001; `ares` reads `/run/ares-records`, another account
+  cannot (already in the brief).
+- **N5:** the dialog asserts (helper argument equals the label) hold with the caller's `SSH_ASKPASS_PROMPT=confirm`,
+  if the harness sets one; the window keeps its password field.
+- Unchanged from the brief: the stand-in origin whose `main` holds the commit; the 70-character label wrapped, not cut.
+
+### Tests run here (Python 3.14, one module at a time, `ARESOS_MODEL_SCOPE=slice`)
+
+| Module | Result |
+|---|---|
+| `test_owner_bootstrap` (1 new) | `Ran 13 tests`, `OK` |
+| `test_owner_equality` | `Ran 11 tests`, `OK` |
+| `test_owner_path` | `Ran 48 tests`, `OK` |
+| `test_owner_sources` (1 new) | `Ran 13 tests`, `OK` |
+| `test_owner_export` | natively 3 pass, the same 3 fail as at the step's start (Python 3.14 fixture); with `Path.lstat` routed through `Path.stat` in a scratch runner 4 pass, and the 2 fresh-process tests fail there exactly as on a copy of `80cb99a9` (the child gets no patch). The changed test passes either way |
+| `test_ways_back` | `Ran 56 tests`, `OK` |
+| `test_ways_back_model` | `Ran 26 tests`, `OK` (slice) |
+| `test_ways_back_reverts`, `test_ways_back_compatibility`, `test_owner_walk`, `test_owner_entry` | `OK` each (20, 21, 27, 3) |
+| `test_grub_bls`, `test_system_keyboard`, `test_stock_prepare`, `test_owner_session` | `OK` each (6, 7, 7, 16) |
+| `test_checkout_sources`, `test_owner_step_limits` | after `rebind.py pending` (23 bound files wait): `OK` each (6, 4) |
+| `test_owner_update` | not run, by the rule (one refusal text changed) |
+
+### JUDGMENT-CALL (new wording he will read)
+
+- In the payload (a change costs a tools version): the failed-grant export line above; the same-boot layout refusal
+  (review 3's words).
+- Outside the payload: `STOP tools folder: <commit> holds other tools than <8 hex>`; the guide sentences for R1, R2,
+  R4, R5, R6, N7, N8 and N10.
+- R6 says "until Claude writes it again (for now from Windows, the box below)" instead of naming package 22e: 22e is
+  not built, and the owner's guide names no packages there.
+
+### Left, in order
+
+Step 6 (harness `tools-local`, its ledger entry, the receipt, the walk with the assertions above, hosted checks, the
+VM run), step 7. `INSTALL-STATUS.md`'s 22d row still says "not yet reviewed": the record step updates it.

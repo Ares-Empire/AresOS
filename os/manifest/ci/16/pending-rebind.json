@@ -6,7 +6,8 @@
     "22c record step (after rehearsal run 43597505549 rebound the sources): test_owner_path pins the 22c INSTALL-STATUS row as rehearsed, with the run link the 22c bindings name; no tool, guide or image file changed",
     "22c fix after checks-only run 43619559359: test_ways_back_probe keeps the 22c host-walk receipt frozen after the record step (asserted equal to the bindings' walk table instead of skipped; the gate test uses it with the waiting rows' bytes) and reads removed paths from the 22c rebind's history entry; no tool, guide or image file changed",
     "22d steps 1 and 2: the owner tools take a bundle from the folder block (tools version 4, payload refreshed); bootstrap.py generates the routine lines and Claude's folder line, commands.json holds them, the guides gain the routine box first and the routine STOP card, v4's fingerprint is pinned; the checks-only job gets 40 minutes; tests follow; these tool, guide and workflow files wait for 22d's rehearsal, not only tests",
-    "22d step 4: review 8 findings 2 and 5"
+    "22d step 4: review 8 findings 2 and 5",
+    "22d fixes after reviews 2 and 3"
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
@@ -15,11 +16,11 @@
       "path": ".github/workflows/os-image.yml"
     },
     {
-      "sha256": "94ab1559adb7df71e082e01b5f4b3909b5cb651cec5e88faf6dd29a8b9ca0641",
+      "sha256": "2ccf71ae3e788e292455f484cf0b91e0fa670200d317db7de6482e94e40722dc",
       "path": "docs/EMERGENCY.md"
     },
     {
-      "sha256": "a6fda3190649c9e08e3f662ad807bb375683154c61c9118bb5a8dfd742fdfbf9",
+      "sha256": "55edd99ed2c9a684b75f78da05bf29e41c2bab9f740524babcab7acd6b837df7",
       "path": "docs/INSTALL.md"
     },
     {
@@ -27,11 +28,11 @@
       "path": "os/ci/rehearsal-packages.json"
     },
     {
-      "sha256": "79db70e1b77e6431419e56e4b97a544c9cfa4c907e31adcda313715de21b2891",
+      "sha256": "ae092a2d0875cae4ce7806cb0277a779df5afba39bd9b3a7d613cd44fd889c60",
       "path": "os/owner-tools/bootstrap.py"
     },
     {
-      "sha256": "20d4db9c8ca1b67bd5bcbceb23d3a1e8a997509a72cea23920176f7a0635a03f",
+      "sha256": "27296db0f9c563b6ab6877f7353412150bc23b96a6654fdd2e8ba12da3b62113",
       "path": "os/owner-tools/commands.json"
     },
     {
@@ -39,19 +40,19 @@
       "path": "os/owner-tools/history.json"
     },
     {
-      "sha256": "ae8961fc5b18ae45336366f3c0d738ad541a5440529866e4d7c4d4e59e23d65e",
+      "sha256": "79dcddf27a29f02b0ad3877828ee1fbaf87db5608c964e9f5e5bf55acc51ce1c",
       "path": "os/owner-tools/media.py"
     },
     {
-      "sha256": "25c489c22db4b835a1cdb0bae158fd5e59c8e68d766a3dc714f16952be146ed7",
+      "sha256": "3db7f3e44566027105bd89a0cf1785288e852327c12dce6886a560f20dcaa4e4",
       "path": "os/owner-tools/owner.py"
     },
     {
-      "sha256": "74cddfd415595a9bf497d385e84eb71f5a3e6031349ddf1a8df5441f188f3f3a",
+      "sha256": "cda209c8d509f57aee09fb385d4dbd4ad8253bd47534972c4f89d2c35b76ce66",
       "path": "os/owner-tools/payload/SHA256.json"
     },
     {
-      "sha256": "e68fd5fd56fad61987bdad9d9c1106e40e449548f82dcc27fa351a75074cb75b",
+      "sha256": "dcbc375faa4b269bacaf316c5ddc24503b9773b2538bcd017065ce8e312597be",
       "path": "os/owner-tools/payload/SHA256SUMS"
     },
     {
@@ -59,15 +60,15 @@
       "path": "os/owner-tools/payload/history.json"
     },
     {
-      "sha256": "ae8961fc5b18ae45336366f3c0d738ad541a5440529866e4d7c4d4e59e23d65e",
+      "sha256": "79dcddf27a29f02b0ad3877828ee1fbaf87db5608c964e9f5e5bf55acc51ce1c",
       "path": "os/owner-tools/payload/media.py"
     },
     {
-      "sha256": "25c489c22db4b835a1cdb0bae158fd5e59c8e68d766a3dc714f16952be146ed7",
+      "sha256": "3db7f3e44566027105bd89a0cf1785288e852327c12dce6886a560f20dcaa4e4",
       "path": "os/owner-tools/payload/owner.py"
     },
     {
-      "sha256": "b0610850b2136afd4136692b84b539711a8edbaa9225a99a663ca6bdefe18d20",
+      "sha256": "b65b270a84f2920a599b637f79490ec8801486c6e759d153166957136da7f488",
       "path": "os/tests/test_owner_bootstrap.py"
     },
     {
@@ -79,23 +80,23 @@
       "path": "os/tests/test_owner_entry.py"
     },
     {
-      "sha256": "18deb68ace9116474f6ea9cef32799ac152b68895f6d3017a0ae38136c4efa0a",
+      "sha256": "8963797f77aaba16f9e692a4ce3e471792cb86bf23ef1893960239b019cdfea4",
       "path": "os/tests/test_owner_equality.py"
     },
     {
-      "sha256": "33e6bc5c2a6c890cd4af68f4e4d577b6ded11bcb791709730ebe429b8c35dfb1",
+      "sha256": "9fe977c53211e4698c097f529d3fc101b5517eda1173aa3059a4aa7030bd4702",
       "path": "os/tests/test_owner_export.py"
     },
     {
-      "sha256": "27473eede6e68a9a9a2df71678237c40ac61986607f4780048a52f06ae4f3453",
+      "sha256": "d5d9420f1d561854b5c747ff674bd2704f2103ad184cf8aff00f8bf265925a65",
       "path": "os/tests/test_owner_path.py"
     },
     {
-      "sha256": "d7e5ae4ef7445086447e75c3ba1efdaf7eeb9e73011c4bb61d95c8eaaaa23d4f",
+      "sha256": "bd9cfa58cde7fbee31a032c0522e9e50b72c16d33282942d34938e4209007289",
       "path": "os/tests/test_owner_update.py"
     },
     {
-      "sha256": "c599d32821061ebe809f34a3cbb463faf7e3f3b16d97305bb7835532f400498d",
+      "sha256": "7a636e9917606974fb4e67dede142ef825146060bf2f11e68857409b53012359",
       "path": "os/tests/test_ways_back.py"
     },
     {
