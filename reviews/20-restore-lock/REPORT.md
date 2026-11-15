@@ -1,4 +1,97 @@
-# 20-restore-lock: progress
+# Brief 20-restore-lock: report
+
+Brief `briefs/20-restore-lock.md`, branch `pkg/20-restore-lock`. Builders, each a fresh agent:
+- step 1 (R1): Claude Fable, because the restore lock is a safety mechanism;
+- step 2 (R2's oracle changes): Claude Opus;
+- step 3 (capture, classification, re-pin, proof): Claude Opus.
+
+The lead wrote this report from the builders' `PROGRESS.md`, which follows unchanged below the summary except for one
+correction, marked there.
+
+## Outcome
+
+- **R1: during a restore lock, no app's old state is shown as current** (`engine.py`, two PR #27 regressions).
+  - While `store.locked`, `control_pending` and `control_notices` show only Chrome's rows and warnings from the
+    committed journal. Other apps are reported as unavailable until the owner confirms the restore (`LOCKED_PENDING`,
+    `LOCKED_NOTICES`). That is the state before PR #27, plus Chrome's current warnings.
+  - **C3 fixed:** Mail operations from the pre-restore working state, such as "reserved: Awaiting exact approval;
+    nothing submitted", are no longer listed during the lock.
+  - **C4 fixed:** no continuation names `mail_filing_notices`, which the lock refuses.
+  - **No Mail server check runs** under the lock: `notice_page` returns Chrome's committed pager before
+    `resolve_sent_checks` is called, and `_pending` leaves out the working database's rows.
+  - The storage-failure fallback of `control_pending` follows the same rule (`e2240fca`, both reviews' FIX).
+  - Chrome's committed rows, the lock's allowed calls, `control_restore_confirm` and everything outside the lock are
+    unchanged.
+  - Tests: `control/chrome_tests/test_restore_lock.py` (5), plus 8 `restorelock-` removal probes.
+- **R2: the owner oracle, re-pinned (board #185).**
+  - **C2:** under the lock the oracle allows `allowed` for the three reads it answers, and `restore_required` when
+    such a read tries a write (`model.py`, `driver.py`).
+  - **D:** in the full-disk simulation a read-only close no longer fails, so `storage_limit` no longer hides real
+    gaps. The change is in the exhaustion injector (`storage_faults.py`), the narrower of the two places.
+  - 3 `restorelock-oracle-` probes.
+  - **Capture** 43722918063 on `065275ff`, and **re-pin** `96bb1a03`: 2,622,072 keys, 1,997 groups, SHA-256
+    `ee326914…`. Every difference from the previous pin is in an intended class (`KNOWN-GAPS.md`, last section).
+  - **Proof:** dispatch 43738332693 on `96bb1a03`: green, all 61 jobs. Its 53 fresh lists rebuild
+    `KNOWN-GAPS.json` byte for byte. Two of the three allowed dispatches were used.
+
+## Reviews
+
+Each review was by a fresh agent that didn't build the code.
+
+| File | Reviewer | Range | Verdict |
+|---|---|---|---|
+| `REVIEW-1.md` | package, Claude Opus | `a350cc8b..801dad9a` | FIX 1: the no-IMAP test couldn't fail for its stated reason. FIX 2: the storage-failure fallback still listed Mail and named a refused route. Both fixed. |
+| `SECURITY-1.md` | security, Claude Fable | `a350cc8b..801dad9a` | FIX: the same fallback as FIX 2. Fixed. |
+| `REVIEW-RECHECK-2.md` | package | `801dad9a..065275ff` | SAFE: both fixes, and step 2's oracle changes. |
+| `SECURITY-RECHECK-2.md` | security | `e2240fca` | SAFE |
+| `REVIEW-REPIN-3.md` | package, Claude Opus | `065275ff..96bb1a03` | SAFE: an independent diff of both ledgers with its own scripts. Every key is in an intended class, and the pin reproduces byte for byte. |
+
+No production code changed after `e2240fca`; steps 2 and 3 changed only the oracle, its tests and the ledger.
+
+## Accepted residuals and notes
+
+- **C5, pre-existing:** at the restore flow's last point in persistent mode, the oracle's decoded state says the
+  restore is confirmed while the running store keeps its lock until restart. Whether the lock there is right is not
+  decided → `linux-tools`.
+- **C2's mirror of C5:** at 644 status keys outside the restore flow the oracle's record says locked and the store
+  isn't. Their status no longer counts as a gap, but each point keeps its `restore-lock` gaps, so the disagreement
+  stays visible (checked by the step 3 builder and by `REVIEW-REPIN-3.md`).
+- **Pre-existing, unchanged:** in `crash-locked`, the `aresos log` view says "not locked" at all 6,375 points
+  outside the restore flow, as at the previous pin (`REVIEW-REPIN-3.md`, NOTE 5) → `linux-tools`.
+- **Cosmetic:** under the lock, a failed Chrome projection can show `total: 2, items: []`, and the fallback's
+  `unavailable` text says "Chrome … below are current" twice. The `owner_state_unavailable` fallback replaces the
+  lock wording with Chrome's error; `restore_required: true` still carries it.
+- **Conservative:** a storage failure in the very first read after `control_restore_confirm` can report
+  `restore_required: true` from the locked snapshot. This is pre-existing.
+- **Oversize replies:** `results.bound_result` names `control_observations` and `mail_filing_notices`, which are
+  refused under the lock. This is older generic code and in practice unreachable there.
+- **Two counts of renumbered keys.** `REVIEW-REPIN-3.md` NOTE 3 counts 5,765 keys that differ only by alias numbers,
+  and `KNOWN-GAPS.md` row E counts 16,387 (36,241 with IDs, export folders and fact order). They normalise
+  differently. Both count these keys under "Unchanged", and both get its total of 1,016,218.
+- **Probes:** `restorelock-mail-route-continued` reuses `restorelock-stale-warnings-listed`'s change, so it is
+  rejected by the count, never by the route check. That's acceptable: the route can only go wrong by listing Mail
+  warnings again.
+
+## Left for others
+
+- C5 and the `crash-locked` `aresos log` view → `linux-tools` (`docs/control/TOOLS-HANDOFF.md`).
+
+## Local preflight
+
+- At `2312fa10`, step 2's last code head (`records/final-local-2312fa10.json`): 340 Python tests (shards 91/70/52/127;
+  the Linux-only socket case skipped), 428 Node tests, 534 removal mutations rejected with every baseline passing,
+  generator, whitespace and service-unit checks.
+- At `1e770483`, step 1 (`records/final-local-1e770483.json`).
+- No browser was started on the Mac.
+
+## Pull-request runs
+
+The pull request's checks are in the PR. `control-chrome.yml`'s budget there is 2 runs, and the lead merges when
+they are green.
+
+---
+
+# The builders' record
 
 Brief: `briefs/20-restore-lock.md`. Trace: `reviews/19b-owner-state/REPIN-185-PROGRESS.md`, "Trace (step 2)".
 
@@ -47,8 +140,9 @@ need a new journal field or a second projection over the summaries, neither smal
 
 - Under the lock, `control_notices` pages Chrome's rows with the committed pager's own cursor scope
   (`['chrome','committed_notices']`), not the shared pager's. A cursor taken under the lock is stale after
-  `control_restore_confirm` (`stale_reference`, "read again without the cursor"), which is right: the set changes
-  when Mail's rows come back. The storage-failure branch of `control_notices` already behaves this way.
+  `control_restore_confirm`, which is right: the set changes when Mail's rows come back. *(Lead's correction, from
+  `REVIEW-1.md` and `SECURITY-1.md`: the reply is not `stale_reference` but `ok: true` with `page_changed`, "Page
+  changed; restarted from the first page.", and the first page.)* The storage-failure branch of `control_notices` already behaves this way.
 - Before this change `control_pending` under the lock with an open Sent-copy check could answer `ok: false,
   restore_required` with the stale data attached (the check's result write hit the lock; trace class C2's "read
   tries a write"). Now it answers `ok: true` with Chrome only. Chrome's `reconcile_open_checks()` can still hit the

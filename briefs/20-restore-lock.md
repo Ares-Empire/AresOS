@@ -67,8 +67,8 @@ Removal probes in `reviews/20-chrome/mutation-audit.py` (prefix `restorelock-`),
    pin's M14 "rows missing" gaps did, or close.
 4. **Capture.** Dispatch `control-owner-oracle.yml` on this branch. Regenerate the compact ledger as
    `reviews/19b-owner-state/KNOWN-GAPS.md` shows.
-   - Re-run the trace's classification. The scripts are in the ignored `.work/185/` of the worktree
-     `/Users/pab/AresOS-19b-oracle-repin`; copy them, don't commit them.
+   - Re-run the trace's classification. The scripts are in the ignored `.work/185/` of the
+     `pkg/19b-oracle-repin` worktree; copy them, don't commit them.
    - **Only intended classes may remain:**
      - A: new fault sites at the new index;
      - B: more cleanup cases;
