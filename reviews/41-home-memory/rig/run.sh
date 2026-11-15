@@ -17,9 +17,10 @@
 #   HOMEKIND=flat    flat or nether (MODE=create): the choice on the create screen (the Nether with its default seed)
 #   WORLD=base       base: a fresh copy of the base world each run; keep: the AresHub as it is
 #   BASE=AresHub-base  the base world's folder in .work/pkg41
-#   FLIGHT=roads     roads: the flat town's route; spectator: the same three legs in spectator mode, straight through
-#                    the terrain (the Nether, whose caves stop a flight; needs a save with commands allowed,
-#                    allow-commands.py); none: no flight
+#   FLIGHT=roads     roads: the flat town's route; glide: the same three legs at the same speed, moved by the rig's
+#                    data pack (/function glide: a teleport of 1.08 blocks every tick) straight through the terrain, for
+#                    the Nether, whose caves stop a real flight within blocks (AresOS refuses spectator mode); needs a
+#                    save readied with prepare-glide.py; none: no flight
 #   QUIT=0           1: at the end close the game's window, so it saves and quits, and keep the save in <rig>/world
 #
 # What it does (MODE=measure): copies the base world into mod/run/saves/AresHub, sets the distances, starts the rig
@@ -45,7 +46,7 @@ for setting; do
     esac
 done
 case $MODE/$HOMEKIND/$FLIGHT/$QUIT in
-    measure/*/roads/[01] | measure/*/spectator/[01] | measure/*/none/[01] | hold/*/*/0 \
+    measure/*/roads/[01] | measure/*/glide/[01] | measure/*/none/[01] | hold/*/*/0 \
         | create/flat/roads/[01] | create/flat/none/[01] | create/nether/none/[01]) ;;
     *) echo "settings do not fit: MODE=$MODE HOMEKIND=$HOMEKIND FLIGHT=$FLIGHT QUIT=$QUIT" >&2; exit 2 ;;
 esac
@@ -115,7 +116,7 @@ mono() { python3 -I -c 'import time; print(time.monotonic_ns())'; }
 mark() { echo "$1 $(mono)" >>"$RIG/marks.txt"; echo "$(date +%T) $1"; }
 vin() { echo "$*" >"$RIG/vin"; }
 # A command through chat: / opens it with the slash typed, the text, Enter.
-chat() { vin key slash; sleep 0.5; vin type "$1"; sleep 0.3; vin key enter; sleep 0.5; }
+chat() { vin key slash; sleep 0.5; vin type "$1"; sleep 0.3; vin key enter; sleep 0.5; }  # letters, digits, space
 shot() { mkdir -p "$RIG/shots"; "$WT/reviews/40-real-home/rig/shot.sh" "$RIG" "$RIG/shots/$1.png" || true; }
 
 "$here/start.sh" >"$RIG/start.txt" 2>&1 &
@@ -215,21 +216,17 @@ python3 -I "$here/snap.py" "$game" stand "$RIG"
 # (the 28 System & Tools logos), a half turn, and north again towards home.
 # (check-flight.sh confirmed: about 21 blocks up, 21.6 blocks a second, and 1263 counts for the half turn.)
 # Every key press and gap lasts two ticks: a 40 ms tap can fall between two game ticks and go unseen.
-# FLIGHT=spectator flies the same legs in spectator mode (no double jump: spectators always fly), straight through
-# whatever is in the way: in the Nether the caves stop a flight within blocks.
+# FLIGHT=glide: the same start, then the rig's data pack moves him along the same legs (1200 ticks, level, through
+# the terrain) while the camera turns with him; no keys held. Its glidetick stops by itself after 1200 ticks.
 quarter=$((WINDOW / 4))
 if [[ $FLIGHT != none ]]; then
     vin key h; sleep 1.5
-    if [[ $FLIGHT == roads ]]; then
-        vin key lshift down; sleep 1; vin key lshift up; sleep 0.5
-        vin key space down; sleep 0.1; vin key space up; sleep 0.1; vin key space down; sleep 0.1; vin key space up
-        sleep 0.3
-    else
-        chat "gamemode spectator"; sleep 1
-    fi
+    vin key lshift down; sleep 1; vin key lshift up; sleep 0.5
+    vin key space down; sleep 0.1; vin key space up; sleep 0.1; vin key space down; sleep 0.1; vin key space up
+    sleep 0.3
     vin key space down; sleep 2.5; vin key space up
+    if [[ $FLIGHT == glide ]]; then chat "function glide"; else vin key w down; vin key lctrl down; fi
     mark flight_start
-    vin key w down; vin key lctrl down
     sleep "$quarter"
     vin rel 1263 0 20
     sleep $((quarter * 2))
@@ -240,7 +237,8 @@ if [[ $FLIGHT != none ]]; then
     # Outside the windows: a picture of where the flight ended (above home, over the logos), to check it flew.
     [[ $SHOTS != 1 ]] || shot after-flight
     python3 -I "$here/snap.py" "$game" flight "$RIG"
-    if [[ $FLIGHT == spectator ]]; then vin key h; sleep 1.5; chat "gamemode survival"; sleep 1; fi
+    # The glide's tick count goes to the game's log ("pkg41 glide ticks: 1200" for the whole route).
+    [[ $FLIGHT != glide ]] || { chat "function halt"; sleep 1; }
 fi
 
 if ((COVER > 0)); then
