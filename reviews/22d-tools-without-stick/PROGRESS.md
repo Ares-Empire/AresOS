@@ -931,3 +931,256 @@ checks 20 stay. At run 3's dispatch the ledger stood at 595 consumed minutes, 10
    -f checks_only=true`), then VM dispatch 4 of 6 (`gh workflow run "OS image" --ref pkg/22d-tools-without-stick
    -f rehearsal=tools-local`).
 2. After a pass: `rebind.py rebind` for 22d, step 7 (record step, final review).
+
+## Step 7, record step, 2026-11-15, Claude agent on Opus 5.5: done (the final review follows)
+
+VM run 4, [43737933979](https://github.com/Ares-Empire/AresOS/actions/runs/43737933979) (`tools-local`, on `89bc0658`),
+passed. Its evidence was downloaded once by the integrator; this step read it from there. Nothing dispatched; no owner
+tool, sudo, ostree, bootc, rpm-ostree or ksshaskpass ran.
+
+### Done
+
+1. **The rebind.** `rebind.py` read from source first; then, run once:
+   `python3 reviews/27-first-update-release/rebind.py rebind 22d <evidence>/two-disk/22d-bound-sources.json 43737933979`
+   printed **recorded 6 tables, 263 unique sources for package 22d; 40 waiting files and 0 removed paths moved to the
+   history; pending list empty**. `os/manifest/ci/22d/source-bindings.json` (run 43737933979, commit `89bc0658`) are now
+   the active tables; the history's new entry waited for 22c's bindings.
+2. **The receipt freezes.** `test_tools_local_wiring.ReceiptTest` is now
+   `test_the_receipt_is_fresh_until_the_record_step_and_frozen_after`, as 22c's `HostWalkReceiptTest`: once 22d's
+   bindings exist it asserts that the receipt's sources equal their table 0; before that it runs the freshness check as
+   it was. `os/manifest/ci/22d/host-walk.json` is unchanged and is never regenerated from now on.
+3. **The status row.** `docs/INSTALL-STATUS.md`'s 22d row: **BUILT AND REVIEWED; VM REHEARSAL PASSED; NOT ON THE
+   LAPTOP**, the checks-only run 43729592775, run 4's link and head, what it walked, the three earlier runs, a link to
+   the captures, "The laptop has not run this route yet", and the final review before "on the laptop". The bound
+   `test_owner_path.py` pinned "NOT REHEARSED" and "**not rehearsed**", so its pin changed with the row (as 22c's record
+   step did): the new status, the run and head the 22d bindings name, the captures link, the three PASS lines, the
+   audits, "not run this route yet", and the old words refused. It fails on the old row (checked by hand).
+4. **22c's gate test after 22d's rebind** (the lesson from 22c's record step). After the rebind
+   `test_ways_back_probe.RunnerTest.test_the_probe_reads_package_22cs_host_walk_and_refuses_a_stale_one` failed in both
+   modes (`Host walk is stale`). It hands `owner_vm.main('22c', …)` 22c's frozen receipt with each row that waits on the
+   list replaced by the list's bytes; the rebind moved the 40 files that waited into 22d's bindings and emptied the
+   list, so the rows changed since 22c's run were named nowhere it looked. It now takes those rows from the active
+   bindings (`checkout_sources.merge(active_tables(ROOT))`: 22d's since this step; while 22c's were active they equal
+   the receipt), then from the list. So it stays fresh only if the chain names every changed file the walk binds:
+   with `test_owner_path.py` taken off the list by hand it fails again (`Host walk is stale`; list restored).
+5. **The waiting list.** `rebind.py pending "22d record step: …"` (after the last bound change): **pending: 3 bound files
+   differ from the active bindings, 0 removed** (`os/tests/test_owner_path.py`, `os/tests/test_tools_local_wiring.py`,
+   `os/tests/test_ways_back_probe.py`). Its `status` names them, as 22c's did.
+6. **The captures**, `reviews/22d-tools-without-stick/runs/tools-local-43737933979/` (98 files, 940 kB): the result
+   file; every stage's decoded `tl-*` JSON and both pictures (`-before`, `-window`) for v3, Cancel, unanswered, cut,
+   install, tamper and export, plus the cut's watcher, the install's records and receipt fields, the export's access
+   check, the stick-next and export-stick stage rows; the xHCI health at the first removal's `unplug-confirmed`, the
+   second stick's `before-hotplug`, `requested-unplug` and `unplug-confirmed` (expected 1, 1, 1, 2; `usb_disconnect` 0;
+   `tools_removals_requested` 1, 1, 1, 2), and that removal's port file; the PASS pictures of the stick install of
+   version 5, its check, the export to the version 2 stick and the final check and title; both final Windows marker
+   texts; `22d-bound-sources.json`; `22d-dispatch-authorization.json`; `index.json` (each file's SHA-256, what was
+   left out and replaced, the patterns searched, and the 15 protected-disk audits, each equal to the baseline).
+   - **Left out (privacy):** the tools' full results with their trace (`tl-install-receipt.json`, the stick install's and
+     check's, the version 2 stick export's, the final check's and title's): each holds the VM disks' partition and
+     filesystem UUIDs, and the repository holds no GUIDs, also not a throwaway VM's (22c's rule). In their place
+     `tl-install-receipt-fields.json` is the receipt without its trace, and the PASS pictures show the lines. The two
+     Windows marker pictures show the VM's Windows-stand-in ESP GUID, so they are left out; in the two marker texts that
+     GUID became `VM-WINDOWS-ESP` (the only change to any copied file).
+   - **Searched for** before writing: 22c's forbidden patterns (tokens, credential headers, password hashes, the
+     harness password's shape, private keys), emails, GUIDs, `serial`, and the names `patrik`, `carlsen`, `lenovo`,
+     `micron`, `crucial`. What remains: "password" only in sudo's messages, "serial" only in the tools' "stock serial"
+     line and in bound test file names. Every kept picture was looked at: the desktop with foot and the window, and
+     console text (PASS lines, ostree checksums, image digests).
+   - The copy was made by a scratch script outside the repository (not committed).
+
+### Tests run here (Python 3.14, one module at a time, `ARESOS_MODEL_SCOPE=slice`)
+
+| Module | Result |
+|---|---|
+| `test_checkout_sources` | right after the rebind `Ran 6 tests`, `OK`; after the last change `Ran 6 tests`, `OK` |
+| `test_owner_step_limits` | `Ran 4 tests`, `OK` |
+| `test_owner_path` | first 4 failures: a link to the 22d `REPORT.md`, which does not exist yet (the link check refuses it); the row links the captures instead; then `Ran 48 tests`, `OK` |
+| `test_tools_local_wiring` (the receipt test's module) | `Ran 42 tests in 54.688s`, `OK` |
+| `test_owner_bootstrap` | `Ran 13 tests`, `OK` |
+| `test_owner_equality` | `Ran 11 tests in 72.987s`, `OK` |
+| `test_owner_sources` | `Ran 13 tests in 73.906s`, `OK` |
+| `test_ways_back` | `Ran 56 tests in 30.278s`, `OK` |
+| `test_ways_back_probe` (reads the waiting list and the bindings; 22c's lesson) | after the rebind 2 failures (item 4); after its fix `Ran 57 tests in 148.418s`, `OK` |
+| `test_owner_update` | not run, by the rule (hosted: green in 43729592775) |
+
+### Not done, for the integrator
+
+- **Review 8's finding 3** (brief decision 11 puts it in the record step): a test that fails while a status row says VM
+  REHEARSAL PASSED and a tool or guide file waits, or while the result's fingerprint differs from `SHA256SUMS`. It is a
+  new test in a bound file, which this step's rules did not allow. Today the chain holds by hand: only three test files
+  wait, and run 4's `tools` equals the payload's fingerprint `dcbc375f…`.
+- **`unwalked_commands`** in the waiting list still names `tools-folder`, `tools-routine` and `export-routine`, and its
+  `unwalked_rule` says they wait "until 22d's rehearsal types them". Run 4 ran all three (the caller runs them; it types
+  only a launcher). `test_owner_equality` counts only typed blocks, so taking them off the list would fail it. Either
+  that test learns the tools-local walk's lines, or the rule's sentence says how 22d's lines were walked.
+- `test_checkout_sources.test_current_receipts_agree_and_package14_stays_historical` picks the first of
+  `('22c', '27', '16')` with bindings, so it still checks 22c's receipt, not 22d's (it passes). Adding `'22d'` (and
+  `'22d': '22c'` in its map) is a bound change; not made here.
+- The row links the captures, not the report: `REPORT.md` does not exist until the integrator commits it. A report link
+  then needs the row and its pin again.
+
+## Report (for the integrator to commit as REPORT.md)
+
+# Package 22d: the owner tools without the stick, from Claude's terminal
+
+Brief: `briefs/22d-tools-without-stick.md` (empire brief 291). PR #66, branch `pkg/22d-tools-without-stick`. Builders:
+Claude agents (step 1 on Fable 5.2, the other steps on Opus 5.5). Reviews 1 and 2 on Fable, 3 and 4 on Opus; the final
+review before the laptop follows.
+
+## Done
+
+**What 22d gives the owner.** New owner tools no longer need the USB stick, Windows or the black console. Claude runs
+two lines in its own terminal. The first (as `ares`, no window) fetches GitHub's main, checks that the commit Claude
+announced is on it and holds exactly the tools with the published fingerprint, and puts those tools in a folder. The
+second opens a small password window on the laptop's screen. When he types his password there, the tools install,
+then check and title run, all from that one password. Before typing, he compares the 8 characters in the window with
+line 1 of `docs/OWNER-TOOLS.md`, opened on his phone from his own bookmark. Records can be exported the same way; without
+a stick they go to `/run/ares-records`, on this laptop only. The stick and the console stay as the emergency route,
+every rule unchanged, and the very first installation stays on the stick. The window stops accidents and a Claude
+acting unasked, not a tricked Claude; the guide says so in plain words.
+
+- **The tools** (`os/owner-tools/owner.py`, `media.py`, tools version 4): the start block that ran decides the route
+  (stick: every old rule; folder: no console, no stick); the journal keeps its schema and adds `source`; a folder-begun
+  update resumes from either route, a stick-begun one only from that stick; the receipt names the source and the caller
+  (login uid, terminal or not); export without a stick copies to `/run/ares-records` (root's, readable by his uid), and
+  a stick holding tools this laptop installed before is accepted with a line saying so. Review 8's findings 2 and 5: a
+  cleanly stopped update closes its record, and a layout trial from before a restart names `layout abandon`.
+- **The lines** (`bootstrap.py`, `commands.json`): Claude's folder line, the tools-only routine line and the routine
+  export line, generated, pinned and tested; the routine line is taken from the announced commit itself.
+- **The guides:** `docs/OWNER-TOOLS.md` (new), the routine box first in `docs/INSTALL.md`'s update route, a routine STOP
+  card in `docs/EMERGENCY.md`, the 22d row in `docs/INSTALL-STATUS.md`.
+- **The rehearsal** (`os/ci/tools_local.py`, mode `tools-local`, ledger `22d`): the owner's route in a VM, with a
+  stand-in caller in his desktop session and no terminal, a dialog driver that checks the window before typing.
+
+## Verified
+
+**The VM runs** (mode `tools-local`, from the laptop's state: R27 by tools version 2, R13 and the pinned stock):
+
+| Run | Head | What happened | Fix |
+|---|---|---|---|
+| [43690565301](https://github.com/Ares-Empire/AresOS/actions/runs/43690565301) | `cb2a1eec` | Stopped before the VM: release 27's check compared its image sources with this checkout, which holds unreleased image changes from main | Step 6c: in this mode release 27's facts are read from its own source commit `b216f28f`; the switch job gets the mode as step env (`7889ba5e`) |
+| [43699785728](https://github.com/Ares-Empire/AresOS/actions/runs/43699785728) | | Stopped at the stand-in origin's setup: the bundle carried `main` but no `HEAD`, so the clone had nothing to check out | `1b733a4f`: the stand-in names `main` as `HEAD`; the checkout clones `--branch main`. Then step 6d (a read-only preflight): the password or Escape could reach foot before the window existed; now the driver waits until the window has settled and a picture shows it, and the launcher is retried once |
+| [43714310216](https://github.com/Ares-Empire/AresOS/actions/runs/43714310216) | `fca1d2a1` | Passed almost all of the walk; stopped at the second stick removal in one boot (`repeated tools-stick disconnect`): the USB health check excused one removal per boot | Step 6e: each requested removal excuses one disconnect of its own port after it; VM dispatch cap 4 to 6 (integrator) |
+| [43737933979](https://github.com/Ares-Empire/AresOS/actions/runs/43737933979) | `89bc0658` | **Passed** | |
+
+Run 4, stage by stage (captures in `reviews/22d-tools-without-stick/runs/tools-local-43737933979/`):
+- **Version 3 refuses:** its window (label `2084c786`, wrapped onto two lines), password typed, then `STOP: Tools update
+  runs only from the physical recovery console` and `STOP bootstrap: verification or install refused`; nothing changed.
+- **Cancel:** Escape in the window; `sudo: no password was provided`, exit 1; nothing changed.
+- **Unanswered:** the caller closed the window after 30 s (standing in for the 10 minutes) by stopping only the password
+  helper; the same line and exit; nothing changed.
+- **Cut:** password typed, the install frozen between the copy and the switch, hard reset; after the restart the old
+  tools' `check` passed and the record still named the new tools.
+- **Install:** the next window resumed it: `PASS install` (version 2 to 4), `PASS check`, `PASS title`; the receipt
+  names `source: folder`, login uid 1001, no terminal; `sudo -n true` refused afterwards (no password kept).
+- **Tamper:** one changed byte in the tools folder: `STOP bootstrap: verification or install refused` before any tools
+  code ran; nothing changed.
+- **Stick with a next version:** a test bundle, version 5 (`4125f556…`, never published), installed from the stick at
+  the console by version 4's own stick route.
+- **Export:** without a stick through the window: `PASS export`, 42 files under `/run/ares-records`, `ares` reads them,
+  another account cannot; to a stick holding version 2: accepted with `The stick holds tools this laptop installed
+  before (SHA256 851eb742…), not the installed ones`.
+- **End:** restart, check and title passed; both Windows starts (unattended and detached) reached the Windows marker.
+- In every window: title bar **Enter SSH Credentials**, the helper's argument equal to the label, the window settled
+  (3.0 to 4.6 s) and visible (25 to 28 % of the screen's centre changed), no keyring process started; the caller had
+  no terminal. Every protected-disk audit equalled the baseline over 15 starts.
+- The announced commits were a stand-in GitHub inside the VM whose `os/owner-tools` tree equals the real commit's
+  (`89bc0658` ↔ stand-in `7e018ac5`, tree `73fb5929`; version 3's `58738e5e` ↔ `49de19e8`, tree `b322a88e`).
+
+**Hosted checks:** checks-only run [43729592775](https://github.com/Ares-Empire/AresOS/actions/runs/43729592775) on
+`89bc0658`: green, 1613 tests, full model, nothing skipped. Budget at run 4's dispatch: 776 of 2400 minutes, 11 of 20
+checks runs, 4 of 6 VM dispatches.
+
+**Locally** (Python 3.14, one module at a time, slice model): every step's modules, listed in each step's section of
+`PROGRESS.md`; after the record step `test_checkout_sources`, `test_tools_local_wiring`, `test_owner_path`,
+`test_owner_step_limits`, `test_owner_bootstrap`, `test_owner_equality`, `test_owner_sources`, `test_ways_back` and
+`test_ways_back_probe`. `test_owner_update` runs hosted only.
+
+**The fingerprint:** tools version 4 is `dcbc375faa4b269bacaf316c5ddc24503b9773b2538bcd017065ce8e312597be` (SHA-256 of
+the payload's `SHA256SUMS`). It is pinned, and tests hold equal: `docs/OWNER-TOOLS.md` (line 1 `Owner tools version 4:
+dcbc375f`, then the full value), `os/owner-tools/commands.json` (= `bootstrap.command` and `bootstrap.lines`), the stick
+blocks, Claude's folder line, both window labels and the PASS lines in `docs/INSTALL.md`, `docs/EMERGENCY.md` and the
+22d row of `docs/INSTALL-STATUS.md`. Run 4's result names the same value. The record step rebound 263 sources to
+`os/manifest/ci/22d/source-bindings.json`; three test files changed by the record step wait on the list.
+
+## Not verified
+
+- **The laptop.** Nothing of 22d has run there; the owner's session comes after merge ("Try this" below).
+- In the VM: the real 10 minutes (30 s there), the real GitHub (a stand-in origin with the same tools tree), a run with
+  stdin closed (not walked), and a keyring only as processes (none started).
+
+## JUDGMENT-CALL (for the owner: the words only)
+
+He decides wording; everything else is settled. Changing a line inside the tools later costs a new tools version;
+changing a line outside them costs new generated lines, their tests and the guide's quotes, but no tools version.
+
+Inside the tools (what the tools print):
+1. Export without the stick, three lines: `Tools stick absent: records copied to /run/ares-records with SHA256
+   readback`; `This copy is on this laptop, not off it; uid 1001 can read it, and a restart deletes it`; `For a copy
+   off the laptop plug in the tools stick and run export again`. If his account cannot be let in: `This copy is on
+   this laptop, not off it; only root can read it, since uid 1001 could not be let in (<reason>), and a restart deletes
+   it`.
+2. Export to a stick with older tools: `The stick holds tools this laptop installed before (SHA256 …), not the installed
+   ones`.
+3. First installation tried without the stick: `The first installation runs only from the tools USB at the recovery
+   console; nothing changed`.
+4. A stick-begun update finished without the stick: `Interrupted tools update began from the tools USB; finish it from
+   that stick at the recovery console`.
+5. An unfinished layout trial: in the same start `Layout trial is unfinished; prove it or revert first; if the console
+   that began it is closed, from a fresh physical administrator login run sudo /var/lib/ares/at layout abandon`; after a
+   restart `Layout trial is unfinished and began before the last restart: from a fresh physical administrator login run
+   sudo /var/lib/ares/at layout abandon, then run this command again`.
+
+Outside the tools (the window and Claude's lines):
+6. The window's two labels: `AresOS owner tools dcbc375f: install these tools, then check and title` and `AresOS owner
+   tools dcbc375f: export the records`.
+7. The new STOP lines: `STOP after install: check or title refused`, and Claude's folder line's `STOP tools folder: …`
+   (`give the full commit hash`, `<commit> is not on origin/main`, `this checkout differs from <commit> in
+   os/owner-tools`, `<commit> holds other tools than dcbc375f`, `refused, nothing was installed`).
+
+In the guides:
+8. The routine box in `INSTALL.md` and the card **A routine tools command stopped** in `EMERGENCY.md`, including: after
+   10 minutes without an answer Claude closes the window and nothing runs; after a STOP Claude copies every STOP line
+   word for word and runs the export only on his go; his phone bookmark of `OWNER-TOOLS.md` on `main`, never a link
+   Claude sends then; the console's "Keep the current administrator session open" does not apply on this route; after
+   a routine install the stick holds older tools until Claude writes it again ("for now from Windows", not a package
+   name); Claude updates its copy only by a fast-forward pull, and no other Claude session runs an owner command
+   meanwhile; only the install and export lines run this way for now.
+9. The sentence about a stopped update: "If the update STOPs with **was stopped safely**, nothing changed and every
+   command works: run update again later, or get Help."
+10. After every install from Claude's terminal (not only after a change of what starts next), Claude posts the title's
+    lines (which system runs and starts next, the boot menu's rows, no serials) to the board, since he no longer sees
+    the title himself.
+
+## PLAN-GAP
+
+None open. The brief's walk ran as written, with the integrator's recorded changes (decision 10 replaced by R1, the
+stand-in origin, release 27's facts from its own commit, the dispatch caps).
+
+## Open questions (for the integrator)
+
+- Review 8's finding 3 (brief decision 11 puts it in the record step) is not built: it needs a new test in a bound file.
+- `unwalked_commands` still names 22d's three lines (see the record step's "Not done").
+- `test_checkout_sources` still checks 22c's receipt as the current one (see the record step's "Not done").
+
+## Try this (the laptop session, after merge)
+
+1. The integrator posts the announced commit on the board: the merge commit's full hash on `main` and the fingerprint
+   `dcbc375f…`.
+2. Claude, in its own terminal as `ares`: a fast-forward pull of `/var/home/ares/AresOS` to that commit, then the folder
+   line (`commands.json` entry `tools-folder`, `INSTALL.md`'s routine box) with the full hash at the end. Expect
+   `SHA256SUMS: OK` and no window. A `STOP tools folder` line ends the session there: nothing was installed.
+3. Claude tells him: tools version 4, `dcbc375f`, and waits for his go. On his go it runs the line it takes with
+   `git -C /var/home/ares/AresOS show <commit>:os/owner-tools/commands.json`, entry `tools-routine`, in the background.
+4. He sees a small window titled **Enter SSH Credentials**, inside **AresOS owner tools dcbc375f: install these tools,
+   then check and title**, a Password field, OK and Cancel. On his phone, from his own bookmark, he opens
+   `github.com/Ares-Empire/AresOS/blob/main/docs/OWNER-TOOLS.md`, checks it says `main`, and compares line 1
+   (`Owner tools version 4: dcbc375f`) with the 8 characters in the window. Same: he types his password and presses OK.
+   Different, or anything odd: Cancel (nothing runs).
+5. What he should see (Claude reads it to him): `PASS install` with `Tools updated from version 2 to 4` and `manifest
+   SHA256 dcbc375f…`, then `PASS check` and `PASS title`: R27 runs and starts next, the boot menu's rows (R27, R13,
+   plain Bazzite), stock pinned, nothing staged. Claude posts the title's lines to the board. If he waits 10 minutes
+   without answering, Claude closes the window and nothing runs.
+6. Optional: the export line (entry `export-routine`, label **AresOS owner tools dcbc375f: export the records**):
+   `Tools stick absent: records copied to /run/ares-records with SHA256 readback`, then the "on this laptop, not off it"
+   line.
