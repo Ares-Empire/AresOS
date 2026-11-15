@@ -185,11 +185,13 @@ digit) against them with Python's `re.search`, which matches QRegularExpression'
 | `test_owner_diagnostics` | natively 9 pass, 1 error (`Unsafe private setup directory`, the Python 3.14 `lstat` fixture issue step 1 names); with `Path.lstat` routed through `Path.stat` as in 3.12: `Ran 10 tests`, `OK` |
 | `test_grub_bls`, `test_system_keyboard`, `test_stock_prepare` (read `INSTALL.md`) | `OK` each |
 | `test_ways_back_model -k test_hosted_checks_explore`, `test_ways_back -k test_one_helper_spells`, `test_ways_back_reverts -k test_a11` | `OK` each |
-| `test_owner_step_limits`, `test_checkout_sources` | see C below |
+| `test_owner_step_limits`, `test_checkout_sources` | red until `rebind.py pending` recorded `commands.json` and the rest; after it `OK` each (4 and 6 tests) |
+| `test_ways_back_probe` (not changed; reads the ledger and `commands.json`) | `Ran 57 tests`, 2 failures, both `Host walk is stale` (22c's frozen receipt, below) |
 
 ### Expected red until a later step
 
-- `test_ways_back_probe` (22c's frozen receipt names version 3; step 6) and `os/ci/owner_vm.py`'s `(2, 3)`.
+- `test_ways_back_probe.test_the_probe_reads_package_22cs_host_walk_and_refuses_a_stale_one` (both modes: 22c's frozen
+  host-walk receipt names version 3's payload; step 6's harness and receipt) and `os/ci/owner_vm.py`'s `(2, 3)`.
 - `test_owner_update` was not run here, by the rule.
 
 ### JUDGMENT-CALL (for the owner, at the "try this" stage)
