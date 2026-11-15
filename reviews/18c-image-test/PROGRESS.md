@@ -1,4 +1,4 @@
-# 18c image part: progress (Part A, step 1; B2, steps 2a to 2c; the Chrome follow-up)
+# 18c image part: progress (Part A, step 1; B2, steps 2a to 2c; the Chrome follow-up; 18e in the VM pass)
 
 Branch `pkg/18c-image`, draft PR #58. Step 1 builds Part A of `briefs/18c-image-test.md` as amended by the sixteen
 changes agreed with `linux-aresos` and by `briefs/18c-image-start.md`. It has no VM test (B2), no `os-image.yml` change
@@ -706,17 +706,20 @@ double unchanged in the guest.
 same head: run 43581194306 (`CHECK_BUILD_PASSED`, `CHECK_BUILD_VM_PASSED`). Evidence: the `check-build-evidence`
 artifact of each run (3 days).
 
-**Check 6 for the owner (JUDGMENT-CALL, agreed change 10).** With the service healthy, an ordinary Claude Code turn
-costs nothing extra and shows nothing of ours. While the service is stopped or has failed, each turn ends with one
-extra model reply and a four-line "Stop hook error: AresOS held/unfinished work ... Service connection lost ..." under
-the answer; his prompt, his own tool and his own hooks still work, and his own Stop hook runs once per turn, at its
-real end. Once the service is back the next turn is clean. Question for the owner: should a session that never used
-our tools get that reminder at all? Options: (a) keep it as it is: one extra reply (tokens) and four lines per turn
-for as long as the service is down; (b) stay quiet when the service is unavailable unless this session used our tools
-(the hook needs to know that, a change in `control/aresos_control/hooks.py`); (c) always stay quiet when the service
-is unavailable, which loses the reminder in the one case it exists for: a send in flight when the service died.
-The builder's lean: (b), with a reminder text that says "AresOS tools are not running" instead of "connection lost".
-Changing later: a hook change and its container tests; the image stays the same.
+**Check 6 for the owner (agreed change 10; his answer #254 "Quiet unless used", built in 18e, proven here in run
+43687234953 twice).** With the service healthy, an ordinary Claude Code turn costs nothing extra and shows nothing of
+ours. While the service is stopped or has failed, a session that never used our tools still shows nothing and costs
+nothing extra: no notice, no extra model reply, his prompt, his own tool and his own hooks work as usual; one of our
+tools called from it answers "not running" after about 3 seconds. A session that prepared or sent something with our
+tools gets **one** two-line "Stop hook error: AresOS tools are not running. If you prepared or sent something with
+them in this session, its outcome is unknown: tell the owner, and don't repeat it." under the first answer after the
+service went down, and that turn costs one extra model reply; the following turns while it stays down are quiet and
+cost nothing extra. If the service comes back and goes down again, that session is told once more. His own Stop hook
+runs once per turn, at its real end. Our hooks take about 0.1 to 0.2 seconds each while the service is down, so no
+turn waits for them. A session started while the service was down gets our tools as soon as the service is back,
+without a restart. Once the service is back every turn is clean. (Before 18e: one extra reply and a four-line
+"connection lost" reminder in every turn of every session while the service was down; the owner chose (b) of the
+three options offered then.)
 
 **Not verified.** Real model cost (the double answers instantly; with a real model the extra reply costs one more
 response); the Chrome lines (18c-b); `gh` (18c-b); the update path from release 27 (the next release's rehearsal);
@@ -946,9 +949,9 @@ all 30 Chrome tools once the servers are up; `CONTROL_STORAGE_TESTS_PASS`: 11 te
 
 **Not verified** (18c-b): everything that needs the extension, the native host or a real Chrome (the list below).
 
-**Findings for the owner's picture:** a Claude Code session started while the service is down keeps going without
-our tools, also after the service is back, until he restarts it; and the first request of a session may go out before
-our tools are connected (a prompt typed at once may not see them).
+**Findings for the owner's picture:** the first request of a session may go out before our tools are connected (a
+prompt typed at once may not see them). The other finding of this step, a session started while the service is down
+staying without our tools until it is restarted, is fixed by 18e (item 7) and proven in check 6 (run 43687234953).
 
 **Measured time:** the Control VM pass 6 min 20 s and 8 min 0 s (the step's limit now 12 minutes, about 1.5 times the
 slower); the build to the disk 10 min 45 s to 43 min 27 s (the runner's cache and speed).
@@ -965,16 +968,201 @@ slower); the build to the disk 10 min 45 s to 43 min 27 s (the runner's cache an
   `/var/lib/aresos-tools`), the "refused, held record retained" path and an offline bundle verification.
 - Test group 12 in 18d's container harness.
 
-## Left, in order (after the Chrome follow-up)
+## 18e in the VM pass (2026-11-15)
 
-1. The lead: assemble `reviews/18c-image-test/REPORT.md` (a Claude builder can't create that file name): Part A's
-   section, "For the report: B2" (step 2c) and "For the report: Chrome follow-up" (above), the JUDGMENT-CALLs (1 to 18)
-   and the findings. Check 6's question is with the owner (board #254, answered "Quiet unless used"; into the
-   service-fix brief, not this branch).
-2. The reviews (the lead's job): a package review and a high-stakes security review of the whole package.
-3. `linux-aresos` reads the `os/` diff (agreed change 16): the section below is up to date.
-4. The owner's yes to a release carrying Control (agreed change 10), with check 6's numbers.
-5. The last step deletes this file.
+Built by a Claude agent on Opus 5.5. Commits `86ad8e12` (merge of `origin/pkg/18e-service-fixes` at `13e9e1e4`, PR
+#69; 18e is cut from main `c746075d`, so main came up to that base too), `9ee1fbdf` (the VM pass takes in 18e).
+**When 18e merges to main, this branch merges `origin/main` again** (a merge commit, as before).
+
+### Done
+
+- **Merge** (`86ad8e12`, no conflicts): 18e changes only `control/` (the client's connect wait and
+  `service_unavailable`, the admin hint, the deadline loop, the unit's start limit, the refusal text, `usage.py`'s marks,
+  the proxy's own catalogue without the service) and its brief and PROGRESS.md; main between the two bases changed
+  only `STATE.md`.
+- **What the merge made stale:** nothing in the image build. The image check pins the unit by its bytes through
+  `control.json` (the hash `build.sh control-tree` makes from the checkout), so 18e's three `[Unit]` lines follow
+  without a change; no test in `os/tests` held the unit's text or hash. The VM's own pin of the unit is check 2's
+  `systemctl show` table (`SANDBOX`): it now also requires `StartLimitIntervalUSec=30s` and `StartLimitBurst=5`.
+  `control.json`, the manifest list and `pending-rebind.json` are unchanged (the workflow's bytes didn't change).
+- `os/ci/control/actions.py`:
+  - **Check 6 rebuilt** for "quiet unless used" (the plan is data, `ORDINARY_TURNS`; 11 turns in 2 sessions, his own
+    MCP tool and hooks beside ours throughout):
+    - session `used-later`: turn 1 healthy; `systemctl stop`; turn 2 (never used: quiet, 2 model requests);
+      start; turn 3 prepares and sends (`testapp prepare_send`, the managed ask answered Yes, `done`): the session has
+      used the tools; stop; turn 4 exactly one notice; turns 5 and 6 still stopped: none; start; turn 7 clean; stop;
+      turn 8 exactly one notice again.
+    - session `failed-fresh-session`: the drop-in sets only `ExecStartPre=/usr/bin/false` (**`Restart=no` dropped**);
+      after `systemctl start` the unit must stay `failed` with `Result=start-limit-hit` (or `exit-code`), `NRestarts`
+      ≤ 5, within 20 s; a fresh session: turn 9 his tool (quiet), turn 10 `testapp list` answers `service_unavailable`
+      (quiet), recovery, turn 11 `testapp list` answers `ok` in the same session.
+    - per turn: model requests, Stop continuations, the notice in the continuation's text
+      (`continuation_tails`) and on screen, never "Service connection lost" or `operation_status` in a hook line or a
+      continuation, his tool and his hooks as before; turns of his own tool show nothing of ours.
+    - the marks (`/run/user/<uid>/aresos-control/used/`): none before use; after turn 3 exactly
+      `<pid>-<start>` of the running Claude Code (found independently: the top process of the claude binary, its start
+      from `/proc/<pid>/stat` field 22), an empty file 0600 of `ares`, both folders 0700 of `ares`; `<key>.told` there
+      before turns 5 and 6, gone before turn 8 (turn 7's hooks reached the service), there again after turn 8; the
+      fresh session never marked.
+    - the probes: with the service stopped `aresos control pending` answers `service_unavailable` ("not running",
+      "nothing was sent") after 2.5 to 10 s; the managed `UserPromptSubmit` and `Stop` commands, run exactly as Claude
+      Code runs them (`sh -c`, as `ares`, an unmarked caller), exit 0, print nothing and end in under 1.5 s; right after
+      each `systemctl start` (turns 3, 7, 11) the first call answers `ok` (no transport error).
+    - `/run/user/<uid>`: see JUDGMENT-CALL 19.
+  - Check 2: the start limit in the `systemctl show` table. Check 3: `aresos admin …` as `ares` is
+    `permission_denied` "Admin commands need sudo: run sudo aresos admin testapp fixture_configure (same options).",
+    nothing about a password on stderr. Check 7: the outside-folder refusal is exactly `file_refused` "Path is outside
+    the allowed folders; choose ~/Documents or ~/Downloads.". The idle check (change 14) now fails above one
+    wake-up a second or with more than one process or thread. The restart check: no miss before the first answer.
+- `os/ci/control/sessions.py`: a turn that another turn of the same session follows settles in 10 s
+  (`SETTLE_NEXT`); a session's last turn keeps 20 s (JUDGMENT-CALL 20). Each turn records `active_seconds` (start to
+  its last model request) and `continuation_tails` (the newest user text of each Stop continuation).
+- `os/tests/test_control_vm.py` (`ServiceFixesTest`, 4 tests, and one in `EvidencePackingTest`): the start limit
+  check 2 expects is the unit's; the admin hint is `cli.py`'s text; the refusal is `FilePolicy`'s for `build.sh`'s
+  `FOLDERS`; the drop-in sets no `Restart=`; check 6's prompts are unique substrings; the continuation tail.
+
+### Decisions the code doesn't show (JUDGMENT-CALLs for the report)
+
+19. **`/run/user/<uid>` in the VM.** Fedora's `runuser` PAM stack has no `pam_systemd` (read on the laptop's own
+    Fedora 44 base), so the checks' sessions open no logind session. The image's greetd logs `ares` in
+    (`initial_session`), which makes the folder. Check 6 uses it when it exists and records `loginctl`'s view; only if
+    it is missing does it enable lingering for `ares` (CI only, the throwaway guest) and wait for the folder. The run
+    records which way it went (`runtime.existed`, `runtime.linger_enabled`): in both runs the folder existed
+    (greetd's session on tty1, `Linger=no`), so lingering was never used.
+20. **Settling 10 s between turns.** 18e's hooks make one connect attempt and end at once (check 6 now times them:
+    under 1.5 s required); a continuation later than 10 s would be counted in the next turn and fail it, so the shorter
+    window can't hide one. A session's last turn keeps 20 s (the hook's 15 s timeout and a margin), since nothing after
+    it would catch a late one; checks 7 and 9 (one turn per session) are unchanged.
+21. **The used turn sends for real** (a fixture send through the managed ask, answered Yes) instead of only
+    preparing: a preparation alone leaves a reserved operation, which with the service up adds the held-work reminder
+    to that turn and to every later turn with the service up. The send's result names its operation too.
+22. **The fresh session's first turn calls his tool, not ours:** the first request of a session goes out before our
+    servers connect (Chrome follow-up finding), and with the service down a proxy waits 3 s before offering its own
+    catalogue. Our tool is called from its second turn on.
+
+### PLAN-GAPs (this step)
+
+7. 18e's assertion "after logout the mark is gone" is not checked: the guest's only login is greetd's session (or
+   lingering), and ending it would end more than this check.
+
+### Findings for the lead (this step; `control/aresos_control/` is out of reach, nothing changed there)
+
+- **None in 18e's code.** Every assertion of 18e's "For 18c's next VM pass" (checks 1 to 11, except the logout part of
+  2, PLAN-GAP 7) held under the real unit in both control runs.
+- The failed state ends with `Result=exit-code`, not `start-limit-hit` (both runs: `NRestarts=5`, failed 10.2 s after
+  `systemctl start`, then held). 18e allowed either; systemd keeps the last start's result when the limit refuses the
+  next automatic restart. Worth a line if the README names `start-limit-hit`.
+- `control/` changed, so the Chrome build hash changed: `CONTROL_CHROME_BUILD
+  ccd0fd79190f492dbb0ca9889a288c0c004e0d46da3458e0f4446c80b5f5ce15` (was `966c2737…4352`), for
+  `control/chrome/builds.json` when the lead records it. The image now installs 74 files (18e's `usage.py`).
+
+### Runs (this step; budget 3 `check_build=control`)
+
+- **run 43687234953 attempt 1** (`control`, head `9ee1fbdf`; job 06:50:17 to 07:45:50; tools 06:51:35 to 06:54:59, build
+  step 06:55:04 to 07:37:55 = 42 min 51 s, **Control VM step 07:37:55 to 07:45:45 = 7 min 50 s** against its 12-minute
+  limit, the pass 470.2 s): **success**, every line in this order: `CLAUDE_CODE_PINNED 2.1.319 sha512-FO4Sd23B…oOQ==
+  dabafec8…8eed`, `CONTROL_CHROME_BUILD ccd0fd79…ce15`, `CONTROL_INSTALLED 74 files, 28 wheels, 2024 vendored paths
+  from 9ee1fbdf…`, `CONTROL_CHROME_STARTUP_FILES`, `CONTROL_GENERATED_MATCH 15 files`, `CONTROL_FILES_RECORDED`,
+  `CHECK_BUILD_PASSED`, `CHECK_BUILD_CONTROL_DISK_READY`, `CONTROL_IMAGE_FILES_PASS`, `CONTROL_ETC_CLAUDE_CODE_PASS`,
+  `CONTROL_RELEASE_CHECKS_PASS`, `CONTROL_IDLE_FOOTPRINT_RECORDED {…}`, `CONTROL_FIXTURES_REACHABLE`,
+  `CONTROL_ENTRY_POINTS_PASS`, `CONTROL_PRECONDITION_PASS`, `CONTROL_USER_MCP_INSTALL_PASS`,
+  `CONTROL_SERVICE_SANDBOX_PASS`, `CONTROL_ORDINARY_SESSION_PASS {…}`, `CONTROL_MAIL_FLOWS_PASS`,
+  `CONTROL_PERMISSION_REQUEST_RECORDED {"normal-permission-user": {"hook_calls": 1, "owner_answers": 0,
+  "prompt_shown": false, "send_arrivals": 1}}`, `CONTROL_INTERACTIVE_ASK_PASS`, `CONTROL_PASSWORDS_PRIVATE_PASS`,
+  `CONTROL_SELINUX_AFTER_CHECKS_PASS`, `CONTROL_STORAGE_TESTS_PASS {…}`, `CONTROL_SERVICE_RESTART_PASS`,
+  `CONTROL_VM_POWEROFF_CLEAN`, `CHECK_BUILD_CONTROL_PASSED`; the fixture stop step green (GreenMail's log 1 redaction).
+  Times (s): boot to channel 42.3, files 4.6, idle 59.5, entry points 4.0, precondition 1.9, user MCP 8.9, **check 6
+  165.6** (was 108.6 to 112.6 with 5 turns), check 7 34.6, check 9 109.7, storage tests 34.5, restart 0.9.
+  - Check 3: `ares_admin_cli` `permission_denied` "Admin commands need sudo: run sudo aresos admin testapp
+    fixture_configure (same options).". Check 7: `outside_refused` `file_refused` "Path is outside the allowed folders;
+    choose ~/Documents or ~/Downloads.". Restart: `calls_before_the_sockets_answered: []`, `NRestarts` 0.
+- **run 43687234953 attempt 2** (`gh run rerun`, head `9ee1fbdf`; job 07:51:38 to 08:19:22; build step 08:01:42 to
+  08:12:10 = 10 min 28 s, **Control VM step 08:12:10 to 08:19:19 = 7 min 9 s**, the pass 428.8 s): **success**, the
+  same lines in the same order, the same `CONTROL_PERMISSION_REQUEST_RECORDED`; check 6 the same numbers (below) in
+  163.1 s; idle 1 switch in 60 s. Times (s): boot to channel 26.1, check 6 163.1, check 7 32.0, check 9 104.4, storage
+  tests 27.2.
+- **run 43691820743** (`build`, head `9ee1fbdf`; job 08:19:25 to 09:06:21 = 46 min 56 s, build step 08:28:38 to 09:06:18
+  = 37 min 40 s, the Control VM step skipped as it should be): **success**, `CONTROL_CHROME_BUILD ccd0fd79…ce15`,
+  `CONTROL_INSTALLED 74 files, 28 wheels, 2024 vendored paths from 9ee1fbdf…`, `CONTROL_CHROME_STARTUP_FILES build
+  ccd0fd79…ce15, 0 qualification entries`, `CONTROL_GENERATED_MATCH 15 files`, `CONTROL_FILES_RECORDED 74 files, 2024
+  vendored paths, 28 wheels from 9ee1fbdf…`, `CHECK_BUILD_PASSED`, `CHECK_BUILD_VM_PASSED`.
+- PR #58's own workflows on `9ee1fbdf`: Control base, boundary, Mail, Chrome (with both latency gates), Chrome polkit
+  and Chrome qualification all green.
+- **The time limit:** the VM step took 7 min 50 s and 7 min 9 s; the 12 minutes stay (1.5 times the slower one).
+  Check 6 grew by about 55 s; the shorter settle between turns (JUDGMENT-CALL 20) kept it from growing by about 140 s.
+- **Done:** `check_build=control` green twice on the final head `9ee1fbdf` (run 43687234953, attempts 1 and 2) and
+  `check_build=build` green once on it (run 43691820743). Only this file changed after `9ee1fbdf`. **Runs used:** 1 of 3
+  `check_build=control` (with its rerun as the second green) and 1 `check_build=build`. In the whole package: 1
+  resolve, 5 build, 12 control (with reruns).
+
+### Check 6 in numbers (run 43687234953, attempts 1 and 2 alike)
+
+Each turn his model double calls one tool and answers; "requests" are model requests, "active" the seconds from the
+turn's start to its last request (the quiet window after it not counted).
+
+| Turn | Session | Service | His model calls | Requests | Extra | Notice | His Stop hook | Active (s) |
+|---|---|---|---|---|---|---|---|---|
+| 1 | used later | healthy | his `note` | 2 | 0 | | once | 2.0 / 1.4 |
+| 2 | used later | stopped, never used | his `note` | 2 | 0 | | once | 0.5 / 0.4 |
+| 3 | used later | started again | `testapp prepare_send`, then `send` (asked, Yes, done) | 3 | 0 | | once | 2.2 / 2.0 |
+| 4 | used later | stopped, used | his `note` | 3 | **1** | **one** | once (on the ending attempt) | 1.0 / 0.9 |
+| 5 | used later | still stopped | his `note` | 2 | 0 | | once | 0.5 / 0.4 |
+| 6 | used later | still stopped | his `note` | 2 | 0 | | once | 0.5 / 0.4 |
+| 7 | used later | started again | his `note` | 2 | 0 | | once | 0.5 / 0.4 |
+| 8 | used later | stopped again | his `note` | 3 | **1** | **one** | once (on the ending attempt) | 1.0 / 0.9 |
+| 9 | fresh, started while failed | failed | his `note` | 2 | 0 | | once | 1.2 / 1.0 |
+| 10 | fresh | still failed | `testapp list`: `service_unavailable` | 2 | 0 | | once | 3.5 / 3.4 |
+| 11 | fresh | recovered | `testapp list`: `ok` | 2 | 0 | | once | 0.5 / 0.4 |
+
+The notice, under the model's answer in turns 4 and 8:
+
+```
+● Ran 1 stop hook
+  ⎿  Stop hook error: AresOS tools are not running. If you prepared or sent something with them in this session, its
+  outcome is unknown: tell the owner, and don't repeat it.
+```
+
+In every other turn the only trace is Claude Code's own spinner text "running UserPromptSubmit hook" / "running Stop
+hook" for a moment (his own hooks cause it too). Never "Service connection lost" or `operation_status`.
+
+The probes, both runs: `/run/user/1001` existed (greetd's session on tty1; no lingering); the mark `<pid>-<start>` of the
+running Claude Code appeared at turn 3 (empty, 0600, `ares`; both folders 0700), `.told` after turns 4 and 8 and gone
+after turn 7; the fresh session was never marked. With the service stopped: `aresos control pending` answered
+`service_unavailable` "The AresOS tool service is not running; nothing was sent. Try again later." after 3.24 s / 3.17
+s; the managed `UserPromptSubmit` and `Stop` commands took 0.18 s / 0.12 s each, exit 0, no output. The first call
+right after each `systemctl start` (turns 3, 7, 11) answered `ok` in 0.37 to 0.45 s. The failed state: 10.2 s after
+`systemctl start`, `NRestarts=5`, `Result=exit-code`, held. The fresh session's requests offered our tools from its
+third request on (`chrome` 30, `control` 4, `mail` 28, `testapp` 13), as the first session's did.
+
+**Idle with 18e** (change 14, 60 s, nothing using the service, one process, one thread): **1 context switch in 60 s
+(0.017 wake-ups a second), 1.8 ms of CPU (0.003 % of one CPU)**, `memory.current` 33,062,912 B / 32,968,704 B, RSS
+37,080 KiB, PSS 25,336 KiB, swap 0. Before 18e: 10.0 to 12.5 wake-ups a second, 0.35 to 1.62 % of one CPU.
+
+### For the report: 18e in the VM pass (append to `reviews/18c-image-test/REPORT.md`)
+
+**Done.** The branch merged 18e (PR #69) and the Control VM pass proves its fixes under the real systemd: check 6
+rebuilt for "quiet unless used", the failed state reached by the unit's own start limit (the CI drop-in no longer sets
+`Restart=no`), the start limit in check 2's unit table, the admin hint in check 3, the refusal's folders in check 7,
+the idle bound (at most one wake-up a second, one thread) in change 14, no missed call after a restart.
+
+**Verified** (**run**, head `9ee1fbdf`, run 43687234953 attempts 1 and 2, `check_build=build` run 43691820743): every
+PASS line of B2 and the Chrome follow-up, now with 18e's assertions; check 6's numbers above; idle 1 switch in 60 s.
+
+**Not verified:** the mark's removal at logout (PLAN-GAP 7); a real model's cost of the one extra reply.
+
+## Left, in order (after 18e in the VM pass)
+
+1. When PR #69 (18e) merges to `main`: this branch merges `origin/main` again (a merge commit, never a rebase or a
+   force-push). If 18e changes after `13e9e1e4` (its review), merge `origin/pkg/18e-service-fixes` again first and
+   rerun `check_build=control` twice and `check_build=build` once on the new head.
+2. The lead: assemble `reviews/18c-image-test/REPORT.md` (a Claude builder can't create that file name): Part A's
+   section, "For the report: B2" (step 2c), "For the report: Chrome follow-up" and "For the report: 18e in the VM
+   pass" (above), the JUDGMENT-CALLs (1 to 22) and the findings. Record the new Chrome build hash `ccd0fd79…ce15` in
+   `control/chrome/builds.json` if the lead keeps that file per build.
+3. The reviews (the lead's job): a package review and a high-stakes security review of the whole package.
+4. `linux-aresos` reads the `os/` diff (agreed change 16): the section below is up to date.
+5. The owner's yes to a release carrying Control (agreed change 10), with check 6's numbers (now "quiet unless used").
+6. The last step deletes this file.
 
 Lead, 2026-11-14 (after step 2c), kept for the record: the report is assembled once, by the lead, after the Chrome
 follow-up and before the reviews (Codex from 2026-11-17).
@@ -982,7 +1170,8 @@ follow-up and before the reviews (Codex from 2026-11-17).
 ## The `os/` diff for `linux-aresos`
 
 Against `origin/main` (`32fd16ec`, after the Chrome follow-up's merge `4cf76e63`); brought up to date in the Chrome
-follow-up (2026-11-15). Image side first, then CI only.
+follow-up and after the 18e merge `86ad8e12` (2026-11-15; 18e changes only `control/`, nothing under `os/`). Image side
+first, then CI only.
 
 - `os/Containerfile`: the aresos stage copies `/source/control` from the existing source stage and runs `build.sh
   control` before `configure`; `FROM` lines and the other stages unchanged.
@@ -1019,7 +1208,7 @@ follow-up (2026-11-15). Image side first, then CI only.
     12: the rehearsal's check actions), `own-mcp.py` and `own-hook.py` (his own server and hooks). The layer also
     carries `control/boundary/interactive_{driver,model}.py`, `control/ci/image/mail_flows.py` and, for the storage
     tests, `control/chrome_tests/*.py` and `control/mail_tests/storage_faults.py`.
-  - `os/tests/test_control_vm.py` (18 tests, new).
+  - `os/tests/test_control_vm.py` (24 tests, new).
 - Not changed: base digest, `packages.lock.json`, Chrome pin, accounts, sudo, polkit, masks, session, PATH,
   repositories, `os/config/`, `os/policy/`, `os/release/`, `os/owner-tools/`, `os/manifest/` (except the pending
   list above), `ci/check-resolve.sh`, and every other job of `os-image.yml`.
