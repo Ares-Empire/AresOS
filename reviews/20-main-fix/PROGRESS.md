@@ -1,12 +1,129 @@
 # Brief 20 main fix: progress
 
 Builder step 1 (Claude Fable 5.2, 2026-11-15): diagnoses and the H1 fix. Builder step 2 (Claude Fable 5.2, 2026-11-15):
-H2, H3, H4, H5 built on the lead's decisions. Brief: `briefs/20-main-fix.md`. Branch `pkg/20-main-fix`.
+H2, H3, H4, H5 built on the lead's decisions. Builder step 3 (Claude Opus 5.5, 2026-11-15): H6 and security NOTEs 1–3. Brief: `briefs/20-main-fix.md`. Branch `pkg/20-main-fix`.
+
+## Handover (step 3)
+
+Builder step 3 (Claude Opus 5.5, 2026-11-15): H6 (the lead's addition) and security NOTEs 1–3. Stopped at a clean
+`[skip ci]` commit on the lead's budget rule; **no CI run in this step**.
+- **Done:** H6 (`ddac1f34`), security NOTEs 1–3 (`c4ffa69c`), this file and the preflight record. Local: popup and
+  fixture Node suites green, the touched Python tests green, 8 new removal probes rejected (27 `mainfix-` probes now),
+  full local preflight under "Step 3: local verification".
+- **Left for step 4, in order:** the package review's F1 (plan re-qualifies the head build on stable off main; a
+  conflicting repeat on a PR fails; seed the PR-mode bare remote with `origin/chrome-qualification` when it exists,
+  which is security NOTE 4, now required), F2 (the `gh api` retry loop survives the 404 for a digest with no
+  attestations; model the real 404 in `attestation.py`, `test_publisher.py` and `bundle_from_api`, keep the empty-list
+  cases), NOTEs (a) to (d) of the review; then the full preflight and the **one final push**, which starts qualification
+  run 4 of 6 on the PR and the last `Control Chrome` run. Both must be fully green, `recheck2` in both installs.
+- **Note for F1's seeding:** `origin/chrome-qualification` does not exist yet (`git ls-remote` empty on 2026-11-15), so
+  the seeding is a no-op on this PR's runs. Once it exists, `publish()` calls `verify_held` → `gh api`, which needs a
+  token: the seeding step must then set `GH_TOKEN` again, which NOTE 3 removed from the pull-request publish step for
+  now (it calls no `gh` today). The write-command scan itself ignores tokens, but the same test's "no `GH_TOKEN` in the
+  pull-request step" assertion (`test_write_commands_appear_only_in_the_guarded_publication_steps`) must then be changed
+  with F1, deliberately, together with probe `mainfix-sec-pull-request-publish-token`.
+
+## H6. The `typed-early` popup row is deterministic (step 3)
+
+**Cause (from run 43660183139's recheck2 repeat-2 artifact and Chromium's source).** The row failed because the
+extension's very first command on the popup, `Page.enable` (id 350, `browser-boundary.jsonl` line 16460), never got an
+answer: it "failed" about 5 s later (session rules at …259,099 ms for the click, …264,129 ms after the failure). That is
+`initializeTab`'s owner-dialog fallback (`background.js`: if `Page.enable` has not completed in 5 s it treats the tab as
+blocked, sets `modalHandoff` and `popupNeedsReload`, and **detaches the debugger**). `admitTab` then logged
+`popup_admitted` anyway, the harness took that as "breakpoint set" and released the held document, which loaded with no
+debugger attached; the next `read` re-attached (`recoverOwnerDialog`) and the late reader installed late. The two late
+records are **not two documents of a renderer swap** (step 2's reading was wrong): `bb36d1eb…` is the popup's main
+document and `f43b1dba…` its hidden `sink` iframe (`about:blank`), both of the final document.
+
+Why `Page.enable` hung: in Chromium (`content/browser/devtools/render_frame_devtools_agent_host.cc`,
+`devtools_session.cc`, current source), `DidStartNavigation` of a frame suspends every attached session
+(`SuspendSendingMessagesToAgent(kAll)`), and `FallThrough` queues each renderer command (`Page.enable`,
+`Debugger.enable`, …) until `DidFinishNavigation` resumes them; an agent host created after the navigation started has
+no pending request and is not suspended. So the outcome depends on one order:
+- the extension attaches **after** the popup's navigation to its document started → no suspension → commands reach
+  the initial empty document's renderer at once, the breakpoint is set, `popup_admitted`, release, the document pauses
+  at `context.js` → `document_start` (repeat 1 of the same run, lines 16460–16485: `Page.enable` completes at once);
+- the extension attaches **before** it started → the session is suspended until the navigation ends, but the fixture
+  holds that navigation's response until `popup_admitted` → deadlock until the 5 s fallback → `late` (repeat 2).
+
+In both logs `Page.frameStartedNavigating` follows `Page.enable` directly: `PageHandler::Enable` emits it itself when a
+navigation is already pending, so both orders look alike in the log. **Site isolation plays no part:** the suspension is
+for any cross-document navigation, same-site or not, so a same-site popup document under the hold would deadlock the
+same way. Passing runs compared: 43656398035 (run 1) and 43663583972 (run 3) passed the row; repeat 1 of 43660183139
+shows the passing order directly; brief 20's 43626497829 also passed (not downloaded: same harness and the same order
+as repeat 1 is the only passing shape the code allows).
+
+**Fix (harness only, `ddac1f34`; no extension change).** The hold moves off the popup's navigation:
+- `popups.mjs`: `popupOpenURL(id, mode)` is what Claude's click opens. For `typed-early` it is a first document on the
+  **opener's own origin** (`/?case=popup-start`), which fetches `/popup-gate?id=…` and only when that answers does
+  `location.replace` to the row's usual document (`popupChild`, unchanged, cross-site as before). The row holds the gate
+  (same `fixture.hold`, same `popup_admitted` wait, code lines unchanged). So no navigation is pending while the
+  extension admits the popup (whatever the attach order, the first document's own navigation is never held), and the
+  row's document starts navigating only after the breakpoint is set: the path every navigation of a controlled tab uses.
+  Same origin for the first document also means the admission sees no renderer change (no POST-style dead context).
+- `fixture.mjs`: `/popup-gate` is the only held request; no document is ever held (the `popup-child` hold is gone).
+- `clean`, `dirty`, `typed-clean` and `typed-late` open exactly what they opened before (pinned by the test below).
+  The assertion is unchanged: the path comes from the extension's record, `typed-early` must record `document_start`
+  and answer `stale_reference`; no retry, no branch on outcome.
+
+**Tests** (local, no browser): `popups.test.mjs` — the stand-in browser now opens what the real opener page opens
+(`popupOpenURL`), holds only the gate as `fixture.mjs` does, and models DevTools' attach order (`attach:
+'after-navigation' | 'before-navigation'`); "each install path …" runs both orders × both races and requires
+`typed-early` → `document_start`/`stale_reference` in all four (`typed-clean` takes the natural path: the race after,
+late before). New "typed-early opens a first document on its opener origin, which navigates only once the gate
+answers" runs the real opener and first-document scripts in `node:vm` on stand-in globals: the window name and target
+of every row (only `typed-early` changed), one gate fetch, no navigation before it answers, then exactly one
+`location.replace` to the row document. `fixture.test.mjs` "gate60b a held popup gate …" (renamed): the gate waits for
+its release, the first and the row documents answer at once while it is held, closing releases a hold.
+
+**Probes** (rejected): `mainfix-h6-early-opens-row-document` (typed-early opens the row document directly again: fails
+under `before-navigation`), `mainfix-h6-start-navigates-before-gate`, `mainfix-h6-fixture-holds-the-document`; the
+existing `gate60b-popup-*` (7) and `gate60b-fixture-hold-ignored` (its test filter renamed) still rejected
+(`.work/20-main-fix/h6-mutations.json`, 11 of 11).
+
+**Risk the CI must confirm:** the browser rows themselves run only on the final push's runs (recheck2 in both installs
+of `Control Chrome`, and two repeats of the qualification's recheck2).
+
+## Step 3: local verification
+
+Full local preflight on `c4ffa69c` (`reviews/20-main-fix/records/final-local-c4ffa69c.json`, the step-2 driver):
+**318 Python** (shards 60/57/49/152; the Linux-only socket case skipped on the Mac), **428 Node**, **491 removal mutations
+rejected** with every baseline passing (483 + the 8 new), generator check, `git diff --check`, the service unit
+byte-identical to `8b7e799c`. No browser was started. Subsets: H6 and the `gate60b-popup-*`/`-fixture-*` probes 11 of 11
+(`.work/20-main-fix/h6-mutations.json`); the `mainfix-sec-*`, `-h2-*`, `-h4-*` probes 18 of 18
+(`.work/20-main-fix/sec-mutations.json`). Runs: none in this step; budgets unchanged (qualification 3 of 6 used,
+`Control Chrome` 1 of 2).
+
+## Security NOTEs folded in (step 3, `c4ffa69c`)
+
+1. **Named refusals** (`attestation.py`): `refused()` accepts only `subprocess.CalledProcessError` whose stderr holds
+   the case's own reason, in gh's wording (read from `cli/cli` trunk, `pkg/cmd/attestation`, and reproduced with gh
+   2.94 on this Mac against the retained fixture): wrong branch and production main → `expected SourceRepositoryRef to
+   be <the expected ref>`; wrong workflow and altered signature → `verifying with issuer "sigstore.dev"` (gh reports a
+   certificate-identity or signature policy failure only so; the genuine bundle passes with the right workflow just
+   before, so the wrong-workflow case fails on identity alone); missing bundle → `could not load content from file
+   path`. Anything else (timeout, gh missing or too old, another gh error) propagates and fails the job, and the held
+   record must be unchanged. The "altered subject" case below it still catches any exception (outside the NOTE).
+   Test `RecordingOpener.test_a_refusal_counts_only_as_ghs_failed_verification_naming_its_reason`; probes
+   `mainfix-sec-refusal-any-exception`, `mainfix-sec-refusal-reason-unchecked`.
+2. **Write-command scan** (`test_qualification.py`, `workflow_runs()` and
+   `Workflow.test_write_commands_appear_only_in_the_guarded_publication_steps`): every `run:` body of both workflows
+   (single-line and block scalars, `- run:` as a step's first key too) is scanned for `git … push`, `gh issue|pr|release`
+   and their `subprocess` list forms; none may appear. `qualify.py publish` to origin and `notify` only in the
+   allow-listed main-only steps, `publish --remote .work/publish-remote.git` only in the pull-request step. To make
+   the rule absolute, the pull-request step now seeds its bare remote with `git -C .work/publish-remote.git fetch
+   "$PWD" refs/remotes/origin/main:refs/heads/main` instead of `git push` (checked locally on a scratch repository).
+   Probe `mainfix-sec-unconditional-write-step` (a step that pushes), `mainfix-sec-pull-request-publish-to-origin`.
+3. **No token in the pull-request publish step** (workflow): `GH_TOKEN` dropped; it calls no `gh` (the fresh bundle is
+   verified offline by `gh attestation verify --bundle`, which skips gh's auth check when `--bundle` is given). Pinned by
+   the same test; probe `mainfix-sec-pull-request-publish-token`.
+4. **Not done here:** moved to step 4 as part of F1 (see the handover; it needs the token back once the data branch
+   exists).
 
 ## Handover (step 2)
 
 - **Done:** H1 (step 1), H2, H3, H4, H5 as decided by the lead (below, "Step 2: what was built"). Local: the touched
-  Python suites green, 18 main-fix removal probes rejected (`.work/20-main-fix/mainfix-mutations.json`, 17 new plus
+  Python suites green, 19 main-fix removal probes rejected (`.work/20-main-fix/mainfix-mutations.json`, 18 new plus
   H1's), generator and whitespace checks green, and the recorded API bundle of the retained fixture verifies with the
   real `gh attestation verify` on this Mac (branch policy passes, main policy refuses it).
 - **Runs:** qualification green on the PR in PR mode (run 3 of 4), `Control Chrome` green on the PR (run 1 of 2);
