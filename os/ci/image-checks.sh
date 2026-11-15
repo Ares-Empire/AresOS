@@ -623,6 +623,25 @@ PY
 font=$(runuser -u ares -- env -i HOME=/tmp PATH=/usr/bin /usr/bin/fc-match --format '%{file}' 'Space Grotesk:bold')
 test "$font" = /usr/share/fonts/aresos/SpaceGrotesk-Variable.ttf
 pass "the startup cover is installed, loads GTK 4 as ares and draws in Space Grotesk ($font); its labwc rule is set"
+# Super+Ctrl+Escape opens the recovery terminal, then ends the cover through the supervisor (PLAN-GAP 2). The
+# supervisor takes the command as ares; with no supervisor running here it says so and exits 1.
+python3 - <<'PY'
+import xml.etree.ElementTree as ET
+root = ET.parse('/usr/share/aresos/labwc/rc.xml').getroot()
+binds = [bind for bind in root.iter('keybind') if bind.get('key') == 'W-C-Escape']
+assert len(binds) == 1, binds
+actions = [(action.get('name'), action.get('command')) for action in binds[0]]
+assert actions == [('Execute', '/usr/bin/aresos-terminal --recovery'),
+                   ('Execute', '/usr/libexec/aresos-desktop hide-cover')], actions
+PY
+install -d -o ares -g ares -m 0700 /tmp/pkg23b-run
+hide_code=0
+hide_answer=$(runuser -u ares -- env -i HOME=/tmp XDG_RUNTIME_DIR=/tmp/pkg23b-run PATH=/usr/bin \
+    /usr/libexec/aresos-desktop hide-cover 2>&1) || hide_code=$?
+test "$hide_code" = 1
+grep -q 'supervisor is not running' <<<"$hide_answer"
+rm -rf /tmp/pkg23b-run
+pass 'Super+Ctrl+Escape opens the recovery terminal and then runs aresos-desktop hide-cover, which ares can run'
 # Provisioning as ares from the image's real inputs: creates the instance,
 # changes nothing on a second run, and reports a changed instance.
 install -d -o ares -g ares -m 0700 /tmp/pkg23-home /tmp/pkg23-run

@@ -413,6 +413,25 @@ def cover_stop():
                 stdout=f'COVER_STOPPED by SIGTERM in {took:.3f} s, exit 0')
 
 
+def shortcut_reached_the_supervisor():
+    """Package 23b, PLAN-GAP 2: Super+Ctrl+Escape (sent by the host before 'shortcut') also ran the supervisor's
+    hide-cover as ares in the session. The VM is in SETUP, never covered, so the supervisor logs that no cover is up;
+    the command itself answers the same and changes nothing."""
+    log = pathlib.Path('/var/home/ares/.local/state/aresos/desktop.log')
+    for _ in range(40):
+        if 'hide-cover (Super+Ctrl+Escape): no startup cover is up' in log.read_text(errors='replace'):
+            break
+        time.sleep(0.25)
+    else:
+        raise AssertionError('Super+Ctrl+Escape never reached the supervisor: ' + log.read_text(errors='replace')[-2000:])
+    before = desktop_status()
+    result = run(*AS_ARES, '/usr/libexec/aresos-desktop', 'hide-cover')
+    assert (result['returncode'], result['stdout'].strip()) == (0, 'No startup cover is up.'), result
+    after = desktop_status()
+    assert (after['state'], after['reason'], after['cover']) == (before['state'], before['reason'], False), after
+    return dict(state=after['state'], reason=after['reason'], answer=result['stdout'].strip())
+
+
 def check(action, request):
     if action == 'policy':
         wait_session()
@@ -442,6 +461,7 @@ def check(action, request):
         return run('python3', str(HERE / 'power-events.py'))
     if action == 'shortcut':
         result = wait_session(extra_terminal=True)
+        result['hide_cover'] = shortcut_reached_the_supervisor()
         # Package 21 review 5: the session, its terminal and the recovery
         # terminal started although broken copies of every startup command
         # head the daily account's ~/.local/bin; none of them may have run.

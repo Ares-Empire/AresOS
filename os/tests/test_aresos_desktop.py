@@ -2541,9 +2541,11 @@ class CoverTest(Base):
     def test_auth_required_stops_the_cover_before_its_window_opens(self):
         sup = self.supervisor()
         sup.start()
-        self.advance(60)
+        # Prism gives up within the cover's Prism wait, so AUTH_REQUIRED itself (not that wait) ends the cover.
+        self.advance(desktop.COVER_PRISM_WAIT - desktop.PRISM_GRACE - 1)
         sup.on_prism_exit(1)
         self.advance(desktop.PRISM_GRACE)
+        self.assertTrue(sup.cover)
         sup.tick()
         self.assertEqual((sup.state, sup.reason), ('AUTH_REQUIRED', 'auth'))
         self.assertEqual(self.runner.events, ['cover', 'prism', 'stop cover', 'view'])
@@ -2610,6 +2612,160 @@ class CoverTest(Base):
         self.in_world(sup)
         self.assertEqual(self.runner.cover_stops, [])
         self.assertIsNone(sup.cover_kill_at)
+
+    # PLAN-GAP 1, option (b): a Prism that has not handed the game over after COVER_PRISM_WAIT may be waiting for him
+    # in a dialog of its own (sign-in, offline, "Continue launch?"), so the cover ends; the launch goes on unchanged.
+
+    def timers(self, sup):
+        return sorted(action.__name__ for _, action in sup.pending())
+
+    def dialog_session(self, sup):
+        """Prism waits for him 40 s before it hands over, then the hub: what the session did, step by step."""
+        trace = []
+        sup.start()
+        for _ in range(40):
+            self.advance(1)
+            sup.tick()
+            trace.append((sup.state, sup.reason, sup.launch.id, len(self.runner.prisms), len(self.runner.views)))
+        self.in_world(sup)
+        trace.append((sup.state, sup.reason, sup.launch.id, sup.launch.accepted, self.stored()['consecutive'],
+                      len(self.runner.prisms), len(self.runner.helpers), self.runner.views))
+        return trace
+
+    def test_a_prism_that_waits_for_him_is_uncovered_after_the_prism_wait(self):
+        sup = self.supervisor()
+        sup.start()
+        self.assertIn('uncover_prism', self.timers(sup))
+        self.assertEqual(sup.deadline(), desktop.COVER_PRISM_WAIT)
+        self.advance(desktop.COVER_PRISM_WAIT - 0.1)
+        sup.tick()
+        self.assertTrue(sup.cover)
+        self.assertEqual(self.runner.cover_stops, [])
+        self.advance(0.1)
+        sup.tick()
+        # SIGTERM now, SIGKILL due COVER_STOP_WAIT later, as for every other stop; nothing else happened.
+        self.assertFalse(sup.cover)
+        self.assertEqual(self.runner.cover_stops, [self.now[0] + desktop.COVER_STOP_WAIT])
+        self.assertEqual(self.runner.events, ['cover', 'prism', 'stop cover'])
+        self.assertEqual((sup.state, sup.reason, sup.launch.accepted), ('STARTING', None, False))
+        self.assertEqual(self.timers(sup), ['kill_covers'])
+        # His dialog answered, the game starts and the hub is ready as without a cover; no second stop.
+        self.advance(30)
+        sup.tick()
+        self.in_world(sup)
+        self.assertEqual(len(self.runner.cover_stops), 1)
+        self.assertEqual(self.runner.covers, [False])
+
+    def test_the_prism_wait_leaves_the_launch_as_without_a_cover(self):
+        started = self.now[0]
+        with_cover = self.dialog_session(self.supervisor())
+        self.assertEqual(self.runner.covers, [False])
+        # Ended by the Prism wait (not by the hub 15 s later).
+        self.assertEqual(self.runner.cover_stops, [started + desktop.COVER_PRISM_WAIT + desktop.COVER_STOP_WAIT])
+        shutil.rmtree(self.paths.home)
+        shutil.rmtree(self.paths.runtime)
+        os.makedirs(self.paths.home)
+        os.makedirs(self.paths.runtime)
+        desktop.provision(self.paths, self.lock)
+        make_world(self.paths, self.lock)
+        self.runner = FakeRunner()
+        self.runner.cover_error = FileNotFoundError(2, 'No such file or directory')
+        without_cover = self.dialog_session(self.supervisor())
+        self.assertEqual([step[:2] + step[3:] for step in without_cover], [step[:2] + step[3:] for step in with_cover])
+        self.assertEqual((self.runner.covers, self.runner.cover_stops), ([], []))
+
+    def test_a_prism_that_hands_over_in_time_keeps_the_cover_until_world_ready(self):
+        sup = self.supervisor()
+        sup.start()
+        self.advance(desktop.COVER_PRISM_WAIT - 1)
+        self.run_game(sup)
+        self.assertNotIn('uncover_prism', self.timers(sup))
+        # Long past the Prism wait, over Mojang's loading screen and joining the world: still covered.
+        self.advance(60)
+        sup.tick()
+        self.assertTrue(sup.cover)
+        self.assertEqual(self.runner.cover_stops, [])
+        self.ready(sup)
+        self.assertEqual(sup.state, 'IN_WORLD')
+        self.assertEqual(self.runner.cover_stops, [self.now[0] + desktop.COVER_STOP_WAIT])
+
+    def test_the_prism_wait_ends_cleanly(self):
+        sup = self.supervisor()
+        sup.start()
+        self.run_game(sup)
+        self.assertNotIn('uncover_prism', self.timers(sup))
+        self.assertEqual(sup.deadline(), desktop.START_TIMEOUT)
+        # Fired once: after its stop and the SIGKILL timer, no cover timer is left and nothing fires again.
+        sup = self.supervisor()
+        self.runner.events.clear()
+        shutil.rmtree(self.paths.runtime)
+        os.makedirs(self.paths.runtime)
+        sup.start()
+        self.advance(desktop.COVER_PRISM_WAIT)
+        sup.tick()
+        self.advance(desktop.COVER_STOP_WAIT)
+        sup.tick()
+        self.assertNotIn('uncover_prism', self.timers(sup))
+        self.assertNotIn('kill_covers', self.timers(sup))
+        self.advance(desktop.COVER_PRISM_WAIT)
+        sup.tick()
+        self.assertEqual(self.runner.events.count('stop cover'), 1)
+        # A cover that ended by itself, or never started, leaves no Prism wait behind.
+        for end in ('died', 'failed'):
+            with self.subTest(end=end):
+                shutil.rmtree(self.paths.runtime)
+                os.makedirs(self.paths.runtime)
+                self.runner.cover_error = OSError(2, 'No such file') if end == 'failed' else None
+                sup = self.supervisor()
+                sup.start()
+                if end == 'died':
+                    sup.on_cover_exit(1)
+                self.assertFalse(sup.cover)
+                self.assertNotIn('uncover_prism', self.timers(sup))
+
+    def test_a_restart_under_the_cover_gives_the_new_prism_its_own_wait(self):
+        # JUDGMENT-CALL 2: a crash before the hub was ready keeps the cover through the automatic restart; the
+        # restarted Prism gets the whole Prism wait from its own start.
+        sup = self.supervisor()
+        sup.start()
+        pid, _ = self.run_game(sup)
+        self.advance(10)
+        self.end_game(sup, pid, 1)
+        self.assertEqual((sup.state, sup.reason), ('STARTING', 'restarting'))
+        self.assertTrue(sup.cover)
+        self.assertNotIn('uncover_prism', self.timers(sup))
+        self.advance(desktop.BACKOFF)
+        sup.tick()
+        self.assertEqual(len(self.runner.prisms), 2)
+        restarted = self.now[0]
+        self.advance(desktop.COVER_PRISM_WAIT - 0.1)
+        sup.tick()
+        self.assertTrue(sup.cover)
+        self.advance(0.1)
+        sup.tick()
+        self.assertFalse(sup.cover)
+        self.assertEqual(self.runner.cover_stops, [restarted + desktop.COVER_PRISM_WAIT + desktop.COVER_STOP_WAIT])
+
+    # PLAN-GAP 2: Super+Ctrl+Escape opens the recovery terminal, and `aresos-desktop hide-cover` ends the cover.
+
+    def test_the_shortcut_ends_the_cover_and_nothing_else(self):
+        sup = self.supervisor()
+        sup.start()
+        before = (sup.state, sup.reason, repr(sup.launch), repr(sup.persisted), sup.read_runtime(),
+                  len(self.runner.prisms), len(self.runner.helpers), list(self.runner.views))
+        self.advance(3)
+        self.assertEqual(sup.owner_hides_cover(), 'The startup cover is gone.')
+        self.assertFalse(sup.cover)
+        self.assertEqual(self.runner.cover_stops, [self.now[0] + desktop.COVER_STOP_WAIT])
+        self.assertEqual((sup.state, sup.reason, repr(sup.launch), repr(sup.persisted), sup.read_runtime(),
+                          len(self.runner.prisms), len(self.runner.helpers), list(self.runner.views)), before)
+        self.assertEqual(self.timers(sup), ['kill_covers'])
+        # Pressed again, or with no cover up: nothing at all.
+        self.assertEqual(sup.owner_hides_cover(), 'No startup cover is up.')
+        self.assertEqual(len(self.runner.cover_stops), 1)
+        self.in_world(sup)
+        self.assertEqual(sup.owner_hides_cover(), 'No startup cover is up.')
+        self.assertEqual((sup.state, len(self.runner.cover_stops), self.runner.covers), ('IN_WORLD', 1, [False]))
 
 
 class MessagesTest(Base):
@@ -3083,6 +3239,18 @@ class SessionFilesTest(unittest.TestCase):
         self.assertIn('<keybind key="W-C-Escape"><action name="Execute" command="/usr/bin/aresos-terminal --recovery" />',
                       rc)
         self.assertIn('<windowRule identifier="aresos-desktop" serverDecoration="no"><action name="Maximize" />', rc)
+
+    def test_the_recovery_shortcut_also_ends_the_cover(self):
+        # Package 23b, PLAN-GAP 2: the terminal first (every check that reads the keybind's first action still
+        # finds it), then the supervisor's hide-cover, by absolute path like the session's other commands.
+        import xml.etree.ElementTree as ET
+        root = ET.parse(CONFIG / 'usr/share/aresos/labwc/rc.xml').getroot()
+        binds = [bind for bind in root.iter('keybind') if bind.get('key') == 'W-C-Escape']
+        self.assertEqual(len(binds), 1)
+        self.assertEqual([(action.get('name'), action.get('command')) for action in binds[0]],
+                         [('Execute', '/usr/bin/aresos-terminal --recovery'),
+                          ('Execute', '/usr/libexec/aresos-desktop hide-cover')])
+        self.assertTrue(os.access(CONFIG / 'usr/libexec/aresos-desktop', os.X_OK))
 
     def test_the_cover_is_borderless_fullscreen_and_on_top(self):
         import xml.etree.ElementTree as ET
@@ -3813,6 +3981,33 @@ class LoopTest(Base):
         self.ready_file.touch()
         self.wait(lambda: sup.state == 'IN_WORLD')
         self.assertEqual(self.launches(), ['--launch AresDesktop --world AresHub'])
+
+    def test_the_shortcut_command_ends_the_cover_through_the_socket(self):
+        # PLAN-GAP 2: the second action of Super+Ctrl+Escape, the real script against the real loop. It ends the
+        # cover and nothing else: the start goes on, and the hub is ready as before.
+        sup = self.loop.supervisor
+        self.thread.start()
+        self.wait(lambda: self.covers() and sup.launch is not None and sup.launch.jvm_pid is not None)
+        (pid, *_), = self.covers()
+        launch, jvm = sup.launch.id, sup.launch.jvm_pid
+        command = [sys.executable, str(CONFIG / 'usr/libexec/aresos-desktop'), 'hide-cover']
+        env = {'HOME': self.paths.home, 'XDG_RUNTIME_DIR': self.paths.runtime, 'PATH': '/usr/bin:/bin'}
+        result = subprocess.run(command, env=env, capture_output=True, text=True, timeout=30)
+        self.assertEqual((result.returncode, result.stdout, result.stderr), (0, 'The startup cover is gone.\n', ''))
+        self.wait(lambda: not self.alive(int(pid)))
+        self.assertEqual((sup.state, sup.reason, sup.launch.id, sup.launch.jvm_pid, sup.cover),
+                         ('STARTING', None, launch, jvm, False))
+        again = subprocess.run(command, env=env, capture_output=True, text=True, timeout=30)
+        self.assertEqual((again.returncode, again.stdout), (0, 'No startup cover is up.\n'))
+        self.ready_file.touch()
+        self.wait(lambda: sup.state == 'IN_WORLD')
+        self.assertEqual(len(self.covers()), 1)
+        self.assertEqual(self.launches(), ['--launch AresDesktop --world AresHub'])
+        # Without a supervisor (the keybind works in any session state): it says so and changes nothing.
+        self.stop()
+        gone = subprocess.run(command, env=env, capture_output=True, text=True, timeout=30)
+        self.assertEqual(gone.returncode, 1)
+        self.assertIn('supervisor is not running', gone.stderr)
 
     def test_retry_through_the_real_loop_covers_with_again(self):
         sup = self.loop.supervisor

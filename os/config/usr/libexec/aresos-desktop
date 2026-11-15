@@ -22,8 +22,11 @@ The startup cover (package 23b, /usr/libexec/aresos-cover) hides Minecraft's own
 start (Prism's launch dialog, Mojang's loading screen, joining the world) for
 the session's first hub launch and the owner's retry, never for an automatic
 restart or setup. It ends when the hub is ready, when a message window has to
-be seen, and when the supervisor stops. It is best effort: a cover that does
-not start, crashes or is missing changes nothing else.
+be seen, when Prism has not handed the game over 25 s after its start (it may
+be waiting for him in a dialog of its own), when he presses Super+Ctrl+Escape
+for the recovery terminal (`aresos-desktop hide-cover`), and when the
+supervisor stops. It is best effort: a cover that does not start, crashes or is
+missing changes nothing else.
 
 States (B2): SETUP (first start: Prism's own sign-in, then the hub is created
 with the mod's AresOS button), STARTING, IN_WORLD, AUTH_REQUIRED and RECOVERY.
@@ -95,6 +98,10 @@ COVER = '/usr/libexec/aresos-cover'
 COVER_STOP_WAIT = 2.0
 # Which starts get the cover: the session's first hub launch, and the owner's retry (its own line).
 COVER_FIRST, COVER_AGAIN = 'first', 'again'
+# How long the cover may hide a Prism that has not handed the game over (the wrapper's jvm_start). A hub start gets
+# there in seconds; a Prism that has not is most likely waiting for him in a dialog of its own (account refresh
+# failed, the offline name, "Continue launch?"), which must not stay hidden (package 23b, PLAN-GAP 1).
+COVER_PRISM_WAIT = 25.0
 # The session's PATH (package 21, JUDGMENT-CALL 9): his ~/.local/bin is never on it.
 SYSTEM_PATH = '/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin'
 # Never handed to Prism, the helper's apps or the views; only the game gets them, from the wrapper.
@@ -1100,6 +1107,23 @@ class Supervisor:
     def kill_covers(self):
         self.cover_kill_at = self.runner.kill_covers(self.clock())
 
+    def uncover_prism(self):
+        """Prism has not handed the game over COVER_PRISM_WAIT after its start: it may be waiting for him, so the
+        cover ends and its window shows. The launch itself goes on unchanged."""
+        LOG.info('Prism has not started the game %d s after its start; the startup cover ends so that its window '
+                 'can be seen', COVER_PRISM_WAIT)
+        self.hide_cover()
+
+    def owner_hides_cover(self):
+        """Super+Ctrl+Escape (`aresos-desktop hide-cover`): the recovery terminal it opens must be seen (OS-BASE
+        section 6), so the cover ends. Nothing else changes (package 23b, PLAN-GAP 2)."""
+        if not self.cover:
+            LOG.info('hide-cover (Super+Ctrl+Escape): no startup cover is up')
+            return 'No startup cover is up.'
+        LOG.info('hide-cover (Super+Ctrl+Escape): the startup cover ends so that the recovery terminal can be seen')
+        self.hide_cover()
+        return 'The startup cover is gone.'
+
     def on_cover_exit(self, code):
         """The cover ended without being stopped (its own limit, a crash): one log line, nothing else changes."""
         if self.cover:
@@ -1697,6 +1721,9 @@ class Supervisor:
             items.append((self.helper_restart_at, self.restart_helper))
         if self.cover_kill_at is not None:
             items.append((self.cover_kill_at, self.kill_covers))
+        if self.cover and launch is not None and not launch.accepted:
+            # The covered launch started Prism a moment after `started` (start_launch); jvm_start ends this wait.
+            items.append((launch.started + COVER_PRISM_WAIT, self.uncover_prism))
         if launch is not None and launch.jvm_ended is not None and launch.jvm_pid is not None:
             # Due at once when the wrapper has reported the exit status, otherwise after a short wait for it.
             items.append((launch.jvm_ended + (0 if launch.jvm_status is not None else EXIT_REPORT_WAIT),
@@ -2240,6 +2267,8 @@ class Loop:
         if op == 'forget_hub':
             ok, text = supervisor.forget_hub()
             return {'ok': ok, 'message': text}
+        if op == 'hide_cover':
+            return {'ok': True, 'message': supervisor.owner_hides_cover()}
         return {'ok': False, 'error': 'unknown_operation', 'message': f'unknown op {op!r}'}
 
     def reap(self, key, process):
@@ -2451,7 +2480,7 @@ def reset_instance(paths):
 def main(argv=None):
     parser = argparse.ArgumentParser(prog='aresos-desktop', description='AresOS desktop supervisor (package 23)')
     parser.add_argument('command', choices=['session', 'supervise', 'status', 'retry', 'forget-hub',
-                                            'reset-instance', 'explain'])
+                                            'reset-instance', 'explain', 'hide-cover'])
     args = parser.parse_args(argv)
     paths = Paths.from_environ()
     if args.command == 'session':
@@ -2460,7 +2489,8 @@ def main(argv=None):
         return supervise(paths)
     if args.command == 'reset-instance':
         return reset_instance(paths)
-    op = {'status': 'status', 'explain': 'status', 'retry': 'retry', 'forget-hub': 'forget_hub'}[args.command]
+    op = {'status': 'status', 'explain': 'status', 'retry': 'retry', 'forget-hub': 'forget_hub',
+          'hide-cover': 'hide_cover'}[args.command]
     try:
         reply = request(paths, {'op': op})
     except (OSError, ValueError) as error:
