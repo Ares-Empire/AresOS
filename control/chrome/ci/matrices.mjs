@@ -322,6 +322,7 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,setTa
     for(const prefix of ['top','cross'])for(let index=0;index<3;index++){
       const selected=await target('Submit '+prefix+' '+index),id='password-'+prefix+'-'+index;
       const form=await call('read_form',{tab,reference:selected.reference});assert.doesNotMatch(JSON.stringify(form),/SENTINEL_PRIVATE_PASSWORD_20/);
+      assert.match(JSON.stringify(form),/Public draft/,'a typed field empty when the reader met its root is read once the page fills it');
       const prepared=await call('click',selected);assert.doesNotMatch(JSON.stringify(prepared),/SENTINEL_PRIVATE_PASSWORD_20/);
       await approval(prepared,id);
     }
