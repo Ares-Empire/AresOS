@@ -5,6 +5,7 @@ import {spawn,execFileSync} from 'node:child_process';
 import {setTimeout as delay} from 'node:timers/promises';
 import {fixtures} from './fixture.mjs';
 import {latencyProbe} from './latency-probe.mjs';
+import {efficiencyProbe} from './efficiency-probe.mjs';
 import {matrices} from './matrices.mjs';
 import {measureCompatibility,nativeNavigate,nativeCompatibilityClick,compareCompatibility} from './compatibility.mjs';
 import {ownerUI} from './owner-ui.mjs';
@@ -57,6 +58,7 @@ try {
   const send=await target('Send');const prepared=await call('click',send);assert.ok(prepared.approval);assert.equal(counts('compose'),0);
   const sent=await call('submit',prepared.approval);assert.equal(sent.operation.state,'done');await eventually(()=>counts('compose')===1,'receiver compose');
   await call('submit',prepared.approval);assert.equal(counts('compose'),1);console.log('GROUP 1 what asks PASS: zero before approval, one after, no replay');
+  if(process.env.LATENCY_PROBE==='true'&&process.env.EFFICIENCY_PROBE==='true'){await efficiencyProbe({rpc,eventually,counts,getTab:()=>tab});return;}
   if(process.env.LATENCY_PROBE==='true'){await latencyProbe({call,target,nav,eventually,getTab:()=>tab});return;}
   for(const kind of ['native','event']) {
     await nav(kind);const item=await target('Continue');await call('click',item);assert.equal(counts(kind),0);
