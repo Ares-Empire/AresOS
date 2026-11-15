@@ -17,10 +17,11 @@ answer, so a retry that arrives in the wrapper's last milliseconds finds the loc
 
 Evidence:
 - A harness wrapped `Runner.jvm_lock_held` and, whenever it said "held", listed the supervisor's descendants with
-  their open files and read `/proc/locks`. Every failure (6 on this branch, 5 on main) looked the same: the only
-  holder was the third launch's `aresos-desktop-java`, in state R (running its exit), holding its own lock fd 4;
-  no child of the supervisor (cover, view, helper, Prism) held it, so no lock was carried across a fork; a moment
-  later `/proc/locks` had no entry and the lock was free.
+  their open files and read `/proc/locks`. In every failure the lock was free again within a millisecond
+  (`/proc/locks` had no entry, a second try got it). Once the scan was fast enough to catch the holder (2 failures
+  on this branch, all 5 on main), it was always the same: the third launch's `aresos-desktop-java`, in state R
+  (running its exit), holding its own lock fd 4; no child of the supervisor (cover, view, helper, Prism) held it,
+  so no lock was carried across a fork. The earlier, slower scans (9 more failures here) found it already free.
 - The race is on main too: a temporary worktree from `origin/main` (93e5b64b, removed afterwards) failed
   **1 of 50** plain runs (`python3 -m unittest discover -s os/tests -p 'test_aresos_desktop.py' -k
   test_crash_restart_latch_and_retry_through_the_real_loop`, one at a time: runs 1–16 all passed, run 49 failed
