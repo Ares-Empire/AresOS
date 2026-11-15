@@ -52,8 +52,16 @@ public final class AresOsClient implements ClientModInitializer {
             // A remote Minecraft server must never be able to auto-launch local programs.
             if (acceptsAppCommands(Minecraft.getInstance())
                     && (payload.visit() == 0 || AppsScreen.active(Minecraft.getInstance()))) launch(payload.app(), payload.visit());
-            else if (ClientPlayNetworking.canSend(ZoneReturnPayload.TYPE))
-                ClientPlayNetworking.send(new ZoneReturnPayload(payload.visit(), false));
+            else {
+                if (ClientPlayNetworking.canSend(ZoneReturnPayload.TYPE))
+                    ClientPlayNetworking.send(new ZoneReturnPayload(payload.visit(), false));
+                // A logo he walked into must open or say why (package 40). Not for a remote server's packet.
+                if (acceptsAppCommands(Minecraft.getInstance())) {
+                    var app = AresOs.app(payload.app());
+                    message(Minecraft.getInstance(), "Couldn't open " + (app == null ? payload.app() : app.name())
+                            + ": logos open in Live mode");
+                }
+            }
         });
         net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
             FOCUS_RETURN.reset(); zoneFocusToken = 0; zoneVisit = 0;
@@ -187,7 +195,13 @@ public final class AresOsClient implements ClientModInitializer {
         return launcher instanceof LinuxAppLauncher ? ": " + LinuxAppLauncher.reason(error) : "";
     }
 
+    /**
+     * Why an app did not open (package 40): over the hotbar as before, and as a line in the chat, which stays. The
+     * line over the hotbar is gone after three seconds, and a launch can fail half a minute after he walked in.
+     */
     private static void message(Minecraft client, String text) {
-        if (client.player != null) client.gui.hud.setOverlayMessage(Component.literal(text), false);
+        if (client.player == null) return;
+        client.gui.hud.setOverlayMessage(Component.literal(text), false);
+        client.gui.hud.getChat().addClientSystemMessage(Component.literal(text));
     }
 }

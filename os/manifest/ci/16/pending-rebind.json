@@ -5,8 +5,8 @@
   "changes": [
     "22c record step (after rehearsal run 43597505549 rebound the sources): test_owner_path pins the 22c INSTALL-STATUS row as rehearsed, with the run link the 22c bindings name; no tool, guide or image file changed",
     "22c fix after checks-only run 43619559359: test_ways_back_probe keeps the 22c host-walk receipt frozen after the record step (asserted equal to the bindings' walk table instead of skipped; the gate test uses it with the waiting rows' bytes) and reads removed paths from the 22c rebind's history entry; no tool, guide or image file changed",
-    "23b (startup cover): os/ci/vm.py gains the cover's screenshots in the check build; harness only, no tool, guide or image file",
-    "Regressions job time limit 25 to 40 minutes (main's suite needs about 23; runs 43669481694 and 43678242876 were cut at 25); the same change as 22d step 2; workflow, ledger bound and its test only"
+    "40: the checks-only job's 40 minutes, as 22d step 2 and 23b: its time limit in os-image.yml (25 to 40) and the 22c ledger's checks bound in os/ci/rehearsal-packages.json (35 to 40); no tool, guide or image file changed",
+    "23b (startup cover), merged with main after package 40: os/ci/vm.py gains the cover's screenshots and session font check in the check build (harness only); the regressions time limit (40 minutes) arrived with package 40 identically"
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [

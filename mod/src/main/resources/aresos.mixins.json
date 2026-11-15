@@ -12,6 +12,7 @@
     "HubBlockChangeMixin",
     "ModeInventoryMixin",
     "ExternalModeMixin",
+    "LiveAbilitiesMixin",
     "ModeSwitchPacketMixin",
     "PendingPickupMixin",
     "PendingInventoryMixin",

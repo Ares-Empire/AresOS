@@ -6,6 +6,8 @@ import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.brigadier.suggestion.Suggestion;
 import dev.aresos.AresOs;
 import dev.aresos.client.AppsScreen;
+import dev.aresos.client.AresOsClient;
+import dev.aresos.client.launch.AppLauncher;
 import dev.aresos.config.AppDefinition;
 import dev.aresos.config.AppsConfig;
 import dev.aresos.item.AppItems;
@@ -44,11 +46,13 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
 
 /**
  * Package 34, My apps, in the real client with a helper that lists 150 programs: day one, the Apps screen (search,
- * add, remove, pick up), the three commands, a program that joins later, and the helper's pictures as pixel icons.
+ * open, add, remove, pick up), the three commands, a program that joins later, and the helper's pictures as pixel icons.
  * The helper is the unit tests' fake one on a real socket; every picture is drawn here.
  */
 public final class MyAppsClientGameTest implements FabricClientGameTest {
@@ -177,7 +181,9 @@ public final class MyAppsClientGameTest implements FabricClientGameTest {
                 screenshot(context, "34-hotbar-pixel-icons");
             }
             AresOs.LOGGER.info("34 client checks passed: day one with 150 programs in four pages and five items; Apps screen "
-                    + "search, click and Enter add, right-click remove, pick up and pin; app add, remove, list and their "
+                    + "search, click and Enter open (a failure says why), a drag adds, picks up and pins (one seen only at the "
+                    + "release too), right-click "
+                    + "removes; app add, remove, list and their "
                     + "completion; a full inventory; a later program's chat line and pixel icon; Q keeps the item");
         } catch (Exception error) {
             throw new RuntimeException(error);
@@ -200,8 +206,34 @@ public final class MyAppsClientGameTest implements FabricClientGameTest {
         }
     }
 
-    /** E, "Apps…": the list, the search, an add by click and by Enter, a remove, and picking up an item to pin it. */
+    /**
+     * E, "Apps…": the list and the search; a click and Enter open a program (package 40, review fixes 1), a drag
+     * picks up its item and adds a program that is not his, a right click removes one of his.
+     */
     private static void appsScreen(ClientGameTestContext context, TestSingleplayerContext world) {
+        // What a click opens goes through AresOsClient.launch, as from the hotbar, to this launcher instead of a
+        // program. PDF Arranger fails to start.
+        var opened = new java.util.concurrent.CopyOnWriteArrayList<String>();
+        var previousLauncher = context.computeOnClient(client -> AresOsClient.replaceLauncher(new AppLauncher() {
+            @Override public CompletionStage<Void> launch(List<String> command) { return CompletableFuture.completedFuture(null); }
+
+            @Override public CompletionStage<String> launchTracked(AppDefinition app) {
+                opened.add(app.id());
+                return app.id().equals("pdf-arranger") ? CompletableFuture.failedFuture(new IOException("it failed to start"))
+                        : CompletableFuture.completedFuture(null);
+            }
+        }));
+        try {
+            appsScreen(context, world, opened);
+        } finally {
+            context.runOnClient(client -> {
+                AresOsClient.replaceLauncher(previousLauncher);
+                AresOsClient.FOCUS_RETURN.reset();
+            });
+        }
+    }
+
+    private static void appsScreen(ClientGameTestContext context, TestSingleplayerContext world, List<String> opened) {
         context.clickScreenButton("Apps…");
         context.waitForScreen(AppsScreen.class);
         context.waitTicks(3);
@@ -249,74 +281,107 @@ public final class MyAppsClientGameTest implements FabricClientGameTest {
             check(list(client).scrollAmount() == 0, "A new search did not go back to the top");
         });
         screenshot(context, "34-apps-search-pdf");
-        // Enter is for the only match; with three it does nothing.
+        // Enter is for the only match; with three it opens nothing.
         context.getInput().pressKey(InputConstants.KEY_RETURN);
         world.getConnection().waitForServerboundPackets();
         context.waitTicks(2);
-        check(mine().equals(DAY_ONE), "Enter with three matches changed My apps: " + mine());
+        check(opened.isEmpty() && mine().equals(DAY_ONE), "Enter with three matches opened " + opened + " or changed My apps: " + mine());
+        context.runOnClient(client -> check(client.gui.screen() instanceof AppsScreen, "Enter with three matches closed the Apps screen"));
 
-        // In a short list, adding its last result inserts My apps above it and puts Okular under the old pointer.
-        var doubleAt = context.computeOnClient(client -> {
-            check(list(client).children().size() * 20 <= list(client).getHeight(), "Fixture: the search list can scroll");
-            var row = rows(client).stream().filter(r -> r.app().id().equals("xournal")).findFirst().orElseThrow();
-            return new double[] {row.getX() + row.getWidth() / 2.0, row.getY() + row.getHeight() / 2.0};
-        });
+        // Package 40, review fixes 1: a click opens a program, his or not, as its hotbar item would, and he is back
+        // in the world. It does not make the program his.
+        clickRow(context, "okular", false, LEFT);
+        context.waitForScreen(null);
+        check(opened.equals(List.of("okular")), "A click on Okular opened " + opened);
+        world.getConnection().waitForServerboundPackets();
+        context.waitTicks(2);
+        check(mine().equals(DAY_ONE), "Opening a program changed My apps: " + mine());
+
+        // A program that cannot open says why in the chat, as from the hotbar.
+        openApps(context, "pdf");
+        context.runOnClient(client -> client.gui.hud.getChat().clearMessages(true));
+        clickRow(context, "pdf-arranger", false, LEFT);
+        context.waitForScreen(null);
+        waitForChat(context, "Couldn't open PDF Arranger");
+
+        // A drag picks up the program's item; a program that is not his becomes his, and the item goes where the
+        // button is let go.
+        openApps(context, "pdf");
+        dragRow(context, "okular", false, 20);
+        world.getConnection().waitForServerboundPackets();
+        context.waitFor(client -> AresOs.app("okular").mine() && Integer.valueOf(20).equals(items(client).get("okular")));
         context.runOnClient(client -> {
-            var event = new MouseButtonEvent(doubleAt[0], doubleAt[1], new MouseButtonInfo(LEFT, 0));
-            client.gui.screen().mouseClicked(event, false);
-            client.gui.screen().mouseReleased(event);
+            check(client.player.inventoryMenu.getCarried().isEmpty(), "Okular's item stayed on the cursor");
+            check(chat(client).contains("Added Okular to My apps."), "The drag did not say Okular was added: " + chat(client));
         });
-        context.waitFor(client -> AresOs.app("xournal").mine() && rows(client).stream().anyMatch(r -> r.inMyApps() && r.app().id().equals("xournal")));
+        check(opened.equals(List.of("okular", "pdf-arranger")), "A drag opened something: " + opened);
+        context.clickScreenButton("Apps…");
+        context.waitForScreen(AppsScreen.class);
+        context.waitTicks(3);
         context.runOnClient(client -> {
-            check(list(client).scrollAmount() == 0 && list(client).children().size() * 20 <= list(client).getHeight(),
-                    "Fixture: the changed list should still be too short to scroll");
-            check(rows(client).stream().anyMatch(r -> r.app().id().equals("okular") && r.isMouseOver(doubleAt[0], doubleAt[1])),
-                    "Fixture: reflow did not put the neighbour under the pointer");
-            var event = new MouseButtonEvent(doubleAt[0], doubleAt[1], new MouseButtonInfo(LEFT, 0));
+            check(rows(client).stream().filter(AppsScreen.Row::inMyApps).anyMatch(row -> row.app().id().equals("okular")),
+                    "The added program is not shown under My apps");
+            check(status(client).contains("Click opens · drag to the hotbar to pin · right-click removes"),
+                    "The screen does not say what a click and a drag do: " + status(client));
+            check(client.gui.screen().getFocused() == search(client), "The search box does not have the keyboard");
+        });
+        screenshot(context, "34-apps-after-add");
+
+        // REVIEW-2 finding 1: a drag whose movement only comes with the release (a hitch, a quick flick, a window
+        // without focus) is still a drag. The press and a release eight pixels lower reach the screen with no
+        // mouseDragged between, as the mouse handler sends them when both are in one poll. Nothing opens, the
+        // inventory comes back with the item on the cursor, and it stays there until a click on a slot places it.
+        context.runOnClient(client -> {
+            check(client.player.inventoryMenu.getSlot(21).getItem().isEmpty(), "Slot 21 is not free for Okular");
+            var row = row(client, "okular", true);
+            double x = row.getX() + row.getWidth() / 2.0, y = row.getY() + row.getHeight() / 2.0;
+            var screen = client.gui.screen();
+            screen.mouseClicked(new MouseButtonEvent(x, y, new MouseButtonInfo(LEFT, 0)), false);
+            screen.mouseReleased(new MouseButtonEvent(x + 1, y + 8, new MouseButtonInfo(LEFT, 0)));
+            check(client.gui.screen() instanceof InventoryScreen, "A release eight pixels from the press did not give way "
+                    + "to the inventory but to " + client.gui.screen() + "; opened " + opened);
+        });
+        context.waitFor(client -> "okular".equals(client.player.inventoryMenu.getCarried().get(AppItems.APP_ID)));
+        context.waitTicks(5);
+        context.runOnClient(client -> check(client.gui.screen() instanceof InventoryScreen
+                && "okular".equals(client.player.inventoryMenu.getCarried().get(AppItems.APP_ID))
+                && !items(client).containsKey("okular"), "Okular's item left the cursor before a click: " + items(client)));
+        // The next click on a slot, through the mouse handler as his would come.
+        double[] slot21 = context.computeOnClient(client -> {
+            var screen = client.gui.screen();
+            var slot = client.player.inventoryMenu.getSlot(21);
+            return window(client, (screen.width - 176) / 2.0 + slot.x + 8, (screen.height - 166) / 2.0 + slot.y + 8);
+        });
+        context.getInput().setCursorPos(slot21[0], slot21[1]);
+        context.waitTick();
+        context.getInput().pressMouse(LEFT);
+        world.getConnection().waitForServerboundPackets();
+        context.waitTicks(2);
+        context.runOnClient(client -> check(Integer.valueOf(21).equals(items(client).get("okular"))
+                && client.player.inventoryMenu.getCarried().isEmpty(), "A click on slot 21 did not place Okular: " + items(client)));
+        world.getServer().runOnServer(server -> {
+            var player = world.getConnection().getServerPlayer();
+            check("okular".equals(player.getInventory().getItem(21).get(AppItems.APP_ID)) && player.inventoryMenu.getCarried().isEmpty(),
+                    "The server did not place Okular in slot 21");
+        });
+        check(opened.equals(List.of("okular", "pdf-arranger")), "A drag ended by the release opened something: " + opened);
+        context.clickScreenButton("Apps…");
+        context.waitForScreen(AppsScreen.class);
+        context.waitTicks(3);
+
+        // The second press of a double click does nothing: a removal can move the next row under the pointer.
+        context.runOnClient(client -> {
+            var row = row(client, "okular", true);
+            var event = new MouseButtonEvent(row.getX() + row.getWidth() / 2.0, row.getY() + row.getHeight() / 2.0,
+                    new MouseButtonInfo(RIGHT, 0));
             client.gui.screen().mouseClicked(event, true);
             client.gui.screen().mouseReleased(event);
         });
         world.getConnection().waitForServerboundPackets();
         context.waitTicks(2);
-        check(!AresOs.app("okular").mine() && !AresOs.app("pdf-arranger").mine(), "A double-click added the neighbour");
-        clickRow(context, "xournal", true, RIGHT);
-        context.waitFor(client -> !AresOs.app("xournal").mine() && !items(client).containsKey("xournal"));
-        context.waitTicks(2);
+        check(AresOs.app("okular").mine(), "The second press of a double click removed a program");
 
-        // A left click on a program that is not his adds it; the screen stays open and shows it.
-        clickRow(context, "okular", false, LEFT);
-        context.waitFor(client -> AresOs.app("okular").mine() && items(client).containsKey("okular"));
-        context.waitTicks(2);
-        context.runOnClient(client -> {
-            check(client.gui.screen() instanceof AppsScreen, "Adding a program closed the Apps screen");
-            check(items(client).get("okular") >= 9, "The added program's item went to the hotbar");
-            check(rows(client).stream().filter(AppsScreen.Row::inMyApps).map(row -> row.app().id()).toList().equals(List.of("okular")),
-                    "The added program is not shown under My apps");
-            check(status(client).contains("Added Okular to My apps."), "The screen does not say what happened: " + status(client));
-            check(client.gui.screen().getFocused() == search(client), "The click took the keyboard away from the search box");
-        });
-        screenshot(context, "34-apps-after-add");
-
-        // Typing still goes to the search box; Enter adds the only match, found by its kind ("Archiving Tool").
-        for (int i = 0; i < 3; i++) context.getInput().pressKey(GLFW.GLFW_KEY_BACKSPACE);
-        context.getInput().typeChars("archiv");
-        context.waitTicks(2);
-        context.runOnClient(client -> {
-            check(search(client).getValue().equals("archiv"), "Typing after a click reached \"" + search(client).getValue() + "\"");
-            check(shown(client).equals(List.of("Ark")), "\"archiv\" finds " + shown(client));
-        });
-        context.getInput().pressKey(InputConstants.KEY_RETURN);
-        context.waitFor(client -> AresOs.app("ark").mine() && items(client).containsKey("ark"));
-        context.runOnClient(client -> {
-            check(client.gui.screen() instanceof AppsScreen, "Enter on a program that was not his closed the Apps screen");
-            check(search(client).getHighlighted().equals("archiv"), "The finished search is not selected for the next one");
-        });
-
-        // The whole list again; a right click on one of his takes it out of My apps and its item out of the inventory.
-        context.getInput().pressKey(GLFW.GLFW_KEY_BACKSPACE);
-        context.waitTicks(2);
-        context.runOnClient(client -> check(search(client).getValue().isEmpty() && rows(client).size() == 7 + 150,
-                "Clearing the search shows " + rows(client).size() + " rows"));
+        // A right click on one of his takes it out of My apps and its item out of the inventory.
         clickRow(context, "okular", true, RIGHT);
         context.waitFor(client -> !AresOs.app("okular").mine() && !items(client).containsKey("okular"));
         context.waitTicks(2);
@@ -342,17 +407,28 @@ public final class MyAppsClientGameTest implements FabricClientGameTest {
         world.getConnection().waitForServerboundPackets();
         context.waitTicks(3);
         check(!AresOs.app("pdf-arranger").mine(), "A right click added a program");
+        check(opened.size() == 2, "A right click opened a program: " + opened);
 
-        // A left click on one of his picks up its item, as before; dropped in the hotbar it is pinned.
+        // Typing still goes to the search box; Enter opens the only match, found by its kind ("Archiving Tool").
         for (int i = 0; i < 3; i++) context.getInput().pressKey(GLFW.GLFW_KEY_BACKSPACE);
+        context.getInput().typeChars("archiv");
         context.waitTicks(2);
-        clickRow(context, "ark", true, LEFT);
-        context.waitForScreen(InventoryScreen.class);
-        context.waitFor(client -> "ark".equals(client.player.inventoryMenu.getCarried().get(AppItems.APP_ID)));
-        clickSlot(context, 38);
+        context.runOnClient(client -> {
+            check(search(client).getValue().equals("archiv"), "Typing after a click reached \"" + search(client).getValue() + "\"");
+            check(shown(client).equals(List.of("Ark")), "\"archiv\" finds " + shown(client));
+        });
+        context.getInput().pressKey(InputConstants.KEY_RETURN);
+        context.waitForScreen(null);
+        check(opened.getLast().equals("ark") && !AresOs.app("ark").mine(), "Enter on Ark opened " + opened + " or made it his");
+
+        // A drag dropped in the hotbar pins the program, and makes it his.
+        openApps(context, "archiv");
+        dragRow(context, "ark", false, 38);
         world.getConnection().waitForServerboundPackets();
-        context.waitFor(client -> AresOs.app("ark").pinned());
-        context.runOnClient(client -> check(items(client).get("ark") == 2, "Ark was not put in the third hotbar slot"));
+        context.waitFor(client -> AresOs.app("ark").mine() && AresOs.app("ark").pinned());
+        context.runOnClient(client -> check(Integer.valueOf(2).equals(items(client).get("ark")),
+                "Ark was not put in the third hotbar slot: " + items(client)));
+        check(opened.size() == 3, "The drag opened a program: " + opened);
         // Escape closes: first the Apps screen back to the inventory, then the inventory.
         context.clickScreenButton("Apps…");
         context.waitForScreen(AppsScreen.class);
@@ -680,18 +756,62 @@ public final class MyAppsClientGameTest implements FabricClientGameTest {
                 .map(widget -> ((StringWidget) widget).getMessage().getString()).collect(Collectors.joining("\n"));
     }
 
+    /** The row of this program under My apps or All programs; it must be in view. */
+    private static AppsScreen.Row row(Minecraft client, String id, boolean inMyApps) {
+        var row = rows(client).stream().filter(candidate -> candidate.inMyApps() == inMyApps && candidate.app().id().equals(id))
+                .findFirst().orElseThrow(() -> new AssertionError("No row of " + id + " under " + (inMyApps ? "My apps" : "All programs")));
+        check(row.getY() >= list(client).getY() && row.getY() + row.getHeight() <= list(client).getBottom(),
+                "The row of " + id + " is not in view");
+        return row;
+    }
+
     /** A real click: the pointer moves onto the row, one frame passes so the list knows the row under it, then the button. */
     private static void clickRow(ClientGameTestContext context, String id, boolean inMyApps, int button) {
         double[] at = context.computeOnClient(client -> {
-            var row = rows(client).stream().filter(candidate -> candidate.inMyApps() == inMyApps && candidate.app().id().equals(id))
-                    .findFirst().orElseThrow(() -> new AssertionError("No row of " + id + " under " + (inMyApps ? "My apps" : "All programs")));
-            check(row.getY() >= list(client).getY() && row.getY() + row.getHeight() <= list(client).getBottom(),
-                    "The row of " + id + " is not in view");
+            var row = row(client, id, inMyApps);
             return window(client, row.getX() + row.getWidth() / 2.0, row.getY() + row.getHeight() / 2.0);
         });
         context.getInput().setCursorPos(at[0], at[1]);
         context.waitTick();
         context.getInput().pressMouse(button);
+    }
+
+    /**
+     * A drag from a row, as the mouse handler hands it to the screens (package 40, review fixes 1): the left button
+     * goes down on the row, the pointer moves two pixels (still a click) and then six (a drag), the inventory comes
+     * back with the item on the cursor, and the button is let go over the inventory's slot {@code slotId}.
+     */
+    private static void dragRow(ClientGameTestContext context, String id, boolean inMyApps, int slotId) {
+        context.runOnClient(client -> {
+            var row = row(client, id, inMyApps);
+            double x = row.getX() + row.getWidth() / 2.0, y = row.getY() + row.getHeight() / 2.0;
+            var screen = client.gui.screen();
+            screen.mouseClicked(new MouseButtonEvent(x, y, new MouseButtonInfo(LEFT, 0)), false);
+            check(client.gui.screen() == screen, "Pressing on " + id + " left the Apps screen");
+            screen.mouseDragged(new MouseButtonEvent(x + 1, y + 2, new MouseButtonInfo(LEFT, 0)), 1, 2);
+            check(client.gui.screen() == screen, "Two pixels of a click were taken for a drag");
+            screen.mouseDragged(new MouseButtonEvent(x + 1, y + 6, new MouseButtonInfo(LEFT, 0)), 0, 4);
+        });
+        context.waitForScreen(InventoryScreen.class);
+        context.waitFor(client -> id.equals(client.player.inventoryMenu.getCarried().get(AppItems.APP_ID)));
+        context.runOnClient(client -> {
+            var screen = (InventoryScreen) client.gui.screen();
+            var slot = client.player.inventoryMenu.getSlot(slotId);
+            screen.mouseReleased(new MouseButtonEvent((screen.width - 176) / 2.0 + slot.x + 8,
+                    (screen.height - 166) / 2.0 + slot.y + 8, new MouseButtonInfo(LEFT, 0)));
+        });
+        context.waitTick();
+    }
+
+    /** E, "Apps…", and a search. */
+    private static void openApps(ClientGameTestContext context, String query) {
+        context.getInput().pressKey(options -> options.keyInventory);
+        context.waitForScreen(InventoryScreen.class);
+        context.clickScreenButton("Apps…");
+        context.waitForScreen(AppsScreen.class);
+        context.waitTicks(3);
+        context.getInput().typeChars(query);
+        context.waitTicks(2);
     }
 
     /** A point of the screen, as the pointer's position in the window. */
