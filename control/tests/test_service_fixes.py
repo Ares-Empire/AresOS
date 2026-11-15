@@ -5,6 +5,7 @@ import os
 from contextlib import redirect_stdout
 from pathlib import Path
 import socket
+import sys
 import tempfile
 import threading
 import time
@@ -14,6 +15,7 @@ from unittest.mock import patch
 
 from aresos_control import cli, protocol
 from aresos_control.common import Refused
+from aresos_control.definitions import BY_NAME, tools_for
 from aresos_control.protocol import Client, ServiceUnavailable, receive, send
 from aresos_control.proxy import Proxy
 
@@ -156,6 +158,64 @@ class ConnectGap(unittest.TestCase):
                 result = Proxy('testapp', {'act_socket': self.path, 'admin_socket': self.path + '.admin'}).call('list', {'limit': 3})
                 self.assertGreaterEqual(time.monotonic() - started, 0.4)
                 self.assertEqual(result['error']['code'], 'service_unavailable')
+
+
+class StartWithoutService(unittest.TestCase):
+    """18c's VM run: a Claude Code session started while the service is down gets its tools once the service is up."""
+    CALL = '{"jsonrpc":"2.0","id":"call","method":"tools/call","params":{"name":"list","arguments":{"limit":3}}}'
+
+    def setUp(self):
+        self.folder = tempfile.TemporaryDirectory()
+        self.addCleanup(self.folder.cleanup)
+        self.path = os.path.join(self.folder.name, 'act.sock')
+        self.config = {'act_socket': self.path, 'admin_socket': self.path + '.admin'}
+
+    def test_the_proxy_offers_its_own_catalogue_and_calls_reach_the_service_once_it_is_up(self):
+        proxy = Proxy('testapp', self.config)
+        with patch.object(protocol, 'CONNECT_WAIT', 0.2):
+            started = time.monotonic()
+            tools = proxy.tools()
+            self.assertGreaterEqual(time.monotonic() - started, 0.2)  # it asked the service first, with the wait
+            down = proxy.call('list', {'limit': 3})
+        self.assertEqual(tools, json.loads(json.dumps(tools_for('testapp'))))
+        self.assertIn('prepare_send', [tool['name'] for tool in tools])
+        self.assertFalse(any(BY_NAME['testapp_' + tool['name']].owner_only for tool in tools))
+        self.assertNotIn('fixture_configure', [tool['name'] for tool in tools])
+        self.assertEqual(down['error']['code'], 'service_unavailable')
+        service = FakeService(self.path, 0)
+        service.start()
+        self.assertEqual(proxy.call('list', {'limit': 3})['ok'], True)
+        service.join(5)
+        self.assertEqual(service.requests[0]['action'], 'testapp_list')
+
+    def test_a_catalogue_the_service_returns_wins_and_other_failures_still_stop(self):
+        proxy = Proxy('testapp', self.config)
+        served = [tool for tool in tools_for('testapp') if tool['name'] == 'list']
+        owner_only = BY_NAME['testapp_fixture_configure'].tool()
+        with patch.object(proxy.client, 'request', return_value={'ok': True, 'data': {'tools': served + [owner_only]}, 'pending': {}}):
+            self.assertEqual([tool['name'] for tool in proxy.tools()], ['list'])
+        for failure in ({'return_value': {'ok': False, 'error': {'code': 'invalid_input', 'message': 'synthetic'}, 'pending': {}}},
+                        {'side_effect': Refused('transport_error', 'Service connection lost.')}):
+            with self.subTest(failure=failure), patch.object(proxy.client, 'request', **failure), self.assertRaises(Refused):
+                proxy.tools()
+
+    def test_an_mcp_session_started_without_the_service_gets_its_tools(self):
+        from raw_json_test_support import RawMCP
+        code = ('import sys; from aresos_control import protocol; protocol.CONNECT_WAIT = 0.3; '
+                'from aresos_control.proxy import main; main("testapp", {"act_socket": sys.argv[1]})')
+        with RawMCP([sys.executable, '-c', code, self.path], env=os.environ.copy()) as client:
+            listed = client.exchange('{"jsonrpc":"2.0","id":"list","method":"tools/list","params":{}}')
+            self.assertEqual(sorted(tool['name'] for tool in listed['result']['tools']),
+                             sorted(tool['name'] for tool in tools_for('testapp')))
+            down = client.exchange(self.CALL)
+            self.assertTrue(down['result']['isError'], down)
+            self.assertEqual(down['result']['structuredContent']['error']['code'], 'service_unavailable')
+            service = FakeService(self.path, 0)
+            service.start()
+            up = client.exchange(self.CALL)
+            self.assertEqual(up['result']['structuredContent']['ok'], True, up)
+            service.join(5)
+            self.assertEqual(service.requests[0]['action'], 'testapp_list')
 
 
 class AdminWithoutSudo(unittest.TestCase):

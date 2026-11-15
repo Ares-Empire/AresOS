@@ -4,7 +4,7 @@ import sys
 
 from .common import FILE_LIMIT, WIRE_LIMIT, JSONInputError, Refused, cleanup, display_json, require_question, strict_json_loads, validate, storage_refusal
 from .definitions import obj, string
-from .definitions import APPS, BY_NAME, instructions_for
+from .definitions import APPS, BY_NAME, instructions_for, tools_for
 from .files import FilePolicy, safe_name
 from .protocol import Client, ServiceUnavailable
 from . import usage
@@ -20,7 +20,13 @@ class Proxy:
         self.files = FilePolicy(config["home"], config["folders"], config.get("file_limit", FILE_LIMIT)) if "home" in config else None
 
     def tools(self):
-        result = self.client.request({"method": "tools", "app": self.app})
+        try:
+            result = self.client.request({"method": "tools", "app": self.app})
+        except ServiceUnavailable:
+            # A session started while the service is down still gets its tools (18c's VM run): the service's catalogue
+            # is this same code's tools_for(app). Calls answer service_unavailable until the service is up, and the
+            # service still checks every call. A catalogue the service returns always wins.
+            result = {"ok": True, "data": {"tools": json.loads(json.dumps(tools_for(self.app)))}}
         if not result["ok"]:
             raise Refused(result["error"]["code"], result["error"]["message"])
         # Defense in depth: never trust a catalogue containing privileged actions.

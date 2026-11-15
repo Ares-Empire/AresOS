@@ -47,6 +47,13 @@ every caller (MCP proxies, the CLI, the hooks) gets the error code `service_unav
 "The AresOS tool service is not running; nothing was sent. Try again later." It never
 points at `operation_status`: there is no operation. A connection lost after the request
 was sent keeps `transport_error`, or `unknown` with the same-id advice for a change.
+An MCP proxy that starts while the service is down still starts: it asks the service
+for its catalogue as usual (with the wait) and, on `service_unavailable`, offers its own
+`tools_for(app)` (the same catalogue the service sends, owner-only actions left out).
+Its calls answer `service_unavailable` until the service is up, and the service still
+checks every call; a catalogue the service does return always wins. So a Claude Code
+session started during an outage has its AresOS tools once the service is back, without
+a restart (found by brief 18c's VM run).
 `aresos admin …` run without sudo answers `permission_denied` ("Admin commands need
 sudo: run sudo aresos admin …") before touching `admin.sock` or asking for a password.
 

@@ -1,7 +1,7 @@
 # 18e: Control service fixes: progress and report
 
-Builder: Claude agent, Opus 5.5 (step 1); fix round with the lead's decisions of 2026-11-15 (JUDGMENT-CALLs 2 and 5):
-Claude agent, Opus 5.5. Branch `pkg/18e-service-fixes`, PR #69 (draft until CI is green).
+Builder: Claude agent, Opus 5.5 (step 1); fix round with the lead's decisions of 2026-11-15 (JUDGMENT-CALLs 2 and 5,
+and the proxy's start without the service from 18c's VM run): Claude agent, Opus 5.5. Branch `pkg/18e-service-fixes`, PR #69 (draft until CI is green).
 A Claude builder can't create `REPORT.md`: this file is the report.
 
 ## Done
@@ -18,7 +18,9 @@ All six items, in the brief's order (item 6's process-chain check first).
 | 5 | The refusal is built from the policy's folders, relative to the home, sorted: "Path is outside the allowed folders; choose ~/Documents or ~/Downloads." | `files.py` |
 | 6 | `usage.py` (new). The MCP proxy's `note_use` calls `usage.mark()` before a result that names an operation reaches the session: a non-read action whose `data` holds an `operation_id` or `approval` key, or an `unknown` outcome. The mark is `/run/user/<uid>/aresos-control/used/<ppid>-<start>` (folders 0700, file 0600, every step `O_NOFOLLOW`, owner and mode checked). The Stop hook, on `service_unavailable` or `transport_error`, calls `usage.notice()`, which looks as `usage.used()` does: walks its ancestors from its parent, four levels, never PID 1; a mark (or anything unreadable) blocks once with "AresOS tools are not running. If you prepared or sent something with them in this session, its outcome is unknown: tell the owner, and don't repeat it."; no mark prints nothing, exit 0. Once per outage (lead's decision): `usage.notice()` gives the notice only while the session's `<pid>-<start>.told` (beside the mark, 0600, `O_NOFOLLOW`) is missing and creates it; a hook that reaches the service calls `usage.reached()`, which removes it. `stop_hook_active` still guards (checked before anything is recorded); `UserPromptSubmit` stays silent on failure. | `usage.py`, `proxy.py`, `hooks.py` |
 
-Docs: `control/README.md` ("Process and request contract": start-up gap, admin hint, idle loop, start limit; "Caller
+| 7 (lead, from 18c's VM run) | A proxy started while the service is down no longer dies: `Proxy.tools()` asks the service as before (with the 3 s wait) and, on `service_unavailable` only, offers its own `tools_for(app)` (a JSON copy, the same owner-only filter). Calls then answer `service_unavailable` until the service is up; the service still checks every call. A catalogue the service returns wins; any other failure still stops the proxy. | `proxy.py` |
+
+Docs: `control/README.md` ("Process and request contract": start-up gap, proxy start without the service, admin hint, idle loop, start limit; "Caller
 file policy": the refusal; "Hooks": quiet unless used). `KNOWN-LIMITS.md`: there is only
 `reviews/20-chrome/KNOWN-LIMITS.md`, and none of its limits change.
 
@@ -75,7 +77,8 @@ the base CI container (`test_integration.Integration.test_idle_service_wakes_at_
 | 43670639975 / 43670639979 / 43670639991 / 43670640000 / 43670639999 | base / boundary / Mail / Chrome polkit / Chrome qualification | 4705a4ea | **all green**; base: 339 tests, idle 1 switch in 60 s (0.02/s), "Control base suite PASS" |
 | 43670639964 | Control Chrome | 4705a4ea | **latency (plain) and latency (audit) green** (gate unchanged); fixtures and python-shards (0) failed only on `chrome_tests/test_unit.py`, a second copy of the unit pin I had missed. Updated in the next commit |
 | see the PR | all six control workflows | 7fc97459 | green (lead) |
-| see the PR | all six control workflows | fix round (hooks connect once; one notice per outage) | reported to the lead at hand-off |
+| 43679206934 / 43679206942 / 43679206919 / 43679206932 / 43679206924 / 43679206941 | all six control workflows | 023fd050 (hooks connect once; one notice per outage) | superseded by the next push (Chrome polkit had passed) |
+| see the PR | all six control workflows | fix round with item 7 | reported to the lead at hand-off |
 
 Lesson for the next step: every push to the PR, even of this file, restarts all six control workflows (the
 `pull_request` path filter looks at the whole PR diff) and cancels the running ones.
@@ -97,8 +100,15 @@ Lesson for the next step: every push to the PR, even of this file, restarts all 
   notice per outage at the `usage` level and through `hooks.main` (first stop tells, later stops and a lost connection
   stay quiet, a reply to `Stop` or `UserPromptSubmit` re-arms it, the continuation guard records nothing), a `.told`
   file that can't be written or read still tells, a link or folder at its name is never followed, unreadable marks
-  tell at every stop. Against the previous `hooks.py` the hook timing test measures 3.0 s (fails). The hook tests in
-  `test_ingress_bounds` pass; its MCP stdio case needs the SDK (`mcp_types`), missing on the laptop.
+  tell at every stop. Against the previous `hooks.py` the hook timing test measures 3.0 s (fails).
+- **run** (item 7, laptop, with the locked SDK installed into a scratch folder by `pip --target` as CI does, nothing
+  system-wide): `test_service_fixes` 35 tests OK, `test_ingress_bounds` 8 OK (its MCP stdio case included),
+  `generate.py --check` OK. New: the proxy with no service lists `tools_for('testapp')` (no owner-only tool), a call
+  answers `service_unavailable`, a service that appears then gets the next call; a served catalogue wins (owner-only
+  entries still filtered), other failures still raise; and a real MCP stdio session (the SDK server, `proxy.main`)
+  started with no service initializes, lists the tools, gets `service_unavailable`, then reaches a service that
+  appeared. Against the previous `proxy.py` the MCP case fails ("Raw MCP proxy exited"). `test_approval_questions`
+  fails 5 cases on the laptop, the same 5 on 7fc97459 (environment).
 
 ## For 18c's next VM pass (under systemd): assertions to hand on
 
@@ -130,6 +140,10 @@ Lesson for the next step: every push to the PR, even of this file, restarts all 
    is gone), `systemctl stop aresos-toold` and one turn: exactly one notice again.
 10. **Hooks don't wait:** with the service stopped, each `UserPromptSubmit` and `Stop` hook of a session ends at once
    (well under a second, not the CLI's 3 s; time `launch.py hook Stop` with the managed command and an input).
+11. **A session started with the service down gets the tools:** `systemctl stop aresos-toold`; start a new Claude
+   Code session (its MCP servers start and stay up, `/mcp` lists them connected); a tool call answers
+   `service_unavailable`; `systemctl start aresos-toold`; in the same session, without a restart, a tool call (say
+   `testapp_list`) succeeds.
 
 ## JUDGMENT-CALLs
 
