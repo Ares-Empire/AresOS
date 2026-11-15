@@ -1,9 +1,108 @@
 # 23b: the AresOS startup cover — progress and report
 
-Builders: Claude agents (Opus 5.5), step 1 and step 2, 2026-11-15. Branch `pkg/23b-startup-cover`, draft PR #70.
-Status: **step 2 done: the flaky test's cause found and fixed, both PLAN-GAPs built as the integrator decided.**
-Ready for the check build with VM, the hosted `checks_only` run and a fresh review.
+Builders: Claude agents (Opus 5.5), steps 1 to 3, 2026-11-15. Branch `pkg/23b-startup-cover`, draft PR #70.
+Status: **step 3 done: review 1's findings 1 to 4 fixed as the integrator decided** (the image's font cache, the
+retry after AUTH_REQUIRED, the focus after a covered restart, JUDGMENT-CALLs 4 to 7 for the owner). Ready for the
+check build with VM (its `aresos-cover.png` must show Space Grotesk), the hosted `checks_only` run and review 2.
 Nothing here was run on the owner's screen: every graphical run was a headless labwc of its own.
+
+## Step 3 (2026-11-15): review 1's findings, as the integrator decided
+
+### Finding 1: the font cache (image-wide; it fixes package 31's window titles too)
+
+- **Cause (review 1):** on the deployed image every directory under `/usr` has mtime 0, and fontconfig 2.17 then
+  takes any cache it has for `/usr/share/fonts` as valid. The image's cache was made before `config/` added
+  `/usr/share/fonts/aresos`, so at runtime nothing found Space Grotesk: the cover and labwc's title bars (package
+  31's theme names it in `rc.xml`) drew in Noto Sans, while the image check, in a container with real mtimes, passed.
+- **`os/build.sh`** (configure step, right after package 31's `glib-compile-schemas`; the Containerfile has copied
+  `config/` by then): `fc-cache --system-only --really-force`, with a comment saying why. It erases the system
+  caches in `/usr/lib/fontconfig/cache` and rebuilds them from every system font folder, `aresos/` included. In
+  the deployed image those cache files have mtime 0 too, and fontconfig prefers a mtime-0 cache for a mtime-0
+  folder over any other, so a stale cache in ares's home cannot hide the font either. Checked in a scratch
+  fontconfig on the laptop (own config, folders and caches, `FONTCONFIG_FILE`): a user cache made before the font
+  folder existed hides the font on its own, and loses to a cache rebuilt afterwards and set to mtime 0, in either
+  cachedir order. Fedora's `/usr/bin/fc-cache` runs `fc-cache-32` and `fc-cache-64` and ignores their exit status,
+  so a failure there would not stop the build: the VM check below is what catches it.
+- **VM check** (`os/ci/overlay/checks.py`, step `cover`, before the cover starts): `session_fonts()` runs
+  `fc-match -f '%{file}' 'Space Grotesk:bold'` and `fc-match -f '%{file}' 'Space Grotesk'` as ares with the same
+  environment the check starts the cover with (the real home, the session's `WAYLAND_DISPLAY`; the session sets no
+  fontconfig variables). Both must be `/usr/share/fonts/aresos/SpaceGrotesk-Variable.ttf`; otherwise the step fails
+  and says what fontconfig gave and the mtimes of `/usr/share/fonts` and its `aresos` folder. The step's printed
+  line and `cover-result.json` carry both answers.
+- **Image check** (`os/ci/image-checks.sh`): the same `fc-match` check stays; its PASS text is now "… loads GTK 4 as
+  ares; fontconfig finds Space Grotesk (…)" (was "draws in"), and a comment says the container cannot see the
+  deployed image's cache, so the VM check is the one that proves the drawing.
+- **Tests:** `CoverFontCheckTest` (checks.py's `session_fonts` with `fc-match` stood in: both faces from the aresos
+  file pass, with exactly the two commands as ares; Noto for either face or both, an empty answer, or `fc-match`
+  failing, each fails); `SessionFilesTest.test_the_image_rebuilds_its_font_cache_after_config_is_copied` (the line is
+  in build.sh's configure step, once; the Containerfile copies `config/` before configure).
+- **Release image diff:** `/usr/lib/fontconfig/cache/*` now changes in every build. Release 27's
+  `os/ci/release_diff.py` already lists those paths as generated ("fontconfig cache trigger": listed by path,
+  content not compared), so it would not flag them, and nothing changed there. **For the next release's image diff
+  (the release package):** give `usr/lib/fontconfig/cache/*` the reason "package 23b: build.sh rebuilds the system
+  font cache (`fc-cache --system-only --really-force`)", next to package 31's `gschemas.compiled` rule.
+
+### Finding 2: the retry after AUTH_REQUIRED is never covered
+
+- `retry()`: `self.begin(cover=None if self.state == AUTH_REQUIRED else COVER_AGAIN)`, with a comment. The state is
+  still AUTH_REQUIRED at that line, also when a restarted supervisor restored it. Every other retry still shows
+  "Starting again…". The module docstring says so.
+- Test `CoverTest.test_a_retry_from_auth_required_is_never_covered`: the retry starts Prism with no cover and no
+  Prism-wait timer; in a sign-in loop (Prism gives up again, retry again) every retry stays uncovered and the hub
+  then comes as usual; after a quit, the retry is covered with `--again` as before; AUTH_REQUIRED restored by a
+  restarted supervisor, then retry: no cover. Without the fix it fails.
+
+### Finding 3, option (a): a restart under the cover lets the restarted hub take the focus
+
+- `ensure_helper`: `ARESOS_SHELL_KEEP_FOREGROUND` is set for `launch.automatic and not self.cover`, with a comment.
+  Under the cover nothing of his is in front, only the cover; keeping the focus there would leave the restarted
+  game without it, and Minecraft's lost-focus pause would show the hub behind a pause menu when the cover closes.
+  A restart without a cover (the hub was ready, the shortcut or the Prism wait ended the cover, or none started)
+  sets it exactly as before.
+- Tests:
+  - `CoverTest.test_a_restart_under_the_cover_lets_the_restarted_hub_take_the_focus`: a crash before the hub was
+    ready, then the restart under the cover. The restarted helper gets no `KEEP_FOREGROUND`, and neither does a
+    helper started again while the cover is up. The restarted hub then ends the cover as usual, and the failure is
+    counted once.
+  - `CoverTest.test_a_restart_without_the_cover_keeps_the_window_in_front`: the cover ended by the shortcut, by the
+    Prism wait, by the hub being ready, or never started. In each case the restarted helper gets `KEEP_FOREGROUND=1`,
+    as before 23b.
+  - `RestartPolicyTest.test_a_failed_start_is_reported_and_counted_never_left_open`: its five cases now run twice,
+    without the cover (`KEEP_FOREGROUND=1`, package 23's finding 11, as before 23b) and under it (none). Since step 1
+    it had run only under the session's first cover, where it asserted the behaviour this finding removes.
+    `authorized()` takes `cover=False`, which makes the cover program missing for that session.
+  - Without the fix, 6 fail: the first test and the five covered subtests.
+- JUDGMENT-CALL 2 is rewritten below.
+
+### Finding 4: JUDGMENT-CALLs for the owner
+
+JUDGMENT-CALLs 4 to 7 below are review 1's 4(a) to 4(d), in plain words. 4(b) is also under "What the code doesn't
+show".
+
+### Not fixed here (for the integrator)
+
+- **Finding 6 (info, package 23):** the supervisor notices SIGTERM up to 30 s late; package 25 territory.
+- **Finding 5 (nit, merge order):** with 22d, whoever merges second takes only `pending-rebind.json` and drops the
+  duplicate rows; with package 40, `Windows.covering()` must not count app-id `aresos.cover`, with a test, in
+  whichever merges second.
+
+### Step 3 verification (on the laptop, 2026-11-15)
+
+All with `WAYLAND_DISPLAY` and `DISPLAY` unset, one module at a time.
+- Whole module `test_aresos_desktop.py`, twice: `Ran 186 tests in 166.7s OK (skipped=1)`, then `Ran 186 tests in
+  168.3s OK (skipped=1)` (180 before; 4 new tests, 2 new font-check tests; the skip is the root/user-systemd scope
+  test). With only the code change and no test change, the module had `FAILED (failures=5)`: the five cases of
+  the failed-start test that ran under the cover (finding 3, above).
+- Each fix reverted on its own: without the `not self.cover` condition, 6 failures (above); without the
+  AUTH_REQUIRED condition, `test_a_retry_from_auth_required_is_never_covered` fails.
+- Modules that read the changed files: `test_everyday_account` (build.sh, image-checks.sh, checks.py) `Ran 34
+  tests OK`; `test_release27` (build.sh) `Ran 41 tests OK`; `test_aresos_shell_icons` (image-checks.sh) `Ran 43
+  tests OK`; `test_checkout_sources` `Ran 6 tests OK`. `bash -n` on build.sh and image-checks.sh: no errors.
+- 22c's rehearsal bindings: none of the files changed here is bound (`checkout_sources.active_tables`); the
+  bound files that differ are the same five as before this step (`rebind.changed()`), so no `rebind.py pending` was
+  needed.
+- The scratch fontconfig check above (stale caches, mtime 0).
+- Not run: the image build, the image checks and the VM steps (they need the check build), and the hosted suite.
 
 ## Step 2 (2026-11-15): the integrator's decisions
 
@@ -192,6 +291,12 @@ Tests added:
 
 ## What the VM check build can show (dispatch needed: yes)
 
+Step 3 adds: the image is built with the rebuilt font cache, and the VM's `cover` step requires `fc-match` as ares
+in the real session to give `/usr/share/fonts/aresos/SpaceGrotesk-Variable.ttf` for Space Grotesk bold and regular
+(its printed line names both). `aresos-cover.png` must then show "AresOS" and "Starting your home screen…" in Space
+Grotesk, not Noto Sans (review 1 told them apart by y, g, t and S), and labwc's title bars in `aresos-labwc.png` and
+`aresos-cover-stopped.png` should be Space Grotesk too (package 31).
+
 Step 2 adds: the image checks for the shortcut's two actions and the `hide-cover` command, and in the VM's
 `shortcut` step the supervisor's log line from Super+Ctrl+Escape and `hide-cover`'s answer (above).
 
@@ -208,24 +313,56 @@ rc.xml, image-checks.sh, VM scripts), so the integrator should dispatch a check 
 
 - A real start with the cover: Minecraft's window under it, the hand-over of focus when it closes, the time from
   login to the cover. Needs the P3 trial on the laptop (or a VM with an account and a hub, which CI has not).
-- Space Grotesk in the drawing (the laptop's current image lacks the font; the image check proves fontconfig
-  finds it in the new image, not the picture).
+- Space Grotesk in the drawing: review 1 found the VM drew Noto Sans (a stale font cache); step 3 rebuilds the cache
+  and the VM's cover step now requires fontconfig to give Space Grotesk as ares in the real session. Not seen yet:
+  it needs the check build with VM (`aresos-cover.png`).
 - GTK's renderer on the NVIDIA laptop (the cover uses the default GPU; headless it used software).
 
 ## JUDGMENT-CALLs (for the owner)
 
 1. **Gradient direction.** As the brief says: `#1a191e` at the top, `#0d0d10` at the bottom, so it is darker at
    the bottom as `linux-hub` described; its colour order said the opposite. Changing it: swap two constants.
-2. **A crash during the covered start keeps the cover through the automatic restart.** The brief's stop list
-   has no "crash"; the cover is not *started* for the restart, it is still up from the session start (the state
-   stays STARTING, reason `restarting`). He sees one calm screen until the hub is ready, or the recovery window
-   after the third crash. Side effect: the restarted hub's helper keeps the window that was in front before the
-   new hub window (`ARESOS_SHELL_KEEP_FOREGROUND`), which is then the cover; the hub gets the focus when the cover
-   closes (labwc focuses the topmost window). Alternative: stop the cover on `schedule_restart` (one line); then the
-   restart shows Mojang's loading screen again.
+2. **If Minecraft crashes during the covered start, the cover stays up through the automatic restart.** The
+   brief's list of moments that end the cover has no "crash". The cover is not started again for the restart; it
+   simply stays up from the session start (state STARTING, reason `restarting`). What he notices: one calm AresOS
+   screen until the hub is ready, instead of Mojang's loading screen a second time, or the recovery window after
+   a third crash. When the cover closes, the restarted hub has the keyboard and mouse, as after a normal start.
+   Review 1, finding 3 changed this: a restart under the cover no longer tells the hub to stay behind the window
+   in front, because only the cover is in front then. Otherwise Minecraft would have paused itself, and he would
+   have found the hub behind its pause menu. A crash after the cover is gone (the hub was ready, he pressed
+   Super+Ctrl+Escape, or Prism's 25 s wait ended it) restarts exactly as before: the hub waits behind the window
+   he is using. Alternative: end the cover when the crash happens (one line); then the restart shows Mojang's
+   loading screen again.
 3. **Only the session's first supervisor covers.** A supervisor restarted by its keeper mid-session, and the late
    start after an earlier session's end is explained (`new_session`), show no cover: neither is "session start",
    and both may come while he uses an app. Changing it: one condition in `start()`.
+4. **Typing `retry` covers the whole screen until the hub is ready.** `retry` can be typed in any terminal: the
+   recovery window, or Claude's terminal on the laptop. Every retry except the one after a failed sign-in shows
+   "Starting again…" over all open windows. What he notices: his windows disappear behind the AresOS screen until
+   the hub is open. That is at most 25 s if Prism stops to ask him something, and about two minutes if Minecraft
+   is slow. Keys he types meanwhile go to the hidden windows; in the first 25 s an Enter can answer a Prism
+   question he cannot see. Super+Ctrl+Escape ends the cover at once. Alternative: cover only a retry typed in
+   AresOS's own recovery window (the supervisor would have to learn where a retry came from: a change to the
+   command, the socket and their tests).
+5. **Minecraft's own questions while the world loads stay hidden for up to two minutes.** Sometimes Minecraft
+   asks something before it opens the world. For example, it may offer a backup when an AresOS update moves the
+   world to a newer Minecraft version, or warn about experimental settings. That question appears under the
+   cover. What he notices: the AresOS screen stays for two minutes (120 s from Minecraft's start). Then the cover
+   ends, the "hub did not open within 120 seconds" message appears, and Minecraft's question can be answered.
+   Super+Ctrl+Escape ends the cover sooner. Alternative: a shorter limit for covered starts; a slow but normal
+   start would then show the message more often.
+6. **The font.** Review 1 found that the cover and the window titles drew in an ordinary font (Noto Sans), not
+   AresOS's own font (Space Grotesk), because the image's font list was out of date. Step 3 fixes that for the whole
+   image, and the VM check now fails if the font is wrong. What he would notice if the fix did not reach the
+   release: the same screens in a plainer font, nothing else. Nothing to decide unless the check build shows it.
+7. **Prism gets 25 seconds under the cover.** Prism is the launcher that starts Minecraft. When it stops at login
+   to ask him something (sign in again, play offline, the network not ready yet), the AresOS screen hides that
+   question for 25 seconds, then disappears so he can answer. What he notices: on such a login, 25 s of "Starting
+   your home screen…" before Prism's question shows, and an Enter typed meanwhile goes to the hidden question.
+   Normal starts reach Minecraft within seconds and stay covered until the hub is ready. The retry after a
+   failed sign-in is never covered (review 1, finding 2), so Prism's sign-in then shows at once. Changing the
+   25 s is one number: shorter risks uncovering a normal but slow start, longer means a longer wait before a
+   question shows.
 
 ## PLAN-GAPs (decided by the integrator 2026-11-15 and built in step 2: 1 → option (b), 2 → the shortcut ends it)
 
@@ -255,10 +392,13 @@ rc.xml, image-checks.sh, VM scripts), so the integrator should dispatch a check 
 ## Left, in order
 
 1. The integrator dispatches the check build with VM (`check_build=build`) and a `checks_only=true` run; neither
-   has run for step 1 or step 2.
-2. A fresh review (Opus, or Codex from 2026-11-17).
-3. JUDGMENT-CALLs 1 to 3 go to the owner as built (integrator's decision 4).
-4. The last step deletes this file; the report text goes to `REPORT.md` through the integrator.
+   has run since step 1. The VM must show Space Grotesk (above: the cover step's `fc-match` line and
+   `aresos-cover.png`).
+2. Review 2 (fresh; Opus, or Codex from 2026-11-17).
+3. JUDGMENT-CALLs 1 to 7 go to the owner.
+4. For the integrator: review 1's findings 5 (merge order with 22d and 40) and 6 (package 25), under step 3 above.
+5. For the release package: the image diff's reason for `usr/lib/fontconfig/cache/*` (step 3, finding 1).
+6. The last step deletes this file; the report text goes to `REPORT.md` through the integrator.
 
 ## What the code doesn't show
 
@@ -267,7 +407,15 @@ rc.xml, image-checks.sh, VM scripts), so the integrator should dispatch a check 
 - The hand-over of focus relies on labwc focusing a newly mapped window under an always-on-top one, and focusing
   the topmost window when a focused one closes (labwc 0.9.6); seen headless only for stacking, not for a game.
 - Retry is impossible to type while the cover is up until Super+Ctrl+Escape ends it (or the 25 s Prism wait, or
-  the hub); a retry during a covered start (from a TTY) replaces the cover with an `--again` one.
+  the hub); a retry during a covered start (from a TTY) replaces the cover with an `--again` one. The retry after
+  AUTH_REQUIRED is never covered, also when a restarted supervisor restored that state.
+- Minecraft's own screens before the world opens (a backup offer after a version change, an experimental-settings
+  warning) appear under the cover. Nothing tells the supervisor about them: the wrapper's `jvm_start` already
+  ended the Prism wait, so the cover stays until START_TIMEOUT (120 s from Java's start), when the slow-start view
+  opens and the cover ends (JUDGMENT-CALL 5).
+- Whether a crash restart keeps the window in front is decided when its helper starts: with the cover up it does
+  not; a helper started again later in the same launch, after the cover ended, keeps it, as every automatic
+  launch's helper did before 23b (the helper applies it only within 3 s of the hub window appearing).
 - The 25 s Prism wait counts from the launch's start, a few milliseconds before Prism's (start_launch starts the
   helper and the cover first). It never applies once the wrapper's `jvm_start` was accepted, so Mojang's loading
   screen and joining the world stay covered however long they take (until START_TIMEOUT's view).
