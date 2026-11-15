@@ -269,7 +269,7 @@
   function safeValue(element, traced=true) {
     // The exclusion is repeated immediately before EACH value/text read.
     if (password(element)) return {password: true};
-    if(!watched&&typedField(element))return {typed_text:true,unknown_history:true,value_status:filledStatus(element)};
+    if(unknownHistory(element)&&typedField(element))return {typed_text:true,unknown_history:true,value_status:filledStatus(element)};
     if(!watched&&html(element,HTMLInputElement,'input')&&element.type==='hidden')return {unknown_history:true,value_status:'not_read'};
     let value;
     if (html(element,HTMLInputElement,'input')) {
@@ -283,6 +283,10 @@
     traces.push({element: id(element), value});
     return {value,...(element.isContentEditable?{rich:richIdentity(element)}:{})};
   }
+  // Whether the reader can't know what a typed field held before it looked
+  // (brief 28, item 1, the history rule): its value is not read, the asking
+  // read may list it, and Claude doesn't type into it.
+  const unknownHistory=element=>!watched;
   function typedField(element) {
     // This shared predicate controls normal reads, approval scope and reload warnings.
     return html(element,HTMLTextAreaElement,'textarea')||html(element,HTMLInputElement,'input')&&!['hidden','password','checkbox','radio','date','datetime-local','month','week','time','range','color','file','button','submit','reset','image'].includes(element.type);
@@ -830,6 +834,8 @@
         const element = elements.get(message.element);
         if (!element?.isConnected) throw Error('stale_reference: read again');
         if (password(element)) throw Error('owner_signin: password fields belong to the owner');
+        // A fill or a key would overwrite what Claude can't see.
+        if (typedField(element)&&unknownHistory(element)) throw Error('owner_signin: the tool may not read this field, so it does not type into it either; the owner types here himself');
         element.focus();
         let focused=document.activeElement;
         while(focused && shadow(focused)?.activeElement)focused=shadow(focused).activeElement;

@@ -608,6 +608,18 @@ test('brief 28 a field that becomes a typed field named like a credential is wit
   assert.equal(renamed.read().data.rows[0].password,true);assert.equal(renamed.calls(),reads);
 });
 
+test('brief 28 a typed field that is not read is not typed into either',()=>{
+  for(const watched of [false,true])for(const kind of ['text','textarea','checkbox']){
+    const f=fixture([{type:kind==='checkbox'?'checkbox':'text',...(kind==='textarea'?{tagName:'TEXTAREA'}:{})}],{watched});let focused=0;
+    if(kind==='textarea')f.textarea(f.nodes[0]);
+    f.nodes[0].focus=()=>{focused++;};f.document.activeElement=f.nodes[0];
+    f.read();f.command({command:'set_control',generation:'epoch'});const before=f.calls();
+    const reply=f.command({command:'focus',element:'e1',generation:'epoch'}),unread=!watched&&kind!=='checkbox';
+    assert.equal(reply.ok,!unread,kind+' watched='+watched+' '+JSON.stringify(reply));assert.equal(focused,unread?0:1);assert.equal(f.calls(),before);
+    if(unread)assert.match(reply.error,/^owner_signin: the tool may not read this field/);
+  }
+});
+
 test('post18d late single-line values show filled or empty without reading their value getter',()=>{
   for(const type of ['text','tel','number','unknown','email','url','search'])for(const empty of [false,true]){
     const f=fixture([{type,empty}],{watched:false});f.read();const row=f.command({command:'facts',element:'e1'}).data.target;
