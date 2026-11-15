@@ -1,6 +1,6 @@
 # Package 40: progress
 
-Step 1 (Fable 5.2) and step 2 (Opus 5.5) are done. This file is the handoff: a fresh agent continues from the commits
+Steps 1 (Fable 5.2), 2 and 3 (Opus 5.5) are done. This file is the handoff: a fresh agent continues from the commits
 and from here.
 
 ## Done
@@ -48,15 +48,53 @@ and from here.
   - Examples (`mod/src/test/resources/shell-1.1/`): `shell_covered` in both hello files, and
     `shell-covered-event.json`; the README there says what it means.
 
+- **Step 3: D, fly and speed** (`mode/LiveMode.java`, `mixin/LiveAbilitiesMixin.java`, `ModeInventories.sync`,
+  `DesktopWorld.setEnabled`, client `mixin/LiveHudMixin.java`). Only in a desktop world:
+  - Live mode stays `SURVIVAL` (its own inventory, no instant building, the creative inventory's slot packets refused)
+    but gets creative's `mayfly` and `invulnerable`: he flies with a double space, nothing hurts him, and the game
+    itself no longer sets him on fire or tires him (both follow from `invulnerable` in 26.2).
+  - Both modes walk at **0.15 instead of 0.1** (1.5 times; JUDGMENT-CALL 11), set as the abilities' walking speed and
+    the movement speed's base together, as the game keeps them, so the field of view does not widen and nothing shows
+    (no effect, no icon, no particles).
+  - Where: right after every `ServerPlayerGameMode.setGameModeForPlayer`, which every path that sets a game mode
+    ends in (the constructor, loading his save, the respawn's copy, every switch, a rolled-back switch). That setter
+    resets the abilities to the mode's own, so this is the one place that keeps them. A Live player who was flying
+    keeps flying across a switch (the game then lands him near the ground, as between creative and spectator).
+  - His client gives itself the mode's own abilities whenever it hears the game mode (login, respawn, the
+    `CHANGE_GAME_MODE` event). Vanilla resends the abilities after its own event, but `ModeInventories.sync` sends
+    the event again afterwards, and the respawn sends none: both now send Live's abilities after it. Without that his
+    client could not fly after G and G, or after a respawn (the tests below catch both).
+  - The desktop marker going off (`/aresos desktop off`) gives every player in the world the game's abilities for
+    his mode and its walking speed back at once; on again, Live's and the speed.
+  - The HUD in Live shows only the hotbar: `MultiPlayerGameMode.canHurtPlayer` and `hasExperience` (asked only by
+    the HUD) answer false in Live on a desktop world, so hearts, armour, air, hunger and the experience bar are gone,
+    as in creative (JUDGMENT-CALL 12).
+- **Step 3: the session preview** (`mod/dev/run-hub.sh --session`, `mod/dev/preview-window.py`,
+  `mod/dev/preview-env.sh`): the helper and the development client run inside a labwc of the run's own, nested in
+  the owner's desktop (wlroots' Wayland backend), with a copy of the checkout's
+  `os/config/usr/share/aresos/labwc/rc.xml` and nothing else of that folder (its `autostart` would start the
+  session's own supervisor). `preview-window.py` asks the outer desktop (wlr foreign-toplevel `set_fullscreen`) to
+  show the preview's window fullscreen and exits when that window closes, which stops the run. The plain window
+  stays the default. Tested headless only (Evidence, "Step 3: the preview"). **For `hub-try` (orchestrator):** add
+  `--session` to its `run-hub.sh` call, before `"$@"`; it needs a checkout that has this commit.
+
 ## Left, in order
 
-The orchestrator moved D and the nested preview from step 2 to step 3 (2026-11-15).
-
-1. D (fly and speed), as the brief says.
-2. The nested preview in `run-hub.sh`.
-3. Docs: as the brief says, plus `shell_covered` in the protocol's documentation (HUB.md 3.8 lists the 1.1 additions;
+1. Docs: as the brief says, plus `shell_covered` in the protocol's documentation (HUB.md 3.8 lists the 1.1 additions;
    OS-BASE Appendix B1/B2 the events), three `build.sh` runs, one `client-test.sh` run, the PR. The PR's description
    should say that `aresos-shell` now binds `wl_output` and can minimize windows (linux-aresos reads the `os/` diff).
+   What the docs must say about step 3:
+   - HUB.md's corrections section, point 6: Live flies (double space), nothing hurts or burns him, no hunger, the HUD
+     is the hotbar only (no hearts, armour, air, hunger or experience bar); Live is still survival, so its inventory
+     stays the taskbar, logos and the town's blocks stay protected and left-click breaks nothing at once. G is
+     unchanged apart from the speed. Speed in both modes: walking 6.5 blocks a second, sprinting 8.4 (1.5 times the
+     game's), flight unchanged at 10.9 (21.6 sprinting); the distance table's times shrink by a third (front row 2.5 s
+     sprinting instead of 3.7; the farthest of forty, 64 blocks, 7.6 s instead of 11.3). Only in desktop worlds.
+   - HUB.md point 7 and `mod/README.md` ("On Linux", run-hub.sh): `--session`, what it shows, and its limits (the list
+     at the top of `run-hub.sh`): Alt+Tab and Alt+F4 are the outer desktop's (Alt+F4 ends the preview), single-copy
+     programs already running outside open there, D-Bus dialogs (polkit, file choosers) open outside, one screen, no
+     supervisor, the development client; its log `~/.cache/aresos-dev/run-hub-session.log`.
+   - OS-BASE section 4: nothing from step 3 (the session's labwc and rc.xml are unchanged by it).
 
 ## Evidence
 
@@ -208,6 +246,12 @@ measured). Memory does not change: a paused world keeps its chunks.
 | Step 2: `ShellClientTest.coveredReachesListenersAndALostHelperUncovers`: the example event, one call per change, false when the helper goes away | yes (no such event or callback before) |
 | Step 2: `ShellClientTest.heartbeatsKeepSayingReadyWhileCovered`: ready heartbeats with the world and no second `world_ready` while covered | no: it guards linux-aresos's condition; heartbeats never depended on the game. It does not compile without the new callback |
 | Step 2: `HomeScreenClientGameTest`, its new last part: a real `ShellClient` on the fake helper, wired with `ShellFocusClient.register`; covered pauses the client and the integrated server with no screen, caps the frame rate at 10, five ready heartbeats for the world arrive while paused and no second `world_ready`; uncovered runs again at the old cap; a dropped helper connection unpauses | yes for the pause, the cap and the reset (from reading: without the mixins nothing pauses); the heartbeat part guards |
+| Step 3: `LiveFlightGameTests.joiningLivePlayerFliesAndCannotBeHurt`: a joining Live player can fly (server and, replayed packet by packet, his client), is invulnerable without instant building, walks at 0.15, the server accepts his double space, fall and lava do nothing, he does not catch fire; joining again from his save (read as the game reads it) he is still Live, still flying | yes ("Live on the server: he cannot fly") |
+| Step 3: `LiveFlightGameTests.speedSurvivesSwitchesDeathAndRespawn`: the speed in Live, after G to Build, after G back, after a death in Build and the game's respawn, after G to Live, after a respawn in Live keeping everything (the End's); his client's abilities after each | yes ("Live: walking speed 0.1"). Without only the resend in `ModeInventories.sync`: "Live after Build, on his client: he cannot fly". Without only the resend after a respawn: "His client walks at the game's speed after dying" |
+| Step 3: `LiveFlightGameTests.liveFlightStillBreaksAndPlacesNothing`: flying in Live, a creative slot packet puts nothing into the taskbar, left-click does not break a logo at once and breaking it is refused, a taskbar item used on the ground places nothing, no instant building | fails at its fixture (he cannot fly); its checks themselves guard (from reading they held before step 3 too: Live was survival then) |
+| Step 3: `LiveFlightGameTests.markerOffGivesBackTheGamesSurvival`: the marker off gives the game's survival and walking speed back (server and client), on again gives Live's | yes ("Fixture: Live: he cannot fly") |
+| Step 3: `LiveFlightGameTests.normalWorldKeepsTheGamesSurvival` (normal environment): no flight, no invulnerability, the game's speed, also on his client | no: it guards "a world without the marker is vanilla" |
+| Step 3: `HomeScreenClientGameTest`, part `liveMode` (before `covered`): in Live the HUD asks for no hearts, hunger or experience bar; his client walks at 0.15 with a field-of-view modifier of 1.0; after G and G (real key) his client can still fly; a double space (real key) makes him fly on the client and the server; one picture, `40-live-shows-only-the-hotbar` | yes for the HUD, speed and flight (from reading: without the mixins the client answers true and walks at 0.1; the after-G check is the client half of the sync test above) |
 
 Ran: `mod/dev/build.sh` once, passing (BUILD SUCCESSFUL, 2 min 17 s; `ShellClientTest` 20 tests).
 `python3 -m unittest discover -s os/tests -p 'test_aresos_shell_home.py'` (3 tests OK), `-p 'test_aresos_shell.py'`
@@ -257,6 +301,28 @@ The orchestrator accepted 1 to 5 (2026-11-15). Step 2's:
 10. **Minimizing on activation** happens when the compositor reports the world activated after another window, so
    it covers Alt+Tab, a click, the game's own window taking the focus and the helper's return after a close alike.
 
+Step 3's:
+
+11. **1.5 times the game's walking speed, in both modes** (walking 6.5 blocks a second, sprinting 8.4; sprint-jumping
+   gains less, since the game's control in the air does not follow the movement speed; not measured). Why: the owner wants to travel faster; at 1.5 the front row is 2.5 s away sprinting and the farthest of
+   forty 7.6 s, walking alone beats the game's sprint, and it stays below flight (10.9), so flying remains the fast way
+   across the town. At 2 times sprinting (11.2) would pass flight and a 2-wide doorway gets easy to overshoot. How: the
+   abilities' walking speed and the movement attribute's base, not an effect or a modifier: the game widens the field
+   of view by their ratio, so an effect would have widened it for good (25 % at 1.5), changing every picture the town
+   was designed from. Changing the amount later: one constant (`LiveMode.DESKTOP_WALKING_SPEED`); a saved player
+   takes the new value at his next mode change, join or respawn.
+12. **Live's HUD hides the experience bar too**, not only hearts and hunger (and armour and air, which the game draws
+   with the hearts): Live has no experience to earn, and an empty bar over the hotbar is half of survival's look. The
+   brief names hearts and hunger; this is creative's HUD. Changing it: one method name in `LiveHudMixin`.
+13. **Flight survives a switch to Live**: a player flying in Build still flies after G (the game lands him when he is
+   near the ground, as it does between creative and spectator). Vanilla's switch to survival drops him.
+14. **Live is invulnerable in the game's own sense**, not only by the mod's damage rule: in 26.2 that also means no
+   fire on him (no flames over the screen after lava) and no exhaustion; the mod already kept food full.
+15. **The preview is `--session`, fullscreen through foreign-toplevel, and ends when its window closes.** Alt+F4 on
+   it is the outer desktop's (labwc has no keyboard-shortcuts-inhibit), so it closes the preview; ending the run then
+   is better than a game left running in a labwc with no screen. The alternative, a nested rc.xml with other keys,
+   would no longer be the image's rc.xml.
+
 ## PLAN-GAP
 
 1. **B's evidence** is read wrongly in the brief (above): nothing shows he asked for that app. Worth asking him
@@ -272,6 +338,12 @@ The orchestrator accepted 1 to 5 (2026-11-15). Step 2's:
    screen; small windows stay where they are. Built in step 2.
 4. (The orchestrator handles this one, 2026-11-15.) An earlier commit on this branch (`4f387f44`) names one of his programs in this file; the next commit removed
    it. A squash merge keeps it out of `main`; the branch's history keeps it until the branch is deleted.
+
+5. **"Live mode still breaks and places nothing"** (brief, point 6) is not what Live does today, before or after
+   step 3: Live is survival, so he can mine plain ground slowly (`FlatHomeGameTests` checks "Live mode could not break
+   plain ground"); logos and the town's blocks are protected, and nothing can be placed because Live's inventory holds
+   only apps. Step 3 keeps exactly that (no instant breaking, no creative inventory). If he should break nothing at
+   all in Live, that is a small change of its own (refuse every break in Live), not made here.
 
 ## For the PR's description (linux-aresos asked)
 

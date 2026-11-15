@@ -119,12 +119,19 @@ public final class HomeScreenClientGameTest implements FabricClientGameTest {
         world.getServer().runOnServer(server -> world.getConnection().getServerPlayer().setGameMode(GameType.SURVIVAL));
         context.waitFor(client -> client.gameMode.getPlayerMode() == GameType.SURVIVAL && !ModeSwitchClient.pending());
         context.waitFor(client -> client.player.getAbilities().mayfly);
+        // The abilities come at once, the movement attribute with the server's next entity update.
+        for (int tick = 0; tick < 100 && !context.computeOnClient(HomeScreenClientGameTest::desktopSpeed); tick++)
+            context.waitTick();
+        String serverSide = world.getServer().computeOnServer(s -> {
+            var player = world.getConnection().getServerPlayer();
+            return player.getAbilities().getWalkingSpeed() + " / " + player.getAttributeBaseValue(Attributes.MOVEMENT_SPEED);
+        });
         context.runOnClient(client -> {
             check(!client.gameMode.canHurtPlayer() && !client.gameMode.hasExperience(),
                     "Live mode's HUD still draws hearts, hunger or the experience bar");
-            check(client.player.getAbilities().getWalkingSpeed() == LiveMode.DESKTOP_WALKING_SPEED
-                    && Math.abs(client.player.getAttributeValue(Attributes.MOVEMENT_SPEED) - LiveMode.DESKTOP_WALKING_SPEED) < 1e-6,
-                    "His client walks at " + client.player.getAttributeValue(Attributes.MOVEMENT_SPEED));
+            check(desktopSpeed(client), "His client walks at " + client.player.getAbilities().getWalkingSpeed() + " / "
+                    + client.player.getAttributeValue(Attributes.MOVEMENT_SPEED) + " (walking speed / movement), the server "
+                    + serverSide);
             float fov = client.player.getFieldOfViewModifier(true, 1.0f);
             check(Math.abs(fov - 1.0f) < 1e-4, "The desktop speed widened the field of view: " + fov);
         });
@@ -140,8 +147,10 @@ public final class HomeScreenClientGameTest implements FabricClientGameTest {
         context.runOnClient(client -> check(client.player.getAbilities().mayfly && client.player.getAbilities().invulnerable
                 && !client.player.getAbilities().instabuild, "After G and G his client's Live mode cannot fly"));
 
-        context.getInput().pressKey(options -> options.keyJump);
-        context.getInput().pressKey(options -> options.keyJump);
+        // Two presses, each held over a tick, with the key up between them, within the game's 7 ticks.
+        context.getInput().holdKeyFor(options -> options.keyJump, 2);
+        context.waitTicks(2);
+        context.getInput().holdKeyFor(options -> options.keyJump, 2);
         context.waitFor(client -> client.player.getAbilities().flying, 40);
         world.getConnection().waitForServerboundPackets();
         check(world.getServer().computeOnServer(server -> world.getConnection().getServerPlayer().getAbilities().flying),
@@ -152,6 +161,11 @@ public final class HomeScreenClientGameTest implements FabricClientGameTest {
             player.onUpdateAbilities();
         });
         context.waitFor(client -> !client.player.getAbilities().flying);
+    }
+
+    private static boolean desktopSpeed(Minecraft client) {
+        return client.player.getAbilities().getWalkingSpeed() == LiveMode.DESKTOP_WALKING_SPEED
+                && Math.abs(client.player.getAttributeValue(Attributes.MOVEMENT_SPEED) - LiveMode.DESKTOP_WALKING_SPEED) < 1e-6;
     }
 
     private static void screenshot(ClientGameTestContext context, String name) {

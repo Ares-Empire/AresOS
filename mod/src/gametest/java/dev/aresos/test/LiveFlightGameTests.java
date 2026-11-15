@@ -20,6 +20,7 @@ import net.minecraft.network.protocol.game.ClientboundGameEventPacket;
 import net.minecraft.network.protocol.game.ClientboundLoginPacket;
 import net.minecraft.network.protocol.game.ClientboundPlayerAbilitiesPacket;
 import net.minecraft.network.protocol.game.ClientboundRespawnPacket;
+import net.minecraft.network.protocol.game.ClientboundUpdateAttributesPacket;
 import net.minecraft.network.protocol.game.ServerboundPlayerAbilitiesPacket;
 import net.minecraft.network.protocol.game.ServerboundPlayerActionPacket;
 import net.minecraft.network.protocol.game.ServerboundSetCreativeModeSlotPacket;
@@ -167,6 +168,32 @@ public final class LiveFlightGameTests {
             assertLive(clientView(joined.channel), "Live after a respawn, on his client");
         } finally { leave(players[0]); }
         helper.succeed();
+    }
+
+    /**
+     * The speed reaches his client as the movement attribute (the game sends changed attributes with its entity
+     * updates, a tick or two later), not only as the abilities' walking speed: his client moves him by the attribute.
+     * Not within one tick, so a test beside it may switch the marker off and on in between; the last value counts.
+     */
+    @GameTest(environment = "aresos-test:desktop", maxTicks = 40)
+    public void hisClientIsToldTheSpeed(GameTestHelper helper) {
+        var joined = joinLive(helper, true);
+        helper.runAtTickTime(10, () -> {
+            try {
+                var updates = joined.channel.outboundMessages().stream()
+                        .filter(message -> message instanceof ClientboundUpdateAttributesPacket packet
+                                && packet.getEntityId() == joined.player.getId())
+                        .map(ClientboundUpdateAttributesPacket.class::cast)
+                        .flatMap(packet -> packet.getValues().stream())
+                        .filter(value -> value.attribute().equals(Attributes.MOVEMENT_SPEED))
+                        .toList();
+                check(!updates.isEmpty(), "His client was never told a movement speed");
+                double base = updates.getLast().base();
+                check(Math.abs(base - LiveMode.DESKTOP_WALKING_SPEED) < 1e-6, "His client was told movement speed " + base
+                        + " (" + updates.stream().map(value -> String.valueOf(value.base())).toList() + ")");
+            } finally { leave(joined.player); }
+            helper.succeed();
+        });
     }
 
     @GameTest(environment = "aresos-test:desktop")
