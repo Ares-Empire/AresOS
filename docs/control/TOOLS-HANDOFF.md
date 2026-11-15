@@ -155,7 +155,9 @@ PR #68 (brief 20-main-fix) is on main as squash `bdc16064`; report in `reviews/2
 
   The ceilings and sample counts would stay as they are.
 
-  **The lead (2026-11-15): taken as suggested**, brief 20-ci-noise (branch `ci/20-ci-noise`), Opus builder.
+  **The lead (2026-11-15): done.** Brief 20-ci-noise, PR #81, merged as `d981cd5a` after a fresh Opus review (SAFE).
+  The store is on a tmpfs in both legs (`store_write` p95 1–6 ms instead of 66–210 ms), and a gate holds fsyncs and
+  SQLite commits per phase and call at or below the paired old leg's. Nits for later: `reviews/20-ci-noise/REPORT.md`.
 
 **Two CI facts.**
 - **Path filters:** a pull request's path filters see the whole PR's diff. Every push to an open Chrome PR starts
@@ -180,8 +182,8 @@ PR #77 (brief 20-popup-race) is on main as squash `635872e2`; report in `reviews
   build `4c1eccb9…`'s all-false beta entry is reported on every run. That is why #74 is open again: closed, the
   next daily run would open a duplicate. My suggestion: report only the entries this run published. Small, in
   `qualify.py notify` plus `test_publisher.py`; the trust path doesn't change. Close #74 once it is in.
-- **The lead (2026-11-15):** notify's fix is item 1 of brief 20-ci-noise; #74 closes after it merges. #79 is opened and
-  merged (merge commit) after 20-ci-noise is on main, so its checks aren't red on latency noise. The identity-mismatch
+- **The lead (2026-11-15):** notify's fix is on main (PR #81, `d981cd5a`); #74 is closed. #79's pull request is #83,
+  merged with a merge commit once its checks pass. The identity-mismatch
   question above: agreed (refuse publication, red run; all-false stays for an incomplete suite), its own brief after
   the release.
 
