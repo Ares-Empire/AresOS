@@ -8,12 +8,13 @@
     "Package 18c (Control in the image, B2): the check-build job's check_build input gains the choice control (the Control VM test, os/ci/control/); nothing else in the workflow changes; checkout bytes recorded for the next rehearsal (no walk tables rebound)",
     "Package 18c step 2b: check_build=control runs its VM pass as its own step with its own time limit after the build step (which keeps 80 minutes for every mode) and stops its fixture servers in an always() step; the job's limit is 160 minutes for control only, 120 for the other modes",
     "Package 18c step 2c: the Control VM pass step's limit is 10 minutes (about 1.5 times a full pass: 6 min 21 s in run 43572578699) and the job's limit for check_build=control 125 minutes (tools 20, build 80, the pass 10, 15 more); 120 for the other modes as before",
-    "Package 18c's Chrome follow-up merged main after 22c's rehearsal (run 43597505549), which bound the workflow without 18c's three changes above: they wait again for the next rehearsal; no tool, guide or image file changed"
+    "Package 18c's Chrome follow-up merged main after 22c's rehearsal (run 43597505549), which bound the workflow without 18c's three changes above: they wait again for the next rehearsal; no tool, guide or image file changed",
+    "Package 18c's Chrome follow-up: the Control VM pass step's limit goes from 10 to 12 minutes (about 1.5 times a pass of 6 min 13 s to 6 min 54 s plus about a minute for Chrome's checks and its storage tests in the guest) and the job's limit for check_build=control from 125 to 127 minutes (tools 20, build 80, the pass 12, 15 more); 120 for the other modes as before"
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
     {
-      "sha256": "ca9f7970952be8f12c33f43bb5648dd26152e94d3f8cc4ee39037fb1237977b7",
+      "sha256": "2efda238e8c541d4c2f8b8f5d32a10e36fea687f4aed698c885c3147bb694271",
       "path": ".github/workflows/os-image.yml"
     },
     {
