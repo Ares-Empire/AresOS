@@ -203,6 +203,9 @@ PR #80 (brief 20-restore-lock) is on main as squash `b04c7e77`; report in `revie
     the model or the store.
   - In `crash-locked`, the `aresos log` view says "not locked" at all 6,375 points outside the restore flow
     (`REVIEW-REPIN-3.md`, NOTE 5).
+  - **The lead (2026-11-15):** both go into the Codex queue's second wave (`~/codex-queue/linux-tools/QUEUE.md`),
+    with a short brief. Not release work; PRs #58, #69 and #72 merge `b04c7e77`'s `engine.py` changes in their fix
+    rounds.
 - **Cosmetic, in the report's "Accepted residuals":** `total: 2, items: []` after a failed Chrome projection under
   the lock, and a doubled "below are current" in the fallback's text.
 
@@ -216,10 +219,8 @@ PR #80 (brief 20-restore-lock) is on main as squash `b04c7e77`; report in `revie
 - #216: rich-text editors are read without asking.
 - #254 (2026-11-14, "Quiet unless used"): while the tool service is down, a Claude Code session that never used the tools gets no notice; one that prepared or sent something with them gets one clear notice that the AresOS tools are not running.
 
-**Still his, later:** his yes to "the next release carries the Control tools: a background service, and two
-managed hooks in every Claude Code session on the laptop" before the image part of 18c merges. Ask it with the
-numbers of the ordinary-session check (what a session sees while the service is stopped or failed), in words he
-can picture.
+**His yes to the next release carrying the Control tools** (a background service, and two managed hooks in every
+Claude Code session on the laptop): answered on board #286, 2026-11-15, "Yes, if reviews pass".
 
 ## Decisions of the lead worth knowing
 
