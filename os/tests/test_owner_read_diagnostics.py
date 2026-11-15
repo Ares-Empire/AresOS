@@ -70,9 +70,9 @@ def execute_diagnostics(source, fail_ioctl=False, disappear=False, wchan='n_tty_
 
 
 def fixture_source():
-    rows = nested(4 * 256 + 3, 136 * 256 + 2, 40, hidden.owner_reader(['login'])['argv'])
+    rows = nested(4 * 256 + 3, 136 * 256 + 2, 40, hidden.owner_reader('/var/lib/ares/tools', ['login'])['argv'])
     receipt = dict(pid=40, physical=4 * 256 + 3, origin_chain=rows)
-    return diagnostics.source('tty3', hidden.owner_reader(['login']), receipt)
+    return diagnostics.source('tty3', hidden.owner_reader('/var/lib/ares/tools', ['login']), receipt)
 
 
 class DiagnosticsTest(unittest.TestCase):
@@ -121,8 +121,8 @@ class DiagnosticsTest(unittest.TestCase):
         import base64
         import shlex
         from test_owner_hidden import vcsa
-        for expected, token, seconds in ((hidden.owner_reader(['login']),True,180),
-                (hidden.owner_reader(['verify']),False,840),(dict(kind='login'),False,60)):
+        for expected, token, seconds in ((hidden.owner_reader('/var/lib/ares/tools', ['login']),True,180),
+                (hidden.owner_reader('/var/lib/ares/tools', ['verify']),False,840),(dict(kind='login'),False,60)):
             with self.subTest(expected=expected):
                 guest = Mock(owner_input_epoch=0,owner_layout='de')
                 console = vm.Console(guest)

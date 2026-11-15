@@ -26,7 +26,6 @@ import net.minecraft.nbt.NbtUtils;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.server.level.TicketType;
 import dev.aresos.mixin.TextDisplayAccess;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
@@ -59,6 +58,12 @@ import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.Set;
 
+import static dev.aresos.test.ChunkWaits.LOAD_TICKS;
+import static dev.aresos.test.ChunkWaits.chunks;
+import static dev.aresos.test.ChunkWaits.hold;
+import static dev.aresos.test.ChunkWaits.loaded;
+import static dev.aresos.test.ChunkWaits.waitFor;
+
 /**
  * Package 36: the town's record in hub.dat and the one function every block of the hub goes through. The town test
  * is alone in its batch, because the hub's record is one per server; it builds its flat home far from every plot,
@@ -66,8 +71,13 @@ import java.util.Set;
  */
 public final class TownGameTests {
     private static final String BATCH = "aresos-test:town";
-    /** The longest wait for the town's chunks; the test server ticks as fast as it can. */
-    private static final int LOAD_TICKS = 400_000;
+    /**
+     * The framework's own bound, never reached while the server ticks (package 39b, as package 37's): every wait fails
+     * by itself and releases the test's tickets after {@link ChunkWaits#LOAD_TICKS} ticks or
+     * {@link ChunkWaits#WAIT_NANOS} on the wall clock, a test waits at most twice, and its other steps take a few ticks.
+     * On 2026-11-14 the seal test failed once waiting 400,000 ticks for its chunks, a few seconds on a busy laptop.
+     */
+    private static final int MAX_TICKS = 2 * LOAD_TICKS + 1_000;
 
     private static void check(boolean condition, String message) { if (!condition) throw new AssertionError(message); }
 
@@ -88,22 +98,59 @@ public final class TownGameTests {
         return GatePicture.of(icon, HubLayout.SIZE);
     }
 
-    private static Set<Long> chunks(BlockPos from, BlockPos to) {
-        var chunks = new HashSet<Long>();
-        for (int x = from.getX() >> 4; x <= to.getX() >> 4; x++)
-            for (int z = from.getZ() >> 4; z <= to.getZ() >> 4; z++) chunks.add(ChunkPos.pack(x, z));
-        return chunks;
-    }
+    /**
+     * The ground a town test holds around its home column, in blocks from it: the pad, the four roads out to their
+     * names, and the front rows of the north and west groups. Package 36b: it reached 16 blocks south, and the logo at
+     * W0L0 with the ground its build looks at reaches 17. The run puts each test's plot anywhere, so in one run of
+     * sixteen that ground lay in a chunk the test did not hold and so did not wait for; when that chunk was not loaded
+     * yet, the pass that should have built Spotify's logo there said nothing and built nothing.
+     */
+    private static final BlockPos TOWN_FROM = new BlockPos(-48, 0, -60), TOWN_TO = new BlockPos(48, 0, 32);
 
-    private static void hold(ServerLevel level, Set<Long> chunks, boolean held) {
-        for (long chunk : chunks) {
-            if (held) level.getChunkSource().addTicketWithRadius(TicketType.DRAGON, ChunkPos.unpack(chunk), 2);
-            else level.getChunkSource().removeTicketWithRadius(TicketType.DRAGON, ChunkPos.unpack(chunk), 2);
+    /** The chunks of the town's ground around this home column. */
+    private static Set<Long> town(BlockPos column) { return chunks(column.offset(TOWN_FROM), column.offset(TOWN_TO)); }
+
+    /**
+     * How far around a logo's cells its build looks: the lights' surroundings, {@code GateBuilder.prepare}'s own number
+     * (package 39b; it was a copy). The solid blocks' and the doormat's surroundings are 2.
+     */
+    private static final int LOOKS = GateBuilder.LIGHT_MELTS;
+
+    /**
+     * Checks that a logo in each of these places, with the ground its build looks at, lies inside the town's ground
+     * ({@link #town}). It holds or fails in every run alike; the chunks themselves would show a place reaching past
+     * that ground only in the runs whose plot puts it across a chunk border. Returns the places, for {@link #allListed}.
+     */
+    private static Set<String> withinTown(HubData hub, AppDefinition app, GatePicture picture, String... places) {
+        var home = hub.home().pos();
+        for (var name : places) {
+            var plan = Town.plan(hub, app, Place.parse(name).orElseThrow(), picture);
+            var cells = new ArrayList<BlockPos>(plan.space());
+            cells.addAll(plan.signSpace());
+            cells.addAll(plan.walkway());
+            cells.addAll(plan.doormatSurround());
+            cells.addAll(plan.floor());
+            cells.addAll(plan.blocks().keySet());
+            cells.addAll(plan.doormat());
+            cells.addAll(plan.lights());
+            for (var cell : cells) {
+                var at = cell.subtract(home);
+                check(at.getX() - LOOKS >= TOWN_FROM.getX() && at.getX() + LOOKS <= TOWN_TO.getX()
+                                && at.getZ() - LOOKS >= TOWN_FROM.getZ() && at.getZ() + LOOKS <= TOWN_TO.getZ(),
+                        "Fixture: the logo at " + name + " reaches past the ground the test holds, at " + at.toShortString() + " from home");
+            }
         }
+        return new java.util.TreeSet<>(List.of(places));
     }
 
-    private static boolean loaded(ServerLevel level, Set<Long> chunks) {
-        return chunks.stream().allMatch(chunk -> level.hasChunk(ChunkPos.getX(chunk), ChunkPos.getZ(chunk)) && level.areEntitiesLoaded(chunk));
+    /**
+     * At the end of a town test that uses {@link #withinTown} (36b's review, NIT 2): every place a logo of the test
+     * stood in was on its list, so a step that builds somewhere else cannot reach past the held ground unnoticed.
+     */
+    private static void allListed(Set<String> stood, Set<String> listed) {
+        var off = new java.util.TreeSet<>(stood);
+        off.removeAll(listed);
+        check(off.isEmpty(), "Fixture: logos stood at " + off + ", which withinTown did not check (it checked " + listed + ")");
     }
 
     private static Map<BlockPos, BlockState> snapshot(ServerLevel level, BlockPos from, BlockPos to) {
@@ -119,9 +166,9 @@ public final class TownGameTests {
         var level = helper.getLevel();
         var server = level.getServer();
         BlockPos column = helper.absolutePos(BlockPos.ZERO).offset(offset, 0, 0);
-        var chunks = chunks(column.offset(-48, 0, -60), column.offset(48, 0, 16));
+        var chunks = town(column);
         hold(level, chunks, true);
-        helper.startSequence().thenWaitUntil(() -> helper.assertTrue(loaded(level, chunks), "The town's chunks are not loaded yet")).thenExecute(() -> {
+        helper.startSequence().thenWaitUntil(waitFor(helper, level, chunks, () -> loaded(level, chunks), "The town's chunks are not loaded yet", () -> { })).thenExecute(() -> {
             var previous = HubData.get(server);
             try {
                 BlockPos home = new BlockPos(column.getX(), level.getHeight(Heightmap.Types.WORLD_SURFACE, column.getX(), column.getZ()), column.getZ());
@@ -136,7 +183,7 @@ public final class TownGameTests {
         }).thenSucceed();
     }
 
-    @GameTest(environment = BATCH, maxTicks = LOAD_TICKS)
+    @GameTest(environment = BATCH, maxTicks = MAX_TICKS)
     public void aTownLogoIsBuiltRecordedAndTakenDownThroughTheOneFunction(GameTestHelper helper) {
         inTown(helper, 15000, (level, home) -> {
             var server = level.getServer();
@@ -146,6 +193,7 @@ public final class TownGameTests {
             var discord = new AppDefinition("town-discord", "Discord", List.of("discord"), "minecraft:ender_pearl", false).withNames(List.of("towndc"));
             var picture = picture();
             var place = Place.parse("N0R0").orElseThrow();
+            var listed = withinTown(hub, discord, picture, "N0R0", "N0L0", "N1L0");
             var plan = Town.plan(hub, discord, place, picture);
             BlockPos from = home.offset(-20, -2, -40), to = home.offset(20, 16, 2);
             var before = snapshot(level, from, to);
@@ -276,6 +324,7 @@ public final class TownGameTests {
             hisDisplay.discard();
             check(stayed && withHisIds.removed() == expected.size() && hub.logos().isEmpty(), "His zone or display with the logo's IDs: " + withHisIds + ", stayed " + stayed);
             for (var pos : expected.keySet()) check(level.getBlockState(pos).equals(before.get(pos)), "With his IDs " + pos.subtract(home) + " is " + level.getBlockState(pos));
+            allListed(new java.util.TreeSet<>(List.of(logo.place(), signed.place(), reused.place())), listed);
         });
     }
 
@@ -337,6 +386,9 @@ public final class TownGameTests {
         HubData previous;
         BlockPos home, planks;
         Set<Long> far = Set.of();
+        /** The places {@link #withinTown} checked, and every place a logo stood in after a pass ({@link #allListed}). */
+        Set<String> listed = Set.of();
+        final Set<String> stood = new java.util.TreeSet<>();
         /** The start of every app ID of this test's town. */
         String prefix = "keep-";
 
@@ -352,10 +404,13 @@ public final class TownGameTests {
 
         /** One pass, saving places into the fake file as {@code AresOs.saveSpots} does into the real one. */
         TownKeeper.Pass pass(MinecraftServer server, boolean complete) {
-            return keeper.keep(server, new TownKeeper.Programs(apps, complete), app -> Optional.of(pictures.getOrDefault(app.id(), ring)), spots -> {
+            var pass = keeper.keep(server, new TownKeeper.Programs(apps, complete), app -> Optional.of(pictures.getOrDefault(app.id(), ring)), spots -> {
                 saves.add(spots);
                 apps.replaceAll(app -> spots.containsKey(app.id()) ? app.withSpot(spots.get(app.id()).place(), spots.get(app.id()).group()) : app);
             });
+            var hub = HubData.get(server);
+            if (hub != null) hub.logos().forEach(logo -> stood.add(logo.place()));
+            return pass;
         }
 
         void change(String id, java.util.function.UnaryOperator<AppDefinition> how) { apps.replaceAll(app -> app.id().equals(id) ? how.apply(app) : app); }
@@ -372,17 +427,20 @@ public final class TownGameTests {
      * refusal and explosion rules; a newcomer; a blocked place; a place changing hands; a logo renewed; a removal his
      * torch refuses; a light he changed; a place that is not loaded, built once it is. Its own batch and ground.
      */
-    @GameTest(environment = KEEP_BATCH, maxTicks = LOAD_TICKS)
+    @GameTest(environment = KEEP_BATCH, maxTicks = MAX_TICKS)
     public void theTownKeepsInStepWithHisApps(GameTestHelper helper) {
         var level = helper.getLevel();
         BlockPos column = helper.absolutePos(BlockPos.ZERO).offset(17000, 0, 0);
-        var near = chunks(column.offset(-48, 0, -60), column.offset(48, 0, 16));
+        var near = town(column);
         var fake = new Fake();
         hold(level, near, true);
         helper.startSequence()
-                .thenWaitUntil(() -> helper.assertTrue(loaded(level, near), "The town's chunks are not loaded yet"))
+                .thenWaitUntil(waitFor(helper, level, near, () -> loaded(level, near), "The town's chunks are not loaded yet", () -> { }))
                 .thenExecute(() -> keeping(fake, level, near, false, () -> keepingNear(fake, level, column)))
-                .thenWaitUntil(() -> helper.assertTrue(loaded(level, fake.far), "The far place is not loaded yet"))
+                .thenWaitUntil(waitFor(helper, level, near, () -> loaded(level, fake.far), "The far place is not loaded yet", () -> {
+                    fake.clearZones(level.getServer());
+                    letGo(fake, level, Set.of());
+                }))
                 .thenExecute(() -> keeping(fake, level, near, true, () -> keepingFar(fake, level)))
                 .thenSucceed();
     }
@@ -400,11 +458,16 @@ public final class TownGameTests {
         } finally {
             if (last || !done) {
                 if (!done) fake.clearZones(level.getServer());
-                if (fake.previous != null) HubData.store(level.getServer(), fake.previous);
-                hold(level, near, false);
-                hold(level, fake.far, false);
+                letGo(fake, level, near);
             }
         }
+    }
+
+    /** Puts back the server's hub record and lets go of the far chunks and of {@code near}. */
+    private static void letGo(Fake fake, ServerLevel level, Set<Long> near) {
+        if (fake.previous != null) HubData.store(level.getServer(), fake.previous);
+        hold(level, near, false);
+        hold(level, fake.far, false);
     }
 
     private static void keepingNear(Fake fake, ServerLevel level, BlockPos column) throws IOException {
@@ -424,6 +487,8 @@ public final class TownGameTests {
                 app("keep-far", "Far", null, AppGroup.INTERNET, false, true).withSpot("N40L0", "internet"),
                 app("keep-spotify", "Spotify", "spotify", AppGroup.WORK_MEDIA, false, false),
                 app("keep-mail", "Mail", "mail", AppGroup.INTERNET, false, false)));
+        // Every place this test builds in lies inside the ground it holds (the far place has ground of its own).
+        fake.listed = withinTown(hub, fake.get("keep-spotify"), fake.ring, "N0L0", "N0R0", "N1L0", "N1R0", "W0L0");
 
         // Never on an incomplete list; never in a town that other rules built.
         var none = fake.pass(server, false);
@@ -588,6 +653,10 @@ public final class TownGameTests {
         check(empty.lines().size() == 3 && !empty.pending() && HubData.get(server).logos().isEmpty(), "Taking the town down: " + empty.lines());
         check(!fake.zoneLeft(server), "A zone of the town stayed");
         level.setBlockAndUpdate(fake.planks, Blocks.AIR.defaultBlockState());
+        // The far place stands on ground of its own (fake.far), outside the town's.
+        var listed = new java.util.TreeSet<>(fake.listed);
+        listed.add("N40L0");
+        allListed(fake.stood, listed);
     }
 
     private static final String REBUILD_BATCH = "aresos-test:town_rebuild";
@@ -598,7 +667,7 @@ public final class TownGameTests {
      * the counts on the group names; a logo drawn by an older converter and a changed short name, renewed in place;
      * and {@code hub rebuild} with a block he changed inside a logo.
      */
-    @GameTest(environment = REBUILD_BATCH, maxTicks = LOAD_TICKS)
+    @GameTest(environment = REBUILD_BATCH, maxTicks = MAX_TICKS)
     public void roadsCountsRenewalsAndRebuildInAFreshFlatHome(GameTestHelper helper) {
         var level = helper.getLevel();
         BlockPos column = helper.absolutePos(BlockPos.ZERO).offset(19000, 0, 0);
@@ -607,9 +676,16 @@ public final class TownGameTests {
         fake.prefix = "re-";
         hold(level, near, true);
         helper.startSequence()
-                .thenWaitUntil(() -> helper.assertTrue(loaded(level, near), "The town's chunks are not loaded yet"))
+                .thenWaitUntil(waitFor(helper, level, near, () -> loaded(level, near), "The town's chunks are not loaded yet", () -> { }))
                 .thenExecute(() -> keeping(fake, level, near, true, () -> stepThree(fake, level, column)))
                 .thenSucceed();
+    }
+
+    /** Records an app's standing logo as drawn by the converter before this one, as a world of the older mod holds it. */
+    private static void older(HubData hub, String app) {
+        var logo = hub.logo(app).orElseThrow();
+        hub.remove(app);
+        hub.add(new HubData.Logo(logo.app(), logo.place(), logo.picture(), GatePicture.CONVERTER - 1, logo.name(), logo.shortName(), logo.zone(), logo.gate()));
     }
 
     private static String text(ServerLevel level, java.util.UUID entity) {
@@ -706,6 +782,25 @@ public final class TownGameTests {
                 && text(level, signed.gate().sign().orElseThrow()).equals("Chrome\n/web") && signed.place().equals("N0R0"), "A new short name: " + renamed.lines());
         check(fake.pass(server).lines().isEmpty(), "A pass in step changed something");
 
+        // Package 39, point 4: the first visit after the rules of the logos changed. Every standing logo was drawn by
+        // the older converter and is renewed where it stands, in one pass: five are said one by one, six (as forty
+        // would be) in one line.
+        var standing = hub.logos().stream().map(HubData.Logo::app).sorted().toList();
+        check(standing.equals(List.of("re-chrome", "re-discord", "re-lunar", "re-notepad", "re-spotify", "re-terminal")), "Fixture: the six logos " + standing);
+        var places = new java.util.HashMap<String, String>();
+        for (String app : standing) places.put(app, place(server, app));
+        for (int count : new int[]{5, 6}) {
+            for (String app : standing.subList(0, count)) older(hub, app);
+            var visit = fake.pass(server);
+            var said = visit.lines().stream().sorted().toList();
+            check(count == 5 ? said.equals(List.of("The logo of Chrome was renewed.", "The logo of Discord was renewed.", "The logo of Lunar Client was renewed.",
+                            "The logo of Notepad was renewed.", "The logo of Spotify was renewed."))
+                    : said.equals(List.of("The town changed: 6 logos renewed. /apps lists where your apps stand.")), count + " logos of the older converter: " + visit.lines());
+            for (String app : standing) check(hub.logo(app).orElseThrow().converter() == GatePicture.CONVERTER && place(server, app).equals(places.get(app)),
+                    app + " after the renewal of " + count + ": converter " + hub.logo(app).orElseThrow().converter() + " at " + place(server, app));
+            check(fake.pass(server).lines().isEmpty(), "A second visit renewed again");
+        }
+
         // Point 3: hub rebuild. His glass in place of a block of Discord's logo stays his; Discord cannot stand in N0L0
         // again and goes one place on; every other logo is built again where it stood; his cobblestone stays.
         var discord = hub.logo("re-discord").orElseThrow();
@@ -755,16 +850,16 @@ public final class TownGameTests {
      * back from the files (step B, point 7). Its own batch and ground; the copies are made beside the test world and
      * removed.
      */
-    @GameTest(environment = SEAL_BATCH, maxTicks = LOAD_TICKS)
+    @GameTest(environment = SEAL_BATCH, maxTicks = MAX_TICKS)
     public void theTownTrustsItsRecordsOnlyWhileTheWorldWasSavedWithThem(GameTestHelper helper) {
         var level = helper.getLevel();
         BlockPos column = helper.absolutePos(BlockPos.ZERO).offset(21000, 0, 0);
-        var near = chunks(column.offset(-48, 0, -60), column.offset(48, 0, 16));
+        var near = town(column);
         var fake = new Fake();
         fake.prefix = "seal-";
         hold(level, near, true);
         helper.startSequence()
-                .thenWaitUntil(() -> helper.assertTrue(loaded(level, near), "The town's chunks are not loaded yet"))
+                .thenWaitUntil(waitFor(helper, level, near, () -> loaded(level, near), "The town's chunks are not loaded yet", () -> { }))
                 .thenExecute(() -> keeping(fake, level, near, true, () -> sealing(fake, level, column)))
                 .thenSucceed();
     }
@@ -834,6 +929,8 @@ public final class TownGameTests {
         // Day one: Chrome alone; Discord joins My apps after the first save.
         fake.apps.addAll(List.of(app("seal-chrome", "Chrome", "chrome", AppGroup.INTERNET, true, true),
                 app("seal-discord", "Discord", "discord", AppGroup.INTERNET, false, false)));
+        // N1L0: Mail's place after trust, as his block in Discord's old logo keeps N0R0 (39b: allListed found it).
+        fake.listed = withinTown(hub, fake.get("seal-chrome"), fake.ring, "N0L0", "N0R0", "N1L0");
         fake.pass(server);
         check(place(server, "seal-chrome").equals("N0L0") && hub.logos().size() == 1, "Day one: " + hub.logos());
         Path world = server.getWorldPath(LevelResource.ROOT).toAbsolutePath().normalize();
@@ -876,10 +973,13 @@ public final class TownGameTests {
             var discordText = text(level, discordSign);
             var zonesBefore = zones(server);
             var area = snapshot(level, home.offset(-40, -2, -45), home.offset(40, 16, 2));
+            // Package 39, point 4: the frozen town's one logo is of the older converter, and is not drawn again either.
+            older(restored, "seal-chrome");
             HubData.store(server, restored);
             check(TownKeeper.notice(server).equals(Optional.of(FREEZE + "Look over its logo, then type /aresos hub trust.")), "The freeze's line: " + TownKeeper.notice(server));
             var subsetPass = fake.pass(server);
             check(subsetPass.lines().isEmpty() && !subsetPass.pending() && restored.logos().size() == 1 && snapshot(level, home.offset(-40, -2, -45), home.offset(40, 16, 2)).equals(area)
+                    && restored.logo("seal-chrome").orElseThrow().converter() == GatePicture.CONVERTER - 1
                     && zones(server).equals(zonesBefore) && level.getEntity(discordSign) instanceof Display.TextDisplay && text(level, discordSign).equals(discordText),
                     "A subset restored changed something: " + subsetPass.lines() + " " + restored.logos());
             HubData.store(server, hub);
@@ -1030,6 +1130,24 @@ public final class TownGameTests {
             server.saveAllChunks(true, true, true);
             check(!reopen(server, world).frozen() && reopen(server, world).logos().size() == 2, "The seal was not renewed after trust");
 
+            // Package 39's renewal waits for trust too (39b, 39's review N5): an older mod saves the world once more, and
+            // Chrome's logo is recorded as drawn by converter 1, its only change. Frozen, the town leaves it as it is;
+            // after /aresos hub trust the next pass draws it again where it stands.
+            olderModSaves(access, TownSeal.lastPlayed(world).orElseThrow() + 1);
+            var drawnBefore = reopen(server, world);
+            check(drawnBefore.frozen() && drawnBefore.logos().size() == 2, "Fixture: the world an older mod saved again: frozen " + drawnBefore.frozen());
+            older(drawnBefore, "seal-chrome");
+            HubData.store(server, drawnBefore);
+            var waits = fake.pass(server);
+            check(waits.lines().isEmpty() && drawnBefore.logo("seal-chrome").orElseThrow().converter() == GatePicture.CONVERTER - 1,
+                    "A frozen town drew a logo of converter 1 again: " + waits.lines());
+            check(TownKeeper.trust(server).isPresent() && !drawnBefore.frozen(), "Trust after the older mod's second save");
+            var drawn = fake.pass(server);
+            var chromeNow = drawnBefore.logo("seal-chrome").orElseThrow();
+            check(drawn.lines().equals(List.of("The logo of Chrome Browser was renewed.")) && chromeNow.converter() == GatePicture.CONVERTER
+                    && chromeNow.place().equals("N0L0"), "After trust, the logo of converter 1: " + drawn.lines() + " " + chromeNow);
+            server.saveAllChunks(true, true, true);
+
             // town.dat restored from the backup taken after the first save, into a copy of this world: unsealed.
             var fromBackup = copy(world, copies.resolve("restored"));
             Files.write(HubData.townFile(fromBackup), backup);
@@ -1056,6 +1174,7 @@ public final class TownGameTests {
                 olderModSaves(olderAccess, TownSeal.lastPlayed(world).orElseThrow() + 1);
             }
             check(TownSeal.holding(copies.resolve("older")).isEmpty() && !reopen(server, copies.resolve("older")).frozen(), "An empty town saved by an older mod was frozen");
+            allListed(fake.stood, fake.listed);
             done = true;
         } finally {
             if (his != null) level.setBlockAndUpdate(his, Blocks.AIR.defaultBlockState());

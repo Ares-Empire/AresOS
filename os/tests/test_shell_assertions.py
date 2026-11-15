@@ -1,5 +1,6 @@
 """Execute the actual guards with prohibited state injected; never touch accounts."""
 import ast
+import hashlib
 import json
 import pathlib
 import re
@@ -153,8 +154,25 @@ bootc() { echo TRANSACTION_MUST_NOT_RUN; }
                 self.assertIn('INJECTED_TRANSACTION_FAILURE', result.stdout)
                 transaction, = [line for line in block.splitlines() if line.startswith(command.rstrip())]
                 self.assertEqual(calls, ['bootc status --json', transaction])
-        default=(ROOT/'owner-tools/payload/release/default-stock.sh').read_bytes()
-        self.assertEqual(default,(ROOT/'release/default-stock.sh').read_bytes())
+
+    # Version 2's payload rows for the three scripts (os/owner-tools/payload/SHA256.json at 41b06513).
+    RETIRED = {'rollback.sh': '74d6c5a9476d83c569ecbc15ba0ce8a342c5679db87947dab5cd28e2ae28edc8',
+               'default-stock.sh': 'f38c58b334422e624fe20adba35cb75287a8b144a0827c1b952f23d8be83f0c6',
+               'previous.sh': '5da8834d5496751b7222cc9dfb33423ec8287ffce8092c98cfe7f11f018154ec'}
+
+    def test_payload_no_longer_carries_the_three_old_scripts_and_their_repository_copies_stay(self):
+        # Brief 22c, B9: every reorder runs start-next.sh, so rollback.sh, default-stock.sh and
+        # previous.sh left the owner payload (this replaces the old payload-equals-repository
+        # check). Older CI modes still read the repository copies, which stay byte-identical.
+        payload = ROOT/'owner-tools/payload'
+        listed = {row['path'] for row in json.loads((payload/'SHA256.json').read_text())}
+        self.assertIn('release/start-next.sh', listed)
+        for name, digest in self.RETIRED.items():
+            with self.subTest(script=name):
+                self.assertNotIn('release/' + name, listed)
+                self.assertFalse((payload/'release'/name).exists())
+                self.assertNotIn('release/' + name, (payload/'SHA256SUMS').read_text())
+                self.assertEqual(hashlib.sha256((ROOT/'release'/name).read_bytes()).hexdigest(), digest)
 
     def test_owner_switch_prerequisites_stop_before_the_transaction(self):
         reference=json.loads((ROOT/'manifest/release.json').read_text())['reference']

@@ -1,0 +1,7 @@
+{
+  "run": 42599594926,
+  "head": "55cdee6a16e2f53db13f467bcdc73222d067de7a",
+  "conclusion": "success",
+  "source": "gh run view 42599594926 --json status,conclusion",
+  "full_log_omitted": "The full workflow log prints synthetic test token strings; it was rejected by the pre-push privacy scan and is not included in this commit."
+}

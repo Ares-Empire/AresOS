@@ -1,0 +1,3862 @@
+{
+  "status": "passed",
+  "stages": [
+    {
+      "stage": "release-27-start",
+      "reached": "package 27's route: release 27 confirmed",
+      "order": [
+        "R27",
+        "R13",
+        "S"
+      ],
+      "running": "R27",
+      "bootc_booted": "R27",
+      "bootc_rollback": "R13",
+      "rollback_queued": false,
+      "boot_order": "default",
+      "pinned": [
+        "S"
+      ],
+      "origin_pins": {
+        "R13": false,
+        "R27": false,
+        "S": true
+      },
+      "kernel_argument_resolves_to": "R27",
+      "titles": [
+        {
+          "file": "ostree-3.conf",
+          "title": "Bazzite (ostree:0)",
+          "role": "R27"
+        },
+        {
+          "file": "ostree-2.conf",
+          "title": "Bazzite (ostree:1)",
+          "role": "R13"
+        },
+        {
+          "file": "ostree-1.conf",
+          "title": "Bazzite (ostree:2)",
+          "role": "S"
+        }
+      ],
+      "titles_name_the_place": true,
+      "menu_order_is_list_order": true,
+      "other_options_unchanged": {
+        "R27": true,
+        "R13": true
+      },
+      "bootconfig_swap": null
+    },
+    {
+      "stage": "intl-27",
+      "reached": "restart with no choice",
+      "order": [
+        "R27",
+        "R13",
+        "S"
+      ],
+      "running": "R27",
+      "bootc_booted": "R27",
+      "bootc_rollback": "R13",
+      "rollback_queued": false,
+      "boot_order": "default",
+      "pinned": [
+        "S"
+      ],
+      "origin_pins": {
+        "R13": false,
+        "R27": false,
+        "S": true
+      },
+      "kernel_argument_resolves_to": "R27",
+      "titles": [
+        {
+          "file": "ostree-3.conf",
+          "title": "Bazzite (ostree:0)",
+          "role": "R27"
+        },
+        {
+          "file": "ostree-2.conf",
+          "title": "Bazzite (ostree:1)",
+          "role": "R13"
+        },
+        {
+          "file": "ostree-1.conf",
+          "title": "Bazzite (ostree:2)",
+          "role": "S"
+        }
+      ],
+      "titles_name_the_place": true,
+      "menu_order_is_list_order": true,
+      "other_options_unchanged": {
+        "R27": true,
+        "R13": true
+      },
+      "bootconfig_swap": null
+    },
+    {
+      "stage": "trial-27",
+      "reached": "restart with no choice",
+      "order": [
+        "R27",
+        "R13",
+        "S"
+      ],
+      "running": "R27",
+      "bootc_booted": "R27",
+      "bootc_rollback": "R13",
+      "rollback_queued": false,
+      "boot_order": "default",
+      "pinned": [
+        "S"
+      ],
+      "origin_pins": {
+        "R13": false,
+        "R27": false,
+        "S": true
+      },
+      "kernel_argument_resolves_to": "R27",
+      "titles": [
+        {
+          "file": "ostree-3.conf",
+          "title": "Bazzite (ostree:0)",
+          "role": "R27"
+        },
+        {
+          "file": "ostree-2.conf",
+          "title": "Bazzite (ostree:1)",
+          "role": "R13"
+        },
+        {
+          "file": "ostree-1.conf",
+          "title": "Bazzite (ostree:2)",
+          "role": "S"
+        }
+      ],
+      "titles_name_the_place": true,
+      "menu_order_is_list_order": true,
+      "other_options_unchanged": {
+        "R27": true,
+        "R13": true
+      },
+      "bootconfig_swap": null
+    },
+    {
+      "stage": "abandon-27",
+      "reached": "a hard reset during a layout trial",
+      "order": [
+        "R27",
+        "R13",
+        "S"
+      ],
+      "running": "R27",
+      "bootc_booted": "R27",
+      "bootc_rollback": "R13",
+      "rollback_queued": false,
+      "boot_order": "default",
+      "pinned": [
+        "S"
+      ],
+      "origin_pins": {
+        "R13": false,
+        "R27": false,
+        "S": true
+      },
+      "kernel_argument_resolves_to": "R27",
+      "titles": [
+        {
+          "file": "ostree-3.conf",
+          "title": "Bazzite (ostree:0)",
+          "role": "R27"
+        },
+        {
+          "file": "ostree-2.conf",
+          "title": "Bazzite (ostree:1)",
+          "role": "R13"
+        },
+        {
+          "file": "ostree-1.conf",
+          "title": "Bazzite (ostree:2)",
+          "role": "S"
+        }
+      ],
+      "titles_name_the_place": true,
+      "menu_order_is_list_order": true,
+      "other_options_unchanged": {
+        "R27": true,
+        "R13": true
+      },
+      "bootconfig_swap": null
+    },
+    {
+      "stage": "owner-previous-1",
+      "reached": "at previous",
+      "order": [
+        "R13",
+        "R27",
+        "S"
+      ],
+      "running": "R27",
+      "bootc_booted": "R27",
+      "bootc_rollback": "R13",
+      "rollback_queued": true,
+      "boot_order": "rollback",
+      "pinned": [
+        "S"
+      ],
+      "origin_pins": {
+        "R13": false,
+        "R27": false,
+        "S": true
+      },
+      "kernel_argument_resolves_to": "R13",
+      "titles": [
+        {
+          "file": "ostree-3.conf",
+          "title": "Bazzite (ostree:0)",
+          "role": "R13"
+        },
+        {
+          "file": "ostree-2.conf",
+          "title": "Bazzite (ostree:1)",
+          "role": "R27"
+        },
+        {
+          "file": "ostree-1.conf",
+          "title": "Bazzite (ostree:2)",
+          "role": "S"
+        }
+      ],
+      "titles_name_the_place": true,
+      "menu_order_is_list_order": true,
+      "other_options_unchanged": {
+        "R27": true,
+        "R13": true
+      },
+      "bootconfig_swap": "no"
+    },
+    {
+      "stage": "back-13",
+      "reached": "restart with no choice",
+      "order": [
+        "R13",
+        "R27",
+        "S"
+      ],
+      "running": "R13",
+      "bootc_booted": "R13",
+      "bootc_rollback": "R27",
+      "rollback_queued": false,
+      "boot_order": "default",
+      "pinned": [
+        "S"
+      ],
+      "origin_pins": {
+        "R13": false,
+        "R27": false,
+        "S": true
+      },
+      "kernel_argument_resolves_to": "R13",
+      "titles": [
+        {
+          "file": "ostree-3.conf",
+          "title": "Bazzite (ostree:0)",
+          "role": "R13"
+        },
+        {
+          "file": "ostree-2.conf",
+          "title": "Bazzite (ostree:1)",
+          "role": "R27"
+        },
+        {
+          "file": "ostree-1.conf",
+          "title": "Bazzite (ostree:2)",
+          "role": "S"
+        }
+      ],
+      "titles_name_the_place": true,
+      "menu_order_is_list_order": true,
+      "other_options_unchanged": {
+        "R27": true,
+        "R13": true
+      },
+      "bootconfig_swap": null
+    },
+    {
+      "stage": "back-13-update-refused",
+      "reached": "at update refused",
+      "order": [
+        "R13",
+        "R27",
+        "S"
+      ],
+      "running": "R13",
+      "bootc_booted": "R13",
+      "bootc_rollback": "R27",
+      "rollback_queued": false,
+      "boot_order": "default",
+      "pinned": [
+        "S"
+      ],
+      "origin_pins": {
+        "R13": false,
+        "R27": false,
+        "S": true
+      },
+      "kernel_argument_resolves_to": "R13",
+      "titles": [
+        {
+          "file": "ostree-3.conf",
+          "title": "Bazzite (ostree:0)",
+          "role": "R13"
+        },
+        {
+          "file": "ostree-2.conf",
+          "title": "Bazzite (ostree:1)",
+          "role": "R27"
+        },
+        {
+          "file": "ostree-1.conf",
+          "title": "Bazzite (ostree:2)",
+          "role": "S"
+        }
+      ],
+      "titles_name_the_place": true,
+      "menu_order_is_list_order": true,
+      "other_options_unchanged": {
+        "R27": true,
+        "R13": true
+      },
+      "bootconfig_swap": null
+    },
+    {
+      "stage": "owner-forward-1",
+      "reached": "at forward",
+      "order": [
+        "R27",
+        "R13",
+        "S"
+      ],
+      "running": "R13",
+      "bootc_booted": "R13",
+      "bootc_rollback": "R27",
+      "rollback_queued": true,
+      "boot_order": "rollback",
+      "pinned": [
+        "S"
+      ],
+      "origin_pins": {
+        "R13": false,
+        "R27": false,
+        "S": true
+      },
+      "kernel_argument_resolves_to": "R27",
+      "titles": [
+        {
+          "file": "ostree-3.conf",
+          "title": "Bazzite (ostree:0)",
+          "role": "R27"
+        },
+        {
+          "file": "ostree-2.conf",
+          "title": "Bazzite (ostree:1)",
+          "role": "R13"
+        },
+        {
+          "file": "ostree-1.conf",
+          "title": "Bazzite (ostree:2)",
+          "role": "S"
+        }
+      ],
+      "titles_name_the_place": true,
+      "menu_order_is_list_order": true,
+      "other_options_unchanged": {
+        "R27": true,
+        "R13": true
+      },
+      "bootconfig_swap": "no"
+    },
+    {
+      "stage": "forward-27",
+      "reached": "restart with no choice",
+      "order": [
+        "R27",
+        "R13",
+        "S"
+      ],
+      "running": "R27",
+      "bootc_booted": "R27",
+      "bootc_rollback": "R13",
+      "rollback_queued": false,
+      "boot_order": "default",
+      "pinned": [
+        "S"
+      ],
+      "origin_pins": {
+        "R13": false,
+        "R27": false,
+        "S": true
+      },
+      "kernel_argument_resolves_to": "R27",
+      "titles": [
+        {
+          "file": "ostree-3.conf",
+          "title": "Bazzite (ostree:0)",
+          "role": "R27"
+        },
+        {
+          "file": "ostree-2.conf",
+          "title": "Bazzite (ostree:1)",
+          "role": "R13"
+        },
+        {
+          "file": "ostree-1.conf",
+          "title": "Bazzite (ostree:2)",
+          "role": "S"
+        }
+      ],
+      "titles_name_the_place": true,
+      "menu_order_is_list_order": true,
+      "other_options_unchanged": {
+        "R27": true,
+        "R13": true
+      },
+      "bootconfig_swap": null
+    },
+    {
+      "stage": "owner-rollback-1",
+      "reached": "at rollback",
+      "order": [
+        "S",
+        "R27",
+        "R13"
+      ],
+      "running": "R27",
+      "bootc_booted": "R27",
+      "bootc_rollback": "S",
+      "rollback_queued": true,
+      "boot_order": "rollback",
+      "pinned": [
+        "S"
+      ],
+      "origin_pins": {
+        "R13": false,
+        "R27": false,
+        "S": true
+      },
+      "kernel_argument_resolves_to": "S",
+      "titles": [
+        {
+          "file": "ostree-3.conf",
+          "title": "Bazzite (ostree:0)",
+          "role": "S"
+        },
+        {
+          "file": "ostree-2.conf",
+          "title": "Bazzite (ostree:1)",
+          "role": "R27"
+        },
+        {
+          "file": "ostree-1.conf",
+          "title": "Bazzite (ostree:2)",
+          "role": "R13"
+        }
+      ],
+      "titles_name_the_place": true,
+      "menu_order_is_list_order": true,
+      "other_options_unchanged": {
+        "R27": true,
+        "R13": true
+      },
+      "bootconfig_swap": "no"
+    },
+    {
+      "stage": "stock-1",
+      "reached": "restart with no choice",
+      "order": [
+        "S",
+        "R27",
+        "R13"
+      ],
+      "running": "S",
+      "bootc_booted": "S",
+      "bootc_rollback": "R27",
+      "rollback_queued": false,
+      "boot_order": "default",
+      "pinned": [
+        "S"
+      ],
+      "origin_pins": {
+        "R13": false,
+        "R27": false,
+        "S": true
+      },
+      "kernel_argument_resolves_to": "S",
+      "titles": [
+        {
+          "file": "ostree-3.conf",
+          "title": "Bazzite (ostree:0)",
+          "role": "S"
+        },
+        {
+          "file": "ostree-2.conf",
+          "title": "Bazzite (ostree:1)",
+          "role": "R27"
+        },
+        {
+          "file": "ostree-1.conf",
+          "title": "Bazzite (ostree:2)",
+          "role": "R13"
+        }
+      ],
+      "titles_name_the_place": true,
+      "menu_order_is_list_order": true,
+      "other_options_unchanged": {
+        "R27": true,
+        "R13": true
+      },
+      "bootconfig_swap": null
+    },
+    {
+      "stage": "stock-1-rollback-refused",
+      "reached": "at rollback refused",
+      "order": [
+        "S",
+        "R27",
+        "R13"
+      ],
+      "running": "S",
+      "bootc_booted": "S",
+      "bootc_rollback": "R27",
+      "rollback_queued": false,
+      "boot_order": "default",
+      "pinned": [
+        "S"
+      ],
+      "origin_pins": {
+        "R13": false,
+        "R27": false,
+        "S": true
+      },
+      "kernel_argument_resolves_to": "S",
+      "titles": [
+        {
+          "file": "ostree-3.conf",
+          "title": "Bazzite (ostree:0)",
+          "role": "S"
+        },
+        {
+          "file": "ostree-2.conf",
+          "title": "Bazzite (ostree:1)",
+          "role": "R27"
+        },
+        {
+          "file": "ostree-1.conf",
+          "title": "Bazzite (ostree:2)",
+          "role": "R13"
+        }
+      ],
+      "titles_name_the_place": true,
+      "menu_order_is_list_order": true,
+      "other_options_unchanged": {
+        "R27": true,
+        "R13": true
+      },
+      "bootconfig_swap": null
+    },
+    {
+      "stage": "stock-1-keep-stock",
+      "reached": "at keep-stock: nothing changed",
+      "order": [
+        "S",
+        "R27",
+        "R13"
+      ],
+      "running": "S",
+      "bootc_booted": "S",
+      "bootc_rollback": "R27",
+      "rollback_queued": false,
+      "boot_order": "default",
+      "pinned": [
+        "S"
+      ],
+      "origin_pins": {
+        "R13": false,
+        "R27": false,
+        "S": true
+      },
+      "kernel_argument_resolves_to": "S",
+      "titles": [
+        {
+          "file": "ostree-3.conf",
+          "title": "Bazzite (ostree:0)",
+          "role": "S"
+        },
+        {
+          "file": "ostree-2.conf",
+          "title": "Bazzite (ostree:1)",
+          "role": "R27"
+        },
+        {
+          "file": "ostree-1.conf",
+          "title": "Bazzite (ostree:2)",
+          "role": "R13"
+        }
+      ],
+      "titles_name_the_place": true,
+      "menu_order_is_list_order": true,
+      "other_options_unchanged": {
+        "R27": true,
+        "R13": true
+      },
+      "bootconfig_swap": null
+    },
+    {
+      "stage": "owner-forward-2",
+      "reached": "at forward",
+      "order": [
+        "R27",
+        "S",
+        "R13"
+      ],
+      "running": "S",
+      "bootc_booted": "S",
+      "bootc_rollback": "R27",
+      "rollback_queued": true,
+      "boot_order": "rollback",
+      "pinned": [
+        "S"
+      ],
+      "origin_pins": {
+        "R13": false,
+        "R27": false,
+        "S": true
+      },
+      "kernel_argument_resolves_to": "R27",
+      "titles": [
+        {
+          "file": "ostree-3.conf",
+          "title": "Bazzite (ostree:0)",
+          "role": "R27"
+        },
+        {
+          "file": "ostree-2.conf",
+          "title": "Bazzite (ostree:1)",
+          "role": "S"
+        },
+        {
+          "file": "ostree-1.conf",
+          "title": "Bazzite (ostree:2)",
+          "role": "R13"
+        }
+      ],
+      "titles_name_the_place": true,
+      "menu_order_is_list_order": true,
+      "other_options_unchanged": {
+        "R27": true,
+        "R13": true
+      },
+      "bootconfig_swap": "no"
+    },
+    {
+      "stage": "forward-27b",
+      "reached": "restart with no choice",
+      "order": [
+        "R27",
+        "S",
+        "R13"
+      ],
+      "running": "R27",
+      "bootc_booted": "R27",
+      "bootc_rollback": "S",
+      "rollback_queued": false,
+      "boot_order": "default",
+      "pinned": [
+        "S"
+      ],
+      "origin_pins": {
+        "R13": false,
+        "R27": false,
+        "S": true
+      },
+      "kernel_argument_resolves_to": "R27",
+      "titles": [
+        {
+          "file": "ostree-3.conf",
+          "title": "Bazzite (ostree:0)",
+          "role": "R27"
+        },
+        {
+          "file": "ostree-2.conf",
+          "title": "Bazzite (ostree:1)",
+          "role": "S"
+        },
+        {
+          "file": "ostree-1.conf",
+          "title": "Bazzite (ostree:2)",
+          "role": "R13"
+        }
+      ],
+      "titles_name_the_place": true,
+      "menu_order_is_list_order": true,
+      "other_options_unchanged": {
+        "R27": true,
+        "R13": true
+      },
+      "bootconfig_swap": null
+    },
+    {
+      "stage": "owner-previous-2",
+      "reached": "at previous",
+      "order": [
+        "R13",
+        "R27",
+        "S"
+      ],
+      "running": "R27",
+      "bootc_booted": "R27",
+      "bootc_rollback": "R13",
+      "rollback_queued": true,
+      "boot_order": "rollback",
+      "pinned": [
+        "S"
+      ],
+      "origin_pins": {
+        "R13": false,
+        "R27": false,
+        "S": true
+      },
+      "kernel_argument_resolves_to": "R13",
+      "titles": [
+        {
+          "file": "ostree-3.conf",
+          "title": "Bazzite (ostree:0)",
+          "role": "R13"
+        },
+        {
+          "file": "ostree-2.conf",
+          "title": "Bazzite (ostree:1)",
+          "role": "R27"
+        },
+        {
+          "file": "ostree-1.conf",
+          "title": "Bazzite (ostree:2)",
+          "role": "S"
+        }
+      ],
+      "titles_name_the_place": true,
+      "menu_order_is_list_order": true,
+      "other_options_unchanged": {
+        "R27": true,
+        "R13": true
+      },
+      "bootconfig_swap": "no"
+    },
+    {
+      "stage": "back-13b",
+      "reached": "restart with no choice",
+      "order": [
+        "R13",
+        "R27",
+        "S"
+      ],
+      "running": "R13",
+      "bootc_booted": "R13",
+      "bootc_rollback": "R27",
+      "rollback_queued": false,
+      "boot_order": "default",
+      "pinned": [
+        "S"
+      ],
+      "origin_pins": {
+        "R13": false,
+        "R27": false,
+        "S": true
+      },
+      "kernel_argument_resolves_to": "R13",
+      "titles": [
+        {
+          "file": "ostree-3.conf",
+          "title": "Bazzite (ostree:0)",
+          "role": "R13"
+        },
+        {
+          "file": "ostree-2.conf",
+          "title": "Bazzite (ostree:1)",
+          "role": "R27"
+        },
+        {
+          "file": "ostree-1.conf",
+          "title": "Bazzite (ostree:2)",
+          "role": "S"
+        }
+      ],
+      "titles_name_the_place": true,
+      "menu_order_is_list_order": true,
+      "other_options_unchanged": {
+        "R27": true,
+        "R13": true
+      },
+      "bootconfig_swap": null
+    },
+    {
+      "stage": "owner-forward-3",
+      "reached": "at forward",
+      "order": [
+        "R27",
+        "R13",
+        "S"
+      ],
+      "running": "R13",
+      "bootc_booted": "R13",
+      "bootc_rollback": "R27",
+      "rollback_queued": true,
+      "boot_order": "rollback",
+      "pinned": [
+        "S"
+      ],
+      "origin_pins": {
+        "R13": false,
+        "R27": false,
+        "S": true
+      },
+      "kernel_argument_resolves_to": "R27",
+      "titles": [
+        {
+          "file": "ostree-3.conf",
+          "title": "Bazzite (ostree:0)",
+          "role": "R27"
+        },
+        {
+          "file": "ostree-2.conf",
+          "title": "Bazzite (ostree:1)",
+          "role": "R13"
+        },
+        {
+          "file": "ostree-1.conf",
+          "title": "Bazzite (ostree:2)",
+          "role": "S"
+        }
+      ],
+      "titles_name_the_place": true,
+      "menu_order_is_list_order": true,
+      "other_options_unchanged": {
+        "R27": true,
+        "R13": true
+      },
+      "bootconfig_swap": "no"
+    },
+    {
+      "stage": "forward-27c",
+      "reached": "restart with no choice",
+      "order": [
+        "R27",
+        "R13",
+        "S"
+      ],
+      "running": "R27",
+      "bootc_booted": "R27",
+      "bootc_rollback": "R13",
+      "rollback_queued": false,
+      "boot_order": "default",
+      "pinned": [
+        "S"
+      ],
+      "origin_pins": {
+        "R13": false,
+        "R27": false,
+        "S": true
+      },
+      "kernel_argument_resolves_to": "R27",
+      "titles": [
+        {
+          "file": "ostree-3.conf",
+          "title": "Bazzite (ostree:0)",
+          "role": "R27"
+        },
+        {
+          "file": "ostree-2.conf",
+          "title": "Bazzite (ostree:1)",
+          "role": "R13"
+        },
+        {
+          "file": "ostree-1.conf",
+          "title": "Bazzite (ostree:2)",
+          "role": "S"
+        }
+      ],
+      "titles_name_the_place": true,
+      "menu_order_is_list_order": true,
+      "other_options_unchanged": {
+        "R27": true,
+        "R13": true
+      },
+      "bootconfig_swap": null
+    },
+    {
+      "stage": "owner-previous-3",
+      "reached": "at previous",
+      "order": [
+        "R13",
+        "R27",
+        "S"
+      ],
+      "running": "R27",
+      "bootc_booted": "R27",
+      "bootc_rollback": "R13",
+      "rollback_queued": true,
+      "boot_order": "rollback",
+      "pinned": [
+        "S"
+      ],
+      "origin_pins": {
+        "R13": false,
+        "R27": false,
+        "S": true
+      },
+      "kernel_argument_resolves_to": "R13",
+      "titles": [
+        {
+          "file": "ostree-3.conf",
+          "title": "Bazzite (ostree:0)",
+          "role": "R13"
+        },
+        {
+          "file": "ostree-2.conf",
+          "title": "Bazzite (ostree:1)",
+          "role": "R27"
+        },
+        {
+          "file": "ostree-1.conf",
+          "title": "Bazzite (ostree:2)",
+          "role": "S"
+        }
+      ],
+      "titles_name_the_place": true,
+      "menu_order_is_list_order": true,
+      "other_options_unchanged": {
+        "R27": true,
+        "R13": true
+      },
+      "bootconfig_swap": "no"
+    },
+    {
+      "stage": "menu-27",
+      "reached": "the newer AresOS row taken in the boot menu",
+      "order": [
+        "R13",
+        "R27",
+        "S"
+      ],
+      "running": "R27",
+      "bootc_booted": "R27",
+      "bootc_rollback": "R13",
+      "rollback_queued": true,
+      "boot_order": "rollback",
+      "pinned": [
+        "S"
+      ],
+      "origin_pins": {
+        "R13": false,
+        "R27": false,
+        "S": true
+      },
+      "kernel_argument_resolves_to": "R27",
+      "titles": [
+        {
+          "file": "ostree-3.conf",
+          "title": "Bazzite (ostree:0)",
+          "role": "R13"
+        },
+        {
+          "file": "ostree-2.conf",
+          "title": "Bazzite (ostree:1)",
+          "role": "R27"
+        },
+        {
+          "file": "ostree-1.conf",
+          "title": "Bazzite (ostree:2)",
+          "role": "S"
+        }
+      ],
+      "titles_name_the_place": true,
+      "menu_order_is_list_order": true,
+      "other_options_unchanged": {
+        "R27": true,
+        "R13": true
+      },
+      "bootconfig_swap": null
+    },
+    {
+      "stage": "owner-forward-4",
+      "reached": "at forward",
+      "order": [
+        "R27",
+        "R13",
+        "S"
+      ],
+      "running": "R27",
+      "bootc_booted": "R27",
+      "bootc_rollback": "R13",
+      "rollback_queued": false,
+      "boot_order": "default",
+      "pinned": [
+        "S"
+      ],
+      "origin_pins": {
+        "R13": false,
+        "R27": false,
+        "S": true
+      },
+      "kernel_argument_resolves_to": "R13",
+      "titles": [
+        {
+          "file": "ostree-3.conf",
+          "title": "Bazzite (ostree:0)",
+          "role": "R27"
+        },
+        {
+          "file": "ostree-2.conf",
+          "title": "Bazzite (ostree:1)",
+          "role": "R13"
+        },
+        {
+          "file": "ostree-1.conf",
+          "title": "Bazzite (ostree:2)",
+          "role": "S"
+        }
+      ],
+      "titles_name_the_place": true,
+      "menu_order_is_list_order": true,
+      "other_options_unchanged": {
+        "R27": true,
+        "R13": true
+      },
+      "bootconfig_swap": "no"
+    },
+    {
+      "stage": "forward-27d",
+      "reached": "restart with no choice",
+      "order": [
+        "R27",
+        "R13",
+        "S"
+      ],
+      "running": "R27",
+      "bootc_booted": "R27",
+      "bootc_rollback": "R13",
+      "rollback_queued": false,
+      "boot_order": "default",
+      "pinned": [
+        "S"
+      ],
+      "origin_pins": {
+        "R13": false,
+        "R27": false,
+        "S": true
+      },
+      "kernel_argument_resolves_to": "R27",
+      "titles": [
+        {
+          "file": "ostree-3.conf",
+          "title": "Bazzite (ostree:0)",
+          "role": "R27"
+        },
+        {
+          "file": "ostree-2.conf",
+          "title": "Bazzite (ostree:1)",
+          "role": "R13"
+        },
+        {
+          "file": "ostree-1.conf",
+          "title": "Bazzite (ostree:2)",
+          "role": "S"
+        }
+      ],
+      "titles_name_the_place": true,
+      "menu_order_is_list_order": true,
+      "other_options_unchanged": {
+        "R27": true,
+        "R13": true
+      },
+      "bootconfig_swap": null
+    },
+    {
+      "stage": "menu-stock",
+      "reached": "the plain Bazzite row taken in the boot menu",
+      "order": [
+        "R27",
+        "R13",
+        "S"
+      ],
+      "running": "S",
+      "bootc_booted": "S",
+      "bootc_rollback": "R27",
+      "rollback_queued": true,
+      "boot_order": "rollback",
+      "pinned": [
+        "S"
+      ],
+      "origin_pins": {
+        "R13": false,
+        "R27": false,
+        "S": true
+      },
+      "kernel_argument_resolves_to": "S",
+      "titles": [
+        {
+          "file": "ostree-3.conf",
+          "title": "Bazzite (ostree:0)",
+          "role": "R27"
+        },
+        {
+          "file": "ostree-2.conf",
+          "title": "Bazzite (ostree:1)",
+          "role": "R13"
+        },
+        {
+          "file": "ostree-1.conf",
+          "title": "Bazzite (ostree:2)",
+          "role": "S"
+        }
+      ],
+      "titles_name_the_place": true,
+      "menu_order_is_list_order": true,
+      "other_options_unchanged": {
+        "R27": true,
+        "R13": true
+      },
+      "bootconfig_swap": null
+    },
+    {
+      "stage": "owner-keep-stock",
+      "reached": "at keep-stock",
+      "order": [
+        "S",
+        "R27",
+        "R13"
+      ],
+      "running": "S",
+      "bootc_booted": "S",
+      "bootc_rollback": "R27",
+      "rollback_queued": false,
+      "boot_order": "default",
+      "pinned": [
+        "S"
+      ],
+      "origin_pins": {
+        "R13": false,
+        "R27": false,
+        "S": true
+      },
+      "kernel_argument_resolves_to": "R13",
+      "titles": [
+        {
+          "file": "ostree-3.conf",
+          "title": "Bazzite (ostree:0)",
+          "role": "S"
+        },
+        {
+          "file": "ostree-2.conf",
+          "title": "Bazzite (ostree:1)",
+          "role": "R27"
+        },
+        {
+          "file": "ostree-1.conf",
+          "title": "Bazzite (ostree:2)",
+          "role": "R13"
+        }
+      ],
+      "titles_name_the_place": true,
+      "menu_order_is_list_order": true,
+      "other_options_unchanged": {
+        "R27": true,
+        "R13": true
+      },
+      "bootconfig_swap": "no"
+    },
+    {
+      "stage": "stock-2",
+      "reached": "restart with no choice",
+      "order": [
+        "S",
+        "R27",
+        "R13"
+      ],
+      "running": "S",
+      "bootc_booted": "S",
+      "bootc_rollback": "R27",
+      "rollback_queued": false,
+      "boot_order": "default",
+      "pinned": [
+        "S"
+      ],
+      "origin_pins": {
+        "R13": false,
+        "R27": false,
+        "S": true
+      },
+      "kernel_argument_resolves_to": "S",
+      "titles": [
+        {
+          "file": "ostree-3.conf",
+          "title": "Bazzite (ostree:0)",
+          "role": "S"
+        },
+        {
+          "file": "ostree-2.conf",
+          "title": "Bazzite (ostree:1)",
+          "role": "R27"
+        },
+        {
+          "file": "ostree-1.conf",
+          "title": "Bazzite (ostree:2)",
+          "role": "R13"
+        }
+      ],
+      "titles_name_the_place": true,
+      "menu_order_is_list_order": true,
+      "other_options_unchanged": {
+        "R27": true,
+        "R13": true
+      },
+      "bootconfig_swap": null
+    },
+    {
+      "stage": "owner-forward-5",
+      "reached": "at forward",
+      "order": [
+        "R27",
+        "S",
+        "R13"
+      ],
+      "running": "S",
+      "bootc_booted": "S",
+      "bootc_rollback": "R27",
+      "rollback_queued": true,
+      "boot_order": "rollback",
+      "pinned": [
+        "S"
+      ],
+      "origin_pins": {
+        "R13": false,
+        "R27": false,
+        "S": true
+      },
+      "kernel_argument_resolves_to": "R27",
+      "titles": [
+        {
+          "file": "ostree-3.conf",
+          "title": "Bazzite (ostree:0)",
+          "role": "R27"
+        },
+        {
+          "file": "ostree-2.conf",
+          "title": "Bazzite (ostree:1)",
+          "role": "S"
+        },
+        {
+          "file": "ostree-1.conf",
+          "title": "Bazzite (ostree:2)",
+          "role": "R13"
+        }
+      ],
+      "titles_name_the_place": true,
+      "menu_order_is_list_order": true,
+      "other_options_unchanged": {
+        "R27": true,
+        "R13": true
+      },
+      "bootconfig_swap": "no"
+    },
+    {
+      "stage": "forward-27e",
+      "reached": "restart with no choice",
+      "order": [
+        "R27",
+        "S",
+        "R13"
+      ],
+      "running": "R27",
+      "bootc_booted": "R27",
+      "bootc_rollback": "S",
+      "rollback_queued": false,
+      "boot_order": "default",
+      "pinned": [
+        "S"
+      ],
+      "origin_pins": {
+        "R13": false,
+        "R27": false,
+        "S": true
+      },
+      "kernel_argument_resolves_to": "R27",
+      "titles": [
+        {
+          "file": "ostree-3.conf",
+          "title": "Bazzite (ostree:0)",
+          "role": "R27"
+        },
+        {
+          "file": "ostree-2.conf",
+          "title": "Bazzite (ostree:1)",
+          "role": "S"
+        },
+        {
+          "file": "ostree-1.conf",
+          "title": "Bazzite (ostree:2)",
+          "role": "R13"
+        }
+      ],
+      "titles_name_the_place": true,
+      "menu_order_is_list_order": true,
+      "other_options_unchanged": {
+        "R27": true,
+        "R13": true
+      },
+      "bootconfig_swap": null
+    },
+    {
+      "stage": "cut-rollback",
+      "reached": "at rollback, stopped after its reorder and before its record",
+      "order": [
+        "S",
+        "R27",
+        "R13"
+      ],
+      "running": "R27",
+      "bootc_booted": "R27",
+      "bootc_rollback": "S",
+      "rollback_queued": true,
+      "boot_order": "rollback",
+      "pinned": [
+        "S"
+      ],
+      "origin_pins": {
+        "R13": false,
+        "R27": false,
+        "S": true
+      },
+      "kernel_argument_resolves_to": "S",
+      "titles": [
+        {
+          "file": "ostree-3.conf",
+          "title": "Bazzite (ostree:0)",
+          "role": "S"
+        },
+        {
+          "file": "ostree-2.conf",
+          "title": "Bazzite (ostree:1)",
+          "role": "R27"
+        },
+        {
+          "file": "ostree-1.conf",
+          "title": "Bazzite (ostree:2)",
+          "role": "R13"
+        }
+      ],
+      "titles_name_the_place": true,
+      "menu_order_is_list_order": true,
+      "other_options_unchanged": {
+        "R27": true,
+        "R13": true
+      },
+      "bootconfig_swap": "no"
+    },
+    {
+      "stage": "cut-stock",
+      "reached": "a hard reset inside rollback, after its reorder and before its record",
+      "order": [
+        "S",
+        "R27",
+        "R13"
+      ],
+      "running": "S",
+      "bootc_booted": "S",
+      "bootc_rollback": "R27",
+      "rollback_queued": false,
+      "boot_order": "default",
+      "pinned": [
+        "S"
+      ],
+      "origin_pins": {
+        "R13": false,
+        "R27": false,
+        "S": true
+      },
+      "kernel_argument_resolves_to": "S",
+      "titles": [
+        {
+          "file": "ostree-3.conf",
+          "title": "Bazzite (ostree:0)",
+          "role": "S"
+        },
+        {
+          "file": "ostree-2.conf",
+          "title": "Bazzite (ostree:1)",
+          "role": "R27"
+        },
+        {
+          "file": "ostree-1.conf",
+          "title": "Bazzite (ostree:2)",
+          "role": "R13"
+        }
+      ],
+      "titles_name_the_place": true,
+      "menu_order_is_list_order": true,
+      "other_options_unchanged": {
+        "R27": true,
+        "R13": true
+      },
+      "bootconfig_swap": null
+    },
+    {
+      "stage": "cut-stock-recorded",
+      "reached": "at check: the cut change recorded and confirmed",
+      "order": [
+        "S",
+        "R27",
+        "R13"
+      ],
+      "running": "S",
+      "bootc_booted": "S",
+      "bootc_rollback": "R27",
+      "rollback_queued": false,
+      "boot_order": "default",
+      "pinned": [
+        "S"
+      ],
+      "origin_pins": {
+        "R13": false,
+        "R27": false,
+        "S": true
+      },
+      "kernel_argument_resolves_to": "S",
+      "titles": [
+        {
+          "file": "ostree-3.conf",
+          "title": "Bazzite (ostree:0)",
+          "role": "S"
+        },
+        {
+          "file": "ostree-2.conf",
+          "title": "Bazzite (ostree:1)",
+          "role": "R27"
+        },
+        {
+          "file": "ostree-1.conf",
+          "title": "Bazzite (ostree:2)",
+          "role": "R13"
+        }
+      ],
+      "titles_name_the_place": true,
+      "menu_order_is_list_order": true,
+      "other_options_unchanged": {
+        "R27": true,
+        "R13": true
+      },
+      "bootconfig_swap": null
+    },
+    {
+      "stage": "owner-forward-6",
+      "reached": "at forward",
+      "order": [
+        "R27",
+        "S",
+        "R13"
+      ],
+      "running": "S",
+      "bootc_booted": "S",
+      "bootc_rollback": "R27",
+      "rollback_queued": true,
+      "boot_order": "rollback",
+      "pinned": [
+        "S"
+      ],
+      "origin_pins": {
+        "R13": false,
+        "R27": false,
+        "S": true
+      },
+      "kernel_argument_resolves_to": "R27",
+      "titles": [
+        {
+          "file": "ostree-3.conf",
+          "title": "Bazzite (ostree:0)",
+          "role": "R27"
+        },
+        {
+          "file": "ostree-2.conf",
+          "title": "Bazzite (ostree:1)",
+          "role": "S"
+        },
+        {
+          "file": "ostree-1.conf",
+          "title": "Bazzite (ostree:2)",
+          "role": "R13"
+        }
+      ],
+      "titles_name_the_place": true,
+      "menu_order_is_list_order": true,
+      "other_options_unchanged": {
+        "R27": true,
+        "R13": true
+      },
+      "bootconfig_swap": "no"
+    },
+    {
+      "stage": "final-27",
+      "reached": "restart with no choice",
+      "order": [
+        "R27",
+        "S",
+        "R13"
+      ],
+      "running": "R27",
+      "bootc_booted": "R27",
+      "bootc_rollback": "S",
+      "rollback_queued": false,
+      "boot_order": "default",
+      "pinned": [
+        "S"
+      ],
+      "origin_pins": {
+        "R13": false,
+        "R27": false,
+        "S": true
+      },
+      "kernel_argument_resolves_to": "R27",
+      "titles": [
+        {
+          "file": "ostree-3.conf",
+          "title": "Bazzite (ostree:0)",
+          "role": "R27"
+        },
+        {
+          "file": "ostree-2.conf",
+          "title": "Bazzite (ostree:1)",
+          "role": "S"
+        },
+        {
+          "file": "ostree-1.conf",
+          "title": "Bazzite (ostree:2)",
+          "role": "R13"
+        }
+      ],
+      "titles_name_the_place": true,
+      "menu_order_is_list_order": true,
+      "other_options_unchanged": {
+        "R27": true,
+        "R13": true
+      },
+      "bootconfig_swap": null
+    }
+  ],
+  "swaps": [
+    {
+      "stage": "owner-previous-1",
+      "target": "R13",
+      "by": "at previous",
+      "before": [
+        "R27",
+        "R13",
+        "S"
+      ],
+      "after": [
+        "R13",
+        "R27",
+        "S"
+      ],
+      "bootconfig_swap": "no",
+      "journal": [
+        "Transaction complete; bootconfig swap: no; bootversion: boot.0.0, deployment count change: 0"
+      ],
+      "loader_link": {
+        "before": "loader.0",
+        "after": "loader.0"
+      },
+      "ostree_boot_links": {
+        "before": {
+          "boot.0": "boot.0.1"
+        },
+        "after": {
+          "boot.0": "boot.0.0"
+        }
+      },
+      "entry_files_changed": false
+    },
+    {
+      "stage": "owner-forward-1",
+      "target": "R27",
+      "by": "at forward",
+      "before": [
+        "R13",
+        "R27",
+        "S"
+      ],
+      "after": [
+        "R27",
+        "R13",
+        "S"
+      ],
+      "bootconfig_swap": "no",
+      "journal": [
+        "Transaction complete; bootconfig swap: no; bootversion: boot.0.1, deployment count change: 0"
+      ],
+      "loader_link": {
+        "before": "loader.0",
+        "after": "loader.0"
+      },
+      "ostree_boot_links": {
+        "before": {
+          "boot.0": "boot.0.0"
+        },
+        "after": {
+          "boot.0": "boot.0.1"
+        }
+      },
+      "entry_files_changed": false
+    },
+    {
+      "stage": "owner-rollback-1",
+      "target": "S",
+      "by": "at rollback",
+      "before": [
+        "R27",
+        "R13",
+        "S"
+      ],
+      "after": [
+        "S",
+        "R27",
+        "R13"
+      ],
+      "bootconfig_swap": "no",
+      "journal": [
+        "Transaction complete; bootconfig swap: no; bootversion: boot.0.0, deployment count change: 0"
+      ],
+      "loader_link": {
+        "before": "loader.0",
+        "after": "loader.0"
+      },
+      "ostree_boot_links": {
+        "before": {
+          "boot.0": "boot.0.1"
+        },
+        "after": {
+          "boot.0": "boot.0.0"
+        }
+      },
+      "entry_files_changed": false
+    },
+    {
+      "stage": "owner-forward-2",
+      "target": "R27",
+      "by": "at forward",
+      "before": [
+        "S",
+        "R27",
+        "R13"
+      ],
+      "after": [
+        "R27",
+        "S",
+        "R13"
+      ],
+      "bootconfig_swap": "no",
+      "journal": [
+        "Transaction complete; bootconfig swap: no; bootversion: boot.0.1, deployment count change: 0"
+      ],
+      "loader_link": {
+        "before": "loader.0",
+        "after": "loader.0"
+      },
+      "ostree_boot_links": {
+        "before": {
+          "boot.0": "boot.0.0"
+        },
+        "after": {
+          "boot.0": "boot.0.1"
+        }
+      },
+      "entry_files_changed": false
+    },
+    {
+      "stage": "owner-previous-2",
+      "target": "R13",
+      "by": "at previous",
+      "before": [
+        "R27",
+        "S",
+        "R13"
+      ],
+      "after": [
+        "R13",
+        "R27",
+        "S"
+      ],
+      "bootconfig_swap": "no",
+      "journal": [
+        "Transaction complete; bootconfig swap: no; bootversion: boot.0.0, deployment count change: 0"
+      ],
+      "loader_link": {
+        "before": "loader.0",
+        "after": "loader.0"
+      },
+      "ostree_boot_links": {
+        "before": {
+          "boot.0": "boot.0.1"
+        },
+        "after": {
+          "boot.0": "boot.0.0"
+        }
+      },
+      "entry_files_changed": false
+    },
+    {
+      "stage": "owner-forward-3",
+      "target": "R27",
+      "by": "at forward",
+      "before": [
+        "R13",
+        "R27",
+        "S"
+      ],
+      "after": [
+        "R27",
+        "R13",
+        "S"
+      ],
+      "bootconfig_swap": "no",
+      "journal": [
+        "Transaction complete; bootconfig swap: no; bootversion: boot.0.1, deployment count change: 0"
+      ],
+      "loader_link": {
+        "before": "loader.0",
+        "after": "loader.0"
+      },
+      "ostree_boot_links": {
+        "before": {
+          "boot.0": "boot.0.0"
+        },
+        "after": {
+          "boot.0": "boot.0.1"
+        }
+      },
+      "entry_files_changed": false
+    },
+    {
+      "stage": "owner-previous-3",
+      "target": "R13",
+      "by": "at previous",
+      "before": [
+        "R27",
+        "R13",
+        "S"
+      ],
+      "after": [
+        "R13",
+        "R27",
+        "S"
+      ],
+      "bootconfig_swap": "no",
+      "journal": [
+        "Transaction complete; bootconfig swap: no; bootversion: boot.0.0, deployment count change: 0"
+      ],
+      "loader_link": {
+        "before": "loader.0",
+        "after": "loader.0"
+      },
+      "ostree_boot_links": {
+        "before": {
+          "boot.0": "boot.0.1"
+        },
+        "after": {
+          "boot.0": "boot.0.0"
+        }
+      },
+      "entry_files_changed": false
+    },
+    {
+      "stage": "owner-forward-4",
+      "target": "R27",
+      "by": "at forward",
+      "before": [
+        "R13",
+        "R27",
+        "S"
+      ],
+      "after": [
+        "R27",
+        "R13",
+        "S"
+      ],
+      "bootconfig_swap": "no",
+      "journal": [
+        "Transaction complete; bootconfig swap: no; bootversion: boot.0.1, deployment count change: 0"
+      ],
+      "loader_link": {
+        "before": "loader.0",
+        "after": "loader.0"
+      },
+      "ostree_boot_links": {
+        "before": {
+          "boot.0": "boot.0.0"
+        },
+        "after": {
+          "boot.0": "boot.0.1"
+        }
+      },
+      "entry_files_changed": false
+    },
+    {
+      "stage": "owner-keep-stock",
+      "target": "S",
+      "by": "at keep-stock",
+      "before": [
+        "R27",
+        "R13",
+        "S"
+      ],
+      "after": [
+        "S",
+        "R27",
+        "R13"
+      ],
+      "bootconfig_swap": "no",
+      "journal": [
+        "Transaction complete; bootconfig swap: no; bootversion: boot.0.0, deployment count change: 0"
+      ],
+      "loader_link": {
+        "before": "loader.0",
+        "after": "loader.0"
+      },
+      "ostree_boot_links": {
+        "before": {
+          "boot.0": "boot.0.1"
+        },
+        "after": {
+          "boot.0": "boot.0.0"
+        }
+      },
+      "entry_files_changed": false
+    },
+    {
+      "stage": "owner-forward-5",
+      "target": "R27",
+      "by": "at forward",
+      "before": [
+        "S",
+        "R27",
+        "R13"
+      ],
+      "after": [
+        "R27",
+        "S",
+        "R13"
+      ],
+      "bootconfig_swap": "no",
+      "journal": [
+        "Transaction complete; bootconfig swap: no; bootversion: boot.0.1, deployment count change: 0"
+      ],
+      "loader_link": {
+        "before": "loader.0",
+        "after": "loader.0"
+      },
+      "ostree_boot_links": {
+        "before": {
+          "boot.0": "boot.0.0"
+        },
+        "after": {
+          "boot.0": "boot.0.1"
+        }
+      },
+      "entry_files_changed": false
+    },
+    {
+      "stage": "cut-rollback",
+      "target": "S",
+      "by": "at rollback, stopped after its reorder and before its record",
+      "before": [
+        "R27",
+        "S",
+        "R13"
+      ],
+      "after": [
+        "S",
+        "R27",
+        "R13"
+      ],
+      "bootconfig_swap": "no",
+      "journal": [
+        "Transaction complete; bootconfig swap: no; bootversion: boot.0.0, deployment count change: 0"
+      ],
+      "loader_link": {
+        "before": "loader.0",
+        "after": "loader.0"
+      },
+      "ostree_boot_links": {
+        "before": {
+          "boot.0": "boot.0.1"
+        },
+        "after": {
+          "boot.0": "boot.0.0"
+        }
+      },
+      "entry_files_changed": false
+    },
+    {
+      "stage": "owner-forward-6",
+      "target": "R27",
+      "by": "at forward",
+      "before": [
+        "S",
+        "R27",
+        "R13"
+      ],
+      "after": [
+        "R27",
+        "S",
+        "R13"
+      ],
+      "bootconfig_swap": "no",
+      "journal": [
+        "Transaction complete; bootconfig swap: no; bootversion: boot.0.1, deployment count change: 0"
+      ],
+      "loader_link": {
+        "before": "loader.0",
+        "after": "loader.0"
+      },
+      "ostree_boot_links": {
+        "before": {
+          "boot.0": "boot.0.0"
+        },
+        "after": {
+          "boot.0": "boot.0.1"
+        }
+      },
+      "entry_files_changed": false
+    }
+  ],
+  "expectations": {
+    "checked": 370,
+    "contradicted": []
+  },
+  "orders_seen": [
+    [
+      "R13",
+      "R27",
+      "S"
+    ],
+    [
+      "R27",
+      "R13",
+      "S"
+    ],
+    [
+      "S",
+      "R27",
+      "R13"
+    ],
+    [
+      "R27",
+      "S",
+      "R13"
+    ],
+    [
+      "R13",
+      "R27",
+      "S"
+    ],
+    [
+      "R27",
+      "R13",
+      "S"
+    ],
+    [
+      "R13",
+      "R27",
+      "S"
+    ],
+    [
+      "R27",
+      "R13",
+      "S"
+    ],
+    [
+      "S",
+      "R27",
+      "R13"
+    ],
+    [
+      "R27",
+      "S",
+      "R13"
+    ],
+    [
+      "S",
+      "R27",
+      "R13"
+    ],
+    [
+      "R27",
+      "S",
+      "R13"
+    ]
+  ],
+  "commit": "f84041bfa506c8b048f1985c1b634d91700ecec2",
+  "order": "protected-second",
+  "starting_state": "package 27's route: corrected pinned stock, release 13 by the laptop tools (15f), release 27 by tools version 2",
+  "laptop_tools": "3ef85c4adab3c8a5daf5bf26c2a40805d24bcb0c17b9327cfc55e7e96aeebefc",
+  "tools_version_2": "851eb742bfe20bd4b47370b9f2558494edf4b74056d7023cc0d412e32fee6f33",
+  "tools_version_2_commit": "41b06513c1972ac4ccf395c169fdf261381243b0",
+  "tools_version_3": "2084c786c29d691a0d8c6ca450c59ef524751e5f6c475de0491f200a80765a3a",
+  "tools_version_3_folder": "/var/lib/ares/tools-2084c786c29d691a0d8c6ca450c59ef524751e5f6c475de0491f200a80765a3a",
+  "layout_proofs_read_from_that_folder": true,
+  "previous_release": "ghcr.io/ares-empire/aresos@sha256:9b19b7942bc131934eac3733a7f8a1c1de488659075897f60c006bc88c77f3eb",
+  "release": "ghcr.io/ares-empire/aresos@sha256:5fad242fceac7244563913eed96cd72dfcd300fec5e458cdb2ba81bce00d944c",
+  "names": {
+    "R27": "newer AresOS 5fad242fceac",
+    "R13": "older AresOS 9b19b7942bc1",
+    "S": "plain Bazzite ed93d2158a1b"
+  },
+  "references": {
+    "R27": "ghcr.io/ares-empire/aresos@sha256:5fad242fceac7244563913eed96cd72dfcd300fec5e458cdb2ba81bce00d944c",
+    "R13": "ghcr.io/ares-empire/aresos@sha256:9b19b7942bc131934eac3733a7f8a1c1de488659075897f60c006bc88c77f3eb",
+    "S": "ghcr.io/ublue-os/bazzite-nvidia-open:stable"
+  },
+  "network_after_release_27": false,
+  "deployments": {
+    "R27": [
+      "809c481b9f40dc52ffab1aca5b0e9783bed9c287faec434e71c9edf193808f1b",
+      0,
+      "default"
+    ],
+    "R13": [
+      "42e5aea14cb87080fb9a96990b56968578a4a10a79c453c51630c01676d8017c",
+      0,
+      "default"
+    ],
+    "S": [
+      "aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71",
+      1,
+      "default"
+    ]
+  },
+  "transcript": [
+    {
+      "stage": "tools-3-install",
+      "boot": "release-27",
+      "system": "R27",
+      "console": "tty3",
+      "command": "the guide's 13-line stick block (bash ./at install)",
+      "status": "passed",
+      "lines": [],
+      "error": null
+    },
+    {
+      "stage": "tools-3-check",
+      "boot": "release-27",
+      "system": "R27",
+      "console": "tty3",
+      "command": "sudo /var/lib/ares/at check",
+      "status": "passed",
+      "lines": [
+        "System console de; X11 de variant ",
+        "Loaded y/z map, cmdline and all retained BLS maps passed",
+        "newer AresOS 5fad242fceac runs and starts next",
+        "Boot menu at the next start: (ostree:0) newer AresOS 5fad242fceac, starts next; (ostree:1) older AresOS 9b19b7942bc1; (ostree:2) plain Bazzite ed93d2158a1b",
+        "stock aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71 1 default",
+        "pin yes; transaction idle",
+        "staged False; rollback queued False",
+        "title Bazzite (ostree:2)",
+        "Previous title INVALID; use this record until the next reorder",
+        "Title resolves the exact saved stock serial",
+        "Flatpak sync state saved; unfinished sync is expected and does not block",
+        "Also prove yz-/!\u00fc by physical typing in the console and labwc terminal"
+      ],
+      "error": null
+    },
+    {
+      "stage": "tools-3-title",
+      "boot": "release-27",
+      "system": "R27",
+      "console": "tty3",
+      "command": "sudo /var/lib/ares/at title",
+      "status": "passed",
+      "lines": [
+        "newer AresOS 5fad242fceac runs and starts next",
+        "Boot menu at the next start: (ostree:0) newer AresOS 5fad242fceac, starts next; (ostree:1) older AresOS 9b19b7942bc1; (ostree:2) plain Bazzite ed93d2158a1b",
+        "stock aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71 1 default",
+        "pin yes; transaction idle",
+        "staged False; rollback queued False",
+        "title Bazzite (ostree:2)",
+        "Previous title INVALID; use this record until the next reorder",
+        "Title resolves the exact saved stock serial",
+        "Flatpak sync state saved; unfinished sync is expected and does not block"
+      ],
+      "error": null
+    },
+    {
+      "stage": "layout-intl-begin",
+      "boot": "release-27",
+      "system": "R27",
+      "console": "tty3",
+      "command": "sudo /var/lib/ares/at layout begin us-intl",
+      "status": "passed",
+      "lines": [
+        "Console-only trial; system/greeter layout stays finished until layout finish",
+        "Keep this administrator console OPEN; reboot is not authorized",
+        "Ctrl+Alt+F4: fresh ares-recovery password login in the new layout",
+        "Then sudo -k; sudo /var/lib/ares/at layout proof",
+        "If typing/login fails: Ctrl+Alt+F3; sudo /var/lib/ares/at layout revert"
+      ],
+      "error": null
+    },
+    {
+      "stage": "layout-intl-proof",
+      "boot": "release-27",
+      "system": "R27",
+      "console": "tty4",
+      "command": "sudo -k; sudo /var/lib/ares/at layout proof",
+      "status": "passed",
+      "lines": [
+        "Fresh second-console login and physical typing passed",
+        "Return to the original console; use layout finish"
+      ],
+      "error": null
+    },
+    {
+      "stage": "layout-intl-finish",
+      "boot": "release-27",
+      "system": "R27",
+      "console": "tty3",
+      "command": "sudo /var/lib/ares/at layout finish",
+      "status": "passed",
+      "lines": [
+        "Layout trial completed; fresh login/typing proof saved",
+        "newer AresOS 5fad242fceac runs and starts next",
+        "Boot menu at the next start: (ostree:0) newer AresOS 5fad242fceac, starts next; (ostree:1) older AresOS 9b19b7942bc1; (ostree:2) plain Bazzite ed93d2158a1b",
+        "stock aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71 1 default",
+        "pin yes; transaction idle",
+        "staged False; rollback queued False",
+        "title Bazzite (ostree:2)",
+        "Previous title INVALID; use this record until the next reorder",
+        "Title resolves the exact saved stock serial",
+        "Flatpak sync state saved; unfinished sync is expected and does not block",
+        "Reboot is now permitted. Windows stays default; use F12 then Linux",
+        "After boot check loaded console keys and physical typing in the labwc terminal"
+      ],
+      "error": null
+    },
+    {
+      "stage": "release-27-reboot-title",
+      "boot": "release-27",
+      "system": "R27",
+      "console": "tty3",
+      "command": "sudo /var/lib/ares/at title",
+      "status": "passed",
+      "lines": [
+        "newer AresOS 5fad242fceac runs and starts next",
+        "Boot menu at the next start: (ostree:0) newer AresOS 5fad242fceac, starts next; (ostree:1) older AresOS 9b19b7942bc1; (ostree:2) plain Bazzite ed93d2158a1b",
+        "stock aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71 1 default",
+        "pin yes; transaction idle",
+        "staged False; rollback queued False",
+        "title Bazzite (ostree:2)",
+        "Previous title INVALID; use this record until the next reorder",
+        "Title resolves the exact saved stock serial",
+        "Flatpak sync state saved; unfinished sync is expected and does not block"
+      ],
+      "error": null
+    },
+    {
+      "stage": "release-27-owner-reboot",
+      "boot": "release-27",
+      "system": "R27",
+      "console": "tty3",
+      "command": "sudo /var/lib/ares/at reboot",
+      "status": "restart requested",
+      "lines": [],
+      "error": null
+    },
+    {
+      "stage": "intl-27-check",
+      "boot": "intl-27",
+      "system": "R27",
+      "console": "tty3",
+      "command": "sudo /var/lib/ares/at check",
+      "status": "passed",
+      "lines": [
+        "System console us-intl; X11 us variant intl",
+        "Loaded y/z map, cmdline and all retained BLS maps passed",
+        "newer AresOS 5fad242fceac runs and starts next",
+        "Boot menu at the next start: (ostree:0) newer AresOS 5fad242fceac, starts next; (ostree:1) older AresOS 9b19b7942bc1; (ostree:2) plain Bazzite ed93d2158a1b",
+        "stock aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71 1 default",
+        "pin yes; transaction idle",
+        "staged False; rollback queued False",
+        "title Bazzite (ostree:2)",
+        "Previous title INVALID; use this record until the next reorder",
+        "Title resolves the exact saved stock serial",
+        "Flatpak sync state saved; unfinished sync is expected and does not block",
+        "Also prove yz-/!\u00fc by physical typing in the console and labwc terminal"
+      ],
+      "error": null
+    },
+    {
+      "stage": "intl-27-title",
+      "boot": "intl-27",
+      "system": "R27",
+      "console": "tty3",
+      "command": "sudo /var/lib/ares/at title",
+      "status": "passed",
+      "lines": [
+        "newer AresOS 5fad242fceac runs and starts next",
+        "Boot menu at the next start: (ostree:0) newer AresOS 5fad242fceac, starts next; (ostree:1) older AresOS 9b19b7942bc1; (ostree:2) plain Bazzite ed93d2158a1b",
+        "stock aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71 1 default",
+        "pin yes; transaction idle",
+        "staged False; rollback queued False",
+        "title Bazzite (ostree:2)",
+        "Previous title INVALID; use this record until the next reorder",
+        "Title resolves the exact saved stock serial",
+        "Flatpak sync state saved; unfinished sync is expected and does not block"
+      ],
+      "error": null
+    },
+    {
+      "stage": "layout-de-begin",
+      "boot": "intl-27",
+      "system": "R27",
+      "console": "tty3",
+      "command": "sudo /var/lib/ares/at layout begin de",
+      "status": "passed",
+      "lines": [
+        "Console-only trial; system/greeter layout stays finished until layout finish",
+        "Keep this administrator console OPEN; reboot is not authorized",
+        "Ctrl+Alt+F4: fresh ares-recovery password login in the new layout",
+        "Then sudo -k; sudo /var/lib/ares/at layout proof",
+        "If typing/login fails: Ctrl+Alt+F3; sudo /var/lib/ares/at layout revert"
+      ],
+      "error": null
+    },
+    {
+      "stage": "layout-de-proof",
+      "boot": "intl-27",
+      "system": "R27",
+      "console": "tty4",
+      "command": "sudo -k; sudo /var/lib/ares/at layout proof",
+      "status": "passed",
+      "lines": [
+        "Fresh second-console login and physical typing passed",
+        "Return to the original console; use layout finish"
+      ],
+      "error": null
+    },
+    {
+      "stage": "layout-de-finish",
+      "boot": "intl-27",
+      "system": "R27",
+      "console": "tty3",
+      "command": "sudo /var/lib/ares/at layout finish",
+      "status": "passed",
+      "lines": [
+        "Layout trial completed; fresh login/typing proof saved",
+        "newer AresOS 5fad242fceac runs and starts next",
+        "Boot menu at the next start: (ostree:0) newer AresOS 5fad242fceac, starts next; (ostree:1) older AresOS 9b19b7942bc1; (ostree:2) plain Bazzite ed93d2158a1b",
+        "stock aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71 1 default",
+        "pin yes; transaction idle",
+        "staged False; rollback queued False",
+        "title Bazzite (ostree:2)",
+        "Previous title INVALID; use this record until the next reorder",
+        "Title resolves the exact saved stock serial",
+        "Flatpak sync state saved; unfinished sync is expected and does not block",
+        "Reboot is now permitted. Windows stays default; use F12 then Linux",
+        "After boot check loaded console keys and physical typing in the labwc terminal"
+      ],
+      "error": null
+    },
+    {
+      "stage": "intl-27-reboot-title",
+      "boot": "intl-27",
+      "system": "R27",
+      "console": "tty3",
+      "command": "sudo /var/lib/ares/at title",
+      "status": "passed",
+      "lines": [
+        "newer AresOS 5fad242fceac runs and starts next",
+        "Boot menu at the next start: (ostree:0) newer AresOS 5fad242fceac, starts next; (ostree:1) older AresOS 9b19b7942bc1; (ostree:2) plain Bazzite ed93d2158a1b",
+        "stock aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71 1 default",
+        "pin yes; transaction idle",
+        "staged False; rollback queued False",
+        "title Bazzite (ostree:2)",
+        "Previous title INVALID; use this record until the next reorder",
+        "Title resolves the exact saved stock serial",
+        "Flatpak sync state saved; unfinished sync is expected and does not block"
+      ],
+      "error": null
+    },
+    {
+      "stage": "intl-27-owner-reboot",
+      "boot": "intl-27",
+      "system": "R27",
+      "console": "tty3",
+      "command": "sudo /var/lib/ares/at reboot",
+      "status": "restart requested",
+      "lines": [],
+      "error": null
+    },
+    {
+      "stage": "trial-27-check",
+      "boot": "trial-27",
+      "system": "R27",
+      "console": "tty3",
+      "command": "sudo /var/lib/ares/at check",
+      "status": "passed",
+      "lines": [
+        "System console de; X11 de variant ",
+        "Loaded y/z map, cmdline and all retained BLS maps passed",
+        "newer AresOS 5fad242fceac runs and starts next",
+        "Boot menu at the next start: (ostree:0) newer AresOS 5fad242fceac, starts next; (ostree:1) older AresOS 9b19b7942bc1; (ostree:2) plain Bazzite ed93d2158a1b",
+        "stock aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71 1 default",
+        "pin yes; transaction idle",
+        "staged False; rollback queued False",
+        "title Bazzite (ostree:2)",
+        "Previous title INVALID; use this record until the next reorder",
+        "Title resolves the exact saved stock serial",
+        "Flatpak sync state saved; unfinished sync is expected and does not block",
+        "Also prove yz-/!\u00fc by physical typing in the console and labwc terminal"
+      ],
+      "error": null
+    },
+    {
+      "stage": "trial-27-title",
+      "boot": "trial-27",
+      "system": "R27",
+      "console": "tty3",
+      "command": "sudo /var/lib/ares/at title",
+      "status": "passed",
+      "lines": [
+        "newer AresOS 5fad242fceac runs and starts next",
+        "Boot menu at the next start: (ostree:0) newer AresOS 5fad242fceac, starts next; (ostree:1) older AresOS 9b19b7942bc1; (ostree:2) plain Bazzite ed93d2158a1b",
+        "stock aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71 1 default",
+        "pin yes; transaction idle",
+        "staged False; rollback queued False",
+        "title Bazzite (ostree:2)",
+        "Previous title INVALID; use this record until the next reorder",
+        "Title resolves the exact saved stock serial",
+        "Flatpak sync state saved; unfinished sync is expected and does not block"
+      ],
+      "error": null
+    },
+    {
+      "stage": "trial-27-begin-us",
+      "boot": "trial-27",
+      "system": "R27",
+      "console": "tty3",
+      "command": "sudo /var/lib/ares/at layout begin us",
+      "status": "passed",
+      "lines": [
+        "Console-only trial; system/greeter layout stays finished until layout finish",
+        "Keep this administrator console OPEN; reboot is not authorized",
+        "Ctrl+Alt+F4: fresh ares-recovery password login in the new layout",
+        "Then sudo -k; sudo /var/lib/ares/at layout proof",
+        "If typing/login fails: Ctrl+Alt+F3; sudo /var/lib/ares/at layout revert"
+      ],
+      "error": null
+    },
+    {
+      "stage": "abandon-27-abandon",
+      "boot": "abandon-27",
+      "system": "R27",
+      "console": "tty3",
+      "command": "sudo /var/lib/ares/at layout abandon",
+      "status": "passed",
+      "lines": [
+        "Last finished console layout restored; abandoned trial cleared",
+        "Last finished persistent layout verified; stock settings preserved",
+        "newer AresOS 5fad242fceac runs and starts next",
+        "Boot menu at the next start: (ostree:0) newer AresOS 5fad242fceac, starts next; (ostree:1) older AresOS 9b19b7942bc1; (ostree:2) plain Bazzite ed93d2158a1b",
+        "stock aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71 1 default",
+        "pin yes; transaction idle",
+        "staged False; rollback queued False",
+        "title Bazzite (ostree:2)",
+        "Previous title INVALID; use this record until the next reorder",
+        "Title resolves the exact saved stock serial",
+        "Flatpak sync state saved; unfinished sync is expected and does not block"
+      ],
+      "error": null
+    },
+    {
+      "stage": "abandon-27-check",
+      "boot": "abandon-27",
+      "system": "R27",
+      "console": "tty3",
+      "command": "sudo /var/lib/ares/at check",
+      "status": "passed",
+      "lines": [
+        "System console de; X11 de variant ",
+        "Loaded y/z map, cmdline and all retained BLS maps passed",
+        "newer AresOS 5fad242fceac runs and starts next",
+        "Boot menu at the next start: (ostree:0) newer AresOS 5fad242fceac, starts next; (ostree:1) older AresOS 9b19b7942bc1; (ostree:2) plain Bazzite ed93d2158a1b",
+        "stock aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71 1 default",
+        "pin yes; transaction idle",
+        "staged False; rollback queued False",
+        "title Bazzite (ostree:2)",
+        "Previous title INVALID; use this record until the next reorder",
+        "Title resolves the exact saved stock serial",
+        "Flatpak sync state saved; unfinished sync is expected and does not block",
+        "Also prove yz-/!\u00fc by physical typing in the console and labwc terminal"
+      ],
+      "error": null
+    },
+    {
+      "stage": "abandon-27-title",
+      "boot": "abandon-27",
+      "system": "R27",
+      "console": "tty3",
+      "command": "sudo /var/lib/ares/at title",
+      "status": "passed",
+      "lines": [
+        "newer AresOS 5fad242fceac runs and starts next",
+        "Boot menu at the next start: (ostree:0) newer AresOS 5fad242fceac, starts next; (ostree:1) older AresOS 9b19b7942bc1; (ostree:2) plain Bazzite ed93d2158a1b",
+        "stock aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71 1 default",
+        "pin yes; transaction idle",
+        "staged False; rollback queued False",
+        "title Bazzite (ostree:2)",
+        "Previous title INVALID; use this record until the next reorder",
+        "Title resolves the exact saved stock serial",
+        "Flatpak sync state saved; unfinished sync is expected and does not block"
+      ],
+      "error": null
+    },
+    {
+      "stage": "owner-previous-1",
+      "boot": "abandon-27",
+      "system": "R27",
+      "console": "tty3",
+      "command": "sudo /var/lib/ares/at previous",
+      "status": "passed",
+      "lines": [
+        "Previous AresOS queued for the next start ghcr.io/ares-empire/aresos@sha256:9b19b7942bc131934eac3733a7f8a1c1de488659075897f60c006bc88c77f3eb",
+        "newer AresOS 5fad242fceac runs; older AresOS 9b19b7942bc1 starts next, after the restart",
+        "Boot menu at the next start: (ostree:0) older AresOS 9b19b7942bc1, starts next; (ostree:1) newer AresOS 5fad242fceac; (ostree:2) plain Bazzite ed93d2158a1b",
+        "Return to ghcr.io/ares-empire/aresos@sha256:9b19b7942bc131934eac3733a7f8a1c1de488659075897f60c006bc88c77f3eb is not finished until the restart",
+        "stock aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71 1 default",
+        "pin yes; transaction idle",
+        "staged False; rollback queued True",
+        "title Bazzite (ostree:2)",
+        "Previous title INVALID; use this record until the next reorder",
+        "Title resolves the exact saved stock serial",
+        "Flatpak sync state saved; unfinished sync is expected and does not block"
+      ],
+      "error": null
+    },
+    {
+      "stage": "abandon-27-reboot-title",
+      "boot": "abandon-27",
+      "system": "R27",
+      "console": "tty3",
+      "command": "sudo /var/lib/ares/at title",
+      "status": "passed",
+      "lines": [
+        "newer AresOS 5fad242fceac runs; older AresOS 9b19b7942bc1 starts next, after the restart",
+        "Boot menu at the next start: (ostree:0) older AresOS 9b19b7942bc1, starts next; (ostree:1) newer AresOS 5fad242fceac; (ostree:2) plain Bazzite ed93d2158a1b",
+        "Return to ghcr.io/ares-empire/aresos@sha256:9b19b7942bc131934eac3733a7f8a1c1de488659075897f60c006bc88c77f3eb is not finished until the restart",
+        "stock aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71 1 default",
+        "pin yes; transaction idle",
+        "staged False; rollback queued True",
+        "title Bazzite (ostree:2)",
+        "Previous title INVALID; use this record until the next reorder",
+        "Title resolves the exact saved stock serial",
+        "Flatpak sync state saved; unfinished sync is expected and does not block"
+      ],
+      "error": null
+    },
+    {
+      "stage": "abandon-27-owner-reboot",
+      "boot": "abandon-27",
+      "system": "R27",
+      "console": "tty3",
+      "command": "sudo /var/lib/ares/at reboot",
+      "status": "restart requested",
+      "lines": [],
+      "error": null
+    },
+    {
+      "stage": "back-13-check",
+      "boot": "back-13",
+      "system": "R13",
+      "console": "tty3",
+      "command": "sudo /var/lib/ares/at check",
+      "status": "passed",
+      "lines": [
+        "System console de; X11 de variant ",
+        "Loaded y/z map, cmdline and all retained BLS maps passed",
+        "older AresOS 9b19b7942bc1 runs and starts next",
+        "Boot menu at the next start: (ostree:0) older AresOS 9b19b7942bc1, starts next; (ostree:1) newer AresOS 5fad242fceac; (ostree:2) plain Bazzite ed93d2158a1b",
+        "Return to ghcr.io/ares-empire/aresos@sha256:9b19b7942bc131934eac3733a7f8a1c1de488659075897f60c006bc88c77f3eb confirmed after the restart",
+        "stock aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71 1 default",
+        "pin yes; transaction idle",
+        "staged False; rollback queued False",
+        "title Bazzite (ostree:2)",
+        "Previous title INVALID; use this record until the next reorder",
+        "Title resolves the exact saved stock serial",
+        "Flatpak sync state saved; unfinished sync is expected and does not block",
+        "Also prove yz-/!\u00fc by physical typing in the console and labwc terminal"
+      ],
+      "error": null
+    },
+    {
+      "stage": "back-13-title",
+      "boot": "back-13",
+      "system": "R13",
+      "console": "tty3",
+      "command": "sudo /var/lib/ares/at title",
+      "status": "passed",
+      "lines": [
+        "older AresOS 9b19b7942bc1 runs and starts next",
+        "Boot menu at the next start: (ostree:0) older AresOS 9b19b7942bc1, starts next; (ostree:1) newer AresOS 5fad242fceac; (ostree:2) plain Bazzite ed93d2158a1b",
+        "stock aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71 1 default",
+        "pin yes; transaction idle",
+        "staged False; rollback queued False",
+        "title Bazzite (ostree:2)",
+        "Previous title INVALID; use this record until the next reorder",
+        "Title resolves the exact saved stock serial",
+        "Flatpak sync state saved; unfinished sync is expected and does not block"
+      ],
+      "error": null
+    },
+    {
+      "stage": "back-13-update-refused",
+      "boot": "back-13",
+      "system": "R13",
+      "console": "tty3",
+      "command": "sudo /var/lib/ares/at update",
+      "status": "stopped",
+      "lines": [],
+      "error": "The release of these tools is installed already, so update has nothing to install: run sudo /var/lib/ares/at forward (it makes the newest installed AresOS the next start and says whether a restart is needed); nothing changed"
+    },
+    {
+      "stage": "owner-forward-1",
+      "boot": "back-13",
+      "system": "R13",
+      "console": "tty3",
+      "command": "sudo /var/lib/ares/at forward",
+      "status": "passed",
+      "lines": [
+        "Newest installed AresOS starts next ghcr.io/ares-empire/aresos@sha256:5fad242fceac7244563913eed96cd72dfcd300fec5e458cdb2ba81bce00d944c",
+        "older AresOS 9b19b7942bc1 runs; newer AresOS 5fad242fceac starts next, after the restart",
+        "Boot menu at the next start: (ostree:0) newer AresOS 5fad242fceac, starts next; (ostree:1) older AresOS 9b19b7942bc1; (ostree:2) plain Bazzite ed93d2158a1b",
+        "Forward to ghcr.io/ares-empire/aresos@sha256:5fad242fceac7244563913eed96cd72dfcd300fec5e458cdb2ba81bce00d944c is not finished until the restart",
+        "stock aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71 1 default",
+        "pin yes; transaction idle",
+        "staged False; rollback queued True",
+        "title Bazzite (ostree:2)",
+        "Previous title INVALID; use this record until the next reorder",
+        "Title resolves the exact saved stock serial",
+        "Flatpak sync state saved; unfinished sync is expected and does not block"
+      ],
+      "error": null
+    },
+    {
+      "stage": "back-13-reboot-title",
+      "boot": "back-13",
+      "system": "R13",
+      "console": "tty3",
+      "command": "sudo /var/lib/ares/at title",
+      "status": "passed",
+      "lines": [
+        "older AresOS 9b19b7942bc1 runs; newer AresOS 5fad242fceac starts next, after the restart",
+        "Boot menu at the next start: (ostree:0) newer AresOS 5fad242fceac, starts next; (ostree:1) older AresOS 9b19b7942bc1; (ostree:2) plain Bazzite ed93d2158a1b",
+        "Forward to ghcr.io/ares-empire/aresos@sha256:5fad242fceac7244563913eed96cd72dfcd300fec5e458cdb2ba81bce00d944c is not finished until the restart",
+        "stock aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71 1 default",
+        "pin yes; transaction idle",
+        "staged False; rollback queued True",
+        "title Bazzite (ostree:2)",
+        "Previous title INVALID; use this record until the next reorder",
+        "Title resolves the exact saved stock serial",
+        "Flatpak sync state saved; unfinished sync is expected and does not block"
+      ],
+      "error": null
+    },
+    {
+      "stage": "back-13-owner-reboot",
+      "boot": "back-13",
+      "system": "R13",
+      "console": "tty3",
+      "command": "sudo /var/lib/ares/at reboot",
+      "status": "restart requested",
+      "lines": [],
+      "error": null
+    },
+    {
+      "stage": "forward-27-check",
+      "boot": "forward-27",
+      "system": "R27",
+      "console": "tty3",
+      "command": "sudo /var/lib/ares/at check",
+      "status": "passed",
+      "lines": [
+        "System console de; X11 de variant ",
+        "Loaded y/z map, cmdline and all retained BLS maps passed",
+        "newer AresOS 5fad242fceac runs and starts next",
+        "Boot menu at the next start: (ostree:0) newer AresOS 5fad242fceac, starts next; (ostree:1) older AresOS 9b19b7942bc1; (ostree:2) plain Bazzite ed93d2158a1b",
+        "Forward to ghcr.io/ares-empire/aresos@sha256:5fad242fceac7244563913eed96cd72dfcd300fec5e458cdb2ba81bce00d944c confirmed after the restart",
+        "stock aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71 1 default",
+        "pin yes; transaction idle",
+        "staged False; rollback queued False",
+        "title Bazzite (ostree:2)",
+        "Previous title INVALID; use this record until the next reorder",
+        "Title resolves the exact saved stock serial",
+        "Flatpak sync state saved; unfinished sync is expected and does not block",
+        "Also prove yz-/!\u00fc by physical typing in the console and labwc terminal"
+      ],
+      "error": null
+    },
+    {
+      "stage": "forward-27-title",
+      "boot": "forward-27",
+      "system": "R27",
+      "console": "tty3",
+      "command": "sudo /var/lib/ares/at title",
+      "status": "passed",
+      "lines": [
+        "newer AresOS 5fad242fceac runs and starts next",
+        "Boot menu at the next start: (ostree:0) newer AresOS 5fad242fceac, starts next; (ostree:1) older AresOS 9b19b7942bc1; (ostree:2) plain Bazzite ed93d2158a1b",
+        "stock aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71 1 default",
+        "pin yes; transaction idle",
+        "staged False; rollback queued False",
+        "title Bazzite (ostree:2)",
+        "Previous title INVALID; use this record until the next reorder",
+        "Title resolves the exact saved stock serial",
+        "Flatpak sync state saved; unfinished sync is expected and does not block"
+      ],
+      "error": null
+    },
+    {
+      "stage": "owner-rollback-1",
+      "boot": "forward-27",
+      "system": "R27",
+      "console": "tty3",
+      "command": "sudo /var/lib/ares/at rollback",
+      "status": "passed",
+      "lines": [
+        "Saved stock rollback queued",
+        "newer AresOS 5fad242fceac runs; plain Bazzite ed93d2158a1b starts next, after the restart",
+        "Boot menu at the next start: (ostree:0) plain Bazzite ed93d2158a1b, starts next; (ostree:1) newer AresOS 5fad242fceac; (ostree:2) older AresOS 9b19b7942bc1",
+        "Rollback to ghcr.io/ublue-os/bazzite-nvidia-open:stable is not finished until the restart",
+        "stock aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71 1 default",
+        "pin yes; transaction idle",
+        "staged False; rollback queued True",
+        "title Bazzite (ostree:0)",
+        "Previous title INVALID; use this record until the next reorder",
+        "Title resolves the exact saved stock serial",
+        "Flatpak sync state saved; unfinished sync is expected and does not block"
+      ],
+      "error": null
+    },
+    {
+      "stage": "forward-27-reboot-title",
+      "boot": "forward-27",
+      "system": "R27",
+      "console": "tty3",
+      "command": "sudo /var/lib/ares/at title",
+      "status": "passed",
+      "lines": [
+        "newer AresOS 5fad242fceac runs; plain Bazzite ed93d2158a1b starts next, after the restart",
+        "Boot menu at the next start: (ostree:0) plain Bazzite ed93d2158a1b, starts next; (ostree:1) newer AresOS 5fad242fceac; (ostree:2) older AresOS 9b19b7942bc1",
+        "Rollback to ghcr.io/ublue-os/bazzite-nvidia-open:stable is not finished until the restart",
+        "stock aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71 1 default",
+        "pin yes; transaction idle",
+        "staged False; rollback queued True",
+        "title Bazzite (ostree:0)",
+        "Previous title INVALID; use this record until the next reorder",
+        "Title resolves the exact saved stock serial",
+        "Flatpak sync state saved; unfinished sync is expected and does not block"
+      ],
+      "error": null
+    },
+    {
+      "stage": "forward-27-owner-reboot",
+      "boot": "forward-27",
+      "system": "R27",
+      "console": "tty3",
+      "command": "sudo /var/lib/ares/at reboot",
+      "status": "restart requested",
+      "lines": [],
+      "error": null
+    },
+    {
+      "stage": "stock-1-check",
+      "boot": "stock-1",
+      "system": "S",
+      "console": "tty3",
+      "command": "sudo /var/lib/ares/at check",
+      "status": "passed",
+      "lines": [
+        "System console de; X11 de variant ",
+        "Loaded y/z map, cmdline and all retained BLS maps passed",
+        "plain Bazzite ed93d2158a1b runs and starts next",
+        "Boot menu at the next start: (ostree:0) plain Bazzite ed93d2158a1b, starts next; (ostree:1) newer AresOS 5fad242fceac; (ostree:2) older AresOS 9b19b7942bc1",
+        "Rollback to ghcr.io/ublue-os/bazzite-nvidia-open:stable confirmed after the restart",
+        "stock aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71 1 default",
+        "pin yes; transaction idle",
+        "staged False; rollback queued False",
+        "title Bazzite (ostree:0)",
+        "Previous title INVALID; use this record until the next reorder",
+        "Title resolves the exact saved stock serial",
+        "Flatpak sync state saved; unfinished sync is expected and does not block",
+        "Also prove yz-/!\u00fc by physical typing in the console and labwc terminal"
+      ],
+      "error": null
+    },
+    {
+      "stage": "stock-1-title",
+      "boot": "stock-1",
+      "system": "S",
+      "console": "tty3",
+      "command": "sudo /var/lib/ares/at title",
+      "status": "passed",
+      "lines": [
+        "plain Bazzite ed93d2158a1b runs and starts next",
+        "Boot menu at the next start: (ostree:0) plain Bazzite ed93d2158a1b, starts next; (ostree:1) newer AresOS 5fad242fceac; (ostree:2) older AresOS 9b19b7942bc1",
+        "stock aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71 1 default",
+        "pin yes; transaction idle",
+        "staged False; rollback queued False",
+        "title Bazzite (ostree:0)",
+        "Previous title INVALID; use this record until the next reorder",
+        "Title resolves the exact saved stock serial",
+        "Flatpak sync state saved; unfinished sync is expected and does not block"
+      ],
+      "error": null
+    },
+    {
+      "stage": "stock-1-rollback-refused",
+      "boot": "stock-1",
+      "system": "S",
+      "console": "tty3",
+      "command": "sudo /var/lib/ares/at rollback",
+      "status": "stopped",
+      "lines": [],
+      "error": "Plain Bazzite runs here: use sudo /var/lib/ares/at keep-stock (rollback is for a running AresOS); nothing changed"
+    },
+    {
+      "stage": "stock-1-keep-stock",
+      "boot": "stock-1",
+      "system": "S",
+      "console": "tty3",
+      "command": "sudo /var/lib/ares/at keep-stock",
+      "status": "passed",
+      "lines": [
+        "Plain Bazzite ed93d2158a1b already starts next; nothing changed",
+        "It runs now"
+      ],
+      "error": null
+    },
+    {
+      "stage": "owner-forward-2",
+      "boot": "stock-1",
+      "system": "S",
+      "console": "tty3",
+      "command": "sudo /var/lib/ares/at forward",
+      "status": "passed",
+      "lines": [
+        "Newest installed AresOS starts next ghcr.io/ares-empire/aresos@sha256:5fad242fceac7244563913eed96cd72dfcd300fec5e458cdb2ba81bce00d944c",
+        "plain Bazzite ed93d2158a1b runs; newer AresOS 5fad242fceac starts next, after the restart",
+        "Boot menu at the next start: (ostree:0) newer AresOS 5fad242fceac, starts next; (ostree:1) plain Bazzite ed93d2158a1b; (ostree:2) older AresOS 9b19b7942bc1",
+        "Forward to ghcr.io/ares-empire/aresos@sha256:5fad242fceac7244563913eed96cd72dfcd300fec5e458cdb2ba81bce00d944c is not finished until the restart",
+        "stock aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71 1 default",
+        "pin yes; transaction idle",
+        "staged False; rollback queued True",
+        "title Bazzite (ostree:1)",
+        "Previous title INVALID; use this record until the next reorder",
+        "Title resolves the exact saved stock serial",
+        "Flatpak sync state saved; unfinished sync is expected and does not block"
+      ],
+      "error": null
+    },
+    {
+      "stage": "stock-1-reboot-title",
+      "boot": "stock-1",
+      "system": "S",
+      "console": "tty3",
+      "command": "sudo /var/lib/ares/at title",
+      "status": "passed",
+      "lines": [
+        "plain Bazzite ed93d2158a1b runs; newer AresOS 5fad242fceac starts next, after the restart",
+        "Boot menu at the next start: (ostree:0) newer AresOS 5fad242fceac, starts next; (ostree:1) plain Bazzite ed93d2158a1b; (ostree:2) older AresOS 9b19b7942bc1",
+        "Forward to ghcr.io/ares-empire/aresos@sha256:5fad242fceac7244563913eed96cd72dfcd300fec5e458cdb2ba81bce00d944c is not finished until the restart",
+        "stock aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71 1 default",
+        "pin yes; transaction idle",
+        "staged False; rollback queued True",
+        "title Bazzite (ostree:1)",
+        "Previous title INVALID; use this record until the next reorder",
+        "Title resolves the exact saved stock serial",
+        "Flatpak sync state saved; unfinished sync is expected and does not block"
+      ],
+      "error": null
+    },
+    {
+      "stage": "stock-1-owner-reboot",
+      "boot": "stock-1",
+      "system": "S",
+      "console": "tty3",
+      "command": "sudo /var/lib/ares/at reboot",
+      "status": "restart requested",
+      "lines": [],
+      "error": null
+    },
+    {
+      "stage": "forward-27b-check",
+      "boot": "forward-27b",
+      "system": "R27",
+      "console": "tty3",
+      "command": "sudo /var/lib/ares/at check",
+      "status": "passed",
+      "lines": [
+        "System console de; X11 de variant ",
+        "Loaded y/z map, cmdline and all retained BLS maps passed",
+        "newer AresOS 5fad242fceac runs and starts next",
+        "Boot menu at the next start: (ostree:0) newer AresOS 5fad242fceac, starts next; (ostree:1) plain Bazzite ed93d2158a1b; (ostree:2) older AresOS 9b19b7942bc1",
+        "Forward to ghcr.io/ares-empire/aresos@sha256:5fad242fceac7244563913eed96cd72dfcd300fec5e458cdb2ba81bce00d944c confirmed after the restart",
+        "stock aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71 1 default",
+        "pin yes; transaction idle",
+        "staged False; rollback queued False",
+        "title Bazzite (ostree:1)",
+        "Previous title INVALID; use this record until the next reorder",
+        "Title resolves the exact saved stock serial",
+        "Flatpak sync state saved; unfinished sync is expected and does not block",
+        "Also prove yz-/!\u00fc by physical typing in the console and labwc terminal"
+      ],
+      "error": null
+    },
+    {
+      "stage": "forward-27b-title",
+      "boot": "forward-27b",
+      "system": "R27",
+      "console": "tty3",
+      "command": "sudo /var/lib/ares/at title",
+      "status": "passed",
+      "lines": [
+        "newer AresOS 5fad242fceac runs and starts next",
+        "Boot menu at the next start: (ostree:0) newer AresOS 5fad242fceac, starts next; (ostree:1) plain Bazzite ed93d2158a1b; (ostree:2) older AresOS 9b19b7942bc1",
+        "stock aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71 1 default",
+        "pin yes; transaction idle",
+        "staged False; rollback queued False",
+        "title Bazzite (ostree:1)",
+        "Previous title INVALID; use this record until the next reorder",
+        "Title resolves the exact saved stock serial",
+        "Flatpak sync state saved; unfinished sync is expected and does not block"
+      ],
+      "error": null
+    },
+    {
+      "stage": "owner-previous-2",
+      "boot": "forward-27b",
+      "system": "R27",
+      "console": "tty3",
+      "command": "sudo /var/lib/ares/at previous",
+      "status": "passed",
+      "lines": [
+        "Previous AresOS queued for the next start ghcr.io/ares-empire/aresos@sha256:9b19b7942bc131934eac3733a7f8a1c1de488659075897f60c006bc88c77f3eb",
+        "newer AresOS 5fad242fceac runs; older AresOS 9b19b7942bc1 starts next, after the restart",
+        "Boot menu at the next start: (ostree:0) older AresOS 9b19b7942bc1, starts next; (ostree:1) newer AresOS 5fad242fceac; (ostree:2) plain Bazzite ed93d2158a1b",
+        "Return to ghcr.io/ares-empire/aresos@sha256:9b19b7942bc131934eac3733a7f8a1c1de488659075897f60c006bc88c77f3eb is not finished until the restart",
+        "stock aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71 1 default",
+        "pin yes; transaction idle",
+        "staged False; rollback queued True",
+        "title Bazzite (ostree:2)",
+        "Previous title INVALID; use this record until the next reorder",
+        "Title resolves the exact saved stock serial",
+        "Flatpak sync state saved; unfinished sync is expected and does not block"
+      ],
+      "error": null
+    },
+    {
+      "stage": "forward-27b-reboot-title",
+      "boot": "forward-27b",
+      "system": "R27",
+      "console": "tty3",
+      "command": "sudo /var/lib/ares/at title",
+      "status": "passed",
+      "lines": [
+        "newer AresOS 5fad242fceac runs; older AresOS 9b19b7942bc1 starts next, after the restart",
+        "Boot menu at the next start: (ostree:0) older AresOS 9b19b7942bc1, starts next; (ostree:1) newer AresOS 5fad242fceac; (ostree:2) plain Bazzite ed93d2158a1b",
+        "Return to ghcr.io/ares-empire/aresos@sha256:9b19b7942bc131934eac3733a7f8a1c1de488659075897f60c006bc88c77f3eb is not finished until the restart",
+        "stock aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71 1 default",
+        "pin yes; transaction idle",
+        "staged False; rollback queued True",
+        "title Bazzite (ostree:2)",
+        "Previous title INVALID; use this record until the next reorder",
+        "Title resolves the exact saved stock serial",
+        "Flatpak sync state saved; unfinished sync is expected and does not block"
+      ],
+      "error": null
+    },
+    {
+      "stage": "forward-27b-owner-reboot",
+      "boot": "forward-27b",
+      "system": "R27",
+      "console": "tty3",
+      "command": "sudo /var/lib/ares/at reboot",
+      "status": "restart requested",
+      "lines": [],
+      "error": null
+    },
+    {
+      "stage": "back-13b-check",
+      "boot": "back-13b",
+      "system": "R13",
+      "console": "tty3",
+      "command": "sudo /var/lib/ares/at check",
+      "status": "passed",
+      "lines": [
+        "System console de; X11 de variant ",
+        "Loaded y/z map, cmdline and all retained BLS maps passed",
+        "older AresOS 9b19b7942bc1 runs and starts next",
+        "Boot menu at the next start: (ostree:0) older AresOS 9b19b7942bc1, starts next; (ostree:1) newer AresOS 5fad242fceac; (ostree:2) plain Bazzite ed93d2158a1b",
+        "Return to ghcr.io/ares-empire/aresos@sha256:9b19b7942bc131934eac3733a7f8a1c1de488659075897f60c006bc88c77f3eb confirmed after the restart",
+        "stock aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71 1 default",
+        "pin yes; transaction idle",
+        "staged False; rollback queued False",
+        "title Bazzite (ostree:2)",
+        "Previous title INVALID; use this record until the next reorder",
+        "Title resolves the exact saved stock serial",
+        "Flatpak sync state saved; unfinished sync is expected and does not block",
+        "Also prove yz-/!\u00fc by physical typing in the console and labwc terminal"
+      ],
+      "error": null
+    },
+    {
+      "stage": "back-13b-title",
+      "boot": "back-13b",
+      "system": "R13",
+      "console": "tty3",
+      "command": "sudo /var/lib/ares/at title",
+      "status": "passed",
+      "lines": [
+        "older AresOS 9b19b7942bc1 runs and starts next",
+        "Boot menu at the next start: (ostree:0) older AresOS 9b19b7942bc1, starts next; (ostree:1) newer AresOS 5fad242fceac; (ostree:2) plain Bazzite ed93d2158a1b",
+        "stock aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71 1 default",
+        "pin yes; transaction idle",
+        "staged False; rollback queued False",
+        "title Bazzite (ostree:2)",
+        "Previous title INVALID; use this record until the next reorder",
+        "Title resolves the exact saved stock serial",
+        "Flatpak sync state saved; unfinished sync is expected and does not block"
+      ],
+      "error": null
+    },
+    {
+      "stage": "owner-forward-3",
+      "boot": "back-13b",
+      "system": "R13",
+      "console": "tty3",
+      "command": "sudo /var/lib/ares/at forward",
+      "status": "passed",
+      "lines": [
+        "Newest installed AresOS starts next ghcr.io/ares-empire/aresos@sha256:5fad242fceac7244563913eed96cd72dfcd300fec5e458cdb2ba81bce00d944c",
+        "older AresOS 9b19b7942bc1 runs; newer AresOS 5fad242fceac starts next, after the restart",
+        "Boot menu at the next start: (ostree:0) newer AresOS 5fad242fceac, starts next; (ostree:1) older AresOS 9b19b7942bc1; (ostree:2) plain Bazzite ed93d2158a1b",
+        "Forward to ghcr.io/ares-empire/aresos@sha256:5fad242fceac7244563913eed96cd72dfcd300fec5e458cdb2ba81bce00d944c is not finished until the restart",
+        "stock aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71 1 default",
+        "pin yes; transaction idle",
+        "staged False; rollback queued True",
+        "title Bazzite (ostree:2)",
+        "Previous title INVALID; use this record until the next reorder",
+        "Title resolves the exact saved stock serial",
+        "Flatpak sync state saved; unfinished sync is expected and does not block"
+      ],
+      "error": null
+    },
+    {
+      "stage": "back-13b-reboot-title",
+      "boot": "back-13b",
+      "system": "R13",
+      "console": "tty3",
+      "command": "sudo /var/lib/ares/at title",
+      "status": "passed",
+      "lines": [
+        "older AresOS 9b19b7942bc1 runs; newer AresOS 5fad242fceac starts next, after the restart",
+        "Boot menu at the next start: (ostree:0) newer AresOS 5fad242fceac, starts next; (ostree:1) older AresOS 9b19b7942bc1; (ostree:2) plain Bazzite ed93d2158a1b",
+        "Forward to ghcr.io/ares-empire/aresos@sha256:5fad242fceac7244563913eed96cd72dfcd300fec5e458cdb2ba81bce00d944c is not finished until the restart",
+        "stock aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71 1 default",
+        "pin yes; transaction idle",
+        "staged False; rollback queued True",
+        "title Bazzite (ostree:2)",
+        "Previous title INVALID; use this record until the next reorder",
+        "Title resolves the exact saved stock serial",
+        "Flatpak sync state saved; unfinished sync is expected and does not block"
+      ],
+      "error": null
+    },
+    {
+      "stage": "back-13b-owner-reboot",
+      "boot": "back-13b",
+      "system": "R13",
+      "console": "tty3",
+      "command": "sudo /var/lib/ares/at reboot",
+      "status": "restart requested",
+      "lines": [],
+      "error": null
+    },
+    {
+      "stage": "forward-27c-check",
+      "boot": "forward-27c",
+      "system": "R27",
+      "console": "tty3",
+      "command": "sudo /var/lib/ares/at check",
+      "status": "passed",
+      "lines": [
+        "System console de; X11 de variant ",
+        "Loaded y/z map, cmdline and all retained BLS maps passed",
+        "newer AresOS 5fad242fceac runs and starts next",
+        "Boot menu at the next start: (ostree:0) newer AresOS 5fad242fceac, starts next; (ostree:1) older AresOS 9b19b7942bc1; (ostree:2) plain Bazzite ed93d2158a1b",
+        "Forward to ghcr.io/ares-empire/aresos@sha256:5fad242fceac7244563913eed96cd72dfcd300fec5e458cdb2ba81bce00d944c confirmed after the restart",
+        "stock aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71 1 default",
+        "pin yes; transaction idle",
+        "staged False; rollback queued False",
+        "title Bazzite (ostree:2)",
+        "Previous title INVALID; use this record until the next reorder",
+        "Title resolves the exact saved stock serial",
+        "Flatpak sync state saved; unfinished sync is expected and does not block",
+        "Also prove yz-/!\u00fc by physical typing in the console and labwc terminal"
+      ],
+      "error": null
+    },
+    {
+      "stage": "forward-27c-title",
+      "boot": "forward-27c",
+      "system": "R27",
+      "console": "tty3",
+      "command": "sudo /var/lib/ares/at title",
+      "status": "passed",
+      "lines": [
+        "newer AresOS 5fad242fceac runs and starts next",
+        "Boot menu at the next start: (ostree:0) newer AresOS 5fad242fceac, starts next; (ostree:1) older AresOS 9b19b7942bc1; (ostree:2) plain Bazzite ed93d2158a1b",
+        "stock aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71 1 default",
+        "pin yes; transaction idle",
+        "staged False; rollback queued False",
+        "title Bazzite (ostree:2)",
+        "Previous title INVALID; use this record until the next reorder",
+        "Title resolves the exact saved stock serial",
+        "Flatpak sync state saved; unfinished sync is expected and does not block"
+      ],
+      "error": null
+    },
+    {
+      "stage": "owner-previous-3",
+      "boot": "forward-27c",
+      "system": "R27",
+      "console": "tty3",
+      "command": "sudo /var/lib/ares/at previous",
+      "status": "passed",
+      "lines": [
+        "Previous AresOS queued for the next start ghcr.io/ares-empire/aresos@sha256:9b19b7942bc131934eac3733a7f8a1c1de488659075897f60c006bc88c77f3eb",
+        "newer AresOS 5fad242fceac runs; older AresOS 9b19b7942bc1 starts next, after the restart",
+        "Boot menu at the next start: (ostree:0) older AresOS 9b19b7942bc1, starts next; (ostree:1) newer AresOS 5fad242fceac; (ostree:2) plain Bazzite ed93d2158a1b",
+        "Return to ghcr.io/ares-empire/aresos@sha256:9b19b7942bc131934eac3733a7f8a1c1de488659075897f60c006bc88c77f3eb is not finished until the restart",
+        "stock aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71 1 default",
+        "pin yes; transaction idle",
+        "staged False; rollback queued True",
+        "title Bazzite (ostree:2)",
+        "Previous title INVALID; use this record until the next reorder",
+        "Title resolves the exact saved stock serial",
+        "Flatpak sync state saved; unfinished sync is expected and does not block"
+      ],
+      "error": null
+    },
+    {
+      "stage": "forward-27c-reboot-title",
+      "boot": "forward-27c",
+      "system": "R27",
+      "console": "tty3",
+      "command": "sudo /var/lib/ares/at title",
+      "status": "passed",
+      "lines": [
+        "newer AresOS 5fad242fceac runs; older AresOS 9b19b7942bc1 starts next, after the restart",
+        "Boot menu at the next start: (ostree:0) older AresOS 9b19b7942bc1, starts next; (ostree:1) newer AresOS 5fad242fceac; (ostree:2) plain Bazzite ed93d2158a1b",
+        "Return to ghcr.io/ares-empire/aresos@sha256:9b19b7942bc131934eac3733a7f8a1c1de488659075897f60c006bc88c77f3eb is not finished until the restart",
+        "stock aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71 1 default",
+        "pin yes; transaction idle",
+        "staged False; rollback queued True",
+        "title Bazzite (ostree:2)",
+        "Previous title INVALID; use this record until the next reorder",
+        "Title resolves the exact saved stock serial",
+        "Flatpak sync state saved; unfinished sync is expected and does not block"
+      ],
+      "error": null
+    },
+    {
+      "stage": "forward-27c-owner-reboot",
+      "boot": "forward-27c",
+      "system": "R27",
+      "console": "tty3",
+      "command": "sudo /var/lib/ares/at reboot",
+      "status": "restart requested",
+      "lines": [],
+      "error": null
+    },
+    {
+      "stage": "menu-27-check",
+      "boot": "menu-27",
+      "system": "R27",
+      "console": "tty3",
+      "command": "sudo /var/lib/ares/at check",
+      "status": "passed",
+      "lines": [
+        "System console de; X11 de variant ",
+        "Loaded y/z map, cmdline and all retained BLS maps passed",
+        "newer AresOS 5fad242fceac runs; older AresOS 9b19b7942bc1 starts next; this start was not the default",
+        "Boot menu at the next start: (ostree:0) older AresOS 9b19b7942bc1, starts next; (ostree:1) newer AresOS 5fad242fceac; (ostree:2) plain Bazzite ed93d2158a1b",
+        "Return to ghcr.io/ares-empire/aresos@sha256:9b19b7942bc131934eac3733a7f8a1c1de488659075897f60c006bc88c77f3eb is in place and has not started yet",
+        "stock aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71 1 default",
+        "pin yes; transaction idle",
+        "staged False; rollback queued True",
+        "title Bazzite (ostree:2)",
+        "Previous title INVALID; use this record until the next reorder",
+        "Title resolves the exact saved stock serial",
+        "Flatpak sync state saved; unfinished sync is expected and does not block",
+        "Also prove yz-/!\u00fc by physical typing in the console and labwc terminal"
+      ],
+      "error": null
+    },
+    {
+      "stage": "menu-27-title",
+      "boot": "menu-27",
+      "system": "R27",
+      "console": "tty3",
+      "command": "sudo /var/lib/ares/at title",
+      "status": "passed",
+      "lines": [
+        "newer AresOS 5fad242fceac runs; older AresOS 9b19b7942bc1 starts next; this start was not the default",
+        "Boot menu at the next start: (ostree:0) older AresOS 9b19b7942bc1, starts next; (ostree:1) newer AresOS 5fad242fceac; (ostree:2) plain Bazzite ed93d2158a1b",
+        "Return to ghcr.io/ares-empire/aresos@sha256:9b19b7942bc131934eac3733a7f8a1c1de488659075897f60c006bc88c77f3eb is in place and has not started yet",
+        "stock aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71 1 default",
+        "pin yes; transaction idle",
+        "staged False; rollback queued True",
+        "title Bazzite (ostree:2)",
+        "Previous title INVALID; use this record until the next reorder",
+        "Title resolves the exact saved stock serial",
+        "Flatpak sync state saved; unfinished sync is expected and does not block"
+      ],
+      "error": null
+    },
+    {
+      "stage": "owner-forward-4",
+      "boot": "menu-27",
+      "system": "R27",
+      "console": "tty3",
+      "command": "sudo /var/lib/ares/at forward",
+      "status": "passed",
+      "lines": [
+        "Newest installed AresOS starts next ghcr.io/ares-empire/aresos@sha256:5fad242fceac7244563913eed96cd72dfcd300fec5e458cdb2ba81bce00d944c",
+        "newer AresOS 5fad242fceac runs and now starts next; no restart is waiting",
+        "Boot menu at the next start: (ostree:0) newer AresOS 5fad242fceac, starts next; (ostree:1) older AresOS 9b19b7942bc1; (ostree:2) plain Bazzite ed93d2158a1b",
+        "stock aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71 1 default",
+        "pin yes; transaction idle",
+        "staged False; rollback queued False",
+        "title Bazzite (ostree:2)",
+        "Previous title INVALID; use this record until the next reorder",
+        "Title resolves the exact saved stock serial",
+        "Flatpak sync state saved; unfinished sync is expected and does not block"
+      ],
+      "error": null
+    },
+    {
+      "stage": "menu-27-reboot-title",
+      "boot": "menu-27",
+      "system": "R27",
+      "console": "tty3",
+      "command": "sudo /var/lib/ares/at title",
+      "status": "passed",
+      "lines": [
+        "newer AresOS 5fad242fceac runs and now starts next; no restart is waiting",
+        "Boot menu at the next start: (ostree:0) newer AresOS 5fad242fceac, starts next; (ostree:1) older AresOS 9b19b7942bc1; (ostree:2) plain Bazzite ed93d2158a1b",
+        "stock aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71 1 default",
+        "pin yes; transaction idle",
+        "staged False; rollback queued False",
+        "title Bazzite (ostree:2)",
+        "Previous title INVALID; use this record until the next reorder",
+        "Title resolves the exact saved stock serial",
+        "Flatpak sync state saved; unfinished sync is expected and does not block"
+      ],
+      "error": null
+    },
+    {
+      "stage": "menu-27-owner-reboot",
+      "boot": "menu-27",
+      "system": "R27",
+      "console": "tty3",
+      "command": "sudo /var/lib/ares/at reboot",
+      "status": "restart requested",
+      "lines": [],
+      "error": null
+    },
+    {
+      "stage": "forward-27d-check",
+      "boot": "forward-27d",
+      "system": "R27",
+      "console": "tty3",
+      "command": "sudo /var/lib/ares/at check",
+      "status": "passed",
+      "lines": [
+        "System console de; X11 de variant ",
+        "Loaded y/z map, cmdline and all retained BLS maps passed",
+        "newer AresOS 5fad242fceac runs and starts next",
+        "Boot menu at the next start: (ostree:0) newer AresOS 5fad242fceac, starts next; (ostree:1) older AresOS 9b19b7942bc1; (ostree:2) plain Bazzite ed93d2158a1b",
+        "Forward to ghcr.io/ares-empire/aresos@sha256:5fad242fceac7244563913eed96cd72dfcd300fec5e458cdb2ba81bce00d944c confirmed after the restart",
+        "stock aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71 1 default",
+        "pin yes; transaction idle",
+        "staged False; rollback queued False",
+        "title Bazzite (ostree:2)",
+        "Previous title INVALID; use this record until the next reorder",
+        "Title resolves the exact saved stock serial",
+        "Flatpak sync state saved; unfinished sync is expected and does not block",
+        "Also prove yz-/!\u00fc by physical typing in the console and labwc terminal"
+      ],
+      "error": null
+    },
+    {
+      "stage": "forward-27d-title",
+      "boot": "forward-27d",
+      "system": "R27",
+      "console": "tty3",
+      "command": "sudo /var/lib/ares/at title",
+      "status": "passed",
+      "lines": [
+        "newer AresOS 5fad242fceac runs and starts next",
+        "Boot menu at the next start: (ostree:0) newer AresOS 5fad242fceac, starts next; (ostree:1) older AresOS 9b19b7942bc1; (ostree:2) plain Bazzite ed93d2158a1b",
+        "stock aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71 1 default",
+        "pin yes; transaction idle",
+        "staged False; rollback queued False",
+        "title Bazzite (ostree:2)",
+        "Previous title INVALID; use this record until the next reorder",
+        "Title resolves the exact saved stock serial",
+        "Flatpak sync state saved; unfinished sync is expected and does not block"
+      ],
+      "error": null
+    },
+    {
+      "stage": "forward-27d-reboot-title",
+      "boot": "forward-27d",
+      "system": "R27",
+      "console": "tty3",
+      "command": "sudo /var/lib/ares/at title",
+      "status": "passed",
+      "lines": [
+        "newer AresOS 5fad242fceac runs and starts next",
+        "Boot menu at the next start: (ostree:0) newer AresOS 5fad242fceac, starts next; (ostree:1) older AresOS 9b19b7942bc1; (ostree:2) plain Bazzite ed93d2158a1b",
+        "stock aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71 1 default",
+        "pin yes; transaction idle",
+        "staged False; rollback queued False",
+        "title Bazzite (ostree:2)",
+        "Previous title INVALID; use this record until the next reorder",
+        "Title resolves the exact saved stock serial",
+        "Flatpak sync state saved; unfinished sync is expected and does not block"
+      ],
+      "error": null
+    },
+    {
+      "stage": "forward-27d-owner-reboot",
+      "boot": "forward-27d",
+      "system": "R27",
+      "console": "tty3",
+      "command": "sudo /var/lib/ares/at reboot",
+      "status": "restart requested",
+      "lines": [],
+      "error": null
+    },
+    {
+      "stage": "menu-stock-check",
+      "boot": "menu-stock",
+      "system": "S",
+      "console": "tty3",
+      "command": "sudo /var/lib/ares/at check",
+      "status": "passed",
+      "lines": [
+        "System console de; X11 de variant ",
+        "Loaded y/z map, cmdline and all retained BLS maps passed",
+        "plain Bazzite ed93d2158a1b runs; newer AresOS 5fad242fceac starts next; this start was not the default",
+        "Boot menu at the next start: (ostree:0) newer AresOS 5fad242fceac, starts next; (ostree:1) older AresOS 9b19b7942bc1; (ostree:2) plain Bazzite ed93d2158a1b",
+        "stock aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71 1 default",
+        "pin yes; transaction idle",
+        "staged False; rollback queued True",
+        "title Bazzite (ostree:2)",
+        "Previous title INVALID; use this record until the next reorder",
+        "Title resolves the exact saved stock serial",
+        "Flatpak sync state saved; unfinished sync is expected and does not block",
+        "Also prove yz-/!\u00fc by physical typing in the console and labwc terminal"
+      ],
+      "error": null
+    },
+    {
+      "stage": "menu-stock-title",
+      "boot": "menu-stock",
+      "system": "S",
+      "console": "tty3",
+      "command": "sudo /var/lib/ares/at title",
+      "status": "passed",
+      "lines": [
+        "plain Bazzite ed93d2158a1b runs; newer AresOS 5fad242fceac starts next; this start was not the default",
+        "Boot menu at the next start: (ostree:0) newer AresOS 5fad242fceac, starts next; (ostree:1) older AresOS 9b19b7942bc1; (ostree:2) plain Bazzite ed93d2158a1b",
+        "stock aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71 1 default",
+        "pin yes; transaction idle",
+        "staged False; rollback queued True",
+        "title Bazzite (ostree:2)",
+        "Previous title INVALID; use this record until the next reorder",
+        "Title resolves the exact saved stock serial",
+        "Flatpak sync state saved; unfinished sync is expected and does not block"
+      ],
+      "error": null
+    },
+    {
+      "stage": "owner-keep-stock",
+      "boot": "menu-stock",
+      "system": "S",
+      "console": "tty3",
+      "command": "sudo /var/lib/ares/at keep-stock",
+      "status": "passed",
+      "lines": [
+        "Saved stock is default",
+        "plain Bazzite ed93d2158a1b runs and now starts next; no restart is waiting",
+        "Boot menu at the next start: (ostree:0) plain Bazzite ed93d2158a1b, starts next; (ostree:1) newer AresOS 5fad242fceac; (ostree:2) older AresOS 9b19b7942bc1",
+        "stock aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71 1 default",
+        "pin yes; transaction idle",
+        "staged False; rollback queued False",
+        "title Bazzite (ostree:0)",
+        "Previous title INVALID; use this record until the next reorder",
+        "Title resolves the exact saved stock serial",
+        "Flatpak sync state saved; unfinished sync is expected and does not block"
+      ],
+      "error": null
+    },
+    {
+      "stage": "menu-stock-reboot-title",
+      "boot": "menu-stock",
+      "system": "S",
+      "console": "tty3",
+      "command": "sudo /var/lib/ares/at title",
+      "status": "passed",
+      "lines": [
+        "plain Bazzite ed93d2158a1b runs and now starts next; no restart is waiting",
+        "Boot menu at the next start: (ostree:0) plain Bazzite ed93d2158a1b, starts next; (ostree:1) newer AresOS 5fad242fceac; (ostree:2) older AresOS 9b19b7942bc1",
+        "stock aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71 1 default",
+        "pin yes; transaction idle",
+        "staged False; rollback queued False",
+        "title Bazzite (ostree:0)",
+        "Previous title INVALID; use this record until the next reorder",
+        "Title resolves the exact saved stock serial",
+        "Flatpak sync state saved; unfinished sync is expected and does not block"
+      ],
+      "error": null
+    },
+    {
+      "stage": "menu-stock-owner-reboot",
+      "boot": "menu-stock",
+      "system": "S",
+      "console": "tty3",
+      "command": "sudo /var/lib/ares/at reboot",
+      "status": "restart requested",
+      "lines": [],
+      "error": null
+    },
+    {
+      "stage": "stock-2-check",
+      "boot": "stock-2",
+      "system": "S",
+      "console": "tty3",
+      "command": "sudo /var/lib/ares/at check",
+      "status": "passed",
+      "lines": [
+        "System console de; X11 de variant ",
+        "Loaded y/z map, cmdline and all retained BLS maps passed",
+        "plain Bazzite ed93d2158a1b runs and starts next",
+        "Boot menu at the next start: (ostree:0) plain Bazzite ed93d2158a1b, starts next; (ostree:1) newer AresOS 5fad242fceac; (ostree:2) older AresOS 9b19b7942bc1",
+        "Change to ghcr.io/ublue-os/bazzite-nvidia-open:stable confirmed after the restart",
+        "stock aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71 1 default",
+        "pin yes; transaction idle",
+        "staged False; rollback queued False",
+        "title Bazzite (ostree:0)",
+        "Previous title INVALID; use this record until the next reorder",
+        "Title resolves the exact saved stock serial",
+        "Flatpak sync state saved; unfinished sync is expected and does not block",
+        "Also prove yz-/!\u00fc by physical typing in the console and labwc terminal"
+      ],
+      "error": null
+    },
+    {
+      "stage": "stock-2-title",
+      "boot": "stock-2",
+      "system": "S",
+      "console": "tty3",
+      "command": "sudo /var/lib/ares/at title",
+      "status": "passed",
+      "lines": [
+        "plain Bazzite ed93d2158a1b runs and starts next",
+        "Boot menu at the next start: (ostree:0) plain Bazzite ed93d2158a1b, starts next; (ostree:1) newer AresOS 5fad242fceac; (ostree:2) older AresOS 9b19b7942bc1",
+        "stock aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71 1 default",
+        "pin yes; transaction idle",
+        "staged False; rollback queued False",
+        "title Bazzite (ostree:0)",
+        "Previous title INVALID; use this record until the next reorder",
+        "Title resolves the exact saved stock serial",
+        "Flatpak sync state saved; unfinished sync is expected and does not block"
+      ],
+      "error": null
+    },
+    {
+      "stage": "owner-forward-5",
+      "boot": "stock-2",
+      "system": "S",
+      "console": "tty3",
+      "command": "sudo /var/lib/ares/at forward",
+      "status": "passed",
+      "lines": [
+        "Newest installed AresOS starts next ghcr.io/ares-empire/aresos@sha256:5fad242fceac7244563913eed96cd72dfcd300fec5e458cdb2ba81bce00d944c",
+        "plain Bazzite ed93d2158a1b runs; newer AresOS 5fad242fceac starts next, after the restart",
+        "Boot menu at the next start: (ostree:0) newer AresOS 5fad242fceac, starts next; (ostree:1) plain Bazzite ed93d2158a1b; (ostree:2) older AresOS 9b19b7942bc1",
+        "Forward to ghcr.io/ares-empire/aresos@sha256:5fad242fceac7244563913eed96cd72dfcd300fec5e458cdb2ba81bce00d944c is not finished until the restart",
+        "stock aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71 1 default",
+        "pin yes; transaction idle",
+        "staged False; rollback queued True",
+        "title Bazzite (ostree:1)",
+        "Previous title INVALID; use this record until the next reorder",
+        "Title resolves the exact saved stock serial",
+        "Flatpak sync state saved; unfinished sync is expected and does not block"
+      ],
+      "error": null
+    },
+    {
+      "stage": "stock-2-reboot-title",
+      "boot": "stock-2",
+      "system": "S",
+      "console": "tty3",
+      "command": "sudo /var/lib/ares/at title",
+      "status": "passed",
+      "lines": [
+        "plain Bazzite ed93d2158a1b runs; newer AresOS 5fad242fceac starts next, after the restart",
+        "Boot menu at the next start: (ostree:0) newer AresOS 5fad242fceac, starts next; (ostree:1) plain Bazzite ed93d2158a1b; (ostree:2) older AresOS 9b19b7942bc1",
+        "Forward to ghcr.io/ares-empire/aresos@sha256:5fad242fceac7244563913eed96cd72dfcd300fec5e458cdb2ba81bce00d944c is not finished until the restart",
+        "stock aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71 1 default",
+        "pin yes; transaction idle",
+        "staged False; rollback queued True",
+        "title Bazzite (ostree:1)",
+        "Previous title INVALID; use this record until the next reorder",
+        "Title resolves the exact saved stock serial",
+        "Flatpak sync state saved; unfinished sync is expected and does not block"
+      ],
+      "error": null
+    },
+    {
+      "stage": "stock-2-owner-reboot",
+      "boot": "stock-2",
+      "system": "S",
+      "console": "tty3",
+      "command": "sudo /var/lib/ares/at reboot",
+      "status": "restart requested",
+      "lines": [],
+      "error": null
+    },
+    {
+      "stage": "forward-27e-check",
+      "boot": "forward-27e",
+      "system": "R27",
+      "console": "tty3",
+      "command": "sudo /var/lib/ares/at check",
+      "status": "passed",
+      "lines": [
+        "System console de; X11 de variant ",
+        "Loaded y/z map, cmdline and all retained BLS maps passed",
+        "newer AresOS 5fad242fceac runs and starts next",
+        "Boot menu at the next start: (ostree:0) newer AresOS 5fad242fceac, starts next; (ostree:1) plain Bazzite ed93d2158a1b; (ostree:2) older AresOS 9b19b7942bc1",
+        "Forward to ghcr.io/ares-empire/aresos@sha256:5fad242fceac7244563913eed96cd72dfcd300fec5e458cdb2ba81bce00d944c confirmed after the restart",
+        "stock aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71 1 default",
+        "pin yes; transaction idle",
+        "staged False; rollback queued False",
+        "title Bazzite (ostree:1)",
+        "Previous title INVALID; use this record until the next reorder",
+        "Title resolves the exact saved stock serial",
+        "Flatpak sync state saved; unfinished sync is expected and does not block",
+        "Also prove yz-/!\u00fc by physical typing in the console and labwc terminal"
+      ],
+      "error": null
+    },
+    {
+      "stage": "forward-27e-title",
+      "boot": "forward-27e",
+      "system": "R27",
+      "console": "tty3",
+      "command": "sudo /var/lib/ares/at title",
+      "status": "passed",
+      "lines": [
+        "newer AresOS 5fad242fceac runs and starts next",
+        "Boot menu at the next start: (ostree:0) newer AresOS 5fad242fceac, starts next; (ostree:1) plain Bazzite ed93d2158a1b; (ostree:2) older AresOS 9b19b7942bc1",
+        "stock aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71 1 default",
+        "pin yes; transaction idle",
+        "staged False; rollback queued False",
+        "title Bazzite (ostree:1)",
+        "Previous title INVALID; use this record until the next reorder",
+        "Title resolves the exact saved stock serial",
+        "Flatpak sync state saved; unfinished sync is expected and does not block"
+      ],
+      "error": null
+    },
+    {
+      "stage": "cut-rollback",
+      "boot": "forward-27e",
+      "system": "R27",
+      "console": "tty3",
+      "command": "sudo /var/lib/ares/at rollback",
+      "status": "cut by a hard reset after its reorder and before its record",
+      "lines": [],
+      "error": null
+    },
+    {
+      "stage": "cut-stock-check",
+      "boot": "cut-stock",
+      "system": "S",
+      "console": "tty3",
+      "command": "sudo /var/lib/ares/at check",
+      "status": "passed",
+      "lines": [
+        "The interrupted rollback to ghcr.io/ublue-os/bazzite-nvidia-open:stable had made its change; it is recorded now",
+        "System console de; X11 de variant ",
+        "Loaded y/z map, cmdline and all retained BLS maps passed",
+        "plain Bazzite ed93d2158a1b runs and starts next",
+        "Boot menu at the next start: (ostree:0) plain Bazzite ed93d2158a1b, starts next; (ostree:1) newer AresOS 5fad242fceac; (ostree:2) older AresOS 9b19b7942bc1",
+        "Rollback to ghcr.io/ublue-os/bazzite-nvidia-open:stable confirmed after the restart",
+        "stock aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71 1 default",
+        "pin yes; transaction idle",
+        "staged False; rollback queued False",
+        "title Bazzite (ostree:0)",
+        "Previous title INVALID; use this record until the next reorder",
+        "Title resolves the exact saved stock serial",
+        "Flatpak sync state saved; unfinished sync is expected and does not block",
+        "Also prove yz-/!\u00fc by physical typing in the console and labwc terminal"
+      ],
+      "error": null
+    },
+    {
+      "stage": "cut-stock-title",
+      "boot": "cut-stock",
+      "system": "S",
+      "console": "tty3",
+      "command": "sudo /var/lib/ares/at title",
+      "status": "passed",
+      "lines": [
+        "plain Bazzite ed93d2158a1b runs and starts next",
+        "Boot menu at the next start: (ostree:0) plain Bazzite ed93d2158a1b, starts next; (ostree:1) newer AresOS 5fad242fceac; (ostree:2) older AresOS 9b19b7942bc1",
+        "stock aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71 1 default",
+        "pin yes; transaction idle",
+        "staged False; rollback queued False",
+        "title Bazzite (ostree:0)",
+        "Previous title INVALID; use this record until the next reorder",
+        "Title resolves the exact saved stock serial",
+        "Flatpak sync state saved; unfinished sync is expected and does not block"
+      ],
+      "error": null
+    },
+    {
+      "stage": "owner-forward-6",
+      "boot": "cut-stock",
+      "system": "S",
+      "console": "tty3",
+      "command": "sudo /var/lib/ares/at forward",
+      "status": "passed",
+      "lines": [
+        "Newest installed AresOS starts next ghcr.io/ares-empire/aresos@sha256:5fad242fceac7244563913eed96cd72dfcd300fec5e458cdb2ba81bce00d944c",
+        "plain Bazzite ed93d2158a1b runs; newer AresOS 5fad242fceac starts next, after the restart",
+        "Boot menu at the next start: (ostree:0) newer AresOS 5fad242fceac, starts next; (ostree:1) plain Bazzite ed93d2158a1b; (ostree:2) older AresOS 9b19b7942bc1",
+        "Forward to ghcr.io/ares-empire/aresos@sha256:5fad242fceac7244563913eed96cd72dfcd300fec5e458cdb2ba81bce00d944c is not finished until the restart",
+        "stock aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71 1 default",
+        "pin yes; transaction idle",
+        "staged False; rollback queued True",
+        "title Bazzite (ostree:1)",
+        "Previous title INVALID; use this record until the next reorder",
+        "Title resolves the exact saved stock serial",
+        "Flatpak sync state saved; unfinished sync is expected and does not block"
+      ],
+      "error": null
+    },
+    {
+      "stage": "cut-stock-reboot-title",
+      "boot": "cut-stock",
+      "system": "S",
+      "console": "tty3",
+      "command": "sudo /var/lib/ares/at title",
+      "status": "passed",
+      "lines": [
+        "plain Bazzite ed93d2158a1b runs; newer AresOS 5fad242fceac starts next, after the restart",
+        "Boot menu at the next start: (ostree:0) newer AresOS 5fad242fceac, starts next; (ostree:1) plain Bazzite ed93d2158a1b; (ostree:2) older AresOS 9b19b7942bc1",
+        "Forward to ghcr.io/ares-empire/aresos@sha256:5fad242fceac7244563913eed96cd72dfcd300fec5e458cdb2ba81bce00d944c is not finished until the restart",
+        "stock aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71 1 default",
+        "pin yes; transaction idle",
+        "staged False; rollback queued True",
+        "title Bazzite (ostree:1)",
+        "Previous title INVALID; use this record until the next reorder",
+        "Title resolves the exact saved stock serial",
+        "Flatpak sync state saved; unfinished sync is expected and does not block"
+      ],
+      "error": null
+    },
+    {
+      "stage": "cut-stock-owner-reboot",
+      "boot": "cut-stock",
+      "system": "S",
+      "console": "tty3",
+      "command": "sudo /var/lib/ares/at reboot",
+      "status": "restart requested",
+      "lines": [],
+      "error": null
+    },
+    {
+      "stage": "final-27-check",
+      "boot": "final-27",
+      "system": "R27",
+      "console": "tty3",
+      "command": "sudo /var/lib/ares/at check",
+      "status": "passed",
+      "lines": [
+        "System console de; X11 de variant ",
+        "Loaded y/z map, cmdline and all retained BLS maps passed",
+        "newer AresOS 5fad242fceac runs and starts next",
+        "Boot menu at the next start: (ostree:0) newer AresOS 5fad242fceac, starts next; (ostree:1) plain Bazzite ed93d2158a1b; (ostree:2) older AresOS 9b19b7942bc1",
+        "Forward to ghcr.io/ares-empire/aresos@sha256:5fad242fceac7244563913eed96cd72dfcd300fec5e458cdb2ba81bce00d944c confirmed after the restart",
+        "stock aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71 1 default",
+        "pin yes; transaction idle",
+        "staged False; rollback queued False",
+        "title Bazzite (ostree:1)",
+        "Previous title INVALID; use this record until the next reorder",
+        "Title resolves the exact saved stock serial",
+        "Flatpak sync state saved; unfinished sync is expected and does not block",
+        "Also prove yz-/!\u00fc by physical typing in the console and labwc terminal"
+      ],
+      "error": null
+    },
+    {
+      "stage": "final-27-title",
+      "boot": "final-27",
+      "system": "R27",
+      "console": "tty3",
+      "command": "sudo /var/lib/ares/at title",
+      "status": "passed",
+      "lines": [
+        "newer AresOS 5fad242fceac runs and starts next",
+        "Boot menu at the next start: (ostree:0) newer AresOS 5fad242fceac, starts next; (ostree:1) plain Bazzite ed93d2158a1b; (ostree:2) older AresOS 9b19b7942bc1",
+        "stock aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71 1 default",
+        "pin yes; transaction idle",
+        "staged False; rollback queued False",
+        "title Bazzite (ostree:1)",
+        "Previous title INVALID; use this record until the next reorder",
+        "Title resolves the exact saved stock serial",
+        "Flatpak sync state saved; unfinished sync is expected and does not block"
+      ],
+      "error": null
+    }
+  ],
+  "typed": {
+    "prepare": 0,
+    "records": 0,
+    "title": 31,
+    "login": 0,
+    "verify": 0,
+    "switch": 0,
+    "rollback": 3,
+    "keep-stock": 2,
+    "export": 0,
+    "check": 17,
+    "reboot": 14,
+    "logs": 0,
+    "update": 1,
+    "forward": 6,
+    "previous": 3,
+    "layout-us": 1,
+    "layout-intl": 1,
+    "layout-de": 1,
+    "layout-proof": 2,
+    "layout-revert": 0,
+    "layout-finish": 2,
+    "layout-abandon": 1
+  },
+  "menus": [
+    {
+      "stage": "menu-27",
+      "system": "R27",
+      "row": 1,
+      "titles": [
+        "Bazzite (ostree:0)",
+        "Bazzite (ostree:1)",
+        "Bazzite (ostree:2)"
+      ],
+      "choice": {
+        "selected": true,
+        "frame": "menu-27-attempt-06",
+        "lines": [
+          "Bazzite (ostree:0)",
+          "Bazzite (ostree:1)",
+          "Bazzite (ostree:2)"
+        ],
+        "keys": [
+          "home",
+          "down",
+          "ret"
+        ]
+      }
+    },
+    {
+      "stage": "menu-stock",
+      "system": "S",
+      "row": 2,
+      "titles": [
+        "Bazzite (ostree:0)",
+        "Bazzite (ostree:1)",
+        "Bazzite (ostree:2)"
+      ],
+      "choice": {
+        "selected": true,
+        "frame": "menu-stock-attempt-05",
+        "lines": [
+          "Bazzite (ostree:0)",
+          "Bazzite (ostree:1)",
+          "Bazzite (ostree:2)"
+        ],
+        "keys": [
+          "home",
+          "down",
+          "down",
+          "ret"
+        ]
+      }
+    }
+  ],
+  "stock_starts": [
+    "stock-1",
+    "menu-stock",
+    "stock-2",
+    "cut-stock"
+  ],
+  "stock_updaters": {
+    "files": {
+      "bootc-fetch-apply-updates.service": "static",
+      "dbus-org.freedesktop.sysupdate1.service": "alias",
+      "dnf5-offline-transaction.service": "disabled",
+      "rpm-ostreed-automatic.service": "static",
+      "systemd-sysupdate-reboot.service": "indirect",
+      "systemd-sysupdate.service": "indirect",
+      "systemd-sysupdated.service": "static",
+      "uupd-manual.service": "static",
+      "uupd.service": "static",
+      "bootc-fetch-apply-updates.timer": "disabled",
+      "rpm-ostreed-automatic.timer": "disabled",
+      "systemd-sysupdate-reboot.timer": "disabled",
+      "systemd-sysupdate.timer": "disabled",
+      "uupd.timer": "disabled"
+    },
+    "active": {
+      "bootc-fetch-apply-updates.service": "inactive",
+      "dbus-org.freedesktop.sysupdate1.service": "inactive",
+      "dnf5-offline-transaction.service": "inactive",
+      "rpm-ostreed-automatic.service": "inactive",
+      "systemd-sysupdate-reboot.service": "inactive",
+      "systemd-sysupdate.service": "inactive",
+      "systemd-sysupdated.service": "inactive",
+      "uupd-manual.service": "inactive",
+      "uupd.service": "inactive",
+      "bootc-fetch-apply-updates.timer": "inactive",
+      "rpm-ostreed-automatic.timer": "inactive",
+      "systemd-sysupdate-reboot.timer": "inactive",
+      "systemd-sysupdate.timer": "inactive",
+      "uupd.timer": "inactive"
+    }
+  },
+  "cut": {
+    "stage": "cut-rollback",
+    "watcher": {
+      "status": "frozen",
+      "pid": 18587,
+      "state": "T",
+      "links_before": [
+        [
+          "boot.0",
+          "boot.0.1"
+        ]
+      ],
+      "links_after": [
+        [
+          "boot.0",
+          "boot.0.0"
+        ]
+      ],
+      "stop_after_swap_ms": 0.029,
+      "release_step_ended": true
+    },
+    "journal": {
+      "schema": "change1",
+      "word": "rollback",
+      "status": "intent",
+      "mode": "reorder",
+      "reference": "ghcr.io/ublue-os/bazzite-nvidia-open:stable",
+      "digest": "sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151",
+      "target": [
+        "aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71",
+        1,
+        "default"
+      ],
+      "before": [
+        [
+          "809c481b9f40dc52ffab1aca5b0e9783bed9c287faec434e71c9edf193808f1b",
+          0,
+          "default"
+        ],
+        [
+          "aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71",
+          1,
+          "default"
+        ],
+        [
+          "42e5aea14cb87080fb9a96990b56968578a4a10a79c453c51630c01676d8017c",
+          0,
+          "default"
+        ]
+      ],
+      "intended": [
+        [
+          "aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71",
+          1,
+          "default"
+        ],
+        [
+          "809c481b9f40dc52ffab1aca5b0e9783bed9c287faec434e71c9edf193808f1b",
+          0,
+          "default"
+        ],
+        [
+          "42e5aea14cb87080fb9a96990b56968578a4a10a79c453c51630c01676d8017c",
+          0,
+          "default"
+        ]
+      ],
+      "running": [
+        "809c481b9f40dc52ffab1aca5b0e9783bed9c287faec434e71c9edf193808f1b",
+        0,
+        "default"
+      ]
+    },
+    "order": [
+      "S",
+      "R27",
+      "R13"
+    ],
+    "running": "R27",
+    "reset": "QMP system_reset",
+    "journal_holds": "the intent"
+  },
+  "ares_password_set_by_typing": true,
+  "ares_sudo_after_the_returns": true,
+  "ends_on": "R27",
+  "owner_commands_physically_typed": true,
+  "protected_disk_audits": true,
+  "nvram_rule_unchanged": true,
+  "bootnext_audits": true
+}

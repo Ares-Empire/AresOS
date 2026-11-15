@@ -1,0 +1,53 @@
+{
+  "run": 42959080697,
+  "source": "318b0815410fd04751c92f44febc22ede0e03469",
+  "run_conclusion": "cancelled after its external job failed; only this build-owned push run was cancelled",
+  "artifact": "control-chrome-42959080697-1-external",
+  "last_read": {
+    "url": "http://fixture.test:8765/?case=review-page&mode=borrowed-dialog&dialog=prompt&variant=conversion-default&id=review-borrowed-prompt-conversion-default",
+    "title": "Synthetic fixture",
+    "tree": "(empty readable page)",
+    "dialog": {
+      "id": "148a510b-7efb-4b6a-a49f-2a2359ae2b6b",
+      "kind": "prompt",
+      "text": "Borrowed native",
+      "frame_url": "http://fixture.test:8765/?case=review-page&mode=borrowed-dialog&dialog=prompt&variant=conversion-default&id=review-borrowed-prompt-conversion-default",
+      "button": "OK"
+    }
+  },
+  "exact_failure": [
+    {
+      "line": 36,
+      "text": "GROUP 4 REVIEW borrowed native dialogs always ask bind the answer and never replay FAIL AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:"
+    },
+    {
+      "line": 42,
+      "text": "    at file:///workspace/control/chrome/ci/review-matrices.mjs:49:123"
+    },
+    {
+      "line": 58,
+      "text": "    at file:///workspace/control/chrome/ci/review-matrices.mjs:49:123"
+    }
+  ],
+  "passed_native_case_lines": [
+    {
+      "line": 33,
+      "text": "GROUP 4 REVIEW ordinary native dialogs from Claude owner and page tasks keep working PASS"
+    },
+    {
+      "line": 34,
+      "text": "GROUP 4 REVIEW blank and srcdoc native dialogs answer with a held continuation PASS"
+    },
+    {
+      "line": 35,
+      "text": "GROUP 8 REVIEW preexisting dialogs hand off within bounds and recover after the owner answers PASS"
+    }
+  ],
+  "sha256": {
+    "browser.txt": "7c98ae669b462831228f2c72100909f82e360e337c2f744a36118631a904bb82",
+    "tool.jsonl": "fa090916417a3298d1cdc78b8f0e3143c28cb89384837e8ea48a498e85d39da5",
+    "receiver.jsonl": "8dde38d0fceabfadaaebfe0323658ee56a3ba139eeed685f6f2e2df8a6b0c35a",
+    "page-receiver.jsonl": "3e6f90cc52ff8232a9e23c986db7894def621636058df7b747e232f9aad1ae8c",
+    "browser-boundary.jsonl": "d8ee7b10706171e9f4f935a37f93830b0dca4b5baa3d6e1a54dde948ebbbfbba"
+  }
+}

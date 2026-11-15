@@ -1,0 +1,110 @@
+{
+  "build": "698a875de6b7d35bf229c4e690e788d007f3dfc98bf61087ecea923c181eff3e",
+  "checks": [
+    {
+      "command": "PYTHONPATH=control:control/chrome_tests PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s control/chrome_tests -v",
+      "exit_code": 0,
+      "sha256": "8daba8f26ad78e86534372aa5e1271fcc5ee98528c858747667e6336fe48415b",
+      "output_tail": "\n----------------------------------------------------------------------\nRan 229 tests in 625.526s\n\nOK"
+    },
+    {
+      "command": "node --test control/chrome_tests/*.test.mjs",
+      "exit_code": 0,
+      "sha256": "7ce9f099b663accb017a86be1cf3bdcae02a409b376980d987caefb8fa5276ca",
+      "output_tail": "\u2714 P29 runtime acceptance rejects missing duplicate failed or unknown named rows and false verdicts (0.597542ms)\n\u2139 tests 271\n\u2139 suites 0\n\u2139 pass 271\n\u2139 fail 0\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 7356.366084"
+    },
+    {
+      "command": "python3 -B reviews/20-chrome/mutation-audit.py reviews/20-chrome/records/recheck2/mutations.json",
+      "exit_code": 0,
+      "sha256": "94d62c95192a4a3b19eb0afcbf50ad8791a1f47b9a1a1467804ab6f526dfed16",
+      "output_tail": "170 mutations rejected; every baseline passed"
+    },
+    {
+      "command": "node --test reviews/20-chrome/audit-streams.test.mjs",
+      "exit_code": 0,
+      "sha256": "b07f09f606d18e708488238a41ba93c179beb27ec5d92a85cbe6828a74520650",
+      "output_tail": "\u2139 tests 5\n\u2139 suites 0\n\u2139 pass 5\n\u2139 fail 0\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 45.4515"
+    }
+  ],
+  "generated": "Generated artifacts match definitions",
+  "diff_check": "passed",
+  "overall": "NOT GREEN: additional strict production native-gap probe fails; Linux native-entry candidate fails",
+  "production_gap": {
+    "command": "node reviews/20-chrome/records/recheck2/native-production-gap.mjs",
+    "exit_code": 1,
+    "result": "native-production-gap.json"
+  },
+  "superseded_local_checks": {
+    "build": "98c7064b87de71c4ea1cfc209aacb64dead4add067cb7a2ee60e2c2efaa4704c",
+    "checks": [
+      {
+        "command": "PYTHONPATH=control:control/chrome_tests PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s control/chrome_tests -v",
+        "exit_code": 0,
+        "sha256": "05d8ed23cb0c8a7dca023e4521d9b19bb89907b9811603f1ec763554c7cb4ea8",
+        "output_tail": "\n----------------------------------------------------------------------\nRan 229 tests in 577.719s\n\nOK"
+      },
+      {
+        "command": "node --test control/chrome_tests/*.test.mjs",
+        "exit_code": 0,
+        "sha256": "6dfd69df61894d00decebf779423157fdd894c9538e7bfcc6c70e318b5c0242a",
+        "output_tail": "\u2714 P29 runtime acceptance rejects missing duplicate failed or unknown named rows and false verdicts (0.652666ms)\n\u2139 tests 269\n\u2139 suites 0\n\u2139 pass 269\n\u2139 fail 0\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 7172.433208"
+      },
+      {
+        "command": "python3 -B reviews/20-chrome/mutation-audit.py reviews/20-chrome/records/recheck2/mutations.json",
+        "exit_code": 0,
+        "sha256": "73eb12dc10a0b686cc4fab33aa86d443af1aca0db5a5479a58b10ce04dc2396b",
+        "output_tail": "168 mutations rejected; every baseline passed"
+      }
+    ],
+    "generated": "Generated artifacts match definitions",
+    "diff_check": "passed",
+    "superseded_local_checks": {
+      "build": "45e8e09ddba3c9f6b3c96155e08ad360d154fc46f09234434704c060e0150b5f",
+      "checks": [
+        {
+          "command": "PYTHONPATH=control:control/chrome_tests PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s control/chrome_tests -v",
+          "exit_code": 0,
+          "sha256": "c3e6228ac898401cec21e9dd2912a44dcea4e4d5ccf653d758a96a450b3b9e29",
+          "output_tail": "\n----------------------------------------------------------------------\nRan 229 tests in 580.231s\n\nOK"
+        },
+        {
+          "command": "node --test control/chrome_tests/*.test.mjs",
+          "exit_code": 0,
+          "sha256": "d9414b415dc40cc4cf032a94669ba3c99ddb45da74fe1ca8adb4421bb440186b",
+          "output_tail": "\u2714 P29 runtime acceptance rejects missing duplicate failed or unknown named rows and false verdicts (0.694708ms)\n\u2139 tests 267\n\u2139 suites 0\n\u2139 pass 267\n\u2139 fail 0\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 8218.741209"
+        },
+        {
+          "command": "python3 -B reviews/20-chrome/mutation-audit.py reviews/20-chrome/records/recheck2/mutations.json",
+          "exit_code": 0,
+          "sha256": "3c5d74db0b27cecd574103448d7f6e452aea96ab443de5a2cb054f56d4970f98",
+          "output_tail": "166 mutations rejected; every baseline passed"
+        },
+        {
+          "command": "PYTHONPATH=control:control/chrome_tests PYTHONDONTWRITEBYTECODE=1 python3 -m unittest test_questions -v",
+          "exit_code": 0,
+          "sha256": "9514d54b6e678e0ebb47b221bdd0ab5acd38e0e8edf9e26592dc1cf5371550bd",
+          "output_tail": "\n----------------------------------------------------------------------\nRan 23 tests in 0.367s\n\nOK"
+        }
+      ],
+      "generated": "Generated artifacts match definitions",
+      "diff_check": "passed",
+      "test_clock_correction": {
+        "runtime_build_unchanged": true,
+        "checks": [
+          {
+            "command": "node --test control/chrome_tests/*.test.mjs",
+            "exit_code": 0,
+            "sha256": "ec31ee97de69676a486847db3247cba89bd77fb8afabb6729cd4937e49c51853",
+            "output_tail": "\u2714 P29 runtime acceptance rejects missing duplicate failed or unknown named rows and false verdicts (0.654375ms)\n\u2139 tests 267\n\u2139 suites 0\n\u2139 pass 267\n\u2139 fail 0\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 7318.325292"
+          },
+          {
+            "command": "python3 -B reviews/20-chrome/mutation-audit.py reviews/20-chrome/records/recheck2/mutations.json",
+            "exit_code": 0,
+            "sha256": "3c5d74db0b27cecd574103448d7f6e452aea96ab443de5a2cb054f56d4970f98",
+            "output_tail": "recheck2-compose-bounded MUTATION REJECTED\nrecheck2-compose-change-shown MUTATION REJECTED\nrecheck2-markup-handler MUTATION REJECTED\nrecheck2-single-capture MUTATION REJECTED\nrecheck2-compose-extension MUTATION REJECTED\nrecheck2-compose-final-boundary MUTATION REJECTED\nrecheck2-engine-reask MUTATION REJECTED\nrecheck2-engine-boundary-reask MUTATION REJECTED\n166 mutations rejected; every baseline passed"
+          }
+        ]
+      }
+    }
+  }
+}

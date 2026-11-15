@@ -1,0 +1,62 @@
+[
+  {
+    "run": 42795327210,
+    "source": "8613f31f",
+    "combined_failed_log_line": 583,
+    "text": "fixtures (policy)\tBrowser fixtures only inside Linux container, sandbox on\t2026-11-10T10:15:07.1879275Z not ok 65 - P27 Stop lifts navigation blocks before deferred native restoration"
+  },
+  {
+    "run": 42795327210,
+    "source": "8613f31f",
+    "combined_failed_log_line": 589,
+    "text": "fixtures (policy)\tBrowser fixtures only inside Linux container, sandbox on\t2026-11-10T10:15:07.1881179Z   error: \"Cannot read properties of undefined (reading 'callback')\""
+  },
+  {
+    "run": 42795327210,
+    "source": "8613f31f",
+    "combined_failed_log_line": 1829,
+    "text": "fixtures (external)\tBrowser fixtures only inside Linux container, sandbox on\t2026-11-10T10:15:14.7347786Z not ok 65 - P27 Stop lifts navigation blocks before deferred native restoration"
+  },
+  {
+    "run": 42795327210,
+    "source": "8613f31f",
+    "combined_failed_log_line": 1835,
+    "text": "fixtures (external)\tBrowser fixtures only inside Linux container, sandbox on\t2026-11-10T10:15:14.7351165Z   error: \"Cannot read properties of undefined (reading 'callback')\""
+  },
+  {
+    "run": 42798171530,
+    "source": "661b650c",
+    "combined_failed_log_line": 1294,
+    "text": "fixtures (policy)\tBrowser fixtures only inside Linux container, sandbox on\t2026-11-10T10:33:41.6041161Z GROUP 1 what asks PASS: zero before approval, one after, no replay"
+  },
+  {
+    "run": 42798171530,
+    "source": "661b650c",
+    "combined_failed_log_line": 1295,
+    "text": "fixtures (policy)\tBrowser fixtures only inside Linux container, sandbox on\t2026-11-10T10:33:57.6203354Z GROUP 2 stopped page steps PASS native"
+  },
+  {
+    "run": 42798171530,
+    "source": "661b650c",
+    "combined_failed_log_line": 1300,
+    "text": "fixtures (policy)\tBrowser fixtures only inside Linux container, sandbox on\t2026-11-10T10:33:58.2554472Z AssertionError [ERR_ASSERTION]: {\"ok\":false,\"error\":{\"code\":\"chrome_unavailable\",\"message\":\"Chrome is not connected; start normal Chrome with the installed extension.\"},\"pending\":{\"items\":[{\"operation_id\":\"f4438d5212e147ecb729a9dc3b2fa9e9:b4cdc40dcd504286a665b974d410baee\",\"app\":\"chrome\",\"state\":\"unknown\",\"reason\":\"Submission outcome uncertain; inspect evidence, never retry.\"}],\"total\":1,\"cursor\":null,\"restore_required\":false,\"notices\":[{\"operation_id\":\"recovery-f4438d5212e147ecb729a9dc3b2fa9e9:b4cdc40dcd504286a665b974d410baee\",\"app\":\"chrome\",\"state\":\"unknown\",\"untrusted_content\":{\"reason\":\"Chrome input has an unfinished committed outcome; it may have run. Never replay it.\",\"operation_id\":\"f4438d5212e147ecb729a9dc3b2fa9e9:b4cdc40dcd504286a665b974d410baee\"}},{\"operation_id\":\"91fbb4181bf1d29091a764f15445d164d12e71a56fb8f7b6948e566a356acd39\",\"app\":\"chrome\",\"state\":\"unknown\",\"untrusted_content\":{\"intent_key\":\"intent:chrome:91fbb4181bf1d29091a764f15445d164d12e71a56fb8f7b6948e566a356acd39\",\"reason\":\"A change was interrupted before its completion was recorded. It may already have changed the server. Inspect the audit and your app before repeating.\",\"recovery_warning\":true}}]}}"
+  },
+  {
+    "run": 42798171530,
+    "source": "661b650c",
+    "combined_failed_log_line": 2608,
+    "text": "fixtures (external)\tBrowser fixtures only inside Linux container, sandbox on\t2026-11-10T10:33:01.1928895Z GROUP 1 what asks PASS: zero before approval, one after, no replay"
+  },
+  {
+    "run": 42798171530,
+    "source": "661b650c",
+    "combined_failed_log_line": 2609,
+    "text": "fixtures (external)\tBrowser fixtures only inside Linux container, sandbox on\t2026-11-10T10:33:17.1958702Z GROUP 2 stopped page steps PASS native"
+  },
+  {
+    "run": 42798171530,
+    "source": "661b650c",
+    "combined_failed_log_line": 2614,
+    "text": "fixtures (external)\tBrowser fixtures only inside Linux container, sandbox on\t2026-11-10T10:33:17.8265296Z AssertionError [ERR_ASSERTION]: {\"ok\":false,\"error\":{\"code\":\"chrome_unavailable\",\"message\":\"Chrome is not connected; start normal Chrome with the installed extension.\"},\"pending\":{\"items\":[{\"operation_id\":\"dfad2966b144417fb0c34268bdb514ff:85e54d4f68984c258c6cce38311a766f\",\"app\":\"chrome\",\"state\":\"unknown\",\"reason\":\"Submission outcome uncertain; inspect evidence, never retry.\"}],\"total\":1,\"cursor\":null,\"restore_required\":false,\"notices\":[{\"operation_id\":\"recovery-dfad2966b144417fb0c34268bdb514ff:85e54d4f68984c258c6cce38311a766f\",\"app\":\"chrome\",\"state\":\"unknown\",\"untrusted_content\":{\"reason\":\"Chrome input has an unfinished committed outcome; it may have run. Never replay it.\",\"operation_id\":\"dfad2966b144417fb0c34268bdb514ff:85e54d4f68984c258c6cce38311a766f\"}},{\"operation_id\":\"272fe07ce053c1469564aa14bd2d3cb66ec81a1a5aa0b37233d3de47dc782e2d\",\"app\":\"chrome\",\"state\":\"unknown\",\"untrusted_content\":{\"intent_key\":\"intent:chrome:272fe07ce053c1469564aa14bd2d3cb66ec81a1a5aa0b37233d3de47dc782e2d\",\"reason\":\"A change was interrupted before its completion was recorded. It may already have changed the server. Inspect the audit and your app before repeating.\",\"recovery_warning\":true}}]}}"
+  }
+]

@@ -54,7 +54,7 @@ class GatePictureTest {
         for (int v = picture.size() - 1; v >= 0; v--) {
             for (int u = 0; u < picture.size(); u++) {
                 String block = picture.at(u, v);
-                text.append(block == null ? '.' : block.equals("red_mushroom_block") ? 'R' : block.equals(GatePalette.BLACK) ? '#' : '?');
+                text.append(block == null ? '.' : block.equals("red_wool") ? 'R' : block.equals(GatePalette.BLACK) ? '#' : '?');
             }
             text.append('\n');
         }
@@ -82,7 +82,7 @@ class GatePictureTest {
             assertDoor(picture);
             for (int corner : new int[]{0, size - 1}) { assertNull(picture.at(corner, 0)); assertNull(picture.at(corner, size - 1)); }
             assertNull(picture.at(size / 2, size / 2), "the hole stays open");
-            assertEquals("red_mushroom_block", picture.at(size / 2, size - 1));
+            assertEquals("red_wool", picture.at(size / 2, size - 1));
             for (int v = 0; v < size; v++) for (int u = 0; u < size; u++)
                 assertEquals(picture.at(u, v), picture.at(size - 1 - u, v), "mirror at " + u + "," + v);
         }
@@ -104,6 +104,26 @@ class GatePictureTest {
             // Left whole, the square would cover 8% of the picture; enlarged it covers about four cells in ten.
             assertTrue(white > size * size / 3, white + " white cells of " + size * size);
         }
+    }
+
+    /**
+     * Step 2's square is centred on the figure to the half pixel (package 39b, 39's review N5). An upright white bar 10
+     * pixels wide (43 to 52) and 29 high gets a square of 35, whose left edge falls on a half pixel. Rounded to the
+     * whole pixel, as converter 1 did, the square sat half a pixel to the right, and the bar, the same left and right,
+     * was not so in the cells.
+     */
+    @Test void anEnlargedFigureIsCentredToTheHalfPixel() {
+        var icon = draw(96, 96, (x, y) -> x >= 43 && x < 53 && y >= 34 && y < 63 ? WHITE : BLUE);
+        var plate = GatePicture.plate(GatePicture.cut(icon));
+        assertNotNull(plate, "Fixture: the bar is not taken as a figure on a plate");
+        assertEquals(35, plate.side(), 1e-9, "Fixture: the square's side");
+        assertEquals(48, plate.left() + plate.side() / 2, 1e-9, "The square's middle across, the bar's middle");
+        assertEquals(48.5, plate.top() + plate.side() / 2, 1e-9, "The square's middle up and down, the bar's middle");
+        var picture = GatePicture.of(icon, GateNumbers.SIZE);
+        assertTrue(picture.enlarged());
+        int size = picture.size();
+        for (int v = 0; v < size; v++) for (int u = 0; u < size; u++)
+            assertEquals(picture.at(u, v), picture.at(size - 1 - u, v), "mirror at " + u + "," + v);
     }
 
     @Test void otherIconsAreLeftWhole() {
@@ -181,8 +201,8 @@ class GatePictureTest {
             });
             var picture = GatePicture.of(icon, size);
             assertNull(picture.at(size - 1, size - 1), "the loose cell");
-            assertEquals("red_mushroom_block", picture.at(4, 4), "the cell touching at a corner");
-            assertEquals("red_mushroom_block", picture.at(0, 0));
+            assertEquals("red_wool", picture.at(4, 4), "the cell touching at a corner");
+            assertEquals("red_wool", picture.at(0, 0));
             assertNull(picture.at(5, 5));
             assertDoor(picture);
         }

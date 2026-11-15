@@ -1,0 +1,177 @@
+{
+  "head": "b3d6e4f25739e851fe2497325049e6347b9a238a",
+  "browser_free": true,
+  "python_tests": 303,
+  "python_shards": [
+    53,
+    56,
+    49,
+    145
+  ],
+  "python_skipped": [
+    "test_final_f7_a_real_spoofing_process_on_the_socket_gets_nothing (Linux only; runs in CI)"
+  ],
+  "node_tests": 417,
+  "node_failures": 0,
+  "removal_mutations": 440,
+  "every_mutation_baseline_passed": true,
+  "successful": true,
+  "commands": [
+    {
+      "label": "python-0",
+      "command": [
+        "python3",
+        "-B",
+        "control/chrome/ci/python-shard.py"
+      ],
+      "environment": {
+        "PYTHON_SHARD": "0",
+        "TEST_OUT": "<worktree>/.work/post18d/final-local-b3d6e4f2/python-0",
+        "RUNTIME_COMMIT": "b3d6e4f25739e851fe2497325049e6347b9a238a"
+      },
+      "exit_code": 0,
+      "seconds": 13.283,
+      "output": "reviews/20-chrome/records/gate60/final-local-b3d6e4f2-python-0.txt"
+    },
+    {
+      "label": "python-1",
+      "command": [
+        "python3",
+        "-B",
+        "control/chrome/ci/python-shard.py"
+      ],
+      "environment": {
+        "PYTHON_SHARD": "1",
+        "TEST_OUT": "<worktree>/.work/post18d/final-local-b3d6e4f2/python-1",
+        "RUNTIME_COMMIT": "b3d6e4f25739e851fe2497325049e6347b9a238a"
+      },
+      "exit_code": 0,
+      "seconds": 479.352,
+      "output": "reviews/20-chrome/records/gate60/final-local-b3d6e4f2-python-1.txt"
+    },
+    {
+      "label": "python-2",
+      "command": [
+        "python3",
+        "-B",
+        "control/chrome/ci/python-shard.py"
+      ],
+      "environment": {
+        "PYTHON_SHARD": "2",
+        "TEST_OUT": "<worktree>/.work/post18d/final-local-b3d6e4f2/python-2",
+        "RUNTIME_COMMIT": "b3d6e4f25739e851fe2497325049e6347b9a238a"
+      },
+      "exit_code": 0,
+      "seconds": 10.301,
+      "output": "reviews/20-chrome/records/gate60/final-local-b3d6e4f2-python-2.txt"
+    },
+    {
+      "label": "python-3",
+      "command": [
+        "python3",
+        "-B",
+        "control/chrome/ci/python-shard.py"
+      ],
+      "environment": {
+        "PYTHON_SHARD": "3",
+        "TEST_OUT": "<worktree>/.work/post18d/final-local-b3d6e4f2/python-3",
+        "RUNTIME_COMMIT": "b3d6e4f25739e851fe2497325049e6347b9a238a"
+      },
+      "exit_code": 0,
+      "seconds": 159.773,
+      "output": "reviews/20-chrome/records/gate60/final-local-b3d6e4f2-python-3.txt"
+    },
+    {
+      "label": "node",
+      "command": [
+        "node",
+        "--test",
+        "<worktree>/control/chrome_tests/activation-evidence.test.mjs",
+        "<worktree>/control/chrome_tests/background.test.mjs",
+        "<worktree>/control/chrome_tests/compatibility.test.mjs",
+        "<worktree>/control/chrome_tests/destination-evidence.test.mjs",
+        "<worktree>/control/chrome_tests/details.test.mjs",
+        "<worktree>/control/chrome_tests/failure.test.mjs",
+        "<worktree>/control/chrome_tests/fixture.test.mjs",
+        "<worktree>/control/chrome_tests/ingress-scan.test.mjs",
+        "<worktree>/control/chrome_tests/latency.test.mjs",
+        "<worktree>/control/chrome_tests/owner-evidence.test.mjs",
+        "<worktree>/control/chrome_tests/owner-ui.test.mjs",
+        "<worktree>/control/chrome_tests/pack.test.mjs",
+        "<worktree>/control/chrome_tests/page.test.mjs",
+        "<worktree>/control/chrome_tests/password-ingress.test.mjs",
+        "<worktree>/control/chrome_tests/popup.test.mjs",
+        "<worktree>/control/chrome_tests/precedence-evidence.test.mjs",
+        "<worktree>/control/chrome_tests/qualification-completion.test.mjs",
+        "<worktree>/control/chrome_tests/qualification-reader.test.mjs",
+        "<worktree>/control/chrome_tests/reader.test.mjs",
+        "<worktree>/control/chrome_tests/receiver-evidence.test.mjs",
+        "<worktree>/control/chrome_tests/recheck3-evidence.test.mjs",
+        "<worktree>/control/chrome_tests/review-reload.test.mjs",
+        "<worktree>/control/chrome_tests/shards.test.mjs",
+        "<worktree>/control/chrome_tests/site-results.test.mjs",
+        "<worktree>/control/chrome_tests/sites.test.mjs",
+        "<worktree>/control/chrome_tests/state-catalogues.test.mjs",
+        "<worktree>/control/chrome_tests/tabs.test.mjs",
+        "<worktree>/control/chrome_tests/verdicts.test.mjs",
+        "reviews/20-chrome/audit-streams.test.mjs"
+      ],
+      "environment": {},
+      "exit_code": 0,
+      "seconds": 7.976,
+      "output": "reviews/20-chrome/records/gate60/final-local-b3d6e4f2-node.txt"
+    },
+    {
+      "label": "mutations",
+      "command": [
+        "python3",
+        "-B",
+        "reviews/20-chrome/mutation-audit.py",
+        ".work/post18d/final-local-b3d6e4f2/mutations.json"
+      ],
+      "environment": {},
+      "exit_code": 0,
+      "seconds": 158.149,
+      "output": "reviews/20-chrome/records/gate60/final-local-b3d6e4f2-mutations.txt"
+    },
+    {
+      "label": "generator",
+      "command": [
+        "python3",
+        "control/generate.py",
+        "--check"
+      ],
+      "environment": {},
+      "exit_code": 0,
+      "seconds": 0.034,
+      "output": "reviews/20-chrome/records/gate60/final-local-b3d6e4f2-generator.txt"
+    },
+    {
+      "label": "diff-check",
+      "command": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "environment": {},
+      "exit_code": 0,
+      "seconds": 0.031,
+      "output": "reviews/20-chrome/records/gate60/final-local-b3d6e4f2-diff-check.txt"
+    },
+    {
+      "label": "unit-pin",
+      "command": [
+        "git",
+        "diff",
+        "--exit-code",
+        "8b7e799c",
+        "--",
+        "control/packaging/aresos-toold.service"
+      ],
+      "environment": {},
+      "exit_code": 0,
+      "seconds": 0.013,
+      "output": "reviews/20-chrome/records/gate60/final-local-b3d6e4f2-unit-pin.txt"
+    }
+  ]
+}

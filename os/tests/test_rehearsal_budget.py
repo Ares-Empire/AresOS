@@ -13,16 +13,16 @@ class BudgetTest(unittest.TestCase):
         workflow = yaml.load((pathlib.Path(__file__).resolve().parents[2] /
                               '.github/workflows/os-image.yml').read_text(), Loader=yaml.BaseLoader)
         job = workflow['jobs']['rehearsal']
-        self.assertEqual(job['timeout-minutes'], "${{ inputs.rehearsal == 'update' && 300 || inputs.rehearsal == 'owner-tools' && 240 || (github.ref_name == 'pkg/14-owner-tools' || github.ref_name == 'pkg/16-staged-release') && inputs.rehearsal == 'probe' && 70 || (inputs.rehearsal == 'part-b' || inputs.rehearsal == 'keyboard') && 130 || 40 }}")
+        self.assertEqual(job['timeout-minutes'], "${{ github.ref_name == 'pkg/22c-ways-back-after-update' && 345 || inputs.rehearsal == 'update' && 300 || inputs.rehearsal == 'owner-tools' && 240 || (github.ref_name == 'pkg/14-owner-tools' || github.ref_name == 'pkg/16-staged-release') && inputs.rehearsal == 'probe' && 70 || (inputs.rehearsal == 'part-b' || inputs.rehearsal == 'keyboard') && 130 || 40 }}")
         vm, = [s for s in job['steps'] if 'two_disk_vm.py' in s.get('run', '')]
-        self.assertEqual(vm['timeout-minutes'], "${{ inputs.rehearsal == 'update' && 270 || inputs.rehearsal == 'owner-tools' && 200 || (inputs.rehearsal == 'part-b' || inputs.rehearsal == 'keyboard') && 106 || 80 }}")
+        self.assertEqual(vm['timeout-minutes'], "${{ github.ref_name == 'pkg/22c-ways-back-after-update' && 315 || inputs.rehearsal == 'update' && 270 || inputs.rehearsal == 'owner-tools' && 200 || (inputs.rehearsal == 'part-b' || inputs.rehearsal == 'keyboard') && 106 || 80 }}")
         guards = [s for s in job['steps'] if 'rehearsal_guard.py' in s.get('run', '')]
         self.assertEqual(len(guards), 2)
         reserve, = [s for s in guards if s['name'].startswith('Reserve the separate 11c')]
-        self.assertIn("'${{ inputs.rehearsal == 'update' && 300 || inputs.rehearsal == 'owner-tools' && 240 || (github.ref_name == 'pkg/14-owner-tools' || github.ref_name == 'pkg/16-staged-release') && inputs.rehearsal == 'probe' && 72 || (inputs.rehearsal == 'part-b' || inputs.rehearsal == 'keyboard') && 130 || 42 }}'", reserve['run'])
+        self.assertIn("'${{ github.ref_name == 'pkg/22c-ways-back-after-update' && 345 || inputs.rehearsal == 'update' && 300 || inputs.rehearsal == 'owner-tools' && 240 || (github.ref_name == 'pkg/14-owner-tools' || github.ref_name == 'pkg/16-staged-release') && inputs.rehearsal == 'probe' && 72 || (inputs.rehearsal == 'part-b' || inputs.rehearsal == 'keyboard') && 130 || 42 }}'", reserve['run'])
         native, = [s for s in guards if s['name']=='Require completed native preflight before any package 13 VM']
-        self.assertEqual(native['if'], "(github.ref_name == 'pkg/13-keyboard-layout' || (github.ref_name == 'pkg/14-owner-tools' || github.ref_name == 'pkg/16-staged-release')) && inputs.rehearsal == 'probe' || github.ref_name == 'pkg/27-first-update-release' && inputs.rehearsal == 'update'")
-        self.assertEqual(native['run'], "python3 os/ci/rehearsal_guard.py ci '${{ inputs.rehearsal == 'update' && 300 || (github.ref_name == 'pkg/14-owner-tools' || github.ref_name == 'pkg/16-staged-release') && 72 || 42 }}'")
+        self.assertEqual(native['if'], "(github.ref_name == 'pkg/13-keyboard-layout' || (github.ref_name == 'pkg/14-owner-tools' || github.ref_name == 'pkg/16-staged-release')) && inputs.rehearsal == 'probe' || github.ref_name == 'pkg/27-first-update-release' && inputs.rehearsal == 'update' || github.ref_name == 'pkg/22c-ways-back-after-update'")
+        self.assertEqual(native['run'], "python3 os/ci/rehearsal_guard.py ci '${{ github.ref_name == 'pkg/22c-ways-back-after-update' && 345 || inputs.rehearsal == 'update' && 300 || (github.ref_name == 'pkg/14-owner-tools' || github.ref_name == 'pkg/16-staged-release') && 72 || 42 }}'")
         self.assertNotIn('full', workflow['on']['workflow_dispatch']['inputs']['rehearsal']['options'])
         self.assertEqual(vm['run'].count('two_disk_vm.py'), 1)
 

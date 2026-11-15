@@ -1,0 +1,2316 @@
+{
+  "run": 43257735216,
+  "source": "db11b94b4596ca4d8cc49930bd918b53edf1a8b0",
+  "install": "policy",
+  "partial_run": true,
+  "note": "The activation case completed; the later exact owner-navigation check failed. This is measured probe evidence, not a full passing suite. Both payment outcomes are rejections of a synthetic unsupported method, not a real payment-sheet safety test.",
+  "observations": [
+    {
+      "id": "recheck2b-limit-open-network",
+      "mode": "open",
+      "capability": "network",
+      "alone": {
+        "id": "recheck2b-limit-open-network",
+        "phase": "all-native-limit",
+        "cause": "alone",
+        "capability": "network",
+        "before": {
+          "active": false,
+          "ever": false
+        },
+        "atHandler": {
+          "active": false,
+          "ever": false
+        },
+        "trusted": false,
+        "after": {
+          "active": false,
+          "ever": false
+        },
+        "secure": true,
+        "outcome": "not requested",
+        "error": null
+      },
+      "clicked": {
+        "id": "recheck2b-limit-open-network",
+        "phase": "all-native-limit",
+        "cause": "claude",
+        "capability": "network",
+        "before": {
+          "active": true,
+          "ever": true
+        },
+        "atHandler": {
+          "active": true,
+          "ever": true
+        },
+        "trusted": false,
+        "after": {
+          "active": true,
+          "ever": true
+        },
+        "secure": true,
+        "outcome": "not requested",
+        "error": null
+      },
+      "added_transient_activation": true,
+      "result": {
+        "operation_id": "b7eefb2917e3448da3554608164b51e5:abb1902d666544349cacbbb690aed76e",
+        "untrusted_content": {
+          "checked": true,
+          "dispatched": true,
+          "no_change": false,
+          "steps": [],
+          "dialog": null,
+          "uncertain_finish": false,
+          "confirmations": [],
+          "page": {
+            "available": true,
+            "url": "http://localhost:8765/?case=review-page&mode=all-native-limit&root=open&variant=network&id=recheck2b-limit-open-network",
+            "title": "Synthetic fixture",
+            "notices": [
+              "Hostile native Delete handler ran"
+            ],
+            "change": {
+              "element": "e6",
+              "name": "Continue",
+              "checked": false,
+              "selected": false,
+              "value": "",
+              "value_more": 0
+            }
+          }
+        },
+        "followups": []
+      },
+      "status": {
+        "evidence": {
+          "untrusted_content": {
+            "stages": {
+              "dispatched": "Input dispatched once; delivery not proven.",
+              "page": {
+                "checked": true,
+                "confirmations": [],
+                "dialog": null,
+                "dispatched": true,
+                "no_change": false,
+                "page": {
+                  "available": true,
+                  "change": {
+                    "checked": false,
+                    "element": "e6",
+                    "name": "Continue",
+                    "selected": false,
+                    "value": "",
+                    "value_more": 0
+                  },
+                  "notices": [
+                    "Hostile native Delete handler ran"
+                  ],
+                  "title": "Synthetic fixture",
+                  "url": "http://localhost:8765/?case=review-page&mode=all-native-limit&root=open&variant=network&id=recheck2b-limit-open-network"
+                },
+                "steps": [],
+                "uncertain_finish": false
+              }
+            }
+          },
+          "meaning": "Only dispatched input and page observations; no network-delivery claim."
+        },
+        "operation": {
+          "action": "chrome_click",
+          "app": "chrome",
+          "approval": {
+            "description": {
+              "action": "chrome_click",
+              "untrusted_content": {
+                "input": {
+                  "verb": "click"
+                },
+                "page_state": {
+                  "adapter": null,
+                  "compose": null,
+                  "control": "50047876-e798-4940-aa7c-1b6f10f61c68",
+                  "dialog": null,
+                  "document": "5d907138cb7ba3e3be5886b72a26275c",
+                  "editable": null,
+                  "effective_url": "http://localhost:8765/?case=review-page&mode=all-native-limit&root=open&variant=network&id=recheck2b-limit-open-network",
+                  "form": null,
+                  "frame": 0,
+                  "frame_title": "Synthetic fixture",
+                  "frame_url": "http://localhost:8765/?case=review-page&mode=all-native-limit&root=open&variant=network&id=recheck2b-limit-open-network",
+                  "item": null,
+                  "item_fields": null,
+                  "selected_files": [
+                    {
+                      "document": "5d907138cb7ba3e3be5886b72a26275c",
+                      "fields": [],
+                      "frame": 0
+                    }
+                  ],
+                  "session": "0062b3aa-8cee-4cf5-8381-63efcbffcae4",
+                  "tab": 1758796095,
+                  "target": {
+                    "editable": false,
+                    "element": "e6",
+                    "href": null,
+                    "label": "Continue",
+                    "name": "Continue",
+                    "page_dialog": null,
+                    "role": "button",
+                    "search": false,
+                    "states": {
+                      "checked": false,
+                      "disabled": false,
+                      "expanded": null,
+                      "invalid": false,
+                      "required": false,
+                      "selected": false
+                    },
+                    "submit": false,
+                    "title": "",
+                    "value": ""
+                  },
+                  "title": "Synthetic fixture",
+                  "url": "http://localhost:8765/?case=review-page&mode=all-native-limit&root=open&variant=network&id=recheck2b-limit-open-network"
+                }
+              }
+            }
+          },
+          "expires": 0,
+          "generation": "b7eefb2917e3448da3554608164b51e5",
+          "id": "b7eefb2917e3448da3554608164b51e5:abb1902d666544349cacbbb690aed76e",
+          "reason": "Free input dispatched once, as the page shows it.",
+          "stages": {
+            "dispatched": {
+              "untrusted_content": "Input dispatched once; delivery not proven."
+            },
+            "page": {
+              "untrusted_content": {
+                "checked": true,
+                "confirmations": [],
+                "dialog": null,
+                "dispatched": true,
+                "no_change": false,
+                "page": {
+                  "available": true,
+                  "change": {
+                    "checked": false,
+                    "element": "e6",
+                    "name": "Continue",
+                    "selected": false,
+                    "value": "",
+                    "value_more": 0
+                  },
+                  "notices": [
+                    "Hostile native Delete handler ran"
+                  ],
+                  "title": "Synthetic fixture",
+                  "url": "http://localhost:8765/?case=review-page&mode=all-native-limit&root=open&variant=network&id=recheck2b-limit-open-network"
+                },
+                "steps": [],
+                "uncertain_finish": false
+              }
+            }
+          },
+          "state": "done"
+        }
+      }
+    },
+    {
+      "id": "recheck2b-limit-open-popup",
+      "mode": "open",
+      "capability": "popup",
+      "alone": {
+        "id": "recheck2b-limit-open-popup",
+        "phase": "all-native-limit",
+        "cause": "alone",
+        "capability": "popup",
+        "before": {
+          "active": false,
+          "ever": false
+        },
+        "atHandler": {
+          "active": false,
+          "ever": false
+        },
+        "trusted": false,
+        "after": {
+          "active": false,
+          "ever": false
+        },
+        "secure": true,
+        "outcome": "blocked",
+        "error": null
+      },
+      "clicked": {
+        "id": "recheck2b-limit-open-popup",
+        "phase": "all-native-limit",
+        "cause": "claude",
+        "capability": "popup",
+        "before": {
+          "active": true,
+          "ever": true
+        },
+        "atHandler": {
+          "active": true,
+          "ever": true
+        },
+        "trusted": false,
+        "after": {
+          "active": false,
+          "ever": true
+        },
+        "secure": true,
+        "outcome": "opened",
+        "error": null
+      },
+      "added_transient_activation": true,
+      "result": {
+        "operation_id": "b7eefb2917e3448da3554608164b51e5:ee93216af601445289d1ac73b35f1c09",
+        "untrusted_content": {
+          "checked": true,
+          "dispatched": true,
+          "no_change": false,
+          "steps": [],
+          "dialog": null,
+          "uncertain_finish": false,
+          "confirmations": [],
+          "page": {
+            "available": true,
+            "url": "http://localhost:8765/?case=review-page&mode=all-native-limit&root=open&variant=popup&id=recheck2b-limit-open-popup",
+            "title": "Synthetic fixture",
+            "notices": [
+              "Hostile native Delete handler ran"
+            ],
+            "change": {
+              "element": "e6",
+              "name": "Continue",
+              "checked": false,
+              "selected": false,
+              "value": "",
+              "value_more": 0
+            }
+          }
+        },
+        "followups": []
+      },
+      "status": {
+        "evidence": {
+          "untrusted_content": {
+            "stages": {
+              "dispatched": "Input dispatched once; delivery not proven.",
+              "page": {
+                "checked": true,
+                "confirmations": [],
+                "dialog": null,
+                "dispatched": true,
+                "no_change": false,
+                "page": {
+                  "available": true,
+                  "change": {
+                    "checked": false,
+                    "element": "e6",
+                    "name": "Continue",
+                    "selected": false,
+                    "value": "",
+                    "value_more": 0
+                  },
+                  "notices": [
+                    "Hostile native Delete handler ran"
+                  ],
+                  "title": "Synthetic fixture",
+                  "url": "http://localhost:8765/?case=review-page&mode=all-native-limit&root=open&variant=popup&id=recheck2b-limit-open-popup"
+                },
+                "steps": [],
+                "uncertain_finish": false
+              }
+            }
+          },
+          "meaning": "Only dispatched input and page observations; no network-delivery claim."
+        },
+        "operation": {
+          "action": "chrome_click",
+          "app": "chrome",
+          "approval": {
+            "description": {
+              "action": "chrome_click",
+              "untrusted_content": {
+                "input": {
+                  "verb": "click"
+                },
+                "page_state": {
+                  "adapter": null,
+                  "compose": null,
+                  "control": "042fdb67-696a-455e-941e-6db25ee0d139",
+                  "dialog": null,
+                  "document": "ddcb1d39826d262dda4aee5757be3889",
+                  "editable": null,
+                  "effective_url": "http://localhost:8765/?case=review-page&mode=all-native-limit&root=open&variant=popup&id=recheck2b-limit-open-popup",
+                  "form": null,
+                  "frame": 0,
+                  "frame_title": "Synthetic fixture",
+                  "frame_url": "http://localhost:8765/?case=review-page&mode=all-native-limit&root=open&variant=popup&id=recheck2b-limit-open-popup",
+                  "item": null,
+                  "item_fields": null,
+                  "selected_files": [
+                    {
+                      "document": "ddcb1d39826d262dda4aee5757be3889",
+                      "fields": [],
+                      "frame": 0
+                    }
+                  ],
+                  "session": "0062b3aa-8cee-4cf5-8381-63efcbffcae4",
+                  "tab": 1758796097,
+                  "target": {
+                    "editable": false,
+                    "element": "e6",
+                    "href": null,
+                    "label": "Continue",
+                    "name": "Continue",
+                    "page_dialog": null,
+                    "role": "button",
+                    "search": false,
+                    "states": {
+                      "checked": false,
+                      "disabled": false,
+                      "expanded": null,
+                      "invalid": false,
+                      "required": false,
+                      "selected": false
+                    },
+                    "submit": false,
+                    "title": "",
+                    "value": ""
+                  },
+                  "title": "Synthetic fixture",
+                  "url": "http://localhost:8765/?case=review-page&mode=all-native-limit&root=open&variant=popup&id=recheck2b-limit-open-popup"
+                }
+              }
+            }
+          },
+          "expires": 0,
+          "generation": "b7eefb2917e3448da3554608164b51e5",
+          "id": "b7eefb2917e3448da3554608164b51e5:ee93216af601445289d1ac73b35f1c09",
+          "reason": "Free input dispatched once, as the page shows it.",
+          "stages": {
+            "dispatched": {
+              "untrusted_content": "Input dispatched once; delivery not proven."
+            },
+            "page": {
+              "untrusted_content": {
+                "checked": true,
+                "confirmations": [],
+                "dialog": null,
+                "dispatched": true,
+                "no_change": false,
+                "page": {
+                  "available": true,
+                  "change": {
+                    "checked": false,
+                    "element": "e6",
+                    "name": "Continue",
+                    "selected": false,
+                    "value": "",
+                    "value_more": 0
+                  },
+                  "notices": [
+                    "Hostile native Delete handler ran"
+                  ],
+                  "title": "Synthetic fixture",
+                  "url": "http://localhost:8765/?case=review-page&mode=all-native-limit&root=open&variant=popup&id=recheck2b-limit-open-popup"
+                },
+                "steps": [],
+                "uncertain_finish": false
+              }
+            }
+          },
+          "state": "done"
+        }
+      }
+    },
+    {
+      "id": "recheck2b-limit-open-download",
+      "mode": "open",
+      "capability": "download",
+      "alone": {
+        "id": "recheck2b-limit-open-download",
+        "phase": "all-native-limit",
+        "cause": "alone",
+        "capability": "download",
+        "before": {
+          "active": false,
+          "ever": false
+        },
+        "atHandler": {
+          "active": false,
+          "ever": false
+        },
+        "trusted": false,
+        "after": {
+          "active": false,
+          "ever": false
+        },
+        "secure": true,
+        "outcome": "dispatched; receiver decides",
+        "error": null
+      },
+      "clicked": {
+        "id": "recheck2b-limit-open-download",
+        "phase": "all-native-limit",
+        "cause": "claude",
+        "capability": "download",
+        "before": {
+          "active": true,
+          "ever": true
+        },
+        "atHandler": {
+          "active": true,
+          "ever": true
+        },
+        "trusted": false,
+        "after": {
+          "active": true,
+          "ever": true
+        },
+        "secure": true,
+        "outcome": "dispatched; receiver decides",
+        "error": null
+      },
+      "added_transient_activation": true,
+      "result": {
+        "operation_id": "b7eefb2917e3448da3554608164b51e5:bc3f7e948406457d9688ebc9691a3173",
+        "untrusted_content": {
+          "checked": true,
+          "dispatched": true,
+          "no_change": false,
+          "steps": [],
+          "dialog": null,
+          "uncertain_finish": false,
+          "confirmations": [],
+          "page": {
+            "available": true,
+            "url": "http://localhost:8765/?case=review-page&mode=all-native-limit&root=open&variant=download&id=recheck2b-limit-open-download",
+            "title": "Synthetic fixture",
+            "notices": [
+              "Hostile native Delete handler ran"
+            ],
+            "change": {
+              "element": "e6",
+              "name": "Continue",
+              "checked": false,
+              "selected": false,
+              "value": "",
+              "value_more": 0
+            }
+          }
+        },
+        "followups": []
+      },
+      "status": {
+        "evidence": {
+          "untrusted_content": {
+            "stages": {
+              "dispatched": "Input dispatched once; delivery not proven.",
+              "page": {
+                "checked": true,
+                "confirmations": [],
+                "dialog": null,
+                "dispatched": true,
+                "no_change": false,
+                "page": {
+                  "available": true,
+                  "change": {
+                    "checked": false,
+                    "element": "e6",
+                    "name": "Continue",
+                    "selected": false,
+                    "value": "",
+                    "value_more": 0
+                  },
+                  "notices": [
+                    "Hostile native Delete handler ran"
+                  ],
+                  "title": "Synthetic fixture",
+                  "url": "http://localhost:8765/?case=review-page&mode=all-native-limit&root=open&variant=download&id=recheck2b-limit-open-download"
+                },
+                "steps": [],
+                "uncertain_finish": false
+              }
+            }
+          },
+          "meaning": "Only dispatched input and page observations; no network-delivery claim."
+        },
+        "operation": {
+          "action": "chrome_click",
+          "app": "chrome",
+          "approval": {
+            "description": {
+              "action": "chrome_click",
+              "untrusted_content": {
+                "input": {
+                  "verb": "click"
+                },
+                "page_state": {
+                  "adapter": null,
+                  "compose": null,
+                  "control": "49c8c2d6-a63d-4100-804c-394acc664e56",
+                  "dialog": null,
+                  "document": "6dc6f48a93654b09067769c660057f45",
+                  "editable": null,
+                  "effective_url": "http://localhost:8765/?case=review-page&mode=all-native-limit&root=open&variant=download&id=recheck2b-limit-open-download",
+                  "form": null,
+                  "frame": 0,
+                  "frame_title": "Synthetic fixture",
+                  "frame_url": "http://localhost:8765/?case=review-page&mode=all-native-limit&root=open&variant=download&id=recheck2b-limit-open-download",
+                  "item": null,
+                  "item_fields": null,
+                  "selected_files": [
+                    {
+                      "document": "6dc6f48a93654b09067769c660057f45",
+                      "fields": [],
+                      "frame": 0
+                    }
+                  ],
+                  "session": "0062b3aa-8cee-4cf5-8381-63efcbffcae4",
+                  "tab": 1758796101,
+                  "target": {
+                    "editable": false,
+                    "element": "e6",
+                    "href": null,
+                    "label": "Continue",
+                    "name": "Continue",
+                    "page_dialog": null,
+                    "role": "button",
+                    "search": false,
+                    "states": {
+                      "checked": false,
+                      "disabled": false,
+                      "expanded": null,
+                      "invalid": false,
+                      "required": false,
+                      "selected": false
+                    },
+                    "submit": false,
+                    "title": "",
+                    "value": ""
+                  },
+                  "title": "Synthetic fixture",
+                  "url": "http://localhost:8765/?case=review-page&mode=all-native-limit&root=open&variant=download&id=recheck2b-limit-open-download"
+                }
+              }
+            }
+          },
+          "expires": 0,
+          "generation": "b7eefb2917e3448da3554608164b51e5",
+          "id": "b7eefb2917e3448da3554608164b51e5:bc3f7e948406457d9688ebc9691a3173",
+          "reason": "Free input dispatched once, as the page shows it.",
+          "stages": {
+            "dispatched": {
+              "untrusted_content": "Input dispatched once; delivery not proven."
+            },
+            "page": {
+              "untrusted_content": {
+                "checked": true,
+                "confirmations": [],
+                "dialog": null,
+                "dispatched": true,
+                "no_change": false,
+                "page": {
+                  "available": true,
+                  "change": {
+                    "checked": false,
+                    "element": "e6",
+                    "name": "Continue",
+                    "selected": false,
+                    "value": "",
+                    "value_more": 0
+                  },
+                  "notices": [
+                    "Hostile native Delete handler ran"
+                  ],
+                  "title": "Synthetic fixture",
+                  "url": "http://localhost:8765/?case=review-page&mode=all-native-limit&root=open&variant=download&id=recheck2b-limit-open-download"
+                },
+                "steps": [],
+                "uncertain_finish": false
+              }
+            }
+          },
+          "state": "done"
+        }
+      }
+    },
+    {
+      "id": "recheck2b-limit-open-clipboard",
+      "mode": "open",
+      "capability": "clipboard",
+      "alone": {
+        "id": "recheck2b-limit-open-clipboard",
+        "phase": "all-native-limit",
+        "cause": "alone",
+        "capability": "clipboard",
+        "before": {
+          "active": false,
+          "ever": false
+        },
+        "atHandler": {
+          "active": false,
+          "ever": false
+        },
+        "trusted": false,
+        "after": {
+          "active": false,
+          "ever": false
+        },
+        "secure": true,
+        "outcome": "pending browser permission",
+        "error": null
+      },
+      "clicked": {
+        "id": "recheck2b-limit-open-clipboard",
+        "phase": "all-native-limit",
+        "cause": "claude",
+        "capability": "clipboard",
+        "before": {
+          "active": true,
+          "ever": true
+        },
+        "atHandler": {
+          "active": true,
+          "ever": true
+        },
+        "trusted": false,
+        "after": {
+          "active": true,
+          "ever": true
+        },
+        "secure": true,
+        "outcome": "write accepted",
+        "error": null
+      },
+      "added_transient_activation": true,
+      "result": {
+        "operation_id": "b7eefb2917e3448da3554608164b51e5:238c24d0890a44129d9287f511c10df4",
+        "untrusted_content": {
+          "checked": true,
+          "dispatched": true,
+          "no_change": false,
+          "steps": [],
+          "dialog": null,
+          "uncertain_finish": false,
+          "confirmations": [],
+          "page": {
+            "available": true,
+            "url": "http://localhost:8765/?case=review-page&mode=all-native-limit&root=open&variant=clipboard&id=recheck2b-limit-open-clipboard",
+            "title": "Synthetic fixture",
+            "notices": [
+              "Hostile native Delete handler ran"
+            ],
+            "change": {
+              "element": "e6",
+              "name": "Continue",
+              "checked": false,
+              "selected": false,
+              "value": "",
+              "value_more": 0
+            }
+          }
+        },
+        "followups": []
+      },
+      "status": {
+        "evidence": {
+          "untrusted_content": {
+            "stages": {
+              "dispatched": "Input dispatched once; delivery not proven.",
+              "page": {
+                "checked": true,
+                "confirmations": [],
+                "dialog": null,
+                "dispatched": true,
+                "no_change": false,
+                "page": {
+                  "available": true,
+                  "change": {
+                    "checked": false,
+                    "element": "e6",
+                    "name": "Continue",
+                    "selected": false,
+                    "value": "",
+                    "value_more": 0
+                  },
+                  "notices": [
+                    "Hostile native Delete handler ran"
+                  ],
+                  "title": "Synthetic fixture",
+                  "url": "http://localhost:8765/?case=review-page&mode=all-native-limit&root=open&variant=clipboard&id=recheck2b-limit-open-clipboard"
+                },
+                "steps": [],
+                "uncertain_finish": false
+              }
+            }
+          },
+          "meaning": "Only dispatched input and page observations; no network-delivery claim."
+        },
+        "operation": {
+          "action": "chrome_click",
+          "app": "chrome",
+          "approval": {
+            "description": {
+              "action": "chrome_click",
+              "untrusted_content": {
+                "input": {
+                  "verb": "click"
+                },
+                "page_state": {
+                  "adapter": null,
+                  "compose": null,
+                  "control": "45f37ae7-d81a-49d1-bf11-c988a808dc2a",
+                  "dialog": null,
+                  "document": "c69b535bf37085faca4ea090e561db70",
+                  "editable": null,
+                  "effective_url": "http://localhost:8765/?case=review-page&mode=all-native-limit&root=open&variant=clipboard&id=recheck2b-limit-open-clipboard",
+                  "form": null,
+                  "frame": 0,
+                  "frame_title": "Synthetic fixture",
+                  "frame_url": "http://localhost:8765/?case=review-page&mode=all-native-limit&root=open&variant=clipboard&id=recheck2b-limit-open-clipboard",
+                  "item": null,
+                  "item_fields": null,
+                  "selected_files": [
+                    {
+                      "document": "c69b535bf37085faca4ea090e561db70",
+                      "fields": [],
+                      "frame": 0
+                    }
+                  ],
+                  "session": "0062b3aa-8cee-4cf5-8381-63efcbffcae4",
+                  "tab": 1758796103,
+                  "target": {
+                    "editable": false,
+                    "element": "e6",
+                    "href": null,
+                    "label": "Continue",
+                    "name": "Continue",
+                    "page_dialog": null,
+                    "role": "button",
+                    "search": false,
+                    "states": {
+                      "checked": false,
+                      "disabled": false,
+                      "expanded": null,
+                      "invalid": false,
+                      "required": false,
+                      "selected": false
+                    },
+                    "submit": false,
+                    "title": "",
+                    "value": ""
+                  },
+                  "title": "Synthetic fixture",
+                  "url": "http://localhost:8765/?case=review-page&mode=all-native-limit&root=open&variant=clipboard&id=recheck2b-limit-open-clipboard"
+                }
+              }
+            }
+          },
+          "expires": 0,
+          "generation": "b7eefb2917e3448da3554608164b51e5",
+          "id": "b7eefb2917e3448da3554608164b51e5:238c24d0890a44129d9287f511c10df4",
+          "reason": "Free input dispatched once, as the page shows it.",
+          "stages": {
+            "dispatched": {
+              "untrusted_content": "Input dispatched once; delivery not proven."
+            },
+            "page": {
+              "untrusted_content": {
+                "checked": true,
+                "confirmations": [],
+                "dialog": null,
+                "dispatched": true,
+                "no_change": false,
+                "page": {
+                  "available": true,
+                  "change": {
+                    "checked": false,
+                    "element": "e6",
+                    "name": "Continue",
+                    "selected": false,
+                    "value": "",
+                    "value_more": 0
+                  },
+                  "notices": [
+                    "Hostile native Delete handler ran"
+                  ],
+                  "title": "Synthetic fixture",
+                  "url": "http://localhost:8765/?case=review-page&mode=all-native-limit&root=open&variant=clipboard&id=recheck2b-limit-open-clipboard"
+                },
+                "steps": [],
+                "uncertain_finish": false
+              }
+            }
+          },
+          "state": "done"
+        }
+      }
+    },
+    {
+      "id": "recheck2b-limit-open-payment",
+      "mode": "open",
+      "capability": "payment",
+      "alone": {
+        "id": "recheck2b-limit-open-payment",
+        "phase": "all-native-limit",
+        "cause": "alone",
+        "capability": "payment",
+        "before": {
+          "active": false,
+          "ever": false
+        },
+        "atHandler": {
+          "active": false,
+          "ever": false
+        },
+        "trusted": false,
+        "after": {
+          "active": false,
+          "ever": false
+        },
+        "secure": true,
+        "outcome": "rejected",
+        "error": {
+          "name": "NotSupportedError",
+          "message": "The payment method \"https://fixture.test/synthetic-payment\" is not supported. Unable to download payment manifest \"https://fixture.test/synthetic-payment\"."
+        }
+      },
+      "clicked": {
+        "id": "recheck2b-limit-open-payment",
+        "phase": "all-native-limit",
+        "cause": "claude",
+        "capability": "payment",
+        "before": {
+          "active": true,
+          "ever": true
+        },
+        "atHandler": {
+          "active": true,
+          "ever": true
+        },
+        "trusted": false,
+        "after": {
+          "active": true,
+          "ever": true
+        },
+        "secure": true,
+        "outcome": "rejected",
+        "error": {
+          "name": "SecurityError",
+          "message": "PaymentRequest.show() calls after the first (per page load) require either transient user activation or delegated payment request capability."
+        }
+      },
+      "added_transient_activation": true,
+      "result": {
+        "operation_id": "b7eefb2917e3448da3554608164b51e5:b325be1936964689ab089220a3506e7f",
+        "untrusted_content": {
+          "checked": true,
+          "dispatched": true,
+          "no_change": false,
+          "steps": [],
+          "dialog": null,
+          "uncertain_finish": false,
+          "confirmations": [],
+          "page": {
+            "available": true,
+            "url": "http://localhost:8765/?case=review-page&mode=all-native-limit&root=open&variant=payment&id=recheck2b-limit-open-payment",
+            "title": "Synthetic fixture",
+            "notices": [
+              "Hostile native Delete handler ran"
+            ],
+            "change": {
+              "element": "e6",
+              "name": "Continue",
+              "checked": false,
+              "selected": false,
+              "value": "",
+              "value_more": 0
+            }
+          }
+        },
+        "followups": []
+      },
+      "status": {
+        "evidence": {
+          "untrusted_content": {
+            "stages": {
+              "dispatched": "Input dispatched once; delivery not proven.",
+              "page": {
+                "checked": true,
+                "confirmations": [],
+                "dialog": null,
+                "dispatched": true,
+                "no_change": false,
+                "page": {
+                  "available": true,
+                  "change": {
+                    "checked": false,
+                    "element": "e6",
+                    "name": "Continue",
+                    "selected": false,
+                    "value": "",
+                    "value_more": 0
+                  },
+                  "notices": [
+                    "Hostile native Delete handler ran"
+                  ],
+                  "title": "Synthetic fixture",
+                  "url": "http://localhost:8765/?case=review-page&mode=all-native-limit&root=open&variant=payment&id=recheck2b-limit-open-payment"
+                },
+                "steps": [],
+                "uncertain_finish": false
+              }
+            }
+          },
+          "meaning": "Only dispatched input and page observations; no network-delivery claim."
+        },
+        "operation": {
+          "action": "chrome_click",
+          "app": "chrome",
+          "approval": {
+            "description": {
+              "action": "chrome_click",
+              "untrusted_content": {
+                "input": {
+                  "verb": "click"
+                },
+                "page_state": {
+                  "adapter": null,
+                  "compose": null,
+                  "control": "9d617763-9409-4d9e-b2a8-c70f7e9ecee0",
+                  "dialog": null,
+                  "document": "32e2aa976884ae3c7416e5d86ae50d3c",
+                  "editable": null,
+                  "effective_url": "http://localhost:8765/?case=review-page&mode=all-native-limit&root=open&variant=payment&id=recheck2b-limit-open-payment",
+                  "form": null,
+                  "frame": 0,
+                  "frame_title": "Synthetic fixture",
+                  "frame_url": "http://localhost:8765/?case=review-page&mode=all-native-limit&root=open&variant=payment&id=recheck2b-limit-open-payment",
+                  "item": null,
+                  "item_fields": null,
+                  "selected_files": [
+                    {
+                      "document": "32e2aa976884ae3c7416e5d86ae50d3c",
+                      "fields": [],
+                      "frame": 0
+                    }
+                  ],
+                  "session": "0062b3aa-8cee-4cf5-8381-63efcbffcae4",
+                  "tab": 1758796105,
+                  "target": {
+                    "editable": false,
+                    "element": "e6",
+                    "href": null,
+                    "label": "Continue",
+                    "name": "Continue",
+                    "page_dialog": null,
+                    "role": "button",
+                    "search": false,
+                    "states": {
+                      "checked": false,
+                      "disabled": false,
+                      "expanded": null,
+                      "invalid": false,
+                      "required": false,
+                      "selected": false
+                    },
+                    "submit": false,
+                    "title": "",
+                    "value": ""
+                  },
+                  "title": "Synthetic fixture",
+                  "url": "http://localhost:8765/?case=review-page&mode=all-native-limit&root=open&variant=payment&id=recheck2b-limit-open-payment"
+                }
+              }
+            }
+          },
+          "expires": 0,
+          "generation": "b7eefb2917e3448da3554608164b51e5",
+          "id": "b7eefb2917e3448da3554608164b51e5:b325be1936964689ab089220a3506e7f",
+          "reason": "Free input dispatched once, as the page shows it.",
+          "stages": {
+            "dispatched": {
+              "untrusted_content": "Input dispatched once; delivery not proven."
+            },
+            "page": {
+              "untrusted_content": {
+                "checked": true,
+                "confirmations": [],
+                "dialog": null,
+                "dispatched": true,
+                "no_change": false,
+                "page": {
+                  "available": true,
+                  "change": {
+                    "checked": false,
+                    "element": "e6",
+                    "name": "Continue",
+                    "selected": false,
+                    "value": "",
+                    "value_more": 0
+                  },
+                  "notices": [
+                    "Hostile native Delete handler ran"
+                  ],
+                  "title": "Synthetic fixture",
+                  "url": "http://localhost:8765/?case=review-page&mode=all-native-limit&root=open&variant=payment&id=recheck2b-limit-open-payment"
+                },
+                "steps": [],
+                "uncertain_finish": false
+              }
+            }
+          },
+          "state": "done"
+        }
+      }
+    },
+    {
+      "id": "recheck2b-limit-closed-network",
+      "mode": "closed",
+      "capability": "network",
+      "alone": {
+        "id": "recheck2b-limit-closed-network",
+        "phase": "all-native-limit",
+        "cause": "alone",
+        "capability": "network",
+        "before": {
+          "active": false,
+          "ever": false
+        },
+        "atHandler": {
+          "active": false,
+          "ever": false
+        },
+        "trusted": false,
+        "after": {
+          "active": false,
+          "ever": false
+        },
+        "secure": true,
+        "outcome": "not requested",
+        "error": null
+      },
+      "clicked": {
+        "id": "recheck2b-limit-closed-network",
+        "phase": "all-native-limit",
+        "cause": "claude",
+        "capability": "network",
+        "before": {
+          "active": true,
+          "ever": true
+        },
+        "atHandler": {
+          "active": true,
+          "ever": true
+        },
+        "trusted": false,
+        "after": {
+          "active": true,
+          "ever": true
+        },
+        "secure": true,
+        "outcome": "not requested",
+        "error": null
+      },
+      "added_transient_activation": true,
+      "result": {
+        "operation_id": "b7eefb2917e3448da3554608164b51e5:df0f913fc88f46e2be568a88d80f747d",
+        "untrusted_content": {
+          "checked": true,
+          "dispatched": true,
+          "no_change": false,
+          "steps": [],
+          "dialog": null,
+          "uncertain_finish": false,
+          "confirmations": [],
+          "page": {
+            "available": true,
+            "url": "http://localhost:8765/?case=review-page&mode=all-native-limit&root=closed&variant=network&id=recheck2b-limit-closed-network",
+            "title": "Synthetic fixture",
+            "notices": [
+              "Hostile native Delete handler ran"
+            ],
+            "change": {
+              "element": "e6",
+              "name": "Continue",
+              "checked": false,
+              "selected": false,
+              "value": "",
+              "value_more": 0
+            }
+          }
+        },
+        "followups": []
+      },
+      "status": {
+        "evidence": {
+          "untrusted_content": {
+            "stages": {
+              "dispatched": "Input dispatched once; delivery not proven.",
+              "page": {
+                "checked": true,
+                "confirmations": [],
+                "dialog": null,
+                "dispatched": true,
+                "no_change": false,
+                "page": {
+                  "available": true,
+                  "change": {
+                    "checked": false,
+                    "element": "e6",
+                    "name": "Continue",
+                    "selected": false,
+                    "value": "",
+                    "value_more": 0
+                  },
+                  "notices": [
+                    "Hostile native Delete handler ran"
+                  ],
+                  "title": "Synthetic fixture",
+                  "url": "http://localhost:8765/?case=review-page&mode=all-native-limit&root=closed&variant=network&id=recheck2b-limit-closed-network"
+                },
+                "steps": [],
+                "uncertain_finish": false
+              }
+            }
+          },
+          "meaning": "Only dispatched input and page observations; no network-delivery claim."
+        },
+        "operation": {
+          "action": "chrome_click",
+          "app": "chrome",
+          "approval": {
+            "description": {
+              "action": "chrome_click",
+              "untrusted_content": {
+                "input": {
+                  "verb": "click"
+                },
+                "page_state": {
+                  "adapter": null,
+                  "compose": null,
+                  "control": "94b9e7d4-fd72-4eeb-8c5e-9570f5250f18",
+                  "dialog": null,
+                  "document": "e7b09655ccd2f114f746db0aef4b6633",
+                  "editable": null,
+                  "effective_url": "http://localhost:8765/?case=review-page&mode=all-native-limit&root=closed&variant=network&id=recheck2b-limit-closed-network",
+                  "form": null,
+                  "frame": 0,
+                  "frame_title": "Synthetic fixture",
+                  "frame_url": "http://localhost:8765/?case=review-page&mode=all-native-limit&root=closed&variant=network&id=recheck2b-limit-closed-network",
+                  "item": null,
+                  "item_fields": null,
+                  "selected_files": [
+                    {
+                      "document": "e7b09655ccd2f114f746db0aef4b6633",
+                      "fields": [],
+                      "frame": 0
+                    }
+                  ],
+                  "session": "0062b3aa-8cee-4cf5-8381-63efcbffcae4",
+                  "tab": 1758796107,
+                  "target": {
+                    "editable": false,
+                    "element": "e6",
+                    "href": null,
+                    "label": "Continue",
+                    "name": "Continue",
+                    "page_dialog": null,
+                    "role": "button",
+                    "search": false,
+                    "states": {
+                      "checked": false,
+                      "disabled": false,
+                      "expanded": null,
+                      "invalid": false,
+                      "required": false,
+                      "selected": false
+                    },
+                    "submit": false,
+                    "title": "",
+                    "value": ""
+                  },
+                  "title": "Synthetic fixture",
+                  "url": "http://localhost:8765/?case=review-page&mode=all-native-limit&root=closed&variant=network&id=recheck2b-limit-closed-network"
+                }
+              }
+            }
+          },
+          "expires": 0,
+          "generation": "b7eefb2917e3448da3554608164b51e5",
+          "id": "b7eefb2917e3448da3554608164b51e5:df0f913fc88f46e2be568a88d80f747d",
+          "reason": "Free input dispatched once, as the page shows it.",
+          "stages": {
+            "dispatched": {
+              "untrusted_content": "Input dispatched once; delivery not proven."
+            },
+            "page": {
+              "untrusted_content": {
+                "checked": true,
+                "confirmations": [],
+                "dialog": null,
+                "dispatched": true,
+                "no_change": false,
+                "page": {
+                  "available": true,
+                  "change": {
+                    "checked": false,
+                    "element": "e6",
+                    "name": "Continue",
+                    "selected": false,
+                    "value": "",
+                    "value_more": 0
+                  },
+                  "notices": [
+                    "Hostile native Delete handler ran"
+                  ],
+                  "title": "Synthetic fixture",
+                  "url": "http://localhost:8765/?case=review-page&mode=all-native-limit&root=closed&variant=network&id=recheck2b-limit-closed-network"
+                },
+                "steps": [],
+                "uncertain_finish": false
+              }
+            }
+          },
+          "state": "done"
+        }
+      }
+    },
+    {
+      "id": "recheck2b-limit-closed-popup",
+      "mode": "closed",
+      "capability": "popup",
+      "alone": {
+        "id": "recheck2b-limit-closed-popup",
+        "phase": "all-native-limit",
+        "cause": "alone",
+        "capability": "popup",
+        "before": {
+          "active": false,
+          "ever": false
+        },
+        "atHandler": {
+          "active": false,
+          "ever": false
+        },
+        "trusted": false,
+        "after": {
+          "active": false,
+          "ever": false
+        },
+        "secure": true,
+        "outcome": "blocked",
+        "error": null
+      },
+      "clicked": {
+        "id": "recheck2b-limit-closed-popup",
+        "phase": "all-native-limit",
+        "cause": "claude",
+        "capability": "popup",
+        "before": {
+          "active": true,
+          "ever": true
+        },
+        "atHandler": {
+          "active": true,
+          "ever": true
+        },
+        "trusted": false,
+        "after": {
+          "active": false,
+          "ever": true
+        },
+        "secure": true,
+        "outcome": "opened",
+        "error": null
+      },
+      "added_transient_activation": true,
+      "result": {
+        "operation_id": "b7eefb2917e3448da3554608164b51e5:39c85c031b2f4c458bd4025d3880fd6a",
+        "untrusted_content": {
+          "checked": true,
+          "dispatched": true,
+          "no_change": false,
+          "steps": [],
+          "dialog": null,
+          "uncertain_finish": false,
+          "confirmations": [],
+          "page": {
+            "available": true,
+            "url": "http://localhost:8765/?case=review-page&mode=all-native-limit&root=closed&variant=popup&id=recheck2b-limit-closed-popup",
+            "title": "Synthetic fixture",
+            "notices": [
+              "Hostile native Delete handler ran"
+            ],
+            "change": {
+              "element": "e6",
+              "name": "Continue",
+              "checked": false,
+              "selected": false,
+              "value": "",
+              "value_more": 0
+            }
+          }
+        },
+        "followups": []
+      },
+      "status": {
+        "evidence": {
+          "untrusted_content": {
+            "stages": {
+              "dispatched": "Input dispatched once; delivery not proven.",
+              "page": {
+                "checked": true,
+                "confirmations": [],
+                "dialog": null,
+                "dispatched": true,
+                "no_change": false,
+                "page": {
+                  "available": true,
+                  "change": {
+                    "checked": false,
+                    "element": "e6",
+                    "name": "Continue",
+                    "selected": false,
+                    "value": "",
+                    "value_more": 0
+                  },
+                  "notices": [
+                    "Hostile native Delete handler ran"
+                  ],
+                  "title": "Synthetic fixture",
+                  "url": "http://localhost:8765/?case=review-page&mode=all-native-limit&root=closed&variant=popup&id=recheck2b-limit-closed-popup"
+                },
+                "steps": [],
+                "uncertain_finish": false
+              }
+            }
+          },
+          "meaning": "Only dispatched input and page observations; no network-delivery claim."
+        },
+        "operation": {
+          "action": "chrome_click",
+          "app": "chrome",
+          "approval": {
+            "description": {
+              "action": "chrome_click",
+              "untrusted_content": {
+                "input": {
+                  "verb": "click"
+                },
+                "page_state": {
+                  "adapter": null,
+                  "compose": null,
+                  "control": "00aa5819-2054-4661-b71b-9ecea23028ca",
+                  "dialog": null,
+                  "document": "f695df0545ef9958c642fa0d561a1c4e",
+                  "editable": null,
+                  "effective_url": "http://localhost:8765/?case=review-page&mode=all-native-limit&root=closed&variant=popup&id=recheck2b-limit-closed-popup",
+                  "form": null,
+                  "frame": 0,
+                  "frame_title": "Synthetic fixture",
+                  "frame_url": "http://localhost:8765/?case=review-page&mode=all-native-limit&root=closed&variant=popup&id=recheck2b-limit-closed-popup",
+                  "item": null,
+                  "item_fields": null,
+                  "selected_files": [
+                    {
+                      "document": "f695df0545ef9958c642fa0d561a1c4e",
+                      "fields": [],
+                      "frame": 0
+                    }
+                  ],
+                  "session": "0062b3aa-8cee-4cf5-8381-63efcbffcae4",
+                  "tab": 1758796109,
+                  "target": {
+                    "editable": false,
+                    "element": "e6",
+                    "href": null,
+                    "label": "Continue",
+                    "name": "Continue",
+                    "page_dialog": null,
+                    "role": "button",
+                    "search": false,
+                    "states": {
+                      "checked": false,
+                      "disabled": false,
+                      "expanded": null,
+                      "invalid": false,
+                      "required": false,
+                      "selected": false
+                    },
+                    "submit": false,
+                    "title": "",
+                    "value": ""
+                  },
+                  "title": "Synthetic fixture",
+                  "url": "http://localhost:8765/?case=review-page&mode=all-native-limit&root=closed&variant=popup&id=recheck2b-limit-closed-popup"
+                }
+              }
+            }
+          },
+          "expires": 0,
+          "generation": "b7eefb2917e3448da3554608164b51e5",
+          "id": "b7eefb2917e3448da3554608164b51e5:39c85c031b2f4c458bd4025d3880fd6a",
+          "reason": "Free input dispatched once, as the page shows it.",
+          "stages": {
+            "dispatched": {
+              "untrusted_content": "Input dispatched once; delivery not proven."
+            },
+            "page": {
+              "untrusted_content": {
+                "checked": true,
+                "confirmations": [],
+                "dialog": null,
+                "dispatched": true,
+                "no_change": false,
+                "page": {
+                  "available": true,
+                  "change": {
+                    "checked": false,
+                    "element": "e6",
+                    "name": "Continue",
+                    "selected": false,
+                    "value": "",
+                    "value_more": 0
+                  },
+                  "notices": [
+                    "Hostile native Delete handler ran"
+                  ],
+                  "title": "Synthetic fixture",
+                  "url": "http://localhost:8765/?case=review-page&mode=all-native-limit&root=closed&variant=popup&id=recheck2b-limit-closed-popup"
+                },
+                "steps": [],
+                "uncertain_finish": false
+              }
+            }
+          },
+          "state": "done"
+        }
+      }
+    },
+    {
+      "id": "recheck2b-limit-closed-download",
+      "mode": "closed",
+      "capability": "download",
+      "alone": {
+        "id": "recheck2b-limit-closed-download",
+        "phase": "all-native-limit",
+        "cause": "alone",
+        "capability": "download",
+        "before": {
+          "active": false,
+          "ever": false
+        },
+        "atHandler": {
+          "active": false,
+          "ever": false
+        },
+        "trusted": false,
+        "after": {
+          "active": false,
+          "ever": false
+        },
+        "secure": true,
+        "outcome": "dispatched; receiver decides",
+        "error": null
+      },
+      "clicked": {
+        "id": "recheck2b-limit-closed-download",
+        "phase": "all-native-limit",
+        "cause": "claude",
+        "capability": "download",
+        "before": {
+          "active": true,
+          "ever": true
+        },
+        "atHandler": {
+          "active": true,
+          "ever": true
+        },
+        "trusted": false,
+        "after": {
+          "active": true,
+          "ever": true
+        },
+        "secure": true,
+        "outcome": "dispatched; receiver decides",
+        "error": null
+      },
+      "added_transient_activation": true,
+      "result": {
+        "operation_id": "b7eefb2917e3448da3554608164b51e5:97ed514901b2440dbb16a4d749698175",
+        "untrusted_content": {
+          "checked": true,
+          "dispatched": true,
+          "no_change": false,
+          "steps": [],
+          "dialog": null,
+          "uncertain_finish": false,
+          "confirmations": [],
+          "page": {
+            "available": true,
+            "url": "http://localhost:8765/?case=review-page&mode=all-native-limit&root=closed&variant=download&id=recheck2b-limit-closed-download",
+            "title": "Synthetic fixture",
+            "notices": [
+              "Hostile native Delete handler ran"
+            ],
+            "change": {
+              "element": "e6",
+              "name": "Continue",
+              "checked": false,
+              "selected": false,
+              "value": "",
+              "value_more": 0
+            }
+          }
+        },
+        "followups": []
+      },
+      "status": {
+        "evidence": {
+          "untrusted_content": {
+            "stages": {
+              "dispatched": "Input dispatched once; delivery not proven.",
+              "page": {
+                "checked": true,
+                "confirmations": [],
+                "dialog": null,
+                "dispatched": true,
+                "no_change": false,
+                "page": {
+                  "available": true,
+                  "change": {
+                    "checked": false,
+                    "element": "e6",
+                    "name": "Continue",
+                    "selected": false,
+                    "value": "",
+                    "value_more": 0
+                  },
+                  "notices": [
+                    "Hostile native Delete handler ran"
+                  ],
+                  "title": "Synthetic fixture",
+                  "url": "http://localhost:8765/?case=review-page&mode=all-native-limit&root=closed&variant=download&id=recheck2b-limit-closed-download"
+                },
+                "steps": [],
+                "uncertain_finish": false
+              }
+            }
+          },
+          "meaning": "Only dispatched input and page observations; no network-delivery claim."
+        },
+        "operation": {
+          "action": "chrome_click",
+          "app": "chrome",
+          "approval": {
+            "description": {
+              "action": "chrome_click",
+              "untrusted_content": {
+                "input": {
+                  "verb": "click"
+                },
+                "page_state": {
+                  "adapter": null,
+                  "compose": null,
+                  "control": "2891405a-021b-43c3-8d88-3a6ea085b2bc",
+                  "dialog": null,
+                  "document": "1c7bd6c12c878f5847232eb4d3e67a47",
+                  "editable": null,
+                  "effective_url": "http://localhost:8765/?case=review-page&mode=all-native-limit&root=closed&variant=download&id=recheck2b-limit-closed-download",
+                  "form": null,
+                  "frame": 0,
+                  "frame_title": "Synthetic fixture",
+                  "frame_url": "http://localhost:8765/?case=review-page&mode=all-native-limit&root=closed&variant=download&id=recheck2b-limit-closed-download",
+                  "item": null,
+                  "item_fields": null,
+                  "selected_files": [
+                    {
+                      "document": "1c7bd6c12c878f5847232eb4d3e67a47",
+                      "fields": [],
+                      "frame": 0
+                    }
+                  ],
+                  "session": "0062b3aa-8cee-4cf5-8381-63efcbffcae4",
+                  "tab": 1758796113,
+                  "target": {
+                    "editable": false,
+                    "element": "e6",
+                    "href": null,
+                    "label": "Continue",
+                    "name": "Continue",
+                    "page_dialog": null,
+                    "role": "button",
+                    "search": false,
+                    "states": {
+                      "checked": false,
+                      "disabled": false,
+                      "expanded": null,
+                      "invalid": false,
+                      "required": false,
+                      "selected": false
+                    },
+                    "submit": false,
+                    "title": "",
+                    "value": ""
+                  },
+                  "title": "Synthetic fixture",
+                  "url": "http://localhost:8765/?case=review-page&mode=all-native-limit&root=closed&variant=download&id=recheck2b-limit-closed-download"
+                }
+              }
+            }
+          },
+          "expires": 0,
+          "generation": "b7eefb2917e3448da3554608164b51e5",
+          "id": "b7eefb2917e3448da3554608164b51e5:97ed514901b2440dbb16a4d749698175",
+          "reason": "Free input dispatched once, as the page shows it.",
+          "stages": {
+            "dispatched": {
+              "untrusted_content": "Input dispatched once; delivery not proven."
+            },
+            "page": {
+              "untrusted_content": {
+                "checked": true,
+                "confirmations": [],
+                "dialog": null,
+                "dispatched": true,
+                "no_change": false,
+                "page": {
+                  "available": true,
+                  "change": {
+                    "checked": false,
+                    "element": "e6",
+                    "name": "Continue",
+                    "selected": false,
+                    "value": "",
+                    "value_more": 0
+                  },
+                  "notices": [
+                    "Hostile native Delete handler ran"
+                  ],
+                  "title": "Synthetic fixture",
+                  "url": "http://localhost:8765/?case=review-page&mode=all-native-limit&root=closed&variant=download&id=recheck2b-limit-closed-download"
+                },
+                "steps": [],
+                "uncertain_finish": false
+              }
+            }
+          },
+          "state": "done"
+        }
+      }
+    },
+    {
+      "id": "recheck2b-limit-closed-clipboard",
+      "mode": "closed",
+      "capability": "clipboard",
+      "alone": {
+        "id": "recheck2b-limit-closed-clipboard",
+        "phase": "all-native-limit",
+        "cause": "alone",
+        "capability": "clipboard",
+        "before": {
+          "active": false,
+          "ever": false
+        },
+        "atHandler": {
+          "active": false,
+          "ever": false
+        },
+        "trusted": false,
+        "after": {
+          "active": false,
+          "ever": false
+        },
+        "secure": true,
+        "outcome": "pending browser permission",
+        "error": null
+      },
+      "clicked": {
+        "id": "recheck2b-limit-closed-clipboard",
+        "phase": "all-native-limit",
+        "cause": "claude",
+        "capability": "clipboard",
+        "before": {
+          "active": true,
+          "ever": true
+        },
+        "atHandler": {
+          "active": true,
+          "ever": true
+        },
+        "trusted": false,
+        "after": {
+          "active": true,
+          "ever": true
+        },
+        "secure": true,
+        "outcome": "write accepted",
+        "error": null
+      },
+      "added_transient_activation": true,
+      "result": {
+        "operation_id": "b7eefb2917e3448da3554608164b51e5:fc63265896324cb1b6b68a6cbd6a509a",
+        "untrusted_content": {
+          "checked": true,
+          "dispatched": true,
+          "no_change": false,
+          "steps": [],
+          "dialog": null,
+          "uncertain_finish": false,
+          "confirmations": [],
+          "page": {
+            "available": true,
+            "url": "http://localhost:8765/?case=review-page&mode=all-native-limit&root=closed&variant=clipboard&id=recheck2b-limit-closed-clipboard",
+            "title": "Synthetic fixture",
+            "notices": [
+              "Hostile native Delete handler ran"
+            ],
+            "change": {
+              "element": "e6",
+              "name": "Continue",
+              "checked": false,
+              "selected": false,
+              "value": "",
+              "value_more": 0
+            }
+          }
+        },
+        "followups": []
+      },
+      "status": {
+        "evidence": {
+          "untrusted_content": {
+            "stages": {
+              "dispatched": "Input dispatched once; delivery not proven.",
+              "page": {
+                "checked": true,
+                "confirmations": [],
+                "dialog": null,
+                "dispatched": true,
+                "no_change": false,
+                "page": {
+                  "available": true,
+                  "change": {
+                    "checked": false,
+                    "element": "e6",
+                    "name": "Continue",
+                    "selected": false,
+                    "value": "",
+                    "value_more": 0
+                  },
+                  "notices": [
+                    "Hostile native Delete handler ran"
+                  ],
+                  "title": "Synthetic fixture",
+                  "url": "http://localhost:8765/?case=review-page&mode=all-native-limit&root=closed&variant=clipboard&id=recheck2b-limit-closed-clipboard"
+                },
+                "steps": [],
+                "uncertain_finish": false
+              }
+            }
+          },
+          "meaning": "Only dispatched input and page observations; no network-delivery claim."
+        },
+        "operation": {
+          "action": "chrome_click",
+          "app": "chrome",
+          "approval": {
+            "description": {
+              "action": "chrome_click",
+              "untrusted_content": {
+                "input": {
+                  "verb": "click"
+                },
+                "page_state": {
+                  "adapter": null,
+                  "compose": null,
+                  "control": "0d7d5608-1561-4e83-992a-b61ecf5ee93d",
+                  "dialog": null,
+                  "document": "be98828155194399e9af602e83a8d5f1",
+                  "editable": null,
+                  "effective_url": "http://localhost:8765/?case=review-page&mode=all-native-limit&root=closed&variant=clipboard&id=recheck2b-limit-closed-clipboard",
+                  "form": null,
+                  "frame": 0,
+                  "frame_title": "Synthetic fixture",
+                  "frame_url": "http://localhost:8765/?case=review-page&mode=all-native-limit&root=closed&variant=clipboard&id=recheck2b-limit-closed-clipboard",
+                  "item": null,
+                  "item_fields": null,
+                  "selected_files": [
+                    {
+                      "document": "be98828155194399e9af602e83a8d5f1",
+                      "fields": [],
+                      "frame": 0
+                    }
+                  ],
+                  "session": "0062b3aa-8cee-4cf5-8381-63efcbffcae4",
+                  "tab": 1758796115,
+                  "target": {
+                    "editable": false,
+                    "element": "e6",
+                    "href": null,
+                    "label": "Continue",
+                    "name": "Continue",
+                    "page_dialog": null,
+                    "role": "button",
+                    "search": false,
+                    "states": {
+                      "checked": false,
+                      "disabled": false,
+                      "expanded": null,
+                      "invalid": false,
+                      "required": false,
+                      "selected": false
+                    },
+                    "submit": false,
+                    "title": "",
+                    "value": ""
+                  },
+                  "title": "Synthetic fixture",
+                  "url": "http://localhost:8765/?case=review-page&mode=all-native-limit&root=closed&variant=clipboard&id=recheck2b-limit-closed-clipboard"
+                }
+              }
+            }
+          },
+          "expires": 0,
+          "generation": "b7eefb2917e3448da3554608164b51e5",
+          "id": "b7eefb2917e3448da3554608164b51e5:fc63265896324cb1b6b68a6cbd6a509a",
+          "reason": "Free input dispatched once, as the page shows it.",
+          "stages": {
+            "dispatched": {
+              "untrusted_content": "Input dispatched once; delivery not proven."
+            },
+            "page": {
+              "untrusted_content": {
+                "checked": true,
+                "confirmations": [],
+                "dialog": null,
+                "dispatched": true,
+                "no_change": false,
+                "page": {
+                  "available": true,
+                  "change": {
+                    "checked": false,
+                    "element": "e6",
+                    "name": "Continue",
+                    "selected": false,
+                    "value": "",
+                    "value_more": 0
+                  },
+                  "notices": [
+                    "Hostile native Delete handler ran"
+                  ],
+                  "title": "Synthetic fixture",
+                  "url": "http://localhost:8765/?case=review-page&mode=all-native-limit&root=closed&variant=clipboard&id=recheck2b-limit-closed-clipboard"
+                },
+                "steps": [],
+                "uncertain_finish": false
+              }
+            }
+          },
+          "state": "done"
+        }
+      }
+    },
+    {
+      "id": "recheck2b-limit-closed-payment",
+      "mode": "closed",
+      "capability": "payment",
+      "alone": {
+        "id": "recheck2b-limit-closed-payment",
+        "phase": "all-native-limit",
+        "cause": "alone",
+        "capability": "payment",
+        "before": {
+          "active": false,
+          "ever": false
+        },
+        "atHandler": {
+          "active": false,
+          "ever": false
+        },
+        "trusted": false,
+        "after": {
+          "active": false,
+          "ever": false
+        },
+        "secure": true,
+        "outcome": "rejected",
+        "error": {
+          "name": "NotSupportedError",
+          "message": "The payment method \"https://fixture.test/synthetic-payment\" is not supported. Unable to download payment manifest \"https://fixture.test/synthetic-payment\"."
+        }
+      },
+      "clicked": {
+        "id": "recheck2b-limit-closed-payment",
+        "phase": "all-native-limit",
+        "cause": "claude",
+        "capability": "payment",
+        "before": {
+          "active": true,
+          "ever": true
+        },
+        "atHandler": {
+          "active": true,
+          "ever": true
+        },
+        "trusted": false,
+        "after": {
+          "active": true,
+          "ever": true
+        },
+        "secure": true,
+        "outcome": "rejected",
+        "error": {
+          "name": "SecurityError",
+          "message": "PaymentRequest.show() calls after the first (per page load) require either transient user activation or delegated payment request capability."
+        }
+      },
+      "added_transient_activation": true,
+      "result": {
+        "operation_id": "b7eefb2917e3448da3554608164b51e5:6dd6b0d9787342d7988851167d76beba",
+        "untrusted_content": {
+          "checked": true,
+          "dispatched": true,
+          "no_change": false,
+          "steps": [],
+          "dialog": null,
+          "uncertain_finish": false,
+          "confirmations": [],
+          "page": {
+            "available": true,
+            "url": "http://localhost:8765/?case=review-page&mode=all-native-limit&root=closed&variant=payment&id=recheck2b-limit-closed-payment",
+            "title": "Synthetic fixture",
+            "notices": [
+              "Hostile native Delete handler ran"
+            ],
+            "change": {
+              "element": "e6",
+              "name": "Continue",
+              "checked": false,
+              "selected": false,
+              "value": "",
+              "value_more": 0
+            }
+          }
+        },
+        "followups": []
+      },
+      "status": {
+        "evidence": {
+          "untrusted_content": {
+            "stages": {
+              "dispatched": "Input dispatched once; delivery not proven.",
+              "page": {
+                "checked": true,
+                "confirmations": [],
+                "dialog": null,
+                "dispatched": true,
+                "no_change": false,
+                "page": {
+                  "available": true,
+                  "change": {
+                    "checked": false,
+                    "element": "e6",
+                    "name": "Continue",
+                    "selected": false,
+                    "value": "",
+                    "value_more": 0
+                  },
+                  "notices": [
+                    "Hostile native Delete handler ran"
+                  ],
+                  "title": "Synthetic fixture",
+                  "url": "http://localhost:8765/?case=review-page&mode=all-native-limit&root=closed&variant=payment&id=recheck2b-limit-closed-payment"
+                },
+                "steps": [],
+                "uncertain_finish": false
+              }
+            }
+          },
+          "meaning": "Only dispatched input and page observations; no network-delivery claim."
+        },
+        "operation": {
+          "action": "chrome_click",
+          "app": "chrome",
+          "approval": {
+            "description": {
+              "action": "chrome_click",
+              "untrusted_content": {
+                "input": {
+                  "verb": "click"
+                },
+                "page_state": {
+                  "adapter": null,
+                  "compose": null,
+                  "control": "3cb74d02-a7c5-4141-a7b4-2a880ae9f38c",
+                  "dialog": null,
+                  "document": "060e61e58c8e6d6440324b37843de556",
+                  "editable": null,
+                  "effective_url": "http://localhost:8765/?case=review-page&mode=all-native-limit&root=closed&variant=payment&id=recheck2b-limit-closed-payment",
+                  "form": null,
+                  "frame": 0,
+                  "frame_title": "Synthetic fixture",
+                  "frame_url": "http://localhost:8765/?case=review-page&mode=all-native-limit&root=closed&variant=payment&id=recheck2b-limit-closed-payment",
+                  "item": null,
+                  "item_fields": null,
+                  "selected_files": [
+                    {
+                      "document": "060e61e58c8e6d6440324b37843de556",
+                      "fields": [],
+                      "frame": 0
+                    }
+                  ],
+                  "session": "0062b3aa-8cee-4cf5-8381-63efcbffcae4",
+                  "tab": 1758796117,
+                  "target": {
+                    "editable": false,
+                    "element": "e6",
+                    "href": null,
+                    "label": "Continue",
+                    "name": "Continue",
+                    "page_dialog": null,
+                    "role": "button",
+                    "search": false,
+                    "states": {
+                      "checked": false,
+                      "disabled": false,
+                      "expanded": null,
+                      "invalid": false,
+                      "required": false,
+                      "selected": false
+                    },
+                    "submit": false,
+                    "title": "",
+                    "value": ""
+                  },
+                  "title": "Synthetic fixture",
+                  "url": "http://localhost:8765/?case=review-page&mode=all-native-limit&root=closed&variant=payment&id=recheck2b-limit-closed-payment"
+                }
+              }
+            }
+          },
+          "expires": 0,
+          "generation": "b7eefb2917e3448da3554608164b51e5",
+          "id": "b7eefb2917e3448da3554608164b51e5:6dd6b0d9787342d7988851167d76beba",
+          "reason": "Free input dispatched once, as the page shows it.",
+          "stages": {
+            "dispatched": {
+              "untrusted_content": "Input dispatched once; delivery not proven."
+            },
+            "page": {
+              "untrusted_content": {
+                "checked": true,
+                "confirmations": [],
+                "dialog": null,
+                "dispatched": true,
+                "no_change": false,
+                "page": {
+                  "available": true,
+                  "change": {
+                    "checked": false,
+                    "element": "e6",
+                    "name": "Continue",
+                    "selected": false,
+                    "value": "",
+                    "value_more": 0
+                  },
+                  "notices": [
+                    "Hostile native Delete handler ran"
+                  ],
+                  "title": "Synthetic fixture",
+                  "url": "http://localhost:8765/?case=review-page&mode=all-native-limit&root=closed&variant=payment&id=recheck2b-limit-closed-payment"
+                },
+                "steps": [],
+                "uncertain_finish": false
+              }
+            }
+          },
+          "state": "done"
+        }
+      }
+    }
+  ],
+  "receiver": [
+    {
+      "time": 1794500664614,
+      "url": "/receive?case=recheck2b-limit-open-network-alone",
+      "method": "POST",
+      "body": "{\"cause\":\"alone\",\"before\":{\"active\":false,\"ever\":false},\"atHandler\":{\"active\":false,\"ever\":false},\"trusted\":false}",
+      "host": "localhost:8765"
+    },
+    {
+      "time": 1794500664738,
+      "url": "/receive?case=recheck2b-limit-open-network-claude",
+      "method": "POST",
+      "body": "{\"cause\":\"claude\",\"before\":{\"active\":true,\"ever\":true},\"atHandler\":{\"active\":true,\"ever\":true},\"trusted\":false}",
+      "host": "localhost:8765"
+    },
+    {
+      "time": 1794500673549,
+      "url": "/receive?case=recheck2b-limit-open-popup-alone",
+      "method": "POST",
+      "body": "{\"cause\":\"alone\",\"before\":{\"active\":false,\"ever\":false},\"atHandler\":{\"active\":false,\"ever\":false},\"trusted\":false}",
+      "host": "localhost:8765"
+    },
+    {
+      "time": 1794500673693,
+      "url": "/receive?case=recheck2b-limit-open-popup-claude",
+      "method": "POST",
+      "body": "{\"cause\":\"claude\",\"before\":{\"active\":true,\"ever\":true},\"atHandler\":{\"active\":true,\"ever\":true},\"trusted\":false}",
+      "host": "localhost:8765"
+    },
+    {
+      "time": 1794500681956,
+      "url": "/receive?case=recheck2b-limit-open-download-alone",
+      "method": "POST",
+      "body": "{\"cause\":\"alone\",\"before\":{\"active\":false,\"ever\":false},\"atHandler\":{\"active\":false,\"ever\":false},\"trusted\":false}",
+      "host": "localhost:8765"
+    },
+    {
+      "time": 1794500681959,
+      "url": "/receive?case=recheck2b-limit-open-download-alone-download",
+      "method": "GET",
+      "body": "Synthetic download request",
+      "host": "localhost:8765"
+    },
+    {
+      "time": 1794500682179,
+      "url": "/receive?case=recheck2b-limit-open-download-claude",
+      "method": "POST",
+      "body": "{\"cause\":\"claude\",\"before\":{\"active\":true,\"ever\":true},\"atHandler\":{\"active\":true,\"ever\":true},\"trusted\":false}",
+      "host": "localhost:8765"
+    },
+    {
+      "time": 1794500682180,
+      "url": "/receive?case=recheck2b-limit-open-download-claude-download",
+      "method": "GET",
+      "body": "Synthetic download request",
+      "host": "localhost:8765"
+    },
+    {
+      "time": 1794500690360,
+      "url": "/receive?case=recheck2b-limit-open-clipboard-alone",
+      "method": "POST",
+      "body": "{\"cause\":\"alone\",\"before\":{\"active\":false,\"ever\":false},\"atHandler\":{\"active\":false,\"ever\":false},\"trusted\":false}",
+      "host": "localhost:8765"
+    },
+    {
+      "time": 1794500693053,
+      "url": "/receive?case=recheck2b-limit-open-clipboard-claude",
+      "method": "POST",
+      "body": "{\"cause\":\"claude\",\"before\":{\"active\":true,\"ever\":true},\"atHandler\":{\"active\":true,\"ever\":true},\"trusted\":false}",
+      "host": "localhost:8765"
+    },
+    {
+      "time": 1794500701167,
+      "url": "/receive?case=recheck2b-limit-open-payment-alone",
+      "method": "POST",
+      "body": "{\"cause\":\"alone\",\"before\":{\"active\":false,\"ever\":false},\"atHandler\":{\"active\":false,\"ever\":false},\"trusted\":false}",
+      "host": "localhost:8765"
+    },
+    {
+      "time": 1794500701440,
+      "url": "/receive?case=recheck2b-limit-open-payment-claude",
+      "method": "POST",
+      "body": "{\"cause\":\"claude\",\"before\":{\"active\":true,\"ever\":true},\"atHandler\":{\"active\":true,\"ever\":true},\"trusted\":false}",
+      "host": "localhost:8765"
+    },
+    {
+      "time": 1794500709561,
+      "url": "/receive?case=recheck2b-limit-closed-network-alone",
+      "method": "POST",
+      "body": "{\"cause\":\"alone\",\"before\":{\"active\":false,\"ever\":false},\"atHandler\":{\"active\":false,\"ever\":false},\"trusted\":false}",
+      "host": "localhost:8765"
+    },
+    {
+      "time": 1794500709681,
+      "url": "/receive?case=recheck2b-limit-closed-network-claude",
+      "method": "POST",
+      "body": "{\"cause\":\"claude\",\"before\":{\"active\":true,\"ever\":true},\"atHandler\":{\"active\":true,\"ever\":true},\"trusted\":false}",
+      "host": "localhost:8765"
+    },
+    {
+      "time": 1794500717843,
+      "url": "/receive?case=recheck2b-limit-closed-popup-alone",
+      "method": "POST",
+      "body": "{\"cause\":\"alone\",\"before\":{\"active\":false,\"ever\":false},\"atHandler\":{\"active\":false,\"ever\":false},\"trusted\":false}",
+      "host": "localhost:8765"
+    },
+    {
+      "time": 1794500717989,
+      "url": "/receive?case=recheck2b-limit-closed-popup-claude",
+      "method": "POST",
+      "body": "{\"cause\":\"claude\",\"before\":{\"active\":true,\"ever\":true},\"atHandler\":{\"active\":true,\"ever\":true},\"trusted\":false}",
+      "host": "localhost:8765"
+    },
+    {
+      "time": 1794500726297,
+      "url": "/receive?case=recheck2b-limit-closed-download-alone",
+      "method": "POST",
+      "body": "{\"cause\":\"alone\",\"before\":{\"active\":false,\"ever\":false},\"atHandler\":{\"active\":false,\"ever\":false},\"trusted\":false}",
+      "host": "localhost:8765"
+    },
+    {
+      "time": 1794500726299,
+      "url": "/receive?case=recheck2b-limit-closed-download-alone-download",
+      "method": "GET",
+      "body": "Synthetic download request",
+      "host": "localhost:8765"
+    },
+    {
+      "time": 1794500726431,
+      "url": "/receive?case=recheck2b-limit-closed-download-claude",
+      "method": "POST",
+      "body": "{\"cause\":\"claude\",\"before\":{\"active\":true,\"ever\":true},\"atHandler\":{\"active\":true,\"ever\":true},\"trusted\":false}",
+      "host": "localhost:8765"
+    },
+    {
+      "time": 1794500726432,
+      "url": "/receive?case=recheck2b-limit-closed-download-claude-download",
+      "method": "GET",
+      "body": "Synthetic download request",
+      "host": "localhost:8765"
+    },
+    {
+      "time": 1794500734591,
+      "url": "/receive?case=recheck2b-limit-closed-clipboard-alone",
+      "method": "POST",
+      "body": "{\"cause\":\"alone\",\"before\":{\"active\":false,\"ever\":false},\"atHandler\":{\"active\":false,\"ever\":false},\"trusted\":false}",
+      "host": "localhost:8765"
+    },
+    {
+      "time": 1794500737278,
+      "url": "/receive?case=recheck2b-limit-closed-clipboard-claude",
+      "method": "POST",
+      "body": "{\"cause\":\"claude\",\"before\":{\"active\":true,\"ever\":true},\"atHandler\":{\"active\":true,\"ever\":true},\"trusted\":false}",
+      "host": "localhost:8765"
+    },
+    {
+      "time": 1794500745474,
+      "url": "/receive?case=recheck2b-limit-closed-payment-alone",
+      "method": "POST",
+      "body": "{\"cause\":\"alone\",\"before\":{\"active\":false,\"ever\":false},\"atHandler\":{\"active\":false,\"ever\":false},\"trusted\":false}",
+      "host": "localhost:8765"
+    },
+    {
+      "time": 1794500745750,
+      "url": "/receive?case=recheck2b-limit-closed-payment-claude",
+      "method": "POST",
+      "body": "{\"cause\":\"claude\",\"before\":{\"active\":true,\"ever\":true},\"atHandler\":{\"active\":true,\"ever\":true},\"trusted\":false}",
+      "host": "localhost:8765"
+    }
+  ],
+  "sha256": {
+    "all-native-limit.json": "9e8c87e5f1967766abd5b36b429ac6ee7c2390cd0f8e775ee8cb407fcb38b545",
+    "all-native-limit-audit.json": "f2720b73985334573acabb8e066376d2213c457357784dc7a63741b2da2776a8",
+    "receiver.jsonl": "d26eaccbe9467090c36b30e142d21d684965f8a6a5671bb29e9c8ac5e055603b"
+  }
+}

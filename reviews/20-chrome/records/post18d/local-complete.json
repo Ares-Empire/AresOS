@@ -1,0 +1,107 @@
+{
+  "source": "4e644ff41ad1784944502d159b456829b317f22e",
+  "runtime_build": "1ed9248c7136763a545f5f9a79a9da47fd597444c57e37aaa3e21ce6f1655df0",
+  "browser_free": true,
+  "python": {
+    "command": "PYTHONDONTWRITEBYTECODE=1 PYTHON_SHARD=INDEX TEST_OUT=.work/post18d/local-shards python3 -B control/chrome/ci/python-shard.py (INDEX=0,1,2,3)",
+    "shards": [
+      {
+        "index": 0,
+        "count": 4,
+        "head": null,
+        "run": null,
+        "modules": [
+          "test_bridge",
+          "test_exclusions",
+          "test_qualification",
+          "test_sites",
+          "test_state_mutations",
+          "test_unit"
+        ],
+        "tests": 49,
+        "successful": true,
+        "seconds": 14.008
+      },
+      {
+        "index": 1,
+        "count": 4,
+        "head": null,
+        "run": null,
+        "modules": [
+          "test_build",
+          "test_fault_surface",
+          "test_qualification_service",
+          "test_state_crashes",
+          "test_state_oracle"
+        ],
+        "tests": 41,
+        "successful": true,
+        "seconds": 512.299
+      },
+      {
+        "index": 2,
+        "count": 4,
+        "head": null,
+        "run": null,
+        "modules": [
+          "test_committed",
+          "test_policy",
+          "test_qualification_shards",
+          "test_state_exhaustion",
+          "test_state_sweeps"
+        ],
+        "tests": 39,
+        "successful": true,
+        "seconds": 0.724
+      },
+      {
+        "index": 3,
+        "count": 4,
+        "head": null,
+        "run": null,
+        "modules": [
+          "test_engine",
+          "test_publisher",
+          "test_questions",
+          "test_state_fixes",
+          "test_storage"
+        ],
+        "tests": 108,
+        "successful": true,
+        "seconds": 192.41
+      }
+    ],
+    "total_tests": 237,
+    "complete_unique_modules": [
+      "test_bridge",
+      "test_build",
+      "test_committed",
+      "test_engine",
+      "test_exclusions",
+      "test_fault_surface",
+      "test_policy",
+      "test_publisher",
+      "test_qualification",
+      "test_qualification_service",
+      "test_qualification_shards",
+      "test_questions",
+      "test_sites",
+      "test_state_crashes",
+      "test_state_exhaustion",
+      "test_state_fixes",
+      "test_state_mutations",
+      "test_state_oracle",
+      "test_state_sweeps",
+      "test_storage",
+      "test_unit"
+    ]
+  },
+  "node": {
+    "command": "node --test control/chrome_tests/*.test.mjs",
+    "tests": 347,
+    "passed": 347,
+    "failed": 0,
+    "skipped": 0,
+    "cancelled": 0
+  }
+}

@@ -152,7 +152,10 @@ solid ground with clear feet and head, away from lava or fire, and run
 **`/aresos home set`**. It saves your exact position, dimension and facing
 without editing blocks, and makes that spot the arrival on every join and
 the respawn point. **`/aresos home`** teleports there while keeping your current
-mode; **`/aresos home info`** prints the seed, position, dimension and facing.
+mode; **`/home`** and the **H** key (Home, under **AresOS** in Controls) do
+exactly the same; **`/aresos home info`** prints the seed, position, dimension and facing.
+H does nothing while a screen is open or F3 is held. `/home` exists only in an
+AresOS world, and only where no other mod has a `/home` command.
 These commands need no cheats and accept only the singleplayer host in an
 enabled AresOS desktop. Ordinary desktops marked with `/aresos desktop on`
 can also set a home without constructing a hub. Joining always enters Live.
@@ -478,13 +481,15 @@ the rows behind it show when you walk past the row in front.
 **Which group.** The first that fits the program's categories: `Game` is Games
 (east), `Network` is Internet (north), office, development, education, science,
 graphics, audio and video are Work & Media (west), everything else is System &
-Tools (south).
+Tools (south). An app you moved to another group (`swap` and `move`, below)
+keeps that group: it is saved as `group` in `config/aresos/apps.json`.
 
 **Which place.** A new app takes the nearest free place of its group (by row,
 then by distance from the road, left before right). The place is saved with the
 app (`place` in `config/aresos/apps.json`) and kept when the app leaves My
 apps, so it comes back where it stood if the place is still free, and a new
-AresOS world builds the same town. Nothing that stands moves by itself. On the
+AresOS world builds the same town. Nothing that stands moves by itself; you
+move logos with `swap` and `move` (below). On the
 first build pinned apps go first (on a fresh AresOS that is Notepad).
 
 **When it changes.** The town is brought in step when you enter the world, when
@@ -533,11 +538,85 @@ never taken up again when its group shrinks.
 - A logo's sign you edited (`/data`), and an entity or zone of yours that has
   the ID the town recorded for a sign or zone, are yours: the town leaves them
   when the logo comes down.
-- You cannot move a logo, choose its place or edit a group's name; moving and
-  swapping come with a later package. `/aresos zone remove` and
+- You cannot choose a logo's exact place or edit a group's name; `swap` and
+  `move` (below) are the two ways to arrange the town. `/aresos zone remove` and
   `/aresos logo remove` leave the town's logos alone and say that
   `/aresos app remove <app>` takes one down. Logos and zones you made by hand
   stay yours.
+
+**Getting around** (the host, in an AresOS world):
+
+- **`/go <app>`** takes you to the logo of one of your apps: you stand on the
+  ground in front of its door, looking at it, and one step takes you in. It
+  takes any name `/open` takes, looking among your apps first; Tab completes
+  your apps' names. It opens nothing and changes no block. A logo whose ground
+  is not loaded yet: you arrive anyway and the town builds it as you come ("The
+  town builds Far's logo here now that you are near."). If something of yours
+  stands where you would arrive, you arrive at the nearest free spot on the way
+  in; if there is none, you stay and the chat says why. Where you would arrive
+  is checked before you are moved; when that ground is not loaded yet, the game
+  loads it first (as it does for a portal) and you are moved a moment later,
+  or one line says why not. If you go elsewhere meanwhile (another dimension,
+  `/home`, H, a respawn, the void), that `/go` is forgotten; if the app left
+  My apps or its logo moved meanwhile, one line says so and you stay. Arriving never counts as walking in, also with
+  `/home`, H, a doorway's return and the respawn: step out and in to open the
+  app. In a world without a town, `/go` takes you to the exit of the nearest
+  zone of that app that you made by hand. Otherwise one line says why it cannot: the logo is not built
+  yet ("Try again in a moment"), the town is frozen ("/aresos hub trust lets
+  it build again"), the app has no logo here, or the program is not one of
+  yours (with the `/aresos app add` command that adds it).
+- **`/home`** and the **H** key: back home, as `/aresos home` (above).
+- **`/apps`** says where each logo stands: "Lunar Client: /lunar. Games, east,
+  front row, left". Left and right are as you see them walking out from home;
+  the second row is "row 2", and the second place on one side of a row adds
+  "2nd from the road". An app without a standing logo says why: "built when you
+  come near", "being built", "no free place", "the town is frozen", "no town in
+  this world", "no logo until the system has listed your programs".
+
+**Arranging the town** (the host, in a flat home; Tab completes your apps and
+the four directions):
+
+| Command | What it does |
+|---|---|
+| `/aresos app swap <a> <b>` | The two logos change places: "Chrome now stands at Games, east, front row, left, and Lunar Client at Internet, north, front row, right." If the places are in two groups, each app takes the other's group. |
+| `/aresos app move <app> <north\|east\|south\|west>` | The app goes to that group, in the first free place there (nearest first, as for a new app); its old place becomes free. "Steam now stands at Work & Media, west, front row, left." |
+
+The group an app gets this way is saved as `group` in
+`config/aresos/apps.json`, so it stays where you put it; swapping or moving it
+back to its own group removes that again. The counts on the group names, the
+doormats' colour, the signs and the roads follow by themselves (a road grows
+with its group and is never taken up). In the moment of the swap or move only
+its logos change; anything else the town has waiting (a new app, one that
+left, a logo whose name or picture changed) follows a moment later.
+
+Both are all or nothing. They check every logo involved and every new place
+first; if anything is in the way, nothing changes, in the file or in the
+world, and one line beginning "Nothing was swapped:" or "Nothing was moved:"
+says what and what to do. They refuse:
+
+- in a frozen town, or when `town.dat` does not fit the world (the town's own
+  line, as `hub rebuild` says it), and until the system has listed your
+  programs in this session ("The town waits for the system's list of
+  programs.");
+- while the town is still moving or building a logo involved, or reading its
+  picture: "… Try again in a moment.";
+- when something of yours is in a new place, also a logo's sign you moved or
+  edited, which stays when its logo comes down; and when something of yours
+  hangs on a logo that would come down (a torch on its
+  doormat): "Nothing was swapped: Discord's logo at Internet, north, front row,
+  left cannot come down. Logo could disturb neighboring minecraft:torch at …,
+  then retry.";
+- when your apps changed between the check and the change (the system's list
+  arrived just then): "Your apps changed just now. Nothing was swapped; try
+  again.";
+- when a place involved is not loaded: "… is not loaded. Stand at home and try
+  again." From home the first six rows of every group are loaded;
+- when something of yours stands in the new place, so that the logo cannot
+  stand there ("… cannot stand at …"). A `move` passes such a place by, up to
+  three of them, as the town does for a new app, and refuses when every place
+  of the group is blocked;
+- `move` to the group the app already stands in: "Steam already stands in
+  Work & Media, west. Nothing was moved."
 
 **`/aresos hub rebuild`** (the host, in a flat home) takes every logo down and
 builds it again from the rules, each app in its saved place, and says one
@@ -641,13 +720,30 @@ How the icon becomes blocks (`docs/design/HUB.md`, section 3.6):
   picture that is not square stands in the middle, on the ground.
 - A small figure on a plain plate (a face on a disc, a moon on a tile) is
   enlarged, and the plate's colour fills the whole 12 × 12.
-- Each cell is one kind of block, three blocks deep, picked from 60 blocks: the
-  wall's 48 plus red mushroom block, emerald, lapis, amethyst, snow, iron,
-  polished diorite, smooth stone, smooth sandstone, honeycomb, prismarine bricks
-  and blue ice. The nearest block is found in the Oklab colour space with
-  lightness counted half, so a bright red stays red. The colours are averages
-  measured from the game's own textures (`./gradlew measureBlockColours` prints
-  them); only the numbers are in this repo.
+- The logo is built from the icon's few main colours (up to six), one kind of
+  block for each, three blocks deep. A cell takes the main colour that covers
+  most of it, never a mix of two, so an edge is clean; a thin line of another
+  main colour is kept as a line one cell wide, and a speck smaller than a cell
+  is not drawn as a line: it shows only where it covers most of a cell. An
+  icon with more than six main colours (a photo, many hues) keeps a colour of
+  its own in each cell.
+- The blocks are picked from 60: the wall's 48 plus red mushroom block,
+  emerald, lapis, amethyst, snow, iron, polished diorite, smooth stone, smooth
+  sandstone, honeycomb, prismarine bricks and blue ice. The nearest block is
+  found in the Oklab colour space with lightness counted half, so a bright red
+  stays red. Plain blocks first: where a spotted, framed or bricked block is
+  the nearest, the plain block nearest to it is built in its place (red wool
+  for the red mushroom block, lime wool for emerald, white concrete for iron);
+  only amethyst and prismarine bricks have no plain block near them and are
+  still built. The colours are averages measured from the game's own textures
+  (`./gradlew measureBlockColours` prints them); only the numbers are in this
+  repo.
+- These are the rules of converter 2 (package 39). A town logo that an older
+  converter drew is drawn again where it stands, the next time the town runs,
+  with two exceptions: a logo whose place is not loaded is drawn again when you
+  come near, and a logo with a block of yours in it moves one place on, as with
+  `hub rebuild` (your block stays). A gate built with `/aresos logo` keeps its
+  blocks until it is removed and built again.
 - The doorway is cut out. Its back is black concrete, and so are the posts
   beside it and the bar above it wherever the icon has no block there.
 - An app without a readable icon gets a plain front in its group's colour.
@@ -744,7 +840,8 @@ saved name. Commands work in Live and Build mode; closing the program leaves you
 where you stood. The request is the same as using its hotbar item, including when
 the program is already open. Remote servers cannot launch local programs.
 
-`/apps` lists My apps with their commands and group; click any line to open it.
+`/apps` lists My apps with their commands and, in a flat home, where each logo
+stands ("The town" above); click any line to open it.
 `/open <name>` searches every listed program, including ones outside My apps, by
 its short name, squeezed full name (letters and digits without spaces), or a unique
 prefix. Tab completes program names. An exact name wins over longer prefixes;
@@ -756,8 +853,8 @@ names stay apart and another mod's `/open` never receives a click.
 `/aresos app unname <name>` removes one; add another first to remove the last name.
 Use 2–16 lower-case letters or digits, starting with a letter. A refusal explains
 invalid or reserved names and says which app holds a conflicting name. Minecraft's
-commands and `aresos`, `home`, `go`, `open`, `apps` are always reserved (`home` and
-`go` are reserved for later packages). Other mods' existing commands win too.
+commands and `aresos`, `home`, `go`, `open`, `apps` are always reserved (`/home` and
+`/go` are under "The town" above). Other mods' existing commands win too.
 
 Names are saved in schema 4 of `config/aresos/apps.json`, in `names`, main first.
 The migration keeps an untouched sibling backup of older schemas. Names survive

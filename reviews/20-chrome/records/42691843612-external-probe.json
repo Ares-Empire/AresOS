@@ -1,0 +1,83 @@
+[
+  {
+    "phase": "ready"
+  },
+  {
+    "phase": "context",
+    "context": {
+      "auxData": {
+        "frameId": "EE8E16E2D5B3066F0C7D54611D8E3C7E",
+        "isDefault": true,
+        "type": "default"
+      },
+      "id": 1,
+      "name": "",
+      "origin": "://",
+      "uniqueId": "-2952099983876701178.-2833054800086207915"
+    }
+  },
+  {
+    "phase": "context",
+    "context": {
+      "auxData": {
+        "frameId": "EE8E16E2D5B3066F0C7D54611D8E3C7E",
+        "isDefault": true,
+        "type": "default"
+      },
+      "id": 2,
+      "name": "",
+      "origin": "http://fixture.test:8765",
+      "uniqueId": "-5007168587192310259.4823899435238258585"
+    }
+  },
+  {
+    "phase": "context",
+    "context": {
+      "auxData": {
+        "frameId": "EE8E16E2D5B3066F0C7D54611D8E3C7E",
+        "isDefault": false,
+        "type": "isolated"
+      },
+      "id": 3,
+      "name": "Controlled injection experiment",
+      "origin": "chrome-extension://leolffbbllbgagfhgbfbgiiggilccgke",
+      "uniqueId": "7580759071715177120.-6886187540357483452"
+    }
+  },
+  {
+    "phase": "private-extension-evaluation-before-resume",
+    "evaluated": {
+      "result": {
+        "type": "string",
+        "value": "{\"runtime\":\"leolffbbllbgagfhgbfbgiiggilccgke\",\"closedShadowAPI\":\"function\"}"
+      }
+    }
+  },
+  {
+    "phase": "isolated-before-resume",
+    "elapsed": 32,
+    "result": "Extension world installed before page scripts"
+  },
+  {
+    "phase": "original-event-native-delivery",
+    "error": "TypeError: Cannot read properties of null (reading 'event')"
+  },
+  {
+    "phase": "native-relay-delivery",
+    "result": false
+  },
+  {
+    "phase": "first-page-script",
+    "result": false,
+    "handlers": 0,
+    "same": false,
+    "relaySame": true,
+    "relayDetail": {
+      "fixture": 9
+    },
+    "relayReturn": false,
+    "relayPrevented": true,
+    "originalPrevented": false,
+    "privateVisible": "undefined"
+  }
+]

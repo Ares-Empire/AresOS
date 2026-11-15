@@ -1,0 +1,42 @@
+{
+  "initial_full_python": {
+    "tests": 221,
+    "seconds": 590.744,
+    "result": "OK",
+    "final_source": false
+  },
+  "node": {
+    "tests": 251,
+    "pass": 251,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0
+  },
+  "page_removal_audit": {
+    "mutations": 139,
+    "baselines": "all pass",
+    "mutations_rejected": 139,
+    "owner_checks": [
+      "P20-form",
+      "P20-submitter",
+      "P20-trust",
+      "P20-clear"
+    ]
+  },
+  "source_build_hash_pending_final_capture": true,
+  "logs": {
+    "local-python-initial.txt": "f7678ffc2c850137cc5b049d5108adb2cba4feb8e2c9b0a111a174498623cda0",
+    "local-node.txt": "ed5fbda762d563f491490bc9f96b9b11ffa0e41e2f334a0a612d9327e47a34e6",
+    "page-mutations.txt": "06388af6ec3d272c8633d9fb87bfba1f42ceff1b3d2b81c02d5f0f6bc5d7a13b",
+    "audit-streams.txt": "ba0afb1b007804de98ffc86a8acd423bcd243616ad81a6a9b91ea91fe7a2b36a",
+    "local-python-prefreeze.txt": "cac1ef28168ae149853c7cd6c30c77b12937cc075afa2d5038ab07d79ad62518",
+    "policy-questions.txt": "b4126619a0e8292633df10ed5631a48c1bfc139bc10f7fd110a5b2925bd9e121"
+  },
+  "prefreeze_full_python": {
+    "tests": 222,
+    "seconds": 546.167,
+    "result": "OK",
+    "final_source": false
+  },
+  "runtime_build_hash": "ae40ca236eaa152613e768119676841bb9f858c3fdc738eccb9b492cff00d783"
+}

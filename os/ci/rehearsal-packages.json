@@ -116,5 +116,35 @@
     },
     "release_retry": "Run 42807087845 stopped before publishing: its added second VM pass could not re-read the reused /dev/nbd0 (host-side offline journal). One more release dispatch, with the reviewed check build's single VM pass. Run 42817411051 stopped in the image diff (13 unexplained paths: /etc/sudoers.d 0750 to 0755 from cp -a of os/config, fixed in build.sh, and 12 exact classifier gaps); integrator OK 2026-11-10 for a third and last release dispatch. Run 42831158090 failed before building: snapshot.ubuntu.com answered 500 while the runner installed its pinned tools; integrator OK 2026-11-10 for a fourth dispatch of the same image source. Run 42835704653 timed out in the same step (mirror 504); integrator OK 2026-11-10 for a fifth dispatch with longer apt retries in the release job, once the mirror is healthy.",
     "update_retry": "Run 43188392249 stopped before any VM work: snapshot.ubuntu.com answered 503 while the runner installed its pinned tools (a mirror outage); integrator OK 2026-11-12 for an unchanged rerun once the mirror is healthy. Run 43219365492, that rerun, timed out after 40 minutes in the same step on the slow mirror, before any VM work; integrator OK 2026-11-12 for one more unchanged rerun under a stricter mirror health check. Run 43277139615, that rerun, stalled at stock Bazzite's first installed boot right after systemd's terminal probes on the VM-only serial console, as run 43136407300 had at release 27's; integrator OK 2026-11-12 for one more run with the harness answering those probes. Run 43293692038, that run, stopped after 11 minutes in the regression tests, before any VM work: the new serial console pin used a partition scan without the shared loop partition wait; integrator OK 2026-11-12 for one more run with that fixed."
+  },
+  "22c": {
+    "branch": "pkg/22c-ways-back-after-update",
+    "start": "first-dispatch",
+    "minute_cap": 2400,
+    "full_cap": 0,
+    "part_b_cap": 0,
+    "dispatch_caps": {
+      "checks": 30,
+      "reorder-probe": 4,
+      "ways-back": 5
+    },
+    "vm_dispatch_cap": 6,
+    "organization_budget": {
+      "organization": "Ares-Empire",
+      "included_minutes": 2000,
+      "other_repos_reserve": 150
+    },
+    "publish_cap": 0,
+    "job_bounds": {
+      "checks": 35,
+      "reorder-probe": 345,
+      "ways-back": 345
+    },
+    "titles": {
+      "checks": "OS regressions only (no VM)",
+      "reorder-probe": "Two-disk rehearsal (reorder-probe)",
+      "ways-back": "Two-disk rehearsal (ways-back)"
+    },
+    "budget": "briefs/22c-ways-back-after-update.md: at most four VM dispatches in all (vm_dispatch_cap: the probe and the stage 2 rehearsal together) and 1200 minutes. Checks-only runs are counted in the minutes; their own cap only keeps the ledger finite (it stops a runaway dispatch loop). Raised from 12 to 30 in stage 1b, step 2 (2026-11-14): the branch had used 18 checks runs and 446 of the 1200 minutes; each checks run costs about 35 runner minutes while the full model runs beside it, so after one rehearsal reservation (345) about 11 more fit, and 30 lets the minutes stay the real bound. Standard runners cost nothing for this public repository. Stage 2 (2026-11-14): the rehearsal of every way back is the mode ways-back; the probe used one of the four VM dispatches, so three remain for it. Stage 2, step 2 (integrator's decision, 2026-11-14): the minute cap is raised from 1200 to 2400 and the VM dispatch cap from 4 to 6 (ways-back from 3 to 5: the probe used one of the six). The runners are free for this public repository; the caps exist to stop runaway loops, and a rehearsal that stops on a harness pin needs room to finish: run 43581458429 passed E1 and stopped in E2 on the harness's own tools-folder pin, and the branch stood at 819 of 1200 minutes, where a new head's checks run (about 36) and one rehearsal reservation (345) no longer fit. Every other guard stays as it was: the per-run reservation and job bounds, the checks cap, the model gate, the native gate, no rerun, no publish."
   }
 }

@@ -1,0 +1,50 @@
+[
+  {
+    "command": "node --test control/chrome_tests/*.test.mjs",
+    "sha256": "dc848b214538a4426683a84290c25945dcd985fc01fcf10d7963c4cee68983bd",
+    "tail": [
+      "\u2714 shared binding classification isolation and owner prerequisites disable dependent adapters (0.603834ms)",
+      "\u2714 P29 runtime acceptance rejects missing duplicate failed or unknown named rows and false verdicts (0.73225ms)",
+      "\u2139 tests 327",
+      "\u2139 suites 0",
+      "\u2139 pass 327",
+      "\u2139 fail 0",
+      "\u2139 cancelled 0",
+      "\u2139 skipped 0",
+      "\u2139 todo 0",
+      "\u2139 duration_ms 7288.593834"
+    ]
+  },
+  {
+    "command": "PYTHONPATH=control:control/chrome_tests PYTHONDONTWRITEBYTECODE=1 python3 -B -m unittest test_questions test_engine -v",
+    "sha256": "628353857c07b5292b3476ea7dd2f60ade2da921457c6d239b9212b87f57efb3",
+    "tail": [
+      "test_review1_readonly_added_after_prepare_refuses_all_dispatch_kinds (test_engine.OwnerRules.test_review1_readonly_added_after_prepare_refuses_all_dispatch_kinds) ... ok",
+      "test_storage_admission_refusal_recovers_without_restart_and_prevents_dispatch (test_engine.OwnerRules.test_storage_admission_refusal_recovers_without_restart_and_prevents_dispatch) ... ok",
+      "test_taken_read_preserves_document_and_first_input_commits_reload_before_staling (test_engine.OwnerRules.test_taken_read_preserves_document_and_first_input_commits_reload_before_staling) ... ok",
+      "test_taken_reload_warning_requires_explicit_repeat_and_readonly_never_reloads (test_engine.OwnerRules.test_taken_reload_warning_requires_explicit_repeat_and_readonly_never_reloads) ... ok",
+      "test_warning_occurrences_bind_source_document_and_do_not_inherit_old_acknowledgement (test_engine.OwnerRules.test_warning_occurrences_bind_source_document_and_do_not_inherit_old_acknowledgement) ... ok",
+      "",
+      "----------------------------------------------------------------------",
+      "Ran 57 tests in 1.461s",
+      "",
+      "OK"
+    ]
+  },
+  {
+    "command": "python3 -B reviews/20-chrome/mutation-audit.py reviews/20-chrome/records/post18d/base-mutations.json",
+    "sha256": "bd59a335d16df1cdeb1332e431eebeaf31ebccddef0936549680c73da2d94ec8",
+    "tail": [
+      "post18d-form-action MUTATION REJECTED",
+      "post18d-button-formaction MUTATION REJECTED",
+      "post18d-input-formaction MUTATION REJECTED",
+      "post18d-target MUTATION REJECTED",
+      "post18d-formtarget MUTATION REJECTED",
+      "post18d-destination-service MUTATION REJECTED",
+      "post18d-destination-final MUTATION REJECTED",
+      "post18d-target-service-binding MUTATION REJECTED",
+      "post18d-target-extension-binding MUTATION REJECTED",
+      "238 mutations rejected; every baseline passed"
+    ]
+  }
+]

@@ -74,16 +74,26 @@ final class Neighbors {
      * Cells in {@code changing} are the build's own and are not looked at.
      */
     static void check(ServerLevel level, Set<BlockPos> changing, Collection<BlockPos> around, int reach) throws IOException {
-        check(level, changing, around, reach, false);
+        check(level, changing, around, reach, false, GateBuilder.Gone.NONE);
+    }
+
+    /**
+     * {@link #check} in the world as it will be once the gates in {@code gone} came down (package 37, review fixes 1,
+     * point 3): their blocks as their take-downs leave them and the mod's no longer, the signs they discard gone, the
+     * signs they leave standing his.
+     */
+    static void check(ServerLevel level, Set<BlockPos> changing, Collection<BlockPos> around, int reach, GateBuilder.Gone gone) throws IOException {
+        check(level, changing, around, reach, false, gone);
     }
 
     /** Retained blocks need no full-cube shape, but must survive neighbour updates without side effects. */
     static void checkRemoval(ServerLevel level, Set<BlockPos> changing) throws IOException {
-        check(level, changing, changing, 2, true);
+        check(level, changing, changing, 2, true, GateBuilder.Gone.NONE);
     }
 
-    private static void check(ServerLevel level, Set<BlockPos> changing, Collection<BlockPos> around, int reach, boolean removal) throws IOException {
-        var signs = signs(level.getServer());
+    private static void check(ServerLevel level, Set<BlockPos> changing, Collection<BlockPos> around, int reach, boolean removal,
+                              GateBuilder.Gone gone) throws IOException {
+        var signs = gone.exempt(signs(level.getServer()));
         var owned = owned(level);
         for (var cell : around) {
             var entities = level.getEntities((Entity)null, new AABB(cell).inflate(1), entity -> !signs.contains(entity.getUUID())
@@ -99,8 +109,8 @@ final class Neighbors {
             if (Math.abs(x) + Math.abs(y) + Math.abs(z) > reach) continue;
             var pos = cell.offset(x, y, z);
             if (changing.contains(pos) || !checked.add(pos)) continue;
-            var state = level.getBlockState(pos);
-            boolean ours = BuiltInRegistries.BLOCK.getKey(state.getBlock()).toString().equals(owned.get(pos));
+            var state = gone.state(level, pos);
+            boolean ours = !gone.disowned().contains(pos) && BuiltInRegistries.BLOCK.getKey(state.getBlock()).toString().equals(owned.get(pos));
             if (inert(level, pos, state, ours) || removal && stableOnRemoval(state)) continue;
             throw new IOException("Logo could disturb neighboring " + BuiltInRegistries.BLOCK.getKey(state.getBlock()) + " at " + pos.toShortString()
                     + ". No blocks changed. Leave two cells clear of plants, circuits, fluids and blocks with special behavior, then retry.");

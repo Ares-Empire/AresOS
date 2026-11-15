@@ -1,0 +1,1061 @@
+{
+  "status": "contradicted",
+  "stages": [
+    {
+      "stage": "walk-0-start",
+      "reached": "package 27's route: release 27 confirmed",
+      "order": [
+        "R27",
+        "R13",
+        "S"
+      ],
+      "running": "R27",
+      "bootc_booted": "R27",
+      "bootc_rollback": "R13",
+      "rollback_queued": false,
+      "boot_order": "default",
+      "pinned": [
+        "S"
+      ],
+      "origin_pins": {
+        "R13": false,
+        "R27": false,
+        "S": true
+      },
+      "titles": [
+        {
+          "file": "ostree-3.conf",
+          "title": "Bazzite (ostree:0)",
+          "role": "R27"
+        },
+        {
+          "file": "ostree-2.conf",
+          "title": "Bazzite (ostree:1)",
+          "role": "R13"
+        },
+        {
+          "file": "ostree-1.conf",
+          "title": "Bazzite (ostree:2)",
+          "role": "S"
+        }
+      ],
+      "titles_name_the_place": true,
+      "menu_order_is_list_order": true,
+      "other_options_unchanged": {
+        "R27": true,
+        "R13": true
+      },
+      "bootconfig_swap": null
+    },
+    {
+      "stage": "walk-1-moved",
+      "reached": "ostree admin set-default 2 (S to the front)",
+      "order": [
+        "S",
+        "R27",
+        "R13"
+      ],
+      "running": "R27",
+      "bootc_booted": "R27",
+      "bootc_rollback": "S",
+      "rollback_queued": true,
+      "boot_order": "rollback",
+      "pinned": [
+        "S"
+      ],
+      "origin_pins": {
+        "R13": false,
+        "R27": false,
+        "S": true
+      },
+      "titles": [
+        {
+          "file": "ostree-3.conf",
+          "title": "Bazzite (ostree:0)",
+          "role": "S"
+        },
+        {
+          "file": "ostree-2.conf",
+          "title": "Bazzite (ostree:1)",
+          "role": "R27"
+        },
+        {
+          "file": "ostree-1.conf",
+          "title": "Bazzite (ostree:2)",
+          "role": "R13"
+        }
+      ],
+      "titles_name_the_place": true,
+      "menu_order_is_list_order": true,
+      "other_options_unchanged": {
+        "R27": true,
+        "R13": true
+      },
+      "bootconfig_swap": "no"
+    },
+    {
+      "stage": "walk-1-booted",
+      "reached": "restart with no choice",
+      "order": [
+        "S",
+        "R27",
+        "R13"
+      ],
+      "running": "S",
+      "bootc_booted": "S",
+      "bootc_rollback": "R27",
+      "rollback_queued": false,
+      "boot_order": "default",
+      "pinned": [
+        "S"
+      ],
+      "origin_pins": {
+        "R13": false,
+        "R27": false,
+        "S": true
+      },
+      "titles": [
+        {
+          "file": "ostree-3.conf",
+          "title": "Bazzite (ostree:0)",
+          "role": "S"
+        },
+        {
+          "file": "ostree-2.conf",
+          "title": "Bazzite (ostree:1)",
+          "role": "R27"
+        },
+        {
+          "file": "ostree-1.conf",
+          "title": "Bazzite (ostree:2)",
+          "role": "R13"
+        }
+      ],
+      "titles_name_the_place": true,
+      "menu_order_is_list_order": true,
+      "other_options_unchanged": {
+        "R27": true,
+        "R13": true
+      },
+      "bootconfig_swap": null
+    },
+    {
+      "stage": "walk-2-moved",
+      "reached": "ostree admin set-default 1 (R27 to the front)",
+      "order": [
+        "R27",
+        "S",
+        "R13"
+      ],
+      "running": "S",
+      "bootc_booted": "S",
+      "bootc_rollback": "R27",
+      "rollback_queued": true,
+      "boot_order": "rollback",
+      "pinned": [
+        "S"
+      ],
+      "origin_pins": {
+        "R13": false,
+        "R27": false,
+        "S": true
+      },
+      "titles": [
+        {
+          "file": "ostree-3.conf",
+          "title": "Bazzite (ostree:0)",
+          "role": "R27"
+        },
+        {
+          "file": "ostree-2.conf",
+          "title": "Bazzite (ostree:1)",
+          "role": "S"
+        },
+        {
+          "file": "ostree-1.conf",
+          "title": "Bazzite (ostree:2)",
+          "role": "R13"
+        }
+      ],
+      "titles_name_the_place": true,
+      "menu_order_is_list_order": true,
+      "other_options_unchanged": {
+        "R27": true,
+        "R13": true
+      },
+      "bootconfig_swap": "no"
+    },
+    {
+      "stage": "walk-2-booted",
+      "reached": "restart with no choice",
+      "order": [
+        "R27",
+        "S",
+        "R13"
+      ],
+      "running": "R27",
+      "bootc_booted": "R27",
+      "bootc_rollback": "S",
+      "rollback_queued": false,
+      "boot_order": "default",
+      "pinned": [
+        "S"
+      ],
+      "origin_pins": {
+        "R13": false,
+        "R27": false,
+        "S": true
+      },
+      "titles": [
+        {
+          "file": "ostree-3.conf",
+          "title": "Bazzite (ostree:0)",
+          "role": "R27"
+        },
+        {
+          "file": "ostree-2.conf",
+          "title": "Bazzite (ostree:1)",
+          "role": "S"
+        },
+        {
+          "file": "ostree-1.conf",
+          "title": "Bazzite (ostree:2)",
+          "role": "R13"
+        }
+      ],
+      "titles_name_the_place": true,
+      "menu_order_is_list_order": true,
+      "other_options_unchanged": {
+        "R27": true,
+        "R13": true
+      },
+      "bootconfig_swap": null
+    },
+    {
+      "stage": "walk-3-moved",
+      "reached": "ostree admin set-default 2 (R13 to the front)",
+      "order": [
+        "R13",
+        "R27",
+        "S"
+      ],
+      "running": "R27",
+      "bootc_booted": "R27",
+      "bootc_rollback": "R13",
+      "rollback_queued": true,
+      "boot_order": "rollback",
+      "pinned": [
+        "S"
+      ],
+      "origin_pins": {
+        "R13": false,
+        "R27": false,
+        "S": true
+      },
+      "titles": [
+        {
+          "file": "ostree-3.conf",
+          "title": "Bazzite (ostree:0)",
+          "role": "R13"
+        },
+        {
+          "file": "ostree-2.conf",
+          "title": "Bazzite (ostree:1)",
+          "role": "R27"
+        },
+        {
+          "file": "ostree-1.conf",
+          "title": "Bazzite (ostree:2)",
+          "role": "S"
+        }
+      ],
+      "titles_name_the_place": true,
+      "menu_order_is_list_order": true,
+      "other_options_unchanged": {
+        "R27": true,
+        "R13": true
+      },
+      "bootconfig_swap": "no"
+    },
+    {
+      "stage": "walk-3-booted",
+      "reached": "restart with no choice",
+      "order": [
+        "R13",
+        "R27",
+        "S"
+      ],
+      "running": "R13",
+      "bootc_booted": "R13",
+      "bootc_rollback": "R27",
+      "rollback_queued": false,
+      "boot_order": "default",
+      "pinned": [
+        "S"
+      ],
+      "origin_pins": {
+        "R13": false,
+        "R27": false,
+        "S": true
+      },
+      "titles": [
+        {
+          "file": "ostree-3.conf",
+          "title": "Bazzite (ostree:0)",
+          "role": "R13"
+        },
+        {
+          "file": "ostree-2.conf",
+          "title": "Bazzite (ostree:1)",
+          "role": "R27"
+        },
+        {
+          "file": "ostree-1.conf",
+          "title": "Bazzite (ostree:2)",
+          "role": "S"
+        }
+      ],
+      "titles_name_the_place": true,
+      "menu_order_is_list_order": true,
+      "other_options_unchanged": {
+        "R27": true,
+        "R13": true
+      },
+      "bootconfig_swap": null
+    },
+    {
+      "stage": "walk-4-moved",
+      "reached": "ostree admin set-default 2 (S to the front)",
+      "order": [
+        "S",
+        "R13",
+        "R27"
+      ],
+      "running": "R13",
+      "bootc_booted": "R13",
+      "bootc_rollback": "S",
+      "rollback_queued": true,
+      "boot_order": "rollback",
+      "pinned": [
+        "S"
+      ],
+      "origin_pins": {
+        "R13": false,
+        "R27": false,
+        "S": true
+      },
+      "titles": [
+        {
+          "file": "ostree-3.conf",
+          "title": "Bazzite (ostree:0)",
+          "role": "S"
+        },
+        {
+          "file": "ostree-2.conf",
+          "title": "Bazzite (ostree:1)",
+          "role": "R13"
+        },
+        {
+          "file": "ostree-1.conf",
+          "title": "Bazzite (ostree:2)",
+          "role": "R27"
+        }
+      ],
+      "titles_name_the_place": true,
+      "menu_order_is_list_order": true,
+      "other_options_unchanged": {
+        "R27": true,
+        "R13": true
+      },
+      "bootconfig_swap": "no"
+    },
+    {
+      "stage": "walk-4-booted",
+      "reached": "restart with no choice",
+      "order": [
+        "S",
+        "R13",
+        "R27"
+      ],
+      "running": "S",
+      "bootc_booted": "S",
+      "bootc_rollback": "R13",
+      "rollback_queued": false,
+      "boot_order": "default",
+      "pinned": [
+        "S"
+      ],
+      "origin_pins": {
+        "R13": false,
+        "R27": false,
+        "S": true
+      },
+      "titles": [
+        {
+          "file": "ostree-3.conf",
+          "title": "Bazzite (ostree:0)",
+          "role": "S"
+        },
+        {
+          "file": "ostree-2.conf",
+          "title": "Bazzite (ostree:1)",
+          "role": "R13"
+        },
+        {
+          "file": "ostree-1.conf",
+          "title": "Bazzite (ostree:2)",
+          "role": "R27"
+        }
+      ],
+      "titles_name_the_place": true,
+      "menu_order_is_list_order": true,
+      "other_options_unchanged": {
+        "R27": true,
+        "R13": true
+      },
+      "bootconfig_swap": null
+    },
+    {
+      "stage": "walk-5-moved",
+      "reached": "ostree admin set-default 1 (R13 to the front)",
+      "order": [
+        "R13",
+        "S",
+        "R27"
+      ],
+      "running": "S",
+      "bootc_booted": "S",
+      "bootc_rollback": "R13",
+      "rollback_queued": true,
+      "boot_order": "rollback",
+      "pinned": [
+        "S"
+      ],
+      "origin_pins": {
+        "R13": false,
+        "R27": false,
+        "S": true
+      },
+      "titles": [
+        {
+          "file": "ostree-3.conf",
+          "title": "Bazzite (ostree:0)",
+          "role": "R13"
+        },
+        {
+          "file": "ostree-2.conf",
+          "title": "Bazzite (ostree:1)",
+          "role": "S"
+        },
+        {
+          "file": "ostree-1.conf",
+          "title": "Bazzite (ostree:2)",
+          "role": "R27"
+        }
+      ],
+      "titles_name_the_place": true,
+      "menu_order_is_list_order": true,
+      "other_options_unchanged": {
+        "R27": true,
+        "R13": true
+      },
+      "bootconfig_swap": "no"
+    },
+    {
+      "stage": "walk-5-booted",
+      "reached": "restart with no choice",
+      "order": [
+        "R13",
+        "S",
+        "R27"
+      ],
+      "running": "R13",
+      "bootc_booted": "R13",
+      "bootc_rollback": "S",
+      "rollback_queued": false,
+      "boot_order": "default",
+      "pinned": [
+        "S"
+      ],
+      "origin_pins": {
+        "R13": false,
+        "R27": false,
+        "S": true
+      },
+      "titles": [
+        {
+          "file": "ostree-3.conf",
+          "title": "Bazzite (ostree:0)",
+          "role": "R13"
+        },
+        {
+          "file": "ostree-2.conf",
+          "title": "Bazzite (ostree:1)",
+          "role": "S"
+        },
+        {
+          "file": "ostree-1.conf",
+          "title": "Bazzite (ostree:2)",
+          "role": "R27"
+        }
+      ],
+      "titles_name_the_place": true,
+      "menu_order_is_list_order": true,
+      "other_options_unchanged": {
+        "R27": true,
+        "R13": true
+      },
+      "bootconfig_swap": null
+    },
+    {
+      "stage": "walk-6-moved",
+      "reached": "ostree admin set-default 2 (R27 to the front)",
+      "order": [
+        "R27",
+        "R13",
+        "S"
+      ],
+      "running": "R13",
+      "bootc_booted": "R13",
+      "bootc_rollback": "R27",
+      "rollback_queued": true,
+      "boot_order": "rollback",
+      "pinned": [
+        "S"
+      ],
+      "origin_pins": {
+        "R13": false,
+        "R27": false,
+        "S": true
+      },
+      "titles": [
+        {
+          "file": "ostree-3.conf",
+          "title": "Bazzite (ostree:0)",
+          "role": "R27"
+        },
+        {
+          "file": "ostree-2.conf",
+          "title": "Bazzite (ostree:1)",
+          "role": "R13"
+        },
+        {
+          "file": "ostree-1.conf",
+          "title": "Bazzite (ostree:2)",
+          "role": "S"
+        }
+      ],
+      "titles_name_the_place": true,
+      "menu_order_is_list_order": true,
+      "other_options_unchanged": {
+        "R27": true,
+        "R13": true
+      },
+      "bootconfig_swap": "no"
+    },
+    {
+      "stage": "walk-6-booted",
+      "reached": "restart with no choice",
+      "order": [
+        "R27",
+        "R13",
+        "S"
+      ],
+      "running": "R27",
+      "bootc_booted": "R27",
+      "bootc_rollback": "R13",
+      "rollback_queued": false,
+      "boot_order": "default",
+      "pinned": [
+        "S"
+      ],
+      "origin_pins": {
+        "R13": false,
+        "R27": false,
+        "S": true
+      },
+      "titles": [
+        {
+          "file": "ostree-3.conf",
+          "title": "Bazzite (ostree:0)",
+          "role": "R27"
+        },
+        {
+          "file": "ostree-2.conf",
+          "title": "Bazzite (ostree:1)",
+          "role": "R13"
+        },
+        {
+          "file": "ostree-1.conf",
+          "title": "Bazzite (ostree:2)",
+          "role": "S"
+        }
+      ],
+      "titles_name_the_place": true,
+      "menu_order_is_list_order": true,
+      "other_options_unchanged": {
+        "R27": true,
+        "R13": true
+      },
+      "bootconfig_swap": null
+    },
+    {
+      "stage": "menu-stock",
+      "reached": "the stock row taken in the boot menu",
+      "order": [
+        "R27",
+        "R13",
+        "S"
+      ],
+      "running": "S",
+      "bootc_booted": "S",
+      "bootc_rollback": "R27",
+      "rollback_queued": true,
+      "boot_order": "rollback",
+      "pinned": [
+        "S"
+      ],
+      "origin_pins": {
+        "R13": false,
+        "R27": false,
+        "S": true
+      },
+      "titles": [
+        {
+          "file": "ostree-3.conf",
+          "title": "Bazzite (ostree:0)",
+          "role": "R27"
+        },
+        {
+          "file": "ostree-2.conf",
+          "title": "Bazzite (ostree:1)",
+          "role": "R13"
+        },
+        {
+          "file": "ostree-1.conf",
+          "title": "Bazzite (ostree:2)",
+          "role": "S"
+        }
+      ],
+      "titles_name_the_place": true,
+      "menu_order_is_list_order": true,
+      "other_options_unchanged": {
+        "R27": true,
+        "R13": true
+      },
+      "bootconfig_swap": null
+    },
+    {
+      "stage": "after-menu-booted",
+      "reached": "restart with no choice",
+      "order": [
+        "R27",
+        "R13",
+        "S"
+      ],
+      "running": "R27",
+      "bootc_booted": "R27",
+      "bootc_rollback": "R13",
+      "rollback_queued": false,
+      "boot_order": "default",
+      "pinned": [
+        "S"
+      ],
+      "origin_pins": {
+        "R13": false,
+        "R27": false,
+        "S": true
+      },
+      "titles": [
+        {
+          "file": "ostree-3.conf",
+          "title": "Bazzite (ostree:0)",
+          "role": "R27"
+        },
+        {
+          "file": "ostree-2.conf",
+          "title": "Bazzite (ostree:1)",
+          "role": "R13"
+        },
+        {
+          "file": "ostree-1.conf",
+          "title": "Bazzite (ostree:2)",
+          "role": "S"
+        }
+      ],
+      "titles_name_the_place": true,
+      "menu_order_is_list_order": true,
+      "other_options_unchanged": {
+        "R27": true,
+        "R13": true
+      },
+      "bootconfig_swap": null
+    }
+  ],
+  "swaps": [
+    {
+      "stage": "walk-1-moved",
+      "target": "S",
+      "index": 2,
+      "before": [
+        "R27",
+        "R13",
+        "S"
+      ],
+      "after": [
+        "S",
+        "R27",
+        "R13"
+      ],
+      "bootconfig_swap": "no",
+      "stdout": "Transaction complete; bootconfig swap: no; bootversion: boot.0.0, deployment count change: 0",
+      "journal": [
+        "Transaction complete; bootconfig swap: no; bootversion: boot.0.0, deployment count change: 0"
+      ],
+      "loader_link": {
+        "before": "loader.0",
+        "after": "loader.0"
+      },
+      "ostree_boot_links": {
+        "before": {
+          "boot.0": "boot.0.1"
+        },
+        "after": {
+          "boot.0": "boot.0.0"
+        }
+      },
+      "entry_files_changed": false
+    },
+    {
+      "stage": "walk-2-moved",
+      "target": "R27",
+      "index": 1,
+      "before": [
+        "S",
+        "R27",
+        "R13"
+      ],
+      "after": [
+        "R27",
+        "S",
+        "R13"
+      ],
+      "bootconfig_swap": "no",
+      "stdout": "Transaction complete; bootconfig swap: no; bootversion: boot.0.1, deployment count change: 0",
+      "journal": [
+        "Transaction complete; bootconfig swap: no; bootversion: boot.0.1, deployment count change: 0"
+      ],
+      "loader_link": {
+        "before": "loader.0",
+        "after": "loader.0"
+      },
+      "ostree_boot_links": {
+        "before": {
+          "boot.0": "boot.0.0"
+        },
+        "after": {
+          "boot.0": "boot.0.1"
+        }
+      },
+      "entry_files_changed": false
+    },
+    {
+      "stage": "walk-3-moved",
+      "target": "R13",
+      "index": 2,
+      "before": [
+        "R27",
+        "S",
+        "R13"
+      ],
+      "after": [
+        "R13",
+        "R27",
+        "S"
+      ],
+      "bootconfig_swap": "no",
+      "stdout": "Transaction complete; bootconfig swap: no; bootversion: boot.0.0, deployment count change: 0",
+      "journal": [
+        "Transaction complete; bootconfig swap: no; bootversion: boot.0.0, deployment count change: 0"
+      ],
+      "loader_link": {
+        "before": "loader.0",
+        "after": "loader.0"
+      },
+      "ostree_boot_links": {
+        "before": {
+          "boot.0": "boot.0.1"
+        },
+        "after": {
+          "boot.0": "boot.0.0"
+        }
+      },
+      "entry_files_changed": false
+    },
+    {
+      "stage": "walk-4-moved",
+      "target": "S",
+      "index": 2,
+      "before": [
+        "R13",
+        "R27",
+        "S"
+      ],
+      "after": [
+        "S",
+        "R13",
+        "R27"
+      ],
+      "bootconfig_swap": "no",
+      "stdout": "Transaction complete; bootconfig swap: no; bootversion: boot.0.1, deployment count change: 0",
+      "journal": [
+        "Transaction complete; bootconfig swap: no; bootversion: boot.0.1, deployment count change: 0"
+      ],
+      "loader_link": {
+        "before": "loader.0",
+        "after": "loader.0"
+      },
+      "ostree_boot_links": {
+        "before": {
+          "boot.0": "boot.0.0"
+        },
+        "after": {
+          "boot.0": "boot.0.1"
+        }
+      },
+      "entry_files_changed": false
+    },
+    {
+      "stage": "walk-5-moved",
+      "target": "R13",
+      "index": 1,
+      "before": [
+        "S",
+        "R13",
+        "R27"
+      ],
+      "after": [
+        "R13",
+        "S",
+        "R27"
+      ],
+      "bootconfig_swap": "no",
+      "stdout": "Transaction complete; bootconfig swap: no; bootversion: boot.0.0, deployment count change: 0",
+      "journal": [
+        "Transaction complete; bootconfig swap: no; bootversion: boot.0.0, deployment count change: 0"
+      ],
+      "loader_link": {
+        "before": "loader.0",
+        "after": "loader.0"
+      },
+      "ostree_boot_links": {
+        "before": {
+          "boot.0": "boot.0.1"
+        },
+        "after": {
+          "boot.0": "boot.0.0"
+        }
+      },
+      "entry_files_changed": false
+    },
+    {
+      "stage": "walk-6-moved",
+      "target": "R27",
+      "index": 2,
+      "before": [
+        "R13",
+        "S",
+        "R27"
+      ],
+      "after": [
+        "R27",
+        "R13",
+        "S"
+      ],
+      "bootconfig_swap": "no",
+      "stdout": "Transaction complete; bootconfig swap: no; bootversion: boot.0.1, deployment count change: 0",
+      "journal": [
+        "Transaction complete; bootconfig swap: no; bootversion: boot.0.1, deployment count change: 0"
+      ],
+      "loader_link": {
+        "before": "loader.0",
+        "after": "loader.0"
+      },
+      "ostree_boot_links": {
+        "before": {
+          "boot.0": "boot.0.0"
+        },
+        "after": {
+          "boot.0": "boot.0.1"
+        }
+      },
+      "entry_files_changed": false
+    }
+  ],
+  "expectations": {
+    "checked": 187,
+    "contradicted": [
+      {
+        "stage": "walk-1-moved",
+        "point": "rpm-ostree, bootc and the kernel argument name the same running row",
+        "met": false,
+        "detail": {
+          "rpm": "R27",
+          "bootc": "R27",
+          "kernel": "S"
+        }
+      },
+      {
+        "stage": "walk-2-moved",
+        "point": "rpm-ostree, bootc and the kernel argument name the same running row",
+        "met": false,
+        "detail": {
+          "rpm": "S",
+          "bootc": "S",
+          "kernel": "R27"
+        }
+      },
+      {
+        "stage": "walk-3-moved",
+        "point": "rpm-ostree, bootc and the kernel argument name the same running row",
+        "met": false,
+        "detail": {
+          "rpm": "R27",
+          "bootc": "R27",
+          "kernel": "R13"
+        }
+      },
+      {
+        "stage": "walk-4-moved",
+        "point": "rpm-ostree, bootc and the kernel argument name the same running row",
+        "met": false,
+        "detail": {
+          "rpm": "R13",
+          "bootc": "R13",
+          "kernel": "S"
+        }
+      },
+      {
+        "stage": "walk-5-moved",
+        "point": "rpm-ostree, bootc and the kernel argument name the same running row",
+        "met": false,
+        "detail": {
+          "rpm": "S",
+          "bootc": "S",
+          "kernel": "R13"
+        }
+      },
+      {
+        "stage": "walk-6-moved",
+        "point": "rpm-ostree, bootc and the kernel argument name the same running row",
+        "met": false,
+        "detail": {
+          "rpm": "R13",
+          "bootc": "R13",
+          "kernel": "R27"
+        }
+      }
+    ]
+  },
+  "orders_seen": [
+    [
+      "S",
+      "R27",
+      "R13"
+    ],
+    [
+      "R27",
+      "S",
+      "R13"
+    ],
+    [
+      "R13",
+      "R27",
+      "S"
+    ],
+    [
+      "S",
+      "R13",
+      "R27"
+    ],
+    [
+      "R13",
+      "S",
+      "R27"
+    ],
+    [
+      "R27",
+      "R13",
+      "S"
+    ]
+  ],
+  "commit": "f81fab91e06a1768328bdb215088e0fba8383165",
+  "order": "protected-second",
+  "starting_state": "package 27's route: corrected pinned stock, release 13 by the laptop tools (15f), release 27 by tools version 2",
+  "laptop_tools": "3ef85c4adab3c8a5daf5bf26c2a40805d24bcb0c17b9327cfc55e7e96aeebefc",
+  "tools_version_2": "851eb742bfe20bd4b47370b9f2558494edf4b74056d7023cc0d412e32fee6f33",
+  "tools_version_2_commit": "41b06513c1972ac4ccf395c169fdf261381243b0",
+  "previous_release": "ghcr.io/ares-empire/aresos@sha256:9b19b7942bc131934eac3733a7f8a1c1de488659075897f60c006bc88c77f3eb",
+  "release": "ghcr.io/ares-empire/aresos@sha256:5fad242fceac7244563913eed96cd72dfcd300fec5e458cdb2ba81bce00d944c",
+  "owner_tools_used_after_confirmation": false,
+  "commands": "plain, as root, in the serial root shell",
+  "network_during_walk": false,
+  "deployments": {
+    "R27": [
+      "809c481b9f40dc52ffab1aca5b0e9783bed9c287faec434e71c9edf193808f1b",
+      0,
+      "default"
+    ],
+    "R13": [
+      "42e5aea14cb87080fb9a96990b56968578a4a10a79c453c51630c01676d8017c",
+      0,
+      "default"
+    ],
+    "S": [
+      "aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71",
+      1,
+      "default"
+    ]
+  },
+  "stock_starts": [
+    "walk-1-booted",
+    "walk-4-booted",
+    "menu-stock"
+  ],
+  "menu": {
+    "path": "boot menu: Home, Down x2, Enter, after the rows read as recorded",
+    "entry_rule": null,
+    "choice": {
+      "selected": true,
+      "frame": "menu-stock-attempt-06",
+      "lines": [
+        "Bazzite (ostree:0)",
+        "Bazzite (ostree:1)",
+        "Bazzite (ostree:2)"
+      ],
+      "keys": [
+        "home",
+        "down",
+        "down",
+        "ret"
+      ]
+    },
+    "stock_entry": "ostree-1",
+    "rows": {
+      "titles": [
+        "Bazzite (ostree:0)",
+        "Bazzite (ostree:1)",
+        "Bazzite (ostree:2)"
+      ],
+      "ids": [
+        "ostree-3",
+        "ostree-2",
+        "ostree-1"
+      ],
+      "stock_position": 2
+    }
+  },
+  "protected_disk_audits": true,
+  "nvram_rule_unchanged": true,
+  "bootnext_audits": true
+}

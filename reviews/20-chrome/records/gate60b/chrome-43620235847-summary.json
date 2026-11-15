@@ -1,0 +1,217 @@
+{
+  "run": "43620235847",
+  "attempt": 1,
+  "head": "07c05de006b8a604b3d6b9fad50b8ed7aeca23c7",
+  "event": "workflow_dispatch",
+  "conclusion": "failure",
+  "metadata_only": true,
+  "profiles_accessed": false,
+  "jobs_passed": 24,
+  "jobs_total": 28,
+  "failed_jobs": [
+    "fixtures (external, recheck2)",
+    "fixtures (policy, recheck2)",
+    "aggregate (policy)",
+    "aggregate (external)"
+  ],
+  "failure": "typed-late popup row in both installs: take_tab of the opener while the owner-opened popup held focus created the new Claude group in the popup window (see chrome-43620235847-failed.json); both aggregates then stopped for the missing recheck2 shards, so no aggregate, independent audit or group 12 in this run",
+  "python_tests": 305,
+  "python_shards": [
+    53,
+    56,
+    49,
+    147
+  ],
+  "f7_linux_socket_case": [
+    "test_final_f7_a_real_spoofing_process_on_the_socket_gets_nothing (test_owner_confirm.Confirmation.test_final_f7_a_real_spoofing_process_on_the_socket_gets_nothing) ... ok"
+  ],
+  "latency": {
+    "plain": {
+      "gate_passed": true,
+      "gate_failures": [],
+      "samples_per_call": {
+        "current": 60,
+        "ab7aba92": 20,
+        "reference": 20
+      },
+      "runner_factors": {
+        "fresh": 1.074,
+        "history-1000": 1.076,
+        "history-4000": 1.039
+      },
+      "failures_at_allowance_1": []
+    },
+    "audit": {
+      "gate_passed": true,
+      "gate_failures": [],
+      "samples_per_call": {
+        "current": 60,
+        "ab7aba92": 20,
+        "reference": 20
+      },
+      "runner_factors": {
+        "fresh": 1.243,
+        "history-1000": 1.475,
+        "history-4000": 1.439
+      },
+      "failures_at_allowance_1": []
+    }
+  },
+  "latency_jobs": {
+    "latency (audit)": {
+      "conclusion": "success",
+      "minutes": 12.9
+    },
+    "latency (plain)": {
+      "conclusion": "success",
+      "minutes": 11.9
+    }
+  },
+  "longest_job": {
+    "name": "fixtures (external, core)",
+    "conclusion": "success",
+    "seconds": 2281.0
+  },
+  "jobs": [
+    {
+      "name": "fixtures (external, core)",
+      "conclusion": "success",
+      "seconds": 2281.0
+    },
+    {
+      "name": "fixtures (policy, core)",
+      "conclusion": "success",
+      "seconds": 1651.0
+    },
+    {
+      "name": "python-shards (1)",
+      "conclusion": "success",
+      "seconds": 959.0
+    },
+    {
+      "name": "latency (audit)",
+      "conclusion": "success",
+      "seconds": 776.0
+    },
+    {
+      "name": "latency (plain)",
+      "conclusion": "success",
+      "seconds": 714.0
+    },
+    {
+      "name": "fixtures (policy, adapters)",
+      "conclusion": "success",
+      "seconds": 662.0
+    },
+    {
+      "name": "python-shards (3)",
+      "conclusion": "success",
+      "seconds": 631.0
+    },
+    {
+      "name": "fixtures (policy, recheck3)",
+      "conclusion": "success",
+      "seconds": 630.0
+    },
+    {
+      "name": "fixtures (external, recheck3)",
+      "conclusion": "success",
+      "seconds": 616.0
+    },
+    {
+      "name": "fixtures (external, adapters)",
+      "conclusion": "success",
+      "seconds": 534.0
+    },
+    {
+      "name": "fixtures (external, review)",
+      "conclusion": "success",
+      "seconds": 526.0
+    },
+    {
+      "name": "fixtures (policy, review)",
+      "conclusion": "success",
+      "seconds": 484.0
+    },
+    {
+      "name": "fixtures (policy, word-1)",
+      "conclusion": "success",
+      "seconds": 318.0
+    },
+    {
+      "name": "fixtures (external, word-0)",
+      "conclusion": "success",
+      "seconds": 314.0
+    },
+    {
+      "name": "fixtures (policy, word-3)",
+      "conclusion": "success",
+      "seconds": 314.0
+    },
+    {
+      "name": "fixtures (policy, word-2)",
+      "conclusion": "success",
+      "seconds": 297.0
+    },
+    {
+      "name": "fixtures (external, word-1)",
+      "conclusion": "success",
+      "seconds": 278.0
+    },
+    {
+      "name": "fixtures (external, word-3)",
+      "conclusion": "success",
+      "seconds": 276.0
+    },
+    {
+      "name": "fixtures (external, word-2)",
+      "conclusion": "success",
+      "seconds": 276.0
+    },
+    {
+      "name": "fixtures (policy, word-0)",
+      "conclusion": "success",
+      "seconds": 274.0
+    },
+    {
+      "name": "fixtures (external, recheck2)",
+      "conclusion": "failure",
+      "seconds": 253.0
+    },
+    {
+      "name": "fixtures (policy, recheck2)",
+      "conclusion": "failure",
+      "seconds": 251.0
+    },
+    {
+      "name": "native-precedence",
+      "conclusion": "success",
+      "seconds": 86.0
+    },
+    {
+      "name": "python-shards (2)",
+      "conclusion": "success",
+      "seconds": 41.0
+    },
+    {
+      "name": "python-shards (0)",
+      "conclusion": "success",
+      "seconds": 31.0
+    },
+    {
+      "name": "aggregate (policy)",
+      "conclusion": "failure",
+      "seconds": 15.0
+    },
+    {
+      "name": "aggregate (external)",
+      "conclusion": "failure",
+      "seconds": 15.0
+    },
+    {
+      "name": "package",
+      "conclusion": "success",
+      "seconds": 11.0
+    }
+  ]
+}

@@ -1,0 +1,48 @@
+{
+  "meaning": "Same unchanged discovered-write sweep; each existing flow assigned once by its unchanged modulo rule",
+  "flows": 23,
+  "shards": {
+    "0": [
+      "send",
+      "cancel",
+      "expiry"
+    ],
+    "1": [
+      "repair",
+      "restore",
+      "maintenance"
+    ],
+    "2": [
+      "delete_trash",
+      "attachment_export",
+      "restart_index"
+    ],
+    "3": [
+      "delete_permanent",
+      "testapp_export",
+      "restart_tail"
+    ],
+    "4": [
+      "unsubscribe_mailto",
+      "password",
+      "export_rollback"
+    ],
+    "5": [
+      "unsubscribe_https",
+      "filing_move",
+      "archive"
+    ],
+    "6": [
+      "status",
+      "filing_copy",
+      "send_duplicate"
+    ],
+    "7": [
+      "settlement",
+      "filing_rename"
+    ]
+  },
+  "job_timeout_minutes": 120,
+  "suite_shards_unchanged": 4,
+  "reason": "Six of eight fault shards complete; archive/duplicate-send shards reach35m without assertion failures.60m retains every discovered write/cleanup case below the lead120m target. The workflow job timeout was then raised to 120m (096c3088)."
+}

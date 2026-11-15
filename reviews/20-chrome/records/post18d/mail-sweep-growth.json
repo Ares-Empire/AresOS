@@ -1,0 +1,5125 @@
+{
+ "attribution": {
+  "pairs": {
+   "commits": [
+    "f3cfd5b1 Derive Chrome owner state from committed journal metadata during SQLite failures",
+    "3bf1b0d2 Derive Chrome state from committed history and retire resolved checks",
+    "4d80ea38 journal_reader"
+   ],
+   "multiplier": "main 15880c62 (sweep_scripts.timestamps) returns a fresh scripted mtime for operations.jsonl on every stat, so the projection's cache never hits inside the sweep: 26 journal reopens per Mail request instead of 1-3. Arrived with the main merge 77cad19a; the pre-merge branch (63c81414, older Mail tests without the scripted journal timestamps) ran 1.22x main's cases on the 22 flows both have.",
+   "safety_property": "Chrome's open page-step checks, unknown-outcome inputs and unacknowledged warnings are shown in every app's results from the hash-verified committed journal, including while SQLite reads fail (f3cfd5b1). It prevents a Mail or other result from hiding a Chrome input that may have run.",
+   "what": "Closes of the read-only journal descriptor opened by Chrome's committed projection (control/aresos_control/chrome/committed.py journal_reader) while every result builds its pending/notices envelope",
+   "where": "engine.py:78 notice_page extras=chrome.notice_rows; engine.py:101 pending chrome_total; engine.py:189 _pending pending_rows; mail/filing.py:275 extras; committed.py:119-122 sync cache keyed on (inode, size, mtime_ns)"
+  },
+  "primaries": {
+   "commits": [
+    "bc738001 Filter retained operation headers before catalogue decoding and measure warm histories",
+    "ae0047d8 Allocate optional operation headers only after reconstructing recovery rights"
+   ],
+   "evidence": "With Store._index_operation_headers disabled every flow has main's exact primary count (clean-branch-noindex).",
+   "what": "One extra SQLite page write per transaction that changes an op: row: the optional operation_headers expression index"
+  },
+  "slower_cases": {
+   "commits": [
+    "414eb1df Add Chrome catalogue, policy and durable service adapter (Engine always builds Chrome)"
+   ],
+   "test_only": true,
+   "what": "Engine start-up in the sweep: the Chrome adapter hashes 92 runtime files (1.3 MB) at every Engine start when build-id.json is absent (a source checkout; installed builds read build-id.json); the sweep starts 2-3 Engines per case. Second: the scripted-timestamp journal re-reads."
+  }
+ },
+ "ci_run_sources": {
+  "branch": {
+   "43506058350": "06878e08, shards 5 and 6 cancelled at 35 min",
+   "43513676712": "b94c1acf, 8 shards, complete",
+   "43521486798": "0ca3f6d7, shard 4 cancelled",
+   "43530064032": "7d9c0b95, shards 0 and 6 cancelled at 60 min"
+  },
+  "context_only": {
+   "43147996259": "ad777f5e pkg/19-mail, different Mail code",
+   "43437906487": "63c81414",
+   "43441699847": "63c81414 branch before the main merge (no scripted journal timestamps yet), 4 shards"
+  },
+  "log_sha256": {
+   "43177961962": "7c1eee2197dc4c51a1ee99195f800ff19aa4ef5da480fd84d47298807c56cd97",
+   "43183755749": "8f43db091bdabb19b114eacea3d45a4a68a0f0470fbeff340d795d4adce9e00e",
+   "43465777152": "4ee235d6351a0f50a59d6fe9af59672b635976472adab68e31ba35e070b2032a",
+   "43506058350": "21c5b52815307752672c23f6bdcffcda133d60374abe02bdc9a30afabe6cfed2",
+   "43513676712": "37196454a0990847019f9503f59663e9f127dd8d3effed4f7ba4a2e9cbacf3d3",
+   "43521486798": "de0bb43dd9b830eb0c78ddda49eb6bcb603dad03b63693c978c1566f333852fb",
+   "43530064032": "def619ccac055f5b56b923f0a47269ad7ed1d6b4d2817a54753ce983e1e86b4a"
+  },
+  "main": {
+   "43177961962": "1c4b0c19 pkg/18d-base-slim, 4 shards",
+   "43183755749": "4ae90076 docs/18d-followups, 4 shards",
+   "43465777152": "7cbf6c21 pkg/18c-image-test, 4 shards"
+  },
+  "source": "gh run view <id> --log, fetched once; only the sweep's own 'Review26 modes: <flow> {...}; elapsed=Ns' lines are used. Cancelled jobs contribute the flows they finished."
+ },
+ "ci_runs": {
+  "branch-a": {
+   "cases": 110065,
+   "flows_finished": 23,
+   "ms_per_case": 128.26,
+   "per_flow": {
+    "archive": {
+     "cases": 6840,
+     "ms_per_case": 146.37,
+     "pairs": 6114,
+     "persistent": 363,
+     "seconds": 1001.144,
+     "shard": 5,
+     "single": 363
+    },
+    "attachment_export": {
+     "cases": 5261,
+     "ms_per_case": 89.47,
+     "pairs": 4777,
+     "persistent": 242,
+     "seconds": 470.718,
+     "shard": 2,
+     "single": 242
+    },
+    "cancel": {
+     "cases": 1064,
+     "ms_per_case": 148.69,
+     "pairs": 930,
+     "persistent": 67,
+     "seconds": 158.21,
+     "shard": 0,
+     "single": 67
+    },
+    "delete_permanent": {
+     "cases": 6401,
+     "ms_per_case": 68.98,
+     "pairs": 5595,
+     "persistent": 403,
+     "seconds": 441.515,
+     "shard": 3,
+     "single": 403
+    },
+    "delete_trash": {
+     "cases": 4273,
+     "ms_per_case": 113.59,
+     "pairs": 3735,
+     "persistent": 269,
+     "seconds": 485.358,
+     "shard": 2,
+     "single": 269
+    },
+    "expiry": {
+     "cases": 253,
+     "ms_per_case": 211.55,
+     "pairs": 119,
+     "persistent": 67,
+     "seconds": 53.521,
+     "shard": 0,
+     "single": 67
+    },
+    "export_rollback": {
+     "cases": 8191,
+     "ms_per_case": 85.49,
+     "pairs": 7699,
+     "persistent": 246,
+     "seconds": 700.287,
+     "shard": 4,
+     "single": 246
+    },
+    "filing_copy": {
+     "cases": 5400,
+     "ms_per_case": 64.1,
+     "pairs": 4722,
+     "persistent": 339,
+     "seconds": 346.137,
+     "shard": 6,
+     "single": 339
+    },
+    "filing_move": {
+     "cases": 5382,
+     "ms_per_case": 92.88,
+     "pairs": 4706,
+     "persistent": 338,
+     "seconds": 499.898,
+     "shard": 5,
+     "single": 338
+    },
+    "filing_rename": {
+     "cases": 3485,
+     "ms_per_case": 119.05,
+     "pairs": 3047,
+     "persistent": 219,
+     "seconds": 414.884,
+     "shard": 7,
+     "single": 219
+    },
+    "maintenance": {
+     "cases": 228,
+     "ms_per_case": 68.35,
+     "pairs": 108,
+     "persistent": 60,
+     "seconds": 15.584,
+     "shard": 1,
+     "single": 60
+    },
+    "password": {
+     "cases": 1892,
+     "ms_per_case": 70.09,
+     "pairs": 1654,
+     "persistent": 119,
+     "seconds": 132.617,
+     "shard": 4,
+     "single": 119
+    },
+    "repair": {
+     "cases": 5628,
+     "ms_per_case": 139.09,
+     "pairs": 4920,
+     "persistent": 354,
+     "seconds": 782.824,
+     "shard": 1,
+     "single": 354
+    },
+    "restart_index": {
+     "cases": 102,
+     "ms_per_case": 61.89,
+     "pairs": 62,
+     "persistent": 20,
+     "seconds": 6.313,
+     "shard": 2,
+     "single": 20
+    },
+    "restart_tail": {
+     "cases": 112,
+     "ms_per_case": 34.49,
+     "pairs": 68,
+     "persistent": 22,
+     "seconds": 3.863,
+     "shard": 3,
+     "single": 22
+    },
+    "restore": {
+     "cases": 1110,
+     "ms_per_case": 92.76,
+     "pairs": 970,
+     "persistent": 70,
+     "seconds": 102.963,
+     "shard": 1,
+     "single": 70
+    },
+    "send": {
+     "cases": 13493,
+     "ms_per_case": 221.44,
+     "pairs": 11803,
+     "persistent": 845,
+     "seconds": 2987.9,
+     "shard": 0,
+     "single": 845
+    },
+    "send_duplicate": {
+     "cases": 14830,
+     "ms_per_case": 118.84,
+     "pairs": 12972,
+     "persistent": 929,
+     "seconds": 1762.397,
+     "shard": 6,
+     "single": 929
+    },
+    "settlement": {
+     "cases": 2419,
+     "ms_per_case": 372.76,
+     "pairs": 2115,
+     "persistent": 152,
+     "seconds": 901.704,
+     "shard": 7,
+     "single": 152
+    },
+    "status": {
+     "cases": 2402,
+     "ms_per_case": 127.97,
+     "pairs": 2100,
+     "persistent": 151,
+     "seconds": 307.391,
+     "shard": 6,
+     "single": 151
+    },
+    "testapp_export": {
+     "cases": 2452,
+     "ms_per_case": 45.16,
+     "pairs": 2218,
+     "persistent": 117,
+     "seconds": 110.737,
+     "shard": 3,
+     "single": 117
+    },
+    "unsubscribe_https": {
+     "cases": 5320,
+     "ms_per_case": 100.75,
+     "pairs": 4650,
+     "persistent": 335,
+     "seconds": 536.003,
+     "shard": 5,
+     "single": 335
+    },
+    "unsubscribe_mailto": {
+     "cases": 13527,
+     "ms_per_case": 140.13,
+     "pairs": 11833,
+     "persistent": 847,
+     "seconds": 1895.483,
+     "shard": 4,
+     "single": 847
+    }
+   },
+   "run": "43513676712",
+   "seconds": 14117.5
+  },
+  "branch-b": {
+   "cases": 80425,
+   "flows_finished": 19,
+   "ms_per_case": 98.41,
+   "per_flow": {
+    "archive": {
+     "cases": 6840,
+     "ms_per_case": 90.56,
+     "pairs": 6114,
+     "persistent": 363,
+     "seconds": 619.399,
+     "shard": 5,
+     "single": 363
+    },
+    "attachment_export": {
+     "cases": 5261,
+     "ms_per_case": 76.96,
+     "pairs": 4777,
+     "persistent": 242,
+     "seconds": 404.898,
+     "shard": 2,
+     "single": 242
+    },
+    "delete_permanent": {
+     "cases": 6401,
+     "ms_per_case": 66.64,
+     "pairs": 5595,
+     "persistent": 403,
+     "seconds": 426.587,
+     "shard": 3,
+     "single": 403
+    },
+    "delete_trash": {
+     "cases": 4273,
+     "ms_per_case": 103.09,
+     "pairs": 3735,
+     "persistent": 269,
+     "seconds": 440.515,
+     "shard": 2,
+     "single": 269
+    },
+    "export_rollback": {
+     "cases": 8191,
+     "ms_per_case": 69.54,
+     "pairs": 7699,
+     "persistent": 246,
+     "seconds": 569.61,
+     "shard": 4,
+     "single": 246
+    },
+    "filing_copy": {
+     "cases": 5400,
+     "ms_per_case": 92.43,
+     "pairs": 4722,
+     "persistent": 339,
+     "seconds": 499.116,
+     "shard": 6,
+     "single": 339
+    },
+    "filing_move": {
+     "cases": 5382,
+     "ms_per_case": 49.4,
+     "pairs": 4706,
+     "persistent": 338,
+     "seconds": 265.894,
+     "shard": 5,
+     "single": 338
+    },
+    "filing_rename": {
+     "cases": 3485,
+     "ms_per_case": 87.11,
+     "pairs": 3047,
+     "persistent": 219,
+     "seconds": 303.574,
+     "shard": 7,
+     "single": 219
+    },
+    "maintenance": {
+     "cases": 228,
+     "ms_per_case": 68.37,
+     "pairs": 108,
+     "persistent": 60,
+     "seconds": 15.589,
+     "shard": 1,
+     "single": 60
+    },
+    "password": {
+     "cases": 1892,
+     "ms_per_case": 59.44,
+     "pairs": 1654,
+     "persistent": 119,
+     "seconds": 112.462,
+     "shard": 4,
+     "single": 119
+    },
+    "repair": {
+     "cases": 5628,
+     "ms_per_case": 179.78,
+     "pairs": 4920,
+     "persistent": 354,
+     "seconds": 1011.798,
+     "shard": 1,
+     "single": 354
+    },
+    "restart_index": {
+     "cases": 102,
+     "ms_per_case": 54.36,
+     "pairs": 62,
+     "persistent": 20,
+     "seconds": 5.545,
+     "shard": 2,
+     "single": 20
+    },
+    "restart_tail": {
+     "cases": 112,
+     "ms_per_case": 34.68,
+     "pairs": 68,
+     "persistent": 22,
+     "seconds": 3.884,
+     "shard": 3,
+     "single": 22
+    },
+    "restore": {
+     "cases": 1110,
+     "ms_per_case": 116.87,
+     "pairs": 970,
+     "persistent": 70,
+     "seconds": 129.727,
+     "shard": 1,
+     "single": 70
+    },
+    "settlement": {
+     "cases": 2419,
+     "ms_per_case": 269.71,
+     "pairs": 2115,
+     "persistent": 152,
+     "seconds": 652.428,
+     "shard": 7,
+     "single": 152
+    },
+    "status": {
+     "cases": 2402,
+     "ms_per_case": 195.51,
+     "pairs": 2100,
+     "persistent": 151,
+     "seconds": 469.624,
+     "shard": 6,
+     "single": 151
+    },
+    "testapp_export": {
+     "cases": 2452,
+     "ms_per_case": 44.26,
+     "pairs": 2218,
+     "persistent": 117,
+     "seconds": 108.524,
+     "shard": 3,
+     "single": 117
+    },
+    "unsubscribe_https": {
+     "cases": 5320,
+     "ms_per_case": 59.84,
+     "pairs": 4650,
+     "persistent": 335,
+     "seconds": 318.367,
+     "shard": 5,
+     "single": 335
+    },
+    "unsubscribe_mailto": {
+     "cases": 13527,
+     "ms_per_case": 115.09,
+     "pairs": 11833,
+     "persistent": 847,
+     "seconds": 1556.878,
+     "shard": 4,
+     "single": 847
+    }
+   },
+   "run": "43530064032",
+   "seconds": 7914.4
+  },
+  "branch-c": {
+   "cases": 101874,
+   "flows_finished": 22,
+   "ms_per_case": 109.48,
+   "per_flow": {
+    "archive": {
+     "cases": 6840,
+     "ms_per_case": 87.61,
+     "pairs": 6114,
+     "persistent": 363,
+     "seconds": 599.255,
+     "shard": 5,
+     "single": 363
+    },
+    "attachment_export": {
+     "cases": 5261,
+     "ms_per_case": 86.0,
+     "pairs": 4777,
+     "persistent": 242,
+     "seconds": 452.424,
+     "shard": 2,
+     "single": 242
+    },
+    "cancel": {
+     "cases": 1064,
+     "ms_per_case": 59.85,
+     "pairs": 930,
+     "persistent": 67,
+     "seconds": 63.678,
+     "shard": 0,
+     "single": 67
+    },
+    "delete_permanent": {
+     "cases": 6401,
+     "ms_per_case": 115.06,
+     "pairs": 5595,
+     "persistent": 403,
+     "seconds": 736.524,
+     "shard": 3,
+     "single": 403
+    },
+    "delete_trash": {
+     "cases": 4273,
+     "ms_per_case": 111.52,
+     "pairs": 3735,
+     "persistent": 269,
+     "seconds": 476.514,
+     "shard": 2,
+     "single": 269
+    },
+    "expiry": {
+     "cases": 253,
+     "ms_per_case": 57.81,
+     "pairs": 119,
+     "persistent": 67,
+     "seconds": 14.626,
+     "shard": 0,
+     "single": 67
+    },
+    "filing_copy": {
+     "cases": 5400,
+     "ms_per_case": 64.41,
+     "pairs": 4722,
+     "persistent": 339,
+     "seconds": 347.824,
+     "shard": 6,
+     "single": 339
+    },
+    "filing_move": {
+     "cases": 5382,
+     "ms_per_case": 48.7,
+     "pairs": 4706,
+     "persistent": 338,
+     "seconds": 262.077,
+     "shard": 5,
+     "single": 338
+    },
+    "filing_rename": {
+     "cases": 3485,
+     "ms_per_case": 81.18,
+     "pairs": 3047,
+     "persistent": 219,
+     "seconds": 282.917,
+     "shard": 7,
+     "single": 219
+    },
+    "maintenance": {
+     "cases": 228,
+     "ms_per_case": 79.7,
+     "pairs": 108,
+     "persistent": 60,
+     "seconds": 18.172,
+     "shard": 1,
+     "single": 60
+    },
+    "password": {
+     "cases": 1892,
+     "ms_per_case": 78.97,
+     "pairs": 1654,
+     "persistent": 119,
+     "seconds": 149.403,
+     "shard": 4,
+     "single": 119
+    },
+    "repair": {
+     "cases": 5628,
+     "ms_per_case": 186.82,
+     "pairs": 4920,
+     "persistent": 354,
+     "seconds": 1051.451,
+     "shard": 1,
+     "single": 354
+    },
+    "restart_index": {
+     "cases": 102,
+     "ms_per_case": 60.4,
+     "pairs": 62,
+     "persistent": 20,
+     "seconds": 6.161,
+     "shard": 2,
+     "single": 20
+    },
+    "restart_tail": {
+     "cases": 112,
+     "ms_per_case": 57.56,
+     "pairs": 68,
+     "persistent": 22,
+     "seconds": 6.447,
+     "shard": 3,
+     "single": 22
+    },
+    "restore": {
+     "cases": 1110,
+     "ms_per_case": 118.68,
+     "pairs": 970,
+     "persistent": 70,
+     "seconds": 131.739,
+     "shard": 1,
+     "single": 70
+    },
+    "send": {
+     "cases": 13493,
+     "ms_per_case": 85.65,
+     "pairs": 11803,
+     "persistent": 845,
+     "seconds": 1155.721,
+     "shard": 0,
+     "single": 845
+    },
+    "send_duplicate": {
+     "cases": 14830,
+     "ms_per_case": 119.69,
+     "pairs": 12972,
+     "persistent": 929,
+     "seconds": 1774.93,
+     "shard": 6,
+     "single": 929
+    },
+    "settlement": {
+     "cases": 2419,
+     "ms_per_case": 253.18,
+     "pairs": 2115,
+     "persistent": 152,
+     "seconds": 612.449,
+     "shard": 7,
+     "single": 152
+    },
+    "status": {
+     "cases": 2402,
+     "ms_per_case": 133.64,
+     "pairs": 2100,
+     "persistent": 151,
+     "seconds": 320.997,
+     "shard": 6,
+     "single": 151
+    },
+    "testapp_export": {
+     "cases": 2452,
+     "ms_per_case": 83.42,
+     "pairs": 2218,
+     "persistent": 117,
+     "seconds": 204.558,
+     "shard": 3,
+     "single": 117
+    },
+    "unsubscribe_https": {
+     "cases": 5320,
+     "ms_per_case": 59.46,
+     "pairs": 4650,
+     "persistent": 335,
+     "seconds": 316.345,
+     "shard": 5,
+     "single": 335
+    },
+    "unsubscribe_mailto": {
+     "cases": 13527,
+     "ms_per_case": 160.31,
+     "pairs": 11833,
+     "persistent": 847,
+     "seconds": 2168.447,
+     "shard": 4,
+     "single": 847
+    }
+   },
+   "run": "43521486798",
+   "seconds": 11152.7
+  },
+  "branch-d": {
+   "cases": 88395,
+   "flows_finished": 21,
+   "ms_per_case": 94.37,
+   "per_flow": {
+    "attachment_export": {
+     "cases": 5261,
+     "ms_per_case": 93.23,
+     "pairs": 4777,
+     "persistent": 242,
+     "seconds": 490.498,
+     "shard": 2,
+     "single": 242
+    },
+    "cancel": {
+     "cases": 1064,
+     "ms_per_case": 74.73,
+     "pairs": 930,
+     "persistent": 67,
+     "seconds": 79.511,
+     "shard": 0,
+     "single": 67
+    },
+    "delete_permanent": {
+     "cases": 6401,
+     "ms_per_case": 97.56,
+     "pairs": 5595,
+     "persistent": 403,
+     "seconds": 624.486,
+     "shard": 3,
+     "single": 403
+    },
+    "delete_trash": {
+     "cases": 4273,
+     "ms_per_case": 115.43,
+     "pairs": 3735,
+     "persistent": 269,
+     "seconds": 493.232,
+     "shard": 2,
+     "single": 269
+    },
+    "expiry": {
+     "cases": 253,
+     "ms_per_case": 73.42,
+     "pairs": 119,
+     "persistent": 67,
+     "seconds": 18.574,
+     "shard": 0,
+     "single": 67
+    },
+    "export_rollback": {
+     "cases": 8191,
+     "ms_per_case": 50.81,
+     "pairs": 7699,
+     "persistent": 246,
+     "seconds": 416.169,
+     "shard": 4,
+     "single": 246
+    },
+    "filing_copy": {
+     "cases": 5400,
+     "ms_per_case": 91.18,
+     "pairs": 4722,
+     "persistent": 339,
+     "seconds": 492.36,
+     "shard": 6,
+     "single": 339
+    },
+    "filing_move": {
+     "cases": 5382,
+     "ms_per_case": 89.98,
+     "pairs": 4706,
+     "persistent": 338,
+     "seconds": 484.264,
+     "shard": 5,
+     "single": 338
+    },
+    "filing_rename": {
+     "cases": 3485,
+     "ms_per_case": 43.63,
+     "pairs": 3047,
+     "persistent": 219,
+     "seconds": 152.04,
+     "shard": 7,
+     "single": 219
+    },
+    "maintenance": {
+     "cases": 228,
+     "ms_per_case": 60.0,
+     "pairs": 108,
+     "persistent": 60,
+     "seconds": 13.68,
+     "shard": 1,
+     "single": 60
+    },
+    "password": {
+     "cases": 1892,
+     "ms_per_case": 40.62,
+     "pairs": 1654,
+     "persistent": 119,
+     "seconds": 76.862,
+     "shard": 4,
+     "single": 119
+    },
+    "repair": {
+     "cases": 5628,
+     "ms_per_case": 131.02,
+     "pairs": 4920,
+     "persistent": 354,
+     "seconds": 737.403,
+     "shard": 1,
+     "single": 354
+    },
+    "restart_index": {
+     "cases": 102,
+     "ms_per_case": 65.89,
+     "pairs": 62,
+     "persistent": 20,
+     "seconds": 6.721,
+     "shard": 2,
+     "single": 20
+    },
+    "restart_tail": {
+     "cases": 112,
+     "ms_per_case": 51.94,
+     "pairs": 68,
+     "persistent": 22,
+     "seconds": 5.817,
+     "shard": 3,
+     "single": 22
+    },
+    "restore": {
+     "cases": 1110,
+     "ms_per_case": 79.51,
+     "pairs": 970,
+     "persistent": 70,
+     "seconds": 88.258,
+     "shard": 1,
+     "single": 70
+    },
+    "send": {
+     "cases": 13493,
+     "ms_per_case": 108.65,
+     "pairs": 11803,
+     "persistent": 845,
+     "seconds": 1465.979,
+     "shard": 0,
+     "single": 845
+    },
+    "settlement": {
+     "cases": 2419,
+     "ms_per_case": 141.24,
+     "pairs": 2115,
+     "persistent": 152,
+     "seconds": 341.67,
+     "shard": 7,
+     "single": 152
+    },
+    "status": {
+     "cases": 2402,
+     "ms_per_case": 204.63,
+     "pairs": 2100,
+     "persistent": 151,
+     "seconds": 491.512,
+     "shard": 6,
+     "single": 151
+    },
+    "testapp_export": {
+     "cases": 2452,
+     "ms_per_case": 64.97,
+     "pairs": 2218,
+     "persistent": 117,
+     "seconds": 159.31,
+     "shard": 3,
+     "single": 117
+    },
+    "unsubscribe_https": {
+     "cases": 5320,
+     "ms_per_case": 107.82,
+     "pairs": 4650,
+     "persistent": 335,
+     "seconds": 573.605,
+     "shard": 5,
+     "single": 335
+    },
+    "unsubscribe_mailto": {
+     "cases": 13527,
+     "ms_per_case": 83.51,
+     "pairs": 11833,
+     "persistent": 847,
+     "seconds": 1129.648,
+     "shard": 4,
+     "single": 847
+    }
+   },
+   "run": "43506058350",
+   "seconds": 8341.6
+  },
+  "mail19": {
+   "cases": 28519,
+   "flows_finished": 23,
+   "ms_per_case": 95.59,
+   "per_flow": {
+    "archive": {
+     "cases": 2364,
+     "ms_per_case": 138.4,
+     "pairs": 1670,
+     "persistent": 347,
+     "seconds": 327.168,
+     "shard": 1,
+     "single": 347
+    },
+    "attachment_export": {
+     "cases": 2077,
+     "ms_per_case": 51.73,
+     "pairs": 1593,
+     "persistent": 242,
+     "seconds": 107.44,
+     "shard": 2,
+     "single": 242
+    },
+    "cancel": {
+     "cases": 244,
+     "ms_per_case": 78.91,
+     "pairs": 118,
+     "persistent": 63,
+     "seconds": 19.255,
+     "shard": 0,
+     "single": 63
+    },
+    "delete_permanent": {
+     "cases": 1469,
+     "ms_per_case": 66.98,
+     "pairs": 711,
+     "persistent": 379,
+     "seconds": 98.399,
+     "shard": 3,
+     "single": 379
+    },
+    "delete_trash": {
+     "cases": 981,
+     "ms_per_case": 69.78,
+     "pairs": 475,
+     "persistent": 253,
+     "seconds": 68.456,
+     "shard": 2,
+     "single": 253
+    },
+    "expiry": {
+     "cases": 237,
+     "ms_per_case": 76.18,
+     "pairs": 111,
+     "persistent": 63,
+     "seconds": 18.055,
+     "shard": 0,
+     "single": 63
+    },
+    "export_rollback": {
+     "cases": 2257,
+     "ms_per_case": 66.34,
+     "pairs": 1765,
+     "persistent": 246,
+     "seconds": 149.739,
+     "shard": 0,
+     "single": 246
+    },
+    "filing_copy": {
+     "cases": 1332,
+     "ms_per_case": 54.26,
+     "pairs": 654,
+     "persistent": 339,
+     "seconds": 72.278,
+     "shard": 2,
+     "single": 339
+    },
+    "filing_move": {
+     "cases": 1326,
+     "ms_per_case": 71.52,
+     "pairs": 650,
+     "persistent": 338,
+     "seconds": 94.842,
+     "shard": 1,
+     "single": 338
+    },
+    "filing_rename": {
+     "cases": 857,
+     "ms_per_case": 42.78,
+     "pairs": 419,
+     "persistent": 219,
+     "seconds": 36.662,
+     "shard": 3,
+     "single": 219
+    },
+    "maintenance": {
+     "cases": 228,
+     "ms_per_case": 55.68,
+     "pairs": 108,
+     "persistent": 60,
+     "seconds": 12.694,
+     "shard": 1,
+     "single": 60
+    },
+    "password": {
+     "cases": 464,
+     "ms_per_case": 53.92,
+     "pairs": 226,
+     "persistent": 119,
+     "seconds": 25.021,
+     "shard": 0,
+     "single": 119
+    },
+    "repair": {
+     "cases": 1300,
+     "ms_per_case": 161.39,
+     "pairs": 632,
+     "persistent": 334,
+     "seconds": 209.804,
+     "shard": 1,
+     "single": 334
+    },
+    "restart_index": {
+     "cases": 102,
+     "ms_per_case": 32.07,
+     "pairs": 62,
+     "persistent": 20,
+     "seconds": 3.271,
+     "shard": 2,
+     "single": 20
+    },
+    "restart_tail": {
+     "cases": 112,
+     "ms_per_case": 27.1,
+     "pairs": 68,
+     "persistent": 22,
+     "seconds": 3.035,
+     "shard": 3,
+     "single": 22
+    },
+    "restore": {
+     "cases": 254,
+     "ms_per_case": 78.1,
+     "pairs": 122,
+     "persistent": 66,
+     "seconds": 19.837,
+     "shard": 1,
+     "single": 66
+    },
+    "send": {
+     "cases": 3161,
+     "ms_per_case": 126.48,
+     "pairs": 1567,
+     "persistent": 797,
+     "seconds": 399.814,
+     "shard": 0,
+     "single": 797
+    },
+    "send_duplicate": {
+     "cases": 3474,
+     "ms_per_case": 109.4,
+     "pairs": 1720,
+     "persistent": 877,
+     "seconds": 380.043,
+     "shard": 2,
+     "single": 877
+    },
+    "settlement": {
+     "cases": 563,
+     "ms_per_case": 148.28,
+     "pairs": 275,
+     "persistent": 144,
+     "seconds": 83.481,
+     "shard": 3,
+     "single": 144
+    },
+    "status": {
+     "cases": 558,
+     "ms_per_case": 130.99,
+     "pairs": 272,
+     "persistent": 143,
+     "seconds": 73.092,
+     "shard": 2,
+     "single": 143
+    },
+    "testapp_export": {
+     "cases": 768,
+     "ms_per_case": 37.53,
+     "pairs": 534,
+     "persistent": 117,
+     "seconds": 28.823,
+     "shard": 3,
+     "single": 117
+    },
+    "unsubscribe_https": {
+     "cases": 1220,
+     "ms_per_case": 81.55,
+     "pairs": 590,
+     "persistent": 315,
+     "seconds": 99.491,
+     "shard": 1,
+     "single": 315
+    },
+    "unsubscribe_mailto": {
+     "cases": 3171,
+     "ms_per_case": 124.71,
+     "pairs": 1573,
+     "persistent": 799,
+     "seconds": 395.448,
+     "shard": 0,
+     "single": 799
+    }
+   },
+   "run": "43147996259",
+   "seconds": 2726.1
+  },
+  "main-a": {
+   "cases": 28519,
+   "flows_finished": 23,
+   "ms_per_case": 99.82,
+   "per_flow": {
+    "archive": {
+     "cases": 2364,
+     "ms_per_case": 114.36,
+     "pairs": 1670,
+     "persistent": 347,
+     "seconds": 270.341,
+     "shard": 1,
+     "single": 347
+    },
+    "attachment_export": {
+     "cases": 2077,
+     "ms_per_case": 62.68,
+     "pairs": 1593,
+     "persistent": 242,
+     "seconds": 130.19,
+     "shard": 2,
+     "single": 242
+    },
+    "cancel": {
+     "cases": 244,
+     "ms_per_case": 76.88,
+     "pairs": 118,
+     "persistent": 63,
+     "seconds": 18.758,
+     "shard": 0,
+     "single": 63
+    },
+    "delete_permanent": {
+     "cases": 1469,
+     "ms_per_case": 117.04,
+     "pairs": 711,
+     "persistent": 379,
+     "seconds": 171.932,
+     "shard": 3,
+     "single": 379
+    },
+    "delete_trash": {
+     "cases": 981,
+     "ms_per_case": 79.83,
+     "pairs": 475,
+     "persistent": 253,
+     "seconds": 78.313,
+     "shard": 2,
+     "single": 253
+    },
+    "expiry": {
+     "cases": 237,
+     "ms_per_case": 74.52,
+     "pairs": 111,
+     "persistent": 63,
+     "seconds": 17.661,
+     "shard": 0,
+     "single": 63
+    },
+    "export_rollback": {
+     "cases": 2257,
+     "ms_per_case": 62.59,
+     "pairs": 1765,
+     "persistent": 246,
+     "seconds": 141.268,
+     "shard": 0,
+     "single": 246
+    },
+    "filing_copy": {
+     "cases": 1332,
+     "ms_per_case": 64.14,
+     "pairs": 654,
+     "persistent": 339,
+     "seconds": 85.428,
+     "shard": 2,
+     "single": 339
+    },
+    "filing_move": {
+     "cases": 1326,
+     "ms_per_case": 62.97,
+     "pairs": 650,
+     "persistent": 338,
+     "seconds": 83.495,
+     "shard": 1,
+     "single": 338
+    },
+    "filing_rename": {
+     "cases": 857,
+     "ms_per_case": 60.77,
+     "pairs": 419,
+     "persistent": 219,
+     "seconds": 52.081,
+     "shard": 3,
+     "single": 219
+    },
+    "maintenance": {
+     "cases": 228,
+     "ms_per_case": 44.36,
+     "pairs": 108,
+     "persistent": 60,
+     "seconds": 10.113,
+     "shard": 1,
+     "single": 60
+    },
+    "password": {
+     "cases": 464,
+     "ms_per_case": 51.3,
+     "pairs": 226,
+     "persistent": 119,
+     "seconds": 23.801,
+     "shard": 0,
+     "single": 119
+    },
+    "repair": {
+     "cases": 1300,
+     "ms_per_case": 126.05,
+     "pairs": 632,
+     "persistent": 334,
+     "seconds": 163.865,
+     "shard": 1,
+     "single": 334
+    },
+    "restart_index": {
+     "cases": 102,
+     "ms_per_case": 38.73,
+     "pairs": 62,
+     "persistent": 20,
+     "seconds": 3.95,
+     "shard": 2,
+     "single": 20
+    },
+    "restart_tail": {
+     "cases": 112,
+     "ms_per_case": 39.32,
+     "pairs": 68,
+     "persistent": 22,
+     "seconds": 4.404,
+     "shard": 3,
+     "single": 22
+    },
+    "restore": {
+     "cases": 254,
+     "ms_per_case": 66.98,
+     "pairs": 122,
+     "persistent": 66,
+     "seconds": 17.014,
+     "shard": 1,
+     "single": 66
+    },
+    "send": {
+     "cases": 3161,
+     "ms_per_case": 119.51,
+     "pairs": 1567,
+     "persistent": 797,
+     "seconds": 377.758,
+     "shard": 0,
+     "single": 797
+    },
+    "send_duplicate": {
+     "cases": 3474,
+     "ms_per_case": 130.6,
+     "pairs": 1720,
+     "persistent": 877,
+     "seconds": 453.707,
+     "shard": 2,
+     "single": 877
+    },
+    "settlement": {
+     "cases": 563,
+     "ms_per_case": 258.37,
+     "pairs": 275,
+     "persistent": 144,
+     "seconds": 145.463,
+     "shard": 3,
+     "single": 144
+    },
+    "status": {
+     "cases": 558,
+     "ms_per_case": 150.94,
+     "pairs": 272,
+     "persistent": 143,
+     "seconds": 84.223,
+     "shard": 2,
+     "single": 143
+    },
+    "testapp_export": {
+     "cases": 768,
+     "ms_per_case": 60.82,
+     "pairs": 534,
+     "persistent": 117,
+     "seconds": 46.707,
+     "shard": 3,
+     "single": 117
+    },
+    "unsubscribe_https": {
+     "cases": 1220,
+     "ms_per_case": 75.13,
+     "pairs": 590,
+     "persistent": 315,
+     "seconds": 91.659,
+     "shard": 1,
+     "single": 315
+    },
+    "unsubscribe_mailto": {
+     "cases": 3171,
+     "ms_per_case": 118.1,
+     "pairs": 1573,
+     "persistent": 799,
+     "seconds": 374.507,
+     "shard": 0,
+     "single": 799
+    }
+   },
+   "run": "43465777152",
+   "seconds": 2846.6
+  },
+  "main-b": {
+   "cases": 28519,
+   "flows_finished": 23,
+   "ms_per_case": 90.79,
+   "per_flow": {
+    "archive": {
+     "cases": 2364,
+     "ms_per_case": 119.68,
+     "pairs": 1670,
+     "persistent": 347,
+     "seconds": 282.914,
+     "shard": 1,
+     "single": 347
+    },
+    "attachment_export": {
+     "cases": 2077,
+     "ms_per_case": 60.4,
+     "pairs": 1593,
+     "persistent": 242,
+     "seconds": 125.45,
+     "shard": 2,
+     "single": 242
+    },
+    "cancel": {
+     "cases": 244,
+     "ms_per_case": 60.92,
+     "pairs": 118,
+     "persistent": 63,
+     "seconds": 14.865,
+     "shard": 0,
+     "single": 63
+    },
+    "delete_permanent": {
+     "cases": 1469,
+     "ms_per_case": 89.33,
+     "pairs": 711,
+     "persistent": 379,
+     "seconds": 131.228,
+     "shard": 3,
+     "single": 379
+    },
+    "delete_trash": {
+     "cases": 981,
+     "ms_per_case": 77.82,
+     "pairs": 475,
+     "persistent": 253,
+     "seconds": 76.342,
+     "shard": 2,
+     "single": 253
+    },
+    "expiry": {
+     "cases": 237,
+     "ms_per_case": 59.8,
+     "pairs": 111,
+     "persistent": 63,
+     "seconds": 14.172,
+     "shard": 0,
+     "single": 63
+    },
+    "export_rollback": {
+     "cases": 2257,
+     "ms_per_case": 49.37,
+     "pairs": 1765,
+     "persistent": 246,
+     "seconds": 111.436,
+     "shard": 0,
+     "single": 246
+    },
+    "filing_copy": {
+     "cases": 1332,
+     "ms_per_case": 62.82,
+     "pairs": 654,
+     "persistent": 339,
+     "seconds": 83.675,
+     "shard": 2,
+     "single": 339
+    },
+    "filing_move": {
+     "cases": 1326,
+     "ms_per_case": 62.54,
+     "pairs": 650,
+     "persistent": 338,
+     "seconds": 82.931,
+     "shard": 1,
+     "single": 338
+    },
+    "filing_rename": {
+     "cases": 857,
+     "ms_per_case": 59.29,
+     "pairs": 419,
+     "persistent": 219,
+     "seconds": 50.808,
+     "shard": 3,
+     "single": 219
+    },
+    "maintenance": {
+     "cases": 228,
+     "ms_per_case": 48.75,
+     "pairs": 108,
+     "persistent": 60,
+     "seconds": 11.115,
+     "shard": 1,
+     "single": 60
+    },
+    "password": {
+     "cases": 464,
+     "ms_per_case": 40.13,
+     "pairs": 226,
+     "persistent": 119,
+     "seconds": 18.621,
+     "shard": 0,
+     "single": 119
+    },
+    "repair": {
+     "cases": 1300,
+     "ms_per_case": 138.69,
+     "pairs": 632,
+     "persistent": 334,
+     "seconds": 180.297,
+     "shard": 1,
+     "single": 334
+    },
+    "restart_index": {
+     "cases": 102,
+     "ms_per_case": 36.08,
+     "pairs": 62,
+     "persistent": 20,
+     "seconds": 3.68,
+     "shard": 2,
+     "single": 20
+    },
+    "restart_tail": {
+     "cases": 112,
+     "ms_per_case": 39.58,
+     "pairs": 68,
+     "persistent": 22,
+     "seconds": 4.433,
+     "shard": 3,
+     "single": 22
+    },
+    "restore": {
+     "cases": 254,
+     "ms_per_case": 73.94,
+     "pairs": 122,
+     "persistent": 66,
+     "seconds": 18.781,
+     "shard": 1,
+     "single": 66
+    },
+    "send": {
+     "cases": 3161,
+     "ms_per_case": 95.36,
+     "pairs": 1567,
+     "persistent": 797,
+     "seconds": 301.428,
+     "shard": 0,
+     "single": 797
+    },
+    "send_duplicate": {
+     "cases": 3474,
+     "ms_per_case": 126.94,
+     "pairs": 1720,
+     "persistent": 877,
+     "seconds": 440.983,
+     "shard": 2,
+     "single": 877
+    },
+    "settlement": {
+     "cases": 563,
+     "ms_per_case": 220.47,
+     "pairs": 275,
+     "persistent": 144,
+     "seconds": 124.126,
+     "shard": 3,
+     "single": 144
+    },
+    "status": {
+     "cases": 558,
+     "ms_per_case": 147.01,
+     "pairs": 272,
+     "persistent": 143,
+     "seconds": 82.03,
+     "shard": 2,
+     "single": 143
+    },
+    "testapp_export": {
+     "cases": 768,
+     "ms_per_case": 57.3,
+     "pairs": 534,
+     "persistent": 117,
+     "seconds": 44.006,
+     "shard": 3,
+     "single": 117
+    },
+    "unsubscribe_https": {
+     "cases": 1220,
+     "ms_per_case": 72.4,
+     "pairs": 590,
+     "persistent": 315,
+     "seconds": 88.329,
+     "shard": 1,
+     "single": 315
+    },
+    "unsubscribe_mailto": {
+     "cases": 3171,
+     "ms_per_case": 93.87,
+     "pairs": 1573,
+     "persistent": 799,
+     "seconds": 297.672,
+     "shard": 0,
+     "single": 799
+    }
+   },
+   "run": "43177961962",
+   "seconds": 2589.3
+  },
+  "main-c": {
+   "cases": 28519,
+   "flows_finished": 23,
+   "ms_per_case": 76.47,
+   "per_flow": {
+    "archive": {
+     "cases": 2364,
+     "ms_per_case": 102.65,
+     "pairs": 1670,
+     "persistent": 347,
+     "seconds": 242.668,
+     "shard": 1,
+     "single": 347
+    },
+    "attachment_export": {
+     "cases": 2077,
+     "ms_per_case": 48.47,
+     "pairs": 1593,
+     "persistent": 242,
+     "seconds": 100.676,
+     "shard": 2,
+     "single": 242
+    },
+    "cancel": {
+     "cases": 244,
+     "ms_per_case": 58.21,
+     "pairs": 118,
+     "persistent": 63,
+     "seconds": 14.204,
+     "shard": 0,
+     "single": 63
+    },
+    "delete_permanent": {
+     "cases": 1469,
+     "ms_per_case": 69.52,
+     "pairs": 711,
+     "persistent": 379,
+     "seconds": 102.119,
+     "shard": 3,
+     "single": 379
+    },
+    "delete_trash": {
+     "cases": 981,
+     "ms_per_case": 63.41,
+     "pairs": 475,
+     "persistent": 253,
+     "seconds": 62.21,
+     "shard": 2,
+     "single": 253
+    },
+    "expiry": {
+     "cases": 237,
+     "ms_per_case": 54.97,
+     "pairs": 111,
+     "persistent": 63,
+     "seconds": 13.028,
+     "shard": 0,
+     "single": 63
+    },
+    "export_rollback": {
+     "cases": 2257,
+     "ms_per_case": 48.09,
+     "pairs": 1765,
+     "persistent": 246,
+     "seconds": 108.547,
+     "shard": 0,
+     "single": 246
+    },
+    "filing_copy": {
+     "cases": 1332,
+     "ms_per_case": 50.58,
+     "pairs": 654,
+     "persistent": 339,
+     "seconds": 67.371,
+     "shard": 2,
+     "single": 339
+    },
+    "filing_move": {
+     "cases": 1326,
+     "ms_per_case": 53.75,
+     "pairs": 650,
+     "persistent": 338,
+     "seconds": 71.275,
+     "shard": 1,
+     "single": 338
+    },
+    "filing_rename": {
+     "cases": 857,
+     "ms_per_case": 46.4,
+     "pairs": 419,
+     "persistent": 219,
+     "seconds": 39.761,
+     "shard": 3,
+     "single": 219
+    },
+    "maintenance": {
+     "cases": 228,
+     "ms_per_case": 41.61,
+     "pairs": 108,
+     "persistent": 60,
+     "seconds": 9.486,
+     "shard": 1,
+     "single": 60
+    },
+    "password": {
+     "cases": 464,
+     "ms_per_case": 39.57,
+     "pairs": 226,
+     "persistent": 119,
+     "seconds": 18.362,
+     "shard": 0,
+     "single": 119
+    },
+    "repair": {
+     "cases": 1300,
+     "ms_per_case": 116.38,
+     "pairs": 632,
+     "persistent": 334,
+     "seconds": 151.299,
+     "shard": 1,
+     "single": 334
+    },
+    "restart_index": {
+     "cases": 102,
+     "ms_per_case": 27.59,
+     "pairs": 62,
+     "persistent": 20,
+     "seconds": 2.814,
+     "shard": 2,
+     "single": 20
+    },
+    "restart_tail": {
+     "cases": 112,
+     "ms_per_case": 33.21,
+     "pairs": 68,
+     "persistent": 22,
+     "seconds": 3.72,
+     "shard": 3,
+     "single": 22
+    },
+    "restore": {
+     "cases": 254,
+     "ms_per_case": 61.83,
+     "pairs": 122,
+     "persistent": 66,
+     "seconds": 15.704,
+     "shard": 1,
+     "single": 66
+    },
+    "send": {
+     "cases": 3161,
+     "ms_per_case": 87.91,
+     "pairs": 1567,
+     "persistent": 797,
+     "seconds": 277.899,
+     "shard": 0,
+     "single": 797
+    },
+    "send_duplicate": {
+     "cases": 3474,
+     "ms_per_case": 96.02,
+     "pairs": 1720,
+     "persistent": 877,
+     "seconds": 333.56,
+     "shard": 2,
+     "single": 877
+    },
+    "settlement": {
+     "cases": 563,
+     "ms_per_case": 164.36,
+     "pairs": 275,
+     "persistent": 144,
+     "seconds": 92.533,
+     "shard": 3,
+     "single": 144
+    },
+    "status": {
+     "cases": 558,
+     "ms_per_case": 119.2,
+     "pairs": 272,
+     "persistent": 143,
+     "seconds": 66.511,
+     "shard": 2,
+     "single": 143
+    },
+    "testapp_export": {
+     "cases": 768,
+     "ms_per_case": 45.32,
+     "pairs": 534,
+     "persistent": 117,
+     "seconds": 34.808,
+     "shard": 3,
+     "single": 117
+    },
+    "unsubscribe_https": {
+     "cases": 1220,
+     "ms_per_case": 59.67,
+     "pairs": 590,
+     "persistent": 315,
+     "seconds": 72.796,
+     "shard": 1,
+     "single": 315
+    },
+    "unsubscribe_mailto": {
+     "cases": 3171,
+     "ms_per_case": 88.15,
+     "pairs": 1573,
+     "persistent": 799,
+     "seconds": 279.528,
+     "shard": 0,
+     "single": 799
+    }
+   },
+   "run": "43183755749",
+   "seconds": 2180.9
+  },
+  "premerge-a": {
+   "cases": 30465,
+   "flows_finished": 22,
+   "ms_per_case": 121.53,
+   "per_flow": {
+    "archive": {
+     "cases": 2662,
+     "ms_per_case": 127.4,
+     "pairs": 1976,
+     "persistent": 343,
+     "seconds": 339.126,
+     "shard": 1,
+     "single": 343
+    },
+    "attachment_export": {
+     "cases": 2341,
+     "ms_per_case": 65.86,
+     "pairs": 1857,
+     "persistent": 242,
+     "seconds": 154.171,
+     "shard": 2,
+     "single": 242
+    },
+    "cancel": {
+     "cases": 307,
+     "ms_per_case": 112.84,
+     "pairs": 181,
+     "persistent": 63,
+     "seconds": 34.642,
+     "shard": 0,
+     "single": 63
+    },
+    "delete_permanent": {
+     "cases": 1842,
+     "ms_per_case": 104.33,
+     "pairs": 1086,
+     "persistent": 378,
+     "seconds": 192.177,
+     "shard": 3,
+     "single": 378
+    },
+    "delete_trash": {
+     "cases": 1228,
+     "ms_per_case": 85.97,
+     "pairs": 724,
+     "persistent": 252,
+     "seconds": 105.576,
+     "shard": 2,
+     "single": 252
+    },
+    "expiry": {
+     "cases": 237,
+     "ms_per_case": 111.39,
+     "pairs": 111,
+     "persistent": 63,
+     "seconds": 26.4,
+     "shard": 0,
+     "single": 63
+    },
+    "export_rollback": {
+     "cases": 2522,
+     "ms_per_case": 91.0,
+     "pairs": 2030,
+     "persistent": 246,
+     "seconds": 229.513,
+     "shard": 0,
+     "single": 246
+    },
+    "filing_copy": {
+     "cases": 1598,
+     "ms_per_case": 66.96,
+     "pairs": 948,
+     "persistent": 325,
+     "seconds": 107.01,
+     "shard": 2,
+     "single": 325
+    },
+    "filing_move": {
+     "cases": 1598,
+     "ms_per_case": 73.22,
+     "pairs": 948,
+     "persistent": 325,
+     "seconds": 117.011,
+     "shard": 1,
+     "single": 325
+    },
+    "filing_rename": {
+     "cases": 1076,
+     "ms_per_case": 74.37,
+     "pairs": 638,
+     "persistent": 219,
+     "seconds": 80.024,
+     "shard": 3,
+     "single": 219
+    },
+    "maintenance": {
+     "cases": 228,
+     "ms_per_case": 61.82,
+     "pairs": 108,
+     "persistent": 60,
+     "seconds": 14.096,
+     "shard": 1,
+     "single": 60
+    },
+    "password": {
+     "cases": 525,
+     "ms_per_case": 84.75,
+     "pairs": 307,
+     "persistent": 109,
+     "seconds": 44.496,
+     "shard": 0,
+     "single": 109
+    },
+    "repair": {
+     "cases": 1775,
+     "ms_per_case": 161.05,
+     "pairs": 1047,
+     "persistent": 364,
+     "seconds": 285.858,
+     "shard": 1,
+     "single": 364
+    },
+    "restart_index": {
+     "cases": 102,
+     "ms_per_case": 45.02,
+     "pairs": 62,
+     "persistent": 20,
+     "seconds": 4.592,
+     "shard": 2,
+     "single": 20
+    },
+    "restart_tail": {
+     "cases": 112,
+     "ms_per_case": 56.14,
+     "pairs": 68,
+     "persistent": 22,
+     "seconds": 6.288,
+     "shard": 3,
+     "single": 22
+    },
+    "restore": {
+     "cases": 320,
+     "ms_per_case": 92.02,
+     "pairs": 188,
+     "persistent": 66,
+     "seconds": 29.445,
+     "shard": 1,
+     "single": 66
+    },
+    "send": {
+     "cases": 4032,
+     "ms_per_case": 165.29,
+     "pairs": 2404,
+     "persistent": 814,
+     "seconds": 666.465,
+     "shard": 0,
+     "single": 814
+    },
+    "settlement": {
+     "cases": 667,
+     "ms_per_case": 228.76,
+     "pairs": 395,
+     "persistent": 136,
+     "seconds": 152.585,
+     "shard": 3,
+     "single": 136
+    },
+    "status": {
+     "cases": 654,
+     "ms_per_case": 147.25,
+     "pairs": 386,
+     "persistent": 134,
+     "seconds": 96.302,
+     "shard": 2,
+     "single": 134
+    },
+    "testapp_export": {
+     "cases": 885,
+     "ms_per_case": 74.37,
+     "pairs": 651,
+     "persistent": 117,
+     "seconds": 65.818,
+     "shard": 3,
+     "single": 117
+    },
+    "unsubscribe_https": {
+     "cases": 1535,
+     "ms_per_case": 84.25,
+     "pairs": 905,
+     "persistent": 315,
+     "seconds": 129.328,
+     "shard": 1,
+     "single": 315
+    },
+    "unsubscribe_mailto": {
+     "cases": 4219,
+     "ms_per_case": 194.69,
+     "pairs": 2517,
+     "persistent": 851,
+     "seconds": 821.387,
+     "shard": 0,
+     "single": 851
+    }
+   },
+   "run": "43441699847",
+   "seconds": 3702.3
+  },
+  "premerge-b": {
+   "cases": 30465,
+   "flows_finished": 22,
+   "ms_per_case": 116.53,
+   "per_flow": {
+    "archive": {
+     "cases": 2662,
+     "ms_per_case": 147.22,
+     "pairs": 1976,
+     "persistent": 343,
+     "seconds": 391.897,
+     "shard": 1,
+     "single": 343
+    },
+    "attachment_export": {
+     "cases": 2341,
+     "ms_per_case": 54.56,
+     "pairs": 1857,
+     "persistent": 242,
+     "seconds": 127.729,
+     "shard": 2,
+     "single": 242
+    },
+    "cancel": {
+     "cases": 307,
+     "ms_per_case": 84.88,
+     "pairs": 181,
+     "persistent": 63,
+     "seconds": 26.058,
+     "shard": 0,
+     "single": 63
+    },
+    "delete_permanent": {
+     "cases": 1842,
+     "ms_per_case": 176.83,
+     "pairs": 1086,
+     "persistent": 378,
+     "seconds": 325.718,
+     "shard": 3,
+     "single": 378
+    },
+    "delete_trash": {
+     "cases": 1228,
+     "ms_per_case": 69.58,
+     "pairs": 724,
+     "persistent": 252,
+     "seconds": 85.444,
+     "shard": 2,
+     "single": 252
+    },
+    "expiry": {
+     "cases": 237,
+     "ms_per_case": 83.02,
+     "pairs": 111,
+     "persistent": 63,
+     "seconds": 19.675,
+     "shard": 0,
+     "single": 63
+    },
+    "export_rollback": {
+     "cases": 2522,
+     "ms_per_case": 72.68,
+     "pairs": 2030,
+     "persistent": 246,
+     "seconds": 183.293,
+     "shard": 0,
+     "single": 246
+    },
+    "filing_copy": {
+     "cases": 1598,
+     "ms_per_case": 55.8,
+     "pairs": 948,
+     "persistent": 325,
+     "seconds": 89.173,
+     "shard": 2,
+     "single": 325
+    },
+    "filing_move": {
+     "cases": 1598,
+     "ms_per_case": 84.66,
+     "pairs": 948,
+     "persistent": 325,
+     "seconds": 135.294,
+     "shard": 1,
+     "single": 325
+    },
+    "filing_rename": {
+     "cases": 1076,
+     "ms_per_case": 105.99,
+     "pairs": 638,
+     "persistent": 219,
+     "seconds": 114.044,
+     "shard": 3,
+     "single": 219
+    },
+    "maintenance": {
+     "cases": 228,
+     "ms_per_case": 71.59,
+     "pairs": 108,
+     "persistent": 60,
+     "seconds": 16.322,
+     "shard": 1,
+     "single": 60
+    },
+    "password": {
+     "cases": 525,
+     "ms_per_case": 61.72,
+     "pairs": 307,
+     "persistent": 109,
+     "seconds": 32.402,
+     "shard": 0,
+     "single": 109
+    },
+    "repair": {
+     "cases": 1775,
+     "ms_per_case": 185.78,
+     "pairs": 1047,
+     "persistent": 364,
+     "seconds": 329.757,
+     "shard": 1,
+     "single": 364
+    },
+    "restart_index": {
+     "cases": 102,
+     "ms_per_case": 40.34,
+     "pairs": 62,
+     "persistent": 20,
+     "seconds": 4.115,
+     "shard": 2,
+     "single": 20
+    },
+    "restart_tail": {
+     "cases": 112,
+     "ms_per_case": 127.79,
+     "pairs": 68,
+     "persistent": 22,
+     "seconds": 14.313,
+     "shard": 3,
+     "single": 22
+    },
+    "restore": {
+     "cases": 320,
+     "ms_per_case": 104.16,
+     "pairs": 188,
+     "persistent": 66,
+     "seconds": 33.332,
+     "shard": 1,
+     "single": 66
+    },
+    "send": {
+     "cases": 4032,
+     "ms_per_case": 131.56,
+     "pairs": 2404,
+     "persistent": 814,
+     "seconds": 530.446,
+     "shard": 0,
+     "single": 814
+    },
+    "settlement": {
+     "cases": 667,
+     "ms_per_case": 322.41,
+     "pairs": 395,
+     "persistent": 136,
+     "seconds": 215.047,
+     "shard": 3,
+     "single": 136
+    },
+    "status": {
+     "cases": 654,
+     "ms_per_case": 112.96,
+     "pairs": 386,
+     "persistent": 134,
+     "seconds": 73.876,
+     "shard": 2,
+     "single": 134
+    },
+    "testapp_export": {
+     "cases": 885,
+     "ms_per_case": 113.27,
+     "pairs": 651,
+     "persistent": 117,
+     "seconds": 100.248,
+     "shard": 3,
+     "single": 117
+    },
+    "unsubscribe_https": {
+     "cases": 1535,
+     "ms_per_case": 96.84,
+     "pairs": 905,
+     "persistent": 315,
+     "seconds": 148.656,
+     "shard": 1,
+     "single": 315
+    },
+    "unsubscribe_mailto": {
+     "cases": 4219,
+     "ms_per_case": 131.13,
+     "pairs": 2517,
+     "persistent": 851,
+     "seconds": 553.235,
+     "shard": 0,
+     "single": 851
+    }
+   },
+   "run": "43437906487",
+   "seconds": 3550.1
+  }
+ },
+ "commits": {
+  "branch": "096c3088",
+  "branch_note": "Mail runtime, Mail tests and control/ci/mail are byte-identical at 06878e08, b94c1acf, 0ca3f6d7, 7d9c0b95 and 096c3088; main's Mail code is identical at 7cbf6c21, 1c4b0c19, 4ae90076 and today's origin/main.",
+  "main": "b2b51107",
+  "sweep_harness_changed_by_branch": "No: test_review23_sweep.py, storage_faults.py, sweep_scripts.py and control/ci/mail are unchanged; the counts come from runtime changes."
+ },
+ "count_rule": "Per flow: 2 x (non-close write points) + pairs; a pair is (primary point n, any cleanup site after n in the single-fault run at n). Every close/unlink/rename/truncate after the injected failure is a cleanup site.",
+ "environment": {
+  "ci": "ubuntu-24.04 GitHub runners, Fedora 45 container; runner speed varies up to about 2x between jobs",
+  "fixtures": "Unchanged sweep Scenario/OSWrites/sweep_scripts for counts; the suite's MemoryIMAP Engine fixture for per-call latency. The only stand-in is hostenv.py: the root-owned managed-settings file CI installs is replaced by an equivalent read with the same descriptor shape.",
+  "local": "Apple M5 (10 cores), macOS 26.6.2 arm64, CPython 3.14.6, SQLite 3.53.3, jsonschema 4.26.0; plain Python only, no browser, no container, no mail server"
+ },
+ "fix_candidate": {
+  "cause": "Store.iter_operations (storage.py:831-833, bc738001) forces 'kv INDEXED BY operation_headers' with ORDER BY k. SQLite then sorts in a temporary B-tree, which spills to temporary files when the rows exceed its 2 MB cache. Each pending/notices envelope calls it in engine._pending (exclude_app='chrome') and Mail.unresolved_sent_checks (app='mail'), and every result builds that envelope twice.",
+  "effect": "mail_read and mail_search do 0 writes on main at any history; on the branch they create 6 temporary files and write about 5,400 pages per call at 1,000 retained operations (21,200 at 4,000). With every allocating write failing (ENOSPC), both return storage_limit from 700 retained operations; main answers them.",
+  "not_in_ci": "The sweep's fixtures hold only a handful of operations, so the sort stays in memory and the sweep cannot see it.",
+  "options": "Force the index only for selective state filters (states, legacy_open), or keep the primary-key order for app/exclude_app scans, or PRAGMA temp_store=MEMORY. Route to the builder; analysis changed no runtime code.",
+  "safety_property": "None. The index is a speed optimisation; for these two filters the forced index is no faster than the primary-key scan (14.3 vs 13.4 ms at 1,000; 56.0 vs 52.3 ms at 4,000; fulldisk-branch pending_scan_ms).",
+  "title": "Read-only Mail calls fail on a full disk once about 700 operations are retained"
+ },
+ "headline": {
+  "cases_ci": {
+   "branch": {
+    "cases": 110065,
+    "pairs": 96917,
+    "persistent": 6574,
+    "single": 6574
+   },
+   "main": {
+    "cases": 28519,
+    "pairs": 15915,
+    "persistent": 6302,
+    "single": 6302
+   },
+   "ratio": 3.859
+  },
+  "local_reproduction": {
+   "cases": {
+    "branch": 109519,
+    "branch-realstat": 35819,
+    "main": 28321
+   },
+   "chrome_share_of_extra_pairs": 0.9926,
+   "extra_pairs": 80654,
+   "extra_pairs_at_chrome_journal_reader": 80054,
+   "flows_differing_by_mac_only_steps": [
+    "archive",
+    "attachment_export",
+    "export_rollback",
+    "testapp_export"
+   ],
+   "flows_matching_ci_exactly": 19
+  },
+  "mail_call_latency_plain": {
+   "0": {
+    "compose": {
+     "branch": {
+      "median_ms": 4.074,
+      "p95_ms": 4.591,
+      "rounds": 2
+     },
+     "branch_over_main_median": 0.921,
+     "main": {
+      "median_ms": 4.422,
+      "p95_ms": 5.184,
+      "rounds": 2
+     }
+    },
+    "expiry": {
+     "branch": {
+      "median_ms": 2.558,
+      "p95_ms": 2.654,
+      "rounds": 2
+     },
+     "branch_over_main_median": 0.718,
+     "main": {
+      "median_ms": 3.562,
+      "p95_ms": 3.633,
+      "rounds": 2
+     }
+    },
+    "file": {
+     "branch": {
+      "median_ms": 7.987,
+      "p95_ms": 10.215,
+      "rounds": 2
+     },
+     "branch_over_main_median": 1.013,
+     "main": {
+      "median_ms": 7.883,
+      "p95_ms": 10.213,
+      "rounds": 2
+     }
+    },
+    "prepare_send": {
+     "branch": {
+      "median_ms": 6.593,
+      "p95_ms": 8.486,
+      "rounds": 2
+     },
+     "branch_over_main_median": 0.803,
+     "main": {
+      "median_ms": 8.212,
+      "p95_ms": 11.25,
+      "rounds": 2
+     }
+    },
+    "read": {
+     "branch": {
+      "median_ms": 0.613,
+      "p95_ms": 0.646,
+      "rounds": 2
+     },
+     "branch_over_main_median": 1.121,
+     "main": {
+      "median_ms": 0.547,
+      "p95_ms": 0.591,
+      "rounds": 2
+     }
+    },
+    "search": {
+     "branch": {
+      "median_ms": 4.339,
+      "p95_ms": 4.659,
+      "rounds": 2
+     },
+     "branch_over_main_median": 1.02,
+     "main": {
+      "median_ms": 4.252,
+      "p95_ms": 4.571,
+      "rounds": 2
+     }
+    }
+   },
+   "1000": {
+    "compose": {
+     "branch": {
+      "median_ms": 140.443,
+      "p95_ms": 150.232,
+      "rounds": 2
+     },
+     "branch_over_main_median": 0.675,
+     "main": {
+      "median_ms": 208.103,
+      "p95_ms": 214.889,
+      "rounds": 2
+     }
+    },
+    "expiry": {
+     "branch": {
+      "median_ms": 3.714,
+      "p95_ms": 3.797,
+      "rounds": 2
+     },
+     "branch_over_main_median": 0.077,
+     "main": {
+      "median_ms": 48.408,
+      "p95_ms": 53.461,
+      "rounds": 2
+     }
+    },
+    "file": {
+     "branch": {
+      "median_ms": 104.637,
+      "p95_ms": 119.959,
+      "rounds": 2
+     },
+     "branch_over_main_median": 0.647,
+     "main": {
+      "median_ms": 161.767,
+      "p95_ms": 167.345,
+      "rounds": 2
+     }
+    },
+    "prepare_send": {
+     "branch": {
+      "median_ms": 109.527,
+      "p95_ms": 116.603,
+      "rounds": 2
+     },
+     "branch_over_main_median": 0.663,
+     "main": {
+      "median_ms": 165.203,
+      "p95_ms": 172.389,
+      "rounds": 2
+     }
+    },
+    "read": {
+     "branch": {
+      "median_ms": 89.696,
+      "p95_ms": 97.358,
+      "rounds": 2
+     },
+     "branch_over_main_median": 0.797,
+     "main": {
+      "median_ms": 112.531,
+      "p95_ms": 116.835,
+      "rounds": 2
+     }
+    },
+    "search": {
+     "branch": {
+      "median_ms": 94.45,
+      "p95_ms": 105.261,
+      "rounds": 2
+     },
+     "branch_over_main_median": 0.805,
+     "main": {
+      "median_ms": 117.354,
+      "p95_ms": 120.177,
+      "rounds": 2
+     }
+    }
+   },
+   "4000": {
+    "compose": {
+     "branch": {
+      "median_ms": 541.301,
+      "p95_ms": 566.534,
+      "rounds": 2
+     },
+     "branch_over_main_median": 0.656,
+     "main": {
+      "median_ms": 825.494,
+      "p95_ms": 865.756,
+      "rounds": 2
+     }
+    },
+    "expiry": {
+     "branch": {
+      "median_ms": 5.351,
+      "p95_ms": 5.588,
+      "rounds": 2
+     },
+     "branch_over_main_median": 0.026,
+     "main": {
+      "median_ms": 202.138,
+      "p95_ms": 212.346,
+      "rounds": 2
+     }
+    },
+    "file": {
+     "branch": {
+      "median_ms": 373.081,
+      "p95_ms": 386.131,
+      "rounds": 2
+     },
+     "branch_over_main_median": 0.61,
+     "main": {
+      "median_ms": 611.415,
+      "p95_ms": 639.081,
+      "rounds": 2
+     }
+    },
+    "prepare_send": {
+     "branch": {
+      "median_ms": 414.482,
+      "p95_ms": 441.696,
+      "rounds": 2
+     },
+     "branch_over_main_median": 0.628,
+     "main": {
+      "median_ms": 659.755,
+      "p95_ms": 676.138,
+      "rounds": 2
+     }
+    },
+    "read": {
+     "branch": {
+      "median_ms": 357.038,
+      "p95_ms": 381.823,
+      "rounds": 2
+     },
+     "branch_over_main_median": 0.806,
+     "main": {
+      "median_ms": 442.922,
+      "p95_ms": 456.357,
+      "rounds": 2
+     }
+    },
+    "search": {
+     "branch": {
+      "median_ms": 361.856,
+      "p95_ms": 393.943,
+      "rounds": 2
+     },
+     "branch_over_main_median": 0.801,
+     "main": {
+      "median_ms": 451.644,
+      "p95_ms": 463.73,
+      "rounds": 2
+     }
+    }
+   }
+  },
+  "ms_per_case_ci": {
+   "branch_median": 103.945,
+   "branch_runs": [
+    128.26,
+    98.41,
+    109.48,
+    94.37
+   ],
+   "identical_count_flows": {
+    "maintenance": {
+     "branch_ms_per_case_median": 68.36,
+     "main_ms_per_case_median": 44.36
+    },
+    "restart_index": {
+     "branch_ms_per_case_median": 61.144999999999996,
+     "main_ms_per_case_median": 36.08
+    },
+    "restart_tail": {
+     "branch_ms_per_case_median": 43.31,
+     "main_ms_per_case_median": 39.32
+    }
+   },
+   "main_median": 90.79,
+   "main_runs": [
+    99.82,
+    90.79,
+    76.47
+   ],
+   "ratio": 1.145
+  },
+  "primaries_without_header_index_equal_main": true
+ },
+ "local": {
+  "branch": {
+   "pairs_by_cleanup_site": {
+    "file.close @ blobs.py:origins [export refusal report]": 13,
+    "file.close @ blobs.py:origins [private export rollback]": 2,
+    "file.close @ common.py:storage_stream [stream close]": 166,
+    "file.close @ files.py:save [file descriptor close]": 16,
+    "file.close @ files.py:save [file parent descriptor close]": 19,
+    "file.close @ files.py:save [syscall]": 3,
+    "file.close @ storage.py:sync_directory [directory descriptor close]": 368,
+    "file.fsync @ files.py:save [published export rollback]": 2,
+    "file.fsync @ storage.py:_append [export refusal report]": 38,
+    "file.fsync @ storage.py:_append [private export rollback]": 44,
+    "file.fsync @ storage.py:_truncate_journal [journal truncation]": 384,
+    "file.fsync @ storage.py:sync_directory [blob publication rollback]": 30,
+    "file.fsync @ storage.py:sync_directory [export refusal report]": 13,
+    "file.fsync @ storage.py:sync_directory [private export rollback]": 22,
+    "file.rename @ archive.py:archive [syscall]": 142,
+    "file.truncate @ files.py:save [published export rollback]": 2,
+    "file.unlink @ archive.py:archive [archive temporary unlink]": 316,
+    "file.unlink @ blobs.py:put_stream [blob origin temporary unlink]": 15,
+    "file.unlink @ blobs.py:put_stream [blob publication rollback]": 60,
+    "file.unlink @ blobs.py:put_stream [blob temporary unlink]": 45,
+    "file.unlink @ exports.py:discard_blob [export refusal report]": 26,
+    "file.unlink @ exports.py:discard_blob [private export rollback]": 44,
+    "file.unlink @ mail/transport.py:store_password [password temporary unlink]": 3,
+    "file.write @ common.py:storage_stream [stream close]": 12,
+    "journal.close @ chrome/committed.py:journal_reader [export refusal report]": 1250,
+    "journal.close @ chrome/committed.py:journal_reader [syscall]": 78804,
+    "journal.close @ common.py:storage_stream [stream close]": 160,
+    "journal.close @ storage.py:close [engine initialization]": 2,
+    "journal.close @ storage.py:close [index rebuild]": 32,
+    "journal.close @ storage.py:close [store initialization]": 8,
+    "journal.truncate @ storage.py:_truncate_journal [journal truncation]": 384,
+    "journal.write @ storage.py:_append [export refusal report]": 38,
+    "journal.write @ storage.py:_append [private export rollback]": 44,
+    "sqlite.index.close @ storage.py:close [engine initialization]": 2,
+    "sqlite.index.close @ storage.py:require_index [index retry close]": 26,
+    "sqlite.index.write @ storage.py:_index_record [export refusal report]": 38,
+    "sqlite.index.write @ storage.py:_index_record [private export rollback]": 44,
+    "sqlite.main.close @ archive.py:archive [syscall]": 84,
+    "sqlite.main.close @ storage.py:_apply [export refusal report]": 56,
+    "sqlite.main.close @ storage.py:_apply [private export rollback]": 22,
+    "sqlite.main.close @ storage.py:_apply [syscall]": 3889,
+    "sqlite.main.close @ storage.py:close [engine initialization]": 2,
+    "sqlite.main.close @ storage.py:close [index rebuild]": 32,
+    "sqlite.main.close @ storage.py:close [store initialization]": 4,
+    "sqlite.main.close @ storage.py:get [syscall]": 188,
+    "sqlite.main.close @ storage.py:iter_operations [export refusal report]": 4,
+    "sqlite.main.close @ storage.py:iter_operations [syscall]": 180,
+    "sqlite.main.close @ storage.py:retained_at [syscall]": 8,
+    "sqlite.main.close @ storage.py:write [export refusal report]": 32,
+    "sqlite.main.close @ storage.py:write [private export rollback]": 22,
+    "sqlite.main.close @ storage.py:write [syscall]": 1387,
+    "sqlite.main.create @ storage.py:_apply [export refusal report]": 19,
+    "sqlite.main.create @ storage.py:_apply [private export rollback]": 22,
+    "sqlite.main.create @ storage.py:write [export refusal report]": 19,
+    "sqlite.main.create @ storage.py:write [private export rollback]": 22,
+    "sqlite.main.fsync @ storage.py:_apply [export refusal report]": 66,
+    "sqlite.main.fsync @ storage.py:_apply [private export rollback]": 66,
+    "sqlite.main.fsync @ storage.py:iter_operations [export refusal report]": 4,
+    "sqlite.main.fsync @ storage.py:write [export refusal report]": 60,
+    "sqlite.main.fsync @ storage.py:write [private export rollback]": 66,
+    "sqlite.main.truncate @ storage.py:_apply [syscall]": 11,
+    "sqlite.main.truncate @ storage.py:get [syscall]": 49,
+    "sqlite.main.truncate @ storage.py:iter_operations [syscall]": 33,
+    "sqlite.main.truncate @ storage.py:retained_at [syscall]": 2,
+    "sqlite.main.truncate @ storage.py:write [syscall]": 93,
+    "sqlite.main.unlink @ archive.py:archive [syscall]": 84,
+    "sqlite.main.unlink @ storage.py:_apply [export refusal report]": 56,
+    "sqlite.main.unlink @ storage.py:_apply [private export rollback]": 22,
+    "sqlite.main.unlink @ storage.py:_apply [syscall]": 3889,
+    "sqlite.main.unlink @ storage.py:get [syscall]": 94,
+    "sqlite.main.unlink @ storage.py:iter_operations [export refusal report]": 2,
+    "sqlite.main.unlink @ storage.py:iter_operations [syscall]": 90,
+    "sqlite.main.unlink @ storage.py:retained_at [syscall]": 4,
+    "sqlite.main.unlink @ storage.py:write [export refusal report]": 32,
+    "sqlite.main.unlink @ storage.py:write [private export rollback]": 22,
+    "sqlite.main.unlink @ storage.py:write [syscall]": 1387,
+    "sqlite.main.write @ storage.py:_apply [export refusal report]": 718,
+    "sqlite.main.write @ storage.py:_apply [private export rollback]": 572,
+    "sqlite.main.write @ storage.py:iter_operations [export refusal report]": 10,
+    "sqlite.main.write @ storage.py:write [export refusal report]": 196,
+    "sqlite.main.write @ storage.py:write [private export rollback]": 220
+   },
+   "per_flow": {
+    "archive": {
+     "cases": 6058,
+     "pairs": 5424,
+     "persistent": 317,
+     "single": 317
+    },
+    "attachment_export": {
+     "cases": 5312,
+     "pairs": 4826,
+     "persistent": 243,
+     "single": 243
+    },
+    "cancel": {
+     "cases": 1064,
+     "pairs": 930,
+     "persistent": 67,
+     "single": 67
+    },
+    "delete_permanent": {
+     "cases": 6401,
+     "pairs": 5595,
+     "persistent": 403,
+     "single": 403
+    },
+    "delete_trash": {
+     "cases": 4273,
+     "pairs": 3735,
+     "persistent": 269,
+     "single": 269
+    },
+    "expiry": {
+     "cases": 253,
+     "pairs": 119,
+     "persistent": 67,
+     "single": 67
+    },
+    "export_rollback": {
+     "cases": 8242,
+     "pairs": 7748,
+     "persistent": 247,
+     "single": 247
+    },
+    "filing_copy": {
+     "cases": 5400,
+     "pairs": 4722,
+     "persistent": 339,
+     "single": 339
+    },
+    "filing_move": {
+     "cases": 5382,
+     "pairs": 4706,
+     "persistent": 338,
+     "single": 338
+    },
+    "filing_rename": {
+     "cases": 3485,
+     "pairs": 3047,
+     "persistent": 219,
+     "single": 219
+    },
+    "maintenance": {
+     "cases": 228,
+     "pairs": 108,
+     "persistent": 60,
+     "single": 60
+    },
+    "password": {
+     "cases": 1892,
+     "pairs": 1654,
+     "persistent": 119,
+     "single": 119
+    },
+    "repair": {
+     "cases": 5628,
+     "pairs": 4920,
+     "persistent": 354,
+     "single": 354
+    },
+    "restart_index": {
+     "cases": 102,
+     "pairs": 62,
+     "persistent": 20,
+     "single": 20
+    },
+    "restart_tail": {
+     "cases": 112,
+     "pairs": 68,
+     "persistent": 22,
+     "single": 22
+    },
+    "restore": {
+     "cases": 1110,
+     "pairs": 970,
+     "persistent": 70,
+     "single": 70
+    },
+    "send": {
+     "cases": 13493,
+     "pairs": 11803,
+     "persistent": 845,
+     "single": 845
+    },
+    "send_duplicate": {
+     "cases": 14830,
+     "pairs": 12972,
+     "persistent": 929,
+     "single": 929
+    },
+    "settlement": {
+     "cases": 2419,
+     "pairs": 2115,
+     "persistent": 152,
+     "single": 152
+    },
+    "status": {
+     "cases": 2402,
+     "pairs": 2100,
+     "persistent": 151,
+     "single": 151
+    },
+    "testapp_export": {
+     "cases": 2586,
+     "pairs": 2350,
+     "persistent": 118,
+     "single": 118
+    },
+    "unsubscribe_https": {
+     "cases": 5320,
+     "pairs": 4650,
+     "persistent": 335,
+     "single": 335
+    },
+    "unsubscribe_mailto": {
+     "cases": 13527,
+     "pairs": 11833,
+     "persistent": 847,
+     "single": 847
+    }
+   },
+   "total": {
+    "cases": 109519,
+    "pairs": 96457,
+    "persistent": 6531,
+    "single": 6531
+   }
+  },
+  "branch-realstat": {
+   "pairs_by_cleanup_site": {
+    "file.close @ blobs.py:origins [export refusal report]": 13,
+    "file.close @ blobs.py:origins [private export rollback]": 2,
+    "file.close @ common.py:storage_stream [stream close]": 166,
+    "file.close @ files.py:save [file descriptor close]": 16,
+    "file.close @ files.py:save [file parent descriptor close]": 19,
+    "file.close @ files.py:save [syscall]": 3,
+    "file.close @ storage.py:sync_directory [directory descriptor close]": 368,
+    "file.fsync @ files.py:save [published export rollback]": 2,
+    "file.fsync @ storage.py:_append [export refusal report]": 38,
+    "file.fsync @ storage.py:_append [private export rollback]": 44,
+    "file.fsync @ storage.py:_truncate_journal [journal truncation]": 384,
+    "file.fsync @ storage.py:sync_directory [blob publication rollback]": 30,
+    "file.fsync @ storage.py:sync_directory [export refusal report]": 13,
+    "file.fsync @ storage.py:sync_directory [private export rollback]": 22,
+    "file.rename @ archive.py:archive [syscall]": 142,
+    "file.truncate @ files.py:save [published export rollback]": 2,
+    "file.unlink @ archive.py:archive [archive temporary unlink]": 316,
+    "file.unlink @ blobs.py:put_stream [blob origin temporary unlink]": 15,
+    "file.unlink @ blobs.py:put_stream [blob publication rollback]": 60,
+    "file.unlink @ blobs.py:put_stream [blob temporary unlink]": 45,
+    "file.unlink @ exports.py:discard_blob [export refusal report]": 26,
+    "file.unlink @ exports.py:discard_blob [private export rollback]": 44,
+    "file.unlink @ mail/transport.py:store_password [password temporary unlink]": 3,
+    "file.write @ common.py:storage_stream [stream close]": 12,
+    "journal.close @ chrome/committed.py:journal_reader [export refusal report]": 79,
+    "journal.close @ chrome/committed.py:journal_reader [syscall]": 6275,
+    "journal.close @ common.py:storage_stream [stream close]": 160,
+    "journal.close @ storage.py:close [engine initialization]": 2,
+    "journal.close @ storage.py:close [index rebuild]": 32,
+    "journal.close @ storage.py:close [store initialization]": 8,
+    "journal.truncate @ storage.py:_truncate_journal [journal truncation]": 384,
+    "journal.write @ storage.py:_append [export refusal report]": 38,
+    "journal.write @ storage.py:_append [private export rollback]": 44,
+    "sqlite.index.close @ storage.py:close [engine initialization]": 2,
+    "sqlite.index.close @ storage.py:require_index [index retry close]": 26,
+    "sqlite.index.write @ storage.py:_index_record [export refusal report]": 38,
+    "sqlite.index.write @ storage.py:_index_record [private export rollback]": 44,
+    "sqlite.main.close @ archive.py:archive [syscall]": 84,
+    "sqlite.main.close @ storage.py:_apply [export refusal report]": 56,
+    "sqlite.main.close @ storage.py:_apply [private export rollback]": 22,
+    "sqlite.main.close @ storage.py:_apply [syscall]": 3889,
+    "sqlite.main.close @ storage.py:close [engine initialization]": 2,
+    "sqlite.main.close @ storage.py:close [index rebuild]": 32,
+    "sqlite.main.close @ storage.py:close [store initialization]": 4,
+    "sqlite.main.close @ storage.py:get [syscall]": 188,
+    "sqlite.main.close @ storage.py:iter_operations [export refusal report]": 4,
+    "sqlite.main.close @ storage.py:iter_operations [syscall]": 180,
+    "sqlite.main.close @ storage.py:retained_at [syscall]": 8,
+    "sqlite.main.close @ storage.py:write [export refusal report]": 32,
+    "sqlite.main.close @ storage.py:write [private export rollback]": 22,
+    "sqlite.main.close @ storage.py:write [syscall]": 1387,
+    "sqlite.main.create @ storage.py:_apply [export refusal report]": 19,
+    "sqlite.main.create @ storage.py:_apply [private export rollback]": 22,
+    "sqlite.main.create @ storage.py:write [export refusal report]": 19,
+    "sqlite.main.create @ storage.py:write [private export rollback]": 22,
+    "sqlite.main.fsync @ storage.py:_apply [export refusal report]": 66,
+    "sqlite.main.fsync @ storage.py:_apply [private export rollback]": 66,
+    "sqlite.main.fsync @ storage.py:iter_operations [export refusal report]": 4,
+    "sqlite.main.fsync @ storage.py:write [export refusal report]": 60,
+    "sqlite.main.fsync @ storage.py:write [private export rollback]": 66,
+    "sqlite.main.truncate @ storage.py:_apply [syscall]": 11,
+    "sqlite.main.truncate @ storage.py:get [syscall]": 49,
+    "sqlite.main.truncate @ storage.py:iter_operations [syscall]": 33,
+    "sqlite.main.truncate @ storage.py:retained_at [syscall]": 2,
+    "sqlite.main.truncate @ storage.py:write [syscall]": 93,
+    "sqlite.main.unlink @ archive.py:archive [syscall]": 84,
+    "sqlite.main.unlink @ storage.py:_apply [export refusal report]": 56,
+    "sqlite.main.unlink @ storage.py:_apply [private export rollback]": 22,
+    "sqlite.main.unlink @ storage.py:_apply [syscall]": 3889,
+    "sqlite.main.unlink @ storage.py:get [syscall]": 94,
+    "sqlite.main.unlink @ storage.py:iter_operations [export refusal report]": 2,
+    "sqlite.main.unlink @ storage.py:iter_operations [syscall]": 90,
+    "sqlite.main.unlink @ storage.py:retained_at [syscall]": 4,
+    "sqlite.main.unlink @ storage.py:write [export refusal report]": 32,
+    "sqlite.main.unlink @ storage.py:write [private export rollback]": 22,
+    "sqlite.main.unlink @ storage.py:write [syscall]": 1387,
+    "sqlite.main.write @ storage.py:_apply [export refusal report]": 718,
+    "sqlite.main.write @ storage.py:_apply [private export rollback]": 572,
+    "sqlite.main.write @ storage.py:iter_operations [export refusal report]": 10,
+    "sqlite.main.write @ storage.py:write [export refusal report]": 196,
+    "sqlite.main.write @ storage.py:write [private export rollback]": 220
+   },
+   "per_flow": {
+    "archive": {
+     "cases": 2571,
+     "pairs": 1937,
+     "persistent": 317,
+     "single": 317
+    },
+    "attachment_export": {
+     "cases": 2303,
+     "pairs": 1817,
+     "persistent": 243,
+     "single": 243
+    },
+    "cancel": {
+     "cases": 327,
+     "pairs": 193,
+     "persistent": 67,
+     "single": 67
+    },
+    "delete_permanent": {
+     "cases": 1968,
+     "pairs": 1162,
+     "persistent": 403,
+     "single": 403
+    },
+    "delete_trash": {
+     "cases": 1314,
+     "pairs": 776,
+     "persistent": 269,
+     "single": 269
+    },
+    "expiry": {
+     "cases": 253,
+     "pairs": 119,
+     "persistent": 67,
+     "single": 67
+    },
+    "export_rollback": {
+     "cases": 2484,
+     "pairs": 1990,
+     "persistent": 247,
+     "single": 247
+    },
+    "filing_copy": {
+     "cases": 1671,
+     "pairs": 993,
+     "persistent": 339,
+     "single": 339
+    },
+    "filing_move": {
+     "cases": 1664,
+     "pairs": 988,
+     "persistent": 338,
+     "single": 338
+    },
+    "filing_rename": {
+     "cases": 1076,
+     "pairs": 638,
+     "persistent": 219,
+     "single": 219
+    },
+    "maintenance": {
+     "cases": 228,
+     "pairs": 108,
+     "persistent": 60,
+     "single": 60
+    },
+    "password": {
+     "cases": 578,
+     "pairs": 340,
+     "persistent": 119,
+     "single": 119
+    },
+    "repair": {
+     "cases": 1734,
+     "pairs": 1026,
+     "persistent": 354,
+     "single": 354
+    },
+    "restart_index": {
+     "cases": 102,
+     "pairs": 62,
+     "persistent": 20,
+     "single": 20
+    },
+    "restart_tail": {
+     "cases": 112,
+     "pairs": 68,
+     "persistent": 22,
+     "single": 22
+    },
+    "restore": {
+     "cases": 340,
+     "pairs": 200,
+     "persistent": 70,
+     "single": 70
+    },
+    "send": {
+     "cases": 4198,
+     "pairs": 2508,
+     "persistent": 845,
+     "single": 845
+    },
+    "send_duplicate": {
+     "cases": 4611,
+     "pairs": 2753,
+     "persistent": 929,
+     "single": 929
+    },
+    "settlement": {
+     "cases": 747,
+     "pairs": 443,
+     "persistent": 152,
+     "single": 152
+    },
+    "status": {
+     "cases": 741,
+     "pairs": 439,
+     "persistent": 151,
+     "single": 151
+    },
+    "testapp_export": {
+     "cases": 952,
+     "pairs": 716,
+     "persistent": 118,
+     "single": 118
+    },
+    "unsubscribe_https": {
+     "cases": 1635,
+     "pairs": 965,
+     "persistent": 335,
+     "single": 335
+    },
+    "unsubscribe_mailto": {
+     "cases": 4210,
+     "pairs": 2516,
+     "persistent": 847,
+     "single": 847
+    }
+   },
+   "total": {
+    "cases": 35819,
+    "pairs": 22757,
+    "persistent": 6531,
+    "single": 6531
+   }
+  },
+  "case_cost_ms": {
+   "branch": {
+    "_experiments": [],
+    "cancel": {
+     "call": {
+      "mean_ms": 2.5825964168770543,
+      "median_ms": 2.494458109140396
+     },
+     "cases": 67,
+     "close": {
+      "mean_ms": 0.6194701974294079,
+      "median_ms": 0.6032080855220556
+     },
+     "recover": {
+      "mean_ms": 11.908224415478866,
+      "median_ms": 10.928000090643764
+     },
+     "setup": {
+      "mean_ms": 15.350820298598551,
+      "median_ms": 15.25308401323855
+     },
+     "total": {
+      "mean_ms": 30.46111132838388,
+      "median_ms": 29.991791816428304
+     }
+    },
+    "maintenance": {
+     "call": {
+      "mean_ms": 1.0798062702330449,
+      "median_ms": 1.0513958986848593
+     },
+     "cases": 60,
+     "close": {
+      "mean_ms": 0.633284670766443,
+      "median_ms": 0.5547289038076997
+     },
+     "recover": {
+      "mean_ms": 6.5293527402294185,
+      "median_ms": 5.951103987172246
+     },
+     "setup": {
+      "mean_ms": 12.650843162555248,
+      "median_ms": 12.079375446774065
+     },
+     "total": {
+      "mean_ms": 20.893286843784153,
+      "median_ms": 20.15329140704125
+     }
+    },
+    "restart_index": {
+     "call": {
+      "mean_ms": 1.2717687990516424,
+      "median_ms": 1.2981045292690396
+     },
+     "cases": 20,
+     "close": {
+      "mean_ms": 0.5604875390417874,
+      "median_ms": 0.5606255726888776
+     },
+     "recover": {
+      "mean_ms": 5.148543766699731,
+      "median_ms": 5.146895535290241
+     },
+     "setup": {
+      "mean_ms": 8.739856258034706,
+      "median_ms": 8.608937496319413
+     },
+     "total": {
+      "mean_ms": 15.720656362827867,
+      "median_ms": 15.64752054400742
+     }
+    },
+    "status": {
+     "call": {
+      "mean_ms": 3.6321029248986614,
+      "median_ms": 3.8140001706779003
+     },
+     "cases": 151,
+     "close": {
+      "mean_ms": 0.980918671911126,
+      "median_ms": 0.6817500106990337
+     },
+     "recover": {
+      "mean_ms": 21.421837421528846,
+      "median_ms": 21.530000027269125
+     },
+     "setup": {
+      "mean_ms": 26.89535320668623,
+      "median_ms": 26.564749889075756
+     },
+     "total": {
+      "mean_ms": 52.93021222502487,
+      "median_ms": 52.61366651393473
+     }
+    }
+   },
+   "branch-cachedbuild": {
+    "_experiments": [
+     "CACHED_BUILD"
+    ],
+    "cancel": {
+     "call": {
+      "mean_ms": 2.364373081294236,
+      "median_ms": 2.380790887400508
+     },
+     "cases": 67,
+     "close": {
+      "mean_ms": 0.576411700571206,
+      "median_ms": 0.5697079468518496
+     },
+     "recover": {
+      "mean_ms": 9.167909219082611,
+      "median_ms": 8.249166887253523
+     },
+     "setup": {
+      "mean_ms": 12.159654227738727,
+      "median_ms": 11.907082982361317
+     },
+     "total": {
+      "mean_ms": 24.26834822868678,
+      "median_ms": 23.75020715408027
+     }
+    },
+    "maintenance": {
+     "call": {
+      "mean_ms": 1.0040284134447575,
+      "median_ms": 1.0381244355812669
+     },
+     "cases": 60,
+     "close": {
+      "mean_ms": 0.5695034943831464,
+      "median_ms": 0.5208124639466405
+     },
+     "recover": {
+      "mean_ms": 3.7306367652490735,
+      "median_ms": 3.27377044595778
+     },
+     "setup": {
+      "mean_ms": 9.268748651569089,
+      "median_ms": 9.07372951041907
+     },
+     "total": {
+      "mean_ms": 14.572917324646067,
+      "median_ms": 14.54533392097801
+     }
+    },
+    "restart_index": {
+     "call": {
+      "mean_ms": 1.2129458482377231,
+      "median_ms": 1.289604464545846
+     },
+     "cases": 20,
+     "close": {
+      "mean_ms": 0.5484376451931894,
+      "median_ms": 0.5230209790170193
+     },
+     "recover": {
+      "mean_ms": 2.6220581959933043,
+      "median_ms": 2.5011454708874226
+     },
+     "setup": {
+      "mean_ms": 5.745054199360311,
+      "median_ms": 5.715395440347493
+     },
+     "total": {
+      "mean_ms": 10.128495888784528,
+      "median_ms": 10.11618785560131
+     }
+    },
+    "status": {
+     "call": {
+      "mean_ms": 3.5430907891656194,
+      "median_ms": 3.757291939109564
+     },
+     "cases": 151,
+     "close": {
+      "mean_ms": 0.7230491926338498,
+      "median_ms": 0.7148750592023134
+     },
+     "recover": {
+      "mean_ms": 18.452206128492755,
+      "median_ms": 18.80916696973145
+     },
+     "setup": {
+      "mean_ms": 23.87328010163461,
+      "median_ms": 23.212665924802423
+     },
+     "total": {
+      "mean_ms": 46.59162621192684,
+      "median_ms": 46.48504126816988
+     }
+    }
+   },
+   "branch-cachedbuild-realstat": {
+    "_experiments": [
+     "REAL_JOURNAL_STAT",
+     "CACHED_BUILD"
+    ],
+    "cancel": {
+     "call": {
+      "mean_ms": 1.571840853360829,
+      "median_ms": 1.6218749806284904
+     },
+     "cases": 67,
+     "close": {
+      "mean_ms": 0.7194943844215639,
+      "median_ms": 0.5660420283675194
+     },
+     "recover": {
+      "mean_ms": 7.587173415014326,
+      "median_ms": 6.588874850422144
+     },
+     "setup": {
+      "mean_ms": 11.17758899093119,
+      "median_ms": 10.822250042110682
+     },
+     "total": {
+      "mean_ms": 21.05609764372791,
+      "median_ms": 20.087790908291936
+     }
+    },
+    "maintenance": {
+     "call": {
+      "mean_ms": 1.0072756675072014,
+      "median_ms": 1.0574579937383533
+     },
+     "cases": 60,
+     "close": {
+      "mean_ms": 0.5479743393758932,
+      "median_ms": 0.5436246283352375
+     },
+     "recover": {
+      "mean_ms": 2.9916846465008953,
+      "median_ms": 2.670916495844722
+     },
+     "setup": {
+      "mean_ms": 8.443945832550526,
+      "median_ms": 8.251041523180902
+     },
+     "total": {
+      "mean_ms": 12.990880485934516,
+      "median_ms": 12.966873589903116
+     }
+    },
+    "restart_index": {
+     "call": {
+      "mean_ms": 1.2291480088606477,
+      "median_ms": 1.3362084282562137
+     },
+     "cases": 20,
+     "close": {
+      "mean_ms": 0.558158231433481,
+      "median_ms": 0.5414375336840749
+     },
+     "recover": {
+      "mean_ms": 2.0780291757546365,
+      "median_ms": 1.9594380864873528
+     },
+     "setup": {
+      "mean_ms": 5.876046000048518,
+      "median_ms": 5.863250000402331
+     },
+     "total": {
+      "mean_ms": 9.741381416097283,
+      "median_ms": 9.673041524365544
+     }
+    },
+    "status": {
+     "call": {
+      "mean_ms": 2.9011542279742017,
+      "median_ms": 3.0348750296980143
+     },
+     "cases": 151,
+     "close": {
+      "mean_ms": 0.796507741787181,
+      "median_ms": 0.720958923920989
+     },
+     "recover": {
+      "mean_ms": 16.058823183203575,
+      "median_ms": 15.86895901709795
+     },
+     "setup": {
+      "mean_ms": 21.91517078194348,
+      "median_ms": 21.25416719354689
+     },
+     "total": {
+      "mean_ms": 41.67165593490843,
+      "median_ms": 41.13921010866761
+     }
+    }
+   },
+   "branch-cachedbuild-realstat-noindex": {
+    "_experiments": [
+     "NO_HEADER_INDEX",
+     "REAL_JOURNAL_STAT",
+     "CACHED_BUILD"
+    ],
+    "cancel": {
+     "call": {
+      "mean_ms": 1.5652995770944962,
+      "median_ms": 1.6442090272903442
+     },
+     "cases": 63,
+     "close": {
+      "mean_ms": 0.8494769378254811,
+      "median_ms": 0.5737501196563244
+     },
+     "recover": {
+      "mean_ms": 7.801554897533996,
+      "median_ms": 6.688165944069624
+     },
+     "setup": {
+      "mean_ms": 10.834928531761445,
+      "median_ms": 10.580000001937151
+     },
+     "total": {
+      "mean_ms": 21.051259944215417,
+      "median_ms": 19.90399998612702
+     }
+    },
+    "maintenance": {
+     "call": {
+      "mean_ms": 0.9892583436643084,
+      "median_ms": 1.0208124294877052
+     },
+     "cases": 60,
+     "close": {
+      "mean_ms": 0.5337576187836627,
+      "median_ms": 0.5280624609440565
+     },
+     "recover": {
+      "mean_ms": 3.025754902046174,
+      "median_ms": 2.669666544534266
+     },
+     "setup": {
+      "mean_ms": 8.158268709667027,
+      "median_ms": 7.989541511051357
+     },
+     "total": {
+      "mean_ms": 12.707039574161172,
+      "median_ms": 12.515270966105163
+     }
+    },
+    "restart_index": {
+     "call": {
+      "mean_ms": 1.1930916109122336,
+      "median_ms": 1.2756665237247944
+     },
+     "cases": 20,
+     "close": {
+      "mean_ms": 0.5293145542964339,
+      "median_ms": 0.5205625202506781
+     },
+     "recover": {
+      "mean_ms": 2.0968125434592366,
+      "median_ms": 1.9447498489171267
+     },
+     "setup": {
+      "mean_ms": 5.556758318562061,
+      "median_ms": 5.488479044288397
+     },
+     "total": {
+      "mean_ms": 9.375977027229965,
+      "median_ms": 9.27083333954215
+     }
+    },
+    "status": {
+     "call": {
+      "mean_ms": 2.822323741352225,
+      "median_ms": 2.9872499871999025
+     },
+     "cases": 143,
+     "close": {
+      "mean_ms": 0.7959693862398813,
+      "median_ms": 0.7069171406328678
+     },
+     "recover": {
+      "mean_ms": 15.353676004960509,
+      "median_ms": 15.810417011380196
+     },
+     "setup": {
+      "mean_ms": 21.827769470629054,
+      "median_ms": 20.592083921656013
+     },
+     "total": {
+      "mean_ms": 40.799738603181666,
+      "median_ms": 40.23004206828773
+     }
+    }
+   },
+   "main": {
+    "_experiments": [],
+    "cancel": {
+     "call": {
+      "mean_ms": 1.4469887366488812,
+      "median_ms": 1.4191251248121262
+     },
+     "cases": 63,
+     "close": {
+      "mean_ms": 0.558967524695964,
+      "median_ms": 0.5482498090714216
+     },
+     "recover": {
+      "mean_ms": 7.487390940595005,
+      "median_ms": 5.99754205904901
+     },
+     "setup": {
+      "mean_ms": 10.315520389537726,
+      "median_ms": 9.978666203096509
+     },
+     "total": {
+      "mean_ms": 19.808867591477576,
+      "median_ms": 18.089582910761237
+     }
+    },
+    "maintenance": {
+     "call": {
+      "mean_ms": 0.9705486979025105,
+      "median_ms": 0.9922288591042161
+     },
+     "cases": 60,
+     "close": {
+      "mean_ms": 0.5374569872704644,
+      "median_ms": 0.5304795922711492
+     },
+     "recover": {
+      "mean_ms": 2.5936290932198363,
+      "median_ms": 2.404687460511923
+     },
+     "setup": {
+      "mean_ms": 7.554694540643444,
+      "median_ms": 7.394249550998211
+     },
+     "total": {
+      "mean_ms": 11.656329319036256,
+      "median_ms": 11.46120869088918
+     }
+    },
+    "restart_index": {
+     "call": {
+      "mean_ms": 1.135452266316861,
+      "median_ms": 1.2137709418311715
+     },
+     "cases": 20,
+     "close": {
+      "mean_ms": 0.5069187143817544,
+      "median_ms": 0.5004788981750607
+     },
+     "recover": {
+      "mean_ms": 1.7648727749474347,
+      "median_ms": 1.6487084794789553
+     },
+     "setup": {
+      "mean_ms": 5.598935391753912,
+      "median_ms": 5.646437522955239
+     },
+     "total": {
+      "mean_ms": 9.006179147399962,
+      "median_ms": 9.008624940179288
+     }
+    },
+    "status": {
+     "call": {
+      "mean_ms": 2.6578481823622764,
+      "median_ms": 2.7797501534223557
+     },
+     "cases": 143,
+     "close": {
+      "mean_ms": 0.6995049705794015,
+      "median_ms": 0.6853330414742231
+     },
+     "recover": {
+      "mean_ms": 14.110522422861386,
+      "median_ms": 14.50579077936709
+     },
+     "setup": {
+      "mean_ms": 20.205032375113635,
+      "median_ms": 19.77779110893607
+     },
+     "total": {
+      "mean_ms": 37.672907950916695,
+      "median_ms": 37.35637501813471
+     }
+    }
+   },
+   "main-r2": {
+    "_experiments": [],
+    "cancel": {
+     "call": {
+      "mean_ms": 1.427817339491513,
+      "median_ms": 1.4167919289320707
+     },
+     "cases": 63,
+     "close": {
+      "mean_ms": 0.571555583663876,
+      "median_ms": 0.5622501485049725
+     },
+     "recover": {
+      "mean_ms": 6.542365680197402,
+      "median_ms": 5.968749988824129
+     },
+     "setup": {
+      "mean_ms": 10.00876259058714,
+      "median_ms": 9.775542188435793
+     },
+     "total": {
+      "mean_ms": 18.55050119393993,
+      "median_ms": 18.44533276744187
+     }
+    },
+    "maintenance": {
+     "call": {
+      "mean_ms": 0.9762069365630547,
+      "median_ms": 1.0024375515058637
+     },
+     "cases": 60,
+     "close": {
+      "mean_ms": 0.5363209134278197,
+      "median_ms": 0.5330209387466311
+     },
+     "recover": {
+      "mean_ms": 2.598170062992722,
+      "median_ms": 2.3988124448806047
+     },
+     "setup": {
+      "mean_ms": 7.620145780189584,
+      "median_ms": 7.442416623234749
+     },
+     "total": {
+      "mean_ms": 11.73084369317318,
+      "median_ms": 11.607354623265564
+     }
+    },
+    "restart_index": {
+     "call": {
+      "mean_ms": 1.1668166145682335,
+      "median_ms": 1.2364163994789124
+     },
+     "cases": 20,
+     "close": {
+      "mean_ms": 0.5118978442624211,
+      "median_ms": 0.5110414931550622
+     },
+     "recover": {
+      "mean_ms": 1.788016757927835,
+      "median_ms": 1.6673539066687226
+     },
+     "setup": {
+      "mean_ms": 5.383802065625787,
+      "median_ms": 5.307771032676101
+     },
+     "total": {
+      "mean_ms": 8.850533282384276,
+      "median_ms": 8.673520758748055
+     }
+    },
+    "status": {
+     "call": {
+      "mean_ms": 2.7258697395714426,
+      "median_ms": 2.776375040411949
+     },
+     "cases": 143,
+     "close": {
+      "mean_ms": 0.7218068117158605,
+      "median_ms": 0.6922499742358923
+     },
+     "recover": {
+      "mean_ms": 14.272575193390875,
+      "median_ms": 14.591500163078308
+     },
+     "setup": {
+      "mean_ms": 19.93228907052141,
+      "median_ms": 19.828374963253736
+     },
+     "total": {
+      "mean_ms": 37.652540815199586,
+      "median_ms": 37.736209109425545
+     }
+    }
+   }
+  },
+  "clean_point_delta_by_site": {
+   "file.close @ chrome/adapter.py:__init__": 186,
+   "journal.close @ chrome/committed.py:journal_reader": 668,
+   "sqlite.main.write @ archive.py:archive": 4,
+   "sqlite.main.write @ storage.py:_apply": 268
+  },
+  "full_disk_read": {
+   "branch": {
+    "0": {
+     "mail_read": {
+      "error": null,
+      "first_failure": [],
+      "ok": true,
+      "points": 0
+     },
+     "mail_search": {
+      "error": null,
+      "first_failure": [],
+      "ok": true,
+      "points": 0
+     },
+     "pending_scan_ms": {
+      "forced_index": 0.02,
+      "primary_key_order": 0.02
+     },
+     "pending_scan_plan": [
+      "SCAN kv USING INDEX operation_headers",
+      "USE TEMP B-TREE FOR ORDER BY"
+     ]
+    },
+    "1000": {
+     "mail_read": {
+      "error": "storage_limit",
+      "first_failure": [
+       [
+        1,
+        "sqlite.main.create",
+        "ENOSPC"
+       ]
+      ],
+      "ok": false,
+      "points": 3
+     },
+     "mail_search": {
+      "error": "storage_limit",
+      "first_failure": [
+       [
+        1,
+        "sqlite.main.create",
+        "ENOSPC"
+       ]
+      ],
+      "ok": false,
+      "points": 2
+     },
+     "pending_scan_ms": {
+      "forced_index": 14.25,
+      "primary_key_order": 13.42
+     },
+     "pending_scan_plan": [
+      "SCAN kv USING INDEX operation_headers",
+      "USE TEMP B-TREE FOR ORDER BY"
+     ]
+    },
+    "300": {
+     "mail_read": {
+      "error": null,
+      "first_failure": [],
+      "ok": true,
+      "points": 1
+     },
+     "mail_search": {
+      "error": null,
+      "first_failure": [],
+      "ok": true,
+      "points": 0
+     },
+     "pending_scan_ms": {
+      "forced_index": 3.12,
+      "primary_key_order": 3.83
+     },
+     "pending_scan_plan": [
+      "SCAN kv USING INDEX operation_headers",
+      "USE TEMP B-TREE FOR ORDER BY"
+     ]
+    },
+    "4000": {
+     "mail_read": {
+      "error": "storage_limit",
+      "first_failure": [
+       [
+        1,
+        "sqlite.main.create",
+        "ENOSPC"
+       ]
+      ],
+      "ok": false,
+      "points": 3
+     },
+     "mail_search": {
+      "error": "storage_limit",
+      "first_failure": [
+       [
+        1,
+        "sqlite.main.create",
+        "ENOSPC"
+       ]
+      ],
+      "ok": false,
+      "points": 2
+     },
+     "pending_scan_ms": {
+      "forced_index": 55.96,
+      "primary_key_order": 52.29
+     },
+     "pending_scan_plan": [
+      "SCAN kv USING INDEX operation_headers",
+      "USE TEMP B-TREE FOR ORDER BY"
+     ]
+    },
+    "500": {
+     "mail_read": {
+      "error": null,
+      "first_failure": [],
+      "ok": true,
+      "points": 1
+     },
+     "mail_search": {
+      "error": null,
+      "first_failure": [],
+      "ok": true,
+      "points": 0
+     },
+     "pending_scan_ms": {
+      "forced_index": 5.36,
+      "primary_key_order": 6.37
+     },
+     "pending_scan_plan": [
+      "SCAN kv USING INDEX operation_headers",
+      "USE TEMP B-TREE FOR ORDER BY"
+     ]
+    },
+    "700": {
+     "mail_read": {
+      "error": "storage_limit",
+      "first_failure": [
+       [
+        1,
+        "sqlite.main.create",
+        "ENOSPC"
+       ]
+      ],
+      "ok": false,
+      "points": 3
+     },
+     "mail_search": {
+      "error": "storage_limit",
+      "first_failure": [
+       [
+        1,
+        "sqlite.main.create",
+        "ENOSPC"
+       ]
+      ],
+      "ok": false,
+      "points": 2
+     },
+     "pending_scan_ms": {
+      "forced_index": 9.43,
+      "primary_key_order": 8.89
+     },
+     "pending_scan_plan": [
+      "SCAN kv USING INDEX operation_headers",
+      "USE TEMP B-TREE FOR ORDER BY"
+     ]
+    }
+   },
+   "main": {
+    "0": {
+     "mail_read": {
+      "error": null,
+      "first_failure": [],
+      "ok": true,
+      "points": 0
+     },
+     "mail_search": {
+      "error": null,
+      "first_failure": [],
+      "ok": true,
+      "points": 0
+     },
+     "pending_scan_plan": "not on this commit: no such index: operation_headers"
+    },
+    "1000": {
+     "mail_read": {
+      "error": null,
+      "first_failure": [],
+      "ok": true,
+      "points": 0
+     },
+     "mail_search": {
+      "error": null,
+      "first_failure": [],
+      "ok": true,
+      "points": 0
+     },
+     "pending_scan_plan": "not on this commit: no such index: operation_headers"
+    },
+    "300": {
+     "mail_read": {
+      "error": null,
+      "first_failure": [],
+      "ok": true,
+      "points": 0
+     },
+     "mail_search": {
+      "error": null,
+      "first_failure": [],
+      "ok": true,
+      "points": 0
+     },
+     "pending_scan_plan": "not on this commit: no such index: operation_headers"
+    },
+    "4000": {
+     "mail_read": {
+      "error": null,
+      "first_failure": [],
+      "ok": true,
+      "points": 0
+     },
+     "mail_search": {
+      "error": null,
+      "first_failure": [],
+      "ok": true,
+      "points": 0
+     },
+     "pending_scan_plan": "not on this commit: no such index: operation_headers"
+    },
+    "500": {
+     "mail_read": {
+      "error": null,
+      "first_failure": [],
+      "ok": true,
+      "points": 0
+     },
+     "mail_search": {
+      "error": null,
+      "first_failure": [],
+      "ok": true,
+      "points": 0
+     },
+     "pending_scan_plan": "not on this commit: no such index: operation_headers"
+    },
+    "700": {
+     "mail_read": {
+      "error": null,
+      "first_failure": [],
+      "ok": true,
+      "points": 0
+     },
+     "mail_search": {
+      "error": null,
+      "first_failure": [],
+      "ok": true,
+      "points": 0
+     },
+     "pending_scan_plan": "not on this commit: no such index: operation_headers"
+    }
+   }
+  },
+  "journal_reads_per_clean_call": {
+   "archive": {
+    "branch": 27,
+    "main": 1
+   },
+   "attachment_export": {
+    "branch": 78,
+    "main": 0
+   },
+   "cancel": {
+    "branch": 26,
+    "main": 0
+   },
+   "delete_permanent": {
+    "branch": 26,
+    "main": 0
+   },
+   "delete_trash": {
+    "branch": 26,
+    "main": 0
+   },
+   "expiry": {
+    "branch": 0,
+    "main": 0
+   },
+   "export_rollback": {
+    "branch": 120,
+    "main": 0
+   },
+   "filing_copy": {
+    "branch": 26,
+    "main": 0
+   },
+   "filing_move": {
+    "branch": 26,
+    "main": 0
+   },
+   "filing_rename": {
+    "branch": 26,
+    "main": 0
+   },
+   "maintenance": {
+    "branch": 0,
+    "main": 0
+   },
+   "password": {
+    "branch": 26,
+    "main": 0
+   },
+   "repair": {
+    "branch": 26,
+    "main": 0
+   },
+   "restart_index": {
+    "branch": 5,
+    "main": 5
+   },
+   "restart_tail": {
+    "branch": 5,
+    "main": 5
+   },
+   "restore": {
+    "branch": 28,
+    "main": 0
+   },
+   "send": {
+    "branch": 26,
+    "main": 0
+   },
+   "send_duplicate": {
+    "branch": 26,
+    "main": 0
+   },
+   "settlement": {
+    "branch": 26,
+    "main": 0
+   },
+   "status": {
+    "branch": 26,
+    "main": 0
+   },
+   "testapp_export": {
+    "branch": 52,
+    "main": 0
+   },
+   "unsubscribe_https": {
+    "branch": 26,
+    "main": 0
+   },
+   "unsubscribe_mailto": {
+    "branch": 26,
+    "main": 0
+   }
+  },
+  "mail_call_latency": {
+   "instrumented-branch-r1": {
+    "histories": [
+     0,
+     1000,
+     4000
+    ],
+    "journal_bytes_at_end": 2137569,
+    "phases": {
+     "0": {
+      "compose": {
+       "io_per_call_median": {
+        "file.fsync": 2.0,
+        "journal.close": 1.0,
+        "journal.write": 2.0,
+        "sqlite.main.close": 2.0,
+        "sqlite.main.create": 2.0,
+        "sqlite.main.fsync": 4.0,
+        "sqlite.main.unlink": 2.0,
+        "sqlite.main.write": 28.0
+       },
+       "io_points_per_call_median": 43.0,
+       "median_ms": 4.254,
+       "p95_ms": 4.934,
+       "samples": 50
+      },
+      "expiry": {
+       "io_per_call_median": {},
+       "io_points_per_call_median": 0.0,
+       "median_ms": 2.572,
+       "p95_ms": 2.935,
+       "samples": 50
+      },
+      "file": {
+       "io_per_call_median": {
+        "file.fsync": 12.0,
+        "journal.close": 1.0,
+        "journal.write": 12.0,
+        "sqlite.main.close": 12.0,
+        "sqlite.main.create": 12.0,
+        "sqlite.main.fsync": 24.0,
+        "sqlite.main.unlink": 12.0,
+        "sqlite.main.write": 163.5
+       },
+       "io_points_per_call_median": 248.5,
+       "median_ms": 9.394,
+       "p95_ms": 17.185,
+       "samples": 50
+      },
+      "prepare_send": {
+       "io_per_call_median": {
+        "file.close": 4.0,
+        "file.fsync": 2.0,
+        "journal.close": 1.0,
+        "journal.write": 2.0,
+        "sqlite.main.close": 2.0,
+        "sqlite.main.create": 2.0,
+        "sqlite.main.fsync": 4.0,
+        "sqlite.main.unlink": 2.0,
+        "sqlite.main.write": 37.0
+       },
+       "io_points_per_call_median": 56.0,
+       "median_ms": 7.147,
+       "p95_ms": 8.832,
+       "samples": 50
+      },
+      "read": {
+       "io_per_call_median": {},
+       "io_points_per_call_median": 0.0,
+       "median_ms": 0.648,
+       "p95_ms": 0.739,
+       "samples": 50
+      },
+      "search": {
+       "io_per_call_median": {},
+       "io_points_per_call_median": 0.0,
+       "median_ms": 4.435,
+       "p95_ms": 5.169,
+       "samples": 50
+      }
+     },
+     "1000": {
+      "compose": {
+       "io_per_call_median": {
+        "file.fsync": 2.0,
+        "journal.close": 1.0,
+        "journal.write": 2.0,
+        "sqlite.main.close": 11.0,
+        "sqlite.main.create": 11.0,
+        "sqlite.main.fsync": 4.0,
+        "sqlite.main.unlink": 2.0,
+        "sqlite.main.write": 8101.0
+       },
+       "io_points_per_call_median": 8134.0,
+       "median_ms": 147.876,
+       "p95_ms": 165.538,
+       "samples": 50
+      },
+      "expiry": {
+       "io_per_call_median": {},
+       "io_points_per_call_median": 0.0,
+       "median_ms": 3.868,
+       "p95_ms": 4.214,
+       "samples": 50
+      },
+      "file": {
+       "io_per_call_median": {
+        "file.fsync": 12.0,
+        "journal.close": 1.0,
+        "journal.write": 12.0,
+        "sqlite.main.close": 18.0,
+        "sqlite.main.create": 18.0,
+        "sqlite.main.fsync": 24.0,
+        "sqlite.main.unlink": 12.0,
+        "sqlite.main.write": 5554.5
+       },
+       "io_points_per_call_median": 5651.5,
+       "median_ms": 110.105,
+       "p95_ms": 125.025,
+       "samples": 50
+      },
+      "prepare_send": {
+       "io_per_call_median": {
+        "file.close": 4.0,
+        "file.fsync": 2.0,
+        "journal.close": 1.0,
+        "journal.write": 2.0,
+        "sqlite.main.close": 8.0,
+        "sqlite.main.create": 8.0,
+        "sqlite.main.fsync": 4.0,
+        "sqlite.main.unlink": 2.0,
+        "sqlite.main.write": 5509.0
+       },
+       "io_points_per_call_median": 5540.0,
+       "median_ms": 115.349,
+       "p95_ms": 124.929,
+       "samples": 50
+      },
+      "read": {
+       "io_per_call_median": {
+        "sqlite.main.close": 6.0,
+        "sqlite.main.create": 6.0,
+        "sqlite.main.write": 5382.0
+       },
+       "io_points_per_call_median": 5394.0,
+       "median_ms": 98.699,
+       "p95_ms": 113.533,
+       "samples": 50
+      },
+      "search": {
+       "io_per_call_median": {
+        "sqlite.main.close": 6.0,
+        "sqlite.main.create": 6.0,
+        "sqlite.main.write": 5382.0
+       },
+       "io_points_per_call_median": 5394.0,
+       "median_ms": 102.384,
+       "p95_ms": 116.144,
+       "samples": 50
+      }
+     },
+     "4000": {
+      "compose": {
+       "io_per_call_median": {
+        "file.fsync": 2.0,
+        "journal.close": 1.0,
+        "journal.write": 2.0,
+        "sqlite.main.close": 11.0,
+        "sqlite.main.create": 11.0,
+        "sqlite.main.fsync": 4.0,
+        "sqlite.main.unlink": 2.0,
+        "sqlite.main.write": 31861.0
+       },
+       "io_points_per_call_median": 31894.0,
+       "median_ms": 572.83,
+       "p95_ms": 599.093,
+       "samples": 50
+      },
+      "expiry": {
+       "io_per_call_median": {},
+       "io_points_per_call_median": 0.0,
+       "median_ms": 5.388,
+       "p95_ms": 5.748,
+       "samples": 50
+      },
+      "file": {
+       "io_per_call_median": {
+        "file.fsync": 12.0,
+        "journal.close": 1.0,
+        "journal.write": 12.0,
+        "sqlite.main.close": 18.0,
+        "sqlite.main.create": 18.0,
+        "sqlite.main.fsync": 24.0,
+        "sqlite.main.unlink": 12.0,
+        "sqlite.main.write": 21391.5
+       },
+       "io_points_per_call_median": 21488.5,
+       "median_ms": 395.209,
+       "p95_ms": 415.989,
+       "samples": 50
+      },
+      "prepare_send": {
+       "io_per_call_median": {
+        "file.close": 4.0,
+        "file.fsync": 2.0,
+        "journal.close": 1.0,
+        "journal.write": 2.0,
+        "sqlite.main.close": 8.0,
+        "sqlite.main.create": 8.0,
+        "sqlite.main.fsync": 4.0,
+        "sqlite.main.unlink": 2.0,
+        "sqlite.main.write": 21344.5
+       },
+       "io_points_per_call_median": 21375.5,
+       "median_ms": 438.009,
+       "p95_ms": 460.887,
+       "samples": 50
+      },
+      "read": {
+       "io_per_call_median": {
+        "sqlite.main.close": 6.0,
+        "sqlite.main.create": 6.0,
+        "sqlite.main.write": 21222.0
+       },
+       "io_points_per_call_median": 21234.0,
+       "median_ms": 378.342,
+       "p95_ms": 392.096,
+       "samples": 50
+      },
+      "search": {
+       "io_per_call_median": {
+        "sqlite.main.close": 6.0,
+        "sqlite.main.create": 6.0,
+        "sqlite.main.write": 21222.0
+       },
+       "io_points_per_call_median": 21234.0,
+       "median_ms": 383.994,
+       "p95_ms": 401.646,
+       "samples": 50
+      }
+     }
+    },
+    "profile": "instrumented",
+    "samples_per_call": 50,
+    "warmup": 5
+   },
+   "instrumented-main-r1": {
+    "histories": [
+     0,
+     1000,
+     4000
+    ],
+    "journal_bytes_at_end": 2137546,
+    "phases": {
+     "0": {
+      "compose": {
+       "io_per_call_median": {
+        "file.fsync": 2.0,
+        "journal.write": 2.0,
+        "sqlite.main.close": 2.0,
+        "sqlite.main.create": 2.0,
+        "sqlite.main.fsync": 4.0,
+        "sqlite.main.unlink": 2.0,
+        "sqlite.main.write": 28.0
+       },
+       "io_points_per_call_median": 42.0,
+       "median_ms": 5.093,
+       "p95_ms": 6.174,
+       "samples": 50
+      },
+      "expiry": {
+       "io_per_call_median": {},
+       "io_points_per_call_median": 0.0,
+       "median_ms": 3.656,
+       "p95_ms": 4.112,
+       "samples": 50
+      },
+      "file": {
+       "io_per_call_median": {
+        "file.fsync": 12.0,
+        "journal.write": 12.0,
+        "sqlite.main.close": 12.0,
+        "sqlite.main.create": 12.0,
+        "sqlite.main.fsync": 24.0,
+        "sqlite.main.unlink": 12.0,
+        "sqlite.main.write": 163.5
+       },
+       "io_points_per_call_median": 247.5,
+       "median_ms": 9.037,
+       "p95_ms": 11.202,
+       "samples": 50
+      },
+      "prepare_send": {
+       "io_per_call_median": {
+        "file.close": 4.0,
+        "file.fsync": 2.0,
+        "journal.write": 2.0,
+        "sqlite.main.close": 2.0,
+        "sqlite.main.create": 2.0,
+        "sqlite.main.fsync": 4.0,
+        "sqlite.main.unlink": 2.0,
+        "sqlite.main.write": 34.0
+       },
+       "io_points_per_call_median": 52.0,
+       "median_ms": 9.151,
+       "p95_ms": 10.995,
+       "samples": 50
+      },
+      "read": {
+       "io_per_call_median": {},
+       "io_points_per_call_median": 0.0,
+       "median_ms": 0.578,
+       "p95_ms": 0.667,
+       "samples": 50
+      },
+      "search": {
+       "io_per_call_median": {},
+       "io_points_per_call_median": 0.0,
+       "median_ms": 4.396,
+       "p95_ms": 5.213,
+       "samples": 50
+      }
+     },
+     "1000": {
+      "compose": {
+       "io_per_call_median": {
+        "file.fsync": 2.0,
+        "journal.write": 2.0,
+        "sqlite.main.close": 2.0,
+        "sqlite.main.create": 2.0,
+        "sqlite.main.fsync": 4.0,
+        "sqlite.main.unlink": 2.0,
+        "sqlite.main.write": 28.0
+       },
+       "io_points_per_call_median": 42.0,
+       "median_ms": 213.482,
+       "p95_ms": 221.932,
+       "samples": 50
+      },
+      "expiry": {
+       "io_per_call_median": {},
+       "io_points_per_call_median": 0.0,
+       "median_ms": 49.883,
+       "p95_ms": 57.82,
+       "samples": 50
+      },
+      "file": {
+       "io_per_call_median": {
+        "file.fsync": 12.0,
+        "journal.write": 12.0,
+        "sqlite.main.close": 12.0,
+        "sqlite.main.create": 12.0,
+        "sqlite.main.fsync": 24.0,
+        "sqlite.main.unlink": 12.0,
+        "sqlite.main.write": 172.5
+       },
+       "io_points_per_call_median": 256.5,
+       "median_ms": 163.228,
+       "p95_ms": 170.247,
+       "samples": 50
+      },
+      "prepare_send": {
+       "io_per_call_median": {
+        "file.close": 4.0,
+        "file.fsync": 2.0,
+        "journal.write": 2.0,
+        "sqlite.main.close": 2.0,
+        "sqlite.main.create": 2.0,
+        "sqlite.main.fsync": 4.0,
+        "sqlite.main.unlink": 2.0,
+        "sqlite.main.write": 34.0
+       },
+       "io_points_per_call_median": 52.0,
+       "median_ms": 167.932,
+       "p95_ms": 176.913,
+       "samples": 50
+      },
+      "read": {
+       "io_per_call_median": {},
+       "io_points_per_call_median": 0.0,
+       "median_ms": 114.877,
+       "p95_ms": 127.33,
+       "samples": 50
+      },
+      "search": {
+       "io_per_call_median": {},
+       "io_points_per_call_median": 0.0,
+       "median_ms": 119.297,
+       "p95_ms": 123.433,
+       "samples": 50
+      }
+     },
+     "4000": {
+      "compose": {
+       "io_per_call_median": {
+        "file.fsync": 2.0,
+        "journal.write": 2.0,
+        "sqlite.main.close": 2.0,
+        "sqlite.main.create": 2.0,
+        "sqlite.main.fsync": 4.0,
+        "sqlite.main.unlink": 2.0,
+        "sqlite.main.write": 37.0
+       },
+       "io_points_per_call_median": 51.0,
+       "median_ms": 836.713,
+       "p95_ms": 861.713,
+       "samples": 50
+      },
+      "expiry": {
+       "io_per_call_median": {},
+       "io_points_per_call_median": 0.0,
+       "median_ms": 203.836,
+       "p95_ms": 217.538,
+       "samples": 50
+      },
+      "file": {
+       "io_per_call_median": {
+        "file.fsync": 12.0,
+        "journal.write": 12.0,
+        "sqlite.main.close": 12.0,
+        "sqlite.main.create": 12.0,
+        "sqlite.main.fsync": 24.0,
+        "sqlite.main.unlink": 12.0,
+        "sqlite.main.write": 169.5
+       },
+       "io_points_per_call_median": 253.5,
+       "median_ms": 619.141,
+       "p95_ms": 641.269,
+       "samples": 50
+      },
+      "prepare_send": {
+       "io_per_call_median": {
+        "file.close": 4.0,
+        "file.fsync": 2.0,
+        "journal.write": 2.0,
+        "sqlite.main.close": 2.0,
+        "sqlite.main.create": 2.0,
+        "sqlite.main.fsync": 4.0,
+        "sqlite.main.unlink": 2.0,
+        "sqlite.main.write": 34.0
+       },
+       "io_points_per_call_median": 52.0,
+       "median_ms": 668.423,
+       "p95_ms": 699.01,
+       "samples": 50
+      },
+      "read": {
+       "io_per_call_median": {},
+       "io_points_per_call_median": 0.0,
+       "median_ms": 452.715,
+       "p95_ms": 461.602,
+       "samples": 50
+      },
+      "search": {
+       "io_per_call_median": {},
+       "io_points_per_call_median": 0.0,
+       "median_ms": 456.143,
+       "p95_ms": 473.412,
+       "samples": 50
+      }
+     }
+    },
+    "profile": "instrumented",
+    "samples_per_call": 50,
+    "warmup": 5
+   },
+   "plain-branch-r1": {
+    "histories": [
+     0,
+     1000,
+     4000
+    ],
+    "journal_bytes_at_end": 2137580,
+    "phases": {
+     "0": {
+      "compose": {
+       "median_ms": 4.059,
+       "p95_ms": 4.573,
+       "samples": 50
+      },
+      "expiry": {
+       "median_ms": 2.569,
+       "p95_ms": 2.678,
+       "samples": 50
+      },
+      "file": {
+       "median_ms": 7.969,
+       "p95_ms": 10.116,
+       "samples": 50
+      },
+      "prepare_send": {
+       "median_ms": 6.596,
+       "p95_ms": 8.573,
+       "samples": 50
+      },
+      "read": {
+       "median_ms": 0.612,
+       "p95_ms": 0.66,
+       "samples": 50
+      },
+      "search": {
+       "median_ms": 4.383,
+       "p95_ms": 4.694,
+       "samples": 50
+      }
+     },
+     "1000": {
+      "compose": {
+       "median_ms": 140.97,
+       "p95_ms": 152.58,
+       "samples": 50
+      },
+      "expiry": {
+       "median_ms": 3.74,
+       "p95_ms": 3.82,
+       "samples": 50
+      },
+      "file": {
+       "median_ms": 104.517,
+       "p95_ms": 113.762,
+       "samples": 50
+      },
+      "prepare_send": {
+       "median_ms": 110.581,
+       "p95_ms": 118.095,
+       "samples": 50
+      },
+      "read": {
+       "median_ms": 90.352,
+       "p95_ms": 98.105,
+       "samples": 50
+      },
+      "search": {
+       "median_ms": 95.323,
+       "p95_ms": 107.494,
+       "samples": 50
+      }
+     },
+     "4000": {
+      "compose": {
+       "median_ms": 543.112,
+       "p95_ms": 563.138,
+       "samples": 50
+      },
+      "expiry": {
+       "median_ms": 5.369,
+       "p95_ms": 5.579,
+       "samples": 50
+      },
+      "file": {
+       "median_ms": 375.332,
+       "p95_ms": 382.1,
+       "samples": 50
+      },
+      "prepare_send": {
+       "median_ms": 417.801,
+       "p95_ms": 451.034,
+       "samples": 50
+      },
+      "read": {
+       "median_ms": 357.719,
+       "p95_ms": 373.043,
+       "samples": 50
+      },
+      "search": {
+       "median_ms": 361.841,
+       "p95_ms": 382.637,
+       "samples": 50
+      }
+     }
+    },
+    "profile": "plain",
+    "samples_per_call": 50,
+    "warmup": 5
+   },
+   "plain-branch-r2": {
+    "histories": [
+     0,
+     1000,
+     4000
+    ],
+    "journal_bytes_at_end": 2137568,
+    "phases": {
+     "0": {
+      "compose": {
+       "median_ms": 4.089,
+       "p95_ms": 4.609,
+       "samples": 50
+      },
+      "expiry": {
+       "median_ms": 2.548,
+       "p95_ms": 2.63,
+       "samples": 50
+      },
+      "file": {
+       "median_ms": 8.005,
+       "p95_ms": 10.315,
+       "samples": 50
+      },
+      "prepare_send": {
+       "median_ms": 6.589,
+       "p95_ms": 8.4,
+       "samples": 50
+      },
+      "read": {
+       "median_ms": 0.613,
+       "p95_ms": 0.632,
+       "samples": 50
+      },
+      "search": {
+       "median_ms": 4.295,
+       "p95_ms": 4.625,
+       "samples": 50
+      }
+     },
+     "1000": {
+      "compose": {
+       "median_ms": 139.916,
+       "p95_ms": 147.883,
+       "samples": 50
+      },
+      "expiry": {
+       "median_ms": 3.688,
+       "p95_ms": 3.774,
+       "samples": 50
+      },
+      "file": {
+       "median_ms": 104.758,
+       "p95_ms": 126.156,
+       "samples": 50
+      },
+      "prepare_send": {
+       "median_ms": 108.473,
+       "p95_ms": 115.111,
+       "samples": 50
+      },
+      "read": {
+       "median_ms": 89.039,
+       "p95_ms": 96.61,
+       "samples": 50
+      },
+      "search": {
+       "median_ms": 93.576,
+       "p95_ms": 103.027,
+       "samples": 50
+      }
+     },
+     "4000": {
+      "compose": {
+       "median_ms": 539.489,
+       "p95_ms": 569.931,
+       "samples": 50
+      },
+      "expiry": {
+       "median_ms": 5.334,
+       "p95_ms": 5.598,
+       "samples": 50
+      },
+      "file": {
+       "median_ms": 370.829,
+       "p95_ms": 390.162,
+       "samples": 50
+      },
+      "prepare_send": {
+       "median_ms": 411.163,
+       "p95_ms": 432.358,
+       "samples": 50
+      },
+      "read": {
+       "median_ms": 356.358,
+       "p95_ms": 390.604,
+       "samples": 50
+      },
+      "search": {
+       "median_ms": 361.872,
+       "p95_ms": 405.25,
+       "samples": 50
+      }
+     }
+    },
+    "profile": "plain",
+    "samples_per_call": 50,
+    "warmup": 5
+   },
+   "plain-main-r1": {
+    "histories": [
+     0,
+     1000,
+     4000
+    ],
+    "journal_bytes_at_end": 2137525,
+    "phases": {
+     "0": {
+      "compose": {
+       "median_ms": 4.447,
+       "p95_ms": 5.093,
+       "samples": 50
+      },
+      "expiry": {
+       "median_ms": 3.599,
+       "p95_ms": 3.69,
+       "samples": 50
+      },
+      "file": {
+       "median_ms": 7.851,
+       "p95_ms": 10.221,
+       "samples": 50
+      },
+      "prepare_send": {
+       "median_ms": 8.358,
+       "p95_ms": 11.865,
+       "samples": 50
+      },
+      "read": {
+       "median_ms": 0.549,
+       "p95_ms": 0.618,
+       "samples": 50
+      },
+      "search": {
+       "median_ms": 4.258,
+       "p95_ms": 4.492,
+       "samples": 50
+      }
+     },
+     "1000": {
+      "compose": {
+       "median_ms": 209.496,
+       "p95_ms": 215.546,
+       "samples": 50
+      },
+      "expiry": {
+       "median_ms": 48.491,
+       "p95_ms": 53.369,
+       "samples": 50
+      },
+      "file": {
+       "median_ms": 161.92,
+       "p95_ms": 166.708,
+       "samples": 50
+      },
+      "prepare_send": {
+       "median_ms": 166.311,
+       "p95_ms": 174.584,
+       "samples": 50
+      },
+      "read": {
+       "median_ms": 112.884,
+       "p95_ms": 114.374,
+       "samples": 50
+      },
+      "search": {
+       "median_ms": 118.017,
+       "p95_ms": 122.173,
+       "samples": 50
+      }
+     },
+     "4000": {
+      "compose": {
+       "median_ms": 823.089,
+       "p95_ms": 853.586,
+       "samples": 50
+      },
+      "expiry": {
+       "median_ms": 201.589,
+       "p95_ms": 210.799,
+       "samples": 50
+      },
+      "file": {
+       "median_ms": 611.773,
+       "p95_ms": 625.035,
+       "samples": 50
+      },
+      "prepare_send": {
+       "median_ms": 657.431,
+       "p95_ms": 669.88,
+       "samples": 50
+      },
+      "read": {
+       "median_ms": 443.028,
+       "p95_ms": 453.601,
+       "samples": 50
+      },
+      "search": {
+       "median_ms": 452.204,
+       "p95_ms": 458.457,
+       "samples": 50
+      }
+     }
+    },
+    "profile": "plain",
+    "samples_per_call": 50,
+    "warmup": 5
+   },
+   "plain-main-r2": {
+    "histories": [
+     0,
+     1000,
+     4000
+    ],
+    "journal_bytes_at_end": 2137572,
+    "phases": {
+     "0": {
+      "compose": {
+       "median_ms": 4.397,
+       "p95_ms": 5.276,
+       "samples": 50
+      },
+      "expiry": {
+       "median_ms": 3.525,
+       "p95_ms": 3.575,
+       "samples": 50
+      },
+      "file": {
+       "median_ms": 7.914,
+       "p95_ms": 10.204,
+       "samples": 50
+      },
+      "prepare_send": {
+       "median_ms": 8.065,
+       "p95_ms": 10.634,
+       "samples": 50
+      },
+      "read": {
+       "median_ms": 0.545,
+       "p95_ms": 0.565,
+       "samples": 50
+      },
+      "search": {
+       "median_ms": 4.245,
+       "p95_ms": 4.649,
+       "samples": 50
+      }
+     },
+     "1000": {
+      "compose": {
+       "median_ms": 206.711,
+       "p95_ms": 214.232,
+       "samples": 50
+      },
+      "expiry": {
+       "median_ms": 48.325,
+       "p95_ms": 53.553,
+       "samples": 50
+      },
+      "file": {
+       "median_ms": 161.615,
+       "p95_ms": 167.982,
+       "samples": 50
+      },
+      "prepare_send": {
+       "median_ms": 164.095,
+       "p95_ms": 170.194,
+       "samples": 50
+      },
+      "read": {
+       "median_ms": 112.178,
+       "p95_ms": 119.296,
+       "samples": 50
+      },
+      "search": {
+       "median_ms": 116.691,
+       "p95_ms": 118.18,
+       "samples": 50
+      }
+     },
+     "4000": {
+      "compose": {
+       "median_ms": 827.898,
+       "p95_ms": 877.927,
+       "samples": 50
+      },
+      "expiry": {
+       "median_ms": 202.688,
+       "p95_ms": 213.894,
+       "samples": 50
+      },
+      "file": {
+       "median_ms": 611.056,
+       "p95_ms": 653.126,
+       "samples": 50
+      },
+      "prepare_send": {
+       "median_ms": 662.079,
+       "p95_ms": 682.395,
+       "samples": 50
+      },
+      "read": {
+       "median_ms": 442.816,
+       "p95_ms": 459.113,
+       "samples": 50
+      },
+      "search": {
+       "median_ms": 451.084,
+       "p95_ms": 469.002,
+       "samples": 50
+      }
+     }
+    },
+    "profile": "plain",
+    "samples_per_call": 50,
+    "warmup": 5
+   }
+  },
+  "main": {
+   "pairs_by_cleanup_site": {
+    "file.close @ blobs.py:origins [export refusal report]": 13,
+    "file.close @ blobs.py:origins [private export rollback]": 2,
+    "file.close @ common.py:storage_stream [stream close]": 158,
+    "file.close @ files.py:save [file descriptor close]": 16,
+    "file.close @ files.py:save [file parent descriptor close]": 19,
+    "file.close @ files.py:save [syscall]": 3,
+    "file.close @ storage.py:sync_directory [directory descriptor close]": 352,
+    "file.fsync @ files.py:save [published export rollback]": 2,
+    "file.fsync @ storage.py:_append [export refusal report]": 38,
+    "file.fsync @ storage.py:_append [private export rollback]": 44,
+    "file.fsync @ storage.py:_truncate_journal [journal truncation]": 384,
+    "file.fsync @ storage.py:sync_directory [blob publication rollback]": 30,
+    "file.fsync @ storage.py:sync_directory [export refusal report]": 13,
+    "file.fsync @ storage.py:sync_directory [private export rollback]": 22,
+    "file.rename @ archive.py:archive [syscall]": 134,
+    "file.truncate @ files.py:save [published export rollback]": 2,
+    "file.unlink @ archive.py:archive [archive temporary unlink]": 300,
+    "file.unlink @ blobs.py:put_stream [blob origin temporary unlink]": 15,
+    "file.unlink @ blobs.py:put_stream [blob publication rollback]": 60,
+    "file.unlink @ blobs.py:put_stream [blob temporary unlink]": 45,
+    "file.unlink @ exports.py:discard_blob [export refusal report]": 26,
+    "file.unlink @ exports.py:discard_blob [private export rollback]": 44,
+    "file.unlink @ mail/transport.py:store_password [password temporary unlink]": 3,
+    "file.write @ common.py:storage_stream [stream close]": 12,
+    "journal.close @ common.py:storage_stream [stream close]": 152,
+    "journal.close @ storage.py:close [engine initialization]": 2,
+    "journal.close @ storage.py:close [index rebuild]": 32,
+    "journal.close @ storage.py:close [store initialization]": 8,
+    "journal.truncate @ storage.py:_truncate_journal [journal truncation]": 384,
+    "journal.write @ storage.py:_append [export refusal report]": 38,
+    "journal.write @ storage.py:_append [private export rollback]": 44,
+    "sqlite.index.close @ storage.py:close [engine initialization]": 2,
+    "sqlite.index.close @ storage.py:require_index [index retry close]": 26,
+    "sqlite.index.write @ storage.py:_index_record [export refusal report]": 38,
+    "sqlite.index.write @ storage.py:_index_record [private export rollback]": 44,
+    "sqlite.main.close @ archive.py:archive [syscall]": 80,
+    "sqlite.main.close @ storage.py:_apply [export refusal report]": 56,
+    "sqlite.main.close @ storage.py:_apply [private export rollback]": 22,
+    "sqlite.main.close @ storage.py:_apply [syscall]": 3621,
+    "sqlite.main.close @ storage.py:close [engine initialization]": 2,
+    "sqlite.main.close @ storage.py:close [index rebuild]": 32,
+    "sqlite.main.close @ storage.py:close [store initialization]": 4,
+    "sqlite.main.close @ storage.py:get [syscall]": 188,
+    "sqlite.main.close @ storage.py:iter_items [export refusal report]": 4,
+    "sqlite.main.close @ storage.py:iter_items [syscall]": 180,
+    "sqlite.main.close @ storage.py:retained_at [syscall]": 8,
+    "sqlite.main.close @ storage.py:write [export refusal report]": 32,
+    "sqlite.main.close @ storage.py:write [private export rollback]": 22,
+    "sqlite.main.close @ storage.py:write [syscall]": 1387,
+    "sqlite.main.create @ storage.py:_apply [export refusal report]": 19,
+    "sqlite.main.create @ storage.py:_apply [private export rollback]": 22,
+    "sqlite.main.create @ storage.py:write [export refusal report]": 19,
+    "sqlite.main.create @ storage.py:write [private export rollback]": 22,
+    "sqlite.main.fsync @ storage.py:_apply [export refusal report]": 66,
+    "sqlite.main.fsync @ storage.py:_apply [private export rollback]": 66,
+    "sqlite.main.fsync @ storage.py:iter_items [export refusal report]": 4,
+    "sqlite.main.fsync @ storage.py:write [export refusal report]": 60,
+    "sqlite.main.fsync @ storage.py:write [private export rollback]": 66,
+    "sqlite.main.truncate @ storage.py:_apply [syscall]": 11,
+    "sqlite.main.truncate @ storage.py:get [syscall]": 49,
+    "sqlite.main.truncate @ storage.py:iter_items [syscall]": 33,
+    "sqlite.main.truncate @ storage.py:retained_at [syscall]": 2,
+    "sqlite.main.truncate @ storage.py:write [syscall]": 93,
+    "sqlite.main.unlink @ archive.py:archive [syscall]": 80,
+    "sqlite.main.unlink @ storage.py:_apply [export refusal report]": 56,
+    "sqlite.main.unlink @ storage.py:_apply [private export rollback]": 22,
+    "sqlite.main.unlink @ storage.py:_apply [syscall]": 3621,
+    "sqlite.main.unlink @ storage.py:get [syscall]": 94,
+    "sqlite.main.unlink @ storage.py:iter_items [export refusal report]": 2,
+    "sqlite.main.unlink @ storage.py:iter_items [syscall]": 90,
+    "sqlite.main.unlink @ storage.py:retained_at [syscall]": 4,
+    "sqlite.main.unlink @ storage.py:write [export refusal report]": 32,
+    "sqlite.main.unlink @ storage.py:write [private export rollback]": 22,
+    "sqlite.main.unlink @ storage.py:write [syscall]": 1387,
+    "sqlite.main.write @ storage.py:_apply [export refusal report]": 718,
+    "sqlite.main.write @ storage.py:_apply [private export rollback]": 572,
+    "sqlite.main.write @ storage.py:iter_items [export refusal report]": 10,
+    "sqlite.main.write @ storage.py:write [export refusal report]": 196,
+    "sqlite.main.write @ storage.py:write [private export rollback]": 220
+   },
+   "per_flow": {
+    "archive": {
+     "cases": 2134,
+     "pairs": 1532,
+     "persistent": 301,
+     "single": 301
+    },
+    "attachment_export": {
+     "cases": 2060,
+     "pairs": 1574,
+     "persistent": 243,
+     "single": 243
+    },
+    "cancel": {
+     "cases": 244,
+     "pairs": 118,
+     "persistent": 63,
+     "single": 63
+    },
+    "delete_permanent": {
+     "cases": 1469,
+     "pairs": 711,
+     "persistent": 379,
+     "single": 379
+    },
+    "delete_trash": {
+     "cases": 981,
+     "pairs": 475,
+     "persistent": 253,
+     "single": 253
+    },
+    "expiry": {
+     "cases": 237,
+     "pairs": 111,
+     "persistent": 63,
+     "single": 63
+    },
+    "export_rollback": {
+     "cases": 2240,
+     "pairs": 1746,
+     "persistent": 247,
+     "single": 247
+    },
+    "filing_copy": {
+     "cases": 1332,
+     "pairs": 654,
+     "persistent": 339,
+     "single": 339
+    },
+    "filing_move": {
+     "cases": 1326,
+     "pairs": 650,
+     "persistent": 338,
+     "single": 338
+    },
+    "filing_rename": {
+     "cases": 857,
+     "pairs": 419,
+     "persistent": 219,
+     "single": 219
+    },
+    "maintenance": {
+     "cases": 228,
+     "pairs": 108,
+     "persistent": 60,
+     "single": 60
+    },
+    "password": {
+     "cases": 464,
+     "pairs": 226,
+     "persistent": 119,
+     "single": 119
+    },
+    "repair": {
+     "cases": 1300,
+     "pairs": 632,
+     "persistent": 334,
+     "single": 334
+    },
+    "restart_index": {
+     "cases": 102,
+     "pairs": 62,
+     "persistent": 20,
+     "single": 20
+    },
+    "restart_tail": {
+     "cases": 112,
+     "pairs": 68,
+     "persistent": 22,
+     "single": 22
+    },
+    "restore": {
+     "cases": 254,
+     "pairs": 122,
+     "persistent": 66,
+     "single": 66
+    },
+    "send": {
+     "cases": 3161,
+     "pairs": 1567,
+     "persistent": 797,
+     "single": 797
+    },
+    "send_duplicate": {
+     "cases": 3474,
+     "pairs": 1720,
+     "persistent": 877,
+     "single": 877
+    },
+    "settlement": {
+     "cases": 563,
+     "pairs": 275,
+     "persistent": 144,
+     "single": 144
+    },
+    "status": {
+     "cases": 558,
+     "pairs": 272,
+     "persistent": 143,
+     "single": 143
+    },
+    "testapp_export": {
+     "cases": 834,
+     "pairs": 598,
+     "persistent": 118,
+     "single": 118
+    },
+    "unsubscribe_https": {
+     "cases": 1220,
+     "pairs": 590,
+     "persistent": 315,
+     "single": 315
+    },
+    "unsubscribe_mailto": {
+     "cases": 3171,
+     "pairs": 1573,
+     "persistent": 799,
+     "single": 799
+    }
+   },
+   "total": {
+    "cases": 28321,
+    "pairs": 15803,
+    "persistent": 6259,
+    "single": 6259
+   }
+  },
+  "primaries": {
+   "archive": {
+    "branch": 317,
+    "branch_without_header_index": 301,
+    "main": 301
+   },
+   "attachment_export": {
+    "branch": 243,
+    "branch_without_header_index": 243,
+    "main": 243
+   },
+   "cancel": {
+    "branch": 67,
+    "branch_without_header_index": 63,
+    "main": 63
+   },
+   "delete_permanent": {
+    "branch": 403,
+    "branch_without_header_index": 379,
+    "main": 379
+   },
+   "delete_trash": {
+    "branch": 269,
+    "branch_without_header_index": 253,
+    "main": 253
+   },
+   "expiry": {
+    "branch": 67,
+    "branch_without_header_index": 63,
+    "main": 63
+   },
+   "export_rollback": {
+    "branch": 247,
+    "branch_without_header_index": 247,
+    "main": 247
+   },
+   "filing_copy": {
+    "branch": 339,
+    "branch_without_header_index": 339,
+    "main": 339
+   },
+   "filing_move": {
+    "branch": 338,
+    "branch_without_header_index": 338,
+    "main": 338
+   },
+   "filing_rename": {
+    "branch": 219,
+    "branch_without_header_index": 219,
+    "main": 219
+   },
+   "maintenance": {
+    "branch": 60,
+    "branch_without_header_index": 60,
+    "main": 60
+   },
+   "password": {
+    "branch": 119,
+    "branch_without_header_index": 119,
+    "main": 119
+   },
+   "repair": {
+    "branch": 354,
+    "branch_without_header_index": 334,
+    "main": 334
+   },
+   "restart_index": {
+    "branch": 20,
+    "branch_without_header_index": 20,
+    "main": 20
+   },
+   "restart_tail": {
+    "branch": 22,
+    "branch_without_header_index": 22,
+    "main": 22
+   },
+   "restore": {
+    "branch": 70,
+    "branch_without_header_index": 66,
+    "main": 66
+   },
+   "send": {
+    "branch": 845,
+    "branch_without_header_index": 797,
+    "main": 797
+   },
+   "send_duplicate": {
+    "branch": 929,
+    "branch_without_header_index": 877,
+    "main": 877
+   },
+   "settlement": {
+    "branch": 152,
+    "branch_without_header_index": 144,
+    "main": 144
+   },
+   "status": {
+    "branch": 151,
+    "branch_without_header_index": 143,
+    "main": 143
+   },
+   "testapp_export": {
+    "branch": 118,
+    "branch_without_header_index": 118,
+    "main": 118
+   },
+   "unsubscribe_https": {
+    "branch": 335,
+    "branch_without_header_index": 315,
+    "main": 315
+   },
+   "unsubscribe_mailto": {
+    "branch": 847,
+    "branch_without_header_index": 799,
+    "main": 799
+   }
+  }
+ },
+ "question": "Why the Mail OS/SQLite fault sweep grew from 4 shards under 35 minutes on main to 8 shards that reached 60 minutes on pkg/20-chrome (lead, 2026-11-14)."
+}

@@ -1,0 +1,172 @@
+{
+  "run": 42816887474,
+  "mode": "external",
+  "source": "683f333ef2ccb8be2690a262197f7a72ef943c3d",
+  "acceptance": false,
+  "partial_matrix": [
+    {
+      "name": "GROUP 2 first-script natives are guarded in pages and frames",
+      "passed": true
+    },
+    {
+      "name": "GROUP 3 REVIEW ordinary blank and srcdoc editors bind drafts and send normally",
+      "passed": true
+    },
+    {
+      "name": "GROUP 3 REVIEW owner chosen attachments show byte digests and bind identical metadata replacements",
+      "passed": false,
+      "error": "Error: owner chosen File is installed: undefined\n    at eventually (file:///workspace/control/chrome/ci/browser.mjs:29:208)\n    at async file:///workspace/control/chrome/ci/review-matrices.mjs:18:5\n    at async check (file:///workspace/control/chrome/ci/matrices.mjs:19:10)\n    at async reviewMatrices (file:///workspace/control/chrome/ci/review-matrices.mjs:15:3)\n    at async matrices (file:///workspace/control/chrome/ci/matrices.mjs:53:3)\n    at async file:///workspace/control/chrome/ci/browser.mjs:146:24"
+    }
+  ],
+  "editor_receiver_snapshots": [
+    {
+      "id": "review-editor-blank-false",
+      "phase": "before approval",
+      "count": 0,
+      "arrivals": []
+    },
+    {
+      "id": "review-editor-blank-false",
+      "phase": "after approval",
+      "count": 1,
+      "arrivals": [
+        {
+          "time": 1794314212860,
+          "url": "/receive?case=review-editor-blank-false",
+          "method": "POST",
+          "body": "First draft line\nSecond draft line",
+          "host": "fixture.test:8765"
+        }
+      ]
+    },
+    {
+      "id": "review-editor-blank-false",
+      "phase": "after repeat",
+      "count": 1,
+      "arrivals": [
+        {
+          "time": 1794314212860,
+          "url": "/receive?case=review-editor-blank-false",
+          "method": "POST",
+          "body": "First draft line\nSecond draft line",
+          "host": "fixture.test:8765"
+        }
+      ]
+    },
+    {
+      "id": "review-editor-blank-true",
+      "phase": "inline draft changed",
+      "count": 0,
+      "arrivals": []
+    },
+    {
+      "id": "review-editor-blank-true",
+      "phase": "before approval",
+      "count": 0,
+      "arrivals": []
+    },
+    {
+      "id": "review-editor-blank-true",
+      "phase": "after approval",
+      "count": 1,
+      "arrivals": [
+        {
+          "time": 1794314214211,
+          "url": "/receive?case=review-editor-blank-true",
+          "method": "POST",
+          "body": "Changed inline draft",
+          "host": "fixture.test:8765"
+        }
+      ]
+    },
+    {
+      "id": "review-editor-blank-true",
+      "phase": "after repeat",
+      "count": 1,
+      "arrivals": [
+        {
+          "time": 1794314214211,
+          "url": "/receive?case=review-editor-blank-true",
+          "method": "POST",
+          "body": "Changed inline draft",
+          "host": "fixture.test:8765"
+        }
+      ]
+    },
+    {
+      "id": "review-editor-srcdoc-false",
+      "phase": "before approval",
+      "count": 0,
+      "arrivals": []
+    },
+    {
+      "id": "review-editor-srcdoc-false",
+      "phase": "after approval",
+      "count": 1,
+      "arrivals": [
+        {
+          "time": 1794314215439,
+          "url": "/receive?case=review-editor-srcdoc-false",
+          "method": "POST",
+          "body": "First draft line\nSecond draft line",
+          "host": "fixture.test:8765"
+        }
+      ]
+    },
+    {
+      "id": "review-editor-srcdoc-false",
+      "phase": "after repeat",
+      "count": 1,
+      "arrivals": [
+        {
+          "time": 1794314215439,
+          "url": "/receive?case=review-editor-srcdoc-false",
+          "method": "POST",
+          "body": "First draft line\nSecond draft line",
+          "host": "fixture.test:8765"
+        }
+      ]
+    },
+    {
+      "id": "review-editor-srcdoc-true",
+      "phase": "inline draft changed",
+      "count": 0,
+      "arrivals": []
+    },
+    {
+      "id": "review-editor-srcdoc-true",
+      "phase": "before approval",
+      "count": 0,
+      "arrivals": []
+    },
+    {
+      "id": "review-editor-srcdoc-true",
+      "phase": "after approval",
+      "count": 1,
+      "arrivals": [
+        {
+          "time": 1794314216832,
+          "url": "/receive?case=review-editor-srcdoc-true",
+          "method": "POST",
+          "body": "Changed inline draft",
+          "host": "fixture.test:8765"
+        }
+      ]
+    },
+    {
+      "id": "review-editor-srcdoc-true",
+      "phase": "after repeat",
+      "count": 1,
+      "arrivals": [
+        {
+          "time": 1794314216832,
+          "url": "/receive?case=review-editor-srcdoc-true",
+          "method": "POST",
+          "body": "Changed inline draft",
+          "host": "fixture.test:8765"
+        }
+      ]
+    }
+  ],
+  "first_failure": "Native chooser returned without selecting a file; strict file-installed assertion failed."
+}

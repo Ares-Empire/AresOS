@@ -1,0 +1,206 @@
+{
+  "source": "5f0b568194a68a82a5b235fe5b396d69290d1892",
+  "runtime": "837b537f0c78d9fb2e1f2bd695e3657f1f0618d192c6215a9d8529d973c81b0a",
+  "run": 43270186321,
+  "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43270186321",
+  "conclusion": "failure",
+  "jobs": [
+    {
+      "id": 131364337159,
+      "run_id": 43270186321,
+      "workflow_name": "Control Chrome",
+      "head_branch": "pkg/20-chrome",
+      "run_url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/runs/43270186321",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOVgsTJ88AAAAeley2Bw",
+      "head_sha": "5f0b568194a68a82a5b235fe5b396d69290d1892",
+      "url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/jobs/131364337159",
+      "html_url": "https://github.com/Ares-Empire/AresOS/actions/runs/43270186321/job/131364337159",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-11-12T17:30:39Z",
+      "started_at": "2026-11-12T17:30:40Z",
+      "completed_at": "2026-11-12T20:01:37Z",
+      "name": "fixtures (policy)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-11-12T17:30:41Z",
+          "completed_at": "2026-11-12T17:30:42Z"
+        },
+        {
+          "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-11-12T17:30:42Z",
+          "completed_at": "2026-11-12T17:30:49Z"
+        },
+        {
+          "name": "Resolve the exact stable package and checksum",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-11-12T17:30:49Z",
+          "completed_at": "2026-11-12T17:30:49Z"
+        },
+        {
+          "name": "Build disposable branded-Chrome container",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-11-12T17:30:49Z",
+          "completed_at": "2026-11-12T17:31:43Z"
+        },
+        {
+          "name": "Browser fixtures only inside Linux container, sandbox on",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-11-12T17:31:43Z",
+          "completed_at": "2026-11-12T20:01:33Z"
+        },
+        {
+          "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-11-12T20:01:33Z",
+          "completed_at": "2026-11-12T20:01:35Z"
+        },
+        {
+          "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12,
+          "started_at": "2026-11-12T20:01:35Z",
+          "completed_at": "2026-11-12T20:01:35Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-11-12T20:01:35Z",
+          "completed_at": "2026-11-12T20:01:35Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/Ares-Empire/AresOS/check-runs/131364337159",
+      "labels": [
+        "ubuntu-24.04"
+      ],
+      "runner_id": 1000005662,
+      "runner_name": "GitHub Actions 1000005662",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 131364337461,
+      "run_id": 43270186321,
+      "workflow_name": "Control Chrome",
+      "head_branch": "pkg/20-chrome",
+      "run_url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/runs/43270186321",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOVgsTJ88AAAAeley3NQ",
+      "head_sha": "5f0b568194a68a82a5b235fe5b396d69290d1892",
+      "url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/jobs/131364337461",
+      "html_url": "https://github.com/Ares-Empire/AresOS/actions/runs/43270186321/job/131364337461",
+      "status": "completed",
+      "conclusion": "failure",
+      "created_at": "2026-11-12T17:30:39Z",
+      "started_at": "2026-11-12T17:30:40Z",
+      "completed_at": "2026-11-12T21:31:46Z",
+      "name": "fixtures (external)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-11-12T17:30:41Z",
+          "completed_at": "2026-11-12T17:30:42Z"
+        },
+        {
+          "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-11-12T17:30:42Z",
+          "completed_at": "2026-11-12T17:30:50Z"
+        },
+        {
+          "name": "Resolve the exact stable package and checksum",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-11-12T17:30:50Z",
+          "completed_at": "2026-11-12T17:30:50Z"
+        },
+        {
+          "name": "Build disposable branded-Chrome container",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-11-12T17:30:50Z",
+          "completed_at": "2026-11-12T17:31:41Z"
+        },
+        {
+          "name": "Browser fixtures only inside Linux container, sandbox on",
+          "status": "completed",
+          "conclusion": "failure",
+          "number": 5,
+          "started_at": "2026-11-12T17:31:41Z",
+          "completed_at": "2026-11-12T21:31:41Z"
+        },
+        {
+          "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-11-12T21:31:41Z",
+          "completed_at": "2026-11-12T21:31:44Z"
+        },
+        {
+          "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12,
+          "started_at": "2026-11-12T21:31:44Z",
+          "completed_at": "2026-11-12T21:31:45Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-11-12T21:31:45Z",
+          "completed_at": "2026-11-12T21:31:45Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/Ares-Empire/AresOS/check-runs/131364337461",
+      "labels": [
+        "ubuntu-24.04"
+      ],
+      "runner_id": 1000005661,
+      "runner_name": "GitHub Actions 1000005661",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    }
+  ],
+  "browser_named_passes": 89,
+  "python_full_suite_completed": false,
+  "last_python_case": "test_chrome_storage_single_persistent_cleanup_pairs_crash_restart_space_restored",
+  "failure": "The container command exited124 exactly240minutes after its start, during the mandatory full Python storage sweep. Browser matrices had completed all89 names. This run is not accepted as green.",
+  "correction": "Container budget300minutes, job310minutes; no runtime/test/assertion changes. Repeat the whole verification on the workflow-only head.",
+  "sha256": {
+    "browser.txt": "181214a9e7b3a5655398c455195302862ed136219f2c5183442a2529e2088f10",
+    "matrices.json": "28e451f5414cd89e5a2a6bfb5d7bf3384438604284741463a53aa0536ef0bd96",
+    "qualification-result.json": "bd092bf0a1a1fe3df56ff1b78966fc0e464c9d1353fe666032c3b08b8af847fd",
+    "python.txt": "f7a07c8f56c9b89ea2e371f8273b6e930c06756ff8ea0251dae7a67000c74e1f",
+    "receiver.jsonl": "7709ab11d9f50184fd1580ad32748d48dc09b9d7c2b0d95bbec36baae2e7f578"
+  },
+  "python_tail": "lt (test_state_oracle.Oracle.test_s11_round27_check_cannot_close_without_required_warning_result) ... ok\ntest_all_independent_flows_run_in_separate_processes (test_state_sweeps.SweepWorkers.test_all_independent_flows_run_in_separate_processes) ... Chrome isolated fault flow 6307:first {'single': 1, 'persistent': 1, 'pairs': 2}\nChrome isolated fault flow 6307:second {'single': 1, 'persistent': 1, 'pairs': 2}\nok\ntest_child_assertion_fails_the_parent (test_state_sweeps.SweepWorkers.test_child_assertion_fails_the_parent) ... Chrome isolated fault flow 6307:first {'single': 1, 'persistent': 1, 'pairs': 2}\nok\ntest_chrome_storage_single_persistent_cleanup_pairs_crash_restart_space_restored (test_storage.Storage.test_chrome_storage_single_persistent_cleanup_pairs_crash_restart_space_restored) ... "
+}

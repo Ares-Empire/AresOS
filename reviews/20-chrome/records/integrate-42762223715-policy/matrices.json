@@ -1,0 +1,248 @@
+[
+  {
+    "name": "GROUP 2 first-script natives are guarded in pages and frames",
+    "passed": true
+  },
+  {
+    "name": "GROUP 8 popups preserve opener flow and guard first input without moving windows",
+    "passed": true
+  },
+  {
+    "name": "GROUP 8 opener badges and per-popup Stop preserve windows documents and focus",
+    "passed": false,
+    "error": "AssertionError [ERR_ASSERTION]: Stop creates no window and changes no focus, position, size or type\n+ actual - expected\n\n  [\n    {\n+     focused: false,\n-     focused: true,\n      height: 1000,\n      id: 1333632665,\n      left: 0,\n      top: 0,\n      type: 'normal',\n\n    at file:///workspace/control/chrome/ci/popups.mjs:59:12\n    at async check (file:///workspace/control/chrome/ci/matrices.mjs:13:10)\n    at async popupMatrices (file:///workspace/control/chrome/ci/popups.mjs:44:3)\n    at async matrices (file:///workspace/control/chrome/ci/matrices.mjs:47:3)\n    at async file:///workspace/control/chrome/ci/browser.mjs:146:24"
+  },
+  {
+    "name": "GROUP 8 closing or releasing an opener ends popup control and clears badges",
+    "passed": true
+  },
+  {
+    "name": "GROUP 8 POST popups never resubmit and ordinary openers stay untouched",
+    "passed": false,
+    "error": "AssertionError [ERR_ASSERTION]: {\"ok\":false,\"error\":{\"code\":\"invalid_input\",\"message\":\"input: missing required fields; inspect the tool schema.\"},\"pending\":{\"items\":[{\"operation_id\":\"b529cf91e2564909b38356cd157a1cee:d8a34ba268ea43cebbe71a34f2373aad\",\"app\":\"chrome\",\"state\":\"reserved\",\"reason\":\"Browser or service session changed; drop this preparation and prepare again.\",\"validity\":\"refused\",\"refusal_code\":\"stale_approval\"}],\"total\":1,\"cursor\":null,\"restore_required\":false,\"notices\":[{\"operation_id\":\"b7643eb574f6720d7acf444b933462be3da770dd5e8e1aa98803fb71f0872c57\",\"app\":\"chrome\",\"state\":\"unknown\",\"untrusted_content\":{\"intent_key\":\"intent:chrome:b7643eb574f6720d7acf444b933462be3da770dd5e8e1aa98803fb71f0872c57\",\"reason\":\"A change was interrupted before its completion was recorded. It may already have changed the server. Inspect the audit and your app before repeating.\",\"recovery_warning\":true}},{\"operation_id\":\"3a4084b2062c236b63b89d431fd6473722f2a62eaeeb3c2220d3af9438ef3a4a\",\"app\":\"chrome\",\"state\":\"unknown\",\"untrusted_content\":{\"intent_key\":\"intent:chrome:3a4084b2062c236b63b89d431fd6473722f2a62eaeeb3c2220d3af9438ef3a4a\",\"reason\":\"A change was interrupted before its completion was recorded. It may already have changed the server. Inspect the audit and your app before repeating.\",\"recovery_warning\":true}},{\"operation_id\":\"195a6309eb3776433a1b303c881f0b13dcca6869faa7c950937726c395313584\",\"app\":\"chrome\",\"state\":\"unknown\",\"untrusted_content\":{\"intent_key\":\"intent:chrome:195a6309eb3776433a1b303c881f0b13dcca6869faa7c950937726c395313584\",\"reason\":\"A change was interrupted before its completion was recorded. It may already have changed the server. Inspect the audit and your app before repeating.\",\"recovery_warning\":true}}],\"notices_more\":{\"count\":11,\"action\":\"control_notices\"}}}\n    at call (file:///workspace/control/chrome/ci/browser.mjs:28:80)\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async nav (file:///workspace/control/chrome/ci/browser.mjs:33:91)\n    at async file:///workspace/control/chrome/ci/popups.mjs:84:27\n    at async check (file:///workspace/control/chrome/ci/matrices.mjs:13:10)\n    at async popupMatrices (file:///workspace/control/chrome/ci/popups.mjs:82:3)\n    at async matrices (file:///workspace/control/chrome/ci/matrices.mjs:47:3)\n    at async file:///workspace/control/chrome/ci/browser.mjs:146:24"
+  },
+  {
+    "name": "GROUP 7 native compatibility inside and outside Claude tabs",
+    "passed": true
+  },
+  {
+    "name": "GROUP 8 Stop under a native modal revokes input before deferred cleanup",
+    "passed": true
+  },
+  {
+    "name": "GROUP 8 taken tabs preserve reads and guard the first input reload",
+    "passed": true
+  },
+  {
+    "name": "GROUP 10 ADAPTER Gmail full compose and every bound field",
+    "passed": true
+  },
+  {
+    "name": "GROUP 10 ADAPTER two Gmail compose windows and inbox shortcut",
+    "passed": true
+  },
+  {
+    "name": "GROUP 11 ADAPTER Gmail exact To Cc Bcc roles account revocation and widening",
+    "passed": true
+  },
+  {
+    "name": "GROUP 10 ADAPTER WhatsApp every message chat text attachments and free activity",
+    "passed": true
+  },
+  {
+    "name": "GROUP 10 ADAPTER GitHub actions and all named confirmations",
+    "passed": true
+  },
+  {
+    "name": "GROUP 10 ADAPTER clear merge settings and sharing variants stay guarded",
+    "passed": true
+  },
+  {
+    "name": "GROUP 4 ADAPTER every named GitHub confirmation mismatch",
+    "passed": true
+  },
+  {
+    "name": "GROUP 10 ADAPTER Gemini question content and always asking chat changes",
+    "passed": true
+  },
+  {
+    "name": "GROUP 11 ADAPTER Gemini exact account owner entry and revocation",
+    "passed": true
+  },
+  {
+    "name": "GROUP 10 ADAPTER Deezer playback additions removals posts shares and payments",
+    "passed": true
+  },
+  {
+    "name": "GROUP 10 ADAPTER bank owner restriction all inputs and positive reads links scroll",
+    "passed": true
+  },
+  {
+    "name": "GROUP 10 ADAPTER unfamiliar pages and qualification fallback on all sites",
+    "passed": true
+  },
+  {
+    "name": "GROUP 10 ADAPTER Gemini question uses its required semantic name",
+    "passed": true
+  },
+  {
+    "name": "GROUP 10 ADAPTER Gmail question names its attachments",
+    "passed": true
+  },
+  {
+    "name": "GROUP 10 ADAPTER Gmail deletion shortcut question names the deletion",
+    "passed": true
+  },
+  {
+    "name": "GROUP 1 submit compose deletion and free-input matrix",
+    "passed": true
+  },
+  {
+    "name": "GROUP 1 what asks word/label/key matrix",
+    "passed": true
+  },
+  {
+    "name": "GROUP 1 Unicode word matching agrees across service and guard",
+    "passed": true
+  },
+  {
+    "name": "GROUP 2 stopped page steps handler/resume matrix",
+    "passed": true
+  },
+  {
+    "name": "GROUP 2 script activations never replay",
+    "passed": true
+  },
+  {
+    "name": "GROUP 2 loop with uncancelled enclosing submit sends once",
+    "passed": true
+  },
+  {
+    "name": "GROUP 2 delayed submission stays held after slow frame arming",
+    "passed": true
+  },
+  {
+    "name": "GROUP 2 nested validation and fresh-frame fallback",
+    "passed": true
+  },
+  {
+    "name": "GROUP 2 owner synchronous task delayed work and in-flight interleavings",
+    "passed": true
+  },
+  {
+    "name": "GROUP 2 owner defaults never exempt timer forms submitters or validation repairs",
+    "passed": true
+  },
+  {
+    "name": "GROUP 2 unknown activation survives navigation of its source document",
+    "passed": true
+  },
+  {
+    "name": "GROUP 3 binding every form fact and generic sibling draft",
+    "passed": true
+  },
+  {
+    "name": "GROUP 4 page confirmations bind their full text and ask independently",
+    "passed": true
+  },
+  {
+    "name": "GROUP 3 cross-frame adapter empty and oversized drafts",
+    "passed": true
+  },
+  {
+    "name": "GROUP 4 exact native confirmation and mismatch matrix",
+    "passed": true
+  },
+  {
+    "name": "GROUP 4 a native-dialog handler submission is prepared separately",
+    "passed": true
+  },
+  {
+    "name": "GROUP 5 question fields, hidden values, password label, upload path and hash",
+    "passed": true
+  },
+  {
+    "name": "GROUP 6 exclusions through frame, popup, redirect, taking and history",
+    "passed": true
+  },
+  {
+    "name": "GROUP 7 all password kinds across open closed and cross-site roots",
+    "passed": true
+  },
+  {
+    "name": "GROUP 6 schemes links and forward routes",
+    "passed": true
+  },
+  {
+    "name": "GROUP 8 drop release close and stale references never dispatch prepared work",
+    "passed": true
+  },
+  {
+    "name": "GROUP 13 changed read-only preview is a stated residual",
+    "passed": true
+  },
+  {
+    "name": "GROUP 8 deadline and tabs outside the group",
+    "passed": true
+  },
+  {
+    "name": "GROUP 10 adapter gmail",
+    "passed": true
+  },
+  {
+    "name": "GROUP 10 adapter whatsapp",
+    "passed": true
+  },
+  {
+    "name": "GROUP 10 adapter github",
+    "passed": true
+  },
+  {
+    "name": "GROUP 10 adapter gemini",
+    "passed": true
+  },
+  {
+    "name": "GROUP 10 adapter deezer",
+    "passed": true
+  },
+  {
+    "name": "GROUP 10 read-only bank",
+    "passed": true
+  },
+  {
+    "name": "GROUP 10 adapter shortcuts and account-specific questions",
+    "passed": true
+  },
+  {
+    "name": "GROUP 11 exact owner kind, recipients, account and revocation",
+    "passed": true
+  },
+  {
+    "name": "QUALIFICATION conservative activations ask and core failures gate before reads",
+    "passed": true
+  },
+  {
+    "name": "GROUP 13 autosave and after-limit submissions are not held",
+    "passed": true
+  },
+  {
+    "name": "VIEW representative long article/form complete paging",
+    "passed": true
+  },
+  {
+    "name": "FEATURE tools forms options find wait fill_form scroll and full catalogues",
+    "passed": true
+  },
+  {
+    "name": "GROUP 8 actual popup Stop button drops all prepared work",
+    "passed": true
+  },
+  {
+    "name": "GROUP 9 Chrome host service crash cutpoints never replay",
+    "passed": true
+  },
+  {
+    "name": "GROUP 7 no listening port after tool suite",
+    "passed": true
+  }
+]

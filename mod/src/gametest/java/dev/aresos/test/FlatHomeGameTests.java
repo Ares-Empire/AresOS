@@ -68,7 +68,12 @@ public final class FlatHomeGameTests {
      * when most of those ticks passed before the chunks were there.
      */
     private static final int CONTROL_LIMIT = 2400;
-    /** The test server runs ticks as fast as it can; chunks load at the disk's and the other builds' pace. */
+    /**
+     * The test server runs ticks as fast as it can; chunks load at the disk's and the other builds' pace. Counted in
+     * ticks, unlike {@link ChunkWaits}' waits: this test runs through {@code helper.onEachTick}, which registers one
+     * callback for every tick up to the framework's limit, and every tick looks through all of them. With
+     * {@link ChunkWaits#LOAD_TICKS} in that limit, the ten quiet minutes took over 25 minutes and did not end (39b).
+     */
     private static final int LOAD_LIMIT = 6000;
     private static final List<GameRule<Boolean>> SWITCHES = List.of(GameRules.SPAWN_MOBS, GameRules.MOB_GRIEFING, GameRules.KEEP_INVENTORY,
             GameRules.SPAWN_PHANTOMS, GameRules.SPAWN_PATROLS, GameRules.SPAWN_WANDERING_TRADERS, GameRules.ADVANCE_TIME, GameRules.ADVANCE_WEATHER,

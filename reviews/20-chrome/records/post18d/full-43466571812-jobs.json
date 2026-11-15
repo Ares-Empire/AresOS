@@ -1,0 +1,159 @@
+{
+  "run": "43466571812",
+  "head": "a108d517be1d84e8aed3663c03a50c673f1d78d9",
+  "conclusion": "success",
+  "jobs": [
+    {
+      "job": "native-precedence",
+      "conclusion": "success",
+      "seconds": 83.0
+    },
+    {
+      "job": "python-shards (0)",
+      "conclusion": "success",
+      "seconds": 37.0
+    },
+    {
+      "job": "python-shards (1)",
+      "conclusion": "success",
+      "seconds": 1674.0
+    },
+    {
+      "job": "package",
+      "conclusion": "success",
+      "seconds": 13.0
+    },
+    {
+      "job": "python-shards (3)",
+      "conclusion": "success",
+      "seconds": 645.0
+    },
+    {
+      "job": "python-shards (2)",
+      "conclusion": "success",
+      "seconds": 14.0
+    },
+    {
+      "job": "latency (current, plain)",
+      "conclusion": "success",
+      "seconds": 109.0
+    },
+    {
+      "job": "latency (ab7aba92, audit)",
+      "conclusion": "success",
+      "seconds": 116.0
+    },
+    {
+      "job": "latency (ab7aba92, plain)",
+      "conclusion": "success",
+      "seconds": 111.0
+    },
+    {
+      "job": "latency (current, audit)",
+      "conclusion": "success",
+      "seconds": 121.0
+    },
+    {
+      "job": "fixtures (external, word-2)",
+      "conclusion": "success",
+      "seconds": 396.0
+    },
+    {
+      "job": "fixtures (policy, core)",
+      "conclusion": "success",
+      "seconds": 1846.0
+    },
+    {
+      "job": "fixtures (policy, adapters)",
+      "conclusion": "success",
+      "seconds": 846.0
+    },
+    {
+      "job": "fixtures (policy, word-2)",
+      "conclusion": "success",
+      "seconds": 354.0
+    },
+    {
+      "job": "fixtures (policy, review)",
+      "conclusion": "success",
+      "seconds": 578.0
+    },
+    {
+      "job": "fixtures (external, recheck2)",
+      "conclusion": "success",
+      "seconds": 299.0
+    },
+    {
+      "job": "fixtures (policy, word-3)",
+      "conclusion": "success",
+      "seconds": 386.0
+    },
+    {
+      "job": "fixtures (external, adapters)",
+      "conclusion": "success",
+      "seconds": 644.0
+    },
+    {
+      "job": "fixtures (policy, word-0)",
+      "conclusion": "success",
+      "seconds": 408.0
+    },
+    {
+      "job": "fixtures (external, word-3)",
+      "conclusion": "success",
+      "seconds": 346.0
+    },
+    {
+      "job": "fixtures (external, review)",
+      "conclusion": "success",
+      "seconds": 587.0
+    },
+    {
+      "job": "fixtures (external, word-1)",
+      "conclusion": "success",
+      "seconds": 385.0
+    },
+    {
+      "job": "fixtures (policy, word-1)",
+      "conclusion": "success",
+      "seconds": 348.0
+    },
+    {
+      "job": "fixtures (external, recheck3)",
+      "conclusion": "success",
+      "seconds": 716.0
+    },
+    {
+      "job": "fixtures (external, word-0)",
+      "conclusion": "success",
+      "seconds": 392.0
+    },
+    {
+      "job": "fixtures (external, core)",
+      "conclusion": "success",
+      "seconds": 1356.0
+    },
+    {
+      "job": "fixtures (policy, recheck2)",
+      "conclusion": "success",
+      "seconds": 330.0
+    },
+    {
+      "job": "fixtures (policy, recheck3)",
+      "conclusion": "success",
+      "seconds": 656.0
+    },
+    {
+      "job": "aggregate (policy)",
+      "conclusion": "success",
+      "seconds": 22.0
+    },
+    {
+      "job": "aggregate (external)",
+      "conclusion": "success",
+      "seconds": 23.0
+    }
+  ],
+  "longest_job_seconds": 1846.0,
+  "status": "Intermediate full pass; later SVG fixes and addendum-f remain pending."
+}

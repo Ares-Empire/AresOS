@@ -1,0 +1,73 @@
+{
+  "implementation": "12af37878713af897030ce2cbf3a2bcce79e2bd5",
+  "round": "review fixes 2 (fix 1 4dd39fbf, fix 2 1c651b8a, checks-only job limit 12af3787)",
+  "hosted": {
+    "run": 43547375701,
+    "conclusion": "failure (exactly four deferred stage-1b fingerprint pins)",
+    "job_minutes": "32m53s of the raised 40-minute limit",
+    "tests": 1080,
+    "failures": 4,
+    "errors": 0,
+    "skipped": 0,
+    "seconds": 1948.831,
+    "watch_exit": 1,
+    "failed_tests": [
+      "test_owner_bootstrap.BootstrapTest.test_documented_command_is_generated_from_complete_system_manifest",
+      "test_owner_equality.EqualityTest.test_bootstrap_is_byte_equal_to_the_block_exercised_by_package_14_tamper_tests",
+      "test_owner_equality.EqualityTest.test_reviewed_windows_payload_is_exact_generated_ci_payload",
+      "test_owner_path.OwnerPathTest.test_update_route_orders_windows_tools_update_title_reboot_check_with_pass_stop_and_returns"
+    ],
+    "module_counts": {
+      "test_owner_update": 73,
+      "test_ways_back": 47,
+      "test_ways_back_model": 21,
+      "test_ways_back_compatibility": 21,
+      "test_ways_back_reverts": 17,
+      "test_ways_back_probe": 40
+    },
+    "model": {
+      "states": 963003,
+      "edges": 25257042,
+      "executions": 813553,
+      "reuses": 24443489,
+      "exploration_seconds": 1275.008,
+      "queue_exhausted": true,
+      "outcomes": {
+        "complete": 333,
+        "in-place-not-started": 135720,
+        "none": 217560,
+        "not-applied": 277098,
+        "retry": 333,
+        "selection-applied": 150528,
+        "target-boot-confirmed": 91956,
+        "waiting": 89475
+      }
+    }
+  },
+  "local": {
+    "focused": {"tests": 47, "seconds": 28.174, "result": "OK", "available_mb_at_start": 8367},
+    "reverts": {"tests": 17, "seconds": 1.213, "result": "OK", "available_mb_at_start": 9287},
+    "model": {
+      "tests": 21,
+      "seconds": 916.816,
+      "result": "OK",
+      "available_mb_at_start": 10191,
+      "states": 963003,
+      "edges": 25257042,
+      "executions": 813553,
+      "reuses": 24443489,
+      "exploration_seconds": 911.268,
+      "queue_exhausted": true,
+      "original_login_edges": 115176
+    }
+  },
+  "earlier_hosted_runs": [
+    {"run": 43542336319, "result": "cancelled at the 25-minute job limit inside the model (680000 states, 777s); before it 1001 ok, the four pins FAIL, 0 errors, 0 skipped"},
+    {"run": 43544822860, "result": "cancelled at the 25-minute job limit inside the model (860000 states, 882s); before it 1001 ok, the four pins FAIL, 0 errors, 0 skipped"}
+  ],
+  "limits": [
+    "No owner operations on laptop",
+    "No VM or mod run",
+    "Stage 1b fingerprint pins remain deferred"
+  ]
+}

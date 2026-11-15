@@ -44,6 +44,8 @@ class AbandonTest(unittest.TestCase):
             admin,old=self.begin(f)
             state=f.read();state['rpm']['deployments'][0]['booted']=False;state['rpm']['deployments'][1]['booted']=True
             status=state['bootc']['status'];status['booted'],status['rollback']=status['rollback'],status['booted']
+            status['rollbackQueued']=True
+            state['bootc']['spec']['bootOrder']='rollback'
             stock=dict(old,VConsoleKeymap='us',X11Layout='us')
             state['keyboard']=stock;state['loaded_keymap']='us';f.state=state;f.write()
             f.tools.session=lambda:dict(admin,session='stock',boot='stock-boot',started_us=1)

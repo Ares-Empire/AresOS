@@ -1,0 +1,2064 @@
+{
+  "source": "2d2c728e2c3f63748b06a537a6c020cbc57705f4",
+  "whole_runs": "failed; not acceptance",
+  "runs": [
+    42849536082,
+    42849298252
+  ],
+  "install_modes": {
+    "external": {
+      "matrix_executed": 56,
+      "matrix_passed": 53,
+      "review_pass_lines": [
+        {
+          "line": 33,
+          "text": "GROUP 4 REVIEW ordinary native dialogs from Claude owner and page tasks keep working PASS"
+        },
+        {
+          "line": 34,
+          "text": "GROUP 8 REVIEW preexisting dialogs hand off within bounds and recover after the owner answers PASS"
+        },
+        {
+          "line": 35,
+          "text": "GROUP 4 REVIEW borrowed native dialogs always ask bind the answer and never replay PASS"
+        },
+        {
+          "line": 36,
+          "text": "GROUP 3 REVIEW ordinary blank and srcdoc editors bind drafts and send normally PASS"
+        },
+        {
+          "line": 37,
+          "text": "GROUP 3 REVIEW owner chosen attachments show byte digests and bind identical metadata replacements PASS"
+        },
+        {
+          "line": 42,
+          "text": "GROUP 2 REVIEW inherited and newly created frames hold submissions PASS"
+        },
+        {
+          "line": 43,
+          "text": "GROUP 2 REVIEW borrowed wrappers respect another controlled tab and an ordinary document PASS"
+        },
+        {
+          "line": 44,
+          "text": "GROUP 11 REVIEW explicit pay and delete evidence overrides an owner allowed adapter PASS"
+        },
+        {
+          "line": 51,
+          "text": "GROUP 2 REVIEW synchronous new shadow roots keep all submission kinds held PASS"
+        },
+        {
+          "line": 60,
+          "text": "GROUP 2 REVIEW new shadow roots capture borrowed native events including noncomposed ones PASS"
+        },
+        {
+          "line": 67,
+          "text": "GROUP 1 REVIEW modified deletion keys normalized words malformed URLs and visible names PASS"
+        },
+        {
+          "line": 79,
+          "text": "GROUP 3 REVIEW item confirmation file rich text and title mutations refuse PASS"
+        },
+        {
+          "line": 83,
+          "text": "GROUP 2 REVIEW owner mark exact form submitter and unconsumed delayed work PASS"
+        },
+        {
+          "line": 84,
+          "text": "GROUP 8 REVIEW iframe drafts and detached or Web Audio report before reload PASS"
+        },
+        {
+          "line": 85,
+          "text": "GROUP 8 REVIEW script-started POST documents in tabs and popups never reload PASS"
+        },
+        {
+          "line": 86,
+          "text": "GROUP 8 REVIEW no-op checks and isolated choices leave the owner tab selected PASS"
+        },
+        {
+          "line": 87,
+          "text": "GROUP 8 REVIEW Stop removes navigation blocks while a frozen wrapper awaits cleanup PASS"
+        },
+        {
+          "line": 88,
+          "text": "GROUP 5 REVIEW page outcome records the actual post-input notice PASS"
+        }
+      ],
+      "failed_rows": [
+        {
+          "name": "GROUP 4 ADAPTER every named GitHub confirmation mismatch",
+          "passed": false,
+          "error": "AssertionError [ERR_ASSERTION]: {\"ok\":false,\"error\":{\"code\":\"refused\",\"message\":\"native dialog has no authenticated return boundary; leave it to the owner\"},\"pending\":{\"items\":[{\"operation_id\":\"a614ebc4575b4ff7bb8fb6df6c334482:7802b6b56ed040e4b1183c9648e0342b\",\"app\":\"chrome\",\"state\":\"failed\",\"reason\":\"Control ended; prepared input was dropped without dispatch.\"},{\"operation_id\":\"a614ebc4575b4ff7bb8fb6df6c334482:eaddc2fd311e449494c7ded126ded986\",\"app\":\"chrome\",\"state\":\"unknown\",\"reason\":\"Input dispatched, but a page handler completion could not be confirmed. Inspect the page and never replay.\"},{\"operation_id\":\"a614ebc4575b4ff7bb8fb6df6c334482:dd68fd6031c94858b764392cd4a04237\",\"app\":\"chrome\",\"state\":\"unknown\",\"reason\":\"Input dispatched, but a page handler completion could not be confirmed. Inspect the page and never replay.\"},{\"operation_id\":\"a614ebc4575b4ff7bb8fb6df6c334482:7456616eb6a54d83819a77af6f208b37\",\"app\":\"chrome\",\"state\":\"unknown\",\"reason\":\"Input dispatched, but a page handler completion could not be confirmed. Inspect the page and never replay.\"},{\"operation_id\":\"a614ebc4575b4ff7bb8fb6df6c334482:3fee8cd98a37449b81b4c01b30d65371\",\"app\":\"chrome\",\"state\":\"unknown\",\"reason\":\"Input dispatched, but a page handler completion could not be confirmed. Inspect the page and never replay.\"}],\"total\":25,\"cursor\":\"59183634f8eae2e6942e671b79783466c0979f18eb6e1307669e3508f265adc5:WzE3OTQzMjYyODMuMzUwNTg0NSwiYTYxNGViYzQ1NzViNGZmN2JiOGZiNmRmNmMzMzQ0ODI6M2ZlZThjZDk4YTM3NDQ5YjgxYjRjMDFiMzBkNjUzNzEiXQ==\",\"restore_required\":false,\"notices\":[{\"operation_id\":\"recovery-a614ebc4575b4ff7bb8fb6df6c334482:8dbb623fe0d24229895c0f797ba75c00\",\"app\":\"chrome\",\"state\":\"unknown\",\"untrusted_content\":{\"reason\":\"Chrome input has an unfinished committed outcome; it may have run. Never replay it.\",\"operation_id\":\"a614ebc4575b4ff7bb8fb6df6c334482:8dbb623fe0d24229895c0f797ba75c00\"}},{\"operation_id\":\"recovery-a614ebc4575b4ff7bb8fb6df6c334482:11954c6d82404e8ebdaca37c31ac5c45\",\"app\":\"chrome\",\"state\":\"unknown\",\"untrusted_content\":{\"reason\":\"Chrome input has an unfinished committed outcome; it may have run. Never replay it.\",\"operation_id\":\"a614ebc4575b4ff7bb8fb6df6c334482:11954c6d82404e8ebdaca37c31ac5c45\"}},{\"operation_id\":\"recovery-a614ebc4575b4ff7bb8fb6df6c334482:30f3971a380549188651ff4ec6280079\",\"app\":\"chrome\",\"state\":\"unknown\",\"untrusted_content\":{\"reason\":\"Chrome input has an unfinished committed outcome; it may have run. Never replay it.\",\"operation_id\":\"a614ebc4575b4ff7bb8fb6df6c334482:30f3971a380549188651ff4ec6280079\"}}],\"notices_more\":{\"count\":73,\"action\":\"control_notices\"}}}\n    at call (file:///workspace/control/chrome/ci/browser.mjs:28:80)\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async file:///workspace/control/chrome/ci/sites/matrices.mjs:123:181\n    at async check (file:///workspace/control/chrome/ci/sites/matrices.mjs:15:9)\n    at async siteMatrices (file:///workspace/control/chrome/ci/sites/matrices.mjs:117:3)\n    at async collectSiteResults (file:///workspace/control/chrome/ci/site-results.mjs:12:16)\n    at async matrices (file:///workspace/control/chrome/ci/matrices.mjs:86:19)\n    at async file:///workspace/control/chrome/ci/browser.mjs:146:24"
+        },
+        {
+          "name": "GROUP 10 ADAPTER Gemini question content and always asking chat changes",
+          "passed": false,
+          "error": "Error: Send: undefined\n    at eventually (file:///workspace/control/chrome/ci/browser.mjs:29:208)\n    at async target (file:///workspace/control/chrome/ci/browser.mjs:32:40)\n    at async refusedAfterChange (file:///workspace/control/chrome/ci/sites/matrices.mjs:33:39)\n    at async file:///workspace/control/chrome/ci/sites/matrices.mjs:140:67\n    at async check (file:///workspace/control/chrome/ci/sites/matrices.mjs:15:9)\n    at async siteMatrices (file:///workspace/control/chrome/ci/sites/matrices.mjs:134:3)\n    at async collectSiteResults (file:///workspace/control/chrome/ci/site-results.mjs:12:16)\n    at async matrices (file:///workspace/control/chrome/ci/matrices.mjs:86:19)\n    at async file:///workspace/control/chrome/ci/browser.mjs:146:24"
+        },
+        {
+          "name": "GROUP 4 exact native confirmation and mismatch matrix",
+          "passed": false,
+          "error": "Error: one receiver arrival confirm-site-Delete branch: undefined\n    at eventually (file:///workspace/control/chrome/ci/browser.mjs:29:208)\n    at async approval (file:///workspace/control/chrome/ci/matrices.mjs:29:44)\n    at async file:///workspace/control/chrome/ci/matrices.mjs:257:7\n    at async check (file:///workspace/control/chrome/ci/matrices.mjs:19:10)\n    at async matrices (file:///workspace/control/chrome/ci/matrices.mjs:247:3)\n    at async file:///workspace/control/chrome/ci/browser.mjs:146:24"
+        }
+      ],
+      "native_receiver_rows": [
+        {
+          "id": "review-dialog-alert-claude-true",
+          "phase": "native dialog open",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-dialog-alert-claude-true",
+          "phase": "after native answer",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-dialog-alert-claude-true",
+          "phase": "before approval",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-dialog-alert-claude-true",
+          "phase": "after approval",
+          "count": 1,
+          "arrivals": [
+            {
+              "time": 1794326260908,
+              "url": "/receive?case=review-dialog-alert-claude-true",
+              "method": "POST",
+              "body": "draft=Saved&reply=undefined",
+              "host": "fixture.test:8765"
+            }
+          ]
+        },
+        {
+          "id": "review-dialog-alert-claude-true",
+          "phase": "after repeat",
+          "count": 1,
+          "arrivals": [
+            {
+              "time": 1794326260908,
+              "url": "/receive?case=review-dialog-alert-claude-true",
+              "method": "POST",
+              "body": "draft=Saved&reply=undefined",
+              "host": "fixture.test:8765"
+            }
+          ]
+        },
+        {
+          "id": "review-dialog-alert-owner-true",
+          "phase": "native dialog open",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-dialog-alert-owner-true",
+          "phase": "after native answer",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-dialog-alert-owner-true",
+          "phase": "before approval",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-dialog-alert-owner-true",
+          "phase": "after approval",
+          "count": 1,
+          "arrivals": [
+            {
+              "time": 1794326263294,
+              "url": "/receive?case=review-dialog-alert-owner-true",
+              "method": "POST",
+              "body": "draft=Saved&reply=undefined",
+              "host": "fixture.test:8765"
+            }
+          ]
+        },
+        {
+          "id": "review-dialog-alert-owner-true",
+          "phase": "after repeat",
+          "count": 1,
+          "arrivals": [
+            {
+              "time": 1794326263294,
+              "url": "/receive?case=review-dialog-alert-owner-true",
+              "method": "POST",
+              "body": "draft=Saved&reply=undefined",
+              "host": "fixture.test:8765"
+            }
+          ]
+        },
+        {
+          "id": "review-dialog-alert-task-true",
+          "phase": "native dialog open",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-dialog-alert-task-true",
+          "phase": "after native answer",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-dialog-alert-task-true",
+          "phase": "before approval",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-dialog-alert-task-true",
+          "phase": "after approval",
+          "count": 1,
+          "arrivals": [
+            {
+              "time": 1794326265658,
+              "url": "/receive?case=review-dialog-alert-task-true",
+              "method": "POST",
+              "body": "draft=Saved&reply=undefined",
+              "host": "fixture.test:8765"
+            }
+          ]
+        },
+        {
+          "id": "review-dialog-alert-task-true",
+          "phase": "after repeat",
+          "count": 1,
+          "arrivals": [
+            {
+              "time": 1794326265658,
+              "url": "/receive?case=review-dialog-alert-task-true",
+              "method": "POST",
+              "body": "draft=Saved&reply=undefined",
+              "host": "fixture.test:8765"
+            }
+          ]
+        },
+        {
+          "id": "review-dialog-confirm-claude-false",
+          "phase": "native dialog open",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-dialog-confirm-claude-false",
+          "phase": "after native answer",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-dialog-confirm-claude-false",
+          "phase": "before approval",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-dialog-confirm-claude-false",
+          "phase": "after approval",
+          "count": 1,
+          "arrivals": [
+            {
+              "time": 1794326268686,
+              "url": "/receive?case=review-dialog-confirm-claude-false",
+              "method": "POST",
+              "body": "draft=Saved&reply=false",
+              "host": "fixture.test:8765"
+            }
+          ]
+        },
+        {
+          "id": "review-dialog-confirm-claude-false",
+          "phase": "after repeat",
+          "count": 1,
+          "arrivals": [
+            {
+              "time": 1794326268686,
+              "url": "/receive?case=review-dialog-confirm-claude-false",
+              "method": "POST",
+              "body": "draft=Saved&reply=false",
+              "host": "fixture.test:8765"
+            }
+          ]
+        },
+        {
+          "id": "review-dialog-confirm-claude-true",
+          "phase": "native dialog open",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-dialog-confirm-claude-true",
+          "phase": "after native answer",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-dialog-confirm-claude-true",
+          "phase": "before approval",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-dialog-confirm-claude-true",
+          "phase": "after approval",
+          "count": 1,
+          "arrivals": [
+            {
+              "time": 1794326271732,
+              "url": "/receive?case=review-dialog-confirm-claude-true",
+              "method": "POST",
+              "body": "draft=Saved&reply=true",
+              "host": "fixture.test:8765"
+            }
+          ]
+        },
+        {
+          "id": "review-dialog-confirm-claude-true",
+          "phase": "after repeat",
+          "count": 1,
+          "arrivals": [
+            {
+              "time": 1794326271732,
+              "url": "/receive?case=review-dialog-confirm-claude-true",
+              "method": "POST",
+              "body": "draft=Saved&reply=true",
+              "host": "fixture.test:8765"
+            }
+          ]
+        },
+        {
+          "id": "review-dialog-confirm-owner-false",
+          "phase": "native dialog open",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-dialog-confirm-owner-false",
+          "phase": "after native answer",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-dialog-confirm-owner-false",
+          "phase": "before approval",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-dialog-confirm-owner-false",
+          "phase": "after approval",
+          "count": 1,
+          "arrivals": [
+            {
+              "time": 1794326274183,
+              "url": "/receive?case=review-dialog-confirm-owner-false",
+              "method": "POST",
+              "body": "draft=Saved&reply=false",
+              "host": "fixture.test:8765"
+            }
+          ]
+        },
+        {
+          "id": "review-dialog-confirm-owner-false",
+          "phase": "after repeat",
+          "count": 1,
+          "arrivals": [
+            {
+              "time": 1794326274183,
+              "url": "/receive?case=review-dialog-confirm-owner-false",
+              "method": "POST",
+              "body": "draft=Saved&reply=false",
+              "host": "fixture.test:8765"
+            }
+          ]
+        },
+        {
+          "id": "review-dialog-confirm-owner-true",
+          "phase": "native dialog open",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-dialog-confirm-owner-true",
+          "phase": "after native answer",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-dialog-confirm-owner-true",
+          "phase": "before approval",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-dialog-confirm-owner-true",
+          "phase": "after approval",
+          "count": 1,
+          "arrivals": [
+            {
+              "time": 1794326276654,
+              "url": "/receive?case=review-dialog-confirm-owner-true",
+              "method": "POST",
+              "body": "draft=Saved&reply=true",
+              "host": "fixture.test:8765"
+            }
+          ]
+        },
+        {
+          "id": "review-dialog-confirm-owner-true",
+          "phase": "after repeat",
+          "count": 1,
+          "arrivals": [
+            {
+              "time": 1794326276654,
+              "url": "/receive?case=review-dialog-confirm-owner-true",
+              "method": "POST",
+              "body": "draft=Saved&reply=true",
+              "host": "fixture.test:8765"
+            }
+          ]
+        },
+        {
+          "id": "review-dialog-confirm-task-false",
+          "phase": "native dialog open",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-dialog-confirm-task-false",
+          "phase": "after native answer",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-dialog-confirm-task-false",
+          "phase": "before approval",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-dialog-confirm-task-false",
+          "phase": "after approval",
+          "count": 1,
+          "arrivals": [
+            {
+              "time": 1794326279085,
+              "url": "/receive?case=review-dialog-confirm-task-false",
+              "method": "POST",
+              "body": "draft=Saved&reply=false",
+              "host": "fixture.test:8765"
+            }
+          ]
+        },
+        {
+          "id": "review-dialog-confirm-task-false",
+          "phase": "after repeat",
+          "count": 1,
+          "arrivals": [
+            {
+              "time": 1794326279085,
+              "url": "/receive?case=review-dialog-confirm-task-false",
+              "method": "POST",
+              "body": "draft=Saved&reply=false",
+              "host": "fixture.test:8765"
+            }
+          ]
+        },
+        {
+          "id": "review-dialog-confirm-task-true",
+          "phase": "native dialog open",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-dialog-confirm-task-true",
+          "phase": "after native answer",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-dialog-confirm-task-true",
+          "phase": "before approval",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-dialog-confirm-task-true",
+          "phase": "after approval",
+          "count": 1,
+          "arrivals": [
+            {
+              "time": 1794326281535,
+              "url": "/receive?case=review-dialog-confirm-task-true",
+              "method": "POST",
+              "body": "draft=Saved&reply=true",
+              "host": "fixture.test:8765"
+            }
+          ]
+        },
+        {
+          "id": "review-dialog-confirm-task-true",
+          "phase": "after repeat",
+          "count": 1,
+          "arrivals": [
+            {
+              "time": 1794326281535,
+              "url": "/receive?case=review-dialog-confirm-task-true",
+              "method": "POST",
+              "body": "draft=Saved&reply=true",
+              "host": "fixture.test:8765"
+            }
+          ]
+        },
+        {
+          "id": "review-dialog-prompt-claude-false",
+          "phase": "native dialog open",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-dialog-prompt-claude-false",
+          "phase": "after native answer",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-dialog-prompt-claude-false",
+          "phase": "before approval",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-dialog-prompt-claude-false",
+          "phase": "after approval",
+          "count": 1,
+          "arrivals": [
+            {
+              "time": 1794326284695,
+              "url": "/receive?case=review-dialog-prompt-claude-false",
+              "method": "POST",
+              "body": "draft=Saved&reply=null",
+              "host": "fixture.test:8765"
+            }
+          ]
+        },
+        {
+          "id": "review-dialog-prompt-claude-false",
+          "phase": "after repeat",
+          "count": 1,
+          "arrivals": [
+            {
+              "time": 1794326284695,
+              "url": "/receive?case=review-dialog-prompt-claude-false",
+              "method": "POST",
+              "body": "draft=Saved&reply=null",
+              "host": "fixture.test:8765"
+            }
+          ]
+        },
+        {
+          "id": "review-dialog-prompt-claude-true",
+          "phase": "native dialog open",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-dialog-prompt-claude-true",
+          "phase": "after native answer",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-dialog-prompt-claude-true",
+          "phase": "before approval",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-dialog-prompt-claude-true",
+          "phase": "after approval",
+          "count": 1,
+          "arrivals": [
+            {
+              "time": 1794326287862,
+              "url": "/receive?case=review-dialog-prompt-claude-true",
+              "method": "POST",
+              "body": "draft=Saved&reply=Synthetic+answer",
+              "host": "fixture.test:8765"
+            }
+          ]
+        },
+        {
+          "id": "review-dialog-prompt-claude-true",
+          "phase": "after repeat",
+          "count": 1,
+          "arrivals": [
+            {
+              "time": 1794326287862,
+              "url": "/receive?case=review-dialog-prompt-claude-true",
+              "method": "POST",
+              "body": "draft=Saved&reply=Synthetic+answer",
+              "host": "fixture.test:8765"
+            }
+          ]
+        },
+        {
+          "id": "review-dialog-prompt-owner-false",
+          "phase": "native dialog open",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-dialog-prompt-owner-false",
+          "phase": "after native answer",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-dialog-prompt-owner-false",
+          "phase": "before approval",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-dialog-prompt-owner-false",
+          "phase": "after approval",
+          "count": 1,
+          "arrivals": [
+            {
+              "time": 1794326290405,
+              "url": "/receive?case=review-dialog-prompt-owner-false",
+              "method": "POST",
+              "body": "draft=Saved&reply=null",
+              "host": "fixture.test:8765"
+            }
+          ]
+        },
+        {
+          "id": "review-dialog-prompt-owner-false",
+          "phase": "after repeat",
+          "count": 1,
+          "arrivals": [
+            {
+              "time": 1794326290405,
+              "url": "/receive?case=review-dialog-prompt-owner-false",
+              "method": "POST",
+              "body": "draft=Saved&reply=null",
+              "host": "fixture.test:8765"
+            }
+          ]
+        },
+        {
+          "id": "review-dialog-prompt-owner-true",
+          "phase": "native dialog open",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-dialog-prompt-owner-true",
+          "phase": "after native answer",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-dialog-prompt-owner-true",
+          "phase": "before approval",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-dialog-prompt-owner-true",
+          "phase": "after approval",
+          "count": 1,
+          "arrivals": [
+            {
+              "time": 1794326292969,
+              "url": "/receive?case=review-dialog-prompt-owner-true",
+              "method": "POST",
+              "body": "draft=Saved&reply=Synthetic+answer",
+              "host": "fixture.test:8765"
+            }
+          ]
+        },
+        {
+          "id": "review-dialog-prompt-owner-true",
+          "phase": "after repeat",
+          "count": 1,
+          "arrivals": [
+            {
+              "time": 1794326292969,
+              "url": "/receive?case=review-dialog-prompt-owner-true",
+              "method": "POST",
+              "body": "draft=Saved&reply=Synthetic+answer",
+              "host": "fixture.test:8765"
+            }
+          ]
+        },
+        {
+          "id": "review-dialog-prompt-task-false",
+          "phase": "native dialog open",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-dialog-prompt-task-false",
+          "phase": "after native answer",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-dialog-prompt-task-false",
+          "phase": "before approval",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-dialog-prompt-task-false",
+          "phase": "after approval",
+          "count": 1,
+          "arrivals": [
+            {
+              "time": 1794326295515,
+              "url": "/receive?case=review-dialog-prompt-task-false",
+              "method": "POST",
+              "body": "draft=Saved&reply=null",
+              "host": "fixture.test:8765"
+            }
+          ]
+        },
+        {
+          "id": "review-dialog-prompt-task-false",
+          "phase": "after repeat",
+          "count": 1,
+          "arrivals": [
+            {
+              "time": 1794326295515,
+              "url": "/receive?case=review-dialog-prompt-task-false",
+              "method": "POST",
+              "body": "draft=Saved&reply=null",
+              "host": "fixture.test:8765"
+            }
+          ]
+        },
+        {
+          "id": "review-dialog-prompt-task-true",
+          "phase": "native dialog open",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-dialog-prompt-task-true",
+          "phase": "after native answer",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-dialog-prompt-task-true",
+          "phase": "before approval",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-dialog-prompt-task-true",
+          "phase": "after approval",
+          "count": 1,
+          "arrivals": [
+            {
+              "time": 1794326298075,
+              "url": "/receive?case=review-dialog-prompt-task-true",
+              "method": "POST",
+              "body": "draft=Saved&reply=Synthetic+answer",
+              "host": "fixture.test:8765"
+            }
+          ]
+        },
+        {
+          "id": "review-dialog-prompt-task-true",
+          "phase": "after repeat",
+          "count": 1,
+          "arrivals": [
+            {
+              "time": 1794326298075,
+              "url": "/receive?case=review-dialog-prompt-task-true",
+              "method": "POST",
+              "body": "draft=Saved&reply=Synthetic+answer",
+              "host": "fixture.test:8765"
+            }
+          ]
+        },
+        {
+          "id": "review-preexisting-alert",
+          "phase": "bounded handoff",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-preexisting-alert",
+          "phase": "owner answer",
+          "count": 1,
+          "arrivals": [
+            {
+              "time": 1794326305308,
+              "url": "/receive?case=review-preexisting-alert",
+              "method": "POST",
+              "body": "undefined",
+              "host": "fixture.test:8765"
+            }
+          ]
+        },
+        {
+          "id": "review-preexisting-alert",
+          "phase": "first guarded act after handoff",
+          "count": 1,
+          "arrivals": [
+            {
+              "time": 1794326305308,
+              "url": "/receive?case=review-preexisting-alert",
+              "method": "POST",
+              "body": "undefined",
+              "host": "fixture.test:8765"
+            }
+          ]
+        },
+        {
+          "id": "review-preexisting-confirm",
+          "phase": "bounded handoff",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-preexisting-confirm",
+          "phase": "owner answer",
+          "count": 1,
+          "arrivals": [
+            {
+              "time": 1794326313071,
+              "url": "/receive?case=review-preexisting-confirm",
+              "method": "POST",
+              "body": "false",
+              "host": "fixture.test:8765"
+            }
+          ]
+        },
+        {
+          "id": "review-preexisting-confirm",
+          "phase": "first guarded act after handoff",
+          "count": 1,
+          "arrivals": [
+            {
+              "time": 1794326313071,
+              "url": "/receive?case=review-preexisting-confirm",
+              "method": "POST",
+              "body": "false",
+              "host": "fixture.test:8765"
+            }
+          ]
+        },
+        {
+          "id": "review-preexisting-prompt",
+          "phase": "bounded handoff",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-preexisting-prompt",
+          "phase": "owner answer",
+          "count": 1,
+          "arrivals": [
+            {
+              "time": 1794326320846,
+              "url": "/receive?case=review-preexisting-prompt",
+              "method": "POST",
+              "body": "null",
+              "host": "fixture.test:8765"
+            }
+          ]
+        },
+        {
+          "id": "review-preexisting-prompt",
+          "phase": "first guarded act after handoff",
+          "count": 1,
+          "arrivals": [
+            {
+              "time": 1794326320846,
+              "url": "/receive?case=review-preexisting-prompt",
+              "method": "POST",
+              "body": "null",
+              "host": "fixture.test:8765"
+            }
+          ]
+        },
+        {
+          "id": "review-borrowed-alert",
+          "phase": "borrowed question",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-borrowed-alert",
+          "phase": "borrowed unapproved answers refused",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-borrowed-alert",
+          "phase": "before approval",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-borrowed-alert",
+          "phase": "after approval",
+          "count": 1,
+          "arrivals": [
+            {
+              "time": 1794326324571,
+              "url": "/receive?case=review-borrowed-alert",
+              "method": "POST",
+              "body": "draft=Saved&reply=undefined",
+              "host": "fixture.test:8765"
+            }
+          ]
+        },
+        {
+          "id": "review-borrowed-alert",
+          "phase": "after repeat",
+          "count": 1,
+          "arrivals": [
+            {
+              "time": 1794326324571,
+              "url": "/receive?case=review-borrowed-alert",
+              "method": "POST",
+              "body": "draft=Saved&reply=undefined",
+              "host": "fixture.test:8765"
+            }
+          ]
+        },
+        {
+          "id": "review-borrowed-confirm",
+          "phase": "borrowed question",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-borrowed-confirm",
+          "phase": "borrowed unapproved answers refused",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-borrowed-confirm",
+          "phase": "before approval",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-borrowed-confirm",
+          "phase": "after approval",
+          "count": 1,
+          "arrivals": [
+            {
+              "time": 1794326328130,
+              "url": "/receive?case=review-borrowed-confirm",
+              "method": "POST",
+              "body": "draft=Saved&reply=true",
+              "host": "fixture.test:8765"
+            }
+          ]
+        },
+        {
+          "id": "review-borrowed-confirm",
+          "phase": "after repeat",
+          "count": 1,
+          "arrivals": [
+            {
+              "time": 1794326328130,
+              "url": "/receive?case=review-borrowed-confirm",
+              "method": "POST",
+              "body": "draft=Saved&reply=true",
+              "host": "fixture.test:8765"
+            }
+          ]
+        },
+        {
+          "id": "review-borrowed-prompt",
+          "phase": "borrowed question",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-borrowed-prompt",
+          "phase": "borrowed unapproved answers refused",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-borrowed-prompt",
+          "phase": "before approval",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-borrowed-prompt",
+          "phase": "after approval",
+          "count": 1,
+          "arrivals": [
+            {
+              "time": 1794326331751,
+              "url": "/receive?case=review-borrowed-prompt",
+              "method": "POST",
+              "body": "draft=Saved&reply=Chosen+prompt",
+              "host": "fixture.test:8765"
+            }
+          ]
+        },
+        {
+          "id": "review-borrowed-prompt",
+          "phase": "after repeat",
+          "count": 1,
+          "arrivals": [
+            {
+              "time": 1794326331751,
+              "url": "/receive?case=review-borrowed-prompt",
+              "method": "POST",
+              "body": "draft=Saved&reply=Chosen+prompt",
+              "host": "fixture.test:8765"
+            }
+          ]
+        }
+      ]
+    },
+    "policy": {
+      "matrix_executed": 56,
+      "matrix_passed": 53,
+      "review_pass_lines": [
+        {
+          "line": 33,
+          "text": "GROUP 4 REVIEW ordinary native dialogs from Claude owner and page tasks keep working PASS"
+        },
+        {
+          "line": 34,
+          "text": "GROUP 8 REVIEW preexisting dialogs hand off within bounds and recover after the owner answers PASS"
+        },
+        {
+          "line": 35,
+          "text": "GROUP 4 REVIEW borrowed native dialogs always ask bind the answer and never replay PASS"
+        },
+        {
+          "line": 36,
+          "text": "GROUP 3 REVIEW ordinary blank and srcdoc editors bind drafts and send normally PASS"
+        },
+        {
+          "line": 37,
+          "text": "GROUP 3 REVIEW owner chosen attachments show byte digests and bind identical metadata replacements PASS"
+        },
+        {
+          "line": 42,
+          "text": "GROUP 2 REVIEW inherited and newly created frames hold submissions PASS"
+        },
+        {
+          "line": 43,
+          "text": "GROUP 2 REVIEW borrowed wrappers respect another controlled tab and an ordinary document PASS"
+        },
+        {
+          "line": 44,
+          "text": "GROUP 11 REVIEW explicit pay and delete evidence overrides an owner allowed adapter PASS"
+        },
+        {
+          "line": 51,
+          "text": "GROUP 2 REVIEW synchronous new shadow roots keep all submission kinds held PASS"
+        },
+        {
+          "line": 60,
+          "text": "GROUP 2 REVIEW new shadow roots capture borrowed native events including noncomposed ones PASS"
+        },
+        {
+          "line": 67,
+          "text": "GROUP 1 REVIEW modified deletion keys normalized words malformed URLs and visible names PASS"
+        },
+        {
+          "line": 79,
+          "text": "GROUP 3 REVIEW item confirmation file rich text and title mutations refuse PASS"
+        },
+        {
+          "line": 83,
+          "text": "GROUP 2 REVIEW owner mark exact form submitter and unconsumed delayed work PASS"
+        },
+        {
+          "line": 84,
+          "text": "GROUP 8 REVIEW iframe drafts and detached or Web Audio report before reload PASS"
+        },
+        {
+          "line": 85,
+          "text": "GROUP 8 REVIEW script-started POST documents in tabs and popups never reload PASS"
+        },
+        {
+          "line": 86,
+          "text": "GROUP 8 REVIEW no-op checks and isolated choices leave the owner tab selected PASS"
+        },
+        {
+          "line": 87,
+          "text": "GROUP 8 REVIEW Stop removes navigation blocks while a frozen wrapper awaits cleanup PASS"
+        },
+        {
+          "line": 88,
+          "text": "GROUP 5 REVIEW page outcome records the actual post-input notice PASS"
+        }
+      ],
+      "failed_rows": [
+        {
+          "name": "GROUP 4 ADAPTER every named GitHub confirmation mismatch",
+          "passed": false,
+          "error": "AssertionError [ERR_ASSERTION]: {\"ok\":false,\"error\":{\"code\":\"refused\",\"message\":\"native dialog has no authenticated return boundary; leave it to the owner\"},\"pending\":{\"items\":[{\"operation_id\":\"c6741bd65b65484db3382bd08bf23f8c:d4ef97690e2d40d29af15d8883f6b3cf\",\"app\":\"chrome\",\"state\":\"failed\",\"reason\":\"Control ended; prepared input was dropped without dispatch.\"},{\"operation_id\":\"c6741bd65b65484db3382bd08bf23f8c:670137cf63454371a3744c18725da71f\",\"app\":\"chrome\",\"state\":\"unknown\",\"reason\":\"Input dispatched, but a page handler completion could not be confirmed. Inspect the page and never replay.\"},{\"operation_id\":\"c6741bd65b65484db3382bd08bf23f8c:26739dddc00d4259bfc367e6cf2dc17f\",\"app\":\"chrome\",\"state\":\"unknown\",\"reason\":\"Input dispatched, but a page handler completion could not be confirmed. Inspect the page and never replay.\"},{\"operation_id\":\"c6741bd65b65484db3382bd08bf23f8c:bef209a925054387b6e565d6f1b7055c\",\"app\":\"chrome\",\"state\":\"unknown\",\"reason\":\"Input dispatched, but a page handler completion could not be confirmed. Inspect the page and never replay.\"},{\"operation_id\":\"c6741bd65b65484db3382bd08bf23f8c:431adfcc25524d2097613bd982ffac93\",\"app\":\"chrome\",\"state\":\"unknown\",\"reason\":\"Input dispatched, but a page handler completion could not be confirmed. Inspect the page and never replay.\"}],\"total\":25,\"cursor\":\"0fe15fda3ba7869a04b85e210fe1401ede3bdc59b9549192c25a10c701d6f1aa:WzE3OTQzMjYyODYuODc2OTM3NCwiYzY3NDFiZDY1YjY1NDg0ZGIzMzgyYmQwOGJmMjNmOGM6NDMxYWRmY2MyNTUyNGQyMDk3NjEzYmQ5ODJmZmFjOTMiXQ==\",\"restore_required\":false,\"notices\":[{\"operation_id\":\"recovery-c6741bd65b65484db3382bd08bf23f8c:5a85054fcfb54afab2b0e82058bda270\",\"app\":\"chrome\",\"state\":\"unknown\",\"untrusted_content\":{\"reason\":\"Chrome input has an unfinished committed outcome; it may have run. Never replay it.\",\"operation_id\":\"c6741bd65b65484db3382bd08bf23f8c:5a85054fcfb54afab2b0e82058bda270\"}},{\"operation_id\":\"recovery-c6741bd65b65484db3382bd08bf23f8c:0d832460e79a4cef85cb18db2c9b3d57\",\"app\":\"chrome\",\"state\":\"unknown\",\"untrusted_content\":{\"reason\":\"Chrome input has an unfinished committed outcome; it may have run. Never replay it.\",\"operation_id\":\"c6741bd65b65484db3382bd08bf23f8c:0d832460e79a4cef85cb18db2c9b3d57\"}},{\"operation_id\":\"recovery-c6741bd65b65484db3382bd08bf23f8c:970bcf1969044854b7e97ba0012ceeff\",\"app\":\"chrome\",\"state\":\"unknown\",\"untrusted_content\":{\"reason\":\"Chrome input has an unfinished committed outcome; it may have run. Never replay it.\",\"operation_id\":\"c6741bd65b65484db3382bd08bf23f8c:970bcf1969044854b7e97ba0012ceeff\"}}],\"notices_more\":{\"count\":73,\"action\":\"control_notices\"}}}\n    at call (file:///workspace/control/chrome/ci/browser.mjs:28:80)\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async file:///workspace/control/chrome/ci/sites/matrices.mjs:123:181\n    at async check (file:///workspace/control/chrome/ci/sites/matrices.mjs:15:9)\n    at async siteMatrices (file:///workspace/control/chrome/ci/sites/matrices.mjs:117:3)\n    at async collectSiteResults (file:///workspace/control/chrome/ci/site-results.mjs:12:16)\n    at async matrices (file:///workspace/control/chrome/ci/matrices.mjs:86:19)\n    at async file:///workspace/control/chrome/ci/browser.mjs:146:24"
+        },
+        {
+          "name": "GROUP 10 ADAPTER Gemini question content and always asking chat changes",
+          "passed": false,
+          "error": "Error: Send: undefined\n    at eventually (file:///workspace/control/chrome/ci/browser.mjs:29:208)\n    at async target (file:///workspace/control/chrome/ci/browser.mjs:32:40)\n    at async refusedAfterChange (file:///workspace/control/chrome/ci/sites/matrices.mjs:33:39)\n    at async file:///workspace/control/chrome/ci/sites/matrices.mjs:140:67\n    at async check (file:///workspace/control/chrome/ci/sites/matrices.mjs:15:9)\n    at async siteMatrices (file:///workspace/control/chrome/ci/sites/matrices.mjs:134:3)\n    at async collectSiteResults (file:///workspace/control/chrome/ci/site-results.mjs:12:16)\n    at async matrices (file:///workspace/control/chrome/ci/matrices.mjs:86:19)\n    at async file:///workspace/control/chrome/ci/browser.mjs:146:24"
+        },
+        {
+          "name": "GROUP 4 exact native confirmation and mismatch matrix",
+          "passed": false,
+          "error": "Error: one receiver arrival confirm-site-Delete branch: undefined\n    at eventually (file:///workspace/control/chrome/ci/browser.mjs:29:208)\n    at async approval (file:///workspace/control/chrome/ci/matrices.mjs:29:44)\n    at async file:///workspace/control/chrome/ci/matrices.mjs:257:7\n    at async check (file:///workspace/control/chrome/ci/matrices.mjs:19:10)\n    at async matrices (file:///workspace/control/chrome/ci/matrices.mjs:247:3)\n    at async file:///workspace/control/chrome/ci/browser.mjs:146:24"
+        }
+      ],
+      "native_receiver_rows": [
+        {
+          "id": "review-dialog-alert-claude-true",
+          "phase": "native dialog open",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-dialog-alert-claude-true",
+          "phase": "after native answer",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-dialog-alert-claude-true",
+          "phase": "before approval",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-dialog-alert-claude-true",
+          "phase": "after approval",
+          "count": 1,
+          "arrivals": [
+            {
+              "time": 1794326264860,
+              "url": "/receive?case=review-dialog-alert-claude-true",
+              "method": "POST",
+              "body": "draft=Saved&reply=undefined",
+              "host": "fixture.test:8765"
+            }
+          ]
+        },
+        {
+          "id": "review-dialog-alert-claude-true",
+          "phase": "after repeat",
+          "count": 1,
+          "arrivals": [
+            {
+              "time": 1794326264860,
+              "url": "/receive?case=review-dialog-alert-claude-true",
+              "method": "POST",
+              "body": "draft=Saved&reply=undefined",
+              "host": "fixture.test:8765"
+            }
+          ]
+        },
+        {
+          "id": "review-dialog-alert-owner-true",
+          "phase": "native dialog open",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-dialog-alert-owner-true",
+          "phase": "after native answer",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-dialog-alert-owner-true",
+          "phase": "before approval",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-dialog-alert-owner-true",
+          "phase": "after approval",
+          "count": 1,
+          "arrivals": [
+            {
+              "time": 1794326267213,
+              "url": "/receive?case=review-dialog-alert-owner-true",
+              "method": "POST",
+              "body": "draft=Saved&reply=undefined",
+              "host": "fixture.test:8765"
+            }
+          ]
+        },
+        {
+          "id": "review-dialog-alert-owner-true",
+          "phase": "after repeat",
+          "count": 1,
+          "arrivals": [
+            {
+              "time": 1794326267213,
+              "url": "/receive?case=review-dialog-alert-owner-true",
+              "method": "POST",
+              "body": "draft=Saved&reply=undefined",
+              "host": "fixture.test:8765"
+            }
+          ]
+        },
+        {
+          "id": "review-dialog-alert-task-true",
+          "phase": "native dialog open",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-dialog-alert-task-true",
+          "phase": "after native answer",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-dialog-alert-task-true",
+          "phase": "before approval",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-dialog-alert-task-true",
+          "phase": "after approval",
+          "count": 1,
+          "arrivals": [
+            {
+              "time": 1794326269676,
+              "url": "/receive?case=review-dialog-alert-task-true",
+              "method": "POST",
+              "body": "draft=Saved&reply=undefined",
+              "host": "fixture.test:8765"
+            }
+          ]
+        },
+        {
+          "id": "review-dialog-alert-task-true",
+          "phase": "after repeat",
+          "count": 1,
+          "arrivals": [
+            {
+              "time": 1794326269676,
+              "url": "/receive?case=review-dialog-alert-task-true",
+              "method": "POST",
+              "body": "draft=Saved&reply=undefined",
+              "host": "fixture.test:8765"
+            }
+          ]
+        },
+        {
+          "id": "review-dialog-confirm-claude-false",
+          "phase": "native dialog open",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-dialog-confirm-claude-false",
+          "phase": "after native answer",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-dialog-confirm-claude-false",
+          "phase": "before approval",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-dialog-confirm-claude-false",
+          "phase": "after approval",
+          "count": 1,
+          "arrivals": [
+            {
+              "time": 1794326272626,
+              "url": "/receive?case=review-dialog-confirm-claude-false",
+              "method": "POST",
+              "body": "draft=Saved&reply=false",
+              "host": "fixture.test:8765"
+            }
+          ]
+        },
+        {
+          "id": "review-dialog-confirm-claude-false",
+          "phase": "after repeat",
+          "count": 1,
+          "arrivals": [
+            {
+              "time": 1794326272626,
+              "url": "/receive?case=review-dialog-confirm-claude-false",
+              "method": "POST",
+              "body": "draft=Saved&reply=false",
+              "host": "fixture.test:8765"
+            }
+          ]
+        },
+        {
+          "id": "review-dialog-confirm-claude-true",
+          "phase": "native dialog open",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-dialog-confirm-claude-true",
+          "phase": "after native answer",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-dialog-confirm-claude-true",
+          "phase": "before approval",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-dialog-confirm-claude-true",
+          "phase": "after approval",
+          "count": 1,
+          "arrivals": [
+            {
+              "time": 1794326275555,
+              "url": "/receive?case=review-dialog-confirm-claude-true",
+              "method": "POST",
+              "body": "draft=Saved&reply=true",
+              "host": "fixture.test:8765"
+            }
+          ]
+        },
+        {
+          "id": "review-dialog-confirm-claude-true",
+          "phase": "after repeat",
+          "count": 1,
+          "arrivals": [
+            {
+              "time": 1794326275555,
+              "url": "/receive?case=review-dialog-confirm-claude-true",
+              "method": "POST",
+              "body": "draft=Saved&reply=true",
+              "host": "fixture.test:8765"
+            }
+          ]
+        },
+        {
+          "id": "review-dialog-confirm-owner-false",
+          "phase": "native dialog open",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-dialog-confirm-owner-false",
+          "phase": "after native answer",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-dialog-confirm-owner-false",
+          "phase": "before approval",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-dialog-confirm-owner-false",
+          "phase": "after approval",
+          "count": 1,
+          "arrivals": [
+            {
+              "time": 1794326278071,
+              "url": "/receive?case=review-dialog-confirm-owner-false",
+              "method": "POST",
+              "body": "draft=Saved&reply=false",
+              "host": "fixture.test:8765"
+            }
+          ]
+        },
+        {
+          "id": "review-dialog-confirm-owner-false",
+          "phase": "after repeat",
+          "count": 1,
+          "arrivals": [
+            {
+              "time": 1794326278071,
+              "url": "/receive?case=review-dialog-confirm-owner-false",
+              "method": "POST",
+              "body": "draft=Saved&reply=false",
+              "host": "fixture.test:8765"
+            }
+          ]
+        },
+        {
+          "id": "review-dialog-confirm-owner-true",
+          "phase": "native dialog open",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-dialog-confirm-owner-true",
+          "phase": "after native answer",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-dialog-confirm-owner-true",
+          "phase": "before approval",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-dialog-confirm-owner-true",
+          "phase": "after approval",
+          "count": 1,
+          "arrivals": [
+            {
+              "time": 1794326280441,
+              "url": "/receive?case=review-dialog-confirm-owner-true",
+              "method": "POST",
+              "body": "draft=Saved&reply=true",
+              "host": "fixture.test:8765"
+            }
+          ]
+        },
+        {
+          "id": "review-dialog-confirm-owner-true",
+          "phase": "after repeat",
+          "count": 1,
+          "arrivals": [
+            {
+              "time": 1794326280441,
+              "url": "/receive?case=review-dialog-confirm-owner-true",
+              "method": "POST",
+              "body": "draft=Saved&reply=true",
+              "host": "fixture.test:8765"
+            }
+          ]
+        },
+        {
+          "id": "review-dialog-confirm-task-false",
+          "phase": "native dialog open",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-dialog-confirm-task-false",
+          "phase": "after native answer",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-dialog-confirm-task-false",
+          "phase": "before approval",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-dialog-confirm-task-false",
+          "phase": "after approval",
+          "count": 1,
+          "arrivals": [
+            {
+              "time": 1794326282785,
+              "url": "/receive?case=review-dialog-confirm-task-false",
+              "method": "POST",
+              "body": "draft=Saved&reply=false",
+              "host": "fixture.test:8765"
+            }
+          ]
+        },
+        {
+          "id": "review-dialog-confirm-task-false",
+          "phase": "after repeat",
+          "count": 1,
+          "arrivals": [
+            {
+              "time": 1794326282785,
+              "url": "/receive?case=review-dialog-confirm-task-false",
+              "method": "POST",
+              "body": "draft=Saved&reply=false",
+              "host": "fixture.test:8765"
+            }
+          ]
+        },
+        {
+          "id": "review-dialog-confirm-task-true",
+          "phase": "native dialog open",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-dialog-confirm-task-true",
+          "phase": "after native answer",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-dialog-confirm-task-true",
+          "phase": "before approval",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-dialog-confirm-task-true",
+          "phase": "after approval",
+          "count": 1,
+          "arrivals": [
+            {
+              "time": 1794326285160,
+              "url": "/receive?case=review-dialog-confirm-task-true",
+              "method": "POST",
+              "body": "draft=Saved&reply=true",
+              "host": "fixture.test:8765"
+            }
+          ]
+        },
+        {
+          "id": "review-dialog-confirm-task-true",
+          "phase": "after repeat",
+          "count": 1,
+          "arrivals": [
+            {
+              "time": 1794326285160,
+              "url": "/receive?case=review-dialog-confirm-task-true",
+              "method": "POST",
+              "body": "draft=Saved&reply=true",
+              "host": "fixture.test:8765"
+            }
+          ]
+        },
+        {
+          "id": "review-dialog-prompt-claude-false",
+          "phase": "native dialog open",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-dialog-prompt-claude-false",
+          "phase": "after native answer",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-dialog-prompt-claude-false",
+          "phase": "before approval",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-dialog-prompt-claude-false",
+          "phase": "after approval",
+          "count": 1,
+          "arrivals": [
+            {
+              "time": 1794326288161,
+              "url": "/receive?case=review-dialog-prompt-claude-false",
+              "method": "POST",
+              "body": "draft=Saved&reply=null",
+              "host": "fixture.test:8765"
+            }
+          ]
+        },
+        {
+          "id": "review-dialog-prompt-claude-false",
+          "phase": "after repeat",
+          "count": 1,
+          "arrivals": [
+            {
+              "time": 1794326288161,
+              "url": "/receive?case=review-dialog-prompt-claude-false",
+              "method": "POST",
+              "body": "draft=Saved&reply=null",
+              "host": "fixture.test:8765"
+            }
+          ]
+        },
+        {
+          "id": "review-dialog-prompt-claude-true",
+          "phase": "native dialog open",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-dialog-prompt-claude-true",
+          "phase": "after native answer",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-dialog-prompt-claude-true",
+          "phase": "before approval",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-dialog-prompt-claude-true",
+          "phase": "after approval",
+          "count": 1,
+          "arrivals": [
+            {
+              "time": 1794326291197,
+              "url": "/receive?case=review-dialog-prompt-claude-true",
+              "method": "POST",
+              "body": "draft=Saved&reply=Synthetic+answer",
+              "host": "fixture.test:8765"
+            }
+          ]
+        },
+        {
+          "id": "review-dialog-prompt-claude-true",
+          "phase": "after repeat",
+          "count": 1,
+          "arrivals": [
+            {
+              "time": 1794326291197,
+              "url": "/receive?case=review-dialog-prompt-claude-true",
+              "method": "POST",
+              "body": "draft=Saved&reply=Synthetic+answer",
+              "host": "fixture.test:8765"
+            }
+          ]
+        },
+        {
+          "id": "review-dialog-prompt-owner-false",
+          "phase": "native dialog open",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-dialog-prompt-owner-false",
+          "phase": "after native answer",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-dialog-prompt-owner-false",
+          "phase": "before approval",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-dialog-prompt-owner-false",
+          "phase": "after approval",
+          "count": 1,
+          "arrivals": [
+            {
+              "time": 1794326293635,
+              "url": "/receive?case=review-dialog-prompt-owner-false",
+              "method": "POST",
+              "body": "draft=Saved&reply=null",
+              "host": "fixture.test:8765"
+            }
+          ]
+        },
+        {
+          "id": "review-dialog-prompt-owner-false",
+          "phase": "after repeat",
+          "count": 1,
+          "arrivals": [
+            {
+              "time": 1794326293635,
+              "url": "/receive?case=review-dialog-prompt-owner-false",
+              "method": "POST",
+              "body": "draft=Saved&reply=null",
+              "host": "fixture.test:8765"
+            }
+          ]
+        },
+        {
+          "id": "review-dialog-prompt-owner-true",
+          "phase": "native dialog open",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-dialog-prompt-owner-true",
+          "phase": "after native answer",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-dialog-prompt-owner-true",
+          "phase": "before approval",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-dialog-prompt-owner-true",
+          "phase": "after approval",
+          "count": 1,
+          "arrivals": [
+            {
+              "time": 1794326296053,
+              "url": "/receive?case=review-dialog-prompt-owner-true",
+              "method": "POST",
+              "body": "draft=Saved&reply=Synthetic+answer",
+              "host": "fixture.test:8765"
+            }
+          ]
+        },
+        {
+          "id": "review-dialog-prompt-owner-true",
+          "phase": "after repeat",
+          "count": 1,
+          "arrivals": [
+            {
+              "time": 1794326296053,
+              "url": "/receive?case=review-dialog-prompt-owner-true",
+              "method": "POST",
+              "body": "draft=Saved&reply=Synthetic+answer",
+              "host": "fixture.test:8765"
+            }
+          ]
+        },
+        {
+          "id": "review-dialog-prompt-task-false",
+          "phase": "native dialog open",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-dialog-prompt-task-false",
+          "phase": "after native answer",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-dialog-prompt-task-false",
+          "phase": "before approval",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-dialog-prompt-task-false",
+          "phase": "after approval",
+          "count": 1,
+          "arrivals": [
+            {
+              "time": 1794326298728,
+              "url": "/receive?case=review-dialog-prompt-task-false",
+              "method": "POST",
+              "body": "draft=Saved&reply=null",
+              "host": "fixture.test:8765"
+            }
+          ]
+        },
+        {
+          "id": "review-dialog-prompt-task-false",
+          "phase": "after repeat",
+          "count": 1,
+          "arrivals": [
+            {
+              "time": 1794326298728,
+              "url": "/receive?case=review-dialog-prompt-task-false",
+              "method": "POST",
+              "body": "draft=Saved&reply=null",
+              "host": "fixture.test:8765"
+            }
+          ]
+        },
+        {
+          "id": "review-dialog-prompt-task-true",
+          "phase": "native dialog open",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-dialog-prompt-task-true",
+          "phase": "after native answer",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-dialog-prompt-task-true",
+          "phase": "before approval",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-dialog-prompt-task-true",
+          "phase": "after approval",
+          "count": 1,
+          "arrivals": [
+            {
+              "time": 1794326301144,
+              "url": "/receive?case=review-dialog-prompt-task-true",
+              "method": "POST",
+              "body": "draft=Saved&reply=Synthetic+answer",
+              "host": "fixture.test:8765"
+            }
+          ]
+        },
+        {
+          "id": "review-dialog-prompt-task-true",
+          "phase": "after repeat",
+          "count": 1,
+          "arrivals": [
+            {
+              "time": 1794326301144,
+              "url": "/receive?case=review-dialog-prompt-task-true",
+              "method": "POST",
+              "body": "draft=Saved&reply=Synthetic+answer",
+              "host": "fixture.test:8765"
+            }
+          ]
+        },
+        {
+          "id": "review-preexisting-alert",
+          "phase": "bounded handoff",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-preexisting-alert",
+          "phase": "owner answer",
+          "count": 1,
+          "arrivals": [
+            {
+              "time": 1794326308478,
+              "url": "/receive?case=review-preexisting-alert",
+              "method": "POST",
+              "body": "undefined",
+              "host": "fixture.test:8765"
+            }
+          ]
+        },
+        {
+          "id": "review-preexisting-alert",
+          "phase": "first guarded act after handoff",
+          "count": 1,
+          "arrivals": [
+            {
+              "time": 1794326308478,
+              "url": "/receive?case=review-preexisting-alert",
+              "method": "POST",
+              "body": "undefined",
+              "host": "fixture.test:8765"
+            }
+          ]
+        },
+        {
+          "id": "review-preexisting-confirm",
+          "phase": "bounded handoff",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-preexisting-confirm",
+          "phase": "owner answer",
+          "count": 1,
+          "arrivals": [
+            {
+              "time": 1794326316160,
+              "url": "/receive?case=review-preexisting-confirm",
+              "method": "POST",
+              "body": "false",
+              "host": "fixture.test:8765"
+            }
+          ]
+        },
+        {
+          "id": "review-preexisting-confirm",
+          "phase": "first guarded act after handoff",
+          "count": 1,
+          "arrivals": [
+            {
+              "time": 1794326316160,
+              "url": "/receive?case=review-preexisting-confirm",
+              "method": "POST",
+              "body": "false",
+              "host": "fixture.test:8765"
+            }
+          ]
+        },
+        {
+          "id": "review-preexisting-prompt",
+          "phase": "bounded handoff",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-preexisting-prompt",
+          "phase": "owner answer",
+          "count": 1,
+          "arrivals": [
+            {
+              "time": 1794326323626,
+              "url": "/receive?case=review-preexisting-prompt",
+              "method": "POST",
+              "body": "null",
+              "host": "fixture.test:8765"
+            }
+          ]
+        },
+        {
+          "id": "review-preexisting-prompt",
+          "phase": "first guarded act after handoff",
+          "count": 1,
+          "arrivals": [
+            {
+              "time": 1794326323626,
+              "url": "/receive?case=review-preexisting-prompt",
+              "method": "POST",
+              "body": "null",
+              "host": "fixture.test:8765"
+            }
+          ]
+        },
+        {
+          "id": "review-borrowed-alert",
+          "phase": "borrowed question",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-borrowed-alert",
+          "phase": "borrowed unapproved answers refused",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-borrowed-alert",
+          "phase": "before approval",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-borrowed-alert",
+          "phase": "after approval",
+          "count": 1,
+          "arrivals": [
+            {
+              "time": 1794326326918,
+              "url": "/receive?case=review-borrowed-alert",
+              "method": "POST",
+              "body": "draft=Saved&reply=undefined",
+              "host": "fixture.test:8765"
+            }
+          ]
+        },
+        {
+          "id": "review-borrowed-alert",
+          "phase": "after repeat",
+          "count": 1,
+          "arrivals": [
+            {
+              "time": 1794326326918,
+              "url": "/receive?case=review-borrowed-alert",
+              "method": "POST",
+              "body": "draft=Saved&reply=undefined",
+              "host": "fixture.test:8765"
+            }
+          ]
+        },
+        {
+          "id": "review-borrowed-confirm",
+          "phase": "borrowed question",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-borrowed-confirm",
+          "phase": "borrowed unapproved answers refused",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-borrowed-confirm",
+          "phase": "before approval",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-borrowed-confirm",
+          "phase": "after approval",
+          "count": 1,
+          "arrivals": [
+            {
+              "time": 1794326330087,
+              "url": "/receive?case=review-borrowed-confirm",
+              "method": "POST",
+              "body": "draft=Saved&reply=true",
+              "host": "fixture.test:8765"
+            }
+          ]
+        },
+        {
+          "id": "review-borrowed-confirm",
+          "phase": "after repeat",
+          "count": 1,
+          "arrivals": [
+            {
+              "time": 1794326330087,
+              "url": "/receive?case=review-borrowed-confirm",
+              "method": "POST",
+              "body": "draft=Saved&reply=true",
+              "host": "fixture.test:8765"
+            }
+          ]
+        },
+        {
+          "id": "review-borrowed-prompt",
+          "phase": "borrowed question",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-borrowed-prompt",
+          "phase": "borrowed unapproved answers refused",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-borrowed-prompt",
+          "phase": "before approval",
+          "count": 0,
+          "arrivals": []
+        },
+        {
+          "id": "review-borrowed-prompt",
+          "phase": "after approval",
+          "count": 1,
+          "arrivals": [
+            {
+              "time": 1794326333470,
+              "url": "/receive?case=review-borrowed-prompt",
+              "method": "POST",
+              "body": "draft=Saved&reply=Chosen+prompt",
+              "host": "fixture.test:8765"
+            }
+          ]
+        },
+        {
+          "id": "review-borrowed-prompt",
+          "phase": "after repeat",
+          "count": 1,
+          "arrivals": [
+            {
+              "time": 1794326333470,
+              "url": "/receive?case=review-borrowed-prompt",
+              "method": "POST",
+              "body": "draft=Saved&reply=Chosen+prompt",
+              "host": "fixture.test:8765"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

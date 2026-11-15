@@ -1,6 +1,7 @@
 package dev.aresos.hub;
 
 import dev.aresos.catalogue.AppGroup;
+import dev.aresos.world.NetherHome;
 import dev.aresos.zone.GatePalette;
 import dev.aresos.zone.GatePicture;
 import dev.aresos.zone.GatePlan;
@@ -44,6 +45,40 @@ public record Place(AppGroup group, int row, Side side, int k) {
     public String name() { return "" + group.letter() + row + side + k; }
 
     @Override public String toString() { return name(); }
+
+    /**
+     * The place as he reads it in the chat (HUB.md 2.6), for example "Games, east, front row, left" or "Work & Media,
+     * west, row 2, right, 2nd from the road": the group's title, its direction, the row counted from 1 ("front row"
+     * for the first), the side as he sees it walking out from home, and, past the first logo beside the road, how
+     * far from the road. The one wording of a place: {@code /apps}, {@code /go} and the commands that move logos say
+     * it this way.
+     */
+    public String words() {
+        String words = group.title() + ", " + group.outward().getSerializedName() + ", "
+                + (row == 0 ? "front row" : "row " + (row + 1)) + ", " + (side == Side.L ? "left" : "right");
+        return k == 0 ? words : words + ", " + ordinal(k + 1) + " from the road";
+    }
+
+    /** 2nd, 3rd, 4th … 11th, 12th, 13th … 21st, 22nd. */
+    static String ordinal(int number) {
+        int tens = number % 100;
+        String suffix = tens >= 11 && tens <= 13 ? "th" : switch (number % 10) {
+            case 1 -> "st";
+            case 2 -> "nd";
+            case 3 -> "rd";
+            default -> "th";
+        };
+        return number + suffix;
+    }
+
+    /**
+     * Where he stands to walk into the logo here (HUB.md 3.2): on the ground in the middle of the block {@code EXIT}
+     * in front of the front layer, on the doorway's centre line, looking outward at pitch -10. The same point as the
+     * exit of the gate built here, whatever its picture.
+     */
+    public NetherHome.Home exit(ResourceKey<Level> dimension, BlockPos home) {
+        return plan(GatePicture.plain(GatePalette.name(group.concrete()), HubLayout.SIZE), dimension, home, "?", null).exit();
+    }
 
     /** The place a name stands for; empty for anything else, including names with leading zeros. */
     public static Optional<Place> parse(String name) {

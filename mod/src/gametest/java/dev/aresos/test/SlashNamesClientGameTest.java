@@ -114,7 +114,7 @@ public final class SlashNamesClientGameTest implements FabricClientGameTest {
                 // Exercise the real chat's click handler with the row received from the server.
                 context.runOnClient(client -> {
                     var row = messages(client).stream().map(net.minecraft.client.multiplayer.chat.GuiMessage::content)
-                            .filter(line -> line.getString().startsWith("Discord ") && line.getStyle().getClickEvent() instanceof ClickEvent.RunCommand)
+                            .filter(line -> line.getString().startsWith("Discord: ") && line.getStyle().getClickEvent() instanceof ClickEvent.RunCommand)
                             .findFirst().orElseThrow();
                     check(((SlashChatTestAccess)client.gui.screen()).aresos$click(row.getStyle(), false), "Chat row did not handle its click");
                 });

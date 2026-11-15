@@ -11,9 +11,10 @@ UI_BUNDLE_SHA256 = '9e456995a4be3d09b2b81b7e55f363d09577e688b8361d90081e1484cfb4
 UI_SOURCE_MAP_SHA256 = 'de301b46d770b5ce75ee3b00be8416c5b8de1a5348dfe0c4ab282f8e8b3ef36a'
 # Packages whose rehearsals install through package 14's owner VM harness:
 # NIC link down, WebUI over virtio-serial. Package 27's update rehearsal is one
-# (run 42933781975 stopped when this list lacked it). Package 13's keyboard
-# rehearsal shares the untrusted console and the keyboard diagnostics.
-OWNER_VM_PACKAGES = ('14', '16', '27')
+# (run 42933781975 stopped when this list lacked it), package 22c's reorder
+# probe and rehearsal are two more. Package 13's keyboard rehearsal shares the
+# untrusted console and the keyboard diagnostics.
+OWNER_VM_PACKAGES = ('14', '16', '27', '22c')
 KEYBOARD_PACKAGES = ('13',) + OWNER_VM_PACKAGES
 
 

@@ -1,0 +1,32 @@
+{
+  "stage": "cut-rollback",
+  "target": "S",
+  "by": "at rollback, stopped after its reorder and before its record",
+  "before": [
+    "R27",
+    "S",
+    "R13"
+  ],
+  "after": [
+    "S",
+    "R27",
+    "R13"
+  ],
+  "bootconfig_swap": "no",
+  "journal": [
+    "Transaction complete; bootconfig swap: no; bootversion: boot.0.0, deployment count change: 0"
+  ],
+  "loader_link": {
+    "before": "loader.0",
+    "after": "loader.0"
+  },
+  "ostree_boot_links": {
+    "before": {
+      "boot.0": "boot.0.1"
+    },
+    "after": {
+      "boot.0": "boot.0.0"
+    }
+  },
+  "entry_files_changed": false
+}

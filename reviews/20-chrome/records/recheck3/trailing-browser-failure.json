@@ -1,0 +1,994 @@
+[
+  {
+    "run": 43359345725,
+    "artifact": "control-chrome-43359345725-1-policy",
+    "matrix": [
+      {
+        "name": "GROUP 2 first-script natives are guarded in pages and frames",
+        "passed": true
+      },
+      {
+        "name": "GROUP 2 RECHECK3 every single wrapped step holds across roots events and registration order",
+        "passed": true
+      },
+      {
+        "name": "GROUP 2 RECHECK3 every hyperlink and form submitter default is neutralised",
+        "passed": true
+      },
+      {
+        "name": "GROUP 3 RECHECK3 rendered whitespace survives questions reasking stopping and final dispatch",
+        "passed": false,
+        "error": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\n'done' !== 'failed'\n\n    at file:///workspace/control/chrome/ci/recheck3-matrices.mjs:51:14\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async check (file:///workspace/control/chrome/ci/matrices.mjs:21:10)\n    at async recheck3Matrices (file:///workspace/control/chrome/ci/recheck3-matrices.mjs:37:3)\n    at async matrices (file:///workspace/control/chrome/ci/matrices.mjs:55:3)\n    at async file:///workspace/control/chrome/ci/browser.mjs:145:24"
+      }
+    ],
+    "whitespace_snapshots": [
+      {
+        "id": "recheck3-space-pre-indent",
+        "phase": "whitespace first change held",
+        "count": 0,
+        "arrivals": []
+      },
+      {
+        "id": "recheck3-space-pre-indent",
+        "phase": "old whitespace approval stays retired",
+        "count": 0,
+        "arrivals": []
+      },
+      {
+        "id": "recheck3-space-pre-indent",
+        "phase": "bounded whitespace stop and repeat",
+        "count": 0,
+        "arrivals": []
+      },
+      {
+        "id": "recheck3-space-pre-indent",
+        "phase": "before approval",
+        "count": 0,
+        "arrivals": []
+      },
+      {
+        "id": "recheck3-space-pre-indent",
+        "phase": "after approval",
+        "count": 1,
+        "arrivals": [
+          {
+            "time": 1794541024298,
+            "url": "/receive?case=recheck3-space-pre-indent",
+            "method": "POST",
+            "body": "if approved:\n    send() audit()\n",
+            "host": "fixture.test:8765"
+          }
+        ]
+      },
+      {
+        "id": "recheck3-space-pre-indent",
+        "phase": "after repeat",
+        "count": 1,
+        "arrivals": [
+          {
+            "time": 1794541024298,
+            "url": "/receive?case=recheck3-space-pre-indent",
+            "method": "POST",
+            "body": "if approved:\n    send() audit()\n",
+            "host": "fixture.test:8765"
+          }
+        ]
+      },
+      {
+        "id": "recheck3-space-pre-indent",
+        "phase": "fresh whitespace body received exactly",
+        "count": 1,
+        "arrivals": [
+          {
+            "time": 1794541024298,
+            "url": "/receive?case=recheck3-space-pre-indent",
+            "method": "POST",
+            "body": "if approved:\n    send() audit()\n",
+            "host": "fixture.test:8765"
+          }
+        ]
+      },
+      {
+        "id": "recheck3-space-pre-line",
+        "phase": "whitespace first change held",
+        "count": 0,
+        "arrivals": []
+      },
+      {
+        "id": "recheck3-space-pre-line",
+        "phase": "old whitespace approval stays retired",
+        "count": 0,
+        "arrivals": []
+      }
+    ],
+    "whitespace_arrivals": [
+      {
+        "time": 1794541024298,
+        "url": "/receive?case=recheck3-space-pre-indent",
+        "method": "POST",
+        "body": "if approved:\n    send() audit()\n",
+        "host": "fixture.test:8765"
+      },
+      {
+        "time": 1794541027264,
+        "url": "/receive?case=recheck3-space-pre-line",
+        "method": "POST",
+        "body": "if approved:\n    send() audit()\n",
+        "host": "fixture.test:8765"
+      }
+    ],
+    "last_submit": {
+      "operation": {
+        "action": "chrome_submit",
+        "app": "chrome",
+        "approval": {
+          "question": "On http://fixture.test:8765/?case=review-page&mode=compose-whitespace&kind=pre&change=line&id=recheck3-space-pre-line, page 'Synthetic fixture', as the page shows it, send 'Send'; where the page sends this isn't visible to the tool; text next to Send changed from 'Existing draft\\u000aif approved:\\u000a    send()\\u000aaudit()\\u000aSend' to 'Existing draft\\u000aif approved:\\u000a    send() audit()\\u000aSend'?",
+          "operation_id": "9ab8ad0e2dfe47eaa398694c2481c8f0:5d319f5cc30b42fe9e9583595cf13ace",
+          "description": {
+            "action": "chrome_submit",
+            "adapter_action": null,
+            "expires_at": 1794541926.634978,
+            "untrusted_content": {
+              "changed_compose": {
+                "after": "Existing draft\\u000aif approved:\\u000a    send() audit()\\u000aSend",
+                "before": "Existing draft\\u000aif approved:\\u000a    send()\\u000aaudit()\\u000aSend"
+              },
+              "confirmation": null,
+              "file": null,
+              "input": {
+                "verb": "click"
+              },
+              "kind": "send",
+              "page_state": {
+                "adapter": null,
+                "compose": {
+                  "element": "e6",
+                  "text": "Existing draft\\u000aif approved:\\u000a    send() audit()\\u000aSend",
+                  "whole_page": false
+                },
+                "control": "384450cd-6392-40b2-a043-2e348ddb40f2",
+                "dialog": null,
+                "document": "497253d46603ee2b1ff206631faf1ec3",
+                "editable": [
+                  {
+                    "document": "497253d46603ee2b1ff206631faf1ec3",
+                    "fields": [
+                      {
+                        "checked": false,
+                        "disabled": false,
+                        "element": "e7",
+                        "hidden": false,
+                        "label": "Draft",
+                        "multiple": false,
+                        "name": "",
+                        "readOnly": false,
+                        "rich": {
+                          "children": [
+                            "Existing draft"
+                          ],
+                          "display": "block",
+                          "tag": "DIV",
+                          "whiteSpace": "normal"
+                        },
+                        "type": "editable",
+                        "value": "Existing draft"
+                      }
+                    ],
+                    "frame": 0,
+                    "url": "http://fixture.test:8765/?case=review-page&mode=compose-whitespace&kind=pre&change=line&id=recheck3-space-pre-line"
+                  }
+                ],
+                "effective_url": "http://fixture.test:8765/?case=review-page&mode=compose-whitespace&kind=pre&change=line&id=recheck3-space-pre-line",
+                "form": null,
+                "frame": 0,
+                "frame_title": "Synthetic fixture",
+                "frame_url": "http://fixture.test:8765/?case=review-page&mode=compose-whitespace&kind=pre&change=line&id=recheck3-space-pre-line",
+                "item": null,
+                "item_fields": null,
+                "selected_files": [
+                  {
+                    "document": "497253d46603ee2b1ff206631faf1ec3",
+                    "fields": [],
+                    "frame": 0
+                  }
+                ],
+                "session": "9f4bf4c4-3c35-4f7f-b04d-743a77fabd84",
+                "tab": 872223401,
+                "target": {
+                  "editable": false,
+                  "element": "e9",
+                  "href": null,
+                  "label": "Send",
+                  "name": "Send",
+                  "page_dialog": null,
+                  "role": "button",
+                  "search": false,
+                  "states": {
+                    "checked": false,
+                    "disabled": false,
+                    "expanded": null,
+                    "invalid": false,
+                    "required": false,
+                    "selected": false
+                  },
+                  "submit": false,
+                  "title": "",
+                  "value": ""
+                },
+                "title": "Synthetic fixture",
+                "url": "http://fixture.test:8765/?case=review-page&mode=compose-whitespace&kind=pre&change=line&id=recheck3-space-pre-line"
+              },
+              "resume_kind": null
+            }
+          }
+        },
+        "expires": 1794541926.634978,
+        "generation": "9ab8ad0e2dfe47eaa398694c2481c8f0",
+        "id": "9ab8ad0e2dfe47eaa398694c2481c8f0:5d319f5cc30b42fe9e9583595cf13ace",
+        "reason": "Dispatched once, as the page shows it; this does not prove what the site did.",
+        "stages": {
+          "checked": {
+            "untrusted_content": "Page matched the bound approval immediately before input."
+          },
+          "dispatched": {
+            "untrusted_content": "Input or same-kind submission dispatched once; delivery is not proven."
+          },
+          "page": {
+            "untrusted_content": "{\"checked\":true,\"confirmations\":[],\"dialog\":null,\"dispatched\":true,\"no_change\":false,\"page\":{\"available\":true,\"change\":{\"checked\":false,\"element\":\"e9\",\"name\":\"Send\",\"selected\":false,\"value\":\"\",\"value_more\":0},\"notices\":[],\"title\":\"Synthetic fixture\",\"url\":\"http://fixture.test:8765/?case=review-page&mode=compose-whitespace&kind=pre&change=line&id=recheck3-space-pre-line\"},\"steps\":[],\"uncertain_finish\":false}"
+          }
+        },
+        "state": "done"
+      }
+    },
+    "sha256": {
+      "browser.txt": "a5275c9899261b2de5b6c4bec83b07eab7ad1171e04527ecff9414d328a440c2",
+      "receiver.jsonl": "172b83a41ab547764dd74ddf706cd3d6a13e9d4132896db50a223b02e53ee2b6",
+      "page-receiver.jsonl": "5b01c05d3deaf50ea620a9a8aab921983b1638a9b1ee3b65b869d12dfd8ad4e8",
+      "tool.jsonl": "81ae0da2785fafe7048aa596ad5badad9c34b1091a112bc09cd95091e230d7d5"
+    }
+  },
+  {
+    "run": 43359345725,
+    "artifact": "control-chrome-43359345725-1-external",
+    "matrix": [
+      {
+        "name": "GROUP 2 first-script natives are guarded in pages and frames",
+        "passed": true
+      },
+      {
+        "name": "GROUP 2 RECHECK3 every single wrapped step holds across roots events and registration order",
+        "passed": true
+      },
+      {
+        "name": "GROUP 2 RECHECK3 every hyperlink and form submitter default is neutralised",
+        "passed": true
+      },
+      {
+        "name": "GROUP 3 RECHECK3 rendered whitespace survives questions reasking stopping and final dispatch",
+        "passed": false,
+        "error": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\n'done' !== 'failed'\n\n    at file:///workspace/control/chrome/ci/recheck3-matrices.mjs:51:14\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async check (file:///workspace/control/chrome/ci/matrices.mjs:21:10)\n    at async recheck3Matrices (file:///workspace/control/chrome/ci/recheck3-matrices.mjs:37:3)\n    at async matrices (file:///workspace/control/chrome/ci/matrices.mjs:55:3)\n    at async file:///workspace/control/chrome/ci/browser.mjs:145:24"
+      }
+    ],
+    "whitespace_snapshots": [
+      {
+        "id": "recheck3-space-pre-indent",
+        "phase": "whitespace first change held",
+        "count": 0,
+        "arrivals": []
+      },
+      {
+        "id": "recheck3-space-pre-indent",
+        "phase": "old whitespace approval stays retired",
+        "count": 0,
+        "arrivals": []
+      },
+      {
+        "id": "recheck3-space-pre-indent",
+        "phase": "bounded whitespace stop and repeat",
+        "count": 0,
+        "arrivals": []
+      },
+      {
+        "id": "recheck3-space-pre-indent",
+        "phase": "before approval",
+        "count": 0,
+        "arrivals": []
+      },
+      {
+        "id": "recheck3-space-pre-indent",
+        "phase": "after approval",
+        "count": 1,
+        "arrivals": [
+          {
+            "time": 1794541008526,
+            "url": "/receive?case=recheck3-space-pre-indent",
+            "method": "POST",
+            "body": "if approved:\n    send() audit()\n",
+            "host": "fixture.test:8765"
+          }
+        ]
+      },
+      {
+        "id": "recheck3-space-pre-indent",
+        "phase": "after repeat",
+        "count": 1,
+        "arrivals": [
+          {
+            "time": 1794541008526,
+            "url": "/receive?case=recheck3-space-pre-indent",
+            "method": "POST",
+            "body": "if approved:\n    send() audit()\n",
+            "host": "fixture.test:8765"
+          }
+        ]
+      },
+      {
+        "id": "recheck3-space-pre-indent",
+        "phase": "fresh whitespace body received exactly",
+        "count": 1,
+        "arrivals": [
+          {
+            "time": 1794541008526,
+            "url": "/receive?case=recheck3-space-pre-indent",
+            "method": "POST",
+            "body": "if approved:\n    send() audit()\n",
+            "host": "fixture.test:8765"
+          }
+        ]
+      },
+      {
+        "id": "recheck3-space-pre-line",
+        "phase": "whitespace first change held",
+        "count": 0,
+        "arrivals": []
+      },
+      {
+        "id": "recheck3-space-pre-line",
+        "phase": "old whitespace approval stays retired",
+        "count": 0,
+        "arrivals": []
+      }
+    ],
+    "whitespace_arrivals": [
+      {
+        "time": 1794541008526,
+        "url": "/receive?case=recheck3-space-pre-indent",
+        "method": "POST",
+        "body": "if approved:\n    send() audit()\n",
+        "host": "fixture.test:8765"
+      },
+      {
+        "time": 1794541011381,
+        "url": "/receive?case=recheck3-space-pre-line",
+        "method": "POST",
+        "body": "if approved:\n    send() audit()\n",
+        "host": "fixture.test:8765"
+      }
+    ],
+    "last_submit": {
+      "operation": {
+        "action": "chrome_submit",
+        "app": "chrome",
+        "approval": {
+          "question": "On http://fixture.test:8765/?case=review-page&mode=compose-whitespace&kind=pre&change=line&id=recheck3-space-pre-line, page 'Synthetic fixture', as the page shows it, send 'Send'; where the page sends this isn't visible to the tool; text next to Send changed from 'Existing draft\\u000aif approved:\\u000a    send()\\u000aaudit()\\u000aSend' to 'Existing draft\\u000aif approved:\\u000a    send() audit()\\u000aSend'?",
+          "operation_id": "b7e6be37a2114c18bfdd50420a351da8:6285ad867f37466fa2527c38e7595a4d",
+          "description": {
+            "action": "chrome_submit",
+            "adapter_action": null,
+            "expires_at": 1794541910.790026,
+            "untrusted_content": {
+              "changed_compose": {
+                "after": "Existing draft\\u000aif approved:\\u000a    send() audit()\\u000aSend",
+                "before": "Existing draft\\u000aif approved:\\u000a    send()\\u000aaudit()\\u000aSend"
+              },
+              "confirmation": null,
+              "file": null,
+              "input": {
+                "verb": "click"
+              },
+              "kind": "send",
+              "page_state": {
+                "adapter": null,
+                "compose": {
+                  "element": "e6",
+                  "text": "Existing draft\\u000aif approved:\\u000a    send() audit()\\u000aSend",
+                  "whole_page": false
+                },
+                "control": "75c08adf-affd-4788-a127-868cf2a0c0d5",
+                "dialog": null,
+                "document": "bbab0ffa8056ab317d0e9a2bb2366f41",
+                "editable": [
+                  {
+                    "document": "bbab0ffa8056ab317d0e9a2bb2366f41",
+                    "fields": [
+                      {
+                        "checked": false,
+                        "disabled": false,
+                        "element": "e7",
+                        "hidden": false,
+                        "label": "Draft",
+                        "multiple": false,
+                        "name": "",
+                        "readOnly": false,
+                        "rich": {
+                          "children": [
+                            "Existing draft"
+                          ],
+                          "display": "block",
+                          "tag": "DIV",
+                          "whiteSpace": "normal"
+                        },
+                        "type": "editable",
+                        "value": "Existing draft"
+                      }
+                    ],
+                    "frame": 0,
+                    "url": "http://fixture.test:8765/?case=review-page&mode=compose-whitespace&kind=pre&change=line&id=recheck3-space-pre-line"
+                  }
+                ],
+                "effective_url": "http://fixture.test:8765/?case=review-page&mode=compose-whitespace&kind=pre&change=line&id=recheck3-space-pre-line",
+                "form": null,
+                "frame": 0,
+                "frame_title": "Synthetic fixture",
+                "frame_url": "http://fixture.test:8765/?case=review-page&mode=compose-whitespace&kind=pre&change=line&id=recheck3-space-pre-line",
+                "item": null,
+                "item_fields": null,
+                "selected_files": [
+                  {
+                    "document": "bbab0ffa8056ab317d0e9a2bb2366f41",
+                    "fields": [],
+                    "frame": 0
+                  }
+                ],
+                "session": "9aa3b662-06a5-4d39-811d-643b5eae2329",
+                "tab": 679328655,
+                "target": {
+                  "editable": false,
+                  "element": "e9",
+                  "href": null,
+                  "label": "Send",
+                  "name": "Send",
+                  "page_dialog": null,
+                  "role": "button",
+                  "search": false,
+                  "states": {
+                    "checked": false,
+                    "disabled": false,
+                    "expanded": null,
+                    "invalid": false,
+                    "required": false,
+                    "selected": false
+                  },
+                  "submit": false,
+                  "title": "",
+                  "value": ""
+                },
+                "title": "Synthetic fixture",
+                "url": "http://fixture.test:8765/?case=review-page&mode=compose-whitespace&kind=pre&change=line&id=recheck3-space-pre-line"
+              },
+              "resume_kind": null
+            }
+          }
+        },
+        "expires": 1794541910.790026,
+        "generation": "b7e6be37a2114c18bfdd50420a351da8",
+        "id": "b7e6be37a2114c18bfdd50420a351da8:6285ad867f37466fa2527c38e7595a4d",
+        "reason": "Dispatched once, as the page shows it; this does not prove what the site did.",
+        "stages": {
+          "checked": {
+            "untrusted_content": "Page matched the bound approval immediately before input."
+          },
+          "dispatched": {
+            "untrusted_content": "Input or same-kind submission dispatched once; delivery is not proven."
+          },
+          "page": {
+            "untrusted_content": "{\"checked\":true,\"confirmations\":[],\"dialog\":null,\"dispatched\":true,\"no_change\":false,\"page\":{\"available\":true,\"change\":{\"checked\":false,\"element\":\"e9\",\"name\":\"Send\",\"selected\":false,\"value\":\"\",\"value_more\":0},\"notices\":[],\"title\":\"Synthetic fixture\",\"url\":\"http://fixture.test:8765/?case=review-page&mode=compose-whitespace&kind=pre&change=line&id=recheck3-space-pre-line\"},\"steps\":[],\"uncertain_finish\":false}"
+          }
+        },
+        "state": "done"
+      }
+    },
+    "sha256": {
+      "browser.txt": "66bb647e2673d4ff1c3e75d6fb49be0ea351356695030c5f8dffd2fbe03dd578",
+      "receiver.jsonl": "31fcf11325f06e29ea7ac462e6078bbdeadd23425373bf380d7a1a2f191c591d",
+      "page-receiver.jsonl": "57ab5b79ed9eb940833f94362c1373e26d21ee17ba862fb499b4b0ff354f4774",
+      "tool.jsonl": "972b821d0936907a2766797bf23fd0ad34c175cb66652f7dfce20a013cf25c48"
+    }
+  },
+  {
+    "run": 43359355384,
+    "artifact": "control-chrome-43359355384-1-policy",
+    "matrix": [
+      {
+        "name": "GROUP 2 first-script natives are guarded in pages and frames",
+        "passed": true
+      },
+      {
+        "name": "GROUP 2 RECHECK3 every single wrapped step holds across roots events and registration order",
+        "passed": true
+      },
+      {
+        "name": "GROUP 2 RECHECK3 every hyperlink and form submitter default is neutralised",
+        "passed": true
+      },
+      {
+        "name": "GROUP 3 RECHECK3 rendered whitespace survives questions reasking stopping and final dispatch",
+        "passed": false,
+        "error": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\n'done' !== 'failed'\n\n    at file:///workspace/control/chrome/ci/recheck3-matrices.mjs:51:14\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async check (file:///workspace/control/chrome/ci/matrices.mjs:21:10)\n    at async recheck3Matrices (file:///workspace/control/chrome/ci/recheck3-matrices.mjs:37:3)\n    at async matrices (file:///workspace/control/chrome/ci/matrices.mjs:55:3)\n    at async file:///workspace/control/chrome/ci/browser.mjs:145:24"
+      }
+    ],
+    "whitespace_snapshots": [
+      {
+        "id": "recheck3-space-pre-indent",
+        "phase": "whitespace first change held",
+        "count": 0,
+        "arrivals": []
+      },
+      {
+        "id": "recheck3-space-pre-indent",
+        "phase": "old whitespace approval stays retired",
+        "count": 0,
+        "arrivals": []
+      },
+      {
+        "id": "recheck3-space-pre-indent",
+        "phase": "bounded whitespace stop and repeat",
+        "count": 0,
+        "arrivals": []
+      },
+      {
+        "id": "recheck3-space-pre-indent",
+        "phase": "before approval",
+        "count": 0,
+        "arrivals": []
+      },
+      {
+        "id": "recheck3-space-pre-indent",
+        "phase": "after approval",
+        "count": 1,
+        "arrivals": [
+          {
+            "time": 1794541019959,
+            "url": "/receive?case=recheck3-space-pre-indent",
+            "method": "POST",
+            "body": "if approved:\n    send() audit()\n",
+            "host": "fixture.test:8765"
+          }
+        ]
+      },
+      {
+        "id": "recheck3-space-pre-indent",
+        "phase": "after repeat",
+        "count": 1,
+        "arrivals": [
+          {
+            "time": 1794541019959,
+            "url": "/receive?case=recheck3-space-pre-indent",
+            "method": "POST",
+            "body": "if approved:\n    send() audit()\n",
+            "host": "fixture.test:8765"
+          }
+        ]
+      },
+      {
+        "id": "recheck3-space-pre-indent",
+        "phase": "fresh whitespace body received exactly",
+        "count": 1,
+        "arrivals": [
+          {
+            "time": 1794541019959,
+            "url": "/receive?case=recheck3-space-pre-indent",
+            "method": "POST",
+            "body": "if approved:\n    send() audit()\n",
+            "host": "fixture.test:8765"
+          }
+        ]
+      },
+      {
+        "id": "recheck3-space-pre-line",
+        "phase": "whitespace first change held",
+        "count": 0,
+        "arrivals": []
+      },
+      {
+        "id": "recheck3-space-pre-line",
+        "phase": "old whitespace approval stays retired",
+        "count": 0,
+        "arrivals": []
+      }
+    ],
+    "whitespace_arrivals": [
+      {
+        "time": 1794541019959,
+        "url": "/receive?case=recheck3-space-pre-indent",
+        "method": "POST",
+        "body": "if approved:\n    send() audit()\n",
+        "host": "fixture.test:8765"
+      },
+      {
+        "time": 1794541022828,
+        "url": "/receive?case=recheck3-space-pre-line",
+        "method": "POST",
+        "body": "if approved:\n    send() audit()\n",
+        "host": "fixture.test:8765"
+      }
+    ],
+    "last_submit": {
+      "operation": {
+        "action": "chrome_submit",
+        "app": "chrome",
+        "approval": {
+          "question": "On http://fixture.test:8765/?case=review-page&mode=compose-whitespace&kind=pre&change=line&id=recheck3-space-pre-line, page 'Synthetic fixture', as the page shows it, send 'Send'; where the page sends this isn't visible to the tool; text next to Send changed from 'Existing draft\\u000aif approved:\\u000a    send()\\u000aaudit()\\u000aSend' to 'Existing draft\\u000aif approved:\\u000a    send() audit()\\u000aSend'?",
+          "operation_id": "8b8e3da0b6094957bf4a29b329e75b2c:574b2f52e0a84f669b57a963e045334f",
+          "description": {
+            "action": "chrome_submit",
+            "adapter_action": null,
+            "expires_at": 1794541922.2196019,
+            "untrusted_content": {
+              "changed_compose": {
+                "after": "Existing draft\\u000aif approved:\\u000a    send() audit()\\u000aSend",
+                "before": "Existing draft\\u000aif approved:\\u000a    send()\\u000aaudit()\\u000aSend"
+              },
+              "confirmation": null,
+              "file": null,
+              "input": {
+                "verb": "click"
+              },
+              "kind": "send",
+              "page_state": {
+                "adapter": null,
+                "compose": {
+                  "element": "e6",
+                  "text": "Existing draft\\u000aif approved:\\u000a    send() audit()\\u000aSend",
+                  "whole_page": false
+                },
+                "control": "a5ffe1d9-78eb-4cf2-990f-ca6f45bd40cc",
+                "dialog": null,
+                "document": "4b4ccd90c892ea8732582def748dfcbb",
+                "editable": [
+                  {
+                    "document": "4b4ccd90c892ea8732582def748dfcbb",
+                    "fields": [
+                      {
+                        "checked": false,
+                        "disabled": false,
+                        "element": "e7",
+                        "hidden": false,
+                        "label": "Draft",
+                        "multiple": false,
+                        "name": "",
+                        "readOnly": false,
+                        "rich": {
+                          "children": [
+                            "Existing draft"
+                          ],
+                          "display": "block",
+                          "tag": "DIV",
+                          "whiteSpace": "normal"
+                        },
+                        "type": "editable",
+                        "value": "Existing draft"
+                      }
+                    ],
+                    "frame": 0,
+                    "url": "http://fixture.test:8765/?case=review-page&mode=compose-whitespace&kind=pre&change=line&id=recheck3-space-pre-line"
+                  }
+                ],
+                "effective_url": "http://fixture.test:8765/?case=review-page&mode=compose-whitespace&kind=pre&change=line&id=recheck3-space-pre-line",
+                "form": null,
+                "frame": 0,
+                "frame_title": "Synthetic fixture",
+                "frame_url": "http://fixture.test:8765/?case=review-page&mode=compose-whitespace&kind=pre&change=line&id=recheck3-space-pre-line",
+                "item": null,
+                "item_fields": null,
+                "selected_files": [
+                  {
+                    "document": "4b4ccd90c892ea8732582def748dfcbb",
+                    "fields": [],
+                    "frame": 0
+                  }
+                ],
+                "session": "c19616b8-405b-4899-a106-74faf678e35b",
+                "tab": 866517217,
+                "target": {
+                  "editable": false,
+                  "element": "e9",
+                  "href": null,
+                  "label": "Send",
+                  "name": "Send",
+                  "page_dialog": null,
+                  "role": "button",
+                  "search": false,
+                  "states": {
+                    "checked": false,
+                    "disabled": false,
+                    "expanded": null,
+                    "invalid": false,
+                    "required": false,
+                    "selected": false
+                  },
+                  "submit": false,
+                  "title": "",
+                  "value": ""
+                },
+                "title": "Synthetic fixture",
+                "url": "http://fixture.test:8765/?case=review-page&mode=compose-whitespace&kind=pre&change=line&id=recheck3-space-pre-line"
+              },
+              "resume_kind": null
+            }
+          }
+        },
+        "expires": 1794541922.2196019,
+        "generation": "8b8e3da0b6094957bf4a29b329e75b2c",
+        "id": "8b8e3da0b6094957bf4a29b329e75b2c:574b2f52e0a84f669b57a963e045334f",
+        "reason": "Dispatched once, as the page shows it; this does not prove what the site did.",
+        "stages": {
+          "checked": {
+            "untrusted_content": "Page matched the bound approval immediately before input."
+          },
+          "dispatched": {
+            "untrusted_content": "Input or same-kind submission dispatched once; delivery is not proven."
+          },
+          "page": {
+            "untrusted_content": "{\"checked\":true,\"confirmations\":[],\"dialog\":null,\"dispatched\":true,\"no_change\":false,\"page\":{\"available\":true,\"change\":{\"checked\":false,\"element\":\"e9\",\"name\":\"Send\",\"selected\":false,\"value\":\"\",\"value_more\":0},\"notices\":[],\"title\":\"Synthetic fixture\",\"url\":\"http://fixture.test:8765/?case=review-page&mode=compose-whitespace&kind=pre&change=line&id=recheck3-space-pre-line\"},\"steps\":[],\"uncertain_finish\":false}"
+          }
+        },
+        "state": "done"
+      }
+    },
+    "sha256": {
+      "browser.txt": "365457eb527cde9067fdf6fa48d9b189cc9a66eaf98722d6971b02cf9562586b",
+      "receiver.jsonl": "13add20c72a7e2814b3596ca0d7af98582ee7ca6329f655554f2e93c15c078e1",
+      "page-receiver.jsonl": "ffb81f821e4a6ebc8a582521fffd755510bb47072792b44dd96988024bbec43b",
+      "tool.jsonl": "47fa40dc58d19efcc463f6b3298598da43f9fb92da2f81f8a3deeab630dee1e6"
+    }
+  },
+  {
+    "run": 43359355384,
+    "artifact": "control-chrome-43359355384-1-external",
+    "matrix": [
+      {
+        "name": "GROUP 2 first-script natives are guarded in pages and frames",
+        "passed": true
+      },
+      {
+        "name": "GROUP 2 RECHECK3 every single wrapped step holds across roots events and registration order",
+        "passed": true
+      },
+      {
+        "name": "GROUP 2 RECHECK3 every hyperlink and form submitter default is neutralised",
+        "passed": true
+      },
+      {
+        "name": "GROUP 3 RECHECK3 rendered whitespace survives questions reasking stopping and final dispatch",
+        "passed": false,
+        "error": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\n'done' !== 'failed'\n\n    at file:///workspace/control/chrome/ci/recheck3-matrices.mjs:51:14\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async check (file:///workspace/control/chrome/ci/matrices.mjs:21:10)\n    at async recheck3Matrices (file:///workspace/control/chrome/ci/recheck3-matrices.mjs:37:3)\n    at async matrices (file:///workspace/control/chrome/ci/matrices.mjs:55:3)\n    at async file:///workspace/control/chrome/ci/browser.mjs:145:24"
+      }
+    ],
+    "whitespace_snapshots": [
+      {
+        "id": "recheck3-space-pre-indent",
+        "phase": "whitespace first change held",
+        "count": 0,
+        "arrivals": []
+      },
+      {
+        "id": "recheck3-space-pre-indent",
+        "phase": "old whitespace approval stays retired",
+        "count": 0,
+        "arrivals": []
+      },
+      {
+        "id": "recheck3-space-pre-indent",
+        "phase": "bounded whitespace stop and repeat",
+        "count": 0,
+        "arrivals": []
+      },
+      {
+        "id": "recheck3-space-pre-indent",
+        "phase": "before approval",
+        "count": 0,
+        "arrivals": []
+      },
+      {
+        "id": "recheck3-space-pre-indent",
+        "phase": "after approval",
+        "count": 1,
+        "arrivals": [
+          {
+            "time": 1794540961205,
+            "url": "/receive?case=recheck3-space-pre-indent",
+            "method": "POST",
+            "body": "if approved:\n    send() audit()\n",
+            "host": "fixture.test:8765"
+          }
+        ]
+      },
+      {
+        "id": "recheck3-space-pre-indent",
+        "phase": "after repeat",
+        "count": 1,
+        "arrivals": [
+          {
+            "time": 1794540961205,
+            "url": "/receive?case=recheck3-space-pre-indent",
+            "method": "POST",
+            "body": "if approved:\n    send() audit()\n",
+            "host": "fixture.test:8765"
+          }
+        ]
+      },
+      {
+        "id": "recheck3-space-pre-indent",
+        "phase": "fresh whitespace body received exactly",
+        "count": 1,
+        "arrivals": [
+          {
+            "time": 1794540961205,
+            "url": "/receive?case=recheck3-space-pre-indent",
+            "method": "POST",
+            "body": "if approved:\n    send() audit()\n",
+            "host": "fixture.test:8765"
+          }
+        ]
+      },
+      {
+        "id": "recheck3-space-pre-line",
+        "phase": "whitespace first change held",
+        "count": 0,
+        "arrivals": []
+      },
+      {
+        "id": "recheck3-space-pre-line",
+        "phase": "old whitespace approval stays retired",
+        "count": 0,
+        "arrivals": []
+      }
+    ],
+    "whitespace_arrivals": [
+      {
+        "time": 1794540961205,
+        "url": "/receive?case=recheck3-space-pre-indent",
+        "method": "POST",
+        "body": "if approved:\n    send() audit()\n",
+        "host": "fixture.test:8765"
+      },
+      {
+        "time": 1794540963474,
+        "url": "/receive?case=recheck3-space-pre-line",
+        "method": "POST",
+        "body": "if approved:\n    send() audit()\n",
+        "host": "fixture.test:8765"
+      }
+    ],
+    "last_submit": {
+      "operation": {
+        "action": "chrome_submit",
+        "app": "chrome",
+        "approval": {
+          "question": "On http://fixture.test:8765/?case=review-page&mode=compose-whitespace&kind=pre&change=line&id=recheck3-space-pre-line, page 'Synthetic fixture', as the page shows it, send 'Send'; where the page sends this isn't visible to the tool; text next to Send changed from 'Existing draft\\u000aif approved:\\u000a    send()\\u000aaudit()\\u000aSend' to 'Existing draft\\u000aif approved:\\u000a    send() audit()\\u000aSend'?",
+          "operation_id": "45e05551a2df4fd8beacf19410a9f297:ef3f53431e724125bd173f85802d1344",
+          "description": {
+            "action": "chrome_submit",
+            "adapter_action": null,
+            "expires_at": 1794541863.0534487,
+            "untrusted_content": {
+              "changed_compose": {
+                "after": "Existing draft\\u000aif approved:\\u000a    send() audit()\\u000aSend",
+                "before": "Existing draft\\u000aif approved:\\u000a    send()\\u000aaudit()\\u000aSend"
+              },
+              "confirmation": null,
+              "file": null,
+              "input": {
+                "verb": "click"
+              },
+              "kind": "send",
+              "page_state": {
+                "adapter": null,
+                "compose": {
+                  "element": "e6",
+                  "text": "Existing draft\\u000aif approved:\\u000a    send() audit()\\u000aSend",
+                  "whole_page": false
+                },
+                "control": "97bca44b-9ffb-4b26-8a63-47073fa5e636",
+                "dialog": null,
+                "document": "4ddee3bd4d8798e5f63ecf965cf3e908",
+                "editable": [
+                  {
+                    "document": "4ddee3bd4d8798e5f63ecf965cf3e908",
+                    "fields": [
+                      {
+                        "checked": false,
+                        "disabled": false,
+                        "element": "e7",
+                        "hidden": false,
+                        "label": "Draft",
+                        "multiple": false,
+                        "name": "",
+                        "readOnly": false,
+                        "rich": {
+                          "children": [
+                            "Existing draft"
+                          ],
+                          "display": "block",
+                          "tag": "DIV",
+                          "whiteSpace": "normal"
+                        },
+                        "type": "editable",
+                        "value": "Existing draft"
+                      }
+                    ],
+                    "frame": 0,
+                    "url": "http://fixture.test:8765/?case=review-page&mode=compose-whitespace&kind=pre&change=line&id=recheck3-space-pre-line"
+                  }
+                ],
+                "effective_url": "http://fixture.test:8765/?case=review-page&mode=compose-whitespace&kind=pre&change=line&id=recheck3-space-pre-line",
+                "form": null,
+                "frame": 0,
+                "frame_title": "Synthetic fixture",
+                "frame_url": "http://fixture.test:8765/?case=review-page&mode=compose-whitespace&kind=pre&change=line&id=recheck3-space-pre-line",
+                "item": null,
+                "item_fields": null,
+                "selected_files": [
+                  {
+                    "document": "4ddee3bd4d8798e5f63ecf965cf3e908",
+                    "fields": [],
+                    "frame": 0
+                  }
+                ],
+                "session": "d0a0898c-0554-4966-8c7a-ff31f691d0b2",
+                "tab": 933099135,
+                "target": {
+                  "editable": false,
+                  "element": "e9",
+                  "href": null,
+                  "label": "Send",
+                  "name": "Send",
+                  "page_dialog": null,
+                  "role": "button",
+                  "search": false,
+                  "states": {
+                    "checked": false,
+                    "disabled": false,
+                    "expanded": null,
+                    "invalid": false,
+                    "required": false,
+                    "selected": false
+                  },
+                  "submit": false,
+                  "title": "",
+                  "value": ""
+                },
+                "title": "Synthetic fixture",
+                "url": "http://fixture.test:8765/?case=review-page&mode=compose-whitespace&kind=pre&change=line&id=recheck3-space-pre-line"
+              },
+              "resume_kind": null
+            }
+          }
+        },
+        "expires": 1794541863.0534487,
+        "generation": "45e05551a2df4fd8beacf19410a9f297",
+        "id": "45e05551a2df4fd8beacf19410a9f297:ef3f53431e724125bd173f85802d1344",
+        "reason": "Dispatched once, as the page shows it; this does not prove what the site did.",
+        "stages": {
+          "checked": {
+            "untrusted_content": "Page matched the bound approval immediately before input."
+          },
+          "dispatched": {
+            "untrusted_content": "Input or same-kind submission dispatched once; delivery is not proven."
+          },
+          "page": {
+            "untrusted_content": "{\"checked\":true,\"confirmations\":[],\"dialog\":null,\"dispatched\":true,\"no_change\":false,\"page\":{\"available\":true,\"change\":{\"checked\":false,\"element\":\"e9\",\"name\":\"Send\",\"selected\":false,\"value\":\"\",\"value_more\":0},\"notices\":[],\"title\":\"Synthetic fixture\",\"url\":\"http://fixture.test:8765/?case=review-page&mode=compose-whitespace&kind=pre&change=line&id=recheck3-space-pre-line\"},\"steps\":[],\"uncertain_finish\":false}"
+          }
+        },
+        "state": "done"
+      }
+    },
+    "sha256": {
+      "browser.txt": "6102448aa9817de54261a16431861c6c6ad2c18c166acf8d655254c8e96aa187",
+      "receiver.jsonl": "fcb43a09be7577e9f531c682bc3171b4210bce4ff00e826340cbe6fb2c311cf9",
+      "page-receiver.jsonl": "1f74ca60eb059a0c4b1cbd7b886cf3fefa3d133b0d3b6963ef9850613e87c585",
+      "tool.jsonl": "6459657ad1d936619cd756863384b085cbfb840320d91897115515f0690c280d"
+    }
+  }
+]

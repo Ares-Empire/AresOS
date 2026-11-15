@@ -1,0 +1,27 @@
+ERROR: test_review22_upload_lost_final_ack_is_unknown_and_import_commits (test_review22_protocol.Timeouts22.test_review22_upload_lost_final_ack_is_unknown_and_import_commits)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/control/aresos_control/blobs.py", line 172, in read
+    fd = os.open(self.directory / key, os.O_RDONLY | os.O_NOFOLLOW)
+FileNotFoundError: [Errno 2] No such file or directory: '/workspace/control/test-work/tmp99yw5erx/state/blobs/bbdbbee77660eeedc534d5dcf60d829f11add748919d2d2994c8ae44afabaa22'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/workspace/control/tests/test_review22_protocol.py", line 97, in test_review22_upload_lost_final_ack_is_unknown_and_import_commits
+    self.assertEqual(self.engine.blobs.read(file['sha256']), raw)
+                     ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "/workspace/control/aresos_control/blobs.py", line 176, in read
+    raise Refused("stale_reference", "Blob not present after restore; import again and prepare a new operation.") from exc
+aresos_control.common.Refused: Blob not present after restore; import again and prepare a new operation.
+
+----------------------------------------------------------------------
+Ran 142 tests in 238.973s
+
+FAILED (errors=1)
+25 MiB transfer: 116 frames, largest=1398154 bytes (wire limit=6291456)
+Review19 journal memory (retained, peak bytes), 1k/10k unique operations: [(23337, 591962), (22780, 591389)]
+Record growth: tiny send=4078 bytes; maximum body + 25 MiB send=4078 bytes; 6 state/stage records, mean=679.7 bytes per record including commit
+Record growth: typical three-recipient send=5560 bytes across 8 state/stage records
+Review20 restored journal verification (retained, peak bytes), 1k/10k missing operations: [(13781, 217031), (13813, 217066)]
+Review21 pending peak bytes, 1k/10k unknown operations: [25782, 77659]

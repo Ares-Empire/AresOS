@@ -1,0 +1,46 @@
+{
+  "source": "0894243b2c8ac66dfd9909027c062ae70049b8ce",
+  "run": 42840910762,
+  "mode": "policy",
+  "runtime": "Google Chrome 157.0.8103.50",
+  "verdict": "blocked: native modal predates Page-domain subscription; mandatory case failed",
+  "pending_enable": [
+    {
+      "line": 7442,
+      "protocol_command": {
+        "id": 1069,
+        "source": {
+          "tabId": 1920195394
+        },
+        "method": "Page.enable",
+        "phase": "dispatched"
+      }
+    }
+  ],
+  "preexisting_receiver": [],
+  "matrix": [
+    {
+      "name": "GROUP 2 first-script natives are guarded in pages and frames",
+      "passed": true
+    },
+    {
+      "name": "GROUP 4 REVIEW ordinary native dialogs from Claude owner and page tasks keep working",
+      "passed": true
+    },
+    {
+      "name": "GROUP 4 REVIEW preexisting dialogs ask bind the chosen answer and allow owner handoff",
+      "passed": false,
+      "error": "AssertionError [ERR_ASSERTION]: {\"ok\":false,\"error\":{\"code\":\"transport_error\",\"message\":\"Chrome connection was cut off; the input may have run. Inspect operation status and never replay.\"},\"pending\":{\"items\":[{\"operation_id\":\"8d744b85e2ef4b2fbba8dc11aacc7994:d9362c01390146fcada371fc434a199b\",\"app\":\"chrome\",\"state\":\"failed\",\"reason\":\"Control ended; prepared input was dropped without dispatch.\"},{\"operation_id\":\"8d744b85e2ef4b2fbba8dc11aacc7994:716b6479190d4d17ac2120a4f10c4c1b\",\"app\":\"chrome\",\"state\":\"unknown\",\"reason\":\"Input dispatched, but a page handler completion could not be confirmed. Inspect the page and never replay.\"},{\"operation_id\":\"8d744b85e2ef4b2fbba8dc11aacc7994:d43314b8386b4739bf7945256a1c5bd4\",\"app\":\"chrome\",\"state\":\"unknown\",\"reason\":\"Input dispatched, but a page handler completion could not be confirmed. Inspect the page and never replay.\"},{\"operation_id\":\"8d744b85e2ef4b2fbba8dc11aacc7994:c26e8ccbd04949c691951bfac6a315f6\",\"app\":\"chrome\",\"state\":\"unknown\",\"reason\":\"Input dispatched, but a page handler completion could not be confirmed. Inspect the page and never replay.\"},{\"operation_id\":\"8d744b85e2ef4b2fbba8dc11aacc7994:0fa3260ba8be4b22a504292cb714d52c\",\"app\":\"chrome\",\"state\":\"unknown\",\"reason\":\"Input dispatched, but a page handler completion could not be confirmed. Inspect the page and never replay.\"}],\"total\":7,\"cursor\":\"9d2a9e014deeb48efa9a537a98c643496c171c1f77af041f1add2bd1271256fd:WzE3OTQzMjMzMTMuMzEyODczLCI4ZDc0NGI4NWUyZWY0YjJmYmJhOGRjMTFhYWNjNzk5NDowZmEzMjYwYmE4YmU0YjIyYTUwNDI5MmNiNzE0ZDUyYyJd\",\"restore_required\":false,\"notices\":[{\"operation_id\":\"recovery-8d744b85e2ef4b2fbba8dc11aacc7994:c3732834828f4677a93388a0a3a49cec\",\"app\":\"chrome\",\"state\":\"unknown\",\"untrusted_content\":{\"reason\":\"Chrome input has an unfinished committed outcome; it may have run. Never replay it.\",\"operation_id\":\"8d744b85e2ef4b2fbba8dc11aacc7994:c3732834828f4677a93388a0a3a49cec\"}},{\"operation_id\":\"414c5d5c5a985ccac7f9b4b39b86e9d940d06710631e17ebda4f40e61e47d406\",\"app\":\"chrome\",\"state\":\"unknown\",\"untrusted_content\":{\"intent_key\":\"intent:chrome:414c5d5c5a985ccac7f9b4b39b86e9d940d06710631e17ebda4f40e61e47d406\",\"reason\":\"A change was interrupted before its completion was recorded. It may already have changed the server. Inspect the audit and your app before repeating.\",\"recovery_warning\":true}},{\"operation_id\":\"ad346e76bafa21f32ff5dd22c7deee3782a0a505e48d2eea0437100d51666a57\",\"app\":\"chrome\",\"state\":\"unknown\",\"untrusted_content\":{\"intent_key\":\"intent:chrome:ad346e76bafa21f32ff5dd22c7deee3782a0a505e48d2eea0437100d51666a57\",\"reason\":\"A change was interrupted before its completion was recorded. It may already have changed the server. Inspect the audit and your app before repeating.\",\"recovery_warning\":true}}],\"notices_more\":{\"count\":31,\"action\":\"control_notices\"}}}\n    at call (file:///workspace/control/chrome/ci/browser.mjs:28:80)\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async file:///workspace/control/chrome/ci/review-matrices.mjs:26:7\n    at async check (file:///workspace/control/chrome/ci/matrices.mjs:19:10)\n    at async reviewMatrices (file:///workspace/control/chrome/ci/review-matrices.mjs:21:3)\n    at async matrices (file:///workspace/control/chrome/ci/matrices.mjs:53:3)\n    at async file:///workspace/control/chrome/ci/browser.mjs:146:24"
+    }
+  ],
+  "watch_result": "Run Control Chrome (42840910762) has already completed with 'failure'\n",
+  "source_reading": {
+    "url": "https://raw.githubusercontent.com/chromium/chromium/157.0.8103.50/content/browser/devtools/protocol/page_handler.cc",
+    "functions": {
+      "DidRunJavaScriptDialog": 624,
+      "Enable": 680,
+      "HandleJavaScriptDialog": 1792
+    },
+    "classification": "source inference, not a successful native-answer experiment"
+  }
+}

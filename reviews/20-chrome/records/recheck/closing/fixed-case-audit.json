@@ -1,0 +1,2186 @@
+[
+  {
+    "run_id": 43166895797,
+    "artifact": "control-chrome-43166895797-1-external",
+    "source": "495c0b3477e7496134028f5244b767b3f4bc7896",
+    "fixed_cases": [
+      {
+        "case": "recheck-search-pay",
+        "before_own_approval": 0,
+        "final_arrivals": [
+          {
+            "time": 1794464250167,
+            "url": "/receive?case=recheck-search-pay",
+            "method": "POST",
+            "body": "review fixture"
+          }
+        ]
+      },
+      {
+        "case": "recheck-search-delete",
+        "before_own_approval": 0,
+        "final_arrivals": [
+          {
+            "time": 1794464251925,
+            "url": "/receive?case=recheck-search-delete",
+            "method": "POST",
+            "body": "review fixture"
+          }
+        ]
+      },
+      {
+        "case": "recheck-search-editable-native",
+        "before_own_approval": 0,
+        "final_arrivals": [
+          {
+            "time": 1794464253707,
+            "url": "/receive?case=recheck-search-editable-native",
+            "method": "POST",
+            "body": "review fixture"
+          }
+        ]
+      },
+      {
+        "case": "recheck-search-editable-aria",
+        "before_own_approval": 0,
+        "final_arrivals": [
+          {
+            "time": 1794464255524,
+            "url": "/receive?case=recheck-search-editable-aria",
+            "method": "POST",
+            "body": "review fixture"
+          }
+        ]
+      },
+      {
+        "case": "review-bind-confirmation-",
+        "stale_approval_arrivals": 0,
+        "fresh_body": "Different draft",
+        "final_arrivals": [
+          {
+            "time": 1794464571747,
+            "url": "/receive?case=review-bind-confirmation-",
+            "method": "POST",
+            "body": "Different draft"
+          }
+        ]
+      },
+      {
+        "case": "review-bind-confirmation-form",
+        "stale_approval_arrivals": 0,
+        "fresh_body": "Different draft",
+        "final_arrivals": [
+          {
+            "time": 1794464574871,
+            "url": "/receive?case=review-bind-confirmation-form",
+            "method": "POST",
+            "body": "Different draft"
+          }
+        ]
+      },
+      {
+        "case": "review-bind-confirmation-submit",
+        "stale_approval_arrivals": 0,
+        "fresh_body": "Different draft",
+        "final_arrivals": [
+          {
+            "time": 1794464578055,
+            "url": "/receive?case=review-bind-confirmation-submit",
+            "method": "POST",
+            "body": "Different draft"
+          }
+        ]
+      },
+      {
+        "case": "review-bind-confirmation-submit-send",
+        "stale_approval_arrivals": 0,
+        "fresh_body": "Different draft",
+        "final_arrivals": [
+          {
+            "time": 1794464581300,
+            "url": "/receive?case=review-bind-confirmation-submit-send",
+            "method": "POST",
+            "body": "Different draft"
+          }
+        ]
+      },
+      {
+        "case": "review-bind-compose-key-",
+        "stale_approval_arrivals": 0,
+        "fresh_body": "Different draft",
+        "final_arrivals": [
+          {
+            "time": 1794464587860,
+            "url": "/receive?case=review-bind-compose-key-",
+            "method": "POST",
+            "body": "Different draft"
+          }
+        ]
+      },
+      {
+        "case": "review-bind-quantity-",
+        "stale_approval_arrivals": 0,
+        "fresh_body": "2",
+        "final_arrivals": [
+          {
+            "time": 1794464584571,
+            "url": "/receive?case=review-bind-quantity-",
+            "method": "POST",
+            "body": "2"
+          }
+        ]
+      },
+      {
+        "case": "review-bind-shadow-binding-li-open",
+        "stale_approval_arrivals": 0,
+        "fresh_body": "Invoice B",
+        "final_arrivals": [
+          {
+            "time": 1794464591190,
+            "url": "/receive?case=review-bind-shadow-binding-li-open",
+            "method": "POST",
+            "body": "Invoice B"
+          }
+        ]
+      },
+      {
+        "case": "review-bind-shadow-binding-li-closed",
+        "stale_approval_arrivals": 0,
+        "fresh_body": "Invoice B",
+        "final_arrivals": [
+          {
+            "time": 1794464594556,
+            "url": "/receive?case=review-bind-shadow-binding-li-closed",
+            "method": "POST",
+            "body": "Invoice B"
+          }
+        ]
+      },
+      {
+        "case": "review-bind-shadow-binding-row-open",
+        "stale_approval_arrivals": 0,
+        "fresh_body": "Invoice B",
+        "final_arrivals": [
+          {
+            "time": 1794464597937,
+            "url": "/receive?case=review-bind-shadow-binding-row-open",
+            "method": "POST",
+            "body": "Invoice B"
+          }
+        ]
+      },
+      {
+        "case": "review-bind-shadow-binding-row-closed",
+        "stale_approval_arrivals": 0,
+        "fresh_body": "Invoice B",
+        "final_arrivals": [
+          {
+            "time": 1794464601414,
+            "url": "/receive?case=review-bind-shadow-binding-row-closed",
+            "method": "POST",
+            "body": "Invoice B"
+          }
+        ]
+      },
+      {
+        "case": "review-bind-shadow-binding-slot-li-open",
+        "stale_approval_arrivals": 0,
+        "fresh_body": "Invoice B",
+        "final_arrivals": [
+          {
+            "time": 1794464604857,
+            "url": "/receive?case=review-bind-shadow-binding-slot-li-open",
+            "method": "POST",
+            "body": "Invoice B"
+          }
+        ]
+      },
+      {
+        "case": "review-bind-shadow-binding-slot-li-closed",
+        "stale_approval_arrivals": 0,
+        "fresh_body": "Invoice B",
+        "final_arrivals": [
+          {
+            "time": 1794464608340,
+            "url": "/receive?case=review-bind-shadow-binding-slot-li-closed",
+            "method": "POST",
+            "body": "Invoice B"
+          }
+        ]
+      },
+      {
+        "case": "review-bind-shadow-binding-slot-row-open",
+        "stale_approval_arrivals": 0,
+        "fresh_body": "Invoice B",
+        "final_arrivals": [
+          {
+            "time": 1794464611874,
+            "url": "/receive?case=review-bind-shadow-binding-slot-row-open",
+            "method": "POST",
+            "body": "Invoice B"
+          }
+        ]
+      },
+      {
+        "case": "review-bind-shadow-binding-slot-row-closed",
+        "stale_approval_arrivals": 0,
+        "fresh_body": "Invoice B",
+        "final_arrivals": [
+          {
+            "time": 1794464615443,
+            "url": "/receive?case=review-bind-shadow-binding-slot-row-closed",
+            "method": "POST",
+            "body": "Invoice B"
+          }
+        ]
+      }
+    ],
+    "native_fallback_cases": [
+      {
+        "case": "review-fallback-false-open-false-false",
+        "native_root": false,
+        "composed": false,
+        "cancellable": false,
+        "handler_before_approval": 0,
+        "final_handler_arrivals": 0,
+        "final_default_arrivals": 1,
+        "approval_sequence": [],
+        "unknown_receiver_snapshot": {
+          "phase": "uncancellable native default is unknown",
+          "count": 1
+        }
+      },
+      {
+        "case": "review-fallback-false-open-false-true",
+        "native_root": false,
+        "composed": false,
+        "cancellable": true,
+        "handler_before_approval": 0,
+        "final_handler_arrivals": 1,
+        "final_default_arrivals": 1,
+        "approval_sequence": [
+          {
+            "phase": "before approval",
+            "count": 0
+          },
+          {
+            "phase": "after approval",
+            "count": 1
+          },
+          {
+            "phase": "after repeat",
+            "count": 1
+          }
+        ],
+        "unknown_receiver_snapshot": null
+      },
+      {
+        "case": "review-fallback-false-open-true-false",
+        "native_root": false,
+        "composed": true,
+        "cancellable": false,
+        "handler_before_approval": 0,
+        "final_handler_arrivals": 0,
+        "final_default_arrivals": 1,
+        "approval_sequence": [],
+        "unknown_receiver_snapshot": {
+          "phase": "uncancellable native default is unknown",
+          "count": 1
+        }
+      },
+      {
+        "case": "review-fallback-false-open-true-true",
+        "native_root": false,
+        "composed": true,
+        "cancellable": true,
+        "handler_before_approval": 0,
+        "final_handler_arrivals": 1,
+        "final_default_arrivals": 1,
+        "approval_sequence": [
+          {
+            "phase": "before approval",
+            "count": 0
+          },
+          {
+            "phase": "after approval",
+            "count": 1
+          },
+          {
+            "phase": "after repeat",
+            "count": 1
+          }
+        ],
+        "unknown_receiver_snapshot": null
+      },
+      {
+        "case": "review-fallback-false-closed-false-false",
+        "native_root": false,
+        "composed": false,
+        "cancellable": false,
+        "handler_before_approval": 0,
+        "final_handler_arrivals": 0,
+        "final_default_arrivals": 1,
+        "approval_sequence": [],
+        "unknown_receiver_snapshot": {
+          "phase": "uncancellable native default is unknown",
+          "count": 1
+        }
+      },
+      {
+        "case": "review-fallback-false-closed-false-true",
+        "native_root": false,
+        "composed": false,
+        "cancellable": true,
+        "handler_before_approval": 0,
+        "final_handler_arrivals": 1,
+        "final_default_arrivals": 1,
+        "approval_sequence": [
+          {
+            "phase": "before approval",
+            "count": 0
+          },
+          {
+            "phase": "after approval",
+            "count": 1
+          },
+          {
+            "phase": "after repeat",
+            "count": 1
+          }
+        ],
+        "unknown_receiver_snapshot": null
+      },
+      {
+        "case": "review-fallback-false-closed-true-false",
+        "native_root": false,
+        "composed": true,
+        "cancellable": false,
+        "handler_before_approval": 0,
+        "final_handler_arrivals": 0,
+        "final_default_arrivals": 1,
+        "approval_sequence": [],
+        "unknown_receiver_snapshot": {
+          "phase": "uncancellable native default is unknown",
+          "count": 1
+        }
+      },
+      {
+        "case": "review-fallback-false-closed-true-true",
+        "native_root": false,
+        "composed": true,
+        "cancellable": true,
+        "handler_before_approval": 0,
+        "final_handler_arrivals": 1,
+        "final_default_arrivals": 1,
+        "approval_sequence": [
+          {
+            "phase": "before approval",
+            "count": 0
+          },
+          {
+            "phase": "after approval",
+            "count": 1
+          },
+          {
+            "phase": "after repeat",
+            "count": 1
+          }
+        ],
+        "unknown_receiver_snapshot": null
+      },
+      {
+        "case": "review-fallback-true-open-false-false",
+        "native_root": true,
+        "composed": false,
+        "cancellable": false,
+        "handler_before_approval": 0,
+        "final_handler_arrivals": 0,
+        "final_default_arrivals": 1,
+        "approval_sequence": [],
+        "unknown_receiver_snapshot": {
+          "phase": "uncancellable native default is unknown",
+          "count": 1
+        }
+      },
+      {
+        "case": "review-fallback-true-open-false-true",
+        "native_root": true,
+        "composed": false,
+        "cancellable": true,
+        "handler_before_approval": 0,
+        "final_handler_arrivals": 1,
+        "final_default_arrivals": 1,
+        "approval_sequence": [
+          {
+            "phase": "before approval",
+            "count": 0
+          },
+          {
+            "phase": "after approval",
+            "count": 1
+          },
+          {
+            "phase": "after repeat",
+            "count": 1
+          }
+        ],
+        "unknown_receiver_snapshot": null
+      },
+      {
+        "case": "review-fallback-true-open-true-false",
+        "native_root": true,
+        "composed": true,
+        "cancellable": false,
+        "handler_before_approval": 0,
+        "final_handler_arrivals": 0,
+        "final_default_arrivals": 1,
+        "approval_sequence": [],
+        "unknown_receiver_snapshot": {
+          "phase": "uncancellable native default is unknown",
+          "count": 1
+        }
+      },
+      {
+        "case": "review-fallback-true-open-true-true",
+        "native_root": true,
+        "composed": true,
+        "cancellable": true,
+        "handler_before_approval": 0,
+        "final_handler_arrivals": 1,
+        "final_default_arrivals": 1,
+        "approval_sequence": [
+          {
+            "phase": "before approval",
+            "count": 0
+          },
+          {
+            "phase": "after approval",
+            "count": 1
+          },
+          {
+            "phase": "after repeat",
+            "count": 1
+          }
+        ],
+        "unknown_receiver_snapshot": null
+      },
+      {
+        "case": "review-fallback-true-closed-false-false",
+        "native_root": true,
+        "composed": false,
+        "cancellable": false,
+        "handler_before_approval": 0,
+        "final_handler_arrivals": 0,
+        "final_default_arrivals": 1,
+        "approval_sequence": [],
+        "unknown_receiver_snapshot": {
+          "phase": "uncancellable native default is unknown",
+          "count": 1
+        }
+      },
+      {
+        "case": "review-fallback-true-closed-false-true",
+        "native_root": true,
+        "composed": false,
+        "cancellable": true,
+        "handler_before_approval": 0,
+        "final_handler_arrivals": 1,
+        "final_default_arrivals": 1,
+        "approval_sequence": [
+          {
+            "phase": "before approval",
+            "count": 0
+          },
+          {
+            "phase": "after approval",
+            "count": 1
+          },
+          {
+            "phase": "after repeat",
+            "count": 1
+          }
+        ],
+        "unknown_receiver_snapshot": null
+      },
+      {
+        "case": "review-fallback-true-closed-true-false",
+        "native_root": true,
+        "composed": true,
+        "cancellable": false,
+        "handler_before_approval": 0,
+        "final_handler_arrivals": 0,
+        "final_default_arrivals": 1,
+        "approval_sequence": [],
+        "unknown_receiver_snapshot": {
+          "phase": "uncancellable native default is unknown",
+          "count": 1
+        }
+      },
+      {
+        "case": "review-fallback-true-closed-true-true",
+        "native_root": true,
+        "composed": true,
+        "cancellable": true,
+        "handler_before_approval": 0,
+        "final_handler_arrivals": 1,
+        "final_default_arrivals": 1,
+        "approval_sequence": [
+          {
+            "phase": "before approval",
+            "count": 0
+          },
+          {
+            "phase": "after approval",
+            "count": 1
+          },
+          {
+            "phase": "after repeat",
+            "count": 1
+          }
+        ],
+        "unknown_receiver_snapshot": null
+      }
+    ],
+    "owner_body": "draft=Saved",
+    "timer_body_after_own_approval": "draft=Other",
+    "result": "PASS"
+  },
+  {
+    "run_id": 43166895797,
+    "artifact": "control-chrome-43166895797-1-policy",
+    "source": "495c0b3477e7496134028f5244b767b3f4bc7896",
+    "fixed_cases": [
+      {
+        "case": "recheck-search-pay",
+        "before_own_approval": 0,
+        "final_arrivals": [
+          {
+            "time": 1794464249960,
+            "url": "/receive?case=recheck-search-pay",
+            "method": "POST",
+            "body": "review fixture"
+          }
+        ]
+      },
+      {
+        "case": "recheck-search-delete",
+        "before_own_approval": 0,
+        "final_arrivals": [
+          {
+            "time": 1794464251665,
+            "url": "/receive?case=recheck-search-delete",
+            "method": "POST",
+            "body": "review fixture"
+          }
+        ]
+      },
+      {
+        "case": "recheck-search-editable-native",
+        "before_own_approval": 0,
+        "final_arrivals": [
+          {
+            "time": 1794464253371,
+            "url": "/receive?case=recheck-search-editable-native",
+            "method": "POST",
+            "body": "review fixture"
+          }
+        ]
+      },
+      {
+        "case": "recheck-search-editable-aria",
+        "before_own_approval": 0,
+        "final_arrivals": [
+          {
+            "time": 1794464255105,
+            "url": "/receive?case=recheck-search-editable-aria",
+            "method": "POST",
+            "body": "review fixture"
+          }
+        ]
+      },
+      {
+        "case": "review-bind-confirmation-",
+        "stale_approval_arrivals": 0,
+        "fresh_body": "Different draft",
+        "final_arrivals": [
+          {
+            "time": 1794464534931,
+            "url": "/receive?case=review-bind-confirmation-",
+            "method": "POST",
+            "body": "Different draft"
+          }
+        ]
+      },
+      {
+        "case": "review-bind-confirmation-form",
+        "stale_approval_arrivals": 0,
+        "fresh_body": "Different draft",
+        "final_arrivals": [
+          {
+            "time": 1794464537513,
+            "url": "/receive?case=review-bind-confirmation-form",
+            "method": "POST",
+            "body": "Different draft"
+          }
+        ]
+      },
+      {
+        "case": "review-bind-confirmation-submit",
+        "stale_approval_arrivals": 0,
+        "fresh_body": "Different draft",
+        "final_arrivals": [
+          {
+            "time": 1794464540110,
+            "url": "/receive?case=review-bind-confirmation-submit",
+            "method": "POST",
+            "body": "Different draft"
+          }
+        ]
+      },
+      {
+        "case": "review-bind-confirmation-submit-send",
+        "stale_approval_arrivals": 0,
+        "fresh_body": "Different draft",
+        "final_arrivals": [
+          {
+            "time": 1794464542752,
+            "url": "/receive?case=review-bind-confirmation-submit-send",
+            "method": "POST",
+            "body": "Different draft"
+          }
+        ]
+      },
+      {
+        "case": "review-bind-compose-key-",
+        "stale_approval_arrivals": 0,
+        "fresh_body": "Different draft",
+        "final_arrivals": [
+          {
+            "time": 1794464548137,
+            "url": "/receive?case=review-bind-compose-key-",
+            "method": "POST",
+            "body": "Different draft"
+          }
+        ]
+      },
+      {
+        "case": "review-bind-quantity-",
+        "stale_approval_arrivals": 0,
+        "fresh_body": "2",
+        "final_arrivals": [
+          {
+            "time": 1794464545418,
+            "url": "/receive?case=review-bind-quantity-",
+            "method": "POST",
+            "body": "2"
+          }
+        ]
+      },
+      {
+        "case": "review-bind-shadow-binding-li-open",
+        "stale_approval_arrivals": 0,
+        "fresh_body": "Invoice B",
+        "final_arrivals": [
+          {
+            "time": 1794464550847,
+            "url": "/receive?case=review-bind-shadow-binding-li-open",
+            "method": "POST",
+            "body": "Invoice B"
+          }
+        ]
+      },
+      {
+        "case": "review-bind-shadow-binding-li-closed",
+        "stale_approval_arrivals": 0,
+        "fresh_body": "Invoice B",
+        "final_arrivals": [
+          {
+            "time": 1794464553583,
+            "url": "/receive?case=review-bind-shadow-binding-li-closed",
+            "method": "POST",
+            "body": "Invoice B"
+          }
+        ]
+      },
+      {
+        "case": "review-bind-shadow-binding-row-open",
+        "stale_approval_arrivals": 0,
+        "fresh_body": "Invoice B",
+        "final_arrivals": [
+          {
+            "time": 1794464556327,
+            "url": "/receive?case=review-bind-shadow-binding-row-open",
+            "method": "POST",
+            "body": "Invoice B"
+          }
+        ]
+      },
+      {
+        "case": "review-bind-shadow-binding-row-closed",
+        "stale_approval_arrivals": 0,
+        "fresh_body": "Invoice B",
+        "final_arrivals": [
+          {
+            "time": 1794464559131,
+            "url": "/receive?case=review-bind-shadow-binding-row-closed",
+            "method": "POST",
+            "body": "Invoice B"
+          }
+        ]
+      },
+      {
+        "case": "review-bind-shadow-binding-slot-li-open",
+        "stale_approval_arrivals": 0,
+        "fresh_body": "Invoice B",
+        "final_arrivals": [
+          {
+            "time": 1794464561940,
+            "url": "/receive?case=review-bind-shadow-binding-slot-li-open",
+            "method": "POST",
+            "body": "Invoice B"
+          }
+        ]
+      },
+      {
+        "case": "review-bind-shadow-binding-slot-li-closed",
+        "stale_approval_arrivals": 0,
+        "fresh_body": "Invoice B",
+        "final_arrivals": [
+          {
+            "time": 1794464564768,
+            "url": "/receive?case=review-bind-shadow-binding-slot-li-closed",
+            "method": "POST",
+            "body": "Invoice B"
+          }
+        ]
+      },
+      {
+        "case": "review-bind-shadow-binding-slot-row-open",
+        "stale_approval_arrivals": 0,
+        "fresh_body": "Invoice B",
+        "final_arrivals": [
+          {
+            "time": 1794464567623,
+            "url": "/receive?case=review-bind-shadow-binding-slot-row-open",
+            "method": "POST",
+            "body": "Invoice B"
+          }
+        ]
+      },
+      {
+        "case": "review-bind-shadow-binding-slot-row-closed",
+        "stale_approval_arrivals": 0,
+        "fresh_body": "Invoice B",
+        "final_arrivals": [
+          {
+            "time": 1794464570502,
+            "url": "/receive?case=review-bind-shadow-binding-slot-row-closed",
+            "method": "POST",
+            "body": "Invoice B"
+          }
+        ]
+      }
+    ],
+    "native_fallback_cases": [
+      {
+        "case": "review-fallback-false-open-false-false",
+        "native_root": false,
+        "composed": false,
+        "cancellable": false,
+        "handler_before_approval": 0,
+        "final_handler_arrivals": 0,
+        "final_default_arrivals": 1,
+        "approval_sequence": [],
+        "unknown_receiver_snapshot": {
+          "phase": "uncancellable native default is unknown",
+          "count": 1
+        }
+      },
+      {
+        "case": "review-fallback-false-open-false-true",
+        "native_root": false,
+        "composed": false,
+        "cancellable": true,
+        "handler_before_approval": 0,
+        "final_handler_arrivals": 1,
+        "final_default_arrivals": 1,
+        "approval_sequence": [
+          {
+            "phase": "before approval",
+            "count": 0
+          },
+          {
+            "phase": "after approval",
+            "count": 1
+          },
+          {
+            "phase": "after repeat",
+            "count": 1
+          }
+        ],
+        "unknown_receiver_snapshot": null
+      },
+      {
+        "case": "review-fallback-false-open-true-false",
+        "native_root": false,
+        "composed": true,
+        "cancellable": false,
+        "handler_before_approval": 0,
+        "final_handler_arrivals": 0,
+        "final_default_arrivals": 1,
+        "approval_sequence": [],
+        "unknown_receiver_snapshot": {
+          "phase": "uncancellable native default is unknown",
+          "count": 1
+        }
+      },
+      {
+        "case": "review-fallback-false-open-true-true",
+        "native_root": false,
+        "composed": true,
+        "cancellable": true,
+        "handler_before_approval": 0,
+        "final_handler_arrivals": 1,
+        "final_default_arrivals": 1,
+        "approval_sequence": [
+          {
+            "phase": "before approval",
+            "count": 0
+          },
+          {
+            "phase": "after approval",
+            "count": 1
+          },
+          {
+            "phase": "after repeat",
+            "count": 1
+          }
+        ],
+        "unknown_receiver_snapshot": null
+      },
+      {
+        "case": "review-fallback-false-closed-false-false",
+        "native_root": false,
+        "composed": false,
+        "cancellable": false,
+        "handler_before_approval": 0,
+        "final_handler_arrivals": 0,
+        "final_default_arrivals": 1,
+        "approval_sequence": [],
+        "unknown_receiver_snapshot": {
+          "phase": "uncancellable native default is unknown",
+          "count": 1
+        }
+      },
+      {
+        "case": "review-fallback-false-closed-false-true",
+        "native_root": false,
+        "composed": false,
+        "cancellable": true,
+        "handler_before_approval": 0,
+        "final_handler_arrivals": 1,
+        "final_default_arrivals": 1,
+        "approval_sequence": [
+          {
+            "phase": "before approval",
+            "count": 0
+          },
+          {
+            "phase": "after approval",
+            "count": 1
+          },
+          {
+            "phase": "after repeat",
+            "count": 1
+          }
+        ],
+        "unknown_receiver_snapshot": null
+      },
+      {
+        "case": "review-fallback-false-closed-true-false",
+        "native_root": false,
+        "composed": true,
+        "cancellable": false,
+        "handler_before_approval": 0,
+        "final_handler_arrivals": 0,
+        "final_default_arrivals": 1,
+        "approval_sequence": [],
+        "unknown_receiver_snapshot": {
+          "phase": "uncancellable native default is unknown",
+          "count": 1
+        }
+      },
+      {
+        "case": "review-fallback-false-closed-true-true",
+        "native_root": false,
+        "composed": true,
+        "cancellable": true,
+        "handler_before_approval": 0,
+        "final_handler_arrivals": 1,
+        "final_default_arrivals": 1,
+        "approval_sequence": [
+          {
+            "phase": "before approval",
+            "count": 0
+          },
+          {
+            "phase": "after approval",
+            "count": 1
+          },
+          {
+            "phase": "after repeat",
+            "count": 1
+          }
+        ],
+        "unknown_receiver_snapshot": null
+      },
+      {
+        "case": "review-fallback-true-open-false-false",
+        "native_root": true,
+        "composed": false,
+        "cancellable": false,
+        "handler_before_approval": 0,
+        "final_handler_arrivals": 0,
+        "final_default_arrivals": 1,
+        "approval_sequence": [],
+        "unknown_receiver_snapshot": {
+          "phase": "uncancellable native default is unknown",
+          "count": 1
+        }
+      },
+      {
+        "case": "review-fallback-true-open-false-true",
+        "native_root": true,
+        "composed": false,
+        "cancellable": true,
+        "handler_before_approval": 0,
+        "final_handler_arrivals": 1,
+        "final_default_arrivals": 1,
+        "approval_sequence": [
+          {
+            "phase": "before approval",
+            "count": 0
+          },
+          {
+            "phase": "after approval",
+            "count": 1
+          },
+          {
+            "phase": "after repeat",
+            "count": 1
+          }
+        ],
+        "unknown_receiver_snapshot": null
+      },
+      {
+        "case": "review-fallback-true-open-true-false",
+        "native_root": true,
+        "composed": true,
+        "cancellable": false,
+        "handler_before_approval": 0,
+        "final_handler_arrivals": 0,
+        "final_default_arrivals": 1,
+        "approval_sequence": [],
+        "unknown_receiver_snapshot": {
+          "phase": "uncancellable native default is unknown",
+          "count": 1
+        }
+      },
+      {
+        "case": "review-fallback-true-open-true-true",
+        "native_root": true,
+        "composed": true,
+        "cancellable": true,
+        "handler_before_approval": 0,
+        "final_handler_arrivals": 1,
+        "final_default_arrivals": 1,
+        "approval_sequence": [
+          {
+            "phase": "before approval",
+            "count": 0
+          },
+          {
+            "phase": "after approval",
+            "count": 1
+          },
+          {
+            "phase": "after repeat",
+            "count": 1
+          }
+        ],
+        "unknown_receiver_snapshot": null
+      },
+      {
+        "case": "review-fallback-true-closed-false-false",
+        "native_root": true,
+        "composed": false,
+        "cancellable": false,
+        "handler_before_approval": 0,
+        "final_handler_arrivals": 0,
+        "final_default_arrivals": 1,
+        "approval_sequence": [],
+        "unknown_receiver_snapshot": {
+          "phase": "uncancellable native default is unknown",
+          "count": 1
+        }
+      },
+      {
+        "case": "review-fallback-true-closed-false-true",
+        "native_root": true,
+        "composed": false,
+        "cancellable": true,
+        "handler_before_approval": 0,
+        "final_handler_arrivals": 1,
+        "final_default_arrivals": 1,
+        "approval_sequence": [
+          {
+            "phase": "before approval",
+            "count": 0
+          },
+          {
+            "phase": "after approval",
+            "count": 1
+          },
+          {
+            "phase": "after repeat",
+            "count": 1
+          }
+        ],
+        "unknown_receiver_snapshot": null
+      },
+      {
+        "case": "review-fallback-true-closed-true-false",
+        "native_root": true,
+        "composed": true,
+        "cancellable": false,
+        "handler_before_approval": 0,
+        "final_handler_arrivals": 0,
+        "final_default_arrivals": 1,
+        "approval_sequence": [],
+        "unknown_receiver_snapshot": {
+          "phase": "uncancellable native default is unknown",
+          "count": 1
+        }
+      },
+      {
+        "case": "review-fallback-true-closed-true-true",
+        "native_root": true,
+        "composed": true,
+        "cancellable": true,
+        "handler_before_approval": 0,
+        "final_handler_arrivals": 1,
+        "final_default_arrivals": 1,
+        "approval_sequence": [
+          {
+            "phase": "before approval",
+            "count": 0
+          },
+          {
+            "phase": "after approval",
+            "count": 1
+          },
+          {
+            "phase": "after repeat",
+            "count": 1
+          }
+        ],
+        "unknown_receiver_snapshot": null
+      }
+    ],
+    "owner_body": "draft=Saved",
+    "timer_body_after_own_approval": "draft=Other",
+    "result": "PASS"
+  },
+  {
+    "run_id": 43167000276,
+    "artifact": "control-chrome-43167000276-1-external",
+    "source": "495c0b3477e7496134028f5244b767b3f4bc7896",
+    "fixed_cases": [
+      {
+        "case": "recheck-search-pay",
+        "before_own_approval": 0,
+        "final_arrivals": [
+          {
+            "time": 1794477367143,
+            "url": "/receive?case=recheck-search-pay",
+            "method": "POST",
+            "body": "review fixture"
+          }
+        ]
+      },
+      {
+        "case": "recheck-search-delete",
+        "before_own_approval": 0,
+        "final_arrivals": [
+          {
+            "time": 1794477368864,
+            "url": "/receive?case=recheck-search-delete",
+            "method": "POST",
+            "body": "review fixture"
+          }
+        ]
+      },
+      {
+        "case": "recheck-search-editable-native",
+        "before_own_approval": 0,
+        "final_arrivals": [
+          {
+            "time": 1794477370635,
+            "url": "/receive?case=recheck-search-editable-native",
+            "method": "POST",
+            "body": "review fixture"
+          }
+        ]
+      },
+      {
+        "case": "recheck-search-editable-aria",
+        "before_own_approval": 0,
+        "final_arrivals": [
+          {
+            "time": 1794477372421,
+            "url": "/receive?case=recheck-search-editable-aria",
+            "method": "POST",
+            "body": "review fixture"
+          }
+        ]
+      },
+      {
+        "case": "review-bind-confirmation-",
+        "stale_approval_arrivals": 0,
+        "fresh_body": "Different draft",
+        "final_arrivals": [
+          {
+            "time": 1794477643381,
+            "url": "/receive?case=review-bind-confirmation-",
+            "method": "POST",
+            "body": "Different draft"
+          }
+        ]
+      },
+      {
+        "case": "review-bind-confirmation-form",
+        "stale_approval_arrivals": 0,
+        "fresh_body": "Different draft",
+        "final_arrivals": [
+          {
+            "time": 1794477645917,
+            "url": "/receive?case=review-bind-confirmation-form",
+            "method": "POST",
+            "body": "Different draft"
+          }
+        ]
+      },
+      {
+        "case": "review-bind-confirmation-submit",
+        "stale_approval_arrivals": 0,
+        "fresh_body": "Different draft",
+        "final_arrivals": [
+          {
+            "time": 1794477648359,
+            "url": "/receive?case=review-bind-confirmation-submit",
+            "method": "POST",
+            "body": "Different draft"
+          }
+        ]
+      },
+      {
+        "case": "review-bind-confirmation-submit-send",
+        "stale_approval_arrivals": 0,
+        "fresh_body": "Different draft",
+        "final_arrivals": [
+          {
+            "time": 1794477650863,
+            "url": "/receive?case=review-bind-confirmation-submit-send",
+            "method": "POST",
+            "body": "Different draft"
+          }
+        ]
+      },
+      {
+        "case": "review-bind-compose-key-",
+        "stale_approval_arrivals": 0,
+        "fresh_body": "Different draft",
+        "final_arrivals": [
+          {
+            "time": 1794477655968,
+            "url": "/receive?case=review-bind-compose-key-",
+            "method": "POST",
+            "body": "Different draft"
+          }
+        ]
+      },
+      {
+        "case": "review-bind-quantity-",
+        "stale_approval_arrivals": 0,
+        "fresh_body": "2",
+        "final_arrivals": [
+          {
+            "time": 1794477653391,
+            "url": "/receive?case=review-bind-quantity-",
+            "method": "POST",
+            "body": "2"
+          }
+        ]
+      },
+      {
+        "case": "review-bind-shadow-binding-li-open",
+        "stale_approval_arrivals": 0,
+        "fresh_body": "Invoice B",
+        "final_arrivals": [
+          {
+            "time": 1794477658529,
+            "url": "/receive?case=review-bind-shadow-binding-li-open",
+            "method": "POST",
+            "body": "Invoice B"
+          }
+        ]
+      },
+      {
+        "case": "review-bind-shadow-binding-li-closed",
+        "stale_approval_arrivals": 0,
+        "fresh_body": "Invoice B",
+        "final_arrivals": [
+          {
+            "time": 1794477661048,
+            "url": "/receive?case=review-bind-shadow-binding-li-closed",
+            "method": "POST",
+            "body": "Invoice B"
+          }
+        ]
+      },
+      {
+        "case": "review-bind-shadow-binding-row-open",
+        "stale_approval_arrivals": 0,
+        "fresh_body": "Invoice B",
+        "final_arrivals": [
+          {
+            "time": 1794477663613,
+            "url": "/receive?case=review-bind-shadow-binding-row-open",
+            "method": "POST",
+            "body": "Invoice B"
+          }
+        ]
+      },
+      {
+        "case": "review-bind-shadow-binding-row-closed",
+        "stale_approval_arrivals": 0,
+        "fresh_body": "Invoice B",
+        "final_arrivals": [
+          {
+            "time": 1794477666210,
+            "url": "/receive?case=review-bind-shadow-binding-row-closed",
+            "method": "POST",
+            "body": "Invoice B"
+          }
+        ]
+      },
+      {
+        "case": "review-bind-shadow-binding-slot-li-open",
+        "stale_approval_arrivals": 0,
+        "fresh_body": "Invoice B",
+        "final_arrivals": [
+          {
+            "time": 1794477668809,
+            "url": "/receive?case=review-bind-shadow-binding-slot-li-open",
+            "method": "POST",
+            "body": "Invoice B"
+          }
+        ]
+      },
+      {
+        "case": "review-bind-shadow-binding-slot-li-closed",
+        "stale_approval_arrivals": 0,
+        "fresh_body": "Invoice B",
+        "final_arrivals": [
+          {
+            "time": 1794477671428,
+            "url": "/receive?case=review-bind-shadow-binding-slot-li-closed",
+            "method": "POST",
+            "body": "Invoice B"
+          }
+        ]
+      },
+      {
+        "case": "review-bind-shadow-binding-slot-row-open",
+        "stale_approval_arrivals": 0,
+        "fresh_body": "Invoice B",
+        "final_arrivals": [
+          {
+            "time": 1794477674185,
+            "url": "/receive?case=review-bind-shadow-binding-slot-row-open",
+            "method": "POST",
+            "body": "Invoice B"
+          }
+        ]
+      },
+      {
+        "case": "review-bind-shadow-binding-slot-row-closed",
+        "stale_approval_arrivals": 0,
+        "fresh_body": "Invoice B",
+        "final_arrivals": [
+          {
+            "time": 1794477676938,
+            "url": "/receive?case=review-bind-shadow-binding-slot-row-closed",
+            "method": "POST",
+            "body": "Invoice B"
+          }
+        ]
+      }
+    ],
+    "native_fallback_cases": [
+      {
+        "case": "review-fallback-false-open-false-false",
+        "native_root": false,
+        "composed": false,
+        "cancellable": false,
+        "handler_before_approval": 0,
+        "final_handler_arrivals": 0,
+        "final_default_arrivals": 1,
+        "approval_sequence": [],
+        "unknown_receiver_snapshot": {
+          "phase": "uncancellable native default is unknown",
+          "count": 1
+        }
+      },
+      {
+        "case": "review-fallback-false-open-false-true",
+        "native_root": false,
+        "composed": false,
+        "cancellable": true,
+        "handler_before_approval": 0,
+        "final_handler_arrivals": 1,
+        "final_default_arrivals": 1,
+        "approval_sequence": [
+          {
+            "phase": "before approval",
+            "count": 0
+          },
+          {
+            "phase": "after approval",
+            "count": 1
+          },
+          {
+            "phase": "after repeat",
+            "count": 1
+          }
+        ],
+        "unknown_receiver_snapshot": null
+      },
+      {
+        "case": "review-fallback-false-open-true-false",
+        "native_root": false,
+        "composed": true,
+        "cancellable": false,
+        "handler_before_approval": 0,
+        "final_handler_arrivals": 0,
+        "final_default_arrivals": 1,
+        "approval_sequence": [],
+        "unknown_receiver_snapshot": {
+          "phase": "uncancellable native default is unknown",
+          "count": 1
+        }
+      },
+      {
+        "case": "review-fallback-false-open-true-true",
+        "native_root": false,
+        "composed": true,
+        "cancellable": true,
+        "handler_before_approval": 0,
+        "final_handler_arrivals": 1,
+        "final_default_arrivals": 1,
+        "approval_sequence": [
+          {
+            "phase": "before approval",
+            "count": 0
+          },
+          {
+            "phase": "after approval",
+            "count": 1
+          },
+          {
+            "phase": "after repeat",
+            "count": 1
+          }
+        ],
+        "unknown_receiver_snapshot": null
+      },
+      {
+        "case": "review-fallback-false-closed-false-false",
+        "native_root": false,
+        "composed": false,
+        "cancellable": false,
+        "handler_before_approval": 0,
+        "final_handler_arrivals": 0,
+        "final_default_arrivals": 1,
+        "approval_sequence": [],
+        "unknown_receiver_snapshot": {
+          "phase": "uncancellable native default is unknown",
+          "count": 1
+        }
+      },
+      {
+        "case": "review-fallback-false-closed-false-true",
+        "native_root": false,
+        "composed": false,
+        "cancellable": true,
+        "handler_before_approval": 0,
+        "final_handler_arrivals": 1,
+        "final_default_arrivals": 1,
+        "approval_sequence": [
+          {
+            "phase": "before approval",
+            "count": 0
+          },
+          {
+            "phase": "after approval",
+            "count": 1
+          },
+          {
+            "phase": "after repeat",
+            "count": 1
+          }
+        ],
+        "unknown_receiver_snapshot": null
+      },
+      {
+        "case": "review-fallback-false-closed-true-false",
+        "native_root": false,
+        "composed": true,
+        "cancellable": false,
+        "handler_before_approval": 0,
+        "final_handler_arrivals": 0,
+        "final_default_arrivals": 1,
+        "approval_sequence": [],
+        "unknown_receiver_snapshot": {
+          "phase": "uncancellable native default is unknown",
+          "count": 1
+        }
+      },
+      {
+        "case": "review-fallback-false-closed-true-true",
+        "native_root": false,
+        "composed": true,
+        "cancellable": true,
+        "handler_before_approval": 0,
+        "final_handler_arrivals": 1,
+        "final_default_arrivals": 1,
+        "approval_sequence": [
+          {
+            "phase": "before approval",
+            "count": 0
+          },
+          {
+            "phase": "after approval",
+            "count": 1
+          },
+          {
+            "phase": "after repeat",
+            "count": 1
+          }
+        ],
+        "unknown_receiver_snapshot": null
+      },
+      {
+        "case": "review-fallback-true-open-false-false",
+        "native_root": true,
+        "composed": false,
+        "cancellable": false,
+        "handler_before_approval": 0,
+        "final_handler_arrivals": 0,
+        "final_default_arrivals": 1,
+        "approval_sequence": [],
+        "unknown_receiver_snapshot": {
+          "phase": "uncancellable native default is unknown",
+          "count": 1
+        }
+      },
+      {
+        "case": "review-fallback-true-open-false-true",
+        "native_root": true,
+        "composed": false,
+        "cancellable": true,
+        "handler_before_approval": 0,
+        "final_handler_arrivals": 1,
+        "final_default_arrivals": 1,
+        "approval_sequence": [
+          {
+            "phase": "before approval",
+            "count": 0
+          },
+          {
+            "phase": "after approval",
+            "count": 1
+          },
+          {
+            "phase": "after repeat",
+            "count": 1
+          }
+        ],
+        "unknown_receiver_snapshot": null
+      },
+      {
+        "case": "review-fallback-true-open-true-false",
+        "native_root": true,
+        "composed": true,
+        "cancellable": false,
+        "handler_before_approval": 0,
+        "final_handler_arrivals": 0,
+        "final_default_arrivals": 1,
+        "approval_sequence": [],
+        "unknown_receiver_snapshot": {
+          "phase": "uncancellable native default is unknown",
+          "count": 1
+        }
+      },
+      {
+        "case": "review-fallback-true-open-true-true",
+        "native_root": true,
+        "composed": true,
+        "cancellable": true,
+        "handler_before_approval": 0,
+        "final_handler_arrivals": 1,
+        "final_default_arrivals": 1,
+        "approval_sequence": [
+          {
+            "phase": "before approval",
+            "count": 0
+          },
+          {
+            "phase": "after approval",
+            "count": 1
+          },
+          {
+            "phase": "after repeat",
+            "count": 1
+          }
+        ],
+        "unknown_receiver_snapshot": null
+      },
+      {
+        "case": "review-fallback-true-closed-false-false",
+        "native_root": true,
+        "composed": false,
+        "cancellable": false,
+        "handler_before_approval": 0,
+        "final_handler_arrivals": 0,
+        "final_default_arrivals": 1,
+        "approval_sequence": [],
+        "unknown_receiver_snapshot": {
+          "phase": "uncancellable native default is unknown",
+          "count": 1
+        }
+      },
+      {
+        "case": "review-fallback-true-closed-false-true",
+        "native_root": true,
+        "composed": false,
+        "cancellable": true,
+        "handler_before_approval": 0,
+        "final_handler_arrivals": 1,
+        "final_default_arrivals": 1,
+        "approval_sequence": [
+          {
+            "phase": "before approval",
+            "count": 0
+          },
+          {
+            "phase": "after approval",
+            "count": 1
+          },
+          {
+            "phase": "after repeat",
+            "count": 1
+          }
+        ],
+        "unknown_receiver_snapshot": null
+      },
+      {
+        "case": "review-fallback-true-closed-true-false",
+        "native_root": true,
+        "composed": true,
+        "cancellable": false,
+        "handler_before_approval": 0,
+        "final_handler_arrivals": 0,
+        "final_default_arrivals": 1,
+        "approval_sequence": [],
+        "unknown_receiver_snapshot": {
+          "phase": "uncancellable native default is unknown",
+          "count": 1
+        }
+      },
+      {
+        "case": "review-fallback-true-closed-true-true",
+        "native_root": true,
+        "composed": true,
+        "cancellable": true,
+        "handler_before_approval": 0,
+        "final_handler_arrivals": 1,
+        "final_default_arrivals": 1,
+        "approval_sequence": [
+          {
+            "phase": "before approval",
+            "count": 0
+          },
+          {
+            "phase": "after approval",
+            "count": 1
+          },
+          {
+            "phase": "after repeat",
+            "count": 1
+          }
+        ],
+        "unknown_receiver_snapshot": null
+      }
+    ],
+    "owner_body": "draft=Saved",
+    "timer_body_after_own_approval": "draft=Other",
+    "result": "PASS"
+  },
+  {
+    "run_id": 43167000276,
+    "artifact": "control-chrome-43167000276-1-policy",
+    "source": "495c0b3477e7496134028f5244b767b3f4bc7896",
+    "fixed_cases": [
+      {
+        "case": "recheck-search-pay",
+        "before_own_approval": 0,
+        "final_arrivals": [
+          {
+            "time": 1794477385587,
+            "url": "/receive?case=recheck-search-pay",
+            "method": "POST",
+            "body": "review fixture"
+          }
+        ]
+      },
+      {
+        "case": "recheck-search-delete",
+        "before_own_approval": 0,
+        "final_arrivals": [
+          {
+            "time": 1794477387919,
+            "url": "/receive?case=recheck-search-delete",
+            "method": "POST",
+            "body": "review fixture"
+          }
+        ]
+      },
+      {
+        "case": "recheck-search-editable-native",
+        "before_own_approval": 0,
+        "final_arrivals": [
+          {
+            "time": 1794477389798,
+            "url": "/receive?case=recheck-search-editable-native",
+            "method": "POST",
+            "body": "review fixture"
+          }
+        ]
+      },
+      {
+        "case": "recheck-search-editable-aria",
+        "before_own_approval": 0,
+        "final_arrivals": [
+          {
+            "time": 1794477391529,
+            "url": "/receive?case=recheck-search-editable-aria",
+            "method": "POST",
+            "body": "review fixture"
+          }
+        ]
+      },
+      {
+        "case": "review-bind-confirmation-",
+        "stale_approval_arrivals": 0,
+        "fresh_body": "Different draft",
+        "final_arrivals": [
+          {
+            "time": 1794477686450,
+            "url": "/receive?case=review-bind-confirmation-",
+            "method": "POST",
+            "body": "Different draft"
+          }
+        ]
+      },
+      {
+        "case": "review-bind-confirmation-form",
+        "stale_approval_arrivals": 0,
+        "fresh_body": "Different draft",
+        "final_arrivals": [
+          {
+            "time": 1794477689313,
+            "url": "/receive?case=review-bind-confirmation-form",
+            "method": "POST",
+            "body": "Different draft"
+          }
+        ]
+      },
+      {
+        "case": "review-bind-confirmation-submit",
+        "stale_approval_arrivals": 0,
+        "fresh_body": "Different draft",
+        "final_arrivals": [
+          {
+            "time": 1794477692020,
+            "url": "/receive?case=review-bind-confirmation-submit",
+            "method": "POST",
+            "body": "Different draft"
+          }
+        ]
+      },
+      {
+        "case": "review-bind-confirmation-submit-send",
+        "stale_approval_arrivals": 0,
+        "fresh_body": "Different draft",
+        "final_arrivals": [
+          {
+            "time": 1794477694770,
+            "url": "/receive?case=review-bind-confirmation-submit-send",
+            "method": "POST",
+            "body": "Different draft"
+          }
+        ]
+      },
+      {
+        "case": "review-bind-compose-key-",
+        "stale_approval_arrivals": 0,
+        "fresh_body": "Different draft",
+        "final_arrivals": [
+          {
+            "time": 1794477700340,
+            "url": "/receive?case=review-bind-compose-key-",
+            "method": "POST",
+            "body": "Different draft"
+          }
+        ]
+      },
+      {
+        "case": "review-bind-quantity-",
+        "stale_approval_arrivals": 0,
+        "fresh_body": "2",
+        "final_arrivals": [
+          {
+            "time": 1794477697537,
+            "url": "/receive?case=review-bind-quantity-",
+            "method": "POST",
+            "body": "2"
+          }
+        ]
+      },
+      {
+        "case": "review-bind-shadow-binding-li-open",
+        "stale_approval_arrivals": 0,
+        "fresh_body": "Invoice B",
+        "final_arrivals": [
+          {
+            "time": 1794477703156,
+            "url": "/receive?case=review-bind-shadow-binding-li-open",
+            "method": "POST",
+            "body": "Invoice B"
+          }
+        ]
+      },
+      {
+        "case": "review-bind-shadow-binding-li-closed",
+        "stale_approval_arrivals": 0,
+        "fresh_body": "Invoice B",
+        "final_arrivals": [
+          {
+            "time": 1794477706094,
+            "url": "/receive?case=review-bind-shadow-binding-li-closed",
+            "method": "POST",
+            "body": "Invoice B"
+          }
+        ]
+      },
+      {
+        "case": "review-bind-shadow-binding-row-open",
+        "stale_approval_arrivals": 0,
+        "fresh_body": "Invoice B",
+        "final_arrivals": [
+          {
+            "time": 1794477709023,
+            "url": "/receive?case=review-bind-shadow-binding-row-open",
+            "method": "POST",
+            "body": "Invoice B"
+          }
+        ]
+      },
+      {
+        "case": "review-bind-shadow-binding-row-closed",
+        "stale_approval_arrivals": 0,
+        "fresh_body": "Invoice B",
+        "final_arrivals": [
+          {
+            "time": 1794477712008,
+            "url": "/receive?case=review-bind-shadow-binding-row-closed",
+            "method": "POST",
+            "body": "Invoice B"
+          }
+        ]
+      },
+      {
+        "case": "review-bind-shadow-binding-slot-li-open",
+        "stale_approval_arrivals": 0,
+        "fresh_body": "Invoice B",
+        "final_arrivals": [
+          {
+            "time": 1794477715169,
+            "url": "/receive?case=review-bind-shadow-binding-slot-li-open",
+            "method": "POST",
+            "body": "Invoice B"
+          }
+        ]
+      },
+      {
+        "case": "review-bind-shadow-binding-slot-li-closed",
+        "stale_approval_arrivals": 0,
+        "fresh_body": "Invoice B",
+        "final_arrivals": [
+          {
+            "time": 1794477718547,
+            "url": "/receive?case=review-bind-shadow-binding-slot-li-closed",
+            "method": "POST",
+            "body": "Invoice B"
+          }
+        ]
+      },
+      {
+        "case": "review-bind-shadow-binding-slot-row-open",
+        "stale_approval_arrivals": 0,
+        "fresh_body": "Invoice B",
+        "final_arrivals": [
+          {
+            "time": 1794477721555,
+            "url": "/receive?case=review-bind-shadow-binding-slot-row-open",
+            "method": "POST",
+            "body": "Invoice B"
+          }
+        ]
+      },
+      {
+        "case": "review-bind-shadow-binding-slot-row-closed",
+        "stale_approval_arrivals": 0,
+        "fresh_body": "Invoice B",
+        "final_arrivals": [
+          {
+            "time": 1794477724823,
+            "url": "/receive?case=review-bind-shadow-binding-slot-row-closed",
+            "method": "POST",
+            "body": "Invoice B"
+          }
+        ]
+      }
+    ],
+    "native_fallback_cases": [
+      {
+        "case": "review-fallback-false-open-false-false",
+        "native_root": false,
+        "composed": false,
+        "cancellable": false,
+        "handler_before_approval": 0,
+        "final_handler_arrivals": 0,
+        "final_default_arrivals": 1,
+        "approval_sequence": [],
+        "unknown_receiver_snapshot": {
+          "phase": "uncancellable native default is unknown",
+          "count": 1
+        }
+      },
+      {
+        "case": "review-fallback-false-open-false-true",
+        "native_root": false,
+        "composed": false,
+        "cancellable": true,
+        "handler_before_approval": 0,
+        "final_handler_arrivals": 1,
+        "final_default_arrivals": 1,
+        "approval_sequence": [
+          {
+            "phase": "before approval",
+            "count": 0
+          },
+          {
+            "phase": "after approval",
+            "count": 1
+          },
+          {
+            "phase": "after repeat",
+            "count": 1
+          }
+        ],
+        "unknown_receiver_snapshot": null
+      },
+      {
+        "case": "review-fallback-false-open-true-false",
+        "native_root": false,
+        "composed": true,
+        "cancellable": false,
+        "handler_before_approval": 0,
+        "final_handler_arrivals": 0,
+        "final_default_arrivals": 1,
+        "approval_sequence": [],
+        "unknown_receiver_snapshot": {
+          "phase": "uncancellable native default is unknown",
+          "count": 1
+        }
+      },
+      {
+        "case": "review-fallback-false-open-true-true",
+        "native_root": false,
+        "composed": true,
+        "cancellable": true,
+        "handler_before_approval": 0,
+        "final_handler_arrivals": 1,
+        "final_default_arrivals": 1,
+        "approval_sequence": [
+          {
+            "phase": "before approval",
+            "count": 0
+          },
+          {
+            "phase": "after approval",
+            "count": 1
+          },
+          {
+            "phase": "after repeat",
+            "count": 1
+          }
+        ],
+        "unknown_receiver_snapshot": null
+      },
+      {
+        "case": "review-fallback-false-closed-false-false",
+        "native_root": false,
+        "composed": false,
+        "cancellable": false,
+        "handler_before_approval": 0,
+        "final_handler_arrivals": 0,
+        "final_default_arrivals": 1,
+        "approval_sequence": [],
+        "unknown_receiver_snapshot": {
+          "phase": "uncancellable native default is unknown",
+          "count": 1
+        }
+      },
+      {
+        "case": "review-fallback-false-closed-false-true",
+        "native_root": false,
+        "composed": false,
+        "cancellable": true,
+        "handler_before_approval": 0,
+        "final_handler_arrivals": 1,
+        "final_default_arrivals": 1,
+        "approval_sequence": [
+          {
+            "phase": "before approval",
+            "count": 0
+          },
+          {
+            "phase": "after approval",
+            "count": 1
+          },
+          {
+            "phase": "after repeat",
+            "count": 1
+          }
+        ],
+        "unknown_receiver_snapshot": null
+      },
+      {
+        "case": "review-fallback-false-closed-true-false",
+        "native_root": false,
+        "composed": true,
+        "cancellable": false,
+        "handler_before_approval": 0,
+        "final_handler_arrivals": 0,
+        "final_default_arrivals": 1,
+        "approval_sequence": [],
+        "unknown_receiver_snapshot": {
+          "phase": "uncancellable native default is unknown",
+          "count": 1
+        }
+      },
+      {
+        "case": "review-fallback-false-closed-true-true",
+        "native_root": false,
+        "composed": true,
+        "cancellable": true,
+        "handler_before_approval": 0,
+        "final_handler_arrivals": 1,
+        "final_default_arrivals": 1,
+        "approval_sequence": [
+          {
+            "phase": "before approval",
+            "count": 0
+          },
+          {
+            "phase": "after approval",
+            "count": 1
+          },
+          {
+            "phase": "after repeat",
+            "count": 1
+          }
+        ],
+        "unknown_receiver_snapshot": null
+      },
+      {
+        "case": "review-fallback-true-open-false-false",
+        "native_root": true,
+        "composed": false,
+        "cancellable": false,
+        "handler_before_approval": 0,
+        "final_handler_arrivals": 0,
+        "final_default_arrivals": 1,
+        "approval_sequence": [],
+        "unknown_receiver_snapshot": {
+          "phase": "uncancellable native default is unknown",
+          "count": 1
+        }
+      },
+      {
+        "case": "review-fallback-true-open-false-true",
+        "native_root": true,
+        "composed": false,
+        "cancellable": true,
+        "handler_before_approval": 0,
+        "final_handler_arrivals": 1,
+        "final_default_arrivals": 1,
+        "approval_sequence": [
+          {
+            "phase": "before approval",
+            "count": 0
+          },
+          {
+            "phase": "after approval",
+            "count": 1
+          },
+          {
+            "phase": "after repeat",
+            "count": 1
+          }
+        ],
+        "unknown_receiver_snapshot": null
+      },
+      {
+        "case": "review-fallback-true-open-true-false",
+        "native_root": true,
+        "composed": true,
+        "cancellable": false,
+        "handler_before_approval": 0,
+        "final_handler_arrivals": 0,
+        "final_default_arrivals": 1,
+        "approval_sequence": [],
+        "unknown_receiver_snapshot": {
+          "phase": "uncancellable native default is unknown",
+          "count": 1
+        }
+      },
+      {
+        "case": "review-fallback-true-open-true-true",
+        "native_root": true,
+        "composed": true,
+        "cancellable": true,
+        "handler_before_approval": 0,
+        "final_handler_arrivals": 1,
+        "final_default_arrivals": 1,
+        "approval_sequence": [
+          {
+            "phase": "before approval",
+            "count": 0
+          },
+          {
+            "phase": "after approval",
+            "count": 1
+          },
+          {
+            "phase": "after repeat",
+            "count": 1
+          }
+        ],
+        "unknown_receiver_snapshot": null
+      },
+      {
+        "case": "review-fallback-true-closed-false-false",
+        "native_root": true,
+        "composed": false,
+        "cancellable": false,
+        "handler_before_approval": 0,
+        "final_handler_arrivals": 0,
+        "final_default_arrivals": 1,
+        "approval_sequence": [],
+        "unknown_receiver_snapshot": {
+          "phase": "uncancellable native default is unknown",
+          "count": 1
+        }
+      },
+      {
+        "case": "review-fallback-true-closed-false-true",
+        "native_root": true,
+        "composed": false,
+        "cancellable": true,
+        "handler_before_approval": 0,
+        "final_handler_arrivals": 1,
+        "final_default_arrivals": 1,
+        "approval_sequence": [
+          {
+            "phase": "before approval",
+            "count": 0
+          },
+          {
+            "phase": "after approval",
+            "count": 1
+          },
+          {
+            "phase": "after repeat",
+            "count": 1
+          }
+        ],
+        "unknown_receiver_snapshot": null
+      },
+      {
+        "case": "review-fallback-true-closed-true-false",
+        "native_root": true,
+        "composed": true,
+        "cancellable": false,
+        "handler_before_approval": 0,
+        "final_handler_arrivals": 0,
+        "final_default_arrivals": 1,
+        "approval_sequence": [],
+        "unknown_receiver_snapshot": {
+          "phase": "uncancellable native default is unknown",
+          "count": 1
+        }
+      },
+      {
+        "case": "review-fallback-true-closed-true-true",
+        "native_root": true,
+        "composed": true,
+        "cancellable": true,
+        "handler_before_approval": 0,
+        "final_handler_arrivals": 1,
+        "final_default_arrivals": 1,
+        "approval_sequence": [
+          {
+            "phase": "before approval",
+            "count": 0
+          },
+          {
+            "phase": "after approval",
+            "count": 1
+          },
+          {
+            "phase": "after repeat",
+            "count": 1
+          }
+        ],
+        "unknown_receiver_snapshot": null
+      }
+    ],
+    "owner_body": "draft=Saved",
+    "timer_body_after_own_approval": "draft=Other",
+    "result": "PASS"
+  }
+]
