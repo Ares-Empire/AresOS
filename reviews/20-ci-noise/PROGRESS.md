@@ -73,9 +73,29 @@ Brief: `briefs/20-ci-noise.md`. Builder: a Claude agent on Opus. Branch `ci/20-c
 
 - Local, Python 3.14: `PYTHONPATH=control:control/chrome_tests python3 -m unittest test_latency test_publisher`
   ran 65 tests, OK.
-- CI: (filled in after the pull request's first run)
+- CI on `2ac3e1a9` (the pull request's first and only CI push):
+  - **Control Chrome 43745378252: success**, every job, `latency (plain)` and `latency (audit)` included.
+    - Both legs' `latency-store.json`, read from the kernel: `/var/lib/aresos-tools` and
+      `/var/lib/aresos-operation-evidence` were each their own `tmpfs`
+      (`rw,size=524288k,mode=755,uid=1001,inode64`).
+    - Used at the end: current 77 MiB (state) and 39 MiB (evidence), `ab7aba92` 51 and 25 MiB. 512 MiB
+      leaves about 6.6 times room.
+    - `store_write` p95 fell from 66 to 210 ms (main's run 43726046014, plain) to 1.1 to 6.1 ms in every
+      phase. The slowest client p95 was `approval_to_done` at history-4000: 581 ms against its 850 ms
+      ceiling.
+    - Sync counts per sample: read 0 and 0, asking_click 2 and 2, navigate, free_click and fill 4 and 4,
+      approval_to_done 10 and 10 (fsyncs and commits). They were identical on every sample, in every phase,
+      in both runtimes and both profiles.
+    - `latency-check.json`: `passed: true`, no `failures`, no `sync_failures`, 36 sync comparisons.
+  - Control boundary 43745378210, Control base 43745378325, Control Mail 43745378331: success.
+  - **Control Chrome qualification 43745378358: success**. Every job passed: `qualification-tests` (it runs
+    `test_publisher` in CI), the pairs, combine and the local publish.
 
 ## What the code doesn't show
+
+- Item 1 runs live only on main. `notify` is main-only, so the pull request's run skips it. The first
+  main run after the merge is the first real one. It should then add nothing to #74's failing-groups issue,
+  because no entry from that run fails. After that, the lead closes #74.
 
 - The counts were already deterministic before this change. In main's run 43726046014 every sample of a
   phase/call had the same `journal_fsync` count in both legs: read 0, asking_click 2; navigate, free_click
