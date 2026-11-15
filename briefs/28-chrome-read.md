@@ -693,7 +693,7 @@ it has shown 5,000 references (a known limit for section 6); nesting deeper than
   included. On merged `main` the Chrome server's instructions (`instructions_for('chrome')` in
   `control/aresos_control/definitions.py`) are 4,052 characters. This package adds no instruction text, so that
   check passes unchanged. The reader text that tells Claude how to read an outline goes into the instructions
-  with brief 28a (its item 7) and must fit under the same limit there.
+  with brief 28a (its item 7) and must fit there, in at most 3,800 characters (the lead, 2026-11-15).
 - **The hold:** `guard.js`, `page.js`, the 500 ms window (`HOLD_MS` in `policy.py`, `holdMs` in the extension) and
   the 525 ms wait after each input in `collectSteps` (`background.js`), the default block, the owner's own Enter,
   the three kinds of dialog.
