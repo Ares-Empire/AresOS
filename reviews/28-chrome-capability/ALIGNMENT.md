@@ -193,3 +193,8 @@ shows a list's chosen option…" and "A large form isn't sent by Claude"), and a
 script outside ASCII can't be sent through a form (each character is 6 bytes after escaping and counts three times),
 and a form with a long hidden value, such as a framework's page state, can't be sent at all. Showing a hidden value
 cut would let such forms through and would reduce what he can inspect; that is a decision, not part of this change.
+
+**Lead's decision on the hidden-value question (2026-11-15, `linux-tools`):** a form with a long hidden value (a
+framework's page state) stays refused, as the known limit says. Hidden values are not shown cut in the question:
+the owner would see less of what is sent, and the refusal fails closed (he sends it himself). Revisit only if live
+use shows real sites hitting it. Non-ASCII text's size cost stays a known limit for the same reason.
