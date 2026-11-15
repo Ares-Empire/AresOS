@@ -61,8 +61,17 @@ Nothing here was run on the owner's screen: every graphical run was a headless l
   The failure was `RestartPolicyTest.test_deadlines_never_spin_after_their_action`: it requires `pending() == []`
   right after a slow start and a quit, but the slow-start view now stops the session's cover, whose SIGKILL is
   legitimately due 2 s later. The test now also checks that timer (exactly one item, due at +2 s, fires once,
-  then `pending() == []` and `deadline() == 30.0`); nothing it checked before was removed. Second whole run: see
-  the PR description.
+  then `pending() == []` and `deadline() == 30.0`); nothing it checked before was removed. Second whole run (after
+  that change): `Ran 172 tests in 183.4s FAILED (failures=1, skipped=1)`; the skip is the root/user-systemd one
+  (`test_the_real_jvm_runs_in_its_own_scope_with_the_memory_target`), the failure is the flake below.
+- **Open: a flaky real-loop test.** `LoopTest.test_crash_restart_latch_and_retry_through_the_real_loop` failed 3 of
+  16 runs on this branch (twice alone, once in the whole module; passed in the first whole run) and 0 of 16 on a
+  copy of main (`git archive 64c7be66`), same laptop, one at a time. Each failure: the owner's `retry` right after
+  the third crash's latch finds the desktop lock still held and ends in `RECOVERY locked` (the old wrapper has
+  reported Java's end but not exited yet). That race exists on main (the supervisor's answer is the safe one), but
+  this branch seems to hit it more often and the cause is not found yet; the cover is not up at that moment (it
+  ended at the first `world_ready`). Per AGENTS.md this is a failure until its cause is fixed: first item of the
+  next step.
 - `test_aresos_cover.py` (new), twice: `Ran 9 tests in 6.0s OK`, then `OK` again, nothing skipped here.
 - Modules that read files changed here, one at a time: `test_everyday_account` 34 OK, `test_journal_ready` 6 OK,
   `test_aresos_shell_icons` 43 OK, `test_owner_path` 47 OK, `test_release27` 41 OK.
@@ -153,9 +162,11 @@ rc.xml, image-checks.sh, VM scripts), so the integrator should dispatch a check 
 
 ## Left, in order
 
-1. The integrator decides the two PLAN-GAPs (and whether the JUDGMENT-CALLs go to the owner as they are).
-2. Build the chosen fixes (a fresh step), dispatch the check build with VM and `checks_only`.
-3. A fresh review (Opus, or Codex from 2026-11-17). The last step deletes this file; the report text goes to
+1. Find and fix the cause of the flaky `test_crash_restart_latch_and_retry_through_the_real_loop` on this branch
+   (above), then run the whole module twice.
+2. The integrator decides the two PLAN-GAPs (and whether the JUDGMENT-CALLs go to the owner as they are).
+3. Build the chosen fixes (a fresh step), dispatch the check build with VM and `checks_only`.
+4. A fresh review (Opus, or Codex from 2026-11-17). The last step deletes this file; the report text goes to
    `REPORT.md` through the integrator.
 
 ## What the code doesn't show
