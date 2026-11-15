@@ -1,4 +1,76 @@
-# 20-popup-race: progress
+# Brief 20-popup-race: report
+
+Brief `briefs/20-popup-race.md`, branch `pkg/20-popup-race`. Builders:
+- P1 to P3: Claude Fable (2026-11-15);
+- P4: the lead, `mac-aresos-control`, because it was found on main after the brief was written.
+
+The lead made this report from the builder's `PROGRESS.md`, which follows unchanged below the summary.
+
+## Outcome
+
+- **P1, a replayed duplicate breakpoint no longer drops the popup** (`background.js` `prepareTarget`).
+  - The fix: on V8's exact "Breakpoint at specified location already exists.", the extension re-arms once
+    (`Debugger.disable` → `enable` → `setBreakpointByUrl`) and takes the returned id.
+  - A second refusal or any other error fails closed exactly as before.
+  - **Re-arm, not adopt.** The id may not be known yet when the refusal arrives, and adopting would rely on V8's id
+    format. A pause from before the re-arm reaches the extension before `disable`'s reply, so before any id is
+    known, and is resumed as foreign: the document takes the late path with the reload rule.
+  - The security review verified that ordering against V8 and Chromium sources (`SECURITY-1.md`).
+- **P2, the slow-load fallback says what happened.**
+  - `popup_admitted` carries `owner_dialog`, and the harness's `admittedAfter` requires it false.
+  - After the 5 s stall, the message says the page is still loading when Chrome's tab status is `loading` and the
+    extension knows no dialog. Otherwise it keeps the dialog message.
+  - The handoff, the reload rule and the error code are unchanged.
+- **P3** is left to brief 28a. The click result has no popup correlation today, so naming an uncontrolled popup
+  needs new plumbing.
+- **P4, the qualification publisher**, found by main's first full run 43696892949:
+  - `pair` reads the version after the browser's name. Reading the last word had turned every passing beta pair into
+    an all-false entry (issue #74).
+  - `notify` writes issues only, and the job drops `pull-requests: write`. It keeps one open issue per title,
+    counting only `github-actions[bot]`'s own issues and comments, because the repository is public. It comments only
+    on new text, and shows gh's own error.
+
+## Reviews
+
+Each review was by a fresh agent that didn't build the code.
+
+| File | Reviewer | Range | Verdict |
+|---|---|---|---|
+| `REVIEW-1.md` | package, Claude Opus | `bdc16064..b6d223fa` | FIX 1: notify trusted same-title issues from anyone. FIX 2: absolute paths in a record. Both fixed. |
+| `SECURITY-1.md` | security, Claude Fable | `bdc16064..b6d223fa` | SAFE. NOTE 3, the same as FIX 1, is fixed. NOTEs 1 and 2 are below. |
+| `REVIEW-RECHECK-2.md` | package | `b6d223fa..2d27248c` | SAFE |
+
+## Accepted residuals
+
+- **Ordering between two message paths** (security NOTE 1, package review's "theoretical leftover risk").
+  - Chrome delivers the pause event and the command reply to the extension by two different paths. They are ordered
+    in practice (same browser thread, same worker) but not formally guaranteed.
+  - The harm: a stale pause delayed past two further round trips would count a document that already ran as
+    `document_start`. For popups that does no harm, because `popupNeedsReload` holds until the guarded reload. For an
+    owner tab taken during a cross-process navigation, it would skip the reload.
+  - **Why not the suggested hardening:** it would give the re-armed breakpoint a different id (`urlRegex`). But
+    Chrome keeps the URL breakpoint in a browser-side store that `Debugger.disable` doesn't clear. So a different id
+    would leave the original to pause every later page of that tab, which is the orphan problem the diagnosis warned
+    about.
+  - Left to brief 28a, which reworks admission, as a possible "pause still live" check before installing.
+- **A dialog opened by a still-loading page** gets the loading message on each 5 s retry. The text also says to ask
+  the owner if a dialog shows.
+- **An unhandled rejection** (security NOTE 2): a foreign `Debugger.resume` after `disable` has ended the pause is
+  rejected in the event listener. The same pattern exists elsewhere in the extension, with no effect on state.
+
+## Left for others
+
+- P3 → brief 28a (`linux-tools`).
+- An identity mismatch in a qualification pair is recorded all-false forever → `linux-tools`, as a design question
+  (`docs/control/TOOLS-HANDOFF.md`, "Main fix merged").
+
+## Local preflight
+
+On the final head `2d27248c` (`records/final-local-2d27248c.json`): 336 Python tests (shards 68/57/49/162, the Linux-only socket case skipped), 435 Node tests, 546 removal mutations rejected with every baseline passing, generator, whitespace and service-unit checks. No browser was started on the Mac. The pull-request runs are in the PR.
+
+---
+
+# The builder's record (P1 to P3)
 
 Builder: a Claude agent on Fable 5.1 (the brief names Fable: P1 changes the fail-closed admission path). Lead:
 `mac-aresos-control`. Branch `pkg/20-popup-race`, cut from main at `bdc16064`. Every commit says `[skip ci]`; no pull
