@@ -81,6 +81,35 @@ log flag. Add removal probes.
 (admission failed or refused), the click's result names it, so Claude can `take_tab` it rather than not knowing. If
 this is more than a few lines in the click path, leave it to `linux-tools`' brief 28a and say so.
 
+## P4. Qualification publisher fixes (lead's addendum, 2026-11-15)
+
+Main's first full `Control Chrome qualification` run after PR #68 (run 43696892949, on `bdc16064`) published the
+first attested record. It also found two bugs on paths that only run on main. The lead built the fix in commit
+`40014835` on this branch, so this PR's runs cover it too. It needs the same fresh reviews as P1 to P3.
+
+- **The version parse.**
+  - The bug: `qualify.py pair` read the browser version as the last word of `chrome --version`. Beta prints
+    `Google Chrome 159.0.8154.6 beta`, so both beta pairs were read as version `beta` and recorded with every group
+    false, although every beta test passed. A read-only diagnosis confirmed it from the run's artifacts.
+  - Why it matters: `switches()` lets beta evidence cover the first stable of its major. So the false entry for
+    build `4c1eccb9…`, beta 159.0.8154.6, would turn every group off on a laptop with that build once stable 159
+    ships, until a later passing 159 entry for that build overrides it. The record is append-only, so the entry
+    stays.
+  - The fix: the version is the token after the browser's name, with one channel word allowed.
+- **Notify.**
+  - The bug: notify opened the shipped-copy update as a pull request, which the repository doesn't let workflows
+    do (`can_approve_pull_request_reviews: false`). The step went red, and gh's error text was swallowed.
+  - The fix:
+    - notify writes issues only, and the publish job drops `pull-requests: write`;
+    - each title keeps one open issue, with a comment only for new text, so daily runs don't pile up duplicates;
+    - a refusal names its run, and a refused gh call shows gh's own error.
+- **Tests and probes:** tests use the real stable and beta version lines and cover the issue handling. There are six
+  `qualifyfix-*` removal probes.
+- **Left to `linux-tools`, design:** an identity mismatch (measured version or build differs from the plan) is not
+  evidence about the browser, yet it is recorded all-false forever. The suggestion is that it should refuse
+  publication and turn the run red instead, while an incomplete suite stays all-false. That changes the trust model,
+  so it gets its own brief.
+
 ## Runs and order
 
 - **Order:** P1, then P2, then optionally P3. Each comes with tests and probes and the full local preflight
