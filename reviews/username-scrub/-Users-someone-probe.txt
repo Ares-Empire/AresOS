@@ -1,0 +1,1 @@
+Probe: a file whose own name holds a home path.
