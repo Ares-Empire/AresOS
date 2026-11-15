@@ -42,11 +42,12 @@ Tuesday's security-review list); step 7's JUDGMENT-CALLs 1-3 are accepted.
 
 | Head | Holds | Control Chrome | Result |
 |---|---|---|---|
-| `425f4109` | step 7 + `main` | 43745261932 (run 8; qualification 43745261921) | running |
+| `425f4109` | step 7 + `main` | 43745261932 (run 8; qualification 43745261921) | **in progress.** Green so far: `package`, `native-precedence`, the four `python-shards`. **Red: `latency (audit)`**, its "Require lead ceilings" step, one failure only: phase `fresh`, `approval_to_done`, `regression: false`, `target_miss: true`, median 54 ms, p95 360 ms (job 132908893793). That is the lead's runner-disk case: rerun that job once (`gh run rerun 43745261932 --job 132908893793`) once the run has finished (GitHub reruns only finished runs). The browser shards and `latency (plain)` were still queued for runners about 1.5 hours after the push. |
 
 ### Left, in order
 
-1. **Read run 8** (above) if this step didn't: oldest failure first. What it should show is step 7's list, item 2.
+1. **Finish run 8** (above): when it has finished, rerun `latency (audit)` once as the lead's rule says (not a new
+   full run), then read the browser shards, oldest failure first. What it should show is step 7's list, item 2.
    Before a push that would start run 9, tell the lead.
 2. **The adapter's `chrome_outline` behind the test-only switch** (step 1b's item 3). Not started in code; what I
    found for it is below.
@@ -81,7 +82,8 @@ Tuesday's security-review list); step 7's JUDGMENT-CALLs 1-3 are accepted.
 
 ### What the code doesn't show
 
-- Run 8 waited for runners for a long time before its first jobs started: other branches' runs share them.
+- Run 8 waited for runners for a long time: its browser shards had not started 1.5 hours after the push (other
+  branches' runs share the runners).
 
 ### JUDGMENT-CALLs (technical; for the lead)
 
