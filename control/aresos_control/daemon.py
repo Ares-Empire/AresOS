@@ -15,6 +15,17 @@ from .protocol import receive, send
 from .chrome.bridge import LIMIT as CHROME_MESSAGE_LIMIT
 
 
+# The loop sleeps until its next own deadline. Chrome's maintenance runs at least this often, and so the loop never
+# sleeps longer: it also bounds a wall-clock deadline that a clock change or a suspend moved.
+MAINTENANCE = 60
+# The owner's password dialog for a loosening Chrome change is polled this often while it waits.
+CONFIRMATION_POLL = 0.1
+# A deadline that could not be read: try again soon, without spinning.
+UNKNOWN_DEADLINE = 1.0
+# Wake a little after a wall-clock deadline, not a little before it.
+DEADLINE_MARGIN = 0.005
+
+
 def chrome_peer(pid, uid):
     """The polkit subject: read the start time now, so a reused pid can't stand in later."""
     from .chrome.confirm import start_time
@@ -59,7 +70,7 @@ class Daemon:
                 if b'\n' in bridge.buffer:
                     continue
             if time.monotonic() >= refresh_at:
-                refresh_at = time.monotonic() + 60
+                refresh_at = time.monotonic() + MAINTENANCE
                 try:
                     self.engine.adapters['chrome'].maintenance()
                 except Exception as exc:
@@ -74,7 +85,7 @@ class Daemon:
                 self.engine.adapters['chrome'].poll_confirmation()
             except Exception as exc:
                 self.engine.background_error(exc)
-            for key, _ in self.selector.select(timeout=0.1):
+            for key, _ in self.selector.select(timeout=self.timeout(refresh_at)):
                 if key.data == 'chrome-peer':
                     self.drain_chrome_events(key.fileobj)
                     if b'\n' in self.engine.adapters['chrome'].bridge.buffer:
@@ -107,6 +118,23 @@ class Daemon:
                         send(connection, result, result=True)
                     except Exception:
                         pass
+
+    def timeout(self, refresh_at):
+        """Seconds until the loop has timed work: Chrome maintenance, the engine's next deadline, a waiting dialog.
+
+        Requests and Chrome events wake the select themselves; idle with nothing pending, this is the maintenance time.
+        """
+        wait = refresh_at - time.monotonic()
+        try:
+            if self.engine.adapters['chrome'].confirmation is not None:
+                wait = min(wait, CONFIRMATION_POLL)
+            deadline = self.engine.next_deadline()
+            if deadline is not None:
+                wait = min(wait, deadline - time.time() + DEADLINE_MARGIN)
+        except Exception:
+            # expire() and the Chrome calls on the next pass record any cause; only the sleep is decided here.
+            wait = min(wait, UNKNOWN_DEADLINE)
+        return max(0.0, wait)
 
     def accept_chrome(self, connection):
         """Admit one native host as the owner; True when its hello came with more events."""

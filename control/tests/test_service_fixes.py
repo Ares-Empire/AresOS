@@ -9,6 +9,7 @@ import tempfile
 import threading
 import time
 import unittest
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from aresos_control import cli, protocol
@@ -156,3 +157,101 @@ class AdminWithoutSudo(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class IdleLoop(unittest.TestCase):
+    """Brief 18e, item 3: the service sleeps until its next real deadline."""
+    def setUp(self):
+        from aresos_control.daemon import Daemon
+        self.folder = tempfile.TemporaryDirectory()
+        self.addCleanup(self.folder.cleanup)
+        root = Path(self.folder.name)
+        for name in ('state', 'independent', 'sockets'):
+            (root / name).mkdir()
+        self.daemon = Daemon({'owner_uid': os.geteuid() + 1, 'state_dir': str(root / 'state'),
+                              'evidence_dir': str(root / 'independent'), 'socket_dir': str(root / 'sockets'), 'approval_ttl': 0.4})
+        self.addCleanup(self.daemon.close)
+        self.engine = self.daemon.engine
+        patcher = patch.object(self.engine.boundary, 'require')
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def reserve(self):
+        from support import message
+        result = self.engine.request({'v': 1, 'method': 'call', 'action': 'testapp_prepare_send', 'arguments': message()})
+        self.assertTrue(result['ok'], result)
+        return result['data']['approval']
+
+    def passes(self, count, sleep=False, check=lambda: None):
+        """Run serve() for `count` selects; record each timeout (and `check()`), optionally sleeping it."""
+        timeouts, self.checked = [], []
+        def select(timeout):
+            timeouts.append(timeout)
+            self.checked.append(check())
+            if sleep:
+                # Like a real select whose deadline arrives; the long idle sleep is only recorded.
+                time.sleep(min(timeout, 1))
+            if len(timeouts) >= count:
+                self.daemon.stopping = True
+            return []
+        self.daemon.selector.select = select
+        self.daemon.stopping = False
+        self.daemon.serve()
+        return timeouts
+
+    def test_next_deadline_is_none_idle_and_the_earliest_open_reservation_otherwise(self):
+        from aresos_control import engine as engine_module
+        self.assertIsNone(self.engine.next_deadline())
+        first = self.reserve()
+        operation = self.engine.store.operation(first['operation_id']) if hasattr(self.engine.store, 'operation') else None
+        deadline = self.engine.next_deadline()
+        self.assertAlmostEqual(deadline, time.time() + 0.4, delta=0.2)
+        if operation:
+            self.assertEqual(deadline, operation['expires'])
+        time.sleep(0.5)
+        self.engine.expire()
+        self.assertIsNone(self.engine.next_deadline())
+        self.engine.store.deferred_notices['n'] = ({}, 'control_maintenance', 'synthetic')
+        self.assertAlmostEqual(self.engine.next_deadline(), time.time() + engine_module.NOTICE_RETRY, delta=0.2)
+
+    def test_idle_sleeps_until_maintenance(self):
+        timeouts = self.passes(3)
+        for timeout in timeouts:
+            self.assertGreater(timeout, 59)
+            self.assertLessEqual(timeout, 60)
+
+    def test_a_pending_expiry_is_met_on_time(self):
+        approval = self.reserve()
+        started = time.monotonic()
+        def state():
+            status = self.engine.request({'v': 1, 'method': 'call', 'action': 'testapp_operation_status',
+                                          'arguments': {'operation_id': approval['operation_id']}})
+            return status['data']['operation']['state'], time.monotonic() - started
+        timeouts = self.passes(2, sleep=True, check=state)
+        # The first select sleeps until the expiry, not 0.1 s; the pass after it expires the reservation.
+        self.assertGreater(timeouts[0], 0.3)
+        self.assertLessEqual(timeouts[0], 0.41)
+        self.assertGreater(timeouts[1], 59)
+        self.assertEqual(self.checked[0][0], 'reserved')
+        self.assertEqual(self.checked[1][0], 'failed')
+        self.assertLess(self.checked[1][1], 0.6)
+
+    def test_a_waiting_confirmation_is_polled_and_its_answer_handled(self):
+        chrome = self.engine.adapters['chrome']
+        answers = iter([None, None, (False, 'synthetic no')])
+        polled = []
+        ask = SimpleNamespace(outcome=lambda: polled.append(1) or next(answers), cancel=lambda: None)
+        chrome.confirmation = {'request_id': 'r', 'arguments': {}, 'change': 'x', 'ask': ask,
+                               'connection': chrome.bridge.connection_identity}
+        with patch.object(chrome, 'owner_reply') as reply:
+            timeouts = self.passes(4)
+        # Polled before each select: two waiting answers, then the no; then back to the idle sleep.
+        self.assertEqual(timeouts[:2], [0.1, 0.1])
+        self.assertGreater(min(timeouts[2:]), 59)
+        self.assertEqual(len(polled), 3)
+        self.assertIsNone(chrome.confirmation)
+        reply.assert_called_once()
+
+    def test_an_unreadable_deadline_wakes_within_a_second(self):
+        with patch.object(self.engine, 'next_deadline', side_effect=OSError('synthetic')):
+            self.assertEqual(self.passes(1), [1.0])
