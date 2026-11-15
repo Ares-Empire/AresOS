@@ -248,6 +248,12 @@ Updated 2026-11-14. The live truth is `git log`, `gh pr list` and `git worktree 
      admin password (polkit). Every call stays under the latency ceilings, also with a long history. The accepted
      limits are in `reviews/20-chrome/KNOWN-LIMITS.md`. Chrome now belongs to `linux-tools` (briefs 28, 28a, 28b and
      18c-b). `linux-aresos` owns `os/` and the accounts.
+   - **Main fix (2026-11-15, brief 20-main-fix, PR #68, squash `bdc16064`).** Every qualification job now also runs
+     on pull requests, and CI checks attestations without GitHub's anonymous quota. Main published the first attested
+     Chrome qualification record (data branch `chrome-qualification`): stable 157 passes every group.
+     - Its beta 159 entry is wrongly all-false: a version-parsing bug, issue #74.
+     - The fix is on `pkg/20-popup-race`, in review (brief 20-popup-race, P4), with two popup admission fixes
+       (P1, P2) and notify by issue only.
    - **Since 2026-11-13 the AresOS-side session `linux-tools` leads the tools** (`docs/control/TOOLS-HANDOFF.md`):
      - **Brief 18c, the image test with the tools inside** (`briefs/18c-image-test.md`, PR #42, `25c0df62`), with
        the `os/` change agreed with `linux-aresos` (sixteen changes, in the brief). Its container part is on main

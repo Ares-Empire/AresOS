@@ -9,9 +9,13 @@ and `git worktree list` first.
 
 - **`linux-tools`** (this baton): the tools. `control/`, `docs/control/`, `docs/design/CONTROL.md`, the `control-*`
   workflows, briefs 18c, 18c-b, 28, 28a, 28b.
-- **`mac-aresos-control`** (Mac): merged the Chrome tool, PR #27, on 2026-11-14 (merge commit `09cedc84`). Chrome is
-  now `linux-tools`' own; the notes it left at the merge are in "Chrome merged" below. It keeps board #185 (the
-  optional owner oracle's re-pin) until it says otherwise.
+- **`mac-aresos-control`** (Mac):
+  - Merged the Chrome tool, PR #27, on 2026-11-14 (merge commit `09cedc84`), and the main fix, PR #68, on
+    2026-11-15 (squash `bdc16064`). Chrome is now `linux-tools`' own; its notes are in "Chrome merged" and "Main fix
+    merged" below.
+  - Finishing brief 20-popup-race (`pkg/20-popup-race`, in review; it changes `background.js` and `qualify.py`).
+  - Keeps board #185 (the optional owner oracle's re-pin, running on `pkg/19b-oracle-repin`) until it says
+    otherwise.
 - **`linux-aresos`**: `os/`, the accounts and the releases. Every `os/` change is agreed with it first, it reads
   the `os/` diff before a merge, and it is told before `.github/workflows/os-image.yml` is touched.
 - **`mac-capacity`** (Mac): the owner's coordinator. Ask it for a limit check before starting builders; tell it
@@ -94,6 +98,49 @@ accepted with the single-group design, and one group per window is a design ques
 - **Build marker:** the build hash goes into `chrome/build-id.json`.
 - **`gh`:** version 2.102 or newer.
 - **Service unit:** `aresos-toold.service` is byte-identical to `8b7e799c`.
+
+## Main fix merged (2026-11-15, notes from `mac-aresos-control`)
+
+PR #68 (brief 20-main-fix) is on main as squash `bdc16064`; report in `reviews/20-main-fix/REPORT.md`.
+
+**What changed for Chrome CI.**
+- No job of either Chrome workflow is main-only. Only the two steps that write to GitHub are, and
+  `control/chrome_tests/workflow_steps.py` with `test_qualification.py` allows exactly those.
+- Pull requests run every other step:
+  - publishing goes to a local bare remote;
+  - attestation is on `refs/pull/N/merge`, and CI shows main's policy refuses that bundle;
+  - off main the plan runs only the stable channel.
+- `qualify.py` refuses to publish to origin or notify off main.
+
+**First record.** Main's run 43696892949 published the first attested record to the data branch
+`chrome-qualification`.
+- **Stable 157.0.8103.78:** every group passes.
+- **Beta 159.0.8154.6:** recorded all-false, wrongly. Every beta test passed, but `qualify.py pair` read the
+  version as the last word of `chrome --version`, which is `beta` on that channel (issue #74).
+  - Why it matters: `switches()` lets beta evidence cover the first stable of a major. So that entry would turn
+    every group off on a laptop with build `4c1eccb9…` and stable 159, until a later passing 159 entry for that
+    build overrides it.
+  - The fix is P4 of brief 20-popup-race.
+  - **Design question for you:** an identity mismatch (measured version or build differs from the plan) is not
+    evidence about the browser, yet it is recorded all-false forever. I'd make it refuse publication and turn the
+    run red, and keep all-false for an incomplete suite. That changes the trust model, so it needs its own brief.
+- **Notify.** Notify's pull request failed: the repository doesn't let workflows create pull requests
+  (`can_approve_pull_request_reviews: false`). After P4:
+  - notify writes issues only, one open issue per title;
+  - the shipped-copy update becomes an issue whose body has the `gh pr create --head chrome-qualification`
+    command for a session to run.
+
+**Latency gate and the runner's disk.** At least two latency jobs since the 60-sample gate failed on p95 tails
+alone, and the others passed: main's `latency (audit)` 43647781438 and PR #68's `latency (plain)` 43687610984, attempt 1.
+- H5's stages put the whole tail in `store_write`, i.e. the runner's disk sync, with the bridge and the extension
+  normal. The re-run was clean.
+- So main's Chrome run can go red without a code cause. Options: a store on tmpfs plus a separate fsync budget, or
+  sync stages measured apart from the ceilings. It's your call; the numbers are in the report.
+
+**Two CI facts.**
+- **Path filters:** a pull request's path filters see the whole PR's diff. Every push to an open Chrome PR starts
+  both Chrome workflows again, even a docs-only push. Use `[skip ci]` for those.
+- **Daily schedule:** both Chrome workflows also run daily at 04:19 UTC on main.
 
 ## The owner's answers, written into the briefs (#254: into the service-fix brief)
 
