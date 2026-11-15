@@ -3052,6 +3052,8 @@ class Helper:
         # journaled exactly as before package 30 (review 1, finding 3).
         app = self.catalogue_apps.get(app_id) if conn.minor >= 1 or app_id in self.legacy_apps else None
         if app is None:
+            # Every launch that does not start says why here (package 40): a refusal used to leave no line.
+            LOG.warning('%r not opened: no such app', app_id[:64])
             return self.record(request_id, unknown)
         # Whether its program is still there is checked off the loop (review 2, FIX 1).
         check = self.checks.start(app, launch_check, app, self.executable, self.launcher.working_directory)
@@ -3098,6 +3100,7 @@ class Helper:
         """Start app once its check has answered, or record why it could not start."""
         app_id = app.id
         if reason is not None:
+            LOG.warning('%s not opened: %s', app_id, reason)
             return self.record(request_id, {'app_id': app_id, 'launch_id': None, 'state': 'failed',
                                             'error': 'unavailable', 'reason': reason, 'message': reason})
         launch_id = secrets.token_hex(8)
@@ -3187,6 +3190,8 @@ class Helper:
             return
         entry['state'] = state
         entry.update(fields)
+        if state == 'failed':
+            LOG.warning('%s failed after starting: %s', entry['app_id'], fields.get('message') or fields.get('error'))
         if state in ('focused', 'background'):
             entry.pop('uncertain', None)  # a window confirms the app started
         self.journal.touch(entry)

@@ -38,6 +38,7 @@ public final class ShellFocusClient {
         // Keys held while focus moved (walking into a logo, the click that opened it) never see their release.
         KeyMapping.releaseAll();
         AppInput.reset();
+        HomeScreen.appInFront(!focus.foreground());
         if (!focus.foreground()) {
             client.mouseHandler.releaseMouse();
             return;

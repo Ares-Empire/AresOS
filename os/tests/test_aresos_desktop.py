@@ -2858,6 +2858,11 @@ class SessionFilesTest(unittest.TestCase):
         self.assertIn('<keybind key="W-C-Escape"><action name="Execute" command="/usr/bin/aresos-terminal --recovery" />',
                       rc)
         self.assertIn('<windowRule identifier="aresos-desktop" serverDecoration="no"><action name="Maximize" />', rc)
+        # Package 40: the desktop stays below every app window. Never skipTaskbar: the helper tracks the desktop by
+        # its foreign-toplevel handle.
+        self.assertIn('<windowRule identifier="aresos-desktop"><action name="ToggleAlwaysOnBottom" /></windowRule>', rc)
+        self.assertEqual(rc.count('ToggleAlwaysOnBottom'), 1)
+        self.assertNotIn('skipTaskbar', rc)
 
     def test_supervisor_and_wrapper_run_absolute_commands_only(self):
         for name in ('aresos-desktop', 'aresos-desktop-java'):

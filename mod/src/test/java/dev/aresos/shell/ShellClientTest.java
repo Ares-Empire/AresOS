@@ -418,4 +418,25 @@ class ShellClientTest {
         if (error != null) reply.addProperty("error", error);
         return reply;
     }
+
+    /** Package 40: a program that started but showed no window of its own is said as that, not as a silent helper. */
+    @Test void aStartedProgramWithoutAWindowIsNotReportedAsAMissingAnswer() throws Exception {
+        connect();
+        var refused = refusal(client.open("notepad"));  // the fake helper answers "starting" and nothing more
+        assertEquals("no_window", refused.code());
+        assertEquals("it started, but no window of it appeared", ShellClient.describe(refused));
+    }
+
+    /** Package 40: only a game the AresOS session started is the desktop window. */
+    @Test void onlyAGameTheSessionStartedIsADesktopSession() {
+        assertTrue(ShellClient.configured(Map.of("XDG_RUNTIME_DIR", "/run/user/1001",
+                "ARESOS_DESKTOP_INSTANCE", "desk", "ARESOS_LAUNCH_NONCE", "abcdefghijklmnop")));
+        assertTrue(ShellClient.configured(Map.of("ARESOS_SHELL_SOCKET", "/run/user/1001/dev/shell.sock",
+                "ARESOS_DESKTOP_INSTANCE", "desk", "ARESOS_LAUNCH_NONCE", "abcdefghijklmnop")));
+        assertFalse(ShellClient.configured(Map.of("XDG_RUNTIME_DIR", "/run/user/1001")));
+        assertFalse(ShellClient.configured(Map.of("XDG_RUNTIME_DIR", "/run/user/1001",
+                "ARESOS_DESKTOP_INSTANCE", "desk", "ARESOS_LAUNCH_NONCE", " ")));
+        assertFalse(ShellClient.configured(Map.of("ARESOS_DESKTOP_INSTANCE", "desk",
+                "ARESOS_LAUNCH_NONCE", "abcdefghijklmnop")));
+    }
 }

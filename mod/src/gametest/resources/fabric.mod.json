@@ -38,7 +38,8 @@
       "dev.aresos.test.TownClientGameTest",
       "dev.aresos.test.TownPicturesClientGameTest",
       "dev.aresos.test.GettingAroundClientGameTest",
-      "dev.aresos.test.LogoColoursClientGameTest"
+      "dev.aresos.test.LogoColoursClientGameTest",
+      "dev.aresos.test.HomeScreenClientGameTest"
     ]
   },
   "mixins": [

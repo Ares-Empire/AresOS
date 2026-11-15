@@ -102,6 +102,8 @@ public final class ShellClient implements AutoCloseable {
         private final CompletableFuture<Launch> future;
         // Writer-owned: publication callbacks can queue a normal send before startup queues its replay.
         private Connection lastSent;
+        /** The helper started the program and waits for its window: a deadline after this is no missing answer. */
+        private volatile boolean starting;
 
         PendingOpen(String id, String appId, CompletableFuture<Launch> future) {
             this.id = id;
@@ -154,6 +156,17 @@ public final class ShellClient implements AutoCloseable {
         // Request IDs must never repeat within a desktop instance's journal, even across game restarts.
         this.session = HexFormat.of().formatHex(random);
     }
+
+    /**
+     * True when the AresOS session started this game: its supervisor (package 23), or run-hub.sh, passed the desktop
+     * instance, the launch nonce and a place for the helper's socket. Then the game's window is the desktop.
+     */
+    public static boolean configured(Map<String, String> environment) {
+        return present(environment.get("ARESOS_DESKTOP_INSTANCE")) && present(environment.get("ARESOS_LAUNCH_NONCE"))
+                && (present(environment.get("ARESOS_SHELL_SOCKET")) || present(environment.get("XDG_RUNTIME_DIR")));
+    }
+
+    private static boolean present(String value) { return value != null && !value.isBlank(); }
 
     /** The supervisor (package 23) passes the socket, desktop instance and launch nonce in the environment. */
     public static ShellClient fromEnvironment(Map<String, String> environment, Settings settings) {
@@ -220,8 +233,21 @@ public final class ShellClient implements AutoCloseable {
         }
         var open = new PendingOpen("o-" + session + "-" + ids.incrementAndGet(), appId, future);
         opens.put(open.id(), open);
-        future.orTimeout(settings.openTimeout().toMillis(), TimeUnit.MILLISECONDS)
-                .whenComplete((result, error) -> opens.remove(open.id()));
+        // One deadline, two meanings (package 40): a helper that never answered, or one that started the program and
+        // is still waiting for a window it can tell is this program's. The second is said as what it is.
+        try {
+            var deadline = timer.schedule(() -> { future.completeExceptionally(open.starting
+                    ? new ShellException("no_window", "it started, but no window of it appeared")
+                    : new TimeoutException()); }, settings.openTimeout().toMillis(), TimeUnit.MILLISECONDS);
+            future.whenComplete((result, error) -> {
+                opens.remove(open.id());
+                deadline.cancel(false);
+            });
+        } catch (RejectedExecutionException closedAlready) {
+            opens.remove(open.id());
+            future.completeExceptionally(notConnected());
+            return future;
+        }
         // Writes never run on the render thread: a stalled helper must not freeze the game.
         boolean queued = later(() -> {
             var current = connection;
@@ -679,7 +705,10 @@ public final class ShellClient implements AutoCloseable {
             case "starting" -> !windows;
             default -> false;
         };
-        if (!opened) return;
+        if (!opened) {
+            if ("starting".equals(state)) open.starting = true;
+            return;
+        }
         if ("starting".equals(state)) {
             // Counted as opened without a window to confirm it; a failure may still follow (systemd-run failing).
             watching.put(open.id(), open);
