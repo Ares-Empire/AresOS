@@ -60,6 +60,21 @@ class Daemon:
             listener.listen(16)
             self.selector.register(listener, selectors.EVENT_READ, kind)
             self.sockets.append(listener)
+        # The loop may sleep up to a minute, and Python restarts a select after a signal handler (PEP 475):
+        # stop() writes here so SIGTERM ends the service at once.
+        self.wakeup = os.pipe()
+        for fd in self.wakeup:
+            os.set_blocking(fd, False)
+        self.selector.register(self.wakeup[0], selectors.EVENT_READ, 'wakeup')
+
+    def stop(self):
+        """Signal-safe: end serve() now, even mid-sleep."""
+        self.stopping = True
+        try:
+            os.write(self.wakeup[1], b'\0')
+        except (AttributeError, BlockingIOError, OSError):
+            # Not built by __init__ (tests), or the pipe is already full: the flag still ends the next pass.
+            pass
 
     def serve(self):
         refresh_at = 0
@@ -86,6 +101,13 @@ class Daemon:
             except Exception as exc:
                 self.engine.background_error(exc)
             for key, _ in self.selector.select(timeout=self.timeout(refresh_at)):
+                if key.data == 'wakeup':
+                    try:
+                        while os.read(key.fd, 512):
+                            pass
+                    except BlockingIOError:
+                        pass
+                    continue
                 if key.data == 'chrome-peer':
                     self.drain_chrome_events(key.fileobj)
                     if b'\n' in self.engine.adapters['chrome'].bridge.buffer:
@@ -232,6 +254,8 @@ class Daemon:
         self.selector.close()
         for listener in self.sockets:
             listener.close()
+        for fd in getattr(self, 'wakeup', ()):
+            os.close(fd)
         self.engine.close()
 
 
@@ -243,7 +267,7 @@ def main():
         config = strict_json_loads(stream.read())
     daemon = Daemon(config)
     for sig in (signal.SIGTERM, signal.SIGINT):
-        signal.signal(sig, lambda *_: setattr(daemon, "stopping", True))
+        signal.signal(sig, lambda *_: daemon.stop())
     try:
         daemon.serve()
     finally:

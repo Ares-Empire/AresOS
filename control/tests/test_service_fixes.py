@@ -252,6 +252,18 @@ class IdleLoop(unittest.TestCase):
         self.assertIsNone(chrome.confirmation)
         reply.assert_called_once()
 
+    def test_stop_ends_a_sleeping_loop_at_once(self):
+        # SIGTERM's handler calls stop(); Python restarts the select after a handler, so stop() must wake it.
+        thread = threading.Thread(target=self.daemon.serve, daemon=True)
+        thread.start()
+        time.sleep(0.3)
+        self.assertTrue(thread.is_alive())
+        started = time.monotonic()
+        self.daemon.stop()
+        thread.join(5)
+        self.assertFalse(thread.is_alive())
+        self.assertLess(time.monotonic() - started, 1)
+
     def test_an_unreadable_deadline_wakes_within_a_second(self):
         with patch.object(self.engine, 'next_deadline', side_effect=OSError('synthetic')):
             self.assertEqual(self.passes(1), [1.0])
