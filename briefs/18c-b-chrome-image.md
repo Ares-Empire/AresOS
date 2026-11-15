@@ -15,14 +15,15 @@ placeholder's `format` 0, the release manifest's `control` key). "Agree with `li
 The AresOS image carries everything Chrome needs for Claude's Chrome tools: our extension, installed by Chrome's own
 policy from a file inside the image; the native-messaging host that connects it to the tool service; the polkit
 action behind "Allow editing" and "don't ask again"; the owner's excluded-sites list, made at first boot as a
-placeholder that holds every Chrome tool back until he has written his list; and `gh`, which checks the
+placeholder that holds every Chrome read and action back until he has written his list; and `gh`, which checks the
 qualification records. After an update or a rollback the browser side belongs to the booted image again without
 anyone touching it. A throwaway CI image proves all of it in the CI virtual machine, on the Chrome the image ships.
 
 **What the owner will see once a release carries it:** Chrome opens with a pinned "AresOS Chrome" button he can't
-remove, and Chrome's menu says the browser is managed. Claude's Chrome tools answer "not set up yet" until he writes
-his never-list once with `sudo` in the live sitting (an empty list if he has no site to exclude; "For his guide"
-below). After that they work, and keep working after an update or going back a version without another step.
+remove, and Chrome's menu says the browser is managed. Claude's Chrome reads and actions answer "not set up yet"
+until he writes his never-list once with `sudo` in the live sitting (an empty list if he has no site to exclude;
+"For his guide" below). After that they work, and keep working after an update or going back a version without
+another step.
 "Allow editing" asks for his password in the usual dialog.
 
 ## Why now
@@ -38,9 +39,9 @@ The design was settled on 2026-11-14 (`docs/control/TOOLS-HANDOFF.md`, row "Brie
 - **Builder:** a Claude agent. **Fable 5.2** for steps 1a, 2, 3a and 3b (the signing key and the packer, the install
   proof on a real Chrome, and the image install with the signature-checked download): security-sensitive install
   work whose design is settled only in outline, where a wrong first cut costs review rounds. **Opus 5.5** for step 1b
-  (`record_build.py`, a small tool against a tight rule) and steps 4 to 6 (VM checks against this brief's lists, the
-  kind of work Opus did in one go in 18c's B2). Move a step to Fable when it has resisted two rounds; the likely one
-  is driving the password dialog in step 5.
+  (`record_build.py`, a small tool against a tight rule) and steps 4 to 6, 4b included (VM checks against this
+  brief's lists, the kind of work Opus did in one go in 18c's B2). Move a step to Fable when it has resisted two
+  rounds; the likely one is driving the password dialog in step 5.
 - **Reviews (the lead's job):** a package review and a high-stakes security review by fresh reviewers
   (`docs/REVIEW.md`, "Tools for Claude"): the package force-installs an extension that can drive every page, adds a
   native host, a polkit action and a downloaded binary, and makes a key in CI.
@@ -150,10 +151,12 @@ pinned base, so its `/usr` shows what the base has. Check each one in the tree b
   no existing suite picks them up). Use what the base image has (`cryptography`, or OpenSSL through anonymous pipes)
   and check what the container has before you choose; item 2's workflow may install a distribution package for it,
   but no pip dependency is added. Rendering the templates and listing the payload need only the standard library,
-  because `check-image.sh` uses them on the runner. It
+  because `check-image.sh` uses them on the runner. **It takes the folder to pack as an argument**
+  (`control/chrome/extension/` in the image build): step 4's layer makes the probe and bundles B and C with it, and
+  that layer has no `node`. `packaging/` is hashed, so step 4 must not have to reopen it. It
   - makes an RSA 2048 key from the system's random source, **inside its own process** (or in a child it talks to
     only through anonymous pipes);
-  - writes a CRX3 package of `control/chrome/extension/` in the container format of `install.mjs`'s `pack` (one RSA
+  - writes a CRX3 package of that folder in the container format of `install.mjs`'s `pack` (one RSA
     proof, the signed header carrying the 16-byte ID), with the files in sorted order and fixed timestamps; it
     refuses a link or anything but a regular file or folder there, as `build.sh`'s `TREES` loop does;
   - derives the ID as `idFor` does and renders the templates with it;
@@ -180,10 +183,12 @@ pinned base, so its `/usr` shows what the base has. Check each one in the tree b
   and CI, that this package makes):
   - `control/aresos_control/chrome/exclusions.py`: `SETTING` (line 8) becomes
     `/var/lib/aresos-control/chrome-excluded-sites.json`, and the refusal's message (line 23) becomes exactly
-    `Chrome refuses reads and actions: its owner-only excluded-sites setting is not set up yet, or is missing,
-    unreadable or unsafe; ask the owner to set it up.` Today's text ("… missing, unreadable or unsafe; ask the owner
-    to install it.") would send him looking for a broken install in the normal first-use state. The code, the
-    error code and every other line stay.
+    `Chrome refuses reads and actions: its owner-only excluded-sites setting is not set up yet, or is missing, not
+    a valid list, unreadable or unsafe; ask the owner to set it up.` Today's text ("… missing, unreadable or unsafe;
+    ask the owner to install it.") would send him looking for a broken install in the normal first-use state, and
+    the likeliest mistake is in the JSON he types once (a capital letter, `https://`, a trailing slash, a
+    typographic quote), hence "not a valid list". The message sits in a hashed file, so get it right here. The
+    code, the error code and every other line stay.
   - `control/chrome/ci/prepare.mjs` lines 32 to 34 and `control/chrome_tests/test_exclusions.py` line 13: the new
     path, nothing else.
   - New `control/chrome/packaging/aresos-control-chrome.tmpfiles`, exactly the two agreed lines ("Agree", answer 2)
@@ -193,6 +198,19 @@ pinned base, so its `/usr` shows what the base has. Check each one in the tree b
     `{"format":1,"hosts":[]}` gives `[]`; the `d` line is `root root 0755` and the `f` line `0640 root aresos-tools`;
     no `ReadWritePaths` entry or `StateDirectory` of `control/packaging/aresos-toold.service` is
     `/var/lib/aresos-control` or above or below it. Fails on today's code.
+  - In the same file, **a sweep over the tool list at the adapter.** Chrome connected (a stand-in bridge with a
+    version, as `test_engine.py`'s `Operations` sets up) and the list refused the way the placeholder refuses it
+    (the real `owner_hosts`, with `exclusions.Boundary.read` patched as `test_exclusions.py` patches it, returning
+    `{"format":0,"hosts":[]}`): every Chrome tool of the tool list (`definitions.actions`), called through the
+    engine with arguments valid for its input, answers `chrome_settings_unavailable` with the new message, and the
+    bridge has seen no call but the two the unconfigured extension still answers (`ack_steps`, `queued_steps`;
+    `background.js:870-874`), never `configure`. The tools that run a prepared operation (`chrome_submit`,
+    `chrome_submit_trusted`, `chrome_read_typed_fields`) get one the test writes into the store, since the gate
+    never lets one be prepared. **The exceptions are named in the test**, each with its reason: `chrome_sites`
+    with `list`, `revoke` and `allow` (owner-only, his own store; `readonly` checks an address and is swept),
+    `chrome_notices`, `chrome_notice_ack`, `chrome_operation_status` and `chrome_drop` (the service's own
+    records; none reads or changes a page). A tool that is neither refused nor named fails the test, so a new tool
+    (packages 28 to 28b add some) fails it until someone decides.
   - If the gate needs more than these lines in the service, stop and report.
 - `control/chrome/packaging/README.md`: replace the HTTPS-endpoint and production-key paragraphs, the "Copy all …
   into the installed service tree" paragraph (the installed tree holds no template copy; say what 18c's install map
@@ -209,7 +227,8 @@ the check on every pull request that touches `control/chrome/packaging/` or `con
   container of `control/chrome/ci/Dockerfile` with Chrome at the image's pinned version if Google still serves that
   package (pin its URL and SHA-256; otherwise current stable of the same major, recorded). New files only, under
   `control/chrome/ci/install/`. Chrome starts as `browser.mjs` starts it: never `--no-sandbox`,
-  `--remote-debugging-*`, `--load-extension` or `--disable-extensions-except`.
+  `--remote-debugging-*`, `--load-extension` or `--disable-extensions-except` (case 5 alone adds its network-log
+  flags and `--disable-component-update`).
 - The layout is the image's: the four files under `/usr/share/aresos/chrome/`, the two links in `/etc`, the host and
   `native_host.py` in `/usr/libexec/aresos-control/chrome/`, CI's service on `chrome.sock`
   (`control/chrome/ci/service.py`, used as it is), and a valid made-up list at the excluded-sites path.
@@ -237,10 +256,20 @@ the check on every pull request that touches `control/chrome/packaging/` or `con
      is `chrome_unavailable`. With the file restored the next start installs it. Then the other half, on a profile
      with the extension installed: a changed or missing package leaves the installed copy running and connected.
   5. **Nothing asks the web store about us.** One run with Chrome's network log on
-     (`--log-net-log`, `--extensions-update-frequency` short) across at least two update checks: no request to
-     anything but a `file:` address names our extension's ID. Positive control in the same log and window: the
-     probe's ID appears in at least two update requests (to its `localhost` address), so two checks ran and the
-     log would have shown ours.
+     (`--log-net-log`, `--extensions-update-frequency` short) across at least two update checks. Two assertions on
+     the log: no request to anything but a `file:` address names our extension's ID; and **no request at all to
+     Google's update service** (an address with `/service/update2/`). For an installed extension whose effective
+     update address is empty or the store's, Chrome doesn't use the downloader: it hands the extension to that
+     service, which posts the ID in a request body the log doesn't record (`extension_updater.cc`; the override in
+     `extension_management.cc`), so only the second assertion sees that path. **`--disable-component-update` is
+     allowed for this run only:** Chrome's component updater uses the same service on its own schedule; with it
+     off, such a request can only come from an extension. If the pinned Chrome still sends some, record them and
+     compare with a run of the same length without our policy (the probe alone): ours must add none; say so in the
+     report. Positive control in the same log and window: the probe's ID appears in at least two update requests
+     (to its `localhost` address), so two checks ran and the log would have shown ours. **Negative control, in the
+     container only:** the same package under a test policy without `override_update_url` must fail the scan (our
+     manifest has no `update_url`, so Chrome then asks the store's update service). That shows the check sees the
+     leak it is there for.
 - Record for the report what case 3 looks like in time: how long after a start the old extension is gone and the new
   one is connected.
 
@@ -304,7 +333,8 @@ Today the lead writes each shipped image's row (`commit`, `build`, `shipped_at`)
   - `check` reads the release manifests. A manifest carries the Control build as a top-level object
     `"control": {"source_revision": "<40 hex>", "chrome_build": "<64 hex>"}`, copied from the image's
     `control.json`. `os/manifest/release.json` with that object needs a row with `commit` equal to its
-    `source_revision` and `build` equal to its `chrome_build`. In `os/manifest/releases/*.json` a row for the same
+    `source_revision` and `build` equal to its `chrome_build`, and the object's `source_revision` must equal the
+    manifest's existing `source_commit`. In `os/manifest/releases/*.json` a row for the same
     commit, if one exists, must be equal (only three rows are kept, so a missing one is fine). A manifest without
     the object (every one today) passes with an info line. A malformed object fails.
 - The image already says which build it carries (`CONTROL_CHROME_BUILD` in the build log, `chrome_build` in
@@ -335,27 +365,30 @@ and the probe's update address), serving on `localhost` in the guest.
 launch request if the guest's session runs the shell, otherwise the same `systemd-run --user --scope` line with the
 session's environment). Record the cgroup of Chrome and of the native host, and `loginctl`'s view of his session.
 CI-only additions are limited to `--no-first-run`, `--no-default-browser-check`, `--password-store=basic` and, for
-check C9 alone, the two network-log flags; never the four forbidden flags of item 2. The password dialog is answered
+check C9 alone, the two network-log flags and `--disable-component-update` (item 2, case 5); never the four
+forbidden flags of item 2. The password dialog is answered
 through the VM's keyboard (QMP), with a per-run password for `ares` that never reaches the evidence. 18c's SELinux
 scan runs again at the end of this pass: a denial naming Chrome's host, the service, `gh` or `pkcheck` fails it.
 
 **The polkit probe comes first in step 4.** A process started in his session with the shell's `systemd-run --user
 --scope --slice=app.slice` line is the subject of `pkcheck --action-id org.aresos.control.chrome-loosen --process
-… --allow-user-interaction`, run as the service runs it (`aresos-tools`, the unit's sandbox properties). Record
+… --allow-user-interaction --detail change <text>`, run as the service runs it (`confirm.py`, `command`; as
+`aresos-tools`, under the unit's sandbox properties): details from a caller that isn't root are what the action's
+owner annotation is for, and CI's rule never exercised that. Record
 the exit code, the journal and a screenshot; cancel the dialog, don't drive it yet. If polkit answers without
 asking his agent, or no dialog comes, stop (see "Stop and report"). C7 drives the dialog in step 5.
 
 | Check | What it shows | PASS line |
 |---|---|---|
 | C1 files | Every path of "Agree" in the booted guest with its owner, mode and content; the two links are links, equal to `/usr/etc`'s; `/etc/opt/chrome/policies/managed/` holds only ours (plus the probe's file, named, with `ExtensionInstallForcelist` alone); the placeholder after boot: `/var/lib/aresos-control/` `root:root` 0755, the list `root:aresos-tools` 0640 with exactly the tmpfiles argument; nothing at `/etc/aresos/control/chrome-excluded-sites.json` | `CONTROL_CHROME_FILES_PASS` |
-| C2 install | Item 2's case 1 on the shipped Chrome in his session; a screenshot of the pinned button and of Chrome's "managed" note for the owner's picture | `CONTROL_CHROME_INSTALL_PASS` |
+| C2 install | Item 2's case 1 on the shipped Chrome in his session; a screenshot of the pinned button and of Chrome's "managed" note (it goes to the owner only if he answered "let's discuss", lead's answer 5) | `CONTROL_CHROME_INSTALL_PASS` |
 | C3 host | The extension connects through the installed host to the real service as `ares` (peer UID 1001); `aresos chrome tabs` lists his tabs; one page of the page server is read; the probe is refused; `chrome.sock` shows exactly one host | `CONTROL_CHROME_NATIVE_HOST_PASS` |
 | C4 update | Item 2's case 3 in the guest with the same profile: bundle B bind-mounted over `/usr/share/aresos/chrome` (CI only), then removed again. After each switch the host's manifest names the current ID, the current extension connects and reads, the previous ID is gone, the probe is refused | `CONTROL_CHROME_UPDATE_PASS` |
 | C5 broken package | Item 2's case 4 in the guest. The fresh half on bundle C, an ID his profile never held (bind-mounted like B): changed, then missing, C isn't installed, browsing works, the tools answer `chrome_unavailable`, Chrome and the service stay up; restored, C installs. The other half on the installed extension: a changed or missing package leaves it running and connected | `CONTROL_CHROME_PACKAGE_FAULT_PASS` |
-| C6 sites | **First use, right after C2** (extension connected, nothing else read yet): with the placeholder, `aresos chrome tabs` answers `chrome_settings_unavailable` with the new message; root writes `{"format":1,"hosts":[]}` the owner's way ("For his guide"; owner, group and mode unchanged) and the same command lists his tabs. **Later:** `ares` can neither read nor write the list; as `aresos-tools` under the unit's sandbox properties (`systemd-run`, as C10), writing the list and creating a file in `/var/lib/aresos-control/` both fail; opening each `FIXED_HOSTS` address is refused. With one test host added by root: that host and a subdomain are refused. With the list group-writable, then missing, then the placeholder again: every read refuses `chrome_settings_unavailable`. Restored each time, its hash equal to the one before | `CONTROL_CHROME_SITES_PASS` |
+| C6 sites | **First use, right after C2** (extension connected, nothing else read yet): with the placeholder, `aresos chrome tabs`, a `read` of an open tab, an `open` of a page-server address and a `take_tab` of one of his tabs (or their names on `main` then) each answer `chrome_settings_unavailable` with the new message, and the page server receives nothing; root writes `{"format":1,"hosts":[]}` the owner's way ("For his guide"; owner, group and mode unchanged) and `tabs` lists his tabs. **Then the guest reboots once** (the pass's only reboot): the list's hash, owner, group and mode are unchanged, and with Chrome started again `tabs` lists his tabs. **Later:** `ares` can neither read nor write the list; as `aresos-tools` under the unit's sandbox properties (`systemd-run`, as C10), writing the list and creating a file in `/var/lib/aresos-control/` both fail; opening each `FIXED_HOSTS` address is refused. With one test host added by root: that host and a subdomain are refused. With the list group-writable, then missing, then a link to a valid list in its place, then the placeholder again: every read refuses `chrome_settings_unavailable`. Restored each time, its hash equal to the one before | `CONTROL_CHROME_SITES_PASS` |
 | C7 password | On the details page, "Allow editing" for a test site: the dialog of his real agent appears, a screenshot shows it naming the site; cancelled, the site stays read-only; with the password, it is editable; a second change asks again. From the journal: the action, a one-time authorization, and the subject being the native host's process | `CONTROL_CHROME_POLKIT_PASS` |
 | C8 ask | One asking action end to end through 18c's interactive driver: Claude Code as `ares` fills the form page and submits; the prompt shows the service's question; "Yes" gives one arrival at the receiver, "No" none | `CONTROL_CHROME_ASK_PASS` |
-| C9 no store | Item 2's case 5 in the guest, with its positive control (the probe's ID in at least two update requests to the page server) | `CONTROL_CHROME_NO_STORE_PASS` |
+| C9 no store | Item 2's case 5 in the guest: no request names our ID except `file:` ones, and no request at all to the update service (`/service/update2/`); with its positive control (the probe's ID in at least two update requests to the page server). The negative control stays in the container | `CONTROL_CHROME_NO_STORE_PASS` |
 | C10 `gh` | `/usr/bin/gh --version` equals the lock, as `ares` and as `aresos-tools` under the unit's own sandbox properties (`systemd-run`); the binary's hash equals `control.json`; no login or token in the verifier's folders | `CONTROL_GH_PASS` |
 | C11 records | Chrome's record refresh under the real `aresos-toold.service`: with the extension connected, the service fetches once and writes its result line (`aresos log`); the service stays active, no AVC denial, the verifier's cache is under `/var/lib/aresos-tools`. If an attested record is published by then: "Verified record accepted." Otherwise: "refused …; held record retained", plus `verify` run under the unit's sandbox against a public attestation of this repository if one exists (accepted) and against a wrong signer (refused) | `CONTROL_CHROME_RECORDS_PASS` |
 
@@ -366,9 +399,11 @@ which path it took. The lead's note also names a record refresh of Mail's: `main
 in 18c's style: the two links exist, are links and equal `/usr/etc`'s; the ID in the policy, the update manifest,
 the host's manifest and `control.json` is one ID, and the package's signature verifies with its own key (the image's
 `openssl`); no other ID under `/etc/opt/chrome`; the excluded-sites list present with its owner, group and mode,
-and its SHA-256 printed as `CONTROL_CHROME_SITES_SHA256 <hash>`, which the rehearsal requires to be equal before
-the update, after it and after `previous` (the list lives in `/var`; `linux-aresos` wires the comparison in its
-release brief); `gh`'s version and hash; the polkit action equal to the record.
+and its SHA-256 printed as `CONTROL_CHROME_SITES_SHA256 <hash>`; `gh`'s version and hash; the polkit action equal
+to the record. The rehearsal writes a made-up `format` 1 list before the update and requires that hash equal to
+the list's after the update and after `previous` (the list lives in `/var`; `linux-aresos` wires it in its
+release brief, as requested under "For your next release"). With only the placeholder there, the three hashes
+would be equal whether tmpfiles keeps the file or rewrites it at every boot.
 
 ### 6. Records and the report
 
@@ -379,19 +414,34 @@ version) or **assumed**, with the measured times of the VM pass.
 
 ### For his guide (the report carries these lines; the lead puts them in the live-sitting guide)
 
-- **His never-list, once, before Claude's first session in his Chrome.** Until then every Chrome tool answers that
-  the excluded-sites setting is not set up yet. With sites to exclude (lowercase host names, no `https://`, no port
-  or path; each covers its subdomains; at most 128):
-  `echo '{"format":1,"hosts":["first.example","second.example"]}' | sudo tee /var/lib/aresos-control/chrome-excluded-sites.json`
-  With no site to exclude, the empty list, which opens the tools just the same:
-  `echo '{"format":1,"hosts":[]}' | sudo tee /var/lib/aresos-control/chrome-excluded-sites.json`
-  `sudo tee` writes into the existing file, so it keeps its owner, group and mode; the tools read it on their next
-  call. Later changes go the same way. Updates and going back a version keep the list.
+- **His never-list, once, before Claude's first session in his Chrome.** Until then every Chrome read and action
+  answers that the excluded-sites setting is not set up yet. Run
+  `sudo tee /var/lib/aresos-control/chrome-excluded-sites.json >/dev/null`
+  then paste or type the list on one line, press Enter, then Ctrl-D. With sites to exclude (lowercase host names,
+  no `https://`, no port or path; each covers its subdomains; at most 128):
+  `{"format":1,"hosts":["first.example","second.example"]}`
+  With no site to exclude, the empty list, which opens the tools just the same: `{"format":1,"hosts":[]}`
+  The list goes in through `tee`'s input, so his hosts never land in the shell's history. Which hosts are on it
+  isn't secret from his own user (knowing them isn't the risk, opening them is), but keeping them out of the
+  history costs nothing. `sudo tee` writes into the existing file, so it keeps its owner, group and mode; the
+  tools read it on their next call. Later changes go the same way. Updates and going back a version keep the list.
+- **Check that it took:** with Chrome open, `aresos chrome tabs` lists his tabs. If it still answers "… not set up
+  yet, or is missing, not a valid list …", the list has a mistake (a capital letter, `https://`, a slash, a
+  typographic quote); `sudo cat /var/lib/aresos-control/chrome-excluded-sites.json` shows what was written, and
+  writing it again replaces it.
+- **If the file was missing** (a normal boot always makes it): `tee` creates it `root:root` 0644. The tools read it
+  just the same (root-owned and writable only by root is all they require), so nothing fails closed; until the
+  next boot's tmpfiles run puts group and mode back (`root:aresos-tools` 0640), any account on the laptop can read
+  which sites are excluded, which doesn't matter for the reason above. If `tee` says there is no such file or
+  directory, the folder is missing too: `sudo systemd-tmpfiles --create
+  /usr/lib/tmpfiles.d/aresos-control-chrome.conf` makes both, then write again.
+- Until the list is written, the "read-only" switch on Chrome's details page answers "Owner list unavailable; use
+  the admin command"; writing the list ends that.
 - A Chrome policy file that sets `ExtensionSettings` and sorts after `aresos.json` in
   `/etc/opt/chrome/policies/managed/` replaces ours, and Chrome removes our extension (it fails closed: the tools
   say Chrome isn't connected).
 
-## Agree with `linux-aresos` (agreed 2026-11-15; changes after review 1 relayed by the lead)
+## Agree with `linux-aresos` (agreed 2026-11-15; changes after review 1 relayed by the lead; review 2's request below)
 
 **What:** the image gains Chrome's browser side for the Control tools and `gh`. Built only as throwaway CI images;
 whether a release carries it is the release's decision with the owner's OK.
@@ -452,6 +502,15 @@ pull request carries the row; the rehearsal runs the new `release_checks.py` che
 purpose: a step that builds twice and expects equal bytes leaves out `/usr/share/aresos/chrome/` and
 `chrome_extension`'s key-derived values, and compares what "The design" lists.
 
+**Requested after review 2 (the lead relays it; it doesn't hold up step 3a):** the rehearsal's never-list check
+must be able to fail. Before the update, root writes a made-up `format` 1 list, for example
+`{"format":1,"hosts":["rehearsal.invalid"]}`, into `/var/lib/aresos-control/chrome-excluded-sites.json` with
+`sudo tee` as the owner's guide does (if the release before has no `/var/lib/aresos-control/` yet, root makes it
+`root:root` 0755 first; the new image's tmpfiles puts the file's group and mode right at its first boot), and
+records its SHA-256. After the update and after `previous`, `release_checks.py`'s `CONTROL_CHROME_SITES_SHA256`
+must equal that hash. With only the placeholder in the file, all three hashes would be the placeholder's whether
+tmpfiles keeps the file or rewrites it at every boot, so the check could never fail.
+
 **Answers (2026-11-15), as agreed text:**
 
 1. **The bundle's folder** is `/usr/share/aresos/chrome/`, outside the folders `check-image.sh` compares file by
@@ -492,7 +551,7 @@ in its records workflow, the others with the Control suites and `checks_only`; l
   a special file in the extension folder is refused; no private key in any returned value, in the output folder or
   in a temporary folder afterwards (the key scan below); a `node` test verifies a `pack.py` package with
   `node:crypto`, so the two packers agree on the format. All under `control/chrome/ci/install/`.
-- The storage pin and the placeholder test of item 1 (`control/chrome_tests/`).
+- The storage pin and the placeholder test of item 1 with its sweep over the tool list (`control/chrome_tests/`).
 - `record_build.py`: item 4's tests.
 - `os/tests`: `control-tree` leaves `control/` byte-identical and its `build-id.json` equals `build.py` on the
   checkout (the ordering rule); no installed file contains `EXTENSION_ID`, `UPDATE_URL` or `CRX_URL`; the `/etc`
@@ -508,22 +567,41 @@ in its records workflow, the others with the Control suites and `checks_only`; l
   update manifest, the host manifest and `control.json`; the zip inside `extension.crx` holds exactly `payload`'s
   names with their SHA-256s; the policy and the host manifest equal to their pinned shapes; both addresses are the
   fixed `file:` ones;
-- no private key anywhere: no PEM private-key marker, and the package's public modulus (raw, hex, and base64 and
-  base64url in all three alignments) found exactly once in the image's own additions (inside `extension.crx`) and
-  nowhere in the build's temporary folders or its log. Every stored form of the private key holds the modulus;
+- no private key anywhere. **The modulus scan:** the package's public modulus (raw, hex, and base64 and base64url
+  in all three alignments; every stored form of the private key holds it) is found exactly once in the whole
+  image file system (every regular file outside `/proc`, `/sys` and `/dev`), inside `extension.crx`. The modulus
+  is unique to the build, so there are no false hits, and a hit anywhere else is a leftover of the key, whichever
+  build step left it. Raw bytes can hold a newline: search that form by chunks with an overlap, not by line. The
+  check prints the modulus as `CONTROL_CHROME_PUBLIC_MODULUS <hex>` (public by definition). **On the runner**,
+  `check-build.sh` after `check-image.sh` takes the modulus from that line and requires no hit, in the same forms,
+  in `evidence/build.log` (the log exists only there; the image check runs without it). **The PEM scan:** no
+  private-key marker (`-----BEGIN` … `PRIVATE KEY-----`, any type) in the recorded files, in
+  `/usr/share/aresos/chrome/`, or in the image's `/tmp`, `/var/tmp` and `/root`. **The recorded files** are the
+  paths `control.json` lists under `files` (the service tree, the startup and generated files, this package's
+  host, action and tmpfiles file) and under `chrome_extension`. Not `vendor`: the pinned wheels (`cryptography`
+  among them) carry such markers in their own code, as the base's `/usr` does in about nine files, so the PEM scan
+  can't cover the whole image; the modulus scan covers those places. `pack.py`'s unit test covers its own
+  temporary folders;
 - the polkit action: `pkaction` shows `allow_any=no`, `allow_inactive=no`, `allow_active=auth_admin` (never
   `auth_admin_keep`) and the owner annotation naming the unit's user; no rule file under
   `/usr/share/polkit-1/rules.d` or `/etc/polkit-1/rules.d` names the action; `/usr/bin/pkcheck` and the session's
   agent exist; the existing "nothing kept" check still passes;
 - the excluded-sites list: the tmpfiles file equals the agreed lines; the image has nothing under
-  `/var/lib/aresos-control/` and no `/etc/aresos/control/chrome-excluded-sites.json`; the installed `owner_hosts()`
+  `/var/lib/aresos-control/` and no `/etc/aresos/control/chrome-excluded-sites.json`. Then, as 18c's check runs its
+  own tmpfiles files (`image-checks.sh` about line 792 on `pkg/18c-image`): `systemd-tmpfiles --create
+  /usr/lib/tmpfiles.d/aresos-control-chrome.conf` makes the folder `root:root` 0755 and the list
+  `root:aresos-tools` 0640 with exactly the placeholder's bytes; root writes a `format` 1 list with a made-up
+  `.invalid` host, sets its mode to 0644 and its group to `root`, and runs the same command again: the content is
+  unchanged, mode and group are back. The check removes the folder afterwards. The installed `owner_hosts()`
   refuses the line's placeholder with `chrome_settings_unavailable` and gives `[]` for `{"format":1,"hosts":[]}`
   (both written to a scratch file in a `root:root` 0755 folder the check makes and removes; `Boundary.read` refuses
   a world-writable parent such as `/tmp`); no `ReadWritePaths` or `StateDirectory` of the installed unit reaches
   `/var/lib/aresos-control`;
 - `gh`: `--version` equals the lock and is at least 2.102.0, as root and as `ares`; the binary's SHA-256 equals the
-  lock and `control.json`; `rpm -q gh` says not installed; no repository of GitHub's; the RPM keyring's key list
-  equals the base's;
+  lock and `control.json`; `rpm -q gh` says not installed; no repository of GitHub's; GitHub's key (the pinned
+  fingerprint) is not in `rpm -q gpg-pubkey`, checked as 18c's check does for Google's (`image-checks.sh` about
+  line 268). The key list equal to the base's is the build's own check: `packages` lists the keyring before its
+  first import (Chrome's) and requires the same list after its last delete;
 - negative: without the test layer the image has no probe extension or its policy file, no test-only host and no
   second or third bundle.
 
@@ -531,9 +609,10 @@ in its records workflow, the others with the Control suites and `checks_only`; l
 never holds a key, a password, the owner's hosts, or anything from a real profile.
 
 **What runs when:** on every pull request touching `control/`: the Control suites and item 2's workflow (on its
-paths); the records workflow on its paths. On demand: `checks_only`, `check_build=build` (once at the end of step
-3b, once on the final head) and `check_build=control` (**twice green on the final head**, by rerunning the same
-run). Budget: 12 `check_build=control`, 3 `check_build=build`, 6 `checks_only`, 40 runs of item 2's workflow.
+paths); the records workflow on its paths. On demand: `checks_only`, `check_build=build` (green once at the end
+of step 3a, once at the end of step 3b, once on the final head) and `check_build=control` (**twice green on the
+final head**, by rerunning the same run). Budget: 12 `check_build=control`, 6 `check_build=build`, 6
+`checks_only`, 40 runs of item 2's workflow.
 Watch with `gh run watch <id> --exit-status --interval 300`.
 
 ## Security: what this adds, and what the brief requires against it
@@ -541,17 +620,17 @@ Watch with `gh run watch <id> --exit-status --interval 300`.
 | Risk | Required |
 |---|---|
 | **A force-installed extension** that can drive every page. Whoever controls the policy or the package controls his browser. | Policy, update manifest and package are root-owned under `/usr` (the signed image); `/etc` has only root-owned links; the policy is exactly one entry for one ID; both addresses are fixed `file:` paths under `/usr`; image checks and C1 pin all of it. The package's signature is checked at first install (case 4 and C5, on an ID the profile never held, show a tampered package is not installed); after that the copy in his profile is what runs, and it is user-writable (`KNOWN-LIMITS.md` line 21). |
-| **The signing key, made in CI.** A kept key could sign a package Chrome accepts under the same ID. | Made inside one process, never written or exported, no key input; image and log scans; the unit test for leftovers. The ID is unique to the build and nothing trusts the key after it. |
+| **The signing key, made in CI.** A kept key could sign a package Chrome accepts under the same ID. | Made inside one process, never written or exported, no key input; the modulus scan over the whole image and, on the runner, over the build log; the PEM scan over the recorded files and the image's temporary and root folders; the unit test for leftovers. The ID is unique to the build and nothing trusts the key after it. |
 | **The native host** is a door from Chrome to the service. | One allowed origin, generated with the package; fixed root-owned launcher with an empty environment; C3 and C4 show another extension is refused, also after an update; the service's own checks (peer UID, one host, the password for loosening) are unchanged. A same-named host in his home and a same-user process posing as the host stay the accepted residuals of `KNOWN-LIMITS.md`: don't add Chrome policies against them here. |
 | **The polkit action** turns a password into looser rules. | The shipped file byte for byte; never kept; C7 with his real agent in a session started the real way, including cancel and "asks again". |
 | **A downloaded binary** (`gh`) that decides whether qualification records are genuine. | Pinned RPM bytes, signature by a pinned key, pinned binary hash, only the one file taken, no scripts run, no repository; image check and C10; it runs as `aresos-tools` in the unit's sandbox with no login. |
 | **A stale or foreign identity after update or rollback.** | Links instead of files in `/etc`; C4; the rehearsal checks. A mismatch fails closed: the tools say Chrome isn't connected. |
-| **Chrome's tools before his never-list is in.** His own sites (his dashboard first) would be ordinary sites to the tool. | The list starts as a placeholder the validator refuses; every Chrome read and action answers `chrome_settings_unavailable` until root writes a `format` 1 list (item 1's test, the image check, C6's first use). The gate needs no host of his. |
-| **His never-list across update and rollback.** A list kept per deployment would come back older after `previous`, silently. | The list lives in `/var/lib/aresos-control/`, shared by all deployments; tmpfiles only makes it when missing; the rehearsal requires its hash unchanged after the update and after `previous`. An image from before this package reads the old `/etc` path, which no image ships, and refuses (fails closed). |
+| **Chrome's reads and actions before his never-list is in.** His own sites (his dashboard first) would be ordinary sites to the tool. | The list starts as a placeholder the validator refuses; every Chrome read and action answers `chrome_settings_unavailable` until root writes a `format` 1 list (item 1's sweep over the tool list at the adapter, the image check, C6's first use with a read, an open and a take). The tools that answer anyway (`chrome_sites` list, revoke and allow; notices, their acknowledgement, operation status, drop) read and change no page and are named in the sweep, so a new tool fails it until someone decides. The gate needs no host of his. |
+| **His never-list across update and rollback.** A list kept per deployment would come back older after `previous`, silently. | The list lives in `/var/lib/aresos-control/`, shared by all deployments; tmpfiles only makes it when missing and keeps a written list's content (the image check runs it twice; C6 reboots once with his list written); the rehearsal writes a made-up list before the update and requires its hash unchanged after the update and after `previous`. An image from before this package reads the old `/etc` path, which no image ships, and refuses (fails closed). |
 | **The service loosening its own limits.** The list restricts the service. | Root-owned folder and file, the service's group may only read; the folder is outside the unit's `ReadWritePaths` and apart from `/var/lib/aresos-tools`; item 1's test, the image check and C6 (write and create refused under the unit's sandbox). |
 | **The owner's hosts leaking** into a public repo or evidence. | The image ships no list, only a hostless placeholder made at boot; tests use made-up hosts under `.invalid` or `localhost`; the privacy check runs on every push. |
 | **Test-only pieces reaching a release** (the probe, its host, the second bundle). | They live in the test layer only; the negative image check. |
-| **Chrome telling a store about our extension.** | Item 2's case 5 and C9, each with the probe as a positive control. |
+| **Chrome telling a store about our extension.** | Item 2's case 5 and C9: no request names our ID except `file:` ones, and no request at all to the update service (which would carry the ID in a body the log doesn't show), each with the probe as a positive control; in the container a negative control without `override_update_url` must fail the scan. |
 
 ## Steps (one fresh agent each, about 250k tokens; PROGRESS.md after each)
 
@@ -560,12 +639,17 @@ Watch with `gh run watch <id> --exit-status --interval 300`.
 - **1b. `record_build.py`** (item 4, its tests, the records workflow, the one recorded run). After 1a.
 - **2. Install proof in the container** (item 2). After 1a; one builder on the branch at a time.
 - **3a. Image install, Chrome's files** (item 3 without `gh`: the install map, the bundle, the tmpfiles file, the
-  links, the polkit action, their image checks, `check-image.sh`, `os/tests`; `checks_only` green). Needs PR #58 on
-  `main`, the lead's go (it has told `linux-aresos` the changes after review 1) and the lead's answer 5.
+  links, the polkit action, their image checks, `check-image.sh`, `os/tests`; `checks_only` green, then
+  `check_build=build` green once, so what 3a wrote runs under its own builder). Needs PR #58 on `main`, the lead's
+  go (it has told `linux-aresos` the changes after review 1) and the owner's answer in words to the lead's
+  question 5.
 - **3b. `gh`** (item 3's `gh` part: lock, key, licence, the step, the resolve line, their checks and `os/tests`),
-  then `check_build=build` green once. Its own stop conditions are `gh`'s line under "Stop and report".
-- **4. VM, first half:** the polkit probe first; the second pass and its layer; C1, C2, C6's first use, C3, the
-  rest of C6, C10, C11.
+  then `check_build=build` green once more. Its own stop conditions are `gh`'s line under "Stop and report".
+- **4. VM, first half:** the polkit probe first; the second pass and its layer; C1, C2, C6's first use with its
+  reboot, C3, the rest of C6, C10, C11. **Split point:** step 4 is the largest step left (the probe, the second
+  pass with its layer and workflow step, seven checks). If, once C2 and C6's first use are green, `PROGRESS.md`
+  shows half its budget used (about 125k of 250k tokens, or six of the twelve `check_build=control` runs), its
+  builder records where it stands and stops there; a fresh agent (**4b**) takes C3, the rest of C6, C10 and C11.
 - **5. VM, second half:** C4, C5, C9, then C7 and C8.
 - **6. Close:** the rehearsal checks, the two greens on the final head, README lines, the report text.
 
@@ -599,7 +683,8 @@ where what was built differs from the install text the lead wrote there (PR #48)
 - The pinned Chrome doesn't follow the `/etc` links, refuses a `file:` update address, or won't force-install an
   extension from outside its store on this machine. (If the image shipped no Chrome, that would be a PLAN-GAP and a
   stop; it ships one.)
-- A request naming our extension's ID goes to anything but a `file:` address and the policy can't stop it.
+- A request naming our extension's ID goes to anything but a `file:` address, or an update-service request is
+  caused by it, and the policy can't stop it.
 - polkit refuses, or shows no dialog, for a process started the way the shell starts Chrome (step 4's probe, then
   C7). Don't change the action's defaults or the way Chrome is started to get green.
 - `gh`'s RPM can't be verified with a key you can show is GitHub CLI's, carries scripts, or the binary needs
@@ -637,8 +722,10 @@ password out of files, and changes the image least; say so in the report.
    `linux-aresos` agreed: the bind-mounted bundle is enough ("Agree", answer 6).
 4. **The release job:** `linux-aresos`, in its next release package, as written. This brief delivers the tool, its
    check and the instructions for that package.
-5. **What he sees:** the lead asks the owner (board), with C2's screenshot of "managed by your organization" when the
-   build has one. Steps 1 and 2 don't depend on the answer; step 3 waits for it.
+5. **What he sees:** the lead asked the owner in words (board #297). Step 3a waits on his words only; steps 1 and 2
+   don't depend on them. C2's screenshot of "managed by your organization" goes to him only if he answers "let's
+   discuss". (Changed after review 2: asking with the screenshot was circular, since only step 4 makes it and step
+   3a waited on the answer.)
 6. **His hosts before first use** (changed after review 1): a gate without a service change. The list itself is the
    mark: tmpfiles makes it as a placeholder the validator refuses, and every Chrome read and action answers
    `chrome_settings_unavailable` until the owner, as root with `sudo` in the live sitting, writes a `format` 1
@@ -689,3 +776,36 @@ password out of files, and changes the image least; say so in the report.
 - **Notes:** README's "Copy all" paragraph (item 1); `pack.py` refuses links (item 1); where
   `briefs/18c-image-start.md` lives (header); building twice: not reproducible on purpose ("The design", "For your
   next release"). The polkit fallback, question 1's alternative and the native host's residuals need no change.
+
+## Changes after review 2
+
+`reviews/18c-b-chrome-image/BRIEF-REVIEW-2.md` (READY, six should-fixes); the lead decided each item.
+
+- **S1** (the gate was pinned at one function and one verb): item 1's test gains a sweep over the tool list at the
+  adapter, with the tools that answer anyway named (`chrome_sites` list, revoke and allow; notices, their
+  acknowledgement, operation status, drop; the extension's `ack_steps` and `queued_steps` as the only bridge
+  calls); C6's first use tries a read, an open and a take besides `tabs`; Goal, "What the owner will see", the
+  risk row and "For his guide" say "every Chrome read and action". Brief 28b item 9 (PR #48) gains one bullet:
+  its take, take-reload and in-place reads join that sweep.
+- **S2** (nothing showed a later boot keeps his list): the image check runs the installed tmpfiles file twice and
+  requires a changed list to survive with mode and group put back ("Proof"); C6 reboots the guest once after its
+  first use and requires the written list unchanged; the rehearsal writes a made-up list before the update and
+  compares its hash after the update and after `previous` (item 5's rehearsal paragraph; a request to
+  `linux-aresos` under "For your next release"); the risk row.
+- **S3** (the store path posts the ID in a body): case 5 and C9 also require no request at all to the update
+  service, with `--disable-component-update` allowed for that run (item 2's flag line, item 5's flag list), and a
+  container-only negative control without `override_update_url`; "Stop and report"; the risk row.
+- **S4** (two key scans placed where they can't run): the modulus scan over the whole image, the same scan over
+  `evidence/build.log` in `check-build.sh` on the runner, the PEM scan over the recorded files (defined) plus
+  `/tmp`, `/var/tmp` and `/root` ("Proof"); the risk row.
+- **S5** (step 3a ended without running what it built): 3a ends with `check_build=build` green; build budget six;
+  step 4's split point after C2 and C6's first use, with a step 4b ("Steps", "What runs when", "Model").
+- **S6** (the message and the owner's step): the message gains "not a valid list" (item 1); "For his guide" writes
+  through `sudo tee … >/dev/null` from its input so his hosts stay out of the shell's history (the lead: knowing
+  the hosts isn't the risk, opening them is, but this costs nothing), then checks with `aresos chrome tabs`, and
+  says what a missing file or folder means.
+- **Notes:** `pack.py` takes the folder to pack as an argument (item 1); answer 5 waits on the owner's words only
+  (board #297), the screenshot goes to him only on "let's discuss" (lead's answer 5, step 3a, C2); the polkit
+  probe passes `--detail change` (item 5); `check` requires `source_revision` equal to `source_commit` (item 4);
+  the keyring line says where the base's list comes from ("Proof"); C6 adds a link in the list's place; "For his
+  guide" has the details page's answer before the list is written.
