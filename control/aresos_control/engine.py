@@ -20,6 +20,15 @@ from .paging import ordered_page
 from .testapp import Receiver, TestApp
 from .mail.adapter import Mail
 
+# A restore lock means the working database is older than the committed record,
+# so its rows for every app but Chrome may describe work that is no longer
+# current. Chrome's rows and warnings come from the committed journal. Until the
+# owner confirms the restore, other apps are reported as unavailable, nothing of
+# theirs is listed as current, and their live server checks do not run.
+LOCKED_PENDING = ('Other app state is unavailable until the owner confirms the restore. Chrome rows and warnings '
+                  'below are current; ask the owner to confirm the restore before relying on other app state.')
+LOCKED_NOTICES = 'Chrome warnings are current; other app warnings are unavailable until the owner confirms the restore.'
+
 
 class Engine:
     def __init__(self, state_dir, evidence_dir, ttl=900, checkpoint=lambda _: None, file_limit=FILE_LIMIT):
@@ -73,6 +82,11 @@ class Engine:
         mail = self.adapters['mail']
         chrome = self.adapters['chrome']
         if include_chrome and resolve_checks and app in {None,'chrome'}:chrome.reconcile_open_checks()
+        if self.store.locked:
+            # Only Chrome's committed rows are current; Mail's checks stay off.
+            if include_chrome and app in {None, 'chrome'}:
+                return chrome.notice_page(args)
+            return {'items': [], 'total': 0, 'cursor': None}
         return notice_page(self.store, args, app=app,
             checks=mail.resolve_sent_checks() if resolve_checks else mail.unresolved_sent_checks(),
             extras=chrome.notice_rows if include_chrome and app in {None, 'chrome'} else None, exclude_apps={'chrome'})
@@ -175,20 +189,26 @@ class Engine:
             return result
 
     def _pending(self, app=None, args=None, resolve_checks=True, include_chrome=True):
+        locked = self.store.locked
         notices = self.notices(resolve_checks=resolve_checks,include_chrome=include_chrome)
         def rows():
             # Open or unacknowledged: the partial index's own rows, in SQL.
-            for key, op in self.store.iter_operations(exclude_app='chrome', unresolved=True):
-                if (op['app']=='chrome' or (app is not None and op['app'] != app) or
-                        not (op['state'] in {'reserved', 'submitting', 'partial', 'unknown'} or
-                             (op.get('notice') and not op.get('ack')))):
-                    continue
-                created = self.store.db.execute('SELECT created FROM retained WHERE k=?', (key,)).fetchone()
-                row = {'operation_id': op['id'], 'app': op['app'], 'state': op['state'], 'reason': op['reason']}
-                yield ((created[0] if created else 0, op['id']), row)
+            # Under a restore lock those rows may be stale and are left out.
+            if not locked:
+                for key, op in self.store.iter_operations(exclude_app='chrome', unresolved=True):
+                    if (op['app']=='chrome' or (app is not None and op['app'] != app) or
+                            not (op['state'] in {'reserved', 'submitting', 'partial', 'unknown'} or
+                                 (op.get('notice') and not op.get('ack')))):
+                        continue
+                    created = self.store.db.execute('SELECT created FROM retained WHERE k=?', (key,)).fetchone()
+                    row = {'operation_id': op['id'], 'app': op['app'], 'state': op['state'], 'reason': op['reason']}
+                    yield ((created[0] if created else 0, op['id']), row)
             if include_chrome and app in {None,'chrome'}:
                 yield from self.adapters['chrome'].pending_rows()
-        return ordered_page(rows, args, ['pending', app]) | {'restore_required': self.store.locked} | notices
+        result = ordered_page(rows, args, ['pending', app]) | {'restore_required': locked} | notices
+        if locked:
+            result['unavailable'] = LOCKED_PENDING
+        return result
 
     def page(self, values, args, scope):
         token, offset = digest([scope, values]), 0
@@ -538,10 +558,13 @@ class Engine:
             return archive(self.store, args['before'], self.adapters['mail'])
         if name == "control_notices":
             try:
-                return self.notice_page(args, resolve_checks='cursor' not in args)
+                page = self.notice_page(args, resolve_checks='cursor' not in args)
             except (OSError, sqlite3.Error) as exc:
                 if storage_refusal(exc) is None: raise
                 return self.adapters['chrome'].notice_page(args) | {'unavailable': 'Chrome warnings are current; other app warnings cannot be read until storage recovers.'}
+            if self.store.locked:
+                page['unavailable'] = LOCKED_NOTICES
+            return page
         if name == "control_pending":
             return self.pending(args=args)
         if name == 'control_observations':

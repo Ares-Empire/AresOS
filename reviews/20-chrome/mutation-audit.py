@@ -753,6 +753,20 @@ case('mainfix-sec-refusal-code-unchecked',AT,"        if error.code != reason:\n
 case('mainfix-sec-publisher-any-exception',AT,"            expected_refusal(lambda: qualify.prepare(publication, [], trusted_baseline, verifier), reason)\n","            try:\n                qualify.prepare(publication, [], trusted_baseline, verifier)\n            except Exception:\n                pass\n            else:\n                raise AssertionError('accepted')\n",PUBLISHER_CASES,True)
 case('mainfix-sec-publisher-baseline-case-unsigned-bytes',AT,"        ('non-append-only shipped baseline', original, ","        ('non-append-only shipped baseline', json.dumps(candidate).encode(), ",PUBLISHER_CASES,True)
 
+# Package 20-restore-lock, R1: while the store is locked, control_pending and
+# control_notices list only Chrome's committed rows and warnings, say so, name
+# no route the lock refuses, and run no Mail server check. These probes list
+# the stale rows again, list the stale warnings again, drop either unavailable
+# message, and run Mail's Sent-copy check under the lock.
+EN='control/aresos_control/engine.py'
+RL='test_restore_lock.RestoreLock.'
+case('restorelock-stale-rows-listed',EN,"            if not locked:\n                for key, op in self.store.iter_operations(exclude_app='chrome', unresolved=True):","            if True:\n                for key, op in self.store.iter_operations(exclude_app='chrome', unresolved=True):",RL+'test_locked_pending_lists_only_chrome_rows_and_warnings_until_the_owner_confirms',True)
+case('restorelock-stale-warnings-listed',EN,"        if self.store.locked:\n            # Only Chrome's committed rows are current; Mail's checks stay off.","        if False:\n            # Only Chrome's committed rows are current; Mail's checks stay off.",RL+'test_locked_notices_page_only_chrome_warnings_through_an_answered_route',True)
+case('restorelock-mail-route-continued',EN,"        if self.store.locked:\n            # Only Chrome's committed rows are current; Mail's checks stay off.","        if False:\n            # Only Chrome's committed rows are current; Mail's checks stay off.",RL+'test_locked_mail_only_warnings_leave_no_continuation_to_the_refused_route',True)
+case('restorelock-pending-unavailable-dropped',EN,"        if locked:\n            result['unavailable'] = LOCKED_PENDING\n",'',RL+'test_locked_pending_lists_only_chrome_rows_and_warnings_until_the_owner_confirms',True)
+case('restorelock-notices-unavailable-dropped',EN,"            if self.store.locked:\n                page['unavailable'] = LOCKED_NOTICES\n",'',RL+'test_locked_notices_page_only_chrome_warnings_through_an_answered_route',True)
+case('restorelock-sent-check-runs',EN,"                return chrome.notice_page(args)\n            return {'items': [], 'total': 0, 'cursor': None}","                tuple(mail.resolve_sent_checks() if resolve_checks else ());return chrome.notice_page(args)\n            return {'items': [], 'total': 0, 'cursor': None}",RL+'test_locked_reads_open_no_mail_server_session',True)
+
 def command(row):
     if row['python']:return ['python3','-B','-m','unittest',row['test'],'-v']
     file,pattern=row['test']
