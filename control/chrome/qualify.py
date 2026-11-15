@@ -207,7 +207,25 @@ def serialized(record, on_main):
     return json.dumps(record, indent=1)+'\n'
 
 
-def prepare(repo, entries, baseline, verifier=verify_held):
+def compared(held, repeat):
+    """The groups a repeat fails that the held entry passes (worse), and those it passes that the held entry fails (better)."""
+    groups = lambda item: {kind+'.'+name: value for kind in ['core', 'adapters'] for name, value in item[kind].items()}
+    before, after = groups(held), groups(repeat)
+    worse = [name for name in before if before[name] and not after[name]]
+    better = [name for name in before if after[name] and not before[name]]
+    return worse, better
+
+
+def prepare(repo, entries, baseline, verifier=verify_held, *, on_main=True):
+    """The candidate: the verified held record plus this run's new pairs.
+
+    A held pair is immutable, so a repeat of it adds nothing. On main a repeat
+    with another verdict raises. Off main (main fix F3) only a repeat worse
+    than the held entry raises: main records a whole pair all-false when one of
+    its shards fails, and a two-way check would then fail every later pull
+    request on that build, the record-update pull request included. A better
+    repeat keeps the held entry and warns.
+    """
     # Fetching/verification precede any write to the publication branch.
     path = Path(repo)/RECORD
     current = json.loads(path.read_text())
@@ -217,13 +235,19 @@ def prepare(repo, entries, baseline, verifier=verify_held):
     added=[]
     for item in entries:
         validate_record({'format': 1, 'entries': [item]})
-        existing=indexed.get((item['build'],item['version'],item['channel']))
+        key=item['build'],item['version'],item['channel']
+        existing=indexed.get(key)
         if existing:
             if existing['core']!=item['core'] or existing['adapters']!=item['adapters']:
-                raise ValueError('Conflicting repeat for an immutable qualification pair; publish nothing')
+                worse,better=compared(existing,item)
+                if on_main:
+                    raise ValueError('Conflicting repeat for an immutable qualification pair; publish nothing')
+                if worse:
+                    raise ValueError('Conflicting repeat for an immutable qualification pair: this run fails '+', '.join(worse)+', which the held record passes; publish nothing')
+                print('::warning::This run passes '+', '.join(better)+' for build '+key[0][:12]+', Chrome '+key[2]+' '+key[1]+', which the held record fails. The record is immutable: the held entry stays, so those groups stay disabled for this build and Chrome version.', flush=True)
             continue
         added.append(item)
-        indexed[item['build'], item['version'], item['channel']] = item
+        indexed[key] = item
     candidate = {'format':1,'entries':[*current['entries'],*added]}
     append_only(current,candidate)
     return candidate
@@ -396,7 +420,7 @@ def main():
         with tempfile.TemporaryDirectory(dir=root/'.work') as temporary:
             publication=Path(temporary);(publication/RECORD).parent.mkdir(parents=True)
             (publication/RECORD).write_text(current+'\n')
-            result=prepare(publication,entries,baseline)
+            result=prepare(publication,entries,baseline,on_main=on_main)
         candidate.parent.mkdir(parents=True,exist_ok=True);candidate.write_text(serialized(result,on_main));return
     if args.remote is None:
         if not on_main:raise SystemExit('Qualification publication to origin is restricted to main')

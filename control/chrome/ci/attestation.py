@@ -32,19 +32,34 @@ import qualify
 SOURCE_REF = 'expected SourceRepositoryRef to be '
 POLICY = 'verifying with issuer "sigstore.dev"'
 MISSING = 'could not load content from file path'
+# The append-only check's own refusal: authentic signatures never authorize
+# a rollback of held history or of the shipped baseline.
+ROLLBACK = 'qualification_rollback'
 # The attestation API's answer for a digest it lists no attestation for.
 NOT_FOUND = b'{"message":"Not Found","documentation_url":"https://docs.github.com/rest/repos/attestations#list-attestations","status":"404"}'
 
 
-def refused(qualification, path, check, reason, held):
+def expected_refusal(action, reason):
+    """action must refuse for exactly reason: gh's failed verification naming it, or Refused with that code (ROLLBACK).
+
+    gh failing for another reason fails the case; any other exception,
+    a Refused with another code included, propagates and fails the job.
+    """
     try:
-        qualification.accept(path, check)
+        action()
     except subprocess.CalledProcessError as error:
         stderr = error.stderr.decode('utf-8', 'replace') if isinstance(error.stderr, bytes) else error.stderr or ''
         if reason not in stderr:
             raise AssertionError('gh refused for another reason than ' + repr(reason) + ': ' + stderr.strip()[-400:]) from error
+    except Refused as error:
+        if error.code != reason:
+            raise
     else:
         raise AssertionError('accepted')
+
+
+def refused(qualification, path, check, reason, held):
+    expected_refusal(lambda: qualification.accept(path, check), reason)
     assert qualification.record() == held, 'a refusal changed the held record'
 
 
@@ -207,44 +222,55 @@ def exercise(path, bundle, ref, response):
         except AssertionError as error:
             raise AssertionError('altered subject: ' + str(error)) from error
         print('QUALIFICATION DELIVERY altered subject refused (' + POLICY + '); held retained PASS', flush=True)
-        # Authentic signatures do not authorize rollback of local history.
-        for name, held in [('dropped held entry', {'format': 1, 'entries': candidate['entries'] + [{**candidate['entries'][-1], 'version': '999.0.1.0'}]}),
-                           ('changed held entry', copy.deepcopy(candidate))]:
-            if name == 'changed held entry':
-                held['entries'][-1]['core']['binding'] = not held['entries'][-1]['core']['binding']
-            # Each starts from its own previously held record, then verifies the
-            # genuine candidate. The append-only check must still refuse it.
-            store.write({'chrome:qualification': held}, 'chrome_fixture', 'Synthetic held qualification history')
-            try:
-                qualification.accept(path, verifier)
-            except Exception:
-                assert qualification.record() == held
-            else:
-                raise AssertionError(name + ' accepted')
-            print('QUALIFICATION DELIVERY ' + name + ' refused after real verification PASS', flush=True)
+        rollback_cases(qualification, store, path, verifier, candidate)
         store.close()
-        publication = root/'publication'
-        subject = publication/qualify.RECORD
-        subject.parent.mkdir(parents=True)
-        subject.write_bytes(original)
-        result = qualify.prepare(publication, [], baseline, verifier)
-        assert result == candidate
-        print('QUALIFICATION PUBLISHER real held attestation and baseline verified PASS', flush=True)
-        for name, contents, trusted_baseline in [
-            ('unsigned inserted entry', {'format':1, 'entries':candidate['entries'] + [{**candidate['entries'][-1], 'version':'999.0.1.0'}]}, baseline),
-            ('non-append-only shipped baseline', candidate, {'format':1, 'entries':[dict(candidate['entries'][0], run='changed-fixture-baseline')]})
-        ]:
-            subject.write_text(json.dumps(contents))
-            notifications = Mock(return_value=Mock(stdout='[]'))
-            try:
-                qualify.prepare(publication, [], trusted_baseline, verifier)
-            except Exception:
-                qualify.notify(None, False, notifications)
-            else:
-                raise AssertionError(name+' was signed forward')
-            assert json.loads(subject.read_text()) == contents
-            assert notifications.call_count == 1 and 'issue' in notifications.call_args.args[0]
-            print('QUALIFICATION PUBLISHER '+name+' refused; no write, issue stubbed PASS', flush=True)
+        publisher_cases(root/'publication', original, baseline, candidate, verifier)
+
+
+def rollback_cases(qualification, store, path, verifier, candidate):
+    """Authentic signatures do not authorize rollback of local history: only the append-only refusal counts."""
+    for name, held in [('dropped held entry', {'format': 1, 'entries': candidate['entries'] + [{**candidate['entries'][-1], 'version': '999.0.1.0'}]}),
+                       ('changed held entry', copy.deepcopy(candidate))]:
+        if name == 'changed held entry':
+            held['entries'][-1]['core']['binding'] = not held['entries'][-1]['core']['binding']
+        # Each starts from its own previously held record, then verifies the
+        # genuine candidate. The append-only check must still refuse it.
+        store.write({'chrome:qualification': held}, 'chrome_fixture', 'Synthetic held qualification history')
+        try:
+            refused(qualification, path, verifier, ROLLBACK, held)
+        except AssertionError as error:
+            raise AssertionError(name + ': ' + str(error)) from error
+        print('QUALIFICATION DELIVERY ' + name + ' refused (' + ROLLBACK + ') after real verification PASS', flush=True)
+
+
+def publisher_cases(publication, original, baseline, candidate, verifier):
+    """The publisher verifies the genuine held record, then signs nothing forward, each case for its own reason.
+
+    An inserted entry changes the signed bytes, so gh's named policy failure
+    refuses it. The non-append-only baseline keeps the genuine bytes, which
+    verify, so only the append-only check can refuse it.
+    """
+    subject = publication/qualify.RECORD
+    subject.parent.mkdir(parents=True)
+    subject.write_bytes(original)
+    result = qualify.prepare(publication, [], baseline, verifier)
+    assert result == candidate
+    print('QUALIFICATION PUBLISHER real held attestation and baseline verified PASS', flush=True)
+    inserted = {'format': 1, 'entries': candidate['entries'] + [{**candidate['entries'][-1], 'version': '999.0.1.0'}]}
+    for name, contents, trusted_baseline, reason in [
+        ('unsigned inserted entry', json.dumps(inserted).encode(), baseline, POLICY),
+        ('non-append-only shipped baseline', original, {'format': 1, 'entries': [dict(candidate['entries'][0], run='changed-fixture-baseline')]}, ROLLBACK)
+    ]:
+        subject.write_bytes(contents)
+        notifications = Mock(return_value=Mock(stdout='[]'))
+        try:
+            expected_refusal(lambda: qualify.prepare(publication, [], trusted_baseline, verifier), reason)
+        except AssertionError as error:
+            raise AssertionError(name + ': ' + str(error)) from error
+        qualify.notify(None, False, notifications)
+        assert subject.read_bytes() == contents
+        assert notifications.call_count == 1 and 'issue' in notifications.call_args.args[0]
+        print('QUALIFICATION PUBLISHER ' + name + ' refused (' + reason + '); no write, issue stubbed PASS', flush=True)
 
 
 if __name__ == '__main__':

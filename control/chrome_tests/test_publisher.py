@@ -404,37 +404,98 @@ class Publisher(unittest.TestCase):
                     self.assertEqual(verified.call_count,1)
                     self.assertEqual([(row['build'],row['version'],row['channel'],row['repeat']) for row in json.loads(stdout.getvalue())['include']],rows)
 
-    def test_off_main_an_identical_repeat_is_skipped_and_a_conflicting_one_fails_the_pull_request(self):
-        # Review F1: the pull request's re-qualification of a held pair adds
-        # nothing when it agrees and fails the run when its verdict differs;
-        # it never relaxes or overwrites the held entry. Off main the candidate
-        # is indented, never main's bytes, so the pull request's attestation
-        # never joins the real record's listing; main writes compact as before.
-        held={'format':1,'entries':[entry()]}
+    def repeat(self,held,pair,ref):
+        """Run the real prepare CLI on ref against a local origin whose data branch holds held.
+
+        This run qualified the held stable pair again with the verdict pair
+        and a new beta pair with every group passing. Returns the candidate's
+        text (None when none was written), the printed lines and the error
+        prepare raised, if any.
+        """
         with tempfile.TemporaryDirectory(dir=ROOT/'.work/20-chrome') as temporary:
             root=Path(temporary)
             origin=origin_with(root,{'format':1,'entries':[]},held)
             checkout=root/'clone';qualify.git(root,'clone','-q',str(origin),str(checkout));(checkout/'.work').mkdir()
-            plan=root/'plan.json';plan.write_text(json.dumps({'include':[{**entry(),'repeat':repeat} for repeat in [1,2]]}))
-            def artifacts(pair):
-                directory=Path(tempfile.mkdtemp(dir=root))
+            new=entry(version='158.0.1.0',channel='beta')
+            plan=root/'plan.json';plan.write_text(json.dumps({'include':[{**item,'repeat':repeat} for item in [entry(),new] for repeat in [1,2]]}))
+            artifacts=root/'artifacts'
+            for name,item in [('stable',pair),('beta',new)]:
                 for repeat in [1,2]:
-                    (directory/str(repeat)).mkdir();(directory/str(repeat)/'pair.json').write_text(json.dumps({**pair,'repeat':repeat}))
-                return directory
-            conflicting=entry();conflicting['core']['binding']=False
+                    (artifacts/name/str(repeat)).mkdir(parents=True);(artifacts/name/str(repeat)/'pair.json').write_text(json.dumps({**item,'repeat':repeat}))
             bundles=root/'held.bundles.jsonl';bundles.write_text('{}\n')
-            for ref,pair,expected in [('refs/pull/9/merge',entry(),qualify.serialized(held,False)),('refs/heads/main',entry(),compact(held)),('refs/pull/9/merge',conflicting,None)]:
-                candidate=root/'candidate.json';candidate.unlink(missing_ok=True)
-                with self.subTest(ref=ref,conflicting=expected is None), patch.object(sys,'argv',['qualify.py','prepare','--root',str(checkout),'--artifacts',str(artifacts(pair)),'--plan',str(plan),'--candidate',str(candidate)]), patch.dict(qualify.os.environ,{'GITHUB_REF':ref,'GITHUB_REPOSITORY':qualify.REPOSITORY,'GITHUB_RUN_ID':'9001'}), patch.object(qualify,'bundle_from_api',return_value=bundles) as fetched, patch.object(qualify,'verify') as verified:
-                    if expected is None:
-                        with self.assertRaisesRegex(ValueError,'Conflicting repeat'):qualify.main()
-                        self.assertFalse(candidate.exists())
-                    else:
-                        qualify.main()
-                        self.assertEqual(candidate.read_text(),expected);self.assertEqual(json.loads(candidate.read_text()),held)
-                    self.assertEqual(fetched.call_count,1);self.assertEqual(verified.call_args.kwargs,{'bundle':bundles})
-                bundles.write_text('{}\n')
-            self.assertNotEqual(qualify.serialized(held,False),compact(held))
+            candidate=root/'candidate.json';error=None
+            with patch.object(sys,'argv',['qualify.py','prepare','--root',str(checkout),'--artifacts',str(artifacts),'--plan',str(plan),'--candidate',str(candidate)]), patch.dict(qualify.os.environ,{'GITHUB_REF':ref,'GITHUB_REPOSITORY':qualify.REPOSITORY,'GITHUB_RUN_ID':'9001'}), patch.object(qualify,'bundle_from_api',return_value=bundles) as fetched, patch.object(qualify,'verify') as verified, patch('sys.stdout',new_callable=io.StringIO) as stdout:
+                try:qualify.main()
+                except ValueError as raised:error=raised
+            # The held record was verified from its bundle list, main policy, before anything else.
+            self.assertEqual(fetched.call_count,1);self.assertEqual(verified.call_args.kwargs,{'bundle':bundles})
+            return (candidate.read_text() if candidate.exists() else None),stdout.getvalue().splitlines(),error
+
+    def test_off_main_an_identical_repeat_is_skipped_and_never_carries_main_s_bytes(self):
+        # Review F1: the pull request's re-qualification of a held pair adds
+        # nothing when it agrees. Off main the candidate is indented, never
+        # main's bytes, so the pull request's attestation never joins the real
+        # record's listing; main writes compact as before.
+        held={'format':1,'entries':[entry()]}
+        expected={'format':1,'entries':[entry(),entry(version='158.0.1.0',channel='beta',run='9001')]}
+        for ref,serialized in [('refs/pull/9/merge',qualify.serialized(expected,False)),('refs/heads/main',compact(expected))]:
+            with self.subTest(ref=ref):
+                candidate,lines,error=self.repeat(held,entry(run='9001'),ref)
+                self.assertIsNone(error);self.assertEqual(candidate,serialized);self.assertEqual(json.loads(candidate),expected)
+                self.assertFalse([line for line in lines if line.startswith('::warning::')])
+        self.assertNotEqual(qualify.serialized(expected,False),compact(expected))
+
+    def test_off_main_a_worse_repeat_fails_the_pull_request_and_writes_no_candidate(self):
+        # Review F3: a group the held record passes and this run fails is a
+        # regression. The pull request fails and nothing is attested, adapter
+        # groups as much as core ones.
+        for kind,name in [('core','binding'),('adapters','github')]:
+            worse=entry(run='9001');worse[kind][name]=False
+            with self.subTest(group=kind+'.'+name):
+                candidate,lines,error=self.repeat({'format':1,'entries':[entry()]},worse,'refs/pull/9/merge')
+                self.assertIsInstance(error,ValueError);self.assertIn('Conflicting repeat',str(error));self.assertIn(kind+'.'+name,str(error))
+                self.assertIsNone(candidate);self.assertFalse([line for line in lines if line.startswith('::warning::')])
+
+    def test_off_main_a_better_repeat_warns_keeps_the_held_entry_and_the_rest_proceeds(self):
+        # Review F3: main records a whole pair all-false when one shard fails,
+        # and that entry never changes. A later pull request on the same build
+        # that passes those groups (a test or CI fix, the record-update pull
+        # request) warns, keeps the held entry and goes on with its new pairs.
+        failed=entry(run='main-run');failed['core']=dict.fromkeys(failed['core'],False);failed['adapters']=dict.fromkeys(failed['adapters'],False)
+        partly=entry(run='main-run');partly['core']['binding']=False;partly['adapters']['github']=False
+        for name,held_entry in [('all-false',failed),('two groups failed',partly)]:
+            held={'format':1,'entries':[held_entry]}
+            expected={'format':1,'entries':[held_entry,entry(version='158.0.1.0',channel='beta',run='9001')]}
+            with self.subTest(held=name):
+                candidate,lines,error=self.repeat(held,entry(run='9001'),'refs/pull/9/merge')
+                self.assertIsNone(error)
+                self.assertEqual(json.loads(candidate),expected);self.assertEqual(candidate,qualify.serialized(expected,False))
+                warnings=[line for line in lines if line.startswith('::warning::')]
+                self.assertEqual(len(warnings),1)
+                better=[kind+'.'+group for kind in ['core','adapters'] for group,passed in held_entry[kind].items() if not passed]
+                self.assertIn('passes '+', '.join(better)+' for build '+'a'*12,warnings[0]);self.assertIn('held entry stays',warnings[0])
+                # Only the groups this run improved are named.
+                for passed in [kind+'.'+group for kind in ['core','adapters'] for group,value in held_entry[kind].items() if value]:
+                    self.assertNotIn(passed,warnings[0])
+
+    def test_off_main_a_mixed_repeat_fails_the_pull_request(self):
+        # Review F3: better in some groups, worse in one is still a regression.
+        held_entry=entry(run='main-run');held_entry['core']['binding']=False;held_entry['core']['page_script']=False
+        mixed=entry(run='9001');mixed['adapters']['github']=False
+        candidate,lines,error=self.repeat({'format':1,'entries':[held_entry]},mixed,'refs/pull/9/merge')
+        self.assertIsInstance(error,ValueError);self.assertIn('adapters.github',str(error));self.assertNotIn('core.binding',str(error))
+        self.assertIsNone(candidate);self.assertFalse([line for line in lines if line.startswith('::warning::')])
+
+    def test_on_main_any_conflicting_repeat_raises(self):
+        # Main never publishes a pair twice with two verdicts, whichever way they differ.
+        failed=entry(run='main-run');failed['core']['binding']=False
+        worse=entry(run='9001');worse['adapters']['github']=False
+        for name,held_entry,pair in [('better',failed,entry(run='9001')),('worse',entry(run='main-run'),worse)]:
+            with self.subTest(name):
+                candidate,lines,error=self.repeat({'format':1,'entries':[held_entry]},pair,'refs/heads/main')
+                self.assertIsInstance(error,ValueError)
+                self.assertEqual(str(error),'Conflicting repeat for an immutable qualification pair; publish nothing')
+                self.assertIsNone(candidate);self.assertFalse([line for line in lines if line.startswith('::warning::')])
 
 
 class PullRequestPublish(unittest.TestCase):

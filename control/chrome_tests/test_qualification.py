@@ -306,6 +306,73 @@ class RecordingOpener(unittest.TestCase):
                     a.altered_subject(Held(error), path, None, held)
                 self.assertEqual(path.read_bytes(), original)
 
+    GENUINE = record(entry(run='genuine'), entry(version='158.0.1.0', channel='beta', run='genuine'))
+
+    def test_a_rollback_case_counts_only_as_the_append_only_refusal(self):
+        # Security re-check NOTE (brief 20 main fix, step 5): after a
+        # verification that passed, the held-history rollback cases count only
+        # the append-only check's own refusal. A verifier that failed (gh for
+        # any reason, a timeout, gh missing or too old) fails the job.
+        a, candidate = self.attestation, self.GENUINE
+        with tempfile.TemporaryDirectory(dir=WORK) as directory:
+            path = Path(directory)/'record.json'; path.write_text(json.dumps(candidate, indent=1))
+
+            def cases(verifier):
+                state = Path(tempfile.mkdtemp(dir=directory))
+                store = Store(state/'state', state/'evidence')
+                try:
+                    qualification = q.Qualification(store, candidate['entries'][0]['build'], record(*candidate['entries'][:1]))
+                    a.rollback_cases(qualification, store, path, verifier, candidate)
+                finally:
+                    store.close()
+
+            with patch('sys.stdout', new_callable=io.StringIO) as stdout:
+                cases(Mock())
+            self.assertEqual(stdout.getvalue().count('refused (qualification_rollback) after real verification PASS'), 2)
+            for error in [subprocess.TimeoutExpired(['gh'], 30), FileNotFoundError('gh'), Refused('qualification_invalid', 'gh too old')]:
+                with self.subTest(type(error).__name__), self.assertRaises(type(error)):
+                    cases(Mock(side_effect=error))
+            with self.subTest('a gh refusal'), self.assertRaisesRegex(AssertionError, 'dropped held entry: gh refused for another reason'):
+                cases(Mock(side_effect=subprocess.CalledProcessError(1, ['gh'], b'', b'Error: verifying with issuer "sigstore.dev"')))
+
+    def test_the_publisher_cases_count_each_refusal_only_by_its_own_reason(self):
+        # Security re-check NOTE (step 5): an inserted entry changes the signed
+        # bytes, so only gh's named policy failure counts; the non-append-only
+        # baseline keeps the signed bytes, so only the append-only refusal
+        # counts. Anything else fails the job.
+        a, candidate = self.attestation, self.GENUINE
+        baseline = record(*candidate['entries'][:1])
+        # Indented like an off-main candidate: re-serializing the parsed record never gives these bytes back.
+        original = json.dumps(candidate, indent=1).encode()
+
+        def gh(stderr):
+            return subprocess.CalledProcessError(1, ['gh', 'attestation', 'verify'], b'', stderr.encode())
+
+        def signed(subject):
+            # Stands in for gh with the genuine bundle: only the signed bytes verify.
+            if Path(subject).read_bytes() != original:
+                raise gh('\nError: verifying with issuer "sigstore.dev"\n')
+
+        def cases(verifier):
+            with tempfile.TemporaryDirectory(dir=WORK) as directory:
+                a.publisher_cases(Path(directory)/'publication', original, baseline, candidate, verifier)
+
+        with patch('sys.stdout', new_callable=io.StringIO) as stdout:
+            cases(signed)
+        self.assertIn('unsigned inserted entry refused (verifying with issuer "sigstore.dev"); no write, issue stubbed PASS', stdout.getvalue())
+        self.assertIn('non-append-only shipped baseline refused (qualification_rollback); no write, issue stubbed PASS', stdout.getvalue())
+        # The genuine record verifies first; what each case then meets decides.
+        policy = gh('Error: verifying with issuer "sigstore.dev"')
+        for name, effects, raised, message in [
+                ('inserted entry accepted', [None, None, None], AssertionError, 'unsigned inserted entry: accepted'),
+                ('inserted entry refused by a timeout', [None, subprocess.TimeoutExpired(['gh'], 30)], subprocess.TimeoutExpired, ''),
+                ('inserted entry refused by another gh failure', [None, gh('Error: failed to create TUF client: connection reset')], AssertionError, 'unsigned inserted entry: gh refused for another reason'),
+                ('baseline case refused by verification', [None, policy, policy], AssertionError, 'non-append-only shipped baseline: gh refused for another reason'),
+                ('baseline case refused by a timeout', [None, policy, subprocess.TimeoutExpired(['gh'], 30)], subprocess.TimeoutExpired, ''),
+                ('baseline case refused by gh too old', [None, policy, Refused('qualification_invalid', 'gh too old')], Refused, 'gh too old')]:
+            with self.subTest(name), self.assertRaisesRegex(raised, message), patch('sys.stdout', new_callable=io.StringIO):
+                cases(Mock(side_effect=effects))
+
     def test_the_recording_opener_never_ships(self):
         # Like the CI stand-in polkit rule: the opener and anything that
         # installs one live only in control/chrome/ci at run time.

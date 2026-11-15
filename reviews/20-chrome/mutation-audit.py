@@ -697,13 +697,12 @@ case('mainfix-sec-pull-request-publish-token',QW,"        if: github.ref != 'ref
 # attests main's bytes; the pull-request publish seeds origin's data branch and
 # verifies the held record from the read-only step's bundle list, main policy.
 PR_PLAN='test_publisher.Publisher.test_off_main_the_plan_qualifies_the_head_build_again_while_main_skips_what_is_held'
-PR_REPEAT='test_publisher.Publisher.test_off_main_an_identical_repeat_is_skipped_and_a_conflicting_one_fails_the_pull_request'
+PR_REPEAT='test_publisher.Publisher.test_off_main_an_identical_repeat_is_skipped_and_never_carries_main_s_bytes'
 PR_HELD='test_publisher.PullRequestPublish.test_with_a_data_branch_the_held_record_is_verified_from_the_read_steps_list_under_main_policy_then_appended'
 PR_REFUSE='test_publisher.PullRequestPublish.test_a_held_record_without_a_listing_or_a_bundle_list_refuses_and_nothing_moves'
 GUARD='test_publisher.Publisher.test_writes_to_github_refuse_off_main_while_prepare_and_local_publish_run_anywhere'
 case('mainfix-f1-plan-skips-the-held-head-off-main',QY,"build_hash(root.resolve()),requalify_head=not on_main)","build_hash(root.resolve()),requalify_head=False)",PR_PLAN,True)
 case('mainfix-f1-plan-requalifies-on-main',QY,"build_hash(root.resolve()),requalify_head=not on_main)","build_hash(root.resolve()),requalify_head=True)",PR_PLAN,True)
-case('mainfix-f1-conflicting-repeat-relaxed',QY,"                raise ValueError('Conflicting repeat for an immutable qualification pair; publish nothing')\n","                continue\n",PR_REPEAT,True)
 case('mainfix-f1-pull-request-attests-main-bytes',QY,"    if on_main:\n        return json.dumps(record, separators=(',', ':'))+'\\n'\n","    if True:\n        return json.dumps(record, separators=(',', ':'))+'\\n'\n",PR_REPEAT,True)
 case('mainfix-f1-pull-request-seeds-main-only',QW,"          if git rev-parse --verify --quiet refs/remotes/origin/chrome-qualification > /dev/null; then\n            git -C .work/publish-remote.git fetch --quiet \"$PWD\" refs/remotes/origin/chrome-qualification:refs/heads/chrome-qualification\n          fi\n","",PR_HELD,True)
 case('mainfix-f1-held-record-through-gh-api',QY,"        publish(root,candidate,baseline,remote=remote,bundle=Path(args.bundle),ref=args.ref,held_verifier=held_from_file(Path(args.held_bundle)))","        publish(root,candidate,baseline,remote=remote,bundle=Path(args.bundle),ref=args.ref)",PR_HELD,True)
@@ -729,6 +728,30 @@ case('mainfix-note-b-shared-publisher-group',QW,"      group: ${{ github.ref == 
 case('mainfix-note-c-fixture-signed-link','control/chrome_tests/fixtures/qualification/42687597384/api-response.json','   "repository_id": 1443566375,\n','   "repository_id": 1443566375,\n   "bundle_url": "https://fixture.invalid/attestation.json?se=2026-11-15&sig=fixture",\n','test_qualification.RecordingOpener.test_the_retained_fixture_holds_no_signed_link',True)
 # The altered-subject case counts only gh's named policy refusal.
 case('mainfix-sec-altered-subject-any-exception',AT,"        refused(qualification, path, check, POLICY, held)\n","        try:\n            qualification.accept(path, check)\n        except Exception:\n            assert qualification.record() == held\n        else:\n            raise AssertionError('accepted')\n",'test_qualification.RecordingOpener.test_an_altered_subject_counts_only_as_ghs_named_policy_refusal',True)
+
+# Main fix step 5. F3: off main the repeat check is one-way. A worse repeat
+# (a group the held entry passes fails here) fails the pull request, mixed or
+# adapter-only too; a better one keeps the held entry, warns and goes on; main
+# raises on any conflicting repeat. The security re-check's NOTE: the rollback
+# and publisher cases of attestation.py count only their own named refusal.
+PR_WORSE='test_publisher.Publisher.test_off_main_a_worse_repeat_fails_the_pull_request_and_writes_no_candidate'
+PR_BETTER='test_publisher.Publisher.test_off_main_a_better_repeat_warns_keeps_the_held_entry_and_the_rest_proceeds'
+PR_MIXED='test_publisher.Publisher.test_off_main_a_mixed_repeat_fails_the_pull_request'
+MAIN_REPEAT='test_publisher.Publisher.test_on_main_any_conflicting_repeat_raises'
+case('mainfix-f1-conflicting-repeat-relaxed',QY,"                if worse:\n                    raise ValueError(","                if False:\n                    raise ValueError(",PR_WORSE,True)
+case('mainfix-f3-adapter-regression-ignored',QY,"for kind in ['core', 'adapters'] for name, value in item[kind].items()}","for kind in ['core'] for name, value in item[kind].items()}",PR_WORSE,True)
+case('mainfix-f3-mixed-repeat-passes',QY,"                if worse:\n","                if worse and not better:\n",PR_MIXED,True)
+case('mainfix-f3-better-repeat-overwrites-held',QY,"which the held record fails. The record is immutable: the held entry stays, so those groups stay disabled for this build and Chrome version.', flush=True)\n","which the held record fails. The record is immutable: the held entry stays, so those groups stay disabled for this build and Chrome version.', flush=True)\n                current['entries'][current['entries'].index(existing)]=item\n",PR_BETTER,True)
+case('mainfix-f3-better-repeat-fails-off-main',QY,"                if on_main:\n                    raise ValueError('Conflicting repeat for an immutable qualification pair; publish nothing')\n","                if True:\n                    raise ValueError('Conflicting repeat for an immutable qualification pair; publish nothing')\n",PR_BETTER,True)
+case('mainfix-f3-better-repeat-silent',QY,"                print('::warning::This run passes '","                print('This run passes '",PR_BETTER,True)
+case('mainfix-f3-better-repeat-kept-on-main',QY,"                if on_main:\n                    raise ValueError('Conflicting repeat for an immutable qualification pair; publish nothing')\n","                if on_main and worse:\n                    raise ValueError('Conflicting repeat for an immutable qualification pair; publish nothing')\n",MAIN_REPEAT,True)
+case('mainfix-f3-prepare-strict-everywhere',QY,"            result=prepare(publication,entries,baseline,on_main=on_main)","            result=prepare(publication,entries,baseline)",PR_BETTER,True)
+ROLLBACK_CASES='test_qualification.RecordingOpener.test_a_rollback_case_counts_only_as_the_append_only_refusal'
+PUBLISHER_CASES='test_qualification.RecordingOpener.test_the_publisher_cases_count_each_refusal_only_by_its_own_reason'
+case('mainfix-sec-rollback-any-exception',AT,"            refused(qualification, path, verifier, ROLLBACK, held)\n","            try:\n                qualification.accept(path, verifier)\n            except Exception:\n                assert qualification.record() == held\n            else:\n                raise AssertionError('accepted')\n",ROLLBACK_CASES,True)
+case('mainfix-sec-refusal-code-unchecked',AT,"        if error.code != reason:\n            raise\n","        if False:\n            raise\n",ROLLBACK_CASES,True)
+case('mainfix-sec-publisher-any-exception',AT,"            expected_refusal(lambda: qualify.prepare(publication, [], trusted_baseline, verifier), reason)\n","            try:\n                qualify.prepare(publication, [], trusted_baseline, verifier)\n            except Exception:\n                pass\n            else:\n                raise AssertionError('accepted')\n",PUBLISHER_CASES,True)
+case('mainfix-sec-publisher-baseline-case-unsigned-bytes',AT,"        ('non-append-only shipped baseline', original, ","        ('non-append-only shipped baseline', json.dumps(candidate).encode(), ",PUBLISHER_CASES,True)
 
 def command(row):
     if row['python']:return ['python3','-B','-m','unittest',row['test'],'-v']
