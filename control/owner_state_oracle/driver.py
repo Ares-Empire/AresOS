@@ -192,6 +192,18 @@ class Driver:
             return value
         extra = ExitStack()
         extra.enter_context(recorded_samples(oracle, self.call_index, getattr(s, 'operation_ttl', 900)))
+        # A read answered during a restore lock is refused only if it tries to
+        # write. Record that attempt as an input; the reply is never consulted.
+        from aresos_control.common import Refused
+        index, store_write = self.call_index, f.engine.store.write
+        def write(*args, **kwargs):
+            try:
+                return store_write(*args, **kwargs)
+            except Refused as exc:
+                if exc.code == 'restore_required':
+                    oracle.script[index]['lock_refused_write'] = True
+                raise
+        extra.enter_context(patch.object(f.engine.store, 'write', write))
         imap = f.mail.transport.imap
         @contextmanager
         def imap_session(account):

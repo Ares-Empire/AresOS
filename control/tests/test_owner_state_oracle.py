@@ -963,6 +963,36 @@ class StageOneFixMutations(unittest.TestCase):
             compare_status(reply, oracle, Record(), oracle.script[-1], oracle.compare, 'empty')
         compare_status({'ok': True}, oracle, Record(), oracle.script[-1], oracle.compare, 'empty')
 
+    def test_restore_lock_answers_its_three_reads_and_refuses_only_their_writes(self):
+        # Board #185, C2: since PR #27 these reads are answered during a
+        # restore lock. A write one of them attempts still meets the lock.
+        from owner_state_oracle.compare import compare_status
+        locked, refused = Record(locked=True), {'ok': False, 'error': {'code': 'restore_required'}}
+        for action in ('control_pending', 'control_notices', 'chrome_notices'):
+            oracle = Oracle()
+            oracle.call(action, {}, 1)
+            call = oracle.script[-1]
+            self.assertEqual(oracle.permitted_status(locked, call), {'allowed'})
+            compare_status({'ok': True}, oracle, locked, call, oracle.compare, action)
+            with self.assertRaises(AssertionError):
+                compare_status(refused, oracle, locked, call, oracle.compare, action)
+            call['lock_refused_write'] = True
+            self.assertEqual(oracle.permitted_status(locked, call), {'allowed', 'restore_required'})
+            compare_status(refused, oracle, locked, call, oracle.compare, action)
+            # Injected storage faults keep their usual permissions in such a read.
+            oracle.call(action, {}, 2, {'trace': [(1, 'journal.write', 'ENOSPC')]})
+            self.assertEqual(oracle.permitted_status(locked, oracle.script[-1]), {'allowed', 'storage_limit'})
+        for action in ('control_log', 'mail_accounts', 'mail_filing_notices', 'mail_operation_status'):
+            oracle = Oracle()
+            oracle.call(action, {}, 1, {'trace': [(1, 'journal.write', 'ENOSPC')]})
+            oracle.script[-1]['lock_refused_write'] = True
+            self.assertEqual(oracle.permitted_status(locked, oracle.script[-1]), {'restore_required'})
+            with self.assertRaises(AssertionError):
+                compare_status({'ok': True}, oracle, locked, oracle.script[-1], oracle.compare, action)
+        oracle = Oracle()
+        oracle.call('control_pending', {}, 1)
+        self.assertEqual(oracle.permitted_status(Record(), oracle.script[-1]), {'allowed'})
+
     def background(self):
         oracle = Oracle()
         oracle.call('control_pending', {}, 1, {'background': True, 'trace': [(1, 'journal.write', 'ENOSPC'), (2, 'file.truncate', 'EIO')]})
