@@ -69,3 +69,7 @@ Written 2026-11-13 (last update 19:00) by `linux-aresos`, the OS lead, now runni
 - The repository secret `GHCR_READ_TOKEN` (rehearsal and release runs) is valid until about 2026-12-07; the owner renews it.
 - Check every new check's assumptions against real retained output, not mocks.
 - From a Claude Bash call, `pgrep -f` matches its own shell: match processes by PID or exact executable path.
+
+## Usage rule until Thu 2026-11-19 00:00 (`mac-capacity`, 2026-11-15)
+
+Up to 75% of the week: build as now. From 75%: only next-release work (22d, 23d's merge, the release cut; linux-tools's #69/#58), all on Opus, reviews to Codex (back Tue 10:53). At 92%: stop; ~5% stays for the owner. If release work is done by Wed noon, held work resumes until 92%. 21b is on hold unless the owner's key test makes it trivial. The lead told `mac-capacity` the release path needs about 10–12 Opus agent steps plus VM reruns.
