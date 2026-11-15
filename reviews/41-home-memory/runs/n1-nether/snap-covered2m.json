@@ -1,0 +1,70 @@
+{
+ "label": "covered2m",
+ "monotonic_ns": 46614072840090,
+ "time": "12:22:03",
+ "status_mib": {
+  "VmHWM": 1421,
+  "VmRSS": 1346,
+  "RssAnon": 1147,
+  "RssFile": 144,
+  "RssShmem": 54,
+  "VmSwap": 0
+ },
+ "smaps_rollup_mib": {
+  "Rss": 1297,
+  "Pss": 1231,
+  "Pss_Anon": 1147,
+  "Pss_File": 79,
+  "Pss_Shmem": 5,
+  "Swap": 0
+ },
+ "cgroup": "/user.slice/user-1001.slice/user@1001.service/app.slice/pkg41-game-n1-nether-861143.scope",
+ "cgroup_mib": {
+  "current": 1171,
+  "peak": 1262,
+  "swap": 0,
+  "high": "2684354560",
+  "anon": 1147,
+  "file": 15,
+  "kernel": 7,
+  "shmem": 0
+ },
+ "cgroup_events": {
+  "low": 0,
+  "high": 0,
+  "max": 0,
+  "oom": 0,
+  "oom_kill": 0,
+  "oom_group_kill": 0,
+  "sock_throttled": 0
+ },
+ "heap_mib": {
+  "reserved": 1024,
+  "committed": 529,
+  "used": 417
+ },
+ "heap_regions": {
+  "region_kib": 1024,
+  "young": 60,
+  "survivors": 11
+ },
+ "nmt_committed_mib": {
+  "Java Heap": 529,
+  "Class": 27,
+  "Thread": 4,
+  "Code": 66,
+  "GC": 71,
+  "Compiler": 0,
+  "Internal": 2,
+  "Other": 3,
+  "Symbol": 24,
+  "Native Memory Tracking": 10,
+  "Shared class space": 14,
+  "Arena Chunk": 0,
+  "Synchronization": 3,
+  "Metaspace": 123,
+  "Total": 875
+ },
+ "gpu_total_used_mib": 656,
+ "gpu_process_mib": 582
+}
