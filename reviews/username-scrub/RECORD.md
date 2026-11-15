@@ -56,18 +56,34 @@ branch `lead/306-username-scrub`, from main at `3e13fc22`.
 
 ## Keeping it out
 
-- `.github/workflows/repo-privacy.yml` runs on every pull request. It fails when a file's text or name puts anyone
-  other than `owner`, `...` or a built-in account in a home path:
+- `.github/workflows/repo-privacy.yml` runs on every pull request. It fails when a home path in a text file's content,
+  or in any file's name, names anyone but the placeholders below:
   - macOS `/Users/<name>`;
-  - Windows `C:\Users\<name>` (also JSON-escaped, any case) and `c:/users/<name>`;
+  - Windows `C:\Users\<name>` (also JSON-escaped, `Users` or `users`) and `c:/users/<name>`;
   - Claude Code's `-Users-<name>` folder form.
+
+  `owner` passes everywhere. In the first two forms, `...` and the built-in accounts (GitHub's runners, `Shared`,
+  `Public`, `Default`) pass too.
 
   It prints only file and line for text and only a count for file names, never the text, because the run log is
   public. On the base `3e13fc22` it flags 257 files (1,293 lines); on this branch none.
-- What it can't see: a lowercase `/users/<name>` with no drive letter (ordinary code folders are called `users`),
-  URL-encoded paths, and the bare name outside a path. A public check can't look for the name itself without
-  publishing it.
+- What it can't see:
+  - binary files (images, archives): the biggest gap;
+  - the bare name outside a path. A public check can't look for the name itself without publishing it;
+  - rarer spellings of a path:
+    - a lowercase `/users/<name>` with no drive letter (ordinary code folders are called `users`), including Git
+      Bash `/c/users/`;
+    - capital `USERS`;
+    - URL-encoded paths, JSON's `\/`, mixed separators, five or more backslashes, `/Users/./`.
+
+    None of these spellings held the name, before or after the scrub. Before it, the bare name did appear, in 115
+    files: the run records' author fields and the capture scripts above.
 - `AGENTS.md` hard rule 6 tells builders to write `owner`, also in made-up examples, or repo-relative paths.
 - Direct pushes to main skip the check, so leads keep the same rule by hand.
-- Review: `REVIEW-1.md` (FIX: the check failed on every pull request, and this list of citing records was incomplete;
-  both fixed).
+- Reviews:
+  - `REVIEW-1.md` (FIX): the check failed on every pull request, and this list of citing records was incomplete.
+    Both are fixed.
+  - `REVIEW-RECHECK-2.md` (SAFE). Its notes 1 to 3 are fixed: the output file is created before `git grep` runs, and
+    this record's wording is corrected. Its note 4, direct pushes, stands as described above.
+  - A deliberate probe commit showed the check red on GitHub, with file:line and a count only, before it was
+    reverted.

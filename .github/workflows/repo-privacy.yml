@@ -37,6 +37,7 @@ jobs:
             failed=1
           fi
 
+          : > "$RUNNER_TEMP/grep.txt"  # fails the step here if the file can't be written, so exit 1 below means "nothing found"
           status=0
           git grep -nIP -e "$pattern" -- . > "$RUNNER_TEMP/grep.txt" || status=$?
           case "$status" in
