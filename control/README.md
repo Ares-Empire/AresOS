@@ -209,7 +209,10 @@ be cancelled or expired as nothing submitted. Missing evidence proves nothing.
 ## Caller file policy and launch chain
 
 The root-owned proxy configuration names a home and specific folders beneath it;
-defaults are Documents, Downloads and Desktop. Roots themselves and every component
+the template lists Documents, Downloads and Desktop; the image configures Documents and
+Downloads. A path outside them is refused with a message that names exactly the
+configured folders, relative to the home and sorted ("choose ~/Documents or ~/Downloads").
+Roots themselves and every component
 are opened with directory descriptors and `O_NOFOLLOW`, starting at `/`. Original
 path strings are checked before normalization. Dot components, traversal, credential,
 profile, configuration and startup names are refused. Reads require a regular
