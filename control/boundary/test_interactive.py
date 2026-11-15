@@ -199,3 +199,35 @@ class Evidence(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class ProcessChains(unittest.TestCase):
+    """Brief 18e, item 6: the Stop hook must find the MCP server's parent among its ancestors."""
+    def write(self, folder, name, chain):
+        (folder / name).write_text(json.dumps([{'pid': pid, 'start': start, 'comm': comm}
+                                               for pid, start, comm in chain]))
+
+    def test_common_claude_process_passes_and_a_stranger_or_reused_pid_fails(self):
+        import process_chain
+        with tempfile.TemporaryDirectory() as raw:
+            folder = Path(raw)
+            self.write(folder, 'mcp-30.json', [(30, 9, 'python3'), (20, 5, 'claude')])
+            self.write(folder, 'hook-Stop-40.json', [(40, 11, 'python3'), (35, 10, 'sh'), (20, 5, 'claude')])
+            chains = process_chain.check(folder)
+            self.assertEqual(process_chain.summary(chains)['stop'], ['python3:40 <- sh:35 <- claude:20'])
+            # Same pid, other start time: a reused pid is not the same process.
+            self.write(folder, 'hook-Stop-41.json', [(41, 12, 'python3'), (20, 6, 'claude')])
+            with self.assertRaises(AssertionError):
+                process_chain.check(folder)
+            (folder / 'hook-Stop-41.json').unlink()
+            # Beyond four levels does not count.
+            self.write(folder, 'hook-Stop-42.json', [(42, 1, 'a'), (43, 1, 'b'), (44, 1, 'c'), (45, 1, 'd'),
+                                                      (46, 1, 'e'), (20, 5, 'claude')])
+            with self.assertRaises(AssertionError):
+                process_chain.check(folder)
+
+    def test_nothing_recorded_fails(self):
+        import process_chain
+        with tempfile.TemporaryDirectory() as raw:
+            with self.assertRaises(AssertionError):
+                process_chain.check(Path(raw))
