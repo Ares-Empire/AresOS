@@ -347,15 +347,16 @@ pass "greetd's profile wrapper keeps the system PATH ($wrapper_path); his login 
 # Every absolute command the greeter, session, terminals, shortcuts and their
 # helpers run must exist in this image, or an absolute path would only trade
 # one way to fail for another.
-# The app helper itself is listed by name: package 23's supervisor, not yet
-# built, will start it, so no session file names it yet.
+# Package 23: the desktop supervisor (autostart), its Java wrapper (Prism's
+# wrapper command), its message window and the app helper it starts.
 startup_commands=$( (grep -ohE '/usr/(local/)?(s?bin|libexec)/[A-Za-z0-9/._-]+' /etc/greetd/config.toml \
     /usr/bin/aresos-session /usr/bin/aresos-terminal /usr/share/aresos/bashrc /etc/profile.d/aresos.sh \
     /usr/share/aresos/labwc/autostart /usr/share/aresos/labwc/rc.xml /usr/libexec/aresos-keyboard \
-    /usr/libexec/aresos-subids /usr/bin/brew /usr/libexec/aresos-shell /usr/share/aresos/apps/*.json
-    echo /usr/libexec/aresos-shell) | sort -u)
+    /usr/libexec/aresos-subids /usr/bin/brew /usr/libexec/aresos-shell /usr/share/aresos/apps/*.json \
+    /usr/libexec/aresos-desktop /usr/libexec/aresos-desktop-java /usr/share/aresos/desktop-view.bashrc) | sort -u)
 for command in /usr/bin/dbus-run-session /usr/bin/dbus-daemon /usr/bin/labwc /usr/bin/busctl /usr/bin/foot \
-    /usr/libexec/aresos-shell /usr/bin/systemd-run /usr/bin/systemctl /usr/bin/kwrite /usr/bin/google-chrome; do
+    /usr/libexec/aresos-shell /usr/bin/systemd-run /usr/bin/systemctl /usr/bin/kwrite /usr/bin/google-chrome \
+    /usr/libexec/aresos-desktop /usr/libexec/aresos-desktop-java /usr/bin/prismlauncher /usr/bin/python3 /usr/bin/cat; do
     grep -qx "$command" <<< "$startup_commands"
 done
 for command in $startup_commands; do
@@ -399,6 +400,20 @@ PY
 test ! -s "$shadow/ran"
 rm -rf "$shadow"
 pass 'the app helper resolves browser, notepad and terminal and launches by absolute paths under the system PATH with shadows first'
+# Package 30 review fixes: the reviewed window hints ship in the image and pass the helper's own strict check.
+runuser -u ares -- env -i HOME=/var/home/ares PATH=/usr/bin /usr/bin/python3 - <<'PY'
+import importlib.machinery, importlib.util
+loader = importlib.machinery.SourceFileLoader('aresos_shell', '/usr/libexec/aresos-shell')
+spec = importlib.util.spec_from_loader('aresos_shell', loader)
+shell = importlib.util.module_from_spec(spec)
+loader.exec_module(shell)
+hints = shell.load_hints('/usr/share/aresos/apps/hints')
+assert hints == {'lunarclient.desktop': shell.Hint('lunarclient.desktop', ('com.mojang.minecraft',), (), 'discrete',
+                                                   (('SDL_VIDEO_DRIVER', 'wayland'),)),
+                 'steam.desktop': shell.Hint('steam.desktop', (), ('steam_app_',))}, hints
+PY
+test "$(stat -c %U /usr/share/aresos/apps/hints /usr/share/aresos/apps/hints/*.json | sort -u)" = root
+pass 'the app helper loads the two reviewed window hints (Lunar Client, Steam), owned by root'
 test "$(runuser -l ares -c 'command -v brew')" = /usr/bin/brew
 test "$(runuser -l ares -c 'brew --version')" = FIXTURE_BREW
 grep -qx -- '--version' /tmp/brew-calls
@@ -506,6 +521,182 @@ before=$(sha256sum /etc/subuid /etc/subgid)
 test "$(sha256sum /etc/subuid /etc/subgid)" = "$before"
 test "$(systemctl --root=/ is-enabled aresos-subids.service)" = enabled
 pass 'ares has subordinate ID ranges; the boot service is enabled and idempotent'
+
+# --- Package 23: Minecraft starts in AresOS.
+lock=/usr/share/aresos/minecraft/desktop.lock.json
+java=$(python3 -c 'import json, sys; print(json.load(open(sys.argv[1]))["java"]["path"])' "$lock")
+java_nevra=$(python3 -c 'import json; print(next(p["nevra"] for p in json.load(open("/usr/share/aresos/manifest/packages.lock.json"))["packages"] if p["nevra"].startswith("java-25-openjdk-headless-")))')
+test "$(rpm -q --qf '%{NEVRA}' java-25-openjdk-headless)" = "$java_nevra"
+test "$(rpm -qf --qf '%{NAME}' "$java")" = java-25-openjdk-headless
+test ! -L "$java"
+runuser -u ares -- "$java" -version 2>&1 | tee /tmp/pkg23-java-version
+grep -Eq '^openjdk version "25(\.[0-9]+)*"' /tmp/pkg23-java-version
+pass "Java 25 from the package lock ($java_nevra) at $java, runnable by ares"
+test "$(readlink /usr/bin/prismlauncher)" = /usr/lib/prismlauncher/bin/prismlauncher
+test ! -e /usr/lib/prismlauncher/portable.txt
+test ! -e /usr/lib/prismlauncher/UserData
+if find /usr/lib/prismlauncher -name '*updater*' | grep .; then
+    echo "Prism's updater is in the image"
+    exit 1
+fi
+if find /usr/lib/prismlauncher /usr/share/aresos/minecraft /usr/libexec/aresos-desktop /usr/libexec/aresos-desktop-java \
+    -perm /6000 | grep .; then
+    echo 'A setuid or setgid file belongs to the desktop'
+    exit 1
+fi
+# The tarball records its files as UID 1001, which is ares on AresOS: they
+# must belong to root in the image, or ares could change Prism.
+owned=(-not -type l '(' -not -user root -o -not -group root -o -perm /022 ')')
+if find /usr/lib/prismlauncher /usr/share/aresos/minecraft "${owned[@]}" | grep .; then
+    echo 'A desktop file in /usr is not root-owned or is group/world-writable'
+    exit 1
+fi
+# Every bundled file is the one build.sh recorded from the pinned tarball.
+sha256sum --quiet -c /usr/share/aresos/manifest/prism-files.sha256
+install -d -o ares -g ares /tmp/pkg23-prism
+prism_version="PrismLauncher $(python3 -c 'import json, sys; print(json.load(open(sys.argv[1]))["prism"]["version"])' "$lock")"
+# Prism prints its version and then an empty line.
+runuser -u ares -- env -i HOME=/tmp/pkg23-prism LANG=C.UTF-8 QT_QPA_PLATFORM=offscreen \
+    /usr/bin/prismlauncher --version > /tmp/pkg23-prism-version 2>&1
+cat /tmp/pkg23-prism-version
+grep -qx "$prism_version" /tmp/pkg23-prism-version
+status=0
+runuser -u ares -- env -i HOME=/tmp/pkg23-prism LANG=C.UTF-8 QT_QPA_PLATFORM=offscreen XDG_RUNTIME_DIR=/tmp/pkg23-prism \
+    /usr/bin/timeout 20 /usr/bin/prismlauncher > /tmp/pkg23-prism-start.txt 2>&1 || status=$?
+test "$status" = 124
+prism_log=/tmp/pkg23-prism/.local/share/PrismLauncher/logs/PrismLauncher-0.log
+grep -F 'Updates Enabled            : No' "$prism_log"
+grep -F 'Adjusted by                : "Persistent data path"' "$prism_log"
+grep -F 'Application root path      : "/usr/lib/prismlauncher"' "$prism_log"
+pass "Prism Launcher $prism_version from its pinned bundle: updater removed, data in his home, no setuid files"
+runuser -u ares -- /usr/bin/python3 - <<'PY'
+import importlib.machinery, importlib.util, json, sys
+loader = importlib.machinery.SourceFileLoader('aresos_desktop', '/usr/libexec/aresos-desktop')
+spec = importlib.util.spec_from_loader('aresos_desktop', loader)
+desktop = importlib.util.module_from_spec(spec)
+loader.exec_module(desktop)
+lock = desktop.load_lock()
+problems = desktop.verify_inputs(lock, desktop.SHARE)
+assert problems == [], problems
+for path, digest in desktop.pinned_files(lock, desktop.SHARE):
+    print('PINNED', digest, path)
+PY
+pass 'every provisioning input in /usr/share/aresos/minecraft matches its pin; Java and Prism are present'
+# The mod jar in the image is the one the image records (build.sh configure).
+python3 - /usr/share/aresos <<'PY'
+import hashlib, json, pathlib, re, sys
+share = pathlib.Path(sys.argv[1])
+record = json.loads((share / 'manifest/aresos-mod.json').read_text())
+assert sorted(record) == ['pinned_sha256', 'sha256', 'source_revision'], record
+assert re.fullmatch('[0-9a-f]{40}', record['source_revision']), record
+jar = hashlib.sha256((share / 'minecraft/mods/aresos.jar').read_bytes()).hexdigest()
+assert jar == record['sha256'], f'The mod jar in the image is {jar}; the image records {record["sha256"]}'
+print('MOD_JAR_RECORDED', jar, 'from', record['source_revision'],
+      'its pin' if jar == record['pinned_sha256'] else f'NOT its pin {record["pinned_sha256"]} (throwaway build)')
+PY
+pass 'the mod jar in the image is the one its manifest records (aresos-mod.json: SHA-256 and source commit)'
+lines=$(grep -Ev '^[[:space:]]*(#|$)' /usr/share/aresos/labwc/autostart)
+test "$lines" = '/usr/libexec/kf6/polkit-kde-authentication-agent-1 &
+/usr/libexec/aresos-desktop session &'
+test "$(readlink /usr/bin/aresos-desktop)" = ../libexec/aresos-desktop
+grep -q '<windowRule identifier="aresos-desktop" serverDecoration="no"><action name="Maximize" /></windowRule>' \
+    /usr/share/aresos/labwc/rc.xml
+pass 'labwc autostart starts the desktop supervisor (no session terminal); the hub window is borderless and maximized'
+# Provisioning as ares from the image's real inputs: creates the instance,
+# changes nothing on a second run, and reports a changed instance.
+install -d -o ares -g ares -m 0700 /tmp/pkg23-home /tmp/pkg23-run
+runuser -u ares -- env -i HOME=/tmp/pkg23-home /usr/bin/python3 - <<'PY'
+import importlib.machinery, importlib.util, json, os, pathlib
+loader = importlib.machinery.SourceFileLoader('aresos_desktop', '/usr/libexec/aresos-desktop')
+spec = importlib.util.spec_from_loader('aresos_desktop', loader)
+desktop = importlib.util.module_from_spec(spec)
+loader.exec_module(desktop)
+lock = desktop.load_lock()
+paths = desktop.Paths('/tmp/pkg23-home', '/tmp/pkg23-run')
+created = desktop.provision(paths, lock)
+assert created == [paths.worlds, paths.instance('AresDesktop'), paths.prism_config], created
+assert desktop.check_instance(paths, lock) == []
+snapshot = {str(p): (os.readlink(p) if p.is_symlink() else p.read_bytes() if p.is_file() else None)
+            for p in pathlib.Path('/tmp/pkg23-home').rglob('*')}
+assert desktop.provision(paths, lock) == []
+assert snapshot == {str(p): (os.readlink(p) if p.is_symlink() else p.read_bytes() if p.is_file() else None)
+                    for p in pathlib.Path('/tmp/pkg23-home').rglob('*')}
+instance = pathlib.Path(paths.instance('AresDesktop'))
+for link in ('patches', 'libraries', 'minecraft/mods'):
+    assert os.path.realpath(instance / link).startswith('/usr/share/aresos/minecraft/'), link
+assert sorted(os.listdir(instance / 'minecraft/mods')) == ['aresos.jar', 'fabric-api.jar']
+assert desktop.check_world(paths, lock)[0] == 'missing'
+cfg = instance / 'instance.cfg'
+cfg.write_text(cfg.read_text().replace('WrapperCommand=/usr/libexec/aresos-desktop-java', 'WrapperCommand='))
+assert desktop.check_instance(paths, lock) == ["instance.cfg WrapperCommand is '', not '/usr/libexec/aresos-desktop-java'"]
+print('PROVISIONED', sorted(str(p.relative_to(instance)) for p in instance.rglob('*')))
+PY
+pass 'provisioning as ares creates the managed instance from the image inputs, is idempotent and reports a changed instance'
+if grep -rlE 'aresos-desktop|prismlauncher' /usr/lib/systemd/system /etc/systemd/system 2>/dev/null | grep .; then
+    echo 'A system unit starts the desktop'
+    exit 1
+fi
+pass 'no system service runs the desktop: it starts inside the everyday session only'
+
+# --- Package 30: the icon conversion route must survive base-image updates.
+test -x /usr/bin/magick
+test -x /usr/bin/bwrap
+# Review 1, FIX 2: the converter's address-space ceiling is set by util-linux prlimit.
+test -x /usr/bin/prlimit
+python3 - <<'PY'
+import re, subprocess
+formats = subprocess.run(['/usr/bin/magick', '-list', 'format'], check=True, capture_output=True,
+                         timeout=3, env={'PATH': '/usr/bin', 'LC_ALL': 'C', 'HOME': '/nonexistent'}).stdout
+assert re.search(rb'^\s*SVG\s+SVG\s+r[-w+]+\s+[^\n]*\bRSVG\b', formats, re.MULTILINE), \
+    'ImageMagick svg: must use librsvg, never MSVG or an external delegate'
+assert re.search(rb'^\s*PNG\*?\s+PNG\s+rw', formats, re.MULTILINE), 'PNG coder missing'
+print('ICON_CONVERTER /usr/bin/magick; SVG coder: librsvg (RSVG); bubblewrap present')
+PY
+pass 'package 30: ImageMagick PNG and librsvg SVG coders, bubblewrap and prlimit exist'
+
+# --- Package 31: the Ares-Crown frame and the defaults for apps' own bars.
+python3 - <<'PY'
+import hashlib, pathlib, xml.etree.ElementTree as ET
+share = pathlib.Path('/usr/share')
+theme = share / 'themes/Ares-Crown/labwc'
+assert (theme / 'themerc').is_file(), 'Ares-Crown themerc is missing'
+# labwc's nine glyphs, including the toggled states, in both focus and hover states.
+for button in ('menu', 'iconify', 'max', 'max_toggled', 'close', 'shade', 'shade_toggled', 'desk', 'desk_toggled'):
+    for hover in ('', '_hover'):
+        for state in ('active', 'inactive'):
+            path = theme / f'{button}{hover}-{state}.svg'
+            svg = ET.parse(path).getroot()
+            assert svg.tag == '{http://www.w3.org/2000/svg}svg', path
+            assert (svg.get('width'), svg.get('height')) == ('44', '36'), path
+# The reviewed theme, file for file: an empty themerc or an invisible button would pass the shape checks above.
+files = sorted(theme.iterdir(), key=lambda p: p.name)
+assert len(files) == 37, f'Ares-Crown has {len(files)} files, expected themerc and 36 buttons'
+crown = hashlib.sha256('\n'.join(f'{hashlib.sha256(p.read_bytes()).hexdigest()}  {p.name}' for p in files).encode()).hexdigest()
+assert crown == 'cf01b9b105fc38847e6bf6382056862f3c460d8fc6864cc6d0932794fbd2153e', f'Ares-Crown differs from the reviewed theme: {crown}'
+assert not any((share / 'themes' / name).exists() for name in ('Ares-Plain', 'Ares-Block'))
+font = share / 'fonts/aresos/SpaceGrotesk-Variable.ttf'
+assert hashlib.sha256(font.read_bytes()).hexdigest() == 'acad6de1fc93436f5c0f1f4137751ef04f1aea3063e7036535970ffcfbd79f72'
+license = (font.parent / 'OFL-SpaceGrotesk.txt').read_text()
+assert 'Copyright 2020 The Space Grotesk Project Authors' in license
+assert 'SIL OPEN FONT LICENSE Version 1.1' in license
+rc = ET.parse(share / 'aresos/labwc/rc.xml').getroot()
+assert rc.findtext('theme/name') == 'Ares-Crown'
+assert rc.findtext('theme/titlebar/layout') == 'menu:iconify,max,close'
+assert rc.find('windowSwitcher/osd').get('style') == 'thumbnail'
+override = share / 'glib-2.0/schemas/zz-aresos.gschema.override'
+assert '[org.gnome.desktop.wm.preferences:AresOS]' in override.read_text()
+assert (override.parent / 'gschemas.compiled').is_file()
+print('CROWN_FILES_PASSED: the reviewed themerc and 36 button images (pinned), pinned font, licence, rc.xml and schema override')
+PY
+# A fresh user/home cannot hide a broken compiled default behind a saved setting.
+install -d -o ares -g ares -m 0700 /tmp/pkg31-home
+layout=$(runuser -u ares -- env -i HOME=/tmp/pkg31-home PATH=/usr/bin:/usr/sbin \
+    XDG_CURRENT_DESKTOP=AresOS GSETTINGS_BACKEND=memory \
+    /usr/bin/gsettings get org.gnome.desktop.wm.preferences button-layout)
+rm -rf /tmp/pkg31-home
+printf '%s\n' "$layout"
+test "$layout" = "'appmenu:minimize,maximize,close'"
+pass 'Ares-Crown files installed; compiled AresOS default gives apps all three buttons'
 
 set +x
 echo IMAGE_CHECKS_PASSED

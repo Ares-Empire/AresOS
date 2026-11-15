@@ -1,0 +1,11 @@
+1. **Should-fix — DAA’s cumulative count can hide the wrong send.** [interactive_suite.py:219](/var/home/ares/AresOS-18c-build/control/boundary/interactive_suite.py:219) checks for one arrival after sends 1 and 2 together. If send 1 fails before reaching the receiver and send 2 executes despite “No,” that total still passes. Tool results are checked only for their count. I reproduced the verifier’s false PASS entirely in memory by attributing the arrival to send 2 and swapping the success/error results. **Fix:** assert arrival deltas of `[1, 0, 0]` after individual turns, validate success versus permission rejection, and cross-check operation IDs in the evidence verifier.
+
+2. **Should-fix — CI does not establish that DAA actually persisted permission.** [interactive_suite.py:146](/var/home/ares/AresOS-18c-build/control/boundary/interactive_suite.py:146) saves settings snapshots but never checks the DAA write. If the offered DAA option behaves like ordinary Yes, subsequent prompts and arrival totals still satisfy the suite. The separate [verifier:24](/var/home/ares/AresOS-18c-build/reviews/18c-image-test/verify-evidence.py:24) checks persistence, but the workflow never runs it. **Fix:** when DAA is offered and selected, require the resulting send grant and its preservation through the restarted CLI before printing PASS.
+
+3. **Nit — the VSOCK comment overstates the evidence.** [hostile.py:27](/var/home/ares/AresOS-18c-build/control/boundary/hostile.py:27) claims receiver counts prove nothing got through. The receiver has no AF_VSOCK listener; it cannot observe traffic to the host’s VSOCK endpoint. **Fix:** describe reset/timeout as unqualified transport outcomes, without claiming receiver-backed VSOCK isolation.
+
+The actual saved runs show the expected DAA outcomes. The PermissionRequest pin appropriately excludes timing-dependent prompt flashes. I found no forbidden-path change, added workflow permission, or weakened print-mode check. The reset classification matches the cited failure and preserves the helper-present rejection. [Current-head boundary CI passed once](https://github.com/Ares-Empire/AresOS/actions/runs/43447399753).
+
+I made no file changes.
+
+CHANGES-NEEDED

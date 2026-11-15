@@ -76,6 +76,8 @@ def api_requirements(sources):
         ('read_only', 'f"repos/{REPOSITORY}/actions/artifacts/{artifact[\'id\']}/zip"'): 1,
         ('api', 'RUN_HISTORY_PATH'): 1,
         ('api', 'f"actions/runs/{run[\'id\']}/jobs?per_page=100"'): 2,
+        # 22c review 4: model_gate reads the model job of a checks-only run on the same head (actions: read).
+        ('api', 'f\'actions/runs/{record["run"]}/jobs?per_page=100\''): 1,
         ('api', "'actions/runs/' + str(probes[0]['run'])"): 1,
         ('api', "'actions/runs/' + current"): 1,
         ('api', "'actions/runs/' + probe_id"): 1,

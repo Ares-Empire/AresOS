@@ -1,0 +1,145 @@
+{
+  "id": 5,
+  "returncode": 0,
+  "stdout": "2213\n2874\n",
+  "stderr": "",
+  "terminals": [
+    {
+      "pid": "2213",
+      "cmdline": [
+        "/usr/bin/foot",
+        "--title=AresOS",
+        "--app-id=aresos.desktop",
+        "--window-size-chars=104x32",
+        "/usr/bin/bash",
+        "--rcfile",
+        "/usr/share/aresos/desktop-view.bashrc",
+        "-i"
+      ],
+      "terminal": [
+        "ARESOS_TERMINAL=recovery"
+      ],
+      "shells": [
+        "/usr/bin/bash"
+      ]
+    },
+    {
+      "pid": "2874",
+      "cmdline": [
+        "/usr/bin/foot",
+        "--title=AresOS",
+        "/usr/bin/bash",
+        "--rcfile",
+        "/usr/share/aresos/bashrc",
+        "-i"
+      ],
+      "terminal": [
+        "ARESOS_TERMINAL=recovery"
+      ],
+      "shells": [
+        "/usr/bin/bash"
+      ]
+    }
+  ],
+  "desktop": {
+    "state": {
+      "ok": true,
+      "state": "SETUP",
+      "reason": "setup",
+      "latched": false,
+      "consecutive": 0,
+      "failures": 0,
+      "hub_seen": false,
+      "instance": "aresdesktop-c32d36c3fcee",
+      "launch": "2e66f07fbc21",
+      "jvm_pid": null,
+      "ready": false,
+      "nvidia": false,
+      "helper": true
+    },
+    "runtime": {
+      "instance": "aresdesktop-c32d36c3fcee",
+      "launch": "2e66f07fbc21",
+      "mode": "setup",
+      "jvm_pid": null,
+      "jvm_ticks": null
+    },
+    "links": {
+      "patches": "/usr/share/aresos/minecraft/patches",
+      "libraries": "/usr/share/aresos/minecraft/libraries",
+      "minecraft/mods": "/usr/share/aresos/minecraft/mods",
+      "minecraft/saves": "/var/home/ares/.local/share/aresos/worlds"
+    },
+    "memory_high": "5368709120",
+    "prism_scope": "0::/user.slice/user-1001.slice/user@1001.service/aresos.slice/aresos-desktop-2e66f07fbc21.scope",
+    "processes": [
+      {
+        "pid": 2151,
+        "uid": 1001,
+        "cmdline": [
+          "/usr/bin/python3",
+          "/usr/libexec/aresos-desktop",
+          "session"
+        ]
+      },
+      {
+        "pid": 2156,
+        "uid": 1001,
+        "cmdline": [
+          "/usr/bin/python3",
+          "/usr/libexec/aresos-desktop",
+          "supervise"
+        ]
+      },
+      {
+        "pid": 2206,
+        "uid": 1001,
+        "cmdline": [
+          "/usr/bin/python3",
+          "/usr/libexec/aresos-shell"
+        ]
+      },
+      {
+        "pid": 2217,
+        "uid": 1001,
+        "cmdline": [
+          "/usr/bin/prismlauncher",
+          "--launch",
+          "AresDesktop"
+        ]
+      }
+    ],
+    "supervisor_log": "2026-11-10 12:18:45,188 aresos-desktop: INFO state SETUP (setup)\n2026-11-10 12:18:45,205 aresos-desktop: INFO launch 2e66f07fbc21: Prism started (title screen for setup)\n",
+    "prism_log": "     0.001 Info: Testing \"/var/home/ares/.local/share/PrismLauncher/qtlogging.ini\" ... (unknown:0)\n     0.002 Info: Testing \"/usr/lib/prismlauncher/share/PrismLauncher/qtlogging.ini\" ... (unknown:0)\n     0.002 Info: Loading logging rules from: \"/usr/lib/prismlauncher/share/PrismLauncher/qtlogging.ini\" (unknown:0)\n     0.003 Info: Setting log rules: (unknown:0)\n     0.003 Info:      \"*.debug=true\" (unknown:0)\n     0.003 Info:      \"kf.imageformats.plugins.hdr=false\" (unknown:0)\n     0.003 Info:      \"kf.imageformats.plugins.xcf=false\" (unknown:0)\n     0.003 Info:      \"launcher.auth.credentials.debug=false\" (unknown:0)\n     0.004 Info:      \"launcher.task=false\" (unknown:0)\n     0.004 Info:      \"launcher.task.net=true\" (unknown:0)\n     0.004 Info:      \"launcher.task.net.download.debug=false\" (unknown:0)\n     0.004 Info:      \"launcher.task.net.metacache=false\" (unknown:0)\n     0.004 Info:      \"launcher.task.net.metacache.http=true\" (unknown:0)\n     0.004 Info:      \"launcher.task.net.upload=true\" (unknown:0)\n     0.004 Info:      \"qt.*.debug=false\" (unknown:0)\n     0.004 Info: <> Log initialized. (unknown:0)\n     0.004 Debug: <> No migration needed from \"PolyMC\" (unknown:0)\n     0.004 Debug: <> No migration needed from \"MultiMC\" (unknown:0)\n     0.004 Info: Prism Launcher, \u00a9 2022-2026 Prism Launcher Contributors, \u00a9 2021-2022 PolyMC Contributors, \u00a9 2012-2021 MultiMC Contributors (unknown:0)\n     0.004 Info: Version                    : \"11.1.1\" (unknown:0)\n     0.005 Info: Platform                   : \"official\" (unknown:0)\n     0.005 Info: Git commit                 : \"\" (unknown:0)\n     0.005 Info: Git refspec                : \"refs/heads/stable\" (unknown:0)\n     0.005 Info: Compiled for               : \"Linux 6.17.0-1022-azure x86_64\" (unknown:0)\n     0.005 Info: Compiled by                : \"GNU - 13.3.0\" (unknown:0)\n     0.005 Info: Build Artifact             : \"Linux-Qt6\" (unknown:0)\n     0.005 Info: Updates Enabled            : No (unknown:0)\n     0.005 Info: Work dir before adjustment : \"/var/home/ares\" (unknown:0)\n     0.005 Info: Work dir after adjustment  : \"/var/home/ares/.local/share/PrismLauncher\" (unknown:0)\n     0.005 Info: Adjusted by                : \"Persistent data path\" (unknown:0)\n     0.005 Info: Binary path                : \"/usr/lib/prismlauncher/bin\" (unknown:0)\n     0.005 Info: Application root path      : \"/usr/lib/prismlauncher\" (unknown:0)\n     0.005 Info: ID of instance to launch   : \"AresDesktop\" (unknown:0)\n     0.005 Info: <> Paths set. (unknown:0)\n     0.106 Debug: Detected default console font: \"Noto Sans Mono\", substitutions: \"\" (unknown:0)\n     0.138 Info: <> Settings loaded. (unknown:0)\n     0.138 Debug: Detecting proxy settings... (unknown:0)\n     0.138 Debug: Using no proxy is an option! (unknown:0)\n     0.138 Info: <> Network done. (unknown:0)\n     0.139 Debug: Started watching \"/var/home/ares/.local/share/PrismLauncher/icons\" (unknown:0)\n     0.139 Debug: Sorting icon list... (unknown:0)\n     0.139 Info: <> Instance icons initialized. (unknown:0)\n     0.140 Debug: [Theme] Determining System Widget Theme... (unknown:0)\n     0.141 Debug: [Theme] System theme seems to be: \"fusion\" (unknown:0)\n     0.141 Debug: [Theme] <> Initializing Icon Themes (unknown:0)\n     0.141 Debug: [Theme] Loaded Built-In Icon Theme \"pe_colored\" (unknown:0)\n     0.141 Debug: [Theme] Loaded Built-In Icon Theme \"pe_light\" (unknown:0)\n     0.141 Debug: [Theme] Loaded Built-In Icon Theme \"pe_dark\" (unknown:0)\n     0.141 Debug: [Theme] Loaded Built-In Icon Theme \"pe_blue\" (unknown:0)\n     0.141 Debug: [Theme] Loaded Built-In Icon Theme \"breeze_light\" (unknown:0)\n     0.141 Debug: [Theme] Loaded Built-In Icon Theme \"breeze_dark\" (unknown:0)\n     0.141 Debug: [Theme] Loaded Built-In Icon Theme \"OSX\" (unknown:0)\n     0.141 Debug: [Theme] Loaded Built-In Icon Theme \"iOS\" (unknown:0)\n     0.141 Debug: [Theme] Loaded Built-In Icon Theme \"flat\" (unknown:0)\n     0.141 Debug: [Theme] Loaded Built-In Icon Theme \"flat_white\" (unknown:0)\n     0.141 Debug: [Theme] Loaded Built-In Icon Theme \"multimc\" (unknown:0)\n     0.142 Debug: [Theme] Icon Theme Folder Path: \"/var/home/ares/.local/share/PrismLauncher/iconthemes\" (unknown:0)\n     0.142 Debug: [Theme] <> Icon themes initialized. (unknown:0)\n     0.142 Debug: [Theme] <> Initializing Widget Themes (unknown:0)\n     0.142 Debug: [Theme] Loading Built-in Theme: \"system\" (unknown:0)\n     0.142 Debug: [Theme] Loading Built-in Theme: \"dark\" (unknown:0)\n     0.142 Debug: [Theme] Loading Built-in Theme: \"bright\" (unknown:0)\n     0.142 Debug: [Theme] <> Initializing System Widget Themes (unknown:0)\n     0.142 Debug: [Theme] Loading System Theme: \"Windows\" (unknown:0)\n     0.142 Debug: [Theme] Loading System Theme: \"Fusion\" (unknown:0)\n     0.145 Debug: [Theme] Theme Folder Path: \"/var/home/ares/.local/share/PrismLauncher/themes\" (unknown:0)\n     0.148 Debug: [Theme] <> Widget themes initialized. (unknown:0)\n     0.148 Debug: [Theme] CatPacks Folder Path: \"/var/home/ares/.local/share/PrismLauncher/catpacks\" (unknown:0)\n     0.248 Info: Instance path              : \"instances\" (unknown:0)\n     0.249 Info: Loading Instances... (unknown:0)\n     0.249 Info: Discovering instances in \"/var/home/ares/.local/share/PrismLauncher/instances\" (unknown:0)\n     0.249 Info: Found instance ID \"AresDesktop\" (unknown:0)\n     0.249 Debug: Will load group list now. (unknown:0)\n     0.249 Debug: Saving INI settings to \"/var/home/ares/.local/share/PrismLauncher/instances/AresDesktop/instance.cfg\" (unknown:0)\n     0.264 Debug: Loaded instance \"AresDesktop\" from \"/var/home/ares/.local/share/PrismLauncher/instances/AresDesktop\" (unknown:0)\n     0.264 Info: <> Instances loaded. (unknown:0)\n     0.264 Info: Loading accounts... (unknown:0)\n     0.264 Critical: \"Failed to read the account list file accounts.json (No such file or directory).\" (unknown:0)\n     0.264 Info: <> Accounts loaded. (unknown:0)\n     0.264 Info: <> Cache initialized. (unknown:0)\n     0.265 Debug: Download"
+  },
+  "profile_paths": [
+    "/bin/sh|hBc||/usr/local/bin:/usr/bin:/usr/local/sbin"
+  ],
+  "shadowed": [
+    "sh",
+    "bash",
+    "dash",
+    "dbus-run-session",
+    "dbus-daemon",
+    "dbus-broker-launch",
+    "labwc",
+    "busctl",
+    "foot",
+    "id",
+    "python3",
+    "env",
+    "xdg-open",
+    "Xwayland",
+    "polkit-kde-authentication-agent-1",
+    "aresos-terminal",
+    "aresos-session",
+    "prismlauncher",
+    "java",
+    "systemd-run",
+    "systemctl",
+    "aresos-desktop",
+    "aresos-desktop-java",
+    "aresos-shell",
+    "cat"
+  ]
+}

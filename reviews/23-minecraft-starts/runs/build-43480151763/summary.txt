@@ -1,0 +1,96 @@
+Run 43480151763, check_build=build on d14834fb (runner image 20261111.370.1): success.
+
+Job log:
+1239:ARESOS_BUILD_KIND throwaway
+1631:Updater audit passed: 815 system/user units inspected
+1656:Checks passed: 11
+1665:##[warning]MOD_JAR_UNPINNED pin 8b04c511d11d0fa4bd4dad509949026e5346435a0f04bfe9d63084dd65386743, built 8f505f267f4b07a76e636e0bd9bc70845eb1742bdfc52da42a9608310b627311 from d14834fb9dc0012a04fe42cc74f54760e07a7e90: allowed in a throwaway build; a release build stops here
+2229:Updater audit passed: 815 system/user units inspected
+3271:IMAGE_CHECKS_PASSED
+3283:ROOTLESS_MAPPING_PASSED
+3287:Throwaway image: mod jar 8f505f267f4b07a76e636e0bd9bc70845eb1742bdfc52da42a9608310b627311, pin 8b04c511d11d0fa4bd4dad509949026e5346435a0f04bfe9d63084dd65386743
+3288:Image manifest locks equal the reviewed locks
+3289:CHECK_BUILD_PASSED
+3328:Checks passed: 11
+3931:Guest policy: 0
+3934:ARESOS_DAILY_ACCOUNT_LOCKED
+3941:Updater audit passed: 1090 system/user units inspected
+3953:ARESOS_ACTIVE_SESSION_POLKIT_PASSED
+3954:ARESOS_GUEST_CHECKS_PASSED
+3956:Guest export: 0
+3957:Guest power-events: 0
+3958:ARESOS_POWER_EVENTS_PASSED: lid and sleep keys observed/ignored; direct sleep requests rejected
+3960:Guest export: 0
+3961:Guest shortcut: 0
+3965:Guest recovery: 0
+3968:Guest prepare-poweroff: 0
+3969:Offline journal passed: boot e174042021a6451683a488c014552578, logind power key -> power-off -> orderly logind stop
+3970:PASS: offline logind power-key path for boot e174042021a6451683a488c014552578
+3971:UEFI VM checks passed: session, updater/sleep policy, recovery shortcut, tty3 getty, password authentication via login PAM, ignored lid/sleep events, clean ACPI poweroff
+3972:CHECK_BUILD_VM_PASSED
+
+evidence/build.log:
+136:[1/4] STEP 3/3: RUN test ! -e /tmp/aresos/ci && bash /tmp/aresos/build.sh packages
+296:Complete!
+297:Prism 11.1.1, Fabric Loader 0.19.5 and 2 mods installed from their pins
+305:[2/4] STEP 4/4: RUN bash /tmp/aresos-mod/build.sh source "$ARESOS_SOURCE_REVISION" /source
+306:MOD_SOURCE d14834fb9dc0012a04fe42cc74f54760e07a7e90 44edd2060b3176f4e50e1342154ebbea1a8d3d7aa6db96d57036a6278187c4c1
+324:[3/4] STEP 5/5: RUN bash /tmp/aresos-mod/build.sh mod /tmp/aresos-mod/mod /out "$ARESOS_SOURCE_REVISION"
+365:MOD_JAR_BUILT 8f505f267f4b07a76e636e0bd9bc70845eb1742bdfc52da42a9608310b627311 from d14834fb9dc0012a04fe42cc74f54760e07a7e90
+376:[4/4] STEP 6/6: RUN cp -a /tmp/aresos/config/. / &&     cp -a /tmp/aresos/policy /usr/share/aresos/ &&     install -m 0755 /tmp/aresos/tests/audit.py /usr/libexec/aresos-audit &&     bash /tmp/aresos/build.sh configure && bootc container lint
+377:MOD_JAR_UNPINNED pin 8b04c511d11d0fa4bd4dad509949026e5346435a0f04bfe9d63084dd65386743, built 8f505f267f4b07a76e636e0bd9bc70845eb1742bdfc52da42a9608310b627311 from d14834fb9dc0012a04fe42cc74f54760e07a7e90: allowed in a throwaway build; a release build stops here
+
+evidence/image/checks.txt (image checks):
+PASS ares is in wheel
+PASS the image sets no password for ares (locked)
+PASS sudo for ares: (ALL) ALL with a password, no remembered ticket, no passwordless rule
+PASS sudo as ares fails without a password
+PASS after a successful sudo, a child exec of sudo -n is refused (the old ppid ticket allowed it)
+PASS polkit: after ares authorizes once, the same process is asked again (a cached control action is reused)
+PASS uupd, ujust, topgrade, the Bazzite updater/portal and the stores are not executable by ares
+PASS flatpak and brew are executable by ares
+PASS automatic updaters masked; Flatpak helpers available; static updater audit passes
+PASS Chrome NEVRA matches its pin; every packaged /opt file lives under /usr/lib/opt; commands point there
+PASS ares can run google-chrome: Google Chrome 157.0.8103.50 
+PASS tmpfiles links /opt/google to the image copy
+PASS no Google repository, cron job or trusted key in the image
+PASS xdg-open sends http and https links to Chrome in the AresOS session
+PASS /etc/opt/chrome/policies can be created for the control layer
+PASS daily login PATH with Homebrew absent: /var/home/ares/.local/bin:/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin (no errors printed)
+PASS daily login PATH with Homebrew present: /var/home/ares/.local/bin:/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/home/linuxbrew/.linuxbrew/bin:/var/home/ares/.local/share/flatpak/exports/bin (no errors printed)
+PASS the 60-flatpak user environment generator runs for ares without errors
+PASS normal AresOS terminal PATH: /var/home/ares/.local/bin:/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/home/linuxbrew/.linuxbrew/bin:/var/home/ares/.local/share/flatpak/exports/bin
+PASS recovery AresOS terminal PATH: /usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin
+PASS hub AresOS terminal PATH: /var/home/ares/.local/bin:/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/home/linuxbrew/.linuxbrew/bin:/var/home/ares/.local/share/flatpak/exports/bin
+PASS the session itself starts with the system PATH and absolute commands
+PASS greetd's profile wrapper keeps the system PATH (/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin); his login shell adds his own (/var/home/ares/.local/bin:/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/home/linuxbrew/.linuxbrew/bin:/var/home/ares/.local/share/flatpak/exports/bin)
+PASS all 30 absolute startup commands exist: /usr/bin/agreety /usr/bin/aresos-session /usr/bin/aresos-terminal /usr/bin/bash /usr/bin/brightnessctl /usr/bin/busctl /usr/bin/cat /usr/bin/cut /usr/bin/dbus-daemon /usr/bin/dbus-run-session /usr/bin/env /usr/bin/foot /usr/bin/getent /usr/bin/google-chrome /usr/bin/id /usr/bin/kwrite /usr/bin/labwc /usr/bin/prismlauncher /usr/bin/python3 /usr/bin/stat /usr/bin/sudo /usr/bin/systemctl /usr/bin/systemd-run /usr/bin/wpctl /usr/libexec/aresos-desktop /usr/libexec/aresos-desktop-java /usr/libexec/aresos-keyboard /usr/libexec/aresos-shell /usr/libexec/kf6/polkit-kde-authentication-agent-1 /usr/sbin/usermod 
+PASS the app helper resolves browser, notepad and terminal and launches by absolute paths under the system PATH with shadows first
+PASS ares runs read-only brew directly; installs go through sudo as the prefix owner and fail without a password
+PASS both terminals run /usr/bin/foot even with a broken foot first on PATH
+PASS every power profile ares can switch to leaves the bootloader and kernel arguments alone
+PASS foot default font size 16 (a user foot.ini replaces this file)
+PASS the labwc session starts the base image polkit agent
+PASS brightness, volume, mute and mic-mute keys are bound to brightnessctl and wpctl; recovery terminal kept
+PASS script, qrencode and brightnessctl are installed
+PASS ares has subordinate ID ranges; the boot service is enabled and idempotent
+PASS Java 25 from the package lock (java-25-openjdk-headless-1:25.0.5.0.8-3.1.fc44.x86_64) at /usr/lib/jvm/java-25-openjdk/bin/java, runnable by ares
+PASS Prism Launcher PrismLauncher 11.1.1 from its pinned bundle: updater removed, data in his home, no setuid files
+PINNED ed825d10ab1399c8c0cb669e688cf0c8c82629b4c8399b58352b68e92ca10fcb /usr/share/aresos/minecraft/libraries/asm-9.10.1.jar
+PINNED dede75a21306b65974ecd8f87114ff6970f09fb794157a4ca09ab25c888c2bfc /usr/share/aresos/minecraft/libraries/asm-analysis-9.10.1.jar
+PINNED 6d0abefb7cbf972ea16edb37ec14835372505063a45f976ab7ea889ed9497895 /usr/share/aresos/minecraft/libraries/asm-commons-9.10.1.jar
+PINNED 3dfb0d5b6a106cd40b5b250e39935fbf2f927f4477546a5369a3ac609cf0506b /usr/share/aresos/minecraft/libraries/asm-tree-9.10.1.jar
+PINNED 1bb99d091fba2597dc6d51193e9bbcf0d8447e7ed96bd8f0198b18152f09655c /usr/share/aresos/minecraft/libraries/asm-util-9.10.1.jar
+PINNED 1f0ae44db7295f8626f33b1dc0ad7f043d8954a8d6847247875fcc5dfcecc934 /usr/share/aresos/minecraft/libraries/sponge-mixin-0.17.4+mixin.0.8.7.jar
+PINNED 93044e4dd46de5d8136701292f05e868da096d2c9fddb4793e4fdbcc63efc695 /usr/share/aresos/minecraft/libraries/fabric-loader-0.19.5.jar
+PINNED e5b858ceb13290c274e31cb888ff5a1a40cb91067e7ffab0b5b775aec51e216a /usr/share/aresos/minecraft/mods/fabric-api.jar
+PINNED 8f505f267f4b07a76e636e0bd9bc70845eb1742bdfc52da42a9608310b627311 /usr/share/aresos/minecraft/mods/aresos.jar
+PINNED 9c23199aa2f78c34f705a631c6c794bea40d671b5d718034f9ed9b429c832b46 /usr/share/aresos/minecraft/patches/net.minecraft.json
+PINNED 4108a1aaaf182a397b588d9ee086a7473d1bc15407169475676740e04da6966b /usr/share/aresos/minecraft/patches/org.lwjgl3.json
+PASS every provisioning input in /usr/share/aresos/minecraft matches its pin; Java and Prism are present
+MOD_JAR_RECORDED 8f505f267f4b07a76e636e0bd9bc70845eb1742bdfc52da42a9608310b627311 from d14834fb9dc0012a04fe42cc74f54760e07a7e90 NOT its pin 8b04c511d11d0fa4bd4dad509949026e5346435a0f04bfe9d63084dd65386743 (throwaway build)
+PASS the mod jar in the image is the one its manifest records (aresos-mod.json: SHA-256 and source commit)
+PASS labwc autostart starts the desktop supervisor (no session terminal); the hub window is borderless and maximized
+PASS provisioning as ares creates the managed instance from the image inputs, is idempotent and reports a changed instance
+PASS no system service runs the desktop: it starts inside the everyday session only
+IMAGE_CHECKS_PASSED

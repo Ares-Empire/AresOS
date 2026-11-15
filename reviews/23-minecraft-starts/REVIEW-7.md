@@ -1,0 +1,15 @@
+Reviewed `b17f93dc` against `bab298fc`, limited to the requested changes. **No blocking, should-fix, or nit findings.**
+
+- **Release isolation holds.** [check-build.sh](/var/home/ares/AresOS-23-review/os/ci/check-build.sh:28) starts with `kind=release`; only `GITHUB_JOB=check-build` selects `throwaway`. Ambient `ARESOS_BUILD_KIND` or `kind` cannot override its explicit build argument. `release-27` therefore remains strict. The keyboard release uses its separate pinned-image overlay; rehearsals and `os/release/` consume pinned releases. No current publishing path inherits the lenient setting or accepts a caller-supplied build argument. The throwaway job has read-only permissions and no publishing step.
+
+- **Defaults and checks remain strict.** Both [Containerfile](/var/home/ares/AresOS-23-review/os/Containerfile:26) and [build.sh](/var/home/ares/AresOS-23-review/os/build.sh:203) default to release. Missing mode in `check-image.sh` fails closed. Leniency changes only the AresOS jar hash in the image’s desktop lock; other locks, downloads, image checks and VM checks remain enforced.
+
+- **The record matches the installed jar.** Configure hashes the jar it copies and records that digest, the original pin and the source revision. [image-checks.sh](/var/home/ares/AresOS-23-review/os/ci/image-checks.sh:571) independently hashes the installed jar. `check-image.sh` additionally requires the reviewed pin for releases and permits only the corresponding jar-hash change for throwaway images. Tampering and unrelated lock changes failed my focused checks.
+
+- **Resolution cannot silently relax a release.** The name-and-architecture fallback writes a candidate lock only. Release builds still request exact NEVRAs, compare every downloaded RPM’s NEVRA and SHA-256 against the complete reviewed lock, then install with repositories disabled. Additional dependencies must appear in that lock or the build stops. The committed candidate matches exactly: **27 unchanged entries and two Java replacements**. The four package reasons preserve the release diff’s existing rejection rules. The Prism change renews only its metadata SHA-256.
+
+- **The merge introduced no unseen package implementation changes.** Relative to its first parent, `b17f93dc` changes the shared OS workflow’s checks-only timeout and namespace setup, plus the matching pending-binding record. It changes no supervisor, wrapper, mod, package-23 build logic, or release/rehearsal job.
+
+Verification: both `PackageDiffTest` tests passed; the existing workflow/default assertion passed; focused in-memory execution of the real configure and image-check code passed. Default-flip checks detected the relaxed defaults. Shell syntax and scoped `git diff --check` passed. I inspected the retained build evidence but did not rerun filesystem-writing suites or image/VM builds in this read-only workspace. No files changed.
+
+SAFE

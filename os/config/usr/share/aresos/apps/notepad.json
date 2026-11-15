@@ -3,6 +3,7 @@
   "id": "notepad",
   "name": "Notepad",
   "argv": ["/usr/bin/kwrite"],
+  "replaces": ["org.kde.kwrite.desktop"],
   "working_directory": "~",
   "window": {"app_ids": ["org.kde.kwrite"], "instance": "multi"}
 }

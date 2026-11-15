@@ -1,6 +1,6 @@
 FROM node:22.21.1-bookworm-slim
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    bubblewrap socat ripgrep python3 gcc libc6-dev ca-certificates curl git \
+    bubblewrap socat ripgrep python3 gcc libc6-dev ca-certificates curl git tmux \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /opt/aresos-control
 COPY control/boundary/package*.json ./
@@ -12,7 +12,7 @@ RUN npm ci --ignore-scripts --no-audit --no-fund \
 COPY control/boundary/ ./
 COPY control/aresos_control/ ./aresos_control/
 COPY control/settings/ /etc/claude-code/
-RUN python3 -m unittest -v test_native \
+RUN python3 -m unittest -v test_native test_interactive \
     && useradd --uid 10001 --create-home assistant \
     && useradd --uid 10002 --no-create-home aresos-tools \
     && mkdir -p /home/assistant/work /tmp/claude \

@@ -1,0 +1,82 @@
+L380: qualification-tests	Browser-free build, service, delivery and hermetic publisher tests	2026-11-10T05:23:59.5070359Z # Subtest: popup Stop revokes input and clears opener badge before blocked document cleanup completes
+L381: qualification-tests	Browser-free build, service, delivery and hermetic publisher tests	2026-11-10T05:23:59.5073724Z not ok 54 - popup Stop revokes input and clears opener badge before blocked document cleanup completes
+L382: qualification-tests	Browser-free build, service, delivery and hermetic publisher tests	2026-11-10T05:23:59.5074983Z   ---
+L383: qualification-tests	Browser-free build, service, delivery and hermetic publisher tests	2026-11-10T05:23:59.5075494Z   duration_ms: 14.418224
+L384: qualification-tests	Browser-free build, service, delivery and hermetic publisher tests	2026-11-10T05:23:59.5076054Z   type: 'test'
+L385: qualification-tests	Browser-free build, service, delivery and hermetic publisher tests	2026-11-10T05:23:59.5080299Z   location: '/home/runner/work/AresOS/AresOS/control/chrome_tests/background.test.mjs:573:1'
+L386: qualification-tests	Browser-free build, service, delivery and hermetic publisher tests	2026-11-10T05:23:59.5081673Z   failureType: 'cancelledByParent'
+L387: qualification-tests	Browser-free build, service, delivery and hermetic publisher tests	2026-11-10T05:23:59.5082597Z   error: 'Promise resolution is still pending but the event loop has already resolved'
+L388: qualification-tests	Browser-free build, service, delivery and hermetic publisher tests	2026-11-10T05:23:59.5083961Z   code: 'ERR_TEST_FAILURE'
+L389: qualification-tests	Browser-free build, service, delivery and hermetic publisher tests	2026-11-10T05:23:59.5084434Z   stack: |-
+L390: qualification-tests	Browser-free build, service, delivery and hermetic publisher tests	2026-11-10T05:23:59.5084783Z     process.emit (node:events:519:28)
+L391: qualification-tests	Browser-free build, service, delivery and hermetic publisher tests	2026-11-10T05:23:59.5085208Z   ...
+L392: qualification-tests	Browser-free build, service, delivery and hermetic publisher tests	2026-11-10T05:23:59.5085707Z # Subtest: queued slow badge writes cannot resurrect a stopped popup badge
+L393: qualification-tests	Browser-free build, service, delivery and hermetic publisher tests	2026-11-10T05:23:59.5086537Z not ok 55 - queued slow badge writes cannot resurrect a stopped popup badge
+L394: qualification-tests	Browser-free build, service, delivery and hermetic publisher tests	2026-11-10T05:23:59.5109540Z   ---
+L395: qualification-tests	Browser-free build, service, delivery and hermetic publisher tests	2026-11-10T05:23:59.5109927Z   duration_ms: 0
+L396: qualification-tests	Browser-free build, service, delivery and hermetic publisher tests	2026-11-10T05:23:59.5110288Z   type: 'test'
+L397: qualification-tests	Browser-free build, service, delivery and hermetic publisher tests	2026-11-10T05:23:59.5110997Z   location: '/home/runner/work/AresOS/AresOS/control/chrome_tests/background.test.mjs:581:1'
+L398: qualification-tests	Browser-free build, service, delivery and hermetic publisher tests	2026-11-10T05:23:59.5111843Z   failureType: 'cancelledByParent'
+L399: qualification-tests	Browser-free build, service, delivery and hermetic publisher tests	2026-11-10T05:23:59.5112624Z   error: 'Promise resolution is still pending but the event loop has already resolved'
+L400: qualification-tests	Browser-free build, service, delivery and hermetic publisher tests	2026-11-10T05:23:59.5113400Z   code: 'ERR_TEST_FAILURE'
+L401: qualification-tests	Browser-free build, service, delivery and hermetic publisher tests	2026-11-10T05:23:59.5113810Z   stack: |-
+L402: qualification-tests	Browser-free build, service, delivery and hermetic publisher tests	2026-11-10T05:23:59.5114205Z     process.emit (node:events:519:28)
+L403: qualification-tests	Browser-free build, service, delivery and hermetic publisher tests	2026-11-10T05:23:59.5114675Z   ...
+L404: qualification-tests	Browser-free build, service, delivery and hermetic publisher tests	2026-11-10T05:23:59.5115268Z # Subtest: only the exact extension action popup can list or stop a controlled popup
+L405: qualification-tests	Browser-free build, service, delivery and hermetic publisher tests	2026-11-10T05:23:59.5116271Z not ok 56 - only the exact extension action popup can list or stop a controlled popup
+L406: qualification-tests	Browser-free build, service, delivery and hermetic publisher tests	2026-11-10T05:23:59.5116995Z   ---
+L407: qualification-tests	Browser-free build, service, delivery and hermetic publisher tests	2026-11-10T05:23:59.5117261Z   duration_ms: 0
+L408: qualification-tests	Browser-free build, service, delivery and hermetic publisher tests	2026-11-10T05:23:59.5117540Z   type: 'test'
+L409: qualification-tests	Browser-free build, service, delivery and hermetic publisher tests	2026-11-10T05:23:59.5118055Z   location: '/home/runner/work/AresOS/AresOS/control/chrome_tests/background.test.mjs:587:1'
+L410: qualification-tests	Browser-free build, service, delivery and hermetic publisher tests	2026-11-10T05:23:59.5119072Z   failureType: 'cancelledByParent'
+L411: qualification-tests	Browser-free build, service, delivery and hermetic publisher tests	2026-11-10T05:23:59.5119706Z   error: 'Promise resolution is still pending but the event loop has already resolved'
+L412: qualification-tests	Browser-free build, service, delivery and hermetic publisher tests	2026-11-10T05:23:59.5120334Z   code: 'ERR_TEST_FAILURE'
+L413: qualification-tests	Browser-free build, service, delivery and hermetic publisher tests	2026-11-10T05:23:59.5120711Z   stack: |-
+L414: qualification-tests	Browser-free build, service, delivery and hermetic publisher tests	2026-11-10T05:23:59.5121054Z     process.emit (node:events:519:28)
+L415: qualification-tests	Browser-free build, service, delivery and hermetic publisher tests	2026-11-10T05:23:59.5121435Z   ...
+L416: qualification-tests	Browser-free build, service, delivery and hermetic publisher tests	2026-11-10T05:23:59.5121878Z # Subtest: the extension has no companion window creation or focusing path
+L417: qualification-tests	Browser-free build, service, delivery and hermetic publisher tests	2026-11-10T05:23:59.5122576Z not ok 57 - the extension has no companion window creation or focusing path
+L418: qualification-tests	Browser-free build, service, delivery and hermetic publisher tests	2026-11-10T05:23:59.5123179Z   ---
+L419: qualification-tests	Browser-free build, service, delivery and hermetic publisher tests	2026-11-10T05:23:59.5123481Z   duration_ms: 0
+L420: qualification-tests	Browser-free build, service, delivery and hermetic publisher tests	2026-11-10T05:23:59.5123837Z   type: 'test'
+L421: qualification-tests	Browser-free build, service, delivery and hermetic publisher tests	2026-11-10T05:23:59.5124513Z   location: '/home/runner/work/AresOS/AresOS/control/chrome_tests/background.test.mjs:596:1'
+L422: qualification-tests	Browser-free build, service, delivery and hermetic publisher tests	2026-11-10T05:23:59.5125309Z   failureType: 'cancelledByParent'
+L423: qualification-tests	Browser-free build, service, delivery and hermetic publisher tests	2026-11-10T05:23:59.5126056Z   error: 'Promise resolution is still pending but the event loop has already resolved'
+L424: qualification-tests	Browser-free build, service, delivery and hermetic publisher tests	2026-11-10T05:23:59.5126807Z   code: 'ERR_TEST_FAILURE'
+L425: qualification-tests	Browser-free build, service, delivery and hermetic publisher tests	2026-11-10T05:23:59.5127200Z   stack: |-
+L426: qualification-tests	Browser-free build, service, delivery and hermetic publisher tests	2026-11-10T05:23:59.5127527Z     process.emit (node:events:519:28)
+L427: qualification-tests	Browser-free build, service, delivery and hermetic publisher tests	2026-11-10T05:23:59.5127969Z   ...
+L428: qualification-tests	Browser-free build, service, delivery and hermetic publisher tests	2026-11-10T05:23:59.5128969Z # Subtest: opener tab removal and native group removal revoke children and clear badges without another tool read
+L429: qualification-tests	Browser-free build, service, delivery and hermetic publisher tests	2026-11-10T05:23:59.5130313Z not ok 58 - opener tab removal and native group removal revoke children and clear badges without another tool read
+L430: qualification-tests	Browser-free build, service, delivery and hermetic publisher tests	2026-11-10T05:23:59.5131200Z   ---
+L431: qualification-tests	Browser-free build, service, delivery and hermetic publisher tests	2026-11-10T05:23:59.5131544Z   duration_ms: 0
+L432: qualification-tests	Browser-free build, service, delivery and hermetic publisher tests	2026-11-10T05:23:59.5131908Z   type: 'test'
+L433: qualification-tests	Browser-free build, service, delivery and hermetic publisher tests	2026-11-10T05:23:59.5132548Z   location: '/home/runner/work/AresOS/AresOS/control/chrome_tests/background.test.mjs:603:1'
+L434: qualification-tests	Browser-free build, service, delivery and hermetic publisher tests	2026-11-10T05:23:59.5133361Z   failureType: 'cancelledByParent'
+L435: qualification-tests	Browser-free build, service, delivery and hermetic publisher tests	2026-11-10T05:23:59.5134056Z   error: 'Promise resolution is still pending but the event loop has already resolved'
+L436: qualification-tests	Browser-free build, service, delivery and hermetic publisher tests	2026-11-10T05:23:59.5134805Z   code: 'ERR_TEST_FAILURE'
+L437: qualification-tests	Browser-free build, service, delivery and hermetic publisher tests	2026-11-10T05:23:59.5135194Z   stack: |-
+L438: qualification-tests	Browser-free build, service, delivery and hermetic publisher tests	2026-11-10T05:23:59.5135515Z     process.emit (node:events:519:28)
+L439: qualification-tests	Browser-free build, service, delivery and hermetic publisher tests	2026-11-10T05:23:59.5135947Z   ...
+L440: qualification-tests	Browser-free build, service, delivery and hermetic publisher tests	2026-11-10T05:23:59.5136517Z # Subtest: manual popup taking requires and binds a currently controlled native opener
+L441: qualification-tests	Browser-free build, service, delivery and hermetic publisher tests	2026-11-10T05:23:59.5141869Z not ok 59 - manual popup taking requires and binds a currently controlled native opener
+L442: qualification-tests	Browser-free build, service, delivery and hermetic publisher tests	2026-11-10T05:23:59.5143024Z   ---
+L443: qualification-tests	Browser-free build, service, delivery and hermetic publisher tests	2026-11-10T05:23:59.5143380Z   duration_ms: 0
+L444: qualification-tests	Browser-free build, service, delivery and hermetic publisher tests	2026-11-10T05:23:59.5143750Z   type: 'test'
+L445: qualification-tests	Browser-free build, service, delivery and hermetic publisher tests	2026-11-10T05:23:59.5144663Z   location: '/home/runner/work/AresOS/AresOS/control/chrome_tests/background.test.mjs:615:1'
+L446: qualification-tests	Browser-free build, service, delivery and hermetic publisher tests	2026-11-10T05:23:59.5145520Z   failureType: 'cancelledByParent'
+L447: qualification-tests	Browser-free build, service, delivery and hermetic publisher tests	2026-11-10T05:23:59.5146218Z   error: 'Promise resolution is still pending but the event loop has already resolved'
+L448: qualification-tests	Browser-free build, service, delivery and hermetic publisher tests	2026-11-10T05:23:59.5146990Z   code: 'ERR_TEST_FAILURE'
+L449: qualification-tests	Browser-free build, service, delivery and hermetic publisher tests	2026-11-10T05:23:59.5147387Z   stack: |-
+L450: qualification-tests	Browser-free build, service, delivery and hermetic publisher tests	2026-11-10T05:23:59.5147756Z     process.emit (node:events:519:28)
+L451: qualification-tests	Browser-free build, service, delivery and hermetic publisher tests	2026-11-10T05:23:59.5148203Z   ...
+L962: qualification-tests	Browser-free build, service, delivery and hermetic publisher tests	2026-11-10T05:23:59.5550645Z 1..144
+L963: qualification-tests	Browser-free build, service, delivery and hermetic publisher tests	2026-11-10T05:23:59.5550821Z # tests 144
+L964: qualification-tests	Browser-free build, service, delivery and hermetic publisher tests	2026-11-10T05:23:59.5550999Z # suites 0
+L965: qualification-tests	Browser-free build, service, delivery and hermetic publisher tests	2026-11-10T05:23:59.5551176Z # pass 138
+L966: qualification-tests	Browser-free build, service, delivery and hermetic publisher tests	2026-11-10T05:23:59.5551356Z # fail 0
+L967: qualification-tests	Browser-free build, service, delivery and hermetic publisher tests	2026-11-10T05:23:59.5551531Z # cancelled 6
+L968: qualification-tests	Browser-free build, service, delivery and hermetic publisher tests	2026-11-10T05:23:59.5551717Z # skipped 0
+L969: qualification-tests	Browser-free build, service, delivery and hermetic publisher tests	2026-11-10T05:23:59.5551892Z # todo 0
+L970: qualification-tests	Browser-free build, service, delivery and hermetic publisher tests	2026-11-10T05:23:59.5552074Z # duration_ms 6685.815246
+L971: qualification-tests	Browser-free build, service, delivery and hermetic publisher tests	2026-11-10T05:23:59.5565036Z ##[error]Process completed with exit code 1.

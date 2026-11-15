@@ -1,0 +1,127 @@
+
+===== unsatisfied-chrome-requirements
+(libcurl.so()(64bit) or libcurl-gnutls.so.4()(64bit) or libcurl-nss.so.4()(64bit) or libcurl.so.4()(64bit))
+(libgtk-3.so.0()(64bit) or libgtk-4.so.1()(64bit))
+liberation-fonts
+
+===== providers
+--- (libcurl.so()(64bit) or libcurl-gnutls.so.4()(64bit) or libcurl-nss.so.4()(64bit) or libcurl.so.4()(64bit))
+Updating and loading repositories:
+ Fedora 44 - x86_64 - Updates           100% |  11.0 MiB/s |  12.8 MiB |  00m01s
+ Fedora 44 - x86_64                     100% |  26.6 MiB/s |  38.7 MiB |  00m01s
+Repositories loaded.
+libcurl
+libcurl-minimal
+--- (libgtk-3.so.0()(64bit) or libgtk-4.so.1()(64bit))
+Updating and loading repositories:
+Repositories loaded.
+gtk3
+gtk4
+--- liberation-fonts
+Updating and loading repositories:
+Repositories loaded.
+liberation-fonts-all
+
+===== transaction-preview
+Updating and loading repositories:
+Repositories loaded.
+Package                      Arch   Version           Repository        Size
+Upgrading:
+ libblkid                    i686   0:2.41.6-1.fc44   updates      293.3 KiB
+   replacing libblkid        i686   0:2.41.5-1.fc44   updates      293.3 KiB
+ libblkid                    x86_64 0:2.41.6-1.fc44   updates      274.3 KiB
+   replacing libblkid        x86_64 0:2.41.5-1.fc44   <unknown>    274.3 KiB
+ libfdisk                    x86_64 0:2.41.6-1.fc44   updates      388.3 KiB
+   replacing libfdisk        x86_64 0:2.41.5-1.fc44   <unknown>    388.3 KiB
+ liblastlog2                 x86_64 0:2.41.6-1.fc44   updates       41.6 KiB
+   replacing liblastlog2     x86_64 0:2.41.5-1.fc44   <unknown>     41.6 KiB
+ libmount                    i686   0:2.41.6-1.fc44   updates      419.8 KiB
+   replacing libmount        i686   0:2.41.5-1.fc44   updates      419.7 KiB
+ libmount                    x86_64 0:2.41.6-1.fc44   updates      392.6 KiB
+   replacing libmount        x86_64 0:2.41.5-1.fc44   <unknown>    392.6 KiB
+ libsmartcols                x86_64 0:2.41.6-1.fc44   updates      188.3 KiB
+   replacing libsmartcols    x86_64 0:2.41.5-1.fc44   <unknown>    188.3 KiB
+ libuuid                     i686   0:2.41.6-1.fc44   updates       40.5 KiB
+   replacing libuuid         i686   0:2.41.5-1.fc44   updates       40.5 KiB
+ libuuid                     x86_64 0:2.41.6-1.fc44   updates       37.2 KiB
+   replacing libuuid         x86_64 0:2.41.5-1.fc44   <unknown>     37.2 KiB
+ util-linux                  x86_64 0:2.41.6-1.fc44   updates        3.5 MiB
+   replacing util-linux      x86_64 0:2.41.5-1.fc44   <unknown>      3.5 MiB
+ util-linux-core             x86_64 0:2.41.6-1.fc44   updates        1.5 MiB
+   replacing util-linux-core x86_64 0:2.41.5-1.fc44   <unknown>      1.5 MiB
+Installing:
+ brightnessctl               x86_64 0:0.5.1-16.fc44   fedora        29.0 KiB
+ google-chrome-stable        x86_64 0:157.0.8103.78-1 @commandline 451.1 MiB
+ qrencode                    x86_64 0:4.1.1-12.fc44   fedora        37.4 KiB
+ util-linux-script           x86_64 0:2.41.6-1.fc44   updates      137.8 KiB
+Installing dependencies:
+ liberation-fonts-all        noarch 1:2.1.5-15.fc44   fedora         0.0   B
+
+Transaction Summary:
+ Installing:         5 packages
+ Upgrading:         11 packages
+ Replacing:         11 packages
+
+Total size of inbound packages is 147 MiB. Need to download 3 MiB.
+After this operation, 451 MiB extra will be used (install 458 MiB, remove 7 MiB).
+Operation aborted by the user.
+
+===== available
+Updating and loading repositories:
+Repositories loaded.
+brightnessctl-0:0.5.1-16.fc44.x86_64 fedora
+fcft-0:3.3.3-2.fc44.i686 fedora
+fcft-0:3.3.3-2.fc44.x86_64 fedora
+foot-0:1.26.1-1.fc44.x86_64 fedora
+foot-0:1.27.0-1.fc44.x86_64 updates
+greetd-0:0.10.3-6.fc44.x86_64 fedora
+greetd-selinux-0:0.10.3-6.fc44.noarch fedora
+grim-0:1.5.0-3.fc44.x86_64 fedora
+labwc-0:0.9.6-1.fc44.x86_64 fedora
+libsfdo-0:0.1.3-5.fc44.i686 fedora
+libsfdo-0:0.1.3-5.fc44.x86_64 fedora
+qrencode-0:4.1.1-12.fc44.x86_64 fedora
+utf8proc-0:2.11.3-2.fc44.i686 fedora
+utf8proc-0:2.11.3-2.fc44.x86_64 fedora
+util-linux-0:2.41.3-12.fc44.i686 fedora
+util-linux-0:2.41.3-12.fc44.x86_64 fedora
+util-linux-0:2.41.6-1.fc44.x86_64 updates
+util-linux-core-0:2.41.3-12.fc44.x86_64 fedora
+util-linux-core-0:2.41.6-1.fc44.x86_64 updates
+util-linux-script-0:2.41.3-12.fc44.x86_64 fedora
+util-linux-script-0:2.41.6-1.fc44.x86_64 updates
+wlroots0.19-0:0.19.3-1.fc44.i686 fedora
+wlroots0.19-0:0.19.3-1.fc44.x86_64 fedora
+xdg-desktop-portal-wlr-0:0.8.1-2.fc44.x86_64 fedora
+xdg-desktop-portal-wlr-0:0.8.5-1.fc44.x86_64 updates
+
+===== existing-lock-availability
+available brightnessctl-0.5.1-16.fc44.x86_64
+available fcft-3.3.3-2.fc44.x86_64
+available foot-1.27.0-1.fc44.x86_64
+available greetd-0.10.3-6.fc44.x86_64
+available greetd-selinux-0.10.3-6.fc44.noarch
+available grim-1.5.0-3.fc44.x86_64
+MISSING java-25-openjdk-crypto-adapter-1:25.0.4.1.1-1.1.fc44.x86_64
+MISSING java-25-openjdk-headless-1:25.0.4.1.1-1.1.fc44.x86_64
+available javapackages-filesystem-6.4.1-10.fc44.noarch
+available labwc-0.9.6-1.fc44.x86_64
+available libblkid-2.41.6-1.fc44.i686
+available libblkid-2.41.6-1.fc44.x86_64
+available liberation-fonts-all-1:2.1.5-15.fc44.noarch
+available libfdisk-2.41.6-1.fc44.x86_64
+available liblastlog2-2.41.6-1.fc44.x86_64
+available libmount-2.41.6-1.fc44.i686
+available libmount-2.41.6-1.fc44.x86_64
+available libsfdo-0.1.3-5.fc44.x86_64
+available libsmartcols-2.41.6-1.fc44.x86_64
+available libuuid-2.41.6-1.fc44.i686
+available libuuid-2.41.6-1.fc44.x86_64
+available qrencode-4.1.1-12.fc44.x86_64
+available tzdata-java-2026f-1.fc44.noarch
+available utf8proc-2.11.3-2.fc44.x86_64
+available util-linux-2.41.6-1.fc44.x86_64
+available util-linux-core-2.41.6-1.fc44.x86_64
+available util-linux-script-2.41.6-1.fc44.x86_64
+available wlroots0.19-0.19.3-1.fc44.x86_64
+available xdg-desktop-portal-wlr-0.8.5-1.fc44.x86_64

@@ -1,0 +1,456 @@
+{
+  "display": ".work/h30/r/wayland-0",
+  "kcalc_binary": "/var/lib/flatpak/app/org.kde.kcalc/x86_64/stable/76c1a2b7ad833224076ac283d2b43af728a45b2f8b03f45c0e50812a9316c206/files/bin/kcalc",
+  "observations": [
+    {
+      "app_id": "check-kcalc",
+      "unit": "app-aresos-check\\x2dkcalc-f3714d0d9cd8962f.scope",
+      "properties": "ActiveState=active\nSlice=app.slice\nControlGroup=/user.slice/user-1001.slice/user@1001.service/app.slice/app-aresos-check\\x2dkcalc-f3714d0d9cd8962f.scope\n",
+      "window_app_id": "org.kde.kcalc",
+      "scope_pids": [
+        "1379012",
+        "1379013",
+        "1379016",
+        "1379019",
+        "1379020",
+        "1379028",
+        "1379035",
+        "1379041",
+        "1379046",
+        "1379058"
+      ],
+      "focused": {
+        "protocol": "aresos-shell/1.1",
+        "id": "e-3",
+        "event": "app_state",
+        "request_id": "open-check-kcalc",
+        "launch_id": "f3714d0d9cd8962f",
+        "app_id": "check-kcalc",
+        "state": "focused"
+      },
+      "returned": {
+        "protocol": "aresos-shell/1.1",
+        "id": "e-7",
+        "event": "shell_focus",
+        "focus": "foreground",
+        "reason": "desktop_activated"
+      }
+    },
+    {
+      "app_id": "check-btop",
+      "unit": "app-aresos-check\\x2dbtop-2acee0370be247fd.scope",
+      "properties": "ActiveState=active\nSlice=app.slice\nControlGroup=/user.slice/user-1001.slice/user@1001.service/app.slice/app-aresos-check\\x2dbtop-2acee0370be247fd.scope\n",
+      "window_app_id": "aresos.app.check-btop",
+      "scope_pids": [
+        "1379111",
+        "1379112"
+      ],
+      "focused": {
+        "protocol": "aresos-shell/1.1",
+        "id": "e-9",
+        "event": "app_state",
+        "request_id": "open-check-btop",
+        "launch_id": "2acee0370be247fd",
+        "app_id": "check-btop",
+        "state": "focused"
+      },
+      "returned": {
+        "protocol": "aresos-shell/1.1",
+        "id": "e-11",
+        "event": "shell_focus",
+        "focus": "foreground",
+        "reason": "desktop_activated"
+      }
+    }
+  ],
+  "flatpak": {
+    "app_id": "org-kde-kcalc",
+    "unit": "app-aresos-org\\x2dkde\\x2dkcalc-e3caa8aa1f99cce1.scope",
+    "helper_scope_while_open": {
+      "LoadState": "not-found",
+      "ActiveState": "inactive",
+      "Slice": "",
+      "ControlGroup": ""
+    },
+    "flatpak_scope": "app-flatpak-org.kde.kcalc-689755186.scope",
+    "flatpak_scope_while_open": {
+      "LoadState": "loaded",
+      "ActiveState": "active",
+      "Slice": "app.slice",
+      "ControlGroup": "/user.slice/user-1001.slice/user@1001.service/app.slice/app-flatpak-org.kde.kcalc-689755186.scope"
+    },
+    "flatpak_scope_pids": [
+      "1379235",
+      "1379247",
+      "1379248",
+      "1379251",
+      "1379252"
+    ],
+    "window_app_id": "org.kde.kcalc",
+    "focused": {
+      "protocol": "aresos-shell/1.1",
+      "id": "e-14",
+      "event": "app_state",
+      "request_id": "open-flatpak-kcalc",
+      "launch_id": "e3caa8aa1f99cce1",
+      "app_id": "org-kde-kcalc",
+      "state": "focused"
+    },
+    "returned": {
+      "protocol": "aresos-shell/1.1",
+      "id": "e-16",
+      "event": "shell_focus",
+      "focus": "foreground",
+      "reason": "desktop_activated"
+    },
+    "entry_exec": "/usr/bin/flatpak run --branch=stable --arch=x86_64 --command=kcalc org.kde.kcalc"
+  },
+  "transcript": [
+    {
+      "protocol": "aresos-shell/1.1",
+      "id": "hello",
+      "ok": true,
+      "major": 1,
+      "minor": 1,
+      "capabilities": [
+        "app_details",
+        "app_state",
+        "apps_changed",
+        "heartbeat",
+        "list_apps",
+        "list_paging",
+        "open_app",
+        "shell_focus",
+        "windows",
+        "world_ready"
+      ]
+    },
+    {
+      "protocol": "aresos-shell/1.1",
+      "id": "list-1",
+      "ok": true,
+      "revision": "c61047ad21122fe0",
+      "apps": [
+        {
+          "id": "check-btop",
+          "name": "Btop check",
+          "available": true,
+          "reason": null,
+          "source": "user",
+          "desktop_id": "check-btop.desktop",
+          "exec_name": "btop",
+          "terminal": true
+        },
+        {
+          "id": "check-kcalc",
+          "name": "KCalc check",
+          "available": true,
+          "reason": null,
+          "source": "user",
+          "desktop_id": "check-kcalc.desktop",
+          "exec_name": "dbus-run-session",
+          "terminal": false
+        },
+        {
+          "id": "org-kde-kcalc",
+          "name": "KCalc",
+          "available": true,
+          "reason": null,
+          "source": "flatpak-system",
+          "categories": [
+            "Qt",
+            "KDE",
+            "Utility",
+            "Calculator",
+            "X-KDE-Utilities-Desktop"
+          ],
+          "generic_name": "Scientific Calculator",
+          "desktop_id": "org.kde.kcalc.desktop",
+          "exec_name": "org.kde.kcalc",
+          "terminal": false
+        }
+      ],
+      "apps_count": 54
+    },
+    {
+      "protocol": "aresos-shell/1.1",
+      "id": "open-check-kcalc",
+      "ok": true,
+      "request_id": "open-check-kcalc",
+      "launch_id": "f3714d0d9cd8962f",
+      "app_id": "check-kcalc",
+      "state": "starting"
+    },
+    {
+      "protocol": "aresos-shell/1.1",
+      "id": "e-1",
+      "event": "apps_changed",
+      "revision": "3470f60e03a2ca78"
+    },
+    {
+      "protocol": "aresos-shell/1.1",
+      "id": "e-2",
+      "event": "apps_changed",
+      "revision": "fb2c341855e687bb"
+    },
+    {
+      "protocol": "aresos-shell/1.1",
+      "id": "e-3",
+      "event": "app_state",
+      "request_id": "open-check-kcalc",
+      "launch_id": "f3714d0d9cd8962f",
+      "app_id": "check-kcalc",
+      "state": "focused"
+    },
+    {
+      "protocol": "aresos-shell/1.1",
+      "id": "e-4",
+      "event": "shell_focus",
+      "focus": "background",
+      "reason": "app_activated",
+      "app_id": "check-kcalc"
+    },
+    {
+      "protocol": "aresos-shell/1.1",
+      "id": "e-5",
+      "event": "apps_changed",
+      "revision": "e8b141cc1b845f4c"
+    },
+    {
+      "protocol": "aresos-shell/1.1",
+      "id": "e-6",
+      "event": "apps_changed",
+      "revision": "429867707d4ed144"
+    },
+    {
+      "protocol": "aresos-shell/1.1",
+      "id": "e-7",
+      "event": "shell_focus",
+      "focus": "foreground",
+      "reason": "desktop_activated"
+    },
+    {
+      "protocol": "aresos-shell/1.1",
+      "id": "e-8",
+      "event": "app_state",
+      "request_id": "open-check-kcalc",
+      "launch_id": "f3714d0d9cd8962f",
+      "app_id": "check-kcalc",
+      "state": "closed"
+    },
+    {
+      "protocol": "aresos-shell/1.1",
+      "id": "open-check-btop",
+      "ok": true,
+      "request_id": "open-check-btop",
+      "launch_id": "2acee0370be247fd",
+      "app_id": "check-btop",
+      "state": "starting"
+    },
+    {
+      "protocol": "aresos-shell/1.1",
+      "id": "e-9",
+      "event": "app_state",
+      "request_id": "open-check-btop",
+      "launch_id": "2acee0370be247fd",
+      "app_id": "check-btop",
+      "state": "focused"
+    },
+    {
+      "protocol": "aresos-shell/1.1",
+      "id": "e-10",
+      "event": "shell_focus",
+      "focus": "background",
+      "reason": "app_activated",
+      "app_id": "check-btop"
+    },
+    {
+      "protocol": "aresos-shell/1.1",
+      "id": "e-11",
+      "event": "shell_focus",
+      "focus": "foreground",
+      "reason": "desktop_activated"
+    },
+    {
+      "protocol": "aresos-shell/1.1",
+      "id": "e-12",
+      "event": "app_state",
+      "request_id": "open-check-btop",
+      "launch_id": "2acee0370be247fd",
+      "app_id": "check-btop",
+      "state": "closed"
+    },
+    {
+      "protocol": "aresos-shell/1.1",
+      "id": "list-2",
+      "ok": true,
+      "revision": "429867707d4ed144",
+      "apps": [
+        {
+          "id": "check-btop",
+          "name": "Btop check",
+          "available": true,
+          "reason": null,
+          "source": "user",
+          "desktop_id": "check-btop.desktop",
+          "exec_name": "btop",
+          "terminal": true
+        },
+        {
+          "id": "check-kcalc",
+          "name": "KCalc check",
+          "available": true,
+          "reason": null,
+          "source": "user",
+          "desktop_id": "check-kcalc.desktop",
+          "exec_name": "dbus-run-session",
+          "terminal": false
+        },
+        {
+          "id": "org-kde-kcalc",
+          "name": "KCalc",
+          "available": true,
+          "reason": null,
+          "source": "flatpak-system",
+          "icon": "/var/home/ares/AresOS-30-installed-programs/.work/h30/home/.cache/aresos/icons/41a5b2bd979ae465b925ad062cc4f3ca39697188b0950580a8b510f58cd39fd6.png",
+          "categories": [
+            "Qt",
+            "KDE",
+            "Utility",
+            "Calculator",
+            "X-KDE-Utilities-Desktop"
+          ],
+          "generic_name": "Scientific Calculator",
+          "desktop_id": "org.kde.kcalc.desktop",
+          "exec_name": "org.kde.kcalc",
+          "terminal": false
+        }
+      ],
+      "apps_count": 54
+    },
+    {
+      "protocol": "aresos-shell/1.1",
+      "id": "e-13",
+      "event": "apps_changed",
+      "revision": "4a0f288f784bce35"
+    },
+    {
+      "protocol": "aresos-shell/1.1",
+      "id": "list-3",
+      "ok": true,
+      "revision": "4a0f288f784bce35",
+      "apps": [
+        {
+          "id": "check-btop",
+          "name": "Btop check",
+          "available": true,
+          "reason": null,
+          "source": "user",
+          "desktop_id": "check-btop.desktop",
+          "exec_name": "btop",
+          "terminal": true
+        },
+        {
+          "id": "org-kde-kcalc",
+          "name": "KCalc",
+          "available": true,
+          "reason": null,
+          "source": "flatpak-system",
+          "icon": "/var/home/ares/AresOS-30-installed-programs/.work/h30/home/.cache/aresos/icons/41a5b2bd979ae465b925ad062cc4f3ca39697188b0950580a8b510f58cd39fd6.png",
+          "categories": [
+            "Qt",
+            "KDE",
+            "Utility",
+            "Calculator",
+            "X-KDE-Utilities-Desktop"
+          ],
+          "generic_name": "Scientific Calculator",
+          "desktop_id": "org.kde.kcalc.desktop",
+          "exec_name": "org.kde.kcalc",
+          "terminal": false
+        }
+      ],
+      "apps_count": 53
+    },
+    {
+      "protocol": "aresos-shell/1.1",
+      "id": "open-flatpak-kcalc",
+      "ok": true,
+      "request_id": "open-flatpak-kcalc",
+      "launch_id": "e3caa8aa1f99cce1",
+      "app_id": "org-kde-kcalc",
+      "state": "starting"
+    },
+    {
+      "protocol": "aresos-shell/1.1",
+      "id": "e-14",
+      "event": "app_state",
+      "request_id": "open-flatpak-kcalc",
+      "launch_id": "e3caa8aa1f99cce1",
+      "app_id": "org-kde-kcalc",
+      "state": "focused"
+    },
+    {
+      "protocol": "aresos-shell/1.1",
+      "id": "e-15",
+      "event": "shell_focus",
+      "focus": "background",
+      "reason": "app_activated",
+      "app_id": "org-kde-kcalc"
+    },
+    {
+      "protocol": "aresos-shell/1.1",
+      "id": "list-4",
+      "ok": true,
+      "revision": "4a0f288f784bce35",
+      "apps": [
+        {
+          "id": "check-btop",
+          "name": "Btop check",
+          "available": true,
+          "reason": null,
+          "source": "user",
+          "desktop_id": "check-btop.desktop",
+          "exec_name": "btop",
+          "terminal": true
+        },
+        {
+          "id": "org-kde-kcalc",
+          "name": "KCalc",
+          "available": true,
+          "reason": null,
+          "source": "flatpak-system",
+          "icon": "/var/home/ares/AresOS-30-installed-programs/.work/h30/home/.cache/aresos/icons/41a5b2bd979ae465b925ad062cc4f3ca39697188b0950580a8b510f58cd39fd6.png",
+          "categories": [
+            "Qt",
+            "KDE",
+            "Utility",
+            "Calculator",
+            "X-KDE-Utilities-Desktop"
+          ],
+          "generic_name": "Scientific Calculator",
+          "desktop_id": "org.kde.kcalc.desktop",
+          "exec_name": "org.kde.kcalc",
+          "terminal": false
+        }
+      ],
+      "apps_count": 53
+    },
+    {
+      "protocol": "aresos-shell/1.1",
+      "id": "e-16",
+      "event": "shell_focus",
+      "focus": "foreground",
+      "reason": "desktop_activated"
+    },
+    {
+      "protocol": "aresos-shell/1.1",
+      "id": "e-17",
+      "event": "app_state",
+      "request_id": "open-flatpak-kcalc",
+      "launch_id": "e3caa8aa1f99cce1",
+      "app_id": "org-kde-kcalc",
+      "state": "closed"
+    }
+  ]
+}

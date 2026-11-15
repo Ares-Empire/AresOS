@@ -184,10 +184,32 @@ class HiddenTest(unittest.TestCase):
             result=subprocess.run(['bash',str(home/'at'),'login'],capture_output=True,text=True,check=True)
             self.assertFalse(result.stderr)
             actual=json.loads(result.stdout)
-            expected=hidden.owner_reader(['login'])['argv']
+            expected=hidden.owner_reader('/var/lib/ares/tools', ['login'])['argv']
             self.assertEqual(expected[:3], ['/usr/bin/python3','-I','-B'])
             self.assertEqual(actual, [str(home/'tools/owner.py'), 'login'])
             self.assertEqual(expected[3:], ['/var/lib/ares/'+str(pathlib.Path(actual[0]).relative_to(home)), 'login'])
+            # A tools update publishes tools-<fingerprint>/ and moves the entry there (the tools' own
+            # switch_entry). The same entry then starts the tools from that folder, and only a reader
+            # for that folder matches: run 43581458429 expected tools/ after an update.
+            import test_owner_tools as common
+            fingerprint='ab'*32; versioned=home/('tools-'+fingerprint)
+            shutil.copytree(payload, versioned)
+            with patch.object(common.owner,'HOME',home): common.owner.switch_entry(versioned.name)
+            result=subprocess.run(['bash',str(home/'at'),'layout','proof'],capture_output=True,text=True,check=True)
+            actual=json.loads(result.stdout)
+            self.assertEqual(actual, [str(versioned/'owner.py'), 'layout', 'proof'])
+            folder='/var/lib/ares/'+str(pathlib.Path(actual[0]).parent.relative_to(home))
+            self.assertEqual(hidden.owner_reader(folder, ['layout','proof'])['argv'][3:], ['/var/lib/ares/tools-'+fingerprint+'/owner.py','layout','proof'])
+            self.assertNotEqual(hidden.owner_reader(folder, ['layout','proof']), hidden.owner_reader('/var/lib/ares/tools', ['layout','proof']))
+
+    def test_the_owner_reader_takes_only_an_installed_toolsets_folder(self):
+        for folder in ('/var/lib/ares/tools', '/var/lib/ares/tools-'+'0f'*32):
+            self.assertEqual(hidden.owner_reader(folder, ['login'])['argv'], ['/usr/bin/python3','-I','-B',folder+'/owner.py','login'])
+        for folder in (None, '', '/var/lib/ares', '/var/lib/ares/tools/', '/var/lib/ares/tools-', '/var/lib/ares/tools-'+'0f'*31,
+                '/var/lib/ares/tools-'+'0F'*32, '/var/lib/ares/.tools-held', '/var/lib/ares/retired-tools', '/run/ares-bootstrap.x/ares-tools',
+                '/var/lib/ares/tools/../tools', 'tools'):
+            with self.subTest(folder=folder), self.assertRaisesRegex(AssertionError, 'not an installed toolset folder'):
+                hidden.owner_reader(folder, ['login'])
 
     def test_old_outer_echo_check_fires_early_and_tcsa_flush_loses_input(self):
         with Relay() as f:
@@ -243,8 +265,8 @@ class HiddenTest(unittest.TestCase):
         for tty_name in ('tty3', 'tty4'):
             for spec, prompt in ((dict(kind='login'), 'Password:'),
                     (hidden.sudo_reader(['-i'], dict(kind='shell')), vm.SUDO_PROMPT),
-                    (hidden.sudo_reader(['/var/lib/ares/at', 'layout', 'proof'], hidden.owner_reader(['layout', 'proof'])), vm.SUDO_PROMPT),
-                    (hidden.owner_reader(['login']), PROMPT)):
+                    (hidden.sudo_reader(['/var/lib/ares/at', 'layout', 'proof'], hidden.owner_reader('/var/lib/ares/tools', ['layout', 'proof'])), vm.SUDO_PROMPT),
+                    (hidden.owner_reader('/var/lib/ares/tools', ['login']), PROMPT)):
                 with self.subTest(tty=tty_name, kind=spec['kind']):
                     proof = execute_hidden(hidden.source(tty_name, spec, prompt=prompt))
                     self.assertTrue(proof['ready'] and proof['prompt_at_cursor'])
@@ -255,7 +277,7 @@ class HiddenTest(unittest.TestCase):
 
     def test_composed_read_completion_is_bounded_and_exports_refusal_without_value(self):
         from owner_console_shim import execute_hidden
-        expected = hidden.owner_reader(['login'])
+        expected = hidden.owner_reader('/var/lib/ares/tools', ['login'])
         proof = execute_hidden(hidden.source('tty3', expected, prompt=PROMPT))
         class Clock:
             now = 0
@@ -322,7 +344,7 @@ class HiddenTest(unittest.TestCase):
                 return dict(ready=False, raw=__import__('base64').b64encode(vcsa(PROMPT)).decode(),
                     observation=dict(foreground_chain=[]))
         guest = Guest(); guest.proven=True; c = vm.Console(guest)
-        c.pending_hidden = dict(stage='synthetic-read', epoch=0, expected=hidden.owner_reader(['login']),
+        c.pending_hidden = dict(stage='synthetic-read', epoch=0, expected=hidden.owner_reader('/var/lib/ares/tools', ['login']),
             reader=dict(pid=10, start='1', exe='/usr/bin/python3', tty=34818, tty_path='/dev/pts/2', physical=1027))
         calls = []
         original=vm.type_text

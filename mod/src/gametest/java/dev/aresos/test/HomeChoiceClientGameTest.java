@@ -64,6 +64,7 @@ public final class HomeChoiceClientGameTest implements FabricClientGameTest {
             natural = reference.getServer().computeOnServer(server -> snapshot(server.getLevel(Level.NETHER), naturalSite.floor(), 8, -1, 10));
         }
         archiveThroughUi(context, directory);
+        context.clickScreenButton("Home: Flat");
         screenshot(context, "04c-create-default");
         context.clickScreenButton("50");
         assertCreateSettings(context, "50", false);
@@ -119,6 +120,7 @@ public final class HomeChoiceClientGameTest implements FabricClientGameTest {
             AresOs.LOGGER.info("04c selected home PASSED: Nether and Overworld exact position/facing persisted through rejoin; actual respawn in both dimensions");
         }
         archiveThroughUi(context, directory);
+        context.clickScreenButton("Home: Flat");
         context.clickScreenButton("50");
         context.clickScreenButton("Placeholder hub: OFF");
         assertCreateSettings(context, "50", true);
@@ -268,6 +270,7 @@ public final class HomeChoiceClientGameTest implements FabricClientGameTest {
                 for (String action : List.of("", " set", " info")) check(command(server, player, "aresos home" + action) == 0, "Normal world accepted home" + action);
                 check(NetherHome.get(server) == null, "Normal world acquired home data");
                 DesktopWorld.setEnabled(server, true);
+                check(dev.aresos.hub.HubData.get(server) == null, "A marked desktop world got the flat home's pad and roads");
                 var before = snapshot(server.overworld(), BlockPos.containing(PICKED), 2, -1, 3);
                 check(command(server, player, "aresos home set") == 1, "Marked desktop could not choose a home");
                 assertTarget(NetherHome.get(server).home(), Level.OVERWORLD);

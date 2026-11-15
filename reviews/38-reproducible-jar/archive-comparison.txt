@@ -1,0 +1,137 @@
+Unchanged build, reversed client class creation order
+=====================================================
+c0e5cf1e1b0dfb8eead4586665c38de844be41bae7edc74d460276a2a69d70fc  .work/repro/baseline-first.jar
+7e65724c9956bf9812455a9479fb0b691a8683b52b44a0ee2451e577719ad049  .work/repro/baseline-reordered.jar
+Entry count: 121 / 121
+Entry order identical: True
+Changed file contents: ['META-INF/MANIFEST.MF']
+Changed timestamps/modes/other metadata: []
+Entry metadata (DOS timestamp, external attributes, creator OS): {((1980, 2, 1, 0, 0, 0), '41ed0000', 3): 20, ((1980, 1, 1, 0, 0, 0), '00000000', 0): 1, ((1980, 2, 1, 0, 0, 0), '81a40000', 3): 100}
+Entry metadata (DOS timestamp, external attributes, creator OS): {((1980, 2, 1, 0, 0, 0), '41ed0000', 3): 20, ((1980, 1, 1, 0, 0, 0), '00000000', 0): 1, ((1980, 2, 1, 0, 0, 0), '81a40000', 3): 100}
+Refmaps: []
+--- .work/repro/baseline-first.jar
++++ .work/repro/baseline-reordered.jar
+@@ -1,19 +1,19 @@
+ Manifest-Version: 1.0
+-Fabric-Loom-Client-Only-Entries: dev/aresos/client/AppInput.class;dev/ar
+- esos/client/AppsScreen.class;dev/aresos/client/AresOsClient$1.class;dev
+- /aresos/client/AresOsClient.class;dev/aresos/client/launch/AppLauncher.
+- class;dev/aresos/client/launch/LinuxAppLauncher.class;dev/aresos/client
+- /launch/ProcessLaunch.class;dev/aresos/client/launch/WindowsAppLauncher
+- .class;dev/aresos/client/HomeButton.class;dev/aresos/client/HomeCreateS
+- creen.class;dev/aresos/client/ModeSwitchClient.class;dev/aresos/client/
+- RuntimeIconPack.class;dev/aresos/client/ShellFocusClient$1.class;dev/ar
+- esos/client/ShellFocusClient.class;dev/aresos/client/mixin/IconPackMixi
+- n.class;dev/aresos/client/mixin/KeyboardAppInputMixin.class;dev/aresos/
+- client/mixin/MinecraftAppInputMixin.class;dev/aresos/client/mixin/Minec
+- raftFocusMixin.class;dev/aresos/client/mixin/ModeSwitchCreativeMixin.cl
+- ass;dev/aresos/client/mixin/ModeSwitchDropMixin.class;dev/aresos/client
+- /mixin/ModeSwitchInteractionMixin.class;dev/aresos/client/mixin/MouseAp
+- pInputMixin.class;dev/aresos/client/mixin/WindowIdentityMixin.class;are
++Fabric-Loom-Client-Only-Entries: dev/aresos/client/mixin/WindowIdentityM
++ ixin.class;dev/aresos/client/mixin/MouseAppInputMixin.class;dev/aresos/
++ client/mixin/ModeSwitchInteractionMixin.class;dev/aresos/client/mixin/M
++ odeSwitchDropMixin.class;dev/aresos/client/mixin/ModeSwitchCreativeMixi
++ n.class;dev/aresos/client/mixin/MinecraftFocusMixin.class;dev/aresos/cl
++ ient/mixin/MinecraftAppInputMixin.class;dev/aresos/client/mixin/Keyboar
++ dAppInputMixin.class;dev/aresos/client/mixin/IconPackMixin.class;dev/ar
++ esos/client/launch/WindowsAppLauncher.class;dev/aresos/client/launch/Pr
++ ocessLaunch.class;dev/aresos/client/launch/LinuxAppLauncher.class;dev/a
++ resos/client/launch/AppLauncher.class;dev/aresos/client/ShellFocusClien
++ t.class;dev/aresos/client/ShellFocusClient$1.class;dev/aresos/client/Ru
++ ntimeIconPack.class;dev/aresos/client/ModeSwitchClient.class;dev/aresos
++ /client/HomeCreateScreen.class;dev/aresos/client/HomeButton.class;dev/a
++ resos/client/AresOsClient.class;dev/aresos/client/AresOsClient$1.class;
++ dev/aresos/client/AppsScreen.class;dev/aresos/client/AppInput.class;are
+  sos.client.mixins.json;assets/aresos/lang/en_us.json
+ Fabric-Loom-Split-Environment: true
+ Fabric-Mapping-Namespace: official
+
+Changed manifest values: ['Fabric-Loom-Client-Only-Entries']
+Client-entry membership identical: True
+Second client-entry list sorted: False
+
+Before / after the fix
+======================
+c0e5cf1e1b0dfb8eead4586665c38de844be41bae7edc74d460276a2a69d70fc  .work/repro/baseline-first.jar
+dacae565e4f837faf5323d6cc8fb1efce1acc03577fcb904a2c0fa1a8f5a63be  .work/repro/fixed-first.jar
+Entry count: 121 / 121
+Entry order identical: True
+Changed file contents: ['META-INF/MANIFEST.MF']
+Changed timestamps/modes/other metadata: []
+Entry metadata (DOS timestamp, external attributes, creator OS): {((1980, 2, 1, 0, 0, 0), '41ed0000', 3): 20, ((1980, 1, 1, 0, 0, 0), '00000000', 0): 1, ((1980, 2, 1, 0, 0, 0), '81a40000', 3): 100}
+Entry metadata (DOS timestamp, external attributes, creator OS): {((1980, 2, 1, 0, 0, 0), '41ed0000', 3): 20, ((1980, 1, 1, 0, 0, 0), '00000000', 0): 1, ((1980, 2, 1, 0, 0, 0), '81a40000', 3): 100}
+Refmaps: []
+--- .work/repro/baseline-first.jar
++++ .work/repro/fixed-first.jar
+@@ -1,28 +1,28 @@
+ Manifest-Version: 1.0
+-Fabric-Loom-Client-Only-Entries: dev/aresos/client/AppInput.class;dev/ar
+- esos/client/AppsScreen.class;dev/aresos/client/AresOsClient$1.class;dev
+- /aresos/client/AresOsClient.class;dev/aresos/client/launch/AppLauncher.
+- class;dev/aresos/client/launch/LinuxAppLauncher.class;dev/aresos/client
+- /launch/ProcessLaunch.class;dev/aresos/client/launch/WindowsAppLauncher
+- .class;dev/aresos/client/HomeButton.class;dev/aresos/client/HomeCreateS
+- creen.class;dev/aresos/client/ModeSwitchClient.class;dev/aresos/client/
+- RuntimeIconPack.class;dev/aresos/client/ShellFocusClient$1.class;dev/ar
+- esos/client/ShellFocusClient.class;dev/aresos/client/mixin/IconPackMixi
+- n.class;dev/aresos/client/mixin/KeyboardAppInputMixin.class;dev/aresos/
+- client/mixin/MinecraftAppInputMixin.class;dev/aresos/client/mixin/Minec
+- raftFocusMixin.class;dev/aresos/client/mixin/ModeSwitchCreativeMixin.cl
+- ass;dev/aresos/client/mixin/ModeSwitchDropMixin.class;dev/aresos/client
+- /mixin/ModeSwitchInteractionMixin.class;dev/aresos/client/mixin/MouseAp
+- pInputMixin.class;dev/aresos/client/mixin/WindowIdentityMixin.class;are
+- sos.client.mixins.json;assets/aresos/lang/en_us.json
++Fabric-Gradle-Version: 9.8.0
++Fabric-Loader-Version: 0.19.5
++Fabric-Loom-Client-Only-Entries: aresos.client.mixins.json;assets/aresos
++ /lang/en_us.json;dev/aresos/client/AppInput.class;dev/aresos/client/App
++ sScreen.class;dev/aresos/client/AresOsClient$1.class;dev/aresos/client/
++ AresOsClient.class;dev/aresos/client/HomeButton.class;dev/aresos/client
++ /HomeCreateScreen.class;dev/aresos/client/ModeSwitchClient.class;dev/ar
++ esos/client/RuntimeIconPack.class;dev/aresos/client/ShellFocusClient$1.
++ class;dev/aresos/client/ShellFocusClient.class;dev/aresos/client/launch
++ /AppLauncher.class;dev/aresos/client/launch/LinuxAppLauncher.class;dev/
++ aresos/client/launch/ProcessLaunch.class;dev/aresos/client/launch/Windo
++ wsAppLauncher.class;dev/aresos/client/mixin/IconPackMixin.class;dev/are
++ sos/client/mixin/KeyboardAppInputMixin.class;dev/aresos/client/mixin/Mi
++ necraftAppInputMixin.class;dev/aresos/client/mixin/MinecraftFocusMixin.
++ class;dev/aresos/client/mixin/ModeSwitchCreativeMixin.class;dev/aresos/
++ client/mixin/ModeSwitchDropMixin.class;dev/aresos/client/mixin/ModeSwit
++ chInteractionMixin.class;dev/aresos/client/mixin/MouseAppInputMixin.cla
++ ss;dev/aresos/client/mixin/WindowIdentityMixin.class
+ Fabric-Loom-Split-Environment: true
++Fabric-Loom-Version: 1.19.2
+ Fabric-Mapping-Namespace: official
+-Fabric-Gradle-Version: 9.8.0
+-Fabric-Loom-Version: 1.19.2
++Fabric-Minecraft-Version: 26.2
+ Fabric-Mixin-Compile-Extensions-Version: 0.6.0
+-Fabric-Minecraft-Version: 26.2
++Fabric-Mixin-Group: net.fabricmc
++Fabric-Mixin-Version: 0.17.4+mixin.0.8.7
+ Fabric-Tiny-Remapper-Version: 0.15.0
+-Fabric-Loader-Version: 0.19.5
+-Fabric-Mixin-Version: 0.17.4+mixin.0.8.7
+-Fabric-Mixin-Group: net.fabricmc
+ 
+
+Changed manifest values: ['Fabric-Loom-Client-Only-Entries']
+Client-entry membership identical: True
+Second client-entry list sorted: True
+
+Fixed build, reversed client class creation order
+=================================================
+dacae565e4f837faf5323d6cc8fb1efce1acc03577fcb904a2c0fa1a8f5a63be  .work/repro/fixed-first.jar
+dacae565e4f837faf5323d6cc8fb1efce1acc03577fcb904a2c0fa1a8f5a63be  .work/repro/fixed-reordered.jar
+Entry count: 121 / 121
+Entry order identical: True
+Changed file contents: []
+Changed timestamps/modes/other metadata: []
+Entry metadata (DOS timestamp, external attributes, creator OS): {((1980, 2, 1, 0, 0, 0), '41ed0000', 3): 20, ((1980, 1, 1, 0, 0, 0), '00000000', 0): 1, ((1980, 2, 1, 0, 0, 0), '81a40000', 3): 100}
+Entry metadata (DOS timestamp, external attributes, creator OS): {((1980, 2, 1, 0, 0, 0), '41ed0000', 3): 20, ((1980, 1, 1, 0, 0, 0), '00000000', 0): 1, ((1980, 2, 1, 0, 0, 0), '81a40000', 3): 100}
+Refmaps: []
+Changed manifest values: []
+Client-entry membership identical: True
+Second client-entry list sorted: True
+

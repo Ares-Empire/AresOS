@@ -1,0 +1,636 @@
+[
+  {
+    "artifact": "aggregate",
+    "chrome": "Google Chrome 157.0.8103.78",
+    "named_passes": 95,
+    "test_index": [
+      {
+        "name": "GROUP 10 ADAPTER Gmail full compose and every bound field",
+        "line": 105
+      },
+      {
+        "name": "GROUP 10 ADAPTER two Gmail compose windows and inbox shortcut",
+        "line": 116
+      },
+      {
+        "name": "GROUP 11 ADAPTER Gmail exact To Cc Bcc roles account revocation and widening",
+        "line": 136
+      },
+      {
+        "name": "GROUP 10 ADAPTER WhatsApp every message chat text attachments and free activity",
+        "line": 143
+      },
+      {
+        "name": "GROUP 10 ADAPTER GitHub actions and all named confirmations",
+        "line": 161
+      },
+      {
+        "name": "GROUP 10 ADAPTER clear merge settings and sharing variants stay guarded",
+        "line": 177
+      },
+      {
+        "name": "GROUP 4 ADAPTER every named GitHub confirmation mismatch",
+        "line": 200
+      },
+      {
+        "name": "GROUP 10 ADAPTER Gemini question content and always asking chat changes",
+        "line": 208
+      },
+      {
+        "name": "GROUP 11 ADAPTER Gemini exact account owner entry and revocation",
+        "line": 216
+      },
+      {
+        "name": "GROUP 10 ADAPTER Deezer playback additions removals posts shares and payments",
+        "line": 229
+      },
+      {
+        "name": "GROUP 10 ADAPTER bank owner restriction all inputs and positive reads links scroll",
+        "line": 230
+      },
+      {
+        "name": "GROUP 10 ADAPTER unfamiliar pages and qualification fallback on all sites",
+        "line": 246
+      },
+      {
+        "name": "GROUP 10 ADAPTER Gemini question uses its required semantic name",
+        "line": 247
+      },
+      {
+        "name": "GROUP 10 ADAPTER Gmail question names its attachments",
+        "line": 248
+      },
+      {
+        "name": "GROUP 10 ADAPTER Gmail deletion shortcut question names the deletion",
+        "line": 249
+      },
+      {
+        "name": "GROUP 2 first-script natives are guarded in pages and frames",
+        "line": 17
+      },
+      {
+        "name": "GROUP 3 POST18D absolute destinations inherited bases targets and form owners",
+        "line": 18
+      },
+      {
+        "name": "GROUP 7 POST18D credentials and revealed passwords stay unreadable before take reload",
+        "line": 19
+      },
+      {
+        "name": "GROUP 7 POST18D typed field reads require exact one-call approval and reask on list changes",
+        "line": 20
+      },
+      {
+        "name": "GROUP 7 native compatibility inside and outside Claude tabs",
+        "line": 21
+      },
+      {
+        "name": "GROUP 8 Stop under a native modal revokes input before deferred cleanup",
+        "line": 22
+      },
+      {
+        "name": "GROUP 8 taken tabs preserve reads and guard the first input reload",
+        "line": 23
+      },
+      {
+        "name": "GROUP 1 submit compose deletion and free-input matrix",
+        "line": 24
+      },
+      {
+        "name": "GROUP 1 Unicode word matching agrees across service and guard",
+        "line": 25
+      },
+      {
+        "name": "GROUP 2 stopped page steps handler/resume matrix",
+        "line": 26
+      },
+      {
+        "name": "GROUP 2 script activations never replay",
+        "line": 27
+      },
+      {
+        "name": "GROUP 2 loop with uncancelled enclosing submit sends once",
+        "line": 28
+      },
+      {
+        "name": "GROUP 2 delayed submission stays held after slow frame arming",
+        "line": 29
+      },
+      {
+        "name": "GROUP 2 nested validation and fresh-frame fallback",
+        "line": 30
+      },
+      {
+        "name": "GROUP 2 owner synchronous task delayed work and in-flight interleavings",
+        "line": 31
+      },
+      {
+        "name": "GROUP 2 after his mark timers never exempt forms submitters or validation repairs",
+        "line": 32
+      },
+      {
+        "name": "GROUP 2 uncancellable self navigation is stopped before its source document changes",
+        "line": 33
+      },
+      {
+        "name": "GROUP 3 binding every form fact and generic sibling draft",
+        "line": 34
+      },
+      {
+        "name": "GROUP 4 page confirmations bind their full text and ask independently",
+        "line": 35
+      },
+      {
+        "name": "GROUP 3 cross-frame adapter empty and oversized drafts",
+        "line": 36
+      },
+      {
+        "name": "GROUP 4 exact native confirmation and mismatch matrix",
+        "line": 37
+      },
+      {
+        "name": "GROUP 4 a native-dialog handler submission is prepared separately",
+        "line": 38
+      },
+      {
+        "name": "GROUP 5 question fields, hidden values, password label, upload path and hash",
+        "line": 39
+      },
+      {
+        "name": "GROUP 6 exclusions through frame, popup, redirect, taking and history",
+        "line": 40
+      },
+      {
+        "name": "GROUP 7 all password kinds across open closed and cross-site roots",
+        "line": 41
+      },
+      {
+        "name": "GROUP 6 schemes links and forward routes",
+        "line": 42
+      },
+      {
+        "name": "GROUP 8 drop release close and stale references never dispatch prepared work",
+        "line": 43
+      },
+      {
+        "name": "GROUP 3 changed read-only preview reasks with its changed content",
+        "line": 44
+      },
+      {
+        "name": "GROUP 8 deadline and tabs outside the group",
+        "line": 45
+      },
+      {
+        "name": "GROUP 10 adapter gmail",
+        "line": 46
+      },
+      {
+        "name": "GROUP 10 adapter whatsapp",
+        "line": 47
+      },
+      {
+        "name": "GROUP 10 adapter github",
+        "line": 48
+      },
+      {
+        "name": "GROUP 10 adapter gemini",
+        "line": 49
+      },
+      {
+        "name": "GROUP 10 adapter deezer",
+        "line": 50
+      },
+      {
+        "name": "GROUP 10 read-only bank",
+        "line": 51
+      },
+      {
+        "name": "GROUP 10 adapter shortcuts and account-specific questions",
+        "line": 52
+      },
+      {
+        "name": "GROUP 11 exact owner kind, recipients, account and revocation",
+        "line": 53
+      },
+      {
+        "name": "QUALIFICATION conservative activations ask and core failures gate before reads",
+        "line": 63
+      },
+      {
+        "name": "GROUP 13 autosave and after-limit submissions are not held",
+        "line": 64
+      },
+      {
+        "name": "VIEW representative long article/form complete paging",
+        "line": 66
+      },
+      {
+        "name": "FEATURE tools forms options find wait fill_form scroll and full catalogues",
+        "line": 67
+      },
+      {
+        "name": "GROUP 8 actual popup Stop button drops all prepared work",
+        "line": 68
+      },
+      {
+        "name": "GROUP 9 Chrome host service crash cutpoints never replay",
+        "line": 78
+      },
+      {
+        "name": "GROUP 7 no listening port after tool suite",
+        "line": 79
+      },
+      {
+        "name": "GROUP 2 RECHECK2 every borrowed native insertion route captures noncomposed shadow events",
+        "line": 266
+      },
+      {
+        "name": "GROUP 2 RECHECK2 native defaults cover new tabs frames ping forms and downloads",
+        "line": 267
+      },
+      {
+        "name": "GROUP 2 RECHECK2 the owner navigates during the network hold",
+        "line": 268
+      },
+      {
+        "name": "GROUP 3 RECHECK2 live compose text reasks once while outside text stays free",
+        "line": 269
+      },
+      {
+        "name": "GROUP 13 RECHECK2B all-native limit records user activation and honest after-click reporting",
+        "line": 280
+      },
+      {
+        "name": "GROUP 5 RECHECK2C clipboard writes are reported without reading contents",
+        "line": 281
+      },
+      {
+        "name": "GROUP 8 RECHECK2 extension restart reconciles leftover session network rules",
+        "line": 282
+      },
+      {
+        "name": "GROUP 8 popups preserve opener flow and guard first input without moving windows",
+        "line": 286
+      },
+      {
+        "name": "GROUP 8 opener badges and per-popup Stop preserve windows documents and focus",
+        "line": 288
+      },
+      {
+        "name": "GROUP 8 closing or releasing an opener ends popup control and clears badges",
+        "line": 291
+      },
+      {
+        "name": "GROUP 8 POST popups never resubmit and ordinary openers stay untouched",
+        "line": 294
+      },
+      {
+        "name": "GROUP 2 RECHECK3 every single wrapped step holds across roots events and registration order",
+        "line": 311
+      },
+      {
+        "name": "GROUP 2 RECHECK3 every hyperlink and form submitter default is neutralised",
+        "line": 312
+      },
+      {
+        "name": "GROUP 3 RECHECK3 rendered whitespace survives questions reasking stopping and final dispatch",
+        "line": 313
+      },
+      {
+        "name": "GROUP 2 RECHECK Claude timer fires inside the owner Enter mark",
+        "line": 331
+      },
+      {
+        "name": "GROUP 2 RECHECK explicit payment and delete labels override GET search",
+        "line": 332
+      },
+      {
+        "name": "GROUP 4 REVIEW ordinary native dialogs from Claude owner and page tasks keep working",
+        "line": 348
+      },
+      {
+        "name": "GROUP 4 REVIEW blank and srcdoc native dialogs answer with a held continuation",
+        "line": 349
+      },
+      {
+        "name": "GROUP 8 REVIEW preexisting dialogs hand off within bounds and recover after the owner answers",
+        "line": 350
+      },
+      {
+        "name": "GROUP 4 REVIEW borrowed native dialogs always ask bind the answer and never replay",
+        "line": 351
+      },
+      {
+        "name": "GROUP 3 REVIEW ordinary blank and srcdoc editors bind drafts and send normally",
+        "line": 352
+      },
+      {
+        "name": "GROUP 3 REVIEW owner chosen attachments show byte digests and bind identical metadata replacements",
+        "line": 353
+      },
+      {
+        "name": "GROUP 2 REVIEW inherited and newly created frames hold submissions",
+        "line": 358
+      },
+      {
+        "name": "GROUP 2 REVIEW borrowed wrappers respect another controlled tab and an ordinary document",
+        "line": 359
+      },
+      {
+        "name": "GROUP 11 REVIEW explicit pay and delete evidence overrides an owner allowed adapter",
+        "line": 360
+      },
+      {
+        "name": "GROUP 2 REVIEW synchronous new shadow roots keep all submission kinds held",
+        "line": 367
+      },
+      {
+        "name": "GROUP 2 REVIEW new shadow roots capture borrowed native events including noncomposed ones",
+        "line": 384
+      },
+      {
+        "name": "GROUP 1 REVIEW modified deletion keys normalized words malformed URLs and visible names",
+        "line": 391
+      },
+      {
+        "name": "GROUP 3 REVIEW item confirmation file rich text and title mutations refuse",
+        "line": 416
+      },
+      {
+        "name": "GROUP 2 REVIEW owner mark exact form submitter and unconsumed delayed work",
+        "line": 420
+      },
+      {
+        "name": "GROUP 8 REVIEW iframe drafts and detached or Web Audio report before reload",
+        "line": 421
+      },
+      {
+        "name": "GROUP 8 REVIEW script-started POST documents in tabs and popups never reload",
+        "line": 422
+      },
+      {
+        "name": "GROUP 8 REVIEW no-op checks and isolated choices leave the owner tab selected",
+        "line": 423
+      },
+      {
+        "name": "GROUP 8 REVIEW Stop removes navigation blocks while a frozen wrapper awaits cleanup",
+        "line": 424
+      },
+      {
+        "name": "GROUP 5 REVIEW page outcome records the actual post-input notice",
+        "line": 425
+      },
+      {
+        "name": "GROUP 1 what asks word/label/key matrix",
+        "line": 445
+      }
+    ],
+    "verdicts": {
+      "groups": {
+        "1": true,
+        "2": true,
+        "3": true,
+        "4": true,
+        "5": true,
+        "6": true,
+        "7": true,
+        "8": true,
+        "9": true,
+        "10": true,
+        "11": true,
+        "12": true,
+        "13": true
+      },
+      "core": {
+        "classification": true,
+        "page_script": true,
+        "binding": true,
+        "password_exclusion": true
+      },
+      "adapters": {
+        "gmail": true,
+        "whatsapp": true,
+        "github": true,
+        "bank": true,
+        "gemini": true,
+        "deezer": true
+      }
+    },
+    "receiver_audit": [
+      {
+        "file": "page-receiver.jsonl",
+        "snapshots": 4970,
+        "complete_0_1_1_sequences": 1445,
+        "independent_arrivals_match": true
+      },
+      {
+        "file": "adapters-receiver.jsonl",
+        "snapshots": 750,
+        "complete_0_1_1_sequences": 139,
+        "independent_arrivals_match": true
+      }
+    ],
+    "native_limit": {
+      "cases": 10,
+      "added_transient_activation": [
+        "recheck2b-limit-open-network",
+        "recheck2b-limit-open-popup",
+        "recheck2b-limit-open-download",
+        "recheck2b-limit-open-clipboard",
+        "recheck2b-limit-open-payment",
+        "recheck2b-limit-closed-network",
+        "recheck2b-limit-closed-popup",
+        "recheck2b-limit-closed-download",
+        "recheck2b-limit-closed-clipboard",
+        "recheck2b-limit-closed-payment"
+      ],
+      "activation_review_required": true,
+      "reporting": "The original input is reported as dispatched; the hidden native step has no held/unknown report. The page notice is untrusted."
+    },
+    "recheck3": {
+      "mixed": 60,
+      "defaults": 33,
+      "whitespace": 14,
+      "complete_0_1_1": 107,
+      "independent_arrivals_match": true
+    },
+    "destinations": {
+      "sources": 7,
+      "cases": 60,
+      "complete_0_1_1": 60,
+      "independent_arrivals_match": true
+    },
+    "group12": true,
+    "late_reader": {
+      "cases": 3
+    },
+    "clipboard": {
+      "cases": 4,
+      "contents_returned": false,
+      "borrowed_native_undetected": true
+    },
+    "ordinary_get_queries": [
+      {
+        "time": 1794588866377,
+        "url": "/receive?case=recheck-query-0&q=Pay+for+lunch",
+        "method": "GET",
+        "body": "",
+        "host": "fixture.test:8765"
+      },
+      {
+        "time": 1794588867462,
+        "url": "/receive?case=recheck-query-1&q=Delete+old+notes",
+        "method": "GET",
+        "body": "",
+        "host": "fixture.test:8765"
+      },
+      {
+        "time": 1794588868546,
+        "url": "/receive?case=recheck-query-2&q=Send+a+letter",
+        "method": "GET",
+        "body": "",
+        "host": "fixture.test:8765"
+      }
+    ],
+    "owner_overlap": {
+      "id": "recheck-owner-overlap",
+      "page": [
+        {
+          "phase": "busy-begin",
+          "time": 1794588857272.5999,
+          "receiver_time": 1794588857274
+        },
+        {
+          "phase": "busy-end",
+          "time": 1794588857513,
+          "receiver_time": 1794588857514
+        },
+        {
+          "phase": "owner-enter",
+          "time": 1794588857514.7998,
+          "receiver_time": 1794588857516
+        },
+        {
+          "phase": "owner-submit",
+          "time": 1794588857517.2,
+          "receiver_time": 1794588857520
+        },
+        {
+          "phase": "timer-fire",
+          "time": 1794588857518.7998,
+          "receiver_time": 1794588857522
+        }
+      ],
+      "mark": {
+        "set": {
+          "event": "owner_trace",
+          "id": "recheck-owner-overlap",
+          "phase": "set",
+          "step": null,
+          "time": 1794588857517.9,
+          "token": 4,
+          "key": "Enter",
+          "input": "keyup",
+          "consumed": false,
+          "in_flight": false
+        },
+        "held": {
+          "event": "owner_trace",
+          "id": "recheck-owner-overlap",
+          "phase": "held",
+          "step": "h5",
+          "time": 1794588857519.9,
+          "token": 4,
+          "key": "Enter",
+          "input": "keyup",
+          "consumed": false,
+          "in_flight": false
+        },
+        "ended": {
+          "event": "owner_trace",
+          "id": "recheck-owner-overlap",
+          "phase": "clear",
+          "step": null,
+          "time": 1794588857521,
+          "token": 4,
+          "key": "Enter",
+          "input": "keyup",
+          "consumed": false,
+          "in_flight": false
+        }
+      },
+      "owner_enter": {
+        "event": "owner_trace",
+        "id": "recheck-owner-overlap",
+        "phase": "set",
+        "step": null,
+        "time": 1794588857514.5999,
+        "token": 1,
+        "key": "Enter",
+        "input": "keydown",
+        "consumed": false,
+        "in_flight": false
+      },
+      "owner_pass": {
+        "event": "owner_trace",
+        "id": "recheck-owner-overlap",
+        "phase": "pass",
+        "step": null,
+        "time": 1794588857517.0999,
+        "token": 3,
+        "key": null,
+        "input": "click",
+        "consumed": true,
+        "in_flight": false
+      },
+      "owner_arrival": {
+        "time": 1794588857525,
+        "url": "/receive?case=owner-recheck-owner-overlap",
+        "method": "POST",
+        "body": "draft=Saved",
+        "host": "fixture.test:8765"
+      }
+    },
+    "password_audit": {
+      "rows": 337477,
+      "null_rows": 11,
+      "protocol_events": 49927,
+      "forbidden_runtime_value_events": 0,
+      "sensitive_getters": 4295,
+      "getter_kinds": {
+        "textContent": 3056,
+        "value": 1239
+      },
+      "password_sentinel_absent": true
+    },
+    "python": {
+      "tests": 237,
+      "seconds": 0
+    },
+    "node": {
+      "tests": 347,
+      "pass": 347,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0
+    },
+    "sha256": {
+      "browser.txt": "bd24cdcb8099c6db1cbd0f441d4c50c7d686d47ec56c7a8bf14e0c97af69a538",
+      "matrices.json": "465caaaab62f2dd8102b835338a2ebcbdd72fe02cdd7cb1b26e587696ddf8f2b",
+      "receiver.jsonl": "2a7cca0fae6556a597e9f129d47c3d34f27d990fafc9ad134b99bce0bb216b86",
+      "page-receiver.jsonl": "bfdac7c62a4bbfd83e46933f4c54c367c6e5efac0c36164b1302a74e92c7c486",
+      "adapters-receiver.jsonl": "e0fa0dacc0ddc0d3dfe04f795a3a875ebddc036be40b9792fc82d947030b44d8",
+      "browser-boundary.jsonl": "0edcf500d47275a66f2c74388819e70555a5698135991fee6a731a3f92bf6e22",
+      "tool.jsonl": "bccdf9d28624a570c0404884cb5c8adea409fabc689f7d8f61d768f444b8c6fd",
+      "service.txt": "d46867a909320a51282bd35d051795438a2bbab8b88a4ffaed618820a29c1f37",
+      "python-shards.json": "fa5436dda9f1b3bada948260a874b689e93700772b272159f2a946b08976ce8b",
+      "node.txt": "86b8af11c17393a1a7f851c11d8574e70b95d1dcbbcd2e27d0b9ace9df66c511",
+      "owner-overlap.json": "3255247a64e795dd40074a121c7d74c3cbcd764f375b1c9b2500c654cb90d5f2",
+      "all-native-limit.json": "79757c2b8b3f71c8791d3fd646a5f72629f6913e866f7116444ae0b7c0582df0",
+      "all-native-limit-audit.json": "f2720b73985334573acabb8e066376d2213c457357784dc7a63741b2da2776a8",
+      "clipboard-report.json": "1b015e0e9e2da8a74439b4181c66b29bc150affc10f12f730296ae2ea71faf7d",
+      "network-restart-audit.json": "8575cecab813e02686371b653bbe683a02e5f5c23fe7067ed20bce3233852c50",
+      "recheck3.json": "62fddf1e691a91f78cd20f3cf0397fed2c38c25d2b01ef9e0d6068e58a1e7f47"
+    }
+  }
+]

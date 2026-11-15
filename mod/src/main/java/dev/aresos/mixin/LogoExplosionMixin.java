@@ -1,5 +1,6 @@
 package dev.aresos.mixin;
 
+import dev.aresos.hub.HubData;
 import dev.aresos.world.DesktopWorld;
 import dev.aresos.zone.ZoneData;
 import net.minecraft.core.BlockPos;
@@ -23,5 +24,11 @@ public abstract class LogoExplosionMixin {
             if (zone.dimension().equals(level.dimension())) protectedBlocks.addAll(zone.blocks());
         // Explosions are never an edit gesture, including while the owner is building.
         affected.removeIf(protectedBlocks::contains);
+        // The town's logos are spared like the gates above; the pad and roads only outside Build mode (brief 32).
+        var hub = HubData.get(level.getServer());
+        if (hub != null) {
+            boolean buildMode = !HubData.protectsFromExplosions(level.getServer());
+            affected.removeIf(pos -> hub.sparesFromExplosion(level, pos, buildMode));
+        }
     }
 }

@@ -3,16 +3,32 @@ package dev.aresos.config;
 import com.google.gson.*;
 import java.io.IOException;
 import java.nio.file.*;
+import java.time.LocalDate;
 import java.util.*;
 
+/**
+ * config/aresos/apps.json. Schema 4 adds saved short names and, with no new number (package 36), each app's
+ * {@code place} and {@code group} in the flat home: package 35's mod reads such a file and keeps both through its
+ * edits, because it ignores fields it does not know and edits the file in place. schema 3 added "My apps" (docs/design/HUB.md 3.5): {@code mine} per app, what the system
+ * said about it ({@code system}), and once for the file {@code baseline}, the day the first full program list was
+ * taken. Every change edits the parsed file in place, so fields this mod does not know stay where they are.
+ */
 public final class AppsConfig {
+    public static final int SCHEMA = 4;
     private static final Gson JSON = new GsonBuilder().setPrettyPrinting().setStrictness(Strictness.STRICT).create();
     private static final List<AppDefinition> DEFAULTS = List.of(new AppDefinition(
             "notepad", "Notepad", List.of("notepad.exe"), "minecraft:writable_book", true));
 
     private AppsConfig() { }
     public static List<AppDefinition> defaults() { return DEFAULTS; }
-    public record Loaded(List<AppDefinition> apps, Path migrationBackup) { }
+    /** {@code migrationBackup} is the untouched old file when this load moved it to the current schema. */
+    public record Loaded(List<AppDefinition> apps, Path migrationBackup, LocalDate baseline) { }
+    /**
+     * What a complete program list changed. {@code added} are the IDs the file did not know before, {@code joined}
+     * the ones that became his by the rules; {@code dayOne} says this list set the baseline.
+     */
+    public record Merged(List<AppDefinition> apps, List<String> added, List<String> joined, LocalDate baseline,
+                         boolean dayOne) { }
 
     public static synchronized Loaded load(Path file) throws IOException {
         return load(file, false);
@@ -22,23 +38,36 @@ public final class AppsConfig {
         if (!Files.exists(file)) {
             var defaults = linux ? DEFAULTS.stream().map(AppsConfig::helperOnly).toList() : DEFAULTS;
             save(file, defaults);
-            return new Loaded(defaults, null);
+            return new Loaded(defaults, null, null);
         }
         JsonElement original = read(file);
-        if (!original.isJsonArray()) return new Loaded(parse(original.getAsJsonObject()), null);
+        int version = version(original);
+        if (version == SCHEMA) {
+            var document = original.getAsJsonObject();
+            return new Loaded(parse(document), null, baseline(document));
+        }
         // Validate the entire old file before copying or writing anything.
-        JsonArray entries = original.getAsJsonArray();
-        var document = document(entries.deepCopy());
-        parse(document);
-        Path backup = file.resolveSibling(file.getFileName() + ".schema-1-" + UUID.randomUUID() + ".bak");
-        Files.copy(file, backup);
-        for (JsonElement element : document.getAsJsonArray("apps")) {
+        JsonObject document = version == 1 ? document(original.getAsJsonArray().deepCopy())
+                : original.getAsJsonObject().deepCopy();
+        parseApps(document);
+        if (version == 1) for (JsonElement element : document.getAsJsonArray("apps")) {
             JsonObject app = element.getAsJsonObject();
             app.addProperty("type", linux ? "helper" : "command");
             if (linux) app.remove("command");
         }
+        // His from the start: what is pinned today, and the starters. Everything else waits for the first full
+        // program list (merge). Nothing else in an entry is touched.
+        for (JsonElement element : document.getAsJsonArray("apps")) {
+            JsonObject app = element.getAsJsonObject();
+            if (version < 3 && !app.has("mine")) app.addProperty("mine", app.get("pinned").getAsBoolean()
+                    || MyApps.STARTERS.contains(string(app.get("id"))));
+        }
+        document.addProperty("schemaVersion", SCHEMA);
+        var apps = parse(document);
+        Path backup = file.resolveSibling(file.getFileName() + ".schema-" + version + "-" + UUID.randomUUID() + ".bak");
+        Files.copy(file, backup);
         write(file, document);
-        return new Loaded(parse(document), backup);
+        return new Loaded(apps, backup, baseline(document));
     }
 
     private static AppDefinition helperOnly(AppDefinition app) {
@@ -49,17 +78,36 @@ public final class AppsConfig {
         try (var reader = Files.newBufferedReader(file)) {
             var value = JSON.fromJson(reader, JsonElement.class);
             if (value == null || value.isJsonNull() || !(value.isJsonArray() || value.isJsonObject()))
-                throw new IllegalArgumentException("Expected an app array or schema-2 document");
+                throw new IllegalArgumentException("Expected an app array or a schema document");
             return value;
         } catch (RuntimeException error) {
             throw new IOException("Invalid apps.json; original left intact: " + error.getMessage(), error);
         }
     }
 
+    /** 1 for package 01's bare array, otherwise the document's schemaVersion; anything but 1 to 4 is refused. */
+    private static int version(JsonElement content) throws IOException {
+        if (content.isJsonArray()) return 1;
+        var value = content.getAsJsonObject().get("schemaVersion");
+        String text = value == null ? "" : value.toString();
+        if (text.equals("2")) return 2;
+        if (text.equals("3")) return 3;
+        if (text.equals("4")) return SCHEMA;
+        // A newer mod's file: leave it alone and say so, as every version of this mod does.
+        throw new IOException("Invalid apps.json; original left intact: Unsupported schemaVersion (expected " + SCHEMA + ")");
+    }
+
     private static List<AppDefinition> parse(JsonObject document) throws IOException {
+        if (version(document) != SCHEMA)
+            throw new IOException("Invalid apps.json; original left intact: Unsupported schemaVersion (expected " + SCHEMA + ")");
+        var apps = parseApps(document);
+        baseline(document);
+        return apps;
+    }
+
+    /** The entries by today's rules, whatever the schema number says; a missing {@code mine} reads as his. */
+    private static List<AppDefinition> parseApps(JsonObject document) throws IOException {
         try {
-            if (!document.has("schemaVersion") || !document.get("schemaVersion").toString().equals("2"))
-                throw new IllegalArgumentException("Unsupported schemaVersion (expected 2)");
             List<AppDefinition> apps = new ArrayList<>();
             for (JsonElement element : document.getAsJsonArray("apps")) {
                 JsonObject app = element.getAsJsonObject();
@@ -67,11 +115,14 @@ public final class AppsConfig {
                 try {
                     var command = new ArrayList<String>();
                     if (app.has("command")) for (JsonElement part : app.getAsJsonArray("command")) command.add(string(part));
-                    var pinned = app.get("pinned");
-                    if (pinned == null || !pinned.isJsonPrimitive() || !pinned.getAsJsonPrimitive().isBoolean())
-                        throw new IllegalArgumentException("pinned must be a boolean");
+                    // An entry he wrote by hand has no "mine": he wants it, as with a program he installs.
+                    boolean mine = !app.has("mine") || bool(app, "mine");
                     apps.add(new AppDefinition(id, string(app.get("name")), command, string(app.get("look")),
-                            pinned.getAsBoolean(), optional(app, "type", "command"), optional(app, "url", null), optional(app, "icon", null), identity(app)));
+                            bool(app, "pinned"), optional(app, "type", "command"), optional(app, "url", null),
+                            optional(app, "icon", null), identity(app), mine,
+                            app.has("system") ? JSON.fromJson(app.getAsJsonObject("system"), SystemInfo.class) : null,
+                            app.has("names") ? names(app.getAsJsonArray("names")) : List.of(),
+                            app.has("absent") && bool(app, "absent"), optional(app, "place", null), optional(app, "group", null)));
                 } catch (RuntimeException error) { throw new IllegalArgumentException("App " + id + ": " + error.getMessage(), error); }
             }
             validate(apps);
@@ -81,6 +132,20 @@ public final class AppsConfig {
         }
     }
 
+    private static LocalDate baseline(JsonObject document) throws IOException {
+        if (!document.has("baseline")) return null;
+        try { return LocalDate.parse(string(document.get("baseline"))); }
+        catch (RuntimeException error) {
+            throw new IOException("Invalid apps.json; original left intact: baseline must be a date like 2026-11-13", error);
+        }
+    }
+
+    private static boolean bool(JsonObject app, String key) {
+        var value = app.get(key);
+        if (value == null || !value.isJsonPrimitive() || !value.getAsJsonPrimitive().isBoolean())
+            throw new IllegalArgumentException(key + " must be a boolean");
+        return value.getAsBoolean();
+    }
     private static String optional(JsonObject app, String key, String fallback) {
         return app.has(key) ? string(app.get(key)) : fallback;
     }
@@ -97,86 +162,280 @@ public final class AppsConfig {
             throw new IllegalArgumentException("Expected a string");
         return value.getAsString();
     }
+    private static List<String> names(JsonArray values) {
+        var names = new ArrayList<String>();
+        for (var value : values) names.add(string(value));
+        return names;
+    }
+
     private static void validate(List<AppDefinition> apps) {
         var ids = new HashSet<String>();
-        for (var app : apps) if (!ids.add(app.id())) throw new IllegalArgumentException("Duplicate app id: " + app.id());
+        var held = new HashSet<String>();
+        for (var app : apps) {
+            if (!ids.add(app.id())) throw new IllegalArgumentException("Duplicate app id: " + app.id());
+            for (String name : app.names()) if (!held.add(name))
+                throw new IllegalArgumentException("Duplicate short name: " + name);
+        }
     }
     private static JsonObject document(JsonArray entries) {
         var document = new JsonObject();
-        document.addProperty("schemaVersion", 2);
+        document.addProperty("schemaVersion", SCHEMA);
         document.add("apps", entries);
         return document;
     }
     public static synchronized void save(Path file, List<AppDefinition> apps) throws IOException {
         validate(apps);
-        write(file, document(JSON.toJsonTree(apps).getAsJsonArray()));
+        var entries = new JsonArray();
+        for (var app : apps) entries.add(entry(app));
+        write(file, document(entries));
     }
 
-    /** Preserve owner fields, including unknown optional fields, when adding apps or changing pins. */
+    /** One entry as saved. "absent" is written only while true, so entries of listed programs look as before. */
+    private static JsonObject entry(AppDefinition app) {
+        var entry = JSON.toJsonTree(app).getAsJsonObject();
+        if (!app.absent()) entry.remove("absent");
+        return entry;
+    }
+
+    /** A list without origins: newly discovered starter IDs are his; other programs wait for a detailed list. */
     public static synchronized List<AppDefinition> merge(Path file, List<AppDefinition> discovered) throws IOException {
+        return merge(file, discovered, false, null).apps();
+    }
+
+    /**
+     * Takes in one complete program list. Owner fields, including unknown optional ones, are preserved; new
+     * programs are added without a pin. What the system said about a program replaces what was saved.
+     *
+     * With {@code detailed} (the list says where each program came from) the My-apps rules run: the first such
+     * list is day one and writes the baseline; after it a program the file did not know joins by its origin
+     * ({@link MyApps}). A program the list no longer names keeps its entry and all its fields.
+     */
+    public static synchronized Merged merge(Path file, List<AppDefinition> discovered, boolean detailed, LocalDate today)
+            throws IOException {
+        return merge(file, discovered, detailed, today, false);
+    }
+
+    /**
+     * As above. With {@code presence} the list is the whole truth about what can be opened, as the AresOS app
+     * helper's is on Linux (it owns every launch): a program it does not name is marked {@code absent}, and one it
+     * names again loses the mark. Nothing else of an absent program changes. Lists without it (Windows discovery,
+     * which returns only the shortcuts it found) leave the marks alone, and so does no list at all: while the helper
+     * is down or its list is incomplete, the last complete list stays in force, also across a restart.
+     */
+    public static synchronized Merged merge(Path file, List<AppDefinition> discovered, boolean detailed, LocalDate today,
+                                            boolean presence) throws IOException {
         validate(discovered);
         load(file);
         var document = read(file).getAsJsonObject();
         var existing = new ArrayList<>(parse(document));
+        LocalDate baseline = baseline(document);
+        boolean dayOne = detailed && baseline == null;
+        var added = new ArrayList<String>();
+        var joined = new ArrayList<String>();
         for (var app : discovered) {
             int match = -1;
             for (int i = 0; i < existing.size(); i++) {
-                var old = existing.get(i);
-                if (old.id().equals(app.id())) {
+                if (existing.get(i).id().equals(app.id())) {
                     match = i;
                     break;
                 }
             }
+            JsonObject entry;
+            boolean mine = false;
             if (match >= 0) {
                 // Refresh only our cache paths: moving the game folder must not strand old absolute paths.
                 var oldIcon = existing.get(match).icon();
-                var entry = document.getAsJsonArray("apps").get(match).getAsJsonObject();
+                mine = existing.get(match).mine();
+                entry = document.getAsJsonArray("apps").get(match).getAsJsonObject();
                 if (app.launchIdentity() != null) entry.add("launchIdentity", JSON.toJsonTree(app.launchIdentity()));
                 if (oldIcon == null || autoIcon(oldIcon)) {
                     if (app.icon() == null) entry.remove("icon");
                     else entry.addProperty("icon", app.icon());
                 }
             } else {
-                existing.add(app.withPinned(false));
-                document.getAsJsonArray("apps").add(JSON.toJsonTree(app.withPinned(false)));
+                var fresh = app.withMine(false);
+                existing.add(fresh);
+                entry = entry(fresh);
+                document.getAsJsonArray("apps").add(entry);
+                added.add(app.id());
+            }
+            if (app.system() != null) {
+                if (app.system().isEmpty()) entry.remove("system");
+                else entry.add("system", JSON.toJsonTree(app.system()));
+            }
+            boolean starter = MyApps.STARTERS.contains(app.id());
+            // A starter discovered by 1.0 is his too, but an existing false entry is his own removal.
+            boolean joins = match < 0 && starter || (dayOne
+                    ? MyApps.dayOne(app.id(), app.system()) && !(starter && match >= 0)
+                    : detailed && match < 0 && MyApps.joinsLater(app.system()));
+            if (joins && !mine) {
+                entry.addProperty("mine", true);
+                joined.add(app.id());
+            }
+        }
+        if (dayOne) {
+            baseline = Objects.requireNonNull(today);
+            document.addProperty("baseline", baseline.toString());
+        }
+        if (presence) {
+            var named = new HashSet<String>();
+            for (var app : discovered) named.add(app.id());
+            for (JsonElement element : document.getAsJsonArray("apps")) {
+                JsonObject entry = element.getAsJsonObject();
+                if (named.contains(string(entry.get("id")))) entry.remove("absent");
+                else entry.addProperty("absent", true);
             }
         }
         var result = parse(document);
         writeIfChanged(file, document);
-        return result;
+        return new Merged(result, List.copyOf(added), List.copyOf(joined), baseline, dayOne);
     }
 
     private static boolean autoIcon(String icon) {
         return icon.replace('\\', '/').toLowerCase(Locale.ROOT).contains("/aresos-runtime/discovery/sources/");
     }
 
+    /**
+     * Assign only missing names, and replace names a real command now reserves, for the apps that have commands: his,
+     * and listed by the system. The others keep theirs untouched for their return.
+     */
+    public static synchronized List<AppDefinition> assignNames(Path file, Set<String> commands) throws IOException {
+        load(file);
+        var document = read(file).getAsJsonObject();
+        var apps = parse(document);
+        var held = new HashSet<String>();
+        for (var app : apps) held.addAll(app.names());
+        var order = dev.aresos.names.NameRules.order(apps.stream().filter(app -> app.mine() && !app.absent())
+                .map(dev.aresos.names.NameRules::of).toList());
+        for (var program : order) {
+            int index = 0;
+            while (!apps.get(index).id().equals(program.id())) index++;
+            var app = apps.get(index);
+            held.removeAll(app.names());
+            var kept = app.names().stream().filter(name -> !dev.aresos.names.NameRules.reserved(name, commands)).toList();
+            var updated = new ArrayList<>(kept);
+            if (app.names().isEmpty()) updated.addAll(dev.aresos.names.NameRules.assign(program, held, commands));
+            else if (kept.size() != app.names().size()) {
+                // Apply the rules again for each displaced name. An alias this app already owns is free to reuse.
+                for (int i = 0; i < app.names().size(); i++) if (!kept.contains(app.names().get(i))) {
+                    String replacement = dev.aresos.names.NameRules.main(program, held, commands);
+                    held.add(replacement);
+                    updated.remove(replacement);
+                    updated.add(Math.min(i, updated.size()), replacement);
+                }
+            }
+            held.addAll(updated);
+            document.getAsJsonArray("apps").get(index).getAsJsonObject().add("names", JSON.toJsonTree(updated));
+        }
+        var result = parse(document);
+        writeIfChanged(file, document);
+        return result;
+    }
+
+    /** Adds an owner name as main. Saved names on apps outside My apps still belong to those apps. */
+    public static synchronized List<AppDefinition> name(Path file, String id, String name, Set<String> commands) throws IOException {
+        var document = read(file).getAsJsonObject();
+        var apps = parse(document);
+        var app = apps.stream().filter(entry -> entry.id().equals(id)).findFirst()
+                .orElseThrow(() -> new IOException("Unknown AresOS app: " + id));
+        if (!app.mine()) throw new IOException(app.name() + " is not in My apps. Add it first.");
+        if (app.absent()) throw new IOException(app.name() + " is not installed: the system no longer lists it.");
+        if (!dev.aresos.names.NameRules.valid(name))
+            throw new IOException("Invalid name: use 2 to 16 lower-case letters or digits, starting with a letter.");
+        if (dev.aresos.names.NameRules.reserved(name, commands)) throw new IOException("Reserved command: /" + name);
+        for (var other : apps) if (!other.id().equals(id) && other.names().contains(name))
+            throw new IOException("/" + name + " belongs to " + other.name() + " (" + other.id() + ").");
+        var names = new ArrayList<>(app.names());
+        names.remove(name); names.addFirst(name);
+        document.getAsJsonArray("apps").get(apps.indexOf(app)).getAsJsonObject().add("names", JSON.toJsonTree(names));
+        writeIfChanged(file, document);
+        return parse(document);
+    }
+
+    public static synchronized List<AppDefinition> unname(Path file, String name) throws IOException {
+        var document = read(file).getAsJsonObject();
+        var apps = parse(document);
+        var app = apps.stream().filter(entry -> entry.names().contains(name)).findFirst()
+                .orElseThrow(() -> new IOException("No app holds /" + name));
+        if (app.names().size() == 1) throw new IOException("Cannot remove the last name of " + app.name() + ". Add another name first.");
+        var names = new ArrayList<>(app.names()); names.remove(name);
+        document.getAsJsonArray("apps").get(apps.indexOf(app)).getAsJsonObject().add("names", JSON.toJsonTree(names));
+        writeIfChanged(file, document);
+        return parse(document);
+    }
+
+    /**
+     * Where an app's logo stands (HUB.md 3.5), as {@link #spots} saves it: the place's name, and the group's key only
+     * when he moved the app to that group by hand. Null leaves the field out of the file.
+     */
+    public record Spot(String place, String group) { }
+
+    /**
+     * Saves where each listed app stands: both fields exactly as given, so a null place or group is removed. Apps not
+     * listed and every other field stay as they are.
+     */
+    public static synchronized List<AppDefinition> spots(Path file, Map<String, Spot> spots) throws IOException {
+        return edit(file, spots, "places", (app, spot) -> {
+            if (spot.place() == null) app.remove("place"); else app.addProperty("place", spot.place());
+            if (spot.group() == null) app.remove("group"); else app.addProperty("group", spot.group());
+        });
+    }
+
+    /** Pinning an app makes it his; unpinning changes nothing else. */
     public static synchronized List<AppDefinition> pins(Path file, Map<String, Boolean> changes) throws IOException {
+        return edit(file, changes, "pins", (app, pinned) -> {
+            app.addProperty("pinned", pinned);
+            if (pinned) app.addProperty("mine", true);
+        });
+    }
+
+    /** Adds apps to My apps or takes them out. Taking one out also unpins it: its item leaves the hotbar. */
+    public static synchronized List<AppDefinition> mine(Path file, Map<String, Boolean> changes) throws IOException {
+        return edit(file, changes, "My apps", (app, mine) -> {
+            app.addProperty("mine", mine);
+            if (!mine) app.addProperty("pinned", false);
+        });
+    }
+
+    private static <T> List<AppDefinition> edit(Path file, Map<String, T> changes, String what,
+                                                java.util.function.BiConsumer<JsonObject, T> change) throws IOException {
         var document = read(file).getAsJsonObject();
         var apps = parse(document);
         for (String id : changes.keySet()) if (apps.stream().noneMatch(app -> app.id().equals(id)))
-            throw new IOException("Unknown app id while saving pins: " + id);
+            throw new IOException("Unknown app id while saving " + what + ": " + id);
         for (var element : document.getAsJsonArray("apps")) {
             var app = element.getAsJsonObject();
             String id = string(app.get("id"));
-            if (changes.containsKey(id)) app.addProperty("pinned", changes.get(id));
+            if (changes.containsKey(id)) change.accept(app, changes.get(id));
         }
         writeIfChanged(file, document);
         return parse(document);
     }
-    /** Explicit downgrade recovery; preserve schema-2 edits before restoring the original bytes. */
+
+    /**
+     * Explicit downgrade recovery: puts back the file an older mod wrote, from the backup a schema move made
+     * (package 01's array, or schema 2), after keeping the current file with its later edits beside it.
+     */
     public static synchronized Path restoreLegacy(Path file, Path backup) throws IOException {
         Path target = file.toAbsolutePath().normalize(), original = backup.toAbsolutePath().normalize();
-        if (!target.getParent().equals(original.getParent())
-                || !original.getFileName().toString().startsWith(target.getFileName() + ".schema-1-")
-                || !original.getFileName().toString().endsWith(".bak"))
-            throw new IOException("Choose a sibling schema-1 migration backup");
+        String name = original.getFileName().toString(), prefix = target.getFileName() + ".schema-";
+        boolean first = name.startsWith(prefix + "1-");
+        if (!target.getParent().equals(original.getParent()) || !(first || name.startsWith(prefix + "2-"))
+                || !name.endsWith(".bak"))
+            throw new IOException("Choose a sibling schema-1 or schema-2 migration backup");
         var legacy = read(original);
-        if (!legacy.isJsonArray()) throw new IOException("Backup is not a package-01 app array");
-        parse(document(legacy.getAsJsonArray()));
+        if (first) {
+            if (!legacy.isJsonArray()) throw new IOException("Backup is not a package-01 app array");
+            parseApps(document(legacy.getAsJsonArray()));
+        } else {
+            if (!legacy.isJsonObject() || version(legacy) != 2) throw new IOException("Backup is not a schema-2 apps.json");
+            parseApps(legacy.getAsJsonObject());
+        }
         parse(read(target).getAsJsonObject());
-        Path retained = target.resolveSibling(target.getFileName() + ".schema-2-before-downgrade-" + UUID.randomUUID() + ".bak");
+        Path retained = target.resolveSibling(target.getFileName() + ".schema-" + SCHEMA + "-before-downgrade-"
+                + UUID.randomUUID() + ".bak");
         Files.copy(target, retained);
-        System.err.println("WARNING: restoring the schema-1 backup. Later apps, names and pins remain ONLY in " + retained);
+        System.err.println("WARNING: restoring the older apps.json. Later apps, names, pins and My apps remain ONLY in " + retained);
         atomicBytes(target, Files.readAllBytes(original));
         return retained;
     }

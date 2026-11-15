@@ -1,0 +1,62 @@
+{
+  "run": "43472898643",
+  "source": "899b5887",
+  "chrome": "Google Chrome 157.0.8103.78",
+  "mode": "policy",
+  "ordinary_click_result": {
+    "operation_id": "eae5bf63d4ee4c3c86614b2e90e25179:4a5d29d9c558490396fd1fe09e1c8997",
+    "untrusted_content": {
+      "checked": true,
+      "dispatched": true,
+      "no_change": false,
+      "steps": [
+        {
+          "id": "h1",
+          "kind": "activation",
+          "document": "33ae752ed79730f357ceee8d6954c678",
+          "label": "Delete",
+          "element": "e8",
+          "submitter": null,
+          "cancellable": false,
+          "frame": 0
+        }
+      ],
+      "dialog": null,
+      "uncertain_finish": false,
+      "confirmations": [],
+      "page": {
+        "available": true,
+        "url": "http://fixture.test:8765/?case=review-page&mode=activation-default&kind=svg-animated-href&route=blank&id=post18d-animated-default-svg-animated-href-blank",
+        "title": "Synthetic fixture",
+        "notices": [],
+        "change": {
+          "element": "e6",
+          "name": "Continue",
+          "checked": false,
+          "selected": false,
+          "value": "",
+          "value_more": 0
+        }
+      }
+    },
+    "followups": [
+      {
+        "stopped": true,
+        "unknown": false,
+        "untrusted_content": {
+          "reason": "The page tried to activate 'Delete' by itself; it was stopped. Act on the current control to prepare fresh asking input if wanted. Its non-cancellable default was stopped by neutralising the destination or disabling the submitter."
+        }
+      }
+    ]
+  },
+  "independent_arrivals": [
+    {
+      "time": 1794591122985,
+      "url": "/receive?case=post18d-animated-default-svg-animated-href-blank",
+      "method": "GET",
+      "body": "",
+      "host": "fixture.test:8765"
+    }
+  ],
+  "receiver_sha256": "441c00f8d2d85ed354ed3ceae094fc4b02a91d6785109c8d04b478f005ef9072"
+}

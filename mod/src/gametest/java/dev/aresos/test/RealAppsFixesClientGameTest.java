@@ -28,7 +28,8 @@ public final class RealAppsFixesClientGameTest implements FabricClientGameTest {
         var failures = new ArrayList<String>();
         try {
             Path config = Path.of("real-app-fixtures/07b-apps.json").toAbsolutePath();
-            var app = new AppDefinition("fixture-chest", "Chest fixture", List.of("never-run.exe"), "minecraft:book", false);
+            // One of his apps, so its item belongs in the inventory; it starts unpinned.
+            var app = new AppDefinition("fixture-chest", "Chest fixture", List.of("never-run.exe"), "minecraft:book", false).withMine(true);
             AppsConfig.save(config, List.of(app)); System.setProperty("aresos.appsConfig", config.toString());
             context.runOnClient(client -> AppsTestAccess.aresos$setApps(List.of(app)));
             TestWorldSave save;

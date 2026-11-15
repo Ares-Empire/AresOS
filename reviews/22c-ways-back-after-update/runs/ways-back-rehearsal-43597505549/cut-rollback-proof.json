@@ -1,0 +1,82 @@
+{
+  "stage": "cut-rollback",
+  "watcher": {
+    "status": "frozen",
+    "pid": 18587,
+    "state": "T",
+    "links_before": [
+      [
+        "boot.0",
+        "boot.0.1"
+      ]
+    ],
+    "links_after": [
+      [
+        "boot.0",
+        "boot.0.0"
+      ]
+    ],
+    "stop_after_swap_ms": 0.029,
+    "release_step_ended": true
+  },
+  "journal": {
+    "schema": "change1",
+    "word": "rollback",
+    "status": "intent",
+    "mode": "reorder",
+    "reference": "ghcr.io/ublue-os/bazzite-nvidia-open:stable",
+    "digest": "sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151",
+    "target": [
+      "aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71",
+      1,
+      "default"
+    ],
+    "before": [
+      [
+        "809c481b9f40dc52ffab1aca5b0e9783bed9c287faec434e71c9edf193808f1b",
+        0,
+        "default"
+      ],
+      [
+        "aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71",
+        1,
+        "default"
+      ],
+      [
+        "42e5aea14cb87080fb9a96990b56968578a4a10a79c453c51630c01676d8017c",
+        0,
+        "default"
+      ]
+    ],
+    "intended": [
+      [
+        "aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71",
+        1,
+        "default"
+      ],
+      [
+        "809c481b9f40dc52ffab1aca5b0e9783bed9c287faec434e71c9edf193808f1b",
+        0,
+        "default"
+      ],
+      [
+        "42e5aea14cb87080fb9a96990b56968578a4a10a79c453c51630c01676d8017c",
+        0,
+        "default"
+      ]
+    ],
+    "running": [
+      "809c481b9f40dc52ffab1aca5b0e9783bed9c287faec434e71c9edf193808f1b",
+      0,
+      "default"
+    ]
+  },
+  "order": [
+    "S",
+    "R27",
+    "R13"
+  ],
+  "running": "R27",
+  "reset": "QMP system_reset",
+  "journal_holds": "the intent"
+}

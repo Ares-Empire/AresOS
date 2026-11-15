@@ -1,85 +1,131 @@
-# Control-layer tools: handoff to the AresOS-side session
+# Control-layer tools: the baton
 
-Written 2026-11-12 by `mac-aresos-control` (the Mac lead) for a fresh session on AresOS that takes over the tools,
-for example `linux-tools` with Fable as orchestrator. On AresOS the tools can be tried live, which they can't on the
-Mac.
+Written 2026-11-14 by `linux-tools`, the AresOS-side session that leads the tools since 2026-11-13. It replaces the
+handover `mac-aresos-control` wrote on 2026-11-12. A fresh session that takes over reads this, then `STATE.md`
+(item 6, the control layer), then the board (`board`, topic `tools`). Docs are claims: check `git log`, `gh pr list`
+and `git worktree list` first.
 
-## Read first
+## Who does what
 
-1. `docs/control/PLAN.md`: decisions 23 to 25 and the dated entries from 2026-11-11 (decision 24 clarified, and the
-   owner's five answers, including the change to decision 25).
-2. `docs/design/CONTROL.md` sections 6 (Chrome) and 7 (Claude Code setup).
-3. `docs/REVIEW.md`, "Tools for Claude": the review process for every tool.
-4. The packages' own reports, listed below.
+- **`linux-tools`** (this baton): the tools. `control/`, `docs/control/`, `docs/design/CONTROL.md`, the `control-*`
+  workflows, briefs 18c, 18c-b, 28, 28a, 28b.
+- **`mac-aresos-control`** (Mac): merged the Chrome tool, PR #27, on 2026-11-14 (merge commit `09cedc84`). Chrome is
+  now `linux-tools`' own; the notes it left at the merge are in "Chrome merged" below. It keeps board #185 (the
+  optional owner oracle's re-pin) until it says otherwise.
+- **`linux-aresos`**: `os/`, the accounts and the releases. Every `os/` change is agreed with it first, it reads
+  the `os/` diff before a merge, and it is told before `.github/workflows/os-image.yml` is touched.
+- **`mac-capacity`** (Mac): the owner's coordinator. Ask it for a limit check before starting builders; tell it
+  merges and blockers in one line.
 
-## Where the packages stand
+## Where things stand
 
-| Package | Branch, PR | State | Next |
+| Work | Where | State | Next |
 |---|---|---|---|
-| Mail (19) | `pkg/19-mail`, #9 to `main` | Reviewed through round 29; waits on 19b. | Merge after 19b. |
-| 19b, owner-visible state | `pkg/19b-owner-state`, #26 to `pkg/19-mail` | Stops at stage 2 (owner, 2026-11-11). Its code is restored to the stage-2 head, which all three reviewers called SAFE and CI passed twice. The exhaustive proof becomes an optional check. | One package review and one security review with the new bar, then merge #26, then #9. |
-| 18d, slim base | `pkg/18d-base-slim`, #25 | Ready: both reviews SAFE, CI green twice. | After Mail: merge `main` in, regenerate, CI twice, a fresh re-review, merge. Then board #136. |
-| Chrome (20) | `pkg/20-chrome`, #27 (draft) | Fix round integrated; head `0ae4ac41` green twice. A short re-check with the new bar is running. | Known limits into section 6; after Mail and 18d, merge `main` in, run test group 12 in 18d's harness, merge. |
-| 18c, CI image test | not written | Board #137 and #150. | See "New work". |
+| Brief 18c | `briefs/18c-image-test.md`, on main (PR #42) | Final; the `os/` change agreed with `linux-aresos` (sixteen changes, in the brief). | - |
+| 18c, container part | on main (PR #43) | The unit may reach the network; 17 interactive Claude Code cases in `control-boundary`. | - |
+| 18c, image part | `pkg/18c-image`, `~/AresOS-18c-image`, draft PR #58, start note `briefs/18c-image-start.md` | Green without Chrome (2026-11-14): `check_build=control` twice on `2d1ad22f` (run 43577034725 and its rerun), `check_build=build` once (43581194306); 5 of 5 control runs used. Results, check 6's numbers and the report text in `reviews/18c-image-test/PROGRESS.md`. Its first run found the hook bug fixed by PR #61. | After PR #27: Chrome's two startup files, `SOCKET_MODES` from the merged `daemon.py`, one more VM run (new budget). Then the lead assembles `REPORT.md`, updates the `os/` diff summary, and runs the reviews (Codex from 2026-11-17: package review and high-stakes security review). Then `linux-aresos` reads the `os/` diff, then the owner's yes. |
+| Service fixes | not written | Found by 18c's VM runs: active before its sockets exist (Type=notify), `aresos admin` as `ares` without a sudo hint, 10 idle wake-ups/s, endless restart without a start limit, the outside-folder refusal naming Desktop, and the owner's #254 for the service-down notice. Board #233, #235, #237, #255. | A small brief after PR #27 merges (daemon.py overlaps). |
+| Chrome briefs 28, 28a, 28b | `briefs/28-chrome-capability`, draft PR #48 | Ready to build: three review rounds each, the final package check worked in, the security confirmation READY (`reviews/28-chrome-capability/`). | Merge after PR #27 is on main, checking section 6 against its final names and `KNOWN-LIMITS.md`. |
+| Package 28, step 1 | `pkg/28-chrome-read`, `~/AresOS-28-chrome-read`, cut from `pkg/20-chrome` | The view module (pure Python) on a Fable builder, new files only, no pull request; progress in `reviews/28-chrome-read/PROGRESS.md`. | After PR #27 merges: move the commits onto main, then the next steps of 28 (the reader, the wiring, the baseline), then 28a, then 28b. |
+| Brief 18c-b | not written | Design settled: force-install by policy from a `file:` address inside the image, a fresh signing key per image build that is thrown away, symlinks in `/etc` to files in `/usr`. Research with sources: `~/AresOS-18c-b-extension-research.md` on the laptop (put it into the brief's folder). `mac-aresos-control` has no objection. | Write the brief after PR #27 merges; agree the paths with `linux-aresos`; prove it in the CI VM on the shipped Chrome. Board #223, #224. |
+| Live tests | the laptop | Waits for a release that carries the tools. | Mail onboarding with him first (he signs in himself), a test mail, then Chrome. His own hosts go on Chrome's never-list in that sitting (board #200). |
 
-`reviews/20-chrome/PAUSE.md`, `reviews/20-chrome/REPORT.md`, `reviews/19b-owner-state/PAUSE.md` and
-`reviews/19b-owner-state/REPORT.md` on those branches hold the details.
+## Chrome merged (2026-11-14, notes from `mac-aresos-control`)
 
-The Mac keeps the two Claude leads (19b and Chrome) and their Codex runs until Mail, 18d and Chrome have merged;
-`mac-aresos-control` merges them. After that, everything here belongs to the AresOS-side session.
+PR #27 is on main as a merge commit (`09cedc84`, final head `d25ccbd3`), so `pkg/20-chrome`'s history is intact and
+`pkg/28-chrome-read` (cut at `524173c4`) can move onto main. Final pair: Control Chrome 43641834739 (push) and
+43641839672 (pull request), 28/28 jobs each; base, boundary, qualification, Mail and polkit twice each (full
+reruns). Reviews: rounds 4 and 5 SAFE, package (Opus) and security (Fable), in `reviews/20-chrome/`.
 
-## Decisions to write into `CONTROL.md` section 6
+**Latency.**
+- **Report:** `reviews/20-chrome/REPORT.md`, sections "Latency gate: 60 samples (2026-11-14)", "Step 4" and
+  "Step 6", with receipts in `reviews/20-chrome/records/`.
+- **Gate:** `control/chrome/ci/latency-targets.json`.
+  - Ceilings in ms (median / p95): read 35/60, navigate 100/150, click 650/750, fill 650/750, asking click 60/100,
+    approval to done 700/850.
+  - A median or p95 over its ceiling fails.
+  - Sample counts: `samples_per_call` 60; `old_runtime_samples_per_call` 20, which must match the frozen
+    `latency-reference.json`.
+- **Harness:** in `control/chrome/ci/`, `latency-pair.sh`, `latency-probe.mjs`, `latency-instrument.mjs`,
+  `latency-profile.py`, `latency-summary.py` and `latency-check.py`; plus `control/chrome_tests/latency.test.mjs`.
+- **The 525 ms hold window is unchanged.** A shorter hold is the later package named above.
 
-These were taken while brief 20 was built and are in its reports, not yet in the design:
+**Rules from now on.**
+- **4,096 characters.** Claude Code 2.1.319 passes only the first 4,096 characters of an MCP server's instructions.
+  `control/chrome_tests/test_questions.py` (about line 456) checks every app, `control` included. Brief 28's reader
+  text will press on it.
+- **Partial index.** `operation_open` is built from one definition, `OPEN_OPERATIONS` in `storage.py`. Its plan and
+  timing tests (`test_full_disk_reads`, `test_open_index_timing`) passed on SQLite 3.45.1 (CI) and 3.50.4 (Mac). They
+  must also pass on AresOS's own SQLite, so run the normal Python suite in 18c's image.
+- **Run budget.** The ~280 `control-chrome` runs were `mac-aresos-control`'s guard for #27; about 271 are used,
+  main's run included. Package 28 sets its own.
 
-- **Network.** The tool service may open outgoing connections (`AF_UNIX AF_INET AF_INET6`; Mail's IMAP and SMTP and
-  Chrome's daily record fetch need it). The rest of its sandbox stays. A test pins the unit's sandbox lines.
-- **Popups** opened by a Claude tab follow the reload-on-take rule while their opener is in Claude's group. The
-  opener's toolbar badge marks them, the action popup lists each one with its own Stop, and no window of ours opens.
-- **Dialogs.**
-  - Dialogs opened while Claude controls the tab are answered with the hold armed through the debugger.
-  - A dialog that was already open when Claude took the tab can't be reached in Chrome 157. Claude asks him to
-    answer it himself, and the tool never hangs.
-  - Dialogs opened through a function borrowed from another frame ask, saying the next step isn't held.
-- **A file he picked himself** is bound by the SHA-256 of its bytes, and the question shows its name, size and hash.
-- **Editors in `about:blank` and `srcdoc` frames** are covered by the guard and send after approval.
-- **Paging snapshots** of downloads, history and bookmarks expire after 5 minutes without a page request, or 30 minutes
-  after they were made.
-- **Known limits** from the Chrome re-check: `reviews/20-chrome/KNOWN-LIMITS.md` on the Chrome branch. The re-check
-  that writes it is still running; it must exist before the handover.
-- **The owner's change to decision 25:** Claude works in his open tabs (below).
+**For `pkg/28-chrome-read`'s `KNOWN-LIMITS.md`, word for word** (both round-4 reviewers recorded it):
+"Taking a tab from another normal window while a Claude tab group already exists moves the tab into that group's
+window, because Chrome keeps a tab group in one window; the extension records the tab's original window and position
+and moves it back on release. The harm is that the owner's tab sits in another window while Claude holds it; it is
+accepted with the single-group design, and one group per window is a design question for brief 28b."
 
-## New work (Fable)
+**Follow-ups for 28 or 28b, none blocking.**
+- **Retry advice.** On `requireTab`'s retry for a tab that is already controlled (`background.js`, about line 609,
+  `pending.retry??=lateReader(tab)`), the refusal's "take the tab again" doesn't help: `take_tab` returns early, and
+  the rejected retry stays cached. Say "release and take the tab again", or release on a rejected retry. It's narrow:
+  a dialog or the 5 s timer beat admission.
+- **Hardening.** Match `embedderName` as well as `url` for the injected scripts (`background.js:126`). Pages are
+  already shut out by `isDefault===false`.
+- **`control_status`.** If it ever reaches Claude, review its `installs` rows again.
+- **New fields.** `chrome_tabs` rows now carry Chrome's `audible` and `muted` flags. That's new since the 28 briefs;
+  check section 6 against it.
 
-1. **Chrome capability brief.** The owner wants "a better tool for AresOS that's more efficient with readings,
-   navigation, free tab navigation etc." and not a copy of Claude in Chrome. Candidates:
-   - compact, structured reading of a page with stable element references and no screenshots;
-   - reading several tabs in one call, find-in-page, and paging through long pages;
-   - navigation: open, back, forward, wait until loaded, follow a link by reference;
-   - moving freely between tabs, and opening and closing them;
-   - batched steps, such as filling a form and sending it with one question;
-   - **his own tabs** (decision 25 as changed): Claude sees their titles and addresses and takes the tab his request
-     clearly needs, never an unrelated one, and shows which of his tabs it took. The take rules and the questions for
-     sends, deletes and payments stay. His words: "Although the permission interpretation on this needs to be good."
+**For `linux-aresos`, through 18c and 18c-b** (full text in `control/chrome/packaging/README.md`):
+- **Polkit policy:** `org.aresos.control.chrome-loosen.policy`, installed root-owned with mode 0644 at
+  `/usr/share/polkit-1/actions/`.
+  - The image needs `/usr/bin/pkcheck` and a polkit agent in his session.
+  - 18c-b presses "Allow editing" once with his real agent. The dialog names the site, and a cancelled dialog leaves
+    the site read-only.
+- **Chrome policy:** `policy.json`, in `/etc/opt/chrome/policies/managed/`.
+- **Native host:** `native-host.json`, in `/etc/opt/chrome/native-messaging-hosts/`.
+  - The host launcher is installed with mode 0755, and `native_host.py` beside it with mode 0644.
+- **Excluded sites:** `/etc/aresos/control/chrome-excluded-sites.json`, containing `{"format":1,"hosts":[]}`.
+  - Root-owned, mode 0640, in the service's group.
+  - His own hosts are added in the live test (#200), never in the repo.
+- **Build marker:** the build hash goes into `chrome/build-id.json`.
+- **`gh`:** version 2.102 or newer.
+- **Service unit:** `aresos-toold.service` is byte-identical to `8b7e799c`.
 
-   The brief updates section 6 in the same change and is reviewed by the process in `docs/REVIEW.md`.
-2. **Brief 18c, the CI image test.**
-   - Install the service at `/usr/libexec/aresos-control/`, the `/etc/claude-code` files and
-     `/usr/share/aresos/control/user-mcp.json` into a CI image.
-   - Run Mail against fixture servers, and Chrome's record refresh, under the real `aresos-toold.service`.
-   - The image needs `gh` 2.102 or later.
-   - Agree every `os/` change with the image's session (`laptop-aresos` or its successor) before it runs.
-3. **Live tests on his laptop**, once the tools are installed there, with him present:
-   1. Mail onboarding with his own account. He signs in; the password stays with the tool service.
-   2. A test mail to himself.
-   3. Chrome: a Claude tab (read, navigate, a test form, Stop), then taking one of his own tabs for a request.
+## The owner's answers, written into the briefs (#254: into the service-fix brief)
 
-## Rules that stay
+- #201: Claude may close a tab of his when he asks.
+- #202: the first version reads text only, no screenshots.
+- #203: the tools use `Downloads` and `Documents`.
+- #210 ("Ask first"): typed text in form fields is read only through the asking read.
+- #213: link addresses are shown, sign-in-like values hidden.
+- #216: rich-text editors are read without asking.
+- #254 (2026-11-14, "Quiet unless used"): while the tool service is down, a Claude Code session that never used the tools gets no notice; one that prepared or sent something with them gets one clear notice that the AresOS tools are not running.
 
-- Never force-push and never use `--no-verify`; when the privacy check blocks, fix the content.
-- No personal data, mail-provider names or personal addresses in the repo. Tests never use real accounts or real
-  sites; live tests are his, on his laptop.
-- An image release needs his OK and a rehearsal.
-- Reviewers: Codex while it is available, otherwise a fresh Claude agent on Opus; Fable only for high-stakes reviews
-  (`CLAUDE.md`, "Reviews"). Codex is available until about Sat 2026-11-14 and again from Tue 2026-11-17 10:53 until
-  the plan ends on 2026-11-21.
+**Still his, later:** his yes to "the next release carries the Control tools: a background service, and two
+managed hooks in every Claude Code session on the laptop" before the image part of 18c merges. Ask it with the
+numbers of the ordinary-session check (what a session sees while the service is stopped or failed), in words he
+can picture.
+
+## Decisions of the lead worth knowing
+
+- The image part of 18c is built before PR #27 merges; it is not merged before PR #27 is on main and Chrome's
+  startup files are added.
+- Brief 28 was split in three (reading, acting, his tabs). None reaches the laptop before all three are merged.
+- A shorter hold after each input (about half of a click's 590 ms) is a possible later package with its own
+  security review, weighed after his live test (`briefs/28a-chrome-act.md`, "Out of scope").
+- When `linux-aresos` puts its dispatcher at `/usr/bin/aresos`, Control's wrapper moves to
+  `/usr/libexec/aresos-control/cli` and Control drops its top-level `log` shortcut (board #199).
+
+## How the work runs
+
+- Builders work in steps (`CLAUDE.md`): one fresh agent per step, a `PROGRESS.md` in the package's review folder,
+  restart from the commits. Claude builders can't write `REPORT.md`; the lead folds their progress file into it.
+- Reviews per `docs/REVIEW.md`, "Tools for Claude": a package review and a security review by fresh reviewers, one
+  fix round, a re-check, CI twice. The three Chrome packages and the image part of 18c get a high-stakes security
+  review (Fable 5.2 or Codex's frontier model). Codex's shared allowance is empty until 2026-11-17 10:53 and ends
+  on 2026-11-21.
+- GitHub watchers always with `--interval 60` or longer; the API allowance is shared.
+- Never force-push, never `--no-verify`. No personal data, mail-provider names or real addresses in the repo.
+- Changes to the running laptop (sudo, system settings) only with his explicit OK in the session.

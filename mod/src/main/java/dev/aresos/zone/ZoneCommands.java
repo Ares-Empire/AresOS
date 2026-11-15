@@ -3,22 +3,31 @@ package dev.aresos.zone;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import dev.aresos.AresOs;
+import dev.aresos.hub.HubData;
 import dev.aresos.world.DesktopWorld;
 import dev.aresos.world.HomeSites;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.WeakHashMap;
+import java.util.concurrent.CompletableFuture;
 
 import static com.mojang.brigadier.arguments.StringArgumentType.getString;
 import static com.mojang.brigadier.arguments.StringArgumentType.word;
@@ -40,8 +49,12 @@ public final class ZoneCommands {
     }
 
     public static LiteralArgumentBuilder<CommandSourceStack> logo() {
-        return Commands.literal("logo").then(appArgument()
-                .executes(c -> build(c.getSource(), getString(c, "app"), false))
+        return Commands.literal("logo")
+                .then(Commands.literal("remove").then(Commands.argument("target", word()).suggests((c, b) -> {
+                    b.suggest("here"); AresOs.apps().forEach(app -> b.suggest(app.id())); return b.buildFuture();
+                }).executes(c -> removeLogo(c.getSource(), getString(c, "target")))))
+                .then(appArgument()
+                .executes(c -> gate(c.getSource(), getString(c, "app")))
                 .then(Commands.literal("wall").executes(c -> build(c.getSource(), getString(c, "app"), false)))
                 .then(Commands.literal("floor").executes(c -> build(c.getSource(), getString(c, "app"), true))));
     }
@@ -86,17 +99,146 @@ public final class ZoneCommands {
                         AppZone.exit(selection.dimension, player.position(), box), List.of()));
                 message = "Zone saved for " + target + ". Your current position is its exit, facing the zone.";
             } else if (action.equals("remove")) {
-                int removed = data.remove(z -> target.equals("here") ? z.dimension().equals(player.level().dimension()) && z.box().intersects(player.getBoundingBox()) : z.app().equals(target));
-                message = "Removed " + removed + " zone(s). Logo blocks remain; removed zones no longer protect them.";
+                java.util.function.Predicate<AppZone> named = z -> target.equals("here") ? z.dimension().equals(player.level().dimension()) && z.box().intersects(player.getBoundingBox()) : z.app().equals(target);
+                // A gate's zone goes with its blocks and its sign, never alone; the town's go with their logos.
+                var town = data.zones().stream().filter(named).filter(z -> HubData.town(source.getServer(), z)).toList();
+                long gates = data.zones().stream().filter(named).filter(AppZone::isGate).count();
+                int removed = data.remove(z -> named.test(z) && !z.isGate() && !town.contains(z));
+                message = "Removed " + removed + " zone(s). Logo blocks remain; removed zones no longer protect them."
+                        + (gates > 0 ? " " + gates + " gate(s) stay: /aresos logo remove takes a gate down." : "")
+                        + town.stream().map(z -> " " + townLogo(z.app())).collect(java.util.stream.Collectors.joining());
             } else {
                 source.sendSuccess(() -> Component.literal("AresOS zones: " + data.zones().size()), false);
                 for (var zone : data.zones()) source.sendSuccess(() -> Component.literal(zone.app() + " | " + zone.dimension().identifier()
                         + " | " + zone.min().toShortString() + " to " + zone.max().toShortString()
-                        + " | exit " + zone.exit().position()), false);
+                        + " | exit " + zone.exit().position() + (zone.isGate() ? " | gate" : HubData.town(source.getServer(), zone) ? " | town" : "")), false);
                 return 1;
             }
             source.sendSuccess(() -> Component.literal(message), false); return 1;
         } catch (IOException | IllegalArgumentException error) { source.sendFailure(Component.literal(error.getMessage())); return 0; }
+    }
+
+    /**
+     * A gate {@code /aresos logo <app>} builds once its picture has been read: who asked, where he stood and which
+     * way he looked, and the picture being read.
+     */
+    private record Order(CommandSourceStack source, ServerPlayer player, ServerLevel level, BlockPos feet, Vec3 position, Direction facing,
+                         String app, CompletableFuture<Map<String, GatePicture>> picture, int tick) { }
+    // Server thread only, like the servers themselves.
+    private static final Map<MinecraftServer, List<Order>> ORDERS = new WeakHashMap<>();
+
+    public static void register() {
+        ServerTickEvents.END_SERVER_TICK.register(ZoneCommands::tick);
+        // A stopping server builds nothing more; its pictures are dropped with it (PictureReader).
+        ServerLifecycleEvents.SERVER_STOPPING.register(ORDERS::remove);
+    }
+
+    /** How many gates {@code /aresos logo} builds once their pictures are read. */
+    public static int ordered(MinecraftServer server) {
+        var orders = ORDERS.get(server);
+        return orders == null ? 0 : orders.size();
+    }
+
+    /**
+     * {@code /aresos logo <app>} (review fixes 1, step B, point 3): the picture is read and turned into blocks on the
+     * reader thread, never on the server thread; the gate is planned, checked and built in a later tick ({@link #tick}).
+     */
+    private static int gate(CommandSourceStack source, String id) throws CommandSyntaxException {
+        var player = host(source); if (player == null) return 0;
+        var app = AresOs.app(id);
+        if (app == null) { source.sendFailure(Component.literal("Unknown AresOS app")); return 0; }
+        var server = source.getServer();
+        var picture = PictureReader.of(server).read(List.of(app), read -> GateBuilder.picture(read, GateNumbers.SIZE));
+        ORDERS.computeIfAbsent(server, ignored -> new ArrayList<>()).add(new Order(source, player, player.level(), player.blockPosition(),
+                player.position(), player.getDirection(), id, picture, server.getTickCount()));
+        return 1;
+    }
+
+    /** Server thread, every tick: builds the gates whose pictures are in, from a tick after the one they were asked in. */
+    private static void tick(MinecraftServer server) {
+        var orders = ORDERS.get(server);
+        if (orders == null || orders.isEmpty()) return;
+        for (var order : List.copyOf(orders)) {
+            if (!order.picture().isDone() || server.getTickCount() <= order.tick()) continue;
+            orders.remove(order);
+            finish(server, order);
+        }
+    }
+
+    /**
+     * Builds an ordered gate while everything is as it was asked: the same world and he, still the host, standing in
+     * the same block and looking the same way. Otherwise one line, and nothing is built.
+     */
+    private static void finish(MinecraftServer server, Order order) {
+        var source = order.source();
+        var player = order.player();
+        GatePicture picture;
+        try {
+            picture = order.picture().join().get(order.app());
+        } catch (RuntimeException unread) {
+            picture = null;
+        }
+        var app = AresOs.app(order.app());
+        String name = app == null ? order.app() : app.name();
+        if (picture == null) { source.sendFailure(Component.literal("Logo refused: the picture of " + name + " could not be read. Nothing was built.")); return; }
+        boolean same = server.getLevel(order.level().dimension()) == order.level() && !player.isRemoved()
+                && server.getPlayerList().getPlayer(player.getUUID()) == player && player.level() == order.level();
+        if (!same) { source.sendFailure(Component.literal("Logo refused: you left the world while the picture of " + name + " was read. Nothing was built.")); return; }
+        if (!player.blockPosition().equals(order.feet()) || player.getDirection() != order.facing()) {
+            source.sendFailure(Component.literal("Logo refused: you moved while the picture of " + name + " was read. Nothing was built; stand still and try again."));
+            return;
+        }
+        try {
+            if (host(source) == null) return;
+            if (app == null) { source.sendFailure(Component.literal("Unknown AresOS app")); return; }
+            var built = GateBuilder.build(order.level(), order.app(), GateBuilder.planInFrontOf(order.position(), order.facing(), order.level().dimension(), app, picture));
+            boolean doormat = built.gate().map(gate -> !gate.ground().isEmpty()).orElse(false);
+            source.sendSuccess(() -> Component.literal("Built the gate of " + app.name() + ". Step into its doorway to open it; closing it puts you back here."
+                    + (doormat ? "" : " No doormat: the floor at the door isn't untouched ground.")
+                    + " /aresos logo remove " + order.app() + " takes it down."), false);
+        } catch (CommandSyntaxException | IOException | RuntimeException error) { source.sendFailure(Component.literal("Logo refused: " + error.getMessage())); }
+    }
+
+    /** Takes down the gates of an app, or the one he stands at. An older wall or floor only loses its zone, as with `zone remove`. */
+    private static int removeLogo(CommandSourceStack source, String target) throws CommandSyntaxException {
+        var player = host(source); if (player == null) return 0;
+        var data = ZoneData.get(source.getServer());
+        boolean here = target.equals("here");
+        var town = data.zones().stream().filter(zone -> HubData.town(source.getServer(), zone))
+                .filter(zone -> !here ? zone.app().equals(target) : zone.dimension().equals(player.level().dimension())
+                        && zone.area().intersects(player.getBoundingBox())).toList();
+        // The town's logos are the town's: this command leaves them standing and says what takes one down.
+        for (var zone : town) source.sendFailure(Component.literal(townLogo(zone.app())));
+        var logos = data.zones().stream().filter(zone -> zone.isGate() || !zone.blocks().isEmpty())
+                .filter(zone -> !here ? zone.app().equals(target) : zone.dimension().equals(player.level().dimension())
+                        && (zone.isGate() ? zone.area() : zone.box()).intersects(player.getBoundingBox())).toList();
+        if (logos.isEmpty() && !town.isEmpty()) return 0;
+        if (logos.isEmpty()) {
+            source.sendFailure(Component.literal(here ? "No logo here. Stand at its door, or name the app." : "No logo of " + target + " stands in this world."));
+            return 0;
+        }
+        int done = 0;
+        for (var zone : logos) {
+            if (!zone.isGate()) {
+                data.remove(saved -> saved.id().equals(zone.id()));
+                source.sendSuccess(() -> Component.literal("Removed the zone of " + zone.app() + "'s older wall or floor logo. Its blocks stay and are no longer protected."), false);
+                done++;
+                continue;
+            }
+            try {
+                var removal = GateBuilder.remove(source.getServer(), zone);
+                source.sendSuccess(() -> Component.literal(tookDown(zone, removal)), false);
+                done++;
+            } catch (IOException | RuntimeException error) { source.sendFailure(Component.literal(error.getMessage())); }
+        }
+        return done;
+    }
+
+    /** What he is told when a zone command meets a logo of the town. */
+    static String townLogo(String app) {
+        var definition = AresOs.app(app);
+        return "The logo of " + (definition == null ? app : definition.name()) + " belongs to the town and stays: /aresos app remove "
+                + app + " takes it down.";
     }
 
     private static int build(CommandSourceStack source, String id, boolean floor) throws CommandSyntaxException {
@@ -110,5 +252,19 @@ public final class ZoneCommands {
                     + " logo for " + id + ". Zone saved; return exit is where you stood."), false);
             return 1;
         } catch (IOException | RuntimeException error) { source.sendFailure(Component.literal("Logo refused: " + error.getMessage())); return 0; }
+    }
+
+    /**
+     * The one line {@code /aresos logo remove} says about a gate it took down: the blocks removed, those he changed,
+     * and a sign that stays because it is his (review fixes 2, point 2).
+     */
+    public static String tookDown(AppZone zone, GateBuilder.Removal removal) {
+        String sign = switch (removal.sign()) {
+            case NONE -> "";
+            case CHANGED -> " Its sign stays: it is not the one the gate was built with, so it is yours.";
+            case UNRECORDED -> " Its sign stays and is yours: this gate's record is from an older AresOS and does not say what the sign said.";
+        };
+        return "Took down the gate of " + zone.app() + ": " + removal.removed() + " blocks removed"
+                + (removal.kept() > 0 ? ", " + removal.kept() + " that you changed stay." : ".") + sign;
     }
 }

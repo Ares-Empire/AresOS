@@ -184,7 +184,8 @@ class CommandTest(unittest.TestCase):
 
     def pair(self):
         state, saved, _ = common.RefusalTest().pair()
-        state.update(keyboard=self.state['keyboard'])
+        state.update(keyboard=self.read()['keyboard'],
+                     kargs='quiet ostree=/ostree/boot.1/aresos/0', paused=True)
         self.state = state
         self.write()
         self.tools.save('prepared', saved)

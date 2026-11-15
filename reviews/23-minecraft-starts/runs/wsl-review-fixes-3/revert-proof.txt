@@ -1,0 +1,25 @@
+Package 23 review fixes 3: each fix reverted alone (interfaces kept), then only that finding's tests.
+WSL Ubuntu 24.04, Python 3.12, copies of the working tree (without os/manifest, which these tests do not read).
+
+== test_aresos_desktop.py: Ran 124 tests OK
+== finding 1 (who stopped Java decides, after acceptance too)
+  test_a_sigkill_after_acceptance_with_a_lost_answer_latches [RestartPolicyTest] [report] ... FAIL
+  test_a_kill_after_acceptance_with_a_lost_answer_latches [LoopTest] ... FAIL
+  fails: AssertionError: Tuples differ: ('STARTING', 'restarting', False) != ('RECOVERY', 'killed', True)
+  fails: AssertionError: timed out; state RECOVERY crashes; log helper aresdesktop-8495a868252a <nonce>
+  Ran 2 tests in 40.026s / FAILED (failures=2)
+== finding 2 (the wait covers the wrapper's stop; a late report counts)
+  test_the_wait_for_a_lost_hand_off_covers_the_wrappers_stop [RestartPolicyTest] ... FAIL
+  test_a_late_report_still_explains_an_unexplained_start [RestartPolicyTest] (stopped=True, status=-9) ... FAIL
+  test_a_late_report_still_explains_an_unexplained_start [RestartPolicyTest] (stopped=False, status=1) ... FAIL
+  test_a_lost_hand_off_with_a_java_that_delays_sigterm [LoopTest] ... FAIL
+  test_a_lost_hand_off_with_a_java_that_ignores_sigterm [LoopTest] ... FAIL
+  fails: AssertionError: 2.0 not greater than 15.0
+  fails: AssertionError: Tuples differ: ('RECOVERY', 'killed', True) != ('STARTING', 'restarting', False)
+  fails: AssertionError: timed out; state RECOVERY killed; log --launch AresDesktop --world AresHub
+  Ran 4 tests in 85.401s / FAILED (failures=5)
+== finding 3 (a sampling gap is not clear time)
+  test_a_gap_in_sampling_starts_the_clear_minute_again [RestartPolicyTest] ... FAIL
+  fails: AssertionError: True is not false
+  Ran 1 test in 0.058s / FAILED (failures=1)
+fixes whose tests all passed when reverted (no proof): none

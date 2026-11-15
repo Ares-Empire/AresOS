@@ -1,0 +1,767 @@
+{
+  "overall": "NOT GREEN",
+  "opening_chrome_runs": 186,
+  "opening_chrome_executions": 187,
+  "added_chrome_runs": [
+    43233245069,
+    43234399794,
+    43237751838,
+    43246458316,
+    43246493921,
+    43247784103,
+    43248197704,
+    43248850718,
+    43248868183
+  ],
+  "closing_chrome_runs": 195,
+  "closing_chrome_executions": 196,
+  "cap_approximate": 215,
+  "notes": [
+    "All browser tests use control-chrome.yml Linux containers.",
+    "All completed results were collected after one blocking watcher per run.",
+    "No final-head acceptance pair; shared results are historical.",
+    "Own cancelled runs 43234399794, 43237751838, 43248850718.",
+    "GitHub replaced pending runs 43246458316 and 43247784103."
+  ],
+  "runs": [
+    {
+      "id": 43233245069,
+      "workflow": "Control Chrome",
+      "event": "push",
+      "source": "375a12fd496546824c33eb764877f6fd19d69f66",
+      "conclusion": "failure",
+      "watch_exit": 1,
+      "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43233245069",
+      "jobs": [
+        {
+          "id": 131233779064,
+          "name": "fixtures (external)",
+          "conclusion": "failure",
+          "started": "2026-11-12T14:03:22Z",
+          "completed": "2026-11-12T14:04:49Z",
+          "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43233245069/job/131233779064"
+        },
+        {
+          "id": 131233779546,
+          "name": "fixtures (policy)",
+          "conclusion": "failure",
+          "started": "2026-11-12T14:03:22Z",
+          "completed": "2026-11-12T14:04:37Z",
+          "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43233245069/job/131233779546"
+        }
+      ]
+    },
+    {
+      "id": 43233379921,
+      "workflow": "Control base",
+      "event": "workflow_dispatch",
+      "source": "375a12fd496546824c33eb764877f6fd19d69f66",
+      "conclusion": "success",
+      "watch_exit": 0,
+      "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43233379921",
+      "jobs": [
+        {
+          "id": 131234256183,
+          "name": "containers",
+          "conclusion": "success",
+          "started": "2026-11-12T14:04:11Z",
+          "completed": "2026-11-12T14:08:46Z",
+          "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43233379921/job/131234256183"
+        }
+      ]
+    },
+    {
+      "id": 43233384752,
+      "workflow": "Control Mail",
+      "event": "workflow_dispatch",
+      "source": "375a12fd496546824c33eb764877f6fd19d69f66",
+      "conclusion": "success",
+      "watch_exit": 0,
+      "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43233384752",
+      "jobs": [
+        {
+          "id": 131234280922,
+          "name": "containers",
+          "conclusion": "success",
+          "started": "2026-11-12T14:04:13Z",
+          "completed": "2026-11-12T14:26:16Z",
+          "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43233384752/job/131234280922"
+        },
+        {
+          "id": 131234281237,
+          "name": "sweep (3)",
+          "conclusion": "success",
+          "started": "2026-11-12T14:04:13Z",
+          "completed": "2026-11-12T14:15:34Z",
+          "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43233384752/job/131234281237"
+        },
+        {
+          "id": 131234281347,
+          "name": "sweep (0)",
+          "conclusion": "success",
+          "started": "2026-11-12T14:04:13Z",
+          "completed": "2026-11-12T14:22:08Z",
+          "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43233384752/job/131234281347"
+        },
+        {
+          "id": 131234281374,
+          "name": "sweep (2)",
+          "conclusion": "success",
+          "started": "2026-11-12T14:04:13Z",
+          "completed": "2026-11-12T14:13:57Z",
+          "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43233384752/job/131234281374"
+        },
+        {
+          "id": 131234281480,
+          "name": "sweep (1)",
+          "conclusion": "success",
+          "started": "2026-11-12T14:04:13Z",
+          "completed": "2026-11-12T14:16:27Z",
+          "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43233384752/job/131234281480"
+        }
+      ]
+    },
+    {
+      "id": 43233389116,
+      "workflow": "Control boundary",
+      "event": "workflow_dispatch",
+      "source": "375a12fd496546824c33eb764877f6fd19d69f66",
+      "conclusion": "success",
+      "watch_exit": 0,
+      "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43233389116",
+      "jobs": [
+        {
+          "id": 131234284050,
+          "name": "hostile",
+          "conclusion": "success",
+          "started": "2026-11-12T14:04:13Z",
+          "completed": "2026-11-12T14:07:41Z",
+          "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43233389116/job/131234284050"
+        }
+      ]
+    },
+    {
+      "id": 43233392992,
+      "workflow": "Control Chrome qualification",
+      "event": "workflow_dispatch",
+      "source": "375a12fd496546824c33eb764877f6fd19d69f66",
+      "conclusion": "failure",
+      "watch_exit": 1,
+      "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43233392992",
+      "jobs": [
+        {
+          "id": 131234299371,
+          "name": "qualification-tests",
+          "conclusion": "failure",
+          "started": "2026-11-12T14:04:15Z",
+          "completed": "2026-11-12T14:04:39Z",
+          "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43233392992/job/131234299371"
+        },
+        {
+          "id": 131234300013,
+          "name": "delivery-attestation",
+          "conclusion": "success",
+          "started": "2026-11-12T14:04:15Z",
+          "completed": "2026-11-12T14:05:48Z",
+          "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43233392992/job/131234300013"
+        },
+        {
+          "id": 131234301628,
+          "name": "qualification-pairs",
+          "conclusion": "skipped",
+          "started": "2026-11-12T14:04:13Z",
+          "completed": "2026-11-12T14:04:13Z",
+          "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43233392992/job/131234301628"
+        },
+        {
+          "id": 131234302596,
+          "name": "qualification-plan",
+          "conclusion": "skipped",
+          "started": "2026-11-12T14:04:13Z",
+          "completed": "2026-11-12T14:04:13Z",
+          "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43233392992/job/131234302596"
+        },
+        {
+          "id": 131235231368,
+          "name": "qualification-publish",
+          "conclusion": "skipped",
+          "started": "2026-11-12T14:05:48Z",
+          "completed": "2026-11-12T14:05:48Z",
+          "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43233392992/job/131235231368"
+        }
+      ]
+    },
+    {
+      "id": 43234399794,
+      "workflow": "Control Chrome",
+      "event": "push",
+      "source": "60f96a3cc8691e38913de431d3e9fadccce0cda2",
+      "conclusion": "cancelled",
+      "watch_exit": 1,
+      "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43234399794",
+      "jobs": [
+        {
+          "id": 131237794233,
+          "name": "fixtures (policy)",
+          "conclusion": "cancelled",
+          "started": "2026-11-12T14:10:13Z",
+          "completed": "2026-11-12T14:18:53Z",
+          "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43234399794/job/131237794233"
+        },
+        {
+          "id": 131237794882,
+          "name": "fixtures (external)",
+          "conclusion": "cancelled",
+          "started": "2026-11-12T14:10:13Z",
+          "completed": "2026-11-12T14:18:54Z",
+          "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43234399794/job/131237794882"
+        }
+      ]
+    },
+    {
+      "id": 43234635831,
+      "workflow": "Control base",
+      "event": "workflow_dispatch",
+      "source": "60f96a3cc8691e38913de431d3e9fadccce0cda2",
+      "conclusion": "success",
+      "watch_exit": 0,
+      "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43234635831",
+      "jobs": [
+        {
+          "id": 131238627238,
+          "name": "containers",
+          "conclusion": "success",
+          "started": "2026-11-12T14:11:37Z",
+          "completed": "2026-11-12T14:16:07Z",
+          "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43234635831/job/131238627238"
+        }
+      ]
+    },
+    {
+      "id": 43234640921,
+      "workflow": "Control boundary",
+      "event": "workflow_dispatch",
+      "source": "60f96a3cc8691e38913de431d3e9fadccce0cda2",
+      "conclusion": "success",
+      "watch_exit": 0,
+      "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43234640921",
+      "jobs": [
+        {
+          "id": 131238646738,
+          "name": "hostile",
+          "conclusion": "success",
+          "started": "2026-11-12T14:11:39Z",
+          "completed": "2026-11-12T14:14:52Z",
+          "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43234640921/job/131238646738"
+        }
+      ]
+    },
+    {
+      "id": 43234645343,
+      "workflow": "Control Chrome qualification",
+      "event": "workflow_dispatch",
+      "source": "60f96a3cc8691e38913de431d3e9fadccce0cda2",
+      "conclusion": "success",
+      "watch_exit": 0,
+      "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43234645343",
+      "jobs": [
+        {
+          "id": 131238662466,
+          "name": "qualification-tests",
+          "conclusion": "success",
+          "started": "2026-11-12T14:11:41Z",
+          "completed": "2026-11-12T14:12:03Z",
+          "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43234645343/job/131238662466"
+        },
+        {
+          "id": 131238662984,
+          "name": "delivery-attestation",
+          "conclusion": "success",
+          "started": "2026-11-12T14:11:41Z",
+          "completed": "2026-11-12T14:13:23Z",
+          "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43234645343/job/131238662984"
+        },
+        {
+          "id": 131238665125,
+          "name": "qualification-plan",
+          "conclusion": "skipped",
+          "started": "2026-11-12T14:11:39Z",
+          "completed": "2026-11-12T14:11:39Z",
+          "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43234645343/job/131238665125"
+        },
+        {
+          "id": 131238667477,
+          "name": "qualification-pairs",
+          "conclusion": "skipped",
+          "started": "2026-11-12T14:11:39Z",
+          "completed": "2026-11-12T14:11:39Z",
+          "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43234645343/job/131238667477"
+        },
+        {
+          "id": 131239702501,
+          "name": "qualification-publish",
+          "conclusion": "skipped",
+          "started": "2026-11-12T14:13:23Z",
+          "completed": "2026-11-12T14:13:23Z",
+          "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43234645343/job/131239702501"
+        }
+      ]
+    },
+    {
+      "id": 43235135506,
+      "workflow": "Control base",
+      "event": "workflow_dispatch",
+      "source": "60f96a3cc8691e38913de431d3e9fadccce0cda2",
+      "conclusion": "success",
+      "watch_exit": 0,
+      "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43235135506",
+      "jobs": [
+        {
+          "id": 131241349222,
+          "name": "containers",
+          "conclusion": "success",
+          "started": "2026-11-12T14:16:10Z",
+          "completed": "2026-11-12T14:20:09Z",
+          "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43235135506/job/131241349222"
+        }
+      ]
+    },
+    {
+      "id": 43235139656,
+      "workflow": "Control boundary",
+      "event": "workflow_dispatch",
+      "source": "60f96a3cc8691e38913de431d3e9fadccce0cda2",
+      "conclusion": "success",
+      "watch_exit": 0,
+      "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43235139656",
+      "jobs": [
+        {
+          "id": 131240395219,
+          "name": "hostile",
+          "conclusion": "success",
+          "started": "2026-11-12T14:14:35Z",
+          "completed": "2026-11-12T14:17:56Z",
+          "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43235139656/job/131240395219"
+        }
+      ]
+    },
+    {
+      "id": 43235145455,
+      "workflow": "Control Chrome qualification",
+      "event": "workflow_dispatch",
+      "source": "60f96a3cc8691e38913de431d3e9fadccce0cda2",
+      "conclusion": "success",
+      "watch_exit": 0,
+      "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43235145455",
+      "jobs": [
+        {
+          "id": 131240415346,
+          "name": "delivery-attestation",
+          "conclusion": "success",
+          "started": "2026-11-12T14:14:38Z",
+          "completed": "2026-11-12T14:16:27Z",
+          "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43235145455/job/131240415346"
+        },
+        {
+          "id": 131240415940,
+          "name": "qualification-tests",
+          "conclusion": "success",
+          "started": "2026-11-12T14:14:37Z",
+          "completed": "2026-11-12T14:14:59Z",
+          "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43235145455/job/131240415940"
+        },
+        {
+          "id": 131240417649,
+          "name": "qualification-plan",
+          "conclusion": "skipped",
+          "started": "2026-11-12T14:14:35Z",
+          "completed": "2026-11-12T14:14:35Z",
+          "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43235145455/job/131240417649"
+        },
+        {
+          "id": 131240418325,
+          "name": "qualification-pairs",
+          "conclusion": "skipped",
+          "started": "2026-11-12T14:14:35Z",
+          "completed": "2026-11-12T14:14:35Z",
+          "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43235145455/job/131240418325"
+        },
+        {
+          "id": 131241554667,
+          "name": "qualification-publish",
+          "conclusion": "skipped",
+          "started": "2026-11-12T14:16:28Z",
+          "completed": "2026-11-12T14:16:28Z",
+          "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43235145455/job/131241554667"
+        }
+      ]
+    },
+    {
+      "id": 43237751838,
+      "workflow": "Control Chrome",
+      "event": "push",
+      "source": "928923183425c238f81b1c3e7d4ebf08ae0dd119",
+      "conclusion": "cancelled",
+      "watch_exit": 1,
+      "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43237751838",
+      "jobs": [
+        {
+          "id": 131249606375,
+          "name": "fixtures (external)",
+          "conclusion": "cancelled",
+          "started": "2026-11-12T14:29:45Z",
+          "completed": "2026-11-12T15:36:21Z",
+          "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43237751838/job/131249606375"
+        },
+        {
+          "id": 131249606752,
+          "name": "fixtures (policy)",
+          "conclusion": "cancelled",
+          "started": "2026-11-12T14:29:45Z",
+          "completed": "2026-11-12T15:36:21Z",
+          "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43237751838/job/131249606752"
+        }
+      ]
+    },
+    {
+      "id": 43237786471,
+      "workflow": "Control base",
+      "event": "workflow_dispatch",
+      "source": "928923183425c238f81b1c3e7d4ebf08ae0dd119",
+      "conclusion": "success",
+      "watch_exit": 0,
+      "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43237786471",
+      "jobs": [
+        {
+          "id": 131249799575,
+          "name": "containers",
+          "conclusion": "success",
+          "started": "2026-11-12T14:30:05Z",
+          "completed": "2026-11-12T14:34:39Z",
+          "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43237786471/job/131249799575"
+        }
+      ]
+    },
+    {
+      "id": 43237791623,
+      "workflow": "Control Mail",
+      "event": "workflow_dispatch",
+      "source": "928923183425c238f81b1c3e7d4ebf08ae0dd119",
+      "conclusion": "success",
+      "watch_exit": 0,
+      "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43237791623",
+      "jobs": [
+        {
+          "id": 131249764717,
+          "name": "containers",
+          "conclusion": "success",
+          "started": "2026-11-12T14:30:01Z",
+          "completed": "2026-11-12T14:51:22Z",
+          "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43237791623/job/131249764717"
+        },
+        {
+          "id": 131249765201,
+          "name": "sweep (0)",
+          "conclusion": "success",
+          "started": "2026-11-12T14:30:01Z",
+          "completed": "2026-11-12T14:43:47Z",
+          "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43237791623/job/131249765201"
+        },
+        {
+          "id": 131249765212,
+          "name": "sweep (1)",
+          "conclusion": "success",
+          "started": "2026-11-12T14:30:01Z",
+          "completed": "2026-11-12T14:47:51Z",
+          "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43237791623/job/131249765212"
+        },
+        {
+          "id": 131249765344,
+          "name": "sweep (2)",
+          "conclusion": "success",
+          "started": "2026-11-12T14:30:01Z",
+          "completed": "2026-11-12T14:40:41Z",
+          "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43237791623/job/131249765344"
+        },
+        {
+          "id": 131249765488,
+          "name": "sweep (3)",
+          "conclusion": "success",
+          "started": "2026-11-12T14:30:01Z",
+          "completed": "2026-11-12T14:39:32Z",
+          "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43237791623/job/131249765488"
+        }
+      ]
+    },
+    {
+      "id": 43237796656,
+      "workflow": "Control boundary",
+      "event": "workflow_dispatch",
+      "source": "928923183425c238f81b1c3e7d4ebf08ae0dd119",
+      "conclusion": "success",
+      "watch_exit": 0,
+      "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43237796656",
+      "jobs": [
+        {
+          "id": 131249784981,
+          "name": "hostile",
+          "conclusion": "success",
+          "started": "2026-11-12T14:30:03Z",
+          "completed": "2026-11-12T14:33:17Z",
+          "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43237796656/job/131249784981"
+        }
+      ]
+    },
+    {
+      "id": 43237802153,
+      "workflow": "Control Chrome qualification",
+      "event": "workflow_dispatch",
+      "source": "928923183425c238f81b1c3e7d4ebf08ae0dd119",
+      "conclusion": "success",
+      "watch_exit": 0,
+      "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43237802153",
+      "jobs": [
+        {
+          "id": 131249803955,
+          "name": "delivery-attestation",
+          "conclusion": "success",
+          "started": "2026-11-12T14:30:08Z",
+          "completed": "2026-11-12T14:31:44Z",
+          "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43237802153/job/131249803955"
+        },
+        {
+          "id": 131249804678,
+          "name": "qualification-tests",
+          "conclusion": "success",
+          "started": "2026-11-12T14:30:05Z",
+          "completed": "2026-11-12T14:30:26Z",
+          "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43237802153/job/131249804678"
+        },
+        {
+          "id": 131249806555,
+          "name": "qualification-plan",
+          "conclusion": "skipped",
+          "started": "2026-11-12T14:30:03Z",
+          "completed": "2026-11-12T14:30:03Z",
+          "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43237802153/job/131249806555"
+        },
+        {
+          "id": 131249807316,
+          "name": "qualification-pairs",
+          "conclusion": "skipped",
+          "started": "2026-11-12T14:30:03Z",
+          "completed": "2026-11-12T14:30:03Z",
+          "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43237802153/job/131249807316"
+        },
+        {
+          "id": 131250864137,
+          "name": "qualification-publish",
+          "conclusion": "skipped",
+          "started": "2026-11-12T14:31:44Z",
+          "completed": "2026-11-12T14:31:44Z",
+          "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43237802153/job/131250864137"
+        }
+      ]
+    },
+    {
+      "id": 43238358989,
+      "workflow": "Control Chrome qualification",
+      "event": "workflow_dispatch",
+      "source": "928923183425c238f81b1c3e7d4ebf08ae0dd119",
+      "conclusion": "success",
+      "watch_exit": 0,
+      "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43238358989",
+      "jobs": [
+        {
+          "id": 131251735929,
+          "name": "qualification-tests",
+          "conclusion": "success",
+          "started": "2026-11-12T14:33:11Z",
+          "completed": "2026-11-12T14:33:35Z",
+          "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43238358989/job/131251735929"
+        },
+        {
+          "id": 131251736513,
+          "name": "delivery-attestation",
+          "conclusion": "success",
+          "started": "2026-11-12T14:33:11Z",
+          "completed": "2026-11-12T14:34:49Z",
+          "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43238358989/job/131251736513"
+        },
+        {
+          "id": 131251738230,
+          "name": "qualification-plan",
+          "conclusion": "skipped",
+          "started": "2026-11-12T14:33:09Z",
+          "completed": "2026-11-12T14:33:09Z",
+          "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43238358989/job/131251738230"
+        },
+        {
+          "id": 131251739863,
+          "name": "qualification-pairs",
+          "conclusion": "skipped",
+          "started": "2026-11-12T14:33:09Z",
+          "completed": "2026-11-12T14:33:09Z",
+          "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43238358989/job/131251739863"
+        },
+        {
+          "id": 131252775865,
+          "name": "qualification-publish",
+          "conclusion": "skipped",
+          "started": "2026-11-12T14:34:50Z",
+          "completed": "2026-11-12T14:34:49Z",
+          "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43238358989/job/131252775865"
+        }
+      ]
+    },
+    {
+      "id": 43238806202,
+      "workflow": "Control base",
+      "event": "workflow_dispatch",
+      "source": "928923183425c238f81b1c3e7d4ebf08ae0dd119",
+      "conclusion": "success",
+      "watch_exit": 0,
+      "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43238806202",
+      "jobs": [
+        {
+          "id": 131253313609,
+          "name": "containers",
+          "conclusion": "success",
+          "started": "2026-11-12T14:35:44Z",
+          "completed": "2026-11-12T14:40:33Z",
+          "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43238806202/job/131253313609"
+        }
+      ]
+    },
+    {
+      "id": 43238811041,
+      "workflow": "Control boundary",
+      "event": "workflow_dispatch",
+      "source": "928923183425c238f81b1c3e7d4ebf08ae0dd119",
+      "conclusion": "success",
+      "watch_exit": 0,
+      "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43238811041",
+      "jobs": [
+        {
+          "id": 131253322136,
+          "name": "hostile",
+          "conclusion": "success",
+          "started": "2026-11-12T14:35:45Z",
+          "completed": "2026-11-12T14:39:16Z",
+          "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43238811041/job/131253322136"
+        }
+      ]
+    },
+    {
+      "id": 43246458316,
+      "workflow": "Control Chrome",
+      "event": "push",
+      "source": "4d533e44ba0ca68f775262de81600a9ca3032583",
+      "conclusion": "cancelled",
+      "watch_exit": 1,
+      "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43246458316",
+      "jobs": []
+    },
+    {
+      "id": 43246493921,
+      "workflow": "Control Chrome",
+      "event": "workflow_dispatch",
+      "source": "4d533e44ba0ca68f775262de81600a9ca3032583",
+      "conclusion": "failure",
+      "watch_exit": 1,
+      "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43246493921",
+      "jobs": [
+        {
+          "id": 131280452080,
+          "name": "fixtures (external)",
+          "conclusion": "failure",
+          "started": "2026-11-12T15:19:17Z",
+          "completed": "2026-11-12T15:21:29Z",
+          "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43246493921/job/131280452080"
+        },
+        {
+          "id": 131280452613,
+          "name": "fixtures (policy)",
+          "conclusion": "failure",
+          "started": "2026-11-12T15:19:16Z",
+          "completed": "2026-11-12T15:21:20Z",
+          "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43246493921/job/131280452613"
+        }
+      ]
+    },
+    {
+      "id": 43247784103,
+      "workflow": "Control Chrome",
+      "event": "push",
+      "source": "5fcfb397db094584ae001715e177f72d330bd03b",
+      "conclusion": "cancelled",
+      "watch_exit": 1,
+      "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43247784103",
+      "jobs": []
+    },
+    {
+      "id": 43248197704,
+      "workflow": "Control Chrome",
+      "event": "workflow_dispatch",
+      "source": "5fcfb397db094584ae001715e177f72d330bd03b",
+      "conclusion": "failure",
+      "watch_exit": 1,
+      "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43248197704",
+      "jobs": [
+        {
+          "id": 131286522165,
+          "name": "fixtures (policy)",
+          "conclusion": "failure",
+          "started": "2026-11-12T15:28:44Z",
+          "completed": "2026-11-12T15:30:59Z",
+          "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43248197704/job/131286522165"
+        },
+        {
+          "id": 131286522787,
+          "name": "fixtures (external)",
+          "conclusion": "failure",
+          "started": "2026-11-12T15:28:44Z",
+          "completed": "2026-11-12T15:30:56Z",
+          "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43248197704/job/131286522787"
+        }
+      ]
+    },
+    {
+      "id": 43248850718,
+      "workflow": "Control Chrome",
+      "event": "push",
+      "source": "482eb7e728cdbdc46c5c05e75853bdb5caeed2d9",
+      "conclusion": "cancelled",
+      "watch_exit": 1,
+      "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43248850718",
+      "jobs": []
+    },
+    {
+      "id": 43248868183,
+      "workflow": "Control Chrome",
+      "event": "workflow_dispatch",
+      "source": "482eb7e728cdbdc46c5c05e75853bdb5caeed2d9",
+      "conclusion": "failure",
+      "watch_exit": 1,
+      "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43248868183",
+      "jobs": [
+        {
+          "id": 131288898520,
+          "name": "fixtures (external)",
+          "conclusion": "failure",
+          "started": "2026-11-12T15:32:24Z",
+          "completed": "2026-11-12T15:34:28Z",
+          "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43248868183/job/131288898520"
+        },
+        {
+          "id": 131288898980,
+          "name": "fixtures (policy)",
+          "conclusion": "failure",
+          "started": "2026-11-12T15:32:24Z",
+          "completed": "2026-11-12T15:34:33Z",
+          "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43248868183/job/131288898980"
+        }
+      ]
+    }
+  ]
+}

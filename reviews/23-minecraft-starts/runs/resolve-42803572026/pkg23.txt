@@ -1,0 +1,312 @@
+
+===== java-in-base
+java-srpm-macros-1-8.fc44.noarch
+ls: cannot access '/usr/lib/jvm': No such file or directory
+
+===== java-available
+Updating and loading repositories:
+Repositories loaded.
+java-25-openjdk-1:25.0.2.0.10-3.fc44.x86_64 fedora
+java-25-openjdk-1:25.0.4.1.1-1.1.fc44.x86_64 updates
+java-25-openjdk-headless-1:25.0.2.0.10-3.fc44.x86_64 fedora
+java-25-openjdk-headless-1:25.0.4.1.1-1.1.fc44.x86_64 updates
+java-latest-openjdk-headless-1:26.0.0.0.35-0.1.fc44.x86_64 fedora
+java-latest-openjdk-headless-1:27.0.0.0.35-0.0.1.0.ea.fc44.x86_64 updates
+
+===== prism-in-fedora
+Updating and loading repositories:
+Repositories loaded.
+prism query exit=0
+
+===== prism-bundle
+e21949a8101c1803dbc6f67a2cdad48ba80ede1c133f0d1f2a89da07af09e823  /tmp/prism.tar.gz
+PRISM_SHA256_OK
+/tmp/prism:
+total 332
+drwxr-xr-x  6 root root   4096 Nov 10 11:13 .
+drwxrwxrwt  1 root root   4096 Nov 10 11:13 ..
+-rwxr-xr-x  1 1001 1001   1142 Sep 28 20:22 PrismLauncher
+drwxr-xr-x  2 1001 1001   4096 Sep 28 20:32 bin
+drwxr-xr-x  3 1001 1001   4096 Sep 28 20:32 etc
+lrwxrwxrwx  1 1001 1001     10 Sep 28 20:32 lib -> shared/lib
+-rw-r--r--  1 1001 1001  31591 Sep 28 20:33 manifest.txt
+-rw-r--r--  1 1001 1001    297 Sep 28 20:21 portable.txt
+drwxr-xr-x 11 1001 1001   4096 Sep 28 20:32 share
+drwxr-xr-x  4 1001 1001   4096 Sep 28 20:32 shared
+-rwxr-xr-x  3 1001 1001 270680 Sep 28 20:32 sharun
+
+/tmp/prism/bin:
+total 548
+drwxr-xr-x 2 1001 1001   4096 Sep 28 20:32 .
+drwxr-xr-x 6 root root   4096 Nov 10 11:13 ..
+lrwxrwxrwx 1 1001 1001      8 Sep 28 20:32 gio-launch-desktop -> xdg-open
+-rwxr-xr-x 3 1001 1001 270680 Sep 28 20:32 prismlauncher
+-rwxr-xr-x 3 1001 1001 270680 Sep 28 20:32 prismlauncher_updater
+-rwxr-xr-x 1 1001 1001   1676 Sep 28 20:32 xdg-open
+
+/tmp/prism/shared/bin:
+total 16640
+drwxr-xr-x 2 1001 1001     4096 Sep 28 20:32 .
+drwxr-xr-x 4 1001 1001     4096 Sep 28 20:32 ..
+-rwxr-xr-x 1 1001 1001 16310264 Sep 28 20:32 prismlauncher
+-rwxr-xr-x 1 1001 1001   720568 Sep 28 20:32 prismlauncher_updater
+Detected locale "C" with character encoding "ANSI_X3.4-1968", which is not UTF-8.
+Qt depends on a UTF-8 locale, and has switched to "C.UTF-8" instead.
+If this causes problems, reconfigure your locale. See the locale(1) manual
+for more information.
+PrismLauncher 11.1.1
+
+version exit=0
+Detected locale "C" with character encoding "ANSI_X3.4-1968", which is not UTF-8.
+Qt depends on a UTF-8 locale, and has switched to "C.UTF-8" instead.
+If this causes problems, reconfigure your locale. See the locale(1) manual
+for more information.
+Usage: /tmp/prism/bin/prismlauncher [options] [URL...]
+Prism Launcher
+
+Options:
+  -d, --dir <directory>    Use a custom path as application root (use '.' for
+                           current directory)
+  -l, --launch <instance>  Launch the specified instance (by instance ID)
+  -s, --server <address>   Join the specified server on launch (only valid in
+                           combination with --launch)
+  -w, --world <world>      Join the specified world on launch (only valid in
+                           combination with --launch)
+  -a, --profile <profile>  Use the account specified by its profile name (only
+                           valid in combination with --launch)
+  -o, --offline <offline>  Launch offline, with given player name (only valid
+                           in combination with --launch)
+  --alive                  Write a small 'live.check' file after the launcher
+                           starts
+  --show-window            Show the main launcher window (useful in combination
+                           with --launch)
+  -I, --import <url>       Import instance or resource from specified local
+                           path or URL
+  --show <show>            Opens the window for the specified instance (by
+                           instance ID)
+  -h, --help               Displays help on commandline options.
+  --help-all               Displays help, including generic Qt options.
+  -v, --version            Displays version information.
+
+Arguments:
+  URL                      Import the resource(s) at the given URL(s) (same as
+                           -I / --import)
+Detected locale "C" with character encoding "ANSI_X3.4-1968", which is not UTF-8.
+Qt depends on a UTF-8 locale, and has switched to "C.UTF-8" instead.
+If this causes problems, reconfigure your locale. See the locale(1) manual
+for more information.
+Failed to copy files: "No such file or directory"
+Source file: "/tmp/prism-home/.local/share/PrismLauncher/logs/PrismLauncher-3.log"
+Destination file: "/tmp/prism-home/.local/share/PrismLauncher/logs/PrismLauncher-4.log"
+Copy of "logs/PrismLauncher-3.log" to "logs/PrismLauncher-4.log" failed!
+Move of "logs/PrismLauncher-3.log" to "logs/PrismLauncher-4.log" failed!
+Failed to move file: "No such file or directory" "2"
+Failed to copy files: "No such file or directory"
+Source file: "/tmp/prism-home/.local/share/PrismLauncher/logs/PrismLauncher-2.log"
+Destination file: "/tmp/prism-home/.local/share/PrismLauncher/logs/PrismLauncher-3.log"
+Copy of "logs/PrismLauncher-2.log" to "logs/PrismLauncher-3.log" failed!
+Move of "logs/PrismLauncher-2.log" to "logs/PrismLauncher-3.log" failed!
+Failed to move file: "No such file or directory" "2"
+Failed to copy files: "No such file or directory"
+Source file: "/tmp/prism-home/.local/share/PrismLauncher/logs/PrismLauncher-1.log"
+Destination file: "/tmp/prism-home/.local/share/PrismLauncher/logs/PrismLauncher-2.log"
+Copy of "logs/PrismLauncher-1.log" to "logs/PrismLauncher-2.log" failed!
+Move of "logs/PrismLauncher-1.log" to "logs/PrismLauncher-2.log" failed!
+Failed to move file: "No such file or directory" "2"
+Failed to copy files: "No such file or directory"
+Source file: "/tmp/prism-home/.local/share/PrismLauncher/logs/PrismLauncher-0.log"
+Destination file: "/tmp/prism-home/.local/share/PrismLauncher/logs/PrismLauncher-1.log"
+Copy of "logs/PrismLauncher-0.log" to "logs/PrismLauncher-1.log" failed!
+Move of "logs/PrismLauncher-0.log" to "logs/PrismLauncher-1.log" failed!
+Failed to move file: "No such file or directory" "2"
+     0.002 Info: Testing "/tmp/prism-home/.local/share/PrismLauncher/qtlogging.ini" ... (unknown:0)
+     0.003 Info: Testing "/tmp/prism/share/PrismLauncher/qtlogging.ini" ... (unknown:0)
+     0.003 Info: Loading logging rules from: "/tmp/prism/share/PrismLauncher/qtlogging.ini" (unknown:0)
+     0.003 Info: Setting log rules: (unknown:0)
+     0.003 Info:      "*.debug=true" (unknown:0)
+     0.003 Info:      "kf.imageformats.plugins.hdr=false" (unknown:0)
+     0.003 Info:      "kf.imageformats.plugins.xcf=false" (unknown:0)
+     0.003 Info:      "launcher.auth.credentials.debug=false" (unknown:0)
+     0.003 Info:      "launcher.task=false" (unknown:0)
+     0.003 Info:      "launcher.task.net=true" (unknown:0)
+     0.003 Info:      "launcher.task.net.download.debug=false" (unknown:0)
+     0.003 Info:      "launcher.task.net.metacache=false" (unknown:0)
+     0.003 Info:      "launcher.task.net.metacache.http=true" (unknown:0)
+     0.003 Info:      "launcher.task.net.upload=true" (unknown:0)
+     0.003 Info:      "qt.*.debug=false" (unknown:0)
+     0.003 Info: <> Log initialized. (unknown:0)
+     0.003 Debug: <> No migration needed from "PolyMC" (unknown:0)
+     0.003 Debug: <> No migration needed from "MultiMC" (unknown:0)
+     0.003 Info: Prism Launcher, © 2022-2026 Prism Launcher Contributors, © 2021-2022 PolyMC Contributors, © 2012-2021 MultiMC Contributors (unknown:0)
+     0.003 Info: Version                    : "11.1.1" (unknown:0)
+     0.003 Info: Platform                   : "official" (unknown:0)
+     0.003 Info: Git commit                 : "" (unknown:0)
+     0.003 Info: Git refspec                : "refs/heads/stable" (unknown:0)
+     0.003 Info: Compiled for               : "Linux 6.17.0-1022-azure x86_64" (unknown:0)
+     0.003 Info: Compiled by                : "GNU - 13.3.0" (unknown:0)
+     0.003 Info: Build Artifact             : "Linux-Qt6" (unknown:0)
+     0.003 Info: Updates Enabled            : No (unknown:0)
+     0.003 Info: Work dir before adjustment : "/" (unknown:0)
+     0.003 Info: Work dir after adjustment  : "/tmp/prism-home/.local/share/PrismLauncher" (unknown:0)
+     0.003 Info: Adjusted by                : "Persistent data path" (unknown:0)
+     0.003 Info: Binary path                : "/tmp/prism/bin" (unknown:0)
+     0.003 Info: Application root path      : "/tmp/prism" (unknown:0)
+     0.003 Info: <> Paths set. (unknown:0)
+     0.033 Debug: Detected default console font: "Noto Sans Mono", substitutions: "" (unknown:0)
+     0.034 Info: <> Settings loaded. (unknown:0)
+     0.034 Debug: Detecting proxy settings... (unknown:0)
+     0.034 Debug: Using no proxy is an option! (unknown:0)
+     0.034 Info: <> Network done. (unknown:0)
+     0.035 Debug: Started watching "/tmp/prism-home/.local/share/PrismLauncher/icons" (unknown:0)
+     0.035 Debug: Sorting icon list... (unknown:0)
+     0.035 Info: <> Instance icons initialized. (unknown:0)
+     0.035 Debug: [Theme] Determining System Widget Theme... (unknown:0)
+     0.035 Debug: [Theme] System theme seems to be: "fusion" (unknown:0)
+     0.035 Debug: [Theme] <> Initializing Icon Themes (unknown:0)
+     0.035 Debug: [Theme] Loaded Built-In Icon Theme "pe_colored" (unknown:0)
+     0.035 Debug: [Theme] Loaded Built-In Icon Theme "pe_light" (unknown:0)
+     0.035 Debug: [Theme] Loaded Built-In Icon Theme "pe_dark" (unknown:0)
+     0.035 Debug: [Theme] Loaded Built-In Icon Theme "pe_blue" (unknown:0)
+     0.035 Debug: [Theme] Loaded Built-In Icon Theme "breeze_light" (unknown:0)
+     0.035 Debug: [Theme] Loaded Built-In Icon Theme "breeze_dark" (unknown:0)
+     0.035 Debug: [Theme] Loaded Built-In Icon Theme "OSX" (unknown:0)
+     0.036 Debug: [Theme] Loaded Built-In Icon Theme "iOS" (unknown:0)
+     0.036 Debug: [Theme] Loaded Built-In Icon Theme "flat" (unknown:0)
+     0.036 Debug: [Theme] Loaded Built-In Icon Theme "flat_white" (unknown:0)
+     0.036 Debug: [Theme] Loaded Built-In Icon Theme "multimc" (unknown:0)
+     0.036 Debug: [Theme] Icon Theme Folder Path: "/tmp/prism-home/.local/share/PrismLauncher/iconthemes" (unknown:0)
+     0.036 Debug: [Theme] <> Icon themes initialized. (unknown:0)
+     0.036 Debug: [Theme] <> Initializing Widget Themes (unknown:0)
+     0.036 Debug: [Theme] Loading Built-in Theme: "system" (unknown:0)
+     0.036 Debug: [Theme] Loading Built-in Theme: "dark" (unknown:0)
+     0.036 Debug: [Theme] Loading Built-in Theme: "bright" (unknown:0)
+     0.036 Debug: [Theme] <> Initializing System Widget Themes (unknown:0)
+     0.036 Debug: [Theme] Loading System Theme: "Windows" (unknown:0)
+     0.036 Debug: [Theme] Loading System Theme: "Fusion" (unknown:0)
+     0.036 Debug: [Theme] Theme Folder Path: "/tmp/prism-home/.local/share/PrismLauncher/themes" (unknown:0)
+     0.036 Debug: [Theme] <> Widget themes initialized. (unknown:0)
+     0.036 Debug: [Theme] CatPacks Folder Path: "/tmp/prism-home/.local/share/PrismLauncher/catpacks" (unknown:0)
+     0.042 Info: Instance path              : "instances" (unknown:0)
+     0.042 Info: Loading Instances... (unknown:0)
+     0.042 Info: Discovering instances in "/tmp/prism-home/.local/share/PrismLauncher/instances" (unknown:0)
+     0.042 Info: <> Instances loaded. (unknown:0)
+     0.042 Info: Loading accounts... (unknown:0)
+     0.042 Critical: "Failed to read the account list file accounts.json (No such file or directory)." (unknown:0)
+     0.042 Info: <> Accounts loaded. (unknown:0)
+     0.042 Info: <> Cache initialized. (unknown:0)
+     0.042 Debug: Downloading Translations Index... (unknown:0)
+     0.042 Info: Your language is "" (unknown:0)
+     0.042 Info: <> Translations loaded. (unknown:0)
+     0.045 Critical: dlopen() failed: ed object f: cannot open shared object file: No such file or directory (unknown:0)
+     0.046 Critical: dlopen() failed: libopenal.so: cannot open shared object file: No such file or directory (unknown:0)
+     0.046 Debug: Detected native libraries: "" "" (unknown:0)
+     0.046 Debug: Saving INI settings to "prismlauncher.cfg" (unknown:0)
+     0.046 Debug: Saving INI settings to "prismlauncher.cfg" (unknown:0)
+     0.046 Debug: [Theme] <> Icon theme set. (unknown:0)
+     0.046 Debug: [Theme] applying theme "System" (unknown:0)
+     0.047 Debug: [Theme] <> Application theme set. (unknown:0)
+     0.051 Debug: [Theme] <> Initializing Icon Themes (unknown:0)
+     0.051 Debug: [Theme] Loaded Built-In Icon Theme "pe_colored" (unknown:0)
+     0.051 Debug: [Theme] Loaded Built-In Icon Theme "pe_light" (unknown:0)
+     0.051 Debug: [Theme] Loaded Built-In Icon Theme "pe_dark" (unknown:0)
+     0.051 Debug: [Theme] Loaded Built-In Icon Theme "pe_blue" (unknown:0)
+     0.051 Debug: [Theme] Loaded Built-In Icon Theme "breeze_light" (unknown:0)
+     0.051 Debug: [Theme] Loaded Built-In Icon Theme "breeze_dark" (unknown:0)
+     0.051 Debug: [Theme] Loaded Built-In Icon Theme "OSX" (unknown:0)
+     0.051 Debug: [Theme] Loaded Built-In Icon Theme "iOS" (unknown:0)
+     0.051 Debug: [Theme] Loaded Built-In Icon Theme "flat" (unknown:0)
+     0.051 Debug: [Theme] Loaded Built-In Icon Theme "flat_white" (unknown:0)
+     0.051 Debug: [Theme] Loaded Built-In Icon Theme "multimc" (unknown:0)
+     0.051 Debug: [Theme] Icon Theme Folder Path: "/tmp/prism-home/.local/share/PrismLauncher/iconthemes" (unknown:0)
+     0.051 Debug: [Theme] <> Icon themes initialized. (unknown:0)
+     0.051 Debug: [Theme] <> Initializing Widget Themes (unknown:0)
+     0.051 Debug: [Theme] Loading Built-in Theme: "system" (unknown:0)
+     0.051 Debug: [Theme] Loading Built-in Theme: "dark" (unknown:0)
+     0.051 Debug: [Theme] Loading Built-in Theme: "bright" (unknown:0)
+     0.051 Debug: [Theme] <> Initializing System Widget Themes (unknown:0)
+     0.051 Debug: [Theme] Loading System Theme: "Windows" (unknown:0)
+     0.051 Debug: [Theme] Loading System Theme: "Fusion" (unknown:0)
+     0.051 Debug: [Theme] Theme Folder Path: "/tmp/prism-home/.local/share/PrismLauncher/themes" (unknown:0)
+     0.051 Debug: [Theme] <> Widget themes initialized. (unknown:0)
+     0.051 Debug: [Theme] CatPacks Folder Path: "/tmp/prism-home/.local/share/PrismLauncher/catpacks" (unknown:0)
+     0.217 Debug: Got translations index! (unknown:0)
+     0.218 Warning: Cannot update invalid language "" (unknown:0)
+     0.218 Debug: Dir changed: "/tmp/prism-home/.local/share/PrismLauncher/translations" (unknown:0)
+     0.218 Warning: Selected invalid language "" , defaulting to "en_US" (unknown:0)
+startup exit=124 (124 = stopped by timeout, expected)
+/tmp/prism-home
+/tmp/prism-home/.local
+/tmp/prism-home/.local/share
+/tmp/prism-home/.local/share/PrismLauncher
+/tmp/prism-home/.local/share/PrismLauncher/catpacks
+/tmp/prism-home/.local/share/PrismLauncher/instances
+/tmp/prism-home/.local/share/PrismLauncher/icons
+/tmp/prism-home/.local/share/PrismLauncher/logs
+/tmp/prism-home/.local/share/PrismLauncher/iconthemes
+/tmp/prism-home/.local/share/PrismLauncher/prismlauncher.cfg
+/tmp/prism-home/.local/share/PrismLauncher/themes
+/tmp/prism-home/.local/share/PrismLauncher/translations
+     0.002 Info: Testing "/tmp/prism-home/.local/share/PrismLauncher/qtlogging.ini" ... (unknown:0)
+     0.003 Info: Testing "/tmp/prism/share/PrismLauncher/qtlogging.ini" ... (unknown:0)
+     0.003 Info: Loading logging rules from: "/tmp/prism/share/PrismLauncher/qtlogging.ini" (unknown:0)
+     0.003 Info: Setting log rules: (unknown:0)
+     0.003 Info:      "*.debug=true" (unknown:0)
+     0.003 Info:      "kf.imageformats.plugins.hdr=false" (unknown:0)
+     0.003 Info:      "kf.imageformats.plugins.xcf=false" (unknown:0)
+     0.003 Info:      "launcher.auth.credentials.debug=false" (unknown:0)
+     0.003 Info:      "launcher.task=false" (unknown:0)
+     0.003 Info:      "launcher.task.net=true" (unknown:0)
+     0.003 Info:      "launcher.task.net.download.debug=false" (unknown:0)
+     0.003 Info:      "launcher.task.net.metacache=false" (unknown:0)
+     0.003 Info:      "launcher.task.net.metacache.http=true" (unknown:0)
+     0.003 Info:      "launcher.task.net.upload=true" (unknown:0)
+     0.003 Info:      "qt.*.debug=false" (unknown:0)
+     0.003 Info: <> Log initialized. (unknown:0)
+     0.003 Debug: <> No migration needed from "PolyMC" (unknown:0)
+     0.003 Debug: <> No migration needed from "MultiMC" (unknown:0)
+     0.003 Info: Prism Launcher, © 2022-2026 Prism Launcher Contributors, © 2021-2022 PolyMC Contributors, © 2012-2021 MultiMC Contributors (unknown:0)
+     0.003 Info: Version                    : "11.1.1" (unknown:0)
+     0.003 Info: Platform                   : "official" (unknown:0)
+     0.003 Info: Git commit                 : "" (unknown:0)
+     0.003 Info: Git refspec                : "refs/heads/stable" (unknown:0)
+     0.003 Info: Compiled for               : "Linux 6.17.0-1022-azure x86_64" (unknown:0)
+     0.003 Info: Compiled by                : "GNU - 13.3.0" (unknown:0)
+     0.003 Info: Build Artifact             : "Linux-Qt6" (unknown:0)
+     0.003 Info: Updates Enabled            : No (unknown:0)
+     0.003 Info: Work dir before adjustment : "/" (unknown:0)
+     0.003 Info: Work dir after adjustment  : "/tmp/prism-home/.local/share/PrismLauncher" (unknown:0)
+     0.003 Info: Adjusted by                : "Persistent data path" (unknown:0)
+     0.003 Info: Binary path                : "/tmp/prism/bin" (unknown:0)
+     0.003 Info: Application root path      : "/tmp/prism" (unknown:0)
+     0.003 Info: <> Paths set. (unknown:0)
+     0.033 Debug: Detected default console font: "Noto Sans Mono", substitutions: "" (unknown:0)
+     0.034 Info: <> Settings loaded. (unknown:0)
+     0.034 Debug: Detecting proxy settings... (unknown:0)
+     0.034 Debug: Using no proxy is an option! (unknown:0)
+     0.034 Info: <> Network done. (unknown:0)
+     0.035 Debug: Started watching "/tmp/prism-home/.local/share/PrismLauncher/icons" (unknown:0)
+     0.035 Debug: Sorting icon list... (unknown:0)
+     0.035 Info: <> Instance icons initialized. (unknown:0)
+     0.035 Debug: [Theme] Determining System Widget Theme... (unknown:0)
+     0.035 Debug: [Theme] System theme seems to be: "fusion" (unknown:0)
+     0.035 Debug: [Theme] <> Initializing Icon Themes (unknown:0)
+     0.035 Debug: [Theme] Loaded Built-In Icon Theme "pe_colored" (unknown:0)
+     0.035 Debug: [Theme] Loaded Built-In Icon Theme "pe_light" (unknown:0)
+     0.035 Debug: [Theme] Loaded Built-In Icon Theme "pe_dark" (unknown:0)
+     0.035 Debug: [Theme] Loaded Built-In Icon Theme "pe_blue" (unknown:0)
+     0.035 Debug: [Theme] Loaded Built-In Icon Theme "breeze_light" (unknown:0)
+     0.035 Debug: [Theme] Loaded Built-In Icon Theme "breeze_dark" (unknown:0)
+     0.035 Debug: [Theme] Loaded Built-In Icon Theme "OSX" (unknown:0)
+     0.036 Debug: [Theme] Loaded Built-In Icon Theme "iOS" (unknown:0)
+     0.036 Debug: [Theme] Loaded Built-In Icon Theme "flat" (unknown:0)
+     0.036 Debug: [Theme] Loaded Built-In Icon Theme "flat_white" (unknown:0)
+     0.036 Debug: [Theme] Loaded Built-In Icon Theme "multimc" (unknown:0)
+     0.036 Debug: [Theme] Icon Theme Folder Path: "/tmp/prism-home/.local/share/PrismLauncher/iconthemes" (unknown:0)
+     0.036 Debug: [Theme] <> Icon themes initialized. (unknown:0)
+     0.036 Debug: [Theme] <> Initializing Widget Themes (unknown:0)
+     0.036 Debug: [Theme] Loading Built-in Theme: "system" (unknown:0)
+     0.036 Debug: [Theme] Loading Built-in Theme: "dark" (unknown:0)
+[General]
+ApplicationTheme=system
+ConfigVersion=1.3
+IconTheme=pe_colored

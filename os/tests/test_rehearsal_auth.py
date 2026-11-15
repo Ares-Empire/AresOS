@@ -62,9 +62,9 @@ class OwnerAuthTest(unittest.TestCase):
         workflow = yaml.load((ROOT / '.github/workflows/os-image.yml').read_text(), Loader=yaml.BaseLoader)
         steps = workflow['jobs']['rehearsal']['steps']
         index, cleanup = next((i, s) for i, s in enumerate(steps) if s.get('run') == 'sudo -E python3 os/ci/rehearsal_auth.py cleanup')
-        self.assertEqual(cleanup['if'], "always() && github.ref_name != 'pkg/13-keyboard-layout' && github.ref_name != 'pkg/14-owner-tools' && github.ref_name != 'pkg/16-staged-release' && github.ref_name != 'pkg/27-first-update-release'")
+        self.assertEqual(cleanup['if'], "always() && github.ref_name != 'pkg/13-keyboard-layout' && github.ref_name != 'pkg/14-owner-tools' && github.ref_name != 'pkg/16-staged-release' && github.ref_name != 'pkg/27-first-update-release' && github.ref_name != 'pkg/22c-ways-back-after-update'")
         org_index, org_cleanup = next((i,s) for i,s in enumerate(steps) if s.get('run') == 'sudo -E python3 os/ci/registry_auth.py cleanup')
-        self.assertEqual(org_cleanup['if'], "always() && (github.ref_name == 'pkg/13-keyboard-layout' || (github.ref_name == 'pkg/14-owner-tools' || github.ref_name == 'pkg/16-staged-release') || github.ref_name == 'pkg/27-first-update-release')")
+        self.assertEqual(org_cleanup['if'], "always() && (github.ref_name == 'pkg/13-keyboard-layout' || (github.ref_name == 'pkg/14-owner-tools' || github.ref_name == 'pkg/16-staged-release') || github.ref_name == 'pkg/27-first-update-release' || github.ref_name == 'pkg/22c-ways-back-after-update')")
         for i, step in enumerate(steps):
             if 'actions/upload-artifact@' in step.get('uses', ''):
                 self.assertGreater(i, index)

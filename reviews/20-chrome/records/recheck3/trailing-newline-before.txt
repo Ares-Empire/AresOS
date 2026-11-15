@@ -1,0 +1,30 @@
+✖ recheck3 leading pre-line newlines and block br blank lines cannot alias their absence (4.072416ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 44.454
+
+✖ failing tests:
+
+test at control/chrome_tests/reader.test.mjs:317:1
+✖ recheck3 leading pre-line newlines and block br blank lines cannot alias their absence (4.072416ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /line\n\nSend/. Input:
+  
+  'Draft\nline\n'
+  
+      at TestContext.<anonymous> (file://<worktree>/control/chrome_tests/reader.test.mjs:323:161)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.start (node:internal/test_runner/test:1242:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'Draft\nline\n',
+    expected: /line\n\nSend/,
+    operator: 'match',
+    diff: 'simple'
+  }

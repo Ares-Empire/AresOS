@@ -1,0 +1,21 @@
+{
+  "id": "com-discordapp-discord",
+  "name": "Discord",
+  "available": true,
+  "reason": null,
+  "source": "flatpak-user",
+  "icon": "/run/user/1000/aresos/icons/com-discordapp-discord.png",
+  "categories": [
+    "Network",
+    "InstantMessaging"
+  ],
+  "generic_name": "Internet Messenger",
+  "keywords": [
+    "chat",
+    "voice",
+    "messaging"
+  ],
+  "desktop_id": "com.discordapp.Discord.desktop",
+  "exec_name": "com.discordapp.Discord",
+  "terminal": false
+}

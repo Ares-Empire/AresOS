@@ -1,0 +1,3 @@
+{"time":1794262500786,"url":"/receive?case=compose","method":"POST","body":"Existing synthetic draft","host":"fixture.test:8765"}
+{"time":1794262502273,"url":"/receive?case=native","method":"POST","body":"required=","host":"fixture.test:8765"}
+{"time":1794262503764,"url":"/receive?case=event","method":"POST","body":"required=valid","host":"fixture.test:8765"}

@@ -44,6 +44,12 @@ public final class ModeProtocolClientGameTest implements FabricClientGameTest {
                 fill(player, false);
                 player.getInventory().setItem(9, ItemStack.EMPTY);
                 player.getInventory().setItem(10, new ItemStack(Items.EMERALD, 2));
+                // Keep the pickup slot free without asking login reconciliation to supply a missing owned app.
+                int appSlot = 11;
+                for (var app : AresOs.apps()) if (app.mine()) {
+                    check(appSlot < 36, "Too many owned apps for the mode-protocol fixture");
+                    player.getInventory().setItem(appSlot++, dev.aresos.item.AppItems.create(app));
+                }
                 ModeSyncTestAccess.aresos$release(player);
                 return capturePersisted(player);
             });

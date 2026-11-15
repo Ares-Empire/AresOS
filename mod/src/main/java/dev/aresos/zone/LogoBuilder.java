@@ -7,7 +7,6 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.block.Block;
 import net.minecraft.world.phys.AABB;
 
 import javax.imageio.ImageIO;
@@ -77,29 +76,10 @@ public final class LogoBuilder {
             if (!level.getBlockState(pos).isAir())
                 throw new IOException("Area isn't clear at " + pos.toShortString() + ". No blocks changed. Clear the face and zone in Build mode, then retry; overwrite is not supported.");
         }
-        for (var pos : plan.blocks.keySet()) if (!level.getEntities(null, new AABB(pos)).isEmpty())
+        if (Neighbors.occupant(level, plan.blocks.keySet(), data.signs()) != null)
             throw new IOException("An entity occupies the logo. Move it away, then retry.");
-        checkNeighbors(player, plan);
+        Neighbors.check(level, plan.blocks.keySet(), plan.blocks.keySet(), 2);
         for (var block : plan.blocks.entrySet()) level.setBlockAndUpdate(block.getKey(), block.getValue());
         data.add(plan.zone);
-    }
-
-    private static void checkNeighbors(ServerPlayer player, Plan plan) throws IOException {
-        var level = player.level();
-        var checked = new java.util.HashSet<BlockPos>();
-        // Updates can reach a circuit through an adjacent solid block. Refuse special behavior within two cells;
-        // speculative placement/rollback would already have fired ticks, drops and redstone side effects.
-        for (var pixel : plan.blocks.keySet()) for (int x = -2; x <= 2; x++) for (int y = -2; y <= 2; y++) for (int z = -2; z <= 2; z++) {
-            if (Math.abs(x) + Math.abs(y) + Math.abs(z) > 2) continue;
-            var pos = pixel.offset(x, y, z);
-            if (plan.blocks.containsKey(pos) || !checked.add(pos)) continue;
-            var state = level.getBlockState(pos);
-            if (state.isAir()) continue;
-            // Plain full blocks have no survival/support/neighbor callbacks. Unknown block behavior is refused.
-            if (state.getBlock().getClass() == Block.class && state.isCollisionShapeFullBlock(level, pos)
-                    && state.getFluidState().isEmpty() && !state.isRandomlyTicking() && !state.isSignalSource() && !state.hasBlockEntity()) continue;
-            throw new IOException("Logo could disturb neighboring " + BuiltInRegistries.BLOCK.getKey(state.getBlock()) + " at " + pos.toShortString()
-                    + ". No blocks changed. Leave two cells clear of plants, circuits, fluids and blocks with special behavior, then retry.");
-        }
     }
 }

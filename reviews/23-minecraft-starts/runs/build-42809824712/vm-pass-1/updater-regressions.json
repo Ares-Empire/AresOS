@@ -1,0 +1,38 @@
+{
+  "status": "passed",
+  "mode": "static-strict",
+  "audit_exit": 1,
+  "canaries": [
+    {
+      "scope": "system",
+      "name": "aresos-ci-generated-canary.service",
+      "state": "generated",
+      "suspicious": true,
+      "commands": [
+        "ExecStart=/usr/bin/bootc upgrade"
+      ],
+      "active_state": "inactive",
+      "load_state": "loaded",
+      "sub_state": "dead",
+      "sources": [
+        "/run/systemd/generator/aresos-ci-generated-canary.service"
+      ]
+    },
+    {
+      "scope": "system",
+      "name": "aresos-ci-static-canary.service",
+      "state": "static",
+      "suspicious": true,
+      "commands": [
+        "ExecStart=/usr/bin/uupd"
+      ],
+      "active_state": null,
+      "load_state": null,
+      "sub_state": null,
+      "sources": [
+        "/etc/systemd/system/aresos-ci-static-canary.service"
+      ]
+    }
+  ],
+  "generated_fragment": "/run/systemd/generator/aresos-ci-generated-canary.service"
+}

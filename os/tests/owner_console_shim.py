@@ -6,6 +6,8 @@ import json
 import os
 import pathlib
 import re
+import shutil
+import subprocess
 import tempfile
 import time
 from types import SimpleNamespace
@@ -83,11 +85,83 @@ def execute_idle(source, raw, rows=None):
         return json.loads(output.getvalue())
 
 
-def hidden_rows(physical, expected, phase, leaves=True, rejected=False):
+@contextlib.contextmanager
+def model_clock(step=5):
+    """Guest time for an observer that a walk runs: every sleep moves the clock. An observer that
+    never sees what it waits for then ends at its own deadline and answers with its refusal, as in
+    the VM, instead of waiting for ever on a clock that stands still."""
+    class Clock:
+        now = 0.0
+        def monotonic(self): return self.now
+        def sleep(self, delay): self.now += max(delay, step)
+    clock = Clock()
+    with patch.object(time, 'monotonic', clock.monotonic), patch.object(time, 'sleep', clock.sleep):
+        yield clock
+
+
+class InstalledTools:
+    """A walk's own /var/lib/ares: the entry link as the tools place it, and the process it starts.
+
+    The link is moved by the tools' own switch_entry. The reader's command line is what the real
+    os/owner-tools/at execs through that link (a stand-in owner.py prints its command line and does
+    nothing else). Nothing here comes from the reader the harness expects: a harness that names
+    another folder meets a foreground process it does not know, as the VM showed in run 43581458429.
+    """
+    GUEST = '/var/lib/ares'
+    STAND_IN = "import json; print(json.dumps(open('/proc/self/cmdline','rb').read().decode().split('\\0')[:-1]))\n"
+
+    def __init__(self, folder):
+        import test_owner_tools as common
+        self.owner = common.owner
+        self.home = pathlib.Path(folder).resolve() / 'var-lib-ares'
+        self.home.mkdir()
+        self.started = {}
+
+    def install(self, fingerprint=None):
+        """Publish a toolset and make it the entry: tools at the first install, tools-<fingerprint> at an update."""
+        name = 'tools' if fingerprint is None else 'tools-' + fingerprint
+        toolset = self.home / name
+        toolset.mkdir()
+        shutil.copyfile(pathlib.Path(__file__).resolve().parents[2] / 'os/owner-tools/at', toolset / 'at')
+        (toolset / 'owner.py').write_text(self.STAND_IN)
+        with patch.object(self.owner, 'HOME', self.home):
+            self.owner.switch_entry(name)
+
+    def as_guest(self, text):
+        return text.replace(str(self.home), self.GUEST)
+
+    def resolve(self, source):
+        """The harness's own guest program that resolves the entry, run on this model."""
+        entry = repr(self.GUEST + '/at')
+        assert source.count(entry) == 1, 'The entry program names the entry once'
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            exec(compile(source.replace(entry, repr(str(self.home / 'at'))), 'modelled-entry', 'exec'), {})
+        return json.loads(self.as_guest(output.getvalue()))
+
+    def reader(self, args):
+        """The command line of the tools' process that `sudo /var/lib/ares/at <args>` ends in."""
+        key = (os.readlink(self.home / 'at'), tuple(args))
+        if key not in self.started:
+            done = subprocess.run(['bash', str(self.home / 'at'), *args], capture_output=True, text=True, check=True)
+            self.started[key] = [self.as_guest(word) for word in json.loads(done.stdout)]
+        return list(self.started[key])
+
+
+def hidden_rows(physical, expected, phase, leaves=True, rejected=False, actual=None):
+    """actual: a walk's own facts about the owner command typed last, dict(sudo=<the sudo words
+    typed>, owner=<the tools' process, InstalledTools.reader>). The rows of that command are built
+    from them, never from the reader the harness expects. Without it (unit fixtures) the rows repeat
+    the expected reader."""
     from test_owner_sudo_idle import row
     from test_owner_hidden import nested
     login = row(1962,1,1962,1962,physical,1962,'login',['login','--','ares-recovery'])
     shell = row(2926,1962,2926,2926,physical,2926,'bash',['-bash'])
+    relayed = expected['kind'] == 'sudo' and expected['next']['kind'] == 'owner'
+    if actual is not None and (expected['kind'] == 'owner' or relayed):
+        expected = dict(expected, argv=actual['owner'] if expected['kind'] == 'owner' else actual['sudo'])
+        if relayed:
+            expected['next'] = dict(expected['next'], argv=actual['owner'])
     if expected['kind'] == 'owner':
         rows = nested(physical,136*256+2,40,expected['argv'])
         if phase == 'left' and leaves:
@@ -130,10 +204,11 @@ def hidden_rows(physical, expected, phase, leaves=True, rejected=False):
     return [login,shell], 'persistent-login-readline'
 
 
-def execute_hidden(source, leaves=True, rejected=False, facts=False, raw=None):
+def execute_hidden(source, leaves=True, rejected=False, facts=False, raw=None, actual=None):
     """Real composed proof over proc/VCSA facts; ECHO is always off.
 
     Completion deliberately traps tcgetattr so an ECHO dependency cannot pass.
+    actual: see hidden_rows (a walk's own processes for the owner command typed last).
     """
     import termios
     from test_owner_hidden import Proc, vcsa, PROMPT
@@ -146,7 +221,7 @@ def execute_hidden(source, leaves=True, rejected=False, facts=False, raw=None):
     phase = 'ready' if call.func.id == 'hidden_observation' else 'handoff' if call.func.id == 'hidden_handoff' else 'left'
     if phase != 'ready':
         assert 'tcgetattr' not in source, 'Completion script contains an ECHO check'
-    rows, shape = hidden_rows(physical, expected, phase, leaves, rejected)
+    rows, shape = hidden_rows(physical, expected, phase, leaves, rejected, actual)
     text = third if phase == 'ready' else ('Physically type yz-/!ü then Return:' if phase == 'handoff'
         else 'Login incorrect\nlocalhost login:' if rejected else 'root@bazzite:~# ' if leaves else PROMPT)
     raw = vcsa(text) if raw is None else raw

@@ -1,0 +1,26 @@
+Run 43469744106, check_build=build on ec0148d5 (runner image 20261111.127.1); excerpt of evidence/build.log:
+149: java-25-openjdk-crypto-adapter-1:25.0. 100% |  14.1 MiB/s | 144.2 KiB |  00m00s
+157: java-25-openjdk-headless-1:25.0.5.0.8- 100% | 257.1 MiB/s |  58.1 MiB |  00m00s
+218: java-25-openjdk-crypto-adapter x86_64 1:25.0.5.0.8-3.1.fc44 @commandline 506.4 KiB
+219: java-25-openjdk-headless       x86_64 1:25.0.5.0.8-3.1.fc44 @commandline 237.0 MiB
+256:[18/43] Installing java-25-openjdk-cryp 100% | 495.0 MiB/s | 506.8 KiB |  00m00s
+275:[24/43] Installing java-25-openjdk-head 100% | 477.0 MiB/s | 237.1 MiB |  00m00s
+301:Complete!
+302:Traceback (most recent call last):
+303:  File "<stdin>", line 42, in <module>
+304:  File "<stdin>", line 10, in fetch
+305:  File "<stdin>", line 14, in check
+306:AssertionError: net.minecraft.json differs from its pin
+307:Error: building at STEP "RUN test ! -e /tmp/aresos/ci && bash /tmp/aresos/build.sh packages": while running runtime: exit status 1
+
+net.minecraft 26.2 meta, Prism meta-launcher 0a4c3e6b (2026-11-03, the old pin 22a150f2...) vs b8e2a3e1 (2026-11-10, live on 2026-11-13, 9c23199a...), json.tool diff:
+11,14c11,14
+<         "sha1": "56a546ca1ea01548679d6b4269363d0c6697a454",
+<         "size": 586366,
+<         "totalSize": 481931971,
+<         "url": "https://piston-meta.mojang.com/v1/packages/56a546ca1ea01548679d6b4269363d0c6697a454/32.json"
+---
+>         "sha1": "941b1ea6afb4a472d164c0d12e3e3272bf3435f8",
+>         "size": 586566,
+>         "totalSize": 484155050,
+>         "url": "https://piston-meta.mojang.com/v1/packages/941b1ea6afb4a472d164c0d12e3e3272bf3435f8/32.json"

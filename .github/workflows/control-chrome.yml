@@ -1,0 +1,226 @@
+name: Control Chrome
+on:
+  push:
+    branches: [pkg/20-chrome, pkg/20-chrome-adapters, pkg/20-chrome-qual, main]
+    paths: ['control/**', 'docs/control/TOOLS.md', 'reviews/20-chrome/**', '.github/workflows/control-chrome.yml']
+  pull_request:
+    branches: [main]
+    paths: ['control/**', 'docs/control/TOOLS.md', 'reviews/20-chrome/**', '.github/workflows/control-chrome.yml']
+  workflow_dispatch:
+    inputs:
+      latency_probe:
+        description: 'Measure paired call histories only; not acceptance'
+        type: boolean
+        default: false
+      destination_probe:
+        description: 'Run post-18d destination and late-reader probes (not acceptance)'
+        type: boolean
+        default: false
+      injection_probe:
+        description: 'Run only the controlled-document injection experiment (not acceptance)'
+        type: boolean
+        default: false
+  schedule:
+    - cron: '19 4 * * *'
+permissions:
+  contents: read
+concurrency:
+  # Runs own separate Linux containers and run-ID artifacts; repeats share no state.
+  group: control-chrome-${{ github.ref }}-${{ github.run_id }}
+  cancel-in-progress: false
+jobs:
+  package:
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.package.outputs.version }}
+      package_url: ${{ steps.package.outputs.package_url }}
+      package_sha256: ${{ steps.package.outputs.package_sha256 }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Resolve the exact stable package and checksum
+        id: package
+        run: |
+          python3 - <<'PY'
+          import gzip,os,sys,time,urllib.error,urllib.request
+          sys.path.insert(0,'control/chrome')
+          from qualify import PACKAGES,packages
+          for attempt in range(3):
+              try:
+                  with urllib.request.urlopen(PACKAGES,timeout=20) as response:
+                      package=packages(gzip.decompress(response.read()).decode())['stable']
+                  break
+              except (urllib.error.URLError, TimeoutError, ConnectionError):
+                  if attempt == 2:
+                      raise
+                  time.sleep(2)
+          with open(os.environ['GITHUB_OUTPUT'],'a') as output:
+              for name in ['version','package_url','package_sha256']:
+                  output.write(name+'='+package[name]+'\n')
+          PY
+  fixtures:
+    if: ${{ !inputs.latency_probe }}
+    needs: package
+    runs-on: ubuntu-24.04
+    timeout-minutes: 130
+    strategy:
+      fail-fast: false
+      matrix:
+        install: [external, policy]
+        shard: ${{ (inputs.destination_probe || inputs.injection_probe) && fromJSON('[""]') || fromJSON('["core","review","recheck2","recheck3","adapters","word-0","word-1","word-2","word-3"]') }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Build disposable branded-Chrome container
+        env:
+          PACKAGE_URL: ${{ needs.package.outputs.package_url }}
+          PACKAGE_SHA256: ${{ needs.package.outputs.package_sha256 }}
+        run: git archive HEAD control docs/control/TOOLS.md .github/workflows/control-chrome-qualification.yml .github/workflows/control-chrome.yml | docker build --build-arg PACKAGE_URL="$PACKAGE_URL" --build-arg PACKAGE_SHA256="$PACKAGE_SHA256" -t aresos-chrome-fixture -f control/chrome/ci/Dockerfile -
+      - name: Browser fixtures only inside Linux container, sandbox on
+        env:
+          INSTALL_MODE: ${{ matrix.install }}
+          BROWSER_SHARD: ${{ matrix.shard }}
+          QUALIFICATION_VERSION: ${{ needs.package.outputs.version }}
+          DESTINATION_PROBE: ${{ inputs.destination_probe && 'true' || 'false' }}
+          INJECTION_PROBE: ${{ inputs.injection_probe && 'true' || 'false' }}
+        run: |
+          set -euo pipefail
+          mkdir -p .work/20-chrome/ci
+          timeout --signal=TERM --kill-after=30s 120m docker run --rm --network none --cap-add SYS_ADMIN --security-opt seccomp=unconfined --security-opt apparmor=unconfined --shm-size=512m -e INSTALL_MODE -e BROWSER_SHARD -e QUALIFICATION_VERSION -e INJECTION_PROBE -e DESTINATION_PROBE -e GITHUB_RUN_ID -e GITHUB_SHA -v "$PWD/.work/20-chrome/ci:/out" aresos-chrome-fixture
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: control-chrome-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.install }}-${{ matrix.shard || 'probe' }}
+          path: .work/20-chrome/ci/
+          retention-days: 14
+
+  python-shards:
+    if: ${{ !inputs.destination_probe && !inputs.injection_probe && !inputs.latency_probe }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3]
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Complete plain-Python suite, disjoint file shard
+        env:
+          PYTHON_SHARD: ${{ matrix.shard }}
+          TEST_OUT: .work/20-chrome-python
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: |
+          set -euo pipefail
+          mkdir -p .work/20-chrome-python
+          python3 control/chrome/ci/python-shard.py 2>&1 | tee .work/20-chrome-python/python.txt
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: control-chrome-python-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.shard }}
+          path: .work/20-chrome-python/
+          retention-days: 14
+  native-precedence:
+    if: ${{ !inputs.destination_probe && !inputs.injection_probe && !inputs.latency_probe }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Build 18d's real native precedence environment
+        run: docker build -f control/boundary/Dockerfile -t aresos-chrome-precedence .
+      - name: Native managed asks in normal and skip-permissions modes
+        run: |
+          set -euo pipefail
+          mkdir -p .work/chrome-precedence
+          timeout --signal=TERM --kill-after=30s 25m docker run --rm --network none --cap-add SYS_PTRACE --security-opt seccomp=unconfined --security-opt apparmor=unconfined --security-opt systempaths=unconfined -e PRECEDENCE_ONLY=true -e GITHUB_SHA -e GITHUB_RUN_ID -v "$PWD/.work/chrome-precedence:/evidence" aresos-chrome-precedence 2>&1 | tee .work/chrome-precedence/console.txt
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: chrome-precedence-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .work/chrome-precedence/
+          retention-days: 14
+  aggregate:
+    if: ${{ always() && !inputs.destination_probe && !inputs.injection_probe && !inputs.latency_probe }}
+    needs: [fixtures, python-shards, native-precedence]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        install: [external, policy]
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          pattern: control-chrome-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.install }}-*
+          path: .work/browser-shards
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: chrome-precedence-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .work/native-precedence
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          pattern: control-chrome-python-${{ github.run_id }}-${{ github.run_attempt }}-*
+          path: .work/python-shards
+      - name: Require every shard, the complete word inventory and real group 12
+        env:
+          INSTALL_MODE: ${{ matrix.install }}
+        run: |
+          node control/chrome/ci/merge-shards.mjs .work/browser-shards .work/aggregate .work/native-precedence/chrome-precedence.json
+          python3 control/chrome/ci/merge-python.py .work/python-shards .work/aggregate
+          node reviews/20-chrome/audit-review-evidence.mjs .work/aggregate > .work/aggregate/independent-audit.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: control-chrome-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.install }}
+          path: .work/aggregate/
+          retention-days: 14
+
+  latency:
+    if: ${{ !inputs.destination_probe && !inputs.injection_probe }}
+    needs: package
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        privacy: [plain, audit]
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Paired current and historical measurements on the same runner
+        env:
+          PACKAGE_URL: ${{ needs.package.outputs.package_url }}
+          PACKAGE_SHA256: ${{ needs.package.outputs.package_sha256 }}
+          QUALIFICATION_VERSION: ${{ needs.package.outputs.version }}
+          LATENCY_PRIVACY: ${{ matrix.privacy }}
+        run: bash control/chrome/ci/latency-pair.sh
+      - name: Require lead ceilings and reject paired latency regressions
+        if: ${{ !inputs.latency_probe }}
+        run: |
+          python3 control/chrome/ci/latency-check.py \
+            .work/latency-out/current/latency-summary.json \
+            .work/latency-out/ab7aba92/latency-summary.json \
+            control/chrome/ci/latency-reference.json \
+            control/chrome/ci/latency-targets.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: chrome-latency-${{ github.run_id }}-${{ github.run_attempt }}-current-${{ matrix.privacy }}
+          path: .work/latency-out/current/
+          retention-days: 14
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: chrome-latency-${{ github.run_id }}-${{ github.run_attempt }}-ab7aba92-${{ matrix.privacy }}
+          path: .work/latency-out/ab7aba92/
+          retention-days: 14

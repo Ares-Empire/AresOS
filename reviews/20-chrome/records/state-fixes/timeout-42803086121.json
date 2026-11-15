@@ -1,0 +1,29 @@
+{
+  "run": 42803086121,
+  "source": "4d80ea38920c483cf362ad6a4ccbc6a14dffe08f",
+  "conclusion": "failure",
+  "acceptance": false,
+  "reason": "Both container commands reached their 105-minute deadline; browser matrices incomplete.",
+  "modes": [
+    {
+      "mode": "external",
+      "python_tests": 200,
+      "python_seconds": 3480.039,
+      "python_result": "OK",
+      "last_completed_strict_word_cases": 648,
+      "total_strict_word_cases": 999,
+      "workflow_raw_log_exit_124_line": 3426,
+      "artifact_id": 13765446994
+    },
+    {
+      "mode": "policy",
+      "python_tests": 200,
+      "python_seconds": 2596.64,
+      "python_result": "OK",
+      "last_completed_strict_word_cases": 810,
+      "total_strict_word_cases": 999,
+      "workflow_raw_log_exit_124_line": 6901,
+      "artifact_id": 13765437000
+    }
+  ]
+}

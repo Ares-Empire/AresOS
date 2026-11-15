@@ -30,8 +30,6 @@ import java.util.Locale;
 import java.util.Set;
 import dev.aresos.catalogue.WindowsAppCatalogue;
 import dev.aresos.catalogue.LinuxAppCatalogue;
-import dev.aresos.icon.IconPack;
-import dev.aresos.icon.PixelIconConverter;
 import dev.aresos.item.AppInventory;
 import dev.aresos.shell.ShellClient;
 
@@ -43,7 +41,8 @@ public final class AresOs implements ModInitializer {
     private static volatile List<AppDefinition> apps = List.of();
     private static String configError;
     private static String discoveryError;
-    public static Set<String> generatedIcons = Set.of();
+    // The apps that have a pixel icon the game can draw; swapped whole (item/MyAppsGame, icon/IconRefresh).
+    public static volatile Set<String> generatedIcons = Set.of();
     private static final Duration HELPER_WAIT = Duration.ofSeconds(5);
     private static ShellClient shell;
 
@@ -64,11 +63,84 @@ public final class AresOs implements ModInitializer {
         return shell;
     }
 
-    private static synchronized void mergeHelperApps(List<ShellClient.App> listed) {
-        try { apps = AppsConfig.merge(configPath(), LinuxAppCatalogue.definitions(listed)); }
-        catch (IOException | RuntimeException error) {
+    public static synchronized void saveMine(java.util.Map<String, Boolean> changes) throws IOException {
+        apps = AppsConfig.mine(configPath(), changes);
+        // `/aresos app add` and `remove`, the Apps screen and `/aresos give`: the town follows My apps.
+        dev.aresos.hub.TownKeeper.ask();
+    }
+
+    public static synchronized void assignNames(Set<String> reserved) throws IOException {
+        var saved = AppsConfig.assignNames(configPath(), reserved);
+        // This operation only edits names. Do not reload launch definitions or replace a newer in-memory list.
+        var byId = saved.stream().collect(java.util.stream.Collectors.toMap(AppDefinition::id, AppDefinition::names));
+        var updated = apps.stream().map(app -> byId.containsKey(app.id()) ? app.withNames(byId.get(app.id())) : app).toList();
+        if (apps.equals(updated)) return;
+        apps = updated;
+        // A main name that changed by itself (a new or displaced name): the town's signs follow.
+        dev.aresos.hub.TownKeeper.ask();
+    }
+
+    /** `/aresos app name`: saved, then the town's signs follow (package 36, review fixes 1, step B, point 4). */
+    public static synchronized void name(String id, String name, Set<String> reserved) throws IOException {
+        apps = AppsConfig.name(configPath(), id, name, reserved);
+        dev.aresos.hub.TownKeeper.ask();
+    }
+
+    /** `/aresos app unname`: saved, then the town's signs follow. */
+    public static synchronized void unname(String name) throws IOException {
+        apps = AppsConfig.unname(configPath(), name);
+        dev.aresos.hub.TownKeeper.ask();
+    }
+
+    /**
+     * Saves where apps stand in the flat home (HUB.md 3.5): {@code place} and {@code group}, exactly as given per app.
+     * Like the names, only these two fields follow into the list in memory.
+     */
+    public static synchronized void saveSpots(java.util.Map<String, AppsConfig.Spot> spots) throws IOException {
+        var saved = AppsConfig.spots(configPath(), spots);
+        var byId = saved.stream().collect(java.util.stream.Collectors.toMap(AppDefinition::id, app -> app));
+        var updated = apps.stream().map(app -> byId.containsKey(app.id())
+                ? app.withSpot(byId.get(app.id()).place(), byId.get(app.id()).group()) : app).toList();
+        if (!apps.equals(updated)) apps = updated;
+    }
+
+    /**
+     * {@link #saveSpots}, only while the list in memory is still {@code expected}, the very object a swap or move took
+     * at its start (package 37, review fixes 1, point 2). Every change of the catalogue (a helper refresh, My apps, a
+     * name) puts a new list here under this same lock, so false means it changed since: then nothing is saved.
+     */
+    public static synchronized boolean saveSpotsIf(Object expected, java.util.Map<String, AppsConfig.Spot> spots) throws IOException {
+        if (apps != expected) return false;
+        saveSpots(spots);
+        return true;
+    }
+
+    /**
+     * One complete program list from the helper goes into the apps file; My apps follows (item/MyAppsGame). The helper
+     * owns every launch here, so what it does not name is marked absent: no command, no /open, until it returns.
+     */
+    private static synchronized void takeIn(ShellClient.AppList listed) throws IOException {
+        var merged = AppsConfig.merge(configPath(), LinuxAppCatalogue.definitions(listed.apps()), listed.detailed(),
+                java.time.LocalDate.now(), true);
+        apps = merged.apps();
+        dev.aresos.item.MyAppsGame.listed(merged);
+    }
+
+    private static synchronized void mergeHelperApps(ShellClient.AppList listed) {
+        try {
+            takeIn(listed);
+            dev.aresos.item.MyAppsGame.pictures(apps);
+        } catch (IOException | RuntimeException error) {
             LOGGER.error("Could not merge apps from the AresOS app helper; existing catalogue kept", error);
         }
+    }
+
+    private static void startHelper(ShellClient helper, boolean discovery) {
+        shell = helper;
+        if (discovery) helper.addListener(new ShellClient.Listener() {
+            @Override public void catalogue(ShellClient.AppList listed) { mergeHelperApps(listed); }
+        });
+        helper.start();
     }
 
     public static Identifier id(String path) {
@@ -89,20 +161,21 @@ public final class AresOs implements ModInitializer {
             boolean windows = System.getProperty("os.name").toLowerCase(Locale.ROOT).startsWith("windows");
             var loaded = AppsConfig.load(configPath(), !windows);
             apps = loaded.apps();
+            dev.aresos.item.MyAppsGame.pictures(apps);
             if (loaded.migrationBackup() != null) {
-                LOGGER.info("Migrated apps.json to schema 2; original saved at {}", loaded.migrationBackup());
+                LOGGER.info("Moved apps.json to schema {}; original saved at {}", AppsConfig.SCHEMA, loaded.migrationBackup());
             }
             boolean discovery = !Boolean.getBoolean("aresos.disableDiscovery");
             if (!windows && FabricLoader.getInstance().getEnvironmentType() == EnvType.CLIENT) {
                 // On AresOS only the OS app helper opens apps; the session supervisor provides its socket and nonce.
-                shell = ShellClient.fromEnvironment(System.getenv(), ShellClient.Settings.DEFAULT);
-                shell.start();
+                startHelper(ShellClient.fromEnvironment(System.getenv(), ShellClient.Settings.DEFAULT), discovery);
             }
             if (discovery && (windows || shell != null)) {
                 try {
-                    var catalogue = windows ? new WindowsAppCatalogue(FabricLoader.getInstance().getGameDir().resolve("aresos-runtime/discovery"), apps)
-                            : new LinuxAppCatalogue(shell, HELPER_WAIT);
-                    apps = AppsConfig.merge(configPath(), catalogue.listApps());
+                    if (windows) apps = AppsConfig.merge(configPath(), new WindowsAppCatalogue(
+                            FabricLoader.getInstance().getGameDir().resolve("aresos-runtime/discovery"), apps).listApps());
+                    // All lists, including the first, are applied by the subscribed callback exactly once.
+                    else shell.awaitCatalogue(HELPER_WAIT);
                 } catch (ShellClient.ShellException helper) {
                     // Reported in game from the connection status; apps stay as configured until the helper answers.
                     LOGGER.warn("AresOS app helper not available at startup: {}", helper.getMessage());
@@ -110,12 +183,8 @@ public final class AresOs implements ModInitializer {
                     discoveryError = error.getMessage();
                     LOGGER.error("App discovery failed; existing catalogue kept intact", error);
                 }
-                if (shell != null) shell.addListener(new ShellClient.Listener() {
-                    @Override public void apps(List<ShellClient.App> listed) { mergeHelperApps(listed); }
-                });
             }
-            try { generatedIcons = IconPack.generate(iconPackPath(), apps, new PixelIconConverter()); }
-            catch (IOException error) { LOGGER.error("Cannot write icon cache; using configured vanilla looks", error); }
+            if (windows) dev.aresos.item.MyAppsGame.pictures(apps);
         } catch (IOException error) {
             configError = error.getMessage();
             LOGGER.error("Cannot load app catalogue; apps disabled and original file left intact", error);
@@ -124,6 +193,11 @@ public final class AresOs implements ModInitializer {
         LiveMode.register();
         NetherHome.register();
         dev.aresos.zone.WalkInZones.register();
+        dev.aresos.world.Arrivals.register();
+        dev.aresos.zone.PictureReader.register();
+        dev.aresos.zone.ZoneCommands.register();
+        dev.aresos.hub.TownKeeper.register();
+        dev.aresos.hub.TownSeal.register();
         PayloadTypeRegistry.serverboundPlay().register(ToggleModePayload.TYPE, ToggleModePayload.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(dev.aresos.mode.ModeSwitchStatePayload.TYPE, dev.aresos.mode.ModeSwitchStatePayload.CODEC);
         PayloadTypeRegistry.serverboundPlay().register(dev.aresos.mode.ModeSwitchAckPayload.TYPE, dev.aresos.mode.ModeSwitchAckPayload.CODEC);
@@ -134,7 +208,12 @@ public final class AresOs implements ModInitializer {
                     if (!LiveMode.toggleForHost(context.server(), context.player()))
                         dev.aresos.mode.ModeInventories.of(context.player()).rejectToggle(context.player());
                 });
+        // The H key (package 37): home, as /aresos home.
+        PayloadTypeRegistry.serverboundPlay().register(dev.aresos.world.HomeKeyPayload.TYPE, dev.aresos.world.HomeKeyPayload.CODEC);
+        ServerPlayNetworking.registerGlobalReceiver(dev.aresos.world.HomeKeyPayload.TYPE,
+                (payload, context) -> dev.aresos.world.HomeCommands.key(context.player()));
         AppInventory.register();
+        dev.aresos.names.SlashCommands.register();
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
             dev.aresos.mode.ModeInventories.of(handler.player).reportLoginError(handler.player);
             if (!dev.aresos.mode.ModeInventories.of(handler.player).restoredForLogin()) AppInventory.populate(handler.player);
@@ -148,16 +227,22 @@ public final class AresOs implements ModInitializer {
         });
         CommandRegistrationCallback.EVENT.register((dispatcher, registry, environment) -> {
             if (!environment.includeIntegrated) return;
+            dev.aresos.names.ProgramCommands.register(dispatcher);
+            dev.aresos.world.GettingAround.register(dispatcher);
             dispatcher.register(Commands.literal("aresos")
                         .then(dev.aresos.world.HomeCommands.command())
                         .then(dev.aresos.zone.ZoneCommands.zone())
                         .then(dev.aresos.zone.ZoneCommands.logo())
+                        .then(dev.aresos.item.AppCommands.app())
+                        .then(dev.aresos.hub.HubCommands.hub())
                         .then(Commands.literal("desktop")
                                 .then(Commands.literal("on").executes(context -> desktop(context.getSource(), true)))
                                 .then(Commands.literal("off").executes(context -> desktop(context.getSource(), false))))
                         .then(Commands.literal("give").then(Commands.argument("app", word())
                                 .suggests((context, builder) -> {
-                                    apps.forEach(app -> builder.suggest(app.id()));
+                                    if (dev.aresos.item.AppCommands.allowed(context.getSource()))
+                                        apps.stream().filter(app -> app.id().startsWith(builder.getRemainingLowerCase()))
+                                                .forEach(app -> builder.suggest(app.id()));
                                     return builder.buildFuture();
                                 }).executes(context -> {
                                     var source = context.getSource();
@@ -175,11 +260,7 @@ public final class AresOs implements ModInitializer {
                                         context.getSource().sendFailure(Component.literal("Unknown AresOS app"));
                                         return 0;
                                     }
-                                    if (!player.getInventory().add(AppItems.create(app))) {
-                                        context.getSource().sendFailure(Component.literal("Inventory is full"));
-                                        return 0;
-                                    }
-                                    return 1;
+                                    return AppInventory.give(source, app);
                                 }))));
         });
     }

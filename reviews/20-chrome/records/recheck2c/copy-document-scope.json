@@ -1,0 +1,11 @@
+{
+  "before_fix": {
+    "command": "node --test --test-name-pattern '2c a watched node adopted' control/chrome_tests/page.test.mjs",
+    "exit": 1,
+    "sha256": "aa34012793ac1497d3a11050030f109f57d09eb40d992dd3f05cf30d888e995b",
+    "output": "\u2716 2c a watched node adopted into an ordinary document cannot report that documents copy (3.007625ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 39.371125\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/page.test.mjs:776:1\n\u2716 2c a watched node adopted into an ordinary document cannot report that documents copy (3.007625ms)\n  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n  + actual - expected\n  \n  + {\n  +   message: 'The page wrote to the clipboard.',\n  +   routes: [\n  +     'copy'\n  +   ],\n  +   written: true\n  + }\n  - null\n  \n      at TestContext.<anonymous> (file://<worktree>/control/chrome_tests/page.test.mjs:782:79)\n      at Test.runInAsyncScope (node:async_hooks:226:14)\n      at Test.run (node:internal/test_runner/test:1382:25)\n      at Test.start (node:internal/test_runner/test:1242:17)\n      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {\n    generatedMessage: true,\n    code: 'ERR_ASSERTION',\n    actual: { written: true, message: 'The page wrote to the clipboard.', routes: [ 'copy' ] },\n    expected: null,\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n"
+  },
+  "fix": "A trusted copy event is reported only if its native composed root is this controlled document. A watched node can retain listeners after adoption; copies in its new ordinary document must continue without being reported here.",
+  "native_copy_cancelled": false,
+  "clipboard_contents_read": false
+}

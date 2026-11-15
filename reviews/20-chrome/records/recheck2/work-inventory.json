@@ -1,0 +1,10 @@
+{
+  "threshold_bytes": 500000000,
+  "over_threshold": [],
+  "total_bytes": 6648685018,
+  "notes": [
+    "No local browser/profile or ISO/image download.",
+    "Retained shared artifacts are one local copy per completed run.",
+    "Temporary source-text base64 files were deleted after inspection."
+  ]
+}

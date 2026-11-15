@@ -1,0 +1,423 @@
+{
+  "source": "2526355931873c14319a554ba3e208bd9daa8636",
+  "runs": [
+    42864982361,
+    42865000405
+  ],
+  "whole_runs": "failed; not acceptance",
+  "retained_mode": "policy",
+  "executed": 43,
+  "passed": 39,
+  "relevant_pass_lines": [
+    {
+      "line": 33,
+      "text": "GROUP 4 REVIEW ordinary native dialogs from Claude owner and page tasks keep working PASS"
+    },
+    {
+      "line": 34,
+      "text": "GROUP 4 REVIEW blank and srcdoc native dialogs answer with a held continuation PASS"
+    },
+    {
+      "line": 35,
+      "text": "GROUP 8 REVIEW preexisting dialogs hand off within bounds and recover after the owner answers PASS"
+    },
+    {
+      "line": 36,
+      "text": "GROUP 4 REVIEW borrowed native dialogs always ask bind the answer and never replay PASS"
+    },
+    {
+      "line": 37,
+      "text": "GROUP 3 REVIEW ordinary blank and srcdoc editors bind drafts and send normally PASS"
+    },
+    {
+      "line": 38,
+      "text": "GROUP 3 REVIEW owner chosen attachments show byte digests and bind identical metadata replacements PASS"
+    },
+    {
+      "line": 43,
+      "text": "GROUP 2 REVIEW inherited and newly created frames hold submissions PASS"
+    },
+    {
+      "line": 44,
+      "text": "GROUP 2 REVIEW borrowed wrappers respect another controlled tab and an ordinary document PASS"
+    },
+    {
+      "line": 45,
+      "text": "GROUP 11 REVIEW explicit pay and delete evidence overrides an owner allowed adapter PASS"
+    },
+    {
+      "line": 52,
+      "text": "GROUP 2 REVIEW synchronous new shadow roots keep all submission kinds held PASS"
+    },
+    {
+      "line": 61,
+      "text": "GROUP 2 REVIEW new shadow roots capture borrowed native events including noncomposed ones PASS"
+    },
+    {
+      "line": 68,
+      "text": "GROUP 1 REVIEW modified deletion keys normalized words malformed URLs and visible names PASS"
+    },
+    {
+      "line": 80,
+      "text": "GROUP 3 REVIEW item confirmation file rich text and title mutations refuse PASS"
+    },
+    {
+      "line": 84,
+      "text": "GROUP 2 REVIEW owner mark exact form submitter and unconsumed delayed work PASS"
+    },
+    {
+      "line": 85,
+      "text": "GROUP 8 REVIEW iframe drafts and detached or Web Audio report before reload PASS"
+    },
+    {
+      "line": 86,
+      "text": "GROUP 8 REVIEW script-started POST documents in tabs and popups never reload PASS"
+    },
+    {
+      "line": 87,
+      "text": "GROUP 8 REVIEW no-op checks and isolated choices leave the owner tab selected PASS"
+    },
+    {
+      "line": 88,
+      "text": "GROUP 8 REVIEW Stop removes navigation blocks while a frozen wrapper awaits cleanup PASS"
+    },
+    {
+      "line": 89,
+      "text": "GROUP 5 REVIEW page outcome records the actual post-input notice PASS"
+    },
+    {
+      "line": 208,
+      "text": "GROUP 4 ADAPTER every named GitHub confirmation mismatch PASS"
+    }
+  ],
+  "failed_rows": [
+    {
+      "name": "GROUP 10 ADAPTER Gemini question content and always asking chat changes",
+      "passed": false,
+      "error": "Error: Send: undefined\n    at eventually (file:///workspace/control/chrome/ci/browser.mjs:29:208)\n    at async target (file:///workspace/control/chrome/ci/browser.mjs:32:40)\n    at async refusedAfterChange (file:///workspace/control/chrome/ci/sites/matrices.mjs:33:39)\n    at async file:///workspace/control/chrome/ci/sites/matrices.mjs:140:67\n    at async check (file:///workspace/control/chrome/ci/sites/matrices.mjs:15:9)\n    at async siteMatrices (file:///workspace/control/chrome/ci/sites/matrices.mjs:134:3)\n    at async collectSiteResults (file:///workspace/control/chrome/ci/site-results.mjs:12:16)\n    at async matrices (file:///workspace/control/chrome/ci/matrices.mjs:86:19)\n    at async file:///workspace/control/chrome/ci/browser.mjs:146:24"
+    },
+    {
+      "name": "GROUP 11 ADAPTER Gemini exact account owner entry and revocation",
+      "passed": false,
+      "error": "Error: Send: undefined\n    at eventually (file:///workspace/control/chrome/ci/browser.mjs:29:208)\n    at async target (file:///workspace/control/chrome/ci/browser.mjs:32:40)\n    at async file:///workspace/control/chrome/ci/sites/matrices.mjs:149:111\n    at async check (file:///workspace/control/chrome/ci/sites/matrices.mjs:15:9)\n    at async siteMatrices (file:///workspace/control/chrome/ci/sites/matrices.mjs:142:3)\n    at async collectSiteResults (file:///workspace/control/chrome/ci/site-results.mjs:12:16)\n    at async matrices (file:///workspace/control/chrome/ci/matrices.mjs:86:19)\n    at async file:///workspace/control/chrome/ci/browser.mjs:146:24"
+    },
+    {
+      "name": "GROUP 10 ADAPTER Deezer playback additions removals posts shares and payments",
+      "passed": false,
+      "error": "Error: Delete playlist: undefined\n    at eventually (file:///workspace/control/chrome/ci/browser.mjs:29:208)\n    at async target (file:///workspace/control/chrome/ci/browser.mjs:32:40)\n    at async file:///workspace/control/chrome/ci/sites/matrices.mjs:153:64\n    at async check (file:///workspace/control/chrome/ci/sites/matrices.mjs:15:9)\n    at async siteMatrices (file:///workspace/control/chrome/ci/sites/matrices.mjs:151:3)\n    at async collectSiteResults (file:///workspace/control/chrome/ci/site-results.mjs:12:16)\n    at async matrices (file:///workspace/control/chrome/ci/matrices.mjs:86:19)\n    at async file:///workspace/control/chrome/ci/browser.mjs:146:24"
+    },
+    {
+      "name": "GROUP 1 submit compose deletion and free-input matrix",
+      "passed": false,
+      "error": "Error: Continue: undefined\n    at eventually (file:///workspace/control/chrome/ci/browser.mjs:29:208)\n    at async target (file:///workspace/control/chrome/ci/browser.mjs:32:40)\n    at async file:///workspace/control/chrome/ci/matrices.mjs:90:53\n    at async check (file:///workspace/control/chrome/ci/matrices.mjs:19:10)\n    at async matrices (file:///workspace/control/chrome/ci/matrices.mjs:87:3)\n    at async file:///workspace/control/chrome/ci/browser.mjs:146:24"
+    }
+  ],
+  "context_reuse_trace": [
+    {
+      "line": 38848,
+      "row": {
+        "protocol_event": {
+          "source": {
+            "tabId": 1926787611
+          },
+          "method": "Page.frameNavigated",
+          "params": {
+            "frame": {
+              "adFrameStatus": {
+                "adFrameType": "none"
+              },
+              "crossOriginIsolatedContextType": "NotIsolated",
+              "domainAndRegistry": "gemini.test",
+              "gatedAPIFeatures": [],
+              "id": "460F46752E0633DE89799D0AACC600A2",
+              "loaderId": "5A7EE1A703C67445D2E67D73048A7B73",
+              "mimeType": "text/html",
+              "secureContextType": "InsecureScheme",
+              "securityOrigin": "http://gemini.test:8765",
+              "securityOriginDetails": {
+                "isLocalhost": false
+              },
+              "url": "http://gemini.test:8765/?case=adapter-sites&id=adapters-gemini-123"
+            },
+            "type": "Navigation"
+          }
+        }
+      }
+    },
+    {
+      "line": 38849,
+      "row": {
+        "navigation_method": {
+          "tab": 1926787611,
+          "frame": 0,
+          "document": "AA8C194BF8534C1474F3A46C402BE075",
+          "transition": "typed",
+          "method": "GET"
+        }
+      }
+    },
+    {
+      "line": 38850,
+      "row": {
+        "protocol_event": {
+          "source": {
+            "tabId": 1926787611
+          },
+          "method": "Debugger.scriptParsed",
+          "params": {
+            "buildId": "",
+            "embedderName": "chrome-extension://ohmiaimcndaeknfadfmbflfkedonodij/context.js",
+            "endColumn": 0,
+            "endLine": 2,
+            "executionContextAuxData": {
+              "frameId": "460F46752E0633DE89799D0AACC600A2",
+              "isDefault": false,
+              "type": "isolated"
+            },
+            "executionContextId": 8,
+            "hasSourceURL": false,
+            "hash": "873fdfb36ee7aaa3237d729d2db045e3bf8e972b48dd9ee65478cad47b110647",
+            "isLiveEdit": false,
+            "isModule": false,
+            "length": 98,
+            "resolvedBreakpoints": [
+              {
+                "breakpointId": "br:1:1:0:chrome-extension://ohmiaimcndaeknfadfmbflfkedonodij/context.js",
+                "location": {
+                  "columnNumber": 0,
+                  "lineNumber": 1,
+                  "scriptId": "33"
+                }
+              }
+            ],
+            "scriptId": "33",
+            "scriptLanguage": "JavaScript",
+            "sourceMapURL": "",
+            "startColumn": 0,
+            "startLine": 0,
+            "url": "chrome-extension://ohmiaimcndaeknfadfmbflfkedonodij/context.js"
+          }
+        }
+      }
+    },
+    {
+      "line": 38851,
+      "row": {
+        "protocol_event": {
+          "source": {
+            "tabId": 1926787611
+          },
+          "method": "Debugger.breakpointResolved",
+          "params": {
+            "breakpointId": "br:1:1:0:chrome-extension://ohmiaimcndaeknfadfmbflfkedonodij/context.js",
+            "location": {
+              "columnNumber": 0,
+              "lineNumber": 1,
+              "scriptId": "33"
+            }
+          }
+        }
+      }
+    },
+    {
+      "line": 38852,
+      "row": {
+        "protocol_event": {
+          "source": {
+            "tabId": 1926787611
+          },
+          "method": "Debugger.paused",
+          "params": {
+            "callFrames": [
+              {
+                "callFrameId": "-6017744800957533220.8.0",
+                "canBeRestarted": true,
+                "functionLocation": {
+                  "columnNumber": 0,
+                  "lineNumber": 0,
+                  "scriptId": "33"
+                },
+                "functionName": "",
+                "location": {
+                  "columnNumber": 0,
+                  "lineNumber": 1,
+                  "scriptId": "33"
+                },
+                "scopeChain": [
+                  {
+                    "object": {
+                      "className": "Window",
+                      "description": "Window",
+                      "objectId": "-6017744800957533220.8.1",
+                      "type": "object"
+                    },
+                    "type": "global"
+                  }
+                ],
+                "this": {
+                  "className": "Window",
+                  "description": "Window",
+                  "objectId": "-6017744800957533220.8.2",
+                  "type": "object"
+                },
+                "url": ""
+              }
+            ],
+            "hitBreakpoints": [
+              "br:1:1:0:chrome-extension://ohmiaimcndaeknfadfmbflfkedonodij/context.js"
+            ],
+            "reason": "other"
+          }
+        }
+      }
+    },
+    {
+      "line": 38853,
+      "row": {
+        "protocol_command": {
+          "id": 5565,
+          "source": {
+            "tabId": 1926787611
+          },
+          "method": "Debugger.resume",
+          "phase": "dispatched"
+        }
+      }
+    },
+    {
+      "line": 38854,
+      "row": {
+        "protocol_command": {
+          "id": 5565,
+          "phase": "completed"
+        }
+      }
+    },
+    {
+      "line": 38855,
+      "row": {}
+    },
+    {
+      "line": 38856,
+      "row": {
+        "protocol_event": {
+          "source": {
+            "tabId": 1926787611
+          },
+          "method": "Debugger.resumed",
+          "params": {}
+        }
+      }
+    },
+    {
+      "line": 38857,
+      "row": {
+        "protocol_event": {
+          "source": {
+            "tabId": 1926787611
+          },
+          "method": "Debugger.scriptParsed",
+          "params": {
+            "buildId": "",
+            "embedderName": "http://gemini.test:8765/?case=adapter-sites&id=adapters-gemini-123",
+            "endColumn": 204,
+            "endLine": 0,
+            "executionContextAuxData": {
+              "frameId": "460F46752E0633DE89799D0AACC600A2",
+              "isDefault": true,
+              "type": "default"
+            },
+            "executionContextId": 7,
+            "hasSourceURL": false,
+            "hash": "67df86f84ea732ffa0c164464ee6e742ca2a0415ce838fc7786e9216dbecb407",
+            "isLiveEdit": false,
+            "isModule": false,
+            "length": 115,
+            "scriptId": "34",
+            "scriptLanguage": "JavaScript",
+            "sourceMapURL": "",
+            "startColumn": 89,
+            "startLine": 0,
+            "url": "http://gemini.test:8765/?case=adapter-sites&id=adapters-gemini-123"
+          }
+        }
+      }
+    },
+    {
+      "line": 38858,
+      "row": {
+        "protocol_event": {
+          "source": {
+            "tabId": 1926787611
+          },
+          "method": "Debugger.scriptParsed",
+          "params": {
+            "buildId": "",
+            "embedderName": "http://gemini.test:8765/?case=adapter-sites&id=adapters-gemini-123",
+            "endColumn": 2,
+            "endLine": 38,
+            "executionContextAuxData": {
+              "frameId": "460F46752E0633DE89799D0AACC600A2",
+              "isDefault": true,
+              "type": "default"
+            },
+            "executionContextId": 7,
+            "hasSourceURL": false,
+            "hash": "bf8ba40d8de02d7ea04bf57f4fea8f785a8f1019a9c595512fe674ab153295fd",
+            "isLiveEdit": false,
+            "isModule": false,
+            "length": 4921,
+            "scriptId": "35",
+            "scriptLanguage": "JavaScript",
+            "sourceMapURL": "",
+            "startColumn": 837,
+            "startLine": 0,
+            "url": "http://gemini.test:8765/?case=adapter-sites&id=adapters-gemini-123"
+          }
+        }
+      }
+    },
+    {
+      "line": 38859,
+      "row": {
+        "protocol_event": {
+          "source": {
+            "tabId": 1926787611
+          },
+          "method": "Page.domContentEventFired",
+          "params": {
+            "timestamp": 813.184545
+          }
+        }
+      }
+    },
+    {
+      "line": 38860,
+      "row": {
+        "protocol_event": {
+          "source": {
+            "tabId": 1926787611
+          },
+          "method": "Page.loadEventFired",
+          "params": {
+            "timestamp": 813.186672
+          }
+        }
+      }
+    },
+    {
+      "line": 38861,
+      "row": {
+        "protocol_event": {
+          "source": {
+            "tabId": 1926787611
+          },
+          "method": "Page.frameStoppedLoading",
+          "params": {
+            "frameId": "460F46752E0633DE89799D0AACC600A2"
+          }
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,121 @@
+Package 23 review fixes 2: each fix reverted alone (interfaces kept), then only that finding's tests.
+WSL Ubuntu 24.04, Python 3.12, a copy of the working tree at 53ef1faf per finding.
+
+== finding 1 (supervisor: a death before the hand-off)
+  test_a_death_before_the_hand_off_latches_like_a_kill [RestartPolicyTest] [java killed] ... FAIL
+  test_a_death_before_the_hand_off_latches_like_a_kill [RestartPolicyTest] [wrapper gone] ... FAIL
+  test_a_death_before_the_hand_off_latches_like_a_kill [RestartPolicyTest] [hand-off timeout] ... FAIL
+  test_a_death_before_the_hand_off_latches_like_a_kill [RestartPolicyTest] [killed, from the exit record] ... FAIL
+  test_a_start_authorized_before_a_supervisor_restart_is_accounted_for [AdoptionTest] [no record, nothing running] ... FAIL
+  test_a_start_authorized_before_a_supervisor_restart_is_accounted_for [AdoptionTest] [killed, from the record] ... FAIL
+  test_java_killed_before_the_hand_off_latches [LoopTest] ... FAIL
+  test_java_and_wrapper_killed_before_the_hand_off_latch [LoopTest] ... FAIL
+  fails: AssertionError: Tuples differ: ('STARTING', 'restarting', False) != ('RECOVERY', 'killed', True)
+  fails: AssertionError: timed out; state RECOVERY crashes; log helper aresdesktop-ddee8732b0cc <nonce>
+  fails: AssertionError: timed out; state RECOVERY crashes; log helper aresdesktop-355dca180945 <nonce>
+  Ran 4 tests in 50.272s / FAILED (failures=8)
+== finding 1 (wrapper: Java that ended before the hand-off)
+  test_java_killed_before_the_hand_off_is_reported_with_its_status [WrapperTest] ... FAIL
+  test_java_killed_before_the_hand_off_latches [LoopTest] ... ok
+  fails: AssertionError: 137 != 78 : b''
+  Ran 2 tests in 1.704s / FAILED (failures=1)
+== finding 2 (a whole clear minute before retry)
+  test_a_kill_waits_for_a_whole_clear_minute_before_retry [RestartPolicyTest] ... FAIL
+  test_a_supervisor_restart_never_skips_the_clear_minute [RestartPolicyTest] ... FAIL
+  fails: AssertionError: True is not false : pressure that just dropped is not a clear minute
+  fails: AssertionError: True is not false
+  Ran 2 tests in 0.113s / FAILED (failures=2)
+== finding 3 (wrapper: a lost hand-off leaves no JVM)
+  test_a_lost_hand_off_stops_java_and_reports_on_a_new_connection [WrapperTest] ... ERROR
+  test_a_lost_hand_off_never_leaves_java_running [LoopTest] ... FAIL
+  fails: AssertionError: timed out; state RECOVERY killed; log helper aresdesktop-c4d8519d096b <nonce>
+  Ran 2 tests in 77.180s / FAILED (failures=1, errors=1)
+== finding 3 (supervisor: an answer lost after acceptance)
+  test_a_lost_hand_off_answer_after_acceptance_is_a_failed_start [RestartPolicyTest] ... FAIL
+  fails: AssertionError: Tuples differ: ('RECOVERY', 'killed', True) != ('STARTING', 'restarting', False)
+  Ran 1 test in 0.037s / FAILED (failures=1)
+== finding 4 (the decision survives supervisor restarts)
+  test_the_decision_after_an_end_survives_supervisor_restarts [AdoptionTest] ... FAIL
+  test_a_game_that_ended_while_no_supervisor_ran_is_accounted_for_once [AdoptionTest] [normal exit] ... FAIL
+  test_a_game_that_ended_while_no_supervisor_ran_is_accounted_for_once [AdoptionTest] [crash] ... FAIL
+  fails: AssertionError: Tuples differ: ('STARTING', None, False) != ('RECOVERY', 'quit', False)
+  fails: AssertionError: Tuples differ: ('STARTING', None, False) != ('STARTING', 'restarting', False)
+  Ran 2 tests in 0.198s / FAILED (failures=3)
+== finding 5 (exact-home data valid by the codecs)
+  test_exact_home_data_must_be_valid_by_the_mods_codecs [WorldCheckTest] (invalid='Minecraft:the_nether') ... FAIL
+  test_exact_home_data_must_be_valid_by_the_mods_codecs [WorldCheckTest] (invalid='minecraft:the nether') ... FAIL
+  test_exact_home_data_must_be_valid_by_the_mods_codecs [WorldCheckTest] (invalid='a:b:c') ... FAIL
+  test_exact_home_data_must_be_valid_by_the_mods_codecs [WorldCheckTest] (invalid='..:nether') ... FAIL
+  test_exact_home_data_must_be_valid_by_the_mods_codecs [WorldCheckTest] (invalid='mine/craft:x') ... FAIL
+  test_exact_home_data_must_be_valid_by_the_mods_codecs [WorldCheckTest] (invalid='minecraft:netheré') ... FAIL
+  test_exact_home_data_must_be_valid_by_the_mods_codecs [WorldCheckTest] (invalid='minecraft:xxx\\') ... FAIL
+  test_exact_home_data_must_be_valid_by_the_mods_codecs [WorldCheckTest] (angle='yaw', value=nan) ... FAIL
+  test_exact_home_data_must_be_valid_by_the_mods_codecs [WorldCheckTest] (angle='yaw', value=inf) ... FAIL
+  test_exact_home_data_must_be_valid_by_the_mods_codecs [WorldCheckTest] (angle='pitch', value=-inf) ... FAIL
+  test_exact_home_data_must_be_valid_by_the_mods_codecs [WorldCheckTest] (angle='pitch', value=nan) ... FAIL
+  test_malformed_exact_home_data_is_refused_before_the_start_and_at_readiness [RestartPolicyTest] ... FAIL
+  fails: AssertionError: 'ok' != 'damaged'
+  fails: AssertionError: Tuples differ: ('STARTING', None) != ('RECOVERY', 'world_damaged')
+  Ran 2 tests in 0.039s / FAILED (failures=12)
+== finding 6 (Java's modified UTF-8)
+  test_strings_are_read_as_java_writes_them [WorldCheckTest] ... ERROR
+  Ran 1 test in 0.004s / FAILED (errors=1)
+== finding 7 (corrupt compressed data is damage)
+  test_corrupt_compressed_data_is_damage_never_a_crash [WorldCheckTest] [corrupt deflate] ... ERROR
+  test_corrupt_compressed_data_is_damage_never_a_crash [WorldCheckTest] ... ERROR
+  Ran 1 test in 0.014s / FAILED (errors=2)
+== finding 8 (hand-back after late identification)
+  test_a_desktop_identified_after_it_took_focus_still_gives_focus_back [KeepForegroundTest] ... FAIL
+  test_late_identification_gives_the_same_result_at_every_split [KeepForegroundTest] (split=72) ... FAIL
+  test_late_identification_gives_the_same_result_at_every_split [KeepForegroundTest] (split=73) ... FAIL
+  test_late_identification_gives_the_same_result_at_every_split [KeepForegroundTest] (split=74) ... FAIL
+  test_late_identification_gives_the_same_result_at_every_split [KeepForegroundTest] (split=75) ... FAIL
+  test_late_identification_gives_the_same_result_at_every_split [KeepForegroundTest] (split=76) ... FAIL
+  test_late_identification_gives_the_same_result_at_every_split [KeepForegroundTest] (split=77) ... FAIL
+  test_late_identification_gives_the_same_result_at_every_split [KeepForegroundTest] (split=78) ... FAIL
+  test_late_identification_gives_the_same_result_at_every_split [KeepForegroundTest] (split=79) ... FAIL
+  test_late_identification_gives_the_same_result_at_every_split [KeepForegroundTest] (split=80) ... FAIL
+  test_late_identification_gives_the_same_result_at_every_split [KeepForegroundTest] (split=81) ... FAIL
+  test_late_identification_gives_the_same_result_at_every_split [KeepForegroundTest] (split=82) ... FAIL
+  test_late_identification_gives_the_same_result_at_every_split [KeepForegroundTest] (split=83) ... FAIL
+  test_late_identification_gives_the_same_result_at_every_split [KeepForegroundTest] (split=84) ... FAIL
+  test_late_identification_gives_the_same_result_at_every_split [KeepForegroundTest] (split=85) ... FAIL
+  test_late_identification_gives_the_same_result_at_every_split [KeepForegroundTest] (split=86) ... FAIL
+  test_late_identification_gives_the_same_result_at_every_split [KeepForegroundTest] (split=87) ... FAIL
+  test_late_identification_gives_the_same_result_at_every_split [KeepForegroundTest] (split=88) ... FAIL
+  test_late_identification_gives_the_same_result_at_every_split [KeepForegroundTest] (split=89) ... FAIL
+  test_late_identification_gives_the_same_result_at_every_split [KeepForegroundTest] (split=90) ... FAIL
+  test_late_identification_gives_the_same_result_at_every_split [KeepForegroundTest] (split=91) ... FAIL
+  test_late_identification_gives_the_same_result_at_every_split [KeepForegroundTest] (split=92) ... FAIL
+  test_late_identification_gives_the_same_result_at_every_split [KeepForegroundTest] (split=93) ... FAIL
+  test_late_identification_gives_the_same_result_at_every_split [KeepForegroundTest] (split=94) ... FAIL
+  test_late_identification_gives_the_same_result_at_every_split [KeepForegroundTest] (split=95) ... FAIL
+  test_late_identification_gives_the_same_result_at_every_split [KeepForegroundTest] (split=96) ... FAIL
+  test_late_identification_gives_the_same_result_at_every_split [KeepForegroundTest] (split=97) ... FAIL
+  test_late_identification_gives_the_same_result_at_every_split [KeepForegroundTest] (split=98) ... FAIL
+  test_late_identification_gives_the_same_result_at_every_split [KeepForegroundTest] (split=99) ... FAIL
+  test_late_identification_gives_the_same_result_at_every_split [KeepForegroundTest] (split=100) ... FAIL
+  test_late_identification_gives_the_same_result_at_every_split [KeepForegroundTest] (split=101) ... FAIL
+  test_late_identification_gives_the_same_result_at_every_split [KeepForegroundTest] (split=102) ... FAIL
+  test_late_identification_gives_the_same_result_at_every_split [KeepForegroundTest] (split=103) ... FAIL
+  test_late_identification_gives_the_same_result_at_every_split [KeepForegroundTest] (split=104) ... FAIL
+  test_late_identification_gives_the_same_result_at_every_split [KeepForegroundTest] (split=105) ... FAIL
+  test_late_identification_gives_the_same_result_at_every_split [KeepForegroundTest] (split=106) ... FAIL
+  test_late_identification_gives_the_same_result_at_every_split [KeepForegroundTest] (split=107) ... FAIL
+  fails: AssertionError: Lists differ: [] != [2]
+  fails: AssertionError: Lists differ: [] != [4278190083]
+  Ran 2 tests in 0.045s / FAILED (failures=37)
+== finding 9 (the VM pressure check proves pressure)
+  test_anything_short_of_proven_pressure_fails [PressureCheckTest] [the launcher fails] ... FAIL
+  test_anything_short_of_proven_pressure_fails [PressureCheckTest] [another scope] ... FAIL
+  test_anything_short_of_proven_pressure_fails [PressureCheckTest] [python fails at once] ... FAIL
+  test_anything_short_of_proven_pressure_fails [PressureCheckTest] [ends by itself] ... FAIL
+  test_anything_short_of_proven_pressure_fails [PressureCheckTest] [killed without OOM evidence] ... FAIL
+  test_anything_short_of_proven_pressure_fails [PressureCheckTest] [the supervisor does not answer] ... FAIL
+  fails: AssertionError: AssertionError not raised
+  Ran 1 test in 11.036s / FAILED (failures=6)
+fixes whose tests all passed when reverted (no proof): none
+
+
+Errors (no assertion line): finding 3 wrapper: subprocess.TimeoutExpired after 60 s (the wrapper waits for the untracked Java);
+finding 6: NbtError: 'utf-8' codec can't decode byte 0xed in position 8; finding 7: zlib.error: Error -3 while decompressing data: invalid block type.

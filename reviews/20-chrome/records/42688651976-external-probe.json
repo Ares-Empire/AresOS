@@ -1,0 +1,67 @@
+[
+  {
+    "phase": "ready"
+  },
+  {
+    "phase": "context",
+    "context": {
+      "auxData": {
+        "frameId": "27AFF1EBEB99E6B878B6402EF8F041BC",
+        "isDefault": true,
+        "type": "default"
+      },
+      "id": 1,
+      "name": "",
+      "origin": "://",
+      "uniqueId": "5206500662777958144.-1211989704711163321"
+    }
+  },
+  {
+    "phase": "context",
+    "context": {
+      "auxData": {
+        "frameId": "27AFF1EBEB99E6B878B6402EF8F041BC",
+        "isDefault": true,
+        "type": "default"
+      },
+      "id": 2,
+      "name": "",
+      "origin": "http://fixture.test:8765",
+      "uniqueId": "-8490574051511369090.8489754396075228788"
+    }
+  },
+  {
+    "phase": "context",
+    "context": {
+      "auxData": {
+        "frameId": "27AFF1EBEB99E6B878B6402EF8F041BC",
+        "isDefault": false,
+        "type": "isolated"
+      },
+      "id": 3,
+      "name": "Controlled injection experiment",
+      "origin": "chrome-extension://behaebcdjogggpdfpmkkmaphlhfcbblo",
+      "uniqueId": "8058374866479211130.7568109432248402265"
+    }
+  },
+  {
+    "phase": "private-extension-evaluation-before-resume",
+    "evaluated": {
+      "result": {
+        "type": "string",
+        "value": "{\"runtime\":\"behaebcdjogggpdfpmkkmaphlhfcbblo\",\"closedShadowAPI\":\"function\"}"
+      }
+    }
+  },
+  {
+    "phase": "isolated-before-resume",
+    "elapsed": 11,
+    "result": "Extension world installed before page scripts"
+  },
+  {
+    "phase": "first-page-script",
+    "result": false,
+    "handlers": 0,
+    "privateVisible": "undefined"
+  }
+]

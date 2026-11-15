@@ -28,9 +28,9 @@ packages and a root-owned test prefix there. Do not run it on a desktop host.
 | --- | --- | --- |
 | `act.sock` | exactly configured owner UID, excluding root/service UID | public actions and caller byte transfers |
 | `admin.sock` | root only | owner-only actions, through `sudo aresos admin …` |
-| `chrome.sock` | nobody, including root | placeholder, always refuses |
+| `chrome.sock` | exactly configured owner UID | Chrome's native host; loosening a site (`allow`, read-only off) also needs the owner's polkit password, once for each change |
 
-The directory is mode 0711, act mode 0666, admin/chrome mode 0600. The service
+The directory is mode 0711, act and chrome mode 0666, admin mode 0600. The service
 cannot chown a socket to another user without privileges, so act's identity gate
 is the kernel peer credential, checked before parsing a request. Root still has
 the normal machine-administrator powers. A single serialized dispatcher also
@@ -254,9 +254,16 @@ guard that emits Python's output only on success and always exits 0, covering
 interpreter startup failures before Python code can run. A different
 `hook_event_name` is malformed.
 No transcript, current directory or prompt path from hook input is opened. Input
-is read in full, including long prompts and final assistant messages. `Stop` keeps
-its explicit service-failure reminder and malformed-input stderr feedback with
-exit 2. `UserPromptSubmit` exits 0 with no output on any failure, including unreadable
+is read in full, including long prompts and final assistant messages. A hook reads
+only `hook_event_name` and `stop_hook_active` and checks their types; every other
+field is accepted and never read, because Claude Code adds and changes input fields
+between versions (2.1.319 sends `prompt_id`, which a closed list refused in every
+turn; found by brief 18c's VM test). `Stop` reminds when the service can't be reached
+(a `block` decision that says so) and reports malformed input or its own failure on
+stderr with exit 2. Both block a stop once: when the input parses and
+`stop_hook_active` is already true, it ends quietly. Input it can't parse (over the
+size limit, not strict JSON) exits 2 at every stop, up to Claude Code's own limit on
+blocked stops. `UserPromptSubmit` exits 0 with no output on any failure, including unreadable
 or malformed input, service failure, and installation/configuration errors, so
 it never discards the owner's prompt. Valid prompt input still adds the pending
 reminder. Hooks are reminders; service expiry is the safety net during interrupts,

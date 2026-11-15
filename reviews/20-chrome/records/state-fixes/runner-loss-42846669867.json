@@ -1,0 +1,17 @@
+{
+  "run": 42846669867,
+  "source": "1418fcdeb393afaefe54651d5fc1997c7ca900d5",
+  "job": 129935894822,
+  "started_at": "2026-11-10T15:39:47Z",
+  "completed_at": "2026-11-10T17:19:50Z",
+  "conclusion": "failure",
+  "annotations": [
+    {
+      "message": "The hosted runner lost communication with the server. Anything in your workflow that terminates the runner process, starves it for CPU/Memory, or blocks its network access can cause this error.",
+      "level": "failure"
+    }
+  ],
+  "logs_api_result": "HTTP 404",
+  "artifact_available": false,
+  "acceptance": false
+}

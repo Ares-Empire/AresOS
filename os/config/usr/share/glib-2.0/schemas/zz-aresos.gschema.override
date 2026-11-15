@@ -1,0 +1,3 @@
+# Programs that draw their own bar keep the familiar three buttons in AresOS.
+[org.gnome.desktop.wm.preferences:AresOS]
+button-layout='appmenu:minimize,maximize,close'

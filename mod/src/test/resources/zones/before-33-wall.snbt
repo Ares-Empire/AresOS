@@ -1,0 +1,1 @@
+{zones:[{id:"3df705d8-3ca9-41a2-9200-b544b24b0a54",app:"zone-notes",dimension:"minecraft:overworld",min:[I;-15,150,-3],max:[I;16,181,-2],exit:{dimension:"minecraft:overworld",position:[0.5d,150.0d,-4.5d],yaw:-11.309933f,pitch:0.0f},blocks:[[I;4,180,-1],[I;3,180,-1]]}]}

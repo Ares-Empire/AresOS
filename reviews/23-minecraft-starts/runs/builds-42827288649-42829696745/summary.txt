@@ -1,0 +1,14 @@
+== run 42827288649 (check_build=build on 5c250720): failed in 'Install pinned tools on disposable runner', no build
+2026-11-10T13:49:06.3834215Z   502  Bad Gateway
+2026-11-10T13:49:06.7052279Z   502  Bad Gateway
+2026-11-10T13:49:07.3071055Z   502  Bad Gateway
+2026-11-10T13:49:07.3270382Z W: Failed to fetch https://snapshot.ubuntu.com/ubuntu/20261021T000000Z/dists/noble/InRelease  502  Bad Gateway
+2026-11-10T13:49:07.3271549Z W: Failed to fetch https://snapshot.ubuntu.com/ubuntu/20261021T000000Z/dists/noble-updates/InRelease  502  Bad Gateway
+2026-11-10T13:49:07.3272708Z W: Failed to fetch https://snapshot.ubuntu.com/ubuntu/20261021T000000Z/dists/noble-security/InRelease  502  Bad Gateway
+== run 42829696745 (check_build=build on 5c250720): failed in 'Install pinned tools on disposable runner', no build
+2026-11-10T14:03:46.3554257Z   502  Bad Gateway
+2026-11-10T14:04:00.5555800Z   503  Service Unavailable
+2026-11-10T14:04:00.7971867Z   503  Service Unavailable
+2026-11-10T14:04:01.0419893Z   503  Service Unavailable
+2026-11-10T14:04:02.2019708Z   503  Service Unavailable
+2026-11-10T14:04:21.9120600Z   503  Service Unavailable

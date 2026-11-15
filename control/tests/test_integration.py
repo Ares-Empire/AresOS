@@ -83,7 +83,14 @@ class Integration(unittest.TestCase):
 
     def request(self, uid, kind, request):
         # An independent client process provides genuine kernel peer credentials.
-        code = "import json,socket,sys; s=socket.socket(socket.AF_UNIX); s.connect(sys.argv[1]); s.sendall((sys.argv[2]+'\\n').encode()); f=s.makefile(); print(f.readline())"
+        # The service answers a refused peer and closes without reading its request. When that close wins the
+        # race, the client's send fails with a broken pipe while the answer already waits to be read. The answer
+        # is what every caller of this helper asserts on, so a lost send must not hide it.
+        code = ("import json,socket,sys\n"
+                "s=socket.socket(socket.AF_UNIX); s.connect(sys.argv[1])\n"
+                "try: s.sendall((sys.argv[2]+'\\n').encode())\n"
+                "except BrokenPipeError: pass\n"
+                "print(s.makefile().readline())")
         result = self.run_user(uid, code, str(self.root / ("sockets/" + kind + ".sock")), json.dumps({"v": 1, **request}))
         return validate_response(request, result)
 
@@ -362,7 +369,7 @@ print(json.dumps(results))
                 self.assertEqual(list(json.loads(prepared_tool.content[0].text)["data"]["approval"]), list(approval))
                 self.assertEqual(list(next(tool for tool in tools.tools if tool.name == "send").input_schema["properties"]), list(approval))
                 # A hook sees a held operation via act.sock, with documented I/O.
-                hook_input = {"hook_event_name": "Stop", "session_id": "fixture-session", "transcript_path": "/unused", "cwd": str(self.home), "permission_mode": "default", "stop_hook_active": False}
+                hook_input = {"hook_event_name": "Stop", "session_id": "fixture-session", "prompt_id": "fixture-prompt", "transcript_path": "/unused", "cwd": str(self.home), "permission_mode": "default", "stop_hook_active": False}
                 hook = self.launch(OWNER, ["hook", "Stop"], input=canonical(hook_input))
                 self.assertEqual(json.loads(hook.stdout)["decision"], "block", hook.stderr)
                 source.write_bytes(b"changed after import")
@@ -404,7 +411,7 @@ print(json.dumps(results))
         time.sleep(0.4)
         status = self.call(OWNER, "testapp_operation_status", {"operation_id": prepared["operation_id"]})
         self.assertEqual(status["data"]["operation"]["state"], "failed")
-        prompt_input = {"hook_event_name": "UserPromptSubmit", "session_id": "fixture-session", "prompt": "owner message", "cwd": str(self.home)}
+        prompt_input = {"hook_event_name": "UserPromptSubmit", "session_id": "fixture-session", "prompt_id": "fixture-prompt", "prompt": "owner message", "cwd": str(self.home)}
         prompt = self.launch(OWNER, ["hook", "UserPromptSubmit"], input=canonical(prompt_input))
         self.assertIn(prepared["operation_id"], json.loads(prompt.stdout)["hookSpecificOutput"]["additionalContext"])
 

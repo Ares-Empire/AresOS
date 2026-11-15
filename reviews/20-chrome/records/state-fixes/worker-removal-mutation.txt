@@ -1,0 +1,20 @@
+Local worktree path prefix replaced with <worktree>.
+Chrome isolated fault flow 77859:first {'single': 1, 'persistent': 1, 'pairs': 2}
+Chrome isolated fault flow failure {'single': 1, 'persistent': 1, 'pairs': 2}
+test_child_assertion_fails_the_parent (test_state_sweeps.SweepWorkers.test_child_assertion_fails_the_parent) ... FAIL
+
+======================================================================
+FAIL: test_child_assertion_fails_the_parent (test_state_sweeps.SweepWorkers.test_child_assertion_fails_the_parent)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<worktree>/.work/state-mutations/tmpjic3z8kw/control/chrome_tests/test_state_sweeps.py", line 24, in test_child_assertion_fails_the_parent
+    with self.assertRaisesRegex(AssertionError,'injected worker assertion'):
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+----------------------------------------------------------------------
+Ran 1 test in 0.051s
+
+FAILED (failures=1)
+
+STATE MUTATION KILLED S11 worker assertion propagation

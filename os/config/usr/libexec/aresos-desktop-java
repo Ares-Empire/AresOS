@@ -1,0 +1,323 @@
+#!/usr/bin/python3
+"""Prism's wrapper command for the managed AresDesktop instance (package 23).
+
+Prism runs `aresos-desktop-java <java> <java arguments>` instead of Java. This
+wrapper
+  - takes the desktop's lock ($XDG_RUNTIME_DIR/aresos/desktop.lock), so a
+    second desktop never starts while one runs; Java inherits the lock, so it
+    is held from loading until the JVM's final exit (B2),
+  - asks the supervisor (desktop.sock) for this launch: the launch nonce and
+    desktop instance B1 binds the mod to, and the GPU choice (B5),
+  - starts Java as its child inside the game's own systemd scope, as the
+    supervisor names it (B5: the memory target holds however Prism was
+    started), waits until the JVM is in that scope and tells the supervisor
+    the JVM's PID,
+  - says how Java ended, with the facts only: Java's real exit status, the
+    signals this wrapper itself delivered to it, and the reason when the start
+    did not become a game. The facts go first into the exit record the
+    supervisor named (its state folder, so they survive a reboot), bound to
+    the launch, the session and the process, then to the supervisor
+    (jvm_exited, or jvm_failed for a start that did not become a game), on a
+    new connection if the first one broke. What the end means (a crash, his
+    quit, a kill) is the supervisor's decision alone,
+  - never leaves a JVM the supervisor may not know: if the hand-off breaks or
+    is refused, it stops Java (SIGTERM, then SIGKILL) before it reports,
+  - forwards termination signals to Java, and Java dies with it if the
+    wrapper is killed (Prism's Kill button kills the wrapper).
+Prism's stdin (its launch script), stdout and stderr pass straight through.
+"""
+import ctypes
+import fcntl
+import json
+import os
+import signal
+import socket
+import subprocess
+import sys
+import tempfile
+import time
+
+SYSTEM_PATH = '/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin'
+PRISM_ROOT = '/usr/lib/prismlauncher'
+# The supervisor alone decides these for the game.
+GPU_KEYS = ('__NV_PRIME_RENDER_OFFLOAD', '__NV_PRIME_RENDER_OFFLOAD_PROVIDER', '__GLX_VENDOR_LIBRARY_NAME',
+            '__VK_LAYER_NV_optimus', '__EGL_VENDOR_LIBRARY_FILENAMES', 'DRI_PRIME')
+DROPPED = ('LD_PRELOAD', 'LD_LIBRARY_PATH', 'ARESOS_LAUNCH_NONCE', 'ARESOS_DESKTOP_INSTANCE', 'ARESOS_SHELL_SOCKET',
+           'ARESOS_SHELL_STATUS_FD')
+SUPPLIED = frozenset({'ARESOS_LAUNCH_NONCE', 'ARESOS_DESKTOP_INSTANCE', 'PATH', '__NV_PRIME_RENDER_OFFLOAD',
+                      '__GLX_VENDOR_LIBRARY_NAME', '__VK_LAYER_NV_optimus'})
+FORWARDED = (signal.SIGTERM, signal.SIGINT, signal.SIGHUP, signal.SIGQUIT)
+REFUSED, BUSY = 78, 75
+SCOPE_WAIT = 10.0
+# Stopping a Java that was not handed over: SIGTERM, then SIGKILL after STOP_WAIT; then the report, on a new
+# connection if needed. The supervisor waits for that report at least this long (aresos-desktop LOST_HANDOFF_WAIT).
+STOP_WAIT = 10.0
+REPORT_TIMEOUT = 5.0
+
+
+def game_environment(environ, supplied, prism_root=PRISM_ROOT):
+    """Prism's environment for the game, without what Prism's bundled loader set for Prism itself."""
+    env = {}
+    for key, value in environ.items():
+        if key in DROPPED or key in GPU_KEYS or prism_root in value:
+            continue
+        env[key] = value
+    for key, value in supplied.items():
+        if key not in SUPPLIED or not isinstance(value, str):
+            raise ValueError(f'the supervisor supplied an unexpected variable: {key}')
+        env[key] = value
+    return env
+
+
+def die_with_parent(parent):
+    def prepare():
+        libc = ctypes.CDLL(None, use_errno=True)
+        if libc.prctl(1, signal.SIGKILL, 0, 0, 0) != 0:  # PR_SET_PDEATHSIG
+            os._exit(REFUSED)
+        if os.getppid() != parent:  # the wrapper died before the line above took effect
+            os._exit(REFUSED)
+    return prepare
+
+
+class Supervisor:
+    def __init__(self, path, timeout=10.0):
+        self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM | socket.SOCK_CLOEXEC)
+        self.sock.settimeout(timeout)
+        try:
+            self.sock.connect(path)
+        except OSError:
+            self.sock.close()
+            raise
+        self.buffer = b''
+
+    def ask(self, message):
+        self.sock.sendall((json.dumps(message) + '\n').encode('utf-8'))
+        while b'\n' not in self.buffer:
+            data = self.sock.recv(65536)
+            if not data:
+                raise ConnectionError('the supervisor closed the connection')
+            self.buffer += data
+        line, self.buffer = self.buffer.split(b'\n', 1)
+        return json.loads(line.decode('utf-8'))
+
+    def close(self):
+        self.sock.close()
+
+
+def write_exit(path, record):
+    """Write the exit record whole and durably: a reboot right after must not lose how Java ended (review 5,
+    finding 3). Temporary file, fsync, rename, then fsync of the folder."""
+    folder = os.path.dirname(path)
+    os.makedirs(folder, exist_ok=True)
+    handle, temporary = tempfile.mkstemp(prefix='.desktop-exit.', dir=folder)
+    try:
+        with os.fdopen(handle, 'w', encoding='utf-8') as output:
+            json.dump(record, output)
+            output.flush()
+            os.fsync(output.fileno())
+        os.replace(temporary, path)
+    except BaseException:
+        try:
+            os.unlink(temporary)
+        except FileNotFoundError:
+            pass
+        raise
+    directory = os.open(folder, os.O_RDONLY | os.O_DIRECTORY)
+    try:
+        os.fsync(directory)
+    finally:
+        os.close(directory)
+
+
+def end_report(launch, session, reason, status, pid, ticks, sent):
+    """(exit record, message for the supervisor) about how Java ended. Both carry the same facts and no verdict:
+    Java's real exit status (None: Java never ran), the signals this wrapper delivered to it, and the reason when
+    the start did not become a game, bound to the launch, its session and the process."""
+    facts = {'launch': launch, 'session': session, 'pid': pid, 'ticks': ticks, 'status': status,
+             'sent': list(sent), 'reason': reason}
+    return facts, dict(facts, op='jvm_failed' if reason else 'jvm_exited')
+
+
+def report_again(path, message):
+    """Send one report on a new connection (the first one broke); the exit record covers a supervisor that is gone."""
+    try:
+        supervisor = Supervisor(path, timeout=REPORT_TIMEOUT)
+    except OSError:
+        return
+    try:
+        supervisor.ask(message)
+    except (OSError, ValueError):
+        pass
+    finally:
+        supervisor.close()
+
+
+def scope_command(reply):
+    """The command the supervisor puts before Java (the game's scope) and the unit Java must end up in."""
+    scope, unit = reply.get('scope'), reply.get('unit')
+    if (not isinstance(scope, list) or not all(isinstance(part, str) for part in scope)
+            or (scope and not os.path.isabs(scope[0])) or (unit is not None and not isinstance(unit, str))
+            or bool(scope) != bool(unit)):
+        raise ValueError('the supervisor sent no usable scope for the game')
+    return scope, unit
+
+
+def in_unit(pid, unit):
+    try:
+        with open(f'/proc/{pid}/cgroup', encoding='utf-8') as source:
+            return any(line.startswith('0::') and line.rstrip().endswith('/' + unit) for line in source)
+    except OSError:
+        return False
+
+
+def start_ticks(pid):
+    try:
+        with open(f'/proc/{pid}/stat', 'rb') as source:
+            data = source.read()
+        return int(data[data.rindex(b')') + 2:].split()[19])
+    except (OSError, ValueError, IndexError):
+        return None
+
+
+def ended(child):
+    """Whether Java has ended, seen without reaping it: until this wrapper waits for it, its PID stays its own."""
+    if child.returncode is not None:
+        return True
+    try:
+        return os.waitid(os.P_PID, child.pid, os.WEXITED | os.WNOHANG | os.WNOWAIT) is not None
+    except ChildProcessError:
+        return True
+
+
+def send(child, signum, sent):
+    """Send Java one signal. It is noted in `sent` only as a confirmed send: Java had not ended when this looked
+    (running, not a zombie), and the kernel took the signal. A send that was skipped or failed is never noted
+    (review 5, finding 1). Nothing here reaps Java, so the PID cannot have become another process.
+
+    Even a confirmed send does not prove who ended Java: another signal can land between the look and the send.
+    That is why no decision hangs on `sent`: the supervisor never restarts a SIGKILLed Java, whoever sent it."""
+    if ended(child):
+        return False
+    try:
+        os.kill(child.pid, signum)
+    except OSError:
+        return False
+    sent.append(int(signum))
+    return True
+
+
+def stop(child, sent):
+    """Stop a Java that was not handed over: SIGTERM, then SIGKILL if it still runs after STOP_WAIT."""
+    send(child, signal.SIGTERM, sent)
+    try:
+        child.wait(STOP_WAIT)
+    except subprocess.TimeoutExpired:
+        send(child, signal.SIGKILL, sent)
+        child.wait()
+
+
+def main(argv, environ=os.environ):
+    if len(argv) < 2 or not os.path.isabs(argv[1]):
+        print('usage: aresos-desktop-java /path/to/java [arguments]', file=sys.stderr)
+        return 2
+    runtime = environ.get('XDG_RUNTIME_DIR', '')
+    if not os.path.isabs(runtime):
+        print('aresos-desktop-java: XDG_RUNTIME_DIR must be set', file=sys.stderr)
+        return REFUSED
+    folder = os.path.join(runtime, 'aresos')
+    os.makedirs(folder, mode=0o700, exist_ok=True)
+    lock = os.open(os.path.join(folder, 'desktop.lock'), os.O_RDWR | os.O_CREAT, 0o600)
+    try:
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError:
+        print('aresos-desktop-java: the AresOS desktop is already running', file=sys.stderr)
+        return BUSY
+    socket_path = os.path.join(folder, 'desktop.sock')
+    try:
+        supervisor = Supervisor(socket_path)
+        reply = supervisor.ask({'op': 'jvm_start', 'pid': os.getpid(), 'java': argv[1],
+                                'instance': environ.get('INST_ID'), 'instance_dir': environ.get('INST_DIR'),
+                                'cwd': os.getcwd()})
+    except (OSError, ValueError) as error:
+        print(f'aresos-desktop-java: the AresOS desktop starts only through its session supervisor ({error})',
+              file=sys.stderr)
+        return REFUSED
+    if not reply.get('ok'):
+        print('aresos-desktop-java: ' + str(reply.get('message', 'refused by the desktop supervisor')),
+              file=sys.stderr)
+        return REFUSED
+
+    launch, session = reply.get('launch'), reply.get('session')
+    record_path = reply.get('record')
+    if not isinstance(record_path, str) or not os.path.isabs(record_path):
+        record_path = None  # refused below, before Java runs
+    sent = []  # the signals this wrapper delivered to Java (confirmed sends only)
+
+    def report(reason, status=None, pid=None, ticks=None):
+        """How Java ended, as this wrapper saw it: first into the durable exit record, then to the supervisor (on
+        this connection, or a new one when it broke)."""
+        facts, message = end_report(launch, session, reason, status, pid, ticks, sent)
+        if record_path is not None:
+            try:
+                write_exit(record_path, facts)
+            except OSError as error:
+                print(f'aresos-desktop-java: could not record how Java ended ({error})', file=sys.stderr)
+        try:
+            supervisor.ask(message)
+        except (OSError, ValueError):
+            # The supervisor this wrapper talked to is gone: tell the one running now (the record says it too).
+            report_again(socket_path, message)
+        supervisor.close()
+
+    def failed(reason, child=None, ticks=None):
+        """A start that did not become a game. With a child, Java ran: its real status goes into the report."""
+        print(f'aresos-desktop-java: {reason}', file=sys.stderr)
+        if child is None:
+            report(reason)
+        else:
+            report(reason, child.wait(), child.pid, ticks)
+        return REFUSED
+
+    try:
+        scope, unit = scope_command(reply)
+        env = game_environment(environ, reply.get('env', {}))
+        if record_path is None:
+            raise ValueError('the supervisor named no file for the exit record')
+    except ValueError as error:
+        return failed(str(error))
+    try:
+        child = subprocess.Popen([*scope, *argv[1:]], env=env, pass_fds=(lock,),
+                                 preexec_fn=die_with_parent(os.getpid()))
+    except (OSError, subprocess.SubprocessError) as error:
+        return failed(f'Java could not be started: {error}')
+    for signum in FORWARDED:
+        signal.signal(signum, lambda number, frame: send(child, number, sent))
+    if unit is not None:
+        # systemd-run creates the scope, then becomes Java in it: report the JVM only once it is there.
+        deadline = time.monotonic() + SCOPE_WAIT
+        while not in_unit(child.pid, unit) and child.poll() is None and time.monotonic() < deadline:
+            time.sleep(0.05)
+        if child.poll() is None and not in_unit(child.pid, unit):
+            stop(child, sent)
+            return failed(f'the game did not reach its scope {unit}', child)
+    if child.poll() is not None:
+        # Java ended before it could be handed over (killed, for example): its status decides, as after the hand-off.
+        return failed('Java ended before it was handed to AresOS', child)
+    ticks = start_ticks(child.pid)
+    try:
+        answer = supervisor.ask({'op': 'jvm_started', 'pid': child.pid})
+    except (OSError, ValueError) as error:
+        # Review 2, finding 3: the supervisor may not have recorded this JVM, and nothing could adopt it. Never leave
+        # it running untracked: stop it (if it still runs) and report on a new connection.
+        stop(child, sent)
+        return failed(f'lost the supervisor during the hand-off ({error})', child, ticks)
+    if not answer.get('ok'):
+        stop(child, sent)
+        return failed('the supervisor refused the game: ' + str(answer.get('message', '')), child, ticks)
+    status = child.wait()
+    report(None, status, child.pid, ticks)
+    return status if status >= 0 else 128 - status
+
+
+if __name__ == '__main__':
+    sys.exit(main(sys.argv))

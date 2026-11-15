@@ -1,0 +1,2 @@
+Artifact line 248: Ran 4 tests in 800.324s
+Artifact line 250: OK

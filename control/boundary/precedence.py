@@ -4,6 +4,7 @@ PermissionRequest outcomes are recorded separately from mandatory ask precedence
 The observed version-pinned outcomes are compared only after all four cases run.
 """
 import json
+import hashlib
 from pathlib import Path
 
 from native import ROOT, OUT, POLICY, Session, tool
@@ -34,14 +35,15 @@ def model_contract(requests):
     # system as well; inspect the whole actual prompt rather than assuming a role.
     prompt = '\n'.join(text for request in requests for text in strings([request['system'], request['messages']]))
     definitions = {t['name']: t for request in requests for t in request['tools']}
-    for app in ('testapp', 'mail'):
+    for app in ('testapp', 'mail', 'chrome'):
         expected = instructions_for(app)
         assert '## ' + app + '\n' + expected in prompt, 'Server instructions shortened or absent: ' + app
         for t in tools_for(app):
             sent = definitions['mcp__' + app + '__' + t['name']]
             assert sent['description'] == t['description'], 'Description changed: ' + t['name']
             assert sent['input_schema'] == t['inputSchema'], 'Schema changed: ' + t['name']
-    print('MCP_INSTRUCTIONS_OK apps=testapp,mail full_request_text system_captured full_tool_definitions', flush=True)
+    print('MCP_INSTRUCTIONS_OK apps=testapp,mail,chrome full_request_text system_captured full_tool_definitions', flush=True)
+    return {app:hashlib.sha256(instructions_for(app).encode()).hexdigest() for app in ('testapp','mail','chrome')}
 
 
 def hook(put, case, event):
@@ -69,13 +71,13 @@ def precedence_checks(run, put):
             'projects': {'/home/assistant/work': {'hasTrustDialogAccepted': True}}}))
         # Same syntax as image setup, run as the owner. No managed MCP file exists.
         assert not Path('/etc/claude-code/managed-mcp.json').exists()
-        for app in ('testapp', 'mail'):
+        for app in ('testapp', 'mail', 'chrome'):
             server = {'type': 'stdio', 'command': '/usr/bin/python3',
                       'args': ['-I', '/opt/aresos-control/mcp-fixture.py', app]}
             run(['/usr/local/bin/claude', 'mcp', 'add-json', '--scope', 'user', app, json.dumps(server)],
                 'precedence-install-' + app)
         installed = json.loads(config.read_text())['mcpServers']
-        assert set(installed) == {'testapp', 'mail'}, installed
+        assert set(installed) == {'testapp', 'mail', 'chrome'}, installed
         cases = []
         for skip in (False, True):
             for scope in ('none', 'user', 'project', 'local', 'all', 'pre_allow', 'pre_allow_all'):
@@ -160,6 +162,8 @@ def precedence_checks(run, put):
                     for r in summary if '-permission-' in r['case']}
         expected = json.loads((ROOT / 'permission-request-expected.json').read_text())
         assert observed == expected, 'Pinned PermissionRequest outcome changed: ' + json.dumps(observed)
+        from chrome_precedence import chrome_precedence
+        chrome_precedence(run,put,model_contract)
         print('PRECEDENCE_OK cases=' + str(len(summary)) + ' PermissionRequest=' + json.dumps(observed, sort_keys=True), flush=True)
     finally:
         POLICY.write_bytes(policy_original)

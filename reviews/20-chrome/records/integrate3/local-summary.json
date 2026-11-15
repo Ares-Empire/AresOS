@@ -1,0 +1,170 @@
+{
+  "runtime_source": "7ac0e9fc2a5233cf6bb59713daa794c4aaef5254",
+  "runtime_hash": "15c46f6cb2e585b8abbcc6e6454e3000e3fb6cc016d4c226ec9c932735f1746e",
+  "outputs": [
+    {
+      "file": "local-python.txt",
+      "command": "PYTHONPATH=control:control/chrome_tests PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s control/chrome_tests -v",
+      "exit": 0,
+      "sha256": "4bd586d2423b8ab39880ed896b0287cdb0aa4414be04005f9ae049143e93ce58",
+      "results": [
+        {
+          "line": 82,
+          "text": "Chrome full writer surface {'single': 1862, 'persistent': 1862, 'pairs': 7127}"
+        },
+        {
+          "line": 192,
+          "text": "Chrome actual process cuts: 9; raw committed status and all public views checked"
+        },
+        {
+          "line": 216,
+          "text": "test_s1_to_s12_removal_mutations_fail (test_state_mutations.Mutations.test_s1_to_s12_removal_mutations_fail) ... STATE MUTATION KILLED S1 restore test_state_fixes.StateFixes.test_s1_restore_reconciles_revocation_readonly_and_qualification_offline"
+        },
+        {
+          "line": 217,
+          "text": "STATE MUTATION KILLED S1 qualification test_state_fixes.StateFixes.test_s1_readable_policy_rollback_cannot_hide_committed_qualification"
+        },
+        {
+          "line": 218,
+          "text": "STATE MUTATION KILLED S1 large qualification test_state_fixes.StateFixes.test_s1_large_qualification_history_restores_without_a_large_rewrite"
+        },
+        {
+          "line": 219,
+          "text": "STATE MUTATION KILLED S2 status test_state_fixes.StateFixes.test_s2_failed_completion_marker_never_reports_uncommitted_done"
+        },
+        {
+          "line": 220,
+          "text": "STATE MUTATION KILLED S2 pending test_state_fixes.StateFixes.test_s2_readable_rollback_pending_uses_committed_reservation"
+        },
+        {
+          "line": 221,
+          "text": "STATE MUTATION KILLED S3 terminal test_state_fixes.StateFixes.test_s3_cancel_and_expiry_ack_survive_rollback_restore_archive_restart"
+        },
+        {
+          "line": 222,
+          "text": "STATE MUTATION KILLED S4 retirement test_state_fixes.StateFixes.test_s4_more_than_512_completed_checks_leave_room_for_chrome_and_mail"
+        },
+        {
+          "line": 223,
+          "text": "STATE MUTATION KILLED S4 receipts test_state_fixes.StateFixes.test_s4_retirement_keeps_warning_ack_and_dedup_identity_in_history"
+        },
+        {
+          "line": 224,
+          "text": "STATE MUTATION KILLED S4 archive admission test_state_fixes.StateFixes.test_s4_archive_retires_checks_even_above_the_shared_history_quota"
+        },
+        {
+          "line": 225,
+          "text": "STATE MUTATION KILLED S5 live check test_state_fixes.StateFixes.test_s5_clean_stopped_submission_has_no_interruption_warning"
+        },
+        {
+          "line": 226,
+          "text": "STATE MUTATION KILLED S5 startup test_state_crashes.CrashCuts.test_s11_actual_process_cuts_before_and_after_input_keep_every_committed_view"
+        },
+        {
+          "line": 227,
+          "text": "STATE MUTATION KILLED S6 lost queue test_state_fixes.StateFixes.test_s6_lost_queue_resolves_native_check_and_preserves_uncertain_occurrence"
+        },
+        {
+          "line": 228,
+          "text": "STATE MUTATION KILLED S6 stale queue returns test_state_fixes.StateFixes.test_s6_a_stale_step_cannot_be_prepared_if_the_same_queue_entry_returns"
+        },
+        {
+          "line": 229,
+          "text": "STATE MUTATION KILLED S6 read-gated queue loss test_state_fixes.StateFixes.test_s6_notices_and_pending_resolve_lost_queues_without_page_reads"
+        },
+        {
+          "line": 230,
+          "text": "STATE MUTATION KILLED S6 unavailable queue test_state_fixes.StateFixes.test_s6_unavailable_queue_keeps_its_committed_open_check_readable"
+        },
+        {
+          "line": 231,
+          "text": "STATE MUTATION KILLED S7 admission test_state_fixes.StateFixes.test_s7_drop_spends_cancel_reservation_at_history_and_physical_boundaries"
+        },
+        {
+          "line": 232,
+          "text": "STATE MUTATION KILLED S8 public archive test_state_fixes.StateFixes.test_s8_archive_remains_publicly_reachable_above_index_bound_and_after_restart"
+        },
+        {
+          "line": 233,
+          "text": "STATE MUTATION KILLED S8 Mail preservation test_state_fixes.StateFixes.test_s8_index_bound_keeps_readable_mail_warnings_and_their_continuation"
+        },
+        {
+          "line": 234,
+          "text": "STATE MUTATION KILLED S9 Mail continuation test_state_fixes.StateFixes.test_s9_mail_only_and_mixed_fallback_keep_all_remaining_counts"
+        },
+        {
+          "line": 235,
+          "text": "STATE MUTATION KILLED S10 chronology test_state_fixes.StateFixes.test_s10_mixed_notice_pages_use_nanosecond_chronology"
+        },
+        {
+          "line": 236,
+          "text": "STATE MUTATION KILLED S11 oracle test_state_oracle.Oracle.test_s11_r1_missing_warning_and_extra_live_interruption_both_fail"
+        },
+        {
+          "line": 237,
+          "text": "STATE MUTATION KILLED S11 journal read close test_state_exhaustion.Exhaustion.test_s11_persistent_write_exhaustion_retains_exact_committed_disclosure"
+        },
+        {
+          "line": 238,
+          "text": "STATE MUTATION KILLED S12 dialog test_state_fixes.StateFixes.test_s12_every_page_text_copy_is_inside_untrusted_content"
+        },
+        {
+          "line": 239,
+          "text": "STATE MUTATION KILLED S12 stages test_state_fixes.StateFixes.test_s12_every_page_text_copy_is_inside_untrusted_content"
+        },
+        {
+          "line": 253,
+          "text": "Chrome durable-write sweep {'single': 448, 'persistent': 448, 'pairs': 2128}"
+        },
+        {
+          "line": 273,
+          "text": "Ran 220 tests in 571.272s"
+        },
+        {
+          "line": 275,
+          "text": "OK"
+        }
+      ]
+    },
+    {
+      "file": "local-node.txt",
+      "command": "node --test control/chrome_tests/*.test.mjs",
+      "exit": 0,
+      "sha256": "001fedb7cc8984b842ad0e1782d9f320e7175ecd931d3c48f359b7954d193768",
+      "results": [
+        {
+          "line": 235,
+          "text": "\u2139 tests 234"
+        },
+        {
+          "line": 237,
+          "text": "\u2139 pass 234"
+        },
+        {
+          "line": 238,
+          "text": "\u2139 fail 0"
+        },
+        {
+          "line": 239,
+          "text": "\u2139 cancelled 0"
+        },
+        {
+          "line": 240,
+          "text": "\u2139 skipped 0"
+        }
+      ]
+    },
+    {
+      "file": "page-mutations.txt",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 reviews/20-chrome/mutation-audit.py reviews/20-chrome/records/integrate3/page-mutations.json",
+      "exit": 0,
+      "sha256": "d5dd9deb1939edf57d8eb685d7b17b80da295944b367e2df52502074f0181613",
+      "results": [
+        {
+          "line": 107,
+          "text": "106 mutations rejected; every baseline passed"
+        }
+      ]
+    }
+  ]
+}

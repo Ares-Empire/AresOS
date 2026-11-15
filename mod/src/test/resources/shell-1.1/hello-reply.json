@@ -1,0 +1,19 @@
+{
+  "protocol": "aresos-shell/1.1",
+  "id": "h-5f0c9a12-1",
+  "ok": true,
+  "major": 1,
+  "minor": 1,
+  "capabilities": [
+    "app_details",
+    "app_state",
+    "apps_changed",
+    "heartbeat",
+    "list_apps",
+    "list_paging",
+    "open_app",
+    "shell_focus",
+    "windows",
+    "world_ready"
+  ]
+}

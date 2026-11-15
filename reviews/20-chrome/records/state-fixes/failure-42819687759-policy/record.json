@@ -1,0 +1,30 @@
+{
+  "run": 42819687759,
+  "job": 129841722280,
+  "source": "52bc06fb1828cefb0d04d4bfaecb4f8d760da27f",
+  "conclusion": "failure",
+  "artifact": 13775747052,
+  "named_cases": 61,
+  "failed": [
+    "FEATURE tools forms options find wait fill_form scroll and full catalogues"
+  ],
+  "failure_raw_log_line": 1410,
+  "cause": "The catalogue snapshot expired after five absolute minutes during active paging.",
+  "files": [
+    {
+      "name": "python.txt",
+      "bytes": 39167,
+      "sha256": "511244a4536893947863acc9fabdb2e0ee31c25b8df80bbff8ece409955befb6"
+    },
+    {
+      "name": "browser.txt",
+      "bytes": 69532,
+      "sha256": "7e3bb47690da53a1a19013b1cc75ca3eb4c71481f2654b92a12b6223325d5dad"
+    },
+    {
+      "name": "matrices.json",
+      "bytes": 9819,
+      "sha256": "7572cb2d8acb13f59a4a9385fb51117f312659cb79dddf745ab395cddaacda00"
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "pageAction": "Public MAIN API stop with a page-invented epoch, followed by native form.submit()",
+  "arrivals": 1,
+  "result": {
+    "operation_id": "fe4e9351b62f487cb01414e7dddc700e:aba9828efb744155a6503e523667dbcf",
+    "untrusted_content": {
+      "checked": true,
+      "dispatched": true,
+      "steps": [],
+      "page": "Input dispatched once; inspect a fresh read for what the page shows."
+    },
+    "followups": []
+  }
+}

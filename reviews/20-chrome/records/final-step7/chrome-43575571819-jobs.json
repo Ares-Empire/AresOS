@@ -1,0 +1,2357 @@
+{
+  "total_count": 28,
+  "jobs": [
+    {
+      "id": 132388935396,
+      "run_id": 43575571819,
+      "workflow_name": "Control Chrome",
+      "head_branch": "pkg/20-chrome",
+      "run_url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/runs/43575571819",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOVgsTJ88AAAAe0v7W5A",
+      "head_sha": "87041a5774452494450148301a0c18d17186f88e",
+      "url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/jobs/132388935396",
+      "html_url": "https://github.com/Ares-Empire/AresOS/actions/runs/43575571819/job/132388935396",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-11-14T08:23:07Z",
+      "started_at": "2026-11-14T08:23:08Z",
+      "completed_at": "2026-11-14T08:23:19Z",
+      "name": "package",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-11-14T08:23:09Z",
+          "completed_at": "2026-11-14T08:23:09Z"
+        },
+        {
+          "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-11-14T08:23:09Z",
+          "completed_at": "2026-11-14T08:23:17Z"
+        },
+        {
+          "name": "Resolve the exact stable package and checksum",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-11-14T08:23:17Z",
+          "completed_at": "2026-11-14T08:23:17Z"
+        },
+        {
+          "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-11-14T08:23:17Z",
+          "completed_at": "2026-11-14T08:23:17Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-11-14T08:23:17Z",
+          "completed_at": "2026-11-14T08:23:17Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/Ares-Empire/AresOS/check-runs/132388935396",
+      "labels": [
+        "ubuntu-24.04"
+      ],
+      "runner_id": 1000006905,
+      "runner_name": "GitHub Actions 1000006905",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 132388935443,
+      "run_id": 43575571819,
+      "workflow_name": "Control Chrome",
+      "head_branch": "pkg/20-chrome",
+      "run_url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/runs/43575571819",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOVgsTJ88AAAAe0v7XEw",
+      "head_sha": "87041a5774452494450148301a0c18d17186f88e",
+      "url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/jobs/132388935443",
+      "html_url": "https://github.com/Ares-Empire/AresOS/actions/runs/43575571819/job/132388935443",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-11-14T08:23:07Z",
+      "started_at": "2026-11-14T08:23:09Z",
+      "completed_at": "2026-11-14T08:23:35Z",
+      "name": "python-shards (2)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-11-14T08:23:09Z",
+          "completed_at": "2026-11-14T08:23:10Z"
+        },
+        {
+          "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-11-14T08:23:10Z",
+          "completed_at": "2026-11-14T08:23:16Z"
+        },
+        {
+          "name": "Complete plain-Python suite, disjoint file shard",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-11-14T08:23:16Z",
+          "completed_at": "2026-11-14T08:23:32Z"
+        },
+        {
+          "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-11-14T08:23:32Z",
+          "completed_at": "2026-11-14T08:23:33Z"
+        },
+        {
+          "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-11-14T08:23:33Z",
+          "completed_at": "2026-11-14T08:23:33Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-11-14T08:23:33Z",
+          "completed_at": "2026-11-14T08:23:33Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/Ares-Empire/AresOS/check-runs/132388935443",
+      "labels": [
+        "ubuntu-24.04"
+      ],
+      "runner_id": 1000006910,
+      "runner_name": "GitHub Actions 1000006910",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 132388935457,
+      "run_id": 43575571819,
+      "workflow_name": "Control Chrome",
+      "head_branch": "pkg/20-chrome",
+      "run_url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/runs/43575571819",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOVgsTJ88AAAAe0v7XIQ",
+      "head_sha": "87041a5774452494450148301a0c18d17186f88e",
+      "url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/jobs/132388935457",
+      "html_url": "https://github.com/Ares-Empire/AresOS/actions/runs/43575571819/job/132388935457",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-11-14T08:23:07Z",
+      "started_at": "2026-11-14T08:23:08Z",
+      "completed_at": "2026-11-14T08:31:57Z",
+      "name": "python-shards (3)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-11-14T08:23:09Z",
+          "completed_at": "2026-11-14T08:23:09Z"
+        },
+        {
+          "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-11-14T08:23:09Z",
+          "completed_at": "2026-11-14T08:23:17Z"
+        },
+        {
+          "name": "Complete plain-Python suite, disjoint file shard",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-11-14T08:23:17Z",
+          "completed_at": "2026-11-14T08:31:55Z"
+        },
+        {
+          "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-11-14T08:31:55Z",
+          "completed_at": "2026-11-14T08:31:55Z"
+        },
+        {
+          "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-11-14T08:31:55Z",
+          "completed_at": "2026-11-14T08:31:56Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-11-14T08:31:56Z",
+          "completed_at": "2026-11-14T08:31:56Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/Ares-Empire/AresOS/check-runs/132388935457",
+      "labels": [
+        "ubuntu-24.04"
+      ],
+      "runner_id": 1000006907,
+      "runner_name": "GitHub Actions 1000006907",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 132388935488,
+      "run_id": 43575571819,
+      "workflow_name": "Control Chrome",
+      "head_branch": "pkg/20-chrome",
+      "run_url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/runs/43575571819",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOVgsTJ88AAAAe0v7XQA",
+      "head_sha": "87041a5774452494450148301a0c18d17186f88e",
+      "url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/jobs/132388935488",
+      "html_url": "https://github.com/Ares-Empire/AresOS/actions/runs/43575571819/job/132388935488",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-11-14T08:23:07Z",
+      "started_at": "2026-11-14T08:23:08Z",
+      "completed_at": "2026-11-14T08:24:32Z",
+      "name": "native-precedence",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-11-14T08:23:09Z",
+          "completed_at": "2026-11-14T08:23:10Z"
+        },
+        {
+          "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-11-14T08:23:10Z",
+          "completed_at": "2026-11-14T08:23:17Z"
+        },
+        {
+          "name": "Build 18d's real native precedence environment",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-11-14T08:23:17Z",
+          "completed_at": "2026-11-14T08:23:50Z"
+        },
+        {
+          "name": "Native managed asks in normal and skip-permissions modes",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-11-14T08:23:50Z",
+          "completed_at": "2026-11-14T08:24:29Z"
+        },
+        {
+          "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-11-14T08:24:29Z",
+          "completed_at": "2026-11-14T08:24:30Z"
+        },
+        {
+          "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-11-14T08:24:30Z",
+          "completed_at": "2026-11-14T08:24:31Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-11-14T08:24:31Z",
+          "completed_at": "2026-11-14T08:24:31Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/Ares-Empire/AresOS/check-runs/132388935488",
+      "labels": [
+        "ubuntu-24.04"
+      ],
+      "runner_id": 1000006909,
+      "runner_name": "GitHub Actions 1000006909",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 132388935493,
+      "run_id": 43575571819,
+      "workflow_name": "Control Chrome",
+      "head_branch": "pkg/20-chrome",
+      "run_url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/runs/43575571819",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOVgsTJ88AAAAe0v7XRQ",
+      "head_sha": "87041a5774452494450148301a0c18d17186f88e",
+      "url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/jobs/132388935493",
+      "html_url": "https://github.com/Ares-Empire/AresOS/actions/runs/43575571819/job/132388935493",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-11-14T08:23:07Z",
+      "started_at": "2026-11-14T08:23:09Z",
+      "completed_at": "2026-11-14T08:49:06Z",
+      "name": "python-shards (1)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-11-14T08:23:09Z",
+          "completed_at": "2026-11-14T08:23:10Z"
+        },
+        {
+          "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-11-14T08:23:10Z",
+          "completed_at": "2026-11-14T08:23:18Z"
+        },
+        {
+          "name": "Complete plain-Python suite, disjoint file shard",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-11-14T08:23:18Z",
+          "completed_at": "2026-11-14T08:49:02Z"
+        },
+        {
+          "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-11-14T08:49:02Z",
+          "completed_at": "2026-11-14T08:49:04Z"
+        },
+        {
+          "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-11-14T08:49:04Z",
+          "completed_at": "2026-11-14T08:49:04Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-11-14T08:49:04Z",
+          "completed_at": "2026-11-14T08:49:04Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/Ares-Empire/AresOS/check-runs/132388935493",
+      "labels": [
+        "ubuntu-24.04"
+      ],
+      "runner_id": 1000006906,
+      "runner_name": "GitHub Actions 1000006906",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 132388935510,
+      "run_id": 43575571819,
+      "workflow_name": "Control Chrome",
+      "head_branch": "pkg/20-chrome",
+      "run_url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/runs/43575571819",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOVgsTJ88AAAAe0v7XVg",
+      "head_sha": "87041a5774452494450148301a0c18d17186f88e",
+      "url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/jobs/132388935510",
+      "html_url": "https://github.com/Ares-Empire/AresOS/actions/runs/43575571819/job/132388935510",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-11-14T08:23:07Z",
+      "started_at": "2026-11-14T08:23:09Z",
+      "completed_at": "2026-11-14T08:23:55Z",
+      "name": "python-shards (0)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-11-14T08:23:09Z",
+          "completed_at": "2026-11-14T08:23:10Z"
+        },
+        {
+          "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-11-14T08:23:10Z",
+          "completed_at": "2026-11-14T08:23:18Z"
+        },
+        {
+          "name": "Complete plain-Python suite, disjoint file shard",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-11-14T08:23:18Z",
+          "completed_at": "2026-11-14T08:23:52Z"
+        },
+        {
+          "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-11-14T08:23:52Z",
+          "completed_at": "2026-11-14T08:23:53Z"
+        },
+        {
+          "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-11-14T08:23:53Z",
+          "completed_at": "2026-11-14T08:23:53Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-11-14T08:23:53Z",
+          "completed_at": "2026-11-14T08:23:53Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/Ares-Empire/AresOS/check-runs/132388935510",
+      "labels": [
+        "ubuntu-24.04"
+      ],
+      "runner_id": 1000006908,
+      "runner_name": "GitHub Actions 1000006908",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 132388988464,
+      "run_id": 43575571819,
+      "workflow_name": "Control Chrome",
+      "head_branch": "pkg/20-chrome",
+      "run_url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/runs/43575571819",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOVgsTJ88AAAAe0v-mMA",
+      "head_sha": "87041a5774452494450148301a0c18d17186f88e",
+      "url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/jobs/132388988464",
+      "html_url": "https://github.com/Ares-Empire/AresOS/actions/runs/43575571819/job/132388988464",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-11-14T08:23:19Z",
+      "started_at": "2026-11-14T08:23:21Z",
+      "completed_at": "2026-11-14T08:30:44Z",
+      "name": "latency (plain)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-11-14T08:23:21Z",
+          "completed_at": "2026-11-14T08:23:24Z"
+        },
+        {
+          "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-11-14T08:23:24Z",
+          "completed_at": "2026-11-14T08:23:35Z"
+        },
+        {
+          "name": "Paired current and historical measurements on the same runner",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-11-14T08:23:35Z",
+          "completed_at": "2026-11-14T08:30:41Z"
+        },
+        {
+          "name": "Require lead ceilings and reject paired latency regressions",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-11-14T08:30:41Z",
+          "completed_at": "2026-11-14T08:30:41Z"
+        },
+        {
+          "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-11-14T08:30:41Z",
+          "completed_at": "2026-11-14T08:30:42Z"
+        },
+        {
+          "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-11-14T08:30:42Z",
+          "completed_at": "2026-11-14T08:30:43Z"
+        },
+        {
+          "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12,
+          "started_at": "2026-11-14T08:30:43Z",
+          "completed_at": "2026-11-14T08:30:43Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-11-14T08:30:43Z",
+          "completed_at": "2026-11-14T08:30:43Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/Ares-Empire/AresOS/check-runs/132388988464",
+      "labels": [
+        "ubuntu-24.04"
+      ],
+      "runner_id": 1000006911,
+      "runner_name": "GitHub Actions 1000006911",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 132388988498,
+      "run_id": 43575571819,
+      "workflow_name": "Control Chrome",
+      "head_branch": "pkg/20-chrome",
+      "run_url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/runs/43575571819",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOVgsTJ88AAAAe0v-mUg",
+      "head_sha": "87041a5774452494450148301a0c18d17186f88e",
+      "url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/jobs/132388988498",
+      "html_url": "https://github.com/Ares-Empire/AresOS/actions/runs/43575571819/job/132388988498",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-11-14T08:23:19Z",
+      "started_at": "2026-11-14T08:23:21Z",
+      "completed_at": "2026-11-14T08:30:42Z",
+      "name": "latency (audit)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-11-14T08:23:21Z",
+          "completed_at": "2026-11-14T08:23:23Z"
+        },
+        {
+          "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-11-14T08:23:23Z",
+          "completed_at": "2026-11-14T08:23:33Z"
+        },
+        {
+          "name": "Paired current and historical measurements on the same runner",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-11-14T08:23:33Z",
+          "completed_at": "2026-11-14T08:30:39Z"
+        },
+        {
+          "name": "Require lead ceilings and reject paired latency regressions",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-11-14T08:30:39Z",
+          "completed_at": "2026-11-14T08:30:39Z"
+        },
+        {
+          "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-11-14T08:30:39Z",
+          "completed_at": "2026-11-14T08:30:40Z"
+        },
+        {
+          "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-11-14T08:30:40Z",
+          "completed_at": "2026-11-14T08:30:41Z"
+        },
+        {
+          "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12,
+          "started_at": "2026-11-14T08:30:41Z",
+          "completed_at": "2026-11-14T08:30:41Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-11-14T08:30:41Z",
+          "completed_at": "2026-11-14T08:30:41Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/Ares-Empire/AresOS/check-runs/132388988498",
+      "labels": [
+        "ubuntu-24.04"
+      ],
+      "runner_id": 1000006912,
+      "runner_name": "GitHub Actions 1000006912",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 132388988672,
+      "run_id": 43575571819,
+      "workflow_name": "Control Chrome",
+      "head_branch": "pkg/20-chrome",
+      "run_url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/runs/43575571819",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOVgsTJ88AAAAe0v-nAA",
+      "head_sha": "87041a5774452494450148301a0c18d17186f88e",
+      "url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/jobs/132388988672",
+      "html_url": "https://github.com/Ares-Empire/AresOS/actions/runs/43575571819/job/132388988672",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-11-14T08:23:19Z",
+      "started_at": "2026-11-14T08:23:21Z",
+      "completed_at": "2026-11-14T08:28:20Z",
+      "name": "fixtures (external, word-0)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-11-14T08:23:21Z",
+          "completed_at": "2026-11-14T08:23:22Z"
+        },
+        {
+          "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-11-14T08:23:22Z",
+          "completed_at": "2026-11-14T08:23:30Z"
+        },
+        {
+          "name": "Build disposable branded-Chrome container",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-11-14T08:23:30Z",
+          "completed_at": "2026-11-14T08:24:25Z"
+        },
+        {
+          "name": "Browser fixtures only inside Linux container, sandbox on",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-11-14T08:24:25Z",
+          "completed_at": "2026-11-14T08:28:16Z"
+        },
+        {
+          "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-11-14T08:28:16Z",
+          "completed_at": "2026-11-14T08:28:18Z"
+        },
+        {
+          "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-11-14T08:28:18Z",
+          "completed_at": "2026-11-14T08:28:18Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-11-14T08:28:18Z",
+          "completed_at": "2026-11-14T08:28:18Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/Ares-Empire/AresOS/check-runs/132388988672",
+      "labels": [
+        "ubuntu-24.04"
+      ],
+      "runner_id": 1000006917,
+      "runner_name": "GitHub Actions 1000006917",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 132388988674,
+      "run_id": 43575571819,
+      "workflow_name": "Control Chrome",
+      "head_branch": "pkg/20-chrome",
+      "run_url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/runs/43575571819",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOVgsTJ88AAAAe0v-nAg",
+      "head_sha": "87041a5774452494450148301a0c18d17186f88e",
+      "url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/jobs/132388988674",
+      "html_url": "https://github.com/Ares-Empire/AresOS/actions/runs/43575571819/job/132388988674",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-11-14T08:23:19Z",
+      "started_at": "2026-11-14T08:23:21Z",
+      "completed_at": "2026-11-14T08:34:18Z",
+      "name": "fixtures (policy, recheck3)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-11-14T08:23:22Z",
+          "completed_at": "2026-11-14T08:23:22Z"
+        },
+        {
+          "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-11-14T08:23:22Z",
+          "completed_at": "2026-11-14T08:23:30Z"
+        },
+        {
+          "name": "Build disposable branded-Chrome container",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-11-14T08:23:30Z",
+          "completed_at": "2026-11-14T08:24:27Z"
+        },
+        {
+          "name": "Browser fixtures only inside Linux container, sandbox on",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-11-14T08:24:27Z",
+          "completed_at": "2026-11-14T08:34:14Z"
+        },
+        {
+          "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-11-14T08:34:14Z",
+          "completed_at": "2026-11-14T08:34:16Z"
+        },
+        {
+          "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-11-14T08:34:16Z",
+          "completed_at": "2026-11-14T08:34:16Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-11-14T08:34:16Z",
+          "completed_at": "2026-11-14T08:34:16Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/Ares-Empire/AresOS/check-runs/132388988674",
+      "labels": [
+        "ubuntu-24.04"
+      ],
+      "runner_id": 1000006913,
+      "runner_name": "GitHub Actions 1000006913",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 132388988678,
+      "run_id": 43575571819,
+      "workflow_name": "Control Chrome",
+      "head_branch": "pkg/20-chrome",
+      "run_url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/runs/43575571819",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOVgsTJ88AAAAe0v-nBg",
+      "head_sha": "87041a5774452494450148301a0c18d17186f88e",
+      "url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/jobs/132388988678",
+      "html_url": "https://github.com/Ares-Empire/AresOS/actions/runs/43575571819/job/132388988678",
+      "status": "completed",
+      "conclusion": "failure",
+      "created_at": "2026-11-14T08:23:19Z",
+      "started_at": "2026-11-14T08:23:21Z",
+      "completed_at": "2026-11-14T08:31:10Z",
+      "name": "fixtures (external, review)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-11-14T08:23:22Z",
+          "completed_at": "2026-11-14T08:23:22Z"
+        },
+        {
+          "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-11-14T08:23:22Z",
+          "completed_at": "2026-11-14T08:23:31Z"
+        },
+        {
+          "name": "Build disposable branded-Chrome container",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-11-14T08:23:31Z",
+          "completed_at": "2026-11-14T08:24:27Z"
+        },
+        {
+          "name": "Browser fixtures only inside Linux container, sandbox on",
+          "status": "completed",
+          "conclusion": "failure",
+          "number": 4,
+          "started_at": "2026-11-14T08:24:27Z",
+          "completed_at": "2026-11-14T08:31:06Z"
+        },
+        {
+          "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-11-14T08:31:06Z",
+          "completed_at": "2026-11-14T08:31:08Z"
+        },
+        {
+          "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-11-14T08:31:08Z",
+          "completed_at": "2026-11-14T08:31:08Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-11-14T08:31:08Z",
+          "completed_at": "2026-11-14T08:31:08Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/Ares-Empire/AresOS/check-runs/132388988678",
+      "labels": [
+        "ubuntu-24.04"
+      ],
+      "runner_id": 1000006914,
+      "runner_name": "GitHub Actions 1000006914",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 132388988689,
+      "run_id": 43575571819,
+      "workflow_name": "Control Chrome",
+      "head_branch": "pkg/20-chrome",
+      "run_url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/runs/43575571819",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOVgsTJ88AAAAe0v-nEQ",
+      "head_sha": "87041a5774452494450148301a0c18d17186f88e",
+      "url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/jobs/132388988689",
+      "html_url": "https://github.com/Ares-Empire/AresOS/actions/runs/43575571819/job/132388988689",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-11-14T08:23:19Z",
+      "started_at": "2026-11-14T08:23:21Z",
+      "completed_at": "2026-11-14T08:28:51Z",
+      "name": "fixtures (external, word-1)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-11-14T08:23:21Z",
+          "completed_at": "2026-11-14T08:23:22Z"
+        },
+        {
+          "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-11-14T08:23:22Z",
+          "completed_at": "2026-11-14T08:23:30Z"
+        },
+        {
+          "name": "Build disposable branded-Chrome container",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-11-14T08:23:30Z",
+          "completed_at": "2026-11-14T08:24:30Z"
+        },
+        {
+          "name": "Browser fixtures only inside Linux container, sandbox on",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-11-14T08:24:30Z",
+          "completed_at": "2026-11-14T08:28:48Z"
+        },
+        {
+          "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-11-14T08:28:48Z",
+          "completed_at": "2026-11-14T08:28:49Z"
+        },
+        {
+          "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-11-14T08:28:49Z",
+          "completed_at": "2026-11-14T08:28:50Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-11-14T08:28:50Z",
+          "completed_at": "2026-11-14T08:28:50Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/Ares-Empire/AresOS/check-runs/132388988689",
+      "labels": [
+        "ubuntu-24.04"
+      ],
+      "runner_id": 1000006918,
+      "runner_name": "GitHub Actions 1000006918",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 132388988693,
+      "run_id": 43575571819,
+      "workflow_name": "Control Chrome",
+      "head_branch": "pkg/20-chrome",
+      "run_url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/runs/43575571819",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOVgsTJ88AAAAe0v-nFQ",
+      "head_sha": "87041a5774452494450148301a0c18d17186f88e",
+      "url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/jobs/132388988693",
+      "html_url": "https://github.com/Ares-Empire/AresOS/actions/runs/43575571819/job/132388988693",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-11-14T08:23:19Z",
+      "started_at": "2026-11-14T08:23:57Z",
+      "completed_at": "2026-11-14T08:28:57Z",
+      "name": "fixtures (external, word-2)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-11-14T08:23:58Z",
+          "completed_at": "2026-11-14T08:23:58Z"
+        },
+        {
+          "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-11-14T08:23:58Z",
+          "completed_at": "2026-11-14T08:24:05Z"
+        },
+        {
+          "name": "Build disposable branded-Chrome container",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-11-14T08:24:05Z",
+          "completed_at": "2026-11-14T08:24:55Z"
+        },
+        {
+          "name": "Browser fixtures only inside Linux container, sandbox on",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-11-14T08:24:55Z",
+          "completed_at": "2026-11-14T08:28:55Z"
+        },
+        {
+          "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-11-14T08:28:55Z",
+          "completed_at": "2026-11-14T08:28:56Z"
+        },
+        {
+          "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-11-14T08:28:56Z",
+          "completed_at": "2026-11-14T08:28:56Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-11-14T08:28:56Z",
+          "completed_at": "2026-11-14T08:28:56Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/Ares-Empire/AresOS/check-runs/132388988693",
+      "labels": [
+        "ubuntu-24.04"
+      ],
+      "runner_id": 1000006925,
+      "runner_name": "GitHub Actions 1000006925",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 132388988695,
+      "run_id": 43575571819,
+      "workflow_name": "Control Chrome",
+      "head_branch": "pkg/20-chrome",
+      "run_url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/runs/43575571819",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOVgsTJ88AAAAe0v-nFw",
+      "head_sha": "87041a5774452494450148301a0c18d17186f88e",
+      "url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/jobs/132388988695",
+      "html_url": "https://github.com/Ares-Empire/AresOS/actions/runs/43575571819/job/132388988695",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-11-14T08:23:19Z",
+      "started_at": "2026-11-14T08:23:21Z",
+      "completed_at": "2026-11-14T08:29:07Z",
+      "name": "fixtures (policy, word-2)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-11-14T08:23:22Z",
+          "completed_at": "2026-11-14T08:23:23Z"
+        },
+        {
+          "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-11-14T08:23:23Z",
+          "completed_at": "2026-11-14T08:23:31Z"
+        },
+        {
+          "name": "Build disposable branded-Chrome container",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-11-14T08:23:31Z",
+          "completed_at": "2026-11-14T08:24:40Z"
+        },
+        {
+          "name": "Browser fixtures only inside Linux container, sandbox on",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-11-14T08:24:40Z",
+          "completed_at": "2026-11-14T08:29:03Z"
+        },
+        {
+          "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-11-14T08:29:03Z",
+          "completed_at": "2026-11-14T08:29:05Z"
+        },
+        {
+          "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-11-14T08:29:05Z",
+          "completed_at": "2026-11-14T08:29:05Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-11-14T08:29:05Z",
+          "completed_at": "2026-11-14T08:29:05Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/Ares-Empire/AresOS/check-runs/132388988695",
+      "labels": [
+        "ubuntu-24.04"
+      ],
+      "runner_id": 1000006921,
+      "runner_name": "GitHub Actions 1000006921",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 132388988696,
+      "run_id": 43575571819,
+      "workflow_name": "Control Chrome",
+      "head_branch": "pkg/20-chrome",
+      "run_url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/runs/43575571819",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOVgsTJ88AAAAe0v-nGA",
+      "head_sha": "87041a5774452494450148301a0c18d17186f88e",
+      "url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/jobs/132388988696",
+      "html_url": "https://github.com/Ares-Empire/AresOS/actions/runs/43575571819/job/132388988696",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-11-14T08:23:19Z",
+      "started_at": "2026-11-14T08:23:21Z",
+      "completed_at": "2026-11-14T08:28:11Z",
+      "name": "fixtures (policy, word-0)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-11-14T08:23:21Z",
+          "completed_at": "2026-11-14T08:23:22Z"
+        },
+        {
+          "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-11-14T08:23:22Z",
+          "completed_at": "2026-11-14T08:23:31Z"
+        },
+        {
+          "name": "Build disposable branded-Chrome container",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-11-14T08:23:31Z",
+          "completed_at": "2026-11-14T08:24:26Z"
+        },
+        {
+          "name": "Browser fixtures only inside Linux container, sandbox on",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-11-14T08:24:26Z",
+          "completed_at": "2026-11-14T08:28:08Z"
+        },
+        {
+          "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-11-14T08:28:08Z",
+          "completed_at": "2026-11-14T08:28:09Z"
+        },
+        {
+          "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-11-14T08:28:09Z",
+          "completed_at": "2026-11-14T08:28:10Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-11-14T08:28:10Z",
+          "completed_at": "2026-11-14T08:28:10Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/Ares-Empire/AresOS/check-runs/132388988696",
+      "labels": [
+        "ubuntu-24.04"
+      ],
+      "runner_id": 1000006916,
+      "runner_name": "GitHub Actions 1000006916",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 132388988697,
+      "run_id": 43575571819,
+      "workflow_name": "Control Chrome",
+      "head_branch": "pkg/20-chrome",
+      "run_url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/runs/43575571819",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOVgsTJ88AAAAe0v-nGQ",
+      "head_sha": "87041a5774452494450148301a0c18d17186f88e",
+      "url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/jobs/132388988697",
+      "html_url": "https://github.com/Ares-Empire/AresOS/actions/runs/43575571819/job/132388988697",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-11-14T08:23:19Z",
+      "started_at": "2026-11-14T08:23:21Z",
+      "completed_at": "2026-11-14T08:27:50Z",
+      "name": "fixtures (policy, recheck2)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-11-14T08:23:22Z",
+          "completed_at": "2026-11-14T08:23:23Z"
+        },
+        {
+          "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-11-14T08:23:23Z",
+          "completed_at": "2026-11-14T08:23:33Z"
+        },
+        {
+          "name": "Build disposable branded-Chrome container",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-11-14T08:23:33Z",
+          "completed_at": "2026-11-14T08:24:27Z"
+        },
+        {
+          "name": "Browser fixtures only inside Linux container, sandbox on",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-11-14T08:24:27Z",
+          "completed_at": "2026-11-14T08:27:45Z"
+        },
+        {
+          "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-11-14T08:27:45Z",
+          "completed_at": "2026-11-14T08:27:47Z"
+        },
+        {
+          "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-11-14T08:27:47Z",
+          "completed_at": "2026-11-14T08:27:48Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-11-14T08:27:48Z",
+          "completed_at": "2026-11-14T08:27:48Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/Ares-Empire/AresOS/check-runs/132388988697",
+      "labels": [
+        "ubuntu-24.04"
+      ],
+      "runner_id": 1000006919,
+      "runner_name": "GitHub Actions 1000006919",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 132388988698,
+      "run_id": 43575571819,
+      "workflow_name": "Control Chrome",
+      "head_branch": "pkg/20-chrome",
+      "run_url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/runs/43575571819",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOVgsTJ88AAAAe0v-nGg",
+      "head_sha": "87041a5774452494450148301a0c18d17186f88e",
+      "url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/jobs/132388988698",
+      "html_url": "https://github.com/Ares-Empire/AresOS/actions/runs/43575571819/job/132388988698",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-11-14T08:23:19Z",
+      "started_at": "2026-11-14T08:27:52Z",
+      "completed_at": "2026-11-14T09:06:39Z",
+      "name": "fixtures (external, core)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-11-14T08:27:53Z",
+          "completed_at": "2026-11-14T08:27:54Z"
+        },
+        {
+          "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-11-14T08:27:54Z",
+          "completed_at": "2026-11-14T08:28:02Z"
+        },
+        {
+          "name": "Build disposable branded-Chrome container",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-11-14T08:28:02Z",
+          "completed_at": "2026-11-14T08:28:53Z"
+        },
+        {
+          "name": "Browser fixtures only inside Linux container, sandbox on",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-11-14T08:28:53Z",
+          "completed_at": "2026-11-14T09:06:33Z"
+        },
+        {
+          "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-11-14T09:06:33Z",
+          "completed_at": "2026-11-14T09:06:36Z"
+        },
+        {
+          "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-11-14T09:06:36Z",
+          "completed_at": "2026-11-14T09:06:36Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-11-14T09:06:36Z",
+          "completed_at": "2026-11-14T09:06:36Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/Ares-Empire/AresOS/check-runs/132388988698",
+      "labels": [
+        "ubuntu-24.04"
+      ],
+      "runner_id": 1000006927,
+      "runner_name": "GitHub Actions 1000006927",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 132388988699,
+      "run_id": 43575571819,
+      "workflow_name": "Control Chrome",
+      "head_branch": "pkg/20-chrome",
+      "run_url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/runs/43575571819",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOVgsTJ88AAAAe0v-nGw",
+      "head_sha": "87041a5774452494450148301a0c18d17186f88e",
+      "url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/jobs/132388988699",
+      "html_url": "https://github.com/Ares-Empire/AresOS/actions/runs/43575571819/job/132388988699",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-11-14T08:23:19Z",
+      "started_at": "2026-11-14T08:24:34Z",
+      "completed_at": "2026-11-14T08:32:20Z",
+      "name": "fixtures (external, adapters)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-11-14T08:24:34Z",
+          "completed_at": "2026-11-14T08:24:35Z"
+        },
+        {
+          "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-11-14T08:24:35Z",
+          "completed_at": "2026-11-14T08:24:42Z"
+        },
+        {
+          "name": "Build disposable branded-Chrome container",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-11-14T08:24:42Z",
+          "completed_at": "2026-11-14T08:25:31Z"
+        },
+        {
+          "name": "Browser fixtures only inside Linux container, sandbox on",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-11-14T08:25:31Z",
+          "completed_at": "2026-11-14T08:32:17Z"
+        },
+        {
+          "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-11-14T08:32:17Z",
+          "completed_at": "2026-11-14T08:32:19Z"
+        },
+        {
+          "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-11-14T08:32:19Z",
+          "completed_at": "2026-11-14T08:32:19Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-11-14T08:32:19Z",
+          "completed_at": "2026-11-14T08:32:19Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/Ares-Empire/AresOS/check-runs/132388988699",
+      "labels": [
+        "ubuntu-24.04"
+      ],
+      "runner_id": 1000006926,
+      "runner_name": "GitHub Actions 1000006926",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 132388988700,
+      "run_id": 43575571819,
+      "workflow_name": "Control Chrome",
+      "head_branch": "pkg/20-chrome",
+      "run_url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/runs/43575571819",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOVgsTJ88AAAAe0v-nHA",
+      "head_sha": "87041a5774452494450148301a0c18d17186f88e",
+      "url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/jobs/132388988700",
+      "html_url": "https://github.com/Ares-Empire/AresOS/actions/runs/43575571819/job/132388988700",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-11-14T08:23:19Z",
+      "started_at": "2026-11-14T08:23:21Z",
+      "completed_at": "2026-11-14T08:47:18Z",
+      "name": "fixtures (policy, core)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-11-14T08:23:21Z",
+          "completed_at": "2026-11-14T08:23:22Z"
+        },
+        {
+          "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-11-14T08:23:22Z",
+          "completed_at": "2026-11-14T08:23:29Z"
+        },
+        {
+          "name": "Build disposable branded-Chrome container",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-11-14T08:23:29Z",
+          "completed_at": "2026-11-14T08:24:21Z"
+        },
+        {
+          "name": "Browser fixtures only inside Linux container, sandbox on",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-11-14T08:24:21Z",
+          "completed_at": "2026-11-14T08:47:14Z"
+        },
+        {
+          "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-11-14T08:47:14Z",
+          "completed_at": "2026-11-14T08:47:16Z"
+        },
+        {
+          "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-11-14T08:47:16Z",
+          "completed_at": "2026-11-14T08:47:16Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-11-14T08:47:16Z",
+          "completed_at": "2026-11-14T08:47:16Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/Ares-Empire/AresOS/check-runs/132388988700",
+      "labels": [
+        "ubuntu-24.04"
+      ],
+      "runner_id": 1000006915,
+      "runner_name": "GitHub Actions 1000006915",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 132388988705,
+      "run_id": 43575571819,
+      "workflow_name": "Control Chrome",
+      "head_branch": "pkg/20-chrome",
+      "run_url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/runs/43575571819",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOVgsTJ88AAAAe0v-nIQ",
+      "head_sha": "87041a5774452494450148301a0c18d17186f88e",
+      "url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/jobs/132388988705",
+      "html_url": "https://github.com/Ares-Empire/AresOS/actions/runs/43575571819/job/132388988705",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-11-14T08:23:19Z",
+      "started_at": "2026-11-14T08:23:37Z",
+      "completed_at": "2026-11-14T08:28:02Z",
+      "name": "fixtures (external, recheck2)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-11-14T08:23:38Z",
+          "completed_at": "2026-11-14T08:23:41Z"
+        },
+        {
+          "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-11-14T08:23:41Z",
+          "completed_at": "2026-11-14T08:23:50Z"
+        },
+        {
+          "name": "Build disposable branded-Chrome container",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-11-14T08:23:50Z",
+          "completed_at": "2026-11-14T08:24:33Z"
+        },
+        {
+          "name": "Browser fixtures only inside Linux container, sandbox on",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-11-14T08:24:33Z",
+          "completed_at": "2026-11-14T08:27:56Z"
+        },
+        {
+          "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-11-14T08:27:56Z",
+          "completed_at": "2026-11-14T08:27:58Z"
+        },
+        {
+          "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-11-14T08:27:58Z",
+          "completed_at": "2026-11-14T08:27:59Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-11-14T08:27:59Z",
+          "completed_at": "2026-11-14T08:27:59Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/Ares-Empire/AresOS/check-runs/132388988705",
+      "labels": [
+        "ubuntu-24.04"
+      ],
+      "runner_id": 1000006924,
+      "runner_name": "GitHub Actions 1000006924",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 132388988713,
+      "run_id": 43575571819,
+      "workflow_name": "Control Chrome",
+      "head_branch": "pkg/20-chrome",
+      "run_url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/runs/43575571819",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOVgsTJ88AAAAe0v-nKQ",
+      "head_sha": "87041a5774452494450148301a0c18d17186f88e",
+      "url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/jobs/132388988713",
+      "html_url": "https://github.com/Ares-Empire/AresOS/actions/runs/43575571819/job/132388988713",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-11-14T08:23:19Z",
+      "started_at": "2026-11-14T08:23:21Z",
+      "completed_at": "2026-11-14T08:32:08Z",
+      "name": "fixtures (policy, adapters)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-11-14T08:23:21Z",
+          "completed_at": "2026-11-14T08:23:24Z"
+        },
+        {
+          "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-11-14T08:23:24Z",
+          "completed_at": "2026-11-14T08:23:34Z"
+        },
+        {
+          "name": "Build disposable branded-Chrome container",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-11-14T08:23:34Z",
+          "completed_at": "2026-11-14T08:24:16Z"
+        },
+        {
+          "name": "Browser fixtures only inside Linux container, sandbox on",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-11-14T08:24:16Z",
+          "completed_at": "2026-11-14T08:32:05Z"
+        },
+        {
+          "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-11-14T08:32:05Z",
+          "completed_at": "2026-11-14T08:32:07Z"
+        },
+        {
+          "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-11-14T08:32:07Z",
+          "completed_at": "2026-11-14T08:32:07Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-11-14T08:32:07Z",
+          "completed_at": "2026-11-14T08:32:07Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/Ares-Empire/AresOS/check-runs/132388988713",
+      "labels": [
+        "ubuntu-24.04"
+      ],
+      "runner_id": 1000006920,
+      "runner_name": "GitHub Actions 1000006920",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 132388988716,
+      "run_id": 43575571819,
+      "workflow_name": "Control Chrome",
+      "head_branch": "pkg/20-chrome",
+      "run_url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/runs/43575571819",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOVgsTJ88AAAAe0v-nLA",
+      "head_sha": "87041a5774452494450148301a0c18d17186f88e",
+      "url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/jobs/132388988716",
+      "html_url": "https://github.com/Ares-Empire/AresOS/actions/runs/43575571819/job/132388988716",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-11-14T08:23:19Z",
+      "started_at": "2026-11-14T08:23:21Z",
+      "completed_at": "2026-11-14T08:28:13Z",
+      "name": "fixtures (policy, word-3)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-11-14T08:23:22Z",
+          "completed_at": "2026-11-14T08:23:23Z"
+        },
+        {
+          "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-11-14T08:23:23Z",
+          "completed_at": "2026-11-14T08:23:30Z"
+        },
+        {
+          "name": "Build disposable branded-Chrome container",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-11-14T08:23:30Z",
+          "completed_at": "2026-11-14T08:24:18Z"
+        },
+        {
+          "name": "Browser fixtures only inside Linux container, sandbox on",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-11-14T08:24:18Z",
+          "completed_at": "2026-11-14T08:28:09Z"
+        },
+        {
+          "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-11-14T08:28:09Z",
+          "completed_at": "2026-11-14T08:28:11Z"
+        },
+        {
+          "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-11-14T08:28:11Z",
+          "completed_at": "2026-11-14T08:28:11Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-11-14T08:28:11Z",
+          "completed_at": "2026-11-14T08:28:11Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/Ares-Empire/AresOS/check-runs/132388988716",
+      "labels": [
+        "ubuntu-24.04"
+      ],
+      "runner_id": 1000006922,
+      "runner_name": "GitHub Actions 1000006922",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 132388988725,
+      "run_id": 43575571819,
+      "workflow_name": "Control Chrome",
+      "head_branch": "pkg/20-chrome",
+      "run_url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/runs/43575571819",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOVgsTJ88AAAAe0v-nNQ",
+      "head_sha": "87041a5774452494450148301a0c18d17186f88e",
+      "url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/jobs/132388988725",
+      "html_url": "https://github.com/Ares-Empire/AresOS/actions/runs/43575571819/job/132388988725",
+      "status": "completed",
+      "conclusion": "failure",
+      "created_at": "2026-11-14T08:23:19Z",
+      "started_at": "2026-11-14T08:28:15Z",
+      "completed_at": "2026-11-14T08:36:36Z",
+      "name": "fixtures (policy, review)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-11-14T08:28:15Z",
+          "completed_at": "2026-11-14T08:28:16Z"
+        },
+        {
+          "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-11-14T08:28:16Z",
+          "completed_at": "2026-11-14T08:28:24Z"
+        },
+        {
+          "name": "Build disposable branded-Chrome container",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-11-14T08:28:24Z",
+          "completed_at": "2026-11-14T08:29:15Z"
+        },
+        {
+          "name": "Browser fixtures only inside Linux container, sandbox on",
+          "status": "completed",
+          "conclusion": "failure",
+          "number": 4,
+          "started_at": "2026-11-14T08:29:15Z",
+          "completed_at": "2026-11-14T08:36:33Z"
+        },
+        {
+          "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-11-14T08:36:33Z",
+          "completed_at": "2026-11-14T08:36:34Z"
+        },
+        {
+          "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-11-14T08:36:34Z",
+          "completed_at": "2026-11-14T08:36:34Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-11-14T08:36:34Z",
+          "completed_at": "2026-11-14T08:36:34Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/Ares-Empire/AresOS/check-runs/132388988725",
+      "labels": [
+        "ubuntu-24.04"
+      ],
+      "runner_id": 1000006931,
+      "runner_name": "GitHub Actions 1000006931",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 132388988743,
+      "run_id": 43575571819,
+      "workflow_name": "Control Chrome",
+      "head_branch": "pkg/20-chrome",
+      "run_url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/runs/43575571819",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOVgsTJ88AAAAe0v-nRw",
+      "head_sha": "87041a5774452494450148301a0c18d17186f88e",
+      "url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/jobs/132388988743",
+      "html_url": "https://github.com/Ares-Empire/AresOS/actions/runs/43575571819/job/132388988743",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-11-14T08:23:19Z",
+      "started_at": "2026-11-14T08:23:21Z",
+      "completed_at": "2026-11-14T08:28:02Z",
+      "name": "fixtures (policy, word-1)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-11-14T08:23:22Z",
+          "completed_at": "2026-11-14T08:23:24Z"
+        },
+        {
+          "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-11-14T08:23:24Z",
+          "completed_at": "2026-11-14T08:23:34Z"
+        },
+        {
+          "name": "Build disposable branded-Chrome container",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-11-14T08:23:34Z",
+          "completed_at": "2026-11-14T08:24:18Z"
+        },
+        {
+          "name": "Browser fixtures only inside Linux container, sandbox on",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-11-14T08:24:18Z",
+          "completed_at": "2026-11-14T08:27:59Z"
+        },
+        {
+          "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-11-14T08:27:59Z",
+          "completed_at": "2026-11-14T08:28:00Z"
+        },
+        {
+          "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-11-14T08:28:00Z",
+          "completed_at": "2026-11-14T08:28:00Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-11-14T08:28:00Z",
+          "completed_at": "2026-11-14T08:28:00Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/Ares-Empire/AresOS/check-runs/132388988743",
+      "labels": [
+        "ubuntu-24.04"
+      ],
+      "runner_id": 1000006923,
+      "runner_name": "GitHub Actions 1000006923",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 132388988744,
+      "run_id": 43575571819,
+      "workflow_name": "Control Chrome",
+      "head_branch": "pkg/20-chrome",
+      "run_url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/runs/43575571819",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOVgsTJ88AAAAe0v-nSA",
+      "head_sha": "87041a5774452494450148301a0c18d17186f88e",
+      "url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/jobs/132388988744",
+      "html_url": "https://github.com/Ares-Empire/AresOS/actions/runs/43575571819/job/132388988744",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-11-14T08:23:19Z",
+      "started_at": "2026-11-14T08:28:13Z",
+      "completed_at": "2026-11-14T08:32:47Z",
+      "name": "fixtures (external, word-3)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-11-14T08:28:13Z",
+          "completed_at": "2026-11-14T08:28:14Z"
+        },
+        {
+          "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-11-14T08:28:14Z",
+          "completed_at": "2026-11-14T08:28:21Z"
+        },
+        {
+          "name": "Build disposable branded-Chrome container",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-11-14T08:28:21Z",
+          "completed_at": "2026-11-14T08:29:09Z"
+        },
+        {
+          "name": "Browser fixtures only inside Linux container, sandbox on",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-11-14T08:29:09Z",
+          "completed_at": "2026-11-14T08:32:44Z"
+        },
+        {
+          "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-11-14T08:32:44Z",
+          "completed_at": "2026-11-14T08:32:45Z"
+        },
+        {
+          "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-11-14T08:32:45Z",
+          "completed_at": "2026-11-14T08:32:45Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-11-14T08:32:45Z",
+          "completed_at": "2026-11-14T08:32:45Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/Ares-Empire/AresOS/check-runs/132388988744",
+      "labels": [
+        "ubuntu-24.04"
+      ],
+      "runner_id": 1000006930,
+      "runner_name": "GitHub Actions 1000006930",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 132388988834,
+      "run_id": 43575571819,
+      "workflow_name": "Control Chrome",
+      "head_branch": "pkg/20-chrome",
+      "run_url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/runs/43575571819",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOVgsTJ88AAAAe0v-nog",
+      "head_sha": "87041a5774452494450148301a0c18d17186f88e",
+      "url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/jobs/132388988834",
+      "html_url": "https://github.com/Ares-Empire/AresOS/actions/runs/43575571819/job/132388988834",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-11-14T08:23:19Z",
+      "started_at": "2026-11-14T08:28:22Z",
+      "completed_at": "2026-11-14T08:39:53Z",
+      "name": "fixtures (external, recheck3)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-11-14T08:28:22Z",
+          "completed_at": "2026-11-14T08:28:23Z"
+        },
+        {
+          "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-11-14T08:28:23Z",
+          "completed_at": "2026-11-14T08:28:34Z"
+        },
+        {
+          "name": "Build disposable branded-Chrome container",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-11-14T08:28:34Z",
+          "completed_at": "2026-11-14T08:29:39Z"
+        },
+        {
+          "name": "Browser fixtures only inside Linux container, sandbox on",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-11-14T08:29:39Z",
+          "completed_at": "2026-11-14T08:39:48Z"
+        },
+        {
+          "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-11-14T08:39:48Z",
+          "completed_at": "2026-11-14T08:39:51Z"
+        },
+        {
+          "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-11-14T08:39:51Z",
+          "completed_at": "2026-11-14T08:39:51Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-11-14T08:39:51Z",
+          "completed_at": "2026-11-14T08:39:51Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/Ares-Empire/AresOS/check-runs/132388988834",
+      "labels": [
+        "ubuntu-24.04"
+      ],
+      "runner_id": 1000006932,
+      "runner_name": "GitHub Actions 1000006932",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 132399381764,
+      "run_id": 43575571819,
+      "workflow_name": "Control Chrome",
+      "head_branch": "pkg/20-chrome",
+      "run_url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/runs/43575571819",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOVgsTJ88AAAAe0549BA",
+      "head_sha": "87041a5774452494450148301a0c18d17186f88e",
+      "url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/jobs/132399381764",
+      "html_url": "https://github.com/Ares-Empire/AresOS/actions/runs/43575571819/job/132399381764",
+      "status": "completed",
+      "conclusion": "failure",
+      "created_at": "2026-11-14T09:06:39Z",
+      "started_at": "2026-11-14T09:06:41Z",
+      "completed_at": "2026-11-14T09:06:55Z",
+      "name": "aggregate (policy)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-11-14T09:06:41Z",
+          "completed_at": "2026-11-14T09:06:42Z"
+        },
+        {
+          "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-11-14T09:06:42Z",
+          "completed_at": "2026-11-14T09:06:50Z"
+        },
+        {
+          "name": "Run actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-11-14T09:06:50Z",
+          "completed_at": "2026-11-14T09:06:52Z"
+        },
+        {
+          "name": "Run actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-11-14T09:06:52Z",
+          "completed_at": "2026-11-14T09:06:52Z"
+        },
+        {
+          "name": "Run actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-11-14T09:06:52Z",
+          "completed_at": "2026-11-14T09:06:53Z"
+        },
+        {
+          "name": "Require every shard, the complete word inventory and real group 12",
+          "status": "completed",
+          "conclusion": "failure",
+          "number": 6,
+          "started_at": "2026-11-14T09:06:53Z",
+          "completed_at": "2026-11-14T09:06:53Z"
+        },
+        {
+          "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-11-14T09:06:53Z",
+          "completed_at": "2026-11-14T09:06:53Z"
+        },
+        {
+          "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 14,
+          "started_at": "2026-11-14T09:06:53Z",
+          "completed_at": "2026-11-14T09:06:53Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 15,
+          "started_at": "2026-11-14T09:06:53Z",
+          "completed_at": "2026-11-14T09:06:53Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/Ares-Empire/AresOS/check-runs/132399381764",
+      "labels": [
+        "ubuntu-24.04"
+      ],
+      "runner_id": 1000006947,
+      "runner_name": "GitHub Actions 1000006947",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 132399381785,
+      "run_id": 43575571819,
+      "workflow_name": "Control Chrome",
+      "head_branch": "pkg/20-chrome",
+      "run_url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/runs/43575571819",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOVgsTJ88AAAAe0549GQ",
+      "head_sha": "87041a5774452494450148301a0c18d17186f88e",
+      "url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/jobs/132399381785",
+      "html_url": "https://github.com/Ares-Empire/AresOS/actions/runs/43575571819/job/132399381785",
+      "status": "completed",
+      "conclusion": "failure",
+      "created_at": "2026-11-14T09:06:39Z",
+      "started_at": "2026-11-14T09:06:41Z",
+      "completed_at": "2026-11-14T09:07:00Z",
+      "name": "aggregate (external)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-11-14T09:06:41Z",
+          "completed_at": "2026-11-14T09:06:44Z"
+        },
+        {
+          "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-11-14T09:06:44Z",
+          "completed_at": "2026-11-14T09:06:52Z"
+        },
+        {
+          "name": "Run actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-11-14T09:06:52Z",
+          "completed_at": "2026-11-14T09:06:53Z"
+        },
+        {
+          "name": "Run actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-11-14T09:06:53Z",
+          "completed_at": "2026-11-14T09:06:54Z"
+        },
+        {
+          "name": "Run actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-11-14T09:06:54Z",
+          "completed_at": "2026-11-14T09:06:54Z"
+        },
+        {
+          "name": "Require every shard, the complete word inventory and real group 12",
+          "status": "completed",
+          "conclusion": "failure",
+          "number": 6,
+          "started_at": "2026-11-14T09:06:54Z",
+          "completed_at": "2026-11-14T09:06:58Z"
+        },
+        {
+          "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-11-14T09:06:58Z",
+          "completed_at": "2026-11-14T09:06:58Z"
+        },
+        {
+          "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 14,
+          "started_at": "2026-11-14T09:06:58Z",
+          "completed_at": "2026-11-14T09:06:58Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 15,
+          "started_at": "2026-11-14T09:06:58Z",
+          "completed_at": "2026-11-14T09:06:58Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/Ares-Empire/AresOS/check-runs/132399381785",
+      "labels": [
+        "ubuntu-24.04"
+      ],
+      "runner_id": 1000006948,
+      "runner_name": "GitHub Actions 1000006948",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    }
+  ]
+}

@@ -1,0 +1,157 @@
+{
+  "run": "43590715581",
+  "head": "ff70b28f7449ef8419e5c9c23b1531732b6c75ee",
+  "conclusion": "failure",
+  "metadata_only": true,
+  "profiles_accessed": false,
+  "jobs": [
+    {
+      "name": "package",
+      "conclusion": "success"
+    },
+    {
+      "name": "python-shards (2)",
+      "conclusion": "success"
+    },
+    {
+      "name": "python-shards (1)",
+      "conclusion": "success"
+    },
+    {
+      "name": "native-precedence",
+      "conclusion": "success"
+    },
+    {
+      "name": "python-shards (3)",
+      "conclusion": "success"
+    },
+    {
+      "name": "python-shards (0)",
+      "conclusion": "success"
+    },
+    {
+      "name": "latency (plain)",
+      "conclusion": "success"
+    },
+    {
+      "name": "latency (audit)",
+      "conclusion": "success"
+    },
+    {
+      "name": "fixtures (external, adapters)",
+      "conclusion": "success"
+    },
+    {
+      "name": "fixtures (external, core)",
+      "conclusion": "success"
+    },
+    {
+      "name": "fixtures (external, word-0)",
+      "conclusion": "success"
+    },
+    {
+      "name": "fixtures (policy, adapters)",
+      "conclusion": "success"
+    },
+    {
+      "name": "fixtures (external, word-2)",
+      "conclusion": "success"
+    },
+    {
+      "name": "fixtures (external, recheck2)",
+      "conclusion": "success"
+    },
+    {
+      "name": "fixtures (external, word-1)",
+      "conclusion": "success"
+    },
+    {
+      "name": "fixtures (policy, recheck3)",
+      "conclusion": "success"
+    },
+    {
+      "name": "fixtures (policy, recheck2)",
+      "conclusion": "success"
+    },
+    {
+      "name": "fixtures (external, recheck3)",
+      "conclusion": "success"
+    },
+    {
+      "name": "fixtures (policy, core)",
+      "conclusion": "success"
+    },
+    {
+      "name": "fixtures (policy, review)",
+      "conclusion": "success"
+    },
+    {
+      "name": "fixtures (external, review)",
+      "conclusion": "success"
+    },
+    {
+      "name": "fixtures (policy, word-0)",
+      "conclusion": "success"
+    },
+    {
+      "name": "fixtures (policy, word-3)",
+      "conclusion": "success"
+    },
+    {
+      "name": "fixtures (policy, word-1)",
+      "conclusion": "success"
+    },
+    {
+      "name": "fixtures (external, word-3)",
+      "conclusion": "success"
+    },
+    {
+      "name": "fixtures (policy, word-2)",
+      "conclusion": "success"
+    },
+    {
+      "name": "aggregate (external)",
+      "conclusion": "failure"
+    },
+    {
+      "name": "aggregate (policy)",
+      "conclusion": "failure"
+    }
+  ],
+  "failure": "Every fixture shard passed in both installs, the review shards included: final-discard-close-tab-web-audio passed with the owner told the row's own tab, and the row's log shows that tab audible:true, muted:false just before the first close_tab, which refused with the media report. final-discard-close-tab-clean, final-discard-history-*, -editor-*, both React rows and the review checks after GROUP 8 passed for the first time. Both latency gates and the four Python shards passed. Both aggregates failed in the last step, reviews/20-chrome/audit-review-evidence.mjs:114, whose regular expression still expected the withheld-form refusal's old wording (\"let Claude reload the tab first\"); step 2 reworded it to name chrome_navigate direction=reload, and the audit had not run since (a shard was missing in every earlier run). The audit, rerun locally on the downloaded aggregate metadata of both installs with the pin updated, passed: 98 named cases, group 12.",
+  "audible_evidence": {
+    "final-discard-navigate-url-web-audio": {
+      "external": {
+        "tab": 967321812,
+        "audible": true,
+        "muted": false,
+        "controlled": true,
+        "active": true
+      },
+      "policy": {
+        "tab": 907350265,
+        "audible": true,
+        "muted": false,
+        "controlled": true,
+        "active": true
+      }
+    },
+    "final-discard-close-tab-web-audio": {
+      "external": {
+        "tab": 967321816,
+        "audible": true,
+        "muted": false,
+        "controlled": true,
+        "active": true
+      },
+      "policy": {
+        "tab": 907350269,
+        "audible": true,
+        "muted": false,
+        "controlled": true,
+        "active": true
+      }
+    },
+    "note": "From the review shard log of each install (the log file named for it); the url of each row was its own page, loaded by the owner into that tab."
+  }
+}

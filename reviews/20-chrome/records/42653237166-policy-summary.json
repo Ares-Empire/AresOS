@@ -1,0 +1,243 @@
+{
+  "source": "GitHub Linux container control-chrome.yml",
+  "run": "42653237166",
+  "head": "491485c1ac425ae8bdc15abe30f3ea35203fdf57",
+  "mode": "policy",
+  "version": "Google Chrome 157.0.8103.38",
+  "passed": 33,
+  "total": 37,
+  "named": [
+    {
+      "name": "GROUP 1 submit compose deletion and free-input matrix",
+      "passed": true,
+      "browser_log_line": 17
+    },
+    {
+      "name": "GROUP 1 what asks word/label/key matrix",
+      "passed": true,
+      "browser_log_line": 30
+    },
+    {
+      "name": "GROUP 1 Unicode word matching agrees across service and guard",
+      "passed": true,
+      "browser_log_line": 31
+    },
+    {
+      "name": "GROUP 2 stopped page steps handler/resume matrix",
+      "passed": true,
+      "browser_log_line": 32
+    },
+    {
+      "name": "GROUP 2 script activations never replay",
+      "passed": true,
+      "browser_log_line": 33
+    },
+    {
+      "name": "GROUP 2 loop with uncancelled enclosing submit sends once",
+      "passed": true,
+      "browser_log_line": 34
+    },
+    {
+      "name": "GROUP 2 delayed submission stays held after slow frame arming",
+      "passed": true,
+      "browser_log_line": 36
+    },
+    {
+      "name": "GROUP 2 nested validation and fresh-frame fallback",
+      "passed": false,
+      "error": "AssertionError [ERR_ASSERTION]: the additional submission has its own reserved operation for this exact fixture\n    at file:///workspace/control/chrome/ci/matrices.mjs:122:16\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async check (file:///workspace/control/chrome/ci/matrices.mjs:10:10)\n    at async matrices (file:///workspace/control/chrome/ci/matrices.mjs:105:3)\n    at async file:///workspace/control/chrome/ci/browser.mjs:100:24",
+      "browser_log_line": 37
+    },
+    {
+      "name": "GROUP 2 owner synchronous task delayed work and in-flight interleavings",
+      "passed": false,
+      "error": "AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:\n\n  assert.ok(held)\n\n    at file:///workspace/control/chrome/ci/matrices.mjs:140:174\n    at async check (file:///workspace/control/chrome/ci/matrices.mjs:10:10)\n    at async matrices (file:///workspace/control/chrome/ci/matrices.mjs:133:3)\n    at async file:///workspace/control/chrome/ci/browser.mjs:100:24",
+      "browser_log_line": 43
+    },
+    {
+      "name": "GROUP 2 unknown activation survives navigation of its source document",
+      "passed": false,
+      "error": "AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:\n\n  assert.ok(result.untrusted_content.steps.some(step=>step.kind==='activation_unknown'))\n\n    at file:///workspace/control/chrome/ci/matrices.mjs:150:12\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async check (file:///workspace/control/chrome/ci/matrices.mjs:10:10)\n    at async matrices (file:///workspace/control/chrome/ci/matrices.mjs:146:3)\n    at async file:///workspace/control/chrome/ci/browser.mjs:100:24",
+      "browser_log_line": 51
+    },
+    {
+      "name": "GROUP 3 binding every form fact and generic sibling draft",
+      "passed": true,
+      "browser_log_line": 61
+    },
+    {
+      "name": "GROUP 4 page confirmations bind their full text and ask independently",
+      "passed": true,
+      "browser_log_line": 62
+    },
+    {
+      "name": "GROUP 3 cross-frame adapter empty and oversized drafts",
+      "passed": true,
+      "browser_log_line": 63
+    },
+    {
+      "name": "GROUP 4 exact native confirmation and mismatch matrix",
+      "passed": true,
+      "browser_log_line": 64
+    },
+    {
+      "name": "GROUP 4 a native-dialog handler submission is prepared separately",
+      "passed": true,
+      "browser_log_line": 65
+    },
+    {
+      "name": "GROUP 5 question fields, hidden values, password label, upload path and hash",
+      "passed": true,
+      "browser_log_line": 66
+    },
+    {
+      "name": "GROUP 6 exclusions through frame, popup, redirect, taking and history",
+      "passed": true,
+      "browser_log_line": 67
+    },
+    {
+      "name": "GROUP 7 all password kinds across open closed and cross-site roots",
+      "passed": true,
+      "browser_log_line": 68
+    },
+    {
+      "name": "GROUP 6 schemes links and forward routes",
+      "passed": true,
+      "browser_log_line": 69
+    },
+    {
+      "name": "GROUP 8 drop release close and stale references never dispatch prepared work",
+      "passed": true,
+      "browser_log_line": 70
+    },
+    {
+      "name": "GROUP 13 changed read-only preview is a stated residual",
+      "passed": true,
+      "browser_log_line": 71
+    },
+    {
+      "name": "GROUP 8 deadline and tabs outside the group",
+      "passed": true,
+      "browser_log_line": 73
+    },
+    {
+      "name": "GROUP 10 adapter gmail",
+      "passed": true,
+      "browser_log_line": 74
+    },
+    {
+      "name": "GROUP 10 adapter whatsapp",
+      "passed": true,
+      "browser_log_line": 75
+    },
+    {
+      "name": "GROUP 10 adapter github",
+      "passed": true,
+      "browser_log_line": 76
+    },
+    {
+      "name": "GROUP 10 adapter gemini",
+      "passed": true,
+      "browser_log_line": 77
+    },
+    {
+      "name": "GROUP 10 adapter deezer",
+      "passed": true,
+      "browser_log_line": 78
+    },
+    {
+      "name": "GROUP 10 read-only bank",
+      "passed": true,
+      "browser_log_line": 80
+    },
+    {
+      "name": "GROUP 10 adapter shortcuts and account-specific questions",
+      "passed": true,
+      "browser_log_line": 81
+    },
+    {
+      "name": "GROUP 11 exact owner kind, recipients, account and revocation",
+      "passed": true,
+      "browser_log_line": 86
+    },
+    {
+      "name": "QUALIFICATION conservative activations ask and core failures gate before reads",
+      "passed": true,
+      "browser_log_line": 91
+    },
+    {
+      "name": "GROUP 13 autosave and after-limit submissions are not held",
+      "passed": true,
+      "browser_log_line": 92
+    },
+    {
+      "name": "VIEW representative long article/form complete paging",
+      "passed": true,
+      "browser_log_line": 94
+    },
+    {
+      "name": "FEATURE tools forms options find wait fill_form scroll and full catalogues",
+      "passed": true,
+      "browser_log_line": 95
+    },
+    {
+      "name": "GROUP 8 actual popup Stop button drops all prepared work",
+      "passed": true,
+      "browser_log_line": 97
+    },
+    {
+      "name": "GROUP 9 Chrome host service crash cutpoints never replay",
+      "passed": false,
+      "error": "Error: private post-input pre-reply barrier: undefined\n    at eventually (file:///workspace/control/chrome/ci/browser.mjs:27:208)\n    at async file:///workspace/control/chrome/ci/matrices.mjs:375:9\n    at async check (file:///workspace/control/chrome/ci/matrices.mjs:10:10)\n    at async matrices (file:///workspace/control/chrome/ci/matrices.mjs:365:3)\n    at async file:///workspace/control/chrome/ci/browser.mjs:100:24",
+      "browser_log_line": 102
+    },
+    {
+      "name": "GROUP 7 no listening port after tool suite",
+      "passed": true,
+      "browser_log_line": 108
+    }
+  ],
+  "owner": {
+    "ownerInput": "X keyboard Tab then Return, outside the tool",
+    "ownerDelayMs": 109,
+    "ownerArrivals": 0,
+    "scheduledArrivals": 0
+  },
+  "qualification": {
+    "groups": {
+      "1": true,
+      "2": false,
+      "3": true,
+      "4": true,
+      "5": true,
+      "6": true,
+      "7": true,
+      "8": true,
+      "9": false,
+      "10": true,
+      "11": true,
+      "13": true
+    },
+    "core": {
+      "classification": true,
+      "page_script": false,
+      "binding": true,
+      "password_exclusion": true
+    },
+    "adapters": {
+      "gmail": true,
+      "whatsapp": true,
+      "github": true,
+      "bank": true,
+      "gemini": true,
+      "deezer": true
+    }
+  },
+  "view": {
+    "characters": 221196,
+    "utf8_bytes": 221196,
+    "pages": 14,
+    "milliseconds": 7769,
+    "token_estimate": 55299
+  }
+}

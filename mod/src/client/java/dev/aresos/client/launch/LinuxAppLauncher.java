@@ -8,7 +8,7 @@ import java.util.concurrent.*;
 import java.util.function.Supplier;
 
 /**
- * Opens apps by asking the AresOS app helper (aresos-shell/1.0). There is no direct-command fallback: without a
+ * Opens apps by asking the AresOS app helper (aresos-shell). There is no direct-command fallback: without a
  * compatible helper nothing starts, whatever the app's type or saved command.
  */
 public final class LinuxAppLauncher implements AppLauncher {

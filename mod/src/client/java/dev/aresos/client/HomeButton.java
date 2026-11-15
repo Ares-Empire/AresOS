@@ -1,6 +1,7 @@
 package dev.aresos.client;
 
 import dev.aresos.AresOs;
+import dev.aresos.world.FlatHome;
 import dev.aresos.world.NetherHome;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
 import net.fabricmc.fabric.api.client.screen.v1.Screens;
@@ -10,11 +11,13 @@ import net.minecraft.client.gui.screens.AlertScreen;
 import net.minecraft.client.gui.screens.ConfirmScreen;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.TitleScreen;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.DirectoryLock;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.LevelSettings;
 import net.minecraft.world.level.WorldDataConfiguration;
+import net.minecraft.world.level.levelgen.WorldDimensions;
 import net.minecraft.world.level.levelgen.WorldOptions;
 import net.minecraft.world.level.levelgen.presets.WorldPresets;
 
@@ -23,6 +26,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.function.Function;
 
 public final class HomeButton {
     private HomeButton() { }
@@ -57,18 +61,32 @@ public final class HomeButton {
     }
 
     static void create(Minecraft client, Screen parent, long seed, boolean placeholder) {
+        var request = seed == 49 ? NetherHome.DEFAULT_SITE : new NetherHome.Site(seed, 0, 64, 0, 0);
+        createWorld(client, parent, directory -> NetherHome.writeManifest(directory, request, placeholder),
+                new WorldOptions(seed, true, false), WorldPresets::createNormalWorldDimensions);
+    }
+
+    /** The flat home: the same save folder and create flow, with a flat Overworld and no structures. */
+    static void createFlat(Minecraft client, Screen parent) {
+        createWorld(client, parent, NetherHome::writeFlatManifest,
+                new WorldOptions(FlatHome.SEED, false, false), FlatHome::dimensions);
+    }
+
+    private interface ManifestWriter { void write(Path directory) throws IOException; }
+
+    /** Survival, normal difficulty, cheats off, through the game's own create flow; the server provisions the home. */
+    private static void createWorld(Minecraft client, Screen parent, ManifestWriter manifest, WorldOptions options,
+                                    Function<HolderLookup.Provider, WorldDimensions> dimensions) {
         var source = client.getLevelSource();
         var directory = source.getBaseDir().resolve(NetherHome.SAVE_FOLDER);
         try {
             Files.createDirectories(source.getBaseDir());
             Files.createDirectory(directory);
-            var request = seed == 49 ? NetherHome.DEFAULT_SITE : new NetherHome.Site(seed, 0, 64, 0, 0);
-            NetherHome.writeManifest(directory, request, placeholder);
+            manifest.write(directory);
             NetherHome.createNewWorld(directory, () -> client.createWorldOpenFlows().createFreshLevel(NetherHome.SAVE_FOLDER,
                     new LevelSettings("AresOS", GameType.SURVIVAL, LevelSettings.DifficultySettings.DEFAULT,
                             false, WorldDataConfiguration.DEFAULT),
-                    new WorldOptions(seed, true, false),
-                    WorldPresets::createNormalWorldDimensions, parent));
+                    options, dimensions, parent));
         } catch (IOException error) { showError(client, parent, error); }
     }
 

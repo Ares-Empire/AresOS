@@ -165,6 +165,40 @@ public final class ModeInventories {
     public boolean hasStoredInventories() { return stored != null; }
     public boolean restoredForLogin() { return restoredForLogin; }
 
+    /**
+     * Rewrites the items of the inventory he is not holding right now (Build's while he is in Live, and the other
+     * way round), slot by slot; an app's item is taken out of it this way. Never during a switch. The result is
+     * checked the way a switch checks it, saved, read back and compared, before anything is kept; on any doubt
+     * this throws and the saved inventory stays as it was.
+     *
+     * @return true when a slot changed
+     */
+    public boolean mapInactive(ServerPlayer player, java.util.function.UnaryOperator<ItemStack> change) {
+        if (pending || changingMode) throw new IllegalStateException("The saved inventory cannot change during a mode switch");
+        if (stored == null) return false;
+        var ops = player.registryAccess().createSerializationContext(NbtOps.INSTANCE);
+        Stored before = Stored.CODEC.parse(ops, stored).getOrThrow();
+        boolean build = activeInventory(player) != GameType.CREATIVE;
+        Snapshot inactive = build ? before.build : before.live;
+        var items = new ArrayList<ItemStack>(inactive.items.size());
+        boolean changed = false;
+        for (ItemStack stack : inactive.items) {
+            ItemStack mapped = change.apply(stack.copy());
+            changed |= !ItemStack.matches(stack, mapped);
+            items.add(mapped);
+        }
+        if (!changed) return false;
+        Snapshot mapped = new Snapshot(List.copyOf(items), inactive.selected);
+        Stored next = build ? new Stored(before.version, before.live, mapped, before.buildActive)
+                : new Stored(before.version, mapped, before.build, before.buildActive);
+        Tag encoded = Stored.CODEC.encodeStart(ops, next).getOrThrow();
+        Stored prepared = Stored.CODEC.parse(ops, encoded).getOrThrow();
+        if (!next.live.matches(prepared.live) || !next.build.matches(prepared.build))
+            throw new IllegalStateException("Inventory serialization changed an item");
+        stored = encoded;
+        return true;
+    }
+
     public void read(ValueInput input) {
         stored = input.read(SAVE_KEY, RAW).map(Tag::copy).orElse(null);
         activeInventory = stored instanceof net.minecraft.nbt.CompoundTag tag

@@ -252,17 +252,19 @@ public final class WalkInLogosClientGameTest implements FabricClientGameTest {
     }
 
     private static LogoPixels.Image read(AppDefinition app) { try { return LogoBuilder.readIcon(app); } catch (Exception error) { throw new AssertionError(error); } }
-    private static int zoneCount(TestSingleplayerContext world) { return world.getServer().computeOnServer(server -> ZoneData.get(server).zones().size()); }
-    private static void command(ClientGameTestContext context, TestSingleplayerContext world, String command) {
+    static int zoneCount(TestSingleplayerContext world) { return world.getServer().computeOnServer(server -> ZoneData.get(server).zones().size()); }
+    static void command(ClientGameTestContext context, TestSingleplayerContext world, String command) {
         context.runOnClient(client -> client.player.connection.sendCommand(command));
         world.getConnection().waitForServerboundPackets(); context.waitTicks(3);
+        // `/aresos logo <app>` builds a few ticks later, once its picture is read (package 36, review fixes 1, step B, point 3).
+        for (int tick = 0; tick < 200 && world.getServer().computeOnServer(dev.aresos.zone.ZoneCommands::ordered) > 0; tick++) context.waitTicks(1);
     }
     private static void mark(ClientGameTestContext context, TestSingleplayerContext world, String app, Vec3 first, Vec3 second, Vec3 exit) {
         move(context, world, first); command(context, world, "aresos zone pos1");
         move(context, world, second); command(context, world, "aresos zone pos2");
         move(context, world, exit); command(context, world, "aresos zone set " + app);
     }
-    private static void move(ClientGameTestContext context, TestSingleplayerContext world, Vec3 point) {
+    static void move(ClientGameTestContext context, TestSingleplayerContext world, Vec3 point) {
         world.getServer().runOnServer(server -> {
             var player = world.getConnection().getServerPlayer();
             player.teleportTo(player.level(), point.x, point.y, point.z, Set.of(), 0, 0, false);
@@ -271,13 +273,13 @@ public final class WalkInLogosClientGameTest implements FabricClientGameTest {
         context.waitFor(client -> client.player.position().distanceToSqr(point) < 0.01);
         context.waitTicks(3);
     }
-    private static void fly(ClientGameTestContext context, TestSingleplayerContext world) {
+    static void fly(ClientGameTestContext context, TestSingleplayerContext world) {
         world.getServer().runOnServer(server -> {
             var player = world.getConnection().getServerPlayer(); player.getAbilities().flying = true; player.onUpdateAbilities();
         });
         context.waitFor(client -> client.player.getAbilities().flying);
     }
-    private static void focusRoundTrip(ClientGameTestContext context, boolean pause) {
+    static void focusRoundTrip(ClientGameTestContext context, boolean pause) {
         context.runOnClient(client -> {
             boolean previous = client.options.pauseOnLostFocus;
             try {
@@ -291,7 +293,7 @@ public final class WalkInLogosClientGameTest implements FabricClientGameTest {
             } finally { client.options.pauseOnLostFocus = previous; }
         });
     }
-    private static void walkUntilLaunch(ClientGameTestContext context, List<List<String>> calls, int expected) {
+    static void walkUntilLaunch(ClientGameTestContext context, List<List<String>> calls, int expected) {
         context.getInput().holdKey(options -> options.keyUp);
         try { context.waitFor(client -> calls.size() == expected); }
         finally { context.getInput().releaseKey(options -> options.keyUp); }

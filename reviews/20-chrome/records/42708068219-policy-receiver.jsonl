@@ -1,0 +1,11 @@
+{"time":1794262591445,"url":"/receive?case=compose","method":"POST","body":"Existing synthetic draft","host":"fixture.test:8765"}
+{"time":1794262592973,"url":"/receive?case=native","method":"POST","body":"required=","host":"fixture.test:8765"}
+{"time":1794262594492,"url":"/receive?case=event","method":"POST","body":"required=valid","host":"fixture.test:8765"}
+{"time":1794262597306,"url":"/receive?case=residual-click","method":"POST","body":"ordinary click","host":"fixture.test:8765"}
+{"time":1794262598207,"url":"/receive?case=owner-start","method":"POST","body":"Claude input started","host":"fixture.test:8765"}
+{"time":1794262598347,"url":"/receive?case=owner-input","method":"POST","body":"source=owner","host":"fixture.test:8765"}
+{"time":1794262600045,"url":"/receive?case=page-forgery","method":"POST","body":"source=page-forged-mark","host":"fixture.test:8765"}
+{"time":1794262601849,"url":"/receive?case=hostile","method":"POST","body":"source=hostile","host":"fixture.test:8765"}
+{"time":1794262603690,"url":"/receive?case=relay-hostile","method":"POST","body":"draft=Saved","host":"fixture.test:8765"}
+{"time":1794262605449,"url":"/receive?case=first-top","method":"POST","body":"draft=Saved","host":"fixture.test:8765"}
+{"time":1794262607418,"url":"/receive?case=first-same","method":"POST","body":"draft=Saved","host":"fixture.test:8765"}

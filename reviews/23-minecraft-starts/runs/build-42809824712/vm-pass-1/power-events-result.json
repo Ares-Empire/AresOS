@@ -1,0 +1,6 @@
+{
+  "id": 3,
+  "returncode": 0,
+  "stdout": "ARESOS_POWER_EVENTS_PASSED: lid and sleep keys observed/ignored; direct sleep requests rejected\n",
+  "stderr": ""
+}

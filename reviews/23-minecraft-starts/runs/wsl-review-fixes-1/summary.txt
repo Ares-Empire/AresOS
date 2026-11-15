@@ -1,0 +1,49 @@
+Package 23 review fixes 1: WSL evidence (Ubuntu 24.04, Python 3.12.3)
+
+== Full os/tests suite, fresh clone of pkg/23-minecraft-starts at 5c25072058fbefc54bcfba15ab0506fdc5826e41
+suite.log: Ran 958 tests, FAILED (failures=1, errors=12)
+suite-B.log: Ran 958 tests, FAILED (failures=1, errors=12)
+Failures by module (both runs alike; the known WSL-only set, also on main):
+      3 test_greeter
+      8 test_inherited_homebrew
+      2 test_sysusers
+
+== The new tests against round 0 code (939bc259), tests and fixtures from 5c250720
+test_aresos_desktop.py: Ran 97 tests, FAILED (failures=37, errors=42)
+test_aresos_shell.py: Ran 72 tests, FAILED (failures=1, errors=59)
+Each test added in review fixes 1, on round 0 code (subtests: the first lines):
+  test_a_crash_accounted_after_downtime_restarts_after_its_backoff [AdoptionTest] ... FAIL
+  test_a_damaged_hub_is_never_declared_ready [RestartPolicyTest] ... ERROR
+  test_a_desktop_activated_after_the_window_is_the_owners_choice [KeepForegroundTest] ... ERROR
+  test_a_failed_start_is_reported_and_counted_never_left_open [RestartPolicyTest] [jvm_failed] ... ERROR
+  test_a_game_that_ended_while_no_supervisor_ran_is_accounted_for_once [AdoptionTest] [normal exit] ... FAIL
+  test_a_jvm_outside_its_memory_scope_is_refused [RestartPolicyTest] ... ERROR
+  test_a_kill_waits_for_cleared_memory_pressure_before_retry [RestartPolicyTest] ... ERROR
+  test_a_scope_that_is_not_usable_is_refused_before_java_runs [WrapperTest] (scope='systemd-run', unit=None) ... FAIL
+  test_a_start_that_fails_is_reported [WrapperTest] ... FAIL
+  test_a_valid_hub_passes [WorldCheckTest] ... ok
+  test_a_whole_scope_death_without_a_report_latches_like_a_kill [RestartPolicyTest] ... ERROR
+  test_a_whole_scope_kill_latches_and_nothing_restarts [LoopTest] ... ERROR
+  test_an_adopted_game_that_never_becomes_ready_shows_after_the_timeout [AdoptionTest] ... FAIL
+  test_an_exhausted_helper_after_the_hub_was_ready_shows [RestartPolicyTest] ... ERROR
+  test_an_exit_record_of_another_launch_or_process_is_ignored [RestartPolicyTest] [{'launch': 'other', 'status': 0}] ... ERROR
+  test_an_older_level_copy_counts_when_the_level_file_is_damaged [WorldCheckTest] ... ok
+  test_an_ordinary_start_lets_the_desktop_take_focus [KeepForegroundTest] ... ERROR
+  test_any_other_lwjgl_or_a_missing_or_doubled_component_is_drift [ProvisionTest] ... FAIL
+  test_build_sh_mod_builds_from_the_named_commit_only [ImageBuildTest] ... FAIL
+  test_check_build_uses_the_same_path_as_every_other_image_build [ImageBuildTest] ... FAIL
+  test_damage_is_named_and_never_repaired [WorldCheckTest] [missing home data] ... FAIL
+  test_drop_ins [MemoryProtectionFilesTest] ... ERROR
+  test_every_new_jvm_passes_the_same_gate [RestartPolicyTest] [inputs] ... ERROR
+  test_lost_heartbeats_show_without_touching_the_game [RestartPolicyTest] ... ERROR
+  test_malformed_nbt_is_damage [WorldCheckTest] [truncated] ... FAIL
+  test_memory_pressure_reads_the_last_minute [LaunchTest] ... ERROR
+  test_prism_killed_before_the_game_latches [RestartPolicyTest] ... FAIL
+  test_the_containerfile_builds_the_jar_in_the_pinned_jdk_and_configure_checks_it [ImageBuildTest] ... FAIL
+  test_the_flag_never_reaches_launched_apps [KeepForegroundTest] ... FAIL
+  test_the_game_waits_for_its_scope_and_is_reported_only_inside_it [WrapperTest] ... FAIL
+  test_the_pinned_component_metas_are_inputs_too [VerifyInputsTest] ... FAIL
+  test_the_readers_follow_the_mods_real_saved_data [WorldCheckTest] ... ERROR
+  test_the_real_jvm_runs_in_its_own_scope_with_the_memory_target [WrapperTest] ... ERROR
+  test_the_restored_desktop_gives_focus_back_to_the_window_in_front [KeepForegroundTest] ... ERROR
+  test_with_nothing_in_front_the_restored_desktop_keeps_focus_and_the_flag_is_spent [KeepForegroundTest] ... ERROR

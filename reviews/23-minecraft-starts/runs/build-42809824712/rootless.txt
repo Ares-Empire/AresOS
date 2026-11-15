@@ -1,0 +1,12 @@
++ systemd-tmpfiles --create /usr/lib/tmpfiles.d/aresos.conf
++ grep -x ares:524288:65536 /etc/subuid
+ares:524288:65536
++ grep -x ares:524288:65536 /etc/subgid
+ares:524288:65536
++ runuser -u ares -- env HOME=/var/home/ares XDG_RUNTIME_DIR=/tmp podman unshare cat /proc/self/uid_map
++ tee /tmp/uid_map
+         0       1001          1
+         1     524288      65536
++ awk '$1 == 0 && $2 == 1001 && $3 == 1 {owner = 1} $1 == 1 && $2 == 524288 && $3 == 65536 {range = 1} END {exit !(owner && range)}' /tmp/uid_map
++ echo ROOTLESS_MAPPING_PASSED
+ROOTLESS_MAPPING_PASSED

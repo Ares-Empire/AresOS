@@ -1,0 +1,13 @@
+{
+  "id": 6,
+  "returncode": 0,
+  "stdout": "{\"wrong_password\": {\"service\": \"login\", \"tty\": \"/dev/tty3\", \"start\": 0, \"authenticate\": 7, \"password_prompts\": 1}, \"correct_password\": {\"service\": \"login\", \"tty\": \"/dev/tty3\", \"start\": 0, \"authenticate\": 0, \"password_prompts\": 1, \"account\": 0, \"user\": \"root\", \"uid\": 0}}\n",
+  "stderr": "",
+  "getty": {
+    "returncode": 0,
+    "stdout": "ActiveState=active\nMainPID=1272\n",
+    "stderr": ""
+  },
+  "getty_cmdline": "/usr/sbin/agetty --noreset --noclear --issue-file=/etc/issue:/etc/issue.d:/run/issue.d:/usr/lib/issue.d - linux ",
+  "getty_tty": "/dev/tty3"
+}

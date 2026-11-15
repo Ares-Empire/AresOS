@@ -1,0 +1,246 @@
+{
+  "runtime": "ab7aba92",
+  "privacy": "plain",
+  "chrome": "Google Chrome 157.0.8103.78",
+  "build": "e4030361b4d50170f3c0a11d915954519257ca4a7911862586225cdc99034c72",
+  "calls": {
+    "approval_to_done": {
+      "client_total": {
+        "samples": 20,
+        "median_ms": 583.8671504999988,
+        "p95_ms": 598.490722999999
+      },
+      "extension_total": {
+        "samples": 20,
+        "median_ms": 546.6500000000087,
+        "p95_ms": 555.5000000000146
+      },
+      "bridge_round_trip": {
+        "samples": 20,
+        "median_ms": 549.4316145000226,
+        "p95_ms": 558.2828860000006
+      },
+      "frame_facts": {
+        "samples": 20,
+        "median_ms": 2.9500000000116415,
+        "p95_ms": 3.2000000000116415
+      },
+      "finish_input": {
+        "samples": 20,
+        "median_ms": 7.600000000005821,
+        "p95_ms": 15.10000000000582
+      },
+      "post_input_observation_wait": {
+        "samples": 20,
+        "median_ms": 525.1000000000058,
+        "p95_ms": 525.2000000000116
+      },
+      "post_input_steps": {
+        "samples": 20,
+        "median_ms": 526.6499999999942,
+        "p95_ms": 527.4000000000087
+      },
+      "service_total": {
+        "samples": 20,
+        "median_ms": 581.6282704999978,
+        "p95_ms": 591.6195810000033
+      },
+      "service_without_bridge": {
+        "samples": 20,
+        "median_ms": 31.434913499992945,
+        "p95_ms": 36.93664300001842
+      }
+    },
+    "asking_click": {
+      "client_total": {
+        "samples": 20,
+        "median_ms": 26.286455000001297,
+        "p95_ms": 33.74066899999889
+      },
+      "frame_facts": {
+        "samples": 20,
+        "median_ms": 1.7999999999956344,
+        "p95_ms": 2.1000000000058208
+      },
+      "extension_total": {
+        "samples": 20,
+        "median_ms": 4.100000000013097,
+        "p95_ms": 4.600000000005821
+      },
+      "bridge_round_trip": {
+        "samples": 20,
+        "median_ms": 7.322666999996841,
+        "p95_ms": 8.483282000042891
+      },
+      "service_total": {
+        "samples": 20,
+        "median_ms": 23.10132699999201,
+        "p95_ms": 29.116623999996705
+      },
+      "service_without_bridge": {
+        "samples": 20,
+        "median_ms": 15.74261099999319,
+        "p95_ms": 20.465938000029382
+      }
+    },
+    "fill": {
+      "client_total": {
+        "samples": 20,
+        "median_ms": 569.4130990000012,
+        "p95_ms": 580.7696899999937
+      },
+      "frame_facts": {
+        "samples": 20,
+        "median_ms": 4.650000000001455,
+        "p95_ms": 5.600000000005821
+      },
+      "extension_total": {
+        "samples": 20,
+        "median_ms": 543.6000000000058,
+        "p95_ms": 551.4999999999854
+      },
+      "bridge_round_trip": {
+        "samples": 20,
+        "median_ms": 546.3301529999995,
+        "p95_ms": 553.5865869999839
+      },
+      "finish_input": {
+        "samples": 20,
+        "median_ms": 3.7000000000043656,
+        "p95_ms": 12.80000000000291
+      },
+      "post_input_observation_wait": {
+        "samples": 20,
+        "median_ms": 525.1999999999898,
+        "p95_ms": 525.2000000000116
+      },
+      "post_input_steps": {
+        "samples": 20,
+        "median_ms": 526.5999999999913,
+        "p95_ms": 526.8000000000029
+      },
+      "service_total": {
+        "samples": 20,
+        "median_ms": 565.7582890000015,
+        "p95_ms": 575.6151560000262
+      },
+      "service_without_bridge": {
+        "samples": 20,
+        "median_ms": 18.190631999999596,
+        "p95_ms": 22.47145999999134
+      }
+    },
+    "free_click": {
+      "client_total": {
+        "samples": 20,
+        "median_ms": 570.3902089999974,
+        "p95_ms": 585.758038999993
+      },
+      "frame_facts": {
+        "samples": 20,
+        "median_ms": 4.900000000016007,
+        "p95_ms": 5.600000000005821
+      },
+      "extension_total": {
+        "samples": 20,
+        "median_ms": 548.75,
+        "p95_ms": 555.6999999999825
+      },
+      "bridge_round_trip": {
+        "samples": 20,
+        "median_ms": 550.8932140000056,
+        "p95_ms": 558.4851290000046
+      },
+      "finish_input": {
+        "samples": 20,
+        "median_ms": 9.049999999995634,
+        "p95_ms": 15.0
+      },
+      "post_input_observation_wait": {
+        "samples": 20,
+        "median_ms": 525.1999999999971,
+        "p95_ms": 525.3000000000029
+      },
+      "post_input_steps": {
+        "samples": 20,
+        "median_ms": 526.7500000000073,
+        "p95_ms": 527.0999999999913
+      },
+      "service_total": {
+        "samples": 20,
+        "median_ms": 565.5477705000038,
+        "p95_ms": 578.8005549999866
+      },
+      "service_without_bridge": {
+        "samples": 20,
+        "median_ms": 17.875067999995053,
+        "p95_ms": 23.932776000009426
+      }
+    },
+    "navigate": {
+      "client_total": {
+        "samples": 20,
+        "median_ms": 38.064219500000036,
+        "p95_ms": 45.6730830000015
+      },
+      "extension_total": {
+        "samples": 20,
+        "median_ms": 9.749999999992724,
+        "p95_ms": 15.0
+      },
+      "bridge_round_trip": {
+        "samples": 20,
+        "median_ms": 13.70295750000139,
+        "p95_ms": 22.232279999997218
+      },
+      "service_total": {
+        "samples": 20,
+        "median_ms": 34.18804599999703,
+        "p95_ms": 40.47821200001067
+      },
+      "service_without_bridge": {
+        "samples": 20,
+        "median_ms": 18.874890499994024,
+        "p95_ms": 24.64870000002861
+      }
+    },
+    "read": {
+      "client_total": {
+        "samples": 20,
+        "median_ms": 16.07345350000105,
+        "p95_ms": 21.785294999999678
+      },
+      "frame_facts": {
+        "samples": 20,
+        "median_ms": 2.349999999991269,
+        "p95_ms": 3.900000000023283
+      },
+      "extension_total": {
+        "samples": 20,
+        "median_ms": 2.4499999999970896,
+        "p95_ms": 3.900000000023283
+      },
+      "bridge_round_trip": {
+        "samples": 20,
+        "median_ms": 4.84565100000367,
+        "p95_ms": 8.0825290000206
+      },
+      "service_total": {
+        "samples": 20,
+        "median_ms": 12.217694999996809,
+        "p95_ms": 14.629554999999073
+      },
+      "service_without_bridge": {
+        "samples": 20,
+        "median_ms": 7.063436500004627,
+        "p95_ms": 10.338653000019349
+      }
+    }
+  },
+  "notes": [
+    "20 samples per call; owner think time absent.",
+    "Page handlers are synthetic no-op or local receiver; browser dispatch is not claimed to be pure tool CPU.",
+    "Nested stages overlap. Missing historical stages are absent, never a fabricated zero.",
+    "The fixed post-input wait is holdMs + 25 ms (525 ms at holdMs=500)."
+  ]
+}

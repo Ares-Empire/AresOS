@@ -1,0 +1,63 @@
+{
+  "protocol": "aresos-shell/1.1",
+  "id": "l-5f0c9a12-2",
+  "ok": true,
+  "revision": "9b2d4f6a8c0e1357",
+  "apps": [
+    {
+      "id": "browser",
+      "name": "Chrome",
+      "available": true,
+      "reason": null,
+      "source": "image",
+      "icon": "/run/user/1000/aresos/icons/browser.png",
+      "categories": [
+        "Network",
+        "WebBrowser"
+      ],
+      "generic_name": "Web Browser",
+      "keywords": [
+        "internet",
+        "www",
+        "web"
+      ],
+      "desktop_id": "google-chrome.desktop"
+    },
+    {
+      "id": "com-discordapp-discord",
+      "name": "Discord",
+      "available": true,
+      "reason": null,
+      "source": "flatpak-user",
+      "icon": "/run/user/1000/aresos/icons/com-discordapp-discord.png",
+      "categories": [
+        "Network",
+        "InstantMessaging"
+      ],
+      "generic_name": "Internet Messenger",
+      "keywords": [
+        "chat",
+        "voice",
+        "messaging"
+      ],
+      "desktop_id": "com.discordapp.Discord.desktop",
+      "exec_name": "com.discordapp.Discord",
+      "terminal": false
+    },
+    {
+      "id": "lunarclient",
+      "name": "Lunar Client",
+      "available": true,
+      "reason": null,
+      "source": "user",
+      "icon": "/run/user/1000/aresos/icons/lunarclient.png",
+      "categories": [
+        "Game"
+      ],
+      "desktop_id": "lunarclient.desktop",
+      "exec_name": "LunarClient.AppImage",
+      "terminal": false
+    }
+  ],
+  "next": "p3-9b2d4f6a8c0e1357"
+}

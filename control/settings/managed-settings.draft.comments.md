@@ -25,11 +25,13 @@ normal `claude mcp add-json --scope user` interface (see `control/README.md`).
 There is no generated exclusive `managed-mcp.json`.
 
 All apps served by the engine need their asking rules, even if their MCP entry
-is not installed by default. The six rules include `mcp__testapp__send` and
+is not installed by default. The eight rules include `mcp__testapp__send` and
 `mcp__testapp__delete`: the service serves testapp, while only the harness installs
-its user-scope MCP entry, named `testapp`. Shipped `user-mcp.json` installs only
-`control` and `mail`. The generator rejects missing entries for any other served
-app and rules that fail to name an exposed tool under its installed server name.
+its user-scope MCP entry, named `testapp`. Chrome's two rules are
+`mcp__chrome__read_typed_fields` and `mcp__chrome__submit`. Shipped `user-mcp.json`
+installs `chrome`, `control` and `mail`. The generator rejects missing entries for
+any other served app and rules that fail to name an exposed tool under its
+installed server name.
 
 **Read:** rolling Anthropic documentation, 2026-11-09. **Run:** the model-free
 native harness pins Claude Code **2.1.319** and records each precedence case,

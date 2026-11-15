@@ -24,7 +24,7 @@ NOTICE_RESERVE = 16 * 1024
 REQUEST_RESERVE = 128 * 1024 * 1024
 RECOVERY_RESERVE = 64 * 1024 * 1024
 RECOVERY_REQUEST = 1024 * 1024
-RECOVERY_ACTIONS = {'control_restore_confirm', 'control_archive'}
+RECOVERY_ACTIONS = {'control_restore_confirm', 'control_archive', 'chrome_drop'}
 OPEN = {'reserved', 'submitting', 'partial', 'unknown'}
 
 
@@ -66,13 +66,34 @@ def hashes(value):
             yield from hashes(v)
 
 
+def retire_chrome(store):
+    """Retire resolved checks in bounded commits; journal keeps their receipts.
+
+    Retired identities are looked up in the committed journal on recurrence.
+    Open checks and unacknowledged occurrences can never leave the working set.
+    """
+    from .warnings import source_notices
+    changes={}
+    for key,source in store.iter_items('intent:chrome:'):
+        if source.get('state')!='done':continue
+        notices=list(source_notices(store,key))
+        if any(not notice.get('ack') for notice in notices):continue
+        changes[key]=None
+        changes.update({'notice:'+notice['id']:None for notice in notices})
+        if len(changes)>=32:
+            store.write(changes,'control_expire','Retired finished Chrome checks; committed identities retained',recovery=True)
+            changes={}
+    if changes:store.write(changes,'control_expire','Retired finished Chrome checks; committed identities retained',recovery=True)
+
+
 def expire(engine):
     from .warnings import source_notices
     store = engine.store
     if store.locked or store.write_failed:
         return
+    retire_chrome(store)
     now = time.time()
-    operations = [op for _, op in store.items('op:')]
+    operations = [op for _, op in store.iter_operations(states=OPEN) if op['state'] in OPEN]
     pinned_comps = {op.get('payload', {}).get('composition', {}).get('id')
                     for op in operations if op['state'] in OPEN}
     changes = {}
@@ -112,12 +133,17 @@ def expire(engine):
                     changes.update({k: None for k, _ in store.items('mail:filing-locations:' + value['id'] + ':')})
     if changes:
         store.write(changes, 'control_expire', 'expired unused working data; operation evidence and unresolved warnings retained')
-    pinned = set()
-    for _, comp in store.items('mail:composition:'):
-        pinned.update(hashes(comp))
-    # Keep wires and attachment bytes referenced by any retained operation: even
-    # completed operations can be inspected/repaired. They are bounded by caps.
-    for op in operations:
-        pinned.update(hashes(op))
+    pinned = None
+    def retained_hashes():
+        nonlocal pinned
+        if pinned is None:
+            current=set()
+            for _, comp in store.items('mail:composition:'):
+                current.update(hashes(comp))
+            # Completed operations still pin every wire/attachment. Finish the
+            # whole fresh enumeration before any candidate can be unlinked.
+            current.update(store.operation_hashes())
+            pinned=current
+        return pinned
     for blob_store in (engine.blobs, engine.adapters['mail'].wires):
-        blob_store.expire(pinned, now, TTL)
+        blob_store.expire(retained_hashes, now, TTL)

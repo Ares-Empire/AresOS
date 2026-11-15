@@ -1,0 +1,46 @@
+[
+  {
+    "artifact": "control-chrome-42989465778-1-external",
+    "sha256": "788288419bffdc94e71ad669d0f82a390ad428e99454c378185b265bb64ed633",
+    "measurements": {
+      "characters": 221196,
+      "utf8_bytes": 221196,
+      "pages": 14,
+      "milliseconds": 21597,
+      "token_estimate": 55299
+    }
+  },
+  {
+    "artifact": "control-chrome-42989465778-1-policy",
+    "sha256": "facb82c9214cca5322b6b2a73ab0c0a2106a9526abcd0ca4179eeb8c540dd10f",
+    "measurements": {
+      "characters": 221476,
+      "utf8_bytes": 221476,
+      "pages": 14,
+      "milliseconds": 15800,
+      "token_estimate": 55369
+    }
+  },
+  {
+    "artifact": "control-chrome-42989465778-2-external",
+    "sha256": "abd404972564fa6f9847e9b6af18375b7c7db7e48df0131f6e6e8633037ec940",
+    "measurements": {
+      "characters": 221477,
+      "utf8_bytes": 221477,
+      "pages": 14,
+      "milliseconds": 11904,
+      "token_estimate": 55370
+    }
+  },
+  {
+    "artifact": "control-chrome-42989465778-2-policy",
+    "sha256": "72d031edadd5caca396fcd120a3ed29a0ee0ce0aee7a844140435e18d98a2598",
+    "measurements": {
+      "characters": 221195,
+      "utf8_bytes": 221195,
+      "pages": 14,
+      "milliseconds": 20867,
+      "token_estimate": 55299
+    }
+  }
+]

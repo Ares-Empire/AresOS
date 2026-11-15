@@ -4,12 +4,22 @@ import json
 import os
 import pathlib
 import re
+import stat
 import subprocess
+import time
 
 
 POWER_KEY = 'b72ea4a2881545a0b50e200e55b9b071'
 SHUTDOWN = '98268866d1d54a499c4e98921d93bc40'
 JOURNAL_PATHS = r'^/(|var(|/log(|/journal(|/.*)))|ostree(|/deploy(|/[^/]+(|/var(|/log(|/journal(|/.*)))))))$'
+PARTITION_WAIT_SECONDS = 10
+PARTITION_POLL_SECONDS = 0.5
+# The VM disk is the pinned bootc-image-builder's raw disk (os/manifest/base.json,
+# --type raw --rootfs btrfs, configuration from os/ci/prepare-disk.py): BIOS boot
+# (no filesystem), ESP, /boot, root, in GPT entries 1 to 4. Recorded since package
+# 03 (os/manifest/ci/03i/vm-pass-1/offline-disk-layout.json). A new builder pin
+# that changes it fails here, by design.
+DISK_LAYOUT = (None, 'vfat', 'ext4', 'btrfs')
 
 
 class OfflineJournalUnavailable(RuntimeError):
@@ -61,6 +71,62 @@ def assert_power_key_shutdown(records, boot_id):
     # The journal may relinquish /var before final poweroff.target. Require
     # orderly logind teardown here, and retain the final console/QMP checks.
     return dict(boot_id=boot_id, armed=armed, power_key=key, shutdown=shutdown, logind_stopped=stopped)
+
+
+def block_node(path):
+    """True once the kernel (devtmpfs, not udev) has created the partition's device node."""
+    try:
+        return stat.S_ISBLK(os.stat(path).st_mode)
+    except FileNotFoundError:
+        return False
+
+
+def find_btrfs_root(nbd, run, commands, evidence):
+    """The guest's Btrfs root, once every partition read from the disk matches DISK_LAYOUT.
+
+    lsblk's FSTYPE is udev's cached probe, which a runner image may fill late or
+    never for nbd devices (run 43548237383: null on every partition after
+    udevadm settle). lsblk only lists the partitions here (from sysfs; its FSTYPE
+    column stays in the evidence for comparison); blkid -p reads each partition
+    directly, bypassing udev and blkid's cache.
+    """
+    expected = {f'{nbd}p{number}': kind or 'none' for number, kind in enumerate(DISK_LAYOUT, 1)}
+
+    def unready(output):
+        layout = json.loads(run('lsblk', '--json', '--paths', '--output', 'NAME,FSTYPE,RO', nbd, output=output))
+        listed = sorted(part['name'] for part in layout['blockdevices'][0].get('children', []))
+        # blkid -p also answers exit 2 for a missing node, so never probe a set that
+        # differs from the layout's or one whose nodes are not all there.
+        missing = [name for name in expected if name not in listed or not block_node(name)]
+        return (listed, missing) if listed != sorted(expected) or missing else None
+
+    deadline = time.monotonic() + PARTITION_WAIT_SECONDS
+    while state := unready('offline-disk-layout.json'):
+        assert time.monotonic() < deadline, (f'Partitions of {nbd} not ready after {PARTITION_WAIT_SECONDS}s: '
+                                             f'expected {list(expected)}, listed {state[0]}, missing {state[1]}')
+        time.sleep(PARTITION_POLL_SECONDS)
+    seen, probes = {}, {}
+    for number, name in enumerate(expected, 1):
+        output = run('blkid', '-p', '-o', 'export', name, required=False)
+        code = commands[-1]['returncode']
+        tags = dict(line.split('=', 1) for line in output.decode(errors='replace').splitlines() if '=' in line)
+        probes[name] = dict(returncode=code, stderr=commands[-1]['stderr'], tags=tags)
+        # On a partition blkid -p always reports its GPT entry (PART_ENTRY_*), even
+        # without a filesystem, and on any probe error it prints nothing (exit 2,
+        # often without a message). So only exit 0 with this partition's own entry
+        # counts as read; a missing TYPE then means no signature, not an error.
+        entry = code == 0 and tags.get('PART_ENTRY_SCHEME') == 'gpt' and tags.get('PART_ENTRY_NUMBER') == str(number)
+        seen[name] = tags.get('TYPE', 'none') if entry else f'unread (exit {code}, entry {tags.get("PART_ENTRY_NUMBER")})'
+    (evidence / 'offline-disk-types.json').write_text(json.dumps(probes, indent=2) + '\n')
+    summary = ', '.join(f'{name}={kind}' for name, kind in seen.items())
+    print(f'Offline disk filesystem types (blkid -p): {summary}', flush=True)
+    assert seen == expected, (f'Expected the image builder\'s layout with exactly one btrfs root: '
+                              f'{", ".join(f"{name}={kind}" for name, kind in expected.items())}; '
+                              f'blkid -p read {summary}')
+    state = unready(None)
+    assert not state, f'Partitions of {nbd} changed while probing: listed {state[0]}, missing {state[1]}'
+    root, = [name for name, kind in expected.items() if kind == 'btrfs']
+    return root
 
 
 def read_offline_journal(disk, work, evidence, boot_id):
@@ -116,12 +182,7 @@ def read_offline_journal(disk, work, evidence, boot_id):
         run('qemu-nbd', '--read-only', '--format=qcow2', f'--connect={nbd}', str(disk))
         connected = True
         run('udevadm', 'settle')
-        layout = json.loads(run('lsblk', '--json', '--paths', '--output', 'NAME,FSTYPE,RO', nbd,
-                                output='offline-disk-layout.json'))
-        partitions = layout['blockdevices'][0].get('children', [])
-        roots = [part for part in partitions if part.get('fstype') == 'btrfs']
-        assert len(roots) == 1, layout
-        root = roots[0]['name']
+        root = find_btrfs_root(nbd, run, commands, evidence)
         assert root.startswith(nbd + 'p') and root[len(nbd) + 1:].isdigit(), root
         assert run('blockdev', '--getro', root).strip() == b'1', 'Offline guest disk is writable'
         run('mount', '-t', 'btrfs', '-o', 'ro,nologreplay,subvolid=5', root, str(mountpoint), required=False)

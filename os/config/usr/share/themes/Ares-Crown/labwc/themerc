@@ -1,0 +1,107 @@
+# Ares-Crown: the Empire's crown language on a window frame (labwc 0.9).
+#
+# Near-black wall, off-white text, one sparing gold accent: the dot at the left
+# of the active window's title bar (the hub's mark; it opens the window menu).
+# Buttons light up as glass pills like the hub's, red only on close.
+# Design notes and the rc.xml lines this theme needs: docs/design/WINDOWS.md.
+
+# frame: a 1px warm glass edge around the whole window
+border.width: 1
+window.active.border.color: #615640
+window.inactive.border.color: #262420
+window.active.indicator.toggled-keybind.color: #c9372c
+
+# title bar: 36px (the buttons' height), a faint sheen on the active window
+window.titlebar.padding.width: 2
+window.titlebar.padding.height: 0
+window.active.title.bg: Gradient Vertical
+window.active.title.bg.color: #1a191e
+window.active.title.bg.colorTo: #0d0d10
+window.inactive.title.bg: Solid
+window.inactive.title.bg.color: #0b0b0d
+window.active.label.text.color: #f3f1ea
+window.inactive.label.text.color: #7b776d
+window.label.text.justify: Left
+
+# buttons: SVG images of exactly this size (the *.svg next to this file, drawn by
+# reviews/window-design-v1/draw-buttons.py in the AresOS repo)
+window.button.width: 44
+window.button.height: 36
+window.button.spacing: 0
+# only used for a button without a hover image; every button here has one
+window.button.hover.bg.color: #edca771a
+window.button.hover.bg.corner-radius: 8
+# only used for xbm buttons; kept in step with the SVG glyphs
+window.active.button.unpressed.image.color: #a6a39a
+window.inactive.button.unpressed.image.color: #5f5c55
+
+# shadow: deep and soft under the active window, shallow under the others
+window.active.shadow.size: 64
+window.active.shadow.color: #000000a8
+window.inactive.shadow.size: 36
+window.inactive.shadow.color: #00000066
+
+# menus (window menu, root menu)
+menu.overlap.x: 0
+menu.overlap.y: 0
+menu.width.min: 200
+menu.width.max: 360
+menu.border.width: 1
+menu.border.color: #4d4535
+menu.items.padding.x: 14
+menu.items.padding.y: 8
+menu.items.bg.color: #0f0f12
+menu.items.text.color: #e4e1d8
+menu.items.active.bg.color: #2a2519
+menu.items.active.text.color: #fff4d4
+menu.separator.width: 1
+menu.separator.padding.width: 12
+menu.separator.padding.height: 5
+menu.separator.color: #2b2924
+menu.title.bg.color: #0a0a0c
+menu.title.text.color: #cfa24f
+menu.title.text.justify: Left
+
+# on-screen display: window switcher (Alt+Tab), workspace and resize notes
+osd.bg.color: #0d0d10
+osd.border.color: #4d4535
+osd.border.width: 1
+osd.label.text.color: #f3f1ea
+
+osd.window-switcher.style-classic.width: 720
+osd.window-switcher.style-classic.padding: 10
+osd.window-switcher.style-classic.item.padding.x: 14
+osd.window-switcher.style-classic.item.padding.y: 9
+osd.window-switcher.style-classic.item.active.border.width: 1
+osd.window-switcher.style-classic.item.active.border.color: #cfa24f
+osd.window-switcher.style-classic.item.active.bg.color: #2a2519
+osd.window-switcher.style-classic.item.icon.size: 28
+
+osd.window-switcher.style-thumbnail.width.max: 80%
+osd.window-switcher.style-thumbnail.padding: 14
+osd.window-switcher.style-thumbnail.item.width: 320
+osd.window-switcher.style-thumbnail.item.height: 240
+osd.window-switcher.style-thumbnail.item.padding: 12
+osd.window-switcher.style-thumbnail.item.active.border.width: 1
+osd.window-switcher.style-thumbnail.item.active.border.color: #cfa24f
+osd.window-switcher.style-thumbnail.item.active.bg.color: #2a2519
+osd.window-switcher.style-thumbnail.item.icon.size: 44
+
+# the outline drawn around the window Alt+Tab is about to pick
+osd.window-switcher.preview.border.width: 1
+osd.window-switcher.preview.border.color: #0d0d10,#cfa24f,#0d0d10
+
+osd.workspace-switcher.boxes.width: 22
+osd.workspace-switcher.boxes.height: 22
+osd.workspace-switcher.boxes.border.width: 1
+
+# where a dragged window will snap
+snapping.overlay.region.bg.color: #edca7726
+snapping.overlay.edge.bg.color: #edca7726
+snapping.overlay.region.border.width: 1
+snapping.overlay.edge.border.width: 1
+snapping.overlay.region.border.color: #0d0d10,#cfa24f,#0d0d10
+snapping.overlay.edge.border.color: #0d0d10,#cfa24f,#0d0d10
+
+magnifier.border.width: 1
+magnifier.border.color: #cfa24f

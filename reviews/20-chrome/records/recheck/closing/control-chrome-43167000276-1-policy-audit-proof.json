@@ -1,0 +1,29 @@
+{
+  "identity": {
+    "source": "495c0b3477e7496134028f5244b767b3f4bc7896",
+    "run_id": 43167000276,
+    "artifact": "control-chrome-43167000276-1-policy",
+    "audit_sources": {
+      "reviews/20-chrome/audit-review-evidence.mjs": "58ecfbd75bb972dd1d8f7c6a25654ff8c4fc4e0ea614eea75a98f27ccc96e487",
+      "reviews/20-chrome/audit-streams.mjs": "5304592b9c5345d44b45e0bf39a209efcc25a50b4c67ce059cf9f5940ce04948",
+      "control/chrome/ci/owner-evidence.mjs": "29d6987e2ae99955bd45dd3dc41f845fe1e6242d5b12ca385b8f48fa470ed45f",
+      "control/chrome/ci/verdicts.mjs": "632ae25d98b8e673b574aca4e5daf004de20a4544598cb7903cba772167a5b83"
+    }
+  },
+  "input_sha256": {
+    "browser.txt": "3bffa25abb9cda2aa9458554cb337c5ccc21a6ec63afe522985d0c970e1085e4",
+    "matrices.json": "f55cb353f5eb236ce4721de7c2d83a34a98844b28d540b9d87dc05620bebfd47",
+    "receiver.jsonl": "8063341d3c6f2bbfafd4abafafe69e907f238185d3378b250c6a9ff686532d29",
+    "page-receiver.jsonl": "b96921d98b66ed2f187ec6dd9ec996067c7424d42567273b3e83311d8e9ad0d6",
+    "adapters-receiver.jsonl": "f6535283f903652325a5fd850987e82c12bedbd0164fd6964beb501575a91474",
+    "browser-boundary.jsonl": "a41b0bbc57e581c601e8661b4546c81604b0bdce0c770b1b5969ab1443eed439",
+    "tool.jsonl": "d6c84fc530ef6d8df0e57d9895e87595293eb6f2226ea12e77945e6775fb507a",
+    "service.txt": "153797c99035cec3209f6f079a0cb1d6f0f239e318f6c678247141254c4ae0bf",
+    "python.txt": "5278159fb92febef2d27119a6cf8f4737eadaa4aeddeb9c4dca7fc0b3956bddc",
+    "node.txt": "daaffeec9ef25e76dceda3e67b179b29eb812ade59136d491e77124ccf57f06f",
+    "owner-overlap.json": "cabbd5cfec38ba411632ec10fc910da53084254cdfd00ad66d77b410cf74d4bb",
+    "qualification-result.json": "bd092bf0a1a1fe3df56ff1b78966fc0e464c9d1353fe666032c3b08b8af847fd",
+    "chrome-version.txt": "04ce1829b69f68a11eb8ef036a6ab18a63411689e39b9b3331c0d884b707983a"
+  },
+  "output_sha256": "f9677ef3e769ff021645c9e6814d0866d8413b7fdedeeb044e321f3648228460"
+}
