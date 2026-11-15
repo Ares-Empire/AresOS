@@ -106,8 +106,8 @@ def rehearsal_result(root, run):
 
 def check_rehearsed_rows(status, waiting, active, result_of, payload):
     """A status row that says REHEARSED promises the laptop what that VM rehearsal ran (package 22c's
-    review 8, finding 3). While one stands, no file waits on the list but test files and the CI workflow,
-    and the newest rehearsal (the one whose bindings are active) rehearsed exactly the payload's tools.
+    review 8, finding 3). While one stands, nothing under os/owner-tools/, os/release/ or docs/ waits on the
+    list (MUST_NOT_WAIT: what the laptop gets; harness and test files may wait), and the newest rehearsal (the one whose bindings are active) rehearsed exactly the payload's tools.
     Every such row names one rehearsal run and the tools fingerprint its result names, so 22c's row is
     held like 22d's; only the newest rehearsal's row is held to the payload, since the later rehearsal
     took over from the earlier one (22c's version 3 never goes on the laptop; 22d's version 4 does).
