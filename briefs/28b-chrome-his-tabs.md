@@ -37,9 +37,13 @@ or Codex's workhorse.
   this brief are `BRIEF-SECURITY-2.md` and `BRIEF-REVIEW-2.md` there.
 - `reviews/20-chrome/REPORT.md`: the sections on taking a tab, the reload rule, popups, dialogs and "ordinary tabs
   stay untouched"; `reviews/20-chrome/KNOWN-LIMITS.md`.
+- `docs/control/TOOLS-HANDOFF.md`, "Chrome merged": what PR #27's merge left for these packages. PR #27 merged as
+  `09cedc84` (final head `d25ccbd3`); the names and facts in this brief were checked against it on 2026-11-15
+  (`reviews/28-chrome-capability/ALIGNMENT.md`).
 - The code: `control/chrome/extension/background.js` (`take`, `admitTab`, `restoreTab`, `release`, `requireTab`,
-  `facts`, `lateReader`, `reloadChecked`, `collection`, `badge`, and in `dispatch` the `open` and `input` parts),
-  `reader.js` (`password`, `remember`, `reloadState`), `guard.js` (its isolated part), `context.js`,
+  `facts`, `lateReader`, `reloadChecked`, `requireDiscard`, `collection`, `badge`, and in `dispatch` the `open` and
+  `input` parts), `reader.js` (`password`, `remember`, `reloadState`), `guard.js` (its isolated part, with
+  `typedBy`), `context.js`,
   `manifest.json`, `popup.html`, `popup.js`; `control/aresos_control/chrome/adapter.py` and the view module of
   brief 28; `control/chrome/ci/owner-ui.mjs` and `compatibility.mjs` (how the tests act as the owner and compare
   with an untouched Chrome).
@@ -292,12 +296,14 @@ keep brief 20's rule and say so (PLAN-GAP).
 
 ### 4a. Before the tool reloads or closes one of his tabs
 
-Brief 20's check (`reloadState` in `reader.js`) calls a tab clean when no field differs from its default, there is
-no editor and nothing plays. That isn't evidence. Many pages copy what he types into the field's default, so the
-field never "differs". A drawing or a document kept in a canvas has no field at all. A wizard keeps the steps he
-has finished in its script's memory and shows empty fields. A form may be on its way to the server. **Unknown is
-not clean, and work a page holds only in its memory is still work** (security re-check 2, remaining fix 6; the
-lead's decision, 2026-11-13). Replace the check with this one.
+Brief 20's check (`requireDiscard` in `background.js`, with `reloadState` in `reader.js`) calls a tab clean when no
+field counts as changed, no editor counts and nothing plays. On merged `main`, in a document the reader didn't watch
+from its start (his tab) every text field, textarea and hidden input counts and every editor counts; in a watched
+one a field counts when it differs from its default or got typing since the load, and an editor once it got input.
+That still isn't evidence that nothing of his is lost. A drawing or a document kept in a canvas has no field at all.
+A wizard keeps the steps he has finished in its script's memory and shows empty fields. A form may be on its way to
+the server. **Unknown is not clean, and work a page holds only in its memory is still work** (security re-check 2,
+remaining fix 6; the lead's decision, 2026-11-13). Replace the check with this one.
 
 **A used tab is never known clean.** A tab is *used* when one of these holds:
 
@@ -386,6 +392,11 @@ Claude group, which may sit in another window: his tab strip jumps and his own g
   it where it stands: `chrome.tabs.group` with this one tab and with `createProperties.windowId` set to the tab's
   own window (Chrome's default is the window in front). The tab keeps its window, and its place when it wasn't in
   a group.
+- **This answers the design question in PR #27's known limit** (the sentence brief 28 adds to its
+  `KNOWN-LIMITS.md`: a tab taken from another window moves into the one Claude group's window until release, and
+  "one group per window is a design question for brief 28b"). With a wrapper of its own, a taken tab no longer
+  changes windows. Claude's own group stays one group, made in the window of the tab it was made for (PR #27 no longer
+  puts a new group in the window in front). Say in `KNOWN-LIMITS.md` that the cross-window move is gone.
 - **Two cases still move it a little,** because Chrome allows a tab one group only, and no group among pinned
   tabs: a tab inside one of his groups steps to that group's edge, and a pinned tab is unpinned. Both are put
   back on release. Show both in the report's screenshots.
@@ -458,7 +469,10 @@ The owner, 2026-11-13 (board #201): "Yes, when I ask."
 
 ### 8. What the instructions tell Claude
 
-Add this to the Chrome server's MCP instructions (edit for size, keep every point; at most 1,000 characters):
+Add this to the Chrome server's MCP instructions (edit for size, keep every point; at most 1,000 characters). The
+instructions as a whole must stay within 4,096 characters, the first part Claude Code 2.1.319 passes on
+(`control/chrome_tests/test_questions.py`, about line 456, checks it; brief 28a, item 7): if this block doesn't fit
+beside brief 28a's text, stop and tell the lead (PLAN-GAP).
 
 > The owner's own tabs (his, in chrome_tabs): read or take one only when his current request names it or can't be
 > done without it. Choose by site, not by title alone; if two tabs fit or none clearly does, ask him which. Never
@@ -490,6 +504,22 @@ gate would need his host's name in the image or in this public repo.
   again" entries (`list`, `readonly`, `allow`, `revoke`). The file is changed with `sudo`. Don't add a command
   for it here.
 - No host name of his goes into the code, the tests, the fixtures or the report. The tests use fixture hosts.
+
+### 10. Two small items from PR #27's final reviews
+
+*Passed on in `docs/control/TOOLS-HANDOFF.md`, "Chrome merged". Not blocking.*
+
+- **Retry advice.** When `requireTab` retries the late reader for a tab that is already controlled
+  (`background.js`, about line 609, `pending.retry??=lateReader(tab)`), its refusal says "take the tab again". That
+  doesn't help: the take returns early because the tab is already controlled, and the rejected retry stays cached.
+  It's narrow (a dialog or the 5-second timer beat admission). This package rewrites taking (item 4), so fix it
+  here: either say "release the tab and take it again", or release the tab on a rejected retry. Name the choice in
+  the report and test it.
+- **`control_status`.** It is a background command only the CI service wrapper sends (`control/chrome/ci/service.py`);
+  nothing in `control/aresos_control/` calls it. Its result carries `installs` rows (the extension's install
+  record) beside the tabs and the popups. If this package makes any part of it reach Claude (the popup list of
+  item 6 is the likely place), its `installs` rows get a review of their own first. Say in the report whether it
+  does.
 
 ## What must not change
 
