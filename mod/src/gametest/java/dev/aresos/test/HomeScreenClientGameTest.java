@@ -3,9 +3,12 @@ package dev.aresos.test;
 import dev.aresos.AresOs;
 import dev.aresos.client.AresOsClient;
 import dev.aresos.client.HomeScreen;
+import dev.aresos.client.ModeSwitchClient;
 import dev.aresos.client.ShellFocusClient;
 import dev.aresos.client.launch.LinuxAppLauncher;
+import com.mojang.blaze3d.platform.InputConstants;
 import dev.aresos.config.AppDefinition;
+import dev.aresos.mode.LiveMode;
 import dev.aresos.shell.FakeHelper;
 import dev.aresos.test.mixin.AppsTestAccess;
 import dev.aresos.test.mixin.ChatMessagesTestAccess;
@@ -15,13 +18,19 @@ import dev.aresos.world.DesktopWorld;
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestServerContext;
+import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext;
+import net.fabricmc.fabric.api.client.gametest.v1.screenshot.TestScreenshotOptions;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.PauseScreen;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.level.GameType;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
@@ -80,10 +89,13 @@ public final class HomeScreenClientGameTest implements FabricClientGameTest {
                 AresOsClient.launch("notepad");
             });
             context.waitFor(client -> chat(client).contains("Couldn't open Notepad: app helper unavailable"));
+            liveMode(context, world);
             covered(context, world.getServer());
             AresOs.LOGGER.info("40 home screen checks passed: the pause menu opens on focus loss outside the home "
                     + "screen and not in it, the mouse is let go, Esc still opens the menu, F11 does nothing in a "
-                    + "session, a failed launch leaves a chat line, a covered world pauses and draws slowly while "
+                    + "session, a failed launch leaves a chat line, Live mode shows only the hotbar, walks faster "
+                    + "with the field of view kept, still flies after G and G and flies on a double space, a covered "
+                    + "world pauses and draws slowly while "
                     + "ready heartbeats go on, and uncovering or losing the helper lets it run");
         } finally {
             context.runOnClient(client -> {
@@ -95,6 +107,62 @@ public final class HomeScreenClientGameTest implements FabricClientGameTest {
                 AresOsClient.FOCUS_RETURN.reset();
             });
         }
+    }
+
+    /**
+     * Step 3, D: Live mode as his client sees it. The HUD shows only the hotbar, he walks at the desktop speed while
+     * the field of view stays the game's, and after G to Build and G back his client still lets him fly: it gives
+     * itself survival's abilities when it hears the game mode, so this fails if the server does not send Live's after
+     * that. A double space then makes him fly, on the client and on the server.
+     */
+    private static void liveMode(ClientGameTestContext context, TestSingleplayerContext world) {
+        world.getServer().runOnServer(server -> world.getConnection().getServerPlayer().setGameMode(GameType.SURVIVAL));
+        context.waitFor(client -> client.gameMode.getPlayerMode() == GameType.SURVIVAL && !ModeSwitchClient.pending());
+        context.waitFor(client -> client.player.getAbilities().mayfly);
+        context.runOnClient(client -> {
+            check(!client.gameMode.canHurtPlayer() && !client.gameMode.hasExperience(),
+                    "Live mode's HUD still draws hearts, hunger or the experience bar");
+            check(client.player.getAbilities().getWalkingSpeed() == LiveMode.DESKTOP_WALKING_SPEED
+                    && Math.abs(client.player.getAttributeValue(Attributes.MOVEMENT_SPEED) - LiveMode.DESKTOP_WALKING_SPEED) < 1e-6,
+                    "His client walks at " + client.player.getAttributeValue(Attributes.MOVEMENT_SPEED));
+            float fov = client.player.getFieldOfViewModifier(true, 1.0f);
+            check(Math.abs(fov - 1.0f) < 1e-4, "The desktop speed widened the field of view: " + fov);
+        });
+        screenshot(context, "40-live-shows-only-the-hotbar");
+
+        for (GameType mode : new GameType[]{GameType.CREATIVE, GameType.SURVIVAL}) {
+            context.getInput().pressKey(InputConstants.KEY_G);
+            world.getConnection().waitForServerboundPackets();
+            context.waitFor(client -> client.gameMode.getPlayerMode() == mode && !ModeSwitchClient.pending());
+        }
+        world.getConnection().waitForServerboundPackets();
+        context.waitTicks(2);
+        context.runOnClient(client -> check(client.player.getAbilities().mayfly && client.player.getAbilities().invulnerable
+                && !client.player.getAbilities().instabuild, "After G and G his client's Live mode cannot fly"));
+
+        context.getInput().pressKey(options -> options.keyJump);
+        context.getInput().pressKey(options -> options.keyJump);
+        context.waitFor(client -> client.player.getAbilities().flying, 40);
+        world.getConnection().waitForServerboundPackets();
+        check(world.getServer().computeOnServer(server -> world.getConnection().getServerPlayer().getAbilities().flying),
+                "The server did not let Live mode fly");
+        world.getServer().runOnServer(server -> {
+            var player = world.getConnection().getServerPlayer();
+            player.getAbilities().flying = false;
+            player.onUpdateAbilities();
+        });
+        context.waitFor(client -> !client.player.getAbilities().flying);
+    }
+
+    private static void screenshot(ClientGameTestContext context, String name) {
+        context.runOnClient(client -> {
+            client.gui.hud.getChat().clearMessages(true);
+            client.gui.hud.setOverlayMessage(Component.empty(), false);
+            client.gui.toastManager().clear();
+        });
+        context.waitTicks(5);
+        context.takeScreenshot(TestScreenshotOptions.of(name)
+                .withDestinationDir(Path.of(System.getProperty("aresos.homeScreenReviewDir"))));
     }
 
     private static void covered(ClientGameTestContext context, TestServerContext server) {
