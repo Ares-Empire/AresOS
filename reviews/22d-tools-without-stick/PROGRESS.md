@@ -629,3 +629,105 @@ dispatched; no owner tool, sudo, ostree, bootc, rpm-ostree, ksshaskpass or gener
    -f checks_only=true`), then the VM dispatch (`gh workflow run "OS image" --ref pkg/22d-tools-without-stick
    -f rehearsal=tools-local`).
 2. After a pass: `rebind.py rebind` for 22d, step 7 (record step, final review).
+
+## Step 6, part c (release 27's facts from its source commit), 2026-11-15, Claude agent on Opus 5.5: done
+
+VM run 43690565301 (tools-local, on `cb2a1eec`) stopped in the rehearsal job's step "Qualify tools, regressions,
+rewritten release identity and private access" at `os/ci/verify_release.py:65`: `Release 27 runtime payload changed:
+os/Containerfile`. 22d branches from a main that holds the next release's image changes (packages 23, 30, 30b, 31,
+unreleased), while the VM runs the pinned, signature-checked release 27 image. Against release 27's source
+`b216f28f` this checkout's `os/Containerfile`, `os/build.sh`, `os/packages.lock.json` and `os/config` differ; the
+other six recorded trees are equal. Nothing dispatched; no owner tool, sudo, ostree, bootc or rpm-ostree ran.
+
+### The integrator's decision (2026-11-15)
+
+For 22d's tools-local rehearsal release 27's facts are bound to release 27's own source commit, not to HEAD.
+22c's and 27's branches behave exactly as before.
+
+### Done
+
+- **`verify_release.py`:** in release 27's block, after every identity check (run, job, signature, image diff,
+  job-token read, the rows' shape and path list), the triple `GITHUB_REF_NAME=pkg/22d-tools-without-stick`,
+  `REHEARSAL_PACKAGE=22d`, `REHEARSAL_MODE=tools-local` (the same triple `registry_auth.require_dispatch` and
+  `owner_media.require_runner` admit) selects the new check. If the source commit is not in the clone
+  (`git cat-file -e <source>^{commit}`), it runs `git fetch --no-tags origin <source>`. Each recorded tree must be
+  a 40-hex ID and `git rev-parse --verify --quiet <source>:<path>` must equal it (a missing path fails too). The
+  paths whose HEAD tree differs are listed in the line it prints: `the image under test is release 27 built from
+  <source> (every recorded tree is there); this checkout's image sources differ in <paths> because they hold
+  unreleased changes`. Every other environment, including 22d's branch without its package or mode (the
+  regressions step runs the suite with `env -u REHEARSAL_PACKAGE`), takes the old HEAD loop, unchanged byte for byte.
+  The top check `release['base'] == os/manifest/base.json`'s reference stays in every mode.
+- **Checked against this clone's real git** (gh faked, no network; `b216f28f` is local, so no fetch): 22d's triple
+  prints `differ in os/Containerfile, os/build.sh, os/packages.lock.json, os/config` and exits 0; without
+  `REHEARSAL_PACKAGE` it still stops with `payload changed: os/Containerfile`.
+- **Tests:**
+  - `test_release27.run_verify_release` is the one fake for both modules: gh's answers, HEAD's trees, the
+    source commit's trees and whether that commit is in the clone. It sets only the mode variables a test names,
+    because the hosted rehearsal step runs the suite with 22d's branch and mode in its environment.
+    `VerifyRelease27Test` uses it unchanged in what it asserts.
+  - `test_tools_local_wiring.VerifyReleaseTest`: trees found at the source pass and name the four moved paths
+    (and "no path" for an unchanged checkout); a source commit missing from the clone is fetched first; a
+    different or missing tree at the source (`os/config`, `os/manifest/base.json`, `os/tests/audit.py`) refuses;
+    every identity check still refuses in the mode; 22c's and 27's triples, 22d's branch with another package,
+    mode or branch, without `REHEARSAL_PACKAGE`, and no variables all print the old line, run no git beyond
+    rev-parse, and refuse a moved HEAD tree.
+  - `WalkTest.test_the_walk_reads_no_image_source_of_release_27_from_this_checkout`: an audit hook records what
+    the local tools-local walk opens and which git commands it runs; no file under release 27's payload paths
+    (all but `os/manifest/base.json`) and no git word naming them. Checked by hand that it fails when
+    `confirmed_update` reads `os/config/.../rc.xml` or runs `git show HEAD:os/build.sh`.
+- `walk-host.py` ran (`verify_release.py` and the wiring test are bound; 263 sources); `rebind.py pending` ran
+  (38 files).
+
+### The checkout's readers of image facts, and what each got
+
+Found by tracing the local walk (every checkout file opened and git command run), then reading by hand the steps
+the walk replaces in the VM (`td.install`/`live_inventory`, `td.start_installed`/`sw.start_guest`,
+`kb.deployment_snapshot`, `kb.capture_stock_greeter`, `td.marker`, `td.Audit.check`, `restore_windows_order`,
+`pin_serial_console`) and `owner_vm.main`. **No reader of release 27's runtime payload from the checkout exists in
+this route, so nothing in `owner_vm.py` or `tools_local.py` changed;** the walk test above keeps it so.
+
+| Reader | What it reads | What I did |
+|---|---|---|
+| `verify_release.py` tree loop | the ten recorded trees at HEAD | changed (above) |
+| `verify_release.py` top | `os/manifest/base.json` reference = `release['base']` | kept in every mode: release 27's base itself; if main moves the base, the run stops before any VM |
+| `two_disk_vm.live_inventory` (stock install, VM only) | base.json's digest for the live ISO's stock image | not changed: stock Bazzite, not release 27; bound by the base check above (tree equal at `b216f28f` and HEAD) |
+| `registry_auth.REFERENCE`, `live_inventory`, `owner_vm.laptop_update` | `os/manifest/release.json` | not changed: release 27's own record, the facts verify_release checks |
+| `laptop_update` | `os/manifest/releases/13.json`, `os/owner-tools/history.json` | not changed: release 13's reference and the tools' release list, not image sources |
+| `prepare_and_switch` at `corrected-stock` | `os/tests/inherited-homebrew.sh` | not changed: runs on stock Bazzite; differs from `b216f28f` only by package 27's own harness fix (`cd /`, rehearsal run 7), with which 22c passed |
+| `owner_scripts` at `release-13` | `os/tests/guest.sh`, `inherited-homebrew.sh` | already from the pinned commit `RELEASE_13_SCRIPTS` |
+| `owner_scripts`/`release_rules`/`polkit_sweep` at `release-27` | HEAD's `guest.sh`, `polkit-review.json`, `sudo -l`'s `timestamp_timeout=0`, `HUB_TERMINAL` | not in this route: only package 27's update and 22c's walks call them; `confirmed_update` runs only `check` and `title` |
+| `td.LIVE`, `installer_webui`, `installer_inspect` | `os/manifest/installer-isos.json` | not changed: the live ISO, equal at `b216f28f` and HEAD |
+| `live_inventory` | `os/release/verify.sh` | read, not run: 22d uses the native signature proof |
+| `stock_inventory`, `stock_recipe_probe` | `os/tests/audit.py`, `os/release/pause-stock-updates.sh` | not in this route (probe and `two_disk_vm.main` only) |
+| `two_disk_vm` live probe | `os/config/usr/libexec/aresos-keyboard` | package 13 only |
+| Guest programs and host data | `owner_console/hidden/key_counter/login/read_diagnostics.py`, `offline_webui.py`, `keyboard_proof.py`, `tty_password.py`, the QEMU keymaps | not changed: harness, not image facts; since `b216f28f` only packages 27, 22c and 22d changed them, none of 23/30/30b/31 |
+| The integrator's examples | sudoers and `timestamp_timeout`, the askpass, labwc's `rc.xml`, package lists | no checkout reader: `RULES` reads the guest's own `sudo -l` (not in this route); the askpass is `bootstrap.ASKPASS` of the tools under test, and the walk asserts the guest's live helper; nothing in `os/ci` reads `rc.xml`; `os/packages.lock.json` is read only by `release_diff`/`image_diff` and `test_release27` (the next release's build checks in the regressions step) |
+| Harness constants for release 27's session | `ACTIVE_DESKTOP`, foot on tty1 (`Walk.caller`, `terminal_path`), `DAILY_PATH` | not changed: constants written for release 27 (22c's run passed with them); they read nothing of HEAD's image (package 23 changed the autostart there) |
+
+### Tests run here (Python 3.14, one module at a time, `ARESOS_MODEL_SCOPE=slice`)
+
+| Module | Result |
+|---|---|
+| `test_tools_local_wiring` | before `walk-host.py`: only the receipt test failed (`verify_release.py`'s new bytes); after: `Ran 27 tests`, `OK` |
+| `test_release27` | `Ran 41 tests`, `OK`; its `VerifyRelease` tests also `OK` with 22d's triple set in the environment |
+| `test_release_squash_binding`, `test_ci_api_permissions` | `OK` each (7, 4) |
+| `test_checkout_sources`, `test_owner_step_limits` | after `rebind.py pending`: `OK` each (6, 4) |
+| `test_owner_equality`, `test_owner_path` | `OK` each (11, 48) |
+| `test_ways_back_probe` | `Ran 57 tests in 148.578s`, `OK` |
+| `test_owner_update` | not run, by the rule |
+
+### What the code doesn't show
+
+- `test_release27.py` is in the ways-back model's import closure (`model_scope.closure()`), so this head changes
+  the model's sources: the guard's model gate wants a checks-only run on this head whose model job passed. The
+  planned checks-only run gives it.
+- On the runner `b216f28f` should be in the clone (checkout `fetch-depth: 0` fetches `origin/pkg/27-first-update-release`);
+  if that branch is ever deleted, the fetch by SHA runs (GitHub serves it from PR #35's ref).
+- In the VM run, the step's log should show the new line naming `os/Containerfile, os/build.sh,
+  os/packages.lock.json, os/config`.
+
+### Left, in order (the next agent continues here)
+
+1. The integrator: a checks-only run on the new head, then the VM dispatch
+   (`gh workflow run "OS image" --ref pkg/22d-tools-without-stick -f rehearsal=tools-local`).
+2. After a pass: `rebind.py rebind` for 22d, step 7 (record step, final review).
