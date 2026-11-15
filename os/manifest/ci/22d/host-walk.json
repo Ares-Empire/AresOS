@@ -26,7 +26,7 @@
     ]
   },
   "command_count": {
-    "tools-local": 747
+    "tools-local": 754
   },
   "typed_count": {
     "tools-local": 504
@@ -187,7 +187,7 @@
       "path": "os/ci/switch_vm.py"
     },
     {
-      "sha256": "15c59ef3bdc41e819f00f358c60c2a84d7b334cdfe8795cb1502d290ebf6c93e",
+      "sha256": "b8a07845be86ed8e419a1c7a78e12264220d055dbb1141d70544aa0590e18984",
       "path": "os/ci/tools_local.py"
     },
     {
@@ -1015,7 +1015,7 @@
       "path": "os/tests/test_owner_update.py"
     },
     {
-      "sha256": "f944f958de997614bec0b2d2c31774181e498ff08b83b3772973222e711d4922",
+      "sha256": "5cdce91c310708a60a1f8765e1243cae24949da56e8678585125bfd3ef7e0d87",
       "path": "os/tests/test_owner_walk.py"
     },
     {
@@ -1047,7 +1047,7 @@
       "path": "os/tests/test_serial_staging.py"
     },
     {
-      "sha256": "f94379d0c8d0a33836dec523cf00ef99ddbacf17b0ee3879f42e4543128aae55",
+      "sha256": "9b303f670254db1ecde218f25e032cb464a2cc98494016dc71d77fa1a9365669",
       "path": "os/tests/test_tools_local_wiring.py"
     },
     {

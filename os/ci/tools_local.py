@@ -29,7 +29,9 @@ and by REVIEW-4's N-d and N-e) runs in package 22c's harness (os/ci/owner_vm.py)
 
 In every dialog: the helper's argument equals the label, a screenshot shows the 70-character label wrapped
 and not cut, and no keyring process starts. The N3 closed-stdin stage is dropped (N-d: sudo reopens a
-closed stdin as /dev/null before anything runs).
+closed stdin as /dev/null before anything runs). Nothing is typed into a window before its helper has settled
+(SETTLE) and the screen's centre differs from the picture taken before the launcher (step 6d); a launcher line
+that never ran is typed once more (it is one-shot).
 
 GitHub is not reachable from the VM, and the real commits' trees are 910 MB. The lines read only
 `os/owner-tools` of the announced commit, so the guest gets a stand-in origin (standin_origin): a small
@@ -196,10 +198,34 @@ for step in ([] if result['terminal'] else P['steps']):
 save('done',result)
 '''
 
+# ksshaskpass exists from sudo's fork on, but a cold KF6/Qt start draws and focuses its window seconds later;
+# keys typed before that reach foot (the password, or part of it, then runs as a shell command). So the window
+# counts as there once the helper is at least `least` seconds past its first sighting and its CPU time (utime +
+# stime) has not moved for `quiet` seconds. After `most` seconds the wait ends anyway (Walk.window's screenshot
+# check still stands between it and the password), well inside R1's 30 s, so the caller has not closed it yet.
+SETTLE = r'''def cpu(pid,read=lambda pid: pathlib.Path('/proc/'+str(pid)+'/stat').read_text()):
+    # The name in parentheses may hold spaces and ')': split after the last ')'. utime and stime are the
+    # stat file's 14th and 15th fields, so the 12th and 13th after the name. None once gone or a zombie.
+    try:
+        fields=read(pid).rsplit(')',1)[1].split()
+        return None if fields[0] in ('Z','X') else int(fields[11])+int(fields[12])
+    except (OSError,ValueError,IndexError): return None
+def settle(pid,cpu=cpu,now=time.monotonic,sleep=time.sleep,least=3,quiet=2,most=20):
+    first=now(); last=cpu(pid); since=first
+    while last is not None:
+        moment=now()
+        if moment-first>=least and moment-since>=quiet: return dict(settled=True,gone=False,settle_seconds=round(moment-first,1))
+        if moment-first>=most: return dict(settled=False,gone=False,settle_seconds=round(moment-first,1))
+        sleep(.2)
+        value=cpu(pid)
+        if value!=last: last,since=value,now()
+    return dict(settled=False,gone=True,settle_seconds=round(now()-first,1))
+'''
+
 # The harness side, as root on the serial console: wait for the window of the sudo the caller started.
 DIALOG = r'''import json,os,pathlib,time
 out=pathlib.Path(@OUT@)
-''' + PROC + r'''deadline=time.monotonic()+@SECONDS@
+''' + PROC + SETTLE + r'''deadline=time.monotonic()+@SECONDS@
 while time.monotonic()<deadline:
     if (out/'done.json').exists():
         print(json.dumps(dict(status='the caller ended before a window',done=json.loads((out/'done.json').read_text())))); break
@@ -208,11 +234,26 @@ while time.monotonic()<deadline:
         helpers=helpers_of(sudo,found) if sudo else []
         if len(helpers)==1:
             helper,=helpers
-            status=dict(l.split(':',1) for l in pathlib.Path('/proc/'+str(helper)+'/status').read_text().splitlines() if ':' in l)
+            waited=settle(helper)
+            # Read again after the wait: still the same sudo's helper, and any keyring it started meanwhile.
+            found=rows()
+            try: status=dict(l.split(':',1) for l in pathlib.Path('/proc/'+str(helper)+'/status').read_text().splitlines() if ':' in l)
+            except OSError: status=None
+            if waited['gone'] or status is None or helper not in found or found[helper]['parent']!=sudo:
+                print(json.dumps(dict(status='the window closed before it settled',sudo=sudo,helper=helper,**waited))); break
             print(json.dumps(dict(status='window',sudo=sudo,helper=helper,parent=found[helper]['parent'],uid=int(status['Uid'].split()[0]),
-                argv=[word.decode() for word in found[helper]['argv']],keyrings=keyrings(found)))); break
+                argv=[word.decode() for word in found[helper]['argv']],keyrings=keyrings(found),**waited))); break
     time.sleep(.2)
 else: print(json.dumps(dict(status='no window')))
+'''
+
+# Whether the launcher typed in foot ran: its redirection creates the log at once. Exits 0 either way, so a
+# miss leaves the guest's serial shell as it was (a failing guest.command would mark the boot failed).
+LAUNCHED = r'''import json,pathlib,time
+p=pathlib.Path(@PATH@)
+deadline=time.monotonic()+@SECONDS@
+while not p.exists() and time.monotonic()<deadline: time.sleep(.5)
+print(json.dumps(dict(found=p.exists())))
 '''
 
 WAIT = r'''import json,pathlib,time
@@ -323,6 +364,33 @@ def program(source, **values):
     return source
 
 
+def launcher(out):
+    """The script typed in foot starts the caller once: `set -C` makes the log's `>` refuse an existing file,
+    so a first line that was only late and a second one typed after it cannot start two callers."""
+    return '#!/bin/bash\nset -C\nexec setsid -f /usr/bin/python3 ' + out + '.py < /dev/null > ' + out + '/log 2>&1\n'
+
+
+# A window drawn: at least this share of the screen's centre changed since the picture before the launcher.
+# labwc places a new window in the middle of the screen (its default policy); the dialog covers about a third of
+# the centre, while foot's lines stay at the top of its cleared screen.
+CENTRE_CHANGED = 0.01
+
+
+def centre_change(before, after):
+    """How much of the screen's centre (the middle half each way) differs between two screenshots."""
+    from PIL import Image, ImageChops
+    with Image.open(before) as first, Image.open(after) as second:
+        first, second = first.convert('RGB'), second.convert('RGB')
+    assert first.size == second.size, 'STOP: the screen size changed between ' + str(before) + ' and ' + str(after)
+    width, height = first.size
+    box = (width // 4, height // 4, width - width // 4, height - height // 4)
+    red, green, blue = ImageChops.difference(first.crop(box), second.crop(box)).split()
+    changed = ImageChops.lighter(ImageChops.lighter(red, green), blue).point(lambda value: 255 if value else 0)
+    count = changed.histogram()[255]
+    return dict(box=list(box), changed_pixels=count, fraction=round(count / (changed.width * changed.height), 4),
+                changed_box=changed.getbbox())
+
+
 class Walk:
     """The tools-local walk's stages in his desktop session, over package 22c's harness (vm: owner_vm)."""
     R1_SECONDS = 30  # The guide's 10 minutes, shortened: what is tested is who is signalled, not the wait.
@@ -333,6 +401,7 @@ class Walk:
         self.bootstrap = vm.bundle_module('bootstrap')
         self.dialogs, self.stages = [], []
         self.keyrings = None
+        self.before = {}  # stage -> the screenshot taken just before its launcher was typed
 
     def capture(self, name, source):
         return self.guest.capture_json(name, self.vm.sw.framed('python3 -c ' + shlex.quote(source)))
@@ -381,12 +450,11 @@ class Walk:
         params = dict(out=out, steps=list(steps), commit=commit, checkout=self.bootstrap.CHECKOUT,
                       entries=entries or {}, lines=lines or {}, unanswered=unanswered)
         script = program(CALLER, params=json.dumps(params))
-        launcher = ('#!/bin/bash\nexec setsid -f /usr/bin/python3 ' + out + '.py < /dev/null > ' + out + '/log 2>&1\n')
         guest = self.guest
         guest.command(stage + '-caller-prepare', '\n'.join([
             'set -e', 'rm -rf ' + out + ' ' + out + '.py ' + out + '.sh', 'install -d -m 0700 -o ares -g ares ' + out,
             'printf %s ' + shlex.quote(base64.b64encode(script.encode()).decode()) + ' | base64 -d > ' + out + '.py',
-            'printf %s ' + shlex.quote(base64.b64encode(launcher.encode()).decode()) + ' | base64 -d > ' + out + '.sh',
+            'printf %s ' + shlex.quote(base64.b64encode(launcher(out).encode()).decode()) + ' | base64 -d > ' + out + '.sh',
             'chmod 0644 ' + out + '.py ' + out + '.sh']))
         # Typed in foot like any command: the caller runs in his session, with its display and bus.
         guest.keys(['ctrl', 'alt', 'f1'])
@@ -394,8 +462,28 @@ class Walk:
                       '&& pgrep -u ares -x foot; then exit 0; fi; sleep 1; done; exit 1')
         guest.command(stage + '-session', self.vm.ACTIVE_DESKTOP)
         time.sleep(1)
-        self.vm.type_text(guest, 'bash ' + out + '.sh\n', 'de')
+        self.launch(stage, out, stage + '-before')
+        launched = self.capture(stage + '-launched', program(LAUNCHED, path=out + '/log', seconds=20))
+        if launched['found'] is not True:
+            # A line typed after a real VT switch can be lost (tl-v3 from tty4, tl-install and tl-export from
+            # tty3). Once more, as terminal_path does; the launcher is one-shot, so a late first line cannot
+            # start a second caller.
+            guest.screenshot(stage + '-launch-miss')
+            self.launch(stage, out, stage + '-before-retry')
+            launched = self.capture(stage + '-launched-retry', program(LAUNCHED, path=out + '/log', seconds=20))
+            assert launched['found'] is True, 'STOP: the caller did not start at ' + stage + ': its launcher, typed twice in foot, never ran'
         return out
+
+    def launch(self, stage, out, shot):
+        """Type the launcher in foot. Ctrl+U first drops whatever reached the line (a lost attempt, or keys after
+        Ctrl+Alt+F1 on an already active tty1); Ctrl+L clears foot's screen, so its lines stay at the top and
+        the screen's centre changes only when a window opens there. Then the picture `window` compares with."""
+        self.guest.keys(['ctrl', 'u'])
+        self.guest.keys(['ctrl', 'l'])
+        time.sleep(.5)
+        self.guest.screenshot(shot)
+        self.before[stage] = shot
+        self.vm.type_text(self.guest, 'bash ' + out + '.sh\n', 'de')
 
     def window(self, stage, out, fingerprint, action, answer):
         """The dialog: the helper of the caller's sudo, its label, no keyring; then the answer.
@@ -408,14 +496,22 @@ class Walk:
         assert seen['argv'] == [self.bootstrap.ASKPASS, label], 'STOP: the window does not show the label at ' + stage
         assert seen['parent'] == seen['sudo'] and seen['uid'] == 1001, 'STOP: the helper is not the sudo\'s, as ares'
         assert set(map(tuple, seen['keyrings'])) <= set(map(tuple, self.keyrings)), 'STOP: a keyring process started'
-        # The 70-character label must show wrapped, not cut (review 2): the picture is the evidence.
+        # The 70-character label must show wrapped, not cut (review 2): the picture is the evidence. DIALOG
+        # waited until the helper settled; the picture must also show a window, or nothing is typed.
         self.guest.screenshot(stage + '-window')
+        evidence = pathlib.Path(self.vm.sw.EVIDENCE)
+        centre = centre_change(evidence / (self.before[stage] + '.png'), evidence / (stage + '-window.png'))
+        td_save(self.vm, stage + '-window-centre', centre)
+        assert centre['fraction'] >= CENTRE_CHANGED, ('STOP: no window on the screen at ' + stage + ' (the centre changed by '
+                                                      + str(centre['fraction']) + ' since ' + self.before[stage] + '); nothing was typed')
         if answer == 'password':
             self.vm.type_text(self.guest, self.ares_password + '\n', 'de')
         elif answer == 'escape':
             self.guest.keys(['esc'])
         self.dialogs.append(dict(stage=stage, label=label, label_length=len(label), helper=seen['helper'], sudo=seen['sudo'],
-                                 screenshot=stage + '-window', answer=answer or 'none: closed by the caller'))
+                                 screenshot=stage + '-window', answer=answer or 'none: closed by the caller',
+                                 settled=seen['settled'], settle_seconds=seen['settle_seconds'], before=self.before[stage],
+                                 centre_changed=centre['fraction']))
         return seen
 
     def result(self, stage, out, seconds=600):

@@ -248,10 +248,12 @@ class ToolsLocal:
     the program the harness sends), the window of the sudo it starts, the keys and the password the harness
     gives that window, and what the line then does to the installed tools. Nothing here comes from what the
     harness expects: the label is read from the line the caller would run, the outcome from the answer the
-    walk saw typed or pressed, so a harness that answers the wrong window or reads the wrong line fails."""
-    LOCAL = ('-keyrings', '-keyrings-after', '-state', '-dialog', '-caller-result', 'tl-cut-armed', 'tl-cut-frozen',
-             'tl-install-records', 'tl-install-receipt', 'tl-export-access', 'tools-next-install-owner-result',
-             'export-version-2-stick-owner-result')
+    walk saw typed or pressed, so a harness that answers the wrong window or reads the wrong line fails.
+    A caller starts only once its launcher line reached foot (`lost` drops a stage's first lines), and its
+    window shows on the screenshots only once it is open (`hidden` keeps a stage's window off the screen)."""
+    LOCAL = ('-keyrings', '-keyrings-after', '-state', '-dialog', '-caller-result', '-launched', '-launched-retry',
+             'tl-cut-armed', 'tl-cut-frozen', 'tl-install-records', 'tl-install-receipt', 'tl-export-access',
+             'tools-next-install-owner-result', 'export-version-2-stick-owner-result')
 
     def __init__(self, typed, media, ares_password):
         self.typed, self.media, self.ares_password = typed, media, ares_password
@@ -260,6 +262,7 @@ class ToolsLocal:
         self.version = json.loads((ROOT / 'os/owner-tools/payload/history.json').read_text())['tools_version']
         self.callers, self.windows, self.escaped, self.tampered = {}, {}, False, False
         self.signalled = []
+        self.prepared, self.lost, self.hidden, self.shots = {}, {}, set(), []
         self.machine = dict(tools=vm.TOOLS_V2, entry='tools-' + vm.TOOLS_V2 + '/at', journal=None, records=[], bootstrap=[], folder=None)
 
     def next_tools(self):
@@ -273,11 +276,29 @@ class ToolsLocal:
             program = base64.b64decode(encoded[0]).decode()
             params, = re.findall(r'^P=json.loads\((.*)\)$', program, re.M)
             self.callers[stage] = json.loads(ast_literal(params))
+            self.prepared[stage] = len(self.typed)
         if name == 'tl-tamper':
             self.tampered = True
 
     def answers(self, name):
         return name in self.LOCAL or name.endswith(self.LOCAL)
+
+    def started(self, stage):
+        """Whether the stage's launcher ran: typed in foot more often than its lines were lost."""
+        line = 'bash /run/aresos-caller-' + stage + '.sh\n'
+        return sum(text == line for text, _ in self.typed[self.prepared[stage]:]) > self.lost.get(stage, 0)
+
+    def screenshot(self, name):
+        """foot's screen (its typed lines at the top) and, on a stage's window picture, its open dialog."""
+        from PIL import Image, ImageDraw
+        picture = Image.new('RGB', (320, 200), (36, 36, 36))
+        draw = ImageDraw.Draw(picture)
+        draw.rectangle((4, 4, 4 + (7 * len(self.typed)) % 300, 12), fill=(220, 220, 204))
+        stage = name.removesuffix('-window')
+        if name.endswith('-window') and stage in self.windows and stage not in self.hidden:
+            draw.rectangle((100, 60, 220, 140), fill=(239, 240, 241))
+        picture.save(vm.sw.EVIDENCE / (name + '.png'))
+        self.shots.append(name)
 
     def lines(self, stage):
         params = self.callers[stage]
@@ -290,14 +311,19 @@ class ToolsLocal:
         if name.endswith('-state'):
             return dict(copy.deepcopy(machine), toolsets=sorted({machine['entry'].split('/')[0]} | (
                 {'tools-' + machine['journal']['manifest']} if machine['journal'] else set())))
+        if name.endswith(('-launched', '-launched-retry')):
+            return dict(found=self.started(name.removesuffix('-retry').removesuffix('-launched')))
         if name.endswith('-dialog'):
             stage = name.removesuffix('-dialog')
+            if not self.started(stage):
+                return dict(status='no window')
             words = shlex.split(self.lines(stage)['routine'])
             pid = 900 + 10 * len(self.windows)
             self.windows[stage] = dict(helper=pid + 1, sudo=pid, typed=len(self.typed))
             self.escaped = False
             return dict(status='window', sudo=pid, helper=pid + 1, parent=pid, uid=1001,
-                        argv=['/usr/bin/ksshaskpass', words[words.index('-p') + 1]], keyrings=[])
+                        argv=['/usr/bin/ksshaskpass', words[words.index('-p') + 1]], keyrings=[],
+                        settled=True, gone=False, settle_seconds=3.2)
         if name.endswith('-caller-result'):
             return self.run(name.removesuffix('-caller-result'))
         if name == 'tl-cut-armed':
@@ -711,7 +737,10 @@ def walk(ps2=False, route='qualification'):
             checks.append(stage + '-serial-idle-resync')
             return dict(status='passed', prior_completion_observed=True,
                 raw_output_retained=False, serial_input_flushed=True, physical_enter_sent=False)
-        def screenshot(self, stage): assert self.screenshot_safe
+        def screenshot(self, stage):
+            assert self.screenshot_safe
+            if route == 'tools-local':
+                local.screenshot(stage)
         def assert_offline(self, stage):
             vm.Guest.assert_offline(self, stage)
             checks.append(stage)

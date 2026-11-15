@@ -410,6 +410,49 @@ class WalkTest(unittest.TestCase):
             self.assertEqual(row['label_length'], 70)
         self.assertEqual(dialogs[-1]['label'], bootstrap.label(fingerprint, bootstrap.ACTIONS['export-routine']))
         self.assertTrue(all(row['screenshot'] == row['stage'] + '-window' for row in dialogs))
+        # Step 6d: each window settled before its picture, and the picture differs in the centre from the one
+        # taken just before that stage's launcher was typed.
+        shots = self.walked['local'].shots
+        for row in dialogs:
+            self.assertEqual((row['settled'], row['before']), (True, row['stage'] + '-before'))
+            self.assertGreaterEqual(row['centre_changed'], tools_local.CENTRE_CHANGED)
+            self.assertLess(shots.index(row['before']), shots.index(row['screenshot']))
+
+    def test_a_launcher_lost_after_a_vt_switch_is_typed_once_more(self):
+        """tl-install's caller is started right after the console at tty3 (a real VT switch): its first line is lost."""
+        local = self.walk_with(lost={'tl-install': 1})
+        launcher = 'bash /run/aresos-caller-tl-install.sh\n'
+        self.assertEqual(sum(text == launcher for text, _ in local.typed), 2)
+        shots = local.shots
+        self.assertLess(shots.index('tl-install-before'), shots.index('tl-install-launch-miss'))
+        self.assertLess(shots.index('tl-install-launch-miss'), shots.index('tl-install-before-retry'))
+        self.assertLess(shots.index('tl-install-before-retry'), shots.index('tl-install-window'))
+        # Every other stage typed its launcher once.
+        others = [text for text, _ in local.typed if text.startswith('bash /run/aresos-caller-') and text != launcher]
+        self.assertEqual(len(others), len(set(others)))
+
+    def test_a_window_missing_from_the_screen_stops_before_the_password(self):
+        found = []
+        with self.assertRaisesRegex(AssertionError, r'^STOP: no window on the screen at tl-v3 '):
+            self.walk_with(hidden={'tl-v3'}, found=found)
+        local, = found
+        self.assertIn('tl-v3-window', local.shots)
+        # Nothing typed after the window was seen (his password was typed earlier, at tty4's passwd and sudo).
+        self.assertEqual(local.typed[local.windows['tl-v3']['typed']:], [])
+
+    def walk_with(self, lost=(), hidden=(), found=None):
+        """The local walk with some launcher lines lost or some windows kept off the screen."""
+        import test_owner_walk
+        made = [] if found is None else found
+
+        class Local(test_owner_walk.ToolsLocal):
+            def __init__(self, *args):
+                super().__init__(*args)
+                self.lost, self.hidden = dict(lost), set(hidden)
+                made.append(self)
+        with patch.object(test_owner_walk, 'ToolsLocal', Local):
+            test_owner_walk.walk(route='tools-local')
+        return made[0]
 
     def test_the_closed_window_signals_only_its_helper_and_the_receipt_names_the_folder(self):
         stages = {s['stage']: s for s in self.walked['result']['stages']}
@@ -491,6 +534,268 @@ if code<0:
                            stdin=subprocess.DEVNULL, start_new_session=True, check=True, timeout=60)
             done = json.loads((out / 'done.json').read_text())
         self.assertEqual((done['routine']['status'], done['routine']['stdout'], done['routine']['signalled']), (0, 'PASS install\n', []))
+
+
+def settle_functions():
+    """DIALOG's cpu() and settle(), defined as the guest program defines them."""
+    import tools_local
+    namespace = {}
+    exec('import pathlib,time\n' + tools_local.SETTLE, namespace)
+    return namespace['cpu'], namespace['settle']
+
+
+def stat_line(state, utime, stime, name='ksshaskpass'):
+    """A /proc/<pid>/stat line: pid, (name), state, parent, nine fields, utime, stime, the rest."""
+    return '4242 (' + name + ') ' + state + ' 4241 ' + ' '.join(['0'] * 9) + ' ' + str(utime) + ' ' + str(stime) + ' 0 0 20 0 1 0 98765\n'
+
+
+class SettleTest(unittest.TestCase):
+    """Step 6d: DIALOG reports the window only once the helper has settled (at least 3 s since first seen and its
+    CPU time unchanged for 2 s), gives up after 20 s, and notices a helper that vanished. Fake /proc values and
+    a fake clock."""
+
+    def settle(self, ticks):
+        """ticks(seconds since the first sighting) -> utime, or None once the helper is gone."""
+        cpu, settle = settle_functions()
+        clock = dict(now=100.0)
+
+        def read(pid):
+            value = ticks(clock['now'] - 100.0)
+            if value is None:
+                raise FileNotFoundError('/proc/' + str(pid) + '/stat')
+            return stat_line('S', value, 7)
+
+        def sleep(seconds):
+            clock['now'] += seconds
+        return settle(4242, cpu=lambda pid: cpu(pid, read=read), now=lambda: clock['now'], sleep=sleep)
+
+    def test_the_cpu_time_is_utime_and_stime_after_the_last_parenthesis(self):
+        cpu, _ = settle_functions()
+        self.assertEqual(cpu(4242, read=lambda pid: stat_line('S', 12, 5)), 17)
+        # A process may name itself with spaces and ')'.
+        self.assertEqual(cpu(4242, read=lambda pid: stat_line('R', 30, 4, name='ksshask) (pass ) S 1')), 34)
+        for state in ('Z', 'X'):
+            self.assertIsNone(cpu(4242, read=lambda pid: stat_line(state, 12, 5)))
+        def missing(pid):
+            raise FileNotFoundError(pid)
+        self.assertIsNone(cpu(4242, read=missing))
+        self.assertIsNone(cpu(4242, read=lambda pid: '4242 (ksshaskpass) S 4241 0 0\n'))
+
+    def test_an_idle_helper_settles_three_seconds_after_it_was_first_seen(self):
+        waited = self.settle(lambda seconds: 40)
+        self.assertEqual((waited['settled'], waited['gone']), (True, False))
+        self.assertTrue(3.0 <= waited['settle_seconds'] <= 3.2, waited)
+
+    def test_a_helper_still_drawing_settles_two_seconds_after_its_cpu_time_last_moved(self):
+        waited = self.settle(lambda seconds: int(seconds * 10) if seconds < 5 else 50)
+        self.assertEqual((waited['settled'], waited['gone']), (True, False))
+        self.assertTrue(7.0 <= waited['settle_seconds'] <= 7.4, waited)
+
+    def test_a_helper_that_never_settles_is_given_up_after_twenty_seconds(self):
+        import inspect, tools_local
+        waited = self.settle(lambda seconds: int(seconds * 10))
+        self.assertEqual((waited['settled'], waited['gone']), (False, False))
+        self.assertTrue(20.0 <= waited['settle_seconds'] <= 20.2, waited)
+        # R1's caller closes the window 30 s after it first saw it: the wait, the picture and the serial round
+        # trips must all come before that.
+        _, settle = settle_functions()
+        self.assertLessEqual(inspect.signature(settle).parameters['most'].default + 10, tools_local.Walk.R1_SECONDS)
+
+    def test_a_helper_that_vanishes_is_reported_gone(self):
+        waited = self.settle(lambda seconds: 40 if seconds < 1 else None)
+        self.assertEqual((waited['settled'], waited['gone']), (False, True))
+        self.assertTrue(1.0 <= waited['settle_seconds'] <= 1.2, waited)
+        waited = self.settle(lambda seconds: None)
+        self.assertEqual((waited['settled'], waited['gone'], waited['settle_seconds']), (False, True, 0.0))
+
+
+class DialogProgramTest(unittest.TestCase):
+    """The real DIALOG program, run here against a stand-in sudo and helper (argv[0] only, `sleep` underneath:
+    no sudo, no ksshaskpass and nothing privileged runs)."""
+
+    FAKE_SUDO = r'''import subprocess
+helper=subprocess.Popen(['bash','-c','exec -a /usr/bin/ksshaskpass sleep 60'])
+print(helper.pid,flush=True)
+helper.wait()
+'''
+
+    @contextlib.contextmanager
+    def helper(self):
+        import signal, subprocess
+        with tempfile.TemporaryDirectory() as folder:
+            folder = pathlib.Path(folder)
+            (folder / 'sudo.py').write_text(self.FAKE_SUDO)
+            sudo = subprocess.Popen(['bash', '-c', 'exec -a /usr/bin/sudo ' + sys.executable + ' ' + str(folder / 'sudo.py')],
+                                    stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, text=True, start_new_session=True)
+            try:
+                helper = int(sudo.stdout.readline())
+                (folder / 'started.json').write_text(json.dumps(dict(pid=sudo.pid)))
+                yield folder, sudo.pid, helper
+            finally:
+                with contextlib.suppress(ProcessLookupError):
+                    os.killpg(sudo.pid, signal.SIGKILL)
+                sudo.wait()
+                sudo.stdout.close()
+
+    def dialog(self, folder):
+        import subprocess, tools_local
+        return subprocess.Popen([sys.executable, '-c', tools_local.program(tools_local.DIALOG, out=str(folder), seconds=15)],
+                                stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, text=True)
+
+    def test_the_window_is_reported_once_its_helper_has_settled(self):
+        import time
+        with self.helper() as (folder, sudo, helper):
+            started = time.monotonic()
+            seen = json.loads(self.dialog(folder).communicate(timeout=60)[0])
+            elapsed = time.monotonic() - started
+        self.assertEqual((seen['status'], seen['sudo'], seen['helper'], seen['parent']), ('window', sudo, helper, sudo))
+        self.assertEqual((seen['argv'], seen['uid']), (['/usr/bin/ksshaskpass', '60'], os.getuid()))
+        self.assertEqual((seen['settled'], seen['gone']), (True, False))
+        self.assertGreaterEqual(seen['settle_seconds'], 3)
+        self.assertGreaterEqual(elapsed, 3)
+
+    def test_a_helper_gone_before_it_settled_is_no_window(self):
+        import signal, time
+        with self.helper() as (folder, sudo, helper):
+            dialog = self.dialog(folder)
+            time.sleep(2)
+            os.kill(helper, signal.SIGTERM)
+            seen = json.loads(dialog.communicate(timeout=60)[0])
+        self.assertEqual((seen['status'], seen['helper'], seen['settled'], seen['gone']),
+                         ('the window closed before it settled', helper, False, True))
+        self.assertLess(seen['settle_seconds'], 3)
+
+
+class WindowPictureTest(unittest.TestCase):
+    """Step 6d: the window's picture must differ in the screen's centre from the one taken just before the
+    launcher was typed; foot's lines at the top of its cleared screen do not count."""
+
+    def test_only_a_window_in_the_screen_centre_counts(self):
+        from PIL import Image, ImageDraw
+        import tools_local
+        prompt, launcher = ((8, 8, 400, 30), (220, 220, 204)), ((8, 8, 700, 60), (220, 220, 204))
+        with tempfile.TemporaryDirectory() as folder:
+            def picture(name, *boxes, size=(1280, 800)):
+                image = Image.new('RGB', size, (36, 36, 36))
+                for box, colour in boxes:
+                    ImageDraw.Draw(image).rectangle(box, fill=colour)
+                image.save(pathlib.Path(folder) / (name + '.png'))
+                return pathlib.Path(folder) / (name + '.png')
+            before = picture('before', prompt)
+            change = lambda *boxes: tools_local.centre_change(before, picture('after', *boxes))
+            self.assertEqual(change(prompt)['fraction'], 0)
+            # The launcher line and the next prompt, at the top of foot's screen.
+            self.assertEqual(change(launcher)['fraction'], 0)
+            # One glyph in the middle is no window.
+            self.assertLess(change(launcher, ((630, 390, 640, 410), (220, 220, 204)))['fraction'], tools_local.CENTRE_CHANGED)
+            # A dialog placed in the middle of the screen.
+            window = change(launcher, ((390, 290, 890, 510), (239, 240, 241)))
+            self.assertEqual(window['box'], [320, 200, 960, 600])
+            self.assertGreater(window['fraction'], 10 * tools_local.CENTRE_CHANGED)
+            self.assertEqual(window['changed_box'], (70, 90, 571, 311))
+            with self.assertRaisesRegex(AssertionError, '^STOP: the screen size changed'):
+                tools_local.centre_change(before, picture('smaller', size=(1024, 768)))
+
+
+class LauncherTest(unittest.TestCase):
+    """Step 6d: the launcher typed in foot starts its caller once; typed a second time it refuses (`set -C`)."""
+
+    def test_the_launcher_starts_its_caller_once(self):
+        import subprocess, time, tools_local
+        with tempfile.TemporaryDirectory() as folder:
+            out = pathlib.Path(folder) / 'aresos-caller-tl-x'
+            out.mkdir()
+            ran = pathlib.Path(folder) / 'ran'
+            pathlib.Path(str(out) + '.py').write_text('with open(' + repr(str(ran)) + ', "a") as stream: stream.write("x")\n')
+            script = tools_local.launcher(str(out))
+            self.assertEqual(script.splitlines()[:2], ['#!/bin/bash', 'set -C'])
+            pathlib.Path(str(out) + '.sh').write_text(script)
+            first = subprocess.run(['bash', str(out) + '.sh'], capture_output=True, text=True, timeout=30)
+            deadline = time.monotonic() + 10
+            while not ran.exists() and time.monotonic() < deadline:
+                time.sleep(.05)
+            second = subprocess.run(['bash', str(out) + '.sh'], capture_output=True, text=True, timeout=30)
+            time.sleep(.5)
+            self.assertEqual((first.returncode, first.stderr, ran.read_text()), (0, '', 'x'))
+            self.assertNotEqual(second.returncode, 0)
+            self.assertIn('cannot overwrite existing file', second.stderr)
+
+
+class LaunchOrderTest(unittest.TestCase):
+    """Walk.caller with a stand-in guest: Ctrl+U before each launcher, the picture just before it, the check
+    that it ran, and one more attempt after a miss (VM runs: lines lost after a real VT switch)."""
+
+    LAUNCHER = 'bash /run/aresos-caller-tl-x.sh\n'
+
+    def run_caller(self, found):
+        import time, tools_local
+        from guest_shell import syntax
+        events, answers = [], list(found)
+        german = {tuple(owner_vm.physical_keys(c, 'de')): c for c in set(self.LAUNCHER)}
+
+        class Guest:
+            owner_layout = 'de'
+
+            def keys(self, names):
+                char = german.get(tuple(names))
+                if char is None:
+                    events.append(('keys', tuple(names)))
+                elif events and events[-1][0] == 'typed':
+                    events[-1] = ('typed', events[-1][1] + char)
+                else:
+                    events.append(('typed', char))
+
+            def command(self, name, source, **kw):
+                syntax(name, source)
+                events.append(('command', name))
+
+            def capture_json(self, name, source):
+                syntax(name, source)
+                events.append(('capture', name))
+                return dict(found=answers.pop(0))
+
+            def screenshot(self, name):
+                events.append(('screenshot', name))
+        real_sleep = time.sleep
+
+        def sleep(seconds):
+            # Only the walk's own waits belong to the order; the syntax check's subprocess keeps the real one.
+            if sys._getframe(1).f_globals.get('__name__') == 'tools_local':
+                events.append(('sleep', seconds))
+            else:
+                real_sleep(seconds)
+        walk = tools_local.Walk(owner_vm, Guest(), 'not-typed-here', {}, 'a' * 40, 'b' * 64)
+        with patch.object(tools_local.time, 'sleep', new=sleep):
+            try:
+                result = walk.caller('tl-x', ('routine',), 'c' * 40, lines=dict(routine='true'))
+            except AssertionError as error:
+                result = error
+        return events, result, walk
+
+    def attempt(self, shot, check):
+        return [('keys', ('ctrl', 'u')), ('keys', ('ctrl', 'l')), ('sleep', .5), ('screenshot', shot),
+                ('typed', self.LAUNCHER), ('capture', check)]
+
+    def test_the_launcher_is_typed_on_a_cleared_line_after_its_picture(self):
+        events, result, walk = self.run_caller([True])
+        self.assertEqual(result, '/run/aresos-caller-tl-x')
+        self.assertEqual(events, [('command', 'tl-x-caller-prepare'), ('keys', ('ctrl', 'alt', 'f1')), ('command', 'tl-x-foot-ready'),
+                                  ('command', 'tl-x-session'), ('sleep', 1), *self.attempt('tl-x-before', 'tl-x-launched')])
+        self.assertEqual(walk.before, {'tl-x': 'tl-x-before'})
+
+    def test_a_lost_launcher_is_typed_once_more(self):
+        events, result, walk = self.run_caller([False, True])
+        self.assertEqual(result, '/run/aresos-caller-tl-x')
+        self.assertEqual(events[4:], [('sleep', 1), *self.attempt('tl-x-before', 'tl-x-launched'), ('screenshot', 'tl-x-launch-miss'),
+                                      *self.attempt('tl-x-before-retry', 'tl-x-launched-retry')])
+        self.assertEqual(walk.before, {'tl-x': 'tl-x-before-retry'})
+
+    def test_a_launcher_lost_twice_stops_naming_its_stage(self):
+        events, result, _ = self.run_caller([False, False])
+        self.assertIsInstance(result, AssertionError)
+        self.assertRegex(str(result), '^STOP: the caller did not start at tl-x: ')
+        self.assertEqual([e for e in events if e[0] == 'typed'], [('typed', self.LAUNCHER)] * 2)
+        self.assertEqual(events[-1], ('capture', 'tl-x-launched-retry'))
 
 
 class NextVersionTest(unittest.TestCase):
