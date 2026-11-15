@@ -2,6 +2,131 @@
 
 Builder steps keep this file; the last step turns it into the report. Newest state first.
 
+## Step 7 (2026-11-15, Claude agent on Opus 5.5): step 6's runs read, PLAN-GAP 1 by the lead's rule (option a), the F4 comment, F6 and H1. Pushed; no run started (the branch conflicts with `main`)
+
+Opus: built against the lead's brief and decision rule. **None of this step's JavaScript has run:** the push
+(`d14e52da`) started no workflow, because `main` moved and now conflicts with the branch (below). Step 1b's list
+from item 3 is not started (budget).
+
+### Done
+
+- **Step 6's three runs read** (below). No JavaScript error in step 6's code: every `node --test` and Python shard that
+  finished passed (run 3's `fixtures (external, core)`: 459/459 node tests, 70 Python tests).
+- **PLAN-GAP 1, option (a)** (`7342d8b8`): the late-root rule stays as worded; the harness meets its roots before the
+  text. See "PLAN-GAP 1" and "For `HARNESS-MAP.md`" below.
+- **The F4 comment** (`78f4af3a`): `view_fixtures.py`'s `f4()` says nodes 23 and 24 are unit-test-only.
+- **Group 14's F6 and H1 fixtures** (`d14e52da`), in `efficiency-fixtures.mjs` (`/?case=efficiency-f6`,
+  `efficiency-h1`):
+  - F6: a top document with an open root, a closed root and an open root inside that, and a frame from the second
+    fixture site (`second.test:8766`, `mode=child`) holding a closed root and a nested frame of the same site
+    (`mode=nested`). The roots hold no typed text when they are met.
+  - H1: `test_view_hostile.py`'s `HOSTILE` strings, now also in `control/chrome/ci/hostile-text.json` (a new test in
+    `test_view_hostile.py` checks the file equals the list). The page's script sets them through the DOM (control
+    characters, lone surrogates and line breaks arrive as they are): each string as a section's name (an
+    ancestor's name), a button's name, a textarea's value, an option label, a column header, a cell, an error text
+    (`aria-describedby`, `aria-invalid`) and a paragraph; `title=N` picks the document title. The four hostile
+    roles of the brief (a line break and an outline line, `button" kqtvm5`, 10,000 characters, `  BUTTON  `).
+    `mode=many`: 100,000 elements; `mode=name`: a name of 100,000 characters.
+  - `efficiency.test.mjs`: one test serves every mode, compiles each script, and runs H1's script against a
+    minimal document to check that every string lands in every place.
+  - Group 14's own browser tests are not written (they need the adapter's `chrome_outline`).
+
+### PLAN-GAP 1: the rule light-DOM fields follow (for Tuesday's security review)
+
+What the reader does today with a light-DOM typed field that already holds text when it first reads it:
+
+- **Watched document (reader in place from the start): the value is read, unless the field is password-kind.**
+  - `unknownHistory = element => !watched || privacy.lateFields.has(element)` (`reader.js:305`); `lateFields` only
+    ever gets shadow-root fields (`meet`, `reader.js:169-174`). So `safeValue` (`reader.js:285-300`) returns the value
+    once `password()` (`reader.js:154`) says no.
+  - What vouches for the field's past is the password tracker, which has watched since before the page's scripts:
+    `background.js:194` installs the guard and the reader at the startup breakpoint and sets `document-start.v1`
+    (child frames get the same through auto-attach, `background.js:92`). `observe(document)` and
+    `remember(document)` (`reader.js:195-196`) record old values of `type`, `autocomplete` and `style`
+    (`reader.js:80-84`), and `protect` (`reader.js:85-87`) keeps a field that was ever masked protected for the
+    document's life (`ownPassword`, `reader.js:88-96`).
+  - Typing plays no part: a field the owner typed into is read.
+- **Unwatched document: no typed field is read, filled or empty** (`unknownHistory` is true, `reader.js:288,305`).
+- **`guard.typedBy` and `typingGap`** (`guard.js:518-520`; the record of trusted `input` events, `guard.js:139-146`)
+  decide only the reload report's "typed by" and "since load" (`reader.js:745-762`), never whether a value is read.
+
+So the light-DOM rule is "read when the reader observed the field's whole masking history and it was never masked",
+not "readable unless the guard saw typing into it, or can't vouch for that". Option (b) would read a late-root field
+whose masking history nobody observed, on the strength of a different record. It doesn't match, so by the lead's
+rule: **(a)**. The late-root rule, its unit tests and the known-limit line stay as step 6 left them.
+
+For the review, what (b) would have given up: a field in a late root that was masked and got its text without a
+trusted `input` event (a page script, an autofill that fires none) and was unmasked before the meeting; and typing into
+a root the guard doesn't watch yet, which its document listener sees, if at all, retargeted to the host (I did not
+check this one in the code). Not built.
+
+### Runs
+
+| Head | Holds | Control Chrome | Result |
+|---|---|---|---|
+| `40d1c650` | the three commands, the credential words | 43722368284 | red: only `latency (plain)`, its "Require lead ceilings" step: target misses at `history-4000` on approval to done, asking click, fill, free click and navigate, `regression: false` on all (see "What the code doesn't show"). Everything else green. |
+| `421888cd` | + item 8, the typing refusal | 43722522475 | **green, every job.** Item 8 (`url` and `embedderName`) admits the extension's scripts in a real browser. |
+| `85eeffba` | + the late shadow root | 43722792150 | red as step 6 expected, nothing else: GROUP 7 in both core shards, `GROUP 2 REVIEW synchronous new shadow roots keep all submission kinds held` in both review shards (each shard stops at its first failure), the aggregates on "every browser shard is required". Node 459/459 and Python 70/70 in every fixtures job; both latency legs, word, recheck and adapters shards green. Qualification 43722792135: its pairs fail on the same review case. |
+| `d14e52da` | + this step | none | **No workflow started**: `main` (`55c0114e`, 32 commits past the merge base `62e1abb3`) conflicts with the branch, so GitHub makes no merge commit for `pull_request`. |
+
+Seven full `control-chrome` runs so far; the next one is run 8.
+
+### Left, in order
+
+1. **Merge `main` into the branch, then push: that push is run 8.** `git merge-tree` shows one conflict,
+   `control/chrome_tests/background.test.mjs`, two hunks where both sides appended tests (keep both). `background.js`
+   merges without a conflict, but `main`'s changes there (brief 20's popup-race fixes, PRs #74 and #79) meet step
+   6's `facts()` refactor (`requireGuard`, `readerBinding`, `pinDocument`): read the two together before pushing.
+   `main` also changes `control/generated/chrome-instructions.txt` and `test_publisher.py`; take `main`'s versions.
+2. **Read run 8**, oldest failure first. What it should show: GROUP 7 and the review shadow cases green; the core
+   and review groups after them run for the first time with the late-root rule (in run 3 each shard stopped at its
+   first failure); `efficiency.test.mjs`'s new F6/H1 test and `test_view_hostile.py`'s new test pass. If GROUP 7's
+   new assertion fails while its forms are sent, look at the draft's timing first ("What the code doesn't show").
+   Before a push that would start run 9, tell the lead.
+3. Step 1b's list from item 3: the adapter (`chrome_outline` behind the test-only switch), time, groups 14 and 16
+   in CI (F6 and H1 exist now; group 14's browser tests don't), the harness map, the known limits, the report.
+
+### What the code doesn't show
+
+- **GROUP 7's draft timing.** The light-DOM form's insertion is a change the reader's observer sees; its callback (a
+  microtask after the page script) meets the two roots while the draft is empty, and the `setTimeout(0)` task writes
+  the draft after that. This holds in a watched document only; GROUP 7's cross-site frame is watched (auto-attach).
+  The draft is written as the field's default (`defaultValue`), as the markup had it, so the reload report sees no
+  unsaved text.
+- **H1 in a real browser:** a textarea's value turns `\r\n` into `\n`, an option's label collapses white space,
+  and the title drops line breaks. Group 14's expected outlines have to come from the browser, not from the strings.
+- **Run 1's latency red is the runner** (below): `history-4000` in run 1 had p95 values of 245 to 1,163 ms on every
+  acting call with normal medians (`regression: false` everywhere); run 2, same code plus more, had p95 within 8 ms
+  of its medians.
+
+### JUDGMENT-CALLs (technical; for the lead)
+
+1. **Run 1's red "Require lead ceilings" did not stop the step.** The gate's result stands and I touched nothing of
+   it; I went on because the same code passed both latency legs in runs 2 and 3 (and step 5's run needed a second
+   attempt of its audit leg). If "stop and report" meant the whole step, this is where I didn't.
+2. **GROUP 7 checks one thing more:** `read_form` shows "Public draft" in each of the six forms (a field empty when
+   its root was met is read once the page fills it). Added coverage, nothing relaxed.
+3. **H1's strings are one JSON file** read by the fixture and compared by the Python test, instead of a second copy
+   in JavaScript.
+
+### PLAN-GAPs
+
+1. **A failing check ends a browser shard's run.** Run 3's `fixtures (external, core)` threw at
+   `matrices.mjs:325` and the process ended, so the core groups after GROUP 7 didn't run in that job: one red group
+   can hide the next. That is brief 20's harness (`failBrowserCase` keeps the first failure and returns promptly),
+   not changed here.
+
+### For `HARNESS-MAP.md`
+
+- `password-fixtures.mjs` (GROUP 7, `password-matrix` and `password-inner`; exceptions 2 and 4): the "Safe draft"
+  textarea starts empty and the page writes "Public draft" in a later task, after the reader met the roots. Every
+  form is still sent once with an approval; GROUP 7 also asserts the draft is read.
+- `review-fixtures.mjs`, mode `shadow` (`review-shadow-{open,closed}-{native,event,click}`; exception 4): the form's
+  draft starts empty (`form(extra, '')`). The root is met at the held submission, and the case is about holding it.
+  The other modes keep `value="Saved"`.
+- Not changed: `late-withheld-form` is an owner-navigated (unwatched) document, where every typed field is unread
+  anyway.
+
 ## Step 6 (2026-11-15, Claude agent on Fable 5.2): the background's three commands, the credential words, item 8, the typing refusal, the late shadow root. Pushed, not yet read in CI
 
 Fable because the reader runs inside the extension on hostile pages. Step 5's "Part B", items 2 to 5. **None of this
