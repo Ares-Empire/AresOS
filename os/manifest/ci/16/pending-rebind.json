@@ -10,7 +10,8 @@
     "22d fixes after reviews 2 and 3",
     "22d guide fixes after review 4",
     "22d step 6: the tools-local mode's wiring",
-    "22d step 6b: the tools-local walk (tools_local.rehearsal), its local route in test_owner_walk, 22d's host-walk receipt, the minute cap at 2400"
+    "22d step 6b: the tools-local walk (tools_local.rehearsal), its local route in test_owner_walk, 22d's host-walk receipt, the minute cap at 2400",
+    "22d: test_owner_devices_native pins the native-suite line with 22d's branch (step 6a added it to the workflow)"
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
@@ -113,6 +114,10 @@
     {
       "sha256": "ecd07ef561f3d4da2b9c706daf0f3584fef5f764a0008a3e49877d8b0cf7d571",
       "path": "os/tests/test_owner_capabilities.py"
+    },
+    {
+      "sha256": "2b32a6bfbed6523fff8128673e33f7aafeba784283e02bdc49f63dacfbff9fbb",
+      "path": "os/tests/test_owner_devices_native.py"
     },
     {
       "sha256": "07d75e5e7a50d7f229adb5d5488069785a2781f817e9ec8a51751419c7da6dbb",
