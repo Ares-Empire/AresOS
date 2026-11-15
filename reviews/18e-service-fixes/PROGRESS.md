@@ -1,6 +1,7 @@
 # 18e: Control service fixes: progress and report
 
-Builder: Claude agent, Opus 5.5 (step 1). Branch `pkg/18e-service-fixes`, PR #69 (draft until CI is green).
+Builder: Claude agent, Opus 5.5 (step 1); fix round with the lead's decisions of 2026-11-15 (JUDGMENT-CALLs 2 and 5):
+Claude agent, Opus 5.5. Branch `pkg/18e-service-fixes`, PR #69 (draft until CI is green).
 A Claude builder can't create `REPORT.md`: this file is the report.
 
 ## Done
@@ -10,12 +11,12 @@ All six items, in the brief's order (item 6's process-chain check first).
 | Item | What the code does now | Files |
 |---|---|---|
 | 6, check | The interactive boundary suite records, per case, the process chain of the testapp MCP server and of every managed hook (pid, start time, command), and asserts that each Stop hook has the MCP server's parent among its four nearest ancestors. Kept as a real test: item 6 depends on it, and a Claude Code update could break it silently. | `control/boundary/process_chain.py` (new), `interactive_suite.py`, `mcp-fixture.py`, `notification-fixture.py`, `test_interactive.py` |
-| 1 | `Client.connect` tries a failing connect (`ENOENT`, `ECONNREFUSED`) again for up to 3 s in 0.1 s steps, a fresh socket each time. Then, or on any other connect failure, it raises `ServiceUnavailable`, code **`service_unavailable`**: "The AresOS tool service is not running; nothing was sent. Try again later." (other errors: "could not be reached (<reason>); nothing was sent ..."). A connection lost after connecting keeps `UnknownRequest` / `transport_error`. The proxy returns `service_unavailable` without its follow-up pending read (it would wait 3 s again). | `protocol.py`, `proxy.py` |
+| 1 | `Client.connect` tries a failing connect (`ENOENT`, `ECONNREFUSED`) again for up to 3 s in 0.1 s steps, a fresh socket each time (MCP proxies and CLI; the hooks make one attempt with `Client(…, connect_wait=0)`, lead's decision). Then, or on any other connect failure, it raises `ServiceUnavailable`, code **`service_unavailable`**: "The AresOS tool service is not running; nothing was sent. Try again later." (other errors: "could not be reached (<reason>); nothing was sent ..."). A connection lost after connecting keeps `UnknownRequest` / `transport_error`. The proxy returns `service_unavailable` without its follow-up pending read (it would wait 3 s again). | `protocol.py`, `proxy.py` |
 | 2 | `aresos admin …` with a non-root effective uid answers `permission_denied` "Admin commands need sudo: run sudo aresos admin <app> <action> (same options)." before any socket or password prompt. | `cli.py` |
 | 3 | `serve()` selects with `Daemon.timeout(refresh_at)`: the Chrome maintenance time (60 s, also the longest sleep), `Engine.next_deadline()` (earliest open reservation's `expires`, or now + 1 s while deferred owner notices wait to be written; `None` when nothing is timed), and 0.1 s only while a loosening Chrome confirmation waits. A deadline that can't be read gives 1 s. 5 ms margin so it wakes after a wall-clock deadline, not before. | `daemon.py`, `engine.py` |
 | 4 | `[Unit]` gains one comment line, `StartLimitIntervalSec=30` and `StartLimitBurst=5`: with `RestartSec=2` the sixth start (refused) comes within about 15 s; one crash still restarts. | `packaging/aresos-toold.service`, `tests/test_unit.py` |
 | 5 | The refusal is built from the policy's folders, relative to the home, sorted: "Path is outside the allowed folders; choose ~/Documents or ~/Downloads." | `files.py` |
-| 6 | `usage.py` (new). The MCP proxy's `note_use` calls `usage.mark()` before a result that names an operation reaches the session: a non-read action whose `data` holds an `operation_id` or `approval` key, or an `unknown` outcome. The mark is `/run/user/<uid>/aresos-control/used/<ppid>-<start>` (folders 0700, file 0600, every step `O_NOFOLLOW`, owner and mode checked). The Stop hook, on `service_unavailable` or `transport_error`, calls `usage.used()`: walks its ancestors from its parent, four levels, never PID 1; a mark (or anything unreadable) blocks once with "AresOS tools are not running. If you prepared or sent something with them in this session, its outcome is unknown: tell the owner, and don't repeat it."; no mark prints nothing, exit 0. `stop_hook_active` still guards; `UserPromptSubmit` and the service-up path are unchanged. | `usage.py`, `proxy.py`, `hooks.py` |
+| 6 | `usage.py` (new). The MCP proxy's `note_use` calls `usage.mark()` before a result that names an operation reaches the session: a non-read action whose `data` holds an `operation_id` or `approval` key, or an `unknown` outcome. The mark is `/run/user/<uid>/aresos-control/used/<ppid>-<start>` (folders 0700, file 0600, every step `O_NOFOLLOW`, owner and mode checked). The Stop hook, on `service_unavailable` or `transport_error`, calls `usage.notice()`, which looks as `usage.used()` does: walks its ancestors from its parent, four levels, never PID 1; a mark (or anything unreadable) blocks once with "AresOS tools are not running. If you prepared or sent something with them in this session, its outcome is unknown: tell the owner, and don't repeat it."; no mark prints nothing, exit 0. Once per outage (lead's decision): `usage.notice()` gives the notice only while the session's `<pid>-<start>.told` (beside the mark, 0600, `O_NOFOLLOW`) is missing and creates it; a hook that reaches the service calls `usage.reached()`, which removes it. `stop_hook_active` still guards (checked before anything is recorded); `UserPromptSubmit` stays silent on failure. | `usage.py`, `proxy.py`, `hooks.py` |
 
 Docs: `control/README.md` ("Process and request contract": start-up gap, admin hint, idle loop, start limit; "Caller
 file policy": the refusal; "Hooks": quiet unless used). `KNOWN-LIMITS.md`: there is only
@@ -73,7 +74,8 @@ the base CI container (`test_integration.Integration.test_idle_service_wakes_at_
 | 43669664632 | Control boundary (PR) | 386e14ea | **green**: chains pinned, and the real `usage` code under Claude Code: `stop_used` true exactly in the 7 cases with a tool call; DAA `[true, true, false]` (its new session, denied, stays quiet) |
 | 43670639975 / 43670639979 / 43670639991 / 43670640000 / 43670639999 | base / boundary / Mail / Chrome polkit / Chrome qualification | 4705a4ea | **all green**; base: 339 tests, idle 1 switch in 60 s (0.02/s), "Control base suite PASS" |
 | 43670639964 | Control Chrome | 4705a4ea | **latency (plain) and latency (audit) green** (gate unchanged); fixtures and python-shards (0) failed only on `chrome_tests/test_unit.py`, a second copy of the unit pin I had missed. Updated in the next commit |
-| see the PR | all six control workflows | final commit | running at hand-off; the lead checks them |
+| see the PR | all six control workflows | 7fc97459 | green (lead) |
+| see the PR | all six control workflows | fix round (hooks connect once; one notice per outage) | reported to the lead at hand-off |
 
 Lesson for the next step: every push to the PR, even of this file, restarts all six control workflows (the
 `pull_request` path filter looks at the whole PR diff) and cancels the running ones.
@@ -89,6 +91,14 @@ Lesson for the next step: every push to the PR, even of this file, restarts all 
   `test_review_fixes_16` are the same set on the base commit 75cdbb41 (no `/etc/claude-code`, not root); CI runs
   them as root in the container.
 - **read**: 18c PROGRESS "Findings for the lead" 2a/2b/2c and "Check 6 in numbers" (`origin/pkg/18c-image`).
+- **run** (fix round, laptop, `PYTHONPATH=control:control/tests python3 -m unittest control.tests.test_service_fixes`):
+  32 tests OK. New: the hooks (both events, a missing socket and a stale one) end in under 0.5 s with the real client
+  and the 3 s default in place, while the proxy still waits; `connect_wait=0` makes one attempt (no sleep); one
+  notice per outage at the `usage` level and through `hooks.main` (first stop tells, later stops and a lost connection
+  stay quiet, a reply to `Stop` or `UserPromptSubmit` re-arms it, the continuation guard records nothing), a `.told`
+  file that can't be written or read still tells, a link or folder at its name is never followed, unreadable marks
+  tell at every stop. Against the previous `hooks.py` the hook timing test measures 3.0 s (fails). The hook tests in
+  `test_ingress_bounds` pass; its MCP stdio case needs the SDK (`mcp_types`), missing on the laptop.
 
 ## For 18c's next VM pass (under systemd): assertions to hand on
 
@@ -99,8 +109,8 @@ Lesson for the next step: every push to the PR, even of this file, restarts all 
    an approval): `/run/user/<uid>/aresos-control/used/<claude pid>-<start>` exists (file 0600, both folders 0700, owner
    `<uid>`; `<start>` = field 22 of `/proc/<claude pid>/stat`). Stop the service; one turn: exactly one "Stop hook
    error: AresOS tools are not running. If you prepared or sent something …" and one extra model request (the
-   continuation), never "operation_status" or "Service connection lost". It repeats once per turn while the service is
-   down (see JUDGMENT-CALL 5). After logout the mark is gone. Precondition: `/run/user/<uid>` must exist (a real login
+   continuation), never "operation_status" or "Service connection lost". After logout the mark (and any `.told`) is
+   gone. Precondition: `/run/user/<uid>` must exist (a real login
    or lingering); without it no mark can be written and the session stays quiet.
 3. **Start-up gap:** `systemctl restart aresos-toold; aresos control pending` at once: `ok: true` (no
    `transport_error`). With the service stopped: `error.code == "service_unavailable"`, message contains "not running"
@@ -114,16 +124,24 @@ Lesson for the next step: every push to the PR, even of this file, restarts all 
 7. **Idle:** change 14 over 60 s: at most 60 switches (expect a handful), 1 thread.
 8. The unit pin in 18c's image check needs the three new `[Unit]` lines (comment, `StartLimitIntervalSec=30`,
    `StartLimitBurst=5`) when 18c merges main.
+9. **One notice per outage:** in the used session of check 2, with the service still stopped, two or three more turns:
+   no further notice and no extra model request (`/run/user/<uid>/aresos-control/used/<claude pid>-<start>.told`
+   exists, empty, 0600). Then `systemctl start aresos-toold` and one turn (its hooks reach the service; the `.told` file
+   is gone), `systemctl stop aresos-toold` and one turn: exactly one notice again.
+10. **Hooks don't wait:** with the service stopped, each `UserPromptSubmit` and `Stop` hook of a session ends at once
+   (well under a second, not the CLI's 3 s; time `launch.py hook Stop` with the managed command and an input).
 
 ## JUDGMENT-CALLs
 
 1. **Error code `service_unavailable`.** Matches the hooks' existing `service_unavailable` pending flag. Connect
    failures that are not retried (permission, a path under a file, a connect timeout) get the same code with "could not
    be reached (<reason>); nothing was sent": nothing was sent there either. Rejected: a second code for those.
-2. **The 3 s wait reaches the hooks too** (the brief says every caller). While the service is down, every prompt
-   (`UserPromptSubmit`) and every turn end (`Stop`) waits about 3 s before going quiet. Rejected for now: hooks without
-   the wait (a one-line change: a `connect_wait` for the hook's client), which would make a start-up-gap Stop look
-   like "not running". The owner may prefer quick prompts while the service is broken.
+2. **Hooks connect once (lead's decision, 2026-11-15).** The builder had let the 3 s wait reach the hooks (the brief
+   says every caller), so every prompt and turn end waited about 3 s while the service was down. The lead decided the
+   hooks make one attempt: `Client(path, connect_wait=0)` (one parameter, no second code path; `None` keeps
+   `CONNECT_WAIT`). The 3 s wait stays for the MCP proxies and the CLI, which cover the seconds after boot. Accepted:
+   a hook during the start-up gap sees "not running" (a marked session then gets the notice once, and the next hook
+   that reaches the service re-arms it).
 3. **MCP instructions unchanged.** `COMMON_INSTRUCTIONS` doesn't mention `service_unavailable`: changing it changes the
    generated instruction files and 18c's pins of them. The message says what to do ("Try again later").
 4. **What marks a session:** a non-read action whose result `data` names an `operation_id` or `approval`, or an
@@ -131,8 +149,13 @@ Lesson for the next step: every push to the PR, even of this file, restarts all 
    `pending` doesn't either. A missing marks folder is a clear "no" (otherwise every unused session would get the
    notice); any other read error counts as marked. A mark that can't be written is skipped: that session then stays
    quiet; the tool result still names its operation.
-5. **Notice once per turn, not once per session.** While the service is down a marked session gets the notice at
-   every turn end (blocked once per turn by `stop_hook_active`). Once per session would need a second file ("told").
+5. **One notice per outage (lead's decision, 2026-11-15).** The builder had given the notice at every turn end. Now
+   `Stop`, giving it, writes `<pid>-<start>.told` beside the session's mark (same folder, 0600, `O_NOFOLLOW`); while it
+   exists later stops stay quiet. The next hook that reaches the service (any reply, `Stop` or `UserPromptSubmit`)
+   removes it, so a later outage notices again. A `.told` file that can't be written still notices (better twice than
+   never); one that can't be read, or isn't a plain file, counts as not given; marks that can't be read notice at every
+   stop (no session key to record). A `.told` file that can't be removed (not seen in practice: the folder is private)
+   would keep that session's next outage quiet.
 6. **Start limit 30 s / 5 starts,** with one comment line in the unit. The owner's manual `systemctl start` after a
    start-limit failure needs `systemctl reset-failed` first (README says so).
 7. **Idle loop:** 60 s (the existing maintenance period) is the longest sleep, so a suspend or clock change delays a
@@ -143,7 +166,7 @@ Lesson for the next step: every push to the PR, even of this file, restarts all 
 
 1. The interactive container can't run the real managed hooks (stand-in, no service): covered by the real `usage`
    code in the stand-ins plus unit tests; the full path is for 18c's VM.
-2. The brief's "one clear notice" vs "block once": built as once per turn (JUDGMENT-CALL 5).
+2. The brief's "one clear notice" vs "block once": the lead decided once per outage (JUDGMENT-CALL 5).
 
 ## Left, in order
 
