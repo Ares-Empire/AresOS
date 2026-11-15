@@ -423,6 +423,13 @@ them is hard to undo).
 - **Other packages' pictures of Live** (in their `reviews/*/screenshots/`) still show hearts and hunger: the client runs
   rewrite them with the new HUD, and they were put back with `git checkout` as the rules say, until someone commits a
   new run's pictures.
+- **After the hand-back guard the world keeps the keyboard behind the app** (REVIEW-2 finding 2, a nit; added in review
+  fixes 2). When the restored game window is activated a second time right after a hand-back (GLFW's focus-on-show),
+  the helper skips only `uncover()`: it still cancels the returns and sets the shell to foreground, so the mod captures
+  the mouse, and the world has the keyboard while his maximized app hides it, paused and silent until he clicks the
+  app. That is B2's gap from before package 40, not a regression, and one click ends it. Not changed here: the fix
+  (in the `kept` case activate the kept target once more, leave `shell` as it is, and clear `self.kept`) is
+  linux-aresos's call.
 
 ## For linux-aresos (the `os/` diff, F11 and the focus hand-back)
 
@@ -631,3 +638,82 @@ try-out.
 - A real mouse drag through the game's mouse handler (the tests hand the drag to the screens directly).
 - The hand-back guard in labwc with the supervisor (helper tests only, as before).
 - The silence on his speakers (OpenAL's null device in the tests: the channels' states, not the sound).
+
+## Review fixes 2
+
+Review: `REVIEW-2.md` (CHANGES-NEEDED: one should-fix, two nits). Builder: one Claude agent on Opus 5.5, one step,
+after `f2224715`. One commit: the mod fix and its test, the pending-rebind note, HUB.md's 2.4 correction and this
+section.
+
+### Finding 1 (should-fix): a drag seen only at the release opened the app
+
+**What changed.** `AppsScreen.mouseReleased`: a release farther than `DRAG` (3 screen pixels) from the press is a drag
+that no frame saw, and calls `pickUp` instead of `open`; within `DRAG` it is a click and opens, as before.
+`mouseDragged` and `mouseReleased` share one distance test (`movedAway`). The game hands movement to a screen only once
+a frame and only while the button is held, so after a hitch, a quick flick or in a window without focus (the tests'
+compositor) the move comes with the release. So a drag never opens a program, whichever way it reaches the screen.
+
+**The button is already up when `pickUp` runs from the release.** What `aresos$setSkipNextRelease(false)` then does,
+checked with `javap` on 26.2's `AbstractContainerScreen`:
+- The constructor sets the flag; after that only `mouseClicked` and `mouseReleased` change it.
+- `mouseClicked` clears it for every press that no widget takes, before it looks at a slot. With an item on the cursor
+  that press starts vanilla's placing (`isQuickCrafting`), and the release puts the item in the slot (`PICKUP`, or the
+  spread over the slots the pointer crossed).
+- So clearing it changes nothing for the next click on a slot, and false is also its state whenever vanilla carries
+  an item (a pickup's own release clears it). A press on a widget leaves it false, and its release sends a click on no
+  slot (index -1), which the server ignores, as in vanilla. A release outside the panel would ask to throw the item,
+  which `AppInventory.keepsOnClick` refuses (REVIEW-2 checked that).
+- The item stays on the cursor until such a click: the server's `take` made it the carried item, and nothing on the
+  client takes it off without a slot click.
+
+**Test.** `MyAppsClientGameTest`, Apps screen part, right after the drag of Okular to slot 20 (no new picture, so
+nothing is renumbered). The left button goes down on Okular's row under My apps and comes up 8 pixels lower, both
+handed straight to the screen with no `mouseDragged` between, as the mouse handler sends them when both are in one
+poll. Checks:
+- the screen gives way to the inventory at once;
+- Okular's item arrives on the cursor and is still there 5 ticks later, out of the inventory;
+- a real click on slot 21 through the mouse handler (`setCursorPos`, `pressMouse`) places it, on the client and on
+  the server, and the cursor is empty;
+- `opened` is unchanged (nothing opened).
+
+Then the Apps screen opens again and the part goes on as before (the double click, the removal of Okular).
+
+**Fails without the fix, from reading** (not run with the change taken out: one client run was this round's budget).
+The old `mouseReleased` opens Okular, which closes the inventory (`closeContainer`), so the first check fails at once:
+"A release eight pixels from the press did not give way to the inventory but to null; opened [okular, pdf-arranger,
+okular]". The recording launcher is called synchronously from `AresOsClient.launch`, so `opened` already shows it.
+
+**Docs.** HUB.md's package 40 correction for 2.4 gains one sentence: a drag the game only sees as he lets go still opens
+nothing, and the item waits on the cursor for his next click on a slot.
+
+### Finding 2 (nit): the world keeps the keyboard after the hand-back guard
+
+No code change: B2's gap from before package 40, and linux-aresos's call. Added to "Known limits" above, with the
+reviewer's suggested fix.
+
+### Finding 3 (nit): the pending-rebind note named files that are not bound
+
+`os/manifest/ci/16/pending-rebind.json`: package 40's note now reads "40: the checks-only job's 40 minutes, as 22d
+step 2 and 23b: its time limit in os-image.yml (25 to 40) and the 22c ledger's checks bound in
+os/ci/rehearsal-packages.json (35 to 40); no tool, guide or image file changed". Replaced in place, written the way
+`rebind.py` writes the file (only that line differs). `rebind.py pending` was not run: it appends a note it does not
+hold yet, so it would have kept the old note beside the new one, and no bound file changed this round. Checked
+read-only instead: `rebind.changed()` equals the list's `files` (the same four rows) and `rebind.removed()` its
+`removed`; three notes. At merge, as REVIEW-2 says: whichever of 22d and 23b merges first, this file conflicts on
+`changes` and `files`; resolve it with `rebind.py pending` on the merged tree.
+
+### What ran
+
+- `python3 -B -m unittest discover -s os/tests -p test_checkout_sources.py`: 6 tests, OK.
+- `mod/dev/build.sh` once on the final code, after `free -g` showed 9 GiB available: BUILD SUCCESSFUL in 2 min 6 s;
+  `compileClientJava` and `compileGametestJava` ran, "All 104 required tests passed", and the unit tests ran (not up to
+  date): 230 passed, 6 skipped (the Windows catalogue tests), none failed.
+- `mod/dev/client-test.sh` once on the final code (07:56 to 08:06): exit 0, BUILD SUCCESSFUL in 9 min 49 s, all 18
+  "checks passed" lines, among them "34 client checks passed: ... a drag adds, picks up and pins (one seen only at the
+  release too), right-click removes ...". The run rewrote tracked pictures; they were put back with `git checkout`
+  (every path under `reviews/` but this report) and the untracked renumbered ones deleted.
+
+### Not verified
+
+- A real mouse drag through the game's mouse handler, as before: the test hands the press and the release to the
+  screen directly. The slot click after it does go through the mouse handler.

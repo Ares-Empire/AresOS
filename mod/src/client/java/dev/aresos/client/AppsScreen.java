@@ -212,8 +212,7 @@ public final class AppsScreen extends Screen {
 
     /** The pointer moved away from where the left button went down on a program: a drag, which picks up its item. */
     @Override public boolean mouseDragged(MouseButtonEvent event, double dx, double dy) {
-        if (event.button() == 0 && pressed != null
-                && Math.max(Math.abs(event.x() - pressedX), Math.abs(event.y() - pressedY)) > DRAG) {
+        if (event.button() == 0 && pressed != null && movedAway(event)) {
             String id = pressed;
             pressed = null;
             pickUp(id);
@@ -222,7 +221,12 @@ public final class AppsScreen extends Screen {
         return super.mouseDragged(event, dx, dy);
     }
 
-    /** The left button let go where it went down on a program: a click, which opens it. */
+    /**
+     * The left button let go after it went down on a program. Where it went down, that is a click, which opens it.
+     * Farther away it is a drag that no frame saw: the game hands movement to a screen only once a frame and only
+     * while the button is held, so after a hitch, a quick flick or in a window without focus the move comes with the
+     * release (REVIEW-2 finding 1). A drag never opens a program, so this one picks up the item as well.
+     */
     @Override public boolean mouseReleased(MouseButtonEvent event) {
         boolean handled = super.mouseReleased(event);
         // A click on a row or a pull at the scroll bar took the focus to the list; the search box gets it back.
@@ -230,8 +234,14 @@ public final class AppsScreen extends Screen {
         if (event.button() != 0 || pressed == null) return handled;
         String id = pressed;
         pressed = null;
-        open(id);
+        if (movedAway(event)) pickUp(id);
+        else open(id);
         return true;
+    }
+
+    /** Whether the pointer is farther than {@link #DRAG} from where the left button went down on a program. */
+    private boolean movedAway(MouseButtonEvent event) {
+        return Math.max(Math.abs(event.x() - pressedX), Math.abs(event.y() - pressedY)) > DRAG;
     }
 
     /**
@@ -249,9 +259,10 @@ public final class AppsScreen extends Screen {
     /**
      * A drag picks up the program's item to pin it. A program that is not his becomes his first: what is in his
      * inventory is his ("Pinning a program makes it one of his", HUB.md 2.4); the server takes the two requests in
-     * order. The inventory comes back while the button is still down, so the drag goes on there: letting go over a
-     * slot puts the item in it, as a drag in the inventory does, and letting go before the item arrived leaves it on
-     * the cursor for the next click.
+     * order. From mouseDragged the inventory comes back while the button is still down, so the drag goes on there:
+     * letting go over a slot puts the item in it, as a drag in the inventory does, and letting go before the item
+     * arrived leaves it on the cursor for the next click. From mouseReleased the button is already up, and the item
+     * waits on the cursor for the next click on a slot, as an item picked up in the inventory does.
      */
     private void pickUp(String id) {
         if (!active(minecraft)) { onClose(); return; }
@@ -259,7 +270,9 @@ public final class AppsScreen extends Screen {
         if (app == null) return;
         if (!app.mine()) ClientPlayNetworking.send(new MyAppPayload(id, true));
         ClientPlayNetworking.send(new TakeAppPayload(id));
-        // The inventory would skip this release as the one of the click that opened it; here it ends the drag.
+        // The inventory would skip its next release as the one of the click that opened it. During a drag that
+        // release ends the drag. After one, the inventory's next press clears the flag before it looks at a slot
+        // anyway (AbstractContainerScreen.mouseClicked), and false is the flag's state while vanilla carries an item.
         if (parent instanceof AbstractContainerScreen<?> inventory)
             ((dev.aresos.client.mixin.ContainerScreenAccess) inventory).aresos$setSkipNextRelease(false);
         minecraft.gui.setScreen(parent);

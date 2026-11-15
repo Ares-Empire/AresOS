@@ -181,7 +181,8 @@ public final class MyAppsClientGameTest implements FabricClientGameTest {
                 screenshot(context, "34-hotbar-pixel-icons");
             }
             AresOs.LOGGER.info("34 client checks passed: day one with 150 programs in four pages and five items; Apps screen "
-                    + "search, click and Enter open (a failure says why), a drag adds, picks up and pins, right-click "
+                    + "search, click and Enter open (a failure says why), a drag adds, picks up and pins (one seen only at the "
+                    + "release too), right-click "
                     + "removes; app add, remove, list and their "
                     + "completion; a full inventory; a later program's chat line and pixel icon; Q keeps the item");
         } catch (Exception error) {
@@ -325,6 +326,48 @@ public final class MyAppsClientGameTest implements FabricClientGameTest {
             check(client.gui.screen().getFocused() == search(client), "The search box does not have the keyboard");
         });
         screenshot(context, "34-apps-after-add");
+
+        // REVIEW-2 finding 1: a drag whose movement only comes with the release (a hitch, a quick flick, a window
+        // without focus) is still a drag. The press and a release eight pixels lower reach the screen with no
+        // mouseDragged between, as the mouse handler sends them when both are in one poll. Nothing opens, the
+        // inventory comes back with the item on the cursor, and it stays there until a click on a slot places it.
+        context.runOnClient(client -> {
+            check(client.player.inventoryMenu.getSlot(21).getItem().isEmpty(), "Slot 21 is not free for Okular");
+            var row = row(client, "okular", true);
+            double x = row.getX() + row.getWidth() / 2.0, y = row.getY() + row.getHeight() / 2.0;
+            var screen = client.gui.screen();
+            screen.mouseClicked(new MouseButtonEvent(x, y, new MouseButtonInfo(LEFT, 0)), false);
+            screen.mouseReleased(new MouseButtonEvent(x + 1, y + 8, new MouseButtonInfo(LEFT, 0)));
+            check(client.gui.screen() instanceof InventoryScreen, "A release eight pixels from the press did not give way "
+                    + "to the inventory but to " + client.gui.screen() + "; opened " + opened);
+        });
+        context.waitFor(client -> "okular".equals(client.player.inventoryMenu.getCarried().get(AppItems.APP_ID)));
+        context.waitTicks(5);
+        context.runOnClient(client -> check(client.gui.screen() instanceof InventoryScreen
+                && "okular".equals(client.player.inventoryMenu.getCarried().get(AppItems.APP_ID))
+                && !items(client).containsKey("okular"), "Okular's item left the cursor before a click: " + items(client)));
+        // The next click on a slot, through the mouse handler as his would come.
+        double[] slot21 = context.computeOnClient(client -> {
+            var screen = client.gui.screen();
+            var slot = client.player.inventoryMenu.getSlot(21);
+            return window(client, (screen.width - 176) / 2.0 + slot.x + 8, (screen.height - 166) / 2.0 + slot.y + 8);
+        });
+        context.getInput().setCursorPos(slot21[0], slot21[1]);
+        context.waitTick();
+        context.getInput().pressMouse(LEFT);
+        world.getConnection().waitForServerboundPackets();
+        context.waitTicks(2);
+        context.runOnClient(client -> check(Integer.valueOf(21).equals(items(client).get("okular"))
+                && client.player.inventoryMenu.getCarried().isEmpty(), "A click on slot 21 did not place Okular: " + items(client)));
+        world.getServer().runOnServer(server -> {
+            var player = world.getConnection().getServerPlayer();
+            check("okular".equals(player.getInventory().getItem(21).get(AppItems.APP_ID)) && player.inventoryMenu.getCarried().isEmpty(),
+                    "The server did not place Okular in slot 21");
+        });
+        check(opened.equals(List.of("okular", "pdf-arranger")), "A drag ended by the release opened something: " + opened);
+        context.clickScreenButton("Apps…");
+        context.waitForScreen(AppsScreen.class);
+        context.waitTicks(3);
 
         // The second press of a double click does nothing: a removal can move the next row under the pointer.
         context.runOnClient(client -> {
