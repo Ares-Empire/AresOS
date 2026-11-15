@@ -102,7 +102,106 @@ The words of the new lines he or Claude will read: the three `export` lines, the
 the first-installation refusal and the stick-only resume refusal (all quoted above). Chosen to say what happened and
 what to do next in one line each. Changing them later costs a new tools version and the guides that quote them.
 
+## Step 2 (lines, labels, pins, guides), 2026-11-15, Claude agent on Opus 5.5: done
+
+Brief row 2 (decisions 2, 3, 4, 5, 8, 9, 10 and the guide parts of 6) and the integrator's items A to C.
+No PLAN-GAP.
+
+### What changed
+
+- **`bootstrap.py`** generates, besides the stick block (unchanged but for v4's fingerprint):
+  - `tools_folder` (`commands.json` `tools-folder`): Claude's line as `ares`, no window, `/usr/bin/bash -c '…' tools-folder`
+    with the announced commit's full hash appended as its only input. Under `set -euo pipefail`, `PATH=/usr/bin:/bin`:
+    a 40-hex hash, `cd /var/home/ares/AresOS`, `git fetch origin +refs/heads/main:refs/remotes/origin/main`, the commit
+    an ancestor of `origin/main`, `git diff --quiet <commit> -- os/owner-tools` (the dirty or stale refusal: the root
+    line Claude copies from that checkout's `commands.json` is then the commit's), `rm -rf` and `mkdir` of
+    `/var/home/ares/ares-tools`, `git archive <commit>:os/owner-tools/payload | tar -x`, then
+    `echo "<fingerprint>  SHA256SUMS" | sha256sum -c --strict`. Each refusal prints one `STOP tools folder: …` line
+    and comes before the folder changes; any other failure prints `STOP tools folder: refused, nothing was installed`.
+  - `tools_routine` (`tools-routine`): `SUDO_ASKPASS=/usr/bin/ksshaskpass /usr/bin/sudo -k -A -p '<label>' bash -c
+    '<script>'`, the script being the folder block byte for byte (12 lines), then
+    `trap "echo STOP after install: check or title refused" ERR`, `/var/lib/ares/at check`, `/var/lib/ares/at title`.
+    One window per go; the first STOP ends it.
+  - `export_routine` (`export-routine`): the same prefix around `/var/lib/ares/at export`.
+  - `label(fingerprint, action)`: `AresOS owner tools <8 hex>: <action>`, letters, digits, spaces and commas only
+    around its one colon (sudo expands `%` in a prompt; a quote would change the line's quoting).
+- **`commands.json`** holds the three lines after `install`. They wait under `unwalked_commands` in
+  `os/manifest/ci/16/pending-rebind.json` until 22d's rehearsal types them (step 6).
+- **`docs/OWNER-TOOLS.md`**: line 1 `Owner tools version 4: 673803dc`, line 2 the full fingerprint, a blank line, then
+  two sentences. On GitHub lines 1 and 2 render as one paragraph; the 8 characters still follow the colon.
+- **The guides.** `docs/INSTALL.md`'s update route: the gate defines the announced commit (the maintainer's board note
+  with full hash and fingerprint; Claude installs only that). A new first box, **New tools from Claude's terminal**:
+  Claude's folder line, then the one routine line; the window as it looks (title bar **Enter SSH Credentials**, the
+  label inside, Password, OK, Cancel); his rule (go just now, the label, the 8 characters against line 1 of
+  OWNER-TOOLS.md on GitHub on his phone); the limit in plain words (stops accidents and a Claude acting unasked, not a
+  tricked Claude; after one password such a program can do anything as administrator, later too; the stick boxes are
+  his alternative); the three PASS lines; the board note with the title's lines under topic `aresos`; the 10-minute
+  rule; the STOP rule with the routine export line and the export answers of version 4 and of older tools. The
+  Windows, tools and tools-only boxes follow as the stick route, second. `docs/EMERGENCY.md`: a card **A routine tools
+  command stopped** after **A tools command stopped**, whose export sentence gains the `/run/ares-records` wording.
+  `docs/INSTALL-STATUS.md`: a 22d row (built, not rehearsed, not on the laptop); the 22c row keeps `2084c786…` short
+  and says version 3 never goes on the laptop (board #265). v4's fingerprint is pinned in step 4's and step 8's blocks
+  and PASS lines.
+- **Tests:** `test_owner_bootstrap` (the brief's shape word for word; the 16 ksshaskpass patterns against every label;
+  the tools-only script run with stand-ins: install, check, title, and each first STOP; Claude's folder line against
+  real git repositories: fetch, not on main, unknown, short or missing hash, dirty and stale checkout, an untracked
+  file kept out, a wrong pinned fingerprint, an unreachable origin). `test_owner_equality` pins every `bash -c` block of
+  `INSTALL.md`, whatever its prefix (F17), each generated line once and byte-equal, and OWNER-TOOLS.md against the
+  payload, the blocks' literal and the labels; OWNER-TOOLS.md is an owner page (fingerprint and inline checks) and
+  replaces the 22c report as the current fingerprint document. `test_owner_path` pins the routine box, the card and
+  the 22d row. `test_owner_entry` and `test_ways_back` skip the generated lines (they start no dispatcher of their
+  own) and expect `install(…, 'folder')` through the installed entry.
+
+### The ksshaskpass patterns
+
+From KDE's mirror, `src/main.cpp` at tag `v6.7.5` (the R27 image's `ksshaskpass-6.7.5-1.fc44`), read with `curl`
+on 2026-11-15 (SHA-256 of the file `e088570c…`): `parsePrompt` tries exactly 16 patterns (15 entry prompts and the
+unknown-host question) and logs `Unable to parse phrase` otherwise, as step 0 saw. The test lists all 16 in that order,
+proves each takes the prompt it was written for, and checks every generated label (and the label at each first hex
+digit) against them with Python's `re.search`, which matches QRegularExpression's unanchored search for these patterns.
+
+### Integrator's items
+
+- **A.** `regressions` `timeout-minutes` 25 → 40 in `os-image.yml`; 22c's ledger charges an unaccountable checks job
+  40 (the larger of its two jobs' bounds) with a note in its budget text; `test_ways_back_model` pins both. Nothing
+  else pinned 25 (`test_release27` and `test_ways_back_probe` pin other jobs).
+- **B.** Cause: step 1's route decision. The three tests started `install` with no `m` beside the payload, so it ran
+  as the folder block, whose first installation refuses before the STOPs they test. The code is right (decision 7);
+  the tests now create `m` as the stick block does. The module uses only stand-ins (FixtureHost, patched `Host`,
+  `geteuid`, `HOME`, `LOCK`, records under the test folder); it ran here. `test_owner_entry` had the same cause
+  (expected `install(payload, host)`).
+- **C.** `rebind.py pending` ran once after the last change to a bound file; the list's `status` and `decision` now say
+  that tool, guide and workflow files wait for 22d's rehearsal.
+
+### Tests run here (Python 3.14, one module at a time)
+
+| Module | Result |
+|---|---|
+| `test_owner_bootstrap` | `Ran 12 tests`, `OK` |
+| `test_owner_equality` | `Ran 11 tests`, `OK` |
+| `test_owner_path` | `Ran 48 tests`, `OK` |
+| `test_owner_walk` | `Ran 27 tests`, `OK` |
+| `test_owner_entry` | `Ran 3 tests`, `OK` |
+| `test_owner_diagnostics` | natively 9 pass, 1 error (`Unsafe private setup directory`, the Python 3.14 `lstat` fixture issue step 1 names); with `Path.lstat` routed through `Path.stat` as in 3.12: `Ran 10 tests`, `OK` |
+| `test_grub_bls`, `test_system_keyboard`, `test_stock_prepare` (read `INSTALL.md`) | `OK` each |
+| `test_ways_back_model -k test_hosted_checks_explore`, `test_ways_back -k test_one_helper_spells`, `test_ways_back_reverts -k test_a11` | `OK` each |
+| `test_owner_step_limits`, `test_checkout_sources` | see C below |
+
+### Expected red until a later step
+
+- `test_ways_back_probe` (22c's frozen receipt names version 3; step 6) and `os/ci/owner_vm.py`'s `(2, 3)`.
+- `test_owner_update` was not run here, by the rule.
+
+### JUDGMENT-CALL (for the owner, at the "try this" stage)
+
+- The words of the two labels (`install these tools, then check and title`; `export the records`), the routine box,
+  the routine STOP card and the new STOP lines (`STOP after install: check or title refused`, the `STOP tools folder`
+  lines). Changing a label or a STOP line later costs a new generated line, its tests and the guide's quotes, but no
+  tools version (they are outside the payload).
+- The board note is posted after the tools-only box too, not only after a change of what starts next (decision 8):
+  on the routine route he no longer sees the title himself, and the failed-update card works from his last title.
+
 ### Left, in order
 
-Step 2 (Opus): `bootstrap.py` lines and labels, `commands.json`, the pins, `docs/OWNER-TOOLS.md`, the guides,
-`test_owner_equality`. Then steps 3 to 7 as in the brief.
+Steps 3 to 7 as in the brief: review of steps 1 and 2 (Fable), then review 8's findings 2 and 5, their review, the
+harness mode `tools-local` with the rehearsal, the record step.

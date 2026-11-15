@@ -1,16 +1,101 @@
 {
-  "status": "rebound by package 22c's rehearsal (run 43597505549); two test files wait since the record step: os/tests/test_owner_path.py and os/tests/test_ways_back_probe.py",
+  "status": "rebound by package 22c's rehearsal (run 43597505549); since then 22c's record step changed two test files, and package 22d's steps 1 and 2 changed tool, guide, workflow and test files (the owner tools version 4, the generated lines, the guides, the checks-only job's time limit): they wait for 22d's own rehearsal, not only tests",
   "walk": "os/manifest/ci/22c/source-bindings.json",
-  "decision": "Integrator, 2026-11-13 (briefs/27b-pending-rebind.md): bound files may change again after package 27's rehearsal; each records its new checkout bytes here until the next VM rehearsal rebinds it. Only test files and the CI workflow (its checks-only job) wait now, no tool, guide or image file.",
+  "decision": "Integrator, 2026-11-13 (briefs/27b-pending-rebind.md): bound files may change again after package 27's rehearsal; each records its new checkout bytes here until the next VM rehearsal rebinds it. Since package 22d's steps 1 and 2 (integrator, 2026-11-15) tool, guide and workflow files wait here too, besides test files: 22d's own VM rehearsal (brief 22d, step 6) rebinds them; no image file waits.",
   "changes": [
     "22c record step (after rehearsal run 43597505549 rebound the sources): test_owner_path pins the 22c INSTALL-STATUS row as rehearsed, with the run link the 22c bindings name; no tool, guide or image file changed",
-    "22c fix after checks-only run 43619559359: test_ways_back_probe keeps the 22c host-walk receipt frozen after the record step (asserted equal to the bindings' walk table instead of skipped; the gate test uses it with the waiting rows' bytes) and reads removed paths from the 22c rebind's history entry; no tool, guide or image file changed"
+    "22c fix after checks-only run 43619559359: test_ways_back_probe keeps the 22c host-walk receipt frozen after the record step (asserted equal to the bindings' walk table instead of skipped; the gate test uses it with the waiting rows' bytes) and reads removed paths from the 22c rebind's history entry; no tool, guide or image file changed",
+    "22d steps 1 and 2: the owner tools take a bundle from the folder block (tools version 4, payload refreshed); bootstrap.py generates the routine lines and Claude's folder line, commands.json holds them, the guides gain the routine box first and the routine STOP card, v4's fingerprint is pinned; the checks-only job gets 40 minutes; tests follow; these tool, guide and workflow files wait for 22d's rehearsal, not only tests"
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
     {
-      "sha256": "c3785b60d8b89b0765c0f971156e49f78ac9153838f32f70f6508e9b25828a03",
+      "sha256": "c96b7a9ca4fc3b04824f9cd6f6e4450936028ce777ff0f889d16ed85b1658f82",
+      "path": ".github/workflows/os-image.yml"
+    },
+    {
+      "sha256": "1bf7a7d175ecdc795f6fa4e65021ff2bd97283d267ebe580ab2a4546dfa4c411",
+      "path": "docs/EMERGENCY.md"
+    },
+    {
+      "sha256": "cdbe69d389a643a8ea5647afbfd9289aa9884313992034e2f27e22504a393857",
+      "path": "docs/INSTALL.md"
+    },
+    {
+      "sha256": "9c0cdf6e9fcdf8f52485fe454008e80de461131739bc0663b5d115fc05199d18",
+      "path": "os/ci/rehearsal-packages.json"
+    },
+    {
+      "sha256": "79db70e1b77e6431419e56e4b97a544c9cfa4c907e31adcda313715de21b2891",
+      "path": "os/owner-tools/bootstrap.py"
+    },
+    {
+      "sha256": "f4b0a0f5673ee308d274128fe012bd4f56855d099156566442033a1e37372ae6",
+      "path": "os/owner-tools/commands.json"
+    },
+    {
+      "sha256": "5f74f16761ae3b3e86b2ba6968a901a01ab375db5543ac21249713a9a63ab292",
+      "path": "os/owner-tools/history.json"
+    },
+    {
+      "sha256": "ae8961fc5b18ae45336366f3c0d738ad541a5440529866e4d7c4d4e59e23d65e",
+      "path": "os/owner-tools/media.py"
+    },
+    {
+      "sha256": "9d1aa118314b9cb9c9a6eba8093e6e86519572cc2972e4d114323610f124b7ca",
+      "path": "os/owner-tools/owner.py"
+    },
+    {
+      "sha256": "776fe3d5c5c3b9a3405675b7c33eaba56fc2c20c843e1f16bb058866949b8fc6",
+      "path": "os/owner-tools/payload/SHA256.json"
+    },
+    {
+      "sha256": "673803dcfb0154d79f386491aa407f173edb903d67ee6f108e729151f9ced228",
+      "path": "os/owner-tools/payload/SHA256SUMS"
+    },
+    {
+      "sha256": "5f74f16761ae3b3e86b2ba6968a901a01ab375db5543ac21249713a9a63ab292",
+      "path": "os/owner-tools/payload/history.json"
+    },
+    {
+      "sha256": "ae8961fc5b18ae45336366f3c0d738ad541a5440529866e4d7c4d4e59e23d65e",
+      "path": "os/owner-tools/payload/media.py"
+    },
+    {
+      "sha256": "9d1aa118314b9cb9c9a6eba8093e6e86519572cc2972e4d114323610f124b7ca",
+      "path": "os/owner-tools/payload/owner.py"
+    },
+    {
+      "sha256": "b0610850b2136afd4136692b84b539711a8edbaa9225a99a663ca6bdefe18d20",
+      "path": "os/tests/test_owner_bootstrap.py"
+    },
+    {
+      "sha256": "07d75e5e7a50d7f229adb5d5488069785a2781f817e9ec8a51751419c7da6dbb",
+      "path": "os/tests/test_owner_diagnostics.py"
+    },
+    {
+      "sha256": "7a33e7cd3131873b5c3163a3b0273075e616136e3d0f987f1cbac8bc42fafb6d",
+      "path": "os/tests/test_owner_entry.py"
+    },
+    {
+      "sha256": "18deb68ace9116474f6ea9cef32799ac152b68895f6d3017a0ae38136c4efa0a",
+      "path": "os/tests/test_owner_equality.py"
+    },
+    {
+      "sha256": "33e6bc5c2a6c890cd4af68f4e4d577b6ded11bcb791709730ebe429b8c35dfb1",
+      "path": "os/tests/test_owner_export.py"
+    },
+    {
+      "sha256": "4f9f8863595c00b917c5bf7f4793922aeceba39271c1b575e93238b3488ee690",
       "path": "os/tests/test_owner_path.py"
+    },
+    {
+      "sha256": "f1cebd388b0875018ba539933d5017201d140a4979004e723c12d29aca4c9426",
+      "path": "os/tests/test_owner_update.py"
+    },
+    {
+      "sha256": "7a43f34abb8579bb9d07b2f76be3709b76b0f5ade604e74333f7f6d98128f01d",
+      "path": "os/tests/test_ways_back.py"
     },
     {
       "sha256": "cafb2f06aa1a43191d207948238fb4ef3e8aa0b9c20e882daef4b55db4b9ae3a",
