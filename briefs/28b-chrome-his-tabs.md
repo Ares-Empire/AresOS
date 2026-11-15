@@ -27,7 +27,9 @@ reaches his laptop): Fable 5.2, or Codex's frontier model while it is available.
 compares item 4a's "known clean" rule with main's rule for documents the reader didn't watch from their start
 (there every text field counts as unsaved), and looks for page states where the used mark and the drop-and-paste
 record miss his text: Chrome's autofill, a drop without activation, form state Chrome restores** (the lead,
-2026-11-15). The package review runs on Opus or Codex's workhorse.
+2026-11-15). **It also checks that no path discards his typing in a tab Claude has taken without his answer in
+Claude Code's prompt:** `discard_unsaved` on `chrome_go` and `chrome_do`, a closing, and typing marked as
+Claude's that is in fact his. The package review runs on Opus or Codex's workhorse.
 
 ## Background (read first)
 
@@ -282,8 +284,13 @@ keep brief 20's rule and say so (PLAN-GAP).
    what he typed in his own tab is data loss, so it gets the same managed question as a delete, not a flag Claude
    sets after asking in the chat. (For Claude's own tabs, brief 28a keeps PR #27's `discard_unsaved` flag on
    `chrome_go`, `chrome_close` and `chrome_do`, with main's rule: his typing, playing media or frames that couldn't
-   be inspected are discarded only after his OK in the chat; those tabs rarely hold his typing.) So `reload: true`
-   isn't an input of `chrome_take`. Instead:
+   be inspected are discarded only after his OK in the chat; those tabs rarely hold his typing.) **On a tab of his
+   that Claude has taken, `discard_unsaved: true` is refused whenever his typing would be lost** (the lead,
+   2026-11-15): when the report lists typing not marked as Claude's, `chrome_go` (every direction and an address)
+   and a `chrome_do` step refuse it and change nothing, and the refusal tells Claude to release the tab, or to
+   reload it through `chrome_take_reload` (which accepts a tab already taken), so that he answers in Claude Code's
+   prompt. Playing media and frames that couldn't be inspected, alone, may still go with `discard_unsaved`. Closing
+   a taken tab stays refused ("release it"). So `reload: true` isn't an input of `chrome_take`. Instead:
    - `chrome_take` without it answers `reload_required` as above, with what it found;
    - a separate tool, `chrome_take_reload` (input `tab`, `seen`, `request`), sits under the managed ask rules like
      `chrome_submit`. The service prepares it from the check it just ran and the question shows, first: which tab
@@ -633,6 +640,11 @@ owner with real keys and clicks (`owner-ui.mjs`). Every new rule gets a test tha
 - **Marked in place:** a tab taken in a window that isn't in front keeps its window and its index, and shows a
   **Claude** group around it. Two tabs taken from two windows each stay in their window. A new tab that a taken
   tab opens joins Claude's own group, as in brief 20.
+- **His typing in a taken tab is never discarded by flag:** in a tab of his that Claude took, he types into a
+  field; `chrome_go` (reload, back, forward, an address) and a `chrome_do` step, each with `discard_unsaved: true`,
+  are refused, his text is still there, and the refusal names `chrome_release` and `chrome_take_reload`; through
+  `chrome_take_reload` the reload asks him, and a refused question changes nothing. With only playing media, or only
+  Claude's own typing, `discard_unsaved: true` goes on; `chrome_close` of the taken tab stays refused.
 - **Giving back:** `chrome_release`, **Give back**, dragging the tab out of its Claude group, and **Stop** each
   restore the window, the index, his group and the pin; prepared operations for the tab are dropped and nothing
   is sent. In detail: a tab from the middle of one of his groups is back at its index inside that group; the only
