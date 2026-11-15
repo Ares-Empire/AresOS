@@ -1,7 +1,142 @@
 # Brief 20 main fix: progress
 
 Builder step 1 (Claude Fable 5.2, 2026-11-15): diagnoses and the H1 fix. Builder step 2 (Claude Fable 5.2, 2026-11-15):
-H2, H3, H4, H5 built on the lead's decisions. Builder step 3 (Claude Opus 5.5, 2026-11-15): H6 and security NOTEs 1–3. Brief: `briefs/20-main-fix.md`. Branch `pkg/20-main-fix`.
+H2, H3, H4, H5 built on the lead's decisions. Builder step 3 (Claude Opus 5.5, 2026-11-15): H6 and security NOTEs 1–3.
+Builder step 4 (Claude Opus 5.5, 2026-11-15): the package review's F1 and F2, security NOTE 4, review NOTEs (a) to (c),
+the altered-subject refusal, the final preflight and the final runs. Brief: `briefs/20-main-fix.md`. Branch `pkg/20-main-fix`.
+
+## Handover (step 4)
+
+Builder step 4 (Claude Opus 5.5, 2026-11-15): everything the lead scoped for step 4, then the one final set of runs.
+- **Done:** F1 (off main the plan qualifies the head build again; identical repeat skipped, conflicting repeat fails
+  the PR; off-main candidates never carry main's bytes), security NOTE 4 (read-only token step fetches the held
+  record's bundle list; the token-free PR publish seeds origin's data branch by `git fetch` and verifies the held
+  record from that file under main's policy), F2 (the recording survives the 404, bounded backoff, clear failure;
+  404 modelled in `bundle_from_api`, `attestation.py` and tests), NOTEs (a) to (c), the altered-subject refusal.
+  Code `5de22178`; details under "Step 4: what was built".
+- **Local:** full preflight on `5de22178` green (**329 Python, 428 Node, 512 removal mutations rejected**, 21 new);
+  record `reviews/20-main-fix/records/final-local-5de22178.json`.
+- **Runs:** the final push (the commit that adds this handover, no `[skip ci]`) starts qualification run 4 of 6 and
+  `Control Chrome` run 2 of 2 on the PR; their results follow in the next commit.
+- **Decision for the lead (not blocking, reversible):** off main, `prepare` writes the candidate indented instead of
+  compact, so a pull request never attests the exact bytes main published (with F1 an identical repeat would
+  otherwise add one attestation per PR run to the real record's listing, which the laptop and main read one page of
+  100 and at most 4 MiB of). Main's bytes are unchanged. The alternative is to skip attest and publish off main when
+  nothing is new, which would also skip the second-run path NOTE 4 asks for.
+- **Left:** the lead's re-check. Ready for the lead's re-check once the runs below are green.
+
+## Step 4: what was built (`5de22178`)
+
+**F1. Off main the plan qualifies the head build again** (`qualify.py`, workflow, `test_publisher.py`).
+- `plan(..., requalify_head=False)`: a pair the held record covers is skipped as before, except the head build's
+  pairs when `requalify_head` is set. The CLI sets it from the run's ref (`GITHUB_REF != refs/heads/main`, the same
+  `on_main` the publication guard uses), so pull requests and branch runs qualify the head build on stable even after
+  main has published it; main's plan is unchanged (shipped builds stay skipped everywhere).
+- `prepare` is unchanged: an identical repeat adds nothing, a conflicting repeat (same build, version and channel,
+  another verdict) raises `Conflicting repeat for an immutable qualification pair; publish nothing`, so the PR's
+  publish job fails and writes no candidate. Never relaxed, never overwritten.
+- **Added (my call, see "Decision for the lead"):** off main the candidate is written indented
+  (`serialized(record, on_main)`); main writes the compact bytes as before. Without it an identical repeat would make
+  the PR attest exactly the bytes main published, and every such PR run would add one more attestation to the listing
+  the laptop and main read for the real record (one page of 100, at most `DELIVERY_LIMIT` bytes). Content and every
+  check are unchanged; the PR-mode check compares JSON, not bytes.
+- Tests: `Publisher.test_off_main_the_plan_qualifies_the_head_build_again_while_main_skips_what_is_held` (unit, and the
+  real `plan` CLI against a local origin whose data branch holds the head build: main → no rows, `refs/pull/9/merge`
+  and a branch ref → the head build's stable pair twice); `Publisher.test_off_main_an_identical_repeat_is_skipped_and_a_conflicting_one_fails_the_pull_request`
+  (the real `prepare` CLI against a local origin with a data branch: identical repeat on a PR → candidate equals the
+  held record, indented; on main → the compact bytes; conflicting repeat on a PR → `ValueError`, no candidate).
+
+**Security NOTE 4. The PR-mode publish runs the second-run path** (workflow, `qualify.py`, `test_publisher.py`).
+- New read-only step "Fetch the held record's attestations for the pull-request publish (read only)" (PR-mode
+  condition, `GH_TOKEN`, runs only `qualify.py held-bundles --output .work/held-bundles.jsonl`): when
+  `refs/remotes/origin/chrome-qualification` exists it takes that record's exact bytes (the data branch `prepare` just
+  fetched and extended) and writes its bundle list through `bundle_from_api` (same serialization and bound as the
+  product); without a data branch it writes nothing and says so.
+- The PR-mode publish step stays token-free. It seeds `.work/publish-remote.git` with `origin/main` and, when it
+  exists, `origin/chrome-qualification`, both by `git fetch "$PWD"` (no `git push` in any `run:`), and runs
+  `publish ... --held-bundle .work/held-bundles.jsonl`. `--held-bundle` makes the held verifier `held_from_file`:
+  `verify(path, bundle=<file>)` with the unchanged main policy; with a data branch and no file it refuses. The CLI
+  refuses `--held-bundle` for a publication to origin (main keeps `verify_held` through `gh api`).
+- Tests run **both steps as written** (`workflow_steps.StepRunner`: the step's `run:` body under `bash -e`, its own
+  `env:` applied, stand-in `gh` and `sleep` on `PATH`, no network) against local repositories shaped like the publish
+  job's checkout: `PullRequestPublish.test_without_a_data_branch_...` (read step writes nothing; publish verifies only
+  the fresh bundle on the PR ref and cuts the data branch from main), `..._with_a_data_branch_the_held_record_is_verified_from_the_read_steps_list_under_main_policy_then_appended`
+  (read step: one `gh api` call for the held record's digest, with the token; publish: the candidate on the PR ref and
+  the held record's exact bytes under `refs/heads/main` from `.work/held-bundles.jsonl`, no `gh api`, no token, the
+  local data branch appended to the seeded commit, `main` unmoved; a new pair and an identical repeat),
+  `..._a_held_record_without_a_listing_or_a_bundle_list_refuses_and_nothing_moves` (API 404 → the read step fails;
+  publish without the file fails, data branch unmoved). The step-3 "no `GH_TOKEN`" check now reads the parsed step:
+  no token key or `github.token`/`secrets.` value in the publish step, and the read step is exactly its condition,
+  `env.GH_TOKEN` and its one command.
+
+**F2. The `gh api` recording survives the 404** (workflow, `attestation.py`, `qualify.py`, tests).
+- The recording is its own step "Record this run's attestation API response with the job's token" (`GH_TOKEN` only
+  there): six attempts, `gh api ... > .work/attestation/api-response.json || true`, the response decides (a non-empty
+  `attestations` list), 10 s between attempts (none after the last), then
+  `::error::The attestation API listed no attestation for this run's record after 6 attempts over 50 s ...` and exit 1.
+  "Retain this workflow's real Sigstore bundle and test altered copies" no longer holds a token (it verifies only from
+  bundles; the minimal-environment case already ran token-free in run 3).
+- `bundle_from_api` refuses gh's `(HTTP 404)` like an empty list (`NOT_LISTED`); any other gh failure propagates.
+  `attestation.py`: `listed()` reads a recording (404 body, empty list, empty file, other shapes → nothing), and the
+  anonymous path's negative cases add "nothing listed 404" beside the empty list.
+- Tests: `Workflow.test_the_api_recording_survives_the_404_of_a_not_yet_listed_attestation` runs the step as written:
+  404, 404, listed → passes after 3 calls and 2 sleeps; empty list then listed; no answer then listed; six 404s →
+  exit 1 with the message, 6 calls, 5 sleeps. `RecordingOpener.test_a_recorded_404_an_empty_list_or_no_json_lists_nothing`;
+  the product's `verify()` through the recording refuses 403, **404**, 429, 500 and the empty list; the
+  `bundle_from_api` cases in `test_held_record_bundle_comes_from_gh_api_with_the_job_login`.
+
+**NOTE (a). Conditions and run bodies however written** (`control/chrome_tests/workflow_steps.py`, new helper, no test
+file added). PyYAML is not in the test environment (not importable here), so a careful matcher follows the block
+structure by indentation (a `- ` item opens a mapping) and joins each value's continuation: `- if:` as a step's
+first key, `if: >-`/`|` with the condition below, `if:` with the value on the next line, a plain scalar continued on
+deeper lines; the same for `run:`. `workflow_conditions` and `workflow_runs` now come from it; on both real workflows
+they find exactly what the old matchers found (17/17 and 11/11 conditions, 17/17 and 9/9 run bodies). Conditions
+that start with a YAML alias or anchor fail the test. Test `Workflow.test_conditions_and_run_bodies_are_found_however_written`.
+
+**NOTE (b).** The publisher's group is `${{ github.ref == 'refs/heads/main' && 'chrome-qualification-publisher' ||
+format('chrome-qualification-publisher-{0}', github.ref) }}`: main's group is exactly the old one, every other ref has
+its own. Test `Workflow.test_the_publisher_keeps_main_s_group_and_gives_every_other_ref_its_own`.
+
+**NOTE (c).** `bundle_url` (the expired signed link) is trimmed from `42687597384/api-response.json` (12,025 bytes;
+`bundle`, `initiator`, `repository_id` kept; README says so). The replay tests pass, and the trimmed list still
+verifies with the real `gh attestation verify` on this Mac (branch policy exit 0; main policy exit 1, `expected
+SourceRepositoryRef to be refs/heads/main`). Test `RecordingOpener.test_the_retained_fixture_holds_no_signed_link`.
+
+**Altered subject** (`attestation.py`): `altered_subject()` counts the case refused only through `refused(...,
+POLICY, ...)` (a `CalledProcessError` naming `verifying with issuer "sigstore.dev"`), restoring the subject's bytes
+either way. gh's wording reproduced on this Mac with gh 2.94 against the retained fixture plus one byte (`Error:
+verifying with issuer "sigstore.dev"`, exit 1; sigstore-go checks the subject digest inside the policy verify). Test
+`RecordingOpener.test_an_altered_subject_counts_only_as_ghs_named_policy_refusal`. The two held-history rollback cases
+and the publisher refusals below it still catch any exception (outside this step's scope; a follow-up could expect
+`Refused('qualification_rollback')` there the same way).
+
+**Probes (21 new, all rejected, each for its stated reason;** `.work/20-main-fix/step4-mutations.json`, 26 of 26 with
+the step-3 `mainfix-sec-*`): `mainfix-f1-plan-skips-the-held-head-off-main`, `-plan-requalifies-on-main`,
+`-conflicting-repeat-relaxed`, `-pull-request-attests-main-bytes`, `-pull-request-seeds-main-only`,
+`-held-record-through-gh-api`, `-held-record-under-the-pull-request-ref`, `-held-record-unchecked-without-a-list`,
+`-origin-publish-accepts-a-held-bundle`; `mainfix-f2-recording-ends-on-the-first-404`,
+`-recording-passes-after-the-last-attempt`, `-gh-404-not-a-refusal`, `-listing-trusts-any-shape`;
+`mainfix-note-a-step-if-as-first-key`, `-job-if-block-scalar`, `-job-if-plain-continuation`, `-step-if-on-the-next-line`,
+`-run-plain-continuation` (the old matchers pass all five of these mutations; checked); `mainfix-note-b-shared-publisher-group`;
+`mainfix-note-c-fixture-signed-link`; `mainfix-sec-altered-subject-any-exception`. Step 3's
+`mainfix-sec-pull-request-publish-token` still applies unchanged (a token in the publish step's `env:`).
+
+**Local verification (step 4).** Full preflight on `5de22178`
+(`reviews/20-main-fix/records/final-local-5de22178.json`, the step-3 driver with its Node count pattern fixed to read
+Node's `ℹ tests N` line): **329 Python** (shards 66/57/49/157; the Linux-only socket case skipped on the Mac), **428
+Node**, **512 removal mutations rejected** with every baseline passing (491 + 21), generator check, `git diff --check`,
+the service unit byte-identical to `8b7e799c`. The touched suites also pass from a foreign working directory with no
+`PYTHONPATH` (the qualification layout's shape). No browser was started.
+
+**What the code doesn't show.**
+- `prepare`'s `git fetch origin chrome-qualification` also updates `refs/remotes/origin/chrome-qualification` (git
+  updates the remote-tracking ref of a configured refspec, which actions/checkout sets), so the read step and the
+  seeding use exactly the record `prepare` extended. Were it stale, a main publication between checkout and `prepare`
+  would make the PR's `append_only(held, candidate)` refuse: fail closed, never a wrong pass.
+- `origin/chrome-qualification` still does not exist, so this PR's runs take the first-record path; the second-run
+  path is proven by the local step tests and runs in CI from the first PR after main's first publication.
+- Once main has published, every PR touching `control/**` keeps running the head build's stable matrix (28 pair jobs
+  plus combines), as this PR's runs already do: no new cost against run 3.
 
 ## Handover (step 3)
 
@@ -10,7 +145,7 @@ Builder step 3 (Claude Opus 5.5, 2026-11-15): H6 (the lead's addition) and secur
 - **Done:** H6 (`ddac1f34`), security NOTEs 1–3 (`c4ffa69c`), this file and the preflight record. Local: popup and
   fixture Node suites green, the touched Python tests green, 8 new removal probes rejected (27 `mainfix-` probes now),
   full local preflight under "Step 3: local verification".
-- **Left for step 4, in order:** the package review's F1 (plan re-qualifies the head build on stable off main; a
+- **Left for step 4 (all done in step 4, above), in order:** the package review's F1 (plan re-qualifies the head build on stable off main; a
   conflicting repeat on a PR fails; seed the PR-mode bare remote with `origin/chrome-qualification` when it exists,
   which is security NOTE 4, now required), F2 (the `gh api` retry loop survives the 404 for a digest with no
   attestations; model the real 404 in `attestation.py`, `test_publisher.py` and `bundle_from_api`, keep the empty-list
