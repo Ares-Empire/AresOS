@@ -141,7 +141,9 @@ samples; confirmed by the capture in "Step 3" below).
   and onboarding shards fail only `test_all_flows_all_storage_modes_independent_views` against the old pin, after
   writing their complete lists. `sweep (0, 0)` also fails `test_matrix_contracts`: two contract groups changed digest
   with the same count (E renumbering, as in 43702462699). The runners were busy; the run took 2 h 35 min.
-- Dispatch 2, proof: PROOF-PENDING.
+- Dispatch 2, proof: **43738332693** on `96bb1a03` (the re-pin): **green, all 61 jobs** (ledger, 12 alteration
+  shards, 48 strict sweep and onboarding shards; 61 minutes). Its 53 fresh lists, regenerated with `regen2.sh`,
+  reproduce `KNOWN-GAPS.json` byte for byte (same SHA-256 and size).
 
 ### Pin
 
@@ -165,8 +167,8 @@ pin.
 | C4 | 0 | 0 | exact |
 | C5 | about 48 (44 missing-only, 2 `restore-lock`, 2 closed) | 44 + 2 + 2 | exact |
 | C-pairs | hundreds of cases | 1,071 cases / 60,722 keys | as predicted |
-| D | the pin's 83 gaps back, 0 differences | 0 differences; all 100 exhausted read-status gaps of `expiry` and `maintenance` present unchanged | see below (82, not 83) |
-| E | 0 fixed keys changed | 0 of 377 | exact |
+| D | the pin's 83 gaps back, 0 differences | no D difference; all 100 exhausted read-status gaps of `expiry` and `maintenance` present, 98 unchanged, 2 changed in the expected set only (C2 keys) | see below (82, not 83) |
+| E | 0 fixed keys changed | 0 of 377; 36,241 cleanup-free keys differ only by numbering (16,387 by alias numbers alone) | exact; see below |
 
 No `OTHER`, `SHOWS MORE`, `D`, old-only pair cases or E changes.
 
@@ -190,8 +192,18 @@ No `OTHER`, `SHOWS MORE`, `D`, old-only pair cases or E changes.
   onboarding or export flow; weighted by real case counts, onboarding (1,483 locked cases, 17.2 each) and the send
   flows (20 each) dominate: 14.8 per locked case. Every key is missing-only (no fact shown that the pin did not show,
   except a count lower than expected).
-- **D, 82 not 83.** Recounted: 43702462699 had lost 82 of the pin's exhausted read-status gaps (`expiry` 50,
-  `maintenance` 32); all 82 are back unchanged. The trace's 83 was a miscount.
+- **D, 82 not 83.** Recounted: 43702462699 had lost 82 of the pin's 100 exhausted read-status gaps in `expiry` and
+  `maintenance` (`expiry` 50, `maintenance` 32); all 82 are back unchanged. The trace's 83 was a miscount. Of the
+  100, 98 are unchanged; 2 changed their expected set only (`expiry/persistent/64→68/0/exhausted` and
+  `maintenance/persistent/61→61/0/exhausted`, `response.control_pending.status`): they still observe
+  `storage_limit`, now against `["allowed","journal_incomplete"]` instead of `["restore_required"]`. Both are C2 keys,
+  counted in C2's 308 (found by the lead's reviewer).
+- **E, numbering at aligned points.** Besides the 377 fixed keys, 36,241 cleanup-free sweep keys at aligned points
+  differ from the pin in text but are equal after the trace's normalisation; they are counted under "pair-0 same".
+  16,387 differ only by alias numbers, each a consistent renaming (`repair` 8,280, `settlement` 6,067, `filing_move`
+  1,595, `filing_rename` 307, `filing_copy` 138); 19,854 also by scripted IDs, export directories or fact order. The
+  lead's reviewer counted 5,765 alias-only keys (`filing_move` 5,724, `repair` 41) with another definition; these
+  figures count every key whose text differs only in its `#N` numbers.
 
 ### Reviewer's C2 check (via the lead)
 

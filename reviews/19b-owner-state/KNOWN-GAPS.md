@@ -490,7 +490,9 @@ digests changed by renumbering alone (class E). This is a capture, not green
 verification. All 53 lists merge without conflicting shared keys, and every
 flow's clean-run point count equals capture 43702462699's.
 
-**Proof:** pending (dispatch 2 on the re-pinned head).
+**Proof:** dispatch 43738332693 on `96bb1a03` (this pin), attempt 1: green, all 61 jobs
+(ledger, 12 alteration shards, 48 strict sweep and onboarding shards). Its 53 fresh lists
+merge to the same 2,622,072 keys and reproduce `KNOWN-GAPS.json` byte for byte.
 
 Regenerate from the downloaded artifacts (`gh run download 43722918063 -D .work/185/capture/43722918063`):
 
@@ -526,8 +528,8 @@ points aligned per flow with the trace's alignment of the pin to capture
 | C4. Continuation to a refused route | 0 differences: the pin's gaps | `3389d862`, fixed by `1e770483` |
 | C5. The restore flow's last point (68, now 75), persistent | 48: 44 new missing-only envelope and notice keys, 2 new `control_pending.restore-lock`, 2 closed | pre-existing |
 | C-pairs | 1,071 pair cases (60,722 keys) equal to an old pair case outside the lock views | follows C1–C5 |
-| D. Exhausted reads after a background storage failure | 0 differences: all 100 exhausted read-status gaps of `expiry` and `maintenance` are back, including the 82 that 43702462699 had lost | `ad331af5` (oracle) |
-| E. Identity renumbering | 0 of 377 fixed keys changed after normalisation | `baed6679` |
+| D. Exhausted reads after a background storage failure | No D difference: all 100 exhausted read-status gaps of `expiry` and `maintenance` are present, including the 82 that 43702462699 had lost. 98 are unchanged; 2 (`expiry` persistent 64→68 and `maintenance` persistent 61, `response.control_pending.status`) still observe `storage_limit` and changed their expected set only, from `restore_required` to `allowed`/`journal_incomplete`: they are C2 keys, counted in C2's 308 | `ad331af5` (oracle) |
+| E. Identity renumbering | 0 of 377 fixed keys changed after normalisation. At aligned points, 36,241 cleanup-free sweep keys differ in text only by numbering and are counted under "Unchanged": 16,387 only by alias numbers, each a consistent renaming (`repair` 8,280, `settlement` 6,067, `filing_move` 1,595, `filing_rename` 307, `filing_copy` 138), and 19,854 also by scripted IDs, export directories or fact order | `baed6679` |
 
 Unchanged: 1,016,218 cleanup-free keys and 14,954 pair cases (530,467 keys).
 
