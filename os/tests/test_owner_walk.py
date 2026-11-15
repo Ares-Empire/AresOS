@@ -45,6 +45,9 @@ PROBE_STAGES = UPDATE_STAGES[:5] + [f'walk-{n}-booted' for n in range(1, 7)] + [
 WAYS_BACK_STAGES = UPDATE_STAGES[:5] + ['intl-27', 'trial-27', 'abandon-27', 'back-13', 'forward-27', 'stock-1', 'forward-27b',
                                         'back-13b', 'forward-27c', 'menu-27', 'forward-27d', 'menu-stock', 'stock-2',
                                         'forward-27e', 'cut-stock', 'final-27']
+# Package 22d's rehearsal (os/ci/tools_local.py): package 27's route up to release 27 confirmed, the
+# dialog stages up to the cut, the restart after it (install, tamper, the next version, exports), the end.
+TOOLS_LOCAL_STAGES = UPDATE_STAGES[:5] + ['cut-27', 'final-27']
 QUALIFICATION_STAGES = ['stock','tools-stock','corrected-stock','layout-reset-trial','layout-reset-recovery','aresos','aresos-intl','aresos-back-de','rollback-stock','default-stock']
 
 
@@ -240,12 +243,150 @@ class Oracle:
         raise AssertionError('The modelled rollback was not cut')
 
 
+class ToolsLocal:
+    """Package 22d's guest as the walk models it: the caller each stage writes (its parameters read back from
+    the program the harness sends), the window of the sudo it starts, the keys and the password the harness
+    gives that window, and what the line then does to the installed tools. Nothing here comes from what the
+    harness expects: the label is read from the line the caller would run, the outcome from the answer the
+    walk saw typed or pressed, so a harness that answers the wrong window or reads the wrong line fails."""
+    LOCAL = ('-keyrings', '-keyrings-after', '-state', '-dialog', '-caller-result', 'tl-cut-armed', 'tl-cut-frozen',
+             'tl-install-records', 'tl-install-receipt', 'tl-export-access', 'tools-next-install-owner-result',
+             'export-version-2-stick-owner-result')
+
+    def __init__(self, typed, media, ares_password):
+        self.typed, self.media, self.ares_password = typed, media, ares_password
+        self.commands = json.loads((ROOT / 'os/owner-tools/commands.json').read_text())
+        self.head = hashlib.sha256((ROOT / 'os/owner-tools/payload/SHA256SUMS').read_bytes()).hexdigest()
+        self.version = json.loads((ROOT / 'os/owner-tools/payload/history.json').read_text())['tools_version']
+        self.callers, self.windows, self.escaped, self.tampered = {}, {}, False, False
+        self.signalled = []
+        self.machine = dict(tools=vm.TOOLS_V2, entry='tools-' + vm.TOOLS_V2 + '/at', journal=None, records=[], bootstrap=[], folder=None)
+
+    def next_tools(self):
+        import tools_local
+        return hashlib.sha256((vm.td.WORK / 'tools-next' / 'SHA256SUMS').read_bytes()).hexdigest()
+
+    def command(self, name, source):
+        if name.endswith('-caller-prepare'):
+            stage = name.removesuffix('-caller-prepare')
+            encoded = re.findall(r"printf %s '?([A-Za-z0-9+/=]+)'? \| base64 -d > /run/aresos-caller-[a-z0-9-]+\.py", source)
+            program = base64.b64decode(encoded[0]).decode()
+            params, = re.findall(r'^P=json.loads\((.*)\)$', program, re.M)
+            self.callers[stage] = json.loads(ast_literal(params))
+        if name == 'tl-tamper':
+            self.tampered = True
+
+    def answers(self, name):
+        return name in self.LOCAL or name.endswith(self.LOCAL)
+
+    def lines(self, stage):
+        params = self.callers[stage]
+        return dict(params['lines'], **{step: self.commands[entry] for step, entry in params['entries'].items()})
+
+    def answer(self, guest, name):
+        machine = self.machine
+        if name.endswith(('-keyrings', '-keyrings-after')):
+            return []
+        if name.endswith('-state'):
+            return dict(copy.deepcopy(machine), toolsets=sorted({machine['entry'].split('/')[0]} | (
+                {'tools-' + machine['journal']['manifest']} if machine['journal'] else set())))
+        if name.endswith('-dialog'):
+            stage = name.removesuffix('-dialog')
+            words = shlex.split(self.lines(stage)['routine'])
+            pid = 900 + 10 * len(self.windows)
+            self.windows[stage] = dict(helper=pid + 1, sudo=pid, typed=len(self.typed))
+            self.escaped = False
+            return dict(status='window', sudo=pid, helper=pid + 1, parent=pid, uid=1001,
+                        argv=['/usr/bin/ksshaskpass', words[words.index('-p') + 1]], keyrings=[])
+        if name.endswith('-caller-result'):
+            return self.run(name.removesuffix('-caller-result'))
+        if name == 'tl-cut-armed':
+            return dict(status='watching', entry_before=machine['entry'])
+        if name == 'tl-cut-frozen':
+            # The tools stopped with the copy complete and the entry still on the old tools.
+            machine['journal'] = dict(phase='publish', manifest=self.head, source='folder', previous=vm.TOOLS_V2,
+                                      tools_version=self.version)
+            return dict(status='frozen', pid=4243, state='T', phases=['copy', 'publish'], phase_after='publish',
+                        entry_before=machine['entry'], entry_after=machine['entry'],
+                        toolsets=sorted([machine['entry'].split('/')[0], 'tools-' + self.head]))
+        if name == 'tl-install-records':
+            return list(machine['records'])
+        if name == 'tl-install-receipt':
+            receipt = machine['records'][-1]
+            assert receipt.endswith('-tools-update.json')
+            return dict(status='passed', command=['install'], manifest=self.head, previous_manifest=vm.TOOLS_V2,
+                        previous_version=2, tools_version=self.version, source='folder', finished_from='folder',
+                        caller=dict(login_uid=1001, terminal=False), trace=[])
+        if name == 'tl-export-access':
+            return dict(files=3, ares_read=True, other_refused=True)
+        if name == 'tools-next-install-owner-result':
+            assert machine['tools'] == self.head and self.media.fingerprint == self.next_tools()
+            machine['tools'] = self.media.fingerprint
+            return dict(status='passed', trace=[], manifest=self.media.fingerprint, previous_manifest=self.head,
+                        previous_version=self.version, tools_version=self.version + 1, source='stick')
+        if name == 'export-version-2-stick-owner-result':
+            stale = ([] if self.media.fingerprint == machine['tools'] else
+                     ['The stick holds tools this laptop installed before (SHA256 ' + self.media.fingerprint + '), not the installed ones'])
+            return dict(status='passed', trace=[], result=['Records copied with SHA256 readback', *stale,
+                                                           'SAFE TO REMOVE ARESTOOLS; unplug before every shutdown/restart'])
+        raise AssertionError('Unwalked tools-local response: ' + name)
+
+    def run(self, stage):
+        """The caller's result: its lines, then what the line does with the answer the window got."""
+        params, lines, machine = self.callers[stage], self.lines(stage), self.machine
+        done = dict(uid=1001, loginuid='1001', stdin_terminal=False, terminal=False, tty_errno=6, wayland=True,
+                    runtime='/run/user/1001', line_sha256={step: hashlib.sha256(line.encode()).hexdigest() for step, line in lines.items()})
+        if 'folder' in params['steps']:
+            done['folder'] = dict(status=0, stdout='', stderr='')
+            machine['folder'] = params['commit']
+        window = self.windows[stage]
+        answered = any(text == self.ares_password + '\n' for text, _ in self.typed[window['typed']:])
+        routine = dict(signalled=[], helper=window['helper'], helper_gone=True)
+        words = shlex.split(lines['routine'])
+        label = words[words.index('-p') + 1]
+        if self.escaped or not answered:
+            assert self.escaped or params['unanswered'], 'A window nobody answers and no caller closes'
+            if not self.escaped:
+                routine['signalled'] = [window['helper']]
+                self.signalled.append(window['helper'])
+            routine.update(status=1, stdout='', stderr='sudo: no password was provided\n')
+        elif ': export the records' in label:
+            routine.update(status=0, stdout='Records exported\nPASS export\n', stderr='')
+        else:
+            machine['bootstrap'].append('/run/ares-bootstrap.' + str(len(machine['bootstrap'])))
+            refusal = 'STOP bootstrap: verification or install refused\n'
+            if label.startswith('AresOS owner tools ' + tools_local_v3()[:8]):
+                routine.update(status=1, stderr='', stdout='STOP: Tools update runs only from the physical recovery console\n' + refusal)
+            elif self.tampered:
+                routine.update(status=1, stderr='sha256sum: WARNING: 1 computed checksum did NOT match\n', stdout=refusal)
+            else:
+                assert machine['journal'] and machine['journal']['phase'] == 'publish', 'The walk installs only after the cut'
+                machine.update(tools=self.head, entry='tools-' + self.head + '/at', journal=dict(machine['journal'], phase='complete'))
+                machine['records'].append('records/20261115T120000.000000Z-tools-update.json')
+                routine.update(status=0, stderr='', stdout='Tools updated\nPASS install\nPASS check\nPASS title\n')
+        done['routine'] = routine
+        if 'no-ticket' in params['steps'] and routine['status'] == 0:
+            done['no_ticket'] = dict(status=1, stderr='sudo: a password is required\n')
+        return done
+
+
+def tools_local_v3():
+    import tools_local
+    return tools_local.TOOLS_V3
+
+
+def ast_literal(text):
+    import ast
+    return ast.literal_eval(text)
+
+
 def walk(ps2=False, route='qualification'):
-    assert route in ('qualification', 'update', 'reorder-probe', 'ways-back')
-    laptop = route in ('update', 'reorder-probe', 'ways-back')
+    assert route in ('qualification', 'update', 'reorder-probe', 'ways-back', 'tools-local')
+    laptop = route in ('update', 'reorder-probe', 'ways-back', 'tools-local')
     stages = dict(qualification=QUALIFICATION_STAGES, update=UPDATE_STAGES)
     stages['reorder-probe'] = PROBE_STAGES
     stages['ways-back'] = WAYS_BACK_STAGES
+    stages['tools-local'] = TOOLS_LOCAL_STAGES
     owner_words = {command: name for name, command in vm.COMMANDS.items()}
     oracle = [None]
     # The walk's own /var/lib/ares entry (InstalledTools): which toolset is installed, and the
@@ -306,6 +447,8 @@ def walk(ps2=False, route='qualification'):
         def command(self, name, source, **kw):
             syntax(name, source)
             commands.append((name, source))
+            if route == 'tools-local':
+                local.command(name, source)
             if name.endswith('-prepare-input'):
                 self.physical_case = name.removesuffix('-prepare-input')
             if name.endswith('-input-result'):
@@ -448,6 +591,8 @@ def walk(ps2=False, route='qualification'):
                 index, = re.findall(r"^argv=\['ostree', 'admin', 'set-default', '([0-9]+)'\]$", script, re.M)
                 return disk.set_default(int(index))
             if disk is not None and name.endswith('-bls-entries'): return disk.inventory()
+            if route == 'tools-local' and local.answers(name):
+                return local.answer(self, name)
             if route == 'ways-back':
                 # The rehearsal's own captures; from tools version 3 on, the tools themselves answer.
                 if name == 'tools-3-install-owner-result':
@@ -527,6 +672,8 @@ def walk(ps2=False, route='qualification'):
             assert args['hold-time'] == 30
             assert all(k['type'] == 'qcode' for k in args['keys'])
             keys = [k['data'] for k in args['keys']]
+            if route == 'tools-local' and keys == ['esc']:
+                local.escaped = True
             if self.menu:
                 # The boot menu takes the keys; Enter starts the row under the cursor.
                 self.menu = not disk.key(keys)
@@ -600,9 +747,15 @@ def walk(ps2=False, route='qualification'):
             if stage == 'tools-3':
                 # The rehearsal's second copy: this checkout's bundle (version 3) over version 2.
                 assert route == 'ways-back' and source is None and self.fingerprint == vm.TOOLS_V2
+            elif route == 'tools-local' and stage in ('tools-next', 'export-version-2'):
+                # Package 22d: the harness-built next version over version 2, then version 2 again.
+                assert source is not None and self.fingerprint == (vm.TOOLS_V2 if stage == 'tools-next' else local.next_tools())
+                self.fingerprint = local.next_tools() if stage == 'tools-next' else vm.TOOLS_V2
+                checks.append(stage + '-windows-copy')
+                return
             else:
-                # Package 22c's routes copy version 2 from history; the update rehearsal copied its checkout's payload.
-                assert self.fingerprint == vm.LAPTOP_TOOLS and (source is not None) == (route in ('reorder-probe', 'ways-back'))
+                # Package 22c's and 22d's routes copy version 2 from history; the update rehearsal copied its checkout's payload.
+                assert self.fingerprint == vm.LAPTOP_TOOLS and (source is not None) == (route in ('reorder-probe', 'ways-back', 'tools-local'))
             self.fingerprint = vm.TOOLS_V2 if source is not None else common.bundle.check(ROOT / 'os/owner-tools/payload')
             checks.append(stage + '-windows-copy')
         def attach(self, guest, stage):
@@ -621,6 +774,7 @@ def walk(ps2=False, route='qualification'):
     guest_media = [None]
     cut = [None]
     media = Media()
+    local = ToolsLocal(typed, media, 'abcdefghijklmnopqrstuvwx')
 
     def snapshot(guest, stage):
         if route == 'ways-back' and guest.stage not in UPDATE_STAGES[:4]:
@@ -676,7 +830,16 @@ def walk(ps2=False, route='qualification'):
         if disk is not None:
             stack.enter_context(patch.object(vm.rp, 'start_at_menu', side_effect=lambda p, h, s: Guest(s, menu=True)))
             stack.enter_context(patch.object(vm.rp, 'read_screen', side_effect=lambda guest, name: disk.screen()))
-        if route == 'ways-back':
+        if route == 'tools-local':
+            import subprocess, tools_local
+            # The walk builds its stand-in origin from this checkout's HEAD, as the VM does from its commit.
+            head = subprocess.check_output(['git', '-C', str(ROOT), 'rev-parse', 'HEAD'], text=True).strip()
+            stack.enter_context(patch.dict(os.environ, GITHUB_SHA=head))
+            stack.enter_context(patch.object(vm.td, 'WORK', pathlib.Path(temporary)))
+            tools_local.rehearsal(vm, audit, media, 'yz-/!ü0123456789abcdef', 'SYNTHETIC-HASH', 'abcdefghijklmnopqrstuvwx',
+                                  pathlib.Path(temporary) / 'tools-version-2')
+            result = json.loads((pathlib.Path(temporary) / 'tools-local-rehearsal-result.json').read_text())
+        elif route == 'ways-back':
             oracle[0] = Oracle(stack, disk, old_reference, new_reference)
             vm.ways_back_rehearsal(audit, media, 'yz-/!ü0123456789abcdef', 'SYNTHETIC-HASH', 'abcdefghijklmnopqrstuvwx',
                                    pathlib.Path(temporary) / 'tools-version-2')
@@ -707,7 +870,7 @@ def walk(ps2=False, route='qualification'):
     assert {'prepared-unattended-windows','offline-roundtrip-unattended-windows','offline-roundtrip-detached-windows','final-unattended-windows','final-detached-windows'} <= set(markers)
     assert checks.index('tools-stock-hotplug') < checks.index('tools-stock-detach') < checks.index('tools-stock-reboot-tools-absent')
     return dict(stages=visits, commands=commands, typed=typed, visible_blocks=visible_blocks, checks=checks, markers=markers,
-        physical_cases=physical_cases, result=result, disk=disk, tool_readers=tool_readers,
+        physical_cases=physical_cases, result=result, disk=disk, tool_readers=tool_readers, local=local,
         prompt_waits=sorted(prompt_waits), fresh_idle_answers=idle_answers, resyncs=events,
         hidden_reads=hidden_reads, hidden_shapes=hidden_shapes, wait_shapes=wait_shapes)
 

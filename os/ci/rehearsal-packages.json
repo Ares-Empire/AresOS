@@ -150,7 +150,7 @@
   "22d": {
     "branch": "pkg/22d-tools-without-stick",
     "start": "first-dispatch",
-    "minute_cap": 1200,
+    "minute_cap": 2400,
     "full_cap": 0,
     "part_b_cap": 0,
     "dispatch_caps": {
@@ -172,6 +172,6 @@
       "checks": "OS regressions only (no VM)",
       "tools-local": "Two-disk rehearsal (tools-local)"
     },
-    "budget": "briefs/22d-tools-without-stick.md: 20 checks-only runs, 4 VM dispatches and 1200 minutes. The four checks-only runs dispatched on the branch before this entry existed (43669481694 cancelled, 43673689888, 43677461596, 43680654211) count against the 20 and the minutes, as every run on the branch does (start: first-dispatch). The VM mode is tools-local, package 27's route to release 27 and then the owner tools from the desktop's password window (the brief's walk); its job bounds are 22c's (345 for the job, 315 for its VM step), since the walk starts with the same route, so the minutes allow three VM reservations at most beside a few checks runs: the minute cap, not the dispatch cap, is the real bound. Every guard is 22c's: the per-run reservation and job bounds, the checks cap, the model gate, the native gate in its own run, no rerun, no publish."
+    "budget": "briefs/22d-tools-without-stick.md: 20 checks-only runs, 4 VM dispatches and 1200 minutes. The four checks-only runs dispatched on the branch before this entry existed (43669481694 cancelled, 43673689888, 43677461596, 43680654211) count against the 20 and the minutes, as every run on the branch does (start: first-dispatch). The VM mode is tools-local, package 27's route to release 27 and then the owner tools from the desktop's password window (the brief's walk); its job bounds are 22c's (345 for the job, 315 for its VM step), since the walk starts with the same route. Step 6, part b (integrator's decision, 2026-11-15): the minute cap is raised from 1200 to 2400, as for 22c: the runners are free for this public repository, the caps exist to stop runaway loops, and 1200 fit only about three VM reservations (345 each) beside the checks runs already made. The 20 checks-only runs and the 4 VM dispatches stay. Every guard is 22c's: the per-run reservation and job bounds, the checks cap, the model gate, the native gate in its own run, no rerun, no publish."
   }
 }

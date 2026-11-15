@@ -2385,7 +2385,8 @@ def main():
             ares_password = ''.join(secrets.choice(ARES_LETTERS) for _ in range(24))
             print(f'::add-mask::{ares_password}', flush=True)
             try:
-                tools_local.rehearsal(audit, media, password, hashed, ares_password,
+                # This module runs as __main__: the walk gets it, never a second import of owner_vm.
+                tools_local.rehearsal(sys.modules[__name__], audit, media, password, hashed, ares_password,
                                       laptop_payload(td.WORK / 'tools-version-2', TOOLS_V2_COMMIT, TOOLS_V2))
             finally:
                 del ares_password

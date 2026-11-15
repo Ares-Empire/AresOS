@@ -418,7 +418,7 @@ Line numbers are at this step's commits.
 Step 6 (harness `tools-local`, its ledger entry, the receipt, the walk with the assertions above, hosted checks, the
 VM run), step 7. `INSTALL-STATUS.md`'s 22d row still says "not yet reviewed": the record step updates it.
 
-## Step 6, part a (harness, the walk), 2026-11-15, Claude agent on Opus 5.5: in progress
+## Step 6, part a (harness, the walk), 2026-11-15, Claude agent on Opus 5.5: done (part b continues below)
 
 The brief's row 6 up to a VM dispatch the integrator can run. Commits `d91fc456` (guide fixes), `c4474d49` (wiring),
 and the stand-in origin commit after it. Nothing dispatched.
@@ -536,3 +536,96 @@ and the stand-in origin commit after it. Nothing dispatched.
 | `test_owner_capabilities`, `test_owner_devices`, `test_organization_budget`, `test_ci_api_permissions` | `OK` each (6, 6, 19, 4) |
 | `test_checkout_sources`, `test_owner_step_limits` | after `rebind.py pending` (35 bound files wait): `OK` each (6, 4) |
 | `test_owner_update` | not run, by the rule |
+
+## Step 6, part b (the walk itself), 2026-11-15, Claude agent on Opus 5.5
+
+Part a's "Left, in order" items 1 to 3, with the integrator's decisions on part a's two PLAN-GAPs. Nothing
+dispatched; no owner tool, sudo, ostree, bootc, rpm-ostree, ksshaskpass or generated line ran here.
+
+### The integrator's decisions (2026-11-15)
+
+- **Stand-in origin:** accepted as built. The walk records, for each announced commit, the stand-in's hash, the
+  real commit's and the tree hash, and asserts the trees equal on the runner (stand-in repository and this
+  checkout) and in the guest (`git rev-parse HEAD:os/owner-tools` in his checkout after the clone and after the
+  fast-forward pull). The result's `announced` holds the rows.
+- **Budget:** 22d's `minute_cap` 1200 → 2400 (ledger text says why and when; `test_tools_local_wiring` holds
+  2400 and the sentence; the brief's budget line notes the raise). 20 checks-only runs and 4 VM dispatches stay.
+
+### Done
+
+- **`tools_local.rehearsal(vm, audit, media, password, hashed, ares_password, version_2)`** (`os/ci/tools_local.py`).
+  `vm` is the running `owner_vm` module (`sys.modules[__name__]` in `owner_vm.main`, which runs as `__main__`;
+  a second import of `owner_vm` would split its globals). Boots: package 27's route (`laptop_update` with v2),
+  `release-27`, `cut-27`, `final-27`.
+  - Guest setup: the stand-in bundle in 48 kB base64 commands, checked by SHA-256; as ares (`runuser -u ares --
+    env HOME=/var/home/ares`) a bare clone at `/var/home/ares/aresos-origin.git` with `main` at v3's stand-in, then
+    his checkout `/var/home/ares/AresOS`; later origin's `main` moves to the head's stand-in and the checkout
+    follows by `git pull --ff-only` (N7).
+  - The caller (`CALLER`): written by root to `/run/aresos-caller-<stage>.py`, started from foot by typing
+    `bash /run/aresos-caller-<stage>.sh` (the launcher runs `setsid -f` with stdin `/dev/null`, so the typed text
+    is letters, `/`, `-`, `.` only). It records uid, login uid, `/dev/tty` refused (ENXIO), stdin not a tty,
+    `WAYLAND_DISPLAY` and `XDG_RUNTIME_DIR`; reads each line from `git show <commit>:os/owner-tools/commands.json`
+    (R3; v3's lines are this checkout's `bootstrap.tools_folder/tools_routine(TOOLS_V3)`, N-e); runs the folder
+    line, then the routine line with stdout/stderr to files; with `unanswered` it SIGTERMs only the
+    `/usr/bin/ksshaskpass` child of the sudo it started and records every signalled PID; `no-ticket` runs
+    `sudo -n true`. The harness compares the SHA-256 of each line it ran with the expected line.
+  - The dialog driver (`DIALOG`, root): waits for exactly one ksshaskpass whose parent is that sudo; asserts
+    `argv == [/usr/bin/ksshaskpass, label]`, parent = sudo, uid 1001, and no keyring process (`kwalletd5/6`,
+    `ksecretd`, `gnome-keyring-daemon`) beyond the start's baseline (taken per boot); screenshot `<stage>-window`;
+    then the password typed (`type_text`, `de`), Escape, or nothing (R1). After the caller ends the keyring list
+    is compared again.
+  - `STATE` (root): a digest of `/var/lib/ares` without records, the entry, the toolsets, the tools journal's
+    phase/manifest/source, the records' names, `/run/ares-bootstrap.*`, a digest of the tools folder.
+  - Stages, as the brief: v3 refuses (the STOP names `Tools update runs only from the physical recovery
+    console`; tools, entry and journal unchanged) → Cancel (Escape; exit 1, `sudo: no password was provided`;
+    tools, entry, journal, records and bootstrap copies unchanged) → R1 (30 s instead of 10 minutes; signalled
+    = [the helper]; helper gone; exit 1 with the line; nothing changed) → Cut (`TOOLS_CUT` watches the journal for
+    phase `publish` with this head's manifest, SIGSTOPs the `owner.py install` process, asserts the entry is still
+    the old tools and `tools-<head>` exists; QMP reset) → `cut-27`: the old tools' `check` passes, the journal still
+    names the head (source folder) → Install (resumes; exactly `PASS install`, `PASS check`, `PASS title`; the
+    receipt: manifest, v2 → 4, `source`/`finished_from` folder, `caller == {login_uid: 1001, terminal: false}`;
+    `sudo -n true` refused in the same session) → Tamper (one byte of `ares-tools/owner.py`; `STOP bootstrap:
+    verification or install refused`, no PASS, tools unchanged) → the stick with `next_version` (this payload,
+    tools version 5, manifests regenerated) at tty3 through the stick block (`source: stick`, 4 → 5) → export to
+    the folder (window; `PASS export`; ares reads every `/run/ares-records/*.json`, `nobody` none) → export to a
+    stick holding v2 (the retired-bundle line, quoted from `media.py`) → restart → `final-27`: check, title,
+    logout; both final markers. Result: `tools-local-rehearsal-result`.
+  - No closed-stdin stage (N-d).
+- **The local walk:** `test_owner_walk.walk(route='tools-local')`, stages `TOOLS_LOCAL_STAGES`. Its `ToolsLocal`
+  model reads each caller's parameters back from the program the harness sends, takes the label from the line
+  that caller would run, and decides each outcome from what the walk saw (the password typed, Escape pressed,
+  or a caller that closes the window); the install happens only after the cut. Passes (176 checks).
+- **Tests** (`os/tests/test_tools_local_wiring.py`): the walk's stages and markers; every label and screenshot;
+  R1's single signalled PID and the receipt fields; both hashes and the tree per announced commit; a harness that
+  types the password into the Cancel window fails the walk; the real `CALLER` run here under `setsid` against a
+  stand-in sudo and helper (argv[0] set with `exec -a`, `sleep` underneath: nothing privileged runs) signals only
+  the helper, never a sibling named `ksshaskpass-not`, and reports no terminal; `next_version` changes only
+  `history.json`; 22d's receipt is fresh. Part a's "not built yet" test is gone with the refusal.
+- `os/manifest/ci/22d/host-walk.json` written by `walk-host.py` (263 sources); `rebind.py pending` ran (36 files).
+
+### Tests run here (Python 3.14, one module at a time, `ARESOS_MODEL_SCOPE=slice`)
+
+| Module | Result |
+|---|---|
+| `test_tools_local_wiring` | `Ran 21 tests`, `OK` |
+| `test_owner_walk` | `Ran 27 tests in 101.854s`, `OK` |
+| `test_release27` | `Ran 41 tests`, `OK` |
+| `test_ways_back_probe` | `Ran 57 tests in 145.681s`, `OK` |
+| `test_rehearsal_budget`, `test_organization_budget`, `test_owner_guard` | `OK` each (4, 19, 12) |
+| `test_checkout_sources`, `test_owner_step_limits` | after `rebind.py pending`: `OK` each (6, 4) |
+| `test_owner_update` | not run, by the rule |
+
+### What only the VM can show (watch these in the first run)
+
+- Whether labwc gives the ksshaskpass window the focus, so the typed password reaches it (the harness has no
+  focus read; a miss shows as `no password was provided` at v3 or a wait to the deadline).
+- Whether the cut lands in the window between the journal's `publish` and the entry's switch (a few hashes of
+  0.4 MB); a miss says "repeat it".
+- That v2's `check` passes over v4's open journal and leaves it for v4 to resume (step 1's tests say so).
+
+### Left, in order (the next agent continues here)
+
+1. The integrator: a checks-only run on the head (`gh workflow run "OS image" --ref pkg/22d-tools-without-stick
+   -f checks_only=true`), then the VM dispatch (`gh workflow run "OS image" --ref pkg/22d-tools-without-stick
+   -f rehearsal=tools-local`).
+2. After a pass: `rebind.py rebind` for 22d, step 7 (record step, final review).

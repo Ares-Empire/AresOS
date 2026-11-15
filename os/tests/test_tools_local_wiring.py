@@ -54,7 +54,7 @@ class LedgerTest(unittest.TestCase):
     def test_the_brief_budget_is_the_ledger(self):
         self.assertEqual(LEDGER['branch'], BRANCH)
         self.assertEqual((LEDGER['minute_cap'], LEDGER['dispatch_caps'], LEDGER['vm_dispatch_cap']),
-                         (1200, {'checks': 20, MODE: 4}, 4))
+                         (2400, {'checks': 20, MODE: 4}, 4))
         self.assertEqual((LEDGER['full_cap'], LEDGER['part_b_cap'], LEDGER['publish_cap'], LEDGER['start']),
                          (0, 0, 0, 'first-dispatch'))
         self.assertEqual(LEDGER['titles'], {'checks': 'OS regressions only (no VM)', MODE: 'Two-disk rehearsal (tools-local)'})
@@ -62,6 +62,8 @@ class LedgerTest(unittest.TestCase):
         self.assertEqual(LEDGER['job_bounds'], {'checks': 40, MODE: guard.PACKAGES['22c']['job_bounds']['ways-back']})
         self.assertEqual(LEDGER['organization_budget'], guard.PACKAGES['22c']['organization_budget'])
         self.assertIn('briefs/22d-tools-without-stick.md: 20 checks-only runs, 4 VM dispatches and 1200 minutes', LEDGER['budget'])
+        # Raised to 2400 by the integrator (2026-11-15), as for 22c; the run and dispatch caps stay.
+        self.assertIn('the minute cap is raised from 1200 to 2400', LEDGER['budget'])
         self.assertIn('22d', guard.TITLED_PACKAGES)
         self.assertIn('22d', guard.OWN_RUN_PACKAGES)
 
@@ -262,10 +264,151 @@ class StandInOriginTest(unittest.TestCase):
             self.assertEqual(fingerprint(stand_head), hashlib.sha256((ROOT / 'os/owner-tools/payload/SHA256SUMS').read_bytes()).hexdigest())
             self.assertEqual(commands, json.loads((ROOT / 'os/owner-tools/commands.json').read_text()))
 
-    def test_the_walk_is_not_dispatchable_until_built(self):
+
+
+class WalkTest(unittest.TestCase):
+    """The local walk (test_owner_walk's tools-local route): the real harness over the modelled guest."""
+
+    @classmethod
+    def setUpClass(cls):
+        import test_owner_walk
+        cls.walked = test_owner_walk.walk(route='tools-local')
+        cls.stages = test_owner_walk.TOOLS_LOCAL_STAGES
+
+    def test_the_walk_passes_every_stage_of_the_brief(self):
+        result = self.walked['result']
+        self.assertEqual(self.walked['stages'], self.stages)
+        self.assertEqual([s['stage'] for s in result['stages']], ['tl-v3', 'tl-cancel', 'tl-unanswered', 'tl-cut', 'tl-install',
+                         'tl-tamper', 'tl-stick-next', 'tl-export', 'tl-export-stick'])
+        # N-d: no closed-stdin stage.
+        self.assertIs(result['closed_stdin_stage'], False)
+        self.assertEqual({'final-unattended-windows', 'final-detached-windows'} & set(self.walked['markers']),
+                         {'final-unattended-windows', 'final-detached-windows'})
+
+    def test_every_window_shows_its_label_and_is_screenshotted(self):
         import tools_local
-        with self.assertRaisesRegex(AssertionError, 'not built yet'):
-            tools_local.rehearsal(None, None, None, None, None, None)
+        bootstrap = owner_vm.bundle_module('bootstrap')
+        fingerprint = self.walked['local'].head
+        dialogs = self.walked['result']['dialogs']
+        self.assertEqual([d['answer'] for d in dialogs], ['password', 'escape', 'none: closed by the caller', 'password',
+                         'password', 'password', 'password'])
+        self.assertEqual(dialogs[0]['label'], bootstrap.label(tools_local.TOOLS_V3, bootstrap.ACTIONS['tools-routine']))
+        for row in dialogs[1:-1]:
+            self.assertEqual(row['label'], bootstrap.label(fingerprint, bootstrap.ACTIONS['tools-routine']))
+            self.assertEqual(row['label_length'], 70)
+        self.assertEqual(dialogs[-1]['label'], bootstrap.label(fingerprint, bootstrap.ACTIONS['export-routine']))
+        self.assertTrue(all(row['screenshot'] == row['stage'] + '-window' for row in dialogs))
+
+    def test_the_closed_window_signals_only_its_helper_and_the_receipt_names_the_folder(self):
+        stages = {s['stage']: s for s in self.walked['result']['stages']}
+        r1 = stages['tl-unanswered']
+        self.assertEqual(r1['signalled'], [r1['helper']])
+        self.assertEqual(self.walked['local'].signalled, [r1['helper']])
+        install = stages['tl-install']
+        self.assertEqual(install['receipt']['caller'], dict(login_uid=1001, terminal=False))
+        self.assertEqual(install['receipt']['source'], 'folder')
+        self.assertEqual(install['resumed_phase'], 'publish')
+        self.assertNotEqual(install['sudo_n_true']['status'], 0)
+
+    def test_each_announced_commit_records_both_hashes_and_one_tree(self):
+        import subprocess, tools_local
+        announced = self.walked['result']['announced']
+        self.assertEqual([row['real'] for row in announced][0], tools_local.V3_COMMIT)
+        for row in announced:
+            real = subprocess.check_output(['git', '-C', str(ROOT), 'rev-parse', row['real'] + ':os/owner-tools'], text=True).strip()
+            self.assertEqual((row['tree'], row['trees_equal']), (real, True))
+            self.assertNotEqual(row['standin'], row['real'])
+
+    def test_a_window_answered_wrongly_stops_the_walk(self):
+        import test_owner_walk, tools_local
+        window = tools_local.Walk.window
+        def typed_into_cancel(walk, stage, out, fingerprint, action, answer):
+            return window(walk, stage, out, fingerprint, action, 'password' if answer == 'escape' else answer)
+        with patch.object(tools_local.Walk, 'window', typed_into_cancel), self.assertRaises(AssertionError):
+            test_owner_walk.walk(route='tools-local')
+
+
+class CallerTest(unittest.TestCase):
+    """The caller program itself, run here against a stand-in sudo and helper (argv[0] only: no sudo,
+    no ksshaskpass and nothing privileged runs). It has no controlling terminal, and R1 signals only the
+    helper whose parent is the sudo it started."""
+
+    FAKE_SUDO = r'''import os,signal,subprocess,sys,time
+# A second child that is not the helper: it must never be signalled.
+other=subprocess.Popen(['bash','-c','exec -a /usr/bin/ksshaskpass-not sleep 60'])
+helper=subprocess.Popen(['bash','-c','exec -a /usr/bin/ksshaskpass sleep 60'])
+code=helper.wait()
+other.kill()
+if code<0:
+    print('sudo: no password was provided',file=sys.stderr); sys.exit(1)
+'''
+
+    def run_caller(self, unanswered):
+        import subprocess, tools_local
+        with tempfile.TemporaryDirectory() as folder:
+            folder = pathlib.Path(folder)
+            (folder / 'sudo.py').write_text(self.FAKE_SUDO)
+            out = folder / 'out'
+            out.mkdir()
+            line = 'exec -a /usr/bin/sudo ' + sys.executable + ' ' + str(folder / 'sudo.py')
+            params = dict(out=str(out), steps=['routine'], commit=None, checkout=str(ROOT), entries={},
+                          lines=dict(routine=line), unanswered=unanswered)
+            source = tools_local.program(tools_local.CALLER, params=json.dumps(params))
+            subprocess.run([sys.executable, '-c', source], stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                           start_new_session=True, check=True, timeout=60)
+            return json.loads((out / 'done.json').read_text())
+
+    def test_the_unanswered_window_is_closed_by_signalling_only_the_helper(self):
+        done = self.run_caller(1)
+        self.assertIs(done['terminal'], False)
+        self.assertIs(done['stdin_terminal'], False)
+        routine = done['routine']
+        self.assertEqual(routine['signalled'], [routine['helper']])
+        self.assertIs(routine['helper_gone'], True)
+        self.assertEqual((routine['status'], routine['stderr'].strip()), (1, 'sudo: no password was provided'))
+
+    def test_without_unanswered_the_caller_signals_nothing(self):
+        import tools_local
+        # The stand-in helper would wait 60 seconds; here its line ends by itself instead.
+        with tempfile.TemporaryDirectory() as folder:
+            out = pathlib.Path(folder)
+            params = dict(out=folder, steps=['routine'], commit=None, checkout=str(ROOT), entries={},
+                          lines=dict(routine='echo PASS install'), unanswered=0)
+            import subprocess
+            subprocess.run([sys.executable, '-c', tools_local.program(tools_local.CALLER, params=json.dumps(params))],
+                           stdin=subprocess.DEVNULL, start_new_session=True, check=True, timeout=60)
+            done = json.loads((out / 'done.json').read_text())
+        self.assertEqual((done['routine']['status'], done['routine']['stdout'], done['routine']['signalled']), (0, 'PASS install\n', []))
+
+
+class NextVersionTest(unittest.TestCase):
+    def test_the_next_version_is_this_payload_one_version_higher(self):
+        import tools_local
+        owner = owner_vm.bundle_module('owner')
+        with tempfile.TemporaryDirectory() as folder:
+            number, fingerprint = tools_local.next_version(pathlib.Path(folder) / 'next', ROOT / 'os/owner-tools/payload')
+            current = json.loads((ROOT / 'os/owner-tools/payload/history.json').read_text())
+            self.assertEqual(number, current['tools_version'] + 1)
+            self.assertEqual(owner.checked_bundle(pathlib.Path(folder) / 'next'), fingerprint)
+            changed = [row['path'] for row in json.loads((pathlib.Path(folder) / 'next/SHA256.json').read_text())
+                       if (ROOT / 'os/owner-tools/payload' / row['path']).read_bytes() != (pathlib.Path(folder) / 'next' / row['path']).read_bytes()]
+            self.assertEqual(changed, ['history.json'])
+
+
+class ReceiptTest(unittest.TestCase):
+    """22d's own host-walk receipt is fresh: every bound file has the bytes it was walked with."""
+
+    def test_the_receipt_is_fresh_and_names_this_walk(self):
+        import hashlib
+        receipt = json.loads((ROOT / 'os/manifest/ci/22d/host-walk.json').read_text())
+        self.assertEqual((receipt['status'], receipt['stick_across_reboot']), ('passed', False))
+        import test_owner_walk
+        self.assertEqual(receipt['stages'], {MODE: test_owner_walk.TOOLS_LOCAL_STAGES})
+        paths = {row['path'] for row in receipt['sources']}
+        self.assertLessEqual({'os/ci/tools_local.py', 'os/ci/owner_vm.py', 'os/tests/test_owner_walk.py',
+                              'os/tests/test_tools_local_wiring.py', 'reviews/22d-tools-without-stick/walk-host.py'}, paths)
+        for row in receipt['sources']:
+            self.assertEqual(hashlib.sha256((ROOT / row['path']).read_bytes()).hexdigest(), row['sha256'], row['path'])
 
 
 if __name__ == '__main__':

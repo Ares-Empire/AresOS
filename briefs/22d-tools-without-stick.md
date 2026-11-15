@@ -95,7 +95,8 @@ own code, F13); `export` to the folder and to a stick holding v2; **End** (resta
 protected-disk audit unchanged). In every dialog: assert the helper's argument equals the label, screenshot it, and
 assert no keyring process starts (F18). The stand-in caller asserts it has no controlling terminal.
 
-**Budget** (22d's ledger entry): 20 checks-only runs, 4 VM dispatches, 1200 minutes.
+**Budget** (22d's ledger entry): 20 checks-only runs, 4 VM dispatches, 1200 minutes (raised to 2400 by the integrator
+on 2026-11-15, step 6 part b: as for 22c, the caps stop runaway loops and 1200 fit only about three VM reservations).
 
 ## Rules for every step
 

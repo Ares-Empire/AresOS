@@ -9,7 +9,8 @@
     "22d step 4: review 8 findings 2 and 5",
     "22d fixes after reviews 2 and 3",
     "22d guide fixes after review 4",
-    "22d step 6: the tools-local mode's wiring"
+    "22d step 6: the tools-local mode's wiring",
+    "22d step 6b: the tools-local walk (tools_local.rehearsal), its local route in test_owner_walk, 22d's host-walk receipt, the minute cap at 2400"
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
@@ -46,7 +47,7 @@
       "path": "os/ci/owner_media.py"
     },
     {
-      "sha256": "e0849de1275bceb40062abb1c8efa351754c6292bd63e39cd8e24f7bbfcad229",
+      "sha256": "cb22566604448c8b6e8461693dadd3bdba83d15e17a0177f92aefcadbc350dbc",
       "path": "os/ci/owner_vm.py"
     },
     {
@@ -54,7 +55,7 @@
       "path": "os/ci/registry_auth.py"
     },
     {
-      "sha256": "dfbf46a55bdc922d76b3a500ac9a843e7a3f4b160d5de126c31ac3627c45b73c",
+      "sha256": "a6817dcf998bd3d6f083f9cd5f00fae5a54302322337de3a2a61fa9034222091",
       "path": "os/ci/rehearsal-packages.json"
     },
     {
@@ -140,6 +141,10 @@
     {
       "sha256": "bd9cfa58cde7fbee31a032c0522e9e50b72c16d33282942d34938e4209007289",
       "path": "os/tests/test_owner_update.py"
+    },
+    {
+      "sha256": "f944f958de997614bec0b2d2c31774181e498ff08b83b3772973222e711d4922",
+      "path": "os/tests/test_owner_walk.py"
     },
     {
       "sha256": "1bfd71afda4144a1339cef92c3d6bdb6c21fb47b9afa29b8cc0d3844751a7d31",
