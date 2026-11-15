@@ -237,7 +237,7 @@ passwd --lock ares
 passwd --lock root
 chmod 0755 /usr/bin/aresos-session /usr/bin/aresos-terminal /usr/bin/brew /usr/libexec/aresos-audit \
     /usr/libexec/aresos-keyboard /usr/libexec/aresos-shell /usr/libexec/aresos-subids \
-    /usr/libexec/aresos-desktop /usr/libexec/aresos-desktop-java
+    /usr/libexec/aresos-desktop /usr/libexec/aresos-desktop-java /usr/libexec/aresos-cover
 # The owner's command for the desktop (retry, status, reset-instance, forget-hub).
 ln -sfn ../libexec/aresos-desktop /usr/bin/aresos-desktop
 chmod 0440 /etc/sudoers.d/aresos-everyday

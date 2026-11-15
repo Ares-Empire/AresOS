@@ -136,6 +136,13 @@ class FakeRunner:
         self.scope = None
         self.scopes_asked = []
         self.pressure = None
+        # The startup cover (package 23b): each start's --again flag, the kill time of each stop, kill_covers calls.
+        self.covers = []
+        self.cover_up = False
+        self.cover_stops = []
+        self.cover_kills = []
+        self.cover_error = None
+        self.events = []  # the order of covers, Prism starts and message windows
 
     def helper_running(self):
         return self.helper_alive
@@ -150,7 +157,26 @@ class FakeRunner:
 
     def start_prism(self, command, env):
         self.prisms.append((command, env))
+        self.events.append('prism')
         return object()
+
+    def start_cover(self, again):
+        if self.cover_error is not None:
+            raise self.cover_error
+        self.covers.append(again)
+        self.cover_up = True
+        self.events.append('cover --again' if again else 'cover')
+
+    def stop_cover(self, kill_at):
+        running, self.cover_up = self.cover_up, False
+        if running:
+            self.cover_stops.append(kill_at)
+            self.events.append('stop cover')
+        return running
+
+    def kill_covers(self, now):
+        self.cover_kills.append(now)
+        return None
 
     def identify(self, pid):
         if pid not in self.processes:
@@ -177,6 +203,7 @@ class FakeRunner:
 
     def show_view(self, text):
         self.views.append(text)
+        self.events.append('view')
 
     def close_view(self, wait=False):
         self.closed_views += 1
@@ -2387,6 +2414,199 @@ class HelperTest(Base):
         self.assertEqual(sup.state, 'SETUP')
 
 
+class CoverTest(Base):
+    """Package 23b: the startup cover over the session's first hub launch and the owner's retry, and only there."""
+
+    def setUp(self):
+        super().setUp()
+        desktop.provision(self.paths, self.lock)
+        self.world = make_world(self.paths, self.lock)
+
+    def in_world(self, sup):
+        pid, _ = self.run_game(sup)
+        self.ready(sup)
+        self.assertEqual(sup.state, 'IN_WORLD')
+        return pid
+
+    def test_session_start_covers_the_first_hub_launch_before_prism(self):
+        sup = self.supervisor()
+        sup.start()
+        self.assertEqual((sup.state, sup.reason), ('STARTING', None))
+        self.assertEqual(self.runner.events, ['cover', 'prism'])
+        self.assertEqual(self.runner.covers, [False])
+        self.assertTrue(sup.cover)
+        self.assertTrue(sup.status()['cover'])
+        # The game starting changes nothing: the cover stays over Mojang's loading screen and joining the world.
+        pid, _ = self.run_game(sup)
+        self.advance(60)
+        sup.tick()
+        self.assertEqual(self.runner.cover_stops, [])
+
+    def test_world_ready_stops_the_cover_with_sigkill_two_seconds_later(self):
+        sup = self.supervisor()
+        sup.start()
+        self.run_game(sup)
+        self.advance(30)
+        self.ready(sup)
+        self.assertEqual(sup.state, 'IN_WORLD')
+        self.assertEqual(self.runner.cover_stops, [self.now[0] + desktop.COVER_STOP_WAIT])
+        self.assertFalse(sup.cover)
+        self.assertEqual(sup.deadline(), desktop.COVER_STOP_WAIT)
+        self.advance(desktop.COVER_STOP_WAIT - 0.1)
+        sup.tick()
+        self.assertEqual(self.runner.cover_kills, [])
+        self.advance(0.1)
+        sup.tick()
+        self.assertEqual(self.runner.cover_kills, [self.now[0]])
+        self.assertIsNone(sup.cover_kill_at)
+        # Heartbeats and later readiness never touch a cover again.
+        self.heartbeat(sup)
+        self.assertEqual(len(self.runner.cover_stops), 1)
+
+    def test_retry_covers_the_new_start_with_its_own_line(self):
+        sup = self.supervisor()
+        sup.start()
+        pid = self.in_world(sup)
+        self.end_game(sup, pid, 0)
+        self.assertEqual((sup.state, sup.reason), ('RECOVERY', 'quit'))
+        self.runner.events.clear()
+        ok, _ = sup.retry()
+        self.assertTrue(ok)
+        self.assertEqual(sup.state, 'STARTING')
+        self.assertEqual(self.runner.events, ['cover --again', 'prism'])
+        self.assertEqual(self.runner.covers, [False, True])
+
+    def test_retry_while_the_game_still_runs_starts_no_cover(self):
+        sup = self.supervisor()
+        sup.start()
+        self.in_world(sup)
+        sup.heartbeats_stopped()
+        self.assertEqual((sup.state, sup.reason), ('RECOVERY', 'unready'))
+        self.assertTrue(sup.retry()[0])
+        self.assertEqual(self.runner.covers, [False])
+
+    def test_an_automatic_restart_after_a_crash_is_never_covered(self):
+        sup = self.supervisor()
+        sup.start()
+        pid = self.in_world(sup)
+        self.advance(60)
+        self.end_game(sup, pid, 1)
+        self.assertEqual((sup.state, sup.reason), ('STARTING', 'restarting'))
+        self.advance(desktop.BACKOFF)
+        sup.tick()
+        self.assertEqual(len(self.runner.prisms), 2)
+        self.assertEqual(self.runner.helpers[-1][2].get('ARESOS_SHELL_KEEP_FOREGROUND'), '1')
+        self.assertEqual(self.runner.covers, [False])
+        self.assertFalse(sup.cover)
+
+    def test_setup_is_never_covered(self):
+        shutil.rmtree(self.world)
+        sup = self.supervisor()
+        sup.start()
+        self.assertEqual((sup.state, sup.reason), ('SETUP', 'setup'))
+        self.advance(60)
+        sup.on_prism_exit(1)
+        self.advance(desktop.PRISM_GRACE)
+        sup.tick()
+        self.assertEqual((sup.state, sup.reason), ('SETUP', 'setup_cancelled'))
+        sup.retry()
+        self.assertEqual(len(self.runner.prisms), 2)
+        self.assertEqual(self.runner.covers, [])
+
+    def test_a_restarted_supervisor_covers_nothing(self):
+        sup = self.supervisor()
+        sup.start()
+        self.assertEqual(self.runner.covers, [False])
+        # The keeper restarts the supervisor before Java started: the session goes on, without a new cover.
+        again = self.supervisor()
+        again.start()
+        self.assertEqual(again.state, 'STARTING')
+        self.assertEqual(len(self.runner.prisms), 2)
+        self.assertEqual(self.runner.covers, [False])
+
+    def test_entering_setup_stops_the_cover(self):
+        sup = self.supervisor()
+        sup.start()
+        # The hub disappears before Java asks (it was never seen): the start becomes setup, on the title screen.
+        shutil.rmtree(self.world)
+        self.run_game(sup)
+        self.assertEqual((sup.state, sup.reason), ('SETUP', 'setup'))
+        self.assertEqual(self.runner.events, ['cover', 'prism', 'stop cover', 'view'])
+
+    def test_auth_required_stops_the_cover_before_its_window_opens(self):
+        sup = self.supervisor()
+        sup.start()
+        self.advance(60)
+        sup.on_prism_exit(1)
+        self.advance(desktop.PRISM_GRACE)
+        sup.tick()
+        self.assertEqual((sup.state, sup.reason), ('AUTH_REQUIRED', 'auth'))
+        self.assertEqual(self.runner.events, ['cover', 'prism', 'stop cover', 'view'])
+
+    def test_recovery_stops_the_cover_before_its_window_opens(self):
+        sup = self.supervisor()
+        self.runner.start_prism = mock.Mock(side_effect=OSError(2, 'No such file or directory'))
+        sup.start()
+        self.assertEqual((sup.state, sup.reason), ('RECOVERY', 'prism_failed'))
+        self.assertEqual(self.runner.events, ['cover', 'stop cover', 'view'])
+
+    def test_the_slow_start_view_stops_the_cover(self):
+        sup = self.supervisor()
+        sup.start()
+        self.run_game(sup)
+        self.advance(desktop.START_TIMEOUT)
+        sup.tick()
+        self.assertEqual((sup.state, sup.reason), ('RECOVERY', 'slow_start'))
+        self.assertEqual(self.runner.events, ['cover', 'prism', 'stop cover', 'view'])
+
+    def run_session(self, sup):
+        """Start, the game, the hub, a crash and its restart, the hub again: what the session did."""
+        trace = []
+        sup.start()
+        trace.append((sup.state, sup.reason))
+        pid = self.in_world(sup)
+        trace.append((sup.state, sup.reason, sup.launch.mode))
+        self.advance(60)
+        self.end_game(sup, pid, 1)
+        trace.append((sup.state, sup.reason))
+        self.advance(desktop.BACKOFF)
+        sup.tick()
+        self.in_world(sup)
+        stored = self.stored()
+        trace.append((sup.state, stored['consecutive'], len(stored['failures']), stored['latched']))
+        trace.append(([command[-5:] for command, _ in self.runner.prisms], len(self.runner.helpers),
+                      self.runner.views))
+        return trace
+
+    def test_a_cover_that_fails_to_start_changes_nothing(self):
+        with_cover = self.run_session(self.supervisor())
+        for error in (FileNotFoundError(2, 'No such file or directory'), PermissionError(13, 'Permission denied'),
+                      subprocess.SubprocessError('Exception occurred in preexec_fn.')):
+            with self.subTest(error=error):
+                shutil.rmtree(self.paths.home)
+                shutil.rmtree(self.paths.runtime)
+                os.makedirs(self.paths.home)
+                os.makedirs(self.paths.runtime)
+                desktop.provision(self.paths, self.lock)
+                make_world(self.paths, self.lock)
+                self.runner = FakeRunner()
+                self.runner.cover_error = error
+                sup = self.supervisor()
+                self.assertEqual(self.run_session(sup), with_cover)
+                self.assertFalse(sup.cover)
+                self.assertEqual((self.runner.covers, self.runner.cover_stops), ([], []))
+
+    def test_a_cover_that_dies_changes_nothing(self):
+        sup = self.supervisor()
+        sup.start()
+        sup.on_cover_exit(-11)
+        self.assertFalse(sup.cover)
+        self.assertEqual((sup.state, sup.reason), ('STARTING', None))
+        self.in_world(sup)
+        self.assertEqual(self.runner.cover_stops, [])
+        self.assertIsNone(sup.cover_kill_at)
+
+
 class MessagesTest(Base):
     def test_every_view_tells_him_what_to_do(self):
         persisted = desktop.Persisted(consecutive=3)
@@ -2859,6 +3079,19 @@ class SessionFilesTest(unittest.TestCase):
                       rc)
         self.assertIn('<windowRule identifier="aresos-desktop" serverDecoration="no"><action name="Maximize" />', rc)
 
+    def test_the_cover_is_borderless_fullscreen_and_on_top(self):
+        import xml.etree.ElementTree as ET
+        root = ET.parse(CONFIG / 'usr/share/aresos/labwc/rc.xml').getroot()
+        rules = [rule for rule in root.iter('windowRule') if rule.get('identifier') == 'aresos.cover']
+        self.assertEqual(len(rules), 1)
+        self.assertEqual(rules[0].get('serverDecoration'), 'no')
+        self.assertEqual([action.get('name') for action in rules[0]], ['ToggleFullscreen', 'ToggleAlwaysOnTop'])
+        # The hub's own rule stays byte for byte as the image checks grep it.
+        self.assertIn('<windowRule identifier="aresos-desktop" serverDecoration="no"><action name="Maximize" />'
+                      '</windowRule>\n', (CONFIG / 'usr/share/aresos/labwc/rc.xml').read_text())
+        self.assertTrue(os.access(CONFIG / 'usr/libexec/aresos-cover', os.X_OK))
+        self.assertIn('/usr/libexec/aresos-cover', (ROOT / 'os/build.sh').read_text())
+
     def test_supervisor_and_wrapper_run_absolute_commands_only(self):
         for name in ('aresos-desktop', 'aresos-desktop-java'):
             text = (CONFIG / 'usr/libexec' / name).read_text()
@@ -2866,7 +3099,7 @@ class SessionFilesTest(unittest.TestCase):
             self.assertNotIn('shell=True', text)
             self.assertNotIn('execvp', text)
         for command in desktop.VIEW_COMMAND + [desktop.PRISM, desktop.SYSTEMD_RUN, desktop.HELPER, desktop.SELF,
-                                               desktop.WRAPPER]:
+                                               desktop.WRAPPER, desktop.COVER]:
             if command.startswith('-'):
                 continue
             self.assertTrue(command.startswith('/usr/'), command)
@@ -3358,6 +3591,16 @@ FAKE_HELPER = textwrap.dedent('''\
 
 FAKE_VIEW = '#!/bin/sh\nexec sleep 300\n'
 
+# Stands in for aresos-cover (package 23b): logs its arguments and environment, ends on SIGTERM, or ignores it when
+# $FAKE_COVER_IGNORE exists.
+FAKE_COVER = textwrap.dedent('''\
+    #!/bin/sh
+    env > "$FAKE_COVER_ENV.$$"
+    echo "cover $$ $*" >> "$FAKE_LOG"
+    if [ -e "$FAKE_COVER_IGNORE" ]; then trap '' TERM; else trap 'exit 0' TERM; fi
+    while :; do sleep 0.05; done
+''')
+
 
 @unittest.skipUnless(LINUX, 'Unix sockets, pidfds and prctl')
 class LoopTest(Base):
@@ -3382,7 +3625,7 @@ class LoopTest(Base):
                         '[ -e "$FAKE_JAVA_STOP.kill" ] && { (sleep 0.3; kill -9 $$) & }\nread line\n'
                         'while [ ! -e "$FAKE_JAVA_STOP.$$" ]; do sleep 0.05; done\n'
                         'exit "$(cat "$FAKE_JAVA_STOP.$$")"\n')
-        for name, text in (('prism', FAKE_PRISM), ('helper', FAKE_HELPER), ('view', FAKE_VIEW)):
+        for name, text in (('prism', FAKE_PRISM), ('helper', FAKE_HELPER), ('view', FAKE_VIEW), ('cover', FAKE_COVER)):
             (bin_dir / name).write_text(text)
         for path in bin_dir.iterdir():
             path.chmod(0o755)
@@ -3392,8 +3635,11 @@ class LoopTest(Base):
                'FAKE_PRISM_MODE': str(self.mode), 'FAKE_READY': str(self.ready_file),
                'FAKE_WRAPPER': str(CONFIG / 'usr/libexec/aresos-desktop-java'), 'FAKE_JAVA': str(java),
                'FAKE_JAVA_STOP': str(self.exit_file), 'PATH': '/usr/bin:/bin',
-               'FAKE_INSTANCE': self.paths.instance('AresDesktop')}
+               'FAKE_INSTANCE': self.paths.instance('AresDesktop'), 'FAKE_COVER_ENV': str(self.root / 'cover-env'),
+               'FAKE_COVER_IGNORE': str(self.root / 'cover-ignores-sigterm'),
+               'ARESOS_LAUNCH_NONCE': 'leaked-nonce-0000000000'}
         patches = [mock.patch.object(desktop, 'HELPER', str(bin_dir / 'helper')),
+                   mock.patch.object(desktop, 'COVER', str(bin_dir / 'cover')),
                    mock.patch.object(desktop, 'VIEW_COMMAND', [str(bin_dir / 'view')]),
                    mock.patch.object(desktop, 'prism_command',
                                      lambda lock, launch_id, world=None: [str(bin_dir / 'prism'), '--launch',
@@ -3466,6 +3712,103 @@ class LoopTest(Base):
             time.sleep(0.05)
         self.fail(f'timed out; state {self.loop.supervisor.state} {self.loop.supervisor.reason}; '
                   f'log {self.log.read_text() if self.log.exists() else ""}')
+
+    def covers(self):
+        if not self.log.exists():
+            return []
+        return [line.split()[1:] for line in self.log.read_text().splitlines() if line.startswith('cover ')]
+
+    @staticmethod
+    def alive(pid):
+        try:
+            with open(f'/proc/{pid}/stat', encoding='ascii') as source:
+                return source.read().rsplit(')', 1)[1].split()[0] != 'Z'
+        except OSError:
+            return False
+
+    def test_the_cover_runs_beside_the_supervisor_with_the_views_environment(self):
+        # Package 23b: a child of the supervisor (its scope, not the game's), with the cleaned environment.
+        sup = self.loop.supervisor
+        self.thread.start()
+        self.wait(lambda: self.covers() and sup.launch is not None and sup.launch.jvm_pid is not None)
+        (pid, *args), = self.covers()
+        self.assertEqual(args, [])
+        with open(f'/proc/{pid}/status', encoding='ascii') as source:
+            self.assertIn(f'PPid:\t{os.getpid()}\n', source.read())
+        self.assertEqual(pathlib.Path(f'/proc/{pid}/cgroup').read_text(), pathlib.Path('/proc/self/cgroup').read_text())
+        env = dict(line.split('=', 1) for line in pathlib.Path(f'{self.root}/cover-env.{pid}').read_text().splitlines()
+                   if '=' in line)
+        self.assertEqual(env['PATH'], desktop.SYSTEM_PATH)
+        for name in desktop.PRIVATE_ENVIRONMENT:
+            self.assertNotIn(name, env)
+        self.assertEqual(env['HOME'], self.paths.home)
+        self.assertTrue(sup.cover)
+        # The hub is ready: the cover ends (SIGTERM) while the game goes on.
+        self.ready_file.touch()
+        self.wait(lambda: sup.state == 'IN_WORLD' and not self.alive(int(pid)))
+        self.assertFalse(sup.cover)
+        self.assertIsNotNone(sup.launch.jvm_pid)
+
+    def test_a_cover_that_ignores_sigterm_is_killed_and_never_waited_for(self):
+        sup = self.loop.supervisor
+        pathlib.Path(self.environ['FAKE_COVER_IGNORE']).touch()
+        self.thread.start()
+        self.wait(lambda: self.covers() and sup.launch is not None and sup.launch.jvm_pid is not None)
+        (pid, *_), = self.covers()
+        self.ready_file.touch()
+        self.wait(lambda: sup.state == 'IN_WORLD')
+        stopped = time.monotonic()
+        # The supervisor answers at once while the cover still runs (it ignored SIGTERM)...
+        self.assertEqual(desktop.request(self.paths, {'op': 'status'}, timeout=1)['state'], 'IN_WORLD')
+        self.assertTrue(self.alive(int(pid)))
+        # ...and SIGKILL ends it about COVER_STOP_WAIT later.
+        self.wait(lambda: not self.alive(int(pid)), timeout=10)
+        self.assertGreater(time.monotonic() - stopped, desktop.COVER_STOP_WAIT - 0.5)
+        self.assertLess(time.monotonic() - stopped, desktop.COVER_STOP_WAIT + 2.0)
+        self.assertEqual(sup.state, 'IN_WORLD')
+
+    def test_the_cover_ends_when_the_supervisor_stops(self):
+        sup = self.loop.supervisor
+        self.thread.start()
+        self.wait(lambda: self.covers() and sup.launch is not None and sup.launch.jvm_pid is not None)
+        (pid, *_), = self.covers()
+        self.stop()
+        self.assertFalse(self.alive(int(pid)))
+
+    def test_a_missing_cover_leaves_the_start_as_it_was(self):
+        (self.root / 'bin/cover').unlink()
+        sup = self.loop.supervisor
+        self.thread.start()
+        self.wait(lambda: sup.launch is not None and sup.launch.jvm_pid is not None)
+        self.assertFalse(sup.cover)
+        self.ready_file.touch()
+        self.wait(lambda: sup.state == 'IN_WORLD')
+        self.assertEqual(self.launches(), ['--launch AresDesktop --world AresHub'])
+
+    def test_a_cover_that_crashes_leaves_the_start_as_it_was(self):
+        sup = self.loop.supervisor
+        self.thread.start()
+        self.wait(lambda: self.covers() and sup.launch is not None and sup.launch.jvm_pid is not None)
+        (pid, *_), = self.covers()
+        os.kill(int(pid), signal.SIGSEGV)
+        self.wait(lambda: not sup.cover)
+        self.assertEqual((sup.state, sup.reason), ('STARTING', None))
+        self.ready_file.touch()
+        self.wait(lambda: sup.state == 'IN_WORLD')
+        self.assertEqual(self.launches(), ['--launch AresDesktop --world AresHub'])
+
+    def test_retry_through_the_real_loop_covers_with_again(self):
+        sup = self.loop.supervisor
+        self.thread.start()
+        self.wait(lambda: sup.launch is not None and sup.launch.jvm_pid is not None)
+        self.ready_file.touch()
+        self.wait(lambda: sup.state == 'IN_WORLD')
+        self.ready_file.unlink()
+        pid = self.end_jvm(0)
+        self.wait(lambda: sup.state == 'RECOVERY' and sup.reason == 'quit')
+        self.assertTrue(desktop.request(self.paths, {'op': 'retry'})['ok'])
+        self.wait(lambda: len(self.covers()) == 2 and sup.launch.jvm_pid not in (None, pid))
+        self.assertEqual([args for _, *args in self.covers()], [[], ['--again']])
 
     def test_crash_restart_latch_and_retry_through_the_real_loop(self):
         sup = self.loop.supervisor

@@ -356,7 +356,8 @@ startup_commands=$( (grep -ohE '/usr/(local/)?(s?bin|libexec)/[A-Za-z0-9/._-]+' 
     /usr/libexec/aresos-desktop /usr/libexec/aresos-desktop-java /usr/share/aresos/desktop-view.bashrc) | sort -u)
 for command in /usr/bin/dbus-run-session /usr/bin/dbus-daemon /usr/bin/labwc /usr/bin/busctl /usr/bin/foot \
     /usr/libexec/aresos-shell /usr/bin/systemd-run /usr/bin/systemctl /usr/bin/kwrite /usr/bin/google-chrome \
-    /usr/libexec/aresos-desktop /usr/libexec/aresos-desktop-java /usr/bin/prismlauncher /usr/bin/python3 /usr/bin/cat; do
+    /usr/libexec/aresos-desktop /usr/libexec/aresos-desktop-java /usr/libexec/aresos-cover /usr/bin/prismlauncher \
+    /usr/bin/python3 /usr/bin/cat; do
     grep -qx "$command" <<< "$startup_commands"
 done
 for command in $startup_commands; do
@@ -602,6 +603,26 @@ test "$(readlink /usr/bin/aresos-desktop)" = ../libexec/aresos-desktop
 grep -q '<windowRule identifier="aresos-desktop" serverDecoration="no"><action name="Maximize" /></windowRule>' \
     /usr/share/aresos/labwc/rc.xml
 pass 'labwc autostart starts the desktop supervisor (no session terminal); the hub window is borderless and maximized'
+# Package 23b: the startup cover. Present and executable, its GTK 4, Pango and cairo load as ares, its labwc rule
+# is there (and the hub's rule above is unchanged), and fontconfig finds package 31's Space Grotesk for it.
+test -x /usr/libexec/aresos-cover
+test "$(stat -c '%U:%G %a' /usr/libexec/aresos-cover)" = 'root:root 755'
+grep -q '<windowRule identifier="aresos.cover" serverDecoration="no"><action name="ToggleFullscreen" /><action name="ToggleAlwaysOnTop" /></windowRule>' \
+    /usr/share/aresos/labwc/rc.xml
+runuser -u ares -- env -i HOME=/tmp PATH=/usr/bin /usr/bin/python3 - <<'PY'
+import importlib.machinery, importlib.util
+loader = importlib.machinery.SourceFileLoader('aresos_cover', '/usr/libexec/aresos-cover')
+spec = importlib.util.spec_from_loader('aresos_cover', loader)
+cover = importlib.util.module_from_spec(spec)
+loader.exec_module(cover)
+GLib, Gtk, Pango, PangoCairo, cairo = cover.load_gtk()
+print('COVER_GTK', Gtk.get_major_version(), Gtk.get_minor_version(), 'cairo', cairo.version)
+assert Gtk.get_major_version() == 4
+assert cover.parse(['--again']).again and cover.parse([]).limit == cover.LIMIT == 600.0
+PY
+font=$(runuser -u ares -- env -i HOME=/tmp PATH=/usr/bin /usr/bin/fc-match --format '%{file}' 'Space Grotesk:bold')
+test "$font" = /usr/share/fonts/aresos/SpaceGrotesk-Variable.ttf
+pass "the startup cover is installed, loads GTK 4 as ares and draws in Space Grotesk ($font); its labwc rule is set"
 # Provisioning as ares from the image's real inputs: creates the instance,
 # changes nothing on a second run, and reports a changed instance.
 install -d -o ares -g ares -m 0700 /tmp/pkg23-home /tmp/pkg23-run
