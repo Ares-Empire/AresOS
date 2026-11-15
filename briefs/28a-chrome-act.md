@@ -436,7 +436,10 @@ package puts the tools that act on the same mechanism:
   The result lists `closed` and, with the reason, `kept`. **Main's guard stays** (the lead, 2026-11-15): every Claude
   tab first goes through brief 20's check, and one with unsaved typing, playing media or a frame that couldn't be
   inspected is kept, with main's `reload_required` report as its reason, until the call is repeated with
-  `discard_unsaved: true`.
+  `discard_unsaved: true`. **The flag applies only to a call that closes a single tab** (the lead, 2026-11-15, after
+  review 4, N6): a call that names several tabs with `discard_unsaved: true` is refused before anything closes
+  (`invalid_input`, "close tabs with unsaved work one at a time"), so one OK never covers a tab whose report he
+  didn't see.
 - **`chrome_take`** (change; input: `tab`, `seen`, `reload`) and **`chrome_release`** (change; input: `tab`). In
   this package they are brief 20's `take_tab` and `release_tab`, with one difference:
   the explicit reload has one home. `chrome_take` without `reload` takes the tab and keeps its page, and its result
@@ -526,14 +529,15 @@ package puts the tools that act on the same mechanism:
   does the move. Measure both early: the instructions against 2,800, and the whole tool list against the sizes
   below. Add a test that pins the Chrome instructions at most 2,800 characters, beside the existing 4,096 check for
   every app; brief 28b moves that pin to 3,800. If the rules still can't fit, stop and tell the lead (PLAN-GAP).
-- **Sizes** (measured as brief 18d measured Mail's), for nineteen tools: all descriptions plus the instructions at
-  most 11,300 characters and not above the baseline; all names plus input schemas at most 6,560 characters. That is
-  the eighteen-tool budget of 10,500 and 6,300; plus `chrome_prepare_read_typed_fields` as main has it (361
-  characters of description, 142 of name and input schema; the lead, 2026-11-15); plus what the lead's decision 2
-  adds (review 4, S8): `discard_unsaved` on `chrome_go`, `chrome_close` and `chrome_do` (37 characters of schema
-  each, about 110 in all), and main's rule for unsaved work (280 characters as `DISCARD_NOTICE` on main) with the
-  guard's mention in three descriptions (about 400 in all). A test pins the exact totals; a change that grows them
-  fails until the pin is changed on purpose.
+- **Sizes** (measured as brief 18d measured Mail's), for nineteen tools: **not above the baseline** (the lead,
+  2026-11-15, after review 4: making the list smaller is the point). The baseline is main's catalogue measured with
+  `tools_for('chrome')` and `instructions_for('chrome')` at this package's start: all descriptions plus the
+  instructions (about 9,137 characters on main after PR #27: 5,085 and 4,052), and all names plus input schemas as
+  compact JSON (about 11,080). Record the exact numbers in the baseline file and in the report. The new list must
+  stay within both, with everything this package adds counted in: `chrome_prepare_read_typed_fields`, and
+  `discard_unsaved` on `chrome_go`, `chrome_close` and `chrome_do` with main's rule for unsaved work (review 4, S8).
+  A test pins the final exact totals; a change that grows them fails until the pin is changed on purpose. Brief 28b
+  starts from those totals.
 - Put the final descriptions and instructions, exactly as generated, into
   `reviews/28a-chrome-act/TOOL-DESCRIPTIONS.md`.
 
@@ -774,6 +778,9 @@ redirect's target, and in history, bookmark and download entries.
   the tab isn't attached, moved or reloaded. `chrome_open` with `tab` still opens the address the list showed. With
   the tab unchanged both work without any further question. A `seen` older than 8 lists, and one from before a
   restart of Chrome or the service, are refused;
+- **one tab per flag:** `chrome_close` with `discard_unsaved: true` and two Claude tabs, one holding typing, is
+  refused with the advice to close them one at a time, and both stay open; the same call with only the tab that
+  holds typing closes it;
 - **a taken tab stays his:** `chrome_close` on a taken tab is refused and the tab stays open; `chrome_go` in a
   taken tab that holds typing answers `reload_required` and the page isn't replaced; in a taken tab without typing
   it reloads under brief 20's guard and then navigates;
@@ -803,9 +810,9 @@ baseline.
 | Compare three open tabs: `chrome_read` with `tabs` | 1 call |
 | List 25 open tabs (titles of about 30 characters): `chrome_tabs` | 1 call, at most 3,500 characters |
 | F5: a free click that changes part of the page: from an outline in hand, one `chrome_do` | 1 call, at most 2,500 characters, every changed line named (`more_changes` is 0) |
-| Descriptions plus instructions (19 tools) | at most 11,300 characters, and not above the baseline |
+| Descriptions plus instructions (19 tools) | not above main's, measured at the start (about 9,137); the final total pinned |
 | The server instructions alone | at most 2,800 characters, the shared 1,652 included (and every app within 4,096) |
-| Names plus input schemas (19 tools) | at most 6,560 characters |
+| Names plus input schemas (19 tools) | not above main's, measured at the start (about 11,080); the final total pinned |
 | Latency (the comparison in one run, below) | the first read of F1, a free click with its report, and the 6-field form are each at most 1.10 times brief 20's median plus 50 ms; PR #27's latency gate (`latency-targets.json`) stays within its ceilings |
 
 **Latency: old and new in one run.** Runners differ, so old and new tools are timed in **one run**. At step 1 of
