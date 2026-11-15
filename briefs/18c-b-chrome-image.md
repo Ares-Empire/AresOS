@@ -722,7 +722,8 @@ password out of files, and changes the image least; say so in the report.
    `linux-aresos` agreed: the bind-mounted bundle is enough ("Agree", answer 6).
 4. **The release job:** `linux-aresos`, in its next release package, as written. This brief delivers the tool, its
    check and the instructions for that package.
-5. **What he sees:** the lead asked the owner in words (board #297). Step 3a waits on his words only; steps 1 and 2
+5. **What he sees:** **owner's answer (board #297, 2026-11-15): "Yes, fine"** to Chrome showing "Managed by your
+   organization" and the helper not removable in Chrome. The lead asked the owner in words. Step 3a waited on his words only; steps 1 and 2
    don't depend on them. C2's screenshot of "managed by your organization" goes to him only if he answers "let's
    discuss". (Changed after review 2: asking with the screenshot was circular, since only step 4 makes it and step
    3a waited on the answer.)
