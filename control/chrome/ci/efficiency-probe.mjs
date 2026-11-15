@@ -137,7 +137,7 @@ export async function efficiencyProbe({rpc,eventually,counts,getTab,out='/out'})
     try{await task.run({...context,call,state});}
     finally{
       const milliseconds=performance.now()-started;
-      fs.writeSync(timing,JSON.stringify({task:task.name,run,warmup:run<EFFICIENCY_WARMUPS,milliseconds,tools})+'\n');
+      fs.writeSync(timing,JSON.stringify({task:task.name,row:task.row,plan:task.plan,run,warmup:run<EFFICIENCY_WARMUPS,milliseconds,tools})+'\n');
       if(task.after)await task.after({rpc,eventually,counts,run,state});
     }
     assert.ok(followsPlan(tools,task.plan),task.name+' made '+tools.join(',')+' against its plan '+task.plan.join(','));

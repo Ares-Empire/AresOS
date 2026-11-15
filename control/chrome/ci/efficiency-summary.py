@@ -75,6 +75,8 @@ def summarize(directory):
             raise ValueError(name + ": the measured runs made different calls: " + repr(sorted(tools)))
         totals = [sum(run["characters"]) for run in per_run]
         out[name] = {
+            "row": runs[0].get("row"),
+            "plan": runs[0].get("plan"),
             "calls": len(per_run[0]["tools"]),
             "tools": ["chrome_" + tool for tool in per_run[0]["tools"]],
             "characters": int(statistics.median(totals)),
