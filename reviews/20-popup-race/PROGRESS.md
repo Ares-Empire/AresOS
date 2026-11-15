@@ -55,9 +55,11 @@ request is open and no workflow was started. No browser was started on this Mac.
   (every error ends the admission), re-arm on any error, re-arm without disable, re-arm that only sets again, a
   swallowed second refusal, the adopt-by-pause mistake (a pause while the id is unknown counts as startup); the line
   without the flag, the flag never true, the gate accepting a handoff, one message for both cases (twice), the dialog
-  record ignored, the message kept after recovery, the act's error with the old text. The existing probe
-  `P1-preexisting-detach` is re-pointed to the fallback's new text (the message is computed after the detach); it
-  still removes the detach alone.
+  record ignored, the message kept after recovery, the act's error with the old text. Two existing probes are
+  re-pointed to the changed lines and still remove the same thing: `P1-preexisting-detach` (the fallback's detach,
+  now followed by the message) and `P1-preexisting-recover` (`requireTab`'s handoff, now with `handoffMessage(owner)`).
+  All 537 probes apply to the current source (checked with a script before the preflight; a probe whose `before`
+  text no longer exists stops the whole audit).
 
 ## Left, in order
 
