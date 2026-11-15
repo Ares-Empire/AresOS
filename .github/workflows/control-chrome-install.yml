@@ -1,0 +1,61 @@
+name: Control Chrome install
+# The install proof of brief 18c-b, item 2: the image's browser-side layout on the pinned Chrome in a
+# container, where a run takes minutes (the VM pass repeats it in the guest). Chrome installs our
+# extension by policy from a file: address; nothing is published. Read-only, no secrets; the proof
+# itself runs without a network.
+on:
+  pull_request:
+    paths:
+      - 'control/chrome/packaging/**'
+      - 'control/chrome/extension/**'
+      - 'control/chrome/ci/install/**'
+      - 'control/chrome/ci/Dockerfile'
+      - 'control/chrome/ci/service.py'
+      - 'control/chrome/native_host.py'
+      - '.github/workflows/control-chrome-install.yml'
+permissions:
+  contents: read
+concurrency:
+  group: control-chrome-install-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  install:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: The container's Chrome against the image's pin
+        run: |
+          python3 - <<'PY'
+          import json, re
+          image = re.fullmatch(r'google-chrome-stable-([0-9.]+)-\d+\.x86_64', json.load(open('os/google-chrome.lock.json'))['nevra'])[1]
+          ours = json.load(open('control/chrome/ci/install/chrome.lock.json'))['version']
+          print('the image ships Chrome', image, '| this proof runs on', ours)
+          if image.split('.')[0] != ours.split('.')[0]:
+              raise SystemExit('This proof runs on another major version than the image ships: renew control/chrome/ci/install/chrome.lock.json')
+          if image != ours:
+              print(f'::warning::The install proof runs on Chrome {ours}, the image ships {image}: renew control/chrome/ci/install/chrome.lock.json')
+          PY
+      - name: Build the container of control/chrome/ci/Dockerfile with the pinned Chrome, plus python3-cryptography
+        run: |
+          set -euo pipefail
+          field() { python3 -c 'import json,sys; print(json.load(open("control/chrome/ci/install/chrome.lock.json"))[sys.argv[1]])' "$1"; }
+          git archive HEAD control docs/control/TOOLS.md .github/workflows/control-chrome-qualification.yml .github/workflows/control-chrome.yml \
+            | docker build --build-arg PACKAGE_URL="$(field url)" --build-arg PACKAGE_SHA256="$(field sha256)" -t aresos-chrome-fixture -f control/chrome/ci/Dockerfile -
+          docker build --build-arg BASE=aresos-chrome-fixture -t aresos-chrome-install - < control/chrome/ci/install/Dockerfile
+      - name: pack.py's tests, the network-log scan's tests and the node cross-check
+        run: docker run --rm --network none aresos-chrome-install pack
+      - name: The install proof on the pinned Chrome, sandbox on, no network
+        if: ${{ !cancelled() }}
+        run: |
+          set -euo pipefail
+          mkdir -p .work/18c-b-chrome/install
+          timeout --signal=TERM --kill-after=30s 30m docker run --rm --network none --cap-add SYS_ADMIN --security-opt seccomp=unconfined --security-opt apparmor=unconfined --shm-size=512m -e GITHUB_RUN_ID -e GITHUB_SHA -v "$PWD/.work/18c-b-chrome/install:/out" aresos-chrome-install proof
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: control-chrome-install-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .work/18c-b-chrome/install/
+          retention-days: 14
