@@ -105,7 +105,9 @@ harness (one harness, not two), keep its targets green, and add the comparison b
   `control/chrome_tests/latency.test.mjs` and `control/chrome_tests/test_latency.py`.
 - **The gate:** `control/chrome/ci/latency-targets.json`. Ceilings in ms, median / p95: read 35/60, navigate
   100/150, free click 650/750, fill 650/750, asking click 60/100, approval to done 700/850. A median or a p95 over
-  its ceiling fails. The current runtime takes 60 samples per call (`samples_per_call`); the paired old runtime
+  its ceiling, scaled by the paired runner's slowdown against the frozen `latency-reference.json` (at least 1),
+  fails; so does a call whose median and p95 both cross their allowance against that reference
+  (`latency-check.py`). The current runtime takes 60 samples per call (`samples_per_call`); the paired old runtime
   takes 20 (`old_runtime_samples_per_call`), which must match the frozen `latency-reference.json`.
 - **The comparison, the same in both cases.** Runners differ, so old and new are timed in **one run**. In this
   package that is one task: the first read of F1, with brief 20's `chrome_read` and with the new read (item 6's
@@ -693,7 +695,8 @@ it has shown 5,000 references (a known limit for section 6); nesting deeper than
   included. On merged `main` the Chrome server's instructions (`instructions_for('chrome')` in
   `control/aresos_control/definitions.py`) are 4,052 characters. This package adds no instruction text, so that
   check passes unchanged. The reader text that tells Claude how to read an outline goes into the instructions
-  with brief 28a (its item 7) and must fit there, in at most 3,800 characters (the lead, 2026-11-15).
+  with brief 28a (its item 7) and must fit there, in at most 2,800 characters in all, the 1,652 shared by every app
+  included (the lead, 2026-11-15, after review 4).
 - **The hold:** `guard.js`, `page.js`, the 500 ms window (`HOLD_MS` in `policy.py`, `holdMs` in the extension) and
   the 525 ms wait after each input in `collectSteps` (`background.js`), the default block, the owner's own Enter,
   the three kinds of dialog.
@@ -988,7 +991,7 @@ The base's, 18d's and Mail's suites still pass, and the generated artifacts are 
 and `steps`), new modules beside it (the view module, the credential words); `definitions.py` only as far as the
 internal action needs, with every generated file unchanged; `control/aresos_control/chrome/bridge.py` (only the
 reply wait and the draining of item 4); `control/chrome/extension/reader.js` (items 1 and 3) and `background.js`
-(only as items 1 and 4 say); `control/chrome_tests/`, `control/chrome/ci/`;
+(only as items 1, 4 and 8 say); `control/chrome_tests/`, `control/chrome/ci/`;
 `.github/workflows/control-chrome.yml` (not the qualification workflow); `reviews/28-chrome-read/`.
 
 **Must not touch:** the generated files (`docs/control/TOOLS.md`, the ask rules, `user-mcp.json`), which must come
