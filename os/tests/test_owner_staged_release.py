@@ -24,6 +24,7 @@ def condition(expression, *, mode='probe', **overrides):
     """Evaluate the workflow's boolean job boundaries for the package16 ref."""
     values={'github.ref_name':BRANCH,'github.event_name':'workflow_dispatch',
             'inputs.rehearsal':mode,'inputs.checks_only':False,'inputs.release_13':False,'inputs.release_27':False,
+            'inputs.release_28':False,'inputs.dry_run_28':False,
             'inputs.check_build':'',
             'inputs.switch_from_run':'','inputs.probe_run':'',
             'needs.image.result':'skipped'}

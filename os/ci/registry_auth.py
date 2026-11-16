@@ -31,6 +31,8 @@ def require_dispatch():
             and os.environ['REHEARSAL_MODE'] == 'probe' or
             branch == 'pkg/27-first-update-release' and os.environ.get('REHEARSAL_PACKAGE') == '27'
             and os.environ['REHEARSAL_MODE'] in ('release-27', 'update') or
+            branch == 'pkg/42-release-28' and os.environ.get('REHEARSAL_PACKAGE') == '42'
+            and os.environ['REHEARSAL_MODE'] in ('publish-28', 'dry-run-28') or
             branch == 'pkg/22c-ways-back-after-update' and os.environ.get('REHEARSAL_PACKAGE') == '22c'
             and os.environ['REHEARSAL_MODE'] in ('reorder-probe', 'ways-back') or
             branch == 'pkg/22d-tools-without-stick' and os.environ.get('REHEARSAL_PACKAGE') == '22d'

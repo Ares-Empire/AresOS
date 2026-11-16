@@ -8,6 +8,7 @@ test "$GITHUB_REPOSITORY" = Ares-Empire/AresOS
 case "$GITHUB_REF_NAME" in
     pkg/13-keyboard-layout) release=13 ;;
     pkg/27-first-update-release) release=27 ;;
+    pkg/42-release-28) release=28 ;;
     *) echo "Refusing to publish from $GITHUB_REF_NAME" >&2; exit 1 ;;
 esac
 python3 os/ci/rehearsal_guard.py publish-ci 0

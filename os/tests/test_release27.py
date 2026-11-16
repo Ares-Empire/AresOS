@@ -592,6 +592,7 @@ UPDATE_GITHUB = dict(GITHUB_REF_NAME=UPDATE_REF, GITHUB_EVENT_NAME='workflow_dis
                      GITHUB_REPOSITORY='Ares-Empire/AresOS', GITHUB_SHA='a' * 40, GITHUB_RUN_ID='1', GITHUB_RUN_ATTEMPT='1')
 UPDATE_INPUTS = {'github.ref_name': UPDATE_REF, 'github.event_name': 'workflow_dispatch', 'inputs.rehearsal': 'update',
                  'inputs.checks_only': False, 'inputs.release_13': False, 'inputs.release_27': False,
+                 'inputs.release_28': False, 'inputs.dry_run_28': False,
                  'inputs.check_build': '', 'inputs.switch_from_run': '', 'inputs.probe_run': ''}
 UNKNOWN = object()
 

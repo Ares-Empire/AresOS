@@ -9,10 +9,27 @@
     "40: the checks-only job's 40 minutes, as 22d step 2 and 23b: its time limit in os-image.yml (25 to 40) and the 22c ledger's checks bound in os/ci/rehearsal-packages.json (35 to 40); no tool, guide or image file changed",
     "23b (startup cover), merged with main after package 40: os/ci/vm.py gains the cover's screenshots and session font check in the check build (harness only); the regressions time limit (40 minutes) arrived with package 40 identically",
     "22d step 8: main merged in (bound files main changed wait for the next rehearsal)",
-    "2026-11-15, board #306 (owner: scrub current files): the owner's machine username became owner in 372 files (reviews/username-scrub/RECORD.md). Three bound files changed, text only: os/manifest/ci/14/14zze-preflight/commit-preflight.py, final-local.py and local-privacy.py (archived preflight tools). No binding table or host walk was edited."
+    "2026-11-15, board #306 (owner: scrub current files): the owner's machine username became owner in 372 files (reviews/username-scrub/RECORD.md). Three bound files changed, text only: os/manifest/ci/14/14zze-preflight/commit-preflight.py, final-local.py and local-privacy.py (archived preflight tools). No binding table or host walk was edited.",
+    "42 step 1 (release 28's release job, its dry run and the image diff rules): os-image.yml gains the release_28 and dry_run_28 inputs and their two jobs (only on pkg/42-release-28; the dry run has no write permission and no publish step), os/ci/rehearsal-packages.json gains package 42's ledger, rehearsal_guard.py counts it and lets only publish-28 publish, registry_auth.py lets package 42's two kinds read release 27 with the job token, test_owner_staged_release's dispatch helper knows the two new inputs; no tool, guide or image file changed"
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
+    {
+      "sha256": "5dc2a2c49d9252fdd5c4c2e4a8c04244e1a8cf45c11ade156cd182fe8b6e13c6",
+      "path": ".github/workflows/os-image.yml"
+    },
+    {
+      "sha256": "d3b4b035ec82bc105dd41a87e82fbba8e9c4ae74e81366995758e3ac460e12a9",
+      "path": "os/ci/registry_auth.py"
+    },
+    {
+      "sha256": "c035d740a98e0a78d8c44b34c7b84f8657c123f0032ee0a5933044cd7d395e6d",
+      "path": "os/ci/rehearsal-packages.json"
+    },
+    {
+      "sha256": "b2397b285ec2a85faf44b25f458b2ad8dd4db73c1adf49972e139939e26504c3",
+      "path": "os/ci/rehearsal_guard.py"
+    },
     {
       "sha256": "5a14cfa61936b15700c53747e839a6407aa73cc1d7335ef36ebdd1ccbcdeba23",
       "path": "os/ci/vm.py"
@@ -40,6 +57,10 @@
     {
       "sha256": "3d7a7e7d033965ade9df6015d79a5683a77aeb75ca4f6b41e8725ca6e1963a0c",
       "path": "os/tests/test_owner_path.py"
+    },
+    {
+      "sha256": "3157af0ef6fb7d0e5af1d4c4e4f97be3f33102879358c1a956e969e473a9e8c8",
+      "path": "os/tests/test_owner_staged_release.py"
     },
     {
       "sha256": "07c7fa007ddb33101995e7bf3787cef216198a0036a0c11137fba30c57904cf3",

@@ -34,10 +34,12 @@ MODEL_STEP = 'Run the full ways-back model'
 ACCOUNTING_POLICY = '14zz-job-interval-ordered-span-full-bound-v1'
 OWNER_QUALIFICATION_BOUND = 240
 # Packages whose ledger counts every dispatch by its run title.
-TITLED_PACKAGES = ('13', '14', '16', '27', '22c', '22d')
+TITLED_PACKAGES = ('13', '14', '16', '27', '22c', '22d', '42')
 # Packages whose every VM mode proves its native step in its own run and, when the full
 # ways-back model's sources changed, needs that model passed on the same head first.
 OWN_RUN_PACKAGES = ('22c', '22d')
+# The dispatch kinds whose job may publish an image (each once: publish_cap).
+PUBLISH_KINDS = ('release-13', 'release-27', 'publish-28')
 
 
 def configure(package):
@@ -383,7 +385,7 @@ def budget(reserve, current=None):
         bound = None
         if PACKAGE in ('14','16') and run['event']=='workflow_dispatch':
             bound = 72 if run['display_title']==SETTINGS['titles']['probe'] else OWNER_QUALIFICATION_BOUND
-        if PACKAGE in ('27',) + OWN_RUN_PACKAGES and run['event'] == 'workflow_dispatch':
+        if PACKAGE in ('27', '42') + OWN_RUN_PACKAGES and run['event'] == 'workflow_dispatch':
             # Each kind's own job timeout bounds a job GitHub cannot account.
             bound = SETTINGS['job_bounds'][kind]
         accounts = [job_accounting(job, bound) for job in jobs]
@@ -528,10 +530,11 @@ def main():
             assert result['dispatch_counts'][kind] >= 1, 'STOP: current dispatch is missing from complete history'
         else:
             assert result['dispatch_counts'][kind] < SETTINGS['dispatch_caps'][kind], 'STOP: no dispatch remains'
-        if kind in ('release-13', 'release-27'):
+        if kind in PUBLISH_KINDS:
             assert not result['publish_attempts'], 'STOP: a prior attempt reached publishing; no further image/publish attempt'
         if mode == 'publish-ci':
-            assert kind in ('release-13', 'release-27') and os.environ.get('GITHUB_EVENT_NAME') == 'workflow_dispatch'
+            # Package 42's dry run (dry-run-28) is not a publishing kind: it has no publish step, and this refuses one.
+            assert kind in PUBLISH_KINDS and os.environ.get('GITHUB_EVENT_NAME') == 'workflow_dispatch'
             assert os.environ.get('GITHUB_REPOSITORY') == REPOSITORY
         if kind in ('probe', 'keyboard', 'owner-tools', 'update') or own_native(kind):
             sha=os.environ.get('GITHUB_SHA') or subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
@@ -610,7 +613,7 @@ def main():
     (directory / suffix).write_text(json.dumps(result, indent=2) + '\n')
     if PACKAGE == '13' and mode != 'publish-ci':
         (directory / '13-dispatch-authorization.json').write_text(json.dumps(result, indent=2) + '\n')
-    if PACKAGE in ('14','16','27') + OWN_RUN_PACKAGES:
+    if PACKAGE in ('14','16','27','42') + OWN_RUN_PACKAGES:
         (directory / (PACKAGE+'-dispatch-authorization.json')).write_text(json.dumps(result, indent=2) + '\n')
     print(json.dumps(result, indent=2))
 

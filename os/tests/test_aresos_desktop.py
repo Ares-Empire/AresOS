@@ -3286,7 +3286,8 @@ class ModJarPinTest(unittest.TestCase):
         self.assertEqual(jobs['check-build']['permissions'], {'contents': 'read'})
         callers = sorted(name for name, job in jobs.items()
                          if any('os/ci/check-build.sh' in step.get('run', '') for step in job.get('steps', [])))
-        self.assertEqual(callers, ['check-build', 'release-27'])
+        # Package 42's release job and its dry run build as releases too: the dry run must build what would publish.
+        self.assertEqual(callers, ['check-build', 'release-27', 'release-28', 'release-28-dry-run'])
         for name in ('ARESOS_BUILD_KIND', 'GITHUB_JOB'):
             self.assertNotIn(name, workflow, 'no job chooses the build kind by itself')
 
