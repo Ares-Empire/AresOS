@@ -2,6 +2,26 @@
 
 Builder steps keep this file; the last step turns it into the report. Newest state first.
 
+## The lead after step 11 (2026-11-16)
+
+- **Run 13 is green:** Control Chrome 43919373436 (28 of 28 jobs; group 16's six read rows within budget and better
+  than the baseline; group 14's read cases in both core shards) and qualification 43919373435 (34 of 34); Mail, base,
+  boundary and privacy green. Run 12 was red only on the builder's own Node assertion, fixed in `467afcf3`.
+- **JUDGMENT-CALLs 1 to 4: accepted as built.** JC1, comparing a read row's time with brief 20's same row in the same
+  run, removes the runner from the comparison; calls and characters stay against the frozen file.
+- **JUDGMENT-CALL 5:** right for now. The cases that are still missing get registered as they are built
+  (`password_exclusion`, `binding`), and step 12's builder registers step 11's read cases where the brief puts them.
+- **PLAN-GAPs 1 and 2: accepted** (one code in `bridge.py`'s list; JC1's rule).
+- **The baseline's `latency_comparisons`:** it gets one entry, from a green run of the final head, in the last step's
+  push. Run 13's entry is not appended now.
+- **What's left becomes three steps:**
+  - **Step 12 (Fable 5.2, credentials):** merge `main` (it now has #91, the Stop hook fix, and #93's and #95's
+    branches may land before it); group 14's password cases and reference cases ("Left", item 2, first two bullets),
+    registered in `ci/verdicts.mjs`.
+  - **Step 13 (Opus):** paging, the state token, H1, the asking read and the expected outlines.
+  - **Step 14 (Opus):** the baseline entry, `HARNESS-MAP.md`, the known limits, the report, then green twice on the
+    final head.
+
 ## Step 11 (2026-11-16, Claude agent on Opus 5.5): main merged, the time refusal, groups 14 and 16
 
 Opus: built against the lead's brief for this step, the brief's "Tests" (groups 14 and 16) and step 10's "Left, in
