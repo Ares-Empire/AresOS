@@ -497,14 +497,14 @@ sites and synthetic profiles).
   (`/var/lib/aresos-control/chrome-excluded-sites.json`, root-owned, changed with `sudo`, never writable by the
   tool service, and kept across updates and rollbacks): his never-list. **Nothing in this public repo names a host
   of his.** The image makes it at first boot as a placeholder the tool refuses, so every Chrome read and action
-  answers `chrome_settings_unavailable` until he writes his list, an empty one if he has no host to add (brief
-  18c-b). That gate needs no host name, only a list he has written. His own hosts, his dashboard first, go in
-  during the live setup with him, before Claude's first session in his Chrome; a list without his dashboard's host
-  leaves it an ordinary site to the tool, so that step comes first. `chrome_sites` doesn't manage this list; it
-  manages his read-only sites and his "don't ask again" entries. This keeps the approval his alone (section 7,
-  requirement 3). The
-  check runs before every read and every action, on the tab's top document and on the frame that holds the target,
-  so it covers every way of getting there:
+  answers `chrome_settings_unavailable` until he writes his list (brief 18c-b). That gate checks only that he has
+  written a list, not what is on it, so it needs no host name in this repo, and the live setup with him is what
+  protects his dashboard: its host goes on the list first, then his other hosts, before Claude's first session in
+  his Chrome. A list without his dashboard's host leaves it an ordinary site to the tool. The list is empty only
+  when he has no site at all to exclude (review 5, S6; his guide's lines are in brief 18c-b). `chrome_sites`
+  doesn't manage this list; it manages his read-only sites and his "don't ask again" entries. This keeps the
+  approval his alone (section 7, requirement 3). The check runs before every read and every action, on the tab's
+  top document and on the frame that holds the target, so it covers every way of getting there:
   - **his tabs:** `chrome_read` never reads such a page in place, and `chrome_take` refuses a tab showing one;
   - **redirects, history and popups:** a Claude tab or a popup that reaches such a page, by a redirect, back or
     forward, or a page opening it, is refused for reading and acting and handed back to him out of the group; the
@@ -587,14 +587,24 @@ the front when he should look at it or sign in there.
     `chrome_take` changes nothing and answers `reload_required` with what it found and a question prepared for the
     reload. Only `chrome_take_reload` reloads such a tab: it takes that question unchanged and asks him in Claude
     Code's prompt like a delete (main's two steps, as for `chrome_submit`). The question names the tab and what
-    the check found (field labels, never values); the approval is bound to that page and what was found, used once,
-    and refused when the page has changed since. It isn't offered for an open dialog, a load or a form submission
-    under way, or a frame that doesn't answer: there the tool found nothing to show him.
+    the check found (field labels, never values), and says that Claude takes the tab; the approval is bound to
+    that page and what was found, used once, and refused when the page has changed since. It isn't offered for an
+    open dialog, a load or a form submission under way, or a frame that doesn't answer: there the tool found
+    nothing to show him, also when one of these arises while the question waits.
   - **In a tab he gave Claude, a flag doesn't discard his typing either** (*brief 28b*; the lead, 2026-11-15). When
     the check before navigating or reloading a taken tab (brief 20's, which marks whose typing it is) finds typing
     of his or a frame it couldn't inspect, `discard_unsaved` isn't accepted. Claude gives the tab back, or, for his
     typing, passes the question that refusal prepared to `chrome_take_reload`. Playing media and Claude's own typing
     still go with the flag, as in Claude's own tabs.
+  - **Nor a page he has used since Claude took it** (*brief 28b*; the lead, 2026-11-16). That check looks at the
+    fields that are there now. A wizard step he finished in the taken tab, a drawing on a canvas or a file he
+    dropped onto the page leaves it nothing to find. So the page guard also records that he clicked, pressed a
+    key, typed, dropped or pasted in the page, told apart from Claude's own input and counted as his when it
+    can't tell. Then going elsewhere or reloading is refused, with or without the flag, and the refusal carries
+    the question for `chrome_take_reload`, as for his typing. A step of Claude's that follows a link to another
+    page or submits a form is checked the same way before it runs, also when its send was approved meanwhile. A
+    navigation that the page's own script starts from some other element can't be seen beforehand ("Known
+    limits").
   - **A page loaded by a form submission is never reloaded,** because Chrome might submit it again. Claude opens its
     address fresh in a Claude tab instead.
   - `chrome_take` returns the reloaded page's outline, so the next call can act.
@@ -621,9 +631,10 @@ the front when he should look at it or sign in there.
 
   In every other case the tab is left as it is and the result says what the tool found, with the labels of
   fields and never their values. For a take, `chrome_take_reload` then asks him. For a close there is no
-  override: the tab stays open, and the result tells him which tabs were kept and why. The check runs in his tab
-  without a debugger, as the last thing before the reload or the close. If Chrome itself asks "Leave site?",
-  that question is his and the tool never answers it.
+  override: the tab stays open, and the result tells him which tabs were kept and why. The check runs in his
+  tab's own content script: for a take once before anything is attached, and again as the last thing before the
+  reload, where a tab that is no longer clean gets its attach and its mark undone; for a close as the last thing
+  before it. If Chrome itself asks "Leave site?", that question is his and the tool never answers it.
 - **Giving it back.** `chrome_release`, the **Give back** button next to the tab in the popup, dragging the tab out
   of its Claude group, or **Stop** (which gives back everything) each end Claude's control of the tab, drop its prepared
   operations and put it back where it was: its window, its place, his own group, pinned if it was pinned. If his
@@ -655,7 +666,8 @@ one of his tabs needs `chrome_take` first, which moves the tab and keeps its pag
 and unsaved typing or playing media stops that reload until `chrome_take` is called with `reload: true` (brief
 28a; on merged `main` the input itself is repeated with `discard_unsaved: true`; with brief 28b the take does the
 reload, a tab of his that isn't known clean reloads only through `chrome_take_reload`, which asks him, and in a
-taken tab the flag no longer discards his typing or a frame that couldn't be inspected). On merged `main` brief 20
+taken tab the flag no longer discards his typing, a page he has used since the take, or a frame that couldn't be
+inspected). On merged `main` brief 20
 also checks before navigating a Claude tab (an address, back, forward or reload) and before closing one: unsaved
 typing (by field label, marked as typed by him or by Claude), playing media and frames it couldn't inspect come
 back as `reload_required`, and Claude repeats the call with `discard_unsaved: true` only after his OK in the chat,
@@ -1066,8 +1078,10 @@ on github.com/…/issues/12, as the page shows it: 'Thanks, fixed in #13' (butto
 follow: everything in the list above, files with path and hash, the number of hidden fields with their names and
 values, and each password field by its label only. Of a list they show the options that are chosen, with label and
 value, and how many options the list has; the options he didn't choose aren't sent and aren't listed (*brief 28a*).
-Brief 20 listed them all, and a country list of 200 options then made the approval too large to ask about at all
-(rule 4.1; found by brief 28's baseline). What a form sends is still shown whole, or the form isn't sent.
+One option that isn't chosen yet is shown: for a step that chooses from a list, the fields name the option the
+step will choose, with label and value, beside the one chosen now. Brief 20 listed them all, and a country list
+of 200 options then made the approval too large to ask about at all (rule 4.1; found by brief 28's baseline).
+What a form sends is still shown whole, or the form isn't sent.
 
 **What the binding guarantees:** the input goes only if the page still shows what he approved, checked right before it
 is dispatched. The comparison uses full addresses, also where the question shows a value as `…`: a destination whose
@@ -1168,12 +1182,13 @@ accounts; a page an adapter doesn't recognise falls back to the generic rules. T
 | `chrome_read` | read | the outline of a tab, or of up to five tabs; one part by `ref`; `find`; `until`; paged by `max` and `cursor`. In one of his tabs it reads in place and needs `request` | `chrome_read`, `chrome_read_form`, `chrome_find`, `chrome_wait` |
 | `chrome_prepare_read_typed_fields`, `chrome_read_typed_fields` | change, **ask** (read) | the first takes the tab and returns the approval, whose question lists the fields; the second takes it and, after his OK, reads the typed form fields (single-line and multi-line) that a normal read shows only as filled, because the reader doesn't know their history: the question lists the fields' labels, never a value; credential-like fields never; one approval, one call | the same (brief 20 added both before it merged; main's two tools stay, the lead, 2026-11-15) |
 | `chrome_open` | change | open a web address in a new Claude tab (an address, a link or a library entry by reference, or the address of one of his tabs), wait, return the outline | `chrome_open`, then wait and read |
-| `chrome_go` | change | in a Claude tab: an address, back, forward or reload; wait, return the outline. Unsaved typing, playing media or a frame it can't inspect stops it until `discard_unsaved` (brief 20's guard, kept); in a taken tab the flag doesn't discard his typing or such a frame (*brief 28b*) | `chrome_navigate`, then wait and read |
+| `chrome_go` | change | in a Claude tab: an address, back, forward or reload; wait, return the outline. Unsaved typing, playing media or a frame it can't inspect stops it until `discard_unsaved` (brief 20's guard, kept); in a taken tab the flag doesn't discard his typing, a page he has used since the take, or such a frame (*brief 28b*) | `chrome_navigate`, then wait and read |
 | `chrome_do` | change | up to 20 steps in one tab (click, fill, select, check, press, scroll, dialog, wait), each by reference. An asking step isn't dispatched and returns a prepared operation, and so does a submission the page starts while handling a step; an activation the page starts is stopped and reported, never resumed. Returns what changed | `chrome_click`, `chrome_fill`, `chrome_fill_form`, `chrome_select`, `chrome_check`, `chrome_press`, `chrome_scroll`, `chrome_dialog` |
 | `chrome_upload` | change | prepare putting a local file into a file field (it asks through `chrome_submit`) | the same |
 | `chrome_show` | change | bring a tab and its window to the front, for him | new |
 | `chrome_close` | change | close Claude tabs (one with unsaved work stays open until `discard_unsaved`, brief 20's guard, and the flag only for a call that closes one tab); one of his only when he asked (`request`) and the tab is known clean; never a taken tab | `chrome_close_tab` |
 | `chrome_take`, `chrome_release` | change | take one of his tabs for acting (it reloads once; where the tool can't rule out a loss, `chrome_take_reload` asks him first; never a page of the fixed list); give it back to its place | `chrome_take_tab`, `chrome_release_tab` |
+| `chrome_take_reload` | change, **ask** (as a delete) | *brief 28b*: reload a tab of his where something could be lost (one that isn't known clean, or a taken one that holds his typing or that he has used). It takes the question a `reload_required` refusal prepared and asks him; a tab not yet taken is taken with it; returns the reloaded page's outline | new |
 | `chrome_library` | read | his downloads (and where Chrome saved them), bookmarks or history, to find pages: titles, addresses in the short form, and a reference per entry to open it | `chrome_downloads`, `chrome_bookmarks`, `chrome_history` |
 | `chrome_submit` | **send** | run one prepared operation, by id and hash, after the page-state check | the same |
 | `chrome_submit_trusted` | send, free | as `chrome_submit`, only for a kind he set to "don't ask again" | the same |
@@ -1197,7 +1212,8 @@ accounts; a page an adapter doesn't recognise falls back to the generic rules. T
   28a's instructions stay within 2,800 characters, the 1,652 that every app shares included, so that brief 28b's
   rules for his tabs fit in the 1,000 left under 3,800, and tests pin both (the lead, 2026-11-15): Claude Code
   2.1.319 passes on only the first 4,096 characters of a server's instructions, a test checks every app against
-  that (`control/chrome_tests/test_questions.py`), and on merged `main` Chrome's are already 4,052 (*brief 20*).
+  that (`control/chrome_tests/test_questions.py`), and on merged `main` Chrome's are already 4,081 (*brief 20*,
+  and PR #77's sentence on `owner_dialog`).
 
 **Left out on purpose:**
 
@@ -1233,7 +1249,7 @@ is brief 20's tool list on the same fixtures, recorded once before it is replace
 | List 25 open tabs | 3 calls | 1 call, at most 3,500 characters |
 | A free click that changes part of the page | a click, then a read or a find: 2 calls | 1 call, at most 2,500 characters |
 | Read a fact from one of his tabs (*brief 28b*) | list, take, read; the tab moves | list, read; the tab untouched |
-| What a session loads: descriptions and instructions | 30 tools; recorded on main after PR #27 | 19 tools, not above main's total measured at brief 28a's start (about 9,137), the final total pinned; the instructions alone at most 2,800 (3,800 with brief 28b); 20 tools with brief 28b's rule for his tabs and `chrome_take_reload`: at most 1,550 above 28a's pinned total (the lead, 2026-11-15) |
+| What a session loads: descriptions and instructions | 30 tools; recorded on main after PR #27 | 19 tools, not above main's total measured at brief 28a's start (about 9,166), the final total pinned; the instructions alone at most 2,800 (3,800 with brief 28b); 20 tools with brief 28b's rule for his tabs and `chrome_take_reload`: at most 1,550 above 28a's pinned total (the lead, 2026-11-15) |
 | What a session loads: names and input schemas | 28 tools, about 10,600 characters at `8b7e799c`; recorded again on main with the 29th and 30th | not above main's total measured at brief 28a's start (about 11,080), the final total pinned; with brief 28b's inputs and `chrome_take_reload` at most 750 above 28a's pinned total |
 
 - Every budget names the exact calls it allows (the tables of briefs 28 and 28a), and the test makes those calls
@@ -1393,14 +1409,16 @@ with real harm is fixed instead (owner, 2026-11-11). Each brief's report keeps t
   full, hidden fields included. Showing that value would put a sign-in token into Claude's context.
 - **A question shows a list's chosen option and how many options it has, not the others: he sees less there than
   the tool binds** (*brief 28a*). *Harm:* he can't see in the question which other options the list offered.
-  *Accepted:* the form doesn't send them; the chosen option is shown with its label and its value; and no option
-  can change after his approval, listed or not, because the operation keeps them all and the tool compares them
-  right before the input. Listing them all made a form with a country list impossible to ask about.
+  *Accepted:* the form doesn't send them; the chosen option is shown with its label and its value, and so is the
+  option a step is about to choose from the list; and no option can change after his approval, listed or not,
+  because the operation keeps them all and the tool compares them right before the input. Listing them all made
+  a form with a country list impossible to ask about.
 - **A large form isn't sent by Claude.** What a form sends is shown whole in the question or the form isn't sent
   (rule 4.1), and an approval holds 16,384 bytes with a question of 4,096 characters. That is about 90 short
   fields, or 45 with 80 characters each, and a text next to Send of about 3,800 characters, or about 900 in a
   script outside ASCII; a long hidden value (a framework's page state) or hundreds of chosen options fill it too.
-  *Harm:* he sends such a form himself; the tool says so, and a submission the page starts itself stays stopped.
+  *Harm:* he sends such a form himself; the tool says so, and says whether shortening the text Claude filled
+  could help; a submission the page starts itself stays stopped.
   *Accepted:* it fails closed, and cutting what he approves would be worse than not asking.
 - **A reload on take loses what isn't work:** an open menu, a place in an endless list, a selection. *Harm:* he
   finds his tab reset. *Accepted:* the take rule (owner, 2026-11-11); looking needs no take, and Claude can work on
@@ -1421,9 +1439,20 @@ with real harm is fixed instead (owner, 2026-11-11). Each brief's report keeps t
   no group among pinned tabs. *Harm:* that tab steps to the edge of his group, or out of the pinned tabs, until
   it is given back. *Accepted:* every other taken tab stays exactly where it is, and a release puts these two
   back.
-- **What he types into a taken tab can be lost when Claude navigates it.** *Harm:* his text in a tab that Claude
-  is working in. *Accepted:* the tab is marked as Claude's for as long as it is taken, and giving it back is one
-  click.
+- **In a taken tab, a navigation that the page's own script starts can lose what he did there.** Before Claude
+  goes elsewhere, reloads, follows a link or submits a form in a taken tab, the tool looks for his typing and for
+  his use of the page since the take, and asks him ("Which tabs Claude works in"). A step on any other element
+  whose script then navigates, such as a button that sets the address, can't be seen beforehand. A submission
+  that such a script starts is held and asked as a send, with the form shown, but that question doesn't name
+  his other work on the page. *Harm:* his typing or other work in that page, in a tab Claude is working in.
+  *Accepted* (the lead, 2026-11-16): the tool can't know what a page's handler will do; the tab is marked as
+  Claude's for as long as it is taken, and giving it back is one click; a page that guards its work makes Chrome
+  ask "Leave site?", and that question is his. It is the one loss of his work the design accepts.
+- **A tab with a frame the reader can't enter isn't taken or navigated by Claude.** An embedded PDF viewer and
+  another extension's inline frame take no reader, so the tool can't tell whether they hold something of his (a
+  PDF form can). Such a tab is never known clean, and no question is offered for it. *Harm:* he acts in that tab
+  himself, or Claude works on a copy of the page in its own tab. *Accepted:* it fails closed; brief 28b measures
+  which frames this hits.
 - **An unchanged element can come to mean something else.** A reference is checked on its own element: its name,
   its value, its options, where its link leads. The page around it isn't checked. A button that keeps its name
   while the row around it now shows another item still runs. *Harm:* Claude takes a free step with an older
@@ -1637,6 +1666,7 @@ itself instead of the first input (brief 28b).
     - a form filled and sent in one call and `chrome_submit`: the receiver has nothing before approval, one
       submission after, none on a repeat, and the question shows every field as filled;
     - a form with a list of 200 options is asked in one question, which shows the chosen option and the count;
+      a step that chooses from such a list asks with the option it will choose shown beside the one chosen now;
       an option changed while the approval waits is refused, also one the question doesn't list; a form too
       large to show whole is refused with nothing reserved, and a submission of it that the page starts stays
       stopped without blocking the next read;
@@ -1683,6 +1713,11 @@ itself instead of the first input (brief 28b).
       in a taken tab, his typing and a frame that doesn't answer aren't discarded with `discard_unsaved`: going
       elsewhere or reloading is refused, the refusal names `chrome_release`, and for his typing it carries the
       question for `chrome_take_reload`; with only playing media or Claude's own typing the flag goes on;
+      the same when he has used the taken page without leaving a field to find (a finished wizard step, a
+      drawing, a dropped file), while none of Claude's own steps counts as his use; there a step that follows a
+      link or submits a form is refused with the same question, also a send approved before he used the page;
+      a navigation that a button's script starts is shown as the known limit; a take whose tab stops being
+      clean after the attach is undone and answers `reload_required`;
       `chrome_release`, **Give back**, dragging out and **Stop** each restore the window, the place, his group and
       the pin;
     - marked in place: a taken tab keeps its window and its place and shows a Claude group around it, also when
@@ -1702,7 +1737,10 @@ itself instead of the first input (brief 28b).
       the list, the question and the read; the sign, the popup and the log show the fields' labels, never a
       value;
     - the background: a new Claude tab doesn't come to the front, and a list of steps in a Claude tab leaves his
-      front tab in front (or the brief's report says why it can't, and the question goes to him).
+      front tab in front (or the brief's report says why it can't, and the question goes to him);
+    - the never-list's placeholder: with it in, every call that names one of his tabs (a read, the asking read's
+      preparation, a take, a close, opening its address, an approved `chrome_take_reload`) answers
+      `chrome_settings_unavailable` before any call to the browser (brief 18c-b's sweep).
     A tool-user round (section 8) then checks the rule "the tab his request clearly needs" with a model: tabs named
     "Car" and "Uni website" and a look-alike are open, the request is "check my lectures", and the report says
     which tabs were read.
