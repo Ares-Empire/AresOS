@@ -26,5 +26,8 @@ public abstract class WindowIdentityMixin {
         GLFW.glfwWindowHintString(GLFW.GLFW_WAYLAND_APP_ID, ShellClient.DESKTOP_APP_ID);
         GLFW.glfwWindowHintString(GLFW.GLFW_X11_CLASS_NAME, ShellClient.DESKTOP_APP_ID);
         GLFW.glfwWindowHintString(GLFW.GLFW_X11_INSTANCE_NAME, ShellClient.DESKTOP_APP_ID);
+        // The desktop window is never minimized by GLFW (package 40). It only does that to a fullscreen window,
+        // which the session's window never is (WindowHomeScreenMixin); the hint keeps it so whatever makes one.
+        if (dev.aresos.client.HomeScreen.session()) GLFW.glfwWindowHint(GLFW.GLFW_AUTO_ICONIFY, GLFW.GLFW_FALSE);
     }
 }

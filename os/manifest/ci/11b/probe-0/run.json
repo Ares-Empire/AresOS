@@ -101,11 +101,11 @@
     "message": "Probe actual Anaconda Web UI from liveuser through host Chromium",
     "timestamp": "2026-10-22T23:39:18Z",
     "author": {
-      "name": "pab",
+      "name": "owner",
       "email": "admin@example.com"
     },
     "committer": {
-      "name": "pab",
+      "name": "owner",
       "email": "admin@example.com"
     }
   },

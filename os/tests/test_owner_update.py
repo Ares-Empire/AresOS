@@ -168,6 +168,10 @@ def history(rows, version=3):
     return dict(tools_version=version, releases=rows)
 
 
+# The reviewed payload's own tools version: the bundle every default fixture stick or folder holds.
+VERSION = json.loads((PAYLOAD / 'history.json').read_text())['tools_version']
+
+
 class Machine(owner.Host):
     """Host adapter over an ordinary JSON machine; mutations only change that model."""
 
@@ -453,7 +457,7 @@ class ShapeTest(unittest.TestCase):
 class HistoryTest(unittest.TestCase):
     def test_reviewed_history_ends_with_the_pinned_release_and_r13_is_not_wheel(self):
         value = owner.lineage(PAYLOAD)
-        self.assertEqual(value['tools_version'], 3)
+        self.assertEqual(value['tools_version'], 4)
         # Package 27 appended release 27, whose daily account is an administrator.
         self.assertEqual(value['releases'][:1], H13)
         self.assertEqual(value['releases'][-1], dict(reference=PINNED['reference'], identity=PINNED['signature']['identity'],
@@ -786,11 +790,16 @@ class IntentTest(unittest.TestCase):
     """update and previous journal their intent before any change (review 2)."""
 
     POINTS = ('before', 'after', 'observe', 'record')
+    # update's step failing before or after it staged ends in the stop routine, whose clean end
+    # proves the list is as before and closes the intent (22c review 8, finding 2). At every other
+    # point the intent stays open, as after a kill or a power cut in the step.
+    CLOSED = {('update', 'before'), ('update', 'after')}
 
     @contextlib.contextmanager
     def interrupted(self, kind, point):
         start = pair() if kind == 'update' else updated()
-        with route(start, wheel=kind != 'update') as (tools, host, store):
+        # No finalizer is masked here, so the stop routine never reads the runner's own /etc.
+        with route(start, wheel=kind != 'update') as (tools, host, store), patch.object(owner, 'finalizer_masks', return_value=[]):
             command = tools.update if kind == 'update' else tools.previous
             real_save = owner.Tools.save
             def save(obj, name, value):
@@ -801,7 +810,11 @@ class IntentTest(unittest.TestCase):
                 host.interrupt = ('update' if kind == 'update' else 'start-next', point)
             with patch.object(owner.Tools, 'save', new=save), self.assertRaises((owner.Stop, OSError)):
                 command()
-            intent = tools.load(owner.OUTCOME)
+            if (kind, point) in self.CLOSED:
+                self.assertFalse((store / (owner.OUTCOME + '.json')).exists(), 'a clean stop left its intent open')
+                intent, = [json.loads(p.read_text()) for p in store.glob('*-outcome-stopped-not-applied.json')]
+            else:
+                intent = tools.load(owner.OUTCOME)
             self.assertEqual((intent['status'], intent['word'], intent['boot']), ('intent', kind, 'boot-1'))
             self.assertEqual(intent['before'], [list(owner.key(d)) for d in start['rpm']['deployments']])
             yield tools, host, store, command, start
@@ -827,7 +840,7 @@ class IntentTest(unittest.TestCase):
                     before = copy.deepcopy(host.state)
                     changes = list(host.changes)
                     for method in (tools.check, tools.title, tools.records):
-                        if kind == 'update':
+                        if kind == 'update' and (kind, point) not in self.CLOSED:
                             UpdateCommandTest.unchanged(self, tools, host, store, method,
                                 'run sudo /var/lib/ares/at update')
                         else:
@@ -845,7 +858,8 @@ class IntentTest(unittest.TestCase):
                     tools.boot[0], host.state = 'boot-2', copy.deepcopy(start)
                     tools.check()
                     self.assertFalse((store / (owner.OUTCOME + '.json')).exists())
-                    self.assertEqual(len(list(store.glob('*-outcome-not-applied.json'))), 1)
+                    # A clean stop closed its intent already: nothing is left to resolve.
+                    self.assertEqual(len(list(store.glob('*-outcome-not-applied.json'))), int((kind, point) not in self.CLOSED))
 
     def test_the_same_command_redoes_an_unmade_change_or_records_a_made_one(self):
         for kind in ('update', 'previous'):
@@ -888,7 +902,7 @@ class IntentTest(unittest.TestCase):
                 self.assertEqual(tools.load(owner.OUTCOME)['status'], 'recorded')
 
     def test_other_commands_never_continue_an_intent_and_a_wrong_change_is_not_recorded(self):
-        with self.interrupted('update', 'after') as (tools, host, store, command, start):
+        with self.interrupted('update', 'observe') as (tools, host, store, command, start):
             UpdateCommandTest.unchanged(self, tools, host, store, tools.previous, 'interrupted before its result was recorded')
             # The target staged over a different running deployment is not the intended change.
             host.state = machine([release_row(R21, staged=True), release_row(R13, booted=True, checksum='d5' * 32), stock_row()])
@@ -994,11 +1008,17 @@ class ToolsUpdateTest(unittest.TestCase):
         self.addCleanup(bytecode.stop)
 
     @contextlib.contextmanager
-    def installation(self, installed=None, stick=None, state=None, legacy_owner=b'print("15f stand-in ran")\n', versioned=False):
+    def installation(self, installed=None, stick=None, state=None, legacy_owner=b'print("15f stand-in ran")\n', versioned=False,
+                     source='stick'):
         """installed/stick: (history or None for a history-less bundle, target, extra files).
 
         The installed tools live in tools/ (the first install, or the 15f
         stand-in) or, with versioned, in tools-<fingerprint>/ as after an update.
+
+        source: the start block that ran (22d). run() installs by its rules;
+        run(other) is the same bundle arriving by the other block. The folder
+        block's caller has no terminal, and the stick stays plugged in and
+        mounted there too: the folder route fails the test if it looks at it.
         """
         with tempfile.TemporaryDirectory(dir=ROOT / 'os/tests') as temporary, contextlib.ExitStack() as stack:
             root = pathlib.Path(temporary)
@@ -1036,7 +1056,17 @@ class ToolsUpdateTest(unittest.TestCase):
             stack.enter_context(patch.object(owner.sys.stdin, 'isatty', return_value=True))
             stack.enter_context(patch.object(owner.Tools, 'processes', lambda self: []))
             self.private = stack.enter_context(patch.object(owner, 'private_tree'))
-            run = lambda: owner.install(usb / 'ares-tools', host)
+            def run(route=source):
+                if route != 'folder':
+                    return owner.install(usb / 'ares-tools', host, route)
+                consulted, seen = AssertionError('The folder route consulted the stick'), len(host.trace)
+                with patch.object(owner.sys.stdin, 'isatty', return_value=False), patch.object(owner, 'tools_stick', side_effect=consulted):
+                    try:
+                        return owner.install(usb / 'ares-tools', host, route)
+                    finally:
+                        # media.find is the only query that asks for labels; the disk record never does.
+                        if any('LABEL' in ' '.join(row.get('command', [])) for row in host.trace[seen:]):
+                            raise consulted
             yield home, run, fingerprint, old, host
 
     def snapshot(self, home):
@@ -1112,7 +1142,7 @@ class ToolsUpdateTest(unittest.TestCase):
             records = {p.name: p.read_bytes() for p in (home / 'records').iterdir()}
             lines = run()
             self.updated(home, fingerprint, old)
-            self.assertEqual(lines[:2], ['Tools updated from version 1 to 3', 'manifest SHA256 ' + fingerprint])
+            self.assertEqual(lines[:2], ['Tools updated from version 1 to ' + str(VERSION), 'manifest SHA256 ' + fingerprint])
             self.assertEqual({k: v for k, v in records.items()}, {p.name: p.read_bytes() for p in (home / 'records').iterdir()
                                                                 if not p.name.endswith('-tools-update.json')})
             receipt = json.loads(next((home / 'records').glob('*-tools-update.json')).read_text())
@@ -1134,13 +1164,13 @@ class ToolsUpdateTest(unittest.TestCase):
 
     def test_downgrade_same_version_foreign_history_and_unknown_legacy_refuse_without_writes(self):
         cases = {
-            'downgrade': dict(installed=(history(H21, 4), H21[-1])),
-            'same version, other bytes': dict(installed=(history(H13, 3), H13[-1], (), {'media.py': b'# other\n'})),
+            'downgrade': dict(installed=(history(H21, VERSION + 1), H21[-1])),
+            'same version, other bytes': dict(installed=(history(H13, VERSION), H13[-1], (), {'media.py': b'# other\n'})),
             'history rewritten': dict(installed=(history(H13, 2), H13[-1]), stick=(history([record(R13, True), record(R21, True)], 3), H21[-1])),
             'history dropped a release': dict(installed=(history(H21, 2), H21[-1]), stick=(history([record(R13, False), record(R30, True)], 3), record(R30, True))),
         }
         cases['15f rule rewritten'] = dict(stick=(history([record(R13, True), record(R21, True)], 3), H21[-1]))
-        messages = {'downgrade': 'refusing version 3', 'same version, other bytes': 'same version',
+        messages = {'downgrade': 'refusing version ' + str(VERSION), 'same version, other bytes': 'same version',
                     'history rewritten': 'does not extend', 'history dropped a release': 'does not extend',
                     '15f rule rewritten': 'does not extend'}
         for name, options in cases.items():
@@ -1354,8 +1384,14 @@ class ToolsUpdateTest(unittest.TestCase):
     # record at every resume; the stick identity is compared with the journal's at every
     # resume but complete; the new directory exists from cut 2 and is checked until it is
     # published (cut 1 dies before the copy, so it has none to change).
+    # 22d: every row holds for both sources. Only the resume identity differs: the stick
+    # route compares the stick, the folder route refuses an update that began from a stick.
+    FOLDER_REFUSING = {
+        'resume identity': 'Interrupted tools update began from the tools USB; finish it from that stick at the recovery console',
+    }
     REFUSING = {
-        'layout trial': (COPY + PUBLISH + RETIRE, 'Layout trial is unfinished; prove it or revert first'),
+        'layout trial': (COPY + PUBLISH + RETIRE, 'Layout trial is unfinished; prove it or revert first; if the console '
+                         'that began it is closed, from a fresh physical administrator login run sudo /var/lib/ares/at layout abandon'),
         'transaction': (COPY + PUBLISH + RETIRE, 'Deployment transaction active or unknown'),
         'disk record': (COPY + PUBLISH + RETIRE + RECORDS + COMPLETE, 'Wrong or ambiguous target disk serial'),
         'resume identity': (COPY + PUBLISH + RETIRE + RECORDS, 'Interrupted tools update does not exactly match this bundle/stick; get help'),
@@ -1364,15 +1400,16 @@ class ToolsUpdateTest(unittest.TestCase):
         'unexpected exception': (COPY + PUBLISH, 'unexpected'),
     }
 
-    def refusals(self):
+    def refusals(self, source='stick'):
+        identity = dict(stick=('tools_volume_uuid', 'OTHER-STICK', 'CAFE-1234'), folder=('source', 'stick', 'folder'))[source]
         return {
             'layout trial': (lambda home, host: self.record(home, 'layout-pending', dict(phase='pin')),
                              lambda home, host: (home / 'records/layout-pending.json').unlink(), owner.Stop),
             'transaction': (lambda home, host: host.state['rpm'].update(transaction=['upgrade', 'uupd', 'socket']),
                             lambda home, host: host.state['rpm'].update(transaction=None), owner.Stop),
             'disk record': (*self.failing(owner, 'disk_record', owner.Stop('Wrong or ambiguous target disk serial')), owner.Stop),
-            'resume identity': (lambda home, host: self.journal_value(home, 'tools_volume_uuid', 'OTHER-STICK'),
-                                lambda home, host: self.journal_value(home, 'tools_volume_uuid', 'CAFE-1234'), owner.Stop),
+            'resume identity': (lambda home, host: self.journal_value(home, identity[0], identity[1]),
+                                lambda home, host: self.journal_value(home, identity[0], identity[2]), owner.Stop),
             # The staged copy (.update-tools) exists only inside the copy, which no cut at a
             # rename reaches; the new directory before publication is where a changed byte can sit.
             'unpublished bundle': (lambda home, host: self.unpublished_bytes(home, lambda raw: raw + b'# changed\n'),
@@ -1381,12 +1418,14 @@ class ToolsUpdateTest(unittest.TestCase):
             'unexpected exception': (*self.failing(owner, 'installed_commands', RuntimeError('unexpected')), RuntimeError),
         }
 
-    def refusal_cell(self, cut, name, change, undo, refusal):
+    def refusal_cell(self, cut, name, change, undo, refusal, source='stick'):
         """One cut, one injected refusal: the outcome the table and the journal phase predict."""
         cuts, message = self.REFUSING[name]
+        if source == 'folder':
+            message = self.FOLDER_REFUSING.get(name, message)
         phase = self.PHASES[cut]
         previous = '15f' if phase in ('copy', 'publish') else 'new'
-        with self.installation() as (home, run, fingerprint, old, host):
+        with self.installation(source=source) as (home, run, fingerprint, old, host):
             with self.power_cut_after(cut), self.assertRaises(OSError):
                 run()
             journal = lambda: json.loads((home / 'tools-update-intent.json').read_text())['phase']
@@ -1421,21 +1460,24 @@ class ToolsUpdateTest(unittest.TestCase):
         The refusals come from every kind of fallible check, not only the
         system preflight: the disk record, the resume identity, the new tools
         before publication, an observation that fails, and an unexpected
-        exception. Each cell's outcome comes from the table above (22c, F).
+        exception. Each cell's outcome comes from the table above (22c, F),
+        for the stick block and for the folder block (22d).
         """
-        refusals = self.refusals()
-        self.assertEqual(set(refusals), set(self.REFUSING))
+        self.assertLessEqual(set(self.FOLDER_REFUSING), set(self.REFUSING))
         for name, (cuts, message) in self.REFUSING.items():
             self.assertTrue(cuts, name + ': a row with no cut where its check runs tests nothing')
-        for cut in range(1, 11):
-            for name, (change, undo, refusal) in refusals.items():
-                with self.subTest(cut=cut, refusal=name):
-                    self.refusal_cell(cut, name, change, undo, refusal)
+        for source in owner.SOURCES:
+            refusals = self.refusals(source)
+            self.assertEqual(set(refusals), set(self.REFUSING))
+            for cut in range(1, 11):
+                for name, (change, undo, refusal) in refusals.items():
+                    with self.subTest(source=source, cut=cut, refusal=name):
+                        self.refusal_cell(cut, name, change, undo, refusal, source)
 
     def test_revert_proof_without_the_layout_check_the_invariant_fails_where_it_runs(self):
         """22c, F: system_ready without its layout-trial check fails exactly the cells where it runs."""
         source = textwrap.dedent(inspect.getsource(owner.update_tools))
-        needle = "        require(not (checker.store / 'layout-pending.json').exists(), 'Layout trial is unfinished; prove it or revert first')\n"
+        needle = "        checker.no_layout_trial()\n"
         self.assertEqual(source.count(needle), 1)
         namespace = {}
         exec(compile(source.replace(needle, ''), '<layout check removed>', 'exec'), owner.__dict__, namespace)
@@ -2197,9 +2239,10 @@ class UpdateStopTest(unittest.TestCase):
                 # By start time too, so a reused PID is never killed.
                 self.spawned.append((pid, self.started(pid)))
                 self.addCleanup(self.kill, pid, self.started(pid))
-            intent = tools.load(owner.OUTCOME)
+            intent = tools.load(owner.OUTCOME) if (store / (owner.OUTCOME + '.json')).exists() else None
+            closed = [json.loads(p.read_text()) for p in sorted(store.glob('*-outcome-stopped-not-applied.json'))]
             settled = None if host.state != pair() else tools.qualified(host.state, tools.load('prepared'), retry='update')
-            return SimpleNamespace(outcome=outcome, links=links, pids=pids, host=host, intent=intent, settled=settled,
+            return SimpleNamespace(outcome=outcome, links=links, pids=pids, host=host, intent=intent, closed=closed, settled=settled,
                                    elapsed=elapsed, printed=printed.getvalue() if stdout is None else '',
                                    calls=(root / 'calls').read_text().splitlines())
 
@@ -2246,10 +2289,18 @@ class UpdateStopTest(unittest.TestCase):
         self.assertIn(words, str(run.outcome))
         self.assertIn('was stopped safely', str(run.outcome))
         self.assertIn('Nothing changes at the next start', str(run.outcome))
-        # The running release, its rollback and the pinned stock are as before; the same command may retry.
-        self.assertEqual((run.intent['status'], run.intent['before']),
-                         ('intent', [list(owner.key(d)) for d in pair()['rpm']['deployments']]))
-        self.assertEqual(run.settled, 'retry')
+        # The running release, its rollback and the pinned stock are as before, so the routine closed
+        # the intent (22c review 8, finding 2): no command of this start stops on it, and update
+        # starts afresh.
+        self.assertIsNone(run.intent, 'a clean stop left its intent open')
+        self.assertEqual([(c['status'], c['word'], c['before']) for c in run.closed],
+                         [('intent', 'update', [list(owner.key(d)) for d in pair()['rpm']['deployments']])])
+        self.assertIsNone(run.settled)
+
+    def stopped_with_errors(self, run):
+        # Nothing claimed a clean stop, so the intent stays open for rule 5.
+        self.assertNotIn('stopped safely', str(run.outcome))
+        self.assertEqual((run.intent['status'], run.closed), ('intent', []))
 
     def step(self, run):
         return [row for row in run.host.trace if row.get('script') == 'update' and row.get('stopped')][-1]
@@ -2313,6 +2364,7 @@ class UpdateStopTest(unittest.TestCase):
         self.assertIn('stopping it did not finish: deployments: injected status read failure', str(run.outcome))
         self.assertIn('Do not reboot', str(run.outcome))
         self.assertNotIn('stopped safely', str(run.outcome))
+        self.stopped_with_errors(run)
 
     def test_a_foreign_staged_deployment_is_never_deleted(self):
         run = self.run_stopped('stage-then-run', foreign=R30)
@@ -2322,6 +2374,7 @@ class UpdateStopTest(unittest.TestCase):
         self.assertEqual(run.links, self.MASKED, 'the masks this run removed are not back')
         self.assertIn('a staged deployment this update did not make is present; nothing was deleted', str(run.outcome))
         self.assertIn('Do not reboot', str(run.outcome))
+        self.stopped_with_errors(run)
 
     def test_a_process_that_survives_kill_is_reported_and_nothing_is_deleted_behind_it(self):
         run = self.run_stopped('hang', swallow_kill=True)
@@ -2332,6 +2385,7 @@ class UpdateStopTest(unittest.TestCase):
         self.assertNotIn(('rpm-ostree', 'cleanup', '--pending'), run.host.changes)
         self.assertEqual(run.links, self.MASKED, 'the masks this run removed are not back')
         self.assertIn('Do not reboot', str(run.outcome))
+        self.stopped_with_errors(run)
 
     def test_names_that_are_not_utf8_inside_and_outside_the_step_do_not_stop_the_stop(self):
         import signal
@@ -2357,6 +2411,7 @@ class UpdateStopTest(unittest.TestCase):
                       str(run.outcome))
         self.assertIn('Do not reboot', str(run.outcome))
         self.assertNotIn('stopped safely', str(run.outcome))
+        self.stopped_with_errors(run)
 
     def test_an_exception_in_stop_and_a_failed_mask_check_are_both_reported(self):
         def broken(step):
@@ -2368,6 +2423,7 @@ class UpdateStopTest(unittest.TestCase):
                       str(run.outcome))
         self.assertIn('finalizer masks: The mask of ', str(run.outcome))
         self.assertIn('Do not reboot', str(run.outcome))
+        self.stopped_with_errors(run)
 
     def test_a_successful_step_through_the_real_runner_stages_and_keeps_the_finalizers_unmasked(self):
         run = self.run_stopped('stage-ok', timeout=60)

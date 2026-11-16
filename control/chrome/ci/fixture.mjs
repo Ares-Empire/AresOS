@@ -1,7 +1,7 @@
 import http from 'node:http';
 import fs from 'node:fs';
 import {compatibilityScript} from './compatibility.mjs';
-import {popupPage} from './popups.mjs';
+import {popupPage,POPUP_GATE} from './popups.mjs';
 import {passwordPage} from './password-fixtures.mjs';
 import {reviewPage} from './review-fixtures.mjs';
 // A React-style controlled field: the page keeps its default (the value
@@ -34,6 +34,14 @@ export async function fixtures(options={}) {
     }
     if(url.pathname === '/events'){res.writeHead(200,{'Content-Type':'text/event-stream','Cache-Control':'no-cache'});res.write(': ready\n\n');const id=url.searchParams.get('id');streams.set(id,res);res.on('close',()=>{if(streams.get(id)===res)streams.delete(id);});return;}
     if(url.pathname === '/observe'){let body='';for await(const part of req)body+=part;fs.appendFileSync('/out/page-events.jsonl',body+'\n');res.end('observed');return;}
+    if(url.pathname===POPUP_GATE){
+      // typed-early's first document waits here until the driver releases
+      // the gate (popups.mjs: after the extension has admitted the popup).
+      // Only this request is held, never a document, so no navigation of the
+      // popup is pending while the extension admits it.
+      const held=holds.get(url.searchParams.get('id'));if(held)await held.promise;
+      res.writeHead(204,{'Cache-Control':'no-store'});res.end();return;
+    }
     if(url.pathname==='/mutation-ack'){const pending=mutations.get(url.searchParams.get('nonce'));if(pending)pending();res.writeHead(204);res.end();return;}
     if(['/receive','/first/receive','/second/receive'].includes(url.pathname)||url.pathname==='/'&&url.searchParams.has('field')&&url.searchParams.get('case')?.startsWith('submit-empty-')) {
       let body='';for await(const part of req)body+=part;
@@ -50,10 +58,7 @@ export async function fixtures(options={}) {
     if(kind==='latency'){body='<textarea aria-label="Draft">Synthetic latency draft</textarea><button type="button">Continue</button><button type="button">Send</button>';script="document.querySelectorAll('button')[0].onclick=()=>{if(navigator.clipboard)navigator.clipboard.writeText('Synthetic latency clipboard').catch(()=>{});};document.querySelectorAll('button')[1].onclick=()=>{const draft=document.querySelector('textarea');fetch('/receive?case=latency-'+"+JSON.stringify(url.searchParams.get('id'))+",{method:'POST',body:draft.value});draft.defaultValue='';draft.value='';};";}
     else if(kind==='destination-sink'){res.end(page('<p>Destination sink</p>'));return;}
     else if(kind==='review-page'){const review=reviewPage(url);if(!review)throw Error('Unknown review fixture');({body,script}=review);}
-    else if(['popup-opener','popup-child'].includes(kind)){
-      // A held popup document is answered only when the driver releases it
-      // (popups.mjs, typed-early: after the extension has admitted the popup).
-      const held=kind==='popup-child'&&holds.get(url.searchParams.get('id'));if(held)await held.promise;
+    else if(['popup-opener','popup-start','popup-child'].includes(kind)){
       const popup=popupPage(url);res.end(page(popup.body,popup.script));return;
     }
     else if(kind==='adapter-sites'){const site=(await import('./sites/fixture.mjs')).sitePage(url,req.headers.host);res.end(page(site.body,site.script));return;}
@@ -299,7 +304,8 @@ export async function fixtures(options={}) {
       stream.write('data: '+JSON.stringify({change,nonce})+'\n\n');
     });
   },hold:id=>{
-    // Returns the release; a request that arrives after it is answered at once.
+    // Holds the popup gate of this id. Returns the release; a request that
+    // arrives after it is answered at once.
     const held={};held.promise=new Promise(resolve=>{held.release=()=>{if(holds.get(id)===held)holds.delete(id);resolve();};});holds.set(id,held);
     return held.release;
   },close:()=>{for(const held of [...holds.values()])held.release();for(const stream of streams.values())stream.end();server.close();second.close();}};

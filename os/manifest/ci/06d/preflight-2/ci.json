@@ -102,11 +102,11 @@
       "message": "docs(os): separate reboot checkpoints and gate persistent GRUB recovery",
       "timestamp": "2026-10-22T19:36:35Z",
       "author": {
-        "name": "pab",
+        "name": "owner",
         "email": "admin@example.com"
       },
       "committer": {
-        "name": "pab",
+        "name": "owner",
         "email": "admin@example.com"
       }
     },

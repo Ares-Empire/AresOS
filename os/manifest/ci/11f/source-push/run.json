@@ -101,11 +101,11 @@
     "message": "Apply the authorized Linux position rule and budget a complete two-order rehearsal",
     "timestamp": "2026-10-24T01:54:23Z",
     "author": {
-      "name": "pab",
+      "name": "owner",
       "email": "admin@example.com"
     },
     "committer": {
-      "name": "pab",
+      "name": "owner",
       "email": "admin@example.com"
     }
   },

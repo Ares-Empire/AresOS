@@ -101,11 +101,11 @@
     "message": "Wait for shipped Web UI saves and read its actual review cells",
     "timestamp": "2026-10-23T02:11:15Z",
     "author": {
-      "name": "pab",
+      "name": "owner",
       "email": "admin@example.com"
     },
     "committer": {
-      "name": "pab",
+      "name": "owner",
       "email": "admin@example.com"
     }
   },

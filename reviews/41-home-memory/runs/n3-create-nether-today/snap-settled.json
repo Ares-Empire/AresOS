@@ -1,0 +1,70 @@
+{
+ "label": "settled",
+ "monotonic_ns": 47603265425307,
+ "time": "12:38:32",
+ "status_mib": {
+  "VmHWM": 1515,
+  "VmRSS": 1515,
+  "RssAnon": 1300,
+  "RssFile": 152,
+  "RssShmem": 62,
+  "VmSwap": 0
+ },
+ "smaps_rollup_mib": {
+  "Rss": 1458,
+  "Pss": 1393,
+  "Pss_Anon": 1300,
+  "Pss_File": 87,
+  "Pss_Shmem": 5,
+  "Swap": 0
+ },
+ "cgroup": "/user.slice/user-1001.slice/user@1001.service/app.slice/pkg41-game-n3-create-nether-today-891003.scope",
+ "cgroup_mib": {
+  "current": 1320,
+  "peak": 1320,
+  "swap": 0,
+  "high": "5368709120",
+  "anon": 1300,
+  "file": 10,
+  "kernel": 7,
+  "shmem": 0
+ },
+ "cgroup_events": {
+  "low": 0,
+  "high": 0,
+  "max": 0,
+  "oom": 0,
+  "oom_kill": 0,
+  "oom_group_kill": 0,
+  "sock_throttled": 0
+ },
+ "heap_mib": {
+  "reserved": 3072,
+  "committed": 574,
+  "used": 345
+ },
+ "heap_regions": {
+  "region_kib": 2048,
+  "young": 12,
+  "survivors": 5
+ },
+ "nmt_committed_mib": {
+  "Java Heap": 574,
+  "Class": 26,
+  "Thread": 7,
+  "Code": 61,
+  "GC": 72,
+  "Compiler": 1,
+  "Internal": 2,
+  "Other": 5,
+  "Symbol": 23,
+  "Native Memory Tracking": 10,
+  "Shared class space": 14,
+  "Arena Chunk": 16,
+  "Synchronization": 3,
+  "Metaspace": 120,
+  "Total": 934
+ },
+ "gpu_total_used_mib": 658,
+ "gpu_process_mib": 594
+}

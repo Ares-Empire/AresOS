@@ -1291,9 +1291,23 @@ for(const [focused,label] of [[2,'a focused popup'],[3,'another focused normal w
 // swapReplay=false hides the new renderer's context.js and page script, and
 // injectionReports=true lets the injected guard and reader report their own
 // scriptParsed in context 2, the second way the live context is learned.
+// popuprace (run 43671248371, popup-opener-close): breakpointErrors are the
+// replies to Debugger.setBreakpointByUrl, one per command, in order (DUPLICATE
+// is V8's refusal of Chrome's replayed copy); after the list the command
+// answers normally. The re-armed Debugger.enable replays the new renderer's
+// scripts, as the first one replayed the old renderer's. The fixture's
+// breakpoint id is one string, 'startup', for the orphan and the re-armed
+// breakpoint alike, as V8 derives the id from the URL and line: a pause the
+// extension matches must come from knowing the id, never from the string.
+// pauseOn fires Debugger.paused on that id: 'error' with the duplicate reply
+// (the pause reached the extension before any id was known), 'disable' while
+// the re-arm's Debugger.disable is in flight, 'armed' after the re-armed
+// breakpoint's id is known (in flight with Target.setAutoAttach).
+const DUPLICATE='{"code":-32000,"message":"Breakpoint at specified location already exists."}';
 function swappedPopupFixture(){
   const f=lifecycleFixture();
-  f.run(`controlled.set(7,{epoch:'parent'});globalThis.evaluated=[];globalThis.injections=[];globalThis.messages=[];globalThis.audits=[];globalThis.badges=new Map();globalThis.deadContextErrors=['{"code":-32000,"message":"Cannot find context with specified id"}'];globalThis.swapReplay=true;globalThis.injectionReports=false;recording=true;port={postMessage:message=>audits.push(message)};
+  f.run(`controlled.set(7,{epoch:'parent'});globalThis.evaluated=[];globalThis.injections=[];globalThis.messages=[];globalThis.audits=[];globalThis.badges=new Map();globalThis.deadContextErrors=['{"code":-32000,"message":"Cannot find context with specified id"}'];globalThis.swapReplay=true;globalThis.injectionReports=false;globalThis.breakpointErrors=[];globalThis.pauseOn=null;globalThis.swapped=false;globalThis.DUPLICATE=${JSON.stringify(DUPLICATE)};recording=true;port={postMessage:message=>audits.push(message)};preloadBundle=Promise.resolve(['// guard fixture','// reader fixture','// wrapper fixture']);
+    globalThis.pause=()=>preloadEvent({tabId:8},'Debugger.paused',{hitBreakpoints:['startup'],callFrames:[{location:{scriptId:'3'}}]});
     chrome.action.setBadgeText=async({tabId,text})=>{if(tabId!==undefined)badges.set(tabId,text)};
     chrome.tabs.get=async tab=>({id:tab,url:tab===8?'http://popup.test/post-document':'http://fixture.test/',windowId:tab===7?1:2,index:0,groupId:tab===7?1:-1,openerTabId:tab===8?7:undefined});
     chrome.windows.get=async window=>({type:window===1?'normal':'popup'});
@@ -1302,9 +1316,11 @@ function swappedPopupFixture(){
     chrome.tabs.sendMessage=async(tab,message)=>{messages.push(message.command);return {ok:true,data:message.command==='set_control'?{controlled:true}:[]};};
     chrome.debugger.sendCommand=async(source,method,parameters)=>{lifecycleCalls.push(method);
       const parsed=(scriptId,executionContextId,url,isDefault)=>preloadEvent(source,'Debugger.scriptParsed',{scriptId,executionContextId,url,executionContextAuxData:{isDefault,frameId:'popup-frame'}});
-      if(method==='Debugger.enable'){await parsed('29',7,'chrome-extension://fixture/context.js',false);return {debuggerId:'opener-renderer'};}
-      if(method==='Debugger.setBreakpointByUrl'){if(swapReplay){await parsed('3',2,'chrome-extension://fixture/context.js',false);await parsed('4',1,'http://popup.test/post-document',true);}return {breakpointId:'startup',locations:[{scriptId:'3'}]};}
-      if(method==='Runtime.evaluate'){evaluated.push({context:parameters.contextId,dispose:parameters.expression.includes('dispose() ?? true')});if(parameters.contextId===7)throw Error(deadContextErrors.length>1?deadContextErrors.shift():deadContextErrors[0]);return parameters.returnByValue?{result:{value:true}}:{result:{objectId:'factory-'+parameters.contextId}};}
+      if(method==='Debugger.enable'){if(swapped){await parsed('3',2,'chrome-extension://fixture/context.js',false);await parsed('4',1,'http://popup.test/post-document',true);return {debuggerId:'popup-renderer'};}await parsed('29',7,'chrome-extension://fixture/context.js',false);return {debuggerId:'opener-renderer'};}
+      if(method==='Debugger.setBreakpointByUrl'){if(swapReplay&&!swapped){swapped=true;await parsed('3',2,'chrome-extension://fixture/context.js',false);await parsed('4',1,'http://popup.test/post-document',true);}if(breakpointErrors.length){const error=breakpointErrors.shift();if(pauseOn==='error'&&error===DUPLICATE)await pause();throw Error(error);}return {breakpointId:'startup',locations:[{scriptId:'3'}]};}
+      if(method==='Debugger.disable'&&pauseOn==='disable'){pauseOn=null;await pause();}
+      if(method==='Target.setAutoAttach'&&pauseOn==='armed'){pauseOn=null;await pause();}
+      if(method==='Runtime.evaluate'){evaluated.push({context:parameters.contextId,dispose:parameters.expression.includes('dispose() ?? true')});if(parameters.contextId===7)throw Error(deadContextErrors.length>1?deadContextErrors.shift():deadContextErrors[0]);return parameters.returnByValue?{result:{value:parameters.expression.endsWith('identity()')?'post-popup-document':true}}:{result:{objectId:'factory-'+parameters.contextId}};}
       if(method==='Runtime.callFunctionOn')return parameters.returnByValue?{result:{value:'post-popup-document'}}:{result:{objectId:'relay'}};
       if(method==='DOM.describeNode')return {node:{backendNodeId:1}};
       if(method==='DOM.resolveNode')return {object:{objectId:'node'}};
@@ -1320,7 +1336,7 @@ test('post-popup a dead context from the popup\'s first renderer is forgotten an
   assert.deepEqual(JSON.parse(f.run('JSON.stringify(evaluated)')),[{context:7,dispose:false},{context:2,dispose:false}],'the dead context is tried once, then the live one');
   const audits=JSON.parse(f.run('JSON.stringify(audits)'));
   assert.deepEqual(audits.filter(row=>row.data?.late_reader_context).map(row=>row.data.late_reader_context),[{tab:8,context:7,outcome:'native_context_missing'}]);
-  assert.deepEqual(audits.filter(row=>row.data?.popup_admitted).map(row=>row.data.popup_admitted),[{tab:8,window:2,type:'popup',opener:7,badge:'POP on opener'}]);
+  assert.deepEqual(audits.filter(row=>row.data?.popup_admitted).map(row=>row.data.popup_admitted),[{tab:8,window:2,type:'popup',opener:7,badge:'POP on opener',owner_dialog:false}]);
   assert.equal(audits.some(row=>row.event==='reader_error'||row.event==='released'),false,'no error and no release');
   assert.equal(f.run("lifecycleCalls.includes('detach')||lifecycleCalls.includes('group')"),false);assert.equal(f.run("messages.includes('clear')"),false);
   assert.equal(f.run("badges.get(7)"),'POP','the opener shows its popup');assert.equal(f.run("badges.get(8)"),'ON');
@@ -1374,4 +1390,119 @@ test('post-popup the live context is also learned from the injected guard\'s own
   assert.deepEqual(JSON.parse(f.run('JSON.stringify(evaluated)')),[{context:7,dispose:false},{context:2,dispose:false}]);
   const audits=JSON.parse(f.run('JSON.stringify(audits)'));
   assert.equal(audits.filter(row=>row.data?.popup_admitted).length,1);assert.equal(audits.some(row=>row.event==='reader_error'||row.event==='released'),false);
+});
+
+// popuprace (brief 20-popup-race, run 43671248371): Chrome's replay of an
+// unanswered Debugger.setBreakpointByUrl into the popup's new renderer, where
+// the breakpoint already is. The admission path must match what the document
+// did: document_start only for a pause on a breakpoint whose id the extension
+// knows, late for everything else.
+const debuggerCalls=f=>JSON.parse(f.run("JSON.stringify(lifecycleCalls.filter(call=>call.startsWith('Debugger.')||call==='detach'||call==='group'))"));
+const admittedLines=f=>JSON.parse(f.run('JSON.stringify(audits)')).filter(row=>row.data?.popup_admitted).map(row=>row.data.popup_admitted);
+const rearmedLines=f=>JSON.parse(f.run('JSON.stringify(audits)')).filter(row=>row.data?.breakpoint_rearmed).map(row=>row.data.breakpoint_rearmed);
+test('popuprace one duplicate-breakpoint reply re-arms the breakpoint once and the popup is admitted late',async()=>{
+  const f=swappedPopupFixture();f.run('breakpointErrors=[DUPLICATE]');
+  await f.run('createdTarget({sourceTabId:7,tabId:8})');
+  assert.equal(f.run('controlled.get(8)?.virtualGroup'),true,'the popup is controlled');assert.equal(f.run('controlled.get(8).popupNeedsReload'),true,'the reload rule applies before the first act');
+  assert.deepEqual(debuggerCalls(f),['Debugger.enable','Debugger.setBreakpointByUrl','Debugger.disable','Debugger.enable','Debugger.setBreakpointByUrl'],'disable drops the orphan, enable and set give a known breakpoint; no second re-arm, no release');
+  assert.equal(f.run("preloadTargets.get('[8,null]').breakpoint"),'startup','the breakpoint id is the one the re-armed command returned');
+  assert.deepEqual(JSON.parse(JSON.stringify(f.run('installRecord()'))),[{tab:8,document:'post-popup-document',install:'late',ready:false}],'the document that loaded meanwhile is read late');
+  assert.deepEqual(JSON.parse(f.run("JSON.stringify([...preloadTargets.get('[8,null]').contexts.keys()])")),[2],'the dead context is forgotten, the live one kept');
+  assert.deepEqual(rearmedLines(f),[{tab:8,target:null,session:null}]);
+  assert.deepEqual(admittedLines(f),[{tab:8,window:2,type:'popup',opener:7,badge:'POP on opener',owner_dialog:false}]);
+  const audits=JSON.parse(f.run('JSON.stringify(audits)'));assert.equal(audits.some(row=>row.event==='reader_error'||row.event==='released'),false,'no error and no release');
+  assert.equal(f.run("badges.get(7)"),'POP');assert.equal(f.run("badges.get(8)"),'ON');
+});
+test('popuprace a pause before the re-armed id is known is foreign and resumed: a document that ran then never counts as early',async()=>{
+  // The orphan breakpoint carries the same id string as the re-armed one (V8
+  // derives it from URL and line). A pause that arrives with the duplicate
+  // reply, or while Debugger.disable is in flight, precedes any known id: the
+  // extension resumes it as a foreign pause and the document is read late.
+  for(const [when,calls] of [['error',['Debugger.enable','Debugger.setBreakpointByUrl','Debugger.resume','Debugger.disable','Debugger.enable','Debugger.setBreakpointByUrl']],['disable',['Debugger.enable','Debugger.setBreakpointByUrl','Debugger.disable','Debugger.resume','Debugger.enable','Debugger.setBreakpointByUrl']]]){
+    const f=swappedPopupFixture();f.run(`breakpointErrors=[DUPLICATE];pauseOn=${JSON.stringify(when)}`);
+    await f.run('createdTarget({sourceTabId:7,tabId:8})');
+    assert.equal(f.run('controlled.get(8)?.virtualGroup'),true,when+': the popup is controlled');
+    assert.deepEqual(debuggerCalls(f),calls,when+': the pause is resumed as foreign, then the re-arm completes');
+    assert.deepEqual(JSON.parse(JSON.stringify(f.run('installRecord()'))),[{tab:8,document:'post-popup-document',install:'late',ready:false}],when+': late, never document_start');
+    assert.deepEqual(JSON.parse(f.run('JSON.stringify(evaluated)')),[{context:7,dispose:false},{context:2,dispose:false}],when+': no startup bootstrap ran');
+    assert.deepEqual(admittedLines(f).map(row=>row.owner_dialog),[false]);
+    const audits=JSON.parse(f.run('JSON.stringify(audits)'));assert.equal(audits.some(row=>row.event==='reader_error'||row.event==='released'),false,when+': no error and no release');
+  }
+});
+test('popuprace a pause on the re-armed breakpoint, its id known, installs the guard at document start',async()=>{
+  const f=swappedPopupFixture();f.run("breakpointErrors=[DUPLICATE];pauseOn='armed'");
+  await f.run('createdTarget({sourceTabId:7,tabId:8})');
+  assert.equal(f.run('controlled.get(8)?.virtualGroup'),true,'the popup is controlled');
+  assert.deepEqual(debuggerCalls(f),['Debugger.enable','Debugger.setBreakpointByUrl','Debugger.disable','Debugger.enable','Debugger.setBreakpointByUrl','Debugger.resume'],'the startup bootstrap resumes its own pause');
+  assert.deepEqual(JSON.parse(JSON.stringify(f.run('installRecord()'))),[{tab:8,document:'post-popup-document',install:'document_start',ready:true}],'the paused document gets the early path');
+  assert.deepEqual(admittedLines(f),[{tab:8,window:2,type:'popup',opener:7,badge:'POP on opener',owner_dialog:false}]);
+  const audits=JSON.parse(f.run('JSON.stringify(audits)'));assert.equal(audits.some(row=>row.event==='reader_error'||row.event==='released'),false,'no error and no release');
+});
+test('popuprace a second duplicate reply fails the admission closed with nothing left behind',async()=>{
+  const f=swappedPopupFixture();f.run('breakpointErrors=[DUPLICATE,DUPLICATE]');
+  await f.run('createdTarget({sourceTabId:7,tabId:8})');
+  assert.equal(f.run('controlled.has(8)'),false,'the popup is not controlled');assert.equal(f.run('controlled.has(7)'),true,'the opener keeps its control');
+  assert.equal(f.run('admissions.size'),0);assert.equal(f.run('releasing.size'),0,'the release finished');
+  assert.deepEqual(JSON.parse(JSON.stringify(f.run('installRecord()'))),[]);assert.equal(f.run("preloadTargets.has('[8,null]')"),false,'no target state remains');
+  assert.deepEqual(debuggerCalls(f),['Debugger.enable','Debugger.setBreakpointByUrl','Debugger.disable','Debugger.enable','Debugger.setBreakpointByUrl','Debugger.disable','detach'],'one re-arm, then the release: disabled, detached, never grouped');
+  assert.equal(f.run('injections.length'),0,'the late reader never ran');assert.equal(f.run("messages.includes('set_control')"),false);
+  assert.deepEqual(JSON.parse(f.run('JSON.stringify(evaluated)')),[{context:7,dispose:true},{context:2,dispose:true}],'only the release\'s cleanup ran');
+  assert.deepEqual(rearmedLines(f).length,1);assert.deepEqual(admittedLines(f),[],'never reported as admitted');
+  const audits=JSON.parse(f.run('JSON.stringify(audits)'));
+  assert.deepEqual(audits.filter(row=>row.event==='released').map(row=>row.tab),[8]);
+  assert.match(audits.find(row=>row.event==='reader_error'&&row.tab===8)?.error||'',/Breakpoint at specified location already exists/);
+  assert.equal(f.run("badges.get(7)"),'ON','the opener\'s badge shows no popup');assert.equal(f.run("badges.get(8)||''"),'');
+});
+test('popuprace any other breakpoint error fails closed as before, with no re-arm',async()=>{
+  for(const text of ['Inspected target navigated or closed','{"code":-32000,"message":"Breakpoint at specified location already exists"}']){
+    const f=swappedPopupFixture();f.run(`breakpointErrors=[${JSON.stringify(text)}]`);
+    await f.run('createdTarget({sourceTabId:7,tabId:8})');
+    assert.equal(f.run('controlled.has(8)'),false,'the popup is not controlled');assert.equal(f.run('controlled.has(7)'),true);
+    assert.equal(f.run('releasing.size'),0);assert.equal(f.run("preloadTargets.has('[8,null]')"),false);
+    assert.deepEqual(debuggerCalls(f),['Debugger.enable','Debugger.setBreakpointByUrl','Debugger.disable','detach'],'no re-arm; the release disables and detaches');
+    assert.deepEqual(rearmedLines(f),[]);assert.deepEqual(admittedLines(f),[]);
+    const audits=JSON.parse(f.run('JSON.stringify(audits)'));
+    assert.deepEqual(audits.filter(row=>row.event==='released').map(row=>row.tab),[8]);
+    assert.ok((audits.find(row=>row.event==='reader_error'&&row.tab===8)?.error||'').includes(text.includes('{')?JSON.parse(text).message:text),'the error is reported as it came');
+    assert.equal(f.run("badges.get(7)"),'ON');assert.equal(f.run("badges.get(8)||''"),'');
+  }
+});
+
+// popuprace P2: the 5 s Page.enable fallback. status is Chrome's tab status for
+// the popup; stalled keeps Page.enable unanswered until the test clears it.
+function stalledPopupFixture(status){
+  const f=lifecycleFixture();
+  f.run(`globalThis.timers=[];setTimeout=(fn,ms)=>{const timer={fn,ms};timers.push(timer);return timer};clearTimeout=()=>{};globalThis.audits=[];globalThis.badges=new Map();recording=true;port={postMessage:message=>audits.push(message)};globalThis.stalled=true;globalThis.attached=false;
+    controlled.set(7,{epoch:'parent'});
+    chrome.action.setBadgeText=async({tabId,text})=>{if(tabId!==undefined)badges.set(tabId,text)};
+    chrome.tabs.get=async tab=>({id:tab,url:tab===8?'http://popup.test/slow':'http://fixture.test/',windowId:tab===7?1:2,index:0,groupId:tab===7?1:-1,openerTabId:tab===8?7:undefined,status:tab===8?${JSON.stringify(status)}:'complete'});
+    chrome.windows.get=async window=>({type:window===1?'normal':'popup'});
+    chrome.debugger.attach=async()=>{attached=true};chrome.debugger.detach=async()=>{attached=false;lifecycleCalls.push('detach')};
+    chrome.debugger.sendCommand=async(source,method)=>{if(!attached)throw Error('not attached');lifecycleCalls.push(method);if(method==='Page.enable'&&stalled)return new Promise(()=>{});return {};};
+    lateReader=async()=>{};`);
+  return f;
+}
+const stall=async(f,pending,index=0)=>{await spin(f,`timers.filter(timer=>timer.ms===5000).length===${index+1}`);f.run(`timers.filter(timer=>timer.ms===5000)[${index}].fn()`);return pending;};
+test('popuprace a popup whose Page.enable stalls while it is still loading is handed off with a loading message, and its admission line says owner_dialog',async()=>{
+  const f=stalledPopupFixture('loading');
+  const result=await stall(f,f.run("take(8,{tab:7,epoch:'parent'})"));
+  assert.equal(result.owner_dialog,true);assert.match(result.ask_owner,/still loading/);assert.match(result.ask_owner,/try again/i);assert.doesNotMatch(result.ask_owner,/answer the dialog yourself/);
+  assert.equal(f.run('controlled.get(8).modalHandoff'),true);assert.equal(f.run('controlled.get(8).popupNeedsReload'),true);assert.equal(f.run('attached'),false,'detached: no debugger stays on the blocked renderer');assert.equal(f.run('preloadTargets.size'),0);
+  assert.deepEqual(admittedLines(f),[{tab:8,window:2,type:'popup',opener:7,badge:'POP on opener',owner_dialog:true}],'the line says the fallback ran');
+  assert.equal(f.run("badges.get(7)"),'POP');
+  // A later act while the page still stalls: the same bounded handoff and the same message, as an error.
+  const act=assert.rejects(f.run('requireTab(8)'),/owner_dialog: The page did not answer within 5 s and is still loading/);
+  await stall(f,act,1);assert.equal(f.run('attached'),false);
+  // Once the page answers, the next act recovers and no handoff or message is left.
+  f.run('stalled=false');await f.run('requireTab(8)');
+  assert.equal(f.run('attached'),true);assert.equal(f.run('controlled.get(8).modalHandoff'),false);assert.equal(f.run('controlled.get(8).handoffMessage'),undefined);assert.equal(f.run('takenTab(8,controlled.get(8)).owner_dialog'),undefined);
+});
+test('popuprace a stalled popup that has loaded, or has a dialog on record, keeps the dialog message',async()=>{
+  for(const [status,record] of [['complete',false],['loading',true]]){
+    const f=stalledPopupFixture(status);if(record)f.run("dialogs.set(8,{id:'open',kind:'alert'})");
+    const result=await stall(f,f.run("take(8,{tab:7,epoch:'parent'})"));
+    assert.equal(result.owner_dialog,true);assert.match(result.ask_owner,/answer the dialog yourself/,status+' '+record);assert.doesNotMatch(result.ask_owner,/still loading/);
+    assert.deepEqual(admittedLines(f).map(row=>row.owner_dialog),[true],'the line says the fallback ran');
+    const act=assert.rejects(f.run('requireTab(8)'),/owner_dialog: Ask the owner: Please answer the dialog yourself/);await stall(f,act,1);
+  }
 });

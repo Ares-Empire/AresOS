@@ -17,11 +17,16 @@ public final class ShellFocusClient {
 
     private ShellFocusClient() { }
 
-    static void register(ShellClient shell) {
+    /** Public for the client test, which connects a shell client of its own to a fake helper. */
+    public static void register(ShellClient shell) {
         shell.addListener(new ShellClient.Listener() {
             @Override public void focus(ShellClient.Focus focus) {
                 var client = Minecraft.getInstance();
                 client.execute(() -> apply(client, focus));
+            }
+
+            @Override public void covered(boolean covered) {
+                Minecraft.getInstance().execute(() -> HomeScreen.covered(covered));
             }
 
             @Override public void launchFailed(String appId, String requestId, ShellClient.ShellException error) {
@@ -38,6 +43,7 @@ public final class ShellFocusClient {
         // Keys held while focus moved (walking into a logo, the click that opened it) never see their release.
         KeyMapping.releaseAll();
         AppInput.reset();
+        HomeScreen.appInFront(!focus.foreground());
         if (!focus.foreground()) {
             client.mouseHandler.releaseMouse();
             return;

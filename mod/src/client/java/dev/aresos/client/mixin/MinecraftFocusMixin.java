@@ -14,6 +14,7 @@ public abstract class MinecraftFocusMixin {
     @Inject(method = "pauseIfInactive", at = @At("HEAD"))
     private void aresos$returnToWorld(CallbackInfo ci) {
         var client = (Minecraft) (Object) this;
+        dev.aresos.client.HomeScreen.frame(client);
         if (client.player == null) {
             AresOsClient.FOCUS_RETURN.reset();
         } else if (client.getWindow().isFocused()
@@ -27,6 +28,8 @@ public abstract class MinecraftFocusMixin {
     @Redirect(method = "pauseIfInactive", at = @At(value = "INVOKE",
             target = "Lnet/minecraft/client/Minecraft;pauseGame(Z)V"))
     private void aresos$rememberFocusPause(Minecraft client, boolean suppressMenu) {
+        // The home screen (package 40): an app in front never opens the pause menu. Esc still does.
+        if (dev.aresos.client.HomeScreen.active(client)) return;
         boolean capture = AresOsClient.FOCUS_RETURN.beforeFocusPause(System.nanoTime(), client.gui.screen());
         client.pauseGame(suppressMenu);
         if (capture && client.gui.screen() instanceof PauseScreen) {

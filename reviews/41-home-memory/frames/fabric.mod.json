@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "id": "pkg41-frames",
+  "version": "1",
+  "name": "Package 41 frame recorder (development aid)",
+  "environment": "client",
+  "mixins": [{"config": "pkg41frames.mixins.json", "environment": "client"}]
+}

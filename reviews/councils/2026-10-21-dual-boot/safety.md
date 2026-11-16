@@ -1,7 +1,7 @@
 Reviewed commit `4de9644`. Two safety gaps remain.
 
 1. **Blocking — Undo does not prove Windows boots from the EFI partition that will survive deletion.**  
-   **Where:** [INSTALL.md, §9 steps 1–5](C:/Users/pab/AresOS-05-dual-boot/docs/INSTALL.md:174), [OS-BASE.md, Appendix C.9](C:/Users/pab/AresOS-05-dual-boot/docs/design/OS-BASE.md:319).
+   **Where:** [INSTALL.md, §9 steps 1–5](C:/Users/owner/AresOS-05-dual-boot/docs/INSTALL.md:174), [OS-BASE.md, Appendix C.9](C:/Users/owner/AresOS-05-dual-boot/docs/design/OS-BASE.md:319).
 
    **Scenario:** A later Windows repair/reinstallation places Windows boot files on the AresOS ESP. F12 → “Windows Boot Manager” still starts Windows directly, and the AresOS partition GUIDs and boundaries still match the installation record. The guide’s checks therefore permit deleting that ESP. Bazzite explicitly warns that Windows installation can reuse its EFI partition; Microsoft documents boot-file placement and firmware-entry creation through BCDBoot. [Bazzite installation guide](https://docs.bazzite.gg/General/Installation_Guide/install-guide/#dual-booting-windows), [Microsoft BCDBoot](https://learn.microsoft.com/en-us/windows-hardware/manufacture/desktop/bcdboot-command-line-options-techref-di).
 
@@ -12,7 +12,7 @@ Reviewed commit `4de9644`. Two safety gaps remain.
    **Check:** In a file-backed VM, make Windows boot directly from Microsoft boot files on the Linux ESP while retaining the recorded partition boundaries. The revised undo procedure must refuse deletion; the ordinary original-ESP case must pass.
 
 2. **Should-fix — The prescribed GParted identity check compares different kinds of identifiers.**  
-   **Where:** [INSTALL.md, §9 steps 2–4](C:/Users/pab/AresOS-05-dual-boot/docs/INSTALL.md:175).
+   **Where:** [INSTALL.md, §9 steps 2–4](C:/Users/owner/AresOS-05-dual-boot/docs/INSTALL.md:175).
 
    **Scenario:** The owner records GPT partition GUIDs as instructed, then opens GParted’s **Information** dialog to check them. Its `UUID` field displays the **filesystem UUID**, not the GPT partition GUID. GParted’s implementation explicitly uses the filesystem identifier for this field. [GParted source](https://github.com/GNOME/gparted/blob/master/src/Dialog_Partition_Info.cc).
 

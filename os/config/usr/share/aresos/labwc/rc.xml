@@ -16,7 +16,8 @@
   </theme>
   <windowSwitcher><osd style="thumbnail" /></windowSwitcher>
   <keyboard>
-    <keybind key="W-C-Escape"><action name="Execute" command="/usr/bin/aresos-terminal --recovery" /></keybind>
+    <!-- The recovery terminal, and the startup cover (package 23b) ends so that it can be seen. -->
+    <keybind key="W-C-Escape"><action name="Execute" command="/usr/bin/aresos-terminal --recovery" /><action name="Execute" command="/usr/libexec/aresos-desktop hide-cover" /></keybind>
     <keybind key="A-F4"><action name="Close" /></keybind>
     <keybind key="A-Tab"><action name="NextWindow" /></keybind>
     <!-- Brightness changes only once the laptop exposes a backlight device. -->
@@ -31,5 +32,11 @@
     <windowRule identifier="foot"><action name="Maximize" /></windowRule>
     <!-- The desktop (package 23): a borderless maximized Minecraft window below normal apps (OS-BASE section 4). -->
     <windowRule identifier="aresos-desktop" serverDecoration="no"><action name="Maximize" /></windowRule>
+    <!-- Package 40: the world is the home screen, so every app window stays above it, also after a click on the
+         world. A rule of its own: the line above stays as the image checks know it. labwc applies a rule's actions
+         once, when a window first maps, so the toggle cannot flip back; a restarted game is a new window. -->
+    <windowRule identifier="aresos-desktop"><action name="ToggleAlwaysOnBottom" /></windowRule>
+    <!-- The startup cover (package 23b): borderless, fullscreen and above the starting game until the hub is ready. -->
+    <windowRule identifier="aresos.cover" serverDecoration="no"><action name="ToggleFullscreen" /><action name="ToggleAlwaysOnTop" /></windowRule>
   </windowRules>
 </labwc_config>

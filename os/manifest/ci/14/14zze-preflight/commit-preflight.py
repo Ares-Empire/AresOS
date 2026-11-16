@@ -27,7 +27,7 @@ scanner=w/'gitleaks/gitleaks.exe';assert hashlib.sha256(scanner.read_bytes()).he
 for args,label in [(['dir',str(pending),'--config',str(r/'.gitleaks.toml')],'preflight-pending'),(['git','.','--log-opts=--all'],'preflight-history')]:
  report=w/'gitleaks'/('14zze-'+label+'.json');subprocess.run([str(scanner),*args,'--redact=100','--no-banner','--log-level=error','--report-format=json','--report-path',str(report)],check=True);assert json.loads(report.read_text())==[]
 with (w/'14zze/hash-order-final.log').open('wb') as stream:
- result=subprocess.run(['wsl.exe','--exec','bash','-lc','cd /mnt/c/Users/pab/AresOS-14-owner-tools && TMPDIR=$PWD/.work/14/local/tmp PATH=$PWD/.work/14/local/bin:$PATH PYTHONPATH=os/ci:os/tests python3 -B -m unittest test_owner_equality.EqualityTest.test_package_hash_manifests_put_hashes_before_paths'],stdout=stream,stderr=subprocess.STDOUT)
+ result=subprocess.run(['wsl.exe','--exec','bash','-lc','cd /mnt/c/Users/owner/AresOS-14-owner-tools && TMPDIR=$PWD/.work/14/local/tmp PATH=$PWD/.work/14/local/bin:$PATH PYTHONPATH=os/ci:os/tests python3 -B -m unittest test_owner_equality.EqualityTest.test_package_hash_manifests_put_hashes_before_paths'],stdout=stream,stderr=subprocess.STDOUT)
 assert result.returncode==0,'STOP: hash order regression'
 subprocess.run(['git','add','--',*paths],check=True);subprocess.run(['git','diff','--cached','--check'],check=True)
 checkout.verify_git(r,checkout.merge(checkout.active_tables(r)),ref=None)

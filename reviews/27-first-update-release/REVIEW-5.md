@@ -1,12 +1,12 @@
 Reviewed **761d9ae7**, scoped to `bf2dd553..761d9ae7`. **No blocking findings. Two harness-only nits remain.** No files modified.
 
 1. **Nit — cleanup does not attempt loop detachment on every exception.**  
-   **Where:** [owner_vm.py:1100](C:/Users/pab/AresOS-27-review/os/ci/owner_vm.py:1100).  
+   **Where:** [owner_vm.py:1100](C:/Users/owner/AresOS-27-review/os/ci/owner_vm.py:1100).  
    If `mount` fails, cleanup attempts `umount` on the unmounted directory; that failure skips `losetup --detach`. An actual unmount failure or `os.rmdir()` failure also skips detachment. Allocation itself occurs outside the `try`, leaving an additional timeout uncertainty. These paths can leak runner resources and obscure the initial error, but cannot produce a passing rehearsal or hurt the laptop.  
    **Fix:** track successful mounting, make cleanup steps independent using nested `try/finally`, retain cleanup errors, and add injected mount/unmount/removal-failure tests.
 
 2. **Nit — diagnostic failures can replace the original boot timeout.**  
-   **Where:** [login():181](C:/Users/pab/AresOS-27-review/os/ci/owner_vm.py:181), [boot_stall():342](C:/Users/pab/AresOS-27-review/os/ci/owner_vm.py:342).  
+   **Where:** [login():181](C:/Users/owner/AresOS-27-review/os/ci/owner_vm.py:181), [boot_stall():342](C:/Users/owner/AresOS-27-review/os/ci/owner_vm.py:342).  
    The QMP probes are protected, but diagnostic initialization and evidence writes are not completely protected. For example, a failed `td.save()` escapes before the caller’s bare `raise`, replacing the original `TimeoutError`. The run still fails; this affects diagnosis only.  
    **Fix:** protect the complete diagnostic call and always re-raise the original timeout. Test an exception from evidence saving.
 

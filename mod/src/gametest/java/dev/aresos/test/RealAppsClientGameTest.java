@@ -74,10 +74,21 @@ public final class RealAppsClientGameTest implements FabricClientGameTest {
                 context.waitFor(client->!AresOs.app("fixture-notes").pinned());
                 check(!AppsConfig.load(config).apps().getFirst().pinned(),"Unpin was not persisted");
                 context.clickScreenButton("Apps…");context.waitForScreen(AppsScreen.class);
-                // Package 34 replaced the pages by a search box: the name finds the one app, Enter picks up its item.
+                // Package 34 replaced the pages by a search box: the name finds the one app. Since package 40's review
+                // fixes a click opens it; a drag from its row picks up its item.
                 context.getInput().typeChars("fixture 40");context.waitTicks(2);screenshot(context,"07-apps-search");
-                context.getInput().pressKey(InputConstants.KEY_RETURN);context.waitForScreen(InventoryScreen.class);
+                context.runOnClient(client->{
+                    var row=client.gui.screen().children().stream().filter(AppsScreen.ProgramList.class::isInstance)
+                            .map(AppsScreen.ProgramList.class::cast).findFirst().orElseThrow().children().stream()
+                            .filter(AppsScreen.Row.class::isInstance).map(AppsScreen.Row.class::cast)
+                            .filter(candidate->candidate.app().id().equals("fixture-39")).findFirst().orElseThrow();
+                    double x=row.getX()+row.getWidth()/2.0,y=row.getY()+row.getHeight()/2.0;
+                    client.gui.screen().mouseClicked(new MouseButtonEvent(x,y,new MouseButtonInfo(0,0)),false);
+                    client.gui.screen().mouseDragged(new MouseButtonEvent(x,y+8,new MouseButtonInfo(0,0)),0,8);
+                });
+                context.waitForScreen(InventoryScreen.class);
                 context.waitFor(client->"fixture-39".equals(client.player.inventoryMenu.getCarried().get(AppItems.APP_ID)));
+                check(calls.isEmpty(),"Picking up an app's item opened it: "+calls);
                 clickSlot(context,38);world.getConnection().waitForServerboundPackets();
                 context.waitFor(client->AresOs.app("fixture-39").pinned());
                 context.getInput().pressKey(InputConstants.KEY_ESCAPE);

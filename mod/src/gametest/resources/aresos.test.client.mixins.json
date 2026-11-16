@@ -13,7 +13,10 @@
     "BlockWriteAuditMixin",
     "ModeAckLossMixin",
     "ChatMessagesTestAccess",
-    "SlashChatTestAccess"
+    "SlashChatTestAccess",
+    "SoundTestAccess",
+    "SoundEngineTestAccess",
+    "MusicManagerTestAccess"
   ],
   "injectors": {
     "defaultRequire": 1

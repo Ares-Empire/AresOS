@@ -41,10 +41,11 @@ public final class ShellClient implements AutoCloseable {
     public static final int MAX_APPS = 1024;
     /** Wayland app_id and X11 class of the desktop window, so the helper can hand focus back to it. */
     public static final String DESKTOP_APP_ID = "aresos-desktop";
-    // The last three are 1.1's. The helper sends an event only to a client that offered its name, so apps_changed
-    // must be offered; none of the three is required, which keeps a 1.0 helper compatible.
+    // app_details, apps_changed and list_paging are 1.1's, shell_covered is package 40's. The helper sends an event
+    // only to a client that offered its name, so the events must be offered; none is required, which keeps a 1.0
+    // helper compatible.
     static final List<String> CAPABILITIES = List.of("list_apps", "open_app", "app_state", "shell_focus",
-            "world_ready", "heartbeat", "windows", "app_details", "apps_changed", "list_paging");
+            "world_ready", "heartbeat", "windows", "app_details", "apps_changed", "list_paging", "shell_covered");
     static final List<String> REQUIRES = List.of("list_apps", "open_app");
     private static final Gson JSON = new Gson();
     private static final System.Logger LOG = System.getLogger("aresos");
@@ -83,6 +84,11 @@ public final class ShellClient implements AutoCloseable {
         default void status(Status status) { }
         /** Without window tracking an open already counted as done; the helper reported its failure afterwards. */
         default void launchFailed(String appId, String requestId, ShellException error) { }
+        /**
+         * A maximized or fullscreen window hides the desktop window on its screen (package 40), or no longer does.
+         * Called on every change, and with false when the connection ends: a helper that is gone covers nothing.
+         */
+        default void covered(boolean covered) { }
     }
 
     /** A refusal carrying the helper's stable error code (B1), such as unknown_app, unavailable or no_window. */
@@ -102,6 +108,8 @@ public final class ShellClient implements AutoCloseable {
         private final CompletableFuture<Launch> future;
         // Writer-owned: publication callbacks can queue a normal send before startup queues its replay.
         private Connection lastSent;
+        /** The helper started the program and waits for its window: a deadline after this is no missing answer. */
+        private volatile boolean starting;
 
         PendingOpen(String id, String appId, CompletableFuture<Launch> future) {
             this.id = id;
@@ -135,6 +143,8 @@ public final class ShellClient implements AutoCloseable {
     private volatile Connection connection;
     private volatile Connection attempt;
     private volatile boolean windows;
+    // Reader thread only: what the helper last said about covering. Every connection starts uncovered.
+    private boolean covered;
     private volatile String world;
     private volatile boolean closed;
     private Thread loop;
@@ -154,6 +164,17 @@ public final class ShellClient implements AutoCloseable {
         // Request IDs must never repeat within a desktop instance's journal, even across game restarts.
         this.session = HexFormat.of().formatHex(random);
     }
+
+    /**
+     * True when the AresOS session started this game: its supervisor (package 23), or run-hub.sh, passed the desktop
+     * instance, the launch nonce and a place for the helper's socket. Then the game's window is the desktop.
+     */
+    public static boolean configured(Map<String, String> environment) {
+        return present(environment.get("ARESOS_DESKTOP_INSTANCE")) && present(environment.get("ARESOS_LAUNCH_NONCE"))
+                && (present(environment.get("ARESOS_SHELL_SOCKET")) || present(environment.get("XDG_RUNTIME_DIR")));
+    }
+
+    private static boolean present(String value) { return value != null && !value.isBlank(); }
 
     /** The supervisor (package 23) passes the socket, desktop instance and launch nonce in the environment. */
     public static ShellClient fromEnvironment(Map<String, String> environment, Settings settings) {
@@ -220,8 +241,21 @@ public final class ShellClient implements AutoCloseable {
         }
         var open = new PendingOpen("o-" + session + "-" + ids.incrementAndGet(), appId, future);
         opens.put(open.id(), open);
-        future.orTimeout(settings.openTimeout().toMillis(), TimeUnit.MILLISECONDS)
-                .whenComplete((result, error) -> opens.remove(open.id()));
+        // One deadline, two meanings (package 40): a helper that never answered, or one that started the program and
+        // is still waiting for a window it can tell is this program's. The second is said as what it is.
+        try {
+            var deadline = timer.schedule(() -> { future.completeExceptionally(open.starting
+                    ? new ShellException("no_window", "it started, but no window of it appeared")
+                    : new TimeoutException()); }, settings.openTimeout().toMillis(), TimeUnit.MILLISECONDS);
+            future.whenComplete((result, error) -> {
+                opens.remove(open.id());
+                deadline.cancel(false);
+            });
+        } catch (RejectedExecutionException closedAlready) {
+            opens.remove(open.id());
+            future.completeExceptionally(notConnected());
+            return future;
+        }
         // Writes never run on the render thread: a stalled helper must not freeze the game.
         boolean queued = later(() -> {
             var current = connection;
@@ -403,6 +437,8 @@ public final class ShellClient implements AutoCloseable {
             if (connection == current) connection = null;
             if (attempt == current) attempt = null;
             current.close();
+            // A helper that is gone must never leave the world paused.
+            setCovered(false);
         }
     }
 
@@ -646,6 +682,7 @@ public final class ShellClient implements AutoCloseable {
                     if (open != null) update(open, message);
                     else if (watching.containsKey(id)) lateUpdate(id, message);
                 }
+                case "shell_covered" -> setCovered(bool(message, "covered"));
                 case "shell_focus" -> {
                     var focus = new Focus("foreground".equals(text(message, "focus")), text(message, "reason"),
                             text(message, "app_id"), bool(message, "activated"));
@@ -668,6 +705,15 @@ public final class ShellClient implements AutoCloseable {
         else if (watching.containsKey(id)) lateUpdate(id, message);
     }
 
+    private void setCovered(boolean now) {
+        if (covered == now) return;
+        covered = now;
+        for (var listener : listeners) {
+            try { listener.covered(now); }
+            catch (RuntimeException error) { LOG.log(System.Logger.Level.ERROR, "Shell listener failed", error); }
+        }
+    }
+
     private void update(PendingOpen open, JsonObject message) {
         String state = text(message, "state"), error = text(message, "error");
         if (state == null || "failed".equals(state)) {
@@ -679,7 +725,10 @@ public final class ShellClient implements AutoCloseable {
             case "starting" -> !windows;
             default -> false;
         };
-        if (!opened) return;
+        if (!opened) {
+            if ("starting".equals(state)) open.starting = true;
+            return;
+        }
         if ("starting".equals(state)) {
             // Counted as opened without a window to confirm it; a failure may still follow (systemd-run failing).
             watching.put(open.id(), open);

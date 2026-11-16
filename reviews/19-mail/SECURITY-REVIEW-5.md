@@ -4,11 +4,11 @@ Reviewer: Codex `gpt-6-astra`, xhigh, read-only, fresh context, 2026-11-07. Revi
 
 Blocking findings:
 
-1. **Questions can still hide real addresses.** [questions.py:89](/Users/pab/AresOS-19-mail/control/aresos_control/mail/questions.py:89) applies the generic 80-character shortening to unsubscribe recipients. Through the real preparation path, a long display name produced “by sending a mail to Mom x…?” with `stranger@example.org` entirely absent. A valid 117-character bare address also lost its domain suffix.
+1. **Questions can still hide real addresses.** [questions.py:89](/Users/owner/AresOS-19-mail/control/aresos_control/mail/questions.py:89) applies the generic 80-character shortening to unsubscribe recipients. Through the real preparation path, a long display name produced “by sending a mail to Mom x…?” with `stranger@example.org` entirely absent. A valid 117-character bare address also lost its domain suffix.
 
-   Separately, [person()](/Users/pab/AresOS-19-mail/control/aresos_control/mail/questions.py:22) falls back to shortening the whole header when it contains multiple mailboxes. A deletion approval for a message with two From addresses showed only the first long display name, hiding both addresses. Parse each person separately, shorten only names, and preserve complete addresses—or refuse the approval.
+   Separately, [person()](/Users/owner/AresOS-19-mail/control/aresos_control/mail/questions.py:22) falls back to shortening the whole header when it contains multiple mailboxes. A deletion approval for a message with two From addresses showed only the first long display name, hiding both addresses. Parse each person separately, shorten only names, and preserve complete addresses—or refuse the approval.
 
-2. **Reordered approvals are accepted.** [require_question()](/Users/pab/AresOS-19-mail/control/aresos_control/common.py:66) checks presence, while submission uses order-insensitive hashing and dictionary equality. Furthermore, outgoing serialization silently restores question-first order, concealing the caller’s reordering.
+2. **Reordered approvals are accepted.** [require_question()](/Users/owner/AresOS-19-mail/control/aresos_control/common.py:66) checks presence, while submission uses order-insensitive hashing and dictionary equality. Furthermore, outgoing serialization silently restores question-first order, concealing the caller’s reordering.
 
    I submitted `{description, operation_id, question}`: testapp sent and deleted successfully; Mail send, delete and folder-delete reached their execution methods in controlled probes. This violates the explicit requirement to refuse reordered asking inputs. Reject the wrong order before serialization normalizes it, and validate it at the service boundary.
 

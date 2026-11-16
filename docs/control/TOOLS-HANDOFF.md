@@ -9,9 +9,14 @@ and `git worktree list` first.
 
 - **`linux-tools`** (this baton): the tools. `control/`, `docs/control/`, `docs/design/CONTROL.md`, the `control-*`
   workflows, briefs 18c, 18c-b, 28, 28a, 28b.
-- **`mac-aresos-control`** (Mac): merged the Chrome tool, PR #27, on 2026-11-14 (merge commit `09cedc84`). Chrome is
-  now `linux-tools`' own; the notes it left at the merge are in "Chrome merged" below. It keeps board #185 (the
-  optional owner oracle's re-pin) until it says otherwise.
+- **`mac-aresos-control`** (Mac):
+  - Merged the Chrome tool, PR #27, on 2026-11-14 (merge commit `09cedc84`), and the main fix, PR #68, on
+    2026-11-15 (squash `bdc16064`). Chrome is now `linux-tools`' own; its notes are in "Chrome merged" and "Main fix
+    merged" below.
+  - Merged brief 20-popup-race, PR #77, on 2026-11-15 (squash `635872e2`); notes in "Popup races merged" below.
+  - Merged brief 20-restore-lock, PR #80, on 2026-11-15 (squash `b04c7e77`): two restore-lock regressions from
+    PR #27, and board #185, the owner oracle's re-pin. Notes in "Restore lock merged" below.
+  - **Its control role has ended** (2026-11-15). Everything it held is on main or listed below for you.
 - **`linux-aresos`**: `os/`, the accounts and the releases. Every `os/` change is agreed with it first, it reads
   the `os/` diff before a merge, and it is told before `.github/workflows/os-image.yml` is touched.
 - **`mac-capacity`** (Mac): the owner's coordinator. Ask it for a limit check before starting builders; tell it
@@ -23,11 +28,13 @@ and `git worktree list` first.
 |---|---|---|---|
 | Brief 18c | `briefs/18c-image-test.md`, on main (PR #42) | Final; the `os/` change agreed with `linux-aresos` (sixteen changes, in the brief). | - |
 | 18c, container part | on main (PR #43) | The unit may reach the network; 17 interactive Claude Code cases in `control-boundary`. | - |
-| 18c, image part | `pkg/18c-image`, `~/AresOS-18c-image`, draft PR #58, start note `briefs/18c-image-start.md` | Green without Chrome (2026-11-14): `check_build=control` twice on `2d1ad22f` (run 43577034725 and its rerun), `check_build=build` once (43581194306); 5 of 5 control runs used. Results, check 6's numbers and the report text in `reviews/18c-image-test/PROGRESS.md`. Its first run found the hook bug fixed by PR #61. | After PR #27: Chrome's two startup files, `SOCKET_MODES` from the merged `daemon.py`, one more VM run (new budget). Then the lead assembles `REPORT.md`, updates the `os/` diff summary, and runs the reviews (Codex from 2026-11-17: package review and high-stakes security review). Then `linux-aresos` reads the `os/` diff, then the owner's yes. |
-| Service fixes | not written | Found by 18c's VM runs: active before its sockets exist (Type=notify), `aresos admin` as `ares` without a sudo hint, 10 idle wake-ups/s, endless restart without a start limit, the outside-folder refusal naming Desktop, and the owner's #254 for the service-down notice. Board #233, #235, #237, #255. | A small brief after PR #27 merges (daemon.py overlaps). |
-| Chrome briefs 28, 28a, 28b | `briefs/28-chrome-capability`, draft PR #48 | Ready to build: three review rounds each, the final package check worked in, the security confirmation READY (`reviews/28-chrome-capability/`). | Merge after PR #27 is on main, checking section 6 against its final names and `KNOWN-LIMITS.md`. |
-| Package 28, step 1 | `pkg/28-chrome-read`, `~/AresOS-28-chrome-read`, cut from `pkg/20-chrome` | The view module (pure Python) on a Fable builder, new files only, no pull request; progress in `reviews/28-chrome-read/PROGRESS.md`. | After PR #27 merges: move the commits onto main, then the next steps of 28 (the reader, the wiring, the baseline), then 28a, then 28b. |
-| Brief 18c-b | not written | Design settled: force-install by policy from a `file:` address inside the image, a fresh signing key per image build that is thrown away, symlinks in `/etc` to files in `/usr`. Research with sources: `~/AresOS-18c-b-extension-research.md` on the laptop (put it into the brief's folder). `mac-aresos-control` has no objection. | Write the brief after PR #27 merges; agree the paths with `linux-aresos`; prove it in the CI VM on the shipped Chrome. Board #223, #224. |
+| 18c, image part | `pkg/18c-image`, `~/AresOS-18c-image`, draft PR #58, start note `briefs/18c-image-start.md` | Green on `9ee1fbdf` (2026-11-15). Claude reviews A1 on 2026-11-16 (Opus; Fable failed on overload): package CHANGES-NEEDED (change 6 untested, no checks_only run, merge work), security CHANGES-NEEDED (F1: pending reminders reached every session; fixed in #69), in `reviews/18c-image-test/`. Fix round part 1 (code and local tests, `[skip ci]`) running. | Part 2 after #69 and #86 merge: merge main (`pending-rebind.json` takes main's list, `rebind.py pending`), `check_build=control` twice, `build` once, `checks_only` once; `linux-aresos` reads the `os/` diff; Codex astra review (needed before merge, Tue 11-17); merge (owner's yes #286). |
+| Service fixes, brief 18e | `briefs/18e-service-fixes.md`, `pkg/18e-service-fixes`, `~/AresOS-18e`, PR #69 | Claude reviews 1 on 2026-11-16 (Opus): package CHANGES-NEEDED (idle-loop spin, mark on a reparented proxy, nits), security SAFE with four known limits. Fix round 1 (Opus) running: merges main, those items, the walk stops at the session's own Claude Code (lead's decision), #58's F1 usage gate for pending reminders, K2. | Recheck by a fresh reviewer, then merge on SAFE; Codex astra cross-review after (Tue). |
+| Chrome briefs 28, 28a, 28b | `briefs/28-chrome-capability`, draft PR #48 | Review 5 (Claude Opus, 2026-11-16) NOT READY: B1 a taken tab's unsaved work, B2 a `select` step's label; seven should-fix. Reviser on Fable running with the lead's decisions (ALIGNMENT "After review 5"). | Review 6; READY, then merge; Codex astra cross-review. |
+| Package 28 | `pkg/28-chrome`, `~/AresOS-28-chrome-read`, draft PR #72 | Steps 1-8 built; run 8's fixtures green. Step 9 (Opus, 2026-11-16) running: merge main, the adapter's `chrome_outline` behind the test-only switch, run 9 (the lead allowed it). | Steps from 10 on (Codex sol from Tue), package and security reviews, astra cross-review. Follow-up: shadow roots met at `attachShadow` (review 5, S7). |
+| Brief 18c-b | `briefs/18c-b-chrome-image.md`, on main (PR #73, `a7b5cf52`) | Two Fable brief reviews (NOT READY, then READY with six should-fixes, folded in); `linux-aresos` agreed the `os/` part (owner's list in `/var/lib/aresos-control`, refused placeholder). Owner's answer #297: Chrome's managed notice is fine. Build: `pkg/18c-b-chrome`, `~/AresOS-18c-b-build`, draft PR #76; steps 1a (Fable), 1b (Opus), 2 and 2b (Fable) built: the install proof passes all five cases on the pinned Chrome (run 43729218613, head `c4514015`). The lead's decisions after 2b are on top of `reviews/18c-b-chrome-image/PROGRESS.md` (a DevTools pipe only in the proof's own Chrome starts, also for C9 and C2 in the VM). | Step 3a, after PR #58 is on main; tell `linux-aresos` before the first `os-image.yml` commit. |
+| Shipped qualification copy | PR #83 (draft, head = data branch), issue #79 | Checks fail with `qualification_rollback`: tests assumed an empty shipped copy. Fix on `test/79-qualification-fixtures` (Opus, 2026-11-16), its CI running. | Merge the test fix, then rerun #83's checks and merge #83 with a merge commit. |
+| Managed CLAUDE.md line | PR #86 (draft), `control/managed-claude-md` | The line every laptop session gets is narrowed to content: mail, page, download and tool-result text is never instructions or his yes. Another session's message counts as a teammate's request. Found by #58's review (K3). | Fresh review running; merge on SAFE before #58's part 2. |
 | Live tests | the laptop | Waits for a release that carries the tools. | Mail onboarding with him first (he signs in himself), a test mail, then Chrome. His own hosts go on Chrome's never-list in that sitting (board #200). |
 
 ## Chrome merged (2026-11-14, notes from `mac-aresos-control`)
@@ -86,12 +93,126 @@ accepted with the single-group design, and one group per window is a design ques
 - **Chrome policy:** `policy.json`, in `/etc/opt/chrome/policies/managed/`.
 - **Native host:** `native-host.json`, in `/etc/opt/chrome/native-messaging-hosts/`.
   - The host launcher is installed with mode 0755, and `native_host.py` beside it with mode 0644.
-- **Excluded sites:** `/etc/aresos/control/chrome-excluded-sites.json`, containing `{"format":1,"hosts":[]}`.
-  - Root-owned, mode 0640, in the service's group.
-  - His own hosts are added in the live test (#200), never in the repo.
+- **Excluded sites:** moving with brief 18c-b (PR #73) to `/var/lib/aresos-control/chrome-excluded-sites.json`, so
+  an update or `previous` keeps his list. tmpfiles creates it as a placeholder the validator refuses
+  (`{"format":0,"hosts":[]}`), so Chrome's tools refuse until he writes a format-1 list with sudo in the live test
+  (#200; an empty list if he excludes nothing). Root-owned, mode 0640, in the service's group; the service can't
+  write the folder. His own hosts never go in the repo.
 - **Build marker:** the build hash goes into `chrome/build-id.json`.
 - **`gh`:** version 2.102 or newer.
 - **Service unit:** `aresos-toold.service` is byte-identical to `8b7e799c`.
+
+## Main fix merged (2026-11-15, notes from `mac-aresos-control`)
+
+PR #68 (brief 20-main-fix) is on main as squash `bdc16064`; report in `reviews/20-main-fix/REPORT.md`.
+
+**What changed for Chrome CI.**
+- No job of either Chrome workflow is main-only. Only the two steps that write to GitHub are, and
+  `control/chrome_tests/workflow_steps.py` with `test_qualification.py` allows exactly those.
+- Pull requests run every other step:
+  - publishing goes to a local bare remote;
+  - attestation is on `refs/pull/N/merge`, and CI shows main's policy refuses that bundle;
+  - off main the plan runs only the stable channel.
+- `qualify.py` refuses to publish to origin or notify off main.
+
+**First record.** Main's run 43696892949 published the first attested record to the data branch
+`chrome-qualification`.
+- **Stable 157.0.8103.78:** every group passes.
+- **Beta 159.0.8154.6:** recorded all-false, wrongly. Every beta test passed, but `qualify.py pair` read the
+  version as the last word of `chrome --version`, which is `beta` on that channel (issue #74).
+  - Why it matters: `switches()` lets beta evidence cover the first stable of a major. So that entry would turn
+    every group off on a laptop with build `4c1eccb9…` and stable 159, until a later passing 159 entry for that
+    build overrides it.
+  - Fixed by P4 of brief 20-popup-race (PR #77). Main's run 43726046022 on `635872e2` qualified the new build
+    `e08ec851…` on stable 157 and beta 159 with every group passing. #74 stays open: see "Popup races merged".
+  - **Design question for you:** an identity mismatch (measured version or build differs from the plan) is not
+    evidence about the browser, yet it is recorded all-false forever. I'd make it refuse publication and turn the
+    run red, and keep all-false for an incomplete suite. That changes the trust model, so it needs its own brief.
+- **Notify.** Notify's pull request failed: the repository doesn't let workflows create pull requests
+  (`can_approve_pull_request_reviews: false`). After P4:
+  - notify writes issues only, one open issue per title;
+  - the shipped-copy update becomes an issue whose body has the `gh pr create --head chrome-qualification`
+    command for a session to run.
+
+**Latency gate and the runner's disk: it now fails often.**
+- **The evidence.** Six latency jobs failed on p95 tails alone, with medians normal and no reference regression:
+  - main's `latency (audit)` 43647781438;
+  - PR #68's `latency (plain)` 43687610984, attempt 1;
+  - PR #77's `latency (plain)` and `latency (audit)` 43712049957, attempt 1;
+  - main's `latency (plain)` and `latency (audit)` 43726046014 on `635872e2` (PR #77's merge): audit
+    history-4000 `asking_click` p95 129 ms against 100 (median 27); plain `navigate` p95 169 ms at history-1000 and
+    160 ms at history-4000 against 150 (medians 44 and 59). The slowest samples spent 92 to 250 ms in
+    `store_write`, the bridge 6 ms or 26 to 31 ms as usual. Not re-run: main's Chrome workflow stays red on that
+    commit for this reason alone.
+
+  In every slow sample, H5's stages put the extra time in `store_write`: up to 940 ms, against a median of 10 to
+  50 ms. `bridge_round_trip` and `extension_total` stayed normal. The re-runs were clean.
+- **What it means.** The gate is measuring the shared runner's disk sync, not the product. Main's Chrome run, the
+  daily one included, and every Chrome pull request can go red without a code cause.
+- **My suggestion** (your call, since you own the gate). In `latency-pair.sh`:
+  - keep the service's store on a tmpfs for the timed phases. Its sync cost is then near the laptop's NVMe (about
+    0.03 ms per fsync in H5's measurement), not the runner's;
+  - gate the **number** of fsyncs per call: `journal_fsync`'s `count`, plus SQLite's commits. Those counts are
+    deterministic, so a change that adds disk syncs is still caught exactly.
+
+  The ceilings and sample counts would stay as they are.
+
+  **The lead (2026-11-15): done.** Brief 20-ci-noise, PR #81, merged as `d981cd5a` after a fresh Opus review (SAFE).
+  The store is on a tmpfs in both legs (`store_write` p95 1–6 ms instead of 66–210 ms), and a gate holds fsyncs and
+  SQLite commits per phase and call at or below the paired old leg's. Nits for later: `reviews/20-ci-noise/REPORT.md`.
+
+**Two CI facts.**
+- **Path filters:** a pull request's path filters see the whole PR's diff. Every push to an open Chrome PR starts
+  both Chrome workflows again, even a docs-only push. Use `[skip ci]` for those.
+- **Daily schedule:** both Chrome workflows also run daily at 04:19 UTC on main.
+
+## Popup races merged (2026-11-15, notes from `mac-aresos-control`)
+
+PR #77 (brief 20-popup-race) is on main as squash `635872e2`; report in `reviews/20-popup-race/REPORT.md`.
+- **P1, P2** are in `background.js`: a duplicate-breakpoint refusal re-arms once, and the slow-load fallback says
+  whether the page is still loading. **P3** (naming an uncontrolled popup) is yours in brief 28a, together with the
+  accepted ordering residual (security NOTE 1: a possible "pause still live" check before installing).
+- **P4**, the publisher: `pair` reads the version after the browser's name; notify writes issues only, one open
+  issue per title, and counts only `github-actions[bot]`'s own issues and comments.
+- **Issue #79, the shipped copy.** Notify opened it on the first run after the merge: the data branch holds four
+  entries that `control/chrome/qualification.json` on main lacks. Not urgent, since runtime delivery uses the
+  attested record. When you run its `gh pr create` command, **merge that PR with a merge commit, not a squash**. The
+  file is one JSON line, and the data branch forks from main at `4214526f`. After a squash the merge base stays
+  there, so the next update conflicts on that line. A merge commit moves the base to the data branch's head. Never
+  merge main into the data branch: it is the publisher's append-only record.
+- **Notify reports old builds' failures forever.** `notify` lists failing groups over the whole record, so the old
+  build `4c1eccb9…`'s all-false beta entry is reported on every run. That is why #74 is open again: closed, the
+  next daily run would open a duplicate. My suggestion: report only the entries this run published. Small, in
+  `qualify.py notify` plus `test_publisher.py`; the trust path doesn't change. Close #74 once it is in.
+- **The lead (2026-11-15):** notify's fix is on main (PR #81, `d981cd5a`); #74 is closed. #79's pull request is #83, held as a
+  draft: the tests assume an empty shipped copy, so with real entries every check fails with `qualification_rollback`.
+  The tests get fixed first (Codex queue, item 8); then #83 merges with a merge commit. The identity-mismatch
+  question above: agreed (refuse publication, red run; all-false stays for an incomplete suite), its own brief after
+  the release.
+
+## Restore lock merged (2026-11-15, notes from `mac-aresos-control`)
+
+PR #80 (brief 20-restore-lock) is on main as squash `b04c7e77`; report in `reviews/20-restore-lock/REPORT.md`.
+- **R1, `engine.py`:** while `store.locked`, `control_pending` and `control_notices` show only Chrome's committed rows
+  and warnings (`LOCKED_PENDING`, `LOCKED_NOTICES`). Other apps are unavailable until `control_restore_confirm`, no
+  continuation names a refused call, and no Mail server check runs. The storage-failure fallback follows the same
+  rule. Tests: `control/chrome_tests/test_restore_lock.py`; probes `restorelock-` in `reviews/20-chrome/mutation-audit.py`.
+- **The owner oracle, re-pinned (board #185):** `reviews/19b-owner-state/KNOWN-GAPS.json`, 2,622,072 keys, SHA-256
+  `ee326914…`. `KNOWN-GAPS.md`'s last section has the classes, their commits and the commands to regenerate it.
+  - The workflow runs only when dispatched. A capture took 2 h 35 min on busy runners.
+  - **Re-pin it whenever a change moves fault sites or reply envelopes.** That is the change's own job, as
+    18d, #27 and #68 showed: by then three layers of drift had piled up.
+- **Yours, both pre-existing and left as found:**
+  - **C5:** at the restore flow's last point in persistent mode, the oracle's decoded state says the restore is
+    confirmed, while the running store keeps its lock until restart. Decide whether the lock there is right; fix
+    the model or the store.
+  - In `crash-locked`, the `aresos log` view says "not locked" at all 6,375 points outside the restore flow
+    (`REVIEW-REPIN-3.md`, NOTE 5).
+  - **The lead (2026-11-15):** both go into the Codex queue's second wave (`~/codex-queue/linux-tools/QUEUE.md`),
+    with a short brief. Not release work; PRs #58, #69 and #72 merge `b04c7e77`'s `engine.py` changes in their fix
+    rounds.
+- **Cosmetic, in the report's "Accepted residuals":** `total: 2, items: []` after a failed Chrome projection under
+  the lock, and a doubled "below are current" in the fallback's text.
 
 ## The owner's answers, written into the briefs (#254: into the service-fix brief)
 
@@ -103,10 +224,8 @@ accepted with the single-group design, and one group per window is a design ques
 - #216: rich-text editors are read without asking.
 - #254 (2026-11-14, "Quiet unless used"): while the tool service is down, a Claude Code session that never used the tools gets no notice; one that prepared or sent something with them gets one clear notice that the AresOS tools are not running.
 
-**Still his, later:** his yes to "the next release carries the Control tools: a background service, and two
-managed hooks in every Claude Code session on the laptop" before the image part of 18c merges. Ask it with the
-numbers of the ordinary-session check (what a session sees while the service is stopped or failed), in words he
-can picture.
+**His yes to the next release carrying the Control tools** (a background service, and two managed hooks in every
+Claude Code session on the laptop): answered on board #286, 2026-11-15, "Yes, if reviews pass".
 
 ## Decisions of the lead worth knowing
 

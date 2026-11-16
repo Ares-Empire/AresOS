@@ -1,19 +1,19 @@
 1. **blocking — Authored body text can still escape full disclosure.**  
-   At [codec.py:328](/Users/pab/AresOS-19-mail/control/aresos_control/mail/codec.py:328), reparsing a text payload as mail takes precedence over collecting its authored text. The guard repeats this omission at [guard.py:183](/Users/pab/AresOS-19-mail/control/aresos_control/mail/guard.py:183).
+   At [codec.py:328](/Users/owner/AresOS-19-mail/control/aresos_control/mail/codec.py:328), reparsing a text payload as mail takes precedence over collecting its authored text. The guard repeats this omission at [guard.py:183](/Users/owner/AresOS-19-mail/control/aresos_control/mail/guard.py:183).
 
    I created a marked draft through `compose → draft_save` whose body begins `From: …`, then a long `Subject: …`, an empty line and `Small body`. Attaching its source or forwarding it as an attachment produced an approximately **1.3 KiB approval showing only “Small body”**. Submission completed; decoding the submitted attachment recovered the undisclosed 23,100-character Subject originally written as body text.
 
    **Fix:** collect and require disclosure of each original authored text payload **before** interpreting its contents as another MIME entity. Recursive inspection must add checks without replacing that disclosure obligation. Add this free-draft round trip and require oversized approval refusal.
 
 2. **blocking — The independent guard accepts undisclosed markers on containers.**  
-   [guard.py:115](/Users/pab/AresOS-19-mail/control/aresos_control/mail/guard.py:115) initially permits marker lines. Multipart and message branches return before the final marker check; inherited provenance is enforced only for text leaves at [guard.py:186](/Users/pab/AresOS-19-mail/control/aresos_control/mail/guard.py:186).
+   [guard.py:115](/Users/owner/AresOS-19-mail/control/aresos_control/mail/guard.py:115) initially permits marker lines. Multipart and message branches return before the final marker check; inherited provenance is enforced only for text leaves at [guard.py:186](/Users/owner/AresOS-19-mail/control/aresos_control/mail/guard.py:186).
 
    A marked multipart containing an `application/octet-stream` child with `Hidden authored words` passes with **no disclosed text**. Injected past the builder, it passed compose, prepare and both send checks, reaching DATA. A marked `message/rfc822` container with an opaque child behaves similarly. Reconstruction also removes these original markers without retaining an enforceable disclosure obligation when no text is collected.
 
    **Fix:** account for every original marker across every traversal branch. Refuse marked content whose disclosure cannot be established, regardless of its claimed type. Add builder-bypassing container tests requiring `failed`, no DATA and no submission on replay.
 
 3. **should-fix — Ordinary prose beginning with a colon-bearing line is rejected.**  
-   At [guard.py:183](/Users/pab/AresOS-19-mail/control/aresos_control/mail/guard.py:183), any parsed header key triggers strict recursive MIME validation, including a partial parse of ordinary prose.
+   At [guard.py:183](/Users/owner/AresOS-19-mail/control/aresos_control/mail/guard.py:183), any parsed header key triggers strict recursive MIME validation, including a partial parse of ordinary prose.
 
    Both plain and formatted new messages containing:
    ```

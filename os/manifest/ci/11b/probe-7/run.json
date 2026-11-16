@@ -101,11 +101,11 @@
     "message": "Prove deferred German console generation with the ISO installer functions",
     "timestamp": "2026-10-23T01:34:29Z",
     "author": {
-      "name": "pab",
+      "name": "owner",
       "email": "admin@example.com"
     },
     "committer": {
-      "name": "pab",
+      "name": "owner",
       "email": "admin@example.com"
     }
   },
