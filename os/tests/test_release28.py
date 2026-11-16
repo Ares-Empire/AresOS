@@ -1,5 +1,6 @@
 """Package 42: release 28's diff rules, its release job and the dry run that cannot publish."""
 import contextlib
+import copy
 import hashlib
 import io
 import json
@@ -102,6 +103,10 @@ class PackageDiff28Test(unittest.TestCase):
         with self.assertRaisesRegex(AssertionError, 'unexplained package change'):
             rd.package_diff(old, new, old_lock, new_lock, {})
         self.assertNotIn('google-chrome-stable', rd.PACKAGE_REASONS_28)
+        # A package that left the image without its locked replacement stops, even with a reason.
+        old_image = dict(old, **{'gone-1-1.fc44.x86_64': 'gone'})
+        with self.assertRaisesRegex(AssertionError, 'removed package without its locked replacement: gone-1-1.fc44.x86_64'):
+            rd.package_diff(old_image, new, old_lock, new_lock, dict(rd.PACKAGE_REASONS_28, gone='made up'))
 
 
 class SchemaTest(unittest.TestCase):
@@ -144,6 +149,15 @@ class SchemaTest(unittest.TestCase):
         # Without the override, the compiled key differs from what the override file says.
         self.assertIsNone(rd.schema_changes(self.compiled('after'), self.compiled('before'), OVERRIDE))
         self.assertEqual(rd.schema_changes(self.compiled('before'), self.compiled('before'), OVERRIDE), None)
+        # Review 1, S4: a key's default changed beside the override's desktop value (another override set it), or
+        # its choices changed: both stop, though the override's own value is there.
+        self.assertIsNone(rd.schema_changes(self.compiled('before'), self.compiled('default'), OVERRIDE))
+        self.assertIsNone(rd.schema_changes(self.compiled('before'), self.compiled('choices'), OVERRIDE))
+        # Another desktop's value beside the override's (another override set it).
+        self.assertIsNone(rd.schema_changes(self.compiled('before'), self.compiled('desktops'), OVERRIDE))
+        # The override sets a key the new file does not carry with that value, although nothing else differs there.
+        self.assertIsNone(rd.schema_changes(self.compiled('before'), self.compiled('after'),
+                                            OVERRIDE + '[org.gnome.desktop.wm.preferences]\nnum-workspaces=5\n'))
         with self.assertRaises(ValueError):
             rd.gvdb_entries(b'not a compiled file' * 4)
         with self.assertRaises(ValueError):
@@ -185,6 +199,158 @@ class FontCacheTest(unittest.TestCase):
                 self.assertEqual(rd.font_cache(data, layout), (9, self.ARESOS))
                 with self.assertRaises(ValueError):
                     rd.font_cache(data, other)
+
+
+class SourceChangesTest(unittest.TestCase):
+    """Review 1, S2: the image's sources on the built commit are main's at the merge base, but for the jar's pin."""
+    LOCK = 'os/minecraft/desktop.lock.json'
+
+    def setUp(self):
+        self.repo = pathlib.Path(tempfile.mkdtemp(dir=ROOT / 'os/tests'))
+        self.addCleanup(shutil.rmtree, self.repo)
+        self.enterContext(contextlib.chdir(self.repo))
+        self.environment = dict(os.environ, GIT_AUTHOR_NAME='fixture', GIT_AUTHOR_EMAIL='fixture@example.invalid',
+                                GIT_COMMITTER_NAME='fixture', GIT_COMMITTER_EMAIL='fixture@example.invalid')
+        self.git('init', '-q', '-b', 'main')
+        lock = dict(prism=dict(version='1'), mods=[dict(file='fabric-api.jar', url='https://example.invalid/f.jar', sha256='f' * 64),
+                                                   dict(file='aresos.jar', name='AresOS', sha256='a' * 64)])
+        self.write({self.LOCK: json.dumps(lock, indent=2) + '\n', 'os/build.sh': 'build\n', 'os/config/etc/x': 'x\n',
+                    'os/tests/audit.py': 'audit\n', 'os/tests/test_x.py': 'test\n', 'os/ci/x.py': 'ci\n',
+                    'mod/src/A.java': 'class A {}\n', 'docs/x.md': 'doc\n'})
+        self.base = self.commit('main')
+        self.lock = lock
+
+    def git(self, *args):
+        return subprocess.check_output(['git', *args], cwd=self.repo, env=self.environment, text=True).strip()
+
+    def write(self, files):
+        for rel, text in files.items():
+            path = self.repo / rel
+            if text is None:
+                path.unlink()
+                continue
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(text)
+
+    def commit(self, message):
+        self.git('add', '-A')
+        self.git('commit', '-q', '-m', message)
+        return self.git('rev-parse', 'HEAD')
+
+    def lock_text(self, jar=None, **changes):
+        lock = json.loads(json.dumps(self.lock))
+        lock.update(changes)
+        if jar:
+            lock['mods'][1]['sha256'] = jar
+        return json.dumps(lock, indent=2) + '\n'
+
+    def test_only_the_jar_pin_and_files_the_image_is_not_built_from_may_differ(self):
+        self.write({self.LOCK: self.lock_text(jar='b' * 64), 'os/tests/test_x.py': 'changed\n', 'os/ci/x.py': 'changed\n',
+                    'docs/x.md': None})
+        self.commit('branch: the jar pin and harness files')
+        allowed, differing = rd.source_changes(self.base)
+        self.assertEqual((allowed, differing), ({self.LOCK: rd.BRANCH_SOURCE_CHANGES[self.LOCK][0]}, []))
+        self.assertEqual(rd.source_changes(self.base, self.base), ({}, []))
+
+    def test_every_other_source_change_is_named(self):
+        cases = {
+            'os/config/etc/x': {'os/config/etc/x': 'changed on the branch\n'},
+            'os/config/etc/new': {'os/config/etc/new': 'new\n'},
+            'os/build.sh': {'os/build.sh': None},
+            'os/tests/audit.py': {'os/tests/audit.py': 'changed\n'},
+            'mod/src/B.java': {'mod/src/B.java': 'class B {}\n'},
+            self.LOCK: {self.LOCK: self.lock_text(jar='b' * 64, prism=dict(version='2'))},
+        }
+        for name, files in cases.items():
+            with self.subTest(name=name):
+                self.git('checkout', '-q', '-B', 'branch', self.base)
+                self.write(files)
+                self.commit('branch: ' + name)
+                self.assertEqual(rd.source_changes(self.base), ({}, [name]))
+        # Two at once: each is named.
+        self.git('checkout', '-q', '-B', 'branch', self.base)
+        self.write({'os/config/etc/x': 'changed\n', 'mod/src/A.java': 'class A { int x; }\n', self.LOCK: self.lock_text(jar='c' * 64)})
+        self.commit('branch: two changes and the pin')
+        self.assertEqual(rd.source_changes(self.base), ({self.LOCK: rd.BRANCH_SOURCE_CHANGES[self.LOCK][0]},
+                                                        ['mod/src/A.java', 'os/config/etc/x']))
+
+    def test_the_merge_base_follows_main_merged_in_at_the_cut(self):
+        # Step 4 merges main at the cut: the base moves to main's commit, and the branch's own change still is only the pin.
+        self.git('checkout', '-q', '-b', 'branch')
+        self.write({self.LOCK: self.lock_text(jar='b' * 64)})
+        self.commit('branch: the jar pin')
+        self.git('checkout', '-q', 'main')
+        self.write({'os/config/etc/x': 'a merged package\n', 'mod/src/A.java': 'class A { int merged; }\n'})
+        cut = self.commit('Package 99: a merged change (#99)')
+        self.git('checkout', '-q', 'branch')
+        self.git('merge', '-q', '--no-edit', 'main')
+        self.git('update-ref', 'refs/remotes/origin/main', cut)
+        self.assertEqual(rd.main_merge_base(), cut)
+        self.assertEqual(rd.source_changes(cut), ({self.LOCK: rd.BRANCH_SOURCE_CHANGES[self.LOCK][0]}, []))
+        # A wrong resolution of the merge (the old file kept) is a difference from main.
+        self.write({'os/config/etc/x': 'x\n'})
+        self.commit('branch: wrong resolution')
+        self.assertEqual(rd.source_changes(cut)[1], ['os/config/etc/x'])
+        # Without main in the checkout, the diff stops at once with a line that says why.
+        self.git('update-ref', '-d', 'refs/remotes/origin/main')
+        with self.assertRaisesRegex(AssertionError, 'STOP: no merge base with origin/main'):
+            rd.main_merge_base()
+
+    def test_the_jar_pin_rule(self):
+        same = self.lock_text()
+        self.assertTrue(rd.jar_pin_only(same, self.lock_text(jar='b' * 64)))
+        self.assertTrue(rd.jar_pin_only(same, same))
+        for other in (self.lock_text(jar='b' * 64, prism=dict(version='2')), self.lock_text(mods=self.lock['mods'][:1]),
+                      self.lock_text(mods=self.lock['mods'] + [dict(file='aresos.jar', sha256='c' * 64)]), '{', None):
+            with self.subTest(other=other):
+                self.assertFalse(rd.jar_pin_only(same, other))
+                self.assertFalse(rd.jar_pin_only(other, same))
+        # Another mod's pin is not the AresOS jar's.
+        fabric = json.loads(same)
+        fabric['mods'][0]['sha256'] = 'e' * 64
+        self.assertFalse(rd.jar_pin_only(same, json.dumps(fabric)))
+
+
+class ImageSourcesTest(unittest.TestCase):
+    def test_this_branch_changes_no_image_source_but_the_jar_pin(self):
+        with contextlib.chdir(ROOT):
+            try:
+                main_base = rd.main_merge_base()
+            except AssertionError:
+                self.skipTest('this checkout has no origin/main')
+            allowed, differing = rd.source_changes(main_base)
+        self.assertEqual(differing, [])
+        self.assertLessEqual(set(allowed), set(rd.BRANCH_SOURCE_CHANGES))
+
+    def test_the_source_list_covers_what_the_build_reads(self):
+        build, containerfile = (ROOT / 'os/build.sh').read_text(), (ROOT / 'os/Containerfile').read_text()
+        # check-build.sh builds os/Containerfile with os/ as its context; the Containerfile copies it to /tmp/aresos.
+        self.assertIn('--file os/Containerfile os ', (ROOT / 'os/ci/check-build.sh').read_text())
+        self.assertIn('\nCOPY . /tmp/aresos/\n', containerfile)
+        read = {os.path.normpath(rel) for rel in re.findall(r'/tmp/aresos/([\w.-]+(?:/[\w.-]+)*)', build + containerfile)}
+        read -= {'ci'}  # the Containerfile checks it is absent (os/.containerignore)
+        self.assertLessEqual({'packages.lock.json', 'google-chrome.lock.json', 'minecraft/desktop.lock.json', 'build.sh',
+                              'tests/audit.py', 'policy', 'config'}, read)
+        for rel in sorted(read):
+            with self.subTest(rel=rel):
+                self.assertTrue(any(('os/' + rel + '/').startswith(source + '/') for source in rd.IMAGE_SOURCES), rel)
+        # Chrome's signing key, named by its lock; the source stage keeps only mod/ of this commit.
+        key = json.loads((ROOT / 'os/google-chrome.lock.json').read_text())['signing_key']['file']
+        self.assertTrue(('os/' + key).startswith('os/keys/'))
+        self.assertIn('keep only mod/', build)
+        self.assertIn('mod', rd.IMAGE_SOURCES)
+        self.assertIn('os/.containerignore', rd.IMAGE_SOURCES)
+        # Every listed source exists here, and the branch's exceptions are among them.
+        for source in rd.IMAGE_SOURCES:
+            self.assertTrue((ROOT / source).exists(), source)
+        self.assertEqual(set(rd.BRANCH_SOURCE_CHANGES), {'os/minecraft/desktop.lock.json'})
+
+
+class PrismListPinTest(unittest.TestCase):
+    def test_the_reviewed_prism_list_belongs_to_the_pinned_prism(self):
+        # Review 1, N4: dry run 3's prism-files.sha256 (run 43847257976, 679 files), for the Prism tarball the lock pins.
+        lock = json.loads((ROOT / 'os/minecraft/desktop.lock.json').read_text())
+        self.assertEqual(rd.PRISM_FILE_LISTS, {lock['prism']['sha256']: '9df32315bf6a3116992df8df23387f1cf5d060bf1c655cfae9cf89ed00994a03'})
 
 
 class AlternativesAdminTest(unittest.TestCase):
@@ -252,6 +418,10 @@ class Classifier28Test(unittest.TestCase):
     UPDATERS = 'usr/share/aresos/manifest/updaters.json'
     DROPIN = 'usr/lib/systemd/system/user.slice.d/50-aresos-recovery.conf'  # package 23's
     JAVA_MAN = 'usr/lib/jvm/java-25-openjdk/man/man1/java.1'
+    CACERTS = 'usr/lib/jvm/java-25/lib/security/cacerts'  # a link of the package, as Java's is
+    LOCK = 'usr/share/aresos/manifest/packages.lock.json'
+    PACKAGES = 'usr/share/aresos/manifest/packages.txt'
+    INSTALLED = ['java-25-openjdk-headless-1:25.0.5.0.8-3.1.fc44.x86_64', 'tzdata-java-2026f-1.fc44.noarch']
 
     @staticmethod
     def audit(*added, **changes):
@@ -292,7 +462,8 @@ class Classifier28Test(unittest.TestCase):
                                                 b'@java-25@' + self.JAVA.encode() + b'\n25\n' + self.KEYTOOL.encode() + b'\n'),
                rd.ALTERNATIVES + 'java': ('link', self.JAVA), rd.ALTERNATIVES + 'keytool': ('link', self.KEYTOOL),
                'usr/bin/java': ('link', '/etc/alternatives/java'), 'usr/bin/keytool': ('link', '/etc/alternatives/keytool'),
-               self.JAVA[1:]: b'java'}
+               self.JAVA[1:]: b'java', self.CACERTS: ('link', '/etc/pki/java/cacerts'),
+               self.LOCK: (ROOT / 'os/packages.lock.json').read_bytes(), self.PACKAGES: '\n'.join(self.INSTALLED).encode() + b'\n'}
         self.roots = []
         for files in (old, new, {}):
             root = pathlib.Path(tempfile.mkdtemp(dir=ROOT / 'os/tests'))
@@ -308,21 +479,104 @@ class Classifier28Test(unittest.TestCase):
                     path.chmod(0o755)
         (self.new / 'usr/lib/prismlauncher/bin/prismlauncher').chmod(0o755)
         # The image's files are root's and carry no extended attributes; this fixture's are the test user's.
-        self.attributes = {}
+        # self.attributes sets a path's attributes in both images; self.meta any field of one image's path.
+        self.attributes, self.meta = {}, {}
         real_entry = rd.entry
 
         def as_image(root, rel):
             value = real_entry(root, rel)
             if value is not None:
                 value.update(uid=0, gid=0, xattrs=self.attributes.get(rel, {}))
+                value.update(self.meta.get((pathlib.Path(root), rel), {}))
             return value
         self.enterContext(patch.object(rd, 'entry', side_effect=as_image))
         inventory = {rel: dict(value, uid=0, gid=0, xattrs={}) for rel, value in image_diff.inventory(self.new).items()}
         owned = dict(old=set(), new={self.JAVA, self.KEYTOOL, '/usr/lib/jvm/java-25/lib/libjvm.so', '/' + self.JAVA_MAN})
-        packages = dict(old=[], new=[])
-        self.classifier = rd.Classifier28(self.roots, packages, owned,
-                                          dict(executables=rd.CHMOD_0755_28, inventory=inventory))
+        packages = dict(old=[], new=list(self.INSTALLED))
+        # The added packages' files as their rpm database records them (release_diff.rpm_files).
+        self.records = {rel: [self.rpm_record(rel)] for rel in (self.JAVA[1:], self.JAVA_MAN, self.CACERTS, 'usr/lib/jvm/java-25')}
+        self.classifier = rd.Classifier28(self.roots, packages, owned, dict(
+            executables=rd.CHMOD_0755_28, inventory=inventory, main_base='HEAD', records=self.records))
         self.classifier.pins = {rd.MINECRAFT + '/libraries/x-1.jar': (hashlib.sha256(b'x').hexdigest(), 1, 'pinned x')}
+        # The fixture's Prism file list stands in for the reviewed one of the real Prism pin.
+        self.enterContext(patch.dict(rd.PRISM_FILE_LISTS, {self.classifier.prism_pin: hashlib.sha256(listing.encode()).hexdigest()}))
+
+    def rpm_record(self, rel, **changes):
+        """The rpm database's record of a fixture path, as release_diff.rpm_files reads it; `changes` alter fields."""
+        path = self.new / rel
+        meta = path.lstat()
+        regular = stat.S_ISREG(meta.st_mode)
+        record = dict(user='root', group='root', flags=0, size=meta.st_size if regular else 4096, algorithm=rd.RPM_SHA256,
+                      digest=hashlib.sha256(path.read_bytes()).hexdigest() if regular else '',
+                      target=os.readlink(path) if stat.S_ISLNK(meta.st_mode) else '', caps='', mode=meta.st_mode)
+        return dict(record, **changes)
+
+    @contextlib.contextmanager
+    def image(self, rel, root=None, **fields):
+        """One image's (the new one's by default) entry for rel gets other fields, e.g. uid=1000 or xattrs={...}."""
+        key = (root or self.new, rel)
+        self.meta[key] = fields
+        try:
+            yield
+        finally:
+            del self.meta[key]
+
+    @contextlib.contextmanager
+    def mode(self, rel, mode, root=None):
+        path = (root or self.new) / rel
+        before = stat.S_IMODE(path.lstat().st_mode)
+        path.chmod(mode)
+        try:
+            yield
+        finally:
+            path.chmod(before)
+
+    @contextlib.contextmanager
+    def content(self, rel, value, root=None):
+        """rel in one image holds other bytes, becomes a link (('link', target)), a folder ('folder') or vanishes (None)."""
+        path = (root or self.new) / rel
+        saved = ('link', os.readlink(path)) if path.is_symlink() else 'folder' if path.is_dir() \
+            else (path.read_bytes(), stat.S_IMODE(path.stat().st_mode)) if path.exists() else None
+        missing = [folder for folder in path.parents if not folder.exists()]  # made for the change, removed after it
+
+        def put(value):
+            if path.is_symlink() or path.is_file():
+                path.unlink()
+            elif path.is_dir():
+                path.rmdir()
+            if value is None:
+                return
+            path.parent.mkdir(parents=True, exist_ok=True)
+            if isinstance(value, tuple) and value[0] == 'link':
+                path.symlink_to(value[1])
+            elif value == 'folder':
+                path.mkdir()
+                path.chmod(0o755)
+            else:
+                data, mode = value if isinstance(value, tuple) else (value, 0o644)
+                path.write_bytes(data)
+                path.chmod(mode)
+        put(value)
+        try:
+            yield
+        finally:
+            put(saved)
+            if missing:
+                shutil.rmtree(missing[-1])
+
+    def assert_near_misses(self, cases):
+        """Each (what, rel, change) leaves rel unexplained while the change holds, and explained again after it."""
+        for what, rel, change in cases:
+            with self.subTest(what, rel=rel):
+                self.assertIsNotNone(self.fresh_explain(rel), 'the fixture explains it before the change')
+                with change:
+                    self.assertIsNone(self.fresh_explain(rel))
+                self.assertIsNotNone(self.fresh_explain(rel), 'the fixture explains it again after the change')
+
+    def fresh_explain(self, rel):
+        # The classifier keeps what it read once (Prism's list, the alternatives, the origins); read again.
+        self.classifier.prism, self.classifier.groups, self.classifier.origins = None, None, {}
+        return self.explain(rel)
 
     def explain(self, rel):
         return self.classifier.classify(rel, rd.entry(self.old, rel), rd.entry(self.new, rel))
@@ -340,7 +594,8 @@ class Classifier28Test(unittest.TestCase):
             self.JAVA[1:]: 'package', 'var/log/dnf5.log': 'generated',
             self.cache_path32: 'build', **{path: 'build' for path in self.cache_paths(self.LINKED).values()},
             self.UPDATERS: 'manifest', self.DROPIN: 'config',
-            rd.JAVA_MAN_FOLDERS[0]: 'package', rd.JAVA_MAN_FOLDERS[1]: 'package', self.JAVA_MAN: 'package'}
+            rd.JAVA_MAN_FOLDERS[0]: 'package', rd.JAVA_MAN_FOLDERS[1]: 'package', self.JAVA_MAN: 'package',
+            self.CACERTS: 'package', 'usr/lib/jvm/java-25': 'package', self.LOCK: 'manifest', self.PACKAGES: 'manifest'}
         for rel, rule in expected.items():
             with self.subTest(rel=rel):
                 found = self.explain(rel) if rel != 'var/log/dnf5.log' else self.classifier.generated_rule(rel, {}, {})
@@ -361,9 +616,250 @@ class Classifier28Test(unittest.TestCase):
         extra, problems = self.classifier.extra()
         self.assertEqual(extra['updaters'], [dict(scope='system', unit='user.slice', added=['/' + self.DROPIN], **{'from': ['23 (#36)']})])
         self.assertEqual(extra['alternatives'], {'java': [self.JAVA, self.KEYTOOL]})
-        self.assertEqual(problems, [f'the Ares-Crown theme in the image (None) is not the one image-checks.sh pins ({PACKAGE31_CROWN})'])
+        self.assertEqual(problems[0], f'the Ares-Crown theme in the image (None) is not the one image-checks.sh pins ({PACKAGE31_CROWN})')
+        # The fixture holds only two of the os/config files changed since release 27: the converse names the others.
+        lacking, = problems[1:]
+        self.assertTrue(lacking.startswith('os/config files changed since release 27 that the image lacks or holds with other bytes: '))
+        self.assertIn(rd.RC_XML, lacking.split(': ', 1)[1].split(', '))
+        self.assertNotIn(self.STEAM, lacking)
+        self.assertNotIn(self.DROPIN, lacking)
+        # Review 1, N5: a changed os/config file the image holds with other bytes, or one removed since release 27
+        # (none is, so a made-up one) that the image still has.
+        with self.content(self.STEAM, b'{"other": true}\n'):
+            self.assertIn(self.STEAM, self.classifier.extra()[1][1])
+        self.classifier.config = self.classifier.config | {'etc/removed-since-27'}
+        (self.new / 'etc/removed-since-27').write_bytes(b'kept')
+        problems = self.classifier.extra()[1]
+        self.assertEqual(problems[2], 'os/config files removed since release 27 that the image still has: etc/removed-since-27')
         # Release 27's regenerated font caches are no blanket rule any more.
         self.assertIsNone(self.classifier.generated_rule('usr/lib/fontconfig/cache/x', {}, {}))
+        self.assertIn('as its rpm database records them', self.explain(self.JAVA[1:])[1])
+
+    # Review 1, S4: one near miss per condition of each rule; each must stay unexplained.
+    def test_near_misses_of_os_config_files_and_their_folders(self):
+        folder = 'usr/share/aresos/apps/hints'
+        self.assert_near_misses([
+            ('another owner', self.STEAM, self.image(self.STEAM, uid=1000)),
+            ('another group', self.STEAM, self.image(self.STEAM, gid=1000)),
+            ('a link where os/config has a file', self.STEAM, self.content(self.STEAM, ('link', 'terminal.json'))),
+            ('a new folder of another owner', folder, self.image(folder, uid=1000)),
+            ('a new folder of another mode', folder, self.mode(folder, 0o775)),
+            ('a new folder with an extended attribute', folder, self.image(folder, xattrs={'user.x': '00'})),
+            ('a folder release 27 had', folder, self.content(folder, 'folder', root=self.old)),
+        ])
+        # A new folder os/config has, holding nothing changed since release 27 (os/config/etc/greetd).
+        (self.new / 'etc/greetd').mkdir()
+        (self.new / 'etc/greetd').chmod(0o755)
+        self.assertIsNone(self.fresh_explain('etc/greetd'))
+
+    def test_a_change_that_is_not_on_main_has_no_origin_and_stops(self):
+        # origin() reads main's history up to the merge base (review 1, S2): a change made on this branch has none.
+        self.classifier.main_base = rd.PREVIOUS_SOURCE_28
+        for rel in (self.STEAM, 'usr/share/aresos/apps/hints', self.UPDATERS):
+            with self.subTest(rel=rel):
+                self.assertIsNone(self.fresh_explain(rel))
+        self.classifier.main_base = 'HEAD'
+        self.assertIsNotNone(self.fresh_explain(self.STEAM))
+
+    def test_near_misses_of_the_manifest(self):
+        mod = 'usr/share/aresos/manifest/aresos-mod.json'
+        pin = self.classifier.mod_pin
+        (self.new / mod).write_text(json.dumps(dict(sha256=pin, source_revision='a' * 40, pinned_sha256=pin)))
+        (self.new / mod).chmod(0o644)
+        self.enterContext(patch.dict(os.environ, GITHUB_SHA='a' * 40))
+        lock = json.loads((self.new / self.LOCK).read_text())
+        self.assert_near_misses([
+            ('the lock is not the source', self.LOCK, self.content(self.LOCK, json.dumps(dict(lock, packages=lock['packages'][1:])).encode())),
+            ('the lock of another mode', self.LOCK, self.mode(self.LOCK, 0o755)),
+            ('the lock of another owner', self.LOCK, self.image(self.LOCK, uid=1000)),
+            ('packages.txt is not rpm -qa', self.PACKAGES, self.content(self.PACKAGES, b'\n'.join(
+                [*(name.encode() for name in self.INSTALLED), b'extra-1-1.noarch']) + b'\n')),
+            ('packages.txt is not sorted', self.PACKAGES, self.content(self.PACKAGES, '\n'.join(self.INSTALLED[::-1]).encode() + b'\n')),
+            ("Prism's list in release 27 already", rd.PRISM_FILES, self.content(rd.PRISM_FILES, (self.new / rd.PRISM_FILES).read_bytes(), root=self.old)),
+            ("Prism's list not the reviewed one", rd.PRISM_FILES, patch.dict(rd.PRISM_FILE_LISTS, {self.classifier.prism_pin: '0' * 64})),
+            ("the bundle's files when the list is not the reviewed one", 'usr/lib/prismlauncher/bin/prismlauncher',
+             patch.dict(rd.PRISM_FILE_LISTS, {self.classifier.prism_pin: '0' * 64})),
+            ("the mod's record in release 27 already", mod, self.content(mod, (self.new / mod).read_bytes(), root=self.old)),
+            ('the updater audit new in release 28', self.UPDATERS, self.content(self.UPDATERS, None, root=self.old)),
+        ])
+        # A line listed twice is no list.
+        listing = (self.new / rd.PRISM_FILES).read_bytes()
+        twice = listing + listing.splitlines(keepends=True)[0]
+        with patch.dict(rd.PRISM_FILE_LISTS, {self.classifier.prism_pin: hashlib.sha256(twice).hexdigest()}), \
+                self.content(rd.PRISM_FILES, twice):
+            self.assertIsNone(self.fresh_explain(rd.PRISM_FILES))
+
+    def test_near_misses_of_the_minecraft_inputs(self):
+        jar = rd.MINECRAFT + '/libraries/x-1.jar'
+        self.assert_near_misses([
+            ('a pinned file release 27 had', jar, self.content(jar, b'x', root=self.old)),
+            ('a pinned file with an extended attribute', jar, self.image(jar, xattrs={'user.x': '00'})),
+            ('a pinned file of another owner', jar, self.image(jar, uid=1000)),
+            ('a pinned file of another mode', jar, self.mode(jar, 0o755)),
+            ('a pinned file of another size', jar, patch.dict(self.classifier.pins, {jar: (hashlib.sha256(b'x').hexdigest(), 2, 'pinned x')})),
+            ('a folder of another mode', rd.MINECRAFT + '/libraries', self.mode(rd.MINECRAFT + '/libraries', 0o775)),
+            ('a folder with an extended attribute', rd.MINECRAFT + '/libraries', self.image(rd.MINECRAFT + '/libraries', xattrs={'user.x': '00'})),
+        ])
+        other = rd.MINECRAFT + '/other'
+        (self.new / other).mkdir()
+        (self.new / other).chmod(0o755)
+        self.assertIsNone(self.fresh_explain(other))
+
+    def test_near_misses_of_prisms_bundle(self):
+        file, link = 'usr/lib/prismlauncher/bin/prismlauncher', 'usr/lib/prismlauncher/lib/libq.so.6'
+        self.assert_near_misses([
+            ('a file of another owner', file, self.image(file, uid=1000)),
+            ('a file of another group', file, self.image(file, gid=1000)),
+            ('a file with an extended attribute', file, self.image(file, xattrs={'user.x': '00'})),
+            ('a file release 27 had', file, self.content(file, b'prism', root=self.old)),
+            ('a file with other bytes', file, self.content(file, (b'other', 0o755))),
+            ('a group-writable file', file, self.mode(file, 0o775)),
+            ('an absolute link inside the bundle', link, self.content(link, ('link', '/usr/lib/prismlauncher/lib/libq.so.6.1'))),
+            ('a folder of another owner', 'usr/lib/prismlauncher/bin', self.image('usr/lib/prismlauncher/bin', uid=1000)),
+            ('a world-writable folder', 'usr/lib/prismlauncher/bin', self.mode('usr/lib/prismlauncher/bin', 0o757)),
+        ])
+
+    def test_near_misses_of_the_alternatives_and_the_commands(self):
+        record = rd.ALTERNATIVES_ADMIN + 'java'
+        self.assert_near_misses([
+            ('a record release 27 had', record, self.content(record, (self.new / record).read_bytes(), root=self.old)),
+            ('a record of another owner', record, self.image(record, uid=1000)),
+            ('a record of another mode', record, self.mode(record, 0o600)),
+            ('a record with an extended attribute', record, self.image(record, xattrs={'user.x': '00'})),
+            ('an alternatives link of another owner', rd.ALTERNATIVES + 'java', self.image(rd.ALTERNATIVES + 'java', uid=1000)),
+            ('a command link of another owner', 'usr/bin/java', self.image('usr/bin/java', uid=1000)),
+            ('a command link release 27 had', 'usr/bin/java', self.content('usr/bin/java', ('link', '/etc/alternatives/java'), root=self.old)),
+            ("the desktop's command of another owner", rd.DESKTOP_COMMAND[0], self.image(rd.DESKTOP_COMMAND[0], uid=1000)),
+            ("Prism's command of another owner", rd.PRISM_COMMAND[0], self.image(rd.PRISM_COMMAND[0], uid=1000)),
+        ])
+        # A record release 27 had takes its links with it.
+        with self.content(record, (self.new / record).read_bytes(), root=self.old):
+            for rel in ('usr/bin/java', rd.ALTERNATIVES + 'java'):
+                with self.subTest(rel=rel):
+                    self.assertIsNone(self.fresh_explain(rel))
+
+    def test_near_misses_of_shadow_and_the_font_caches(self):
+        old_cache = FontCacheTest.cache(self.CACHE_FOLDER)
+        self.assert_near_misses([
+            ('shadow of another mode', 'etc/shadow', self.mode('etc/shadow', 0o600)),
+            ('shadow of another owner', 'etc/shadow', self.image('etc/shadow', uid=1000)),
+            ('a cache of another owner', self.cache_path, self.image(self.cache_path, uid=1000)),
+            ('a cache of another mode', self.cache_path, self.mode(self.cache_path, 0o600)),
+            ('a cache with an extended attribute', self.cache_path, self.image(self.cache_path, xattrs={'user.x': '00'})),
+            ("a rebuilt cache whose old one was not root's 0644", self.cache_path,
+             self.content(self.cache_path, (old_cache, 0o600), root=self.old)),
+            ('a rebuilt cache whose old one was a link', self.cache_path,
+             self.content(self.cache_path, ('link', 'elsewhere'), root=self.old)),
+        ])
+        # Rebuilt from root's 0644 cache: explained, and listed as rebuilt.
+        with self.content(self.cache_path, (old_cache, 0o644), root=self.old):
+            self.classifier.font_caches.clear()
+            self.assertIsNotNone(self.fresh_explain(self.cache_path))
+            self.assertEqual([row['change'] for row in self.classifier.font_caches], ['rebuilt'])
+
+    def test_the_rpm_database_keeps_its_metadata(self):
+        same = dict(kind=stat.S_IFREG, uid=0, gid=0, mode=0o644, sha256='a' * 64, bytes=1, xattrs={})
+        self.assertEqual(self.classifier.generated_rule(rd.RPM_DATABASE, same, dict(same, sha256='b' * 64))[0], 'generated')
+        for change in (dict(uid=1000), dict(gid=1000), dict(mode=0o600), dict(kind=stat.S_IFLNK)):
+            with self.subTest(change=change):
+                self.assertIsNone(self.classifier.generated_rule(rd.RPM_DATABASE, same, dict(same, **change)))
+        self.assertIsNone(self.classifier.generated_rule(rd.RPM_DATABASE, None, same))
+
+    def test_only_the_dry_runs_regenerated_paths_are_generated(self):
+        # Review 1, S1: what run 43847257976 needed, each by its own pattern.
+        needed = ['usr/lib/sysimage/libdnf5/nevras.toml', 'usr/lib/sysimage/libdnf5/packages.toml',
+                  'usr/lib/sysimage/libdnf5/system.toml', 'usr/lib/sysimage/libdnf5/transaction_history.sqlite',
+                  'usr/lib/sysimage/libdnf5/transaction_history.sqlite-shm', 'usr/lib/sysimage/libdnf5/transaction_history.sqlite-wal',
+                  'var/cache/ldconfig/aux-cache', 'var/lib/dnf/repos/fedora-cff72538bc9825a4/countme',
+                  'var/lib/dnf/repos/updates-3cc07c89a20302f2/countme', 'var/log/dnf5.log']
+        used = set()
+        for rel in needed:
+            with self.subTest(rel=rel):
+                found = self.classifier.generated_rule(rel, {}, {})
+                self.assertEqual(found[0], 'generated')
+                used.add(found[1])
+        self.assertEqual(used, {reason for _, reason in rd.GENERATED_28})
+        # Release 27's other patterns explain nothing in release 28: a change there stops.
+        changed = dict(kind=stat.S_IFREG, uid=0, gid=0, mode=0o644, sha256='b' * 64, bytes=1, xattrs={})
+        for rel in ('etc/selinux/targeted/policy/policy.33', 'var/lib/selinux/targeted/active/commit_num',
+                    'usr/share/icons/hicolor/icon-theme.cache', 'usr/share/applications/mimeinfo.cache', 'run/x',
+                    'var/cache/libdnf5', 'var/cache/libdnf5/fedora/repodata', 'etc/ld.so.cache', 'usr/lib/sysimage/rpm/x',
+                    'usr/lib/sysimage/libdnf5', 'usr/lib/fontconfig/cache/x', 'var/cache/fontconfig/x'):
+            with self.subTest(rel=rel):
+                self.assertIsNone(self.classifier.generated_rule(rel, {}, {}))
+                self.assertIsNone(self.classifier.classify(rel, dict(changed, sha256='a' * 64), changed))
+
+    def test_files_of_the_added_packages_must_be_what_their_rpm_database_records(self):
+        # Review 1, S5: owner, mode, link target and bytes as rpm records them; no attribute, setuid or writable bit.
+        java, folder = self.JAVA[1:], 'usr/lib/jvm/java-25'
+
+        def recorded(rel, **changes):
+            return patch.dict(self.records, {rel: [self.rpm_record(rel, **changes)]})
+        self.assert_near_misses([
+            ('a %ghost record', java, recorded(java, flags=rd.RPMFILE_GHOST)),
+            ("a record of another user", java, recorded(java, user='ares')),
+            ("a record of another group", java, recorded(java, group='wheel')),
+            ('a record with a file capability', java, recorded(java, caps='cap_net_raw=p')),
+            ('a record of another mode', java, recorded(java, mode=stat.S_IFREG | 0o755)),
+            ('a record of another kind', java, recorded(java, mode=stat.S_IFLNK | 0o644)),
+            ('a record of other bytes', java, recorded(java, digest='0' * 64)),
+            ('a record of another size', java, recorded(java, size=5)),
+            ('a record with another digest algorithm', java, recorded(java, algorithm='1')),
+            ('a link with another recorded target', self.CACERTS, recorded(self.CACERTS, target='/etc/pki/other')),
+            ('a folder of another recorded mode', folder, recorded(folder, mode=stat.S_IFDIR | 0o750)),
+            ('a second record that differs', java, patch.dict(self.records, {java: [self.rpm_record(java), self.rpm_record(java, size=5)]})),
+            ('no record at all', java, patch.dict(self.records, {java: []})),
+            ('a file of another owner', java, self.image(java, uid=1000)),
+            ('a file with an extended attribute', java, self.image(java, xattrs={'security.capability': '01'})),
+            ('a link of another owner', self.CACERTS, self.image(self.CACERTS, gid=1000)),
+        ])
+        # A setuid or group-writable file stops even when its record says so too.
+        for mode in (0o4755, 0o2755, 0o664, 0o646):
+            with self.subTest(mode=oct(mode)), self.mode(java, mode), recorded(java, mode=stat.S_IFREG | mode):
+                self.assertIsNone(self.fresh_explain(java))
+        with self.mode(folder, 0o1777), recorded(folder, mode=stat.S_IFDIR | 0o1777):
+            self.assertIsNone(self.fresh_explain(folder))
+        fifo = 'usr/lib/jvm/java-25/lib/fifo'
+        os.mkfifo(self.new / fifo, 0o644)
+        (self.new / fifo).chmod(0o644)
+        with recorded(fifo, mode=stat.S_IFIFO | 0o644):
+            self.assertIsNone(self.fresh_explain(fifo))
+        # A removed package's path is explained only when it is gone.
+        self.classifier.owned['old'] = {'/' + self.STEAM}
+        self.assertIsNone(self.classifier.package_rule(self.STEAM, rd.entry(self.new, self.STEAM), rd.entry(self.new, self.STEAM)))
+        self.assertEqual(self.classifier.package_rule(self.STEAM, rd.entry(self.new, self.STEAM), None)[1], 'file of a removed package')
+
+    def test_rpm_files_reads_the_query_and_stops_on_what_it_cannot_read(self):
+        line = '\t'.join(['/usr/bin/x', 'root', 'root', '0', '3', '8', 'a' * 64, '', '', '33261'])
+        link = '\t'.join(['/usr/bin/y', 'root', 'root', '64', '1', '8', '', 'x', '(none)', '41471'])
+        self.assertEqual(rd.rpm_files(line + '\n' + link), {
+            'usr/bin/x': [dict(user='root', group='root', flags=0, size=3, algorithm='8', digest='a' * 64, target='', caps='', mode=0o100755)],
+            'usr/bin/y': [dict(user='root', group='root', flags=64, size=1, algorithm='8', digest='', target='x', caps='(none)', mode=0o120777)]})
+        for bad in (line + '\textra', line.replace('/usr/bin/x', 'usr/bin/x'), line.replace('\t33261', '\t'),
+                    line.replace('root\t0', 'root\tzero'), 'a file\twith\ttabs'):
+            with self.subTest(bad=bad), self.assertRaisesRegex(AssertionError, 'unreadable rpm file record'):
+                rd.rpm_files(bad)
+        # The query's own words: the path first and the mode last, so neither end of rpm's output is an empty field.
+        fields = re.findall(r'%\{=?(\w+)\}', rd.RPM_FILE_FORMAT)
+        self.assertEqual(fields, ['FILENAMES', 'FILEUSERNAME', 'FILEGROUPNAME', 'FILEFLAGS', 'FILESIZES', 'FILEDIGESTALGO',
+                                  'FILEDIGESTS', 'FILELINKTOS', 'FILECAPS', 'FILEMODES'])
+        self.assertEqual(len(fields), len(rd.RPM_FILE_FIELDS))
+
+    def test_near_misses_of_the_compiled_schemas(self):
+        self.assert_near_misses([
+            ('another mode', rd.SCHEMAS, self.mode(rd.SCHEMAS, 0o600)),
+            ('another owner', rd.SCHEMAS, self.image(rd.SCHEMAS, uid=1000)),
+            ('an extended attribute added', rd.SCHEMAS, self.image(rd.SCHEMAS, xattrs={'user.x': '00'})),
+            ("the image's override is not os/config's", rd.SCHEMAS, self.content(rd.SCHEMA_OVERRIDE, OVERRIDE.replace('minimize,', '').encode())),
+            ('no key differs at all', rd.SCHEMAS, self.content(rd.SCHEMAS, (FIXTURES / 'before.compiled').read_bytes())),
+            ('release 27 compiled the override already', rd.SCHEMAS,
+             self.content(rd.SCHEMAS, (FIXTURES / 'after.compiled').read_bytes(), root=self.old)),
+            ("another desktop's value beside the override", rd.SCHEMAS,
+             self.content(rd.SCHEMAS, (FIXTURES / 'desktops.compiled').read_bytes())),
+            ('a default changed beside the override', rd.SCHEMAS, self.content(rd.SCHEMAS, (FIXTURES / 'default.compiled').read_bytes())),
+            ("the key's choices changed", rd.SCHEMAS, self.content(rd.SCHEMAS, (FIXTURES / 'choices.compiled').read_bytes())),
+            ('not a compiled file', rd.SCHEMAS, self.content(rd.SCHEMAS, b'GVariant' + bytes(40))),
+        ])
 
     def replace(self, rel, value):
         path = self.new / rel
@@ -1015,6 +1511,9 @@ class MainSmokeTest(unittest.TestCase):
                **{f'usr/share/fonts/aresos/{path.name}': path.read_bytes() for path in (ROOT / 'os/config/usr/share/fonts/aresos').iterdir()}}
         for path in (ROOT / 'os/config' / rd.CROWN).iterdir():
             new[f'{rd.CROWN}/{path.name}'] = path.read_bytes()
+        # As the build copies them: every os/config file changed since release 27 (review 1, N5: each must arrive).
+        changed = rd.git_changed(rd.PREVIOUS_SOURCE_28, 'os/config')
+        new.update({rel: (ROOT / 'os/config' / rel).read_bytes() for rel in changed if (ROOT / 'os/config' / rel).is_file()})
         self.roots = {}
         for name, files in (('old', old), ('new', new), ('base', {})):
             root = self.work / name
@@ -1024,6 +1523,9 @@ class MainSmokeTest(unittest.TestCase):
                 if path.is_dir():
                     path.chmod(0o755)
             self.roots[name] = root
+        for rel in changed:  # build.sh's chmod 0755 line, and os/config's own executables
+            if rel in rd.CHMOD_0755_28 or os.access(ROOT / 'os/config' / rel, os.X_OK):
+                (self.roots['new'] / rel).chmod(0o755)
         nevras = lambda raw: base.lock_nevras(raw) + [json.loads((ROOT / 'os/google-chrome.lock.json').read_text())['nevra']]
         self.rpms = dict(old=nevras(show('os/packages.lock.json')), new=nevras((ROOT / 'os/packages.lock.json').read_bytes()))
         release = json.loads((ROOT / rd.PREVIOUS_28).read_text())
@@ -1042,6 +1544,28 @@ class MainSmokeTest(unittest.TestCase):
                                        else dict(real_entry(root, rel), uid=0, gid=0, xattrs={})))
         self.enterContext(patch.object(image_diff, 'command', side_effect=self.command))
         self.enterContext(patch.dict(os.environ, GITHUB_SHA='a' * 40))
+        # main's merge base: this commit itself, so the image sources equal main's (S2's own tests change it).
+        self.enterContext(patch.object(rd, 'main_merge_base', return_value='HEAD'))
+        self.record_changes, self.verify = {}, (0, '')
+
+    # rpm -ql names a package's folders too (javapackages-filesystem owns /usr/lib/jvm).
+    # Like the real headless package, it names its man pages but not their folders.
+    OWNED = {'headless': ['/usr/lib/jvm/java-25', '/usr/lib/jvm/java-25/bin', '/' + JAVA, '/usr/lib/jvm/java-25-openjdk',
+                          '/' + Classifier28Test.JAVA_MAN],
+             'javapackages-filesystem': ['/usr/lib/jvm']}
+
+    def rpm_query(self, nevras):
+        """rpm -q --qf RPM_FILE_FORMAT of the stand-in packages: each file as the new image has it, changed by record_changes."""
+        lines = []
+        for path in (path for nevra in nevras for key, paths in self.OWNED.items() if key in nevra for path in paths):
+            meta = (self.roots['new'] / path[1:]).lstat()
+            regular = stat.S_ISREG(meta.st_mode)
+            record = dict(user='root', group='root', flags='0', size=str(meta.st_size if regular else 4096), algorithm='8',
+                          digest=hashlib.sha256((self.roots['new'] / path[1:]).read_bytes()).hexdigest() if regular else '',
+                          target='', caps='', mode=str(meta.st_mode))
+            record.update(self.record_changes.get(path, {}))
+            lines.append('\t'.join([path] + [record[field] for field in rd.RPM_FILE_FIELDS[1:]]))
+        return '\n'.join(lines)
 
     def command(self, tool, *args):
         if args[0] in ('create', 'mount') and tool == 'podman':
@@ -1052,13 +1576,17 @@ class MainSmokeTest(unittest.TestCase):
             image = self.images[args[args.index('--entrypoint=/usr/bin/rpm') + 1]]
             if '-qa' in args:
                 return '\n'.join(f'{nevra}\t{base.name_of(nevra)}' for nevra in self.rpms[image])
-            # rpm -ql names a package's folders too (javapackages-filesystem owns /usr/lib/jvm).
-            # Like the real headless package, it names its man pages but not their folders.
-            owned = {'headless': ['/usr/lib/jvm/java-25', '/usr/lib/jvm/java-25/bin', '/' + self.JAVA,
-                                  '/usr/lib/jvm/java-25-openjdk', '/' + Classifier28Test.JAVA_MAN],
-                     'javapackages-filesystem': ['/usr/lib/jvm']}
+            if '--qf' in args:
+                self.assertEqual((image, args[args.index('--qf') + 1]), ('new', rd.RPM_FILE_FORMAT))
+                return self.rpm_query(args[args.index('--qf') + 2:])
+            if '-V' in args:
+                self.assertEqual(image, 'new')
+                code, output = self.verify
+                if code:
+                    raise subprocess.CalledProcessError(code, ['rpm', '-V'], output=output)
+                return output
             return '\n'.join(path for nevra in args[args.index('-ql') + 1:]
-                             for key, paths in owned.items() if key in nevra for path in paths)
+                             for key, paths in self.OWNED.items() if key in nevra for path in paths)
         if tool == 'skopeo':
             return json.dumps(self.configs[self.images[args[-1].removeprefix('containers-storage:')]])
         raise AssertionError(f'unexpected command {tool} {args}')
@@ -1068,9 +1596,10 @@ class MainSmokeTest(unittest.TestCase):
         try:
             rd.main({name: sys.executable for name in build_tools.NAMES}, release='28', evidence=evidence)
         finally:
-            result = json.loads((evidence / 'result.json').read_text()) if (evidence / 'result.json').exists() else None
+            # Kept for a test that expects a stop, too.
+            self.result = json.loads((evidence / 'result.json').read_text()) if (evidence / 'result.json').exists() else None
             shutil.rmtree(evidence, ignore_errors=True)
-        return result
+        return self.result
 
     def test_release_28_passes_when_every_difference_is_explained(self):
         with contextlib.redirect_stdout(io.StringIO()) as printed:
@@ -1093,17 +1622,114 @@ class MainSmokeTest(unittest.TestCase):
                          [('le32d4', FontCacheTest.ARESOS, 'added'), ('le64', FontCacheTest.ARESOS, 'added')])
         self.assertEqual(result['updaters'], [dict(scope='system', unit='user.slice', added=['/' + Classifier28Test.DROPIN],
                                                    **{'from': ['23 (#36)']})])
+        # S2: the merge base, and no image source differs from it; S5: rpm -V's evidence, clean here.
+        self.assertEqual(result['main'], dict(merge_base='HEAD', branch_changes={}, differing=[]))
+        self.assertEqual(result['rpm_verify'], dict(packages=[row['nevra'] for row in result['packages']], exit_code=0,
+                                                    line_count=0, lines=[]))
+        self.assertIn('package: file of a package added by package 23 (Java 25 and its dependencies): owner, mode, link target '
+                      'and bytes as its rpm database records them', result['rules'])
+        self.assertNotIn('unexplained', ' '.join(result['rules']))
 
     def test_an_unexplained_path_or_another_theme_stops(self):
         (self.roots['new'] / 'etc/surprise').write_bytes(b'?')
         (self.roots['new'] / 'etc/surprise').chmod(0o644)
         with self.assertRaisesRegex(AssertionError, 'STOP: 1 unexplained image differences'):
             self.run_main()
+        # publish.sh publishes only a result whose status is passed.
+        self.assertEqual((self.result['status'], self.result['unexplained'], self.result['unexplained_count']),
+                         ('stopped', ['etc/surprise'], 1))
         (self.roots['new'] / 'etc/surprise').unlink()
         (self.roots['new'] / rd.CROWN / 'themerc').write_bytes(b'')
         with self.assertRaisesRegex(AssertionError, 'Ares-Crown theme in the image'):
             self.run_main()
+        self.assertEqual(self.result['status'], 'stopped')
 
+    def test_the_image_sources_must_be_mains_at_the_merge_base(self):
+        # Review 1, S2: built from a commit whose image sources differ from main's (here: release 27's source as
+        # "main"), the diff stops and names each differing file, beside the paths main's history cannot explain.
+        with patch.object(rd, 'main_merge_base', return_value=rd.PREVIOUS_SOURCE_28), \
+                self.assertRaisesRegex(AssertionError, f'STOP: .*image sources differ from main at the merge base {rd.PREVIOUS_SOURCE_28}: '):
+            self.run_main()
+        differing = self.result['main']['differing']
+        self.assertEqual(self.result['main']['merge_base'], rd.PREVIOUS_SOURCE_28)
+        for path in ('os/build.sh', 'os/minecraft/desktop.lock.json', 'os/config/' + rd.RC_XML):
+            self.assertIn(path, differing)
+        self.assertIn(', '.join(differing), ' '.join(self.result['problems']))
+
+    def test_a_package_file_other_than_its_rpm_record_stops_and_rpm_v_is_evidence(self):
+        # S5: rpm -V finding something is recorded, not (yet) a stop.
+        self.verify = (1, 'S.5....T.    /usr/lib/jvm/java-25/bin/java')
+        with contextlib.redirect_stdout(io.StringIO()):
+            result = self.run_main()
+        self.assertEqual(result['rpm_verify']['exit_code'], 1)
+        self.assertEqual(result['rpm_verify']['lines'], ['S.5....T.    /usr/lib/jvm/java-25/bin/java'])
+        # The rule itself stops on a file whose bytes or mode are not its record's.
+        for change in (dict(digest='0' * 64), dict(mode=str(stat.S_IFREG | 0o755)), dict(user='ares'), dict(flags='64')):
+            with self.subTest(change=change):
+                self.record_changes = {'/' + self.JAVA: change}
+                with self.assertRaisesRegex(AssertionError, 'STOP: 1 unexplained image differences'):
+                    self.run_main()
+                self.assertEqual(self.result['unexplained'], [self.JAVA])
+
+    def test_each_stop_of_main(self):
+        """Review 1, S4: each check main() makes beside the rules stops the diff, with its own words."""
+        release = json.loads((ROOT / rd.PREVIOUS_28).read_text())
+        other_base = self.work / '27-other-base.json'
+        other_base.write_text(json.dumps(dict(release, base='ghcr.io/example/other@sha256:' + '0' * 64)))
+        masked = self.roots['old'] / 'usr/share/aresos/policy/masked-system-units.txt'
+        lock = self.roots['old'] / 'usr/share/aresos/manifest/packages.lock.json'
+        unit = self.roots['new'] / 'var/lib/dnf/systemd/x.service'
+        labels = lambda: self.configs['new']['config']['Labels']
+
+        def write(path, data):
+            def change():
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_bytes(data)
+            return change
+        cases = [
+            ('the revision label is not this run', 'release 28 source labels differ from this run',
+             lambda: labels().update({'org.opencontainers.image.revision': 'b' * 40})),
+            ('the source label is another repository', 'release 28 source labels differ from this run',
+             lambda: labels().update({'org.opencontainers.image.source': 'https://example.invalid/other'})),
+            ('another label changed', 'unexplained label change: org.opencontainers.image.revision, x.label',
+             lambda: labels().update({'x.label': 'y'})),
+            ('the OCI runtime configuration changed', 'unrelated OCI runtime configuration changed: Cmd',
+             lambda: self.configs['new']['config'].update(Cmd=['sh'])),
+            ("release 28's base ancestry", 'release 28 base ancestry differs',
+             lambda: self.configs['new']['rootfs'].update(diff_ids=['sha256:x', 'sha256:n'])),
+            ("release 27's base ancestry", 'release 27 base ancestry differs',
+             lambda: self.configs['old']['rootfs'].update(diff_ids=['sha256:x', 'sha256:o'])),
+            ('a unit changed only as a generated file', 'a unit changed only as a generated file', write(unit, b'[Unit]\n')),
+            ('release 27 was built on another base', 'release 27 was built on another base',
+             patch.dict(rd.RELEASES['28'], previous=str(other_base))),
+            ("release 27's lock is not its source", 'release 27 lock differs from its source',
+             write(lock, json.dumps(dict(packages=json.loads(lock.read_text())['packages'][1:])).encode())),
+            ('a unit unmasked that no rule reviewed', 'unreviewed unit unmasked',
+             write(masked, masked.read_bytes() + b'surprise.service\n')),
+        ]
+        configs, saved = copy.deepcopy(self.configs), {path: path.read_bytes() for path in (masked, lock)}
+        made = not (self.roots['new'] / 'var').exists()
+        # These three stop before the result is written: publish.sh then finds no result and refuses.
+        early = ('release 27 was built on another base', "release 27's lock is not its source", 'a unit unmasked that no rule reviewed')
+        for what, message, change in cases:
+            with self.subTest(what):
+                context = change if hasattr(change, '__enter__') else contextlib.nullcontext()
+                if not hasattr(change, '__enter__'):
+                    change()
+                try:
+                    with context, self.assertRaisesRegex(AssertionError, 'STOP: .*' + re.escape(message)):
+                        self.run_main()
+                    self.assertEqual(self.result and self.result['status'], None if what in early else 'stopped')
+                finally:
+                    self.configs.clear()
+                    self.configs.update(copy.deepcopy(configs))
+                    for path, data in saved.items():
+                        path.write_bytes(data)
+                    if made:
+                        shutil.rmtree(self.roots['new'] / 'var', ignore_errors=True)
+        # Every change was undone: the stand-in passes again.
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(self.run_main()['status'], 'passed')
 
 if __name__ == '__main__':
     unittest.main()

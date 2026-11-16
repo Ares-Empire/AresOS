@@ -4,4 +4,13 @@ schema: the key package 31's override sets, and one key of each kind of value):
   before.compiled  the schema alone
   after.compiled   the schema and os/config's zz-aresos.gschema.override
   extra.compiled   the same and one more override ([org.aresos.test] scale=2.5)
+  default.compiled the schema, os/config's override and one more override that
+                   sets button-layout's default ([org.gnome.desktop.wm.preferences]
+                   button-layout='appmenu:menu'), beside the override's desktop value
+  choices.compiled aresos-test-choices.gschema.xml (the same schema, button-layout
+                   limited to two choices) and os/config's override
+  desktops.compiled the schema, os/config's override and one more override that
+                   sets button-layout for another desktop
+                   ([org.gnome.desktop.wm.preferences:GNOME] button-layout='appmenu:minimize,close')
+                   (package 42, review 1, S4)
 They let the tests read real compiled files on any host, without glib.

@@ -404,13 +404,115 @@ ALTERNATIVES = 'etc/alternatives/'
 ALTERNATIVES_ADMIN = 'etc/alternatives-admindir/'
 CROWN = 'usr/share/themes/Ares-Crown/labwc'
 RC_XML = 'usr/share/aresos/labwc/rc.xml'
-# Release 27's regenerated databases, without the font caches: release 28
-# rebuilds those on purpose (package 23b), and its own rule checks each one.
-GENERATED_28 = tuple(row for row in GENERATED if 'fontconfig' not in row[0])
+# What build.sh's package step (dnf5 download and install of the locked
+# packages, since package 23 with Java 25 and its three dependencies) rewrites
+# in every build, and nothing else: exactly what release 28's dry run needed
+# (run 43847257976: six dnf5 history files, two countme markers, the dnf5 log
+# and ldconfig's aux-cache; the rpm database has its own rule). Their content is
+# not compared; each path is listed in the result. Release 27's other patterns
+# (the SELinux policy store, the desktop and icon caches, /run, the dnf5 cache,
+# etc/ld.so.cache, the rpm folder) explained nothing in release 28, so a change
+# there stops and needs its own rule with its real cause; the font caches have
+# theirs (package 23b).
+GENERATED_28 = (
+    ('usr/lib/sysimage/libdnf5/*', "dnf5 transaction history (the package step; package 23's Java 25)"),
+    ('var/lib/dnf/*', 'dnf5 repository state: countme markers of the repositories the package step read'),
+    ('var/log/dnf5.log*', "dnf5 log (the package step; package 23's Java 25)"),
+    ('var/cache/ldconfig/aux-cache', "ldconfig's auxiliary cache, rewritten when the package step runs ldconfig (it keys on file times)"),
+)
+
+
+# Prism's file list (prism-files.sha256), which build.sh writes from the pinned
+# tarball, sorted by path: its SHA-256 per Prism tarball pin, from release 28's
+# dry run 3 (run 43847257976, 679 files). A renewed Prism pin needs its own row.
+PRISM_FILE_LISTS = {'e21949a8101c1803dbc6f67a2cdad48ba80ede1c133f0d1f2a89da07af09e823':
+                    '9df32315bf6a3116992df8df23387f1cf5d060bf1c655cfae9cf89ed00994a03'}
+# The files release 28's image is built from. os/Containerfile copies os/ (less
+# os/.containerignore's paths) to /tmp/aresos and uses build.sh, config/,
+# policy/ and tests/audit.py from it; build.sh reads the two package locks,
+# keys/ (Chrome's signing key) and minecraft/; its source stage fetches this
+# commit's mod/; base.json pins the base the Containerfile names.
+# test_release28 holds this list against build.sh's and the Containerfile's
+# /tmp/aresos paths.
+IMAGE_SOURCES = ('mod', 'os/.containerignore', 'os/Containerfile', 'os/build.sh', 'os/config', 'os/google-chrome.lock.json',
+                 'os/keys', 'os/manifest/base.json', 'os/minecraft', 'os/packages.lock.json', 'os/policy', 'os/tests/audit.py')
+# The rpm query of the added packages' files, as their rpm database records
+# them. The path comes first and the mode last, so neither end of the output
+# is an empty field. FILEDIGESTALGO 8 is SHA-256.
+RPM_FILE_FORMAT = (r'[%{FILENAMES}\t%{FILEUSERNAME}\t%{FILEGROUPNAME}\t%{FILEFLAGS}\t%{FILESIZES}\t%{=FILEDIGESTALGO}'
+                   r'\t%{FILEDIGESTS}\t%{FILELINKTOS}\t%{FILECAPS}\t%{FILEMODES}\n]')
+RPM_FILE_FIELDS = ('path', 'user', 'group', 'flags', 'size', 'algorithm', 'digest', 'target', 'caps', 'mode')
+RPM_SHA256 = '8'
+RPMFILE_GHOST = 64
 
 
 def root_owned(value, mode):
     return value['uid'] == 0 and value['gid'] == 0 and value['mode'] == mode
+
+
+def rpm_files(output):
+    """{image path: [record, ...]} from RPM_FILE_FORMAT's output; a line it cannot read stops."""
+    files = {}
+    for line in output.splitlines():
+        fields = line.split('\t')
+        assert len(fields) == len(RPM_FILE_FIELDS) and fields[0].startswith('/') \
+            and all(fields[i].isdigit() for i in (3, 4, 9)), 'STOP: unreadable rpm file record: ' + repr(line[:300])
+        record = dict(zip(RPM_FILE_FIELDS, fields))
+        for key in ('flags', 'size', 'mode'):
+            record[key] = int(record[key])
+        files.setdefault(record.pop('path')[1:], []).append(record)
+    return files
+
+
+def jar_pin_only(before, after):
+    """True when two desktop locks differ in nothing but the AresOS jar's pinned SHA-256 (brief 42, A.2)."""
+    def without_pin(raw):
+        try:
+            lock = json.loads(raw)
+            jar, = [mod for mod in lock['mods'] if mod.get('file') == 'aresos.jar' and 'url' not in mod]
+        except (TypeError, ValueError, KeyError, AttributeError):
+            return None
+        jar.pop('sha256', None)
+        return lock
+    old = without_pin(before)
+    return old is not None and old == without_pin(after)
+
+
+# What this branch changes in the image's sources on purpose. Everything else
+# must be main's at the merge base: what rides is what main has (brief 42).
+BRANCH_SOURCE_CHANGES = {
+    'os/minecraft/desktop.lock.json': ("the AresOS jar's pin, renewed on this branch by check_build=resolve (brief 42, A.2)",
+                                       jar_pin_only),
+}
+
+
+def main_merge_base():
+    """The commit of main this branch builds on: its merge base with origin/main (the job's checkout fetches every branch)."""
+    try:
+        return git('merge-base', 'HEAD', 'origin/main', text=True, stderr=subprocess.PIPE).strip()
+    except subprocess.CalledProcessError:
+        raise AssertionError('STOP: no merge base with origin/main: the job must fetch main (checkout fetch-depth: 0)') from None
+
+
+def blob(commit, path):
+    try:
+        return git('show', f'{commit}:{path}', stderr=subprocess.PIPE)
+    except subprocess.CalledProcessError:
+        return None
+
+
+def source_changes(base, head='HEAD'):
+    """({path: reason}, [path]): the image sources that differ between main's `base` and `head`. A change
+    BRANCH_SOURCE_CHANGES names and allows is listed with its reason; every other one differs."""
+    names = git('diff', '-z', '--name-only', '--no-renames', base, head, '--', *IMAGE_SOURCES, text=True).split('\0')
+    allowed, differing = {}, []
+    for path in sorted(name for name in names if name):
+        reason, allows = BRANCH_SOURCE_CHANGES.get(path, (None, None))
+        if allows and allows(blob(base, path), blob(head, path)):
+            allowed[path] = reason
+        else:
+            differing.append(path)
+    return allowed, differing
 
 
 def file_sha256(path):
@@ -848,10 +950,13 @@ class Classifier28:
     def __init__(self, roots, packages, owned, policy):
         self.old_root, self.new_root, self.base_root = (pathlib.Path(root) for root in roots)
         self.packages, self.owned, self.policy = packages, owned, policy
+        # main's commit this branch builds on (main() checks the image sources equal it): a package's commits are main's.
+        self.main_base = policy['main_base']
         self.config = git_changed(PREVIOUS_SOURCE_28, 'os/config')
         lock = json.loads(pathlib.Path('os/minecraft/desktop.lock.json').read_text())
         self.pins = minecraft_pins(lock)
         self.mod_pin = next(mod['sha256'] for mod in lock['mods'] if mod['file'] == 'aresos.jar' and 'url' not in mod)
+        self.prism_pin = lock['prism']['sha256']
         self.origins, self.prism, self.groups = {}, None, None
         self.schema_rows, self.font_caches, self.updater_rows = None, [], None
 
@@ -870,9 +975,9 @@ class Classifier28:
         return None
 
     def origin(self, rel):
-        """The packages whose commits since release 27 changed os/config/<rel>: '23 (#36)', from each commit's subject."""
+        """The packages whose commits on main since release 27 changed os/config/<rel>: '23 (#36)', from each commit's subject."""
         if rel not in self.origins:
-            subjects = git('log', '--no-merges', '--reverse', '--format=%s', PREVIOUS_SOURCE_28 + '..HEAD', '--',
+            subjects = git('log', '--no-merges', '--reverse', '--format=%s', PREVIOUS_SOURCE_28 + '..' + self.main_base, '--',
                            'os/config/' + rel, text=True).splitlines()
             labels = []
             for subject in subjects:
@@ -904,7 +1009,7 @@ class Classifier28:
 
     def prism_files(self):
         """{path: sha256} from the image's prism-files.sha256, or None unless it lists exactly
-        the regular files under usr/lib/prismlauncher with their bytes."""
+        the regular files under usr/lib/prismlauncher with their bytes and is the list PRISM_FILE_LISTS pins."""
         if self.prism is None:
             listed, raw = {}, self.read('new', PRISM_FILES)
             for line in (raw or b'').decode().splitlines():
@@ -916,7 +1021,8 @@ class Classifier28:
             inventory = self.policy['inventory']
             actual = {rel: value['sha256'] for rel, value in inventory.items()
                       if rel.startswith(PRISM + '/') and value['kind'] == stat.S_IFREG}
-            self.prism = listed if raw and listed and listed == actual else False
+            pinned = raw and hashlib.sha256(raw).hexdigest() == PRISM_FILE_LISTS.get(self.prism_pin)
+            self.prism = listed if pinned and listed and listed == actual else False
         return self.prism or None
 
     def manifest_rule(self, rel, before, after):
@@ -1120,10 +1226,32 @@ class Classifier28:
         return ('build', 'package 23b: fc-cache --system-only --really-force rebuilt the system font cache'
                 + (f" ({'; '.join(notes)})" if notes else ''))
 
+    def package_file(self, rel, after):
+        """True when the image's path is exactly what each record of it in the added packages' rpm database says:
+        no %ghost, root's, its kind and mode, its link target, its size and SHA-256, no file capability; and no
+        extended attribute, nothing setuid, setgid, sticky or group- or world-writable."""
+        records = self.policy['records'].get(rel)
+        if not records or after['uid'] or after['gid'] or after['xattrs'] \
+                or after['kind'] not in (stat.S_IFREG, stat.S_IFDIR, stat.S_IFLNK):
+            return False
+        if after['kind'] != stat.S_IFLNK and after['mode'] & 0o7022:
+            return False
+        for record in records:
+            if record['flags'] & RPMFILE_GHOST or (record['user'], record['group']) != ('root', 'root') \
+                    or record['caps'] not in ('', '(none)') or record['mode'] != after['kind'] | after['mode']:
+                return False
+            if after['kind'] == stat.S_IFREG and (record['algorithm'], record['digest'], record['size']) \
+                    != (RPM_SHA256, after['sha256'], after['bytes']):
+                return False
+            if after['kind'] == stat.S_IFLNK and record['target'] != after['target']:
+                return False
+        return True
+
     def package_rule(self, rel, before, after):
-        if after is not None and '/' + rel in self.owned['new']:
-            return ('package', 'file of a package added by package 23 (Java 25 and its dependencies)')
-        if before is not None and '/' + rel in self.owned['old']:
+        if after is not None and self.package_file(rel, after):
+            return ('package', 'file of a package added by package 23 (Java 25 and its dependencies): owner, mode, '
+                    'link target and bytes as its rpm database records them')
+        if before is not None and after is None and '/' + rel in self.owned['old']:
             return ('package', 'file of a removed package')
         if rel in JAVA_MAN_FOLDERS:
             inventory = self.policy['inventory']
@@ -1151,6 +1279,23 @@ class Classifier28:
         pin = crown_pin()
         if crown != pin:
             problems.append(f'the Ares-Crown theme in the image ({crown}) is not the one image-checks.sh pins ({pin})')
+        # The converse of config_rule (review 1, N5): the diff lists what differs from release 27, so an os/config
+        # change the build did not copy would never show. Each one must have arrived, and each removal too.
+        missing, kept = [], []
+        for rel in sorted(self.config):
+            source, now = pathlib.Path('os/config') / rel, entry(self.new_root, rel)
+            if source.is_file() and not source.is_symlink():
+                if now is None or now['kind'] != stat.S_IFREG or now['sha256'] != file_sha256(source):
+                    missing.append(rel)
+            elif source.exists() or source.is_symlink():
+                missing.append(rel)  # os/config holds regular files only
+            elif now is not None:
+                kept.append(rel)
+        if missing:
+            problems.append('os/config files changed since release 27 that the image lacks or holds with other bytes: '
+                            + ', '.join(missing))
+        if kept:
+            problems.append('os/config files removed since release 27 that the image still has: ' + ', '.join(kept))
         old_rc, new_rc = self.read('old', RC_XML), self.read('new', RC_XML)
         return dict(schemas=self.schema_rows, font_caches=sorted(self.font_caches, key=lambda row: row['path']),
                     updaters=self.updater_rows,
@@ -1161,10 +1306,13 @@ class Classifier28:
 
 RELEASES = {
     '27': dict(previous=PREVIOUS, previous_release='13', previous_source=PREVIOUS_SOURCE, reasons=PACKAGE_REASONS,
-               classifier=Classifier, executables=CHMOD_0755, previous_chrome=False,
+               classifier=Classifier, executables=CHMOD_0755, previous_chrome=False, main_sources=False, package_files=False,
                unmasked={'flatpak-system-helper.service', 'flatpak-portal.service', 'flatpak-session-helper.service'}),
     '28': dict(previous=PREVIOUS_28, previous_release='27', previous_source=PREVIOUS_SOURCE_28, reasons=PACKAGE_REASONS_28,
-               classifier=Classifier28, executables=CHMOD_0755_28, previous_chrome=True, unmasked=set()),
+               classifier=Classifier28, executables=CHMOD_0755_28, previous_chrome=True, unmasked=set(),
+               # Release 28 (review 1 of package 42): its sources are main's (S2); its added packages' files are
+               # checked against their rpm database (S5).
+               main_sources=True, package_files=True),
 }
 
 
@@ -1190,6 +1338,20 @@ def package_diff(old, new, old_lock, new_lock, reasons=None):
     return rows, added, removed
 
 
+def rpm_verify(image, nevras):
+    """Evidence, not a stop (yet): rpm -V of the added packages in the new image, rpm's own check of each of their
+    files against its database. It exits non-zero when anything differs; the lines say what."""
+    if not nevras:
+        return None
+    try:
+        output, code = image_diff.command('podman', 'run', '--pull=never', '--network=none', '--read-only', '--rm',
+                                          '--entrypoint=/usr/bin/rpm', image, '-V', *nevras), 0
+    except subprocess.CalledProcessError as error:
+        output, code = (error.output or '').strip(), error.returncode
+    lines = output.splitlines()
+    return dict(packages=list(nevras), exit_code=code, line_count=len(lines), lines=lines[:500])
+
+
 def main(tools, run=None, release='27', evidence='evidence/image-diff'):
     """Compare the release before `release` (13 for 27, 27 for 28) with localhost/aresos:ci; write evidence/image-diff."""
     profile = RELEASES[release]
@@ -1199,6 +1361,7 @@ def main(tools, run=None, release='27', evidence='evidence/image-diff'):
     command = image_diff.command
     evidence = pathlib.Path(evidence)
     evidence.mkdir(parents=True)
+    main_base = main_merge_base() if profile['main_sources'] else None
     previous = json.loads(pathlib.Path(profile['previous']).read_text())
     base_reference = json.loads(pathlib.Path('os/manifest/base.json').read_text())['reference']
     assert previous['base'] == base_reference, f'STOP: release {before_release} was built on another base'
@@ -1232,6 +1395,10 @@ def main(tools, run=None, release='27', evidence='evidence/image-diff'):
                              '--entrypoint=/usr/bin/rpm', image, '-ql', *nevras)
             return {line for line in output.splitlines() if line.startswith('/')}
         ownership = dict(old=owned(images['old'], removed), new=owned(images['new'], added))
+        records = {}
+        if profile['package_files'] and added:
+            records = rpm_files(command('podman', 'run', '--pull=never', '--network=none', '--read-only', '--rm',
+                                        '--entrypoint=/usr/bin/rpm', images['new'], '-q', '--qf', RPM_FILE_FORMAT, *added))
 
         inventories = {}
         for name in ('old', 'new'):
@@ -1249,7 +1416,8 @@ def main(tools, run=None, release='27', evidence='evidence/image-diff'):
         assert unmasked <= profile['unmasked'], \
             'STOP: unreviewed unit unmasked: ' + repr(sorted(unmasked))
         children = lambda rel: any(p.startswith(rel + '/') for p in old)
-        policy = dict(unmasked=unmasked, executables=profile['executables'], old_has_children=children, inventory=new)
+        policy = dict(unmasked=unmasked, executables=profile['executables'], old_has_children=children, inventory=new,
+                      main_base=main_base, records=records)
         classifier = profile['classifier']((roots['old'], roots['new'], roots['base']), packages, ownership, policy)
         details, unexplained = {}, []
         for rel in changed:
@@ -1277,6 +1445,15 @@ def main(tools, run=None, release='27', evidence='evidence/image-diff'):
             extra, found = classifier.extra()
             extra = dict(release=release, **extra)
             problems.extend(found)
+        if profile['main_sources']:
+            # Everything that rides is main's (brief 42): the image's sources on this commit equal main's at the
+            # merge base, except what BRANCH_SOURCE_CHANGES allows this branch.
+            allowed, differing = source_changes(main_base)
+            extra['main'] = dict(merge_base=main_base, branch_changes=allowed, differing=differing)
+            if differing:
+                problems.append(f'image sources differ from main at the merge base {main_base}: ' + ', '.join(differing))
+        if profile['package_files']:
+            extra['rpm_verify'] = rpm_verify(images['new'], added)
 
         configs = [json.loads(command('skopeo', 'inspect', '--config', 'containers-storage:' + images[n])) for n in ('old', 'new')]
         base_config = json.loads(command('skopeo', 'inspect', '--config', 'containers-storage:' + base_reference))
