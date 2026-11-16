@@ -71,6 +71,15 @@ signed or pushed to GHCR. The owner's OK for publishing release 28 has not been 
   included once they ride), then tags exactly that image `localhost/aresos:ci`. Nothing later in the job builds,
   pulls or tags that name (build_tools and release_diff only pull release 27 and read), and publish.sh copies and
   signs `containers-storage:localhost/aresos:ci`. So the release job publishes the image its check build checked.
+- **The mod jar's pin renewed (A.2):** `check_build=resolve` on `74927368`, run
+  [43828756952](https://github.com/Ares-Empire/AresOS/actions/runs/43828756952) (passed; it never pushes, signs
+  or publishes): two clean builds of the jar both `8090554997fdb907d741a99eda3240ed15a8e55f806b3b99fd5b406d8213fcc0`
+  (`MOD_JAR_REPRODUCIBLE`, was package 23's `8b04c511…`), now the pin in `os/minecraft/desktop.lock.json`. The
+  same run found no other pin gone: the package resolution equals `os/packages.lock.json` exactly (29 entries,
+  none missing), Prism's tarball still has its pinned SHA-256, Chrome's RPM signature checks. So no other pin
+  was renewed. The jar is built from `mod/` only, so a later commit that does not change `mod/` keeps this pin;
+  step 4 renews it again on the cut commit if main's `mod/` moved. On GitHub's own evaluation of that dispatch,
+  both release 28 jobs were skipped and only the throwaway check build ran.
 - **Bindings:** five bound files changed (os-image.yml, registry_auth.py, rehearsal_guard.py,
   rehearsal-packages.json, test_owner_staged_release.py); `rebind.py pending` recorded them. Nothing under
   os/owner-tools/, os/release/ or docs/ waits.
@@ -80,8 +89,7 @@ signed or pushed to GHCR. The owner's OK for publishing release 28 has not been 
 - Each changed test module run directly: `test_release28` 30 OK, `test_release27` 41 OK,
   `test_ci_api_permissions` 4 OK, `test_ci_step_environment` 4 OK, `test_checkout_sources` 8 OK,
   `test_build_tools` 3 OK, `test_ways_back_probe` 57 OK, `test_tools_local_wiring` 42 OK,
-  `test_aresos_desktop` ModJarPinTest 7 OK (the whole module 188 earlier, its one failure was the callers list,
-  now updated), `test_owner_staged_release` 7 OK (before the lead's stop on owner modules, see below).
+  `test_aresos_desktop` 188 OK (1 skipped) after the pin renewal, `test_owner_staged_release` 7 OK (before the lead's stop on owner modules, see below).
   `py_compile` of the changed scripts, `bash -n os/ci/publish.sh`.
 - `test_release28.MainSmokeTest` runs `release_diff.main` for release 28 end to end on small stand-in images
   (podman and skopeo emulated): it passes when every difference is explained and stops on an unexplained file
@@ -97,9 +105,11 @@ signed or pushed to GHCR. The owner's OK for publishing release 28 has not been 
 
 ## Not verified yet
 
-- The dry run itself (phase 2). The rules for things only a real build shows are written from the sources:
-  the alternatives Java's scriptlets register (the `@family@` form of the admin file is read from the
-  alternatives binary's strings), Prism's bundle, the Java packages' files.
+- The dry run itself (phase 2). The rules for what only a real build shows are written from the sources: the
+  alternatives Java's scriptlets register (the `@family@` form of the admin file is read from the alternatives
+  binary's strings), Prism's bundle, the Java packages' files.
+- The release 28 jobs on GitHub: only the resolve dispatch has run on the branch (both jobs skipped there). The
+  publishing job (release_27's steps for release 28) has never run and must not before the owner's OK.
 - `test_owner_equality` and `test_owner_step_limits` (brief 42, C): not run. The lead stopped every
   `os/tests/test_owner_*` module while the owner tools install runs on the laptop; `test_owner_equality` was
   stopped mid-run (its temp folder removed). Run them once the lead says the install is done, or in the hosted
@@ -107,11 +117,9 @@ signed or pushed to GHCR. The owner's OK for publishing release 28 has not been 
 
 ## Left, in order
 
-1. Push `pkg/42-release-28`; dispatch `check_build=resolve` on it, renew the mod jar's pin in
-   `os/minecraft/desktop.lock.json` from `MOD_JAR_REPRODUCIBLE`, commit and push.
-2. Phase 2 (after the lead checks the gating): one `dry_run_28` dispatch; explain every image difference or list
+1. Phase 2 (after the lead checks the gating): one `dry_run_28` dispatch; explain every image difference or list
    it as open here.
-3. Step 2 (Control's rules), step 3 (the rehearsal mode; it adds its kind `release-28` to package 42's ledger and
+2. Step 2 (Control's rules), step 3 (the rehearsal mode; it adds its kind `release-28` to package 42's ledger and
    raises its minute cap), steps 4 to 6 as the brief says.
 
 ## What the code doesn't show

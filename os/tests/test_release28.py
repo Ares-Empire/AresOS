@@ -410,6 +410,8 @@ class WorkflowGateTest(unittest.TestCase):
         self.assertNotIn('publish.sh', runs)
         for word in ('cosign sign', 'skopeo copy', 'podman push', 'docker push', 'id-token'):
             self.assertNotIn(word, yaml.dump(job))
+        # Only the job's own token, whose permissions are the ones above: no owner token that could push anyway.
+        self.assertEqual(set(re.findall(r'secrets\.(\w+)', yaml.dump(job))), {'GITHUB_TOKEN'})
         self.assertFalse([step for step in job['steps'] if rd_publish_step(step)])
         publisher = WORKFLOW['jobs']['release-28']
         self.assertEqual(publisher['permissions'], {'contents': 'read', 'packages': 'write', 'id-token': 'write', 'actions': 'read'})
