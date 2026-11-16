@@ -9,6 +9,7 @@ import dev.aresos.client.FirstStart;
 import dev.aresos.client.HomeCreateScreen;
 import dev.aresos.client.HomeScreen;
 import dev.aresos.client.HomeSwitch;
+import dev.aresos.client.HomeWorkingScreen;
 import dev.aresos.client.ModeSwitchClient;
 import dev.aresos.test.mixin.ChatMessagesTestAccess;
 import dev.aresos.test.mixin.HudTestAccess;
@@ -264,6 +265,12 @@ public final class HomeMenuClientGameTest implements FabricClientGameTest {
                 }
             });
             screenshot(context, "48-menu-smallest-gui");
+            // What every step of New home shows, the game's loading screens included, at 1280x720.
+            guiScale(context, 2);
+            var menu = context.computeOnClient(client -> client.gui.screen());
+            context.setScreen(() -> new HomeWorkingScreen(HomeSwitch.working()));
+            screenshot(context, "48-making-your-new-home");
+            context.setScreen(() -> menu);
         } finally {
             guiScale(context, scale);
             context.getInput().resizeWindow(854, 480);
