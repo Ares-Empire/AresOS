@@ -151,19 +151,40 @@ class SchemaTest(unittest.TestCase):
 
 
 class FontCacheTest(unittest.TestCase):
+    FIXTURES = ROOT / 'os/tests/fixtures/release28-fontcache'
+    ARESOS = '/usr/share/fonts/aresos'
+
     @staticmethod
-    def cache(folder, version=9, magic=rd.FONT_CACHE_MAGIC):
+    def cache(folder, version=9, magic=rd.FONT_CACHE_MAGIC, layout='le64', offset=None):
+        """A minimal cache in one of fontconfig's formats: its header, then the folder's name (at `offset`)."""
+        header, end_of_header = rd.FONT_CACHE_LAYOUTS[layout]
+        offset = end_of_header if offset is None else offset
         name = folder.encode() + b'\0'
-        offset = 56
-        data = bytearray(struct.pack('<IiqQ', magic, version, 0, offset) + bytes(offset - 24) + name + bytes(8))
-        struct.pack_into('<q', data, 8, len(data))
+        start = struct.pack(header, magic, version, 0, offset).ljust(end_of_header, b'\0')
+        data = bytearray(start[:offset] + name + bytes(8) if offset < end_of_header else start + bytes(offset - end_of_header) + name + bytes(8))
+        struct.pack_into(header, data, 0, magic, version, len(data), offset)
         return bytes(data)
 
     def test_the_cache_names_its_folder(self):
-        self.assertEqual(rd.font_cache(self.cache('/usr/share/fonts/aresos')), (9, '/usr/share/fonts/aresos'))
-        for data in (self.cache('/x', magic=0x1234), self.cache('relative'), b'short', self.cache('/x')[:-1]):
-            with self.subTest(data=data[:8]), self.assertRaises(ValueError):
-                rd.font_cache(data)
+        for layout in rd.FONT_CACHE_LAYOUTS:
+            with self.subTest(layout=layout):
+                self.assertEqual(rd.font_cache(self.cache(self.ARESOS, layout=layout), layout), (9, self.ARESOS))
+                # A name inside the header is no cache (the folder's name follows the header).
+                inside = rd.FONT_CACHE_LAYOUTS[layout][1] - 8
+                for data in (self.cache('/x', magic=0x1234, layout=layout), self.cache('relative', layout=layout), b'short',
+                             self.cache('/x', layout=layout)[:-1], self.cache('/x', layout=layout, offset=inside)):
+                    with self.subTest(data=data[:8]), self.assertRaises(ValueError):
+                        rd.font_cache(data, layout)
+
+    def test_real_caches_of_both_formats_are_read_and_each_only_in_its_own_format(self):
+        # fontconfig 2.17's fc-cache-32 and fc-cache-64 output for 23b's folder (SOURCE.txt).
+        digest = hashlib.md5(self.ARESOS.encode()).hexdigest()
+        for layout, other in (('le32d4', 'le64'), ('le64', 'le32d4')):
+            with self.subTest(layout=layout):
+                data = (self.FIXTURES / f'{digest}-{layout}.cache-9').read_bytes()
+                self.assertEqual(rd.font_cache(data, layout), (9, self.ARESOS))
+                with self.assertRaises(ValueError):
+                    rd.font_cache(data, other)
 
 
 class AlternativesAdminTest(unittest.TestCase):
@@ -225,17 +246,43 @@ class Classifier28Test(unittest.TestCase):
     KEYTOOL = '/usr/lib/jvm/java-25/bin/keytool'
     STEAM = 'usr/share/aresos/apps/hints/steam.json'
     CACHE_FOLDER = '/usr/share/fonts/aresos'
+    # The base's link to a font folder, which fc-cache caches under the link's own name.
+    LINKED = '/usr/share/fonts/noto-cjk'
+    LINK_TARGET = '/usr/share/fonts/google-noto-sans-cjk-fonts'
+    UPDATERS = 'usr/share/aresos/manifest/updaters.json'
+    DROPIN = 'usr/lib/systemd/system/user.slice.d/50-aresos-recovery.conf'  # package 23's
+    JAVA_MAN = 'usr/lib/jvm/java-25-openjdk/man/man1/java.1'
+
+    @staticmethod
+    def audit(*added, **changes):
+        """An updater audit (os/tests/audit.py's output) of two units; user.slice gains `added` and `changes`."""
+        unit = lambda name, sources: dict(scope='system', name=name, state='static', suspicious=False, commands=[],
+                                          active_state=None, load_state=None, sub_state=None, sources=sources)
+        units = [unit('ModemManager.service', ['/usr/lib/systemd/system/ModemManager.service']),
+                 dict(unit('user.slice', ['/usr/lib/systemd/system/user.slice', *added]), **changes)]
+        return json.dumps(units, indent=2).encode() + b'\n'
+
+    @staticmethod
+    def cache_paths(folder):
+        digest = hashlib.md5(folder.encode()).hexdigest()
+        return {layout: f'{rd.FONT_CACHES}{digest}-{layout}.cache-9' for layout in rd.FONT_CACHE_LAYOUTS}
 
     def setUp(self):
         self.enterContext(contextlib.chdir(ROOT))
         cache = FontCacheTest.cache(self.CACHE_FOLDER)
-        self.cache_path = rd.FONT_CACHES + hashlib.md5(self.CACHE_FOLDER.encode()).hexdigest() + '-le64.cache-9'
+        self.cache_path = self.cache_paths(self.CACHE_FOLDER)['le64']
+        self.cache_path32 = self.cache_paths(self.CACHE_FOLDER)['le32d4']
+        caches = {self.cache_path32: FontCacheTest.cache(self.CACHE_FOLDER, layout='le32d4'),
+                  **{path: FontCacheTest.cache(self.LINKED, layout=layout) for layout, path in self.cache_paths(self.LINKED).items()}}
         prism = {'usr/lib/prismlauncher/bin/prismlauncher': b'prism', 'usr/lib/prismlauncher/lib/libq.so.6.1': b'qt'}
         listing = ''.join(f'{hashlib.sha256(raw).hexdigest()}  /{rel}\n' for rel, raw in sorted(prism.items()))
         shadow = b'root:!*:20384:0:99999:7:::\nares:!*:20402::::::\n'
         old = {'etc/shadow': shadow, rd.SCHEMAS: (FIXTURES / 'before.compiled').read_bytes(),
-               'usr/share/aresos/apps/terminal.json': b'{}'}
+               'usr/share/aresos/apps/terminal.json': b'{}', self.LINKED[1:]: ('link', self.LINK_TARGET),
+               self.UPDATERS: self.audit()}
         new = {'etc/shadow': shadow.replace(b'20402', b'20408'), rd.SCHEMAS: (FIXTURES / 'after.compiled').read_bytes(),
+               self.LINKED[1:]: ('link', self.LINK_TARGET), **caches, self.UPDATERS: self.audit('/' + self.DROPIN),
+               self.DROPIN: (ROOT / 'os/config' / self.DROPIN).read_bytes(), self.JAVA_MAN: b'.TH java 1\n',
                rd.SCHEMA_OVERRIDE: OVERRIDE.encode(), 'usr/share/aresos/apps/terminal.json': b'{}',
                self.STEAM: (ROOT / 'os/config' / self.STEAM).read_bytes(),
                rd.DESKTOP_COMMAND[0]: ('link', rd.DESKTOP_COMMAND[1]), rd.PRISM_COMMAND[0]: ('link', rd.PRISM_COMMAND[1]),
@@ -254,9 +301,11 @@ class Classifier28Test(unittest.TestCase):
             self.roots.append(root)
         self.old, self.new, _ = self.roots
         (self.new / self.CACHE_FOLDER.lstrip('/')).mkdir(parents=True)
-        for path in self.new.rglob('*'):
-            if path.is_dir() and not path.is_symlink():
-                path.chmod(0o755)
+        for root in (self.old, self.new):
+            (root / self.LINK_TARGET[1:]).mkdir(parents=True)
+            for path in root.rglob('*'):
+                if path.is_dir() and not path.is_symlink():
+                    path.chmod(0o755)
         (self.new / 'usr/lib/prismlauncher/bin/prismlauncher').chmod(0o755)
         # The image's files are root's and carry no extended attributes; this fixture's are the test user's.
         self.attributes = {}
@@ -269,7 +318,7 @@ class Classifier28Test(unittest.TestCase):
             return value
         self.enterContext(patch.object(rd, 'entry', side_effect=as_image))
         inventory = {rel: dict(value, uid=0, gid=0, xattrs={}) for rel, value in image_diff.inventory(self.new).items()}
-        owned = dict(old=set(), new={self.JAVA, self.KEYTOOL, '/usr/lib/jvm/java-25/lib/libjvm.so'})
+        owned = dict(old=set(), new={self.JAVA, self.KEYTOOL, '/usr/lib/jvm/java-25/lib/libjvm.so', '/' + self.JAVA_MAN})
         packages = dict(old=[], new=[])
         self.classifier = rd.Classifier28(self.roots, packages, owned,
                                           dict(executables=rd.CHMOD_0755_28, inventory=inventory))
@@ -288,7 +337,10 @@ class Classifier28Test(unittest.TestCase):
             self.cache_path: 'build', rd.SCHEMAS: 'build', 'etc/shadow': 'build',
             rd.ALTERNATIVES_ADMIN + 'java': 'package', rd.ALTERNATIVES + 'java': 'package',
             rd.ALTERNATIVES + 'keytool': 'package', 'usr/bin/java': 'package', 'usr/bin/keytool': 'package',
-            self.JAVA[1:]: 'package', 'var/log/dnf5.log': 'generated'}
+            self.JAVA[1:]: 'package', 'var/log/dnf5.log': 'generated',
+            self.cache_path32: 'build', **{path: 'build' for path in self.cache_paths(self.LINKED).values()},
+            self.UPDATERS: 'manifest', self.DROPIN: 'config',
+            rd.JAVA_MAN_FOLDERS[0]: 'package', rd.JAVA_MAN_FOLDERS[1]: 'package', self.JAVA_MAN: 'package'}
         for rel, rule in expected.items():
             with self.subTest(rel=rel):
                 found = self.explain(rel) if rel != 'var/log/dnf5.log' else self.classifier.generated_rule(rel, {}, {})
@@ -296,8 +348,18 @@ class Classifier28Test(unittest.TestCase):
                 self.assertEqual(found[0], rule)
         self.assertRegex(self.explain(self.STEAM)[1], r'from .*\(#[0-9]+\)')
         self.assertEqual(self.classifier.schema_rows[0]['key'], 'button-layout')
-        self.assertEqual(self.classifier.font_caches, [dict(path=self.cache_path, folder=self.CACHE_FOLDER, change='added')])
+        self.assertIn('fc-cache-32', self.explain(self.cache_path32)[1])
+        self.assertNotIn('fc-cache-32', self.explain(self.cache_path)[1])
+        self.assertIn('linked font folder', self.explain(self.cache_paths(self.LINKED)['le64'])[1])
+        self.assertIn('man pages', self.explain(rd.JAVA_MAN_FOLDERS[0])[1])
+        self.assertIn('user.slice from 23 (#36)', self.explain(self.UPDATERS)[1])
+        rows = {(row['path'], row['folder'], row['format'], row['folder_kind'], row['change'])
+                for row in self.classifier.font_caches}
+        self.assertEqual(rows, {(self.cache_path, self.CACHE_FOLDER, 'le64', 'folder', 'added'),
+                                (self.cache_path32, self.CACHE_FOLDER, 'le32d4', 'folder', 'added'),
+                                *((path, self.LINKED, layout, 'link', 'added') for layout, path in self.cache_paths(self.LINKED).items())})
         extra, problems = self.classifier.extra()
+        self.assertEqual(extra['updaters'], [dict(scope='system', unit='user.slice', added=['/' + self.DROPIN], **{'from': ['23 (#36)']})])
         self.assertEqual(extra['alternatives'], {'java': [self.JAVA, self.KEYTOOL]})
         self.assertEqual(problems, [f'the Ares-Crown theme in the image (None) is not the one image-checks.sh pins ({PACKAGE31_CROWN})'])
         # Release 27's regenerated font caches are no blanket rule any more.
@@ -333,7 +395,7 @@ class Classifier28Test(unittest.TestCase):
                     self.assertIsNone(self.explain(rel))
                 finally:
                     self.replace(rel, ('link', str(saved)) if isinstance(saved, pathlib.Path) else saved)
-        # Other modes, an extended attribute, or a cache of the 32-bit fontconfig.
+        # Other modes, an extended attribute, or a 64-bit cache under the 32-bit format's name.
         (self.new / self.STEAM).chmod(0o755)
         self.assertIsNone(self.explain(self.STEAM))
         (self.new / self.STEAM).chmod(0o644)
@@ -348,6 +410,175 @@ class Classifier28Test(unittest.TestCase):
         self.classifier.groups = None
         self.classifier.owned['new'].discard(self.KEYTOOL)
         for rel in (rd.ALTERNATIVES_ADMIN + 'java', 'usr/bin/java', rd.ALTERNATIVES + 'java'):
+            with self.subTest(rel=rel):
+                self.assertIsNone(self.explain(rel))
+
+    def test_font_caches_need_both_formats_their_own_folder_and_a_folder_release_27_had_as_it_is(self):
+        cache32 = (self.new / self.cache_path32).read_bytes()
+        linked = list(self.cache_paths(self.LINKED).values())
+
+        def stays_unexplained(paths, change, undo):
+            change()
+            try:
+                for rel in paths:
+                    with self.subTest(rel=rel, change=change.__name__):
+                        self.assertIsNone(self.explain(rel))
+            finally:
+                undo()
+
+        def restore_32_bit_cache():
+            (self.new / self.cache_path32).write_bytes(cache32)
+
+        def link(target, roots=None):
+            for root in roots or (self.old, self.new):
+                (root / self.LINKED[1:]).unlink(missing_ok=True)
+                (root / self.LINKED[1:]).symlink_to(target)
+
+        def without_the_64_bit_sibling():
+            (self.new / self.cache_path).rename(self.new / (self.cache_path + '.away'))
+        stays_unexplained([self.cache_path32], without_the_64_bit_sibling,
+                          lambda: (self.new / (self.cache_path + '.away')).rename(self.new / self.cache_path))
+
+        def without_the_32_bit_sibling():
+            (self.new / self.cache_path32).unlink()
+        stays_unexplained([self.cache_path], without_the_32_bit_sibling, restore_32_bit_cache)
+
+        def another_folder_in_the_32_bit_cache():
+            (self.new / self.cache_path32).write_bytes(FontCacheTest.cache('/usr/share/fonts/other', layout='le32d4'))
+        stays_unexplained([self.cache_path32], another_folder_in_the_32_bit_cache, restore_32_bit_cache)
+
+        def another_version_in_the_32_bit_cache():
+            (self.new / self.cache_path32).write_bytes(FontCacheTest.cache(self.CACHE_FOLDER, version=8, layout='le32d4'))
+        stays_unexplained([self.cache_path32], another_version_in_the_32_bit_cache, restore_32_bit_cache)
+
+        # The linked folder: release 27's link, unchanged, to a folder under /usr.
+        (self.new / 'opt/fonts').mkdir(parents=True)
+
+        def an_unchanged_link_out_of_usr():
+            link('/opt/fonts')
+        stays_unexplained(linked, an_unchanged_link_out_of_usr, lambda: link(self.LINK_TARGET))
+
+        def an_unchanged_link_to_nothing():
+            link('/usr/share/fonts/missing')
+        stays_unexplained(linked, an_unchanged_link_to_nothing, lambda: link(self.LINK_TARGET))
+
+        def a_link_that_changed():
+            link(self.CACHE_FOLDER, roots=[self.new])
+        stays_unexplained(linked, a_link_that_changed, lambda: link(self.LINK_TARGET))
+
+        def a_link_new_in_release_28():
+            (self.old / self.LINKED[1:]).unlink()
+        stays_unexplained(linked, a_link_new_in_release_28, lambda: link(self.LINK_TARGET))
+
+        def a_link_above_the_folder():
+            fonts = self.new / 'usr/share/fonts'
+            fonts.rename(self.new / 'usr/share/fonts-real')
+            fonts.symlink_to('fonts-real')
+
+        def undo_link_above():
+            (self.new / 'usr/share/fonts').unlink()
+            (self.new / 'usr/share/fonts-real').rename(self.new / 'usr/share/fonts')
+        stays_unexplained([self.cache_path, self.cache_path32], a_link_above_the_folder, undo_link_above)
+
+        # A folder outside /usr, cached in both formats.
+        outside = self.cache_paths('/opt/fonts')
+        for layout, rel in outside.items():
+            (self.new / rel).write_bytes(FontCacheTest.cache('/opt/fonts', layout=layout))
+            (self.new / rel).chmod(0o644)
+        for rel in outside.values():
+            with self.subTest(rel=rel):
+                self.assertIsNone(self.explain(rel))
+        # Every change was undone: the fixture's caches are explained again.
+        for rel in (self.cache_path, self.cache_path32, *linked):
+            with self.subTest(rel=rel, state='restored'):
+                self.assertIsNotNone(self.explain(rel))
+
+    def test_the_updater_audit_may_only_gain_drop_ins_merged_packages_added_to_os_config(self):
+        path = self.new / self.UPDATERS
+        dropin = '/' + self.DROPIN
+        other = 'usr/lib/systemd/system/user.slice.d/99-other.conf'
+        (self.new / other).write_bytes(b'[Slice]\n')
+        (self.new / other).chmod(0o644)
+        cases = {
+            'a command changed': self.audit(dropin, commands=['ExecStart=/usr/bin/true']),
+            'the unit became suspicious': self.audit(dropin, suspicious=True),
+            'its state changed': self.audit(dropin, state='enabled'),
+            'an old source removed': json.dumps([json.loads(self.audit())[0], dict(json.loads(self.audit(dropin))[1],
+                                                 sources=[dropin])]).encode(),
+            'a drop-in os/config does not have': self.audit(dropin, '/' + other),
+            "another unit's folder": self.audit('/usr/lib/systemd/system/ModemManager.service.d/50-aresos-recovery.conf'),
+            'a unit added': json.dumps(json.loads(self.audit(dropin)) + [json.loads(self.audit())[0]]).encode(),
+            'not JSON': b'{',
+        }
+        for name, data in cases.items():
+            with self.subTest(case=name):
+                path.write_bytes(data)
+                self.assertIsNone(self.explain(self.UPDATERS))
+        path.write_bytes(self.audit(dropin))
+        self.assertIsNotNone(self.explain(self.UPDATERS))
+        # Package 23's drop-in for another unit, in the image as os/config has it, listed under user.slice.
+        sibling = 'usr/lib/systemd/system/user-1001.slice.d/50-aresos-recovery.conf'
+        (self.new / sibling).parent.mkdir()
+        (self.new / sibling).write_bytes((ROOT / 'os/config' / sibling).read_bytes())
+        (self.new / sibling).chmod(0o644)
+        path.write_bytes(self.audit(dropin, '/' + sibling))
+        self.assertIsNone(self.explain(self.UPDATERS))
+        path.write_bytes(self.audit(dropin))
+        # An os/config drop-in that did not change since release 27.
+        self.classifier.config = self.classifier.config - {self.DROPIN}
+        self.assertIsNone(self.explain(self.UPDATERS))
+        self.classifier.config = self.classifier.config | {self.DROPIN}
+        self.assertIsNotNone(self.explain(self.UPDATERS))
+        # The drop-in in the image differs from os/config's, or release 27 had it already.
+        source = (self.new / self.DROPIN).read_bytes()
+        (self.new / self.DROPIN).write_bytes(source + b'# changed\n')
+        self.assertIsNone(self.explain(self.UPDATERS))
+        (self.new / self.DROPIN).write_bytes(source)
+        (self.old / self.DROPIN).parent.mkdir(parents=True)
+        (self.old / self.DROPIN).write_bytes(source)
+        self.assertIsNone(self.explain(self.UPDATERS))
+
+    def test_the_audit_comparison_keeps_old_sources_in_order(self):
+        unit = lambda *sources: dict(scope='user', name='a@b.service', state='static', sources=list(sources))
+        dump = lambda *units: json.dumps(list(units)).encode()
+        seen = []
+        allow = lambda scope, name, path: seen.append((scope, name, path)) or path.endswith('/new.conf')
+        self.assertEqual(rd.audit_changes(dump(unit('/x', '/y')), dump(unit('/x', '/d/new.conf', '/y')), allow),
+                         [dict(scope='user', unit='a@b.service', added=['/d/new.conf'])])
+        self.assertEqual(seen, [('user', 'a@b.service', '/d/new.conf')])
+        self.assertEqual(rd.audit_changes(dump(unit('/x')), dump(unit('/x')), allow), [])
+        for new in (dump(unit('/y', '/x', '/d/new.conf')), dump(unit('/x', '/d/other.conf')), dump(unit('/x', 5)),
+                    dump(dict(unit('/x', '/d/new.conf'), state='masked')), dump(unit('/x'), unit('/x')), b'[1]'):
+            with self.subTest(new=new):
+                self.assertIsNone(rd.audit_changes(dump(unit('/x', '/y')) if b'/y' in new else dump(unit('/x')), new, allow))
+        # The template's drop-in folder counts for an instance, as the audit reads it.
+        self.classifier.config = self.classifier.config | {'usr/lib/systemd/user/a@.service.d/x.conf'}
+        self.assertFalse(self.classifier.audit_dropin('user', 'a@b.service', '/usr/lib/systemd/user/c@.service.d/x.conf'))
+        self.assertFalse(self.classifier.audit_dropin('user', 'a@b.service', '/usr/lib/systemd/user/a@.service.d/../x.conf'))
+
+    def test_only_javas_two_man_folders_with_its_pages_are_explained_as_folders_rpm_made(self):
+        folder, sub = rd.JAVA_MAN_FOLDERS
+        self.assertIsNotNone(self.explain(folder))
+        # Another folder that is not in the package's file list, even with one of its files in it.
+        extra = 'usr/lib/jvm/java-25-openjdk/extra'
+        (self.new / extra).mkdir()
+        (self.new / extra / 'x').write_bytes(b'x')
+        self.classifier.owned['new'].add(f'/{extra}/x')
+        self.classifier.policy['inventory'][f'{extra}/x'] = dict(kind=stat.S_IFREG, sha256='0' * 64)
+        self.assertIsNone(self.explain(extra))
+        # Another mode, an extended attribute, release 27 having it, or no page of the package in it.
+        (self.new / sub).chmod(0o775)
+        self.assertIsNone(self.explain(sub))
+        (self.new / sub).chmod(0o755)
+        self.attributes[sub] = {'user.x': '00'}
+        self.assertIsNone(self.explain(sub))
+        del self.attributes[sub]
+        (self.old / sub).mkdir(parents=True)
+        self.assertIsNone(self.explain(sub))
+        (self.old / sub).rmdir()
+        self.assertIsNotNone(self.explain(sub))
+        del self.classifier.policy['inventory'][self.JAVA_MAN]
+        for rel in (folder, sub):
             with self.subTest(rel=rel):
                 self.assertIsNone(self.explain(rel))
 
@@ -700,12 +931,19 @@ class MainSmokeTest(unittest.TestCase):
         show = lambda path: subprocess.check_output(['git', 'show', f'{source}:{path}'])
         policy = {f'usr/share/aresos/policy/{name}': (ROOT / 'os/policy' / name).read_bytes()
                   for name in ('masked-system-units.txt', 'masked-user-units.txt')}
+        updaters, dropin = Classifier28Test.UPDATERS, Classifier28Test.DROPIN
+        tag = rd.FONT_CACHES + 'CACHEDIR.TAG'
         old = {**policy, 'etc/hostname': b'aresos\n', 'usr/share/aresos/manifest/packages.lock.json': show('os/packages.lock.json'),
-               rd.RC_XML: show('os/config/' + rd.RC_XML), 'usr/share/aresos/apps/terminal.json': show('os/config/usr/share/aresos/apps/terminal.json')}
+               rd.RC_XML: show('os/config/' + rd.RC_XML), 'usr/share/aresos/apps/terminal.json': show('os/config/usr/share/aresos/apps/terminal.json'),
+               updaters: Classifier28Test.audit(), tag: b'tag'}
         new = {**policy, 'etc/hostname': b'aresos\n', 'usr/share/aresos/manifest/packages.lock.json': (ROOT / 'os/packages.lock.json').read_bytes(),
                rd.RC_XML: (ROOT / 'os/config' / rd.RC_XML).read_bytes(),
                'usr/share/aresos/apps/terminal.json': (ROOT / 'os/config/usr/share/aresos/apps/terminal.json').read_bytes(),
-               self.JAVA: b'java'}
+               self.JAVA: b'java', Classifier28Test.JAVA_MAN: b'.TH java 1\n', tag: b'tag',
+               updaters: Classifier28Test.audit('/' + dropin), dropin: (ROOT / 'os/config' / dropin).read_bytes(),
+               # 23b's font folder with its real caches in both formats (fixtures/release28-fontcache).
+               **{rd.FONT_CACHES + path.name: path.read_bytes() for path in FontCacheTest.FIXTURES.glob('*.cache-9')},
+               **{f'usr/share/fonts/aresos/{path.name}': path.read_bytes() for path in (ROOT / 'os/config/usr/share/fonts/aresos').iterdir()}}
         for path in (ROOT / 'os/config' / rd.CROWN).iterdir():
             new[f'{rd.CROWN}/{path.name}'] = path.read_bytes()
         self.roots = {}
@@ -746,7 +984,9 @@ class MainSmokeTest(unittest.TestCase):
             if '-qa' in args:
                 return '\n'.join(f'{nevra}\t{base.name_of(nevra)}' for nevra in self.rpms[image])
             # rpm -ql names a package's folders too (javapackages-filesystem owns /usr/lib/jvm).
-            owned = {'headless': ['/usr/lib/jvm/java-25', '/usr/lib/jvm/java-25/bin', '/' + self.JAVA],
+            # Like the real headless package, it names its man pages but not their folders.
+            owned = {'headless': ['/usr/lib/jvm/java-25', '/usr/lib/jvm/java-25/bin', '/' + self.JAVA,
+                                  '/usr/lib/jvm/java-25-openjdk', '/' + Classifier28Test.JAVA_MAN],
                      'javapackages-filesystem': ['/usr/lib/jvm']}
             return '\n'.join(path for nevra in args[args.index('-ql') + 1:]
                              for key, paths in owned.items() if key in nevra for path in paths)
@@ -776,8 +1016,14 @@ class MainSmokeTest(unittest.TestCase):
         self.assertTrue(result['base_ancestry_verified'])
         rules = ' '.join(result['rules'])
         for expected in ('config: os/config file changed since release 27', 'config: os/config file new since release 27',
-                         'manifest: package lock (package 23', 'package: file of a package added by package 23'):
+                         'manifest: package lock (package 23', 'package: file of a package added by package 23',
+                         "package: package 23: folder of java-25-openjdk-headless's man pages",
+                         'manifest: updater audit output', 'rebuilt the system font cache (32-bit'):
             self.assertIn(expected, rules)
+        self.assertEqual(sorted((row['format'], row['folder'], row['change']) for row in result['font_caches']),
+                         [('le32d4', FontCacheTest.ARESOS, 'added'), ('le64', FontCacheTest.ARESOS, 'added')])
+        self.assertEqual(result['updaters'], [dict(scope='system', unit='user.slice', added=['/' + Classifier28Test.DROPIN],
+                                                   **{'from': ['23 (#36)']})])
 
     def test_an_unexplained_path_or_another_theme_stops(self):
         (self.roots['new'] / 'etc/surprise').write_bytes(b'?')

@@ -387,6 +387,19 @@ SCHEMAS = 'usr/share/glib-2.0/schemas/gschemas.compiled'
 SCHEMA_OVERRIDE = 'usr/share/glib-2.0/schemas/zz-aresos.gschema.override'
 FONT_CACHES = 'usr/lib/fontconfig/cache/'
 FONT_CACHE_MAGIC = 0xfc02fc04
+# fontconfig's cache header (FcCache) starts with its magic, version, file size
+# and the offset of the folder's name, which follows the header. The sizes and
+# the offset are intptr_t, so each format has its own layout. Fedora's
+# /usr/bin/fc-cache is a script that runs fc-cache-32 (fontconfig.i686, in the
+# base for Steam) and fc-cache-64, so every folder has a cache in both formats
+# (release 28's dry run, run 43832912792).
+FONT_CACHE_LAYOUTS = {'le64': ('<IiqQ', 64), 'le32d4': ('<IiiI', 40)}
+# java-25-openjdk-headless installs its man pages here, but its file list names
+# only the pages, not these folders (the pinned RPM's header, and rpm -ql in the
+# dry run); rpm creates a missing parent folder of a file it installs, root's 0755.
+JAVA_MAN_FOLDERS = ('usr/lib/jvm/java-25-openjdk/man', 'usr/lib/jvm/java-25-openjdk/man/man1')
+# The unit folders whose drop-ins os/tests/audit.py lists as a unit's sources.
+AUDIT_UNIT_FOLDERS = ('usr/lib/systemd/', 'usr/local/lib/systemd/', 'etc/systemd/')
 ALTERNATIVES = 'etc/alternatives/'
 ALTERNATIVES_ADMIN = 'etc/alternatives-admindir/'
 CROWN = 'usr/share/themes/Ares-Crown/labwc'
@@ -711,12 +724,13 @@ def schema_changes(old, new, override):
     return rows
 
 
-def font_cache(data):
-    """(version, font folder) of a 64-bit little-endian fontconfig cache file; ValueError otherwise."""
-    if len(data) < 24:
+def font_cache(data, layout='le64'):
+    """(version, font folder) of a little-endian fontconfig cache file in one of FONT_CACHE_LAYOUTS; ValueError otherwise."""
+    header, size_of_header = FONT_CACHE_LAYOUTS[layout]
+    if len(data) < size_of_header:
         raise ValueError('too short for a fontconfig cache')
-    magic, version, size, offset = struct.unpack_from('<IiqQ', data, 0)
-    if magic != FONT_CACHE_MAGIC or size != len(data) or not 24 <= offset < len(data):
+    magic, version, size, offset = struct.unpack_from(header, data, 0)
+    if magic != FONT_CACHE_MAGIC or size != len(data) or not size_of_header <= offset < len(data):
         raise ValueError('not a fontconfig cache')
     end = data.find(b'\0', offset)
     if end < 0:
@@ -725,6 +739,44 @@ def font_cache(data):
     if not folder.startswith('/'):
         raise ValueError('fontconfig cache folder is not absolute')
     return version, folder
+
+
+def audit_changes(old, new, dropin):
+    """The units whose sources differ between two updater audits (os/tests/audit.py's JSON), as rows.
+
+    None unless both list the same units in the same order, every field but
+    `sources` is equal (so no state, command or "suspicious" verdict changed),
+    and each changed unit keeps its old sources in order and gains only paths
+    for which dropin(scope, unit, path) is true.
+    """
+    try:
+        before, after = json.loads(old), json.loads(new)
+    except (TypeError, ValueError, UnicodeDecodeError):
+        return None
+    if not isinstance(before, list) or not isinstance(after, list) or len(before) != len(after):
+        return None
+    rows = []
+    for unit_before, unit_after in zip(before, after):
+        if not isinstance(unit_before, dict) or not isinstance(unit_after, dict) \
+                or unit_before.keys() != unit_after.keys() or not {'scope', 'name', 'sources'} <= unit_before.keys() \
+                or not isinstance(unit_before['sources'], list) or not isinstance(unit_after['sources'], list):
+            return None
+        if any(unit_before[key] != unit_after[key] for key in unit_before if key != 'sources'):
+            return None
+        old_sources, new_sources = unit_before['sources'], unit_after['sources']
+        if old_sources == new_sources:
+            continue
+        added, kept = [], 0
+        for source in new_sources:
+            if kept < len(old_sources) and source == old_sources[kept]:
+                kept += 1
+            else:
+                added.append(source)
+        if kept != len(old_sources) or not all(isinstance(path, str) and dropin(unit_after['scope'], unit_after['name'], path)
+                                               for path in added):
+            return None
+        rows.append(dict(scope=unit_after['scope'], unit=unit_after['name'], added=added))
+    return rows
 
 
 def alternatives_admin(raw):
@@ -801,7 +853,7 @@ class Classifier28:
         self.pins = minecraft_pins(lock)
         self.mod_pin = next(mod['sha256'] for mod in lock['mods'] if mod['file'] == 'aresos.jar' and 'url' not in mod)
         self.origins, self.prism, self.groups = {}, None, None
-        self.schema_rows, self.font_caches = None, []
+        self.schema_rows, self.font_caches, self.updater_rows = None, [], None
 
     def read(self, which, rel):
         root = {'old': self.old_root, 'new': self.new_root, 'base': self.base_root}[which]
@@ -881,7 +933,30 @@ class Classifier28:
         if name == 'aresos-mod.json' and before is None and json.loads(data) == dict(
                 sha256=self.mod_pin, source_revision=os.environ['GITHUB_SHA'], pinned_sha256=self.mod_pin):
             return ('manifest', "package 23: the mod jar's record: its pin, built from this commit")
+        if name == 'updaters.json' and before is not None and before['kind'] == stat.S_IFREG:
+            # build.sh's last step runs the updater audit over the image's units.
+            rows = audit_changes(self.read('old', rel), data, self.audit_dropin)
+            if rows:
+                for row in rows:
+                    row['from'] = list(dict.fromkeys(label for path in row['added'] for label in self.origin(path[1:])))
+                self.updater_rows = rows
+                return ('manifest', 'updater audit output: only new os/config drop-ins joined units\' sources: ' + '; '.join(
+                    f"{row['unit']} from {', '.join(row['from'])}" for row in rows))
         return None
+
+    def audit_dropin(self, scope, unit, path):
+        """True for a drop-in of `unit` that a merged package added to os/config since release 27, in the image as its source."""
+        names = [unit]
+        if '@' in unit and '@.' not in unit:
+            names.append(unit.split('@', 1)[0] + '@.' + unit.rsplit('.', 1)[1])  # the template, as the audit reads it
+        rel = path[1:] if path.startswith('/') else ''
+        folder, _, file = rel.rpartition('/')
+        if posixpath.normpath(rel) != rel or not file.endswith('.conf') \
+                or folder not in {f'{prefix}{scope}/{name}.d' for prefix in AUDIT_UNIT_FOLDERS for name in names}:
+            return False
+        source, now = pathlib.Path('os/config') / rel, entry(self.new_root, rel)
+        return rel in self.config and entry(self.old_root, rel) is None and source.is_file() and not source.is_symlink() \
+            and now is not None and now['kind'] == stat.S_IFREG and now['sha256'] == file_sha256(source) and bool(self.origin(rel))
 
     def minecraft_rule(self, rel, before, after):
         if rel != MINECRAFT and not rel.startswith(MINECRAFT + '/'):
@@ -995,30 +1070,68 @@ class Classifier28:
         return ('build', 'package 31: glib-compile-schemas compiled zz-aresos.gschema.override; only its keys changed: '
                 + ', '.join(f"{row['schema']} {row['key']}" for row in rows))
 
+    def image_folder(self, rel):
+        """True when rel and each folder above it are folders (not links) in the new image."""
+        parts = rel.split('/')
+        return all((place := entry(self.new_root, '/'.join(parts[:depth]))) is not None and place['kind'] == stat.S_IFDIR
+                   for depth in range(1, len(parts) + 1))
+
+    def font_folder(self, folder):
+        """The kind of a cache's font folder: 'folder' when it is a folder in the image under /usr, 'link' when it is a
+        link release 27 has too, unchanged, to such a folder (fc-cache caches it under the link's own name, as it does
+        the base's /usr/share/fonts/noto-cjk), else None."""
+        rel = folder[1:]
+        if not folder.startswith('/usr/') or posixpath.normpath(folder) != folder or not self.image_folder(posixpath.dirname(rel)):
+            return None
+        place = entry(self.new_root, rel)
+        if place is not None and place['kind'] == stat.S_IFDIR:
+            return 'folder'
+        if place is not None and place['kind'] == stat.S_IFLNK and place == entry(self.old_root, rel):
+            target = posixpath.normpath(posixpath.join(posixpath.dirname(folder), place['target']))
+            if target.startswith('/usr/') and self.image_folder(target[1:]):
+                return 'link'
+        return None
+
     def font_cache_rule(self, rel, before, after):
         name = rel[len(FONT_CACHES):]
-        found = re.fullmatch(r'([0-9a-f]{32})-le64\.cache-([0-9]+)', name)
+        found = re.fullmatch(r'([0-9a-f]{32})-(le64|le32d4)\.cache-([0-9]+)', name)
         if not found or after is None or after['kind'] != stat.S_IFREG or not root_owned(after, 0o644) or after['xattrs']:
             return None
         if before is not None and (before['kind'] != stat.S_IFREG or not root_owned(before, 0o644)):
             return None
+        digest, layout, version = found.group(1), found.group(2), int(found.group(3))
+        # Fedora's fc-cache runs fc-cache-32 and fc-cache-64: a folder cached in one format is cached in the other.
+        other = entry(self.new_root, f"{FONT_CACHES}{digest}-{'le32d4' if layout == 'le64' else 'le64'}.cache-{version}")
+        if other is None or other['kind'] != stat.S_IFREG:
+            return None
         try:
-            version, folder = font_cache(self.read('new', rel))
+            cache_version, folder = font_cache(self.read('new', rel), layout)
         except (ValueError, UnicodeDecodeError):
             return None
-        place = entry(self.new_root, folder.lstrip('/'))
-        if version != int(found.group(2)) or hashlib.md5(folder.encode(), usedforsecurity=False).hexdigest() != found.group(1) \
-                or not folder.startswith('/usr/') or place is None or place['kind'] != stat.S_IFDIR:
+        if cache_version != version or hashlib.md5(folder.encode(), usedforsecurity=False).hexdigest() != digest:
             return None
-        self.font_caches.append(dict(path=rel, folder=folder, change='added' if before is None else 'rebuilt'))
+        kind = self.font_folder(folder)
+        if kind is None:
+            return None
+        self.font_caches.append(dict(path=rel, folder=folder, format=layout, folder_kind=kind,
+                                     change='added' if before is None else 'rebuilt'))
+        notes = (["32-bit, from fc-cache-32: Fedora's fc-cache runs both"] if layout == 'le32d4' else []) \
+            + (['a new font folder'] if before is None else []) + (['a linked font folder release 27 has too'] if kind == 'link' else [])
         return ('build', 'package 23b: fc-cache --system-only --really-force rebuilt the system font cache'
-                + (' (a new font folder)' if before is None else ''))
+                + (f" ({'; '.join(notes)})" if notes else ''))
 
     def package_rule(self, rel, before, after):
         if after is not None and '/' + rel in self.owned['new']:
             return ('package', 'file of a package added by package 23 (Java 25 and its dependencies)')
         if before is not None and '/' + rel in self.owned['old']:
             return ('package', 'file of a removed package')
+        if rel in JAVA_MAN_FOLDERS:
+            inventory = self.policy['inventory']
+            if before is None and after and after['kind'] == stat.S_IFDIR and root_owned(after, 0o755) and not after['xattrs'] \
+                    and any(path.startswith('/' + rel + '/') and inventory.get(path[1:], {}).get('kind') == stat.S_IFREG
+                            for path in self.owned['new']):
+                return ('package', "package 23: folder of java-25-openjdk-headless's man pages; its file list names only "
+                        'the pages, so rpm creates the folder for them')
         return None
 
     def generated_rule(self, rel, before, after):
@@ -1040,6 +1153,7 @@ class Classifier28:
             problems.append(f'the Ares-Crown theme in the image ({crown}) is not the one image-checks.sh pins ({pin})')
         old_rc, new_rc = self.read('old', RC_XML), self.read('new', RC_XML)
         return dict(schemas=self.schema_rows, font_caches=sorted(self.font_caches, key=lambda row: row['path']),
+                    updaters=self.updater_rows,
                     alternatives={name: sorted(targets) for name, (_, targets) in sorted(self.alternatives().items())},
                     theme=dict(image=crown, image_checks=pin, equal=crown == pin),
                     rc_xml=rc_xml_changes(old_rc, new_rc) if old_rc and new_rc else None), problems
