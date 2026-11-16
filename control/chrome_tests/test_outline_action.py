@@ -131,7 +131,10 @@ class Service:
 
 patch('aresos_control.proxy.Client', Service).start()
 config = {'act_socket': 'unused', 'admin_socket': 'unused'}
-out = {'catalogue': 'chrome_outline' in BY_NAME, 'tools': [tool['name'] for tool in tools_for('chrome')].count('outline'),
+from aresos_control.chrome import adapter as chrome_adapter
+out = {'runtime': str(chrome_adapter.RUNTIME),
+       'shipped': json.loads((Path(chrome_adapter.RUNTIME) / 'chrome' / 'qualification.json').read_text()),
+       'catalogue': 'chrome_outline' in BY_NAME, 'tools': [tool['name'] for tool in tools_for('chrome')].count('outline'),
        'proxy': code(lambda: Proxy('chrome', config).call('outline', {'tab': 1}))}
 printed = io.StringIO()
 with contextlib.redirect_stdout(printed):
@@ -180,8 +183,15 @@ def probe(switch):
 
 
 class Switch(unittest.TestCase):
+    def assert_fixture_runtime(self, found):
+        # #87: a process that holds its own qualification record starts Chrome from test_engine's fixture runtime,
+        # whose shipped copy is empty, never from the source tree's shipped copy (attested entries since #83).
+        self.assertEqual(Path(found['runtime']).parent, WORK / 'fixture-runtime')
+        self.assertEqual(found['shipped'], {'format': 1, 'entries': []})
+
     def test_without_the_switch_the_action_exists_nowhere(self):
         found = probe(False)
+        self.assert_fixture_runtime(found)
         self.assertEqual((found['catalogue'], found['tools']), (False, 0))
         self.assertEqual((found['proxy'], found['command'], found['command_exit']), ('permission_denied', 'permission_denied', 1))
         self.assertEqual(found['sent'], [])  # nothing reached the service's socket
@@ -192,6 +202,7 @@ class Switch(unittest.TestCase):
 
     def test_with_the_switch_it_reaches_the_adapter_through_the_engine(self):
         found = probe(True)
+        self.assert_fixture_runtime(found)
         self.assertEqual((found['catalogue'], found['tools']), (True, 1))
         # The MCP proxy and the aresos command know it and send it on to the service.
         self.assertEqual((found['proxy'], found['command'], found['command_exit']), ('sent chrome_outline', 'sent chrome_outline', 0))

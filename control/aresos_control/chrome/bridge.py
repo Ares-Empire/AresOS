@@ -191,7 +191,9 @@ class Bridge(TimeLeft):
                     code, separator, message = raw.partition(':')
                     if not separator: message = raw
                     # Extension errors are literals today; escape them anyway, like page text.
-                    raise Refused(code if code in {'stale_reference','stale_approval','reload_required','owner_signin','refused','permission_denied','unknown','transport_error','expired'} else 'refused', visible(message.strip()))
+                    # invalid_input comes only from a malformed time_left_ms (brief 28, item 4):
+                    # a fault on this side, refused unrun, and the read's call fails with it.
+                    raise Refused(code if code in {'stale_reference','stale_approval','reload_required','owner_signin','refused','permission_denied','unknown','transport_error','expired','invalid_input'} else 'refused', visible(message.strip()))
                 return reply['data']
         except (OSError, ValueError, binascii.Error, TypeError) as exc:
             self.close()

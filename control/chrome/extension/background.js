@@ -1219,17 +1219,23 @@ async function dispatch(command,expires=null) {
 // left (time_left_ms). Its time ends that long after it arrives. When it reaches
 // the front of the queue after that, it isn't started; inside it, every wait for
 // a frame or the reader ends then. Both answer `expired`. A command without it
-// runs as before. One queue, one command at a time, as before.
+// runs as before. One queue, one command at a time, as before. A time that
+// isn't a whole number of milliseconds, 0 or more, can only come from a fault
+// in the service's bridge: that command is refused unrun, in its turn
+// (`invalid_input`), never run without a time.
 const EXPIRED='expired: the time of this command ran out before it finished';
+const INVALID_TIME='invalid_input: time_left_ms must be a whole number of milliseconds, 0 or more; the command was not run';
 const expired=error=>String(error?.message).startsWith('expired:');
+const validTime=message=>!Object.hasOwn(message,'time_left_ms')||Number.isSafeInteger(message.time_left_ms)&&message.time_left_ms>=0;
 function within(promise,expires){
   if(expires===null)return promise;
   let timer;
   return Promise.race([promise,new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error(EXPIRED)),Math.max(0,expires-performance.now()));})]).finally(()=>clearTimeout(timer));
 }
 function enqueue(message){
-  const expires=Number.isInteger(message.time_left_ms)?performance.now()+message.time_left_ms:null;
+  const valid=validTime(message),expires=valid&&Object.hasOwn(message,'time_left_ms')?performance.now()+message.time_left_ms:null;
   serial=serial.then(async()=>{
+    if(!valid){audit({command:message.command?.name,phase:'invalid_time'});port?.postMessage({id:message.id,ok:false,error:INVALID_TIME});return;}
     if(expires!==null&&performance.now()>=expires){audit({command:message.command?.name,phase:'expired'});port?.postMessage({id:message.id,ok:false,error:'expired: the time of this command ran out while it waited in the queue; it was not started'});return;}
     effectStarted=false;dispatchEpoch=null;audit({command:message.command?.name,phase:'begin'});
     try { respond({id:message.id,ok:true,data:await dispatch(message.command,expires)}); }

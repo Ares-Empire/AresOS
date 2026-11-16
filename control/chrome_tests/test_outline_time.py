@@ -172,6 +172,19 @@ class Wire(unittest.TestCase):
         self.assertEqual(caught.exception.code, 'expired')
         self.assertEqual(dict(self.bridge.given_up), {}, 'an answer is no reply given up on')
 
+    def test_the_extensions_refusal_of_a_malformed_time_is_invalid_input_and_the_next_command_gets_its_own(self):
+        # The lead after step 10: the extension refuses a malformed time_left_ms unrun (background.test.mjs).
+        refusal = 'invalid_input: time_left_ms must be a whole number of milliseconds, 0 or more; the command was not run'
+        self.serve(lambda command: self.send({'id': command['id'], 'ok': False, 'error': refusal}),
+                   lambda command: self.answer(command, {'state': 2}))
+        with self.bridge.bounded(time.monotonic() + 1):
+            with self.assertRaises(Refused) as caught:
+                self.bridge.call('outline', tab=1)
+            self.assertEqual(self.bridge.call('page_state', tab=1), {'state': 2})
+        self.assertEqual((caught.exception.code, str(caught.exception)), ('invalid_input', refusal.partition(': ')[2]))
+        self.assertIsNotNone(self.bridge.connection, 'an answer keeps the connection')
+        self.assertEqual(dict(self.bridge.given_up), {})
+
     def test_no_reply_is_given_up_at_its_time_plus_half_a_second(self):
         elapsed = self.give_up(.3)
         self.assertGreaterEqual(elapsed, .3 + GRACE)
@@ -422,6 +435,16 @@ class Read(unittest.TestCase):
         self.assertFalse(read['until_met'])
         self.assertLess(self.seconds(), UNTIL + .05)
         self.assertGreaterEqual(self.seconds(), UNTIL)
+
+    def test_a_malformed_time_refused_by_the_extension_fails_the_whole_call(self):
+        # A fault on the service's side (the lead after step 10): no tab entry hides it, unlike not_read.
+        def malformed(now):
+            raise Refused('invalid_input', 'time_left_ms must be a whole number of milliseconds, 0 or more; the command was not run')
+        self.browser.costs[('outline', 2)] = malformed
+        with self.assertRaises(Refused) as caught:
+            self.read(tabs=[1, 2, 3])
+        self.assertEqual(caught.exception.code, 'invalid_input')
+        self.assertEqual([row[1] for row in self.browser.named('outline')], [1, 2])
 
     def test_a_poll_that_runs_out_makes_the_tab_not_read(self):
         self.browser.outlines[1] = small('Loading', tab=1)

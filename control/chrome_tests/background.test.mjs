@@ -4,12 +4,12 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 import {createHash} from 'node:crypto';
 
-function fixture(){
+function fixture(transform=source=>source){
   const policy=JSON.parse(fs.readFileSync('control/chrome/extension/policy.js','utf8').match(/\{[\s\S]*\}/)[0]);
   const registrations=[],rules=[];
   const chrome={tabs:{get:async()=>({active:false}),update:async()=>({})},scripting:{getRegisteredContentScripts:async()=>[],registerContentScripts:async scripts=>registrations.push(...scripts)},
     declarativeNetRequest:{getSessionRules:async()=>[],updateSessionRules:async value=>rules.push(value)}};
-  let source=fs.readFileSync('control/chrome/extension/background.js','utf8').replace("import {POLICY} from './policy.js';",'');
+  let source=transform(fs.readFileSync('control/chrome/extension/background.js','utf8')).replace("import {POLICY} from './policy.js';",'');
   source=source.slice(0,source.indexOf('async function connect()'));
   const context=vm.createContext({POLICY:policy,chrome,crypto:{randomUUID:()=> 'fixture-session'},URL,Promise,setTimeout,clearTimeout,TextEncoder,performance,btoa:value=>Buffer.from(value,'binary').toString('base64')});
   vm.runInContext(source,context);
@@ -1713,6 +1713,44 @@ test('brief 28 item 4 the queue starts no command whose time is up when it reach
   assert.deepEqual(started.map(row=>row.name),['slow','page_state','outline'],'the expired command never started');
   assert.equal(started[1].expires,null,'a command without a time gets none');
   assert.equal(typeof started[2].expires,'number');
+});
+
+// The lead after step 10: a malformed time can only be a fault in the
+// service's bridge, so it is refused unrun (invalid_input), never run untimed.
+const MALFORMED_TIMES=[-1,1.5,-0.5,'500',null,true,{},[5],2**53];
+async function timedQueue(transform){
+  const f=fixture(transform);
+  f.run(`globalThis.posted=[];port={postMessage:message=>posted.push(message)};globalThis.started=[];
+    dispatch=async(command,expires)=>{started.push({id:command.id,expires});return {done:command.id};};
+    enqueue({id:'before',command:{name:'outline',id:'before'}});`
+    +MALFORMED_TIMES.map((value,index)=>`enqueue({id:'bad${index}',time_left_ms:${JSON.stringify(value)},command:{name:'outline',id:'bad${index}'}});`).join('')
+    +`enqueue({id:'zero',time_left_ms:0,command:{name:'outline',id:'zero'}});enqueue({id:'after',time_left_ms:5000,command:{name:'outline',id:'after'}});`);
+  for(let round=0;round<100&&f.run('posted.length')<MALFORMED_TIMES.length+3;round++)await pause(5);
+  return {posted:JSON.parse(f.run('JSON.stringify(posted)')),started:JSON.parse(f.run('JSON.stringify(started)'))};
+}
+
+test('brief 28 item 4 a malformed time is refused unrun in its turn and never runs without a time',async()=>{
+  const {posted,started}=await timedQueue();
+  assert.deepEqual(posted.map(message=>message.id),['before',...MALFORMED_TIMES.map((_,index)=>'bad'+index),'zero','after'],'one queue, in order');
+  for(const [index,value] of MALFORMED_TIMES.entries()){
+    const reply=posted[index+1];
+    assert.equal(reply.ok,false,JSON.stringify(value));
+    assert.equal(reply.error,'invalid_input: time_left_ms must be a whole number of milliseconds, 0 or more; the command was not run',JSON.stringify(value));
+  }
+  assert.match(posted.at(-2).error,/^expired: .*not started/,'0 is a time that is up, not a malformed one');
+  assert.deepEqual(started.map(row=>row.id),['before','after'],'no malformed command started');
+  assert.equal(started[0].expires,null);assert.equal(typeof started[1].expires,'number');
+});
+
+test('brief 28 item 4 the malformed-time test fails without the refusal',async()=>{
+  // The mutation, run in CI where Node is: the refusal cut out, the same queue
+  // runs every malformed command without a time, as JUDGMENT-CALL 9 had it.
+  let cut=0;
+  const {posted,started}=await timedQueue(source=>source.replaceAll('if(!valid){',()=>{cut++;return 'if(false){';}));
+  assert.equal(cut,1,'the refusal is written once');
+  assert.ok(posted.slice(1,MALFORMED_TIMES.length+1).every(reply=>reply.ok),JSON.stringify(posted));
+  assert.deepEqual(started.map(row=>row.id),['before',...MALFORMED_TIMES.map((_,index)=>'bad'+index),'after']);
+  assert.ok(started.slice(1,-1).every(row=>row.expires===null));
 });
 
 test('brief 28 item 4 with five tabs a slow first one costs only its share',async()=>{
