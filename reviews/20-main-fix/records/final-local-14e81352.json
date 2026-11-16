@@ -1,0 +1,141 @@
+{
+  "head": "14e81352",
+  "commands": [
+    {
+      "name": "python-shard-0",
+      "command": [
+        "python3",
+        "-B",
+        "control/chrome/ci/python-shard.py"
+      ],
+      "returncode": 0,
+      "seconds": 28
+    },
+    {
+      "name": "python-shard-1",
+      "command": [
+        "python3",
+        "-B",
+        "control/chrome/ci/python-shard.py"
+      ],
+      "returncode": 0,
+      "seconds": 999
+    },
+    {
+      "name": "python-shard-2",
+      "command": [
+        "python3",
+        "-B",
+        "control/chrome/ci/python-shard.py"
+      ],
+      "returncode": 0,
+      "seconds": 24
+    },
+    {
+      "name": "python-shard-3",
+      "command": [
+        "python3",
+        "-B",
+        "control/chrome/ci/python-shard.py"
+      ],
+      "returncode": 0,
+      "seconds": 390
+    },
+    {
+      "name": "node",
+      "command": [
+        "node",
+        "--test",
+        "<worktree>/control/chrome_tests/activation-evidence.test.mjs",
+        "<worktree>/control/chrome_tests/background.test.mjs",
+        "<worktree>/control/chrome_tests/compatibility.test.mjs",
+        "<worktree>/control/chrome_tests/destination-evidence.test.mjs",
+        "<worktree>/control/chrome_tests/details.test.mjs",
+        "<worktree>/control/chrome_tests/failure.test.mjs",
+        "<worktree>/control/chrome_tests/fixture.test.mjs",
+        "<worktree>/control/chrome_tests/ingress-scan.test.mjs",
+        "<worktree>/control/chrome_tests/latency.test.mjs",
+        "<worktree>/control/chrome_tests/owner-evidence.test.mjs",
+        "<worktree>/control/chrome_tests/owner-ui.test.mjs",
+        "<worktree>/control/chrome_tests/pack.test.mjs",
+        "<worktree>/control/chrome_tests/page.test.mjs",
+        "<worktree>/control/chrome_tests/password-ingress.test.mjs",
+        "<worktree>/control/chrome_tests/popup.test.mjs",
+        "<worktree>/control/chrome_tests/popups.test.mjs",
+        "<worktree>/control/chrome_tests/precedence-evidence.test.mjs",
+        "<worktree>/control/chrome_tests/qualification-completion.test.mjs",
+        "<worktree>/control/chrome_tests/qualification-reader.test.mjs",
+        "<worktree>/control/chrome_tests/reader.test.mjs",
+        "<worktree>/control/chrome_tests/receiver-evidence.test.mjs",
+        "<worktree>/control/chrome_tests/recheck3-evidence.test.mjs",
+        "<worktree>/control/chrome_tests/review-reload.test.mjs",
+        "<worktree>/control/chrome_tests/shards.test.mjs",
+        "<worktree>/control/chrome_tests/site-results.test.mjs",
+        "<worktree>/control/chrome_tests/sites.test.mjs",
+        "<worktree>/control/chrome_tests/state-catalogues.test.mjs",
+        "<worktree>/control/chrome_tests/tabs.test.mjs",
+        "<worktree>/control/chrome_tests/verdicts.test.mjs"
+      ],
+      "returncode": 0,
+      "seconds": 9
+    },
+    {
+      "name": "mutations",
+      "command": [
+        "python3",
+        "-B",
+        "reviews/20-chrome/mutation-audit.py",
+        ".work/20-main-fix/preflight-14e81352/mutations.json"
+      ],
+      "returncode": 0,
+      "seconds": 343
+    },
+    {
+      "name": "generate-check",
+      "command": [
+        "python3",
+        "control/generate.py",
+        "--check"
+      ],
+      "returncode": 0,
+      "seconds": 0
+    },
+    {
+      "name": "diff-check",
+      "command": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "returncode": 0,
+      "seconds": 0
+    },
+    {
+      "name": "service-unit-pin",
+      "command": [
+        "git",
+        "diff",
+        "--exit-code",
+        "8b7e799c",
+        "--",
+        "control/packaging/aresos-toold.service"
+      ],
+      "returncode": 0,
+      "seconds": 0
+    }
+  ],
+  "successful": true,
+  "python_tests": 316,
+  "python_shards": [
+    58,
+    57,
+    49,
+    152
+  ],
+  "python_skipped": 1,
+  "node_tests": 427,
+  "node_failures": 0,
+  "removal_mutations": 482,
+  "every_mutation_baseline_passed": true,
+  "note": "Full local preflight on 14e81352 (equivalent of .work/post18d/final-local.py: four Python shards, every Node test file, the complete mutation audit, generator, whitespace and service-unit checks). The Linux-only socket case is skipped on the Mac. No browser was started."
+}

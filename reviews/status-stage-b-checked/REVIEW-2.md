@@ -2,8 +2,8 @@ Reviewed head `7d32db9b`, including the full `main...HEAD` diff. No blocking or 
 
 Both previous blockers are resolved honestly:
 
-- **Fitting trials:** [INSTALL-STATUS.md:38](C:/Users/pab/AresOS-status-b/docs/INSTALL-STATUS.md:38) keeps both negative trials explicitly **OPEN**, preserves their refusal timing and maintainer-check requirements, and states they are not Stage C conditions. Tests preserve their visibility.
-- **Firmware evidence:** [INSTALL-STATUS.md:22](C:/Users/pab/AresOS-status-b/docs/INSTALL-STATUS.md:22) explicitly says no photograph was taken and firmware detection is owner-reported. It records the dated, owner-approved Windows-inventory substitution rather than claiming firmware-screen inspection.
+- **Fitting trials:** [INSTALL-STATUS.md:38](C:/Users/owner/AresOS-status-b/docs/INSTALL-STATUS.md:38) keeps both negative trials explicitly **OPEN**, preserves their refusal timing and maintainer-check requirements, and states they are not Stage C conditions. Tests preserve their visibility.
+- **Firmware evidence:** [INSTALL-STATUS.md:22](C:/Users/owner/AresOS-status-b/docs/INSTALL-STATUS.md:22) explicitly says no photograph was taken and firmware detection is owner-reported. It records the dated, owner-approved Windows-inventory substitution rather than claiming firmware-screen inspection.
 
 All three Stage C release conditions are supported:
 

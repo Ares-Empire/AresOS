@@ -131,7 +131,7 @@ def desktop_session():
 
 AS_ARES = ['runuser', '-u', 'ares', '--', 'env', '-i', 'HOME=/var/home/ares', 'XDG_RUNTIME_DIR=/run/user/1001',
            'PATH=/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin']
-GIB = 1024 ** 3
+MIB, GIB = 1024 ** 2, 1024 ** 3
 
 
 def desktop_status():
@@ -147,8 +147,8 @@ def cgroup_folder(pid):
 
 def desktop_jvm():
     """Package 23 review 1 (findings 1 and 4): a real JVM through the real wrapper and supervisor, as Prism would
-    start it from outside the desktop's scope. It must run in its own game scope with the 5 GiB target; killing that
-    whole scope must latch recovery and never start Minecraft again by itself."""
+    start it from outside the desktop's scope. It must run in its own game scope with the 2560 MiB target (package
+    23d); killing that whole scope must latch recovery and never start Minecraft again by itself."""
     lock = json.loads(pathlib.Path('/usr/share/aresos/minecraft/desktop.lock.json').read_text())
     instance = '/var/home/ares/.local/share/PrismLauncher/instances/AresDesktop'
     pause = '/tmp/aresos-ci-jvm.paused'
@@ -172,7 +172,7 @@ def desktop_jvm():
     folder = cgroup_folder(jvm)
     assert folder.endswith(f'/user@1001.service/aresos.slice/{unit}'), folder
     memory_high = pathlib.Path(folder, 'memory.high').read_text().strip()
-    assert memory_high == str(5 * GIB), memory_high
+    assert memory_high == str(2560 * MIB), memory_high
     assert os.path.realpath(f'/proc/{jvm}/exe') == os.path.realpath(lock['java']['path'])
     environ = dict(item.split('=', 1) for item in pathlib.Path(f'/proc/{jvm}/environ').read_text().split('\0')
                    if '=' in item)
@@ -333,6 +333,124 @@ def memory_pressure():
                 survivors=after, supervisor_state=state['state'], evidence=evidence)
 
 
+# Package 23b: the startup cover in the real session. A fresh VM is in SETUP (no account, no hub), where the
+# supervisor never shows it, so the check starts it by hand as ares in the labwc session, over the SETUP view and
+# the recovery terminal; the host takes the screenshot between 'cover' and 'cover-stop'. Before that, 'cover'
+# requires fontconfig to give the cover Space Grotesk as ares in the session (review 1, finding 1).
+COVER = {}
+COVER_TOP, COVER_BOTTOM = (26, 25, 30), (13, 13, 16)  # #1a191e, #0d0d10
+SPACE_GROTESK = '/usr/share/fonts/aresos/SpaceGrotesk-Variable.ttf'
+
+
+def ppm_corners(path):
+    """Top-left and bottom-right pixels of a binary PPM (grim -t ppm)."""
+    data = pathlib.Path(path).read_bytes()
+    fields, offset = [], 0
+    while len(fields) < 4:
+        while data[offset:offset + 1].isspace():
+            offset += 1
+        end = offset
+        while not data[end:end + 1].isspace():
+            end += 1
+        fields.append(data[offset:end])
+        offset = end
+    width, height, pixels = int(fields[1]), int(fields[2]), data[offset + 1:]
+    last = ((height - 1) * width + width - 1) * 3
+    return tuple(pixels[0:3]), tuple(pixels[last:last + 3])
+
+
+def near(pixel, expected):
+    return all(abs(a - b) <= 3 for a, b in zip(pixel, expected))
+
+
+def session_fonts(env):
+    """Review 1, finding 1: the file fontconfig gives the cover's two faces as ares in the real session. In the
+    deployed image /usr has mtime 0, so a font cache made before /usr/share/fonts/aresos existed would hide package
+    31's font here (the image check's container cannot see that); build.sh rebuilds the cache."""
+    found = {}
+    for pattern in ('Space Grotesk:bold', 'Space Grotesk'):
+        result = run(*env, '/usr/bin/fc-match', '-f', '%{file}', pattern)
+        assert result['returncode'] == 0, result
+        found[pattern] = result['stdout']
+    if set(found.values()) != {SPACE_GROTESK}:
+        mtimes = run('stat', '-c', '%n %Y', '/usr/share/fonts', '/usr/share/fonts/aresos')
+        raise AssertionError(f'fontconfig does not give the cover Space Grotesk: {found}; {mtimes}')
+    return found
+
+
+def cover_start():
+    supervisor = [r for r in processes() if r['uid'] == 1001
+                  and r['cmdline'][1:3] == ['/usr/libexec/aresos-desktop', 'supervise']]
+    assert len(supervisor) == 1, supervisor
+    display = supervisor[0]['env'].get('WAYLAND_DISPLAY')
+    assert display, 'the supervisor has no WAYLAND_DISPLAY'
+    env = [*AS_ARES, f'WAYLAND_DISPLAY={display}']
+    fonts = session_fonts(env)
+    COVER['process'] = subprocess.Popen([*env, '/usr/libexec/aresos-cover'], stdin=subprocess.DEVNULL,
+                                        stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    shot = pathlib.Path('/tmp/aresos-ci-cover.ppm')
+    corners = None
+    for _ in range(60):
+        time.sleep(0.5)
+        assert COVER['process'].poll() is None, COVER['process'].communicate()[0]
+        # grim writes the picture to stdout as bytes (run() would decode it as text).
+        result = subprocess.run([*env, '/usr/bin/grim', '-t', 'ppm', '-'], capture_output=True, timeout=60)
+        if result.returncode == 0:
+            shot.write_bytes(result.stdout)
+            corners = ppm_corners(shot)
+            if near(corners[0], COVER_TOP) and near(corners[1], COVER_BOTTOM):
+                break
+    else:
+        raise AssertionError(f'the cover never covered the screen (corners {corners})')
+    pids = [r['pid'] for r in processes() if r['uid'] == 1001 and r['cmdline'][1:2] == ['/usr/libexec/aresos-cover']]
+    assert len(pids) == 1, pids
+    COVER['pid'] = pids[0]
+    row = next(r for r in processes() if r['pid'] == pids[0])
+    assert row['env'].get('WAYLAND_DISPLAY') == display, row['env']
+    return dict(returncode=0, pid=pids[0], corners=corners, display=display, fonts=fonts,
+                stdout='COVER_UP corners %s; fontconfig as ares: %s' % (corners, fonts))
+
+
+def cover_stop():
+    process, pid = COVER.pop('process'), COVER.pop('pid')
+    started = time.monotonic()
+    os.kill(pid, 15)
+
+    def ended():
+        try:
+            return pathlib.Path(f'/proc/{pid}/stat').read_text().rsplit(')', 1)[1].split()[0] == 'Z'
+        except OSError:
+            return True
+    while not ended() and time.monotonic() - started < 10:
+        time.sleep(0.02)
+    took = time.monotonic() - started
+    # runuser hands on the cover's own exit status.
+    output = process.communicate(timeout=10)[0].decode(errors='replace')
+    assert process.returncode == 0 and took < 2.0, (process.returncode, took, output)
+    assert not pathlib.Path(f'/proc/{pid}').exists()
+    return dict(returncode=0, seconds=round(took, 3), output=output[-2000:],
+                stdout=f'COVER_STOPPED by SIGTERM in {took:.3f} s, exit 0')
+
+
+def shortcut_reached_the_supervisor():
+    """Package 23b, PLAN-GAP 2: Super+Ctrl+Escape (sent by the host before 'shortcut') also ran the supervisor's
+    hide-cover as ares in the session. The VM is in SETUP, never covered, so the supervisor logs that no cover is up;
+    the command itself answers the same and changes nothing."""
+    log = pathlib.Path('/var/home/ares/.local/state/aresos/desktop.log')
+    for _ in range(40):
+        if 'hide-cover (Super+Ctrl+Escape): no startup cover is up' in log.read_text(errors='replace'):
+            break
+        time.sleep(0.25)
+    else:
+        raise AssertionError('Super+Ctrl+Escape never reached the supervisor: ' + log.read_text(errors='replace')[-2000:])
+    before = desktop_status()
+    result = run(*AS_ARES, '/usr/libexec/aresos-desktop', 'hide-cover')
+    assert (result['returncode'], result['stdout'].strip()) == (0, 'No startup cover is up.'), result
+    after = desktop_status()
+    assert (after['state'], after['reason'], after['cover']) == (before['state'], before['reason'], False), after
+    return dict(state=after['state'], reason=after['reason'], answer=result['stdout'].strip())
+
+
 def check(action, request):
     if action == 'policy':
         wait_session()
@@ -362,6 +480,7 @@ def check(action, request):
         return run('python3', str(HERE / 'power-events.py'))
     if action == 'shortcut':
         result = wait_session(extra_terminal=True)
+        result['hide_cover'] = shortcut_reached_the_supervisor()
         # Package 21 review 5: the session, its terminal and the recovery
         # terminal started although broken copies of every startup command
         # head the daily account's ~/.local/bin; none of them may have run.
@@ -392,6 +511,10 @@ def check(action, request):
         assert not ran.exists(), ('a shadowing program ran', ran.read_text())
         result['shadowed'] = names
         return result
+    if action == 'cover':
+        return cover_start()
+    if action == 'cover-stop':
+        return cover_stop()
     if action == 'export':
         return dict(returncode=0, files={name: export_bytes(pathlib.Path(path).read_bytes())
                                        for name, path in EXPORTS.items() if pathlib.Path(path).exists()})

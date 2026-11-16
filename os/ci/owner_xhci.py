@@ -10,8 +10,21 @@ def context(guest):
     return value if isinstance(value, dict) else None
 
 
-def classify(rows, since, boot, expected_disconnect=None):
+# Counts the boot's kernel lines by class. `removals` holds one [port,
+# requested_usec] per tools-stick removal the harness requested in this boot,
+# in order: the sysfs-resolved port and the guest's CLOCK_MONOTONIC read just
+# before QMP device_del. journald stamps a kernel line (__MONOTONIC_TIMESTAMP)
+# on that clock when it receives it, so the line a removal causes is stamped
+# after its request, and the line of an earlier removal before it (that
+# removal's unplug-confirmed checkpoint read it before the next stick was
+# attached). A disconnect of a requested port belongs to the latest request
+# for that port at or before its stamp, and each request excuses one. Before
+# its first request a disconnect of the port is unrequested, like any other
+# port's. (A comment, not a docstring: this source is sent to the guest over
+# the serial line with every checkpoint and guarded observer.)
+def classify(rows, since, boot, removals=()):
     counts = dict(endpoint_timeout=0, controller_dead=0, usb_disconnect=0, expected_disconnect=0)
+    excused = [0] * len(removals)
     checked = 0
     for row in rows:
         assert row['_TRANSPORT'] == 'kernel' and row['_BOOT_ID'] == boot, 'STOP: kernel journal identity changed'
@@ -26,10 +39,13 @@ def classify(rows, since, boot, expected_disconnect=None):
             counts['controller_dead'] += 1
         elif re.search(r'^usb [0-9]+-[0-9.]+: USB disconnect, device number [0-9]+$', text):
             port = text.split(':', 1)[0].removeprefix('usb ')
-            if expected_disconnect and port == expected_disconnect: counts['expected_disconnect'] += 1
+            owners = [n for n, (wanted, requested) in enumerate(removals) if wanted == port and requested <= stamp]
+            if owners:
+                excused[owners[-1]] += 1
+                counts['expected_disconnect'] += 1
             else: counts['usb_disconnect'] += 1
-    # Only one independently requested removal of the identified tools device.
-    assert counts['expected_disconnect'] <= 1, 'STOP: repeated tools-stick disconnect'
+    # Each independently requested removal of the identified tools device is excused once.
+    assert all(n <= 1 for n in excused), 'STOP: repeated tools-stick disconnect'
     return dict(counts=counts, checked_kernel_messages=checked, counts_only=True)
 
 
@@ -42,17 +58,22 @@ def kernel_health(context):
     assert rows, 'STOP: empty kernel health journal'
     boot = rows[0]['_BOOT_ID']  # journalctl --boot=0 selects this guest boot.
     assert re.fullmatch('[0-9a-f]{32}', boot), 'STOP: invalid guest boot identity'
-    value = classify(rows, context['since_usec'], boot, context.get('expected_disconnect'))
-    value.update(stage=context['stage'], tools_attached=context['attached'], tools_needed=context['needed'])
+    value = classify(rows, context['since_usec'], boot, context['removals'])
+    value.update(stage=context['stage'], tools_attached=context['attached'], tools_needed=context['needed'],
+        tools_removals_requested=len(context['removals']))
     value['stop'] = bool((context['attached'] or context['needed']) and any(
         value['counts'][name] for name in ('controller_dead', 'usb_disconnect')))
     return value
 
 
 def preamble(context):
-    assert set(context) == {'stage', 'since_usec', 'attached', 'needed', 'expected_disconnect'}
+    assert set(context) == {'stage', 'since_usec', 'attached', 'needed', 'removals'}
     assert type(context['since_usec']) is int and context['since_usec'] >= 0
     assert type(context['attached']) is bool and type(context['needed']) is bool
+    removals = context['removals']
+    assert type(removals) is list and all(type(r) is list and len(r) == 2 and type(r[0]) is str
+        and re.fullmatch('[0-9]+-[0-9.]+', r[0]) and type(r[1]) is int and r[1] >= 0 for r in removals)
+    assert all(a[1] < b[1] for a, b in zip(removals, removals[1:])), 'STOP: tools-stick removals out of order'
     return ('import json,re,time\n' + inspect.getsource(classify) + inspect.getsource(kernel_health)
         + '\n_xhci_context=' + repr(context) + '\n_xhci_last=-float("inf")\n'
         + 'def xhci_poll(force=False):\n'

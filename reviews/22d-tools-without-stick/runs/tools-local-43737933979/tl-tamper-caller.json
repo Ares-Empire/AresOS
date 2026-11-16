@@ -1,0 +1,20 @@
+{
+  "uid": 1001,
+  "loginuid": "1001",
+  "stdin_terminal": false,
+  "wayland": true,
+  "runtime": "/run/user/1001",
+  "terminal": false,
+  "tty_errno": 6,
+  "line_sha256": {
+    "routine": "0b11cfc562841f58393bdb11f7962556418f851241885ce21d11594a4e13c079"
+  },
+  "routine": {
+    "status": 1,
+    "stdout": "SHA256SUMS: OK\nat: OK\nhistory.json: OK\nmedia.py: OK\nowner.py: FAILED\nrelease.json: OK\nrelease/pause-stock-updates.sh: OK\nrelease/pin-stock.sh: OK\nrelease/start-next.sh: OK\nrelease/stock-session.sh: OK\nrelease/switch.sh: OK\nrelease/system-keyboard.sh: OK\nrelease/update.sh: OK\nrelease/verify.sh: OK\nSHA256.json: OK\nSTOP bootstrap: verification or install refused\n",
+    "stderr": "sha256sum: WARNING: 1 computed checksum did NOT match\n",
+    "signalled": [],
+    "helper": null,
+    "helper_gone": true
+  }
+}

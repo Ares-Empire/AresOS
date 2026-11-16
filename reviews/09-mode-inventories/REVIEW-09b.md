@@ -1,7 +1,7 @@
 Reviewed `c9a7159..d52ce12`, excluding binary images. One blocking regression remains.
 
 1. **Blocking — a client without the new receiver can remain locked indefinitely.**  
-   **Where:** [ModeInventories.java:133](C:/Users/pab/AresOS-09-mode-inventories/mod/src/main/java/dev/aresos/mode/ModeInventories.java:133), reached through [ExternalModeMixin.java:28](C:/Users/pab/AresOS-09-mode-inventories/mod/src/main/java/dev/aresos/mixin/ExternalModeMixin.java:28).  
+   **Where:** [ModeInventories.java:133](C:/Users/owner/AresOS-09-mode-inventories/mod/src/main/java/dev/aresos/mode/ModeInventories.java:133), reached through [ExternalModeMixin.java:28](C:/Users/owner/AresOS-09-mode-inventories/mod/src/main/java/dev/aresos/mixin/ExternalModeMixin.java:28).  
    **Why:** external changes route every connected player into `begin()` without checking support for `ModeSwitchStatePayload`. A LAN guest running pre-09b AresOS can receive `/gamemode creative Guest`, have its inventory swapped and `pending` set, but cannot acknowledge the new protocol. The server then rejects its item actions and further switches for the rest of that connection. The tests use the current client or manually acknowledge server fixtures, so they miss this.  
    **Fix:** verify protocol support before beginning or mutating anything; otherwise refuse with a message. Add a regression with an unregistered state channel, asserting unchanged inventory/mode and `pending == false`. Keep the acknowledgement requirement for supported clients.
 

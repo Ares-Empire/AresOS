@@ -1,0 +1,6 @@
+{
+  "protocol": "aresos-shell/1.1",
+  "id": "e-7",
+  "event": "shell_covered",
+  "covered": true
+}

@@ -1,7 +1,7 @@
 Reviewed `46c68e4`. No files changed or hardware operations performed. The existing release gates remain necessary; the findings below concern the instructions themselves.
 
 1. **Should-fix before physical release — SSD fitting lacks a clear seating and tightening checkpoint.**  
-   Where: [INSTALL.md:62](/C:/Users/pab/AresOS-10-own-ssd-install/docs/INSTALL.md:62).
+   Where: [INSTALL.md:62](/C:/Users/owner/AresOS-10-own-ssd-install/docs/INSTALL.md:62).
 
    **Scenario:** A first-time installer interprets “align/seat…lower…secure” as inserting the SSD flat, or uses the screw to pull a partly inserted SSD into position. “Check seating” does not explain what correct seating looks like.
 
@@ -12,7 +12,7 @@ Reviewed `46c68e4`. No files changed or hardware operations performed. The exist
    **Check:** On expendable hardware, a novice must distinguish correctly seated, partly inserted and incorrectly supported examples before touching the screw.
 
 2. **Should-fix before owner release — The mandatory Linux check asks the reader to identify relationships that its output does not show clearly.**  
-   Where: [INSTALL-RECORD.md:63](/C:/Users/pab/AresOS-10-own-ssd-install/docs/INSTALL-RECORD.md:63), [INSTALL.md:73](/C:/Users/pab/AresOS-10-own-ssd-install/docs/INSTALL.md:73).
+   Where: [INSTALL-RECORD.md:63](/C:/Users/owner/AresOS-10-own-ssd-install/docs/INSTALL-RECORD.md:63), [INSTALL.md:73](/C:/Users/owner/AresOS-10-own-ssd-install/docs/INSTALL.md:73).
 
    **Scenario:** The owner sees long `NAME="..." TYPE="..."` lines, then must establish “no partition children,” compare every Windows partition and translate the result into the installer’s destination. The command uses `--pairs`, which disables the normal tree, and includes no explicit parent-device column. The comparison sheet also lacks a current Linux device-path field. [util-linux source](https://github.com/util-linux/util-linux/blob/master/lsblk-cmd/lsblk.c).
 
@@ -23,7 +23,7 @@ Reviewed `46c68e4`. No files changed or hardware operations performed. The exist
    **Check:** With near-equal drives and reversed enumeration, an unaided novice must select Crucial, reject a Crucial containing an unexpected partition, and identify a proposed Micron EFI write.
 
 3. **Should-fix — “Simplest” undo unnecessarily means opening the laptop again.**  
-   Where: [INSTALL.md:106](/C:/Users/pab/AresOS-10-own-ssd-install/docs/INSTALL.md:106).
+   Where: [INSTALL.md:106](/C:/Users/owner/AresOS-10-own-ssd-install/docs/INSTALL.md:106).
 
    **Scenario:** The trial disappoints and the owner just wants normal Windows startup. The guide offers physical removal or destructive erasure, so they reopen the case despite having no need to reclaim the SSD.
 
@@ -34,7 +34,7 @@ Reviewed `46c68e4`. No files changed or hardware operations performed. The exist
    **Check:** A novice can return to Windows-only everyday use without opening the case, preparing GParted or changing either disk’s layout.
 
 4. **Should-fix — German keyboard setup happens after the first Linux command session.**  
-   Where: [INSTALL.md:73](/C:/Users/pab/AresOS-10-own-ssd-install/docs/INSTALL.md:73).
+   Where: [INSTALL.md:73](/C:/Users/owner/AresOS-10-own-ssd-install/docs/INSTALL.md:73).
 
    **Scenario:** Following the guide on a phone, the owner types record C’s commands into a live session using an English layout. German keyboard selection and its test occur only in the next installer step.
 
@@ -45,7 +45,7 @@ Reviewed `46c68e4`. No files changed or hardware operations performed. The exist
    **Check:** Follow the guide from a second device with a German physical keyboard and an initially English live session. All commands must be enterable without undocumented layout changes.
 
 5. **Should-fix — The repeated Windows comparison omits reopening an administrator terminal after reboot.**  
-   Where: [INSTALL-RECORD.md:29](/C:/Users/pab/AresOS-10-own-ssd-install/docs/INSTALL-RECORD.md:29).
+   Where: [INSTALL-RECORD.md:29](/C:/Users/owner/AresOS-10-own-ssd-install/docs/INSTALL-RECORD.md:29).
 
    **Scenario:** After fitting or installing, the owner follows the direct link to record B and opens ordinary PowerShell. Record A’s elevated terminal disappeared during reboot; B does not repeat that prerequisite.
 

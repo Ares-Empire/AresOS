@@ -1,0 +1,70 @@
+{
+ "label": "settled",
+ "monotonic_ns": 39354771781168,
+ "time": "10:21:03",
+ "status_mib": {
+  "VmHWM": 1290,
+  "VmRSS": 1290,
+  "RssAnon": 1086,
+  "RssFile": 147,
+  "RssShmem": 56,
+  "VmSwap": 0
+ },
+ "smaps_rollup_mib": {
+  "Rss": 1239,
+  "Pss": 1173,
+  "Pss_Anon": 1086,
+  "Pss_File": 81,
+  "Pss_Shmem": 5,
+  "Swap": 0
+ },
+ "cgroup": "/user.slice/user-1001.slice/user@1001.service/app.slice/pkg41-game-h4-rd8-sd5-h768-804952.scope",
+ "cgroup_mib": {
+  "current": 1103,
+  "peak": 1103,
+  "swap": 0,
+  "high": "5368709120",
+  "anon": 1086,
+  "file": 8,
+  "kernel": 6,
+  "shmem": 0
+ },
+ "cgroup_events": {
+  "low": 0,
+  "high": 0,
+  "max": 0,
+  "oom": 0,
+  "oom_kill": 0,
+  "oom_group_kill": 0,
+  "sock_throttled": 0
+ },
+ "heap_mib": {
+  "reserved": 768,
+  "committed": 518,
+  "used": 416
+ },
+ "heap_regions": {
+  "region_kib": 1024,
+  "young": 157,
+  "survivors": 13
+ },
+ "nmt_committed_mib": {
+  "Java Heap": 518,
+  "Class": 26,
+  "Thread": 7,
+  "Code": 71,
+  "GC": 71,
+  "Compiler": 1,
+  "Internal": 2,
+  "Other": 7,
+  "Symbol": 23,
+  "Native Memory Tracking": 11,
+  "Shared class space": 14,
+  "Arena Chunk": 1,
+  "Synchronization": 2,
+  "Metaspace": 119,
+  "Total": 873
+ },
+ "gpu_total_used_mib": 380,
+ "gpu_process_mib": 316
+}

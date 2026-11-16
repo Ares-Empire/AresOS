@@ -1,7 +1,7 @@
 Reviewed `743e6da..a8fa177`. REVIEW-2 findings **1 and 2 are fixed**. L4 now executes the hostile program inside Claude Code’s own sandbox, using only the two exact Bash grants plus the test environment entry. One blocking checker gap remains.
 
 1. **blocking — L4’s mount comparison can accept a changed effective sandbox.**  
-   **Where:** [boundary_assertions.py:52](/Users/pab/AresOS-18b-control-boundary/control/boundary/boundary_assertions.py:52), used by [native.py:239](/Users/pab/AresOS-18b-control-boundary/control/boundary/native.py:239).
+   **Where:** [boundary_assertions.py:52](/Users/owner/AresOS-18b-control-boundary/control/boundary/boundary_assertions.py:52), used by [native.py:239](/Users/owner/AresOS-18b-control-boundary/control/boundary/native.py:239).
 
    The parser discards mount IDs and parent IDs; both comparisons then collapse mounts by destination. Linux determines visibility through the parent graph, including whether an ancestor covers a mount. [Linux mountinfo reference](https://man7.org/linux/man-pages/man5/proc_pid_mountinfo.5.html).
 

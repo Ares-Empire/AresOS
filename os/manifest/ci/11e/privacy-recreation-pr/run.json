@@ -101,11 +101,11 @@
     "message": "Recognize target-ESP Linux recreation at a former automatic option number",
     "timestamp": "2026-10-24T00:17:33Z",
     "author": {
-      "name": "pab",
+      "name": "owner",
       "email": "admin@example.com"
     },
     "committer": {
-      "name": "pab",
+      "name": "owner",
       "email": "admin@example.com"
     }
   },

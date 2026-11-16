@@ -101,11 +101,11 @@
     "message": "Brief 11c: narrow firmware-owned NVRAM rule, then the real installs\n\nCo-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>",
     "timestamp": "2026-10-23T16:21:16Z",
     "author": {
-      "name": "pab",
+      "name": "owner",
       "email": "admin@example.com"
     },
     "committer": {
-      "name": "pab",
+      "name": "owner",
       "email": "admin@example.com"
     }
   },

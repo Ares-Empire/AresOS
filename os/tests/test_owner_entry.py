@@ -36,7 +36,13 @@ def entry_stdout():
     check=unittest.TestCase()
     captured={}
     commands=json.loads((ROOT/'os/owner-tools/commands.json').read_text())
+    # Brief 22d's generated lines start no dispatcher of their own: Claude's folder line runs
+    # none, and the routine lines run install, check, title and export as the entries below
+    # do (test_owner_bootstrap holds their scripts).
+    generated=set(common.module('bootstrap').lines('0'*64))
     for name,command in commands.items():
+        if name in generated:
+            continue
         with tempfile.TemporaryDirectory(dir=ROOT/'os/tests') as temporary, contextlib.ExitStack() as stack:
             root=pathlib.Path(temporary); home=root/'home'; home.mkdir()
             payload=home/'tools'; common.fixture_bundle(payload)
@@ -73,7 +79,9 @@ def entry_stdout():
             check.assertEqual(passes,['PASS '+' '.join(argv)])
             check.assertIn('Full diagnostics: /var/lib/ares/records (private)',captured[name])
             method={'rollback':'recover','keep-stock':'recover'}.get(argv[0],argv[0])
-            expected=([payload,host] if method=='install' else [True] if argv[0]=='keep-stock' else argv[1:])
+            # Through the installed entry no mount m lies beside the toolset: install follows
+            # the folder rules (brief 22d, decision 7).
+            expected=([payload,host,'folder'] if method=='install' else [True] if argv[0]=='keep-stock' else argv[1:])
             handlers[method].assert_called_once_with(*expected)
             for key,handler in handlers.items():
                 if key!=method: handler.assert_not_called()

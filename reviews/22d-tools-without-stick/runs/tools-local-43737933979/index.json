@@ -1,0 +1,515 @@
+{
+  "run": "https://github.com/Ares-Empire/AresOS/actions/runs/43737933979",
+  "kind": "tools-local-rehearsal",
+  "commit": "89bc06581e799af7cd901c25840cac3cd89de454",
+  "status": "passed",
+  "files": [
+    {
+      "path": "22d-bound-sources.json",
+      "sha256": "1a691001ac671161af77e2d3c00839ee9e239e5153e5f8b5a000f49adf30d77f"
+    },
+    {
+      "path": "22d-dispatch-authorization.json",
+      "sha256": "d2afc8f8c3027cd6944e55109871afcf77133e29616ef0466b4f244f9db4de3a"
+    },
+    {
+      "path": "export-version-2-before-hotplug-xhci-health.json",
+      "sha256": "fe2425770287a766210f4175fe32d9307c1b411e887fd19f57ed4e34e8dadc44"
+    },
+    {
+      "path": "export-version-2-requested-unplug-xhci-health.json",
+      "sha256": "43ee199d8c2ef9d3fae75b54ebf9e21e9456f869230bc79d3304cb33fedf3972"
+    },
+    {
+      "path": "export-version-2-stick-owner-pass.png",
+      "sha256": "958934e411b7c8f196d378ba04900469290ca10f4823c319e078fa77bb910d3b"
+    },
+    {
+      "path": "export-version-2-tools-usb-port.json",
+      "sha256": "152cafaeeac271c6297cb400e6bff14d2ef18bf81f9e7fd6a62e06c37bfb8f5e"
+    },
+    {
+      "path": "export-version-2-unplug-confirmed-xhci-health.json",
+      "sha256": "e17d0f1f98a22034e8da67942bac11ce66afa5c0024fd17cbb9a6677744ea6f0"
+    },
+    {
+      "path": "final-27-check-owner-pass.png",
+      "sha256": "1200577f302040b5a75f82cb562506c4df364ef6e3f922831e65d7d0014b656b"
+    },
+    {
+      "path": "final-27-title-owner-pass.png",
+      "sha256": "4d29aaecb10c6bb1e075cfc32612728b506bdc8209f4e01d6e2300e7f83ca078"
+    },
+    {
+      "path": "final-detached-windows-marker.txt",
+      "sha256": "3f712ac6e47ff9692dfde584ba78132b8ce125f3e6ccb1d7c9b9ffb368cdb04c"
+    },
+    {
+      "path": "final-unattended-windows-marker.txt",
+      "sha256": "3f712ac6e47ff9692dfde584ba78132b8ce125f3e6ccb1d7c9b9ffb368cdb04c"
+    },
+    {
+      "path": "tl-after-cut-state.json",
+      "sha256": "e4bf010e79b1555634907a41e312c447e245427f96777bd88870f98103300509"
+    },
+    {
+      "path": "tl-boot-keyrings.json",
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+    },
+    {
+      "path": "tl-cancel-before-state.json",
+      "sha256": "c05327c1b9e41a0f7a594cba80e573721e657e649d1a4693375ddd1bc39afdd6"
+    },
+    {
+      "path": "tl-cancel-before.png",
+      "sha256": "fc00c28b0f0add2a50679c3c13f98c0a5efa7f0c837a20dce97d899005ce300e"
+    },
+    {
+      "path": "tl-cancel-caller-result.json",
+      "sha256": "7d792e6618dc859f029d1ce3b675795c648c8bc1de915b7c10733bf42a588c83"
+    },
+    {
+      "path": "tl-cancel-caller.json",
+      "sha256": "7d792e6618dc859f029d1ce3b675795c648c8bc1de915b7c10733bf42a588c83"
+    },
+    {
+      "path": "tl-cancel-dialog.json",
+      "sha256": "93e51fc23d669f403550ea646663ca03f92dccc49e903315c8439c13adc86ae8"
+    },
+    {
+      "path": "tl-cancel-keyrings-after.json",
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+    },
+    {
+      "path": "tl-cancel-launched.json",
+      "sha256": "334a5d06fb65b71773b33726f1c604ba4f340bde9cb01f065fe038b29d09bfc9"
+    },
+    {
+      "path": "tl-cancel-stage.json",
+      "sha256": "a9ff79a05000d3765f32b68e332eab658cd06384d44446813169c09228b67a6f"
+    },
+    {
+      "path": "tl-cancel-state.json",
+      "sha256": "485537524487fea20c76e47570d3de004d54f7087377867b40271f3e8d15cb97"
+    },
+    {
+      "path": "tl-cancel-window-centre.json",
+      "sha256": "0f59ad0dc1c3c9d2b3064a2b2302cb7953c2ff277d4143e50dbe58ecffd2054d"
+    },
+    {
+      "path": "tl-cancel-window.png",
+      "sha256": "2a0092fd888b36ad671e009b4d5a6a982fbae8bc2a991a8230f7da4e3dd9b5d4"
+    },
+    {
+      "path": "tl-cut-armed.json",
+      "sha256": "364f14905df8a3686cae97fcca35ffd63a4ee8032f76373d360f9942237c8152"
+    },
+    {
+      "path": "tl-cut-before-hard-reset-xhci-health.json",
+      "sha256": "c6f01eeca771ae7fd1ffd8eb03fb071d18a36aa6f8d05a0ce3eac5644cd31715"
+    },
+    {
+      "path": "tl-cut-before.png",
+      "sha256": "fc00c28b0f0add2a50679c3c13f98c0a5efa7f0c837a20dce97d899005ce300e"
+    },
+    {
+      "path": "tl-cut-blockstats.json",
+      "sha256": "0fa75adb7e3d4bd374381e09234dc2cf46c5df84f2d5039b322c29304dc3beb6"
+    },
+    {
+      "path": "tl-cut-dialog.json",
+      "sha256": "857dc33330795b4814a57d39065aa7275e7b211015128faf7a99c2c26c6b8055"
+    },
+    {
+      "path": "tl-cut-frozen.json",
+      "sha256": "be104011f2c459934a258d3cb3230c350e4860547cbf94a32fda35d090c9bc36"
+    },
+    {
+      "path": "tl-cut-hard-reset.json",
+      "sha256": "a51e36667d139b63592bbf16750cc713c6157052d14faa2b1588c446ed07453b"
+    },
+    {
+      "path": "tl-cut-launched.json",
+      "sha256": "334a5d06fb65b71773b33726f1c604ba4f340bde9cb01f065fe038b29d09bfc9"
+    },
+    {
+      "path": "tl-cut-stage.json",
+      "sha256": "2b91dce3b72f3220bfea3e89c5d59d1a32d7d2d806ec134bb56bef23b9ef0cfa"
+    },
+    {
+      "path": "tl-cut-tools-absent.json",
+      "sha256": "d436ffe3c68bfa452448f893b4aebe6338d39169d317b4d0c26d32e3c6ad9b78"
+    },
+    {
+      "path": "tl-cut-watcher.json",
+      "sha256": "be104011f2c459934a258d3cb3230c350e4860547cbf94a32fda35d090c9bc36"
+    },
+    {
+      "path": "tl-cut-window-centre.json",
+      "sha256": "0f59ad0dc1c3c9d2b3064a2b2302cb7953c2ff277d4143e50dbe58ecffd2054d"
+    },
+    {
+      "path": "tl-cut-window.png",
+      "sha256": "11bad5b7565789b1df48c50350f3313c1e234b4a5634cb580dbc5f611523e70f"
+    },
+    {
+      "path": "tl-export-access.json",
+      "sha256": "5ff8dc2c59179046f2015496854756358aaf3babf411c0fa87a09e2976bb72cb"
+    },
+    {
+      "path": "tl-export-before.png",
+      "sha256": "fc00c28b0f0add2a50679c3c13f98c0a5efa7f0c837a20dce97d899005ce300e"
+    },
+    {
+      "path": "tl-export-caller-result.json",
+      "sha256": "0f635d93655439344651087603acfab65e7b04a9ce68d94f57fae1aa42f12332"
+    },
+    {
+      "path": "tl-export-caller.json",
+      "sha256": "0f635d93655439344651087603acfab65e7b04a9ce68d94f57fae1aa42f12332"
+    },
+    {
+      "path": "tl-export-dialog.json",
+      "sha256": "236e66a88a0c23ead3f0ab6cc18bde4ea6f12d8d2913e64270e6d4b950f262c2"
+    },
+    {
+      "path": "tl-export-keyrings-after.json",
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+    },
+    {
+      "path": "tl-export-launched.json",
+      "sha256": "334a5d06fb65b71773b33726f1c604ba4f340bde9cb01f065fe038b29d09bfc9"
+    },
+    {
+      "path": "tl-export-stage.json",
+      "sha256": "e9d5c308a42e598776df3c25a63f042cd27aff48afa78fb98c350dd1489abe06"
+    },
+    {
+      "path": "tl-export-stick-stage.json",
+      "sha256": "117e3fe1a6f909b059618726f5899f24b184f27377c0c89cead35399efe0d2f9"
+    },
+    {
+      "path": "tl-export-window-centre.json",
+      "sha256": "8e487ba72c5ff3f801e8308a5eb336c7d88df82eab6557648b206b8e6a834f0a"
+    },
+    {
+      "path": "tl-export-window.png",
+      "sha256": "42d0fcd733be871c362c684424f2e67b255150775e492c39509e72de4a41fdff"
+    },
+    {
+      "path": "tl-install-before.png",
+      "sha256": "fc00c28b0f0add2a50679c3c13f98c0a5efa7f0c837a20dce97d899005ce300e"
+    },
+    {
+      "path": "tl-install-caller-result.json",
+      "sha256": "645289f3445609b4b34c154b486555663d2d8ffb0bfa82a73b5924fcb5ef36fe"
+    },
+    {
+      "path": "tl-install-caller.json",
+      "sha256": "645289f3445609b4b34c154b486555663d2d8ffb0bfa82a73b5924fcb5ef36fe"
+    },
+    {
+      "path": "tl-install-dialog.json",
+      "sha256": "bf5351f3c5f24cda8812d2939b92628c0ecc3b1f50c43c8b0c2eaf9cc0b0a7f6"
+    },
+    {
+      "path": "tl-install-keyrings-after.json",
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+    },
+    {
+      "path": "tl-install-launched.json",
+      "sha256": "334a5d06fb65b71773b33726f1c604ba4f340bde9cb01f065fe038b29d09bfc9"
+    },
+    {
+      "path": "tl-install-receipt-fields.json",
+      "sha256": "29deae46b268265e4446663c6ff913c03a425733a17878465139adc3b09f404c"
+    },
+    {
+      "path": "tl-install-records.json",
+      "sha256": "6db074c0571fc6044decdc3ad90888a5d7fda57eef799dddfc5e37e81f35ea98"
+    },
+    {
+      "path": "tl-install-stage.json",
+      "sha256": "7359692867d7c1de7fdbe3082817b91c74b2e593478b3a25d2c36dee01723942"
+    },
+    {
+      "path": "tl-install-state.json",
+      "sha256": "a77b106d7c8d0538d0bdbceda5e73bb9d559f7f2d8a90c8bba9df6a33b1c8c05"
+    },
+    {
+      "path": "tl-install-window-centre.json",
+      "sha256": "0f59ad0dc1c3c9d2b3064a2b2302cb7953c2ff277d4143e50dbe58ecffd2054d"
+    },
+    {
+      "path": "tl-install-window.png",
+      "sha256": "4bd5992a2bf94baf8aa77f50b0fa81fa043f0643820150221c79a91e64ab4ea6"
+    },
+    {
+      "path": "tl-setup-keyrings.json",
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+    },
+    {
+      "path": "tl-start-state.json",
+      "sha256": "6d21950e45d74e642093d0ba1e1d7ea040d88aaa675c10e00c7c5fd797fe20ce"
+    },
+    {
+      "path": "tl-stick-next-stage.json",
+      "sha256": "67bece72c82db0636ce5fd74b0197eba80ed53497783e294e570549c0e70eaf5"
+    },
+    {
+      "path": "tl-tamper-before.png",
+      "sha256": "fc00c28b0f0add2a50679c3c13f98c0a5efa7f0c837a20dce97d899005ce300e"
+    },
+    {
+      "path": "tl-tamper-caller-result.json",
+      "sha256": "72dbe1af23cc4625b79ae11b9e4e9b065bed202605a6a645d98b09d2a2a130f0"
+    },
+    {
+      "path": "tl-tamper-caller.json",
+      "sha256": "72dbe1af23cc4625b79ae11b9e4e9b065bed202605a6a645d98b09d2a2a130f0"
+    },
+    {
+      "path": "tl-tamper-dialog.json",
+      "sha256": "c19d2e936c02c3a8fc7d4564840f525fd35163c284be611b160e5543a6548ea9"
+    },
+    {
+      "path": "tl-tamper-keyrings-after.json",
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+    },
+    {
+      "path": "tl-tamper-launched.json",
+      "sha256": "334a5d06fb65b71773b33726f1c604ba4f340bde9cb01f065fe038b29d09bfc9"
+    },
+    {
+      "path": "tl-tamper-stage.json",
+      "sha256": "80835e33ed81d844397eb8766ab4b55bec5f10e2b96ae3c9e4cd18096ebf72aa"
+    },
+    {
+      "path": "tl-tamper-state.json",
+      "sha256": "a3be66bb3df2e30b47eaf512c3ecd626f2d61953ad23cf26afd57b9530b12dc1"
+    },
+    {
+      "path": "tl-tamper-window-centre.json",
+      "sha256": "0f59ad0dc1c3c9d2b3064a2b2302cb7953c2ff277d4143e50dbe58ecffd2054d"
+    },
+    {
+      "path": "tl-tamper-window.png",
+      "sha256": "e422c0d80ff2528688862ba0d441d4007c0caf2e8dcb35568548a2292a9b33d4"
+    },
+    {
+      "path": "tl-unanswered-before.png",
+      "sha256": "fc00c28b0f0add2a50679c3c13f98c0a5efa7f0c837a20dce97d899005ce300e"
+    },
+    {
+      "path": "tl-unanswered-caller-result.json",
+      "sha256": "8821a08c8262d5d678e2d0e7c03a8e4d7accb6e866ee00f8139d1c9dda07b971"
+    },
+    {
+      "path": "tl-unanswered-caller.json",
+      "sha256": "8821a08c8262d5d678e2d0e7c03a8e4d7accb6e866ee00f8139d1c9dda07b971"
+    },
+    {
+      "path": "tl-unanswered-dialog.json",
+      "sha256": "eb21c809609c22b8bce17ea56858098328a921e09f88c23a6393e4abaf05b8d7"
+    },
+    {
+      "path": "tl-unanswered-keyrings-after.json",
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+    },
+    {
+      "path": "tl-unanswered-launched.json",
+      "sha256": "334a5d06fb65b71773b33726f1c604ba4f340bde9cb01f065fe038b29d09bfc9"
+    },
+    {
+      "path": "tl-unanswered-stage.json",
+      "sha256": "f6a7a75921519636bb8c2d11193eadb800ef053bc19cd7b20a70138abb12a9d7"
+    },
+    {
+      "path": "tl-unanswered-state.json",
+      "sha256": "485537524487fea20c76e47570d3de004d54f7087377867b40271f3e8d15cb97"
+    },
+    {
+      "path": "tl-unanswered-window-centre.json",
+      "sha256": "0f59ad0dc1c3c9d2b3064a2b2302cb7953c2ff277d4143e50dbe58ecffd2054d"
+    },
+    {
+      "path": "tl-unanswered-window.png",
+      "sha256": "01ee49713c199bb444e7a865ec553d6195177a596e222249d821e6053fa746df"
+    },
+    {
+      "path": "tl-v3-before.png",
+      "sha256": "fc00c28b0f0add2a50679c3c13f98c0a5efa7f0c837a20dce97d899005ce300e"
+    },
+    {
+      "path": "tl-v3-caller-result.json",
+      "sha256": "4e2770964909655607ba9ba5de1f1bca6dbae3692c3d15f0baff3a280a62c350"
+    },
+    {
+      "path": "tl-v3-caller.json",
+      "sha256": "4e2770964909655607ba9ba5de1f1bca6dbae3692c3d15f0baff3a280a62c350"
+    },
+    {
+      "path": "tl-v3-dialog.json",
+      "sha256": "e382d0e99a838bce921221d84029369444840558411dd1973fc67e7f80e3e645"
+    },
+    {
+      "path": "tl-v3-keyrings-after.json",
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+    },
+    {
+      "path": "tl-v3-launched.json",
+      "sha256": "334a5d06fb65b71773b33726f1c604ba4f340bde9cb01f065fe038b29d09bfc9"
+    },
+    {
+      "path": "tl-v3-stage.json",
+      "sha256": "7ba108eabfd3bad22a3414d16f5b324a2133cb1b73b48db199d36fb7bf256efa"
+    },
+    {
+      "path": "tl-v3-state.json",
+      "sha256": "c05327c1b9e41a0f7a594cba80e573721e657e649d1a4693375ddd1bc39afdd6"
+    },
+    {
+      "path": "tl-v3-window-centre.json",
+      "sha256": "28ff17410edb2230cb2102417ff5641c463ae280a5c2e5bccdfac96d10729c53"
+    },
+    {
+      "path": "tl-v3-window.png",
+      "sha256": "b008cf1b209154a5f3521635161df2aeffc700b613406207a180ed578b8f8791"
+    },
+    {
+      "path": "tools-local-rehearsal-result.json",
+      "sha256": "8e9cf0c5bf83469b288dc2af657ea01204a0ccf248a15659e972ca3061baf995"
+    },
+    {
+      "path": "tools-next-check-owner-pass.png",
+      "sha256": "4e508b30c4790f8dfaef6e490f3c612abde6e9f7e1a4278ea8f8cea4694ea950"
+    },
+    {
+      "path": "tools-next-install-owner-pass.png",
+      "sha256": "12f70787d8fbf388011065b53009c87bf8d5f3cb7ac69183fde2d381fc64498a"
+    },
+    {
+      "path": "tools-next-unplug-confirmed-xhci-health.json",
+      "sha256": "1281f376bdbcd8e445963eac6c36f3ab0e4b47c9a9157d39376d8c43cfee2034"
+    }
+  ],
+  "copied": "byte for byte from the run's evidence artifact (two-disk/, and 22d-dispatch-authorization.json from its top), except the replacement below",
+  "replaced": {
+    "files": [
+      "final-unattended-windows-marker.txt",
+      "final-detached-windows-marker.txt"
+    ],
+    "vm_windows_esp_guids": 1,
+    "rule": "the GPT GUID of the VM's Windows-stand-in ESP became VM-WINDOWS-ESP; nothing else was changed"
+  },
+  "derived": {
+    "file": "tl-install-receipt-fields.json",
+    "rule": "tl-install-receipt.json (the tools-update receipt) without its trace"
+  },
+  "left_out": {
+    "files": [
+      "final-unattended-windows-windows-marker.png",
+      "final-detached-windows-windows-marker.png",
+      "tl-install-receipt.json",
+      "tools-next-install-owner-result.json",
+      "tools-next-check-owner-result.json",
+      "export-version-2-stick-owner-result.json",
+      "final-27-check-owner-result.json",
+      "final-27-title-owner-result.json"
+    ],
+    "why": "each holds the tools' full trace with the VM disks' partition and filesystem UUIDs (the public repository holds no GUIDs, also not a throwaway VM's); the PASS pictures and the result file carry what they prove; the two Windows marker pictures show that ESP's GUID, and their text files hold the same lines"
+  },
+  "checked_for": [
+    "gh[pousr]_[A-Za-z0-9]{20,}",
+    "github_pat_",
+    "x-access-token",
+    "[Aa]uthorization: ",
+    "\"auth\"\\s*:",
+    "\\$(?:6|5|y|gy|2[aby])\\$",
+    "yz-/!ü[0-9a-f]{4}",
+    "BEGIN [A-Z ]*PRIVATE KEY",
+    "[\\w.+-]+@[\\w-]+\\.[A-Za-z][\\w.]*",
+    "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}",
+    "(?i)serial",
+    "(?i)patrik|carlsen|lenovo|micron|crucial",
+    "(?i)token|secret|password"
+  ],
+  "protected_disk_baseline_sha256": "5a459517f47f5a2e13781f98cc3cd6f24308b8b2d63cb30c44fd369d27130975",
+  "audits": [
+    {
+      "boot": 1,
+      "stage": "baseline-firmware",
+      "protected_disk_equals_baseline": true
+    },
+    {
+      "boot": 2,
+      "stage": "protected-second-install",
+      "protected_disk_equals_baseline": true
+    },
+    {
+      "boot": 3,
+      "stage": "boot-3-pre-login-reset",
+      "protected_disk_equals_baseline": true
+    },
+    {
+      "boot": 4,
+      "stage": "offline-first-stock",
+      "protected_disk_equals_baseline": true
+    },
+    {
+      "boot": 5,
+      "stage": "offline-roundtrip-unattended-windows",
+      "protected_disk_equals_baseline": true
+    },
+    {
+      "boot": 6,
+      "stage": "offline-roundtrip-detached-windows",
+      "protected_disk_equals_baseline": true
+    },
+    {
+      "boot": 7,
+      "stage": "tools-stock",
+      "protected_disk_equals_baseline": true
+    },
+    {
+      "boot": 8,
+      "stage": "prepared-unattended-windows",
+      "protected_disk_equals_baseline": true
+    },
+    {
+      "boot": 9,
+      "stage": "corrected-stock",
+      "protected_disk_equals_baseline": true
+    },
+    {
+      "boot": 10,
+      "stage": "release-13",
+      "protected_disk_equals_baseline": true
+    },
+    {
+      "boot": 11,
+      "stage": "release-27",
+      "protected_disk_equals_baseline": true
+    },
+    {
+      "boot": 12,
+      "stage": "cut-27",
+      "protected_disk_equals_baseline": true
+    },
+    {
+      "boot": 13,
+      "stage": "final-27",
+      "protected_disk_equals_baseline": true
+    },
+    {
+      "boot": 14,
+      "stage": "final-unattended-windows",
+      "protected_disk_equals_baseline": true
+    },
+    {
+      "boot": 15,
+      "stage": "final-detached-windows",
+      "protected_disk_equals_baseline": true
+    }
+  ]
+}

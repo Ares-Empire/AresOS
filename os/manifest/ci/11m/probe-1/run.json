@@ -101,11 +101,11 @@
     "message": "Prove complete guard history with total_count-checked pagination",
     "timestamp": "2026-10-24T21:27:09Z",
     "author": {
-      "name": "pab",
+      "name": "owner",
       "email": "admin@example.com"
     },
     "committer": {
-      "name": "pab",
+      "name": "owner",
       "email": "admin@example.com"
     }
   },

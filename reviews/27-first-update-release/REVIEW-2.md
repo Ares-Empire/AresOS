@@ -1,7 +1,7 @@
 Reviewed **f708c53f**, read-only. The original timeout path is substantially improved, but finding 1 is not fully closed.
 
 1. **Blocking — another Ctrl+C can interrupt process-group shutdown.**  
-   **Where:** [owner.py:267](C:/Users/pab/AresOS-27-review/os/owner-tools/owner.py:267), [owner.py:1386](C:/Users/pab/AresOS-27-review/os/owner-tools/owner.py:1386).
+   **Where:** [owner.py:267](C:/Users/owner/AresOS-27-review/os/owner-tools/owner.py:267), [owner.py:1386](C:/Users/owner/AresOS-27-review/os/owner-tools/owner.py:1386).
 
    `stop_group()` runs before SIGINT is ignored. A second Ctrl+C during its 15-second TERM grace period raises another `KeyboardInterrupt`, skipping SIGKILL and the group-gone check. `abandon_update()` then encounters the surviving bootc through `idle()` and exits before restoring masks. On the laptop, staging can continue after STOP—the failure this fix was meant to eliminate.
 
@@ -10,14 +10,14 @@ Reviewed **f708c53f**, read-only. The original timeout path is substantially imp
    **Fix:** protect the entire termination-and-reconciliation sequence against repeated SIGINT, and verify/terminate remaining group members on unsuccessful shell exits too. Add real-runner tests for repeated Ctrl+C during TERM grace and shell failure with a surviving child.
 
 2. **Should-fix — reconciliation errors prevent even attempting mask restoration.**  
-   **Where:** [owner.py:1390](C:/Users/pab/AresOS-27-review/os/owner-tools/owner.py:1390).
+   **Where:** [owner.py:1390](C:/Users/owner/AresOS-27-review/os/owner-tools/owner.py:1390).
 
    A failed status read, failed pending cleanup, or deployment comparison failure skips `restore_masks()`. For example, staging can finish at timeout, the shell can be killed, and a subsequent status timeout leaves both masks removed. The outer handler does give STOP, diagnostics and “do not reboot,” but the independent mask recovery is unnecessarily abandoned.
 
    **Fix:** attempt and verify mask restoration independently of deployment reconciliation, preserving both errors if necessary. Claim successful cleanup only when every required check passes.
 
 3. **Should-fix — pending cleanup does not establish ownership before deleting.**  
-   **Where:** [owner.py:1392](C:/Users/pab/AresOS-27-review/os/owner-tools/owner.py:1392).
+   **Where:** [owner.py:1392](C:/Users/owner/AresOS-27-review/os/owner-tools/owner.py:1392).
 
    Any observed staged deployment triggers `cleanup --pending`; its reference, digest and identity are not checked first. The owner lock excludes another `at` command, but not a direct administrative deployment command. A foreign pending deployment could therefore be deleted, and the subsequent comparison could still pass.
 

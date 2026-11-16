@@ -1,4 +1,4 @@
-Command: C:\Users\pab\AppData\Local\Programs\Python\Python313\python.exe -X utf8 -m unittest discover -s os/tests -p test_disk_audit.py -v
+Command: C:\Users\owner\AppData\Local\Programs\Python\Python313\python.exe -X utf8 -m unittest discover -s os/tests -p test_disk_audit.py -v
 test_11d_first_order_stores_still_record_only_the_two_removals (test_disk_audit.DiskAuditTest.test_11d_first_order_stores_still_record_only_the_two_removals) ... ok
 test_11e_real_install_to_detached_windows_records_linux_move_and_two_removals (test_disk_audit.DiskAuditTest.test_11e_real_install_to_detached_windows_records_linux_move_and_two_removals) ... ok
 test_any_offline_disk_gpt_or_efi_difference_fails (test_disk_audit.DiskAuditTest.test_any_offline_disk_gpt_or_efi_difference_fails) ... ok

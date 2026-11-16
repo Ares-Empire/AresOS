@@ -118,6 +118,16 @@ try:
     keys(['ctrl', 'meta_l', 'esc'])
     request('shortcut')
     screenshot('aresos-labwc.png')
+    # Package 23b: the startup cover over the session (SETUP view, recovery terminal), then the session again.
+    request('cover')
+    screenshot('aresos-cover.png')
+    with Image.open(evidence / 'aresos-cover.png') as image:
+        rgb = image.convert('RGB')
+        corners = rgb.getpixel((0, 0)), rgb.getpixel((rgb.width - 1, rgb.height - 1))
+    assert all(abs(a - b) <= 3 for a, b in zip(corners[0], (26, 25, 30))), corners
+    assert all(abs(a - b) <= 3 for a, b in zip(corners[1], (13, 13, 16))), corners
+    request('cover-stop')
+    screenshot('aresos-cover-stopped.png')
     keys(['ctrl', 'alt', 'f3'])
     request('recovery', password=password)
     screenshot('aresos-tty3-getty.png')

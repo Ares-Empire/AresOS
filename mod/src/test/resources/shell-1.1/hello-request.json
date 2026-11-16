@@ -14,7 +14,8 @@
     "windows",
     "app_details",
     "apps_changed",
-    "list_paging"
+    "list_paging",
+    "shell_covered"
   ],
   "requires": [
     "list_apps",

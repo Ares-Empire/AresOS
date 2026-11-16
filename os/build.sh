@@ -229,6 +229,11 @@ PY
 # Package 31: config has been copied by the Containerfile. Compile the desktop
 # defaults now; a bad schema or override must fail the image build.
 glib-compile-schemas --strict /usr/share/glib-2.0/schemas
+# Package 23b, review 1 finding 1: rebuild the system font cache now that config/ added /usr/share/fonts/aresos
+# (package 31's Space Grotesk, which labwc's titles and the startup cover draw with). On the deployed image every
+# directory under /usr has mtime 0, and fontconfig then takes any cache it has for /usr/share/fonts as valid: an
+# older cache, made before aresos/ existed, would hide the font at runtime (the VM drew Noto Sans).
+fc-cache --system-only --really-force
 
 # Use the same declaration at build and boot: local /etc/passwd changes from
 # the installer otherwise hide new accounts in the image's /usr/etc/passwd.
@@ -237,7 +242,7 @@ passwd --lock ares
 passwd --lock root
 chmod 0755 /usr/bin/aresos-session /usr/bin/aresos-terminal /usr/bin/brew /usr/libexec/aresos-audit \
     /usr/libexec/aresos-keyboard /usr/libexec/aresos-shell /usr/libexec/aresos-subids \
-    /usr/libexec/aresos-desktop /usr/libexec/aresos-desktop-java
+    /usr/libexec/aresos-desktop /usr/libexec/aresos-desktop-java /usr/libexec/aresos-cover
 # The owner's command for the desktop (retry, status, reset-instance, forget-hub).
 ln -sfn ../libexec/aresos-desktop /usr/bin/aresos-desktop
 chmod 0440 /etc/sudoers.d/aresos-everyday

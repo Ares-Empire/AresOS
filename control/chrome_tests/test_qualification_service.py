@@ -1,16 +1,20 @@
 """Actual service/engine with an in-memory extension peer; starts no browser."""
 import copy
+import io
 import json
 from pathlib import Path
 import sys
 import tempfile
 import unittest
 from unittest.mock import Mock, patch
+import urllib.error
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from aresos_control.chrome.adapter import Chrome, view_identity
 from aresos_control.chrome.bridge import Bridge
 from aresos_control.chrome.policy import CORE_GROUPS, HOSTS
+from aresos_control.chrome import qualification as q
+from aresos_control.chrome.qualification import switches
 from aresos_control.definitions import ACTIONS
 from aresos_control.engine import Engine
 import test_engine
@@ -179,6 +183,29 @@ class Service(unittest.TestCase):
             bridge.version = '158.0.1.0'; self.chrome.maintenance(); refresh.assert_called_with(force=True)
             self.chrome.maintenance(); refresh.assert_called_with(force=False)
             bridge.session = 'connection-2'; self.chrome.maintenance(); refresh.assert_called_with(force=True)
+        self.chrome.bridge = self.peer
+
+    def test_failed_forced_refresh_for_an_uncovered_version_is_attempted_once_per_connection(self):
+        # Main fix H2: a rate-limited or failing fetch for an uncovered Chrome
+        # version is forced once per (connection, version), then held by the
+        # daily gate; the service keeps answering and the record stays.
+        bridge = Bridge(); bridge.session = 'connection-1'; bridge.version = '158.0.1.0'
+        self.chrome.bridge = bridge
+        error = urllib.error.HTTPError('https://api.github.com/private', 403, 'rate limit exceeded', {}, io.BytesIO(b'{"message":"private"}'))
+        with patch('aresos_control.chrome.uploads.prune'), patch.object(q.urllib.request, 'urlopen', side_effect=error) as transport:
+            for _ in range(3):
+                self.chrome.maintenance()
+            self.assertEqual(transport.call_count, 1)
+            bridge.session = 'connection-2'; self.chrome.maintenance(); self.chrome.maintenance()
+            self.assertEqual(transport.call_count, 2)
+            bridge.version = '158.0.2.0'; self.chrome.maintenance(); self.chrome.maintenance()
+            self.assertEqual(transport.call_count, 3)
+        self.assertTrue(switches(self.chrome.qualification.record(), self.build, '158.0.2.0')['conservative'])
+        self.assertEqual(self.chrome.qualification.record()['entries'], [entry(build=self.build)])
+        result = self.engine.store.get('chrome:qualification_fetch')['result']
+        self.assertIn('HTTPError', result); self.assertIn('held record retained', result)
+        for private in ['private', 'rate limit', 'api.github.com']:
+            self.assertNotIn(private, result)
         self.chrome.bridge = self.peer
 
     def test_installed_build_id_is_used_and_shared_code_new_build_pass_cannot_enable_old_build(self):
