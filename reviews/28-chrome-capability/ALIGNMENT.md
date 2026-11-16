@@ -288,3 +288,42 @@ Claude.
    the brief says the tool can't tell, and no frame kind is exempted without the lead's OK.
 9. **S7, `guard.js` in brief 28.** The narrowing can't be built without one line there (the relay calls the
    guard's own `watch`, which the reader can't hook). Brief 28's paths allow that one line for the refinement only.
+
+## After review 6 (lead, 2026-11-16)
+
+`BRIEF-REVIEW-6.md` (READY: S1 to S5 should-fix, N1 to N8) read the briefs at `41df1378`. The lead (`linux-tools`)
+decided each finding. A Claude agent on Opus 5.5 wrote the decisions into the briefs on `8fc34061` and checked each
+claim against the code on this branch: `background.js` (`input`, `content`, `connect`, the re-arm), `guard.js`
+(`typed`, `ownerInput`, `captureInput`, `control`, `search`), `reader.js` (`reloadState`, `select`), and the
+service's `payload`, `execute` and the engine's replacement path; the sweep against `origin/pkg/18c-b-chrome`.
+
+| Finding | Decision | Where it went |
+|---|---|---|
+| **S1** The check before a leaving step could land after the tab selection and `reveal` | It runs right after the loop that arms the frames, before the tab selection and 28a's `reveal`, which both set `effectStarted`. A refusal there carries the approval, never reaches the service as `unknown: Input may have started`, and his tab isn't brought to the front. | 28b: item 4, "Where it sits in `input`"; "What must not change"; test "a step that leaves the page" (a taken tab in the background). |
+| **S2** (fix) A frame he used that the page removes took the used mark with it | "Used" is sticky per tab in the extension, as security re-check 4 requires for drops. The guard reports a document's first mark of his once, through the reader; the extension keeps the tab used until an approved `chrome_take_reload` or a new top document; the check reads that flag as well as asking the frames. | 28b: item 4 ("The answer is sticky in the extension"; "A step that leaves the page"); "What must not change" (`guard.js`); Paths (`guard.js`: one more call); test "the mark stays when its frame goes". Section 6: "Nor a page he has used"; test group 17. |
+| **S3** (known limit, and a fix) The limit was worded more narrowly than what item 4 leaves unchecked | The limit names the accepted paths: a button, a `javascript:` or `#` link, or a link that opens a new tab, whose handler navigates; a form's other control whose handler submits; a page script that clears his work without navigating. Reset controls join the checked kinds. Section 6's "held and asked" holds only within the hold after Claude's step, and never for a GET search form. | 28b: header; "Already decided by the lead"; item 4 (the three kinds; "What the tool can't see beforehand"); "Moved, not changed"; "Known limits". Section 6: "Nor a page he has used"; the known limit "In a taken tab, what the page's own script does after a step"; test group 17. |
+| **S4** The check before an asking step's question, and `chrome_submit`'s refusal, had no place | On a taken tab the `facts` reply carries the used result, and `payload` refuses a leaving step that would ask before `engine.reserve`, with the approval. `chrome_submit` returns its operation `failed` with `reload_required`, nothing sent, and the `chrome_take_reload` approval in `reload_approval`, through main's replacement path (`NothingLeft` with `replacement`), so the engine doesn't change. Both are allowed in "What must not change". | 28b: item 4 (two bullets, and `chrome_do`'s entry); "What must not change"; tests. |
+| **S5** (fix) Item 5a's example check passed the stale pause | The example is dropped. Only a check that proves the pause itself still holds qualifies; otherwise the first install from a pause after a re-arm counts as `late`, which can't loop (JC5). | 28a: item 5a (the rule, why the example fails, the fallback, tests). |
+| **N1** | "Used" is a record of its own beside the typing marks, never one of them, and never `typed`'s containment test: a press is Claude's only on the target or inside it (for a key, also in the editing host around it). | 28b: item 4; Paths; tests (his press on the body during a dispatch; Claude's click in a design-mode frame isn't typing). |
+| **N2** | A `<label>` resolves to its `control`; `area` and SVG `a` are links; Enter in a `textarea` isn't a submit. | 28b: item 4 (the kinds); tests. |
+| **N3** | `main` has no such measurement: its key tests in `control/chrome/ci/` send the owner's keys through `xdotool`, never through DevTools. 28b measures F5, Ctrl+R, Alt+ArrowLeft and Ctrl+W sent as steps in a taken tab, and refuses there any that acts. | 28b: item 4 ("Keys Chrome may act on itself"); tests; Report. |
+| **N4** | The five tests. | 28b tests: a paste; a frame not watched from its start; an asking send refused before anything is reserved; the removed frame. 28a item 5a: a late install, then `document_start` after its guarded reload. |
+| **N5** | A frame that takes no reader also stops link, form and reset steps in a taken tab he hasn't used; the measurement adds an extension's frame that appears when a field is focused. | 28b: item 4a ("Frames that take no reader"); item 4; tests. Section 6: the known limit on such frames. |
+| **N6** | A `select` step replaces the choice: after it only `choosing` is chosen, also on a multiple-choice list. The optional question line stays as on `main`. | 28a: item 3a. |
+| **N7** | In the PLAN-GAP fallback, the first input's reload runs item 4a's check. | 28b: item 4 ("Which `chrome_do` steps that covers"). |
+| **N8** | His-tab sweep entries get keys of their own (`'chrome_read his tab'`); a brief's own copy of the sweep goes once PR #76's test with its entries is on `main`. | 28b: item 9. 28a: item 7. |
+
+**Choices made in writing, within the decisions.** No decision proved wrong against the code, so there are no new
+judgment calls. Three choices are worth naming:
+
+- *The field's name.* `reload_approval` in `chrome_submit`'s result, because `approval` there already means a new
+  question for `chrome_submit` (main's replacement after a changed destination). `chrome_do`'s step entry uses the
+  same name, so Claude meets one name for one thing. `chrome_go`'s and `chrome_take`'s refusals keep `approval`,
+  which nothing else uses there. The instructions' "a reload_required with an approval" covers both, so their size
+  doesn't change.
+- *What S4 changes on `main`.* `execute` re-raises a `reload_required` it doesn't expect, and the engine records any
+  such error as `unknown` ("Submission outcome uncertain"). So the mapping in `execute` is needed, not optional; the
+  brief says so.
+- *S3's wording.* The review's sentence that a step's own effect in the page, such as Claude's fill over a field,
+  follows the asking rules went in too, so that the limit isn't read as covering Claude's own steps; and a link
+  that opens a new tab is named among the accepted paths, since item 4 already lets it run.
