@@ -181,3 +181,49 @@ The should-fix items are text changes without new design. S5 belongs in 28a befo
 before it starts. A check of those edits suffices; no further full round is needed.
 
 READY
+
+## Recheck of 1028ec49
+
+Same reviewer, 2026-11-16. Only `git diff 8fc34061 1028ec49` (briefs 28a and 28b, section 6, ALIGNMENT's "After
+review 6") and what it touches, against `adapter.py`, `engine.py`, `definitions.py`, `background.js`, `guard.js`
+and `reader.js` on this branch.
+
+**Closed as meant:**
+- **S1:** the check sits right after the arm loop, before the selection and `reveal`, and has a background-tab test.
+  Its frame query isn't one of `content`'s effectful commands, as stated.
+- **S2:** the used result is sticky in the extension through one reported first mark. It ends only with an
+  approved `chrome_take_reload` or a new top document, and it is in the paths, section 6 and the tests, including a
+  frame moved to a new document.
+- **S3:** the limit now names the unchecked kinds (page scripts that navigate, submit or clear) in the header,
+  "Already decided", item 4, "Known limits" and section 6. Reset controls are checked, and "held and asked" is
+  qualified.
+- **S4:** `facts` carries the used result, and `payload` refuses before `engine.reserve`. `chrome_submit` returns
+  `failed` through `NothingLeft.replacement`. Both are permitted in "What must not change".
+- **S5:** the example is gone. Only a check that proves the pause still holds qualifies, otherwise the fallback
+  applies. The no-loop test is added.
+- **N1 to N8:** all in.
+
+**The three choices are sound:**
+- `reload_approval`: `approval` in `chrome_submit`'s result is main's new `chrome_submit` question
+  (`changed_destination`).
+- The `execute` mapping is needed. `execute` re-raises every code outside `stale_reference`, `stale_approval`,
+  `owner_signin` and `refused`, and the engine records any other exception as `unknown`.
+- The S3 additions match item 4: a link that opens a new tab runs unchecked, and Claude's own fill is not the
+  limit.
+
+**New, all nits:**
+- **R1** (28b item 4, the `chrome_take_reload` bullet, "each carry `approval`"). That sentence still gives
+  `chrome_do`'s refusal the field `approval`; the same item later says `reload_approval`. Name `approval` for
+  `chrome_take` and `chrome_go`, and `reload_approval` for a `chrome_do` step and `chrome_submit`.
+- **R2** (28b item 4, S4's `chrome_submit` bullet). `chrome_submit`'s output schema is `OP_RESULT`, which is strict:
+  only `operation`, with `additionalProperties: false`. Main's replacement already returns `approval` and `state`
+  outside it, and `reload_approval` would be a third key outside it. Declare the new field (and `chrome_do`'s) in
+  the output schemas. Add a test that validates `chrome_submit`'s result against its schema, as
+  `control/tests/support.py` does for the test app, so a client that checks structured output doesn't reject the
+  result. The two keys outside the schema predate this round on `main`.
+- **R3** (28a item 5a, the bold rule and the first test). Both still say a pause "shown current". After S5 that is
+  the word for the check that doesn't qualify; say "shown to still hold".
+
+Nothing in the edits contradicts the briefs, section 6 or the code beyond R1.
+
+READY

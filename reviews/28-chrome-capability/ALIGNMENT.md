@@ -327,3 +327,16 @@ judgment calls. Three choices are worth naming:
 - *S3's wording.* The review's sentence that a step's own effect in the page, such as Claude's fill over a field,
   follows the asking rules went in too, so that the limit isn't read as covering Claude's own steps; and a link
   that opens a new tab is named among the accepted paths, since item 4 already lets it run.
+
+## After review 6's recheck (lead, 2026-11-16)
+
+The recheck of `1028ec49` said READY with three nits; the lead made them directly:
+- **R1:** 28b item 4's `chrome_take_reload` bullet now names both fields: `approval` for `chrome_take` and
+  `chrome_go`, `reload_approval` for a `chrome_do` step and `chrome_submit`.
+- **R2:** `reload_approval` (and main's `approval` and `state` on the replacement path) are declared in
+  `chrome_submit`'s and `chrome_do`'s output schemas, with a test that `chrome_submit`'s result validates against
+  its schema.
+- **R3:** 28a item 5a's rule and its first test say "shown to still hold", not "shown current".
+
+PR #48 merges on this READY; Codex's `gpt-6-astra` cross-reviews the merged briefs (Tue 2026-11-17), and its
+findings go to the 28a and 28b builds.

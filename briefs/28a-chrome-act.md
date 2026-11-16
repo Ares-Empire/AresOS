@@ -520,7 +520,7 @@ lead, 2026-11-16, after review 5, S4).
     current. The re-arm's `Debugger.disable` (`background.js`, the duplicate-breakpoint branch) resumed it, the
     document ran, and its delayed `Debugger.paused` carries the same breakpoint id, because the re-armed
     breakpoint keeps it. Its loader and execution context are the current ones, so comparing them passes it.
-  - **A pause that can't be shown current counts the document as not watched from its start** (the lead,
+  - **A pause that can't be shown to still hold counts the document as not watched from its start** (the lead,
     2026-11-16). It is recorded as `late` and doesn't get the `document-start.v1` mark, so its typed fields show
     `(filled, not read)` and it gets the guarded reload before any input.
   - If no check that proves the pause still holds can be built, the same holds for the first document a session
@@ -531,7 +531,7 @@ lead, 2026-11-16, after review 5, S4).
     known limit.
   - Don't give the re-armed breakpoint a new id: Chrome's browser-side store keeps the old one (the report's
     reason).
-  - Tests, in the Node doubles: a pause shown current installs as `document_start`; one that isn't, and the first
+  - Tests, in the Node doubles: a pause shown to still hold installs as `document_start`; one that isn't, and the first
     one after a re-arm where no check exists, installs as `late`, its document reports `needs_reload`, and a typed
     field in it is `(filled, not read)`. A stale pause from the current document after a re-arm installs as
     `late`, also where a check exists. After the late install's guarded reload, the next install from a pause is

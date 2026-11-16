@@ -309,7 +309,8 @@ keep brief 20's rule and say so (PLAN-GAP).
    - **`chrome_take_reload` follows main's two-step asking pattern** (the lead, 2026-11-15, after review 4), as
      `chrome_submit` and `chrome_read_typed_fields` do. The refusal that requires the reload prepares it:
      `chrome_take`'s `reload_required`, and the taken-tab refusal of `chrome_go` and `chrome_do` (below), each carry
-     `approval`, main's `APPROVAL` (`question`, `operation_id`, `description`), prepared by the service from the
+     main's `APPROVAL` (`question`, `operation_id`, `description`): in `approval` for `chrome_take` and `chrome_go`,
+     in `reload_approval` for a `chrome_do` step and `chrome_submit` (review 6, recheck R1), prepared by the service from the
      check that refusal just ran. The question shows, first: which tab (title and short address), that the reload
      throws away what the page holds, and what the check found (the labels of the changed fields and whose typing
      each is, never their values; playing media; "work the page may keep in its memory"). For a tab not yet taken
@@ -435,7 +436,10 @@ keep brief 20's rule and say so (PLAN-GAP).
        `reload_approval` (main's `APPROVAL` shape), never in `approval`, which on `main` is a new question for
        `chrome_submit` (review 6, S4). `execute` returns it through main's replacement path (`NothingLeft` with
        a `replacement`, as for a changed destination), so the engine doesn't change; on `main` a
-       `reload_required` there would end `unknown`.
+       `reload_required` there would end `unknown`. `chrome_submit`'s output schema (`OP_RESULT`) is strict, so
+       declare `reload_approval` there and in `chrome_do`'s, with main's `approval` and `state` the replacement
+       path already returns, and test that `chrome_submit`'s result validates against its schema, as
+       `control/tests/support.py` does for the test app (review 6, recheck R2).
      - **A step of Claude's that asks is checked before its question is prepared** (review 6, S4), so he isn't
        asked about a send the tool would then refuse. No `input` command runs there: the service prepares it in
        `payload` from a `facts` reply. So on a taken tab the `facts` reply carries the tab's used result (each
