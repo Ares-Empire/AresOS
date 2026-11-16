@@ -24,6 +24,9 @@ CONFIRMATION_POLL = 0.1
 UNKNOWN_DEADLINE = 1.0
 # Wake a little after a wall-clock deadline, not a little before it.
 DEADLINE_MARGIN = 0.005
+# A deadline already due when the loop goes to sleep: expire() ran just before, so its work failed. Try again at the
+# old 0.1 s cadence, never at once, so an expiry that keeps failing can't spin the loop.
+OVERDUE_RETRY = 0.1
 
 
 def chrome_peer(pid, uid):
@@ -152,7 +155,8 @@ class Daemon:
                 wait = min(wait, CONFIRMATION_POLL)
             deadline = self.engine.next_deadline()
             if deadline is not None:
-                wait = min(wait, deadline - time.time() + DEADLINE_MARGIN)
+                remaining = deadline - time.time()
+                wait = min(wait, remaining + DEADLINE_MARGIN if remaining > 0 else OVERDUE_RETRY)
         except Exception:
             # expire() and the Chrome calls on the next pass record any cause; only the sleep is decided here.
             wait = min(wait, UNKNOWN_DEADLINE)

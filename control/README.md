@@ -42,13 +42,23 @@ so it is "active" a moment before its sockets exist. The client therefore tries 
 failing connect (`ENOENT`, `ECONNREFUSED`) again for up to 3 seconds in 0.1 s steps:
 nothing has been sent yet. The MCP proxies and the CLI wait so; the hooks make one
 attempt (`Client(…, connect_wait=0)`), so a session never waits at every prompt and
-turn end while the service is down. If it still fails, or connect fails in another way,
-every caller (MCP proxies, the CLI, the hooks) gets the error code `service_unavailable`:
-"The AresOS tool service is not running; nothing was sent. Try again later." It never
-points at `operation_status`: there is no operation. A connection lost after the request
-was sent keeps `transport_error`, or `unknown` with the same-id advice for a change.
+turn end while the service is down. If it still fails, every caller (MCP proxies, the
+CLI, the hooks) gets the error code `service_unavailable`: "The AresOS tool service is
+not running; nothing was sent. Try again later." Other connect failures are not retried
+and say what they are: a full queue or a connect timeout gives `service_busy` ("… is
+busy and did not take the connection; nothing was sent. Try again later."), and anything
+else (a permission, a path through a file, a link loop) gives `setup_error` ("The
+AresOS tools could not connect to their service (<reason>): their setup looks wrong.
+Nothing was sent; tell the owner.", with no "try again", since waiting won't mend it).
+None of them points at `operation_status`: there is no operation. A connection lost
+after the request was sent keeps `transport_error`, or `unknown` with the same-id
+advice for a change. A file save (`file_save`, `mail_attachment_save`) whose file is
+already written when the service stops before the save is recorded keeps the saved
+path in `data.saved` and says so ("The file was saved …; don't save it again."), as
+the `unknown` outcome beside it does, never "nothing was sent".
 An MCP proxy that starts while the service is down still starts: it asks the service
-for its catalogue as usual (with the wait) and, on `service_unavailable`, offers its own
+for its catalogue as usual (with the wait) and, on `service_unavailable` only (a busy
+service or a setup error stops it at start, visibly), offers its own
 `tools_for(app)` (the same catalogue the service sends, owner-only actions left out).
 Its calls answer `service_unavailable` until the service is up, and the service still
 checks every call; a catalogue the service does return always wins. So a Claude Code
@@ -59,8 +69,12 @@ sudo: run sudo aresos admin …") before touching `admin.sock` or asking for a p
 
 The service loop sleeps until its next own deadline: the earliest open reservation's
 expiry, a 0.1 s poll only while a loosening Chrome change waits for the owner's
-password, a 1 s retry while owner notices wait to be written after a storage failure,
-and Chrome maintenance every 60 s, which is also its longest sleep (so a clock change
+password, a 1 s retry while owner notices wait to be written after a storage failure
+(a reservation that expires sooner still wakes it at its own time), and Chrome
+maintenance every 60 s, which is also its longest sleep. A deadline that is already
+due when the loop goes to sleep means its expiry just failed: the loop tries again
+after 0.1 s (the old cadence), never at once, so an expiry that keeps failing can't
+spin it. Chrome maintenance's 60 s also bounds a wall-clock deadline (so a clock change
 or a suspend delays a wall-clock expiry by at most a minute; submission checks the
 expiry itself). Requests and Chrome events wake it at once. Idle with nothing pending
 it wakes about once a minute (it woke ten times a second before brief 18e).
@@ -279,11 +293,21 @@ No environment variable can change config, module path, interpreter or prefix.
 
 ## Hooks
 
-`Stop` reads `control_pending` and returns `{"decision":"block","reason":"…"}`
-while work is held/unfinished, unless `stop_hook_active` is already true. That guard
+The managed hooks run in every Claude Code session of every user, but pending work and
+owner notices are shared by all sessions. So a hook first checks that its session used
+the tools (the mark below; lead, 2026-11-16): any other session gets nothing, not even a
+connection to the service. A session the service answers with `permission_denied`
+(root's, another user's) can't use the tools, so it gets nothing either.
+For a session that used the tools, `Stop` reads `control_pending` and returns
+`{"decision":"block","reason":"…"}` while work is held/unfinished, unless
+`stop_hook_active` is already true. The reason ends "Don't complete, cancel, resend or
+acknowledge this work on your own: tell the owner what is waiting, and let him decide.":
+the work may be another session's, and only the owner decides about it. That guard
 allows the owner to receive a report about work that cannot be resolved. The next
 `UserPromptSubmit` reads again and returns
 `{"hookSpecificOutput":{"hookEventName":"UserPromptSubmit","additionalContext":"…"}}`.
+The gate is per session, not per operation: the service doesn't record which session
+made an operation, so a session that used the tools also hears of other sessions' work.
 Each managed launcher names its event independently of input: `launch.py hook Stop`
 or `launch.py hook UserPromptSubmit`. The managed prompt command has a fixed shell
 guard that emits Python's output only on success and always exits 0, covering
@@ -296,26 +320,40 @@ field is accepted and never read, because Claude Code adds and changes input fie
 between versions (2.1.319 sends `prompt_id`, which a closed list refused in every
 turn; found by brief 18c's VM test). A hook connects once, without the client's 3 s wait
 for a starting service (lead, 2026-11-15): a service that isn't listening at that moment
-counts as not running. When the service can't be reached (`service_unavailable`, or `transport_error` for a
-connection lost), `Stop` is quiet unless the session used the tools (owner, #254): the
-MCP proxy marks its parent, the Claude Code process, before it returns a result that
-names an operation (an `operation_id`, an approval, or an unknown outcome of a change;
-plain reads never mark). The mark is an empty file
-`/run/user/<uid>/aresos-control/used/<pid>-<start>` (`<start>` is field 22 of
-`/proc/<pid>/stat`, so a reused PID never inherits it; folders 0700, file 0600, never
-through a link; the tmpfs empties at logout; the uid names it because the managed
-commands run under `env -i`). The Stop hook looks for a mark of its ancestors, up to
-four levels, never PID 1: Claude Code 2.1.319 starts the MCP server and the hook from
-the same process (the interactive boundary suite pins it). A mark blocks the stop once
-with "AresOS tools are not running. If you prepared or sent something with them in this
-session, its outcome is unknown: tell the owner, and don't repeat it." No mark: no
-output, exit 0. A marks folder or process that can't be read counts as a mark; no marks
-folder at all is a clear no. A mark that can't be written is skipped: that session then
-stays quiet. The notice comes once per outage, not at every turn end (lead, 2026-11-15):
-giving it, `Stop` leaves a second empty file `<pid>-<start>.told` beside the session's
-mark (same folder, 0600, never through a link), and while it exists later stops of that
-session stay quiet. The next hook (`Stop` or `UserPromptSubmit`) that reaches the
-service removes it, so a later outage gives the notice again. A `.told` file that can't
+counts as not running. When the service can't be reached (`service_unavailable`,
+`service_busy`, `setup_error`, or `transport_error` for a connection lost), `Stop` is
+quiet unless the session used the tools (owner, #254): the MCP proxy marks its parent,
+the Claude Code process, before it returns a result that names an operation (an
+`operation_id`, an approval, or an unknown outcome of a change; plain reads never
+mark). The proxy reads its parent's pid and start time once, when it starts, and marks
+only while that process is still its parent: a proxy whose Claude Code died is
+re-parented (to `systemd --user`, say), and then logs one line and marks nothing. The
+mark is an empty file `/run/user/<uid>/aresos-control/used/<pid>-<start>` (`<start>` is
+field 22 of `/proc/<pid>/stat`, so a reused PID never inherits it; folders 0700, file
+0600, never through a link and never blocking on a FIFO planted at its name; the tmpfs
+empties at logout; the uid names it because the managed commands run under `env -i`).
+A hook looks for the mark of its own session: its nearest ancestor that isn't a shell
+(`sh`, `bash`, `dash`, `zsh`, `ksh`, `mksh`, `fish`, `busybox`, `env` by process name),
+within four levels and never PID 1. Claude Code 2.1.319 runs hook commands with `/bin/sh
+-c` (the `UserPromptSubmit` command adds a shell and a subshell of its own), and starts
+the MCP server and the hooks from the same process (the interactive boundary suite pins
+both). Only that process's mark counts: a `claude -p` started from a marked session's
+Bash tool is a session of its own. A process other than a shell between Claude Code and
+the hook would be taken as the session and hide the mark: that session then stays quiet.
+A mark blocks the stop once with "AresOS tools are not running. If you prepared or sent
+something with them in this session, its outcome is unknown: tell the owner, and don't
+repeat it." when nothing listens (`service_unavailable`), and with "AresOS tools could not
+be reached. …" (the same advice) for a busy service, a setup error or a lost connection,
+where the service may well be running. No mark: no output, exit 0. A marks folder or
+process that can't be read counts as a mark; no marks folder at all is a clear no. A
+mark that can't be written is skipped: that session then stays quiet. The notice comes
+once per outage, not at every turn end (lead, 2026-11-15): giving it, `Stop` leaves a
+second empty file `<pid>-<start>.told` beside the session's mark (same folder, 0600,
+never through a link), and while it exists later stops of that session stay quiet. The
+next hook (`Stop` or `UserPromptSubmit`) that reaches the service removes it, and so
+does a new mark (the session used the tools again), so a later outage gives the notice
+again. `/clear` starts a new conversation in the same Claude Code process, which keeps
+its mark. A `.told` file that can't
 be written still gives the notice (at every stop, better twice than never); one that
 can't be read (other than missing) counts as not given; marks that can't be read give
 it at every stop. With the service up nothing changes. `Stop` reports malformed input or its
