@@ -205,6 +205,9 @@ but Claude can't send F4, or any form with a country list.
   "choosing": [{"label": "Country 12", "value": "c12", "selected": false, "disabled": false}]
   ```
 
+  The step replaces the choice, it doesn't add to it: the extension sets the list's value, which leaves only that
+  option chosen, also on a multiple-choice list, whose other chosen options it unselects (review 6, N6). So
+  `chosen` is what is chosen now, and `choosing` is all that is chosen after the step.
   Without it the approval would call the old option chosen and show the new one only as a value, often an opaque
   id. Such steps do ask (`classify` in `policy.py`): every `select` in conservative mode, on a Chrome major that
   isn't qualified yet, and elsewhere any `select` in a form whose action or label carries a send, pay or delete
@@ -512,20 +515,27 @@ lead, 2026-11-16, after review 5, S4).
   arrive after a page kept a native `submit`, which then escapes the hold. For an owner tab taken during a
   cross-process navigation it also skips the guarded reload. A password read and an action without its question
   are never limits (`docs/REVIEW.md`), so this fails closed:
-  - Before installing from a pause, check that the pause is still the current one, for example the paused
-    frame's loader or execution context against the target's current one.
+  - Before installing from a pause, check that the pause itself still holds. A check that shows only that the
+    document is current doesn't qualify (review 6, S5): the stale pause comes from the document that is still
+    current. The re-arm's `Debugger.disable` (`background.js`, the duplicate-breakpoint branch) resumed it, the
+    document ran, and its delayed `Debugger.paused` carries the same breakpoint id, because the re-armed
+    breakpoint keeps it. Its loader and execution context are the current ones, so comparing them passes it.
   - **A pause that can't be shown current counts the document as not watched from its start** (the lead,
     2026-11-16). It is recorded as `late` and doesn't get the `document-start.v1` mark, so its typed fields show
     `(filled, not read)` and it gets the guarded reload before any input.
-  - If no reliable check can be built, the same holds for the first document a session installs from a pause
-    after its breakpoint was re-armed. PR #77's analysis says only a pause from before a re-arm can be stale, so
-    the cost is one more guarded reload after the rare duplicate-breakpoint event. Say in the report which was
-    built, and why no stale pause gets past it. This is not a known limit.
+  - If no check that proves the pause still holds can be built, the same holds for the first document a session
+    installs from a pause after its breakpoint was re-armed. PR #77's analysis says only a pause from before a
+    re-arm can be stale, so the cost is one more guarded reload after the rare duplicate-breakpoint event. It
+    can't loop: after that document's guarded reload, the next install isn't the first one after the re-arm, so
+    it is `document_start`. Say in the report which was built, and why no stale pause gets past it. This is not a
+    known limit.
   - Don't give the re-armed breakpoint a new id: Chrome's browser-side store keeps the old one (the report's
     reason).
   - Tests, in the Node doubles: a pause shown current installs as `document_start`; one that isn't, and the first
     one after a re-arm where no check exists, installs as `late`, its document reports `needs_reload`, and a typed
-    field in it is `(filled, not read)`.
+    field in it is `(filled, not read)`. A stale pause from the current document after a re-arm installs as
+    `late`, also where a check exists. After the late install's guarded reload, the next install from a pause is
+    `document_start` (review 6, N4).
 
 ### 6. The smaller tools
 
@@ -695,7 +705,8 @@ lead, 2026-11-16, after review 5, S4).
     names for as long as they exist. The entries of the tools step 3 removes go with them.
   - Whichever of this package and brief 18c-b's (PR #76) merges second does it when it takes `main`. If the test
     isn't on `main` when you build, add the same sweep to this package's own tests and list the entries in the
-    report, so that PR #76 adds them.
+    report, so that PR #76 adds them. That copy goes once PR #76's test with these entries is on `main`, so the
+    sweep lives in one place (review 6, N8).
 
 ### 8. The order of the change
 
