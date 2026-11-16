@@ -67,7 +67,18 @@ control/requirements.lock, in a scratch folder>`; other test folders on the path
 - Mutations on a scratch copy of `control/` (8, all caught): `fallback_any`, `bind_final`, `listen_after_rename`,
   `chmod_after_rename`, `no_cleanup`, `no_temp_check`, `prompt_no_reminder`, `old_instruction`.
 
-**CI (fix round 2):** see below once the Python jobs have run.
+**Runs (fix round 2), head `1abf3e43`, checked 2026-11-16 10:17 UTC.** The superseded runs on `6c614617` (Control
+Chrome 43829438753, Chrome qualification 43829438758) were still queued and were cancelled after the push.
+
+| Run | Workflow | Result |
+|---|---|---|
+| 43842452036 | Control base | **green**: 370 tests (365 + this round's 5), "Control base suite PASS"; `test_prompt_hook_installation_and_service_failures_are_quiet` OK (marked session; the `Stop` notice once), the 4 `SocketStart` tests, `test_the_mcp_instructions_say_what_the_reminder_says` and the nit 1 test OK; `test_real_mcp_stdio_list_prepare_send_attachment_save_and_hooks` OK; idle `IDLE_WAKEUPS switches=1 seconds=60.0 per_second=0.02 threads=1` |
+| 43842451664 | Control boundary | **green**: the image build ran `test_native test_interactive`, 24 OK, the 4 `ProcessChains` among them; 17 `INTERACTIVE_CASE_PASS` (the real chains checked by `process_chain.check()` in every case) |
+| 43842451845 | Control Mail | **green**: containers 0 to 3, sweeps 0 to 7 |
+| 43842451741 | Control Chrome | at the check: `python-shards` 0 to 3, `package`, **`native-precedence`** (the instructions reach Claude Code 2.1.319 whole, chrome at 4,093), **`latency (plain)`** and **`latency (audit)`** green; fixtures 4 green, 14 running or queued. Not waited for (browser shards) |
+| 43842451673 | Control Chrome qualification | at the check: `qualification-tests`, `qualification-plan`, `delivery-attestation` green; `qualification-pairs` running or queued |
+| 43842451755 | Control Chrome polkit | **green** |
+| 43842451726 | Repo privacy | **green** |
 
 ## Fix round 1 (2026-11-16, Claude agent on Opus 5.5)
 
