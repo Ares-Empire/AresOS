@@ -1,12 +1,17 @@
 """Package 18c, B2: the pieces of the Control VM test that run without a VM (os/ci/control/, the checks.py hook)."""
 import ast
+import gzip
 import importlib.util
+import io
 import json
 import os
 import pathlib
+import py_compile
 import re
 import shutil
+import subprocess
 import sys
+import tarfile
 import tempfile
 import unittest
 from unittest import mock
@@ -20,6 +25,15 @@ def load(path, name):
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
+
+
+def layer(home):
+    """actions.py and sessions.py as the guest loads them, with a stand-in for the account `ares` (home, this user)."""
+    owner = mock.Mock(pw_dir=str(home), pw_uid=os.getuid(), pw_gid=os.getgid())
+    paths = [str(ROOT / 'os/ci'), str(ROOT / 'control/boundary'), str(CONTROL_CI)]
+    with mock.patch('pwd.getpwnam', return_value=owner), mock.patch.object(sys, 'path', paths + sys.path):
+        return (load(CONTROL_CI / 'actions.py', f'control_actions_{id(home)}'),
+                load(CONTROL_CI / 'sessions.py', f'control_sessions_{id(home)}'))
 
 
 class LayerHookTest(unittest.TestCase):
@@ -165,11 +179,7 @@ class EvidencePackingTest(unittest.TestCase):
     def setUp(self):
         self.folder = pathlib.Path(tempfile.mkdtemp())
         self.addCleanup(shutil.rmtree, self.folder)
-        owner = mock.Mock(pw_dir=str(self.folder / 'home'), pw_uid=os.getuid(), pw_gid=os.getgid())
-        paths = [str(ROOT / 'os/ci'), str(ROOT / 'control/boundary'), str(CONTROL_CI)]
-        with mock.patch('pwd.getpwnam', return_value=owner), mock.patch.object(sys, 'path', paths + sys.path):
-            self.actions = load(CONTROL_CI / 'actions.py', 'control_actions_for_test')
-            self.sessions = load(CONTROL_CI / 'sessions.py', 'control_sessions_for_test')
+        self.actions, self.sessions = layer(self.folder / 'home')
 
     def test_a_continuation_tail_is_the_newest_user_text(self):
         messages = [{'role': 'user', 'content': 'ORDINARY_OWNER_TURN_04'},
@@ -332,6 +342,86 @@ class ServiceFixesTest(unittest.TestCase):
         # A session's done markers (INTERACTIVE_DONE_<n>) stay unique while it has fewer than ten turns.
         sessions = [row[0] for row in rows]
         self.assertLess(max(sessions.count(name) for name in set(sessions)), 10)
+
+
+class EvidenceScanTest(unittest.TestCase):
+    """REVIEW-A1 #5: the password checks read inside the evidence's archives; only GreenMail's log is redacted."""
+    SECRET = b'0123456789abcdef0123456789abcdef'
+
+    def setUp(self):
+        self.folder = pathlib.Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, self.folder)
+        self.scan = load(CONTROL_CI / 'evidence_scan.py', 'evidence_scan_for_test')
+        self.evidence = self.folder / 'evidence'
+        (self.evidence / 'control/ordinary').mkdir(parents=True)
+        (self.evidence / 'control/fixtures').mkdir(parents=True)
+        (self.evidence / 'control/clean.json').write_text('{"password_sha256": "x"}')
+
+    def tar(self, path, members, compress='gz'):
+        with tarfile.open(path, f'w:{compress}' if compress else 'w') as archive:
+            for name, data in members.items():
+                info = tarfile.TarInfo(name)
+                info.size = len(data)
+                archive.addfile(info, io.BytesIO(data))
+
+    def test_a_password_inside_a_tar_gz_is_found_and_named_by_its_member(self):
+        self.tar(self.evidence / 'control/ordinary/used-later.tar.gz',
+                 {'used-later/screens/001.txt': b'nothing', 'used-later/model/requests.json': b'[' + self.SECRET + b']'})
+        self.tar(self.evidence / 'control/ordinary/clean.tar.gz', {'clean/screens/001.txt': b'nothing'})
+        found = self.scan.scan(self.evidence, self.SECRET)
+        self.assertEqual(found['holding'], ['control/ordinary/used-later.tar.gz'])
+        self.assertIn('control/ordinary/used-later.tar.gz!gunzip!used-later/model/requests.json', found['hits'])
+        self.assertEqual(found['files'], 3)
+        # A raw byte search over the archive, as before this round, cannot see it.
+        self.assertNotIn(self.SECRET, (self.evidence / 'control/ordinary/used-later.tar.gz').read_bytes())
+
+    def test_plain_tars_gzip_files_and_archives_in_archives_are_read(self):
+        inner = self.folder / 'inner.tar.gz'
+        self.tar(inner, {'deep.txt': self.SECRET})
+        self.tar(self.evidence / 'control/outer.tar', {'inner.tar.gz': inner.read_bytes()}, compress=None)
+        (self.evidence / 'control/log.gz').write_bytes(gzip.compress(b'x' + self.SECRET))
+        found = self.scan.scan(self.evidence, self.SECRET)
+        self.assertEqual(found['holding'], ['control/log.gz', 'control/outer.tar'])
+        self.assertIn('control/outer.tar!inner.tar.gz!gunzip!deep.txt', found['hits'])
+
+    def test_an_archive_that_cannot_be_read_counts_as_holding_it(self):
+        (self.evidence / 'control/broken.tar.gz').write_bytes(gzip.compress(os.urandom(4096))[:-100])
+        found = self.scan.scan(self.evidence, self.SECRET)
+        self.assertEqual(found['holding'], ['control/broken.tar.gz'])
+        self.assertEqual(found['hits'], [])
+        self.assertIn('control/broken.tar.gz: gzip', found['unreadable'][0])
+
+    def test_the_runner_redacts_greenmail_only_and_fails_on_dovecot(self):
+        password = self.folder / 'password'
+        password.write_bytes(self.SECRET)
+        fixtures = self.evidence / 'control/fixtures'
+        (fixtures / 'greenmail.txt').write_bytes(b'Created user login ci-owner with password ' + self.SECRET + b'\n')
+        (fixtures / 'dovecot.txt').write_bytes(b'auth ok\n')
+        with mock.patch('builtins.print') as printed:
+            code = self.scan.main(['--redact', str(fixtures / 'greenmail.txt'), '--remove', str(password),
+                                   str(self.evidence)])
+        report = json.loads(printed.call_args.args[0])
+        self.assertEqual((code, report['redacted'], report['holding']), (0, {'greenmail.txt': 1}, []))
+        self.assertIn(b'[fixture password redacted]', (fixtures / 'greenmail.txt').read_bytes())
+        # Dovecot's log is never redacted: one occurrence fails the step and the file goes.
+        (fixtures / 'dovecot.txt').write_bytes(b'auth: ' + self.SECRET + b'\n')
+        with mock.patch('builtins.print') as printed:
+            code = self.scan.main(['--redact', str(fixtures / 'greenmail.txt'), '--remove', str(password),
+                                   str(self.evidence)])
+        report = json.loads(printed.call_args.args[0])
+        self.assertEqual((code, report['removed']), (1, ['control/fixtures/dovecot.txt']))
+        self.assertFalse((fixtures / 'dovecot.txt').exists())
+        self.assertNotIn(self.SECRET.decode(), printed.call_args.args[0])
+
+    def test_runner_and_control_vm_use_the_scanner_and_redact_only_greenmail(self):
+        runner = (CONTROL_CI / 'runner.sh').read_text()
+        stop = runner[runner.index('    stop)'):]
+        self.assertIn('evidence_scan.py --redact "$evidence/greenmail.txt" --remove', stop)
+        self.assertNotIn('dovecot.txt', stop)
+        self.assertNotIn('grep -rlF', stop)
+        control_vm = (CONTROL_CI / 'control_vm.py').read_text()
+        self.assertIn('evidence_scan.scan(evidence, mail_fixture.password().encode())', control_vm)
+        self.assertNotIn('path.read_bytes()', control_vm)
 
 
 class ReleaseChecksTest(unittest.TestCase):

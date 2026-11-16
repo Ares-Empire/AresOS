@@ -25,6 +25,9 @@ from qmp import QMP, assert_guest_poweroff  # noqa: E402
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / 'control/ci/image'))
 import mail_fixture  # noqa: E402
 
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+import evidence_scan  # noqa: E402
+
 # (action, the line its success prints). The order matters: the idle footprint comes before anything talks to the
 # service; the sandbox check (2) after checks 3 to 5 and before check 6 restarts the service; check 9 before check 8,
 # so the password scan also covers check 9's transcripts; check 2's SELinux scan again after checks 6 to 9.
@@ -86,14 +89,13 @@ def mail_arrivals(result, seeded, evidence):
 
 
 def password_not_in_evidence(evidence):
-    """Check 8 on the runner: the evidence written so far never holds the password (runner.sh stop checks again)."""
-    secret = mail_fixture.password().encode()
-    hits = sorted(str(path.relative_to(evidence)) for path in evidence.rglob('*')
-                  if path.is_file() and secret in path.read_bytes())
-    files = sum(1 for path in evidence.rglob('*') if path.is_file())
-    (evidence / 'passwords-runner.json').write_text(json.dumps(dict(evidence_files=files, holding_it=len(hits)),
-                                                               indent=2) + '\n')
-    assert not hits, f'{len(hits)} evidence files hold the password'
+    """Check 8 on the runner: the evidence written so far never holds the password, also inside the checks'
+    .tar.gz files (REVIEW-A1 #5); runner.sh stop checks again with the fixture logs."""
+    found = evidence_scan.scan(evidence, mail_fixture.password().encode())
+    (evidence / 'passwords-runner.json').write_text(json.dumps(dict(
+        evidence_files=found['files'], archive_members=found['members'], holding_it=len(found['holding']),
+        unreadable=found['unreadable']), indent=2) + '\n')
+    assert not found['holding'], f'{len(found["holding"])} evidence files hold the password or cannot be searched'
 
 
 def main():

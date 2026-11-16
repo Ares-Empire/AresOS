@@ -121,34 +121,21 @@ PY
         done
         docker rm -f "$greenmail" "$dovecot" > /dev/null 2>&1 || true
         if [[ -f $fixtures/password ]]; then
-            # GreenMail runs with auth disabled: it creates the account at the first login and its own log names the
-            # password it was given (runs 43568250360 and 43572578699 lost greenmail.txt to the check below). The
-            # servers' logs are redacted here, the password read from its file, never from a command line; the
-            # check below still guards every other evidence file.
-            python3 -I - "$fixtures/password" "$evidence/greenmail.txt" "$evidence/dovecot.txt" \
-                > "$evidence/redacted.txt" <<'REDACT'
-import pathlib
-import sys
-
-secret = pathlib.Path(sys.argv[1]).read_text().strip()
-assert len(secret) >= 16, 'the fixture password file is not a password'
-for name in sys.argv[2:]:
-    path = pathlib.Path(name)
-    if not path.exists():
-        continue
-    text = path.read_text(errors='replace')
-    path.write_text(text.replace(secret, '[fixture password redacted]'))
-    print(f'{path.name}: {text.count(secret)} occurrences of the fixture password redacted')
-REDACT
-            cat "$evidence/redacted.txt"
-            # The password never leaves the runner: no evidence file may hold it.
-            leaked=$(sudo grep -rlF -f "$fixtures/password" evidence || true)
-            if [[ -n $leaked ]]; then
-                sudo rm -f $leaked
-                echo "The fixture password appeared in evidence; removed: $leaked" >&2
+            # The password never leaves the runner: no evidence file may hold it, also inside the checks' .tar.gz
+            # files (REVIEW-A1 #5; evidence_scan.py reads every archive member by member). Only GreenMail's log is
+            # redacted first: it runs with auth disabled, creates the account at the first login and logs the
+            # password it was given (runs 43568250360 and 43572578699 lost greenmail.txt to this check). Dovecot's
+            # log must hold it zero times, like every other file. The password is read from its file, never from a
+            # command line. sudo: control_vm.py wrote its evidence as root.
+            if ! scan=$(sudo python3 -I os/ci/control/evidence_scan.py --redact "$evidence/greenmail.txt" --remove \
+                    "$fixtures/password" evidence); then
+                printf '%s\n' "$scan" | sudo tee "$evidence/password-scan.json"
+                echo "The fixture password appeared in evidence (or an archive could not be searched); removed" \
+                    "the files named under \"removed\" above" >&2
                 rm -rf "$fixtures"
                 exit 1
             fi
+            printf '%s\n' "$scan" | sudo tee "$evidence/password-scan.json"
         fi
         rm -rf "$fixtures" "$layer"
         ;;
