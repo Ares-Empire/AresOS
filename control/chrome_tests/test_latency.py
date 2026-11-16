@@ -522,12 +522,19 @@ class LatencyGate(unittest.TestCase):
                         result=self.check()
                         self.assertFalse(result['passed']);self.assertEqual(result['failures'],[])
                         self.assertEqual([(row['phase'],row['call'],row['counter'],row['current_max'],row['ab7aba92_max']) for row in result['sync_failures']],[(phase,call,counter,3,2)])
-        # Fewer syncs than the old runtime, or as many, pass.
+        # Fewer syncs than the old runtime, or as many, pass, also where its counts vary.
         self.build(self.samples)
         self.current['sync_counts']['fresh']['fill']['journal_fsync'].update(min=1,max=1)
         self.old['sync_counts']['history-4000']['navigate']['sqlite_commit'].update(min=2,max=3)
-        self.current['sync_counts']['history-4000']['navigate']['sqlite_commit'].update(min=3,max=3)
+        self.current['sync_counts']['history-4000']['navigate']['sqlite_commit'].update(min=2,max=3)
         self.assertTrue(self.check()['passed'])
+        # Where the old runtime's counts vary, a sync added on every sample may raise only
+        # the lowest count. That fails too (review nit 2).
+        self.current['sync_counts']['history-4000']['navigate']['sqlite_commit'].update(min=3,max=3)
+        result=self.check()
+        self.assertFalse(result['passed']);self.assertEqual(result['failures'],[])
+        self.assertEqual([(row['phase'],row['call'],row['counter'],row['current_min'],row['ab7aba92_min'],row['current_max'],row['ab7aba92_max']) for row in result['sync_failures']],
+                         [('history-4000','navigate','sqlite_commit',3,2,3,3)])
         # Missing or malformed counts on either side can't pass.
         for side in ['current','old']:
             for name,mutate in [('missing',lambda value:value.pop('sync_counts')),
