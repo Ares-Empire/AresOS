@@ -105,7 +105,9 @@ class IngressBounds(unittest.TestCase):
             event = {'hook_event_name': name, 'cwd': '/unused', 'permission_mode': 'default', **extra,
                      **({'stop_hook_active': False, 'last_assistant_message': ['x']} if name == 'Stop' else {'prompt': None})}
             stdout = io.StringIO()
+            # A session that used the tools: only such a session reads pending work (brief 18e fix round, item 9).
             with self.subTest(event=name), patch('sys.stdin', io.TextIOWrapper(io.BytesIO(json.dumps(event).encode()))), \
+                    patch.object(hooks.usage, 'used', return_value=True), \
                     patch.object(hooks, 'Client') as client, redirect_stdout(stdout), redirect_stderr(io.StringIO()):
                 client.return_value.call.return_value = {'ok': True, 'data': pending}
                 hooks.main({'act_socket': '/unused'}, name)
@@ -127,6 +129,7 @@ class IngressBounds(unittest.TestCase):
             stderr = io.StringIO()
             with self.subTest(active=active, broken=broken), \
                     patch('sys.stdin', io.TextIOWrapper(io.BytesIO(json.dumps(event).encode()))), \
+                    patch.object(hooks.usage, 'used', return_value=True), \
                     patch.object(hooks, 'Client') as client, redirect_stdout(io.StringIO()) as stdout, redirect_stderr(stderr):
                 client.return_value.call.return_value = {'unexpected': 'reply'}
                 if active is True:

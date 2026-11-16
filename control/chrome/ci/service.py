@@ -4,13 +4,20 @@ import os
 from pathlib import Path
 import subprocess
 import sys
+import tempfile
 
 if sys.platform != 'linux' or os.environ.get('GITHUB_ACTIONS') != 'true' or not Path('/.dockerenv').exists():
     raise SystemExit('Browser fixtures run only in a GitHub Linux container')
 from aresos_control.engine import Engine
 from aresos_control.daemon import Daemon
 from aresos_control.chrome.policy import CORE_GROUPS, HOSTS
+sys.path.append(str(Path(__file__).resolve().parents[2]/'chrome_tests'))
+import qualification_fixture
 
+# The held record below is synthetic, so this service starts Chrome from a
+# fixture runtime: the tree's build identity beside an empty shipped copy,
+# whatever control/chrome/qualification.json holds (#79).
+qualification_fixture.install(tempfile.mkdtemp(prefix='fixture-runtime-'))
 config={'owner_uid':1000,'state_dir':'/var/lib/aresos-tools','evidence_dir':'/var/lib/aresos-operation-evidence','socket_dir':'/run/aresos-tools'}
 engine=Engine(config['state_dir'],config['evidence_dir'])
 version=subprocess.check_output(['qualification-chrome','--version'],text=True).split()[2]

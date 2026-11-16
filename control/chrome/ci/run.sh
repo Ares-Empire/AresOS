@@ -34,9 +34,9 @@ fi
 # Brief 20-ci-noise: the latency pair keeps the service's store (its journal
 # and SQLite files) on a tmpfs for both runtimes, so the timed phases measure
 # the product, not the shared runner's disk sync. Added disk syncs are caught
-# by their counts instead (latency-check.py). A run writes well under 100 MB
-# per directory (the journal holds 19 to 30 MB after the 4000-entry history);
-# 512 MB each leaves the room the storage ledger's free-space check needs.
+# by their counts instead (latency-check.py). In CI run 43745378252 the store
+# used up to 77 MiB (about 81 MB) of state and 39 MiB of evidence; 512 MB
+# each leaves the room the storage ledger's free-space check needs.
 # latency-store.py records the mounts as the kernel reports them.
 if test "${LATENCY_PROBE:-}" = true; then
   for store_dir in /var/lib/aresos-tools /var/lib/aresos-operation-evidence; do

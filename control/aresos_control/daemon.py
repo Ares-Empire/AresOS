@@ -15,6 +15,23 @@ from .protocol import receive, send
 from .chrome.bridge import LIMIT as CHROME_MESSAGE_LIMIT
 
 
+# The loop sleeps until its next own deadline. Chrome's maintenance runs at least this often, and so the loop never
+# sleeps longer: it also bounds a wall-clock deadline that a clock change or a suspend moved.
+MAINTENANCE = 60
+# The owner's password dialog for a loosening Chrome change is polled this often while it waits.
+CONFIRMATION_POLL = 0.1
+# A deadline that could not be read: try again soon, without spinning.
+UNKNOWN_DEADLINE = 1.0
+# Wake a little after a wall-clock deadline, not a little before it.
+DEADLINE_MARGIN = 0.005
+# A deadline already due when the loop goes to sleep: expire() ran just before, so its work failed. Try again at the
+# old 0.1 s cadence, never at once, so an expiry that keeps failing can't spin the loop.
+OVERDUE_RETRY = 0.1
+# Each socket's final mode: the owner reaches act and chrome (the service checks his uid on every connection);
+# admin is root's.
+SOCKET_MODES = {"act": 0o666, "admin": 0o600, "chrome": 0o666}
+
+
 def chrome_peer(pid, uid):
     """The polkit subject: read the start time now, so a reused pid can't stand in later."""
     from .chrome.confirm import start_time
@@ -23,6 +40,43 @@ def chrome_peer(pid, uid):
     except (OSError, ValueError, IndexError):
         start = None
     return {'pid': pid, 'uid': uid, 'start': start}
+
+
+def replaceable(path):
+    """Nothing at `path`, or a socket of this service's own (a stopped service's, or a start cut short)."""
+    try:
+        info = path.lstat()
+    except FileNotFoundError:
+        return
+    if not stat.S_ISSOCK(info.st_mode) or info.st_uid != os.geteuid():
+        raise ValueError("Refusing to replace an unexpected socket path")
+
+
+def listen(directory, kind):
+    """A listener at `<kind>.sock`, which appears there only once it has its mode and listens.
+
+    Bound under a temporary name in the same folder, given its mode, set listening, then renamed into place (atomic,
+    replacing a stopped service's socket). With the unit's UMask=0077 a socket bound at its final name would be 0700
+    until its chmod: an owner connecting then would get EACCES, which is a setup error that stops an MCP proxy at start
+    for its whole session; and between bind and listen ECONNREFUSED (recheck 2 of 18e, nit 3).
+    """
+    path, temporary = directory / (kind + ".sock"), directory / ("." + kind + ".sock.new")
+    replaceable(path)
+    replaceable(temporary)
+    temporary.unlink(missing_ok=True)
+    listener = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    try:
+        listener.bind(str(temporary))
+        # Peer credentials enforce identity even if the filesystem is made permissive.
+        # act must be reachable without changing the service's supplementary groups.
+        os.chmod(temporary, SOCKET_MODES[kind])
+        listener.listen(16)
+        os.replace(temporary, path)
+    except BaseException:
+        listener.close()
+        temporary.unlink(missing_ok=True)
+        raise
+    return listener
 
 
 class Daemon:
@@ -35,20 +89,24 @@ class Daemon:
         directory = Path(config["socket_dir"])
         directory.mkdir(mode=0o711, exist_ok=True)
         for kind in ("act", "admin", "chrome"):
-            path = directory / (kind + ".sock")
-            if path.exists():
-                info = path.lstat()
-                if not stat.S_ISSOCK(info.st_mode) or info.st_uid != os.geteuid():
-                    raise ValueError("Refusing to replace an unexpected socket path")
-                path.unlink()
-            listener = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-            listener.bind(str(path))
-            # Peer credentials enforce identity even if the filesystem is made permissive.
-            # act must be reachable without changing the service's supplementary groups.
-            os.chmod(path, 0o666 if kind in {"act", "chrome"} else 0o600)
-            listener.listen(16)
+            listener = listen(directory, kind)
             self.selector.register(listener, selectors.EVENT_READ, kind)
             self.sockets.append(listener)
+        # The loop may sleep up to a minute, and Python restarts a select after a signal handler (PEP 475):
+        # stop() writes here so SIGTERM ends the service at once.
+        self.wakeup = os.pipe()
+        for fd in self.wakeup:
+            os.set_blocking(fd, False)
+        self.selector.register(self.wakeup[0], selectors.EVENT_READ, 'wakeup')
+
+    def stop(self):
+        """Signal-safe: end serve() now, even mid-sleep."""
+        self.stopping = True
+        try:
+            os.write(self.wakeup[1], b'\0')
+        except (AttributeError, BlockingIOError, OSError):
+            # Not built by __init__ (tests), or the pipe is already full: the flag still ends the next pass.
+            pass
 
     def serve(self):
         refresh_at = 0
@@ -59,7 +117,7 @@ class Daemon:
                 if b'\n' in bridge.buffer:
                     continue
             if time.monotonic() >= refresh_at:
-                refresh_at = time.monotonic() + 60
+                refresh_at = time.monotonic() + MAINTENANCE
                 try:
                     self.engine.adapters['chrome'].maintenance()
                 except Exception as exc:
@@ -74,7 +132,14 @@ class Daemon:
                 self.engine.adapters['chrome'].poll_confirmation()
             except Exception as exc:
                 self.engine.background_error(exc)
-            for key, _ in self.selector.select(timeout=0.1):
+            for key, _ in self.selector.select(timeout=self.timeout(refresh_at)):
+                if key.data == 'wakeup':
+                    try:
+                        while os.read(key.fd, 512):
+                            pass
+                    except BlockingIOError:
+                        pass
+                    continue
                 if key.data == 'chrome-peer':
                     self.drain_chrome_events(key.fileobj)
                     if b'\n' in self.engine.adapters['chrome'].bridge.buffer:
@@ -107,6 +172,24 @@ class Daemon:
                         send(connection, result, result=True)
                     except Exception:
                         pass
+
+    def timeout(self, refresh_at):
+        """Seconds until the loop has timed work: Chrome maintenance, the engine's next deadline, a waiting dialog.
+
+        Requests and Chrome events wake the select themselves; idle with nothing pending, this is the maintenance time.
+        """
+        wait = refresh_at - time.monotonic()
+        try:
+            if self.engine.adapters['chrome'].confirmation is not None:
+                wait = min(wait, CONFIRMATION_POLL)
+            deadline = self.engine.next_deadline()
+            if deadline is not None:
+                remaining = deadline - time.time()
+                wait = min(wait, remaining + DEADLINE_MARGIN if remaining > 0 else OVERDUE_RETRY)
+        except Exception:
+            # expire() and the Chrome calls on the next pass record any cause; only the sleep is decided here.
+            wait = min(wait, UNKNOWN_DEADLINE)
+        return max(0.0, wait)
 
     def accept_chrome(self, connection):
         """Admit one native host as the owner; True when its hello came with more events."""
@@ -204,6 +287,8 @@ class Daemon:
         self.selector.close()
         for listener in self.sockets:
             listener.close()
+        for fd in getattr(self, 'wakeup', ()):
+            os.close(fd)
         self.engine.close()
 
 
@@ -215,7 +300,7 @@ def main():
         config = strict_json_loads(stream.read())
     daemon = Daemon(config)
     for sig in (signal.SIGTERM, signal.SIGINT):
-        signal.signal(sig, lambda *_: setattr(daemon, "stopping", True))
+        signal.signal(sig, lambda *_: daemon.stop())
     try:
         daemon.serve()
     finally:
