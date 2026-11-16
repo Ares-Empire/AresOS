@@ -261,11 +261,11 @@ def sync_rows(rows,fsyncs=2,commits=2):
         {'sample':row['sample'],'call':row['call'],'stage':'sqlite_commit','count':commits}]]
 
 
-def store_record(root,fstype='tmpfs'):
-    """run.sh's latency-store.py record: both store directories and their mount."""
+def store_record(root,fstype='tmpfs',end=('/var/lib/aresos-tools','/var/lib/aresos-operation-evidence')):
+    """run.sh's latency-store.py record: both store directories and their mount, with the end record for those in end."""
     import json
     directories={directory:{'mount_point':directory,'fstype':fstype,'source':'latency-store','options':'rw,size=524288k,mode=755,uid=1001',
-                            'size_bytes':512*1024*1024,'used_bytes_start':0,'used_bytes_end':40*1024*1024}
+                            'size_bytes':512*1024*1024,'used_bytes_start':0,**({'used_bytes_end':40*1024*1024} if directory in end else {})}
                  for directory in ['/var/lib/aresos-tools','/var/lib/aresos-operation-evidence']}
     (root/'latency-store.json').write_text(json.dumps({'directories':directories}))
 
@@ -353,8 +353,8 @@ class LatencySummary(unittest.TestCase):
             root=Path(temporary)
             for file,value in [('chrome-version.txt','Synthetic Chrome'),('runtime-build.txt','synthetic-build')]:(root/file).write_text(value)
             (root/'latency-client.json').write_text(json.dumps({'samples':rows,'baseline':'current','privacy':'plain'}))
-            def summarize(internal,fstype='tmpfs'):
-                store_record(root,fstype)
+            def summarize(internal,fstype='tmpfs',**end):
+                store_record(root,fstype,**end)
                 (root/'latency-service.jsonl').write_text('\n'.join(map(json.dumps,timings+internal)))
                 return module.summarize(root)
             # approval_to_done's first sample makes two requests: its counts add up.
@@ -368,6 +368,9 @@ class LatencySummary(unittest.TestCase):
             # A missing count, or a store that wasn't on a tmpfs, refuses.
             for internal,fstype in [(sync_rows(rows)[:-1],'tmpfs'),(sync_rows(rows)[1:],'tmpfs'),(sync_rows(rows),'ext4'),(sync_rows(rows),'overlay')]:
                 with self.subTest(rows=len(internal),fstype=fstype),self.assertRaises(AssertionError):summarize(internal,fstype)
+            # So does a store whose end-of-run check didn't run, for either directory (review nit 4).
+            for end in [(),('/var/lib/aresos-tools',),('/var/lib/aresos-operation-evidence',)]:
+                with self.subTest(end=end),self.assertRaisesRegex(AssertionError,'end-of-run'):summarize(sync_rows(rows),end=end)
 
 
 class LatencyGate(unittest.TestCase):
@@ -522,12 +525,19 @@ class LatencyGate(unittest.TestCase):
                         result=self.check()
                         self.assertFalse(result['passed']);self.assertEqual(result['failures'],[])
                         self.assertEqual([(row['phase'],row['call'],row['counter'],row['current_max'],row['ab7aba92_max']) for row in result['sync_failures']],[(phase,call,counter,3,2)])
-        # Fewer syncs than the old runtime, or as many, pass.
+        # Fewer syncs than the old runtime, or as many, pass, also where its counts vary.
         self.build(self.samples)
         self.current['sync_counts']['fresh']['fill']['journal_fsync'].update(min=1,max=1)
         self.old['sync_counts']['history-4000']['navigate']['sqlite_commit'].update(min=2,max=3)
-        self.current['sync_counts']['history-4000']['navigate']['sqlite_commit'].update(min=3,max=3)
+        self.current['sync_counts']['history-4000']['navigate']['sqlite_commit'].update(min=2,max=3)
         self.assertTrue(self.check()['passed'])
+        # Where the old runtime's counts vary, a sync added on every sample may raise only
+        # the lowest count. That fails too (review nit 2).
+        self.current['sync_counts']['history-4000']['navigate']['sqlite_commit'].update(min=3,max=3)
+        result=self.check()
+        self.assertFalse(result['passed']);self.assertEqual(result['failures'],[])
+        self.assertEqual([(row['phase'],row['call'],row['counter'],row['current_min'],row['ab7aba92_min'],row['current_max'],row['ab7aba92_max']) for row in result['sync_failures']],
+                         [('history-4000','navigate','sqlite_commit',3,2,3,3)])
         # Missing or malformed counts on either side can't pass.
         for side in ['current','old']:
             for name,mutate in [('missing',lambda value:value.pop('sync_counts')),
@@ -745,7 +755,7 @@ class MainFixStorageStages(unittest.TestCase):
                 with db:db.execute('INSERT OR REPLACE INTO kv VALUES (?,?)',('x',action))
             db.execute('SELECT v FROM kv').fetchall()
             return 'written'
-        store=SimpleNamespace(write=write,db=db)
+        store=SimpleNamespace(write=write,db=db,state_dir=root)
         bridge=SimpleNamespace(connection=None,call=lambda name,**arguments:{'ok':True},on_event=lambda value:None)
         def request(value,admin=False):
             for _ in range(value.get('writes',0)):self.engine.store.write({'x':1},'chrome_fixture','synthetic')
@@ -795,7 +805,8 @@ class MainFixStorageStages(unittest.TestCase):
         service=(ROOT/'control/chrome/ci/service.py').read_text()
         self.assertIn("open(os.environ.get('FIXTURE_LOG_DIR','/out')+'/browser-boundary.jsonl','a',buffering=1)",service)
         self.assertNotIn("open('/out/browser-boundary.jsonl'",service)
-        # The store stays on the container's disk: nothing redirects its state directories.
+        # The store keeps its own directories (run.sh mounts a tmpfs over them for the latency
+        # pair): nothing redirects them to /scratch.
         self.assertIn("'state_dir':'/var/lib/aresos-tools'",service)
         self.assertNotIn('/scratch',service)
 
@@ -818,6 +829,47 @@ class MainFixStorageStages(unittest.TestCase):
         self.assertEqual([(row['sample'],row['count']) for row in self.rows('journal_fsync')],[('fresh:0',6)])
         self.assertEqual([(row['sample'],row['count']) for row in self.rows('sqlite_commit')],[('fresh:0',6)])
         self.assertEqual(store.get('latency:2'),{'value':2})
+
+    def test_ci_noise_the_commit_count_is_what_commits_an_autocommit_write_included(self):
+        # Review nit 3: the probe counts the commits control.sqlite records (its change
+        # counter), not the COMMIT statements sent. A write in autocommit mode commits, and
+        # syncs, without one; a COMMIT that changed nothing syncs nothing.
+        import sqlite3
+        db=self.engine.store.db
+        def request(value,admin=False):
+            if value.get('autocommit'):
+                db.isolation_level=None
+                try:db.execute("INSERT OR REPLACE INTO kv VALUES ('auto','1')")
+                finally:db.isolation_level=''
+            # The sqlite3 module opens no transaction before DDL: it commits on its own.
+            if value.get('ddl'):db.execute('CREATE TABLE '+value['ddl']+' (x)')
+            if value.get('unchanged'):
+                with db:db.execute("DELETE FROM kv WHERE k='missing'")
+            if value.get('nested'):
+                with db:db.execute("INSERT OR REPLACE INTO kv VALUES ('outer','1')")
+                self.engine.request({'autocommit':True,'ddl':'inner'})
+                with db:db.execute("INSERT OR REPLACE INTO kv VALUES ('outer','2')")
+            return {'ok':True}
+        self.engine.request=request
+        self.profile.install(self.daemon)
+        self.profile.MARKER.write_text(self.json.dumps({'sample':'fresh:0','call':'fill'}))
+        for value in [{'autocommit':True},{'ddl':'extra'},{'unchanged':True}]:self.engine.request(value)
+        self.assertEqual([row['count'] for row in self.rows('sqlite_commit')],[1,1,0])
+        # A nested request's commits are its own and the outer request's aren't counted twice.
+        self.profile.MARKER.write_text(self.json.dumps({'sample':'fresh:1','call':'fill'}))
+        self.engine.request({'nested':True})
+        self.assertEqual([row['count'] for row in self.rows('sqlite_commit') if row['sample']=='fresh:1'],[2,2])
+        # The probe refuses what it can't count: a control.sqlite replaced under it, or a
+        # database in WAL mode, whose change counter need not move with each commit.
+        replacement=sqlite3.connect(self.engine.store.state_dir/'replacement.sqlite')
+        replacement.execute('CREATE TABLE kv (k TEXT PRIMARY KEY, v TEXT NOT NULL)');replacement.close()
+        self.os.replace(self.engine.store.state_dir/'replacement.sqlite',self.engine.store.state_dir/'control.sqlite')
+        with self.assertRaisesRegex(AssertionError,'replaced'):self.engine.request({})
+        wal=self.engine.store.state_dir/'wal';wal.mkdir()
+        database=sqlite3.connect(wal/'control.sqlite');self.addCleanup(database.close)
+        database.execute('PRAGMA journal_mode=WAL');database.execute('CREATE TABLE kv (k TEXT)');database.commit()
+        self.engine.store.state_dir=wal
+        with self.assertRaisesRegex(AssertionError,'rollback-journal'):self.profile.install(self.daemon)
 
     def test_ci_noise_the_store_is_on_a_tmpfs_for_both_runtimes_and_the_artifact_says_so(self):
         # run.sh mounts a tmpfs over both store directories before anything writes to them,

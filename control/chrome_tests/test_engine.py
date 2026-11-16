@@ -12,9 +12,13 @@ from aresos_control.engine import Engine
 from aresos_control.chrome.adapter import view_identity
 from aresos_control.chrome.policy import HOSTS
 from test_policy import entry
+import qualification_fixture
 
 ROOT=Path(__file__).resolve().parents[2]
 WORK=ROOT/'.work/20-chrome'; WORK.mkdir(parents=True,exist_ok=True)
+# The held records below are the fixtures' own, so every Chrome these tests
+# start trusts the fixture baseline, never what the shipped copy holds (#79).
+qualification_fixture.install(WORK/'fixture-runtime')
 
 
 class Browser:

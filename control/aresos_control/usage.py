@@ -4,7 +4,7 @@ The MCP proxy (one per session, running as the owner, started by Claude Code) ma
 process, before it returns a result that names an operation. It reads its parent once, when it starts, and marks only
 while that process is still its parent: a proxy whose Claude Code died is re-parented (to `systemd --user`, say), and
 must never mark that. The hooks look for the mark of their own session: the hook's nearest ancestor that isn't a
-shell (Claude Code runs a hook command with `/bin/sh -c`, and the UserPromptSubmit command adds a shell of its own),
+shell (Claude Code runs a hook command with `/bin/sh -c`, and both managed commands add a shell of their own),
 which is the process that started the session's MCP proxies (Claude Code 2.1.319, pinned by the interactive boundary
 suite). Only that process's mark counts, so a `claude -p` started from a marked session's Bash tool is a session of
 its own. A mark is an empty file named `<pid>-<start>`; the start time (field 22 of /proc/<pid>/stat) keeps a reused
@@ -14,6 +14,11 @@ XDG_RUNTIME_DIR, names it: the managed commands run under `env -i`.
 One notice per outage (lead, 2026-11-15): when the Stop hook tells a marked session that the tools can't be reached,
 it leaves a second empty file `<pid>-<start>.told` beside the mark; later stops stay quiet while it exists. The next
 hook that reaches the service removes it, and so does a new mark, so a later outage tells the session again.
+
+Marks or processes that can't be read count as no mark (lead, 2026-11-16, reversing 18e's "assume a mark"): these
+hooks run in every session on the laptop, and the owner's rule is quiet unless used. All it costs is a missed reminder
+in a session that did use the tools while the marks are broken; its work stays held, shows at its next tool call and
+in `aresos control pending`, and expires unrun.
 """
 import os
 from pathlib import Path
@@ -33,7 +38,7 @@ NAMING = {'operation_id', 'approval'}
 
 
 class Unreadable(Exception):
-    """The marks or the process tree could not be read; the reader then assumes a mark."""
+    """The marks or the process tree could not be read; the reader then assumes no mark."""
 
 
 class ParentChanged(Exception):
@@ -169,23 +174,23 @@ def mark(session, uid=None, run=RUN, proc=PROC):
 
 
 def used(pid=None, uid=None, run=RUN, proc=PROC):
-    """True when the hook's session (as `_session`) has a mark, or anything can't be read.
+    """True when the hook's session (as `_session`) has a mark that can be read.
 
-    No marks folder at all is a clear "no": nothing in this login ever marked a session.
+    No marks folder at all is a clear "no": nothing in this login ever marked a session. Marks or processes that can't
+    be read are a "no" too: the session stays quiet.
     """
     pid = os.getppid() if pid is None else pid
     uid = os.getuid() if uid is None else uid
     try:
-        try:
-            folder = _marks(uid, run, create=False)
-        except FileNotFoundError:
-            return False
-        try:
-            return _session(folder, pid, proc) is not None
-        finally:
-            os.close(folder)
+        folder = _marks(uid, run, create=False)
     except Exception:
-        return True
+        return False
+    try:
+        return _session(folder, pid, proc) is not None
+    except Exception:
+        return False
+    finally:
+        os.close(folder)
 
 
 def notice(pid=None, uid=None, run=RUN, proc=PROC):
@@ -193,21 +198,20 @@ def notice(pid=None, uid=None, run=RUN, proc=PROC):
 
     A session that used the tools (as `used`) is told unless its `.told` file is there; telling it creates that file.
     A `.told` file that can't be written still tells (better twice than never); one that can't be read (other than
-    missing) counts as not told. Marks that can't be read tell at every stop: no session is known to record it for.
+    missing) counts as not told. Marks or processes that can't be read never tell, as in `used`: no session is known
+    to have used the tools.
     """
     pid = os.getppid() if pid is None else pid
     uid = os.getuid() if uid is None else uid
     try:
         folder = _marks(uid, run, create=False)
-    except FileNotFoundError:
-        return False
     except Exception:
-        return True
+        return False
     try:
         try:
             key = _session(folder, pid, proc)
         except Exception:
-            return True
+            return False
         if key is None:
             return False
         try:
