@@ -1,6 +1,11 @@
 name: Control owner oracle (optional)
 on:
   workflow_dispatch:
+    inputs:
+      ledger_only:
+        description: Run only the ledger job (minutes instead of about 2.5 hours)
+        type: boolean
+        default: false
 permissions:
   contents: read
 concurrency:
@@ -23,6 +28,7 @@ jobs:
           name: control-owner-ledger-${{ github.run_id }}-${{ github.run_attempt }}
           path: .work/control-ci/
   alterations:
+    if: ${{ !inputs.ledger_only }}
     strategy:
       fail-fast: false
       matrix:
@@ -49,6 +55,7 @@ jobs:
             .work/mail-ci/greenmail.txt
             .work/mail-ci/dovecot.txt
   sweep:
+    if: ${{ !inputs.ledger_only }}
     strategy:
       fail-fast: false
       matrix:
@@ -79,6 +86,7 @@ jobs:
             .work/mail-ci/greenmail.txt
             .work/mail-ci/dovecot.txt
   onboarding:
+    if: ${{ !inputs.ledger_only }}
     strategy:
       fail-fast: false
       matrix:
