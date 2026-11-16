@@ -250,6 +250,10 @@ class Switch(unittest.TestCase):
         self.assertNotIn('export ' + OUTLINE_SWITCH, run)
         dockerfile = (ROOT / 'control/chrome/ci/Dockerfile').read_text()
         self.assertNotIn(OUTLINE_SWITCH, dockerfile)
+        # GROUP 9 restarts the service through admin.py; it comes back with the same catalogue.
+        restart = [line for line in (ROOT / 'control/chrome/ci/admin.py').read_text().splitlines() if 'service.py' in line]
+        self.assertEqual(len(restart), 1)
+        self.assertIn("'%s=1'" % OUTLINE_SWITCH, restart[0])
 
 
 # --- the adapter, with a fake bridge -------------------------------------------

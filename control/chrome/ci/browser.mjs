@@ -9,6 +9,7 @@ import {efficiencyProbe} from './efficiency-probe.mjs';
 import {matrices} from './matrices.mjs';
 import {measureCompatibility,nativeNavigate,nativeCompatibilityClick,compareCompatibility} from './compatibility.mjs';
 import {ownerUI} from './owner-ui.mjs';
+import {outlineTime} from './outline-time.mjs';
 if(process.platform !== 'linux' || process.env.GITHUB_ACTIONS !== 'true' || !fs.existsSync('/.dockerenv'))throw Error('Browser runs only in GitHub Linux containers');
 const fixture=await fixtures();
 const profile=fs.mkdtempSync('/tmp/aresos-chrome-fixture-');
@@ -60,6 +61,15 @@ try {
   await call('submit',prepared.approval);assert.equal(counts('compose'),1);console.log('GROUP 1 what asks PASS: zero before approval, one after, no replay');
   if(process.env.LATENCY_PROBE==='true'&&process.env.EFFICIENCY_PROBE==='true'){await efficiencyProbe({rpc,eventually,counts,getTab:()=>tab});return;}
   if(process.env.LATENCY_PROBE==='true'){await latencyProbe({call,target,nav,eventually,getTab:()=>tab});return;}
+  // Brief 28, item 4: group 14's time cases, in the core shard while nothing is
+  // pending, in Control Chrome's own runs only (the qualification run sets
+  // RUNTIME_COMMIT and qualifies brief 20's tools, maybe on an older build).
+  // A failure here fails the shard at its end; brief 20's cases still run first.
+  let groupFourteen=null;
+  if(process.env.BROWSER_SHARD==='core'&&!process.env.RUNTIME_COMMIT){
+    try{await outlineTime({call,nav,target,eventually,getTab:()=>tab});console.log('GROUP 14 TIME PASS');}
+    catch(error){groupFourteen=error;console.error('GROUP 14 TIME FAIL',error.stack);}
+  }
   for(const kind of ['native','event']) {
     await nav(kind);const item=await target('Continue');await call('click',item);assert.equal(counts(kind),0);
     const pending=await new Promise((resolve,reject)=>{const socket=net.createConnection('/run/aresos-tools/act.sock');let b='';socket.on('connect',()=>socket.write(JSON.stringify({v:1,method:'call',action:'control_pending',arguments:{}})+'\n'));socket.on('data',d=>{b+=d;if(b.includes('\n')){socket.end();resolve(JSON.parse(b));}});socket.on('error',reject);});
@@ -86,7 +96,7 @@ try {
     ownerArrivals:counts('owner-input'),scheduledArrivals:counts('scheduled-input'),result:continuedResult};
   fs.writeFileSync('/out/owner-input.json',JSON.stringify(evidence,null,2));
   console.log('GROUP 8 owner input evidence',JSON.stringify(evidence));
-  const failures=[];
+  const failures=groupFourteen?[groupFourteen]:[];
   try {
     assert.ok(ownerDelay<300,'Owner test missed the active hold window');
     assert.equal(counts('scheduled-input'),0,'Scheduled submission from Claude input must stay held');
