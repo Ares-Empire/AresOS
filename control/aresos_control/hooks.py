@@ -10,9 +10,9 @@ the process tree and the marks alone, before the hook's input is even parsed.
 
 Only a JSON decision ever blocks a stop; a hook never exits 2 (lead, 2026-11-16). Claude Code reads a Stop hook's exit
 code 2 as "don't stop" and any other non-zero exit as a visible hook error, so a failure of the hook itself is told
-(to a session that used the tools only) as a `{"decision": "block"}` like any other, and not again while
-`stop_hook_active` is true. The managed commands wrap Python in a shell guard that always exits 0
-(`boundary_policy.hook_command`), for what fails before this code runs.
+(to a session that used the tools only) as a `{"decision": "block"}` like any other, and only when the input readably
+says `stop_hook_active` is false, so never twice in a row (`first_stop`). The managed commands wrap Python in a shell
+guard that always exits 0 (`boundary_policy.hook_command`), for what fails before this code runs.
 """
 import json
 import sys
@@ -73,6 +73,22 @@ def read_input():
     return kept
 
 
+def first_stop(event, raw):
+    """Whether the input readably says this stop is not already a Stop hook's continuation: `stop_hook_active` false.
+
+    From the strictly parsed event when there is one, else from the same bytes parsed leniently, for this one field
+    only. Input the strict decoder refuses (a lone surrogate in a field the hook never reads, say) must not block every
+    stop: Claude Code's cap on blocked stops starts again after each tool call (review 1, should-fix 1). Anything else
+    (true, missing, not a boolean, input that can't be read even leniently) is not a first stop.
+    """
+    if event is None and raw is not None:
+        try:
+            event = json.loads(raw.decode('utf-8-sig', errors='replace'))
+        except Exception:
+            return False
+    return isinstance(event, dict) and event.get("stop_hook_active") is False
+
+
 def failed(exc):
     """The Stop hook's own failure, told as a decision: plain json, so it doesn't depend on what may have failed."""
     return json.dumps({"decision": "block", "reason": FAILED + shortened(visible(str(exc)))},
@@ -83,9 +99,9 @@ def main(config, name):
     try:
         used = usage.used()
     except Exception:
-        # `used` itself counts marks or processes it can't read as a mark, so only a bug in it gets here, and that bug
-        # would reach every session alike. Quiet is the safe side: the work stays held in the service, every tool
-        # result still carries it, `aresos control pending` lists it, and it expires unrun.
+        # `used` answers no for marks or processes it can't read, so only a bug in it raises, and that bug would reach
+        # every session alike. Quiet is the safe side: the work stays held in the service, every tool result still
+        # carries it, `aresos control pending` lists it, and it expires unrun.
         used = False
     if not used:
         # A session that never used the tools: no reminder, no notice, no connection. Its input isn't even parsed, so
@@ -95,9 +111,10 @@ def main(config, name):
         except Exception:
             pass
         return
-    event = None
+    event = raw = None
     try:
-        event = strict_json_loads(read_input())
+        raw = read_input()
+        event = strict_json_loads(raw)
         validate(event, EVENT, 'hook')
         if not isinstance(event, dict) or event.get("hook_event_name") != name:
             raise Refused("invalid_input", "Hook input must be an object matching the launcher event.")
@@ -129,9 +146,9 @@ def main(config, name):
     except Exception as exc:
         if name == "UserPromptSubmit":
             return
-        if isinstance(event, dict) and event.get("stop_hook_active") is True:
+        if not first_stop(event, raw):
             # The continuation guard holds for failures too: the feedback below blocks a stop once, never until
-            # Claude Code's own limit on blocked stops.
+            # Claude Code's own limit on blocked stops (which starts again after each tool call).
             return
         # A session that used the tools hears of the failure as a decision, never through an exit code.
         print(failed(exc))

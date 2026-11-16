@@ -302,8 +302,9 @@ owner notices are shared by all sessions. So a hook first checks that its sessio
 the tools (the mark below; lead, 2026-11-16): any other session gets nothing, not even a
 connection to the service. It checks first, from the process tree and the marks alone,
 before it parses its input, so no failure on the input reaches such a session either;
-the input is still read to the end, so Claude Code's pipe never breaks. If the check
-itself fails (only a bug can: marks it can't read already count as a mark), the hook
+the hook's code still reads its input to the end, so Claude Code's pipe never breaks
+while it runs. If the check
+itself fails (only a bug can: marks it can't read count as no mark), the hook
 stays quiet too: the work stays held in the service, every tool result still carries
 it, `aresos control pending` lists it, and it expires unrun. A session the service
 answers with `permission_denied` (root's, another user's) can't use the tools, so it
@@ -352,7 +353,7 @@ empties at logout; the uid names it because the managed commands run under `env 
 A hook looks for the mark of its own session: its nearest ancestor that isn't a shell
 (`sh`, `bash`, `dash`, `zsh`, `ksh`, `mksh`, `fish`, `busybox`, `env` by process name),
 within four levels and never PID 1. Claude Code 2.1.319 runs hook commands with `/bin/sh
--c` (the `UserPromptSubmit` command adds a shell and a subshell of its own), and starts
+-c` (both managed commands add a shell and a subshell of their own), and starts
 the MCP server and the hooks from the same process (the interactive boundary suite pins
 both). Only that process's mark counts: a `claude -p` started from a marked session's
 Bash tool is a session of its own. A process other than a shell between Claude Code and
@@ -361,8 +362,11 @@ A mark blocks the stop once with "AresOS tools are not running. If you prepared 
 something with them in this session, its outcome is unknown: tell the owner, and don't
 repeat it." when nothing listens (`service_unavailable`), and with "AresOS tools could not
 be reached. …" (the same advice) for a busy service, a setup error or a lost connection,
-where the service may well be running. No mark: no output, exit 0. A marks folder or
-process that can't be read counts as a mark; no marks folder at all is a clear no. A
+where the service may well be running. No mark: no output, exit 0. No marks folder at
+all is a clear no, and so is a marks folder or process that can't be read (lead,
+2026-11-16, reversing 18e's "counts as a mark": these hooks run in every session, and
+#254 asks for quiet unless used; the cost is a missed reminder in a session that did use
+the tools while its marks are broken, see the known limits below). A
 mark that can't be written is skipped: that session then stays quiet. The notice comes
 once per outage, not at every turn end (lead, 2026-11-15): giving it, `Stop` leaves a
 second empty file `<pid>-<start>.told` beside the session's mark (same folder, 0600,
@@ -372,15 +376,19 @@ does a new mark (the session used the tools again), so a later outage gives the 
 again. `/clear` starts a new conversation in the same Claude Code process, which keeps
 its mark. A `.told` file that can't
 be written still gives the notice (at every stop, better twice than never); one that
-can't be read (other than missing) counts as not given; marks that can't be read give
-it at every stop. With the service up nothing changes. In a session that used the tools,
-`Stop` reports malformed input or its own failure as a decision, exit 0:
+can't be read (other than missing) counts as not given; marks that can't be read never
+give it. With the service up nothing changes. In a session that used the tools, `Stop`
+reports malformed input or its own failure as a decision, exit 0:
 `{"decision":"block","reason":"AresOS hook failed; inspect pending work before
-continuing: …"}`, never through an exit code. Both block a stop once: when the input
-parses and `stop_hook_active` is already true, it ends quietly. Input it can't parse
-(over the size limit, not strict JSON) has no `stop_hook_active` to read, so it blocks
-every such stop, up to Claude Code's own limit on blocked stops. A failure before the
-hook's Python code runs gives nothing, in every session (the shell guard above).
+continuing: …"}`, never through an exit code, and only when the input readably says
+`stop_hook_active` is false (lead, 2026-11-16, review 1): strictly parsed, or, when the
+strict decoder refuses it (a lone surrogate in a field the hook never reads, say), the
+same bytes parsed leniently for that one field. When it is true, missing, not a boolean,
+or can't be read even so (input cut at the size limit, not JSON at all), the hook stays
+quiet: such input could otherwise block every stop, and Claude Code's cap on blocked
+stops starts again after each tool call. So a failure blocks a stop at most once in a
+row. A failure before the hook's Python code runs gives nothing, in every session (the
+shell guard above).
 `UserPromptSubmit` exits 0 with no output on any failure, including unreadable
 or malformed input, service failure, and installation/configuration errors, so
 it never discards the owner's prompt. Valid prompt input still adds the pending
@@ -389,6 +397,10 @@ continuation limits and ended turns.
 
 Known limits of "quiet unless used" (18e recheck 2). Each fails quiet: the owner isn't
 reminded, the work still expires, and `aresos control pending` lists it.
+- **Marks that can't be read.** A marks folder with group or other bits, a link or a
+  folder where a mark should be, a process the walk can't read: every session, used or
+  not, then counts as unmarked and hears nothing from the hooks (lead, 2026-11-16). Only
+  the proxy creates these folders (0700). Its held work still shows in every tool result.
 - **A Claude Code update can silence every session.** If a later Claude Code puts a
   process other than a shell between itself and the hooks, or between itself and the
   MCP servers, that process is taken as the session: no session finds its mark, so none

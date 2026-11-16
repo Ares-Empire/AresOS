@@ -525,16 +525,20 @@ class QuietUnlessUsed(unittest.TestCase):
         self.assertFalse(self.used(pid=71))  # level 5
         self.assertTrue(self.used(pid=72))  # level 4
 
-    def test_unreadable_marks_or_processes_count_as_marked(self):
-        self.mark(pid=10)
+    def test_unreadable_marks_or_processes_count_as_unmarked(self):
+        # Quiet unless used, whatever can't be read (lead, 2026-11-16, reversing 18e's "assume a mark").
+        self.mark()
+        self.assertTrue(self.used())
         self.process(60, 55, 3, 'python3')
         (self.proc / '55').mkdir()
-        self.assertTrue(self.used(pid=55))  # no stat for the parent
+        self.assertFalse(self.used(pid=55))  # no stat for the parent
         self.marks().chmod(0o755)
-        self.assertTrue(self.used())  # not a private folder
+        self.assertFalse(self.used())  # not a private folder
         self.marks().chmod(0o700)
+        self.assertTrue(self.used())
+        (self.marks() / '20-500').unlink()
         (self.marks() / '20-500').mkdir()
-        self.assertTrue(self.used())  # a folder where the session's mark should be
+        self.assertFalse(self.used())  # a folder where the session's mark should be
 
     def test_a_link_where_the_folder_should_be_is_never_followed(self):
         from aresos_control import usage
@@ -544,14 +548,14 @@ class QuietUnlessUsed(unittest.TestCase):
         with self.assertRaises(OSError):
             self.mark()
         self.assertEqual(list(elsewhere.iterdir()), [])
-        self.assertTrue(self.used())  # can't read: as if marked
+        self.assertFalse(self.used())  # can't read: as if unmarked
         (self.run_dir / str(self.uid) / 'aresos-control').unlink()
         (self.run_dir / str(self.uid) / 'aresos-control').mkdir(mode=0o700)
         (self.run_dir / str(self.uid) / 'aresos-control' / 'used').symlink_to(elsewhere)
         with self.assertRaises(OSError):
             self.mark()
         self.assertEqual(list(elsewhere.iterdir()), [])
-        self.assertTrue(self.used())
+        self.assertFalse(self.used())
 
     def test_what_names_an_operation(self):
         from aresos_control.usage import names_operation
@@ -713,19 +717,22 @@ class QuietUnlessUsed(unittest.TestCase):
         self.reached()  # can't remove a folder; never raises
         self.assertTrue(self.told().is_dir())
 
-    def test_unreadable_marks_tell_at_every_stop_and_record_nothing(self):
+    def test_unreadable_marks_never_tell_and_record_nothing(self):
+        # As in `used` (lead, 2026-11-16, reversing 18e): no session is known to have used the tools.
         self.mark()
         self.marks().chmod(0o755)
-        self.assertTrue(self.notice())
-        self.assertTrue(self.notice())
+        self.assertFalse(self.notice())
+        self.assertFalse(self.notice())
         self.reached()
         self.marks().chmod(0o700)
         self.assertFalse(self.told().exists())
         (self.proc / '35' / 'stat').unlink()  # the hook's parent can't be read
-        self.assertTrue(self.notice())
-        self.assertTrue(self.notice())
+        self.assertFalse(self.notice())
+        self.assertFalse(self.notice())
         self.reached()
         self.assertFalse(self.told().exists())
+        self.process(35, 20, 899, 'sh')
+        self.assertTrue(self.notice())  # readable again: told
 
     def test_the_stop_hook_tells_once_per_outage(self):
         from functools import partial
@@ -858,8 +865,8 @@ class QuietUnlessUsed(unittest.TestCase):
         with patch.object(proxy.usage, 'mark', partial(usage.mark, uid=self.uid, run=self.run_dir, proc=self.proc)), \
                 patch.object(usage.os, 'getppid', return_value=20):
             self.assertEqual(within(lambda: proxy.note_use('testapp', 'prepare_send', approval, (20, 500))), {'value': None})
-        self.assertTrue(within(self.used)['value'])  # not a plain file: counts as marked
-        self.assertTrue(within(self.notice)['value'])
+        self.assertFalse(within(self.used)['value'])  # not a plain file: counts as unmarked
+        self.assertFalse(within(self.notice)['value'])
         (self.marks() / '20-500').unlink()
         self.mark()
         os.mkfifo(self.told())

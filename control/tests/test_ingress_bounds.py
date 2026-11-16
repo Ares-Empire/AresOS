@@ -70,9 +70,11 @@ class IngressBounds(unittest.TestCase):
 
     def test_hook_raw_bounds_refuse_before_pending_read(self):
         # In a session that used the tools (a session that didn't never parses its input). Stop tells of the refusal
-        # as a JSON decision, never through an exit code (lead, 2026-11-16).
+        # as a JSON decision, never through an exit code, when the input still readably says `stop_hook_active` is
+        # false (lead, 2026-11-16). An oversized input is cut, so it can't say that: quiet.
         for event in ('Stop', 'UserPromptSubmit'):
-            for name, raw in raw_cases(b'{"hook_event_name":' + json.dumps(event).encode() + b',"prompt":', b'}'):
+            prefix = b'{"hook_event_name":' + json.dumps(event).encode() + b',"stop_hook_active":false,"prompt":'
+            for name, raw in raw_cases(prefix, b'}'):
                 with self.subTest(case=name, event=event), patch('sys.stdin', io.TextIOWrapper(io.BytesIO(raw))), \
                         patch.object(hooks.usage, 'used', return_value=True), \
                         patch.object(hooks, 'Client') as client, redirect_stdout(io.StringIO()) as stdout, \
@@ -80,7 +82,9 @@ class IngressBounds(unittest.TestCase):
                     hooks.main({}, event)
                     client.assert_not_called()
                     self.assertEqual(stderr.getvalue(), '')
-                    if event == 'Stop':
+                    # Lenient parsing of 1200 levels depends on Python's own recursion limit: told or quiet.
+                    told = event == 'Stop' and name != 'bytes' and (name != 'depth' or stdout.getvalue() != '')
+                    if told:
                         decision = json.loads(stdout.getvalue())
                         self.assertEqual(decision['decision'], 'block')
                         self.assertTrue(decision['reason'].startswith(hooks.FAILED), decision)
@@ -99,11 +103,15 @@ class IngressBounds(unittest.TestCase):
                     patch.object(hooks, 'Client') as client, redirect_stdout(io.StringIO()) as stdout, \
                     redirect_stderr(io.StringIO()) as stderr:
                 hooks.main({}, 'Stop')
-                decision = json.loads(stdout.getvalue())
-                self.assertEqual(decision['decision'], 'block')
-                self.assertTrue(decision['reason'].startswith(hooks.FAILED), decision)
                 self.assertEqual(stderr.getvalue(), '')
                 client.assert_not_called()
+                # Told only when the input readably says this isn't already a continuation (lead, 2026-11-16).
+                if event.get('stop_hook_active') is False:
+                    decision = json.loads(stdout.getvalue())
+                    self.assertEqual(decision['decision'], 'block')
+                    self.assertTrue(decision['reason'].startswith(hooks.FAILED), decision)
+                else:
+                    self.assertEqual(stdout.getvalue(), '')
 
     def test_hook_accepts_and_ignores_fields_it_does_not_read(self):
         # Claude Code 2.1.319 sends `prompt_id` and more than the documented fields; a closed list broke every turn.
@@ -142,10 +150,11 @@ class IngressBounds(unittest.TestCase):
                     patch.object(hooks.usage, 'used', return_value=True), \
                     patch.object(hooks, 'Client') as client, redirect_stdout(io.StringIO()) as stdout, redirect_stderr(stderr):
                 client.return_value.call.return_value = {'unexpected': 'reply'}
-                # Never an exit code: the failure is a JSON decision, once (lead, 2026-11-16).
+                # Never an exit code: the failure is a JSON decision, once, and only when `stop_hook_active` is
+                # readably false (lead, 2026-11-16).
                 hooks.main({'act_socket': '/unused'}, 'Stop')
                 self.assertEqual(stderr.getvalue(), '')
-                if active is True:
+                if active is not False:
                     self.assertEqual(stdout.getvalue(), '')
                 else:
                     decision = json.loads(stdout.getvalue())

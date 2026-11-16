@@ -100,7 +100,10 @@ class Hook(unittest.TestCase):
         return stdout.getvalue(), stderr.getvalue(), client, unread
 
     def failures(self, active=False):
-        """Each way the hook can fail, as (input, service stand-in)."""
+        """Each way the hook can fail, as {case: (input, service stand-in, told)}: `told` when a session that used the
+        tools hears of it at a first stop, which needs an input that readably says `stop_hook_active` is false, strictly
+        parsed or, failing that, leniently (review 1, should-fix 1)."""
+        flag = b'true' if active else b'false'
         event = canonical({'hook_event_name': 'Stop', 'stop_hook_active': active}).encode()
 
         def raising(client):
@@ -112,23 +115,40 @@ class Hook(unittest.TestCase):
         def unbuildable(client):
             client.side_effect = RuntimeError('synthetic client failure')
 
+        def idle(client):
+            client.return_value.call.return_value = {'ok': True, 'data': {'items': [], 'total': 0}}
+
         return {
-            'invalid JSON': (b'{"hook_event_name":"Stop","stop_hook_active":', None),
-            'not an object': (b'[]', None),
-            'wrong event': (canonical({'hook_event_name': 'UserPromptSubmit', 'stop_hook_active': active}).encode(), None),
-            'wrong type': (canonical({'hook_event_name': 'Stop', 'stop_hook_active': 'yes'}).encode(), None),
-            'repeated field': (b'{"hook_event_name":"Stop","hook_event_name":"Stop"}', None),
-            'oversized': (b'{"hook_event_name":"Stop","last_assistant_message":"' + b'x' * (WIRE_LIMIT + 70000) + b'"}',
-                          None),
-            'raising client': (event, raising),
-            'client that cannot start': (event, unbuildable),
-            'unexpected reply': (event, unexpected),
+            'cut short': (b'{"hook_event_name":"Stop","stop_hook_active":' + flag + b',"last_assistant_message":"',
+                          None, False),
+            'not an object': (b'[]', None, False),
+            'wrong event': (canonical({'hook_event_name': 'UserPromptSubmit', 'stop_hook_active': active}).encode(), None,
+                            True),
+            'wrong type': (canonical({'hook_event_name': 7, 'stop_hook_active': active}).encode(), None, True),
+            'stop_hook_active not a boolean': (canonical({'hook_event_name': 'Stop', 'stop_hook_active': 'no'}).encode(),
+                                               None, False),
+            'stop_hook_active missing': (canonical({'hook_event_name': 'Stop'}).encode(), raising, False),
+            'repeated field': (b'{"hook_event_name":"Stop","stop_hook_active":' + flag + b',"hook_event_name":"Stop"}',
+                               None, True),
+            # Review 1's input: an escaped lone surrogate in a field the hook never reads, which repeats across turns.
+            'lone surrogate': (b'{"hook_event_name":"Stop","stop_hook_active":' + flag + b',"last_assistant_message":'
+                               b'"reply 2","background_tasks":[{"type":"shell","description":"build \\ud83d"}],'
+                               b'"session_crons":[]}', None, True),
+            'invalid UTF-8': (b'{"hook_event_name":"Stop","stop_hook_active":' + flag + b',"x":"\xff"}', None, True),
+            # Cut at the bound, so even lenient parsing can't read it.
+            'oversized': (b'{"hook_event_name":"Stop","stop_hook_active":' + flag + b',"last_assistant_message":"'
+                          + b'x' * (WIRE_LIMIT + 70000) + b'"}', None, False),
+            # Valid within the first 6 MiB, but too large as a whole: refused all the same, never read as a request.
+            'oversized by whitespace': (event + b' ' * WIRE_LIMIT, idle, True),
+            'raising client': (event, raising, True),
+            'client that cannot start': (event, unbuildable, True),
+            'unexpected reply': (event, unexpected, True),
         }
 
     def test_a_session_that_never_used_the_tools_gets_nothing_whatever_fails(self):
         for used in (False, RuntimeError('synthetic usage failure')):
             for name in ('Stop', 'UserPromptSubmit'):
-                for case, (wire, service) in self.failures().items():
+                for case, (wire, service, _) in self.failures().items():
                     with self.subTest(used=repr(used), event=name, case=case):
                         stdout, stderr, client, unread = self.hook(wire, name, used, service)
                         self.assertEqual((stdout, stderr), ('', ''))
@@ -136,26 +156,59 @@ class Hook(unittest.TestCase):
                         self.assertEqual(unread, 0)  # read to the end all the same: Claude Code's pipe never breaks
 
     def test_a_session_that_used_the_tools_hears_of_a_failure_once_as_a_decision(self):
-        for case, (wire, service) in self.failures().items():
+        for case, (wire, service, told) in self.failures().items():
             with self.subTest(case=case):
                 stdout, stderr, _, unread = self.hook(wire, service=service)
                 self.assertEqual(stderr, '')
                 self.assertEqual(unread, 0)
+                if not told:
+                    self.assertEqual(stdout, '')  # it can't say this isn't a continuation: never every stop
+                    continue
                 self.assertEqual(stdout.count('\n'), 1)
                 decision = json.loads(stdout)
                 self.assertEqual(set(decision), {'decision', 'reason'})
                 self.assertEqual(decision['decision'], 'block')
                 self.assertTrue(decision['reason'].startswith('AresOS hook failed; inspect pending work before continuing: '),
                                 decision)
-        # Not again while Claude Code is already continuing because of a Stop hook.
-        for case, (wire, service) in self.failures(active=True).items():
-            if case in ('raising client', 'client that cannot start', 'unexpected reply', 'wrong event'):
-                with self.subTest(case=case, active=True):
-                    self.assertEqual(self.hook(wire, service=service)[:2], ('', ''))
+        # Not again while Claude Code is already continuing because of a Stop hook, however the input fails.
+        for case, (wire, service, _) in self.failures(active=True).items():
+            with self.subTest(case=case, active=True):
+                self.assertEqual(self.hook(wire, service=service)[:2], ('', ''))
         # The prompt hook stays quiet on any failure, as before.
-        for case, (wire, service) in self.failures().items():
+        for case, (wire, service, _) in self.failures().items():
             with self.subTest(case=case, event='UserPromptSubmit'):
                 self.assertEqual(self.hook(wire, 'UserPromptSubmit', service=service)[:2], ('', ''))
+
+    def test_the_failure_reason_is_bounded_and_shows_hidden_characters(self):
+        def raising(client):
+            client.return_value.call.side_effect = RuntimeError('right‮left ' + 'y' * 5000)
+
+        stdout, _, _, _ = self.hook(canonical({'hook_event_name': 'Stop', 'stop_hook_active': False}).encode(),
+                                    service=raising)
+        reason = json.loads(stdout)['reason']
+        self.assertNotIn('‮', reason)
+        self.assertIn('right\\u202eleft', reason)
+        self.assertIn('characters omitted', reason)
+        self.assertLess(len(reason), len(hooks.FAILED) + 2100)
+
+    def test_input_that_cannot_be_read_is_quiet(self):
+        class Broken:
+            def read(self, size=-1):
+                raise OSError(5, 'synthetic read failure')
+
+        class Stdin:
+            buffer = Broken()
+
+        for used in (False, RuntimeError('synthetic usage failure'), True):
+            for name in ('Stop', 'UserPromptSubmit'):
+                with self.subTest(used=repr(used), event=name), \
+                        patch.object(hooks.usage, 'used', **({'side_effect': used} if isinstance(used, Exception)
+                                                             else {'return_value': used})), \
+                        patch.object(hooks, 'Client') as client, patch('sys.stdin', Stdin()), \
+                        redirect_stdout(io.StringIO()) as stdout, redirect_stderr(io.StringIO()) as stderr:
+                    self.assertIsNone(hooks.main({'act_socket': '/unused'}, name))
+                    self.assertEqual((stdout.getvalue(), stderr.getvalue()), ('', ''))
+                    client.assert_not_called()
 
     def test_held_work_and_the_outage_notice_are_unchanged(self):
         pending = {'total': 1, 'items': [{'operation_id': 'op-held', 'state': 'held'}]}

@@ -30,8 +30,8 @@ class StrictJSON(unittest.TestCase):
                     daemon.main()
                 constructor.assert_not_called()
         for name in ('Stop', 'UserPromptSubmit'):
-            for raw in ('{"hook_event_name":"' + name + '","hook_event_name":"' + name + '"}',
-                        '{"hook_event_name":"' + name + '","nested":{"x":1,"x":2}}'):
+            for raw in ('{"hook_event_name":"' + name + '","stop_hook_active":false,"hook_event_name":"' + name + '"}',
+                        '{"hook_event_name":"' + name + '","stop_hook_active":false,"nested":{"x":1,"x":2}}'):
                 stdin = io.TextIOWrapper(io.BytesIO(raw.encode()))
                 # A session that used the tools: one that didn't never parses its input (lead, 2026-11-16).
                 with patch('sys.stdin', stdin), patch.object(hooks.usage, 'used', return_value=True), \

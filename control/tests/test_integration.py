@@ -558,18 +558,27 @@ print(json.dumps(results))
                 self.assertEqual(hook.stderr, "")
 
     def test_malformed_hook_input_gives_explicit_failure_feedback(self):
-        # Only to a session that used the tools, and only as a JSON decision: the managed commands always exit 0
-        # (lead, 2026-11-16). A session that never used the tools gets nothing.
+        # Only to a session that used the tools, only as a JSON decision, and only when the input readably says
+        # `stop_hook_active` is false: the managed commands always exit 0 (lead, 2026-11-16). A session that never
+        # used the tools gets nothing.
         for marked in (False, True):
             if marked:
                 self.mark_session()
             for name in ("Stop", "UserPromptSubmit"):
-                for wire in ('{"hook_event_name":"' + name + '","prompt":', '[]',
-                             canonical({"hook_event_name": "Stop" if name == "UserPromptSubmit" else "UserPromptSubmit"})):
+                other = "Stop" if name == "UserPromptSubmit" else "UserPromptSubmit"
+                # (input, told at a used session's first stop)
+                for wire, readable in (('{"hook_event_name":"' + name + '","stop_hook_active":false,"prompt":', False),
+                                       ('[]', False),
+                                       (canonical({"hook_event_name": other, "stop_hook_active": False}), True),
+                                       # Review 1's lone surrogate, strictly refused: read leniently for the guard.
+                                       ('{"hook_event_name":"' + name + '","stop_hook_active":false,'
+                                        '"background_tasks":[{"description":"build \\ud83d"}]}', True),
+                                       ('{"hook_event_name":"' + name + '","stop_hook_active":true,'
+                                        '"background_tasks":[{"description":"build \\ud83d"}]}', False)):
                     with self.subTest(marked=marked, event=name, input=wire):
                         hook = self.launch(OWNER, ["hook", name], input=wire)
                         self.assertEqual((hook.returncode, hook.stderr), (0, ""))
-                        if name == "Stop" and marked:
+                        if name == "Stop" and marked and readable:
                             decision = json.loads(hook.stdout)
                             self.assertEqual(decision["decision"], "block")
                             self.assertTrue(decision["reason"].startswith("AresOS hook failed; inspect pending work"),
