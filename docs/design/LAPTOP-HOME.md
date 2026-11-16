@@ -322,6 +322,11 @@ The page never gets a command, a path, the socket, the view token or the launch 
   renders Minecraft), it is about 265 MiB: 123 MiB working memory and 141 MiB files, because the NVIDIA
   driver's libraries are not loaded.
 - The bare engine is about 255 MiB of it.
+- **For the build (research, 2026-11-16, `reviews/49-memory-cuts/RESEARCH.md` section 6):** most of that is the
+  NVIDIA libraries that libglvnd loads into every process, not WebKit. Pinning the window program's EGL and Vulkan
+  vendor to Mesa/Intel (it draws on the compositor's chip anyway) measured about 150 MiB PSS for the bare engine
+  instead of 356, and WebKitGTK 2.54.2 or later frees idle processes under pressure. The build package measures it
+  in the real session.
 
 **Motion** (measured, review fix 7): one figure the size of a companion (80 x 80 pixels) walks along a street. It is
 drawn on a see-through canvas over the whole town that is cleared and drawn again every frame, as the companions'
@@ -580,8 +585,8 @@ Steps 1 and 2 are data and rules; step 3 is how a screen looks.
 
 These are the report's JUDGMENT-CALLs 1 to 6, in the same order, each with the study's recommendation.
 
-1. **Which direction, and by night or by day?** **Answered (2026-11-16): the street, by day.** He then asked for a
-   cleaner layout. Section 11.6 has his words and the layout drawn for them
+1. **Which direction, and by night or by day?** **Answered (2026-11-16): the street, by day, on terraces.** He then
+   asked for a cleaner layout and chose terraces over the lawn (board #332: "Terraces"). Section 11.6 has his words and the layout drawn for them
    ([home](../../reviews/44-laptop-home/pictures/day2-1-home.png),
    [forty-five apps](../../reviews/44-laptop-home/pictures/day2-8-forty-five-apps.png)). What was asked:
    - **The direction:** the street (his town from the side), Map table or Console. *Recommended: the street.* It
@@ -593,23 +598,27 @@ These are the report's JUDGMENT-CALLs 1 to 6, in the same order, each with the s
      [by day](../../reviews/44-laptop-home/pictures/day-6-forty-apps.png). *Recommended: day.* His world is always
      at noon, so by day both screens show one place. Night is calmer and shows what is open a little more strongly.
      Section 11 has the reasons and what each look costs.
-2. **One look, or a choice of looks?** *Recommended: one look first, the one he picks in question 1.* Night and day
+2. **One look, or a choice of looks?** **Kept as recommended (2026-11-16, no objection): one look first, day; night
+   stays ready in the same page.** *Recommended: one look first, the one he picks in question 1.* Night and day
    are one page with two sets of colours (section 11), so the other one stays ready; a way to choose can follow
    once he has lived with the first. Map table would be a second folder of web files.
-3. **Slightly dimmed houses, or every logo in full colour?** Compare
+3. **Slightly dimmed houses, or every logo in full colour?** **Answered (2026-11-16): dimmed until used, lit when
+   open** ("dimmed and light up when used makes sense"; the apps "don't necessarily have to be Minecraft houses"). Compare
    [street-1](../../reviews/44-laptop-home/pictures/street-1-home.png) (slightly dimmed: open apps are brighter and
    their doors lit) with [street-10](../../reviews/44-laptop-home/pictures/street-10-full-colour.png) (full colour:
    only the door light shows what is open). *Recommended: slightly dimmed*, so what is running shows at a glance and
    the screen stays calm beside the world. It is one number to change. By day the same question stands: there
    "dimmed" is paler instead of darker (section 11).
-4. **Only the time, the date and the battery besides the apps?** *Recommended: yes for version 1.* Notifications,
+4. **Only the time, the date and the battery besides the apps?** **Kept as recommended (2026-11-16, no
+   objection).** *Recommended: yes for version 1.* Notifications,
    volume or a view into the world can each be added when he asks.
-5. **A reserved key (Super) that jumps to the laptop home's typing line** from anywhere, the world included? It is
+5. **A reserved key (Super) that jumps to the laptop home's typing line** from anywhere, the world included?
+   **Answered (2026-11-16): yes** ("so does the search menu easy access"). It is
    the only way from inside the world to the laptop without Esc (section 6), and it makes the laptop home the
    launcher of the whole session while the monitor is in. *Recommended: yes.* A reserved key changes how AresOS
    feels, so it is his call.
 6. **Pins change in the world only** in version 1? The laptop shows the hotbar and opens from it but does not
-   re-order it. *Recommended: yes.*
+   re-order it. *Recommended: yes.* **Kept as recommended (2026-11-16, no objection).**
 
 ---
 
@@ -767,7 +776,8 @@ The laptop trial (section 9) measures the look he chose in his own session, as i
 
 ### 11.6 His answer: day, on a cleaner layout
 
-**He chose day** (2026-11-16) and asked for a cleaner layout:
+**He chose day** (2026-11-16) and asked for a cleaner layout. Shown the two grounds below, **he chose terraces**
+(board #332, the same day: "Terraces"). His words on the layout:
 
 > "Yes day but it bothers me that the lines aren't aligned. I think the all display or background should be
 > slightly different because currently the not standardized , unequally long app lines that don't line up with the
