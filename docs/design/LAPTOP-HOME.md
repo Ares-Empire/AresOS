@@ -1,10 +1,14 @@
 # The laptop-screen home: Night street
 
 **Draft, waiting for the owner's choice.** Design study of package 44 (2026-11-16, a Fable design agent; review
-fixes 1 the same day, a Claude Opus agent). Nothing here is built. It describes the direction the study
-recommends; the other two directions, the pictures and the measurements are in
-[the study's report](../../reviews/44-laptop-home/PROGRESS.md). If he chooses another direction, sections 1 to 3
-change and sections 4 to 8 stay.
+fixes 1 the same day, a Claude Opus agent; the day look and section 11 the same day, a Fable design agent). Nothing
+here is built. It describes the direction the study recommends; the other two directions, the pictures and the
+measurements are in [the study's report](../../reviews/44-laptop-home/PROGRESS.md). If he chooses another
+direction, sections 1 to 3 change and sections 4 to 8 stay.
+
+**Night or day is open.** Sections 1 and 2 describe the town at night, as the study first drew it. The owner asked
+why night, when the world is never dark. Section 11 answers, shows the same town by day and recommends day. If he
+chooses day, sections 1, 2.1, 2.4 and 2.5 take section 11's table and nothing else changes.
 
 The owner (2026-11-15): "the laptop needs to get a proper "monitor connected" homescreen so its not boring and still
 unique and functional. Probably most useful will be to have apps easily accessible via it or a companions room or
@@ -21,7 +25,13 @@ Pictures (test apps, generated logos):
 [forty-five apps, one group of twenty](../../reviews/44-laptop-home/pictures/street-8-forty-five-apps.png),
 [a far house slid into view](../../reviews/44-laptop-home/pictures/street-9-far-house.png),
 [every logo in full colour](../../reviews/44-laptop-home/pictures/street-10-full-colour.png).
-The clickable prototype is `reviews/44-laptop-home/prototypes/street/index.html`.
+The same town by day (section 11):
+[home](../../reviews/44-laptop-home/pictures/day-1-home.png),
+[finding](../../reviews/44-laptop-home/pictures/day-2-finding.png),
+[an app opened](../../reviews/44-laptop-home/pictures/day-4-opened.png),
+[forty apps](../../reviews/44-laptop-home/pictures/day-6-forty-apps.png).
+The clickable prototype is `reviews/44-laptop-home/prototypes/street/index.html`; `?look=day` after the address
+shows it by day.
 
 ---
 
@@ -78,7 +88,7 @@ He unplugs the monitor. The world is back on the laptop screen and the street is
 | The road | A dark strip with the group's colour as its top line, paved from the farthest house on the left to the farthest on the right, gaps included. A group without apps has the middle piece only. |
 | The house | The logo's 12 x 12 front as the mod built it, drawn as solid blocks with a top and a right side (3 blocks deep, as in the world). The doorway is columns 5 and 6, three high, black. The doormat is the road's top line under the door, in the group's bright colour. |
 | The sign | Over the house: the name (white), under it the main short name with its slash (gold, JetBrains Mono). A long name takes a second line, as the world's signs do; past two lines it ends in "…". |
-| Night | The background is the session's `#0d0d10` with a faint Mars-red glow bottom left and a steel-blue one top right (the crown language). Houses are slightly dimmed: 62 % brightness and 82 % saturation (or full colour, section 10 question 3). |
+| Night | The background is the session's `#0d0d10` with a faint Mars-red glow bottom left and a steel-blue one top right (the crown language). Houses are slightly dimmed: 62 % brightness and 82 % saturation (or full colour, section 10 question 3). The day look instead: section 11. |
 | Open apps | A house whose app has a window is at full brightness and its doorway is lit gold. Its hotbar slot has a gold mark. |
 | Home | A one-pixel line under the lowest street with one gold block in its middle. It is the only gold thing that is not text or a selection. |
 
@@ -129,7 +139,8 @@ to 60 a second, on a screen he is mostly not looking at. Section 4 has what that
 - No animation that runs without end. No drifting, no video, no blinking without end. The typing caret blinks a
   few times after each key and then stays.
 - What he typed is cleared when the laptop home loses the keyboard (he clicks an app or the world).
-- One star changes its brightness every four seconds, in one step.
+- One star changes its brightness every four seconds, in one step (the night look only; the day look has no
+  stars and no timer for them).
 - The clock changes once a minute.
 - A house changes when its app opens or closes.
 - Everything else is an answer to him and ends within a second: the puff (0.6 s), a hover (0.15 s), a street
@@ -497,6 +508,8 @@ Left to the companions package: how much room they get above the roofs (60 pixel
      keywords, the hotbar, opening, the lit houses, reconnecting with opening off in between.
    - Tests carried over from the study's checks (`tools/shots.sh check`, including Night street's own check).
    - Pictures from a headless compositor, as the study's tool takes them.
+   - Night and day (section 11), if both are kept: the pictures and the checks for each look, and a check that at
+     rest no animation runs and nothing in the page changes but the clock (and, at night, the one star).
    - The layer library through `LD_PRELOAD`, the `aresos-home:` scheme registered as secure and CORS-enabled with
      the right MIME types, the token and `LD_PRELOAD` removed from the environment before the web view starts.
    - The image gets `gtk4-layer-shell` and JetBrains Mono, and a check that WebKitGTK 6.0 and its Python binding are
@@ -519,15 +532,25 @@ Steps 1 and 2 are data and rules; step 3 is how a screen looks.
 
 These are the report's JUDGMENT-CALLs 1 to 6, in the same order, each with the study's recommendation.
 
-1. **Which direction?** Night street, Map table or Console. *Recommended: Night street.* It shows his whole town
-   with names, it is calm, and the companions can move into it.
-2. **One look, or a choice of looks?** *Recommended: Night street alone first.* A second look and a way to choose
-   can follow once he has lived with the first; a look is one folder of web files.
+1. **Which direction, and by night or by day?**
+   - **The direction:** the street (his town from the side), Map table or Console. *Recommended: the street.* It
+     shows his whole town with names, and the companions can move into it.
+   - **The street's light:** night or day. Compare
+     [night](../../reviews/44-laptop-home/pictures/street-1-home.png) with
+     [day](../../reviews/44-laptop-home/pictures/day-1-home.png), and the forty-app town
+     [at night](../../reviews/44-laptop-home/pictures/street-6-forty-apps.png) with
+     [by day](../../reviews/44-laptop-home/pictures/day-6-forty-apps.png). *Recommended: day.* His world is always
+     at noon, so by day both screens show one place. Night is calmer and shows what is open a little more strongly.
+     Section 11 has the reasons and what each look costs.
+2. **One look, or a choice of looks?** *Recommended: one look first, the one he picks in question 1.* Night and day
+   are one page with two sets of colours (section 11), so the other one stays ready; a way to choose can follow
+   once he has lived with the first. Map table would be a second folder of web files.
 3. **Slightly dimmed houses, or every logo in full colour?** Compare
    [street-1](../../reviews/44-laptop-home/pictures/street-1-home.png) (slightly dimmed: open apps are brighter and
    their doors lit) with [street-10](../../reviews/44-laptop-home/pictures/street-10-full-colour.png) (full colour:
    only the door light shows what is open). *Recommended: slightly dimmed*, so what is running shows at a glance and
-   the screen stays calm beside the world. It is one number to change.
+   the screen stays calm beside the world. It is one number to change. By day the same question stands: there
+   "dimmed" is paler instead of darker (section 11).
 4. **Only the time, the date and the battery besides the apps?** *Recommended: yes for version 1.* Notifications,
    volume or a view into the world can each be added when he asks.
 5. **A reserved key (Super) that jumps to the laptop home's typing line** from anywhere, the world included? It is
@@ -536,3 +559,153 @@ These are the report's JUDGMENT-CALLs 1 to 6, in the same order, each with the s
    feels, so it is his call.
 6. **Pins change in the world only** in version 1? The laptop shows the hotbar and opens from it but does not
    re-order it. *Recommended: yes.*
+
+---
+
+## 11. Day or night
+
+The owner (2026-11-16), after seeing Night street: "why was night chosen, is it the best theme? Because the
+superflat world isn't dark so do you think it fits as a homescreen? However, generally the app menu makes sense and
+so does the search menu easy access. The apps don't necessarily have to be Minecraft houses but dimmed and light up
+when used makes sense."
+
+So the same town was drawn by day. The pictures, each beside its night twin:
+
+| | Night | Day |
+|---|---|---|
+| Home, two apps open | [street-1](../../reviews/44-laptop-home/pictures/street-1-home.png) | [day-1](../../reviews/44-laptop-home/pictures/day-1-home.png) |
+| He typed `tool` | [street-2](../../reviews/44-laptop-home/pictures/street-2-finding.png) | [day-2](../../reviews/44-laptop-home/pictures/day-2-finding.png) |
+| An app opened | [street-4](../../reviews/44-laptop-home/pictures/street-4-opened.png) | [day-4](../../reviews/44-laptop-home/pictures/day-4-opened.png) |
+| Forty apps | [street-6](../../reviews/44-laptop-home/pictures/street-6-forty-apps.png) | [day-6](../../reviews/44-laptop-home/pictures/day-6-forty-apps.png) |
+
+It is one prototype: `?look=day` after the address shows the day, without it the night.
+
+### 11.1 Why night was chosen first
+
+The study's reasons, from its report:
+- **Calm.** "A dark screen beside the world, and nothing on it moves unless he does something."
+- **The house style.** The town "drawn in the crown language: near-black, gold only for the home block, the short
+  names and what is selected". It carries on the laptop's dark background and the dark app windows.
+- **"Lit means open" is a night idea.** A light in a doorway needs the dark around it.
+- **Not a copy of the game.** The study wanted a drawing of the town, not a picture of the game.
+
+What the study did not do:
+- It never drew the town by day, and it never weighed night against day. Section 8 lists ten rejected ideas; a day
+  look is not among them.
+- Its report says the world shows the town "from inside at noon" and the laptop "from the side at night", and
+  counts that as fitting. It did not ask whether two times of day on two screens feel like one place.
+
+His question is fair. HUB.md 1 says of his world: "it never gets dark".
+
+### 11.2 The world's time
+
+Checked in the mod (`FlatHome.java`): **the flat home is always at noon.**
+- `applyRules` switches the day cycle and the weather cycle off (`ADVANCE_TIME`, `ADVANCE_WEATHER`).
+- `initialize` sets the clock to noon (6000) and the weather to clear once, when the world is made, and never
+  again, "so a change he makes later is kept".
+- HUB.md 2.3: "There is no night in version 1."
+
+So there is no world time to follow today. Following the world means day, always.
+
+If he ever switches the day cycle on, the laptop can follow it:
+- The mod adds the world's time of day to `publish_home` (section 5). It is not sent today.
+- The page changes its look in one step at dusk and at dawn. That costs what a change of the clock's minute costs.
+
+Not needed in version 1.
+
+### 11.3 What the day look changes
+
+**The town is the same.** Every number of section 3, the hotbar, the typing line, the keys, the list of other
+programs and the windows are unchanged. `tools/shots.sh check` passes on the day look as on the night (10 of 10,
+and Night street's own 9 of 9). The ten night pictures did not change by a pixel when the day was added.
+
+**No game texture is used.** The sky, the grass and the road are flat colours. The logos are drawn as before.
+
+| What | Night | Day |
+|---|---|---|
+| Behind the town | The session's `#0d0d10`, two faint glows, 90 stars. | The world's noon: a clear sky, `#6f9df0` at the top to `#aecbf8` at the horizon, and flat grass below it, `#668845` to `#537236`. The horizon lies 292 pixels down, behind the first street, so that street's logos stand against the sky as they do in the world. No sun (at noon it is overhead) and no clouds. |
+| The road | A dark strip with the group's colour as its top line. | Dark paving (`#2b2832`) with the group's colour as a line down its middle, as in the world. The doormat reaches from the door to that line. |
+| The names | Bare text. | On dark plates, as in the world (`HubLayout.NAME_BACKGROUND`). White and gold cannot be read on sky or grass without them. The group's name has its plate too. |
+| A house whose app is not open | Darker: 62 % brightness, 82 % saturation. | Sun-bleached: 45 % saturation, 80 % contrast, 93 % brightness, and its name plate at half strength. Nothing can be made brighter than daylight, so the others step back by losing colour. |
+| A house whose app is open | Full brightness, and its doorway lit gold with a glow. | Full colour. The door is gold in a dark frame, a gold mat lies across the whole road, and the sign is solid with a gold line under it (the hotbar's mark). A glow does not show in sunlight; gold on the dark paving does. |
+| While he types | The others drop to 13 %. | The others drop to 16 % and fade into the sky and the grass. |
+| The gold frame | 2 pixels of gold. | 3 pixels of gold with a dark outline, so it holds on sky and on grass. |
+| Time, date, battery, hint, hotbar numbers | Ink on the dark wall. | White with a hard dark shadow, as the game writes over its world. |
+| The typing line | A dark bar while he types. | A dark bar at rest too, as the chat's line. |
+| Home | A line with one gold block. | The dark stone pad with its gold block. |
+| The hotbar, the list of other programs, app windows | Dark, Ares-Crown. | The same. |
+| The ends of a street past 16 | Fade into the wall. | Fade into the sky and the grass. |
+| At rest | One star changes every four seconds; the clock once a minute. | The clock once a minute, nothing else. |
+
+**Another form for the apps.** He said the apps need not be houses. I looked for a form that reads clearly better
+by day and did not find one, so there is no picture of one:
+- The laptop gets each logo as the mod built it, doorway included (`cells`, section 5). A flat tile would be that
+  same front without its thin top and side. By day those few pixels of light top and dark side help: they keep a
+  pale logo apart from a pale sky.
+- The doorway is where "open" shows, at night and by day. Without it that mark needs a new place.
+- A tile without the doorway would need the program's own icon in place of the block logo. Then the laptop no
+  longer shows the logos of his world, and the screen is a grid of icons: close to the launcher list the Console
+  direction was rejected for (section 8).
+- What does change by day: with sky and grass around them they read less as houses in a street and more as his
+  logos standing in the world, which is what they are.
+
+### 11.4 Recommendation: day
+
+What the pictures show, side by side:
+- **Day is the same place as the monitor.** Sky, grass, dark roads with the coloured line, names on plates: the
+  laptop shows the world from a step back. At night it is his town in a light his world never has. He saw that at
+  first sight, and "it should fit" was his first wish for this screen.
+- **Both show what is open.** In day-1 and day-6 the two open apps are the two in full colour. Night shows it a
+  little more strongly, because the lit door is the only light on a dark screen. By day a white, grey or black logo
+  has little colour to lose, so for those the gold door and the sign carry it alone.
+- **Night is calmer.** It is a dark screen with small lights. Day is a bright screen with a small dark plate over
+  every logo (forty of them in day-6). Beside a monitor that shows a noon world that is no more light than the
+  monitor gives. In a dark room it is a second bright screen.
+- **Day pales his logos until they are open; night darkens them.** They stay recognisable either way (day-6).
+- **A window stands out better by day** (day-4): the dark Ares-Crown window lies on sky and grass. At night it is
+  dark on dark.
+- **Finding works the same** (day-2).
+
+**I recommend day.** The fit with the world is what night cannot give. What day loses, some calm and a slightly
+weaker sign for "open", is small in the pictures.
+
+**Night stays as the second look.** Both are one page: the day is one block of colours and about thirty rules on
+top of the night's. The build keeps both and takes its pictures and runs its checks for both; which one shows is
+one setting. If he later lets his world have a night, that setting can follow the world (11.2).
+
+**Not recommended: following the real clock** (day by day, night in the evening). The world on the monitor is at
+noon at every hour, so each evening the two screens would disagree again.
+
+If he prefers night after seeing both, nothing is lost: it is the look sections 1 and 2 describe.
+
+### 11.5 What it costs
+
+**Section 2.4's rule holds: at rest nothing moves.**
+- The day look adds no animation and no timer. Sky and grass are one still background, the plates and the road
+  line are still, and there are no clouds and no sun.
+- It takes one thing away: by day the 90 stars and their timer are not made at all. Only the clock changes.
+
+**Measured** (`tools/shots.sh measure`, the 40-app town with two apps open, at rest for 100 seconds, in the same
+headless compositor as section 4's first numbers; other builders' programs were running on the laptop meanwhile):
+
+| Look | Processor at rest | of that the page's own process | Working memory |
+|---|---|---|---|
+| Night | 1.4 % of one core | 0.1 % | 128 to 136 MiB |
+| Day | 0.3 % (two runs: 0.33 and 0.35) | under 0.1 % | 128 MiB |
+
+- **Day costs a little less than night at rest.** Cut into 10-second slices, the window program used 1 to 2 % in
+  every slice at night and 0.1 to 0.6 % by day. At night each change of a star is a new picture on the screen; by
+  day nothing changes between two minutes of the clock.
+- **Nothing redraws by day.** A check with a fixed clock watched the day page for 13 seconds: no animation was
+  running, and nothing in the page changed. On the night page the same check saw three changes, the stars.
+- **Working memory is no higher:** 128 MiB by day, 128 to 136 MiB at night. That is the part that is the page's
+  own.
+- **Memory in all (PSS)** was 255 to 322 MiB over five day runs and 307 to 342 MiB over four night runs. The
+  difference is all in the share of library files (127 to 206 MiB), and that share also moved between runs of the
+  same look. I do not count it as a saving, and I did not find out what moves it.
+- **One thing seen and not explained.** In two shorter day runs (30 and 60 seconds) the page's process used about
+  0.7 seconds of processor time that the other runs did not show. Both 100-second day runs were cut into 10-second
+  slices to look for it: every slice was between 0.0 and 0.2 %. So it is not a steady cost, but I do not know what
+  it was.
+
+The laptop trial (section 9) measures the look he chose in his own session, as it does for the night.

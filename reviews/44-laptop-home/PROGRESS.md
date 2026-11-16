@@ -6,6 +6,9 @@ file named `REPORT.md`, so the report is here; the orchestrator commits it as th
 Review fixes 1 (findings 1 to 13 of `REVIEW-1.md`): one Claude agent on Opus 5.5, the same day. What changed is
 listed in "Review fixes 1" at the end.
 
+The day look (the owner's question "why was night chosen", the same day): one Claude agent on Fable 5.2, design
+work. What it added is in "The day look" at the end.
+
 Nothing under `os/` or `mod/` changed. Everything in this folder is a development aid for choosing a design. The
 design draft that a build package can follow is `docs/design/LAPTOP-HOME.md`.
 
@@ -321,11 +324,17 @@ five events (LAPTOP-HOME.md section 4). The page never sees a command, a path, t
 
 ## JUDGMENT-CALL (for the owner)
 
-1. **Which direction.** I chose Night street. Rejected: Map table (logos too small, half the screen empty,
-   companions do not fit) and Console (a launcher list). Changing later costs little on the system side: a look is
-   one folder of web files.
-2. **One look or a choice.** I would build Night street alone first. A second look and a way to choose can follow
-   once he has lived with the first.
+1. **Which direction, and by night or by day.**
+   - The direction: I chose the street. Rejected: Map table (logos too small, half the screen empty, companions do
+     not fit) and Console (a launcher list). Changing later costs little on the system side: a look is one folder
+     of web files.
+   - The street's light: the study drew night. After the owner's question the same town was drawn by day
+     ("The day look" below). Compare [street-1](pictures/street-1-home.png) with [day-1](pictures/day-1-home.png)
+     and [street-6](pictures/street-6-forty-apps.png) with [day-6](pictures/day-6-forty-apps.png). I recommend day:
+     his world is always at noon, so by day both screens show one place. Night is calmer and shows what is open a
+     little more strongly.
+2. **One look or a choice.** I would build one look first, the one he picks in 1. Night and day are one page with
+   two sets of colours, so the other stays ready; a way to choose can follow once he has lived with the first.
 3. **Slightly dimmed houses, or every logo in full colour.** Compare [street-1](pictures/street-1-home.png) and
    [street-10](pictures/street-10-full-colour.png).
    - Slightly dimmed (62 % brightness, 82 % saturation) until their app is open: what is running shows at a glance,
@@ -404,3 +413,62 @@ LAPTOP-HOME.md section 10 asks the same six questions, in this order.
     24-, 40- and 45-app towns.
 13. **Build notes.** Added: `LD_PRELOAD` for the layer library, the scheme's secure, CORS and MIME settings, the
     fallback placing itself on the `eDP` screen, and the token and `LD_PRELOAD` removed before the engine starts.
+
+## The day look
+
+The owner saw Night street and asked (2026-11-16): "why was night chosen, is it the best theme? Because the
+superflat world isn't dark so do you think it fits as a homescreen? However, generally the app menu makes sense and
+so does the search menu easy access. The apps don't necessarily have to be Minecraft houses but dimmed and light up
+when used makes sense."
+
+The answer, the comparison and the recommendation are `docs/design/LAPTOP-HOME.md` section 11. In short: night was
+chosen for calm, for the house style and because a lit door needs the dark; the study never drew a day. The world
+is fixed at noon (`FlatHome.java`). **I recommend day**, with night kept as the second look.
+
+Pictures: [home](pictures/day-1-home.png), [finding "tool"](pictures/day-2-finding.png),
+[an app opened](pictures/day-4-opened.png), [forty apps](pictures/day-6-forty-apps.png). They match `street-1`,
+`street-2`, `street-4` and `street-6`.
+
+**Done.**
+- `prototypes/street/index.html`: `?look=day` puts the class `day` on the page.
+  - What differs between looks became four variables (how a house that is not open is drawn, the two sign colours,
+    how far the others fade while he types). Night sets them as before.
+  - The day's rules are one block at the end of the style sheet: sky and grass, the road with its line down the
+    middle, name plates, the open mark, the frame, the pad, the typing line, the ends of a long street.
+  - The stars and their timer are made at night only.
+  - The sign's width comes from the street's `--pitch` instead of a number on each sign, so the day can let a plate
+    hug its text.
+- `tools/shots.sh`: the four day pictures are in `all`; `all day-` makes only the names that start so; `check` runs
+  both street checks on the day look too.
+- `docs/design/LAPTOP-HOME.md`: section 11 "Day or night"; questions 1 to 3 of section 10 offer night or day.
+- No other form for the apps was drawn (no `day-alt-tiles.png`). Section 11.3 says why: the laptop gets each logo
+  with its doorway built in, so a flat tile is the same front minus its edge.
+
+**Verified.**
+- `tools/shots.sh all street-` after the change: the ten night pictures are the same files as before, byte for
+  byte (git shows no change), so night is untouched.
+- `tools/shots.sh all day-` made the four day pictures, each 1920 x 1080, in the headless compositor.
+- `tools/shots.sh check`: 10 of 10 on each of the three pages and 9 of 9 on Night street's own check, as before;
+  on the day look 10 of 10 and 9 of 9.
+- A 45-app day town with `tool19` typed was looked at once (the street slides, its end fades into the grass); no
+  picture of it was kept.
+- The world's time was read in `mod/src/main/java/dev/aresos/world/FlatHome.java`: the day cycle is off and the
+  clock is set to noon once, when the world is made.
+- **The cost at rest** (`tools/shots.sh measure`, 40 apps, two open, 100 seconds; other builders' programs were
+  running on the laptop meanwhile):
+  - Day 0.33 % and 0.35 % of one processor core, night 1.37 %. The night's difference is the star that changes
+    every four seconds; the day has none.
+  - Cut into 10-second slices, the day page's own process used 0.0 to 0.2 % in every slice.
+  - Working memory 128 MiB by day, 128 to 136 MiB at night. In all (PSS) 255 to 322 MiB over five day runs and 307
+    to 342 MiB over four night runs; the difference is in the share of library files, which also moved between
+    runs of the same look.
+  - With a fixed clock, a scratch copy of the check watched each page for 13 seconds: by day no animation ran and
+    nothing in the page changed; at night three stars changed.
+  - In two shorter day runs (30 and 60 seconds) the page's process used about 0.7 seconds of processor time that
+    the other runs did not show. The two sliced 100-second day runs did not show it either. Not explained.
+
+**Not verified.**
+- How the day look feels beside the real monitor, on the laptop's own panel and in his room. These are pictures.
+- Nobody used a real mouse or keyboard on it; the checks make their events inside the page, as before.
+- The day colours are chosen by eye against the game's noon in the hub's test pictures (`reviews/36-town/`), not
+  against his shader pack.
