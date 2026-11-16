@@ -127,6 +127,10 @@ class Hook(unittest.TestCase):
             'wrong type': (canonical({'hook_event_name': 7, 'stop_hook_active': active}).encode(), None, True),
             'stop_hook_active not a boolean': (canonical({'hook_event_name': 'Stop', 'stop_hook_active': 'no'}).encode(),
                                                None, False),
+            # Falsy but not false (recheck 1, nit 1): a later Claude Code sending these must not block every stop.
+            'stop_hook_active 0': (canonical({'hook_event_name': 'Stop', 'stop_hook_active': 0}).encode(), None, False),
+            'stop_hook_active null': (canonical({'hook_event_name': 'Stop', 'stop_hook_active': None}).encode(), None,
+                                      False),
             'stop_hook_active missing': (canonical({'hook_event_name': 'Stop'}).encode(), raising, False),
             'repeated field': (b'{"hook_event_name":"Stop","stop_hook_active":' + flag + b',"hook_event_name":"Stop"}',
                                None, True),

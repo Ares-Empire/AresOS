@@ -5,6 +5,7 @@ import json
 import os
 from contextlib import redirect_stdout
 from pathlib import Path
+import shutil
 import socket
 import sys
 import tempfile
@@ -544,18 +545,43 @@ class QuietUnlessUsed(unittest.TestCase):
         from aresos_control import usage
         elsewhere = self.root / 'elsewhere'
         elsewhere.mkdir(mode=0o700)
+
+        def planted(folder):
+            """This session's valid mark, where the link leads: found only by a read that follows the link."""
+            folder.mkdir(mode=0o700, exist_ok=True)
+            (folder / '20-500').touch(mode=0o600)
+
         (self.run_dir / str(self.uid) / 'aresos-control').symlink_to(elsewhere)
         with self.assertRaises(OSError):
             self.mark()
         self.assertEqual(list(elsewhere.iterdir()), [])
-        self.assertFalse(self.used())  # can't read: as if unmarked
+        planted(elsewhere / 'used')
+        self.assertFalse(self.used())  # never read through the link: unmarked (recheck 1)
+        self.assertFalse(self.notice())
+        shutil.rmtree(elsewhere / 'used')
         (self.run_dir / str(self.uid) / 'aresos-control').unlink()
         (self.run_dir / str(self.uid) / 'aresos-control').mkdir(mode=0o700)
         (self.run_dir / str(self.uid) / 'aresos-control' / 'used').symlink_to(elsewhere)
         with self.assertRaises(OSError):
             self.mark()
         self.assertEqual(list(elsewhere.iterdir()), [])
+        planted(elsewhere)
         self.assertFalse(self.used())
+        self.assertFalse(self.notice())
+        # The same mark in the real folder is found: the link alone made the difference.
+        (self.run_dir / str(self.uid) / 'aresos-control' / 'used').unlink()
+        elsewhere.rename(self.marks())
+        self.assertTrue(self.used())
+
+    def test_a_link_where_the_mark_should_be_is_no_mark(self):
+        # Recheck 1, nit 2: a link at the session's mark name, to another session's real mark, is never followed.
+        self.process(55, 50, 2, 'sh')
+        self.process(50, 1, 1, 'claude')
+        self.mark(pid=50)
+        self.assertTrue(self.used(pid=55))
+        (self.marks() / '20-500').symlink_to(self.marks() / '50-1')
+        self.assertFalse(self.used())
+        self.assertFalse(self.notice())
 
     def test_what_names_an_operation(self):
         from aresos_control.usage import names_operation
