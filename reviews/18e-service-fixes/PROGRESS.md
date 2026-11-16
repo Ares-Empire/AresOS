@@ -100,8 +100,19 @@ MCP binary case (no SDK). `test_files` 12, 11 OK; `test_strict_json` 5, 3 OK; `t
 
 **CI.** Which job runs the boundary's offline tests: the Control boundary workflow's image build
 (`control/boundary/Dockerfile:15`, `python3 -m unittest -v test_native test_interactive`); run 43680998223's log shows
-the three `ProcessChains` tests passing there. So no workflow change was needed. Runs on this round: see "Runs (fix
-round 1)" below.
+the three `ProcessChains` tests passing there. So no workflow change was needed.
+
+**Runs (fix round 1), head `6c614617`, checked 2026-11-16 09:11 UTC:**
+
+| Run | Workflow | Result |
+|---|---|---|
+| 43829438763 | Control base | **green**: 365 tests, "Control base suite PASS"; all 50 `test_service_fixes` tests OK (the MCP stdio case included); `test_real_mcp_stdio_list_prepare_send_attachment_save_and_hooks` OK (the real proxy marked the test process, its hook blocked); `test_large_hook_inputs_still_remind_about_pending_work` OK; idle `IDLE_WAKEUPS switches=1 seconds=60.0 per_second=0.02 threads=1` |
+| 43829438766 | Control boundary | **green**: image build ran `test_native test_interactive`, 24 tests OK, the 4 `ProcessChains` among them; 17 `INTERACTIVE_CASE_PASS`, prompt chains recorded in every case and each hook's session the MCP server's parent (e.g. `python3:51 <- sh:50 <- sh:49 <- claude:25`); `stop_used` true exactly with a tool call, DAA `[true, true, false]` |
+| 43829438960 | Control Mail | **green** (containers and the fault sweeps) |
+| 43829438759 | Control Chrome polkit | **green** |
+| 43829438873 | Repo privacy | **green** |
+| 43829438753 | Control Chrome | at the check: `python-shards` 0 to 3, `package`, `native-precedence` and **`latency (audit)` green**; fixtures 11 green, the rest running or queued; `latency (plain)` queued. Not waited for (the browser shards take hours) |
+| 43829438758 | Control Chrome qualification | at the check: `qualification-tests`, `qualification-plan`, `delivery-attestation` green; pairs 6 green, 2 running or queued |
 
 ## Done
 
