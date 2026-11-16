@@ -237,7 +237,8 @@ class Chrome:
         force = uncovered and getattr(self, '_refresh_attempted', None) != identity
         self._refresh_attempted = identity
         if self.qualification.refresh(force=force):
-            # A verified update was accepted: the record to trust is the new one.
+            # It wrote a verified update, perhaps raising after the commit: the
+            # record read above may be stale, so trust a fresh read.
             record = self.qualification.record()
         return record
 

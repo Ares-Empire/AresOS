@@ -135,19 +135,31 @@ class Qualification:
         return append_only(self.shipped, held)
 
     def accept(self, path, verifier=verify):
+        return self.hold(self.verified(path, verifier))
+
+    def verified(self, path, verifier=verify):
+        """The record path's update would give: verified, and append-only on the record held now."""
         verifier(path)
-        candidate = append_only(self.record(), json.loads(Path(path).read_text()))
+        return append_only(self.record(), json.loads(Path(path).read_text()))
+
+    def hold(self, candidate):
+        """Write candidate as the held record. Only verified()'s output may be held."""
         self.store.write({'chrome:qualification': candidate}, 'chrome_qualification', 'Verified append-only Chrome qualification update')
         return candidate
 
     def refresh(self, *, now=None, verifier=verify, force=False):
-        """Fetch and verify the published record when due. True when it accepted one, so the held record changed."""
+        """Fetch and verify the published record when due.
+
+        True once it has written, or tried to write, a verified record: the
+        held record may have changed, even if the write raised after its commit,
+        so a caller must read it again.
+        """
         now = time.time() if now is None else now
         previous = self.store.get('chrome:qualification_fetch', {})
         if not force and 'time' in previous and now - previous['time'] < 86400:
             return False
         url = f'https://raw.githubusercontent.com/{REPOSITORY}/refs/heads/chrome-qualification/control/chrome/qualification.json'
-        accepted = False
+        written = False
         try:
             for obsolete in self.store.state_dir.glob('.qualification-*'):
                 obsolete.unlink()
@@ -160,9 +172,12 @@ class Qualification:
             try:
                 with storage_stream(os.fdopen(fd,'wb')) as stream:
                     stream.write(data);stream.flush()
-                self.accept(temporary,verifier)
-                # Written now, even if removing the temporary file fails below.
-                accepted = True
+                candidate = self.verified(temporary, verifier)
+                # Set before the write: it can raise after its commit, when the
+                # store flushes deferred notices, and so can the unlink below
+                # (#93 review 1, finding 1).
+                written = True
+                self.hold(candidate)
             finally:
                 with cleanup('Qualification temporary unlink'):
                     os.unlink(temporary)
@@ -170,6 +185,9 @@ class Qualification:
         except Exception as exc:
             # Do not copy transport output or remote content into owner logs.
             reason = exc.code if isinstance(exc, Refused) else type(exc).__name__
-            result = f'Qualification refresh refused ({reason}); held record retained.'
+            if written:
+                result = f'Qualification refresh failed after verification ({reason}); the held record may have been updated.'
+            else:
+                result = f'Qualification refresh refused ({reason}); held record retained.'
         self.store.write({'chrome:qualification_fetch': {'time': now, 'result': result}}, 'chrome_qualification', result)
-        return accepted
+        return written

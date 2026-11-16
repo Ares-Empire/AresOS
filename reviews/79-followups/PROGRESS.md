@@ -34,10 +34,12 @@ Builder: Claude agent (Opus 5.5), 2026-11-16, for the lead `linux-tools`. Branch
     new record.
   - `Qualification.refresh()` now returns whether it accepted a record. It returned nothing before, and no caller used
     the value. `accepted` is set right after `accept()` returns, so a failing unlink of the temporary file can't hide
-    an accepted write.
-- **Unchanged for the daemon:** its `maintenance()` calls (on connect and every maintenance tick) ignore the return
-  value. They read the record in exactly the cases they did before. So a serve loop with no Chrome connected still
-  never reads it, and can't start raising `qualification_rollback` into `background_error`.
+    an accepted write. (Fix round 1 changed this: the flag is now set just before the write, see below.)
+- **For the daemon:** its `maintenance()` calls (on connect and every maintenance tick) ignore the return value. They
+  read the record in the cases they did before, plus once more after a refresh that wrote a verified record (since
+  fix round 1, also when that write raised). That extra read is harmless: the new record extends the old one, so it
+  can't raise `qualification_rollback`. A serve loop with no Chrome connected still never reads it, and can't start
+  raising `qualification_rollback` into `background_error`.
 - **Tests (`test_qualification_service.Service`):**
   - `test_o2_mode_reads_the_record_once_per_call`: one `record()` per `mode()` call, with the fixture peer, and with a
     real Bridge both when the daily refresh is due and when it is gated.
@@ -245,3 +247,76 @@ The CI result of this PR replaces this estimate (see the PR's runs).
   the cost is months away. Making each read cheaper is queue item 15, a brief of its own; that brief brings the
   long record back as its proof. O1, O2's single read per `mode()` call and N1 to N4 stand without it.
 - **JC1-JC5 accepted.** JC3, the engine's version notice reading the record separately, goes into item 15.
+
+## Fix round 1 (REVIEW-1 of this branch, 2026-11-16)
+
+Builder: Claude agent (Opus 5.5), for the lead. From `38f9520c`.
+
+### Finding 1: `refresh()` says True once a verified record's write starts (`qualification.py`)
+
+- **Before:** `accepted` was set after `accept()` returned. `store.write` flushes deferred notices after its commit
+  (`recorded_write`), so a failing flush made `accept()` raise with the fetched record already held. `refresh()`
+  returned False, `maintenance()` handed `mode()` the record it read before the fetch, and one acting call went
+  through that the held record refuses.
+- **Now:**
+  - `accept()` is `hold(verified(path, verifier))`. `verified()` runs the verifier and the append-only check and
+    returns the candidate; `hold()` writes it. `accept()` behaves as before for its callers (CI's `attestation.py`,
+    tests, the fault sweep's `qualification` flow).
+  - `refresh()` calls the two itself and sets its flag (now `written`) between them, just before the write. True now
+    means "the held record may have changed": also when the write raises before or after its commit, and when the
+    temporary unlink fails after it. `maintenance()` then reads the record again.
+  - The fetch result after a failure with the flag set: `Qualification refresh failed after verification (<code or
+    type>); the held record may have been updated.` It used to say "held record retained" there, also after a
+    commit. As before, it carries only the refusal code or the exception type.
+- **Callers of the return value:** only `Chrome.maintenance()`. The daemon ignores `maintenance()`'s value, and the
+  fault sweep's `delivery` flow returns `refresh()`'s value without reading it.
+- **Tests (`test_qualification_service.Service`):**
+  - New: `test_o2_mode_refuses_by_a_fetched_record_whose_write_raised_after_its_commit`, REVIEW-1's probe. The flush
+    raises `storage_limit` once, right after the fetched record (a 157.0.1.1 that failed `binding`) is committed;
+    Chrome 157.0.1.2 on a real Bridge. `mode(acting=True)` must refuse with `qualification_failed`, and the fetch
+    result must not say "held record retained" nor carry the exception text. On `38f9520c` it fails:
+    `Refused not raised`. Now it passes.
+  - Renamed: `test_o2_refresh_says_whether_it_accepted_a_record` → `..._whether_the_held_record_may_have_changed`. It
+    adds a verifier refusal (False) and a write refused before its commit (True, the record unchanged, the new
+    text). On `38f9520c`: `False is not True`.
+- **JUDGMENT-CALL (technical): the flag is set just before the write, not before `accept()`** as the brief and
+  REVIEW-1 proposed.
+  - **Why:** before `accept()`, a verifier refusal (an attestation API 403, a bad signature) and the append-only
+    refusal would also return True. The fetch result then can't tell them from a write that failed: either it says
+    "may have been updated" after every refused signature, which `test_qualification`'s transport and signature
+    cases rightly refuse (they require "held record retained"), or it keeps "held record retained" after a commit.
+  - **Consequence:** `test_o2_refresh_says…`'s not-append-only case stays False rather than flipping to True: nothing
+    was written. The mutation "flag before the verifier" fails that test (`True is not False`).
+  - **Cost to change later:** small, the flag's position and two test cases.
+
+### Finding 2: N1 needs the forced refresh (`test_qualification_fixture.py`)
+
+- The test now records a fetch an hour ago before the three `mode()` calls, so the daily refresh is gated and only
+  the force can fetch.
+- **Mutation:** `force = False` in `maintenance()` → N1 fails with `0 != 1` (it passed before this change).
+
+### Finding 3
+
+- The daemon sentence under O2 now says it reads the record once more after a refresh that wrote (or tried to write)
+  a verified record, and why that is harmless. The O2 bullet on `accepted` points here.
+
+### Mutations (each restored from a backup copy afterwards)
+
+| Mutation | Caught by |
+|---|---|
+| `38f9520c`'s `qualification.py` and `adapter.py` | the new test (`Refused not raised`) and the says-whether test (`False is not True`) |
+| `written = True` before `verified()` | says-whether: `True is not False` |
+| `written` never set | the new test, `test_o2_mode_trusts…` and says-whether |
+| The result text ignores `written` | the new test and says-whether (`held record retained` found) |
+| No re-read in `maintenance()` after True | the new test and `test_o2_mode_trusts…` |
+| `force = False` in `maintenance()` | N1: `0 != 1` |
+
+### Local results (2026-11-16, laptop idle)
+
+- `PYTHONPATH=control:control/chrome_tests python3 -m unittest test_qualification_service test_qualification_fixture test_qualification test_bridge test_owner_confirm test_committed test_state_fixes test_engine`:
+  `Ran 158 tests in 110.868s`, `OK`. After a docstring-only edit, `test_qualification_service`,
+  `test_qualification_fixture` and `test_qualification` again: 61 tests, `OK`.
+- `PYTHONPATH=control python3 control/generate.py --check`: "Generated artifacts match definitions".
+- The fault sweep's two flows that run `accept()` and `refresh()`, through `state_sweeps.isolated_flows` with
+  `test_fault_surface.Writers`: `qualification` 54/54/98 and `delivery` 109/109/259, the same write surface as
+  #87's builder run, all OK (157 s). The full `test_fault_surface` is left to CI.

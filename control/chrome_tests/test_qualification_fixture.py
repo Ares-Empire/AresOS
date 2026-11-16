@@ -3,6 +3,7 @@ import ast
 import json
 from pathlib import Path
 import tempfile
+import time
 import unittest
 from unittest.mock import patch
 import urllib.error
@@ -154,7 +155,10 @@ class ShippedHistory(unittest.TestCase):
         sent = operations.call('submit', approval); self.assertTrue(sent['ok'], sent)
         self.assertEqual(sent['data']['operation']['state'], 'done'); self.assertEqual(len(operations.browser.dispatched), 1)
         # A major neither history covers stays conservative, and a connection
-        # forces one refresh for it; the daily gate holds the rest.
+        # forces one refresh for it; the daily gate holds the rest. A fetch an
+        # hour ago gates the daily refresh, so only the force can fetch.
+        operations.engine.store.write({'chrome:qualification_fetch': {'time': time.time() - 3600, 'result': 'Verified record accepted.'}},
+                                      'chrome_test_setup', 'Synthetic recent qualification fetch')
         bridge = Bridge(); bridge.session = 'connection-1'; bridge.version = '160.0.1.0'
         bridge.call = lambda name, **arguments: {'configured': True}
         chrome.bridge = bridge

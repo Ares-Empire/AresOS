@@ -300,19 +300,70 @@ class Service(unittest.TestCase):
         self.assertEqual(self.chrome.qualification.record(), fetched)
         self.assertEqual(self.engine.store.get('chrome:qualification_fetch')['result'], 'Verified record accepted.')
 
-    def test_o2_refresh_says_whether_it_accepted_a_record(self):
+    def test_o2_refresh_says_whether_the_held_record_may_have_changed(self):
+        # True once it writes a verified record, even if that write raises;
+        # False whenever it stopped before the write (#93 review 1, finding 1).
         fetched = json.dumps({'format': 1, 'entries': [entry(build=self.build), entry(build=self.build, version='158.0.1.0', run='fetched')]}).encode()
         qualification = self.chrome.qualification
         with patch.object(q.urllib.request, 'urlopen', return_value=io.BytesIO(fetched)):
             self.assertIs(qualification.refresh(now=1000, verifier=lambda path: None), True)
-        # Gated for the day, then a fetch that fails, then one that is not append-only.
+        self.assertEqual(qualification.record(), json.loads(fetched))
+        # Gated for the day, then a fetch that fails, a signature that fails, and a record that is not append-only.
         self.assertIs(qualification.refresh(now=2000, verifier=lambda path: None), False)
         with patch.object(q.urllib.request, 'urlopen', side_effect=urllib.error.URLError('offline fixture')):
             self.assertIs(qualification.refresh(now=100000, verifier=lambda path: None), False)
+        newer = json.dumps({'format': 1, 'entries': [*json.loads(fetched)['entries'], entry(build=self.build, version='158.0.2.0', run='newer')]}).encode()
+        unsigned = Mock(side_effect=q.Refused('qualification_invalid', 'Fixture signature refused.'))
+        with patch.object(q.urllib.request, 'urlopen', return_value=io.BytesIO(newer)):
+            self.assertIs(qualification.refresh(now=200000, verifier=unsigned), False)
         rewritten = json.dumps({'format': 1, 'entries': [entry(build=self.build, run='rewritten')]}).encode()
         with patch.object(q.urllib.request, 'urlopen', return_value=io.BytesIO(rewritten)):
-            self.assertIs(qualification.refresh(now=200000, verifier=lambda path: None), False)
+            self.assertIs(qualification.refresh(now=300000, verifier=lambda path: None), False)
         self.assertEqual(qualification.record(), json.loads(fetched))
+        self.assertIn('held record retained', self.engine.store.get('chrome:qualification_fetch')['result'])
+        # A write of a verified record that fails before its commit: the record
+        # stays, but refresh() cannot tell that from a failure after the commit.
+        store = self.engine.store
+        write = store.write
+        def refused_write(changes, *arguments, **keywords):
+            if 'chrome:qualification' in changes:
+                raise q.Refused('storage_limit', 'Fixture write refused before its commit.')
+            return write(changes, *arguments, **keywords)
+        with patch.object(q.urllib.request, 'urlopen', return_value=io.BytesIO(newer)), patch.object(store, 'write', side_effect=refused_write):
+            self.assertIs(qualification.refresh(now=400000, verifier=lambda path: None), True)
+        self.assertEqual(qualification.record(), json.loads(fetched))
+        result = store.get('chrome:qualification_fetch')['result']
+        self.assertIn('storage_limit', result); self.assertIn('may have been updated', result); self.assertNotIn('Fixture', result)
+
+    def test_o2_mode_refuses_by_a_fetched_record_whose_write_raised_after_its_commit(self):
+        # The store flushes deferred notices after a write commits, and a flush
+        # can raise (#93 review 1, finding 1). The fetched record is held by
+        # then and fails binding for this Chrome, so this very call must
+        # refuse, not act on the record maintenance read before the fetch.
+        failed = entry(build=self.build, version='157.0.1.1', run='fetched'); failed['core']['binding'] = False
+        fetched = {'format': 1, 'entries': [entry(build=self.build), failed]}
+        self.connected('157.0.1.2')
+        store = self.engine.store
+        flush = store.flush_notices
+        raised = []
+        def flush_after_the_commit():
+            if not raised and store.chrome_state.get('chrome:qualification') == fetched:
+                raised.append(1)
+                raise q.Refused('storage_limit', 'Notice flush failed after the commit.')
+            return flush()
+        refresh = self.chrome.qualification.refresh
+        unsigned = lambda **arguments: refresh(verifier=lambda path: None, **arguments)
+        with patch('aresos_control.chrome.uploads.prune'), patch.object(self.chrome.qualification, 'refresh', side_effect=unsigned), \
+                patch.object(store, 'flush_notices', side_effect=flush_after_the_commit), \
+                patch.object(q.urllib.request, 'urlopen', return_value=io.BytesIO(json.dumps(fetched).encode())):
+            with self.assertRaises(q.Refused) as refused:
+                self.chrome.mode(acting=True)
+        self.assertEqual(raised, [1])
+        self.assertEqual(refused.exception.code, 'qualification_failed')
+        self.assertEqual(self.chrome.qualification.record(), fetched)
+        result = store.get('chrome:qualification_fetch')['result']
+        self.assertIn('storage_limit', result); self.assertNotIn('held record retained', result)
+        self.assertNotIn('Notice flush', result)
 
     def test_installed_build_id_is_used_and_shared_code_new_build_pass_cannot_enable_old_build(self):
         installed = self.root/'runtime'; (installed/'chrome').mkdir(parents=True)
