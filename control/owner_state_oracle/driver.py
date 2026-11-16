@@ -21,9 +21,9 @@ def interrupted_confirm(calls):
 
     The rule: the most recent scripted control_restore_confirm on a locked
     store met a fault. `calls` starts at the last restart, which ends it. It
-    reads the fault trace only, never the reply: every such fault aborts the
-    confirm before the lock is released, which the sweep's harness asserts
-    (brief 20-restore-lock-followups, item 1).
+    reads the fault trace only, never the reply. The sweep's harness asserts
+    that no such confirm is answered ok; one that released its lock and then
+    failed shows as a lock gap (brief 20-restore-lock-followups, item 1).
     """
     confirms = [call for call in calls if call['action'] == 'control_restore_confirm' and call.get('restore_precondition') is True]
     return bool(confirms) and bool(confirms[-1].get('faults', {}).get('trace'))

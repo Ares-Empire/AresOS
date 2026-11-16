@@ -95,24 +95,26 @@ case('item2-every-refusal-locked', C,
      "'restore_required': code == 'restore_required'})\n", "'restore_required': True})\n",
      ORACLE + 'test_refused_read_page_says_locked_only_when_the_lock_refused_it')
 
-# Item 3: only a head behind the last commit marker is a restore, at all three places.
+# Item 3: only a head behind the last commit marker is a restore. The decoder,
+# consistency_errors and the alteration recompute share decoded_lock (review 1,
+# nit 2), so one probe there reaches all three; the oracle test checks each.
 P = 'control/owner_state_oracle/perturb.py'
-case('item3-decoder-differs', R,
-     "(head is None or behind(head[0], result.committed) or head[1] != expected_head))",
-     "(head is None or head[0] != max(result.committed, default=0) or head[1] != expected_head))",
+case('item3-decoded-lock-differs', R,
+     "    return behind(sequence, committed) or head_hash != expected_hash\n",
+     "    return sequence != max(committed, default=0) or head_hash != expected_hash\n",
      ORACLE + 'test_only_a_head_behind_the_last_marker_is_a_restore',
      SWEEP + 'test_write_unfinished_at_its_marker_is_not_a_restore')
 case('item3-behind-or-equal', R,
      "    return sequence < max(committed, default=0)\n", "    return sequence <= max(committed, default=0)\n",
      ORACLE + 'test_only_a_head_behind_the_last_marker_is_a_restore')
-case('item3-consistency-differs', R,
-     "            behind(seq, record.committed) or claimed_hash != expected_hash))",
-     "            seq != max(record.committed, default=0) or claimed_hash != expected_hash))",
-     ORACLE + 'test_only_a_head_behind_the_last_marker_is_a_restore')
-case('item3-recompute-differs', P,
-     "            behind(sequence, changed.committed) or head_hash != expected_hash))",
-     "            sequence != max(changed.committed, default=0) or head_hash != expected_hash))",
-     ORACLE + 'test_only_a_head_behind_the_last_marker_is_a_restore')
+# Item 1 in the alteration recompute (review 1, nit 1): its service_lock term dropped, or cut to the startup rule.
+case('item1-term-dropped-from-recompute', P,
+     " or service_lock(changed)\n", "\n",
+     ORACLE + 'test_interrupted_confirm_is_a_term_of_the_lock')
+case('item1-recompute-startup-term-only', P,
+     " or service_lock(changed)\n",
+     " or any(seq <= changed.startup_sequence for seq in changed.unprepared_fences)\n",
+     ORACLE + 'test_interrupted_confirm_is_a_term_of_the_lock')
 
 
 def run(test, target):

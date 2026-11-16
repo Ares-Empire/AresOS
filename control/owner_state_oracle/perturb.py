@@ -2,7 +2,7 @@
 import copy
 from .model import Fact
 from .compare import compare_proofs
-from .records import behind, canonical, fingerprint, restore_intervals, service_lock, visible
+from .records import canonical, decoded_lock, fingerprint, restore_intervals, service_lock, visible
 
 STATES = ('reserved', 'submitting', 'unknown', 'partial', 'done', 'failed', 'refused',
           'started', 'checked', 'open', 'clean', 'warning', 'cancelled', 'expired', 'settled')
@@ -478,11 +478,9 @@ def coherent_change(oracle, record, key, path=(), kind='row', replacement=None, 
     changed.generation = changed.rows.get('generation')
     changed.restore_intervals = restore_intervals(changed.events)
     if changed.head is not None:
-        sequence, head_hash = changed.head
-        fence = next((value for value in changed.fences if value['seq'] == sequence), {})
-        expected_hash = fence.get('hash', '' if sequence == 0 else None)
-        changed.locked = bool(changed.rows.get('restore_pending')) or bool(changed.fences and (
-            behind(sequence, changed.committed) or head_hash != expected_hash)) or service_lock(changed)
+        # The fences come from a decoded record, so their sequences are unique.
+        fences = {fence['seq']: fence for fence in changed.fences}
+        changed.locked = decoded_lock(changed.rows, fences, changed.committed, changed.head) or service_lock(changed)
     replay.validated_input = replay.validated_record = None
     return replay, changed
 

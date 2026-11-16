@@ -136,12 +136,18 @@ class OwnerOracle(unittest.TestCase):
         # Brief 20-restore-lock-followups, item 1: a confirm that met a storage
         # fault keeps the running service locked whatever its bytes decode to.
         from owner_state_oracle.records import consistency_errors
+        from owner_state_oracle.perturb import coherent_change
         lock = ('restore', 'unjustified-lock', '')
         for interrupted in (False, True):
             for locked in (False, True):
                 record = Record(head=(0, ''), locked=locked, interrupted_confirm=interrupted)
                 with self.subTest(interrupted=interrupted, locked=locked):
                     self.assertEqual(lock in consistency_errors(record), locked != interrupted)
+            # The alteration suite's recompute keeps the term too: these bytes decode unlocked.
+            record = decode(*self.history(2, 2, 2))
+            record.interrupted_confirm = record.locked = interrupted
+            with self.subTest(recompute=True, interrupted=interrupted):
+                self.assertIs(coherent_change(Oracle(), record, 'fixture:2')[1].locked, interrupted)
 
     def test_interrupted_confirm_holds_until_the_next_restart(self):
         from owner_state_oracle.driver import Driver, interrupted_confirm

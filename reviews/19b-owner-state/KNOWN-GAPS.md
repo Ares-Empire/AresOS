@@ -615,19 +615,22 @@ What must not change did not:
 - every flow's clean-run point count (above);
 - every failing point and every case with keys stays (10,247 points, 53,066 cases);
 - the 377 contract, `G22-*` and channel keys, the 544,801 other `crash-locked`
-  keys (the hidden rows under the lock, M14; brief 20-restore-lock, R1) and the
-  restore flow's 22,915 other keys, each byte for byte.
+  keys (544,611 row and notice keys, among them the hidden rows under the lock, M14,
+  brief 20-restore-lock, R1, and 190 `recovery-holds` keys; their groups span 11
+  matrix rows) and the restore flow's 22,915 other keys, each byte for byte.
 
 **Named class: the rows left at H (N7 of the brief review).** At H the model now
 expects the last committed rows, while the running store shows the write it applied
-before its commit marker failed (a restart finishes that write). **6,949 keys**: 6,224
+before its commit marker failed (a restart finishes that write; the 544 of these keys in
+the `crash-restart` phase are the failed call's own reply, built before the crash, and the
+views read after the restart changed only by alias numbers). **6,949 keys**: 6,224
 row and notice keys changed beyond alias numbers and the 725 new count keys, at 870 of
 the 1,386 H cases in 16 flows: `pending-head` 3,719, `notice-head` 995, `notice-count`
 901, `page` and `complete` 433 each, `pending-total` 339, `total` 129. Example:
 `onboarding/persistent/1439/0/exhausted/mail catalogue.total`, the model counts 1, the
-store 2. Deciding which side should change is outside this package; for `linux-tools`
-(the lead puts it on the board). In all, 63,379 keys stay pinned at H, most of them gaps
-those points had before (53,338 unchanged).
+store 2. Deciding which side should change is outside this package; for `linux-tools`,
+on the board as item #337 (queue item 17). In all, 63,379 keys stay pinned at H, most
+of them gaps those points had before (53,338 unchanged).
 
 **C5 and "C2's mirror of C5"** (previous section): both closed here. C5 was the
 model's error, not the store's: the store keeps its lock after a confirm that failed
