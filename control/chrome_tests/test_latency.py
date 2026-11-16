@@ -805,7 +805,8 @@ class MainFixStorageStages(unittest.TestCase):
         service=(ROOT/'control/chrome/ci/service.py').read_text()
         self.assertIn("open(os.environ.get('FIXTURE_LOG_DIR','/out')+'/browser-boundary.jsonl','a',buffering=1)",service)
         self.assertNotIn("open('/out/browser-boundary.jsonl'",service)
-        # The store stays on the container's disk: nothing redirects its state directories.
+        # The store keeps its own directories (run.sh mounts a tmpfs over them for the latency
+        # pair): nothing redirects them to /scratch.
         self.assertIn("'state_dir':'/var/lib/aresos-tools'",service)
         self.assertNotIn('/scratch',service)
 
