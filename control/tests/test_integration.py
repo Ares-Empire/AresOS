@@ -598,7 +598,7 @@ print(json.dumps(results))
         hook = self.launch(OWNER, ["hook", "Stop"], input=stop)
         self.assertEqual((hook.returncode, hook.stderr), (0, ""))
         self.assertIn(prepared["data"]["approval"]["operation_id"], json.loads(hook.stdout)["reason"])
-        config = Path("/etc/aresos-control/proxy.json")
+        config = Path("/usr/share/aresos/control/proxy.json")
         original = config.read_bytes()
         try:
             config.write_bytes(b"malformed configuration")
