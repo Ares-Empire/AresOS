@@ -270,3 +270,11 @@ Apart from the blocking finding above, the rewrite is consistent between the dra
   - 2 of 2 for the rest check.
 - Section 5 is untouched.
 - The worktree is clean, and none of my processes is still running.
+
+---
+
+## Review 3, addendum 2 (head 67f59bb0)
+
+Verdict: READY
+
+Commit 67f59bb0 fixes all four items: no "lead's reading" wording is left (searched with line breaks joined), and Super's app opens on the world's screen at `LAPTOP-HOME.md:494-495` and `:616` and `PROGRESS.md:604`. Two lines still run past 120 characters (`LAPTOP-HOME.md:697`, `PROGRESS.md:372`); only the look of the file suffers, so they do not block.

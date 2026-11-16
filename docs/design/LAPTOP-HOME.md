@@ -6,7 +6,7 @@ day look and section 11 the same day, a Fable design agent; the day's grid and t
 day, a Fable design agent; review fixes 3 and the owner's answer on the Super key the same day, a Claude Opus
 agent). Nothing here is built. It describes the direction the study recommends; the other two
 directions, the pictures and the measurements are in
-[the study's report](../../reviews/44-laptop-home/PROGRESS.md). If he chooses another direction, sections 1 to 3
+[the study's report](../../reviews/44-laptop-home/REPORT.md). If he chooses another direction, sections 1 to 3
 change and sections 4 to 8 stay.
 
 **Day is chosen (2026-11-16).** The owner asked why night, when the world is never dark. Section 11 answers and
