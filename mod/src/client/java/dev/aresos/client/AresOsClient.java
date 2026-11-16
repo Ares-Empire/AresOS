@@ -43,6 +43,7 @@ public final class AresOsClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         HomeButton.register();
+        HomeSwitch.register();
         AppsScreen.register();
         IconReload.register(dev.aresos.item.MyAppsGame.icons());
         if (AresOs.shell() != null) ShellFocusClient.register(AresOs.shell());

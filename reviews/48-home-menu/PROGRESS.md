@@ -19,24 +19,50 @@ Builder: Claude (Opus), step agents. Branch `pkg/48-home-menu`, worktree `~/Ares
   - `MinecraftFocusMixin`: `FOCUS_RETURN.recordPause` also records the AresOS menu (focus loss without the helper).
   - `HomeScreenClientGameTest`: its Esc check now expects `AresOsMenuScreen` in a session's desktop world.
 
+- Step 2 (code written, compiles; client tests not yet run at the time of writing, see "Test runs" below):
+  - `world/HomeSwap.java` (main): dated names, a fresh staging folder, the two renames with undo, restore, and
+    `checkComplete` (the supervisor's `check_world` in Java). Unit test `HomeSwapTest`.
+  - `client/HomePlan.java`: the create screen's choice (manifest, options, dimensions) and `create(client, dir, parent)`.
+    `HomeButton` builds plans (`flatPlan`, `netherPlan`), `createWorld(client, parent, plan)` makes one as AresHub;
+    `archive` names through `HomeSwap.datedName`. `HomeCreateScreen` takes an `Action` (title screen: create at once).
+  - `client/HomeSwitch.java`: the switch (design below, as built). `client/HomeWorkingScreen.java`: the one-line screen.
+  - `client/FirstStart.java`: B. `mixin/GuiScreenMixin.java` (`Gui.setScreen` HEAD) asks HomeSwitch, then FirstStart.
+    `mixin/LevelLoadingCoverMixin.java`: loading screens show "Making your new home…" while a switch runs.
+  - `AresOsMenuScreen`: New home… opens `HomeCreateScreen(this, confirmNewHome)`; the ConfirmScreen has the brief's
+    text, "Make the new home" / Cancel (Cancel: back to the choice).
+  - `ShellFocusClient.readyWorld`: null while `HomeSwitch.busy()`.
+  - `AppsScreen` (D): `pressed` cleared in `init()` and on every left press (`mouseClicked` override, before super);
+    a drag from the Apps screen opened through the menu ends in a new `InventoryScreen`.
+  - Docs (E): `docs/design/HUB.md` (package 48 section after package 40's corrections; the two lines fixed),
+    `mod/README.md` (title screen, the menu, New home, the first start, the tests).
+  - Tests: `HomeMenuClientGameTest` (last in `fabric-client-gametest`), `ScreenLog` + test mixin `ScreenLogMixin`
+    (records `Gui.screen` at its PUTFIELD), `aresos.homeMenuReviewDir` in `mod/build.gradle`.
+
 ## Left, in order
 
-1. A.5, the world switch (`HomeSwitch`, design below), with `HomeCreateScreen` taking a create action; then make the
-   menu's New home… button active and open `HomeCreateScreen(menu, plan -> confirm, then HomeSwitch.start)`.
-2. B, the first start (`Gui.setScreen` hook, design below).
-3. D, AppsScreen's `pressed` nit (clear in `init()` and in a `mouseClicked` override for every left press, before
-   `super`).
-4. Client game tests: a new class `HomeMenuClientGameTest` added at the END of `fabric-client-gametest` in
-   `mod/src/gametest/resources/fabric.mod.json` (after `HomeScreenClientGameTest`; screenshot numbers run over the
-   whole suite). Update `HomeScreenClientGameTest` (its `client.pauseGame(false)` check expects `PauseScreen` in a
-   session's desktop world: now it must be the AresOS menu). A test mixin that records every `Gui.screen` assignment
-   (inject at the `PUTFIELD screen` in `Gui.setScreen`, `shift = AFTER`) for "no TitleScreen in between".
-5. E, docs: `docs/design/HUB.md` (new short section; fix "Esc still opens the game menu" in package 40's corrections;
-   replace "the package for the Esc menu that follows looks at Live's rules again" with "Live's rules wait for his
-   try-out (#282)"), `mod/README.md` (the title screen as the way in).
-6. Screenshots (menu over the flat home at 1280x720 and at the smallest GUI, 240 high) into
-   `reviews/48-home-menu/screenshots/` via a new system property in `mod/build.gradle` (`runClientGameTest` block).
-7. Two green full client runs, the full `build.sh`, the report (heading "Report" below), merge `origin/main`, PR.
+1. Run the client tests (trimmed list locally to iterate, never committed), fix, screenshots into
+   `reviews/48-home-menu/screenshots/`.
+2. Two green full client runs (committed list) and the full `mod/dev/build.sh`.
+3. Merge `origin/main` (package 46's `save_world`: if merged by then, make it answer `no_world` while
+   `HomeSwitch.busy()`, with a test; otherwise PLAN-GAP in the report).
+4. The report (heading "Report" below), then the ready PR.
+
+## HomeSwitch as built (step 2)
+
+- Phases: CLOSING_OLD -> MAKING (task) -> STAGING -> CLOSING_STAGING -> SWAPPING (task) -> OPENING -> idle; on failure
+  FAILING -> RESTORING (task) -> RECOVERING -> idle with the chat line. A tick handler (END_CLIENT_TICK) waits for each
+  world to close or open and schedules the next step with `client.schedule`; a step never assumes a close or open
+  finished when its call returned, because the client game test framework defers `disconnect` and `doWorldLoad`
+  called from a test task (its `MinecraftMixin.deferDisconnect`/`deferStartIntegratedServer`). Each waiting phase
+  gives up after 2400 ticks (2 min) and restores.
+- `screenComing` (while busy): TitleScreen or `setScreen(null)` with no level -> failure, the working screen instead;
+  DisconnectedScreen -> failure; GenericMessageScreen / ProgressScreen -> the working screen; `null` with a level
+  (the staging world's loading screen closing) -> the working screen, except while OPENING/RECOVERING. The
+  LevelLoadingScreen is never replaced (its `tick()` closes it when the level is ready), only drawn over.
+- A failure during FAILING/RESTORING/RECOVERING gives up (idle): the game's own screens show, the title screen is the
+  floor. `start()` marks the first start decided, so such a title screen never makes a home.
+- The fault for the client test: `HomeSwitch.failSecondRenameForTests(true)` (the second rename throws; swap undoes
+  the first).
 
 ## Minecraft 26.2 facts the code relies on (not visible in our code)
 

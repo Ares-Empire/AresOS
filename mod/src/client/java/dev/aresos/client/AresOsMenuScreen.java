@@ -8,8 +8,10 @@ import net.minecraft.client.gui.components.StringWidget;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.layouts.FrameLayout;
 import net.minecraft.client.gui.layouts.LinearLayout;
+import net.minecraft.client.gui.screens.ConfirmScreen;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.options.OptionsScreen;
+import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 
 /**
@@ -23,6 +25,10 @@ public final class AresOsMenuScreen extends Screen {
     static final Component APPS = Component.literal("Apps…");
     static final Component SETTINGS = Component.literal("Settings…");
     static final Component NEW_HOME = Component.literal("New home…");
+    static final Component NEW_HOME_TITLE = Component.literal("New home");
+    static final Component NEW_HOME_QUESTION = Component.literal("Keep this home under a dated name and make the new "
+            + "one? Nothing is deleted: the old home stays in your saves.");
+    static final Component MAKE_IT = Component.literal("Make the new home");
     private static final int BUTTON_WIDTH = 200;
 
     private final LinearLayout layout = LinearLayout.vertical().spacing(4);
@@ -43,9 +49,8 @@ public final class AresOsMenuScreen extends Screen {
                 .width(BUTTON_WIDTH).build());
         layout.addChild(Button.builder(SETTINGS, button -> minecraft.gui.setScreen(new OptionsScreen(this, minecraft.options, true)))
                 .width(BUTTON_WIDTH).build());
-        var newHome = layout.addChild(Button.builder(NEW_HOME, button -> { }).width(BUTTON_WIDTH).build());
-        // Step 1 of package 48: the world switch behind it comes with the next step.
-        newHome.active = false;
+        layout.addChild(Button.builder(NEW_HOME, button -> minecraft.gui.setScreen(
+                new HomeCreateScreen(this, AresOsMenuScreen::confirmNewHome))).width(BUTTON_WIDTH).build());
         var hint = layout.addChild(new StringWidget(hint(minecraft), font), settings -> settings.paddingTop(8));
         hint.setMaxWidth(width - 16, StringWidget.TextOverflow.SCROLLING);
         layout.visitWidgets(this::addRenderableWidget);
@@ -57,6 +62,16 @@ public final class AresOsMenuScreen extends Screen {
         layout.arrangeElements();
         // Where the game menu stands: centred across, a quarter of the free height above it.
         FrameLayout.alignInRectangle(layout, 0, 0, width, height, 0.5f, 0.25f);
+    }
+
+    /**
+     * Create on the home choice asks once (brief 48, A.5); yes switches homes, no goes back to the choice as it was.
+     */
+    static void confirmNewHome(Minecraft client, HomeCreateScreen choice, HomePlan plan) {
+        client.gui.setScreen(new ConfirmScreen(yes -> {
+            if (yes) HomeSwitch.start(client, plan);
+            else client.gui.setScreen(choice);
+        }, NEW_HOME_TITLE, NEW_HOME_QUESTION, MAKE_IT, CommonComponents.GUI_CANCEL));
     }
 
     /** The keys as he has them bound, in one gray line. */
