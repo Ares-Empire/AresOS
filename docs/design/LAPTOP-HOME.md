@@ -1,14 +1,18 @@
 # The laptop-screen home: Night street
 
-**Draft, waiting for the owner's choice.** Design study of package 44 (2026-11-16, a Fable design agent; review
-fixes 1 the same day, a Claude Opus agent; the day look and section 11 the same day, a Fable design agent). Nothing
-here is built. It describes the direction the study recommends; the other two directions, the pictures and the
-measurements are in [the study's report](../../reviews/44-laptop-home/PROGRESS.md). If he chooses another
-direction, sections 1 to 3 change and sections 4 to 8 stay.
+**Draft. The owner chose the street by day; the cleaner layout he then asked for is drawn and waits for his look.**
+Design study of package 44 (2026-11-16, a Fable design agent; review fixes 1 the same day, a Claude Opus agent; the
+day look and section 11 the same day, a Fable design agent; the day's grid and terraces, section 11.6, the same
+day, a Fable design agent). Nothing here is built. It describes the direction the study recommends; the other two
+directions, the pictures and the measurements are in
+[the study's report](../../reviews/44-laptop-home/PROGRESS.md). If he chooses another direction, sections 1 to 3
+change and sections 4 to 8 stay.
 
-**Night or day is open.** Sections 1 and 2 describe the town at night, as the study first drew it. The owner asked
-why night, when the world is never dark. Section 11 answers, shows the same town by day and recommends day. If he
-chooses day, sections 1, 2.1, 2.4 and 2.5 take section 11's table and nothing else changes.
+**Day is chosen (2026-11-16).** The owner asked why night, when the world is never dark. Section 11 answers and
+shows the same town by day. He chose day and asked for a cleaner layout; section 11.6 has his words and the layout
+drawn for them. The table in 2.1 and the numbers in section 3 describe that layout. Section 1 and the rest of
+section 2 were written for the night look, which stays as the second look. Where they speak of the dark, of lit
+doorways or of the road's top line, section 11.3's table and section 11.6 give the day.
 
 The owner (2026-11-15): "the laptop needs to get a proper "monitor connected" homescreen so its not boring and still
 unique and functional. Probably most useful will be to have apps easily accessible via it or a companions room or
@@ -25,7 +29,15 @@ Pictures (test apps, generated logos):
 [forty-five apps, one group of twenty](../../reviews/44-laptop-home/pictures/street-8-forty-five-apps.png),
 [a far house slid into view](../../reviews/44-laptop-home/pictures/street-9-far-house.png),
 [every logo in full colour](../../reviews/44-laptop-home/pictures/street-10-full-colour.png).
-The same town by day (section 11):
+The same town by day, on one grid and on terraces (section 11.6):
+[home](../../reviews/44-laptop-home/pictures/day2-1-home.png),
+[finding](../../reviews/44-laptop-home/pictures/day2-2-finding.png),
+[an app opened](../../reviews/44-laptop-home/pictures/day2-4-opened.png),
+[day one](../../reviews/44-laptop-home/pictures/day2-5-day-one.png),
+[forty apps](../../reviews/44-laptop-home/pictures/day2-6-forty-apps.png),
+[forty-five apps, one group of twenty](../../reviews/44-laptop-home/pictures/day2-8-forty-five-apps.png).
+The day's other ground that was drawn, one lawn: [home](../../reviews/44-laptop-home/pictures/day2-alt-home.png).
+The day's first form (section 11.3), kept for comparison:
 [home](../../reviews/44-laptop-home/pictures/day-1-home.png),
 [finding](../../reviews/44-laptop-home/pictures/day-2-finding.png),
 [an app opened](../../reviews/44-laptop-home/pictures/day-4-opened.png),
@@ -80,17 +92,23 @@ He unplugs the monitor. The world is back on the laptop screen and the street is
 
 ### 2.1 The town from the side
 
+This table is the day look on its grid, the form the owner chose and then asked to be cleaner (section 11.6).
+
 | What | Decision |
 |---|---|
-| Streets | Four, top to bottom in the order of HUB.md 2.2: Internet (north), Games (east), Work & Media (west), System & Tools (south). |
-| Where a house stands | Left or right of the street's middle, as its place in the world is left or right of the avenue (the place's `L` or `R`). The nearer its place to home, the nearer it stands to the middle (section 3). A free place stays a gap, as in the world. |
-| The group's name | In the middle of the street, where the avenue would be: the name in the group's colour, under it the direction and the count ("north · 7"). |
-| The road | A dark strip with the group's colour as its top line, paved from the farthest house on the left to the farthest on the right, gaps included. A group without apps has the middle piece only. |
-| The house | The logo's 12 x 12 front as the mod built it, drawn as solid blocks with a top and a right side (3 blocks deep, as in the world). The doorway is columns 5 and 6, three high, black. The doormat is the road's top line under the door, in the group's bright colour. |
-| The sign | Over the house: the name (white), under it the main short name with its slash (gold, JetBrains Mono). A long name takes a second line, as the world's signs do; past two lines it ends in "…". |
-| Night | The background is the session's `#0d0d10` with a faint Mars-red glow bottom left and a steel-blue one top right (the crown language). Houses are slightly dimmed: 62 % brightness and 82 % saturation (or full colour, section 10 question 3). The day look instead: section 11. |
-| Open apps | A house whose app has a window is at full brightness and its doorway is lit gold. Its hotbar slot has a gold mark. |
-| Home | A one-pixel line under the lowest street with one gold block in its middle. It is the only gold thing that is not text or a selection. |
+| Streets | Four, top to bottom in the order of HUB.md 2.2: Internet (north), Games (east), Work & Media (west), System & Tools (south). Each is one step of a hillside. The four steps are alike and equally far apart. |
+| The grid | All four streets share one grid (section 3). Their columns line up from street to street, and every street shows the same number of them: 5 to 8 on each side of its middle. |
+| Where a house stands | Left or right of the street's middle, as its place in the world is left or right of the avenue (the place's `L` or `R`). The nearer its place to home, the nearer it stands to the middle (section 3). |
+| A free place | A free plot: the pale stone slab a house would stand on. Every column has its plot on every street, so the four streets are equally long with 1 app and with 45. |
+| The group's name | In the middle of the street, where the avenue would be (two columns wide): the name in the group's colour, under it the direction and the count ("north · 7"), on a dark plate. |
+| The road | Dark paving with the group's colour as a line down its middle, as in the world. Every road runs from the left edge of the screen to the right, and stands still when its street slides. |
+| The ground and the sky | Terraces. A step is a band of sunlit turf with the road on it; under it is the bank down to the next step. The sky ends at the far edge of the top step, so the line between sky and ground is the first street's own ground. Flat colours, no game texture. |
+| The house | The logo's 12 x 12 front as the mod built it, drawn as solid blocks with a top and a right side (3 blocks deep, as in the world). The doorway is columns 5 and 6, three high, black. It stands on its plot with its feet at the road's far edge. The doormat lies on the road, from the door to the road's line, in the group's bright colour. |
+| The sign | Over the house, on a dark plate: the name (white), under it the main short name with its slash (gold, JetBrains Mono). A long name takes a second line, as the world's signs do; past two lines it ends in "…". A sign of two lines ends under the street above it. |
+| An app that is not open | Sun-bleached: 45 % saturation, 80 % contrast, 93 % brightness, and its sign's plate at half strength (or full colour, section 10 question 3). |
+| Open apps | Full colour. The door is gold in a dark frame, a gold mat lies across the road, and the sign's plate is solid with a gold line under it. Its hotbar slot has a gold mark. |
+| Home | The dark stone pad with one gold block, in the middle under the lowest street. |
+| The night look | The second look, as the study first drew it: dark, with lit doors. Section 11.3's table has what differs, and the end of section 3 has its numbers. |
 
 ### 2.2 Getting to an app
 
@@ -156,19 +174,32 @@ gold `#cfa24f` and `#edca77`. The group colours are `AppGroup`'s: `#3AB3DA`, `#F
 
 ## 3. The layout rules
 
-All numbers are for a 1920 x 1080 screen. On another size the whole page is scaled.
+All numbers are for a 1920 x 1080 screen. On another size the whole page is scaled. They are the day look's
+(section 11.6). The night look's own numbers are at the end of this section.
 
 | Name | Value | Meaning |
 |---|---|---|
-| `TOP` | 150 | where the first street's strip begins |
-| `STREET` | 196 | height of one street's strip; its road is the lowest 16 |
-| `GAP` | 200 | the free middle of a street, for the group's name |
-| `EDGE` | 40 | free at the left and right edge |
+| `TOP` | 126 | where the first street's strip begins |
+| `STREET` | 202 | height of one street's strip; its road is the lowest 16. The houses' feet are at 312, 514, 716 and 918 |
 | `CELL` | 7 to 10 | pixels a block; one value for the whole town |
-| `PITCH` | 14.6 x `CELL` | from one house to the next |
+| house | 12 x `CELL` | a logo's front, as wide as it is high |
+| `PITCH` | 14 x `CELL` | from one house to the next: 2 blocks stay free between two houses |
+| `GAP` | 30 x `CELL` | the free middle of a street, for the group's name: two columns wide |
+| `EDGE` | 40 | free at the left and right edge |
 | `DEPTH` | 0.9 x `CELL` | how far a house reaches back, drawn up and to the right |
 | `FLOOR` | 948 | the home line |
 | hotbar | top at 966, slots 64 x 64 | centred |
+
+**One grid for the whole town.** Every length along a street is a whole number of blocks, counted from the middle
+of the screen.
+- `GAP` plus one house is three times `PITCH`. So the columns left and right of the middle are one lattice across
+  the screen, the middle is two of its columns, and the columns of all four streets line up.
+- Every street shows the same columns: 5 a side at `CELL` 10, 6 at 9, 7 at 8 and 8 at 7
+  (`floor(((960 - EDGE) / CELL - 13) / 14)`). Each column has its plot on every street (section 2.1).
+- Every road runs from the left edge of the screen to the right.
+- The streets are equally far apart. `STREET` is high enough for a sign with a name of two lines: over the largest
+  house it ends under the turf of the street above (house 120, its top 9, a space of 3 and a sign of 50 are 182,
+  which is 202 less the road's 16 and the turf's 4).
 
 **Where a house stands comes from its place in the world, never from a count** (HUB.md 3.3). Places have holes: a
 removed app keeps its place free, a place with something of his on it is skipped, and `/aresos app move` and `swap`
@@ -177,43 +208,58 @@ move apps between places (HUB.md 2.5). So:
 - **Slot:** the place's rank among that side's places, nearest first. Row `r` has `r + 1` places a side, so
   `slot = r(r+1)/2 + k`: `N0L0` 0, `N1L0` 1, `N1L1` 2, `N2L0` 3, `N2L1` 4, `N2L2` 5, `N3L0` 6 …
 - **Position:** a left slot `s` has its right edge at `960 - GAP/2 - s x PITCH`. A right slot `s` has its left edge at
-  `960 + GAP/2 + s x PITCH`. Its foot is on the road's top.
-- **A free place stays a gap**, as in the world. The road runs on under it. Nothing else moves when a place empties
-  or fills. (The other way, that side closing up, was not taken: every removal would move the houses after it, and
+  `960 + GAP/2 + s x PITCH`. Its foot is on the road's far edge.
+- **A free place stays free**, as in the world: its plot is empty. Nothing else moves when a place empties or
+  fills. (The other way, that side closing up, was not taken: every removal would move the houses after it, and
   they would stand where they do not stand in the world.)
 - **An app without a place yet** (the mod has not placed it) takes the next places after the farthest one its group
   uses, in HUB.md 3.3's order, until the mod gives it one.
 
-**`CELL`:** `floor((960 - GAP/2 - EDGE) / (SLOTS x 14.6))`, kept between 7 and 10. `SLOTS` is the farthest slot
-used on any side of any street, plus one. A house is 120 wide up to 5 slots a side (10 apps in a group without
-gaps), 108 at 6, 96 at 7 and 84 at 8 (16 apps).
+**`CELL`:** `floor((960 - EDGE) / (14 x SLOTS + 13))`, kept between 7 and 10. That is the largest block with which
+the house in the farthest slot still ends `EDGE` before the screen's edge. `SLOTS` is the farthest slot used on any
+side of any street, plus one. A house is 120 wide up to 5 slots a side (10 apps in a group without gaps), 108 at 6,
+96 at 7 and 84 at 8 (16 apps).
 
 **Past 8 slots on a side, the street slides.** That is more than 16 apps in a group, or fewer with gaps. `CELL`
 stays 7, and every other street stays as it is.
 - **At rest** the street stands in the middle like the others.
 - **End signs.** At each end that runs off the screen the street shows a small sign in its colour, with the number
-  of houses out of sight there ("‹ 2", "2 ›"), over a fade to the wall.
+  of houses out of sight there ("‹ 2", "2 ›"). The houses fade out towards that end. The road and the ground stay
+  whole.
 - **The gold frame is always in view.** When the best hit of his typing, or the house the arrow keys chose, is out
-  of view, its street slides as little as shows the whole house.
+  of view, its street slides by as few whole columns (`PITCH`) as show the whole house. So a street that has slid
+  still stands on the grid.
 - **A click on an end sign** slides the street until its last house on that side is in view.
 - **Back to the middle.** A street without the frame goes back to the middle, unless he slid it by hand. A slide by
   hand lasts until Escape, a click on the group's name, or the laptop home losing the keyboard.
-- **Each slide takes 0.3 s.** Ledges and boxes for the companions slide with it (section 7).
+- **Each slide takes 0.3 s.** The roofs' ledges and the houses' boxes for the companions slide with it (section 7).
+  The road's ledge does not: it runs across the whole screen.
 
 **What fits:** every app is on the screen up to 16 in a group. In HUB.md's planning mix that is about 45 apps
 (System & Tools grows fastest: 42 of the laptop's 61 programs are System & Tools, HUB.md 5). Past that, the nearest
 16 of that group are on the screen and the rest are one click, typed name or arrow key away. There is no upper
 limit.
 
-**Checked in the prototype** (`tools/shots.sh check`, Night street's own check, on a 45-app town with
-`test-web-1`, place `N0L0`, removed):
-- every other house keeps its side and slot, and the houses are drawn where the layout says;
-- `test-web-2` stays on the right and `test-web-3` on the left;
-- `test-tool-19` (slot 9 on the left) is out of view at rest, comes into view when he types `tool19`, and goes
-  back on Escape;
-- the end signs say "‹ 2" and "2 ›".
+**Checked in the prototype** (`tools/shots.sh check`):
+- Night street's own check, by night and by day, on a 45-app town with `test-web-1`, place `N0L0`, removed:
+  - every other house keeps its side and slot, and the houses are drawn where the layout says;
+  - `test-web-2` stays on the right and `test-web-3` on the left;
+  - `test-tool-19` (slot 9 on the left) is out of view at rest, comes into view when he types `tool19`, and goes
+    back on Escape;
+  - the end signs say "‹ 2" and "2 ›".
+- The day's grid check, on towns of 1, 24 and 45 apps:
+  - four streets, equally far apart, and four equal roads from edge to edge;
+  - every house of every street is on one lattice of columns, also while the street of 20 has slid;
+  - every street has the grid's columns at the same places, and the grid fills the screen up to `EDGE`;
+  - every house stands on a plot.
+- At rest by day, with a fixed clock, watched for 13 seconds: no animation runs and nothing in the page changes.
 
 The build carries these over as tests.
+
+**The night look's numbers** (the second look, as the study first drew it): `TOP` 150, `STREET` 196, `PITCH`
+14.6 x `CELL` (rounded), `GAP` 200, and `CELL` is `floor((960 - GAP/2 - EDGE) / (SLOTS x 14.6))`. Its road runs
+from the farthest house on the left to the farthest on the right, a free place is a gap, a street slides by pixels,
+and its ends fade into the wall.
 
 ---
 
@@ -441,7 +487,7 @@ The town is that city. What their runtime needs from a host (`~/companions/runti
 | The runtime asks for | The laptop home gives |
 |---|---|
 | a canvas it may draw on | a see-through canvas over the town, under the typing line and the hotbar |
-| a world: floor, ledges, boxes | the home line as the floor; each street and each roof as a ledge with its free height; each house as a box (the prototype's `laptopHome.world.snapshot()`). A street that slides moves its ledges and boxes with it; the runtime reads a snapshot every frame, so companions standing there ride along. |
+| a world: floor, ledges, boxes | the home line as the floor; each street and each roof as a ledge with its free height; each house as a box (the prototype's `laptopHome.world.snapshot()`). A street that slides moves its roofs' ledges and its houses' boxes with it (by day the road's own ledge runs across the whole screen and stays); the runtime reads a snapshot every frame, so companions standing there ride along. |
 | input | the page's own pointer |
 | storage | a small file kept by the window program, given to the page at its start |
 | its files as modules over an address | the `aresos-home:` scheme (section 4) |
@@ -457,8 +503,9 @@ far from the near-zero of the town at rest, so the companions version needs a bu
 
 The two-chip trap (section 4) would make it two and a half cores. It is checked before anything moves.
 
-Left to the companions package: how much room they get above the roofs (60 pixels under the next street at `CELL`
-10; a street less or smaller houses would give more), what they do in the town, their memory, and that budget.
+Left to the companions package: how much room they get above the roofs (at `CELL` 10, 66 pixels under the next
+street by day and 60 at night; a street less or smaller houses would give more), what they do in the town, their
+memory, and that budget.
 
 ---
 
@@ -508,8 +555,9 @@ Left to the companions package: how much room they get above the roofs (60 pixel
      keywords, the hotbar, opening, the lit houses, reconnecting with opening off in between.
    - Tests carried over from the study's checks (`tools/shots.sh check`, including Night street's own check).
    - Pictures from a headless compositor, as the study's tool takes them.
-   - Night and day (section 11), if both are kept: the pictures and the checks for each look, and a check that at
-     rest no animation runs and nothing in the page changes but the clock (and, at night, the one star).
+   - Day, and night if it is kept (section 11): the pictures and the checks for each look; for the day its grid
+     check (section 3); and a check that at rest no animation runs and nothing in the page changes but the clock
+     (and, at night, the one star).
    - The layer library through `LD_PRELOAD`, the `aresos-home:` scheme registered as secure and CORS-enabled with
      the right MIME types, the token and `LD_PRELOAD` removed from the environment before the web view starts.
    - The image gets `gtk4-layer-shell` and JetBrains Mono, and a check that WebKitGTK 6.0 and its Python binding are
@@ -532,7 +580,10 @@ Steps 1 and 2 are data and rules; step 3 is how a screen looks.
 
 These are the report's JUDGMENT-CALLs 1 to 6, in the same order, each with the study's recommendation.
 
-1. **Which direction, and by night or by day?**
+1. **Which direction, and by night or by day?** **Answered (2026-11-16): the street, by day.** He then asked for a
+   cleaner layout. Section 11.6 has his words and the layout drawn for them
+   ([home](../../reviews/44-laptop-home/pictures/day2-1-home.png),
+   [forty-five apps](../../reviews/44-laptop-home/pictures/day2-8-forty-five-apps.png)). What was asked:
    - **The direction:** the street (his town from the side), Map table or Console. *Recommended: the street.* It
      shows his whole town with names, and the companions can move into it.
    - **The street's light:** night or day. Compare
@@ -615,7 +666,11 @@ Not needed in version 1.
 
 ### 11.3 What the day look changes
 
-**The town is the same.** Every number of section 3, the hotbar, the typing line, the keys, the list of other
+*This is the day's first form. Section 11.6 draws its ground, its roads and its spacing again: the rows "Behind the
+town", "The road" and "The ends of a street past 16" of the table below are replaced there. The other rows hold.*
+
+**The town is the same.** Every number of the layout as it then was (now the night look's, at the end of section
+3), the hotbar, the typing line, the keys, the list of other
 programs and the windows are unchanged. `tools/shots.sh check` passes on the day look as on the night (10 of 10,
 and Night street's own 9 of 9). The ten night pictures did not change by a pixel when the day was added.
 
@@ -709,3 +764,141 @@ headless compositor as section 4's first numbers; other builders' programs were 
   it was.
 
 The laptop trial (section 9) measures the look he chose in his own session, as it does for the night.
+
+### 11.6 His answer: day, on a cleaner layout
+
+**He chose day** (2026-11-16) and asked for a cleaner layout:
+
+> "Yes day but it bothers me that the lines aren't aligned. I think the all display or background should be
+> slightly different because currently the not standardized , unequally long app lines that don't line up with the
+> sky / dirt cut line don't look clean or organized. I think maybe the app logos could integrate more in the
+> background or smth ?"
+
+What he saw in [day-1](../../reviews/44-laptop-home/pictures/day-1-home.png) and
+[day-6](../../reviews/44-laptop-home/pictures/day-6-forty-apps.png), the day's first form:
+- Each road ran from its farthest house on the left to its farthest on the right. So the four roads had four
+  lengths, and began and ended at different places.
+- The line between sky and grass lay at a fixed height. It ran through the first row of houses and belonged to no
+  street.
+- The logos stood in rows over two colours, not in a place.
+
+So the day look was drawn again. `?look=day` shows it. Pictures:
+[home](../../reviews/44-laptop-home/pictures/day2-1-home.png),
+[finding](../../reviews/44-laptop-home/pictures/day2-2-finding.png),
+[an app opened](../../reviews/44-laptop-home/pictures/day2-4-opened.png),
+[day one, five apps](../../reviews/44-laptop-home/pictures/day2-5-day-one.png),
+[forty apps](../../reviews/44-laptop-home/pictures/day2-6-forty-apps.png),
+[forty-five apps, one group of twenty](../../reviews/44-laptop-home/pictures/day2-8-forty-five-apps.png).
+
+**What stays.**
+- The four groups and their colours, and each app's side and slot (section 3).
+- Dimmed until used; full colour and a gold door while open.
+- The signs, the hotbar, the typing line, the clock and the battery.
+- A street past 16 apps slides.
+- Nothing moves at rest.
+- The house's form: the logo as the mod built it (11.3 says why).
+
+**The grid.** Section 3 has the numbers.
+- Every length along a street is a whole number of blocks, counted from the middle of the screen: a house is 12
+  wide, 2 are free between two houses, and the middle is 30.
+- So the columns of all four streets are one lattice. They line up from street to street, and the middle, where the
+  group's name hangs, is exactly two columns.
+- Every street shows the same columns, 5 to 8 a side, each with its plot. A house stands on its plot; a free place
+  is a free plot. So the four streets are equally long with 1 app, with 24 and with 45. Day one is 40 plots and
+  the houses he has.
+- Every road runs from the left edge of the screen to the right, and stands still.
+- The four streets are equally far apart, 202 pixels. A sign of two lines no longer lies on the road above it.
+- A street longer than the screen slides by whole columns, so it stays on the lattice. At an end that runs off the
+  screen its houses fade out; the road stays whole.
+
+**The horizon and the ground: terraces.**
+- Each street is one step of a hillside, seen from the front.
+- A step is a band of sunlit turf, 34 pixels high, with the road on it: 14 of turf behind the houses' feet, the
+  road's 16, and 4 in front. Under it is the bank down to the next step, 168 pixels, darker under the edge.
+- The sky ends at the far edge of the top step, 14 pixels above the feet of the first street's houses. So the line
+  between sky and ground is the first street's own ground. Its logos stand against the sky, as they do in the
+  world. Every other street has the bank of the step above behind it.
+- Every line across the screen is now a street, and the streets are equally far apart.
+- Under the fourth step the bank runs to the bottom of the screen. The home pad, the hotbar and the typing line
+  are on it.
+- Flat colours, no game texture: sky `#6f9df0` to `#aecbf8`, turf `#8ab254`, bank `#44642e` to `#5f8442` under an
+  edge of 2 pixels (`#36502a`), paving `#2b2832`, plot `#b9c7a2`.
+
+**How a house stands.**
+- On its plot: a slab of pale stone, half a block wider than the house on each side and as deep as the house (3
+  blocks). It is drawn lying on the turf, in the same slanted view as the house's top and side. Under a round
+  logo more of the slab shows.
+- Its feet are at the road's far edge, and its doormat lies on the road.
+- Turf shows behind it and between it and its neighbours.
+- Its sign is over it, as before.
+
+**The other ground that was drawn: one lawn**
+([picture](../../reviews/44-laptop-home/pictures/day2-alt-home.png), `?look=day&ground=plain`). The grid, the
+roads and the plots are the same. The sky ends 140 pixels down, above the first street's signs. Below it is one
+lawn, and an avenue runs down its middle from the first street to home.
+
+**Why terraces.**
+- He said the app lines do not line up with the line between sky and ground. On terraces that line is a street's
+  ground. On the lawn the horizon is still a line of its own, now above the town.
+- On terraces every street has its own ground, the lit turf, and something behind it. On the lawn only the roads
+  part the rows, and the logos still stand on a colour.
+- The lawn's avenue is one more dark bar, behind the four group names.
+- What the lawn does better: all four streets have the same grass behind them. On terraces the first street stands
+  against the sky, where a pale logo is weaker than against a bank.
+
+**Rejected.** Drawn and dropped:
+- **Plots as pale patches a third of a house high** (on the lawn). They looked like ghost houses, not like quiet
+  ground.
+- **Plots of near-white stone.** The free plots became the loudest thing on a street.
+- **A step of 196 pixels**, as before. A sign of two lines lay on the road above it.
+
+Considered and not drawn:
+- **Nothing on a free place.** With equal roads the rows of houses would still be unequally long.
+- **A lamp or a tree on a free place.** An object on every free place is not quiet: day one would be 35 of them.
+- **A stairway down the middle of the terraces.** It would stand behind the four group names.
+- **Banks of earth**, as a cut through the game's grass block. Three brown walls behind the logos, and earth needs
+  a texture to look like earth.
+- **A shadow beside each house.** Only 2 blocks are free between two houses, so it would be a sliver, and under a
+  round logo it would hang loose.
+- **Name plates as wide as the house.** The rows would be tidier, but at the smallest house a name would have 84
+  pixels instead of 92.
+- **Logos set flat into the bank, as tiles.** 11.3's reasons hold: the doorway is where "open" shows, and a wall
+  of tiles is a grid of icons.
+- **Sliding by pixels**, as the first form did. A slid street would leave the lattice.
+
+**Checked** (`tools/shots.sh check`, section 3 has the list):
+- the keys and clicks on the day look, 10 of 10, and Night street's own check on it, 9 of 9;
+- the grid check, 9 of 9 on each of four pages: a town of 1 app, of 24, of 45 with a group of 20, and the lawn;
+- at rest, 2 of 2: no animation runs and nothing in the page changes in 13 seconds. The same check on the night
+  page sees the stars change three times.
+- The ten night pictures are the same files as before, byte for byte.
+
+**What it costs.** Measured as in 11.5: `tools/shots.sh measure`, the 40-app town with two apps open, at rest for
+100 seconds, in the same headless compositor. Another builder's game test was running on the laptop meanwhile. The
+day's first form was measured again in the same hour, so the two can be compared.
+
+| Form | Processor at rest | of that the page's own process | Working memory | Memory in all (PSS) |
+|---|---|---|---|---|
+| Day, first form (two runs) | 0.32 % and 1.32 % of one core | 0.0 % and 0.7 % | 136 and 128 MiB | 324 and 321 MiB |
+| Day on its grid, terraces (two runs) | 0.32 % and 0.32 % | 0.0 % and 0.0 % | 128 and 137 MiB | 317 and 323 MiB |
+
+- **Nothing moves at rest.** The rest check saw no animation and no change in the page in 13 seconds. One run was
+  cut into 10-second slices: the page's own process used 0.0 to 0.1 % in every slice, and the window program 0.2 %
+  (0.6 % in one).
+- **Memory at rest is as before.** Working memory was 128 or 136 MiB in every run of either form, the same two
+  values 11.5 has for the first form and for the night. The plots are two elements a street, and the terraces are
+  one still background.
+- **The first form's run at 1.32 %** had the one-off 0.7 seconds in the page's process that 11.5 describes. It is
+  still not explained. The new form's runs did not show it.
+- **The share of library files** moved between runs again, 187 to 214 MiB over all runs of both forms. It was
+  lower in the runs during which another program with the same libraries was running. The clearest case is one run
+  of the lawn (0.25 % of one core, 128 MiB of working memory): its share was 161 MiB, and during it I made
+  seventeen pictures with the same engine. PSS divides a shared page among the processes that map it, so this is
+  likely what 11.5 could not explain. I did not test it further.
+- **Seen once and not explained:** 1.5 seconds after loading, the terraces page had 184 MiB of working memory,
+  where the lawn and the night had 133. After the 8 seconds that a measurement waits it was 128, as the others.
+
+**Not seen.**
+- The laptop's own panel beside the monitor. These are pictures.
+- His apps. The test names are short; many real names will take two lines.
+- A real mouse and keyboard: the checks make their events inside the page, as before.

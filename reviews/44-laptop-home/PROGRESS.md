@@ -9,6 +9,9 @@ listed in "Review fixes 1" at the end.
 The day look (the owner's question "why was night chosen", the same day): one Claude agent on Fable 5.2, design
 work. What it added is in "The day look" at the end.
 
+The day's grid and terraces (the owner chose day and asked for a cleaner layout, the same day): one Claude agent on
+Fable 5.2, design work. What it changed is in "The day look on one grid" at the end.
+
 Nothing under `os/` or `mod/` changed. Everything in this folder is a development aid for choosing a design. The
 design draft that a build package can follow is `docs/design/LAPTOP-HOME.md`.
 
@@ -324,7 +327,8 @@ five events (LAPTOP-HOME.md section 4). The page never sees a command, a path, t
 
 ## JUDGMENT-CALL (for the owner)
 
-1. **Which direction, and by night or by day.**
+1. **Which direction, and by night or by day.** Answered by the owner (2026-11-16): the street, by day. He then
+   asked for a cleaner layout ("The day look on one grid" at the end). What was asked:
    - The direction: I chose the street. Rejected: Map table (logos too small, half the screen empty, companions do
      not fit) and Console (a launcher list). Changing later costs little on the system side: a look is one folder
      of web files.
@@ -472,3 +476,77 @@ Pictures: [home](pictures/day-1-home.png), [finding "tool"](pictures/day-2-findi
 - Nobody used a real mouse or keyboard on it; the checks make their events inside the page, as before.
 - The day colours are chosen by eye against the game's noon in the hub's test pictures (`reviews/36-town/`), not
   against his shader pack.
+
+## The day look on one grid
+
+The owner chose day (2026-11-16) and asked for a cleaner layout: "Yes day but it bothers me that the lines aren't
+aligned. I think the all display or background should be slightly different because currently the not standardized
+, unequally long app lines that don't line up with the sky / dirt cut line don't look clean or organized. I think
+maybe the app logos could integrate more in the background or smth ?"
+
+The rules, the two grounds that were drawn, the choice and what was rejected are `docs/design/LAPTOP-HOME.md`
+section 11.6. Its sections 2.1 and 3 now describe this form. In short:
+- All four streets stand on one grid. Their columns line up, every street has the same plots (a free place is a
+  free plot), and every road runs from edge to edge of the screen.
+- The ground is terraces: each street is a step of a hillside, and the line between sky and ground is the first
+  street's own ground.
+- **I chose terraces** over the other ground that was drawn, one lawn with the sky ending above the first street.
+
+Pictures: [home](pictures/day2-1-home.png), [finding "tool"](pictures/day2-2-finding.png),
+[an app opened](pictures/day2-4-opened.png), [day one, five apps](pictures/day2-5-day-one.png),
+[forty apps](pictures/day2-6-forty-apps.png),
+[forty-five apps, one group of twenty](pictures/day2-8-forty-five-apps.png); the other ground:
+[one lawn](pictures/day2-alt-home.png). The four `day-*` pictures show the day's first form and are kept for
+comparison; the tool no longer makes them.
+
+**Done.**
+- `prototypes/street/index.html`:
+  - `grid` gives each look its block size, its step and its middle. The night's are as before. The day's are whole
+    blocks (a step of 14, a middle of 30), and a day street's strip is 202 high instead of 196.
+  - By day: a row of plots on each side of every street, a still road from edge to edge, the terraces as one still
+    background that the script paints, a slide by whole steps, and a mask that fades the houses at an end of a long
+    street (the night keeps its fade to the wall).
+  - `?look=day&ground=plain` is the other ground.
+  - What slides of a street now sits inside a `view` element, which the day's mask needs. In the companions'
+    snapshot a day road is one ledge across the screen that does not slide.
+- `tools/webkit-shot.py`: the checks `check-grid`, `check-grid-long` and `check-rest`.
+- `tools/shots.sh`: `all` makes the seven `day2-` pictures; `check` also runs the grid check on four pages and the
+  rest check on the day look.
+- `docs/design/LAPTOP-HOME.md`: section 11.6; 2.1's table and section 3 follow the day's new form, with the night's
+  numbers at the end of section 3; question 1 of section 10 is answered.
+
+**Verified.**
+- `tools/shots.sh check`, eleven lines, all passed:
+  - keys and clicks, 10 of 10 on each of the three pages and on the day look;
+  - Night street's own check, 9 of 9 by night and by day;
+  - the grid check, 9 of 9 on a day town of 1 app, of 24, of 45 with a group of 20 (its street slides and stays on
+    the lattice), and on the lawn;
+  - the rest check on the day look, 2 of 2: in 13 seconds no animation ran and nothing in the page changed. On the
+    night page the same check saw three changes, the stars.
+- `tools/shots.sh all street-` after the change: the ten night pictures are the same files as before, byte for
+  byte (git shows no change).
+- `tools/shots.sh all day2-` made the seven pictures, each 1920 x 1080, in the headless compositor. I looked at
+  all of them.
+- **The cost at rest** (`tools/shots.sh measure`, 40 apps, two open, 100 seconds; another builder's game test was
+  running on the laptop meanwhile). The day's first form was measured again in the same hour:
+  - The new form 0.32 % and 0.32 % of one processor core; the first form 0.32 % and 1.32 % (that run had the
+    one-off 0.7 seconds in the page's process that "The day look" above describes).
+  - One new-form run cut into 10-second slices: the page's own process 0.0 to 0.1 % in every slice, the window
+    program 0.2 % (0.6 % in one).
+  - Working memory 128 and 137 MiB for the new form, 136 and 128 MiB for the first. In all (PSS) 317 and 323 MiB
+    against 324 and 321.
+  - The lawn, one run: 0.25 %, 128 MiB of working memory.
+  - The share of library files (187 to 214 MiB over the runs of both forms) was lower in runs during which another
+    program with the same libraries ran. In the lawn's run it was 161 MiB, and during that run I made seventeen
+    pictures with the same engine. PSS divides shared pages, so that is likely the spread the first day study
+    could not explain. Not tested further.
+  - Seen once, not explained: 1.5 seconds after loading, the terraces page had 184 MiB of working memory (the lawn
+    and the night 133). After a measurement's 8 seconds of settling it was 128.
+
+**Not verified.**
+- How it looks on the laptop's own panel beside the monitor. These are pictures.
+- His apps and their names. The test names are short; a real name will often take two lines, which the step's
+  height now allows for.
+- A real mouse and keyboard: the checks make their events inside the page, as before.
+- The grid check reads where the page put its roads, houses and plots. It does not look at the picture's pixels,
+  and I did not see it fail on a broken grid. The rest check I did see fail, on the night page.
