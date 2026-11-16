@@ -17,7 +17,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/usr/bin/env -i PATH=/usr/bin:/bin LANG=C.UTF-8 /usr/bin/python3 -I -S /usr/libexec/aresos-control/launch.py hook Stop",
+            "command": "/usr/bin/env -i PATH=/usr/bin:/bin LANG=C.UTF-8 /bin/sh -c 'if decision=$(/usr/bin/python3 -I -S /usr/libexec/aresos-control/launch.py hook Stop 2>/dev/null); then printf \"%s\" \"$decision\"; fi; exit 0'",
             "timeout": 15
           }
         ]

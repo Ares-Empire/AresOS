@@ -1,0 +1,104 @@
+<!doctype html>
+<!-- Development aid for AresOS package 44 (the laptop-screen home, a design study). Not product code.
+     Direction "Console": no picture. The clock, a /name line as in the chat, and My apps as four columns.
+     Open this file in a browser; it needs only the files in ../shared. Options: see ../shared/home.js. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Console · AresOS laptop home (prototype)</title>
+<link rel="stylesheet" href="../shared/home.css">
+<style>
+  .stage::before { content: ''; position: absolute; inset: 0; pointer-events: none;
+    background: radial-gradient(900px 520px at 0% 100%, rgba(201, 55, 44, 0.10), transparent 70%),
+                radial-gradient(1000px 560px at 100% 0%, rgba(93, 134, 179, 0.11), transparent 70%); }
+  #clock { position: absolute; left: 64px; top: 56px; }
+  #clock .clock-time { font-size: 120px; }
+  #clock .clock-date { margin-top: 18px; font-size: 14px; }
+  #battery { position: absolute; left: 64px; top: 248px; }
+  #finder { position: absolute; left: 50px; top: 330px; width: 520px; flex-direction: column-reverse; justify-content: flex-end; }
+  #finder .finder-line { height: 64px; font-size: 30px; border-color: var(--line); background: #0a0a0c99; }
+  #finder .finder-caret { height: 32px; width: 14px; }
+  #finder .finder-hint { font-size: 15px; }
+  #open { position: absolute; left: 64px; top: 700px; width: 480px; }
+  #open .label { margin-bottom: 10px; }
+  .open-row { display: flex; align-items: center; gap: 12px; height: 34px; font-size: 15px; color: var(--ink-2); }
+  .open-none { font-size: 15px; color: var(--ink-3); }
+
+  #columns { position: absolute; left: 640px; top: 64px; display: grid; grid-template-columns: repeat(4, 280px); gap: 32px; }
+  .column-head { display: flex; align-items: baseline; justify-content: space-between; padding-bottom: 12px; border-bottom: 2px solid color-mix(in srgb, var(--b) 70%, var(--wall)); margin-bottom: 8px; }
+  .column-head b { font-size: 13px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--g); }
+  .column-head span { font-family: var(--mono); font-size: 12px; color: var(--ink-3); }
+  .row { position: relative; display: flex; align-items: center; gap: 14px; height: 46px; padding: 0 10px; margin: 0 -10px; border-radius: 7px; font-size: 16px;
+    color: var(--ink-2); cursor: pointer; transition: opacity .15s, background .1s; }
+  .row small { margin-left: auto; font-family: var(--mono); font-size: 13px; color: #9c7c40; }
+  .row:hover, .row.is-selected, .row.is-best, .row.is-opening { background: #2a2519; color: #fff4d4; }
+  .row:hover small, .row.is-selected small, .row.is-best small, .row.is-match small { color: var(--gold-hi); }
+  .row.is-match, .row.is-running { color: var(--ink); }
+  .row.is-dim { opacity: 0.16; }
+  .row.is-running::before { content: ''; position: absolute; left: 2px; top: 50%; width: 3px; height: 18px; margin-top: -9px; border-radius: 2px; background: var(--gold-hi); box-shadow: 0 0 10px var(--gold); }
+  .column-none { padding: 12px 0; font-size: 15px; color: var(--ink-3); }
+
+  #hotbar { position: absolute; left: 50%; top: 966px; transform: translateX(-50%); }
+  .hint { position: absolute; right: 64px; bottom: 44px; }
+</style>
+</head>
+<body>
+<div class="stage" id="stage">
+  <div id="clock"></div>
+  <div id="battery"></div>
+  <div id="finder"></div>
+  <div id="open"></div>
+  <div id="columns"></div>
+  <div id="hotbar"></div>
+  <div class="hint label">Click opens &nbsp;·&nbsp; 1 to 9 the hotbar &nbsp;·&nbsp; arrows move</div>
+</div>
+<script src="../shared/home.js"></script>
+<script>
+'use strict';
+(() => {
+  const columns = document.getElementById('columns'), openEl = document.getElementById('open');
+  Home.GROUPS.forEach(g => {
+    const list = Home.town.apps.filter(a => a.group === g.key);
+    const column = document.createElement('div');
+    column.style.cssText = `--g:${g.colour};--b:${g.block}`;
+    column.innerHTML = `<div class="column-head"><b>${g.title.replace('&', '&amp;')}</b><span>${g.where} · ${list.length}</span></div>`;
+    list.forEach(app => {
+      const row = document.createElement('div'), name = document.createElement('span'), short = document.createElement('small');
+      row.className = 'row';
+      row.dataset.app = app.id;
+      name.textContent = app.name;
+      short.textContent = '/' + app.short;
+      row.append(Home.logoCanvas(app, 3), name, short);
+      column.append(row);
+    });
+    if (!list.length) column.insertAdjacentHTML('beforeend', '<div class="column-none">Nothing stands here yet.</div>');
+    columns.append(column);
+  });
+
+  // What is open now, under the typing line.
+  let shown = '';
+  Home.on('refresh', () => {
+    const running = Home.town.apps.concat(Home.town.programs).filter(app => Home.state.running.has(app.id));
+    const now = running.map(app => app.id).join();
+    if (now === shown && openEl.firstChild) return;
+    shown = now;
+    openEl.innerHTML = '<div class="label">Open now</div>';
+    running.forEach(app => {
+      const row = document.createElement('div'), name = document.createElement('span');
+      row.className = 'open-row';
+      name.textContent = app.name;
+      row.append(Home.logoCanvas(app, 2), name);
+      openEl.append(row);
+    });
+    if (!running.length) openEl.insertAdjacentHTML('beforeend', '<div class="open-none">Nothing is open.</div>');
+  });
+
+  Home.mountClock(document.getElementById('clock'));
+  Home.mountBattery(document.getElementById('battery'));
+  Home.mountHotbar(document.getElementById('hotbar'));
+  Home.mountFinder(document.getElementById('finder'), 'name or short name');
+  Home.start(document.getElementById('stage'));
+})();
+</script>
+</body>
+</html>

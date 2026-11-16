@@ -1,6 +1,11 @@
 name: Control owner oracle (optional)
 on:
   workflow_dispatch:
+    inputs:
+      ledger_only:
+        description: Run only the ledger job (minutes instead of about 2.5 hours)
+        type: boolean
+        default: false
 permissions:
   contents: read
 concurrency:
@@ -16,13 +21,16 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p .work/control-ci
-          docker run --rm -v "$PWD:/workspace" -w /workspace registry.fedoraproject.org/fedora:45-x86_64@sha256:79dd6556b8fe1a559051fad5159d4987ead218f1914e7a5bd20350d9ea0f9e52 bash -c 'source control/ci/setup.sh; python3 control/ci/base.py --optional' 2>&1 | tee .work/control-ci/results.txt
+          # --init: bash execs the last command of its -c string in place, so without an init the test process is
+          # the container's PID 1, and a hook never takes PID 1 as its session (control/README.md, Hooks).
+          docker run --rm --init -v "$PWD:/workspace" -w /workspace registry.fedoraproject.org/fedora:45-x86_64@sha256:79dd6556b8fe1a559051fad5159d4987ead218f1914e7a5bd20350d9ea0f9e52 bash -c 'source control/ci/setup.sh; python3 control/ci/base.py --optional' 2>&1 | tee .work/control-ci/results.txt
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
           name: control-owner-ledger-${{ github.run_id }}-${{ github.run_attempt }}
           path: .work/control-ci/
   alterations:
+    if: ${{ !inputs.ledger_only }}
     strategy:
       fail-fast: false
       matrix:
@@ -49,6 +57,7 @@ jobs:
             .work/mail-ci/greenmail.txt
             .work/mail-ci/dovecot.txt
   sweep:
+    if: ${{ !inputs.ledger_only }}
     strategy:
       fail-fast: false
       matrix:
@@ -79,6 +88,7 @@ jobs:
             .work/mail-ci/greenmail.txt
             .work/mail-ci/dovecot.txt
   onboarding:
+    if: ${{ !inputs.ledger_only }}
     strategy:
       fail-fast: false
       matrix:

@@ -30,17 +30,21 @@ class StrictJSON(unittest.TestCase):
                     daemon.main()
                 constructor.assert_not_called()
         for name in ('Stop', 'UserPromptSubmit'):
-            for raw in ('{"hook_event_name":"' + name + '","hook_event_name":"' + name + '"}',
-                        '{"hook_event_name":"' + name + '","nested":{"x":1,"x":2}}'):
+            for raw in ('{"hook_event_name":"' + name + '","stop_hook_active":false,"hook_event_name":"' + name + '"}',
+                        '{"hook_event_name":"' + name + '","stop_hook_active":false,"nested":{"x":1,"x":2}}'):
                 stdin = io.TextIOWrapper(io.BytesIO(raw.encode()))
-                with patch('sys.stdin', stdin), patch.object(hooks, 'Client') as client, redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
-                    if name == 'Stop':
-                        with self.assertRaises(SystemExit) as error:
-                            hooks.main({}, name)
-                        self.assertEqual(error.exception.code, 2)
-                    else:
-                        hooks.main({}, name)
+                # A session that used the tools: one that didn't never parses its input (lead, 2026-11-16).
+                with patch('sys.stdin', stdin), patch.object(hooks.usage, 'used', return_value=True), \
+                        patch.object(hooks, 'Client') as client, redirect_stdout(io.StringIO()) as stdout, \
+                        redirect_stderr(io.StringIO()) as stderr:
+                    hooks.main({}, name)
                     client.assert_not_called()
+                    self.assertEqual(stderr.getvalue(), '')
+                    if name == 'Stop':
+                        # Told as a decision, never through an exit code.
+                        self.assertEqual(json.loads(stdout.getvalue())['decision'], 'block')
+                    else:
+                        self.assertEqual(stdout.getvalue(), '')
 
     def test_cli_nonasking_and_admin_config_refuse_before_proxy(self):
         for words, raw in ((['testapp', 'list'], '{"cursor":null,"cursor":null}'),
