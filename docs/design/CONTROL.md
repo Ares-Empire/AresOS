@@ -601,10 +601,10 @@ the front when he should look at it or sign in there.
     dropped onto the page leaves it nothing to find. So the page guard also records that he clicked, pressed a
     key, typed, dropped or pasted in the page, told apart from Claude's own input and counted as his when it
     can't tell. Then going elsewhere or reloading is refused, with or without the flag, and the refusal carries
-    the question for `chrome_take_reload`, as for his typing. A step of Claude's that follows a link to another
-    page or submits a form is checked the same way before it runs, also when its send was approved meanwhile. A
-    navigation that the page's own script starts from some other element can't be seen beforehand ("Known
-    limits").
+    the question for `chrome_take_reload`, as for his typing. That record stays with the tab when the page
+    removes a frame he used. A step of Claude's that follows a link to another page, submits a form or resets one
+    is checked the same way before it runs, also when its send was approved meanwhile. What the page's own script
+    does after any other step can't be seen beforehand ("Known limits").
   - **A page loaded by a form submission is never reloaded,** because Chrome might submit it again. Claude opens its
     address fresh in a Claude tab instead.
   - `chrome_take` returns the reloaded page's outline, so the next call can act.
@@ -1439,20 +1439,25 @@ with real harm is fixed instead (owner, 2026-11-11). Each brief's report keeps t
   no group among pinned tabs. *Harm:* that tab steps to the edge of his group, or out of the pinned tabs, until
   it is given back. *Accepted:* every other taken tab stays exactly where it is, and a release puts these two
   back.
-- **In a taken tab, a navigation that the page's own script starts can lose what he did there.** Before Claude
-  goes elsewhere, reloads, follows a link or submits a form in a taken tab, the tool looks for his typing and for
-  his use of the page since the take, and asks him ("Which tabs Claude works in"). A step on any other element
-  whose script then navigates, such as a button that sets the address, can't be seen beforehand. A submission
-  that such a script starts is held and asked as a send, with the form shown, but that question doesn't name
-  his other work on the page. *Harm:* his typing or other work in that page, in a tab Claude is working in.
-  *Accepted* (the lead, 2026-11-16): the tool can't know what a page's handler will do; the tab is marked as
-  Claude's for as long as it is taken, and giving it back is one click; a page that guards its work makes Chrome
-  ask "Leave site?", and that question is his. It is the one loss of his work the design accepts.
+- **In a taken tab, what the page's own script does after a step can lose what he did there.** Before Claude
+  goes elsewhere, reloads, follows a link, or submits or resets a form in a taken tab, the tool looks for his
+  typing and for his use of the page since the take, and asks him ("Which tabs Claude works in"). What a script
+  does after any other step can't be seen beforehand: a button, a `javascript:` or `#` link, or a link that opens
+  a new tab, whose script navigates; a form's other control whose script submits; a script that clears his work
+  without navigating. A submission that such a script starts is held and asked as a send, with the form shown,
+  only while the hold after Claude's step runs, and never for a GET search form; a later one navigates unasked,
+  and the question doesn't name his other work on the page. *Harm:* his typing or other work in that page, in a
+  tab Claude is working in. *Accepted* (the lead, 2026-11-16, after reviews 5 and 6): the tool can't know what a
+  page's handler will do; the tab is marked as Claude's for as long as it is taken, and giving it back is one
+  click; a page that guards its work makes Chrome ask "Leave site?", and that question is his. It is the one loss
+  of his work the design accepts.
 - **A tab with a frame the reader can't enter isn't taken or navigated by Claude.** An embedded PDF viewer and
   another extension's inline frame take no reader, so the tool can't tell whether they hold something of his (a
-  PDF form can). Such a tab is never known clean, and no question is offered for it. *Harm:* he acts in that tab
-  himself, or Claude works on a copy of the page in its own tab. *Accepted:* it fails closed; brief 28b measures
-  which frames this hits.
+  PDF form can). Such a tab is never known clean, and no question is offered for it. Once such a frame appears
+  in a taken tab, also one he hasn't used, Claude's link, form and reset steps there are refused too. *Harm:* he
+  acts in that tab himself, or Claude works on a copy of the page in its own tab. *Accepted:* it fails closed;
+  brief 28b measures which frames this hits, among them an extension's frame that appears when a field is
+  focused.
 - **An unchanged element can come to mean something else.** A reference is checked on its own element: its name,
   its value, its options, where its link leads. The page around it isn't checked. A button that keeps its name
   while the row around it now shows another item still runs. *Harm:* Claude takes a free step with an older
@@ -1714,8 +1719,9 @@ itself instead of the first input (brief 28b).
       elsewhere or reloading is refused, the refusal names `chrome_release`, and for his typing it carries the
       question for `chrome_take_reload`; with only playing media or Claude's own typing the flag goes on;
       the same when he has used the taken page without leaving a field to find (a finished wizard step, a
-      drawing, a dropped file), while none of Claude's own steps counts as his use; there a step that follows a
-      link or submits a form is refused with the same question, also a send approved before he used the page;
+      drawing, a dropped file), also when the page has removed the frame he used, while none of Claude's own
+      steps counts as his use; there a step that follows a link, submits a form or resets one is refused with the
+      same question, also a send approved before he used the page;
       a navigation that a button's script starts is shown as the known limit; a take whose tab stops being
       clean after the attach is undone and answers `reload_required`;
       `chrome_release`, **Give back**, dragging out and **Stop** each restore the window, the place, his group and
