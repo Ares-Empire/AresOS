@@ -2,6 +2,197 @@
 
 Builder steps keep this file; the last step turns it into the report. Newest state first.
 
+## Step 9 (2026-11-16, Claude agent on Opus 5.5): `main` merged (20-ci-noise, the restore lock, the username scrub), the adapter's `chrome_outline` behind the test-only switch, run 9
+
+Opus: built against step 8's "For the adapter" and the lead's brief for this step.
+
+### Done
+
+- **`origin/main` merged** (`fbf1cf43`, a merge commit; `main` at `70538b71`, 26 commits past the merge base
+  `55c0114e`, among them `d981cd5a`, `b04c7e77`, `46101d4d`, `42721525`). No conflict, and **no file changed on
+  both sides** since the merge base (the two `git diff --name-only` lists share no line), so there was no merged file
+  to compare against both parents. Where `main`'s changes meet this branch's:
+  - `run.sh` (20-ci-noise): with `LATENCY_PROBE=true` the store now sits on a tmpfs and `latency-store.py` runs at
+    the start and the end. The branch's efficiency container (`latency-pair.sh efficiency`) runs with
+    `LATENCY_PROBE=true` too, so its store is on the tmpfs as well and it writes `/out/latency-store.json` beside the
+    efficiency files; `efficiency-summary.py` doesn't read it. The container already has `--cap-add SYS_ADMIN` for the
+    mount (`latency_container`).
+  - `definitions.py` (the restore lock): two `control` descriptions; `control-tools.json` is `main`'s, and
+    `generate.py --check` passes on the merged tree.
+- **The repo privacy check** (`.github/workflows/repo-privacy.yml`, from `42721525`): its pattern, run locally with
+  `git grep -nIP` and `perl` as the workflow runs it, finds no file name and no line on the merged tree, nor after
+  this step's commit. The branch adds no home path.
+- **`chrome_outline` behind the test-only switch** (`8ae7e8b0`), as step 8's "For the adapter" describes:
+  - **The switch** is `ARESOS_TEST_CHROME_OUTLINE=1` (`chrome/definitions.py`, `OUTLINE_SWITCH`, `outline_switch()`).
+    `actions()` adds `outline` last, so every other tool keeps its place, with item 2's input as a schema
+    (`OUTLINE`: `tab`, `tabs` 2 to 5, `ref`, `full`, `find` 1 to 200, `role`, `until` as `{text}` or `{gone}` each 1
+    to 200, `timeout_ms` 0 to 6,000, `max` 1,000 to 40,000, `cursor`). Its result schema is `{"type": "object"}`
+    like every other Chrome tool (JUDGMENT-CALL 7).
+  - **Set in the CI container** by `run.sh` on two lines: the service's `runuser … env …` and the browser harness's
+    `runuser … env …` (the harness starts the proxy through `call.py`, and any `aresos` command, as its children).
+    Not on `docker run` (JUDGMENT-CALL 1). So the fixtures, the latency pair, the efficiency container and the
+    qualification containers all have it; the Python shards (on the runner, outside the container) don't.
+  - **The packaged entries can't pass it on:** `aresos-toold.service`'s `ExecStart` and the `aresos`, `aresos-mcp`
+    and `aresos-toold` wrappers all start `/usr/bin/env -i PATH=/usr/bin:/bin LANG=C.UTF-8 …`, and the variable's
+    name is nowhere in `control/packaging/`.
+  - **`generate.py` refuses** (`generated()`, so `main` and every importer) while the variable is in the
+    environment with any value: `Refused: unset ARESOS_TEST_CHROME_OUTLINE; …`.
+  - **The adapter** (`adapter.py`): `call` routes `outline` next to brief 20's `read`; `outline`, `outline_tab`,
+    `outline_view`, `until_met`, `outline_options`, `outline_measure` stand right after `read`.
+    - The call: `outline_query` (the cross-field rules: exactly one of `tab` and `tabs`; with `tabs` only `max`,
+      each tab once; `role` only with `find` and only a role of the list; `timeout_ms` only with `until`), then
+      `self.mode()` once.
+    - Each tab: `page_state` (the token), then `outline`; `nodes.View(reply)` (a malformed reply is
+      `transport_error` with `Malformed`'s place and rule, which name no value); the reply's tab and session must
+      be this call's; `allowed_url` on the top `url`, the top `effective_url` when there is one, and every frame's
+      `effective_url` or `url` (brief 20's check, plus the top `effective_url` of a dialog reply). Unless a dialog
+      is open: `queued_steps`, `reconcile_checks`, `steps`, as `read` runs them.
+    - `until`: met as `find` would find the text (`view.contains`), `gone` when it wouldn't; an open dialog meets
+      neither. It asks `page_state` every 100 ms and reads the outline again (with the checks) only when the token
+      moved or a dialog opened, until `timeout_ms` (default 3,000) from the start of the call. `until_met` is in
+      the entry only when `until` was given.
+    - `ref` without `find` on a list field whose outline holds only some of its options: the reader's `options`
+      command for that element; the reply must name this session, tab, frame, document and reader, or the read is
+      `stale_reference`.
+    - Then `render`, `Reading` (with the token, the query, the cursor, `max`: default 6,000, or 3,000 a tab with
+      `tabs`), and `fit` over all tabs with one `References` that lives as long as the adapter: `Chrome.references`
+      makes it at the first read that needs it (`5a0c7552`, below) and keeps it.
+    - A refusal with a tab's code (`refused`, `stale_reference`, `permission_denied`, `owner_signin`,
+      `reload_required`, `not_read`) is that tab's entry in `reads` (`view.Failure`, with a stale reference's
+      present line in its `untrusted_content`); any other (the input, the qualification, the connection, storage,
+      `result_too_large`) fails the call. Also for a single `tab` (JUDGMENT-CALL 2).
+  - **`fit`'s `measure`** counts the result as `engine.request` sends it: `{"ok", "data": {"reads",
+    "version_notice"}, "pending"}`, where `pending` is `engine.pending('chrome', resolve_checks=False)` (the call the
+    engine makes at `engine.py:859`) plus the `chrome_version_notice` the engine adds after it (`engine.py:749`) when
+    there is a notice. `fit` gets `RESULT_LIMIT - PENDING_DRIFT` (2,048 bytes) as its limit, because the engine
+    builds its own pending after the adapter returns and asks each reserved operation's validity again
+    (JUDGMENT-CALL 4). So the result never reaches `bound_result`'s last-step shortening, and when the pending part
+    leaves no room for a page, `fit`'s `result_too_large` fails the call.
+- **Control Mail on `8ae7e8b0` was red, and that was this step** (run 43826821593: every `containers` and
+  `sweep` job, `AmbientRead: SystemRandom.getrandbits`). The Mail sweeps build an engine with every ambient entropy
+  source rejected, and `8ae7e8b0` made the reference table in `Chrome.__init__`, which draws its letters from the
+  system's random source. Fixed in `5a0c7552`: the table is made at the first read that needs it and kept for the
+  adapter's life, so the letters are still drawn once a run of the service (JUDGMENT-CALL 10). Reproduced locally
+  with `PYTHONPATH=control:control/mail_tests python3 -m unittest test_sweep_journal_stamp` (2 errors, the same
+  `AmbientRead`); after the fix both tests get past building the engine and stop at `boundary_not_installed`,
+  because the laptop has no `/etc/claude-code/managed-settings.json` (the Mail containers install it).
+- **Tests** (`control/chrome_tests/test_outline_action.py`, 22 tests):
+  - `Switch`, each in a Python process of its own: without the switch the action is not in `BY_NAME`, not in
+    `tools_for('chrome')`, the MCP proxy and the `aresos` command answer `permission_denied` and send nothing to the
+    service, `generate.generated()` runs, and the engine refuses `chrome_outline` with `invalid_input`, "Unknown
+    action; inspect the tool list."; with it, all three know it and the proxy and the command send it on, the engine
+    reaches the adapter (F1 read in full at `max` 40,000 with a 30,000-byte pending part and the version notice on:
+    the page shrinks below 20,000 characters, no `bounds`, and **the measure equals the bytes actually sent**), and
+    `generate.generated()` refuses. `generate.py --check` with the variable set to `0` exits non-zero. No generated
+    file or setting names the action or the variable. The packaged unit and wrappers are pinned. `run.sh` sets it on
+    exactly the two lines, after the generated-file check and the Python tests.
+  - `Adapter`, with a fake bridge answering `view_fixtures.py`'s node lists: one tab in the view module's order
+    (the calls are `page_state`, `outline`, `queued_steps`); references kept across reads and per tab; a stale
+    reference as the tab's entry, with a fold's present line; brief 20's checks (a frame's effective address on the
+    fixed list, an owner-excluded site, a failed `password_exclusion`); the queued steps and the dialog; every
+    cross-field rule and the schema's own limits; `until` (reads again only when the token moved; `gone`; the
+    timeout with `until_met: false`; `timeout_ms: 0`); several tabs with one refused; pages by cursor (another query
+    is `invalid_input`, another token `stale_reference`); a list field's 200 options by `ref`; malformed replies;
+    `find` with `role`; the measure against a large pending part and `result_too_large`; building an engine reads
+    no system randomness, and the first read makes the table that later reads keep.
+  - Checked by mutation: with `PENDING_DRIFT` at 0 the measure test fails, without the version notice in the
+    measure the engine-path test fails, and with the table made in `__init__` the table test fails.
+- **Local checks** (no Node locally, no browser):
+  - `PYTHONPATH=control python3 control/generate.py --check`: "Generated artifacts match definitions".
+  - `PYTHONPATH=control:control/chrome_tests python3 -m unittest test_publisher test_qualification test_credentials
+    test_efficiency test_view_address test_view_budgets test_view_hostile test_view_nodes test_view_outline
+    test_view_paging test_view_references test_outline_action test_questions test_unit test_latency
+    test_restore_lock`: 314 tests, OK.
+  - `… -m unittest test_engine test_policy test_sites`: 67 tests, OK.
+  - After `5a0c7552`: `… -m unittest test_outline_action test_engine`: 54 tests, OK.
+
+### Runs
+
+| Head | Holds | Control Chrome | Result |
+|---|---|---|---|
+| `8ae7e8b0` | step 8 + `main` (`70538b71`) + the adapter | 43826821669 (run 9; qualification 43826821542) | **in progress.** At 08:15 UTC (23 minutes in): green `package`, `native-precedence`, the four `python-shards` (shard 3: 144 tests, among them `test_outline_action`'s 21 at this head), **both latency legs on their first attempt** (`main`'s tmpfs store and sync-count gate) and the plain leg's "Efficiency tasks with brief 20's tools" step; fixtures: 3 shards green, 3 running, 12 queued. Qualification 43826821542: 12 jobs green, 4 running, 15 queued. Repo privacy, Control base and Control boundary green. **Control Mail 43826821593 red**, this step's own (above), fixed in `5a0c7552`. Not read further. |
+| `5a0c7552` | + the reference table made at the first read | none (pushed under a `[skip ci]` PROGRESS head; JUDGMENT-CALL 9) | Control Mail dispatched on the branch: MAIL_DISPATCH. |
+
+Nine full `control-chrome` runs so far. Run 9 is the first with the switch set; no browser test calls
+`chrome_outline` yet (groups 14 and 16 are next), so it shows that the switch and the merge break nothing.
+
+### Left, in order
+
+1. **Read the dispatched Control Mail run** (row `5a0c7552` above): every `containers` and `sweep` job should be
+   green again. If it isn't, the cause is in the Mail log, not guessed.
+2. **Read run 9** to its end: the browser shards and the qualification run (the latency pair and the efficiency
+   step are green already), oldest failure first.
+3. **Time (item 4):** one deadline for the whole call from before the engine's first look at pending to the
+   response (8 seconds; `until` at most 6; every command by second 7; `not_read`, "time ran out; read this tab by
+   itself"; equal shares for `tabs`, passed on when unused). Every command of the new read carries its time left;
+   the extension checks it at the front of its queue and in its waits (`expired`); `Bridge.call` waits until the
+   time is up plus half a second and drains a late reply by its id. Tests through the real transport. Today
+   `chrome_outline` has no deadline beyond `until`'s.
+4. **Groups 14 and 16 in CI** through `chrome_outline`, now reachable in every CI container: group 14's browser tests
+   (F6 and H1 exist), group 16's rows on the browser's fixtures and the latency comparison.
+5. **The harness map** (`HARNESS-MAP.md`, with step 7's "For `HARNESS-MAP.md`"), **the known limits** for section 6,
+   and **the report** (this file's text, for the lead to commit).
+
+### What the code doesn't show
+
+- **Step 1b's item 3 named "the refusal in `payload` and `steps` (exception 4)"; it is on `main` already** (PR
+  #27): `refuse_withheld_form` runs in `payload` (`adapter.py`, `if frame.get('form') and (kind or hold or
+  submitting)`) before `prepare`, so `steps` reaches it through `payload(…, hold=step)` for a held submission. This
+  step added nothing there.
+- **Who in CI has the switch.** The browser harness talks to `act.sock` directly, and `call.py` runs the proxy in
+  its own process with the harness's environment, so both have it. `admin.py` runs through `sudo`, whose
+  `env_keep` passes only `GITHUB_ACTIONS`: owner-only calls don't see the action, which isn't owner-only anyway.
+  The packaged `aresos` and `aresos-mcp` wrappers aren't used in CI.
+- **The `until` loop sleeps in the request.** Brief 20's `wait` does the same (`time.sleep(.05)`, up to 8 seconds);
+  the service handles one request at a time either way.
+
+### JUDGMENT-CALLs (technical; for the lead)
+
+1. **The switch is set on `run.sh`'s two process lines, not with `docker run -e`** (step 8 suggested the container's
+   `docker run`). The same container runs `generate.py --check`, the fast Python tests and, without a shard, the
+   full `discover`; with the variable on the container, `generate.py` would refuse and the tool-list tests would see
+   one tool more. On the two lines it reaches exactly the service and the harness with its children, in every
+   container that runs `run.sh` (fixtures, latency pair, efficiency, qualification). Cost of changing it: two lines
+   and `Switch.test_the_ci_container_sets_it_for_the_service_and_the_browser_only`.
+2. **A refusal that belongs to one tab is that tab's entry in `reads`, also when `tab` names one tab.** Item 2 puts
+   a stale reference's present line "in that read's entry beside its error", which a whole-call error can't carry;
+   one rule for one and several tabs is simpler than two. A single-tab refusal therefore comes with `ok: true`
+   and the error inside `reads[0]`. Input errors (`invalid_input`, also a cursor of another query), the
+   qualification, the connection (`transport_error`, `chrome_unavailable`, `unknown`), storage and
+   `result_too_large` still fail the call. 28a can change this when the tool goes public.
+3. **A tab among `tabs` with a native dialog open returns the dialog, as a single read does** (empty outline,
+   `dialog` in `untrusted_content`), not an error; item 2 lists "a dialog" among what makes a tab unreadable
+   (PLAN-GAP 1).
+4. **`PENDING_DRIFT` is 2,048 bytes.** What can change between the read's measure and the engine's own pending: a
+   reserved operation's `validity` row turning into a refusal with its reason (at most ten rows a page, each a fixed
+   sentence of about 100 characters), and a notice an event commits during those bridge calls. It costs nothing below
+   46 KiB of result; the first page of F1 read in full at `max` 40,000 is about 41 KB as sent.
+5. **The cursor's token is the `page_state` taken just before the outline.** A change between the two makes the next
+   page `stale_reference` (a false stale at worst), never a mix: the cursor also binds the text before it.
+6. **The queued steps run once a tab, after its first outline**, as brief 20's `read` runs them before `wait`'s
+   loop, not after every read again inside `until`.
+7. **`chrome_outline`'s result schema is `{"type": "object"}`,** as for every other Chrome tool; a precise schema of
+   item 2's result belongs with 28a, when the tool goes public and its output schema is checked by clients.
+8. **`generate.py` refuses when the variable is present with any value; the action exists only with `1`.** The
+   stricter reading on each side.
+9. **The Mail fix went out without a new full Chrome run.** `5a0c7552` (code) and this file's commit (head, `[skip
+   ci]`) were pushed together, so no workflow started on the push, and Control Mail, the one red workflow, was
+   dispatched on the branch by hand. A normal push would have started a 10th full `control-chrome` run beside run
+   9 (its concurrency group holds the run ID and cancels nothing), for a change that touches only when the table
+   is made; that is covered here by `test_outline_action` and `test_engine` locally and goes into the next full
+   run with the time item. If the lead wants CI on every code commit's push instead, the next push does it.
+10. **The reference letters are drawn at the first read, not when the process starts** (item 3 says "when its
+   process starts"). What item 3 relies on still holds: one draw a run of the service, from the system's random
+   source, nothing stored; a service that never reads draws nothing.
+
+### PLAN-GAPs
+
+1. **A dialog in `tabs`.** Item 2 lists "a dialog" among the reasons a tab in `tabs` gets its `error`, and also says
+   "A native dialog that is open is returned as `dialog` (kind, text), with an empty outline, as today." Built: the
+   second, for one tab and for several (JUDGMENT-CALL 3).
+2. **Item 2 doesn't say what `until` meets while a dialog is open.** Built: neither `text` nor `gone` is met, the
+   wait ends at once, and the dialog is returned; the readers can't answer while it is open.
+
 ## The lead after run 8 (2026-11-15)
 
 - **Run 8** (43745261932): every fixtures shard green, the two core shards included. So GROUP 7 and `review-shadow`
