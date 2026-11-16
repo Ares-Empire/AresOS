@@ -7,7 +7,7 @@
 #
 #   shots.sh picture <page and options> <picture.png>          e.g. 'street/index.html?apps=24&still=1'
 #   shots.sh measure <page and options> [seconds to watch]     prints one JSON line (about:blank: the bare engine)
-#   shots.sh all                                                the pictures in ../pictures
+#   shots.sh all [start of a name]                              the pictures in ../pictures ("all day-": the day set)
 #   shots.sh check                                              keys and clicks on each page, and Night street's
 #                                                               own check (a removed app, a group past 16)
 #
@@ -36,7 +36,7 @@ all)
     base='time=14:32&still=1'
     lit='run=test-web-2,test-tool-3'
     while read -r name page; do
-        [[ -n $name ]] || continue
+        [[ -n $name && $name == "${2:-}"* ]] || continue
         inside "$page" "$out/$name.png" 1.5 0 >/dev/null
         echo "$name.png"
     done <<LIST
@@ -57,10 +57,17 @@ map-4-forty-apps     map/index.html?apps=40&$base&$lit
 console-1-home       console/index.html?apps=24&$base&$lit
 console-2-finding    console/index.html?apps=24&$base&$lit&q=tool
 console-3-opened     console/index.html?apps=24&$base&run=test-tool-3&open=test-web-2&winx=120&winy=420
+day-1-home           street/index.html?apps=24&$base&$lit&look=day
+day-2-finding        street/index.html?apps=24&$base&$lit&q=tool&look=day
+day-4-opened         street/index.html?apps=24&$base&run=test-tool-3&open=test-web-2&winx=1010&winy=330&look=day
+day-6-forty-apps     street/index.html?apps=40&$base&$lit&look=day
 LIST
     ;;
 check)
     for page in street map console; do inside "$page/index.html?apps=24" check 1 0; done
-    inside 'street/index.html?apps=45&hole=test-web-1' check-street 1 0 ;;
+    inside 'street/index.html?apps=45&hole=test-web-1' check-street 1 0
+    # The day look is the same page with one class: the same two checks must pass on it.
+    inside 'street/index.html?apps=24&look=day' check 1 0
+    inside 'street/index.html?apps=45&hole=test-web-1&look=day' check-street 1 0 ;;
 *) sed -n '2,15p' "$0"; exit 2 ;;
 esac

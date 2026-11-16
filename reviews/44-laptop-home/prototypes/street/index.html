@@ -2,13 +2,16 @@
 <!-- Development aid for AresOS package 44 (the laptop-screen home, a design study). Not product code.
      Direction "Night street": the town seen from the side, at night. Open this file in a browser; it needs
      only the files in ../shared. Options: see ../shared/home.js. Also ?ledges=1 draws where companions can stand,
-     and ?sprite=1 lets one companion-sized figure walk (a measuring aid). -->
+     ?sprite=1 lets one companion-sized figure walk (a measuring aid), and ?look=day shows the same town at the
+     world's noon instead of at night (the day rules are the last block of the style sheet below). -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <title>Night street · AresOS laptop home (prototype)</title>
 <link rel="stylesheet" href="../shared/home.css">
 <style>
+  /* What a look sets. Night is the default; ?look=day (the class "day" on the page) sets them again below. */
+  :root { --idle: brightness(0.62) saturate(0.82); --sign-name: var(--ink-2); --sign-short: #9c7c40; --hidden: 0.13; }
   .stage::before { content: ''; position: absolute; inset: 0; pointer-events: none;
     background: radial-gradient(900px 520px at 4% 100%, rgba(201, 55, 44, 0.10), transparent 70%),
                 radial-gradient(1000px 560px at 100% 0%, rgba(93, 134, 179, 0.11), transparent 70%); }
@@ -26,16 +29,16 @@
     background-image: repeating-linear-gradient(90deg, transparent 0 calc(var(--cell) * 2 - 1px), var(--wall) 0 calc(var(--cell) * 2)); }
 
   .house { position: absolute; bottom: 16px; cursor: pointer; transition: opacity .15s; }
-  .house canvas { position: absolute; left: 0; bottom: 0; filter: brightness(0.62) saturate(0.82); transition: filter .15s; }
+  .house canvas { position: absolute; left: 0; bottom: 0; filter: var(--idle); transition: filter .15s; }
   .house:hover canvas, .house.is-running canvas, .house.is-selected canvas, .house.is-match canvas, .house.is-opening canvas,
   .bright .house canvas { filter: none; }
-  .house-sign { position: absolute; left: 50%; transform: translateX(-50%); text-align: center; }
+  .house-sign { position: absolute; left: 50%; width: calc(var(--pitch) - 6px); transform: translateX(-50%); text-align: center; }
   .house-sign b { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden;
-    font-weight: 500; font-size: var(--name); line-height: 1.1; color: var(--ink-2); overflow-wrap: anywhere; }
-  .house-sign span { display: block; margin-top: 1px; font-family: var(--mono); font-size: 12px; color: #9c7c40; }
+    font-weight: 500; font-size: var(--name); line-height: 1.1; color: var(--sign-name); overflow-wrap: anywhere; }
+  .house-sign span { display: block; margin-top: 1px; font-family: var(--mono); font-size: 12px; color: var(--sign-short); }
   .house:hover b, .house.is-running b, .house.is-selected b, .house.is-match b { color: var(--ink); }
   .house:hover span, .house.is-running span, .house.is-selected span, .house.is-match span { color: var(--gold-hi); }
-  .house.is-dim { opacity: 0.13; }
+  .house.is-dim { opacity: var(--hidden); }
   .mat { position: absolute; bottom: -3px; height: 3px; background: var(--g); }
   .door { position: absolute; bottom: 0; }
   /* A house is lit while its app runs. */
@@ -66,6 +69,52 @@
   .sprites { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; z-index: 35; pointer-events: none; }
   .ledge { position: absolute; height: 0; border-top: 2px dashed var(--gold-hi); z-index: 30; pointer-events: none; }
   .ledge-note { position: absolute; left: 0; right: 0; top: 52px; text-align: center; font-size: 15px; color: var(--gold-hi); z-index: 30; }
+
+  /* ---- ?look=day: the same town at the world's noon (HUB.md 2.1: flat grass, a clear sky, it never gets dark).
+     Flat colours only, no game texture. Nothing here moves or repeats: no clouds, no sun, and the night's stars
+     and their one timer are not made at all (see the script). ---- */
+  .day { --sky: #6f9df0; --sky-low: #aecbf8; --grass-far: #668845; --grass: #537236; --paving: #2b2832;
+    --plate: rgba(13, 13, 16, 0.5); --plate-lit: rgba(13, 13, 16, 0.88); --horizon: 292px;
+    --scene: linear-gradient(var(--sky), var(--sky-low) var(--horizon), var(--grass-far) var(--horizon), var(--grass) 700px);
+    /* By day a house that is not open is sun-bleached: paler and a little duller, with half its colour. Open, it has all of it. */
+    --idle: saturate(0.45) contrast(0.8) brightness(0.93); --sign-name: #dedcd4; --sign-short: #c3a364; --hidden: 0.16; }
+  .day .stage { background: var(--scene); }
+  .day .stage::before { display: none; }
+  /* Text that stands on the sky or the grass is white with a hard shadow, as the game writes over its world. */
+  .day .clock-time { text-shadow: 3px 3px 0 rgba(13, 13, 16, 0.42); }
+  .day .clock-date, .day .battery, .day .hint, .day .slot-key, .day .ledge-note { color: #fff; text-shadow: 1px 1px 0 rgba(13, 13, 16, 0.62); }
+  .day .battery-shell { border-color: #fff; box-shadow: 1px 1px 0 rgba(13, 13, 16, 0.5); }
+  .day .battery-shell::after, .day .battery-shell i { background: #fff; }
+  /* The names hang on dark plates, as the world's do (HubLayout.NAME_BACKGROUND): white and gold need them by day. */
+  .day .street-sign { left: 50%; width: max-content; transform: translateX(-50%); padding: 6px 12px 7px; border-radius: 3px; background: rgba(13, 13, 16, 0.76); }
+  .day .street-sign span { color: #c9c6bd; }
+  .day .house-sign { width: max-content; max-width: calc(var(--pitch) - 6px); padding: 0 6px 2px; border-radius: 3px;
+    background: var(--plate); transition: background .15s; }
+  .day .house:hover .house-sign, .day .house.is-running .house-sign, .day .house.is-selected .house-sign,
+  .day .house.is-match .house-sign { background: var(--plate-lit); }
+  /* The road as in the world: dark paving with the group's colour as a line down its middle. */
+  .day .road { border-top: 0; background-color: var(--paving);
+    background-image: linear-gradient(transparent 6px, var(--b) 6px 10px, transparent 10px),
+      repeating-linear-gradient(90deg, transparent 0 calc(var(--cell) * 2 - 1px), rgba(0, 0, 0, 0.4) 0 calc(var(--cell) * 2)); }
+  /* The doormat reaches from the door to the road's line. */
+  .day .mat { bottom: -6px; height: 6px; }
+  /* Open by day: no glow reads in sunlight. The door is gold in a dark frame, the gold mat lies across the whole
+     road (gold on the dark paving is the strongest light a day has), and the sign has the hotbar's gold mark. */
+  .day .house.is-running .door { box-shadow: 0 0 0 2px #131419; }
+  .day .house.is-running .mat { bottom: -16px; height: 16px; box-shadow: 0 0 0 1px rgba(13, 13, 16, 0.55); }
+  .day .house.is-running .house-sign { padding-bottom: 4px; box-shadow: inset 0 -2px 0 var(--gold-hi); }
+  .day .house.is-opening .door { box-shadow: 0 0 0 2px #131419, 0 0 22px 6px rgba(182, 107, 255, 0.6); }
+  .day .frame { border: 3px solid var(--gold-hi); box-shadow: 0 0 0 2px rgba(13, 13, 16, 0.82), inset 0 0 0 1px rgba(13, 13, 16, 0.5); }
+  /* Home: the dark stone pad with its gold block. */
+  .day .pad { background: none; }
+  .day .pad::before { content: ''; position: absolute; left: 912px; top: -9px; width: 96px; height: 18px; background: var(--paving); }
+  /* The typing line is the chat's dark bar, also at rest. */
+  .day .finder-line { background: rgba(13, 13, 16, 0.6); }
+  .day .finder-hint { color: #d6d3ca; }
+  /* The ends of a long street fade into the scene behind them (sky or grass), not into the night's wall. */
+  .day .street-fade { background: var(--scene) 0 calc(0px - var(--top)) / 1920px 1080px no-repeat; }
+  .day .fade-L { -webkit-mask-image: linear-gradient(90deg, #000 15%, transparent); mask-image: linear-gradient(90deg, #000 15%, transparent); }
+  .day .fade-R { -webkit-mask-image: linear-gradient(270deg, #000 15%, transparent); mask-image: linear-gradient(270deg, #000 15%, transparent); }
 </style>
 </head>
 <body>
@@ -84,6 +133,9 @@
 (() => {
   const stage = document.getElementById('stage'), townEl = document.getElementById('town');
   const TOP = 150, STREET = 196, ROAD = 16, GAP = 200, EDGE = 40, FLOOR = 948, MID = 960, WIDTH = 1920;
+  // ?look=day: the same town at the world's noon. One class on the page; the style sheet does the rest.
+  const day = Home.params.get('look') === 'day';
+  document.documentElement.classList.toggle('day', day);
 
   /** Index of a place in HUB.md 3.3's order (N0L0 0, N0R0 1, N1L0 2, N1R0 3, N1L1 4 ...). */
   const order = p => p.row * (p.row + 1) + 2 * p.k + (p.side === 'R' ? 1 : 0);
@@ -118,27 +170,30 @@
   const { cell, size, depth, pitch } = town;
   const surfaces = [], occluders = [], streets = [];
 
-  // A few stars. At rest nothing on this screen moves, so nothing is drawn again: one star changes its
-  // brightness every few seconds, in one step, and that is all the motion there is.
-  let seed = 44;
-  const random = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
-  const stars = [];
-  for (let i = 0; i < 90; i++) {
-    const star = document.createElement('i');
-    star.className = 'star';
-    star.style.cssText = `left:${Math.round(random() * 1916)}px;top:${Math.round(random() * 900)}px;opacity:${(0.1 + random() * 0.35).toFixed(2)}`;
-    stage.prepend(star);
-    stars.push(star);
+  // A few stars, at night only. At rest nothing on this screen moves, so nothing is drawn again: one star changes
+  // its brightness every few seconds, in one step, and that is all the motion there is. The day has no stars and
+  // no timer of its own: at rest only the clock changes.
+  if (!day) {
+    let seed = 44;
+    const random = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
+    const stars = [];
+    for (let i = 0; i < 90; i++) {
+      const star = document.createElement('i');
+      star.className = 'star';
+      star.style.cssText = `left:${Math.round(random() * 1916)}px;top:${Math.round(random() * 900)}px;opacity:${(0.1 + random() * 0.35).toFixed(2)}`;
+      stage.prepend(star);
+      stars.push(star);
+    }
+    if (!Home.still) setInterval(() => {
+      if (!document.hidden) stars[Math.floor(Math.random() * stars.length)].style.opacity = (0.08 + Math.random() * 0.4).toFixed(2);
+    }, 4000);
   }
-  if (!Home.still) setInterval(() => {
-    if (!document.hidden) stars[Math.floor(Math.random() * stars.length)].style.opacity = (0.08 + Math.random() * 0.4).toFixed(2);
-  }, 4000);
 
   Home.GROUPS.forEach((g, gi) => {
     const list = Home.town.apps.filter(a => a.group === g.key), base = TOP + (gi + 1) * STREET - ROAD;
     const street = document.createElement('div');
     street.className = 'street';
-    street.style.cssText = `top:${TOP + gi * STREET}px;height:${STREET}px;--g:${g.colour};--b:${g.block};--cell:${cell}px;--name:${cell >= 9 ? 14 : 13}px`;
+    street.style.cssText = `top:${TOP + gi * STREET}px;height:${STREET}px;--top:${TOP + gi * STREET}px;--g:${g.colour};--b:${g.block};--cell:${cell}px;--pitch:${pitch}px;--name:${cell >= 9 ? 14 : 13}px`;
     // Everything of the street that slides when it is longer than the screen (more than 16 apps in its group).
     const slide = document.createElement('div');
     slide.className = 'slide';
@@ -168,7 +223,7 @@
       // The sign stands on the roof and grows upward: a long name takes a second line, as the world's signs do.
       const label = document.createElement('div');
       label.className = 'house-sign';
-      label.style.cssText = `bottom:${size + depth + 3}px;width:${pitch - 6}px`;
+      label.style.cssText = `bottom:${size + depth + 3}px`;
       const name = document.createElement('b'), short = document.createElement('span');
       name.textContent = app.name;
       short.textContent = '/' + app.short;
