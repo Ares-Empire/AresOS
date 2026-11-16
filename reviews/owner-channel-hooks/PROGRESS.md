@@ -88,3 +88,14 @@ agree; it is a product change, so it is left for the lead.
 
 JUDGMENT-CALL: `control-base.yml` keeps its `docker run` without `--init`. `control/ci/test.sh` runs a command after
 `base.py`, so bash forks; if that ever changes, the new precondition names the cause.
+
+## The lead (2026-11-16)
+
+- **Review 1: SAFE** (three optional nits).
+- **`usage.mark` for a PID 1 parent stays as it is.** On the laptop, Claude Code is never PID 1. A mark no hook reads
+  is harmless, and refusing it would be a product change for no owner-visible gain.
+- **Nits 1 and 2 go to the queue** (item 16, with the idle-loop flake): name the hook's own path in `mark_session`'s
+  message, and give Control base `--init` or a comment where `test.sh`'s `printf` keeps the test process off PID 1.
+  Nit 3: the laptop's chain ends at konsole under system PID 1, not `systemd --user`. The conclusion stands.
+- Merge after Control Mail, Control Chrome and Chrome qualification are green on 756775c2. This commit changes only
+  `reviews/`.
