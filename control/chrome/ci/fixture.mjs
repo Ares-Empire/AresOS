@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import {compatibilityScript} from './compatibility.mjs';
 import {popupPage,POPUP_GATE} from './popups.mjs';
 import {passwordPage} from './password-fixtures.mjs';
+import {unreadPage} from './unread-fixtures.mjs';
 import {reviewPage} from './review-fixtures.mjs';
 import {efficiencyPage} from './efficiency-fixtures.mjs';
 // A React-style controlled field: the page keeps its default (the value
@@ -183,6 +184,9 @@ export async function fixtures(options={}) {
     } else if(kind==='upload') {
       const id=url.searchParams.get('id')||'upload';body='<input type="file" aria-label="Upload"><textarea aria-label="Message">Existing draft independent of upload</textarea><button type="button">Send</button>';
       script=`document.querySelector('[type=file]').onchange=async event=>fetch('/receive?case='+${JSON.stringify(id)},{method:'POST',body:await event.target.files[0].text()});document.querySelector('button').onclick=()=>fetch('/receive?case=after-upload',{method:'POST',body:document.querySelector('textarea').value});`;
+    } else if(kind==='password-unread') {
+      // Brief 28, group 14's password fixtures (unread-fixtures.mjs).
+      const unread=unreadPage(url);if(!unread){res.writeHead(404);res.end('Unknown unread fixture');return;}({body,script}=unread);
     } else if(kind==='password-matrix'||kind==='password-inner') {
       ({body,script}=passwordPage(kind==='password-inner'));
     } else if(kind==='excluded') {
@@ -268,7 +272,7 @@ export async function fixtures(options={}) {
       body='<button aria-label="">●</button><textarea aria-label="Autosave"></textarea>';
       script="document.querySelector('button').onclick=()=>fetch('/receive?case=residual-click',{method:'POST',body:'ordinary click'});document.querySelector('textarea').oninput=e=>fetch('/receive?case=residual-autosave',{method:'POST',body:e.target.value});";
     } else {res.statusCode=404;res.end('Unknown synthetic fixture');return;}
-    const mutationId=!lateBindingChild&&(['review-page','binding','page-dialog','upload','draft-inner','stop-modal'].includes(kind)||kind==='site'&&url.searchParams.get('id')?.startsWith('adapter-bind-'))?url.searchParams.get('id'):null;
+    const mutationId=!lateBindingChild&&(['review-page','binding','page-dialog','upload','draft-inner','stop-modal'].includes(kind)||kind==='password-unread'&&url.searchParams.get('mode')==='late'||kind==='site'&&url.searchParams.get('id')?.startsWith('adapter-bind-'))?url.searchParams.get('id'):null;
     if(mutationId)script+=`;new EventSource('/events?id='+${JSON.stringify(mutationId)}).onmessage=event=>{
       const mutation=JSON.parse(event.data),change=mutation.change,form=document.querySelector('form'),button=document.querySelector('button');
       if(change==='review-change')globalThis.reviewChange();

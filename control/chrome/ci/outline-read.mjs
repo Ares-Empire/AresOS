@@ -1,8 +1,9 @@
 // Brief 28, group 14 in the browser: reading and references, through the
-// internal action chrome_outline (the test-only switch, run.sh). They run in the
-// core shard right after the time cases (outline-time.mjs), outside the named
-// qualification inventory, and leave nothing pending: their own tabs are
-// opened and closed, and Claude's tab is filled only in its own document.
+// internal action chrome_outline (the test-only switch, run.sh). They are
+// named cases of the core shard (verdicts.mjs): the password case in group 7
+// (password_exclusion), the others beside brief 20's FEATURE and VIEW cases.
+// They leave nothing pending: each case closes the tabs it opened, and
+// Claude's tab is filled only in its own document.
 // Each read's outline is kept in /out/outline-read/ (no field values of
 // password kind can be in it: the password case checks that first), so the
 // expected outlines of the small fixtures can be committed from a green run.
@@ -16,9 +17,11 @@ const REFERENCES=/ ([bcdfghjklmnpqrstvwxyz]{5})(\d+)$/gm;
 const referencesOf=outline=>[...String(outline).matchAll(REFERENCES)].map(match=>({string:match[1]+match[2],letters:match[1]}));
 const OUT='/out/outline-read';
 
-export async function outlineRead({call,rpc,nav,target,getTab}){
+export async function outlineReadMatrix({check,call,rpc,nav,target,getTab}){
   fs.mkdirSync(OUT,{recursive:true});
   const opened=[];
+  // A case that opens tabs closes them, also when it fails.
+  const closing=fn=>async()=>{try{await fn();}finally{while(opened.length)await rpc('close_tab',{tab:opened.pop(),discard_unsaved:true});}};
   // One read through the service's socket; the whole result is kept beside its query.
   const read=async(name,args)=>{
     const result=await rpc('outline',args);
@@ -47,9 +50,9 @@ export async function outlineRead({call,rpc,nav,target,getTab}){
     assert.equal(entry.until_met,true,'loaded: '+text);
     return tab;
   };
-  try{
-    // Passwords (GROUP 7's page): the new read holds no password, in any form of
-    // read. No argument names the whole value, so it is in no request either.
+  // Passwords (GROUP 7's page): the new read holds no password, in any form of
+  // read. No argument names the whole value, so it is in no request either.
+  await check('GROUP 7 BRIEF28 the new read holds no password in any form of read',async()=>{
     await nav('password');
     const passwordTab=getTab();
     for(const [name,args] of [['password outline',{tab:passwordTab}],['password full',{tab:passwordTab,full:true,max:40000}],
@@ -58,9 +61,10 @@ export async function outlineRead({call,rpc,nav,target,getTab}){
       assert.doesNotMatch(JSON.stringify(result),/SENTINEL_PRIVATE_PASSWORD_20/,name);
       if(args.until)assert.equal(result.data.reads[0].until_met,false,'a password value never meets until');
     }
-    console.log('GROUP 14 READ passwords: the new read holds none PASS');
+  });
 
-    // References that can't collide: two tabs show the same page.
+  // References that can't collide: two tabs show the same page.
+  await check('READ BRIEF28 two tabs of one page share no reference and find with role returns its one link',closing(async()=>{
     const first=await open(fixtureUrl('f3'),'Results'),second=await open(fixtureUrl('f3'),'Results');
     const [a,b]=[(await entryOf('f3 tab a',{tab:first})).entry,(await entryOf('f3 tab b',{tab:second})).entry];
     const [ofA,ofB]=[referencesOf(a.untrusted_content.outline),referencesOf(b.untrusted_content.outline)];
@@ -75,15 +79,15 @@ export async function outlineRead({call,rpc,nav,target,getTab}){
     }
     // A reference of tab A still reads its own part in tab A.
     assert.equal((await entryOf('f3 a in a',{tab:first,ref:ofA[0].string})).entry.tab,first);
-    console.log('GROUP 14 READ two tabs of one page share no reference PASS',ofA.length,ofB.length);
-
+    console.log('GROUP 14 READ two tabs of one page share no reference',ofA.length,ofB.length);
     // find and role, as group 16's row: one hit with its path.
     const hit=(await entryOf('f3 find',{tab:first,find:F3_UNIQUE,role:'link'})).entry.untrusted_content.outline;
     assert.ok(hit.includes('link "'+F3_UNIQUE+'"'),hit);assert.equal(hit.split('\n').filter(line=>line.includes('link "')).length,1);
-    console.log('GROUP 14 READ find with role PASS');
+  }));
 
-    // Paging: F1 in full, by pages of two sizes, joins to the same text with
-    // every paragraph whole and every field, and no fold.
+  // Paging: F1 in full, by pages of two sizes, joins to the same text with
+  // every paragraph whole and every field, and no fold.
+  await check('READ BRIEF28 paging joins whole and a cursor keeps its query',closing(async()=>{
     const long=await open(fixtureUrl('f1'),'Paragraph 0');
     const wide=await pages('f1 full 40000',{tab:long,full:true,max:40000}),narrow=await pages('f1 full 10000',{tab:long,full:true,max:10000});
     assert.equal(narrow.text,wide.text,'pages of either size join to one text');
@@ -97,10 +101,12 @@ export async function outlineRead({call,rpc,nav,target,getTab}){
       const refused=await read('f1 cursor elsewhere',{tab:long,cursor:paged.cursor,...other});
       assert.equal(refused.ok,false,JSON.stringify(other));assert.equal(refused.error.code,'invalid_input',JSON.stringify(refused.error));
     }
-    console.log('GROUP 14 READ paging joins whole and a cursor keeps its query PASS',wide.count,narrow.count);
+    console.log('GROUP 14 READ paging',wide.count,narrow.count);
+  }));
 
-    // The state token, in Claude's own tab: typing a value moves it, so the
-    // cursor taken before is stale, and until is met by the value alone.
+  // The state token, in Claude's own tab: typing a value moves it, so the
+  // cursor taken before is stale, and until is met by the value alone.
+  await check('READ BRIEF28 typing moves the state token and until meets a value',async()=>{
     await nav('efficiency-f1');
     const tab=getTab(),{entry:before}=await entryOf('f1 claude page 1',{tab,full:true,max:10000});
     assert.ok(before.cursor);
@@ -111,10 +117,11 @@ export async function outlineRead({call,rpc,nav,target,getTab}){
     assert.equal(stale.ok,true,JSON.stringify(stale.error));assert.equal(stale.data.reads[0].error?.code,'stale_reference','typing moved the token');
     const met=(await entryOf('f1 until a value',{tab,until:{text:typed},timeout_ms:3000})).entry;
     assert.equal(met.until_met,true,'until met by a field value');
-    console.log('GROUP 14 READ typing moves the token; until meets a value PASS');
+  });
 
-    // F6: frames from a second site and open and closed shadow roots are read,
-    // and until is met inside a frame.
+  // F6: frames from a second site and open and closed shadow roots are read,
+  // and until is met inside a frame.
+  await check('READ BRIEF28 frames of a second site and shadow roots are read',closing(async()=>{
     const framed=await open(fixtureUrl('f6'),'Top document text');
     const frames=(await entryOf('f6 until in a frame',{tab:framed,until:{text:'Nested frame text'},timeout_ms:6000})).entry;
     assert.equal(frames.until_met,true,'until met inside a nested frame');
@@ -122,9 +129,10 @@ export async function outlineRead({call,rpc,nav,target,getTab}){
     for(const text of ['Top document text','Open root link','Open search','Closed root text','Closed root button','Nested root button',
       'Text of the second site','Second site link','Frame root button','Nested frame text','Nested frame button'])
       assert.ok(whole.includes(text),'F6 reads '+text);
-    console.log('GROUP 14 READ frames and shadow roots PASS');
+  }));
 
-    // Addresses: the marker is in no result of the new read; an ordinary query is shown.
+  // Addresses: the marker is in no result of the new read; an ordinary query is shown.
+  await check('READ BRIEF28 addresses hold no sign-in and show an ordinary query',closing(async()=>{
     const marked=await open(addressOf(),'Address fixture');
     const clean=(name,result)=>{const text=JSON.stringify(result);assert.ok(!text.includes(ADDRESS_MARK)&&!text.includes(ADDRESS_MARK.slice(0,12)),name+' holds the marker');};
     const {result:shown,entry:page}=await entryOf('address outline',{tab:marked});clean('outline',shown);
@@ -141,8 +149,5 @@ export async function outlineRead({call,rpc,nav,target,getTab}){
         for(const part of ['v=dQw4w9WgXcQ','q=red+shoes','page=2','sig=…'])assert.ok(text.includes(part),text+' shows '+part);
       }
     }
-    console.log('GROUP 14 READ addresses hold no sign-in and show an ordinary query PASS');
-  }finally{
-    for(const tab of opened)await rpc('close_tab',{tab,discard_unsaved:true});
-  }
+  }));
 }

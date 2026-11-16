@@ -3,7 +3,9 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {REQUIRED,ADAPTER_REQUIRED,SUPPORT,verdicts,assertComplete} from '../chrome/ci/verdicts.mjs';
 
-const support=['FEATURE tools forms options find wait fill_form scroll and full catalogues','VIEW representative long article/form complete paging','QUALIFICATION conservative activations ask and core failures gate before reads'];
+const support=['FEATURE tools forms options find wait fill_form scroll and full catalogues','VIEW representative long article/form complete paging','QUALIFICATION conservative activations ask and core failures gate before reads',
+  'READ BRIEF28 two tabs of one page share no reference and find with role returns its one link','READ BRIEF28 paging joins whole and a cursor keeps its query','READ BRIEF28 typing moves the state token and until meets a value',
+  'READ BRIEF28 frames of a second site and shadow roots are read','READ BRIEF28 addresses hold no sign-in and show an ordinary query'];
 const complete=()=>[...Object.values(REQUIRED).flat(),...support].map(name=>({name,passed:true}));
 const baseline={owner:true,forgery:true,isolation:true,residual:true};
 const adapters=Object.fromEntries(['gmail','whatsapp','github','bank','gemini','deezer'].map(name=>[name,true]));
@@ -56,7 +58,7 @@ test('unmapped additional checks fail closed until explicitly assigned to record
 });
 
 test('every named core popup and adapter case is in the exact required inventory',()=>{
-  const names=['control/chrome/ci/matrices.mjs','control/chrome/ci/destination-matrix.mjs','control/chrome/ci/late-reader-matrix.mjs','control/chrome/ci/late-binding-matrix.mjs','control/chrome/ci/animated-default-matrix.mjs','control/chrome/ci/review-matrices.mjs','control/chrome/ci/recheck2-matrices.mjs','control/chrome/ci/recheck3-matrices.mjs','control/chrome/ci/popups.mjs','control/chrome/ci/sites/matrices.mjs'].flatMap(file=>
+  const names=['control/chrome/ci/matrices.mjs','control/chrome/ci/destination-matrix.mjs','control/chrome/ci/late-reader-matrix.mjs','control/chrome/ci/late-binding-matrix.mjs','control/chrome/ci/animated-default-matrix.mjs','control/chrome/ci/outline-read.mjs','control/chrome/ci/unread-matrix.mjs','control/chrome/ci/review-matrices.mjs','control/chrome/ci/recheck2-matrices.mjs','control/chrome/ci/recheck3-matrices.mjs','control/chrome/ci/popups.mjs','control/chrome/ci/sites/matrices.mjs'].flatMap(file=>
     [...fs.readFileSync(file,'utf8').matchAll(/await check\('([^']+)'/g)].flatMap(match=>match[1]==='GROUP 10 adapter '?['gmail','whatsapp','github','gemini','deezer'].map(site=>match[1]+site):[match[1]]));
   assert.deepEqual([...names].sort(),[...Object.values(REQUIRED).flat(),...SUPPORT].sort());
   assert.equal(verdicts(complete(),baseline,adapters).groups[12],false);

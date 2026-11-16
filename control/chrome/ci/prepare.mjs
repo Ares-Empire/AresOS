@@ -22,6 +22,13 @@ if(process.env.INJECTION_PROBE!=='true'){
   // Each rewrite has to find its text exactly once: a rewrite that silently
   // matches nothing leaves a fixture command out of the test build.
   const exactly=(source,before,after)=>{if(typeof before!=='string'||source.split(before).length!==2)throw Error('prepare.mjs: expected exactly one '+JSON.stringify(String(before).slice(0,80)));return source.replace(before,()=>after);};
+  // Brief 28, group 14's mutation check (unread-matrix.mjs). In this test build only, a page whose own address
+  // carries unprotect=history is read without the history rule. The case opens one such page, which holds a
+  // probe value and no password, and shows that every field then returns it: the rule is what keeps them out.
+  // The shipped reader is not touched; a runtime without the rule's line (the latency pair's old one) gets nothing.
+  const historyRule='const unknownHistory=element=>!watched||privacy.lateFields.has(element);',builtReader=fs.readFileSync(extension+'/reader.js','utf8');
+  if(process.env.LATENCY_PROBE!=='true'&&builtReader.includes(historyRule))
+    fs.writeFileSync(extension+'/reader.js',exactly(builtReader,historyRule,"const unknownHistory=element=>new URL(location.href).searchParams.get('unprotect')!=='history'&&(!watched||privacy.lateFields.has(element));"));
   // A runtime without brief 28's item 4 (an older build the qualification run
   // may load) gets no holds; the time cases don't run against it (browser.mjs).
   const timedContent='async function content(tab, frame, command, parameters={},browserDocument=null,expires=null) {';

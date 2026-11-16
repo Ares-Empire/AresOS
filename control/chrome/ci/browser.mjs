@@ -10,7 +10,6 @@ import {matrices} from './matrices.mjs';
 import {measureCompatibility,nativeNavigate,nativeCompatibilityClick,compareCompatibility} from './compatibility.mjs';
 import {ownerUI} from './owner-ui.mjs';
 import {outlineTime} from './outline-time.mjs';
-import {outlineRead} from './outline-read.mjs';
 if(process.platform !== 'linux' || process.env.GITHUB_ACTIONS !== 'true' || !fs.existsSync('/.dockerenv'))throw Error('Browser runs only in GitHub Linux containers');
 const fixture=await fixtures();
 const profile=fs.mkdtempSync('/tmp/aresos-chrome-fixture-');
@@ -70,9 +69,7 @@ try {
   if(process.env.BROWSER_SHARD==='core'&&!process.env.RUNTIME_COMMIT){
     try{await outlineTime({call,nav,target,eventually,getTab:()=>tab});console.log('GROUP 14 TIME PASS');}
     catch(error){groupFourteen.push(error);console.error('GROUP 14 TIME FAIL',error.stack);}
-    // Group 14's reading and references, after the time cases (outline-read.mjs).
-    try{await outlineRead({call,rpc,nav,target,getTab:()=>tab});console.log('GROUP 14 READ PASS');}
-    catch(error){groupFourteen.push(error);console.error('GROUP 14 READ FAIL',error.stack);}
+    // Group 14's reading, reference and password cases are named cases at the end of the core matrix (matrices.mjs).
   }
   for(const kind of ['native','event']) {
     await nav(kind);const item=await target('Continue');await call('click',item);assert.equal(counts(kind),0);
