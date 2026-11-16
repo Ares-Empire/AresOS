@@ -206,6 +206,19 @@ The node never holds its descendants' text, a box or a style.
     first meets a shadow root, a typed field in it (an `input` that can hold typed text, or a `textarea`) that
     **already holds text** has no known history: it is `(filled, not read)` for the life of the document. An
     empty one is watched from then on.
+    **A permitted refinement, not required for this package's merge** (the lead, 2026-11-16; brief review 5,
+    S7): "late" may be narrowed. In a watched document `page.js` already wraps `attachShadow` and reports every
+    new root to the isolated guard while the root is still empty (`watch_root`), and the guard watches it. If
+    the reader meets the root at that report, the password tracker sees its fields' whole history, on the same
+    basis as in the light DOM, and that root isn't late. Only roots met any other way keep the rule above: one
+    built and filled through a fresh realm's natives, one attached while no guard was linked, and a declarative
+    one. The hook is one line in `guard.js`'s isolated part that hands the reported root to the reader, and the
+    meeting in `reader.js`; it holds and changes nothing. If it is built, three tests come with it:
+    - a component upgraded after the load with a prefilled field is read, and its form asks and sends;
+    - a root built through a fresh realm and filled before the meeting stays unread;
+    - a field masked and then unmasked inside a root met at its attachment stays protected.
+    This brief's own late-root tests then build their root in one of the ways that is still late, with their
+    assertions unchanged. The known-limit line stays either way, for the roots that are still met late.
   - **A field whose value isn't read is not typed into either.** A `fill` or a key on a field that is
     `(filled, not read)` is refused like one on a password field (`owner_signin`), because it would overwrite what
     Claude can't see.
@@ -693,13 +706,15 @@ it has shown 5,000 references (a known limit for section 6); nesting deeper than
   instructions; `control/chrome_tests/test_questions.py`
   (`test_fixes_b_server_instructions_fit_the_native_cli_limit`, about line 456) checks every app, `control`
   included. On merged `main` the Chrome server's instructions (`instructions_for('chrome')` in
-  `control/aresos_control/definitions.py`) are 4,052 characters. This package adds no instruction text, so that
-  check passes unchanged. The reader text that tells Claude how to read an outline goes into the instructions
+  `control/aresos_control/definitions.py`) are 4,081 characters (4,052 before PR #77). This package adds no
+  instruction text, so that check passes unchanged. The reader text that tells Claude how to read an outline goes
+  into the instructions
   with brief 28a (its item 7) and must fit there, in at most 2,800 characters in all, the 1,652 shared by every app
   included (the lead, 2026-11-15, after review 4).
 - **The hold:** `guard.js`, `page.js`, the 500 ms window (`HOLD_MS` in `policy.py`, `holdMs` in the extension) and
   the 525 ms wait after each input in `collectSteps` (`background.js`), the default block, the owner's own Enter,
-  the three kinds of dialog.
+  the three kinds of dialog. Item 1's permitted refinement, if it is built, adds one line to `guard.js` that
+  hands a new shadow root to the reader and nothing else.
 - **The reader's password rule only gets stricter** (item 1's two additions); nothing in it is relaxed. The
   extension still uses no DOM snapshot, no accessibility tree and no form serialisation. No new DevTools method. No
   new permission in the manifest.
@@ -999,7 +1014,8 @@ out byte-identical; `os/`, `mod/`, `docs/design/`, `docs/control/PLAN.md`, `docs
 `docs/control/FEATURES.md`, `STATE.md`, `HANDOFF.md`, `docs/INSTALL*`, `docs/EMERGENCY.md`, `briefs/`;
 `control/aresos_control/mail/`, `control/mail_tests/`, `control/boundary/`, `control/checks/`,
 `control/packaging/`; `reviews/20-chrome/`, `reviews/28-chrome-capability/` and every other package's `reviews/`
-folder; in the Chrome code `guard.js`, `page.js`, `policy.js`,
+folder; in the Chrome code `guard.js` (except the one line of item 1's permitted refinement, if it is built),
+`page.js`, `policy.js`,
 `manifest.json`, `policy.py`, `sites.py`, `qualification.py`, `committed.py`, `uploads.py`, `qualify.py`.
 
 ## Acceptance
