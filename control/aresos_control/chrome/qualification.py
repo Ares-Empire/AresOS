@@ -141,11 +141,13 @@ class Qualification:
         return candidate
 
     def refresh(self, *, now=None, verifier=verify, force=False):
+        """Fetch and verify the published record when due. True when it accepted one, so the held record changed."""
         now = time.time() if now is None else now
         previous = self.store.get('chrome:qualification_fetch', {})
         if not force and 'time' in previous and now - previous['time'] < 86400:
-            return
+            return False
         url = f'https://raw.githubusercontent.com/{REPOSITORY}/refs/heads/chrome-qualification/control/chrome/qualification.json'
+        accepted = False
         try:
             for obsolete in self.store.state_dir.glob('.qualification-*'):
                 obsolete.unlink()
@@ -159,6 +161,8 @@ class Qualification:
                 with storage_stream(os.fdopen(fd,'wb')) as stream:
                     stream.write(data);stream.flush()
                 self.accept(temporary,verifier)
+                # Written now, even if removing the temporary file fails below.
+                accepted = True
             finally:
                 with cleanup('Qualification temporary unlink'):
                     os.unlink(temporary)
@@ -168,3 +172,4 @@ class Qualification:
             reason = exc.code if isinstance(exc, Refused) else type(exc).__name__
             result = f'Qualification refresh refused ({reason}); held record retained.'
         self.store.write({'chrome:qualification_fetch': {'time': now, 'result': result}}, 'chrome_qualification', result)
+        return accepted
