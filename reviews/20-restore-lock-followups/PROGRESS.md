@@ -2,10 +2,180 @@
 
 ## Build (2026-11-16, Claude agent on Opus 5.5)
 
-In progress. Done: items 1 and 2 (commit "items 1 and 2"), item 3 (the next commit), their tests and
-fourteen mutation probes (`mutations.py`, results in `mutations.json`), the local sample after each commit
-(items 1 and 2: the 52 predicted keys close, nothing else differs; item 3 on top: 134 close and 62 change,
-all at cases in H, as predicted). Next: merge `main` (S4 check), then the capture.
+Builder of the brief on this branch. **Outcome:** all three items built as the brief and review 1 say; the capture
+falls entirely inside the brief's classes (16,383 + 40 keys close, every difference at H, 2,512,704 keys byte for
+byte, no `.restore-lock` key left); the new pin is 2,576,083 keys, and the proof's 48 strict shards and 12
+alteration shards pass. **For the lead:** the proof's ledger job is red, in the installed-channel test, from #69
+(18e), not from this package (section "The ledger job"); and N7's named class needs its decision on the board.
+
+No production code changed: `git diff 5d717142 HEAD -- control ':!control/owner_state_oracle' ':!control/tests'
+':!control/mail_tests'` shows only main's `control/chrome/qualification.json`, brought in by the merge.
+
+### What changed, per item
+
+- **Items 1 and 2** (commit `1d6b1d43`):
+  - `records.py`: the record field `interrupted_confirm`, and `service_lock(record)`: the lock a running
+    service holds beyond its bytes (the startup rule, or a confirm that met a fault). `consistency_errors`
+    uses it; so do the alteration recompute (`perturb.py`, the field listed in `RECORD_EXCLUSIONS`) and the
+    driver. One formula in three places.
+  - `driver.py`: `interrupted_confirm(calls)`: the most recent scripted `control_restore_confirm` with
+    `restore_precondition` true met a fault (its trace only, never its reply), counted from the last
+    restart. `Driver.apply_service_lock` assigns it, the startup rule and the lock on every snapshot (N2:
+    recomputed, not `|=`). It holds when the failed confirm's own reply is captured: the sweep's `scripted`
+    entry gets its trace before `observer(index, reply)` (N1), and that entry is the most recent confirm.
+    A cached record whose lock changes is copied, so an envelope keeps the lock it was captured with.
+    `Driver.restarted()` replaces only the two pokes in `exercise` (N3).
+  - `test_owner_state_sweep.py`, `exercise`: S1's harness check. Any scripted confirm on a locked store with a
+    fault trace that was answered `ok` stops the sweep with "revisit the oracle's rule for an interrupted
+    confirm".
+  - `compare.py`, `pages`: a refused read's stand-in page has `restore_required: code == 'restore_required'`.
+- **Item 3** (commit `b61b982b`): `records.behind(sequence, committed)`, the head *behind* the last commit
+  marker, used by the decoder, `consistency_errors` and the alteration recompute (S3). Its docstring names
+  the lock's other terms, which stay (N4).
+- **Merge of `main`** (`590f96bf`, S4): main changed nothing under `control/aresos_control` or
+  `control/owner_state_oracle` since `5d717142`.
+
+### Tests and mutations
+
+- `control/tests/test_owner_state_oracle.py` (`OwnerOracle`):
+  `test_refused_read_page_says_locked_only_when_the_lock_refused_it` (item 2),
+  `test_interrupted_confirm_is_a_term_of_the_lock` and `test_interrupted_confirm_holds_until_the_next_restart`
+  (item 1: the rule, the locked precondition, "most recent", the restart, the copy),
+  `test_only_a_head_behind_the_last_marker_is_a_restore` (item 3: ahead, equal and behind through the decoder,
+  `consistency_errors` and `coherent_change`; helper `history()` beside `disk()`).
+- `control/tests/test_restore_batches.py`, no oracle: the confirm's last marker sync fails, with a working and
+  with a failing rollback. Both: `storage_limit`, the lock kept, `control_pending` says `restore_required:
+  true`, `control_log` refused; after a restart unlocked with the confirm's generation. The lock is made with
+  a direct store write (no `testapp_prepare_send`, which needs the managed-settings file locally).
+- `control/mail_tests/test_owner_state_sweep.py`:
+  `test_confirm_failed_at_its_last_point_keeps_the_lock_until_the_restart` (item 1: the restore flow's last
+  fault point from the clean run, persistent live and crash, every pair case of that point, live and crash;
+  no key ends in `.restore-lock` or `.status`, none is `recovery-holds`),
+  `test_harness_refuses_a_confirm_answered_ok_after_a_fault` (S1's mutation as a standing test: the store
+  answers the faulted confirm `ok`; single mode, since in persistent mode every later disk call fails and the
+  reply is refused anyway), `test_refused_log_under_the_lock_is_seen_as_locked` (item 2: `cancel` 2,
+  persistent, crash-locked), `test_write_unfinished_at_its_marker_is_not_a_restore` (item 3: `cancel`'s last
+  fault point, single, live).
+- `mutations.py` (N8; why not `reviews/20-chrome/mutation-audit.py` is in its docstring): 14 probes, each
+  rejected by every test it names, run one by one; every baseline passed. Record: `mutations.json`.
+  - Item 1: `self.locked = False` in a `finally` (2 tests); the rule removed (oracle and sweep tests); the rule
+    kept after the restart (both); the locked precondition dropped; the rule accumulated (`|=`); the captured
+    record changed in place; the term dropped from `consistency_errors`; the harness check removed.
+  - Item 2: the field dropped (oracle and sweep tests); the field set for every refusal.
+  - Item 3: `!=` restored in the decoder (oracle and sweep tests), `<=` in `behind`, `!=` restored in
+    `consistency_errors`, `!=` restored in the recompute.
+
+### Local results
+
+All as an ordinary user, with the findings' managed-settings stand-in for the Mail suite; nothing under
+`os/tests`, no rpm-ostree, bootc or ostree, no container.
+
+- `control/tests`: `test_owner_state_oracle` 124 OK; `test_restore_batches` 4 OK; `test_mail_ci_selection` and
+  `test_owner_state_fixes_s2` OK; `test_owner_state_channels` needs root (`os.chown`), as at the base: CI's
+  ledger job runs it.
+- `control/mail_tests` (after item 3): the sweep module's unit tests (11, all but the full sweep),
+  `test_owner_state_quiet`, `_regressions`, `_s2_effects`, `_plants`, `_contracts`: 37 OK.
+  `test_owner_state_perturb` shard 0 of 12: 9 scenarios, 230,298 alterations, slipped=0 (the same totals as
+  that shard in capture 43722918063), 16 minutes.
+- The local sample (`restore` 0, 26, 73, 74, 75, 75:76; `cancel` 0, 2, 2:3, 30, 67, 68, 69; every phase):
+  - base `5d644ba1`: 1,234 keys, the same set and byte-identical deltas as capture 43722918063;
+  - items 1 and 2: 1,182 keys. 52 close, nothing else differs: `restore` 10 `aresos log.restore-lock`, 25 other
+    lock views, 12 read statuses, 3 `recovery-holds`; `cancel` 2 `aresos log.restore-lock`. All 52 are in the
+    item 1 or item 2 class;
+  - item 3 on top: 1,048 keys. 134 close and 62 change, all at `cancel` 68 and 69 (`persistent/68/0`,
+    `single/68/0`, `single/69/0`), all three in H; `restore` unchanged; no key ends in `.restore-lock`;
+  - after the merge of `main`: the same 1,048 keys.
+  - Clean-run point counts: `restore` 76, `cancel` 70, as at the capture.
+
+### The runs
+
+Dispatches of `control-owner-oracle.yml` on this branch: 2 of 3 used.
+
+| Run | Commit | What | Result |
+|---|---|---|---|
+| 43893138937 | `590f96bf` (items 1-3, main merged) | capture | 48 sweep and onboarding shards fail only the strict sweep test against the old pin, after writing their lists; 12 alteration shards pass (2,080,049, none slipped); ledger fails in `test_owner_state_channels` (below) |
+| 43919136534 | `accf2eb0` (the new pin) | proof | 48 strict sweep and onboarding shards and 12 alteration shards pass; its 53 lists reproduce the pin byte for byte; ledger fails as in the capture, so the run is red |
+
+S4: before the capture `git diff 5d717142 origin/main -- control/aresos_control control/owner_state_oracle` was
+empty (main had changed only `control/chrome/qualification.json`); merged as `590f96bf`. Before the proof, main had
+moved again (#89 and others), still nothing under those two folders; not merged, so the proof runs the captured code.
+
+### The classification
+
+My own scripts in a scratch directory, not committed: `merge.py` (merges a run's 53 lists one at a time, refuses
+conflicting shared keys, about 0.5 GB), `packcheck.py` (packs a merged list like `gaps.py` and compares it with the
+pin), `points.py` (clean-run point counts from the sweep logs), `classify.py` (the classes below; under 1 GB).
+- Baseline: the 53 lists of 43722918063 reproduce the old pin byte for byte (2,622,072 keys, `ee326914…`).
+- The capture: 2,576,083 keys, 1,930 groups, 892,234 bytes, SHA-256 `8b27b116…`; `gaps.py`'s documented
+  commands and my packer give the same bytes.
+- Point counts: equal in all 34 flows.
+- Against the brief's numbers:
+
+| Class | Brief | Capture |
+|---|---|---|
+| Item 2 closes | 16,383 | 16,383 |
+| Item 1 closes | 26 + 14 (25 lock views, 12 statuses, 3 holds) | 26 + 14 (25, 12, 3) |
+| H (S2) | 1,386 cases (322, 161, 903), 92,945 keys | the same; 30,291 close, 9,316 change, 725 appear, 53,338 stay |
+| Item 3's lock-view keys close | 15,030 | 15,030 |
+| Outside H and the 16,423: byte for byte | 2,512,704 | 2,512,704, none added |
+| Keys ending `.restore-lock` afterwards | 0 | 0 (from 31,438) |
+
+- At H, read statuses: 1,779 changed their expected set only (`restore_required` → `allowed`/`journal_incomplete`;
+  their pages observed `allowed` now pass), 157 by alias numbers only, 3,939 closed. `recovery-holds`: 1,547 closed,
+  274 (`crash-restart`) unchanged. Rows and notices: 9,775 closed, 1,156 changed by alias numbers only, 6,224
+  changed otherwise, 725 new counts.
+- N7's named class, the rows left at H: 6,949 keys (6,224 + 725) at 870 cases in 16 flows; in `KNOWN-GAPS.md`.
+- Also unchanged: every failing point (10,247) and case (53,066), the 377 fixed keys, the 544,801 other
+  `crash-locked` keys, the restore flow's 22,915 other keys.
+
+### The ledger job (both dispatches)
+
+`test_owner_state_channels.test_paged_committed_pending_through_every_installed_channel` fails at line 109: the
+Stop hook prints nothing and `json.loads('')` raises. Not this package's: no oracle code takes part in the hook's
+output, and this package changed no production code. The test's hook part was changed by 18e (`139a9696`), merged
+with #69 on 2026-11-16 after the last run of this workflow (43738332693, 2026-11-15), so this optional workflow had
+not run it since. `hooks.main` returns silently when `usage.used()` finds no mark for its session; the test marks
+its own process first (`mark_session`). It needs root (`os.chown` in `Integration.setUp`), so I could not reproduce
+it on the laptop. Main's later #89 does not touch it.
+
+### JUDGMENT-CALLs (technical, for the lead)
+
+- **Where item 1's rule lives.** `driver.interrupted_confirm(calls)` reads the script; the record carries the
+  result; `records.service_lock(record)` is the one formula that `consistency_errors`, the alteration recompute and
+  the driver share (it also holds the startup rule they already shared). To change: move the rule into
+  `records.py`; about 10 lines, no key changes.
+- **Which script entries count.** Both entries of the confirm (the driver's `observe` entry and the sweep's
+  `scripted` entry) are confirms; the rule takes the most recent, which is the `scripted` one during the call. To
+  change: filter on `request_method`; no key changes today.
+- **Copy, not change in place.** When the rule flips on a record the driver has already handed out, the driver
+  copies it, so an envelope captured earlier keeps its lock and the oracle's identity cache cannot return a stale
+  projection. The startup rule now goes through the same path (recomputed each snapshot instead of `|=`); same
+  results, since its inputs change only with a re-decode. To change back: one line, and N2's "assigned on every
+  snapshot" would then rely on monotonic rules again.
+- **S1's harness check** looks at every scripted confirm in the run, not only the faulted call, and its mutation
+  is a standing test (`test_harness_refuses_a_confirm_answered_ok_after_a_fault`) in single mode: in persistent
+  mode every later disk call fails, so the reply is refused even when the confirm itself is made to succeed.
+- **Mutation records** in `reviews/20-restore-lock-followups/mutations.py`, not `reviews/20-chrome/mutation-audit.py`
+  (N8's first option): that harness cannot import `control/tests`' `support` or `control/mail_tests`, and the Mail
+  suite needs the managed-settings stand-in. To move the four base-suite-only probes there: about 10 lines.
+- **The store-level test** makes the lock with a direct store write and fails the confirm's first commit-marker
+  sync (found by reading the journal's tail), instead of `repro.py`'s `testapp_prepare_send` and "second sync":
+  the former needs the managed-settings file locally, the latter depends on how many syncs a write does.
+- **The proof's ledger job** is red for the reason above; I treated the proof as the pin's proof (the 48 strict
+  shards and 12 alteration shards) and opened the PR. If the lead wants a fully green proof first, the channel
+  test needs a fix on main and then one more dispatch (the third).
+
+### PLAN-GAPs
+
+- The brief and review 1 checked drift on main only since this branch's base (S4). Between the old pin's capture
+  (`065275ff`) and the base, #69 (18e) changed production code under `control/aresos_control` (engine, daemon,
+  protocol, hooks, usage, files). The classification shows no sweep key moved by it, but #69 broke the optional
+  workflow's ledger job, which nothing had run since.
+- "Mutation caught: the term dropped from `records.py:81`": with one shared `service_lock`, the probe drops the term
+  from `consistency_errors`' use only (`item1-term-dropped-from-consistency`); dropping it from `service_lock`
+  itself is caught too, by every item-1 test.
+- The brief's sweep test for item 3 runs one case (`cancel`'s last point); the census-level claim rests on the
+  capture.
 
 ## Findings (Claude Fable, before the build)
 
