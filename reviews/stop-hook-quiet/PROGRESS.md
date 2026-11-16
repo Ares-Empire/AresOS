@@ -206,7 +206,32 @@ Mutations, round 1 (same method; `git status` clean afterwards):
 
 Local, round 1: `generate.py --check` passes. Running `test_stop_hook` (8), `test_ingress_bounds`, `test_strict_json`,
 `test_service_fixes`, `test_slim_policy`, `test_unit`, `test_policy_sources` and `test_operations` gives 109 tests. The
-failures are exactly main's environmental set here (no `/etc/claude-code`, vendor or root), less one. The boundary
+failures are main's environmental set here (no `/etc/claude-code`, vendor or root). The boundary
 `test_interactive` (14) and `test_native` (11) pass.
 
-CI, round 1: (run IDs in the lead's report; this file is updated with the next push.)
+CI, round 1, on `962d5abe`:
+- Control base, run 43896881674: success.
+- Control boundary, run 43896881526: success, `CONTROL_INTERACTIVE_ASK_PASS cases=17`.
+- Repo privacy, run 43896881565: success.
+- Control Mail 43896881336, Control Chrome 43896881453 and Chrome qualification 43896881196 were still queued, or had
+  passed only their first jobs, when the recheck fix below was pushed. No job had failed. I cancelled round 0's Chrome
+  and qualification runs once round 1 superseded them, so the new ones weren't queued behind them.
+
+## Recheck 1 (Fable: SAFE, one test-only should-fix)
+
+The recheck is appended to `REVIEW-1.md` and committed unchanged (`211131d0`). The tests are in the next commit.
+- **Should-fix: the link test now tells a followed read from a refused one.** Since the flip, a read that followed
+  the link into an empty folder gave the same "unused" as a refused read. `test_a_link_where_the_folder_should_be_is_never_followed`
+  now plants this session's valid mark where each link leads (`elsewhere/used/20-500`, then `elsewhere/20-500`), and
+  expects `used()` and `notice()` to be false. It then shows that the same mark in the real folder is found.
+  Mutation L1 (reads open the folders without `O_NOFOLLOW`, writes keep it): killed.
+- **Nit 1:** `stop_hook_active` 0 and `null` are now failure cases that must stay quiet. F1 (`== False`) is killed,
+  and so is F2 (present and falsy).
+- **Nit 2:** new `test_a_link_where_the_mark_should_be_is_no_mark`, a link at this session's mark name to another
+  session's real mark. L2 (`_plain` following links) is killed.
+- **Nit 3:** the "less one" above is gone. **Nit 4:** the PR description now gives round 1's rules. **Nit 5:** the
+  README's known limit says which damage silences every session and which silences one; its last sentence names the
+  held work.
+- Local: `test_stop_hook` (8) and `test_service_fixes.QuietUnlessUsed` (27) pass.
+
+CI on the recheck commit: run IDs in the report to the lead.

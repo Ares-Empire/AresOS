@@ -397,10 +397,11 @@ continuation limits and ended turns.
 
 Known limits of "quiet unless used" (18e recheck 2). Each fails quiet: the owner isn't
 reminded, the work still expires, and `aresos control pending` lists it.
-- **Marks that can't be read.** A marks folder with group or other bits, a link or a
-  folder where a mark should be, a process the walk can't read: every session, used or
-  not, then counts as unmarked and hears nothing from the hooks (lead, 2026-11-16). Only
-  the proxy creates these folders (0700). Its held work still shows in every tool result.
+- **Marks that can't be read.** A marks folder that can't be opened or has group or
+  other bits silences every session; a link or a folder where one session's mark should
+  be, or a process its walk can't read, silences that session. Such a session counts as
+  unmarked and hears nothing from the hooks (lead, 2026-11-16). Only the proxy creates
+  these folders (0700). The held work still shows in every tool result.
 - **A Claude Code update can silence every session.** If a later Claude Code puts a
   process other than a shell between itself and the hooks, or between itself and the
   MCP servers, that process is taken as the session: no session finds its mark, so none
