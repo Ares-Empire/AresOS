@@ -25,6 +25,9 @@ HOOK = '/usr/libexec/aresos-ci/control/own-hook.py'
 PORT = 18081
 KEY = 'SYNTHETIC_GUEST_NONCREDENTIAL'
 NORMAL = ['--permission-mode', 'default']
+# B1: a native No interrupts the turn; this owner prompt (no scripted step's marker) lets the denied result reach the
+# model without another send. It belongs to the turn it resumes.
+RESUME = 'INTERACTIVE_RESUME_CURRENT_TURN'
 SKIP = ['--dangerously-skip-permissions']
 # The managed Stop hook's own timeout (control/settings/managed-hooks.json) plus a margin: a Stop continuation is
 # requested within this window after the model's last answer, or not at all. A session's last turn waits this long:
@@ -191,9 +194,7 @@ def session(evidence, steps, flags, answers, before_turn=None, turn_seconds=180)
                                           timeout=turn_seconds)
                 resumed = done not in completed
                 if resumed:
-                    # B1: a native No interrupts the turn; this marker (no scripted step) lets the denied result reach
-                    # the model without another send.
-                    terminal.prompt('INTERACTIVE_RESUME_CURRENT_TURN')
+                    terminal.prompt(RESUME)
                     terminal.wait(f'completed-{index + 1}', lambda s: done in s, timeout=turn_seconds)
                 last_request = settle(model, deadline, SETTLE if index == len(steps) - 1 else SETTLE_NEXT)
                 terminal.save(f'settled-{index + 1}', terminal.screen())

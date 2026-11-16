@@ -344,6 +344,111 @@ class ServiceFixesTest(unittest.TestCase):
         self.assertLess(max(sessions.count(name) for name in set(sessions)), 10)
 
 
+class FixRoundOneTest(unittest.TestCase):
+    """Fix round 1 (REVIEW-A1 #1, #5, #7, #9; SECURITY-REVIEW-A1 F1): what the VM pass now requires, without a VM."""
+
+    def setUp(self):
+        self.folder = pathlib.Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, self.folder)
+        self.actions, self.sessions = layer(self.folder / 'home')
+
+    @unittest.skipUnless(sys.platform.startswith('linux'), 'reads /proc')
+    def test_check_2_sees_a_listening_socket_and_an_unconnected_udp_one(self):
+        # REVIEW-A1 #7: the unit allows AF_INET/AF_INET6; check 2 requires that the service holds no listener.
+        import socket
+        before, _ = self.actions.listening_sockets([os.getpid()])
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as tcp, \
+                socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as udp, \
+                socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as connected, \
+                socket.socket(socket.AF_INET, socket.SOCK_STREAM) as unbound:
+            tcp.bind(('127.0.0.1', 0))
+            tcp.listen(1)
+            udp.bind(('127.0.0.1', 0))
+            connected.connect(('127.0.0.1', udp.getsockname()[1]))
+            found, held = self.actions.listening_sockets([os.getpid()])
+            new = [item for item in found if item not in before]
+            ports = {(item['kind'], int(item['local'].rsplit(':', 1)[1], 16)) for item in new}
+            self.assertEqual(ports, {('tcp', tcp.getsockname()[1]), ('udp', udp.getsockname()[1])})
+            self.assertGreaterEqual(held, 4)
+        self.assertEqual(self.actions.listening_sockets([os.getpid()])[0], before)
+        with self.assertRaises(OSError):
+            self.actions.listening_sockets([2 ** 22 + 1])  # no such process: an error, never "no listener"
+        source = (CONTROL_CI / 'actions.py').read_text()
+        service = source[source.index('def service(request):'):source.index('# Step 2b')]
+        self.assertIn("network = network_listeners(properties['ControlGroup'])", service)
+        self.assertIn("'-l', '-n', '-t', '-u', '-p'", source)
+
+    def test_check_6_runs_four_sessions_and_leaves_held_work_beside_a_fresh_one(self):
+        # SECURITY-REVIEW-A1 F1: a No leaves the send reserved; a fresh session that never used the tools follows.
+        turns = self.actions.ORDINARY_TURNS
+        self.assertTrue(all(len(row) == 5 for row in turns))
+        self.assertEqual([row[0] for row in turns if row[0] in ('held-work', 'fresh-beside-held')],
+                         ['held-work', 'fresh-beside-held'])
+        self.assertEqual([row[-2:] for row in turns[-2:]], [(0, 'No'), (0, None)])
+        self.assertEqual([row[2] for row in turns[-2:]], [self.actions.PREPARED, self.actions.NOTE])
+        # Only our ask gets an answer; his own tool and testapp's list never ask.
+        self.assertTrue(all((row[4] is not None) == (row[2] == self.actions.PREPARED) for row in turns))
+        self.assertEqual(sorted({row[0] for row in turns}),
+                         ['failed-fresh-session', 'fresh-beside-held', 'held-work', 'used-later'])
+        source = (CONTROL_CI / 'actions.py').read_text()
+        self.assertIn("('held-work', clean_baseline, None), ('fresh-beside-held', note_held, None)", source)
+        # The driver's resume prompt after a No belongs to the turn it resumes (his hooks' lines per turn).
+        self.assertIn('RESUME', (CONTROL_CI / 'sessions.py').read_text())
+        self.assertIn("sessions.RESUME not in line['input'].get('prompt', '')", source)
+        self.assertNotIn('INTERACTIVE_RESUME_CURRENT_TURN', source)
+
+    def test_the_held_work_is_released_as_check_9_releases_its_cases(self):
+        calls = []
+
+        def cli(user, *argv, value=None):
+            calls.append(argv)
+            if argv == ('testapp', 'operation_status'):
+                return {'returncode': 0, 'json': {'ok': True, 'data': {'operation': {'state': 'reserved'}}}}
+            if argv == ('testapp', 'operation_cancel'):
+                return {'returncode': 0, 'json': {'ok': True, 'data': {'operation': {'state': 'failed'}}}}
+            if argv == ('testapp', 'notice_ack'):
+                return {'returncode': 0, 'json': {'ok': True, 'data': {}}}
+            pending = 1 if ('testapp', 'notice_ack') not in calls else 0
+            return {'returncode': 0, 'json': {'ok': True, 'data': {'total': pending}}}
+        with mock.patch.object(self.actions, 'cli', side_effect=cli):
+            released = self.actions.release_held('op-1')
+        self.assertEqual(released, {'state': 'reserved', 'cancelled': 'failed', 'notice_ack': {'ok': True, 'data': {}},
+                                    'pending_after': 0})
+        self.assertIn('released = release_held(op_id)', (CONTROL_CI / 'actions.py').read_text())
+
+    def test_the_desktop_comes_up_again_as_at_boot_with_the_service_failed(self):
+        # REVIEW-A1 #1 (agreed change 6). greetd runs its auto-login once per boot, recorded in its runfile, so the
+        # check removes it before greetd starts again; the session is then required by the CI layer's own checks.
+        config = (ROOT / 'os/config/etc/greetd/config.toml').read_text()
+        self.assertIn('[initial_session]\ncommand = "/usr/bin/aresos-session"\nuser = "ares"', config)
+        self.assertNotIn('runfile', config)  # greetd's default, which the check names
+        self.assertEqual(self.actions.GREETD_RUNFILE, pathlib.Path('/run/greetd.run'))
+        source = (CONTROL_CI / 'actions.py').read_text()
+        restart = source[source.index('def desktop_with_service_failed('):source.index('def ordinary(request):')]
+        order = [restart.index(text) for text in (
+            "'systemctl', 'stop', 'greetd.service'", "'loginctl', 'terminate-user', 'ares'",
+            'GREETD_RUNFILE.unlink(', "'systemctl', 'start', 'greetd.service'", 'checks.wait_session()',
+            'checks.desktop_session()')]
+        self.assertEqual(order, sorted(order))
+        checks = ast.parse((ROOT / 'os/ci/overlay/checks.py').read_text())
+        defined = {node.name for node in checks.body if isinstance(node, ast.FunctionDef)}
+        self.assertLessEqual({'wait_session', 'desktop_session'}, defined)
+        # Armed first, then the desktop, then the fresh session (agreed change 6: "armed before a fresh session").
+        arm = source[source.index('    def arm_failure(first):'):source.index('    def clean_baseline(first):')]
+        self.assertLess(arm.index('wait_failed()'), arm.index('desktop_with_service_failed('))
+
+    def test_the_static_checks_cover_the_runner_and_the_mail_flows(self):
+        # REVIEW-A1 #9: a typo in these showed only in a 50-minute control run.
+        for script in sorted(CONTROL_CI.glob('*.sh')):
+            result = subprocess.run(['bash', '-n', str(script)], capture_output=True, text=True, timeout=60)
+            self.assertEqual(result.returncode, 0, (script.name, result.stderr))
+        sources = sorted([*CONTROL_CI.glob('*.py'), *(ROOT / 'control/ci/image').glob('*.py')])
+        self.assertIn(ROOT / 'control/ci/image/mail_flows.py', sources)
+        self.assertIn(CONTROL_CI / 'runner.sh', list(CONTROL_CI.glob('*.sh')))
+        for source in sources:
+            py_compile.compile(str(source), cfile=str(self.folder / 'compiled.pyc'), doraise=True)
+
+
 class EvidenceScanTest(unittest.TestCase):
     """REVIEW-A1 #5: the password checks read inside the evidence's archives; only GreenMail's log is redacted."""
     SECRET = b'0123456789abcdef0123456789abcdef'

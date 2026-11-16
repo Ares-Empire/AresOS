@@ -537,6 +537,62 @@ def denials(*pids):
     return lines, [line for line in lines if any(mark in line for mark in marks)]
 
 
+# /proc/<pid>/net/{tcp,tcp6,udp,udp6}: a TCP socket in state 0A (LISTEN) listens; a UDP socket in state 07 (CLOSE) is
+# bound but unconnected, which is what `ss -l` lists as a UDP listener.
+LISTENING_STATES = {'tcp': '0A', 'tcp6': '0A', 'udp': '07', 'udp6': '07'}
+
+
+def listening_sockets(pids):
+    """The listening TCP and bound, unconnected UDP sockets the processes hold, from their own fd tables and their
+    network namespace's tables. A process whose fds can't be read raises: never an empty answer for "couldn't look"."""
+    inodes = {}
+    for pid in pids:
+        for fd in pathlib.Path(f'/proc/{pid}/fd').iterdir():
+            try:
+                target = os.readlink(fd)
+            except FileNotFoundError:
+                continue
+            if target.startswith('socket:['):
+                inodes[int(target[len('socket:['):-1])] = pid
+    found = []
+    for pid in pids:
+        for kind, state in LISTENING_STATES.items():
+            table = pathlib.Path(f'/proc/{pid}/net/{kind}')
+            if kind.endswith('6') and not table.exists():
+                continue  # no IPv6 in this network namespace, so no IPv6 socket either
+            for line in table.read_text().splitlines()[1:]:
+                fields = line.split()
+                if fields[3] == state and int(fields[9]) in inodes:
+                    found.append(dict(kind=kind, local=fields[1], pid=inodes[int(fields[9])], inode=int(fields[9])))
+    unique = {(item['kind'], item['inode']): item for item in found}
+    return sorted(unique.values(), key=lambda item: (item['kind'], item['inode'])), len(inodes)
+
+
+def network_listeners(cgroup):
+    """REVIEW-A1 #7: the unit allows AF_INET and AF_INET6 (Mail's and Chrome's outbound connections), but the service
+    listens on Unix sockets only (the brief's "Must not change"). Every process of the unit holds no listening TCP or
+    UDP socket, by its own tables and by ss. A listener of this check's own proves both ways can see one."""
+    pids = [int(pid) for pid in pathlib.Path('/sys/fs/cgroup' + cgroup, 'cgroup.procs').read_text().split()]
+    assert pids, ('no process in the unit', cgroup)
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as control:
+        control.bind(('127.0.0.1', 0))
+        control.listen(1)
+        port = control.getsockname()[1]
+        own, _ = listening_sockets([os.getpid()])
+        listed = run(['ss', '-H', '-l', '-n', '-t', '-u', '-p'], timeout=60)
+    assert listed['returncode'] == 0, listed
+    control_seen = dict(proc=any(item['kind'] == 'tcp' and item['local'].endswith(f':{port:04X}') for item in own),
+                        ss=any(f':{port} ' in line and f'pid={os.getpid()},' in line
+                               for line in listed['stdout'].splitlines()))
+    assert all(control_seen.values()), ('the check cannot see a listener of its own', control_seen, listed)
+    held, sockets_held = listening_sockets(pids)
+    by_ss = [line for line in listed['stdout'].splitlines()
+             if any(f'pid={pid},' in line for pid in pids)]
+    summary = dict(pids=pids, sockets_held=sockets_held, listening=held, ss_lines=by_ss, control_listener=control_seen)
+    assert not held and not by_ss, ('the service listens on the network', summary)
+    return summary
+
+
 # Check 2. The service under its sandbox, started by the boot alone. Runs after checks 3 to 5, so its SELinux scan
 # also covers what they made the service do.
 def service(request):
@@ -583,6 +639,7 @@ def service(request):
                                   owner=[info.st_uid, info.st_gid])
     assert sockets == {name: dict(socket=True, mode=f'{mode:04o}', owner=[250, 250])
                        for name, mode in SOCKET_MODES.items()}, sockets
+    network = network_listeners(properties['ControlGroup'])
     try:
         context = pathlib.Path(f'/proc/{pid}/attr/current').read_text().strip('\0\n')
     except OSError as error:
@@ -594,10 +651,11 @@ def service(request):
     security = run(['systemd-analyze', 'security', UNIT, '--no-pager'], timeout=120)
     unit_journal = run(['journalctl', '-b', '-u', UNIT, '--no-pager', '-o', 'short-monotonic'], timeout=120)
     summary = dict(properties=properties, process=process, sockets=sockets,
-                   socket_folder=f'{SOCKET_FOLDER_MODE:04o} aresos-tools',
+                   socket_folder=f'{SOCKET_FOLDER_MODE:04o} aresos-tools', network_listeners=network,
                    selinux=selinux, invocations=sorted(invocations))
     return dict(returncode=0, summary=dict(user=properties['User'], nrestarts=properties['NRestarts'],
-                                           selinux=selinux['getenforce'], avc_total=len(every)),
+                                           selinux=selinux['getenforce'], avc_total=len(every),
+                                           network_listeners=len(network['listening'])),
                 files=files_out({'unit.json': summary, 'security.txt': security['stdout'] + security['stderr'],
                                  'journal-aresos-toold.txt': unit_journal['stdout'][-500000:],
                                  'selinux.txt': json.dumps(selinux, indent=2) + '\n' + '\n'.join(every[-200:]) + '\n'}))
@@ -712,20 +770,25 @@ def write_as_owner(path, data):
     assert result.returncode == 0 and pathlib.Path(path).stat().st_uid == HOME.stat().st_uid, result.stderr
 
 
-# Check 6 (with 18e: "quiet unless used", owner #254). Two Claude Code sessions as ares, his own MCP tool and hooks
+# Check 6 (with 18e: "quiet unless used", owner #254). Four Claude Code sessions as ares, his own MCP tool and hooks
 # beside ours. The first starts healthy and stays unused through a stop; then it prepares and sends (it has used the
-# tools) and goes through two outages. The second starts while the service has failed and gets our tools once the
-# service is back, without a restart. Per turn: (session, service during the turn, what his model calls, notices).
+# tools) and goes through two outages. The second starts while the service has failed, after the desktop session
+# came up again (agreed change 6), and gets our tools once the service is back, without a restart. The third leaves
+# its send reserved (the owner answers No); the fourth, fresh and never using our tools, ends its turn while that
+# work is held (SECURITY-REVIEW-A1 F1: needs PR #69's fix round, which gives held work the usage gate).
+# Per turn: (session, service during the turn, what his model calls, notices, his answer to our ask).
 NOTE = 'mcp__notes__note'
 LIST = 'mcp__testapp__list'
 PREPARED = 'mcp__testapp__send'
 ORDINARY_TURNS = [
-    ('used-later', 'healthy', NOTE, 0), ('used-later', 'stopped, never used', NOTE, 0),
-    ('used-later', 'started again', PREPARED, 0), ('used-later', 'stopped, used', NOTE, 1),
-    ('used-later', 'still stopped', NOTE, 0), ('used-later', 'still stopped', NOTE, 0),
-    ('used-later', 'started again', NOTE, 0), ('used-later', 'stopped again', NOTE, 1),
-    ('failed-fresh-session', 'failed', NOTE, 0), ('failed-fresh-session', 'still failed', LIST, 0),
-    ('failed-fresh-session', 'recovered', LIST, 0)]
+    ('used-later', 'healthy', NOTE, 0, None), ('used-later', 'stopped, never used', NOTE, 0, None),
+    ('used-later', 'started again', PREPARED, 0, 'Yes'), ('used-later', 'stopped, used', NOTE, 1, None),
+    ('used-later', 'still stopped', NOTE, 0, None), ('used-later', 'still stopped', NOTE, 0, None),
+    ('used-later', 'started again', NOTE, 0, None), ('used-later', 'stopped again', NOTE, 1, None),
+    ('failed-fresh-session', 'failed', NOTE, 0, None), ('failed-fresh-session', 'still failed', LIST, 0, None),
+    ('failed-fresh-session', 'recovered', LIST, 0, None),
+    ('held-work', 'healthy, its send left reserved', PREPARED, 0, 'No'),
+    ('fresh-beside-held', 'healthy, another session holds work', NOTE, 0, None)]
 NOT_RUNNING = 'AresOS tools are not running'
 # The client's texts for a lost connection; a stopped service is never one any more (18e).
 LOST = ('Service connection lost', 'operation_status')
@@ -861,6 +924,84 @@ def hook_timing(work):
     return timed
 
 
+def release_held(op_id):
+    """A clean baseline after a case left work held (brief B2, "A clean baseline"): its evidence is saved first; then
+    cancel what is still reserved and acknowledge the notice the cancel leaves."""
+    record = dict(state=operation(op_id)['operation']['state'])
+    if record['state'] == 'reserved':
+        record['cancelled'] = answered(cli('ares', 'testapp', 'operation_cancel',
+                                           value={'operation_id': op_id}))['data']['operation']['state']
+    if answered(cli('ares', 'control', 'pending'))['data']['total']:
+        record['notice_ack'] = cli('ares', 'testapp', 'notice_ack', value={'operation_id': op_id})['json']
+    record['pending_after'] = answered(cli('ares', 'control', 'pending'))['data']['total']
+    return record
+
+
+# greetd starts its initial session (the auto-login of the image's /etc/greetd/config.toml) only when this file is
+# missing: once per boot (greetd(5), "runfile").
+GREETD_RUNFILE = pathlib.Path('/run/greetd.run')
+
+
+def owner_sessions():
+    """ares's logind sessions: id → its service, class, state, TTY and leader."""
+    listed = run(['loginctl', 'show-user', 'ares', '--property=Sessions', '--value'])
+    if listed['returncode'] != 0:
+        return {}
+    found = {}
+    for session in listed['stdout'].split():
+        shown = run(['loginctl', 'show-session', session, *[f'--property={name}' for name in (
+            'Service', 'Class', 'State', 'TTY', 'Leader', 'Scope')]])
+        found[session] = dict(line.split('=', 1) for line in shown['stdout'].splitlines() if '=' in line)
+    return found
+
+
+def desktop_with_service_failed(failed):
+    """Agreed change 6 (REVIEW-A1 #1): with the service failed, the desktop session comes up as usual. The boot's
+    greetd session is ended as a logout ends it (all of ares's processes, his runtime folder and his user manager;
+    the checks' own runuser processes aren't his sessions); then greetd starts the auto-login once more, as at boot,
+    and the CI layer's own session checks (checks.py's wait_session and desktop_session, the policy pass's) require
+    the terminal and the desktop supervisor, Prism and the app helper in it. The service stays failed throughout."""
+    import checks  # os/ci/overlay/checks.py, the CI layer's checks, beside actions.d in the guest
+    began = time.monotonic()
+    uid = pwd.getpwnam('ares').pw_uid
+    before = owner_sessions()
+    boot_sessions = sorted(session for session, values in before.items() if values.get('Service') == 'greetd')
+    assert boot_sessions, ('no greetd session of ares to end', before)
+    ok(run(['systemctl', 'stop', 'greetd.service'], timeout=120))
+    ok(run(['loginctl', 'terminate-user', 'ares'], timeout=120))
+    deadline = time.monotonic() + 180
+    while True:
+        left = dict(user=run(['loginctl', 'show-user', 'ares'])['returncode'] == 0,
+                    runtime=pathlib.Path(f'/run/user/{uid}').exists(),
+                    session_programs=run(['pgrep', '-u', 'ares', '-x', 'foot|labwc|prismlauncher'])['stdout'].split())
+        if not any(left.values()):
+            break
+        assert time.monotonic() < deadline, ('ares was not logged out', left)
+        time.sleep(1)
+    logged_out = round(time.monotonic() - began, 1)
+    # 18e's "marks vanish at logout" (its PLAN-GAP 7 here): his runtime folder went with the logout, the marks in it.
+    marks_after_logout = pathlib.Path(f'/run/user/{uid}/aresos-control/used').exists()
+    GREETD_RUNFILE.unlink(missing_ok=True)
+    ok(run(['systemctl', 'start', 'greetd.service'], timeout=120))
+    terminal = checks.wait_session()
+    desktop = checks.desktop_session()
+    after = owner_sessions()
+    new_sessions = sorted(session for session, values in after.items() if values.get('Service') == 'greetd')
+    assert new_sessions and not set(new_sessions) & set(boot_sessions), ('not a new desktop session', before, after)
+    _, runtime = runtime_folder()
+    assert runtime['existed'] and not runtime['linger_enabled'], ('the new session made no runtime folder', runtime)
+    unit = show('ActiveState', 'Result', 'NRestarts')
+    assert unit['ActiveState'] == 'failed' and unit['NRestarts'] == failed['NRestarts'], (
+        'the service did not stay failed while the desktop came up', failed, unit)
+    greetd = run(['systemctl', 'show', 'greetd.service', '--property=ActiveState', '--property=NRestarts',
+                  '--property=Result'])['stdout'].split()
+    return dict(seconds=round(time.monotonic() - began, 1), logged_out_seconds=logged_out, service=unit,
+                marks_after_logout=marks_after_logout,
+                sessions_before=before, sessions_after=after, greetd=greetd, terminals=terminal['stdout'].split(),
+                desktop_state=desktop['state'], desktop_processes=desktop['processes'],
+                prism_scope=desktop['prism_scope'], runtime=runtime, supervisor_log=desktop['supervisor_log'])
+
+
 def ordinary(request):
     sessions, _ = layer_modules()
     wait_active()
@@ -916,26 +1057,53 @@ def ordinary(request):
             probes[f'first_call_after_start_{number}'] = started()
             service[number] = show('ActiveState', 'SubState')
 
+    def arm_failure(first):
+        probes['marks_after_used_session'] = marks_state(marks, uid)
+        DROP_IN.parent.mkdir(parents=True, exist_ok=True)
+        # Only the failing start: the unit's own Restart=on-failure and start limit end it failed (18e).
+        DROP_IN.write_text('# CI only (package 18c, B2 check 6): the service fails at every start.\n'
+                           '[Service]\nExecStartPre=/usr/bin/false\n')
+        systemctl('daemon-reload')
+        start = run(['systemctl', 'start', UNIT], timeout=120)
+        service[first] = dict(start_returncode=start['returncode'], **wait_failed())
+        # Agreed change 6: armed before a fresh session starts, then the desktop session comes up as usual. A failure
+        # here is the check's, but the sessions still run, so the run shows the rest.
+        try:
+            probes['desktop_with_service_failed'] = desktop_with_service_failed(service[first])
+        except Exception:
+            errors.append('the desktop session with the service failed: ' + traceback.format_exc())
+
+    def clean_baseline(first):
+        pending = answered(cli('ares', 'control', 'pending'))['data']
+        assert pending['total'] == 0, ('no clean baseline before the held work', pending)
+        probes['marks_before_held_work'] = marks_state(marks, uid)
+
+    def note_held(first):
+        """The work the held-work session left: reserved, and in the pending list every hook reads."""
+        held = cases['held-work']['turns'][0]['operation_id']
+        probes['held_operation'] = held
+        assert held, 'the held-work session prepared nothing'
+        probes['held_operation_state'] = operation(held)['operation']['state']
+        probes['pending_beside_held'] = answered(cli('ares', 'control', 'pending'))['data']
+        probes['marks_beside_held'] = marks_state(marks, uid)
+        assert held in json.dumps(probes['pending_beside_held']), ('the held work is not pending', probes)
+
     errors, cases = [], {}
     plan = [(number, *turn) for number, turn in enumerate(ORDINARY_TURNS, 1)]
+    # (session, before it starts, before each of its turns). A session's own Claude Code starts with its first prompt,
+    # so nothing waits before turn 1 (a request then could fall outside the turn's count).
+    order = (('used-later', None, used_later), ('failed-fresh-session', arm_failure, failed_fresh),
+             ('held-work', clean_baseline, None), ('fresh-beside-held', note_held, None))
     try:
-        for case, before_turn in (('used-later', used_later), ('failed-fresh-session', failed_fresh)):
+        for case, before_session, before_turn in order:
             mine = [row for row in plan if row[1] == case]
-            if case == 'failed-fresh-session':
-                probes['marks_after_used_session'] = marks_state(marks, uid)
-                DROP_IN.parent.mkdir(parents=True, exist_ok=True)
-                # Only the failing start: the unit's own Restart=on-failure and start limit end it failed (18e).
-                DROP_IN.write_text('# CI only (package 18c, B2 check 6): the service fails at every start.\n'
-                                   '[Service]\nExecStartPre=/usr/bin/false\n')
-                systemctl('daemon-reload')
-                start = run(['systemctl', 'start', UNIT], timeout=120)
-                service[mine[0][0]] = dict(start_returncode=start['returncode'], **wait_failed())
-            answers = ['Yes' if call == PREPARED else None for _, _, _, call, _ in mine]
+            if before_session:
+                before_session(mine[0][0])
             numbers = [number for number, *_ in mine]
-            cases[case] = sessions.session(out / case, [ordinary_step(number, call) for number, _, _, call, _ in mine],
-                                           sessions.NORMAL, answers,
-                                           before_turn=lambda index, hook=before_turn, numbers=numbers:
-                                           hook(numbers[index]))
+            cases[case] = sessions.session(out / case, [ordinary_step(number, call) for number, _, _, call, *_ in mine],
+                                           sessions.NORMAL, [answer for *_, answer in mine],
+                                           before_turn=before_turn and (lambda index, hook=before_turn,
+                                                                        numbers=numbers: hook(numbers[index])))
         probes['marks_after_sessions'] = marks_state(marks, uid)
     except Exception:
         errors.append(traceback.format_exc())
@@ -946,6 +1114,13 @@ def ordinary(request):
         if show('ActiveState')['ActiveState'] != 'active':
             run(['systemctl', 'reset-failed', UNIT])
             run(['systemctl', 'start', UNIT])
+        # A clean baseline for checks 7 and 9 (brief B2): the held-work session's reservation, its evidence saved above.
+        if probes.get('held_operation'):
+            try:
+                wait_sockets()
+                probes['held_released'] = release_held(probes['held_operation'])
+            except Exception:
+                errors.append('releasing the held work: ' + traceback.format_exc())
 
     def expect(condition, *what):
         if not condition:
@@ -955,16 +1130,16 @@ def ordinary(request):
     turns = [turn for case in cases.values() for turn in case['turns']]
     # His Stop hook per turn: his log in order, each turn from its UserPromptSubmit line to the next one; each run
     # recorded by the stop_hook_active it was given (run 43572578699: in a turn our hook blocks once, his runs only on
-    # the attempt that ends the turn).
+    # the attempt that ends the turn). The driver's resume prompt after a No goes on with the same turn.
     own_stops, current = {}, None
     for line in hooks:
-        if line['event'] == 'UserPromptSubmit':
+        if line['event'] == 'UserPromptSubmit' and sessions.RESUME not in line['input'].get('prompt', ''):
             current = next((number for number, turn in enumerate(turns, 1)
                             if turn['prompt'] in line['input'].get('prompt', '')), None)
         elif line['event'] == 'Stop':
             own_stops.setdefault(current, []).append(line['input'].get('stop_hook_active'))
     rows = []
-    for (number, case, state, call, notices), turn in zip(plan, turns):
+    for (number, case, state, call, notices, answer), turn in zip(plan, turns):
         result = turn['tool_result'] or {}
         screen = ' '.join(turn['on_screen'])
         told = [tail for tail in turn['continuation_tails'] if NOT_RUNNING in tail]
@@ -982,13 +1157,21 @@ def ordinary(request):
         hook_lines = ' '.join(line for line in turn['on_screen'] if 'hook' in line.lower())
         expect(not any(text in hook_lines or any(text in tail for tail in turn['continuation_tails']) for text in LOST),
                'a lost-connection text', row)
-        if call == PREPARED:
+        if call == PREPARED and answer == 'Yes':
             # Used: a preparation and a send answered Yes; with the service up nothing changes (held work only).
             expect(turn['prompt_shown'] and turn['operation_id'] and not told and row['stop_continuations'] <= 1,
                    'the used turn', row)
             if turn['operation_id']:
                 row['operation_state'] = operation(turn['operation_id'])['operation']['state']
                 expect(row['operation_state'] == 'done', 'the send', row)
+        elif call == PREPARED:
+            # Used, and its send left reserved by his No: this session holds work, and its own Stop hook tells it so
+            # (before PR #69's fix round as after it: the gate is on use, and this session used the tools).
+            expect(turn['prompt_shown'] and turn['operation_id'] and not told, 'the No turn', row)
+            if turn['operation_id']:
+                row['operation_state'] = probes.get('held_operation_state')
+                expect(row['operation_state'] == 'reserved', 'the send held by his No', row)
+            expect(row['stop_continuations'] >= 1, 'the session that holds work is told', row)
         else:
             expect((row['stop_continuations'], row['notices'], row['notice_on_screen']) ==
                    (notices, notices, bool(notices)), 'the notice', row)
@@ -1030,6 +1213,35 @@ def ordinary(request):
     fresh = probes.get('fresh_session_key')
     expect(fresh and fresh != key and not any(name.startswith(f'{fresh}') for name in entries('marks_after_sessions')),
            'the fresh session is unmarked', fresh, probes.get('marks_after_sessions'))
+    # Agreed change 6 (REVIEW-A1 #1): the desktop session came up again while the service had failed.
+    desktop = probes.get('desktop_with_service_failed') or {}
+    expect(desktop.get('desktop_state', {}).get('state') == 'SETUP' and desktop.get('service', {}).get('ActiveState')
+           == 'failed', 'the desktop session with the service failed', {k: v for k, v in desktop.items()
+                                                                          if k != 'supervisor_log'})
+    # SECURITY-REVIEW-A1 F1 (passes with PR #69's fix round, which gives held work the usage gate): the held-work
+    # session was marked as one that used the tools; the fresh session beside it was not, ended its turn without a
+    # Stop block or an extra model request (the rows above), and none of its model requests carried the held work.
+    held = probes.get('held_operation')
+    held_marks = sorted(set(entries('marks_beside_held')) - set(entries('marks_before_held_work')))
+    expect(len(held_marks) == 1 and entries('marks_beside_held')[held_marks[0]] == mark_file,
+           'the held-work session is marked', probes.get('marks_before_held_work'), probes.get('marks_beside_held'))
+    expect(entries('marks_after_sessions') == entries('marks_beside_held'), 'the session beside held work is unmarked',
+           probes.get('marks_beside_held'), probes.get('marks_after_sessions'))
+    carried, beside_requests = [], out / 'fresh-beside-held/model/requests.json'
+    if beside_requests.exists():
+        for index, item in enumerate(json.loads(beside_requests.read_text())):
+            text = json.dumps([item.get('system'), item.get('messages')])
+            if (held and held in text) or REMINDER in text:
+                carried.append(index)
+    beside = next((row for row in rows if row['session'] == 'fresh-beside-held'), None)
+    held_elsewhere = dict(operation_state=probes.get('held_operation_state'),
+                          pending_total=(probes.get('pending_beside_held') or {}).get('total'),
+                          requests_carrying_it=carried, released=probes.get('held_released'),
+                          **{name: (beside or {}).get(name) for name in (
+                              'model_requests', 'extra_model_requests', 'stop_continuations', 'own_stop_runs',
+                              'on_screen')})
+    expect(beside and not carried, 'the held work reached a session that never used the tools', held_elsewhere)
+    expect((probes.get('held_released') or {}).get('pending_after') == 0, 'the held work released', held_elsewhere)
     down = probes.get('cli_while_stopped') or {}
     expect(down.get('code') == 'service_unavailable' and 'not running' in (down.get('message') or '') and
            'nothing was sent' in (down.get('message') or '') and 2.5 <= down.get('seconds', 0) <= 10,
@@ -1059,13 +1271,21 @@ def ordinary(request):
     after, _ = wait_sockets()
     expect(not after['total'], 'pending after check 6', after)
     summary = dict(turns=[{key_: row.get(key_) for key_ in (
-        'turn', 'session', 'service', 'call', 'model_requests', 'extra_model_requests', 'stop_continuations', 'notices',
-        'own_stop_runs', 'seconds', 'active_seconds', 'on_screen')} for row in rows],
+        'turn', 'session', 'service', 'call', 'answer', 'model_requests', 'extra_model_requests', 'stop_continuations',
+        'notices', 'own_stop_runs', 'seconds', 'active_seconds', 'on_screen')} for row in rows],
         own_stop_lines=sum(map(len, own_stops.values())), pending_after=after['total'],
         failed=failed, cli_while_stopped=down, hooks_while_stopped=probes.get('hooks_while_stopped'),
         first_calls_after_start={name: probes[name] for name in probes if name.startswith('first_call_after_start_')},
         runtime=runtime_record, tools_per_request=per_request,
-        fresh_tools_per_request=cases.get('failed-fresh-session', {}).get('tools_per_request'))
+        fresh_tools_per_request=cases.get('failed-fresh-session', {}).get('tools_per_request'),
+        desktop_with_service_failed=dict(
+            service=desktop.get('service'), desktop=(desktop.get('desktop_state') or {}).get('state'),
+            latched=(desktop.get('desktop_state') or {}).get('latched'), seconds=desktop.get('seconds'),
+            logged_out_seconds=desktop.get('logged_out_seconds'), marks_after_logout=desktop.get('marks_after_logout'),
+            greetd_sessions=[sorted(session for session, values in (desktop.get(name) or {}).items()
+                                    if values.get('Service') == 'greetd')
+                             for name in ('sessions_before', 'sessions_after')]),
+        held_elsewhere=held_elsewhere)
     files = {'ordinary/summary.json': dict(summary, rows=rows, service=service, probes=probes, settings=settings),
              'ordinary/own-hooks.jsonl': log.read_text() if log.exists() else ''}
     sizes = packed(files, {f'ordinary/{name}.tar.gz': out / name for name in cases}, errors)
@@ -1211,12 +1431,9 @@ def interactive(request):
                        tool_result_is_error=bool((turn['tool_result'] or {}).get('is_error')))
             # A clean baseline: evidence first, then cancel what is still reserved and acknowledge the notice.
             row['pending_before_cleanup'] = answered(cli('ares', 'control', 'pending'))['data']
-            if row['operation_state'] == 'reserved':
-                row['cancelled'] = answered(cli('ares', 'testapp', 'operation_cancel',
-                                                value={'operation_id': op_id}))['data']['operation']['state']
-            if answered(cli('ares', 'control', 'pending'))['data']['total']:
-                row['notice_ack'] = cli('ares', 'testapp', 'notice_ack', value={'operation_id': op_id})['json']
-            row['pending_after_cleanup'] = answered(cli('ares', 'control', 'pending'))['data']['total']
+            released = release_held(op_id)
+            row.update({name: released[name] for name in ('cancelled', 'notice_ack') if name in released},
+                       pending_after_cleanup=released['pending_after'])
             assert row['pending_after_cleanup'] == 0, ('no clean baseline after', case)
             # Both counts agree: the service's own record names the same recipients the receiver holds.
             assert sorted(row['status_arrivals'] or []) == sorted(per_recipient), row
