@@ -78,7 +78,9 @@ public final class SaveTimesClientGameTest implements FabricClientGameTest {
                 AppsTestAccess.aresos$startHelper(connection, true);
             });
             shell.awaitCatalogue(Duration.ofSeconds(5));
-            context.waitFor(client -> AresOs.apps().stream().filter(app -> app.mine()).count() == APPS, 400);
+            // The 40 joined My apps on day one. The fresh file's own Notepad stays his but absent (this helper does not
+            // list it), so it gets no logo: the town counts what is his and present, as TownKeeper.wanted does.
+            context.waitFor(client -> AresOs.apps().stream().filter(app -> app.mine() && !app.absent()).count() == APPS, 400);
 
             Path directory = context.computeOnClient(client -> client.getLevelSource().getBaseDir().resolve(NetherHome.SAVE_FOLDER));
             TownClientGameTest.openCreateScreen(context, directory);
@@ -86,7 +88,9 @@ public final class SaveTimesClientGameTest implements FabricClientGameTest {
             context.waitFor(client -> client.player != null && client.gui.screen() == null, 2400);
             try (TestSingleplayerContext world = new TestSingleplayerContextImpl(context, new TestWorldSaveImpl(context, directory),
                     context.computeOnClient(Minecraft::getSingleplayerServer))) {
-                world.getConnection().waitForChunksRender();
+                // Only what arrived: Fabric's plain waitForChunksRender() waits for the whole square of the render
+                // distance, but the server sends a round area (ChunkTrackingView), so at 8 the corners never come.
+                world.getConnection().waitForChunksRender(false);
                 TownClientGameTest.waitForServer(context, world, server -> HubData.get(server) != null
                         && HubData.get(server).logos().size() == APPS, "The town of " + APPS + " did not stand up", 2400);
                 context.waitTicks(100);
@@ -97,7 +101,7 @@ public final class SaveTimesClientGameTest implements FabricClientGameTest {
                  var lifecycle = supervisor.client(WorldSaves.INSTANCE);
                  TestSingleplayerContext world = new TestWorldSaveImpl(context, directory).open()) {
                 lifecycle.start();
-                world.getConnection().waitForChunksRender();
+                world.getConnection().waitForChunksRender(false);
                 context.waitTicks(100);
                 times.add(save(context, world, supervisor, 1, "right after joining"));
                 // Upwards, then the three legs at full flying speed; every tick one step, as package 41's glide.

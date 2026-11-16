@@ -9,6 +9,7 @@ import dev.aresos.shell.FakeHelper;
 import dev.aresos.shell.FakeSupervisor;
 import dev.aresos.test.mixin.AppsTestAccess;
 import dev.aresos.test.mixin.ChatMessagesTestAccess;
+import dev.aresos.test.mixin.HudTestAccess;
 import dev.aresos.world.DesktopWorld;
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
@@ -226,7 +227,11 @@ public final class SaveNowClientGameTest implements FabricClientGameTest {
     private static long saved(ClientGameTestContext context, FakeSupervisor supervisor, int id, String name) {
         try { supervisor.save(id, "backup"); }
         catch (IOException error) { throw new UncheckedIOException(error); }
-        context.waitFor(client -> !supervisor.answers(id).isEmpty(), 1200);
+        var indicator = new SavingIndicator();
+        context.waitFor(client -> {
+            indicator.sample(client);
+            return !supervisor.answers(id).isEmpty();
+        }, 1200);
         var answer = supervisor.answers(id).getFirst();
         check(SAVED.equals(answer.keySet()) && answer.get("ok").getAsBoolean(), "Not saved: " + answer);
         check(answer.get("id").getAsInt() == id && "world_saved".equals(answer.get("op").getAsString()), "Answer " + answer);
@@ -235,7 +240,48 @@ public final class SaveNowClientGameTest implements FabricClientGameTest {
                 && identity.size() == 2, "Not world_ready's identity: " + identity);
         long ms = answer.get("ms").getAsLong();
         check(ms >= 0, "A negative save time: " + answer);
+        indicator.report(context, id, ms);
         return ms;
+    }
+
+    /**
+     * Observed, not asserted (the report's JUDGMENT-CALL): {@code saveEverything} sets the server's saving flag, as every
+     * autosave and the save on pausing do, and vanilla's "Saving world" corner text fades in while a client tick finds
+     * the flag set and out again after (a fifth of the way each tick). The test's client and server tick together as
+     * fast as they can, not at play's 20 a second, so this shows whether the text can appear and how it fades, not how
+     * often it appears in play.
+     */
+    private static final class SavingIndicator {
+        private boolean rose;
+        private float peak;
+
+        /** After each client tick while the save is asked: did the text fade in, and how far. */
+        void sample(Minecraft client) {
+            var hud = (HudTestAccess) client.gui.hud;
+            float now = hud.aresos$savingIndicator();
+            if (now > hud.aresos$lastSavingIndicator()) rose = true;
+            if (rose) peak = Math.max(peak, now);
+        }
+
+        /** Ticks on until the text is gone again (at most 3 s) and logs how long it was drawn. */
+        void report(ClientGameTestContext context, int id, long ms) {
+            if (!rose) {
+                AresOs.LOGGER.info("46 saving indicator for save {} ({} ms): did not show", id, ms);
+                return;
+            }
+            int drawn = 0;
+            int faint = 0;
+            for (; drawn < 60; drawn++) {
+                float value = context.computeOnClient(client -> ((HudTestAccess) client.gui.hud).aresos$savingIndicator());
+                peak = Math.max(peak, value);
+                // Drawn while its alpha is above 0 (Hud.extractSavingIndicator); below a tenth it is hard to see.
+                if (Math.floor(255 * value) <= 0) break;
+                if (value < 0.1f) faint++;
+                context.waitTick();
+            }
+            AresOs.LOGGER.info("46 saving indicator for save {} ({} ms): faded in to {}% opacity, drawn for {} more ticks "
+                    + "after the answer, {} of them under 10% opacity", id, ms, Math.round(peak * 100), drawn, faint);
+        }
     }
 
     private static void refused(ClientGameTestContext context, FakeSupervisor supervisor, int id, String reason) {

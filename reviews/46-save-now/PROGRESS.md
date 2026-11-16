@@ -26,33 +26,28 @@ Builder: Claude agent (Opus). Brief: `briefs/46-save-now.md`. Branch `pkg/46-sav
      `mod/src/gametest/resources/fabric.mod.json` (package 40's test comment updated: it is no longer last). Uses
      only the real `LifecycleClient` + `WorldSaves.INSTANCE` against a `FakeSupervisor`; the covered part copies
      `HomeScreenClientGameTest.covered`'s FakeHelper wiring. No screenshots.
-3. **Measurement test written and compiling, not yet run** (commit after 6938089b, "46: save-time measurement").
+3. **Measurement test written** (run in step 2, see 4) (commit after 6938089b, "46: save-time measurement").
    - `mod/src/gametest/java/dev/aresos/test/SaveTimesClientGameTest.java`, after `SaveNowClientGameTest` in the list;
      does nothing unless `-PmeasureSaves` (`mod/build.gradle` passes `aresos.measureSaves`). Creates a flat home with
      40 fake-helper programs (package 41's mix), closes and reopens it, saves right after joining, then twice a 60 s
      glide (package 41's route and speed, by teleport each tick) with a save after each. Log lines "46 save time ...".
+4. **Step 2: measurement fixed and run; the saving indicator observed** (commit after c4951ef7).
+   - `SaveTimesClientGameTest`: the 40 count what is his and present (a fresh apps file's own Notepad stays his but
+     absent, so "mine" alone counted 41 and timed out); `waitForChunksRender(false)` (Fabric's plain call waits for the
+     whole square of the render distance, the server sends a round area, so at render distance 8 it never ended).
+   - `SaveNowClientGameTest` logs, without asserting, whether vanilla's "Saving world" corner text faded in during each
+     save and how long it stayed ("46 saving indicator" lines); `HudTestAccess` reads its two values.
 
 ## State (for the next agent)
 
-- Client run 1 (`mod/dev/client-test.sh`, full suite, measurement not asked): **green**, exit 0 after 10 min 36 s on
-  the RTX 4060, 19 "checks passed" lines in `mod/build/run/clientGameTest/logs/latest.log`, the last
-  "46 save-now checks passed: ...". Its own save times in the small test world: playing 85 ms, Esc menu 22 ms,
-  covered 18 ms. That run was at 6938089b; since then `WorldSaves` also answers `error` when something throws on the
-  server thread before the save (not yet run in the game; covered by compile only).
-- The run left untracked screenshots with new numbers in other packages' folders (the suite's numbering drifted long
-  before this package; ours take none): `git clean` them as well as `git checkout -- reviews/` after a run, keeping
-  `reviews/46-save-now/`.
-
-## Left, in order
-
-1. (Note for any change to `SaveNowClientGameTest`: the server thread waits for the test between ticks, so a save
-   asked between test steps runs only at the next tick; `context.waitFor` ticks, `supervisor.answer` doesn't.)
-2. Measurements: `mod/dev/client-test.sh -PmeasureSaves` (whole suite plus about 5 minutes; the task's timeout is
-   20 minutes). Take the two times from `mod/build/run/clientGameTest/logs/latest.log` ("46 save time" lines).
-3. Full `mod/dev/build.sh` once and `mod/dev/client-test.sh` twice green (AGENTS.md). Merge `origin/main` before the
-   hosted checks.
-4. Report under "Report" below (Done / Verified / Not verified / JUDGMENT-CALL / PLAN-GAP / Open questions, both
-   times), then the PR "Package 46: the mod saves the world when the supervisor asks" (ready, not draft).
+- Client run 2 (`-PmeasureSaves`, at c4951ef7): suite green, the measurement failed at the 40-app count. Run 2b: suite
+  green, the measurement failed at `waitForChunksRender`. Run 3 (`-PmeasureSaves`, the step-2 code): **green**, exit 0
+  in 12 min 34 s, 19 "checks passed" lines. Times: right after joining 103 ms, after a 60 s glide over new ground
+  116 ms, after the same glide again 458 ms (each one sample; 1849 = the 43 x 43 chunks the server holds around the
+  player; the world stored 2332 chunks, z -32 to 31, x -21 to 21, so the glide reached new ground). Test world:
+  playing 81 ms, Esc menu 20 ms, covered 20 ms. Indicator: under the Esc menu and covered it faded in to 22 % and was
+  drawn 18 more ticks (14 under 10 %); while playing (81 ms) and for save 7 (41 ms) it did not show.
+- Left: `mod/dev/build.sh` once, a plain `mod/dev/client-test.sh` once more, merge `origin/main`, the report, the PR.
 
 ## What the code doesn't show
 
