@@ -73,16 +73,43 @@ print('Image manifest locks equal the reviewed locks')
 PY
 # Package 18c: the Control files the image records (image-checks.sh proved the
 # image holds exactly them) are what this checkout installs: build.sh's own
-# install map recomputes them here. The build commit is this one, and the build
-# took the vendored wheels from this checkout's requirements.lock (build.sh
-# checked every wheel's SHA-256 against it; image-checks.sh the installed bytes).
+# install map recomputes them here. The build commit is this one, and the
+# vendored wheels are this checkout's requirements.lock: build.sh checked them
+# inside the build, and this check reads the lock again from the checkout,
+# apart from the build (REVIEW-A1 #6); image-checks.sh checked the installed bytes.
 expected=$(mktemp -d)
 bash os/build.sh control-tree os control "$expected/root" | tee "$out/control-tree.txt"
-python3 - "$out/manifest/control.json" "$expected/root/usr/share/aresos/manifest/control.json" "$(git rev-parse HEAD)" <<'PY'
-import json, sys
+python3 - "$out/manifest/control.json" "$expected/root/usr/share/aresos/manifest/control.json" "$(git rev-parse HEAD)" \
+    control/requirements.lock <<'PY'
+import json, re, sys
 image, expected = (json.load(open(path)) for path in sys.argv[1:3])
 revision = sys.argv[3]
 assert image['source_revision'] == revision, f'Control in the image is from {image["source_revision"]}, not {revision}'
+# The lock as pip reads it: `name==version \` then one or more `--hash=sha256:` lines. Every other line is a comment
+# or blank, so no pin can be skipped by a line this parser doesn't know.
+normal = lambda name: re.sub(r'[-_.]+', '-', name).lower()
+lock, current = {}, None
+for line in open(sys.argv[4]).read().splitlines():
+    if match := re.fullmatch(r'([A-Za-z0-9._-]+)==(\S+) \\', line):
+        current = (normal(match[1]), match[2])
+        assert current not in lock, f'requirements.lock pins {current} twice'
+        lock[current] = set()
+    elif match := re.fullmatch(r'\s+--hash=sha256:([0-9a-f]{64})( \\)?', line):
+        assert current is not None, f'a hash before any pin in requirements.lock: {line}'
+        lock[current].add(match[1])
+    else:
+        assert not line.strip() or line.startswith('#'), f'requirements.lock line not understood: {line}'
+assert lock and all(lock.values()), 'requirements.lock has no pins, or a pin without a hash'
+wheels = image['wheels']
+installed = [(wheel['name'], wheel['version']) for wheel in wheels]
+assert len(set(installed)) == len(installed), f'a wheel is recorded twice: {installed}'
+if set(installed) != set(lock):
+    print(f'not in the lock: {sorted(set(installed) - set(lock))}; not installed: {sorted(set(lock) - set(installed))}',
+          file=sys.stderr)
+    raise SystemExit("The image's wheels are not this checkout's requirements.lock")
+unpinned = [wheel for wheel in wheels if wheel['sha256'] not in lock[(wheel['name'], wheel['version'])]
+            or not wheel['file'].endswith('.whl')]
+assert not unpinned, f"wheels whose SHA-256 is not one of the lock's pins: {unpinned}"
 for key in ('format', 'requirements_lock', 'links', 'directories', 'files'):
     if image[key] != expected[key]:
         if isinstance(expected[key], dict):

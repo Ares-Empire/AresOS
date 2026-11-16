@@ -48,6 +48,18 @@ def heredoc(path, start):
     return text.split(start, 1)[1].split('\nPY\n', 1)[0]
 
 
+def lock_pins(path=CONTROL / 'requirements.lock'):
+    """requirements.lock as {(name, version): [sha256, ...]} in its own order and spelling."""
+    lock, current = {}, None
+    for line in pathlib.Path(path).read_text().splitlines():
+        if match := re.match(r'^([A-Za-z0-9._-]+)==(\S+) \\$', line):
+            current = (match[1], match[2])
+            lock[current] = []
+        elif match := re.match(r'^\s+--hash=sha256:([0-9a-f]{64})', line):
+            lock[current].append(match[1])
+    return lock
+
+
 def tree_files(source):
     return sorted(p for p in (CONTROL / source).rglob('*') if p.is_file() and '__pycache__' not in p.parts)
 
@@ -179,13 +191,7 @@ class InstallMapTest(unittest.TestCase):
             self.assertNotEqual(result.returncode, 0, broken)
 
     def test_the_image_build_records_its_commit_wheels_and_vendored_tree(self):
-        lock, current = {}, None
-        for line in (CONTROL / 'requirements.lock').read_text().splitlines():
-            if match := re.match(r'^([A-Za-z0-9._-]+)==(\S+) \\$', line):
-                current = (match[1], match[2])
-                lock[current] = []
-            elif match := re.match(r'^\s+--hash=sha256:([0-9a-f]{64})', line):
-                lock[current].append(match[1])
+        lock = lock_pins()
         self.assertGreater(len(lock), 20)
 
         def report(items):
@@ -245,21 +251,40 @@ class ImageCheckTest(unittest.TestCase):
         subprocess.run(['bash', str(ROOT / 'os/build.sh'), 'control-tree', str(ROOT / 'os'), str(CONTROL),
                         str(self.work / 'root')], check=True, capture_output=True, timeout=120)
         record = json.loads((self.work / 'root/usr/share/aresos/manifest/control.json').read_text())
-        record.update(source_revision=REVISION, wheels=[dict(name='mcp')],
+        # The wheels as build.sh records them: normalized names, pip's file name and the SHA-256 it installed.
+        wheels = [dict(name=re.sub(r'[-_.]+', '-', name).lower(), version=version, sha256=digests[0],
+                       file=f'{name.replace("-", "_")}-{version}-py3-none-any.whl')
+                  for (name, version), digests in lock_pins().items()]
+        record.update(source_revision=REVISION, wheels=wheels,
                       vendor={'/usr/lib/aresos-control': dict(mode='0755', sha256=None)})
         code = heredoc('os/ci/check-image.sh', 'python3 - "$out/manifest/control.json" '
-                       '"$expected/root/usr/share/aresos/manifest/control.json" "$(git rev-parse HEAD)" <<\'PY\'\n')
+                       '"$expected/root/usr/share/aresos/manifest/control.json" "$(git rev-parse HEAD)" \\\n'
+                       '    control/requirements.lock <<\'PY\'\n')
 
-        def check(image, revision=REVISION):
+        def check(image, revision=REVISION, lock=CONTROL / 'requirements.lock'):
             path = self.work / 'image.json'
             path.write_text(json.dumps(image))
             return subprocess.run([sys.executable, '-I', '-c', code, str(path),
-                                   str(self.work / 'root/usr/share/aresos/manifest/control.json'), revision],
-                                  capture_output=True, text=True, timeout=60)
+                                   str(self.work / 'root/usr/share/aresos/manifest/control.json'), revision,
+                                   str(lock)], capture_output=True, text=True, timeout=60)
 
         result = check(record)
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn(f'from {REVISION}, 1 wheels from requirements.lock', result.stdout)
+        self.assertIn(f'from {REVISION}, {len(wheels)} wheels from requirements.lock', result.stdout)
+        # REVIEW-A1 #6: the wheels against the checkout's lock, apart from the build's own check. A wheel missing,
+        # one the lock doesn't pin, another version, a hash the lock doesn't hold, a wheel twice or no wheel file.
+        for name, changed in (('missing', wheels[1:]), ('extra', wheels + [dict(wheels[0], name='extra')]),
+                              ('version', [dict(wheels[0], version='0.0.0')] + wheels[1:]),
+                              ('hash', [dict(wheels[0], sha256='f' * 64)] + wheels[1:]),
+                              ('twice', wheels + [wheels[0]]),
+                              ('not a wheel', [dict(wheels[0], file='mcp-2.3.0.tar.gz')] + wheels[1:])):
+            result = check(dict(record, wheels=changed))
+            self.assertNotEqual(result.returncode, 0, name)
+            self.assertNotIn('Control in the image is this checkout', result.stdout, name)
+        # A lock line the parser doesn't know stops the check instead of skipping a pin.
+        odd = self.work / 'odd.lock'
+        odd.write_text((CONTROL / 'requirements.lock').read_text() + 'extra==1.0 ; python_version > "3"\n')
+        self.assertNotEqual(check(record, lock=odd).returncode, 0)
         self.assertNotEqual(check(record, 'ef' * 20).returncode, 0)
         changed = json.loads(json.dumps(record))
         changed['files']['/usr/share/aresos/control/service.json']['sha256'] = '0' * 64
