@@ -110,9 +110,21 @@ added after parsing while the new one stays) survived as an equivalent mutant: t
 
 ## CI
 
-(Filled in after the runs.)
+Round 0, on `829ec9a3`:
+- Control base, run 43889464942: success. 377 tests, with `test_stop_hook` and the four hook cases of
+  `test_integration`, including `test_stop_hook_installation_failures_are_quiet`.
+- Control boundary, run 43889464982: success, real Claude Code 2.1.319 under dash.
+  - `normal-yes`: `held_stops` is the held-work block, then `{}`, with one continuation.
+  - `normal-no`: `[""]`, no continuation.
+  - Both hooks' chains are now `python3 <- sh <- sh <- claude`, so Claude Code sits at level 3 of the walk's 4.
+- Repo privacy, run 43889464924: success.
+- Control Mail 43889465120, Control Chrome 43889465068 and Chrome qualification 43889465011 hadn't finished when fix
+  round 1 was pushed. No job had failed: Mail 9 of 12 done, Chrome 5 of 26, qualification 8 of 31, its
+  `native-precedence` (the boundary image with the new stand-in) among the passed ones.
 
-## JUDGMENT-CALLs for the lead
+Fix round 1: see below.
+
+## JUDGMENT-CALLs for the lead (round 0; the lead's answers are in fix round 1)
 
 1. **`usage.used()` still counts unreadable marks or processes as used.** That was 18e's reviewed choice, kept here.
    When marks can't be read, every session, including ones that never used the tools, hears of held work once per
@@ -129,3 +141,72 @@ added after parsing while the new one stays) survived as an equivalent mutant: t
 4. **The interactive boundary suite's hook stand-in now runs the real hook code.** That goes beyond "make sure a case
    still shows": no case did before. It is the only end-to-end proof that Claude Code 2.1.319 honours a JSON block
    through the new guard. Cost: `normal-yes` gets one more model round trip.
+
+## Fix round 1 (review 1, Fable: SAFE; the lead took both should-fixes into this PR)
+
+`REVIEW-1.md` is committed unchanged (`21a0944a`); the fixes are in `edde349d`.
+
+1. **Should-fix 1 (my JC2): input the strict decoder refuses no longer blocks every stop.** The review's input carries
+   an escaped lone surrogate in `background_tasks`, a field the hook never reads, and it stays the same across turns.
+   Claude Code's cap of 8 blocked stops starts again after each tool call, so before this fix the block was unbounded.
+   Now `hooks.first_stop(event, raw)` gives the failure block only when the input readably says `stop_hook_active` is
+   false. It reads the strictly parsed event, or else the same bytes parsed leniently for that one field
+   (`json.loads` of `raw.decode('utf-8-sig', errors='replace')`). True, missing, not a boolean, or unreadable even
+   leniently (input cut at the 6 MiB bound, truncated JSON, not an object): quiet. Held work and the outage notice are
+   unchanged.
+2. **Should-fix 2 (my JC1), the lead's decision reversing 18e.** `usage.used()` and `usage.notice()` count a marks
+   folder or process they can't read as **unmarked**, so every session stays quiet when usage can't be read. Why, in
+   the lead's words: these hooks run in every session on the laptop, the owner's rule #254 is quiet unless used, and
+   the flip costs only a missed reminder in a used session while its marks are broken. Held work stays held, and shows
+   at the next tool call and in the CLI. A `.told` file that can't be written or read still tells: the session's mark
+   was read, so it is known to have used the tools. Recorded in `usage.py`'s docstring, the README (marks paragraph
+   and a new known limit), and `hooks.py`'s comment on a raising `used()`.
+3. **Nits.**
+   - The stale sentences are fixed: `usage.py`'s docstring and the README now say both managed commands add a shell.
+     The README's "pipe never breaks" now says it holds while the hook's code runs (review note 4c).
+   - The CI placeholder above is filled.
+   - Each of the review's four surviving mutations now has a test. `test_input_that_cannot_be_read_is_quiet` covers
+     an unused session's read that raises. The `oversized by whitespace` case covers a valid object padded past
+     6 MiB, which is still refused and never read as a request. `test_the_failure_reason_is_bounded_and_shows_hidden_characters`
+     covers `shortened` and `visible`.
+
+Tests changed:
+- `test_stop_hook.Hook.failures` carries a `told` expectation for each case. It has new cases for the review's lone
+  surrogate, invalid UTF-8, `stop_hook_active` missing or not a boolean, and oversized by whitespace. Every case is
+  quiet under `stop_hook_active: true`.
+- `test_ingress_bounds` (raw bounds, schema types, guard) and `test_strict_json` now put `"stop_hook_active":false`
+  in their inputs where they expect the block.
+  - The raw-bounds `bytes` case (cut at the bound) is quiet.
+  - Its `depth` case (1200 levels) may go either way, because lenient parsing depends on Python's recursion limit:
+    3.14 reads it.
+- `test_integration.test_malformed_hook_input_gives_explicit_failure_feedback` adds the review's surrogate input,
+  once with false (told) and once with true (quiet).
+- `test_service_fixes`:
+  - `test_unreadable_marks_or_processes_count_as_unmarked`, `test_unreadable_marks_never_tell_and_record_nothing`
+    (both renamed);
+  - the link and FIFO tests now expect `False`.
+
+Mutations, round 1 (same method; `git status` clean afterwards):
+
+| Mutation | Result |
+|---|---|
+| R1 no lenient read: unparsed input blocks (round 0's rule) | killed (20) |
+| R2 input unreadable even leniently blocks | killed (4) |
+| R3 a missing `stop_hook_active` counts as false | killed (2) |
+| R4 lenient decode without `errors='replace'` | killed (1) |
+| R5 lenient decode keeps a BOM | killed (1) |
+| R6 `used()`: an unreadable session counts as used (18e) | killed (2) |
+| R7 `used()`: an unreadable folder counts as used (18e) | killed (2) |
+| R8 `notice()`: an unreadable session tells (18e) | killed (2) |
+| R9 `notice()`: an unreadable folder tells (18e) | killed (1) |
+| N1 (review) no `try` around an unused session's read | killed (4) |
+| N2 (review) `read(WIRE_LIMIT)` instead of `+ 1` | killed (2) |
+| N3 (review) failure reason not `shortened` | killed (1) |
+| N4 (review) failure reason not `visible` | killed (1) |
+
+Local, round 1: `generate.py --check` passes. Running `test_stop_hook` (8), `test_ingress_bounds`, `test_strict_json`,
+`test_service_fixes`, `test_slim_policy`, `test_unit`, `test_policy_sources` and `test_operations` gives 109 tests. The
+failures are exactly main's environmental set here (no `/etc/claude-code`, vendor or root), less one. The boundary
+`test_interactive` (14) and `test_native` (11) pass.
+
+CI, round 1: (run IDs in the lead's report; this file is updated with the next push.)
