@@ -272,18 +272,21 @@ class ServiceModesTest(unittest.TestCase):
                     if isinstance(node, ast.Assign) and [ast.unparse(t) for t in node.targets] == [name])
 
     def test_the_socket_modes_are_the_ones_daemon_py_sets(self):
+        # Since 18e's fix round 2 (main): __init__'s loop makes each socket with listen(directory, kind), which binds
+        # a temporary name, chmods it to SOCKET_MODES[kind] and renames it into place.
         tree = ast.parse((ROOT / 'control/aresos_control/daemon.py').read_text())
         daemon = next(node for node in tree.body if isinstance(node, ast.ClassDef) and node.name == 'Daemon')
         init = next(node for node in daemon.body if isinstance(node, ast.FunctionDef) and node.name == '__init__')
         loop = next(node for node in ast.walk(init) if isinstance(node, ast.For) and ast.unparse(node.target) == 'kind')
-        chmod = [node for node in ast.walk(loop) if isinstance(node, ast.Call) and ast.unparse(node.func) == 'os.chmod']
-        self.assertEqual(len(chmod), 1)
-        expression = chmod[0].args[1]
-        # Only the loop's kind decides the mode: a constant, or a choice between constants by kind.
-        self.assertEqual({node.id for node in ast.walk(expression) if isinstance(node, ast.Name)}, {'kind'})
-        mode = compile(ast.Expression(expression), 'daemon.py', 'eval')
-        sockets = {f'{kind}.sock': eval(mode, {'__builtins__': {}}, {'kind': kind})
-                   for kind in ast.literal_eval(loop.iter)}
+        calls = [ast.unparse(node) for node in ast.walk(loop) if isinstance(node, ast.Call)]
+        self.assertIn('listen(directory, kind)', calls)
+        listen = next(node for node in tree.body if isinstance(node, ast.FunctionDef) and node.name == 'listen')
+        chmod = [node for node in ast.walk(listen)
+                 if isinstance(node, ast.Call) and ast.unparse(node.func) == 'os.chmod']
+        self.assertEqual([ast.unparse(node.args[1]) for node in chmod], ['SOCKET_MODES[kind]'])
+        modes = next(ast.literal_eval(node.value) for node in tree.body if isinstance(node, ast.Assign)
+                     and [ast.unparse(t) for t in node.targets] == ['SOCKET_MODES'])
+        sockets = {f'{kind}.sock': modes[kind] for kind in ast.literal_eval(loop.iter)}
         self.assertEqual(sockets, self.constant('SOCKET_MODES'))
         folder = [keyword.value for node in ast.walk(init) if isinstance(node, ast.Call)
                   and ast.unparse(node.func) == 'directory.mkdir' for keyword in node.keywords if keyword.arg == 'mode']
@@ -322,6 +325,48 @@ class ServiceFixesTest(unittest.TestCase):
         self.assertIn('"Admin commands need sudo: run sudo aresos admin " + " ".join(command) + " (same options)."', cli)
         self.assertEqual(self.constant('ADMIN_HINT'), 'Admin commands need sudo: run sudo aresos admin '
                          + ' '.join(['testapp', 'fixture_configure']) + ' (same options).')
+
+    def test_check_6s_held_work_texts_are_the_merged_hooks(self):
+        # 18e fix round 2: the Stop reason and the prompt context end with REMINDER right after the held work's JSON.
+        sys.path.insert(0, str(ROOT / 'control'))
+        self.addCleanup(sys.path.remove, str(ROOT / 'control'))
+        from aresos_control import hooks
+        self.assertEqual(self.constant('HELD_REMINDER'), hooks.REMINDER)
+        self.assertTrue(hooks.NOT_RUNNING.startswith(self.constant('NOT_RUNNING')))
+        pending = {'items': [{'id': 'op-1', 'state': 'reserved'}], 'total': 1, 'cursor': None}
+        reason = hooks.output({'hook_event_name': 'Stop'}, pending)['reason']
+        prompt = hooks.output({'hook_event_name': 'UserPromptSubmit'}, pending)
+        context = prompt['hookSpecificOutput']['additionalContext']
+        for text in (reason, context):
+            self.assertTrue(text.startswith(self.constant('REMINDER')), text)
+            self.assertTrue(text.endswith('}' + self.constant('HELD_REMINDER')), text)
+        folder = pathlib.Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, folder)
+        actions, sessions = layer(folder / 'home')
+        # The continuation's newest user text, as check 6 reads it, holds the reason's end.
+        tail = sessions.last_user_text([{'role': 'user', 'content': 'ORDINARY_OWNER_TURN_12'},
+                                        {'role': 'user', 'content': [{'type': 'text', 'text': 'Stop hook feedback:\n'
+                                                                      '[cmd]: ' + reason}]}])
+        self.assertIn('}' + actions.HELD_REMINDER, tail)
+        # The prompt context: the first request carrying held work is the resume prompt's, in the merged wording.
+        path = folder / 'requests.json'
+
+        def first_carrying(*messages):
+            path.write_text(json.dumps([{'messages': [{'role': 'user', 'content': 'ORDINARY_OWNER_TURN_12'}]},
+                                        *({'messages': [message]} for message in messages)]))
+            return actions.held_context(path, sessions.RESUME)
+        resume = {'role': 'user', 'content': [{'type': 'text', 'text': context},
+                                              {'type': 'text', 'text': sessions.RESUME}]}
+        old = {'role': 'user', 'content': [{'type': 'text', 'text': context.removesuffix(hooks.REMINDER)},
+                                           {'type': 'text', 'text': sessions.RESUME}]}
+        stop_only = {'role': 'user', 'content': [{'type': 'text', 'text': reason}]}
+        self.assertTrue(first_carrying(resume, stop_only))
+        self.assertFalse(first_carrying(old, stop_only))          # the wording before fix round 2
+        self.assertFalse(first_carrying(stop_only, resume))       # the held work first reached it at a stop
+        self.assertFalse(actions.held_context(folder / 'missing.json', sessions.RESUME))
+        source = (CONTROL_CI / 'actions.py').read_text()
+        self.assertIn("expect(row['reminder_in_stop_reason'] and row['reminder_in_prompt_context'], "
+                      "'the held-work wording', row)", source)
 
     def test_check_6_lets_the_unit_fail_by_its_start_limit(self):
         actions = (CONTROL_CI / 'actions.py').read_text()

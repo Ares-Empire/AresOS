@@ -775,7 +775,7 @@ def write_as_owner(path, data):
 # tools) and goes through two outages. The second starts while the service has failed, after the desktop session
 # came up again (agreed change 6), and gets our tools once the service is back, without a restart. The third leaves
 # its send reserved (the owner answers No); the fourth, fresh and never using our tools, ends its turn while that
-# work is held (SECURITY-REVIEW-A1 F1: needs PR #69's fix round, which gives held work the usage gate).
+# work is held (SECURITY-REVIEW-A1 F1: PR #69's fix round, now merged, gives held work the usage gate).
 # Per turn: (session, service during the turn, what his model calls, notices, his answer to our ask).
 NOTE = 'mcp__notes__note'
 LIST = 'mcp__testapp__list'
@@ -790,6 +790,10 @@ ORDINARY_TURNS = [
     ('held-work', 'healthy, its send left reserved', PREPARED, 0, 'No'),
     ('fresh-beside-held', 'healthy, another session holds work', NOTE, 0, None)]
 NOT_RUNNING = 'AresOS tools are not running'
+# 18e fix round 2 (hooks.py REMINDER): the held-work Stop reason and the prompt context both end with these words,
+# right after the held work's JSON. Only a session that used the tools gets either.
+HELD_REMINDER = (" Don't complete, cancel, resend or acknowledge this work on your own: tell the owner what is "
+                 "waiting, and let him decide.")
 # The client's texts for a lost connection; a stopped service is never one any more (18e).
 LOST = ('Service connection lost', 'operation_status')
 # 18e check 10: a hook ends at once; the CLI and the proxies wait up to 3 s for a starting service, the hooks don't.
@@ -1002,6 +1006,19 @@ def desktop_with_service_failed(failed):
                 prism_scope=desktop['prism_scope'], runtime=runtime, supervisor_log=desktop['supervisor_log'])
 
 
+def held_context(requests_path, resume):
+    """The held-work session's prompt context in the merged wording (18e fix round 2): the first of its model requests
+    that carries held work is the one after the driver's resume prompt (its first prompt came before any use), and it
+    holds REMINDER's words right after the held work's JSON. Read from the messages as Claude Code sent them."""
+    if not pathlib.Path(requests_path).exists():
+        return False
+    for item in json.loads(pathlib.Path(requests_path).read_text()):
+        text = json.dumps(item.get('messages'))
+        if REMINDER in text:
+            return resume in text and '}' + HELD_REMINDER in text
+    return False
+
+
 def ordinary(request):
     sessions, _ = layer_modules()
     wait_active()
@@ -1166,12 +1183,17 @@ def ordinary(request):
                 expect(row['operation_state'] == 'done', 'the send', row)
         elif call == PREPARED:
             # Used, and its send left reserved by his No: this session holds work, and its own Stop hook tells it so
-            # (before PR #69's fix round as after it: the gate is on use, and this session used the tools).
+            # (the gate is on use, and this session used the tools: its preparation's result named the operation).
             expect(turn['prompt_shown'] and turn['operation_id'] and not told, 'the No turn', row)
             if turn['operation_id']:
                 row['operation_state'] = probes.get('held_operation_state')
                 expect(row['operation_state'] == 'reserved', 'the send held by his No', row)
             expect(row['stop_continuations'] >= 1, 'the session that holds work is told', row)
+            # In the merged wording: the Stop reason (the continuation's newest user text) and the resume prompt's
+            # context (the first request of the session that carries the held work) end with REMINDER after the JSON.
+            row['reminder_in_stop_reason'] = any('}' + HELD_REMINDER in tail for tail in turn['continuation_tails'])
+            row['reminder_in_prompt_context'] = held_context(out / case / 'model/requests.json', sessions.RESUME)
+            expect(row['reminder_in_stop_reason'] and row['reminder_in_prompt_context'], 'the held-work wording', row)
         else:
             expect((row['stop_continuations'], row['notices'], row['notice_on_screen']) ==
                    (notices, notices, bool(notices)), 'the notice', row)
@@ -1218,7 +1240,7 @@ def ordinary(request):
     expect(desktop.get('desktop_state', {}).get('state') == 'SETUP' and desktop.get('service', {}).get('ActiveState')
            == 'failed', 'the desktop session with the service failed', {k: v for k, v in desktop.items()
                                                                           if k != 'supervisor_log'})
-    # SECURITY-REVIEW-A1 F1 (passes with PR #69's fix round, which gives held work the usage gate): the held-work
+    # SECURITY-REVIEW-A1 F1 (PR #69's fix round, merged, gives held work the usage gate): the held-work
     # session was marked as one that used the tools; the fresh session beside it was not, ended its turn without a
     # Stop block or an extra model request (the rows above), and none of its model requests carried the held work.
     held = probes.get('held_operation')
@@ -1234,6 +1256,10 @@ def ordinary(request):
             if (held and held in text) or REMINDER in text:
                 carried.append(index)
     beside = next((row for row in rows if row['session'] == 'fresh-beside-held'), None)
+    holder = next((row for row in rows if row['session'] == 'held-work'), None) or {}
+    held_work = {name: holder.get(name) for name in (
+        'operation_state', 'model_requests', 'extra_model_requests', 'stop_continuations', 'resumed_after_no',
+        'reminder_in_stop_reason', 'reminder_in_prompt_context', 'own_stop_runs', 'on_screen')}
     held_elsewhere = dict(operation_state=probes.get('held_operation_state'),
                           pending_total=(probes.get('pending_beside_held') or {}).get('total'),
                           requests_carrying_it=carried, released=probes.get('held_released'),
@@ -1285,7 +1311,7 @@ def ordinary(request):
             greetd_sessions=[sorted(session for session, values in (desktop.get(name) or {}).items()
                                     if values.get('Service') == 'greetd')
                              for name in ('sessions_before', 'sessions_after')]),
-        held_elsewhere=held_elsewhere)
+        held_work=held_work, held_elsewhere=held_elsewhere)
     files = {'ordinary/summary.json': dict(summary, rows=rows, service=service, probes=probes, settings=settings),
              'ordinary/own-hooks.jsonl': log.read_text() if log.exists() else ''}
     sizes = packed(files, {f'ordinary/{name}.tar.gz': out / name for name in cases}, errors)
