@@ -2,6 +2,212 @@
 
 Builder steps keep this file; the last step turns it into the report. Newest state first.
 
+## Step 11 (2026-11-16, Claude agent on Opus 5.5): main merged, the time refusal, groups 14 and 16
+
+Opus: built against the lead's brief for this step, the brief's "Tests" (groups 14 and 16) and step 10's "Left, in
+order" item 1.
+
+### Done
+
+- **`origin/main` merged** (`25d3b91a`, a merge commit; `main` at `e9fd8ffc`, 152 commits past the merge base
+  `70538b71`: PRs #87, #83, #89, #69, #86, #48 and the handoffs). No conflict. **Four files changed on both sides;**
+  for each, the merged file's change lines against each parent are exactly the other side's change lines against the
+  merge base (`git diff -U0`, compared line by line), so nothing was dropped or doubled:
+  - `chrome/definitions.py`: `main` dropped the `SHARED` sentence "On stale_reference or stale_approval, read and
+    prepare again; …"; the branch's switch and `OUTLINE` stand as they were. The instructions are 4,093 characters
+    (`efficiency-summary.py`'s `sizes`); this step adds nothing to them.
+  - `engine.py`: `main`'s `NOTICE_RETRY` and `next_deadline` (#69) beside the branch's call clock in `request`.
+  - `run.sh`: `main`'s comment on the store's size beside the branch's switch on the two process lines.
+  - `ci/service.py`: `main`'s fixture runtime (#87, `qualification_fixture.install` before the first `Engine`)
+    beside the branch's fixture holds.
+  PR #91 (the managed Stop hook) is still open, so it isn't in.
+- **#87's fixture runtime, where this branch reads the qualification record:**
+  - **Tests:** the branch's modules that build an engine (`test_outline_action`, `test_outline_time`) import
+    `test_engine`, which installs the runtime on import (#87's one seam); so does the switch probe's child process,
+    which imports `test_outline_action`. That child writes a held record of its own (`{'entries': []}`), which the
+    shipped copy's 8 attested entries (#83) would refuse as `qualification_rollback`. The two `Switch` tests now pin
+    that it runs from `.work/20-chrome/fixture-runtime/<build>` with an empty shipped copy (`assert_fixture_runtime`).
+    Checked by mutation: without `test_engine`'s `install`, both fail.
+  - **The harness:** every service in CI starts as `control/chrome/ci/service.py` (`run.sh`, and `admin.py`'s restart
+    for GROUP 9), which installs the runtime before its first `Engine`; the efficiency container and the latency
+    pair's old runtime run the current `ci/` folder's copy. No other branch file reads the record.
+  - `test_qualification_fixture` (#87's proof, among it "the harness installs the runtime before its first Engine")
+    passes on the merged tree.
+- **JUDGMENT-CALL 9 reversed, as the lead decided** (`463abde4`):
+  - `background.js`: a message whose `time_left_ms` is present and isn't a whole number of milliseconds, 0 or more
+    (`Number.isSafeInteger`, at least 0), is refused in its turn of the queue, unrun:
+    `invalid_input: time_left_ms must be a whole number of milliseconds, 0 or more; the command was not run`, audit
+    phase `invalid_time`. 0 stays a time that is up (`expired`, not started). A message without it runs as before.
+  - `bridge.py` passes `invalid_input` on as its code (before, any code outside its list became `refused`). No
+    other extension answer starts with it. In the adapter it isn't a tab's error, so the read's whole call fails
+    with it (PLAN-GAP 1).
+  - Tests: `background.test.mjs` (2): nine malformed times (`-1`, `1.5`, `-0.5`, `'500'`, `null`, `true`, `{}`,
+    `[5]`, `2**53`) each refused in order with that text, `0` expired, only the two good commands started; and the
+    same queue with the refusal cut out of the source (`replaceAll`, exactly once) runs every malformed command
+    without a time. That second test is the mutation, run in CI, where Node is (JUDGMENT-CALL 3).
+    `test_outline_time.py`: `Wire`, the real `Bridge` on a socket pair: the extension's refusal reaches the service
+    as `invalid_input` with its message, the connection stays, the next command gets its own answer; `Read` (and
+    `Call`, which inherits it): an `invalid_input` for the second of three tabs fails the call, the third isn't read.
+    Checked by mutation: the bridge's list without `invalid_input` fails the `Wire` test; `invalid_input` among the
+    adapter's `TAB_ERRORS` fails the `Read` test.
+- **Group 16's read rows in CI** (`7082fe7e`):
+  - `efficiency-probe.mjs`: `OUTLINE_TASKS`, the six rows of the brief's table through `chrome_outline`, each with
+    exactly its calls: F1's first read (`{tab}`, the whole outline: no cursor); F1 everything (`full`, `max` 40,000,
+    then each cursor; every paragraph and field, no fold); F1's 80 fields (the form line's `ref`, after a first
+    read with the new read that isn't counted); F2's table (the `table "Stock"` line's `ref`, `max` 40,000, every
+    cell quoted); F3 (`find` and `role: link`); three tabs (`tabs`). They run in the same rounds as brief 20's
+    tasks, so every run measures both, one warm-up and five measured runs.
+  - `efficiency-summary.py`: `read_rows` checks each row: its calls and the most characters of any measured run
+    against the budget (`OUTLINE_ROWS`, the brief's numbers) and against the frozen baseline's row, and its median
+    time against 1.10 times brief 20's median for the same row **in the same run** plus 50 ms (JUDGMENT-CALL 1). For
+    F1's first read that is the brief's latency comparison; it is written as `latency_comparison`, an entry in the
+    shape the baseline file's `latency_comparisons` takes. The record (`efficiency-measured.json`, now with
+    `read_rows` and `read_row_misses`) is written first; then every miss prints `EFFICIENCY MISS …` and the step
+    fails. The step is now "Efficiency tasks with brief 20's tools and the new read".
+  - Tests: `test_efficiency.ReadRowsTest` (4): the rows are the brief's table and name the baseline row they
+    measure, and `OUTLINE_TASKS` (read from the source) has the same names, rows and only `outline` calls; rows that
+    hold give no miss and the comparison entry; each kind of miss (one run over a budget though the median isn't,
+    calls, worse than the baseline where the row has no budget of its own, time, outcome, a row or its brief 20 row
+    not measured); the step fails after writing the record. Checked by mutation (each fails): misses only at twice
+    the allowance; the median instead of the most characters of a run; 100 ms of slack instead of 50; `main` not
+    failing. `efficiency.test.mjs`: the fake service answers `outline`, and the probe test covers all 17 tasks (old
+    and new F1 first reads in every run, the references a row passes, the three tabs).
+- **Group 14's reading cases in CI** (`outline-read.mjs`, in the core shard right after the time cases, Control
+  Chrome's own runs only; a failure is kept and fails the shard at its end, like the time cases'):
+  1. **Passwords** (GROUP 7's page): the outline, `full`, `find` and `until` hold no password value; `until` on part
+     of it is not met. No argument names the whole value.
+  2. **Two tabs of one page** (F3 twice): both reads issue references with the run's one set of letters, no string
+     is in both outlines, every reference of tab A read in tab B is `stale_reference`, and tab A's own still reads.
+  3. **`find` with `role`** on F3: one hit, the link.
+  4. **Paging** (F1 in its own tab): `full` by pages of 40,000 and of 10,000 joins to the same text, each page
+     advancing; all 120 paragraphs and 80 values, no fold and no cut; a cursor with another query (none, or `find`)
+     is `invalid_input`.
+  5. **The state token** (F1 in Claude's tab): after `chrome_fill_form` types a value, the cursor taken before is
+     `stale_reference`, and `until` on that value alone is met.
+  6. **F6:** `until` is met by text in the nested second-site frame; `full` reads the open and closed roots, the
+     root in a root, the second site's frame and its closed root, and the nested frame.
+  7. **Addresses** (a new fixture, `efficiency-address`): one 40-character marker under `code`, `access_token`,
+     `sig`, `session` and an ordinary name, in the fragment, as a user name and password, after `/reset/`, in link
+     targets, a form's action and a frame's address, and in the page's own address. It is in no result: the
+     outline, `full`, `find`, and each link's, the form's and the frame's read by `ref`. The page's `url` and the
+     video link's detail read show `v=dQw4w9WgXcQ`, `q=red+shoes` and `page=2` beside a hidden `…`.
+  Each read's whole result is kept in `/out/outline-read/calls.jsonl` and each joined text in `/out/outline-read/`,
+  for the expected outlines (left, below). `efficiency.test.mjs` checks the fixture (the marker in each place).
+- **Local checks** (no Node, no browser):
+  - `PYTHONPATH=control python3 control/generate.py --check`: "Generated artifacts match definitions".
+  - `… -m unittest test_publisher test_qualification test_credentials test_efficiency test_view_address
+    test_view_budgets test_view_hostile test_view_nodes test_view_outline test_view_paging test_view_references
+    test_outline_action test_questions test_unit test_latency test_restore_lock`: 320 tests, OK.
+  - `… -m unittest test_engine test_policy test_sites test_bridge test_outline_time test_qualification_fixture`: 123
+    tests, OK.
+  - The JavaScript: a bracket, string, template and regex balance check of every changed file (a script in the
+    scratchpad, not committed). Its first run is CI.
+
+- **Group 16's read rows, measured** (run 43909316087, `latency (plain)`, step "Efficiency tasks with brief 20's
+  tools and the new read", on the pull request's merge commit `6500d906`): every row holds on its first run.
+  Characters are the median of the five measured runs as Claude receives them; the budget is checked on the largest.
+
+  | Row | Budget | Brief 20, this run (calls, characters, ms) | New read (calls, characters, ms) |
+  |---|---|---|---|
+  | F1: the first read | 1 call, 6,000 | 1, 17,839, 60.2 | 1, 3,955, 34.4 |
+  | F1: everything | 3 calls, 75,000 | 14, 252,132, 773.9 | 2, 60,682, 64.5 |
+  | F1: the 80 fields | 1 call, 6,000 | 2, 17,906, 127.9 | 1, 5,115, 26.0 |
+  | F2: the whole table | 1 call, 23,600 | 53, 990,529, 9,895.7 | 1, 23,121, 57.0 |
+  | F3: find the one link | 1 call, 800 | 1, 1,867, 64.9 | 1, 450, 36.1 |
+  | Compare three open tabs | 1 call | 3, 55,309, 338.4 | 1, 4,995, 108.3 |
+
+  The frozen baseline's calls and characters are within a few characters of brief 20's in this run (F1's first read
+  17,840 there). **The latency comparison** (the first read of F1, five measured runs each after a warm-up, one run):
+  `chrome_read` median 60.2 ms (58.6, 60.2, 60.8, 59.5, 60.3), `chrome_outline` median 34.4 ms (33.9, 34.4, 34.2, 34.8,
+  37.6); allowed 116.2 ms (1.10 × 60.2 + 50): passed. Both latency legs passed PR #27's gate on their first attempt. The
+  numbers sit closest to their budgets at F2 (23,121 of 23,600) and F1's fields (5,115 of 6,000); the unit budgets
+  (`test_view_budgets`) gave 23,066 and 4,899 on the node lists.
+
+  **Run 13 (43919373436, on the merge commit `e89bb972`) holds every row again,** within a few characters and
+  milliseconds: the new read's rows 3,956 / 60,684 / 5,116 / 23,122 / 451 / 4,998 characters and 33.7 / 61.9 / 23.7 /
+  52.5 / 34.9 / 103.2 ms; the comparison `chrome_read` 55.3 ms (52.7, 55.3, 55.3, 55.1, 56.0) against `chrome_outline`
+  33.7 ms (31.3, 33.7, 33.1, 36.6, 36.3), allowed 110.8: passed.
+- **Group 14's read cases pass in both core shards of run 13** (external and policy), on their first run: the
+  passwords; two tabs of F3 (21 references each, none shared, each of A's refused in B); `find` with `role`; paging
+  (F1 in full: 2 pages at 40,000, 7 at 10,000, the same text); the token and `until` on a value; F6; the addresses.
+  The four time cases pass beside them (five tabs 2.36 s, the held reply 7.51 s, the held approval check 1.01 s).
+
+### Runs
+
+| Head | Holds | Control Chrome | Result |
+|---|---|---|---|
+| `7082fe7e` | the merge, the time refusal, groups 14 and 16 | 43909316087 (run 12; qualification 43909316215); Mail 43909316207 | **Red, one cause: my own Node assertion.** In every fixtures shard `node --test` passed 474 of 475: `efficiency.test.mjs` expected the fake's three tabs to be 10 to 12, but `open_fact` opens a tab in every run before them (16 to 18). Each fixtures shard stops at a failed Node suite, so no browser case ran (group 14's read cases didn't run), and the aggregates fail on it. Everything else green: `package`, `native-precedence`, the four Python shards, **both latency legs on their first attempt and the efficiency step with every read row** (above). The new background tests (the malformed time and its mutation) passed. Control Mail, base, boundary and Repo privacy green. Qualification 43909316215: 19 jobs red, 9 green when I cancelled it as superseded (its jobs run the same Node suite; not read further). |
+| `467afcf3` | + the three tabs compared with brief 20's row | 43919373436 (run 13; qualification 43919373435); Mail 43919373742 | **Control Chrome green on its first attempt, 28 of 28 jobs:** `package`, `native-precedence`, the four Python shards, both latency legs (PR #27's gate) and the efficiency step with every read row (above), every fixtures shard in both install modes, both aggregates. `node --test` 475 of 475 in every fixtures shard (the two new background tests among them). Group 14's time and read cases pass in both core shards (above). Control Mail, base, boundary and Repo privacy green. Qualification 43919373435 green, 34 of 34 jobs. |
+
+Thirteen full `control-chrome` runs started so far, twelve of them run through (run 10 was cancelled); run 12's
+qualification run was cancelled as superseded.
+
+### Left, in order
+
+1. **The latency comparison into the baseline file:** append the efficiency step's `latency_comparison` (in
+   `efficiency-measured.json`, artifact `chrome-efficiency-<run>-<attempt>`) to `efficiency-baseline.json`'s
+   `latency_comparisons`, from a green run of the final head; only that list may grow (`test_efficiency`'s digest).
+   Run 13's entry (above) is the first from a green run. Not done here: a change to that file is a code push and
+   starts a full run of its own.
+2. **Group 14's cases not built yet** (each in the brief's "Tests"):
+   - **Passwords:** the taken-tab fixtures (a field made plain by `type`, `autocomplete`, a mask, in the page, open
+     and closed roots and a cross-site frame), the sign-in code known by its name, the late shadow root met in a
+     watched document, what an unwatched document shows, the name rule, the honest limit, a form with an unread field
+     not sent (through `chrome_click` and `chrome_press`, with the receiver's log), and every surface of brief 20's
+     tools; each case registered in `ci/verdicts.mjs`'s `password_exclusion`, the refused-form cases in `binding`.
+   - **References:** Chrome restarted and the extension's connection cut, the service restarted (counter past the
+     old numbers), more than 5,000 elements in one tab (H1 `mode=many`), a tab released and taken again without a
+     reload.
+   - **Paging:** 100,000 characters by `ref` at `max` 1,000 (`mid_line` until the last), a row wider than `max`, a
+     value of 20,000 characters, non-ASCII and quote pages inside 48 KiB with a pending operation and the notice, five
+     tabs of such text.
+   - **The state token:** a change inside a frame, an unchanged page over 100 polls, `until` on a page that never
+     goes quiet.
+   - **H1:** the hostile roles and the hostile text in every place, the 100,000-character name.
+   - **The asking read** cases on the taken, not yet reloaded tab.
+   - **Expected outlines** of the small fixtures, character for character, committed from a green run's
+     `/out/outline-read/` (step 7: they have to come from the browser).
+3. **Step 12:** the harness map (`HARNESS-MAP.md`, with step 7's "For `HARNESS-MAP.md`"), the known limits for
+   section 6, and the report (this file's text, for the lead to commit).
+
+### What the code doesn't show
+
+- **The read rows run in the same container and rounds as brief 20's tasks,** after the latency pair, in the plain
+  leg only; one run of the probe now makes 17 tasks six times each.
+- **`efficiency-measured.json` now holds the read rows' tasks beside the baseline's,** plus `read_rows`,
+  `latency_comparison` and `read_row_misses`. The baseline file itself is unchanged.
+- **The read cases share Claude's tab with brief 20's groups:** the password case and the typing case navigate it
+  (the typing case leaves a typed value in F1, which the next `nav` discards with `discard_unsaved`); every other case
+  uses tabs of its own, closed at the end. They reserve nothing.
+- **The address fixture's page address carries the marker,** so brief 20's `chrome_open` result (written to
+  `/out/tool.jsonl`) shows it as brief 20 shows addresses; brief 28a covers brief 20's surfaces. The new read's
+  results are checked whole.
+- **`invalid_input` from the extension** can only come from a malformed time today; the bridge would pass it on from
+  any extension answer that starts with it.
+
+### JUDGMENT-CALLs (technical; for the lead)
+
+1. **"A number worse than the baseline", for time, is measured against brief 20's same row in the same run**
+   (1.10 × its median + 50 ms, the latency comparison's rule), not against the baseline file's milliseconds, which
+   come from another runner on another day. Calls and characters are compared with the frozen file. Cost to change:
+   the time check in `read_rows` and one test.
+2. **A budget's characters are checked on the largest of the five measured runs,** not the median the summary
+   reports. Stricter. Cost: one line.
+3. **The Node mutation is a second test in `background.test.mjs`** (the refusal cut out of the source, exactly once),
+   because no Node runs here; it stays as the guard that the first test's assertions depend on that line. Cost:
+   remove one test.
+4. **0 ms is a time that is up** (`expired`, not started), not a malformed one: the service never sends it, and it is
+   a whole number. Cost: one comparison.
+5. **Group 14's read cases sit outside `ci/verdicts.mjs`,** like the time cases: they run only in Control Chrome's own
+   core shards. Registering the password cases in `password_exclusion` and the refused-form cases in `binding` comes
+   with those cases (left, item 2). Cost: their registration then.
+
+### PLAN-GAPs
+
+1. **Paths allow `bridge.py` "only the reply wait and the draining".** The refusal's code needs one entry in the
+   bridge's list of extension codes; without it the service would report `refused`.
+2. **The brief doesn't say how a time is "worse than the baseline" across runs** (JUDGMENT-CALL 1).
+
 ## The lead after step 10 (2026-11-16)
 
 - **Run 11 is green on its first attempt:** Control Chrome 43884693090 (28 jobs, both latency legs first try, 472
