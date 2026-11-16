@@ -2,6 +2,215 @@
 
 Builder steps keep this file; the last step turns it into the report. Newest state first.
 
+## Step 10 (2026-11-16, Claude agent on Opus 5.5): the time
+
+Opus: built against the brief's item 4, the lead's brief for this step and step 9's "Left, in order" item 3. The
+summary there and item 4 say the same; nothing had to be chosen between them.
+
+### Done
+
+- **One deadline for a `chrome_outline` call** (`chrome/deadline.py`, new). `Deadline` is the call's clock, opened
+  by `engine.request` before its first look at pending and closed after the response is built
+  (`Chrome.call_time`, three lines in `engine.request`; PLAN-GAP 1). Only a `chrome_outline` request opens it, and
+  only while the switch registers the action; `outline` opens one itself when called directly (tests). Its seconds:
+  - the engine's first look checks each reserved approval by second 1 (`FIRST_LOOK`);
+  - `until` ends at `timeout_ms` counted from the start of the call, never after second 6 (`UNTIL`);
+  - every command of the read answers by second 7 (`COMMANDS`); with `tabs`, a tab's turn ends at
+    `now + (second 7 - now) / tabs still to read`, so the first of five gets 1.4 seconds and time a tab doesn't
+    use passes on;
+  - the looks after the read (the read's own measure, then the engine's response) check by second 7.25
+    (`LAST_LOOKS`; PLAN-GAP 3), so a stuck extension's half second of grace still ends at 7.75.
+- **The bridge** (`bridge.py`): `TimeLeft.bounded(end)` is the bound in force (a nested one keeps the earlier
+  end). Inside it `Bridge.call` sends `time_left_ms` beside the command, sends nothing once the time is up
+  (`expired`, "nothing was sent"), and waits for the reply until the end plus `GRACE` (0.5 s). Then it gives the
+  command up (`expired`) and keeps its id. A reply with a given-up id is dropped by its id, in `Bridge.call` and
+  when the daemon's loop reads it between requests (`read` marks it answered; `Chrome.event` does nothing with a
+  message without an event). If none has come `SOCKET_BOUND` (15) seconds after the command was sent, the next
+  wait closes the connection as the socket's own timeout does (`transport_error`). The extension's `expired`
+  answer is the code `expired`. Without a bound nothing changes: no `time_left_ms`, recv's own 15 seconds.
+- **The adapter** (`adapter.py`):
+  - `outline` reads under `bounded(second 7)`, each tab under its turn's end. `expired` makes that tab `not_read`,
+    "time ran out; read this tab by itself", and the others are returned. If the extension's settings command
+    (`mode`'s `configure`) runs out, no tab can be read and the call fails with `not_read` (JUDGMENT-CALL 5).
+  - The measure's look at pending comes after the read's commands, outside their bound.
+  - `pending_state`, inside a call: bounded by its look's end; `expired` gives `validity: unchecked` (the row
+    keeps its state and reason, never `refused`), and the operation isn't asked again in the same call. Any other
+    refusal stays a refusal.
+- **The extension** (`background.js`):
+  - **The queue:** its body moved into `enqueue(message)` (same `serial` chain, one command at a time). A message
+    with `time_left_ms` ends that long after it arrives (`performance.now()`). At the front of the queue a command
+    whose time is up isn't started: it answers `expired: ... it was not started` and audits `phase: 'expired'`.
+  - **The waits:** `dispatch(command, expires)` passes the end to the read's commands (`outline`, `page_state`,
+    `options`, `validity`, `typed_fields`, `read`, `facts`). `within(promise, expires)` ends a wait with
+    `expired`: the reader's reply in `content`, the late-reader recovery in `facts`, the popup setup waits and the
+    owner-dialog recovery in `requireTab`, the dialog opener wait in `readyDialog`. `facts` and `pageState` pass
+    `expired` on instead of counting the frame as unread, and `requireTab` doesn't release a popup whose opener
+    check ran out of time. A command without a time passes `null` and runs as before. Nothing in `input`.
+- **CI:**
+  - `prepare.mjs`: every rewrite must match exactly once (`exactly`). `dispatch`'s new signature had made the old
+    `fixture_network_restart` rewrite match nothing, silently; it now finds either signature (the latency pair's
+    old runtime keeps the old one). The fixture builds get two holds (only on a runtime with item 4):
+    `fixture_hold_reader` holds one tab's reader replies by `ms` for `duration` (optionally only some commands),
+    `fixture_hold_reply` holds the extension's own reply to the next command of a name and tab by `ms`.
+  - `service.py` sends a hold after the admin request it rides on (`admin.py`, `{fixture: 'hold'}`), so that
+    request's own looks aren't held. `admin.py`'s service restart (GROUP 9) now carries the switch too.
+  - `call.py`: `--command` goes through the `aresos` command, `--timed` prints the seconds of the call alone.
+  - `outline-time.mjs` (group 14's time cases), in the core shard of Control Chrome's own runs right after GROUP 1,
+    through the proxy and the command (JUDGMENT-CALL 7):
+    1. `until` on a text that never comes, `timeout_ms` 6000, through both: `until_met: false`, at least 5.5 and
+       under 8 seconds;
+    2. five tabs, the third's reader held: four outlines and its `not_read`, under 8 seconds; the next call gets
+       its own answer while the held reply is still out, and the held tab reads normally once it came;
+    3. the extension's own reply to an outline held 9 seconds: `not_read` under 8 seconds, then the next call
+       waits behind it, drops the late reply by its id and gets its own answer;
+    4. an approval prepared on the compose page whose `ready` replies are held: a read of another tab ends under
+       8 seconds and the approval's row is `reserved`, `unchecked`; then dropped and acknowledged.
+    A failure is kept and fails the shard after brief 20's cases have run. `/out/outline-time.jsonl` records each
+    call (seconds, entries, errors, pending rows; no page text).
+  - `latency-instrument.mjs`: its `content` and `dispatch` wrappers pass on what they don't name (the time).
+- **Tests:**
+  - `test_outline_time.py` (new, 33): `Times` (the seconds fit inside the call and the client's 10; the bridge's
+    bound is the daemon's `settimeout`; a nested bound); `Wire`, the real `Bridge` on a socket pair with the test
+    as the extension (time on the wire and none without a bound; nothing sent when the time is up; a reply in time
+    with an event before it; the extension's `expired`; given up at its time plus half a second with the
+    connection open; a late reply, whole and in chunks, dropped by its id and the next command gets its own; a
+    late reply read by the daemon's loop is never overdue; no reply at all closes at the bound, with an untimed
+    and a timed next command; an untimed command waits as before); `Read` and `Call`, the adapter and
+    `engine.request` with a fake bridge on a fake clock (every command of a tab carries the time to second 7; a
+    reader that never answers is `not_read` at second 7; five tabs' shares, the first 1.4, the third more than the
+    second, the slow first costing only its share; `until` from the call's start and never past second 6; a poll
+    running out; `configure` running out; brief 20's read with an approval out carries no time; without the switch
+    nothing is timed; an approval whose check never answers is `unchecked`, asked once, the call ends at second
+    1.03; one that runs out after the read is `unchecked` with the measure's look bounded by 7.25; a refusal stays
+    a refusal; an invalid input closes the clock; five tabs through the engine end by second 7).
+  - `background.test.mjs` (5 new): a frame that never answers ends `outline`, `page_state`, `options`, `validity`,
+    `read` and `typed_fields` at their time with `expired`, without its dialog waiter and keeping control; a
+    command without a time waits as before; the queue starts no command whose time is up at the front, in order,
+    and a command without a time gets none; five tabs sent with the service's shares, the first silent: it expires
+    at its share and the other four answer, all inside the budget; a popup setup wait ends at the time, keeps
+    control and the setup, and waits as before without a time.
+  - `latency.test.mjs`: the time passes through both overlay wrappers. `test_outline_action.py`: `Outlines` keeps
+    the bridge's bound; the CI restart line carries the switch.
+- **Local checks** (no Node, no browser):
+  - `PYTHONPATH=control python3 control/generate.py --check`: "Generated artifacts match definitions".
+  - Step 9's first set (`test_publisher` ... `test_restore_lock`): 315 tests, OK.
+  - `… -m unittest test_engine test_policy test_sites test_bridge test_outline_time`: 114 tests, OK.
+  - `control/tests` `test_operations test_integration test_review21_pending test_review22_protocol
+    test_review23_results test_approval_questions`: 54 run, 25 failures and 19 errors, the same list on the
+    unchanged head (they need the installed boundary and root).
+  - The JavaScript: a bracket and string check of every changed file and of the test build `prepare.mjs` makes;
+    the rewrites it needs each match once on the current runtime, the old one on `ab7aba92`.
+- **Checked by mutation** (each run against `test_outline_time`, `test_outline_action` and `test_bridge`; every
+  one fails a test, and the file was restored after each):
+
+  | Broken | Fails |
+  |---|---|
+  | the bridge waits only to the end, no half second | given up at its time plus half a second |
+  | a late reply isn't dropped by its id | the late reply, whole and in chunks |
+  | `read` doesn't mark a late reply answered | the late reply read by the daemon's loop (closed as overdue) |
+  | no close at the socket's bound | both "no reply at all" tests (they then wait 15 seconds) |
+  | a tab's turn is all the time left, not an equal share | five tabs' shares; five tabs through the engine |
+  | `timeout_ms` counted from the start of the wait | `until` from the call's start |
+  | an unchecked approval is asked again in the call | the approval asked once |
+  | `engine.request` opens no clock | the two `unchecked` tests; the invalid input's clock |
+  | `expired` isn't turned into `not_read` | the reader that never answers, the poll, both five-tab tests |
+  | `expired` in a look becomes `refused` | both `unchecked` tests |
+  | the first look gets the time of the last | both `unchecked` tests; the invalid input's clock |
+  | the measure's look inside the commands' bound | a check that runs out after the read |
+
+  The Node tests and the JavaScript changes can't be mutated here (no Node); run 11 is their first run.
+
+### Runs
+
+| Head | Holds | Control Chrome | Result |
+|---|---|---|---|
+| `f018ccb1` | the deadline: service and bridge (`11f36428`), extension (`d0e4ea59`), CI cases (`f018ccb1`) | 43884313490 (run 10; qualification 43884313839) | **cancelled by me, a few minutes in:** reading the pushed code, `outline-time.mjs` imported `fixtureUrl` from `efficiency-fixtures.mjs`, which doesn't export it (`efficiency-probe.mjs` does), so `browser.mjs` couldn't load in any browser job. Its Mail, base, boundary and privacy runs were cancelled by the next push. |
+| `4bae420b` | + the import fixed | 43884693090 (run 11; qualification 43884693205); Control Mail 43884693352 | **Control Chrome green on its first attempt, 28 of 28 jobs:** both latency legs and the plain leg's efficiency step; the four Python shards (aggregate: 38 modules, 565 tests); every fixtures shard, both install modes; the aggregate (every browser shard, all 999 word cases, group 12). In both core shards the Node suite passes 472 of 472 (the first run of this step's JavaScript) and the four time cases pass: five tabs 2.36 s, the held reply 7.51 s, the held approval check 1.01 s, the `until` cases between 5.5 and 8 s (external 14:58 to 14:59 UTC, policy 15:19 to 15:20). Control Mail, Control base, Control boundary and Repo privacy green. Qualification 43884693205 green, 34 of 34 jobs. |
+
+Eleven full `control-chrome` runs started so far, ten of them run through (run 10 was cancelled). The brief planned about
+six and asked to hear before passing nine; the lead has the count from step 9. Run 11 is the first green run with the
+time on; the brief asks for CI green twice on the final head.
+
+### Left, in order
+
+1. **Groups 14 and 16 in CI** through `chrome_outline`, now reachable in every CI container: group 14's browser tests
+   (F6 and H1 exist; the time cases are in `outline-time.mjs`), group 16's rows on the browser's fixtures and the
+   latency comparison.
+2. **The harness map** (`HARNESS-MAP.md`, with step 7's "For `HARNESS-MAP.md`"), **the known limits** for section 6,
+   and **the report** (this file's text, for the lead to commit).
+
+### What the code doesn't show
+
+- **A look at pending asks each reserved approval twice:** `ordered_page` walks the rows once to count and digest
+  them and once for the page (PR #27's way). Inside a call, an approval that ran out in the first walk isn't asked
+  in the second, nor in a later look.
+- **The daemon reads a late reply between requests** with `bridge.read()` and passes it to `on_event`, where
+  `Chrome.event` does nothing with a message without an event. `read` marks the id answered, so it is never
+  overdue. `daemon.py` didn't change.
+- **A command the bridge gave up on may still finish in the extension** once it has started: for the new read
+  that is reading only. The queue check keeps one that hasn't started from starting.
+- **Commands with an effect under the read's time.** A held submission in the read's queued steps can need
+  `prepare_control` (a taken tab's first reload) through `free`. It carries the time like every command sent
+  inside the bound; given up, `free` records it `unknown`, "Input may have run", by its existing rule. The
+  extension doesn't bound that command's own waits (brief 28a adds the point before an input).
+- **What the 8 seconds cover:** the service's own clock, from before the first look to the built response. The
+  caller's process start and the socket come on top (CI's `--timed` measures the call alone). With a stuck
+  extension the last check ends at 7.75 seconds, then the response is built.
+- **`daemon.error_result`'s look** (only when `engine.request` itself raises) runs after the clock has closed,
+  untimed, as before.
+- **`admin.py`'s restart** (GROUP 9) started the service without the switch since step 9; group 14 cases after
+  GROUP 9 would have found no `chrome_outline`.
+- **The fixture holds** live only in the fixture build `prepare.mjs` makes for Control Chrome and the qualification
+  (not the latency pair's), and do nothing until a hold is set.
+- **Two command lines of steps 1 and 1b in this file named the laptop's home folder with its user name**
+  (`AGENTS.md` rule 6; the repo check looks only at macOS and Windows paths). They now say `owner`.
+
+### JUDGMENT-CALLs (technical; for the lead)
+
+1. **Approval checks get the time of their look:** the first look by second 1, the looks after the read by second
+   7.25, and one that runs out is `unchecked` for the rest of the call. One budget to second 7 for everything would
+   let a hung approval frame starve every read for 7 seconds. Cost to change: the constants in `deadline.py`,
+   `Deadline.look`, and the `Call` tests.
+2. **The time is a bound on the bridge (`bounded`), carried by every command sent inside it,** also by the shared
+   helpers the read calls (`mode`'s `configure`, the steps' `read`, `ack_steps` and `facts`, `free`'s
+   `tab_context` and `prepare_control`). Passing the time to each call site instead would change brief 20's
+   helpers' signatures. Cost to change: the adapter's three `bounded` uses and `pending_state`.
+3. **A frame that runs out makes the whole tab `not_read`,** as the brief's Node test says ("ends a read at its
+   time with `expired`"), rather than counting that frame as unread and returning the rest. A hung ad frame costs
+   the tab. Cost to change: the `expired(error)` clause in `facts` and `pageState`, and their tests.
+4. **`timeout_ms` counts from the start of the call** (before the first look), so `timeout_ms: 6000` is second 6
+   at most; step 9 counted from after `mode`. Cost: one line and one test.
+5. **The settings command running out fails the whole call as `not_read`** (no tab could be read) instead of a
+   `not_read` entry for each tab, which would need the version notice without `mode`. Cost: a few lines in
+   `outline`.
+6. **The unchecked row keeps the operation's own reason** ("Awaiting exact approval; nothing submitted.") and adds
+   only `validity: unchecked`. Cost: the `UNCHECKED` value.
+7. **The CI time cases run in the core shard right after GROUP 1,** before brief 20's matrices: after them, GROUP
+   9's `unknown` operations (which stay visible by design) fill the result's five-row pending page, so the
+   approval case couldn't see its row. They leave nothing pending (the approval is dropped and acknowledged, the
+   tabs closed). A failure is kept and fails the shard after brief 20's cases. They don't run in the qualification
+   run (`RUNTIME_COMMIT` set), which qualifies brief 20's tools. Cost: one block in `browser.mjs`.
+8. **One CI case beyond the brief's list:** the extension's own reply held past the bridge's wait, to show the
+   give-up and the drain by id through the real transport (the brief's held *reader* reply never reaches the
+   bridge, since the extension's own wait ends first). Cost: one case and one hold.
+9. **A `time_left_ms` that isn't a whole number runs as a command without time** in the extension (the service
+   always sends one). Cost: one line.
+
+### PLAN-GAPs
+
+1. **Item 4 starts the clock before the engine's first look at pending, which is in `engine.request`; the brief's
+   Paths don't list `engine.py`.** Built: a `with` around `request`'s body that opens the adapter's clock for
+   `chrome_outline` only.
+2. **Paths allow `bridge.py` "only the reply wait and the draining".** The time on the wire and the bound
+   (`TimeLeft`) live there too, and closing at the socket's 15 seconds needs `read` to mark a late reply answered,
+   since the daemon's loop reads it between requests.
+3. **Item 4 says "every command of a read has to answer by second 7" and "8 seconds in all", and nothing about the
+   looks after the read.** Built: they check by second 7.25 (`LAST_LOOKS`), so that with the bridge's half second a
+   stuck extension's last check ends at 7.75.
+4. **"The reply the test build releases late changes nothing":** with the extension's bounded waits a held reader
+   reply never reaches the service. Built both: the held reader reply (released after the call, the tab reads
+   normally) and a held extension reply (JUDGMENT-CALL 8).
+
 ## The lead after step 9 (2026-11-16)
 
 - **Run 9 is green on its first attempt:** Control Chrome 43826821669 (28 jobs, both latency legs included, on the
@@ -1136,7 +1345,7 @@ its outline. No stop rule was hit.
 ### What I ran and what it printed
 
 ```
-$ cd /var/home/ares/AresOS-28-chrome-read
+$ cd /var/home/owner/AresOS-28-chrome-read
 $ PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/chrome_tests python3 -m unittest test_view_address \
     test_view_nodes test_view_references test_view_outline test_view_paging test_view_hostile test_view_budgets
 ...........................................................................................................................................
@@ -1419,7 +1628,7 @@ null}}`; the browser step measures the real one. No stop rule was hit.
 ### What I ran and what it printed
 
 ```
-$ cd /var/home/ares/AresOS-28-chrome-read
+$ cd /var/home/owner/AresOS-28-chrome-read
 $ PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/chrome_tests python3 -m unittest test_view_address \
     test_view_nodes test_view_references test_view_outline test_view_paging test_view_hostile test_view_budgets
 .................................................................................................................................
