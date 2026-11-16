@@ -83,3 +83,12 @@ PR #89, one code push, head `2e4bfa22`. All green:
    notify step is the alarm. This reverses the 20-ci-noise builder's own call, as the lead's follow-up list asked.
    `attestation.py`'s `publisher_cases` in CI relies on the runner's `GITHUB_RUN_ID` (set on every GitHub runner).
    Only its unit test sets one. I didn't add a fixture ID inside the harness, so it keeps behaving like main.
+
+## Review and merge (lead, 2026-11-16)
+
+- `REVIEW-1.md` (fresh Opus reviewer): SAFE, two nits. CI green on `2e4bfa22` (six workflows, 48 checks).
+- JUDGMENT-CALLs 1-3 accepted. The read-only handle on `control.sqlite` exists only under the latency probe.
+- Nit 2 (PROGRESS said CI pending) was already fixed by `51276156`.
+- Nit 1 (the probe refuses WAL mode but not `locking_mode=exclusive`, where the counter stops moving) goes to the
+  Codex queue: assert `normal` at install, with a test. The store doesn't use exclusive locking today, and a
+  real-Store test already fails in that case.
