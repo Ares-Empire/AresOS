@@ -8,6 +8,7 @@ import dev.aresos.client.WorldSaves;
 import dev.aresos.shell.FakeHelper;
 import dev.aresos.shell.FakeSupervisor;
 import dev.aresos.test.mixin.AppsTestAccess;
+import dev.aresos.test.mixin.AutosaveTestAccess;
 import dev.aresos.test.mixin.ChatMessagesTestAccess;
 import dev.aresos.test.mixin.HudTestAccess;
 import dev.aresos.world.DesktopWorld;
@@ -53,6 +54,11 @@ import java.util.concurrent.atomic.AtomicReference;
  * and in it after, as a backup would copy it; the save opens no screen, pauses nothing and leaves nothing in the chat.
  * Then the refusals: no world, not a desktop world, a save still queued when the stop begins, and a request during
  * the stop.
+ *
+ * <p>Owner fix 1: the home screen shows no "Saving world" text. Outside it (the first save, before the test turns the
+ * session flag on) the save raises the text as Minecraft does. From then on, in a game the session started and a
+ * desktop world, every save raises it and no frame draws it: requested saves while playing, under the Esc menu and
+ * while covered, the game's own autosave and {@code save-all}, and the saves when pausing and closing in between.
  */
 public final class SaveNowClientGameTest implements FabricClientGameTest {
     private static final int Y = 150;
@@ -76,10 +82,13 @@ public final class SaveNowClientGameTest implements FabricClientGameTest {
             ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
                 if (arm.compareAndSet(server, null)) duringStop.set(askDuringStop(supervisor));
             });
+            ServerLifecycleEvents.BEFORE_SAVE.register((server, flush, force) -> SavingText.began());
+            SavingText.start();
 
             // The title screen: no world to save.
             refused(context, supervisor, 1, "no_world");
 
+            int framesBeforeHome;
             try (var world = context.worldBuilder().create()) {
                 var server = context.computeOnClient(Minecraft::getSingleplayerServer);
                 // A world that is not a desktop world still answers.
@@ -98,18 +107,28 @@ public final class SaveNowClientGameTest implements FabricClientGameTest {
                 String name = context.computeOnClient(ShellFocusClient::readyWorld);
                 check(name.equals(DesktopWorld.saveName(server)), "world_ready and world_saved name the world differently");
 
-                // Playing: saved, and still playing.
-                var playing = saveWithBlock(context, world, supervisor, folder, 3, new BlockPos(2, Y, 2), Blocks.GOLD_BLOCK, name);
+                // Playing in a game the session did not start: saved, still playing, and the "Saving world" text shows
+                // as in Minecraft.
+                context.runOnClient(client -> HomeScreen.forTests(false, null));
+                var playing = saveWithBlock(context, world, supervisor, folder, 3, new BlockPos(2, Y, 2), Blocks.GOLD_BLOCK, name, true);
                 context.runOnClient(client -> check(!client.isPaused() && client.gui.screen() == null && client.level != null,
                         "The save paused the game or opened a screen"));
                 serverPaused(context, world.getServer(), false, "The save paused the server");
+
+                // The home screen from here on: a game the session started, in a desktop world, the helper not
+                // connected (the cover below connects one). No frame may draw the text any more, for any save.
+                context.runOnClient(client -> HomeScreen.forTests(true, null));
+                framesBeforeHome = SavingText.frames();
+                var home = saveWithBlock(context, world, supervisor, folder, 10, new BlockPos(6, Y, 2), Blocks.LAPIS_BLOCK, name, false);
+                context.runOnClient(client -> check(!client.isPaused() && client.gui.screen() == null && client.level != null,
+                        "The save paused the home screen or opened a screen"));
 
                 // The Esc menu open: the server is paused, and still saves; the menu stays as it was.
                 context.runOnClient(client -> client.pauseGame(false));
                 context.waitFor(client -> client.gui.screen() instanceof PauseScreen && client.isPaused(), 200);
                 serverPaused(context, world.getServer(), true, "Fixture: the Esc menu did not pause the server");
                 var menu = context.computeOnClient(client -> client.gui.screen());
-                var esc = saveWithBlock(context, world, supervisor, folder, 4, new BlockPos(3, Y, 2), Blocks.DIAMOND_BLOCK, name);
+                var esc = saveWithBlock(context, world, supervisor, folder, 4, new BlockPos(3, Y, 2), Blocks.DIAMOND_BLOCK, name, false);
                 context.runOnClient(client -> check(client.gui.screen() == menu && client.isPaused() && client.level != null,
                         "The save changed the Esc menu or left the world"));
                 serverPaused(context, world.getServer(), true, "The save unpaused the server under the Esc menu");
@@ -136,15 +155,22 @@ public final class SaveNowClientGameTest implements FabricClientGameTest {
                 check(supervisor.answers(5).size() == 1, "The refused save was answered again: " + supervisor.answers(5));
                 check(onDisk(folder, server, world, pos) != Blocks.IRON_BLOCK.defaultBlockState(),
                         "The refused save ran after all");
-                saved(context, supervisor, 7, name);
+                saved(context, supervisor, 7, name, false);
                 check(onDisk(folder, server, world, pos) == Blocks.IRON_BLOCK.defaultBlockState(), "The next save missed the block");
+
+                // The game's own saves show no text in the home screen either.
+                autosave(context, world.getServer());
+                saveAll(context, world.getServer());
 
                 // The real stop: a request while the world closes is refused (the test's listener asks on the server
                 // thread, after the mod's own listener ran).
                 arm.set(server);
-                AresOs.LOGGER.info("46 save times in the test world: playing {} ms, Esc menu {} ms, covered {} ms",
-                        playing, esc, covered);
+                AresOs.LOGGER.info("46 save times in the test world: playing {} ms, home screen {} ms, Esc menu {} ms, "
+                        + "covered {} ms", playing, home, esc, covered);
             }
+            // Every save since the home screen began, the pauses' and the close's own included.
+            int drawnAtHome = SavingText.frames() - framesBeforeHome;
+            check(drawnAtHome == 0, "The home screen drew the Saving world text in " + drawnAtHome + " frames");
             check(duringStop.get() instanceof JsonObject, "No request was asked during the stop: " + duringStop.get());
             var during = (JsonObject) duringStop.get();
             check(REFUSED.equals(during.keySet()) && !during.get("ok").getAsBoolean()
@@ -156,10 +182,13 @@ public final class SaveNowClientGameTest implements FabricClientGameTest {
                     + "block placed just before the request into the region file before world_saved, with world_ready's "
                     + "identity, no screen, no pause and no chat line; no_world on the title screen and after closing, "
                     + "not_desktop_world, server_stopping for a save queued when the stop began (which never ran) and "
-                    + "for requests during the stop");
+                    + "for requests during the stop; the Saving world text showed outside the home screen and in it "
+                    + "never, for requested saves while playing, under the Esc menu and covered, the autosave, save-all, "
+                    + "and the pauses' and the close's saves");
         } catch (IOException error) {
             throw new UncheckedIOException(error);
         } finally {
+            SavingText.stop();
             arm.set(null);
             context.runOnClient(client -> {
                 AppsTestAccess.aresos$setShell(previousShell);
@@ -171,10 +200,11 @@ public final class SaveNowClientGameTest implements FabricClientGameTest {
 
     /**
      * Places the block while nothing saves (after the pause's own save, when paused), shows that the region file does
-     * not have it yet, asks for a save and checks the answer and the file. Returns the save's ms.
+     * not have it yet, asks for a save and checks the answer, the file and the "Saving world" text ({@code shown}
+     * outside the home screen, never drawn in it). Returns the save's ms.
      */
     private static long saveWithBlock(ClientGameTestContext context, TestSingleplayerContext world, FakeSupervisor supervisor,
-                                      Path folder, int id, BlockPos pos, Block block, String name) {
+                                      Path folder, int id, BlockPos pos, Block block, String name, boolean shown) {
         var server = context.computeOnClient(Minecraft::getSingleplayerServer);
         // Let a pause's own save (Minecraft saves when the game pauses) reach the file before the block goes in.
         context.waitTicks(10);
@@ -182,7 +212,7 @@ public final class SaveNowClientGameTest implements FabricClientGameTest {
         check(onDisk(folder, server, world, pos) != block.defaultBlockState(),
                 "Fixture: the block was on disk before any save; the check could not tell");
         int chat = context.computeOnClient(client -> ((ChatMessagesTestAccess) client.gui.hud.getChat()).aresos$messages().size());
-        long ms = saved(context, supervisor, id, name);
+        long ms = saved(context, supervisor, id, name, shown);
         check(onDisk(folder, server, world, pos) == block.defaultBlockState(),
                 "After world_saved the region file does not hold the block placed before the request (" + block + ")");
         context.runOnClient(client -> check(((ChatMessagesTestAccess) client.gui.hud.getChat()).aresos$messages().size() == chat,
@@ -207,7 +237,7 @@ public final class SaveNowClientGameTest implements FabricClientGameTest {
             context.waitFor(Minecraft::isPaused, 1200);
             check(context.computeOnClient(client -> client.gui.screen() == null), "Fixture: covering opened a screen");
             serverPaused(context, world.getServer(), true, "Fixture: covering did not pause the server");
-            long ms = saveWithBlock(context, world, supervisor, folder, 8, new BlockPos(4, Y, 2), Blocks.EMERALD_BLOCK, name);
+            long ms = saveWithBlock(context, world, supervisor, folder, 8, new BlockPos(4, Y, 2), Blocks.EMERALD_BLOCK, name, false);
             context.runOnClient(client -> check(client.isPaused() && client.gui.screen() == null && client.level != null,
                     "The save uncovered the world, opened a screen or left the world"));
             serverPaused(context, world.getServer(), true, "The save unpaused the covered server");
@@ -217,17 +247,20 @@ public final class SaveNowClientGameTest implements FabricClientGameTest {
         } finally {
             context.runOnClient(client -> {
                 AppsTestAccess.aresos$setShell(previousShell);
-                HomeScreen.forTests(null, null);
+                HomeScreen.forTests(true, null);  // still the home screen, without the helper again
             });
             deleteTree(sockets);
         }
     }
 
-    /** Asks for a save and waits (ticking) for its answer: saved, with the world's identity. Returns its ms. */
-    private static long saved(ClientGameTestContext context, FakeSupervisor supervisor, int id, String name) {
+    /**
+     * Asks for a save and waits (ticking) for its answer: saved, with the world's identity. Then the "Saving world"
+     * text: drawn if {@code shown}, else never. Returns the save's ms.
+     */
+    private static long saved(ClientGameTestContext context, FakeSupervisor supervisor, int id, String name, boolean shown) {
+        var indicator = SavingIndicator.watch(context);
         try { supervisor.save(id, "backup"); }
         catch (IOException error) { throw new UncheckedIOException(error); }
-        var indicator = new SavingIndicator();
         context.waitFor(client -> {
             indicator.sample(client);
             return !supervisor.answers(id).isEmpty();
@@ -240,22 +273,54 @@ public final class SaveNowClientGameTest implements FabricClientGameTest {
                 && identity.size() == 2, "Not world_ready's identity: " + identity);
         long ms = answer.get("ms").getAsLong();
         check(ms >= 0, "A negative save time: " + answer);
-        indicator.report(context, id, ms);
+        indicator.settle(context, "save " + id + " (" + ms + " ms)", shown);
         return ms;
     }
 
+    /** The game's own autosave, brought to the next server tick: no text in the home screen. */
+    private static void autosave(ClientGameTestContext context, TestServerContext server) {
+        var indicator = SavingIndicator.watch(context);
+        server.runOnServer(s -> ((AutosaveTestAccess) s).aresos$setTicksUntilAutosave(1));
+        // The autosave sets the next countdown, minutes long, when it runs.
+        for (int tick = 0; server.computeOnServer(s -> ((AutosaveTestAccess) s).aresos$ticksUntilAutosave()) <= 1; tick++) {
+            if (tick == 100) throw new AssertionError("Fixture: the autosave did not run");
+            context.waitTick();
+            context.runOnClient(indicator::sample);
+        }
+        indicator.settle(context, "the autosave", false);
+    }
+
+    /** {@code save-all flush}, as typed in the chat: no text in the home screen. */
+    private static void saveAll(ClientGameTestContext context, TestServerContext server) {
+        var indicator = SavingIndicator.watch(context);
+        int began = SavingText.begun();
+        server.runOnServer(s -> s.getCommands().performPrefixedCommand(s.createCommandSourceStack(), "save-all flush"));
+        check(SavingText.begun() > began, "Fixture: save-all saved nothing");
+        indicator.settle(context, "save-all", false);
+    }
+
     /**
-     * Observed, not asserted (the report's JUDGMENT-CALL): {@code saveEverything} sets the server's saving flag, as every
-     * autosave and the save on pausing do, and vanilla's "Saving world" corner text fades in while a client tick finds
-     * the flag set and out again after (a fifth of the way each tick). The test's client and server tick together as
-     * fast as they can, not at play's 20 a second, so this shows whether the text can appear and how it fades, not how
-     * often it appears in play.
+     * Vanilla's "Saving world" corner text for one save. A client tick that finds the server saving fades it in a fifth
+     * of the way, and each tick after fades it out a fifth; a frame draws it while it is at least 1/255 opaque
+     * ({@code Hud.extractSavingIndicator}). {@link SavingText} makes every save reach a client tick, so the text rises
+     * for each save, as Minecraft would show it; then it either was drawn or not.
      */
     private static final class SavingIndicator {
+        private final int framesBefore;
         private boolean rose;
         private float peak;
 
-        /** After each client tick while the save is asked: did the text fade in, and how far. */
+        private SavingIndicator(int framesBefore) {
+            this.framesBefore = framesBefore;
+        }
+
+        /** Waits until no earlier save's text could be drawn, then starts watching. */
+        static SavingIndicator watch(ClientGameTestContext context) {
+            context.waitFor(client -> !visible(client), 200);
+            return new SavingIndicator(SavingText.frames());
+        }
+
+        /** After each client tick: did the text fade in, and how far. */
         void sample(Minecraft client) {
             var hud = (HudTestAccess) client.gui.hud;
             float now = hud.aresos$savingIndicator();
@@ -263,24 +328,34 @@ public final class SaveNowClientGameTest implements FabricClientGameTest {
             if (rose) peak = Math.max(peak, now);
         }
 
-        /** Ticks on until the text is gone again (at most 3 s) and logs how long it was drawn. */
-        void report(ClientGameTestContext context, int id, long ms) {
-            if (!rose) {
-                AresOs.LOGGER.info("46 saving indicator for save {} ({} ms): did not show", id, ms);
-                return;
-            }
-            int drawn = 0;
-            int faint = 0;
-            for (; drawn < 60; drawn++) {
-                float value = context.computeOnClient(client -> ((HudTestAccess) client.gui.hud).aresos$savingIndicator());
-                peak = Math.max(peak, value);
-                // Drawn while its alpha is above 0 (Hud.extractSavingIndicator); below a tenth it is hard to see.
-                if (Math.floor(255 * value) <= 0) break;
-                if (value < 0.1f) faint++;
+        /** Ticks on until the text has risen and faded out again (3 s at most), then checks the frames that drew it. */
+        void settle(ClientGameTestContext context, String what, boolean shown) {
+            for (int tick = 0; ; tick++) {
+                boolean done = context.computeOnClient(client -> {
+                    sample(client);
+                    return rose && !visible(client);
+                });
+                if (done) break;
+                if (tick == 60) throw new AssertionError("Fixture: the Saving world text did not rise and fade for " + what
+                        + " (rose: " + rose + ")");
                 context.waitTick();
             }
-            AresOs.LOGGER.info("46 saving indicator for save {} ({} ms): faded in to {}% opacity, drawn for {} more ticks "
-                    + "after the answer, {} of them under 10% opacity", id, ms, Math.round(peak * 100), drawn, faint);
+            int frames = SavingText.frames() - framesBefore;
+            AresOs.LOGGER.info("46 saving indicator for {}: rose to {}% opacity, drawn in {} frames", what,
+                    Math.round(peak * 100), frames);
+            if (shown) {
+                boolean option = context.computeOnClient(client -> client.options.showAutosaveIndicator().get());
+                check(frames > 0, "Outside the home screen " + what + " did not draw the Saving world text (the Autosave "
+                        + "Indicator option is " + (option ? "on" : "off") + ")");
+            } else {
+                check(frames == 0, "The home screen drew the Saving world text for " + what + " in " + frames + " frames");
+            }
+        }
+
+        /** Whether a frame could draw it now: it is drawn between its last two values. */
+        private static boolean visible(Minecraft client) {
+            var hud = (HudTestAccess) client.gui.hud;
+            return Math.max(hud.aresos$savingIndicator(), hud.aresos$lastSavingIndicator()) * 255 >= 1;
         }
     }
 

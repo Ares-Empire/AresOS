@@ -16,7 +16,9 @@
     "SlashChatTestAccess",
     "SoundTestAccess",
     "SoundEngineTestAccess",
-    "MusicManagerTestAccess"
+    "MusicManagerTestAccess",
+    "SavingTextTestMixin",
+    "AutosaveTestAccess"
   ],
   "injectors": {
     "defaultRequire": 1
