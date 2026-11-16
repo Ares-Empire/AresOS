@@ -11,6 +11,7 @@ sys.path.insert(0, '/opt/aresos-control')
 
 from interactive_driver import Terminal, options
 from interactive_model import Model
+import process_chain
 
 ROOT = Path('/opt/aresos-control')
 OUT = Path('/evidence/interactive')
@@ -314,6 +315,16 @@ def main():
                       'args': ['-I', str(ROOT / 'mcp-fixture.py'), 'testapp']}
             run(['/usr/local/bin/claude', 'mcp', 'add-json', '--scope', 'user', 'testapp', json.dumps(server)])
             assert arrivals(case) == 0
+            # Fresh per case: the chains of this case's sessions only (brief 18e, item 6).
+            shutil.rmtree(process_chain.FOLDER, ignore_errors=True)
+            process_chain.FOLDER.mkdir()
+            os.chown(process_chain.FOLDER, 10001, 10001)
+            # The owner's runtime folder, as logind makes it; this case's usage marks start empty.
+            runtime = Path('/run/user/10001')
+            runtime.mkdir(parents=True, exist_ok=True)
+            os.chown(runtime, 10001, 10001)
+            runtime.chmod(0o700)
+            shutil.rmtree(runtime / 'aresos-control', ignore_errors=True)
             row = {'case': case, 'mode': 'bypassPermissions' if skip else 'default'}
             first = exercise(case, skip, [step(1), step(2)] if answer == 'DAA' else [step(1)],
                              ['DAA', 'No'] if answer == 'DAA' else [answer], event == 'PermissionRequest')
@@ -332,6 +343,10 @@ def main():
             if marker and marker.exists():
                 shutil.copyfile(marker, case_out / 'hook-events.jsonl')
             row.update(send_arrivals=count, hook_calls=hook_calls)
+            chains = process_chain.check(process_chain.FOLDER)
+            (case_out / 'process-chains.json').write_text(json.dumps(chains, indent=2))
+            row['process_chains'] = process_chain.summary(chains)
+            row['stop_used'] = process_chain.check_used(chains, count)
             check_case_evidence(case_out, row, expected)
             summary.append(row)
             (OUT / 'summary.json').write_text(json.dumps(summary, indent=2))
