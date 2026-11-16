@@ -12,8 +12,6 @@
     background: radial-gradient(900px 520px at 4% 100%, rgba(201, 55, 44, 0.10), transparent 70%),
                 radial-gradient(1000px 560px at 100% 0%, rgba(93, 134, 179, 0.11), transparent 70%); }
   .star { position: absolute; width: 2px; height: 2px; background: var(--ink); }
-  .star.twinkle { animation: twinkle 5s ease-in-out infinite; }
-  @keyframes twinkle { 50% { opacity: 0.08; } }
   #clock { position: absolute; left: 64px; top: 40px; }
   #battery { position: absolute; right: 64px; top: 48px; }
 
@@ -78,15 +76,21 @@
   const size = 12 * cell, depth = Math.round(cell * 0.9), pitch = Math.round(cell * 14.6);
   const surfaces = [], occluders = [];
 
-  // A few still stars; the screen stays calm beside the world.
+  // A few stars. At rest nothing on this screen moves, so nothing is drawn again: one star changes its
+  // brightness every few seconds, in one step, and that is all the motion there is.
   let seed = 44;
   const random = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
+  const stars = [];
   for (let i = 0; i < 90; i++) {
     const star = document.createElement('i');
-    star.className = 'star' + (i % 9 === 0 ? ' twinkle' : '');
-    star.style.cssText = `left:${Math.round(random() * 1916)}px;top:${Math.round(random() * 900)}px;opacity:${(0.1 + random() * 0.35).toFixed(2)};animation-delay:${(-random() * 5).toFixed(1)}s`;
+    star.className = 'star';
+    star.style.cssText = `left:${Math.round(random() * 1916)}px;top:${Math.round(random() * 900)}px;opacity:${(0.1 + random() * 0.35).toFixed(2)}`;
     stage.prepend(star);
+    stars.push(star);
   }
+  if (!Home.still) setInterval(() => {
+    if (!document.hidden) stars[Math.floor(Math.random() * stars.length)].style.opacity = (0.08 + Math.random() * 0.4).toFixed(2);
+  }, 4000);
 
   Home.GROUPS.forEach((g, gi) => {
     const list = byGroup[gi], base = TOP + (gi + 1) * STREET - ROAD;
