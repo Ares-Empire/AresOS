@@ -24,9 +24,9 @@ distinctAumidsAndSameNamedMenuEntriesAreNotDropped(): org.opentest4j.AssertionFa
 earlierAliasKeepsExistingIdAndOwnerCommand(): org.opentest4j.AssertionFailedError: Earlier alias duplicated a known app ==> expected: <[win-0c183db28717146d1890deb8]> but was: <[win-0c183db28717146d1890deb8, win-f7950283927e01896a161204]>
 identicalTargetAndArgumentsWithDifferentDirectoriesRemainTwoApps(): org.opentest4j.AssertionFailedError: Working directory silently dropped an app ==> expected: <2> but was: <1>
 configuredCommandWithArgumentsRetainsOwnerArgv(): org.opentest4j.AssertionFailedError: Configured argv was duplicated ==> expected: <1> but was: <2>
-failedConfiguredExtractionInvalidatesOwnedSourceAndGeneratedModel(): org.opentest4j.AssertionFailedError: Failed refresh retained configured cache path ==> expected: <null> but was: <C:\Users\pab\AresOS-07-real-apps\mod\build\tmp\unit-tests\junit-1384422851406700010\aresos-runtime\discovery\sources\notes.png>
+failedConfiguredExtractionInvalidatesOwnedSourceAndGeneratedModel(): org.opentest4j.AssertionFailedError: Failed refresh retained configured cache path ==> expected: <null> but was: <C:\Users\owner\AresOS-07-real-apps\mod\build\tmp\unit-tests\junit-1384422851406700010\aresos-runtime\discovery\sources\notes.png>
 nativeShortcutIdentityIncludesArgvAndWorkingDirectory(): org.opentest4j.AssertionFailedError: Native discovery lost working directories or duplicated configured argv ==> expected: <3> but was: <2>
-nativeMissingIconSourceClearsPreviousExtraction(): org.opentest4j.AssertionFailedError: expected: <null> but was: <C:\Users\pab\AresOS-07-real-apps\mod\build\tmp\unit-tests\junit-7915944633967993692\aresos-runtime\discovery\sources\icon-fixture.png>
+nativeMissingIconSourceClearsPreviousExtraction(): org.opentest4j.AssertionFailedError: expected: <null> but was: <C:\Users\owner\AresOS-07-real-apps\mod\build\tmp\unit-tests\junit-7915944633967993692\aresos-runtime\discovery\sources\icon-fixture.png>
 
 Pre-fix pins proof: cf62b88 AppItems and AppInventoryMixin, final client regression.
 Command in mod/: .\gradlew.bat runClientGameTest

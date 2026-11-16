@@ -57,7 +57,7 @@ def main():
         return info
 
     def tool(name, **kwargs):
-        assert name in ('efibootmgr', 'lsblk', 'mount', 'umount', 'sync'), name
+        assert name in ('efibootmgr', 'lsblk', 'mount', 'umount', 'sync', 'setfacl'), name
         return '/usr/bin/' + name
 
     def run(argv, **kwargs):
@@ -71,10 +71,11 @@ def main():
         elif name == 'lsblk':
             assert args == ['--json', '--tree', '--paths', '--output',
                             'PATH,TYPE,TRAN,RM,LABEL,FSTYPE,UUID,MOUNTPOINTS']
+            # No fixture-stick folder: no stick is plugged in (22d, the copy that stays on the laptop).
             output = json.dumps(dict(blockdevices=[dict(path='/dev/SYNTHETIC', type='disk',
                 tran='usb', rm=True, mountpoints=[None], children=[dict(path='/dev/SYNTHETIC1',
                 type='part', label='ARESTOOLS', fstype='exfat', uuid='fixture-stick',
-                mountpoints=[str(mount)] if mounted else [None])])]))
+                mountpoints=[str(mount)] if mounted else [None])])] if mounted or usb.exists() else []))
         elif name == 'mount':
             assert args in (['--read-only', '-o', 'nodev,nosuid,noexec', '--', '/dev/SYNTHETIC1', str(mount)],
                             ['-o', 'nodev,nosuid,noexec', '--', '/dev/SYNTHETIC1', str(mount)])
@@ -89,6 +90,9 @@ def main():
             mounted = False
         elif name == 'sync':
             assert args == ['-f', str(mount / 'ares-records')] and mounted
+        elif name == 'setfacl':
+            # The one grant on the local copy; the stand-in records it and changes nothing.
+            assert args[:2] == ['--recursive', '--modify'] and args[3:] == ['--', str(root / 'run/ares-records')] and not mounted
         else:
             raise AssertionError('Real host command prohibited: ' + repr(argv))
         with (root / 'host-calls.jsonl').open('a') as stream:

@@ -101,11 +101,11 @@
     "message": "Brief 11e: judge firmware-owned NVRAM options as a per-boot device set\n\nCo-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>",
     "timestamp": "2026-10-24T00:00:41Z",
     "author": {
-      "name": "pab",
+      "name": "owner",
       "email": "admin@example.com"
     },
     "committer": {
-      "name": "pab",
+      "name": "owner",
       "email": "admin@example.com"
     }
   },

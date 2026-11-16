@@ -17,6 +17,6 @@ for latency_revision in current ab7aba92; do
   fi
   python3 "$latency_tree/control/chrome/build.py" > "$latency_out/runtime-build.txt"
   tar -C "$latency_tree" -cf - control docs/control/TOOLS.md .github/workflows/control-chrome-qualification.yml .github/workflows/control-chrome.yml | docker build --build-arg PACKAGE_URL="$PACKAGE_URL" --build-arg PACKAGE_SHA256="$PACKAGE_SHA256" -t "aresos-latency-$latency_revision" -f control/chrome/ci/Dockerfile -
-  timeout --signal=TERM --kill-after=30s 50m docker run --rm --network none --cap-add SYS_ADMIN --security-opt seccomp=unconfined --security-opt apparmor=unconfined --shm-size=512m -e INSTALL_MODE=policy -e LATENCY_PROBE=true -e LATENCY_PRIVACY -e LATENCY_BASELINE="$latency_revision" -e QUALIFICATION_VERSION -e GITHUB_RUN_ID -e GITHUB_SHA -v "$latency_out:/out" "aresos-latency-$latency_revision"
+  timeout --signal=TERM --kill-after=30s 50m docker run --rm --network none --cap-add SYS_ADMIN --security-opt seccomp=unconfined --security-opt apparmor=unconfined --shm-size=512m --tmpfs /scratch:rw,size=256m,mode=1777 -e INSTALL_MODE=policy -e LATENCY_PROBE=true -e LATENCY_PRIVACY -e LATENCY_BASELINE="$latency_revision" -e QUALIFICATION_VERSION -e GITHUB_RUN_ID -e GITHUB_SHA -v "$latency_out:/out" "aresos-latency-$latency_revision"
   python3 control/chrome/ci/latency-summary.py "$latency_out"
 done

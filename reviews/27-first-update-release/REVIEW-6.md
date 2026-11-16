@@ -1,7 +1,7 @@
 Reviewed only `930d4b37..c9072528`. No blocking or should-fix findings. No files modified.
 
 **Nit — cleanup errors can obscure the original failure.**  
-Where: [owner_vm.py:1101](C:/Users/pab/AresOS-27-review/os/ci/owner_vm.py:1101). An edit failure followed by an unmount failure can be superseded again by `rmdir` failing on the still-mounted directory. A detach failure can supersede any earlier exception. Python retains the earlier exceptions in the chain, but the primary error changes. **Fix:** preserve the original exception, collect cleanup errors as secondary diagnostics, and add injected unmount/removal/detach failure tests. This affects runner cleanup and diagnosis; it cannot produce a passing rehearsal.
+Where: [owner_vm.py:1101](C:/Users/owner/AresOS-27-review/os/ci/owner_vm.py:1101). An edit failure followed by an unmount failure can be superseded again by `rmdir` failing on the still-mounted directory. A detach failure can supersede any earlier exception. Python retains the earlier exceptions in the chain, but the primary error changes. **Fix:** preserve the original exception, collect cleanup errors as secondary diagnostics, and add injected unmount/removal/detach failure tests. This affects runner cleanup and diagnosis; it cannot produce a passing rehearsal.
 
 The requested checks:
 

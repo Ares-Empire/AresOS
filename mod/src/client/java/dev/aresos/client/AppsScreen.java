@@ -22,6 +22,7 @@ import net.minecraft.client.gui.components.StringWidget;
 import net.minecraft.client.gui.layouts.HeaderAndFooterLayout;
 import net.minecraft.client.gui.layouts.LinearLayout;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.client.input.CharacterEvent;
 import net.minecraft.client.input.KeyEvent;
@@ -41,12 +42,14 @@ import java.util.Set;
 
 /**
  * E, then "Apps…" (docs/design/HUB.md 2.4): a search box, then one list that scrolls, "My apps" first and
- * "All programs" by name below it. A click on a program that is not his makes it his and the screen stays open, a
- * click on one of his picks up its item to pin it, and a right-click on one of his takes it out of My apps.
+ * "All programs" by name below it. A click on any program opens it, as its hotbar item would, and he is back in the
+ * world (package 40, review fixes 1). Pressing on a program and moving before letting go is a drag: it picks up the
+ * program's item to pin it, and a program that is not his becomes his first. A right-click on one of his takes it out
+ * of My apps.
  */
 public final class AppsScreen extends Screen {
     private static final Component HELP = Component.literal(
-            "Click to add, or to pick up one of yours. Right-click to remove.").withStyle(ChatFormatting.GRAY);
+            "Click opens · drag to the hotbar to pin · right-click removes").withStyle(ChatFormatting.GRAY);
     private static final Component HINT = Component.literal("Search programs…").withStyle(EditBox.SEARCH_HINT_STYLE);
     private static final Identifier CHECK = Identifier.withDefaultNamespace("icon/checkmark");
     /** A row is a 16-pixel icon with the list's two pixels around it. */
@@ -54,6 +57,8 @@ public final class AppsScreen extends Screen {
     private static final int ROW_WIDTH = 300;
     /** How long a line from the chat stays in the screen, in ticks. */
     private static final int NEWS_TICKS = 100;
+    /** How far the pointer moves with the left button down, in the screen's pixels, before a press is a drag. */
+    private static final double DRAG = 3;
 
     private final Screen parent;
     // The title and the search box above the list as on the game's world list, the hint and Done below it.
@@ -67,8 +72,9 @@ public final class AppsScreen extends Screen {
     private Set<String> shownIcons;
     private Component news;
     private int ticks, newsAt;
-    // One of his apps while the left button is down on its row; see mouseReleased.
+    // The program whose row the left button went down on, and where; see mouseDragged and mouseReleased.
     private String pressed;
+    private double pressedX, pressedY;
 
     public AppsScreen(Screen parent) { super(Component.literal("Apps")); this.parent = parent; }
 
@@ -176,38 +182,50 @@ public final class AppsScreen extends Screen {
         return super.keyPressed(event);
     }
 
-    /** Enter is a left click on the only program the search found. */
+    /** Enter is a click on the only program the search found: it opens. */
     private void enter() {
         String only = list.only();
-        if (only == null || !press(only, false)) return;
-        if (pressed != null) {
-            pressed = null;
-            pickUp(only);
-            return;
-        }
-        // The search stays to show what happened, selected, so the next letters start a new one.
-        search.moveCursorToEnd(false);
-        search.setHighlightPos(0);
+        if (only == null || AresOs.app(only) == null) return;
+        AbstractWidget.playButtonClickSound(minecraft.getSoundManager());
+        open(only);
     }
 
-    /** A button goes down on a program: left adds it or starts picking up its item, right takes it out of My apps. */
-    private boolean press(String id, boolean right) {
+    /**
+     * A button goes down on a program: the left one starts a click or a drag (told apart when it moves or is let go),
+     * the right one takes one of his out of My apps.
+     */
+    private boolean press(String id, boolean right, double x, double y) {
         pressed = null;
         if (!active(minecraft)) { onClose(); return true; }
         // As it is now: the row may be a moment older than the list.
         var app = AresOs.app(id);
         if (app == null || (right && !app.mine())) return false;
         AbstractWidget.playButtonClickSound(minecraft.getSoundManager());
-        if (!app.mine()) ClientPlayNetworking.send(new MyAppPayload(id, true));
-        else if (right) ClientPlayNetworking.send(new MyAppPayload(id, false));
-        else pressed = id;
+        if (right) ClientPlayNetworking.send(new MyAppPayload(id, false));
+        else {
+            pressed = id;
+            pressedX = x;
+            pressedY = y;
+        }
         return true;
     }
 
+    /** The pointer moved away from where the left button went down on a program: a drag, which picks up its item. */
+    @Override public boolean mouseDragged(MouseButtonEvent event, double dx, double dy) {
+        if (event.button() == 0 && pressed != null && movedAway(event)) {
+            String id = pressed;
+            pressed = null;
+            pickUp(id);
+            return true;
+        }
+        return super.mouseDragged(event, dx, dy);
+    }
+
     /**
-     * The item of one of his apps is picked up when the button is let go, not when it goes down. The inventory
-     * screen places what is on the cursor when a button is let go; had this screen closed on the press, that
-     * release would reach the inventory and put the item into whatever slot lies under the pointer.
+     * The left button let go after it went down on a program. Where it went down, that is a click, which opens it.
+     * Farther away it is a drag that no frame saw: the game hands movement to a screen only once a frame and only
+     * while the button is held, so after a hitch, a quick flick or in a window without focus the move comes with the
+     * release (REVIEW-2 finding 1). A drag never opens a program, so this one picks up the item as well.
      */
     @Override public boolean mouseReleased(MouseButtonEvent event) {
         boolean handled = super.mouseReleased(event);
@@ -216,15 +234,47 @@ public final class AppsScreen extends Screen {
         if (event.button() != 0 || pressed == null) return handled;
         String id = pressed;
         pressed = null;
-        pickUp(id);
+        if (movedAway(event)) pickUp(id);
+        else open(id);
         return true;
     }
 
+    /** Whether the pointer is farther than {@link #DRAG} from where the left button went down on a program. */
+    private boolean movedAway(MouseButtonEvent event) {
+        return Math.max(Math.abs(event.x() - pressedX), Math.abs(event.y() - pressedY)) > DRAG;
+    }
+
+    /**
+     * Opens a program the way its hotbar item does (AresOsClient.launch), with the same lines when it cannot. He is
+     * back in the world first, so the app opens over the world and such a line shows in the chat there.
+     */
+    private void open(String id) {
+        if (!active(minecraft)) { onClose(); return; }
+        if (AresOs.app(id) == null) return;
+        if (parent instanceof AbstractContainerScreen<?> && minecraft.player != null) minecraft.player.closeContainer();
+        else minecraft.gui.setScreen(null);
+        AresOsClient.launch(id);
+    }
+
+    /**
+     * A drag picks up the program's item to pin it. A program that is not his becomes his first: what is in his
+     * inventory is his ("Pinning a program makes it one of his", HUB.md 2.4); the server takes the two requests in
+     * order. From mouseDragged the inventory comes back while the button is still down, so the drag goes on there:
+     * letting go over a slot puts the item in it, as a drag in the inventory does, and letting go before the item
+     * arrived leaves it on the cursor for the next click. From mouseReleased the button is already up, and the item
+     * waits on the cursor for the next click on a slot, as an item picked up in the inventory does.
+     */
     private void pickUp(String id) {
         if (!active(minecraft)) { onClose(); return; }
         var app = AresOs.app(id);
-        if (app == null || !app.mine()) return;
+        if (app == null) return;
+        if (!app.mine()) ClientPlayNetworking.send(new MyAppPayload(id, true));
         ClientPlayNetworking.send(new TakeAppPayload(id));
+        // The inventory would skip its next release as the one of the click that opened it. During a drag that
+        // release ends the drag. After one, the inventory's next press clears the flag before it looks at a slot
+        // anyway (AbstractContainerScreen.mouseClicked), and false is the flag's state while vanilla carries an item.
+        if (parent instanceof AbstractContainerScreen<?> inventory)
+            ((dev.aresos.client.mixin.ContainerScreenAccess) inventory).aresos$setSkipNextRelease(false);
         minecraft.gui.setScreen(parent);
     }
 
@@ -365,7 +415,7 @@ public final class AppsScreen extends Screen {
         @Override public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
             // Reflow can put a different row under this same pointer, especially when the list cannot scroll.
             if (doubleClick) { pressed = null; return true; }
-            return (event.button() == 0 || event.button() == 1) && press(app.id(), event.button() == 1);
+            return (event.button() == 0 || event.button() == 1) && press(app.id(), event.button() == 1, event.x(), event.y());
         }
 
         @Override public Component getNarration() {

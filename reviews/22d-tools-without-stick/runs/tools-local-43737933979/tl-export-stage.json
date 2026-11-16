@@ -1,0 +1,8 @@
+{
+  "stage": "tl-export",
+  "access": {
+    "files": 42,
+    "ares_read": true,
+    "other_refused": true
+  }
+}

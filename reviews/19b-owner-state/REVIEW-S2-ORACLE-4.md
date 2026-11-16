@@ -4,7 +4,7 @@
 `git diff d2456c51..7b0e9a05` (brief [`19b-s2-fixes-3.md`](../../briefs/19b-s2-fixes-3.md) sections 1 and 2), plus
 whether those fixes broke the code they touch. No fresh hunt. **Reviewed head:** `7b0e9a05`. Read-only: this file is
 the only repository file written. Probes ran in memory from
-`/private/tmp/claude-501/-Users-pab/5d5bbd0b-a538-400c-b84f-360fe127662f/scratchpad/oracle-review-4/probes/` (round-3
+`/private/tmp/claude-501/-Users-owner/5d5bbd0b-a538-400c-b84f-360fe127662f/scratchpad/oracle-review-4/probes/` (round-3
 probes copied, plus the new ones named below), with the worktree venv and the same in-memory managed-policy patch.
 
 ## Findings

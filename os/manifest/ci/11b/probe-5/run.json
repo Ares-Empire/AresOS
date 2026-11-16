@@ -101,11 +101,11 @@
     "message": "Reject incomplete media transfers and probe disk-reset and detached boot branches",
     "timestamp": "2026-10-23T00:52:50Z",
     "author": {
-      "name": "pab",
+      "name": "owner",
       "email": "admin@example.com"
     },
     "committer": {
-      "name": "pab",
+      "name": "owner",
       "email": "admin@example.com"
     }
   },

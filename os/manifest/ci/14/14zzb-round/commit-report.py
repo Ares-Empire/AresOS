@@ -30,7 +30,7 @@ write(out/'local-privacy.json',dict(checked_at=datetime.datetime.now(datetime.ti
 files=[dict(sha256=hashlib.sha256(p.read_bytes()).hexdigest(),path=p.relative_to(r).as_posix()) for p in sorted(out.iterdir()) if p.is_file() and p.name!='files.json'];write(out/'files.json',dict(files=files))
 copy_pending();scan(['dir',str(pending),'--config',str(r/'.gitleaks.toml')],'14zzb-closing-final-pending.json')
 with (w/'14zzb/hash-order.log').open('wb') as f:
- result=subprocess.run(['wsl.exe','--exec','bash','-lc','cd /mnt/c/Users/pab/AresOS-14-owner-tools && TMPDIR=$PWD/.work/14/local/tmp PATH=$PWD/.work/14/local/bin:$PATH PYTHONPATH=os/ci:os/tests python3 -B -m unittest test_owner_equality.EqualityTest.test_package_hash_manifests_put_hashes_before_paths'],stdout=f,stderr=subprocess.STDOUT)
+ result=subprocess.run(['wsl.exe','--exec','bash','-lc','cd /mnt/c/Users/owner/AresOS-14-owner-tools && TMPDIR=$PWD/.work/14/local/tmp PATH=$PWD/.work/14/local/bin:$PATH PYTHONPATH=os/ci:os/tests python3 -B -m unittest test_owner_equality.EqualityTest.test_package_hash_manifests_put_hashes_before_paths'],stdout=f,stderr=subprocess.STDOUT)
 assert result.returncode==0,'STOP: hash-order regression'
 subprocess.run(['git','diff','--check'],check=True)
 frozen=['os/ci','os/tests','os/owner-tools','os/release','os/config','os/policy','.github','.gitleaksignore','.gitleaks.toml','os/manifest/base.json','os/manifest/release.json','os/packages.lock.json','os/keys','os/Containerfile.keyboard','docs/INSTALL.md','docs/EMERGENCY.md','docs/RELEASE-GATE.md','HANDOFF.md','STATE.md']

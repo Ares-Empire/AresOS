@@ -327,6 +327,8 @@ public final class ModeInventories {
     private static void sync(ServerPlayer player) {
         player.connection.send(new ClientboundGameEventPacket(ClientboundGameEventPacket.CHANGE_GAME_MODE,
                 player.gameMode.getGameModeForPlayer().getId()));
+        // The client gives itself the mode's own abilities on that packet; Live's flight and the speed differ from them.
+        player.onUpdateAbilities();
         player.inventoryMenu.sendAllDataToRemote();
         // InventoryMenu omits player equipment slots such as body armor. Acknowledgement covers every slot.
         for (int slot = 0; slot < player.getInventory().getContainerSize(); slot++)

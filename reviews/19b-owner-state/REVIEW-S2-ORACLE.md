@@ -5,7 +5,7 @@ obligations and resolutions come from independent inputs (script, server logs, f
 order), never from values production wrote. **Reviewed head:** `31eeb030` on `pkg/19b-owner-state`
 (stage-2 diff `9eb193f2..31eeb030`, part A `fda0d164`). Read-only; nothing in the repository was changed
 except this file. All probes ran in memory from the scratchpad
-(`/private/tmp/claude-501/-Users-pab/5d5bbd0b-a538-400c-b84f-360fe127662f/scratchpad/oracle-review/probes/`),
+(`/private/tmp/claude-501/-Users-owner/5d5bbd0b-a538-400c-b84f-360fe127662f/scratchpad/oracle-review/probes/`),
 with the worktree's existing venv and an in-memory managed-policy patch (no install, no containers).
 
 **Method.** Besides reading the field-audit and resolution tables against the code, I planted real

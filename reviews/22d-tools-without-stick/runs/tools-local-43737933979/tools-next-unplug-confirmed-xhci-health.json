@@ -1,0 +1,15 @@
+{
+  "counts": {
+    "endpoint_timeout": 0,
+    "controller_dead": 0,
+    "usb_disconnect": 0,
+    "expected_disconnect": 1
+  },
+  "checked_kernel_messages": 821,
+  "counts_only": true,
+  "stage": "cut-27",
+  "tools_attached": true,
+  "tools_needed": true,
+  "tools_removals_requested": 1,
+  "stop": false
+}

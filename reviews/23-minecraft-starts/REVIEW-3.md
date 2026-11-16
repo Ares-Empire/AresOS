@@ -1,21 +1,21 @@
 Reviewed `e69b16a0`. **One blocking and two should-fix findings remain.**
 
 1. **Blocking — a SIGKILL can still become an automatic restart after PID acceptance.**  
-   Where: [aresos-desktop:1368](/C:/Users/pab/AresOS-23-minecraft-starts/os/config/usr/libexec/aresos-desktop:1368), [aresos-desktop-java:239](/C:/Users/pab/AresOS-23-minecraft-starts/os/config/usr/libexec/aresos-desktop-java:239).
+   Where: [aresos-desktop:1368](/C:/Users/owner/AresOS-23-minecraft-starts/os/config/usr/libexec/aresos-desktop:1368), [aresos-desktop-java:239](/C:/Users/owner/AresOS-23-minecraft-starts/os/config/usr/libexec/aresos-desktop-java:239).
 
    If the supervisor accepts `jvm_started`, its answer is lost, and Java receives SIGKILL before the wrapper handles that loss, the wrapper correctly reports `status=-9`, with `stopped=False` in its exit record. But `on_jvm_failed()` ignores the supplied status once `launch.reported` is true and unconditionally sets `stopped_reason`. `finish_jvm()` then prioritizes that reason over SIGKILL and schedules an ordinary crash restart.
 
    **Fix:** carry an explicit wrapper-initiated-stop indicator through the socket protocol and reconcile it with the exit record. Preserve actual termination status when the wrapper did not stop Java. Add an accepted-PID/lost-answer/SIGKILL regression requiring latched `RECOVERY/killed`, zero counted failures and no restart. The existing accepted-answer-loss test covers only wrapper-initiated termination.
 
 2. **Should-fix — the lost-handoff deadline expires before the wrapper’s permitted stop finishes.**  
-   Where: [aresos-desktop:1537](/C:/Users/pab/AresOS-23-minecraft-starts/os/config/usr/libexec/aresos-desktop:1537), [aresos-desktop-java:147](/C:/Users/pab/AresOS-23-minecraft-starts/os/config/usr/libexec/aresos-desktop-java:147).
+   Where: [aresos-desktop:1537](/C:/Users/owner/AresOS-23-minecraft-starts/os/config/usr/libexec/aresos-desktop:1537), [aresos-desktop-java:147](/C:/Users/owner/AresOS-23-minecraft-starts/os/config/usr/libexec/aresos-desktop-java:147).
 
    When the connection closes before PID acceptance, the supervisor waits **2 seconds** before classifying the start as an unexplained kill. Meanwhile, the wrapper allows Java **10 seconds** to terminate before writing its failure record and reconnecting. A child taking more than two seconds to stop therefore triggers a persistent kill latch. Its subsequent explanatory report is discarded because `launch.failed` is already true.
 
    **Fix:** coordinate the bounded stopping/reporting phase with the supervisor’s deadline, while retaining conservative handling of genuinely unexplained deaths. Test connection loss with a child that delays or ignores SIGTERM; require eventual termination and exactly-once failed-start accounting. Current connection-loss tests use promptly terminating children.
 
 3. **Should-fix — missed pressure samples count toward the continuously-clear minute.**  
-   Where: [aresos-desktop:1581](/C:/Users/pab/AresOS-23-minecraft-starts/os/config/usr/libexec/aresos-desktop:1581).
+   Where: [aresos-desktop:1581](/C:/Users/owner/AresOS-23-minecraft-starts/os/config/usr/libexec/aresos-desktop:1581).
 
    `sample_pressure()` overwrites `pressure_checked` without checking the elapsed sampling gap. One clear sample, a supervisor stall exceeding 60 seconds, and another clear sample permit Retry immediately. Pressure during that unobserved interval is unknown; it has nevertheless been counted as continuously clear.
 

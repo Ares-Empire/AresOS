@@ -101,11 +101,11 @@
     "message": "Probe stock CLI from the ISO cache and label orderly failure counters",
     "timestamp": "2026-10-24T04:51:54Z",
     "author": {
-      "name": "pab",
+      "name": "owner",
       "email": "admin@example.com"
     },
     "committer": {
-      "name": "pab",
+      "name": "owner",
       "email": "admin@example.com"
     }
   },

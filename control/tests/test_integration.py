@@ -4,6 +4,7 @@ from itertools import permutations
 import os
 from pathlib import Path
 import shlex
+import shutil
 import signal
 import socket
 import subprocess
@@ -47,6 +48,14 @@ class Integration(unittest.TestCase):
             path = self.root / name
             path.mkdir(mode=0o711 if name == "sockets" else 0o700)
             os.chown(path, SERVICE, SERVICE)
+        # The owner's runtime folder, as logind makes it: the hooks remind only a session that used the tools, and its
+        # mark lives here (brief 18e). Each test starts without marks.
+        runtime = Path("/run/user") / str(OWNER)
+        runtime.mkdir(parents=True, exist_ok=True)
+        os.chown(runtime, OWNER, OWNER)
+        runtime.chmod(0o700)
+        shutil.rmtree(runtime / "aresos-control", ignore_errors=True)
+        self.addCleanup(shutil.rmtree, runtime / "aresos-control", ignore_errors=True)
         self.service_config = {"owner_uid": OWNER, "state_dir": str(self.root / "state"),
                                "evidence_dir": str(self.root / "independent"), "socket_dir": str(self.root / "sockets"), "approval_ttl": 120}
         self.boundary_paths = install_boundary('/etc/claude-code')
@@ -100,6 +109,12 @@ class Integration(unittest.TestCase):
                                 cwd=cwd, preexec_fn=identity(uid), capture_output=True, text=True, timeout=20)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         return json.loads(result.stdout)
+
+    def mark_session(self):
+        """Mark this test process as a Claude Code session that used the tools: the hooks it launches run as its
+        children, so it is their session. A child marks it, as an MCP proxy started by Claude Code marks Claude Code."""
+        self.assertTrue(self.run_user(OWNER, "import json\nfrom aresos_control import usage\n"
+                                             "usage.mark(usage.parent())\nprint(json.dumps(True))"))
 
     def request(self, uid, kind, request):
         # An independent client process provides genuine kernel peer credentials.
@@ -388,6 +403,11 @@ print(json.dumps(results))
                 self.assertEqual(list(approval), ["question", "operation_id", "description"])
                 self.assertEqual(list(json.loads(prepared_tool.content[0].text)["data"]["approval"]), list(approval))
                 self.assertEqual(list(next(tool for tool in tools.tools if tool.name == "send").input_schema["properties"]), list(approval))
+                # The real proxy marked its parent, this test process (its "Claude Code"), before the approval came
+                # back (brief 18e): the hooks this process launches belong to that session.
+                from aresos_control import usage
+                mark = Path("/run/user", str(OWNER), "aresos-control/used", f"{os.getpid()}-{usage.process(os.getpid())[0]}")
+                self.assertTrue(mark.is_file(), sorted(p.name for p in mark.parent.glob("*")) if mark.parent.is_dir() else None)
                 # A hook sees a held operation via act.sock, with documented I/O.
                 hook_input = {"hook_event_name": "Stop", "session_id": "fixture-session", "prompt_id": "fixture-prompt", "transcript_path": "/unused", "cwd": str(self.home), "permission_mode": "default", "stop_hook_active": False}
                 hook = self.launch(OWNER, ["hook", "Stop"], input=canonical(hook_input))
@@ -518,6 +538,7 @@ print(json.dumps(results))
         prepared = self.call(OWNER, "testapp_prepare_send", message())
         self.assertTrue(prepared["ok"], prepared)
         op_id = prepared["data"]["approval"]["operation_id"]
+        self.mark_session()
         for name, field in (("Stop", "last_assistant_message"), ("UserPromptSubmit", "prompt")):
             with self.subTest(event=name):
                 event = {"hook_event_name": name, "session_id": "fixture-session", "transcript_path": "/unused",
@@ -569,7 +590,18 @@ print(json.dumps(results))
             config.write_bytes(original)
         self.daemon.terminate()
         self.daemon.wait(timeout=8)
+        # A session that used the tools: an unmarked one would return at the gate, and the prompt hook's own quiet
+        # handling of a stopped service would go untested (recheck 2, nit 2).
+        self.mark_session()
         hook = self.launch(OWNER, ["hook", "UserPromptSubmit"], input=canonical({"hook_event_name": "UserPromptSubmit"}))
+        self.assertEqual((hook.returncode, hook.stdout, hook.stderr), (0, "", ""))
+        # The same marked session's Stop hears of the outage exactly once, with the "not running" notice.
+        from aresos_control.hooks import NOT_RUNNING
+        stop = canonical({"hook_event_name": "Stop", "stop_hook_active": False})
+        hook = self.launch(OWNER, ["hook", "Stop"], input=stop)
+        self.assertEqual((hook.returncode, hook.stderr), (0, ""))
+        self.assertEqual(json.loads(hook.stdout), {"decision": "block", "reason": NOT_RUNNING})
+        hook = self.launch(OWNER, ["hook", "Stop"], input=stop)
         self.assertEqual((hook.returncode, hook.stdout, hook.stderr), (0, "", ""))
 
     def test_proxy_refuses_other_users_before_loading_sdk(self):

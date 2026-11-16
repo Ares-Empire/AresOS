@@ -10,7 +10,7 @@ Reviewed `089c7c4..e4c62c6`, limited to the fixes and touched areas.
 
 5. **FIXED — Release boundaries.** Historical R06 results and current R13/13f evidence are explicitly separated, preserving drive-order, recovery-menu and physical-test limits.
 
-**New problem — should-fix:** The new mandatory [calling-context table](C:/Users/pab/AresOS-15-owner-path/docs/INSTALL-RECORD.md:209) omits everyday boot-order restoration. [Step 8](C:/Users/pab/AresOS-15-owner-path/docs/INSTALL.md:187) requires record B, but its caller has no matching return row; the table instead requires unknown callers to STOP. Add an everyday boot-order caller returning to step 8 and test that successful route.
+**New problem — should-fix:** The new mandatory [calling-context table](C:/Users/owner/AresOS-15-owner-path/docs/INSTALL-RECORD.md:209) omits everyday boot-order restoration. [Step 8](C:/Users/owner/AresOS-15-owner-path/docs/INSTALL.md:187) requires record B, but its caller has no matching return row; the table instead requires unknown callers to STOP. Add an everyday boot-order caller returning to step 8 and test that successful route.
 
 Exactly 27 screenshots were deleted, all under `reviews/15-owner-path/screenshots/`; no other screenshot changed. The step-5 gate and its existing regression assertions remain unchanged. `git diff --check` passed. Python tests could not be rerun: no installed Python, and WSL returned `E_ACCESSDENIED`.
 

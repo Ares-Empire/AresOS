@@ -1115,11 +1115,12 @@ class ScopeTest(unittest.TestCase):
         self.assertEqual(full['env'], {'ARESOS_MODEL_SCOPE': 'full'})
         self.assertEqual(full['run'], 'env -u REHEARSAL_PACKAGE python3 -m unittest discover -s os/tests '
                                       '-p test_ways_back_model.py -k test_reachable_state_space -v')
-        # The checks-only job is bounded again (it was 40 with the full model inside it);
-        # the model job has room over the slowest hosted model seen (1275 s, run 43547375701).
-        self.assertEqual((checks['timeout-minutes'], model['timeout-minutes']), ('25', '35'))
+        # The checks-only job runs the suite without the full model; its 25 minutes became 40 in
+        # 22d step 2, when main's suite needed about 23 and run 43669481694 was cut at 25.
+        # The model job has room over the slowest hosted model seen (1275 s, run 43547375701).
+        self.assertEqual((checks['timeout-minutes'], model['timeout-minutes']), ('40', '35'))
         ledger = json.loads((ROOT / 'os/ci/rehearsal-packages.json').read_text())['22c']
-        self.assertEqual(ledger['job_bounds']['checks'], 35)  # an unaccountable checks job costs the larger bound
+        self.assertEqual(ledger['job_bounds']['checks'], 40)  # an unaccountable checks job costs the larger bound
 
 
 if __name__ == '__main__':

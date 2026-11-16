@@ -101,11 +101,11 @@
     "message": "Bind the stock replay to historical Git blob bytes",
     "timestamp": "2026-10-24T04:06:19Z",
     "author": {
-      "name": "pab",
+      "name": "owner",
       "email": "admin@example.com"
     },
     "committer": {
-      "name": "pab",
+      "name": "owner",
       "email": "admin@example.com"
     }
   },

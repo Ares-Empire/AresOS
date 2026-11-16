@@ -102,11 +102,11 @@
       "message": "fix(ci): match the pinned Plasma Login Manager greeter",
       "timestamp": "2026-10-22T20:28:20Z",
       "author": {
-        "name": "pab",
+        "name": "owner",
         "email": "admin@example.com"
       },
       "committer": {
-        "name": "pab",
+        "name": "owner",
         "email": "admin@example.com"
       }
     },

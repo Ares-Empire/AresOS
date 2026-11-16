@@ -1,7 +1,8 @@
 """Process chains of the MCP server and the managed hooks under the real Claude Code (brief 18e, item 6).
 
-The "used" mark is named after the MCP proxy's parent process; the Stop hook finds it among its own ancestors. That
-only works while Claude Code starts both from the same process, so the interactive suite pins it per session.
+The "used" mark is named after the MCP proxy's parent process; a hook looks for it on its own session, its nearest
+ancestor that isn't a shell (`aresos_control.usage`). That only works while Claude Code starts both from the same
+process and runs the hooks through shells only, so the interactive suite pins it per session, for both hooks.
 """
 import json
 import os
@@ -51,26 +52,47 @@ def record(kind):
         pass
 
 
-def mark():
+def started():
+    """The MCP stand-in's session, read once at its start as the proxy does (`usage.parent()`); None without a record."""
+    try:
+        if FOLDER.is_dir():
+            from aresos_control import usage
+            return usage.parent()
+    except Exception as exc:
+        (FOLDER / f'mark-error-{os.getpid()}.txt').write_text(repr(exc))
+    return None
+
+
+def mark(session):
     """The MCP stand-in marks its session with the real `usage.mark()` on each tool call, as the proxy does."""
     try:
         if FOLDER.is_dir():
             from aresos_control import usage
-            usage.mark()
+            usage.mark(session)
     except Exception as exc:
         (FOLDER / f'mark-error-{os.getpid()}.txt').write_text(repr(exc))
 
 
+def session(found):
+    """(pid, start) of a recorded hook's session by `usage`'s rule: its nearest ancestor that isn't a shell."""
+    from aresos_control.usage import LEVELS as BOUND, SHELLS
+    for item in found[1:BOUND + 1]:
+        if item['pid'] <= 1:
+            break
+        if item['comm'] not in SHELLS:
+            return item['pid'], item['start']
+    return None
+
+
 def check(folder):
-    """Every Stop hook has an MCP server's parent (same pid and start time) among its four nearest ancestors."""
+    """Every Stop and UserPromptSubmit hook's session (`session`) is an MCP server's parent (same pid and start)."""
     load = lambda pattern: [json.loads(path.read_text()) for path in sorted(folder.glob(pattern))]
     servers, stops, prompts = load('mcp-*.json'), load('hook-Stop-*.json'), load('hook-UserPromptSubmit-*.json')
-    assert servers and stops, ('no process chains recorded', len(servers), len(stops))
+    assert servers and stops and prompts, ('no process chains recorded', len(servers), len(stops), len(prompts))
     parents = {(server[1]['pid'], server[1]['start']) for server in servers if len(server) > 1}
-    for stop in stops:
-        ancestors = [(item['pid'], item['start']) for item in stop[1:LEVELS + 1]]
-        assert parents & set(ancestors), ('STOP: the MCP server and the Stop hook have no common Claude Code process',
-                                          servers, stop)
+    for hook in stops + prompts:
+        assert session(hook) in parents, ("STOP: the hook's session is not the MCP server's parent (no common Claude "
+                                          'Code process, or something other than a shell between them)', servers, hook)
     assert not list(folder.glob('mark-error-*.txt')), [p.read_text() for p in folder.glob('mark-error-*.txt')]
     return {'mcp': servers, 'stop': stops, 'prompt': prompts}
 

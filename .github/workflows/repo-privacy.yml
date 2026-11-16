@@ -1,0 +1,51 @@
+name: Repo privacy
+# The owner's machine username stays out of the repo's current files (owner, 2026-11-15, board #306;
+# reviews/username-scrub/RECORD.md). Write home paths with the placeholder "owner" (/Users/owner/...,
+# C:\Users\owner\..., -Users-owner), "...", or as repo-relative paths; made-up examples use "owner" too.
+# Git history keeps older copies; this checks the files a pull request would merge, not history.
+# It never prints matching text, because the run log is public: only file:line, and only a count for file names.
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: repo-privacy-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  home-paths:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: No real username in a macOS or Windows home path
+        shell: bash
+        run: |
+          set -euo pipefail
+          # A home path whose user is not owner, "..." or a built-in account: /Users/<name>, C:\Users\<name>
+          # (also JSON-escaped, any case), c:/users/<name>, and Claude Code's -Users-<name> folder form.
+          # icon.svg: a test fixture's made-up Windows path to an icon file, which names no user.
+          allowed='(?i:owner|runner|runneradmin|shared|public|default|icon\.svg|\.+)(?![A-Za-z0-9._-])'
+          pattern='(?:/Users/|\\{1,4}[Uu]sers\\{1,4}|(?<![A-Za-z])[A-Za-z]:/[Uu]sers/)(?!'"$allowed"')[A-Za-z0-9._-]+|(?<![A-Za-z0-9])-Users-(?!owner(?![A-Za-z0-9._]))[A-Za-z0-9._]+'
+          failed=0
+
+          # Perl reads the same pattern as git grep -P; a bad pattern makes it exit non-zero, which stops the step.
+          names=$(git ls-files | P="$pattern" perl -ne '$n++ if /$ENV{P}/; END { print $n // 0 }')
+          if [ "$names" != 0 ]; then
+            echo "::error::$names file or folder names hold a home path with a real user name. Rename them (names withheld)."
+            failed=1
+          fi
+
+          : > "$RUNNER_TEMP/grep.txt"  # fails the step here if the file can't be written, so exit 1 below means "nothing found"
+          status=0
+          git grep -nIP -e "$pattern" -- . > "$RUNNER_TEMP/grep.txt" || status=$?
+          case "$status" in
+            0) echo "::error::A home path names a real user. Write owner instead (/Users/owner/..., C:\\Users\\owner\\...):"
+               # file:line only; a file whose own path matches is counted above, not printed.
+               cut -d: -f1,2 "$RUNNER_TEMP/grep.txt" | P="$pattern" perl -ne 'print unless /$ENV{P}/'
+               failed=1 ;;
+            1) echo "No file holds a home path with a real user name." ;;
+            *) echo "::error::git grep failed (exit $status)"; exit "$status" ;;
+          esac
+          exit "$failed"

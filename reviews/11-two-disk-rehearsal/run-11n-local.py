@@ -17,7 +17,7 @@ exec python3 -m unittest discover -s os/tests -v
 ''', encoding='utf-8', newline='\n')
 logs = root / 'reviews/11-two-disk-rehearsal/logs/11n'
 logs.mkdir(parents=True, exist_ok=True)
-command = ['wsl', '-d', 'Ubuntu', '--cd', '/mnt/c/Users/pab/AresOS-11-two-disk-rehearsal', '--exec',
+command = ['wsl', '-d', 'Ubuntu', '--cd', '/mnt/c/Users/owner/AresOS-11-two-disk-rehearsal', '--exec',
            '/bin/bash', '--noprofile', '--norc', '.work/11n/run-local.sh']
 with (logs / 'local-native-tests.txt').open('wb') as output:
     result = subprocess.run(command, stdout=output, stderr=subprocess.STDOUT)

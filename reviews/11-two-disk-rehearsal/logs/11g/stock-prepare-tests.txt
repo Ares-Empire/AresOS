@@ -1,4 +1,4 @@
-Command: C:\Users\pab\AppData\Local\Programs\Python\Python313\python.exe -X utf8 -m unittest discover -s os/tests -p test_stock_prepare.py -v
+Command: C:\Users\owner\AppData\Local\Programs\Python\Python313\python.exe -X utf8 -m unittest discover -s os/tests -p test_stock_prepare.py -v
 test_pause_twice_is_idempotent_and_services_idle_timers_persistently_disabled (test_stock_prepare.StockPauseTest.test_pause_twice_is_idempotent_and_services_idle_timers_persistently_disabled) ... ok
 test_waits_for_active_deployment_transaction (test_stock_prepare.StockPauseTest.test_waits_for_active_deployment_transaction) ... ok
 test_booted_checksum_change_after_cleanup_never_pins (test_stock_prepare.StockPinTest.test_booted_checksum_change_after_cleanup_never_pins) ... ok

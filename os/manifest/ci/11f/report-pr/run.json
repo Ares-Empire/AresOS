@@ -101,11 +101,11 @@
     "message": "Report the pending stock update and missing failure counter; keep installation gates open",
     "timestamp": "2026-10-24T03:29:17Z",
     "author": {
-      "name": "pab",
+      "name": "owner",
       "email": "admin@example.com"
     },
     "committer": {
-      "name": "pab",
+      "name": "owner",
       "email": "admin@example.com"
     }
   },

@@ -3,13 +3,13 @@ test_live_root_units_are_arguments_and_aliases_are_preserved (test_audit.Activat
 test_live_static_updater_activated_by_innocent_timer_and_generated_updater_fail (test_audit.ActivationAuditPrototypeTest.test_live_static_updater_activated_by_innocent_timer_and_generated_updater_fail) ... ok
 test_quoted_escaped_manager_names_and_dependencies_are_round_tripped (test_audit.ActivationAuditPrototypeTest.test_quoted_escaped_manager_names_and_dependencies_are_round_tripped) ... ok
 test_quoted_live_dropin_path_is_inspected (test_audit.ActivationAuditPrototypeTest.test_quoted_live_dropin_path_is_inspected) ... ok
-test_disguised_updater_in_enabled_system_and_user_unit_is_rejected (test_audit.UpdaterAuditTest.test_disguised_updater_in_enabled_system_and_user_unit_is_rejected) ... Configuration file /mnt/c/Users/pab/AresOS-14-owner-tools/.work/14/local/tmp/tmpb2gqoz7v/etc/systemd/system/surprise.service is marked executable. Please remove executable permission bits. Proceeding anyway.
-Configuration file /mnt/c/Users/pab/AresOS-14-owner-tools/.work/14/local/tmp/tmpb2gqoz7v/etc/systemd/system/surprise.service is marked world-writable. Please remove world writability permission bits. Proceeding anyway.
-Configuration file /mnt/c/Users/pab/AresOS-14-owner-tools/.work/14/local/tmp/tmpb2gqoz7v/etc/systemd/user/surprise.service is marked executable. Please remove executable permission bits. Proceeding anyway.
-Configuration file /mnt/c/Users/pab/AresOS-14-owner-tools/.work/14/local/tmp/tmpb2gqoz7v/etc/systemd/user/surprise.service is marked world-writable. Please remove world writability permission bits. Proceeding anyway.
+test_disguised_updater_in_enabled_system_and_user_unit_is_rejected (test_audit.UpdaterAuditTest.test_disguised_updater_in_enabled_system_and_user_unit_is_rejected) ... Configuration file /mnt/c/Users/owner/AresOS-14-owner-tools/.work/14/local/tmp/tmpb2gqoz7v/etc/systemd/system/surprise.service is marked executable. Please remove executable permission bits. Proceeding anyway.
+Configuration file /mnt/c/Users/owner/AresOS-14-owner-tools/.work/14/local/tmp/tmpb2gqoz7v/etc/systemd/system/surprise.service is marked world-writable. Please remove world writability permission bits. Proceeding anyway.
+Configuration file /mnt/c/Users/owner/AresOS-14-owner-tools/.work/14/local/tmp/tmpb2gqoz7v/etc/systemd/user/surprise.service is marked executable. Please remove executable permission bits. Proceeding anyway.
+Configuration file /mnt/c/Users/owner/AresOS-14-owner-tools/.work/14/local/tmp/tmpb2gqoz7v/etc/systemd/user/surprise.service is marked world-writable. Please remove world writability permission bits. Proceeding anyway.
 ok
-test_generated_cockpit_auto_update_entry_point_requires_its_policy_mask (test_audit.UpdaterAuditTest.test_generated_cockpit_auto_update_entry_point_requires_its_policy_mask) ... Configuration file /mnt/c/Users/pab/AresOS-14-owner-tools/.work/14/local/tmp/tmp5_pqpry8/etc/systemd/user/ordinary.service is marked executable. Please remove executable permission bits. Proceeding anyway.
-Configuration file /mnt/c/Users/pab/AresOS-14-owner-tools/.work/14/local/tmp/tmp5_pqpry8/etc/systemd/user/ordinary.service is marked world-writable. Please remove world writability permission bits. Proceeding anyway.
+test_generated_cockpit_auto_update_entry_point_requires_its_policy_mask (test_audit.UpdaterAuditTest.test_generated_cockpit_auto_update_entry_point_requires_its_policy_mask) ... Configuration file /mnt/c/Users/owner/AresOS-14-owner-tools/.work/14/local/tmp/tmp5_pqpry8/etc/systemd/user/ordinary.service is marked executable. Please remove executable permission bits. Proceeding anyway.
+Configuration file /mnt/c/Users/owner/AresOS-14-owner-tools/.work/14/local/tmp/tmp5_pqpry8/etc/systemd/user/ordinary.service is marked world-writable. Please remove world writability permission bits. Proceeding anyway.
 ok
 test_live_state_rows_are_validated (test_audit.UpdaterAuditTest.test_live_state_rows_are_validated) ... ok
 test_masked_but_running_updater_is_rejected_in_every_live_state (test_audit.UpdaterAuditTest.test_masked_but_running_updater_is_rejected_in_every_live_state) ... ok
@@ -17,12 +17,12 @@ test_missing_live_user_manager_is_a_failure (test_audit.UpdaterAuditTest.test_mi
 test_reviewed_bookkeeping_and_masked_updater_are_accepted (test_audit.UpdaterAuditTest.test_reviewed_bookkeeping_and_masked_updater_are_accepted) ... ok
 test_static_live_inventory_reads_generated_files_and_both_manager_states (test_audit.UpdaterAuditTest.test_static_live_inventory_reads_generated_files_and_both_manager_states) ... ok
 test_suspicious_units_require_mask_or_review_in_every_state (test_audit.UpdaterAuditTest.test_suspicious_units_require_mask_or_review_in_every_state) ... ok
-test_updater_added_by_dropin_is_rejected (test_audit.UpdaterAuditTest.test_updater_added_by_dropin_is_rejected) ... Configuration file /mnt/c/Users/pab/AresOS-14-owner-tools/.work/14/local/tmp/tmpovumjpw0/etc/systemd/system/ordinary.service is marked executable. Please remove executable permission bits. Proceeding anyway.
-Configuration file /mnt/c/Users/pab/AresOS-14-owner-tools/.work/14/local/tmp/tmpovumjpw0/etc/systemd/system/ordinary.service is marked world-writable. Please remove world writability permission bits. Proceeding anyway.
-Configuration file /mnt/c/Users/pab/AresOS-14-owner-tools/.work/14/local/tmp/tmpovumjpw0/etc/systemd/system/ordinary.service.d/override.conf is marked executable. Please remove executable permission bits. Proceeding anyway.
-Configuration file /mnt/c/Users/pab/AresOS-14-owner-tools/.work/14/local/tmp/tmpovumjpw0/etc/systemd/system/ordinary.service.d/override.conf is marked world-writable. Please remove world writability permission bits. Proceeding anyway.
-Configuration file /mnt/c/Users/pab/AresOS-14-owner-tools/.work/14/local/tmp/tmpovumjpw0/etc/systemd/user/ordinary.service is marked executable. Please remove executable permission bits. Proceeding anyway.
-Configuration file /mnt/c/Users/pab/AresOS-14-owner-tools/.work/14/local/tmp/tmpovumjpw0/etc/systemd/user/ordinary.service is marked world-writable. Please remove world writability permission bits. Proceeding anyway.
+test_updater_added_by_dropin_is_rejected (test_audit.UpdaterAuditTest.test_updater_added_by_dropin_is_rejected) ... Configuration file /mnt/c/Users/owner/AresOS-14-owner-tools/.work/14/local/tmp/tmpovumjpw0/etc/systemd/system/ordinary.service is marked executable. Please remove executable permission bits. Proceeding anyway.
+Configuration file /mnt/c/Users/owner/AresOS-14-owner-tools/.work/14/local/tmp/tmpovumjpw0/etc/systemd/system/ordinary.service is marked world-writable. Please remove world writability permission bits. Proceeding anyway.
+Configuration file /mnt/c/Users/owner/AresOS-14-owner-tools/.work/14/local/tmp/tmpovumjpw0/etc/systemd/system/ordinary.service.d/override.conf is marked executable. Please remove executable permission bits. Proceeding anyway.
+Configuration file /mnt/c/Users/owner/AresOS-14-owner-tools/.work/14/local/tmp/tmpovumjpw0/etc/systemd/system/ordinary.service.d/override.conf is marked world-writable. Please remove world writability permission bits. Proceeding anyway.
+Configuration file /mnt/c/Users/owner/AresOS-14-owner-tools/.work/14/local/tmp/tmpovumjpw0/etc/systemd/user/ordinary.service is marked executable. Please remove executable permission bits. Proceeding anyway.
+Configuration file /mnt/c/Users/owner/AresOS-14-owner-tools/.work/14/local/tmp/tmpovumjpw0/etc/systemd/user/ordinary.service is marked world-writable. Please remove world writability permission bits. Proceeding anyway.
 ok
 test_bad_paths_missing_keys_and_nonexecutables_stop_before_auth (test_build_tools.BuildToolsTest.test_bad_paths_missing_keys_and_nonexecutables_stop_before_auth) ... ok
 test_paths_are_explicit_at_sudo_and_resolution_precedes_secret_creation (test_build_tools.BuildToolsTest.test_paths_are_explicit_at_sudo_and_resolution_precedes_secret_creation) ... ok
@@ -169,8 +169,8 @@ ok
 test_fallback_verifies_before_selecting_exact_boot (test_offline_journal.OfflineReaderCommandsTest.test_fallback_verifies_before_selecting_exact_boot) ... Offline journal passed: boot aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa, logind power key -> power-off -> orderly logind stop
 PASS: offline logind power-key path for boot aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 ok
-test_gate_requires_both_explicit_host_limitations (test_offline_journal.OfflineReaderCommandsTest.test_gate_requires_both_explicit_host_limitations) ... REPORTED, NOT BLOCKING: logind power-key path requires first hardware boot; offline journal unreadable: Kernel Btrfs mount unsupported; userspace reader absent: {'argv': ['podman', 'run', '--rm', '--network=none', '--read-only', '--device', '/dev/nbd0p4:/dev/guest:r', '--volume', '/mnt/c/Users/pab/AresOS-14-owner-tools/.work/14/local/tmp/tmpol4my8fy/offline-restore-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:/export:rw', '--entrypoint', '/usr/bin/btrfs', 'localhost/aresos:ci', 'version'], 'returncode': 1, 'stderr': 'stat /usr/bin/btrfs: no such file or directory', 'output': 'offline-btrfs-version.txt'}
-REPORTED, NOT BLOCKING: logind power-key path requires first hardware boot; offline journal unreadable: Kernel Btrfs mount unsupported; userspace reader absent: {'argv': ['podman', 'run', '--rm', '--network=none', '--read-only', '--volume', '/mnt/c/Users/pab/AresOS-14-owner-tools/.work/14/local/tmp/tmpe8ed7gd4/offline-restore-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/var/log/journal:/guest-journal:ro', '--entrypoint', '/usr/bin/journalctl', 'localhost/aresos:ci', '--directory=/guest-journal', '--no-pager', '--version'], 'returncode': 1, 'stderr': 'stat /usr/bin/journalctl: no such file or directory', 'output': 'offline-journalctl-version.txt'}
+test_gate_requires_both_explicit_host_limitations (test_offline_journal.OfflineReaderCommandsTest.test_gate_requires_both_explicit_host_limitations) ... REPORTED, NOT BLOCKING: logind power-key path requires first hardware boot; offline journal unreadable: Kernel Btrfs mount unsupported; userspace reader absent: {'argv': ['podman', 'run', '--rm', '--network=none', '--read-only', '--device', '/dev/nbd0p4:/dev/guest:r', '--volume', '/mnt/c/Users/owner/AresOS-14-owner-tools/.work/14/local/tmp/tmpol4my8fy/offline-restore-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:/export:rw', '--entrypoint', '/usr/bin/btrfs', 'localhost/aresos:ci', 'version'], 'returncode': 1, 'stderr': 'stat /usr/bin/btrfs: no such file or directory', 'output': 'offline-btrfs-version.txt'}
+REPORTED, NOT BLOCKING: logind power-key path requires first hardware boot; offline journal unreadable: Kernel Btrfs mount unsupported; userspace reader absent: {'argv': ['podman', 'run', '--rm', '--network=none', '--read-only', '--volume', '/mnt/c/Users/owner/AresOS-14-owner-tools/.work/14/local/tmp/tmpe8ed7gd4/offline-restore-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/var/log/journal:/guest-journal:ro', '--entrypoint', '/usr/bin/journalctl', 'localhost/aresos:ci', '--directory=/guest-journal', '--no-pager', '--version'], 'returncode': 1, 'stderr': 'stat /usr/bin/journalctl: no such file or directory', 'output': 'offline-journalctl-version.txt'}
 REPORTED, NOT BLOCKING: logind power-key path requires first hardware boot; offline journal unreadable: Kernel Btrfs mount unsupported; host Podman is absent
 ok
 test_missing_journals_boot_wrong_boot_or_any_required_record_is_blocking (test_offline_journal.OfflineReaderCommandsTest.test_missing_journals_boot_wrong_boot_or_any_required_record_is_blocking) ... ok
@@ -509,7 +509,7 @@ test_windows_order_restoration_checks_exact_stable_move_and_rejects_other_output
 ERROR: test_active_service_without_drawing_hits_deadline (test_greeter.GreeterTest.test_active_service_without_drawing_hits_deadline)
 ----------------------------------------------------------------------
 Traceback (most recent call last):
-  File "/mnt/c/Users/pab/AresOS-14-owner-tools/os/tests/test_greeter.py", line 35, in test_active_service_without_drawing_hits_deadline
+  File "/mnt/c/Users/owner/AresOS-14-owner-tools/os/tests/test_greeter.py", line 35, in test_active_service_without_drawing_hits_deadline
     from PIL import Image
 ModuleNotFoundError: No module named 'PIL'
 
@@ -517,7 +517,7 @@ ModuleNotFoundError: No module named 'PIL'
 ERROR: test_black_cursor_and_flat_background_are_not_rendered_greeters (test_greeter.GreeterTest.test_black_cursor_and_flat_background_are_not_rendered_greeters)
 ----------------------------------------------------------------------
 Traceback (most recent call last):
-  File "/mnt/c/Users/pab/AresOS-14-owner-tools/os/tests/test_greeter.py", line 13, in test_black_cursor_and_flat_background_are_not_rendered_greeters
+  File "/mnt/c/Users/owner/AresOS-14-owner-tools/os/tests/test_greeter.py", line 13, in test_black_cursor_and_flat_background_are_not_rendered_greeters
     from PIL import Image, ImageDraw
 ModuleNotFoundError: No module named 'PIL'
 
@@ -525,12 +525,12 @@ ModuleNotFoundError: No module named 'PIL'
 ERROR: test_capture_waits_for_drawing_and_keeps_ready_evidence (test_greeter.GreeterTest.test_capture_waits_for_drawing_and_keeps_ready_evidence)
 ----------------------------------------------------------------------
 Traceback (most recent call last):
-  File "/mnt/c/Users/pab/AresOS-14-owner-tools/os/tests/test_greeter.py", line 30, in test_capture_waits_for_drawing_and_keeps_ready_evidence
+  File "/mnt/c/Users/owner/AresOS-14-owner-tools/os/tests/test_greeter.py", line 30, in test_capture_waits_for_drawing_and_keeps_ready_evidence
     capture_stock_greeter(guest, evidence, 'stock')
-  File "/mnt/c/Users/pab/AresOS-14-owner-tools/os/ci/greeter.py", line 35, in capture_stock_greeter
+  File "/mnt/c/Users/owner/AresOS-14-owner-tools/os/ci/greeter.py", line 35, in capture_stock_greeter
     metrics = frame_metrics(evidence / (name + '.png'))
               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/mnt/c/Users/pab/AresOS-14-owner-tools/os/ci/greeter.py", line 11, in frame_metrics
+  File "/mnt/c/Users/owner/AresOS-14-owner-tools/os/ci/greeter.py", line 11, in frame_metrics
     from PIL import Image, ImageStat
 ModuleNotFoundError: No module named 'PIL'
 
@@ -540,20 +540,20 @@ ERROR: test_absent_inherited_installation_is_not_created (test_inherited_homebre
 Traceback (most recent call last):
   File "/usr/lib/python3.12/subprocess.py", line 571, in run
     raise CalledProcessError(retcode, process.args,
-subprocess.CalledProcessError: Command '['sudo', '-n', 'chown', '-R', '1000:1000', '/mnt/c/Users/pab/AresOS-14-owner-tools/.work/14/local/tmp/tmpywoaxzh1']' returned non-zero exit status 126.
+subprocess.CalledProcessError: Command '['sudo', '-n', 'chown', '-R', '1000:1000', '/mnt/c/Users/owner/AresOS-14-owner-tools/.work/14/local/tmp/tmpywoaxzh1']' returned non-zero exit status 126.
 
 ======================================================================
 ERROR: test_denies_daily_execution_and_reading_preserves_owner_and_content_idempotently (test_inherited_homebrew.InheritedHomebrewTest.test_denies_daily_execution_and_reading_preserves_owner_and_content_idempotently)
 ----------------------------------------------------------------------
 Traceback (most recent call last):
-  File "/mnt/c/Users/pab/AresOS-14-owner-tools/os/tests/test_inherited_homebrew.py", line 54, in test_denies_daily_execution_and_reading_preserves_owner_and_content_idempotently
+  File "/mnt/c/Users/owner/AresOS-14-owner-tools/os/tests/test_inherited_homebrew.py", line 54, in test_denies_daily_execution_and_reading_preserves_owner_and_content_idempotently
     binary = self.installation()
              ^^^^^^^^^^^^^^^^^^^
-  File "/mnt/c/Users/pab/AresOS-14-owner-tools/os/tests/test_inherited_homebrew.py", line 43, in installation
+  File "/mnt/c/Users/owner/AresOS-14-owner-tools/os/tests/test_inherited_homebrew.py", line 43, in installation
     subprocess.run(['sudo', '-n', 'chown', '0:0', str(self.root),
   File "/usr/lib/python3.12/subprocess.py", line 571, in run
     raise CalledProcessError(retcode, process.args,
-subprocess.CalledProcessError: Command '['sudo', '-n', 'chown', '0:0', '/mnt/c/Users/pab/AresOS-14-owner-tools/.work/14/local/tmp/tmp4k5dzrhz', '/mnt/c/Users/pab/AresOS-14-owner-tools/.work/14/local/tmp/tmp4k5dzrhz/var', '/mnt/c/Users/pab/AresOS-14-owner-tools/.work/14/local/tmp/tmp4k5dzrhz/var/home']' returned non-zero exit status 126.
+subprocess.CalledProcessError: Command '['sudo', '-n', 'chown', '0:0', '/mnt/c/Users/owner/AresOS-14-owner-tools/.work/14/local/tmp/tmp4k5dzrhz', '/mnt/c/Users/owner/AresOS-14-owner-tools/.work/14/local/tmp/tmp4k5dzrhz/var', '/mnt/c/Users/owner/AresOS-14-owner-tools/.work/14/local/tmp/tmp4k5dzrhz/var/home']' returned non-zero exit status 126.
 
 ======================================================================
 ERROR: test_denies_daily_execution_and_reading_preserves_owner_and_content_idempotently (test_inherited_homebrew.InheritedHomebrewTest.test_denies_daily_execution_and_reading_preserves_owner_and_content_idempotently)
@@ -561,20 +561,20 @@ ERROR: test_denies_daily_execution_and_reading_preserves_owner_and_content_idemp
 Traceback (most recent call last):
   File "/usr/lib/python3.12/subprocess.py", line 571, in run
     raise CalledProcessError(retcode, process.args,
-subprocess.CalledProcessError: Command '['sudo', '-n', 'chown', '-R', '1000:1000', '/mnt/c/Users/pab/AresOS-14-owner-tools/.work/14/local/tmp/tmp4k5dzrhz']' returned non-zero exit status 126.
+subprocess.CalledProcessError: Command '['sudo', '-n', 'chown', '-R', '1000:1000', '/mnt/c/Users/owner/AresOS-14-owner-tools/.work/14/local/tmp/tmp4k5dzrhz']' returned non-zero exit status 126.
 
 ======================================================================
 ERROR: test_preserves_existing_acl_entries_and_restrictive_mask (test_inherited_homebrew.InheritedHomebrewTest.test_preserves_existing_acl_entries_and_restrictive_mask)
 ----------------------------------------------------------------------
 Traceback (most recent call last):
-  File "/mnt/c/Users/pab/AresOS-14-owner-tools/os/tests/test_inherited_homebrew.py", line 70, in test_preserves_existing_acl_entries_and_restrictive_mask
+  File "/mnt/c/Users/owner/AresOS-14-owner-tools/os/tests/test_inherited_homebrew.py", line 70, in test_preserves_existing_acl_entries_and_restrictive_mask
     binary = self.installation()
              ^^^^^^^^^^^^^^^^^^^
-  File "/mnt/c/Users/pab/AresOS-14-owner-tools/os/tests/test_inherited_homebrew.py", line 43, in installation
+  File "/mnt/c/Users/owner/AresOS-14-owner-tools/os/tests/test_inherited_homebrew.py", line 43, in installation
     subprocess.run(['sudo', '-n', 'chown', '0:0', str(self.root),
   File "/usr/lib/python3.12/subprocess.py", line 571, in run
     raise CalledProcessError(retcode, process.args,
-subprocess.CalledProcessError: Command '['sudo', '-n', 'chown', '0:0', '/mnt/c/Users/pab/AresOS-14-owner-tools/.work/14/local/tmp/tmptu8yak9z', '/mnt/c/Users/pab/AresOS-14-owner-tools/.work/14/local/tmp/tmptu8yak9z/var', '/mnt/c/Users/pab/AresOS-14-owner-tools/.work/14/local/tmp/tmptu8yak9z/var/home']' returned non-zero exit status 126.
+subprocess.CalledProcessError: Command '['sudo', '-n', 'chown', '0:0', '/mnt/c/Users/owner/AresOS-14-owner-tools/.work/14/local/tmp/tmptu8yak9z', '/mnt/c/Users/owner/AresOS-14-owner-tools/.work/14/local/tmp/tmptu8yak9z/var', '/mnt/c/Users/owner/AresOS-14-owner-tools/.work/14/local/tmp/tmptu8yak9z/var/home']' returned non-zero exit status 126.
 
 ======================================================================
 ERROR: test_preserves_existing_acl_entries_and_restrictive_mask (test_inherited_homebrew.InheritedHomebrewTest.test_preserves_existing_acl_entries_and_restrictive_mask)
@@ -582,25 +582,25 @@ ERROR: test_preserves_existing_acl_entries_and_restrictive_mask (test_inherited_
 Traceback (most recent call last):
   File "/usr/lib/python3.12/subprocess.py", line 571, in run
     raise CalledProcessError(retcode, process.args,
-subprocess.CalledProcessError: Command '['sudo', '-n', 'chown', '-R', '1000:1000', '/mnt/c/Users/pab/AresOS-14-owner-tools/.work/14/local/tmp/tmptu8yak9z']' returned non-zero exit status 126.
+subprocess.CalledProcessError: Command '['sudo', '-n', 'chown', '-R', '1000:1000', '/mnt/c/Users/owner/AresOS-14-owner-tools/.work/14/local/tmp/tmptu8yak9z']' returned non-zero exit status 126.
 
 ======================================================================
 ERROR: test_preserves_recovery_admin_and_creates_locked_daily_user_idempotently (test_sysusers.SysusersRebaseTest.test_preserves_recovery_admin_and_creates_locked_daily_user_idempotently)
 ----------------------------------------------------------------------
 Traceback (most recent call last):
-  File "/mnt/c/Users/pab/AresOS-14-owner-tools/os/tests/test_sysusers.py", line 19, in test_preserves_recovery_admin_and_creates_locked_daily_user_idempotently
+  File "/mnt/c/Users/owner/AresOS-14-owner-tools/os/tests/test_sysusers.py", line 19, in test_preserves_recovery_admin_and_creates_locked_daily_user_idempotently
     subprocess.run(command, check=True, capture_output=True, text=True)
   File "/usr/lib/python3.12/subprocess.py", line 571, in run
     raise CalledProcessError(retcode, process.args,
-subprocess.CalledProcessError: Command '['sudo', '-n', 'systemd-sysusers', '--root=/mnt/c/Users/pab/AresOS-14-owner-tools/.work/14/local/tmp/tmpz638jyqj', '/mnt/c/Users/pab/AresOS-14-owner-tools/os/config/usr/lib/sysusers.d/aresos.conf']' returned non-zero exit status 126.
+subprocess.CalledProcessError: Command '['sudo', '-n', 'systemd-sysusers', '--root=/mnt/c/Users/owner/AresOS-14-owner-tools/.work/14/local/tmp/tmpz638jyqj', '/mnt/c/Users/owner/AresOS-14-owner-tools/os/config/usr/lib/sysusers.d/aresos.conf']' returned non-zero exit status 126.
 
 ======================================================================
 FAIL: test_absent_inherited_installation_is_not_created (test_inherited_homebrew.InheritedHomebrewTest.test_absent_inherited_installation_is_not_created)
 ----------------------------------------------------------------------
 Traceback (most recent call last):
-  File "/mnt/c/Users/pab/AresOS-14-owner-tools/os/tests/test_inherited_homebrew.py", line 83, in test_absent_inherited_installation_is_not_created
+  File "/mnt/c/Users/owner/AresOS-14-owner-tools/os/tests/test_inherited_homebrew.py", line 83, in test_absent_inherited_installation_is_not_created
     self.tmpfiles()
-  File "/mnt/c/Users/pab/AresOS-14-owner-tools/os/tests/test_inherited_homebrew.py", line 29, in tmpfiles
+  File "/mnt/c/Users/owner/AresOS-14-owner-tools/os/tests/test_inherited_homebrew.py", line 29, in tmpfiles
     self.assertEqual(result.returncode, 0, result.stderr)
 AssertionError: 126 != 0 : LOCAL_SAFETY_REFUSAL_NO_PRIVILEGED_COMMAND_EXECUTED
 
@@ -609,7 +609,7 @@ AssertionError: 126 != 0 : LOCAL_SAFETY_REFUSAL_NO_PRIVILEGED_COMMAND_EXECUTED
 FAIL: test_auth_is_outside_workspace_and_always_removed_before_artifact_upload (test_rehearsal_auth.OwnerAuthTest.test_auth_is_outside_workspace_and_always_removed_before_artifact_upload)
 ----------------------------------------------------------------------
 Traceback (most recent call last):
-  File "/mnt/c/Users/pab/AresOS-14-owner-tools/os/tests/test_rehearsal_auth.py", line 86, in test_auth_is_outside_workspace_and_always_removed_before_artifact_upload
+  File "/mnt/c/Users/owner/AresOS-14-owner-tools/os/tests/test_rehearsal_auth.py", line 86, in test_auth_is_outside_workspace_and_always_removed_before_artifact_upload
     self.assertEqual(path.stat().st_mode & 0o777, 0o600)
 AssertionError: 511 != 384
 

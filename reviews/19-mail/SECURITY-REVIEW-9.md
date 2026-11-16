@@ -4,7 +4,7 @@ Reviewer: Codex `gpt-6-astra`, xhigh, read-only, fresh context, 2026-11-08. Revi
 
 Reviewed `9278b000`. One blocking finding remains.
 
-1. **Blocking — unchecked managed drop-ins recreate the original bypass.** [boundary.py:71](/Users/pab/AresOS-19-mail/control/aresos_control/boundary.py:71) checks only `managed-settings.json` and `managed-mcp.json`. The launcher likewise omits `managed-settings.d`.
+1. **Blocking — unchecked managed drop-ins recreate the original bypass.** [boundary.py:71](/Users/owner/AresOS-19-mail/control/aresos_control/boundary.py:71) checks only `managed-settings.json` and `managed-mcp.json`. The launcher likewise omits `managed-settings.d`.
 
    Concrete reproduction: keep both checked files exactly as generated and supply `/etc/claude-code/managed-settings.d/99-open.json` containing:
 
@@ -18,7 +18,7 @@ Reviewed `9278b000`. One blocking finding remains.
 
    Reject unexpected drop-ins and symlinks, or validate and protect the entire merged policy. The named residual is **not closed** while this managed source remains unchecked.
 
-2. **Should-fix — history admission blocks safety and recovery actions.** [engine.py:329](/Users/pab/AresOS-19-mail/control/aresos_control/engine.py:329) applies the same 128 MiB admission reserve to every mutation, including cancellation, acknowledgement, repair, and owner restore confirmation.
+2. **Should-fix — history admission blocks safety and recovery actions.** [engine.py:329](/Users/owner/AresOS-19-mail/control/aresos_control/engine.py:329) applies the same 128 MiB admission reserve to every mutation, including cancellation, acknowledgement, repair, and owner restore confirmation.
 
    Repeated free `mail_prepare_send` calls against one unchanged composition accumulate operation history without hitting the composition-count cap. I reproduced exhaustion with a reduced history threshold. At the production threshold—history exceeding **896 MiB**—probes returned `storage_limit` for `mail_operation_cancel`, `mail_notice_ack`, `mail_operation_repair`, and privileged `control_restore_confirm`; operation status remained readable.
 

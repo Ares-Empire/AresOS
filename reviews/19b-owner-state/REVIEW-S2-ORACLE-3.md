@@ -5,7 +5,7 @@
 fixes broke the code they touch, and whether any fault-free flow's point-0 group in `KNOWN-GAPS.json` still carries an
 oracle-side difference. No fresh hunt. **Reviewed head:** `e43ea57c` on `pkg/19b-owner-state`. Read-only: this file is
 the only repository file written. Probes ran in memory from
-`/private/tmp/claude-501/-Users-pab/5d5bbd0b-a538-400c-b84f-360fe127662f/scratchpad/oracle-review-3/probes/` (round-2
+`/private/tmp/claude-501/-Users-owner/5d5bbd0b-a538-400c-b84f-360fe127662f/scratchpad/oracle-review-3/probes/` (round-2
 probes copied and adapted, plus the new ones named below), with the worktree venv and the same in-memory managed-policy
 patch. Old-head runs used `git archive` copies of `3486bec8` and `ce718024` in that scratch folder.
 

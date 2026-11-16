@@ -24,6 +24,12 @@ CONFIRMATION_POLL = 0.1
 UNKNOWN_DEADLINE = 1.0
 # Wake a little after a wall-clock deadline, not a little before it.
 DEADLINE_MARGIN = 0.005
+# A deadline already due when the loop goes to sleep: expire() ran just before, so its work failed. Try again at the
+# old 0.1 s cadence, never at once, so an expiry that keeps failing can't spin the loop.
+OVERDUE_RETRY = 0.1
+# Each socket's final mode: the owner reaches act and chrome (the service checks his uid on every connection);
+# admin is root's.
+SOCKET_MODES = {"act": 0o666, "admin": 0o600, "chrome": 0o666}
 
 
 def chrome_peer(pid, uid):
@@ -36,6 +42,43 @@ def chrome_peer(pid, uid):
     return {'pid': pid, 'uid': uid, 'start': start}
 
 
+def replaceable(path):
+    """Nothing at `path`, or a socket of this service's own (a stopped service's, or a start cut short)."""
+    try:
+        info = path.lstat()
+    except FileNotFoundError:
+        return
+    if not stat.S_ISSOCK(info.st_mode) or info.st_uid != os.geteuid():
+        raise ValueError("Refusing to replace an unexpected socket path")
+
+
+def listen(directory, kind):
+    """A listener at `<kind>.sock`, which appears there only once it has its mode and listens.
+
+    Bound under a temporary name in the same folder, given its mode, set listening, then renamed into place (atomic,
+    replacing a stopped service's socket). With the unit's UMask=0077 a socket bound at its final name would be 0700
+    until its chmod: an owner connecting then would get EACCES, which is a setup error that stops an MCP proxy at start
+    for its whole session; and between bind and listen ECONNREFUSED (recheck 2 of 18e, nit 3).
+    """
+    path, temporary = directory / (kind + ".sock"), directory / ("." + kind + ".sock.new")
+    replaceable(path)
+    replaceable(temporary)
+    temporary.unlink(missing_ok=True)
+    listener = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    try:
+        listener.bind(str(temporary))
+        # Peer credentials enforce identity even if the filesystem is made permissive.
+        # act must be reachable without changing the service's supplementary groups.
+        os.chmod(temporary, SOCKET_MODES[kind])
+        listener.listen(16)
+        os.replace(temporary, path)
+    except BaseException:
+        listener.close()
+        temporary.unlink(missing_ok=True)
+        raise
+    return listener
+
+
 class Daemon:
     def __init__(self, config, checkpoint=lambda _: None):
         self.config = config
@@ -46,18 +89,7 @@ class Daemon:
         directory = Path(config["socket_dir"])
         directory.mkdir(mode=0o711, exist_ok=True)
         for kind in ("act", "admin", "chrome"):
-            path = directory / (kind + ".sock")
-            if path.exists():
-                info = path.lstat()
-                if not stat.S_ISSOCK(info.st_mode) or info.st_uid != os.geteuid():
-                    raise ValueError("Refusing to replace an unexpected socket path")
-                path.unlink()
-            listener = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-            listener.bind(str(path))
-            # Peer credentials enforce identity even if the filesystem is made permissive.
-            # act must be reachable without changing the service's supplementary groups.
-            os.chmod(path, 0o666 if kind in {"act", "chrome"} else 0o600)
-            listener.listen(16)
+            listener = listen(directory, kind)
             self.selector.register(listener, selectors.EVENT_READ, kind)
             self.sockets.append(listener)
         # The loop may sleep up to a minute, and Python restarts a select after a signal handler (PEP 475):
@@ -152,7 +184,8 @@ class Daemon:
                 wait = min(wait, CONFIRMATION_POLL)
             deadline = self.engine.next_deadline()
             if deadline is not None:
-                wait = min(wait, deadline - time.time() + DEADLINE_MARGIN)
+                remaining = deadline - time.time()
+                wait = min(wait, remaining + DEADLINE_MARGIN if remaining > 0 else OVERDUE_RETRY)
         except Exception:
             # expire() and the Chrome calls on the next pass record any cause; only the sleep is decided here.
             wait = min(wait, UNKNOWN_DEADLINE)
