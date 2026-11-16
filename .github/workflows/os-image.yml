@@ -1,5 +1,5 @@
 name: OS image
-run-name: ${{ inputs.rehearsal && format('Two-disk rehearsal ({0})', inputs.rehearsal) || inputs.check_build && format('OS image check build ({0}, never published)', inputs.check_build) || inputs.checks_only && 'OS regressions only (no VM)' || inputs.release_13 && 'Package 13 image release' || inputs.release_27 && 'Package 27 image release' || inputs.release_28 && 'Package 28 image release' || inputs.dry_run_28 && 'Package 28 image dry run (never published)' || inputs.switch_from_run && 'OS published-image switch only' || 'OS image' }}
+run-name: ${{ inputs.rehearsal && format('Two-disk rehearsal ({0})', inputs.rehearsal) || inputs.check_build && format('OS image check build ({0}, never published)', inputs.check_build) || inputs.checks_only && 'OS regressions only (no VM)' || inputs.release_13 && 'Package 13 image release' || inputs.release_27 && 'Package 27 image release' || inputs.dry_run_28 && 'Package 28 image dry run (never published)' || inputs.release_28 && 'Package 28 image release' || inputs.switch_from_run && 'OS published-image switch only' || 'OS image' }}
 
 on:
   workflow_dispatch:
@@ -18,7 +18,7 @@ on:
         type: boolean
         default: false
       release_28:
-        description: 'Publish private release 28 (package 42 branch only); only after the owner''s OK'
+        description: 'Publish private release 28 (package 42 branch only); its ledger stops it until step 5 raises the cap after the owner''s OK'
         type: boolean
         default: false
       dry_run_28:
@@ -76,7 +76,7 @@ jobs:
           # The suite reads files of earlier commits (git show, git diff).
           fetch-depth: 0
       - name: Reserve package 13 checks budget
-        if: github.ref_name == 'pkg/13-keyboard-layout' || github.ref_name == 'pkg/27-first-update-release'
+        if: github.ref_name == 'pkg/13-keyboard-layout' || github.ref_name == 'pkg/27-first-update-release' || github.ref_name == 'pkg/42-release-28'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REHEARSAL_MODE: checks
@@ -183,12 +183,28 @@ jobs:
     if: github.event_name == 'workflow_dispatch' && github.ref_name != 'pkg/16-staged-release' && inputs.check_build != '' && !inputs.rehearsal && !inputs.release_13 && !inputs.release_27 && !inputs.release_28 && !inputs.dry_run_28 && !inputs.checks_only && !inputs.switch_from_run
     runs-on: ubuntu-24.04
     timeout-minutes: 120
-    # Read-only on purpose: no packages/id-token permission and no secrets, so
-    # this job cannot push, sign or publish the image it builds.
+    # Read-only on purpose: no write permission, no id-token and no other secret
+    # than the job token, so this job cannot push, sign or publish the image it
+    # builds. actions: read and packages: read are what package 42's guard step
+    # may reach (test_ci_api_permissions); only that step gets the token: the
+    # checkout keeps no credentials.
     permissions:
       contents: read
+      packages: read
+      actions: read
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      # Package 42 (review 1, S3): its ledger caps the resolve dispatches; the
+      # guard stops a resolve beyond the cap, and any other check build on the
+      # branch, before the tools and the build.
+      - name: Reserve package 42 resolve budget
+        if: github.ref_name == 'pkg/42-release-28'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REHEARSAL_MODE: resolve
+        run: python3 os/ci/rehearsal_guard.py ci 120
       - uses: ublue-os/remove-unwanted-software@695eb75bc387dbcd9685a8e72d23439d8686cba6
         with:
           extra-squeeze: 'true'
@@ -226,7 +242,7 @@ jobs:
           retention-days: 3
           if-no-files-found: error
   image:
-    if: github.event_name == 'workflow_dispatch' && inputs.release_13 && github.ref_name == 'pkg/13-keyboard-layout' && !inputs.checks_only && !inputs.switch_from_run && !inputs.rehearsal
+    if: github.event_name == 'workflow_dispatch' && inputs.release_13 && github.ref_name == 'pkg/13-keyboard-layout' && !inputs.release_28 && !inputs.dry_run_28 && !inputs.checks_only && !inputs.switch_from_run && !inputs.rehearsal
     runs-on: ubuntu-24.04
     timeout-minutes: 90
     permissions:
@@ -383,7 +399,7 @@ jobs:
           if-no-files-found: error
   release-27:
     name: Package 27 release build, image diff, VM and publish
-    if: github.ref_name == 'pkg/27-first-update-release' && github.event_name == 'workflow_dispatch' && inputs.release_27 && !inputs.release_13 && !inputs.checks_only && !inputs.switch_from_run && !inputs.rehearsal && inputs.check_build == ''
+    if: github.ref_name == 'pkg/27-first-update-release' && github.event_name == 'workflow_dispatch' && inputs.release_27 && !inputs.release_13 && !inputs.release_28 && !inputs.dry_run_28 && !inputs.checks_only && !inputs.switch_from_run && !inputs.rehearsal && inputs.check_build == ''
     runs-on: ubuntu-24.04
     timeout-minutes: 180
     permissions:

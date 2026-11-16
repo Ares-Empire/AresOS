@@ -182,16 +182,17 @@
     "part_b_cap": 0,
     "dispatch_caps": {
       "dry-run-28": 4,
-      "publish-28": 1,
+      "publish-28": 0,
       "resolve": 2,
       "checks": 1
     },
+    "publish_gate": "Shut until the owner's OK (review 1, B1): publish-28 and publish_cap stay 0, so a release_28 dispatch stops at its guard, the job's first step after checkout, before any build. Step 5 raises both to 1 only after his OK, in a commit that names the OK (date, board number) in budget below. A stopped release_28 dispatch still counts as one publish-28 dispatch and stops every later guard on the branch until a ledger commit records it.",
     "organization_budget": {
       "organization": "Ares-Empire",
       "included_minutes": 2000,
       "other_repos_reserve": 150
     },
-    "publish_cap": 1,
+    "publish_cap": 0,
     "job_bounds": {
       "dry-run-28": 180,
       "publish-28": 180,

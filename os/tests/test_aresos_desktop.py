@@ -3283,7 +3283,10 @@ class ModJarPinTest(unittest.TestCase):
         self.assertEqual(containerfile.count('ARESOS_BUILD_KIND='), 1, 'declared once, in the stage that configures')
         workflow = (ROOT / '.github/workflows/os-image.yml').read_text()
         jobs = yaml.load(workflow, Loader=yaml.BaseLoader)['jobs']
-        self.assertEqual(jobs['check-build']['permissions'], {'contents': 'read'})
+        # Read-only: no write permission and no id-token, so it cannot push or sign. actions and packages read are
+        # what package 42's guard step may reach (review 1 of package 42, S3); the checkout keeps no token.
+        self.assertEqual(jobs['check-build']['permissions'], {'contents': 'read', 'packages': 'read', 'actions': 'read'})
+        self.assertEqual(jobs['check-build']['steps'][0]['with'], {'persist-credentials': 'false'})
         callers = sorted(name for name, job in jobs.items()
                          if any('os/ci/check-build.sh' in step.get('run', '') for step in job.get('steps', [])))
         # Package 42's release job and its dry run build as releases too: the dry run must build what would publish.

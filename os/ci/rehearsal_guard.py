@@ -359,7 +359,10 @@ def budget(reserve, current=None):
         if start is None or run['created_at'] < start:
             continue
         if PACKAGE in TITLED_PACKAGES and run['event'] == 'workflow_dispatch':
-            kind, = [kind for kind, title in SETTINGS['titles'].items() if title == run['display_title']]
+            kinds = [kind for kind, title in SETTINGS['titles'].items() if title == run['display_title']]
+            assert len(kinds) == 1, (f"STOP: run {run['id']} is titled {run['display_title']!r}, which package {PACKAGE}'s "
+                                     'ledger does not know; record it in os/ci/rehearsal-packages.json before any dispatch')
+            kind, = kinds
             assert run.get('run_attempt') == 1, 'STOP: a rerun is an additional dispatch, not a free retry'
             counts[kind] += 1
         if run['display_title'] == 'Two-disk rehearsal (full)':
@@ -536,6 +539,8 @@ def main():
             # Package 42's dry run (dry-run-28) is not a publishing kind: it has no publish step, and this refuses one.
             assert kind in PUBLISH_KINDS and os.environ.get('GITHUB_EVENT_NAME') == 'workflow_dispatch'
             assert os.environ.get('GITHUB_REPOSITORY') == REPOSITORY
+            # A ledger whose publish_cap is 0 allows no publish at all (package 42 until the owner's OK).
+            assert len(result['publish_attempts']) < SETTINGS.get('publish_cap', 0), 'STOP: the ledger allows no publish'
         if kind in ('probe', 'keyboard', 'owner-tools', 'update') or own_native(kind):
             sha=os.environ.get('GITHUB_SHA') or subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
             result['native']=native_gate(kind,mode,result,sha,run if ci else None)

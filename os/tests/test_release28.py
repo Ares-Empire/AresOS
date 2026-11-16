@@ -674,6 +674,8 @@ class WorkflowGateTest(unittest.TestCase):
         ledger = guard.PACKAGES['42']
         for world, kind in ((inputs(**{'inputs.release_28': True}), 'publish-28'),
                             (inputs(**{'inputs.dry_run_28': True}), 'dry-run-28'),
+                            # Review 1, N1: both inputs run no job; the slip is counted as a dry run, not as the publish.
+                            (inputs(**{'inputs.release_28': True, 'inputs.dry_run_28': True}), 'dry-run-28'),
                             (inputs(**{'inputs.check_build': 'resolve'}), 'resolve'),
                             (inputs(**{'inputs.checks_only': True}), 'checks')):
             with self.subTest(kind=kind):
@@ -683,6 +685,30 @@ class WorkflowGateTest(unittest.TestCase):
         for job, mode in (('release-28', 'publish-28'), ('release-28-dry-run', 'dry-run-28')):
             modes = {step['env']['REHEARSAL_MODE'] for step in WORKFLOW['jobs'][job]['steps'] if 'REHEARSAL_MODE' in step.get('env', {})}
             self.assertEqual(modes, {mode})
+
+    def test_resolve_and_checks_runs_read_their_caps_before_their_work(self):
+        # Review 1, S3: on this branch the check build's guard step comes right after the checkout, before the tools.
+        steps = WORKFLOW['jobs']['check-build']['steps']
+        self.assertTrue(steps[0]['uses'].startswith('actions/checkout@'))
+        self.assertEqual(steps[0]['with'], {'persist-credentials': 'false'})
+        reserve = steps[1]
+        self.assertEqual((reserve['run'], reserve['env']['REHEARSAL_MODE']), ('python3 os/ci/rehearsal_guard.py ci 120', 'resolve'))
+        self.assertEqual(reserve['env']['GH_TOKEN'], '${{ secrets.GITHUB_TOKEN }}')
+        self.assertTrue(condition(reserve['if'], mode='', **{'github.ref_name': BRANCH}))
+        for other in ('main', 'pkg/22d-tools-without-stick', 'pkg/27-first-update-release'):
+            self.assertFalse(condition(reserve['if'], mode='', **{'github.ref_name': other}))
+        self.assertEqual([step.get('env', {}).get('GH_TOKEN') for step in steps[2:] if step.get('env', {}).get('GH_TOKEN')], [])
+        # The checks-only run reads its cap on this branch before the suite.
+        steps = WORKFLOW['jobs']['regressions']['steps']
+        reserve, = [i for i, step in enumerate(steps) if 'rehearsal_guard.py ci' in step.get('run', '')]
+        suite, = [i for i, step in enumerate(steps) if 'unittest discover' in step.get('run', '')]
+        self.assertLess(reserve, suite)
+        self.assertEqual(steps[reserve]['env']['REHEARSAL_MODE'], 'checks')
+        self.assertTrue(condition(steps[reserve]['if'], mode='', **{'github.ref_name': BRANCH}))
+        self.assertFalse(condition(steps[reserve]['if'], mode='', **{'github.ref_name': 'main'}))
+        # Both jobs read the run history with the job token.
+        for job in ('check-build', 'regressions'):
+            self.assertEqual(WORKFLOW['jobs'][job]['permissions'].get('actions'), 'read')
 
     def test_every_step_script_accepts_the_environment_its_job_gives_it(self):
         """GateScan (test_release27): each environment and argument gate the job's scripts surely reach.
@@ -829,14 +855,17 @@ class Guard42Test(unittest.TestCase):
             return next(run for run in runs if path == f"actions/runs/{run['id']}")
         return runs, api
 
-    def test_the_ledger_counts_every_dispatch_and_allows_one_publish(self):
+    def test_the_ledger_counts_every_dispatch_and_keeps_publishing_shut(self):
         ledger = guard.PACKAGES['42']
         self.assertEqual(guard.BRANCH, BRANCH)
         self.assertIn('42', guard.TITLED_PACKAGES)
         self.assertEqual(set(ledger['titles']), set(ledger['dispatch_caps']))
         self.assertEqual(set(ledger['job_bounds']), set(ledger['dispatch_caps']))
-        self.assertEqual(ledger['publish_cap'], 1)
-        self.assertEqual(ledger['dispatch_caps']['publish-28'], 1)
+        # Review 1, B1: publishing stays shut until the owner's OK; step 5 raises both caps to 1 after it.
+        self.assertEqual(ledger['publish_cap'], 0)
+        self.assertEqual(ledger['dispatch_caps']['publish-28'], 0)
+        self.assertIn("owner's OK", ledger['publish_gate'])
+        self.assertIn('Step 5 raises both to 1 only after his OK', ledger['publish_gate'])
         self.assertEqual(ledger['job_bounds']['publish-28'], int(WORKFLOW['jobs']['release-28']['timeout-minutes']))
         self.assertEqual(ledger['job_bounds']['dry-run-28'], int(WORKFLOW['jobs']['release-28-dry-run']['timeout-minutes']))
         self.assertEqual(ledger['job_bounds']['resolve'], int(WORKFLOW['jobs']['check-build']['timeout-minutes']))
@@ -849,15 +878,25 @@ class Guard42Test(unittest.TestCase):
             runs.append(dict(runs[-1], id=99, display_title=titles['dry-run-28']))
             with self.assertRaisesRegex(AssertionError, 'dry-run-28 dispatch allowance exhausted'):
                 guard.budget(0)
+            # A title the ledger does not know (step 3 adds the rehearsal) stops with a line that names it.
             runs[-1]['display_title'] = 'Two-disk rehearsal (release-28)'
-            with self.assertRaises(ValueError):  # a title the ledger does not know (step 3 adds the rehearsal)
+            with self.assertRaisesRegex(AssertionError, r"^STOP: run 99 is titled 'Two-disk rehearsal \(release-28\)', "
+                                                        "which package 42's ledger does not know"):
+                guard.budget(0)
+            runs[-1]['display_title'] = titles['publish-28']
+            with self.assertRaisesRegex(AssertionError, 'STOP: publish-28 dispatch allowance exhausted'):
+                guard.budget(0)
+            runs[-1]['display_title'] = titles['resolve']
+            self.assertEqual(guard.budget(0)['dispatch_counts']['resolve'], 2)
+            runs.append(dict(runs[-1], id=100))
+            with self.assertRaisesRegex(AssertionError, 'STOP: resolve dispatch allowance exhausted'):
                 guard.budget(0)
 
-    def run_main(self, mode, kind):
+    def run_main(self, mode, kind, history=None, title=None):
         titles = guard.PACKAGES['42']['titles']
-        runs, api = self.history([titles['dry-run-28']])
-        current = dict(runs[0], id=50, status='in_progress', conclusion=None, display_title=titles[kind],
-                       head_branch=BRANCH, created_at='2026-11-16T05:00:00Z')
+        runs, api = self.history([titles['dry-run-28']] if history is None else history)
+        current = dict(event='workflow_dispatch', head_sha='a' * 40, run_attempt=1, id=50, status='in_progress', conclusion=None,
+                       display_title=title or titles[kind], head_branch=BRANCH, created_at='2026-11-16T09:00:00Z')
         runs.append(current)
         environment = dict(REHEARSAL_PACKAGE='42', REHEARSAL_MODE=kind, GITHUB_REF_NAME=BRANCH, GITHUB_RUN_ID='50',
                            GITHUB_SHA='a' * 40, GITHUB_EVENT_NAME='workflow_dispatch', GITHUB_REPOSITORY='Ares-Empire/AresOS')
@@ -868,12 +907,42 @@ class Guard42Test(unittest.TestCase):
             guard.main()
             return sorted(path.name for path in pathlib.Path('evidence').iterdir())
 
-    def test_only_the_publishing_kind_passes_the_publish_gate(self):
-        self.assertIn('publish-authorization.json', self.run_main('publish-ci', 'publish-28'))
-        with self.assertRaises(AssertionError):
-            self.run_main('publish-ci', 'dry-run-28')
-        self.assertIn('42-dispatch-authorization.json', self.run_main('ci', 'dry-run-28'))
+    def test_a_publish_dispatch_stops_at_its_first_guard_until_the_owners_ok(self):
+        # Review 1, B1, with the branch's history today: run 43828756952 (resolve), dry runs 1 to 3.
+        titles = guard.PACKAGES['42']['titles']
+        today = [titles['resolve'], titles['dry-run-28'], titles['dry-run-28'], titles['dry-run-28']]
+        # The cut's dry run, the cut's resolve and the checks-only run still pass their guards.
+        for kind in ('dry-run-28', 'resolve', 'checks'):
+            with self.subTest(kind=kind):
+                self.assertIn('42-dispatch-authorization.json', self.run_main('ci', kind, today))
+        # release_28 stops at its job's guard, the first step after checkout, and at publish.sh's guard.
+        for mode in ('ci', 'publish-ci'):
+            with self.subTest(mode=mode), self.assertRaisesRegex(AssertionError, 'STOP: publish-28 dispatch allowance exhausted'):
+                self.run_main(mode, 'publish-28', today)
+        # Such a slip counts, and stops every later dispatch on the branch until a ledger commit records it.
+        with self.assertRaisesRegex(AssertionError, 'STOP: publish-28 dispatch allowance exhausted'):
+            self.run_main('ci', 'dry-run-28', today + [titles['publish-28']])
+        # Raising only the dispatch cap opens nothing: publish_cap 0 allows no publish.
+        with patch.dict(guard.PACKAGES['42']['dispatch_caps'], {'publish-28': 1}), \
+                self.assertRaisesRegex(AssertionError, 'STOP: the ledger allows no publish'):
+            self.run_main('publish-ci', 'publish-28', today)
+        # After the owner's OK step 5 raises both to 1: then only the publishing kind passes the publish gate.
+        with patch.dict(guard.PACKAGES['42']['dispatch_caps'], {'publish-28': 1}), patch.dict(guard.PACKAGES['42'], publish_cap=1):
+            self.assertIn('publish-authorization.json', self.run_main('publish-ci', 'publish-28', today))
+            with self.assertRaises(AssertionError):
+                self.run_main('publish-ci', 'dry-run-28', today)
         self.assertEqual(guard.PUBLISH_KINDS, ('release-13', 'release-27', 'publish-28'))
+
+    def test_resolve_and_checks_runs_stop_at_their_own_guard(self):
+        # Review 1, S3: the job's guard counts the run itself.
+        titles = guard.PACKAGES['42']['titles']
+        with self.assertRaisesRegex(AssertionError, 'STOP: resolve dispatch allowance exhausted'):
+            self.run_main('ci', 'resolve', [titles['resolve'], titles['resolve']])
+        with self.assertRaisesRegex(AssertionError, 'STOP: checks dispatch allowance exhausted'):
+            self.run_main('ci', 'checks', [titles['checks']])
+        # A check build of another kind is no dispatch this ledger knows: its own guard names its title.
+        with self.assertRaisesRegex(AssertionError, r"STOP: run 50 is titled 'OS image check build \(build, never published\)'"):
+            self.run_main('ci', 'resolve', [], title='OS image check build (build, never published)')
 
     @unittest.skipIf(os.name == 'nt' or shutil.which('bash') is None, 'needs a Linux bash')
     def test_publish_sh_accepts_only_the_release_branches_before_its_guard(self):

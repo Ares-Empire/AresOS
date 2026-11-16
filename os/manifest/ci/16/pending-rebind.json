@@ -12,12 +12,13 @@
     "2026-11-15, board #306 (owner: scrub current files): the owner's machine username became owner in 372 files (reviews/username-scrub/RECORD.md). Three bound files changed, text only: os/manifest/ci/14/14zze-preflight/commit-preflight.py, final-local.py and local-privacy.py (archived preflight tools). No binding table or host walk was edited.",
     "42 step 1 (release 28's release job, its dry run and the image diff rules): os-image.yml gains the release_28 and dry_run_28 inputs and their two jobs (only on pkg/42-release-28; the dry run has no write permission and no publish step), os/ci/rehearsal-packages.json gains package 42's ledger, rehearsal_guard.py counts it and lets only publish-28 publish, registry_auth.py lets package 42's two kinds read release 27 with the job token, test_owner_staged_release's dispatch helper knows the two new inputs; no tool, guide or image file changed",
     "42: dry-run cap 2 to 3 (lead, 2026-11-16)",
-    "42: dry-run cap 3 to 4 after a snapshot.ubuntu.com outage (lead, 2026-11-16)"
+    "42: dry-run cap 3 to 4 after a snapshot.ubuntu.com outage (lead, 2026-11-16)",
+    "42 review 1 (B1, S3, N1, N3): package 42's ledger shuts publishing until the owner's OK (publish-28 and publish_cap 0, a publish_gate note); the guard names an unknown run title in a STOP line and refuses publishing while publish_cap allows none; os-image.yml runs the checks guard on pkg/42-release-28, gives check-build a resolve guard step on that branch (actions and packages read, the checkout keeps no token), titles both release 28 inputs together as a dry run, and keeps the old release jobs off release 28's inputs; no tool, guide or image file changed"
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
     {
-      "sha256": "5dc2a2c49d9252fdd5c4c2e4a8c04244e1a8cf45c11ade156cd182fe8b6e13c6",
+      "sha256": "789a0a9d0554782356e80a16326f1c46869ee62ed26fb97a88842233ab3984ff",
       "path": ".github/workflows/os-image.yml"
     },
     {
@@ -25,11 +26,11 @@
       "path": "os/ci/registry_auth.py"
     },
     {
-      "sha256": "9d2402bfdafe07533faff20f1b114e473e84b239a37f601b054306d253d30336",
+      "sha256": "b56c92ff1036cc700a6f836f1aa2542aee04630efc0146cb1ca67c6d0fc846ab",
       "path": "os/ci/rehearsal-packages.json"
     },
     {
-      "sha256": "b2397b285ec2a85faf44b25f458b2ad8dd4db73c1adf49972e139939e26504c3",
+      "sha256": "476b7ace7849272b0e7c373a2528f994df29b555f0c32d8c5a10099a08c4e7fe",
       "path": "os/ci/rehearsal_guard.py"
     },
     {
