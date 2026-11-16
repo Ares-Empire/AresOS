@@ -8,19 +8,54 @@ import uuid
 from urllib.parse import urlsplit
 
 from ..adapters import NothingLeft
-from ..common import Refused, canonical, digest, visible, require_question
+from ..common import RESULT_LIMIT, Refused, canonical, digest, visible, require_question
 from ..definitions import BY_NAME
 from ..paging import fragment_window, ordered_page
 from ..warnings import check_result
 from . import confirm
+from . import nodes as outline_nodes
+from . import view as outline_view
 from .bridge import Bridge
 from .committed import Projection
 from .exclusions import owner_hosts
 from .policy import allowed_url, classify, HOSTS, hostname, canonical_key, key_input, explicit_effect
 from .qualification import Qualification, switches
+from .references import References, Stale
 from .sites import recognize, KINDS, recipients
 
 RUNTIME = Path(__file__).resolve().parents[2]
+
+# Brief 28's read (item 2): the default page, a tab's page among several, and
+# how long `until` waits unless timeout_ms says otherwise. The wait asks the
+# cheap page_state every POLL seconds and reads the outline again only when
+# its token moved (item 1, "Waiting, defined once").
+OUTLINE_MAX, OUTLINE_TAB_MAX, UNTIL_MS, POLL = 6000, 3000, 3000, .1
+# The read measures its result with the pending part as it is when the read
+# ends. The engine builds its own pending right after the adapter returns and
+# asks each reserved operation's validity again, so a row can then carry a
+# refusal's reason instead of `current`. This much room stays free for that,
+# so the result never reaches the base's last-step shortening.
+PENDING_DRIFT = 2048
+# A refusal that belongs to one tab becomes that tab's entry in `reads`; every
+# other one (the input, the connection, the qualification, storage) fails the call.
+TAB_ERRORS = frozenset(('refused', 'stale_reference', 'permission_denied', 'owner_signin', 'reload_required', 'not_read'))
+
+
+def outline_query(args):
+    """The cross-field rules of chrome_outline's input, which the schema subset can't say."""
+    if ('tab' in args) == ('tabs' in args):
+        raise Refused('invalid_input', 'Give either tab or tabs.')
+    if 'tabs' in args:
+        if set(args) - {'tabs', 'max'}:
+            raise Refused('invalid_input', 'With tabs only max may be given; read one tab by itself for ref, full, find, until or cursor.')
+        if len(set(args['tabs'])) != len(args['tabs']):
+            raise Refused('invalid_input', 'Name each tab once in tabs.')
+    if 'role' in args and 'find' not in args:
+        raise Refused('invalid_input', 'role keeps one role among the hits of find; give find with it.')
+    if 'role' in args and args['role'] not in outline_nodes.ROLES:
+        raise Refused('invalid_input', "role isn't one of the outline's roles.")
+    if 'timeout_ms' in args and 'until' not in args:
+        raise Refused('invalid_input', 'timeout_ms bounds the wait of until; give until with it.')
 
 
 WITHHELD_FORM=('This form holds unread typed text; send it yourself, or reload the tab first with chrome_navigate direction=reload '
@@ -99,6 +134,9 @@ class Chrome:
         self.committed = self.store.chrome_state
         self.bridge = Bridge()
         self.bridge.on_event = self.event
+        # Brief 28, item 3: one reference table for this run of the service.
+        # It connects to each extension session a read comes over.
+        self.references = References()
         self.trusted_context = False
         self.refresh_qualification = True
         self.hosts = HOSTS
@@ -373,6 +411,109 @@ class Chrome:
         return {'tab':facts['tab'],'document':[(frame['frame'],frame['document']) for frame in facts['frames']],
                 'untrusted_content':{'url':visible(facts['url']),'title':visible(facts['title']),'tree':tree[offset:end],'dialog':visible(facts.get('dialog'))},
                 'view':token,'characters':len(tree),'offset':offset,'cursor':cursor,'version_notice':mode['notice'],**({'condition_met':condition_met} if verb=='wait' else {})}
+
+    def outline(self, args):
+        """Brief 28's read, reachable only as chrome_outline behind the test-only switch (item 6).
+
+        Each tab goes through the checks of `read` above and then the view
+        module's order: View, render, Reading, fit.
+        """
+        outline_query(args)
+        mode = self.mode()
+        started = time.monotonic()
+        several = 'tabs' in args
+        limit = args.get('max', OUTLINE_TAB_MAX if several else OUTLINE_MAX)
+        query = outline_view.asked(args.get('ref'), args.get('find'), args.get('role'), args.get('full', False))
+        parts = []
+        for tab in args['tabs'] if several else [args['tab']]:
+            try:
+                parts.append(self.outline_tab(tab, args, query, limit, started))
+            except Refused as exc:
+                if exc.code not in TAB_ERRORS:
+                    raise
+                parts.append(outline_view.Failure(tab, exc))
+        reads = outline_view.fit(parts, self.outline_measure(mode['notice']), self.references, RESULT_LIMIT - PENDING_DRIFT)
+        return {'reads': reads, 'version_notice': mode['notice']}
+
+    def outline_tab(self, tab, args, query, limit, started):
+        state, view = self.outline_view(tab)
+        if view.dialog is None:
+            queued = self.bridge.call('queued_steps', tab=tab)
+            self.reconcile_checks({'tab': tab}, queued)
+            self.steps(queued, tab)
+        until_met = None
+        if 'until' in args:
+            deadline = started + args.get('timeout_ms', UNTIL_MS) / 1000
+            until_met = self.until_met(view, args['until'])
+            while not until_met and view.dialog is None and time.monotonic() < deadline:
+                time.sleep(max(0, min(POLL, deadline - time.monotonic())))
+                current = self.bridge.call('page_state', tab=tab)
+                if current.get('dialog') or current.get('token') != state.get('token'):
+                    state, view = self.outline_view(tab)
+                    until_met = self.until_met(view, args['until'])
+        options = self.outline_options(view, args['ref']) if 'ref' in args and 'find' not in args else None
+        text = outline_view.render(view, self.references, ref=args.get('ref'), full=args.get('full', False),
+                                   find=args.get('find'), role=args.get('role'), options=options)
+        # The cursor binds the state token taken just before this outline; a
+        # change between the two only makes the next page stale, never mixed.
+        return outline_view.Reading(view, text, state.get('token'), query, args.get('cursor'), limit, until_met=until_met)
+
+    def outline_view(self, tab):
+        """One tab's outline, checked as `read` checks its facts, and the state token taken just before it."""
+        state = self.bridge.call('page_state', tab=tab)
+        reply = self.bridge.call('outline', tab=tab)
+        try:
+            view = outline_nodes.View(reply)
+        except outline_nodes.Malformed as exc:
+            raise Refused('transport_error', f"The reader's outline didn't have the agreed shape ({exc}); nothing of it is shown.") from exc
+        if view.tab != tab or view.session != self.bridge.session:
+            raise Refused('transport_error', 'The outline came for another tab or extension session; nothing of it is shown.')
+        addresses = [reply.get('url', '')] + ([reply['effective_url']] if 'effective_url' in reply else [])
+        addresses += [frame.get('effective_url', frame.get('url', '')) for frame in reply['frames']]
+        for address in addresses:
+            if not isinstance(address, str):
+                raise Refused('transport_error', "The outline's addresses didn't have the agreed shape; nothing of it is shown.")
+            self.allowed_url(address)
+        return state, view
+
+    def until_met(self, view, until):
+        """`until` as `find` reads the page (item 1); an open dialog meets neither text nor gone."""
+        if view.dialog is not None:
+            return False
+        if 'text' in until:
+            return outline_view.contains(view, until['text'])
+        return not outline_view.contains(view, until['gone'])
+
+    def outline_options(self, view, ref):
+        """Every option of the list field `ref` names, when the outline holds only the first ones; else None."""
+        self.references.connect(view.session)
+        try:
+            entry = self.references.resolve(ref, view.tab)
+        except Stale:
+            return None  # render refuses it, with the element's present line where there is one
+        document = view.frames.get(entry.frame)
+        if type(entry.target) is not int or document is None or (document.document, document.reader) != (entry.document, entry.reader):
+            return None
+        node = document.nodes.get(entry.target)
+        if node is None or node.unread or node.role not in outline_view.LISTS or node.option_count <= len(node.options):
+            return None
+        reply = self.bridge.call('options', tab=view.tab, frame=entry.frame, document=entry.document,
+                                 reader=entry.reader, element=entry.target)
+        if not isinstance(reply, dict) or [reply.get(key) for key in ('session', 'tab', 'frame', 'document', 'reader')] != \
+                [view.session, view.tab, entry.frame, entry.document, entry.reader]:
+            raise Stale()
+        try:
+            return outline_nodes.options(reply.get('options'))
+        except outline_nodes.Malformed as exc:
+            raise Refused('transport_error', f"The reader's options didn't have the agreed shape ({exc}); nothing of them is shown.") from exc
+
+    def outline_measure(self, notice):
+        """The bytes of the whole result as the engine sends it (`engine.request`): the reads, the
+        version notice in data, the pending part, and the version notice the engine adds to pending."""
+        pending = self.engine.pending('chrome', resolve_checks=False)
+        if notice:
+            pending = {**pending, 'chrome_version_notice': notice}
+        return lambda reads: len(canonical({'ok': True, 'data': {'reads': reads, 'version_notice': notice}, 'pending': pending}).encode())
 
     def prepare(self, verb, payload):
         if verb=='read_typed_fields':
@@ -908,6 +1049,7 @@ class Chrome:
             self.reconcile_open_checks()
             return self.notice_page(args)
         if verb in {'read','read_form','find','wait'}: return self.read(verb,args)
+        if verb == 'outline': return self.outline(args)
         if verb in {'tabs','downloads','bookmarks','history'}:
             self.mode()
             reply = self.bridge.call(verb,**args)
