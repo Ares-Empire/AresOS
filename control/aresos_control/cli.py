@@ -1,5 +1,6 @@
 import argparse
 import json
+import os
 from pathlib import Path
 
 from .common import JSONInputError, Refused, display_json, strict_json_loads
@@ -34,6 +35,12 @@ def main(config, argv=None):
     admin = bool(command and command[0] == "admin")
     if admin:
         command = command[1:]
+        if os.geteuid() != 0:
+            # admin.sock is root-only: say so before touching it and before asking for any password.
+            result = {"ok": False, "error": {"code": "permission_denied", "message":
+                      "Admin commands need sudo: run sudo aresos admin " + " ".join(command) + " (same options)."}, "pending": {}}
+            print(display_json(result))
+            return 1
     if command == ["log"]:
         command = ["control", "log"]
     if command == ["mail", "account", "add"]:
