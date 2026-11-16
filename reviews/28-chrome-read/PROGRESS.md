@@ -2,6 +2,19 @@
 
 Builder steps keep this file; the last step turns it into the report. Newest state first.
 
+## The lead after step 9 (2026-11-16)
+
+- **Run 9 is green on its first attempt:** Control Chrome 43826821669 (28 jobs, both latency legs included, on the
+  tmpfs store and the sync-count gate) and its qualification 43826821542 (34 jobs), at `8ae7e8b0`. Control Mail,
+  dispatched on `09690118` (which holds `5a0c7552`): 43830247959, 12 jobs green. So the merge, the switch and the
+  Mail fix break nothing.
+- **JUDGMENT-CALLs 1 to 10: accepted as built.** On 9: fine this once, since the fix only moves when the table is
+  made and two unit files cover it. The next step's code push runs the full workflows as usual.
+- **PLAN-GAPs 1 and 2: accepted as built.** A dialog in `tabs` is returned as `dialog` with an empty outline, as
+  for one tab, and `until` meets nothing while a dialog is open.
+- **The steps stay on Claude Opus** from step 10 on (the Claude week has room; Codex refills Tue and takes the
+  package's astra cross-review when it is in review). Step 10 is "Left, in order" item 3, the time.
+
 ## Step 9 (2026-11-16, Claude agent on Opus 5.5): `main` merged (20-ci-noise, the restore lock, the username scrub), the adapter's `chrome_outline` behind the test-only switch, run 9
 
 Opus: built against step 8's "For the adapter" and the lead's brief for this step.
