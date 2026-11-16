@@ -2,7 +2,7 @@
 
 `linux-aresos`'s package 25 (the guardian: backups, clean shutdown and updates) needs the home screen's world saved on request, without Save and Quit and without the owner noticing. This package builds the mod's side. The supervisor's side is package 25's. The contract below is `linux-aresos`'s (the OS lead, 2026-11-16); build it as written.
 
-**Builder:** Codex `gpt-6.1-sol`, `xhigh`: a protocol against a fixed contract, with tests. **Review:** a fresh Codex context, `gpt-6-astra`, `high`. `linux-aresos` also reads the `docs/design/OS-BASE.md` change.
+**Builder:** a Claude agent on Opus: a protocol against a fixed contract, with tests. It was planned for Codex; `mac-capacity` moved it to Claude on 2026-11-16 so package 25 is unblocked a day sooner. **Review:** a fresh Codex context, `gpt-6-astra`, `high`, once Codex refills on Tuesday 2026-11-17. `linux-aresos` also reads the `docs/design/OS-BASE.md` change.
 
 ## Why a channel of its own
 
@@ -34,4 +34,4 @@ The mod has no channel to the supervisor today. The app helper's status pipe run
 - Game runs only through `mod/dev/client-test.sh` or the package-41 rig (the lock, one game at a time, 6 GiB free). Never `./gradlew` yourself, never `--force`. Never the whole `os/tests` suite on the laptop.
 - Headless only, never `WAYLAND_DISPLAY=wayland-0`. Never touch `~/.minecraft`, `~/.lunarclient` or Lunar Client. Stop only processes you started, by PID.
 - The repo is public: no personal data.
-- Report in `reviews/46-save-now/REPORT.md` with both measured times. Open a PR "Package 46: the mod saves the world when the supervisor asks". Never merge, never push to main, never `--no-verify`.
+- Report in `reviews/46-save-now/REPORT.md` with both measured times (a Claude builder writes it into `PROGRESS.md`; the lead commits it as `REPORT.md`). Open a PR "Package 46: the mod saves the world when the supervisor asks". Never merge, never push to main, never `--no-verify`.
