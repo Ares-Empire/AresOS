@@ -1,4 +1,177 @@
-# 18c image part: progress (Part A, step 1; B2, steps 2a to 2c; the Chrome follow-up; 18e in the VM pass)
+# 18c image part: progress (Part A, step 1; B2, steps 2a to 2c; the Chrome follow-up; 18e in the VM pass; fix round 1)
+
+## Fix round 1, part 1 (2026-11-16, Claude agent on Opus 5.5)
+
+From `REVIEW-A1.md` and `SECURITY-REVIEW-A1.md` (both CHANGES-NEEDED at `84f45c28`), on head `a2be05d7`. Part 1 is
+code and local tests only: no CI runs, because `main` isn't merged yet and its OS image checks would fail on a known,
+already-fixed 404. Opus, because the list was tight and decided. Commits: `f37d2e3a` (the wheels against the lock),
+`5e2dedc5` (the password checks inside the archives), `fe245972` (checks 2 and 6, the static checks), and this file's
+commit (`[skip ci]`, the one pushed). Everything changed is CI-only (`os/ci/`, `os/tests/`) or this folder; nothing in
+the image, `control/` or the workflow.
+
+### What changed, per finding, and the test that pins it
+
+1. **REVIEW-A1 #1, agreed change 6: the desktop session with the service failed.** `os/ci/control/actions.py:958`
+   `desktop_with_service_failed()`, called by check 6's `arm_failure` (`:1060`) right after `wait_failed()`, before
+   the fresh session starts:
+   - ares is logged out as a session end does it: `systemctl stop greetd.service`, `loginctl terminate-user ares`,
+     then a wait (180 s at most) until he has no logind user, no `/run/user/1001` and no `foot`, `labwc` or Prism;
+   - greetd's runfile `/run/greetd.run` is removed (`:942`): greetd runs its `initial_session` (the image's
+     auto-login) only once per boot, recorded in that file (greetd(5), "runfile"); then `systemctl start greetd`;
+   - `checks.py`'s own `wait_session()` and `desktop_session()` (the policy pass's) require the terminal and the
+     desktop as at boot: state `SETUP`, not latched, one keeper, one supervisor, the helper, Prism in its launch
+     scope; a new greetd session id; the runtime folder made again by that login (no lingering); the service still
+     `failed` with the same `NRestarts`.
+   - The PASS line's summary names it: `desktop_with_service_failed` with the service state, `SETUP`, the greetd
+     sessions before and after, the seconds, and `marks_after_logout` (18e's "marks vanish at logout", PLAN-GAP 7: the
+     logout takes the runtime folder and its marks with it; recorded, now that the pass has a logout).
+   - Test: `os/tests/test_control_vm.py:419` (the order stop, terminate, runfile, start, `wait_session`,
+     `desktop_session`; greetd's config has the `initial_session` and no `runfile` of its own; `checks.py` defines both
+     functions; armed before the desktop). JUDGMENT-CALL 23.
+2. **SECURITY-REVIEW-A1 F1: held work beside a session that never used the tools** (check 6). `ORDINARY_TURNS`
+   (`actions.py:783`) gains a fifth column (his answer to our ask) and two sessions after the existing two:
+   - `held-work` (turn 12): prepares and sends, he answers **No**, the send stays `reserved`. Required: the prompt
+     showed, the session is told about its own held work (at least one Stop continuation), it is marked as one that
+     used the tools.
+   - `fresh-beside-held` (turn 13): a fresh Claude Code that only calls his own tool while that work is pending
+     (`note_held`, `:1081`, proves the operation `reserved` and in `control pending` first). Required: no Stop
+     continuation, no extra model request, nothing of ours on screen, his hooks once each, no mark, and none of its
+     model requests carries the held operation's id or the held-work text (`:1221`; by id, so #69 may reword it).
+   - The cost goes into the summary as `held_elsewhere` (model requests, extra, Stop continuations, what is on screen,
+     which requests carried it).
+   - **It passes only once PR #69's fix round is in** (pending reminders and outcome notices get the outage notice's
+     usage gate). Before that, the fresh session gets the held-work context and one Stop block: one extra model
+     request and a hook error on screen. Part 2 runs it.
+   - The held operation is released afterwards (`finally`) with check 9's steps, now one function
+     (`release_held`, `:927`; check 9 calls it at `:1434`). The driver's resume prompt after a No counts with the turn
+     it resumes (`sessions.RESUME`, `sessions.py:30`; `actions.py:1136`).
+   - Tests: `test_control_vm.py:381` (the plan: four sessions, the No only on our ask, the order) and `:400`
+     (`release_held` cancels, acknowledges, ends with nothing pending).
+3. **REVIEW-A1 #5: the leak checks inside the evidence archives.** New `os/ci/control/evidence_scan.py`: every evidence
+   file is searched raw and, for gzip streams and tar archives, member by member (three levels deep); an archive that
+   can't be read counts as holding the password (removed, the step fails).
+   - `runner.sh stop` (`runner.sh:123-139`) redacts **only GreenMail's log** (it logs the password it was given), then
+     removes every file that holds it, Dovecot's log included, and fails. Its report (counts and names, never the
+     password) is `fixtures/password-scan.json`, replacing `redacted.txt`.
+   - `control_vm.py:91` uses the same scan after check 8; `passwords-runner.json` gains `archive_members` and
+     `unreadable`.
+   - Tests: `test_control_vm.py:452` `EvidenceScanTest` (a hit inside a `.tar.gz` named by its member and invisible to a
+     raw search; plain tar, gzip and an archive inside an archive; a broken archive; GreenMail redacted, a Dovecot hit
+     fails and is removed, the report never holds the password; both callers use the scanner).
+4. **REVIEW-A1 #6: the wheels against the checkout's lock.** `os/ci/check-image.sh:74-112` parses the checkout's
+   `control/requirements.lock` itself, strictly (every line a pin, a hash or a comment), and requires the image's
+   wheels to be exactly the lock's set, once each, every SHA-256 one of its pins, every file a `.whl`. Test:
+   `os/tests/test_control_image.py:274` (six wrong wheel lists and an unknown lock line fail; the real set passes).
+5. **REVIEW-A1 #7: no listening network socket.** Check 2 calls `network_listeners()` (`actions.py:571`, at `:642`):
+   the unit's PIDs from its cgroup, their socket inodes from `/proc/<pid>/fd`, listening TCP (state `0A`) and bound,
+   unconnected UDP (`07`) from `/proc/<pid>/net/{tcp,tcp6,udp,udp6}` (`listening_sockets`, `:545`), and `ss -Hlntup`'s
+   lines naming those PIDs. Both must be empty. A listener the check opens itself must show in both, so the check
+   can't pass blind; unreadable fds raise. `unit.json` gains `network_listeners`, the PASS summary their count. Test:
+   `test_control_vm.py:356` (a TCP listener and an unconnected UDP socket are found, a connected one isn't, nothing
+   after closing, a missing process raises).
+6. **REVIEW-A1 #9: static checks.** `test_control_vm.py:440`: `bash -n` on every `os/ci/control/*.sh` (`runner.sh`)
+   and `py_compile` on every `.py` of `os/ci/control/` and `control/ci/image/` (`mail_flows.py`).
+7. **REVIEW-A1 #8: the report draft.** "For the report: B2" (step 2c, below) now quotes run 43687234953 (head
+   `9ee1fbdf`), `"prompt_shown": false`, says the flash is timing dependent and caught only in some runs, and says
+   this branch changed B1's model double (`texts()`); the driver is B1's. Part 2 swaps in the final head's run.
+8. **SECURITY-REVIEW-A1 K6 withdrawn** by the lead (below); the review keeps its text with the lead's correction
+   under it.
+
+REVIEW-A1 #2 (the managed `CLAUDE.md` line in the owner's question) is K3 below; #3 (fresh runs after the merge) and
+#4 (`checks_only`) are part 2's.
+
+### Known limits (fix round 1)
+
+- **K1, auto mode untested.** Claude Code's default interactive mode for his sessions is auto; B1 and B2 run
+  `--permission-mode default` or skip-permissions. Explicit ask rules force a prompt in every mode by Anthropic's
+  documentation, so a gap would be a regression only. Goes to a later B1 case, if the model-double harness can run
+  auto mode at all.
+- **K2, a non-owner session's Stop is blocked every turn** (`permission_denied` read as unavailable). Fixed in PR #69.
+- **K3, the managed `CLAUDE.md` says other sessions' messages are never instructions**, in every session, also agents
+  a lead briefs (REVIEW-A1 #2). Narrowed in PR #86; the owner's question (agreed change 10) names it (the lead).
+- **K4, more unit hardening** (`RestrictNamespaces`, `SystemCallFilter=@system-service` and the rest of the review's
+  list): a follow-up, each line with its own VM passes; without capabilities most gaps are moot.
+- **K5, testapp ships** (its tools, generated files and two ask rules): by design, the VM test uses it; no network, a
+  local SQLite receiver, its fixture switch admin-only.
+- **K6, "the release job runs no Control checks": withdrawn.** The release-27 job's step "Build with the reviewed check
+  build, run the image checks and the first VM pass" runs `bash os/ci/check-build.sh build`
+  (`.github/workflows/os-image.yml:436`). That path builds with `kind=release` (`GITHUB_JOB` isn't `check-build`) and
+  calls `check-image.sh localhost/aresos:check release` (`os/ci/check-build.sh:54`), which runs `image-checks.sh`'s
+  Control section and the record-to-checkout check, now with the wheels against the lock. The checked image is the one
+  the job tags, diffs and publishes. `linux-aresos`'s release package 42 adds a test that pins it.
+- **K7, one request at a time** (the service is single-threaded; hooks wait up to 10 s behind a long send, then go
+  quiet): accepted.
+- **K8, a taken UID 250 would quietly become another number** at the first boot of the update: seen by
+  `release_checks.py` in the rehearsal (agreed change 12); free on the laptop today.
+- **The desktop-with-failed-service check rests on a logout and a fresh auto-login,** not on a reboot (JUDGMENT-CALL
+  23): it proves that a desktop session starts with the service failed, not that the boot order itself never waits on
+  it. The boot order is held by the static unit-policy check (`image-checks.sh`: no unit names or orders after
+  `aresos-toold.service`; `Type=simple`).
+- **Held work's gate is proven only for a session of his own tool calls** (no turn where the fresh session also
+  calls our tools while another holds work), and for one held operation.
+
+### Decisions the code doesn't show (JUDGMENT-CALLs for the report)
+
+23. **Agreed change 6 is proven by a logout and greetd's auto-login again, not a reboot.**
+    - A plain `systemctl restart greetd` would not log ares in again: greetd's `initial_session` runs once per boot
+      (its runfile); greetd would start `agreety` and `wait_session` would time out.
+    - Ending only the greetd session would keep his user manager and runtime folder: the desktop's instance would go
+      on, and the supervisor could restore the old session's state (Prism lost its compositor: `RECOVERY`,
+      `prism_failed`) instead of starting as at boot.
+    - A reboot of the guest would end the CI channel and every later check, and drop the CI drop-in under `/run`.
+    - So: a full logout (`terminate-user`, as when his last session ends), the runfile removed (CI only, this
+      throwaway guest), greetd started: the same auto-login the boot runs. Cost: about one to two minutes of VM time
+      (estimated: the logout, Prism's start in `desktop_session`). Changing it later: one function.
+24. **The held-work session answers No in normal mode**, his everyday mode; B1 proved a normal-mode No in the
+    container, and check 9 keeps the skip-mode No.
+25. **The fresh session's check is by the held operation's id and the held-work text in its model requests**, plus the
+    row checks (no continuation, no extra request, nothing of ours on screen), so #69's fix round may reword the
+    reminder without breaking it.
+26. **An evidence archive that can't be read counts as holding the password**: removed, the step fails. What can't be
+    searched isn't published.
+27. **The listener check reads `/proc` itself and takes `ss` as a second view**, with a control listener of its own so
+    neither can pass blind (an `ss -p` that can't attribute sockets would otherwise find nothing).
+
+### Checks run (all on the laptop, no containers, VMs, root or CI)
+
+- `python3 -m unittest discover -s os/tests -p <module>`: `test_control_image` 9 OK, `test_control_vm` 34 OK (24 before,
+  10 new), `test_checkout_sources` 6 OK.
+- `control/`: `python3 -m unittest tests.test_reserved_words tests.test_service_user` 4 OK.
+- `os/ci/control/evidence_scan.py` on a scratch folder: a `.tar.gz` holding the password removed with exit 1, then
+  exit 0; GreenMail's log redacted once.
+- `bash os/build.sh control-tree` not run separately: the tree didn't change (no file under `control/` or the install
+  map), and `test_control_image` runs it.
+- **Still to run:** `test_owner_path` and `test_owner_equality` (the lead held the owner modules while `linux-aresos`
+  installed the owner tools on the laptop).
+
+### Left for part 2, in order
+
+1. Wait until PR #69 (with its fix round) and PR #86 are on `main`.
+2. Merge `origin/main` into this branch (a merge commit; never a rebase or a force-push):
+   - `os/manifest/ci/16/pending-rebind.json`: take main's list, then record the merged workflow with
+     `rebind.py pending` (REVIEW-A1 #3);
+   - under `control/aresos_control/` take main's side (#69, the restore lock `b04c7e77`); then check that this branch's
+     two config constants (`CONFIG` in `control/launch.py`, `--config` in `daemon.py`) still name
+     `/usr/share/aresos/control` (agreed change 7);
+   - rerun the local modules above and `bash os/build.sh control-tree os control <scratch>` for the new Chrome build
+     hash.
+3. The Control VM pass's step limit (12 minutes; the last pass took 7 min 50 s and 7 min 9 s): this round adds the
+   logout and auto-login (estimated 1 to 2 minutes) and two sessions (about 1 minute). If the lead agrees, raise it
+   before the first run (1.5 times the slower pass, linux-aresos's rule), in a commit of its own with `rebind.py
+   pending`, `linux-aresos` told first (agreed change 15). Otherwise read the step's time in the first run.
+4. The four CI runs on the merged head: `check_build=control` twice (the second a `gh run rerun`), `check_build=build`
+   once, `checks_only` once (REVIEW-A1 #3 and #4). Watch with `gh run watch <id> --exit-status --interval 300` (60
+   for `checks_only`).
+5. Read the new evidence: `CONTROL_ORDINARY_SESSION_PASS`'s `desktop_with_service_failed` and `held_elsewhere` (the
+   numbers for the owner's question), `CONTROL_SERVICE_SANDBOX_PASS`'s `network_listeners: 0`, the runner's
+   `fixtures/password-scan.json` (GreenMail's redactions, the archive members searched). Put the final head's run IDs
+   and lines into the "For the report" sections, and set change 6's row to the run.
+6. `linux-aresos` reads the `os/` diff (agreed change 16; the section at the end is up to date with this round).
+7. Astra's review (Codex `gpt-6-astra`) before the merge.
+
+### Paths outside the allowed list
+
+None needed: every change is under `os/ci/`, `os/tests/` or `reviews/18c-image-test/`.
 
 Branch `pkg/18c-image`, draft PR #58. Step 1 builds Part A of `briefs/18c-image-test.md` as amended by the sixteen
 changes agreed with `linux-aresos` and by `briefs/18c-image-start.md`. It has no VM test (B2), no `os-image.yml` change
@@ -69,7 +242,7 @@ has only `git-core`. See "gh" below.
 | 3 Lists that pin enabled units | done as far as `main` has them: no list pins enabled units or users except release 27's `ci/release_diff.py` (the next release extends its own diff); image check proves the updater audit saw the unit; polkit unaffected (no rules) |
 | 4 `gh` | check-resolve step done, resolve run done; **install open** (stop rule, below) |
 | 5 Fixed UID/GID | done (250) |
-| 6 Enabled, never holds the session | done: B2 check 6 green with the service stopped and failed (step 2c, run 43577034725) |
+| 6 Enabled, never holds the session | code done (fix round 1: with the service failed, ares logs out and the desktop session comes up again as at boot, `desktop_session`); the VM proof is part 2's run. Before: check 6 green with the service stopped and failed, Claude Code only (step 2c, run 43577034725) |
 | 7 Config in `/usr/share/aresos/control` | done; image check done; booted-guest check `control-claude-code-files` (step 2a) |
 | 8 `checks.py` hook | done (step 2a): `actions.d` |
 | 9 Fixture servers, negative check | negative check done; fixture servers and CI layer done (step 2a) |
@@ -681,19 +854,23 @@ one send.
 ### For the report: B2 (append to `reviews/18c-image-test/REPORT.md`)
 
 **PermissionRequest, in plain words.** A `PermissionRequest` allow hook of his own, at user level, approves the
-managed ask interactively in normal mode: the prompt flashes, nobody answers, the send goes out once. That is the
-accepted residual, and it equals the container's pin for that case. **run** 43577034725, `CONTROL_PERMISSION_REQUEST_RECORDED
-{"normal-permission-user": {"hook_calls": 1, "owner_answers": 0, "prompt_shown": true, "send_arrivals": 1}}`. The
-managed-level and skip-mode variants are proven in the container only (B1's pin: all four approve, one send each);
-the VM doesn't edit the managed files. Without such a hook the ask asked every time, also in skip-permissions mode
-and with his user allow rule for the send. B1 found the container's result equal to 18d's print-mode approval on
-2.1.319 (**read** `REPORT.md`, run 43444623151); the VM case agrees with both. The prompt's flash is timing
-dependent (B1); in the VM it showed in runs 43572578699 and 43577034725 and is recorded, not pinned.
+managed ask interactively in normal mode: the prompt may flash, nobody answers, the send goes out once. That is the
+accepted residual, and it equals the container's pin for that case. **run** 43687234953 (head `9ee1fbdf`, the last
+head with VM runs; attempts 1 and 2 alike), `CONTROL_PERMISSION_REQUEST_RECORDED {"normal-permission-user":
+{"hook_calls": 1, "owner_answers": 0, "prompt_shown": false, "send_arrivals": 1}}`. The managed-level and skip-mode
+variants are proven in the container only (B1's pin: all four approve, one send each); the VM doesn't edit the
+managed files. Without such a hook the ask asked every time, also in skip-permissions mode and with his user allow
+rule for the send. B1 found the container's result equal to 18d's print-mode approval on 2.1.319 (**read**
+`REPORT.md`, run 43444623151); the VM case agrees with both. The prompt's flash is timing dependent (B1) and is
+recorded, not pinned: the VM caught it in runs 43572578699 and 43577034725 (`prompt_shown: true`), not in the Chrome
+follow-up's runs or in run 43687234953 (`false`). **Part 2: replace the run and the line with the final head's.**
 
 **Done.** B2's checks 1 to 9 except the Chrome lines and `gh` (moved to 18c-b), as actions of the Control test layer
 (`os/ci/control/`), run by `check_build=control` in its own workflow step after the build; the fixture servers
-(GreenMail, Dovecot) on the runner's loopback, Claude Code 2.1.319 from the boundary's lock, B1's driver and model
-double unchanged in the guest.
+(GreenMail, Dovecot) on the runner's loopback, Claude Code 2.1.319 from the boundary's lock, and B1's driver and model
+double in the guest. This branch changed the model double once (`texts()` in `control/boundary/interactive_model.py`,
+PLAN-GAP 4 of step 2b): Claude Code passes a real MCP server's result as one string, which B1's container cases never
+produced; the driver is B1's as merged.
 
 **Verified** (all **run**, head `2d1ad22f`, run 43577034725, attempts 1 and 2; log lines as printed):
 `CONTROL_IMAGE_FILES_PASS` (check 1), `CONTROL_ETC_CLAUDE_CODE_PASS` (change 7), `CONTROL_RELEASE_CHECKS_PASS` (change
@@ -1152,6 +1329,8 @@ PASS line of B2 and the Chrome follow-up, now with 18e's assertions; check 6's n
 
 ## Left, in order (after 18e in the VM pass)
 
+**Superseded by "Left for part 2" in fix round 1, at the top.** Kept for the record.
+
 1. When PR #69 (18e) merges to `main`: this branch merges `origin/main` again (a merge commit, never a rebase or a
    force-push). If 18e changes after `13e9e1e4` (its review), merge `origin/pkg/18e-service-fixes` again first and
    rerun `check_build=control` twice and `check_build=build` once on the new head.
@@ -1170,8 +1349,8 @@ follow-up and before the reviews (Codex from 2026-11-17).
 ## The `os/` diff for `linux-aresos`
 
 Against `origin/main` (`32fd16ec`, after the Chrome follow-up's merge `4cf76e63`); brought up to date in the Chrome
-follow-up and after the 18e merge `86ad8e12` (2026-11-15; 18e changes only `control/`, nothing under `os/`). Image side
-first, then CI only.
+follow-up and after the 18e merge `86ad8e12` (2026-11-15; 18e changes only `control/`, nothing under `os/`), and in fix
+round 1 (2026-11-16: CI-only files and `check-image.sh`, nothing in the image). Image side first, then CI only.
 
 - `os/Containerfile`: the aresos stage copies `/source/control` from the existing source stage and runs `build.sh
   control` before `configure`; `FROM` lines and the other stages unchanged.
@@ -1183,7 +1362,9 @@ first, then CI only.
 - `os/ci/image-checks.sh`: early not-at-build check for `aresos-tools`/250 and the two folders; a Control section at
   the end (files, managed files, unit policy, sysusers, tmpfiles, config, launcher, no fixture traces).
 - `os/ci/check-image.sh`: a new block after the existing lock check: `control.json` equals what `build.sh control-tree`
-  makes from the checkout, from `HEAD`, wheels from `requirements.lock`.
+  makes from the checkout, from `HEAD`; the recorded wheels are exactly the checkout's `control/requirements.lock`
+  (its own strict parse, every SHA-256 one of the pins; fix round 1). The release job reaches it too
+  (`check-build.sh build`, `kind=release`).
 - `os/ci/check-resolve.sh`: **unchanged** (equal to main's; `gh` moved to 18c-b).
 - `os/README.md`: one paragraph on Control in the image (with Chrome's startup files).
 - `os/tests/test_control_image.py` (9 tests, new) and `os/tests/test_aresos_desktop.py` (the source-stage test
@@ -1203,12 +1384,15 @@ first, then CI only.
     actions; a layer adds actions, never replaces one.
   - `os/ci/control/` (new): `Containerfile` (the test layer `FROM localhost/aresos:vm`), `runner.sh` (fixture CA,
     GreenMail and Dovecot on the runner's loopback, Claude Code from the boundary's lock, the layer, the stop and
-    password-leak check), `control_vm.py` (boots the disk, runs the checks, prints the PASS lines), `actions.py`
-    (the guest's checks), `sessions.py` (Claude Code sessions with B1's driver), `release_checks.py` (agreed change
-    12: the rehearsal's check actions), `own-mcp.py` and `own-hook.py` (his own server and hooks). The layer also
+    password-leak check), `evidence_scan.py` (that check, also inside the evidence's archives; fix round 1),
+    `control_vm.py` (boots the disk, runs the checks, prints the PASS lines), `actions.py` (the guest's checks; since
+    fix round 1 check 6 also logs ares out of the throwaway guest and lets greetd's auto-login start the desktop again
+    while the service has failed, and check 2 looks for network listeners), `sessions.py` (Claude Code sessions with
+    B1's driver), `release_checks.py` (agreed change 12: the rehearsal's check actions), `own-mcp.py` and
+    `own-hook.py` (his own server and hooks). The layer also
     carries `control/boundary/interactive_{driver,model}.py`, `control/ci/image/mail_flows.py` and, for the storage
     tests, `control/chrome_tests/*.py` and `control/mail_tests/storage_faults.py`.
-  - `os/tests/test_control_vm.py` (24 tests, new).
+  - `os/tests/test_control_vm.py` (34 tests, new).
 - Not changed: base digest, `packages.lock.json`, Chrome pin, accounts, sudo, polkit, masks, session, PATH,
   repositories, `os/config/`, `os/policy/`, `os/release/`, `os/owner-tools/`, `os/manifest/` (except the pending
   list above), `ci/check-resolve.sh`, and every other job of `os-image.yml`.

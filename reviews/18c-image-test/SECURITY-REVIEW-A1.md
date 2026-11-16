@@ -91,6 +91,8 @@ before merge is that the owner's yes states this behavior and its cost.
 - **K6. The release job runs none of the Control checks:** `check-image.sh` is called only by `check-build.sh:54`.
   The next release package must run image-checks' Control section and the record-to-checkout check on the release
   image, beside extending `release_diff.py` (PLAN-GAP 2).
+  - Lead's correction (2026-11-16): withdrawn. The release job runs check-build.sh build, which runs check-image.sh
+    with kind=release (os-image.yml:436, check-build.sh:54), so the Control checks run on the release image.
 - **K7. The service is single-threaded** (`daemon.py:136`): while a long send runs, every session's hooks wait up to
   `READ_TIMEOUT` 10 s (`protocol.py:12`) per prompt and turn end, then go quiet. Bounded and rare.
 - **K8. A taken 250 would quietly become another number** at the first boot of the update; only the rehearsal's
