@@ -21,9 +21,9 @@ anyone touching it. A throwaway CI image proves all of it in the CI virtual mach
 
 **What the owner will see once a release carries it:** Chrome opens with a pinned "AresOS Chrome" button he can't
 remove, and Chrome's menu says the browser is managed. Claude's Chrome reads and actions answer "not set up yet"
-until he writes his never-list once with `sudo` in the live sitting (an empty list if he has no site to exclude;
-"For his guide" below). After that they work, and keep working after an update or going back a version without
-another step.
+until he writes his never-list once with `sudo` in the live sitting (his dashboard's host first; an empty list
+only if he has no site to exclude; "For his guide" below). After that they work, and keep working after an update
+or going back a version without another step.
 "Allow editing" asks for his password in the usual dialog.
 
 ## Why now
@@ -417,10 +417,14 @@ version) or **assumed**, with the measured times of the VM pass.
 - **His never-list, once, before Claude's first session in his Chrome.** Until then every Chrome read and action
   answers that the excluded-sites setting is not set up yet. Run
   `sudo tee /var/lib/aresos-control/chrome-excluded-sites.json >/dev/null`
-  then paste or type the list on one line, press Enter, then Ctrl-D. With sites to exclude (lowercase host names,
-  no `https://`, no port or path; each covers its subdomains; at most 128):
+  then paste or type the list on one line, press Enter, then Ctrl-D. **His dashboard's host goes on the list
+  first** (`docs/design/CONTROL.md` section 6, "Where Claude may go": it can approve Claude's actions, and the
+  tools only check that a list was written, so without its host on the list it is an ordinary site to them).
+  Then every other site to exclude (lowercase host names, no `https://`, no port or path; each covers its
+  subdomains; at most 128):
   `{"format":1,"hosts":["first.example","second.example"]}`
-  With no site to exclude, the empty list, which opens the tools just the same: `{"format":1,"hosts":[]}`
+  The list is empty only when he has no site at all to exclude; it opens the tools just the same:
+  `{"format":1,"hosts":[]}`
   The list goes in through `tee`'s input, so his hosts never land in the shell's history. Which hosts are on it
   isn't secret from his own user (knowing them isn't the risk, opening them is), but keeping them out of the
   history costs nothing. `sudo tee` writes into the existing file, so it keeps its owner, group and mode; the
