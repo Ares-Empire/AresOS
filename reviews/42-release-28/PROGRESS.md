@@ -207,3 +207,5 @@ None so far. (A pin other than the mod jar's renewed by resolve would be one; no
 ## Lead, 2026-11-16: a second dry run before the cut
 
 Phase 2's rules are proven on the evidence but not on a build (the 32-bit caches' own bytes, `IMAGE_DIFF_PASSED`, the job's steps after the diff). The lead raised `dry-run-28` from 2 to 3 in `os/ci/rehearsal-packages.json` (test updated, pending list refreshed) and dispatches the second dry run on this head; step 4's cut keeps one.
+
+Dry run 2 (43843690867, on `f6e0d693`) died at 6 minutes in "Install pinned tools on disposable runner": snapshot.ubuntu.com answered 502/503 (before any build; a dispatch all the same). The server answered again at 10:15Z; the lead raised `dry-run-28` to 4 and dispatches dry run 3; the cut keeps one.
