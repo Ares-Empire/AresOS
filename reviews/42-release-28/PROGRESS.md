@@ -1,8 +1,9 @@
 # 42: Release 28, progress
 
 Builder of step 1: a Claude agent (Opus 5.5), started 2026-11-16 from `main` e33ffc46; phase 2 (the dry run's
-differences) a fresh Claude agent (Opus 5.5) the same day. Nothing has been published, signed or pushed to GHCR.
-The owner's OK for publishing release 28 has not been given.
+differences) a fresh Claude agent (Opus 5.5) the same day; review 1's fixes a fresh Claude agent (Opus 5.5) the same
+day (below). Nothing has been published, signed or pushed to GHCR. The owner's OK for publishing release 28 has not
+been given, and the ledger now stops a publish dispatch until it is (B1).
 
 ## Done
 
@@ -14,7 +15,8 @@ The owner's OK for publishing release 28 has not been given.
   the `source_trees` release 27 records, checked by a test). Each rule names its package:
   - os/config files changed or new since release 27: bytes equal the source, root-owned, the mode build.sh gives
     (its chmod 0755 line now has the desktop, its Java wrapper and the cover), no new extended attribute; the
-    reason lists the commits on main that changed the file (`git log`, e.g. `23 (#36), 31 (#54), 40 (#71)`). New
+    reason lists the commits on main that changed the file (`git log` up to this branch's merge base with main,
+    since review 1's S2; e.g. `23 (#36), 31 (#54), 40 (#71)`). New
     folders of new os/config files must be root's 0755.
   - **Package 23's files:** Prism's bundle (`/usr/lib/prismlauncher`): every regular file is in the image's
     `prism-files.sha256` with its SHA-256, and that list holds exactly the regular files there (one extra or
@@ -59,7 +61,8 @@ The owner's OK for publishing release 28 has not been given.
   release); both 28 kinds (`publish-28`, `dry-run-28`) build and diff identically.
 - **`os/ci/registry_auth.py`:** package 42's two kinds may read release 27 with the job token on its branch.
 - **`os/ci/rehearsal_guard.py` and `rehearsal-packages.json`:** package 42's ledger (every dispatch on the branch
-  counts by its title; caps `dry-run-28` 2, `publish-28` 1, `resolve` 2, `checks` 1; 1200 minutes; one publish).
+  counts by its title; caps `dry-run-28` 2, `publish-28` 1, `resolve` 2, `checks` 1; 1200 minutes; one publish;
+  since review 1: `dry-run-28` 4, `publish-28` 0 and `publish_cap` 0 until the owner's OK).
   `PUBLISH_KINDS` names the kinds whose job may publish; the dry run's kind is refused at `publish-ci`.
 - **`os/ci/publish.sh`:** `pkg/42-release-28` publishes as release 28 (tag `28-<commit>`).
 - **Tests:** new `os/tests/test_release28.py` (30 tests) and small compiled-schema fixtures
@@ -136,6 +139,103 @@ folders (the dry run parsed its 64-bit ones; the 32-bit layout is proven on rele
 laptop, fontconfig 2.17's output and the fixtures, and the run's sizes match), and the whole diff passing in one
 run (`IMAGE_DIFF_PASSED`) with the remaining steps of the job after it.
 
+### Review 1's fixes (REVIEW-1.md, CHANGES-NEEDED: B1, S1 to S5, N1 to N7)
+
+Each finding was checked against the code first; none is disputed.
+
+- **B1, publishing shut until the owner's OK.** Package 42's ledger (`os/ci/rehearsal-packages.json`) has
+  `publish-28` 0 and `publish_cap` 0, with a `publish_gate` note beside them. A `release_28` dispatch now stops at
+  its job's guard, the first step after checkout, before any build (`STOP: publish-28 dispatch allowance
+  exhausted`), and again at publish.sh's guard. The guard's publish gate (`publish-ci`) also refuses while
+  `publish_cap` allows no publish (`STOP: the ledger allows no publish`), so raising only the dispatch cap opens
+  nothing. The input's description says the ledger stops it. **Step 5 raises both to 1, only after the owner's OK,
+  in a commit that names the OK (date, board number) in the entry's `budget` text**, and refreshes the pending
+  list. A slipped `release_28` dispatch still counts as one publish-28 dispatch and stops every later guard on the
+  branch (the cut's dry run too) until a ledger commit records it. Tests: with this ledger and today's history
+  (one resolve, three dry runs) the cut's dry run, a resolve and the checks run pass their guards; a publish
+  dispatch stops in `ci` and `publish-ci` mode; a slip stops the next dry run; the dispatch cap alone opens
+  nothing; both caps at 1 let only `publish-28` through.
+- **S1, `GENERATED_28` narrowed** to the four patterns dry run 3 needed (checked in run 43847257976's
+  `classified-files.json.gz`: 11 generated paths), each with its reason: `usr/lib/sysimage/libdnf5/*` (six dnf5
+  history files), `var/lib/dnf/*` (two countme markers), `var/log/dnf5.log*` and `var/cache/ldconfig/aux-cache`;
+  the rpm database keeps its own exact rule. Dropped: the SELinux policy store (`etc/selinux/targeted/*`,
+  `var/lib/selinux/*`), `usr/share/icons/*/icon-theme.cache`, `usr/share/applications/mimeinfo.cache`, `run/*`,
+  `var/cache/libdnf5` and below, `etc/ld.so.cache`, `usr/lib/sysimage/rpm/*` and the folder
+  `usr/lib/sysimage/libdnf5`. A test holds that dry run 3's paths each get a generated reason and every reason
+  is used, and that a path under each dropped pattern stops.
+- **S2, the image's sources must be main's.** `release_diff.main` for release 28 takes `git merge-base HEAD
+  origin/main` first (no `origin/main`: `STOP: no merge base with origin/main`; the release jobs' checkout
+  fetches every branch, as dry run 3's log shows) and records it in `result.json` (`main.merge_base`). The image
+  sources (`IMAGE_SOURCES`: `mod`, `os/.containerignore`, `os/Containerfile`, `os/build.sh`, `os/config`,
+  `os/google-chrome.lock.json`, `os/keys`, `os/manifest/base.json`, `os/minecraft`, `os/packages.lock.json`,
+  `os/policy`, `os/tests/audit.py`) on the built commit must equal the merge base's, except
+  `BRANCH_SOURCE_CHANGES`: one row, `os/minecraft/desktop.lock.json`, which may differ only in the AresOS jar's
+  `sha256` (A.2). Anything else is a problem that names each file (`image sources differ from main at the merge
+  base <commit>: <files>`). `origin()` now reads main's history up to the merge base, so a change made on this
+  branch has no origin and stays unexplained too. At the cut (step 4) main is merged in: the merge base moves
+  to main's commit at the cut and the rule holds the same way (a test merges "main" into a branch and checks the
+  base moves, the pin passes, a wrong merge resolution is named). Tests: a temporary repository (the pin alone
+  passes, harness files pass, each other source change is named, two at once), the real branch against
+  `origin/main` (nothing differs but the pin), the source list against every `/tmp/aresos` path of
+  `os/build.sh` and `os/Containerfile`, and `main()` stopping with release 27's source as "main".
+- **S3, resolve and checks read their caps.** The checks-only run's guard step now also runs on
+  `pkg/42-release-28` (before the suite). `check-build` has a guard step on this branch only, right after the
+  checkout and before the tools (`REHEARSAL_MODE: resolve`, reserve 120): a third resolve, a second checks run or
+  a check build of another kind stops there. For that the job has `actions: read` and `packages: read` (what
+  `test_ci_api_permissions` requires of any job that can reach the guard; still no write and no id-token), and
+  its checkout keeps no credentials (`persist-credentials: false`), so only the guard step gets the token. A run
+  title the ledger does not know now stops with `STOP: run <id> is titled '<title>', which package 42's ledger
+  does not know; record it in os/ci/rehearsal-packages.json before any dispatch`, not a bare `ValueError`.
+- **S4, near-miss tests.** One near miss per condition: config files and new folders (owner, group, mode, link,
+  attribute, a folder release 27 had, no origin on main), the manifest (lock and `packages.txt` equality, owner,
+  mode, Prism's list or the mod record already in release 27, Prism's list not the reviewed one, a duplicate
+  line, the audit new), the Minecraft inputs (release 27 had it, attribute, owner, mode, size, another folder,
+  folder mode), Prism's bundle (owner, group, attribute, release 27, bytes, writable, an absolute link inside),
+  the alternatives (record in release 27, its owner, mode, attribute; link and command owners), the commands,
+  `etc/shadow`, the font caches (owner, mode, attribute, an old cache not root's 0644 or a link), the rpm
+  database's metadata, the schemas (owner, mode, attribute, the image's override, no differing key, a default
+  changed beside the override, changed choices, another desktop's value, release 27 compiled the override
+  already: three new fixtures compiled with glib-compile-schemas 2.88.4), a package path that is no file,
+  folder or link, a removed package without its locked replacement, and
+  each stop of `main()` (revision and source labels, another label, the OCI runtime config, both base
+  ancestries, a unit only generated, release 27 on another base, release 27's lock, an unreviewed unmasked unit,
+  `status` stopped when a path is unexplained). The fixture overrides owner, group or attributes per image and
+  path (`Classifier28Test.image`). Measured by weakening one condition of `release_diff.py` at a time in memory
+  and running `test_release28` and `test_release27` (a scratch script, not committed):
+  84 weakenings of the conditions that were there (the reviewer's method; the reviewer's list of 57 is not
+  recorded, so this is a list of my own over the same rules and `main()`): **before, 24 made a test fail and 60
+  did not; now 78 do.** The 6 left change nothing the tests can reach: a new folder that holds no file changed
+  since release 27 already has no origin on main, so it stops anyway (tested with `etc/greetd`); os/config holds
+  no link (and N5's converse stops on one); an updater audit without release 27's copy already fails to parse;
+  a drop-in path that `normpath` changes cannot name a unit's folder; os/config has no drop-in that does not end
+  in `.conf`; the alternatives records exclude a record release 27 had before the record rule asks. The 26 new
+  conditions of these fixes (S1, S2, S5, N4, N5) were weakened the same way: all 26 make a test fail.
+  `test_release28` has 59 tests (35 before).
+- **S5, files of the added packages.** The rule now needs the path's records in the added packages' rpm
+  database (`rpm -q --qf` in the new image, `RPM_FILE_FORMAT`, read by `rpm_files`, which stops on a line it
+  cannot read): no `%ghost`, `root`/`root`, the recorded kind and mode, no file capability, for files the
+  SHA-256 (digest algorithm 8) and size, for links the target; in the image root's, no extended attribute,
+  nothing setuid, setgid, sticky or group- or world-writable. Checked against dry run 3 before the change: the
+  four pinned RPMs (fetched from Fedora's mirror into a scratch folder; their SHA-256 equal the package lock)
+  record 480 paths; all 470 paths the rule explained in run 43847257976 match their records in every field, and
+  the 10 others are `%ghost` (the alternatives' command links, explained by the alternatives rule, and two
+  `.rpmmoved` paths absent from the image). The query format was run with this laptop's rpm 6.0.2 (release 27's, on the same pinned base) on
+  the RPMs and on an installed package with file capabilities. `rpm -V` of the added packages is recorded in
+  `result.json` (`rpm_verify`: exit code and lines), as evidence, not a stop: it is one more podman run in the
+  diff, so it fits the job's shape. A removed package's path is explained only when it is gone.
+- **Nits.** N1: done (`dry_run_28` comes before `release_28` in the run name, so both together count as a dry
+  run). N3: done (`image` and `release-27` exclude both new inputs). N4: done (`PRISM_FILE_LISTS` pins dry run 3's
+  `prism-files.sha256`, `9df32315…`, 679 files, per Prism tarball pin; another list stops Prism's whole bundle; a
+  renewed Prism pin needs its own row). N5: done (`extra()` stops when an os/config file changed since release 27
+  is missing from the image or has other bytes, or a removed one is still there; dry run 3's inventory holds all
+  56). N7: done (the wording above). Left: N2 (`github.ref == 'refs/heads/…'` in the two jobs): the shared
+  condition helper (`test_owner_staged_release.condition`) evaluates only `github.ref_name`, and that module may
+  not run on this laptop now, so the change could not be tested here; step 6's `verify_release.py` should pin the
+  `refs/heads` identity. N6 (one mirror outage costs the publish): for step 5, word the owner's OK for the image
+  source, not one commit; step 5 may also set the `publish-28` dispatch cap to 2 with `publish_cap` 1, so a
+  dispatch that dies before publishing can be retried without another ledger commit, while the guard still
+  allows one publish attempt at most.
+
 ## Verified
 
 - Phase 2: `test_release28` 35 OK (30 before), `test_release27` 41 OK, `test_ways_back_probe` 57 OK,
@@ -159,12 +259,25 @@ run (`IMAGE_DIFF_PASSED`) with the remaining steps of the job after it.
 - **The font-cache rule against release 27's caches:** every `-le64.cache-9` file on this laptop has the magic,
   version and size the rule reads, names its folder, and is named by that folder's MD5.
 
+- **Review 1's fixes** (head after the two fix commits; each module run alone, bytecode off):
+  `test_release28` 59 OK, `test_release27` 41 OK, `test_checkout_sources` 8 OK, `test_ci_api_permissions` 4 OK,
+  `test_ci_step_environment` 4 OK, `test_aresos_desktop` 188 OK (1 skipped). Every other `os/tests` module whose
+  name does not start with `test_owner_` (69 modules, 1,247 tests): 67 OK, among them `test_ways_back_model`
+  26 OK (the full model, 17 minutes) and `test_ways_back_probe` 57 OK. Two fail here only because they need
+  root: `test_inherited_homebrew` (1 failure, 7 errors) and `test_sysusers` (2 errors) run `sudo -n`, which this
+  laptop refuses without a password ("a password is required"), so nothing ran as root; the first fails the
+  same way on the reviewed head 3980c5ef, and neither touches a file these fixes changed. The hosted run (a
+  root-capable runner) is where they count. The first fix commit alone (B1, S3) was run too:
+  `test_release28` 37 OK, `test_release27` 41, `test_ci_api_permissions` 4, `test_ci_step_environment` 4,
+  `test_checkout_sources` 8, the check-build permission test OK. Mutation counts: see S4 above.
+
 ## Not verified yet
 
 - A dry run that passes the image diff. Run 43832912792 confirmed the rules for Prism's bundle, the Java
   packages' files and alternatives, the pins, the schemas, the theme and rc.xml; phase 2's rules are proven
-  against its evidence except release 28's own 32-bit cache bytes (see phase 2). The steps after the diff
-  in the job (second VM pass onwards) have not run on release 28.
+  against its evidence except release 28's own 32-bit cache bytes (see phase 2). (Done since: dry run 3 passed.
+  After the diff the dry run has only the credential cleanup and the evidence; the publishing job adds its publish
+  step. Neither job has a second VM pass.)
 - The release 28 jobs on GitHub: only the resolve dispatch has run on the branch (both jobs skipped there). The
   publishing job (release_27's steps for release 28) has never run and must not before the owner's OK.
 - `test_owner_equality` and `test_owner_step_limits` (brief 42, C): not run. The lead stopped every
@@ -172,24 +285,56 @@ run (`IMAGE_DIFF_PASSED`) with the remaining steps of the job after it.
   stopped mid-run (its temp folder removed). Run them once the lead says the install is done, or in the hosted
   checks-only run.
 
+- Review 1's fixes on GitHub: nothing was dispatched (the lead dispatches). Not yet run on a real build: the
+  source stop and the merge base (S2; `origin/main` is in the job's checkout, as dry run 3's log shows), the rpm
+  query and `rpm -V` in the image (S5; the query format and its reading were run on the pinned RPMs with this
+  laptop's rpm, and every path dry run 3 explained matches), the pinned Prism list (N4; dry run 3's value), the
+  converse (N5; dry run 3's inventory holds), the narrowed generated patterns (S1; dry run 3's paths). The new
+  guard steps of `check-build` and the checks run have not run either (unit tests only).
+
 ## Left, in order
 
 1. Done: dry run 3 passed (below). One `dry-run-28` dispatch stays for step 4's cut (cap 4, three spent).
-2. Step 2 (Control's rules), step 3 (the rehearsal mode; it adds its kind `release-28` to package 42's ledger and
-   raises its minute cap), steps 4 to 6 as the brief says.
+2. Review 1's fixes: done (above). Next: a fresh review of them (review 2).
+3. The hosted checks-only run on a head with these fixes (brief C; its cap is 1 and its guard now counts it):
+   review 1 noted the full suite has not run on any head of this branch.
+4. Step 2 (Control's rules; if Control's image part reads more than `IMAGE_SOURCES` names, add it there),
+   step 3 (the rehearsal mode; it adds its kind `release-28` to package 42's ledger and raises its minute cap).
+5. Step 4, the cut: main merged in, the resolve if main's `mod/` moved (the guard now counts it: one resolve
+   left), then the last dry run, `gh workflow run "OS image" --ref pkg/42-release-28 -f dry_run_28=true` (never
+   `release_28`: it publishes, and until step 5 its guard stops it and the slip blocks the branch). What that dry
+   run can stop on that dry run 3 did not check: S1's narrower generated patterns (a regenerated path outside
+   them, e.g. if Control's `gh` RPM changes the SELinux store or the desktop caches, needs its own rule); S2's
+   source stop (any image source not main's at the merge base but the jar pin; a wrong merge resolution shows
+   here); S5's rpm records (Control's `gh` or a renewed package would be held to its records too); N4's pinned
+   Prism list (a renewed Prism pin needs its row); N5's converse. Read `result.json`'s `main` and `rpm_verify`:
+   if `rpm_verify` is clean (exit 0, no lines), a later step may make it a stop.
+6. Step 5, after the owner's OK only: raise `publish-28` and `publish_cap` to 1 (or 2 and 1, see N6) in a commit
+   that names the OK, refresh the pending list, then the lead dispatches `release_28`. Step 6 as the brief says.
 
 ## What the code doesn't show
 
-- The two inputs are separate booleans, as the lead asked; dispatching both runs neither release job.
+- The two inputs are separate booleans, as the lead asked; dispatching both runs neither release job, and the
+  run is titled and counted as a dry run (review 1, N1), not as the publish.
 - Kind names: the rehearsal of step 3 is `rehearsal=release-28` (the brief), so the image kinds are
   `publish-28` and `dry-run-28`, not `release-28`.
-- The ledger caps (dry runs 2, publish 1, resolve 2, checks 1, 1200 minutes) cover steps 1, 4 and 5: the brief's
+- The ledger caps (dry runs 2, raised to 4 by the lead; publish 1, now 0 until the owner's OK; resolve 2,
+  checks 1, 1200 minutes) cover steps 1, 4 and 5: the brief's
   budget (C) names one release build, one publish, one checks-only suite; steps 1 and 4 each also dry-run and
   renew the pin. For the lead to confirm or change.
+- Which input is which: `dry_run_28` builds, checks, boots once and diffs against release 27 and can never
+  publish; `release_28` is the publishing job (stopped by its ledger until step 5). Both together run nothing and
+  count as a dry run.
+- The image sources are what the build reads. The Containerfile's `COPY . /tmp/aresos/` also carries the rest of
+  `os/` (tests, owner tools, manifests) into the first build layer, where build.sh's last step deletes it; those
+  files are not in the image's file tree, so the diff (which compares file trees) cannot see them and the source
+  stop does not cover them. They are this public repository's own files.
+- `rpm_verify` is evidence only; nothing reads it yet.
 - The 32-bit font caches exist because the base ships fontconfig.i686 (for Steam). If a later base drops it, its
   caches vanish and every 64-bit cache loses its sibling: the diff stops, which is right for a base change.
 - Prism's files are checked against the image's own `prism-files.sha256`, which build.sh writes right after
-  extracting the tarball whose SHA-256 and size it checked; the diff does not download the tarball again.
+  extracting the tarball whose SHA-256 and size it checked; the diff does not download the tarball again. Since
+  review 1 (N4) that list must also be the one dry run 3 recorded for this Prism pin.
 - **PLAN-GAP:** release 27's record binds ten source trees; since package 23 the image also depends on `mod/`
   (the jar is built from the commit) and `os/minecraft/` (the pins). Release 28's record and
   `verify_release.py` (step 5) should bind those too, and `verify_release.py` must learn release 28's job name
