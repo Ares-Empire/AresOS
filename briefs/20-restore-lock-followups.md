@@ -26,6 +26,28 @@ in SQLite.
 - Next: a fresh brief review, then one builder on this branch, then a fresh review of the code and a second agent
   that re-checks the re-pin's classification with its own scripts. Brief, build and re-pin go to `main` in one PR.
 
+## The lead's decisions after brief review 1 (2026-11-16)
+
+`reviews/20-restore-lock-followups/BRIEF-REVIEW-1.md` (fresh Opus reviewer): READY, five should-fixes, nine nits.
+All taken; where they and the text below differ, these win.
+- **S1:** the harness asserts that a confirm met by a fault is never answered `ok`, so item 1's rule can't hide a
+  confirm that succeeds while the lock stays.
+- **S2:** item 3's set is defined from the pin's lock gaps (1,386 cases, 92,945 keys), not from the ledgers.
+  Outside that set and the 16,423 keys items 1 and 2 close, all 2,512,704 keys stay byte for byte.
+- **S3:** "behind" is one shared function used at all three places (`records.py` twice, `perturb.py`), tested once
+  through each caller.
+- **S4:** merge `main` right before the capture. If `control/aresos_control/` or `control/owner_state_oracle/` changed
+  on `main` since this branch's base, stop and report to the lead before dispatching.
+- **S5:** the install hold covers only `os/tests`' owner modules (they read the laptop's host state). Control's
+  oracle tests (`control/tests/test_owner_state_oracle.py`, `control/mail_tests/test_owner_state_sweep.py`) are
+  in-process models: run them, and the local sample.
+- **Nits N1-N9:** as the review says. N2: the rule is "the most recent scripted confirm on a locked store since
+  the last restart met a fault", assigned on every snapshot (not a one-way `|=`). N7: the rows left at H become a
+  named class in the new `KNOWN-GAPS.md` section, with its count; the lead puts its decision on the board. N9: the
+  cut line is not taken.
+- **The review's note** (startup failing to finish a staged confirm at points 26-73 goes unseen) goes to the
+  queue, not into this package.
+
 ## Item 1 (C5): a confirm that fails at its last disk sync
 
 **Today.** The restore flow's last fault point is 75, the sync of the final commit marker (`storage.py:562`, from
