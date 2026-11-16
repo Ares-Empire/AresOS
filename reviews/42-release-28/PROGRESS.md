@@ -372,3 +372,9 @@ Left for later steps:
 
 Nothing in `3980c5ef..8b427862` had run on a real build, and the cut's dry run would have been the last one allowed.
 The lead raised `dry-run-28` to 5 (`bfe92f45`) and dispatched dry run 4 (43897120279) on that head; the cut keeps one.
+
+Dry run 4 (43897120279, on `bfe92f45`, 15:30Z to 16:10Z) passed: the guard counted it as dry run 4 of 5;
+`IMAGE_CHECKS_PASSED`, `CHECK_BUILD_PASSED`, the UEFI VM checks, `CHECK_BUILD_VM_PASSED`, and `IMAGE_DIFF_PASSED: 1585
+changed paths, all explained`. result.json: `main.merge_base` `e33ffc46`, the only branch change is the jar pin,
+`differing` empty (S2); `rpm_verify` of the four added packages exit 0 with no lines (S5; a later step may make it a
+stop). Review 1's fixes hold on a real build. One dry run is left, for the cut.
