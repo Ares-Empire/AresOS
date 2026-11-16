@@ -10,7 +10,8 @@
     "23b (startup cover), merged with main after package 40: os/ci/vm.py gains the cover's screenshots and session font check in the check build (harness only); the regressions time limit (40 minutes) arrived with package 40 identically",
     "22d step 8: main merged in (bound files main changed wait for the next rehearsal)",
     "2026-11-15, board #306 (owner: scrub current files): the owner's machine username became owner in 372 files (reviews/username-scrub/RECORD.md). Three bound files changed, text only: os/manifest/ci/14/14zze-preflight/commit-preflight.py, final-local.py and local-privacy.py (archived preflight tools). No binding table or host walk was edited.",
-    "42 step 1 (release 28's release job, its dry run and the image diff rules): os-image.yml gains the release_28 and dry_run_28 inputs and their two jobs (only on pkg/42-release-28; the dry run has no write permission and no publish step), os/ci/rehearsal-packages.json gains package 42's ledger, rehearsal_guard.py counts it and lets only publish-28 publish, registry_auth.py lets package 42's two kinds read release 27 with the job token, test_owner_staged_release's dispatch helper knows the two new inputs; no tool, guide or image file changed"
+    "42 step 1 (release 28's release job, its dry run and the image diff rules): os-image.yml gains the release_28 and dry_run_28 inputs and their two jobs (only on pkg/42-release-28; the dry run has no write permission and no publish step), os/ci/rehearsal-packages.json gains package 42's ledger, rehearsal_guard.py counts it and lets only publish-28 publish, registry_auth.py lets package 42's two kinds read release 27 with the job token, test_owner_staged_release's dispatch helper knows the two new inputs; no tool, guide or image file changed",
+    "42: dry-run cap 2 to 3 (lead, 2026-11-16)"
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
@@ -23,7 +24,7 @@
       "path": "os/ci/registry_auth.py"
     },
     {
-      "sha256": "c035d740a98e0a78d8c44b34c7b84f8657c123f0032ee0a5933044cd7d395e6d",
+      "sha256": "f1122ffd523c354201b0f6dccc8fd3df152525cc6135c85fab80d2396d418598",
       "path": "os/ci/rehearsal-packages.json"
     },
     {

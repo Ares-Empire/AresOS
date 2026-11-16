@@ -203,3 +203,7 @@ run (`IMAGE_DIFF_PASSED`) with the remaining steps of the job after it.
 ## JUDGMENT-CALLs
 
 None so far. (A pin other than the mod jar's renewed by resolve would be one; none was touched.)
+
+## Lead, 2026-11-16: a second dry run before the cut
+
+Phase 2's rules are proven on the evidence but not on a build (the 32-bit caches' own bytes, `IMAGE_DIFF_PASSED`, the job's steps after the diff). The lead raised `dry-run-28` from 2 to 3 in `os/ci/rehearsal-packages.json` (test updated, pending list refreshed) and dispatches the second dry run on this head; step 4's cut keeps one.

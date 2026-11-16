@@ -841,11 +841,11 @@ class Guard42Test(unittest.TestCase):
         self.assertEqual(ledger['job_bounds']['dry-run-28'], int(WORKFLOW['jobs']['release-28-dry-run']['timeout-minutes']))
         self.assertEqual(ledger['job_bounds']['resolve'], int(WORKFLOW['jobs']['check-build']['timeout-minutes']))
         titles = ledger['titles']
-        runs, api = self.history([titles['resolve'], titles['dry-run-28'], titles['dry-run-28']])
+        runs, api = self.history([titles['resolve'], titles['dry-run-28'], titles['dry-run-28'], titles['dry-run-28']])
         with patch.object(guard, 'api', side_effect=api):
             result = guard.budget(0)
-            self.assertEqual(result['dispatch_counts'], {'dry-run-28': 2, 'publish-28': 0, 'resolve': 1, 'checks': 0})
-            self.assertEqual(result['consumed_minutes'], 180)
+            self.assertEqual(result['dispatch_counts'], {'dry-run-28': 3, 'publish-28': 0, 'resolve': 1, 'checks': 0})
+            self.assertEqual(result['consumed_minutes'], 240)
             runs.append(dict(runs[-1], id=99, display_title=titles['dry-run-28']))
             with self.assertRaisesRegex(AssertionError, 'dry-run-28 dispatch allowance exhausted'):
                 guard.budget(0)

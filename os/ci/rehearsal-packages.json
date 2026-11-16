@@ -181,7 +181,7 @@
     "full_cap": 0,
     "part_b_cap": 0,
     "dispatch_caps": {
-      "dry-run-28": 2,
+      "dry-run-28": 3,
       "publish-28": 1,
       "resolve": 2,
       "checks": 1
@@ -204,6 +204,6 @@
       "resolve": "OS image check build (resolve, never published)",
       "checks": "OS regressions only (no VM)"
     },
-    "budget": "briefs/42-release-28.md, C: one release build, one publish, one checks-only suite and three rehearsal runs. Steps 1 and 4 (brief 42) each dry-run the release build against release 27 (dry-run-28: builds, checks and diffs exactly as the publishing job, which has the only publish step, needs the owner's OK and publishes at most once) and renew the mod jar's pin (resolve: check_build=resolve, which never pushes, signs or publishes). Every dispatch on the branch counts from the first (start: first-dispatch), each kind's job timeout bounds a job GitHub cannot account, and a rerun is a new dispatch. Step 3 adds its rehearsal kind (release-28) and raises the minute cap for its three runs."
+    "budget": "briefs/42-release-28.md, C: one release build, one publish, one checks-only suite and three rehearsal runs. Steps 1 (twice: the first dry run found 39 differences, explained by phase 2's rules; the lead raised the cap to 3 on 2026-11-16 to prove them before the cut) and 4 (brief 42) each dry-run the release build against release 27 (dry-run-28: builds, checks and diffs exactly as the publishing job, which has the only publish step, needs the owner's OK and publishes at most once) and renew the mod jar's pin (resolve: check_build=resolve, which never pushes, signs or publishes). Every dispatch on the branch counts from the first (start: first-dispatch), each kind's job timeout bounds a job GitHub cannot account, and a rerun is a new dispatch. Step 3 adds its rehearsal kind (release-28) and raises the minute cap for its three runs."
   }
 }
