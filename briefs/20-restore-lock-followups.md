@@ -3,7 +3,7 @@
 Lead: `linux-tools`, 2026-11-16. Written by a Claude agent on Fable: it decides store and restore semantics, and each
 claim was checked against the code first. Source: `docs/control/TOOLS-HANDOFF.md`, "Restore lock merged", "Yours,
 both pre-existing", and `reviews/20-restore-lock/REVIEW-REPIN-3.md`. Evidence, commands and outputs: the findings
-in `reviews/20-restore-lock-followups/`; the reproduction is `repro.py` there.
+in `reviews/20-restore-lock-followups/PROGRESS.md`; the reproduction is `repro.py` there.
 
 **Outcome.** In every item the store is right and the oracle's model is wrong. No production code changes: about
 20 lines in `control/owner_state_oracle/`, tests, and one re-pin. Item 3 was not handed over: it is "C2's mirror of
@@ -12,6 +12,19 @@ C5" in `KNOWN-GAPS.md`, and it has its own cause.
 **Words.** *Single* mode fails one disk call (a fault point) once; *persistent* mode fails it and every later one,
 like a full disk. A *commit marker* is the journal line that ends a write; the *head* is the newest write applied
 in SQLite.
+
+## The lead's decisions (2026-11-16)
+
+- Items 1, 2 and 3: fix the model, as recommended. The store stays as it is.
+- **Item 3 goes in the same package and the same re-pin**, not past the cut line: item 1's rule is what keeps
+  points 74 and 75 locked once the decoder says "behind", so the two belong together, and one re-pin costs less
+  than two. Build order: items 1 and 2 in one commit, item 3 in the next, with the local sample run after each, so
+  the classification can tell their keys apart.
+- The findings are in `reviews/20-restore-lock-followups/PROGRESS.md` (not `FINDINGS.md`); `repro.py` stays there
+  as evidence.
+- **The write latch (`G22-latch`)** goes to the queue as its own package (it changes replies the owner sees).
+- Next: a fresh brief review, then one builder on this branch, then a fresh review of the code and a second agent
+  that re-checks the re-pin's classification with its own scripts. Brief, build and re-pin go to `main` in one PR.
 
 ## Item 1 (C5): a confirm that fails at its last disk sync
 
