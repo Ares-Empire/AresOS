@@ -209,9 +209,10 @@ jobs:
         run: bash os/ci/check-build.sh "$CHECK_BUILD_MODE"
       - name: Control VM pass (check_build=control only)
         if: inputs.check_build == 'control'
-        # About 1.5 times a full pass: 6 min 13 s to 6 min 54 s without Chrome (runs 43577034725,
-        # 43568250360), plus about a minute for Chrome's checks and storage tests (18c's Chrome follow-up).
-        timeout-minutes: 12
+        # The last passes took 7 min 50 s and 7 min 9 s (run 43687234953); 18c's fix round 1 adds about
+        # 2 to 3 minutes (the full logout and greetd's auto-login, check 6's two new sessions). 16 is about
+        # 1.5 times the slower pass with that added.
+        timeout-minutes: 16
         run: bash os/ci/check-build.sh control-pass
       - name: Stop the Control fixture servers (check_build=control only)
         if: always() && inputs.check_build == 'control'
