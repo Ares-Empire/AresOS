@@ -13,7 +13,8 @@
     "42 step 1 (release 28's release job, its dry run and the image diff rules): os-image.yml gains the release_28 and dry_run_28 inputs and their two jobs (only on pkg/42-release-28; the dry run has no write permission and no publish step), os/ci/rehearsal-packages.json gains package 42's ledger, rehearsal_guard.py counts it and lets only publish-28 publish, registry_auth.py lets package 42's two kinds read release 27 with the job token, test_owner_staged_release's dispatch helper knows the two new inputs; no tool, guide or image file changed",
     "42: dry-run cap 2 to 3 (lead, 2026-11-16)",
     "42: dry-run cap 3 to 4 after a snapshot.ubuntu.com outage (lead, 2026-11-16)",
-    "42 review 1 (B1, S3, N1, N3): package 42's ledger shuts publishing until the owner's OK (publish-28 and publish_cap 0, a publish_gate note); the guard names an unknown run title in a STOP line and refuses publishing while publish_cap allows none; os-image.yml runs the checks guard on pkg/42-release-28, gives check-build a resolve guard step on that branch (actions and packages read, the checkout keeps no token), titles both release 28 inputs together as a dry run, and keeps the old release jobs off release 28's inputs; no tool, guide or image file changed"
+    "42 review 1 (B1, S3, N1, N3): package 42's ledger shuts publishing until the owner's OK (publish-28 and publish_cap 0, a publish_gate note); the guard names an unknown run title in a STOP line and refuses publishing while publish_cap allows none; os-image.yml runs the checks guard on pkg/42-release-28, gives check-build a resolve guard step on that branch (actions and packages read, the checkout keeps no token), titles both release 28 inputs together as a dry run, and keeps the old release jobs off release 28's inputs; no tool, guide or image file changed",
+    "42: dry-run cap 4 to 5 after review 1's fixes (fix check SAFE), to prove the new stops on a real build before the cut"
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
@@ -26,7 +27,7 @@
       "path": "os/ci/registry_auth.py"
     },
     {
-      "sha256": "b56c92ff1036cc700a6f836f1aa2542aee04630efc0146cb1ca67c6d0fc846ab",
+      "sha256": "c5affadc81a557c76fddd2b23026b1ce2fa2512f9d6d66c934b219fa71170332",
       "path": "os/ci/rehearsal-packages.json"
     },
     {
