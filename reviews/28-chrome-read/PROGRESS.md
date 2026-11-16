@@ -2,6 +2,21 @@
 
 Builder steps keep this file; the last step turns it into the report. Newest state first.
 
+## The lead after step 10 (2026-11-16)
+
+- **Run 11 is green on its first attempt:** Control Chrome 43884693090 (28 jobs, both latency legs first try, 472
+  Node tests, the four time cases in both core shards) and qualification 43884693205 (34 jobs); Mail, base, boundary
+  and privacy green. Run 10 was cancelled for the builder's own import slip, fixed in `4bae420b`. Eleven full runs
+  so far (the brief asks to be told past nine: told, and fine).
+- **JUDGMENT-CALLs 1 to 8: accepted as built.**
+- **JUDGMENT-CALL 9 reversed:** a malformed `time_left_ms` is refused (`invalid_input`, the command not run), not
+  run without time. It can only come from our own bridge, so it is a bug, and a refusal shows it; running untimed
+  hides it. Step 11 changes it, with a test.
+- **PLAN-GAPs 1 to 4: accepted as built** (`engine.py` starts the clock; `bridge.py` carries the time and tracks late
+  replies; the looks after the read end by 7.25 s; the second hold shows the drain).
+- **The username lines** in steps 1 and 1b now say `owner`: right, per the repo's privacy rule.
+- The brief's "green twice on the final head" applies to the package's last head, after step 12.
+
 ## Step 10 (2026-11-16, Claude agent on Opus 5.5): the time
 
 Opus: built against the brief's item 4, the lead's brief for this step and step 9's "Left, in order" item 3. The
