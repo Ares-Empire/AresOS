@@ -1,6 +1,7 @@
 # Package 46: report
 
-Builder: a Claude agent (Opus 5.5), in two steps. Brief: `briefs/46-save-now.md`. Branch `pkg/46-save-now`, PR #92.
+Builder: a Claude agent (Opus 5.5), in two steps, then owner fix 1 (`briefs/46-owner-fix-1.md`, another Opus agent).
+Brief: `briefs/46-save-now.md`. Branch `pkg/46-save-now`, PR #92.
 
 
 Package 46, branch `pkg/46-save-now`: the mod saves the home world when the OS supervisor asks, over a lifecycle
@@ -44,9 +45,47 @@ package 25; nothing under `os/` changed.
     `mod/dev/client-test.sh -PmeasureSaves`; otherwise it logs one line and does nothing.
   - Step 2 made the measurement work: the 40 apps are counted as the town counts them, and the test waits only for the
     chunks that arrived (see PLAN-GAP). Step 2 also added the saving-indicator observation (see JUDGMENT-CALL).
+- **Owner fix 1: no "Saving world" text in the home screen** (the owner's answer to the JUDGMENT-CALL, "Hide it",
+  board #331).
+  - `HomeScreen.home(client)`: a game the session started (`session()`) in a desktop world, whether or not the app
+    helper is connected. Package 48's Esc menu has the same condition in its brief.
+  - `SavingIndicatorMixin` (client mixin on `Hud`): at the head of `extractSavingIndicator`, the HUD's drawing of the
+    corner text, it skips the drawing when `HomeScreen.home` holds. It hides the text for every save: `save_world`,
+    the autosave, the save on each pause. The saves, the server's saving flag, the indicator's fade in the HUD's tick
+    and the player's own "Autosave Indicator" option are untouched; outside the home screen the text behaves as in
+    Minecraft.
+  - `SaveNowClientGameTest`: the observation became assertions (see Verified). Test helpers: `SavingText` with
+    `SavingTextTestMixin` (counts the frames that draw the text, and lets every save reach a client tick, see
+    PLAN-GAP) and `AutosaveTestAccess` (brings the game's own autosave to the next tick).
+  - `docs/design/HUB.md`, package 40's corrections: one line that the home screen shows no "Saving world" text.
 
 ## Verified
 
+- **Owner fix 1** (headless compositor, RTX 4060):
+
+  | Run | Code | Result |
+  |---|---|---|
+  | `build.sh` 1 | the fix's first code, uncommitted on 6e728b99 | failed in a server game test this fix does not reach, `flat_home_game_tests_no_mob_appears_in_ten_minutes`: "Fixture: the ground around home did not load within 6000 ticks", while package 48's build ran its server game tests at the same time |
+  | `build.sh` 2 | the same code, right after, alone | **green**, 2 min 39 s, 247 unit tests (0 failures, 6 skipped), "All 104 required tests passed" |
+  | `client-test.sh` 1 | 01b5c149 | failed in `SaveNowClientGameTest` at its `save-all` case: "Unknown or incomplete command" (see PLAN-GAP). Every indicator check before it had passed. The case is dropped in 59cd0a54 |
+  | `client-test.sh` 2 | 59cd0a54 | **green**, exit 0, 10 min 14 s, 19 "checks passed" lines |
+  | `build.sh` 3 | 59cd0a54 | **green**, 1 min 39 s, "All 104 required tests passed"; the unit tests were up to date from run 2 (nothing they compile changed) |
+
+  `SaveNowClientGameTest`'s "46 saving indicator" lines in client run 2 (the text rose for every save, so Minecraft
+  would have shown it; "frames" counts the frames that drew it):
+
+  | Save | Where | Rose to | Frames that drew it |
+  |---|---|---|---|
+  | 3, requested while playing (79 ms) | outside the home screen (session flag off) | 20 % | 59 |
+  | 10, requested while playing (51 ms) | home screen | 20 % | 0 |
+  | 4, requested under the Esc menu (26 ms) | home screen | 36 % | 0 |
+  | 8, requested while covered (90 ms) | home screen | 36 % | 0 |
+  | 7, requested after the refused stop (105 ms) | home screen | 20 % | 0 |
+  | the game's own autosave | home screen | 20 % | 0 |
+
+  Over the whole home-screen part, from turning the session flag on until the world had closed (the saves on
+  pausing, covering and closing included), no frame drew the text. Client run 1 showed the same for every save before
+  the `save-all` case (save 3 drawn in 60 frames, the others in 0).
 - **`mod/dev/build.sh`** (full, at ba67fed2): BUILD SUCCESSFUL in 3 min 35 s.
   - 247 unit tests: 0 failures, 6 skipped (the Windows catalogue tests, skipped on Linux as before).
   - Server game tests: "All 104 required tests passed".
@@ -71,6 +110,11 @@ package 25; nothing under `os/` changed.
   - Refusals: `no_world` on the title screen and after closing, and `not_desktop_world`. `server_stopping` for a save
     still queued when the stop begins (it never runs afterwards) and for a request during the real stop.
   - Small test world, run 3: playing 81 ms, Esc menu 20 ms, covered 20 ms. Run 4: playing 82 ms, Esc menu 12 ms, covered 18 ms.
+  - Since owner fix 1, the "Saving world" text: outside the home screen (session flag off) a requested save raises it
+    and frames draw it. In the home screen (session flag on, desktop world) every save raises it and no frame draws
+    it: requested saves while playing (one more, save 10), under the Esc menu and covered, save 7, the game's own
+    autosave, and, counted over the whole part, the saves on pausing and closing. Fix client run 2: playing 79 ms,
+    home screen 51 ms, Esc menu 26 ms, covered 90 ms.
 - **What the unit tests check:**
   - The gate: no variable, no connection.
   - The hello's exact fields.
@@ -112,8 +156,12 @@ Measured with `SaveTimesClientGameTest`, run 3. The setup:
   never opens the channel there. The tests construct `LifecycleClient` with a socket path, and the gate is unit-tested.
 - **The owner's own home**, with his real apps and his disk busy with other work. The times come from a test home
   (40 fake apps, headless), one sample each.
-- **The "Saving world" text in real play** (JUDGMENT-CALL). It is worked out from the game's code; the test only
-  observes it with the test's own tick order.
+- **The hidden "Saving world" text in real play** (owner fix 1). The client test shows that no frame draws it in the
+  home screen, with its own fixture for the tick order (PLAN-GAP); nobody has looked at the corner during a save in
+  the real session yet.
+- **Minecraft's "Saving world" screen while a world closes** is a different thing: a whole screen, not the corner
+  text, and owner fix 1 leaves it alone. Package 48 takes Save and Quit out of the home screen and gives its
+  "New home…" a screen of its own; a shutdown still closes the world.
 - **`WorldSaves`'s `error` paths in the game:** a save that saves nothing, or a throw before or during it. They are
   compiled and the channel's side is unit-tested with a fake game, but they were never provoked in the game.
 - **The hosted checks:** they start on push; the PR gives the run links.
@@ -121,6 +169,19 @@ Measured with `SaveTimesClientGameTest`, run 3. The setup:
   was no Windows run.
 
 ## JUDGMENT-CALL
+
+**Answered by the owner: "Hide it"** (board #331, 2026-11-16). In the home screen the "Saving world" text never
+shows, for any save. Built in owner fix 1 (`briefs/46-owner-fix-1.md`):
+
+- **How:** `SavingIndicatorMixin` skips the HUD's drawing of the text (`Hud.extractSavingIndicator`) while
+  `HomeScreen.home` holds: a game the session started, in a desktop world, with or without the app helper. In effect
+  it is the alternative below of turning off the Autosave Indicator, but only in the home screen and without touching
+  his `options.txt`: outside it his own option decides as before.
+- **Not the quiet save:** `WorldSaves` still calls `saveEverything`, so nothing has to be copied from Minecraft by
+  hand, and the autosave's text and the pause's are hidden too, which the quiet save would not have done.
+- **Cost of changing later:** one mixin and one condition; removing the mixin brings the text back.
+
+The analysis the owner answered, as written before:
 
 **Vanilla's small "Saving world" text can show in the corner for a moment during a requested save.**
 
@@ -193,14 +254,25 @@ Measured with `SaveTimesClientGameTest`, run 3. The setup:
 - **Counting "his" apps in a test.** A fresh apps file starts with Notepad as his. When the helper doesn't list
   Notepad, it stays his but absent, so counting "mine" alone gives one more than the town builds. Count what is his and
   present, as `TownKeeper.wanted` does.
+- **Seeing the "Saving world" text in a client test** (owner fix 1). The text rises only while a client tick finds
+  the server saving. Fabric's client test runs the client's and the server's tick side by side in one step and then
+  waits for the test, so whether a tick catches a save depends on their order in that step, not on the save's length:
+  an 81 ms save was never caught (JUDGMENT-CALL). In play the client ticks every 50 ms on its own, so a save of 50 ms
+  or more always shows. The test's `SavingTextTestMixin` therefore lets the client's next tick count every save that
+  began since its last tick (Fabric's `BEFORE_SAVE`, which fires inside the save while the saving flag is up). Then
+  the text rises for every save, and the test checks that it rose and whether a frame drew it. It is on only during
+  `SaveNowClientGameTest`.
+- **`save-all` in the home screen** (owner fix 1). The fix's brief names "a vanilla autosave or a `save-all`".
+  `save-all` is registered only on a dedicated server (Minecraft's `Commands`), so in the home screen's integrated
+  server it is an unknown command (the first client run: "Unknown or incomplete command"). The test covers the
+  autosave; the saves on pausing and closing are covered by the frame count over the whole home-screen part.
 - **Vanilla already saves on every pause.** That includes a window covering the world, through package 40's pause.
   It isn't flushed or forced, so it doesn't replace `save_world`. But a requested save soon after a pause has little
   left to write.
 
 ## Open questions
 
-- **For the owner:** keep the "Saving world" text during requested saves, as now and as the autosave shows it? My
-  advice is to keep it (JUDGMENT-CALL).
+- **For the owner:** answered ("Hide it", board #331); built in owner fix 1.
 - **For `linux-aresos`:**
   - Do the contract readings above match package 25's supervisor? In particular: no hello reply is needed, `reason` is
     only logged, and unknown ops are not answered.
