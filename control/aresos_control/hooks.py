@@ -5,11 +5,19 @@ expiry in the service is the safety net, even when a hook is not called.
 
 The managed hooks run in every Claude Code session, but pending work and owner notices are shared by all of them.
 Quiet unless used (owner, #254; lead, 2026-11-16): only a session that used the tools (`usage`) hears of them. Any
-other session doesn't even connect, so it gets nothing and costs nothing.
+other session doesn't even connect, so it gets nothing and costs nothing, whatever fails: usage is decided first, from
+the process tree and the marks alone, before the hook's input is even parsed.
+
+Only a JSON decision ever blocks a stop; a hook never exits 2 (lead, 2026-11-16). Claude Code reads a Stop hook's exit
+code 2 as "don't stop" and any other non-zero exit as a visible hook error, so a failure of the hook itself is told
+(to a session that used the tools only) as a `{"decision": "block"}` like any other, and not again while
+`stop_hook_active` is true. The managed commands wrap Python in a shell guard that always exits 0
+(`boundary_policy.hook_command`), for what fails before this code runs.
 """
+import json
 import sys
 
-from .common import WIRE_LIMIT, Refused, display_json, canonical, strict_json_loads, validate, visible
+from .common import WIRE_LIMIT, Refused, display_json, canonical, shortened, strict_json_loads, validate, visible
 from .definitions import obj
 from .protocol import Client
 from . import usage
@@ -33,6 +41,10 @@ NOT_REACHED = ("AresOS tools could not be reached. If you prepared or sent somet
 # Pending work may be another session's, and only the owner decides about it (lead, 2026-11-16).
 REMINDER = (" Don't complete, cancel, resend or acknowledge this work on your own: tell the owner what is waiting, and "
             "let him decide.")
+# What a session that used the tools hears when the Stop hook itself fails, followed by the failure.
+FAILED = "AresOS hook failed; inspect pending work before continuing: "
+# Input past the bound is read in steps of this size and dropped.
+DRAIN_STEP = 64 * 1024
 
 
 def output(event, pending):
@@ -51,16 +63,44 @@ def output(event, pending):
     return {"hookSpecificOutput": {"hookEventName": "UserPromptSubmit", "additionalContext": context}}
 
 
+def read_input():
+    """The hook's input: its first WIRE_LIMIT + 1 bytes (more is refused as too large), with the rest read to the end
+    and dropped, so Claude Code can always write all of it, whatever the hook then does with it."""
+    stream = sys.stdin.buffer
+    kept = stream.read(WIRE_LIMIT + 1)
+    while stream.read(DRAIN_STEP):
+        pass
+    return kept
+
+
+def failed(exc):
+    """The Stop hook's own failure, told as a decision: plain json, so it doesn't depend on what may have failed."""
+    return json.dumps({"decision": "block", "reason": FAILED + shortened(visible(str(exc)))},
+                      ensure_ascii=True, separators=(",", ":"))
+
+
 def main(config, name):
+    try:
+        used = usage.used()
+    except Exception:
+        # `used` itself counts marks or processes it can't read as a mark, so only a bug in it gets here, and that bug
+        # would reach every session alike. Quiet is the safe side: the work stays held in the service, every tool
+        # result still carries it, `aresos control pending` lists it, and it expires unrun.
+        used = False
+    if not used:
+        # A session that never used the tools: no reminder, no notice, no connection. Its input isn't even parsed, so
+        # nothing in it and no failure on it can reach the session; it is still read to the end.
+        try:
+            read_input()
+        except Exception:
+            pass
+        return
     event = None
     try:
-        event = strict_json_loads(sys.stdin.buffer.read(WIRE_LIMIT + 1))
+        event = strict_json_loads(read_input())
         validate(event, EVENT, 'hook')
         if not isinstance(event, dict) or event.get("hook_event_name") != name:
             raise Refused("invalid_input", "Hook input must be an object matching the launcher event.")
-        if not usage.used():
-            # A session that never used the tools: no reminder, no notice, no connection.
-            return
         try:
             # One connect attempt: the 3 s wait for a starting service is for the MCP proxies and the CLI; a hook
             # runs at every prompt and turn end, and a session must not wait each time while the service is down.
@@ -93,6 +133,5 @@ def main(config, name):
             # The continuation guard holds for failures too: the feedback below blocks a stop once, never until
             # Claude Code's own limit on blocked stops.
             return
-        # Stop retains its explicit failure feedback.
-        print("AresOS hook failed; inspect pending work before continuing: " + visible(str(exc)), file=sys.stderr)
-        raise SystemExit(2)
+        # A session that used the tools hears of the failure as a decision, never through an exit code.
+        print(failed(exc))

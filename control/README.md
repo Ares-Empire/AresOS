@@ -300,8 +300,14 @@ No environment variable can change config, module path, interpreter or prefix.
 The managed hooks run in every Claude Code session of every user, but pending work and
 owner notices are shared by all sessions. So a hook first checks that its session used
 the tools (the mark below; lead, 2026-11-16): any other session gets nothing, not even a
-connection to the service. A session the service answers with `permission_denied`
-(root's, another user's) can't use the tools, so it gets nothing either.
+connection to the service. It checks first, from the process tree and the marks alone,
+before it parses its input, so no failure on the input reaches such a session either;
+the input is still read to the end, so Claude Code's pipe never breaks. If the check
+itself fails (only a bug can: marks it can't read already count as a mark), the hook
+stays quiet too: the work stays held in the service, every tool result still carries
+it, `aresos control pending` lists it, and it expires unrun. A session the service
+answers with `permission_denied` (root's, another user's) can't use the tools, so it
+gets nothing either.
 For a session that used the tools, `Stop` reads `control_pending` and returns
 `{"decision":"block","reason":"…"}` while work is held/unfinished, unless
 `stop_hook_active` is already true. The reason ends "Don't complete, cancel, resend or
@@ -316,9 +322,13 @@ cancel, resend or acknowledge it on your own; tell the owner what is waiting.
 The gate is per session, not per operation: the service doesn't record which session
 made an operation, so a session that used the tools also hears of other sessions' work.
 Each managed launcher names its event independently of input: `launch.py hook Stop`
-or `launch.py hook UserPromptSubmit`. The managed prompt command has a fixed shell
-guard that emits Python's output only on success and always exits 0, covering
-interpreter startup failures before Python code can run. A different
+or `launch.py hook UserPromptSubmit`. Both managed commands have the same fixed shell
+guard (`boundary_policy.hook_command`, lead, 2026-11-16): it emits Python's output only
+when Python exits 0, drops its stderr, and always exits 0 itself. That covers what
+fails before the hook's Python code can run: a missing launcher, an interpreter that
+can't start, a refused installation (`protected()`), bad configuration. Only a JSON
+decision ever blocks a stop: Claude Code reads a `Stop` hook's exit code 2 as "don't
+stop" and any other non-zero exit as a visible hook error, in every session. A different
 `hook_event_name` is malformed.
 No transcript, current directory or prompt path from hook input is opened. Input
 is read in full, including long prompts and final assistant messages. A hook reads
@@ -363,11 +373,15 @@ again. `/clear` starts a new conversation in the same Claude Code process, which
 its mark. A `.told` file that can't
 be written still gives the notice (at every stop, better twice than never); one that
 can't be read (other than missing) counts as not given; marks that can't be read give
-it at every stop. With the service up nothing changes. `Stop` reports malformed input or its
-own failure on stderr with exit 2. Both block a stop once: when the input parses and
-`stop_hook_active` is already true, it ends quietly. Input it can't parse (over the
-size limit, not strict JSON) exits 2 at every stop, up to Claude Code's own limit on
-blocked stops. `UserPromptSubmit` exits 0 with no output on any failure, including unreadable
+it at every stop. With the service up nothing changes. In a session that used the tools,
+`Stop` reports malformed input or its own failure as a decision, exit 0:
+`{"decision":"block","reason":"AresOS hook failed; inspect pending work before
+continuing: …"}`, never through an exit code. Both block a stop once: when the input
+parses and `stop_hook_active` is already true, it ends quietly. Input it can't parse
+(over the size limit, not strict JSON) has no `stop_hook_active` to read, so it blocks
+every such stop, up to Claude Code's own limit on blocked stops. A failure before the
+hook's Python code runs gives nothing, in every session (the shell guard above).
+`UserPromptSubmit` exits 0 with no output on any failure, including unreadable
 or malformed input, service failure, and installation/configuration errors, so
 it never discards the owner's prompt. Valid prompt input still adds the pending
 reminder. Hooks are reminders; service expiry is the safety net during interrupts,
