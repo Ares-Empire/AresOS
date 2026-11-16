@@ -237,3 +237,11 @@ The CI result of this PR replaces this estimate (see the PR's runs).
 
   This touches the rollback check, so it should be its own brief. Going by the estimate above, it will be needed
   before the record reaches about 400 to 500 entries.
+
+## The lead after the build (2026-11-16)
+
+- **The 300-entry leg is reverted** (36a477c7). It missed the plain leg's ceilings in run 43895214619 (`read` 39.8 ms
+  against 35, `asking_click` 72.2 ms against 60). The record holds 10 entries today and grows about 2.7 a day, so
+  the cost is months away. Making each read cheaper is queue item 15, a brief of its own; that brief brings the
+  long record back as its proof. O1, O2's single read per `mode()` call and N1 to N4 stand without it.
+- **JC1-JC5 accepted.** JC3, the engine's version notice reading the record separately, goes into item 15.
