@@ -752,7 +752,7 @@ class MainFixStorageStages(unittest.TestCase):
                 with db:db.execute('INSERT OR REPLACE INTO kv VALUES (?,?)',('x',action))
             db.execute('SELECT v FROM kv').fetchall()
             return 'written'
-        store=SimpleNamespace(write=write,db=db)
+        store=SimpleNamespace(write=write,db=db,state_dir=root)
         bridge=SimpleNamespace(connection=None,call=lambda name,**arguments:{'ok':True},on_event=lambda value:None)
         def request(value,admin=False):
             for _ in range(value.get('writes',0)):self.engine.store.write({'x':1},'chrome_fixture','synthetic')
@@ -825,6 +825,47 @@ class MainFixStorageStages(unittest.TestCase):
         self.assertEqual([(row['sample'],row['count']) for row in self.rows('journal_fsync')],[('fresh:0',6)])
         self.assertEqual([(row['sample'],row['count']) for row in self.rows('sqlite_commit')],[('fresh:0',6)])
         self.assertEqual(store.get('latency:2'),{'value':2})
+
+    def test_ci_noise_the_commit_count_is_what_commits_an_autocommit_write_included(self):
+        # Review nit 3: the probe counts the commits control.sqlite records (its change
+        # counter), not the COMMIT statements sent. A write in autocommit mode commits, and
+        # syncs, without one; a COMMIT that changed nothing syncs nothing.
+        import sqlite3
+        db=self.engine.store.db
+        def request(value,admin=False):
+            if value.get('autocommit'):
+                db.isolation_level=None
+                try:db.execute("INSERT OR REPLACE INTO kv VALUES ('auto','1')")
+                finally:db.isolation_level=''
+            # The sqlite3 module opens no transaction before DDL: it commits on its own.
+            if value.get('ddl'):db.execute('CREATE TABLE '+value['ddl']+' (x)')
+            if value.get('unchanged'):
+                with db:db.execute("DELETE FROM kv WHERE k='missing'")
+            if value.get('nested'):
+                with db:db.execute("INSERT OR REPLACE INTO kv VALUES ('outer','1')")
+                self.engine.request({'autocommit':True,'ddl':'inner'})
+                with db:db.execute("INSERT OR REPLACE INTO kv VALUES ('outer','2')")
+            return {'ok':True}
+        self.engine.request=request
+        self.profile.install(self.daemon)
+        self.profile.MARKER.write_text(self.json.dumps({'sample':'fresh:0','call':'fill'}))
+        for value in [{'autocommit':True},{'ddl':'extra'},{'unchanged':True}]:self.engine.request(value)
+        self.assertEqual([row['count'] for row in self.rows('sqlite_commit')],[1,1,0])
+        # A nested request's commits are its own and the outer request's aren't counted twice.
+        self.profile.MARKER.write_text(self.json.dumps({'sample':'fresh:1','call':'fill'}))
+        self.engine.request({'nested':True})
+        self.assertEqual([row['count'] for row in self.rows('sqlite_commit') if row['sample']=='fresh:1'],[2,2])
+        # The probe refuses what it can't count: a control.sqlite replaced under it, or a
+        # database in WAL mode, whose change counter need not move with each commit.
+        replacement=sqlite3.connect(self.engine.store.state_dir/'replacement.sqlite')
+        replacement.execute('CREATE TABLE kv (k TEXT PRIMARY KEY, v TEXT NOT NULL)');replacement.close()
+        self.os.replace(self.engine.store.state_dir/'replacement.sqlite',self.engine.store.state_dir/'control.sqlite')
+        with self.assertRaisesRegex(AssertionError,'replaced'):self.engine.request({})
+        wal=self.engine.store.state_dir/'wal';wal.mkdir()
+        database=sqlite3.connect(wal/'control.sqlite');self.addCleanup(database.close)
+        database.execute('PRAGMA journal_mode=WAL');database.execute('CREATE TABLE kv (k TEXT)');database.commit()
+        self.engine.store.state_dir=wal
+        with self.assertRaisesRegex(AssertionError,'rollback-journal'):self.profile.install(self.daemon)
 
     def test_ci_noise_the_store_is_on_a_tmpfs_for_both_runtimes_and_the_artifact_says_so(self):
         # run.sh mounts a tmpfs over both store directories before anything writes to them,
