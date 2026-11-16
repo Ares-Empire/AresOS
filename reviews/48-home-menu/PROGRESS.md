@@ -38,22 +38,47 @@ Builder: Claude (Opus), step agents. Branch `pkg/48-home-menu`, worktree `~/Ares
   - Tests: `HomeMenuClientGameTest` (last in `fabric-client-gametest`), `ScreenLog` + test mixin `ScreenLogMixin`
     (records `Gui.screen` at its PUTFIELD), `aresos.homeMenuReviewDir` in `mod/build.gradle`.
 
-## Left, in order
+## Left, in order (for step 3)
 
-1. Run the client tests (trimmed list locally to iterate, never committed), fix, screenshots into
-   `reviews/48-home-menu/screenshots/`.
-2. Two green full client runs (committed list) and the full `mod/dev/build.sh`.
-3. Merge `origin/main` (package 46's `save_world`: if merged by then, make it answer `no_world` while
-   `HomeSwitch.busy()`, with a test; otherwise PLAN-GAP in the report).
-4. The report (heading "Report" below), then the ready PR.
+1. Two green full client runs with the committed list (`mod/dev/client-test.sh`, ~10.5 min each; the switch's
+   close-from-tick fix below came after full run 1, so both must be new). After each: `git checkout` the other
+   packages' rewritten screenshots, delete untracked ones outside `reviews/48-home-menu/`, and keep the three 48
+   pictures (numbers 0086-0088 in a full run; run 1's are committed).
+2. Fill `RUN_RESULTS` and `MEASURED_FULL` in the report below (the full runs' times, the switch time and the gap from
+   the log lines "48 new home: ..." and "48 failed new home: ..."), merge `origin/main` again (package 46: see
+   PLAN-GAP), commit, push.
+3. The ready PR "Package 48: the Esc menu and the first start" with the report as its body, ending with the Claude
+   Code lines. Delete nothing; the lead commits the report as REPORT.md.
+
+## Test runs (step 2)
+
+- `mod/dev/build.sh` after merging origin/main (5f18b483): green, 239 unit tests, all 104 server game tests.
+- Trimmed client run (HomeScreen + HomeMenu): green, 57 s.
+- Full client run 1 (committed list, at 5f18b483): **green**, 10 min 20 s. Switch flat -> Nether 50: 14,547 ms;
+  no AresHub for 92 µs; failed switch back in 3,006 ms.
+- Full client run 2: **hung** in `failedNewHome`, stopped by me (exit 1, 16 min 36 s). Thread dump: the client was
+  in `HomeSwitch.closeStaging` (a scheduled task) -> `Minecraft.disconnect` -> `IntegratedServer.halt` ->
+  `executeBlocking`, waiting for the server thread, which sat at the test framework's phase barrier
+  (`ThreadingImpl.enterPhase` from `MinecraftServer.postRunTasks`) waiting for the client: a lock-step deadlock that
+  only the client game test framework has. First fix, closing from the END_CLIENT_TICK handler instead of a task:
+  the trimmed run hung the same way (thread dump: `HomeSwitch.tick` -> `closeWorld` -> `halt` -> `executeBlocking`,
+  server at the barrier). So the framework only lets a test task close a world (it defers `disconnect` from a
+  `runOnClient` task to its safe point, `MinecraftMixin.deferDisconnect`). Final fix: in the game the switch closes
+  worlds from the tick (as the game does when a server says goodbye); in the tests
+  `HomeSwitch.closeFromTestTasksForTests(true)` leaves each such close pending and the test's `waitForSwitch` runs it
+  from `runOnClient` every tick (`runPendingCloseForTests`). The first close (the confirm button) already runs in a
+  test task. Opens stay in tasks (the framework's `doWorldLoad` busy-wait keeps the lock-step going).
+- Trimmed client run with the final fix: **green** (switch 16,219 ms, gap 156 µs, failed switch back in 3,084 ms).
+- The three committed pictures (0086-0088) are full run 1's; the code they show did not change since.
 
 ## HomeSwitch as built (step 2)
 
 - Phases: CLOSING_OLD -> MAKING (task) -> STAGING -> CLOSING_STAGING -> SWAPPING (task) -> OPENING -> idle; on failure
   FAILING -> RESTORING (task) -> RECOVERING -> idle with the chat line. A tick handler (END_CLIENT_TICK) waits for each
-  world to close or open and schedules the next step with `client.schedule`; a step never assumes a close or open
-  finished when its call returned, because the client game test framework defers `disconnect` and `doWorldLoad`
-  called from a test task (its `MinecraftMixin.deferDisconnect`/`deferStartIntegratedServer`). Each waiting phase
+  world to close or open; it closes worlds itself (in tests through `runPendingCloseForTests`, see "Test runs") and
+  schedules the opens with `client.schedule`; a step never assumes a close or open finished when its call returned,
+  because the client game test framework defers `disconnect` and `doWorldLoad` called from a test task (its
+  `MinecraftMixin.deferDisconnect`/`deferStartIntegratedServer`). Each waiting phase
   gives up after 2400 ticks (2 min) and restores.
 - `screenComing` (while busy): TitleScreen or `setScreen(null)` with no level -> failure, the working screen instead;
   DisconnectedScreen -> failure; GenericMessageScreen / ProgressScreen -> the working screen; `null` with a level
@@ -199,3 +224,134 @@ From `os/config/usr/libexec/aresos-desktop` and the mod's `ShellClient`/`ShellFo
 ## Code state
 
 See `git log`. Step 1's commit: this file, plus whatever of A.1-A.4/A.6 is listed under Done.
+
+## Report
+
+(For the lead to commit as `reviews/48-home-menu/REPORT.md`; a Claude builder cannot create that file.)
+
+### Done
+
+- **A. The AresOS menu** (`AresOsMenuScreen`, `GuiMenuMixin`, `HomeRules.menuReplacesGameMenu`): in a game the session
+  started and in a desktop world, with or without the app helper, the AresOS menu opens wherever the game would open
+  its menu. How every way in is caught: Minecraft 26.2 makes every game menu in one place, `Gui.setPauseScreen`, whose
+  only caller is `Minecraft.pauseGame`, which Esc and F3+Esc (`KeyboardHandler.keyPress`) and focus loss
+  (`Minecraft.pauseIfInactive`) call; `new PauseScreen` appears nowhere else in the client jar. One cancellable inject
+  there catches all of them and any mod calling `pauseGame`. Items as the brief lists, 200-wide game buttons in a
+  centred column where the game menu stands, the in-world background, not pausing; G says "Close the menu before
+  switching AresOS mode"; fits the 240-high GUI (checked and pictured).
+- **A.5 New home…** (`HomeSwitch`, `HomeSwap`, `HomePlan`, `HomeWorkingScreen`, `GuiScreenMixin`,
+  `LevelLoadingCoverMixin`): the home choice (`HomeCreateScreen` now takes a create action), one confirmation with the
+  brief's text ("Make the new home" / Cancel; Cancel goes back to the choice as it was), then "Making your new home…"
+  from the click to the new home. The staging design the lead approved: the old home is saved and closed; the new one
+  is made in `AresHub-new-<date>` with the title screen's settings and manifest; once his player is in it (so it is
+  provisioned) it is closed, checked as `check_world` checks a home (`HomeSwap.checkComplete`: folder, level.dat or
+  level.dat_old with Data, desktop marker on, the saved home's fields, provisioned `complete\n`, the manifest); then
+  AresHub -> `AresHub-<date>` (the title screen's naming, now `HomeSwap.datedName`) and staging -> AresHub, the first
+  undone if the second fails; then AresHub opens and he arrives in Live. Any failure reopens the old home (moved back
+  if moved) with "Couldn't make the new home: <why>. Your home is as it was."; a failed staging folder stays. The
+  staging world is silent to the supervisor: `ShellFocusClient.readyWorld` answers null for the whole switch, so no
+  `world_ready` and only `ready:false` heartbeats. No title screen is ever set: while a switch runs, a title screen
+  or `setScreen(null)` without a world counts as a failure and becomes the working screen, the game's message and
+  progress screens become the working screen, and its loading screens (left in place, they close themselves when the
+  level is ready) draw the same line.
+- **B. The first start** (`FirstStart`, `HomeRules.firstStart`, `GuiScreenMixin`): the first title screen of a game
+  start, in a session, with no `AresHub` folder (NOFOLLOW_LINKS), becomes "Making your home…" and the flat home is
+  made through `HomeButton.createFlat`'s path; its error screen's OK leads to the title screen with the AresOS button.
+  Once per game start; a switch also marks it decided.
+- **D.** `AppsScreen.pressed` is cleared in `init()` and on every left press before the rows see it.
+- **E.** `docs/design/HUB.md` (a package 48 section after package 40's corrections; "Esc still opens the game menu"
+  and the Live's-rules line fixed), `mod/README.md` (the title screen is no longer the way in for a session; the
+  menu, New home, the first start, the tests).
+- **Tests:** `HomeMenuClientGameTest` (new, last client test), `HomeScreenClientGameTest` (Esc expects the AresOS
+  menu), `ScreenLog`/`ScreenLogMixin` (every screen `Gui.setScreen` stores), unit tests `HomeRulesTest`, `HomeSwapTest`.
+
+### Verified
+
+- `mod/dev/build.sh` (after merging `origin/main`, at 5f18b483): BUILD SUCCESSFUL, 239 unit tests passed, "All 104
+  required tests passed" (server game tests).
+- Trimmed local client run (HomeScreen + HomeMenu only, not committed): green, 57 s.
+- Full client runs with the committed list: RUN_RESULTS (full run 1, before the close fix: green, 10 min 20 s;
+  full run 2 hung on the lock-step deadlock described under "Test runs" and was stopped; both runs must be redone.)
+- The tests close the switch's worlds from a test task (`HomeSwitch.closeFromTestTasksForTests`); the game closes
+  them from the client tick. That path in the game is not covered by a client test (the framework cannot run it).
+- `HomeMenuClientGameTest` checks: Esc in a normal world in a session, and in a desktop world outside a session,
+  opens `PauseScreen`; in a session's desktop world `AresOsMenuScreen`. The title screen with its AresOS button
+  stays outside a session and with an AresHub folder present (whose contents are untouched). The first start makes
+  the flat home, open, in Live, provisioned, and no `TitleScreen` is ever stored. In the flat home: the real Esc key
+  opens the menu with exactly the four buttons, the title and the hint; the game is not paused and the server's game
+  time moves 20 ticks in 20; G shows the line and changes nothing; Back, Esc, F3+Esc (`pauseGame(true)`); Apps… and
+  Settings… open and their Done comes back; Apps… inactive in Build mode. Cancel (at the confirmation, then at the
+  choice) leaves the same server and the same saves. Flat to Nether 50 with a gold block placed just before: the new
+  AresHub is the Nether home with seed 50, passes `checkComplete`, he is in it in Live, exactly one new folder
+  `AresHub-<date>` holds the flat home and (opened afterwards) the gold block, no `TitleScreen` stored. A failure
+  injected at the second rename: back in the old Nether home (a new server), the chat line, only the staging folder
+  added, no title screen stored. The test leaves the saves as it found them.
+- **Measured** (trimmed run): the switch from "Make the new home" to standing in the new home took **18.95 s** for
+  flat -> Nether seed 50 (two loads and the Nether site search); the moment without an AresHub on disk (two renames)
+  lasted **427 µs**. The failed switch was back in the old home after 3.56 s. MEASURED_FULL
+- Screenshots: `reviews/48-home-menu/screenshots/` (the menu at 1280x720, GUI scale 2; at the smallest GUI, 426x240;
+  the working screen).
+
+### Not verified
+
+- In his real session: the supervisor's view of a switch (STARTING without a window, then IN_WORLD on the new
+  `world_ready`) is read from the code only (part C, above); no fake-helper test drives `ShellFocusClient` through a
+  switch. The first start under the real supervisor's setup mode (the test drives it with the session flag forced).
+- How the double load feels on his laptop (the loading screens show the working line; nothing else of the second
+  load shows).
+
+### JUDGMENT-CALL
+
+1. **F3+Esc** (the game's "pause without a menu") opens the AresOS menu too. Alternative: let it pause without a
+   menu. Chosen because the brief wants every way to the game menu caught, and a pause with nothing on screen reads
+   as a hang in a home screen. Cheap to change (one condition in `GuiMenuMixin`). Agreed by the lead.
+2. **Focus loss without the helper** opens the AresOS menu (package 40's rule with the helper is unchanged: nothing
+   opens) and it closes again when the focus comes back, as the game menu did. Agreed by the lead.
+3. **Apps… is greyed out in Build mode** with a tooltip ("Apps open in Live mode. Back to the world, then G."),
+   because the Apps screen closes itself outside Live. Agreed by the lead.
+4. **A drag out of the Apps screen opened from the menu ends in the inventory** (the hotbar must be visible to pin);
+   from the inventory's Apps… it returns to the inventory as before. Agreed by the lead.
+5. **The confirmation's buttons:** "Make the new home" and Cancel; the brief's question unchanged (it still fits the
+   staging design: the old home is kept under a dated name, nothing is deleted).
+6. **New home loads the new world twice** (staging, then the real open) behind one "Making your new home…" screen;
+   the game's loading screens show that line instead of their terrain progress. Approved by the lead.
+7. **The working screens' look:** one white line over the game's own menu background (panorama, blur, menu
+   texture), as the game's "Saving world"; no progress bar.
+
+### PLAN-GAP
+
+- Building the new home in place under `AresHub` (the brief's order) would leave a half-made AresHub that the
+  supervisor's next start calls damaged if the game died meanwhile; built under a staging name it never is. Approved.
+- **Package 46** (`save_world`, PR #92) was not on `origin/main` when this branch was finished, so `save_world` does
+  not yet answer `no_world` during a switch. Whoever merges second: make 46's "is a world open" check also ask
+  `HomeSwitch.busy()` (public, true from "Make the new home" until he is in a home again), with a test.
+- **Package 46 also brings a gate:** `HomeScreen.home(client)` = `session() && AresOsClient.acceptsAppCommands(client)`,
+  the same rule as this package's `AresOsMenuScreen.replacesGameMenu` (`HomeRules.menuReplacesGameMenu(session,
+  desktop world)`), used there to hide the "Saving world" text. Whoever merges second keeps one of the two and has
+  the other call it (not two copies of the rule). During a switch this package already replaces every "Saving world"
+  screen with "Making your new home…" (`HomeSwitch.screenComing`), so 46's hiding and this replacement do not clash;
+  the merge should keep the switch's replacement first.
+
+### For linux-aresos (os/, not changed here)
+
+- **Setup mode:** with this package a session game that reaches its first title screen without an AresHub makes the
+  flat home itself and opens it (he arrives in Live mode); the title screen does not show. The window text "On the
+  title screen click AresOS…" no longer matches; suggested: "Making your home… (the first start takes a moment)".
+  If creation fails the title screen with the AresOS button shows as before, so the old text still fits that case.
+- **`forget_hub`'s message** may now say that the next start makes a fresh flat home by itself.
+- **During New home** the mod sends `ready:false` heartbeats (IN_WORLD -> STARTING, no window, no cover; no timer
+  trips because `ever_ready` is set and `heartbeats_stopped` is pending only while ready), then `world_ready` for
+  AresHub when he is in the new home (`check_world` passes: the new home is checked before it is moved into place).
+  A switch takes about 20 s for a Nether home (measured in the test), less for a flat one.
+- **`world_missing`** can now happen if the game dies in the ~0.4 ms between the two renames; the old home is then
+  `AresHub-<date>` (the newest) and the new one `AresHub-new-<date>`. The text could say so.
+- **Package 25:** check that `world_saved`'s `world` equals the locked world; `save_world` during a switch should get
+  `no_world` (above).
+- **First start dying mid-creation** (pre-existing, as in setup mode today): a game that dies while the first flat home
+  is made leaves a half-made AresHub that the next start calls damaged (hub_seen false).
+- A failed New home leaves `AresHub-new-<date>` folders in the saves; nothing cleans them up.
+
+### Open questions
+
+- None that block. Whether the owner wants a progress hint during a long Nether site search (the working line shows
+  for the whole ~20 s) is for his try-out.

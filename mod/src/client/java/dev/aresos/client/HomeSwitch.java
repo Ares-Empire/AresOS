@@ -37,8 +37,12 @@ import java.time.LocalDateTime;
  * the two renames, no AresHub (the supervisor then says the hub is missing). Whatever fails, the old home opens again
  * (moved back if it was moved) and a chat line says why; the staging folder of a failed attempt stays in the saves.
  *
- * <p>Each step that closes or opens a world is started from a task and its end is seen at a client tick, because the
- * game can finish those later than the call returns. While a switch runs, {@link #busy()} is true: the shell sends no
+ * <p>The end of each close and open is seen at a client tick, because the game can finish those later than the call
+ * returns. A world is opened from a task, as the game's buttons do, and closed from the client tick, as the game does
+ * when a server says goodbye. Closing halts the integrated server, which runs a last task on the server thread and
+ * waits for it; in the client game test framework's lock-step that only works from a test task (the framework defers
+ * it to a safe point), so the tests take the closes over ({@link #closeFromTestTasksForTests}). Without that, a close
+ * from a task or from the tick hung a full test run twice, the server waiting at the framework's barrier. While a switch runs, {@link #busy()} is true: the shell sends no
  * {@code world_ready} and no ready heartbeat ({@link ShellFocusClient#readyWorld}), and a title screen, a message or
  * progress screen the game sets is replaced by the working screen ({@link #screenComing}). Client thread only.
  */
@@ -59,6 +63,10 @@ public final class HomeSwitch {
 
     private static volatile Phase phase = Phase.IDLE;
     private static int waited;
+    /** FAILING has asked the open world to close (from the tick, once). */
+    private static boolean closing;
+    private static boolean closeFromTestTasks;
+    private static Runnable pendingClose;
     private static HomePlan plan;
     private static Screen working;
     private static Path saves, staging, archived;
@@ -114,10 +122,22 @@ public final class HomeSwitch {
         }
         switch (now) {
             case CLOSING_OLD -> { if (closed(client)) next(client, Phase.MAKING, HomeSwitch::makeStaging); }
-            case STAGING -> { if (inWorld(client, staging)) next(client, Phase.CLOSING_STAGING, HomeSwitch::closeStaging); }
+            case STAGING -> {
+                // His player is in the staging world, so it is provisioned: it is saved and closed, never drawn.
+                if (inWorld(client, staging)) {
+                    enter(Phase.CLOSING_STAGING);
+                    closeFromTick(client);
+                }
+            }
             case CLOSING_STAGING -> { if (closed(client)) next(client, Phase.SWAPPING, HomeSwitch::swapAndOpen); }
             case OPENING -> { if (ready(client)) finish(client); }
-            case FAILING -> { if (closed(client)) next(client, Phase.RESTORING, HomeSwitch::restoreAndOpen); }
+            case FAILING -> {
+                if (closed(client)) next(client, Phase.RESTORING, HomeSwitch::restoreAndOpen);
+                else if (!closing) {
+                    closing = true;
+                    closeFromTick(client);
+                }
+            }
             case RECOVERING -> { if (ready(client)) finish(client); }
             default -> { }
         }
@@ -141,12 +161,6 @@ public final class HomeSwitch {
             return;
         }
         enter(Phase.STAGING);
-    }
-
-    /** His player is in the staging world, so it is provisioned: it is saved and closed, never drawn. */
-    private static void closeStaging(Minecraft client) {
-        client.gui.setScreen(working);
-        closeWorld(client);
     }
 
     private static void swapAndOpen(Minecraft client) {
@@ -224,12 +238,8 @@ public final class HomeSwitch {
         }
         AresOs.LOGGER.error("New home: {}; opening the old home again", reason, error);
         failure = reason;
+        closing = false;
         enter(Phase.FAILING);
-        client.schedule(() -> {
-            if (phase != Phase.FAILING || closed(client)) return;
-            client.gui.setScreen(working);
-            closeWorld(client);
-        });
     }
 
     /**
@@ -251,6 +261,18 @@ public final class HomeSwitch {
         if (screen == null) return phase == Phase.OPENING || phase == Phase.RECOVERING ? null : working;
         if (screen instanceof GenericMessageScreen || screen instanceof ProgressScreen) return working;
         return screen;
+    }
+
+    /** Saves and closes the open world now, or, in the client game tests, from the test's next task. */
+    private static void closeFromTick(Minecraft client) {
+        Phase asked = phase;
+        Runnable close = () -> {
+            if (phase != asked) return;
+            client.gui.setScreen(working);
+            closeWorld(client);
+        };
+        if (closeFromTestTasks) pendingClose = close;
+        else close.run();
     }
 
     private static void closeWorld(Minecraft client) {
@@ -301,6 +323,21 @@ public final class HomeSwitch {
 
     private static String reason(Throwable error) {
         return error.getMessage() == null ? error.getClass().getSimpleName() : error.getMessage();
+    }
+
+    /**
+     * Client game tests: the switch leaves each close it would make at a tick for {@link #runPendingCloseForTests},
+     * which the test calls from its own task on the client (see the class comment). Everything else runs as in the game.
+     */
+    public static void closeFromTestTasksForTests(boolean on) {
+        closeFromTestTasks = on;
+        pendingClose = null;
+    }
+
+    public static void runPendingCloseForTests() {
+        Runnable close = pendingClose;
+        pendingClose = null;
+        if (close != null) close.run();
     }
 
     /** Client game tests: the second rename fails, so the old home has been moved and must come back. */

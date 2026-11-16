@@ -70,6 +70,7 @@ public final class HomeMenuClientGameTest implements FabricClientGameTest {
         Path backup = saves.resolve("AresHub-test-backup-" + UUID.randomUUID());
         List<Path> made = new ArrayList<>();
         try {
+            context.runOnClient(client -> HomeSwitch.closeFromTestTasksForTests(true));
             if (Files.exists(hub)) Files.move(hub, backup);
             gameMenuOutsideTheHomeScreen(context);
             titleScreenStays(context, hub);
@@ -97,6 +98,7 @@ public final class HomeMenuClientGameTest implements FabricClientGameTest {
             context.runOnClient(client -> {
                 HomeScreen.forTests(null, null);
                 HomeSwitch.failSecondRenameForTests(false);
+                HomeSwitch.closeFromTestTasksForTests(false);
                 ScreenLog.stop();
             });
         }
@@ -327,7 +329,7 @@ public final class HomeMenuClientGameTest implements FabricClientGameTest {
             ScreenLog.start();
         });
         context.clickScreenButton("Make the new home");
-        context.waitFor(client -> !HomeSwitch.busy() && client.player != null && client.gui.screen() == null, SWITCH_TICKS);
+        waitForSwitch(context);
         var screens = context.computeOnClient(client -> ScreenLog.stop());
         check(screens.stream().noneMatch(HomeMenuClientGameTest::titleScreen), "New home set a title screen: " + screens);
 
@@ -367,7 +369,7 @@ public final class HomeMenuClientGameTest implements FabricClientGameTest {
         context.waitForScreen(ConfirmScreen.class);
         context.runOnClient(client -> ScreenLog.start());
         context.clickScreenButton("Make the new home");
-        context.waitFor(client -> !HomeSwitch.busy() && client.player != null && client.gui.screen() == null, SWITCH_TICKS);
+        waitForSwitch(context);
         context.runOnClient(client -> HomeSwitch.failSecondRenameForTests(false));
         var screens = context.computeOnClient(client -> ScreenLog.stop());
         check(screens.stream().noneMatch(HomeMenuClientGameTest::titleScreen), "A failed new home set a title screen: " + screens);
@@ -389,6 +391,19 @@ public final class HomeMenuClientGameTest implements FabricClientGameTest {
         AresOs.LOGGER.info("48 failed new home: back in the old home after {} ms; staging kept as {}; screens set {}",
                 context.computeOnClient(client -> HomeSwitch.lastMillisForTests()), staging.getFileName(), screens);
         return staging;
+    }
+
+    /**
+     * Until the switch has ended in a home. Each tick the test runs the close the switch left for it from its own task
+     * (`HomeSwitch.closeFromTestTasksForTests`): in the framework's lock-step only a test task may close a world.
+     */
+    private static void waitForSwitch(ClientGameTestContext context) {
+        for (int tick = 0; tick < SWITCH_TICKS; tick++) {
+            context.runOnClient(client -> HomeSwitch.runPendingCloseForTests());
+            if (context.computeOnClient(client -> !HomeSwitch.busy() && client.player != null && client.gui.screen() == null)) return;
+            context.waitTick();
+        }
+        throw new AssertionError("New home did not end in a home within " + SWITCH_TICKS + " ticks");
     }
 
     private static void mode(ClientGameTestContext context, TestSingleplayerContext home, GameType mode) {
