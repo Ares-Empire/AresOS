@@ -38,17 +38,15 @@ Builder: Claude (Opus), step agents. Branch `pkg/48-home-menu`, worktree `~/Ares
   - Tests: `HomeMenuClientGameTest` (last in `fabric-client-gametest`), `ScreenLog` + test mixin `ScreenLogMixin`
     (records `Gui.screen` at its PUTFIELD), `aresos.homeMenuReviewDir` in `mod/build.gradle`.
 
-## Left, in order (for step 3)
+- Step 3: two green full client runs at 0f0d2b04; the game's own switch path checked by hand in package 41's rig
+  (`rig/real-switch.sh`, its log lines in `rig/real-switch-switch1.txt`); the report filled in; `origin/main` merged
+  (package 46 not landed, so its two PLAN-GAPs stay); the PR opened.
 
-1. Two green full client runs with the committed list (`mod/dev/client-test.sh`, ~10.5 min each; the switch's
-   close-from-tick fix below came after full run 1, so both must be new). After each: `git checkout` the other
-   packages' rewritten screenshots, delete untracked ones outside `reviews/48-home-menu/`, and keep the three 48
-   pictures (numbers 0086-0088 in a full run; run 1's are committed).
-2. Fill `RUN_RESULTS` and `MEASURED_FULL` in the report below (the full runs' times, the switch time and the gap from
-   the log lines "48 new home: ..." and "48 failed new home: ..."), merge `origin/main` again (package 46: see
-   PLAN-GAP), commit, push.
-3. The ready PR "Package 48: the Esc menu and the first start" with the report as its body, ending with the Claude
-   Code lines. Delete nothing; the lead commits the report as REPORT.md.
+## Left, in order
+
+1. The fresh review. The lead commits the report below as REPORT.md and deletes this file when the package merges.
+2. If package 46 (PR #92) lands before this one: the report's two PLAN-GAPs (`save_world` answers `no_world` while
+   `HomeSwitch.busy()`, with a test; one home-screen gate, not two), then one more full client run.
 
 ## Test runs (step 2)
 
@@ -69,7 +67,18 @@ Builder: Claude (Opus), step agents. Branch `pkg/48-home-menu`, worktree `~/Ares
   from `runOnClient` every tick (`runPendingCloseForTests`). The first close (the confirm button) already runs in a
   test task. Opens stay in tasks (the framework's `doWorldLoad` busy-wait keeps the lock-step going).
 - Trimmed client run with the final fix: **green** (switch 16,219 ms, gap 156 µs, failed switch back in 3,084 ms).
-- The three committed pictures (0086-0088) are full run 1's; the code they show did not change since.
+- The three committed pictures (0086-0088) are step 3's full run 2's.
+
+## Test runs (step 3, at 0f0d2b04, the committed list, no change under `mod/` since)
+
+- Full client run 1: **green**, BUILD SUCCESSFUL in 10 min 18 s. Switch flat -> Nether 50: 15,420 ms; no AresHub for
+  299 µs; failed switch back in 3,078 ms.
+- Full client run 2: **green**, BUILD SUCCESSFUL in 10 min 19 s. Switch: 15,111 ms; no AresHub for 293 µs; failed
+  switch back in 3,186 ms.
+- The game's own path by hand (`rig/real-switch.sh switch1`, package 41's headless labwc rig with its restricted
+  helper and virtual input, the development client as a session game, `mod/run/saves` empty): see the report's
+  Verified. Pictures stayed in `.work/pkg48/switch1/` (not committed).
+- Merging `origin/main` (8921d8ed) brought no change under `mod/` (package 44's design study and docs only).
 
 ## HomeSwitch as built (step 2)
 
@@ -270,10 +279,28 @@ See `git log`. Step 1's commit: this file, plus whatever of A.1-A.4/A.6 is liste
 - `mod/dev/build.sh` (after merging `origin/main`, at 5f18b483): BUILD SUCCESSFUL, 239 unit tests passed, "All 104
   required tests passed" (server game tests).
 - Trimmed local client run (HomeScreen + HomeMenu only, not committed): green, 57 s.
-- Full client runs with the committed list: RUN_RESULTS (full run 1, before the close fix: green, 10 min 20 s;
-  full run 2 hung on the lock-step deadlock described under "Test runs" and was stopped; both runs must be redone.)
-- The tests close the switch's worlds from a test task (`HomeSwitch.closeFromTestTasksForTests`); the game closes
-  them from the client tick. That path in the game is not covered by a client test (the framework cannot run it).
+- Full client runs with the committed list, both at 0f0d2b04 (the final code: merging `origin/main` afterwards brought
+  no change under `mod/`): **run 1 green, BUILD SUCCESSFUL in 10 min 18 s; run 2 green, BUILD SUCCESSFUL in 10 min
+  19 s**, `HomeMenuClientGameTest` last in both ("48 home menu checks passed: ..."). An earlier full run, before the
+  switch closed its worlds from the client tick, hung: closing a world from a scheduled task deadlocks with the client
+  test framework's lock-step (the client waits in `IntegratedServer.halt` for the server thread, which waits at the
+  framework's phase barrier for the client). The framework only lets a test task close a world, so in the tests
+  (`HomeSwitch.closeFromTestTasksForTests`) the test's wait loop runs each pending close from `runOnClient`; in the
+  game the switch closes them from the client tick, as the game does when a server says goodbye.
+- **The game's own switch path, checked by hand** (the client tests can't run it): `reviews/48-home-menu/rig/real-switch.sh`
+  starts the development client as a session game in package 41's headless rig (its own labwc, the worktree's
+  `aresos-shell` with 40 test apps, virtual keyboard and pointer; never the owner's screen) with empty
+  `mod/run/saves`. The first start made the flat home without a title screen ("First start: no AresHub yet, making
+  the flat home", joined 3 s later, "The town is built: 40 logos"). Esc opened the AresOS menu; New home…, Flat,
+  Create, "Make the new home" (pictures of each step): "Making your new home…" over the menu background, the old home
+  saved and closed, the new one built in `AresHub-new-2026-11-16_17-46-11-074`, joined and left, then "in place as
+  AresHub; the old one is AresHub-2026-11-16_17-46-12-645; no AresHub on disk for 324 µs", joined, "New home: ready
+  3225 ms after he chose it". He stood in the new flat home in Live; Esc opened the menu there again; closing the
+  window saved and quit at once. The saves held exactly `AresHub` and `AresHub-2026-11-16_17-46-12-645`, no
+  `AresHub-new-*`, both with `aresos-home.provisioned` = `complete`, level.dat and the AresOS data files. The helper
+  saw "desktop world ready", "no longer ready" at the switch, "ready" once more for the new AresHub: the staging world
+  never reported ready. No hang. The log lines: `reviews/48-home-menu/rig/real-switch-switch1.txt`. A failed switch
+  was not driven in the game (only in the client test).
 - `HomeMenuClientGameTest` checks: Esc in a normal world in a session, and in a desktop world outside a session,
   opens `PauseScreen`; in a session's desktop world `AresOsMenuScreen`. The title screen with its AresOS button
   stays outside a session and with an AresHub folder present (whose contents are untouched). The first start makes
@@ -288,7 +315,9 @@ See `git log`. Step 1's commit: this file, plus whatever of A.1-A.4/A.6 is liste
   added, no title screen stored. The test leaves the saves as it found them.
 - **Measured** (trimmed run): the switch from "Make the new home" to standing in the new home took **18.95 s** for
   flat -> Nether seed 50 (two loads and the Nether site search); the moment without an AresHub on disk (two renames)
-  lasted **427 µs**. The failed switch was back in the old home after 3.56 s. MEASURED_FULL
+  lasted **427 µs**. The failed switch was back in the old home after 3.56 s. In the two full runs: **15.42 s and
+  15.11 s** for the switch, **299 µs and 293 µs** without an AresHub, the failed switch back after **3.08 s and
+  3.19 s**. In the game itself (the rig above), flat to flat: **3.2 s**, **324 µs**.
 - Screenshots: `reviews/48-home-menu/screenshots/` (the menu at 1280x720, GUI scale 2; at the smallest GUI, 426x240;
   the working screen).
 
@@ -299,6 +328,12 @@ See `git log`. Step 1's commit: this file, plus whatever of A.1-A.4/A.6 is liste
   switch. The first start under the real supervisor's setup mode (the test drives it with the session flag forced).
 - How the double load feels on his laptop (the loading screens show the working line; nothing else of the second
   load shows).
+- A failed switch in the game's own path (the rig drove only a successful one; the failure path ran in the client
+  tests, where the test task closes the worlds).
+- In the rig the new flat home's town came in two chat lines, "The town is built: 32 logos" and 5 s later "The town
+  changed: 8 logos built", where the first start said "built: 40 logos" in one. All 40 logos stand in the end. Not
+  looked into; a guess: the staging world generated the chunks around the start, which then load at once, while the
+  farther logos' chunks are generated only after the open. Cosmetic, and the town's lines are package 36's.
 
 ### JUDGMENT-CALL
 
@@ -342,8 +377,9 @@ See `git log`. Step 1's commit: this file, plus whatever of A.1-A.4/A.6 is liste
 - **During New home** the mod sends `ready:false` heartbeats (IN_WORLD -> STARTING, no window, no cover; no timer
   trips because `ever_ready` is set and `heartbeats_stopped` is pending only while ready), then `world_ready` for
   AresHub when he is in the new home (`check_world` passes: the new home is checked before it is moved into place).
-  A switch takes about 20 s for a Nether home (measured in the test), less for a flat one.
-- **`world_missing`** can now happen if the game dies in the ~0.4 ms between the two renames; the old home is then
+  A switch takes 15 to 19 s for a Nether home (measured in the tests) and about 3 s for a flat one (measured in the
+  game), the helper's "ready" coming back at its end.
+- **`world_missing`** can now happen if the game dies in the ~0.3 ms between the two renames; the old home is then
   `AresHub-<date>` (the newest) and the new one `AresHub-new-<date>`. The text could say so.
 - **Package 25:** check that `world_saved`'s `world` equals the locked world; `save_world` during a switch should get
   `no_world` (above).
@@ -354,4 +390,4 @@ See `git log`. Step 1's commit: this file, plus whatever of A.1-A.4/A.6 is liste
 ### Open questions
 
 - None that block. Whether the owner wants a progress hint during a long Nether site search (the working line shows
-  for the whole ~20 s) is for his try-out.
+  for the whole 15 to 20 s) is for his try-out.
