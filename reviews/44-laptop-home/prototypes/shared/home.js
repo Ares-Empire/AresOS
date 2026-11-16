@@ -5,8 +5,9 @@
  * No network, no build step. The pictures are drawn here from a few hand-made glyphs and flat colours:
  * no app icon, no logo and no game texture is used.
  *
- * Page address options (for the pictures): ?apps=5|12|24|40  &q=<typed text>  &open=<id,id>  &run=<id,id>
- * &sel=<id>  &time=HH:MM  &still=1 (no motion).
+ * Page address options (for the pictures): ?apps=5|12|24|40|45  &q=<typed text>  &open=<id,id>  &run=<id,id>
+ * &sel=<id>  &time=HH:MM  &still=1 (no motion)  &hole=<id,id> (those apps were removed: their places are free,
+ * every other app keeps its place)  &bright=1 (every logo in full colour, not dimmed).
  */
 'use strict';
 
@@ -24,10 +25,18 @@ const Home = (() => {
   ];
   const group = key => GROUPS.find(g => g.key === key);
 
-  // How many test apps each group gets, for the town sizes HUB.md 2.2 talks about.
-  const MIXES = { 5: [2, 1, 0, 2], 12: [4, 2, 2, 4], 24: [7, 4, 5, 8], 40: [9, 8, 9, 14] };
-  const EXTRAS = ['Mail', 'PDF Viewer', 'Calculator', 'Files', 'Paint', 'Recorder', 'Clock', 'Maps', 'Weather',
+  // How many test apps each group gets, for the town sizes HUB.md 2.2 talks about. 45 has one group past 16
+  // (System & Tools, as HUB.md 5 expects: it is always the biggest).
+  const MIXES = { 5: [2, 1, 0, 2], 12: [4, 2, 2, 4], 24: [7, 4, 5, 8], 40: [9, 8, 9, 14], 45: [9, 6, 10, 20] };
+  const EXTRAS = ['Mail', 'Viewer', 'Calculator', 'Files', 'Paint', 'Recorder', 'Clock', 'Maps', 'Weather',
     'Notes', 'Archive', 'Monitor', 'Printer', 'Scanner', 'Camera', 'Fonts', 'Disks', 'Colours', 'Chat', 'Radio'];
+  // What the helper also lists for some programs (the desktop entry's GenericName and Keywords): typing searches
+  // them after the names, so "pdf" finds Test Viewer although its name does not say so (HUB.md 2.4).
+  const DETAILS = { Mail: ['Mail Client', ['email', 'inbox']], Viewer: ['Document Viewer', ['pdf', 'document', 'reader']],
+    Paint: ['Image Editor', ['drawing', 'picture']], Recorder: ['Sound Recorder', ['audio', 'microphone']],
+    Disks: ['Disk Utility', ['drive', 'partition']], Calculator: ['Calculator', ['math', 'sum']] };
+  // One test app with a long name (20 letters), so the pictures show what a long sign does.
+  const LONG_NAMES = { 'test-media-3': 'Test Media Workbench' };
 
   // ---- block logos -------------------------------------------------------------------------------------------
 
@@ -59,13 +68,22 @@ const Home = (() => {
     '###..######..######..###................###..######..######..###', // panes
   ];
 
+  /** A number from an app's ID (FNV-1a), so a test app has the same logo in every town size. */
+  function idNumber(id) {
+    let h = 2166136261;
+    for (const c of id) h = Math.imul(h ^ c.charCodeAt(0), 16777619) >>> 0;
+    return h;
+  }
+
   /** The 12 x 12 cells of a test app's logo: cells[v][u], v counted from the ground, each a colour or null.
    *  It follows HUB.md 2.3 and 3.6: a figure on a plate (or a bare figure), and the doorway at the bottom middle. */
-  function logoCells(index) {
-    const [plateName, figureName] = PAIRS[(index * 7 + 3) % PAIRS.length];
+  function logoCells(number) {
+    // Colours, shape and figure each from their own bits of the number.
+    const [plateName, figureName] = PAIRS[number % PAIRS.length];
     const plate = INK[plateName], figure = INK[figureName];
     const cells = Array.from({ length: 12 }, () => Array(12).fill(null));
-    const shape = index % 9 === 4 ? 'ring' : index % 11 === 7 ? 'diamond' : index % 4 === 2 ? 'round' : 'plate';
+    const form = (number >>> 5) % 12;
+    const shape = form === 4 ? 'ring' : form === 7 ? 'diamond' : form % 4 === 2 ? 'round' : 'plate';
     for (let v = 0; v < 12; v++) for (let u = 0; u < 12; u++) {
       const dx = u - 5.5, dy = v - 5.5, far = dx * dx + dy * dy, steps = Math.abs(dx) + Math.abs(dy);
       if (shape === 'plate' || (shape === 'round' && far <= 39)) cells[v][u] = plate;
@@ -73,7 +91,7 @@ const Home = (() => {
       else if (shape === 'diamond' && steps <= 6.5) cells[v][u] = steps <= 2.5 ? figure : plate;
     }
     if (shape === 'plate' || shape === 'round') {
-      const glyph = GLYPHS[(index * 5 + 1) % GLYPHS.length];
+      const glyph = GLYPHS[(number >>> 9) % GLYPHS.length];
       for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) if (glyph[r * 8 + c] === '#') cells[10 - r][2 + c] = figure;
     }
     // The doorway (columns 5 and 6, three high) with its posts and the bar over it, HUB.md 3.6 step 6.
@@ -139,24 +157,30 @@ const Home = (() => {
 
   function makeTown(count) {
     const mix = MIXES[count] || MIXES[24];
-    const apps = [];
+    let apps = [];
     GROUPS.forEach((g, gi) => {
       for (let i = 0; i < mix[gi]; i++) {
-        const index = apps.length;
-        apps.push({ id: `test-${g.word.toLowerCase()}-${i + 1}`, name: `Test ${g.word} ${i + 1}`,
-          short: `${g.word.toLowerCase()}${i + 1}`, group: g.key, mine: true, place: place(g.letter, i),
-          cells: logoCells(index * 3 + gi), slot: null });
+        const id = `test-${g.word.toLowerCase()}-${i + 1}`;
+        apps.push({ id, name: LONG_NAMES[id] || `Test ${g.word} ${i + 1}`, short: `${g.word.toLowerCase()}${i + 1}`,
+          group: g.key, mine: true, place: place(g.letter, i), cells: logoCells(idNumber(id)), slot: null });
       }
     });
+    // ?hole=: these apps were removed. Their places are free; every other app keeps the place it has.
+    const holes = new Set(listParam('hole'));
+    const removed = apps.filter(a => holes.has(a.id));
+    apps = apps.filter(a => !holes.has(a.id));
     // The hotbar: the first apps of each group in turn, seven of nine slots (three on day one).
     const pins = count <= 5 ? ['test-web-1', 'test-tool-1', 'test-tool-2']
       : ['test-web-1', 'test-web-2', 'test-game-1', 'test-media-1', 'test-tool-1', 'test-tool-2', 'test-media-2'];
     pins.forEach((id, slot) => { const app = apps.find(a => a.id === id); if (app) app.slot = slot; });
     // "All programs": everything else the system lists. They have no logo in the town.
-    const programs = EXTRAS.map((word, i) => ({ id: `test-${word.toLowerCase().replace(/ /g, '-')}`,
-      name: `Test ${word}`, short: null, group: GROUPS[(i * 3 + 3) % 4].key, mine: false,
-      cells: logoCells(100 + i * 2), slot: null }));
-    return { apps, programs, byId: new Map([...apps, ...programs].map(a => [a.id, a])) };
+    // The helper gives no group for them (groups are the mod's), so none is shown.
+    const programs = EXTRAS.map(word => {
+      const id = `test-${word.toLowerCase()}`, [generic, keywords] = DETAILS[word] || [null, []];
+      return { id, name: `Test ${word}`, short: null, generic, keywords, mine: false, cells: logoCells(idNumber(id)),
+        slot: null };
+    });
+    return { apps, removed, programs, byId: new Map([...apps, ...programs].map(a => [a.id, a])) };
   }
 
   const town = makeTown(Number(params.get('apps')) || 24);
@@ -170,6 +194,7 @@ const Home = (() => {
   const emit = (event, ...args) => (listeners[event] || []).forEach(fn => fn(...args));
   const still = params.has('still');
   if (still) document.documentElement.classList.add('still');
+  if (params.has('bright')) document.documentElement.classList.add('bright');
 
   /** Every element with data-app shows that app; this sets what the page's own CSS turns into a look. */
   function refresh() {
@@ -241,13 +266,17 @@ const Home = (() => {
   // ---- finding an app by typing ------------------------------------------------------------------------------
 
   const squeeze = text => text.toLowerCase().replace(/[^a-z0-9]/g, '');
+  /** How well an app fits what he typed: a higher kind of hit first; within one kind, My apps first. The names
+   *  come first; the generic name and the keywords (as the helper lists them) only after every kind of name hit. */
   function score(app, q) {
     const name = squeeze(app.name), words = app.name.toLowerCase().split(/\s+/);
     if (app.short === q) return 100;
     if (app.short && app.short.startsWith(q)) return 80;
     if (name.startsWith(q)) return 70;
-    if (words.some(w => w.startsWith(q))) return app.mine ? 60 : 30;
-    if (name.includes(q)) return app.mine ? 40 : 20;
+    if (words.some(w => w.startsWith(q))) return 60;
+    if (name.includes(q)) return 40;
+    if (app.generic && app.generic.toLowerCase().split(/\s+/).some(w => w.startsWith(q))) return 30;
+    if ((app.keywords || []).some(k => squeeze(k).startsWith(q))) return 20;
     return 0;
   }
 
@@ -272,6 +301,10 @@ const Home = (() => {
     const typing = state.query !== '';
     finder.root.classList.toggle('is-typing', typing);
     finder.q.textContent = state.query;
+    // The caret blinks a few times after each key, then stays (home.css): nothing blinks without end.
+    finder.caret.style.animation = 'none';
+    void finder.caret.offsetWidth;
+    finder.caret.style.animation = '';
     const best = state.best && town.byId.get(state.best);
     finder.hint.textContent = !typing ? finder.idle : best ? `Enter opens ${best.name}` : 'Nothing with that name';
     finder.hint.classList.toggle('none', typing && !best);
@@ -284,8 +317,9 @@ const Home = (() => {
       row.dataset.app = app.id;
       const name = document.createElement('span');
       name.textContent = app.name;
+      // The helper's generic name, when it has one; never a group the laptop would have to work out itself.
       const kind = document.createElement('small');
-      kind.textContent = group(app.group).title;
+      kind.textContent = app.generic || '';
       row.append(logoCanvas(app, 2), name, kind);
       finder.list.append(row);
     });
@@ -303,7 +337,7 @@ const Home = (() => {
     root.innerHTML = '<div class="finder-list"></div><div class="finder-line"><span class="finder-slash">/</span>' +
       '<span class="finder-q"></span><span class="finder-caret"></span><span class="finder-hint"></span></div>';
     finder = { root, idle, q: root.querySelector('.finder-q'), hint: root.querySelector('.finder-hint'),
-      list: root.querySelector('.finder-list') };
+      list: root.querySelector('.finder-list'), caret: root.querySelector('.finder-caret') };
     drawFinder();
   }
 
@@ -352,6 +386,8 @@ const Home = (() => {
       const el = e.target.closest('[data-app]');
       if (el && !e.target.closest('.win')) open(el.dataset.app);
     });
+    // When the laptop home loses the keyboard, what he typed is cleared (not for a picture's fixed state).
+    if (!still) addEventListener('blur', () => setQuery(''));
   }
 
   // ---- the pieces every direction shows ----------------------------------------------------------------------
@@ -381,7 +417,9 @@ const Home = (() => {
         : now.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
     };
     tick();
-    if (!params.get('time')) setInterval(tick, 10000);
+    // Once a minute, just after the minute changes.
+    const next = () => setTimeout(() => { tick(); next(); }, 60000 - Date.now() % 60000 + 50);
+    if (!params.get('time')) next();
   }
 
   function mountBattery(root) {

@@ -1,7 +1,8 @@
 <!doctype html>
 <!-- Development aid for AresOS package 44 (the laptop-screen home, a design study). Not product code.
      Direction "Night street": the town seen from the side, at night. Open this file in a browser; it needs
-     only the files in ../shared. Options: see ../shared/home.js. Also ?ledges=1 draws where companions can stand. -->
+     only the files in ../shared. Options: see ../shared/home.js. Also ?ledges=1 draws where companions can stand,
+     and ?sprite=1 lets one companion-sized figure walk (a measuring aid). -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -16,7 +17,8 @@
   #battery { position: absolute; right: 64px; top: 48px; }
 
   .street { position: absolute; left: 0; width: 1920px; }
-  .street-sign { position: absolute; left: 860px; width: 200px; text-align: center; }
+  .slide { position: absolute; inset: 0; transition: transform .3s ease-out; }
+  .street-sign { position: absolute; left: 860px; width: 200px; text-align: center; cursor: default; }
   .street-sign b { display: block; font-size: 13px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--g); }
   .street-sign span { display: block; margin-top: 5px; font-family: var(--mono); font-size: 12px; color: var(--ink-3); }
   .road { position: absolute; bottom: 0; height: 16px; background-color: #18181c;
@@ -25,9 +27,11 @@
 
   .house { position: absolute; bottom: 16px; cursor: pointer; transition: opacity .15s; }
   .house canvas { position: absolute; left: 0; bottom: 0; filter: brightness(0.62) saturate(0.82); transition: filter .15s; }
-  .house:hover canvas, .house.is-running canvas, .house.is-selected canvas, .house.is-match canvas, .house.is-opening canvas { filter: none; }
-  .house-sign { position: absolute; top: 0; left: 50%; transform: translateX(-50%); text-align: center; white-space: nowrap; }
-  .house-sign b { display: block; font-weight: 500; font-size: var(--name); color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; }
+  .house:hover canvas, .house.is-running canvas, .house.is-selected canvas, .house.is-match canvas, .house.is-opening canvas,
+  .bright .house canvas { filter: none; }
+  .house-sign { position: absolute; left: 50%; transform: translateX(-50%); text-align: center; }
+  .house-sign b { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden;
+    font-weight: 500; font-size: var(--name); line-height: 1.1; color: var(--ink-2); overflow-wrap: anywhere; }
   .house-sign span { display: block; margin-top: 1px; font-family: var(--mono); font-size: 12px; color: #9c7c40; }
   .house:hover b, .house.is-running b, .house.is-selected b, .house.is-match b { color: var(--ink); }
   .house:hover span, .house.is-running span, .house.is-selected span, .house.is-match span { color: var(--gold-hi); }
@@ -49,6 +53,17 @@
   #hotbar { position: absolute; left: 50%; top: 966px; transform: translateX(-50%); }
   #finder { position: absolute; left: 50px; bottom: 30px; width: 480px; z-index: 40; }
   .hint { position: absolute; right: 64px; bottom: 44px; }
+  /* The ends of a street longer than the screen: how many houses are out of sight there; a click slides to them. */
+  .street-end { position: absolute; z-index: 6; min-width: 46px; height: 32px; padding: 0 10px; border-radius: 6px; cursor: pointer;
+    display: grid; place-items: center; font-family: var(--mono); font-size: 14px; color: var(--g);
+    background: #0a0a0cf0; border: 1px solid color-mix(in srgb, var(--g) 45%, transparent); }
+  .street-end:hover { border-color: var(--g); }
+  .end-L { left: 10px; } .end-R { right: 10px; }
+  .street-end[hidden], .street-fade[hidden] { display: none; }
+  .street-fade { position: absolute; z-index: 5; top: 0; bottom: 0; width: 120px; pointer-events: none; }
+  .fade-L { left: 0; background: linear-gradient(90deg, var(--wall) 15%, transparent); }
+  .fade-R { right: 0; background: linear-gradient(270deg, var(--wall) 15%, transparent); }
+  .sprites { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; z-index: 35; pointer-events: none; }
   .ledge { position: absolute; height: 0; border-top: 2px dashed var(--gold-hi); z-index: 30; pointer-events: none; }
   .ledge-note { position: absolute; left: 0; right: 0; top: 52px; text-align: center; font-size: 15px; color: var(--gold-hi); z-index: 30; }
 </style>
@@ -68,13 +83,40 @@
 'use strict';
 (() => {
   const stage = document.getElementById('stage'), townEl = document.getElementById('town');
-  const TOP = 150, STREET = 196, ROAD = 16, GAP = 200, EDGE = 40, FLOOR = 948, MID = 960;
-  const byGroup = Home.GROUPS.map(g => Home.town.apps.filter(a => a.group === g.key));
-  const most = Math.max(...byGroup.map(list => list.length), 1);
-  // One size for every house: as large as the longest street allows, between 7 and 10 pixels a block.
-  const cell = Math.max(7, Math.min(10, Math.floor((MID - GAP / 2 - EDGE) / (Math.ceil(most / 2) * 14.6))));
-  const size = 12 * cell, depth = Math.round(cell * 0.9), pitch = Math.round(cell * 14.6);
-  const surfaces = [], occluders = [];
+  const TOP = 150, STREET = 196, ROAD = 16, GAP = 200, EDGE = 40, FLOOR = 948, MID = 960, WIDTH = 1920;
+
+  /** Index of a place in HUB.md 3.3's order (N0L0 0, N0R0 1, N1L0 2, N1R0 3, N1L1 4 ...). */
+  const order = p => p.row * (p.row + 1) + 2 * p.k + (p.side === 'R' ? 1 : 0);
+
+  /** Where every house stands, from its place in the world and never from a running count, so a free place moves
+   *  nothing else. The side is the place's L or R. The slot is that side's rank of the place in HUB.md 3.3's order:
+   *  row r holds r + 1 places a side, so slot = r(r+1)/2 + k (N0L0 0, N1L0 1, N1L1 2, N2L0 3 ...). A free place
+   *  stays a gap, as in the world. An app without a place yet takes the next places after the farthest one its
+   *  group uses, until the mod gives it one. One block size for the whole town, from the farthest slot used on
+   *  any side: as large as that allows, between 7 and 10 pixels a block. */
+  function layout(apps) {
+    const spots = new Map();
+    let farthest = 0;
+    Home.GROUPS.forEach(g => {
+      const list = apps.filter(a => a.group === g.key);
+      let next = Math.max(-1, ...list.filter(a => a.place).map(a => order(a.place))) + 1;
+      for (const app of list) {
+        const p = app.place || Home.place(g.letter, next++);
+        const slot = p.row * (p.row + 1) / 2 + p.k;
+        spots.set(app.id, { group: g.key, side: p.side, slot });
+        farthest = Math.max(farthest, slot + 1);
+      }
+    });
+    const cell = Math.max(7, Math.min(10, Math.floor((MID - GAP / 2 - EDGE) / (Math.max(farthest, 1) * 14.6))));
+    const size = 12 * cell, pitch = Math.round(cell * 14.6);
+    for (const spot of spots.values())
+      spot.x = spot.side === 'L' ? MID - GAP / 2 - spot.slot * pitch - size : MID + GAP / 2 + spot.slot * pitch;
+    return { spots, cell, size, pitch, depth: Math.round(cell * 0.9) };
+  }
+
+  const town = layout(Home.town.apps);
+  const { cell, size, depth, pitch } = town;
+  const surfaces = [], occluders = [], streets = [];
 
   // A few stars. At rest nothing on this screen moves, so nothing is drawn again: one star changes its
   // brightness every few seconds, in one step, and that is all the motion there is.
@@ -93,37 +135,42 @@
   }, 4000);
 
   Home.GROUPS.forEach((g, gi) => {
-    const list = byGroup[gi], base = TOP + (gi + 1) * STREET - ROAD;
+    const list = Home.town.apps.filter(a => a.group === g.key), base = TOP + (gi + 1) * STREET - ROAD;
     const street = document.createElement('div');
     street.className = 'street';
     street.style.cssText = `top:${TOP + gi * STREET}px;height:${STREET}px;--g:${g.colour};--b:${g.block};--cell:${cell}px;--name:${cell >= 9 ? 14 : 13}px`;
-    // As in the world, the group's name hangs over the road between its two front logos (HUB.md 2.6).
+    // Everything of the street that slides when it is longer than the screen (more than 16 apps in its group).
+    const slide = document.createElement('div');
+    slide.className = 'slide';
+    // As in the world, the group's name hangs over the road between its two front logos (HUB.md 2.6). A click on
+    // it brings a street that was slid by hand back to the middle.
     const sign = document.createElement('div');
     sign.className = 'street-sign';
     sign.style.bottom = ROAD + Math.round(size * 0.42) + 'px';
     sign.innerHTML = `<b>${g.title.replace('&', '&amp;')}</b><span>${g.where} · ${list.length}</span>`;
-    // Houses stand left and right of the middle, nearest first: left, right, left, right (HUB.md 3.3). The road
-    // is paved as far as the group has logos (2.6).
-    const left = Math.ceil(list.length / 2), right = list.length - left;
-    const x1 = MID - GAP / 2 - (left ? (left - 1) * pitch + size + 2 * cell : 0);
-    const x2 = MID + GAP / 2 + (right ? (right - 1) * pitch + size + 2 * cell : 0);
+    // The road is paved from the farthest house on the left to the farthest on the right, free places included.
+    const spots = list.map(a => town.spots.get(a.id));
+    const far = side => Math.max(-1, ...spots.filter(s => s.side === side).map(s => s.slot));
+    const x1 = far('L') < 0 ? MID - GAP / 2 : MID - GAP / 2 - far('L') * pitch - size - 2 * cell;
+    const x2 = far('R') < 0 ? MID + GAP / 2 : MID + GAP / 2 + far('R') * pitch + size + 2 * cell;
     const road = document.createElement('div');
     road.className = 'road';
     road.style.cssText = `left:${x1}px;width:${x2 - x1}px`;
-    street.append(sign, road);
-    surfaces.push({ id: `street:${g.key}`, ownerId: 'town', kind: 'edge', x1, x2, y: base, weight: 2 });
+    slide.append(sign, road);
+    surfaces.push({ street: gi, id: `street:${g.key}`, ownerId: 'town', kind: 'edge', x1, x2, y: base, weight: 2 });
 
-    list.forEach((app, i) => {
-      const k = i >> 1, x = i % 2 ? MID + GAP / 2 + k * pitch : MID - GAP / 2 - k * pitch - size;
+    list.forEach(app => {
+      const x = town.spots.get(app.id).x;
       const house = document.createElement('div');
       house.className = 'house';
       house.dataset.app = app.id;
       house.style.cssText = `left:${x}px;width:${size}px;height:${size + depth + 40}px`;
+      // The sign stands on the roof and grows upward: a long name takes a second line, as the world's signs do.
       const label = document.createElement('div');
       label.className = 'house-sign';
+      label.style.cssText = `bottom:${size + depth + 3}px;width:${pitch - 6}px`;
       const name = document.createElement('b'), short = document.createElement('span');
       name.textContent = app.name;
-      name.style.maxWidth = pitch - 6 + 'px';
       short.textContent = '/' + app.short;
       label.append(name, short);
       const door = document.createElement('div'), mat = document.createElement('div'), frame = document.createElement('div');
@@ -132,16 +179,69 @@
       mat.style.cssText = `left:${5 * cell}px;width:${2 * cell}px`;
       frame.style.cssText = `width:${size + 14}px;height:${size + 14}px`;
       house.append(label, Home.logoCanvas(app, cell, depth), door, mat, frame);
-      street.append(house);
+      slide.append(house);
 
       // What the companions' runtime would be told: the roof as a ledge, the house as a box.
       const top = app.cells[11].map((c, u) => c ? u : -1).filter(u => u >= 0);
-      if (top.length) surfaces.push({ id: `roof:${app.id}`, ownerId: `house:${app.id}`, kind: 'edge', x1: x + top[0] * cell,
-        x2: x + (top[top.length - 1] + 1) * cell, y: base - size, room: STREET - ROAD - size });
-      occluders.push({ id: `house:${app.id}`, z: 1, l: x, t: base - size, r: x + size, b: base });
+      if (top.length) surfaces.push({ street: gi, id: `roof:${app.id}`, ownerId: `house:${app.id}`, kind: 'edge',
+        x1: x + top[0] * cell, x2: x + (top[top.length - 1] + 1) * cell, y: base - size, room: STREET - ROAD - size });
+      occluders.push({ street: gi, id: `house:${app.id}`, z: 1, l: x, t: base - size, r: x + size, b: base });
     });
+
+    // Past 16 apps in a group the street is longer than the screen. At rest it stands in the middle like the
+    // others, and each end that runs off the screen gets a sign with the number of houses out of sight there.
+    const xs = spots.map(s => s.x), least = Math.min(...xs, MID), most = Math.max(...xs.map(x => x + size), MID);
+    const range = [Math.min(0, WIDTH - EDGE - most), Math.max(0, EDGE - least)];
+    const ends = ['L', 'R'].map(side => {
+      const end = document.createElement('div');
+      end.className = `street-end end-${side}`;
+      end.style.bottom = ROAD + Math.round(size / 2) - 16 + 'px';
+      const fade = document.createElement('div');
+      fade.className = `street-fade fade-${side}`;
+      street.append(fade, end);
+      return { side, end, fade };
+    });
+    const st = { el: street, slide, range, offset: 0, byHand: false, list, gi };
+    st.set = offset => {
+      st.offset = Math.max(range[0], Math.min(range[1], Math.round(offset)));
+      slide.style.transform = st.offset ? `translateX(${st.offset}px)` : '';
+      for (const { side, end, fade } of ends) {
+        const out = list.filter(a => { const x = town.spots.get(a.id).x + st.offset; return side === 'L' ? x < EDGE / 2 : x + size > WIDTH - EDGE / 2; }).length;
+        end.textContent = side === 'L' ? `‹ ${out}` : `${out} ›`;
+        end.hidden = fade.hidden = !out;
+      }
+    };
+    // A click on an end slides the street until its last house on that side is in view.
+    ends.forEach(({ side, end }) => end.addEventListener('click', e => {
+      e.stopPropagation();
+      st.byHand = true;
+      st.set(side === 'L' ? range[1] : range[0]);
+    }));
+    sign.addEventListener('click', () => { st.byHand = false; st.set(0); });
+    street.prepend(slide);
+    st.set(0);
+    streets.push(st);
     townEl.append(street);
   });
+
+  /** The gold frame (the best hit while he types, or the arrow keys' choice) is always in view: its street slides
+   *  as little as shows the whole house. A street without the frame goes back to the middle, unless he slid it by
+   *  hand; that lasts until Escape, a click on the group's name, or the laptop home losing the keyboard. */
+  function follow() {
+    const target = (Home.state.selected && Home.state.selected.closest('.house'))
+      || (Home.state.best && townEl.querySelector(`.house[data-app="${Home.state.best}"]`));
+    for (const st of streets) {
+      if (target && st.el.contains(target)) {
+        const x = town.spots.get(target.dataset.app).x;
+        const shown = Math.min(Math.max(st.offset, EDGE - x), WIDTH - EDGE - size - x);
+        st.set(shown);
+      } else if (!st.byHand) st.set(0);
+    }
+  }
+  Home.on('refresh', follow);
+  const middle = () => streets.forEach(st => { st.byHand = false; });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') middle(); }, true);
+  if (!Home.still) addEventListener('blur', () => { middle(); follow(); });
 
   Home.on('opening', app => {
     const house = townEl.querySelector(`[data-app="${app.id}"]`);
@@ -156,9 +256,22 @@
   });
 
   // The same shape as a world snapshot of the companions' runtime (its README, "World provider"): the streets
-  // and roofs are ledges, the houses are boxes, the line over the hotbar is the floor.
+  // and roofs are ledges, the houses are boxes, the line over the hotbar is the floor. A slid street moves its
+  // ledges and boxes with it; the runtime reads a snapshot every frame, so companions on it ride along.
+  const moved = s => { const d = streets[s.street].offset, { street, ...rest } = s;
+    return 'x1' in s ? { ...rest, x1: s.x1 + d, x2: s.x2 + d } : { ...rest, l: s.l + d, r: s.r + d }; };
   window.laptopHome = { world: { snapshot: () => ({ viewport: { width: 1920, height: 1080, dpr: devicePixelRatio || 1 },
-    surfaces, occluders, floor: { x1: 0, x2: 1920, y: FLOOR, weight: 1.2 } }) } };
+    surfaces: surfaces.map(moved), occluders: occluders.map(moved), floor: { x1: 0, x2: 1920, y: FLOOR, weight: 1.2 } }) },
+    // For tools/webkit-shot.py's street check: with the removed apps (?hole=) put back, every other house has the
+    // same side and slot, and every house stands where the layout says.
+    test: { holeMovesNothing: () => {
+      const whole = layout([...Home.town.apps, ...Home.town.removed]);
+      return Home.town.removed.length > 0 && Home.town.apps.every(a => {
+        const now = town.spots.get(a.id), before = whole.spots.get(a.id);
+        const el = townEl.querySelector(`.house[data-app="${a.id}"]`);
+        return now.side === before.side && now.slot === before.slot && parseFloat(el.style.left) === now.x;
+      });
+    } } };
   if (Home.params.has('ledges')) {
     const world = window.laptopHome.world.snapshot();
     for (const s of [...world.surfaces, { ...world.floor }]) {
@@ -171,6 +284,36 @@
     note.className = 'ledge-note';
     note.textContent = `Where companions can stand later: ${world.surfaces.length} ledges (4 streets and the roofs) and the floor.`;
     stage.append(note);
+  }
+
+  // ?sprite=1, a measuring aid (review 1, finding 7): one figure the size of a companion (16 x 16 art pixels at
+  // the runtime's size 5, so 80 x 80) walks along the Games street, on a see-through canvas over the whole town
+  // that is cleared and drawn again every frame, as the companions' runtime draws on the canvas its host gives it.
+  // The figure is a plain one made here, not a companion's art.
+  if (Home.params.has('sprite')) {
+    const FIGURE = ['.....######.....', '....########....', '...##########...', '...##.####.##...', '...##########...',
+      '....########....', '.....######.....', '...##########...', '..############..', '..############..', '..############..',
+      '...##########...', '....########....', '....##....##....', '....##....##....', '...###....###...'];
+    const STEP = ['....##....##....', '.....##..##.....', '....###...###...'];
+    const scale = devicePixelRatio || 1, canvas = document.createElement('canvas');
+    canvas.className = 'sprites';
+    canvas.width = Math.round(1920 * scale); canvas.height = Math.round(1080 * scale);
+    stage.append(canvas);
+    const ctx = canvas.getContext('2d');
+    ctx.scale(scale, scale);
+    const S = 5, y = TOP + 2 * STREET - ROAD - 16 * S;
+    let x = 400, dir = 1, last = performance.now();
+    const frame = now => {
+      x += dir * (now - last) * 0.06;
+      last = now;
+      if (x > 1500 || x < 400) dir = -dir;
+      ctx.clearRect(0, 0, 1920, 1080);
+      ctx.fillStyle = '#e9e3d0';
+      const rows = Math.floor(now / 200) % 2 ? FIGURE.slice(0, 13).concat(STEP) : FIGURE;
+      rows.forEach((row, r) => { for (let c = 0; c < 16; c++) if (row[c] === '#') ctx.fillRect(x + c * S, y + r * S, S, S); });
+      requestAnimationFrame(frame);
+    };
+    requestAnimationFrame(frame);
   }
 
   Home.mountClock(document.getElementById('clock'));

@@ -59,7 +59,7 @@ canvas { display: block; image-rendering: pixelated; }
 .finder-slash { color: var(--gold); margin-right: 1px; }
 .finder-q { color: var(--ink); white-space: pre; }
 .finder-caret { width: 9px; height: 20px; margin-left: 2px; background: var(--ink); opacity: 0; }
-.finder.is-typing .finder-caret { opacity: 1; animation: caret 1.1s steps(1) infinite; }
+.finder.is-typing .finder-caret { opacity: 1; animation: caret 1.1s steps(1) 5; }  /* a few blinks, then it stays */
 @keyframes caret { 50% { opacity: 0; } }
 .finder-hint { margin-left: 14px; font-family: var(--text); font-size: 14px; color: var(--ink-3); }
 .finder.is-typing .finder-hint { margin-left: auto; padding-left: 24px; color: var(--gold); }

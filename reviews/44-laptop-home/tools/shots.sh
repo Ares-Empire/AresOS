@@ -8,7 +8,8 @@
 #   shots.sh picture <page and options> <picture.png>          e.g. 'street/index.html?apps=24&still=1'
 #   shots.sh measure <page and options> [seconds to watch]     prints one JSON line (about:blank: the bare engine)
 #   shots.sh all                                                the pictures in ../pictures
-#   shots.sh check                                              keys and clicks on each page; one JSON line each
+#   shots.sh check                                              keys and clicks on each page, and Night street's
+#                                                               own check (a removed app, a group past 16)
 #
 # PKG44_RENDERER=pixman draws in software; unset, the compositor uses the laptop's graphics chip.
 # PKG44_ACCEL=never makes the engine draw the page in software too.
@@ -41,11 +42,14 @@ all)
     done <<LIST
 street-1-home        street/index.html?apps=24&$base&$lit
 street-2-finding     street/index.html?apps=24&$base&$lit&q=tool
-street-3-all-programs street/index.html?apps=24&$base&$lit&q=pa
+street-3-all-programs street/index.html?apps=24&$base&$lit&q=pdf
 street-4-opened      street/index.html?apps=24&$base&run=test-tool-3&open=test-web-2&winx=1010&winy=330
 street-5-day-one     street/index.html?apps=5&$base&run=test-web-1
 street-6-forty-apps  street/index.html?apps=40&$base&$lit
 street-7-ledges      street/index.html?apps=24&$base&$lit&ledges=1
+street-8-forty-five-apps street/index.html?apps=45&$base&$lit
+street-9-far-house   street/index.html?apps=45&$base&$lit&q=tool19
+street-10-full-colour street/index.html?apps=24&$base&$lit&bright=1
 map-1-home           map/index.html?apps=24&$base&$lit
 map-2-finding        map/index.html?apps=24&$base&$lit&q=tool
 map-3-opened         map/index.html?apps=24&$base&run=test-tool-3&open=test-web-2&winx=1080&winy=120
@@ -56,6 +60,7 @@ console-3-opened     console/index.html?apps=24&$base&run=test-tool-3&open=test-
 LIST
     ;;
 check)
-    for page in street map console; do inside "$page/index.html?apps=24" check 1 0; done ;;
+    for page in street map console; do inside "$page/index.html?apps=24" check 1 0; done
+    inside 'street/index.html?apps=45&hole=test-web-1' check-street 1 0 ;;
 *) sed -n '2,15p' "$0"; exit 2 ;;
 esac

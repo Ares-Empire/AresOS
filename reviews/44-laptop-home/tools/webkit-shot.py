@@ -9,10 +9,12 @@ the memory and processor time of this program and every process the engine start
 Run it through shots.sh, which gives it a headless compositor of its own. It refuses to start on a display it
 was not given by that script, so it can never open a window in the owner's session.
 
-    webkit-shot.py <page address> <picture.png | - | check> [seconds to settle] [seconds to watch the processor]
+    webkit-shot.py <page address> <picture.png | - | check | check-street> [seconds to settle] [seconds to watch]
 
 With "check" it takes no picture: it sends the page the keys and clicks a person would (typing a name, Enter,
 a hotbar key, a click on a logo, the arrow keys, Escape) and prints what the page did and what was expected.
+"check-street" is Night street's own check, on a town with a removed app and a group past 16: a free place
+moves no other house, and a house beyond the screen's edge slides into view when he types its name.
 """
 import json
 import os
@@ -54,6 +56,33 @@ EXPECTED = {'typing_finds': 'test-tool-1', 'others_dim': True, 'enter_opens': 't
             'closing_ends_it': True, 'key_1_opens': 'test-web-1', 'click_opens': 'test-game-1', 'arrows_select': True,
             'finds_other_programs': 'test-paint', 'escape_clears': True}
 
+# Night street on ?apps=45&hole=test-web-1: test-web-1 (place N0L0) was removed, System & Tools has 20 apps.
+CHECK_STREET = """
+const key = k => document.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true }));
+const wait = ms => new Promise(done => setTimeout(done, ms));
+const box = id => document.querySelector(`.house[data-app="${id}"]`).getBoundingClientRect();
+const side = id => { const r = box(id); return r.left + r.width / 2 < innerWidth / 2 ? 'L' : 'R'; };
+const inView = id => { const r = box(id); return r.left >= 0 && r.right <= innerWidth; };
+const got = {};
+got.hole_moves_nothing = laptopHome.test.holeMovesNothing();
+got.web_2_stays_right = side('test-web-2');
+got.web_3_stays_left = side('test-web-3');
+got.far_house_out_of_view = !inView('test-tool-19');
+got.end_sign_counts = [...document.querySelectorAll('.street-end:not([hidden])')].map(e => e.textContent).join(' ');
+for (const k of 'tool19') key(k);
+await wait(700);
+got.typing_finds_it = Home.state.best;
+got.its_street_slides_it_into_view = inView('test-tool-19');
+got.other_streets_stay = inView('test-web-2') && side('test-web-2') === 'R';
+key('Escape');
+await wait(700);
+got.escape_brings_it_back = !inView('test-tool-19') && inView('test-tool-1');
+return JSON.stringify(got);
+"""
+EXPECTED_STREET = {'hole_moves_nothing': True, 'web_2_stays_right': 'R', 'web_3_stays_left': 'L',
+                   'far_house_out_of_view': True, 'end_sign_counts': '‹ 2 2 ›', 'typing_finds_it': 'test-tool-19',
+                   'its_street_slides_it_into_view': True, 'other_streets_stay': True, 'escape_brings_it_back': True}
+
 
 def descendants(root):
     """PIDs of root and everything started below it."""
@@ -76,8 +105,13 @@ def descendants(root):
     return sorted(found)
 
 
+SIZES = {'Pss': 'pss_kib', 'Rss': 'rss_kib', 'Pss_Anon': 'anon_kib', 'Pss_File': 'file_kib', 'Pss_Shmem': 'shmem_kib'}
+
+
 def process(pid):
-    """Name, proportional and resident memory (KiB) and processor seconds of one process, or None if it is gone."""
+    """Name, memory (KiB) and processor seconds of one process, or None if it is gone. Pss is split three ways:
+    anonymous (its working memory), file (program and library files it maps) and shmem (shared memory, which
+    holds the graphics buffers it shares with the compositor and its other processes)."""
     try:
         with open(f'/proc/{pid}/comm') as handle:
             name = handle.read().strip()
@@ -85,15 +119,15 @@ def process(pid):
         with open(f'/proc/{pid}/smaps_rollup') as handle:
             for line in handle:
                 key, _, rest = line.partition(':')
-                if key in ('Pss', 'Rss', 'Pss_Anon'):
+                if key in SIZES:
                     sizes[key] = int(rest.split()[0])
         with open(f'/proc/{pid}/stat', 'rb') as handle:
             fields = handle.read().rsplit(b')', 1)[1].split()
         ticks = int(fields[11]) + int(fields[12])
     except (OSError, ValueError, IndexError):
         return None
-    return {'pid': pid, 'name': name, 'pss_kib': sizes.get('Pss', 0), 'rss_kib': sizes.get('Rss', 0),
-            'anon_kib': sizes.get('Pss_Anon', 0), 'cpu_s': ticks / os.sysconf('SC_CLK_TCK')}
+    return dict({'pid': pid, 'name': name, 'cpu_s': ticks / os.sysconf('SC_CLK_TCK')},
+                **{field: sizes.get(key, 0) for key, field in SIZES.items()})
 
 
 def measure():
@@ -135,9 +169,9 @@ def main():
 
     def finish():
         after = measure()
-        result['processes'] = [{k: p[k] for k in ('name', 'pss_kib', 'rss_kib', 'anon_kib')} for p in after]
-        result['pss_mib'] = round(sum(p['pss_kib'] for p in after) / 1024, 1)
-        result['rss_mib'] = round(sum(p['rss_kib'] for p in after) / 1024, 1)
+        result['processes'] = [{k: p[k] for k in ('name', *SIZES.values())} for p in after]
+        for field in SIZES.values():
+            result[field.replace('_kib', '_mib')] = round(sum(p[field] for p in after) / 1024, 1)
         result['drawing_libraries'] = drawing_libraries()
         if watch:
             before = result.pop('_before')
@@ -172,16 +206,19 @@ def main():
             result['_before'] = {'at': time.monotonic(), 'processes': measure()}
             GLib.timeout_add(int(watch * 1000), finish)
 
+        expected = EXPECTED_STREET if picture == 'check-street' else EXPECTED
+
         def checked(view, answer):
             got = json.loads(view.call_async_javascript_function_finish(answer).to_string())
-            wrong = {name: got.get(name) for name, value in EXPECTED.items() if got.get(name) != value}
-            print(json.dumps({'page': result['page'], 'engine': result['engine'], 'checks': len(EXPECTED),
-                              'passed': len(EXPECTED) - len(wrong), 'wrong': wrong}), flush=True)
+            wrong = {name: got.get(name) for name, value in expected.items() if got.get(name) != value}
+            print(json.dumps({'page': result['page'], 'engine': result['engine'], 'checks': len(expected),
+                              'passed': len(expected) - len(wrong), 'wrong': wrong}), flush=True)
             app.quit()
 
         def settled():
-            if picture == 'check':
-                view.call_async_javascript_function(CHECK, -1, None, None, None, None, checked)
+            if picture in ('check', 'check-street'):
+                script = CHECK_STREET if picture == 'check-street' else CHECK
+                view.call_async_javascript_function(script, -1, None, None, None, None, checked)
             elif picture == '-':
                 watched()
             else:
