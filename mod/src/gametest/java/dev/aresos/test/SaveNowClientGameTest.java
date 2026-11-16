@@ -58,7 +58,7 @@ import java.util.concurrent.atomic.AtomicReference;
  * <p>Owner fix 1: the home screen shows no "Saving world" text. Outside it (the first save, before the test turns the
  * session flag on) the save raises the text as Minecraft does. From then on, in a game the session started and a
  * desktop world, every save raises it and no frame draws it: requested saves while playing, under the Esc menu and
- * while covered, the game's own autosave and {@code save-all}, and the saves when pausing and closing in between.
+ * while covered, the game's own autosave, and the saves when pausing and closing in between.
  */
 public final class SaveNowClientGameTest implements FabricClientGameTest {
     private static final int Y = 150;
@@ -158,9 +158,9 @@ public final class SaveNowClientGameTest implements FabricClientGameTest {
                 saved(context, supervisor, 7, name, false);
                 check(onDisk(folder, server, world, pos) == Blocks.IRON_BLOCK.defaultBlockState(), "The next save missed the block");
 
-                // The game's own saves show no text in the home screen either.
+                // The game's own autosave shows no text in the home screen either. (save-all exists only on a
+                // dedicated server; in this integrated one it is an unknown command.)
                 autosave(context, world.getServer());
-                saveAll(context, world.getServer());
 
                 // The real stop: a request while the world closes is refused (the test's listener asks on the server
                 // thread, after the mod's own listener ran).
@@ -183,8 +183,8 @@ public final class SaveNowClientGameTest implements FabricClientGameTest {
                     + "identity, no screen, no pause and no chat line; no_world on the title screen and after closing, "
                     + "not_desktop_world, server_stopping for a save queued when the stop began (which never ran) and "
                     + "for requests during the stop; the Saving world text showed outside the home screen and in it "
-                    + "never, for requested saves while playing, under the Esc menu and covered, the autosave, save-all, "
-                    + "and the pauses' and the close's saves");
+                    + "never, for requested saves while playing, under the Esc menu and covered, the autosave, and the "
+                    + "pauses' and the close's saves");
         } catch (IOException error) {
             throw new UncheckedIOException(error);
         } finally {
@@ -288,15 +288,6 @@ public final class SaveNowClientGameTest implements FabricClientGameTest {
             context.runOnClient(indicator::sample);
         }
         indicator.settle(context, "the autosave", false);
-    }
-
-    /** {@code save-all flush}, as typed in the chat: no text in the home screen. */
-    private static void saveAll(ClientGameTestContext context, TestServerContext server) {
-        var indicator = SavingIndicator.watch(context);
-        int began = SavingText.begun();
-        server.runOnServer(s -> s.getCommands().performPrefixedCommand(s.createCommandSourceStack(), "save-all flush"));
-        check(SavingText.begun() > began, "Fixture: save-all saved nothing");
-        indicator.settle(context, "save-all", false);
     }
 
     /**

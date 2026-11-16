@@ -15,7 +15,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 /**
  * Package 46, owner fix 1: the home screen shows no "Saving world" text (the owner, 2026-11-16: "Hide it"). The game
  * fades it in at the bottom right while the integrated server saves: the supervisor's {@code save_world}, the autosave
- * every five minutes, the save on each pause, {@code save-all}. In the home screen ({@link HomeScreen#home}) the HUD
+ * every five minutes, the save on each pause. In the home screen ({@link HomeScreen#home}) the HUD
  * skips drawing it. The saves stay as they are, and so does the player's own "Autosave Indicator" option, which
  * decides everywhere else.
  */
