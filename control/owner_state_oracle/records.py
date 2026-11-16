@@ -45,6 +45,20 @@ class Record:
     interrupted_confirm: bool = False
 
 
+def behind(sequence, committed):
+    """A restore lock needs the working head *behind* the last commit marker.
+
+    Only then is SQLite older than the journal's committed history, which the
+    owner must confirm (storage.py's startup lock, control/README.md). A head
+    *ahead* is the service's own write that failed at its marker: startup
+    finishes it and there is nothing to confirm. The decoder, consistency_errors
+    and the alteration suite's recompute all use this one rule. The lock's
+    other terms stay as they are: restore_pending, a head hash that differs
+    from its record, and the startup rule for an unprepared record.
+    """
+    return sequence < max(committed, default=0)
+
+
 def service_lock(record):
     """The lock a running service holds beyond what its bytes decode to.
 
@@ -88,7 +102,7 @@ def consistency_errors(record):
         seq, claimed_hash = record.head
         expected_hash = fences.get(seq, {}).get('hash', '' if seq == 0 else None)
         locked = bool(record.rows.get('restore_pending')) or bool(record.fences and (
-            seq != max(record.committed, default=0) or claimed_hash != expected_hash))
+            behind(seq, record.committed) or claimed_hash != expected_hash))
         if (locked or service_lock(record)) != record.locked:
             errors.append(('restore', 'unjustified-lock', ''))
     for seq in unexplained_sequences(record):
@@ -211,5 +225,5 @@ def decode(state, evidence):
     result.unprepared_fences = set(fences) - result.committed - {event['seq'] for event in result.prepared}
     expected_head = fences[head[0]]['hash'] if head and head[0] in fences else '' if head and head[0] == 0 else None
     result.locked = bool(result.rows.get('restore_pending')) or bool(fences and
-        (head is None or head[0] != max(result.committed, default=0) or head[1] != expected_head))
+        (head is None or behind(head[0], result.committed) or head[1] != expected_head))
     return result

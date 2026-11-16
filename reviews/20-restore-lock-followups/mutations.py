@@ -95,6 +95,25 @@ case('item2-every-refusal-locked', C,
      "'restore_required': code == 'restore_required'})\n", "'restore_required': True})\n",
      ORACLE + 'test_refused_read_page_says_locked_only_when_the_lock_refused_it')
 
+# Item 3: only a head behind the last commit marker is a restore, at all three places.
+P = 'control/owner_state_oracle/perturb.py'
+case('item3-decoder-differs', R,
+     "(head is None or behind(head[0], result.committed) or head[1] != expected_head))",
+     "(head is None or head[0] != max(result.committed, default=0) or head[1] != expected_head))",
+     ORACLE + 'test_only_a_head_behind_the_last_marker_is_a_restore',
+     SWEEP + 'test_write_unfinished_at_its_marker_is_not_a_restore')
+case('item3-behind-or-equal', R,
+     "    return sequence < max(committed, default=0)\n", "    return sequence <= max(committed, default=0)\n",
+     ORACLE + 'test_only_a_head_behind_the_last_marker_is_a_restore')
+case('item3-consistency-differs', R,
+     "            behind(seq, record.committed) or claimed_hash != expected_hash))",
+     "            seq != max(record.committed, default=0) or claimed_hash != expected_hash))",
+     ORACLE + 'test_only_a_head_behind_the_last_marker_is_a_restore')
+case('item3-recompute-differs', P,
+     "            behind(sequence, changed.committed) or head_hash != expected_hash))",
+     "            sequence != max(changed.committed, default=0) or head_hash != expected_hash))",
+     ORACLE + 'test_only_a_head_behind_the_last_marker_is_a_restore')
+
 
 def run(test, target):
     if test.startswith('mail:'):

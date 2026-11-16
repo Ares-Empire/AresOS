@@ -217,6 +217,48 @@ class OwnerOracle(unittest.TestCase):
         (evidence / 'operations.jsonl').write_text(raw)
         return state, evidence
 
+    def history(self, records, committed, head):
+        """`records` independent records, the first `committed` with their commit
+        markers, under a working SQLite whose head is record `head`."""
+        temp = tempfile.TemporaryDirectory(dir=Path(__file__).resolve().parents[2] / '.work')
+        self.addCleanup(temp.cleanup)
+        root = Path(temp.name)
+        state, evidence = root / 'state', root / 'evidence'
+        state.mkdir(); evidence.mkdir()
+        lines, previous, events = [], '', []
+        for seq in range(1, records + 1):
+            row = {'format': 2, 'seq': seq, 'previous': previous, 'time': 123 + seq, 'generation': 'g', 'operations': []}
+            row['hash'] = previous = fingerprint(row)
+            lines.append(canonical(row))
+            if seq <= committed:
+                lines.append(canonical({'commit': seq, 'hash': row['hash']}))
+            events.append({'seq': seq, 'time': row['time'], 'action': 'fixture', 'outcome': 'done',
+                           'set': {'generation': 'g'} if seq == 1 else {'fixture:' + str(seq): {'value': seq}}, 'record': row})
+        with closing(sqlite3.connect(state / 'control.sqlite')) as db:
+            db.executescript('CREATE TABLE events(seq INTEGER,value TEXT); CREATE TABLE head(id INTEGER,seq INTEGER,hash TEXT);')
+            for event in events[:head]:
+                db.execute('INSERT INTO events VALUES (?,?)', (event['seq'], canonical(event)))
+            db.execute('INSERT INTO head VALUES (1,?,?)', (head, events[head - 1]['record']['hash']))
+            db.commit()
+        (evidence / 'operations.jsonl').write_text(''.join(line + '\n' for line in lines))
+        return state, evidence
+
+    def test_only_a_head_behind_the_last_marker_is_a_restore(self):
+        # Brief 20-restore-lock-followups, item 3: a head *ahead* of the last
+        # commit marker is the service's own write that failed at its marker.
+        # Startup finishes it; there is nothing to confirm. The decoder,
+        # consistency_errors and the alteration suite's recompute agree.
+        from owner_state_oracle.records import consistency_errors
+        from owner_state_oracle.perturb import coherent_change
+        unjustified = ('restore', 'unjustified-lock', '')
+        for name, records, head, locked in (('ahead', 3, 3, False), ('equal', 2, 2, False), ('behind', 2, 1, True)):
+            with self.subTest(head=name):
+                record = decode(*self.history(records, 2, head))
+                self.assertEqual((record.head[0], max(record.committed), record.locked), (head, 2, locked))
+                self.assertNotIn(unjustified, consistency_errors(record))
+                _, changed = coherent_change(Oracle(), record, 'fixture:2')
+                self.assertIs(changed.locked, locked)
+
     def test_decoder_distinguishes_prepared_and_committed_without_kv(self):
         state, evidence = self.disk(False)
         record = decode(state, evidence)

@@ -452,6 +452,16 @@ class OwnerStateSweep(unittest.TestCase):
         self.assertIn('cancel/persistent/2/0/crash-locked', gaps.executed)
         self.assertNotIn('cancel/persistent/2/0/crash-locked/aresos log.restore-lock', gaps.entries)
 
+    def test_write_unfinished_at_its_marker_is_not_a_restore(self):
+        # Brief 20-restore-lock-followups, item 3: a write that fails at its
+        # commit marker leaves the head ahead of the marker. The store is not
+        # locked, startup finishes the write, and the oracle agrees.
+        last = self.last_fault_point('cancel')
+        gaps = Gaps(recording=True)
+        exercise('cancel', last, gaps=gaps)
+        self.assertIn(f'cancel/single/{last}/0/live-restored', gaps.executed)
+        self.assertEqual([key for key in gaps.entries if key.endswith('.restore-lock')], [])
+
     def test_shards_cover_every_fault_and_keep_its_cleanup_and_crash_cases(self):
         for shards in (1, 2, 4, 12, 24):
             for workers in ((1,) if shards >= 12 else (1, 2, 3)):

@@ -2,9 +2,10 @@
 
 ## Build (2026-11-16, Claude agent on Opus 5.5)
 
-In progress. Done: items 1 and 2 (commit "items 1 and 2"), their tests and ten mutation probes
-(`mutations.py`, results in `mutations.json`), the local sample after that commit: the 52 predicted keys
-close, nothing else differs. Next: item 3 in its own commit, the sample again, then the capture.
+In progress. Done: items 1 and 2 (commit "items 1 and 2"), item 3 (the next commit), their tests and
+fourteen mutation probes (`mutations.py`, results in `mutations.json`), the local sample after each commit
+(items 1 and 2: the 52 predicted keys close, nothing else differs; item 3 on top: 134 close and 62 change,
+all at cases in H, as predicted). Next: merge `main` (S4 check), then the capture.
 
 ## Findings (Claude Fable, before the build)
 
