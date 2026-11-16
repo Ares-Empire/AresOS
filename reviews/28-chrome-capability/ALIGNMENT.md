@@ -198,3 +198,93 @@ cut would let such forms through and would reduce what he can inspect; that is a
 framework's page state) stays refused, as the known limit says. Hidden values are not shown cut in the question:
 the owner would see less of what is sent, and the refusal fails closed (he sends it himself). Revisit only if live
 use shows real sites hitting it. Non-ASCII text's size cost stays a known limit for the same reason.
+
+## After review 5 (lead, 2026-11-16)
+
+`BRIEF-REVIEW-5.md` (NOT READY: B1, B2; S1 to S7; N1 to N8) read the briefs at `8a59a373`. The lead (`linux-tools`)
+decided each finding. A Claude agent on Fable 5.2 wrote the decisions into the briefs and checked each claim against
+the code: the extension and the service on this branch, and `origin/pkg/28-chrome` at `8ae7e8b0`. `main` (`937a1868`)
+was merged into this branch first, because brief 18c-b (S6) and PR #77's code reached `main` after the branch was
+cut. The merge changes none of the three briefs, section 6 or this folder.
+
+| Finding | Decision | Where it went |
+|---|---|---|
+| **B1** In a taken tab, work of his that brief 20's check can't see was lost with no question | The review's fix. "Used since the take" counts his typing, his clicks and keys (told apart from Claude's in `guard.js`), and drops and pastes. When it is set, `chrome_go` and a `chrome_do` reload refuse the plain call and the flag, and carry the `chrome_take_reload` approval. A step that follows a link or submits a form is checked first and asks the same way. A navigation that a page's own script starts from another element is a known limit. | 28b: header; "Already decided by the lead"; item 4 ("On a tab already taken", "A taken tab he has used since the take", "`discard_unsaved: true` is refused", "A step that leaves the page", "What the tool can't see beforehand"); "What must not change"; tests "Used since the take"; Paths (`guard.js`); "Known limits". Section 6: "Which tabs Claude works in" ("Nor a page he has used"), `chrome_go`'s row, "Until brief 28b merges", the known limit "In a taken tab, a navigation that the page's own script starts" (it replaces "What he types into a taken tab can be lost"), test group 17. |
+| **B2** A `select` step's approval hid the option it would choose | `choosing`: the options of the binding whose value equals the input's value, as bound. Every option stays bound and compared. | 28a: item 3a (rule, sizes); exception 4; the security review's places; tests without a browser and in group 15; "Decided here". Section 6: "How an asking action runs" (the content fields), the known limit on a list's options, test group 15. |
+| **S1** The take checked before it attached and reloaded after | The check runs again as the last thing before the reload; a tab that is no longer clean gets its attach and mark undone. `chrome_take_reload` on a tab not yet taken does the same. | 28b: item 4, point 3 and the `chrome_take_reload` bullet; the "Taking" tests. Section 6: "Before the tool reloads or closes one of his tabs". |
+| **S2** The re-check's new approval ignored the four never-offered cases | In those four cases the re-check's refusal carries no approval. | 28b: item 4, the `chrome_take_reload` bullet and its "Tests" paragraph. Section 6: "Whatever could be lost is reported first". |
+| **S3** A stale install pause was allowed to stay a known limit | Fail closed: a pause that can't be shown current counts the document as not watched from its start (`late`). | 28a: item 5a (the whole harm, the rule, the fallback, tests); the security review's places. |
+| **S4** Item 5a had no place in 28a's frozen lists | 5a stays in 28a. Both points are in the `background.js` list, the paths and the security review's places. The popup's address is in the short form with the `no` mark. `take_tab` is `chrome_take`. | 28a: item 5a; "What must not change" (the take rules, the security review's places); "What changes in `background.js`"; Paths. |
+| **S5** The never-list gate's sweep: 28a silent, 28b missing two paths | One rule in both briefs: a PR that adds a Chrome tool adds it to brief 18c-b's sweep (`SWEPT`) in the same PR, with the gate's refusal expected, never to the named exceptions; whichever merges second does it when it takes `main`. 28b's list gains `chrome_close` of his tab and `chrome_open` with `tab`. | 28a: item 7, "The never-list gate's sweep". 28b: item 9, last bullet; test "The never-list's placeholder". Section 6: test group 17. |
+| **S6** The guide let an empty list open the gate with his dashboard open | His dashboard's host goes on the list first; the list is empty only when he has no site to exclude. The format lines stay. | `briefs/18c-b-chrome-image.md`: "What the owner will see" and "For his guide". Section 6: "Where Claude may go". |
+| **S7** The late shadow-root rule | It stays for package 28 (PR #72). The narrowing is permitted in brief 28, not required. Follow-up below. | 28: item 1 ("A permitted refinement"), "What must not change" (the hold), Paths. |
+| **N1** | `chrome_take_reload` returns the reloaded page's outline, as `chrome_take` does, within 18 seconds. | 28b: item 4, the `chrome_take_reload` bullet; item 8 (its description point). |
+| **N2** | The question for a tab not yet taken says that Claude takes it. | 28b: item 4. Section 6: "Whatever could be lost is reported first". |
+| **N3** | Recounted; numbers below. | 28b: item 8. |
+| **N4** | A row for `chrome_take_reload`. | Section 6: "Actions". |
+| **N5** (topic 4) | Two fixed pieces of advice: "Shorten the text you filled" only when the approval would fit with the typed text left empty. | 28a: item 3a ("A form that still doesn't fit"); tests. Section 6: the known limit "A large form isn't sent by Claude". |
+| **N6** | A known limit, with a measurement for the builder. | 28b: item 4a ("Frames that take no reader"); tests; Report. Section 6: "Known limits". |
+| **N7** | A frame the drop-and-paste record doesn't cover makes the tab used: an approval is offered. | 28b: item 4a. |
+| **N8** | `chrome_upload`'s refusal carries the approval for his typing or use, names `chrome_release` for a frame, and otherwise says to reload with `chrome_go`. | 28b: item 4 ("Which `chrome_do` steps that covers"). 28a: item 6, `chrome_upload`. |
+
+**The schema sizes (N3),** counted with main's helpers on this branch, as compact JSON, each property with the comma
+that joins it:
+
+- `request` (`string(200)`): 58 characters a tool, 290 for five tools;
+- `seen` (a two-digit length limit): 54 a tool, 162 for the three tools that didn't have it;
+- `chrome_take_reload`: 279, its name as the catalogue counts it (`take_reload`, 11) and `APPROVAL` (268);
+- together 731; `chrome_take` loses `reload` (28), which leaves **703 of the 750**. The review's 747 used 60 and 56
+  a property;
+- `seen` and `request` stay optional in every schema, `chrome_take`'s too (JUDGMENT-CALL 6). Required on
+  `chrome_take` they would add 17: 720;
+- main's catalogue today: 30 tools, 11,080 for names plus schemas, 5,085 for descriptions, and 4,081 for the
+  instructions, which were 4,052 before PR #77. Briefs 28 and 28a and section 6 now say 4,081 and 9,166.
+
+**Follow-up for package 28 (S7).** The reader can meet a shadow root at `attachShadow`, while it is still empty.
+In a watched document `page.js` already wraps `attachShadow` and reports each new root to the isolated guard
+(`watch_root`, read on this branch), and the guard watches it. Met there, a root's fields have their whole masking
+history in front of the password tracker, as in the light DOM. Only roots met any other way stay late: built and
+filled through a fresh realm's natives, attached while no guard was linked, or declarative. The work is one line in
+`guard.js`'s isolated part and the meeting in `reader.js`, with the three tests brief 28 now names. Until it is
+built, every prefilled field in a component upgraded after the load is unread, and its form can't be sent by
+Claude.
+
+**JUDGMENT-CALLs for the lead.** Each is where a decision met the code and the safer reading was taken.
+
+1. **B1, whose press it was.** The decision names `ownerInput`'s test. `ownerInput` runs only while a hold is
+   active, keeps nothing, and drops every event while a dispatch of Claude's is in flight; a lost finish leaves
+   that state set. So the brief's line sits beside `typed` in `captureInput`, counts `pointerdown`, `mousedown` and
+   `keydown`, and follows `typed`'s rule during a dispatch: a press on Claude's target is Claude's, every other is
+   his. A `click` counts only outside a dispatch (an assistive tool's activation has no press), and the up events
+   never: otherwise Claude's own Enter and Tab would mark a page as his. *Cost:* a step of Claude's that lands
+   off its target asks once too often; a test shows that none of Claude's step kinds does. *Rejected:*
+   `ownerInput`'s plain test, which misses his press during a dispatch.
+2. **B1, more than one line in `guard.js`.** A file dropped onto a page fires no `input` event, and the browser's
+   own mark is no help in a taken tab. Where item 4a's record isn't built, the guard needs one passive listener for
+   `drop` and `paste` beside its `copy` listener. 28b's paths allow that and the one statement, nothing else.
+3. **B1, where the check before a leaving step runs.** In the extension's `input`, before the last facts read, so
+   it can only refuse and brief 20's last comparison stays last. That opens `input` in 28b for a second thing
+   (after item 7's tab selection). It also runs when an approved operation of such a step is dispatched, and
+   before an asking step's question. *Rejected:* a check command sent before `input`, which leaves `input` alone
+   but leaves a gap, and misses what he does while a send's question waits. A submission the page starts and the
+   tool holds is not checked: it is the page's own navigation (the known limit), it has its own question, and
+   checking it would stop his own delayed step in a taken tab (board #138) from ever being resumed.
+4. **B1, what a leaving step is checked for.** The used mark and a frame that doesn't answer, across the whole
+   tab; for a click or an activating key on a link (or an element inside one) and for every form submission. Not
+   brief 20's field walk: a field that a page's script changed would then ask at every link, and again after
+   every approved reload. The decision said "navigating the top document"; a link inside a frame replaces a
+   document he may have used too. *What he will notice:* a form he corrected himself in a taken tab is one he
+   sends himself, or he approves a reload that empties it. *For the tests:* an older case in which the owner acts
+   in a taken tab before Claude's link or submit runs in a Claude tab instead, assertions unchanged (28b, "Moved,
+   not changed").
+5. **S3, the fallback.** If no reliable "pause still current" check can be built, the first document a session
+   installs from a pause after a re-arm counts as `late`. "Every document after a re-arm" would reload such a tab
+   for ever.
+6. **N3, `seen` and `request` optional on `chrome_take`.** 28a's item 5a lets Claude take a popup of its own that
+   isn't under control, which needs neither. The service refuses a call on one of his tabs without them.
+7. **N5, two pieces of advice, not one.** The service measures once more on a copy to choose the sentence. One
+   reworded sentence would be simpler, and would still send Claude to shorten text in vain.
+8. **N6, the wording.** The decision calls them frames that can't hold work. A PDF form can hold his typing, so
+   the brief says the tool can't tell, and no frame kind is exempted without the lead's OK.
+9. **S7, `guard.js` in brief 28.** The narrowing can't be built without one line there (the relay calls the
+   guard's own `watch`, which the reader can't hook). Brief 28's paths allow that one line for the refinement only.
