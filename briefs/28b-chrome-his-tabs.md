@@ -30,11 +30,13 @@ record miss his text: Chrome's autofill, a drop without activation, form state C
 2026-11-15). **It also checks that no path the tool can see beforehand discards his typing, or a page he has used
 since the take, in a tab Claude has taken without his answer in Claude Code's prompt, and that no path there
 discards a frame that couldn't be inspected:** `discard_unsaved` on `chrome_go` and `chrome_do`, a step that
-follows a link or submits a form, a closing, typing or a click marked as Claude's that is in fact his, and an
-approval for `chrome_take_reload` that no longer matches the tab. **One path stays open and is a known limit**
-(the lead, 2026-11-16): a navigation that the page's own script starts from an element that is neither a link nor
-a form's control, which the tool can't see beforehand (item 4). The package review runs on Opus or Codex's
-workhorse.
+follows a link, submits a form or resets one, a closing, typing or a click marked as Claude's that is in fact his,
+a frame he used that the page removed, and an approval for `chrome_take_reload` that no longer matches the tab.
+**One kind of path stays open and is a known limit** (the lead, 2026-11-16, after reviews 5 and 6): what the
+page's own script does after a step that item 4 doesn't check, which the tool can't see beforehand. That is a
+button, a `javascript:` or `#` link, or a link that opens a new tab, whose handler navigates; a form's other
+control whose handler submits; and a script that clears his work without navigating (item 4). The package review
+runs on Opus or Codex's workhorse.
 
 ## Background (read first)
 
@@ -120,8 +122,8 @@ No open JUDGMENT-CALL. The owner has answered every question this package had.
 - `chrome_open` with `tab` opens the address the list showed, wherever his tab has gone since (item 2; N4).
 - No marker watches his tabs; the reader a read installs keeps its passive observers (item 3; N5).
 - In a taken tab, a page he has used since the take is asked about like his typing, and a step that follows a
-  link or submits a form is checked first. A navigation that a page's own script starts from another element is
-  a known limit (item 4; the lead, 2026-11-16, after review 5).
+  link, submits a form or resets one is checked first. What a page's own script does after any other step,
+  navigation or not, is a known limit (item 4; the lead, 2026-11-16, after reviews 5 and 6).
 
 **Decided here, and the lead's to defend:**
 
@@ -347,23 +349,31 @@ keep brief 20's rule and say so (PLAN-GAP).
        that isn't Claude's;
      - his clicks and keys. `ownerInput` tells them from Claude's, but it runs only while a hold is active and
        keeps nothing. So `captureInput` gets one line beside `typed`, before its `active()` return: a trusted
-       `pointerdown`, `mousedown` or `keydown` puts the same mark on the document. While a dispatch of Claude's is
-       in flight, the line follows `typed`'s rule and not `ownerInput`'s: only a press on the element that
-       dispatch aimed at, or inside it, is Claude's, and every other one is his. A dispatch whose finish never
-       came counts as his, as it does for typing (`unconfirmed`). A trusted `click` counts too while no dispatch
-       is in flight: an assistive tool can activate a control without a press. Pointer moves, wheel scrolling,
-       the up events, a `click` during a dispatch (Claude's Enter clicks a form's default button) and a script's
-       own events don't count;
+       `pointerdown`, `mousedown` or `keydown` puts a *used* mark on the document. That mark is a record of its
+       own beside the typing marks, never one of them: `reloadState` reads any typing mark on the document as
+       input to a design-mode page, so Claude's clicks there would be reported as typing (review 6, N1). While a
+       dispatch of Claude's is in flight, only a press on the element that dispatch aimed at, or on an element
+       inside it, is Claude's, and for a key also one in the editing host around it; every other one is his.
+       That is not `typed`'s test: its `field.contains(typingTarget)` would make his press on any element around
+       the target, even `body`, Claude's. A dispatch whose finish never came counts as his, as it does for typing
+       (`unconfirmed`). A trusted `click` counts too while no dispatch is in flight: an assistive tool can
+       activate a control without a press. Pointer moves, wheel scrolling, the up events, a `click` during a
+       dispatch (Claude's Enter clicks a form's default button) and a script's own events don't count;
      - a drop or a paste. Item 4a's record counts where it is built. Where it isn't (the browser's own mark
-       covered them there, and that mark is no help in a taken tab), the guard marks a trusted `drop` and `paste`
-       the same way, with a passive listener beside its `copy` listener. Both always count as his: Claude's steps
-       drop nothing, and Claude has no reason to paste.
+       covered them there, and that mark is no help in a taken tab), the guard puts the used mark on the document
+       for a trusted `drop` and `paste`, with a passive listener beside its `copy` listener. Both always count as
+       his: Claude's steps drop nothing, and Claude has no reason to paste.
      One frame that says yes makes the tab used, and so does a frame whose document the guard didn't watch from
-     its start. `chrome_go` and a `chrome_do` step whose guarded reload runs then answer `reload_required` with
-     the reason "you have used this page since Claude took it, and the tool can't see whether it holds unsaved
-     work", for the plain call and for one with the flag, and carry the approval for `chrome_take_reload`, as for
-     his typing. Where the guard can't tell whose an event is, it is his: a question more for him, never one
-     fewer.
+     its start. **The answer is sticky in the extension** (review 6, S2), as security re-check 4 requires for
+     drops: the first time a document gets a mark of his (typing, a press, a drop or a paste), the guard reports
+     it once to the extension through the reader, as `reader.report` reports a held step. The extension keeps
+     the tab used until an approved `chrome_take_reload` or a new top document, and the check reads that flag
+     as well as asking the frames. So a frame he used that the page then removes, or that moves to a new
+     document, leaves the tab used. `chrome_go` and a `chrome_do` step whose guarded reload runs then answer
+     `reload_required` with the reason "you have used this page since Claude took it, and the tool can't see
+     whether it holds unsaved work", for the plain call and for one with the flag, and carry the approval for
+     `chrome_take_reload`, as for his typing. Where the guard can't tell whose an event is, it is his: a question
+     more for him, never one fewer.
    - **On a tab of his that Claude has taken, `discard_unsaved: true` is refused whenever his typing, a page he
      has used since the take, or a frame that couldn't be inspected would be lost** (the lead, 2026-11-15, after
      review 4, and 2026-11-16). When the report on such a tab lists typing not marked as Claude's, the used mark,
@@ -381,41 +391,75 @@ keep brief 20's rule and say so (PLAN-GAP).
      a take doesn't reload again. A `chrome_do` step reaches the check only through brief 20's guarded reload
      before an input (`prepare_control`): when a document of the taken tab missed the guard's preload
      (`needs_reload`, for example a frame added after the take whose preload didn't arrive), or, in the PLAN-GAP
-     fallback above where the reload stays at the first input, at that first input. `chrome_upload` reaches it the
-     same way and has no `discard_unsaved` (brief 28a): for his typing or a page he has used its refusal carries
-     the approval, for a frame that couldn't be inspected it names `chrome_release`, and with only playing media
-     or Claude's own typing it says to reload with `chrome_go` (`to: reload`) and repeat the upload (review 5,
-     N8).
+     fallback above where the reload stays at the first input, at that first input. That first input's reload
+     runs item 4a's check, as the take would have: the document from before the take wasn't watched from its
+     start, so the used mark would count every such tab as used and the first input would always ask (review 6,
+     N7). `chrome_upload` reaches it the same way and has no `discard_unsaved` (brief 28a): for his typing or a
+     page he has used its refusal carries the approval, for a frame that couldn't be inspected it names
+     `chrome_release`, and with only playing media or Claude's own typing it says to reload with `chrome_go`
+     (`to: reload`) and repeat the upload (review 5, N8).
    - **A step that leaves the page is checked first** (review 5, B1; the lead, 2026-11-16). On `main` an input
-     after which the page navigates isn't checked. Here the tool checks the two kinds it can see beforehand in the
-     target's facts:
-     - a step that follows a link to another document: a click, or a key that activates it, on a link whose
-       `href` is neither a fragment of the same page nor a `javascript:` address and that doesn't open in a new
-       tab;
+     after which the page navigates isn't checked. Here the tool checks the three kinds it can see beforehand in
+     the target's facts:
+     - a step that follows a link to another document: a click, or a key that activates it, on a link (an `a` or
+       an `area` with an `href`, an SVG `a` included) whose `href` is neither a fragment of the same page nor a
+       `javascript:` address and that doesn't open in a new tab;
      - a step that submits a form: a click or a key on a form's submit control, or Enter in a field of a form
-       (what `payload` already works out as `submitting`, where the target has a form).
-     For both, the target is first resolved to the link or the control around it, as the guard's `control` does
-     for a click: a picture inside a link has no `href` of its own. Before such a step is dispatched in a taken
-     tab, the extension asks every frame for the used mark of the point above, in the same `input` command. If he
-     has used the page (his typing sets that mark too), the step is refused as `chrome_go` would be:
-     `reload_required`, with what the taken tab's check finds and the approval for `chrome_take_reload`. A frame
-     that doesn't answer refuses the step with no approval. Nothing is dispatched or prepared. A field that only
-     a script changed, playing media and Claude's own typing don't stop a step: none of them is his use of the
-     page, and `main` doesn't check a step for them either.
+       other than a `textarea` (what `payload` already works out as `submitting`, where the target has a form;
+       Enter in a `textarea` adds a line);
+     - a step that resets a form: a click or a key on a reset control (`<input type=reset>`, `<button
+       type=reset>`), which empties every field of its form, his typing too (review 6, S3).
+     For each, the target is first resolved to the link or the control around it, as the guard's `control` does
+     for a click (a picture inside a link has no `href` of its own), and a `<label>` to its `control`: a click on
+     a label activates its control natively, and the guard's `control` doesn't resolve labels (review 6, N2).
+     Before such a step is dispatched in a taken tab, the extension asks every frame for the used mark of the
+     point above and reads its own flag, in the same `input` command. If he has used the page (his typing sets
+     that mark too), the step is refused as `chrome_go` would be: `reload_required`, with what the taken tab's
+     check finds and the approval for `chrome_take_reload`. A frame that doesn't answer refuses the step with no
+     approval, also in a taken tab he hasn't used (item 4a, "Frames that take no reader"). Nothing is dispatched
+     or prepared. A field that only a script changed, playing media and Claude's own typing don't stop a step:
+     none of them is his use of the page, and `main` doesn't check a step for them either.
      - The check covers the whole tab, whichever frame the target is in.
-     - It also runs when an approved operation of such a step is dispatched, because he may have used the page
-       while its question waited. A step of Claude's that asks is checked before its question is prepared as
-       well, so he isn't asked about a send that the tool would then refuse.
-     - It sits before `input`'s last facts read, so brief 20's last comparison stays the last thing before the
-       dispatch, and it can only refuse. The extension decides from what its reader has just read; the service's
+     - **Where it sits in `input`** (review 6, S1): right after the loop that arms every frame (`set_control`
+       and `arm` for each frame of the first facts read), before the tab selection (`chrome.tabs.update`) and
+       brief 28a's `reveal`. Both of those set `effectStarted`, and a refusal after them would reach the service
+       as `unknown: Input may have started; … never retry`, with no approval, and his tab brought to the front.
+       Before them nothing sets that flag (the check's own frame query is a read, not one of `content`'s
+       effectful commands): the refusal comes back as `reload_required` with its approval, and the tab he looks
+       at stays in front. Brief 20's last facts read and comparison stay the last thing before the dispatch, and
+       the check can only refuse. The extension decides from what its reader has just read; the service's
        `command` doesn't change.
-     - In `chrome_do` the step ends `refused` with the code `reload_required`, and the result carries the
-       approval beside it, not in `prepared`, which holds only what goes to `chrome_submit`. A free step's
-       committed operation is closed as not dispatched, as for `expired` (brief 28a).
-   - **What the tool can't see beforehand is a known limit** (the lead, 2026-11-16): a navigation that the page's
-     own script starts after a step on any other element, for example a button whose handler sets the address.
-     Such a step isn't checked, as on `main`. A submission that the page starts and the tool holds belongs here
-     too: it asks with its own question and is resumed as on `main`, and his own delayed step in a taken tab
+     - It also runs when an approved operation of such a step is dispatched, because he may have used the page
+       while its question waited. `chrome_submit` then returns its operation `failed` with the reason
+       `reload_required` and nothing sent, and the `chrome_take_reload` approval in a field of its own,
+       `reload_approval` (main's `APPROVAL` shape), never in `approval`, which on `main` is a new question for
+       `chrome_submit` (review 6, S4). `execute` returns it through main's replacement path (`NothingLeft` with
+       a `replacement`, as for a changed destination), so the engine doesn't change; on `main` a
+       `reload_required` there would end `unknown`.
+     - **A step of Claude's that asks is checked before its question is prepared** (review 6, S4), so he isn't
+       asked about a send the tool would then refuse. No `input` command runs there: the service prepares it in
+       `payload` from a `facts` reply. So on a taken tab the `facts` reply carries the tab's used result (each
+       frame's mark and the extension's flag), and `payload` refuses a leaving step that would ask before
+       `engine.reserve`, with `reload_required` and the `chrome_take_reload` approval, prepared as for
+       `chrome_go`'s refusal. The check at dispatch holds either way.
+     - In `chrome_do` the step ends `refused` with the code `reload_required`, and its entry carries the
+       approval as `reload_approval`, not in `prepared`, which holds only what goes to `chrome_submit`. A free
+       step's committed operation is closed as not dispatched, as for `expired` (brief 28a).
+     - **Keys Chrome may act on itself** (review 6, N3). Main's `keyboard()` passes F1 to F24, and Ctrl or Alt
+       with letters and arrows. This check assumes that a key sent through DevTools reaches the page only and
+       never makes Chrome reload, go back or close the tab (F5, Ctrl+R, Alt+ArrowLeft, Ctrl+W). `main` doesn't
+       measure that (searched in `control/chrome/ci/`, `control/chrome_tests/` and `reviews/20-chrome/`).
+       Measure it once in CI in a taken tab, write the result into the report, and if any of them acts, refuse
+       that key in a taken tab.
+   - **What the tool can't see beforehand is a known limit** (the lead, 2026-11-16, after reviews 5 and 6): what
+     the page's own script does after a step that this check doesn't cover, navigation or not. That is a
+     button, a `javascript:` or `#` link, or a link that opens a new tab, whose handler sets the address; a
+     form's other control whose handler submits (a list whose `change` submits, a field whose input navigates);
+     and a script that clears his work without navigating. Such a step isn't checked, as on `main`. A step's own
+     effect in the page, such as Claude's fill over a field, isn't of this kind: it follows the asking rules as in
+     Claude's tabs. A submission that the page starts is held and asked with its own question only while the
+     hold after Claude's step runs, and never for a GET search form (`search()` in `guard.js` lets it through);
+     otherwise it navigates unasked. A held one is resumed as on `main`, and his own delayed step in a taken tab
      (board #138) keeps working that way. A page that guards its work makes Chrome ask "Leave site?", and that
      question is his (item 4a). This is the one loss the brief accepts in a taken tab; the header and "Known
      limits" name it.
@@ -525,8 +569,10 @@ need another signal.
   usually hold nothing of his, but the reader can't enter them and the tool can't tell (a PDF form can hold his
   typing). They count as frames that didn't answer. A tab with one is never known clean: a take answers
   `reload_required` with no approval and a close keeps the tab, and once one appears in a taken tab `chrome_go`
-  stops with no approval. He acts in such a tab himself, or Claude works on a copy (`chrome_open` with `tab`).
-  Measure in CI what the check gets from each (a PDF fixture, a test extension's frame), write it into the
+  stops with no approval, and so does every link, form and reset step of item 4's check, also in a taken tab he
+  hasn't used (review 6, N5). He acts in such a tab himself, or Claude works on a copy (`chrome_open` with
+  `tab`). Measure in CI what the check gets from each (a PDF fixture, a test extension's frame, and a test
+  extension's frame that appears only when a field is focused, as a password manager's may), write it into the
   report and list the case in `KNOWN-LIMITS.md`. No frame kind is exempted without the lead's OK.
 - **The rule follows the tab, not the group.** A tab he opened stays his while it is taken ("whose" in brief 28a,
   item 6). `chrome_close` never closes a taken tab: Claude gives it back, and then the rule for his tabs applies.
@@ -698,9 +744,14 @@ holds the Anthropic sites only. This package changes none of it.
     `chrome_read` of his tab; `chrome_prepare_read_typed_fields` on his tab; `chrome_take`; `chrome_close` of his
     tab; `chrome_open` with `tab`; and `chrome_take_reload` with an operation the test writes into the store,
     since the gate never lets one be prepared.
+  - Each entry has a key of its own (review 6, N8). `SWEPT` is keyed by name and the test's `call` takes the tool
+    from the first word (`name.split()[0]`), so a branch on his tab is keyed like `'chrome_read his tab'`, beside
+    the existing `'chrome_read'`. Because the gate runs before any call to the bridge, such an entry differs from
+    the existing one only by its arguments (`request`, `seen`), and those arguments are what it tests.
   - Whichever of this package and brief 18c-b's (PR #76) merges second does it when it takes `main`. If the test
     isn't on `main` when you build, keep the same cases in this package's own tests and list the entries in the
-    report, so that PR #76 adds them.
+    report, so that PR #76 adds them. That copy goes once PR #76's test with these entries is on `main`, so the
+    sweep lives in one place.
 
 ### 10. Two small items from PR #27's final reviews
 
@@ -722,9 +773,14 @@ holds the Anthropic sites only. This package changes none of it.
 
 - **The asking path and the hold,** exactly as briefs 28 and 28a list them. In `dispatch`'s input part only two
   things may change: the tab selection of item 7, and item 4's check before a step that leaves a taken tab, which
-  sits before the last facts read and can only refuse. In `guard.js` only item 4's marks for his clicks, keys,
-  drops and pastes are added; they record, and cancel, hold or change nothing. In the `dialog` branch only one
-  thing is added: a "Leave site?" question is refused with `owner_dialog` (item 4a).
+  sits right after the frames are armed, before the selection and brief 28a's `reveal`, and can only refuse. In
+  the service only item 4's two refusals are added (review 6, S4): `payload` refuses a leaving step that would
+  ask on a used taken tab before `engine.reserve`, from the used result the `facts` reply now carries, and
+  `execute` returns the extension's `reload_required` for an approved step as a failed operation with
+  `reload_approval`, through main's replacement path. Neither asks less, binds less or sends anything. In
+  `guard.js` only item 4's used marks for his clicks, keys, drops and pastes are added, with the one report of a
+  document's first mark of his to the extension; they record, and cancel, hold or change nothing. In the `dialog`
+  branch only one thing is added: a "Leave site?" question is refused with `owner_dialog` (item 4a).
 - **The take rules:** a reload before the first input; whatever could be lost reported first (item 4a makes that
   check stricter, never looser); no reload of a page that a form submission loaded.
 - **The password rule,** as brief 28 left it (its name and history additions included). Nothing is relaxed.
@@ -831,27 +887,41 @@ owner with real keys and clicks (`owner-ui.mjs`). Every new rule gets a test tha
   typing, `discard_unsaved: true` goes on; `chrome_close` of the taken tab stays refused.
 - **Used since the take** (item 4; review 5, B1), each in a taken tab:
   - he finishes a wizard step with real keys and its fields are removed; he draws on a canvas; he drops a file
-    onto the page's own drop zone. Each time `chrome_go` (reload, and an address), with and without
-    `discard_unsaved: true`, is refused with the reason that he used the page and with an approval, and the page
-    is unchanged. After the approved `chrome_take_reload` the repeated `chrome_go` navigates;
+    onto the page's own drop zone; he pastes text into the page. Each time `chrome_go` (reload, and an address),
+    with and without `discard_unsaved: true`, is refused with the reason that he used the page and with an
+    approval, and the page is unchanged. After the approved `chrome_take_reload` the repeated `chrome_go`
+    navigates;
+  - **the mark stays when its frame goes** (review 6, S2): he types and confirms in a child frame that the page
+    then removes, and in one the page then moves to a new document. `chrome_go` and a link step are each refused
+    with an approval. A frame the guard didn't watch from its start (a test build holds its preload back) makes
+    the tab used the same way;
   - **whose input it was:** none of Claude's own steps sets the mark: a click, a fill, a tick, a choice, a
     scroll, a key, Tab, and Enter that submits through a form's default button. After each, `chrome_go` in the
-    otherwise untouched tab navigates with no question. His click on another element while a step of Claude's is
-    in flight sets it, and so does his click on the element Claude aimed at after a dispatch whose finish a test
-    build holds back. A page script's own `click()` and dispatched events don't;
+    otherwise untouched tab navigates with no question, and Claude's click in a design-mode frame isn't reported
+    as typing. His click on another element while a step of Claude's is in flight sets it, also on an element
+    around the target such as the page's body, and so does his click on the element Claude aimed at after a
+    dispatch whose finish a test build holds back. A page script's own `click()` and dispatched events don't;
   - **a step that leaves the page:** after he has used the page, a click on a link to another page, on a
-    picture inside that link, Enter on the link, a click on a GET search form's button and Enter in its field
-    each end `refused` with `reload_required` and an approval; the fixture counts no input and the receiver has
-    nothing. A send that was prepared before he used the page is refused the same way when `chrome_submit` runs,
-    with nothing sent. A link to a fragment of the same page, a link that opens a new tab and a button outside
-    any form still run. With a frame that doesn't answer, the link click is refused with no approval. In a taken
-    tab he hasn't used, every one of these steps runs as before, also when a script of the page has changed a
-    field;
+    picture inside that link, on an `area` link, Enter on the link, a click on a GET search form's button, on a
+    `<label>` for that button, Enter in its field, and a click on a reset control each end `refused` with
+    `reload_required` and an approval; the fixture counts no input and the receiver has nothing. The same step in
+    a used taken tab that isn't in front ends `reload_required` with its approval, not `unknown`, and the tab he
+    looks at stays in front (review 6, S1). A send that would ask is refused with `reload_required` and the
+    approval before any operation is reserved: nothing in `prepared`, no reserved operation in the store
+    (review 6, S4). A send that was prepared before he used the page ends `failed` when `chrome_submit` runs,
+    with `reload_required`, the approval in `reload_approval` and nothing sent. A link to a fragment of the same
+    page, a link that opens a new tab, a button outside any form and Enter in a `textarea` still run. With a
+    frame that doesn't answer, the link click is refused with no approval, also in a taken tab he hasn't used.
+    In a taken tab he hasn't used, every one of these steps runs as before, also when a script of the page has
+    changed a field;
+  - **keys Chrome may act on** (review 6, N3): F5, Ctrl+R, Alt+ArrowLeft and Ctrl+W sent as `press` steps in a
+    taken tab; the report says what each did, and one that reloads, goes back or closes the tab is refused
+    there;
   - **the limit, shown honestly:** in a used taken tab, a click on a button whose handler sets the address
     navigates. The report lists the case under known limits.
-- **Frames that take no reader** (item 4a; review 5, N6): what the check gets from an embedded PDF viewer and
-  from a test extension's inline frame is measured and reported; a tab with one answers `reload_required` to a
-  take with no approval and is kept on a close.
+- **Frames that take no reader** (item 4a; review 5, N6; review 6, N5): what the check gets from an embedded PDF
+  viewer, from a test extension's inline frame and from one that appears when Claude fills a field is measured
+  and reported; a tab with one answers `reload_required` to a take with no approval and is kept on a close.
 - **The never-list's placeholder** (item 9): with it in, each of this package's sweep entries answers
   `chrome_settings_unavailable`, and the stand-in bridge has seen no call to the browser.
 - **Giving back:** `chrome_release`, **Give back**, dragging the tab out of its Claude group, and **Stop** each
@@ -943,10 +1013,10 @@ List every changed assertion in `reviews/28b-chrome-his-tabs/HARNESS-MAP.md`, ol
   Back to one; and every assertion about a question, a binding, an approval or what the receiver got before and
   after it.
 - **Moved, not changed** (item 4's check before a step that leaves the page): a case of briefs 20, 28 or 28a in
-  which the owner types or clicks in a taken tab and Claude then follows a link or submits a form there would
-  now end in `reload_required`. Where such a case is about the question, the binding or the receiver, it runs in
-  a Claude tab instead, with its assertions as they are; name each in the map. If one can't be moved, stop and
-  report.
+  which the owner types or clicks in a taken tab and Claude then follows a link, or submits or resets a form,
+  there would now end in `reload_required`. Where such a case is about the question, the binding or the
+  receiver, it runs in a Claude tab instead, with its assertions as they are; name each in the map. If one can't
+  be moved, stop and report.
 
 **Everything briefs 20, 28 and 28a test** still passes, with the changes just listed: groups 1 to 16, twice on the
 final head, both install modes; the base, Mail, boundary and qualification workflows; the generated artifacts in
@@ -966,8 +1036,9 @@ sync; the Chrome ask rules are `main`'s plus `mcp__chrome__take_reload`, and not
 ## Paths
 
 **May change:** in `control/chrome/extension/`: `background.js`, `reader.js`, `guard.js` (its isolated part only:
-a passive mode, and item 4's marks for his clicks, keys, drops and pastes on the typing record, which are one
-statement in `captureInput` and, where item 4a's record isn't built, one passive listener), `manifest.json` (the
+a passive mode, and item 4's used record for his clicks, keys, drops and pastes, beside the typing record: one
+statement in `captureInput`, one call that reports a document's first mark of his to the extension, and, where
+item 4a's record isn't built, one passive listener), `manifest.json` (the
 one entry above), `popup.html`, `popup.js`, `details.html` and
 `details.js` (the profile id); `control/aresos_control/chrome/adapter.py`, `definitions.py`, the view module and
 `bridge.py` (the hello); `control/aresos_control/definitions.py` (only the Chrome branch of `instructions_for`, as
@@ -998,7 +1069,8 @@ first) must be added on his laptop in the live setup, before the first session i
 anywhere in the repo; what an in-place read installs in the tab and what it leaves there, with the fixture's record
 as evidence; the measurement of item 7, per input kind and install mode; what Chrome does with a "Leave site?" guard
 on the take's reload and on a close (item 4a); what the check gets from a frame that takes no reader (item 4a);
-which of Claude's own steps, if any, set the used mark of item 4; screenshots of the **READ** badge, the popup
+which of Claude's own steps, if any, set the used mark of item 4; what F5, Ctrl+R, Alt+ArrowLeft and Ctrl+W sent
+through DevTools did in a taken tab (item 4); screenshots of the **READ** badge, the popup
 list, **Give back**, and a taken tab marked in place (a plain tab, one from his group, a pinned one), saved under
 `reviews/28b-chrome-his-tabs/screenshots/`; the instructions as Claude reads them; every claim marked **run**,
 **read** or **assumed**.
@@ -1006,11 +1078,13 @@ list, **Give back**, and a taken tab marked in place (a plain tab, one from his 
 **Known limits.** Keep `reviews/28b-chrome-his-tabs/KNOWN-LIMITS.md`, starting from section 6's "Reading and his
 tabs" lines: for each line you add, change or find untrue, what it is, the harm, and why it is acceptable or not.
 A password or sign-in code read, an action without its question, a tab of his changed by a mere look, work of his
-lost, or his normal use broken is never a limit: fix it or stop. **One loss is a limit, and only this one** (the
-lead, 2026-11-16, after review 5): in a taken tab, a navigation that the page's own script starts after a step of
-Claude's on an element that is neither a link nor a form's control. The tool can't see it beforehand, the tab is
-marked as Claude's while it is taken, and Chrome's "Leave site?" is his where the page guards itself. Every path
-the tool can see (`chrome_go`, a reload, a link, a form submission, a close) asks or refuses (item 4).
+lost, or his normal use broken is never a limit: fix it or stop. **One kind of loss is a limit, and only this
+one** (the lead, 2026-11-16, after reviews 5 and 6): in a taken tab, what the page's own script does after a step
+of Claude's that item 4 doesn't check. That is a button, a `javascript:` or `#` link, or a link that opens a new
+tab, whose handler navigates; a form's other control whose handler submits; and a script that clears his work
+without navigating. The tool can't see it beforehand, the tab is marked as Claude's while it is taken, and
+Chrome's "Leave site?" is his where the page guards itself. Every path the tool can see (`chrome_go`, a reload, a
+link, a form submission or reset, a close) asks or refuses (item 4).
 
 ## If unsure
 
