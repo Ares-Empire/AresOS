@@ -187,7 +187,10 @@ test('every task makes exactly the calls of its plan, recorded and timed, and th
       assert.deepEqual(timings.find(timing=>timing.task===name).tools,['outline'],name);
     const fields=calls.find(call=>call.task==='outline_f1_fields');assert.equal(fields.arguments.ref,'kqtvm1','the form line\'s reference');
     const table=calls.find(call=>call.task==='outline_f2_table');assert.deepEqual([table.arguments.ref,table.arguments.max],['kqtvm3',40000]);
-    assert.deepEqual(calls.find(call=>call.task==='outline_three_tabs').arguments,{tabs:[10,11,12]});
+    // The same three tabs brief 20's row reads one by one (open_fact opens a tab in every run before them).
+    const three=calls.filter(call=>call.task==='three_tabs'&&call.run===0).map(call=>call.arguments.tab);
+    assert.equal(new Set(three).size,3);
+    assert.deepEqual(calls.find(call=>call.task==='outline_three_tabs').arguments,{tabs:three});
     assert.equal(service.tabCount(),EFFICIENCY_TAB_COUNT);
     assert.ok(JSON.parse(fs.readFileSync(out+'/efficiency-runner.json','utf8')).cpus>0);
   }finally{fs.rmSync(out,{recursive:true,force:true});}
