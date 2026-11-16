@@ -372,9 +372,13 @@
       || (Home.state.best && townEl.querySelector(`.house[data-app="${Home.state.best}"]`));
     for (const st of streets) {
       if (target && st.el.contains(target)) {
+        // The offsets that show the whole house lie between lo and hi. By day the street snaps into that interval
+        // by whole steps: rounding away from zero is right only from the middle, and after a slide by hand it can
+        // round past the house (review 3, finding 1).
         const x = town.spots.get(target.dataset.app).x;
-        const shown = Math.min(Math.max(st.offset, EDGE - x), WIDTH - EDGE - size - x);
-        st.set(snap(shown));
+        const lo = EDGE - x, hi = WIDTH - EDGE - size - x;
+        st.set(!day ? Math.min(Math.max(st.offset, lo), hi)
+          : st.offset < lo ? Math.ceil(lo / pitch) * pitch : st.offset > hi ? Math.floor(hi / pitch) * pitch : st.offset);
       } else if (!st.byHand) st.set(0);
     }
   }

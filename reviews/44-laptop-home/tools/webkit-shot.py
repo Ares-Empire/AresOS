@@ -17,7 +17,8 @@ a hotbar key, a click on a logo, the arrow keys, Escape) and prints what the pag
 moves no other house, and a house beyond the screen's edge slides into view when he types its name.
 "check-grid" is the day look's own check: the four streets share one grid (equal roads from edge to edge, every
 house on one lattice of columns, the same plots on every street); "check-grid-long" also slides a street that is
-longer than the screen and looks again. "check-rest" watches a page at rest for 13 seconds: no animation runs and
+longer than the screen and looks again, once by typing and once by hand (an end sign) before typing a house on
+the street's other side. "check-rest" watches a page at rest for 13 seconds: no animation runs and
 nothing in the page changes (give the page a fixed clock with &time=).
 """
 import json
@@ -120,13 +121,28 @@ got.the_grid_fills_the_screen = outer <= innerWidth - 40 && outer + pitch > inne
 got.every_house_stands_on_a_plot = houses().every(el => {
   const x = parseFloat(el.style.left), row = el.closest('.street').querySelector(x < innerWidth / 2 ? '.plots-L' : '.plots-R');
   return whole(x - margin - start(row)) && x - margin >= start(row) && x + house + margin <= end(row); });
+const inView = el => { const box = el.getBoundingClientRect(); return box.left >= 0 && box.right <= innerWidth; };
 got.long_street_slides_on_the_lattice = null;
 const far = document.querySelector('.house[data-app="test-tool-19"]');
 if (far) {
   for (const k of 'tool19') key(k);
   await wait(700);
-  const box = far.getBoundingClientRect();
-  got.long_street_slides_on_the_lattice = box.left >= 0 && box.right <= innerWidth && onOneLattice();
+  got.long_street_slides_on_the_lattice = inView(far) && onOneLattice();
+  key('Escape');
+  await wait(700);
+}
+// He slides the long street by hand (its left end sign, where test-tool-19 stands), then types a house on its
+// right that the slide took out of view: the street must slide back far enough to show it, and stay on the lattice.
+got.typing_after_a_hand_slide_shows_it = null;
+const other = document.querySelector('.house[data-app="test-tool-14"]');
+if (far && other) {
+  far.closest('.street').querySelector('.street-end.end-L').click();
+  await wait(700);
+  const slidByHand = inView(far) && !inView(other);
+  for (const k of 'tool14') key(k);
+  await wait(700);
+  got.typing_after_a_hand_slide_shows_it = slidByHand && Home.state.best === 'test-tool-14' && inView(other)
+    && onOneLattice();
   key('Escape');
   await wait(700);
 }
@@ -135,7 +151,7 @@ return JSON.stringify(got);
 EXPECTED_GRID = {'streets': 4, 'streets_equally_far_apart': True, 'roads': 4, 'roads_equal_and_edge_to_edge': True,
                  'houses_on_one_lattice': True, 'every_street_has_the_grid_columns': True,
                  'the_grid_fills_the_screen': True, 'every_house_stands_on_a_plot': True,
-                 'long_street_slides_on_the_lattice': None}
+                 'long_street_slides_on_the_lattice': None, 'typing_after_a_hand_slide_shows_it': None}
 
 # A page at rest: nothing in it may move or change. The page gets a fixed clock (&time=), so not even the minute.
 CHECK_REST = """
@@ -151,7 +167,8 @@ EXPECTED_REST = {'animations_running': 0, 'page_changes': 0}
 
 CHECKS = {'check': (CHECK, EXPECTED), 'check-street': (CHECK_STREET, EXPECTED_STREET),
           'check-grid': (CHECK_GRID, EXPECTED_GRID),
-          'check-grid-long': (CHECK_GRID, {**EXPECTED_GRID, 'long_street_slides_on_the_lattice': True}),
+          'check-grid-long': (CHECK_GRID, {**EXPECTED_GRID, 'long_street_slides_on_the_lattice': True,
+                                            'typing_after_a_hand_slide_shows_it': True}),
           'check-rest': (CHECK_REST, EXPECTED_REST)}
 
 
