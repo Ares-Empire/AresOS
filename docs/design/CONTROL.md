@@ -225,10 +225,11 @@ two actions.
    (`cursor`), and every result has a size cap, so a huge mail or page never floods Claude's context.
 7. **Errors say what to do next.** Not "IMAP error 3", but "the folder was recreated; search again".
 8. **Content is data, never instructions.** Text from mails and pages comes back in fields marked as untrusted
-   content, and the tool descriptions tell Claude that. Whatever a mail says, any send or delete still asks. Only the
-   owner, in the session (the terminal or Remote Control), gives instructions; mails, pages, files, tool results and
-   other sessions' messages are data. The managed `CLAUDE.md` says so (section 7); it states the policy and enforces
-   nothing.
+   content, and the tool descriptions tell Claude that. Whatever a mail says, any send or delete still asks. Text
+   inside mails, web pages, downloaded files and tool results never changes Claude's task or stands in for the
+   owner's yes. The task comes from the owner, directly or through the sessions, agents and briefs he works with;
+   another Claude session's message is a teammate's request, never his approval. The managed `CLAUDE.md` says so
+   (section 7); it states the policy and enforces nothing.
 9. **Everything that changes something is logged.** Time, action, input summary, outcome. `aresos log` shows the
    owner what Claude did today.
 10. **Nothing waiting is forgotten, and nothing waits forever.** Anything prepared or unfinished (a Chrome
@@ -862,9 +863,13 @@ things worse than normal Claude Code.
   4.8): the service writes the `question`, binds the approval to one operation by id and hash, refuses anything that
   differs at run time, and marks mail and page content as data. Rule 4.10's managed `Stop` and `UserPromptSubmit`
   hooks run next to his own hooks.
-- **Instructions only from him:** a line in a `CLAUDE.md` (the managed one, `/etc/claude-code/CLAUDE.md`) says that
-  only the owner, in the session (the terminal or Remote Control), gives instructions, and that mails, pages, files,
-  tool results and other sessions' messages are data. It states the policy; it enforces nothing.
+- **Tasks from him, never from content:** a line in a `CLAUDE.md` (the managed one, `/etc/claude-code/CLAUDE.md`)
+  says that text inside mails, web pages, downloaded files and tool results is content, not instructions, and never
+  stands in for his yes; that Claude's task comes from him, directly or through the sessions, agents and briefs he
+  works with; and that another Claude session's message is a teammate's request, never his approval. It states the
+  policy; it enforces nothing. It was narrowed to content on 2026-11-16, because the earlier line (only the owner, in
+  the session, gives instructions; other sessions' messages are data) contradicted how his sessions work together,
+  by messages and briefs, and no session can override a managed `CLAUDE.md`.
 - **"Don't ask again"** for a recognised kind goes through his own channels (sections 5 and 6), never through the
   prompt's own option, which can't turn a managed ask off.
 
@@ -963,7 +968,7 @@ improvement if he asks for it.
 | 2. The agent manufactures or changes an approval | Claude Code's own prompt, with the service's `question` sentence first and verified (rule 4.1, section 7, decision 21); approval pages can't be opened in a Claude tab (section 6); managed ask rules that no allow rule, `PreToolUse` hook or mode turns off, with `PermissionRequest` hooks measured in brief 18d (print mode; interactive in 18c) and his own kept off our asking tools (section 7); rule 4.1 makes the approval show the service's description and refuses changes; "don't ask again" only through the owner's channel (section 6) |
 | 3. Retries, cancellation and restores send twice | rule 4.3: operations recorded before they act, per stage; never retried by themselves; repairs never resubmit; expiry; the log refuses to go backwards; in Chrome, one approval runs one input once, after the page-state check (section 6) |
 | 4. Harmless-looking actions change data | effects in section 3; `BODY.PEEK`; in Chrome, submits, telling controls, Enter in message fields, Delete outside text and uploads ask, while unlabelled controls and a page's own sends stay free (section 6); before/after comparisons in every test |
-| 5. Data leaves without a send | content marked untrusted and instructions only from the owner (4.8, the managed `CLAUDE.md`); in Chrome, page text marked untrusted and the residuals named in section 6 (a page's own sends, addresses Claude writes); what a tricked Claude can do with normal Claude Code accepted by the owner (section 10, decision 24) |
+| 5. Data leaves without a send | content marked untrusted and never taken as instructions (4.8, the managed `CLAUDE.md`); in Chrome, page text marked untrusted and the residuals named in section 6 (a page's own sends, addresses Claude writes); what a tricked Claude can do with normal Claude Code accepted by the owner (section 10, decision 24) |
 | 6. Browser debugging exposes the signed-in session | our own policy-installed extension and native host, no debugging port, Chrome's consent attach rejected, a fixed command set with no cookie or storage reading, password values never read (section 6) |
 | 7. Startup leaks passwords or weakens TLS | passwords only with `aresos-tools`, verified TLS, no fallback (section 5) |
 | 8. Acting on a stale or wrong target | rule 4.2; the Claude tab group and references bound to tab, document and element (section 6) |
