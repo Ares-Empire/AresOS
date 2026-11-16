@@ -356,3 +356,19 @@ Dry run 3 (43847257976, on `e4a0f861`, 10:15Z to 11:28Z) passed: `IMAGE_DIFF_PAS
 explained` (phase 2's rules held on a real build, the 32-bit font caches included), `CHECK_BUILD_VM_PASSED`, and
 the UEFI VM checks. The release-28 publish job was skipped, as the dispatch gate says. Step 1 is done; its review
 (Codex, from Tue 2026-11-17) reads phases 1 and 2 and this run.
+
+## Lead, 2026-11-16: fix check SAFE, dry run 4
+
+The fix check of review 1 (REVIEW-2.md, Fable) says SAFE: every finding is closed or left with a reason it accepts.
+Left for later steps:
+- **N2** (nit): commits before `90c9d862` still carry publish caps of 1, so a tag named `pkg/42-release-28` on one
+  of them would run that old ledger (a deliberate tag push, no slip). Cheap close for step 2's builder: the guard
+  and `publish.sh` require `GITHUB_REF` to start with `refs/heads/`.
+- **N8** (step 2): when main is merged in with PR #58, run `test_release28` before any dry run and add `control`
+  to `IMAGE_SOURCES` (`ImageSourcesTest` fails on it).
+- A pin renewed on this branch now stops the diff (S2). Brief A.2 names `gh`'s lock: renew such a pin on main
+  before the cut, or give it a row in `BRANCH_SOURCE_CHANGES`.
+- **N6** stays with step 5 (dispatch cap 2 with `publish_cap` 1: one retry, still at most one publish).
+
+Nothing in `3980c5ef..8b427862` had run on a real build, and the cut's dry run would have been the last one allowed.
+The lead raised `dry-run-28` to 5 (`bfe92f45`) and dispatched dry run 4 (43897120279) on that head; the cut keeps one.
