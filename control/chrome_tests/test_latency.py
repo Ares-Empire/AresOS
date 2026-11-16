@@ -924,3 +924,74 @@ class MainFixStorageStages(unittest.TestCase):
         # A store that moved off its recorded mount mid-run refuses.
         mountinfo.write_text(table('ext4'))
         with self.assertRaises(AssertionError):module.record('end',output,mountinfo,(str(state),str(evidence)))
+
+
+class RealisticRecord(unittest.TestCase):
+    """#79 O2: one latency leg measures a qualification record of realistic size, not one entry."""
+
+    def setUp(self):
+        import qualification_fixture
+        from pathlib import Path
+        self.fixture=qualification_fixture
+        self.root=Path(__file__).resolve().parents[2]
+
+    def test_only_the_plain_leg_s_current_runtime_starts_from_several_hundred_entries(self):
+        from aresos_control.chrome.policy import CORE_GROUPS,HOSTS
+        from aresos_control.chrome.qualification import validate_record
+        build,version='c'*64,'157.0.8103.78'
+        one={'build':build,'version':version,'channel':'stable','run':'synthetic-fixture-setup',
+             'core':dict.fromkeys(CORE_GROUPS,True),'adapters':dict.fromkeys(HOSTS,True)}
+        self.assertGreaterEqual(self.fixture.LATENCY_HISTORY,300)
+        for privacy in ['plain','audit']:
+            for runtime in ['current','ab7aba92']:
+                with self.subTest(privacy=privacy,runtime=runtime):
+                    shipped=self.fixture.harness_shipped({'LATENCY_PROBE':'true','LATENCY_PRIVACY':privacy,'LATENCY_BASELINE':runtime})
+                    record=self.fixture.harness_record(shipped,build,version)
+                    validate_record(shipped);validate_record(record)
+                    realistic=(privacy,runtime)==('plain','current')
+                    self.assertEqual(len(shipped['entries']),self.fixture.LATENCY_HISTORY if realistic else 0)
+                    self.assertEqual(record['entries'],[*shipped['entries'],one])
+                    # The history is other builds' only, so this build's switches are the one entry's.
+                    self.assertNotIn(build,{item['build'] for item in shipped['entries']})
+        # The fixture shards and qualification pairs keep the empty baseline and the one entry.
+        self.assertEqual(self.fixture.harness_shipped({}),self.fixture.BASELINE)
+        self.assertEqual(self.fixture.harness_shipped({'LATENCY_PRIVACY':'plain','LATENCY_BASELINE':'current'}),self.fixture.BASELINE)
+        self.assertEqual(self.fixture.harness_shipped({'LATENCY_PROBE':'true','LATENCY_PRIVACY':'plain','LATENCY_BASELINE':'current','EFFICIENCY_PROBE':'true'}),self.fixture.BASELINE)
+        self.assertEqual(self.fixture.harness_record(self.fixture.BASELINE,build,version),{'format':1,'entries':[one]})
+
+    def test_the_realistic_record_qualifies_chrome_like_the_one_entry_record(self):
+        import tempfile
+        from pathlib import Path
+        from unittest.mock import patch
+        from aresos_control.chrome import adapter
+        shipped=self.fixture.harness_shipped({'LATENCY_PROBE':'true','LATENCY_PRIVACY':'plain','LATENCY_BASELINE':'current'})
+        temporary=tempfile.TemporaryDirectory(dir=test_engine.WORK);self.addCleanup(temporary.cleanup)
+        operations=test_engine.Operations('test_group1_approval_first_exact_and_dispatch_once')
+        with patch.object(adapter,'RUNTIME',self.fixture.fixture_runtime(Path(temporary.name),baseline=shipped)):
+            operations.setUp()
+        self.addCleanup(operations.tearDown)
+        from aresos_control.chrome.qualification import switches
+        chrome=operations.chrome;build,version=chrome.qualification.build,operations.browser.version
+        one=switches(self.fixture.harness_record(self.fixture.BASELINE,build,version),build,version)
+        held=self.fixture.harness_record(shipped,build,version)
+        operations.engine.store.write({'chrome:qualification':held},'chrome_test_setup','Synthetic realistic qualification record')
+        self.assertEqual(chrome.qualification.shipped,shipped)
+        self.assertEqual(chrome.qualification.record(),held)
+        self.assertEqual(chrome.mode(acting=True),one)
+        self.assertFalse(one['conservative'])
+        approval=operations.prepare();sent=operations.call('submit',approval)
+        self.assertTrue(sent['ok'],sent);self.assertEqual(len(operations.browser.dispatched),1)
+
+    def test_the_harness_starts_from_the_shared_records_and_says_which(self):
+        service=(self.root/'control/chrome/ci/service.py').read_text()
+        self.assertIn('shipped=qualification_fixture.harness_shipped(os.environ)',service)
+        self.assertIn("qualification_fixture.install(tempfile.mkdtemp(prefix='fixture-runtime-'),baseline=shipped)",service)
+        self.assertIn('record=qualification_fixture.harness_record(shipped,build,version)',service)
+        self.assertLess(service.index('record=qualification_fixture.harness_record('),service.index("engine.store.write({'chrome:qualification':record}"))
+        # The artifact's service.txt names the record sizes the leg measured.
+        self.assertIn("print('FIXTURE_QUALIFICATION',json.dumps({'shipped_entries':len(shipped['entries']),'held_entries':len(record['entries'])}),flush=True)",service)
+        # The synthetic modes rewrite the one entry, so they refuse a long baseline.
+        self.assertLess(service.index("if shipped['entries']:raise ValueError("),service.index('candidate=json.loads(json.dumps(record))'))
+        # The pair names the runtime and the profile inside the container.
+        pair=(self.root/'control/chrome/ci/latency-pair.sh').read_text()
+        self.assertRegex(pair, r'-e LATENCY_PRIVACY -e LATENCY_BASELINE="\$(latency_)?revision"')
