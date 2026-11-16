@@ -3,6 +3,9 @@
 Builder: one Claude agent on Fable 5.2 (a new design that was not scoped yet), 2026-11-16. The file tool refuses a
 file named `REPORT.md`, so the report is here; the orchestrator commits it as the report.
 
+Review fixes 1 (findings 1 to 13 of `REVIEW-1.md`): one Claude agent on Opus 5.5, the same day. What changed is
+listed in "Review fixes 1" at the end.
+
 Nothing under `os/` or `mod/` changed. Everything in this folder is a development aid for choosing a design. The
 design draft that a build package can follow is `docs/design/LAPTOP-HOME.md`.
 
@@ -10,26 +13,35 @@ design draft that a build package can follow is `docs/design/LAPTOP-HOME.md`.
 
 - Three directions, each a page he can click through, with pictures: **Night street**, **Map table**, **Console**.
 - I recommend **Night street**: the town seen from the side at night, one street per group, a house lit while its
-  app runs. It shows all his apps at once with their names, it is calm beside the bright world, and it is the one
-  shape the companions already understand (floors and ledges), so they move in later without a rebuild.
-- Tech: the system's web engine (WebKitGTK 6.0) in one small window of its own, no browser around it. Measured with
-  40 test apps: **about 330 MiB** in all, of which about 125 MiB is its own and the rest is library code shared with
-  other programs. At rest it uses under 2 % of one processor core.
-- The app helper needs three small additions before a second client can exist (below). Today a second client throws
-  the game off the helper.
+  app runs.
+  - It shows all his apps at once with their names, up to 16 in a group (about 45 apps); a bigger group's street
+    slides.
+  - It is calm beside the bright world.
+  - It is the one shape the companions already understand (floors and ledges), so they move in later without a
+    rebuild.
+- Tech: the system's web engine (WebKitGTK 6.0) in one small window of its own, no browser around it.
+  - Measured with 40 test apps: **about 335 MiB** in all, about 265 MiB with the Intel chip drawing, as in his
+    session.
+  - 127 MiB of it is working memory; the rest is mostly the program files it maps (the engine, GTK, the graphics
+    driver).
+  - At rest it uses under 2 % of one processor core. One companion-sized figure walking costs about a fifth of
+    one core.
+- The app helper needs three small additions before a second client can exist (below), and the laptop home needs a
+  token of its own. Today a second client throws the game off the helper.
 
 ## Done
 
 | What | Where |
 |---|---|
 | Three clickable prototypes at 1920 x 1080, no network, no build step | `prototypes/street/`, `prototypes/map/`, `prototypes/console/` (each an `index.html`; they share `prototypes/shared/`) |
-| The test town: 5, 12, 24 or 40 test apps ("Test Web 1" …) with generated block logos, 20 more programs outside My apps | `prototypes/shared/home.js` |
-| 14 pictures at 1920 x 1080, drawn by the web engine I recommend | `pictures/` |
-| A tool that shows a page in WebKitGTK inside a headless compositor of its own, takes the pictures, measures memory and checks keys and clicks | `tools/shots.sh`, `tools/webkit-shot.py` |
+| The test town: 5, 12, 24, 40 or 45 test apps ("Test Web 1" …) with block logos generated from each app's ID, 20 more programs outside My apps, some with a generic name and keywords | `prototypes/shared/home.js` |
+| 17 pictures at 1920 x 1080, drawn by the web engine I recommend | `pictures/` |
+| A tool that shows a page in WebKitGTK inside a headless compositor of its own, takes the pictures, measures memory (working memory, files, shared memory) and processor time per process, and checks keys and clicks | `tools/shots.sh`, `tools/webkit-shot.py` |
 | The design draft of the recommended direction | `docs/design/LAPTOP-HOME.md` |
 
-To look at a prototype, open its `index.html` in any browser. It scales to the window. `?apps=5`, `12`, `24` or `40`
-after the address changes the town's size.
+To look at a prototype, open its `index.html` in any browser. It scales to the window. `?apps=5`, `12`, `24`, `40`
+or `45` after the address changes the town's size; `&hole=test-web-1` takes an app away and leaves its place free;
+`&bright=1` shows every logo in full colour.
 
 The logos are made here from sixteen hand-drawn signs (a ring, a heart, a moon …) and flat colours. No app icon, no
 logo of a real program and no game texture is in this folder. Fonts: Space Grotesk and JetBrains Mono, both under
@@ -41,15 +53,17 @@ Grotesk is the same file the image already ships.
 These are the world's own habits, so he has nothing new to learn:
 - **The hotbar** at the bottom: his nine pinned apps, in the same order as in the world. The keys 1 to 9 open them.
 - **Typing finds.** He just types, as in the chat: a name or a short name (`term`, `/term`). Everything that does not
-  fit goes dark, the best hit gets a gold frame, Enter opens it. Programs outside My apps show in a small list
-  ("All programs"), so `pa` finds Test Paint although it has no logo. Escape clears.
+  fit goes dark, the best hit gets a gold frame, Enter opens it. After the names, typing also searches the generic
+  names and keywords the helper lists, so `pdf` finds Test Viewer, a "Document Viewer" with the keyword pdf.
+  Programs outside My apps show in a small list ("All programs") with their generic name, never a group. Escape
+  clears.
 - **A click opens.** The app opens on the laptop screen, over the home, as on any desktop (package 23c: apps open on
   the screen the pointer is on).
 - **Lit means open.** An app that has a window is lit: a warm light in its doorway. He sees what is running without
   a list.
 - **The arrow keys** move a gold frame from logo to logo; Enter opens.
 - Top left the time and the date, top right the battery. Nothing else.
-- **At rest nothing moves** (see "Memory").
+- **At rest nothing moves** (see "Tech and memory").
 
 ## The three directions
 
@@ -58,25 +72,36 @@ These are the world's own habits, so he has nothing new to learn:
 Pictures: [home](pictures/street-1-home.png), [finding "tool"](pictures/street-2-finding.png),
 [finding a program outside My apps](pictures/street-3-all-programs.png), [an app opened](pictures/street-4-opened.png),
 [day one, five apps](pictures/street-5-day-one.png), [forty apps](pictures/street-6-forty-apps.png),
-[where companions can stand](pictures/street-7-ledges.png).
+[where companions can stand](pictures/street-7-ledges.png),
+[forty-five apps, twenty in System & Tools](pictures/street-8-forty-five-apps.png),
+[a far house slid into view](pictures/street-9-far-house.png),
+[every logo in full colour](pictures/street-10-full-colour.png).
 
 **What he sees.** His town from the side, at night. Four streets, one above the other: Internet, Games, Work & Media,
 System & Tools, each with its colour as a line along the road. On each street his apps stand as their block logos,
 solid blocks with a top and a side, each with its dark doorway and its doormat in the group's colour. Over each
 logo its sign, as in the world: the name in white, the short name in gold. In the middle of each street, between the
 two front logos, hangs the group's name with its direction and its count ("INTERNET, north · 7"), exactly where it
-hangs in the world. The logos stand left and right of that middle, nearest first, as they stand left and right of
-the avenue. A street is paved as far as it has logos; a group without apps is a short piece of road. Houses are a
-little dark, as at night; the ones whose app is open are bright and have light in the door. Under the town a thin
+hangs in the world. Each logo stands on the side of the street its place is on in the world: the nearer to home,
+the nearer to the middle. A street is paved as far as it has logos; a group without apps is a short piece of road.
+Houses are slightly dimmed, as at night (62 % brightness, 82 % saturation); the ones whose app is open are bright
+and have light in the door. Under the town a thin
 line with one gold block in its middle, his home block, and below it the hotbar.
 
-**What he does.** He moves the pointer down to the laptop and clicks a house. Or he types `tool`, the Tools street
-stays bright and the rest goes dark, Enter. Or he presses 3 for the third hotbar app.
+**What he does.** While he works in an app, he moves the pointer down to the laptop and clicks a house. Or he types
+`tool`, the Tools street stays bright and the rest goes dark, Enter. Or he presses 3 for the third hotbar app. From
+inside the world the game holds the pointer, so he first presses Esc (or E, or T); a reserved key would spare him
+that (JUDGMENT-CALL 5).
 
-**How it grows.** Five apps are a hamlet in the middle of the screen. Each new app takes the next free place
-outward on its street; nothing else moves, as in the world. The houses are 120 pixels wide until one street has more
-than ten apps, then all of them shrink a little (84 pixels at sixteen in one group). Forty apps with fourteen in one
-group fit without scrolling.
+**How it grows.**
+- Five apps are a hamlet in the middle of the screen.
+- Each new app stands at the place it got in the world, usually the next free one outward on its street. A removed
+  app leaves its place free, in the world and here. Nothing else moves.
+- The houses are 120 pixels wide until a street needs more than five places on a side. Then all of them shrink a
+  little: 84 pixels at sixteen in one group. Forty apps with fourteen in one group fit without scrolling.
+- Past sixteen in one group, that street is longer than the screen. At rest it stands in the middle, with a sign at
+  each end that counts the houses out of sight ("‹ 2", "2 ›"). It slides when he types a name that is out of sight,
+  uses the arrow keys or clicks an end sign (pictures 8 and 9).
 
 **Why it fits.** It is the town itself: the same logos, doors, signs, group names, colours and order. The world shows
 it from inside at noon, one row at a time. The laptop shows the whole of it from the side at night.
@@ -111,14 +136,17 @@ brief did not want. I built it as the plain one to hold the other two against.
 ## Recommendation: Night street
 
 - **Functional first.** Every app of his is on the screen with its name and short name, as a target at least 84
-  pixels wide. Three ways in, all of them the world's: click, hotbar key, typing.
+  pixels wide, up to 16 apps in a group: about 45 apps in HUB.md's planning mix. A bigger group's street slides, so
+  its far houses are one typed name, arrow key or click away. Three ways in, all of them the world's: click, hotbar
+  key, typing.
 - **It fits without being a copy.** It is not a picture of the game. It is the town drawn in the crown language:
   near-black, gold only for the home block, the short names and what is selected.
 - **Calm.** A dark screen beside the world, and nothing on it moves unless he does something.
 - **The companions fit as they are.** Their runtime knows a screen as a floor, ledges and boxes
   (`~/companions/runtime/README.md`, "World provider"). Streets and roofs are ledges, houses are boxes, the line
   over the hotbar is the floor. The prototype already hands out that description (`laptopHome.world.snapshot()`, 28
-  ledges in the 24-app town). The map would need companions drawn from above, which do not exist.
+  ledges in the 24-app town). The map would need companions drawn from above, which do not exist. Measured: one
+  companion-sized figure walking costs about a fifth of one processor core on this engine (below).
 - **Other looks stay possible.** A look is one folder of web files on top of the same host and the same data. Map
   table can be added later as a second choice ("or we build multiple options and then enable choosing") without
   touching the system side again.
@@ -137,7 +165,7 @@ profile into it. A second Minecraft was never an option.
 **Measured** (Night street, 40 test apps, 1920 x 1080, WebKitGTK 2.54.1 in a headless `cage` compositor that drew on
 the laptop's NVIDIA chip; `tools/shots.sh measure`, 8 seconds to settle, then 10 to 20 seconds watched):
 
-| Set-up | Memory in all (PSS) | of that its own (anonymous) | Processor at rest |
+| Set-up | Memory in all (PSS) | of that working memory (anonymous) | Processor at rest |
 |---|---|---|---|
 | Night street at rest | **333 MiB** | 126 MiB | 1.7 % of one core |
 | the same, the engine drawing the page in software | 304 MiB | 96 MiB | 0.7 % |
@@ -145,25 +173,66 @@ the laptop's NVIDIA chip; `tools/shots.sh measure`, 8 seconds to settle, then 10
 | the bare engine, software | 226 MiB | 82 MiB | 0.2 % |
 | an earlier version with ten stars twinkling without end | 414 MiB | 197 MiB | **220 %** (two cores) |
 
+In these first measurements GTK drew with its default renderer on the Intel chip while the compositor drew on
+NVIDIA. Review fixes 1 found that and measured again (below).
+
 - The three processes: the window program 167 MiB, the engine's page process 143 MiB, its network process 23 MiB.
-  "In all" counts shared library pages once, split between the programs that use them. Added up the naive way
-  (RSS), the three show 572 MiB.
+  "In all" (PSS) splits each shared page between the programs that use it. Added up the naive way (RSS), the three
+  show 572 MiB.
+- **What the rest is** (measured since, review fix 9).
+  - Of about 335 MiB, 127 MiB is working memory and 208 MiB the program and library files it maps: the engine,
+    GTK and the graphics driver's libraries.
+  - Shared memory is under 1 MiB.
+  - Memory the graphics chip holds for it does not show in these numbers.
+  - With the compositor and GTK on the Intel chip, as in his session (OS-BASE: Intel drives the session, NVIDIA
+    renders Minecraft), it is about 265 MiB, because the NVIDIA driver's libraries are not loaded.
 - The engine is most of it: about 255 MiB before any page. The home itself adds about 80 MiB.
 - For comparison, the world's game may use 2560 MiB (package 23d). The laptop home is about an eighth of that.
-- **The lesson of the last row is a design rule: at rest nothing on this screen moves.** Ten two-pixel stars that
-  changed brightness without end made the engine draw 60 pictures a second and kept two cores busy in this set-up.
-  Now one star changes every four seconds in one step, and a house lights up or goes dark when an app opens or
-  closes. Motion happens only as an answer to him (the purple puff in a doorway, 0.6 seconds).
+- **The last row gave the design rule: at rest nothing on this screen moves.** Ten two-pixel stars that changed
+  brightness without end made the engine draw 60 pictures a second.
+  - In this set-up that kept two cores busy. Review fixes 1 found why: GTK and the compositor drew on different
+    chips, so the processor copied every frame from one to the other.
+  - On one chip the same kind of motion costs about a fifth of a core (below).
+  - The rule stands: a screen he mostly does not look at should cost nothing. Now one star changes every four
+    seconds in one step, and a house lights up or goes dark when an app opens or closes. Motion happens only as an
+    answer to him (the purple puff in a doorway, 0.6 seconds).
+
+**Motion, measured** (review fix 7): one figure the size of a companion (80 x 80 pixels) walks along a street. It is
+drawn on a see-through canvas over the whole 40-app town that is cleared and drawn again every frame, as the
+companions' runtime draws, at 60 frames a second, watched for a minute (`?sprite=1`).
+
+| Set-up | Processor | Memory (PSS) |
+|---|---|---|
+| Compositor and GTK on the Intel chip, at rest | 0.5 % | 264 MiB |
+| Compositor and GTK on the Intel chip, the figure walking | **22 %** (window program 7, page 15) | 268 MiB |
+| Compositor and GTK on the NVIDIA chip (GTK's OpenGL renderer), at rest | 0.6 % | 289 MiB |
+| the same, the figure walking | 26 % (window program 13, page 13) | 296 MiB |
+| Compositor on NVIDIA, GTK's default renderer on Intel, the figure walking | **248 %** (window program 240) | 347 MiB |
+| the same, 30 frames a second (30 seconds) | 145 % | 347 MiB |
+| the same, the engine drawing the page in software (30 seconds) | 123 % (page 100) | 317 MiB |
+
+What it means for the companions version:
+- **On one chip, a moving companion costs about a fifth of one processor core** while it moves, and a few MiB.
+  That is affordable beside the world.
+- **The web choice holds.** The cost is per frame, not per figure: the runtime redraws one canvas.
+- **They need a budget:** fewer frames (the runtime takes its clock from the host), no frames while nobody moves,
+  none while the laptop screen is off or covered.
+- **The window program must draw on the compositor's chip.** On two chips the same figure costs two and a half
+  cores. The laptop trial checks it in his session (LAPTOP-HOME.md sections 4 and 9).
 - I suggest the build runs it in a scope of its own with `MemoryHigh=640M`.
 
 **Verified.**
-- `tools/shots.sh all` made the 14 pictures, each 1920 x 1080, in WebKitGTK 2.54.1 inside a headless compositor. No
+- `tools/shots.sh all` made the 17 pictures, each 1920 x 1080, in WebKitGTK 2.54.1 inside a headless compositor. No
   window ever opened on his screen: the tool removes his display variables and refuses to start outside its own
   compositor.
 - `tools/shots.sh check` sends each page the keys and clicks a person would and compares what the page did: typing
   finds the app, the others go dark, Enter opens it, it shows as running, closing ends that, key 1 opens the first
   hotbar app, a click on a logo opens it, the arrow keys select, typing finds a program outside My apps, Escape
   clears. 10 of 10 on each of the three pages.
+- Night street's own check, 9 of 9, on a 45-app town with `test-web-1` (place `N0L0`) removed:
+  - no other house changes side or slot;
+  - a house past the screen's edge slides into view when he types its name and back on Escape;
+  - the end signs count the houses out of sight.
 - The pictures of the key moments come from page options that call the same functions as the keys and the click.
 
 **Not verified.**
@@ -173,6 +242,8 @@ the laptop's NVIDIA chip; `tools/shots.sh measure`, 8 seconds to settle, then 10
 - Nothing talks to the real app helper: the pages use a stand-in with test apps.
 - How it sits in labwc (below) is designed from labwc's and the helper's code, not tried: this laptop has no
   `gtk4-layer-shell`, and package 23c, which moves the world to the monitor, is not built yet.
+- The way from the world (Esc, the reserved key) and what the game does when the laptop home takes the keyboard.
+- Which graphics chip GTK and labwc draw on in his session.
 
 ## How it talks to the helper
 
@@ -189,6 +260,12 @@ So the protocol needs three additions, as `aresos-shell/1.2` (the shapes are in 
 1. **A second kind of client, a "view".** `hello` with `"role": "view"`. A view never replaces the desktop and is
    not closed by it, cannot say `world_ready` or `heartbeat`, never counts for the supervisor's readiness, may
    `list_apps` and `open_app`, and gets `apps_changed`.
+   - It proves who it is with a token of its own that lasts the session (`ARESOS_VIEW_TOKEN`), not the game's nonce,
+     which changes with every game start. The helper knows a view by that token.
+   - Its hello leaves the desktop's state alone.
+   - Its launches are kept apart from the game's in the helper's journal, and only it hears about them.
+   - When the helper restarts (with each game start), the laptop home connects again with the same token. In
+     between it shows the last town, with opening off for those seconds.
 2. **The mod tells the helper what the town holds, and the helper passes it on.** After each change the mod sends
    `publish_home`: for each of his apps the ID, short name, group, place, hotbar slot and the 12 x 12 cells of its
    logo with their colours. The helper checks sizes, keeps the last one and hands it to views (`get_home`,
@@ -198,7 +275,7 @@ So the protocol needs three additions, as `aresos-shell/1.2` (the shapes are in 
    per app.
 
 A web page cannot open a Unix socket. The window program holds the connection and gives the page four calls and
-four events (LAPTOP-HOME.md section 4). The page never sees a command, a path or the launch nonce.
+five events (LAPTOP-HOME.md section 4). The page never sees a command, a path, the view token or the launch nonce.
 
 ## How it lives in the session
 
@@ -207,15 +284,22 @@ four events (LAPTOP-HOME.md section 4). The page never sees a command, a path or
   minimized or moved, and the helper's window tracking never sees it, so it can never count as covering the world
   or be minimized as "what covers the world" (package 40). `rc.xml` needs no new rule. It takes the keyboard when he
   clicks it (keyboard mode "on demand") and gives it back when he clicks elsewhere.
-- **It needs one small library in the image:** `gtk4-layer-shell` (not on the laptop today). Without it the fallback
-  is a normal window with a rule like the world's (`serverDecoration="no"`, `skipWindowSwitcher="yes"`,
-  `MoveToOutput`, `Maximize`, `ToggleAlwaysOnBottom`); then the helper has to leave that window out of its covering
-  and focus rules, as it does for the start-up cover.
+- **It needs one small library in the image:** `gtk4-layer-shell` (not on the laptop today), loaded through
+  `LD_PRELOAD` from Python.
+  - Without it the fallback is a normal window that puts itself full-screen on the laptop's screen. A fixed
+    `rc.xml` cannot know that screen's name.
+  - It gets a rule like the world's (`serverDecoration="no"`, `skipWindowSwitcher="yes"`, `ToggleAlwaysOnBottom`).
+  - The helper then has to leave that window out of its covering and focus rules, as it does for the start-up
+    cover.
+- **From the world to the laptop.** While the world has the focus, the game holds the pointer. He presses Esc (or
+  E, or T), moves the pointer down and clicks. With a reserved key (JUDGMENT-CALL 5) the typing line would open on
+  the laptop without Esc.
 - **Start and stop: the desktop supervisor**, with package 23c's watching of the screens. When the world has moved to
   the monitor, the supervisor starts the laptop home in a scope of its own on the laptop's screen. When the monitor
   goes, it stops it and the world comes back. With the lid closed there is no laptop screen and no laptop home.
 - **It is never needed.** If it crashes it is started again, three times at most, and after that the laptop screen is
-  the plain dark background of today. It is no part of "the world is ready".
+  the plain dark background of today. It is no part of "the world is ready". Losing the helper when the game
+  restarts is not a crash: it connects again with its token.
 - **Apps** open over it, on the screen the pointer is on. When an app that was opened from the laptop closes, the
   focus does not jump to the world on the other screen.
 
@@ -230,7 +314,10 @@ four events (LAPTOP-HOME.md section 4). The page never sees a command, a path or
 - The town does not change. The houses, the streets and the menu for opening apps (hotbar, typing, click) stay
   where they are; the companions walk the streets, sit on roofs and stand on the floor.
 - What the companions package still has to decide: whether houses shrink or a street is left out to give companions
-  more room above the roofs (today 60 pixels under the next street), what they do there, and their own memory.
+  more room above the roofs (today 60 pixels under the next street), what they do there, their own memory, and
+  their frame budget (about a fifth of a core while they move at 60 frames a second, measured above).
+- A street that slides moves its ledges and boxes with it; the runtime reads the world every frame, so companions
+  standing there ride along.
 
 ## JUDGMENT-CALL (for the owner)
 
@@ -239,16 +326,23 @@ four events (LAPTOP-HOME.md section 4). The page never sees a command, a path or
    one folder of web files.
 2. **One look or a choice.** I would build Night street alone first. A second look and a way to choose can follow
    once he has lived with the first.
-3. **Night, and dark houses.** Houses are dimmed until their app is open. It makes "what is running" visible at a
-   glance and keeps the screen calm. The other way: every logo in full colour, and only the door light shows what
-   is open. One number to change.
+3. **Slightly dimmed houses, or every logo in full colour.** Compare [street-1](pictures/street-1-home.png) and
+   [street-10](pictures/street-10-full-colour.png).
+   - Slightly dimmed (62 % brightness, 82 % saturation) until their app is open: what is running shows at a glance,
+     and the screen stays calm.
+   - Full colour: only the door light shows what is open.
+   - One number to change. I recommend slightly dimmed.
 4. **What else is on the screen.** Only the time, the date and the battery. No notifications, no volume, no view
-   into the world. Each can be added; I left them out so the apps stay the point.
-5. **A key that jumps to the laptop home's typing line** from anywhere (for example the Super key): it would make
-   the laptop home the launcher of the whole session while the monitor is in. I would add it, but a reserved key
-   changes how AresOS feels, so it is his call.
+   into the world. Each can be added; I left them out so the apps stay the point. I recommend that for version 1.
+5. **A reserved key that jumps to the laptop home's typing line** from anywhere, for example the Super key.
+   - While he is in the world, the game holds the pointer. Without the key, the way to the laptop is Esc (or E, or
+     T) first. The key is the only way across without Esc.
+   - It also makes the laptop home the launcher of the whole session while the monitor is in.
+   - I would add it, but a reserved key changes how AresOS feels, so it is his call.
 6. **Pins change in the world only** in version 1. The laptop shows the hotbar and opens from it; it does not
-   re-order it.
+   re-order it. I recommend so.
+
+LAPTOP-HOME.md section 10 asks the same six questions, in this order.
 
 ## PLAN-GAP
 
@@ -261,14 +355,52 @@ four events (LAPTOP-HOME.md section 4). The page never sees a command, a path or
 - JetBrains Mono is not in the image (only Space Grotesk is, under `/usr/share/fonts/aresos`). The build adds it
   (OFL) or the numbers and short names fall back to another font.
 - `gtk4-layer-shell` is not on the laptop.
+- **The laptop home's view token** (`ARESOS_VIEW_TOKEN`, LAPTOP-HOME.md section 5) is not in any plan yet.
+  - The supervisor makes it once per session, keeps it beside the instance, and hands it to every helper it starts
+    and to the laptop home.
+  - That is the supervisor's side, package 23c (`linux-aresos`).
 
 ## Open questions
 
 - Does labwc 0.9.6 give a background layer surface the keyboard on a click as expected ("on demand")? To try in a
   test compositor once the library is there.
 - The real memory in his session with two screens, and with the companions.
-- More than sixteen apps in one group: the street would have to scroll sideways or the houses shrink below 84
-  pixels. Not designed.
+- Which graphics chip GTK and labwc draw on in his session. They must match (LAPTOP-HOME.md section 4).
+- What the game does when the laptop home takes the keyboard through the reserved key: it must not open its pause
+  menu.
+- How many frames a second the companions get (their package).
 - Opening an app on the monitor from the laptop (for example Shift and click) would need one more field in
   `open_app`. Not in version 1.
 - A dot on the Map table showing where he stands in the world would need the mod to say so. Left out.
+
+## Review fixes 1
+
+`REVIEW-1.md` (CHANGES-NEEDED) found 13 things. None changed the recommendation. Each is fixed in
+`docs/design/LAPTOP-HOME.md`, here, and in the prototypes where it applies.
+
+1. **A house's side came from a running count.** Fixed: side and slot come from the place (`slot = r(r+1)/2 + k`),
+   a free place stays a gap, and `CELL` comes from the farthest slot. Night street's own check covers a town with
+   one hole.
+2. **The nonce changes with each game start.** Fixed: the laptop home gets a token of its own for the session,
+   accepted for views only, and connects again after a helper restart. In between: the last town, with opening off.
+   Who makes the token is a PLAN-GAP (the supervisor, package 23c, `linux-aresos`).
+3. **The helper keeps more one-client state.** Fixed: a view's hello leaves the desktop's state alone, the journal
+   is kept per client with a share of its own for views, each launch remembers who asked, and an unknown ID in
+   `publish_home` drops one app.
+4. **No answer past 16 apps in a group.** Fixed: the street slides, with end signs that count the houses out of
+   sight (pictures 8 and 9, 45 apps). The report no longer says every app is always on screen.
+5. **The way from the world.** Described: Esc (or E, or T) first. JUDGMENT-CALL 5 now says the key is the only way
+   across without Esc.
+6. **Typing missed generic names and keywords; the finder's group had no source.** Fixed: both are searched after
+   the names, `pdf` finds Test Viewer by its keyword (picture 3), and the list shows the generic name, no group.
+7. **The companions' cost was vague.** Measured: one companion-sized figure costs about a fifth of a core on one
+   graphics chip. The study's two cores came from GTK and the compositor drawing on different chips.
+8. **JUDGMENT-CALL 3 showed one side.** Fixed: picture 10 shows every logo in full colour. The question now says
+   "slightly dimmed", and section 10 asks the report's six questions with their recommendations.
+9. **The memory split.** Measured: 127 MiB working memory and 208 MiB mapped files, under 1 MiB shared memory.
+10. **The caret blinked without end; the clock ticked every 10 seconds.** Fixed in the draft and the prototype.
+11. **Test logos changed with the town's size.** Fixed: each logo comes from the app's ID.
+12. **Long names never shown.** Fixed: signs wrap to two lines, and "Test Media Workbench" (20 letters) is in the
+    24-, 40- and 45-app towns.
+13. **Build notes.** Added: `LD_PRELOAD` for the layer library, the scheme's secure, CORS and MIME settings, the
+    fallback placing itself on the `eDP` screen, and the token and `LD_PRELOAD` removed before the engine starts.

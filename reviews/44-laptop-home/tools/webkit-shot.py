@@ -175,8 +175,14 @@ def main():
         result['drawing_libraries'] = drawing_libraries()
         if watch:
             before = result.pop('_before')
+            seconds = time.monotonic() - before['at']
             spent = sum(p['cpu_s'] for p in after) - sum(p['cpu_s'] for p in before['processes'])
-            result['idle_cpu_percent_of_one_core'] = round(100 * spent / (time.monotonic() - before['at']), 2)
+            result['idle_cpu_percent_of_one_core'] = round(100 * spent / seconds, 2)
+            # Which process spent it: the window program (it puts the engine's pictures on the screen) or the
+            # engine's page process (it draws the page).
+            earlier = {p['pid']: p['cpu_s'] for p in before['processes']}
+            for p, shown in zip(after, result['processes']):
+                shown['cpu_percent'] = round(100 * (p['cpu_s'] - earlier.get(p['pid'], 0)) / seconds, 1)
         print(json.dumps(result), flush=True)
         app.quit()
         return False
