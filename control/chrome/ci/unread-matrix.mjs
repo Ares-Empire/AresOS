@@ -10,7 +10,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {setTimeout as delay} from 'node:timers/promises';
 import {completeIngress} from './ingress-scan.mjs';
-import {PASSWORD,PROBE,PLAIN_KINDS,PLAIN_ROOTS,NAMED,TYPED_KINDS,TYPED_AREA,DRAFT_AREA,OPTION,LIMIT,LATE_DRAFT} from './unread-fixtures.mjs';
+import {PASSWORD,PROBE,NOTE,PLAIN_KINDS,PLAIN_ROOTS,NAMED,TYPED_KINDS,TYPED_AREA,DRAFT_AREA,OPTION,LIMIT,LATE_DRAFT} from './unread-fixtures.mjs';
 
 const SECRET=new RegExp(PASSWORD);
 const address=(mode,id,variant='')=>'password-unread&mode='+mode+'&id='+id+(variant?'&variant='+variant:'');
@@ -145,31 +145,37 @@ export async function unreadMatrix({check,call,rpc,read,nav,target,counts,approv
       assert.equal(count(watched,'password "Code" (not read)')+count(watched,'"Code" (filled, not read)'),made,'a watched document shows no value of a field that was a password field');
       for(const label of NAMED)assert.ok(watched.includes('password "'+label+'" (not read)'),'watched: '+label);
       assert.ok(watched.includes('"Kind text" = "'+TYPED_KINDS.text+'"'),'a plain field of a watched document is read');
-      // After the taken tab's reload a plain, unnamed text field of that page is read, and the named ones still aren't.
-      await call('navigate',{tab,direction:'reload',discard_unsaved:true});await ready(id,2);
-      const after=await surfaces('reloaded tab',tab);
-      assert.ok(after.whole.includes('"Kind text" = "'+TYPED_KINDS.text+'"'),'after the reload a plain text field is read');
-      assert.equal(fields(after.rows,'Kind text')[0]?.expected.value,TYPED_KINDS.text);
-      for(const label of NAMED)assert.ok(after.whole.includes('password "'+label+'" (not read)'),'after the reload: '+label);
-      assert.equal(count(after.whole,'"Code"'),made);
-      assert.equal(count(after.whole,'password "Code" (not read)')+count(after.whole,'"Code" (filled, not read)'),made,'after the reload no field made plain shows a value');
-      for(const row of fields(after.rows,'Code'))assert.equal(row.expected.value,undefined);
       recording('fields made plain',DRAFT_AREA);
       // The mutation check, in the browser. The same nine fields in three roots, holding a probe value in place of
       // the password, again in a taken tab before its reload: with the history rule as built every one is filled,
       // not read; with the rule switched off for that page in the test build (prepare.mjs) every one shows the
       // value. So the rule is what keeps them out, and the counts above would have moved without it.
-      const probed={};
+      // This page has no frame, so the tool can reload it (brief 20 refuses to reload the page above: it doesn't
+      // know the request method of an owner-opened page's frame, and says to open the address fresh, which the
+      // watched tab did). After the taken tab's reload its plain, unnamed text field is read, and the named one
+      // and the fields that were password fields still aren't.
+      const probed={},total=PLAIN_KINDS*PLAIN_ROOTS,signin='password "Verification code" (not read)';
       for(const rule of ['kept','off']){
         const key=id+'-probe-'+rule;
         await call('release_tab',{tab});await ownerNavigate(url(key)+'&probe=1'+(rule==='off'?'&unprotect=history':''));
         await eventually(()=>fixture.compatibility.some(row=>row.id===key&&row.phase==='plain-ready'&&row.frame==='top'),'the probe page finished: '+key);
         await call('take_tab',{tab});
-        probed[rule]=await full('probe page, rule '+rule,tab);assert.equal(count(probed[rule],'"Code"'),PLAIN_KINDS*PLAIN_ROOTS,rule);
+        probed[rule]=await full('probe page, rule '+rule,tab);assert.equal(count(probed[rule],'"Code"'),total,rule);
+        assert.ok(probed[rule].includes(signin),'the name rule holds whatever the history rule does: '+rule);
+        if(rule==='off')continue;
+        assert.equal(count(probed.kept,'"Note" (filled, not read)'),1,'before the reload the plain field shows only that it is filled');
+        await call('navigate',{tab,direction:'reload',discard_unsaved:true});
+        await eventually(()=>fixture.compatibility.filter(row=>row.id===key&&row.phase==='plain-ready'&&row.frame==='top').length>=2,'the probe page reloaded');
+        const reloaded=await full('probe page, reloaded',tab);
+        assert.ok(reloaded.includes('"Note" = "'+NOTE+'"'),'after the reload a plain, unnamed text field is read');
+        assert.ok(reloaded.includes(signin),'after the reload the named field still isn\'t read');
+        assert.equal(count(reloaded,'"Code"'),total);assert.ok(!reloaded.includes(PROBE),'after the reload no field that was a password field shows its value');
+        assert.equal(count(reloaded,'password "Code" (not read)')+count(reloaded,'"Code" (filled, not read)'),total);
+        const rows=await read();assert.equal(fields(rows,'Note')[0]?.expected.value,NOTE);assert.ok(!JSON.stringify(rows).includes(PROBE));
       }
-      assert.equal(count(probed.kept,'"Code" (filled, not read)'),PLAIN_KINDS*PLAIN_ROOTS,'the history rule keeps the probe value out');assert.ok(!probed.kept.includes(PROBE));
-      assert.equal(count(probed.off,'"Code" = "'+PROBE+'"'),PLAIN_KINDS*PLAIN_ROOTS,'without the history rule every field made plain shows its value');
-      assert.equal(count(probed.off,'(filled, not read)'),0);
+      assert.equal(count(probed.kept,'"Code" (filled, not read)'),total,'the history rule keeps the probe value out');assert.ok(!probed.kept.includes(PROBE));
+      assert.equal(count(probed.off,'"Code" = "'+PROBE+'"'),total,'without the history rule every field made plain shows its value');
+      assert.equal(count(probed.off,'(filled, not read)'),0);assert.equal(count(probed.off,PROBE),total,'and only those: the named field keeps its value');
       evidence.push({case:'plain',made,forms:taken.forms,taken:taken.first.untrusted_content.outline.split('\n').slice(0,40),watched:watched.split('\n').length});
     }finally{await rpc('close_tab',{tab:watchedTab,discard_unsaved:true});}
   });

@@ -19,7 +19,9 @@ const madePlain=secret=>[
 ];
 // The mutation check's page (probe=1) holds this value in the same nine fields, and the password nowhere: the case
 // reads it once with the history rule switched off in the test build (prepare.mjs), where every field shows it.
-export const PROBE='MUTATION_PROBE_VALUE_28';
+export const PROBE='MUTATION_PROBE_VALUE_28',NOTE='PUBLIC_NOTE_28';
+// Beside them on that page: a sign-in code known by its name, holding the probe value too, and a plain, unnamed field.
+const PROBE_FIELDS=`<label for="signin-field">Verification code</label><input id="signin-field" name="otp" value="${PROBE}"><input aria-label="Note" value="${NOTE}">`;
 // The page, an open root and a closed root, in the top document and again in a frame of the second site.
 export const PLAIN_KINDS=madePlain(PASSWORD).length,PLAIN_ROOTS=3;
 
@@ -55,7 +57,7 @@ export const LATE_DRAFT='PRIVATE_LATE_DRAFT_28';
 
 function plainPage(cross,id,probe){
   const frame=cross?'child':'top';
-  const body=`<h1>${cross?'Plain child':'Plain top'}</h1><div id="light"></div><div id="open"></div><div id="closed"></div>`
+  const body=`<h1>${cross?'Plain child':'Plain top'}</h1><div id="light"></div><div id="open"></div><div id="closed"></div>`+(probe?`<form id="named">${PROBE_FIELDS}</form>`:'')
     +(cross||probe?'':`<form id="named">${NAMED_FIELDS}</form><form id="shown">${SHOWN}</form><form id="limit">${LIMIT_FIELDS}</form>`
       +`<iframe style="width:100%;height:300px;display:block" src="http://second.test:8766/?case=password-unread&mode=plain-child&id=${encodeURIComponent(id)}"></iframe>`);
   // The fields stand as password fields for one task and are plain from the

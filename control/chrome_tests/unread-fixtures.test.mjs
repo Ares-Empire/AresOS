@@ -77,7 +77,7 @@ test('the plain page makes each of its nine kinds plain a task after it wrote th
   // The mutation check's page: the same nine fields with the probe value, no frame, and the password nowhere.
   const probe=pageOf('mode=plain&id=a&probe=1');
   assert.ok(!probe.body.includes(PASSWORD)&&!probe.script.includes(PASSWORD)&&!probe.body.includes('<iframe'));
-  assert.equal(count(probe.script,PROBE),PLAIN_KINDS);assert.equal(count(probe.script,'aria-label=\\"Code\\"'),PLAIN_KINDS);
+  assert.equal(count(probe.script,PROBE),PLAIN_KINDS);assert.equal(count(probe.body,PROBE),1,'the named field');assert.ok(probe.body.includes('name="otp"')&&probe.body.includes('aria-label="Note"'));assert.equal(count(probe.script,'aria-label=\\"Code\\"'),PLAIN_KINDS);
 });
 
 test('the late pages hold what their cases need, and nothing typed before the owner comes',()=>{
