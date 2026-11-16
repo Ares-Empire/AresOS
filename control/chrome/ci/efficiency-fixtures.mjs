@@ -114,6 +114,25 @@ function h1(mode,title){
     +'roles.forEach((role,index)=>{const node=el("div",{role,"aria-label":"Role "+index});node.append(document.createTextNode("Text "+index),el("button",{type:"button"},"Real "+index));main.append(node);});'};
 }
 
+// Group 14's addresses: one marker in every place a sign-in travels (the
+// parameters code, access_token, sig and session; a random-looking value under
+// an ordinary name; the fragment; a user name and password; a path segment
+// after /reset/), beside an ordinary query that stays shown. It stands in link
+// targets, a form's action and a frame's address; outline-read.mjs opens the
+// page itself at an address that carries it too. mode=frame is the frame.
+export const ADDRESS_MARK='Zq7Xk2Lm9Pw4Rt8Vb3Nc6Hd1Jf5Gs0Ya2Ue7Ko4i';
+export const ADDRESS_QUERY='v=dQw4w9WgXcQ&q=red+shoes&page=2';
+export const addressOf=(mark=ADDRESS_MARK)=>'http://fixture.test:8765/?case=efficiency-address&'+ADDRESS_QUERY+'&code='+mark+'&access_token='+mark+'&sig='+mark+'&session='+mark+'&ref='+mark+'#access_token='+mark;
+export const ADDRESS_LINKS=[['Video link','/watch?'+ADDRESS_QUERY+'&sig='+ADDRESS_MARK],['Sign-in link','http://name:'+ADDRESS_MARK+'@fixture.test:8765/next?v=dQw4w9WgXcQ'],
+  ['Reset link','/reset/'+ADDRESS_MARK+'?q=red+shoes'],['Fragment link','/x?page=2#ref='+ADDRESS_MARK],
+  ['Token link','/t?access_token='+ADDRESS_MARK+'&session='+ADDRESS_MARK+'&code='+ADDRESS_MARK],['Random link','/r?ref='+ADDRESS_MARK]];
+function address(mode){
+  if(mode==='frame')return {body:'<p>Address frame text</p><a href="/frame-next?code='+ADDRESS_MARK+'">Frame marker link</a>',script:titled('Address frame')};
+  return {body:'<h1>Address fixture</h1>'+ADDRESS_LINKS.map(([name,href])=>'<p><a href="'+escape(href)+'">'+name+'</a></p>').join('')
+    +'<form aria-label="Marker form" method="get" action="'+escape('/receive?case=efficiency-address-form&session='+ADDRESS_MARK+'&'+ADDRESS_QUERY)+'"><label>Query <input name="query"></label><button type="submit">Search</button></form>'
+    +'<iframe title="Marker frame" src="'+escape('/?case=efficiency-address&mode=frame&code='+ADDRESS_MARK+'&ref='+ADDRESS_MARK)+'"></iframe>',script:titled('Address fixture')};
+}
+
 // The pages of "list 25 open tabs": titles of about 30 characters.
 export const tabTitle=id=>'Efficiency fixture tab no. '+String(id).padStart(2,'0');
 
@@ -129,6 +148,7 @@ export function efficiencyPage(url){
   if(name==='f7')return f7(page);
   if(name==='f6')return f6(url.searchParams.get('mode'));
   if(name==='h1')return h1(url.searchParams.get('mode'),Math.max(0,Math.min(HOSTILE.length-1,Number.parseInt(url.searchParams.get('title')||'0',10)||0)));
+  if(name==='address')return address(url.searchParams.get('mode'));
   if(name==='tab')return {body:'<p>'+escape(tabTitle(id))+'</p>',script:titled(tabTitle(id))};
   return null;
 }

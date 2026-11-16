@@ -216,7 +216,7 @@ jobs:
       # Brief 28, group 16: the efficiency tasks in the pair's current image, as
       # their own step after the gate, so a failing task can't hide its result.
       # It runs when the pair has built the image, also after a red gate.
-      - name: Efficiency tasks with brief 20's tools
+      - name: Efficiency tasks with brief 20's tools and the new read
         if: ${{ !cancelled() && !inputs.latency_probe && matrix.privacy == 'plain' && steps.pair.outcome == 'success' }}
         env:
           QUALIFICATION_VERSION: ${{ needs.package.outputs.version }}

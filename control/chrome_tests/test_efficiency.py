@@ -244,6 +244,98 @@ class EfficiencyBaselineTest(unittest.TestCase):
         self.assertEqual(tasks["f1_everything"]["row"], "F1: everything, the read and each cursor it returns")
 
 
+def outline_tasks():
+    """OUTLINE_TASKS of efficiency-probe.mjs as its source lists them: name, row and plan."""
+    source = (ROOT / "chrome/ci/efficiency-probe.mjs").read_text()
+    block = source[source.index("export const OUTLINE_TASKS=["):source.index("export async function efficiencyProbe(")]
+    heads = re.findall(r"\{name:'([a-z0-9_]+)',row:'((?:[^'\\]|\\.)*)',plan:\[([^\]]*)\]", block)
+    if len(heads) != len(re.findall(r"\bname:'", block)):
+        raise AssertionError("a task of OUTLINE_TASKS isn't written as {name:'…',row:'…',plan:[…]")
+    return [{"name": name, "row": row.replace("\\'", "'"), "plan": re.findall(r"'([a-z_]+\*?)'", plan)} for name, row, plan in heads]
+
+
+class ReadRowsTest(unittest.TestCase):
+    """Group 16's read rows: the new read against the brief's budgets and the frozen baseline (efficiency-summary.py)."""
+
+    def setUp(self):
+        self.baseline = json.loads(summary.BASELINE.read_text())
+
+    def test_the_rows_are_the_briefs_table_and_name_the_baseline_row_they_measure(self):
+        # "Tests", group 16: the budget of each row as the brief's table gives it.
+        self.assertEqual({name: (row["baseline"], row["calls"], row["characters"]) for name, row in summary.OUTLINE_ROWS.items()}, {
+            "outline_f1_first_read": ("f1_first_read", 1, 6000), "outline_f1_everything": ("f1_everything", 3, 75000),
+            "outline_f1_fields": ("f1_fields", 1, 6000), "outline_f2_table": ("f2_table", 1, 14400 + 7 * 1200 + 800),
+            "outline_f3_find_link": ("f3_find_link", 1, 800), "outline_three_tabs": ("three_tabs", 1, None)})
+        self.assertEqual((summary.SLOWER, summary.SLACK_MS, summary.COMPARED), (1.10, 50.0, "outline_f1_first_read"))
+        tasks = outline_tasks()
+        self.assertEqual([task["name"] for task in tasks], list(summary.OUTLINE_ROWS))
+        for task in tasks:
+            with self.subTest(task=task["name"]):
+                base = self.baseline["tasks"][summary.OUTLINE_ROWS[task["name"]]["baseline"]]
+                self.assertEqual(task["row"], base["row"])
+                self.assertTrue(set(task["plan"]) <= {"outline", "outline*"}, task["plan"])
+                self.assertLessEqual(len([step for step in task["plan"] if not step.endswith("*")]), summary.OUTLINE_ROWS[task["name"]]["calls"])
+
+    def run_of(self, change=None):
+        """A summary as summarize() returns it, for a run where every row holds; `change` edits one task."""
+        tasks = {}
+        for name, row in summary.OUTLINE_ROWS.items():
+            base = self.baseline["tasks"][row["baseline"]]
+            old = dict(base, milliseconds=100.0, milliseconds_per_run=[100.0] * 5)
+            tasks[row["baseline"]] = old
+            characters = min(row["characters"] or base["characters"], base["characters"]) - 10
+            tasks[name] = {"row": base["row"], "outcome": "done", "calls": 1, "characters": characters,
+                           "characters_per_run": [characters] * 5, "milliseconds": 150.0, "milliseconds_per_run": [150.0] * 5}
+        if change:
+            change(tasks)
+        return {"run_id": "7", "sha": "abc", "measured_runs": 5, "tasks": tasks}
+
+    def test_rows_that_hold_give_no_miss_and_the_comparison_entry(self):
+        rows, comparison, misses = summary.read_rows(self.run_of(), self.baseline)
+        self.assertEqual(misses, [])
+        self.assertEqual(list(rows), list(summary.OUTLINE_ROWS))
+        self.assertEqual(rows["outline_f2_table"]["budget"], {"calls": 1, "characters": 23600})
+        self.assertEqual(comparison["old"]["tool"], "chrome_read")
+        self.assertEqual(comparison["new"]["tool"], "chrome_outline")
+        self.assertEqual((comparison["run_id"], comparison["allowed_milliseconds"], comparison["passed"]), ("7", 160.0, True))
+
+    def test_each_miss_fails_the_rows(self):
+        def edit(name, **values):
+            return lambda tasks: tasks[name].update(values)
+        cases = [
+            # over the budget in one run, though the median is under it
+            (edit("outline_f1_first_read", characters_per_run=[5000, 5000, 6001, 5000, 5000]), "characters in a run 6001, allowed 6000"),
+            (edit("outline_f1_everything", calls=4), "calls 4, allowed 3"),
+            # worse than the baseline: three tabs has no character budget of its own
+            (edit("outline_three_tabs", characters_per_run=[55302] * 5), "characters in a run against the baseline 55302, allowed 55301"),
+            (edit("outline_f3_find_link", characters_per_run=[801] * 5), "characters in a run 801, allowed 800"),
+            # slower than 1.10 x brief 20's median in this run plus 50 ms
+            (edit("outline_f1_first_read", milliseconds=160.1), "milliseconds against brief 20's in this run 160.1, allowed 160.0"),
+            (edit("outline_f2_table", outcome="refused"), "outline_f2_table: row"),
+            (lambda tasks: tasks.pop("outline_f1_fields"), "outline_f1_fields: not measured"),
+            (lambda tasks: tasks.pop("f3_find_link"), "outline_f3_find_link: brief 20's f3_find_link was not measured in this run"),
+        ]
+        for change, expected in cases:
+            with self.subTest(expected=expected):
+                _, _, misses = summary.read_rows(self.run_of(change), self.baseline)
+                self.assertEqual(len(misses), 1, misses)
+                self.assertIn(expected, misses[0])
+        _, comparison, _ = summary.read_rows(self.run_of(edit("outline_f1_first_read", milliseconds=160.1)), self.baseline)
+        self.assertFalse(comparison["passed"])
+
+    def test_the_step_fails_after_writing_the_record(self):
+        with tempfile.TemporaryDirectory(prefix="pkg28-read-rows-") as directory:
+            record = Record(directory)
+            record.task("f1_first_read", 0, [("read", page("x"))], 50)
+            record.task("f1_first_read", 1, [("read", page("x"))], 50)
+            record.write()
+            with self.assertRaises(SystemExit) as caught:
+                summary.main(["efficiency-summary.py", directory])
+            self.assertIn("missed", str(caught.exception))
+            written = json.loads((Path(directory) / "efficiency-measured.json").read_text())
+            self.assertIn("outline_f1_first_read: not measured", written["read_row_misses"])
+
+
 class EfficiencyWiringTest(unittest.TestCase):
     """The probe runs inside the latency harness: one docker command, the plain leg, after the gate."""
 
@@ -266,7 +358,7 @@ class EfficiencyWiringTest(unittest.TestCase):
         names = [step["name"] for step in latency]
         pair = dict(latency[names.index("Paired current and historical measurements on the same runner")]["keys"])
         gate = names.index("Require lead ceilings and reject paired latency regressions")
-        probe = names.index("Efficiency tasks with brief 20's tools")
+        probe = names.index("Efficiency tasks with brief 20's tools and the new read")
         self.assertEqual(probe, gate + 1)
         self.assertEqual(pair["id"], "pair")
         self.assertEqual(pair["run"], "bash control/chrome/ci/latency-pair.sh")

@@ -5,7 +5,8 @@
 // with each cursor the tool returns) and no others; setup calls are not
 // counted or timed. A row brief 20's tools can't finish ends in the one refusal
 // its task expects, and the baseline records that. efficiency-summary.py turns
-// the record into the numbers.
+// the record into the numbers. OUTLINE_TASKS are the second half, the read rows
+// with the new read; each run makes both, so old and new are timed in one run.
 import fs from 'node:fs';
 import os from 'node:os';
 import assert from 'node:assert/strict';
@@ -118,6 +119,43 @@ export function followsPlan(tools,plan){
   return index===tools.length;
 }
 
+// Group 16's read rows: the new read through chrome_outline (the test-only
+// switch, run.sh), with the rows and the exact calls of the brief's table. The
+// row names the baseline task of the same row; efficiency-summary.py holds the
+// budgets and fails the step when a row misses its budget or the baseline.
+const REFERENCE=/ ([bcdfghjklmnpqrstvwxyz]{5}\d+)$/;
+// The reference on the first outline line that starts with these words.
+function lineRef(outline,start){
+  const line=outline.split('\n').find(line=>line.trimStart().startsWith(start));assert.ok(line,'a line starting with '+start);
+  const found=line.match(REFERENCE);assert.ok(found,line);return found[1];
+}
+const readOf=entry=>{assert.ok(entry&&!entry.error,JSON.stringify(entry?.error));return entry;};
+export const OUTLINE_TASKS=[
+  {name:'outline_f1_first_read',row:'F1: the first read',plan:['outline'],page:()=>fixtureUrl('f1'),
+    async run({call,tab}){const entry=readOf((await call('outline',{tab})).reads[0]);assert.equal(entry.cursor,null,'the whole outline in one call');}},
+  {name:'outline_f1_everything',row:'F1: everything, the read and each cursor it returns',plan:['outline','outline*'],page:()=>fixtureUrl('f1'),
+    async run({call,tab}){
+      let cursor,text='';
+      do{const entry=readOf((await call('outline',{tab,full:true,max:40000,...(cursor?{cursor}:{})})).reads[0]);text+=entry.untrusted_content.outline;cursor=entry.cursor;}while(cursor);
+      assert.match(text,/Paragraph 119/);assert.match(text,/Synthetic value 79/);assert.doesNotMatch(text,/… \d+ more/,'full folds nothing');
+    }},
+  {name:'outline_f1_fields',row:'F1: the 80 fields with their values, after the first read',plan:['outline'],page:()=>fixtureUrl('f1'),firstOutline:true,
+    async run({call,tab,first}){
+      const entry=readOf((await call('outline',{tab,ref:lineRef(first.reads[0].untrusted_content.outline,'form')})).reads[0]);
+      assert.equal(entry.cursor,null);assert.equal(entry.untrusted_content.outline.match(/Synthetic value \d+/g)?.length,80);
+    }},
+  {name:'outline_f2_table',row:'F2: the whole table, after the first read',plan:['outline'],page:()=>fixtureUrl('f2'),firstOutline:true,
+    async run({call,tab,first}){
+      const entry=readOf((await call('outline',{tab,ref:lineRef(first.reads[0].untrusted_content.outline,'table "Stock"'),max:40000})).reads[0]);
+      assert.equal(entry.cursor,null);const text=entry.untrusted_content.outline;
+      for(let row=0;row<F2_ROWS;row++)for(let column=0;column<F2_COLUMNS;column++)assert.ok(text.includes('"'+f2Cell(row,column)+'"'),f2Cell(row,column));
+    }},
+  {name:'outline_f3_find_link',row:'F3: find the one link with the unique name',plan:['outline'],page:()=>fixtureUrl('f3'),
+    async run({call,tab}){const entry=readOf((await call('outline',{tab,find:F3_UNIQUE,role:'link'})).reads[0]);assert.ok(entry.untrusted_content.outline.includes('link "'+F3_UNIQUE+'"'),entry.untrusted_content.outline);}},
+  {name:'outline_three_tabs',row:'Compare three open tabs (F1, F2, F3)',plan:['outline'],phase:'tabs',
+    async run({call,tabs}){const result=await call('outline',{tabs:tabs.slice(0,3)});assert.deepEqual(result.reads.map(entry=>readOf(entry).tab),tabs.slice(0,3));}},
+];
+
 export async function efficiencyProbe({rpc,eventually,counts,getTab,out='/out'}){
   const record=fs.openSync(out+'/efficiency-calls.jsonl','a'),timing=fs.openSync(out+'/efficiency-tasks.jsonl','a');
   const tab=getTab();
@@ -158,7 +196,12 @@ export async function efficiencyProbe({rpc,eventually,counts,getTab,out='/out'})
   async function rounds(tasks,context){
     for(let run=0;run<EFFICIENCY_WARMUPS+EFFICIENCY_RUNS;run++)for(const task of tasks){
       let first=null;
-      if(task.page){await nav(task.page({run}));if(task.firstRead){const result=await rpc('read',{tab});assert.ok(result.ok);first=result.data;}}
+      if(task.page){
+        await nav(task.page({run}));
+        // The first read a row comes after: brief 20's for its tasks, the new read for the read rows. Not counted.
+        if(task.firstRead){const result=await rpc('read',{tab});assert.ok(result.ok);first=result.data;}
+        if(task.firstOutline){const result=await rpc('outline',{tab});assert.ok(result.ok,JSON.stringify(result.error));first=result.data;}
+      }
       await perform(task,run,{...context,tab,first});
     }
   }
@@ -168,14 +211,15 @@ export async function efficiencyProbe({rpc,eventually,counts,getTab,out='/out'})
       cpu:os.cpus()[0]?.model||null,cpus:os.cpus().length,memory_bytes:os.totalmem(),node:process.version,
       chrome:fs.existsSync(out+'/chrome-version.txt')?fs.readFileSync(out+'/chrome-version.txt','utf8').trim():null,
       run_id:process.env.GITHUB_RUN_ID||null,sha:process.env.GITHUB_SHA||null},null,2));
-    await rounds(TASKS.filter(task=>!task.phase),{});
+    const all=[...TASKS,...OUTLINE_TASKS];
+    await rounds(all.filter(task=>!task.phase),{});
     // Three tabs show F1, F2 and F3, then more tabs until 25 are open in all.
     const tabs=[];for(const name of ['f1','f2','f3'])tabs.push(await open(fixtureUrl(name)));
-    await rounds(TASKS.filter(task=>task.phase==='tabs'),{tabs});
+    await rounds(all.filter(task=>task.phase==='tabs'),{tabs});
     const listed=async()=>{let cursor,count=0;do{const result=await rpc('tabs',{limit:10,...(cursor?{cursor}:{})});assert.ok(result.ok);count+=result.data.items.length;cursor=result.data.cursor;}while(cursor);return count;};
     for(let id=1,count=await listed();count<EFFICIENCY_TAB_COUNT;id++,count++)await open(fixtureUrl('tab','&id='+id));
     assert.equal(await listed(),EFFICIENCY_TAB_COUNT);assert.ok(tabTitle(1).length>=28&&tabTitle(1).length<=32);
-    await rounds(TASKS.filter(task=>task.phase==='many'),{tabs});
-    console.log('Efficiency probe complete:',TASKS.length,'tasks,',EFFICIENCY_WARMUPS,'warm-up and',EFFICIENCY_RUNS,'measured runs each');
+    await rounds(all.filter(task=>task.phase==='many'),{tabs});
+    console.log('Efficiency probe complete:',all.length,'tasks,',EFFICIENCY_WARMUPS,'warm-up and',EFFICIENCY_RUNS,'measured runs each');
   }finally{fs.closeSync(record);fs.closeSync(timing);}
 }

@@ -7,8 +7,8 @@ import os from 'node:os';
 import path from 'node:path';
 import vm from 'node:vm';
 import {fixtures} from '../chrome/ci/fixture.mjs';
-import {efficiencyPage,f1Body,f2Cell,f2Header,f3Name,F3_UNIQUE,F4_FILLED,tabTitle,HOSTILE,H1_ROLES,H1_ELEMENTS,H1_NAME} from '../chrome/ci/efficiency-fixtures.mjs';
-import {TASKS,efficiencyProbe,followsPlan,parseRows,EFFICIENCY_WARMUPS,EFFICIENCY_RUNS,EFFICIENCY_TAB_COUNT} from '../chrome/ci/efficiency-probe.mjs';
+import {efficiencyPage,f1Body,f2Cell,f2Header,f3Name,F2_ROWS,F2_COLUMNS,F3_UNIQUE,ADDRESS_MARK,ADDRESS_QUERY,ADDRESS_LINKS,addressOf,F4_FILLED,tabTitle,HOSTILE,H1_ROLES,H1_ELEMENTS,H1_NAME} from '../chrome/ci/efficiency-fixtures.mjs';
+import {TASKS,OUTLINE_TASKS,efficiencyProbe,followsPlan,parseRows,EFFICIENCY_WARMUPS,EFFICIENCY_RUNS,EFFICIENCY_TAB_COUNT} from '../chrome/ci/efficiency-probe.mjs';
 
 const served=async(base,query)=>{const response=await fetch(base+'/?'+query);return {status:response.status,html:await response.text()};};
 const bodyOf=html=>html.slice(html.indexOf('<body>')+6,html.lastIndexOf('<script>'));
@@ -82,6 +82,21 @@ test('a plan allows repeated cursor calls only where it says so',()=>{
   assert.deepEqual(parseRows('{"a":1}\n{"b":\n'+'tail"}\n{"c":2}').map(row=>Object.keys(row)[0]),['a','c']);
 });
 
+test('the address fixture carries one marker in every place a sign-in travels, beside an ordinary query',()=>{
+  const url=new URL(addressOf());
+  for(const name of ['code','access_token','sig','session','ref'])assert.equal(url.searchParams.get(name),ADDRESS_MARK,name);
+  assert.equal(url.hash,'#access_token='+ADDRESS_MARK);assert.equal(ADDRESS_MARK.length,40);
+  assert.deepEqual([url.searchParams.get('v'),url.searchParams.get('q'),url.searchParams.get('page')],['dQw4w9WgXcQ','red shoes','2']);
+  const {body}=efficiencyPage(url),html=body.replaceAll('&amp;','&');
+  assert.equal(ADDRESS_LINKS.length,6);
+  for(const [name,href] of ADDRESS_LINKS){assert.ok(href.includes(ADDRESS_MARK),name);assert.ok(html.includes('<a href="'+href+'">'+name+'</a>'),name);}
+  assert.ok(ADDRESS_LINKS.some(([,href])=>href.includes('name:'+ADDRESS_MARK+'@')),'a user name and password');
+  assert.ok(ADDRESS_LINKS.some(([,href])=>href.includes('/reset/'+ADDRESS_MARK)),'a path segment after /reset/');
+  assert.ok(html.includes('action="/receive?case=efficiency-address-form&session='+ADDRESS_MARK+'&'+ADDRESS_QUERY+'"'),'a form action');
+  assert.ok(html.includes('<iframe title="Marker frame" src="/?case=efficiency-address&mode=frame&code='+ADDRESS_MARK+'&ref='+ADDRESS_MARK+'">'),'a frame address');
+  assert.match(efficiencyPage(new URL('http://fixture.test/?case=efficiency-address&mode=frame')).body,/Address frame text/);
+});
+
 // A fake service: just enough of brief 20's results for every task to run.
 // Brief 20 refuses F4's Save (its approval would be over 16,384 bytes).
 // F2's first page comes from the setup's load check, the second from the first
@@ -99,6 +114,20 @@ function fakeService(){
   };
   const view=(tree,extra={})=>({ok:true,data:{untrusted_content:{url:page,title:'',tree},characters:tree.length,cursor:null,...extra}});
   let f2Page=0,f7=1,f5Clicked=false;
+  // The new read (chrome_outline): one entry a tab, the outline's lines as text.
+  const entry=(tab,outline,cursor=null)=>({tab,whose:'claude',characters:outline.length,total:outline.length,cursor,mid_line:false,typed_fields:0,
+    untrusted_content:{url:page,title:'',scroll:'0/0',dialog:null,outline}});
+  const reads=(...entries)=>({ok:true,data:{reads:entries,version_notice:null}});
+  function outline(name,args){
+    if(args.tabs)return reads(...args.tabs.map(tab=>entry(tab,'p "Tab '+tab+'"')));
+    if(name==='f1'&&args.full)return reads(entry(1,args.cursor?'p "Paragraph 119"\ntextbox "Field 79" = "Synthetic value 79"':'p "Paragraph 0"\n',args.cursor?null:'c1'));
+    if(name==='f1'&&args.ref)return reads(entry(1,Array.from({length:80},(_,index)=>'textbox "Field '+index+'" = "Synthetic value '+index+'" kqtvm'+(10+index)).join('\n')));
+    if(name==='f1')return reads(entry(1,'p "Paragraph 0"\n… 115 more (48000 characters) kqtvm9\nform kqtvm1\n  textbox "Field 0" = "Synthetic value 0" kqtvm2'));
+    if(name==='f2'&&args.ref)return reads(entry(1,Array.from({length:F2_ROWS},(_,row)=>Array.from({length:F2_COLUMNS},(_,column)=>'"'+f2Cell(row,column)+'"').join(' | ')).join('\n')));
+    if(name==='f2')return reads(entry(1,'h1 "Stock"\ntable "Stock" kqtvm3\n  … 200 rows, 6 columns (14400 characters)'));
+    if(name==='f3'&&args.find===F3_UNIQUE&&args.role==='link')return reads(entry(1,'link "'+F3_UNIQUE+'" → fixture.test kqtvm4'));
+    throw Error('unexpected outline of '+name+' '+JSON.stringify(args));
+  }
   async function rpc(action,args={}){
     calls.push(action);
     const name=(page.match(/efficiency-(\w+)/)||[])[1];
@@ -114,6 +143,7 @@ function fakeService(){
     if(action==='click'&&name==='f4')return {ok:false,error:{code:'asking_input_too_large',message:'The whole approval exceeds 16384 bytes; prepare a smaller operation. Nothing was reserved.'}};
     if(action==='click'&&name==='f7'){f7++;page=page.replace(/page=\d+/,'page='+f7);return {ok:true,data:{followups:[]}};}
     if(action==='click'){f5Clicked=name==='f5';return {ok:true,data:{followups:[]}};}
+    if(action==='outline')return outline(name,args);
     if(action==='wait')return {ok:true,data:{...view(trees.f7.replace('page 1','page '+f7)).data,untrusted_content:{url:page,title:'Results page '+f7,tree:trees.f7.replace('page 1','page '+f7)},condition_met:true}};
     throw Error('unexpected '+action);
   }
@@ -134,8 +164,9 @@ test('every task makes exactly the calls of its plan, recorded and timed, and th
     await efficiencyProbe(probeOptions(probeRpc(service),out));
     const timings=fs.readFileSync(out+'/efficiency-tasks.jsonl','utf8').trim().split('\n').map(line=>JSON.parse(line));
     const calls=fs.readFileSync(out+'/efficiency-calls.jsonl','utf8').trim().split('\n').map(line=>JSON.parse(line));
-    assert.equal(timings.length,TASKS.length*(EFFICIENCY_WARMUPS+EFFICIENCY_RUNS));
-    for(const task of TASKS){
+    const all=[...TASKS,...OUTLINE_TASKS];
+    assert.equal(timings.length,all.length*(EFFICIENCY_WARMUPS+EFFICIENCY_RUNS));
+    for(const task of all){
       const runs=timings.filter(timing=>timing.task===task.name);
       assert.equal(runs.filter(run=>run.warmup).length,EFFICIENCY_WARMUPS);assert.equal(runs.filter(run=>!run.warmup).length,EFFICIENCY_RUNS);
       for(const run of runs){
@@ -149,6 +180,14 @@ test('every task makes exactly the calls of its plan, recorded and timed, and th
     assert.ok(f4.filter(call=>call.action==='chrome_click').every(call=>call.expected_refusal==='asking_input_too_large'));
     assert.ok(calls.every(call=>call.result.ok||call.expected_refusal===call.result.error.code),'only the expected refusal fails');
     assert.deepEqual(timings.find(timing=>timing.task==='list_25_tabs').tools,['tabs','tabs','tabs']);
+    // The read rows: old and new in every run, in that order, and the new read's first read uncounted.
+    assert.deepEqual(timings.filter(timing=>timing.run===1).map(timing=>timing.task).filter(name=>name.endsWith('f1_first_read')),['f1_first_read','outline_f1_first_read']);
+    assert.deepEqual(timings.find(timing=>timing.task==='outline_f1_everything').tools,['outline','outline']);
+    for(const name of ['outline_f1_first_read','outline_f1_fields','outline_f2_table','outline_f3_find_link','outline_three_tabs'])
+      assert.deepEqual(timings.find(timing=>timing.task===name).tools,['outline'],name);
+    const fields=calls.find(call=>call.task==='outline_f1_fields');assert.equal(fields.arguments.ref,'kqtvm1','the form line\'s reference');
+    const table=calls.find(call=>call.task==='outline_f2_table');assert.deepEqual([table.arguments.ref,table.arguments.max],['kqtvm3',40000]);
+    assert.deepEqual(calls.find(call=>call.task==='outline_three_tabs').arguments,{tabs:[10,11,12]});
     assert.equal(service.tabCount(),EFFICIENCY_TAB_COUNT);
     assert.ok(JSON.parse(fs.readFileSync(out+'/efficiency-runner.json','utf8')).cpus>0);
   }finally{fs.rmSync(out,{recursive:true,force:true});}

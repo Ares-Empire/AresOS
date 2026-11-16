@@ -10,6 +10,7 @@ import {matrices} from './matrices.mjs';
 import {measureCompatibility,nativeNavigate,nativeCompatibilityClick,compareCompatibility} from './compatibility.mjs';
 import {ownerUI} from './owner-ui.mjs';
 import {outlineTime} from './outline-time.mjs';
+import {outlineRead} from './outline-read.mjs';
 if(process.platform !== 'linux' || process.env.GITHUB_ACTIONS !== 'true' || !fs.existsSync('/.dockerenv'))throw Error('Browser runs only in GitHub Linux containers');
 const fixture=await fixtures();
 const profile=fs.mkdtempSync('/tmp/aresos-chrome-fixture-');
@@ -65,10 +66,13 @@ try {
   // pending, in Control Chrome's own runs only (the qualification run sets
   // RUNTIME_COMMIT and qualifies brief 20's tools, maybe on an older build).
   // A failure here fails the shard at its end; brief 20's cases still run first.
-  let groupFourteen=null;
+  const groupFourteen=[];
   if(process.env.BROWSER_SHARD==='core'&&!process.env.RUNTIME_COMMIT){
     try{await outlineTime({call,nav,target,eventually,getTab:()=>tab});console.log('GROUP 14 TIME PASS');}
-    catch(error){groupFourteen=error;console.error('GROUP 14 TIME FAIL',error.stack);}
+    catch(error){groupFourteen.push(error);console.error('GROUP 14 TIME FAIL',error.stack);}
+    // Group 14's reading and references, after the time cases (outline-read.mjs).
+    try{await outlineRead({call,rpc,nav,target,getTab:()=>tab});console.log('GROUP 14 READ PASS');}
+    catch(error){groupFourteen.push(error);console.error('GROUP 14 READ FAIL',error.stack);}
   }
   for(const kind of ['native','event']) {
     await nav(kind);const item=await target('Continue');await call('click',item);assert.equal(counts(kind),0);
@@ -96,7 +100,7 @@ try {
     ownerArrivals:counts('owner-input'),scheduledArrivals:counts('scheduled-input'),result:continuedResult};
   fs.writeFileSync('/out/owner-input.json',JSON.stringify(evidence,null,2));
   console.log('GROUP 8 owner input evidence',JSON.stringify(evidence));
-  const failures=groupFourteen?[groupFourteen]:[];
+  const failures=[...groupFourteen];
   try {
     assert.ok(ownerDelay<300,'Owner test missed the active hold window');
     assert.equal(counts('scheduled-input'),0,'Scheduled submission from Claude input must stay held');
