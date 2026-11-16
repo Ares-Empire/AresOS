@@ -1,7 +1,8 @@
 # 42: Release 28, progress
 
-Builder of step 1: a Claude agent (Opus 5.5), started 2026-11-16 from `main` e33ffc46. Nothing has been published,
-signed or pushed to GHCR. The owner's OK for publishing release 28 has not been given.
+Builder of step 1: a Claude agent (Opus 5.5), started 2026-11-16 from `main` e33ffc46; phase 2 (the dry run's
+differences) a fresh Claude agent (Opus 5.5) the same day. Nothing has been published, signed or pushed to GHCR.
+The owner's OK for publishing release 28 has not been given.
 
 ## Done
 
@@ -26,8 +27,8 @@ signed or pushed to GHCR. The owner's OK for publishing release 28 has not been 
     the command links): accepted only when every target is a file of an added package.
   - **23b's font cache:** each changed or added `/usr/lib/fontconfig/cache/<md5>-le64.cache-<n>` must be a
     fontconfig cache (magic, version, size) whose folder is under /usr, exists in the image and hashes (MD5) to
-    its name. Release 27's blanket "fontconfig cache trigger" pattern no longer applies to release 28; the
-    32-bit caches (`-le32d4`) must not change.
+    its name. Release 27's blanket "fontconfig cache trigger" pattern no longer applies to release 28. (Phase 1
+    also said the 32-bit caches must not change; the dry run showed 23b rewrites them too, see phase 2.)
   - **Package 31's `gschemas.compiled`:** the rule reads both compiled files (a GVDB reader and a GVariant decoder
     in `release_diff.py`, no glib needed) and lists every default that differs. Only the keys
     `zz-aresos.gschema.override` sets may differ, each by exactly the override's value (here one key:
@@ -84,8 +85,63 @@ signed or pushed to GHCR. The owner's OK for publishing release 28 has not been 
   rehearsal-packages.json, test_owner_staged_release.py); `rebind.py pending` recorded them. Nothing under
   os/owner-tools/, os/release/ or docs/ waits.
 
+### Step 1, phase 2: the dry run's 39 differences
+
+The dry run [43832912792](https://github.com/Ares-Empire/AresOS/actions/runs/43832912792) (`dry_run_28` on
+`611067b7`) built release 28, passed the image checks and the first VM pass, and stopped at the image diff:
+1,585 changed paths, 39 unexplained, no other problem (theme equal to package 31's pin, schemas only 31's key,
+base ancestry verified). Each of the 39 traces to a merged package; none is OPEN.
+
+| Path(s) | Cause | Package, commit on main | Rule |
+|---|---|---|---|
+| 34 `usr/lib/fontconfig/cache/<md5>-le32d4.cache-9`, one per font folder release 27 has | 23b's `fc-cache --system-only --really-force` (os/build.sh). Fedora's `/usr/bin/fc-cache` is a script that runs `fc-cache-32` (fontconfig.i686, in the base for Steam) and `fc-cache-64`, so the forced run rewrites the 32-bit caches too. They changed, none vanished: release 27 has 68 caches (34 folders, both formats), release 28 has 70: all 68 rewritten, 2 added, none removed. Each kept its size except `/usr/share/fonts`'s (1544 to 1568 bytes; its 64-bit one 1696 to 1728), which gained the `aresos` entry. Release 27's headers record folder times of 2026-10-12/13, so a rewrite changes the bytes although no font changed. | 23b, `ff6edf55` (#70) | `font_cache_rule`, now for both formats |
+| `…/50471fd4bd417ff5c0731b6a17aa3708-le32d4.cache-9` (added) | the same run's 32-bit cache of the new `/usr/share/fonts/aresos` | 23b, `ff6edf55` (#70); the folder is 31's, `29e4fbc6` (#54) | the same rule ("a new font folder") |
+| `…/f2e43df3287529323e79e7929dc44cc9-le64.cache-9` (its 32-bit sibling is one of the 34) | the cache of `/usr/share/fonts/noto-cjk`, in both releases the base's link to `/usr/share/fonts/google-noto-sans-cjk-fonts` (unchanged); fc-cache caches a linked folder under the link's own name. Phase 1's rule wanted a real folder. | 23b, `ff6edf55` (#70) | the same rule: the folder may be a link release 27 has, unchanged, to a folder under /usr |
+| `usr/lib/jvm/java-25-openjdk/man`, `…/man/man1` (new folders) | java-25-openjdk-headless 1:25.0.5.0.8-3.1.fc44 lists its four man pages in `man/man1` as files but not these two folders (rpm -ql in the dry run; the pinned RPM's header read on the laptop; no scriptlet makes them). rpm creates a missing parent folder of a file it installs, root's 0755. | 23, `3bff81b6` (#36): Java 25 in the package lock | `package_rule`: exactly these two folders, new, root's 0755, no extended attribute, holding a file of an added package |
+| `usr/share/aresos/manifest/updaters.json` | build.sh's last step writes the updater audit (os/tests/audit.py). Diffed (release 27's file from the laptop, release 28's from the artifact, both equal to the run's hashes): the same 815 units, one change: `user.slice`'s `sources` gained `/usr/lib/systemd/system/user.slice.d/50-aresos-recovery.conf`. No state, command or "suspicious" verdict changed. | 23, `3bff81b6` (#36): the drop-in | `manifest_rule` with `audit_changes`: the same units in the same order, every field but `sources` equal, old sources kept in order, and each added source a drop-in of that unit (or its template) that os/config gained since release 27, absent in release 27, in the image with the source's bytes |
+
+What each rule now accepts, and its negative tests (`test_release28`):
+- **Font caches** (`FONT_CACHE_LAYOUTS`): `-le64` and `-le32d4`, each read with its own header layout (64 and 40
+  bytes; the folder's name must follow the header), the name the MD5 of the folder, the version the name's, the
+  cache in the other format present in the image, the folder under /usr reached through folders only (no link
+  above it), and itself a folder or a link release 27 has unchanged to such a folder. Stops: a cache without its
+  sibling (either way), a 64-bit cache under the 32-bit name, another folder or version in a 32-bit cache, a link
+  that is new or changed, an unchanged link out of /usr or to nothing, a folder reached through a link, a folder
+  outside /usr, a name inside the header. Real fontconfig 2.17 caches of `/usr/share/fonts/aresos` in both
+  formats are fixtures (`os/tests/fixtures/release28-fontcache/`, SOURCE.txt; made with `fc-cache-NN --sysroot`;
+  release 28's are the same sizes, 6752 and 9144 bytes).
+- **Java's man folders** (`JAVA_MAN_FOLDERS`): stops for another folder under the JDK (even holding a package
+  file), another mode, an extended attribute, a folder release 27 had, or no page of the package in it.
+- **Updater audit**: stops for a changed command, state or verdict, a removed source, an added unit, a source
+  os/config does not have, package 23's drop-in of another unit (`user-1001.slice`) listed under user.slice, an
+  os/config drop-in not changed since release 27, a drop-in whose image bytes differ from the source, one release
+  27 had, and malformed JSON. The rows go to `result.json` as `updaters` (`font_caches` rows now carry `format`
+  and `folder_kind`).
+- Every new condition was weakened once in a scratch copy of the module (16 mutations); a test failed for each.
+
+**Proven against the dry run's evidence** (a replay, run on the laptop, not committed: release 28's classifier
+over the run's own `old-files`/`new-files` inventories, so every kind, mode, owner, attribute, link target and
+hash is the run's; file bytes from the laptop's release 27 files and the artifact's manifest files, each checked
+against the run's hashes; for release 28's caches, whose bytes the artifact does not hold, release 27's cache of
+the same name or fontconfig's own output for the aresos folder):
+- all 39 are explained, by the rules in the table;
+- of the other 1,546 changed paths, 1,516 get the dry run's rule and reason unchanged; the 30 others are rules
+  whose bytes the artifact lacks (`etc/shadow`, `etc/shadow-` and package 23's 28 alternatives paths), not
+  affected by phase 2;
+- release 27's schemas recompiled with package 31's override (as build.sh compiles them) are byte-identical to
+  release 28's `gschemas.compiled` (its SHA-256 in the run).
+
+**Only a new build can prove:** that release 28's own 36 32-bit cache files parse as 32-bit caches naming their
+folders (the dry run parsed its 64-bit ones; the 32-bit layout is proven on release 27's 34 real caches from the
+laptop, fontconfig 2.17's output and the fixtures, and the run's sizes match), and the whole diff passing in one
+run (`IMAGE_DIFF_PASSED`) with the remaining steps of the job after it.
+
 ## Verified
 
+- Phase 2: `test_release28` 35 OK (30 before), `test_release27` 41 OK, `test_ways_back_probe` 57 OK,
+  `test_checkout_sources` 8 OK, each run directly; `py_compile os/ci/release_diff.py`. No bound file changed in
+  phase 2: `rebind.changed()` (read-only) equals the pending list's files exactly, so `rebind.py pending` was not
+  run.
 - Each changed test module run directly: `test_release28` 30 OK, `test_release27` 41 OK,
   `test_ci_api_permissions` 4 OK, `test_ci_step_environment` 4 OK, `test_checkout_sources` 8 OK,
   `test_build_tools` 3 OK, `test_ways_back_probe` 57 OK, `test_tools_local_wiring` 42 OK,
@@ -105,9 +161,10 @@ signed or pushed to GHCR. The owner's OK for publishing release 28 has not been 
 
 ## Not verified yet
 
-- The dry run itself (phase 2). The rules for what only a real build shows are written from the sources: the
-  alternatives Java's scriptlets register (the `@family@` form of the admin file is read from the alternatives
-  binary's strings), Prism's bundle, the Java packages' files.
+- A dry run that passes the image diff. Run 43832912792 confirmed the rules for Prism's bundle, the Java
+  packages' files and alternatives, the pins, the schemas, the theme and rc.xml; phase 2's rules are proven
+  against its evidence except release 28's own 32-bit cache bytes (see phase 2). The steps after the diff
+  in the job (second VM pass onwards) have not run on release 28.
 - The release 28 jobs on GitHub: only the resolve dispatch has run on the branch (both jobs skipped there). The
   publishing job (release_27's steps for release 28) has never run and must not before the owner's OK.
 - `test_owner_equality` and `test_owner_step_limits` (brief 42, C): not run. The lead stopped every
@@ -117,8 +174,10 @@ signed or pushed to GHCR. The owner's OK for publishing release 28 has not been 
 
 ## Left, in order
 
-1. Phase 2 (after the lead checks the gating): one `dry_run_28` dispatch; explain every image difference or list
-   it as open here.
+1. The lead decides when the next `dry_run_28` runs: now (to see `IMAGE_DIFF_PASSED` and the steps after the
+   diff before step 2), or at the cut (step 4). Package 42's ledger allows 2 dry runs and one is spent
+   (43832912792), so a dry run now leaves none for step 4 unless the lead raises the cap in
+   `os/ci/rehearsal-packages.json` (a bound file).
 2. Step 2 (Control's rules), step 3 (the rehearsal mode; it adds its kind `release-28` to package 42's ledger and
    raises its minute cap), steps 4 to 6 as the brief says.
 
@@ -130,6 +189,8 @@ signed or pushed to GHCR. The owner's OK for publishing release 28 has not been 
 - The ledger caps (dry runs 2, publish 1, resolve 2, checks 1, 1200 minutes) cover steps 1, 4 and 5: the brief's
   budget (C) names one release build, one publish, one checks-only suite; steps 1 and 4 each also dry-run and
   renew the pin. For the lead to confirm or change.
+- The 32-bit font caches exist because the base ships fontconfig.i686 (for Steam). If a later base drops it, its
+  caches vanish and every 64-bit cache loses its sibling: the diff stops, which is right for a base change.
 - Prism's files are checked against the image's own `prism-files.sha256`, which build.sh writes right after
   extracting the tarball whose SHA-256 and size it checked; the diff does not download the tarball again.
 - **PLAN-GAP:** release 27's record binds ten source trees; since package 23 the image also depends on `mod/`
