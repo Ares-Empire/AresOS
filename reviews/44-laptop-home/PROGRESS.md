@@ -367,13 +367,12 @@ five events (LAPTOP-HOME.md section 4). The page never sees a command, a path, t
    key alone jumps to the laptop home's search from anywhere, the world included … Right?", he answered: "Yes but
    the search bar should appear on the homescreen I'd say". (His earlier words on the study, "so does the search
    menu easy access", had been read as yes; board #333 asked him directly.)
-   - His change, as the lead reads it: Super opens a search bar on the screen that shows the world, where he is
+   - Where the bar appears, asked again because both screens are homes (board #334, 2026-11-16, asked whether the search bar appears over the world or on the laptop screen's own home: "Over the world"): Super opens a search bar on the screen that shows the world, where he is
      looking (with the monitor in, the monitor; without it, the laptop's screen). It is AresOS's own search over
      the world, as the Apps screen's search, and it opens the app on that same screen. LAPTOP-HOME.md section 6
      and section 9, step 5, have how.
    - The laptop home keeps its own typing line for when he works on the laptop screen.
-   - Open for the build brief (the lead's reading, to confirm with him at build time): whether Super, pressed while
-     the pointer is on the laptop screen, should go to the laptop home's typing line instead.
+   - With the pointer on the laptop screen, Super opens the search over the world as well (board #334).
    - What was asked: while he is in the world, the game holds the pointer, and without the key every way out is Esc
      (or E, or T) first. The key is the one way to search for an app without first freeing the pointer in the
      game, and it makes search the launcher of the whole session. I recommended it, and a reserved key changes how
@@ -407,8 +406,8 @@ LAPTOP-HOME.md section 10 asks the same six questions, in this order.
 - Which graphics chip GTK and labwc draw on in his session. They must match (LAPTOP-HOME.md section 4).
 - What the game does when the laptop home takes the keyboard on a click: package 40's rule (no pause menu while an
   app is in front) should hold for a layer surface too. The laptop trial checks it.
-- Super pressed while the pointer is on the laptop screen: the world's search, or the laptop home's typing line?
-  The lead's reading, to confirm with him at build time (JUDGMENT-CALL 5).
+- Super pressed while the pointer is on the laptop screen: answered, the world's search (board #334). `open_app`
+  must then name the world's screen rather than follow the pointer.
 - How many frames a second the companions get (their package).
 - Opening an app on the monitor from the laptop (for example Shift and click) would need one more field in
   `open_app`. Not in version 1. Super's search needs the same field if it opens over the world while the pointer is
@@ -603,7 +602,7 @@ owner answered question 5 directly (board #333). One Claude agent on Opus 5.5 ap
    world getting the keyboard and the mod's search, and the trial is step 6. The way an app opened with the key
    appears (REVIEW-2's should-fix 2) is now part of it: on the world's screen, where his pointer is. What was
    planned for the old reading is gone: the typing line on the top layer, and the game losing the keyboard to it.
-   Open, as the lead's reading to confirm at build time: Super with the pointer on the laptop screen.
+   Settled by the owner (board #334, "Over the world"): Super with the pointer on the laptop screen opens the world's search too.
 5. **This report** (finding 4): JUDGMENT-CALLs 1 to 6 carry their answers, "In short" has the owner's choice, the
    terraces are his choice on my recommendation, and the pictures are 28.
 6. **Memory** (finding 5). Section 4 gives one statement with its sources. It says about 335 MiB unpinned (this

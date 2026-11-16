@@ -1,7 +1,6 @@
 # The laptop-screen home: Night street (chosen: by day, on terraces)
 
 **Draft. The owner chose the street by day, on terraces (2026-11-16); section 10's six questions are settled.**
-One point of question 5, the Super key with the pointer on the laptop screen, waits for the build brief.
 Design study of package 44 (2026-11-16, a Fable design agent; review fixes 1 the same day, a Claude Opus agent; the
 day look and section 11 the same day, a Fable design agent; the day's grid and terraces, section 11.6, the same
 day, a Fable design agent; review fixes 3 and the owner's answer on the Super key the same day, a Claude Opus
@@ -494,10 +493,9 @@ restarts (with each new game start), opening is off for those seconds, as above.
     seen. Alt+Tab brings it back.
   - **Enter opens the app on that same screen**, where his pointer is (23c: apps open on the screen the pointer is
     on). The search closes, and the keyboard goes to the app. Escape closes the search.
-  - **Open for the build brief** (the lead's reading, to confirm with him at build time): Super pressed while the
-    pointer is on the laptop screen. It could go to the laptop home's typing line instead. If it opens the world's
-    search anyway, the app must still open on the world's screen, and `open_app` then needs to name that screen
-    (the report's open question).
+  - **Super with the pointer on the laptop screen** opens the same search over the world: the owner chose "over
+    the world" without exception (board #334). The app then opens on the world's screen, so `open_app` must name
+    that screen rather than follow the pointer (the report's open question, now a build requirement).
 - **Start.** The desktop supervisor (`/usr/libexec/aresos-desktop`) starts it when package 23c's rule says the world
   is on the monitor and an `eDP` output is on: after the world has moved, in its own scope, with the helper's
   socket, the instance and the view token (section 5), and `LD_PRELOAD` for the layer library (section 4). The
@@ -620,7 +618,8 @@ memory, and that budget.
    - Tests: Super from inside the world, from a small app window, from a maximized app on the world's screen, and
      from an app on the other screen; `shell_search` reaches only a client that offered it; Super does nothing
      while no world is connected.
-   - **Open** (section 6): Super with the pointer on the laptop screen.
+   - Super with the pointer on the laptop screen opens the search over the world too, and `open_app` names the world's
+     screen (section 6, board #334).
 6. **The laptop trial** with the monitor:
    - the keyboard on a click, Alt+Tab, an app maximized over it, plugging and unplugging;
    - a click on the laptop home while the world has the focus opens no pause menu (package 40's rule holds for a
@@ -693,12 +692,11 @@ These are the report's JUDGMENT-CALLs 1 to 6, in the same order, each with the s
    jumps to the laptop home's search from anywhere, the world included … Right?", he answered: "Yes but the search
    bar should appear on the homescreen I'd say". (His earlier words on the study, "so does the search menu easy
    access", had been read as yes; board #333 asked him directly.)
-   - **His change, as the lead reads it:** Super opens a search bar on the screen that shows the world, where he
+   - **Where the bar appears, asked again because both screens are homes** (board #334, 2026-11-16, asked whether the search bar appears over the world or on the laptop screen's own home: "Over the world"): Super opens a search bar on the screen that shows the world, where he
      is looking: with the monitor in, the monitor; without it, the laptop's screen. It is AresOS's own search over
      the world, as the Apps screen's search, and it opens the app on that same screen (section 6).
    - The laptop home keeps its own typing line for when he works on the laptop screen.
-   - **Open for the build brief** (the lead's reading, to confirm with him at build time): whether Super, pressed
-     while the pointer is on the laptop screen, should go to the laptop home's typing line instead.
+   - With the pointer on the laptop screen, Super opens the search over the world as well (board #334).
    - What was asked: the key as the one way to search for an app without first freeing the pointer in the game,
      and the launcher of the whole session. *Recommended: yes.* A reserved key changes how AresOS feels, so it was
      his call.
