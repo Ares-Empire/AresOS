@@ -24,6 +24,7 @@ from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from aresos_control.common import RESULT_LIMIT, Refused, canonical, validate
 from aresos_control.chrome.adapter import PENDING_DRIFT
+from aresos_control.chrome.bridge import TimeLeft
 from aresos_control.chrome.definitions import OUTLINE, OUTLINE_SWITCH
 from aresos_control.engine import Engine
 from test_engine import WORK, Browser
@@ -43,8 +44,11 @@ def small(*texts, tab=1):
             'session': Browser.session, 'tab': tab}
 
 
-class Outlines(Browser):
-    """The extension's three read-only commands of brief 28 on top of test_engine's fake browser."""
+class Outlines(TimeLeft, Browser):
+    """The extension's three read-only commands of brief 28 on top of test_engine's fake browser.
+
+    It keeps the bridge's time bound (item 4) as the real one does; test_outline_time checks what it does with it.
+    """
 
     def __init__(self):
         super().__init__()

@@ -1,5 +1,6 @@
 """Chrome on the shared Adapter/Engine: prepare first, dispatch once, never replay."""
 import base64
+from contextlib import contextmanager, nullcontext
 import copy
 import json
 from pathlib import Path
@@ -17,6 +18,7 @@ from . import nodes as outline_nodes
 from . import view as outline_view
 from .bridge import Bridge
 from .committed import Projection
+from .deadline import COMMANDS, NOT_READ, UNCHECKED, UNTIL, Deadline
 from .exclusions import owner_hosts
 from .policy import allowed_url, classify, HOSTS, hostname, canonical_key, key_input, explicit_effect
 from .qualification import Qualification, switches
@@ -38,6 +40,7 @@ OUTLINE_MAX, OUTLINE_TAB_MAX, UNTIL_MS, POLL = 6000, 3000, 3000, .1
 PENDING_DRIFT = 2048
 # A refusal that belongs to one tab becomes that tab's entry in `reads`; every
 # other one (the input, the connection, the qualification, storage) fails the call.
+# A command that ran out of its time (`expired`, item 4) makes its tab `not_read`.
 TAB_ERRORS = frozenset(('refused', 'stale_reference', 'permission_denied', 'owner_signin', 'reload_required', 'not_read'))
 
 
@@ -135,6 +138,8 @@ class Chrome:
         self.bridge = Bridge()
         self.bridge.on_event = self.event
         self._references = None
+        # Brief 28, item 4: the clock of the chrome_outline call in progress, if any (call_time).
+        self.deadline = None
         self.trusted_context = False
         self.refresh_qualification = True
         self.hosts = HOSTS
@@ -166,6 +171,26 @@ class Chrome:
         if self._references is None:
             self._references = References()
         return self._references
+
+    @contextmanager
+    def call_time(self, request=None):
+        """Brief 28, item 4: the one deadline of a chrome_outline call.
+
+        `engine.request` opens it for a chrome_outline request before its first
+        look at pending and closes it when the response is built; `outline`
+        opens it too, which does nothing inside the engine's and starts the
+        clock for a direct call. Every other request has none.
+        """
+        outline = request is None or (isinstance(request, dict) and request.get('method') == 'call' and
+                                      request.get('action') == 'chrome_outline' and 'chrome_outline' in BY_NAME)
+        opening = outline and self.deadline is None
+        if opening:
+            self.deadline = Deadline()
+        try:
+            yield self.deadline
+        finally:
+            if opening:
+                self.deadline = None
 
     def event(self, event):
         if event.get('event') == 'held_step':
@@ -281,34 +306,44 @@ class Chrome:
     def pending_state(self, operation, projection=False):
         payload = operation.get('payload', {})
         state = payload.get('binding', {})
+        # Brief 28, item 4: inside a chrome_outline call a check gets the time of
+        # its look at pending; one that runs out of it is unchecked, never refused,
+        # and isn't asked again in the same call.
+        deadline = self.deadline
+        if deadline is not None and operation.get('id') in deadline.unchecked:
+            return dict(UNCHECKED)
         try:
-            if projection:self.committed.sync()
-            if operation.get('generation')!=(self.committed.generation if projection else self.store.generation):
-                raise Refused('stale_approval','Restore invalidated this earlier-generation preparation; drop and prepare again.')
-            if operation.get('expires',0)<=time.time():
-                raise Refused('stale_approval','The approval deadline passed; nothing can run from this preparation.')
-            if payload.get('process_session') != self.process_session or state.get('session') != self.bridge.session:
-                raise Refused('stale_approval', 'Browser or service session changed; drop this preparation and prepare again.')
-            if projection:
-                self.read_owner_hosts()
-                mode=switches(self.committed.get('chrome:qualification',self.qualification.shipped),self.qualification.build,self.bridge.version)
-                if not all(mode['core'].values()):raise Refused('qualification_failed','Chrome core qualification currently refuses this operation.')
-                if not payload.get('typed_read'):self.check_readonly(payload,self.committed.get)
-            else:
-                mode=self.mode(acting=True)
-                if not payload.get('typed_read'):self.check_readonly(payload)
-            if payload.get('typed_read'):
-                current=self.typed_binding(payload['binding']['tab'])
-                if payload.get('read_connection')!=self.bridge.connection_identity or current!=payload['binding']:raise Refused('stale_approval','The typed-field list changed; prepare a fresh question.')
+            with self.bridge.bounded(deadline.look()) if deadline is not None else nullcontext():
+                if projection:self.committed.sync()
+                if operation.get('generation')!=(self.committed.generation if projection else self.store.generation):
+                    raise Refused('stale_approval','Restore invalidated this earlier-generation preparation; drop and prepare again.')
+                if operation.get('expires',0)<=time.time():
+                    raise Refused('stale_approval','The approval deadline passed; nothing can run from this preparation.')
+                if payload.get('process_session') != self.process_session or state.get('session') != self.bridge.session:
+                    raise Refused('stale_approval', 'Browser or service session changed; drop this preparation and prepare again.')
+                if projection:
+                    self.read_owner_hosts()
+                    mode=switches(self.committed.get('chrome:qualification',self.qualification.shipped),self.qualification.build,self.bridge.version)
+                    if not all(mode['core'].values()):raise Refused('qualification_failed','Chrome core qualification currently refuses this operation.')
+                    if not payload.get('typed_read'):self.check_readonly(payload,self.committed.get)
+                else:
+                    mode=self.mode(acting=True)
+                    if not payload.get('typed_read'):self.check_readonly(payload)
+                if payload.get('typed_read'):
+                    current=self.typed_binding(payload['binding']['tab'])
+                    if payload.get('read_connection')!=self.bridge.connection_identity or current!=payload['binding']:raise Refused('stale_approval','The typed-field list changed; prepare a fresh question.')
+                    return {'validity':'current'}
+                site_adapter=payload.get('adapter')
+                if site_adapter and not mode['adapters'].get(site_adapter['site']):
+                    raise Refused('stale_approval','The site adapter is no longer qualified; prepare again under the generic rules.')
+                live = self.bridge.call('validity', reference=payload['reference'])
+                if live.get('document') != state.get('document') or live.get('control') != state.get('control') or live.get('element_present') is not True:
+                    raise Refused('stale_approval', 'Tab control or document changed; drop and prepare again.')
                 return {'validity':'current'}
-            site_adapter=payload.get('adapter')
-            if site_adapter and not mode['adapters'].get(site_adapter['site']):
-                raise Refused('stale_approval','The site adapter is no longer qualified; prepare again under the generic rules.')
-            live = self.bridge.call('validity', reference=payload['reference'])
-            if live.get('document') != state.get('document') or live.get('control') != state.get('control') or live.get('element_present') is not True:
-                raise Refused('stale_approval', 'Tab control or document changed; drop and prepare again.')
-            return {'validity':'current'}
         except Refused as exc:
+            if exc.code == 'expired' and deadline is not None:
+                deadline.unchecked.add(operation.get('id'))
+                return dict(UNCHECKED)
             return {'validity':'refused', 'reason':str(exc), 'refusal_code':exc.code}
 
     def notice_rows(self):
@@ -427,26 +462,40 @@ class Chrome:
         """Brief 28's read, reachable only as chrome_outline behind the test-only switch (item 6).
 
         Each tab goes through the checks of `read` above and then the view
-        module's order: View, render, Reading, fit.
+        module's order: View, render, Reading, fit. Every command it sends
+        carries its time left (item 4, `deadline.py`): the call's to second 7,
+        and with `tabs` each tab's share of it.
         """
         outline_query(args)
-        mode = self.mode()
-        started = time.monotonic()
-        several = 'tabs' in args
-        limit = args.get('max', OUTLINE_TAB_MAX if several else OUTLINE_MAX)
-        query = outline_view.asked(args.get('ref'), args.get('find'), args.get('role'), args.get('full', False))
-        parts = []
-        for tab in args['tabs'] if several else [args['tab']]:
-            try:
-                parts.append(self.outline_tab(tab, args, query, limit, started))
-            except Refused as exc:
-                if exc.code not in TAB_ERRORS:
-                    raise
-                parts.append(outline_view.Failure(tab, exc))
-        reads = outline_view.fit(parts, self.outline_measure(mode['notice']), self.references, RESULT_LIMIT - PENDING_DRIFT)
-        return {'reads': reads, 'version_notice': mode['notice']}
+        with self.call_time() as deadline:
+            deadline.reading = True
+            several = 'tabs' in args
+            tabs = args['tabs'] if several else [args['tab']]
+            limit = args.get('max', OUTLINE_TAB_MAX if several else OUTLINE_MAX)
+            query = outline_view.asked(args.get('ref'), args.get('find'), args.get('role'), args.get('full', False))
+            parts = []
+            with self.bridge.bounded(deadline.at(COMMANDS)):
+                try:
+                    mode = self.mode()
+                except Refused as exc:
+                    if exc.code != 'expired':
+                        raise
+                    raise Refused('not_read', NOT_READ) from exc
+                for index, tab in enumerate(tabs):
+                    try:
+                        with self.bridge.bounded(deadline.share(len(tabs) - index)):
+                            parts.append(self.outline_tab(tab, args, query, limit, deadline))
+                    except Refused as exc:
+                        if exc.code == 'expired':
+                            exc = Refused('not_read', NOT_READ)
+                        if exc.code not in TAB_ERRORS:
+                            raise
+                        parts.append(outline_view.Failure(tab, exc))
+            # The measure's look at pending comes after the read's commands, with the time of the looks after it.
+            reads = outline_view.fit(parts, self.outline_measure(mode['notice']), self.references, RESULT_LIMIT - PENDING_DRIFT)
+            return {'reads': reads, 'version_notice': mode['notice']}
 
-    def outline_tab(self, tab, args, query, limit, started):
+    def outline_tab(self, tab, args, query, limit, deadline):
         state, view = self.outline_view(tab)
         if view.dialog is None:
             queued = self.bridge.call('queued_steps', tab=tab)
@@ -454,10 +503,11 @@ class Chrome:
             self.steps(queued, tab)
         until_met = None
         if 'until' in args:
-            deadline = started + args.get('timeout_ms', UNTIL_MS) / 1000
+            # timeout_ms counts from the start of the call, and the wait never passes second 6.
+            end = min(deadline.at(args.get('timeout_ms', UNTIL_MS) / 1000), deadline.at(UNTIL))
             until_met = self.until_met(view, args['until'])
-            while not until_met and view.dialog is None and time.monotonic() < deadline:
-                time.sleep(max(0, min(POLL, deadline - time.monotonic())))
+            while not until_met and view.dialog is None and time.monotonic() < end:
+                time.sleep(max(0, min(POLL, end - time.monotonic())))
                 current = self.bridge.call('page_state', tab=tab)
                 if current.get('dialog') or current.get('token') != state.get('token'):
                     state, view = self.outline_view(tab)
