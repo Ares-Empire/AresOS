@@ -46,7 +46,9 @@ class StrictJSON(unittest.TestCase):
         for words, raw in ((['testapp', 'list'], '{"cursor":null,"cursor":null}'),
                            (['admin', 'mail', 'account_add'], '{"id":"a","id":"b"}')):
             output = io.StringIO()
-            with patch('sys.stdin.isatty', return_value=True), patch.object(cli, 'Proxy') as proxy, redirect_stdout(output):
+            # As root, so the admin words reach input parsing (a non-root admin call stops earlier: brief 18e).
+            with patch('sys.stdin.isatty', return_value=True), patch.object(cli, 'Proxy') as proxy, \
+                    patch.object(cli.os, 'geteuid', return_value=0), redirect_stdout(output):
                 self.assertEqual(cli.main({}, [*words, '--input', raw]), 1)
             self.assertEqual(json.loads(output.getvalue())['error']['code'], 'invalid_input')
             proxy.assert_not_called()
