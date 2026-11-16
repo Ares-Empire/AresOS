@@ -1,8 +1,73 @@
 # 18e: Control service fixes: progress and report
 
 Builder: Claude agent, Opus 5.5 (step 1); fix round with the lead's decisions of 2026-11-15 (JUDGMENT-CALLs 2 and 5,
-and the proxy's start without the service from 18c's VM run): Claude agent, Opus 5.5. Branch `pkg/18e-service-fixes`, PR #69 (draft until CI is green).
+and the proxy's start without the service from 18c's VM run): Claude agent, Opus 5.5. Fix rounds 1 and 2 (2026-11-16): Claude agents, Opus 5.5. Branch `pkg/18e-service-fixes`, PR #69 (draft until CI is green).
 A Claude builder can't create `REPORT.md`: this file is the report.
+
+## Fix round 2 (2026-11-16, Claude agent on Opus 5.5)
+
+From `RECHECK-2.md` (SAFE; nits 1 to 3, known limits A to D; committed with this round) and the lead's list. Code
+commit `374fac6c`; tests are in `control/tests/test_service_fixes.py` unless named otherwise.
+
+| Item | Outcome | What changed | Pinned by |
+|---|---|---|---|
+| Nit 1: "fallback catalogue only for `service_unavailable`" not pinned | fixed | The "still stop" list of `StartWithoutService.test_a_catalogue_the_service_returns_wins_and_other_failures_still_stop` adds `NotConnected(BlockingIOError(EAGAIN))` (`service_busy`) and `NotConnected(PermissionError(EACCES))` (`setup_error`); each must reach the caller unchanged | Mutation `fallback_any` (the check at `proxy.py:31-34` removed): that test now fails (2 subtests); with the check it passes |
+| Nit 2: the last integration case passed at the gate | fixed | `test_integration.py` `test_prompt_hook_installation_and_service_failures_are_quiet`: `self.mark_session()` after the service stops, before the "service down, `UserPromptSubmit` quiet" case. Also the recheck's optional case: the same marked session's `Stop` gives exactly `{"decision": "block", "reason": NOT_RUNNING}`, and a second `Stop` is quiet (once per outage) | CI only (needs root) |
+| Nit 3: a start-up race could stop a proxy for a whole session | fixed | `daemon.py` `listen()`: each socket is bound as `.<kind>.sock.new` in the same folder, `chmod`ed to `SOCKET_MODES[kind]`, set listening (`listen(16)`), then `os.replace`d onto `<kind>.sock` (atomic, replacing a stopped service's socket). For all three sockets (act, admin, chrome: the same loop). `replaceable()` keeps the old refusal ("Refusing to replace an unexpected socket path") for anything at either name that isn't the service's own socket, now by `lstat` (a dangling link is refused instead of failing `bind`). A failure before the rename closes the listener and removes the temporary; a stopped service's socket stays as it was. Other sockets with the pattern: only `control/boundary/stub.py`, a test fixture whose clients wait for `STUB_READY`, printed after it binds, chmods and listens: no window there, unchanged | `SocketStart` (4 tests): with the unit's `UMask=0077`, after every `bind`, `chmod`, `listen` and `os.replace` of a real `Daemon` start, each final path that exists has its final mode and takes a connect; a restart replaces a stopped service's socket and a stale temporary; a non-socket at either name is refused and left alone; a failed `listen` leaves the old path and no temporary. Mutations `bind_final` (the old code), `listen_after_rename`, `chmod_after_rename`, `no_cleanup`, `no_temp_check` each fail |
+| Known limit D: the rest of #58 F1's wording | fixed | `definitions.py:52` `COMMON_INSTRUCTIONS`: "Every result includes pending items; resolve or report them before finishing." became the sentence below (the string is now double-quoted for its apostrophes). `hooks.py:45-47`: the `UserPromptSubmit` context now ends with `REMINDER` too (built once for both hooks). `chrome/definitions.py`: `SHARED` drops its copy of the stale sentence (JUDGMENT-CALL 1 below) | `QuietUnlessUsed.test_the_mcp_instructions_say_what_the_reminder_says` (the sentence once in every app's instructions, no "resolve or report"), `test_a_marked_session_still_gets_the_reminder_in_the_new_words` (the prompt context ends with `REMINDER`), `chrome_tests.test_questions` `test_fixes_b_server_instructions_fit_the_native_cli_limit` (chrome 4,093 of 4,096). Mutations `prompt_no_reminder` and `old_instruction` fail |
+| Known limits A, B, C | documented | Known limits 6 to 8 in fix round 1's list below, and the README's Hooks section ("Known limits of quiet unless used") | — |
+| For #58 | noted | "For 18c's next VM pass" item 12 | — |
+
+**The new instruction sentence:** "Every result includes pending items, which may be another session's work: don't
+complete, cancel, resend or acknowledge them on your own; before finishing, tell the owner what is waiting."
+It keeps what is still right in the old one: every result carries `pending`, and the session reports what is pending
+before it finishes.
+
+**Generated files changed** (PR #58 pins them and re-merges main in its part 2):
+`control/generated/chrome-instructions.txt`, `control-instructions.txt`, `mail-instructions.txt`,
+`testapp-instructions.txt`, and `docs/control/TOOLS.md` (its four server-instruction sections). Unchanged: every
+`*-tools.json`, `cli-help.txt`, `control/settings/*` (managed hooks, ask rules, user MCP, CLAUDE.md) and
+`chrome/extension/policy.js`. Instruction lengths: chrome 4,093 (was 4,081), mail 2,536, control and testapp 1,762.
+
+**JUDGMENT-CALLs (fix round 2).**
+1. **Room for the sentence in Chrome's 4,096 characters.** Claude Code 2.1.319 keeps only the first 4,096 characters
+   of a server's instructions (`test_fixes_b_server_instructions_fit_the_native_cli_limit`; native precedence fails
+   beyond). Chrome's were at 4,081, so the new sentence could have been at most 92 characters, against 187. Chosen:
+   remove `SHARED`'s "On stale_reference or stale_approval, read and prepare again; never change the supplied
+   approval.", which repeats the shared instructions' "On stale_reference or stale_approval, read again and prepare a
+   new operation; never amend an approval yourself." in the same Chrome instructions; Chrome keeps that rule word for
+   word from the shared part. Rejected: a 92-character sentence (it would drop either the four verbs, the point of
+   #58 F1, or "on your own", which would forbid a session's own send the owner asked for); shortening other shared
+   sentences (meaning changes nobody asked for, and too little room without them). Cost: Chrome has 3 characters
+   left; its next instruction addition must make room. Undo: put the sentence back and shorten the pending sentence.
+2. **The prompt context keeps its prefix** ("inspect status, do not resubmit unknown sends"); `REMINDER` follows the
+   JSON, as on `Stop`. `test_owner_state_channels` decodes the JSON after the prefix with `raw_decode`, so text after
+   it is fine.
+3. **All three sockets, not only act.** admin and chrome are made by the same loop; root ignores admin's mode, but
+   the "not yet listening" half of the window applied to each.
+4. **Nit 2's optional `Stop` case added:** it is the only real-launcher check that a marked session hears of an
+   outage exactly once.
+
+*Supersedes the first round's JUDGMENT-CALL 3 ("MCP instructions unchanged"): the lead routed known limit D here.*
+
+**Local checks** (laptop; `control/`, `PYTHONPATH=.:tests:<the locked MCP SDK, the versions of
+control/requirements.lock, in a scratch folder>`; other test folders on the path where a module needs them):
+- `tests.test_service_fixes tests.test_ingress_bounds`: 63 OK (58 before; new: 4 `SocketStart`, 1 instructions
+  test), the MCP stdio cases included.
+- `tests.test_unit` 2 OK; `tests.test_review22_protocol` 6 OK; `chrome_tests.test_unit` 1 OK;
+  `chrome_tests.test_restore_lock` 5 OK; `mail_tests.test_review26_results` 8 OK; `chrome_tests.test_questions` 34 OK
+  (the 4,096 limit) and `chrome_tests.test_policy.ClipboardDescriptions` OK (SHARED still in Chrome's instructions).
+- `control/boundary` with `PYTHONPATH=..` (as the image build has `aresos_control`): `python3 -m unittest
+  test_interactive.ProcessChains` 4 OK; `python3 test_interactive.py` 13 OK; `test_native test_interactive` 24 OK.
+- `python3 control/generate.py --check`: "Generated artifacts match definitions".
+- Expected local-only failures, as before: `tests.test_integration` 20 errors, each `PermissionError` from `chown` in
+  `setUp` (needs root: CI only); `tests.test_slim_policy` 9, 8 OK, the failure is `boundary_not_installed` (no
+  `/etc/claude-code`; its generated-instructions test passes); `tests.test_boundary_exact` 4 failures, the same
+  `boundary_not_installed` (run only to check the `Daemon` change; environment).
+- Mutations on a scratch copy of `control/` (8, all caught): `fallback_any`, `bind_final`, `listen_after_rename`,
+  `chmod_after_rename`, `no_cleanup`, `no_temp_check`, `prompt_no_reminder`, `old_instruction`.
+
+**CI (fix round 2):** see below once the Python jobs have run.
 
 ## Fix round 1 (2026-11-16, Claude agent on Opus 5.5)
 
@@ -84,6 +149,22 @@ non-shell process in between is its own, unmarked session).
 5. **The process name is the process's own.** A process of the owner can name itself `sh`, or plant or remove marks:
    the accepted level of CONTROL.md section 7 (it could call the service directly). A wrong name only adds or removes
    an informational notice or reminder.
+6. **A Claude Code update can silence every session** (recheck 2, known limit A; added in fix round 2). If a later
+   Claude Code puts a process other than a shell between itself and the hooks, or between itself and the MCP
+   servers, that process is taken as the session: no session finds its mark, so none gets pending reminders or outage
+   notices, and nothing shows it in use. The owner isn't reminded of held work; it still expires. What would show it:
+   the boundary suite's process-chain pin fails on the next Claude Code version CI runs (the Control boundary
+   workflow's interactive suite runs `process_chain.check()` on every case's real chains: "STOP: the hook's session
+   is not the MCP server's parent"; the version is `claude_code` in `control/boundary/pins.json`, 2.1.319 today;
+   `test_interactive.ProcessChains` pins the check itself). Nothing in the image pins the laptop's Claude Code, so
+   the interactive boundary suite must be re-run whenever it changes version.
+7. **Work from a nested `claude -p` or the CLI** (known limit B). A `claude -p` started from a session's Bash tool is
+   a session of its own, and the `aresos` CLI marks nothing. Work prepared in either is reminded to no session,
+   unless the parent session used the tools itself. Before item 9 every session heard of it. Low harm: it expires,
+   and `aresos control pending` lists it.
+8. **No hook hears `restore_required` after a reboot** (known limit C). Marks live on a tmpfs, so a reboot clears
+   them, and nothing marks a session while the restore lock holds. Low harm: any tool call's result says
+   `restore_required`, and the instructions say to stop and ask the owner.
 
 **For 18c's next VM pass**, in addition to the list below: check 2's notice text is unchanged for a stopped service
 ("AresOS tools are not running. …"). Item 9's VM check (an unmarked session with another session's pending work: no
@@ -254,6 +335,10 @@ Lesson for the next step: every push to the PR, even of this file, restarts all 
    Code session (its MCP servers start and stay up, `/mcp` lists them connected); a tool call answers
    `service_unavailable`; `systemctl start aresos-toold`; in the same session, without a restart, a tool call (say
    `testapp_list`) succeeds.
+12. **For #58 / 18c (fix round 2):** a VM session that expects "AresOS held/unfinished work" from a hook must first use
+   a tool whose result names an operation (a mark), because an unmarked session now gets nothing: no reminder, no
+   notice, no connection (`os/ci/control/actions.py` `REMINDER` on `pkg/18c-image`). The reminder now ends the
+   `UserPromptSubmit` context as well as the `Stop` reason.
 
 ## JUDGMENT-CALLs
 
@@ -266,7 +351,8 @@ Lesson for the next step: every push to the PR, even of this file, restarts all 
    a hook during the start-up gap sees "not running" (a marked session then gets the notice once, and the next hook
    that reaches the service re-arms it).
 3. **MCP instructions unchanged.** `COMMON_INSTRUCTIONS` doesn't mention `service_unavailable`: changing it changes the
-   generated instruction files and 18c's pins of them. The message says what to do ("Try again later").
+   generated instruction files and 18c's pins of them. The message says what to do ("Try again later"). *Superseded in fix round 2: known limit D changed the pending sentence (the
+   generated instruction files with it); `service_unavailable` is still not mentioned.*
 4. **What marks a session:** a non-read action whose result `data` names an `operation_id` or `approval`, or an
    `unknown` outcome. Reads never mark (also `operation_status`, `control_pending`), and other sessions' work in
    `pending` doesn't either. A missing marks folder is a clear "no" (otherwise every unused session would get the

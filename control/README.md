@@ -378,11 +378,12 @@ reminded, the work still expires, and `aresos control pending` lists it.
 - **A Claude Code update can silence every session.** If a later Claude Code puts a
   process other than a shell between itself and the hooks, or between itself and the
   MCP servers, that process is taken as the session: no session finds its mark, so none
-  gets pending reminders or outage notices, with no sign. What shows it: the interactive
-  boundary suite's process-chain pin
-  (`test_interactive.ProcessChains.test_the_session_is_the_nearest_process_that_isnt_a_shell`)
-  fails on the next Claude Code version CI runs. Nothing in the image pins the
-  laptop's Claude Code, so re-run that suite whenever it changes version.
+  gets pending reminders or outage notices, with no sign. What shows it: the boundary
+  suite's process-chain pin fails on the next Claude Code version CI runs (the
+  interactive suite checks every case's real chains with `process_chain.check()`,
+  "STOP: the hook's session is not the MCP server's parent"; the version is
+  `claude_code` in `boundary/pins.json`). Nothing in the image pins the laptop's
+  Claude Code, so re-run that suite whenever it changes version.
 - **Work from a nested `claude -p` or the CLI.** A `claude -p` started from a session's
   Bash tool is a session of its own, and the `aresos` CLI marks nothing. Work prepared
   in either is reminded to no session, unless the parent session used the tools itself.
