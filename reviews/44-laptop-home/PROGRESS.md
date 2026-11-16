@@ -367,8 +367,9 @@ five events (LAPTOP-HOME.md section 4). The page never sees a command, a path, t
    key alone jumps to the laptop home's search from anywhere, the world included … Right?", he answered: "Yes but
    the search bar should appear on the homescreen I'd say". (His earlier words on the study, "so does the search
    menu easy access", had been read as yes; board #333 asked him directly.)
-   - Where the bar appears, asked again because both screens are homes (board #334, 2026-11-16, asked whether the search bar appears over the world or on the laptop screen's own home: "Over the world"): Super opens a search bar on the screen that shows the world, where he is
-     looking (with the monitor in, the monitor; without it, the laptop's screen). It is AresOS's own search over
+   - Where the bar appears, asked again because both screens are homes (board #334, 2026-11-16: over the world,
+     or on the laptop screen's own home? He answered "Over the world"): Super opens a search bar on the screen
+     that shows the world, where he is looking (with the monitor in, the monitor; without it, the laptop's screen). It is AresOS's own search over
      the world, as the Apps screen's search, and it opens the app on that same screen. LAPTOP-HOME.md section 6
      and section 9, step 5, have how.
    - The laptop home keeps its own typing line for when he works on the laptop screen.
@@ -600,9 +601,10 @@ owner answered question 5 directly (board #333). One Claude agent on Opus 5.5 ap
 4. **His change to the key.** Super opens a search bar over the world, on the screen that shows it, not the
    laptop's typing line. Sections 1, 2.2 and 6 say so. Section 9 has a new step 5, with the labwc keybind, the
    world getting the keyboard and the mod's search, and the trial is step 6. The way an app opened with the key
-   appears (REVIEW-2's should-fix 2) is now part of it: on the world's screen, where his pointer is. What was
+   appears (REVIEW-2's should-fix 2) is now part of it: on the world's screen, wherever his pointer is. What was
    planned for the old reading is gone: the typing line on the top layer, and the game losing the keyboard to it.
-   Settled by the owner (board #334, "Over the world"): Super with the pointer on the laptop screen opens the world's search too.
+   Settled by the owner (board #334, "Over the world"): Super with the pointer on the laptop screen opens the
+   world's search too.
 5. **This report** (finding 4): JUDGMENT-CALLs 1 to 6 carry their answers, "In short" has the owner's choice, the
    terraces are his choice on my recommendation, and the pictures are 28.
 6. **Memory** (finding 5). Section 4 gives one statement with its sources. It says about 335 MiB unpinned (this

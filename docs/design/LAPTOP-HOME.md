@@ -476,8 +476,8 @@ restarts (with each new game start), opening is off for those seconds, as above.
   he presses Esc (or E, or T), moves the pointer down to the laptop screen and clicks. From an app the pointer is
   free already.
 - **The reserved key, Super: a search over the world** (section 10 question 5, board #333; untried until the
-  laptop trial). He said yes to the key, and that "the search bar should appear on the homescreen". As the lead
-  reads it:
+  laptop trial). He said yes to the key, and that "the search bar should appear on the homescreen". He chose over
+  the world (board #334):
   - Super pressed and released alone, from anywhere, opens a search bar on the screen that shows the world, where
     he is looking. With the monitor in that is the monitor; without it, the laptop's screen.
   - The search is AresOS's own, drawn by the mod in the world. It finds as the Apps screen's search does (HUB.md
@@ -491,8 +491,8 @@ restarts (with each new game start), opening is off for those seconds, as above.
     it, as when he clicks the world. Nothing is minimized for that. A maximized or fullscreen window that hides
     the world on its screen is minimized, by HUB.md's rule for activating a covered world, so the search can be
     seen. Alt+Tab brings it back.
-  - **Enter opens the app on that same screen**, where his pointer is (23c: apps open on the screen the pointer is
-    on). The search closes, and the keyboard goes to the app. Escape closes the search.
+  - **Enter opens the app on the world's screen**, even when his pointer is on the laptop screen (`open_app` names
+    that screen; see below). The search closes, and the keyboard goes to the app. Escape closes the search.
   - **Super with the pointer on the laptop screen** opens the same search over the world: the owner chose "over
     the world" without exception (board #334). The app then opens on the world's screen, so `open_app` must name
     that screen rather than follow the pointer (the report's open question, now a build requirement).
@@ -613,7 +613,7 @@ memory, and that budget.
      Then the helper sends the mod a new 1.2 event, `shell_search`, offered as a capability as `shell_covered` is.
    - **The mod opens its search over the world** on that event: a search bar that finds as the Apps screen's
      search does (`AppsScreen`, HUB.md 2.4). Enter opens the best hit as its hotbar item would, on the world's
-     screen, where his pointer is; the bar closes and the keyboard goes to the app. Escape closes the bar. While it
+     screen; the bar closes and the keyboard goes to the app. Escape closes the bar. While it
      is open the pointer is free, as in the Apps screen. How the bar looks is design work of its own.
    - Tests: Super from inside the world, from a small app window, from a maximized app on the world's screen, and
      from an app on the other screen; `shell_search` reaches only a client that offered it; Super does nothing
@@ -692,8 +692,9 @@ These are the report's JUDGMENT-CALLs 1 to 6, in the same order, each with the s
    jumps to the laptop home's search from anywhere, the world included … Right?", he answered: "Yes but the search
    bar should appear on the homescreen I'd say". (His earlier words on the study, "so does the search menu easy
    access", had been read as yes; board #333 asked him directly.)
-   - **Where the bar appears, asked again because both screens are homes** (board #334, 2026-11-16, asked whether the search bar appears over the world or on the laptop screen's own home: "Over the world"): Super opens a search bar on the screen that shows the world, where he
-     is looking: with the monitor in, the monitor; without it, the laptop's screen. It is AresOS's own search over
+   - **Where the bar appears, asked again because both screens are homes** (board #334, 2026-11-16: over the
+     world, or on the laptop screen's own home? He answered "Over the world"): Super opens a search bar on the
+     screen that shows the world, where he is looking: with the monitor in, the monitor; without it, the laptop's screen. It is AresOS's own search over
      the world, as the Apps screen's search, and it opens the app on that same screen (section 6).
    - The laptop home keeps its own typing line for when he works on the laptop screen.
    - With the pointer on the laptop screen, Super opens the search over the world as well (board #334).
