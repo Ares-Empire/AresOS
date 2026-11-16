@@ -168,3 +168,104 @@ an unmarked session now gets nothing (`os/ci/control/actions.py` `REMINDER` on `
   only the overdue branch.
 
 SAFE
+
+## Recheck of 1abf3e43
+
+Same reviewer, 2026-11-16. Only `git diff 6d645b19 1abf3e43` (code commit `374fac6c`) and PROGRESS's "Fix round 2".
+The PR head `b89b41df` changes only `PROGRESS.md`. Read-only as before.
+
+Ran on the laptop:
+- `control/` with the locked SDK: `tests.test_service_fixes tests.test_ingress_bounds` 63 OK; `chrome_tests.test_questions`
+  34 OK (the 4,096 limit); `chrome_tests.test_policy.ClipboardDescriptions`, `tests.test_unit`,
+  `tests.test_review22_protocol` OK; `generate.py --check` matches.
+- Each app's instructions are in `docs/control/TOOLS.md` word for word. Lengths: chrome 4,093 characters, all ASCII
+  (so 4,093 bytes and UTF-16 units as well), mail 2,536, control and testapp 1,762.
+- Seven mutations of my own on a scratch copy of `1abf3e43` (list in the sections below).
+
+**Socket bind and rename (`control/aresos_control/daemon.py:45-79`).** Sound, for all three sockets.
+- **Order:** each socket is bound under `.<kind>.sock.new`, given its final mode, set listening, and only then
+  `os.replace`d onto `<kind>.sock`. The rename is atomic and stays in one folder. A client therefore finds at the
+  final path either the stopped service's socket (`ECONNREFUSED`, retried as before) or the new one, final mode and
+  listening. It never sees the umask's 0700 or a socket not yet listening. The old code's `ENOENT` gap between
+  `unlink` and `bind` is gone too.
+- **Races:** only the service user (and root) can create entries in `/run/aresos-tools` (0711, the service's own). So
+  the owner can't swap anything in between `replaceable()`, `unlink`, `bind`, `chmod` and `replace`. The same was
+  true of the old `bind`/`chmod` by path.
+- **Stale files:**
+  - A start that fails before the rename closes its listener and removes the temporary, and the old path stays as it
+    was (tested).
+  - A start killed between `bind` and `replace` leaves `.<kind>.sock.new`. The next start checks it, unlinks it and
+    binds again (tested), so 18c's VM check of "exactly the three sockets" holds after every start that succeeds.
+  - A start that fails at admin or chrome leaves `act.sock` as a dead socket. That is the same as before, and the next
+    start replaces it.
+- **Unexpected paths:** `replaceable()` uses `lstat` on both names. A file, a folder or a link (a dangling one
+  included) is refused with the old message and left alone. Before, a dangling link failed at `bind` with
+  `EADDRINUSE`.
+- **admin and chrome:**
+  - Their modes are unchanged (0600 and 0666), so 18c's VM pin (`SOCKET_MODES` in `os/ci/control/actions.py`) still
+    holds.
+  - Root ignores admin's mode.
+  - The Chrome native host connects once and exits on any failure (`control/chrome/native_host.py:14-15`), so
+    `ECONNREFUSED` in place of `ENOENT`/`EACCES` changes nothing for it.
+  - Nothing reads `getsockname()`, which now names the temporary, and the repo ships no SELinux policy whose
+    file-name transitions a temporary name could miss.
+- **Mutations:** binding at the final name, renaming before `chmod`/`listen`, dropping either `replaceable()` and
+  dropping the cleanup all fail `SocketStart`. Two survive (nit 1 below).
+
+**The new sentence and `REMINDER` on the prompt context.** Sound.
+- **Instructions:** the sentence appears once in every app's instructions, and "resolve or report" is gone
+  (`definitions.py:52`).
+- **"On your own":** this keeps a session's own owner-asked send or cancel open. Its send still asks him anyway
+  (ask rule). The only risk is an extra confirmation in chat, which errs on the safe side.
+- **Compared with the old sentence:** it no longer invites a session to resolve another session's items. It keeps
+  "tell the owner what is waiting before finishing", which the old "report them" already asked for, so nothing new
+  is charged.
+- **Tool descriptions:** they still say what `notice_ack` does ("after reading it"). That is mechanics, and the
+  instructions set when to use it, so there is no conflict.
+- **Prompt context:** it now ends with `REMINDER` (`hooks.py:45-46`), with the same prefix, so 18c's
+  `'AresOS held/unfinished work'` match and `test_owner_state_channels`' `raw_decode` after the prefix both still
+  work. Stop's reason is unchanged.
+- **Mutations:** dropping `REMINDER` from the prompt context, or restoring the old sentence, each fail a test.
+
+**JC1, Chrome's removed sentence.** The rule is still stated in Chrome's text, word for word.
+- **What was removed:** `SHARED` lost "On stale_reference or stale_approval, read and prepare again; never change
+  the supplied approval."
+- **Where the rule still is:** `instructions_for('chrome')` is `COMMON_INSTRUCTIONS + SHARED + …`
+  (`definitions.py:150-152`). Its first paragraph still says "On stale_reference or stale_approval, read again and
+  prepare a new operation; never amend an approval yourself." It sits in the first 4,096 characters (checked).
+- **Same meaning:** both say read again, prepare anew, and leave the approval as supplied. Each approval-taking tool
+  still carries `APPROVAL_INSTRUCTION` ("Pass the service-provided approval unchanged").
+- **Nothing else lost:** `SHARED` is used only in Chrome's instructions. Its other stale-reference rule (a first
+  input reloads, "then every reference is stale: read again") stays.
+- **Cost:** 3 characters left, as JC1 says.
+
+**JC2 to JC4.** Sound:
+- JC2: the prompt context keeps its prefix, and `REMINDER` follows the JSON as on Stop.
+- JC3: all three sockets go through the new code.
+- JC4: the real-launcher Stop case is a good addition. After `terminate()` the stale socket gives `ECONNREFUSED`, so
+  the case shows `NOT_RUNNING` once and stays quiet the second time.
+
+**Findings.** No blocking findings and no security **fix** findings.
+1. **nit: the socket modes are pinned only against the code's own table.**
+   - Where: `control/tests/test_service_fixes.py` `SocketStart.test_the_final_path_appears_only_with_its_mode_and_listening`
+     (`SOCKET_MODES` imported from `daemon.py`).
+   - Why: setting admin to 0o666 in `SOCKET_MODES` passes every local test. Only 18c's VM check pins the modes
+     independently. The old inline modes were unpinned here too, so this is not a regression.
+   - Fix: compare against the literal `{'act': 0o666, 'admin': 0o600, 'chrome': 0o666}`.
+   - In the same place, `replaceable()`'s owner check is unpinned (planting another user's socket needs root). It is
+     defence in depth carried over unchanged; no action.
+
+Note, not this round's: running `tests.test_service_fixes` and `chrome_tests.test_questions` in one process gives 20
+errors in `test_questions` (response schema validation). The same happens on `6d645b19`, each module passes alone,
+and CI runs them separately.
+
+**CI** (`gh pr checks 69`: "no checks reported", because the head `b89b41df` is `[skip ci]`). The runs on `1abf3e43`:
+- **Green:** Control base (43842452036), Control boundary (43842451664), Control Mail (43842451845), Control Chrome
+  polkit (43842451755), Repo privacy (43842451726).
+- **Control Chrome (43842451741), still running:** 13 jobs green, among them `python-shards` 0-3, `package`,
+  `native-precedence` (the instructions reach Claude Code whole, chrome at 4,093), `latency (plain)` and
+  `latency (audit)`. 3 jobs are running and 10 queued, all fixtures.
+- **Control Chrome qualification (43842451673), still running:** 10 green, 1 running, 20 queued.
+- Nothing has failed.
+
+SAFE
