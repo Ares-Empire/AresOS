@@ -134,9 +134,7 @@ class Chrome:
         self.committed = self.store.chrome_state
         self.bridge = Bridge()
         self.bridge.on_event = self.event
-        # Brief 28, item 3: one reference table for this run of the service.
-        # It connects to each extension session a read comes over.
-        self.references = References()
+        self._references = None
         self.trusted_context = False
         self.refresh_qualification = True
         self.hosts = HOSTS
@@ -155,6 +153,19 @@ class Chrome:
                 build = module.build_hash()
         shipped = record if record is not None else json.loads((RUNTIME / 'chrome' / 'qualification.json').read_text())
         self.qualification = Qualification(self.store, build, shipped)
+
+    @property
+    def references(self):
+        """Brief 28, item 3: one reference table for this run of the service.
+
+        Made at the first read that needs it, not with the engine: its letters
+        come from the system's random source, which nothing else reads while
+        an engine is built (the Mail sweeps reject every ambient entropy read
+        there). It connects to each extension session a read comes over.
+        """
+        if self._references is None:
+            self._references = References()
+        return self._references
 
     def event(self, event):
         if event.get('event') == 'held_step':

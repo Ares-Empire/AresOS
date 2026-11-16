@@ -297,6 +297,20 @@ class Adapter(unittest.TestCase):
         # The token comes just before the outline; the queued steps after it, as brief 20's read.
         self.assertEqual(self.browser.calls, [('page_state', 1), ('outline', 1), ('queued_steps', 1)])
 
+    def test_the_table_is_made_at_the_first_read_and_kept(self):
+        # Building an engine reads no system randomness: the Mail sweeps reject every such read there.
+        def refuse(*args, **kwargs):
+            raise AssertionError('system randomness read while the engine was built')
+        with patch('random.SystemRandom.getrandbits', refuse), patch('random.SystemRandom.random', refuse):
+            other = engine_with(Path(self.temp.name) / 'other', Outlines())
+        other.close()
+        self.assertIsNone(self.chrome._references)
+        self.outline(tab=1)
+        table = self.chrome._references
+        self.assertIsNotNone(table)
+        self.outline(tab=1)
+        self.assertIs(self.chrome.references, table)
+
     def test_references_live_as_long_as_the_adapter(self):
         self.browser.outlines[1] = fixture(f2)
         first = self.outline(tab=1)['untrusted_content']['outline']
