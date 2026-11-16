@@ -174,10 +174,7 @@ run (`IMAGE_DIFF_PASSED`) with the remaining steps of the job after it.
 
 ## Left, in order
 
-1. The lead decides when the next `dry_run_28` runs: now (to see `IMAGE_DIFF_PASSED` and the steps after the
-   diff before step 2), or at the cut (step 4). Package 42's ledger allows 2 dry runs and one is spent
-   (43832912792), so a dry run now leaves none for step 4 unless the lead raises the cap in
-   `os/ci/rehearsal-packages.json` (a bound file).
+1. Done: dry run 3 passed (below). One `dry-run-28` dispatch stays for step 4's cut (cap 4, three spent).
 2. Step 2 (Control's rules), step 3 (the rehearsal mode; it adds its kind `release-28` to package 42's ledger and
    raises its minute cap), steps 4 to 6 as the brief says.
 
@@ -209,3 +206,8 @@ None so far. (A pin other than the mod jar's renewed by resolve would be one; no
 Phase 2's rules are proven on the evidence but not on a build (the 32-bit caches' own bytes, `IMAGE_DIFF_PASSED`, the job's steps after the diff). The lead raised `dry-run-28` from 2 to 3 in `os/ci/rehearsal-packages.json` (test updated, pending list refreshed) and dispatches the second dry run on this head; step 4's cut keeps one.
 
 Dry run 2 (43843690867, on `f6e0d693`) died at 6 minutes in "Install pinned tools on disposable runner": snapshot.ubuntu.com answered 502/503 (before any build; a dispatch all the same). The server answered again at 10:15Z; the lead raised `dry-run-28` to 4 and dispatches dry run 3; the cut keeps one.
+
+Dry run 3 (43847257976, on `e4a0f861`, 10:15Z to 11:28Z) passed: `IMAGE_DIFF_PASSED: 1585 changed paths, all
+explained` (phase 2's rules held on a real build, the 32-bit font caches included), `CHECK_BUILD_VM_PASSED`, and
+the UEFI VM checks. The release-28 publish job was skipped, as the dispatch gate says. Step 1 is done; its review
+(Codex, from Tue 2026-11-17) reads phases 1 and 2 and this run.
