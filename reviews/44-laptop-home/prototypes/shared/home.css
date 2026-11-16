@@ -1,0 +1,88 @@
+/* Development aid for AresOS package 44 (the laptop-screen home, a design study). Not product code.
+   The crown language (EMPIRE.md): near-black, gold as the one accent, Space Grotesk, JetBrains Mono for numbers
+   and short names. Colours are the Ares-Crown window theme's. Both fonts are under the SIL Open Font License 1.1
+   (fonts/OFL-*.txt). */
+
+@font-face { font-family: 'Space Grotesk'; src: url('fonts/SpaceGrotesk-Variable.ttf'); font-weight: 300 700; }
+@font-face { font-family: 'JetBrains Mono'; src: url('fonts/JetBrainsMono-Variable.ttf'); font-weight: 100 800; }
+
+:root {
+  --wall: #0d0d10;
+  --wall-2: #1a191e;
+  --ink: #f3f1ea;
+  --ink-2: #a6a39a;
+  --ink-3: #6f6b62;
+  --line: #262420;
+  --gold: #cfa24f;
+  --gold-hi: #edca77;
+  --gold-edge: #615640;
+  --mars: #c9372c;
+  --steel: #5d86b3;
+  --text: 'Space Grotesk', sans-serif;
+  --mono: 'JetBrains Mono', monospace;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--wall); overflow: hidden; }
+body { color: var(--ink); font-family: var(--text); letter-spacing: -0.01em; cursor: default; user-select: none; }
+.stage { position: absolute; width: 1920px; height: 1080px; transform-origin: 0 0; overflow: hidden; background: var(--wall); }
+canvas { display: block; image-rendering: pixelated; }
+.still *, .still *::before, .still *::after { animation: none !important; transition: none !important; }
+.label { font-size: 12px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-3); }
+
+/* the clock and the battery */
+.clock-time { font-family: var(--mono); font-weight: 500; font-size: 64px; line-height: 1; letter-spacing: -0.04em; }
+.clock-date { margin-top: 10px; font-size: 13px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-3); }
+.battery { display: flex; align-items: center; gap: 10px; font-family: var(--mono); font-size: 14px; color: var(--ink-2); }
+.battery-shell { position: relative; width: 30px; height: 14px; border: 1.5px solid var(--ink-3); border-radius: 3px; padding: 1.5px; }
+.battery-shell::after { content: ''; position: absolute; right: -5px; top: 3px; width: 2.5px; height: 5px; background: var(--ink-3); border-radius: 0 1px 1px 0; }
+.battery-shell i { display: block; height: 100%; background: var(--ink-2); border-radius: 1px; }
+
+/* the hotbar: the nine pinned apps, keys 1 to 9 */
+.hotbar { display: flex; gap: 6px; padding: 6px; border-radius: 12px; background: linear-gradient(#17161a, #101013);
+  border: 1px solid var(--line); box-shadow: 0 1px 0 rgba(255, 255, 255, 0.05) inset, 0 18px 40px rgba(0, 0, 0, 0.5); }
+.slot { position: relative; width: 64px; height: 64px; border-radius: 7px; background: #0a0a0c; border: 1px solid #1f1e22;
+  display: grid; place-items: center; transition: border-color .12s, transform .12s; }
+.slot[data-app] { cursor: pointer; }
+.slot[data-app]:hover, .slot.is-selected { border-color: var(--gold); transform: translateY(-2px); }
+.slot-key { position: absolute; left: 0; right: 0; bottom: -25px; text-align: center; font-family: var(--mono); font-size: 12px; color: var(--ink-3); }
+.slot.is-running::after { content: ''; position: absolute; bottom: 2px; left: 50%; width: 14px; height: 2px; margin-left: -7px;
+  border-radius: 1px; background: var(--gold-hi); box-shadow: 0 0 8px var(--gold); }
+.slot.is-dim canvas { opacity: 0.25; }
+.slot.is-opening { border-color: var(--gold-hi); }
+
+/* the typing line, as in the chat */
+.finder { display: flex; flex-direction: column; justify-content: flex-end; gap: 8px; }
+.finder-line { display: flex; align-items: center; height: 44px; padding: 0 14px; border-radius: 8px; font-family: var(--mono); font-size: 18px;
+  background: transparent; border: 1px solid transparent; transition: background .12s, border-color .12s; }
+.finder.is-typing .finder-line { background: #0a0a0cf2; border-color: var(--gold-edge); }
+.finder-slash { color: var(--gold); margin-right: 1px; }
+.finder-q { color: var(--ink); white-space: pre; }
+.finder-caret { width: 9px; height: 20px; margin-left: 2px; background: var(--ink); opacity: 0; }
+.finder.is-typing .finder-caret { opacity: 1; animation: caret 1.1s steps(1) infinite; }
+@keyframes caret { 50% { opacity: 0; } }
+.finder-hint { margin-left: 14px; font-family: var(--text); font-size: 14px; color: var(--ink-3); }
+.finder.is-typing .finder-hint { margin-left: auto; padding-left: 24px; color: var(--gold); }
+.finder.is-typing .finder-hint.none { color: var(--ink-3); }
+.finder-list { display: flex; flex-direction: column; gap: 2px; }
+.finder-list:empty { display: none; }
+.finder.is-typing .finder-list { padding: 8px; border-radius: 10px; background: #0f0f12f2; border: 1px solid var(--line); }
+.finder-head { padding: 4px 8px 6px; font-size: 11px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-3); }
+.finder-row { display: flex; align-items: center; gap: 12px; height: 36px; padding: 0 8px; border-radius: 6px; font-size: 15px; cursor: pointer; }
+.finder-row small { margin-left: auto; font-size: 12px; color: var(--ink-3); }
+.finder-row:hover, .finder-row.is-selected, .finder-row.is-best { background: #2a2519; color: #fff4d4; }
+
+/* a window that stands in for an opened app, in the Ares-Crown look */
+.windows { position: absolute; inset: 0; pointer-events: none; z-index: 50; }
+.win { position: absolute; width: 760px; height: 470px; pointer-events: auto; border-radius: 10px; overflow: hidden;
+  border: 1px solid var(--gold-edge); background: #111114; box-shadow: 0 24px 70px rgba(0, 0, 0, 0.66); }
+.win-bar { display: flex; align-items: center; height: 34px; padding: 0 6px 0 12px; background: linear-gradient(var(--wall-2), var(--wall));
+  font-size: 13px; font-weight: 500; }
+.win-menu { width: 12px; height: 12px; margin-right: 10px; border-radius: 3px; background: var(--gold-edge); }
+.win-title { flex: 1; }
+.win-btn { width: 30px; height: 24px; display: grid; place-items: center; border-radius: 5px; color: var(--ink-2); font-size: 12px; }
+.win-btn:hover { background: #edca771a; }
+.win-close { cursor: pointer; }
+.win-body { height: 436px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; }
+.win-body b { font-size: 26px; font-weight: 600; }
+.win-body small { font-size: 14px; color: var(--ink-3); }

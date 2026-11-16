@@ -1,0 +1,180 @@
+<!doctype html>
+<!-- Development aid for AresOS package 44 (the laptop-screen home, a design study). Not product code.
+     Direction "Night street": the town seen from the side, at night. Open this file in a browser; it needs
+     only the files in ../shared. Options: see ../shared/home.js. Also ?ledges=1 draws where companions can stand. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Night street · AresOS laptop home (prototype)</title>
+<link rel="stylesheet" href="../shared/home.css">
+<style>
+  .stage::before { content: ''; position: absolute; inset: 0; pointer-events: none;
+    background: radial-gradient(900px 520px at 4% 100%, rgba(201, 55, 44, 0.10), transparent 70%),
+                radial-gradient(1000px 560px at 100% 0%, rgba(93, 134, 179, 0.11), transparent 70%); }
+  .star { position: absolute; width: 2px; height: 2px; background: var(--ink); }
+  .star.twinkle { animation: twinkle 5s ease-in-out infinite; }
+  @keyframes twinkle { 50% { opacity: 0.08; } }
+  #clock { position: absolute; left: 64px; top: 40px; }
+  #battery { position: absolute; right: 64px; top: 48px; }
+
+  .street { position: absolute; left: 0; width: 1920px; }
+  .street-sign { position: absolute; left: 860px; width: 200px; text-align: center; }
+  .street-sign b { display: block; font-size: 13px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--g); }
+  .street-sign span { display: block; margin-top: 5px; font-family: var(--mono); font-size: 12px; color: var(--ink-3); }
+  .road { position: absolute; bottom: 0; height: 16px; background-color: #18181c;
+    border-top: 3px solid color-mix(in srgb, var(--b) 62%, var(--wall));
+    background-image: repeating-linear-gradient(90deg, transparent 0 calc(var(--cell) * 2 - 1px), var(--wall) 0 calc(var(--cell) * 2)); }
+
+  .house { position: absolute; bottom: 16px; cursor: pointer; transition: opacity .15s; }
+  .house canvas { position: absolute; left: 0; bottom: 0; filter: brightness(0.62) saturate(0.82); transition: filter .15s; }
+  .house:hover canvas, .house.is-running canvas, .house.is-selected canvas, .house.is-match canvas, .house.is-opening canvas { filter: none; }
+  .house-sign { position: absolute; top: 0; left: 50%; transform: translateX(-50%); text-align: center; white-space: nowrap; }
+  .house-sign b { display: block; font-weight: 500; font-size: var(--name); color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; }
+  .house-sign span { display: block; margin-top: 1px; font-family: var(--mono); font-size: 12px; color: #9c7c40; }
+  .house:hover b, .house.is-running b, .house.is-selected b, .house.is-match b { color: var(--ink); }
+  .house:hover span, .house.is-running span, .house.is-selected span, .house.is-match span { color: var(--gold-hi); }
+  .house.is-dim { opacity: 0.13; }
+  .mat { position: absolute; bottom: -3px; height: 3px; background: var(--g); }
+  .door { position: absolute; bottom: 0; }
+  /* A house is lit while its app runs. */
+  .house.is-running .door { background: linear-gradient(#ffe7a6, #e9b04a 55%, #b9791e); box-shadow: 0 0 22px 5px rgba(237, 202, 119, 0.42); }
+  .house.is-running .mat { background: var(--gold-hi); box-shadow: 0 0 14px 2px rgba(237, 202, 119, 0.5); }
+  /* Walking in: the world's purple puff. */
+  .house.is-opening .door { background: #b66bff; box-shadow: 0 0 26px 8px rgba(182, 107, 255, 0.55); }
+  .frame { position: absolute; left: -7px; bottom: -7px; border: 2px solid var(--gold); border-radius: 5px; opacity: 0; }
+  .house.is-best .frame, .house.is-selected .frame { opacity: 1; }
+  .puff { position: absolute; width: 5px; height: 5px; background: #c58bff; animation: puff .6s ease-out forwards; }
+  @keyframes puff { to { transform: translate(var(--dx), var(--dy)); opacity: 0; } }
+
+  .pad { position: absolute; left: 0; right: 0; top: 948px; height: 1px; background: var(--line); }
+  .pad i { position: absolute; left: 953px; top: -7px; width: 14px; height: 14px; background: linear-gradient(135deg, var(--gold-hi), var(--gold) 55%, #8c6a2c); }
+  #hotbar { position: absolute; left: 50%; top: 966px; transform: translateX(-50%); }
+  #finder { position: absolute; left: 50px; bottom: 30px; width: 480px; z-index: 40; }
+  .hint { position: absolute; right: 64px; bottom: 44px; }
+  .ledge { position: absolute; height: 0; border-top: 2px dashed var(--gold-hi); z-index: 30; pointer-events: none; }
+  .ledge-note { position: absolute; left: 0; right: 0; top: 52px; text-align: center; font-size: 15px; color: var(--gold-hi); z-index: 30; }
+</style>
+</head>
+<body>
+<div class="stage" id="stage">
+  <div id="clock"></div>
+  <div id="battery"></div>
+  <div id="town"></div>
+  <div class="pad"><i></i></div>
+  <div id="hotbar"></div>
+  <div id="finder"></div>
+  <div class="hint label">Click opens &nbsp;·&nbsp; 1 to 9 the hotbar &nbsp;·&nbsp; type to find</div>
+</div>
+<script src="../shared/home.js"></script>
+<script>
+'use strict';
+(() => {
+  const stage = document.getElementById('stage'), townEl = document.getElementById('town');
+  const TOP = 150, STREET = 196, ROAD = 16, GAP = 200, EDGE = 40, FLOOR = 948, MID = 960;
+  const byGroup = Home.GROUPS.map(g => Home.town.apps.filter(a => a.group === g.key));
+  const most = Math.max(...byGroup.map(list => list.length), 1);
+  // One size for every house: as large as the longest street allows, between 7 and 10 pixels a block.
+  const cell = Math.max(7, Math.min(10, Math.floor((MID - GAP / 2 - EDGE) / (Math.ceil(most / 2) * 14.6))));
+  const size = 12 * cell, depth = Math.round(cell * 0.9), pitch = Math.round(cell * 14.6);
+  const surfaces = [], occluders = [];
+
+  // A few still stars; the screen stays calm beside the world.
+  let seed = 44;
+  const random = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
+  for (let i = 0; i < 90; i++) {
+    const star = document.createElement('i');
+    star.className = 'star' + (i % 9 === 0 ? ' twinkle' : '');
+    star.style.cssText = `left:${Math.round(random() * 1916)}px;top:${Math.round(random() * 900)}px;opacity:${(0.1 + random() * 0.35).toFixed(2)};animation-delay:${(-random() * 5).toFixed(1)}s`;
+    stage.prepend(star);
+  }
+
+  Home.GROUPS.forEach((g, gi) => {
+    const list = byGroup[gi], base = TOP + (gi + 1) * STREET - ROAD;
+    const street = document.createElement('div');
+    street.className = 'street';
+    street.style.cssText = `top:${TOP + gi * STREET}px;height:${STREET}px;--g:${g.colour};--b:${g.block};--cell:${cell}px;--name:${cell >= 9 ? 14 : 13}px`;
+    // As in the world, the group's name hangs over the road between its two front logos (HUB.md 2.6).
+    const sign = document.createElement('div');
+    sign.className = 'street-sign';
+    sign.style.bottom = ROAD + Math.round(size * 0.42) + 'px';
+    sign.innerHTML = `<b>${g.title.replace('&', '&amp;')}</b><span>${g.where} · ${list.length}</span>`;
+    // Houses stand left and right of the middle, nearest first: left, right, left, right (HUB.md 3.3). The road
+    // is paved as far as the group has logos (2.6).
+    const left = Math.ceil(list.length / 2), right = list.length - left;
+    const x1 = MID - GAP / 2 - (left ? (left - 1) * pitch + size + 2 * cell : 0);
+    const x2 = MID + GAP / 2 + (right ? (right - 1) * pitch + size + 2 * cell : 0);
+    const road = document.createElement('div');
+    road.className = 'road';
+    road.style.cssText = `left:${x1}px;width:${x2 - x1}px`;
+    street.append(sign, road);
+    surfaces.push({ id: `street:${g.key}`, ownerId: 'town', kind: 'edge', x1, x2, y: base, weight: 2 });
+
+    list.forEach((app, i) => {
+      const k = i >> 1, x = i % 2 ? MID + GAP / 2 + k * pitch : MID - GAP / 2 - k * pitch - size;
+      const house = document.createElement('div');
+      house.className = 'house';
+      house.dataset.app = app.id;
+      house.style.cssText = `left:${x}px;width:${size}px;height:${size + depth + 40}px`;
+      const label = document.createElement('div');
+      label.className = 'house-sign';
+      const name = document.createElement('b'), short = document.createElement('span');
+      name.textContent = app.name;
+      name.style.maxWidth = pitch - 6 + 'px';
+      short.textContent = '/' + app.short;
+      label.append(name, short);
+      const door = document.createElement('div'), mat = document.createElement('div'), frame = document.createElement('div');
+      door.className = 'door'; mat.className = 'mat'; frame.className = 'frame';
+      door.style.cssText = `left:${5 * cell}px;width:${2 * cell}px;height:${3 * cell}px`;
+      mat.style.cssText = `left:${5 * cell}px;width:${2 * cell}px`;
+      frame.style.cssText = `width:${size + 14}px;height:${size + 14}px`;
+      house.append(label, Home.logoCanvas(app, cell, depth), door, mat, frame);
+      street.append(house);
+
+      // What the companions' runtime would be told: the roof as a ledge, the house as a box.
+      const top = app.cells[11].map((c, u) => c ? u : -1).filter(u => u >= 0);
+      if (top.length) surfaces.push({ id: `roof:${app.id}`, ownerId: `house:${app.id}`, kind: 'edge', x1: x + top[0] * cell,
+        x2: x + (top[top.length - 1] + 1) * cell, y: base - size, room: STREET - ROAD - size });
+      occluders.push({ id: `house:${app.id}`, z: 1, l: x, t: base - size, r: x + size, b: base });
+    });
+    townEl.append(street);
+  });
+
+  Home.on('opening', app => {
+    const house = townEl.querySelector(`[data-app="${app.id}"]`);
+    if (!house) return;
+    for (let i = 0; i < 9; i++) {
+      const p = document.createElement('i');
+      p.className = 'puff';
+      p.style.cssText = `left:${5.5 * cell + (Math.random() - 0.5) * 2 * cell}px;bottom:${cell + Math.random() * 2 * cell}px;--dx:${(Math.random() - 0.5) * 70}px;--dy:${-30 - Math.random() * 60}px`;
+      house.append(p);
+      setTimeout(() => p.remove(), 650);
+    }
+  });
+
+  // The same shape as a world snapshot of the companions' runtime (its README, "World provider"): the streets
+  // and roofs are ledges, the houses are boxes, the line over the hotbar is the floor.
+  window.laptopHome = { world: { snapshot: () => ({ viewport: { width: 1920, height: 1080, dpr: devicePixelRatio || 1 },
+    surfaces, occluders, floor: { x1: 0, x2: 1920, y: FLOOR, weight: 1.2 } }) } };
+  if (Home.params.has('ledges')) {
+    const world = window.laptopHome.world.snapshot();
+    for (const s of [...world.surfaces, { ...world.floor }]) {
+      const line = document.createElement('i');
+      line.className = 'ledge';
+      line.style.cssText = `left:${s.x1}px;width:${s.x2 - s.x1}px;top:${s.y - 1}px`;
+      stage.append(line);
+    }
+    const note = document.createElement('div');
+    note.className = 'ledge-note';
+    note.textContent = `Where companions can stand later: ${world.surfaces.length} ledges (4 streets and the roofs) and the floor.`;
+    stage.append(note);
+  }
+
+  Home.mountClock(document.getElementById('clock'));
+  Home.mountBattery(document.getElementById('battery'));
+  Home.mountHotbar(document.getElementById('hotbar'));
+  Home.mountFinder(document.getElementById('finder'));
+  Home.start(stage);
+})();
+</script>
+</body>
+</html>
