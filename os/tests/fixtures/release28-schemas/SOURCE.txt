@@ -1,0 +1,7 @@
+Compiled GSettings defaults for test_release28 (package 42), made with
+glib-compile-schemas 2.88.4 --strict from aresos-test.gschema.xml (a made-up
+schema: the key package 31's override sets, and one key of each kind of value):
+  before.compiled  the schema alone
+  after.compiled   the schema and os/config's zz-aresos.gschema.override
+  extra.compiled   the same and one more override ([org.aresos.test] scale=2.5)
+They let the tests read real compiled files on any host, without glib.
