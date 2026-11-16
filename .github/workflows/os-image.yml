@@ -175,8 +175,8 @@ jobs:
     if: github.event_name == 'workflow_dispatch' && github.ref_name != 'pkg/16-staged-release' && inputs.check_build != '' && !inputs.rehearsal && !inputs.release_13 && !inputs.release_27 && !inputs.checks_only && !inputs.switch_from_run
     runs-on: ubuntu-24.04
     # check_build=control adds its own VM step (below) after the build step:
-    # tools 20 + build 80 + Control VM pass 12 + 15.
-    timeout-minutes: ${{ inputs.check_build == 'control' && 127 || 120 }}
+    # tools 20 + build 80 + Control VM pass 16 + 15.
+    timeout-minutes: ${{ inputs.check_build == 'control' && 131 || 120 }}
     # Read-only on purpose: no packages/id-token permission and no secrets, so
     # this job cannot push, sign or publish the image it builds.
     permissions:

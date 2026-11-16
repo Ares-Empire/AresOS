@@ -11,12 +11,13 @@
     "22d step 8: main merged in (bound files main changed wait for the next rehearsal)",
     "2026-11-15, board #306 (owner: scrub current files): the owner's machine username became owner in 372 files (reviews/username-scrub/RECORD.md). Three bound files changed, text only: os/manifest/ci/14/14zze-preflight/commit-preflight.py, final-local.py and local-privacy.py (archived preflight tools). No binding table or host walk was edited.",
     "Package 18c's fix round 1, part 2 merged main after 22d's rehearsal (run 43737933979), which bound the workflow without 18c's changes (check_build gains control; the job's limit 127 minutes for control, 120 for the other modes; the Control VM pass step, 12 minutes, and the always() step stopping its fixture servers): they wait again for the next rehearsal; no tool, guide or image file changed",
-    "Package 18c's fix round 1, part 2: the Control VM pass step's limit goes from 12 to 16 minutes (the last passes took 7 min 50 s and 7 min 9 s; the round adds about 2 to 3 minutes for the logout and greetd's auto-login and check 6's two new sessions; about 1.5 times the slower pass with that added); the job's limit and every other mode unchanged; no tool, guide or image file changed"
+    "Package 18c's fix round 1, part 2: the Control VM pass step's limit goes from 12 to 16 minutes (the last passes took 7 min 50 s and 7 min 9 s; the round adds about 2 to 3 minutes for the logout and greetd's auto-login and check 6's two new sessions; about 1.5 times the slower pass with that added); the job's limit and every other mode unchanged; no tool, guide or image file changed",
+    "Package 18c's fix round 1, part 2 (linux-aresos, agreed change 15): the check-build job's limit for check_build=control goes from 127 to 131 minutes and its comment's sum follows the Control VM pass step's 16 minutes, so the job can't cut a slow pass before the step's own limit; every other mode unchanged; no tool, guide or image file changed"
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
     {
-      "sha256": "58219fa887f723fd958fe6110305642ed44b85ec01b2d4aeb84383d65a6fb9a3",
+      "sha256": "4bf4a988691367ff866a58012c47f6fdf8112a82afcef08d8d30307455a4d996",
       "path": ".github/workflows/os-image.yml"
     },
     {
