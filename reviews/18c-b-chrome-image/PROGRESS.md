@@ -34,6 +34,14 @@ lead's go.
     list is empty only when he has no site to exclude. His dashboard's host goes on it first, as CONTROL.md section 6
     says. PR #48 corrects brief 18c-b's lines 24 and 423 to match.
 
+11. **From #58's fix round 1, part 2 (2026-11-16):**
+    - Control's Chrome build hash in the image is now `91cdfeb6291380ffd8cf271a77e5baef8a6abd5aaa2c4ea504b69ff866969ae5`
+      (was `ccd0fd79…`, the one the brief names). Use the hash the build makes at 3a's head; don't copy either
+      literally.
+    - `os-image.yml`'s Control job keeps `timeout-minutes: 127` while the pass step went 12 → 16 minutes; the job's
+      comment still adds up with 12. 3a's first `os-image.yml` commit fixes the comment's sum (or the job's limit,
+      131), runs `rebind.py pending`, and `linux-aresos` is told before it, as for every `os-image.yml` change.
+
 ## Step 2b (2026-11-15, Claude Fable 5.2)
 
 ### The lead's decisions on step 2's findings
