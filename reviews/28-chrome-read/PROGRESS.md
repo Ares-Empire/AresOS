@@ -111,7 +111,7 @@ Opus: built against step 8's "For the adapter" and the lead's brief for this ste
 | Head | Holds | Control Chrome | Result |
 |---|---|---|---|
 | `8ae7e8b0` | step 8 + `main` (`70538b71`) + the adapter | 43826821669 (run 9; qualification 43826821542) | **in progress.** At 08:15 UTC (23 minutes in): green `package`, `native-precedence`, the four `python-shards` (shard 3: 144 tests, among them `test_outline_action`'s 21 at this head), **both latency legs on their first attempt** (`main`'s tmpfs store and sync-count gate) and the plain leg's "Efficiency tasks with brief 20's tools" step; fixtures: 3 shards green, 3 running, 12 queued. Qualification 43826821542: 12 jobs green, 4 running, 15 queued. Repo privacy, Control base and Control boundary green. **Control Mail 43826821593 red**, this step's own (above), fixed in `5a0c7552`. Not read further. |
-| `5a0c7552` | + the reference table made at the first read | none (pushed under a `[skip ci]` PROGRESS head; JUDGMENT-CALL 9) | Control Mail dispatched on the branch: MAIL_DISPATCH. |
+| `5a0c7552` | + the reference table made at the first read | none (pushed under a `[skip ci]` PROGRESS head; JUDGMENT-CALL 9) | Control Mail dispatched on the branch: 43830247959 (`workflow_dispatch` on `09690118`, which holds `5a0c7552`), queued when this was written. |
 
 Nine full `control-chrome` runs so far. Run 9 is the first with the switch set; no browser test calls
 `chrome_outline` yet (groups 14 and 16 are next), so it shows that the switch and the merge break nothing.
