@@ -52,7 +52,20 @@ before the caches were cleared.
 
 ## CI
 
-Pending: the PR's first push.
+PR #89, one code push, head `2e4bfa22`. All green:
+- Repo privacy 43878612569, Control base 43878612639 (has the MCP SDK the laptop lacks), Control boundary
+  43878612556, Control Mail 43878612662: success.
+- **Control Chrome qualification 43878612536: success**, 34 jobs, `qualification-tests` included (it runs
+  `test_publisher` and `test_qualification`).
+- **Control Chrome 43878612548: success**, 28 jobs, `python-shards` 0-3, `latency (plain)` and `latency (audit)`
+  included.
+  - Both profiles' `latency-check.json`: `passed: true`, no `failures`, no `sync_failures`, 36 sync comparisons.
+  - Sync counts per sample, from the new probe and identical on every sample in both runtimes and both profiles:
+    read 0 and 0, asking_click 2 and 2, navigate, free_click and fill 4 and 4, approval_to_done 10 and 10 (fsyncs
+    and commits). These are 20-ci-noise's counts exactly (run 43745378252): the file's change counter sees the same
+    commits as the COMMIT statements did on every latency call, so JUDGMENT-CALL 1's possible drop didn't happen.
+  - The store at the end, current runtime: 77 MiB state and 39 MiB evidence, each on its own `tmpfs`, as the `run.sh`
+    comment now says. The end record is present, so the summary's new check passed in both legs.
 
 ## JUDGMENT-CALLs (technical, for the lead)
 
@@ -60,7 +73,7 @@ Pending: the PR's first push.
    autocommit statements to the trace callback: a statement-based count would have to guess which statements write.
    Effect: a COMMIT that changed nothing is no longer counted. It syncs nothing (checked: the counter doesn't move),
    so it isn't a disk sync. If the product makes such commits on a latency call, CI's `sqlite_commit` counts drop
-   below 20-ci-noise's (2, 4, 10 per call). Both legs run the same probe (the pair copies `ci/` into the old tree),
+   below 20-ci-noise's (2, 4, 10 per call); CI showed they didn't. Both legs run the same probe (the pair copies `ci/` into the old tree),
    so the gate still compares like with like.
 2. **A3 holds a read-only descriptor of `control.sqlite` for the service's life** and checks on every read that the
    path still names that file. Reopening per read would be simpler, but closing a descriptor drops the process's
