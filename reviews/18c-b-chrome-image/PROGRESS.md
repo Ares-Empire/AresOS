@@ -28,7 +28,11 @@ lead's go.
 7. **PLAN-GAP 3:** nothing to change; case 5 compares against the probe alone, so Chrome's own start-up requests
    cancel out.
 8. **The three known-limit lines are accepted**; step 6 places them in `KNOWN-LIMITS.md` and the report.
-9. **3a waits for PR #58 on `main`** (Codex reviews on 2026-11-17 at the earliest), then the lead's go.
+9. **3a waits for PR #58 on `main`.** Claude reviewed #58 on 2026-11-16, and its fix round is running. Codex astra
+   reviews #58 before it merges. Then the lead's go.
+10. **The never-list guide text** (brief review 5 of PR #48, S6, 2026-11-16): the step that writes his guide says the
+    list is empty only when he has no site to exclude. His dashboard's host goes on it first, as CONTROL.md section 6
+    says. PR #48 corrects brief 18c-b's lines 24 and 423 to match.
 
 ## Step 2b (2026-11-15, Claude Fable 5.2)
 
