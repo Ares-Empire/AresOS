@@ -12,6 +12,10 @@ work. What it added is in "The day look" at the end.
 The day's grid and terraces (the owner chose day and asked for a cleaner layout, the same day): one Claude agent on
 Fable 5.2, design work. What it changed is in "The day look on one grid" at the end.
 
+Review fixes 3 (should-fix 1 to 5 of `REVIEW-3.md`, and the owner's answer on the Super key, board #333): one Claude
+agent on Opus 5.5, the same day. What changed is in "Review fixes 3" at the end, with the list "For the build
+brief".
+
 Nothing under `os/` or `mod/` changed. Everything in this folder is a development aid for choosing a design. The
 design draft that a build package can follow is `docs/design/LAPTOP-HOME.md`.
 
@@ -25,9 +29,11 @@ design draft that a build package can follow is `docs/design/LAPTOP-HOME.md`.
   - It is calm beside the bright world.
   - It is the one shape the companions already understand (floors and ledges), so they move in later without a
     rebuild.
+- The owner chose the street by day, on terraces (JUDGMENT-CALL 1). Night stays as the second look.
 - Tech: the system's web engine (WebKitGTK 6.0) in one small window of its own, no browser around it.
-  - Measured with 40 test apps: **about 335 MiB** in all, about 265 MiB with the Intel chip drawing, as in his
-    session.
+  - Measured with 40 test apps: **about 335 MiB** in all. With the drawing libraries pinned to Mesa and Intel,
+    research for package 49 measured about 150 to 180 MiB, and the build pins them (LAPTOP-HOME.md section 4,
+    "Memory").
   - 127 MiB of it is working memory; the rest is mostly the program files it maps (the engine, GTK, the graphics
     driver).
   - At rest it uses under 2 % of one processor core. One companion-sized figure walking costs about a fifth of
@@ -41,7 +47,7 @@ design draft that a build package can follow is `docs/design/LAPTOP-HOME.md`.
 |---|---|
 | Three clickable prototypes at 1920 x 1080, no network, no build step | `prototypes/street/`, `prototypes/map/`, `prototypes/console/` (each an `index.html`; they share `prototypes/shared/`) |
 | The test town: 5, 12, 24, 40 or 45 test apps ("Test Web 1" …) with block logos generated from each app's ID, 20 more programs outside My apps, some with a generic name and keywords | `prototypes/shared/home.js` |
-| 17 pictures at 1920 x 1080, drawn by the web engine I recommend | `pictures/` |
+| 28 pictures at 1920 x 1080, drawn by the web engine I recommend: 17 of the three directions, 4 of the day's first form, 7 of the day on its grid | `pictures/` |
 | A tool that shows a page in WebKitGTK inside a headless compositor of its own, takes the pictures, measures memory (working memory, files, shared memory) and processor time per process, and checks keys and clicks | `tools/shots.sh`, `tools/webkit-shot.py` |
 | The design draft of the recommended direction | `docs/design/LAPTOP-HOME.md` |
 
@@ -96,8 +102,8 @@ line with one gold block in its middle, his home block, and below it the hotbar.
 
 **What he does.** While he works in an app, he moves the pointer down to the laptop and clicks a house. Or he types
 `tool`, the Tools street stays bright and the rest goes dark, Enter. Or he presses 3 for the third hotbar app. From
-inside the world the game holds the pointer, so he first presses Esc (or E, or T); a reserved key would spare him
-that (JUDGMENT-CALL 5).
+inside the world the game holds the pointer, so he first presses Esc (or E, or T). Super opens a search over the
+world instead, without leaving it (JUDGMENT-CALL 5).
 
 **How it grows.**
 - Five apps are a hamlet in the middle of the screen.
@@ -190,8 +196,10 @@ NVIDIA. Review fixes 1 found that and measured again (below).
     GTK and the graphics driver's libraries.
   - Shared memory is under 1 MiB.
   - Memory the graphics chip holds for it does not show in these numbers.
-  - With the compositor and GTK on the Intel chip, as in his session (OS-BASE: Intel drives the session, NVIDIA
-    renders Minecraft), it is about 265 MiB, because the NVIDIA driver's libraries are not loaded.
+  - With the compositor and GTK on the Intel chip it measured about 265 MiB. *Corrected in review fixes 3:* that
+    this is his session's number does not hold. libglvnd loads NVIDIA's libraries into every process unless the
+    EGL and Vulkan vendor is pinned, so unpinned his session is near 335 MiB, and pinned about 150 to 180
+    (LAPTOP-HOME.md section 4, "Memory").
 - The engine is most of it: about 255 MiB before any page. The home itself adds about 80 MiB.
 - For comparison, the world's game may use 2560 MiB (package 23d). The laptop home is about an eighth of that.
 - **The last row gave the design rule: at rest nothing on this screen moves.** Ten two-pixel stars that changed
@@ -248,7 +256,8 @@ What it means for the companions version:
 - Nothing talks to the real app helper: the pages use a stand-in with test apps.
 - How it sits in labwc (below) is designed from labwc's and the helper's code, not tried: this laptop has no
   `gtk4-layer-shell`, and package 23c, which moves the world to the monitor, is not built yet.
-- The way from the world (Esc, the reserved key) and what the game does when the laptop home takes the keyboard.
+- The way from the world (Esc), Super's search over the world, and what the game does when the laptop home takes
+  the keyboard.
 - Which graphics chip GTK and labwc draw on in his session.
 
 ## How it talks to the helper
@@ -298,8 +307,10 @@ five events (LAPTOP-HOME.md section 4). The page never sees a command, a path, t
   - The helper then has to leave that window out of its covering and focus rules, as it does for the start-up
     cover.
 - **From the world to the laptop.** While the world has the focus, the game holds the pointer. He presses Esc (or
-  E, or T), moves the pointer down and clicks. With a reserved key (JUDGMENT-CALL 5) the typing line would open on
-  the laptop without Esc.
+  E, or T), moves the pointer down and clicks.
+- **Super** (JUDGMENT-CALL 5, board #333) opens a search bar over the world, on the screen that shows it, and the
+  app opens there. It does not lead to the laptop, whose typing line is for when he works on the laptop screen
+  (LAPTOP-HOME.md section 6).
 - **Start and stop: the desktop supervisor**, with package 23c's watching of the screens. When the world has moved to
   the monitor, the supervisor starts the laptop home in a scope of its own on the laptop's screen. When the monitor
   goes, it stops it and the world comes back. With the lid closed there is no laptop screen and no laptop home.
@@ -327,8 +338,9 @@ five events (LAPTOP-HOME.md section 4). The page never sees a command, a path, t
 
 ## JUDGMENT-CALL (for the owner)
 
-1. **Which direction, and by night or by day.** Answered by the owner (2026-11-16): the street, by day. He then
-   asked for a cleaner layout ("The day look on one grid" at the end). What was asked:
+1. **Which direction, and by night or by day.** Answered by the owner (2026-11-16): the street, by day, on
+   terraces (board #332: "Terraces"). He then asked for a cleaner layout ("The day look on one grid" at the end).
+   What was asked:
    - The direction: I chose the street. Rejected: Map table (logos too small, half the screen empty, companions do
      not fit) and Console (a launcher list). Changing later costs little on the system side: a look is one folder
      of web files.
@@ -337,23 +349,37 @@ five events (LAPTOP-HOME.md section 4). The page never sees a command, a path, t
      and [street-6](pictures/street-6-forty-apps.png) with [day-6](pictures/day-6-forty-apps.png). I recommend day:
      his world is always at noon, so by day both screens show one place. Night is calmer and shows what is open a
      little more strongly.
-2. **One look or a choice.** I would build one look first, the one he picks in 1. Night and day are one page with
+2. **One look or a choice.** Kept as recommended (2026-11-16, no objection): one look first, day; night stays
+   ready in the same page. I would build one look first, the one he picks in 1. Night and day are one page with
    two sets of colours, so the other stays ready; a way to choose can follow once he has lived with the first.
-3. **Slightly dimmed houses, or every logo in full colour.** Compare [street-1](pictures/street-1-home.png) and
+3. **Slightly dimmed houses, or every logo in full colour.** Answered by the owner (2026-11-16): dimmed until
+   open ("dimmed and light up when used makes sense"). Compare [street-1](pictures/street-1-home.png) and
    [street-10](pictures/street-10-full-colour.png).
    - Slightly dimmed (62 % brightness, 82 % saturation) until their app is open: what is running shows at a glance,
      and the screen stays calm.
    - Full colour: only the door light shows what is open.
    - One number to change. I recommend slightly dimmed.
-4. **What else is on the screen.** Only the time, the date and the battery. No notifications, no volume, no view
-   into the world. Each can be added; I left them out so the apps stay the point. I recommend that for version 1.
+4. **What else is on the screen.** Kept as recommended (2026-11-16, no objection). Only the time, the date and
+   the battery. No notifications, no volume, no view into the world. Each can be added; I left them out so the
+   apps stay the point. I recommend that for version 1.
 5. **A reserved key that jumps to the laptop home's typing line** from anywhere, for example the Super key.
-   - While he is in the world, the game holds the pointer. Without the key, the way to the laptop is Esc (or E, or
-     T) first. The key is the only way across without Esc.
-   - It also makes the laptop home the launcher of the whole session while the monitor is in.
-   - I would add it, but a reserved key changes how AresOS feels, so it is his call.
-6. **Pins change in the world only** in version 1. The laptop shows the hotbar and opens from it; it does not
-   re-order it. I recommend so.
+   Answered by the owner (2026-11-16, board #333): yes to reserving Super, with a change. Asked "pressing the Super
+   key alone jumps to the laptop home's search from anywhere, the world included … Right?", he answered: "Yes but
+   the search bar should appear on the homescreen I'd say". (His earlier words on the study, "so does the search
+   menu easy access", had been read as yes; board #333 asked him directly.)
+   - His change, as the lead reads it: Super opens a search bar on the screen that shows the world, where he is
+     looking (with the monitor in, the monitor; without it, the laptop's screen). It is AresOS's own search over
+     the world, as the Apps screen's search, and it opens the app on that same screen. LAPTOP-HOME.md section 6
+     and section 9, step 5, have how.
+   - The laptop home keeps its own typing line for when he works on the laptop screen.
+   - Open for the build brief (the lead's reading, to confirm with him at build time): whether Super, pressed while
+     the pointer is on the laptop screen, should go to the laptop home's typing line instead.
+   - What was asked: while he is in the world, the game holds the pointer, and without the key every way out is Esc
+     (or E, or T) first. The key is the one way to search for an app without first freeing the pointer in the
+     game, and it makes search the launcher of the whole session. I recommended it, and a reserved key changes how
+     AresOS feels, so it was his call.
+6. **Pins change in the world only** in version 1. Kept as recommended (2026-11-16, no objection). The laptop shows
+   the hotbar and opens from it; it does not re-order it. I recommend so.
 
 LAPTOP-HOME.md section 10 asks the same six questions, in this order.
 
@@ -379,11 +405,14 @@ LAPTOP-HOME.md section 10 asks the same six questions, in this order.
   test compositor once the library is there.
 - The real memory in his session with two screens, and with the companions.
 - Which graphics chip GTK and labwc draw on in his session. They must match (LAPTOP-HOME.md section 4).
-- What the game does when the laptop home takes the keyboard through the reserved key: it must not open its pause
-  menu.
+- What the game does when the laptop home takes the keyboard on a click: package 40's rule (no pause menu while an
+  app is in front) should hold for a layer surface too. The laptop trial checks it.
+- Super pressed while the pointer is on the laptop screen: the world's search, or the laptop home's typing line?
+  The lead's reading, to confirm with him at build time (JUDGMENT-CALL 5).
 - How many frames a second the companions get (their package).
 - Opening an app on the monitor from the laptop (for example Shift and click) would need one more field in
-  `open_app`. Not in version 1.
+  `open_app`. Not in version 1. Super's search needs the same field if it opens over the world while the pointer is
+  on the laptop screen.
 - A dot on the Map table showing where he stands in the world would need the mod to say so. Left out.
 
 ## Review fixes 1
@@ -490,7 +519,8 @@ section 11.6. Its sections 2.1 and 3 now describe this form. In short:
   free plot), and every road runs from edge to edge of the screen.
 - The ground is terraces: each street is a step of a hillside, and the line between sky and ground is the first
   street's own ground.
-- **I chose terraces** over the other ground that was drawn, one lawn with the sky ending above the first street.
+- **I recommended terraces; the owner chose them (board #332)** over the other ground that was drawn, one lawn
+  with the sky ending above the first street.
 
 Pictures: [home](pictures/day2-1-home.png), [finding "tool"](pictures/day2-2-finding.png),
 [an app opened](pictures/day2-4-opened.png), [day one, five apps](pictures/day2-5-day-one.png),
@@ -550,3 +580,66 @@ comparison; the tool no longer makes them.
 - A real mouse and keyboard: the checks make their events inside the page, as before.
 - The grid check reads where the page put its roads, houses and plots. It does not look at the picture's pixels,
   and I did not see it fail on a broken grid. The rest check I did see fail, on the night page.
+
+## Review fixes 3
+
+`REVIEW-3.md` (READY) asked for should-fix 1 to 5 before merging and sent should-fix 6 to the build brief. Then the
+owner answered question 5 directly (board #333). One Claude agent on Opus 5.5 applied both, 2026-11-16.
+
+**Done.**
+1. **The gold frame after a slide by hand** (finding 1). In `prototypes/street/index.html`, `follow()` now snaps
+   the street by day into the interval of offsets that show the whole house, as the reviewer tried it. Before, it
+   rounded away from zero, and after a click on the left end sign `test-tool-14` stayed off the right edge. Night
+   is the same expression as before. `tools/webkit-shot.py`: `check-grid-long` gains the case. It clicks the left
+   end sign of the street of 20, types `tool14` and expects that house in view and the street on the lattice.
+2. **Answered questions no longer read as open** (finding 2). In LAPTOP-HOME.md: the title and status line, 2.1's
+   dimmed row, question 3's "the same question stands", section 9's "night if it is kept", and 11.4's pointer to
+   the night look. REVIEW-2's nit 8 wording ("without first freeing the pointer in the game") is used where the key
+   is described.
+3. **Question 5** (finding 3). The owner answered it directly (board #333). Section 10 and JUDGMENT-CALL 5 now quote
+   that answer, and they say his earlier words had been read as yes.
+4. **His change to the key.** Super opens a search bar over the world, on the screen that shows it, not the
+   laptop's typing line. Sections 1, 2.2 and 6 say so. Section 9 has a new step 5, with the labwc keybind, the
+   world getting the keyboard and the mod's search, and the trial is step 6. The way an app opened with the key
+   appears (REVIEW-2's should-fix 2) is now part of it: on the world's screen, where his pointer is. What was
+   planned for the old reading is gone: the typing line on the top layer, and the game losing the keyboard to it.
+   Open, as the lead's reading to confirm at build time: Super with the pointer on the laptop screen.
+5. **This report** (finding 4): JUDGMENT-CALLs 1 to 6 carry their answers, "In short" has the owner's choice, the
+   terraces are his choice on my recommendation, and the pictures are 28.
+6. **Memory** (finding 5). Section 4 gives one statement with its sources. It says about 335 MiB unpinned (this
+   study) and about 150 to 180 MiB with the EGL and Vulkan vendor pinned. The second number is the research's:
+   `reviews/49-memory-cuts/RESEARCH.md` on `pkg/49-memory-cuts`, `fc1d31de`, until package 49 merges. The pin is
+   now a rule for the window program: `__EGL_VENDOR_LIBRARY_FILENAMES` names Mesa's file and `VK_DRIVER_FILES`
+   names Intel's. The line saying NVIDIA's libraries are not loaded on the Intel chip is gone, and the same claim
+   here is marked corrected.
+
+**Verified.**
+- The new case fails on the old page: `check-grid-long` passed 9 of 10 in a scratch copy with the previous
+  `index.html`, and `typing_after_a_hand_slide_shows_it` was false.
+- `tools/shots.sh check`, eleven lines, all passed: keys and clicks 10 of 10 on street, map, console and the day
+  look; Night street's own check 9 of 9 by night and by day; the grid check 10 of 10 on the towns of 1, 24 and 45
+  apps and on the lawn; the rest check 2 of 2.
+- `tools/shots.sh all street-`: the ten night pictures are the same files, byte for byte (git shows no change).
+- The seven `day2-` pictures, made again in a scratch copy with the fix, are byte-identical to the committed ones,
+  so they were not made again here.
+
+**For the build brief.** Found in the reviews and not fixed in the study. LAPTOP-HOME.md section 9 has the same list.
+- **Two breaks the day's grid check does not see** (REVIEW-3, finding 6):
+  - one street with an extra plot past `EDGE`: expect each street's plot count to equal `cols`, unless that street
+    has a house past `cols`;
+  - the terraces drawn off their streets: check the ground against the streets, by deriving the turf and bank stops
+    from the same numbers, or by sampling the picture's pixels at each street's turf row and road row.
+- **REVIEW-3's nits:**
+  - "equally long with 1 app and with 45": a street past 16 runs off the screen, so "equally long on the screen,
+    except a street past 16";
+  - the rest check does not see a canvas drawn again every frame: for the companions, count frame callbacks too, or
+    keep the processor measurement beside it;
+  - `shots.sh check` exits 0 when a check fails: the build's tests fail on a non-empty `wrong`;
+  - a framed house beside a cut end sits in the day's fade (18 to 120 pixels): fade from `EDGE/2` to `EDGE`
+    instead.
+- **REVIEW-2's nit 7**, which holds by day too: while typing, an end sign could count how many of its hidden houses
+  match; and the companions' ledges and boxes jump by the whole offset while the houses glide for 0.3 s, so the
+  snapshot should give the street's current offset each frame.
+- **REVIEW-2's should-fix 1 and 3**, which its commit sent to the build brief (`ac466139`): the return of focus
+  decided by screen, not by who opened the app, with its test; and each motion set-up's environment with what its
+  numbers leave out. Should-fix 3's memory part is closed by LAPTOP-HOME.md section 4's "Memory".

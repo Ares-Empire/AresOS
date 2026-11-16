@@ -1,9 +1,11 @@
-# The laptop-screen home: Night street
+# The laptop-screen home: Night street (chosen: by day, on terraces)
 
-**Draft. The owner chose the street by day; the cleaner layout he then asked for is drawn and waits for his look.**
+**Draft. The owner chose the street by day, on terraces (2026-11-16); section 10's six questions are settled.**
+One point of question 5, the Super key with the pointer on the laptop screen, waits for the build brief.
 Design study of package 44 (2026-11-16, a Fable design agent; review fixes 1 the same day, a Claude Opus agent; the
 day look and section 11 the same day, a Fable design agent; the day's grid and terraces, section 11.6, the same
-day, a Fable design agent). Nothing here is built. It describes the direction the study recommends; the other two
+day, a Fable design agent; review fixes 3 and the owner's answer on the Super key the same day, a Claude Opus
+agent). Nothing here is built. It describes the direction the study recommends; the other two
 directions, the pictures and the measurements are in
 [the study's report](../../reviews/44-laptop-home/PROGRESS.md). If he chooses another direction, sections 1 to 3
 change and sections 4 to 8 stay.
@@ -73,6 +75,10 @@ nine pinned apps. Top left the time and the date, top right the battery.
 T) to free the pointer, moves it down to the laptop screen and clicks a house, or clicks once and types. When he is
 working in an app already, the pointer is free and he just moves it down.
 
+**Super.** To find an app without leaving the world, he presses Super. A search bar appears over the world itself,
+on the monitor where he is looking, and the app he picks opens there (section 6). The laptop's typing line is for
+when he is working on the laptop screen.
+
 **Finding one he forgot.** He types `pdf`. No house fits, so a small list over the typing line shows the programs
 outside My apps that do: here a document viewer whose name doesn't say "pdf" but whose keywords do. Enter opens the
 first.
@@ -105,7 +111,7 @@ This table is the day look on its grid, the form the owner chose and then asked 
 | The ground and the sky | Terraces. A step is a band of sunlit turf with the road on it; under it is the bank down to the next step. The sky ends at the far edge of the top step, so the line between sky and ground is the first street's own ground. Flat colours, no game texture. |
 | The house | The logo's 12 x 12 front as the mod built it, drawn as solid blocks with a top and a right side (3 blocks deep, as in the world). The doorway is columns 5 and 6, three high, black. It stands on its plot with its feet at the road's far edge. The doormat lies on the road, from the door to the road's line, in the group's bright colour. |
 | The sign | Over the house, on a dark plate: the name (white), under it the main short name with its slash (gold, JetBrains Mono). A long name takes a second line, as the world's signs do; past two lines it ends in "…". A sign of two lines ends under the street above it. |
-| An app that is not open | Sun-bleached: 45 % saturation, 80 % contrast, 93 % brightness, and its sign's plate at half strength (or full colour, section 10 question 3). |
+| An app that is not open | Sun-bleached: 45 % saturation, 80 % contrast, 93 % brightness, and its sign's plate at half strength (section 10 question 3: dimmed until open). |
 | Open apps | Full colour. The door is gold in a dark frame, a gold mat lies across the road, and the sign's plate is solid with a gold line under it. Its hotbar slot has a gold mark. |
 | Home | The dark stone pad with one gold block, in the middle under the lowest street. |
 | The night look | The second look, as the study first drew it: dark, with lit doors. Section 11.3's table has what differs, and the end of section 3 has its numbers. |
@@ -140,8 +146,11 @@ This table is the day look on its grid, the form the owner chose and then asked 
   shows the helper's words for five seconds ("Couldn't open Notepad: it failed to start").
 - **From inside the world** (the world on the monitor has the focus): the game holds the pointer and the keyboard
   (HUB.md, package 40). He frees the pointer first: Esc (the game menu), E or T, or he is in an app already. Then he
-  moves the pointer down and clicks a house, or clicks once and types. A reserved key would be the only way across
-  without Esc (section 6; section 10 question 5).
+  moves the pointer down and clicks a house, or clicks once and types.
+- **Super searches over the world, not here.** The reserved key opens a search bar on the screen that shows the
+  world, and the app opens there (section 6; section 10 question 5). It is the one way to search for an app
+  without first freeing the pointer in the game. The laptop home's own typing line is for when he works on the
+  laptop screen.
 - **Version 1 does not change anything.** No pinning, no moving, no removing from the laptop. Those stay in the
   world.
 
@@ -250,6 +259,8 @@ limit.
 - The day's grid check, on towns of 1, 24 and 45 apps:
   - four streets, equally far apart, and four equal roads from edge to edge;
   - every house of every street is on one lattice of columns, also while the street of 20 has slid;
+  - after a slide by hand (a click on that street's end sign), a house he then types on its other side comes into
+    view, and the street stays on the lattice;
   - every street has the grid's columns at the same places, and the grid fills the screen up to `EDGE`;
   - every house stands on a plot.
 - At rest by day, with a fixed clock, watched for 13 seconds: no animation runs and nothing in the page changes.
@@ -295,6 +306,12 @@ drawing would be lighter but would mean rebuilding them.
 - **It draws on the compositor's chip.** The laptop has two graphics chips. GTK must hand its pictures to the
   compositor on the chip the compositor draws with, or every frame is copied between the two (see "Motion" below).
   The program never gets the game's NVIDIA environment.
+- **Its drawing libraries are pinned to Mesa and Intel.** The supervisor starts it with
+  `__EGL_VENDOR_LIBRARY_FILENAMES` naming Mesa's EGL vendor file (`/usr/share/glvnd/egl_vendor.d/50_mesa.json`)
+  and `VK_DRIVER_FILES` naming Intel's Vulkan driver file (`/usr/share/vulkan/icd.d/intel_icd.x86_64.json`). Both
+  stay in the environment the engine's processes start from. Without them libglvnd loads NVIDIA's libraries into
+  every process, even where Intel draws. It draws on the compositor's chip anyway, and the pin about halves its
+  memory ("Memory" below). The build package measures it in the real session.
 - It runs in a systemd scope of its own with `MemoryHigh=640M`.
 
 **What the page gets** (`window.aresosHome`):
@@ -313,20 +330,19 @@ drawing would be lighter but would mean rebuilding them.
 
 The page never gets a command, a path, the socket, the view token or the launch nonce.
 
-**Memory** (measured in the study, 40 test apps, WebKitGTK 2.54.1, PSS from `smaps_rollup`):
-- **About 335 MiB in all at rest.** 127 MiB of it is working memory. 208 MiB is the program and library files it
-  maps: the engine, GTK and the graphics driver's libraries. Shared memory is under 1 MiB.
-- Under 2 % of one processor core at rest.
-- Memory the graphics chip holds for it does not show in these numbers.
-- With the compositor and GTK on the Intel chip, as in his session (OS-BASE: Intel drives the session, NVIDIA
-  renders Minecraft), it is about 265 MiB: 123 MiB working memory and 141 MiB files, because the NVIDIA
-  driver's libraries are not loaded.
-- The bare engine is about 255 MiB of it.
-- **For the build (research, 2026-11-16, `reviews/49-memory-cuts/RESEARCH.md` section 6):** most of that is the
-  NVIDIA libraries that libglvnd loads into every process, not WebKit. Pinning the window program's EGL and Vulkan
-  vendor to Mesa/Intel (it draws on the compositor's chip anyway) measured about 150 MiB PSS for the bare engine
-  instead of 356, and WebKitGTK 2.54.2 or later frees idle processes under pressure. The build package measures it
-  in the real session.
+**Memory** (PSS from `smaps_rollup`, the window program and the engine's processes together, at rest):
+**about 335 MiB unpinned, and about 150 to 180 MiB with the EGL and Vulkan vendor pinned to Mesa and Intel**, as
+the rule above does. Each number's source:
+- **About 335 MiB unpinned** (this study: 40 test apps, WebKitGTK 2.54.1, a headless compositor). 127 MiB of it is
+  working memory and 208 MiB the program and library files it maps: the engine, GTK and the graphics driver's
+  libraries. Shared memory is under 1 MiB. His session is near this number without the pin, because libglvnd loads
+  NVIDIA's libraries into every process.
+- **About 150 to 180 MiB pinned** (research: `reviews/49-memory-cuts/RESEARCH.md` section 6, on branch
+  `pkg/49-memory-cuts`, commit `fc1d31de`, until package 49 merges), with `__EGL_VENDOR_LIBRARY_FILENAMES` and
+  `VK_DRIVER_FILES` set as above. The research measured the bare engine at about 150 MiB pinned (85 MiB working
+  memory), against 356 unpinned in its own noisy run, and gives the home about 150 to 180. It also advises
+  WebKitGTK 2.54.2 or later, which frees idle processes under memory pressure.
+- Under 2 % of one processor core at rest. Memory the graphics chip holds for it does not show in these numbers.
 
 **Motion** (measured, review fix 7): one figure the size of a companion (80 x 80 pixels) walks along a street. It is
 drawn on a see-through canvas over the whole town that is cleared and drawn again every frame, as the companions'
@@ -460,13 +476,28 @@ restarts (with each new game start), opening is off for those seconds, as above.
   and the keyboard (package 40: it lets go of the mouse only while an app is in front). So from inside the world
   he presses Esc (or E, or T), moves the pointer down to the laptop screen and clicks. From an app the pointer is
   free already.
-  - **With a reserved key** (if he says yes, section 10 question 5; untried):
-    - A labwc keybind (Super pressed and released alone) runs a small command that tells the window program.
-    - The program shows its typing line on the laptop screen's top layer, with the keyboard (`exclusive`), until
-      Enter or Escape. Then the keyboard goes back.
-    - The world loses the keyboard meanwhile. The game must treat that as it treats an app in front: no pause
-      menu, the mouse let go.
-    - Part of the laptop trial.
+- **The reserved key, Super: a search over the world** (section 10 question 5, board #333; untried until the
+  laptop trial). He said yes to the key, and that "the search bar should appear on the homescreen". As the lead
+  reads it:
+  - Super pressed and released alone, from anywhere, opens a search bar on the screen that shows the world, where
+    he is looking. With the monitor in that is the monitor; without it, the laptop's screen.
+  - The search is AresOS's own, drawn by the mod in the world. It finds as the Apps screen's search does (HUB.md
+    2.4: names, short names, generic names and keywords).
+  - It does not move the keyboard to the laptop home. The laptop home keeps its own typing line for when he works
+    on the laptop screen.
+  - A labwc keybind runs a small command (section 9, step 5). The helper gives the world the keyboard, and the mod
+    opens its search.
+  - **If an app has the keyboard**, the helper activates the world's window, as when an app closes. The world
+    stays below every app window, so smaller windows and windows on the other screen stay where they are, above
+    it, as when he clicks the world. Nothing is minimized for that. A maximized or fullscreen window that hides
+    the world on its screen is minimized, by HUB.md's rule for activating a covered world, so the search can be
+    seen. Alt+Tab brings it back.
+  - **Enter opens the app on that same screen**, where his pointer is (23c: apps open on the screen the pointer is
+    on). The search closes, and the keyboard goes to the app. Escape closes the search.
+  - **Open for the build brief** (the lead's reading, to confirm with him at build time): Super pressed while the
+    pointer is on the laptop screen. It could go to the laptop home's typing line instead. If it opens the world's
+    search anyway, the app must still open on the world's screen, and `open_app` then needs to name that screen
+    (the report's open question).
 - **Start.** The desktop supervisor (`/usr/libexec/aresos-desktop`) starts it when package 23c's rule says the world
   is on the monitor and an `eDP` output is on: after the world has moved, in its own scope, with the helper's
   socket, the instance and the view token (section 5), and `LD_PRELOAD` for the layer library (section 4). The
@@ -560,24 +591,69 @@ memory, and that budget.
      keywords, the hotbar, opening, the lit houses, reconnecting with opening off in between.
    - Tests carried over from the study's checks (`tools/shots.sh check`, including Night street's own check).
    - Pictures from a headless compositor, as the study's tool takes them.
-   - Day, and night if it is kept (section 11): the pictures and the checks for each look; for the day its grid
-     check (section 3); and a check that at rest no animation runs and nothing in the page changes but the clock
-     (and, at night, the one star).
+   - Day, and night as the second look (section 10 question 2): the pictures and the checks for each look; for the
+     day its grid check (section 3); and a check that at rest no animation runs and nothing in the page changes
+     but the clock (and, at night, the one star).
    - The layer library through `LD_PRELOAD`, the `aresos-home:` scheme registered as secure and CORS-enabled with
      the right MIME types, the token and `LD_PRELOAD` removed from the environment before the web view starts.
+   - The vendor pin (section 4): a test that neither the program nor the engine's processes map an NVIDIA library.
    - The image gets `gtk4-layer-shell` and JetBrains Mono, and a check that WebKitGTK 6.0 and its Python binding are
      there.
 4. **The supervisor makes the view token and starts and stops the laptop home** with package 23c's screens, in its
-   scope, with the restart rule, and keeps the token out of what it starts (`PRIVATE_ENVIRONMENT`). This is package
-   23c's side (`linux-aresos`, the PLAN-GAP of section 5).
-5. **The laptop trial** with the monitor:
+   scope, with the restart rule and the vendor pin (section 4), and keeps the token out of what it starts
+   (`PRIVATE_ENVIRONMENT`). This is package 23c's side (`linux-aresos`, the PLAN-GAP of section 5).
+5. **The reserved key, Super: a search over the world** (section 6; section 10 question 5). Three parts:
+   - **labwc.** A keybind in the image's `rc.xml` that fires when Super is pressed and released alone:
+     `<keybind key="Super_L" onRelease="yes">`, labwc's own way to bind a lone modifier (labwc-config(5)). Its
+     action runs `/usr/libexec/aresos-desktop search`, a command of the supervisor's like `hide-cover`, which
+     passes the request on to the helper. The supervisor cannot ask the helper anything today (the helper's status
+     pipe runs the other way), so this step adds that way. Without a connected world the request does nothing.
+   - **The world gets the keyboard.** The helper activates the world's window, as `return_to_desktop` does when an
+     app closes. The world stays below every app window, so smaller windows and windows on the other screen stay
+     where they are, above it, and nothing is minimized for them. A maximized or fullscreen window that hides the
+     world on its screen is minimized, by HUB.md's rule for activating a covered world, so the search can be seen.
+     Then the helper sends the mod a new 1.2 event, `shell_search`, offered as a capability as `shell_covered` is.
+   - **The mod opens its search over the world** on that event: a search bar that finds as the Apps screen's
+     search does (`AppsScreen`, HUB.md 2.4). Enter opens the best hit as its hotbar item would, on the world's
+     screen, where his pointer is; the bar closes and the keyboard goes to the app. Escape closes the bar. While it
+     is open the pointer is free, as in the Apps screen. How the bar looks is design work of its own.
+   - Tests: Super from inside the world, from a small app window, from a maximized app on the world's screen, and
+     from an app on the other screen; `shell_search` reaches only a client that offered it; Super does nothing
+     while no world is connected.
+   - **Open** (section 6): Super with the pointer on the laptop screen.
+6. **The laptop trial** with the monitor:
    - the keyboard on a click, Alt+Tab, an app maximized over it, plugging and unplugging;
-   - the way from the world (Esc, and the reserved key if he chose it);
+   - a click on the laptop home while the world has the focus opens no pause menu (package 40's rule holds for a
+     layer surface too);
+   - the way from the world: Esc, and Super (its search on the world's screen, and the app opening there), also
+     from a small app, from a maximized app and with the pointer on the laptop screen;
    - a game restart while the laptop home runs;
    - which graphics chip GTK and labwc draw on, and the processor cost of motion;
-   - the memory in the real session.
+   - the memory in the real session, with the vendor pin.
 
-Steps 1 and 2 are data and rules; step 3 is how a screen looks.
+Steps 1 and 2 are data and rules; step 3 is how a screen looks; step 5 is rules, apart from the look of the
+search bar.
+
+**For the build brief.** Found in the reviews, not fixed in the study; the brief carries them:
+- **Two breaks the day's grid check does not see** (REVIEW-3, finding 6):
+  - one street with an extra plot past `EDGE`: expect each street's plot count to equal `cols`, unless that street
+    has a house past `cols`;
+  - the terraces drawn off their streets: check the ground against the streets, by deriving the turf and bank stops
+    from the same numbers, or by sampling the picture's pixels at each street's turf row and road row.
+- **REVIEW-3's nits:**
+  - "equally long with 1 app and with 45" (sections 2.1 and 11.6): a street past 16 runs off the screen, so say
+    "equally long on the screen, except a street past 16";
+  - the rest check does not see a canvas drawn again every frame: for the companions, count frame callbacks too, or
+    keep the processor measurement beside it;
+  - `shots.sh check` exits 0 when a check fails: the build's tests fail on a non-empty `wrong`;
+  - a framed house beside a cut end sits in the day's fade (18 to 120 pixels): fade from `EDGE/2` to `EDGE`
+    instead.
+- **REVIEW-2's nit 7**, which holds by day too: while typing, an end sign could count how many of its hidden houses
+  match; and the companions' ledges and boxes jump by the whole offset while the houses glide for 0.3 s, so the
+  snapshot should give the street's current offset each frame.
+- **REVIEW-2's should-fix 1 and 3**, which its commit sent to the build brief (`ac466139`): the return of focus
+  decided by screen, not by who opened the app, with its test; and each motion set-up's environment with what its
+  numbers leave out. Should-fix 3's memory part is closed by section 4's "Memory".
 
 ---
 
@@ -586,8 +662,8 @@ Steps 1 and 2 are data and rules; step 3 is how a screen looks.
 These are the report's JUDGMENT-CALLs 1 to 6, in the same order, each with the study's recommendation.
 
 1. **Which direction, and by night or by day?** **Answered (2026-11-16): the street, by day, on terraces.** He then
-   asked for a cleaner layout and chose terraces over the lawn (board #332: "Terraces"). Section 11.6 has his words and the layout drawn for them
-   ([home](../../reviews/44-laptop-home/pictures/day2-1-home.png),
+   asked for a cleaner layout and chose terraces over the lawn (board #332: "Terraces"). Section 11.6 has his words
+   and the layout drawn for them ([home](../../reviews/44-laptop-home/pictures/day2-1-home.png),
    [forty-five apps](../../reviews/44-laptop-home/pictures/day2-8-forty-five-apps.png)). What was asked:
    - **The direction:** the street (his town from the side), Map table or Console. *Recommended: the street.* It
      shows his whole town with names, and the companions can move into it.
@@ -603,20 +679,29 @@ These are the report's JUDGMENT-CALLs 1 to 6, in the same order, each with the s
    are one page with two sets of colours (section 11), so the other one stays ready; a way to choose can follow
    once he has lived with the first. Map table would be a second folder of web files.
 3. **Slightly dimmed houses, or every logo in full colour?** **Answered (2026-11-16): dimmed until used, lit when
-   open** ("dimmed and light up when used makes sense"; the apps "don't necessarily have to be Minecraft houses"). Compare
-   [street-1](../../reviews/44-laptop-home/pictures/street-1-home.png) (slightly dimmed: open apps are brighter and
-   their doors lit) with [street-10](../../reviews/44-laptop-home/pictures/street-10-full-colour.png) (full colour:
-   only the door light shows what is open). *Recommended: slightly dimmed*, so what is running shows at a glance and
-   the screen stays calm beside the world. It is one number to change. By day the same question stands: there
-   "dimmed" is paler instead of darker (section 11).
+   open** ("dimmed and light up when used makes sense"; the apps "don't necessarily have to be Minecraft houses").
+   Compare [street-1](../../reviews/44-laptop-home/pictures/street-1-home.png) (slightly dimmed: open apps are
+   brighter and their doors lit) with [street-10](../../reviews/44-laptop-home/pictures/street-10-full-colour.png)
+   (full colour: only the door light shows what is open). *Recommended: slightly dimmed*, so what is running shows
+   at a glance and the screen stays calm beside the world. It is one number to change. By day "dimmed" is paler
+   instead of darker (section 11).
 4. **Only the time, the date and the battery besides the apps?** **Kept as recommended (2026-11-16, no
    objection).** *Recommended: yes for version 1.* Notifications,
    volume or a view into the world can each be added when he asks.
 5. **A reserved key (Super) that jumps to the laptop home's typing line** from anywhere, the world included?
-   **Answered (2026-11-16): yes** ("so does the search menu easy access"). It is
-   the only way from inside the world to the laptop without Esc (section 6), and it makes the laptop home the
-   launcher of the whole session while the monitor is in. *Recommended: yes.* A reserved key changes how AresOS
-   feels, so it is his call.
+   **Answered (2026-11-16, board #333): yes to reserving Super, with a change.** Asked "pressing the Super key alone
+   jumps to the laptop home's search from anywhere, the world included … Right?", he answered: "Yes but the search
+   bar should appear on the homescreen I'd say". (His earlier words on the study, "so does the search menu easy
+   access", had been read as yes; board #333 asked him directly.)
+   - **His change, as the lead reads it:** Super opens a search bar on the screen that shows the world, where he
+     is looking: with the monitor in, the monitor; without it, the laptop's screen. It is AresOS's own search over
+     the world, as the Apps screen's search, and it opens the app on that same screen (section 6).
+   - The laptop home keeps its own typing line for when he works on the laptop screen.
+   - **Open for the build brief** (the lead's reading, to confirm with him at build time): whether Super, pressed
+     while the pointer is on the laptop screen, should go to the laptop home's typing line instead.
+   - What was asked: the key as the one way to search for an app without first freeing the pointer in the game,
+     and the launcher of the whole session. *Recommended: yes.* A reserved key changes how AresOS feels, so it was
+     his call.
 6. **Pins change in the world only** in version 1? The laptop shows the hotbar and opens from it but does not
    re-order it. *Recommended: yes.* **Kept as recommended (2026-11-16, no objection).**
 
@@ -740,7 +825,8 @@ one setting. If he later lets his world have a night, that setting can follow th
 **Not recommended: following the real clock** (day by day, night in the evening). The world on the monitor is at
 noon at every hour, so each evening the two screens would disagree again.
 
-If he prefers night after seeing both, nothing is lost: it is the look sections 1 and 2 describe.
+If he prefers night after seeing both, nothing is lost: it is the look section 1 and the night column of 11.3's
+table describe, with its numbers at the end of section 3.
 
 ### 11.5 What it costs
 
@@ -878,7 +964,8 @@ Considered and not drawn:
 
 **Checked** (`tools/shots.sh check`, section 3 has the list):
 - the keys and clicks on the day look, 10 of 10, and Night street's own check on it, 9 of 9;
-- the grid check, 9 of 9 on each of four pages: a town of 1 app, of 24, of 45 with a group of 20, and the lawn;
+- the grid check, 9 of 9 on each of four pages: a town of 1 app, of 24, of 45 with a group of 20, and the lawn
+  (10 of 10 since review fixes 3 added the slide by hand, section 3);
 - at rest, 2 of 2: no animation runs and nothing in the page changes in 13 seconds. The same check on the night
   page sees the stars change three times.
 - The ten night pictures are the same files as before, byte for byte.
