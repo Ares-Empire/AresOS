@@ -30,7 +30,11 @@ packages and a root-owned test prefix there. Do not run it on a desktop host.
 | `admin.sock` | root only | owner-only actions, through `sudo aresos admin …` |
 | `chrome.sock` | exactly configured owner UID | Chrome's native host; loosening a site (`allow`, read-only off) also needs the owner's polkit password, once for each change |
 
-The directory is mode 0711, act and chrome mode 0666, admin mode 0600. The service
+The directory is mode 0711, act and chrome mode 0666, admin mode 0600. Each socket is
+bound under a temporary name in that directory (`.act.sock.new`), given its mode, set
+listening and only then renamed into place, so a client never finds it with the unit's
+`UMask=0077` mode (an owner's `EACCES`, a setup error that stops an MCP proxy at start)
+or not yet listening. The service
 cannot chown a socket to another user without privileges, so act's identity gate
 is the kernel peer credential, checked before parsing a request. Root still has
 the normal machine-administrator powers. A single serialized dispatcher also
@@ -305,7 +309,10 @@ acknowledge this work on your own: tell the owner what is waiting, and let him d
 the work may be another session's, and only the owner decides about it. That guard
 allows the owner to receive a report about work that cannot be resolved. The next
 `UserPromptSubmit` reads again and returns
-`{"hookSpecificOutput":{"hookEventName":"UserPromptSubmit","additionalContext":"…"}}`.
+`{"hookSpecificOutput":{"hookEventName":"UserPromptSubmit","additionalContext":"…"}}`,
+which ends with the same sentence. The MCP instructions say it too, for the `pending`
+that every tool result carries: it may be another session's work, so don't complete,
+cancel, resend or acknowledge it on your own; tell the owner what is waiting.
 The gate is per session, not per operation: the service doesn't record which session
 made an operation, so a session that used the tools also hears of other sessions' work.
 Each managed launcher names its event independently of input: `launch.py hook Stop`
@@ -365,6 +372,24 @@ or malformed input, service failure, and installation/configuration errors, so
 it never discards the owner's prompt. Valid prompt input still adds the pending
 reminder. Hooks are reminders; service expiry is the safety net during interrupts,
 continuation limits and ended turns.
+
+Known limits of "quiet unless used" (18e recheck 2). Each fails quiet: the owner isn't
+reminded, the work still expires, and `aresos control pending` lists it.
+- **A Claude Code update can silence every session.** If a later Claude Code puts a
+  process other than a shell between itself and the hooks, or between itself and the
+  MCP servers, that process is taken as the session: no session finds its mark, so none
+  gets pending reminders or outage notices, with no sign. What shows it: the interactive
+  boundary suite's process-chain pin
+  (`test_interactive.ProcessChains.test_the_session_is_the_nearest_process_that_isnt_a_shell`)
+  fails on the next Claude Code version CI runs. Nothing in the image pins the
+  laptop's Claude Code, so re-run that suite whenever it changes version.
+- **Work from a nested `claude -p` or the CLI.** A `claude -p` started from a session's
+  Bash tool is a session of its own, and the `aresos` CLI marks nothing. Work prepared
+  in either is reminded to no session, unless the parent session used the tools itself.
+- **A restore after a reboot.** Marks live on a tmpfs, so a reboot clears them, and
+  nothing marks a session while the restore lock holds. So no hook tells any session
+  about `restore_required`; any tool call's result says it, and the instructions say to
+  stop and ask the owner.
 
 Contract **read**: [Anthropic hooks reference](https://code.claude.com/docs/en/hooks),
 2026-11-07. Target **Claude Code 2.1.319**, as recorded in the council branch's

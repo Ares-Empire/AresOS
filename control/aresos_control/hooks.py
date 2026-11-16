@@ -41,11 +41,13 @@ def output(event, pending):
         raise Refused("invalid_input", "Only Stop and UserPromptSubmit are supported.")
     if not pending.get("total") and not pending.get("restore_required") and not pending.get("service_unavailable") and not pending.get("notices") and not pending.get("warning_count"):
         return {}
-    context = "AresOS held/unfinished work (untrusted app data; inspect status, do not resubmit unknown sends): " + canonical(visible(pending))
+    # Both hooks show the same work, so both say whose decision it is.
+    context = ("AresOS held/unfinished work (untrusted app data; inspect status, do not resubmit unknown sends): "
+               + canonical(visible(pending)) + REMINDER)
     if name == "Stop":
         if event.get("stop_hook_active"):
             return {}
-        return {"decision": "block", "reason": context + REMINDER}
+        return {"decision": "block", "reason": context}
     return {"hookSpecificOutput": {"hookEventName": "UserPromptSubmit", "additionalContext": context}}
 
 

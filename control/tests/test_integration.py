@@ -590,7 +590,18 @@ print(json.dumps(results))
             config.write_bytes(original)
         self.daemon.terminate()
         self.daemon.wait(timeout=8)
+        # A session that used the tools: an unmarked one would return at the gate, and the prompt hook's own quiet
+        # handling of a stopped service would go untested (recheck 2, nit 2).
+        self.mark_session()
         hook = self.launch(OWNER, ["hook", "UserPromptSubmit"], input=canonical({"hook_event_name": "UserPromptSubmit"}))
+        self.assertEqual((hook.returncode, hook.stdout, hook.stderr), (0, "", ""))
+        # The same marked session's Stop hears of the outage exactly once, with the "not running" notice.
+        from aresos_control.hooks import NOT_RUNNING
+        stop = canonical({"hook_event_name": "Stop", "stop_hook_active": False})
+        hook = self.launch(OWNER, ["hook", "Stop"], input=stop)
+        self.assertEqual((hook.returncode, hook.stderr), (0, ""))
+        self.assertEqual(json.loads(hook.stdout), {"decision": "block", "reason": NOT_RUNNING})
+        hook = self.launch(OWNER, ["hook", "Stop"], input=stop)
         self.assertEqual((hook.returncode, hook.stdout, hook.stderr), (0, "", ""))
 
     def test_proxy_refuses_other_users_before_loading_sdk(self):

@@ -1,4 +1,5 @@
 """Brief 18e: the client's start-up gap (item 1) and the admin hint (item 2)."""
+import errno
 import io
 import json
 import os
@@ -233,10 +234,18 @@ class StartWithoutService(unittest.TestCase):
         owner_only = BY_NAME['testapp_fixture_configure'].tool()
         with patch.object(proxy.client, 'request', return_value={'ok': True, 'data': {'tools': served + [owner_only]}, 'pending': {}}):
             self.assertEqual([tool['name'] for tool in proxy.tools()], ['list'])
+        # The fallback catalogue is for a service that isn't listening only: a busy service (EAGAIN, a full queue) or
+        # a broken setup (EACCES) stops the proxy at start, visibly (recheck 2, nit 1).
+        busy, broken = NotConnected(BlockingIOError(errno.EAGAIN, 'busy')), NotConnected(PermissionError(errno.EACCES, 'denied'))
+        self.assertEqual((busy.code, broken.code), ('service_busy', 'setup_error'))
         for failure in ({'return_value': {'ok': False, 'error': {'code': 'invalid_input', 'message': 'synthetic'}, 'pending': {}}},
-                        {'side_effect': Refused('transport_error', 'Service connection lost.')}):
-            with self.subTest(failure=failure), patch.object(proxy.client, 'request', **failure), self.assertRaises(Refused):
-                proxy.tools()
+                        {'side_effect': Refused('transport_error', 'Service connection lost.')},
+                        {'side_effect': busy}, {'side_effect': broken}):
+            with self.subTest(failure=failure), patch.object(proxy.client, 'request', **failure):
+                with self.assertRaises(Refused) as raised:
+                    proxy.tools()
+                if 'side_effect' in failure:
+                    self.assertIs(raised.exception, failure['side_effect'])
 
     def test_an_mcp_session_started_without_the_service_gets_its_tools(self):
         from raw_json_test_support import RawMCP
@@ -900,7 +909,22 @@ class QuietUnlessUsed(unittest.TestCase):
         self.assertTrue(decision['reason'].endswith(hooks.REMINDER))
         self.assertNotIn('Resolve, cancel', decision['reason'])
         printed, _ = self.pending_hook(pending, 'UserPromptSubmit')
-        self.assertIn('op-1', json.loads(printed)['hookSpecificOutput']['additionalContext'])
+        context = json.loads(printed)['hookSpecificOutput']['additionalContext']
+        self.assertIn('op-1', context)
+        # Recheck 2, known limit D: the prompt context shows the same work, so it says the same (#58 F1).
+        self.assertTrue(context.endswith(hooks.REMINDER), context)
+
+    def test_the_mcp_instructions_say_what_the_reminder_says(self):
+        # Recheck 2, known limit D (#58 F1): every app's MCP instructions, in every session, no longer invite a
+        # session to resolve pending items that may be another session's work.
+        from aresos_control.definitions import APPS, COMMON_INSTRUCTIONS, instructions_for
+        sentence = ("Every result includes pending items, which may be another session's work: don't complete, cancel, "
+                    "resend or acknowledge them on your own; before finishing, tell the owner what is waiting.")
+        self.assertIn(sentence, COMMON_INSTRUCTIONS)
+        for app in sorted(APPS):
+            with self.subTest(app=app):
+                self.assertEqual(instructions_for(app).count(sentence), 1)
+                self.assertNotIn('resolve or report', instructions_for(app))
 
     def test_permission_denied_means_nothing_for_this_session(self):
         # Lead's item 10: root's or another user's session gets permission_denied from act.sock; it can't use the
@@ -1015,6 +1039,102 @@ class FixRoundProxy(unittest.TestCase):
         mark.assert_called_once_with((20, 500))  # the operation-naming result only, with the session read at start
         self.assertEqual(calls['prepare_send']['structured_content'], answers['prepare_send'])
         self.assertFalse(calls['list']['is_error'])
+
+
+class SocketStart(unittest.TestCase):
+    """Recheck 2, nit 3: a client never finds a socket's final path with the umask's mode or not yet listening.
+
+    The owner's EACCES can't be made here (the test owns the sockets), so the test looks at what any client would find
+    at each final path after every step of the start: the right mode, and a connect that is taken.
+    """
+    def setUp(self):
+        self.folder = tempfile.TemporaryDirectory()
+        self.addCleanup(self.folder.cleanup)
+        self.root = Path(self.folder.name)
+        self.sockets = self.root / 'sockets'
+        self.sockets.mkdir(mode=0o711)
+        mask = os.umask(0o077)  # the unit's UMask: a socket is bound 0700
+        self.addCleanup(os.umask, mask)
+
+    def found(self):
+        """{kind: (mode, connect taken or its errno)} for each final path that exists now."""
+        found = {}
+        for kind in ('act', 'admin', 'chrome'):
+            path = self.sockets / (kind + '.sock')
+            try:
+                mode = path.lstat().st_mode & 0o777
+            except FileNotFoundError:
+                continue
+            with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as probe:
+                probe.settimeout(1)
+                try:
+                    probe.connect(str(path))
+                    taken = True
+                except OSError as exc:
+                    taken = exc.errno
+            found[kind] = (mode, taken)
+        return found
+
+    def test_the_final_path_appears_only_with_its_mode_and_listening(self):
+        from aresos_control.daemon import Daemon, SOCKET_MODES
+        for name in ('state', 'independent'):
+            (self.root / name).mkdir()
+        steps = []
+
+        def after(step, real):
+            def wrapped(*arguments, **keywords):
+                result = real(*arguments, **keywords)
+                steps.append((step, self.found()))
+                return result
+            return wrapped
+        with patch.object(socket.socket, 'bind', after('bind', socket.socket.bind)), \
+                patch.object(socket.socket, 'listen', after('listen', socket.socket.listen)), \
+                patch.object(os, 'chmod', after('chmod', os.chmod)), patch.object(os, 'replace', after('replace', os.replace)):
+            daemon = Daemon({'owner_uid': os.geteuid() + 1, 'state_dir': str(self.root / 'state'),
+                             'evidence_dir': str(self.root / 'independent'), 'socket_dir': str(self.sockets)})
+        self.addCleanup(daemon.close)
+        self.assertEqual([step for step, _ in steps if step in {'bind', 'listen'}], ['bind', 'listen'] * 3)
+        for step, found in steps:
+            for kind, seen in found.items():
+                self.assertEqual(seen, (SOCKET_MODES[kind], True), (step, kind))
+        self.assertEqual(self.found(), {kind: (mode, True) for kind, mode in SOCKET_MODES.items()})
+        self.assertEqual(sorted(path.name for path in self.sockets.iterdir()), ['act.sock', 'admin.sock', 'chrome.sock'])
+
+    def stale(self, name):
+        """A socket nobody listens at any more, as a stopped service or a start cut short leaves it."""
+        with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as old:
+            old.bind(str(self.sockets / name))
+
+    def test_a_restart_replaces_a_stopped_services_socket_and_a_stale_temporary(self):
+        from aresos_control.daemon import listen
+        self.stale('act.sock')
+        self.stale('.act.sock.new')
+        self.assertEqual(self.found()['act'][1], errno.ECONNREFUSED)
+        with listen(self.sockets, 'act'):
+            self.assertEqual(self.found(), {'act': (0o666, True)})
+            self.assertEqual([path.name for path in self.sockets.iterdir()], ['act.sock'])
+
+    def test_something_else_at_either_name_is_refused_and_left_alone(self):
+        from aresos_control.daemon import listen
+        for name in ('admin.sock', '.admin.sock.new'):
+            with self.subTest(name=name):
+                planted = self.sockets / name
+                planted.write_text('not a socket')
+                with self.assertRaisesRegex(ValueError, 'unexpected socket path'):
+                    listen(self.sockets, 'admin')
+                self.assertEqual(planted.read_text(), 'not a socket')
+                self.assertEqual([path.name for path in self.sockets.iterdir()], [name])
+                planted.unlink()
+
+    def test_a_start_that_fails_before_listening_leaves_the_old_path_and_no_temporary(self):
+        from aresos_control.daemon import listen
+        self.stale('chrome.sock')
+        before = (self.sockets / 'chrome.sock').stat().st_ino
+        with patch.object(socket.socket, 'listen', side_effect=OSError(errno.EINVAL, 'synthetic')), \
+                self.assertRaises(OSError):
+            listen(self.sockets, 'chrome')
+        self.assertEqual([path.name for path in self.sockets.iterdir()], ['chrome.sock'])
+        self.assertEqual((self.sockets / 'chrome.sock').stat().st_ino, before)
 
 
 if __name__ == '__main__':
