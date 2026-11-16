@@ -55,8 +55,9 @@ import java.util.concurrent.ConcurrentLinkedQueue;
  *
  * <p>Step 2: a window that covers the world pauses it without a screen and slows its frame rate, while the helper keeps
  * hearing ready heartbeats (package 23's supervisor takes missing ones for a dead world). This part runs a real shell
- * client against a fake helper, wired up as in the session ({@link ShellFocusClient#register}). It is the last client
- * test, so the tick listener that registration leaves behind runs only against a closed client.
+ * client against a fake helper, wired up as in the session ({@link ShellFocusClient#register}). Only package 46's test,
+ * which does the same, runs after it, so the tick listener that registration leaves behind runs only against a closed
+ * client.
  *
  * <p>Review fixes 1: that part asks {@link HomeScreen#active} itself, with the game's helper connection set to the
  * test's (false before it connects, true connected in a session and a desktop world, false once the connection is

@@ -46,6 +46,12 @@ public final class AresOsClient implements ClientModInitializer {
         AppsScreen.register();
         IconReload.register(dev.aresos.item.MyAppsGame.icons());
         if (AresOs.shell() != null) ShellFocusClient.register(AresOs.shell());
+        // Package 46: the supervisor's lifecycle channel saves the world on request, only where the supervisor asked
+        // for it (ARESOS_DESKTOP_LIFECYCLE=1). Its own connection, so a dead app helper can't stop saving.
+        WorldSaves.INSTANCE.register();
+        var lifecycle = dev.aresos.shell.LifecycleClient.fromEnvironment(System.getenv(), WorldSaves.INSTANCE,
+                dev.aresos.shell.LifecycleClient.Settings.DEFAULT);
+        if (lifecycle != null) lifecycle.start();
         ClientPlayNetworking.registerGlobalReceiver(dev.aresos.mode.ModeSwitchStatePayload.TYPE,
                 (payload, context) -> ModeSwitchClient.receive(payload));
         ClientPlayNetworking.registerGlobalReceiver(ZoneLaunchPayload.TYPE, (payload, context) -> {
