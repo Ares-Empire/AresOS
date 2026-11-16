@@ -9,12 +9,50 @@ the memory and processor time of this program and every process the engine start
 Run it through shots.sh, which gives it a headless compositor of its own. It refuses to start on a display it
 was not given by that script, so it can never open a window in the owner's session.
 
-    webkit-shot.py <page address> <picture.png | -> [seconds to settle] [seconds to watch the processor]
+    webkit-shot.py <page address> <picture.png | - | check> [seconds to settle] [seconds to watch the processor]
+
+With "check" it takes no picture: it sends the page the keys and clicks a person would (typing a name, Enter,
+a hotbar key, a click on a logo, the arrow keys, Escape) and prints what the page did and what was expected.
 """
 import json
 import os
 import sys
 import time
+
+
+# What a person does, and what the page must have done by then. The events are made in the page, so they reach
+# the same listeners as real keys and clicks; a real keyboard and mouse were not used.
+CHECK = """
+const key = k => document.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true }));
+const wait = ms => new Promise(done => setTimeout(done, ms));
+const open = () => [...document.querySelectorAll('.win')].map(w => w.dataset.of).join();
+const close = () => document.querySelector('.win-close').click();
+const got = {};
+for (const k of 'tool') key(k);
+got.typing_finds = Home.state.best;
+got.others_dim = document.querySelectorAll('[data-app].is-dim').length > 0;
+key('Enter'); await wait(700);
+got.enter_opens = open();
+got.shown_as_running = document.querySelectorAll('[data-app="test-tool-1"].is-running').length > 0;
+close();
+got.closing_ends_it = open() === '' && !Home.state.running.has('test-tool-1');
+key('1'); await wait(700);
+got.key_1_opens = open();
+close();
+document.querySelector('[data-app="test-game-1"]:not(.slot)').click(); await wait(700);
+got.click_opens = open();
+close();
+key('ArrowRight'); key('ArrowDown');
+got.arrows_select = !!Home.state.selected;
+for (const k of 'pa') key(k);
+got.finds_other_programs = Home.state.best;
+key('Escape');
+got.escape_clears = Home.state.query === '' && document.querySelectorAll('[data-app].is-dim').length === 0;
+return JSON.stringify(got);
+"""
+EXPECTED = {'typing_finds': 'test-tool-1', 'others_dim': True, 'enter_opens': 'test-tool-1', 'shown_as_running': True,
+            'closing_ends_it': True, 'key_1_opens': 'test-web-1', 'click_opens': 'test-game-1', 'arrows_select': True,
+            'finds_other_programs': 'test-paint', 'escape_clears': True}
 
 
 def descendants(root):
@@ -118,8 +156,17 @@ def main():
             result['_before'] = {'at': time.monotonic(), 'processes': measure()}
             GLib.timeout_add(int(watch * 1000), finish)
 
+        def checked(view, answer):
+            got = json.loads(view.call_async_javascript_function_finish(answer).to_string())
+            wrong = {name: got.get(name) for name, value in EXPECTED.items() if got.get(name) != value}
+            print(json.dumps({'page': result['page'], 'engine': result['engine'], 'checks': len(EXPECTED),
+                              'passed': len(EXPECTED) - len(wrong), 'wrong': wrong}), flush=True)
+            app.quit()
+
         def settled():
-            if picture == '-':
+            if picture == 'check':
+                view.call_async_javascript_function(CHECK, -1, None, None, None, None, checked)
+            elif picture == '-':
                 watched()
             else:
                 view.get_snapshot(WebKit.SnapshotRegion.VISIBLE, WebKit.SnapshotOptions.NONE, None, snapped)

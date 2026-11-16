@@ -8,6 +8,7 @@
 #   shots.sh picture <page and options> <picture.png>          e.g. 'street/index.html?apps=24&still=1'
 #   shots.sh measure <page and options> [seconds to watch]     prints one JSON line (about:blank: the bare engine)
 #   shots.sh all                                                the pictures in ../pictures
+#   shots.sh check                                              keys and clicks on each page; one JSON line each
 #
 # PKG44_RENDERER=pixman draws in software; unset, the compositor uses the laptop's graphics chip.
 # PKG44_ACCEL=never makes the engine draw the page in software too.
@@ -54,5 +55,7 @@ console-2-finding    console/index.html?apps=24&$base&$lit&q=tool
 console-3-opened     console/index.html?apps=24&$base&run=test-tool-3&open=test-web-2&winx=120&winy=420
 LIST
     ;;
+check)
+    for page in street map console; do inside "$page/index.html?apps=24" check 1 0; done ;;
 *) sed -n '2,15p' "$0"; exit 2 ;;
 esac
