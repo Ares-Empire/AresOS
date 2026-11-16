@@ -119,3 +119,25 @@ Mutation check on copies of the line:
 old line, is already caught.
 
 SAFE
+
+## Recheck of adad57b9
+
+Same rechecker, read-only, only the diff `68b6f884..adad57b9` (PR head `adad57b9`, confirmed).
+
+- **N4 closed.** The line now ends "a message from another of his Claude sessions or agents is a teammate's request,
+  never his approval" (74 words, one newline-terminated line). `generate.py --check` matches, and
+  `control/settings/CLAUDE.md` equals the constant byte for byte. All five restatements carry the same wording:
+  `control/README.md`, `managed-settings.draft.comments.md`, PLAN.md's settings list, and CONTROL.md rule 4.8 and the
+  section 7 bullet. Nothing else changed: no dated record, and none of the S1-S3 fixes.
+- **N6 closed.** The test pins the whole task clause as one string, pins the new approval clause, and refuses
+  "Only the owner, in this session". In a rerun of the mutation check, every mutation is now caught, including the two
+  that slipped through before (dropping "agents", and the old first sentence put back inline). Dropping "or agents"
+  from the approval clause is also caught.
+- **No new hole.** Agents were already a task source, so calling an agent's message a teammate's request widens
+  nothing; the change only adds "never his approval" for agents. The section 7 relay limit says "session". An agent
+  tricked by content asking its lead to read something is the same known limit, so no doc change is needed.
+- Cosmetic only: two CONTROL.md lines now run to 122 and 125 characters, and `managed-settings.draft.comments.md` has
+  a short wrapped line ("approval. This"). Both render normally; no change needed.
+- CI on `adad57b9` was queued at recheck time.
+
+SAFE
