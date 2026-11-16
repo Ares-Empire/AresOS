@@ -261,11 +261,11 @@ def sync_rows(rows,fsyncs=2,commits=2):
         {'sample':row['sample'],'call':row['call'],'stage':'sqlite_commit','count':commits}]]
 
 
-def store_record(root,fstype='tmpfs'):
-    """run.sh's latency-store.py record: both store directories and their mount."""
+def store_record(root,fstype='tmpfs',end=('/var/lib/aresos-tools','/var/lib/aresos-operation-evidence')):
+    """run.sh's latency-store.py record: both store directories and their mount, with the end record for those in end."""
     import json
     directories={directory:{'mount_point':directory,'fstype':fstype,'source':'latency-store','options':'rw,size=524288k,mode=755,uid=1001',
-                            'size_bytes':512*1024*1024,'used_bytes_start':0,'used_bytes_end':40*1024*1024}
+                            'size_bytes':512*1024*1024,'used_bytes_start':0,**({'used_bytes_end':40*1024*1024} if directory in end else {})}
                  for directory in ['/var/lib/aresos-tools','/var/lib/aresos-operation-evidence']}
     (root/'latency-store.json').write_text(json.dumps({'directories':directories}))
 
@@ -353,8 +353,8 @@ class LatencySummary(unittest.TestCase):
             root=Path(temporary)
             for file,value in [('chrome-version.txt','Synthetic Chrome'),('runtime-build.txt','synthetic-build')]:(root/file).write_text(value)
             (root/'latency-client.json').write_text(json.dumps({'samples':rows,'baseline':'current','privacy':'plain'}))
-            def summarize(internal,fstype='tmpfs'):
-                store_record(root,fstype)
+            def summarize(internal,fstype='tmpfs',**end):
+                store_record(root,fstype,**end)
                 (root/'latency-service.jsonl').write_text('\n'.join(map(json.dumps,timings+internal)))
                 return module.summarize(root)
             # approval_to_done's first sample makes two requests: its counts add up.
@@ -368,6 +368,9 @@ class LatencySummary(unittest.TestCase):
             # A missing count, or a store that wasn't on a tmpfs, refuses.
             for internal,fstype in [(sync_rows(rows)[:-1],'tmpfs'),(sync_rows(rows)[1:],'tmpfs'),(sync_rows(rows),'ext4'),(sync_rows(rows),'overlay')]:
                 with self.subTest(rows=len(internal),fstype=fstype),self.assertRaises(AssertionError):summarize(internal,fstype)
+            # So does a store whose end-of-run check didn't run, for either directory (review nit 4).
+            for end in [(),('/var/lib/aresos-tools',),('/var/lib/aresos-operation-evidence',)]:
+                with self.subTest(end=end),self.assertRaisesRegex(AssertionError,'end-of-run'):summarize(sync_rows(rows),end=end)
 
 
 class LatencyGate(unittest.TestCase):
