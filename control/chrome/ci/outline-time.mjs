@@ -11,9 +11,10 @@ import fs from 'node:fs';
 import {execFile,execFileSync} from 'node:child_process';
 import {promisify} from 'node:util';
 import {setTimeout as delay} from 'node:timers/promises';
-import {fixtureUrl} from './efficiency-fixtures.mjs';
 
 const CALL_SECONDS=8,NOT_READ='time ran out; read this tab by itself';
+// F7's result pages (efficiency-fixtures.mjs): a heading "Results page N".
+const resultsPage=page=>'http://fixture.test:8765/?case=efficiency-f7&page='+page;
 const run=promisify(execFile);
 
 // One call through the proxy or the command; call.py times the call alone.
@@ -47,7 +48,7 @@ export async function outlineTime({call,nav,target,eventually,getTab}){
   const holdOver=(at,{ms,duration})=>delay(Math.max(0,at+duration+ms+500-Date.now()));
   const tabs=[];let reserved=null;
   try{
-    for(let page=1;page<=5;page++)tabs.push((await call('open',{url:fixtureUrl('f7','&page='+page)})).untrusted_content.tab);
+    for(let page=1;page<=5;page++)tabs.push((await call('open',{url:resultsPage(page)})).untrusted_content.tab);
     for(const [index,tab] of tabs.entries())
       await eventually(async()=>(await call('wait',{tab,text:'Results page '+(index+1),timeout_ms:3000})).condition_met,'time tab '+(index+1)+' loaded');
 
