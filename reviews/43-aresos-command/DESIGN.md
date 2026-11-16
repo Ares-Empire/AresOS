@@ -264,6 +264,7 @@ The dispatcher does not change directory: `sudo`'s journal line keeps saying whe
 1. `/usr/bin/env -i` with exactly D11's values, then `/usr/bin/sudo -k -A -p 'AresOS: test' /usr/bin/true`. He types his password. Expected: the window of 22d's step 0 (the title bar, the line inside, no keyring question), exit 0, `sudo -n true` refused afterwards, `COMMAND=/usr/sbin/true` in `sudo`'s journal.
 2. The same line once more; he leaves the window alone. Expected: it closes after one minute, `sudo: no password was provided`, exit 1, nothing ran.
 3. Only if the first window does not open or looks different: the same with the caller's whole environment and the fixed values set, to learn which variable is missing (LEAD 5).
+4. Afterwards Claude deletes the helper copy from his home; nothing else was written (the lead, fix check N3).
 
 **D12: Control.**
 - Control's wrapper (`18c:control/packaging/aresos`, three lines) is installed unchanged as `/usr/libexec/aresos-control/cli`: one changed entry in the install map (`18c:os/build.sh:92`) and its pin (`18c:os/tests/test_control_image.py:25`). The file is then inside the folder the launcher already requires to be root-owned and not writable (`18c:control/launch.py:16-20`, `:31-35`) and stays recorded in `control.json`.
@@ -481,7 +482,7 @@ Six calls, each about something he will see or do. Each is written to him and re
   - a newer AresOS is on the laptop already (after you went back): `Update: a newer AresOS is installed already, …; going forward to it. Nothing is downloaded and nothing is removed`
   - there is nothing newer: `Nothing to update: … runs and starts next, and it is the newest AresOS these tools know; nothing changed`
   - you ran it a second time before the restart: `Nothing to do now: the update to … is staged and starts at the next restart`
-  - the last update failed: `Nothing changed: the last update did not finish at shutdown, and this command does not repeat it now. …`
+  - the last update failed: `Nothing changed: the last update did not finish at shutdown, and this command does not repeat it now. It waits only this once: run again, it says what it does and does it. First see EMERGENCY, Failed or bad update`
 - **Why.** These lines are part of the tools, and the tools are rehearsed on a test machine before they reach your laptop. Before that rehearsal a word costs nothing to change. After it, one changed word means a new rehearsal run.
 - **Advice.** Take them as proposed.
 - **Options.** A: as proposed. B: you change words now.
@@ -503,7 +504,7 @@ Six calls, each about something he will see or do. Each is written to him and re
 - **For the lead.** What rests on the two steps: D2's "one thing per run", row 6 (`Nothing to do now`) and the saved title that `reboot` checks.
 
 **6. A short try on your laptop**
-- **Question.** May Claude run a three-minute try with you before the command is built? Two password windows open, one after the other, each with the line `AresOS: test`, in front of a command that does nothing. Into the first you type your password. The second you leave alone for one minute and watch it close by itself. Nothing on the laptop changes.
+- **Question.** May Claude run a three-minute try with you before the command is built? Two password windows open, one after the other, each with the line `AresOS: test`, in front of a command that does nothing. Into the first you type your password. The second you leave alone for one minute and watch it close by itself. The system doesn't change. The try leaves one small helper file in your home folder, which Claude deletes afterwards.
 - **Why.** It shows on the real laptop that the window opens as planned and closes by itself when nobody answers. A surprise found later, in a release's rehearsal, costs days.
 - **Advice.** Yes, before step 3 is built.
 - **Options.** A: yes, at a time you choose. B: no. Both things are then first seen on a test machine, or in release 29's rehearsal.
