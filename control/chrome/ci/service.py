@@ -15,19 +15,16 @@ sys.path.append(str(Path(__file__).resolve().parents[2]/'chrome_tests'))
 import qualification_fixture
 
 # The held record below is synthetic, so this service starts Chrome from a
-# fixture runtime: the tree's build identity beside a shipped copy of the
-# fixture's own, whatever control/chrome/qualification.json holds (#79). That
-# copy is empty, except in the latency leg that measures a record of realistic
-# size: there it holds several hundred entries of earlier builds (#79 O2).
-shipped=qualification_fixture.harness_shipped(os.environ)
-qualification_fixture.install(tempfile.mkdtemp(prefix='fixture-runtime-'),baseline=shipped)
+# fixture runtime: the tree's build identity beside an empty shipped copy,
+# whatever control/chrome/qualification.json holds (#79).
+qualification_fixture.install(tempfile.mkdtemp(prefix='fixture-runtime-'))
 config={'owner_uid':1000,'state_dir':'/var/lib/aresos-tools','evidence_dir':'/var/lib/aresos-operation-evidence','socket_dir':'/run/aresos-tools'}
 engine=Engine(config['state_dir'],config['evidence_dir'])
 version=subprocess.check_output(['qualification-chrome','--version'],text=True).split()[2]
 build=engine.adapters['chrome'].qualification.build
 # This store is disposable test input. No qualification pass is shipped by this bootstrap.
-record=qualification_fixture.harness_record(shipped,build,version)
-print('FIXTURE_QUALIFICATION',json.dumps({'shipped_entries':len(shipped['entries']),'held_entries':len(record['entries'])}),flush=True)
+record={'format':1,'entries':[{'build':build,'version':version,'channel':'stable','run':'synthetic-fixture-setup',
+                              'core':dict.fromkeys(CORE_GROUPS,True),'adapters':dict.fromkeys(HOSTS,True)}]}
 if not engine.store.get('chrome:qualification'):
     engine.store.write({'chrome:qualification':record},'chrome_test_setup','Synthetic qualification input for fixture tests')
 engine.close()
@@ -60,8 +57,6 @@ def request(value,admin=False):
     qualification=Path('/run/aresos-tools/fixture-qualification')
     if qualification.exists():
         mode=qualification.read_text();qualification.unlink()
-        # The modes rewrite the one synthetic entry over the empty baseline.
-        if shipped['entries']:raise ValueError('Synthetic qualification modes need the empty shipped copy')
         candidate=json.loads(json.dumps(record))
         if mode=='conservative':candidate['entries']=[]
         elif mode in CORE_GROUPS:candidate['entries'][0]['core'][mode]=False

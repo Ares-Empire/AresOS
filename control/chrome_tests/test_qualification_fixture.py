@@ -131,8 +131,7 @@ class ShippedHistory(unittest.TestCase):
 
     def test_the_browser_harness_installs_the_fixture_runtime_before_its_first_engine(self):
         source = (ROOT/'control/chrome/ci/service.py').read_text()
-        self.assertIn("qualification_fixture.install(tempfile.mkdtemp(prefix='fixture-runtime-'),baseline=shipped)", source)
-        self.assertIn('shipped=qualification_fixture.harness_shipped(os.environ)', source)
+        self.assertIn("qualification_fixture.install(tempfile.mkdtemp(prefix='fixture-runtime-'))", source)
         self.assertLess(source.index('qualification_fixture.install('), source.index('Engine(config'))
 
     def test_a_held_record_extending_shipped_history_acts_and_an_uncovered_major_stays_conservative(self):
