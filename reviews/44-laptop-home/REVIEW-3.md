@@ -199,3 +199,74 @@ The brief writer would be misled by:
 - No personal data or names of his programs in the added text. The grep found only "texture" in "earth needs a texture".
 - The pictures are 1920 x 1080 page renders of the test town, with generated logos and flat colours, no game texture. Their PNG chunks are only cICP and sRGB.
 - No file under `os/` or `mod/` changed. REVIEW-1 and REVIEW-2 are not edited.
+
+---
+
+## Review 3, addendum (head 1bbc7322, read-only, headless)
+
+Verdict: CHANGES-NEEDED
+
+One finding blocks the merge, and it is a text fix. Should-fix 1 to 5 are all resolved, and nothing else regressed.
+
+### Blocking: the reading of "homescreen" is written down as settled in several places
+
+His answer on board #333 was: "Yes but the search bar should appear on the homescreen I'd say".
+
+Sections 6 and 10 and JUDGMENT-CALL 5 rightly say "as the lead reads it". These places state the same reading as fact, without that label:
+- `docs/design/LAPTOP-HOME.md:3-4`, the status line: "six questions are settled", with only the laptop-pointer case left open;
+- `:78-80`, section 1's "Super";
+- `:150-153`, section 2.2: "Super searches over the world, not here";
+- `:605-623`, section 9 step 5, which treats it as decided build work;
+- `PROGRESS.md:105`, `:311-313` and `:601-606`.
+
+The open point is wider than the laptop-pointer case. In this same draft he calls the laptop-screen screen a "homescreen" three times:
+- `:19`: "monitor connected" homescreen;
+- `:518`: "the alternative laptop homescreen";
+- `:713`: "fits as a homescreen".
+
+So his words may mean the laptop home's own search bar, not a search over the world. The "but" supports the lead's reading, but it does not settle it. Step 5's scope depends on which he meant: a new search drawn by the mod, a new event `shell_search`, a new path from the supervisor to the helper, and minimizing a maximized app when he presses Super. That is how AresOS feels, so it is his call.
+
+**Fix:** pick one.
+- Ask him once on the board before the build brief: "Super: a search bar over the world on the monitor, or the laptop home's search bar?" Then record his answer.
+- Or label the reading as the lead's, to confirm with him, in each place listed above. Widen the open point from "Super with the pointer on the laptop screen" to "which screen 'homescreen' means".
+
+### (a) Should-fix 1 to 5: all resolved
+
+1. **The hand-slide fix.** The `follow()` change at `prototypes/street/index.html:375-381` is the tested expression, and the night branch is unchanged. The new case `typing_after_a_hand_slide_shows_it` fails on the old page: I ran it in a scratch copy and got 9 of 10.
+2. **Answered questions no longer read as open:**
+   - the title and the status line;
+   - section 2.1's dimmed row;
+   - question 3;
+   - section 9's "night as the second look";
+   - section 11.4's pointer to the night look.
+3. **Question 5 quotes board #333 word for word.** It also says his earlier words had been read as yes.
+4. **The report is back in step:**
+   - JUDGMENT-CALLs 1 to 6 carry their answers;
+   - "In short" has his choice;
+   - the terraces line credits him;
+   - the picture count is 28;
+   - the 265 MiB claim is marked corrected.
+5. **Memory is now one statement with its sources:**
+   - the branch and commit of the research are named;
+   - the two variables are named, and both files exist on this laptop (`50_mesa.json`, `intel_icd.x86_64.json`);
+   - the pin is a rule, with a test in step 3 and the supervisor's side in step 4.
+
+### (b) The facts behind step 5 check out
+
+- labwc 0.9.6's `labwc-config(5)` documents `onRelease="yes"` on `Super_L`.
+- `aresos-desktop hide-cover` exists.
+- `return_to_desktop` exists in the helper.
+- `AppsScreen.java` exists.
+- Nothing else in `rc.xml` binds Super alone.
+
+Apart from the blocking finding above, the rewrite is consistent between the draft and the report.
+
+### (c) No regression
+
+- `tools/shots.sh check`: eleven lines, all passed:
+  - 10 of 10 on street, map, console and the day look;
+  - 9 of 9 for Night street's own check, by night and by day;
+  - 10 of 10 for the grid check on the towns of 1, 24 and 45 apps and on the lawn;
+  - 2 of 2 for the rest check.
+- Section 5 is untouched.
+- The worktree is clean, and none of my processes is still running.
