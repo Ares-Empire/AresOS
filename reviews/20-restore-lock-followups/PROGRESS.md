@@ -1,5 +1,13 @@
 # Brief 20-restore-lock-followups: what was read and run
 
+## Build (2026-11-16, Claude agent on Opus 5.5)
+
+In progress. Done: items 1 and 2 (commit "items 1 and 2"), their tests and ten mutation probes
+(`mutations.py`, results in `mutations.json`), the local sample after that commit: the 52 predicted keys
+close, nothing else differs. Next: item 3 in its own commit, the sample again, then the capture.
+
+## Findings (Claude Fable, before the build)
+
 **For the lead:** this is the text asked for as `FINDINGS.md`. The agent's file tool refuses that file name, so it
 is here, as `CLAUDE.md` describes for `REPORT.md`. Rename it if you want; the brief says "the findings in
 `reviews/20-restore-lock-followups/`" and holds either way.

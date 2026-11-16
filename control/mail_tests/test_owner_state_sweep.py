@@ -213,6 +213,14 @@ def exercise(flow, number=None, mode='single', cleanup_at=None, gaps=None, phase
         with d.observe(fault), fault.wrap(None if flow.startswith('restart_') else s.fixture.engine.store):
             reply = s.call()
         d.reply(reply, delivered=False if number else True)
+        # The oracle keeps a store locked after a confirm met a fault, reading the
+        # fault trace only (brief 20-restore-lock-followups, item 1). That holds
+        # only while every such fault aborts the confirm.
+        for call in d.oracle.script:
+            if (call['action'] == 'control_restore_confirm' and call.get('restore_precondition') is True
+                    and call.get('faults', {}).get('trace') and call.get('result', {}).get('ok')):
+                raise AssertionError((case, 'A confirm that met a storage fault was answered ok; revisit the '
+                                      "oracle's rule for an interrupted confirm (driver.interrupted_confirm)", call['faults']['trace']))
         points, cleanups = list(fault.points), list(fault.cleanup_points)
         if number is None:
             assert reply['ok'] or flow == 'password' and reply['error']['code'] == 'server_refused' or flow == 'export_rollback' and reply['error']['code'] == 'storage_limit', (flow, reply)
@@ -224,8 +232,7 @@ def exercise(flow, number=None, mode='single', cleanup_at=None, gaps=None, phase
             # Closing the old handles may roll back; restore the captured bytes
             # so the new Engine sees exactly the injected boundary instead.
             f = s.fixture
-            d.startup_sequence = max((fence['seq'] for fence in d.snapshot().fences), default=0)
-            d._snapshot_key = None
+            d.restarted()
             with tempfile.TemporaryDirectory(prefix='crash-bytes-', dir=f.root) as temporary:
                 saved = __import__('pathlib').Path(temporary)
                 for name in ('state', 'evidence'):
@@ -393,6 +400,57 @@ class OwnerStateSweep(unittest.TestCase):
             self.assertNotIn('lock_refused_write', driver.oracle.script[driver.call_index])
         finally:
             scenario.close()
+
+    @staticmethod
+    def last_fault_point(flow):
+        points, _ = exercise(flow, gaps=Gaps(recording=True))
+        return max(number for number, label in enumerate(points, 1) if not label.endswith('.close'))
+
+    def test_confirm_failed_at_its_last_point_keeps_the_lock_until_the_restart(self):
+        # Brief 20-restore-lock-followups, item 1: whether or not the commit
+        # marker's bytes stayed, the running store keeps its lock, and a restart
+        # ends it. The oracle agrees in every phase and every pair case.
+        last = self.last_fault_point('restore')
+        gaps = Gaps(recording=True)
+        for phase in ('live', 'crash'):
+            exercise('restore', last, 'persistent', gaps=gaps, phase=phase)
+        _, cleanups = exercise('restore', last, gaps=gaps)
+        pairs = sorted({number for number, _, _ in cleanups if number > last})
+        self.assertTrue(pairs)
+        for cleanup_at in pairs:
+            for phase in ('live', 'crash'):
+                exercise('restore', last, cleanup_at=cleanup_at, gaps=gaps, phase=phase)
+        cases = {f'restore/persistent/{last}/0/{phase}' for phase in ('exhausted', 'live-restored', 'crash-restart')}
+        cases |= {f'restore/single/{last}/{pair}/{phase}' for pair in pairs for phase in ('live-restored', 'crash-restart')}
+        self.assertLessEqual(cases, gaps.executed)
+        self.assertEqual([key for key in gaps.entries if key.endswith(('.restore-lock', '.status', '/recovery-holds'))], [])
+
+    def test_harness_refuses_a_confirm_answered_ok_after_a_fault(self):
+        # The oracle's rule for an interrupted confirm reads only the fault
+        # trace. Were a faulted confirm answered ok, the sweep must stop.
+        from aresos_control.common import Refused
+        from aresos_control.storage import Store
+        original = Store.confirm_restore
+        def tolerant(store):
+            # A change that tolerates the fault and forgets it, with a bug that
+            # keeps the lock: the owner would read "confirmed" and stay locked.
+            try:
+                return original(store)
+            except Refused:
+                store.observations = type(store.observations)()
+                return {'generation': store.generation, 'unknown': []}
+        last = self.last_fault_point('restore')
+        with patch.object(Store, 'confirm_restore', tolerant):
+            with self.assertRaisesRegex(AssertionError, 'interrupted confirm'):
+                exercise('restore', last, gaps=Gaps(recording=True))
+
+    def test_refused_log_under_the_lock_is_seen_as_locked(self):
+        # Brief 20-restore-lock-followups, item 2: after a crash the store is
+        # locked and refuses `aresos log` with restore_required, which says so.
+        gaps = Gaps(recording=True)
+        exercise('cancel', 2, 'persistent', gaps=gaps, phase='crash')
+        self.assertIn('cancel/persistent/2/0/crash-locked', gaps.executed)
+        self.assertNotIn('cancel/persistent/2/0/crash-locked/aresos log.restore-lock', gaps.entries)
 
     def test_shards_cover_every_fault_and_keep_its_cleanup_and_crash_cases(self):
         for shards in (1, 2, 4, 12, 24):

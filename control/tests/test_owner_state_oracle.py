@@ -118,6 +118,62 @@ class OwnerOracle(unittest.TestCase):
             list(pages(changed, 'log'))
         self.assertEqual(len(restarts), 4)
 
+    def test_refused_read_page_says_locked_only_when_the_lock_refused_it(self):
+        # Brief 20-restore-lock-followups, item 2: `aresos log` is refused under
+        # the restore lock. That refusal tells the owner about the lock; the
+        # page read in its place says so, and no other refusal does.
+        def refused(code):
+            return lambda action, args: {'ok': False, 'error': {'code': code, 'message': 'Synthetic refusal'}}
+        page = next(pages(refused('restore_required'), 'control_log'))
+        self.assertEqual((page.get('unavailable'), page.get('restore_required'), page.get('cursor')), ('restore_required', True, None))
+        page = next(pages(refused('storage_limit'), 'control_log'))
+        self.assertEqual((page.get('unavailable'), page.get('restore_required')), ('storage_limit', False))
+        answered = {'items': [], 'total': 0, 'cursor': None, 'notices': []}
+        self.assertEqual(list(pages(lambda *_: {'ok': True, 'data': answered}, 'control_log')), [answered])
+        self.assertNotIn('restore_required', answered)
+
+    def test_interrupted_confirm_is_a_term_of_the_lock(self):
+        # Brief 20-restore-lock-followups, item 1: a confirm that met a storage
+        # fault keeps the running service locked whatever its bytes decode to.
+        from owner_state_oracle.records import consistency_errors
+        lock = ('restore', 'unjustified-lock', '')
+        for interrupted in (False, True):
+            for locked in (False, True):
+                record = Record(head=(0, ''), locked=locked, interrupted_confirm=interrupted)
+                with self.subTest(interrupted=interrupted, locked=locked):
+                    self.assertEqual(lock in consistency_errors(record), locked != interrupted)
+
+    def test_interrupted_confirm_holds_until_the_next_restart(self):
+        from owner_state_oracle.driver import Driver, interrupted_confirm
+        oracle = Oracle()
+        oracle.call('control_restore_confirm', {'confirm': 'invalidate earlier approvals'}, 1, {'mode': 'persistent', 'at': 75})
+        oracle.script[-1]['restore_precondition'] = True
+        self.assertFalse(interrupted_confirm(oracle.script))
+        oracle.script[-1]['faults']['trace'] = [(75, 'journal.sync', 'ENOSPC')]
+        self.assertTrue(interrupted_confirm(oracle.script))
+        # No lock to keep: a confirm on an unlocked store is refused before any write.
+        oracle.script[-1]['restore_precondition'] = False
+        self.assertFalse(interrupted_confirm(oracle.script))
+        oracle.script[-1]['restore_precondition'] = True
+        oracle.call('control_pending', {}, 2, {'trace': [(80, 'journal.write', 'ENOSPC')]})
+        self.assertTrue(interrupted_confirm(oracle.script))
+        # Only the most recent confirm counts: a later one that met no fault ends it.
+        later = copy.deepcopy(oracle.script)
+        later.append({**later[0], 'call': 3, 'faults': {}})
+        self.assertFalse(interrupted_confirm(later))
+        driver = Driver.__new__(Driver)
+        driver.oracle, driver.record, driver._decoded_lock = oracle, Record(), False
+        driver.snapshot = lambda: driver.record
+        driver.apply_service_lock(decoded=False)
+        captured = driver.record
+        self.assertEqual((captured.locked, captured.interrupted_confirm), (True, True))
+        driver.restarted()
+        driver.apply_service_lock(decoded=False)
+        self.assertEqual((driver.record.locked, driver.record.interrupted_confirm), (False, False))
+        # A record already handed to a comparison keeps the lock it had then.
+        self.assertIsNot(driver.record, captured)
+        self.assertTrue(captured.locked)
+
     def test_same_evidence_ack_clean_and_recurrence_are_independent(self):
         oracle, record = self.recorded()
         record.rows['notice:n'] = {'id': 'n', 'source_key': 'op:g:send', 'check_kind': 'sent_copies'}

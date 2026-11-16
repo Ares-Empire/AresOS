@@ -1,0 +1,210 @@
+[
+ {
+  "item": "item1-store-unlocks-in-finally",
+  "file": "control/aresos_control/storage.py",
+  "baseline": "pass",
+  "rejected": true,
+  "tests": {
+   "test_restore_batches.RestoreBatches.test_confirm_whose_last_marker_sync_fails_keeps_the_lock_until_a_restart": {
+    "caught": true,
+    "summary": [
+     "FAIL: test_confirm_whose_last_marker_sync_fails_keeps_the_lock_until_a_restart (test_restore_batches.RestoreBatches.test_confirm_whose_last_marker_sync_fails_keeps_the_lock_until_a_restart)",
+     "AssertionError: False is not true",
+     "Ran 1 test in 0.311s",
+     "FAILED (failures=1)"
+    ]
+   },
+   "test_restore_batches.RestoreBatches.test_confirm_whose_marker_stays_after_a_failed_sync_keeps_the_lock_until_a_restart": {
+    "caught": true,
+    "summary": [
+     "FAIL: test_confirm_whose_marker_stays_after_a_failed_sync_keeps_the_lock_until_a_restart (test_restore_batches.RestoreBatches.test_confirm_whose_marker_stays_after_a_failed_sync_keeps_the_lock_until_a_restart)",
+     "AssertionError: False is not true",
+     "Ran 1 test in 0.299s",
+     "FAILED (failures=1)"
+    ]
+   }
+  }
+ },
+ {
+  "item": "item1-rule-removed",
+  "file": "control/owner_state_oracle/driver.py",
+  "baseline": "pass",
+  "rejected": true,
+  "tests": {
+   "test_owner_state_oracle.OwnerOracle.test_interrupted_confirm_holds_until_the_next_restart": {
+    "caught": true,
+    "summary": [
+     "FAIL: test_interrupted_confirm_holds_until_the_next_restart (test_owner_state_oracle.OwnerOracle.test_interrupted_confirm_holds_until_the_next_restart)",
+     "AssertionError: False is not true",
+     "Ran 1 test in 0.250s",
+     "FAILED (failures=1)"
+    ]
+   },
+   "mail:test_owner_state_sweep.OwnerStateSweep.test_confirm_failed_at_its_last_point_keeps_the_lock_until_the_restart": {
+    "caught": true,
+    "summary": [
+     "FAIL: test_confirm_failed_at_its_last_point_keeps_the_lock_until_the_restart (test_owner_state_sweep.OwnerStateSweep.test_confirm_failed_at_its_last_point_keeps_the_lock_until_the_restart)",
+     "AssertionError: Lists differ: ['restore/persistent/75/0/exhausted/envelo[3044 chars]ock'] != []",
+     "Ran 1 test in 4.012s",
+     "FAILED (failures=1)"
+    ]
+   }
+  }
+ },
+ {
+  "item": "item1-rule-kept-after-restart",
+  "file": "control/owner_state_oracle/driver.py",
+  "baseline": "pass",
+  "rejected": true,
+  "tests": {
+   "test_owner_state_oracle.OwnerOracle.test_interrupted_confirm_holds_until_the_next_restart": {
+    "caught": true,
+    "summary": [
+     "FAIL: test_interrupted_confirm_holds_until_the_next_restart (test_owner_state_oracle.OwnerOracle.test_interrupted_confirm_holds_until_the_next_restart)",
+     "AssertionError: Tuples differ: (True, True) != (False, False)",
+     "Ran 1 test in 0.250s",
+     "FAILED (failures=1)"
+    ]
+   },
+   "mail:test_owner_state_sweep.OwnerStateSweep.test_confirm_failed_at_its_last_point_keeps_the_lock_until_the_restart": {
+    "caught": true,
+    "summary": [
+     "FAIL: test_confirm_failed_at_its_last_point_keeps_the_lock_until_the_restart (test_owner_state_sweep.OwnerStateSweep.test_confirm_failed_at_its_last_point_keeps_the_lock_until_the_restart)",
+     "AssertionError: Lists differ: ['restore/persistent/75/0/crash-restart/re[3628 chars]tus'] != []",
+     "Ran 1 test in 3.951s",
+     "FAILED (failures=1)"
+    ]
+   }
+  }
+ },
+ {
+  "item": "item1-locked-precondition-dropped",
+  "file": "control/owner_state_oracle/driver.py",
+  "baseline": "pass",
+  "rejected": true,
+  "tests": {
+   "test_owner_state_oracle.OwnerOracle.test_interrupted_confirm_holds_until_the_next_restart": {
+    "caught": true,
+    "summary": [
+     "FAIL: test_interrupted_confirm_holds_until_the_next_restart (test_owner_state_oracle.OwnerOracle.test_interrupted_confirm_holds_until_the_next_restart)",
+     "AssertionError: True is not false",
+     "Ran 1 test in 0.250s",
+     "FAILED (failures=1)"
+    ]
+   }
+  }
+ },
+ {
+  "item": "item1-rule-accumulated",
+  "file": "control/owner_state_oracle/driver.py",
+  "baseline": "pass",
+  "rejected": true,
+  "tests": {
+   "test_owner_state_oracle.OwnerOracle.test_interrupted_confirm_holds_until_the_next_restart": {
+    "caught": true,
+    "summary": [
+     "FAIL: test_interrupted_confirm_holds_until_the_next_restart (test_owner_state_oracle.OwnerOracle.test_interrupted_confirm_holds_until_the_next_restart)",
+     "AssertionError: Tuples differ: (True, True) != (False, False)",
+     "Ran 1 test in 0.255s",
+     "FAILED (failures=1)"
+    ]
+   }
+  }
+ },
+ {
+  "item": "item1-captured-record-changed",
+  "file": "control/owner_state_oracle/driver.py",
+  "baseline": "pass",
+  "rejected": true,
+  "tests": {
+   "test_owner_state_oracle.OwnerOracle.test_interrupted_confirm_holds_until_the_next_restart": {
+    "caught": true,
+    "summary": [
+     "FAIL: test_interrupted_confirm_holds_until_the_next_restart (test_owner_state_oracle.OwnerOracle.test_interrupted_confirm_holds_until_the_next_restart)",
+     "AssertionError: unexpectedly identical: Record(rows={}, events=[], fences=[], prepared=[], committed=set(), working_sequences=set(), unprepared_fences=set(), generation=None, locked=False, restore_intervals=[], head=None, startup_sequence=0, interrupted_confirm=False)",
+     "Ran 1 test in 0.254s",
+     "FAILED (failures=1)"
+    ]
+   }
+  }
+ },
+ {
+  "item": "item1-term-dropped-from-consistency",
+  "file": "control/owner_state_oracle/records.py",
+  "baseline": "pass",
+  "rejected": true,
+  "tests": {
+   "test_owner_state_oracle.OwnerOracle.test_interrupted_confirm_is_a_term_of_the_lock": {
+    "caught": true,
+    "summary": [
+     "FAIL: test_interrupted_confirm_is_a_term_of_the_lock (test_owner_state_oracle.OwnerOracle.test_interrupted_confirm_is_a_term_of_the_lock) (interrupted=True, locked=False)",
+     "AssertionError: False != True",
+     "FAIL: test_interrupted_confirm_is_a_term_of_the_lock (test_owner_state_oracle.OwnerOracle.test_interrupted_confirm_is_a_term_of_the_lock) (interrupted=True, locked=True)",
+     "AssertionError: True != False",
+     "Ran 1 test in 0.001s",
+     "FAILED (failures=2)"
+    ]
+   }
+  }
+ },
+ {
+  "item": "item1-harness-check-removed",
+  "file": "control/mail_tests/test_owner_state_sweep.py",
+  "baseline": "pass",
+  "rejected": true,
+  "tests": {
+   "mail:test_owner_state_sweep.OwnerStateSweep.test_harness_refuses_a_confirm_answered_ok_after_a_fault": {
+    "caught": true,
+    "summary": [
+     "FAIL: test_harness_refuses_a_confirm_answered_ok_after_a_fault (test_owner_state_sweep.OwnerStateSweep.test_harness_refuses_a_confirm_answered_ok_after_a_fault)",
+     "AssertionError: AssertionError not raised",
+     "Ran 1 test in 0.765s",
+     "FAILED (failures=1)"
+    ]
+   }
+  }
+ },
+ {
+  "item": "item2-lock-field-dropped",
+  "file": "control/owner_state_oracle/compare.py",
+  "baseline": "pass",
+  "rejected": true,
+  "tests": {
+   "test_owner_state_oracle.OwnerOracle.test_refused_read_page_says_locked_only_when_the_lock_refused_it": {
+    "caught": true,
+    "summary": [
+     "FAIL: test_refused_read_page_says_locked_only_when_the_lock_refused_it (test_owner_state_oracle.OwnerOracle.test_refused_read_page_says_locked_only_when_the_lock_refused_it)",
+     "AssertionError: Tuples differ: ('restore_required', None, None) != ('restore_required', True, None)",
+     "Ran 1 test in 0.001s",
+     "FAILED (failures=1)"
+    ]
+   },
+   "mail:test_owner_state_sweep.OwnerStateSweep.test_refused_log_under_the_lock_is_seen_as_locked": {
+    "caught": true,
+    "summary": [
+     "FAIL: test_refused_log_under_the_lock_is_seen_as_locked (test_owner_state_sweep.OwnerStateSweep.test_refused_log_under_the_lock_is_seen_as_locked)",
+     "AssertionError: 'cancel/persistent/2/0/crash-locked/aresos log.restore-lock' unexpectedly found in {'cancel/persistent/2/0/crash-locked/envelope.mail_accounts.pending-head': {'row': 'M14', 'stage': 3, 'delta': {'calls': 2, 'failures': [{'pages': [0, 1], 'missing': [['op:#1', 'pending', '', '{\"reason\":\"RESTORED_EVIDENCE\",\"state\":\"unknown\"}']], 'extra': []}]}}, 'cancel/persistent/2/0/crash-locked/envelope.mail_accounts.pending-total': {'row': 'M14', 'stage': 3, 'delta': {'calls': 2, 'failures': [{'pages': [0, 1], 'missing': [['catalogue:#5', 'count', '', '1']], 'extra': [['catalogue:#5', 'count', '', '0']]}]}}, 'cancel/persistent/2/0/crash-locked/envelope.mail_accounts.notice-head': {'row': 'M06', 'stage': 3, 'delta': {'calls': 2, 'failures': [{'pages': [0, 1], 'missing': [['op:#1', 'recovery', '', ''], ['op:#1', 'recovery-context', '', '{\"app\":\"mail\",\"intent_identity\":true,\"reason_present\":true,\"state\":\"unknown\"}'], ['op:#1', 'recovery-handle', 'occurrence:#9', ''], ['op:#1', 'unchecked', '', ''], ['op:#1', 'unchecked-context', '', '{\"app\":\"mail\",\"check\":\"sent_copies\",\"not_yet_checked\":true,\"operation_identity\":true,\"state\":\"unknown\"}'], ['op:#1', 'unchecked-handle', 'occurrence:#7', '']], 'extra': []}]}}, 'cancel/persistent/2/0/crash-locked/envelope.mail_accounts.notice-count': {'row': 'M14', 'stage': 3, 'delta': {'calls': 2, 'failures': [{'pages': [0, 1], 'missing': [['catalogue:#5', 'count', '', '2']], 'extra': [['catalogue:#5', 'count', '', '0']]}]}}, 'cancel/persistent/2/0/crash-locked/passive.pending-head': {'row': 'M14', 'stage': 3, 'delta': {'calls': 1, 'failures': [{'pages': [0], 'missing': [['op:#1', 'pending', '', '{\"reason\":\"RESTORED_EVIDENCE\",\"state\":\"unknown\"}']], 'extra': []}]}}, 'cancel/persistent/2/0/crash-locked/passive.pending-total': {'row': 'M14', 'stage': 3, 'delta': {'calls': 1, 'failures': [{'pages': [0], 'missing': [['catalogue:#5', 'count', '', '1']], 'extra': [['catalogue:#5', 'count', '', '0']]}]}}, 'cancel/persistent/2/0/crash-locked/passive.notice-head': {'row': 'M06', 'stage': 3, 'delta': {'calls': 1, 'failures': [{'pages': [0], 'missing': [['op:#1', 'recovery', '', ''], ['op:#1', 'recovery-context', '', '{\"app\":\"mail\",\"intent_identity\":true,\"reason_present\":true,\"state\":\"unknown\"}'], ['op:#1', 'recovery-handle', 'occurrence:#9', ''], ['op:#1', 'unchecked', '', ''], ['op:#1', 'unchecked-context', '', '{\"app\":\"mail\",\"check\":\"sent_copies\",\"not_yet_checked\":true,\"operation_identity\":true,\"state\":\"unknown\"}'], ['op:#1', 'unchecked-handle', 'occurrence:#7', '']], 'extra': []}]}}, 'cancel/persistent/2/0/crash-locked/passive.notice-count': {'row': 'M14', 'stage': 3, 'delta': {'calls': 1, 'failures': [{'pages': [0], 'missing': [['catalogue:#5', 'count', '', '2']], 'extra': [['catalogue:#5', 'count', '', '0']]}]}}, 'cancel/persistent/2/0/crash-locked/envelope.control_pending.pending-head': {'row': 'M14', 'stage': 3, 'delta': {'calls': 2, 'failures': [{'pages': [0, 1], 'missing': [['op:#1', 'pending', '', '{\"reason\":\"RESTORED_EVIDENCE\",\"state\":\"unknown\"}']], 'extra': []}]}}, 'cancel/persistent/2/0/crash-locked/envelope.control_pending.pending-total': {'row': 'M14', 'stage': 3, 'delta': {'calls': 2, 'failures': [{'pages': [0, 1], 'missing': [['catalogue:#5', 'count', '', '1']], 'extra': [['catalogue:#5', 'count', '', '0']]}]}}, 'cancel/persistent/2/0/crash-locked/envelope.control_pending.notice-head': {'row': 'M06', 'stage': 3, 'delta': {'calls': 2, 'failures': [{'pages': [0, 1], 'missing': [['op:#1', 'recovery', '', ''], ['op:#1', 'recovery-context', '', '{\"app\":\"mail\",\"intent_identity\":true,\"reason_present\":true,\"state\":\"unknown\"}'], ['op:#1', 'recovery-handle', 'occurrence:#9', ''], ['op:#1', 'unchecked', '', ''], ['op:#1', 'unchecked-context', '', '{\"app\":\"mail\",\"check\":\"sent_copies\",\"not_yet_checked\":true,\"operation_identity\":true,\"state\":\"unknown\"}'], ['op:#1', 'unchecked-handle', 'occurrence:#7', '']], 'extra': []}]}}, 'cancel/persistent/2/0/crash-locked/envelope.control_pending.notice-count': {'row': 'M14', 'stage': 3, 'delta': {'calls': 2, 'failures': [{'pages': [0, 1], 'missing': [['catalogue:#5', 'count', '', '2']], 'extra': [['catalogue:#5', 'count', '', '0']]}]}}, 'cancel/persistent/2/0/crash-locked/control_pending.page': {'row': 'M14', 'stage': 3, 'delta': {'calls': 1, 'failures': [{'pages': [0], 'missing': [['op:#1', 'pending', '', '{\"reason\":\"RESTORED_EVIDENCE\",\"state\":\"unknown\"}']], 'extra': []}]}}, 'cancel/persistent/2/0/crash-locked/control_pending.total': {'row': 'M14', 'stage': 3, 'delta': {'calls': 1, 'failures': [{'pages': [0], 'missing': [['catalogue:#5', 'count', '', '1']], 'extra': [['catalogue:#5', 'count', '', '0']]}]}}, 'cancel/persistent/2/0/crash-locked/control_pending.notice-head': {'row': 'M06', 'stage': 3, 'delta': {'calls': 1, 'failures': [{'pages': [0], 'missing': [['op:#1', 'recovery', '', ''], ['op:#1', 'recovery-context', '', '{\"app\":\"mail\",\"intent_identity\":true,\"reason_present\":true,\"state\":\"unknown\"}'], ['op:#1', 'recovery-handle', 'occurrence:#9', ''], ['op:#1', 'unchecked', '', ''], ['op:#1', 'unchecked-context', '', '{\"app\":\"mail\",\"check\":\"sent_copies\",\"not_yet_checked\":true,\"operation_identity\":true,\"state\":\"unknown\"}'], ['op:#1', 'unchecked-handle', 'occurrence:#7', '']], 'extra': []}]}}, 'cancel/persistent/2/0/crash-locked/control_pending.notice-count': {'row': 'M14', 'stage': 3, 'delta': {'calls': 1, 'failures': [{'pages': [0], 'missing': [['catalogue:#5', 'count', '', '2']], 'extra': [['catalogue:#5', 'count', '', '0']]}]}}, 'cancel/persistent/2/0/crash-locked/control_pending.complete': {'row': 'M14', 'stage': 3, 'delta': {'calls': 1, 'failures': [{'pages': [0], 'missing': [['op:#1', 'pending', '', '{\"reason\":\"RESTORED_EVIDENCE\",\"state\":\"unknown\"}']], 'extra': []}]}}, 'cancel/persistent/2/0/crash-locked/envelope.control_log.pending-head': {'row': 'M14', 'stage': 3, 'delta': {'calls': 2, 'failures': [{'pages': [0, 1], 'missing': [['op:#1', 'pending', '', '{\"reason\":\"RESTORED_EVIDENCE\",\"state\":\"unknown\"}']], 'extra': []}]}}, 'cancel/persistent/2/0/crash-locked/envelope.control_log.pending-total': {'row': 'M14', 'stage': 3, 'delta': {'calls': 2, 'failures': [{'pages': [0, 1], 'missing': [['catalogue:#5', 'count', '', '1']], 'extra': [['catalogue:#5', 'count', '', '0']]}]}}, 'cancel/persistent/2/0/crash-locked/envelope.control_log.notice-head': {'row': 'M06', 'stage': 3, 'delta': {'calls': 2, 'failures': [{'pages': [0, 1], 'missing': [['op:#1', 'recovery', '', ''], ['op:#1', 'recovery-context', '', '{\"app\":\"mail\",\"intent_identity\":true,\"reason_present\":true,\"state\":\"unknown\"}'], ['op:#1', 'recovery-handle', 'occurrence:#9', ''], ['op:#1', 'unchecked', '', ''], ['op:#1', 'unchecked-context', '', '{\"app\":\"mail\",\"check\":\"sent_copies\",\"not_yet_checked\":true,\"operation_identity\":true,\"state\":\"unknown\"}'], ['op:#1', 'unchecked-handle', 'occurrence:#7', '']], 'extra': []}]}}, 'cancel/persistent/2/0/crash-locked/envelope.control_log.notice-count': {'row': 'M14', 'stage': 3, 'delta': {'calls': 2, 'failures': [{'pages': [0, 1], 'missing': [['catalogue:#5', 'count', '', '2']], 'extra': [['catalogue:#5', 'count', '', '0']]}]}}, 'cancel/persistent/2/0/crash-locked/aresos log.page': {'row': 'M14', 'stage': 3, 'delta': {'calls': 1, 'failures': [{'pages': [0], 'missing': [['event:#11', 'control_initialize', '', '{\"action\":\"control_initialize\",\"operation_id\":null,\"outcome\":\"done\",\"seq\":1,\"summary\":\"initialize operation log\",\"time\":1794225600.0}'], ['event:#12', 'testapp_initialize', '', '{\"action\":\"testapp_initialize\",\"operation_id\":null,\"outcome\":\"done\",\"seq\":2,\"summary\":\"seed fake items\",\"time\":1794225600.0}'], ['event:#13', 'fixture', '', '{\"action\":\"fixture\",\"operation_id\":null,\"outcome\":\"done\",\"seq\":3,\"summary\":\"Synthetic question account\",\"time\":1794225600.0}'], ['event:#14', 'mail_compose', '', '{\"action\":\"mail_compose\",\"operation_id\":null,\"outcome\":\"done\",\"seq\":4,\"summary\":\"Mail audit event\",\"time\":1794225600.001,\"untrusted_content\":{\"summary\":\"stored immutable composition 804683f5b24d4161a5a40931ae60a66d\"}}'], ['event:#15', 'mail_send', '', '{\"action\":\"mail_send\",\"operation_id\":\"8db768b156214aa69142b101beb92ba4:897478696f93469d9414bd4294031675\",\"outcome\":\"reserved\",\"seq\":5,\"summary\":\"Mail audit event\",\"time\":1794225600.0019999,\"untrusted_content\":{\"summary\":\"reserved mail_send\"}}']], 'extra': []}]}}, 'cancel/persistent/2/0/crash-locked/aresos log.total': {'row': 'M14', 'stage': 3, 'delta': {'calls': 1, 'failures': [{'pages': [0], 'missing': [['catalogue:#5', 'count', '', '5']], 'extra': [['catalogue:#5', 'count', '', '0']]}]}}, 'cancel/persistent/2/0/crash-locked/aresos log.restore-lock': {'row': 'M14', 'stage': 3, 'delta': {'calls': 1, 'failures': [{'pages': [0], 'missing': [['restore:#6', 'locked', '', 'True']], 'extra': [['restore:#6', 'locked', '', 'False']]}]}}, 'cancel/persistent/2/0/crash-locked/aresos log.notice-head': {'row': 'M06', 'stage': 3, 'delta': {'calls': 1, 'failures': [{'pages': [0], 'missing': [['op:#1', 'recovery', '', ''], ['op:#1', 'recovery-context', '', '{\"app\":\"mail\",\"intent_identity\":true,\"reason_present\":true,\"state\":\"unknown\"}'], ['op:#1', 'recovery-handle', 'occurrence:#9', ''], ['op:#1', 'unchecked', '', ''], ['op:#1', 'unchecked-context', '', '{\"app\":\"mail\",\"check\":\"sent_copies\",\"not_yet_checked\":true,\"operation_identity\":true,\"state\":\"unknown\"}'], ['op:#1', 'unchecked-handle', 'occurrence:#7', '']], 'extra': []}]}}, 'cancel/persistent/2/0/crash-locked/aresos log.notice-count': {'row': 'M14', 'stage': 3, 'delta': {'calls': 1, 'failures': [{'pages': [0], 'missing': [['catalogue:#5', 'count', '', '2']], 'extra': [['catalogue:#5', 'count', '', '0']]}]}}, 'cancel/persistent/2/0/crash-locked/aresos log.complete': {'row': 'M14', 'stage': 3, 'delta': {'calls': 1, 'failures': [{'pages': [0], 'missing': [['event:#11', 'control_initialize', '', '{\"action\":\"control_initialize\",\"operation_id\":null,\"outcome\":\"done\",\"seq\":1,\"summary\":\"initialize operation log\",\"time\":1794225600.0}'], ['event:#12', 'testapp_initialize', '', '{\"action\":\"testapp_initialize\",\"operation_id\":null,\"outcome\":\"done\",\"seq\":2,\"summary\":\"seed fake items\",\"time\":1794225600.0}'], ['event:#13', 'fixture', '', '{\"action\":\"fixture\",\"operation_id\":null,\"outcome\":\"done\",\"seq\":3,\"summary\":\"Synthetic question account\",\"time\":1794225600.0}'], ['event:#14', 'mail_compose', '', '{\"action\":\"mail_compose\",\"operation_id\":null,\"outcome\":\"done\",\"seq\":4,\"summary\":\"Mail audit event\",\"time\":1794225600.001,\"untrusted_content\":{\"summary\":\"stored immutable composition 804683f5b24d4161a5a40931ae60a66d\"}}'], ['event:#15', 'mail_send', '', '{\"action\":\"mail_send\",\"operation_id\":\"8db768b156214aa69142b101beb92ba4:897478696f93469d9414bd4294031675\",\"outcome\":\"reserved\",\"seq\":5,\"summary\":\"Mail audit event\",\"time\":1794225600.0019999,\"untrusted_content\":{\"summary\":\"reserved mail_send\"}}']], 'extra': []}]}}, 'cancel/persistent/2/0/crash-locked/envelope.mail_filing_notices.pending-head': {'row': 'M14', 'stage': 3, 'delta': {'calls': 2, 'failures': [{'pages': [0, 1], 'missing': [['op:#1', 'pending', '', '{\"reason\":\"RESTORED_EVIDENCE\",\"state\":\"unknown\"}']], 'extra': []}]}}, 'cancel/persistent/2/0/crash-locked/envelope.mail_filing_notices.pending-total': {'row': 'M14', 'stage': 3, 'delta': {'calls': 2, 'failures': [{'pages': [0, 1], 'missing': [['catalogue:#5', 'count', '', '1']], 'extra': [['catalogue:#5', 'count', '', '0']]}]}}, 'cancel/persistent/2/0/crash-locked/envelope.mail_filing_notices.notice-head': {'row': 'M06', 'stage': 3, 'delta': {'calls': 2, 'failures': [{'pages': [0, 1], 'missing': [['op:#1', 'recovery', '', ''], ['op:#1', 'recovery-context', '', '{\"app\":\"mail\",\"intent_identity\":true,\"reason_present\":true,\"state\":\"unknown\"}'], ['op:#1', 'recovery-handle', 'occurrence:#9', ''], ['op:#1', 'unchecked', '', ''], ['op:#1', 'unchecked-context', '', '{\"app\":\"mail\",\"check\":\"sent_copies\",\"not_yet_checked\":true,\"operation_identity\":true,\"state\":\"unknown\"}'], ['op:#1', 'unchecked-handle', 'occurrence:#7', '']], 'extra': []}]}}, 'cancel/persistent/2/0/crash-locked/envelope.mail_filing_notices.notice-count': {'row': 'M14', 'stage': 3, 'delta': {'calls': 2, 'failures': [{'pages': [0, 1], 'missing': [['catalogue:#5', 'count', '', '2']], 'extra': [['catalogue:#5', 'count', '', '0']]}]}}, 'cancel/persistent/2/0/crash-locked/mail catalogue.page': {'row': 'M06', 'stage': 3, 'delta': {'calls': 1, 'failures': [{'pages': [0], 'missing': [['op:#1', 'recovery', '', ''], ['op:#1', 'recovery-context', '', '{\"app\":\"mail\",\"intent_identity\":true,\"reason_present\":true,\"state\":\"unknown\"}'], ['op:#1', 'recovery-handle', 'occurrence:#9', ''], ['op:#1', 'unchecked', '', ''], ['op:#1', 'unchecked-context', '', '{\"app\":\"mail\",\"check\":\"sent_copies\",\"not_yet_checked\":true,\"operation_identity\":true,\"state\":\"unknown\"}'], ['op:#1', 'unchecked-handle', 'occurrence:#7', '']], 'extra': []}]}}, 'cancel/persistent/2/0/crash-locked/mail catalogue.total': {'row': 'M14', 'stage': 3, 'delta': {'calls': 1, 'failures': [{'pages': [0], 'missing': [['catalogue:#5', 'count', '', '2']], 'extra': [['catalogue:#5', 'count', '', '0']]}]}}, 'cancel/persistent/2/0/crash-locked/mail catalogue.complete': {'row': 'M06', 'stage': 3, 'delta': {'calls': 1, 'failures': [{'pages': [0], 'missing': [['op:#1', 'recovery', '', ''], ['op:#1', 'recovery-context', '', '{\"app\":\"mail\",\"intent_identity\":true,\"reason_present\":true,\"state\":\"unknown\"}'], ['op:#1', 'recovery-handle', 'occurrence:#9', ''], ['op:#1', 'unchecked', '', ''], ['op:#1', 'unchecked-context', '', '{\"app\":\"mail\",\"check\":\"sent_copies\",\"not_yet_checked\":true,\"operation_identity\":true,\"state\":\"unknown\"}'], ['op:#1', 'unchecked-handle', 'occurrence:#7', '']], 'extra': []}]}}, 'cancel/persistent/2/0/crash-locked/envelope.mail_operation_status.pending-head': {'row': 'M14', 'stage': 3, 'delta': {'calls': 2, 'failures': [{'pages': [0, 1], 'missing': [['op:#1', 'pending', '', '{\"reason\":\"RESTORED_EVIDENCE\",\"state\":\"unknown\"}']], 'extra': []}]}}, 'cancel/persistent/2/0/crash-locked/envelope.mail_operation_status.pending-total': {'row': 'M14', 'stage': 3, 'delta': {'calls': 2, 'failures': [{'pages': [0, 1], 'missing': [['catalogue:#5', 'count', '', '1']], 'extra': [['catalogue:#5', 'count', '', '0']]}]}}, 'cancel/persistent/2/0/crash-locked/envelope.mail_operation_status.notice-head': {'row': 'M06', 'stage': 3, 'delta': {'calls': 2, 'failures': [{'pages': [0, 1], 'missing': [['op:#1', 'recovery', '', ''], ['op:#1', 'recovery-context', '', '{\"app\":\"mail\",\"intent_identity\":true,\"reason_present\":true,\"state\":\"unknown\"}'], ['op:#1', 'recovery-handle', 'occurrence:#9', ''], ['op:#1', 'unchecked', '', ''], ['op:#1', 'unchecked-context', '', '{\"app\":\"mail\",\"check\":\"sent_copies\",\"not_yet_checked\":true,\"operation_identity\":true,\"state\":\"unknown\"}'], ['op:#1', 'unchecked-handle', 'occurrence:#7', '']], 'extra': []}]}}, 'cancel/persistent/2/0/crash-locked/envelope.mail_operation_status.notice-count': {'row': 'M14', 'stage': 3, 'delta': {'calls': 2, 'failures': [{'pages': [0, 1], 'missing': [['catalogue:#5', 'count', '', '2']], 'extra': [['catalogue:#5', 'count', '', '0']]}]}}, 'cancel/persistent/2/0/crash-locked/operation-approval': {'row': 'M14', 'stage': 3, 'delta': {'calls': 1, 'failures': [{'pages': [0], 'missing': [['op:#1', 'approval', '', 'committed']], 'extra': []}]}}, 'cancel/persistent/2/0/crash-locked/operation-stages': {'row': 'M14', 'stage': 3, 'delta': {'calls': 1, 'failures': [{'pages': [0], 'missing': [['op:#1', 'stages', '', 'committed']], 'extra': []}]}}, 'cancel/persistent/2/0/crash-locked/operation-state': {'row': 'M14', 'stage': 3, 'delta': {'calls': 1, 'failures': [{'pages': [0], 'missing': [['op:#1', 'state', '', 'committed']], 'extra': []}]}}, 'cancel/persistent/2/0/crash-restart/envelope.control_restore_confirm.pending-head': {'row': 'M14', 'stage': 3, 'delta': {'calls': 1, 'failures': [{'pages': [0], 'missing': [['op:#1', 'pending', '', '{\"reason\":\"RESTORED_EVIDENCE\",\"state\":\"reserved\"}']], 'extra': []}]}}, 'cancel/persistent/2/0/crash-restart/envelope.control_restore_confirm.pending-total': {'row': 'M14', 'stage': 3, 'delta': {'calls': 1, 'failures': [{'pages': [0], 'missing': [['catalogue:#5', 'count', '', '1']], 'extra': [['catalogue:#5', 'count', '', '0']]}]}}, 'cancel/persistent/2/0/crash-restart/envelope.control_restore_confirm.notice-head': {'row': 'M06', 'stage': 3, 'delta': {'calls': 1, 'failures': [{'pages': [0], 'missing': [], 'extra': [['op:#1', 'recovery', '', ''], ['op:#1', 'recovery-context', '', '{\"app\":\"mail\",\"intent_identity\":true,\"reason_present\":true,\"state\":\"unknown\"}'], ['op:#1', 'recovery-handle', 'occurrence:#9', '']]}]}}, 'cancel/persistent/2/0/crash-restart/envelope.control_restore_confirm.notice-count': {'row': 'M14', 'stage': 3, 'delta': {'calls': 1, 'failures': [{'pages': [0], 'missing': [['catalogue:#5', 'count', '', '1']], 'extra': [['catalogue:#5', 'count', '', '2']]}]}}, 'cancel/persistent/2/0/crash-restart/recovery-holds': {'row': 'M10/M11', 'stage': 3, 'delta': {'calls': 1, 'failures': [{'pages': [0], 'missing': [['cancel(op:#1)', 'held', '', '']], 'extra': []}]}}, 'cancel/persistent/2/0/crash-restart/envelope.mail_accounts.pending-head': {'row': 'M14', 'stage': 3, 'delta': {'calls': 2, 'failures': [{'pages': [0, 1], 'missing': [['op:#1', 'pending', '', '{\"reason\":\"RESTORED_EVIDENCE\",\"state\":\"reserved\"}']], 'extra': [['op:#1', 'pending', '', '{\"reason\":\"RESTORED_EVIDENCE\",\"state\":\"unknown\"}']]}]}}, 'cancel/persistent/2/0/crash-restart/envelope.mail_accounts.notice-head': {'row': 'M06', 'stage': 3, 'delta': {'calls': 2, 'failures': [{'pages': [0, 1], 'missing': [], 'extra': [['op:#1', 'recovery', '', ''], ['op:#1', 'recovery-context', '', '{\"app\":\"mail\",\"intent_identity\":true,\"reason_present\":true,\"state\":\"unknown\"}'], ['op:#1', 'recovery-handle', 'occurrence:#9', '']]}]}}, 'cancel/persistent/2/0/crash-restart/envelope.mail_accounts.notice-count': {'row': 'M14', 'stage': 3, 'delta': {'calls': 2, 'failures': [{'pages': [0, 1], 'missing': [['catalogue:#5', 'count', '', '1']], 'extra': [['catalogue:#5', 'count', '', '2']]}]}}, 'cancel/persistent/2/0/crash-restart/passive.pending-head': {'row': 'M14', 'stage': 3, 'delta': {'calls': 1, 'failures': [{'pages': [0], 'missing': [['op:#1', 'pending', '', '{\"reason\":\"RESTORED_EVIDENCE\",\"state\":\"reserved\"}']], 'extra': [['op:#1', 'pending', '', '{\"reason\":\"RESTORED_EVIDENCE\",\"state\":\"unknown\"}']]}]}}, 'cancel/persistent/2/0/crash-restart/passive.notice-head': {'row': 'M06', 'stage': 3, 'delta': {'calls': 1, 'failures': [{'pages': [0], 'missing': [], 'extra': [['op:#1', 'recovery', '', ''], ['op:#1', 'recovery-context', '', '{\"app\":\"mail\",\"intent_identity\":true,\"reason_present\":true,\"state\":\"unknown\"}'], ['op:#1', 'recovery-handle', 'occurrence:#9', '']]}]}}, 'cancel/persistent/2/0/crash-restart/passive.notice-count': {'row': 'M14', 'stage': 3, 'delta': {'calls': 1, 'failures': [{'pages': [0], 'missing': [['catalogue:#5', 'count', '', '1']], 'extra': [['catalogue:#5', 'count', '', '2']]}]}}, 'cancel/persistent/2/0/crash-restart/envelope.control_pending.pending-head': {'row': 'M14', 'stage': 3, 'delta': {'calls': 2, 'failures': [{'pages': [0, 1], 'missing': [['op:#1', 'pending', '', '{\"reason\":\"RESTORED_EVIDENCE\",\"state\":\"reserved\"}']], 'extra': []}]}}, 'cancel/persistent/2/0/crash-restart/envelope.control_pending.pending-total': {'row': 'M14', 'stage': 3, 'delta': {'calls': 2, 'failures': [{'pages': [0, 1], 'missing': [['catalogue:#5', 'count', '', '1']], 'extra': [['catalogue:#5', 'count', '', '0']]}]}}, 'cancel/persistent/2/0/crash-restart/envelope.control_pending.notice-head': {'row': 'M06', 'stage': 3, 'delta': {'calls': 2, 'failures': [{'pages': [0, 1], 'missing': [], 'extra': [['op:#1', 'recovery', '', ''], ['op:#1', 'recovery-context', '', '{\"app\":\"mail\",\"intent_identity\":true,\"reason_present\":true,\"state\":\"unknown\"}'], ['op:#1', 'recovery-handle', 'occurrence:#9', '']]}]}}, 'cancel/persistent/2/0/crash-restart/envelope.control_pending.notice-count': {'row': 'M14', 'stage': 3, 'delta': {'calls': 2, 'failures': [{'pages': [0, 1], 'missing': [['catalogue:#5', 'count', '', '0']], 'extra': [['catalogue:#5', 'count', '', '1']]}]}}, 'cancel/persistent/2/0/crash-restart/control_pending.page': {'row': 'M14', 'stage': 3, 'delta': {'calls': 1, 'failures': [{'pages': [0], 'missing': [['op:#1', 'pending', '', '{\"reason\":\"RESTORED_EVIDENCE\",\"state\":\"reserved\"}']], 'extra': [['op:#1', 'pending', '', '{\"reason\":\"RESTORED_EVIDENCE\",\"state\":\"unknown\"}']]}]}}, 'cancel/persistent/2/0/crash-restart/control_pending.notice-head': {'row': 'M06', 'stage': 3, 'delta': {'calls': 1, 'failures': [{'pages': [0], 'missing': [], 'extra': [['op:#1', 'recovery', '', ''], ['op:#1', 'recovery-context', '', '{\"app\":\"mail\",\"intent_identity\":true,\"reason_present\":true,\"state\":\"unknown\"}'], ['op:#1', 'recovery-handle', 'occurrence:#9', '']]}]}}, 'cancel/persistent/2/0/crash-restart/control_pending.notice-count': {'row': 'M14', 'stage': 3, 'delta': {'calls': 1, 'failures': [{'pages': [0], 'missing': [['catalogue:#5', 'count', '', '0']], 'extra': [['catalogue:#5', 'count', '', '1']]}]}}, 'cancel/persistent/2/0/crash-restart/control_pending.complete': {'row': 'M14', 'stage': 3, 'delta': {'calls': 1, 'failures': [{'pages': [0], 'missing': [['op:#1', 'pending', '', '{\"reason\":\"RESTORED_EVIDENCE\",\"state\":\"reserved\"}']], 'extra': [['op:#1', 'pending', '', '{\"reason\":\"RESTORED_EVIDENCE\",\"state\":\"unknown\"}']]}]}}, 'cancel/persistent/2/0/crash-restart/envelope.control_log.pending-head': {'row': 'M14', 'stage': 3, 'delta': {'calls': 4, 'failures': [{'pages': [0, 1, 2, 3], 'missing': [['op:#1', 'pending', '', '{\"reason\":\"RESTORED_EVIDENCE\",\"state\":\"reserved\"}']], 'extra': []}]}}, 'cancel/persistent/2/0/crash-restart/envelope.control_log.pending-total': {'row': 'M14', 'stage': 3, 'delta': {'calls': 4, 'failures': [{'pages': [0, 1, 2, 3], 'missing': [['catalogue:#5', 'count', '', '1']], 'extra': [['catalogue:#5', 'count', '', '0']]}]}}, 'cancel/persistent/2/0/crash-restart/envelope.control_log.notice-head': {'row': 'M06', 'stage': 3, 'delta': {'calls': 4, 'failures': [{'pages': [0, 1, 2, 3], 'missing': [], 'extra': [['op:#1', 'recovery', '', ''], ['op:#1', 'recovery-context', '', '{\"app\":\"mail\",\"intent_identity\":true,\"reason_present\":true,\"state\":\"unknown\"}'], ['op:#1', 'recovery-handle', 'occurrence:#9', '']]}]}}, 'cancel/persistent/2/0/crash-restart/envelope.control_log.notice-count': {'row': 'M14', 'stage': 3, 'delta': {'calls': 4, 'failures': [{'pages': [0, 1, 2, 3], 'missing': [['catalogue:#5', 'count', '', '0']], 'extra': [['catalogue:#5', 'count', '', '1']]}]}}, 'cancel/persistent/2/0/crash-restart/aresos log.notice-head': {'row': 'M06', 'stage': 3, 'delta': {'calls': 2, 'failures': [{'pages': [0, 1], 'missing': [], 'extra': [['op:#1', 'recovery', '', ''], ['op:#1', 'recovery-context', '', '{\"app\":\"mail\",\"intent_identity\":true,\"reason_present\":true,\"state\":\"unknown\"}'], ['op:#1', 'recovery-handle', 'occurrence:#9', '']]}]}}, 'cancel/persistent/2/0/crash-restart/aresos log.notice-count': {'row': 'M14', 'stage': 3, 'delta': {'calls': 2, 'failures': [{'pages': [0, 1], 'missing': [['catalogue:#5', 'count', '', '0']], 'extra': [['catalogue:#5', 'count', '', '1']]}]}}, 'cancel/persistent/2/0/crash-restart/envelope.mail_filing_notices.pending-head': {'row': 'M14', 'stage': 3, 'delta': {'calls': 2, 'failures': [{'pages': [0, 1], 'missing': [['op:#1', 'pending', '', '{\"reason\":\"RESTORED_EVIDENCE\",\"state\":\"reserved\"}']], 'extra': [['op:#1', 'pending', '', '{\"reason\":\"RESTORED_EVIDENCE\",\"state\":\"unknown\"}']]}]}}, 'cancel/persistent/2/0/crash-restart/envelope.mail_filing_notices.notice-head': {'row': 'M06', 'stage': 3, 'delta': {'calls': 2, 'failures': [{'pages': [0, 1], 'missing': [], 'extra': [['op:#1', 'recovery', '', ''], ['op:#1', 'recovery-context', '', '{\"app\":\"mail\",\"intent_identity\":true,\"reason_present\":true,\"state\":\"unknown\"}'], ['op:#1', 'recovery-handle', 'occurrence:#9', '']]}]}}, 'cancel/persistent/2/0/crash-restart/envelope.mail_filing_notices.notice-count': {'row': 'M14', 'stage': 3, 'delta': {'calls': 2, 'failures': [{'pages': [0, 1], 'missing': [['catalogue:#5', 'count', '', '0']], 'extra': [['catalogue:#5', 'count', '', '1']]}]}}, 'cancel/persistent/2/0/crash-restart/mail catalogue.page': {'row': 'M06', 'stage': 3, 'delta': {'calls': 1, 'failures': [{'pages': [0], 'missing': [], 'extra': [['op:#1', 'recovery', '', ''], ['op:#1', 'recovery-context', '', '{\"app\":\"mail\",\"intent_identity\":true,\"reason_present\":true,\"state\":\"unknown\"}'], ['op:#1', 'recovery-handle', 'occurrence:#9', '']]}]}}, 'cancel/persistent/2/0/crash-restart/mail catalogue.total': {'row': 'M14', 'stage': 3, 'delta': {'calls': 1, 'failures': [{'pages': [0], 'missing': [['catalogue:#5', 'count', '', '0']], 'extra': [['catalogue:#5', 'count', '', '1']]}]}}, 'cancel/persistent/2/0/crash-restart/mail catalogue.complete': {'row': 'M06', 'stage': 3, 'delta': {'calls': 1, 'failures': [{'pages': [0], 'missing': [], 'extra': [['op:#1', 'recovery', '', ''], ['op:#1', 'recovery-context', '', '{\"app\":\"mail\",\"intent_identity\":true,\"reason_present\":true,\"state\":\"unknown\"}'], ['op:#1', 'recovery-handle', 'occurrence:#9', '']]}]}}, 'cancel/persistent/2/0/crash-restart/envelope.mail_operation_status.pending-head': {'row': 'M14', 'stage': 3, 'delta': {'calls': 2, 'failures': [{'pages': [0, 1], 'missing': [['op:#1', 'pending', '', '{\"reason\":\"RESTORED_EVIDENCE\",\"state\":\"reserved\"}']], 'extra': [['op:#1', 'pending', '', '{\"reason\":\"RESTORED_EVIDENCE\",\"state\":\"unknown\"}']]}]}}, 'cancel/persistent/2/0/crash-restart/envelope.mail_operation_status.notice-head': {'row': 'M06', 'stage': 3, 'delta': {'calls': 2, 'failures': [{'pages': [0, 1], 'missing': [], 'extra': [['op:#1', 'recovery', '', ''], ['op:#1', 'recovery-context', '', '{\"app\":\"mail\",\"intent_identity\":true,\"reason_present\":true,\"state\":\"unknown\"}'], ['op:#1', 'recovery-handle', 'occurrence:#9', '']]}]}}, 'cancel/persistent/2/0/crash-restart/envelope.mail_operation_status.notice-count': {'row': 'M14', 'stage': 3, 'delta': {'calls': 2, 'failures': [{'pages': [0, 1], 'missing': [['catalogue:#5', 'count', '', '1']], 'extra': [['catalogue:#5', 'count', '', '2']]}]}}, 'cancel/persistent/2/0/crash-restart/lifecycle-proof': {'row': 'M06/M09/M14', 'stage': 3, 'delta': {'calls': 1, 'failures': [{'pages': [0], 'missing': [], 'extra': [['notice:recovery-8db768b156214aa69142b101beb92ba4:#21', 'missing-obligation-source', '', ''], ['notice:recovery-8db768b156214aa69142b101beb92ba4:#21', 'notice-creation-time', '', ''], ['op:#1', 'changed-decoded-projection', '', ''], ['op:#1', 'narrowed-obligation', '', 'cancel_hold']]}]}}}",
+     "Ran 1 test in 0.663s",
+     "FAILED (failures=1)"
+    ]
+   }
+  }
+ },
+ {
+  "item": "item2-every-refusal-locked",
+  "file": "control/owner_state_oracle/compare.py",
+  "baseline": "pass",
+  "rejected": true,
+  "tests": {
+   "test_owner_state_oracle.OwnerOracle.test_refused_read_page_says_locked_only_when_the_lock_refused_it": {
+    "caught": true,
+    "summary": [
+     "FAIL: test_refused_read_page_says_locked_only_when_the_lock_refused_it (test_owner_state_oracle.OwnerOracle.test_refused_read_page_says_locked_only_when_the_lock_refused_it)",
+     "AssertionError: Tuples differ: ('storage_limit', True) != ('storage_limit', False)",
+     "Ran 1 test in 0.001s",
+     "FAILED (failures=1)"
+    ]
+   }
+  }
+ }
+]

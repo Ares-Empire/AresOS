@@ -42,6 +42,18 @@ class Record:
     restore_intervals: list = field(default_factory=list)
     head: tuple = None
     startup_sequence: int = 0
+    interrupted_confirm: bool = False
+
+
+def service_lock(record):
+    """The lock a running service holds beyond what its bytes decode to.
+
+    The driver sets both inputs. An unprepared record from before the last
+    start locks at startup. A confirm on a locked store that met a storage
+    fault keeps the lock until the next restart, even when the rollback of its
+    last commit marker failed and the marker's bytes stayed.
+    """
+    return any(seq <= record.startup_sequence for seq in record.unprepared_fences) or record.interrupted_confirm
 
 
 def restore_intervals(events):
@@ -77,8 +89,7 @@ def consistency_errors(record):
         expected_hash = fences.get(seq, {}).get('hash', '' if seq == 0 else None)
         locked = bool(record.rows.get('restore_pending')) or bool(record.fences and (
             seq != max(record.committed, default=0) or claimed_hash != expected_hash))
-        startup_lock = any(seq <= record.startup_sequence for seq in record.unprepared_fences)
-        if (locked or startup_lock) != record.locked:
+        if (locked or service_lock(record)) != record.locked:
             errors.append(('restore', 'unjustified-lock', ''))
     for seq in unexplained_sequences(record):
         errors.append(('sequence:' + str(seq), 'missing-committed-history', ''))
