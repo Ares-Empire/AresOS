@@ -1,7 +1,7 @@
 Reviewed **976d0334**, limited to the specified fixes and touched code. **One blocking gap remains.** No files changed.
 
 1. **Blocking — an exception inside process shutdown still bypasses both shutdown and mask recovery.**  
-   **Where:** [owner.py:332](C:/Users/pab/AresOS-27-review/os/owner-tools/owner.py:332), [owner.py:339](C:/Users/pab/AresOS-27-review/os/owner-tools/owner.py:339), [owner.py:1509](C:/Users/pab/AresOS-27-review/os/owner-tools/owner.py:1509); identical payload copy.
+   **Where:** [owner.py:332](C:/Users/owner/AresOS-27-review/os/owner-tools/owner.py:332), [owner.py:339](C:/Users/owner/AresOS-27-review/os/owner-tools/owner.py:339), [owner.py:1509](C:/Users/owner/AresOS-27-review/os/owner-tools/owner.py:1509); identical payload copy.
 
    `step.stop()` runs outside the error-handling blocks in `stop_update()`. A concrete trigger is a non-UTF-8 process name anywhere on the machine: `members()` decodes every `/proc/PID/stat` using `read_text()`, but does not catch `UnicodeDecodeError`. Linux process names are byte strings truncated to 15 bytes, which can split a multibyte character. [Linux documentation](https://man7.org/linux/man-pages/man2/PR_SET_NAME.2const.html).
 
@@ -10,14 +10,14 @@ Reviewed **976d0334**, limited to the specified fixes and touched code. **One bl
    **Fix:** parse the numeric `/proc/stat` suffix as bytes; distinguish vanished processes from inspection failures; and put termination inside the protected recovery structure. An inability to prove termination must prevent reconciliation, while mask restoration is still attempted and checked. Preserve termination and mask errors together. Add regressions for an undecodable process name and a shutdown/scan exception.
 
 2. **Nit — the real-survivor test leaks its surviving process.**  
-   **Where:** [test_owner_update.py:1930](C:/Users/pab/AresOS-27-review/os/tests/test_owner_update.py:1930), [test_owner_update.py:1987](C:/Users/pab/AresOS-27-review/os/tests/test_owner_update.py:1987).
+   **Where:** [test_owner_update.py:1930](C:/Users/owner/AresOS-27-review/os/tests/test_owner_update.py:1930), [test_owner_update.py:1987](C:/Users/owner/AresOS-27-review/os/tests/test_owner_update.py:1987).
 
    `addCleanup()` receives a PID-file path inside `run_stopped()`’s temporary directory. That directory is deleted before unittest executes the cleanup; `path.exists()` is then false. The intentional KILL-survivor case consequently leaves its real loop running. This affects the harness, not the installed update tool, and is not a laptop blocker.
 
    **Fix:** capture the process identity before removing the directory and clean it up after the survivor assertions, or retain the fixture until unittest cleanup completes.
 
 3. **Nit — JUDGMENT-CALL 11 overstates unsuccessful-stop guarantees.**  
-   **Where:** [REPORT-draft.md:107](C:/Users/pab/AresOS-27-review/reviews/27-first-update-release/REPORT-draft.md:107).
+   **Where:** [REPORT-draft.md:107](C:/Users/owner/AresOS-27-review/reviews/27-first-update-release/REPORT-draft.md:107).
 
    “Proves both masked in every case” and “nothing changes at the next start” are unconditional, although the code explicitly supports failed restoration and incomplete stopping. That wording could mislead the owner about a STOP requiring help.
 

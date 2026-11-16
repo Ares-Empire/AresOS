@@ -236,37 +236,37 @@ test_syntax_warning_refuses_without_execution_and_nothing_is_left (test_serial_s
 ERROR: test_exact_login_driver_sequence_on_limited_line_drains_and_resyncs_without_secret_staging (test_serial_staging.StagingTest.test_exact_login_driver_sequence_on_limited_line_drains_and_resyncs_without_secret_staging)
 ----------------------------------------------------------------------
 Traceback (most recent call last):
-  File "/mnt/c/Users/pab/AresOS-14-owner-tools/os/tests/test_serial_staging.py", line 245, in test_exact_login_driver_sequence_on_limited_line_drains_and_resyncs_without_secret_staging
+  File "/mnt/c/Users/owner/AresOS-14-owner-tools/os/tests/test_serial_staging.py", line 245, in test_exact_login_driver_sequence_on_limited_line_drains_and_resyncs_without_secret_staging
     self.login_sequence()
-  File "/mnt/c/Users/pab/AresOS-14-owner-tools/os/tests/test_serial_staging.py", line 302, in login_sequence
+  File "/mnt/c/Users/owner/AresOS-14-owner-tools/os/tests/test_serial_staging.py", line 302, in login_sequence
     result=console.run('login','exact-login',inputs=(('GitHub username:','fixture-user',False),('',sentinel,True)))
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/mnt/c/Users/pab/AresOS-14-owner-tools/os/ci/owner_vm.py", line 347, in run
+  File "/mnt/c/Users/owner/AresOS-14-owner-tools/os/ci/owner_vm.py", line 347, in run
     wait_tty(self.guest, self.tty, repr(prompt) + ' in full', stage + '-input-ready')
-  File "/mnt/c/Users/pab/AresOS-14-owner-tools/os/ci/owner_vm.py", line 169, in wait_tty
+  File "/mnt/c/Users/owner/AresOS-14-owner-tools/os/ci/owner_vm.py", line 169, in wait_tty
     owner_console.wait(sample, timeout,
-  File "/mnt/c/Users/pab/AresOS-14-owner-tools/os/ci/owner_console.py", line 200, in wait
+  File "/mnt/c/Users/owner/AresOS-14-owner-tools/os/ci/owner_console.py", line 200, in wait
     value = sample(remaining / (phases - phase))
             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/mnt/c/Users/pab/AresOS-14-owner-tools/os/ci/owner_vm.py", line 167, in sample
+  File "/mnt/c/Users/owner/AresOS-14-owner-tools/os/ci/owner_vm.py", line 167, in sample
     return guest.capture_json(stage + '-sample-' + str(samples), sw.framed('python3 -c ' + shlex.quote(
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/mnt/c/Users/pab/AresOS-14-owner-tools/os/tests/test_serial_staging.py", line 287, in snapshot
+  File "/mnt/c/Users/owner/AresOS-14-owner-tools/os/tests/test_serial_staging.py", line 287, in snapshot
     return capture(name,source)
            ^^^^^^^^^^^^^^^^^^^^
-  File "/mnt/c/Users/pab/AresOS-14-owner-tools/os/ci/switch_vm.py", line 292, in capture_json
+  File "/mnt/c/Users/owner/AresOS-14-owner-tools/os/ci/switch_vm.py", line 292, in capture_json
     output = self.command(name, command)
              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/mnt/c/Users/pab/AresOS-14-owner-tools/os/tests/test_serial_staging.py", line 262, in bounded
+  File "/mnt/c/Users/owner/AresOS-14-owner-tools/os/tests/test_serial_staging.py", line 262, in bounded
     return command(name,script,min(timeout,5),private)
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/mnt/c/Users/pab/AresOS-14-owner-tools/os/ci/switch_vm.py", line 271, in command
+  File "/mnt/c/Users/owner/AresOS-14-owner-tools/os/ci/switch_vm.py", line 271, in command
     output = serial_transport.execute(self.send, self.wait, script, timeout,
              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/mnt/c/Users/pab/AresOS-14-owner-tools/os/ci/serial_transport.py", line 110, in execute
+  File "/mnt/c/Users/owner/AresOS-14-owner-tools/os/ci/serial_transport.py", line 110, in execute
     return wait(r'\r?\nARESOS_CMD_DONE:(\d+)\r?\n', timeout)
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/mnt/c/Users/pab/AresOS-14-owner-tools/os/ci/switch_vm.py", line 203, in wait
+  File "/mnt/c/Users/owner/AresOS-14-owner-tools/os/ci/switch_vm.py", line 203, in wait
     raise TimeoutError(f'Guest console did not reach {pattern}')
 TimeoutError: Guest console did not reach \r?\nARESOS_CMD_DONE:(\d+)\r?\n
 
@@ -274,9 +274,9 @@ TimeoutError: Guest console did not reach \r?\nARESOS_CMD_DONE:(\d+)\r?\n
 FAIL: test_exact_login_driver_sequence_stops_on_lost_result_chunk_without_retry (test_serial_staging.StagingTest.test_exact_login_driver_sequence_stops_on_lost_result_chunk_without_retry)
 ----------------------------------------------------------------------
 Traceback (most recent call last):
-  File "/mnt/c/Users/pab/AresOS-14-owner-tools/os/tests/test_serial_staging.py", line 248, in test_exact_login_driver_sequence_stops_on_lost_result_chunk_without_retry
+  File "/mnt/c/Users/owner/AresOS-14-owner-tools/os/tests/test_serial_staging.py", line 248, in test_exact_login_driver_sequence_stops_on_lost_result_chunk_without_retry
     self.login_sequence(lose_result=True)
-  File "/mnt/c/Users/pab/AresOS-14-owner-tools/os/tests/test_serial_staging.py", line 299, in login_sequence
+  File "/mnt/c/Users/owner/AresOS-14-owner-tools/os/tests/test_serial_staging.py", line 299, in login_sequence
     self.assertEqual(len(dropped),1)
 AssertionError: 0 != 1
 
@@ -285,10 +285,10 @@ Ran 233 tests in 306.534s
 
 FAILED (failures=1, errors=1)
 Traceback (most recent call last):
-  File "/mnt/c/Users/pab/AresOS-14-owner-tools/reviews/14-owner-tools/walk-host.py", line 86, in <module>
+  File "/mnt/c/Users/owner/AresOS-14-owner-tools/reviews/14-owner-tools/walk-host.py", line 86, in <module>
     if __name__=='__main__':main()
                             ^^^^^^
-  File "/mnt/c/Users/pab/AresOS-14-owner-tools/reviews/14-owner-tools/walk-host.py", line 53, in main
+  File "/mnt/c/Users/owner/AresOS-14-owner-tools/reviews/14-owner-tools/walk-host.py", line 53, in main
     assert result.wasSuccessful() and not result.skipped
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 AssertionError

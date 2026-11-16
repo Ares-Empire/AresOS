@@ -101,11 +101,11 @@
     "message": "Probe Part B OCR and stock GRUB helpers before the full rehearsal",
     "timestamp": "2026-10-24T14:39:35Z",
     "author": {
-      "name": "pab",
+      "name": "owner",
       "email": "admin@example.com"
     },
     "committer": {
-      "name": "pab",
+      "name": "owner",
       "email": "admin@example.com"
     }
   },

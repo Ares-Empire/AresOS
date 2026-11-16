@@ -1,4 +1,4 @@
-Command: C:\Users\pab\AppData\Local\Programs\Python\Python313\python.exe -X utf8 -m unittest discover -s os/tests -p test_rehearsal_auth.py -v
+Command: C:\Users\owner\AppData\Local\Programs\Python\Python313\python.exe -X utf8 -m unittest discover -s os/tests -p test_rehearsal_auth.py -v
 test_auth_file_rejects_runner_uid_and_relaxed_permissions (test_rehearsal_auth.OwnerAuthTest.test_auth_file_rejects_runner_uid_and_relaxed_permissions) ... ok
 test_auth_is_outside_workspace_and_always_removed_before_artifact_upload (test_rehearsal_auth.OwnerAuthTest.test_auth_is_outside_workspace_and_always_removed_before_artifact_upload) ... ok
 test_cleanup_refuses_unexpected_files_in_the_temporary_directory (test_rehearsal_auth.OwnerAuthTest.test_cleanup_refuses_unexpected_files_in_the_temporary_directory) ... ok

@@ -14,8 +14,9 @@ and `git worktree list` first.
     2026-11-15 (squash `bdc16064`). Chrome is now `linux-tools`' own; its notes are in "Chrome merged" and "Main fix
     merged" below.
   - Merged brief 20-popup-race, PR #77, on 2026-11-15 (squash `635872e2`); notes in "Popup races merged" below.
-  - Finishing brief 20-restore-lock (`pkg/20-restore-lock`): two restore-lock regressions from PR #27 and board
-    #185, the optional owner oracle's re-pin. It changes `engine.py` and the oracle. It hands over when merged.
+  - Merged brief 20-restore-lock, PR #80, on 2026-11-15 (squash `b04c7e77`): two restore-lock regressions from
+    PR #27, and board #185, the owner oracle's re-pin. Notes in "Restore lock merged" below.
+  - **Its control role has ended** (2026-11-15). Everything it held is on main or listed below for you.
 - **`linux-aresos`**: `os/`, the accounts and the releases. Every `os/` change is agreed with it first, it reads
   the `os/` diff before a merge, and it is told before `.github/workflows/os-image.yml` is touched.
 - **`mac-capacity`** (Mac): the owner's coordinator. Ask it for a limit check before starting builders; tell it
@@ -154,7 +155,9 @@ PR #68 (brief 20-main-fix) is on main as squash `bdc16064`; report in `reviews/2
 
   The ceilings and sample counts would stay as they are.
 
-  **The lead (2026-11-15): taken as suggested**, brief 20-ci-noise (branch `ci/20-ci-noise`), Opus builder.
+  **The lead (2026-11-15): done.** Brief 20-ci-noise, PR #81, merged as `d981cd5a` after a fresh Opus review (SAFE).
+  The store is on a tmpfs in both legs (`store_write` p95 1–6 ms instead of 66–210 ms), and a gate holds fsyncs and
+  SQLite commits per phase and call at or below the paired old leg's. Nits for later: `reviews/20-ci-noise/REPORT.md`.
 
 **Two CI facts.**
 - **Path filters:** a pull request's path filters see the whole PR's diff. Every push to an open Chrome PR starts
@@ -179,10 +182,35 @@ PR #77 (brief 20-popup-race) is on main as squash `635872e2`; report in `reviews
   build `4c1eccb9…`'s all-false beta entry is reported on every run. That is why #74 is open again: closed, the
   next daily run would open a duplicate. My suggestion: report only the entries this run published. Small, in
   `qualify.py notify` plus `test_publisher.py`; the trust path doesn't change. Close #74 once it is in.
-- **The lead (2026-11-15):** notify's fix is item 1 of brief 20-ci-noise; #74 closes after it merges. #79 is opened and
-  merged (merge commit) after 20-ci-noise is on main, so its checks aren't red on latency noise. The identity-mismatch
+- **The lead (2026-11-15):** notify's fix is on main (PR #81, `d981cd5a`); #74 is closed. #79's pull request is #83, held as a
+  draft: the tests assume an empty shipped copy, so with real entries every check fails with `qualification_rollback`.
+  The tests get fixed first (Codex queue, item 8); then #83 merges with a merge commit. The identity-mismatch
   question above: agreed (refuse publication, red run; all-false stays for an incomplete suite), its own brief after
   the release.
+
+## Restore lock merged (2026-11-15, notes from `mac-aresos-control`)
+
+PR #80 (brief 20-restore-lock) is on main as squash `b04c7e77`; report in `reviews/20-restore-lock/REPORT.md`.
+- **R1, `engine.py`:** while `store.locked`, `control_pending` and `control_notices` show only Chrome's committed rows
+  and warnings (`LOCKED_PENDING`, `LOCKED_NOTICES`). Other apps are unavailable until `control_restore_confirm`, no
+  continuation names a refused call, and no Mail server check runs. The storage-failure fallback follows the same
+  rule. Tests: `control/chrome_tests/test_restore_lock.py`; probes `restorelock-` in `reviews/20-chrome/mutation-audit.py`.
+- **The owner oracle, re-pinned (board #185):** `reviews/19b-owner-state/KNOWN-GAPS.json`, 2,622,072 keys, SHA-256
+  `ee326914…`. `KNOWN-GAPS.md`'s last section has the classes, their commits and the commands to regenerate it.
+  - The workflow runs only when dispatched. A capture took 2 h 35 min on busy runners.
+  - **Re-pin it whenever a change moves fault sites or reply envelopes.** That is the change's own job, as
+    18d, #27 and #68 showed: by then three layers of drift had piled up.
+- **Yours, both pre-existing and left as found:**
+  - **C5:** at the restore flow's last point in persistent mode, the oracle's decoded state says the restore is
+    confirmed, while the running store keeps its lock until restart. Decide whether the lock there is right; fix
+    the model or the store.
+  - In `crash-locked`, the `aresos log` view says "not locked" at all 6,375 points outside the restore flow
+    (`REVIEW-REPIN-3.md`, NOTE 5).
+  - **The lead (2026-11-15):** both go into the Codex queue's second wave (`~/codex-queue/linux-tools/QUEUE.md`),
+    with a short brief. Not release work; PRs #58, #69 and #72 merge `b04c7e77`'s `engine.py` changes in their fix
+    rounds.
+- **Cosmetic, in the report's "Accepted residuals":** `total: 2, items: []` after a failed Chrome projection under
+  the lock, and a doubled "below are current" in the fallback's text.
 
 ## The owner's answers, written into the briefs (#254: into the service-fix brief)
 
@@ -194,10 +222,8 @@ PR #77 (brief 20-popup-race) is on main as squash `635872e2`; report in `reviews
 - #216: rich-text editors are read without asking.
 - #254 (2026-11-14, "Quiet unless used"): while the tool service is down, a Claude Code session that never used the tools gets no notice; one that prepared or sent something with them gets one clear notice that the AresOS tools are not running.
 
-**Still his, later:** his yes to "the next release carries the Control tools: a background service, and two
-managed hooks in every Claude Code session on the laptop" before the image part of 18c merges. Ask it with the
-numbers of the ordinary-session check (what a session sees while the service is stopped or failed), in words he
-can picture.
+**His yes to the next release carrying the Control tools** (a background service, and two managed hooks in every
+Claude Code session on the laptop): answered on board #286, 2026-11-15, "Yes, if reviews pass".
 
 ## Decisions of the lead worth knowing
 

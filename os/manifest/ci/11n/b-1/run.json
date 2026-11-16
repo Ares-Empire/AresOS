@@ -101,11 +101,11 @@
     "message": "Give owner-switch transaction tests safe prerequisites",
     "timestamp": "2026-10-24T22:00:57Z",
     "author": {
-      "name": "pab",
+      "name": "owner",
       "email": "admin@example.com"
     },
     "committer": {
-      "name": "pab",
+      "name": "owner",
       "email": "admin@example.com"
     }
   },

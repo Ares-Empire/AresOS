@@ -78,11 +78,11 @@
       "message": "Stop failed qualification and reject unsupported live kickstart",
       "timestamp": "2026-10-22T23:31:06Z",
       "author": {
-        "name": "pab",
+        "name": "owner",
         "email": "admin@example.com"
       },
       "committer": {
-        "name": "pab",
+        "name": "owner",
         "email": "admin@example.com"
       }
     },

@@ -1,16 +1,16 @@
 Reviewed `f8e8cdf9`. Two findings:
 
 1. **Blocking — the exception accepts an unexpected primary loader.**  
-   [owner.py:602](C:/Users/pab/AresOS-15f-lenovo-firmware-entry/os/owner-tools/owner.py:602), also shipped in `payload/owner.py`.
+   [owner.py:602](C:/Users/owner/AresOS-15f-lenovo-firmware-entry/os/owner-tools/owner.py:602), also shipped in `payload/owner.py`.
 
    With exactly two target-ESP entries—`\EFI\fedora\shim.efi` and `\EFI\fedora\grubx64.efi`—the function removes the alias and accepts GRUB. The same happens with `\EFI\BOOT\BOOTX64.EFI` or `\EFI\other\shim.efi`. These configurations previously stopped and contradict the brief’s explicit refusals.
 
    Matching the target ESP is necessary, but does not establish that the remaining entry is the reviewed installer boot path. `disk_record` consequently lets install, prepare, switch, recovery and reboot proceed with this unexpected setup.
 
-   **Fix:** allow the alias exception only beside exactly one reviewed `\EFI\fedora\shimx64.efi` entry, comparing case-insensitively. In [test_owner_firmware.py:76](C:/Users/pab/AresOS-15f-lenovo-firmware-entry/os/tests/test_owner_firmware.py:76), add **alias + unexpected loader, without the normal entry** refusal cases. The existing tests always include the normal entry, so they only demonstrate rejection of three-entry configurations.
+   **Fix:** allow the alias exception only beside exactly one reviewed `\EFI\fedora\shimx64.efi` entry, comparing case-insensitively. In [test_owner_firmware.py:76](C:/Users/owner/AresOS-15f-lenovo-firmware-entry/os/tests/test_owner_firmware.py:76), add **alias + unexpected loader, without the normal entry** refusal cases. The existing tests always include the normal entry, so they only demonstrate rejection of three-entry configurations.
 
 2. **Should-fix — the fingerprint equality test still treats historical reports as current.**  
-   [test_owner_equality.py:21](C:/Users/pab/AresOS-15f-lenovo-firmware-entry/os/tests/test_owner_equality.py:21).
+   [test_owner_equality.py:21](C:/Users/owner/AresOS-15f-lenovo-firmware-entry/os/tests/test_owner_equality.py:21).
 
    Its report slices include the old `3e2c78…` fingerprint at `reviews/14-owner-tools/REPORT.md:47` and `reviews/15-owner-path/REPORT.md:27`. Neither slice is excluded as historical by the existing boundaries. With the new payload, `check_fingerprints` will raise “Stale tools fingerprint or unbound hash.”
 

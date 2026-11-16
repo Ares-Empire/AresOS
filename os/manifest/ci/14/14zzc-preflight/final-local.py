@@ -12,7 +12,7 @@ while True:
 print('FINAL_WALK_PASSED; strict checks and whole suite starting',flush=True)
 for script,label in [('14zzc-probe-walk.py','probe-walk'),('14zzc-syntax.py','strict'),('14zzc/whole.py','whole-suite')]:
  assert all(hashlib.sha256((r/p).read_bytes()).hexdigest()==s for p,s in sources.items()),'STOP: source changed during final checks'
- command='cd /mnt/c/Users/pab/AresOS-14-owner-tools && export TMPDIR="$PWD/.work/14/local/tmp" && export PATH="$PWD/.work/14/local/bin:$PATH" && python3 -B .work/14/'+script
+ command='cd /mnt/c/Users/owner/AresOS-14-owner-tools && export TMPDIR="$PWD/.work/14/local/tmp" && export PATH="$PWD/.work/14/local/bin:$PATH" && python3 -B .work/14/'+script
  with (w/(label+'.log')).open('wb') as log:result=subprocess.run(['wsl.exe','--exec','bash','-lc',command],stdout=log,stderr=subprocess.STDOUT)
  assert result.returncode==0,(label,result.returncode)
  assert all(hashlib.sha256((r/p).read_bytes()).hexdigest()==s for p,s in sources.items()),'STOP: source changed during final checks'

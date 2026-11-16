@@ -6,7 +6,7 @@ Follow-up on branch `pkg/14-owner-tools`. Briefs 14 to 14zv still apply, with th
 
 The owner's decision on 2026-11-01, made in another session (`fabd476` on `main`) for every Ares-Empire repo:
 
-- **The GitHub privacy workflow is removed.** It runs instead as aresync's local pre-push hook: the repository's `hooks/pre-push` calls `/c/Users/pab/aresync/privacy-check.sh pre-push`. The hook checks gitleaks, noreply emails, and personal terms from `~/.config/aresync/private-terms`, and blocks the push on any finding.
+- **The GitHub privacy workflow is removed.** It runs instead as aresync's local pre-push hook: the repository's `hooks/pre-push` calls `/c/Users/owner/aresync/privacy-check.sh pre-push`. The hook checks gitleaks, noreply emails, and personal terms from `~/.config/aresync/private-terms`, and blocks the push on any finding.
 - **The `PRIVATE_TERMS` repo secret is gone.** So this branch's leftover `privacy-check.yml` now skips personal terms.
 - **Pull-request privacy runs no longer happen,** because `main` has no such workflow.
 

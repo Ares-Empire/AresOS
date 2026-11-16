@@ -1,5 +1,5 @@
 **blocking — Unmarked drafts lose protection after move/copy.**  
-At [adapter.py:43](/Users/pab/AresOS-19-mail/control/aresos_control/mail/adapter.py:43), draft classification depends on the current folder or marker. [The move/copy path](/Users/pab/AresOS-19-mail/control/aresos_control/mail/adapter.py:928) preserves bytes but records no provenance for an unmarked Drafts source.
+At [adapter.py:43](/Users/owner/AresOS-19-mail/control/aresos_control/mail/adapter.py:43), draft classification depends on the current folder or marker. [The move/copy path](/Users/owner/AresOS-19-mail/control/aresos_control/mail/adapter.py:928) preserves bytes but records no provenance for an unmarked Drafts source.
 
 I reproduced:
 

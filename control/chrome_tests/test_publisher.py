@@ -92,7 +92,7 @@ class Publisher(unittest.TestCase):
         with tempfile.TemporaryDirectory(dir=ROOT/'.work/20-chrome') as temporary:
             path=Path(temporary)/'record.json';failed=entry();failed['core']['binding']=False
             path.write_text(json.dumps({'format':1,'entries':[failed]}));runner.reset_mock()
-            qualify.notify(path,True,runner)
+            with patch.dict(qualify.os.environ,GITHUB_RUN_ID='fixture'):qualify.notify(path,True,runner)
             # Failing groups and the shipped-copy update: one issue each, never a pull request.
             self.assertEqual([call.args[0][1:3] for call in runner.call_args_list][1::2],[['issue','create']]*2)
             self.assertEqual([call.args[0][1] for call in runner.call_args_list],['api','issue']*2)
@@ -145,6 +145,55 @@ class Publisher(unittest.TestCase):
         self.assertIsInstance(caught,SystemExit)
         self.assertTrue(str(caught).startswith('gh api '))
         self.assertIn('failed: HTTP 403: Resource not accessible by integration',str(caught))
+
+    def test_failing_groups_issue_names_only_this_run_s_entries(self):
+        # The record is append-only: an old build's all-false entry (issue #74) must not be
+        # reported again by every later run. The shipped-copy issue still lists every entry.
+        failing='Chrome qualification has failing groups';shipped='Update shipped Chrome qualification record'
+        bot={'user':'github-actions[bot]','type':'Bot'}
+        earlier=entry(build='b'*64,channel='beta',version='159.0.1.0',run='41');earlier['core']['binding']=False
+        current=entry(version='157.0.2.0',run='42');current['adapters']['gmail']=False
+        passing=entry(version='157.0.3.0',run='42')
+        def recording(listed=()):
+            calls=[]
+            def run(command,**options):
+                calls.append(command[1:])
+                if command[1]=='api' and not command[3].endswith('/comments'):
+                    return Mock(stdout=''.join(json.dumps(row)+'\n' for row in listed))
+                return Mock(stdout='')
+            return run,calls
+        def bodies(calls,title):
+            return [call[call.index('--body')+1] for call in calls if call[:2]==['issue','create'] and call[call.index('--title')+1]==title]
+        with tempfile.TemporaryDirectory(dir=ROOT/'.work/20-chrome') as temporary:
+            path=Path(temporary)/'record.json'
+            path.write_text(json.dumps({'format':1,'entries':[earlier,current,passing]}))
+            with patch.dict(qualify.os.environ,GITHUB_RUN_ID='42'):
+                run,calls=recording();qualify.notify(path,True,run)
+            [body]=bodies(calls,failing)
+            self.assertIn(current['build']+' stable 157.0.2.0: gmail',body)
+            self.assertNotIn(earlier['build'],body);self.assertNotIn('binding',body);self.assertNotIn('157.0.3.0',body)
+            [listing]=bodies(calls,shipped)
+            for held in [earlier,current,passing]:self.assertIn(held['build'][:12]+' '+held['channel']+' '+held['version'],listing)
+            # No failing entry from this run: no new failing-groups issue and no comment on the
+            # open one, even though the record still holds the earlier run's failure.
+            path.write_text(json.dumps({'format':1,'entries':[earlier,passing]}))
+            listed=[{'number':11,'title':failing,'body':'older','pull':False,**bot},{'number':12,'title':shipped,'body':'older','pull':False,**bot}]
+            with patch.dict(qualify.os.environ,GITHUB_RUN_ID='42'):
+                run,calls=recording(listed);qualify.notify(path,True,run)
+            self.assertEqual(bodies(calls,failing),[])
+            self.assertNotIn(['issue','comment','11'],[call[:3] for call in calls])
+            self.assertFalse(any(call[0]=='api' and call[3].endswith('/issues/11/comments') for call in calls))
+            self.assertIn(['issue','comment','12'],[call[:3] for call in calls])
+            # Without a run ID notify can't tell this run's entries apart: it refuses before
+            # any GitHub call rather than report the whole record.
+            path.write_text(json.dumps({'format':1,'entries':[earlier,current]}))
+            for missing in [None,'']:
+                with self.subTest(run_id=missing), patch.dict(qualify.os.environ,GITHUB_RUN_ID='unset'):
+                    if missing is None:del qualify.os.environ['GITHUB_RUN_ID']
+                    else:qualify.os.environ['GITHUB_RUN_ID']=missing
+                    run,calls=recording()
+                    with self.assertRaises(SystemExit) as refusal:qualify.notify(path,True,run)
+                    self.assertIn('GITHUB_RUN_ID',str(refusal.exception));self.assertEqual(calls,[])
 
     def test_missing_repeat_or_missing_group_never_qualifies(self):
         with tempfile.TemporaryDirectory(dir=ROOT/'.work/20-chrome') as temporary:

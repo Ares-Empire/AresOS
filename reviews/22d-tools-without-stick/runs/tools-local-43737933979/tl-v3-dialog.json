@@ -1,0 +1,15 @@
+{
+  "status": "window",
+  "sudo": 46142,
+  "helper": 46163,
+  "parent": 46142,
+  "uid": 1001,
+  "argv": [
+    "/usr/bin/ksshaskpass",
+    "AresOS owner tools 2084c786: install these tools, then check and title"
+  ],
+  "keyrings": [],
+  "settled": true,
+  "gone": false,
+  "settle_seconds": 3.0
+}

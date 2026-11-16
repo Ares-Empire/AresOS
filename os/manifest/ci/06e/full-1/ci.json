@@ -102,11 +102,11 @@
       "message": "docs(os): audit 06e VM assumptions before qualification",
       "timestamp": "2026-10-22T20:43:08Z",
       "author": {
-        "name": "pab",
+        "name": "owner",
         "email": "admin@example.com"
       },
       "committer": {
-        "name": "pab",
+        "name": "owner",
         "email": "admin@example.com"
       }
     },

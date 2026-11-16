@@ -1,38 +1,57 @@
 {
-  "status": "rebound by package 22c's rehearsal (run 43597505549); two test files wait since the record step: os/tests/test_owner_path.py and os/tests/test_ways_back_probe.py",
-  "walk": "os/manifest/ci/22c/source-bindings.json",
-  "decision": "Integrator, 2026-11-13 (briefs/27b-pending-rebind.md): bound files may change again after package 27's rehearsal; each records its new checkout bytes here until the next VM rehearsal rebinds it. Only test files and the CI workflow (its checks-only job) wait now, no tool, guide or image file.",
+  "status": "rebound by package 22d's rehearsal (run 43737933979); since then 22d's record step changed three test files: os/tests/test_owner_path.py (the pin of 22d's status row), os/tests/test_tools_local_wiring.py (22d's receipt test, frozen after the record step) and os/tests/test_ways_back_probe.py (22c's gate test reads the files changed since 22c's run from the active bindings too); 22d's step 7b changed two more: os/tests/test_checkout_sources.py (package 22c's review 8, finding 3: while a status row says VM REHEARSAL PASSED; NOT ON THE LAPTOP nothing under os/owner-tools/, os/release/ or docs/ waits, and the newest rehearsal's tools equal the payload's) and os/tests/test_owner_equality.py (22d's caller-run lines count as walked); 22d's step 8 merged main in, which changed one more bound file: os/ci/vm.py (main's package 23b: the startup cover's screenshots and session font check in the check build, harness only); they wait for the next rehearsal",
+  "walk": "os/manifest/ci/22d/source-bindings.json",
+  "decision": "Integrator, 2026-11-13 (briefs/27b-pending-rebind.md): bound files may change again after package 27's rehearsal; each records its new checkout bytes here until the next VM rehearsal rebinds it. Since package 22d's steps 1 and 2 (integrator, 2026-11-15) tool, guide and workflow files wait here too, besides test files: 22d's own VM rehearsal (brief 22d, step 6) rebinds them; no image file waits. Package 22c's review 8, finding 3 (22d's step 7b): while a row of docs/INSTALL-STATUS.md says VM REHEARSAL PASSED; NOT ON THE LAPTOP, nothing under os/owner-tools/, os/release/ or docs/ may wait: what the laptop gets (the tools, the release scripts, the guides). A harness, workflow or test file changes how a rehearsal runs, not what the laptop gets, and may wait for the next rehearsal (integrator, 2026-11-15, after step 7b: commit 7ef03022). test_checkout_sources refuses a waiting file under those three folders, and refuses tools other than the newest rehearsal's.",
   "changes": [
-    "22c record step (after rehearsal run 43597505549 rebound the sources): test_owner_path pins the 22c INSTALL-STATUS row as rehearsed, with the run link the 22c bindings name; no tool, guide or image file changed",
-    "22c fix after checks-only run 43619559359: test_ways_back_probe keeps the 22c host-walk receipt frozen after the record step (asserted equal to the bindings' walk table instead of skipped; the gate test uses it with the waiting rows' bytes) and reads removed paths from the 22c rebind's history entry; no tool, guide or image file changed",
+    "22d record step: the 22d receipt test frozen after the record step; the 22d status row and its pin in test_owner_path (run 43737933979); 22c's gate test reads the active bindings",
+    "22d step 7b: review 8 finding 3 test; unwalked routine lines",
+    "22d step 7b (integrator): the rehearsed-row rule refuses only waiting tools, release scripts and guides (what the laptop gets), as review 8 proposed",
     "40: the checks-only job's 40 minutes, as 22d step 2 and 23b: its time limit in os-image.yml (25 to 40) and the 22c ledger's checks bound in os/ci/rehearsal-packages.json (35 to 40); no tool, guide or image file changed",
-    "23b (startup cover), merged with main after package 40: os/ci/vm.py gains the cover's screenshots and session font check in the check build (harness only); the regressions time limit (40 minutes) arrived with package 40 identically"
+    "23b (startup cover), merged with main after package 40: os/ci/vm.py gains the cover's screenshots and session font check in the check build (harness only); the regressions time limit (40 minutes) arrived with package 40 identically",
+    "22d step 8: main merged in (bound files main changed wait for the next rehearsal)",
+    "2026-11-15, board #306 (owner: scrub current files): the owner's machine username became owner in 372 files (reviews/username-scrub/RECORD.md). Three bound files changed, text only: os/manifest/ci/14/14zze-preflight/commit-preflight.py, final-local.py and local-privacy.py (archived preflight tools). No binding table or host walk was edited."
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
-    {
-      "sha256": "c96b7a9ca4fc3b04824f9cd6f6e4450936028ce777ff0f889d16ed85b1658f82",
-      "path": ".github/workflows/os-image.yml"
-    },
-    {
-      "sha256": "9c0cdf6e9fcdf8f52485fe454008e80de461131739bc0663b5d115fc05199d18",
-      "path": "os/ci/rehearsal-packages.json"
-    },
     {
       "sha256": "5a14cfa61936b15700c53747e839a6407aa73cc1d7335ef36ebdd1ccbcdeba23",
       "path": "os/ci/vm.py"
     },
     {
-      "sha256": "c3785b60d8b89b0765c0f971156e49f78ac9153838f32f70f6508e9b25828a03",
+      "sha256": "35792a32afaf45805e4a281de1be073856184c31ad507793613a734d6a6d1d3b",
+      "path": "os/manifest/ci/14/14zze-preflight/commit-preflight.py"
+    },
+    {
+      "sha256": "d7fe64f6ddcc77b4d5333258734462098c767ac61982d2f96dc6428594ca56e8",
+      "path": "os/manifest/ci/14/14zze-preflight/final-local.py"
+    },
+    {
+      "sha256": "9a5e0b3fc04d75e2268b7ba17c66d32998fbcb370194b309b1410c2e3ebcb236",
+      "path": "os/manifest/ci/14/14zze-preflight/local-privacy.py"
+    },
+    {
+      "sha256": "74d708a2f68cf704cbdb8009a35da9e07eaeb13eeee5097890a3aa66713e639e",
+      "path": "os/tests/test_checkout_sources.py"
+    },
+    {
+      "sha256": "93c66f3c6f18716e349da52323a68114c3431ccb21fc3447dea3adf491b98c08",
+      "path": "os/tests/test_owner_equality.py"
+    },
+    {
+      "sha256": "3d7a7e7d033965ade9df6015d79a5683a77aeb75ca4f6b41e8725ca6e1963a0c",
       "path": "os/tests/test_owner_path.py"
     },
     {
-      "sha256": "cafb2f06aa1a43191d207948238fb4ef3e8aa0b9c20e882daef4b55db4b9ae3a",
+      "sha256": "07c7fa007ddb33101995e7bf3787cef216198a0036a0c11137fba30c57904cf3",
+      "path": "os/tests/test_tools_local_wiring.py"
+    },
+    {
+      "sha256": "510718a150e1c3436ba62cb409ae864bc75cb121d3649a7564bc0fedccb8b249",
       "path": "os/tests/test_ways_back_probe.py"
     }
   ],
   "unwalked_commands": [],
-  "unwalked_rule": "Commands added by package 22 are typed by the local walk of package 27's update rehearsal (os/tests/test_owner_walk.py, route update). Package 22c's forward (briefs/22c-forward-command.md) is typed by the local walk of package 22c's rehearsal (route ways-back: from plain Bazzite, after previous, and on the newer AresOS taken in the boot menu) and left this list in stage 2; test_owner_equality refuses a listed command once it is typed.",
+  "unwalked_rule": "Commands added by package 22 are typed by the local walk of package 27's update rehearsal (os/tests/test_owner_walk.py, route update). Package 22c's forward (briefs/22c-forward-command.md) is typed by the local walk of package 22c's rehearsal (route ways-back: from plain Bazzite, after previous, and on the newer AresOS taken in the boot menu) and left this list in stage 2. Package 22d's generated lines (Claude's folder line, the tools-only routine line and the routine export line) are typed by no one: 22d's rehearsal (run 43737933979) ran them through its caller in the desktop session without a terminal, each taken by name from the announced commit's commands.json, and they left this list in 22d's step 7b. test_owner_equality counts a command as walked when a rehearsal's walk types it or, on 22d's route, its caller runs it, and refuses a listed command once it is walked.",
   "rebound": [
     {
       "status": "rebound by package 27's update rehearsal",
@@ -149,6 +168,71 @@
         "os/owner-tools/payload/release/rollback.sh"
       ],
       "rebound_by": "https://github.com/Ares-Empire/AresOS/actions/runs/43597505549"
+    },
+    {
+      "status": "rebound by package 22d's rehearsal",
+      "waited_for": "os/manifest/ci/22c/source-bindings.json",
+      "walk": "os/manifest/ci/22d/source-bindings.json",
+      "changes": [
+        "22c record step (after rehearsal run 43597505549 rebound the sources): test_owner_path pins the 22c INSTALL-STATUS row as rehearsed, with the run link the 22c bindings name; no tool, guide or image file changed",
+        "22c fix after checks-only run 43619559359: test_ways_back_probe keeps the 22c host-walk receipt frozen after the record step (asserted equal to the bindings' walk table instead of skipped; the gate test uses it with the waiting rows' bytes) and reads removed paths from the 22c rebind's history entry; no tool, guide or image file changed",
+        "22d steps 1 and 2: the owner tools take a bundle from the folder block (tools version 4, payload refreshed); bootstrap.py generates the routine lines and Claude's folder line, commands.json holds them, the guides gain the routine box first and the routine STOP card, v4's fingerprint is pinned; the checks-only job gets 40 minutes; tests follow; these tool, guide and workflow files wait for 22d's rehearsal, not only tests",
+        "22d step 4: review 8 findings 2 and 5",
+        "22d fixes after reviews 2 and 3",
+        "22d guide fixes after review 4",
+        "22d step 6: the tools-local mode's wiring",
+        "22d step 6b: the tools-local walk (tools_local.rehearsal), its local route in test_owner_walk, 22d's host-walk receipt, the minute cap at 2400",
+        "22d: test_owner_devices_native pins the native-suite line with 22d's branch (step 6a added it to the workflow)",
+        "22d step 6c: verify_release binds release 27's trees to its source commit in the tools-local mode; the walk reads no release 27 image source from the checkout (test)",
+        "22d: the switch job's release check gets REHEARSAL_MODE as explicit step env (test_ci_step_environment)",
+        "22d: the guest's stand-in origin names main as HEAD and the checkout clones --branch main (VM run 43699785728 stopped at tl-setup-origin)",
+        "22d step 6d: the tools-local walk types into a password window only after its helper settled and the screen's centre shows it; the caller's launcher is one-shot and typed once more when lost after a VT switch",
+        "22d step 6e: the xHCI health check excuses each requested tools-stick removal once, by the guest's monotonic stamp of its request (VM run 43714310216 stopped at cut-27's second removal in one boot); 22d's VM dispatch cap 4 to 6"
+      ],
+      "files": [
+        ".github/workflows/os-image.yml",
+        "docs/EMERGENCY.md",
+        "docs/INSTALL.md",
+        "os/ci/checkout_sources.py",
+        "os/ci/installer_webui.py",
+        "os/ci/owner_capabilities.py",
+        "os/ci/owner_devices.py",
+        "os/ci/owner_media.py",
+        "os/ci/owner_vm.py",
+        "os/ci/owner_xhci.py",
+        "os/ci/registry_auth.py",
+        "os/ci/rehearsal-packages.json",
+        "os/ci/rehearsal_guard.py",
+        "os/ci/two_disk_vm.py",
+        "os/ci/verify_release.py",
+        "os/owner-tools/bootstrap.py",
+        "os/owner-tools/commands.json",
+        "os/owner-tools/history.json",
+        "os/owner-tools/media.py",
+        "os/owner-tools/owner.py",
+        "os/owner-tools/payload/SHA256.json",
+        "os/owner-tools/payload/SHA256SUMS",
+        "os/owner-tools/payload/history.json",
+        "os/owner-tools/payload/media.py",
+        "os/owner-tools/payload/owner.py",
+        "os/tests/test_owner_bootstrap.py",
+        "os/tests/test_owner_capabilities.py",
+        "os/tests/test_owner_devices_native.py",
+        "os/tests/test_owner_diagnostics.py",
+        "os/tests/test_owner_entry.py",
+        "os/tests/test_owner_equality.py",
+        "os/tests/test_owner_export.py",
+        "os/tests/test_owner_guard.py",
+        "os/tests/test_owner_path.py",
+        "os/tests/test_owner_ps2.py",
+        "os/tests/test_owner_update.py",
+        "os/tests/test_owner_walk.py",
+        "os/tests/test_rehearsal_budget.py",
+        "os/tests/test_ways_back.py",
+        "os/tests/test_ways_back_probe.py"
+      ],
+      "removed": [],
+      "rebound_by": "https://github.com/Ares-Empire/AresOS/actions/runs/43737933979"
     }
   ],
   "removed": []

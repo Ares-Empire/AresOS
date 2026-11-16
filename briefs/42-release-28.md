@@ -1,18 +1,37 @@
 # 42: Release 28 (Minecraft at startup, the home screen, Control; installed by the tools without the stick)
 
-Empire board brief 295. Release package. **Starts when 22d is merged** (the tools version 4 and its folder route) and
-the integrator cuts the release commit from `main` (planned Thu–Sat 2026-11-19 to 21). Written 2026-11-15 by
-`linux-aresos`; the integrator fills in the cut commit and the list under "What rides" before the first step.
+Empire board brief 295. Release package. Steps 1 and 2 start before 22d is merged; the rest waits for 22d (the tools
+version 4 and its folder route) and for the integrator's cut of the release commit from `main` (planned Thu–Sat
+2026-11-19 to 21). Written 2026-11-15 by `linux-aresos`; the integrator fills in the cut commit and the list under
+"What rides" before step 3.
 
-**Builder:** Claude agents on Opus, one fresh agent per step (`reviews/42-release-28/PROGRESS.md`). If the VM
-rehearsal resists two rounds, the integrator moves it to Fable 5.2. **Review:** the final review before the laptop:
-Codex gpt-6-astra (high) in a fresh context while Codex has allowance, otherwise a Fable reviewer. This release
-reaches the owner's real laptop.
+**Builders:** from Tue 2026-11-17 10:53 Codex (the owner's Codex plan for its last days, relayed by `mac-capacity`
+on 2026-11-15): gpt-6.1-sol xhigh per step, one fresh run per step, each keeping `reviews/42-release-28/PROGRESS.md`
+(done, left in order, what the code doesn't show). If the VM rehearsal resists two rounds, the integrator moves it to
+a Claude agent on Fable 5.2. **Reviews:** gpt-6-astra (high), a fresh context per review, after steps 1, 3 and 6;
+the final review before the laptop is astra high, or a Fable reviewer if Codex has run out. This release reaches the
+owner's real laptop.
+
+**Steps** (each ends with a commit, a push to `pkg/42-release-28` and PROGRESS.md):
+1. **Diff rules and the release job, from `main`** (needs nothing from 22d): A.3's new rules in
+   `os/ci/release_diff.py` with unit tests; the `release_28` input and job (A.4's shape), with an input that builds
+   and diffs against release 27 but cannot reach the publish step, so the diff can be checked before the owner's OK;
+   the mod jar's pin renewed through `check_build=resolve` (A.2). One dry run of the job; every difference explained
+   or listed as open.
+2. **Control's rules** (after PR #58 and 18c-b are merged, if they ride): A.3's Control rules, `verify_release.py`
+   binding `control/`, the manifest's `control` object and `record_build.py add` in the job. Skip if Control does
+   not ride.
+3. **The rehearsal mode** (after 22d is merged; main merged into the branch): B's walk as a `rehearsal=release-28`
+   mode built from 22d's tools-local route and package 27's update route; its local walk and host-walk receipt.
+4. **The cut** (integrator): main at the cut commit merged in, the dry run again, the diff summary to the owner.
+5. **Publish** (after the owner's OK): A.4 and A.5's release record.
+6. **Rehearsal runs and pins:** B's VM runs (budget in C), then the pins and guides.
 
 ## Why
 
 The laptop runs release 27 (`ghcr.io/ares-empire/aresos@sha256:5fad242f…`, source `b216f28f`, since 2026-11-13)
-with the owner tools version 2 (`851eb742…`). Since then `main` gained what the owner sees next: Minecraft starts as
+with the owner tools version 2 (`851eb742…`); version 4 (`dcbc375f…`, package 22d) goes on in a short session of its own
+before this release (owner, board #308, 2026-11-15: "Soon"). Since then `main` gained what the owner sees next: Minecraft starts as
 the desktop (package 23), the startup cover (23b), its memory settings (23d), the home screen (packages 30 to 40),
 the Ares-Crown window frame (31), and, with the owner's yes, Control in the image (18c Part A and 18c-b; board #286:
 "Yes, if reviews pass"). This package builds that release, rehearses the owner's real route on it, and pins it.
@@ -33,8 +52,8 @@ Not in this release: 21b (backlight, power button; the owner's key test is open)
 backport, unmasking the two finalize units, the online `aresos update` (22d's step 2), 22e, 23c.
 
 The `aresos` command (board #195 and #262: `aresos update` goes forward when a newer AresOS is installed, otherwise
-stages the tools' release; one of the two per run, said before anything changes) is its own small package. It rides
-only if it is merged by the cut; then the rehearsal also runs `aresos update` once (step B.4).
+stages the tools' release; one of the two per run, said before anything changes) is its own package (43, for the release
+after this one; it needs a tools change, see `STATE.md`). It does not ride in this release.
 
 ## Build
 
@@ -81,11 +100,12 @@ only if it is merged by the cut; then the rehearsal also runs `aresos update` on
 
 The two-disk VM harness (a stand-in Windows disk that is never written), with 22d's tools-local route and its
 stand-in origin. Start from **the laptop's state**: R27 booted, the release before it as rollback, stock pinned,
-tools version 2 installed. Then walk the guides' route exactly as the laptop session will:
+the tools the laptop has when step 3 starts (version 4 after the owner's 22d session; the integrator records which in
+PROGRESS.md; if that session has not happened, version 2). Then walk the guides' route exactly as the laptop session will:
 
 1. **Tools, from Claude's terminal** (22d): the folder line and the routine line at the announced commit on the
    stand-in origin's `main`; the password window approved; the 8 characters equal line 1 of `OWNER-TOOLS.md`. This
-   proves version 2 to the new bundle (version 4 with R28's reference).
+   proves the laptop's installed tools to the new bundle (version 4's code with R28's reference, so a new fingerprint).
 2. **Before the update** (only when Control rides): root writes the made-up sites list
    `{"format":1,"hosts":["rehearsal.invalid"]}` to `/var/lib/aresos-control/chrome-excluded-sites.json` with
    `sudo tee` as the guide does (making `/var/lib/aresos-control/` `root:root` 0755 first if R27 lacks it), and
@@ -99,7 +119,7 @@ tools version 2 installed. Then walk the guides' route exactly as the laptop ses
    - Control, when it rides: `aresos-tools` has UID/GID 250, its state folders have the right owners, its service
      never delays login, `release_checks.py` passes and the sites list's hash is unchanged.
 4. `at previous`: back to R27, `at check`, the sites list's hash unchanged. Then forward again by the guide's route
-   (`at forward`, or `aresos update` if the `aresos` package rides), so the walk ends on R28 as the laptop will.
+   (`at forward`), so the walk ends on R28 as the laptop will.
 5. **Audits at every stage**, all of package 11's: the stand-in Windows disk and its boot entry byte-identical; stock
    untouched and pinned; no deployment lost beyond what 22's JUDGMENT-CALL 1 allows.
 6. **Bindings:** the pending list ends empty; `source-bindings.json` exactly as the walk records it.
@@ -130,7 +150,9 @@ and `at reboot` on the console, guided. Afterwards: the 23d check (the game scop
   `--no-verify`.
 - The repo is public: no personal data, serials, GUIDs, emails or tokens. The image stays private. Never make anything
   public. Don't touch the laptop's disks or boot settings. Don't touch other worktrees.
-- Commits end with `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
-- The report (in `PROGRESS.md` or the PR description; the integrator commits it as `REPORT.md`) in the AGENTS.md
+- Commits name the builder and its model in a trailer (AGENTS.md).
+- `gh run watch <id> --exit-status --interval 60` at the most often; dispatch one run per branch at a time (the
+  workflow keeps only one pending run per branch).
+- The report `reviews/42-release-28/REPORT.md` (a Claude builder leaves it in `PROGRESS.md`; the integrator commits it) in the AGENTS.md
   format, JUDGMENT-CALLs marked. Evidence: digest and signature proof, the image diff with every rule's reason, the
   rehearsal transcripts and audits, the emptied pending list, the fingerprint, the test results, the budget table.

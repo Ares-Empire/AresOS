@@ -92,6 +92,12 @@ class Result:
     announcement: str = ''
 
 
+def trial_refusal(t):
+    """What a pending trial's refusal names (review 8 of package 22c, finding 5): proof or revert
+    in its own boot; after a restart, where they refuse, abandon from a fresh login."""
+    return 'prove it or revert first' if t.same_boot else 'began before the last restart: from a fresh physical administrator login run sudo /var/lib/ares/at layout abandon'
+
+
 def transition(s, event):
     """Predict a step solely from the ledger and the chosen event, before calling any tools."""
     word, phase = event
@@ -144,7 +150,7 @@ def transition(s, event):
     if word in ('check', 'title', 'records', 'reboot'):
         if word == 'reboot':
             if t:
-                return result(stop='Layout trial')
+                return result(stop=trial_refusal(t))
             # Only title confirms. The adapter supplies the saved title that reboot checks.
             return result()
         if word == 'check' and ((s.loaded == 'de') != (s.keyboard()[0] == 'de')):
@@ -154,7 +160,7 @@ def transition(s, event):
 
     if word == 'begin':
         if t:
-            return result(stop='Layout trial')
+            return result(stop=trial_refusal(t))
         if outcome == 'waiting':
             return result(stop='restart first')
         if s.stage:
@@ -269,7 +275,7 @@ def transition(s, event):
         if s.rows[0] == target:
             return result()
     if t:
-        return result(stop='Layout trial')
+        return result(stop=trial_refusal(t))
     if outcome == 'waiting':
         return result(stop='restart first')
     if s.stage:

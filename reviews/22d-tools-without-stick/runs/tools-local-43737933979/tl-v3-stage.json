@@ -1,0 +1,13 @@
+{
+  "stage": "tl-v3",
+  "lines": "this checkout's, for version 3 (N-e)",
+  "commit": "49de19e8d98d65c79e5bcd061332eb807924ec69",
+  "real_commit": "58738e5ee4d05641c9f188aef9984fe50a9a7990",
+  "tree": "b322a88ee72868e05ecfd85444a5d2a146ae6599",
+  "stop": [
+    "STOP: Tools update runs only from the physical recovery console",
+    "Keep the current administrator session open. Preserve diagnostics; do not reboot or retry a different target. See EMERGENCY / get help.",
+    "STOP bootstrap: verification or install refused"
+  ],
+  "nothing_changed": true
+}

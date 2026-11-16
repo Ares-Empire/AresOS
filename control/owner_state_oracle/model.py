@@ -13,6 +13,10 @@ from .local import errors as local_errors
 from .effects import delivered, send_stages, free_plan, complete_plan, matches, exact_uid, sent_bytes_match, scan_complete
 
 
+# Reads the service answers during a restore lock. Every other call is refused.
+LOCKED_READS = frozenset({'control_pending', 'control_notices', 'chrome_notices'})
+
+
 @dataclass(frozen=True, order=True)
 class Fact:
     source: str
@@ -1463,9 +1467,15 @@ class Oracle:
     def permitted_status(self, record, call):
         # Status is checked even when every catalogue is empty. A handled raw
         # failure may still yield success; only injected causes permit errors.
-        if record.locked:
-            return {'restore_required'}
         allowed = {'allowed'}
+        if record.locked:
+            # The restore lock refuses every app action, but these reads are
+            # answered so committed warnings stay visible. Only a write such a
+            # read attempts meets the lock's refusal (recorded by the driver).
+            if call.get('action') not in LOCKED_READS:
+                return {'restore_required'}
+            if call.get('lock_refused_write'):
+                allowed.add('restore_required')
         faults = call.get('faults', {})
         if faults.get('admission') == 'full':
             return {'storage_limit'}

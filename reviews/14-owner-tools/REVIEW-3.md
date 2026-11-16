@@ -1,4 +1,4 @@
-**Finding 4: CLOSED.** The [new test](/C:/Users/pab/AresOS-14-owner-tools/os/tests/test_owner_export.py:89) now:
+**Finding 4: CLOSED.** The [new test](/C:/Users/owner/AresOS-14-owner-tools/os/tests/test_owner_export.py:89) now:
 
 - Runs the unchanged owner `__main__` in isolated subprocesses and triggers a controlled `records unexpected` STOP.
 - Requires the diagnostic under mapped `/var/lib/ares/diagnostics`, with no diagnostic JSON under mapped `/run`.

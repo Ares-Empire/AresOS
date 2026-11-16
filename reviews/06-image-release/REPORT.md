@@ -282,7 +282,7 @@ Full run 2's successful switch job took **34m03s**. Its metrics window is **2,02
 
 Original pre-pause archives were preserved. All evidence ZIPs match their adjacent GitHub artifact metadata; workflow-log ZIP hashes are computed locally because that endpoint supplies none. [Archive index and hashes](artifacts/README.md). Retained archives/logs were scanned for unmasked SHA-512 password hashes and GitHub token forms, and for forbidden disks, credentials, builder configurations and binary journals; no matches were found. Raw authentication transcripts remain excluded.
 
-Local Windows verification, using the existing Java cache at `C:\Users\pab\.jdks\openjdk-25`:
+Local Windows verification, using the existing Java cache at `C:\Users\owner\.jdks\openjdk-25`:
 
 ```text
 cd mod

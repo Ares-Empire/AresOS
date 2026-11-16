@@ -101,11 +101,11 @@
     "message": "Report the 11c pre-VM release blocker and keep installation gates closed",
     "timestamp": "2026-10-23T17:02:17Z",
     "author": {
-      "name": "pab",
+      "name": "owner",
       "email": "admin@example.com"
     },
     "committer": {
-      "name": "pab",
+      "name": "owner",
       "email": "admin@example.com"
     }
   },

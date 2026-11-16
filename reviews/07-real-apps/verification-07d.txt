@@ -37,10 +37,10 @@ WindowsNotepadAliasTest > otherPathsAndLaunchModifiersStaySeparate() FAILED
 WindowsNotepadAliasTest > knownWindowsPathsResolveVariablesCaseAndDotSegments() FAILED
     org.opentest4j.AssertionFailedError at WindowsNotepadAliasTest.java:56
 
-[Incubating] Problems report is available at: file:///C:/Users/pab/AresOS-07-real-apps/mod/build/reports/problems/problems-report.html
+[Incubating] Problems report is available at: file:///C:/Users/owner/AresOS-07-real-apps/mod/build/reports/problems/problems-report.html
 * What went wrong:
 Execution failed for task ':test'.
-> There were failing tests. See the report at: file:///C:/Users/pab/AresOS-07-real-apps/mod/build/reports/tests/test/index.html
+> There were failing tests. See the report at: file:///C:/Users/owner/AresOS-07-real-apps/mod/build/reports/tests/test/index.html
 
 * Try:
 > Run with --scan to get full insights from a Build Scan (powered by Develocity).
