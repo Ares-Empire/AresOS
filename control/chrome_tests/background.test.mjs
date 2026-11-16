@@ -11,7 +11,7 @@ function fixture(){
     declarativeNetRequest:{getSessionRules:async()=>[],updateSessionRules:async value=>rules.push(value)}};
   let source=fs.readFileSync('control/chrome/extension/background.js','utf8').replace("import {POLICY} from './policy.js';",'');
   source=source.slice(0,source.indexOf('async function connect()'));
-  const context=vm.createContext({POLICY:policy,chrome,crypto:{randomUUID:()=> 'fixture-session'},URL,Promise,setTimeout,clearTimeout,TextEncoder,btoa:value=>Buffer.from(value,'binary').toString('base64')});
+  const context=vm.createContext({POLICY:policy,chrome,crypto:{randomUUID:()=> 'fixture-session'},URL,Promise,setTimeout,clearTimeout,TextEncoder,performance,btoa:value=>Buffer.from(value,'binary').toString('base64')});
   vm.runInContext(source,context);
   return {run:code=>vm.runInContext(code,context),registrations,rules};
 }
@@ -1645,4 +1645,97 @@ test('popuprace a stalled popup that has loaded, or has a dialog on record, keep
     assert.deepEqual(admittedLines(f).map(row=>row.owner_dialog),[true],'the line says the fallback ran');
     const act=assert.rejects(f.run('requireTab(8)'),/owner_dialog: Ask the owner: Please answer the dialog yourself/);await stall(f,act,1);
   }
+});
+
+// Brief 28, item 4: a command of the new read carries the milliseconds it has
+// left; the queue doesn't start it once that time is up, and its waits for a
+// frame or the reader end then, with `expired`. Without it, nothing changes.
+const pause=milliseconds=>new Promise(resolve=>setTimeout(resolve,milliseconds));
+function waitFixture(){
+  const f=fixture();
+  f.run('crypto').subtle={digest:async(name,bytes)=>{const hash=createHash('sha256').update(Buffer.from(bytes)).digest();return hash.buffer.slice(hash.byteOffset,hash.byteOffset+hash.byteLength);}};
+  f.run(`excludedHosts=['approval.test'];for(const tab of [7,8,9,10,11])controlled.set(tab,{epoch:'epoch'});
+    requireTab=async()=>({url:'http://fixture.test/page',title:'Fixture'});
+    globalThis.nativeFrames=[{frameId:0,parentFrameId:-1,documentId:'top-native',url:'http://fixture.test/page'}];
+    chrome.webNavigation={getAllFrames:async()=>nativeFrames,getFrame:async({frameId})=>nativeFrames.find(frame=>frame.frameId===frameId)};
+    globalThis.silent=new Set();globalThis.silentTabs=new Set();globalThis.asked=[];globalThis.posted=[];
+    port={postMessage:message=>posted.push(message)};
+    chrome.tabs={sendMessage:(tab,message,options)=>{
+      asked.push({tab,command:message.command});
+      if(silent.has(message.command)||silentTabs.has(tab))return new Promise(()=>{});
+      const data={outline:{document:'top-private',reader:'reader-top',watched:true,origin:'http://fixture.test',url:'http://fixture.test/page',title:'Top',scroll:0,height:900,omitted:0,nodes:[{id:1,parent:null,role:'listbox',name:'Pick'}]},
+        page_state:{document:'top-private',reader:'reader-top',origin:'http://fixture.test',revision:1,address:'a'.repeat(64),fields:'b'.repeat(64),ready:true},
+        ready:{document:'top-private',element_present:true},options:[{label:'One',value:'1',chosen:true,disabled:false}]}[message.command];
+      return Promise.resolve(data?{ok:true,data}:{ok:false,error:'refused: not in this fixture'});
+    }};`);
+  return f;
+}
+
+test('brief 28 item 4 a frame that never answers ends each read command at its time with expired',async()=>{
+  const f=waitFixture();
+  // An outline first pins the document, so options may ask it.
+  assert.equal((await f.run("dispatch({name:'outline',tab:7})")).frames.length,1);
+  for(const [command,silent] of [[{name:'outline',tab:7},'outline'],[{name:'page_state',tab:7},'page_state'],
+    [{name:'options',tab:7,frame:0,document:'top-private',reader:'reader-top',element:1},'options'],
+    [{name:'validity',tab:7,reference:{frame:0,element:'e1',document:'top-private'}},'ready'],
+    [{name:'read',tab:7},'read'],[{name:'typed_fields',tab:7},'typed_fields']]){
+    f.run(`silent.clear();silent.add(${JSON.stringify(silent)})`);
+    const started=performance.now();
+    await assert.rejects(f.run(`dispatch(${JSON.stringify(command)},performance.now()+60)`),/expired: /,command.name);
+    const elapsed=performance.now()-started;
+    assert.ok(elapsed>=50&&elapsed<1000,command.name+' '+elapsed);
+    assert.equal(f.run('dialogWake.size'),0,command.name+' disposes its dialog waiter');
+  }
+  assert.equal(f.run('controlled.has(7)'),true,'running out of time keeps control');
+});
+
+test('brief 28 item 4 a command without a time waits for its frame as before',async()=>{
+  const f=waitFixture();f.run("silent.add('outline')");
+  let settled=false;f.run("dispatch({name:'outline',tab:7})").then(()=>{settled=true;},()=>{settled=true;});
+  await pause(200);
+  assert.equal(settled,false);
+  assert.deepEqual(JSON.parse(f.run('JSON.stringify(asked)')),[{tab:7,command:'outline'}]);
+});
+
+test('brief 28 item 4 the queue starts no command whose time is up when it reaches the front',async()=>{
+  const f=fixture();
+  f.run(`globalThis.posted=[];port={postMessage:message=>posted.push(message)};globalThis.started=[];globalThis.release=null;
+    dispatch=async(command,expires)=>{started.push({name:command.name,expires});if(command.name==='slow')await new Promise(resolve=>{release=resolve;});return {done:command.name};};
+    enqueue({id:'a',command:{name:'slow'}});enqueue({id:'b',time_left_ms:30,command:{name:'outline',tab:7}});
+    enqueue({id:'c',command:{name:'page_state',tab:7}});enqueue({id:'d',time_left_ms:5000,command:{name:'outline',tab:7}});`);
+  await pause(80);f.run('release()');
+  for(let round=0;round<100&&f.run('posted.length')<4;round++)await pause(5);
+  const posted=JSON.parse(f.run('JSON.stringify(posted)'));
+  assert.deepEqual(posted.map(message=>message.id),['a','b','c','d'],'one queue, in order');
+  assert.equal(posted[1].ok,false);assert.match(posted[1].error,/^expired: .*not started/);
+  assert.deepEqual(posted.filter(message=>message.ok).map(message=>message.data.done),['slow','page_state','outline']);
+  const started=JSON.parse(f.run('JSON.stringify(started)'));
+  assert.deepEqual(started.map(row=>row.name),['slow','page_state','outline'],'the expired command never started');
+  assert.equal(started[1].expires,null,'a command without a time gets none');
+  assert.equal(typeof started[2].expires,'number');
+});
+
+test('brief 28 item 4 with five tabs a slow first one costs only its share',async()=>{
+  const f=waitFixture();f.run('silentTabs.add(7)');
+  // The service's rule: each tab an equal share of what is left when its turn comes.
+  const total=700,start=performance.now(),replies=[];
+  for(let index=0;index<5;index++){
+    const left=Math.floor((start+total-performance.now())/(5-index)),id='tab-'+index;
+    f.run(`enqueue({id:${JSON.stringify(id)},time_left_ms:${left},command:{name:'outline',tab:${7+index}}})`);
+    for(let round=0;round<400&&!f.run(`posted.some(message=>message.id===${JSON.stringify(id)})`);round++)await pause(2);
+    replies.push(JSON.parse(f.run(`JSON.stringify(posted.find(message=>message.id===${JSON.stringify(id)}))`)));
+  }
+  const elapsed=performance.now()-start;
+  assert.match(replies[0].error,/^expired: /);
+  assert.ok(replies.slice(1).every(reply=>reply.ok&&reply.data.frames.length===1),JSON.stringify(replies));
+  assert.ok(elapsed>=130&&elapsed<total,'the slow tab took its share and no more: '+elapsed);
+});
+
+test('brief 28 item 4 a popup setup wait ends at the command time and keeps control',async()=>{
+  const f=fixture();
+  f.run("excludedHosts=[];groupId=1;chrome.tabs.get=async()=>({url:'http://fixture.test/',groupId:1});controlled.set(7,{epoch:'epoch',pendingSetup:{preload:new Promise(()=>{}),ready:new Promise(()=>{})}})");
+  await assert.rejects(f.run('requireTab(7,performance.now()+50)'),/expired: /);
+  assert.equal(f.run('controlled.has(7)'),true);assert.equal(f.run('!!controlled.get(7).pendingSetup'),true);assert.equal(f.run('dialogWake.size'),0);
+  let settled=false;f.run('requireTab(7)').then(()=>{settled=true;},()=>{settled=true;});
+  await pause(150);assert.equal(settled,false,'without a time it waits as before');
 });
