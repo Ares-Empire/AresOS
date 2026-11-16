@@ -1,73 +1,13 @@
-# Package 46: progress
+# Package 46: report
 
-Builder: Claude agent (Opus). Brief: `briefs/46-save-now.md`. Branch `pkg/46-save-now`.
+Builder: a Claude agent (Opus 5.5), in two steps. Brief: `briefs/46-save-now.md`. Branch `pkg/46-save-now`, PR #92.
 
-## Done
-
-1. **Protocol and unit tests** (commit af029332).
-   - `mod/src/main/java/dev/aresos/shell/LifecycleClient.java`: gate, `lifecycle_hello`, `save_world` /
-     `world_saved`, joining, reconnect with backoff, quiet logging. The game side is the `LifecycleClient.Game`
-     interface (one method, `save(Runnable starting)`).
-   - `ShellClient.worldObject` is package-visible so `world_saved` carries exactly `world_ready`'s identity.
-   - `mod/src/testShared/java/dev/aresos/shell/FakeSupervisor.java`: fake `desktop.sock` (records lines per connection,
-     sends requests, can go away and come back).
-   - `mod/src/test/java/dev/aresos/shell/LifecycleClientTest.java`: 11 tests, all passing
-     (`mod/dev/build.sh test --tests 'dev.aresos.shell.LifecycleClientTest' -x runGameTest`).
-2. **Game side, B1 row, client game test** (commit 6938089b).
-   - `mod/src/client/java/dev/aresos/client/WorldSaves.java` (`LifecycleClient.Game` on the integrated server):
-     tracks the server through `ServerLifecycleEvents` (`started` / `stopping` / `stopped`, public for the client
-     test); `no_world` without a started server, `server_stopping` from the stop's start until it stopped (and for a save
-     still queued when the stop begins), `not_desktop_world`, `error`; the save is `saveEverything(true, true, true)`
-     (= `save-all flush`) on the server thread via `executeIfPossible`, timed for `ms`.
-   - `DesktopWorld.saveName(server)`: the identity, now used by `ShellFocusClient.readyWorld` too.
-   - `AresOsClient.onInitializeClient` registers `WorldSaves` and starts `LifecycleClient.fromEnvironment(System.getenv(), ...)`.
-   - `docs/design/OS-BASE.md` B1 wire table: the `save_world` (lifecycle channel) row after `prepare_stop`.
-   - `mod/src/gametest/java/dev/aresos/test/SaveNowClientGameTest.java`, last in the client list of
-     `mod/src/gametest/resources/fabric.mod.json` (package 40's test comment updated: it is no longer last). Uses
-     only the real `LifecycleClient` + `WorldSaves.INSTANCE` against a `FakeSupervisor`; the covered part copies
-     `HomeScreenClientGameTest.covered`'s FakeHelper wiring. No screenshots.
-3. **Measurement test written** (run in step 2, see 4) (commit after 6938089b, "46: save-time measurement").
-   - `mod/src/gametest/java/dev/aresos/test/SaveTimesClientGameTest.java`, after `SaveNowClientGameTest` in the list;
-     does nothing unless `-PmeasureSaves` (`mod/build.gradle` passes `aresos.measureSaves`). Creates a flat home with
-     40 fake-helper programs (package 41's mix), closes and reopens it, saves right after joining, then twice a 60 s
-     glide (package 41's route and speed, by teleport each tick) with a save after each. Log lines "46 save time ...".
-4. **Step 2: measurement fixed and run; the saving indicator observed** (commit after c4951ef7).
-   - `SaveTimesClientGameTest`: the 40 count what is his and present (a fresh apps file's own Notepad stays his but
-     absent, so "mine" alone counted 41 and timed out); `waitForChunksRender(false)` (Fabric's plain call waits for the
-     whole square of the render distance, the server sends a round area, so at render distance 8 it never ended).
-   - `SaveNowClientGameTest` logs, without asserting, whether vanilla's "Saving world" corner text faded in during each
-     save and how long it stayed ("46 saving indicator" lines); `HudTestAccess` reads its two values.
-
-## State (for the next agent)
-
-- Finished in step 2. The full report is under "Report" below; the lead commits it as `REPORT.md`. The client runs and
-  their numbers are in the report's "Verified".
-
-## What the code doesn't show
-
-- Contract readings: the supervisor's reply to `lifecycle_hello` is unspecified, so the mod waits for nothing and
-  ignores every line that is not a `save_world` request (the real supervisor answers every line it reads, see
-  `os/config/usr/libexec/aresos-desktop` `on_peer`/`reply`). The request's `reason` is logged only; an unknown or
-  missing reason still saves. An `id` comes back exactly as sent (number or text); a request without a usable `id` is
-  ignored. Unknown ops (such as a later `prepare_stop`) get no answer: the hello's capabilities say what this mod does.
-- `ms` is the save's own time on the server thread (around `saveEverything`), not the wait before it.
-- `server_stopping` covers the whole stop (from `SERVER_STOPPING` to `SERVER_STOPPED`); after it, `no_world`. A request
-  while the world is still loading (server not yet `SERVER_STARTED`) answers `no_world`.
-- JUDGMENT-CALL candidate: `saveEverything` sets the server's "saving" flag, so vanilla's small "Saving world"
-  autosave indicator can show in the corner while the save runs, as at every vanilla autosave. Avoiding it means not
-  calling `saveEverything` (the brief names it), so it stays; say so in the report.
-- Backoff: 0.5 s doubling to 10 s; it starts over only after a connection that lasted at least 10 s, so a supervisor
-  that refuses the peer by closing at once is retried at most every 10 s. Logged only when the state changes.
-- No override variable for the lifecycle socket (the contract names none); tests construct `LifecycleClient` with a
-  path. `client-test.sh` and the 41 rig strip the launch nonce, so the mod's own lifecycle client never starts there.
-
-## Report
 
 Package 46, branch `pkg/46-save-now`: the mod saves the home world when the OS supervisor asks, over a lifecycle
 channel of its own. Builder: Claude agents on Opus (step 1, then step 2). The supervisor's side is `linux-aresos`'s
 package 25; nothing under `os/` changed.
 
-### Done
+## Done
 
 - **The lifecycle channel** (`mod/src/main/java/dev/aresos/shell/LifecycleClient.java`).
   - Connects only when the launch environment has `ARESOS_DESKTOP_LIFECYCLE=1`, to `$XDG_RUNTIME_DIR/aresos/desktop.sock`,
@@ -105,7 +45,7 @@ package 25; nothing under `os/` changed.
   - Step 2 made the measurement work: the 40 apps are counted as the town counts them, and the test waits only for the
     chunks that arrived (see PLAN-GAP). Step 2 also added the saving-indicator observation (see JUDGMENT-CALL).
 
-### Verified
+## Verified
 
 - **`mod/dev/build.sh`** (full, at ba67fed2): BUILD SUCCESSFUL in 3 min 35 s.
   - 247 unit tests: 0 failures, 6 skipped (the Windows catalogue tests, skipped on Linux as before).
@@ -142,7 +82,7 @@ package 25; nothing under `os/` changed.
   - No stale answer on a new connection; an oversized line ends the connection and the mod comes back; closing stops
     the reconnecting.
 
-### Measured save times
+## Measured save times
 
 Measured with `SaveTimesClientGameTest`, run 3. The setup:
 
@@ -164,7 +104,7 @@ Measured with `SaveTimesClientGameTest`, run 3. The setup:
   queued, for example of the chunks unloaded along the route.
 - All three are far inside the contract's deadlines (about 60 s for a backup, about 10 s at shutdown).
 
-### Not verified
+## Not verified
 
 - **Against the real supervisor:** package 25 isn't built. The real gate, socket path, peer check and deadlines are
   untested.
@@ -180,7 +120,7 @@ Measured with `SaveTimesClientGameTest`, run 3. The setup:
 - **Windows:** nothing changes there, because the gate is never set (unit test: no variable, no connection). There
   was no Windows run.
 
-### JUDGMENT-CALL
+## JUDGMENT-CALL
 
 **Vanilla's small "Saving world" text can show in the corner for a moment during a requested save.**
 
@@ -228,7 +168,7 @@ Measured with `SaveTimesClientGameTest`, run 3. The setup:
 - **Cost of changing later:** small and local either way. Only `WorldSaves` (and the options default) would change,
   with no protocol change.
 
-### PLAN-GAP
+## PLAN-GAP
 
 - **"Nothing on screen" and `saveEverything`.** The brief asks for both, and they conflict slightly, because of the
   text above. See JUDGMENT-CALL.
@@ -257,7 +197,7 @@ Measured with `SaveTimesClientGameTest`, run 3. The setup:
   It isn't flushed or forced, so it doesn't replace `save_world`. But a requested save soon after a pause has little
   left to write.
 
-### Open questions
+## Open questions
 
 - **For the owner:** keep the "Saving world" text during requested saves, as now and as the autosave shows it? My
   advice is to keep it (JUDGMENT-CALL).
