@@ -1,4 +1,183 @@
-# 18c image part: progress (Part A, step 1; B2, steps 2a to 2c; the Chrome follow-up; 18e in the VM pass; fix round 1, parts 1 and 2)
+# 18c image part: progress (Part A, step 1; B2, steps 2a to 2c; the Chrome follow-up; 18e in the VM pass; fix round 1, parts 1 and 2; the lead's merge of main)
+
+## The lead's merge of main (2026-11-16): head `a1e7aad9`
+
+The lead merged `main`; a Claude agent on Opus 5.5 recorded the runs from their logs (docs only). Commits after part
+2's `7480a027`: `69943d65` (the lead's: the control job's limit), `a1e7aad9` (the merge) and this file's commit
+(`[skip ci]`). **Final head: `a1e7aad9`.**
+
+### The merge (`a1e7aad9`, `main` at `91487807`)
+
+`main` brought the Stop hook fix #91, #89 (20-ci-noise and 18e follow-ups), #83 (Chrome qualification) and #87 (the
+qualification record from fixtures). One conflict, `control/boundary/test_interactive.py`: two unrelated new test
+classes in the same place (this branch's `RealToolResultTest`, main's `HeldStops`), both kept. No `os/` or `.github/`
+file changed (`main` changed none there since `5bb1500e`). `rebind.py pending` found no bound file changed, so
+`pending-rebind.json` is unchanged.
+
+What the merge changes in the image's Control files, from the build's own lines: Chrome's build hash `91cdfeb6…69ae5`
+→ **`8f7036e8…d385c`**; Chrome's startup files now carry **8 qualification entries** (was 0: #83's
+`qualification.json`); check 9's `managed_settings_sha256` `75c63d14…` → `96d7fdcd…` (#91's shell guard around the
+managed Stop command). Still 74 files, 28 wheels, 2024 vendored paths, 15 generated files matching.
+
+Before the merge, `69943d65` (the lead's): the job's `timeout-minutes` for `check_build=control` 127 → **131** with its
+comment, so the job can't cut a slow pass before the step's own 16 minutes (`linux-aresos`, agreed change 15);
+`rebind.py pending` recorded the workflow's new bytes. That closes part 2's first finding for the lead. Regressions-only
+run 43886300738 on it: "Ran 1717 tests in 1442.063s", "OK (skipped=4)".
+
+### Runs on the final head `a1e7aad9`
+
+| Run | Mode | Result |
+|---|---|---|
+| 43927257316 attempt 1 | `check_build=control` | **success** (below) |
+| 43927257316 attempt 2 | `check_build=control` | **success** (below) |
+| 43927263485 | `check_build=build` | **success**: job 19:56:35 to 20:52:15 UTC = 55 min 40 s, tools 13 min 37 s, build step 20:12:09 to 20:52:09 = 40 min 0 s, the Control VM step skipped as it should be; `CONTROL_CHROME_BUILD 8f7036e8…d385c`, `CONTROL_INSTALLED 74 files, 28 wheels, 2024 vendored paths from a1e7aad9…`, `CONTROL_CHROME_STARTUP_FILES build 8f7036e8…d385c, 8 qualification entries`, `CONTROL_GENERATED_MATCH 15 files`, `CONTROL_FILES_RECORDED 74 files, 2024 vendored paths, 28 wheels from a1e7aad9…`, `CHECK_BUILD_PASSED`, `CHECK_BUILD_VM_PASSED` |
+| 43965960756 | regressions only (`checks_only`) | **success**: "Ran 1717 tests in 1273.677s", "OK (skipped=4)"; the 4 skips are main's 23b cover tests again (a headless labwc, grim and GTK 4: not the hosted runner); the job 22:03:40 to 22:25:45 UTC = 22 min 5 s, and the ways-back model job green in 20 s |
+| 43927268960 | regressions only | cancelled before any job ran (below) |
+| 43927507924 | `check_build=build`, a duplicate | cancelled before any job ran (below) |
+| PR #58's workflows | Control boundary, Chrome, Chrome qualification, Repo privacy | **success** |
+| PR #58's workflows | Control base, Control Mail | **failure**: one test the merge left on the old config path (below) |
+
+**Run 43927257316 attempt 1**:
+- Times: job 18:40:31 to 19:51:45 UTC = 71 min 14 s (against 131); tools 12 min 37 s; build step 18:54:13 to 19:41:48
+  = 47 min 35 s; **Control VM step 19:41:48 to 19:51:40 = 9 min 52 s** against 16.
+- PASS lines, every one in `dada7a9b`'s order: `CLAUDE_CODE_PINNED 2.1.319 sha512-FO4Sd23B…oOQ== dabafec8…8eed`,
+  `CONTROL_CHROME_BUILD 8f7036e8…d385c`, `CONTROL_INSTALLED 74 files, 28 wheels, 2024 vendored paths from a1e7aad9…`,
+  `CONTROL_CHROME_STARTUP_FILES build 8f7036e8…d385c, 8 qualification entries`, `CONTROL_GENERATED_MATCH 15 files`,
+  `CONTROL_FILES_RECORDED`, `CHECK_BUILD_PASSED`, `CHECK_BUILD_CONTROL_DISK_READY`, `CONTROL_IMAGE_FILES_PASS`,
+  `CONTROL_ETC_CLAUDE_CODE_PASS`, `CONTROL_RELEASE_CHECKS_PASS`, `CONTROL_IDLE_FOOTPRINT_RECORDED {…}`,
+  `CONTROL_FIXTURES_REACHABLE`, `CONTROL_ENTRY_POINTS_PASS`, `CONTROL_PRECONDITION_PASS`,
+  `CONTROL_USER_MCP_INSTALL_PASS`, `CONTROL_SERVICE_SANDBOX_PASS`, `CONTROL_ORDINARY_SESSION_PASS {…}`,
+  `CONTROL_MAIL_FLOWS_PASS`, `CONTROL_PERMISSION_REQUEST_RECORDED {"normal-permission-user": {"hook_calls": 1,
+  "owner_answers": 0, "prompt_shown": false, "send_arrivals": 1}}`, `CONTROL_INTERACTIVE_ASK_PASS`,
+  `CONTROL_PASSWORDS_PRIVATE_PASS`, `CONTROL_SELINUX_AFTER_CHECKS_PASS`, `CONTROL_STORAGE_TESTS_PASS {…}`,
+  `CONTROL_SERVICE_RESTART_PASS`, `CONTROL_VM_POWEROFF_CLEAN`, `CHECK_BUILD_CONTROL_PASSED`.
+- The fixture stop step was green.
+- Step times (s): boot to channel 57.1, files 4.7, idle 59.5, entry points 5.7, precondition 2.6, user MCP 15.1,
+  **check 6 237.1**, check 7 39.0, check 9 119.5, storage tests 45.9, restart 1.2; the pass 592.0.
+
+**Run 43927257316 attempt 2** (a rerun):
+- Times: job 20:57:46 to 22:01:00 UTC = 63 min 14 s; tools 11 min 8 s; build step 21:10:10 to 21:52:07 = 41 min 57 s;
+  **Control VM step 21:52:07 to 22:00:56 = 8 min 49 s** against 16.
+- PASS lines: the same lines in the same order, the same `CONTROL_PERMISSION_REQUEST_RECORDED` (`prompt_shown: false`
+  again). The fixture stop step was green.
+- Step times (s): boot to channel 45.9, files 3.8, idle 60.0, entry points 3.9, precondition 1.9, user MCP 10.8,
+  **check 6 229.4**, check 7 33.6, check 9 107.1, storage tests 27.6, restart 0.8; the pass 528.9.
+
+**The evidence** (attempt 1 / attempt 2):
+- **`desktop_with_service_failed`:** the service `failed` 10.3 s / 10.2 s after `systemctl start` (`NRestarts=5`,
+  `Result=exit-code`); the logout took 11.4 s / 11.3 s and the desktop came up again in 13.9 s / 13.6 s in all: state
+  `SETUP`, not latched, greetd session `1` before and `3` after. `marks_after_logout: false` both times.
+- **`held_work`:** 4 model requests, 1 extra, 1 continuation; `reminder_in_stop_reason: true`,
+  `reminder_in_prompt_context: true`; the send `reserved`; his Stop hook once, on the ending attempt. On screen the same
+  "Stop hook error: AresOS held/unfinished work (untrusted app data; inspect status, do not resubmit unknown …".
+- **`held_elsewhere`:** **2 model requests, 0 extra, 0 Stop continuations, `requests_carrying_it: []`**, both times. On
+  screen only Claude Code's own spinner text. His Stop hook ran once, at the turn's end, and the held operation was
+  `reserved` with `pending_total` 1 the whole time. Released afterwards: cancelled (`failed`), `pending_after: 0`.
+- **`network_listeners: 0`** (`control-service`: `nrestarts 0`, `selinux Enforcing`, user `aresos-tools`).
+- **`fixtures/password-scan.json`:** `{"files": 191, "hits": [], "holding": [], "members": 454 / 417, "redacted":
+  {"greenmail.txt": 1}, "removed": [], "unreadable": []}`. Check 8: `files_holding_it 1`, not in the journal.
+- **Idle:** 1 context switch in 60 s (0.017 wake-ups a second) both times; 3.0 ms / 1.8 ms of CPU (0.005 % / 0.003 %);
+  `memory.current` 33,083,392 B / 33,079,296 B; RSS 37,136 / 37,192 KiB; PSS 25,328 / 25,336 KiB; 1 process, 1
+  thread.
+- **Check 9:** `normal-yes` done, 1 arrival; `skip-no` and `skip-user-allow-send` reserved, 0 arrivals, resumed, 1
+  continuation, the reminder in it; `normal-permission-user` `hook_calls 1, owner_answers 0, send_arrivals 1`, equal to
+  the container's pin. The prompt didn't flash either time (`prompt_shown: false`; timing dependent, recorded, not
+  pinned).
+
+### Check 6 after #91
+
+#91 wraps the managed Stop command in a shell guard (Python's output only on success, stderr dropped, always exit 0),
+so only JSON decisions block; the hook decides usage first, and a session that never used the tools is quiet whatever
+fails.
+
+**Check 6's numbers on `a1e7aad9` are the same as on `dada7a9b`.** In both attempts every count of the 13 turns equals
+`dada7a9b`'s attempts 2 and 3: model requests, extra replies (1 in turns 4, 8 and 12, else 0), Stop continuations, the
+notices (turns 4 and 8), his Stop hook (13 lines for 13 turns, on the ending attempt in turns 4, 8 and 12). So do
+`held_work`, `held_elsewhere`, the failed state, the logout and `marks_after_logout`. The lines on screen are word for
+word the same: "Stop hook error: AresOS tools are not running. If you prepared or sent something with them in this
+session, …" under turns 4 and 8, "Stop hook error: AresOS held/unfinished work …" under turn 12. Only times moved,
+within the spread between runs:
+
+| | `dada7a9b` attempt 2 | `dada7a9b` attempt 3 | `a1e7aad9` attempt 1 | `a1e7aad9` attempt 2 |
+|---|---|---|---|---|
+| The CLI while stopped (`service_unavailable`) | 3.28 s | 3.23 s | 3.33 s | 3.23 s |
+| The managed hooks while stopped (Stop / UserPromptSubmit; exit 0, no output) | 0.198 / 0.204 s | 0.179 / 0.181 s | 0.254 / 0.255 s | 0.176 / 0.180 s |
+| The first calls after each start (`ok`) | 0.47 to 0.53 s | 0.43 to 0.45 s | 0.57 to 0.63 s | 0.43 to 0.47 s |
+| Check 6's step | 234.5 s | 228.9 s | 237.1 s | 229.4 s |
+
+Attempt 1's slower times go with a slower runner throughout (boot to channel 57.1 s, the build 47 min 35 s); attempt 2
+is back at `dada7a9b`'s. What it shows: check 6 drives the hook's working paths, and #91's reordering and guard leave
+their outcomes unchanged; the guard passes the JSON block decisions through, since both outage notices and the
+held-work reminder still reached the model as Stop continuations and the screen. #91's failure cases (a broken
+installation, malformed input, unreadable marks) are not exercised in the VM; main's tests cover them, and one of those
+fails on this branch (next).
+
+### PR #58's Control base and Control Mail on `a1e7aad9`: one test on the old config path
+
+Both fail on a test #91 added, `test_integration.Integration.test_stop_hook_installation_failures_are_quiet`:
+
+```
+  File "/workspace/control/tests/test_integration.py", line 602, in test_stop_hook_installation_failures_are_quiet
+    original = config.read_bytes()
+FileNotFoundError: [Errno 2] No such file or directory: '/etc/aresos-control/proxy.json'
+```
+
+Line 601 is `config = Path("/etc/aresos-control/proxy.json")`, main's path. This branch moved the config to
+`/usr/share/aresos/control` (agreed change 7): `setUp` writes `/usr/share/aresos/control/proxy.json` (line 65) and the
+test after it already reads that path (line 633). The merge took #91's new test as main wrote it, with no conflict to
+show it. It is the only such config path left in `control/` (the Chrome CI `Dockerfile` still makes the empty
+`/etc/aresos-control` folder, as before the merge). The likely fix is that one line, then both workflows again;
+`control/tests/` is not among the inputs of Chrome's build hash (`control/chrome/build.py`). Nothing changed here (docs
+only); the lead decides.
+
+- **Control base** 43927243265, job `containers` ("Test inside Fedora 45 container"): "Ran 384 tests in 306.519s",
+  "FAILED (failures=1, errors=1)": the error above and one failure:
+  ```
+  FAIL: test_next_deadline_is_none_idle_and_the_earliest_open_reservation_otherwise (test_service_fixes.IdleLoop.test_next_deadline_is_none_idle_and_the_earliest_open_reservation_otherwise)
+    File "/workspace/control/tests/test_service_fixes.py", line 355, in test_next_deadline_is_none_idle_and_the_earliest_open_reservation_otherwise
+      self.assertEqual(self.engine.next_deadline(), self.expires(later))
+  AssertionError: None != 1794853599.8330402
+  ```
+  That test is 18e's (fix round 2) and the merge didn't change it. It is timing bound: `later` gets 0.6 s, `first` 0.4
+  s, then a 0.45 s sleep, so `later` has already expired when the steps between its reservation and the sleep take
+  over 0.15 s on a slow runner. The same 384 tests passed it in Control Mail's four container jobs on the same head. A
+  flake, recorded for the lead.
+- **Control Mail** 43927243311, jobs `containers (0)` to `(3)` ("Real isolated mail servers and shared base"): each
+  "Ran 384 tests", "FAILED (errors=1)", the same error; the eight `sweep` jobs green.
+
+### The cancelled runs
+
+The OS image workflow's concurrency (`os-image-${{ github.ref }}`, `cancel-in-progress: false`) lets one run go and one
+wait per branch; a newer waiting run displaces the older one. The lead's parallel dispatches (18:17 to 18:19 UTC)
+displaced each other:
+- 43927268960 (regressions only, dispatched 18:17:30) was cancelled at 18:18:53, two seconds after 43927507924 was
+  dispatched;
+- 43927507924 (a duplicate `check_build=build`, dispatched 18:18:51) was cancelled at 19:22:45 (the API doesn't say
+  what cancelled it then; no run of the workflow was dispatched at that time).
+
+Neither started a job, so neither is a failure. The regressions run was dispatched again as 43965960756 after the
+control rerun.
+
+### Done
+
+`check_build=control` green twice on the final head `a1e7aad9` (run 43927257316, attempts 1 and 2) and
+`check_build=build` green once (run 43927263485); regressions only green (run 43965960756: 1717 tests, "OK
+(skipped=4)"). **Not green on `a1e7aad9`:** Control base and
+Control Mail (the test above). Only this file changed after `a1e7aad9`.
+
+### Left, in order
+
+1. The Control base and Control Mail failure above (found while recording; the lead decides the fix, likely one line in
+   `control/tests/test_integration.py`), then both workflows again on the new head.
+2. The astra reviews (Codex `gpt-6-astra`; Tue 2026-11-17, from 10:56) on head `a1e7aad9` or later.
+3. `linux-aresos` reads the `os/` diff (agreed change 16; asked 2026-11-16). The section at the end is up to date:
+   `69943d65`'s limit is in, and the merge changed nothing under `os/` or `.github/`.
+4. The lead assembles `reviews/18c-image-test/REPORT.md` (Part A, "For the report: B2", "Chrome follow-up", "18e in the
+   VM pass", JUDGMENT-CALLs 1 to 28 and the findings; B2's block names `dada7a9b`'s runs, and this section gives the
+   same lines on `a1e7aad9`) and merges. The owner gets the JUDGMENT-CALLs and the release question (agreed change 10)
+   with check 6's numbers. Chrome's new build hash for `control/chrome/builds.json` and brief 18c-b:
+   `8f7036e891737457fcd14cfc680b9c5cb8f42d5a593ba7a0ff64e880668d385c`.
+5. The last step deletes this file.
 
 ## Fix round 1, part 2 (2026-11-16, Claude agent on Opus 5.5)
 
@@ -91,7 +270,7 @@ The first green pass took **10 min 31 s** (16 is 1.52 times that).
 | 43860697438 | `checks_only` | **success**: "Ran 1717 tests in 1858.481s", "OK (skipped=4)". The 4 skips are main's 23b cover tests (a headless labwc, grim and GTK 4: not the hosted runner); the job took 31 min 37 s |
 | 43860663005 attempt 2 | `check_build=control` | **success** (below) |
 | 43870759807 | `check_build=build` | **success**: job 14:00:13 to 14:24:44 UTC = 24 min 31 s, build step 14:12:16 to 14:24:38 = 12 min 22 s, the Control VM step skipped as it should be; `CONTROL_CHROME_BUILD 91cdfeb6…69ae5`, `CONTROL_INSTALLED 74 files, 28 wheels, 2024 vendored paths from dada7a9b…`, `CONTROL_CHROME_STARTUP_FILES build 91cdfeb6…69ae5, 0 qualification entries`, `CONTROL_GENERATED_MATCH 15 files`, `CONTROL_FILES_RECORDED 74 files, 2024 vendored paths, 28 wheels from dada7a9b…`, `CHECK_BUILD_PASSED`, `CHECK_BUILD_VM_PASSED` |
-| 43860663005 attempt 3 | `check_build=control` | **still running at handback** (started after the build run, about 14:25 UTC); the lead or the next step reads it and fills in the lines marked "attempt 3" |
+| 43860663005 attempt 3 | `check_build=control` | **success** (below; started after the build run, at 14:25 UTC) |
 | PR #58's workflows | Control base, boundary, Mail, Chrome, Chrome qualification, Repo privacy | all **success** |
 
 **Run 43860663005 attempt 2**:
@@ -113,6 +292,18 @@ The first green pass took **10 min 31 s** (16 is 1.52 times that).
 - Step times (s): boot to channel 53.7, files 5.2, idle 59.2, entry points 5.1, precondition 2.4, user MCP 13.5,
   **check 6 234.5** (was 163.1 to 165.6), check 7 44.8, check 9 128.9, storage tests 76.8, restart 1.8; the pass
   630.9.
+
+**Run 43860663005 attempt 3** (recorded after the handback, from the run's log):
+- Times: job 14:25:14 to 15:23:27 UTC = 58 min 13 s; tools 7 min 15 s; build step 14:33:37 to 15:14:32 = 40 min 55 s;
+  **Control VM step 15:14:32 to 15:23:23 = 8 min 51 s** against 16.
+- PASS lines: the same lines in the same order as attempt 2, with the same `CLAUDE_CODE_PINNED 2.1.319
+  sha512-FO4Sd23B…oOQ== dabafec8…8eed`, `CONTROL_CHROME_BUILD 91cdfeb6…69ae5`, `CONTROL_INSTALLED 74 files, 28 wheels,
+  2024 vendored paths from dada7a9b…`, `CONTROL_CHROME_STARTUP_FILES build 91cdfeb6…69ae5, 0 qualification entries`
+  and `CONTROL_PERMISSION_REQUEST_RECORDED {"normal-permission-user": {"hook_calls": 1, "owner_answers": 0,
+  "prompt_shown": true, "send_arrivals": 1}}`, ending in `CONTROL_VM_POWEROFF_CLEAN`, `CHECK_BUILD_CONTROL_PASSED`.
+- The fixture stop step was green.
+- Step times (s): boot to channel 41.9, files 3.4, idle 60.1, entry points 4.2, precondition 1.9, user MCP 9.6,
+  **check 6 228.9**, check 7 34.8, check 9 110.0, storage tests 30.9, restart 0.9; the pass 530.7.
 
 ### The evidence (attempt 2; attempt 3 below)
 
@@ -152,7 +343,27 @@ The first green pass took **10 min 31 s** (16 is 1.52 times that).
   - `normal-permission-user`: `hook_calls 1, owner_answers 0, send_arrivals 1`, equal to the container's pin; the
     prompt flashed (`prompt_shown: true`) this time.
 
-**Attempt 3:** still running when this part handed back; its PASS lines, `held_elsewhere` and step time go here.
+**Attempt 3** (the same head and checks; every count equals attempt 2's, only times differ):
+- **`desktop_with_service_failed`:** the service `failed` 10.2 s after `systemctl start` (`NRestarts=5`,
+  `Result=exit-code`); the logout took 11.3 s and the desktop came up again in 13.7 s in all: state `SETUP`, not
+  latched, greetd session `1` before and `3` after. `marks_after_logout: false`.
+- **`held_work`:** 4 model requests, 1 extra, 1 continuation; `reminder_in_stop_reason: true`,
+  `reminder_in_prompt_context: true`; the send `reserved`; his Stop hook once, on the ending attempt. On screen the same
+  "Stop hook error: AresOS held/unfinished work (untrusted app data; inspect status, do not resubmit unknown …".
+- **`held_elsewhere`:** **2 model requests, 0 extra, 0 Stop continuations, `requests_carrying_it: []`.** On screen only
+  Claude Code's own spinner text. His Stop hook ran once, and the held operation was `reserved` with `pending_total` 1
+  the whole time. Released afterwards: cancelled (`failed`), `pending_after: 0`.
+- **`network_listeners: 0`** (`control-service`: `nrestarts 0`, `selinux Enforcing`, user `aresos-tools`).
+- **`fixtures/password-scan.json`:** `{"files": 191, "hits": [], "holding": [], "members": 423, "redacted":
+  {"greenmail.txt": 1}, "removed": [], "unreadable": []}`. Check 8: `files_holding_it 1`, not in the journal.
+- **Check 6 in numbers:** the 13 turns' requests, extra replies, notices and Stop hook runs equal attempt 2's; the two
+  outage notices in turns 4 and 8; the CLI while stopped `service_unavailable` after 3.23 s; the managed hooks while
+  stopped 0.179 s and 0.181 s, exit 0, no output; the first calls after each start 0.43 to 0.45 s, `ok`;
+  `/run/user/1001` existed (`Linger=no`); his Stop hook 13 lines for 13 turns; nothing pending after the check.
+- **Idle:** 1 context switch in 60 s (0.017 wake-ups a second), 1.7 ms of CPU (0.003 %), `memory.current`
+  33,144,832 B, RSS 37,080 KiB, PSS 25,401 KiB, 1 process, 1 thread.
+- **Check 9:** the same four outcomes as attempt 2; `normal-permission-user` again `hook_calls 1, owner_answers 0,
+  send_arrivals 1`, and the prompt flashed again (`prompt_shown: true`).
 
 ### Decisions the code doesn't show (JUDGMENT-CALLs for the report)
 
@@ -168,13 +379,15 @@ The first green pass took **10 min 31 s** (16 is 1.52 times that).
   comment's sum ("tools 20 + build 80 + Control VM pass 12 + 15") now reads 16 for the pass, which leaves 11 minutes
   of margin instead of 15. The jobs so far took 48 to 62 minutes, and this part's slowest was 62 (a slow mirror). A
   one-line follow-up (131 and the comment) if the lead wants the sum kept, with `rebind.py pending` and
-  `linux-aresos` told.
+  `linux-aresos` told. (Done by the lead in `69943d65`: 131; see the merge section at the top.)
 - **The snapshot mirror failed once** (attempt 1: 500/502/503 on every index for about 2.5 minutes). In attempt 2 the
   tools step took 16 min 31 s against its 20 (the mirror was slow but answered).
 - **New Chrome build hash `91cdfeb6…69ae5`** (main's 18e fix round 2 changed `control/`), for
   `control/chrome/builds.json` and brief 18c-b, which still names `ccd0fd79…ce15`.
 
 ### Left, in order
+
+**Superseded by "Left, in order" in the merge section at the top.** Kept for the record.
 
 1. `linux-aresos` reads the `os/` diff (agreed change 16; the section at the end is up to date with this part).
 2. Astra's review (Codex `gpt-6-astra`) before the merge.
@@ -1040,14 +1253,14 @@ one send.
 managed ask interactively in normal mode: the prompt may flash, nobody answers, the send goes out once. That is the
 accepted residual, and it equals the container's pin for that case. **run** 43860663005 (the final head `dada7a9b`,
 attempts 2 and 3), `CONTROL_PERMISSION_REQUEST_RECORDED {"normal-permission-user": {"hook_calls": 1,
-"owner_answers": 0, "prompt_shown": true, "send_arrivals": 1}}` (attempt 2; attempt 3: still running at handback). The managed-level and skip-mode
+"owner_answers": 0, "prompt_shown": true, "send_arrivals": 1}}` (attempts 2 and 3 alike). The managed-level and skip-mode
 variants are proven in the container only (B1's pin: all four approve, one send each); the VM doesn't edit the
 managed files. Without such a hook the ask asked every time, also in skip-permissions mode and with his user allow
 rule for the send. B1 found the container's result equal to 18d's print-mode approval on 2.1.319 (**read**
 `REPORT.md`, run 43444623151); the VM case agrees with both. The prompt's flash is timing dependent (B1) and is
-recorded, not pinned: the VM caught it in runs 43572578699, 43577034725 and 43860663005 attempt 2 (`prompt_shown:
-true`), not in the Chrome follow-up's runs or in run 43687234953 (`false`). The hook's outcome (one send, no answer
-of his) was the same in every run.
+recorded, not pinned: the VM caught it in runs 43572578699, 43577034725 and 43860663005 attempts 2 and 3
+(`prompt_shown: true`), not in the Chrome follow-up's runs, in run 43687234953 or in run 43927257316 attempts 1 and 2
+on the merge head `a1e7aad9` (`false`). The hook's outcome (one send, no answer of his) was the same in every run.
 
 **Done.** B2's checks 1 to 9 except the Chrome lines and `gh` (moved to 18c-b), as actions of the Control test layer
 (`os/ci/control/`), run by `check_build=control` in its own workflow step after the build; the fixture servers
@@ -1065,8 +1278,8 @@ produced; the driver is B1's as merged.
 `CONTROL_PASSWORDS_PRIVATE_PASS` (check 8), `CONTROL_SELINUX_AFTER_CHECKS_PASS` (check 2's scan again),
 `CONTROL_STORAGE_TESTS_PASS` (Chrome's storage plan on the image's Python and SQLite), `CONTROL_SERVICE_RESTART_PASS`,
 `CONTROL_VM_POWEROFF_CLEAN`, `CHECK_BUILD_CONTROL_PASSED`; the fixture stop step's leak scan
-(`fixtures/password-scan.json`: 191 evidence files and 464 archive members searched, GreenMail's log redacted once,
-nothing else held the password). Check 2 found no listening network socket (`network_listeners: 0`).
+(`fixtures/password-scan.json`: 191 evidence files and 464 archive members searched in attempt 2, 423 in attempt 3,
+GreenMail's log redacted once, nothing else held the password). Check 2 found no listening network socket (`network_listeners: 0`).
 `check_build=build` on the same head: run 43870759807 (`CHECK_BUILD_PASSED`, `CHECK_BUILD_VM_PASSED`); `checks_only`:
 run 43860697438 (1717 tests OK). Evidence: the `check-build-evidence` artifact of the last attempt (3 days; a rerun
 hides the earlier attempt's).
@@ -1104,7 +1317,10 @@ model double's string results (step 2b).
 **Measured times** (run 43860663005 attempt 2, the final head): tools 16 min 31 s (a slow mirror), build to disk
 33 min 16 s, Control VM step 10 min 31 s against its 16 (boot to channel 53.7 s, the pass 630.9 s: idle 59.2, check 6
 234.5, check 9 128.9, storage tests 76.8, check 7 44.8, user MCP 13.5, the rest under 6 s each); the job 62 min 4 s.
-Attempt 3: still running at handback. Earlier (run 43577034725, before Chrome, 18e and fix round 1): VM step 6 min 13 s, job 48 min 19 s.
+Attempt 3: tools 7 min 15 s, build to disk 40 min 55 s, Control VM step 8 min 51 s (boot to channel 41.9 s, the pass
+530.7 s: idle 60.1, check 6 228.9, check 9 110.0, check 7 34.8, storage tests 30.9, user MCP 9.6, the rest under 5 s
+each); the job 58 min 13 s. Earlier (run 43577034725, before Chrome, 18e and fix round 1): VM step 6 min 13 s, job 48
+min 19 s.
 
 ## Chrome follow-up (after PR #27; 2026-11-15)
 
@@ -1548,7 +1764,9 @@ follow-up and before the reviews (Codex from 2026-11-17).
 Against `origin/main` (`5bb1500e`, merged in fix round 1 part 2 as `e00bf60f`); brought up to date in the Chrome
 follow-up, after the 18e merge `86ad8e12` (2026-11-15; 18e changes only `control/`, nothing under `os/`), in fix round 1
 (2026-11-16: CI-only files and `check-image.sh`, nothing in the image) and in its part 2 (the merge, the VM step's
-limit, check 6's wording; nothing in the image). Image side first, then CI only.
+limit, check 6's wording; nothing in the image). The lead's merge of `main` at `91487807` (`a1e7aad9`, 2026-11-16)
+changed no file under `os/` or `.github/`: `main` changed none there since `5bb1500e`, so this diff stands against
+`91487807` too. Image side first, then CI only.
 
 - `os/Containerfile`: the aresos stage copies `/source/control` from the existing source stage and runs `build.sh
   control` before `configure`; `FROM` lines and the other stages unchanged.
@@ -1569,11 +1787,12 @@ limit, check 6's wording; nothing in the image). Image side first, then CI only.
   expects `control/` beside `mod/`, JUDGMENT-CALL 6).
 - CI only, never in a release:
   - `.github/workflows/os-image.yml` (`check-build` job only, no new permission or secret): `check_build` gains
-    `control`; the job's limit is `${{ inputs.check_build == 'control' && 127 || 120 }}`; two steps run only for
+    `control`; the job's limit is `${{ inputs.check_build == 'control' && 131 || 120 }}`; two steps run only for
     `control`: "Control VM pass" (`check-build.sh control-pass`, `timeout-minutes: 16` since fix round 1 part 2;
     the first pass took 10 min 31 s) and an `always()` step stopping the fixture servers (`runner.sh stop`). The
-    build step keeps its 80 minutes for every mode. Five commits, each its own (`1ee81d1b`, `0af04070`, `2d1ad22f`,
-    `4cf908a2`, `284eb1bb`), each recorded with `rebind.py pending`.
+    build step keeps its 80 minutes for every mode. Six commits, each its own (`1ee81d1b`, `0af04070`, `2d1ad22f`,
+    `4cf908a2`, `284eb1bb`, and the lead's `69943d65`: the job's limit for `control` 127 → 131, so it can't cut a
+    slow pass before the step's own 16), each recorded with `rebind.py pending`.
   - `os/manifest/ci/16/pending-rebind.json`: the workflow's bytes wait for the next rehearsal; after main's 22c
     rehearsal, and again after 22d's (fix round 1 part 2: main's list taken, then `rebind.py pending`), the merge
     re-recorded 18c's notes (those bindings don't include them).
