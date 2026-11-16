@@ -85,7 +85,14 @@ public final class WorldSaves implements LifecycleClient.Game {
         }
         try {
             server.executeIfPossible(() -> {
-                var saved = run(server, starting, result);
+                Saved saved;
+                try {
+                    saved = run(server, starting, result);
+                } catch (RuntimeException error) {
+                    // Every request gets its answer, whatever went wrong before the save.
+                    AresOs.LOGGER.error("The save the AresOS supervisor asked for failed before it began", error);
+                    saved = Saved.refused("error");
+                }
                 if (saved != null) result.complete(saved);
             });
         } catch (RejectedExecutionException stopped) {
