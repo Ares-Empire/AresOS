@@ -7,9 +7,10 @@
 #
 #   shots.sh picture <page and options> <picture.png>          e.g. 'street/index.html?apps=24&still=1'
 #   shots.sh measure <page and options> [seconds to watch]     prints one JSON line (about:blank: the bare engine)
-#   shots.sh all [start of a name]                              the pictures in ../pictures ("all day-": the day set)
-#   shots.sh check                                              keys and clicks on each page, and Night street's
-#                                                               own check (a removed app, a group past 16)
+#   shots.sh all [start of a name]                              the pictures in ../pictures ("all day2-": the day set)
+#   shots.sh check                                              keys and clicks on each page, Night street's own
+#                                                               check (a removed app, a group past 16), and for
+#                                                               the day look its grid and that it rests still
 #
 # PKG44_RENDERER=pixman draws in software; unset, the compositor uses the laptop's graphics chip.
 # PKG44_ACCEL=never makes the engine draw the page in software too.
@@ -57,17 +58,30 @@ map-4-forty-apps     map/index.html?apps=40&$base&$lit
 console-1-home       console/index.html?apps=24&$base&$lit
 console-2-finding    console/index.html?apps=24&$base&$lit&q=tool
 console-3-opened     console/index.html?apps=24&$base&run=test-tool-3&open=test-web-2&winx=120&winy=420
-day-1-home           street/index.html?apps=24&$base&$lit&look=day
-day-2-finding        street/index.html?apps=24&$base&$lit&q=tool&look=day
-day-4-opened         street/index.html?apps=24&$base&run=test-tool-3&open=test-web-2&winx=1010&winy=330&look=day
-day-6-forty-apps     street/index.html?apps=40&$base&$lit&look=day
+day2-1-home          street/index.html?apps=24&$base&$lit&look=day
+day2-2-finding       street/index.html?apps=24&$base&$lit&q=tool&look=day
+day2-4-opened        street/index.html?apps=24&$base&run=test-tool-3&open=test-web-2&winx=1010&winy=330&look=day
+day2-5-day-one       street/index.html?apps=5&$base&run=test-web-1&look=day
+day2-6-forty-apps    street/index.html?apps=40&$base&$lit&look=day
+day2-8-forty-five-apps street/index.html?apps=45&$base&$lit&look=day
+day2-alt-home        street/index.html?apps=24&$base&$lit&look=day&ground=plain
 LIST
+    # The four day-* pictures in ../pictures show the day look's first form (commit e488ff72: a horizon at a fixed
+    # height, roads as long as their houses). They are kept for comparison and are no longer made here.
     ;;
 check)
     for page in street map console; do inside "$page/index.html?apps=24" check 1 0; done
     inside 'street/index.html?apps=45&hole=test-web-1' check-street 1 0
     # The day look is the same page with one class: the same two checks must pass on it.
     inside 'street/index.html?apps=24&look=day' check 1 0
-    inside 'street/index.html?apps=45&hole=test-web-1&look=day' check-street 1 0 ;;
+    inside 'street/index.html?apps=45&hole=test-web-1&look=day' check-street 1 0
+    # The day's grid (equal roads, one lattice of columns, the same plots on every street): on a town of one app,
+    # of 24, of 45 with a group of 20 (its street slides and stays on the lattice), and on the day's other ground.
+    inside 'street/index.html?apps=5&hole=test-web-2,test-game-1,test-tool-1,test-tool-2&look=day' check-grid 1 0
+    inside 'street/index.html?apps=24&look=day' check-grid 1 0
+    inside 'street/index.html?apps=45&hole=test-web-1&look=day' check-grid-long 1 0
+    inside 'street/index.html?apps=24&look=day&ground=plain' check-grid 1 0
+    # At rest by day no animation runs and nothing in the page changes (a fixed clock; watched for 13 seconds).
+    inside 'street/index.html?apps=40&run=test-web-2,test-tool-3&time=14:32&look=day' check-rest 1 0 ;;
 *) sed -n '2,15p' "$0"; exit 2 ;;
 esac

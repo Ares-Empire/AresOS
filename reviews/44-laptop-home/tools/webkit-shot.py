@@ -9,12 +9,16 @@ the memory and processor time of this program and every process the engine start
 Run it through shots.sh, which gives it a headless compositor of its own. It refuses to start on a display it
 was not given by that script, so it can never open a window in the owner's session.
 
-    webkit-shot.py <page address> <picture.png | - | check | check-street> [seconds to settle] [seconds to watch]
+    webkit-shot.py <page address> <picture.png | - | a check's name> [seconds to settle] [seconds to watch]
 
 With "check" it takes no picture: it sends the page the keys and clicks a person would (typing a name, Enter,
 a hotbar key, a click on a logo, the arrow keys, Escape) and prints what the page did and what was expected.
 "check-street" is Night street's own check, on a town with a removed app and a group past 16: a free place
 moves no other house, and a house beyond the screen's edge slides into view when he types its name.
+"check-grid" is the day look's own check: the four streets share one grid (equal roads from edge to edge, every
+house on one lattice of columns, the same plots on every street); "check-grid-long" also slides a street that is
+longer than the screen and looks again. "check-rest" watches a page at rest for 13 seconds: no animation runs and
+nothing in the page changes (give the page a fixed clock with &time=).
 """
 import json
 import os
@@ -82,6 +86,73 @@ return JSON.stringify(got);
 EXPECTED_STREET = {'hole_moves_nothing': True, 'web_2_stays_right': 'R', 'web_3_stays_left': 'L',
                    'far_house_out_of_view': True, 'end_sign_counts': '‹ 2 2 ›', 'typing_finds_it': 'test-tool-19',
                    'its_street_slides_it_into_view': True, 'other_streets_stay': True, 'escape_brings_it_back': True}
+
+
+# The day look's grid, on any day page. Everything is read from the page as it is drawn: the roads' and houses'
+# boxes on the screen, and where each street's row of plots starts and ends.
+CHECK_GRID = """
+const key = k => document.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true }));
+const wait = ms => new Promise(done => setTimeout(done, ms));
+const streets = [...document.querySelectorAll('.street')];
+const px = name => parseFloat(getComputedStyle(streets[0]).getPropertyValue(name));
+const pitch = px('--pitch'), cell = px('--cell'), house = 12 * cell, margin = Math.floor(cell / 2);
+const whole = n => ((n % pitch) + pitch) % pitch === 0;
+const houses = () => [...document.querySelectorAll('.house')];
+const onOneLattice = () => { const xs = houses().map(el => Math.round(el.getBoundingClientRect().left));
+  return xs.length > 0 && xs.every(x => whole(x - xs[0])); };
+const got = {};
+got.streets = streets.length;
+const tops = streets.map(s => s.getBoundingClientRect().top);
+got.streets_equally_far_apart = tops.every((t, i) => i === 0 || t - tops[i - 1] === tops[1] - tops[0]);
+const roads = [...document.querySelectorAll('.road')].map(r => r.getBoundingClientRect());
+got.roads = roads.length;
+got.roads_equal_and_edge_to_edge = roads.every(r => r.left === 0 && r.right === innerWidth && r.height === roads[0].height);
+got.houses_on_one_lattice = onOneLattice();
+const plots = side => streets.map(s => s.querySelector('.plots-' + side));
+const start = el => parseFloat(el.style.left), end = el => start(el) + parseFloat(el.style.width);
+const count = el => Number(el.dataset.n);
+const cols = Math.min(...['L', 'R'].flatMap(side => plots(side).map(count)));
+got.every_street_has_the_grid_columns = ['L', 'R'].every(side => plots(side).every(el => count(el) >= cols))
+  && plots('L').every(el => end(el) === end(plots('L')[0])) && plots('R').every(el => start(el) === start(plots('R')[0]))
+  && innerWidth - end(plots('L')[0]) === start(plots('R')[0]);
+const outer = start(plots('R')[0]) + margin + (cols - 1) * pitch + house;
+got.the_grid_fills_the_screen = outer <= innerWidth - 40 && outer + pitch > innerWidth - 40;
+got.every_house_stands_on_a_plot = houses().every(el => {
+  const x = parseFloat(el.style.left), row = el.closest('.street').querySelector(x < innerWidth / 2 ? '.plots-L' : '.plots-R');
+  return whole(x - margin - start(row)) && x - margin >= start(row) && x + house + margin <= end(row); });
+got.long_street_slides_on_the_lattice = null;
+const far = document.querySelector('.house[data-app="test-tool-19"]');
+if (far) {
+  for (const k of 'tool19') key(k);
+  await wait(700);
+  const box = far.getBoundingClientRect();
+  got.long_street_slides_on_the_lattice = box.left >= 0 && box.right <= innerWidth && onOneLattice();
+  key('Escape');
+  await wait(700);
+}
+return JSON.stringify(got);
+"""
+EXPECTED_GRID = {'streets': 4, 'streets_equally_far_apart': True, 'roads': 4, 'roads_equal_and_edge_to_edge': True,
+                 'houses_on_one_lattice': True, 'every_street_has_the_grid_columns': True,
+                 'the_grid_fills_the_screen': True, 'every_house_stands_on_a_plot': True,
+                 'long_street_slides_on_the_lattice': None}
+
+# A page at rest: nothing in it may move or change. The page gets a fixed clock (&time=), so not even the minute.
+CHECK_REST = """
+const wait = ms => new Promise(done => setTimeout(done, ms));
+let changes = 0;
+new MutationObserver(list => { changes += list.length; }).observe(document.documentElement,
+  { subtree: true, childList: true, attributes: true, characterData: true });
+await wait(13000);
+return JSON.stringify({ animations_running: document.getAnimations().filter(a => a.playState === 'running').length,
+  page_changes: changes });
+"""
+EXPECTED_REST = {'animations_running': 0, 'page_changes': 0}
+
+CHECKS = {'check': (CHECK, EXPECTED), 'check-street': (CHECK_STREET, EXPECTED_STREET),
+          'check-grid': (CHECK_GRID, EXPECTED_GRID),
+          'check-grid-long': (CHECK_GRID, {**EXPECTED_GRID, 'long_street_slides_on_the_lattice': True}),
+          'check-rest': (CHECK_REST, EXPECTED_REST)}
 
 
 def descendants(root):
@@ -212,7 +283,7 @@ def main():
             result['_before'] = {'at': time.monotonic(), 'processes': measure()}
             GLib.timeout_add(int(watch * 1000), finish)
 
-        expected = EXPECTED_STREET if picture == 'check-street' else EXPECTED
+        script, expected = CHECKS.get(picture, (None, None))
 
         def checked(view, answer):
             got = json.loads(view.call_async_javascript_function_finish(answer).to_string())
@@ -222,8 +293,7 @@ def main():
             app.quit()
 
         def settled():
-            if picture in ('check', 'check-street'):
-                script = CHECK_STREET if picture == 'check-street' else CHECK
+            if script:
                 view.call_async_javascript_function(script, -1, None, None, None, None, checked)
             elif picture == '-':
                 watched()
