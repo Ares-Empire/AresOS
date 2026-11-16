@@ -77,6 +77,10 @@ def summarize(root):
     store=json.loads((root/'latency-store.json').read_text())['directories']
     for directory in STORE:
         assert store[directory]['fstype']=='tmpfs','The store was not on a tmpfs: '+directory+' is on '+store[directory]['fstype']
+        # The end record is written after the service stops, only once the
+        # mount is found unchanged; without it that check didn't run.
+        used=store[directory].get('used_bytes_end')
+        assert type(used) is int and used>=0,'The store has no end-of-run record: '+directory
     for (sample,call,stage),duration in internal.items():stages[(phases[sample],call,stage)].append(duration)
     for row in rows:
         service=internal.get((row['sample'],row['call'],'service_total'))

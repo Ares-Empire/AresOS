@@ -1076,7 +1076,10 @@ class SocketStart(unittest.TestCase):
         return found
 
     def test_the_final_path_appears_only_with_its_mode_and_listening(self):
-        from aresos_control.daemon import Daemon, SOCKET_MODES
+        from aresos_control.daemon import Daemon
+        # The modes as written here, not daemon.py's own table, so a change to that table fails (recheck 2's nit):
+        # owner and Chrome connect to act and chrome, admin is root's alone.
+        modes = {'act': 0o666, 'admin': 0o600, 'chrome': 0o666}
         for name in ('state', 'independent'):
             (self.root / name).mkdir()
         steps = []
@@ -1096,8 +1099,8 @@ class SocketStart(unittest.TestCase):
         self.assertEqual([step for step, _ in steps if step in {'bind', 'listen'}], ['bind', 'listen'] * 3)
         for step, found in steps:
             for kind, seen in found.items():
-                self.assertEqual(seen, (SOCKET_MODES[kind], True), (step, kind))
-        self.assertEqual(self.found(), {kind: (mode, True) for kind, mode in SOCKET_MODES.items()})
+                self.assertEqual(seen, (modes[kind], True), (step, kind))
+        self.assertEqual(self.found(), {kind: (mode, True) for kind, mode in modes.items()})
         self.assertEqual(sorted(path.name for path in self.sockets.iterdir()), ['act.sock', 'admin.sock', 'chrome.sock'])
 
     def stale(self, name):
