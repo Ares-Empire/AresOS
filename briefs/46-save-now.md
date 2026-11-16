@@ -18,7 +18,7 @@ The mod has no channel to the supervisor today. The app helper's status pipe run
 - **Joining:** a request may join a save that has not yet started on the server thread. A request that arrives after a save began gets one follow-up save, which all later requests join. So at most one save runs and one waits, and "saved" always covers everything up to the request.
 - **Timeout and failure:** the mod never aborts a running save; the supervisor owns the deadline (about 60 s for a backup, maybe 10 s or less at shutdown). No answer by the deadline counts as a failure on the supervisor's side.
 - **Not in this package:** B1's `prepare_stop` (a clean close, the real JVM exit, the world lock released) stays package 25's second step after `save_world`. Don't build it.
-- **Connection life:** reconnect if the supervisor's socket goes away and comes back, with a backoff, quietly (a log line, no chat). A mod in a world that isn't a desktop world still answers `not_desktop_world`.
+- **Connection life:** reconnect if the supervisor's socket goes away and comes back, with a backoff, quietly (a log line, no chat), and only while the gate is set. Every reconnect starts with a fresh `lifecycle_hello`, so the supervisor checks the peer again (`linux-aresos`, 2026-11-16). A mod in a world that isn't a desktop world still answers `not_desktop_world`.
 
 ## Tests and measurement
 
