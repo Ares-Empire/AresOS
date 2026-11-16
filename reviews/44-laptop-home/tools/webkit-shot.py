@@ -100,6 +100,21 @@ def measure():
     return [p for p in map(process, descendants(os.getpid())) if p]
 
 
+def drawing_libraries():
+    """Which graphics libraries this program and the engine's processes loaded: says who drew (a chip or software)."""
+    found = set()
+    for pid in descendants(os.getpid()):
+        try:
+            with open(f'/proc/{pid}/maps') as handle:
+                for line in handle:
+                    name = line.rsplit('/', 1)[-1].strip()
+                    if any(word in name for word in ('nvidia', 'gallium', '_dri.so', 'LLVM', 'vulkan')):
+                        found.add(name.split('.so')[0])
+        except OSError:
+            pass
+    return sorted(found)
+
+
 def main():
     if len(sys.argv) < 3:
         sys.exit(__doc__)
@@ -123,6 +138,7 @@ def main():
         result['processes'] = [{k: p[k] for k in ('name', 'pss_kib', 'rss_kib', 'anon_kib')} for p in after]
         result['pss_mib'] = round(sum(p['pss_kib'] for p in after) / 1024, 1)
         result['rss_mib'] = round(sum(p['rss_kib'] for p in after) / 1024, 1)
+        result['drawing_libraries'] = drawing_libraries()
         if watch:
             before = result.pop('_before')
             spent = sum(p['cpu_s'] for p in after) - sum(p['cpu_s'] for p in before['processes'])
