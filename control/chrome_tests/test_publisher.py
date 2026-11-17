@@ -87,7 +87,8 @@ class Publisher(unittest.TestCase):
         result=subprocess.run([sys.executable,str(ROOT/'control/chrome/qualify.py'),'publish'],cwd=ROOT,capture_output=True,text=True,env={'GITHUB_REF':'refs/heads/pkg/20-chrome','GITHUB_REPOSITORY':qualify.REPOSITORY})
         self.assertNotEqual(result.returncode,0);self.assertIn('restricted',result.stderr)
         runner=Mock(return_value=Mock(stdout=''))
-        qualify.notify(None,False,runner);self.assertEqual(runner.call_count,2)
+        with patch.dict(qualify.os.environ,GITHUB_RUN_ID='fixture'):qualify.notify(None,False,runner)
+        self.assertEqual(runner.call_count,2)
         self.assertEqual(runner.call_args.args[0][:3],['gh','issue','create'])
         with tempfile.TemporaryDirectory(dir=ROOT/'.work/20-chrome') as temporary:
             path=Path(temporary)/'record.json';failed=entry();failed['core']['binding']=False
@@ -139,7 +140,8 @@ class Publisher(unittest.TestCase):
                     self.assertEqual(calls[-1][:2],['issue','create'])
         def refused(command,**options):
             raise subprocess.CalledProcessError(1,command,stderr='HTTP 403: Resource not accessible by integration\n')
-        try:qualify.notify(None,False,refused)
+        try:
+            with patch.dict(qualify.os.environ,GITHUB_RUN_ID='7'):qualify.notify(None,False,refused)
         except BaseException as error:caught=error
         else:caught=None
         self.assertIsInstance(caught,SystemExit)
@@ -184,16 +186,18 @@ class Publisher(unittest.TestCase):
             self.assertNotIn(['issue','comment','11'],[call[:3] for call in calls])
             self.assertFalse(any(call[0]=='api' and call[3].endswith('/issues/11/comments') for call in calls))
             self.assertIn(['issue','comment','12'],[call[:3] for call in calls])
-            # Without a run ID notify can't tell this run's entries apart: it refuses before
-            # any GitHub call rather than report the whole record.
+            # Without a run ID notify can't tell this run's entries apart, nor link the run whose
+            # publication was refused: on both paths it refuses before any GitHub call, rather
+            # than report the whole record or open an issue that links to no run.
             path.write_text(json.dumps({'format':1,'entries':[earlier,current]}))
             for missing in [None,'']:
-                with self.subTest(run_id=missing), patch.dict(qualify.os.environ,GITHUB_RUN_ID='unset'):
-                    if missing is None:del qualify.os.environ['GITHUB_RUN_ID']
-                    else:qualify.os.environ['GITHUB_RUN_ID']=missing
-                    run,calls=recording()
-                    with self.assertRaises(SystemExit) as refusal:qualify.notify(path,True,run)
-                    self.assertIn('GITHUB_RUN_ID',str(refusal.exception));self.assertEqual(calls,[])
+                for published in [True,False]:
+                    with self.subTest(run_id=missing,published=published), patch.dict(qualify.os.environ,GITHUB_RUN_ID='unset'):
+                        if missing is None:del qualify.os.environ['GITHUB_RUN_ID']
+                        else:qualify.os.environ['GITHUB_RUN_ID']=missing
+                        run,calls=recording()
+                        with self.assertRaises(SystemExit) as refusal:qualify.notify(path,published,run)
+                        self.assertIn('GITHUB_RUN_ID',str(refusal.exception));self.assertEqual(calls,[])
 
     def test_missing_repeat_or_missing_group_never_qualifies(self):
         with tempfile.TemporaryDirectory(dir=ROOT/'.work/20-chrome') as temporary:
@@ -476,14 +480,17 @@ class Publisher(unittest.TestCase):
             before=qualify.git(remote,'rev-parse','chrome-qualification')
             runner=Mock(return_value=Mock(stdout=''))
             try:qualify.prepare(seed,[],baseline,Mock(side_effect=Refused('qualification_invalid','Unsigned fixture')))
-            except Refused:qualify.notify(None,False,runner)
+            except Refused:
+                # Main's notify step, where GitHub sets the run ID.
+                with patch.dict(qualify.os.environ,GITHUB_RUN_ID='fixture'):qualify.notify(None,False,runner)
             else:self.fail('Unsigned publication accepted')
             self.assertEqual(runner.call_count,2);self.assertEqual(runner.call_args.args[0][:3],['gh','issue','create'])
             self.assertEqual(qualify.git(remote,'rev-parse','chrome-qualification'),before)
             # A valid signature cannot waive the shipped append-only baseline.
             path.write_text(json.dumps({'format':1,'entries':[]}));runner.reset_mock()
             try:qualify.prepare(seed,[],baseline,Mock())
-            except Refused:qualify.notify(None,False,runner)
+            except Refused:
+                with patch.dict(qualify.os.environ,GITHUB_RUN_ID='fixture'):qualify.notify(None,False,runner)
             else:self.fail('Rollback publication accepted')
             self.assertEqual(runner.call_count,2)
             self.assertEqual(qualify.git(remote,'rev-parse','chrome-qualification'),before)

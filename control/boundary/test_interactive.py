@@ -197,5 +197,105 @@ class Evidence(unittest.TestCase):
                 check_case_evidence(case, row, {})
 
 
+class HeldStops(unittest.TestCase):
+    """The held-work cases (lead, 2026-11-16): a session that used the tools hears of held work once, as a JSON
+    decision, and its continuation then stops; a session that never used them hears nothing."""
+    def test_one_block_then_a_stop_passes_and_anything_else_fails(self):
+        from interactive_suite import HELD_WORK, check_held_stops
+        operation = HELD_WORK['items'][0]['operation_id']
+        block = json.dumps({'decision': 'block', 'reason': 'AresOS held/unfinished work (untrusted app data): '
+                            + json.dumps(HELD_WORK)}) + '\n'
+        told = [{'step': 0, 'messages': [{'role': 'user', 'content': 'Stop hook feedback: ' + operation}]}]
+        check_held_stops(1, [block, '{}\n'], told)
+        check_held_stops(0, [''], [])
+        check_held_stops(0, ['', ''], [])
+        for blocks, outputs, continuations in ((1, [block, block], told), (1, [block, '{}\n'], told * 2),
+                                               (1, [block, '{}\n'], []), (1, ['', '{}\n'], []), (1, [block], told),
+                                               (1, [block, ''], told), (1, ['{}\n', '{}\n'], []),
+                                               (1, [block, '{}\n'], [{'step': 0, 'messages': []}]),
+                                               (0, [block], []), (0, ['{}\n'], []), (0, [''], told), (0, [], [])):
+            with self.subTest(blocks=blocks, outputs=outputs, continuations=continuations), \
+                    self.assertRaises(AssertionError):
+                check_held_stops(blocks, outputs, continuations)
+
+
+class ProcessChains(unittest.TestCase):
+    """Brief 18e, item 6: each hook's session (its nearest ancestor that isn't a shell) is the MCP server's parent."""
+    def write(self, folder, name, chain):
+        (folder / name).write_text(json.dumps([{'pid': pid, 'start': start, 'comm': comm}
+                                               for pid, start, comm in chain]))
+
+    def recorded(self, folder):
+        # As run 43680998223 recorded them under dash: Stop one shell down, UserPromptSubmit three. Since the Stop
+        # command got the prompt command's shell guard (lead, 2026-11-16), Stop's chain has the prompt's shape.
+        self.write(folder, 'mcp-30.json', [(30, 9, 'python3'), (20, 5, 'claude'), (19, 4, 'sh')])
+        self.write(folder, 'hook-Stop-40.json', [(40, 11, 'python3'), (35, 10, 'sh'), (20, 5, 'claude'), (19, 4, 'sh')])
+        self.write(folder, 'hook-UserPromptSubmit-52.json',
+                   [(52, 13, 'python3'), (51, 12, 'sh'), (50, 12, 'sh'), (20, 5, 'claude'), (19, 4, 'sh')])
+
+    def test_common_claude_process_passes_and_a_stranger_or_reused_pid_fails(self):
+        import process_chain
+        with tempfile.TemporaryDirectory() as raw:
+            folder = Path(raw)
+            self.recorded(folder)
+            chains = process_chain.check(folder)
+            self.assertEqual(process_chain.summary(chains)['stop'], ['python3:40 <- sh:35 <- claude:20 <- sh:19'])
+            self.assertEqual(process_chain.summary(chains)['prompt'],
+                             ['python3:52 <- sh:51 <- sh:50 <- claude:20 <- sh:19'])
+            # Same pid, other start time: a reused pid is not the same process.
+            for kind in ('Stop', 'UserPromptSubmit'):
+                with self.subTest(kind=kind):
+                    self.write(folder, f'hook-{kind}-41.json', [(41, 12, 'python3'), (20, 6, 'claude')])
+                    with self.assertRaises(AssertionError):
+                        process_chain.check(folder)
+                    (folder / f'hook-{kind}-41.json').unlink()
+            # Beyond four levels does not count, even through shells only.
+            self.write(folder, 'hook-UserPromptSubmit-42.json', [(42, 1, 'python3'), (43, 1, 'sh'), (44, 1, 'sh'),
+                                                                 (45, 1, 'sh'), (46, 1, 'sh'), (20, 5, 'claude')])
+            with self.assertRaises(AssertionError):
+                process_chain.check(folder)
+            (folder / 'hook-UserPromptSubmit-42.json').unlink()
+            process_chain.check(folder)
+
+    def test_the_session_is_the_nearest_process_that_isnt_a_shell(self):
+        import process_chain
+        with tempfile.TemporaryDirectory() as raw:
+            folder = Path(raw)
+            self.recorded(folder)
+            # A wrapper that isn't a shell between Claude Code and the hook is taken as the session: that fails.
+            self.write(folder, 'hook-Stop-43.json', [(43, 11, 'python3'), (36, 10, 'timeout'), (20, 5, 'claude')])
+            with self.assertRaises(AssertionError):
+                process_chain.check(folder)
+            (folder / 'hook-Stop-43.json').unlink()
+            # A nested `claude -p` (from the first session's Bash tool) is its own session, never its parent's.
+            self.write(folder, 'hook-Stop-44.json', [(44, 11, 'python3'), (37, 10, 'sh'), (60, 8, 'claude'),
+                                                     (59, 7, 'bash'), (20, 5, 'claude')])
+            with self.assertRaises(AssertionError):
+                process_chain.check(folder)
+            self.write(folder, 'mcp-61.json', [(61, 9, 'python3'), (60, 8, 'claude')])
+            process_chain.check(folder)
+            self.assertEqual(process_chain.session(json.loads((folder / 'hook-Stop-44.json').read_text())), (60, 8))
+
+    def test_used_marks_must_match_the_tool_calls(self):
+        import process_chain
+        stop = lambda used: [{'pid': 40, 'start': 1, 'comm': 'python3', 'used': used}]
+        self.assertEqual(process_chain.check_used({'stop': [stop(True), stop(False)]}, 1), [True, False])
+        self.assertEqual(process_chain.check_used({'stop': [stop(False)]}, 0), [False])
+        for chains, arrivals in (({'stop': [stop(False)]}, 1), ({'stop': [stop(True)]}, 0), ({'stop': [stop(None)]}, 0)):
+            with self.assertRaises(AssertionError):
+                process_chain.check_used(chains, arrivals)
+
+    def test_nothing_recorded_fails(self):
+        import process_chain
+        with tempfile.TemporaryDirectory() as raw:
+            folder = Path(raw)
+            with self.assertRaises(AssertionError):
+                process_chain.check(folder)
+            self.recorded(folder)
+            (folder / 'hook-UserPromptSubmit-52.json').unlink()
+            with self.assertRaises(AssertionError):
+                process_chain.check(folder)  # no prompt chain recorded
+
+
 if __name__ == '__main__':
     unittest.main()
