@@ -79,6 +79,14 @@ B.3 to B.6, the walk's install stage, its expected lines (`Tools updated from ve
   (`MUST_NOT_WAIT`; 22d's REPORT, open questions). R28's payload (history, `release.json`, the fingerprint) is such
   a change, so those rows move on first (22d's after the owner's session), or the test fails on step 5's commit.
 
+### Verified on the merged head (step 3)
+
+Each module alone, bytecode off, after the owner-tools checks (`pgrep` for `ksshaskpass` and the tools' window)
+printed nothing: `test_release28` 59 OK (its real-branch source check against the new merge base `66bc606e`: only
+the jar pin differs), `test_checkout_sources` 8 OK, `test_tools_local_wiring` 42 OK, `test_release27` 41 OK,
+`test_release_squash_binding` 7 OK (it runs `verify_release.py`), `test_owner_step_limits` 4 OK,
+`test_owner_equality` 11 OK (90 s; not run in step 1), and `test_owner_update`'s same-version test alone, OK.
+
 ### For the builder who continues (what the code doesn't show)
 
 - `tools_local.rehearsal`'s start (`owner_vm.laptop_update`) reads R27 as `os/manifest/release.json` and asserts the
