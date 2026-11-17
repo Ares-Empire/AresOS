@@ -2,6 +2,232 @@
 
 Builder steps keep this file; the last step turns it into the report. Newest state first.
 
+## Step 13b (2026-11-17, Codex gpt-6.1-sol): remaining browser reads and tab-reference cleanup
+
+**Partial: the final CI round reaches H1, then refuses its Unicode before the role assertions.** The later cases
+are built and registered but are not verified by that run. The two-round stop rule leaves the continuation first
+under "Left"; no JSON guard or hostile string was weakened to get past the refusal.
+
+### Done
+
+- **Fetched first; no merge.** Started at `9c298708`; fetched `origin/main` at `a2d9b6ee` and left it unmerged.
+  `git diff --name-only HEAD...origin/main` restricted to this step's changed paths found no overlap. No main,
+  workflow, tool definition, generated file, instruction text, OS or mod change.
+- **Closed-tab cleanup** (`ecbc318b`, [adapter.py](../../control/aresos_control/chrome/adapter.py)). `forget_tab` calls the existing `References.close` only if a
+  table already exists. It runs on a current-session `released` event with an integer tab id and on confirmed
+  `close_tab`/`release_tab` replies. The table's counter is untouched. Source paths traced: tool close calls
+  `release` before removing the tab; `removedTab` releases an owner-closed controlled tab; `release` also releases
+  controlled children and emits their events; Stop, exclusion/group/window changes and debugger detach all end
+  control through release. No new extension event or instruction was needed. Duplicate event/reply cleanup is safe.
+  An old-session event does not discard a current table; a refused close without a release keeps its entries.
+- **23 new named browser cases** (`7deeb8d1`, corrected by `35193bd9`), each in `SUPPORT` and the independent literal inventory in
+  `verdicts.test.mjs`. `shards.mjs` includes `outline-asking.mjs`; no new shard or verdict group. The new cases
+  are reported at the end of core, following brief 20's cases. The two envelope fixtures execute earlier, while
+  the pending page is fresh; their exact success or failure is deferred to that final inventory check. The
+  asking cases use the unchanged PR #27 tools.
+  - **Paging, five names:** 100,000 characters by `ref` at max 1,000 (joined exact text, progress, mid-line flags,
+    whole escapes and query refusals); a table row of two 3,000-character cells; a value of exactly 20,000
+    characters including quotes, backslashes and non-ASCII; non-ASCII and quote pages with pending operations and
+    both version notices, measured as real ASCII JSON within 48 KiB; five such tabs with equal byte shares,
+    independent cursors, and complete continuation in individual calls. The common pager checks every page's
+    character count, maximum, stable total, progress, escapes and joined length; every read checks the wire bound
+    and the absence of base shortening.
+  - **State token, three names:** a change solely inside a cross-site frame changes the token while the top
+    document stays; 100 real `page_state` polls of unchanged F7 keep the token; `until` meets text while another
+    node changes every 25 ms, with tokens moving before and after the result. The existing root-only CI `hold`
+    hook calls the real bridge command and records results in `/out/outline-read/bridge.jsonl`.
+  - **H1, four names (blocked in CI):** built assertions for hostile role attributes and their tag fallbacks;
+    all 14 hostile strings in names, values,
+    selected option labels, table headers/cells, field titles/errors, hidden field names, lists, ancestor paths,
+    stale-reference present lines, tab titles and native dialog text; a name of exactly 100,000 characters,
+    folded then returned whole over max-1,000 pages; the 100,000-element page's 20,000-node cap and 80,001 omissions.
+    Refusals pin the existing fixed sentence. The new surfaces page is H1 `mode=surfaces`. The name fixture now
+    ends in `!`, so accessible-name whitespace normalization cannot make its 100,000 characters into 99,999.
+  - **Expected outlines, one name (unreached on this head):** comparisons for the folded F1 and F3 outlines,
+    F6, F7 page 1 and the address fixture, from
+    green run `44106253829`, attempt 1,
+    artifact `control-chrome-44106253829-1-policy-core`, `/out/outline-read/calls.jsonl`. Stored under
+    `control/chrome/ci/outline-expected/` with provenance. Only short-reference identities are normalized by order
+    of appearance (including repeated-identity equality); every other character is compared exactly.
+  - **Taken-tab asking reads, ten names (unreached on this head):** assertions that normal/full/ref/find and brief
+    20's read withhold text/search/email and
+    textarea values and report nine filled fields; approval returns exactly the ten prepared fields including
+    the empty one, as untrusted content; credential-named, password-labelled and masked fields remain excluded;
+    refusal, replay and the next fresh question; separately, added fields, same-label replacement, relabelling,
+    duplicate-labelled swaps, unlabelled swaps, frame navigation with top document unchanged, password type,
+    masking, and altered question/list. Failed preparations return no values and getter recordings are scanned
+    for any unapproved value. A successful approved read proves that the getter recorder covers these pages.
+    Evidence is `/out/outline-read/asking.jsonl`; each owner-opened page is taken and read before any reload.
+
+Code commits: `ecbc318b` (cleanup and its four adapter tests in
+[test_outline_action.py](../../control/chrome_tests/test_outline_action.py)), `7deeb8d1` (the browser cases and
+initial green snapshots), `35193bd9` (the envelope precondition, deferred evidence, raw JSON byte counts, remaining
+snapshots and assertion corrections). The closing progress commit is documentation only, with `[skip ci]`;
+`35193bd9` is the tested code head.
+
+### The mutation checks
+
+- **Local Python, temporary monkeypatches, restored automatically:** replacing `Chrome.forget_tab` with a no-op,
+  and replacing `References.close` with a no-op. Each makes the new adapter close/release and extension-event
+  tests fail in three places (tool close, tool release, extension release), with no errors. These are the named
+  mutations that would leave cleanup out. The normal tests prove entries disappear from both indexes, the
+  counter stays and then advances, another tab survives, and every old string is still refused with exactly
+  `stale_reference` and the existing message after fresh references are issued for that tab.
+- **No deliberately broken extension run in Chrome.** The browser cases are CI evidence; the mutations are local
+  adapter/table tests. Node regressions cover fixture stress sizes, compilation, ASCII-byte measurement,
+  escaping and snapshot provenance, plus independent named-case completeness.
+- **Deferred checks fail closed, local Node:** the early fixture executes once; other cases are untouched.
+  Failed, missing, duplicate and non-boolean early evidence must fail its later named inventory check. A passing
+  result is reported without re-executing a fixture against the later pending history. This is a regression
+  test, not a deliberately broken browser run.
+
+### Runs
+
+- **Local:** portable Node v22.15.0 already verified and retained by step 13a, reused from `.work/step13a/`.
+  `.work/step13a/node-v22.15.0-linux-x64/bin/node --test control/chrome_tests/*.test.mjs`: **487 pass, 0 fail**, no
+  skips, 32.585 seconds. `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/chrome_tests python3 -m unittest
+  test_outline_action test_view_references test_view_paging test_view_hostile test_questions test_efficiency
+  test_credentials`: **134 tests, OK**, 28.693 seconds. The synthetic efficiency module prints missing-row `MISS`
+  lines deliberately; its instruction count remains **4,093**. `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control
+  python3 control/generate.py --check`: **Generated artifacts match definitions**. Both new browser modules'
+  `node --check` and `git diff --check`: exit 0. The four cleanup tests also passed alone (**4 tests, OK**).
+- **After the correction:** the full Node command again: **488 pass, 0 fail**, no skips, 32.696 seconds.
+  The fixture and independent-inventory modules alone: **16 pass**, 0.121 seconds. `node --check` on
+  `browser.mjs`, `outline-read.mjs` and `outline-asking.mjs`, and `git diff --check`: exit 0. No Python runtime
+  changed after the 134-test run. A local renderer probe also matched the exact long-text, long-value, wide-row
+  and long-name strings; it did not run Chrome. The pure question formatter probe printed two `"Same"` labels
+  with separate `e1`/`e2` identities (the PLAN-GAP below).
+- **CI:** watched both workflows with `gh run watch <id> --exit-status --interval 60`. Both rounds are complete.
+  No workflow dispatch or rerun. Stopped at the two-round limit, with the code head still red; no third code
+  push, removed hostile string or weakened assertion. The closing report-only commit uses `[skip ci]`.
+
+| Round / code head | Control Chrome | Qualification | Result |
+|---|---|---|---|
+| 1 / `7deeb8d1` | [44123321410](https://github.com/Ares-Empire/AresOS/actions/runs/44123321410) | [44123321554](https://github.com/Ares-Empire/AresOS/actions/runs/44123321554) | **Red, my fixture setup:** 24/28 and 30/34 green. Both core shards and both qualification core pairs fail the envelope case; both aggregates/combines then fail. Every other job passes. No flaky rerun. |
+| 2 / `35193bd9` | [44137741775](https://github.com/Ares-Empire/AresOS/actions/runs/44137741775) | [44137741815](https://github.com/Ares-Empire/AresOS/actions/runs/44137741815) | **Red, H1 at the private JSON boundary:** 24/28 and 30/34 green. Both core shards and both qualification core pairs refuse H1 before its role assertions; both aggregates/combines then fail. Every other job passes. No flaky rerun or third round. |
+
+Round 1 passes the three new text/value/row paging cases in all four core jobs. The next case's first Unicode
+result carries both notices and is 46,385 bytes as ASCII JSON, but its first pending page holds five older failed
+operations; the new reservation sits beyond it in a 163-row list. The remaining new cases are not evidence from
+round 1. `35193bd9` fixes the setup by executing the two envelope fixtures before crash history accumulates,
+retains the live-reservation assertion and strengthens it to the exact operation id on every page, then reports
+that real early outcome at the end of core. It also captures raw socket JSON bytes before parsing, so measurement
+cannot lose number formatting or escapes. No production pending order or result is substituted.
+
+**Round 2, all four core logs:** the five new paging cases and all three new state-token cases pass. That includes
+both early envelope executions and their later mandatory inventory checks, the exact live pending reservation,
+both notices, and raw-byte bounds. All four then fail in `open Hostile text`, before any hostile-role assertion,
+with `invalid_input`: "Malformed, oversized or deeply nested JSON, repeated fields, invalid UTF-8/Unicode and
+out-of-range numbers are refused; send one unchanged JSON request." The caller's request is ordinary; the failure
+arises while handling the page reply. The pure local strict-JSON probe identifies the lone surrogate as the likely
+cause (PLAN-GAP below). No H1 role/text success, snapshot comparison, or new taken-tab asking-read success is
+claimed. The service/Chrome/connection/capacity/retake cases from 13a pass again before this point.
+
+### Left, in order
+
+1. **H1's reader/bridge Unicode boundary, then the fifteen blocked new cases.** The default H1 page contains
+   string 13's lone `0xd800` surrogate. The real bridge refuses the reply before the service can quote it; the
+   local strict-JSON probe reproduces that refusal for string 13 alone. Keep the strict guard and the hostile
+   case. Decide how this page data crosses the private wire safely, and add a regression that crosses that
+   boundary rather than supplying a node list directly. Then verify the four H1 cases (roles; every text
+   surface; 100,000-character name; 100,000-element cap), the five stored-outline comparisons, and all ten
+   taken-tab asking-read cases. The existing `unreadMatrix` cases after the read matrix are also not reached on
+   this head; step 13a's green run is earlier-head evidence only.
+2. **Asking-question descriptions:** resolve the duplicate-label PLAN-GAP with the asking-read owner. The new
+   swap case checks distinct bound identities, not distinct human descriptions in the question sentence. That
+   stronger sentence of the brief remains unverified; this step leaves the frozen asking path unchanged.
+3. **Step 14:** the final green run's latency comparison into `efficiency-baseline.json`, `HARNESS-MAP.md`,
+   `KNOWN-LIMITS.md`, the report, and green twice on the final head. Carry forward steps 6/7/12/13a's mapping notes
+   and this step's notes below. This step does not claim the final-head double green or freeze a new latency row.
+
+### What the code doesn't show
+
+- All browser evidence uses disposable CI profiles and synthetic fixtures. No Chrome window or input, boot tool,
+  mount, sudo, OS test or Gradle ran on the laptop. The CI owner channel already uses privilege inside its
+  disposable container; this step reuses it. No process was stopped by a name pattern.
+- A failing case ends its core shard, as before; cases after that failure are not evidence from that run.
+- The local Node and Python full suites briefly overlapped; both completed. Subsequent local checks ran one
+  suite at a time. No heavy browser or mod build ran locally.
+- Getter recording is expected to be empty for some refused reads: listing and comparing field identities need
+  no value getter. The successful approved read is the recorder's positive control.
+- **The new asking cases have not run on the final head:** their assertions and recorder control are code, not
+  browser evidence. The H1 failure stops the matrix before them. The same is true of the stored-outline case
+  and the H1 cases after the first one.
+- The pending list is ordered oldest first. The envelope fixtures now run after the startup/time checks and
+  before the old browser matrices, with failure retained in `/out/outline-read/envelope-cases.json`. The late
+  named checks require exactly one successful execution each; they cannot turn an early failure into a pass.
+- Chrome can normalize native tab titles and dialog metadata. Those two escaping assertions compare the
+  service's text with the escaped raw `tab_context`/`dialog_facts` metadata. DOM names, values, cells, labels and
+  hidden names are checked against the fixture strings (with the reader's whitespace rule where applicable).
+- An accessible name of 100,000 characters must end in something other than whitespace to survive the reader's
+  documented whitespace normalization. The fixture change preserves the stress size.
+- **Closing scan:** no file under `.work/` exceeds 500 MB. Removed this step's two downloaded artifact trees
+  after extracting evidence (173,876,839 and 194,884,969 bytes). Largest remaining file: the reused Node binary,
+  121,236,344 bytes. Small local logs, run metadata and probe scripts remain in `.work/step13b/`.
+
+### JUDGMENT-CALLs
+
+1. **End of control counts as gone for the reference table.** The brief says to drop closed tabs but does not name
+   release events. Narrow reading chosen: only a current-session release event or a confirmed close/release reply
+   discards that tab. Release disposes its reader, so all of those references are already unusable. Rejected
+   guessing from a missing list page, a timeout or a generic refusal: none proves a tab or reader is gone.
+   Changing this later costs the event/reply checks and their tests; no persisted format or counter changes.
+2. **Snapshot comparison normalizes reference identity only.** Random process prefixes and the shared increasing
+   counter cannot be frozen. Rejected hardcoding a process's random references, and snapshots invented from
+   renderer doubles. Changing this costs the small normalization helper and the five files, with new browser
+   provenance. The page text and outline syntax stay exact.
+
+### PLAN-GAPs
+
+- **Step 13a's closed-tab retention gap is wired closed** by the adapter paths above. No counter reset, new
+  refusal wording or instruction text. Local tests inspect both in-memory indexes; no live memory measurement.
+- **Pending pagination and `find` name cuts matter to the harness:** older pending operations can precede a new
+  approval, and the accepted path renderer cuts each ancestor name at 24 characters before the total path's
+  80-character bound. New assertions must test those actual contracts without changing them.
+- **H1's lone surrogate cannot cross the current strict JSON boundary.** The browser run refuses before any
+  hostile-role assertion. A local `strict_json_loads(json.dumps({'nodes': [{'name': value}]}))` probe over all
+  fourteen fixture strings accepts thirteen and refuses index 13 with `invalid_input`, identifying its lone
+  `0xd800`. This is the likely cause of the browser refusal; no raw rejected message was captured to identify
+  which audited/reply surface arrived first. The pure renderer/VM tests bypass that boundary, which is why
+  their green results did not expose it. A wire-safe representation needs a follow-up; neither removing the
+  hostile string nor relaxing the shared Unicode guard is a valid green fix.
+- **Duplicate labels in the asking question:** the unchanged asking path writes the same label twice in its
+  question text. Its prepared description distinguishes the two element identities and swapping them refuses.
+  The new case checks that identity binding; it does not demonstrate two distinct human descriptions in the
+  question sentence. The brief's stronger wording should go to the asking-read owner, not be fixed inside this
+  package's frozen asking path.
+- `origin/main` remains ahead and unmerged; its changes do not overlap this step's changed files.
+
+### For `HARNESS-MAP.md`
+
+- No brief 20 assertion or placement changes in this step. Added 23 `SUPPORT` names and the same independently
+  written names in `verdicts.test.mjs`; its source inventory and `shards.mjs` add `outline-asking.mjs`. The user
+  explicitly requested every 13b case in `SUPPORT`, including the asking cases; older group 7 cases stay in group
+  7. Every new case gates all core/adapter verdicts through support completeness.
+- `matrices.mjs` passes fixture helpers to the read matrix and calls the asking matrix after the unread matrix.
+  New `outline-fixtures.mjs` pages reuse `fixture.mjs`'s change channel; child frame requests keep the parent's
+  channel alive. H1's extra mode and non-whitespace name ending affect synthetic fixtures only.
+- Two new envelope fixtures execute early in `browser.mjs`; `deferredOutlineCheck` reports their recorded outcome
+  through their original late `check` calls. No brief 20 case moved and no assertion was weakened. The raw byte
+  count is non-enumerable RPC metadata (`rpc-result.mjs`), absent from tool results and their ordinary JSON logs.
+- The wire checks retain the exact socket JSON byte count before parsing, including pending and notices, and
+  reject base shortening; the five-tab case continues each cursor in its own ordinary tool call. Snapshots carry
+  run/attempt/artifact/call provenance in `outline-expected/source.json`.
+
+### Known limits found
+
+- **Found, not accepted as a limit: an unpaired Unicode surrogate on H1 prevents the entire read.** Harm: a
+  hostile page can make the read refuse rather than show safely escaped text. No secret disclosure or unasked
+  action was demonstrated. This misses the brief's H1 acceptance and stays in "Left" for the next step.
+- **The cleanup cannot run on an event the service never receives.** A confirmed tool reply also clears entries;
+  if connection loss hides both, entries may remain until the extension session changes or the service restarts.
+  The per-tab bound does not bound how many former tabs can remain after lost events. No new stale-reference
+  acceptance was found; generic read failures are deliberately not treated as proof of close.
+- Carry forward step 13a's native 1 MiB reader-reply limit, the reference-eviction cursor limit, the probabilistic
+  service prefix, and the stopped unread-form behavior. The new H1 cap case is a compact page, not evidence that
+  20,000 verbose controls fit the native host.
+
+
 ## The lead after step 12 (2026-11-17)
 
 - **Accepted:** JUDGMENT-CALLs 1-7 and PLAN-GAPs 1 and 3. JUDGMENT-CALL 3 holds only while the switch exists in the
