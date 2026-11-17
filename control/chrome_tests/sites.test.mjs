@@ -27,6 +27,7 @@ test('actual extension confirmation handler compares each field and consumes a m
       dialogs:new Map(),dialogOpenings:new WeakMap(),dialogTargets:new WeakMap(),preloadTargets:new Map(),targetKey:()=>'',armDialog:async()=>({nonce:'barrier',ready:Promise.resolve(),frames:[],owner:{hold:{}}}),finishFrames:async()=>false,controlled:new Map([[7,{epoch:'epoch',inputNonce:'nonce'}]]),dialogInputs:new WeakMap(),confirmationPlans:new Map([[7,plan]]),
       privacyDocuments:new Map([['document-1','private']]),nativeDialogStarts:new Map([['[7,"document-1"]',[{kind:'confirm',document:'private'}]]]),
       cdp:async(tab,method,args)=>accepted.push({tab,method,args})});
+    vm.runInContext(source.slice(source.indexOf('function wellFormed('),source.indexOf('// Every native-host reply')),context);
     vm.runInContext(handler,context);
     await listener({tabId:7},'Page.javascriptDialogOpening',{type:'confirm',message:'Delete tag fixture-tag?',url:'http://github.test/'});
     assert.equal(accepted.length,mismatch?0:1,mismatch||'exact match');

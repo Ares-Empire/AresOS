@@ -193,6 +193,20 @@ class Lines(unittest.TestCase):
         self.assertEqual(entry, {"tab": 412, "error": {"code": "stale_reference", "message": STALE},
                                  "untrusted_content": {"line": 'p "x\\"\\u000a  button \\"Send\\" kqtvm99999"'}})
         self.assertNotIn("Send", entry["error"]["message"])
+
+    def test_step13d_repaired_stale_present_line_keeps_the_same_escaping(self):
+        text='Draft \ufffd"\nnext'
+        nodes=[node(1, 'main')]+[node(index+2, 'p', 1, text=[text]) for index in range(9)]
+        table=references()
+        fold=re.search(r'kqtvm\d+$', render(View(reply(nodes)), table).text).group()
+        moved=copy.deepcopy(nodes)
+        moved[6]['parent']=None
+        with self.assertRaises(Stale) as caught:
+            render(View(reply(moved)), table, ref=fold)
+        self.assertEqual(str(caught.exception), STALE)
+        self.assertEqual(caught.exception.line, 'p '+quoted(text))
+        self.assertIn('\ufffd', caught.exception.line)
+        self.assertNotIn('\n', caught.exception.line)
         for invented in ["kqtvm99999", text, 5, ["kqtvm1"]]:
             with self.assertRaises(Stale) as caught:
                 render(View(reply(nodes)), table, ref=invented)

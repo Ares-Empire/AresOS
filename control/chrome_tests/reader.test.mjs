@@ -664,6 +664,15 @@ test('post18d typed field additions relabelling credential changes and document 
   }
 });
 
+test('step13d reader field verification uses fresh raw private metadata, without mutating labels',()=>{
+  const label='Draft \ud800',f=fixture([{attrs:{'aria-label':label}}],{watched:false});
+  const expected=f.command({command:'typed_fields'}).data;
+  assert.equal(expected.fields[0].label,label);assert.equal(f.calls(),0);
+  const result=f.command({command:'read_typed_fields',approved:true,operation:'once',expected});
+  assert.equal(result.ok,true,JSON.stringify(result));assert.equal(f.calls(),1);
+  assert.equal(f.nodes[0].attrs['aria-label'],label);
+});
+
 test('final discard_unsaved report names fields by label, never their values, editor text or a label holding an editor',()=>{
   const secret={nodeType:3,textContent:'EDITOR-TEXT-XYZZY',parentElement:null};
   const f=fixture([{attrs:{'aria-label':'Subject'}},{attrs:{placeholder:'Say "hi"'}},{tagName:'DIV',isContentEditable:true,attrs:{role:'textbox','aria-label':'Message body'},childNodes:[secret]},

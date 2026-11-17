@@ -335,6 +335,8 @@ const audit = value => {
   if(recording && port)respond({event:'audit',data:value??null});
   return value;
 };
+// Service-held page facts bind the same repaired text that crossed the native wire.
+// Apply this to fresh comparison copies too; never change the page or internal facts.
 function wellFormed(value){
   if(typeof value==='string')return typeof value.toWellFormed==='function'?value.toWellFormed():Array.from(value,c=>c.length===1&&c.charCodeAt(0)>=0xd800&&c.charCodeAt(0)<=0xdfff?'\ufffd':c).join('');
   if(Array.isArray(value))return value.map(wellFormed);
@@ -1045,7 +1047,7 @@ async function dispatch(command,expires=null) {
   if (command.name === 'dialog') {
     const current=await requireTab(tab), dialog=await readyDialog(tab);dispatchEpoch=controlled.get(tab).epoch;
     const expected={session,tab,control:controlled.get(tab).epoch,url:current.url,...(typeof current.title==='string'?{title:current.title}:{}),...(dialog?.effective_url?{effective_url:dialog.effective_url}:{}),dialog,...(dialog?.unguarded?{answer:{accept:command.input.accept,...(command.input.text===undefined?{}:{text:command.input.text})}}:{})};
-    if(!dialog || dialog.frame === undefined || stable(expected)!==stable(command.binding))throw Error('stale_approval: dialog or its opener changed');
+    if(!dialog || dialog.frame === undefined || stable(wellFormed(expected))!==stable(command.binding))throw Error('stale_approval: dialog or its opener changed');
     safeURL(dialog.effective_url||dialog.frame_url);
     if(command.operation && used.has(command.operation))throw Error('refused: dialog operation already attempted');
     if(dialog.unguarded){
@@ -1075,7 +1077,7 @@ async function dispatch(command,expires=null) {
     if(command.approved!==true||!command.operation||used.has(command.operation))throw Error('refused: typed fields require a fresh one-call approval');
     used.add(command.operation);
     let current=await typedFacts(tab);
-    const same=()=>{if(stable(current)!==stable(command.binding))throw Error('stale_approval: typed-field list or document changed; ask again');};
+    const same=()=>{if(stable(wellFormed(current))!==stable(command.binding))throw Error('stale_approval: typed-field list or document changed; ask again');};
     same();const values=[];
     for(const frame of current.frames){
       if(!frame.fields.length)continue;
@@ -1152,12 +1154,12 @@ async function dispatch(command,expires=null) {
   let snapshot = await facts(tab,reference);
   refuseWithheldSubmission(snapshot,reference,command);
   if(snapshot.needs_reload)throw Error('stale_reference: the taken document needs its guarded reload before input; read and prepare again');
-  if (command.binding && stable(binding(snapshot,reference,command.kind,command.adapter)) !== stable(command.binding)) throw Error('stale_approval: page changed; prepare again');
+  if (command.binding && stable(wellFormed(binding(snapshot,reference,command.kind,command.adapter))) !== stable(command.binding)) throw Error('stale_approval: page changed; prepare again');
   if (command.operation && used.has(command.operation)) throw Error('refused: operation already dispatched or attempted');
   let frame = snapshot.frames.find(frame=>frame.frame === reference.frame), target = frame.target;
   if (!target) throw Error('stale_reference: read again');
   safeDestination(frame,command);
-  if (command.expected && stable(command.expected) !== stable(target)) throw Error('stale_reference: element no longer holds the expected state');
+  if (command.expected && stable(command.expected) !== stable(wellFormed(target))) throw Error('stale_reference: element no longer holds the expected state');
   if (command.operation) used.add(command.operation); // consume before any event can enter the page
   if(command.confirmation && command.operation)confirmationPlans.set(tab,{operation:command.operation,expected:command.confirmation,browser_document:frame.browser_document,matched:[]});
   const keyInput=command.input?.verb==='press'?keyboard(command.input.key):null;
@@ -1185,7 +1187,7 @@ async function dispatch(command,expires=null) {
   // Arming other frames may take time. Compare again at the actual input boundary.
   snapshot=await facts(tab,reference);
   refuseWithheldSubmission(snapshot,reference,command);
-  if(command.binding&&stable(binding(snapshot,reference,command.kind,command.adapter))!==stable(command.binding))throw Error('stale_approval: page changed during frame setup; prepare again');
+  if(command.binding&&stable(wellFormed(binding(snapshot,reference,command.kind,command.adapter)))!==stable(command.binding))throw Error('stale_approval: page changed during frame setup; prepare again');
   for(const added of snapshot.frames){
     if(armed.some(frame=>frame.frame===added.frame&&frame.document===added.document))continue;
     if(!isPreloaded(tab,added.document))throw Error('refused: a new frame has no document-start guard');
@@ -1407,7 +1409,7 @@ chrome.debugger.onEvent.addListener(async(source,method,params)=>{
     }finally{dialogOpenings.delete(dialog);finishOpening();}
     const expected=plan?.expected;
     const matched=!dialog.unguarded&&confirmationPlans.get(tab)===plan && expected && origins.length===1 && plan.browser_document===dialog.browser_document &&
-      ['kind','text','frame_url','button','frame'].every(key=>expected[key]===dialog[key]);
+      ['kind','text','frame_url','button','frame'].every(key=>expected[key]===wellFormed(dialog[key]));
     wakeDialog(tab);
     if(matched){
       // Consume before entering the page again; a nested second dialog is a new question.
