@@ -3,12 +3,18 @@ import contextlib
 import copy
 import io
 import json
+import os
 import pathlib
+import shlex
+import shutil
+import subprocess
 import sys
+import tempfile
 import unittest
 from unittest.mock import patch
 
 import test_owner_update as base
+from test_release27 import UPDATE_STUBS
 
 ROOT, owner = base.ROOT, base.owner
 NEWEST = 'sudo /var/lib/ares/at newest'
@@ -20,8 +26,65 @@ LATER = 'These tools also carry a newer version, AresOS 30. After the restart, '
 FAILED = 'The last update did not finish, so nothing changed. See Help before trying again'
 
 
+class MaskCheckMachine(base.Machine):
+    """Run update's real shell preflight against fixture units and command stubs."""
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.check_setup = None
+        self.check_calls, self.check_links = [], {}
+
+    def script(self, text, name, mutation=True):
+        if name != 'update-preflight':
+            return super().script(text, name, mutation)
+        assert not mutation
+        with tempfile.TemporaryDirectory(dir=ROOT / 'os/tests') as directory:
+            root = pathlib.Path(directory)
+            for folder in ('units', 'policy', 'bin'):
+                (root / folder).mkdir()
+            for policy in ('masked-system-units.txt', 'masked-user-units.txt'):
+                shutil.copyfile(ROOT / 'os/policy' / policy, root / 'policy' / policy)
+            for unit in owner.FINALIZERS:
+                os.symlink('/dev/null', root / 'units' / unit)
+            for file in ('calls', 'system-unmasked', 'user-unmasked'):
+                (root / file).write_text('')
+            (root / 'auth.json').write_text('{}\n')
+            (root / 'state.json').write_text(json.dumps(self.state['bootc']))
+            # Even an accidental fall-through cannot run a deployment command.
+            stubs = dict(UPDATE_STUBS, bootc='#!/bin/bash\n'
+                'printf "bootc %s\\n" "$*" >> "$FIXTURE_CALLS"\n'
+                '[[ $* == "status --json" ]] || exit 97\ncat "$FIXTURE_ROOT/state.json"\n',
+                python3='#!/bin/bash\nexec ' + shlex.quote(sys.executable) + ' "$@"\n')
+            for command, source in stubs.items():
+                (root / 'bin' / command).write_text(source)
+                (root / 'bin' / command).chmod(0o755)
+            if self.check_setup is not None:
+                self.check_setup(root)
+            before = {p.name: os.readlink(p) if p.is_symlink() else p.read_bytes()
+                      for p in (root / 'units').iterdir()}
+            for old, new in (('test -r /etc/ostree/auth.json', 'test -r "$FIXTURE_ROOT/auth.json"'),
+                             ('policy=/usr/share/aresos/policy\n', 'policy="$FIXTURE_ROOT/policy"\n'),
+                             ('units=/etc/systemd/system\n', 'units="$FIXTURE_ROOT/units"\n')):
+                assert text.count(old) == 1, old
+                text = text.replace(old, new)
+            result = subprocess.run(['bash', '--noprofile', '--norc', '-seu'], input=text, text=True,
+                capture_output=True, timeout=15, cwd=root,
+                env=dict(os.environ, PATH=str(root / 'bin') + os.pathsep + os.environ['PATH'],
+                    FIXTURE_ROOT=str(root), FIXTURE_CALLS=str(root / 'calls')))
+            self.check_calls = (root / 'calls').read_text().splitlines()
+            self.check_links = {p.name: os.readlink(p) if p.is_symlink() else p.read_bytes()
+                                for p in (root / 'units').iterdir()}
+            assert self.check_links == before, 'read-only preflight changed unit files'
+            assert not any('daemon-reload' in call or call.startswith('bootc switch') for call in self.check_calls)
+        self.trace.append(dict(script=name, mutation=False, returncode=result.returncode,
+                               stdout=result.stdout, stderr=result.stderr))
+        if result.returncode:
+            raise owner.Failed('Shared step failed: ' + name + '; preserve diagnostics and do not reboot', result.returncode)
+        return result.stdout
+
+
 @contextlib.contextmanager
 def route(*args, **kwargs):
+    kwargs.setdefault('host_class', MaskCheckMachine)
     with base.route(*args, **kwargs) as values, patch.object(owner, 'finalizer_masks', return_value=[]):
         yield values
 
@@ -227,6 +290,84 @@ class NewestTest(unittest.TestCase):
                             + NEWEST + ' installs it') if kind.startswith('newest') else LATER)
                         if kind.startswith('newest'):
                             self.call(tools, host, 'update', first='Update: installing the latest version, AresOS 30. Restart to finish')
+
+    def test_forward_closing_uses_inner_installed_set_including_already_first(self):
+        for installed_before in (False, True):
+            for already_first in (False, True):
+                before = base.machine([base.stock_row(), base.release_row(base.R21, booted=True),
+                    base.release_row(base.R30 if installed_before else base.R13)])
+                # REVIEW-5: R21 runs, stock starts next, and unbooted R13 is
+                # replaced by R30. Also exercise the inverse and already-first paths.
+                target = base.R21 if installed_before else base.R30
+                rows = [base.stock_row(), base.release_row(base.R21, booted=True),
+                    base.release_row(base.R13 if installed_before else base.R30)]
+                if already_first:
+                    rows.sort(key=lambda row: owner.image_reference(row) != target)
+                after = base.machine(rows)
+                with self.subTest(installed_before=installed_before, already_first=already_first), \
+                        route(before, base.H30, wheel=True) as (tools, host, store):
+                    original, reads = tools.survey, []
+                    def survey(*args, **kwargs):
+                        reads.append(True)
+                        if len(reads) == 2:
+                            host.state = copy.deepcopy(after)
+                        return original(*args, **kwargs)
+                    with patch.object(tools, 'survey', side_effect=survey):
+                        lines, said = self.call(tools, host, 'forward')
+                    suffix = [line for line in lines if line.startswith('These tools also carry')]
+                    if installed_before:
+                        self.assertEqual(suffix, ['These tools also carry a newer version, AresOS 30. '
+                            'No restart is needed first. The next ' + NEWEST + ' installs it'])
+                    else:
+                        self.assertEqual(suffix, [])
+                        if already_first:
+                            self.assertEqual(lines[1], 'It does not run yet: it starts at the next restart')
+                        else:
+                            self.assertEqual(said[0], 'Update: switching to the latest installed version, '
+                                'AresOS 30 (already downloaded). Restart to finish')
+                            self.assertTrue(any('is not finished until the restart' in line for line in lines))
+                    self.assertEqual(owner.image_reference(host.state['rpm']['deployments'][0]), target)
+                    if already_first:
+                        self.assertEqual(said, [])
+                        self.assertEqual(host.changes, [])
+                        self.assertFalse((store / (owner.OUTCOME + '.json')).exists())
+                    else:
+                        self.assertEqual(len(host.changes), 2)
+
+    def test_real_shell_mask_and_finalizer_refusals_precede_announcement(self):
+        def regular(root):
+            path = root / 'units' / owner.FINALIZERS[0]
+            path.unlink()
+            path.write_text('[Service]\n')
+
+        def elsewhere(root):
+            path = root / 'units' / owner.FINALIZERS[1]
+            path.unlink()
+            os.symlink('/dev/zero', path)
+
+        for kind, setup, refusal in (
+                ('system updater', lambda root: (root / 'system-unmasked').write_text('uupd.timer\n'),
+                 'STOP: updater uupd.timer is not masked'),
+                ('user updater', lambda root: (root / 'user-unmasked').write_text('flatpak-update.timer\n'),
+                 'STOP: user updater flatpak-update.timer is not masked'),
+                ('finalizer file', regular, 'STOP: ' + owner.FINALIZERS[0] + ' is neither the image'),
+                ('finalizer link', elsewhere, 'STOP: ' + owner.FINALIZERS[1] + ' is neither the image')):
+            for retry in (False, True):
+                with self.subTest(kind=kind, retry=retry), route(base.pair()) as (tools, host, store):
+                    if retry:
+                        interrupted_update(tools, host)
+                    record = (store / (owner.OUTCOME + '.json'))
+                    before = record.read_bytes() if record.exists() else None
+                    host.check_setup = setup
+                    with patch.object(tools, 'intend', wraps=tools.intend) as intend:
+                        lines, said = self.call(tools, host, 'update', stop='Shared step failed: update-preflight')
+                    self.assertEqual(said, [])
+                    self.assertEqual(tools.said, [])
+                    self.assertFalse(host.changes)
+                    intend.assert_not_called()
+                    self.assertEqual(record.read_bytes() if record.exists() else None, before)
+                    self.assertEqual([t['script'] for t in host.trace if 'script' in t], ['update-preflight'])
+                    self.assertIn(refusal, host.trace[-1]['stderr'])
 
     def test_readonly_refusals_before_announcements_and_failures_allowed_after(self):
         for kind in ('login', 'network', 'cosign', 'layout', 'busy', 'staged'):

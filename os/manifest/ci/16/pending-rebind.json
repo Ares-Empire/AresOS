@@ -12,16 +12,17 @@
     "2026-11-15, board #306 (owner: scrub current files): the owner's machine username became owner in 372 files (reviews/username-scrub/RECORD.md). Three bound files changed, text only: os/manifest/ci/14/14zze-preflight/commit-preflight.py, final-local.py and local-privacy.py (archived preflight tools). No binding table or host walk was edited.",
     "22d and 22c on the laptop (2026-11-17)",
     "50: boot-only console keymap after Plymouth; vm.py requires boot-key and forced busy-VT repair evidence in the disposable check build",
-    "43 step 1: isolated root steps, session check, newest and numbered release metadata; tools v6 payload and pins"
+    "43 step 1: isolated root steps, session check, newest and numbered release metadata; tools v6 payload and pins",
+    "43 step 1: REVIEW-5 fixes"
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
     {
-      "sha256": "2d7289f823d07db5c508eb084df02352ef270c1b4bd62ff07f0ec1e5b9d0ef8b",
+      "sha256": "4b3a6d6cd623b85e327be9c5bba9e733e267bdc7e6a14a58f6f8560a3848fa91",
       "path": "docs/EMERGENCY.md"
     },
     {
-      "sha256": "226e5875d146e4df18e1166e5bb3624408ce0be59157d68814567c93abe16b89",
+      "sha256": "8267429bc05cf31d2b4a66d55725ff5a7a188898243081740e924baac1c191f2",
       "path": "docs/INSTALL.md"
     },
     {
@@ -53,7 +54,7 @@
       "path": "os/owner-tools/at"
     },
     {
-      "sha256": "7ae462faf39e63f6de163a361a0e04dff32db772753bf6e332a0a7e834b7c4fc",
+      "sha256": "cdf2faf1c8d1388ab0cf1d16304a780b01f4994a49f02d9360e51a2c02930e7f",
       "path": "os/owner-tools/commands.json"
     },
     {
@@ -61,15 +62,15 @@
       "path": "os/owner-tools/history.json"
     },
     {
-      "sha256": "7a4b05143336dc4e42408cb8e9eb987daa104df3ddd4443e810e8cec03e5ee26",
+      "sha256": "3f3b1064fd42921733626c5849e713b4b75d806c71dba954575af64a53f39a90",
       "path": "os/owner-tools/owner.py"
     },
     {
-      "sha256": "ce46b3d83d31b8aaedb93dcc5d4759d19fa9b923b9c30443769284a5a8ec00ea",
+      "sha256": "8bdd13b27f2af3426453acd851f8fb908548791abaf9721748103a496b383620",
       "path": "os/owner-tools/payload/SHA256.json"
     },
     {
-      "sha256": "2f939db96d99de448c07fa68bec11475ffeccb1a21376fc30b2a2895dd528245",
+      "sha256": "f66fd69442857b911b81775bbc2efb3edf53648b391615b38234b2ddcea9d135",
       "path": "os/owner-tools/payload/SHA256SUMS"
     },
     {
@@ -81,7 +82,7 @@
       "path": "os/owner-tools/payload/history.json"
     },
     {
-      "sha256": "7a4b05143336dc4e42408cb8e9eb987daa104df3ddd4443e810e8cec03e5ee26",
+      "sha256": "3f3b1064fd42921733626c5849e713b4b75d806c71dba954575af64a53f39a90",
       "path": "os/owner-tools/payload/owner.py"
     },
     {

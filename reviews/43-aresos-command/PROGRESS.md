@@ -183,3 +183,79 @@ DESIGN.md's change log.
 
 No new design gap or JUDGMENT-CALL. The commit-dependent test is an environment
 limit of the requested uncommitted handoff, not a change to the agreed design.
+
+## REVIEW-5 fixes (2026-11-17)
+
+Both findings are fixed on `pkg/43-aresos-command`, starting from `1d3dd2a8`.
+Nothing was committed or pushed; the lead commits this handoff.
+
+- **Announcement order:** `os/release/update.sh:48` has a read-only `--check`
+  mode after its finalizer and system/user updater policy checks, before any
+  unmask or reload. `os/owner-tools/owner.py:1942` runs that mode before
+  `newest` announces an install or retry. The ordinary staging invocation
+  retains every check against changes during signature verification; the
+  direct `update` word keeps its existing behavior.
+- **Closing instruction:** `owner.py:1756` derives the later-install sentence
+  from the chosen operation's own validated state. `forward` passes that state
+  to the closing callback (`owner.py:2093`), including when its destination
+  already starts next. The outer survey's installed/running facts no longer
+  decide the sentence after a forward.
+- **Regressions:** `os/tests/test_owner_newest.py:29` runs the actual shell
+  preflight with fixture unit files, the real policy lists, and command stubs,
+  rather than the staging-command extraction in the older model. At `:337`,
+  four real-shell refusal cases (system updater, user updater, finalizer file,
+  finalizer link), each for a fresh install and an interrupted retry, prove
+  no announcement, verification, new intent or deployment change occurs.
+  At `:294`, four survey-change cases include REVIEW-5's exact R21-running,
+  stock-next, tools-R30 case where unbooted R13 becomes R30; its inverse and
+  both already-first paths also check the closing instruction.
+- Ran `python3 os/owner-tools/bundle.py --refresh`. It printed
+  `PASS bundle manifest SHA256 f66fd69442857b911b81775bbc2efb3edf53648b391615b38234b2ddcea9d135`.
+  Tools remain version 6. The payload is generated from its sources; every
+  active pin in `docs/OWNER-TOOLS.md`, `docs/INSTALL.md`, `docs/EMERGENCY.md`
+  and the regenerated `os/owner-tools/commands.json` moved together. The
+  historical 22d status-row pin stays unchanged.
+- Ran `PYTHONDONTWRITEBYTECODE=1 python3 reviews/27-first-update-release/rebind.py pending "43 step 1: REVIEW-5 fixes"`.
+  It printed `pending: 37 bound files differ from the active bindings, 0 removed`.
+  Before editing, the status-row gate printed `0` (no matching row).
+
+All requested modules ran one at a time with
+`PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s os/tests -p '<module>.py'`:
+
+| Module | Printed result |
+|---|---|
+| `test_owner_newest.py` | `Ran 21 tests`, `OK` |
+| `test_owner_commands.py` | `Ran 6 tests`, `OK` |
+| `test_owner_bootstrap.py` | `Ran 13 tests`, `OK` |
+| `test_owner_path.py` | `Ran 48 tests`, `OK` |
+| `test_owner_sources.py` | `Ran 13 tests`, `OK` |
+| `test_checkout_sources.py` | `Ran 8 tests`, `OK` |
+| `test_ways_back_probe.py` | `Ran 57 tests`, `OK` |
+| `test_owner_release_numbers.py` | `Ran 7 tests`, `OK` |
+| `test_owner_cwd.py` | `Ran 6 tests`, `OK` |
+| `test_owner_tools.py` | `Ran 13 tests`, `OK` |
+| `test_ways_back_compatibility.py` | `Ran 21 tests`, `OK` |
+
+The source checks also printed the successful v2/v3 recovery results at 21
+cuts for each versioned installation and 22 for each unversioned installation,
+on both source routes. Compatibility printed
+`B8: 13/13 historical shapes accepted; before-first-switch title text equal`
+and reported no deployment mutation.
+
+Two safe individual tests for the affected direct words ran separately with
+`PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=os/tests python3 -m unittest test_owner_update.<name>`;
+each printed `Ran 1 test` and `OK`:
+
+- `UpdateCommandTest.test_update_verifies_then_stages_keeping_running_release_and_pinned_stock`
+- `UpdateCommandTest.test_forward_selects_the_destination_without_network_where_update_only_names_it`
+
+`test_owner_equality` was not run: its checkout/HEAD comparison can pass only
+after the lead commits the refreshed payload and commands. Its assertions are
+unchanged. No prohibited module, whole suite, hosted dispatch, real installed
+tools entry or real deployment command ran. All machine changes were fixtures;
+there was no sudo, window or change to the laptop's system state.
+
+Final checks: `git diff --check` passed; the payload/source check printed
+`PASS payload equals sources; fingerprint f66fd69442857b911b81775bbc2efb3edf53648b391615b38234b2ddcea9d135`.
+`.work files: 0`; `.work over 500 MB: []`. No new PLAN-GAP or JUDGMENT-CALL.
+The next-merge R28 task and the later steps above remain with the lead.

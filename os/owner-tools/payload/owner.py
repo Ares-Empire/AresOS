@@ -1753,6 +1753,14 @@ class Tools:
         self.newest_say(line)
         self.newest_say('This downloads nothing and removes nothing')
 
+    def newest_later(self, state, shape, settled):
+        """The next install follows the chosen operation's read, even when already first."""
+        if self.tools_release(shape) is not None:
+            return []
+        later = ('No restart is needed first. The next ' + typed('newest') + ' installs it'
+            if shape['booted'] is newest(shape) else 'After the restart, ' + typed('newest') + ' installs it')
+        return ['These tools also carry a newer version, AresOS ' + str(self.release['number']) + '. ' + later]
+
     def newest(self):
         """D2: one choice under the caller's lock; the inner word owns every change and journal."""
         self.chosen, self.said, self.not_applied = None, [], None
@@ -1808,15 +1816,10 @@ class Tools:
                 'A newer version comes with newer owner tools after the maintainer announces it. '
                 'docs/OWNER-TOOLS.md on GitHub lists the current tools']
         if first:
-            lines = [label + ' will start next. Nothing changed', 'It is not running yet. Restart to finish']
-        else:
-            self.chosen = 'forward'
-            lines = self.forward(self.announce_forward)
-        if not installed:
-            later = ('No restart is needed first. The next ' + typed('newest') + ' installs it' if runs
-                else 'After the restart, ' + typed('newest') + ' installs it')
-            lines.append('These tools also carry a newer version, AresOS ' + str(self.release['number']) + '. ' + later)
-        return lines
+            return [label + ' will start next. Nothing changed', 'It is not running yet. Restart to finish',
+                *self.newest_later(state, shape, settled)]
+        self.chosen = 'forward'
+        return self.forward(self.announce_forward, self.newest_later)
 
     def login(self):
         # Before the first switch the stock rules apply unchanged. With an AresOS
@@ -1934,6 +1937,9 @@ class Tools:
         stored_login(target)
         require(shutil.which('cosign', path='/usr/sbin:/usr/bin:/sbin:/bin'), 'cosign is missing')
         if announce is not None:
+            text = self.render('update', {'REFERENCE': target, 'CURRENT': image_reference(booted),
+                                          'CURRENT_DIGEST': booted['container-image-reference-digest']})
+            self.host.script('set -- --check\n' + text, 'update-preflight', mutation=False)
             announce(before, shape, settled)
         self.script('verify', {'REFERENCE': target, 'IDENTITY': identity})
         # Verification takes time: every safety check again, immediately before staging.
@@ -2084,7 +2090,7 @@ class Tools:
                 'the staged update could not be removed')
         return True
 
-    def forward(self, announce=None):
+    def forward(self, announce=None, closing=None):
         """The newest installed AresOS starts next, from every system, stock included: rule 3's
         reorder, journalled and confirmed like every reorder. It never stages, downloads, removes
         or creates a deployment: no network, no login and no signature check (the release was
@@ -2092,8 +2098,9 @@ class Tools:
         state, shape, settled = self.survey()
         require(shape is not None, NOT_INSTALLED)
         target = newest(shape)
-        return self.select('forward', state, shape, settled, target,
+        lines = self.select('forward', state, shape, settled, target,
             'Newest installed AresOS starts next ' + image_reference(target), announce)
+        return [*lines, *closing(state, shape, settled)] if closing is not None else lines
 
     def previous(self):
         """The older of two installed AresOS releases starts next, from every system, stock included."""

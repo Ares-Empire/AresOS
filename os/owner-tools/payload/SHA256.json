@@ -12,7 +12,7 @@
     "path": "media.py"
   },
   {
-    "sha256": "7a4b05143336dc4e42408cb8e9eb987daa104df3ddd4443e810e8cec03e5ee26",
+    "sha256": "3f3b1064fd42921733626c5849e713b4b75d806c71dba954575af64a53f39a90",
     "path": "owner.py"
   },
   {
@@ -44,7 +44,7 @@
     "path": "release/system-keyboard.sh"
   },
   {
-    "sha256": "c4797ba213d47ddf7ce2a7570dc449d2199e29d5baa5ff0c18f1e63b6d1a872d",
+    "sha256": "3b0a43f2947ecd704a34548d84fc0ec632b94808a976ce012b0362ab9f467e18",
     "path": "release/update.sh"
   },
   {

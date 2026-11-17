@@ -43,6 +43,9 @@ while read -r unit; do
         exit 1
     fi
 done < "$policy/masked-user-units.txt"
+# newest runs these same read-only checks before announcing; staging checks
+# them again because the configuration can change during signature verification.
+if [[ ${1:-} == --check ]]; then exit 0; fi
 unmasked=()
 restore() {
     local status=$?
