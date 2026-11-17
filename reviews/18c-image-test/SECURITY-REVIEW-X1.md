@@ -5,14 +5,14 @@ No files were modified. I ran no prohibited commands or `test_owner_*` modules.
 **Independent findings**
 
 1. **Known limit — internal hook errors can still deliberately block one Stop.**  
-   Where: [hooks.py:146](/var/home/ares/AresOS-18c-image/control/aresos_control/hooks.py:146).
+   Where: [hooks.py:146](../../control/aresos_control/hooks.py#L146).
 
    Concrete case: a session previously used Control; its Stop input contains a lone Unicode surrogate in an otherwise unused field and `stop_hook_active:false`. Strict parsing fails, and the hook emits a JSON diagnostic block. The continuation with `stop_hook_active:true` is quiet. An unused session is quiet before parsing.
 
    I reproduced this in memory. It is bounded diagnostic feedback, inherited from #91, rather than the former exit-code loop. No merge fix required, but the behavior must not be described as “every internal failure is silent.”
 
 2. **Known limit — the fixed service ID still depends on deployment checks.**  
-   Where: [aresos-tools.sysusers:2](/var/home/ares/AresOS-18c-image/control/packaging/aresos-tools.sysusers:2), [release_checks.py:44](/var/home/ares/AresOS-18c-image/os/ci/control/release_checks.py:44).
+   Where: [aresos-tools.sysusers:2](../../control/packaging/aresos-tools.sysusers#L2), [release_checks.py:44](../../os/ci/control/release_checks.py#L44).
 
    If a previous deployment assigns UID/GID 250 elsewhere, sysusers can choose another number; persistent `/var` state then no longer has the intended identity relationship. The fresh-image checks cannot establish the state of every previous deployment.
 

@@ -1,14 +1,14 @@
 Reviewed `91487807...6234b916`, read-only. Four **should-fix** findings remain.
 
 1. **Should-fix — installed vendor bytes are not independently bound to the locked wheels.**  
-   Where: [os/build.sh:246](/var/home/ares/AresOS-18c-image/os/build.sh:246), [os/ci/check-image.sh:113](/var/home/ares/AresOS-18c-image/os/ci/check-image.sh:113).
+   Where: [os/build.sh:246](../../os/build.sh#L246), [os/ci/check-image.sh:113](../../os/ci/check-image.sh#L113).
 
    The build hashes whatever is present under `/usr/lib/aresos-control`; the image checks verify that self-generated inventory. Separately, they validate pip’s reported wheel hashes against `requirements.lock`. Nothing verifies that the recorded vendor files actually come from those wheels. An extra or altered file present **before manifest generation** becomes accepted inventory, including executable Python bytecode.
 
    **Fix:** independently derive the expected vendor tree from the hash-verified wheels, with explicit rules for pip-generated files and bytecode. Compare paths, content and modes. Add a regression that changes a vendor file and its manifest hash while leaving the wheel list valid.
 
 2. **Should-fix — password privacy can PASS despite incomplete scanning.**  
-   Where: [os/ci/control/actions.py:1534](/var/home/ares/AresOS-18c-image/os/ci/control/actions.py:1534).
+   Where: [os/ci/control/actions.py:1534](../../os/ci/control/actions.py#L1534).
 
    File-read errors only increment `unreadable`; directory traversal errors are silently ignored by `os.walk`. The journal export’s exit status is also ignored. The final assertion checks discovered hits, without requiring successful coverage.
 
@@ -17,7 +17,7 @@ Reviewed `91487807...6234b916`, read-only. Four **should-fix** findings remain.
    **Fix:** fail on traversal/read errors and unsuccessful journal export. Handle genuinely disappearing transient files through a narrow, recorded retry policy.
 
 3. **Should-fix — archive scanning silently accepts unsearched content.**  
-   Where: [os/ci/control/evidence_scan.py:49](/var/home/ares/AresOS-18c-image/os/ci/control/evidence_scan.py:49), [line 57](/var/home/ares/AresOS-18c-image/os/ci/control/evidence_scan.py:57).
+   Where: [os/ci/control/evidence_scan.py:49](../../os/ci/control/evidence_scan.py#L49), [line 57](../../os/ci/control/evidence_scan.py#L57).
 
    Reaching `DEPTH` returns normally even when the remaining bytes are compressed. Also, a tar whose checksum is invalid fails `is_tarfile()` and is treated as ordinary bytes, rather than unreadable evidence.
 
@@ -26,7 +26,7 @@ Reviewed `91487807...6234b916`, read-only. Four **should-fix** findings remain.
    **Fix:** raise `Unreadable` when an archive exceeds the depth limit or recognizable archive content cannot be parsed. Add both regressions.
 
 4. **Should-fix — check 9 can PASS without its required transcripts.**  
-   Where: [os/ci/control/actions.py:1437](/var/home/ares/AresOS-18c-image/os/ci/control/actions.py:1437), [line 749](/var/home/ares/AresOS-18c-image/os/ci/control/actions.py:749).
+   Where: [os/ci/control/actions.py:1437](../../os/ci/control/actions.py#L1437), [line 749](../../os/ci/control/actions.py#L749).
 
    Transcript-copy exceptions become a `"not copied: …"` summary string without adding a check failure. Finding no transcripts returns an empty list. The packer then silently skips absent folders. Consequently `CONTROL_INTERACTIVE_ASK_PASS` can print without the transcript evidence required by B2.
 
