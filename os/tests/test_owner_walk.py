@@ -418,6 +418,8 @@ def release28_record():
     """A stand-in for release 28's record (step 5 writes the real one): release 27's, with another digest and
     package 42's signature identity."""
     import release28_walk
+    actual = ROOT / release28_walk.RECORD
+    if actual.is_file(): return actual.read_bytes()
     record = json.loads((ROOT / 'os/manifest/releases/27.json').read_text())
     record.update(reference='ghcr.io/ares-empire/aresos@sha256:' + '28' * 32, tag='28-' + 'b' * 40, source_commit='b' * 40)
     record['signature'] = dict(record['signature'], identity=release28_walk.IDENTITY)
@@ -467,6 +469,8 @@ class Release28Local(ToolsLocal):
         routine = dict(signalled=[], helper=window['helper'], helper_gone=True)
         if not answered:
             routine.update(status=1, stdout='', stderr='sudo: no password was provided\n')
+        elif new == old:
+            routine.update(status=0, stderr='', stdout='Tools already installed; nothing changed\nmanifest SHA256 '+new+'\nPASS install\nPASS check\nPASS title\n')
         elif self.versions[new] <= self.versions[old]:
             routine.update(status=1, stderr='', stdout='STOP: Installed tools are version ' + str(self.versions[old]) + '; refusing version '
                            + str(self.versions[new]) + ' (downgrade or same version)\nSTOP bootstrap: verification or install refused\n')
@@ -485,52 +489,201 @@ class Release28Local(ToolsLocal):
 
 
 class Release28Session:
-    """Release 28's session as the walk sees it: his foot (the SETUP screen's, ended and opened again), the home
-    screen's files (apps.json planted once), the game scope's JVM, Control's account."""
+    """Execute the submitted Python probes with controlled filesystem and process interfaces.
 
-    def __init__(self, control):
+    Absolute paths map to a temporary guest root. Imports and process execution are closed over these fixtures;
+    an unmodelled command fails rather than reaching the laptop. Faults change observations, never probe answers.
+    """
+
+    def __init__(self, control, faults=()):
         import release28_walk
-        self.walk, self.control = release28_walk, control
-        self.foot, self.apps, self.sites, self.events = 1, None, None, []
+        self.walk, self.control, self.faults = release28_walk, control, set(faults)
+        self.foot, self.events, self.executed = 1, [], []
+        self.folder = tempfile.TemporaryDirectory()
+        self.root = pathlib.Path(self.folder.name)
+        self.owners, self.modes, self.jvm, self.wrapper = {}, {}, False, None
+        session = self
+
+        class Path(type(self.root)):
+            @staticmethod
+            def mapped(parts):
+                p = pathlib.Path(*parts)
+                if p.is_absolute() and not p.is_relative_to(session.root):
+                    p = session.root / str(p).lstrip('/')
+                return p
+
+            def __new__(cls, *parts):
+                return super().__new__(cls, cls.mapped(parts))
+
+            def __init__(self, *parts):
+                super().__init__(self.mapped(parts))
+
+            def stat(self, *, follow_symlinks=True):
+                found = super().stat(follow_symlinks=follow_symlinks)
+                uid, gid = session.owners.get(str(self), (1001, 1001))
+                mode = (found.st_mode & ~0o7777) | session.modes.get(str(self), found.st_mode & 0o7777)
+                return SimpleNamespace(st_uid=uid, st_gid=gid, st_mode=mode, st_size=found.st_size)
+
+            def lstat(self):
+                return self.stat(follow_symlinks=False)
+
+        self.Path = Path
+        self.Path('/tmp').mkdir()
+        self.write('/proc/42/cmdline', '/usr/bin/labwc\0--config-dir\0/usr/share/aresos/labwc\0')
+        self.write('/proc/42/environ', 'HOME=/var/home/ares\0WAYLAND_DISPLAY=wayland-0\0XDG_RUNTIME_DIR=/run/user/1001\0')
+        self.write('/proc/42/cgroup', '0::/user.slice/user-1001.slice/session-3.scope\n')
+        self.write('/usr/share/aresos/labwc/rc.xml', '<labwc_config><theme><name>Ares-Crown</name></theme></labwc_config>')
+        self.write('/usr/share/themes/Ares-Crown/labwc/themerc', 'fixture')
+        self.write('/usr/share/aresos/minecraft/desktop.lock.json', json.dumps(dict(instance='AresDesktop', java=dict(path='/java'))))
+        self.write('/run/user/1001/aresos/desktop-runtime.json', json.dumps(dict(launch='fixture')))
+        group = '/user.slice/user-1001.slice/user@1001.service/aresos.slice/aresos-game-fixture.scope'
+        self.write('/proc/4242/cgroup', '0::' + group + '\n')
+        self.write('/sys/fs/cgroup' + group + '/memory.high', release28_walk.MEMORY_HIGH)
+        for name, data in {'.aresos-managed.json': '{"schema":1}', 'instance.cfg': '[General]\nname=AresDesktop\nlastLaunchTime=1\n',
+                           'mmc-pack.json': '{"formatVersion":1}', 'minecraft/options.txt': 'fullscreen:false\n'}.items():
+            self.write(release28_walk.INSTANCE + '/' + name, data)
+        for name in ('libraries', 'mods', 'saves'):
+            target = self.Path('/shared/' + name)
+            target.mkdir(parents=True)
+            self.Path(release28_walk.INSTANCE + '/minecraft/' + name).symlink_to(target)
+
+    def close(self):
+        self.folder.cleanup()
+
+    def write(self, path, data):
+        p = self.Path(path)
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(data)
+
+    def execute(self, script, *, uid=0, argv=()):
+        import builtins, io, subprocess, xml.etree.ElementTree as ET
+
+        def access(path, mode):
+            p = self.Path(path)
+            if not p.exists(): return False
+            s = p.stat()
+            shift = 6 if uid == s.st_uid else 3 if s.st_gid == 1001 else 0
+            return uid == 0 or ((s.st_mode >> shift) & mode) == mode
+
+        modules = dict(pathlib=SimpleNamespace(Path=self.Path),
+            os=SimpleNamespace(walk=os.walk, chown=lambda p,u,g: self.owners.__setitem__(str(p), (u,g)),
+                readlink=os.readlink, access=access, R_OK=os.R_OK, W_OK=os.W_OK, X_OK=os.X_OK,
+                getuid=lambda: uid, environ=dict(PATH='/usr/bin' if 'bad_path' in self.faults else vm.DAILY_PATH)),
+            subprocess=SimpleNamespace(run=self.run, check_output=self.check_output, Popen=self.popen,
+                DEVNULL=subprocess.DEVNULL, PIPE=subprocess.PIPE, STDOUT=subprocess.STDOUT, TimeoutExpired=subprocess.TimeoutExpired),
+            time=SimpleNamespace(sleep=lambda _: None), sys=SimpleNamespace(argv=['probe', *argv]),
+            xml=SimpleNamespace(etree=SimpleNamespace(ElementTree=SimpleNamespace(
+                parse=lambda p: ET.ElementTree(ET.fromstring(p.read_text()))))))
+        allowed = {'hashlib', 'json', 'stat', 're'}
+
+        def imports(name, globals=None, locals=None, fromlist=(), level=0):
+            key = 'xml' if name == 'xml.etree.ElementTree' else name
+            if key in modules: return modules[key]
+            assert name in allowed, 'Uncontrolled probe import: ' + name
+            return builtins.__import__(name, globals, locals, fromlist, level)
+
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            exec(compile(script, '<submitted-release28-probe>', 'exec'),
+                 dict(__builtins__=dict(vars(builtins), __import__=imports,
+                      open=lambda p,*a,**kw: self.Path(p).open(*a,**kw))))
+        return output.getvalue()
+
+    def check_output(self, argv, **kw):
+        done = self.run(argv, **kw)
+        assert done.returncode == 0, (argv, done.stderr)
+        return done.stdout
+
+    def run(self, argv, **kw):
+        import subprocess
+        words, uid = list(argv), 0
+        if words[:4] == ['runuser', '-u', 'ares', '--']:
+            uid, words = 1001, words[4:]
+        if words[0] in ('env', '/usr/bin/env'):
+            words = words[1:]
+            if words[0] == '-i': words = words[1:]
+            while words and '=' in words[0]: words = words[1:]
+        code, stdout, stderr = 0, '', ''
+        if words[0] == 'pgrep':
+            stdout = '42\n' if words[-1] == 'labwc' else ''.join(str(50+i)+'\n' for i in range(self.foot))
+            code = 0 if stdout else 1
+        elif words[0] == 'pkill':
+            self.events.append('foot ended')
+            if 'retained_foot' not in self.faults: self.foot = 0
+        elif words[0] == 'setsid':
+            assert words[1:] == ['-f', *vm.HUB_TERMINAL], 'Wrong Terminal argv'
+            self.foot += 1
+            self.events.append('terminal opened')
+        elif words[0] == '/usr/bin/fc-match': stdout = self.walk.SPACE_GROTESK
+        elif words[0] == 'python3' and words[1] == '-c':
+            try: stdout = self.execute(words[2], uid=uid, argv=words[3:])
+            except (AssertionError, OSError) as error: code, stderr = 1, str(error)
+        elif words[:2] == ['/usr/libexec/aresos-desktop', 'status']:
+            stdout = json.dumps(dict(state='SETUP', jvm_pid=4242) if self.jvm else dict(state='RECOVERY', latched=True))
+        elif words[:2] == ['/usr/bin/systemctl', '--user']:
+            assert words[2:] == ['kill', '--signal=SIGKILL', 'aresos-game-fixture.scope']
+            self.jvm, self.wrapper.returncode = False, 137
+        elif words[:2] == ['loginctl', 'list-sessions']: stdout = '3 1001 ares seat0 tty1\n'
+        elif words[:2] == ['loginctl', 'show-session']: stdout = 'Active=yes\nRemote=no\n'
+        elif words[0] == 'pkaction': stdout = '\n'.join(self.actions)
+        elif words[0] == 'pkcheck': code = 0 if words[2] in self.passwordless else 2
+        else: raise AssertionError('Uncontrolled probe command: ' + repr(words))
+        done = subprocess.CompletedProcess(argv, code, stdout, stderr)
+        if kw.get('check'): done.check_returncode()
+        return done
+
+    def popen(self, argv, **kw):
+        assert '/usr/libexec/aresos-desktop-java' in argv and '-XX:+PauseAtStartup' in argv
+        self.events.append('game scope')
+        self.jvm = True
+        self.wrapper = SimpleNamespace(returncode=None, poll=lambda: None, communicate=lambda **_: (b'', None))
+        return self.wrapper
 
     def command(self, name, source):
         if name.endswith('-sites'):
             assert 'tee ' + self.walk.SITES in source and self.control
-            self.sites = hashlib.sha256((self.walk.SITES_LIST + '\n').encode()).hexdigest()
+            words = shlex.split(source.splitlines()[-1])
+            assert words[:2] == ['printf', '%s\\n']
+            self.write(words[words.index('tee')+1], words[2] + '\n')
         if name.endswith('-sites-hash'):
-            return self.sites + '\n'
+            path = source.split('sha256sum < ', 1)[1].split()[0]
+            if 'changed_sites' in self.faults and name.startswith('final-28'):
+                self.write(path, 'changed\n')
+            return hashlib.sha256(self.Path(path).read_bytes()).hexdigest() + '\n'
+        if name == 'release-28-path-prepare':
+            words = shlex.split(source)
+            self.write('/run/aresos-path.py', base64.b64decode(words[words.index('printf')+2]).decode())
         return None
 
     def capture(self, name, source):
-        walk = self.walk
-        if name.endswith('-session'):
-            assert 'argv.index(' in source and '--config-dir' in source, "the session check must read the running labwc's configuration"
-            return dict(labwc=1, labwc_argv=['/usr/bin/labwc', '--config-dir', '/usr/share/aresos/labwc'],
-                        rc='/usr/share/aresos/labwc/rc.xml', theme=walk.THEME, themerc=True, foot=self.foot,
-                        fonts={'Space Grotesk': walk.SPACE_GROTESK, 'Space Grotesk:bold': walk.SPACE_GROTESK})
-        if name.endswith('-end-foot'):
-            ended, self.foot = self.foot, 0
-            self.events.append('foot ended')
-            return dict(ended=ended, left=0)
-        if name.endswith('-terminal'):
-            self.foot += 1
-            self.events.append('terminal opened')
-            return dict(foot=self.foot, wayland=True)
-        if name.endswith('-home'):
-            planted = False
-            if 'if True and not apps.exists()' in source and self.apps is None:
-                self.apps, planted = 'a' * 64, True
-            return dict(instance=True, files=12, tree='f' * 64, apps=self.apps, planted=planted)
-        if name.endswith('-game-scope'):
-            self.events.append('game scope')
-            return dict(unit='aresos-game-1.scope', cgroup='/sys/fs/cgroup/user.slice/user-1001.slice/user@1001.service/aresos.slice/'
-                        'aresos-game-1.scope', in_scope=True, memory_high=walk.MEMORY_HIGH, wrapper_exit=137, wrapper_output='',
-                        state_before=dict(state='SETUP', jvm_pid=4242), state_after=dict(state='RECOVERY', latched=True))
-        if name.endswith('-control'):
-            assert self.control, 'Control checks while Control does not ride'
-            return dict(uid=250, gid=250, folders={'/var/lib/aresos-control': ['root', 'root', '0o755']},
-                        release_checks=dict(status=0, tail='PASS'))
-        return None
+        if not name.startswith(('release-28-', 'previous-27-', 'final-28-')): return None
+        suffixes = ('-session', '-end-foot', '-terminal', '-home', '-game-scope', '-polkit', '-path-result')
+        if not name.endswith(suffixes): return None
+        if name.endswith('-path-result'):
+            # Execute the program prepared for, and typed into, the reopened terminal, then its reader.
+            self.execute(self.Path('/run/aresos-path.py').read_text(), uid=1001)
+            script = source.split("python3 - <<'PY'\n", 1)[1].split('\nPY', 1)[0]
+        else:
+            words = shlex.split(source)
+            script = words[words.index('python3')+2]
+        if name == 'final-28-home':
+            if 'wrong_owner' in self.faults: self.owners[str(self.Path(self.walk.APPS))] = (0, 0)
+            if 'missing_instance' in self.faults: self.Path(self.walk.INSTANCE + '/mmc-pack.json').unlink()
+            # Root must still read the snapshot; only the controlled ares process loses access.
+            if 'bad_permissions' in self.faults: self.modes[str(self.Path(self.walk.APPS))] = 0
+            if 'stable_changed' in self.faults: self.write(self.walk.INSTANCE + '/minecraft/options.txt', 'changed')
+            if 'bad_instance_mode' in self.faults: self.Path(self.walk.INSTANCE).chmod(0o700)
+            if 'prism_mutable' in self.faults:
+                self.write(self.walk.INSTANCE + '/instance.cfg', '[General]\nname=AresDesktop\nlastLaunchTime=2\n')
+                self.write(self.walk.INSTANCE + '/minecraft/logs/latest.log', 'new log')
+        if name.endswith('-game-scope') and 'bad_memory' in self.faults:
+            self.write('/sys/fs/cgroup/user.slice/user-1001.slice/user@1001.service/aresos.slice/aresos-game-fixture.scope/memory.high', 'max')
+        if name.endswith('-polkit'):
+            reviewed = json.loads((ROOT / 'os/ci/polkit-review.json').read_text())['passwordless']
+            self.actions = [*reviewed, 'unexpected.permission']
+            self.passwordless = self.actions if 'extra_polkit' in self.faults else reviewed
+        self.executed.append((name, script))
+        return json.loads(self.execute(script))
 
     def owner(self, name, r27, r28):
         """The tools' lines on this route, by the command's stage name."""
@@ -556,7 +709,7 @@ def ast_literal(text):
     return ast.literal_eval(text)
 
 
-def walk(ps2=False, route='qualification', control=False):
+def walk(ps2=False, route='qualification', control=False, faults=()):
     assert route in ('qualification', 'update', 'reorder-probe', 'ways-back', 'tools-local', 'release-28')
     laptop = route in ('update', 'reorder-probe', 'ways-back', 'tools-local', 'release-28')
     dialogs = route in ('tools-local', 'release-28')
@@ -594,7 +747,7 @@ def walk(ps2=False, route='qualification', control=False):
     updates = update_states(pair, new_reference)
     if route == 'release-28':
         updates.update(release28_states(pair, new_reference, json.loads(record_28)['reference']))
-        r28_session = Release28Session(control)
+        r28_session = Release28Session(control, faults)
     stock = copy.deepcopy(pinned['rpm']['deployments'][0])
     first = common.stock()
     first['bls'] = copy.deepcopy(pinned['bls'])
@@ -991,6 +1144,7 @@ def walk(ps2=False, route='qualification', control=False):
         return pair
 
     with tempfile.TemporaryDirectory(dir=ROOT / 'os/tests') as temporary, contextlib.ExitStack() as stack:
+        if route == 'release-28': stack.callback(r28_session.close)
         if ps2:
             import subprocess
             from test_owner_ps2 import kernel_result,journal
@@ -1050,7 +1204,7 @@ def walk(ps2=False, route='qualification', control=False):
             local.known(release28_walk.announced(record_28)['fingerprint'], release28_walk.TOOLS_VERSION)
             version_2 = vm.laptop_payload(pathlib.Path(temporary) / 'tools-version-2', vm.TOOLS_V2_COMMIT, vm.TOOLS_V2)
             release28_walk.rehearsal(vm, audit, media, 'yz-/!ü0123456789abcdef', 'SYNTHETIC-HASH', 'abcdefghijklmnopqrstuvwx',
-                                     version_2, record_28)
+                                     version_2, record_28, allow_deferred=True)
             result = json.loads((pathlib.Path(temporary) / 'release-28-rehearsal-result.json').read_text())
         elif route == 'ways-back':
             oracle[0] = Oracle(stack, disk, old_reference, new_reference)
@@ -1087,6 +1241,75 @@ def walk(ps2=False, route='qualification', control=False):
         session=r28_session if route == 'release-28' else None,
         prompt_waits=sorted(prompt_waits), fresh_idle_answers=idle_answers, resyncs=events,
         hidden_reads=hidden_reads, hidden_shapes=hidden_shapes, wait_shapes=wait_shapes)
+
+
+class Release28ProbeTest(unittest.TestCase):
+    def test_injected_guest_failures_stop_the_route(self):
+        cases = {'retained_foot': 'still running', 'changed_sites': "sites list's hash changed",
+                 'wrong_owner': 'ownership changed', 'missing_instance': 'inaccessible as ares',
+                 'bad_permissions': 'inaccessible as ares', 'stable_changed': 'stable instance',
+                 'bad_instance_mode': 'stable instance', 'bad_memory': 'memory.high',
+                 'extra_polkit': 'beyond the reviewed list', 'bad_path': 'terminal lacks his PATH'}
+        for fault, error in cases.items():
+            with self.subTest(fault=fault), self.assertRaisesRegex(AssertionError, error):
+                walk(route='release-28', control=fault == 'changed_sites', faults=[fault])
+
+    def test_removing_the_submitted_kill_no_longer_gets_a_canned_success(self):
+        import release28_walk
+        source = release28_walk.END_FOOT.replace("subprocess.run(['pkill','-u','ares','-x','foot'])", 'pass')
+        self.assertNotEqual(source, release28_walk.END_FOOT)
+        with patch.object(release28_walk, 'END_FOOT', source), self.assertRaisesRegex(AssertionError, 'still running'):
+            walk(route='release-28')
+
+    def test_explicit_prism_allowances_preserve_stable_files(self):
+        result = walk(route='release-28', faults=['prism_mutable'])
+        self.assertNotEqual(result['result']['home']['instance_tree'], result['result']['home']['after_forward_tree'])
+        self.assertEqual([name for name, _ in result['session'].executed if name.endswith('-home')],
+                         ['release-28-home', 'previous-27-home', 'final-28-home'])
+
+
+class Release28InstallerTest(unittest.TestCase):
+    def attempt(self, old_version, new_version, identical=False):
+        old, new = '11'*32, '11'*32 if identical else '22'*32
+        model = object.__new__(Release28Local)
+        model.versions = {old: old_version, new: new_version}
+        model.installs, model.ares_password = [], 'synthetic-password'
+        model.typed = [(model.ares_password+'\n', 'de')]
+        model.windows = dict(retry=dict(typed=0, helper='helper'))
+        model.callers = dict(retry=dict(steps=('folder', 'routine', 'no-ticket'), commit='fixture'))
+        model.machine = dict(tools=old, entry='tools-'+old+'/at', journal=None, records=[], folder='fixture')
+        before = copy.deepcopy(model.machine)
+        with patch.object(model, 'lines', return_value=dict(folder='folder', routine='routine '+new)):
+            done = model.run('retry')
+        return model, before, done
+
+    def test_identical_fingerprint_is_a_no_op_before_the_version_check(self):
+        model, before, done = self.attempt(5, 5, identical=True)
+        self.assertEqual(done['routine']['status'], 0)
+        self.assertIn('Tools already installed; nothing changed', done['routine']['stdout'])
+        self.assertEqual(model.machine, before)
+        self.assertEqual(model.installs, [])
+
+    def test_same_version_different_fingerprint_refuses_without_writes(self):
+        model, before, done = self.attempt(5, 5)
+        self.assertEqual(done['routine']['status'], 1)
+        self.assertIn('refusing version 5 (downgrade or same version)', done['routine']['stdout'])
+        self.assertEqual(model.machine, before)
+        self.assertEqual(model.installs, [])
+
+    def test_downgrade_refuses_without_writes(self):
+        model, before, done = self.attempt(5, 4)
+        self.assertEqual(done['routine']['status'], 1)
+        self.assertIn('refusing version 4 (downgrade or same version)', done['routine']['stdout'])
+        self.assertEqual(model.machine, before)
+        self.assertEqual(model.installs, [])
+
+    def test_newer_fingerprint_installs_and_records_the_previous_bundle(self):
+        model, before, done = self.attempt(4, 5)
+        self.assertEqual(done['routine']['status'], 0)
+        self.assertIn('Tools updated from version 4 to 5', done['routine']['stdout'])
+        self.assertEqual(model.machine['tools'], '22'*32)
+        self.assertEqual(model.installs, [dict(manifest='22'*32, previous_manifest='11'*32, previous_version=4, tools_version=5)])
 
 
 class OwnerWalkTest(unittest.TestCase):

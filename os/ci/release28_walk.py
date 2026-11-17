@@ -17,7 +17,8 @@ package 22d's dialog driver (os/ci/tools_local.Walk, with its step 6d safeguards
   3. B.3, on the console (tty3): `at update` (release 28 staged), `at title`, `at reboot`; the guide's start
      (F12, Bazzite: the harness's one-time Linux start); `at check` and `at title` confirm the update. On release
      28: package 21's rules, fc-match gives Space Grotesk as ares, package 31's Ares-Crown is labwc's theme, and
-     (Control) its checks. The lead's note (2026-11-16): with no `foot` of ares, `at check` STOPs with
+     its terminal PATH and runtime polkit grants are checked. Control qualification awaits step 2 after PR #58.
+     The lead's note (2026-11-16): with no `foot` of ares, `at check` STOPs with
      `Read failed: pgrep -u ares -x foot`; the SETUP screen's foot is ended first, then the Terminal app's foot
      is opened again (the guide's "open the Terminal app first").
   4. B.4: `at previous` to release 27, its start, `at check` (Return confirmed); then `at forward` to release
@@ -32,8 +33,9 @@ The stand-in origin (lead's decision 2, 2026-11-17): GitHub is not reachable fro
 holds a stand-in for 634e1237 (its os/owner-tools tree, release.json and OWNER-TOOLS.md, byte-identical), then
 a stand-in announced commit: version 4's code with tools_version 5 and release 28's record (announced()). The
 walk records that commit's hash and the tree and blob hashes of os/owner-tools, os/manifest/release.json and
-docs/OWNER-TOOLS.md. Step 5's real payload commit must hold the same os/owner-tools tree and release.json blob
-(matches() checks a commit; when this checkout already carries release 28's record, the walk checks it itself).
+docs/OWNER-TOOLS.md. Step 5's real payload commit must hold the same os/owner-tools tree, release.json blob,
+guide line 1 and full fingerprint (matches()). Only the verified unchanged v4 baseline may defer this comparison
+in a local preparatory walk. The VM requires successful comparison before starting the route.
 
 Release 28's record is a parameter (the image exists only after step 5): the CI mode reads
 os/manifest/releases/28.json, which step 5 writes, and stops without it.
@@ -65,8 +67,8 @@ GUIDE = 'docs/OWNER-TOOLS.md'
 GENERATED = ('commands.json', 'history.json', 'payload/history.json', 'payload/release.json', 'payload/SHA256.json',
              'payload/SHA256SUMS')
 
-# B.2 and Control's checks in B.3 and B.4 ride only when Control is in the image: step 2 turns this on after
-# PR #58 merges (lead, 2026-11-17). Both settings are built and unit-tested; it stays off.
+# B.2 sites persistence rides only when Control is in the image. Step 2 must add Control's actual checker,
+# metadata and login-ordering checks after PR #58 merges, then enable this setting and remove the pending guard.
 CONTROL_RIDES = False
 SITES = '/var/lib/aresos-control/chrome-excluded-sites.json'
 SITES_LIST = '{"format":1,"hosts":["rehearsal.invalid"]}'
@@ -78,6 +80,16 @@ THEME = 'Ares-Crown'
 FOOT_STOP = 'Read failed: pgrep -u ares -x foot'
 INSTANCE = '/var/home/ares/.local/share/PrismLauncher/instances/AresDesktop'
 APPS = INSTANCE + '/minecraft/config/aresos/apps.json'
+# Same schema and fields as AppsConfig's schema-4 fixture; a real pinned app and saved town placement.
+APPS_CONFIG = dict(schemaVersion=4, baseline='2026-11-13', apps=[dict(id='terminal', name='Terminal',
+    command=[], type='helper', system=dict(source='system', categories=['Utility']), look='minecraft:command_block',
+    pinned=True, mine=True, names=['terminal'], place='S0R0')])
+# Prism may update these accounting keys and Minecraft may create logs/crash reports on the next R28 start.
+# Only their content/presence is allowed to change; existing entries must retain ownership and permissions.
+MUTABLE_DIRS = ('minecraft/logs', 'minecraft/crash-reports')
+MUTABLE_INI_KEYS = ('lastLaunchTime', 'lastTimePlayed', 'totalTimePlayed')
+REQUIRED_INSTANCE = ('.aresos-managed.json', 'instance.cfg', 'mmc-pack.json', 'minecraft/options.txt',
+                     'minecraft/libraries', 'minecraft/mods', 'minecraft/saves', 'minecraft/config/aresos/apps.json')
 AS_ARES = ['runuser', '-u', 'ares', '--', 'env', '-i', 'HOME=/var/home/ares', 'XDG_RUNTIME_DIR=/run/user/1001',
            'PATH=/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin']
 
@@ -216,28 +228,33 @@ def standin_origin(destination, record, source='.'):
 
 
 def matches(commit, recorded, source='.'):
-    """Whether a real commit holds the rehearsed os/owner-tools tree and release.json blob (lead's decision 2).
-    recorded: the walk's `announced` row (its `bound` hashes). Returns the paths that differ (empty: it matches)."""
+    """Compare the real tools tree, release blob, guide line 1 and full fingerprint. Other guide prose is free.
+    recorded: the walk's `announced` row (bound hashes, fingerprint, version). Returns differing paths."""
     differ = []
     for path in BOUND:
         found = subprocess.run(['git', '-C', str(source), 'rev-parse', '--verify', '--quiet', commit + ':' + path],
                                capture_output=True, text=True)
         if found.returncode != 0 or found.stdout.strip() != recorded['bound'][path]:
             differ.append(path)
+    try:
+        lines = git('show', commit + ':' + GUIDE, source=source).decode().splitlines()
+        if lines[0] != guide_line(recorded['fingerprint'], recorded['version']) or lines[2] != recorded['fingerprint']:
+            differ.append(GUIDE)
+    except (subprocess.CalledProcessError, IndexError, UnicodeDecodeError):
+        differ.append(GUIDE)
     return differ
 
 
-def real_commit(head, standin, source='.'):
-    """This checkout and the rehearsed bundle: when its history already names release 28 (step 5's payload
-    commit), it must hold exactly the stand-in announced commit's bound paths; otherwise the commit is still to
-    be cut, and the receipt's hashes are what it must hold."""
-    newest = json.loads(git('show', head + ':os/owner-tools/history.json', source=source))['releases'][-1]['reference']
-    wanted = json.loads(git('show', standin['commits']['announced'] + ':os/manifest/release.json',
-                            source=standin['repository']))['reference']
-    if newest != wanted:
-        return dict(carries_release_28=False, head=head)
-    differ = matches(head, dict(bound={path: standin['hashes']['announced'][path] for path in BOUND}), source)
-    assert not differ, 'STOP: this checkout names release 28 but differs from the rehearsed bundle in ' + ', '.join(differ)
+def real_commit(head, standin, source='.', *, allow_deferred=False):
+    """Only the verified unchanged v4 baseline may defer, for a local preparatory walk. VM qualification
+    requires equality with the real announced commit, including the guide's two fingerprint lines."""
+    baseline = dict(bound=standin['hashes']['v4'], fingerprint=TOOLS_V4, version=4)
+    if not matches(head, baseline, source):
+        assert allow_deferred, 'STOP: final qualification requires a successful real-commit comparison; payload not cut'
+        return dict(carries_release_28=False, head=head, equal=False, deferred=True)
+    differ = matches(head, dict(bound=standin['hashes']['announced'], fingerprint=standin['fingerprint'],
+                                version=standin['version']), source)
+    assert not differ, 'STOP: this checkout differs from the rehearsed bundle in ' + ', '.join(differ)
     return dict(carries_release_28=True, head=head, equal=True)
 
 
@@ -332,25 +349,51 @@ for n in range(30):
 print(json.dumps(dict(ended=len(before),left=len(left))))
 '''
 
-# The home screen's files in his home: the desktop instance's tree and apps.json (B.4's round trip). In the
-# VM the hub was never created (SETUP), so a missing apps.json is planted first as a marker, owned by ares.
-HOME = r'''import hashlib,json,os,pathlib
+# The VM stays in SETUP: plant a representative configuration, then snapshot bytes AND metadata. This
+# proves persistence/accessibility, not Minecraft loading the configuration or starting a world.
+HOME = r'''import hashlib,json,os,pathlib,stat,subprocess
 instance=pathlib.Path(@INSTANCE@); apps=pathlib.Path(@APPS@)
 planted=False
 if @PLANT@ and not apps.exists():
     apps.parent.mkdir(parents=True,exist_ok=True)
-    apps.write_text(json.dumps(dict(rehearsal='release-28 round trip'))+'\n')
+    apps.write_text(json.dumps(@CONFIG@,indent=2)+'\n')
     for p in (apps,apps.parent,apps.parent.parent):
         os.chown(p,1001,1001)
     planted=True
-rows=[]
-for folder,dirs,files in os.walk(instance):
-    for name in sorted(files):
-        p=pathlib.Path(folder,name)
-        if not p.is_symlink(): rows.append([str(p.relative_to(instance)),hashlib.sha256(p.read_bytes()).hexdigest()])
-rows.sort()
+rows={}; stable={}; mutable={}
+for folder,dirs,files in os.walk(instance,followlinks=False):
+    for p in [pathlib.Path(folder)]+[pathlib.Path(folder,name) for name in sorted(files+dirs)]:
+        name=str(p.relative_to(instance)); s=p.lstat()
+        row=dict(uid=s.st_uid,gid=s.st_gid,mode=stat.S_IMODE(s.st_mode),kind=stat.S_IFMT(s.st_mode))
+        if p.is_symlink(): row['target']=os.readlink(p)
+        elif p.is_file(): row['sha256']=hashlib.sha256(p.read_bytes()).hexdigest()
+        rows[name]=row
+        if any(name==d or name.startswith(d+'/') for d in @MUTABLE_DIRS@):
+            mutable[name]=row
+            continue
+        stable[name]=dict(row)
+        if name=='instance.cfg':
+            lines=[l for l in p.read_text().splitlines() if l.split('=',1)[0].strip() not in @MUTABLE_KEYS@]
+            stable[name]['sha256']=hashlib.sha256('\n'.join(lines).encode()).hexdigest()
+required=@REQUIRED@
+# Actually open the files and traverse the links as ares, not as the serial root shell.
+reader=''' + repr('''import hashlib,json,os,pathlib,sys
+root=pathlib.Path(sys.argv[1])
+for name in json.loads(sys.argv[2]):
+    p=root/name
+    assert p.exists(), 'Missing instance file: '+name
+    if p.is_dir(): assert os.access(p,os.R_OK|os.X_OK), 'Inaccessible instance directory: '+name
+    else: p.read_bytes()
+apps=root/'minecraft/config/aresos/apps.json'
+assert os.access(apps,os.R_OK|os.W_OK), 'apps.json is not readable/writable as ares'
+print(json.dumps(dict(uid=os.getuid(),apps=hashlib.sha256(apps.read_bytes()).hexdigest())))
+''') + r'''
+read=subprocess.run(@AS_ARES@+['python3','-c',reader,str(instance),json.dumps(required)],capture_output=True,text=True)
+accessible=json.loads(read.stdout) if read.returncode==0 else dict(error=read.stderr[-600:])
 print(json.dumps(dict(instance=instance.is_dir(),files=len(rows),tree=hashlib.sha256(json.dumps(rows).encode()).hexdigest(),
-    apps=hashlib.sha256(apps.read_bytes()).hexdigest() if apps.is_file() else None,planted=planted)))
+    entries=rows,stable=stable,mutable=mutable,accessible=accessible,
+    apps=hashlib.sha256(apps.read_bytes()).hexdigest() if apps.is_file() else None,
+    apps_config=json.loads(apps.read_text()) if apps.is_file() else None,planted=planted)))
 '''
 
 # Package 23d's game scope, as the check-build VM proves it (os/ci/overlay/checks.py, desktop_jvm): a real JVM
@@ -392,26 +435,13 @@ out['state_after']=status()
 print(json.dumps(out))
 '''
 
-# Control (only while CONTROL_RIDES; 18c-b's "For your next release"): its account and folders.
-CONTROL = r'''import grp,json,os,pathlib,pwd,subprocess
-out={}
-try:
-    user,group=pwd.getpwnam('aresos-tools'),grp.getgrnam('aresos-tools'); out.update(uid=user.pw_uid,gid=group.gr_gid)
-except KeyError: out.update(uid=None,gid=None)
-folders={}
-for p in ('/var/lib/aresos-control',):
-    try:
-        s=os.stat(p); folders[p]=[pwd.getpwuid(s.st_uid).pw_name,grp.getgrgid(s.st_gid).gr_name,oct(s.st_mode&0o7777)]
-    except OSError: folders[p]=None
-out['folders']=folders
-checks=subprocess.run(['python3','/usr/share/aresos/control/release_checks.py'],capture_output=True,text=True)
-out['release_checks']=dict(status=checks.returncode,tail=(checks.stdout+checks.stderr)[-600:])
-print(json.dumps(out))
-'''
-
-
 def program(source, **values):
     return tools_local.program(source, **values)
+
+
+def receipt_setting(receipt):
+    assert type(receipt.get('control_rides')) is bool and receipt['control_rides'] == CONTROL_RIDES, \
+        'STOP: host walk Control setting differs from the VM driver'
 
 
 def sites_hash(guest, stage):
@@ -427,14 +457,6 @@ def write_sites(guest, stage):
     return sites_hash(guest, stage)
 
 
-def control_checks(guest, stage, vm):
-    value = guest.capture_json(stage + '-control', vm.sw.framed('python3 -c ' + shlex.quote(CONTROL)))
-    vm.td.save(stage + '-control', value)
-    assert (value['uid'], value['gid']) == (250, 250), 'STOP: aresos-tools is not UID/GID 250'
-    assert value['release_checks']['status'] == 0, "STOP: Control's release_checks.py failed"
-    return value
-
-
 def session(guest, stage, vm):
     """B.3's session checks on release 28."""
     value = guest.capture_json(stage + '-session', vm.sw.framed('python3 -c ' + shlex.quote(program(SESSION, as_ares=AS_ARES))))
@@ -447,10 +469,27 @@ def session(guest, stage, vm):
 
 def home(guest, stage, vm, plant=False):
     value = guest.capture_json(stage + '-home', vm.sw.framed('python3 -c ' + shlex.quote(
-        program(HOME, instance=INSTANCE, apps=APPS, plant=plant))))
+        program(HOME, instance=INSTANCE, apps=APPS, plant=plant, config=APPS_CONFIG, as_ares=AS_ARES,
+                mutable_dirs=MUTABLE_DIRS, mutable_keys=MUTABLE_INI_KEYS, required=REQUIRED_INSTANCE))))
     vm.td.save(stage + '-home', value)
     assert value['instance'] and value['apps'], "STOP: the home screen's instance or apps.json is missing at " + stage
+    assert value['apps_config'] == APPS_CONFIG, 'STOP: apps.json is not the representative schema-4 configuration'
+    assert all(row['uid'] == row['gid'] == 1001 for row in value['entries'].values()), \
+        'STOP: instance ownership changed from ares'
+    assert value['accessible'].get('uid') == 1001 and value['accessible'].get('apps') == value['apps'], \
+        'STOP: instance or apps.json is inaccessible as ares: ' + str(value['accessible'])
     return value
+
+
+def home_unchanged(before, after, *, prism_started=False):
+    assert before['stable'] == after['stable'], 'STOP: stable instance files or metadata changed'
+    if not prism_started:
+        assert before['entries'] == after['entries'], 'STOP: release 27 changed instance files or metadata'
+    else:
+        for name in before['mutable'].keys() & after['mutable'].keys():
+            fields = ('uid', 'gid', 'mode', 'kind')
+            assert all(before['mutable'][name][k] == after['mutable'][name][k] for k in fields), \
+                'STOP: mutable instance metadata changed: ' + name
 
 
 def no_foot(console, guest, stage, vm):
@@ -486,7 +525,7 @@ def facts_27(vm):
     return record
 
 
-def rehearsal(vm, audit, media, password, hashed, ares_password, version_2, record):
+def rehearsal(vm, audit, media, password, hashed, ares_password, version_2, record, *, allow_deferred=False):
     """The walk in the module docstring. vm: the running owner_vm module; record: release 28's record (bytes)."""
     td, Console = vm.td, vm.Console
     head = os.environ['GITHUB_SHA']
@@ -494,9 +533,11 @@ def rehearsal(vm, audit, media, password, hashed, ares_password, version_2, reco
     r27, r28 = release_27['reference'], json.loads(record)['reference']
     standin = standin_origin(td.WORK / 'stand-in-28', record)
     fingerprint = standin['fingerprint']
-    real = real_commit(head, standin)
-    announced_rows = [dict(standin=standin['commits'][key], real=V4_COMMIT if key == 'v4' else None,
-                           bound={path: standin['hashes'][key][path] for path in BOUND}, guide=standin['hashes'][key][GUIDE])
+    real = real_commit(head, standin, allow_deferred=allow_deferred)
+    assert allow_deferred or not CONTROL_RIDES, 'STOP: Control qualification awaits step 2 after PR #58'
+    announced_rows = [dict(standin=standin['commits'][key], real=V4_COMMIT if key == 'v4' else head if real['equal'] else None,
+                           bound={path: standin['hashes'][key][path] for path in BOUND}, guide=standin['hashes'][key][GUIDE],
+                           fingerprint=TOOLS_V4 if key == 'v4' else fingerprint, version=4 if key == 'v4' else TOOLS_VERSION)
                       for key in ('v4', 'announced')]
     route = vm.laptop_update(audit, media, password, hashed, bundle=(version_2, vm.TOOLS_V2), target=r27)
     stock, stock_digest = route['stock'], route['stock_digest']
@@ -583,11 +624,12 @@ def rehearsal(vm, audit, media, password, hashed, ares_password, version_2, reco
         assert 'Update to ' + r28 + ' confirmed after the restart' in vm.result_lines(checked, titled), 'STOP: update not confirmed'
         rules = vm.release_rules(guest, 'release-28')
         seen = session(guest, 'release-28', vm)
-        control = None
         if CONTROL_RIDES:
-            control = control_checks(guest, 'release-28', vm)
             assert sites_hash(guest, 'release-28') == sites, "STOP: the sites list's hash changed with the update"
         foot = no_foot(console, guest, 'release-28', vm)
+        terminal = vm.terminal_path(guest, 'release-28')
+        # terminal_path leaves his reopened terminal and local desktop session active for polkit.
+        polkit = vm.polkit_sweep(guest, 'release-28')
         console.select()
         kept = home(guest, 'release-28', vm, plant=True)
         returned = console.run('previous', 'r28-previous')
@@ -613,7 +655,7 @@ def rehearsal(vm, audit, media, password, hashed, ares_password, version_2, reco
         if CONTROL_RIDES:
             assert sites_hash(guest, 'previous-27') == sites, "STOP: the sites list's hash changed with previous"
         back = home(guest, 'previous-27', vm)
-        assert (back['tree'], back['apps']) == (kept['tree'], kept['apps']), "STOP: release 27 changed the home screen's files"
+        home_unchanged(kept, back)
         forward = console.run('forward', 'r28-forward')
         assert 'Newest installed AresOS starts next ' + r28 in vm.result_lines(forward), 'STOP: forward did not name release 28'
         vm.deployment_shape(vm.kb.deployment_snapshot(guest, 'r28-forward-queued'), stock, [d28, d27, stock_digest], queued=True)
@@ -636,20 +678,22 @@ def rehearsal(vm, audit, media, password, hashed, ares_password, version_2, reco
         if CONTROL_RIDES:
             assert sites_hash(guest, 'final-28') == sites, "STOP: the sites list's hash changed on the way back"
         again = home(guest, 'final-28', vm)
-        assert again['apps'] == kept['apps'] and again['instance'], "STOP: apps.json did not survive the round trip"
+        home_unchanged(kept, again, prism_started=True)
         scope = game_scope(guest, 'final-28', vm)
         console.logout('final-28-logout')
     finally:
         vm.finish(guest, audit, 'final-28')
     td.marker(audit, 'final-unattended-windows')
     td.marker(audit, 'final-detached-windows', detached=True)
-    result = dict(status='passed', commit=head, order='protected-second',
+    result = dict(status='passed', qualified=not allow_deferred and real['equal'] and not CONTROL_RIDES, commit=head, order='protected-second',
         starting_state="package 27's route (release 27 by tools version 2), then 22d's lines at 634e1237's stand-in: tools version 4",
         release_27=r27, release_28=r28, tools_version_2=vm.TOOLS_V2, tools_version_4=TOOLS_V4, tools=fingerprint,
         tools_version=TOOLS_VERSION, announced=announced_rows, real_commit=real, compared=walk.compared,
         dialogs=walk.dialogs, stages=walk.stages, control_rides=CONTROL_RIDES, sites_sha256=sites,
         package21_rules={k: rules[k] for k in ('ares_in_wheel', 'sudo_all_with_password', 'sudo_keeps_no_ticket', 'sudo_n_refused')},
-        session=dict(theme=seen['theme'], fonts=seen['fonts']), control=control, no_foot=foot,
+        terminal_path=terminal['path'], terminal_path_retried=terminal['retried'],
+        polkit_sweep=dict(actions=polkit['actions'], answers=polkit['answers'], passwordless=len(polkit['passwordless'])),
+        session=dict(theme=seen['theme'], fonts=seen['fonts']), control_checked=False, no_foot=foot,
         home=dict(apps=kept['apps'], instance_tree=kept['tree'], planted=kept['planted'], after_forward_tree=again['tree']),
         game_scope=dict(unit=scope['unit'], memory_high=scope['memory_high']), caller_terminal=False,
         protected_disk_audits=True, deployments_checked_every_start=True)

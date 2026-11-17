@@ -2331,6 +2331,8 @@ def main():
         # Package 22d's rehearsal rebinds package 22c's tables (rebind.py rebind, after a pass).
         td.save('22d-bound-sources', bound_sources(walk['sources'], '22d', '22c'))
     if mode == 'release-28':
+        import release28_walk
+        release28_walk.receipt_setting(walk)
         # Package 42's rehearsal rebinds package 22d's tables (its record step, after a pass).
         td.save('42-bound-sources', bound_sources(walk['sources'], '42', '22d'))
     sw.WORK, sw.EVIDENCE = td.WORK, td.EVIDENCE

@@ -8,6 +8,7 @@ No VM, privilege or real tool runs.
 """
 import contextlib
 import hashlib
+import io
 import json
 import os
 import pathlib
@@ -365,14 +366,17 @@ class StandInOriginTest(unittest.TestCase):
                          self.git('ls-tree', self.standin['commits']['v4'], 'os/owner-tools/at').split()[0])
 
     def test_a_real_commit_matches_only_with_the_same_tree_and_release_blob(self):
-        bound = dict(bound={path: self.standin['hashes']['announced'][path] for path in walk.BOUND})
+        bound = dict(bound=self.standin['hashes']['announced'], fingerprint=self.standin['fingerprint'], version=5)
         self.assertEqual(walk.matches(self.standin['commits']['announced'], bound, self.standin['repository']), [])
-        self.assertEqual(walk.matches(self.standin['commits']['v4'], bound, self.standin['repository']), list(walk.BOUND))
-        self.assertEqual(walk.matches('HEAD', bound, ROOT), list(walk.BOUND))
+        self.assertEqual(walk.matches(self.standin['commits']['v4'], bound, self.standin['repository']), [*walk.BOUND, walk.GUIDE])
+        self.assertEqual(walk.matches(walk.V4_COMMIT, bound, ROOT), [*walk.BOUND, walk.GUIDE])
 
-    def test_this_checkout_is_checked_only_once_it_names_release_28(self):
-        head = subprocess.check_output(['git', '-C', str(ROOT), 'rev-parse', 'HEAD'], text=True).strip()
-        self.assertEqual(walk.real_commit(head, self.standin, ROOT), dict(carries_release_28=False, head=head))
+    def test_only_verified_v4_may_defer_and_never_qualifies(self):
+        head = walk.V4_COMMIT
+        self.assertEqual(walk.real_commit(head, self.standin, ROOT, allow_deferred=True),
+                         dict(carries_release_28=False, head=head, equal=False, deferred=True))
+        with self.assertRaisesRegex(AssertionError, 'requires a successful real-commit comparison'):
+            walk.real_commit(head, self.standin, ROOT)
         # The stand-in announced commit as "this checkout": it carries release 28 and equals itself.
         announced = self.standin['commits']['announced']
         self.assertEqual(walk.real_commit(announced, self.standin, self.standin['repository']),
@@ -382,6 +386,107 @@ class StandInOriginTest(unittest.TestCase):
                      **{'os/owner-tools': walk.V4_TREE})))
         with self.assertRaisesRegex(AssertionError, 'differs from the rehearsed bundle in os/owner-tools'):
             walk.real_commit(announced, other, self.standin['repository'])
+
+    def commit_with(self, files, base='announced'):
+        repo = self.standin['repository']
+        root, _ = walk.tree_with(repo, self.git('rev-parse', self.standin['commits'][base] + '^{tree}'), files)
+        return walk.git('commit-tree', root, '-m', 'test candidate', source=repo,
+                        env=walk.tools_local.STANDIN_ENV).decode().strip()
+
+    def test_a_new_bundle_with_another_newest_reference_must_not_defer(self):
+        path = 'os/owner-tools/history.json'
+        history = json.loads(walk.announced(self.record, ROOT)['files'][path])
+        history['releases'][-1]['reference'] = 'ghcr.io/ares-empire/aresos@sha256:' + '99'*32
+        candidate = self.commit_with({path: (json.dumps(history, indent=2)+'\n').encode()})
+        for deferred in (False, True):
+            with self.subTest(deferred=deferred), self.assertRaisesRegex(AssertionError, 'differs from the rehearsed bundle'):
+                walk.real_commit(candidate, self.standin, self.standin['repository'], allow_deferred=deferred)
+
+    def test_changed_v4_tools_or_release_are_not_an_unchanged_baseline(self):
+        for path in walk.BOUND:
+            file = path + '/owner.py' if path == 'os/owner-tools' else path
+            candidate = self.commit_with({file: b'changed\n'}, base='v4')
+            with self.subTest(path=path), self.assertRaisesRegex(AssertionError, 'differs from the rehearsed bundle'):
+                walk.real_commit(candidate, self.standin, self.standin['repository'], allow_deferred=True)
+
+    def test_real_guide_binds_line_one_and_full_fingerprint_but_allows_other_text(self):
+        original = walk.announced(self.record, ROOT)['files'][walk.GUIDE].decode().splitlines()
+        for index in (0, 2):
+            lines = list(original)
+            lines[index] = walk.guide_line(walk.TOOLS_V4, 4) if index == 0 else walk.TOOLS_V4
+            candidate = self.commit_with({walk.GUIDE: ('\n'.join(lines)+'\n').encode()})
+            with self.subTest(line=index+1), self.assertRaisesRegex(AssertionError, 'docs/OWNER-TOOLS.md'):
+                walk.real_commit(candidate, self.standin, self.standin['repository'])
+        candidate = self.commit_with({walk.GUIDE: ('\n'.join(original)+'\nUpdated explanatory prose.\n').encode()})
+        self.assertTrue(walk.real_commit(candidate, self.standin, self.standin['repository'])['equal'])
+
+    def test_vm_route_cannot_accept_the_uncut_baseline(self):
+        from types import SimpleNamespace
+        from unittest.mock import Mock
+        vm = SimpleNamespace(td=SimpleNamespace(WORK=pathlib.Path(self.folder.name)), Console=Mock(), laptop_update=Mock())
+        with patch.dict(os.environ, GITHUB_SHA=walk.V4_COMMIT), \
+                patch.object(walk, 'facts_27', return_value=json.loads(self.record)), \
+                patch.object(walk, 'standin_origin', return_value=self.standin), \
+                self.assertRaisesRegex(AssertionError, 'requires a successful real-commit comparison'):
+            walk.rehearsal(vm, None, None, None, None, None, None, self.record)
+        vm.laptop_update.assert_not_called()
+
+    def test_control_qualification_stays_blocked_until_step_two(self):
+        from types import SimpleNamespace
+        from unittest.mock import Mock
+        vm = SimpleNamespace(td=SimpleNamespace(WORK=pathlib.Path(self.folder.name)), Console=Mock(), laptop_update=Mock())
+        with patch.dict(os.environ, GITHUB_SHA=walk.V4_COMMIT), \
+                patch.object(walk, 'facts_27', return_value=json.loads(self.record)), \
+                patch.object(walk, 'standin_origin', return_value=self.standin), \
+                patch.object(walk, 'real_commit', return_value=dict(equal=True)), \
+                patch.object(walk, 'CONTROL_RIDES', True), \
+                self.assertRaisesRegex(AssertionError, 'Control qualification awaits step 2'):
+            walk.rehearsal(vm, None, None, None, None, None, None, self.record)
+        vm.laptop_update.assert_not_called()
+
+
+class ReceiptTest(unittest.TestCase):
+    def test_generator_records_the_production_setting_and_passes_it_to_the_walk(self):
+        import runpy, test_owner_walk
+        namespace = runpy.run_path(str(ROOT / 'reviews/42-release-28/walk-host.py'))
+        with tempfile.TemporaryDirectory() as temporary:
+            root = pathlib.Path(temporary)
+            previous = root / 'os/manifest/ci/22d/host-walk.json'
+            previous.parent.mkdir(parents=True)
+            previous.write_text('{"sources":[]}')
+            namespace['main'].__globals__.update(ROOT=root, ADDED=set())
+            observed = dict(stages=[], checks=[], markers=[], commands=[], typed=[])
+            for control in (False, True):
+                with self.subTest(control=control), patch.object(walk, 'CONTROL_RIDES', control), \
+                        patch.object(test_owner_walk, 'walk', return_value=observed) as local_walk, \
+                        contextlib.redirect_stdout(io.StringIO()):
+                    namespace['main']()
+                    local_walk.assert_called_once_with(route=MODE, control=control)
+                    receipt = json.loads((root / 'os/manifest/ci/42/host-walk.json').read_text())
+                    self.assertIs(receipt['control_rides'], control)
+                    walk.receipt_setting(receipt)
+                    with self.assertRaisesRegex(AssertionError, 'Control setting differs'):
+                        walk.receipt_setting(dict(receipt, control_rides=not control))
+                    with self.assertRaisesRegex(AssertionError, 'Control setting differs'):
+                        walk.receipt_setting({})
+
+    def test_vm_driver_rejects_an_opposite_setting_before_guest_setup(self):
+        import owner_vm, owner_capabilities
+        sha = 'a' * 40
+        files = {'evidence/42-dispatch-authorization.json': dict(allowance='42', native=dict(status='passed', sha=sha)),
+                 'evidence/14-host-capabilities.json': dict(status='passed', sha=sha,
+                       checks={key: True for key in owner_capabilities.CHECKS}),
+                 'os/manifest/ci/42/host-walk.json': dict(status='passed', stick_across_reboot=False,
+                       control_rides=True, sources=[dict(sha256=hashlib.sha256(b'fixture').hexdigest(), path='fixture')])}
+        def read(path, *args, **kwargs):
+            return json.dumps(files[str(path)])
+        with patch.dict(os.environ, REHEARSAL_PACKAGE='42', GITHUB_SHA=sha), \
+                patch.object(sys, 'argv', ['owner_vm.py', MODE]), patch.object(owner_media, 'require_runner'), \
+                patch.object(pathlib.Path, 'read_text', read), patch.object(pathlib.Path, 'read_bytes', return_value=b'fixture'), \
+                patch.object(walk, 'CONTROL_RIDES', False), patch.object(owner_vm.td, 'start_installed') as start, \
+                self.assertRaisesRegex(AssertionError, 'Control setting differs'):
+            owner_vm.main()
+        start.assert_not_called()
 
 
 class WalkTest(unittest.TestCase):
@@ -396,6 +501,18 @@ class WalkTest(unittest.TestCase):
     def test_control_rides_is_off(self):
         self.assertIs(walk.CONTROL_RIDES, False)
 
+    def test_local_walk_uses_the_real_release_record_after_the_cut(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = pathlib.Path(temporary)
+            releases = root / 'os/manifest/releases'
+            releases.mkdir(parents=True)
+            (releases / '27.json').write_bytes((ROOT / walk.R27_RECORD).read_bytes())
+            actual = record(digest='ab'*32)
+            with patch.object(self.module, 'ROOT', root):
+                self.assertNotEqual(self.module.release28_record(), actual)
+                (releases / '28.json').write_bytes(actual)
+                self.assertEqual(self.module.release28_record(), actual)
+
     def test_every_stage_of_brief_b_passes(self):
         for control, walked in self.walked.items():
             with self.subTest(control=control):
@@ -407,24 +524,34 @@ class WalkTest(unittest.TestCase):
                 self.assertEqual(result['no_foot']['stop'], walk.FOOT_STOP)
                 self.assertEqual(result['game_scope']['memory_high'], '2684354560')
                 self.assertTrue(result['home']['planted'])
+                self.assertFalse(result['qualified'])
+                self.assertEqual(result['terminal_path'], self.module.vm.DAILY_PATH)
+                names = [name for name, _ in walked['commands']]
+                self.assertLess(names.index('release-28-terminal'), names.index('release-28-path-result'))
+                self.assertLess(names.index('release-28-path-result'), names.index('release-28-polkit'))
+                home_probe = next(source for name, source in walked['session'].executed if name == 'release-28-home')
+                self.assertIn("'schemaVersion': 4", home_probe)
                 self.assertEqual(walked['session'].events, ['foot ended', 'terminal opened', 'game scope'])
                 self.assertEqual(walked['local'].installs[-1], dict(manifest=result['tools'], previous_manifest=walk.TOOLS_V4,
                                                                     previous_version=4, tools_version=5))
                 self.assertLessEqual({'final-unattended-windows', 'final-detached-windows'}, set(walked['markers']))
 
-    def test_control_is_checked_only_when_it_rides(self):
+    def test_only_sites_persistence_runs_when_control_rides(self):
         off, on = self.walked[False]['result'], self.walked[True]['result']
-        self.assertEqual((off['control'], off['sites_sha256']), (None, None))
-        self.assertEqual((on['control']['uid'], on['control']['gid']), (250, 250))
+        self.assertEqual(off['sites_sha256'], None)
+        self.assertFalse(off['control_checked'])
+        self.assertFalse(on['control_checked'])
         self.assertEqual(on['sites_sha256'], hashlib.sha256((walk.SITES_LIST + '\n').encode()).hexdigest())
         names = lambda control: [name for name, _ in self.walked[control]['commands']]
         self.assertFalse([n for n in names(False) if n.endswith(('-sites', '-sites-hash', '-control'))])
+        self.assertFalse([n for n in names(True) if n.endswith('-control')])
         self.assertEqual([n for n in names(True) if n.endswith('-sites-hash')],
                          ['r28-before-update-sites-hash', 'release-28-sites-hash', 'previous-27-sites-hash', 'final-28-sites-hash'])
 
     def test_each_announced_commit_records_its_bound_hashes(self):
         rows = self.walked[False]['result']['announced']
-        self.assertEqual([row['real'] for row in rows], [walk.V4_COMMIT, None])
+        real = self.walked[False]['result']['real_commit']
+        self.assertEqual([row['real'] for row in rows], [walk.V4_COMMIT, real['head'] if real['equal'] else None])
         self.assertEqual(rows[0]['bound']['os/owner-tools'], walk.V4_TREE)
         self.assertEqual(set(rows[1]['bound']), set(walk.BOUND))
 
