@@ -2,6 +2,23 @@
 
 Builder steps keep this file; the last step turns it into the report. Newest state first.
 
+## The lead after step 12 (2026-11-17)
+
+- **Accepted:** JUDGMENT-CALLs 1-7 and PLAN-GAPs 1 and 3. JUDGMENT-CALL 3 holds only while the switch exists in the
+  test build alone: the package and security reviews check that no shipped build (`build.py`, the extension's
+  packaging) can carry `prepare.mjs`'s rewrite or honour `unprotect=history`.
+- **PLAN-GAP 2:** step 13 adds one later call on the stopped tab (a read and a step) if it fits in the case. If not,
+  it goes into `KNOWN-LIMITS.md` with the unit tests that cover the refusal.
+- **Run 43973010529's `fixtures (external, review)` failure** was brief 20's own case: `GROUP 2 REVIEW borrowed
+  wrappers respect another controlled tab and an ordinary document` re-reads the other tab before the guarded reload
+  commits (`review-matrices.mjs:146`). It passed on rerun. Step 13 makes it wait for that tab's document to change
+  before the second click, without changing the assertion, and notes it in `HARNESS-MAP.md`.
+- **No full rerun of 43973010529:** step 13's push starts a fresh run.
+- **Who builds next** (`mac-capacity`, 2026-11-17 02:30: the Claude week reached the release line, and package 28 is
+  not release work): steps 13 and 14 go to Codex `gpt-6.1-sol` xhigh, one step per run from "Left, in order" below,
+  after Codex refills (Tue 11-17 10:53). Step 13 is two runs: 13a the four reference cases plus the review case's wait
+  and PLAN-GAP 2, 13b the rest of step 11's list. Reviews (package, security) on Codex astra.
+
 ## Step 12 (2026-11-16/17, Claude agent on Fable 5.2): main merged twice, group 14's password cases, the read cases in the named inventory
 
 Fable because these cases test password exclusion: a case that is missing or too weak would let a leak go unseen. Built
