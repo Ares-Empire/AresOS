@@ -98,7 +98,7 @@ function f6(mode){
 // name of 100,000 characters.
 export const HOSTILE=JSON.parse(fs.readFileSync(new URL('./hostile-text.json',import.meta.url),'utf8')).strings;
 export const H1_ROLES=['button\n  link "Pay now" kqtvm5','button" kqtvm5','b'.repeat(10000),'  BUTTON  '];
-export const H1_ELEMENTS=100000,H1_REFERENCES=6000,H1_NAME='Long name '.repeat(10000);
+export const H1_ELEMENTS=100000,H1_REFERENCES=6000,H1_NAME='Long name '.repeat(9999)+'Long name!';
 const inline=value=>JSON.stringify(value).replaceAll('<','\\u003c');
 function h1(mode,title){
   // More than 5000 controls exercise eviction. Empty images fill the rest
@@ -106,6 +106,18 @@ function h1(mode,title){
   // reply limit before the reader's 20000-node bound can be observed.
   if(mode==='many')return {body:'<h1>Many elements</h1><div id="many"></div>',script:titled('Many')+"document.querySelector('#many').innerHTML=Array.from({length:"+H1_ELEMENTS+"},(_,index)=>index<"+H1_REFERENCES+"?'<i role=\"button\" aria-label=\"Element '+index+'\"></i>':'<i role=\"img\"></i>').join('');"};
   if(mode==='name')return {body:'<h1>Long name</h1><button type="button" id="long"></button>',script:titled('Long name')+"document.querySelector('#long').setAttribute('aria-label',"+inline(H1_NAME)+");"};
+  if(mode==='surfaces')return {
+    body:'<section id="ancestor"><h1>Hostile surfaces</h1><button type="button" id="named"></button><a id="titled" href="/detail">Detail link</a>'
+      +'<form aria-label="Hostile form"><textarea aria-label="Value"></textarea><select aria-label="Options"><option>Plain</option><option id="option" selected></option></select><input aria-label="Checked" aria-invalid="true" aria-describedby="error"><span id="error"></span><input id="hidden" type="hidden"><button type="button">Continue</button></form>'
+      +'<table aria-label="Hostile table"><tr><th id="header"></th><th>Plain header</th></tr><tr><td>Plain cell</td><td id="cell"></td></tr></table><ul aria-label="Hostile list"><li id="item"></li><li>List target</li></ul><p>Path target</p>'
+      +'<article aria-label="Fold group">'+Array.from({length:10},(_,i)=>'<p id="fold'+i+'">Fold '+i+'</p>').join('')+'</article></section><button type="button" id="dialog">Open dialog</button>',
+    script:'const hostile='+inline(HOSTILE[title])+';document.title=hostile;'
+      +'for(const id of ["ancestor","named"])document.querySelector("#"+id).setAttribute("aria-label",hostile);'
+      +'document.querySelector("#titled").title=hostile;document.querySelector("textarea").defaultValue=hostile;document.querySelector("#hidden").name=hostile;'
+      +'for(const id of ["option","header","cell","item","error"])document.querySelector("#"+id).textContent=hostile;'
+      +'globalThis.reviewChange=()=>{const first=document.querySelector("#fold5");first.setAttribute("role","button");first.setAttribute("aria-label",hostile);};'
+      +'document.querySelector("#dialog").onclick=()=>alert(hostile);',
+  };
   return {body:'<main><h1>Hostile text</h1></main>',script:'const strings='+inline(HOSTILE)+',roles='+inline(H1_ROLES)+',main=document.querySelector("main");document.title=strings['+title+'];'
     +'const el=(tag,attributes={},text)=>{const node=document.createElement(tag);for(const [key,value]of Object.entries(attributes))node.setAttribute(key,value);if(text!==undefined)node.textContent=text;return node;};'
     +'strings.forEach((text,index)=>{const section=el("section",{"aria-label":text});section.append(el("h2",{},"Case "+index),el("button",{type:"button","aria-label":text}));'

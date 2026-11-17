@@ -7,7 +7,30 @@ const support=['FEATURE tools forms options find wait fill_form scroll and full 
   'READ BRIEF28 a service restart refuses old references after the new counter passes them','READ BRIEF28 Chrome restart and extension reconnect each refuse every old reference without reissuing strings',
   'READ BRIEF28 more than 5000 elements drop an old reference and never issue its string again','READ BRIEF28 release and retake refuse an old reference with the same document and element id',
   'READ BRIEF28 two tabs of one page share no reference and find with role returns its one link','READ BRIEF28 paging joins whole and a cursor keeps its query','READ BRIEF28 typing moves the state token and until meets a value',
-  'READ BRIEF28 frames of a second site and shadow roots are read','READ BRIEF28 addresses hold no sign-in and show an ordinary query'];
+  'READ BRIEF28 frames of a second site and shadow roots are read','READ BRIEF28 addresses hold no sign-in and show an ordinary query',
+  'READ BRIEF28 100000 characters by ref advance at max 1000 without splitting escapes',
+  'READ BRIEF28 a wide table row is returned whole across pages',
+  'READ BRIEF28 a 20000 character value is returned in full across pages',
+  'READ BRIEF28 non ASCII and quote pages fit with a pending operation and the notice',
+  'READ BRIEF28 five tabs each keep their byte share and continue with their own cursor',
+  'READ BRIEF28 a change inside a frame moves the state token',
+  'READ BRIEF28 an unchanged page keeps its state token over 100 polls',
+  'READ BRIEF28 until meets text on a page that never goes quiet',
+  'READ BRIEF28 H1 hostile roles stay on the fixed role list',
+  'READ BRIEF28 H1 names values options tables forms paths stale lines titles and dialogs stay quoted',
+  'READ BRIEF28 H1 a 100000 character name is cut once and read whole by ref',
+  'READ BRIEF28 H1 100000 elements report the 20000 node cap',
+  'READ BRIEF28 small fixture outlines match the stored green browser results character for character',
+  'READ BRIEF28 taken typed fields stay unread until exact one call approval and credentials stay excluded',
+  'READ BRIEF28 a field added after the asking question reasks without reading',
+  'READ BRIEF28 a same label replacement refuses the asking read before values',
+  'READ BRIEF28 a changed field label refuses the asking read before values',
+  'READ BRIEF28 swapping duplicate labelled fields refuses the asking read before values',
+  'READ BRIEF28 swapping unlabelled fields refuses the asking read before values',
+  'READ BRIEF28 a listed frame navigation refuses the asking read before values',
+  'READ BRIEF28 a listed field made password refuses the asking read before values',
+  'READ BRIEF28 a listed field masked refuses the asking read before values',
+  'READ BRIEF28 altered asking questions and field lists read no value'];
 const complete=()=>[...Object.values(REQUIRED).flat(),...support].map(name=>({name,passed:true}));
 const baseline={owner:true,forgery:true,isolation:true,residual:true};
 const adapters=Object.fromEntries(['gmail','whatsapp','github','bank','gemini','deezer'].map(name=>[name,true]));
@@ -60,7 +83,7 @@ test('unmapped additional checks fail closed until explicitly assigned to record
 });
 
 test('every named core popup and adapter case is in the exact required inventory',()=>{
-  const names=['control/chrome/ci/matrices.mjs','control/chrome/ci/destination-matrix.mjs','control/chrome/ci/late-reader-matrix.mjs','control/chrome/ci/late-binding-matrix.mjs','control/chrome/ci/animated-default-matrix.mjs','control/chrome/ci/outline-read.mjs','control/chrome/ci/unread-matrix.mjs','control/chrome/ci/review-matrices.mjs','control/chrome/ci/recheck2-matrices.mjs','control/chrome/ci/recheck3-matrices.mjs','control/chrome/ci/popups.mjs','control/chrome/ci/sites/matrices.mjs'].flatMap(file=>
+  const names=['control/chrome/ci/matrices.mjs','control/chrome/ci/destination-matrix.mjs','control/chrome/ci/late-reader-matrix.mjs','control/chrome/ci/late-binding-matrix.mjs','control/chrome/ci/animated-default-matrix.mjs','control/chrome/ci/outline-read.mjs','control/chrome/ci/outline-asking.mjs','control/chrome/ci/unread-matrix.mjs','control/chrome/ci/review-matrices.mjs','control/chrome/ci/recheck2-matrices.mjs','control/chrome/ci/recheck3-matrices.mjs','control/chrome/ci/popups.mjs','control/chrome/ci/sites/matrices.mjs'].flatMap(file=>
     [...fs.readFileSync(file,'utf8').matchAll(/await check\('([^']+)'/g)].flatMap(match=>match[1]==='GROUP 10 adapter '?['gmail','whatsapp','github','gemini','deezer'].map(site=>match[1]+site):[match[1]]));
   assert.deepEqual([...names].sort(),[...Object.values(REQUIRED).flat(),...SUPPORT].sort());
   assert.equal(verdicts(complete(),baseline,adapters).groups[12],false);
