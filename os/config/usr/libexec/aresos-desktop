@@ -973,7 +973,8 @@ def message(state, reason, detail, lock, persisted):
     if state == SETUP:
         steps = ('1. Prism Launcher opens. Sign in there with your own Microsoft account.\n'
                  '2. Minecraft is downloaded (a few minutes the first time) and starts.\n'
-                 '3. On the title screen click AresOS, keep or change the seed, and click Create.\n'
+                 '3. Making your home… (the first start takes a moment)\n'
+                 '   If creation fails and the title screen shows, click AresOS, then Create.\n'
                  f'   Your hub is built and saved in {world}.\n')
         lead = {
             'setup': 'AresOS: first start\n\n',
@@ -1878,7 +1879,7 @@ class Supervisor:
         if self.persisted.reason == 'world_missing':
             self.persisted.reset()
         self.save()
-        return True, 'The next start makes a new hub (title screen, AresOS button). Type retry.'
+        return True, 'The next start makes a fresh flat home by itself. Type retry.'
 
     def status(self):
         launch = self.launch
