@@ -413,7 +413,11 @@ class IdleLoop(unittest.TestCase):
                                      (-0.001, daemon_module.OVERDUE_RETRY)):
                 with self.subTest(offset=offset), \
                         patch('aresos_control.daemon.time.time', return_value=self.expires(approval) - offset):
-                    self.assertAlmostEqual(self.passes(1)[0], expected, places=6)
+                    timeout = self.passes(1)[0]
+                    self.assertAlmostEqual(timeout, expected, places=6)
+                    if offset > 0:
+                        # Keep lateness bounded independently of the product's margin.
+                        self.assertLessEqual(timeout, 0.012)
 
     def test_idle_sleeps_until_maintenance(self):
         timeouts = self.passes(3)
@@ -434,6 +438,8 @@ class IdleLoop(unittest.TestCase):
         # The first select sleeps until the expiry and its margin, not 0.1 s or 60 s; the pass it wakes for, at that
         # time, expires the reservation. Then nothing is pending: the idle sleep.
         self.assertAlmostEqual(timeouts[0], self.engine.ttl + daemon_module.DEADLINE_MARGIN, places=6)
+        # A larger product margin must not silently weaken this 0.4 s reservation's deadline.
+        self.assertLessEqual(timeouts[0], 0.41)
         self.assertGreater(timeouts[1], 59)
         self.assertEqual(self.checked[0][0], 'reserved')
         self.assertEqual(self.checked[1][0], 'failed')
