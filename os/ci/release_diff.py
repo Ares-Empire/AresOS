@@ -406,6 +406,7 @@ JAVA_MAN_FOLDERS = ('usr/lib/jvm/java-25-openjdk/man', 'usr/lib/jvm/java-25-open
 AUDIT_UNIT_FOLDERS = ('usr/lib/systemd/', 'usr/local/lib/systemd/', 'etc/systemd/')
 ALTERNATIVES = 'etc/alternatives/'
 ALTERNATIVES_ADMIN = 'etc/alternatives-admindir/'
+ALTERNATIVES_MANIFEST_28 = 'os/ci/release28-alternatives.json'
 CROWN = 'usr/share/themes/Ares-Crown/labwc'
 RC_XML = 'usr/share/aresos/labwc/rc.xml'
 # What build.sh's package step (dnf5 download and install of the locked
@@ -1001,6 +1002,15 @@ def alternatives_admin(raw):
     return dict(mode=lines[0], links=links, choices=choices) if choices else None
 
 
+def reviewed_alternatives(packages):
+    """Repo-reviewed scriptlet effects, bound to the source RPM pin, never to the image's records."""
+    manifest = json.loads(pathlib.Path(ALTERNATIVES_MANIFEST_28).read_text())
+    locked = json.loads(pathlib.Path('os/packages.lock.json').read_text())['packages']
+    assert manifest['package'] in locked and manifest['package']['nevra'] in packages['new'], \
+        'STOP: release 28 alternatives manifest does not match the locked and installed Java package; review its scriptlets'
+    return manifest['groups']
+
+
 def crown_digest(folder):
     """os/ci/image-checks.sh's Ares-Crown checksum: each file's SHA-256 and name, by name, hashed again."""
     files = sorted(pathlib.Path(folder).iterdir(), key=lambda path: path.name)
@@ -1047,6 +1057,7 @@ class Classifier28:
         self.mod_pin = next(mod['sha256'] for mod in lock['mods'] if mod['file'] == 'aresos.jar' and 'url' not in mod)
         self.prism_pin = lock['prism']['sha256']
         self.origins, self.prism, self.groups = {}, None, None
+        self.expected_alternatives = reviewed_alternatives(packages)
         self.schema_rebuild = None
         self.schema_rows, self.font_caches, self.updater_rows = None, [], None
 
@@ -1184,32 +1195,49 @@ class Classifier28:
         return None
 
     def alternatives(self):
-        """{group: (links, selected targets)}. Every link must select its own target from one complete
-        choice in the record; auto mode must select a choice of the highest priority."""
+        """{group: (public links, selected targets)} matching the independent reviewed mapping.
+
+        Check both links of every chain, including paths absent from both image inventories.
+        Auto mode must select a complete choice of the highest priority.
+        """
         if self.groups is None:
             self.groups = {}
             folder = self.new_root / ALTERNATIVES_ADMIN
             for path in sorted(folder.iterdir()) if folder.is_dir() else ():
                 rel = ALTERNATIVES_ADMIN + path.name
-                if entry(self.old_root, rel) is not None or path.is_symlink() or not path.is_file():
+                record = entry(self.new_root, rel)
+                if entry(self.old_root, rel) is not None or not record or record['kind'] != stat.S_IFREG \
+                        or not root_owned(record, 0o644) or record['xattrs']:
                     continue
                 parsed = alternatives_admin(path.read_bytes())
                 if not parsed or path.name in parsed['links'].values() or any(
                         target not in self.owned['new'] for choice in parsed['choices']
                         for target in choice['targets'].values() if target):
                     continue
+                links = {public: name or path.name for public, name in parsed['links'].items()}
+                choices = [dict(priority=choice['priority'], targets={name or path.name: target
+                           for name, target in choice['targets'].items()}) for choice in parsed['choices']]
+                expected = self.expected_alternatives.get(path.name)
+                if not expected or links != expected['links'] or sorted(choices, key=lambda choice: choice['targets'][path.name]) \
+                        != sorted(expected['choices'], key=lambda choice: choice['targets'][path.name]):
+                    continue
                 priority = max(choice['priority'] for choice in parsed['choices'])
-                for choice in parsed['choices']:
+                for choice in choices:
                     if parsed['mode'] == 'auto' and choice['priority'] != priority:
                         continue
-                    targets = {name or path.name: target for name, target in choice['targets'].items()}
-                    if all(self.alternative_target(name, target) for name, target in targets.items()):
-                        self.groups[path.name] = (parsed['links'], targets)
+                    targets = choice['targets']
+                    if all(self.alternative_target(name, target) for name, target in targets.items()) and all(
+                            self.alternative_link(public.lstrip('/'), '/' + ALTERNATIVES + name if targets[name] else '')
+                            for public, name in links.items()):
+                        self.groups[path.name] = (links, targets)
                         break
         return self.groups
 
     def alternative_target(self, name, target):
-        link = entry(self.new_root, ALTERNATIVES + name)
+        return self.alternative_link(ALTERNATIVES + name, target)
+
+    def alternative_link(self, rel, target):
+        link = entry(self.new_root, rel)
         return (link is None if not target else link is not None and link['kind'] == stat.S_IFLNK
                 and root_owned(link, 0o777) and not link['xattrs'] and link['target'] == target)
 
@@ -1217,7 +1245,7 @@ class Classifier28:
         if rel.startswith(ALTERNATIVES_ADMIN):
             if before is None and after and after['kind'] == stat.S_IFREG and root_owned(after, 0o644) \
                     and not after['xattrs'] and rel[len(ALTERNATIVES_ADMIN):] in self.alternatives():
-                return ('package', 'package 23: alternatives record of an added package, every target a file of it')
+                return ('package', 'package 23: alternatives record and complete link chains match the reviewed RPM mapping')
             return None
         targets = {name: target for _, group_targets in self.alternatives().values() for name, target in group_targets.items()}
         if rel.startswith(ALTERNATIVES):
@@ -1412,6 +1440,9 @@ class Classifier28:
             problems.append('Prism bundle differs from the complete typed inventory of its pinned archive')
         if not self.rebuilt_schemas()['matches']:
             problems.append('compiled schemas differ from deterministic rebuild with the image compiler and schema directory')
+        invalid_groups = sorted(self.expected_alternatives.keys() - self.alternatives().keys())
+        if invalid_groups:
+            problems.append('alternatives groups missing or different from the reviewed mapping: ' + ', '.join(invalid_groups))
         old_rc, new_rc = self.read('old', RC_XML), self.read('new', RC_XML)
         return dict(schemas=self.schema_rows, schema_rebuild=self.rebuilt_schemas(),
                     font_caches=sorted(self.font_caches, key=lambda row: row['path']),

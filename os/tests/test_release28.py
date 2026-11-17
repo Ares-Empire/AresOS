@@ -7,6 +7,7 @@ import json
 import os
 import pathlib
 import re
+import shlex
 import shutil
 import stat
 import struct
@@ -493,6 +494,55 @@ class PrismInventoryTest(unittest.TestCase):
 
 
 class AlternativesAdminTest(unittest.TestCase):
+    @staticmethod
+    def scriptlet_groups():
+        """Independent expectations from the committed, pinned RPM's postinstall scriptlet."""
+        source = ROOT / 'reviews/23-minecraft-starts/runs/resolve-43466199049/candidate.txt'
+        script = source.read_text().split('postinstall scriptlet (using /bin/sh):', 1)[1].split('preuninstall scriptlet', 1)[0]
+        groups = {}
+        for line in script.replace('\\\n', ' ').splitlines():
+            args = shlex.split(line)
+            if args[:2] == ['alternatives', '--install']:
+                public, group, target, priority, *slaves = args[2:]
+                links, targets = {public: group}, {group: target}
+                for at in range(0, len(slaves), 4):
+                    flag, public, name, target = slaves[at:at + 4]
+                    assert flag == '--slave'
+                    links[public], targets[name] = name, target
+                groups[group] = dict(links=links, choices=[dict(priority=int(priority), targets=targets)])
+            elif args[:2] == ['alternatives', '--add-slave']:
+                group, master, public, name, target = args[2:]
+                choice, = groups[group]['choices']
+                assert choice['targets'][group] == master
+                groups[group]['links'][public], choice['targets'][name] = name, target
+        return groups
+
+    def test_reviewed_manifest_matches_the_pinned_scriptlets_and_all_observed_groups(self):
+        lock = json.loads((ROOT / 'os/packages.lock.json').read_text())
+        packages = dict(new=[package['nevra'] for package in lock['packages']])
+        expected = self.scriptlet_groups()
+        self.assertEqual(set(expected), {'java', 'jre_openjdk', 'jre_25', 'jre_25_openjdk'})
+        self.assertEqual(sum(len(group['links']) for group in expected.values()), 12)
+        self.assertEqual(rd.reviewed_alternatives(packages), expected)
+        manifest = json.loads((ROOT / rd.ALTERNATIVES_MANIFEST_28).read_text())
+        resolved = json.loads((ROOT / 'reviews/23-minecraft-starts/runs/resolve-43466199049/candidate-packages.lock.json').read_text())
+        self.assertIn(manifest['package'], resolved['packages'])
+
+    def test_the_manifest_stops_on_a_renewed_nevra_or_hash_or_an_absent_package(self):
+        lock = json.loads((ROOT / 'os/packages.lock.json').read_text())
+        package, = [row for row in lock['packages'] if row['nevra'].startswith('java-25-openjdk-headless-')]
+        for change in ({'sha256': '0' * 64}, {'nevra': package['nevra'].replace('3.1.fc44', '3.2.fc44')}):
+            changed = copy.deepcopy(lock)
+            next(row for row in changed['packages'] if row['nevra'] == package['nevra']).update(change)
+            read_text = pathlib.Path.read_text
+            def source_text(path, *args, **kwargs):
+                return json.dumps(changed) if str(path) == 'os/packages.lock.json' else read_text(path, *args, **kwargs)
+            with self.subTest(change=change), patch.object(pathlib.Path, 'read_text', source_text):
+                with self.assertRaisesRegex(AssertionError, 'alternatives manifest does not match'):
+                    rd.reviewed_alternatives(dict(new=[package['nevra']]))
+        with self.assertRaisesRegex(AssertionError, 'alternatives manifest does not match'):
+            rd.reviewed_alternatives(dict(new=[]))
+
     def test_links_and_targets_are_read_with_and_without_a_family(self):
         plain = b'auto\n/usr/bin/ld\n\n/usr/bin/ld.bfd\n50\n'
         self.assertEqual(rd.alternatives_admin(plain), dict(mode='auto', links={'/usr/bin/ld': None},
@@ -657,6 +707,10 @@ class Classifier28Test(unittest.TestCase):
         self.classifier = rd.Classifier28(self.roots, packages, owned, dict(
             executables=rd.CHMOD_0755_28, inventory=inventory, main_base='HEAD', records=self.records, new_image=rd.NEW,
             prism_inventory={rel: value for rel, value in inventory.items() if rel == rd.PRISM or rel.startswith(rd.PRISM + '/')}))
+        # This small image has its own independent reviewed mapping; production uses the pinned manifest.
+        self.classifier.expected_alternatives = {'java': dict(
+            links={'/usr/bin/java': 'java', '/usr/bin/keytool': 'keytool'},
+            choices=[dict(priority=25, targets={'java': self.JAVA, 'keytool': self.KEYTOOL})])}
         self.enterContext(patch.object(rd, 'rebuild_schemas', side_effect=lambda image: dict(
             matches=(self.new / rd.SCHEMAS).read_bytes() == (FIXTURES / 'after.compiled').read_bytes())))
         self.classifier.pins = {rd.MINECRAFT + '/libraries/x-1.jar': (hashlib.sha256(b'x').hexdigest(), 1, 'pinned x')}
@@ -932,12 +986,101 @@ class Classifier28Test(unittest.TestCase):
                 for rel in (rd.ALTERNATIVES_ADMIN + 'java', java, keytool, 'usr/bin/java', 'usr/bin/keytool'):
                     self.assertIsNone(self.fresh_explain(rel), rel)
 
+    def test_swapping_the_record_and_links_together_cannot_redefine_java(self):
+        record = rd.ALTERNATIVES_ADMIN + 'java'
+        raw = (self.new / record).read_bytes()
+        swapped = raw.replace(self.JAVA.encode(), b'/temporary-swap').replace(
+            self.KEYTOOL.encode(), self.JAVA.encode()).replace(b'/temporary-swap', self.KEYTOOL.encode())
+        with self.content(record, swapped), self.content(rd.ALTERNATIVES + 'java', ('link', self.KEYTOOL)), \
+                self.content(rd.ALTERNATIVES + 'keytool', ('link', self.JAVA)):
+            for rel in (record, rd.ALTERNATIVES + 'java', rd.ALTERNATIVES + 'keytool', 'usr/bin/java', 'usr/bin/keytool'):
+                with self.subTest(rel=rel):
+                    self.assertIsNone(self.fresh_explain(rel), rel)
+
+    def test_missing_public_links_stop_even_when_absent_from_both_images(self):
+        for paths in (('usr/bin/java',), ('usr/bin/keytool',), ('usr/bin/java', 'usr/bin/keytool')):
+            with self.subTest(paths=paths), contextlib.ExitStack() as stack:
+                for rel in paths:
+                    self.assertIsNone(rd.entry(self.old, rel))
+                    stack.enter_context(self.content(rel, None))
+                self.classifier.groups = None
+                self.assertIn('alternatives groups missing or different from the reviewed mapping: java',
+                              self.classifier.extra()[1])
+
+    def test_every_public_link_requires_its_type_metadata_and_target_even_when_unchanged(self):
+        for rel in ('usr/bin/java', 'usr/bin/keytool'):
+            target = '/etc/alternatives/' + pathlib.PurePosixPath(rel).name
+            for fields in (dict(kind=stat.S_IFREG), dict(uid=1000), dict(gid=1000), dict(mode=0o755),
+                           dict(xattrs={'user.x': '00'}), dict(target=self.KEYTOOL)):
+                with self.subTest(rel=rel, fields=fields), self.content(rel, ('link', target), root=self.old), \
+                        self.image(rel, **fields), self.image(rel, root=self.old, **fields):
+                    self.assertEqual(rd.entry(self.old, rel), rd.entry(self.new, rel))
+                    self.classifier.groups = None
+                    self.assertIn('alternatives groups missing or different from the reviewed mapping: java',
+                                  self.classifier.extra()[1])
+
+    def test_a_slave_without_a_target_requires_both_links_absent_and_rejects_an_extra_public_link(self):
+        record = rd.ALTERNATIVES_ADMIN + 'java'
+        raw = (self.new / record).read_bytes().replace(self.KEYTOOL.encode(), b'')
+        self.classifier.expected_alternatives['java']['choices'][0]['targets']['keytool'] = ''
+        with self.content(record, raw), self.content(rd.ALTERNATIVES + 'keytool', None), self.content('usr/bin/keytool', None):
+            self.assertIsNotNone(self.fresh_explain(record))
+            for extra in (('link', '/etc/alternatives/keytool'), ('link', self.KEYTOOL), b'unexpected', 'folder'):
+                with self.subTest(extra=extra), self.content('usr/bin/keytool', extra):
+                    self.classifier.groups = None
+                    self.assertIn('alternatives groups missing or different from the reviewed mapping: java',
+                                  self.classifier.extra()[1])
+                    self.assertIsNone(self.fresh_explain(record))
+            with self.content(rd.ALTERNATIVES + 'keytool', ('link', self.KEYTOOL)):
+                self.assertIsNone(self.fresh_explain(record))
+
+    def test_record_names_public_paths_and_priorities_cannot_redefine_the_reviewed_mapping(self):
+        record = rd.ALTERNATIVES_ADMIN + 'java'
+        raw = (self.new / record).read_bytes()
+        for changed in (raw.replace(b'@java-25@25', b'@java-25@26'),
+                        raw.replace(b'keytool\n/usr/bin/keytool', b'renamed\n/usr/bin/keytool'),
+                        raw.replace(b'/usr/bin/keytool\n', b'/usr/bin/renamed\n')):
+            with self.subTest(changed=changed), self.content(record, changed), \
+                    self.content(rd.ALTERNATIVES + 'renamed', ('link', self.KEYTOOL)), \
+                    self.content('usr/bin/renamed', ('link', '/etc/alternatives/renamed')):
+                self.assertIsNone(self.fresh_explain(record))
+        with self.content(record, None), self.content(rd.ALTERNATIVES_ADMIN + 'renamed', raw):
+            self.assertIsNone(self.fresh_explain(rd.ALTERNATIVES_ADMIN + 'renamed'))
+
+    def test_all_four_real_scriptlet_groups_and_their_twelve_chains_are_accepted(self):
+        expected = AlternativesAdminTest.scriptlet_groups()
+        with contextlib.ExitStack() as stack:
+            for group, spec in expected.items():
+                choice, = spec['choices']
+                targets = choice['targets']
+                master, = [public for public, name in spec['links'].items() if name == group]
+                slaves = [(public, name) for public, name in spec['links'].items() if name != group]
+                lines = ['auto', master, *(part for public, name in slaves for part in (name, public)), '',
+                         targets[group], str(choice['priority']), *(targets[name] for _, name in slaves)]
+                record = rd.ALTERNATIVES_ADMIN + group
+                stack.enter_context(self.content(record, ('\n'.join(lines) + '\n').encode()))
+                for public, name in spec['links'].items():
+                    stack.enter_context(self.content(public.lstrip('/'), ('link', '/etc/alternatives/' + name)))
+                    stack.enter_context(self.content(rd.ALTERNATIVES + name, ('link', targets[name])))
+                self.classifier.owned['new'].update(targets.values())
+            self.classifier.expected_alternatives = rd.reviewed_alternatives(self.classifier.packages)
+            for group, spec in expected.items():
+                for rel in (rd.ALTERNATIVES_ADMIN + group, *(public.lstrip('/') for public in spec['links']),
+                            *(rd.ALTERNATIVES + name for name in spec['links'].values())):
+                    self.assertIsNotNone(self.fresh_explain(rel), rel)
+            self.assertEqual(self.classifier.alternatives().keys(), expected.keys())
+            self.assertFalse(any('alternatives groups' in problem for problem in self.classifier.extra()[1]))
+
     def test_alternatives_cannot_mix_two_choices_or_choose_a_lower_automatic_priority(self):
         record = rd.ALTERNATIVES_ADMIN + 'java'
         raw = (self.new / record).read_bytes()
         other_java, other_keytool = '/jdk2/bin/java', '/jdk2/bin/keytool'
         self.classifier.owned['new'].update((other_java, other_keytool))
         for priority in (24, 26):
+            # Both independently reviewed choices are allowed; their selected links must remain coherent.
+            self.classifier.expected_alternatives['java']['choices'] = [
+                dict(priority=25, targets={'java': self.JAVA, 'keytool': self.KEYTOOL}),
+                dict(priority=priority, targets={'java': other_java, 'keytool': other_keytool})]
             with self.subTest(priority=priority), self.content(record, raw + f'{other_java}\n{priority}\n{other_keytool}\n'.encode()):
                 if priority == 24:
                     self.assertIsNotNone(self.fresh_explain(record))
@@ -1756,6 +1899,8 @@ class MainSmokeTest(unittest.TestCase):
                rd.RC_XML: (ROOT / 'os/config' / rd.RC_XML).read_bytes(),
                'usr/share/aresos/apps/terminal.json': (ROOT / 'os/config/usr/share/aresos/apps/terminal.json').read_bytes(),
                self.JAVA: b'java', Classifier28Test.JAVA_MAN: b'.TH java 1\n', tag: b'tag',
+               rd.ALTERNATIVES_ADMIN + 'java': f'auto\n/usr/bin/java\n\n/{self.JAVA}\n25\n'.encode(),
+               rd.ALTERNATIVES + 'java': ('link', '/' + self.JAVA), 'usr/bin/java': ('link', '/etc/alternatives/java'),
                updaters: Classifier28Test.audit('/' + dropin), dropin: (ROOT / 'os/config' / dropin).read_bytes(),
                # 23b's font folder with its real caches in both formats (fixtures/release28-fontcache).
                **{rd.FONT_CACHES + path.name: path.read_bytes() for path in FontCacheTest.FIXTURES.glob('*.cache-9')},
@@ -1770,6 +1915,9 @@ class MainSmokeTest(unittest.TestCase):
             root = self.work / name
             root.mkdir()
             base.ClassifierTest.tree(None, root, files)
+            # These directories already exist in release 27; only the new group's records and links differ.
+            for folder in (rd.ALTERNATIVES, rd.ALTERNATIVES_ADMIN, 'usr/bin'):
+                (root / folder).mkdir(parents=True, exist_ok=True)
             for path in root.rglob('*'):
                 if path.is_dir():
                     path.chmod(0o755)
@@ -1803,6 +1951,9 @@ class MainSmokeTest(unittest.TestCase):
         self.enterContext(patch.dict(os.environ, GITHUB_SHA='a' * 40))
         # main's merge base: this commit itself, so the image sources equal main's (S2's own tests change it).
         self.enterContext(patch.object(rd, 'main_merge_base', return_value='HEAD'))
+        # Independent reviewed expectation for the smoke test's single-command stand-in package.
+        self.enterContext(patch.object(rd, 'reviewed_alternatives', return_value={'java': dict(
+            links={'/usr/bin/java': 'java'}, choices=[dict(priority=25, targets={'java': '/' + self.JAVA})])}))
         self.record_changes, self.verify = {}, (0, '')
 
     # rpm -ql names a package's folders too (javapackages-filesystem owns /usr/lib/jvm).
@@ -1915,6 +2066,23 @@ class MainSmokeTest(unittest.TestCase):
             self.run_main()
         self.assertEqual(self.result['status'], 'stopped')
         self.assertNotIn(link, self.result['unexplained'])
+
+    def test_missing_public_link_stops_main_even_when_absent_from_both_images(self):
+        public = 'usr/bin/java'
+        (self.roots['new'] / public).unlink()
+        self.assertFalse((self.roots['old'] / public).exists())
+        with self.assertRaisesRegex(AssertionError, 'alternatives groups missing or different from the reviewed mapping: java'):
+            self.run_main()
+        self.assertEqual(self.result['status'], 'stopped')
+        self.assertNotIn(public, self.result['unexplained'])
+
+    def test_missing_whole_group_stops_main_without_any_changed_alternatives_path(self):
+        for rel in (rd.ALTERNATIVES_ADMIN + 'java', rd.ALTERNATIVES + 'java', 'usr/bin/java'):
+            (self.roots['new'] / rel).unlink()
+        with self.assertRaisesRegex(AssertionError, 'alternatives groups missing or different from the reviewed mapping: java'):
+            self.run_main()
+        self.assertEqual(self.result['status'], 'stopped')
+        self.assertEqual(self.result['unexplained'], [])
 
     def test_corrupted_schema_lookup_metadata_stops_the_result(self):
         for kind, corrupted in corrupt_schema_lookup((FIXTURES / 'after.compiled').read_bytes()).items():
