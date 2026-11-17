@@ -1,4 +1,6 @@
 test_frozen_snapshot_never_attaches_jcmd (test_rig.FrozenSnapshotTest.test_frozen_snapshot_never_attaches_jcmd) ... ok
+test_silently_enabled_tracking_rejects_absolute_measurement (test_rig.NmtOffTest.test_silently_enabled_tracking_rejects_absolute_measurement) ... ok
+test_tracking_off_is_confirmed_by_jvm (test_rig.NmtOffTest.test_tracking_off_is_confirmed_by_jvm) ... ok
 test_exact_owned_scope_with_membership (test_rig.ScopeTest.test_exact_owned_scope_with_membership) ... ok
 test_pid_in_ancestor_or_different_scope_refused (test_rig.ScopeTest.test_pid_in_ancestor_or_different_scope_refused) ... ok
 test_unrelated_unit_refused_before_any_read (test_rig.ScopeTest.test_unrelated_unit_refused_before_any_read) ... ok
@@ -8,7 +10,8 @@ test_reader_reopening_gap_and_multiple_commands (test_rig.WakeInputTest.test_rea
 test_frozen_gap_clipped_at_wake_and_33ms_is_exact (test_rig.WakeTest.test_frozen_gap_clipped_at_wake_and_33ms_is_exact) ... ok
 
 ----------------------------------------------------------------------
-Ran 8 tests in 2.109s
+Ran 10 tests in 2.101s
 
 OK
 frozen: RSS 100 MiB; heap None; scope 100 MiB; swap 2 MiB; majflt 3
+nmt-off: RSS 100 MiB; heap None; scope 100 MiB; swap 0 MiB; majflt 0

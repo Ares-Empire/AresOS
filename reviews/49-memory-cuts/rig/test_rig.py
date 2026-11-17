@@ -69,6 +69,29 @@ class FrozenSnapshotTest(unittest.TestCase):
             self.assertEqual(result['nmt_committed_mib'],{})
 
 
+class NmtOffTest(unittest.TestCase):
+    def check_snapshot(self, output):
+        import json
+        fixture={'status_mib':{'VmRSS':100},'cgroup_mib':{'current':100,'swap':0},'majflt':0}
+        with tempfile.TemporaryDirectory(dir=ROOT / '../../../.work/pkg49') as directory, \
+                patch.dict('os.environ',{'PKG49_NMT':'0','PKG49_FROZEN':'0','PKG49_PROBE':'0'}), \
+                patch.object(snap,'memory',return_value=fixture), \
+                patch.object(snap,'jcmd',return_value={'exit':0,'stdout':'','stderr':''}), \
+                patch.object(pathlib.Path,'read_text',return_value=''), \
+                patch.object(subprocess,'run',side_effect=[subprocess.CompletedProcess([],0,output,''),OSError('optional GPU')]):
+            snap.snapshot(123,'nmt-off',directory)
+            with open(pathlib.Path(directory)/'snap-nmt-off.json') as source: return json.load(source)
+
+    def test_tracking_off_is_confirmed_by_jvm(self):
+        result=self.check_snapshot('123:\nNative memory tracking is not enabled\n')
+        self.assertTrue(result['nmt_disabled_confirmed'])
+        self.assertEqual(result['nmt_committed_mib'],{})
+
+    def test_silently_enabled_tracking_rejects_absolute_measurement(self):
+        with self.assertRaisesRegex(RuntimeError,'did not confirm'):
+            self.check_snapshot('Total: reserved=200MB, committed=100MB\n')
+
+
 class WakeInputTest(unittest.TestCase):
     def test_dead_virtual_input_reader_fails_instead_of_holding_the_game_lock(self):
         import os, time

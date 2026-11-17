@@ -130,7 +130,7 @@ for path in sorted(glob.glob(os.path.join(rig, 'snap-*.json'))):
         'pss': snap['smaps_rollup_mib'].get('Pss'), 'rss_anon': snap['status_mib'].get('RssAnon'),
         'rss_file': snap['status_mib'].get('RssFile'), 'swap': snap['status_mib'].get('VmSwap'),
         'heap_used': snap.get('heap_mib', {}).get('used'), 'heap_committed': snap.get('heap_mib', {}).get('committed'),
-        'nmt_total': snap['nmt_committed_mib'].get('Total'),
+        'nmt_total': snap['nmt_committed_mib'].get('Total'), 'nmt_disabled_confirmed': snap.get('nmt_disabled_confirmed'),
         'nmt': {k: v for k, v in snap['nmt_committed_mib'].items() if k != 'Total' and v >= 5},
         'cgroup_current': snap['cgroup_mib']['current'], 'cgroup_peak': snap['cgroup_mib']['peak'],
         'cgroup_anon': snap['cgroup_mib'].get('anon'), 'cgroup_file': snap['cgroup_mib'].get('file'),

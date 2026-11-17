@@ -98,6 +98,14 @@ def snapshot(pid, label, out):
                 snap['nmt_committed_mib'][name.strip()] = int(committed)
             match = re.search(r'Total: reserved=\d+MB, committed=(\d+)MB', nmt)
             if match: snap['nmt_committed_mib']['Total'] = int(match[1])
+        else:
+            executable = pathlib.Path(os.environ.get('JAVA_HOME', os.path.expanduser('~/.local/opt/jdk-25'))) / 'bin/jcmd'
+            result = subprocess.run([str(executable), str(pid), 'VM.native_memory', 'summary'],
+                                    capture_output=True, text=True, timeout=60)
+            (out / f'nmt-{label}.txt').write_text(result.stdout)
+            if result.returncode or 'Native memory tracking is not enabled' not in result.stdout:
+                raise RuntimeError('NMT=0 requested but the JVM did not confirm tracking is disabled')
+            snap['nmt_disabled_confirmed'] = True
     match = re.search(r'\[(0x[0-9a-f]+),\s*(0x[0-9a-f]+)\)', heap)
     snap['smaps_classes'] = smaps_classes(raw_smaps, tuple(int(n, 16) for n in match.groups()) if match else None)
     try:

@@ -32,7 +32,7 @@ In addition to package 41's settings:
 | `RECLAIM=300M` or `600M` | GC+trim at 30 seconds, then one `memory.reclaim` write with `swappiness=max`. EAGAIN is retained as partial, never silently reported as complete. |
 | `FREEZE=1` | Requires reclaim. Freeze only the game scope after reclaim; snapshots skip jcmd until thaw. |
 | `LONG=20` | After standing/flight, remain visible and idle, with minute snapshots for 20 minutes. Use `FLIGHT=none` for step 0. |
-| `NMT=0` | Disable native memory tracking. Other instrumentation remains. |
+| `NMT=0` | Omit tracking and require the JVM to confirm it is disabled at every live snapshot. Other instrumentation remains. |
 
 Every snapshot records scope swap, global zram mm_stat, host load/free memory and selected executable counts,
 minflt/majflt and smaps classes. `sample.py` records cheap memory/fault/load samples every two seconds. Global
