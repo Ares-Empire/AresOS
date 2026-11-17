@@ -1,0 +1,212 @@
+[
+ {
+  "name": "dev.aresos.catalogue.AppGroupTest",
+  "tests": "4",
+  "failures": "0",
+  "errors": "0",
+  "skipped": "0"
+ },
+ {
+  "name": "dev.aresos.catalogue.LinuxLauncherTest",
+  "tests": "1",
+  "failures": "0",
+  "errors": "0",
+  "skipped": "0"
+ },
+ {
+  "name": "dev.aresos.catalogue.WindowsCatalogueFixesTest",
+  "tests": "6",
+  "failures": "0",
+  "errors": "0",
+  "skipped": "0"
+ },
+ {
+  "name": "dev.aresos.catalogue.WindowsCatalogueIdentityTest",
+  "tests": "7",
+  "failures": "0",
+  "errors": "0",
+  "skipped": "2"
+ },
+ {
+  "name": "dev.aresos.catalogue.WindowsCatalogueTest",
+  "tests": "4",
+  "failures": "0",
+  "errors": "0",
+  "skipped": "3"
+ },
+ {
+  "name": "dev.aresos.catalogue.WindowsNotepadAliasTest",
+  "tests": "3",
+  "failures": "0",
+  "errors": "0",
+  "skipped": "1"
+ },
+ {
+  "name": "dev.aresos.config.AppSearchTest",
+  "tests": "6",
+  "failures": "0",
+  "errors": "0",
+  "skipped": "0"
+ },
+ {
+  "name": "dev.aresos.config.AppsConfigTest",
+  "tests": "18",
+  "failures": "0",
+  "errors": "0",
+  "skipped": "0"
+ },
+ {
+  "name": "dev.aresos.focus.FocusReturnTest",
+  "tests": "9",
+  "failures": "0",
+  "errors": "0",
+  "skipped": "0"
+ },
+ {
+  "name": "dev.aresos.hub.AssignmentTest",
+  "tests": "8",
+  "failures": "0",
+  "errors": "0",
+  "skipped": "0"
+ },
+ {
+  "name": "dev.aresos.hub.HubDataTest",
+  "tests": "6",
+  "failures": "0",
+  "errors": "0",
+  "skipped": "0"
+ },
+ {
+  "name": "dev.aresos.hub.HubLayoutTest",
+  "tests": "6",
+  "failures": "0",
+  "errors": "0",
+  "skipped": "0"
+ },
+ {
+  "name": "dev.aresos.hub.TownLinesTest",
+  "tests": "8",
+  "failures": "0",
+  "errors": "0",
+  "skipped": "0"
+ },
+ {
+  "name": "dev.aresos.hub.PlaceTest",
+  "tests": "6",
+  "failures": "0",
+  "errors": "0",
+  "skipped": "0"
+ },
+ {
+  "name": "dev.aresos.hub.TownSealTest",
+  "tests": "3",
+  "failures": "0",
+  "errors": "0",
+  "skipped": "0"
+ },
+ {
+  "name": "dev.aresos.icon.AppIconsTest",
+  "tests": "7",
+  "failures": "0",
+  "errors": "0",
+  "skipped": "0"
+ },
+ {
+  "name": "dev.aresos.shell.ShellClientTest",
+  "tests": "22",
+  "failures": "0",
+  "errors": "0",
+  "skipped": "0"
+ },
+ {
+  "name": "dev.aresos.names.NameRulesTest",
+  "tests": "43",
+  "failures": "0",
+  "errors": "0",
+  "skipped": "0"
+ },
+ {
+  "name": "dev.aresos.icon.IconRefreshTest",
+  "tests": "4",
+  "failures": "0",
+  "errors": "0",
+  "skipped": "0"
+ },
+ {
+  "name": "dev.aresos.icon.IconTest",
+  "tests": "2",
+  "failures": "0",
+  "errors": "0",
+  "skipped": "0"
+ },
+ {
+  "name": "dev.aresos.names.SavedNamesTest",
+  "tests": "5",
+  "failures": "0",
+  "errors": "0",
+  "skipped": "0"
+ },
+ {
+  "name": "dev.aresos.names.OpenProgramsTest",
+  "tests": "2",
+  "failures": "0",
+  "errors": "0",
+  "skipped": "0"
+ },
+ {
+  "name": "dev.aresos.shell.ShellListTest",
+  "tests": "15",
+  "failures": "0",
+  "errors": "0",
+  "skipped": "0"
+ },
+ {
+  "name": "dev.aresos.zone.AppZoneTest",
+  "tests": "1",
+  "failures": "0",
+  "errors": "0",
+  "skipped": "0"
+ },
+ {
+  "name": "dev.aresos.zone.GatePaletteTest",
+  "tests": "5",
+  "failures": "0",
+  "errors": "0",
+  "skipped": "0"
+ },
+ {
+  "name": "dev.aresos.zone.GatePictureColoursTest",
+  "tests": "16",
+  "failures": "0",
+  "errors": "0",
+  "skipped": "0"
+ },
+ {
+  "name": "dev.aresos.zone.GatePictureSourceTest",
+  "tests": "4",
+  "failures": "0",
+  "errors": "0",
+  "skipped": "0"
+ },
+ {
+  "name": "dev.aresos.zone.GatePictureTest",
+  "tests": "11",
+  "failures": "0",
+  "errors": "0",
+  "skipped": "0"
+ },
+ {
+  "name": "dev.aresos.zone.LogoPixelsTest",
+  "tests": "2",
+  "failures": "0",
+  "errors": "0",
+  "skipped": "0"
+ },
+ {
+  "name": "dev.aresos.zone.PictureReaderTest",
+  "tests": "2",
+  "failures": "0",
+  "errors": "0",
+  "skipped": "0"
+ }
+]

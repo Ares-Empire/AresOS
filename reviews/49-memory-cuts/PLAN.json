@@ -1,0 +1,34 @@
+{
+  "baseline": {
+    "HEAP": 1024,
+    "MIN_HEAP": 256,
+    "MEMHIGH": "2560M",
+    "RD": 8,
+    "SD": 5,
+    "GC": [
+      "-XX:MaxHeapFreeRatio=30",
+      "-XX:MinHeapFreeRatio=10"
+    ]
+  },
+  "order": [
+    "FerriteCore full build/client suite twice",
+    "setup flat base",
+    "step0 probe, covered 300s",
+    "step0 visible idle 20min",
+    "paired factors (A/B then B/A)",
+    "covered variants twice",
+    "select winners from evidence",
+    "winner validation",
+    "merge origin/main before hosted checks"
+  ],
+  "native_gate": "Skip trim interval/system allocator/arena limit if both direct and post-GC trims return under 30 MiB at every probe snapshot.",
+  "pass_line": [
+    "no OOM",
+    "GC pauses after joining <=50ms",
+    "no cgroup memory.events high",
+    "frames no worse than adjacent fresh v1 baselines"
+  ],
+  "stop_line": "Exit 75: five-minute wait, at most six retries; stop the measurement schedule if still refused. Other failures stop immediately.",
+  "noise": "Record host load, free memory, selected executable counts each snapshot. Pause 30s between games to release the lock.",
+  "scope": "Only reviews/49-memory-cuts changes. Measurement jars/worlds/logs local. No shipping settings or mods."
+}

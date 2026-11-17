@@ -3,11 +3,11 @@
 #
 #   run.sh <name> [KEY=value ...]
 #
-# Settings (defaults: today's product at his screen size):
+# Settings (defaults: package 41's v1 recommendation at his screen size):
 #   RD=8 SD=5        render and simulation distance (written into mod/run/options.txt)
-#   HEAP=3072 MIN_HEAP=512   -Xmx / -Xms in MiB (Prism's MaxMemAlloc / MinMemAlloc)
-#   GC=""            extra JVM flags, words joined by commas (GC=-XX:G1PeriodicGCInterval=30000)
-#   MEMHIGH=5G       MemoryHigh of the game's own scope (the supervisor's MEMORY_HIGH)
+#   HEAP=1024 MIN_HEAP=256   -Xmx / -Xms in MiB (Prism's MaxMemAlloc / MinMemAlloc)
+#   GC=<v1 ratios>    extra JVM flags, words joined by commas (GC=-XX:G1PeriodicGCInterval=30000)
+#   MEMHIGH=2560M       MemoryHigh of the game's own scope (the supervisor's MEMORY_HIGH)
 #   SIZE=1920x1080 REFRESH=144   the headless screen
 #   SETTLE=120 WINDOW=60 COVER=0  seconds: settle after joining, each frame window, covered by a maximized app
 #   SHOTS=1          two pictures after the measurements (from the pad and above the south road)
@@ -24,7 +24,7 @@
 #   QUIT=0           1: at the end close the game's window, so it saves and quits, and keep the save in <rig>/world
 #
 # What it does (MODE=measure): copies the base world into mod/run/saves/AresHub, sets the distances, starts the rig
-# (start.sh: its own headless labwc, the lock, the memory check), waits for the world, lets it settle, takes a
+# (run.sh: shared lock; start.sh: its own headless labwc and memory check), waits for the world, lets it settle, takes a
 # snapshot (snap.py), records 60 s standing at home looking around and 60 s flying at full speed down the roads (north 15 s, turn,
 # south 30 s, turn, north 15 s), snapshots after each, then optionally covers the world with a maximized window for
 # COVER seconds and snapshots again. Then it stops the game's scope and the rig, and analyze.py writes the summary.

@@ -4,6 +4,7 @@ from unittest.mock import patch
 ROOT = pathlib.Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT))
 import scope
+import snap
 from snap import smaps_classes
 
 
@@ -45,6 +46,23 @@ Rss: 50 kB
         result = smaps_classes(data, (0x1000, 0x2000))
         self.assertEqual({k: v['Rss_kib'] for k,v in result.items()}, {'java-heap':100, 'glibc-brk':20,
                          'nvidiactl':30, 'jemalloc-library':40, 'anonymous-unattributed':50})
+
+
+class FrozenSnapshotTest(unittest.TestCase):
+    def test_frozen_snapshot_never_attaches_jcmd(self):
+        import json
+        fixture={'status_mib':{'VmRSS':100},'cgroup_mib':{'current':100,'swap':2},'majflt':3}
+        with tempfile.TemporaryDirectory(dir=ROOT / '../../../.work/pkg49') as directory, \
+                patch.dict('os.environ', {'PKG49_FROZEN':'1','PKG49_PROBE':'1'}), \
+                patch.object(snap,'memory',return_value=fixture), \
+                patch.object(snap,'jcmd',side_effect=AssertionError('must not attach to a frozen game')), \
+                patch.object(pathlib.Path,'read_text',return_value=''), \
+                patch.object(subprocess,'run',side_effect=OSError('optional GPU unavailable')):
+            snap.snapshot(123,'frozen',directory)
+            # Use a real file read, rather than the mocked Path.read_text.
+            with open(pathlib.Path(directory)/'snap-frozen.json') as source: result=json.load(source)
+            self.assertTrue(result['frozen'])
+            self.assertEqual(result['nmt_committed_mib'],{})
 
 
 class WakeTest(unittest.TestCase):

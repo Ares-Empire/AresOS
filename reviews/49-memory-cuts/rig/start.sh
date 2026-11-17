@@ -1,7 +1,7 @@
 #!/usr/bin/bash
 # DEVELOPMENT AID of package 49 (copied from package 41) (measurement only), headless use only: package 40's rig (reviews/40-real-home/rig/)
 # made to measure. Like that rig it calls Gradle itself (inner.sh runs `gradlew --no-daemon runClient`), inside a
-# systemd user scope of its own, under the one-client-at-a-time lock, after mod/dev/env.sh's memory and Lunar checks.
+# systemd user scope of its own, under run.sh's inherited one-client-at-a-time lock, after mod/dev/env.sh's memory and Lunar checks.
 #
 # Starts a headless labwc (its own Wayland socket and Xwayland, never the owner's wayland-0 or :0) with the image's
 # rc.xml; inside it inner.sh starts the restricted app helper, a virtual keyboard and pointer, and the development
