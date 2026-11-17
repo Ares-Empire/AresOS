@@ -18,13 +18,16 @@ def show(value): return '—' if value is None else str(value)
 def spread(values):
     values=[v for v in values if v is not None]
     if not values: return 'unmeasured'
-    return f'{statistics.fmean(values):.1f} ({min(values):g}–{max(values):g})'
+    return f'{statistics.fmean(values):.1f} ({min(values):g}–{max(values):g}; n={len(values)})'
 
 
 print('All memory in MiB; paired savings are baseline minus factor, positive means less memory. Ranges are observed, not confidence intervals.\n')
-print('| Factor | Settled RSS saving, mean (range) | Post-flight RSS saving | Covered 5-min RSS saving | Post-G1 heap minimum saving |')
+print('| Factor | Settled RSS saving, mean (range) | Post-flight RSS saving | Covered 5-min RSS saving | Standing post-G1 heap minimum saving |')
 print('|---|---:|---:|---:|---:|')
-for factor in ('coh','dedup','trim','system','arenas','threads','ferrite'):
+labels={'coh':'compact headers','dedup':'compact headers + string dedup',
+        'trim':'native trim every 60 s','system':'60 s trim + LWJGL system allocator',
+        'arenas':'MALLOC_ARENA_MAX=2','threads':'GC/background thread limits','ferrite':'FerriteCore 9.0.0'}
+for factor in labels:
     savings={label:[] for label in ('settled','flight','covered5m')}
     heaps=[]
     for repeat in (1,2):
@@ -33,10 +36,11 @@ for factor in ('coh','dedup','trim','system','arenas','threads','ferrite'):
         for label in savings:
             a,b=(get(row,'snapshots',label,'rss') for row in (baseline,variant))
             if a is not None and b is not None: savings[label].append(a-b)
-        # G1's after-collection minimum is a proxy; no extra full GC is injected into factor runs.
-        a,b=(get(row,'heap_committed_mib','after_gc_min_after_join') for row in (baseline,variant))
+        # Use the settled standing window, avoiding join-time collections before the world is fully populated.
+        # This is an after-G1 proxy; no extra full GC is injected into factor runs.
+        a,b=(get(row,'windows','stand','heap_after_gc_min_mib') for row in (baseline,variant))
         if a is not None and b is not None: heaps.append(a-b)
-    print(f"| {factor} | {spread(savings['settled'])} | {spread(savings['flight'])} | {spread(savings['covered5m'])} | {spread(heaps)} |")
+    print(f"| {labels[factor]} | {spread(savings['settled'])} | {spread(savings['flight'])} | {spread(savings['covered5m'])} | {spread(heaps)} |")
 
 print('\n| Run | Start to join s | Settled RSS / PSS | Post-flight RSS | Covered 5-min RSS / scope swap | Flight p99 / worst ms | Wake worst; >17 / >33 ms | Wake first frame ms | Majflt cover+wake | GC max after join ms | OOM / high / lost frames |')
 print('|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|')

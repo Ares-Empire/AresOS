@@ -130,7 +130,7 @@ if [[ $MODE == measure || -d $SAVE ]]; then export GAME_ARGS="--quickPlaySinglep
 printf '%s\n' "name=$name" "RD=$RD" "SD=$SD" "HEAP=$HEAP" "MIN_HEAP=$MIN_HEAP" "GC=$GC" "MEMHIGH=$MEMHIGH" "SIZE=$SIZE" \
     "REFRESH=$REFRESH" "SETTLE=$SETTLE" "WINDOW=$WINDOW" "COVER=$COVER" "MODE=$MODE" "WORLD=$WORLD" \
     "HOMEKIND=$HOMEKIND" "BASE=$BASE" "FLIGHT=$FLIGHT" "QUIT=$QUIT" \
-    "ENV=$ENV" "MODS=$MODS" "PROBE=$PROBE" "RECLAIM=$RECLAIM" "FREEZE=$FREEZE" "LONG=$LONG" "NMT=$NMT" "COVER_ACTION=$COVER_ACTION" "WAKE_INPUT=active-v2" \
+    "ENV=$ENV" "MODS=$MODS" "PROBE=$PROBE" "RECLAIM=$RECLAIM" "FREEZE=$FREEZE" "LONG=$LONG" "NMT=$NMT" "COVER_ACTION=$COVER_ACTION" "WAKE_INPUT=active-v3" \
     "JVM_ARGS=$jvm" "GAME_ARGS=$GAME_ARGS" "source_revision=$(git -C "$WT" rev-parse HEAD)" "started=$(date -Is)" >"$RIG/settings.txt"
 
 mono() { python3 -I -c 'import time; print(time.monotonic_ns())'; }
@@ -224,7 +224,7 @@ if [[ $MODE == hold ]]; then
     exit 0
 fi
 
-# Startup clock includes Gradle dev-launch overhead; product launch time is not measured.
+# Startup is measured from game-scope PID detection; Gradle preparation and Prism startup are excluded.
 mark settling
 sleep "$SETTLE"
 python3 -I "$here/snap.py" "$game" settled "$RIG"

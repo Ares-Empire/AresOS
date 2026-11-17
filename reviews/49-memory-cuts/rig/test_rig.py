@@ -81,6 +81,25 @@ class WakeInputTest(unittest.TestCase):
             self.assertIn('[Errno 6]',result.stderr)
 
 
+    def test_reader_reopening_gap_and_multiple_commands(self):
+        import os, threading, time
+        with tempfile.TemporaryDirectory(dir=ROOT / '../../../.work/pkg49') as directory:
+            rig=pathlib.Path(directory)
+            (rig/'marks.txt').write_text(f'wake_start {time.monotonic_ns()-9_000_000_000}\n')
+            os.mkfifo(rig/'vin')
+            commands=[]
+            def reader():
+                time.sleep(.15)
+                with (rig/'vin').open() as fifo: commands.extend(fifo.read().splitlines())
+            worker=threading.Thread(target=reader,daemon=True);worker.start()
+            result=subprocess.run([sys.executable,'-I',str(ROOT/'wake.py'),str(rig)],capture_output=True,text=True,timeout=2)
+            worker.join(1)
+            self.assertEqual(result.returncode,0,result.stderr)
+            self.assertFalse(worker.is_alive())
+            self.assertEqual(commands[:2],['key lctrl down','key lctrl up'])
+            self.assertTrue(any(command.startswith('rel ') for command in commands))
+
+
 class WakeTest(unittest.TestCase):
     def test_frozen_gap_clipped_at_wake_and_33ms_is_exact(self):
         # An unthawed 5 minute gap must not be charged to wake latency.

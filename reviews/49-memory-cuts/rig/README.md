@@ -46,9 +46,11 @@ interval is clipped to that mark, so a five-minute frozen interval is not counte
 `return_to_first_frame_ms` includes thaw and window-close overhead; `wake_first_frame_ms` starts at cover close.
 These are recorder frame starts, not display presentation timestamps. Frames count gaps >17 and >33 ms exactly.
 The diagnostic `s0-probe` used one tiny relative movement and stayed at vanilla's 30 fps inactivity cap after
-cover close. Its raw wake data is retained, but all comparisons use `WAKE_INPUT=active-v2`: a control-key
+cover close. Its raw wake data is retained, but comparisons use active input (`WAKE_INPUT=active-v2`, then `active-v3`): a control-key
 transition plus repeated camera turns through the wake window (`wake.py`), like the active standing workload.
-The helper fails promptly if the virtual input reader is gone, instead of holding the shared lock forever.
+Version 3 retains the same key/camera workload but holds its FIFO writer open, with a one-second bounded
+retry at startup. This fixes the reader-reopening race found in the first FerriteCore trial. A dead reader
+still fails promptly instead of holding the shared lock forever.
 
 `analyze.py` publishes small evidence and redacts worktree/home paths. Raw game logs, jars, worlds, frames and
 launcher/helper credentials remain in ignored `.work/`. Public data includes heap/probe outputs, snapshots,
@@ -71,3 +73,7 @@ stage waits for `.work/pkg49/factors-ready`: create that marker only after audit
 controls. The winner settings file contains `{"settings": ["KEY=value", "..."]}`; choose it from the evidence.
 Each factor has a fresh baseline, in A/B order in round 1 and B/A in round 2. Every completed run releases the
 shared game lock; the batch also waits 30 seconds. Interrupted/failed runs are never silently overwritten.
+
+`GC=` replaces the extra JVM-argument string. Keep the v1 free-ratio arguments when overriding it, as `batch.py`
+and each recorded settings file do. Heap figures in the comparison table use post-G1 minima in the settled
+standing window, not join-time collections before the world is fully populated.
