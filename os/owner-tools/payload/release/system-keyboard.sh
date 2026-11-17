@@ -1,7 +1,7 @@
 #!/usr/bin/bash
 set -euo pipefail
 test "$(id -u)" = 0
-python3 - <<'SYSTEM_KEYBOARD'
+python3 -I - <<'SYSTEM_KEYBOARD'
 import json
 import re
 import shlex

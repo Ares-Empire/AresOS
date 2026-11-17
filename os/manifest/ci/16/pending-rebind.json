@@ -11,10 +11,19 @@
     "22d step 8: main merged in (bound files main changed wait for the next rehearsal)",
     "2026-11-15, board #306 (owner: scrub current files): the owner's machine username became owner in 372 files (reviews/username-scrub/RECORD.md). Three bound files changed, text only: os/manifest/ci/14/14zze-preflight/commit-preflight.py, final-local.py and local-privacy.py (archived preflight tools). No binding table or host walk was edited.",
     "22d and 22c on the laptop (2026-11-17)",
-    "50: boot-only console keymap after Plymouth; vm.py requires boot-key and forced busy-VT repair evidence in the disposable check build"
+    "50: boot-only console keymap after Plymouth; vm.py requires boot-key and forced busy-VT repair evidence in the disposable check build",
+    "43 step 1: isolated root steps, session check, newest and numbered release metadata; tools v6 payload and pins"
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
+    {
+      "sha256": "2d7289f823d07db5c508eb084df02352ef270c1b4bd62ff07f0ec1e5b9d0ef8b",
+      "path": "docs/EMERGENCY.md"
+    },
+    {
+      "sha256": "226e5875d146e4df18e1166e5bb3624408ce0be59157d68814567c93abe16b89",
+      "path": "docs/INSTALL.md"
+    },
     {
       "sha256": "8e13aa279047545915e430afa53ec8abde59e92db74b0b3451ef3cd3075ed148",
       "path": "os/ci/vm.py"
@@ -32,16 +41,120 @@
       "path": "os/manifest/ci/14/14zze-preflight/local-privacy.py"
     },
     {
+      "sha256": "95ec3b5a00894ba0a6a4edd9f1755afbbb062ac30b53e679295f272e9b021740",
+      "path": "os/manifest/release.json"
+    },
+    {
+      "sha256": "f429a9ee88bcefb24e1e0c4294136dd17d6c51b690b1c9ad6bbf46522d56fe94",
+      "path": "os/manifest/releases/13.json"
+    },
+    {
+      "sha256": "0b9f63421fbb059dfd561780381264e8f324f4234a0ebbe2e4663dbc5c1d838c",
+      "path": "os/owner-tools/at"
+    },
+    {
+      "sha256": "7ae462faf39e63f6de163a361a0e04dff32db772753bf6e332a0a7e834b7c4fc",
+      "path": "os/owner-tools/commands.json"
+    },
+    {
+      "sha256": "6dc74d16055aac8c4747dd6bbc4c3f3461c7913f88d353ce4c9e7a5e297abe9b",
+      "path": "os/owner-tools/history.json"
+    },
+    {
+      "sha256": "7a4b05143336dc4e42408cb8e9eb987daa104df3ddd4443e810e8cec03e5ee26",
+      "path": "os/owner-tools/owner.py"
+    },
+    {
+      "sha256": "ce46b3d83d31b8aaedb93dcc5d4759d19fa9b923b9c30443769284a5a8ec00ea",
+      "path": "os/owner-tools/payload/SHA256.json"
+    },
+    {
+      "sha256": "2f939db96d99de448c07fa68bec11475ffeccb1a21376fc30b2a2895dd528245",
+      "path": "os/owner-tools/payload/SHA256SUMS"
+    },
+    {
+      "sha256": "0b9f63421fbb059dfd561780381264e8f324f4234a0ebbe2e4663dbc5c1d838c",
+      "path": "os/owner-tools/payload/at"
+    },
+    {
+      "sha256": "6dc74d16055aac8c4747dd6bbc4c3f3461c7913f88d353ce4c9e7a5e297abe9b",
+      "path": "os/owner-tools/payload/history.json"
+    },
+    {
+      "sha256": "7a4b05143336dc4e42408cb8e9eb987daa104df3ddd4443e810e8cec03e5ee26",
+      "path": "os/owner-tools/payload/owner.py"
+    },
+    {
+      "sha256": "95ec3b5a00894ba0a6a4edd9f1755afbbb062ac30b53e679295f272e9b021740",
+      "path": "os/owner-tools/payload/release.json"
+    },
+    {
+      "sha256": "3e12bb6bb9c8b0264b3d77e086af0c4d4679619b0d1e48083faf9286f44b09d6",
+      "path": "os/owner-tools/payload/release/pause-stock-updates.sh"
+    },
+    {
+      "sha256": "f47bcd1c9e41175f7c49a22d2c27aafcf4987c9e5b6e570e7b80bd10f97f2538",
+      "path": "os/owner-tools/payload/release/pin-stock.sh"
+    },
+    {
+      "sha256": "6b80f4a49903410791d6a891ab2de47529e709c4bb65b72606842abace1f9d18",
+      "path": "os/owner-tools/payload/release/start-next.sh"
+    },
+    {
+      "sha256": "b44f5273029f33b94528414c95c7badeed3b482004c4b237c3384f72d67c3af2",
+      "path": "os/owner-tools/payload/release/switch.sh"
+    },
+    {
+      "sha256": "45087cf3c80d57e9763838d468d1182b949c058d50a307580f8c76a20cae881a",
+      "path": "os/owner-tools/payload/release/system-keyboard.sh"
+    },
+    {
+      "sha256": "3e12bb6bb9c8b0264b3d77e086af0c4d4679619b0d1e48083faf9286f44b09d6",
+      "path": "os/release/pause-stock-updates.sh"
+    },
+    {
+      "sha256": "f47bcd1c9e41175f7c49a22d2c27aafcf4987c9e5b6e570e7b80bd10f97f2538",
+      "path": "os/release/pin-stock.sh"
+    },
+    {
+      "sha256": "6b80f4a49903410791d6a891ab2de47529e709c4bb65b72606842abace1f9d18",
+      "path": "os/release/start-next.sh"
+    },
+    {
+      "sha256": "b44f5273029f33b94528414c95c7badeed3b482004c4b237c3384f72d67c3af2",
+      "path": "os/release/switch.sh"
+    },
+    {
+      "sha256": "45087cf3c80d57e9763838d468d1182b949c058d50a307580f8c76a20cae881a",
+      "path": "os/release/system-keyboard.sh"
+    },
+    {
       "sha256": "74d708a2f68cf704cbdb8009a35da9e07eaeb13eeee5097890a3aa66713e639e",
       "path": "os/tests/test_checkout_sources.py"
+    },
+    {
+      "sha256": "873d3fb40d0cadf9f6e40c616172fb8558754897c4ae54ec4aeb12011bc7eb8d",
+      "path": "os/tests/test_owner_commands.py"
+    },
+    {
+      "sha256": "b49b070159c60460410307757ab45db577ecc3597ee5b28a3822691898123c3d",
+      "path": "os/tests/test_owner_entry.py"
     },
     {
       "sha256": "93c66f3c6f18716e349da52323a68114c3431ccb21fc3447dea3adf491b98c08",
       "path": "os/tests/test_owner_equality.py"
     },
     {
-      "sha256": "5e19d417b16166d4d338fc7ceaa0038e9b71443a1f513c9e74cf3440a36ca572",
+      "sha256": "a41c8c071bcc354dab9c70e77a59bf783b4dc569def325e7ad66a6ec6997c559",
       "path": "os/tests/test_owner_path.py"
+    },
+    {
+      "sha256": "e6c75f6fa816d524862b331d4f3277a6b4210f907df9eea43b2dae122083281c",
+      "path": "os/tests/test_owner_tools.py"
+    },
+    {
+      "sha256": "a5f8508b04457643c9c2b514c5414bbbd6deed9aff94b500f6e7f250e19ec7bb",
+      "path": "os/tests/test_owner_update.py"
     },
     {
       "sha256": "07c7fa007ddb33101995e7bf3787cef216198a0036a0c11137fba30c57904cf3",
@@ -52,7 +165,9 @@
       "path": "os/tests/test_ways_back_probe.py"
     }
   ],
-  "unwalked_commands": [],
+  "unwalked_commands": [
+    "newest"
+  ],
   "unwalked_rule": "Commands added by package 22 are typed by the local walk of package 27's update rehearsal (os/tests/test_owner_walk.py, route update). Package 22c's forward (briefs/22c-forward-command.md) is typed by the local walk of package 22c's rehearsal (route ways-back: from plain Bazzite, after previous, and on the newer AresOS taken in the boot menu) and left this list in stage 2. Package 22d's generated lines (Claude's folder line, the tools-only routine line and the routine export line) are typed by no one: 22d's rehearsal (run 43737933979) ran them through its caller in the desktop session without a terminal, each taken by name from the announced commit's commands.json, and they left this list in 22d's step 7b. test_owner_equality counts a command as walked when a rehearsal's walk types it or, on 22d's route, its caller runs it, and refuses a listed command once it is walked.",
   "rebound": [
     {

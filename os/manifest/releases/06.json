@@ -1,4 +1,5 @@
 {
+  "number": 6,
   "reference": "ghcr.io/carlsenares/aresos@sha256:362af9b7d2a5573363d2cc441505dd076603d1d96c1b5c01af55589db2b6c402",
   "tag": "06-5578ab21b880091f26bfdc2eda22dd4f304a602b",
   "source_commit": "5578ab21b880091f26bfdc2eda22dd4f304a602b",

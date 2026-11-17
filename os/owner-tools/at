@@ -7,4 +7,5 @@ case "$at_path" in
     */*) at_dir=${at_path%/*} ;;
     *) at_dir=. ;;
 esac
+cd /
 exec /usr/bin/python3 -I -B "$at_dir/owner.py" "$@"

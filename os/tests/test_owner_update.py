@@ -49,8 +49,10 @@ CHECKSUMS = {R13: R13_ROW['checksum'], R21: 'c1' * 32, R30: 'c3' * 32, R99: 'c9'
 DE = dict(VConsoleKeymap='de', VConsoleKeymapToggle='', X11Layout='de', X11Model='pc105', X11Variant='', X11Options='')
 
 
-def record(reference, wheel, identity=IDENTITY):
-    return dict(reference=reference, identity=RELEASE['signature']['identity'] if reference == R13 else identity, daily_wheel=wheel)
+def record(reference, wheel, identity=IDENTITY, number=None):
+    numbers = {R13: 13, R21: 21, R30: 30, R99: 99}
+    return dict(reference=reference, identity=RELEASE['signature']['identity'] if reference == R13 else identity,
+                daily_wheel=wheel, number=numbers.get(reference, 99) if number is None else number)
 
 
 H13 = [record(R13, False)]
@@ -141,10 +143,16 @@ def write_bundle(destination, history=None, target=None, drop=(), extra=None):
         files['history.json'] = (json.dumps(history, indent=2) + '\n').encode()
     if target is None and 'history.json' in drop:
         # A history-less (15f) bundle targets release 13, as on the laptop.
-        files['release.json'] = (ROOT / 'os/manifest/releases/13.json').read_bytes()
+        release = copy.deepcopy(RELEASE)
+        release.pop('number', None)
+        files['release.json'] = (json.dumps(release, indent=2) + '\n').encode()
     if target is not None:
         release = copy.deepcopy(RELEASE)
         release['reference'], release['signature']['identity'] = target['reference'], target['identity']
+        if 'number' in target:
+            release['number'] = target['number']
+        else:
+            release.pop('number', None)
         files['release.json'] = (json.dumps(release, indent=2) + '\n').encode()
     for name in drop:
         files.pop(name)
@@ -457,11 +465,11 @@ class ShapeTest(unittest.TestCase):
 class HistoryTest(unittest.TestCase):
     def test_reviewed_history_ends_with_the_pinned_release_and_r13_is_not_wheel(self):
         value = owner.lineage(PAYLOAD)
-        self.assertEqual(value['tools_version'], 4)
+        self.assertEqual(value['tools_version'], 6)
         # Package 27 appended release 27, whose daily account is an administrator.
         self.assertEqual(value['releases'][:1], H13)
         self.assertEqual(value['releases'][-1], dict(reference=PINNED['reference'], identity=PINNED['signature']['identity'],
-                                                     daily_wheel=True))
+                                                     daily_wheel=True, number=27))
         self.assertEqual(len(value['releases']), 2)
         self.assertIs(value['releases'][0]['daily_wheel'], False)
         self.assertEqual((ROOT / 'os/owner-tools/history.json').read_bytes(), (PAYLOAD / 'history.json').read_bytes())
@@ -506,7 +514,7 @@ class HistoryTest(unittest.TestCase):
             old = write_bundle(pathlib.Path(temporary) / 'legacy', drop=('history.json',))
             with patch.object(owner, 'LEGACY_TOOLS', (old,)):
                 version, legacy = owner.installed_lineage(pathlib.Path(temporary) / 'legacy', old)
-        self.assertEqual((version, legacy), (1, H13))
+        self.assertEqual((version, legacy), (1, [{k: v for k, v in H13[0].items() if k != 'number'}]))
         self.assertIs(legacy[0]['daily_wheel'], False)
         self.assertTrue(owner.extends(legacy, H21))
         self.assertFalse(owner.extends(legacy, [record(R13, True), record(R21, True)]))

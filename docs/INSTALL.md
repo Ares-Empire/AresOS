@@ -81,7 +81,7 @@ Import-Module ./docs/install-tools/OwnerTools.psm1 -Force
 Copy-AresOwnerTools -Source ./os/owner-tools/payload -DriveLetter T
 ```
 
-Require `PASS tools manifest SHA256 dcbc375faa4b269bacaf316c5ddc24503b9773b2538bcd017065ce8e312597be` and `PASS ARESTOOLS ready; safely eject and unplug before shutdown/restart or record B.` The Windows helper checks both SHA256.json and SHA256SUMS. Safely eject/unplug. Do not use WINDOWS RECOVERY. Run record B **after-bazzite**, both sticks absent; **Return to step 4** here with PASS.
+Require `PASS tools manifest SHA256 2f939db96d99de448c07fa68bec11475ffeccb1a21376fc30b2a2895dd528245` and `PASS ARESTOOLS ready; safely eject and unplug before shutdown/restart or record B.` The Windows helper checks both SHA256.json and SHA256SUMS. Safely eject/unplug. Do not use WINDOWS RECOVERY. Run record B **after-bazzite**, both sticks absent; **Return to step 4** here with PASS.
 - [ ] **F12** (or **Fn+F12**) → **Bazzite** (the installer's recorded Linux entry; [step 8 explains Fedora](#8-everyday-boot-and-recovery)) → **ares-recovery** sign-in. [Enter tty3 and become administrator](INSTALL-REFERENCE.md#console); **Return to step 4** here, keeping that session open. Only now insert ARESTOOLS. If text covers the prompt, press Enter. Type this entire 13-line block exactly; the continuation prompt is expected until the final quote:
 
 ```bash
@@ -92,7 +92,7 @@ p=$(mktemp -d /run/ares-bootstrap.XXXXXX); mkdir "$p/m"
 mount -o ro,nodev,nosuid,noexec LABEL=ARESTOOLS "$p/m"; trap "umount $p/m" EXIT
 cd "$p"; cp -R --no-preserve=mode,ownership m/ares-tools .; test ! -L ares-tools; cd ares-tools
 test -z "$(find . ! -type d ! -type f -print -quit)"
-echo "dcbc375faa4b269bacaf316c5ddc24503b9773b2538bcd017065ce8e312597be  SHA256SUMS" | sha256sum -c --strict
+echo "2f939db96d99de448c07fa68bec11475ffeccb1a21376fc30b2a2895dd528245  SHA256SUMS" | sha256sum -c --strict
 cmp -s \
   <(find . -type f -printf "%P\n" | sort) \
   <({ cut -c67- SHA256SUMS; echo SHA256SUMS; } | sort)
@@ -238,24 +238,24 @@ cd /var/home/ares/AresOS
 git fetch --quiet origin +refs/heads/main:refs/remotes/origin/main
 git merge-base --is-ancestor "$c" refs/remotes/origin/main || { echo "STOP tools folder: $c is not on origin/main"; exit 1; }
 git diff --quiet "$c" -- os/owner-tools || { echo "STOP tools folder: this checkout differs from $c in os/owner-tools"; exit 1; }
-[[ $(git show "$c":os/owner-tools/payload/SHA256SUMS | sha256sum) == "dcbc375faa4b269bacaf316c5ddc24503b9773b2538bcd017065ce8e312597be  -" ]] || { echo "STOP tools folder: $c holds other tools than dcbc375f"; exit 1; }
+[[ $(git show "$c":os/owner-tools/payload/SHA256SUMS | sha256sum) == "2f939db96d99de448c07fa68bec11475ffeccb1a21376fc30b2a2895dd528245  -" ]] || { echo "STOP tools folder: $c holds other tools than 2f939db9"; exit 1; }
 rm -rf /var/home/ares/ares-tools; mkdir /var/home/ares/ares-tools
 git archive "$c":os/owner-tools/payload | tar -x -C /var/home/ares/ares-tools
-cd /var/home/ares/ares-tools; echo "dcbc375faa4b269bacaf316c5ddc24503b9773b2538bcd017065ce8e312597be  SHA256SUMS" | sha256sum -c --strict' tools-folder
+cd /var/home/ares/ares-tools; echo "2f939db96d99de448c07fa68bec11475ffeccb1a21376fc30b2a2895dd528245  SHA256SUMS" | sha256sum -c --strict' tools-folder
 ```
 
   It fetches GitHub's main and refuses unless the announced commit is on it, Claude's copy of the tools equals that commit and the commit's tools have this guide's fingerprint; only then it fills the tools folder from that commit and checks the fingerprint again. Require `SHA256SUMS: OK`. A line starting **STOP tools folder** installed nothing and opened no window: Claude tells you and stops there, with no export.
 
-  Then Claude tells you what it installs (tools version 4, `dcbc375f`) and waits for your go. On your go it runs this one line, which it takes from the announced commit itself, never from its working copy: `git -C /var/home/ares/AresOS show <commit>:os/owner-tools/commands.json`, entry **tools-routine** (the export line below is entry **export-routine**):
+  Then Claude tells you what it installs (tools version 6, `2f939db9`) and waits for your go. On your go it runs this one line, which it takes from the announced commit itself, never from its working copy: `git -C /var/home/ares/AresOS show <commit>:os/owner-tools/commands.json`, entry **tools-routine** (the export line below is entry **export-routine**):
 
 ```bash
-SUDO_ASKPASS=/usr/bin/ksshaskpass SSH_ASKPASS_PROMPT= /usr/bin/sudo -k -A -p 'AresOS owner tools dcbc375f: install these tools, then check and title' /usr/bin/bash -c 'set -euo pipefail
+SUDO_ASKPASS=/usr/bin/ksshaskpass SSH_ASKPASS_PROMPT= /usr/bin/sudo -k -A -p 'AresOS owner tools 2f939db9: install these tools, then check and title' /usr/bin/bash -c 'set -euo pipefail
 export PATH=/usr/sbin:/usr/bin:/sbin:/bin; umask 077
 trap "echo STOP bootstrap: verification or install refused" ERR
 p=$(mktemp -d /run/ares-bootstrap.XXXXXX)
 cd "$p"; cp -R --no-preserve=mode,ownership /var/home/ares/ares-tools .; test ! -L ares-tools; cd ares-tools
 test -z "$(find . ! -type d ! -type f -print -quit)"
-echo "dcbc375faa4b269bacaf316c5ddc24503b9773b2538bcd017065ce8e312597be  SHA256SUMS" | sha256sum -c --strict
+echo "2f939db96d99de448c07fa68bec11475ffeccb1a21376fc30b2a2895dd528245  SHA256SUMS" | sha256sum -c --strict
 cmp -s \
   <(find . -type f -printf "%P\n" | sort) \
   <({ cut -c67- SHA256SUMS; echo SHA256SUMS; } | sort)
@@ -266,19 +266,19 @@ trap "echo STOP after install: check or title refused" ERR
 /var/lib/ares/at title'
 ```
 
-  A small window opens on the laptop's screen. Its title bar says **Enter SSH Credentials** (the helper program's fixed title; it cannot be changed). Inside it says **AresOS owner tools dcbc375f: install these tools, then check and title**, then **Password:**, **OK** and **Cancel**. **Your rule:** type your password only when all three hold:
+  A small window opens on the laptop's screen. Its title bar says **Enter SSH Credentials** (the helper program's fixed title; it cannot be changed). Inside it says **AresOS owner tools 2f939db9: install these tools, then check and title**, then **Password:**, **OK** and **Cancel**. **Your rule:** type your password only when all three hold:
   - you told Claude to go just now;
   - the line inside starts with **AresOS owner tools**;
-  - its 8 characters, `dcbc375f`, are the same as line 1 of `github.com/Ares-Empire/AresOS/blob/main/docs/OWNER-TOOLS.md`, which you open on your phone (not on the laptop) from your own bookmark of that address (type it once into your phone's browser and save it as a bookmark; open it from there): check that it says `main`, and never use a link Claude sends you at that moment.
+  - its 8 characters, `2f939db9`, are the same as line 1 of `github.com/Ares-Empire/AresOS/blob/main/docs/OWNER-TOOLS.md`, which you open on your phone (not on the laptop) from your own bookmark of that address (type it once into your phone's browser and save it as a bookmark; open it from there): check that it says `main`, and never use a link Claude sends you at that moment.
 
   Otherwise press **Cancel**: nothing runs and nothing changes, and Claude asks you before it tries again. **What the window cannot do:** it stops accidents and a Claude that acts without asking. It does not stop a Claude that has been tricked into showing you one thing and running another: once you type your password into such a window, that program can do anything as administrator, now and later, without asking again. If you do not want that, use the stick boxes for new tools instead.
 
   One password runs all three: require `PASS install` with **Tools updated from version** and the same fingerprint (a repeat says **Tools already installed; nothing changed**), then `PASS check` and `PASS title`, read as in the tools-only box below. The title is your saved title; older titles are INVALID. Claude posts the title's lines (which system runs and starts next, and the boot menu's rows, no disk serials) to the board under topic `aresos`, so they reach your phone; it does the same after every later command that changes what starts next. If you do not answer within 10 minutes, Claude closes the window by stopping the password helper it opened, never the administrator command itself: sudo then ends with **sudo: no password was provided**, which shows that nothing ran, and Claude asks you again. If you have already answered, Claude stops nothing and waits for the result.
 
-  **A STOP** (Cancel is not one): Claude copies every STOP line to you word for word and asks for your go; only on your go it runs the export line below, and it tries nothing else ([routine-route card](EMERGENCY.md#a-routine-tools-command-stopped)). After a **STOP tools folder** (Claude's own line; no administrator command ran) there is no export and no window. The export window says **AresOS owner tools dcbc375f: export the records**; the same rule holds.
+  **A STOP** (Cancel is not one): Claude copies every STOP line to you word for word and asks for your go; only on your go it runs the export line below, and it tries nothing else ([routine-route card](EMERGENCY.md#a-routine-tools-command-stopped)). After a **STOP tools folder** (Claude's own line; no administrator command ran) there is no export and no window. The export window says **AresOS owner tools 2f939db9: export the records**; the same rule holds.
 
 ```bash
-SUDO_ASKPASS=/usr/bin/ksshaskpass SSH_ASKPASS_PROMPT= /usr/bin/sudo -k -A -p 'AresOS owner tools dcbc375f: export the records' /usr/bin/bash -c '/var/lib/ares/at export'
+SUDO_ASKPASS=/usr/bin/ksshaskpass SSH_ASKPASS_PROMPT= /usr/bin/sudo -k -A -p 'AresOS owner tools 2f939db9: export the records' /usr/bin/bash -c '/var/lib/ares/at export'
 ```
 
   Version 4 tools without a stick answer `Tools stick absent: records copied to /run/ares-records with SHA256 readback`, then `This copy is on this laptop, not off it; uid 1001 can read it, and a restart deletes it`. Older tools (when the install stopped before it finished) answer `Tools stick absent; full records remain internal`. Either way the records stay on this laptop: only the stick's **SAFE TO REMOVE ARESTOOLS** means a copy off it. Claude reads that copy only to help you, and never copies it into the repository, a pull request or the board (it holds disk serials and firmware entries). After this box the tools stick still holds older tools: it still takes records (export to it then adds `The stick holds tools this laptop installed before (SHA256 …), not the installed ones`), but it cannot bring the current tools until Claude writes it again (for now from Windows, the box below); Claude asks you for the stick about once per release. **Record:** the announced commit, the fingerprint and the three PASS lines; then [Return to step 8](#8-everyday-boot-and-recovery). For a new release, [enter tty3 and become administrator](INSTALL-REFERENCE.md#console) and go on with the stage box.
@@ -291,7 +291,7 @@ Import-Module ./docs/install-tools/OwnerTools.psm1 -Force
 Copy-AresOwnerTools -Source ./os/owner-tools/payload -DriveLetter T
 ```
 
-Require `PASS tools manifest SHA256 dcbc375faa4b269bacaf316c5ddc24503b9773b2538bcd017065ce8e312597be` and `PASS ARESTOOLS ready; safely eject and unplug before shutdown/restart or record B.` Safely eject and unplug. Another fingerprint or any STOP → **STOP → [Help](INSTALL-REFERENCE.md#help)**; Return to this update route after resolution.
+Require `PASS tools manifest SHA256 2f939db96d99de448c07fa68bec11475ffeccb1a21376fc30b2a2895dd528245` and `PASS ARESTOOLS ready; safely eject and unplug before shutdown/restart or record B.` Safely eject and unplug. Another fingerprint or any STOP → **STOP → [Help](INSTALL-REFERENCE.md#help)**; Return to this update route after resolution.
 
 - [ ] **AresOS, tools first:** all sticks absent, **F12** (or **Fn+F12**) → **Bazzite** → AresOS desktop. [Enter tty3 and become administrator](INSTALL-REFERENCE.md#console), then Return to this update route, keeping that session open. Only now insert ARESTOOLS. Type this entire 13-line block exactly, as in step 4; compare **line 8** with this guide before Enter:
 
@@ -303,7 +303,7 @@ p=$(mktemp -d /run/ares-bootstrap.XXXXXX); mkdir "$p/m"
 mount -o ro,nodev,nosuid,noexec LABEL=ARESTOOLS "$p/m"; trap "umount $p/m" EXIT
 cd "$p"; cp -R --no-preserve=mode,ownership m/ares-tools .; test ! -L ares-tools; cd ares-tools
 test -z "$(find . ! -type d ! -type f -print -quit)"
-echo "dcbc375faa4b269bacaf316c5ddc24503b9773b2538bcd017065ce8e312597be  SHA256SUMS" | sha256sum -c --strict
+echo "2f939db96d99de448c07fa68bec11475ffeccb1a21376fc30b2a2895dd528245  SHA256SUMS" | sha256sum -c --strict
 cmp -s \
   <(find . -type f -printf "%P\n" | sort) \
   <({ cut -c67- SHA256SUMS; echo SHA256SUMS; } | sort)
@@ -321,6 +321,8 @@ sudo /var/lib/ares/at title
 ```
 
 Require `PASS check` and `PASS title`. The title's first line names what runs and what starts next, normally **newer AresOS … runs and starts next**; its line **Boot menu at the next start:** names each boot-menu row by its number `(ostree:N)` and its system. Save that title; older titles are INVALID. The block has already unmounted ARESTOOLS: unplug it. Nothing else changes: no stage, no restart. **Record:** the fingerprint and both PASS lines; then [Return to step 8](#8-everyday-boot-and-recovery). A STOP → [A tools command stopped](EMERGENCY.md#a-tools-command-stopped). For a new release, go on with the next box instead.
+
+The console also accepts `sudo /var/lib/ares/at newest`, whose successful result starts with `PASS newest`; this is what `aresos update` runs from release 29.
 
 - [ ] **Stage the new release:** only on the AresOS that runs and starts next (its title says **… runs and starts next**).
 

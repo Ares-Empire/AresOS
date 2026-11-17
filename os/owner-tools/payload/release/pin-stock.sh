@@ -1,7 +1,7 @@
 #!/usr/bin/bash
 set -euo pipefail
 test "$(id -u)" = 0
-python3 - <<'PAUSE_STOCK'
+python3 -I - <<'PAUSE_STOCK'
 import json
 import pathlib
 import subprocess
@@ -177,7 +177,7 @@ if __name__ == '__main__':
 PAUSE_STOCK
 
 # Repeat the same pause immediately before inspecting/discarding/pinning.
-python3 - <<'PIN_STOCK'
+python3 -I - <<'PIN_STOCK'
 import json
 import re
 import subprocess

@@ -1792,7 +1792,7 @@ class OwnerPathTest(unittest.TestCase):
         rebound = json.loads((ROOT/'os/manifest/ci/22d/source-bindings.json').read_text())
         for value in ('**BUILT AND REVIEWED; VM REHEARSAL PASSED; ON THE LAPTOP 2026-11-17**',
                       'on the laptop since 2026-11-17 over version 2 `851eb742…`',
-                      'Tools fingerprint `' + fingerprint + '`', '[OWNER-TOOLS.md](OWNER-TOOLS.md)', '**Enter SSH Credentials**',
+                      'Tools fingerprint `dcbc375f`', '[OWNER-TOOLS.md](OWNER-TOOLS.md)', '**Enter SSH Credentials**',
                       'not a tricked Claude', 'the first installation stays on the stick', '`/run/ares-records`, on this laptop only',
                       'the routine box first', '(EMERGENCY.md#a-routine-tools-command-stopped)', '**VM rehearsal passed**',
                       '(' + rebound['run'] + ')', 'on `' + rebound['commit'][:8] + '`', '(../reviews/22d-tools-without-stick/runs/tools-local-' + rebound['run'].rsplit('/', 1)[1] + '/index.json)',

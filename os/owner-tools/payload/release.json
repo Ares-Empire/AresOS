@@ -1,4 +1,5 @@
 {
+  "number": 27,
   "reference": "ghcr.io/ares-empire/aresos@sha256:5fad242fceac7244563913eed96cd72dfcd300fec5e458cdb2ba81bce00d944c",
   "tag": "27-b216f28fdb072534856aff57481e33b641576ac7",
   "source_commit": "b216f28fdb072534856aff57481e33b641576ac7",

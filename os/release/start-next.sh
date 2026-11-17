@@ -3,7 +3,7 @@ set -euo pipefail
 # The one reorder of the owner tools (package 22c, rule 3): the identity-checked
 # deployment becomes the first one, which starts next. Nothing is created or
 # removed, and no pin, kernel argument or /etc is touched.
-python3 - <<'START_NEXT'
+python3 -I - <<'START_NEXT'
 import json, subprocess, sys
 def deployments():
     return json.loads(subprocess.check_output(['rpm-ostree', 'status', '--json']))['deployments']

@@ -123,7 +123,7 @@ The function gets the read the inner word acts on, builds the line from it and p
 - for the install and row 4: the signature check (`:1806`), and the second read behind it (`:1808-1810`). Verification takes minutes, so `update()` repeats `may_stage` on a fresh read and compares the list: a deployment tool that became busy meanwhile, a changed disk record or a changed list stops the run there, with nothing staged. Then the staging step itself may fail, which ends in the stop routine as built;
 - for a forward: the step itself, whose own check may refuse before the reorder when the list changed outside the tools (`:1656-1666`).
 
-So a unit row may show an announcement and then one of these refusals. What must never show is an announcement followed by a refusal of a check that had not yet run.
+So a unit row may show an announcement and then one of these refusals. What must never show is an announcement followed by a refusal by a check that could have run before the announcement.
 
 **The survey's lines come first.** `newest` prints what its survey resolved at once, before any first line of its own, so the screen reads in the order things happened; `main()` then does not print them again.
 
@@ -622,3 +622,5 @@ Review 3 (`REVIEW-3.md`) was READY. This revision folds in the owner's answers o
 References added or changed here were checked against main at `dcbdabe9`, read through `git show` because the branch predates 22d. No tool, test, guide or workflow was changed or run. The nine proposed image labels were checked as data against D8's character and length rules and all 16 patterns from main, including with a final newline. Their list equals call 1's list. Calls 1 and 2 still await the owner's OK; the laptop try and VM stages remain future work.
 
 - **Fix check (Codex gpt-6-astra high, 2026-11-17), one should-fix:** "latest version" named two releases when the tools carry a newer one than the newest installed (R27 runs, R28 installed, tools carry R29). Row 10's first wording and call 2's line now say "the latest **installed** version"; the extra line after rows 9 and 10 says "a newer version, AresOS <T>". Step 1 pins that wording in the N≠T unit case. Applied by the lead.
+
+- **Lead decision on PLAN-GAP 1 (2026-11-17):** step 1 builds against the records on main, R13 and R27, numbered 13 and 27; the bundle still targets R27. R28 has no record yet. Package 42 step 5 adds its published record and moves the target; at 43's next merge of main, add number 28 to that history entry and record, then refresh the payload and every pin. Do not invent an R28 record. Older unnumbered installed histories, including one ending in a third release, match by exact reference. PROGRESS.md records the remaining merge task.

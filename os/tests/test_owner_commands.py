@@ -53,7 +53,7 @@ class ShimHost(owner.Host):
         scope = {'__name__': 'owner_shared_step'}
         with patch('subprocess.check_output', side_effect=lambda argv, **kw: self.invoke(argv)), \
                 patch('subprocess.run', side_effect=lambda argv, **kw: subprocess.CompletedProcess(argv, 0, self.invoke(argv), '')), \
-                patch.object(pathlib.Path, 'glob', lambda p, pattern: iter(()) if str(p) == '/run/user' else GLOB(p, pattern)), \
+                patch.object(pathlib.Path, 'glob', lambda p, pattern, **kw: iter(()) if str(p) == '/run/user' else GLOB(p, pattern, **kw)), \
                 contextlib.redirect_stdout(io.StringIO()):
             exec(compile(source, name, 'exec'), scope)
             if marker == 'PAUSE_STOCK':
@@ -91,7 +91,7 @@ class CommandTest(unittest.TestCase):
         self.deferred = patch.object(owner, 'runtime_state', return_value=dict(unit='condition false (virtual graphics)'))
         self.deferred.start()
         self.addCleanup(self.deferred.stop)
-        self.glob = patch.object(pathlib.Path, 'glob', lambda p, pattern: iter(()) if str(p) == '/run/user' else GLOB(p, pattern))
+        self.glob = patch.object(pathlib.Path, 'glob', lambda p, pattern, **kw: iter(()) if str(p) == '/run/user' else GLOB(p, pattern, **kw))
         self.glob.start()
         self.addCleanup(self.glob.stop)
 

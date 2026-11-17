@@ -1,7 +1,7 @@
 #!/usr/bin/bash
 set -euo pipefail
 test -r /etc/ostree/auth.json
-python3 - <<'UPDATE'
+python3 -I - <<'UPDATE'
 import json, subprocess
 status = json.loads(subprocess.check_output(['bootc', 'status', '--json']))['status']
 assert not status.get('staged') and not status.get('rollbackQueued'), 'STOP: pending deployment before update; see EMERGENCY.md / get help'
