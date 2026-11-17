@@ -720,3 +720,201 @@ class Workflow(unittest.TestCase):
                     with self.subTest(workflow=workflow.name, event=event, path=path):
                         self.assertIn("'"+path+"'", section)
             self.assertIn('pull_request:', source)
+
+
+class Slot(unittest.TestCase):
+    """Brief 79: every reused record remains pinned to its committed bytes."""
+    def setUp(self):
+        self.temporary = tempfile.TemporaryDirectory(dir=WORK)
+        self.addCleanup(self.temporary.cleanup)
+        self.root = Path(self.temporary.name)
+        self.store = Store(self.root/'state', self.root/'evidence')
+        self.addCleanup(self.store.close)
+        self.shipped = record(entry())
+        self.qualification = q.Qualification(self.store, 'a'*64, self.shipped)
+        self.key = 'chrome:qualification'
+        self.path = self.root/'evidence/operations.jsonl'
+        self.commit(self.shipped)
+
+    def commit(self, candidate):
+        self.store.write({self.key: candidate}, 'chrome_test', 'Synthetic qualification state')
+
+    def later(self):
+        failed = entry(version='157.0.2.0'); failed['core']['binding'] = False
+        return record(*self.shipped['entries'], failed)
+
+    def reads(self):
+        return [lambda: self.qualification.switches('157.0.2.0'),
+                lambda: self.qualification.covers('157.0.2.0'), self.qualification.record]
+
+    def refused_twice(self, code):
+        for read in self.reads():
+            for _ in range(2):
+                with self.assertRaises(Refused) as caught: read()
+                self.assertEqual(caught.exception.code, code)
+
+    def rewrite(self, *, newest=False, rehash=True, preserve_time=False):
+        from test_committed import rewrite_line
+        pin = self.store.chrome_state.pin(self.key)
+        def change(row):
+            row['chrome'][self.key]['entries'][-1 if newest else 0]['run'] = 'changed'
+        rewrite_line(self.path, pin['offset'], change, rehash=rehash, preserve_time=preserve_time)
+
+    def test_01_repeated_reads_do_no_full_check(self):
+        with patch.object(q, 'validate_record', wraps=q.validate_record) as checked:
+            self.qualification.record()
+            self.assertEqual(checked.call_count, 1)
+            checked.reset_mock()
+            for _ in range(3):
+                for read in self.reads(): read()
+            self.assertEqual(checked.call_count, 0)
+        # A missing held record uses the shipped baseline and also caches it.
+        self.store.write({self.key: None}, 'chrome_test', 'No held qualification')
+        self.assertEqual(self.qualification.record(), self.shipped)
+        with patch.object(q, 'validate_record', wraps=q.validate_record) as checked:
+            for read in self.reads(): read()
+            self.assertEqual(checked.call_count, 0)
+
+    def test_02_another_keys_commit_keeps_the_slot(self):
+        self.qualification.record()
+        self.store.write({'chrome:other': {'fixture': True}}, 'chrome_test', 'Other key')
+        with patch.object(q, 'validate_record', wraps=q.validate_record) as checked:
+            for read in self.reads(): read()
+            self.assertEqual(checked.call_count, 0)
+
+    def test_03_every_cached_read_opens_the_journal(self):
+        self.qualification.record()
+        projection = self.store.chrome_state
+        with patch.object(projection, 'journal_reader', wraps=projection.journal_reader) as reader:
+            for _ in range(3):
+                for read in self.reads():
+                    reader.reset_mock(); read(); self.assertEqual(reader.call_count, 1)
+            self.store.write({'chrome:other': 1}, 'chrome_test', 'Other key')
+            reader.reset_mock(); self.qualification.record(); self.assertEqual(reader.call_count, 2)
+            reader.reset_mock(); self.qualification.record(); self.assertEqual(reader.call_count, 1)
+
+    def test_04_new_committed_record_is_used_on_the_next_read(self):
+        self.assertTrue(self.qualification.switches('157.0.2.0')['core']['binding'])
+        newer = self.later(); self.commit(newer)
+        with patch.object(q, 'validate_record', wraps=q.validate_record) as checked:
+            self.assertFalse(self.qualification.switches('157.0.2.0')['core']['binding'])
+            self.assertEqual(checked.call_count, 1)
+            self.assertEqual(self.qualification.record(), newer)
+            self.assertTrue(self.qualification.covers('157.0.2.0'))
+            self.assertEqual(checked.call_count, 1)
+
+    def test_05_failed_checks_never_fill_the_slot(self):
+        self.qualification.record()
+        divergent = record(entry(run='changed'))
+        invalid = record(entry()); invalid['entries'][0]['core']['binding'] = 'invalid'
+        for candidate, code in [(divergent, 'qualification_rollback'), (invalid, 'qualification_invalid')]:
+            self.commit(candidate); self.refused_twice(code)
+        self.commit(self.later())
+        self.assertFalse(self.qualification.switches('157.0.2.0')['core']['binding'])
+        self.assertTrue(self.qualification.covers('157.0.2.0'))
+        self.assertEqual(self.qualification.record(), self.later())
+
+    def test_06_shorter_held_history_uses_the_shipped_copy_for_every_reader(self):
+        shipped = self.later()
+        self.qualification = q.Qualification(self.store, 'a'*64, shipped)
+        self.commit(record(*shipped['entries'], entry(version='158.0.1.0')))
+        self.qualification.record()
+        self.commit(self.shipped)
+        self.assertEqual(self.qualification.record(), shipped)
+        self.assertFalse(self.qualification.switches('157.0.2.0')['core']['binding'])
+        self.assertTrue(self.qualification.covers('157.0.2.0'))
+
+    def test_07_same_length_rewrite_with_valid_hash_refuses_rollback(self):
+        self.commit(self.later()); self.qualification.record()
+        self.rewrite()
+        self.refused_twice('qualification_rollback')
+
+    def test_08_same_length_rewrite_without_rehash_refuses_corruption(self):
+        self.commit(self.later()); self.qualification.record()
+        self.rewrite(newest=True, rehash=False)
+        self.refused_twice('evidence_corrupt')
+
+    def test_09_unchanged_signature_rewrite_refuses_without_another_write(self):
+        self.commit(self.later()); self.qualification.record()
+        signature = self.store.chrome_state.signature
+        self.rewrite(preserve_time=True)
+        info = self.path.stat()
+        self.assertEqual((info.st_ino, info.st_size, info.st_mtime_ns), signature)
+        # No intervening write or parse-cache eviction: the very next read refuses.
+        self.refused_twice('qualification_rollback')
+
+    def test_10_identical_replacement_keeps_the_slot(self):
+        self.qualification.record()
+        original = self.path.stat().st_ino
+        replacement = self.path.with_suffix('.replacement')
+        replacement.write_bytes(self.path.read_bytes()); replacement.replace(self.path)
+        self.assertNotEqual(self.path.stat().st_ino, original)
+        with patch.object(q, 'validate_record', wraps=q.validate_record) as checked:
+            for read in self.reads(): read()
+            self.assertEqual(checked.call_count, 0)
+
+    def test_11_truncation_refuses_every_read(self):
+        self.qualification.record()
+        pin = self.store.chrome_state.pin(self.key)
+        with self.path.open('r+b') as stream: stream.truncate(pin['offset'])
+        self.refused_twice('evidence_corrupt')
+
+    def test_12_returned_records_and_switches_are_private(self):
+        baseline = self.qualification.record()
+        changed = self.qualification.record()
+        changed['entries'][0]['run'] = 'changed'
+        changed['entries'][0]['core']['binding'] = False
+        changed['entries'][0]['adapters'].clear()
+        mode = self.qualification.switches('157.0.1.0')
+        mode['core']['binding'] = False; mode['adapters'].clear()
+        self.assertEqual(self.qualification.record(), baseline)
+        self.assertEqual(self.qualification.switches('157.0.1.0'), q.switches(baseline, 'a'*64, '157.0.1.0'))
+
+    def test_13_constructor_and_shipped_getter_protect_the_baseline(self):
+        baseline = copy.deepcopy(self.shipped)
+        self.shipped['entries'][0]['run'] = 'changed'
+        self.shipped['entries'][0]['core']['binding'] = False
+        self.assertEqual(self.qualification.record(), baseline)
+        with self.assertRaises(AttributeError): self.qualification.shipped = record()
+        public = self.qualification.shipped
+        public['entries'][0]['run'] = 'changed'
+        public['entries'][0]['core']['binding'] = False
+        public['entries'][0]['adapters'].clear()
+        def unchanged():
+            self.assertEqual(self.qualification.shipped, baseline)
+            self.assertEqual(self.qualification.record(), baseline)
+            self.assertEqual(self.qualification.switches('157.0.1.0'), q.switches(baseline, 'a'*64, '157.0.1.0'))
+            self.assertTrue(self.qualification.covers('157.0.1.0'))
+        unchanged()
+        self.commit(baseline)
+        unchanged()
+
+    def test_14_slots_belong_to_each_qualification_object(self):
+        self.qualification.record()
+        divergent = record(entry(run='changed'))
+        other = q.Qualification(self.store, 'a'*64, divergent)
+        for _ in range(2):
+            with self.assertRaises(Refused) as caught: other.record()
+            self.assertEqual(caught.exception.code, 'qualification_rollback')
+        longer = q.Qualification(self.store, 'a'*64, self.later())
+        self.assertEqual(longer.record(), self.later())
+        self.assertFalse(longer.switches('157.0.2.0')['core']['binding'])
+        self.assertEqual(self.qualification.record(), self.shipped)
+
+    def test_15_methods_equal_the_function_and_exact_version_scan(self):
+        failed = entry(version='157.0.3.0'); failed['core']['binding'] = False
+        other = entry(build='b'*64, version='157.0.2.0')
+        other['core'] = dict.fromkeys(other['core'], False)
+        other['adapters'] = dict.fromkeys(other['adapters'], False)
+        candidate = record(*self.shipped['entries'], other, failed, entry(version='157.0.5.0'),
+                           entry(version='158.0.2.0', channel='beta'))
+        self.commit(candidate)
+        for version in ['156.0.1.0', '157.0.0.0', '157.0.1.0', '157.0.2.0', '157.0.3.0',
+                        '157.0.4.0', '157.0.5.0', '157.0.6.0', '158.0.1.0', '158.0.2.0', '159.0.1.0']:
+            with self.subTest(version=version):
+                self.assertEqual(self.qualification.switches(version), q.switches(candidate, 'a'*64, version))
+                self.assertEqual(self.qualification.covers(version), any(item['build']=='a'*64 and item['version']==version for item in candidate['entries']))
+        for bad in [None, '157', '157.0.1.0-extra']:
+            for read in [self.qualification.switches, self.qualification.covers]:
+                with self.assertRaises(Refused) as caught: read(bad)
+                self.assertEqual(caught.exception.code, 'invalid_input')
