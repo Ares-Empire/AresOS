@@ -26,6 +26,9 @@ class LifecycleClientTest {
         final BlockingQueue<Call> calls = new LinkedBlockingQueue<>();
         final List<Call> all = new CopyOnWriteArrayList<>();
         volatile java.util.function.Function<Runnable, CompletionStage<Saved>> answer;
+        volatile String refusal;
+
+        @Override public String refusal() { return refusal; }
 
         @Override public CompletionStage<Saved> save(Runnable starting) {
             var scripted = answer;
@@ -243,6 +246,26 @@ class LifecycleClientTest {
         assertTrue(repair.rewrite());
         followUp.finish(failures.finish(repair, true) ? Saved.done(2, "AresHub") : Saved.refused("error"));
         assertTrue(supervisor.answer(2, 5).get("ok").getAsBoolean());
+        assertTrue(supervisor.answer(3, 5).get("ok").getAsBoolean());
+    }
+
+    @Test void aHomeSwitchRefusesAdmissionToAWaitingBatchAndRechecksCompletedSaves() throws Exception {
+        connect();
+        supervisor.save(1, "backup");
+        var waiting = game.next();
+        game.refusal = "no_world";
+        supervisor.save(2, "manual");
+        assertEquals("no_world", supervisor.answer(2, 5).get("reason").getAsString());
+        assertTrue(game.calls.isEmpty(), "A refused request joined or started a save");
+        assertFalse(waiting.result().isDone(), "The refusal aborted the existing save");
+        waiting.begin();
+        waiting.finish(Saved.done(1, "AresHub-new-staging"));
+        assertEquals("no_world", supervisor.answer(1, 5).get("reason").getAsString());
+        game.refusal = null;
+        supervisor.save(3, "backup");
+        var arrived = game.next();
+        arrived.begin();
+        arrived.finish(Saved.done(2, "AresHub"));
         assertTrue(supervisor.answer(3, 5).get("ok").getAsBoolean());
     }
 

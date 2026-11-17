@@ -53,6 +53,9 @@ public final class LifecycleClient implements AutoCloseable {
 
     /** The game as this channel sees it: it saves the open world when asked. */
     public interface Game {
+        /** A temporary refusal, checked before joining a batch and again before writing its answer. */
+        default String refusal() { return null; }
+
         /**
          * Asks for one save of the open world, the equivalent of {@code save-all flush}, and returns at once. Runs
          * {@code starting} on the server thread right before the save itself begins: a request that arrives after it
@@ -223,6 +226,12 @@ public final class LifecycleClient implements AutoCloseable {
         }
         // The reason says why the supervisor asks; the save is the same for each, so an unknown one still saves.
         String reason = String.valueOf(text(message, "reason"));
+        String refusal = game.refusal();
+        if (refusal != null) {
+            handled.incrementAndGet();
+            later(() -> answer(current, primitive, clip(reason), Saved.refused(refusal)));
+            return;
+        }
         Pending pending;
         boolean start = false;
         synchronized (saves) {
@@ -262,6 +271,8 @@ public final class LifecycleClient implements AutoCloseable {
 
     /** Writer only. An answer for a connection that ended is dropped: a new supervisor asks again. */
     private void answer(Connection current, JsonPrimitive id, String reason, Saved saved) {
+        String refusal = game.refusal();
+        if (refusal != null) saved = Saved.refused(refusal);
         var message = new JsonObject();
         message.addProperty("op", "world_saved");
         message.add("id", id);

@@ -25,7 +25,9 @@ import java.util.concurrent.TimeUnit;
  * paused (covered, or the Esc menu open), so a save runs then too.
  *
  * <p>A save that has not started when the server begins to stop is refused as {@code server_stopping}: the server's own
- * stop saves the world, and this mod never claims a save it did not make.
+ * stop saves the world, and this mod never claims a save it did not make. New home and recovery instead refuse with
+ * {@code no_world}, including requests queued or joined beforehand; a running save is allowed to finish but cannot
+ * acknowledge the closing or staging world.
  */
 public final class WorldSaves implements LifecycleClient.Game {
     public static final WorldSaves INSTANCE = new WorldSaves();
@@ -35,6 +37,7 @@ public final class WorldSaves implements LifecycleClient.Game {
     // asked of a server that have not started yet (refused when that server begins to stop).
     private MinecraftServer open;
     private boolean stopping;
+    private long homeRevision;
     private final Map<CompletableFuture<Saved>, MinecraftServer> queued = new IdentityHashMap<>();
 
     private WorldSaves() { }
@@ -64,8 +67,21 @@ public final class WorldSaves implements LifecycleClient.Game {
             if (open == server) stopping = true;
             queued.entrySet().removeIf(entry -> entry.getValue() == server && refused.add(entry.getKey()));
         }
-        refused.forEach(save -> save.complete(Saved.refused("server_stopping")));
+        refused.forEach(save -> save.complete(Saved.refused(HomeSwitch.busy() ? "no_world" : "server_stopping")));
     }
+
+    /** Invalidate old requests before closing a home; a later reopened server cannot revive them. */
+    public void homeSwitchStarted() {
+        List<CompletableFuture<Saved>> refused;
+        synchronized (lock) {
+            homeRevision++;
+            refused = List.copyOf(queued.keySet());
+            queued.clear();
+        }
+        refused.forEach(save -> save.complete(Saved.refused("no_world")));
+    }
+
+    @Override public String refusal() { return HomeSwitch.busy() ? "no_world" : null; }
 
     /** No world any more: requests are answered {@code no_world}. */
     public void stopped(MinecraftServer server) {
@@ -79,35 +95,42 @@ public final class WorldSaves implements LifecycleClient.Game {
     @Override public CompletionStage<Saved> save(Runnable starting) {
         var result = new CompletableFuture<Saved>();
         MinecraftServer server;
+        long revision;
         synchronized (lock) {
+            if (HomeSwitch.busy()) return CompletableFuture.completedFuture(Saved.refused("no_world"));
             server = open;
             if (server == null) return CompletableFuture.completedFuture(Saved.refused("no_world"));
             if (stopping) return CompletableFuture.completedFuture(Saved.refused("server_stopping"));
             queued.put(result, server);
+            revision = homeRevision;
         }
         try {
             server.executeIfPossible(() -> {
                 Saved saved;
                 try {
-                    saved = run(server, starting, result);
+                    saved = run(server, starting, result, revision);
                 } catch (RuntimeException error) {
                     // Every request gets its answer, whatever went wrong before the save.
                     AresOs.LOGGER.error("The save the AresOS supervisor asked for failed before it began", error);
                     saved = Saved.refused("error");
                 }
-                if (saved != null) result.complete(saved);
+                synchronized (lock) {
+                    if (HomeSwitch.busy() || revision != homeRevision) saved = Saved.refused("no_world");
+                    if (saved != null) result.complete(saved);
+                }
             });
         } catch (RejectedExecutionException stopped) {
             synchronized (lock) { queued.remove(result); }
-            result.complete(Saved.refused("server_stopping"));
+            result.complete(Saved.refused(HomeSwitch.busy() ? "no_world" : "server_stopping"));
         }
         return result;
     }
 
     /** On the server thread. Null when the server's stop refused this save already. */
-    private Saved run(MinecraftServer server, Runnable starting, CompletableFuture<Saved> result) {
+    private Saved run(MinecraftServer server, Runnable starting, CompletableFuture<Saved> result, long revision) {
         synchronized (lock) {
             if (queued.remove(result) == null) return null;
+            if (HomeSwitch.busy() || revision != homeRevision) return Saved.refused("no_world");
             // A server that stopped in between runs the task in place, on the asking thread: never save from there.
             if (open != server || stopping || !server.isSameThread()) return Saved.refused("server_stopping");
         }

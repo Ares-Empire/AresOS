@@ -3,6 +3,7 @@ package dev.aresos.test;
 import com.google.gson.JsonObject;
 import dev.aresos.AresOs;
 import dev.aresos.client.HomeScreen;
+import dev.aresos.client.AresOsMenuScreen;
 import dev.aresos.client.ShellFocusClient;
 import dev.aresos.client.WorldSaves;
 import dev.aresos.save.WorldSaveState;
@@ -18,9 +19,10 @@ import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestServerContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext;
 import net.fabricmc.fabric.api.client.gametest.v1.world.TestWorldSave;
+import net.fabricmc.fabric.api.client.gametest.v1.screenshot.TestScreenshotOptions;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.screens.PauseScreen;
+import net.minecraft.client.gui.screens.options.OptionsScreen;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.SectionPos;
 import net.minecraft.nbt.CompoundTag;
@@ -129,15 +131,26 @@ public final class SaveNowClientGameTest implements FabricClientGameTest {
                 context.runOnClient(client -> check(!client.isPaused() && client.gui.screen() == null && client.level != null,
                         "The save paused the home screen or opened a screen"));
 
-                // The Esc menu open: the server is paused, and still saves; the menu stays as it was.
+                // Esc now opens the non-pausing AresOS menu; saving leaves it and the world moving.
                 context.runOnClient(client -> client.pauseGame(false));
-                context.waitFor(client -> client.gui.screen() instanceof PauseScreen && client.isPaused(), 200);
-                serverPaused(context, world.getServer(), true, "Fixture: the Esc menu did not pause the server");
+                context.waitFor(client -> client.gui.screen() instanceof AresOsMenuScreen && !client.isPaused(), 200);
+                serverPaused(context, world.getServer(), false, "The AresOS menu paused the server");
                 var menu = context.computeOnClient(client -> client.gui.screen());
                 var esc = saveWithBlock(context, world, supervisor, folder, 4, new BlockPos(3, Y, 2), Blocks.DIAMOND_BLOCK, name, false);
-                context.runOnClient(client -> check(client.gui.screen() == menu && client.isPaused() && client.level != null,
+                context.runOnClient(client -> check(client.gui.screen() == menu && !client.isPaused() && client.level != null,
                         "The save changed the Esc menu or left the world"));
-                serverPaused(context, world.getServer(), true, "The save unpaused the server under the Esc menu");
+                serverPaused(context, world.getServer(), false, "The save paused the server under the AresOS menu");
+                screenshot(context, "46-aresos-menu-after-save");
+
+                // Settings still pauses. Keep a real paused-screen save alongside the covered-world save.
+                context.clickScreenButton("Settings…");
+                context.waitFor(client -> client.gui.screen() instanceof OptionsScreen && client.isPaused(), 200);
+                var settings = context.computeOnClient(client -> client.gui.screen());
+                serverPaused(context, world.getServer(), true, "Fixture: Settings did not pause the server");
+                var paused = saveWithBlock(context, world, supervisor, folder, 18, new BlockPos(10, Y, 2), Blocks.COAL_BLOCK, name, false);
+                context.runOnClient(client -> check(client.gui.screen() == settings && client.isPaused(), "The save changed Settings"));
+                serverPaused(context, world.getServer(), true, "The save unpaused Settings");
+                screenshot(context, "46-settings-after-save");
                 context.runOnClient(client -> client.gui.setScreen(null));
                 context.waitFor(client -> !client.isPaused(), 200);
 
@@ -175,7 +188,7 @@ public final class SaveNowClientGameTest implements FabricClientGameTest {
                 // thread, after the mod's own listener ran).
                 arm.set(server);
                 AresOs.LOGGER.info("46 save times in the test world: playing {} ms, home screen {} ms, Esc menu {} ms, "
-                        + "covered {} ms", playing, home, esc, covered);
+                        + "Settings {} ms, covered {} ms", playing, home, esc, paused, covered);
             }
             // Every save since the home screen began, the pauses' and the close's own included.
             int drawnAtHome = SavingText.frames() - framesBeforeHome;
@@ -214,6 +227,11 @@ public final class SaveNowClientGameTest implements FabricClientGameTest {
             });
             deleteTree(folder);
         }
+    }
+
+    private static void screenshot(ClientGameTestContext context, String name) {
+        context.takeScreenshot(TestScreenshotOptions.of(name)
+                .withDestinationDir(Path.of(System.getProperty("aresos.saveReviewDir"))));
     }
 
     /** The last entity's deletion is cached as empty before its asynchronous region write can fail. */

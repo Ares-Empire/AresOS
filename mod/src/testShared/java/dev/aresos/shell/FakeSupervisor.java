@@ -47,6 +47,11 @@ public final class FakeSupervisor implements AutoCloseable {
         return new LifecycleClient(path, INSTANCE, NONCE, game, fast());
     }
 
+    /** Wait without advancing the game: a test can queue and join requests before starting a home switch. */
+    public void awaitHandled(LifecycleClient client, int count) throws InterruptedException {
+        FakeHelper.await(() -> client.handled() >= count, "the lifecycle client to read " + count + " requests");
+    }
+
     public static LifecycleClient.Settings fast() {
         return new LifecycleClient.Settings(java.time.Duration.ofMillis(50), java.time.Duration.ofMillis(200));
     }

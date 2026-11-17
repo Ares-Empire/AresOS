@@ -2,6 +2,7 @@ package dev.aresos.client;
 
 import dev.aresos.AresOs;
 import dev.aresos.shell.ShellClient;
+import dev.aresos.world.HomeRules;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.sounds.SoundSource;
@@ -53,10 +54,10 @@ public final class HomeScreen {
 
     /**
      * A desktop world in a game the session started. Unlike {@link #active} it does not need the helper: a helper that
-     * dropped must not bring the game's notices back. Package 48's AresOS menu has the same condition (its brief).
+     * dropped must not bring the game's notices or Save and Quit back. The menu shares this gate.
      */
     public static boolean home(Minecraft client) {
-        return session() && AresOsClient.acceptsAppCommands(client);
+        return HomeRules.home(session(), AresOsClient.acceptsAppCommands(client));
     }
 
     /** A desktop world with the app helper connected. Outside it the game treats focus as Minecraft always does. */

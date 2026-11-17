@@ -1,6 +1,5 @@
 package dev.aresos.client;
 
-import dev.aresos.world.HomeRules;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.Button;
@@ -37,9 +36,9 @@ public final class AresOsMenuScreen extends Screen {
 
     public AresOsMenuScreen() { super(Component.literal("AresOS")); }
 
-    /** Whether the game's menu gives way to this one here (see {@link HomeRules#menuReplacesGameMenu}). */
+    /** Whether the game's menu gives way to this one here, using the saving indicator's home gate too. */
     public static boolean replacesGameMenu(Minecraft client) {
-        return HomeRules.menuReplacesGameMenu(HomeScreen.session(), AresOsClient.acceptsAppCommands(client));
+        return HomeScreen.home(client);
     }
 
     @Override protected void init() {
