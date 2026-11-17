@@ -21,7 +21,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p .work/control-ci
-          docker run --rm -v "$PWD:/workspace" -w /workspace registry.fedoraproject.org/fedora:45-x86_64@sha256:79dd6556b8fe1a559051fad5159d4987ead218f1914e7a5bd20350d9ea0f9e52 bash control/ci/test.sh 2>&1 | tee .work/control-ci/results.txt
+          docker run --rm --init -v "$PWD:/workspace" -w /workspace registry.fedoraproject.org/fedora:45-x86_64@sha256:79dd6556b8fe1a559051fad5159d4987ead218f1914e7a5bd20350d9ea0f9e52 bash control/ci/test.sh 2>&1 | tee .work/control-ci/results.txt
       - name: Upload exact test output
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

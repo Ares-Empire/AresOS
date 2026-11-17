@@ -171,6 +171,33 @@ class Projection:
         if key.startswith(('notice:','op:')) and isinstance(value,dict) and entry['ack']:value['ack']=True
         return value
 
+    def pin(self,key):
+        if key.startswith(('op:','notice:')):raise ValueError('Merged Chrome keys cannot be pinned.')
+        self.sync()
+        entry=self.entries.get(key)
+        if entry is None:return None
+        with self.journal_reader() as stream:
+            stream.seek(entry['offset']);line=stream.readline()
+        return {'offset':entry['offset'],'line':line}
+
+    def holds(self,key,pin):
+        if key.startswith(('op:','notice:')):raise ValueError('Merged Chrome keys cannot be pinned.')
+        self.sync()
+        entry=self.entries.get(key)
+        if entry is None:return pin is None
+        if pin is None or entry['offset']!=pin['offset']:return False
+        # A writer can preserve stat metadata; only the bytes authorize reuse.
+        with self.journal_reader() as stream:
+            stream.seek(pin['offset']);line=stream.readline()
+        return line==pin['line']
+
+    def pinned_value(self,key,pin):
+        if key.startswith(('op:','notice:')):raise ValueError('Merged Chrome keys cannot be pinned.')
+        record=json.loads(pin['line'])
+        if digest({key:value for key,value in record.items() if key!='hash'})!=record['hash']:
+            raise Refused('evidence_corrupt','Chrome owner-state record changed; inspect the service before proceeding.')
+        return record['chrome'][key]
+
     def historical(self, key, default=None):
         """Last committed value, including retired checks; no side index or file.
 

@@ -43,9 +43,16 @@ public final class AresOsClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         HomeButton.register();
+        HomeSwitch.register();
         AppsScreen.register();
         IconReload.register(dev.aresos.item.MyAppsGame.icons());
         if (AresOs.shell() != null) ShellFocusClient.register(AresOs.shell());
+        // Package 46: the supervisor's lifecycle channel saves the world on request, only where the supervisor asked
+        // for it (ARESOS_DESKTOP_LIFECYCLE=1). Its own connection, so a dead app helper can't stop saving.
+        WorldSaves.INSTANCE.register();
+        var lifecycle = dev.aresos.shell.LifecycleClient.fromEnvironment(System.getenv(), WorldSaves.INSTANCE,
+                dev.aresos.shell.LifecycleClient.Settings.DEFAULT);
+        if (lifecycle != null) lifecycle.start();
         ClientPlayNetworking.registerGlobalReceiver(dev.aresos.mode.ModeSwitchStatePayload.TYPE,
                 (payload, context) -> ModeSwitchClient.receive(payload));
         ClientPlayNetworking.registerGlobalReceiver(ZoneLaunchPayload.TYPE, (payload, context) -> {
@@ -106,10 +113,14 @@ public final class AresOsClient implements ClientModInitializer {
                 && client.getSingleplayerServer() != null && dev.aresos.world.DesktopWorld.isEnabled(client.getSingleplayerServer())
                 && (client.gui.screen() instanceof net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?>
                     || client.gui.screen() instanceof AppsScreen
+                    || client.gui.screen() instanceof AresOsMenuScreen
                     || client.gui.screen() instanceof net.minecraft.client.gui.screens.PauseScreen)) {
             client.gui.hud.setOverlayMessage(Component.literal("Close the menu before switching AresOS mode"), false);
         }
     }
+
+    /** The Build/Live key as registered (null before the client initialized), for the AresOS menu's hint. */
+    static KeyMapping modeKey() { return modeToggle; }
 
     public static void discardModeToggle() {
         if (modeToggle != null) while (modeToggle.consumeClick()) { }

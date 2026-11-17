@@ -8,6 +8,7 @@ import json
 import math
 import os
 import pathlib
+import re
 import shutil
 import signal
 import struct
@@ -301,7 +302,13 @@ class PinnedInputsTest(unittest.TestCase):
             desktop.library_file(library)
         self.assertTrue(LOCK['prism']['url'].startswith(
             'https://github.com/PrismLauncher/PrismLauncher/releases/download/11.1.1/'))
-        mods = {mod['file']: mod for mod in LOCK['mods']}
+        # Package 52: Prism's metadata comes from one commit of its meta repository, never from
+        # meta.prismlauncher.org, which Prism regenerates weekly (the 2026-11-17 update broke every build).
+        for component in LOCK['components']:
+            self.assertRegex(component['sha256'], r'\A[0-9a-f]{64}\Z', component)
+            self.assertRegex(component['url'], r'\Ahttps://raw\.githubusercontent\.com/PrismLauncher/meta-launcher/'
+                             r'[0-9a-f]{40}/' + re.escape(f"{component['uid']}/{component['version']}.json") + r'\Z')
+        mods ={mod['file']: mod for mod in LOCK['mods']}
         self.assertEqual(set(mods), {'fabric-api.jar', 'aresos.jar'})
         self.assertEqual(mods['fabric-api.jar']['version'], '0.161.0+26.2')
         # The mod jar is built from this repository, never downloaded; its builder is pinned by digest.
@@ -830,7 +837,7 @@ class PolicyTest(unittest.TestCase):
 
 
 class FirstStartTest(Base):
-    def test_first_start_is_setup_on_the_title_screen_with_prisms_sign_in(self):
+    def test_first_start_is_setup_with_prisms_sign_in(self):
         sup = self.supervisor()
         sup.start()
         self.assertEqual(sup.state, 'SETUP')
@@ -848,7 +855,7 @@ class FirstStartTest(Base):
         self.assertNotIn('leaked-nonce', json.dumps(helper_env))
         self.assertEqual(len(self.runner.views), 1)
         self.assertIn('Sign in there with your own Microsoft account', self.runner.views[0])
-        self.assertIn('click AresOS', self.runner.views[0])
+        self.assertIn('3. Making your home… (the first start takes a moment)', self.runner.views[0])
 
     def test_creating_the_hub_finishes_setup(self):
         sup = self.supervisor()
@@ -2216,11 +2223,13 @@ class RecoveryReasonsTest(Base):
         self.assertEqual((sup.state, sup.reason), ('RECOVERY', 'world_missing'))
         self.assertEqual(self.runner.prisms, [])
         self.assertIn('never creates a replacement', self.runner.views[-1])
+        self.assertIn('To start a new hub instead:  aresos-desktop forget-hub  then  retry', self.runner.views[-1])
         self.assertTrue(self.stored()['latched'])
         sup.retry()
         self.assertEqual(sup.reason, 'world_missing')
-        ok, _ = sup.forget_hub()
+        ok, text = sup.forget_hub()
         self.assertTrue(ok)
+        self.assertEqual(text, 'The next start makes a fresh flat home by itself. Type retry.')
         sup.retry()
         self.assertEqual(sup.state, 'SETUP')
         self.assertNotIn('--world', self.runner.prisms[-1][0])
@@ -2914,6 +2923,25 @@ class CoverTest(Base):
 
 
 class MessagesTest(Base):
+    def test_setup_makes_the_home_by_itself_with_clicks_only_as_a_fallback(self):
+        for reason in ('setup', 'setup_cancelled', 'setup_closed', 'setup_crashed'):
+            with self.subTest(reason=reason):
+                text = desktop.message('SETUP', reason, 'detail', self.lock, desktop.Persisted())
+                steps = [line for line in text.splitlines() if line.startswith(('1.', '2.', '3.'))]
+                self.assertEqual(steps, [
+                    '1. Prism Launcher opens. Sign in there with your own Microsoft account.',
+                    '2. Minecraft is downloaded (a few minutes the first time) and starts.',
+                    '3. Making your home… (the first start takes a moment)',
+                ])
+                self.assertNotIn('click', '\n'.join(steps).lower())
+                self.assertNotIn('Create', '\n'.join(steps))
+                self.assertIn('\n   If that fails and the title screen shows, click AresOS: click Create if it is\n'
+                              '   offered, otherwise follow the message it shows.\n', text)
+                self.assertIn(f'   Your hub is built and saved in ~/.local/share/aresos/worlds/{self.lock["world"]}.\n',
+                              text)
+                if reason == 'setup_closed':
+                    self.assertTrue(text.startswith('AresOS: Minecraft closed before your hub was created.\n\n'))
+
     def test_every_view_tells_him_what_to_do(self):
         persisted = desktop.Persisted(consecutive=3)
         for state, reason in (('SETUP', 'setup_cancelled'), ('SETUP', 'setup_closed'), ('SETUP', 'setup_crashed'),

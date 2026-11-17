@@ -114,14 +114,21 @@ class Integration(unittest.TestCase):
         """Mark this test process as a Claude Code session that used the tools: the hooks it launches run as its
         children, so it is their session. A child marks it, as an MCP proxy started by Claude Code marks Claude Code.
 
-        The child then asks `usage.used()`, which walks from the same process a hook's walk reaches over its shells,
-        so a mark the hooks won't find fails here, by name, instead of as an empty hook reply later. A hook never takes
-        PID 1 as its session (on the laptop PID 1 is systemd, never Claude Code), and a container's last `bash -c`
-        command is exec'd in place as its PID 1: such a suite needs an init (`docker run --init`)."""
+        The child then asks `usage.used()`, whose walk starts at this test process. That checks the end of a hook's
+        walk, not the path to it: it fails here, by name, when this process itself can't be a hook's session, instead
+        of as an empty hook reply later. A hook's walk (`usage._session`) passes only shells, at most four levels, and
+        never takes PID 1 (on the laptop PID 1 is systemd, never Claude Code). A container's last `bash -c` command is
+        exec'd in place as its PID 1: such a suite needs an init (`docker run --init`). A non-shell wrapper or deeper
+        nesting between this process and the hook isn't checked here; the hook tests' own assertions catch that."""
         found = self.run_user(OWNER, "import json\nfrom aresos_control import usage\n"
                                      "usage.mark(usage.parent())\nprint(json.dumps(usage.used()))")
+        if os.getpid() == 1:
+            why = "a hook never takes PID 1 as its session: run the suite under an init (docker run --init)"
+        else:
+            why = ("see the hook's walk, usage._session in control/aresos_control/usage.py: only shells, at most "
+                   "four levels, never PID 1")
         self.assertTrue(found, f"the hooks this test launches would not find its session's mark (test process pid "
-                               f"{os.getpid()}; a hook never takes PID 1 as its session: run the suite under an init)")
+                               f"{os.getpid()}; {why})")
 
     def request(self, uid, kind, request):
         # An independent client process provides genuine kernel peer credentials.
