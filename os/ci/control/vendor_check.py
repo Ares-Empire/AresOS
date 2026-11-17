@@ -6,12 +6,18 @@ record's wheels to the checkout's lock. This check closes the gap between the tw
 the vendored tree from the wheels themselves and requires the record, and the tree installed in the image, to be
 exactly that tree: the same paths, contents and modes.
 
+The derived tree is the whole of /usr/lib/aresos-control, not only vendor/ (RECHECK-X1 #1). build.sh writes nothing
+else there (it requires the folder absent, then pip --target and the compile fill vendor/), and no other check binds
+a file there to the checkout: check-image.sh holds the record's "files" (the code, config and managed files) to
+build.sh's install map, and none of them is under this folder. So a sibling of vendor/, recorded or not, has no
+source and fails, as an extra file inside vendor/ does.
+
     vendor_check.py fetch CONTROL_JSON WHEELS   on the runner: every recorded wheel from PyPI by its file name; its
                                                 SHA-256 must be the record's, which check-image.sh tied to the lock
     vendor_check.py check CONTROL_JSON WHEELS   in a throwaway container of the built image, without network: the
-                                                installed tree against the record, then the expected tree written
-                                                where the build installs it, compiled with the build's command and
-                                                compared with the record
+                                                installed tree against the record, then /usr/lib/aresos-control
+                                                replaced by the expected tree, written where the build installs it,
+                                                compiled with the build's command and compared with the record
 
 What pip writes besides the wheels' files, and the rule each follows (pip 26.0.1, the image's python3-pip):
 - <dist-info>/INSTALLER: "pip\\n".
@@ -200,15 +206,15 @@ def differences(recorded, actual):
 def check(record, wheels, root='/', python=COMPILE[0]):
     """Installed tree == record == the tree the recorded wheels install, compiled with the build's command."""
     root = pathlib.Path(root)
-    vendor = root / VENDOR
     if root == pathlib.Path('/') and not pathlib.Path('/run/.containerenv').exists():
-        raise SystemExit('vendor_check.py check replaces /usr/lib/aresos-control/vendor: only in a container')
+        raise SystemExit('vendor_check.py check replaces /usr/lib/aresos-control: only in a container')
     installed = tree_map(root)
     if installed != record['vendor']:
         raise Mismatch('the image differs from its record: ' + '; '.join(differences(record['vendor'], installed)))
     sources = expected_sources(record, wheels)
-    shutil.rmtree(vendor)
-    install(sources, vendor, python)
+    # The whole folder goes, siblings of vendor/ included: the derived tree is everything build.sh puts there.
+    shutil.rmtree(root / DEPENDENCIES)
+    install(sources, root / VENDOR, python)
     derived = tree_map(root)
     if derived != record['vendor']:
         raise Mismatch('the record is not what the locked wheels install: ' +

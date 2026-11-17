@@ -11,6 +11,7 @@ import json
 import marshal
 import os
 import pathlib
+import py_compile
 import re
 import shutil
 import subprocess
@@ -413,10 +414,10 @@ class VendorTreeTest(unittest.TestCase):
         script = (root / self.vendor_check.VENDOR / 'bin/demo').read_text()
         self.assertEqual(script.splitlines()[:3], ['#!/usr/bin/python3', 'import sys', 'from demo.cli import main'])
 
-        def tampered(change):
+        def tampered(change, folder=self.vendor_check.VENDOR):
             """A fresh image with one change made to the tree and recorded, the wheel list untouched."""
             root, record = self.image()
-            change(root / self.vendor_check.VENDOR)
+            change(root / folder)
             return root, dict(record, vendor=self.vendor_check.tree_map(root))
 
         def pyc_with_other_code(folder):
@@ -442,6 +443,28 @@ class VendorTreeTest(unittest.TestCase):
                 ('a file removed', lambda folder: (folder / 'other.py').unlink())):
             root, record = tampered(change)
             with self.assertRaisesRegex(self.vendor_check.Mismatch, 'not what the locked wheels install', msg=name):
+                self.check(root, record)
+
+        # RECHECK-X1 #1: beside vendor/, in /usr/lib/aresos-control itself. build.sh puts nothing there but vendor/,
+        # so a sibling has no source: recorded in the manifest, it still fails.
+        def sibling_bytecode(folder):
+            source = folder / 'extra.py'
+            source.write_text('import os\nos.system("true")\n')
+            py_compile.compile(str(source), cfile=str(folder / 'extra.pyc'), doraise=True)
+            source.unlink()
+
+        def sibling_folder(folder):
+            (folder / 'site').mkdir()
+            (folder / 'site/extra.py').write_text('')
+
+        for name, change in (
+                ('a sibling source file', lambda folder: (folder / 'extra.py').write_text('import os\n')),
+                ('a sibling .pyc', sibling_bytecode),
+                ('a sibling folder', sibling_folder)):
+            root, record = tampered(change, self.vendor_check.DEPENDENCIES)
+            self.assertTrue(any(not path.startswith(f'{vendor}/') and path != vendor
+                                and path != '/' + self.vendor_check.DEPENDENCIES for path in record['vendor']), name)
+            with self.assertRaisesRegex(self.vendor_check.Mismatch, 'recorded, not derived', msg=name):
                 self.check(root, record)
         # The image's tree differs from its record (image-checks.sh's finding, seen here too).
         root, record = self.image()
