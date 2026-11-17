@@ -72,18 +72,18 @@ public final class HomeSwap {
     /**
      * The new home goes into place: AresHub to a dated name, then the staging folder to AresHub. If the second rename
      * fails, the first is undone, so AresHub is the old home again and the exception says why. Returns where the old
-     * home now is. {@code gapNanos[0]} gets how long no AresHub was on disk.
+     * home now is, or null if no AresHub existed. {@code gapNanos[0]} gets the duration of the renames.
      */
     public static Path swap(Path saves, Path staging, LocalDateTime now, Mover mover, long[] gapNanos) throws IOException {
         Path home = saves.resolve(NetherHome.SAVE_FOLDER);
-        Path archived = datedName(saves, ARCHIVE_PREFIX, now);
+        Path archived = Files.exists(home, LinkOption.NOFOLLOW_LINKS) ? datedName(saves, ARCHIVE_PREFIX, now) : null;
         long before = System.nanoTime();
-        mover.move(home, archived);
+        if (archived != null) mover.move(home, archived);
         try {
             mover.move(staging, home);
         } catch (IOException failed) {
             try {
-                mover.move(archived, home);
+                if (archived != null) mover.move(archived, home);
             } catch (IOException undo) {
                 undo.addSuppressed(failed);
                 throw new UndoFailed(archived, undo);
@@ -99,11 +99,12 @@ public final class HomeSwap {
     /**
      * After a swap whose new home then failed: the new home goes back to its staging name and the old one becomes
      * AresHub again. If AresHub is missing (a swap whose undo failed) only the second rename is done.
+     * A null archive means there was no AresHub before the switch; only the replacement moves back to staging.
      */
     public static void restore(Path saves, Path archived, Path staging, Mover mover) throws IOException {
         Path home = saves.resolve(NetherHome.SAVE_FOLDER);
         if (Files.exists(home, LinkOption.NOFOLLOW_LINKS)) mover.move(home, staging);
-        mover.move(archived, home);
+        if (archived != null) mover.move(archived, home);
     }
 
     /**

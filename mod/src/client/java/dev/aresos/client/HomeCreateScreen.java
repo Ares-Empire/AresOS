@@ -19,6 +19,7 @@ public final class HomeCreateScreen extends Screen {
     private String seedText = "49";
     private boolean placeholder = true;
     private Button toggle;
+    private Button create;
 
     /** The title screen's: Create makes the home as AresHub at once. */
     public HomeCreateScreen(Screen parent) {
@@ -46,7 +47,7 @@ public final class HomeCreateScreen extends Screen {
                     Component.literal("Flat grass at noon, a home pad and four roads"), font));
             setInitialFocus(choice);
         } else nether(left, top + 28);
-        addRenderableWidget(Button.builder(Component.translatable("aresos.home.create"), button -> {
+        create = addRenderableWidget(Button.builder(Component.translatable("aresos.home.create"), button -> {
             button.active = false;
             action.create(minecraft, this, flat ? HomeButton.flatPlan()
                     : HomeButton.netherPlan(WorldOptions.parseSeed(seedText).orElseGet(WorldOptions::randomSeed), placeholder));
@@ -80,6 +81,9 @@ public final class HomeCreateScreen extends Screen {
                 Component.literal("Explore in Build mode (G), then /aresos home set"), font));
         setInitialFocus(seed);
     }
+
+    /** Confirmation returns this initialized chooser, so keep its choices and explicitly enable Create again. */
+    void confirmationCancelled() { create.active = true; }
 
     private Component toggleLabel() {
         return Component.literal("Placeholder hub: " + (placeholder ? "ON" : "OFF"));

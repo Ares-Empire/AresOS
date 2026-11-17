@@ -33,6 +33,7 @@ public final class AresOsMenuScreen extends Screen {
 
     private final LinearLayout layout = LinearLayout.vertical().spacing(4);
     private Button apps;
+    private StringWidget keyHint;
 
     public AresOsMenuScreen() { super(Component.literal("AresOS")); }
 
@@ -51,8 +52,8 @@ public final class AresOsMenuScreen extends Screen {
                 .width(BUTTON_WIDTH).build());
         layout.addChild(Button.builder(NEW_HOME, button -> minecraft.gui.setScreen(
                 new HomeCreateScreen(this, AresOsMenuScreen::confirmNewHome))).width(BUTTON_WIDTH).build());
-        var hint = layout.addChild(new StringWidget(hint(minecraft), font), settings -> settings.paddingTop(8));
-        hint.setMaxWidth(width - 16, StringWidget.TextOverflow.SCROLLING);
+        keyHint = layout.addChild(new StringWidget(hint(minecraft), font), settings -> settings.paddingTop(8));
+        keyHint.setMaxWidth(width - 16, StringWidget.TextOverflow.SCROLLING);
         layout.visitWidgets(this::addRenderableWidget);
         updateApps();
         repositionElements();
@@ -70,24 +71,41 @@ public final class AresOsMenuScreen extends Screen {
     static void confirmNewHome(Minecraft client, HomeCreateScreen choice, HomePlan plan) {
         client.gui.setScreen(new ConfirmScreen(yes -> {
             if (yes) HomeSwitch.start(client, plan);
-            else client.gui.setScreen(choice);
+            else {
+                choice.confirmationCancelled();
+                client.gui.setScreen(choice);
+            }
         }, NEW_HOME_TITLE, NEW_HOME_QUESTION, MAKE_IT, CommonComponents.GUI_CANCEL));
     }
 
     /** The keys as he has them bound, in one gray line. */
     static Component hint(Minecraft client) {
-        var mode = AresOsClient.modeKey();
-        Component modeKey = mode == null ? Component.literal("G") : mode.getTranslatedKeyMessage();
-        return Component.empty().append(modeKey).append(" switches Live and Build · ")
+        return Component.empty().append(modeKey()).append(" switches Live and Build · ")
                 .append(client.options.keyInventory.getTranslatedKeyMessage()).append(" opens the inventory and Apps…")
                 .withStyle(ChatFormatting.GRAY);
+    }
+
+    private static Component modeKey() {
+        var mode = AresOsClient.modeKey();
+        return mode == null ? Component.literal("G") : mode.getTranslatedKeyMessage();
+    }
+
+    /** Settings returns the same initialized menu. Refresh its bindings on every appearance. */
+    @Override public void added() {
+        super.added();
+        if (keyHint != null) {
+            keyHint.setMessage(hint(minecraft));
+            repositionElements();
+            updateApps();
+        }
     }
 
     /** The Apps screen is Live's: in Build mode it would close at once, so its button waits for Live. */
     private void updateApps() {
         boolean live = AppsScreen.active(minecraft);
         apps.active = live;
-        apps.setTooltip(live ? null : Tooltip.create(Component.literal("Apps open in Live mode. Back to the world, then G.")));
+        apps.setTooltip(live ? null : Tooltip.create(Component.literal("Apps open in Live mode. Back to the world, then ")
+                .append(modeKey()).append(".")));
     }
 
     @Override public void tick() { updateApps(); }

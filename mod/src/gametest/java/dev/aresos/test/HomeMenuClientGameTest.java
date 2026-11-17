@@ -7,6 +7,7 @@ import dev.aresos.client.AresOsClient;
 import dev.aresos.client.AresOsMenuScreen;
 import dev.aresos.client.FirstStart;
 import dev.aresos.client.HomeCreateScreen;
+import dev.aresos.client.HomeRecoveryScreen;
 import dev.aresos.client.HomeScreen;
 import dev.aresos.client.HomeSwitch;
 import dev.aresos.client.HomeWorkingScreen;
@@ -24,16 +25,20 @@ import net.fabricmc.fabric.api.client.screen.v1.Screens;
 import net.fabricmc.fabric.impl.client.gametest.context.TestSingleplayerContextImpl;
 import net.fabricmc.fabric.impl.client.gametest.world.TestWorldSaveImpl;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.KeyMapping;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.components.StringWidget;
 import net.minecraft.client.gui.screens.ConfirmScreen;
+import net.minecraft.client.gui.narration.ScreenNarrationCollector;
 import net.minecraft.client.gui.screens.PauseScreen;
 import net.minecraft.client.gui.screens.TitleScreen;
 import net.minecraft.client.gui.screens.options.OptionsScreen;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
+import net.minecraft.nbt.NbtIo;
+import net.minecraft.nbt.NbtAccounter;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.storage.LevelResource;
@@ -86,6 +91,7 @@ public final class HomeMenuClientGameTest implements FabricClientGameTest {
                 check(old.getServer().computeOnServer(server -> server.overworld().getBlockState(marker).is(Blocks.GOLD_BLOCK)),
                         "The dated old home lost the block placed just before New home");
             }
+            made.addAll(reviewFixes(context, saves, hub));
             AresOs.LOGGER.info("48 home menu checks passed: the game menu stays outside a session's desktop world, the "
                     + "title screen stays outside a session and with an AresHub there, the first start makes the flat "
                     + "home without a title screen, Esc opens the AresOS menu with its items and the world moving, Back, "
@@ -98,6 +104,8 @@ public final class HomeMenuClientGameTest implements FabricClientGameTest {
             context.runOnClient(client -> {
                 HomeScreen.forTests(null, null);
                 HomeSwitch.failSecondRenameForTests(false);
+                HomeSwitch.failuresForTests(HomeSwap.FILES, false);
+                HomeSwitch.holdRecoveryOpenForTests(false);
                 HomeSwitch.closeFromTestTasksForTests(false);
                 ScreenLog.stop();
             });
@@ -236,6 +244,7 @@ public final class HomeMenuClientGameTest implements FabricClientGameTest {
         context.waitForScreen(OptionsScreen.class);
         context.clickScreenButton("gui.done");
         context.waitForScreen(AresOsMenuScreen.class);
+        reboundKeys(context);
         screenshots(context);
         context.getInput().pressKey(InputConstants.KEY_ESCAPE);
         context.waitFor(client -> client.gui.screen() == null);
@@ -245,9 +254,50 @@ public final class HomeMenuClientGameTest implements FabricClientGameTest {
         context.getInput().pressKey(InputConstants.KEY_ESCAPE);
         context.waitForScreen(AresOsMenuScreen.class);
         context.runOnClient(client -> check(!button(client, "Apps…").active, "Apps… is active in Build mode"));
+        reboundKeys(context);
         context.getInput().pressKey(InputConstants.KEY_ESCAPE);
         context.waitFor(client -> client.gui.screen() == null);
         mode(context, home, GameType.SURVIVAL);
+    }
+
+    /** Settings returns an already initialized menu; both hints must use the new bindings immediately. */
+    private static void reboundKeys(ClientGameTestContext context) {
+        var menu = context.computeOnClient(client -> client.gui.screen());
+        // Preserve arbitrary bindings inherited from earlier tests, not just their defaults.
+        String modeKey = context.computeOnClient(client -> KeyMapping.get("key.aresos.switch_mode").saveString());
+        String inventoryKey = context.computeOnClient(client -> client.options.keyInventory.saveString());
+        try {
+            context.clickScreenButton("Settings…");
+            context.waitForScreen(OptionsScreen.class);
+            context.runOnClient(client -> {
+                KeyMapping.get("key.aresos.switch_mode").setKey(InputConstants.Type.KEYSYM.getOrCreate(InputConstants.KEY_H));
+                client.options.keyInventory.setKey(InputConstants.Type.KEYSYM.getOrCreate(InputConstants.KEY_I));
+                KeyMapping.resetMapping();
+            });
+            context.clickScreenButton("gui.done");
+            context.waitForScreen(AresOsMenuScreen.class);
+            context.runOnClient(client -> {
+                check(client.gui.screen() == menu, "Settings did not return the same initialized menu");
+                var lines = Screens.getWidgets(menu).stream().filter(StringWidget.class::isInstance)
+                        .map(HomeMenuClientGameTest::text).toList();
+                check(lines.equals(List.of("AresOS", "H switches Live and Build · I opens the inventory and Apps…")),
+                        "The key hint stayed stale: " + lines);
+                var apps = button(client, "Apps…");
+                if (!apps.active) {
+                    var narration = new ScreenNarrationCollector();
+                    narration.update(apps::updateNarration);
+                    check(narration.collectNarrationText(true).contains("Apps open in Live mode. Back to the world, then H."),
+                            "The Build-mode Apps tooltip did not follow the mode binding");
+                }
+            });
+        } finally {
+            context.runOnClient(client -> {
+                KeyMapping.get("key.aresos.switch_mode").setKey(InputConstants.getKey(modeKey));
+                client.options.keyInventory.setKey(InputConstants.getKey(inventoryKey));
+                KeyMapping.resetMapping();
+                client.gui.setScreen(menu);
+            });
+        }
     }
 
     /** The menu over the flat home at 1280x720 (GUI scale 2), then at the smallest GUI the game allows, 240 high. */
@@ -286,6 +336,21 @@ public final class HomeMenuClientGameTest implements FabricClientGameTest {
         context.waitForScreen(AresOsMenuScreen.class);
         context.clickScreenButton("New home…");
         context.waitForScreen(HomeCreateScreen.class);
+        context.clickScreenButton("Home: Flat");
+        context.clickScreenButton("50");
+        var choice = context.computeOnClient(client -> client.gui.screen());
+        context.clickScreenButton("aresos.home.create");
+        context.waitForScreen(ConfirmScreen.class);
+        context.clickScreenButton("gui.cancel");
+        context.waitForScreen(HomeCreateScreen.class);
+        context.runOnClient(client -> {
+            check(client.gui.screen() == choice, "Cancel reopened the chooser instead of keeping the choices");
+            check(Screens.getWidgets(client.gui.screen()).stream().anyMatch(widget -> widget.getMessage().getString()
+                    .equals(Component.translatable("aresos.home.create").getString()) && widget.active), "Cancel left Create disabled");
+            check(button(client, "Home: Nether") != null && client.gui.screen().children().stream()
+                    .filter(EditBox.class::isInstance).map(EditBox.class::cast).anyMatch(box -> box.getValue().equals("50")),
+                    "Cancel lost the home type or seed");
+        });
         context.clickScreenButton("aresos.home.create");
         context.waitForScreen(ConfirmScreen.class);
         context.clickScreenButton("gui.cancel");
@@ -391,6 +456,190 @@ public final class HomeMenuClientGameTest implements FabricClientGameTest {
         AresOs.LOGGER.info("48 failed new home: back in the old home after {} ms; staging kept as {}; screens set {}",
                 context.computeOnClient(client -> HomeSwitch.lastMillisForTests()), staging.getFileName(), screens);
         return staging;
+    }
+
+    /** Each recovery checks folder AND level name, so opening a different world cannot pass. */
+    private static Set<Path> reviewFixes(ClientGameTestContext context, Path saves, Path hub) throws IOException {
+        var before = listing(saves);
+        String original = "Review original home";
+        nameSave(hub, original);
+        openSave(context, hub);
+
+        // The replacement cannot move back to staging: the original must open from its archive, never AresHub.
+        context.runOnClient(client -> HomeSwitch.failuresForTests((from, to) -> {
+            if (from.equals(hub) && to.getFileName().toString().startsWith(HomeSwap.STAGING_PREFIX))
+                throw new IOException("replacement restoration stuck");
+            HomeSwap.FILES.move(from, to);
+        }, true));
+        startFlatSwitch(context);
+        waitForSwitch(context);
+        Path originalArchive = context.computeOnClient(HomeMenuClientGameTest::worldFolder);
+        check(!originalArchive.equals(hub), "Failed replacement restoration reopened the replacement");
+        assertHome(context, originalArchive, original, "Your previous home is open from the saves folder "
+                + originalArchive.getFileName() + ". The new home remains in AresHub.");
+        check(Files.isDirectory(hub), "The replacement should remain in AresHub");
+        resetFailures(context);
+
+        // From that fallback archive with another AresHub present: failure returns the archive, then success
+        // archives the unrelated AresHub and leaves the world he was in under exactly its original name.
+        context.runOnClient(client -> HomeSwitch.failuresForTests(HomeSwap.FILES, true));
+        startFlatSwitch(context);
+        waitForSwitch(context);
+        assertHome(context, originalArchive, original, "Your previous home is open from the saves folder "
+                + originalArchive.getFileName() + ". AresHub is a separate home.");
+        resetFailures(context);
+        var withHub = listing(saves);
+        startFlatSwitch(context);
+        waitForSwitch(context);
+        assertHome(context, hub, "AresOS", null);
+        check(Files.isDirectory(originalArchive), "New home renamed the open archive");
+        var archivedCanonical = new HashSet<>(listing(saves));
+        archivedCanonical.removeAll(withHub);
+        check(archivedCanonical.size() == 1, "New home from an archive did not keep the existing AresHub: " + archivedCanonical);
+        adopt(context, hub).close();
+        openSave(context, originalArchive);
+        assertHome(context, originalArchive, original, null);
+        adopt(context, originalArchive).close();
+
+        // The replacement moves back, but the old archive cannot become AresHub.
+        String second = "Review second restoration";
+        nameSave(hub, second);
+        openSave(context, hub);
+        context.runOnClient(client -> HomeSwitch.failuresForTests((from, to) -> {
+            if (to.equals(hub) && !from.getFileName().toString().startsWith(HomeSwap.STAGING_PREFIX))
+                throw new IOException("archive restoration stuck");
+            HomeSwap.FILES.move(from, to);
+        }, true));
+        startFlatSwitch(context);
+        waitForSwitch(context);
+        Path missingHubArchive = context.computeOnClient(HomeMenuClientGameTest::worldFolder);
+        check(!Files.exists(hub), "Failed archive restoration should leave AresHub missing");
+        assertHome(context, missingHubArchive, second, "Your previous home is open from the saves folder "
+                + missingHubArchive.getFileName() + ". AresHub is missing; the AresOS session will not find this home until it is named AresHub again.");
+        resetFailures(context);
+
+        // The other fallback case: no AresHub exists. Fail after promotion, then make a home successfully.
+        context.runOnClient(client -> HomeSwitch.failuresForTests(HomeSwap.FILES, true));
+        startFlatSwitch(context);
+        waitForSwitch(context);
+        check(!Files.exists(hub), "Recovery should restore the previous absence of AresHub");
+        assertHome(context, missingHubArchive, second, "Your previous home is open from the saves folder "
+                + missingHubArchive.getFileName() + ". AresHub is missing; the AresOS session will not find this home until it is named AresHub again.");
+        resetFailures(context);
+        var withoutHub = listing(saves);
+        startFlatSwitch(context);
+        waitForSwitch(context);
+        assertHome(context, hub, "AresOS", null);
+        var added = new HashSet<>(listing(saves));
+        added.removeAll(withoutHub);
+        check(added.equals(Set.of(hub)), "An archive switch without AresHub should only add AresHub: " + added);
+        adopt(context, hub).close();
+        openSave(context, missingHubArchive);
+        assertHome(context, missingHubArchive, second, null);
+        adopt(context, missingHubArchive).close();
+
+        // A failed old-home reopen cannot release the guard or strand the working screen. Try again also
+        // handles a recovery timeout, and eventually opens the named original after the fault is lifted.
+        String retryName = "Review retry home";
+        nameSave(hub, retryName);
+        openSave(context, hub);
+        byte[][] keptLevel = {null};
+        context.runOnClient(client -> HomeSwitch.failuresForTests((from, to) -> {
+            HomeSwap.FILES.move(from, to);
+            if (to.equals(hub) && !from.getFileName().toString().startsWith(HomeSwap.STAGING_PREFIX)) {
+                // Fail the real open flow, including its storage lock, rather than just calling fail() in a test.
+                keptLevel[0] = Files.readAllBytes(hub.resolve("level.dat"));
+                Files.writeString(hub.resolve("level.dat"), "injected unreadable level data");
+            }
+        }, true));
+        startFlatSwitch(context);
+        waitForRecovery(context);
+        context.runOnClient(client -> {
+            check(HomeSwitch.busy() && client.level == null, "Failed reopen dropped recovery");
+            check(button(client, "Try again").active, "Recovery has no usable Try again button");
+            client.gui.setScreen(new TitleScreen());
+            check(client.gui.screen() instanceof HomeRecoveryScreen, "Recovery allowed the title screen");
+        });
+        context.getInput().pressKey(InputConstants.KEY_ESCAPE);
+        context.waitForScreen(HomeRecoveryScreen.class);
+        screenshot(context, "48-review-fix-recovery");
+        check(keptLevel[0] != null, "Fixture: recovery never injected the damaged level");
+        Files.write(hub.resolve("level.dat"), keptLevel[0]);
+        context.runOnClient(client -> {
+            HomeSwitch.failuresForTests(HomeSwap.FILES, false);
+            HomeSwitch.holdRecoveryOpenForTests(true);
+        });
+        context.clickScreenButton("Try again");
+        context.waitTicks(5);
+        context.runOnClient(client -> HomeSwitch.timeoutForTests());
+        waitForRecovery(context);
+        context.runOnClient(client -> check(HomeSwitch.busy(), "Recovery timeout released the title-screen guard"));
+        resetFailures(context);
+        context.clickScreenButton("Try again");
+        waitForSwitch(context);
+        assertHome(context, hub, retryName, "Your home is as it was.");
+        adopt(context, hub).close();
+
+        var made = new HashSet<>(listing(saves));
+        made.removeAll(before);
+        AresOs.LOGGER.info("48 review fix checks passed: both restoration renames, both archive switch cases, failed reopen, recovery timeout and Try again");
+        return made;
+    }
+
+    private static void nameSave(Path folder, String name) throws IOException {
+        Path file = folder.resolve("level.dat");
+        var data = NbtIo.readCompressed(file, NbtAccounter.unlimitedHeap());
+        data.getCompoundOrEmpty("Data").putString("LevelName", name);
+        NbtIo.writeCompressed(data, file);
+    }
+
+    private static void openSave(ClientGameTestContext context, Path folder) {
+        context.runOnClient(client -> client.createWorldOpenFlows().openWorld(folder.getFileName().toString(),
+                () -> { throw new AssertionError("Could not open fixture " + folder.getFileName()); }));
+        context.waitFor(client -> client.player != null && client.gui.screen() == null, SWITCH_TICKS);
+    }
+
+    private static void startFlatSwitch(ClientGameTestContext context) {
+        context.getInput().pressKey(InputConstants.KEY_ESCAPE);
+        context.waitForScreen(AresOsMenuScreen.class);
+        context.clickScreenButton("New home…");
+        context.waitForScreen(HomeCreateScreen.class);
+        context.clickScreenButton("aresos.home.create");
+        context.waitForScreen(ConfirmScreen.class);
+        context.runOnClient(client -> ScreenLog.start());
+        context.clickScreenButton("Make the new home");
+    }
+
+    private static void assertHome(ClientGameTestContext context, Path folder, String levelName, String recoveryText) {
+        context.runOnClient(client -> {
+            check(worldFolder(client).equals(folder), "Expected home folder " + folder.getFileName() + ", got " + worldFolder(client));
+            check(client.getSingleplayerServer().getWorldData().getLevelName().equals(levelName),
+                    "Opened the wrong world: expected level name " + levelName);
+            var screens = ScreenLog.stop();
+            check(screens.stream().noneMatch(HomeMenuClientGameTest::titleScreen), "Recovery set a title screen: " + screens);
+            if (recoveryText != null) {
+                String expected = "Couldn't make the new home: the new home did not open. " + recoveryText;
+                check(chat(client).contains(expected), "Incorrect recovery chat; expected " + expected + ", got " + chat(client));
+                check(chat(client).stream().filter(line -> line.startsWith("Couldn't make the new home:")).count() == 1,
+                        "Recovery posted contradictory chat: " + chat(client));
+            }
+        });
+    }
+
+    private static void waitForRecovery(ClientGameTestContext context) {
+        for (int tick = 0; tick < SWITCH_TICKS; tick++) {
+            context.runOnClient(client -> HomeSwitch.runPendingCloseForTests());
+            if (context.computeOnClient(client -> client.gui.screen() instanceof HomeRecoveryScreen)) return;
+            context.waitTick();
+        }
+        throw new AssertionError("A failed reopen never showed Try again");
+    }
+
+    private static void resetFailures(ClientGameTestContext context) {
+        context.runOnClient(client -> {
+            HomeSwitch.failuresForTests(HomeSwap.FILES, false);
+            HomeSwitch.holdRecoveryOpenForTests(false);
+        });
     }
 
     /**

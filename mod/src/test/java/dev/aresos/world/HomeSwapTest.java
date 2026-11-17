@@ -87,6 +87,67 @@ class HomeSwapTest {
     }
 
     @Test
+    void failedReplacementRestorationKeepsTheOldHomeAtItsArchive() throws IOException {
+        Path home = folder("AresHub", "old");
+        Path staging = HomeSwap.freshStaging(saves, NOW);
+        Files.writeString(staging.resolve("marker"), "new");
+        Path archived = HomeSwap.swap(saves, staging, NOW, HomeSwap.FILES, new long[1]);
+        HomeSwap.Mover stuckReplacement = (from, to) -> {
+            if (from.equals(home)) throw new IOException("replacement stuck");
+            HomeSwap.FILES.move(from, to);
+        };
+        assertThrows(IOException.class, () -> HomeSwap.restore(saves, archived, staging, stuckReplacement));
+        assertEquals("old", Files.readString(archived.resolve("marker")));
+        assertEquals("new", Files.readString(home.resolve("marker")));
+        assertFalse(Files.exists(staging));
+        HomeSwap.restore(saves, archived, staging, HomeSwap.FILES);
+        assertEquals("old", Files.readString(home.resolve("marker")));
+    }
+
+    @Test
+    void failedArchiveRestorationKeepsBothWorldsUnderTheirKnownNames() throws IOException {
+        Path home = folder("AresHub", "old");
+        Path staging = HomeSwap.freshStaging(saves, NOW);
+        Files.writeString(staging.resolve("marker"), "new");
+        Path archived = HomeSwap.swap(saves, staging, NOW, HomeSwap.FILES, new long[1]);
+        HomeSwap.Mover stuckArchive = (from, to) -> {
+            if (from.equals(archived)) throw new IOException("archive stuck");
+            HomeSwap.FILES.move(from, to);
+        };
+        assertThrows(IOException.class, () -> HomeSwap.restore(saves, archived, staging, stuckArchive));
+        assertEquals("old", Files.readString(archived.resolve("marker")));
+        assertEquals("new", Files.readString(staging.resolve("marker")));
+        assertFalse(Files.exists(home));
+        HomeSwap.restore(saves, archived, staging, HomeSwap.FILES);
+        assertEquals("old", Files.readString(home.resolve("marker")));
+    }
+
+    @Test
+    void switchingFromAnArchiveWithoutAHubPromotesAndRestoresWithoutRenamingTheArchive() throws IOException {
+        Path source = folder("AresHub-previous", "previous home");
+        Path staging = HomeSwap.freshStaging(saves, NOW);
+        Files.writeString(staging.resolve("marker"), "new");
+        Path archived = HomeSwap.swap(saves, staging, NOW, HomeSwap.FILES, new long[1]);
+        assertNull(archived);
+        assertEquals("new", Files.readString(saves.resolve("AresHub/marker")));
+        HomeSwap.restore(saves, archived, staging, HomeSwap.FILES);
+        assertFalse(Files.exists(saves.resolve("AresHub")));
+        assertEquals("previous home", Files.readString(source.resolve("marker")));
+        assertEquals("new", Files.readString(staging.resolve("marker")));
+    }
+
+    @Test
+    void failedPromotionWithoutAHubLeavesTheArchiveAlone() throws IOException {
+        Path source = folder("AresHub-previous", "previous home");
+        Path staging = HomeSwap.freshStaging(saves, NOW);
+        HomeSwap.Mover stuck = (from, to) -> { throw new IOException("promotion failed"); };
+        assertThrows(IOException.class, () -> HomeSwap.swap(saves, staging, NOW, stuck, new long[1]));
+        assertEquals("previous home", Files.readString(source.resolve("marker")));
+        assertFalse(Files.exists(saves.resolve("AresHub")));
+        assertTrue(Files.isDirectory(staging));
+    }
+
+    @Test
     void namesAreNeverReused() throws IOException {
         Path first = HomeSwap.freshStaging(saves, NOW);
         Path second = HomeSwap.freshStaging(saves, NOW);
