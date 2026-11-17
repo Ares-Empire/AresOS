@@ -251,9 +251,13 @@ export async function unreadMatrix({check,call,rpc,read,nav,target,counts,approv
       await delay(700);assert.equal(counts(moved+'-other'),0,attempt+': the receiver has nothing');
       evidence.push({case:'moved',attempt,result:late});
     }
-    // 4. Last, because the submission stays stopped in this document: one the page starts from a click handler.
+    // 4. The submission stays queued in this document. A later read and
+    // input must refuse it too, without an approval or another arrival.
     const started='brief28-started';await lateRoot(started,'form',[LATE_DRAFT]);await draftUnread();
-    await notSent('a submission the page starts from a click handler',await rpc('click',await target('Continue')),started);
+    const continuation=await target('Continue');
+    await notSent('a submission the page starts from a click handler',await rpc('click',continuation),started);
+    await notSent('a later read on the stopped tab',await rpc('read',{tab}),started);
+    await notSent('a later step on the stopped tab',await rpc('click',continuation),started);
     recording('the refused forms',LATE_DRAFT);
   });
   fs.writeFileSync('/out/unread-fields.json',JSON.stringify(evidence,null,2));
