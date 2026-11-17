@@ -1,0 +1,414 @@
+"""Package 42, step 3: release 28's rehearsal mode `release-28` and its wiring (modelled on test_tools_local_wiring).
+
+The ledger kind has cap 0 (step 6 raises it with the lead's OK); the mode runs the rehearsal job on package 42's
+branch and nowhere else; every step script accepts package 42's environment; the guard proves the native step in
+the run itself; the announced bundle is version 4's code with tools_version 5 and release 28's record; the stand-in
+origin holds 634e1237's trees, then that bundle; and the local walk passes with Control riding and without.
+No VM, privilege or real tool runs.
+"""
+import contextlib
+import hashlib
+import json
+import os
+import pathlib
+import re
+import subprocess
+import sys
+import tempfile
+import unittest
+from unittest.mock import patch
+
+ROOT = pathlib.Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / 'os/ci'))
+import model_scope
+import owner_media
+import registry_auth
+import rehearsal_guard as guard
+import release28_walk as walk
+import test_release27 as base
+import test_tools_local_wiring as local
+import test_ways_back_probe as wb
+from test_owner_staged_release import condition
+
+BRANCH = 'pkg/42-release-28'
+MODE = 'release-28'
+LEDGER = guard.PACKAGES['42']
+WORKFLOW, JOB = wb.WORKFLOW, wb.JOB
+OTHER_MODES = local.OTHER_MODES + ('tools-local',)
+
+
+def inputs(mode=MODE):
+    return dict(base.UPDATE_INPUTS, **{'github.ref_name': BRANCH, 'inputs.rehearsal': mode})
+
+
+def job_steps(mode=MODE):
+    world = inputs(mode)
+    github = dict(base.UPDATE_GITHUB, GITHUB_REF_NAME=BRANCH)
+    merged = {**WORKFLOW.get('env', {}), **JOB.get('env', {})}
+    environment = dict(github, **{k: base.workflow_text(v, world) for k, v in merged.items()})
+    for step in JOB['steps']:
+        if 'run' in step and base.workflow_expression(step.get('if', 'success()'), world):
+            yield step, dict(environment, **{k: base.workflow_text(v, world) for k, v in step.get('env', {}).items()})
+
+
+def record(digest='28' * 32, identity=walk.IDENTITY, daily_wheel=True):
+    import test_owner_walk
+    value = json.loads(test_owner_walk.release28_record())
+    value['reference'] = 'ghcr.io/ares-empire/aresos@sha256:' + digest
+    value['signature']['identity'], value['daily_wheel'] = identity, daily_wheel
+    return (json.dumps(value, indent=2) + '\n').encode()
+
+
+class LedgerTest(unittest.TestCase):
+    def test_the_kind_is_recorded_with_cap_0_and_22ds_bounds(self):
+        self.assertEqual(LEDGER['dispatch_caps'][MODE], 0)
+        self.assertEqual(LEDGER['job_bounds'][MODE], guard.PACKAGES['22d']['job_bounds']['tools-local'])
+        self.assertEqual(LEDGER['titles'][MODE], 'Two-disk rehearsal (release-28)')
+        self.assertIn('adds the rehearsal kind release-28', LEDGER['budget'])
+        self.assertIn("with cap 0: step 6 raises it, with the lead's OK", LEDGER['budget'])
+        # The publish gate is untouched (review 1, B1).
+        self.assertEqual((LEDGER['dispatch_caps']['publish-28'], LEDGER['publish_cap']), (0, 0))
+
+    def test_cap_0_stops_the_first_dispatch(self):
+        run = dict(event='workflow_dispatch', head_sha='a' * 40, run_attempt=1, status='completed', conclusion='failure',
+                   created_at='2026-11-17T18:00:00Z', id=1, display_title=LEDGER['titles'][MODE])
+        job = dict(name='Pinned live ISO inspection and two-disk rehearsal', conclusion='failure',
+                   started_at='2026-11-17T18:00:00Z', completed_at='2026-11-17T18:10:00Z', steps=[])
+        guard.configure('42')
+        self.addCleanup(guard.configure, '11c')
+        api = lambda path: dict(workflow_runs=[run]) if path.startswith('actions/runs?') else dict(total_count=1, jobs=[job])
+        with patch.object(guard, 'api', side_effect=api):
+            with self.assertRaisesRegex(AssertionError, MODE + ' dispatch allowance exhausted'):
+                guard.budget(0)
+            with patch.dict(LEDGER['dispatch_caps'], {MODE: 1}):
+                self.assertEqual(guard.budget(0)['dispatch_counts'][MODE], 1)
+
+
+class DispatchTest(unittest.TestCase):
+    def test_the_mode_is_a_workflow_option_and_the_branch_maps_to_package_42(self):
+        self.assertIn(MODE, WORKFLOW['on']['workflow_dispatch']['inputs']['rehearsal']['options'])
+        expression = re.fullmatch(r'\$\{\{(.*)\}\}', WORKFLOW['env']['REHEARSAL_PACKAGE'].strip())[1]
+        self.assertEqual(base.workflow_expression(expression, inputs()), '42')
+        # The run's title (the guard counts it by title) is the ledger's.
+        self.assertTrue(WORKFLOW['run-name'].startswith("${{ inputs.rehearsal && format('Two-disk rehearsal ({0})', inputs.rehearsal) || "))
+        self.assertEqual('Two-disk rehearsal ({0})'.format(MODE), LEDGER['titles'][MODE])
+
+    def test_the_mode_runs_the_rehearsal_job_on_its_branch_and_nothing_else_runs_there(self):
+        on_branch = {'github.ref_name': BRANCH}
+        for name, job in WORKFLOW['jobs'].items():
+            with self.subTest(job=name):
+                self.assertEqual(condition(job['if'], mode=MODE, **on_branch), name == 'rehearsal')
+                for other in ('inputs.release_13', 'inputs.release_27', 'inputs.release_28', 'inputs.dry_run_28',
+                              'inputs.checks_only', 'inputs.switch_from_run', 'inputs.probe_run'):
+                    self.assertFalse(condition(job['if'], mode=MODE, **on_branch, **{other: True}) and name == 'rehearsal')
+                self.assertFalse(condition(job['if'], mode=MODE, **on_branch, **{'inputs.check_build': 'build'})
+                                 and name == 'rehearsal')
+            for mode in OTHER_MODES:
+                with self.subTest(job=name, other_mode=mode):
+                    self.assertFalse(condition(job['if'], mode=mode, **on_branch) and name == 'rehearsal')
+
+    def test_no_other_branch_can_run_the_mode(self):
+        for branch in ('main', wb.BRANCH, local.BRANCH, 'pkg/27-first-update-release', 'pkg/14-owner-tools',
+                       'pkg/16-staged-release', 'pkg/13-keyboard-layout'):
+            for name, job in WORKFLOW['jobs'].items():
+                with self.subTest(branch=branch, job=name):
+                    self.assertFalse(condition(job['if'], mode=MODE, **{'github.ref_name': branch}))
+
+    def test_22ds_mode_on_its_branch_is_unchanged(self):
+        for name, job in WORKFLOW['jobs'].items():
+            with self.subTest(job=name):
+                self.assertEqual(condition(job['if'], mode='tools-local', **{'github.ref_name': local.BRANCH}), name == 'rehearsal')
+
+
+class JobGatesTest(unittest.TestCase):
+    def test_every_step_script_accepts_the_package_42_environment(self):
+        failures, evaluated = [], set()
+        for step, environment in job_steps():
+            for script, argv, removed in base.step_runs(step, environment, inputs()):
+                scan = base.GateScan({k: v for k, v in environment.items() if k not in removed}, argv)
+                for path, line, text, passed in scan.run(script):
+                    evaluated.add(path)
+                    if not passed:
+                        failures.append(f"{step['name']}: {path}:{line}: {text}")
+        self.assertEqual(failures, [])
+        self.assertLessEqual({'os/ci/owner_capabilities.py', 'os/ci/owner_devices.py', 'os/ci/owner_media.py',
+                              'os/ci/registry_auth.py', 'os/ci/rehearsal_guard.py', 'os/ci/owner_vm.py'}, evaluated)
+
+    def test_the_steps_scripts_arguments_and_bounds_are_package_42s(self):
+        steps = list(job_steps())
+        runs = {(script, tuple(argv[1:])) for step, environment in steps
+                for script, argv, _ in base.step_runs(step, environment, inputs())}
+        bound = str(LEDGER['job_bounds'][MODE])
+        self.assertEqual(steps[0][1]['REHEARSAL_PACKAGE'], '42')
+        for expected in (('os/ci/owner_capabilities.py', ()), ('os/ci/rehearsal_guard.py', ('probe-budget-ci', bound)),
+                         ('os/ci/rehearsal_guard.py', ('ci', bound)), ('os/ci/registry_auth.py', ('create',)),
+                         ('os/ci/registry_auth.py', ('preflight',)), ('os/ci/registry_auth.py', ('pull',)),
+                         ('os/ci/registry_auth.py', ('cleanup',)), ('os/ci/owner_devices.py', ()),
+                         ('os/ci/owner_counter_kernel.py', ()), ('os/ci/prepare_two_disks.py', ()), ('os/ci/owner_vm.py', (MODE,))):
+            self.assertIn(expected, runs)
+        self.assertFalse({script for script, _ in runs} & {'os/ci/keyboard_vm.py', 'os/ci/two_disk_vm.py', 'os/ci/rehearsal_auth.py'})
+        world = inputs()
+        self.assertEqual(base.workflow_text(JOB['timeout-minutes'], world), bound)
+        vm, = [step for step, _ in steps if 'os/ci/owner_vm.py' in step['run']]
+        self.assertLess(int(base.workflow_text(vm['timeout-minutes'], world)), int(bound))
+        self.assertTrue(all('secrets.GHCR_READ_TOKEN' not in json.dumps(step) for step, _ in steps))
+
+
+class GuardTest(unittest.TestCase):
+    def setUp(self):
+        guard.configure('42')
+        self.addCleanup(guard.configure, '11c')
+
+    def test_the_vm_mode_proves_its_native_step_in_its_own_run_and_the_image_kinds_do_not(self):
+        self.assertTrue(guard.own_native(MODE))
+        for kind in ('dry-run-28', 'publish-28', 'resolve', 'checks'):
+            self.assertFalse(guard.own_native(kind))
+        self.assertEqual(guard.native_gate(MODE, 'probe-budget-ci', dict(runs=[]), 'a' * 40)['status'], 'pending')
+
+    def test_the_guard_step_stops_at_cap_0_and_writes_package_42s_authorization_once_raised(self):
+        run = dict(event='workflow_dispatch', head_sha='a' * 40, run_attempt=1, status='in_progress', conclusion=None,
+                   created_at='2026-11-17T18:00:00Z', id=11, display_title=LEDGER['titles'][MODE], head_branch=BRANCH)
+        environment = dict(REHEARSAL_PACKAGE='42', REHEARSAL_MODE=MODE, GITHUB_RUN_ID='11', GITHUB_SHA='a' * 40, GITHUB_REF_NAME=BRANCH)
+        proof = dict(complete=True, ids_count=1, total_count=1)
+        api = lambda path: dict(workflow_runs=[run], history=proof) if path.startswith('actions/runs?') else run
+
+        def main():
+            with tempfile.TemporaryDirectory() as folder, contextlib.chdir(folder), patch.dict(os.environ, environment, clear=True), \
+                    patch.object(sys, 'argv', ['rehearsal_guard.py', 'probe-budget-ci', '345']), patch('builtins.print'), \
+                    patch.object(guard, 'api', side_effect=api), patch.object(model_scope, 'decide', return_value=('slice', ['unchanged'])):
+                guard.main()
+                return json.loads(pathlib.Path('evidence/42-dispatch-authorization.json').read_text())
+        with self.assertRaisesRegex(AssertionError, MODE + ' dispatch allowance exhausted'):
+            main()
+        with patch.dict(LEDGER['dispatch_caps'], {MODE: 1}):
+            written = main()
+        self.assertEqual((written['allowance'], written['reserved_minutes'], written['native']['status']), ('42', 345, 'pending'))
+        self.assertEqual(written['model'], dict(status='not-needed', scope='slice', reasons=['unchanged']))
+
+
+class RunnerTest(unittest.TestCase):
+    ENVIRONMENT = dict(GITHUB_ACTIONS='true', GITHUB_EVENT_NAME='workflow_dispatch', GITHUB_REPOSITORY=guard.REPOSITORY,
+                       GITHUB_REF_NAME=BRANCH, REHEARSAL_PACKAGE='42', REHEARSAL_MODE=MODE)
+
+    def test_runner_and_registry_accept_only_package_42s_branch_package_and_mode(self):
+        with patch.dict(os.environ, self.ENVIRONMENT, clear=True):
+            owner_media.require_runner()
+            registry_auth.require_dispatch()
+        for key, value in (('GITHUB_REF_NAME', local.BRANCH), ('GITHUB_REF_NAME', 'main'), ('REHEARSAL_PACKAGE', '22d'),
+                           ('REHEARSAL_MODE', 'tools-local'), ('REHEARSAL_MODE', 'update'), ('REHEARSAL_MODE', 'checks'),
+                           ('GITHUB_REPOSITORY', 'elsewhere/AresOS')):
+            with self.subTest(key=key, value=value), patch.dict(os.environ, dict(self.ENVIRONMENT, **{key: value}), clear=True):
+                with self.assertRaises(AssertionError):
+                    owner_media.require_runner()
+        # The image kinds read release 27 with the job token, but never reach the owner route's media.
+        for kind in ('dry-run-28', 'publish-28'):
+            with patch.dict(os.environ, dict(self.ENVIRONMENT, REHEARSAL_MODE=kind), clear=True):
+                registry_auth.require_dispatch()
+                with self.assertRaises(AssertionError):
+                    owner_media.require_runner()
+
+    def test_the_driver_keeps_the_route_to_its_package(self):
+        main = wb.RunnerTest.main.__get__(wb.RunnerTest())
+        for package, mode, branch, message in (
+                ('22d', MODE, local.BRANCH, 'the tools-local rehearsal is package 22d only'),
+                ('42', 'tools-local', BRANCH, 'the tools-local rehearsal is package 22d only'),
+                ('42', 'update', BRANCH, 'the update rehearsal is package 27 only'),
+                ('42', 'owner-tools', BRANCH, 'the release-28 rehearsal is package 42 only')):
+            with self.subTest(package=package, mode=mode):
+                with self.assertRaisesRegex(AssertionError, message):
+                    main(package, mode, branch, any_runner=True)
+
+
+class VerifyReleaseTest(local.VerifyReleaseTest):
+    """Release 27's trees at its source commit in this mode too (the VM starts on release 27; this branch's image
+    sources are release 28's)."""
+    MODE_ENVIRONMENT = dict(GITHUB_REF_NAME=BRANCH, REHEARSAL_PACKAGE='42', REHEARSAL_MODE=MODE)
+
+    def verify(self, environment=MODE_ENVIRONMENT, **kwargs):
+        return base.run_verify_release(self, environment=environment, **kwargs)
+
+    def test_other_branches_packages_and_modes_still_compare_head(self):
+        for environment in (dict(self.MODE_ENVIRONMENT, REHEARSAL_MODE='dry-run-28'), dict(self.MODE_ENVIRONMENT, REHEARSAL_PACKAGE='22d'),
+                            dict(self.MODE_ENVIRONMENT, GITHUB_REF_NAME='main')):
+            with self.subTest(**environment), self.assertRaisesRegex(AssertionError, 'Release 27 runtime payload changed'):
+                self.verify(environment, head=self.MOVED)
+
+
+class AnnouncedTest(unittest.TestCase):
+    """Lead's decision 1: version 4's code with tools_version 5 and release 28's record, so a new fingerprint."""
+
+    def setUp(self):
+        self.record = record()
+        self.made = walk.announced(self.record, ROOT)
+
+    def payload(self):
+        """The announced payload folder: 634e1237's payload with the generated files in place."""
+        folder = pathlib.Path(self.enterContext(tempfile.TemporaryDirectory()))
+        names = subprocess.check_output(['git', '-C', str(ROOT), 'ls-tree', '-r', '--name-only', walk.V4_COMMIT, 'os/owner-tools/payload'],
+                                        text=True).split()
+        for name in names:
+            target = folder / name.removeprefix('os/owner-tools/payload/')
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(self.made['files'].get(name) or subprocess.check_output(['git', '-C', str(ROOT), 'show', walk.V4_COMMIT + ':' + name]))
+        return folder
+
+    def test_only_the_history_record_and_the_generated_files_change(self):
+        files = self.made['files']
+        history = json.loads(files['os/owner-tools/history.json'])
+        v4 = json.loads(subprocess.check_output(['git', '-C', str(ROOT), 'show', walk.V4_COMMIT + ':os/owner-tools/history.json']))
+        self.assertEqual(history, dict(tools_version=5, releases=[*v4['releases'], dict(
+            reference='ghcr.io/ares-empire/aresos@sha256:' + '28' * 32, identity=walk.IDENTITY, daily_wheel=True)]))
+        self.assertEqual(files['os/owner-tools/payload/history.json'], files['os/owner-tools/history.json'])
+        self.assertEqual(files['os/owner-tools/payload/release.json'], self.record)
+        self.assertEqual(files['os/manifest/release.json'], self.record)
+        self.assertEqual(self.made['version'], 5)
+        self.assertNotEqual(self.made['fingerprint'], walk.TOOLS_V4)
+
+    def test_the_manifests_are_bundle_pys_and_the_tools_accept_the_lineage(self):
+        folder = self.payload()
+        rows = json.loads((folder / 'SHA256.json').read_text())
+        for row in rows:
+            self.assertEqual(hashlib.sha256((folder / row['path']).read_bytes()).hexdigest(), row['sha256'])
+        sums = (folder / 'SHA256SUMS').read_bytes()
+        self.assertEqual(hashlib.sha256(sums).hexdigest(), self.made['fingerprint'])
+        self.assertTrue(sums.endswith((hashlib.sha256((folder / 'SHA256.json').read_bytes()).hexdigest() + '  SHA256.json\n').encode()))
+        # The manifests bundle.py writes over the same files, with this record as release.json.
+        bundle = owner_media.bundle_module('bundle')
+        root = pathlib.Path(self.enterContext(tempfile.TemporaryDirectory()))
+        for name, source in bundle.PAYLOAD.items():
+            (root / source).parent.mkdir(parents=True, exist_ok=True)
+            (root / source).write_bytes((folder / name).read_bytes())
+        self.assertEqual(bundle.manifests(root), ((folder / 'SHA256.json').read_bytes(), sums))
+        owner = owner_media.bundle_module('owner')
+        lineage = owner.lineage(folder)
+        self.assertEqual((lineage['tools_version'], lineage['releases'][-1]['reference']), (5, json.loads(self.record)['reference']))
+
+    def test_the_lines_and_the_guide_name_the_new_tools(self):
+        bootstrap = owner_media.bundle_module('bootstrap')
+        commands = json.loads(self.made['files']['os/owner-tools/commands.json'])
+        fingerprint = self.made['fingerprint']
+        self.assertEqual(commands['install'], bootstrap.command(fingerprint))
+        for name, line in bootstrap.lines(fingerprint).items():
+            self.assertEqual(commands[name], line)
+        checkout = json.loads((ROOT / 'os/owner-tools/commands.json').read_text())
+        self.assertEqual({k: v for k, v in commands.items() if k not in ('install', *bootstrap.lines(fingerprint))},
+                         {k: v for k, v in checkout.items() if k not in ('install', *bootstrap.lines(fingerprint))})
+        guide = self.made['files'][walk.GUIDE].decode().split('\n')
+        self.assertEqual((guide[0], guide[2]), ('Owner tools version 5: ' + fingerprint[:8], fingerprint))
+
+    def test_a_record_that_is_not_release_28s_stops(self):
+        r27 = 'https://github.com/Ares-Empire/AresOS/.github/workflows/os-image.yml@refs/heads/pkg/27-first-update-release'
+        for value, message in ((record(identity=r27), 'signature identity'),
+                               (record(daily_wheel=False), 'daily wheel'), (record(digest='zz'), 'org image digest'),
+                               (record()[:-1], 'not a written record')):
+            with self.subTest(message=message), self.assertRaisesRegex(AssertionError, message):
+                walk.announced(value, ROOT)
+        v4 = json.loads(subprocess.check_output(['git', '-C', str(ROOT), 'show', walk.V4_COMMIT + ':os/owner-tools/history.json']))
+        known = v4['releases'][-1]['reference'].split('@sha256:')[1]
+        with self.assertRaisesRegex(AssertionError, 'version 4 already knows release 28'):
+            walk.announced(record(digest=known), ROOT)
+
+
+class StandInOriginTest(unittest.TestCase):
+    """Lead's decision 2: the stand-in for 634e1237, then the stand-in announced commit; the hashes are recorded."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.folder = tempfile.TemporaryDirectory()
+        cls.record = record()
+        cls.standin = walk.standin_origin(pathlib.Path(cls.folder.name) / 'origin', cls.record, ROOT)
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.folder.cleanup()
+
+    def git(self, *args):
+        return subprocess.check_output(['git', '-C', str(self.standin['repository']), *args], text=True).strip()
+
+    def test_main_holds_634e1237s_trees_then_the_announced_commit(self):
+        commits = self.standin['commits']
+        self.assertEqual(self.git('rev-list', 'main'), commits['announced'] + '\n' + commits['v4'])
+        self.assertEqual(self.git('rev-parse', 'version-4'), commits['v4'])
+        for path in (*walk.BOUND, walk.GUIDE):
+            real = subprocess.check_output(['git', '-C', str(ROOT), 'rev-parse', walk.V4_COMMIT + ':' + path], text=True).strip()
+            self.assertEqual(self.git('rev-parse', commits['v4'] + ':' + path), real)
+            self.assertEqual(self.standin['hashes']['v4'][path], real)
+        self.assertEqual(self.standin['trees']['v4'], walk.V4_TREE)
+        self.assertEqual(self.git('ls-tree', '--name-only', commits['v4']), 'docs\nos')
+
+    def test_the_announced_commit_differs_from_634e1237_in_the_generated_files_only(self):
+        changed = self.git('diff', '--name-only', self.standin['commits']['v4'], self.standin['commits']['announced']).split()
+        self.assertEqual(sorted(changed), sorted(walk.announced(self.record, ROOT)['files']))
+        self.assertEqual(hashlib.sha256(subprocess.check_output(['git', '-C', str(self.standin['repository']), 'show',
+                         self.standin['commits']['announced'] + ':os/owner-tools/payload/SHA256SUMS'])).hexdigest(), self.standin['fingerprint'])
+        # Modes are kept: the tools' entry stays executable.
+        self.assertEqual(self.git('ls-tree', self.standin['commits']['announced'], 'os/owner-tools/at').split()[0],
+                         self.git('ls-tree', self.standin['commits']['v4'], 'os/owner-tools/at').split()[0])
+
+    def test_a_real_commit_matches_only_with_the_same_tree_and_release_blob(self):
+        bound = dict(bound={path: self.standin['hashes']['announced'][path] for path in walk.BOUND})
+        self.assertEqual(walk.matches(self.standin['commits']['announced'], bound, self.standin['repository']), [])
+        self.assertEqual(walk.matches(self.standin['commits']['v4'], bound, self.standin['repository']), list(walk.BOUND))
+        self.assertEqual(walk.matches('HEAD', bound, ROOT), list(walk.BOUND))
+
+    def test_this_checkout_is_checked_only_once_it_names_release_28(self):
+        head = subprocess.check_output(['git', '-C', str(ROOT), 'rev-parse', 'HEAD'], text=True).strip()
+        self.assertEqual(walk.real_commit(head, self.standin, ROOT), dict(carries_release_28=False, head=head))
+        # The stand-in announced commit as "this checkout": it carries release 28 and equals itself.
+        announced = self.standin['commits']['announced']
+        self.assertEqual(walk.real_commit(announced, self.standin, self.standin['repository']),
+                         dict(carries_release_28=True, head=announced, equal=True))
+        # A commit naming release 28 with other tools stops.
+        other = dict(self.standin, hashes=dict(self.standin['hashes'], announced=dict(self.standin['hashes']['announced'],
+                     **{'os/owner-tools': walk.V4_TREE})))
+        with self.assertRaisesRegex(AssertionError, 'differs from the rehearsed bundle in os/owner-tools'):
+            walk.real_commit(announced, other, self.standin['repository'])
+
+
+class WalkTest(unittest.TestCase):
+    """The local walk (test_owner_walk's release-28 route) with Control off, as it stays, and on."""
+
+    @classmethod
+    def setUpClass(cls):
+        import test_owner_walk
+        cls.module = test_owner_walk
+        cls.walked = {control: test_owner_walk.walk(route=MODE, control=control) for control in (False, True)}
+
+    def test_control_rides_is_off(self):
+        self.assertIs(walk.CONTROL_RIDES, False)
+
+    def test_every_stage_of_brief_b_passes(self):
+        for control, walked in self.walked.items():
+            with self.subTest(control=control):
+                result = walked['result']
+                self.assertEqual(walked['stages'], self.module.RELEASE28_STAGES)
+                self.assertEqual([s['stage'] for s in result['stages']], ['r28-v4', 'r28-tools'])
+                self.assertEqual((result['tools_version'], result['tools_version_4']), (5, walk.TOOLS_V4))
+                self.assertEqual([row['line_1'][:22] for row in result['compared']], ['Owner tools version 4:', 'Owner tools version 5:'])
+                self.assertEqual(result['no_foot']['stop'], walk.FOOT_STOP)
+                self.assertEqual(result['game_scope']['memory_high'], '2684354560')
+                self.assertTrue(result['home']['planted'])
+                self.assertEqual(walked['session'].events, ['foot ended', 'terminal opened', 'game scope'])
+                self.assertEqual(walked['local'].installs[-1], dict(manifest=result['tools'], previous_manifest=walk.TOOLS_V4,
+                                                                    previous_version=4, tools_version=5))
+                self.assertLessEqual({'final-unattended-windows', 'final-detached-windows'}, set(walked['markers']))
+
+    def test_control_is_checked_only_when_it_rides(self):
+        off, on = self.walked[False]['result'], self.walked[True]['result']
+        self.assertEqual((off['control'], off['sites_sha256']), (None, None))
+        self.assertEqual((on['control']['uid'], on['control']['gid']), (250, 250))
+        self.assertEqual(on['sites_sha256'], hashlib.sha256((walk.SITES_LIST + '\n').encode()).hexdigest())
+        names = lambda control: [name for name, _ in self.walked[control]['commands']]
+        self.assertFalse([n for n in names(False) if n.endswith(('-sites', '-sites-hash', '-control'))])
+        self.assertEqual([n for n in names(True) if n.endswith('-sites-hash')],
+                         ['r28-before-update-sites-hash', 'release-28-sites-hash', 'previous-27-sites-hash', 'final-28-sites-hash'])
+
+    def test_each_announced_commit_records_its_bound_hashes(self):
+        rows = self.walked[False]['result']['announced']
+        self.assertEqual([row['real'] for row in rows], [walk.V4_COMMIT, None])
+        self.assertEqual(rows[0]['bound']['os/owner-tools'], walk.V4_TREE)
+        self.assertEqual(set(rows[1]['bound']), set(walk.BOUND))
+
+
+if __name__ == '__main__':
+    unittest.main()
