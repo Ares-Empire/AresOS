@@ -13,6 +13,8 @@ import dev.aresos.client.HomeSwitch;
 import dev.aresos.client.HomeWorkingScreen;
 import dev.aresos.client.ModeSwitchClient;
 import dev.aresos.test.mixin.ChatMessagesTestAccess;
+import dev.aresos.test.mixin.AppsTestAccess;
+import dev.aresos.shell.FakeHelper;
 import dev.aresos.test.mixin.HudTestAccess;
 import dev.aresos.world.DesktopWorld;
 import dev.aresos.world.HomeSwap;
@@ -69,6 +71,8 @@ public final class HomeMenuClientGameTest implements FabricClientGameTest {
     private static final int SWITCH_TICKS = 6000;
     private static final String HINT = "G switches Live and Build · E opens the inventory and Apps…";
 
+    private static SwitchSaveChecks switchSaves;
+
     @Override public void runTest(ClientGameTestContext context) {
         Path saves = context.computeOnClient(client -> client.getLevelSource().getBaseDir().toAbsolutePath().normalize());
         Path hub = saves.resolve(NetherHome.SAVE_FOLDER);
@@ -82,6 +86,7 @@ public final class HomeMenuClientGameTest implements FabricClientGameTest {
             firstStart(context, hub);
             menu(context, hub);
             newHomeCancelled(context, saves);
+            switchSaves = new SwitchSaveChecks(context);
             BlockPos marker = placeMarker(context, hub);
             Path archived = newHome(context, saves, hub);
             made.add(archived);
@@ -92,6 +97,7 @@ public final class HomeMenuClientGameTest implements FabricClientGameTest {
                         "The dated old home lost the block placed just before New home");
             }
             made.addAll(reviewFixes(context, saves, hub));
+            switchSaves.verify();
             AresOs.LOGGER.info("48 home menu checks passed: the game menu stays outside a session's desktop world, the "
                     + "title screen stays outside a session and with an AresHub there, the first start makes the flat "
                     + "home without a title screen, Esc opens the AresOS menu with its items and the world moving, Back, "
@@ -101,6 +107,13 @@ public final class HomeMenuClientGameTest implements FabricClientGameTest {
         } catch (IOException error) {
             throw new UncheckedIOException(error);
         } finally {
+            try {
+                if (switchSaves != null) switchSaves.close();
+            } catch (IOException error) {
+                throw new UncheckedIOException(error);
+            } finally {
+                switchSaves = null;
+            }
             context.runOnClient(client -> {
                 HomeScreen.forTests(null, null);
                 HomeSwitch.failSecondRenameForTests(false);
@@ -118,28 +131,44 @@ public final class HomeMenuClientGameTest implements FabricClientGameTest {
         }
     }
 
-    /** A normal world keeps the game menu in a session, and so does a desktop world outside one. */
-    private static void gameMenuOutsideTheHomeScreen(ClientGameTestContext context) {
-        try (var world = context.worldBuilder().create()) {
+    /** Both callers share the same four-case gate, with the helper disconnected and really connected. */
+    private static void gameMenuOutsideTheHomeScreen(ClientGameTestContext context) throws IOException {
+        Path sockets = Files.createTempDirectory(Path.of("."), "a46gate");
+        var previousShell = AresOs.shell();
+        try (var world = context.worldBuilder().create();
+             var helper = new FakeHelper(sockets); var shell = helper.client(FakeHelper.fast())) {
+            for (boolean connected : new boolean[] {false, true}) {
+                context.runOnClient(client -> AppsTestAccess.aresos$setShell(connected ? shell : null));
+                if (connected) {
+                    shell.start();
+                    try { shell.awaitApps(java.time.Duration.ofSeconds(10)); }
+                    catch (Exception error) { throw new AssertionError("The fake helper never connected", error); }
+                }
+                for (boolean desktop : new boolean[] {false, true}) {
+                    world.getServer().runOnServer(server -> DesktopWorld.setEnabled(server, desktop));
+                    context.waitFor(client -> AresOsClient.acceptsAppCommands(client) == desktop);
+                    for (boolean session : new boolean[] {false, true}) {
+                        context.runOnClient(client -> {
+                            HomeScreen.forTests(session, null);
+                            boolean home = session && desktop;
+                            check(HomeScreen.home(client) == home && AresOsMenuScreen.replacesGameMenu(client) == home,
+                                    "Home/menu gates disagree: session=" + session + ", desktop=" + desktop + ", helper=" + connected);
+                            client.gui.setScreen(null);
+                            client.pauseGame(false);
+                            check(home ? client.gui.screen() instanceof AresOsMenuScreen : client.gui.screen() instanceof PauseScreen,
+                                    "The shared gate opened the wrong menu: " + client.gui.screen());
+                            client.gui.setScreen(null);
+                        });
+                    }
+                }
+            }
+            AresOs.LOGGER.info("46/48 shared-home gate passed all eight cases: session × desktop world × helper connection");
+        } finally {
             context.runOnClient(client -> {
+                AppsTestAccess.aresos$setShell(previousShell);
                 HomeScreen.forTests(true, null);
-                client.gui.setScreen(null);
-                client.pauseGame(false);
-                check(client.gui.screen() instanceof PauseScreen, "Esc in a normal world opened " + client.gui.screen());
-                client.gui.setScreen(null);
             });
-            world.getServer().runOnServer(server -> DesktopWorld.setEnabled(server, true));
-            context.waitFor(AresOsClient::acceptsAppCommands);
-            context.runOnClient(client -> {
-                HomeScreen.forTests(false, null);
-                client.pauseGame(false);
-                check(client.gui.screen() instanceof PauseScreen, "Esc outside a session opened " + client.gui.screen());
-                client.gui.setScreen(null);
-                HomeScreen.forTests(true, null);
-                client.pauseGame(false);
-                check(client.gui.screen() instanceof AresOsMenuScreen, "Esc in a session's desktop world opened " + client.gui.screen());
-                client.gui.setScreen(null);
-            });
+            delete(sockets);
         }
     }
 
@@ -393,7 +422,7 @@ public final class HomeMenuClientGameTest implements FabricClientGameTest {
                     + "stays in your saves."), "The confirmation asks " + asked);
             ScreenLog.start();
         });
-        context.clickScreenButton("Make the new home");
+        switchSaves.confirm(context);
         waitForSwitch(context);
         var screens = context.computeOnClient(client -> ScreenLog.stop());
         check(screens.stream().noneMatch(HomeMenuClientGameTest::titleScreen), "New home set a title screen: " + screens);
@@ -433,7 +462,7 @@ public final class HomeMenuClientGameTest implements FabricClientGameTest {
         context.clickScreenButton("aresos.home.create");
         context.waitForScreen(ConfirmScreen.class);
         context.runOnClient(client -> ScreenLog.start());
-        context.clickScreenButton("Make the new home");
+        switchSaves.confirm(context);
         waitForSwitch(context);
         context.runOnClient(client -> HomeSwitch.failSecondRenameForTests(false));
         var screens = context.computeOnClient(client -> ScreenLog.stop());
@@ -607,7 +636,7 @@ public final class HomeMenuClientGameTest implements FabricClientGameTest {
         context.clickScreenButton("aresos.home.create");
         context.waitForScreen(ConfirmScreen.class);
         context.runOnClient(client -> ScreenLog.start());
-        context.clickScreenButton("Make the new home");
+        switchSaves.confirm(context);
     }
 
     private static void assertHome(ClientGameTestContext context, Path folder, String levelName, String recoveryText) {
@@ -628,7 +657,10 @@ public final class HomeMenuClientGameTest implements FabricClientGameTest {
 
     private static void waitForRecovery(ClientGameTestContext context) {
         for (int tick = 0; tick < SWITCH_TICKS; tick++) {
-            context.runOnClient(client -> HomeSwitch.runPendingCloseForTests());
+            context.runOnClient(client -> {
+                switchSaves.observe(client);
+                HomeSwitch.runPendingCloseForTests();
+            });
             if (context.computeOnClient(client -> client.gui.screen() instanceof HomeRecoveryScreen)) return;
             context.waitTick();
         }
@@ -648,8 +680,14 @@ public final class HomeMenuClientGameTest implements FabricClientGameTest {
      */
     private static void waitForSwitch(ClientGameTestContext context) {
         for (int tick = 0; tick < SWITCH_TICKS; tick++) {
-            context.runOnClient(client -> HomeSwitch.runPendingCloseForTests());
-            if (context.computeOnClient(client -> !HomeSwitch.busy() && client.player != null && client.gui.screen() == null)) return;
+            context.runOnClient(client -> {
+                switchSaves.observe(client);
+                HomeSwitch.runPendingCloseForTests();
+            });
+            if (context.computeOnClient(client -> !HomeSwitch.busy() && client.player != null && client.gui.screen() == null)) {
+                switchSaves.arrived(context);
+                return;
+            }
             context.waitTick();
         }
         throw new AssertionError("New home did not end in a home within " + SWITCH_TICKS + " ticks");

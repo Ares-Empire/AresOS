@@ -8,6 +8,7 @@ import json
 import math
 import os
 import pathlib
+import re
 import shutil
 import signal
 import struct
@@ -301,7 +302,13 @@ class PinnedInputsTest(unittest.TestCase):
             desktop.library_file(library)
         self.assertTrue(LOCK['prism']['url'].startswith(
             'https://github.com/PrismLauncher/PrismLauncher/releases/download/11.1.1/'))
-        mods = {mod['file']: mod for mod in LOCK['mods']}
+        # Package 52: Prism's metadata comes from one commit of its meta repository, never from
+        # meta.prismlauncher.org, which Prism regenerates weekly (the 2026-11-17 update broke every build).
+        for component in LOCK['components']:
+            self.assertRegex(component['sha256'], r'\A[0-9a-f]{64}\Z', component)
+            self.assertRegex(component['url'], r'\Ahttps://raw\.githubusercontent\.com/PrismLauncher/meta-launcher/'
+                             r'[0-9a-f]{40}/' + re.escape(f"{component['uid']}/{component['version']}.json") + r'\Z')
+        mods ={mod['file']: mod for mod in LOCK['mods']}
         self.assertEqual(set(mods), {'fabric-api.jar', 'aresos.jar'})
         self.assertEqual(mods['fabric-api.jar']['version'], '0.161.0+26.2')
         # The mod jar is built from this repository, never downloaded; its builder is pinned by digest.

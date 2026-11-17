@@ -761,8 +761,7 @@ class Engine:
                 chrome = self.adapters['chrome']
                 if chrome.bridge.version:
                     try:
-                        from .chrome.qualification import switches
-                        notice = switches(chrome.qualification.record(), chrome.qualification.build, chrome.bridge.version)['notice']
+                        notice = chrome.qualification.switches(chrome.bridge.version)['notice']
                         if notice:
                             result.setdefault('pending', {})['chrome_version_notice'] = notice
                     except Exception as exc:

@@ -17,7 +17,9 @@
     "SoundTestAccess",
     "SoundEngineTestAccess",
     "MusicManagerTestAccess",
-    "ScreenLogMixin"
+    "ScreenLogMixin",
+    "SavingTextTestMixin",
+    "AutosaveTestAccess"
   ],
   "injectors": {
     "defaultRequire": 1

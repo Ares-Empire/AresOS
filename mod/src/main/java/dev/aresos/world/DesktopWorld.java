@@ -8,6 +8,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.saveddata.SavedData;
 import net.minecraft.world.level.saveddata.SavedDataType;
+import net.minecraft.world.level.storage.LevelResource;
 
 /** One marker for the whole save, including all of its dimensions. */
 public final class DesktopWorld extends SavedData {
@@ -24,6 +25,15 @@ public final class DesktopWorld extends SavedData {
     public static boolean isEnabled(MinecraftServer server) {
         var marker = server.getDataStorage().get(TYPE);
         return marker != null && marker.enabled;
+    }
+
+    /**
+     * The world's identity on the wire (OS-BASE B1): its save folder's name. {@code world_ready} and heartbeats name the
+     * desktop world by it, and so does the lifecycle channel's {@code world_saved} (package 46).
+     */
+    public static String saveName(MinecraftServer server) {
+        var folder = server.getWorldPath(LevelResource.ROOT).toAbsolutePath().normalize().getFileName();
+        return folder == null ? "world" : folder.toString();
     }
 
     public static boolean isHost(MinecraftServer server, ServerPlayer player) {

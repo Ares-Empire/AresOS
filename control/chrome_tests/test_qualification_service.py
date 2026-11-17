@@ -73,17 +73,6 @@ class Service(unittest.TestCase):
         self.addCleanup(setattr, self.chrome, 'bridge', self.peer)
         return bridge
 
-    def counted_records(self):
-        """Count Qualification.record() calls from here on."""
-        calls = []
-        original = self.chrome.qualification.record
-        def record():
-            calls.append(1)
-            return original()
-        patcher = patch.object(self.chrome.qualification, 'record', side_effect=record)
-        patcher.start(); self.addCleanup(patcher.stop)
-        return calls
-
     def gmail(self):
         self.chrome.hosts = {**HOSTS, 'gmail': ['mail.test']}
         facts = self.peer.facts; facts['url'] = 'https://mail.test/'
@@ -269,21 +258,45 @@ class Service(unittest.TestCase):
                 self.assertFalse(submitted['ok']); self.assertEqual(submitted['error']['code'], code)
                 self.assertEqual(self.peer.dispatched, [])
 
-    def test_o2_mode_reads_the_record_once_per_call(self):
-        # Each read validates both histories, and the record only grows (#79 O2).
-        calls = self.counted_records()
+    def test_o2_mode_checks_the_record_only_when_it_changed(self):
         self.chrome.mode(acting=True)
-        self.assertEqual(len(calls), 1)
-        # In the service, maintenance reads it to decide a refresh; mode() trusts that read.
+        with patch.object(q, 'validate_record', wraps=q.validate_record) as checked:
+            self.chrome.mode(acting=True)
+            self.assertEqual(checked.call_count, 0)
         self.connected(self.peer.version)
         offline = urllib.error.URLError('offline fixture')
         with patch('aresos_control.chrome.uploads.prune'), patch.object(q.urllib.request, 'urlopen', side_effect=offline) as transport:
             for refresh in ['daily refresh due', 'refresh gated for the day']:
                 with self.subTest(refresh):
-                    calls.clear()
                     self.assertFalse(self.chrome.mode(acting=True)['conservative'])
-                    self.assertEqual(len(calls), 1)
-        self.assertEqual(transport.call_count, 1)
+                    with patch.object(q, 'validate_record', wraps=q.validate_record) as checked:
+                        self.assertFalse(self.chrome.mode(acting=True)['conservative'])
+                        self.assertEqual(checked.call_count, 0)
+            self.assertEqual(transport.call_count, 1)
+            self.set_record(entry(build=self.build), entry(build=self.build, version='157.0.2.0'))
+            with patch.object(q, 'validate_record', wraps=q.validate_record) as checked:
+                self.chrome.mode(acting=True)
+                self.assertEqual(checked.call_count, 1)
+                checked.reset_mock()
+                self.chrome.mode(acting=True)
+                self.assertEqual(checked.call_count, 0)
+
+    def test_steady_requests_do_no_full_qualification_check(self):
+        self.assertTrue(self.call('read', {'tab': 1})['ok'])
+        with patch.object(q, 'validate_record', wraps=q.validate_record) as checked:
+            read = self.call('read', {'tab': 1}); self.assertTrue(read['ok'], read)
+            click = self.call('click', self.target()); self.assertTrue(click['ok'], click)
+            approval = click['data']['approval']
+            self.assertEqual(self.peer.dispatched, [])
+            submitted = self.call('submit', approval); self.assertTrue(submitted['ok'], submitted)
+            self.assertEqual(checked.call_count, 0)
+        self.assertEqual(len(self.peer.dispatched), 1)
+
+    def test_product_callers_do_not_read_qualification_records(self):
+        product = ROOT/'control/aresos_control'
+        offenders = [str(path.relative_to(ROOT)) for path in product.rglob('*.py')
+                     if path != product/'chrome/qualification.py' and 'qualification.record(' in path.read_text()]
+        self.assertEqual(offenders, [])
 
     def test_o2_mode_trusts_the_record_its_own_refresh_accepted(self):
         # An uncovered Chrome forces a refresh inside mode(); a verified record
