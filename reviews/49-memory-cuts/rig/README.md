@@ -81,3 +81,10 @@ standing window, not join-time collections before the world is fully populated.
 The winner schedule includes a current v1 Nether glide before the winner's glide, from identical fresh base
 copies. This is one additional control: package 41's earlier code revision cannot by itself establish that
 Nether frames are unchanged. Inspect both glide tick totals as well as the frame and memory numbers.
+
+After the runs, `table.py` generates the paired, covered and individual-run tables from public summaries.
+`audit.py` records each run's memory/GC/recorder guards, source mod-tree identity, action durations, observed
+flat-control frame ranges and the winner's same-base Nether comparison. It does not turn experimental GC
+failures into passes or introduce a frame tolerance. The zram table uses the kernel's first three `mm_stat`
+fields (original bytes, compressed bytes, total allocated memory including overhead), summed over devices;
+all three remain global observations rather than a per-game physical-memory measurement.
