@@ -64,6 +64,7 @@ def install(daemon):
     # Bytes 18 and 19 are 1 for a rollback journal; in WAL mode the counter
     # need not change with each commit.
     assert header[:16]==b'SQLite format 3\0' and header[18:20]==b'\1\1','control.sqlite is not a rollback-journal database; its commits cannot be counted'
+    assert store.db.execute('PRAGMA locking_mode').fetchone()[0]=='normal','control.sqlite holds an exclusive lock; its commits cannot be counted'
     def change_counter():
         assert os.path.samestat(os.fstat(descriptor),os.stat(database)),'control.sqlite was replaced; its commits are no longer counted'
         return int.from_bytes(os.pread(descriptor,4,CHANGE_COUNTER),'big')
