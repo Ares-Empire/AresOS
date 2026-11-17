@@ -20,6 +20,6 @@ public abstract class SaveFailureTestMixin {
 
     @Inject(method = "write", at = @At("HEAD"))
     private void aresos$fail(ChunkPos pos, CompoundTag data, CallbackInfo ci) throws IOException {
-        if (SaveFaults.take(info, pos)) throw new IOException("Package 46 test: injected region write failure");
+        if (SaveFaults.take(info, pos, data)) throw new IOException("Package 46 test: injected region write failure");
     }
 }

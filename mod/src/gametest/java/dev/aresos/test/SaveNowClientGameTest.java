@@ -5,6 +5,7 @@ import dev.aresos.AresOs;
 import dev.aresos.client.HomeScreen;
 import dev.aresos.client.ShellFocusClient;
 import dev.aresos.client.WorldSaves;
+import dev.aresos.save.WorldSaveState;
 import dev.aresos.shell.FakeHelper;
 import dev.aresos.shell.FakeSupervisor;
 import dev.aresos.test.mixin.AppsTestAccess;
@@ -16,14 +17,17 @@ import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestServerContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext;
+import net.fabricmc.fabric.api.client.gametest.v1.world.TestWorldSave;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.PauseScreen;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.SectionPos;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.decoration.ArmorStand;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.block.Block;
@@ -89,7 +93,9 @@ public final class SaveNowClientGameTest implements FabricClientGameTest {
             refused(context, supervisor, 1, "no_world");
 
             int framesBeforeHome;
+            TestWorldSave save;
             try (var world = context.worldBuilder().create()) {
+                save = world.getWorldSave();
                 var server = context.computeOnClient(Minecraft::getSingleplayerServer);
                 // A world that is not a desktop world still answers.
                 refused(context, supervisor, 2, "not_desktop_world");
@@ -163,6 +169,7 @@ public final class SaveNowClientGameTest implements FabricClientGameTest {
                 autosave(context, world.getServer());
 
                 failedWrites(context, world, supervisor, folder, name);
+                failedEmptyEntityWrite(context, world, supervisor, folder, name);
 
                 // The real stop: a request while the world closes is refused (the test's listener asks on the server
                 // thread, after the mod's own listener ran).
@@ -179,6 +186,14 @@ public final class SaveNowClientGameTest implements FabricClientGameTest {
                     && "server_stopping".equals(during.get("reason").getAsString()), "A request during the stop: " + during);
             // Closed: no world again.
             refused(context, supervisor, 9, "no_world");
+            try (var reopened = save.open()) {
+                context.waitFor(client -> ShellFocusClient.readyWorld(client) != null, 400);
+                String name = context.computeOnClient(ShellFocusClient::readyWorld);
+                saved(context, supervisor, 17, name, false);
+            }
+            AresOs.LOGGER.info("46 entity-deletion failure checks passed: autosave's empty-entity write failed; "
+                    + "two requests answered error while stale entities remained on disk; reopening the same world "
+                    + "allowed a clean request to answer ok:true");
             check(supervisor.received("lifecycle_hello").size() == 1, "The lifecycle channel reconnected during the test");
             AresOs.LOGGER.info("46 save-now checks passed: saves while playing, with the Esc menu open and covered put a "
                     + "block placed just before the request into the region file before world_saved, with world_ready's "
@@ -199,6 +214,43 @@ public final class SaveNowClientGameTest implements FabricClientGameTest {
             });
             deleteTree(folder);
         }
+    }
+
+    /** The last entity's deletion is cached as empty before its asynchronous region write can fail. */
+    private static void failedEmptyEntityWrite(ClientGameTestContext context, TestSingleplayerContext world,
+                                              FakeSupervisor supervisor, Path folder, String name) {
+        var server = context.computeOnClient(Minecraft::getSingleplayerServer);
+        var pos = new BlockPos(9, Y, 2);
+        var entity = world.getServer().computeOnServer(s -> {
+            var level = world.getConnection().getServerLevel();
+            var stand = new ArmorStand(level, pos.getX() + 0.5, Y, pos.getZ() + 0.5);
+            stand.setNoGravity(true);
+            check(level.addFreshEntity(stand), "Fixture: could not add the entity");
+            return stand;
+        });
+        saved(context, supervisor, 14, name, false);
+        check(entityOnDisk(folder, server, world, pos), "Fixture: the entity was never saved before its deletion");
+        world.getServer().runOnServer(s -> {
+            var level = world.getConnection().getServerLevel();
+            var chunks = level.getChunkSource().chunkMap.storageInfo();
+            SaveFaults.onceEmpty(new RegionStorageInfo(chunks.level(), level.dimension(), "entities"), ChunkPos.containing(pos));
+            entity.discard();
+        });
+        autosave(context, world.getServer());
+        check(!SaveFaults.armed(), "The autosave never attempted an empty-entity deletion");
+        // Let the failed future leave vanilla's pending queue before asking: a later flush alone cannot catch it.
+        WorldSaveState.of(server).failures.awaitWrites();
+        check(entityOnDisk(folder, server, world, pos), "Fixture: the failed deletion did not leave stale entity data");
+        refused(context, supervisor, 15, "error");
+        check(entityOnDisk(folder, server, world, pos), "Fixture: the first request unexpectedly retried the deletion");
+        refused(context, supervisor, 16, "error");
+        check(entityOnDisk(folder, server, world, pos), "Fixture: the second request unexpectedly retried the deletion");
+    }
+
+    private static boolean entityOnDisk(Path folder, MinecraftServer server, TestSingleplayerContext world, BlockPos pos) {
+        var data = regionOnDisk(folder, server, world, pos, "entities");
+        return data != null && data.getListOrEmpty("Entities").stream().anyMatch(tag -> tag instanceof CompoundTag entity
+                && "minecraft:armor_stand".equals(entity.getStringOr("id", "")));
     }
 
     /** Both a requested save and an intervening autosave lose their dirty bit before the injected IO failure. */
@@ -421,10 +473,23 @@ public final class SaveNowClientGameTest implements FabricClientGameTest {
      * the file yet. A copy taken while the server writes may be torn; then it is read again.
      */
     private static BlockState onDisk(Path folder, MinecraftServer server, TestSingleplayerContext world, BlockPos pos) {
+        var tag = regionOnDisk(folder, server, world, pos, "region");
+        if (tag == null) return null;
+        ServerLevel level = world.getServer().computeOnServer(s -> world.getConnection().getServerLevel());
+        var data = SerializableChunkData.parse(level, level.palettedContainerFactory(), tag);
+        for (var section : data.sectionData())
+            if (section.y() == SectionPos.blockToSectionCoord(pos.getY()) && section.chunkSection() != null)
+                return section.chunkSection().getBlockState(pos.getX() & 15, pos.getY() & 15, pos.getZ() & 15);
+        return Blocks.AIR.defaultBlockState();
+    }
+
+    /** Reads a copy, so the test never opens vanilla's active region file for writing. */
+    private static CompoundTag regionOnDisk(Path folder, MinecraftServer server, TestSingleplayerContext world,
+                                          BlockPos pos, String directory) {
         ServerLevel level = world.getServer().computeOnServer(s -> world.getConnection().getServerLevel());
         var chunk = ChunkPos.containing(pos);
         Path file = DimensionType.getStorageFolder(level.dimension(), server.getWorldPath(LevelResource.ROOT))
-                .resolve("region").resolve("r." + chunk.getRegionX() + "." + chunk.getRegionZ() + ".mca");
+                .resolve(directory).resolve("r." + chunk.getRegionX() + "." + chunk.getRegionZ() + ".mca");
         RuntimeException last = null;
         for (int attempt = 0; attempt < 20; attempt++) {
             Path copies = null;
@@ -435,12 +500,7 @@ public final class SaveNowClientGameTest implements FabricClientGameTest {
                 Files.copy(file, copy);
                 try (var region = new RegionFile(new RegionStorageInfo("aresos-46", level.dimension(), "chunk"), copy, copies, false);
                      var in = region.getChunkDataInputStream(chunk)) {
-                    if (in == null) return null;
-                    var data = SerializableChunkData.parse(level, level.palettedContainerFactory(), NbtIo.read(in));
-                    for (var section : data.sectionData())
-                        if (section.y() == SectionPos.blockToSectionCoord(pos.getY()) && section.chunkSection() != null)
-                            return section.chunkSection().getBlockState(pos.getX() & 15, pos.getY() & 15, pos.getZ() & 15);
-                    return Blocks.AIR.defaultBlockState();
+                    return in == null ? null : NbtIo.read(in);
                 }
             } catch (IOException | RuntimeException torn) {
                 last = torn instanceof RuntimeException runtime ? runtime : new UncheckedIOException((IOException) torn);
