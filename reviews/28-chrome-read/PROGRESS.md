@@ -2,6 +2,234 @@
 
 Builder steps keep this file; the last step turns it into the report. Newest state first.
 
+## Step 13c (2026-11-18, Codex gpt-6.1-sol): merged read-cost work and the native Unicode boundary
+
+**Partial; stopped after two CI rounds.** The wire repair and visible-form fix are built and tested. H1 now
+reads the lone surrogate as U+FFFD, but its last native-dialog exercise is blocked by the frozen input binding:
+the unchanged page has raw UTF-16 on the extension side and repaired text on the service side. The later cases
+remain unverified. The strict JSON guard, binding comparison and hostile strings remain intact.
+
+### Done
+
+- Started at `107ab6f2`; fetched and merged `origin/main` at `3a5eea14` before changing the extension.
+- `5b051f30`: every extension message to the native host now passes through `respond`, where `wellFormed`
+  recursively repairs strings and object keys before serialization. A lone high or low surrogate becomes U+FFFD;
+  valid pairs are unchanged. `toWellFormed` has a tested fallback. This covers replies, reader errors, held steps,
+  tab and dialog metadata, owner events and audit events. Repair precedes reply byte measurement and chunking,
+  and precedes audit's inner JSON serialization. Audit fragment cuts keep valid pairs together.
+- H1 still puts every original hostile string into the page. Its surface expectations apply the specified repair
+  before the unchanged service escaping, including explicit U+FFFD title and dialog expectations for string 13.
+  No renderer, `visible`, strict JSON guard, server instruction, fixture stress size, classification, binding,
+  approval or asking-question change.
+- `native-unicode.test.mjs` exercises direct and chunked replies with the native and fallback implementations,
+  events and audit fragments, nested objects/arrays and keys, and unchanged input objects. All actual wire JSON
+  and reassembled reply JSON is checked by Python's real `strict_json_loads`.
+- `details.test.mjs` now loads the real boundary helper into its isolated VM before its extracted listener.
+  All original timeout/loosening assertions remain.
+- `209f9e67`: the first CI round finds a separate product bug on H1 surfaces: its hidden input's `id="hidden"`
+  shadows `form.hidden` with an element. The outline's direct property check drops that visible form and its
+  fields. Capture the native `HTMLElement.hidden` getter and use it in outline traversal. The fixture and its
+  assertion stay unchanged. The new DOM-double regression simulates a named-property shadow, requires the visible
+  form and its value, and separately checks that an actually hidden form with a misleading property stays out.
+
+### The merge and its resolutions
+
+- `7b052b21`, separate merge commit, includes PR #98 (`3a5eea14`). Exactly one conflict region in each of
+  `control/aresos_control/chrome/adapter.py` and `control/aresos_control/engine.py`. Followed
+  `reviews/79-read-cost/PROGRESS.md`, “The fresh review”: kept this branch's timing/context-manager blocks,
+  used `qualification.switches(...)` inside them, and removed the engine's local module-function import.
+  `control/chrome/ci/service.py` merged cleanly. No additional resolution judgment.
+
+### The mutation checks
+
+- **Confirmed locally before fixing:** a VM reader of H1's DOM shape, with all fourteen unchanged hostile
+  strings, passes its actual `outline` reader result to the pre-fix `audit` and `respond` functions. The first
+  message is a **direct `event: audit`** holding `{ok:true,data:<reader outline>}` (18,309 bytes in these DOM
+  doubles), followed by a direct `id: outline` reply (18,312 bytes). Python refuses both with `invalid_input`.
+  `content` audits the reader reply before the final outline reply. The first refusal is in `Bridge.read` at
+  `strict_json_loads(line)`, before any reply-chunk reassembly; this reproduction does not claim a raw capture
+  of the historical rejected CI message. Audit mode is enabled in the core fixtures. In an unaudited call the
+  direct final reply fails for the same reason. `JSON.stringify` writes the unpaired surrogate as `\ud800`;
+  it does not repair it. The 512 KiB reply-chunk path is separately exercised by the regression.
+- **Named mutation `remove-boundary`:**
+  `NATIVE_UNICODE_MUTATION=remove-boundary .work/step13a/node-v22.15.0-linux-x64/bin/node --test
+  control/chrome_tests/native-unicode.test.mjs` removes only `value=wellFormed(value)` in the test VM.
+  **6 fail, 1 pass, exit 1**; the unchanged source-inventory test is the pass. No tracked product mutation.
+- The ordinary boundary module: **7 pass, 0 fail**, 1.162 seconds. Its negative controls also send unsanitised
+  output to the strict Python decoder: a small reply is refused directly; chunk envelopes pass, then the
+  assembled original JSON is refused. Repaired frames and assembled JSON pass. Tests include a reversed pair,
+  both lone halves, a valid pair, nested keys/arrays, events, and a valid pair at the audit fragment boundary.
+
+- **Named mutation restoring `node.hidden` in outline traversal:** a scratch copy of the outline tests loads
+  the real reader with just the new predicate replaced by its old property check. **10 pass, 1 fail**, exit 1,
+  no skips. The failing test is the visible-form regression, before its missing form could hide the field.
+  No tracked product file was mutated.
+
+- **Local diagnostic after round 2's failure:** `.work/step13a/node-v22.15.0-linux-x64/bin/node
+  .work/step13c/reproduce-binding.mjs` runs the actual `binding`, `wellFormed` and `stable` functions against
+  H1 string 13 in a frame title. Output: `equal:false`, differing field `frame_title`, original `d800`, sent
+  `fffd`, original unchanged. This diagnoses the remaining failure; it is not a fix or a browser mutation.
+
+### Runs
+
+- Merge Python command, root, with `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/chrome_tests python3
+  -m unittest`: `test_outline_action test_view_references test_view_paging test_view_hostile test_questions
+  test_efficiency test_credentials test_qualification test_qualification_service test_qualification_fixture
+  test_engine test_outline_time test_full_disk_reads test_bridge`: **305 tests, OK**, 80.646 seconds.
+- Merge Node command: `.work/step13a/node-v22.15.0-linux-x64/bin/node --test
+  control/chrome_tests/*.test.mjs`: **488 pass, 0 fail**, 32.595 seconds. Reused step 13a's verified portable Node;
+  no new download or installation.
+- Fix Python: the same environment and unittest command, modules `test_outline_action test_view_references
+  test_view_paging test_view_hostile test_questions test_efficiency test_credentials test_bridge`:
+  **148 tests, OK**, 41.636 seconds. Synthetic efficiency `MISS` rows are deliberate; instructions remain 4,093.
+- Fix Node: full command **495 pass, 0 fail**, 32.641 seconds. The first full run had **494 pass, 1 fail**
+  (`respond is not defined` in the isolated details-listener VM); the test now loads the real helper. Initial
+  boundary-test failures were expected-object prototype mismatches, corrected before the green module run.
+- `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control python3 control/generate.py --check`:
+  **Generated artifacts match definitions**, after merge and after fix. `node --check` on `background.js`
+  and `outline-read.mjs`, and `git diff --check`: exit 0.
+- Form visibility fix: full Node suite **496 pass, 0 fail**, no skips, 32.715 seconds. The outline module alone
+  **11 pass**, 0.429 seconds. `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/chrome_tests python3
+  -m unittest test_credentials`: **4 tests, OK**, 0.001 seconds. `generate.py --check` again prints
+  **Generated artifacts match definitions**; `git diff --check` exits 0.
+- Read-only comparison with starting head `107ab6f2`: `common.py` (the complete strict JSON guard and `visible`),
+  `chrome/view.py` and `definitions.py` are **byte-identical**. The frozen Python functions `binding`, `prepare`,
+  `question`, `revalidate`, `changed_compose`, `execute`, `command` and `trusted` are also source-text byte-identical.
+- **Hosted unit job, both rounds:** **100 Python tests, OK**; Node **495/495** in round 1 and **496/496** in
+  round 2, including the new form regression. Every native-boundary test passes in both. Merge's local qualification
+  tests printed synthetic HTTP-error `ResourceWarning`s; the efficiency module's `MISS` rows are deliberate.
+- Watched every workflow with `gh run watch <id> --exit-status --interval 60`. Both code pushes were normal,
+  without `[skip ci]`. No workflow dispatch, flaky rerun, third code push, reduced hostile string or relaxed
+  assertion. The closing report-only commit uses `[skip ci]`, as the brief's stop rules require.
+
+| Round / tested code head | Control Chrome | Qualification | Result |
+|---|---|---|---|
+| 1 / `5b051f30` | [44156090348](https://github.com/Ares-Empire/AresOS/actions/runs/44156090348) | [44156090325](https://github.com/Ares-Empire/AresOS/actions/runs/44156090325) | **Red:** 24/28 and 30/34 jobs pass. All four core jobs pass H1 roles, then fail at surfaces index 0: missing visible form. Both aggregates and both combines fail downstream (`8 !== 9`, every browser shard required). Every other job passes. |
+| 2 / `209f9e67` | [44181155237](https://github.com/Ares-Empire/AresOS/actions/runs/44181155237) | [44181155244](https://github.com/Ares-Empire/AresOS/actions/runs/44181155244) | **Red:** 24/28 and 30/34 jobs pass. Both core jobs in each workflow fail; both aggregates and both combines fail downstream (every browser shard required, `8 !== 9`). Every other job passes. H1 roles pass; the surface case reaches string 13, then the unchanged binding refuses the click to open its dialog. |
+
+Both rounds pass both latency jobs and the efficiency tasks. No latency row was frozen: neither complete run
+is green. In round 2's inspected external and qualification artifacts, all fourteen non-dialog surface iterations
+reach their assertions, with U+FFFD in string 13's names, values, options, headers/cells, field title/error, hidden
+name, list, ancestor path, stale present line and tab title. Dialog iterations **0–12** complete; iteration **13**
+fails before opening its dialog, so its dialog text is **not verified in Chrome**. The later cases are not reached.
+The five paging cases, three state-token cases and four reference-lifecycle cases pass again before H1.
+
+The blocked inventory is **15 named cases**: four H1 cases, one case comparing five files, and ten asking cases.
+The table records the five comparisons separately. Later unread cases are also required; an earlier head's green
+does not count as their verification here.
+
+| Case | CI evidence |
+|---|---|
+| H1 roles and tag fallbacks | PASS, both rounds |
+| H1 every text surface, all fourteen strings | FAIL: round 1 missing form; round 2 string 13 cannot open its native dialog. Non-dialog surfaces 0–13 and dialogs 0–12 checked in the inspected round-2 artifacts. |
+| H1 100,000-character name | NOT REACHED in either round |
+| H1 100,000 elements, 20,000 nodes / 80,001 omitted | NOT REACHED in either round |
+| Stored F1 outline | NOT REACHED in either round |
+| Stored F3 outline | NOT REACHED in either round |
+| Stored F7 page 1 outline | NOT REACHED in either round |
+| Stored F6 outline | NOT REACHED in either round |
+| Stored address outline | NOT REACHED in either round |
+| Taken values withheld; exact one-call approval; credential exclusion; refusal/replay/fresh question | NOT REACHED in either round |
+| Added field | NOT REACHED in either round |
+| Same-label replacement | NOT REACHED in either round |
+| Relabelled field | NOT REACHED in either round |
+| Duplicate-labelled swap (identity binding) | NOT REACHED in either round |
+| Unlabelled swap and distinct descriptions | NOT REACHED in either round |
+| Listed-frame navigation with unchanged top document | NOT REACHED in either round |
+| Listed field becomes password | NOT REACHED in either round |
+| Listed field becomes masked | NOT REACHED in either round |
+| Altered question / altered list | NOT REACHED in either round |
+| unreadMatrix: pre-reader plain fields, every root/frame | NOT REACHED in either round |
+| unreadMatrix: late root and credential-name rule | NOT REACHED in either round |
+| unreadMatrix: unread form refused before asks, including later read/step | NOT REACHED in either round |
+
+### Left, in order
+
+1. **Resolve the Unicode/private-binding PLAN-GAP and finish the blocked cases.** H1 string 13's native
+   dialog is not opened; then the 100,000-character name, 100,000-element cap, all five stored-outline comparisons,
+   all ten taken-tab asking-read cases, and all three `unreadMatrix` cases still need browser verification.
+   Nothing after the failed surface case is evidence on these heads. Keep the strict guard, hostile string and
+   binding check. A following step needs a representation that keeps the private comparison correct.
+2. **Step 14:** the final green run's latency comparison into `efficiency-baseline.json`, `HARNESS-MAP.md`,
+   `KNOWN-LIMITS.md`, the report, and green twice on the final head. Carry forward steps 6/7/12/13a/13b mapping
+   notes and the notes below. No final-head double-green or frozen latency comparison is claimed here.
+3. The duplicate-label question-description PLAN-GAP belongs to the lead's 28a/28b brief revision; the asking
+   path stays unchanged in this step.
+
+### What the code doesn't show
+
+- Plain Python and Node ran locally; browsers run only in disposable CI profiles against synthetic pages.
+  No owner profile, desktop input, boot tool, OS test, mount, sudo, system installation or Gradle invocation.
+- The Unicode reproduction uses the real reader and send functions with DOM doubles. It establishes the
+  mechanism and first-message order without a browser; it is not a byte capture of round 13b's failed wire.
+- The native boundary repairs an outgoing copy without mutating original page strings or internal binding objects.
+- Some local plain Node/Python checks briefly overlapped; both completed. No heavy local browser build ran.
+- **Core evidence:** round 1 logs: Chrome jobs
+  `134301752053` (policy), `134301752502` (external), qualification jobs `134300437845` and `134300438224`.
+  The selected policy artifact is `control-chrome-44156090348-1-policy-core`; its `outline-read/calls.jsonl`
+  shows the region, button, link, table, list and article but no form in `hostile outline 0`.
+- Round 2 core evidence: Chrome jobs `134387114938` (policy) and `134387114882` (external);
+  qualification jobs `134390066191` and `134390066409`. All four pass roles and fail at the same dialog-opening
+  click; the logs have been inspected. The inspected qualification artifact is
+  `qualification-shard-e7491b990aaa27dd14e42e5c23fcebb8205f3e67725ddd20fdcb6f8c8eb4278f-stable-1-core`,
+  artifact id `14377445278`; external artifact `control-chrome-44181155237-1-external-core`, id `14376073935`.
+  Their `outline-read/calls.jsonl` contains `hostile outline/form/table/list/link/find/stale 13`, and
+  `hostile dialog 0` through `hostile dialog 12`; no `hostile dialog 13`.
+- The visibility fix is confined to outline traversal. The old read's separate visibility logic was not changed.
+- **Closing scratch scan:** no files over 500 MB remain under `.work/`. The three downloaded
+  artifact ZIPs were deleted after selecting evidence. The largest retained file is the reused portable Node
+  binary, 121,236,344 bytes; small probes, selected synthetic artifacts and CI logs remain in `.work/step13c/`.
+
+### JUDGMENT-CALLs
+
+None added. The merge follows the explicit resolution guidance. Unicode replacement follows the lead's decision.
+Step 13b's two accepted judgments stand: end of control counts as gone; snapshots normalize reference identity only.
+
+### PLAN-GAPs
+
+- **OPEN: wire repair and the frozen private binding use different representations.** The fixture assigns the
+  original lone surrogate to `document.title`; the reader returns that raw string. The new boundary sends U+FFFD
+  to the service, without mutating the original snapshot. The service therefore builds its binding from repaired
+  strings, while `background.js`'s `binding(snapshot, ...)` uses fresh raw facts, including `frame_title`.
+  Its existing comparison at `control/chrome/extension/background.js:1155` refuses the otherwise unchanged page
+  with `stale_approval: page changed; prepare again`, before input dispatch. The failed call is the `Open dialog`
+  click at `control/chrome/ci/outline-read.mjs:422`. The local real-function reproduction isolates
+  `frame_title` D800 versus FFFD. This is a product gap, not a flaky result or an accepted limit. The lead's
+  display decision does not settle the binding representation; the unchanged comparison must keep detecting
+  actual page changes. No remedy inside the frozen binding/asking functions was attempted after the two-round cap.
+- **CLOSED, transport:** H1's lone surrogate now crosses the native wire safely. The strict guard and every
+  hostile string remain. Roles pass, and the inspected non-dialog string-13 surfaces show U+FFFD with the service's
+  original escaping. The remaining dialog exercise is blocked by the separate input comparison above.
+- **CLOSED, visible form:** H1's named control shadowed `form.hidden`. The old DOM doubles missed that native
+  property collision. `209f9e67` uses the native getter for the observed outline check; both genuinely hidden and
+  visible-form cases are covered. The real round-2 artifacts show the form restored, with its hostile values and
+  hidden names checked. No fixture, hostile string or assertion was relaxed.
+- **Duplicate labels:** the lead owns the 28a/28b brief revision. No question-description redesign or instruction
+  text was added here. Its stronger human-description requirement remains the same open item as step 13b.
+
+### For `HARNESS-MAP.md`
+
+- H1 still inserts the original lone surrogate. The assertions expect U+FFFD where it stood on every checked
+  text surface, with the service's unchanged escaping; title/dialog get explicit string-13 expectations.
+- The isolated details-listener VM loads the actual boundary functions; its original assertions are untouched.
+  No brief 20 case moved, no named inventory changed, and no browser assertion was weakened.
+- Add the boundary tests and named removal mutation to the transport evidence, beside the direct audit
+  reproduction. Add the native-hidden getter regression and its restoring-property mutation. The five
+  expected-outline files and identity-only normalization are unchanged.
+- The H1 surface assertion is retained in full. String 13's dialog assertion is unexecuted because its opening
+  input fails; the case was not shortened or moved past the read matrix to let later cases appear green.
+
+### Known limits found
+
+- **a lone surrogate in page text is shown as U+FFFD**. Harm: malformed UTF-16 loses the identity of that lone
+  code unit; the page read can proceed and all remaining text keeps its escaping. Accepted by the lead for 13c.
+  Valid surrogate pairs remain unchanged. This is a display limit, not permission to relax JSON validation.
+- **Not accepted as a limit:** the private-binding refusal on an unchanged malformed-title page. It blocks normal
+  input and the required H1 exercise; it remains an open PLAN-GAP, without a secret disclosure or unasked action
+  demonstrated by this run.
+- Carry forward step 13b's lost-event cleanup limit, native host bound, reference-eviction cursor limit,
+  probabilistic process prefix and stopped unread-form behavior.
+
 ## Step 13b (2026-11-17, Codex gpt-6.1-sol): remaining browser reads and tab-reference cleanup
 
 **Partial: the final CI round reaches H1, then refuses its Unicode before the role assertions.** The later cases
