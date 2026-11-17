@@ -6,6 +6,7 @@ import io
 import json
 import os
 import pathlib
+import pwd
 import py_compile
 import re
 import shutil
@@ -492,6 +493,146 @@ class FixRoundOneTest(unittest.TestCase):
         self.assertIn(CONTROL_CI / 'runner.sh', list(CONTROL_CI.glob('*.sh')))
         for source in sources:
             py_compile.compile(str(source), cfile=str(self.folder / 'compiled.pyc'), doraise=True)
+
+
+class PasswordScanTest(unittest.TestCase):
+    """REVIEW-X1 #2: check 8 passes only when it searched everything: every file, every folder, the whole journal."""
+    NEEDLE = b'0123456789abcdef0123456789abcdef'
+
+    def setUp(self):
+        self.folder = pathlib.Path(tempfile.mkdtemp())
+        self.addCleanup(self.cleanup)
+        self.actions, _ = layer(self.folder / 'home')
+        # search_for() imports tree_scan from the layer's folder, as in the guest: the same module object here.
+        mock.patch.object(sys, 'path', [str(CONTROL_CI)] + sys.path).start()
+        self.addCleanup(mock.patch.stopall)
+        self.scanner = importlib.import_module('tree_scan')
+        self.vanishing = self.scanner.VANISHING
+        # This folder is under /tmp, a runtime folder in the guest: here nothing may vanish unless a test says so.
+        mock.patch.object(self.scanner, 'VANISHING', ('/nothing-vanishes-here/',)).start()
+        self.root = self.folder / 'scanned'
+        (self.root / 'state').mkdir(parents=True)
+        (self.root / 'state/password').write_bytes(b'x' + self.NEEDLE)
+        (self.root / 'state/clean.txt').write_text('nothing\n')
+        # The layer's folder is the checkout's; the journal is a stand-in.
+        mock.patch.object(self.actions, 'HERE', CONTROL_CI).start()
+        mock.patch.object(self.actions, 'JOURNAL', [sys.executable, '-c', 'print("MESSAGE=quiet")']).start()
+
+    def cleanup(self):
+        for path in self.folder.rglob('*'):
+            if not path.is_symlink():
+                path.chmod(0o700)
+        shutil.rmtree(self.folder)
+
+    def search(self):
+        return self.actions.search_for([self.NEEDLE], roots=[str(self.root)])
+
+    def test_a_clean_search_finds_the_one_file_and_reads_the_journal(self):
+        found = self.search()
+        self.assertEqual(found['hits'], [[str(self.root / 'state/password'), 0]])
+        self.assertEqual((found['files'], found['errors'], found['vanished']), ({str(self.root): 2}, [], []))
+        self.assertEqual((found['in_journal'], found['journal_returncode']), (False, 0))
+        source = (CONTROL_CI / 'actions.py').read_text()
+        check = source[source.index('def passwords(request):'):source.index('# Check 2 again')]
+        self.assertIn("and not found['in_journal'] and not found['errors'], summary", check)
+        self.assertNotIn('os.walk', check)
+
+    @unittest.skipIf(os.geteuid() == 0, 'root reads a file of mode 0000')
+    def test_one_unreadable_file_fails(self):
+        (self.root / 'state/locked.db').write_bytes(self.NEEDLE)
+        (self.root / 'state/locked.db').chmod(0)
+        found = self.search()
+        self.assertEqual(found['errors'], [f'{self.root}/state/locked.db: PermissionError: Permission denied'])
+        self.assertEqual(found['files'], {str(self.root): 2})
+
+    @unittest.skipIf(os.geteuid() == 0, 'root lists a folder of mode 0000')
+    def test_a_folder_that_cannot_be_listed_fails(self):
+        (self.root / 'private').mkdir()
+        (self.root / 'private/secret.txt').write_bytes(self.NEEDLE)
+        (self.root / 'private').chmod(0)
+        found = self.search()
+        self.assertEqual(found['errors'], [f'{self.root}/private: PermissionError: Permission denied'])
+        # A root that isn't there is an error too, never zero files.
+        self.assertEqual(self.actions.search_for([self.NEEDLE], roots=[str(self.folder / 'none')])['errors'],
+                         [f'{self.folder}/none: FileNotFoundError: No such file or directory'])
+
+    def test_a_journal_export_that_fails_fails(self):
+        mock.patch.object(self.actions, 'JOURNAL', [sys.executable, '-c', 'import sys; print("MESSAGE=partial"); '
+                                                    'sys.stderr.write("Failed to open journal"); sys.exit(1)']).start()
+        found = self.search()
+        self.assertEqual((found['journal_returncode'], found['errors']),
+                         (1, ['journal export exited 1: Failed to open journal']))
+
+    def test_only_a_runtime_file_may_vanish_and_it_is_named(self):
+        real = self.scanner.holds
+        removed = {str(self.root / 'state/clean.txt')}
+
+        def holds(path, needles):
+            if path in removed:
+                os.unlink(path)  # a running process removed it between the listing and the read
+                raise FileNotFoundError(2, 'No such file or directory', path)
+            return real(path, needles)
+
+        with mock.patch.object(self.scanner, 'holds', side_effect=holds):
+            outside = self.scanner.scan([str(self.root)], [self.NEEDLE])
+        self.assertEqual(outside['errors'], [f'{self.root}/state/clean.txt: FileNotFoundError: No such file or directory'])
+        (self.root / 'state/clean.txt').write_text('nothing\n')
+        with mock.patch.object(self.scanner, 'holds', side_effect=holds), \
+                mock.patch.object(self.scanner, 'VANISHING', (f'{self.root}/',)):
+            runtime = self.scanner.scan([str(self.root)], [self.NEEDLE])
+        self.assertEqual((runtime['errors'], runtime['vanished']), ([], [str(self.root / 'state/clean.txt')]))
+        self.assertEqual(runtime['files'], {str(self.root): 1})
+        # Replaced between the listing and the read: read once more, the new file searched.
+        replaced = {'count': 0}
+
+        def holds_once_missing(path, needles):
+            if path.endswith('password') and not replaced['count']:
+                replaced['count'] += 1
+                raise FileNotFoundError(2, 'No such file or directory', path)
+            return real(path, needles)
+
+        (self.root / 'state/clean.txt').write_text('nothing\n')
+        with mock.patch.object(self.scanner, 'holds', side_effect=holds_once_missing), \
+                mock.patch.object(self.scanner, 'VANISHING', (f'{self.root}/',)):
+            again = self.scanner.scan([str(self.root)], [self.NEEDLE])
+        self.assertEqual((again['errors'], again['vanished'], again['hits']),
+                         ([], [], [[str(self.root / 'state/password'), 0]]))
+        self.assertEqual(self.vanishing, ('/run/', '/tmp/', '/var/tmp/'))
+
+    def test_a_fuse_mount_is_walked_as_its_owner_never_skipped(self):
+        # FUSE refuses root; the document portal mounts $XDG_RUNTIME_DIR/doc in his session.
+        portal = self.root / 'user/1001/doc'
+        portal.mkdir(parents=True)
+        (portal / 'shared.txt').write_text('nothing')
+        info = self.folder / 'mountinfo'
+        info.write_text(f'40 30 0:21 / {self.root}/user/1001/doc rw,nosuid,nodev relatime shared:20 - fuse.portal '
+                        f'portal rw,user_id={os.getuid()},group_id={os.getgid()}\n'
+                        '41 30 0:22 / /sys/fs/fuse/connections rw - fusectl fusectl rw\n'
+                        f'42 30 0:23 / {self.root}/with\\040space rw - fuse.gvfsd-fuse gvfsd rw,user_id=1001\n')
+        self.assertEqual(self.scanner.fuse_mounts([str(self.root)], info),
+                         [(str(portal), 'fuse.portal', os.getuid()), (f'{self.root}/with space', 'fuse.gvfsd-fuse', 1001)])
+        calls = []
+
+        def run(argv, input=None, timeout=300, cwd='/'):
+            calls.append((argv, input))
+            walked = self.scanner.scan(json.loads(input)['roots'],
+                                       [bytes.fromhex(needle) for needle in json.loads(input)['needles']])
+            return dict(argv=argv, returncode=0, stdout=json.dumps(walked), stderr='')
+
+        real = self.scanner.fuse_mounts
+        with mock.patch.object(self.actions, 'run', side_effect=run), \
+                mock.patch.object(self.scanner, 'fuse_mounts', side_effect=lambda roots: real(roots, info)[:1]):
+            found = self.search()
+        argv, given = calls[0]
+        owner = pwd.getpwuid(os.getuid()).pw_name
+        self.assertEqual(argv[:3] + argv[-3:], ['runuser', '-u', owner, '/usr/bin/python3', '-I',
+                                                 str(CONTROL_CI / 'tree_scan.py')])
+        self.assertNotIn(self.NEEDLE.hex(), ' '.join(argv))
+        self.assertIn(self.NEEDLE.hex(), given)
+        # Root's walk left the mount out; the owner's walk searched it.
+        self.assertEqual(found['files'], {str(self.root): 2})
+        self.assertEqual(found['owner_walks'], [dict(mount=str(portal), type='fuse.portal', owner=owner, files=1)])
+        self.assertEqual(found['errors'], [])
 
 
 class EvidenceScanTest(unittest.TestCase):

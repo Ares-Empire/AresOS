@@ -21,6 +21,7 @@ import stat
 import subprocess
 import sys
 import tarfile
+import tempfile
 import threading
 import time
 import traceback
@@ -1492,18 +1493,52 @@ def interactive(request):
                 evidence_bytes=sizes, files=files_out(files))
 
 
-def holds(path, *needles):
-    """Which of the needles the file holds (read in chunks; the Claude Code binary in his home is large)."""
-    found, tail, longest = set(), b'', max(len(needle) for needle in needles)
-    with open(path, 'rb') as stream:
-        while chunk := stream.read(1 << 20):
-            found |= {index for index, needle in enumerate(needles) if needle in tail + chunk}
-            tail = chunk[-longest:]
-    return found
-
-
 SCANNED = ('/var/lib/aresos-tools', '/var/lib/aresos-operation-evidence', str(HOME), '/tmp', '/var/tmp', '/var/log',
            '/run', '/root')
+JOURNAL = ['journalctl', '--no-pager', '-o', 'export']
+
+
+def tree_scanner():
+    if str(HERE) not in sys.path:
+        sys.path.insert(0, str(HERE))
+    import tree_scan
+    return tree_scan
+
+
+def search_for(needles, roots=SCANNED):
+    """Check 8's search (REVIEW-X1 #2): every file under the roots, a FUSE mount there as its owner (tree_scan.py),
+    and the journal's export to its end. `errors` names whatever could not be searched; check 8 fails on any."""
+    scanner = tree_scanner()
+    mounts = scanner.fuse_mounts(roots)
+    found = scanner.scan(roots, needles, prune=[point for point, _, _ in mounts])
+    found['owner_walks'] = []
+    for point, kind, uid in mounts:
+        owner = pwd.getpwuid(uid).pw_name
+        # The needles go on stdin, never on a command line.
+        request = json.dumps(dict(roots=[point], needles=[needle.hex() for needle in needles]))
+        result = run([*as_user(owner), '/usr/bin/python3', '-I', str(HERE / 'tree_scan.py')], input=request,
+                     timeout=600)
+        if result['returncode'] != 0:
+            found['errors'].append(f'{point} ({kind}) as {owner}: exit {result["returncode"]}: '
+                                   f'{result["stderr"][-500:]}')
+            continue
+        walked = json.loads(result['stdout'])
+        for key in ('hits', 'vanished', 'errors'):
+            found[key] += walked[key]
+        found['owner_walks'].append(dict(mount=point, type=kind, owner=owner, files=walked['files'][point]))
+    longest = max(map(len, needles))
+    with tempfile.TemporaryFile() as stderr, subprocess.Popen(JOURNAL, stdout=subprocess.PIPE, stderr=stderr) as journal:
+        in_journal, tail = False, b''
+        while chunk := journal.stdout.read(1 << 20):
+            in_journal = in_journal or any(needle in tail + chunk for needle in needles)
+            tail = chunk[-longest:]
+        code = journal.wait(timeout=120)
+        stderr.seek(0)
+        message = stderr.read()[-500:].decode(errors='replace')
+    if code != 0:
+        found['errors'].append(f'journal export exited {code}: {message}')
+    found.update(in_journal=in_journal, journal_returncode=code, journal_stderr=message)
+    return found
 
 
 # Check 8. The app passwords: unreadable for ares; the per-run synthetic password in exactly the one file.
@@ -1528,35 +1563,20 @@ def passwords(request):
         info = path.lstat()
         modes[str(path)] = dict(mode=f'{stat.S_IMODE(info.st_mode):04o}', owner=[info.st_uid, info.st_gid])
         assert stat.S_IMODE(info.st_mode) == mode and (info.st_uid, info.st_gid) == (250, 250), modes
-    hits, counts = [], {}
-    for root in SCANNED:
-        scanned = unreadable = 0
-        for folder, _, names in os.walk(root):
-            for name in names:
-                path = os.path.join(folder, name)
-                try:
-                    if not stat.S_ISREG(os.lstat(path).st_mode):
-                        continue
-                    scanned += 1
-                    for index in holds(path, *needles):
-                        hits.append(path if index == 0 else f'{path} (encoded form {index})')
-                except OSError:
-                    unreadable += 1
-        counts[root] = dict(files=scanned, unreadable=unreadable)
-    journal = subprocess.Popen(['journalctl', '--no-pager', '-o', 'export'], stdout=subprocess.PIPE)
-    in_journal, tail = False, b''
-    while chunk := journal.stdout.read(1 << 20):
-        in_journal = in_journal or any(needle in tail + chunk for needle in needles)
-        tail = chunk[-200:]
-    journal.wait(timeout=120)
-    hits = sorted(set(hits))
+    found = search_for(needles)
+    hits = sorted({path if index == 0 else f'{path} (encoded form {index})' for path, index in found['hits']})
     operations = pathlib.Path('/var/lib/aresos-operation-evidence/operations.jsonl')
     summary = dict(password_sha256=hashlib.sha256(secret).hexdigest(), files_holding_it=hits,
-                   journal_export_holds_it=in_journal, operations_jsonl_holds_it=operations.exists() and
-                   bool(holds(operations, *needles)), forms_searched=len(needles), scanned=counts, modes=modes,
-                   refusals=refusals)
-    assert hits == [str(stored[0])] and not in_journal, summary
-    return dict(returncode=0, summary=dict(files_holding_it=len(hits), journal=in_journal),
+                   journal_export_holds_it=found['in_journal'], journal_returncode=found['journal_returncode'],
+                   journal_stderr=found['journal_stderr'], operations_jsonl_holds_it=operations.exists() and
+                   bool(tree_scanner().holds(operations, needles)), forms_searched=len(needles),
+                   scanned=found['files'], owner_walks=found['owner_walks'], vanished=found['vanished'],
+                   errors=found['errors'], modes=modes, refusals=refusals)
+    # What couldn't be searched fails the check like a hit: "not found" must mean "looked everywhere".
+    assert hits == [str(stored[0])] and not found['in_journal'] and not found['errors'], summary
+    return dict(returncode=0, summary=dict(files_holding_it=len(hits), journal=found['in_journal'],
+                                           files_searched=sum(found['files'].values()), vanished=found['vanished'],
+                                           owner_walks=found['owner_walks']),
                 files=files_out({'passwords.json': summary}))
 
 

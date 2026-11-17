@@ -3,7 +3,8 @@
 # Built by os/ci/control/runner.sh (podman build --no-hosts) from the checkout.
 FROM localhost/aresos:vm
 COPY os/ci/control/actions.py /usr/libexec/aresos-ci/actions.d/control.py
-COPY os/ci/control/release_checks.py os/ci/control/own-mcp.py /usr/libexec/aresos-ci/control/
+# Check 8's file search (tree_scan.py) runs as root and, for a FUSE mount, as its owner: readable by every user.
+COPY os/ci/control/release_checks.py os/ci/control/own-mcp.py os/ci/control/tree_scan.py /usr/libexec/aresos-ci/control/
 # Step 2b: the Claude Code sessions with B1's terminal driver and model double (unchanged), his own hooks, and Mail's
 # flows from control/ci/image/.
 COPY os/ci/control/sessions.py os/ci/control/own-hook.py control/boundary/interactive_driver.py \
