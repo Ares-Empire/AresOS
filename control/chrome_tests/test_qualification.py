@@ -354,7 +354,8 @@ class RecordingOpener(unittest.TestCase):
                 raise gh('\nError: verifying with issuer "sigstore.dev"\n')
 
         def cases(verifier):
-            with tempfile.TemporaryDirectory(dir=WORK) as directory:
+            # The cases end in main's refusal notification, which needs the run ID GitHub sets.
+            with tempfile.TemporaryDirectory(dir=WORK) as directory, patch.dict('os.environ', GITHUB_RUN_ID='fixture'):
                 a.publisher_cases(Path(directory)/'publication', original, baseline, candidate, verifier)
 
         with patch('sys.stdout', new_callable=io.StringIO) as stdout:

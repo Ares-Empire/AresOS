@@ -126,7 +126,8 @@ class ReplyPolicy22(unittest.TestCase):
             with self.subTest(request=request), patch('aresos_control.protocol.socket.socket') as factory:
                 with Client('/synthetic/socket').connection(request):
                     pass
-                factory.return_value.__enter__.return_value.settimeout.assert_called_once_with(30)
+                # The timeout is set on each socket the client creates (brief 18e: one fresh socket per connect try).
+                factory.return_value.settimeout.assert_called_once_with(30)
 
     def test_review22_connection_loss_names_operation_and_setup_never_exposes_password(self):
         requests = [{'method': 'call', 'action': 'testapp_send', 'arguments': {'operation_id': 'synthetic:operation'}},

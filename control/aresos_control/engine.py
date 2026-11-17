@@ -20,6 +20,8 @@ from .paging import ordered_page
 from .testapp import Receiver, TestApp
 from .mail.adapter import Mail
 
+# Deferred owner notices (a background write that failed) are written again this often.
+NOTICE_RETRY = 1.0
 # A restore lock means the working database is older than the committed record,
 # so its rows for every app but Chrome may describe work that is no longer
 # current. Chrome's rows and warnings come from the committed journal. Until the
@@ -246,6 +248,22 @@ class Engine:
             logging.getLogger(__name__).error('Background maintenance: %s', error)
         else:
             logging.getLogger(__name__).error('Background maintenance failed; inspect service state.')
+
+    def next_deadline(self):
+        """Wall-clock time at which expire() next has timed work, or None; the service loop sleeps until then.
+
+        An open reservation expires at its own time, the earliest first. Deferred notices are written again each
+        NOTICE_RETRY seconds; a reservation that expires sooner still wakes the loop at its own time, while one already
+        overdue failed in the same pass as the notices' write and is tried again with it. Retention's day-long limits
+        need no wake-up of their own: the service's periodic pass covers them.
+        """
+        if self.store.locked or self.store.write_failed:
+            return None
+        deadlines = [op["expires"] for _, op in self.store.iter_operations(states={'reserved'}) if op["state"] == "reserved"]
+        if self.store.deferred_notices:
+            now = time.time()
+            deadlines = [deadline for deadline in deadlines if deadline > now] + [now + NOTICE_RETRY]
+        return min(deadlines, default=None)
 
     def expire(self):
         try:

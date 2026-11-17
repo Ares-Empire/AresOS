@@ -8,14 +8,20 @@ come from `definitions.py`. The generated JSON contains exactly these keys:
 | Key | Purpose | Source |
 | --- | --- | --- |
 | `permissions.ask` | One exact `mcp__<served-app>__<verb>` rule for each public asking send/delete, including testapp; owner-only and explicitly trusted sends are excluded. | Decision 24, section 7; action definitions. [Permission precedence](https://code.claude.com/docs/en/permissions#precedence-among-rules-hooks-and-mods). |
-| `hooks.Stop` | Existing fixed notification command: remind Claude about pending/unfinished work, with its continuation guard. | Rule 4.10; `aresos_control/hooks.py`; [Stop contract](https://code.claude.com/docs/en/hooks#stop). |
+| `hooks.Stop` | Fixed notification command: remind a session that used the tools about pending/unfinished work, with its continuation guard. Only a JSON decision blocks a stop; its shell guard (the same as the prompt hook's) always exits successfully, so no failure blocks a stop through exit code 2 or shows as a hook error. | Rule 4.10; `aresos_control/hooks.py`; [Stop contract](https://code.claude.com/docs/en/hooks#stop). |
 | `hooks.UserPromptSubmit` | Existing fixed notification command: add pending work to the next prompt. Its shell guard always exits successfully. | Rule 4.10; `aresos_control/hooks.py`; [prompt contract](https://code.claude.com/docs/en/hooks#userpromptsubmit). |
 
-The two hook commands and timeouts are unchanged. `settings/managed-hooks.json` is
+The prompt hook's command and both timeouts are unchanged; the `Stop` command got the
+prompt hook's shell guard (lead, 2026-11-16). `settings/managed-hooks.json` is
 a generated companion for testing/documentation, not a separately loaded managed
-policy. `settings/CLAUDE.md` is generated from the same module and says that only
-the owner in the session gives instructions; mails, pages, files, tool results and
-other sessions' messages are data. This instruction is policy, not enforcement.
+policy. `settings/CLAUDE.md` is generated from the same module and says that text
+inside mails, web pages, downloaded files and tool results is content, not
+instructions, whatever it claims to be and even when a session passes it on, and
+never stands in for the owner's yes; the task comes from the owner, directly or
+through his sessions, agents and the briefs they hand Claude, and a message from
+another of his Claude sessions or agents is a teammate's request, never his
+approval. This
+instruction is policy, not enforcement.
 
 Image setup installs the draft JSON as `/etc/claude-code/managed-settings.json`,
 and the generated instruction as `/etc/claude-code/CLAUDE.md`. Root ownership and

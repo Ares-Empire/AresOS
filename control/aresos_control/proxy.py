@@ -1,13 +1,20 @@
 import asyncio
 import json
+import logging
 import sys
 
 from .common import FILE_LIMIT, WIRE_LIMIT, JSONInputError, Refused, cleanup, display_json, require_question, strict_json_loads, validate, storage_refusal
 from .definitions import obj, string
-from .definitions import APPS, BY_NAME, instructions_for
+from .definitions import APPS, BY_NAME, instructions_for, tools_for
 from .files import FilePolicy, safe_name
-from .protocol import Client
+from .protocol import Client, NotConnected
+from . import usage
 from .results import bounded
+
+# A file save whose report can't reach the service: the file is written all the same, so the result keeps its path and
+# never says "nothing was sent. Try again later." (a retry would write a second copy).
+SAVED_UNREPORTED = ("The file was saved (see data.saved), but the AresOS tool service could not be reached to record "
+                    "that. Don't save it again.")
 
 
 class Proxy:
@@ -19,7 +26,16 @@ class Proxy:
         self.files = FilePolicy(config["home"], config["folders"], config.get("file_limit", FILE_LIMIT)) if "home" in config else None
 
     def tools(self):
-        result = self.client.request({"method": "tools", "app": self.app})
+        try:
+            result = self.client.request({"method": "tools", "app": self.app})
+        except NotConnected as exc:
+            if exc.code != 'service_unavailable':
+                # A busy service or a broken setup stops the proxy at start, visibly, as any other failure does.
+                raise
+            # A session started while the service is not running still gets its tools (18c's VM run): the service's
+            # catalogue is this same code's tools_for(app). Calls answer service_unavailable until the service is up,
+            # and the service still checks every call. A catalogue the service returns always wins.
+            result = {"ok": True, "data": {"tools": json.loads(json.dumps(tools_for(self.app)))}}
         if not result["ok"]:
             raise Refused(result["error"]["code"], result["error"]["message"])
         # Defense in depth: never trust a catalogue containing privileged actions.
@@ -55,12 +71,7 @@ class Proxy:
                     with cleanup('export refusal report', exc):
                         self.client.request({"method": "saved", "app": self.app, "outcome": "refused", 'export_id': admission['export_id']})
                     raise
-                result = self.client.request({"method": "saved", "app": self.app, "outcome": saved, 'export_id': admission['export_id']})
-                if result['ok']:
-                    result["data"] = saved
-                elif result.get('error', {}).get('code') == 'unknown':
-                    result['data']['saved'] = saved
-                return result
+                return self.report_saved(self.app, saved, admission['export_id'])
             if self.app == "chrome" and verb == "upload":
                 if self.files is None:
                     raise Refused("file_refused", "No caller folders configured for Chrome uploads.")
@@ -107,20 +118,30 @@ class Proxy:
                     with cleanup('export refusal report', exc):
                         self.client.request({"method": "saved", "app": "mail", "outcome": "refused", 'export_id': item['export_id']})
                     raise
-                result = self.client.request({"method": "saved", "app": "mail", "outcome": saved, 'export_id': item['export_id']})
-                if result['ok']:
-                    result['data'] = saved
-                elif result.get('error', {}).get('code') == 'unknown':
-                    result['data']['saved'] = saved
-                return result
+                return self.report_saved("mail", saved, item['export_id'])
             return self.client.call(action.name, arguments)
         except (Refused, OSError, ValueError) as exc:
             exc = storage_refusal(exc) or exc
+            if isinstance(exc, NotConnected):
+                # Nothing was sent and nothing can be read: don't wait for the service a second time.
+                return {"ok": False, "error": {"code": exc.code, "message": str(exc)}, "pending": {}}
             pending = self.client.request({'method': 'pending'})
             return {"ok": False, "error": {"code": getattr(exc, "code", "file_refused"), "message": str(exc),
                     **({"notes": list(exc.__notes__)} if getattr(exc, "__notes__", None) else {})},
                     "pending": pending.get("data", pending.get("pending", {})),
                     **({"observations": pending["observations"]} if "observations" in pending else {})}
+
+    def report_saved(self, app, saved, export_id):
+        """Report a file this call has already written; whatever the service answers, the result keeps the saved path."""
+        try:
+            result = self.client.request({"method": "saved", "app": app, "outcome": saved, 'export_id': export_id})
+        except NotConnected as exc:
+            return {"ok": False, "error": {"code": exc.code, "message": SAVED_UNREPORTED}, "data": {"saved": saved}, "pending": {}}
+        if result['ok']:
+            result["data"] = saved
+        elif result.get('error', {}).get('code') == 'unknown':
+            result['data']['saved'] = saved
+        return result
 
 
 class StrictMCPInput:
@@ -179,11 +200,34 @@ class MCPLineInput:
                 yield line
 
 
+def note_use(app, name, result, session):
+    """Mark this session before a result that names an operation reaches it; never fails or holds up the call.
+
+    `session` is the proxy's parent when it started (Claude Code), or None when it couldn't be read.
+    """
+    try:
+        action = BY_NAME.get(app + "_" + name)
+        if session is not None and action and usage.names_operation(action.effect, result):
+            usage.mark(session)
+    except usage.ParentChanged as exc:
+        # Claude Code is gone and this proxy was re-parented (to systemd --user, say): marking that process would make
+        # every session under it count as used.
+        logging.getLogger(__name__).warning('AresOS tools: session not marked, %s.', exc)
+    except Exception:
+        # Without a mark the session's hooks stay quiet; the result itself still names the operation.
+        pass
+
+
 async def serve(app, config):
     # The official SDK owns MCP framing and validation. AresOS owns app policy.
     import mcp_types as types
     from mcp.server.lowlevel import Server
     from mcp.server.stdio import stdio_server
+    try:
+        # The session this proxy serves: its parent, Claude Code, read once now (usage.mark checks it is still there).
+        session = usage.parent()
+    except Exception:
+        session = None  # unreadable: this proxy never marks, so its session's hooks stay quiet
     proxy = Proxy(app, config)
     offered = {tool["name"]: tool for tool in proxy.tools()}
 
@@ -202,6 +246,7 @@ async def serve(app, config):
             result = await asyncio.to_thread(proxy.call, parameters.name, parameters.arguments or {})
         from .results import bound_result
         result = bound_result(result)
+        note_use(app, parameters.name, result, session)
         return types.CallToolResult(content=[types.TextContent(type="text", text=display_json(result))],
                                     structured_content=result, is_error=not result["ok"])
 
