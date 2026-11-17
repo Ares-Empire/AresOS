@@ -283,16 +283,20 @@ class Walk(tools_local.Walk):
         tools_local.td_save(self.vm, stage + '-owner-tools-line-1', self.compared[-1])
 
 
-# On release 28 in his session: labwc's theme, fontconfig's Space Grotesk as ares, his terminals.
+# On release 28 in his session: the theme in the rc.xml the running labwc reads, fontconfig's Space Grotesk as ares,
+# his terminals.
 SESSION = r'''import json,os,pathlib,subprocess,xml.etree.ElementTree as ET
 AS_ARES=@AS_ARES@
 out={}
 labwc=subprocess.run(['pgrep','-u','ares','-x','labwc'],capture_output=True,text=True).stdout.split()
 out['labwc']=len(labwc)
-user=pathlib.Path('/var/home/ares/.config/labwc/rc.xml')
-rc=user if user.is_file() else pathlib.Path('/etc/xdg/labwc/rc.xml')
-out['rc']=str(rc)
-out['theme']=ET.parse(rc).getroot().findtext('{http://openbox.org/3.4/rc}theme/{http://openbox.org/3.4/rc}name') or ET.parse(rc).getroot().findtext('theme/name')
+# The configuration the running labwc reads: its --config-dir (aresos-session: /usr/share/aresos/labwc).
+argv=pathlib.Path('/proc/'+labwc[0]+'/cmdline').read_bytes().split(b'\0')[:-1] if labwc else []
+argv=[word.decode() for word in argv]
+folder=argv[argv.index('--config-dir')+1] if '--config-dir' in argv else '/var/home/ares/.config/labwc'
+rc=pathlib.Path(folder,'rc.xml')
+out.update(labwc_argv=argv,rc=str(rc))
+out['theme']=ET.parse(rc).getroot().findtext('theme/name') if rc.is_file() else None
 out['themerc']=pathlib.Path('/usr/share/themes/'+str(out['theme'])+'/labwc/themerc').is_file()
 fonts={}
 for pattern in ('Space Grotesk','Space Grotesk:bold'):
