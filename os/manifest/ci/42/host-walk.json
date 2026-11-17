@@ -205,7 +205,7 @@
       "path": "os/ci/verify_release.py"
     },
     {
-      "sha256": "5a14cfa61936b15700c53747e839a6407aa73cc1d7335ef36ebdd1ccbcdeba23",
+      "sha256": "8e13aa279047545915e430afa53ec8abde59e92db74b0b3451ef3cd3075ed148",
       "path": "os/ci/vm.py"
     },
     {
@@ -965,7 +965,7 @@
       "path": "os/tests/test_owner_media.py"
     },
     {
-      "sha256": "3d7a7e7d033965ade9df6015d79a5683a77aeb75ca4f6b41e8725ca6e1963a0c",
+      "sha256": "5e19d417b16166d4d338fc7ceaa0038e9b71443a1f513c9e74cf3440a36ca572",
       "path": "os/tests/test_owner_path.py"
     },
     {

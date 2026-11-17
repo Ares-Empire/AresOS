@@ -97,6 +97,8 @@ public final class AppsScreen extends Screen {
     }
 
     @Override protected void init() {
+        // A release the loading screen or another screen swallowed must not pick a program up later (package 48, D).
+        pressed = null;
         var header = layout.addToHeader(LinearLayout.vertical().spacing(4));
         header.defaultCellSetting().alignHorizontallyCenter();
         header.addChild(new StringWidget(title, font));
@@ -210,6 +212,15 @@ public final class AppsScreen extends Screen {
         return true;
     }
 
+    /**
+     * Every left press starts afresh: one that misses the rows (the search box, the scroll bar, Done, empty space)
+     * forgets a program an earlier press went down on and whose release never came (package 40's REVIEW-3, nit 1).
+     */
+    @Override public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+        if (event.button() == 0) pressed = null;
+        return super.mouseClicked(event, doubleClick);
+    }
+
     /** The pointer moved away from where the left button went down on a program: a drag, which picks up its item. */
     @Override public boolean mouseDragged(MouseButtonEvent event, double dx, double dy) {
         if (event.button() == 0 && pressed != null && movedAway(event)) {
@@ -273,9 +284,11 @@ public final class AppsScreen extends Screen {
         // The inventory would skip its next release as the one of the click that opened it. During a drag that
         // release ends the drag. After one, the inventory's next press clears the flag before it looks at a slot
         // anyway (AbstractContainerScreen.mouseClicked), and false is the flag's state while vanilla carries an item.
-        if (parent instanceof AbstractContainerScreen<?> inventory)
+        // Opened from the AresOS menu (package 48), the item goes to the inventory, where the hotbar is to pin it.
+        Screen back = parent instanceof AresOsMenuScreen && minecraft.player != null ? new InventoryScreen(minecraft.player) : parent;
+        if (back instanceof AbstractContainerScreen<?> inventory)
             ((dev.aresos.client.mixin.ContainerScreenAccess) inventory).aresos$setSkipNextRelease(false);
-        minecraft.gui.setScreen(parent);
+        minecraft.gui.setScreen(back);
     }
 
     private String clip(String text, int room) {
