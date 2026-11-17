@@ -1,0 +1,16 @@
+{
+  "kernel": "7.2.9-ogc3.1.fc44.x86_64",
+  "architecture": "x86_64",
+  "java": {
+    "exit": 0,
+    "stdout": "",
+    "stderr": "openjdk version \"25.0.5\" 2026-10-20 LTS\nOpenJDK Runtime Environment Temurin-25.0.5+8 (build 25.0.5+8-LTS)\nOpenJDK 64-Bit Server VM Temurin-25.0.5+8 (build 25.0.5+8-LTS, mixed mode, sharing)\n"
+  },
+  "gpu": {
+    "exit": 0,
+    "stdout": "NVIDIA GeForce RTX 4060 Laptop GPU, 615.78.08, 8188 MiB\n",
+    "stderr": ""
+  },
+  "cds_compact_headers_archive": true,
+  "git_start": "80d3549a33b43bd05b2f70e6b0fdd717c911fc50"
+}
