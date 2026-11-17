@@ -634,7 +634,9 @@ class PasswordScanTest(unittest.TestCase):
         self.assertEqual((found['journal_returncode'], found['errors']),
                          (1, ['journal export exited 1: Failed to open journal']))
 
-    def test_only_a_runtime_file_may_vanish_and_it_is_named(self):
+    def test_runtime_content_that_vanishes_unread_fails_and_is_named(self):
+        # RECHECK-X1 #2: a runtime file that a process removed between the listing and the read was skipped, so
+        # check 8 could pass without having read it. Unread content fails like a file that can't be read.
         real = self.scanner.holds
         removed = {str(self.root / 'state/clean.txt')}
 
@@ -648,12 +650,40 @@ class PasswordScanTest(unittest.TestCase):
             outside = self.scanner.scan([str(self.root)], [self.NEEDLE])
         self.assertEqual(outside['errors'], [f'{self.root}/state/clean.txt: FileNotFoundError: No such file or directory'])
         (self.root / 'state/clean.txt').write_text('nothing\n')
-        with mock.patch.object(self.scanner, 'holds', side_effect=holds), \
-                mock.patch.object(self.scanner, 'VANISHING', (f'{self.root}/',)):
+        runtime_folders = mock.patch.object(self.scanner, 'VANISHING', (f'{self.root}/',))
+        with mock.patch.object(self.scanner, 'holds', side_effect=holds), runtime_folders:
             runtime = self.scanner.scan([str(self.root)], [self.NEEDLE])
-        self.assertEqual((runtime['errors'], runtime['vanished']), ([], [str(self.root / 'state/clean.txt')]))
-        self.assertEqual(runtime['files'], {str(self.root): 1})
-        # Replaced between the listing and the read: read once more, the new file searched.
+        self.assertEqual(runtime['errors'], [f'{self.root}/state/clean.txt: gone before it was read, so its content '
+                                             'is unsearched'])
+        self.assertEqual((runtime['vanished'], runtime['files']), ([str(self.root / 'state/clean.txt')],
+                                                                   {str(self.root): 1}))
+        # Check 8 fails on it: search_for() passes the error on, and passwords() asserts there is none.
+        (self.root / 'state/clean.txt').write_text('nothing\n')
+        with mock.patch.object(self.scanner, 'holds', side_effect=holds), runtime_folders:
+            self.assertEqual(len(self.search()['errors']), 1)
+        # Only a path named in MAY_VANISH, with its reason, may vanish unread; MAY_VANISH names none today.
+        self.assertEqual(self.scanner.MAY_VANISH, {})
+        (self.root / 'state/clean.txt').write_text('nothing\n')
+        with mock.patch.object(self.scanner, 'holds', side_effect=holds), runtime_folders, \
+                mock.patch.object(self.scanner, 'MAY_VANISH', {str(self.root / 'state/clean.txt'): 'a reason'}):
+            exempt = self.scanner.scan([str(self.root)], [self.NEEDLE])
+        self.assertEqual((exempt['errors'], exempt['vanished']), ([], [str(self.root / 'state/clean.txt')]))
+        # A folder that vanishes before it is listed: everything in it is unread too.
+        (self.root / 'state/clean.txt').write_text('nothing\n')
+        (self.root / 'cache').mkdir()
+        (self.root / 'cache/held.txt').write_bytes(self.NEEDLE)
+        listing = os.scandir
+
+        def scandir(path='.'):
+            if str(path) == str(self.root / 'cache'):
+                shutil.rmtree(path)
+            return listing(path)
+
+        with mock.patch('os.scandir', side_effect=scandir), runtime_folders:
+            folder = self.scanner.scan([str(self.root)], [self.NEEDLE])
+        self.assertEqual((folder['vanished'], folder['errors']), ([str(self.root / 'cache')], [
+            f'{self.root}/cache: gone before it was read, so its content is unsearched']))
+        # Replaced between the listing and the read: read once more, the new file searched, nothing unread.
         replaced = {'count': 0}
 
         def holds_once_missing(path, needles):
@@ -662,16 +692,14 @@ class PasswordScanTest(unittest.TestCase):
                 raise FileNotFoundError(2, 'No such file or directory', path)
             return real(path, needles)
 
-        (self.root / 'state/clean.txt').write_text('nothing\n')
-        with mock.patch.object(self.scanner, 'holds', side_effect=holds_once_missing), \
-                mock.patch.object(self.scanner, 'VANISHING', (f'{self.root}/',)):
+        with mock.patch.object(self.scanner, 'holds', side_effect=holds_once_missing), runtime_folders:
             again = self.scanner.scan([str(self.root)], [self.NEEDLE])
         self.assertEqual((again['errors'], again['vanished'], again['hits']),
                          ([], [], [[str(self.root / 'state/password'), 0]]))
         self.assertEqual(self.vanishing, ('/run/', '/tmp/', '/var/tmp/'))
 
-    def test_a_fuse_mount_is_walked_as_its_owner_never_skipped(self):
-        # FUSE refuses root; the document portal mounts $XDG_RUNTIME_DIR/doc in his session.
+    def fuse_portal(self):
+        """A stand-in for the document portal's FUSE mount under the scanned folder, and its mountinfo line."""
         portal = self.root / 'user/1001/doc'
         portal.mkdir(parents=True)
         (portal / 'shared.txt').write_text('nothing')
@@ -682,17 +710,36 @@ class PasswordScanTest(unittest.TestCase):
                         f'42 30 0:23 / {self.root}/with\\040space rw - fuse.gvfsd-fuse gvfsd rw,user_id=1001\n')
         self.assertEqual(self.scanner.fuse_mounts([str(self.root)], info),
                          [(str(portal), 'fuse.portal', os.getuid()), (f'{self.root}/with space', 'fuse.gvfsd-fuse', 1001)])
+        real = self.scanner.fuse_mounts
+        return portal, mock.patch.object(self.scanner, 'fuse_mounts', side_effect=lambda roots: real(roots, info)[:1])
+
+    def test_root_walks_a_fuse_mount_first_and_its_owner_only_where_root_is_refused(self):
+        # RECHECK-X1 #2: not every FUSE mount refuses root (allow_other). One root can read is root's alone.
+        portal, mounts = self.fuse_portal()
+        owner = pwd.getpwuid(os.getuid()).pw_name
+        with mock.patch.object(self.actions, 'run', side_effect=AssertionError('no owner walk')), mounts:
+            found = self.search()
+        self.assertEqual(found['files'], {str(self.root): 3})
+        self.assertEqual((found['owner_walks'], found['errors']), ([], []))
+        self.assertEqual(found['fuse_mounts'], [dict(mount=str(portal), type='fuse.portal', owner=owner,
+                                                     root_refused=0)])
+
+    @unittest.skipIf(os.geteuid() == 0, 'root lists a folder of mode 0000')
+    def test_a_fuse_mount_that_refuses_root_is_walked_as_its_owner_never_skipped(self):
+        # The document portal mounts $XDG_RUNTIME_DIR/doc in his session without allow_other: FUSE refuses root.
+        portal, mounts = self.fuse_portal()
+        (portal / 'held.txt').write_bytes(self.NEEDLE)
+        portal.chmod(0)  # root's refusal, here this user's
         calls = []
 
         def run(argv, input=None, timeout=300, cwd='/'):
             calls.append((argv, input))
+            portal.chmod(0o700)  # the owner's walk is let in
             walked = self.scanner.scan(json.loads(input)['roots'],
                                        [bytes.fromhex(needle) for needle in json.loads(input)['needles']])
             return dict(argv=argv, returncode=0, stdout=json.dumps(walked), stderr='')
 
-        real = self.scanner.fuse_mounts
-        with mock.patch.object(self.actions, 'run', side_effect=run), \
-                mock.patch.object(self.scanner, 'fuse_mounts', side_effect=lambda roots: real(roots, info)[:1]):
+        with mock.patch.object(self.actions, 'run', side_effect=run), mounts:
             found = self.search()
         argv, given = calls[0]
         owner = pwd.getpwuid(os.getuid()).pw_name
@@ -700,10 +747,20 @@ class PasswordScanTest(unittest.TestCase):
                                                  str(CONTROL_CI / 'tree_scan.py')])
         self.assertNotIn(self.NEEDLE.hex(), ' '.join(argv))
         self.assertIn(self.NEEDLE.hex(), given)
-        # Root's walk left the mount out; the owner's walk searched it.
+        # Root's walk was refused at the mount; the owner's walk searched it and found what it holds.
         self.assertEqual(found['files'], {str(self.root): 2})
-        self.assertEqual(found['owner_walks'], [dict(mount=str(portal), type='fuse.portal', owner=owner, files=1)])
+        self.assertEqual(found['owner_walks'], [dict(mount=str(portal), type='fuse.portal', owner=owner, files=2,
+                                                     root_refused=1)])
+        self.assertEqual(found['hits'], [[str(self.root / 'state/password'), 0], [str(portal / 'held.txt'), 0]])
         self.assertEqual(found['errors'], [])
+        # The owner's walk failing leaves root's refusal and the failure as errors.
+        portal.chmod(0)
+        with mock.patch.object(self.actions, 'run', return_value=dict(returncode=1, stdout='', stderr='refused')), \
+                mounts:
+            found = self.search()
+        self.assertEqual(found['errors'], [f'{portal}: PermissionError: Permission denied',
+                                           f'{portal} (fuse.portal) as {owner}: exit 1: refused'])
+        # A refusal outside any FUSE mount stays an error (test_a_folder_that_cannot_be_listed_fails).
 
 
 class EvidenceScanTest(unittest.TestCase):
