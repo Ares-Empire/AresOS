@@ -41,6 +41,7 @@ Release 28's record is a parameter (the image exists only after step 5): the CI 
 os/manifest/releases/28.json, which step 5 writes, and stops without it.
 """
 import base64
+import gzip
 import hashlib
 import json
 import os
@@ -89,7 +90,15 @@ APPS_CONFIG = dict(schemaVersion=4, baseline='2026-11-13', apps=[dict(id='termin
 MUTABLE_DIRS = ('minecraft/logs', 'minecraft/crash-reports')
 MUTABLE_INI_KEYS = ('lastLaunchTime', 'lastTimePlayed', 'totalTimePlayed')
 REQUIRED_INSTANCE = ('.aresos-managed.json', 'instance.cfg', 'mmc-pack.json', 'minecraft/options.txt',
-                     'minecraft/libraries', 'minecraft/mods', 'minecraft/saves', 'minecraft/config/aresos/apps.json')
+                     'patches', 'libraries', 'minecraft/mods', 'minecraft/saves', 'minecraft/config/aresos/apps.json')
+INSTANCE_LINKS = {'patches': '/usr/share/aresos/minecraft/patches',
+                  'libraries': '/usr/share/aresos/minecraft/libraries',
+                  'minecraft/mods': '/usr/share/aresos/minecraft/mods',
+                  'minecraft/saves': '/var/home/ares/.local/share/aresos/worlds'}
+# Synthetic VM-only save data: a gzip NBT-like level and a small region with an empty location/timestamp header.
+WORLD = 'Release28Rehearsal'
+WORLD_FILES = {'level.dat': gzip.compress(b'\x0a\x00\x00\x08\x00\x09LevelName\x00\x12Release28Rehearsal\x00', mtime=0).hex(),
+               'region/r.0.0.mca': (bytes(8192) + b'AresOS release-28 synthetic region\n').hex()}
 AS_ARES = ['runuser', '-u', 'ares', '--', 'env', '-i', 'HOME=/var/home/ares', 'XDG_RUNTIME_DIR=/run/user/1001',
            'PATH=/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin']
 
@@ -349,9 +358,28 @@ for n in range(30):
 print(json.dumps(dict(ended=len(before),left=len(left))))
 '''
 
-# The VM stays in SETUP: plant a representative configuration, then snapshot bytes AND metadata. This
-# proves persistence/accessibility, not Minecraft loading the configuration or starting a world.
+# Used by both the root snapshot and the reader running as ares. The saves root is resolved separately:
+# walking the instance without following its links must not hide the worlds stored elsewhere in home.
+HOME_SNAPSHOT = r'''def snapshot(root, check_access=False):
+    rows={}
+    def denied(error): raise error
+    for folder,dirs,files in os.walk(root,followlinks=False,onerror=denied):
+        for p in [pathlib.Path(folder)]+[pathlib.Path(folder,name) for name in sorted(files+dirs)]:
+            name=str(p.relative_to(root)); s=p.lstat()
+            row=dict(uid=s.st_uid,gid=s.st_gid,mode=stat.S_IMODE(s.st_mode),kind=stat.S_IFMT(s.st_mode))
+            if check_access:
+                needed=os.R_OK|os.X_OK if p.is_dir() else os.R_OK
+                assert os.access(p,needed), 'Inaccessible saved-world entry: '+name
+            if p.is_symlink(): row['target']=os.readlink(p)
+            elif p.is_file(): row['sha256']=hashlib.sha256(p.read_bytes()).hexdigest()
+            rows[name]=row
+    return rows
+'''
+
+# The VM stays in SETUP: plant representative config and save data, then snapshot bytes AND metadata.
+# This proves persistence/accessibility, not Minecraft loading the configuration or starting a world.
 HOME = r'''import hashlib,json,os,pathlib,stat,subprocess
+''' + HOME_SNAPSHOT + r'''
 instance=pathlib.Path(@INSTANCE@); apps=pathlib.Path(@APPS@)
 planted=False
 if @PLANT@ and not apps.exists():
@@ -360,38 +388,58 @@ if @PLANT@ and not apps.exists():
     for p in (apps,apps.parent,apps.parent.parent):
         os.chown(p,1001,1001)
     planted=True
-rows={}; stable={}; mutable={}
-for folder,dirs,files in os.walk(instance,followlinks=False):
-    for p in [pathlib.Path(folder)]+[pathlib.Path(folder,name) for name in sorted(files+dirs)]:
-        name=str(p.relative_to(instance)); s=p.lstat()
-        row=dict(uid=s.st_uid,gid=s.st_gid,mode=stat.S_IMODE(s.st_mode),kind=stat.S_IFMT(s.st_mode))
-        if p.is_symlink(): row['target']=os.readlink(p)
-        elif p.is_file(): row['sha256']=hashlib.sha256(p.read_bytes()).hexdigest()
-        rows[name]=row
-        if any(name==d or name.startswith(d+'/') for d in @MUTABLE_DIRS@):
-            mutable[name]=row
-            continue
-        stable[name]=dict(row)
-        if name=='instance.cfg':
-            lines=[l for l in p.read_text().splitlines() if l.split('=',1)[0].strip() not in @MUTABLE_KEYS@]
-            stable[name]['sha256']=hashlib.sha256('\n'.join(lines).encode()).hexdigest()
+links=@LINKS@
+for name,target in links.items():
+    p=instance/name
+    assert p.is_symlink() and os.readlink(p)==target, 'STOP: incorrect instance link: '+name
+saves=(instance/'minecraft/saves').resolve(strict=True)
+world=saves/@WORLD@
+if @PLANT@:
+    assert not world.exists(), 'STOP: synthetic rehearsal world already exists'
+    for name,data in @WORLD_FILES@.items():
+        p=world/name
+        p.parent.mkdir(parents=True,exist_ok=True)
+        p.write_bytes(bytes.fromhex(data))
+    for folder,dirs,files in os.walk(world):
+        for p in [pathlib.Path(folder)]+[pathlib.Path(folder,name) for name in files]:
+            os.chown(p,1001,1001)
+rows=snapshot(instance); stable={}; mutable={}
+for name,row in rows.items():
+    if any(name==d or name.startswith(d+'/') for d in @MUTABLE_DIRS@):
+        mutable[name]=row
+        continue
+    stable[name]=dict(row)
+    if name=='instance.cfg':
+        lines=[l for l in (instance/name).read_text().splitlines() if l.split('=',1)[0].strip() not in @MUTABLE_KEYS@]
+        stable[name]['sha256']=hashlib.sha256('\n'.join(lines).encode()).hexdigest()
+worlds=snapshot(saves)
+for name in @WORLD_FILES@:
+    assert @WORLD@+'/'+name in worlds, 'STOP: missing saved-world file: '+name
 required=@REQUIRED@
 # Actually open the files and traverse the links as ares, not as the serial root shell.
-reader=''' + repr('''import hashlib,json,os,pathlib,sys
+reader=''' + repr('''import hashlib,json,os,pathlib,stat,sys
+''' + HOME_SNAPSHOT + '''
 root=pathlib.Path(sys.argv[1])
-for name in json.loads(sys.argv[2]):
+required,links,image_targets=json.loads(sys.argv[2])
+for name,target in links.items():
+    p=root/name
+    assert p.is_symlink() and os.readlink(p)==target, 'Incorrect instance link: '+name
+for name in required:
+    # R27 retains R28's link text in home, but does not contain R28's image payload.
+    if name in links and name!='minecraft/saves' and not image_targets: continue
     p=root/name
     assert p.exists(), 'Missing instance file: '+name
     if p.is_dir(): assert os.access(p,os.R_OK|os.X_OK), 'Inaccessible instance directory: '+name
     else: p.read_bytes()
 apps=root/'minecraft/config/aresos/apps.json'
 assert os.access(apps,os.R_OK|os.W_OK), 'apps.json is not readable/writable as ares'
-print(json.dumps(dict(uid=os.getuid(),apps=hashlib.sha256(apps.read_bytes()).hexdigest())))
+worlds=snapshot((root/'minecraft/saves').resolve(strict=True),check_access=True)
+print(json.dumps(dict(uid=os.getuid(),apps=hashlib.sha256(apps.read_bytes()).hexdigest(),worlds=worlds)))
 ''') + r'''
-read=subprocess.run(@AS_ARES@+['python3','-c',reader,str(instance),json.dumps(required)],capture_output=True,text=True)
+read=subprocess.run(@AS_ARES@+['python3','-c',reader,str(instance),json.dumps([required,links,@IMAGE_TARGETS@])],capture_output=True,text=True)
 accessible=json.loads(read.stdout) if read.returncode==0 else dict(error=read.stderr[-600:])
 print(json.dumps(dict(instance=instance.is_dir(),files=len(rows),tree=hashlib.sha256(json.dumps(rows).encode()).hexdigest(),
-    entries=rows,stable=stable,mutable=mutable,accessible=accessible,
+    entries=rows,stable=stable,mutable=mutable,accessible=accessible,worlds=worlds,
     apps=hashlib.sha256(apps.read_bytes()).hexdigest() if apps.is_file() else None,
     apps_config=json.loads(apps.read_text()) if apps.is_file() else None,planted=planted)))
 '''
@@ -467,10 +515,11 @@ def session(guest, stage, vm):
     return value
 
 
-def home(guest, stage, vm, plant=False):
+def home(guest, stage, vm, plant=False, *, image_targets=True):
     value = guest.capture_json(stage + '-home', vm.sw.framed('python3 -c ' + shlex.quote(
         program(HOME, instance=INSTANCE, apps=APPS, plant=plant, config=APPS_CONFIG, as_ares=AS_ARES,
-                mutable_dirs=MUTABLE_DIRS, mutable_keys=MUTABLE_INI_KEYS, required=REQUIRED_INSTANCE))))
+                mutable_dirs=MUTABLE_DIRS, mutable_keys=MUTABLE_INI_KEYS, required=REQUIRED_INSTANCE,
+                links=INSTANCE_LINKS, image_targets=image_targets, world=WORLD, world_files=WORLD_FILES))))
     vm.td.save(stage + '-home', value)
     assert value['instance'] and value['apps'], "STOP: the home screen's instance or apps.json is missing at " + stage
     assert value['apps_config'] == APPS_CONFIG, 'STOP: apps.json is not the representative schema-4 configuration'
@@ -478,10 +527,15 @@ def home(guest, stage, vm, plant=False):
         'STOP: instance ownership changed from ares'
     assert value['accessible'].get('uid') == 1001 and value['accessible'].get('apps') == value['apps'], \
         'STOP: instance or apps.json is inaccessible as ares: ' + str(value['accessible'])
+    assert all(row['uid'] == row['gid'] == 1001 for row in value['worlds'].values()), \
+        'STOP: saved-world ownership changed from ares'
+    assert value['accessible'].get('worlds') == value['worlds'], \
+        'STOP: saved-world data is inaccessible as ares: ' + str(value['accessible'])
     return value
 
 
 def home_unchanged(before, after, *, prism_started=False):
+    assert before['worlds'] == after['worlds'], 'STOP: saved-world contents or metadata changed'
     assert before['stable'] == after['stable'], 'STOP: stable instance files or metadata changed'
     if not prism_started:
         assert before['entries'] == after['entries'], 'STOP: release 27 changed instance files or metadata'
@@ -654,7 +708,7 @@ def rehearsal(vm, audit, media, password, hashed, ares_password, version_2, reco
         assert 'Return to ' + r27 + ' confirmed after the restart' in vm.result_lines(checked, titled), 'STOP: return not confirmed'
         if CONTROL_RIDES:
             assert sites_hash(guest, 'previous-27') == sites, "STOP: the sites list's hash changed with previous"
-        back = home(guest, 'previous-27', vm)
+        back = home(guest, 'previous-27', vm, image_targets=False)
         home_unchanged(kept, back)
         forward = console.run('forward', 'r28-forward')
         assert 'Newest installed AresOS starts next ' + r28 in vm.result_lines(forward), 'STOP: forward did not name release 28'
@@ -694,7 +748,8 @@ def rehearsal(vm, audit, media, password, hashed, ares_password, version_2, reco
         terminal_path=terminal['path'], terminal_path_retried=terminal['retried'],
         polkit_sweep=dict(actions=polkit['actions'], answers=polkit['answers'], passwordless=len(polkit['passwordless'])),
         session=dict(theme=seen['theme'], fonts=seen['fonts']), control_checked=False, no_foot=foot,
-        home=dict(apps=kept['apps'], instance_tree=kept['tree'], planted=kept['planted'], after_forward_tree=again['tree']),
+        home=dict(apps=kept['apps'], instance_tree=kept['tree'], planted=kept['planted'], after_forward_tree=again['tree'],
+                  worlds=kept['worlds'], after_forward_worlds=again['worlds']),
         game_scope=dict(unit=scope['unit'], memory_high=scope['memory_high']), caller_terminal=False,
         protected_disk_audits=True, deployments_checked_every_start=True)
     td.save('release-28-rehearsal-result', result)

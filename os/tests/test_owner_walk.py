@@ -496,9 +496,11 @@ class Release28Session:
     """
 
     def __init__(self, control, faults=()):
+        import importlib.machinery
+        import types
         import release28_walk
         self.walk, self.control, self.faults = release28_walk, control, set(faults)
-        self.foot, self.events, self.executed = 1, [], []
+        self.foot, self.events, self.executed, self.boots = 1, [], [], []
         self.folder = tempfile.TemporaryDirectory()
         self.root = pathlib.Path(self.folder.name)
         self.owners, self.modes, self.jvm, self.wrapper = {}, {}, False, None
@@ -542,10 +544,32 @@ class Release28Session:
         for name, data in {'.aresos-managed.json': '{"schema":1}', 'instance.cfg': '[General]\nname=AresDesktop\nlastLaunchTime=1\n',
                            'mmc-pack.json': '{"formatVersion":1}', 'minecraft/options.txt': 'fullscreen:false\n'}.items():
             self.write(release28_walk.INSTANCE + '/' + name, data)
-        for name in ('libraries', 'mods', 'saves'):
-            target = self.Path('/shared/' + name)
-            target.mkdir(parents=True)
-            self.Path(release28_walk.INSTANCE + '/minecraft/' + name).symlink_to(target)
+        # The real provisioner owns this layout; a copied dictionary previously hid a VM blocker.
+        loader = importlib.machinery.SourceFileLoader('release28_desktop_fixture',
+            str(ROOT / 'os/config/usr/libexec/aresos-desktop'))
+        desktop = types.ModuleType(loader.name)
+        with patch.dict(sys.modules, {loader.name: desktop}):
+            loader.exec_module(desktop)
+        paths = desktop.Paths('/var/home/ares', '/run/user/1001')
+        self.links = desktop.expected_links(paths, {})
+        self.share = self.Path(paths.share)
+        self.absent_share = self.root / 'release-28-share'
+        for name, target in self.links.items():
+            self.Path(target).mkdir(parents=True, exist_ok=True)
+            self.Path(release28_walk.INSTANCE + '/' + name).symlink_to(self.Path(target))
+
+    def boot(self, stage):
+        """Switch the model's image payload, leaving home and its symlink text alone."""
+        if stage in ('release-28', 'final-28'):
+            if self.absent_share.exists(): self.absent_share.rename(self.share)
+        elif self.share.exists():
+            self.share.rename(self.absent_share)
+        self.boots.append(dict(stage=stage, targets={
+            name: self.Path(self.walk.INSTANCE + '/' + name).exists() for name in self.links}))
+
+    def readlink(self, path):
+        target = os.readlink(path)
+        return '/' + str(pathlib.Path(target).relative_to(self.root)) if pathlib.Path(target).is_relative_to(self.root) else target
 
     def close(self):
         self.folder.cleanup()
@@ -567,7 +591,7 @@ class Release28Session:
 
         modules = dict(pathlib=SimpleNamespace(Path=self.Path),
             os=SimpleNamespace(walk=os.walk, chown=lambda p,u,g: self.owners.__setitem__(str(p), (u,g)),
-                readlink=os.readlink, access=access, R_OK=os.R_OK, W_OK=os.W_OK, X_OK=os.X_OK,
+                readlink=self.readlink, access=access, R_OK=os.R_OK, W_OK=os.W_OK, X_OK=os.X_OK,
                 getuid=lambda: uid, environ=dict(PATH='/usr/bin' if 'bad_path' in self.faults else vm.DAILY_PATH)),
             subprocess=SimpleNamespace(run=self.run, check_output=self.check_output, Popen=self.popen,
                 DEVNULL=subprocess.DEVNULL, PIPE=subprocess.PIPE, STDOUT=subprocess.STDOUT, TimeoutExpired=subprocess.TimeoutExpired),
@@ -676,6 +700,10 @@ class Release28Session:
             if 'prism_mutable' in self.faults:
                 self.write(self.walk.INSTANCE + '/instance.cfg', '[General]\nname=AresDesktop\nlastLaunchTime=2\n')
                 self.write(self.walk.INSTANCE + '/minecraft/logs/latest.log', 'new log')
+            world = (self.Path(self.walk.INSTANCE + '/minecraft/saves') / self.walk.WORLD).resolve()
+            if 'deleted_world' in self.faults: (world / 'level.dat').unlink()
+            if 'corrupt_world' in self.faults: (world / 'region/r.0.0.mca').write_bytes(b'corrupt')
+            if 'denied_world' in self.faults: self.modes[str(world)] = 0
         if name.endswith('-game-scope') and 'bad_memory' in self.faults:
             self.write('/sys/fs/cgroup/user.slice/user-1001.slice/user@1001.service/aresos.slice/aresos-game-fixture.scope/memory.high', 'max')
         if name.endswith('-polkit'):
@@ -755,6 +783,7 @@ def walk(ps2=False, route='qualification', control=False, faults=()):
     class Guest:
         def __init__(self, stage, menu=False):
             self.stage, self.owner_layout = stage, 'de'
+            if route == 'release-28': r28_session.boot(stage)
             # A probe start: the first row, unless the menu is shown and waits for its choice.
             self.menu = menu
             if disk is not None and stage not in UPDATE_STAGES and not menu:
@@ -1249,7 +1278,9 @@ class Release28ProbeTest(unittest.TestCase):
                  'wrong_owner': 'ownership changed', 'missing_instance': 'inaccessible as ares',
                  'bad_permissions': 'inaccessible as ares', 'stable_changed': 'stable instance',
                  'bad_instance_mode': 'stable instance', 'bad_memory': 'memory.high',
-                 'extra_polkit': 'beyond the reviewed list', 'bad_path': 'terminal lacks his PATH'}
+                 'extra_polkit': 'beyond the reviewed list', 'bad_path': 'terminal lacks his PATH',
+                 'deleted_world': 'missing saved-world', 'corrupt_world': 'saved-world contents',
+                 'denied_world': 'inaccessible as ares'}
         for fault, error in cases.items():
             with self.subTest(fault=fault), self.assertRaisesRegex(AssertionError, error):
                 walk(route='release-28', control=fault == 'changed_sites', faults=[fault])
