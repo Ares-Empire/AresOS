@@ -1,9 +1,8 @@
 # Package 48: report
 
-Builder: Claude agents (Opus 5.5), in three steps. Brief: `briefs/48-home-menu.md`. Branch `pkg/48-home-menu`, PR #94.
-
-
-(For the lead to commit as `reviews/48-home-menu/REPORT.md`; a Claude builder cannot create that file.)
+Original builder: Claude agents (Opus 5.5), in three steps. Brief: `briefs/48-home-menu.md`.
+Review fix 1: Codex (`gpt-6.1-sol`, `xhigh`), `briefs/48-review-fix-1.md`, 2026-11-17.
+Branch `pkg/48-home-menu`, PR #94.
 
 ## Done
 
@@ -23,8 +22,9 @@ Builder: Claude agents (Opus 5.5), in three steps. Brief: `briefs/48-home-menu.m
   provisioned) it is closed, checked as `check_world` checks a home (`HomeSwap.checkComplete`: folder, level.dat or
   level.dat_old with Data, desktop marker on, the saved home's fields, provisioned `complete\n`, the manifest); then
   AresHub -> `AresHub-<date>` (the title screen's naming, now `HomeSwap.datedName`) and staging -> AresHub, the first
-  undone if the second fails; then AresHub opens and he arrives in Live. Any failure reopens the old home (moved back
-  if moved) with "Couldn't make the new home: <why>. Your home is as it was."; a failed staging folder stays. The
+  undone if the second fails; then AresHub opens and he arrives in Live. Failure follows the recorded source home
+  through restoration, with a chat line naming what actually happened; a failed reopen offers Try again (see Review
+  fix 1 below). A failed staging folder stays. The
   staging world is silent to the supervisor: `ShellFocusClient.readyWorld` answers null for the whole switch, so no
   `world_ready` and only `ready:false` heartbeats. No title screen is ever set: while a switch runs, a title screen
   or `setScreen(null)` without a world counts as a failure and becomes the working screen, the game's message and
@@ -41,7 +41,77 @@ Builder: Claude agents (Opus 5.5), in three steps. Brief: `briefs/48-home-menu.m
 - **Tests:** `HomeMenuClientGameTest` (new, last client test), `HomeScreenClientGameTest` (Esc expects the AresOS
   menu), `ScreenLog`/`ScreenLogMixin` (every screen `Gui.setScreen` stores), unit tests `HomeRulesTest`, `HomeSwapTest`.
 
+## Review fix 1
+
+- **Finding 1 — recovery identity and retry:** `HomeSwitch` records the open save's folder and level name before
+  closing it, follows that folder after each successful rename (including undo and restoration), and finishes
+  recovery only in that folder with that level name. A failed restoration opens the preserved home from its actual
+  location even when the replacement still occupies AresHub. The chat identifies the archive and whether AresHub
+  holds the replacement, a separate home, or is missing; the logs name both folders. `HomeRecoveryScreen` offers
+  **Try again** after a failed reopen or recovery timeout. The switch remains busy, suppressing title screens and
+  ready reporting until recovery succeeds. Minecraft's damaged-level screen is cancelled through its callback to
+  release its storage lock before our retry screen takes over.
+- **Finding 2 — switching from an archive:** the source save is checked before anything closes. `HomeSwap` promotes
+  a new AresHub whether or not a canonical home already exists; an existing canonical home is archived separately,
+  and an open archive keeps its name. Failed switches return to the recorded source. Restoring a promotion made
+  without a previous AresHub returns that replacement to staging, leaving the source archive alone.
+- **Finding 3 — cancelling confirmation:** `HomeCreateScreen` explicitly re-enables Create on cancellation, retaining
+  the same chooser, home type, seed and placeholder choice. The regression test chooses Nether seed 50, cancels,
+  and clicks Create again without changing or reopening the chooser.
+- **Finding 4 — rebound keys:** `AresOsMenuScreen.added()` refreshes the hint whenever the same initialized menu
+  returns, including from Settings. Its Build-mode Apps tooltip uses the registered mode binding. Client tests
+  rebind both keys, return through Settings, and check the hint and the tooltip's narration.
+- **Regression coverage:** four additional `HomeSwapTest` cases check both failed restoration renames and promotion
+  with no canonical save. The appended checks in `HomeMenuClientGameTest` exercise both restoration failures,
+  successful and failed switches from archives with and without AresHub, a real damaged-level reopen, a recovery
+  timeout, and Try again after lifting the fault. They check the open folder, distinct level names, exact recovery
+  chat, and recorded screens. The recovery screenshot is appended after all existing screenshots, preserving their
+  running numbers. `docs/design/HUB.md` describes these flows.
+- **JUDGMENT-CALL:** no new choice beyond the review-fix brief. The existing package 48 decisions above remain.
+- **PLAN-GAP:** none added. Package 46 and the integration items in REVIEW-1 remain outside this fix.
+- **Not verified:** the owner's real supervisor/session and physical storage failures. Failure injection uses only
+  the client test's own saves; client tests retain the existing test-task close adapter described below.
+- **Open questions:** none added.
+
 ## Verified
+
+### Review fix 1 (2026-11-17)
+
+- Two initial `mod/dev/build.sh` attempts printed `BUILD FAILED in 8s` and `BUILD FAILED in 6s` at
+  `compileGametestJava`: the new test tried to access package-private `AresOsClient.modeKey()`. Fixed the test to
+  look up the registered mapping with `KeyMapping.get`; no production visibility was widened.
+- `mod/dev/build.sh`: `BUILD SUCCESSFUL in 2m 17s`; `All 104 required tests passed :)`. JUnit XML records
+  **249 tests: 243 passed, 6 existing Windows-only skips on Linux, 0 failures, 0 errors**. This was before the final
+  damaged-level test extension; both combined runs below also compile and build the final implementation.
+- Development full `mod/dev/client-test.sh build`: `BUILD SUCCESSFUL in 12m 53s`, script exit 0 after 12 min 54 s;
+  all 104 server tests passed. This used the earlier injected-open failure, before the real damaged-level case and
+  the merge from main; it is not counted as one of the two final runs.
+- Merged `origin/main` at `76b08174` into the branch as `f3a50f05`, after fix commit `689580c5`. The merge brought
+  package 45's follow-up and documentation; package 46 was not merged or integrated.
+- **Two full final `mod/dev/client-test.sh build` runs, both on source `f3a50f05`:**
+  - Run 1: `BUILD SUCCESSFUL in 12m 57s`; script exit 0 after 12 min 58 s.
+  - Run 2: `BUILD SUCCESSFUL in 12m 24s`; script exit 0 after 12 min 27 s.
+  - Both printed `All 104 required tests passed :)` and
+    `48 review fix checks passed: both restoration renames, both archive switch cases, failed reopen, recovery timeout and Try again`.
+    The full existing client list ran in both. Both rendered headlessly on the NVIDIA GeForce RTX 4060 Laptop GPU.
+    Final JUnit XML remains 243 passed, 6 existing Windows-only skips, no failures/errors.
+  - The tests give the preserved saves distinct level names (`Review original home`, `Review second restoration`,
+    `Review retry home`) and assert those names AND the actual open folder, exact chat, and no recorded title screen.
+    The failed reopen really writes unreadable level data into the test fixture's restored save, then restores the
+    exact bytes before retrying; reaching the named original proves the game's storage lock was released. An
+    injected recovery timeout returns to the actionable screen, and the next Try again succeeds.
+  - Flat to Nether seed 50: **14,892 ms / 15,229 ms**; the forward rename gap without AresHub: **391 µs / 455 µs**.
+    The existing failed-promotion case returned after **2,913 ms / 3,146 ms**.
+- Refreshed and visually inspected [the normal menu](screenshots/0086_48-menu-1280x720.png),
+  [the smallest GUI](screenshots/0087_48-menu-smallest-gui.png), and the appended
+  [Try again screen](screenshots/0089_48-review-fix-recovery.png). Text and controls fit. Existing screenshot numbers
+  stay unchanged; generated screenshots outside this package were restored/removed after the runs.
+- `RUNNER_TEMP="$PWD/.work/review-fix-1" bash .work/review-fix-1/repo-privacy.sh` (the Repo privacy workflow's inline
+  script copied unchanged): exit 0, `No file holds a home path with a real user name.`
+- `git diff --check`: exit 0. Closing `.work/` inventory: **no files over 500 MB**; no downloads were made.
+  The development scripts ended their own scopes and single-use Gradle processes; no `--stop` was run.
+
+### Original package 48 verification
 
 - `mod/dev/build.sh` (after merging `origin/main`, at 5f18b483): BUILD SUCCESSFUL, 239 unit tests passed, "All 104
   required tests passed" (server game tests).
