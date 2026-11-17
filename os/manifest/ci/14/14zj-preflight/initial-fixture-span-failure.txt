@@ -11,7 +11,7 @@ test_truncated_kernel_never_grants_ack_or_completion_and_wait_is_bounded (test_s
 ERROR: test_exact_probe18_interleave_is_filtered_without_legacy_protocol_fallback (test_serial_ack.AckTest.test_exact_probe18_interleave_is_filtered_without_legacy_protocol_fallback)
 ----------------------------------------------------------------------
 Traceback (most recent call last):
-  File "/mnt/c/Users/pab/AresOS-14-owner-tools/os/tests/test_serial_ack.py", line 45, in test_exact_probe18_interleave_is_filtered_without_legacy_protocol_fallback
+  File "/mnt/c/Users/owner/AresOS-14-owner-tools/os/tests/test_serial_ack.py", line 45, in test_exact_probe18_interleave_is_filtered_without_legacy_protocol_fallback
     self.assertEqual(match[1], '0'); self.assertNotIn('async_tx', clean)
                      ~~~~~^^^
 TypeError: 'NoneType' object is not subscriptable

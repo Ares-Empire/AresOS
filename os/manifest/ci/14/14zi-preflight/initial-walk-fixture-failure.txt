@@ -10,16 +10,16 @@ test_retained_full_states_agree_and_keep_saved_serial (test_owner_walk.OwnerWalk
 ERROR: test_all_remaining_host_paths_and_all_typed_characters (test_owner_walk.OwnerWalkTest.test_all_remaining_host_paths_and_all_typed_characters)
 ----------------------------------------------------------------------
 Traceback (most recent call last):
-  File "/mnt/c/Users/pab/AresOS-14-owner-tools/os/tests/test_owner_walk.py", line 251, in test_all_remaining_host_paths_and_all_typed_characters
+  File "/mnt/c/Users/owner/AresOS-14-owner-tools/os/tests/test_owner_walk.py", line 251, in test_all_remaining_host_paths_and_all_typed_characters
     result = walk()
              ^^^^^^
-  File "/mnt/c/Users/pab/AresOS-14-owner-tools/os/tests/test_owner_walk.py", line 174, in walk
+  File "/mnt/c/Users/owner/AresOS-14-owner-tools/os/tests/test_owner_walk.py", line 174, in walk
     vm.qualification(audit, Media(), 'yz-/!ü0123456789abcdef', 'SYNTHETIC-HASH')
-  File "/mnt/c/Users/pab/AresOS-14-owner-tools/os/ci/owner_vm.py", line 512, in qualification
+  File "/mnt/c/Users/owner/AresOS-14-owner-tools/os/ci/owner_vm.py", line 512, in qualification
     console.login(password, 'tools-stock')
-  File "/mnt/c/Users/pab/AresOS-14-owner-tools/os/ci/owner_vm.py", line 290, in login
+  File "/mnt/c/Users/owner/AresOS-14-owner-tools/os/ci/owner_vm.py", line 290, in login
     self.hidden(stage + '-password-prompt', dict(kind='login'), 'Password:')
-  File "/mnt/c/Users/pab/AresOS-14-owner-tools/os/ci/owner_vm.py", line 262, in hidden
+  File "/mnt/c/Users/owner/AresOS-14-owner-tools/os/ci/owner_vm.py", line 262, in hidden
     assert value['reader'] and value['prompt_at_cursor'] and value['reader_echo_enabled'] is False
            ~~~~~^^^^^^^^^^
 KeyError: 'reader'

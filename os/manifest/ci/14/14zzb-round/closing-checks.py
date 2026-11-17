@@ -19,7 +19,7 @@ for args,name in [(['git','.','--log-opts=--all'],'history'),(['dir',str(pending
     subprocess.run([str(scanner),*args,'--redact=100','--no-banner','--log-level=error','--report-format=json','--report-path',str(report)],check=True)
     assert json.loads(report.read_text())==[]
 with (w/'14zzb/readiness-hash-order.log').open('wb') as f:
-    subprocess.run(['wsl.exe','--exec','bash','-lc','cd /mnt/c/Users/pab/AresOS-14-owner-tools && TMPDIR=$PWD/.work/14/local/tmp PATH=$PWD/.work/14/local/bin:$PATH PYTHONPATH=os/ci:os/tests python3 -B -m unittest test_owner_equality.EqualityTest.test_package_hash_manifests_put_hashes_before_paths'],stdout=f,stderr=subprocess.STDOUT,check=True)
+    subprocess.run(['wsl.exe','--exec','bash','-lc','cd /mnt/c/Users/owner/AresOS-14-owner-tools && TMPDIR=$PWD/.work/14/local/tmp PATH=$PWD/.work/14/local/bin:$PATH PYTHONPATH=os/ci:os/tests python3 -B -m unittest test_owner_equality.EqualityTest.test_package_hash_manifests_put_hashes_before_paths'],stdout=f,stderr=subprocess.STDOUT,check=True)
 subprocess.run(['git','diff','--check'],check=True)
 frozen=['os/ci','os/tests','os/owner-tools','os/release','os/config','os/policy','.github','.gitleaksignore','.gitleaks.toml','os/manifest/base.json','os/manifest/release.json','os/packages.lock.json','os/keys','os/Containerfile.keyboard','docs/INSTALL.md','docs/EMERGENCY.md','docs/RELEASE-GATE.md','HANDOFF.md','STATE.md']
 subprocess.run(['git','diff','--exit-code',h,'--',*frozen],check=True)

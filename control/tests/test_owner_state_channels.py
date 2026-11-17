@@ -19,6 +19,7 @@ class OwnerStateChannels(unittest.TestCase):
     call = integration.Integration.call
     launch = integration.Integration.launch
     hook_command = integration.Integration.hook_command
+    mark_session = integration.Integration.mark_session
 
     def test_paged_committed_pending_through_every_installed_channel(self):
         oracle = Oracle()
@@ -101,6 +102,7 @@ class OwnerStateChannels(unittest.TestCase):
         check('unchanged-page', set(), {Fact('pending', 'page_changed')} if continuation.get('page_changed') else set())
         check.finish()
         gaps.verify({'channel'})
+        self.mark_session()  # the hooks remind only a session that used the tools
         for name in ('Stop', 'UserPromptSubmit'):
             process = self.launch(integration.OWNER, ['hook', name], input=json.dumps({'hook_event_name': name}))
             self.assertEqual(process.returncode, 0, process.stderr)

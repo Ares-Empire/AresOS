@@ -55,7 +55,14 @@ class FilePolicy:
         for root in self.roots:
             if target.is_relative_to(root):
                 return root, list(target.relative_to(root).parts)
-        raise Refused("file_refused", "Path is outside configured folders; choose Documents, Downloads, Desktop or an owner-configured folder.")
+        raise Refused("file_refused", "Path is outside the allowed folders; choose " + self.allowed() + ".")
+
+    def allowed(self):
+        """The configured folders as the owner knows them (~/Downloads), sorted so the text never changes order."""
+        names = sorted("~/" + root.relative_to(self.home).as_posix() for root in self.roots)
+        if not names:
+            return "a folder the owner has configured (none is configured now)"
+        return names[0] if len(names) == 1 else ", ".join(names[:-1]) + " or " + names[-1]
 
     def directory(self, path):
         # Opening from '/' protects the configured root itself as well as children.

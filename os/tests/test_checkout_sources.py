@@ -5,6 +5,7 @@ import importlib.util
 import io
 import json
 import pathlib
+import re
 import sys
 import tempfile
 import unittest
@@ -18,6 +19,16 @@ rebind = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(rebind)
 
 PENDING = ROOT / 'os/manifest/ci/16/pending-rebind.json'
+STATUS = ROOT / 'docs/INSTALL-STATUS.md'
+SUMS = ROOT / 'os/owner-tools/payload/SHA256SUMS'
+# A status row that rests on a VM rehearsal the laptop has not run yet (packages 22c and 22d).
+REHEARSED = 'VM REHEARSAL PASSED; NOT ON THE LAPTOP'
+# While such a row stands, nothing under these may wait (package 22c's review 8, finding 3): they are what the
+# laptop gets (the tools, the release scripts, the guides he follows). A waiting harness or test file changes how a
+# rehearsal runs, not what the laptop gets, and waits for the next rehearsal as before (package 27b).
+MUST_NOT_WAIT = ('os/owner-tools/', 'os/release/', 'docs/')
+# The field of each rehearsal's result (its run's *-rehearsal-result.json) that names the tools it rehearsed.
+REHEARSED_TOOLS = {'22c': 'tools_version_3', '22d': 'tools'}
 
 
 def pending_rebind():
@@ -62,6 +73,80 @@ def check_waiting(root, union, pending, removed=()):
         except AssertionError:
             continue
         raise AssertionError('Waiting file still equals its walk bytes: ' + path)
+
+
+def rehearsed_rows(status):
+    """{package: row} for each row of docs/INSTALL-STATUS.md whose status cell says REHEARSED."""
+    rows = {}
+    for line in status.splitlines():
+        cells = line.split('|')
+        if len(cells) < 5 or REHEARSED not in cells[2]:
+            continue
+        package = re.findall(r'\(package ([0-9]+[a-z]*)\)', cells[1])
+        assert len(package) == 1, f'A status row says {REHEARSED} but names no single package: {cells[1].strip()}'
+        rows[package[0]] = line
+    return rows
+
+
+def active_record(root):
+    """The source-bindings.json whose tables checkout.active_tables returns: the newest rehearsal's."""
+    tables = checkout.active_tables(root)
+    records = [json.loads(path.read_text()) for path in sorted((root / 'os/manifest/ci').glob('*/source-bindings.json'))]
+    found = [record for record in records if [(t['name'], t['sources']) for t in record['tables']] == tables]
+    assert len(found) == 1, f'{len(found)} binding records hold the active tables, not one'
+    return found[0]
+
+
+def rehearsal_result(root, run):
+    """The committed result of rehearsal run <run>: reviews/<package>/runs/<mode>-<run>/<mode>-rehearsal-result.json."""
+    found = sorted((root / 'reviews').glob(f'*/runs/*-{run}/*-rehearsal-result.json'))
+    assert len(found) == 1, f'Rehearsal run {run} has {len(found)} committed results, not one'
+    return json.loads(found[0].read_text())
+
+
+def check_rehearsed_rows(status, waiting, active, result_of, payload):
+    """A status row that says REHEARSED promises the laptop what that VM rehearsal ran (package 22c's
+    review 8, finding 3). While one stands, nothing under os/owner-tools/, os/release/ or docs/ waits on the
+    list (MUST_NOT_WAIT: what the laptop gets; harness and test files may wait), and the newest rehearsal (the one whose bindings are active) rehearsed exactly the payload's tools.
+    Every such row names one rehearsal run and the tools fingerprint its result names, so 22c's row is
+    held like 22d's; only the newest rehearsal's row is held to the payload, since the later rehearsal
+    took over from the earlier one (22c's version 3 never goes on the laptop; 22d's version 4 does).
+
+    status: docs/INSTALL-STATUS.md's text; waiting: the list's paths (files and removed); active: the
+    active bindings' record; result_of(run id): that run's committed result; payload: sha256(SHA256SUMS).
+    """
+    rows = rehearsed_rows(status)
+    if not rows:
+        return
+    move_on = (f'Rehearse again (a VM run of the route, then its record step), or move the row on: it may say '
+               f'"{REHEARSED}" only while the laptop would get exactly what that rehearsal ran')
+    says = f"docs/INSTALL-STATUS.md's row for package {{}} says {REHEARSED}"
+    unrehearsed = [path for path in waiting if path.startswith(MUST_NOT_WAIT)]
+    assert not unrehearsed, (
+        (says.format(*rows) if len(rows) == 1 else f"docs/INSTALL-STATUS.md's rows for packages "
+         f"{' and '.join(sorted(rows))} say {REHEARSED}") + f', but these bound files changed since the last VM rehearsal '
+        f'({active["run"]}) and wait on os/manifest/ci/16/pending-rebind.json: {", ".join(unrehearsed)}. While '
+        f'such a row stands no tool, release script or guide may wait. {move_on}.')
+    for package, row in rows.items():
+        runs = re.findall(r'\[rehearsal run (\d+)\]', row)
+        assert len(runs) == 1, says.format(package) + f' but names {len(runs)} "[rehearsal run <id>]" links, not one'
+        assert package in REHEARSED_TOOLS, says.format(package) + (
+            ': add the field of its result that names the tools it rehearsed to REHEARSED_TOOLS (test_checkout_sources.py)')
+        result = result_of(runs[0])
+        field = REHEARSED_TOOLS[package]
+        assert field in result, says.format(package) + f', but the result of run {runs[0]} names no {field}'
+        rehearsed = result[field]
+        assert result['status'] == 'passed', says.format(package) + f', but run {runs[0]} did not pass'
+        named = re.findall(r'Tools fingerprint `([0-9a-f]{8,64})', row)
+        assert len(named) == 1 and rehearsed.startswith(named[0]), says.format(package) + (
+            f' and names tools fingerprint {named}, but its run {runs[0]} rehearsed {rehearsed}')
+        if package != active['package']:
+            continue
+        assert active['run'].endswith('/' + runs[0]) and result['commit'] == active['commit'], says.format(package) + (
+            f' with run {runs[0]} on {result["commit"]}, but the active bindings are run {active["run"]} on {active["commit"]}')
+        assert rehearsed == payload, says.format(package) + (
+            f', but the tools changed since: run {runs[0]} rehearsed tools fingerprint {rehearsed}, and '
+            f'os/owner-tools/payload/SHA256SUMS now hashes to {payload}. {move_on}.')
 
 
 class CheckoutSourcesTest(unittest.TestCase):
@@ -109,6 +194,53 @@ class CheckoutSourcesTest(unittest.TestCase):
         raw = (ROOT / powershell['path']).read_bytes().replace(b'\r\n', b'\n')
         self.assertEqual(powershell['sha256'], hashlib.sha256(raw.replace(b'\n', b'\r\n')).hexdigest())
         self.assertNotEqual(powershell['sha256'], hashlib.sha256(raw).hexdigest())
+
+    def test_a_row_that_says_vm_rehearsal_passed_holds_only_what_the_rehearsal_ran(self):
+        # Package 22c's review 8, finding 3: until the laptop runs it, no tool or guide change hides on the list.
+        check_rehearsed_rows(STATUS.read_text(), [row['path'] for row in pending_rebind()] + pending_removed(),
+                             active_record(ROOT), lambda run: rehearsal_result(ROOT, run),
+                             hashlib.sha256(SUMS.read_bytes()).hexdigest())
+
+    def test_a_rehearsed_row_refuses_waiting_tools_or_guides_and_other_tools(self):
+        payload, older = 'd' * 64, 'a' * 64
+        def row(package, run, fingerprint, status=REHEARSED):
+            return (f'| Route (package {package}) | **BUILT AND REVIEWED; {status}** | **x** | Tools fingerprint '
+                    f'`{fingerprint}` ... passed in [rehearsal run {run}](https://github.com/x/actions/runs/{run}) |')
+        status = '\n'.join(['| What | Status | Scope | Notes |', '| --- | --- | --- | --- |',
+                            row('22c', 1, older[:8] + '…'), row('22d', 2, payload)])
+        active = dict(package='22d', run='https://github.com/x/actions/runs/2', commit='c' * 40)
+        results = {'1': dict(status='passed', commit='b' * 40, tools_version_3=older),
+                   '2': dict(status='passed', commit='c' * 40, tools=payload)}
+        waiting = ['os/tests/test_owner_path.py', '.github/workflows/os-image.yml']
+        self.assertEqual(set(rehearsed_rows(status)), {'22c', '22d'})
+        check_rehearsed_rows(status, waiting, active, results.get, payload)
+        say = 'docs/INSTALL-STATUS.md.s rows for packages 22c and 22d say ' + REHEARSED
+        cases = {
+            'a tool waits': (status, waiting + ['os/owner-tools/owner.py'], results, payload, say + '.*owner.py.*Rehearse again'),
+            'a guide waits': (status, waiting + ['docs/INSTALL.md'], results, payload, say + '.*docs/INSTALL.md'),
+            'a release script waits': (status, waiting + ['os/release/switch.sh'], results, payload, 'os/release/switch.sh'),
+            'other tools than the rehearsal ran': (status, waiting, results, 'e' * 64,
+                                                   'the tools changed since: run 2 rehearsed tools fingerprint d{64}, and '
+                                                   'os/owner-tools/payload/SHA256SUMS now hashes to e{64}.*move the row on'),
+            'a row naming other tools than its run': (status.replace(older[:8], 'f' * 8), waiting, results, payload,
+                                                      'package 22c says.*names tools fingerprint'),
+            'a row naming another run than the active bindings': (status.replace('rehearsal run 2]', 'rehearsal run 1]'),
+                waiting, dict(results, **{'1': dict(results['1'], tools=payload)}), payload, 'the active bindings are run'),
+            'a run that did not pass': (status, waiting, dict(results, **{'1': dict(results['1'], status='failed')}),
+                                        payload, 'run 1 did not pass'),
+            'a row without its package': (status.replace('(package 22c)', ''), waiting, results, payload, 'names no single package'),
+            'a result without the tools it rehearsed': (status, waiting, dict(results, **{'2': {
+                key: value for key, value in results['2'].items() if key != 'tools'}}), payload, 'run 2 names no tools'),
+        }
+        # A waiting harness file changes how a rehearsal runs, not what the laptop gets: it may wait.
+        check_rehearsed_rows(status, waiting + ['os/ci/owner_vm.py'], active, results.get, payload)
+        for label, (text, paths, found, sums, message) in cases.items():
+            with self.subTest(label), self.assertRaisesRegex(AssertionError, message):
+                check_rehearsed_rows(text, paths, active, found.get, sums)
+        # Once the rows move on (the laptop runs it), later tool and guide changes may wait again.
+        moved = status.replace(REHEARSED, 'VM REHEARSAL PASSED; ON THE LAPTOP 2026-11-20')
+        self.assertEqual(rehearsed_rows(moved), {})
+        check_rehearsed_rows(moved, waiting + ['os/owner-tools/owner.py', 'docs/INSTALL.md'], active, results.get, 'e' * 64)
 
     def test_waiting_list_refuses_every_unrecorded_or_stale_change(self):
         with tempfile.TemporaryDirectory(dir=ROOT / 'os/tests') as temporary:

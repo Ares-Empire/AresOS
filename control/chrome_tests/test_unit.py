@@ -10,7 +10,9 @@ class InstalledUnit(unittest.TestCase):
         unit = Path(__file__).resolve().parents[1] / 'packaging/aresos-toold.service'
         self.assertEqual(unit.read_text().split('\n'), [
             '# DRAFT: install only after owner configuration and brief 18b image qualification.',
-            '[Unit]', 'Description=AresOS tool service', 'After=local-fs.target', '',
+            '[Unit]', 'Description=AresOS tool service', 'After=local-fs.target',
+            '# A service that fails at every start ends failed within about 15 s (RestartSec=2); one crash still restarts.',
+            'StartLimitIntervalSec=30', 'StartLimitBurst=5', '',
             '[Service]',
             'Type=simple', 'User=aresos-tools', 'Group=aresos-tools',
             'ExecStart=/usr/bin/env -i PATH=/usr/bin:/bin LANG=C.UTF-8 /usr/bin/python3 -I -S /usr/libexec/aresos-control/launch.py service',

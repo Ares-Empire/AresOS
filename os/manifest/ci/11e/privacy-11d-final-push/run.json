@@ -101,11 +101,11 @@
     "message": "Report the 11d firmware PLAN-GAP and retain open installation and recovery gates",
     "timestamp": "2026-10-23T23:49:36Z",
     "author": {
-      "name": "pab",
+      "name": "owner",
       "email": "admin@example.com"
     },
     "committer": {
-      "name": "pab",
+      "name": "owner",
       "email": "admin@example.com"
     }
   },

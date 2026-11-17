@@ -104,11 +104,11 @@
         "message": "fix(os): bind persistent Homebrew ACL to reserved daily UID",
         "timestamp": "2026-10-22T16:57:31Z",
         "author": {
-          "name": "pab",
+          "name": "owner",
           "email": "admin@example.com"
         },
         "committer": {
-          "name": "pab",
+          "name": "owner",
           "email": "admin@example.com"
         }
       },
@@ -712,11 +712,11 @@
         "message": "fix(ci): reopen recovery TTY after login hangup",
         "timestamp": "2026-10-22T18:36:38Z",
         "author": {
-          "name": "pab",
+          "name": "owner",
           "email": "admin@example.com"
         },
         "committer": {
-          "name": "pab",
+          "name": "owner",
           "email": "admin@example.com"
         }
       },
@@ -1163,11 +1163,11 @@
         "message": "fix(os): deny daily access to inherited Homebrew at boot",
         "timestamp": "2026-10-22T16:55:22Z",
         "author": {
-          "name": "pab",
+          "name": "owner",
           "email": "admin@example.com"
         },
         "committer": {
-          "name": "pab",
+          "name": "owner",
           "email": "admin@example.com"
         }
       },
@@ -1593,11 +1593,11 @@
         "message": "test(os): model root-owned ancestry in inherited-state fixture",
         "timestamp": "2026-10-22T16:56:15Z",
         "author": {
-          "name": "pab",
+          "name": "owner",
           "email": "admin@example.com"
         },
         "committer": {
-          "name": "pab",
+          "name": "owner",
           "email": "admin@example.com"
         }
       },
@@ -2023,11 +2023,11 @@
         "message": "fix(os): bind persistent Homebrew ACL to reserved daily UID",
         "timestamp": "2026-10-22T16:57:31Z",
         "author": {
-          "name": "pab",
+          "name": "owner",
           "email": "admin@example.com"
         },
         "committer": {
-          "name": "pab",
+          "name": "owner",
           "email": "admin@example.com"
         }
       },
@@ -2474,11 +2474,11 @@
         "message": "fix(ci): reopen recovery TTY after login hangup",
         "timestamp": "2026-10-22T18:36:38Z",
         "author": {
-          "name": "pab",
+          "name": "owner",
           "email": "admin@example.com"
         },
         "committer": {
-          "name": "pab",
+          "name": "owner",
           "email": "admin@example.com"
         }
       },

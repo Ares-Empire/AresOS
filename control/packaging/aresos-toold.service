@@ -2,6 +2,9 @@
 [Unit]
 Description=AresOS tool service
 After=local-fs.target
+# A service that fails at every start ends failed within about 15 s (RestartSec=2); one crash still restarts.
+StartLimitIntervalSec=30
+StartLimitBurst=5
 
 [Service]
 Type=simple

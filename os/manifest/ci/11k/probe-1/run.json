@@ -101,11 +101,11 @@
     "message": "Retry transient read-only guard failures within five attempts",
     "timestamp": "2026-10-24T17:38:02Z",
     "author": {
-      "name": "pab",
+      "name": "owner",
       "email": "admin@example.com"
     },
     "committer": {
-      "name": "pab",
+      "name": "owner",
       "email": "admin@example.com"
     }
   },

@@ -102,11 +102,11 @@
       "message": "fix(ci): observe the actual greeter process and active graphical VT",
       "timestamp": "2026-10-22T20:22:39Z",
       "author": {
-        "name": "pab",
+        "name": "owner",
         "email": "admin@example.com"
       },
       "committer": {
-        "name": "pab",
+        "name": "owner",
         "email": "admin@example.com"
       }
     },

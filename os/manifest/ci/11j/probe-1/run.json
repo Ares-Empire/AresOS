@@ -101,11 +101,11 @@
     "message": "Distinguish stock updater clients from the daemon and retain idle decisions",
     "timestamp": "2026-10-24T16:33:05Z",
     "author": {
-      "name": "pab",
+      "name": "owner",
       "email": "admin@example.com"
     },
     "committer": {
-      "name": "pab",
+      "name": "owner",
       "email": "admin@example.com"
     }
   },

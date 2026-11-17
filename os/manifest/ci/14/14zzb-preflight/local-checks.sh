@@ -1,6 +1,6 @@
 #!/bin/bash
 set -eu
-cd /mnt/c/Users/pab/AresOS-14-owner-tools
+cd /mnt/c/Users/owner/AresOS-14-owner-tools
 export TMPDIR="$PWD/.work/14/local/tmp"
 export PATH="$PWD/.work/14/local/bin:$PATH"
 unset REHEARSAL_PACKAGE

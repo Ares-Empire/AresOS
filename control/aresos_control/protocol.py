@@ -1,8 +1,10 @@
 """Bounded JSON v1 frames; file streams acknowledge each offset before the next."""
 import base64
 from contextlib import contextmanager
+import errno
 import json
 import socket
+import time
 
 from .common import CHUNK_SIZE, WIRE_LIMIT, JSONInputError, Refused, display_json, sha256, strict_json_loads, digest
 from .requests import changing
@@ -10,6 +12,15 @@ from .requests import changing
 READ_TIMEOUT = 10
 CHANGE_TIMEOUT = 30
 ARCHIVE_TIMEOUT = 600
+# The unit is Type=simple, so it is "active" a moment before its sockets exist. A connect that fails before any byte
+# is sent is safe to try again: wait this long for a starting service, in short steps. The MCP proxies and the CLI
+# wait; the hooks pass connect_wait=0 (one attempt), so a session never waits per prompt or turn end while it is down.
+CONNECT_WAIT = 3.0
+CONNECT_STEP = 0.1
+# Connect failures, each before any byte is sent. Nothing listens at the path: the service is not running (or not yet).
+NOT_LISTENING = {errno.ENOENT, errno.ECONNREFUSED}
+# A listener whose queue is full, or a connect that timed out: the service runs but is busy.
+BUSY = {errno.EAGAIN, errno.EWOULDBLOCK, errno.ETIMEDOUT}
 
 
 def receive(connection):
@@ -39,22 +50,63 @@ def send(connection, message, *, result=False):
     connection.sendall(wire)
 
 
+class NotConnected(Refused):
+    """The connect failed, so nothing was sent: no operation exists, and none can be inspected.
+
+    Three codes. `service_unavailable`: nothing listens (the service is not running); try again later. `service_busy`:
+    the service runs but didn't take the connection (a full queue or a timeout); try again later. `setup_error`: any
+    other failure (a permission, a path through a file, a link loop) means the tools' setup looks wrong, which waiting
+    doesn't mend, so it gives no "try again" advice.
+    """
+    def __init__(self, cause):
+        number = getattr(cause, 'errno', None)
+        if number in NOT_LISTENING:
+            super().__init__('service_unavailable', 'The AresOS tool service is not running; nothing was sent. Try again later.')
+        elif number in BUSY or isinstance(cause, TimeoutError):
+            super().__init__('service_busy', 'The AresOS tool service is busy and did not take the connection; nothing was '
+                             'sent. Try again later.')
+        else:
+            reason = getattr(cause, 'strerror', None) or type(cause).__name__
+            super().__init__('setup_error', 'The AresOS tools could not connect to their service (' + reason + '): their '
+                             'setup looks wrong. Nothing was sent; tell the owner.')
+
+
 class Client:
-    def __init__(self, socket_path):
+    def __init__(self, socket_path, connect_wait=None):
+        """`connect_wait`: seconds to keep trying a connect that finds no listener; None is CONNECT_WAIT, 0 one try."""
         self.socket_path = str(socket_path)
+        self.connect_wait = connect_wait
+
+    def connect(self, timeout):
+        """A connected socket; failures here happen before any byte of the request is sent."""
+        deadline = time.monotonic() + (CONNECT_WAIT if self.connect_wait is None else self.connect_wait)
+        while True:
+            connection = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            try:
+                connection.settimeout(timeout)
+                connection.connect(self.socket_path)
+                return connection
+            except OSError as exc:
+                connection.close()
+                if exc.errno not in NOT_LISTENING or time.monotonic() >= deadline:
+                    raise NotConnected(exc) from exc
+            except BaseException:
+                connection.close()
+                raise
+            time.sleep(CONNECT_STEP)
 
     @contextmanager
     def connection(self, request=None):
         attempted = False
         try:
-            with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as connection:
-                timeout = READ_TIMEOUT
-                if request and changing(request):
-                    timeout = ARCHIVE_TIMEOUT if request.get('action') == 'control_archive' else CHANGE_TIMEOUT
-                connection.settimeout(timeout)
-                connection.connect(self.socket_path)
+            timeout = READ_TIMEOUT
+            if request and changing(request):
+                timeout = ARCHIVE_TIMEOUT if request.get('action') == 'control_archive' else CHANGE_TIMEOUT
+            with self.connect(timeout) as connection:
                 attempted = True
                 yield connection
+        except NotConnected:
+            raise
         except (OSError, Refused) as exc:
             if attempted and request and changing(request) and (isinstance(exc, OSError) or exc.code == 'transport_error'):
                 # A timeout/EOF says nothing about commit. Give the caller a

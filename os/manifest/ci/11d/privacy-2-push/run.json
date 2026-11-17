@@ -101,11 +101,11 @@
     "message": "Release the verified OCI pull cache before allocating installer disks",
     "timestamp": "2026-10-23T22:46:40Z",
     "author": {
-      "name": "pab",
+      "name": "owner",
       "email": "admin@example.com"
     },
     "committer": {
-      "name": "pab",
+      "name": "owner",
       "email": "admin@example.com"
     }
   },

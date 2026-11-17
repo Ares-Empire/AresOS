@@ -11,7 +11,7 @@ Reviewed `f13ac8e..ae90dd3`, limited to the five findings and affected code/test
 5. **CLOSED — stale status lines.** INSTALL and EMERGENCY now identify qualification 21’s completed VM scope while retaining **NOT RELEASED** and the physical gates.
 
 **Should-fix — the new diagnostic test does not test reboot survival.**  
-At [test_owner_export.py:65](C:/Users/pab/AresOS-14-owner-tools/os/tests/test_owner_export.py:65), the “reboot model” merely creates and deletes an unrelated directory, then rereads existing fixture files. It also overrides the production diagnostic path. The VM’s only [export](C:/Users/pab/AresOS-14-owner-tools/os/ci/owner_vm.py:960) precedes its deliberate STOPs, so qualification does not close this gap despite the [REPORT claim](C:/Users/pab/AresOS-14-owner-tools/reviews/14-owner-tools/REPORT.md:116).
+At [test_owner_export.py:65](C:/Users/owner/AresOS-14-owner-tools/os/tests/test_owner_export.py:65), the “reboot model” merely creates and deletes an unrelated directory, then rereads existing fixture files. It also overrides the production diagnostic path. The VM’s only [export](C:/Users/owner/AresOS-14-owner-tools/os/ci/owner_vm.py:960) precedes its deliberate STOPs, so qualification does not close this gap despite the [REPORT claim](C:/Users/owner/AresOS-14-owner-tools/reviews/14-owner-tools/REPORT.md:116).
 
 **Fix:** generate a controlled STOP before export, export its exact diagnostic through the owner command, reboot, then verify that diagnostic’s bytes on the tools stick. Correct the qualification claim until exercised.
 

@@ -1,0 +1,6 @@
+{
+  "stage": "tl-cancel",
+  "status": 1,
+  "stderr": "sudo: no password was provided",
+  "nothing_changed": true
+}

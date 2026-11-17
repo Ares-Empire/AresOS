@@ -1,0 +1,17 @@
+{
+  "status": "frozen",
+  "pid": 49498,
+  "state": "T",
+  "phases": [
+    "copy",
+    "publish"
+  ],
+  "phase_after": "publish",
+  "entry_before": "tools-851eb742bfe20bd4b47370b9f2558494edf4b74056d7023cc0d412e32fee6f33/at",
+  "entry_after": "tools-851eb742bfe20bd4b47370b9f2558494edf4b74056d7023cc0d412e32fee6f33/at",
+  "toolsets": [
+    "tools-851eb742bfe20bd4b47370b9f2558494edf4b74056d7023cc0d412e32fee6f33",
+    "tools-dcbc375faa4b269bacaf316c5ddc24503b9773b2538bcd017065ce8e312597be",
+    "tools-update-intent.json"
+  ]
+}

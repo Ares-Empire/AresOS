@@ -8,6 +8,8 @@ import sys
 CALLS={'read','navigate','free_click','fill','asking_click','approval_to_done'}
 INPUTS={'free_click','fill','approval_to_done'}
 PHASES={'fresh','history-1000','history-4000'}
+# Disk syncs per sample: the journal's fsyncs and control.sqlite's commits.
+SYNC_COUNTS=('journal_fsync','sqlite_commit')
 
 
 def sample_counts(targets):
@@ -73,6 +75,32 @@ def validate_pairs(value,samples):
                 assert all(math.isclose(block[stat],number,abs_tol=1e-6) for stat,number in expected.items()),'Summary does not match paired samples'
 
 
+def sync_gate(current,baseline,samples,old_samples):
+    """Per call kind and history phase, the current runtime syncs the disk no more often than the old one.
+
+    The store is on a tmpfs for both runtimes (brief 20-ci-noise), so the
+    timings no longer see a sync's disk cost. These counts are deterministic,
+    so an added fsync or commit is still caught exactly, without runner noise.
+    Both the lowest and the highest count of any sample are compared: the
+    highest catches a sync added on some samples only, and the lowest one
+    added on every sample where the old runtime's counts vary.
+    """
+    rows=[];failures=[]
+    for phase in sorted(PHASES):
+        for call in sorted(CALLS):
+            for counter in SYNC_COUNTS:
+                observed={}
+                for side,value,count in [('current',current,samples),('ab7aba92',baseline,old_samples)]:
+                    block=value['sync_counts'][phase][call][counter]
+                    assert block['samples']==count and all(type(block[key]) is int for key in ['min','max']) and 0<=block['min']<=block['max'],'Missing or malformed sync counts'
+                    observed[side]=block
+                row={'phase':phase,'call':call,'counter':counter,
+                     **{side+'_'+key:observed[side][key] for side in ['current','ab7aba92'] for key in ['min','max']}}
+                rows.append(row)
+                if any(observed['current'][key]>observed['ab7aba92'][key] for key in ['min','max']):failures.append(row)
+    return rows,failures
+
+
 def check(current,baseline,reference,targets):
     assert targets['format']==1 and targets['status']=='lead-approved','Latency ceilings still require the lead decision'
     assert set(targets['ceilings_ms'])==CALLS
@@ -125,9 +153,10 @@ def check(current,baseline,reference,targets):
             if regression or target_miss:failures.append({'phase':phase,'call':call,'regression':regression,'target_miss':target_miss})
             rows.append({'phase':phase,'call':call,'runner_factor':noise,'paired_work_ms':observed,'regression_threshold_ms':allowed,
                          'client_ms':{stat:metric(group,call,stat,samples) for stat in observed},'target_miss':target_miss})
-    return {'passed':not failures,'failures':failures,'measurements':rows,
+    sync_rows,sync_failures=sync_gate(current,baseline,samples,old_samples)
+    return {'passed':not failures and not sync_failures,'failures':failures,'sync_failures':sync_failures,'measurements':rows,'sync_counts':sync_rows,
             'samples_per_call':samples,'old_runtime_samples_per_call':old_samples,'reference_samples_per_call':reference_samples,
-            'policy':'Lead ceilings and reference regression in every measured history phase. A call misses the lead ceilings when its median or its p95 is over the ceiling; against the reference, median and p95 must both cross. Common paired runner slowdown scales both allowances, measured with the old runtime at the reference sample count and positions; Matched per-sample waits are subtracted before percentiles; the 525 ms wait is checked separately.'}
+            'policy':'Lead ceilings and reference regression in every measured history phase. A call misses the lead ceilings when its median or its p95 is over the ceiling; against the reference, median and p95 must both cross. Common paired runner slowdown scales both allowances, measured with the old runtime at the reference sample count and positions; Matched per-sample waits are subtracted before percentiles; the 525 ms wait is checked separately. The store is on a tmpfs for both runtimes, so in every phase and call the lowest and the highest count of fsyncs and of SQLite commits per sample of the current runtime must not exceed those of the old runtime.'}
 
 
 if __name__=='__main__':

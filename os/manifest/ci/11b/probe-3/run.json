@@ -101,11 +101,11 @@
     "message": "Share the real installer flow and require a two-order review probe",
     "timestamp": "2026-10-23T00:15:53Z",
     "author": {
-      "name": "pab",
+      "name": "owner",
       "email": "admin@example.com"
     },
     "committer": {
-      "name": "pab",
+      "name": "owner",
       "email": "admin@example.com"
     }
   },

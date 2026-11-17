@@ -101,11 +101,11 @@
     "message": "Keep Anaconda alive while replacing its active browser client",
     "timestamp": "2026-10-23T02:26:28Z",
     "author": {
-      "name": "pab",
+      "name": "owner",
       "email": "admin@example.com"
     },
     "committer": {
-      "name": "pab",
+      "name": "owner",
       "email": "admin@example.com"
     }
   },

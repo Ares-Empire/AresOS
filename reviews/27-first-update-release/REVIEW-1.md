@@ -1,14 +1,14 @@
 Reviewed **5335f8a4**, read-only. I found one blocking cleanup issue and one nonblocking harness issue.
 
 1. **Blocking — the automatic timeout bypasses finalizer restoration.**  
-   [update.sh:47](C:/Users/pab/AresOS-27-review/os/release/update.sh:47) relies on its Bash `EXIT` trap. But [owner.py:250](C:/Users/pab/AresOS-27-review/os/owner-tools/owner.py:250) runs that shell through `subprocess.run(..., timeout=1800)`. On timeout, Python kills the shell with SIGKILL; its trap cannot run, and the separate `bootc` process is not necessarily terminated. [CPython implementation](https://github.com/python/cpython/blob/v3.14.0/Lib/subprocess.py).
+   [update.sh:47](C:/Users/owner/AresOS-27-review/os/release/update.sh:47) relies on its Bash `EXIT` trap. But [owner.py:250](C:/Users/owner/AresOS-27-review/os/owner-tools/owner.py:250) runs that shell through `subprocess.run(..., timeout=1800)`. On timeout, Python kills the shell with SIGKILL; its trap cannot run, and the separate `bootc` process is not necessarily terminated. [CPython implementation](https://github.com/python/cpython/blob/v3.14.0/Lib/subprocess.py).
 
    A slow or stuck laptop update can therefore return STOP with both finalizers still unmasked and staging potentially continuing. This is an explicit application timeout, not an unavoidable power-loss scenario. It breaks the accepted all-or-nothing failure behavior; I am **not** claiming it necessarily destroys R13.
 
    **Fix:** keep a supervisor alive through timeout/cancellation, terminate and reap the transaction, reconcile whether staging completed, and restore the removed masks when staging failed. Test timeout and interruption through the real runner, then regenerate the bundle and fingerprint pins. Merely adding a TERM trap does not fix Python’s SIGKILL path.
 
 2. **Should-fix — the util-linux check accepts unreviewed version suffixes.**  
-   [owner_login.py:41](C:/Users/pab/AresOS-27-review/os/ci/owner_login.py:41) accepts `2.41.6-rc1` and `2.41.6-custom` as `2.41.6`: its boundary excludes only digits and dots.
+   [owner_login.py:41](C:/Users/owner/AresOS-27-review/os/ci/owner_login.py:41) accepts `2.41.6-rc1` and `2.41.6-custom` as `2.41.6`: its boundary excludes only digits and dots.
 
    This cannot change the laptop’s pinned image, so it is **not blocking for laptop safety**, but it weakens the harness’s claimed exact-version qualification.
 

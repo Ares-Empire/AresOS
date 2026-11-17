@@ -1,7 +1,7 @@
 Reviewed commit `c1908bca7f9d929b2aa40d1b56213977a47c72c6` and the council’s referenced files. No files changed; no runtime or hardware trials performed.
 
 1. **Blocking — Failed-boot recovery depends on resources that may be unavailable during the failure.**  
-   Where: [§9 and Appendix A](C:/Users/pab/AresOS-02-os-base-design/docs/design/OS-BASE.md:140), particularly lines 140, 176 and 218.
+   Where: [§9 and Appendix A](C:/Users/owner/AresOS-02-os-base-design/docs/design/OS-BASE.md:140), particularly lines 140, 176 and 218.
 
    **Scenario:** An interrupted update leaves the root system unbootable while the owner has no internet. The recovery TTY cannot start. Reinstalling the previous recipe needs downloaded OS dependencies; retaining the previous AresOS/game payload does not retain those dependencies. No independently bootable, offline recovery kit is required.
 
@@ -12,7 +12,7 @@ Reviewed commit `c1908bca7f9d929b2aa40d1b56213977a47c72c6` and the council’s r
    **Check:** Disable networking and make the installed root unbootable. Recover using only the prepared kit, then launch the prepared world. Separately damage the test AresOS ESP. Verify protected-disk hashes and firmware BootOrder remain unchanged.
 
 2. **Blocking — Disabling the sleep UI does not disable lid-triggered suspend or make hardware power events save safely.**  
-   Where: [Everyday needs and shutdown contract](C:/Users/pab/AresOS-02-os-base-design/docs/design/OS-BASE.md:119), lines 119–120 and 199.
+   Where: [Everyday needs and shutdown contract](C:/Users/owner/AresOS-02-os-base-design/docs/design/OS-BASE.md:119), lines 119–120 and 199.
 
    **Scenario:** Before P11 qualifies suspend, the owner closes the lid during a world save. Stock logind behavior suspends on lid closure and powers off on a power-button press. Its default delay-inhibitor allowance is only five seconds; lid handling also ignores ordinary high-level sleep blockers by default. [systemd documentation](https://www.freedesktop.org/software/systemd/man/latest/logind.conf.html)
 
@@ -23,7 +23,7 @@ Reviewed commit `c1908bca7f9d929b2aa40d1b56213977a47c72c6` and the council’s r
    **Check:** Exercise lid closure, power/sleep keys and simulated critical battery while loading, saving and updating, including a save lasting longer than five seconds and a failed session helper.
 
 3. **Should-fix — Retained kernels are not necessarily usable NVIDIA recovery environments.**  
-   Where: [Update retention policy](C:/Users/pab/AresOS-02-os-base-design/docs/design/OS-BASE.md:138).
+   Where: [Update retention policy](C:/Users/owner/AresOS-02-os-base-design/docs/design/OS-BASE.md:138).
 
    **Scenario:** A driver update replaces NVIDIA userspace. The owner selects an older kernel after the new configuration fails, but that kernel retains an older NVIDIA module. Ubuntu explicitly documents failure when kernel-module and userspace versions differ. Conversely, updating both kernels’ modules to the new driver preserves no escape from that driver’s regression. [Ubuntu NVIDIA troubleshooting](https://ubuntu.com/server/docs/how-to/graphics/install-nvidia-drivers/)
 
@@ -34,7 +34,7 @@ Reviewed commit `c1908bca7f9d929b2aa40d1b56213977a47c72c6` and the council’s r
    **Check:** After each qualified driver update, deliberately select the recovery path offline. Verify module/userspace compatibility and Minecraft’s actual renderer—not merely successful kernel boot or driver installation.
 
 4. **Should-fix — The update design does not explicitly control Ubuntu’s other package-update mechanisms.**  
-   Where: [§9 and package locking](C:/Users/pab/AresOS-02-os-base-design/docs/design/OS-BASE.md:136), lines 136–138 and 178.
+   Where: [§9 and package locking](C:/Users/owner/AresOS-02-os-base-design/docs/design/OS-BASE.md:136), lines 136–138 and 178.
 
    **Scenario:** The installed system retains an enabled security repository and Ubuntu’s default unattended-upgrade configuration. Its timer installs updates outside the AresOS maintenance operation, potentially while Minecraft is running. Ubuntu documents automatic security updates and timer catch-up after startup. [Ubuntu automatic updates](https://ubuntu.com/server/docs/how-to/software/automatic-updates/)
 
@@ -45,7 +45,7 @@ Reviewed commit `c1908bca7f9d929b2aa40d1b56213977a47c72c6` and the council’s r
    **Check:** Offer a newer security package in a test repository and trigger the native timers outside maintenance. Assert that installed versions remain unchanged; then verify the authorized updater applies the approved release.
 
 5. **Should-fix — Recovery has no resource protection against memory exhaustion.**  
-   Where: [Session supervision and app isolation](C:/Users/pab/AresOS-02-os-base-design/docs/design/OS-BASE.md:193).
+   Where: [Session supervision and app isolation](C:/Users/owner/AresOS-02-os-base-design/docs/design/OS-BASE.md:193).
 
    **Scenario:** Minecraft, shaders and browser tabs exhaust the laptop’s 16 GB. The game is killed and automatically restarted into the same pressure, or the session becomes too unresponsive to open recovery. Independence from the game process does not itself provide memory isolation. systemd’s documentation specifically warns that unsuitable cgroup grouping can cause an OOM action to kill an entire session group. [systemd-oomd documentation](https://www.freedesktop.org/software/systemd/man/latest/systemd-oomd.service.html)
 
@@ -56,7 +56,7 @@ Reviewed commit `c1908bca7f9d929b2aa40d1b56213977a47c72c6` and the council’s r
    **Check:** Apply controlled memory pressure with a world and browser open. Confirm recovery remains responsive, an OOM event is explained, and Minecraft does not repeatedly restart into exhaustion.
 
 6. **Should-fix — The five-minute restart window permits endless slower crash loops.**  
-   Where: [Supervisor state contract](C:/Users/pab/AresOS-02-os-base-design/docs/design/OS-BASE.md:197).
+   Where: [Supervisor state contract](C:/Users/owner/AresOS-02-os-base-design/docs/design/OS-BASE.md:197).
 
    **Scenario:** A regression reaches the world successfully, then crashes every four minutes. It never produces three failures within five minutes, so the stated cutoff never activates.
 
@@ -67,7 +67,7 @@ Reviewed commit `c1908bca7f9d929b2aa40d1b56213977a47c72c6` and the council’s r
    **Check:** Simulate launches that report ready and crash four minutes later. Verify that a finite number of attempts leads to persistent recovery, including across a supervisor restart.
 
 7. **Should-fix — The base decision asks the owner to accept recurring repair work before qualifying a concrete MOK-based atomic alternative.**  
-   Where: [Base comparison and owner decision](C:/Users/pab/AresOS-02-os-base-design/docs/design/OS-BASE.md:33), lines 33, 43–47 and 298.
+   Where: [Base comparison and owner decision](C:/Users/owner/AresOS-02-os-base-design/docs/design/OS-BASE.md:33), lines 33, 43–47 and 298.
 
    **Scenario:** A future package update requires manual repair or reinstall. Avoiding that burden was the principal reason to consider an atomic base, but the comparison stopped without evaluating an exact community NVIDIA image and its enrollment procedure.
 

@@ -1,7 +1,7 @@
 {
   "status": "passed",
   "tests": {
-    "command": "wsl --exec bash --noprofile --norc -c 'cd /mnt/c/Users/pab/AresOS-14-owner-tools && python3 -B -m unittest discover -s os/tests -p test_owner_equality.py -v'",
+    "command": "wsl --exec bash --noprofile --norc -c 'cd /mnt/c/Users/owner/AresOS-14-owner-tools && python3 -B -m unittest discover -s os/tests -p test_owner_equality.py -v'",
     "tests": 4,
     "seconds": 153.061,
     "result": "OK",

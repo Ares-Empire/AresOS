@@ -254,6 +254,22 @@ class OperationHeaders(unittest.TestCase):
         self.assertTrue(first.exists());self.assertTrue(second.exists())
 
 
+def sync_rows(rows,fsyncs=2,commits=2):
+    """What latency-profile.py emits per sample besides the timings: the journal's fsyncs and control.sqlite's commits."""
+    return [stage for row in rows for stage in [
+        {'sample':row['sample'],'call':row['call'],'stage':'journal_fsync','milliseconds':.1,'count':fsyncs},
+        {'sample':row['sample'],'call':row['call'],'stage':'sqlite_commit','count':commits}]]
+
+
+def store_record(root,fstype='tmpfs',end=('/var/lib/aresos-tools','/var/lib/aresos-operation-evidence')):
+    """run.sh's latency-store.py record: both store directories and their mount, with the end record for those in end."""
+    import json
+    directories={directory:{'mount_point':directory,'fstype':fstype,'source':'latency-store','options':'rw,size=524288k,mode=755,uid=1001',
+                            'size_bytes':512*1024*1024,'used_bytes_start':0,**({'used_bytes_end':40*1024*1024} if directory in end else {})}
+                 for directory in ['/var/lib/aresos-tools','/var/lib/aresos-operation-evidence']}
+    (root/'latency-store.json').write_text(json.dumps({'directories':directories}))
+
+
 class LatencySummary(unittest.TestCase):
     def test_summary_requires_all_calls_and_history_phases_without_duplicate_samples(self):
         import importlib.util
@@ -272,6 +288,7 @@ class LatencySummary(unittest.TestCase):
                 (root/file).write_text(value)
             internal=[{'sample':row['sample'],'call':row['call'],'stage':'post_input_observation_wait','milliseconds':525} for row in rows if row['call'] in module.INPUTS]
             internal += [{'stage':'history_fixture','count':count} for count in [1000,4000]]
+            internal += sync_rows(rows);store_record(root)
             (root/'latency-service.jsonl').write_text('\n'.join(map(json.dumps,internal)))
             (root/'latency-client.json').write_text(json.dumps(client))
             result=module.summarize(root)
@@ -300,6 +317,7 @@ class LatencySummary(unittest.TestCase):
             rows=[{'sample':phase+':'+str(i),'phase':phase,'call':call,'milliseconds':(525 if call in module.INPUTS else 0)+10+i} for phase in sorted(module.PHASES) for i in positions for call in sorted(module.CALLS)]
             internal=[{'sample':row['sample'],'call':row['call'],'stage':'post_input_observation_wait','milliseconds':525} for row in rows if row['call'] in module.INPUTS]
             internal+=[{'stage':'history_fixture','count':count} for count in [1000,4000]]
+            internal+=sync_rows(rows);store_record(root)
             (root/'latency-service.jsonl').write_text('\n'.join(map(json.dumps,internal)))
             (root/'latency-client.json').write_text(json.dumps({'samples':rows,'baseline':runtime,'privacy':'plain'}))
         with tempfile.TemporaryDirectory(dir=Path(__file__).resolve().parents[2]/'.work') as temporary:
@@ -316,6 +334,43 @@ class LatencySummary(unittest.TestCase):
                 with self.subTest(runtime=runtime,positions=positions):
                     write(root,runtime,positions)
                     with self.assertRaises(AssertionError):module.summarize(root)
+
+
+    def test_ci_noise_summary_carries_sync_counts_and_refuses_a_store_off_tmpfs(self):
+        # Brief 20-ci-noise: the summary sums each sample's fsyncs and commits over its
+        # requests, keeps them out of the timing stages, and states where the store was.
+        import importlib.util
+        import json
+        from pathlib import Path
+        import tempfile
+        path=Path(__file__).resolve().parents[1]/'chrome/ci/latency-summary.py'
+        spec=importlib.util.spec_from_file_location('latency_summary',path)
+        module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        rows=[{'sample':phase+':'+str(i),'phase':phase,'call':call,'milliseconds':(525 if call in module.INPUTS else 0)+10+i} for phase in sorted(module.PHASES) for i in range(module.SAMPLES) for call in sorted(module.CALLS)]
+        timings=[{'sample':row['sample'],'call':row['call'],'stage':'post_input_observation_wait','milliseconds':525} for row in rows if row['call'] in module.INPUTS]
+        timings+=[{'stage':'history_fixture','count':count} for count in [1000,4000]]
+        with tempfile.TemporaryDirectory(dir=Path(__file__).resolve().parents[2]/'.work') as temporary:
+            root=Path(temporary)
+            for file,value in [('chrome-version.txt','Synthetic Chrome'),('runtime-build.txt','synthetic-build')]:(root/file).write_text(value)
+            (root/'latency-client.json').write_text(json.dumps({'samples':rows,'baseline':'current','privacy':'plain'}))
+            def summarize(internal,fstype='tmpfs',**end):
+                store_record(root,fstype,**end)
+                (root/'latency-service.jsonl').write_text('\n'.join(map(json.dumps,timings+internal)))
+                return module.summarize(root)
+            # approval_to_done's first sample makes two requests: its counts add up.
+            target=[row for row in rows if row['sample']=='fresh:0' and row['call']=='approval_to_done']
+            result=summarize(sync_rows(rows,4,4)+sync_rows(target,2,1))
+            self.assertEqual(result['sync_counts']['fresh']['approval_to_done'],{'journal_fsync':{'samples':60,'min':4,'max':6},'sqlite_commit':{'samples':60,'min':4,'max':5}})
+            self.assertEqual(result['sync_counts']['history-4000']['read']['sqlite_commit'],{'samples':60,'min':4,'max':4})
+            self.assertNotIn('sqlite_commit',result['phases']['fresh']['read'])
+            self.assertEqual(result['phases']['fresh']['read']['journal_fsync']['samples'],60)
+            self.assertEqual(result['store']['/var/lib/aresos-tools']['fstype'],'tmpfs')
+            # A missing count, or a store that wasn't on a tmpfs, refuses.
+            for internal,fstype in [(sync_rows(rows)[:-1],'tmpfs'),(sync_rows(rows)[1:],'tmpfs'),(sync_rows(rows),'ext4'),(sync_rows(rows),'overlay')]:
+                with self.subTest(rows=len(internal),fstype=fstype),self.assertRaises(AssertionError):summarize(internal,fstype)
+            # So does a store whose end-of-run check didn't run, for either directory (review nit 4).
+            for end in [(),('/var/lib/aresos-tools',),('/var/lib/aresos-operation-evidence',)]:
+                with self.subTest(end=end),self.assertRaisesRegex(AssertionError,'end-of-run'):summarize(sync_rows(rows),end=end)
 
 
 class LatencyGate(unittest.TestCase):
@@ -338,8 +393,8 @@ class LatencyGate(unittest.TestCase):
                 current=copy.deepcopy(accepted['current'])
                 self.assertEqual(current['chrome'],observed['chrome'])
                 # The old runtime keeps the reference's 20 samples at its positions.
-                baseline=directory/'baseline.json';baseline.write_text(json.dumps(accepted['baseline']))
-                source=directory/'current.json';source.write_text(json.dumps(self.repeated(current)))
+                baseline=directory/'baseline.json';baseline.write_text(json.dumps(self.counted(accepted['baseline'],self.old_samples)))
+                source=directory/'current.json';source.write_text(json.dumps(self.counted(self.repeated(current),self.samples)))
                 command=[sys.executable,'-B',str(ci/'latency-check.py'),str(source),str(baseline),str(ci/'latency-reference.json'),str(ci/'latency-targets.json')]
                 nominal=subprocess.run(command,capture_output=True,text=True,timeout=30)
                 self.assertEqual(nominal.returncode,0,nominal.stdout+nominal.stderr)
@@ -353,7 +408,7 @@ class LatencyGate(unittest.TestCase):
                     rows=[row for row in current['input_samples'] if row['phase']=='history-4000' and row['call']==call]
                     for stage,values in [('client_total',[row['client_ms'] for row in rows]),('post_input_observation_wait',[row['wait_ms'] for row in rows]),('client_without_wait',[max(0,row['client_ms']-row['wait_ms']) for row in rows])]:
                         group[call][stage]=self.stats(values)
-                source.write_text(json.dumps(self.repeated(current)))
+                source.write_text(json.dumps(self.counted(self.repeated(current),self.samples)))
                 restored=subprocess.run(command,capture_output=True,text=True,timeout=30)
                 self.assertEqual(restored.returncode,1,restored.stdout+restored.stderr)
                 result=json.loads((directory/'latency-check.json').read_text())
@@ -410,7 +465,14 @@ class LatencyGate(unittest.TestCase):
                     group[call]['client_without_wait']=self.stats(values)
                     pairs.extend({'sample':phase+':'+str(i),'phase':phase,'call':call,'client_ms':wait+v,'wait_ms':wait} for i,v in enumerate(values))
             phases[phase]=group
-        return {'runtime':runtime,'privacy':'plain','chrome':'Synthetic Chrome','phases':phases,'input_samples':pairs}
+        return self.counted({'runtime':runtime,'privacy':'plain','chrome':'Synthetic Chrome','phases':phases,'input_samples':pairs},samples)
+
+    def counted(self,measurement,samples,fsyncs=2,commits=2):
+        # The summary's sync counts: the same number on every sample, as measured.
+        value=copy.deepcopy(measurement)
+        value['sync_counts']={phase:{call:{'journal_fsync':{'samples':samples,'min':fsyncs,'max':fsyncs},'sqlite_commit':{'samples':samples,'min':commits,'max':commits}}
+                                     for call in self.gate.CALLS} for phase in self.gate.PHASES}
+        return value
 
     def build(self,samples):
         # The current runtime takes `samples`, the old runtime and the
@@ -445,6 +507,47 @@ class LatencyGate(unittest.TestCase):
         self.assertTrue(self.check()['passed'])
         self.scale(self.current,1.8);self.scale(self.old,1.8)
         self.assertTrue(self.check()['passed'])
+
+    def test_ci_noise_an_added_fsync_or_sqlite_commit_fails_the_sync_gate(self):
+        # Brief 20-ci-noise: with the store on a tmpfs the timings no longer see a sync's
+        # disk cost, so its count must. One more fsync or commit than the old runtime, in
+        # any phase and call and on any sample, fails with every timing nominal.
+        result=self.check()
+        self.assertTrue(result['passed']);self.assertEqual(result['sync_failures'],[])
+        self.assertEqual(len(result['sync_counts']),len(self.gate.PHASES)*len(self.gate.CALLS)*2)
+        for counter in ['journal_fsync','sqlite_commit']:
+            for phase,call in [('fresh','read'),('history-1000','asking_click'),('history-4000','approval_to_done')]:
+                for every in [True,False]:
+                    with self.subTest(counter=counter,phase=phase,call=call,every_sample=every):
+                        self.build(self.samples)
+                        block=self.current['sync_counts'][phase][call][counter];block['max']+=1
+                        if every:block['min']+=1
+                        result=self.check()
+                        self.assertFalse(result['passed']);self.assertEqual(result['failures'],[])
+                        self.assertEqual([(row['phase'],row['call'],row['counter'],row['current_max'],row['ab7aba92_max']) for row in result['sync_failures']],[(phase,call,counter,3,2)])
+        # Fewer syncs than the old runtime, or as many, pass, also where its counts vary.
+        self.build(self.samples)
+        self.current['sync_counts']['fresh']['fill']['journal_fsync'].update(min=1,max=1)
+        self.old['sync_counts']['history-4000']['navigate']['sqlite_commit'].update(min=2,max=3)
+        self.current['sync_counts']['history-4000']['navigate']['sqlite_commit'].update(min=2,max=3)
+        self.assertTrue(self.check()['passed'])
+        # Where the old runtime's counts vary, a sync added on every sample may raise only
+        # the lowest count. That fails too (review nit 2).
+        self.current['sync_counts']['history-4000']['navigate']['sqlite_commit'].update(min=3,max=3)
+        result=self.check()
+        self.assertFalse(result['passed']);self.assertEqual(result['failures'],[])
+        self.assertEqual([(row['phase'],row['call'],row['counter'],row['current_min'],row['ab7aba92_min'],row['current_max'],row['ab7aba92_max']) for row in result['sync_failures']],
+                         [('history-4000','navigate','sqlite_commit',3,2,3,3)])
+        # Missing or malformed counts on either side can't pass.
+        for side in ['current','old']:
+            for name,mutate in [('missing',lambda value:value.pop('sync_counts')),
+                                ('missing counter',lambda value:value['sync_counts']['fresh']['read'].pop('sqlite_commit')),
+                                ('sample count',lambda value:value['sync_counts']['fresh']['read']['journal_fsync'].update(samples=1)),
+                                ('order',lambda value:value['sync_counts']['fresh']['read']['journal_fsync'].update(min=3,max=2)),
+                                ('type',lambda value:value['sync_counts']['fresh']['read']['journal_fsync'].update(max=2.0))]:
+                with self.subTest(side=side,malformed=name):
+                    self.build(self.samples);mutate(getattr(self,side))
+                    with self.assertRaises((AssertionError,KeyError)):self.check()
 
     def test_clear_regression_in_each_call_and_history_phase_fails(self):
         original=copy.deepcopy(self.current)
@@ -490,7 +593,7 @@ class LatencyGate(unittest.TestCase):
         ci=Path(__file__).resolve().parents[1]/'chrome/ci'
         reference=json.loads((ci/'latency-reference.json').read_text())['profiles'][profile]
         targets=json.loads((ci/'latency-targets.json').read_text())
-        return self.repeated(reference['current']),copy.deepcopy(reference['baseline']),reference,targets
+        return self.counted(self.repeated(reference['current']),self.samples),self.counted(reference['baseline'],self.old_samples),reference,targets
 
     def test_final_f4_a_median_or_p95_over_a_lead_ceiling_fails_alone(self):
         # The final review's case: the lead's ceilings, the measured reference,
@@ -641,12 +744,18 @@ class MainFixStorageStages(unittest.TestCase):
         self.profile.MARKER=root/'latency-marker.json';self.profile.OUT=root/'latency-service.jsonl'
         self.addCleanup(setattr,storage,'os',os)
         journal=open(root/'journal','ab');self.addCleanup(journal.close)
+        import sqlite3
+        db=sqlite3.connect(root/'control.sqlite');self.addCleanup(db.close)
+        db.execute('CREATE TABLE kv (k TEXT PRIMARY KEY, v TEXT NOT NULL)')
         self.json,self.os=json,os
         def write(changes,action,summary):
-            # Two journal fsyncs per write, as the real store's _append does.
+            # Two journal fsyncs and two SQLite commits per write, as the real store's write does.
             for _ in range(2):storage.os.fsync(journal.fileno())
+            for _ in range(2):
+                with db:db.execute('INSERT OR REPLACE INTO kv VALUES (?,?)',('x',action))
+            db.execute('SELECT v FROM kv').fetchall()
             return 'written'
-        store=SimpleNamespace(write=write)
+        store=SimpleNamespace(write=write,db=db,state_dir=root)
         bridge=SimpleNamespace(connection=None,call=lambda name,**arguments:{'ok':True},on_event=lambda value:None)
         def request(value,admin=False):
             for _ in range(value.get('writes',0)):self.engine.store.write({'x':1},'chrome_fixture','synthetic')
@@ -663,7 +772,7 @@ class MainFixStorageStages(unittest.TestCase):
         self.assertIsNot(storage.os,self.os);self.assertEqual(storage.os.SEEK_END,self.os.SEEK_END)
         # Work outside a marked sample is not counted and does not leak into the next one.
         self.engine.store.write({'x':1},'chrome_fixture','synthetic');self.engine.request({'writes':3})
-        self.assertEqual(self.rows('store_write'),[]);self.assertEqual(self.rows('journal_fsync'),[])
+        self.assertEqual(self.rows('store_write'),[]);self.assertEqual(self.rows('journal_fsync'),[]);self.assertEqual(self.rows('sqlite_commit'),[])
         self.profile.MARKER.write_text(self.json.dumps({'sample':'fresh:0','call':'approval_to_done'}))
         self.engine.request({'writes':2})
         self.profile.MARKER.write_text(self.json.dumps({'sample':'fresh:1','call':'read'}))
@@ -671,6 +780,10 @@ class MainFixStorageStages(unittest.TestCase):
         writes=self.rows('store_write');fsyncs=self.rows('journal_fsync')
         self.assertEqual([(row['sample'],row['call']) for row in writes],[('fresh:0','approval_to_done'),('fresh:1','read')])
         self.assertEqual([(row['sample'],row['call'],row['count']) for row in fsyncs],[('fresh:0','approval_to_done',4),('fresh:1','read',0)])
+        # Brief 20-ci-noise: SQLite's commits are counted the same way, as counts with no timing.
+        commits=self.rows('sqlite_commit')
+        self.assertEqual([(row['sample'],row['call'],row['count']) for row in commits],[('fresh:0','approval_to_done',4),('fresh:1','read',0)])
+        for row in commits:self.assertNotIn('milliseconds',row)
         self.assertGreater(writes[0]['milliseconds'],0);self.assertGreaterEqual(writes[0]['milliseconds'],fsyncs[0]['milliseconds'])
         self.assertEqual(writes[1]['milliseconds'],0);self.assertEqual(fsyncs[1]['milliseconds'],0)
         for row in writes+fsyncs:self.assertNotIn('command',row)
@@ -692,6 +805,114 @@ class MainFixStorageStages(unittest.TestCase):
         service=(ROOT/'control/chrome/ci/service.py').read_text()
         self.assertIn("open(os.environ.get('FIXTURE_LOG_DIR','/out')+'/browser-boundary.jsonl','a',buffering=1)",service)
         self.assertNotIn("open('/out/browser-boundary.jsonl'",service)
-        # The store stays on the container's disk: nothing redirects its state directories.
+        # The store keeps its own directories (run.sh mounts a tmpfs over them for the latency
+        # pair): nothing redirects them to /scratch.
         self.assertIn("'state_dir':'/var/lib/aresos-tools'",service)
         self.assertNotIn('/scratch',service)
+
+    def test_ci_noise_the_profile_counts_a_real_store_write_s_fsyncs_and_commits(self):
+        # The real Store, not a stand-in: one write is two journal fsyncs and two
+        # control.sqlite commits (its events row, then its state), and only inside a sample.
+        from types import SimpleNamespace
+        from aresos_control.storage import Store
+        root=__import__('pathlib').Path(self.temporary.name)
+        store=Store(root/'state',root/'evidence');self.addCleanup(store.close)
+        self.engine.store=store
+        def request(value,admin=False):
+            for index in range(value.get('writes',0)):store.write({'latency:'+str(index):{'value':index}},'chrome_fixture','Synthetic')
+            return {'ok':True}
+        self.engine.request=request
+        self.profile.install(self.daemon)
+        self.engine.request({'writes':1})
+        self.profile.MARKER.write_text(self.json.dumps({'sample':'fresh:0','call':'fill'}))
+        self.engine.request({'writes':3})
+        self.assertEqual([(row['sample'],row['count']) for row in self.rows('journal_fsync')],[('fresh:0',6)])
+        self.assertEqual([(row['sample'],row['count']) for row in self.rows('sqlite_commit')],[('fresh:0',6)])
+        self.assertEqual(store.get('latency:2'),{'value':2})
+
+    def test_ci_noise_the_commit_count_is_what_commits_an_autocommit_write_included(self):
+        # Review nit 3: the probe counts the commits control.sqlite records (its change
+        # counter), not the COMMIT statements sent. A write in autocommit mode commits, and
+        # syncs, without one; a COMMIT that changed nothing syncs nothing.
+        import sqlite3
+        db=self.engine.store.db
+        def request(value,admin=False):
+            if value.get('autocommit'):
+                db.isolation_level=None
+                try:db.execute("INSERT OR REPLACE INTO kv VALUES ('auto','1')")
+                finally:db.isolation_level=''
+            # The sqlite3 module opens no transaction before DDL: it commits on its own.
+            if value.get('ddl'):db.execute('CREATE TABLE '+value['ddl']+' (x)')
+            if value.get('unchanged'):
+                with db:db.execute("DELETE FROM kv WHERE k='missing'")
+            if value.get('nested'):
+                with db:db.execute("INSERT OR REPLACE INTO kv VALUES ('outer','1')")
+                self.engine.request({'autocommit':True,'ddl':'inner'})
+                with db:db.execute("INSERT OR REPLACE INTO kv VALUES ('outer','2')")
+            return {'ok':True}
+        self.engine.request=request
+        self.profile.install(self.daemon)
+        self.profile.MARKER.write_text(self.json.dumps({'sample':'fresh:0','call':'fill'}))
+        for value in [{'autocommit':True},{'ddl':'extra'},{'unchanged':True}]:self.engine.request(value)
+        self.assertEqual([row['count'] for row in self.rows('sqlite_commit')],[1,1,0])
+        # A nested request's commits are its own and the outer request's aren't counted twice.
+        self.profile.MARKER.write_text(self.json.dumps({'sample':'fresh:1','call':'fill'}))
+        self.engine.request({'nested':True})
+        self.assertEqual([row['count'] for row in self.rows('sqlite_commit') if row['sample']=='fresh:1'],[2,2])
+        # The probe refuses what it can't count: a control.sqlite replaced under it, or a
+        # database in WAL mode, whose change counter need not move with each commit.
+        replacement=sqlite3.connect(self.engine.store.state_dir/'replacement.sqlite')
+        replacement.execute('CREATE TABLE kv (k TEXT PRIMARY KEY, v TEXT NOT NULL)');replacement.close()
+        self.os.replace(self.engine.store.state_dir/'replacement.sqlite',self.engine.store.state_dir/'control.sqlite')
+        with self.assertRaisesRegex(AssertionError,'replaced'):self.engine.request({})
+        wal=self.engine.store.state_dir/'wal';wal.mkdir()
+        database=sqlite3.connect(wal/'control.sqlite');self.addCleanup(database.close)
+        database.execute('PRAGMA journal_mode=WAL');database.execute('CREATE TABLE kv (k TEXT)');database.commit()
+        self.engine.store.state_dir=wal
+        with self.assertRaisesRegex(AssertionError,'rollback-journal'):self.profile.install(self.daemon)
+
+    def test_ci_noise_the_store_is_on_a_tmpfs_for_both_runtimes_and_the_artifact_says_so(self):
+        # run.sh mounts a tmpfs over both store directories before anything writes to them,
+        # for both runtimes (the pair copies ci/ into the old tree), and records the mounts.
+        from pathlib import Path
+        ROOT=Path(__file__).resolve().parents[2]
+        run=(ROOT/'control/chrome/ci/run.sh').read_text()
+        service=(ROOT/'control/chrome/ci/service.py').read_text()
+        pair=(ROOT/'control/chrome/ci/latency-pair.sh').read_text()
+        self.assertIn('cp -R control/chrome/ci/. "$latency_tree/control/chrome/ci/"',pair)
+        mount='mount -t tmpfs -o rw,nosuid,nodev,noexec,size=512m,mode=0755,uid="$(id -u aresos-tools)" latency-store "$store_dir"'
+        self.assertIn('for store_dir in /var/lib/aresos-tools /var/lib/aresos-operation-evidence; do\n    '+mount,run)
+        self.assertIn("'state_dir':'/var/lib/aresos-tools','evidence_dir':'/var/lib/aresos-operation-evidence'",service)
+        # Only the latency probe mounts it, before the harness or the service writes.
+        self.assertIn('if test "${LATENCY_PROBE:-}" = true; then\n  for store_dir',run)
+        self.assertLess(run.index(mount),run.index('node control/chrome/ci/baseline.mjs'))
+        self.assertLess(run.index('latency-store.py start /out/latency-store.json'),run.index('python3 control/chrome/ci/service.py'))
+        self.assertLess(run.index('wait "$service_pid"'),run.index('latency-store.py end /out/latency-store.json'))
+
+    def test_ci_noise_the_store_record_reads_the_kernel_s_mount_table(self):
+        import importlib.util
+        from pathlib import Path
+        ROOT=Path(__file__).resolve().parents[2]
+        spec=importlib.util.spec_from_file_location('latency_store',ROOT/'control/chrome/ci/latency-store.py')
+        module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        root=Path(self.temporary.name).resolve()
+        state=root/'state dir';evidence=root/'evidence';state.mkdir();evidence.mkdir()
+        def table(evidence_type):
+            return ('22 1 0:21 / / rw,relatime - overlay overlay rw,lowerdir=/l\n'
+                    '40 22 0:40 / '+str(root)+' rw - ext4 /dev/sda1 rw\n'
+                    '41 40 0:41 / '+str(state).replace(' ','\\040')+' rw,nosuid - tmpfs latency-store rw,size=524288k,mode=755,uid=1001\n'
+                    '42 40 0:42 / '+str(evidence)+' rw,nosuid - tmpfs latency-store rw,size=524288k,mode=755,uid=1001\n'
+                    '43 42 0:43 / '+str(evidence)+' rw - '+evidence_type+' other rw\n')
+        mountinfo=root/'mountinfo';output=root/'latency-store.json'
+        mountinfo.write_text(table('tmpfs'))
+        value=module.record('start',output,mountinfo,(str(state),str(evidence)))
+        # The escaped space decodes; the later of two stacked mounts is the one in effect.
+        self.assertEqual(value['directories'][str(state)]['mount_point'],str(state))
+        self.assertEqual({key:value['directories'][str(evidence)][key] for key in ['fstype','source']},{'fstype':'tmpfs','source':'other'})
+        self.assertEqual(module.mount_of(str(root/'elsewhere'),module.mounts(mountinfo.read_text()))['fstype'],'ext4')
+        self.assertTrue(all(row['size_bytes']>0 and 'used_bytes_end' not in row for row in value['directories'].values()))
+        value=module.record('end',output,mountinfo,(str(state),str(evidence)))
+        self.assertTrue(all('used_bytes_end' in row for row in self.json.loads(output.read_text())['directories'].values()))
+        # A store that moved off its recorded mount mid-run refuses.
+        mountinfo.write_text(table('ext4'))
+        with self.assertRaises(AssertionError):module.record('end',output,mountinfo,(str(state),str(evidence)))

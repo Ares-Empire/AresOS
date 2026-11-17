@@ -31,6 +31,9 @@ class DiagnosticsTest(unittest.TestCase):
         self.root = pathlib.Path(self.stack.enter_context(tempfile.TemporaryDirectory(dir=ROOT/'os/tests')))
         self.usb = self.root/'usb'; self.usb.mkdir()
         self.payload = self.usb/'ares-tools'; common.fixture_bundle(self.payload)
+        # The first installation runs only from the stick block, which leaves its mount m beside
+        # the private copy (brief 22d, decision 7); without it install refuses before these STOPs.
+        (self.usb/'m').mkdir()
         self.home, self.records = self.root/'uninstalled', self.root/'diagnostics'
         self.host = FixtureHost(fixture(), self.usb)
         self.stack.enter_context(patch.object(sys, 'dont_write_bytecode', True))

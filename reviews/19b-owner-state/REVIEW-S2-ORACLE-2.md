@@ -4,7 +4,7 @@
 "noticed outside this angle" items), checked against the fix diff `ce718024..68395f03`, plus whether those fixes broke
 the code they touch. No fresh hunt. **Reviewed head:** `68395f03` on `pkg/19b-owner-state`. Read-only: the only file
 written in the repository is this one. Probes ran in memory from
-`/private/tmp/claude-501/-Users-pab/5d5bbd0b-a538-400c-b84f-360fe127662f/scratchpad/oracle-review-2/probes/` (the earlier
+`/private/tmp/claude-501/-Users-owner/5d5bbd0b-a538-400c-b84f-360fe127662f/scratchpad/oracle-review-2/probes/` (the earlier
 reviewer's probes, copied and adapted, plus new ones named below), with the worktree's existing venv and the same
 in-memory managed-policy patch. The old-head comparisons ran on a `git archive ce718024 control` copy in that scratch
 folder. No containers, no installs, nothing personal touched.
