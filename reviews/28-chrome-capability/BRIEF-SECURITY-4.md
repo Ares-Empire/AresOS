@@ -1,0 +1,13 @@
+**FIX 1 — closed by informed owner choice.** [Brief 28](/var/home/ares/AresOS-28-chrome-capability/briefs/28-chrome-read.md:184) and [CONTROL](/var/home/ares/AresOS-28-chrome-capability/docs/design/CONTROL.md:1315) record board #216, his choice, and the specific disclosure risk. Recognised credentials and currently masked fields remain excluded. The exception remains confined to editable areas; text-bearing inputs and textareas with unknown history still require asking. **KNOWN LIMIT:** the expressly accepted, unlabelled secret revealed before the reader arrived.
+
+**FIX 2 — closed in design.** [Item 4a](/var/home/ares/AresOS-28-chrome-capability/briefs/28b-chrome-his-tabs.md:331) now covers the original script-only dropped-file scenario: either activation or the drop record makes the tab used. Unwatched documents cannot count as clean. If reliable recording cannot be built, no owner tab counts as clean: taking requires his explicit reload choice, and closing keeps it. The [regression requirement](/var/home/ares/AresOS-28-chrome-capability/briefs/28b-chrome-his-tabs.md:554) pins that outcome.
+
+The record stores only an occurrence flag in the isolated world, reads no payload, and exposes nothing to the page. Under that contract, page-generated events can at most make a tab conservatively “used”; they cannot clear its history or query it. Chrome documents that isolated-world variables are inaccessible to page scripts. [Chrome content-script documentation](https://developer.chrome.com/docs/extensions/develop/concepts/content-scripts#work_in_isolated_worlds). Its presence explicitly **does not establish password history**. [Separation rule](/var/home/ares/AresOS-28-chrome-capability/briefs/28b-chrome-his-tabs.md:222).
+
+**BUILDER-NOTE:** isolation alone does not guarantee event coverage. Implement and test early passive capture listeners, every relevant frame, extension-owned coverage evidence, and a sticky used result that cannot disappear when a child frame is removed or replaced. Page propagation handlers must not hide drops; missing coverage must remain unknown. Capture ordering matters under the [DOM event-dispatch rules](https://dom.spec.whatwg.org/#concept-event-dispatch). These are implementation obligations under the new fail-closed rule, not grounds to restore the rejected loss allowance.
+
+No additional design-level **FIX** arises from these commits. The harness changes are confined to newly refused cases; the address assertion matches the stored-address rule; the deadline addition preserves unchecked status and pending warnings.
+
+Reviewed the requested diff; no files changed and no browser tests run. This confirms the design, not its implementation.
+
+READY

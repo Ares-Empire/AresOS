@@ -8,10 +8,11 @@ known limits of the accepted stage-2 implementation. The stage-2 pin from
 the final fix round: **1,966,234 keys / 2,010 groups**. Correctly disclosed Trash
 roles no longer count as missing; the separate `G22-rename` pin is unchanged.
 
-**Current executable pin (board #185):** the last section, "Re-pin after 18d,
-PR #27, PR #68 and 20-restore-lock": **2,622,072 keys / 1,997 groups / 921,711
-bytes**, SHA-256 `ee326914fff6ccddcb78afbf3c346207148471f3e8b1dd0f96868a776291e68d`.
-It replaces the 1,966,234-key pin above, which includes the final escaped-role
+**Current executable pin:** the last section, "Re-pin after
+20-restore-lock-followups": **2,576,083 keys / 1,930 groups / 892,234 bytes**,
+SHA-256 `8b27b1161505ac19eeaa41a6f1a69c95886de5da338249801963a96a083b74b1`.
+It replaces the 2,622,072-key pin of board #185 (the section before it), which
+replaced the 1,966,234-key pin above, which includes the final escaped-role
 correction below; earlier sections retain their historical conversion and
 verification evidence.
 
@@ -543,3 +544,116 @@ Unchanged: 1,016,218 cleanup-free keys and 14,954 pair cases (530,467 keys).
   pair-case keys sit at 360 point, mode and phase slots, and each slot keeps at least as many pair cases with an
   `aresos log.restore-lock` gap. In the restore flow, the 17 C2 and 51 C2r points keep their `aresos log.restore-lock`
   gap.
+
+
+## Re-pin after 20-restore-lock-followups
+
+The oracle's three wrong lock expectations (brief `briefs/20-restore-lock-followups.md`), no production code
+changed: a confirm that met a storage fault keeps the running service locked until it restarts (item 1, C5); a
+refused read's stand-in page says locked exactly for the lock's own refusal (item 2, `aresos log`); only a head
+*behind* the last commit marker is a restore (item 3, "C2's mirror of C5" above).
+
+**Pin:** **2,576,083 keys / 1,930 groups / 892,234 bytes**, all stage 3, zero R2,
+format 3, SHA-256 `8b27b1161505ac19eeaa41a6f1a69c95886de5da338249801963a96a083b74b1`.
+Keys: 1,136,793 cleanup-free sweep keys, 1,438,913 cleanup-pair keys and 377
+contract, `G22-*` and channel keys (the previous pin: 1,155,439, 1,466,256 and 377).
+No key ends in `.restore-lock` (31,438 in the previous pin).
+
+**Capture:** dispatch 43893138937 on `590f96bf` (branch `briefs/20-restore-lock-followups`),
+attempt 1. All 12 alteration shards pass (2,080,049 alterations, none slipped, the
+same total as capture 43722918063). All 48 sweep and onboarding shards fail only
+`test_all_flows_all_storage_modes_independent_views`, strictly against the previous
+pin, after writing their complete lists; no contract group changed. The ledger job
+fails in `test_owner_state_channels` (see "Ledger job" below). This is a capture,
+not green verification. All 53 lists merge without conflicting shared keys, and
+every flow's clean-run point count (the `Owner oracle flow=… points=…` lines of the
+sweep logs) equals capture 43722918063's in all 34 flows.
+
+**Proof:** dispatch 43919136534 on `accf2eb0` (this pin), attempt 1. All 48 strict
+sweep and onboarding shards and all 12 alteration shards pass (2,080,049 alterations,
+none slipped). Its 53 fresh lists merge to the same 2,576,083 keys and reproduce
+`KNOWN-GAPS.json` byte for byte. The run is not all green: the ledger job fails as in
+the capture (see "Ledger job").
+
+**Final proof:** dispatch 43972005458 on `305ebcbd` (main merged at `d0b91522`, and the
+reviews' nits: one shared `records.decoded_lock`), attempt 1. All 61 jobs green: the
+ledger job, all 48 strict sweep and onboarding shards and all 12 alteration shards
+(2,080,049 alterations, none slipped). Its 53 lists reproduce `KNOWN-GAPS.json` byte for
+byte, and every flow's clean-run point count equals the earlier proof's.
+
+Regenerate from the downloaded artifacts (`gh run download 43893138937 -D .work/20f/capture/43893138937`):
+
+```sh
+PYTHONPATH=control python3 -m owner_state_oracle.gaps $(find .work/20f/capture/43893138937 -name 'owner-gaps-*.json.gz' | sort) --full --output .work/20f/43893138937-full.json
+PYTHONPATH=control python3 -m owner_state_oracle.gaps .work/20f/43893138937-full.json --output .work/20f/43893138937-compact.json
+python3 - <<'PY'
+import json
+from pathlib import Path
+p = Path('.work/20f/43893138937-compact.json')
+p.write_text(json.dumps(json.loads(p.read_text()), sort_keys=True, indent=1) + '\n')
+PY
+diff -u reviews/19b-owner-state/KNOWN-GAPS.json .work/20f/43893138937-compact.json
+```
+
+**Classification.** Every difference between the previous pin (capture 43722918063,
+whose 53 lists reproduce it byte for byte) and this capture, by exact key and
+delta, with the brief's classes ("Re-pin") and brief review 1's S2 set:
+
+- **H** = the cases (flow/mode/point/cleanup) outside the `restore` flow whose
+  previous pin has `passive.restore-lock` or `control_pending.restore-lock`,
+  expected `True`, observed `False`, in `exhausted` or `live-restored`: **1,386
+  cases** (322 single, 161 persistent, 903 pair) in 31 flows, 92,945 keys in the
+  previous pin. At H any key may close, change or appear, in any phase.
+- Item 1's keys are the lock views, read statuses and `recovery-holds` of
+  `restore/persistent/75/0` and `restore/single/75/76` (75 is the restore flow's
+  last fault point); item 2's are the `aresos log.restore-lock` keys outside H.
+
+Nothing falls outside these classes.
+
+| Class | Keys (previous pin → this pin) | Cause |
+|---|---|---|
+| Item 2. `aresos log` under the lock | 16,383 closed: 15,982 `crash-locked` (15,889 outside the restore flow, 93 in it) and 401 in the restore flow's `exhausted` (69) and `live-restored` (332) phases | `1d6b1d43` (`compare.pages`) |
+| Item 1 (C5). The restore flow's last point, persistent, and its pair case | 40 closed: 25 lock views, 12 read statuses, 3 `recovery-holds` (26 at `persistent/75/0`, 14 at `single/75/76`) | `1d6b1d43` (`driver.interrupted_confirm`, `records.service_lock`) |
+| Item 3. At H | 92,945 → 63,379 keys. 30,291 closed: 15,030 lock views, 3,939 read statuses, 1,547 `recovery-holds`, 9,775 row and notice keys. 9,316 changed: 1,936 read statuses (1,779 in the expected set only, `restore_required` → `allowed`/`journal_incomplete`, their pages observed `allowed` now passing; 157 by alias numbers only) and 7,380 row and notice keys (1,156 by alias numbers only). 725 new, all counts (`notice-count`, `pending-total`, `total`). 53,338 unchanged | `b61b982b` (`records.behind`) |
+| Unchanged | 2,512,704 keys byte for byte, no key added outside H | — |
+
+What must not change did not:
+- every flow's clean-run point count (above);
+- every failing point and every case with keys stays (10,247 points, 53,066 cases);
+- the 377 contract, `G22-*` and channel keys, the 544,801 other `crash-locked`
+  keys (544,611 row and notice keys, among them the hidden rows under the lock, M14,
+  brief 20-restore-lock, R1, and 190 `recovery-holds` keys; their groups span 11
+  matrix rows) and the restore flow's 22,915 other keys, each byte for byte.
+
+**Named class: the rows left at H (N7 of the brief review).** At H the model now
+expects the last committed rows, while the running store shows the write it applied
+before its commit marker failed (a restart finishes that write; the 544 of these keys in
+the `crash-restart` phase are the failed call's own reply, built before the crash, and the
+views read after the restart changed only by alias numbers). **6,949 keys**: 6,224
+row and notice keys changed beyond alias numbers and the 725 new count keys, at 870 of
+the 1,386 H cases in 16 flows: `pending-head` 3,719, `notice-head` 995, `notice-count`
+901, `page` and `complete` 433 each, `pending-total` 339, `total` 129. Example:
+`onboarding/persistent/1439/0/exhausted/mail catalogue.total`, the model counts 1, the
+store 2. Deciding which side should change is outside this package; for `linux-tools`,
+on the board as item #337 (queue item 17). In all, 63,379 keys stay pinned at H, most
+of them gaps those points had before (53,338 unchanged).
+
+**C5 and "C2's mirror of C5"** (previous section): both closed here. C5 was the
+model's error, not the store's: the store keeps its lock after a confirm that failed
+at its last disk sync, in both fault modes, until a restart. The "mirror" was the
+decoder's "differs" rule; the store, its README and now the oracle lock only a head
+behind the last commit marker.
+
+**Ledger job.** In both dispatches the ledger job fails in
+`test_owner_state_channels.test_paged_committed_pending_through_every_installed_channel`:
+the Stop hook prints nothing, so `json.loads(process.stdout)` fails. The pinned
+channel keys pass before that point (`gaps.verify({'channel'})`), and
+`test_every_pinned_gap_belongs_to_an_executed_suite` passes. The hook part of that test
+was last changed by 18e (`139a9696`, "quiet unless used": `hooks.main` stays silent
+unless `usage.used()` finds its session's mark), merged with #69 after the last run of
+this workflow (43738332693). No oracle code takes part in the hook's output; the test
+needs root, so it was not reproduced on the laptop. Fixed on main by #96: the job ran
+the test process as the container's PID 1, which a hook never takes as its session, so
+the hooks found no mark; it now runs under `docker run --init`. The final proof's ledger
+job passes.
+

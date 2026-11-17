@@ -118,6 +118,68 @@ class OwnerOracle(unittest.TestCase):
             list(pages(changed, 'log'))
         self.assertEqual(len(restarts), 4)
 
+    def test_refused_read_page_says_locked_only_when_the_lock_refused_it(self):
+        # Brief 20-restore-lock-followups, item 2: `aresos log` is refused under
+        # the restore lock. That refusal tells the owner about the lock; the
+        # page read in its place says so, and no other refusal does.
+        def refused(code):
+            return lambda action, args: {'ok': False, 'error': {'code': code, 'message': 'Synthetic refusal'}}
+        page = next(pages(refused('restore_required'), 'control_log'))
+        self.assertEqual((page.get('unavailable'), page.get('restore_required'), page.get('cursor')), ('restore_required', True, None))
+        page = next(pages(refused('storage_limit'), 'control_log'))
+        self.assertEqual((page.get('unavailable'), page.get('restore_required')), ('storage_limit', False))
+        answered = {'items': [], 'total': 0, 'cursor': None, 'notices': []}
+        self.assertEqual(list(pages(lambda *_: {'ok': True, 'data': answered}, 'control_log')), [answered])
+        self.assertNotIn('restore_required', answered)
+
+    def test_interrupted_confirm_is_a_term_of_the_lock(self):
+        # Brief 20-restore-lock-followups, item 1: a confirm that met a storage
+        # fault keeps the running service locked whatever its bytes decode to.
+        from owner_state_oracle.records import consistency_errors
+        from owner_state_oracle.perturb import coherent_change
+        lock = ('restore', 'unjustified-lock', '')
+        for interrupted in (False, True):
+            for locked in (False, True):
+                record = Record(head=(0, ''), locked=locked, interrupted_confirm=interrupted)
+                with self.subTest(interrupted=interrupted, locked=locked):
+                    self.assertEqual(lock in consistency_errors(record), locked != interrupted)
+            # The alteration suite's recompute keeps the term too: these bytes decode unlocked.
+            record = decode(*self.history(2, 2, 2))
+            record.interrupted_confirm = record.locked = interrupted
+            with self.subTest(recompute=True, interrupted=interrupted):
+                self.assertIs(coherent_change(Oracle(), record, 'fixture:2')[1].locked, interrupted)
+
+    def test_interrupted_confirm_holds_until_the_next_restart(self):
+        from owner_state_oracle.driver import Driver, interrupted_confirm
+        oracle = Oracle()
+        oracle.call('control_restore_confirm', {'confirm': 'invalidate earlier approvals'}, 1, {'mode': 'persistent', 'at': 75})
+        oracle.script[-1]['restore_precondition'] = True
+        self.assertFalse(interrupted_confirm(oracle.script))
+        oracle.script[-1]['faults']['trace'] = [(75, 'journal.sync', 'ENOSPC')]
+        self.assertTrue(interrupted_confirm(oracle.script))
+        # No lock to keep: a confirm on an unlocked store is refused before any write.
+        oracle.script[-1]['restore_precondition'] = False
+        self.assertFalse(interrupted_confirm(oracle.script))
+        oracle.script[-1]['restore_precondition'] = True
+        oracle.call('control_pending', {}, 2, {'trace': [(80, 'journal.write', 'ENOSPC')]})
+        self.assertTrue(interrupted_confirm(oracle.script))
+        # Only the most recent confirm counts: a later one that met no fault ends it.
+        later = copy.deepcopy(oracle.script)
+        later.append({**later[0], 'call': 3, 'faults': {}})
+        self.assertFalse(interrupted_confirm(later))
+        driver = Driver.__new__(Driver)
+        driver.oracle, driver.record, driver._decoded_lock = oracle, Record(), False
+        driver.snapshot = lambda: driver.record
+        driver.apply_service_lock(decoded=False)
+        captured = driver.record
+        self.assertEqual((captured.locked, captured.interrupted_confirm), (True, True))
+        driver.restarted()
+        driver.apply_service_lock(decoded=False)
+        self.assertEqual((driver.record.locked, driver.record.interrupted_confirm), (False, False))
+        # A record already handed to a comparison keeps the lock it had then.
+        self.assertIsNot(driver.record, captured)
+        self.assertTrue(captured.locked)
+
     def test_same_evidence_ack_clean_and_recurrence_are_independent(self):
         oracle, record = self.recorded()
         record.rows['notice:n'] = {'id': 'n', 'source_key': 'op:g:send', 'check_kind': 'sent_copies'}
@@ -160,6 +222,48 @@ class OwnerOracle(unittest.TestCase):
             raw += canonical({'commit': 1, 'hash': row['hash']}) + '\n'
         (evidence / 'operations.jsonl').write_text(raw)
         return state, evidence
+
+    def history(self, records, committed, head):
+        """`records` independent records, the first `committed` with their commit
+        markers, under a working SQLite whose head is record `head`."""
+        temp = tempfile.TemporaryDirectory(dir=Path(__file__).resolve().parents[2] / '.work')
+        self.addCleanup(temp.cleanup)
+        root = Path(temp.name)
+        state, evidence = root / 'state', root / 'evidence'
+        state.mkdir(); evidence.mkdir()
+        lines, previous, events = [], '', []
+        for seq in range(1, records + 1):
+            row = {'format': 2, 'seq': seq, 'previous': previous, 'time': 123 + seq, 'generation': 'g', 'operations': []}
+            row['hash'] = previous = fingerprint(row)
+            lines.append(canonical(row))
+            if seq <= committed:
+                lines.append(canonical({'commit': seq, 'hash': row['hash']}))
+            events.append({'seq': seq, 'time': row['time'], 'action': 'fixture', 'outcome': 'done',
+                           'set': {'generation': 'g'} if seq == 1 else {'fixture:' + str(seq): {'value': seq}}, 'record': row})
+        with closing(sqlite3.connect(state / 'control.sqlite')) as db:
+            db.executescript('CREATE TABLE events(seq INTEGER,value TEXT); CREATE TABLE head(id INTEGER,seq INTEGER,hash TEXT);')
+            for event in events[:head]:
+                db.execute('INSERT INTO events VALUES (?,?)', (event['seq'], canonical(event)))
+            db.execute('INSERT INTO head VALUES (1,?,?)', (head, events[head - 1]['record']['hash']))
+            db.commit()
+        (evidence / 'operations.jsonl').write_text(''.join(line + '\n' for line in lines))
+        return state, evidence
+
+    def test_only_a_head_behind_the_last_marker_is_a_restore(self):
+        # Brief 20-restore-lock-followups, item 3: a head *ahead* of the last
+        # commit marker is the service's own write that failed at its marker.
+        # Startup finishes it; there is nothing to confirm. The decoder,
+        # consistency_errors and the alteration suite's recompute agree.
+        from owner_state_oracle.records import consistency_errors
+        from owner_state_oracle.perturb import coherent_change
+        unjustified = ('restore', 'unjustified-lock', '')
+        for name, records, head, locked in (('ahead', 3, 3, False), ('equal', 2, 2, False), ('behind', 2, 1, True)):
+            with self.subTest(head=name):
+                record = decode(*self.history(records, 2, head))
+                self.assertEqual((record.head[0], max(record.committed), record.locked), (head, 2, locked))
+                self.assertNotIn(unjustified, consistency_errors(record))
+                _, changed = coherent_change(Oracle(), record, 'fixture:2')
+                self.assertIs(changed.locked, locked)
 
     def test_decoder_distinguishes_prepared_and_committed_without_kv(self):
         state, evidence = self.disk(False)

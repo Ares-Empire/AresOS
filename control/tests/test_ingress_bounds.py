@@ -69,17 +69,27 @@ class IngressBounds(unittest.TestCase):
                     password.assert_not_called()
 
     def test_hook_raw_bounds_refuse_before_pending_read(self):
+        # In a session that used the tools (a session that didn't never parses its input). Stop tells of the refusal
+        # as a JSON decision, never through an exit code, when the input still readably says `stop_hook_active` is
+        # false (lead, 2026-11-16). An oversized input is cut, so it can't say that: quiet.
         for event in ('Stop', 'UserPromptSubmit'):
-            for name, raw in raw_cases(b'{"hook_event_name":' + json.dumps(event).encode() + b',"prompt":', b'}'):
+            prefix = b'{"hook_event_name":' + json.dumps(event).encode() + b',"stop_hook_active":false,"prompt":'
+            for name, raw in raw_cases(prefix, b'}'):
                 with self.subTest(case=name, event=event), patch('sys.stdin', io.TextIOWrapper(io.BytesIO(raw))), \
-                        patch.object(hooks, 'Client') as client, redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
-                    if event == 'Stop':
-                        with self.assertRaises(SystemExit) as error:
-                            hooks.main({}, event)
-                        self.assertEqual(error.exception.code, 2)
-                    else:
-                        hooks.main({}, event)
+                        patch.object(hooks.usage, 'used', return_value=True), \
+                        patch.object(hooks, 'Client') as client, redirect_stdout(io.StringIO()) as stdout, \
+                        redirect_stderr(io.StringIO()) as stderr:
+                    hooks.main({}, event)
                     client.assert_not_called()
+                    self.assertEqual(stderr.getvalue(), '')
+                    # Lenient parsing of 1200 levels depends on Python's own recursion limit: told or quiet.
+                    told = event == 'Stop' and name != 'bytes' and (name != 'depth' or stdout.getvalue() != '')
+                    if told:
+                        decision = json.loads(stdout.getvalue())
+                        self.assertEqual(decision['decision'], 'block')
+                        self.assertTrue(decision['reason'].startswith(hooks.FAILED), decision)
+                    else:
+                        self.assertEqual(stdout.getvalue(), '')
 
     def test_hook_explicit_payload_schema_refuses_wrong_types(self):
         for event in ({'hook_event_name': 'Stop', 'stop_hook_active': 1},
@@ -89,11 +99,19 @@ class IngressBounds(unittest.TestCase):
                       {'hook_event_name': 'UserPromptSubmit', 'stop_hook_active': False},
                       {'stop_hook_active': False, 'extra': 'field'}):
             with self.subTest(event=event), patch('sys.stdin', io.TextIOWrapper(io.BytesIO(json.dumps(event).encode()))), \
-                    patch.object(hooks, 'Client') as client, redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
-                with self.assertRaises(SystemExit) as error:
-                    hooks.main({}, 'Stop')
-                self.assertEqual(error.exception.code, 2)
+                    patch.object(hooks.usage, 'used', return_value=True), \
+                    patch.object(hooks, 'Client') as client, redirect_stdout(io.StringIO()) as stdout, \
+                    redirect_stderr(io.StringIO()) as stderr:
+                hooks.main({}, 'Stop')
+                self.assertEqual(stderr.getvalue(), '')
                 client.assert_not_called()
+                # Told only when the input readably says this isn't already a continuation (lead, 2026-11-16).
+                if event.get('stop_hook_active') is False:
+                    decision = json.loads(stdout.getvalue())
+                    self.assertEqual(decision['decision'], 'block')
+                    self.assertTrue(decision['reason'].startswith(hooks.FAILED), decision)
+                else:
+                    self.assertEqual(stdout.getvalue(), '')
 
     def test_hook_accepts_and_ignores_fields_it_does_not_read(self):
         # Claude Code 2.1.319 sends `prompt_id` and more than the documented fields; a closed list broke every turn.
@@ -105,7 +123,9 @@ class IngressBounds(unittest.TestCase):
             event = {'hook_event_name': name, 'cwd': '/unused', 'permission_mode': 'default', **extra,
                      **({'stop_hook_active': False, 'last_assistant_message': ['x']} if name == 'Stop' else {'prompt': None})}
             stdout = io.StringIO()
+            # A session that used the tools: only such a session reads pending work (brief 18e fix round, item 9).
             with self.subTest(event=name), patch('sys.stdin', io.TextIOWrapper(io.BytesIO(json.dumps(event).encode()))), \
+                    patch.object(hooks.usage, 'used', return_value=True), \
                     patch.object(hooks, 'Client') as client, redirect_stdout(stdout), redirect_stderr(io.StringIO()):
                 client.return_value.call.return_value = {'ok': True, 'data': pending}
                 hooks.main({'act_socket': '/unused'}, name)
@@ -127,16 +147,19 @@ class IngressBounds(unittest.TestCase):
             stderr = io.StringIO()
             with self.subTest(active=active, broken=broken), \
                     patch('sys.stdin', io.TextIOWrapper(io.BytesIO(json.dumps(event).encode()))), \
+                    patch.object(hooks.usage, 'used', return_value=True), \
                     patch.object(hooks, 'Client') as client, redirect_stdout(io.StringIO()) as stdout, redirect_stderr(stderr):
                 client.return_value.call.return_value = {'unexpected': 'reply'}
-                if active is True:
-                    hooks.main({'act_socket': '/unused'}, 'Stop')
-                    self.assertEqual((stdout.getvalue(), stderr.getvalue()), ('', ''))
+                # Never an exit code: the failure is a JSON decision, once, and only when `stop_hook_active` is
+                # readably false (lead, 2026-11-16).
+                hooks.main({'act_socket': '/unused'}, 'Stop')
+                self.assertEqual(stderr.getvalue(), '')
+                if active is not False:
+                    self.assertEqual(stdout.getvalue(), '')
                 else:
-                    with self.assertRaises(SystemExit) as error:
-                        hooks.main({'act_socket': '/unused'}, 'Stop')
-                    self.assertEqual(error.exception.code, 2)
-                    self.assertIn('AresOS hook failed', stderr.getvalue())
+                    decision = json.loads(stdout.getvalue())
+                    self.assertEqual(decision['decision'], 'block')
+                    self.assertTrue(decision['reason'].startswith('AresOS hook failed'), decision)
                 if broken == 'input':
                     client.assert_not_called()
 

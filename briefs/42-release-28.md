@@ -139,6 +139,8 @@ he goes forward (check this on the walk's return to R28: the instance and `apps.
 
 ## The laptop session afterwards (not this package)
 
+**Lead's note (2026-11-16, from 43's review 1, S2):** on release 28 the login starts no `foot` (labwc's autostart runs only the polkit agent and `aresos-desktop session`), but tools version 4's `check` requires a `foot` of `ares` (`os/owner-tools/owner.py:2017`). So after the update, `at check` (and the routine line's check) STOPs while the hub is in the world unless a terminal is open. The VM rehearsal cannot show it: without a Minecraft account it sits in SETUP, which shows a `foot`. Until package 43's tools (D19) are on the laptop, the guide's R28 steps and this session say "open the Terminal app first, keep it open until the PASS lines", and B's walk adds one `at check` with no `foot` running that must STOP with the expected line (so the guide's wording is proven).
+
 The integrator posts the board note with the announced commit and the fingerprint. Claude runs the folder and routine
 lines; the owner approves the password window after comparing the 8 characters; then he runs `at update`, `at title`
 and `at reboot` on the console, guided. Afterwards: the 23d check (the game scope's `memory.stat` anon and
