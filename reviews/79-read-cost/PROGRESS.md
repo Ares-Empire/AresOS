@@ -4,7 +4,7 @@ Empire brief 301. Lead: `linux-tools`. Brief: `briefs/79-read-cost.md`.
 
 ## Status (2026-11-17)
 
-**Brief revised after BRIEF-REVIEW-1; next: a short recheck.** No product code has changed.
+**Brief READY** (`BRIEF-RECHECK-1.md`, Codex `gpt-6-astra` high, on `bcd37508`: all three findings closed, no new ones). **Next: the build on this branch, steps 1 to 8, Codex `gpt-6.1-sol` xhigh, as the Codex pace allows; then a fresh `gpt-6-astra` xhigh review with the mutation table.** No product code has changed.
 
 ## The lead's calls after BRIEF-REVIEW-1 (2026-11-17)
 
