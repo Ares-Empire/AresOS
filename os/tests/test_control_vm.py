@@ -855,6 +855,60 @@ class EvidenceScanTest(unittest.TestCase):
         self.assertEqual((found['unreadable'], found['hits']),
                          ([], ['control/second.tar!requests.json.gz!gunzip']))
 
+    @staticmethod
+    def rehead(data, changes, offset=0):
+        """A tar with its header at offset changed ({byte: bytes}) and its checksum written again, as a valid one."""
+        block = bytearray(data[offset:offset + tarfile.BLOCKSIZE])
+        for at, value in changes.items():
+            block[at:at + len(value)] = value
+        block[148:156] = b' ' * 8
+        block[148:156] = b'%06o\0 ' % sum(block)
+        return data[:offset] + bytes(block) + data[offset + tarfile.BLOCKSIZE:]
+
+    def test_every_tar_tarfile_reads_is_searched_whatever_its_magic(self):
+        # RECHECK-X1 #3: X1 recognised a tar only by its exact POSIX or GNU magic and version, so a V7 tar (no magic)
+        # and a ustar header with version "01", both of which tarfile reads, were searched as plain bytes only.
+        compressed = gzip.compress(b'login ' + self.SECRET)
+        plain = self.folder / 'plain.tar'
+        self.tar(plain, {'secret.gz': compressed}, compress=None)
+        data = plain.read_bytes()
+        self.assertEqual(data[257:265], tarfile.POSIX_MAGIC)
+        # V7: no magic, version, owner names or prefix (offset 257 to 500 empty).
+        (self.evidence / 'control/v7.tar').write_bytes(self.rehead(data, {257: bytes(243)}))
+        (self.evidence / 'control/version-01.tar').write_bytes(self.rehead(data, {263: b'01'}))
+        # A member of a type tarfile doesn't know: it hands one out as a regular file, and so does GNU tar.
+        (self.evidence / 'control/unknown-type.tar').write_bytes(self.rehead(data, {156: b'Z'}))
+        for name in ('v7.tar', 'version-01.tar', 'unknown-type.tar'):
+            raw = (self.evidence / 'control' / name).read_bytes()
+            self.assertNotIn(self.SECRET, raw)
+            with tarfile.open(fileobj=io.BytesIO(raw), mode='r:') as archive:
+                self.assertEqual(archive.getnames(), ['secret.gz'], name)
+        found = self.scan.scan(self.evidence, self.SECRET)
+        self.assertEqual(found['unreadable'], [])
+        self.assertEqual(found['hits'], ['control/unknown-type.tar!secret.gz!gunzip', 'control/v7.tar!secret.gz!gunzip',
+                                         'control/version-01.tar!secret.gz!gunzip'])
+        # Recognisable but malformed: the POSIX magic with version "01" and a bad checksum is unreadable, as is the
+        # GNU magic with one; a V7 header with a bad checksum has nothing left to recognise it by.
+        for name in ('v7.tar', 'unknown-type.tar'):
+            (self.evidence / 'control' / name).unlink()
+        broken = bytearray(self.rehead(data, {263: b'01'}))
+        broken[148:156] = b'0000000\0'
+        (self.evidence / 'control/version-01.tar').write_bytes(bytes(broken))
+        gnu = self.folder / 'gnu.tar'
+        with tarfile.open(gnu, 'w', format=tarfile.GNU_FORMAT) as archive:
+            info = tarfile.TarInfo('secret.gz')
+            info.size = len(compressed)
+            archive.addfile(info, io.BytesIO(compressed))
+        broken = bytearray(gnu.read_bytes())
+        self.assertEqual(broken[257:265], tarfile.GNU_MAGIC)
+        broken[148:156] = b'0000000\0'
+        (self.evidence / 'control/gnu.tar').write_bytes(bytes(broken))
+        found = self.scan.scan(self.evidence, self.SECRET)
+        self.assertEqual(found['hits'], [])
+        self.assertEqual(found['holding'], ['control/gnu.tar', 'control/version-01.tar'])
+        self.assertEqual([line.split(': ', 2)[:2] for line in found['unreadable']],
+                         [['control/gnu.tar', 'tar'], ['control/version-01.tar', 'tar']])
+
     def test_formats_the_scan_does_not_unpack_are_unreadable_and_ordinary_logs_are_not(self):
         import lzma
         import zipfile
@@ -864,6 +918,7 @@ class EvidenceScanTest(unittest.TestCase):
         (self.evidence / 'control/truncated.gz').write_bytes(gzip.compress(self.SECRET * 100)[:-20])
         # Ordinary evidence: text that names the formats, a header-like line at byte 257, binary that isn't one.
         (self.evidence / 'control/journal.txt').write_text('x' * 257 + 'ustar is a tar format; PK\x03\x04 BZh91AY\n')
+        (self.evidence / 'control/gnu.txt').write_text('y' * 257 + 'ustar  00 marks a GNU header\n')
         (self.evidence / 'control/screen.png').write_bytes(b'\x89PNG\r\n\x1a\n' + os.urandom(2048))
         found = self.scan.scan(self.evidence, self.SECRET)
         self.assertEqual(found['holding'], ['control/log.xz', 'control/screens.zip', 'control/truncated.gz'])

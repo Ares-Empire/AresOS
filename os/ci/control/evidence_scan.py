@@ -7,6 +7,12 @@ can't be searched can't be published. That includes (REVIEW-X1 #3) a gzip stream
 DEPTH, a tar whose headers stop before its end (a bad checksum, a truncated header: tarfile ends such an archive
 quietly), and data in a compressed or archive format this scan doesn't unpack (xz, bzip2, zstd, lz4, zip, 7z).
 
+A tar is any data whose first block tarfile reads as a header (RECHECK-X1 #3): tarfile reads V7 tars, which carry no
+magic, and a ustar header with other version bytes, so the magic alone missed archives it can read. A first block
+with the POSIX or GNU magic is a tar too, so a damaged one is unreadable rather than searched as plain bytes. Every
+member tarfile hands out as a file is searched: regular files, and members of a type it doesn't know, which it
+treats as regular files.
+
 Used by control_vm.py after check 8 (scan) and by runner.sh stop (the command below), which first redacts the one
 log that is allowed to name the password (GreenMail's: it runs with auth disabled and logs the password it was
 given) and then requires every other file, Dovecot's log included, to hold it zero times.
@@ -32,9 +38,10 @@ DEPTH = 3
 # What one archive may unpack to (the evidence artifact stays under 180 MB): anything larger is unreadable.
 UNPACKED_LIMIT = 512 * 1024 * 1024
 GZIP_MAGIC = b'\x1f\x8b'
-# A POSIX or GNU tar header carries its magic and version at offset 257 (with a NUL, so no text line holds it);
-# tarfile writes one of them in every format, and a header with a bad checksum still has it.
-TAR_MAGICS = (tarfile.POSIX_MAGIC, tarfile.GNU_MAGIC)
+# A POSIX or GNU tar header's magic at offset 257, which a header with a bad checksum still has: POSIX's "ustar\0"
+# whatever its two version bytes (tarfile reads "01" as well as "00"), GNU's "ustar  \0". Each holds a NUL, so no
+# text line does.
+TAR_MAGICS = (tarfile.POSIX_MAGIC[:6], tarfile.GNU_MAGIC)
 # Formats this scan recognises but doesn't unpack: their content would only be searched compressed.
 NOT_UNPACKED = [(re.compile(rb'\xfd7zXZ\x00'), 'xz'), (re.compile(rb'BZh[1-9](1AY&SY|\x17rE8P\x90)'), 'bzip2'),
                 (re.compile(rb'\x28\xb5\x2f\xfd'), 'zstd'), (re.compile(rb'\x04\x22\x4d\x18'), 'lz4'),
@@ -57,11 +64,20 @@ def gunzip(data):
     return inner
 
 
+def tar_header(block):
+    """Does tarfile read this first block as a header? Its own test: the checksum, and numbers where numbers go."""
+    try:
+        tarfile.TarInfo.frombuf(block, 'utf-8', 'surrogateescape')
+    except tarfile.HeaderError:
+        return False
+    return True
+
+
 def kind(data):
     """'gzip', 'tar', the name of a format this scan doesn't unpack, or None for data to search as it is."""
     if data[:2] == GZIP_MAGIC:
         return 'gzip'
-    if data[257:265] in TAR_MAGICS:
+    if data.startswith(TAR_MAGICS, 257) or tar_header(data[:tarfile.BLOCKSIZE]):
         return 'tar'
     return next((name for pattern, name in NOT_UNPACKED if pattern.match(data)), None)
 
@@ -72,7 +88,8 @@ def untar(data, name, depth):
     try:
         with tarfile.open(fileobj=io.BytesIO(data), mode='r:') as archive:
             for member in archive:
-                if not member.isfile():
+                # What extractfile() hands out as a file: a regular one, or one of a type tarfile doesn't know.
+                if not member.isfile() and member.type in tarfile.SUPPORTED_TYPES:
                     continue
                 unpacked += member.size
                 if unpacked > UNPACKED_LIMIT:
