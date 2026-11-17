@@ -18,18 +18,42 @@ const fixtureUrl=(name,query='')=>'http://fixture.test:8765/?case=efficiency-'+n
 const REFERENCES=/ ([bcdfghjklmnpqrstvwxyz]{5})(\d+)$/gm;
 const referencesOf=outline=>[...String(outline).matchAll(REFERENCES)].map(match=>({string:match[1]+match[2],letters:match[1],number:Number(match[2])}));
 const OUT='/out/outline-read';
+const ENVELOPE_CASES=new Set(['READ BRIEF28 non ASCII and quote pages fit with a pending operation and the notice',
+  'READ BRIEF28 five tabs each keep their byte share and continue with their own cursor']);
 
-export async function outlineReadMatrix({check,call,rpc,nav,target,getTab,setTab,lifecycle,restoreControl,fixture,eventually}){
+// These two fixtures need a fresh pending page. Execute them before the old
+// crash fixtures leave unresolved operations, but report (and fail) them at
+// the end of core so a new failure cannot hide brief 20's cases.
+export function deferredOutlineCheck(report,{envelopeOnly=false,envelopeResults=null}={}){
+  return (name,fn)=>{
+    const envelope=ENVELOPE_CASES.has(name);
+    if(envelopeOnly&&!envelope)return;
+    if(!envelopeOnly&&envelope)return report(name,async()=>{
+      const rows=envelopeResults?.filter(row=>row.name===name);
+      assert.equal(rows?.length,1,name+': exactly one early execution is required');
+      assert.equal(rows[0].passed,true,rows[0].error||name);
+    });
+    return report(name,fn);
+  };
+}
+
+export async function outlineReadMatrix({check:report,call,rpc,nav,target,getTab,setTab,lifecycle,restoreControl,fixture,eventually,envelopeOnly=false,envelopeResults=null}){
+  const check=deferredOutlineCheck(report,{envelopeOnly,envelopeResults});
   fs.mkdirSync(OUT,{recursive:true});
   const opened=[];
+  let envelopeOperation=null;
   // A case that opens tabs closes them, also when it fails.
   const closing=fn=>async()=>{try{await fn();}finally{while(opened.length)await rpc('close_tab',{tab:opened.pop(),discard_unsaved:true});}};
   // One read through the service's socket; the whole result is kept beside its query.
   const read=async(name,args)=>{
     const result=await rpc('outline',args);
-    fs.appendFileSync(OUT+'/calls.jsonl',JSON.stringify({name,args,result})+'\n');
-    assert.ok(asciiBytes(result)<=48*1024,name+': ASCII JSON envelope fits');
+    fs.appendFileSync(OUT+'/calls.jsonl',JSON.stringify({name,args,wire_bytes:result.wireBytes,result})+'\n');
+    assert.ok(Number.isSafeInteger(result.wireBytes)&&result.wireBytes<=48*1024,name+': the exact service JSON envelope fits');
     assert.ok(!result.bounds,name+': the base did not shorten the result');
+    if(envelopeOperation&&result.ok){
+      assert.ok(result.data.version_notice&&result.pending.chrome_version_notice,name+': both notices are measured');
+      assert.ok(result.pending.items.some(row=>row.operation_id===envelopeOperation&&row.state==='reserved'),name+': the live reserved operation is in the measured envelope');
+    }
     return result;
   };
   const entryOf=async(name,args)=>{
@@ -293,15 +317,17 @@ export async function outlineReadMatrix({check,call,rpc,nav,target,getTab,setTab
     await nav('compose&id=outline-envelope');const reserved=(await call('click',await target('Send'))).approval;assert.ok(reserved);
     try{
       await lifecycle({fixture:'qualification',mode:'conservative'});
+      assert.equal((await call('operation_status',{operation_id:reserved.operation_id})).operation.state,'reserved');
+      envelopeOperation=reserved.operation_id;
       for(const mode of Object.keys(BYTE_TEXT)){
         const tab=await open('http://fixture.test:8765/?case=outline-paging&mode='+mode,'Paging fixture');
         const result=await read('byte envelope '+mode,{tab,full:true,max:40000});
         assert.equal(result.ok,true);assert.ok(result.data.version_notice);assert.ok(result.pending.chrome_version_notice);
-        assert.ok(result.pending.items.some(row=>row.state==='reserved'),'a pending operation is in the measured envelope');
+        assert.ok(result.pending.items.some(row=>row.operation_id===reserved.operation_id&&row.state==='reserved'),'the live reserved operation is in the measured envelope');
         const whole=await pages('byte pages '+mode,{tab,full:true,max:40000});
         assert.equal(whole.text,byteExpected(mode));assert.ok(whole.count>1);
       }
-    }finally{await lifecycle({fixture:'qualification',mode:'qualified'});await call('drop',{operation_id:reserved.operation_id});await call('notice_ack',{operation_id:reserved.operation_id});}
+    }finally{envelopeOperation=null;await lifecycle({fixture:'qualification',mode:'qualified'});await call('drop',{operation_id:reserved.operation_id});await call('notice_ack',{operation_id:reserved.operation_id});}
   }));
 
   await check('READ BRIEF28 five tabs each keep their byte share and continue with their own cursor',closing(async()=>{
@@ -310,8 +336,10 @@ export async function outlineReadMatrix({check,call,rpc,nav,target,getTab,setTab
     await nav('compose&id=outline-five');const reserved=(await call('click',await target('Send'))).approval;assert.ok(reserved);
     try{
       await lifecycle({fixture:'qualification',mode:'conservative'});
+      assert.equal((await call('operation_status',{operation_id:reserved.operation_id})).operation.state,'reserved');
+      envelopeOperation=reserved.operation_id;
       const result=await read('five byte shares',{tabs,max:40000});assert.equal(result.ok,true);assert.ok(result.data.version_notice);
-      assert.ok(result.pending.items.some(row=>row.state==='reserved'));
+      assert.ok(result.pending.items.some(row=>row.operation_id===reserved.operation_id&&row.state==='reserved'));
       assert.deepEqual(result.data.reads.map(entry=>entry.tab),tabs);
       const sizes=[];
       for(const [index,entry]of result.data.reads.entries()){
@@ -324,7 +352,7 @@ export async function outlineReadMatrix({check,call,rpc,nav,target,getTab,setTab
         assert.equal(text,byteExpected(modes[index]));
       }
       assert.ok(Math.max(...sizes)-Math.min(...sizes)<1200,'all five used an equal byte share');
-    }finally{await lifecycle({fixture:'qualification',mode:'qualified'});await call('drop',{operation_id:reserved.operation_id});await call('notice_ack',{operation_id:reserved.operation_id});}
+    }finally{envelopeOperation=null;await lifecycle({fixture:'qualification',mode:'qualified'});await call('drop',{operation_id:reserved.operation_id});await call('notice_ack',{operation_id:reserved.operation_id});}
   }));
 
   await check('READ BRIEF28 a change inside a frame moves the state token',closing(async()=>{
@@ -362,7 +390,8 @@ export async function outlineReadMatrix({check,call,rpc,nav,target,getTab,setTab
       const tab=await open(fixtureUrl('h1','&mode=surfaces&title='+index+'&id=hostile-'+index),'Hostile surfaces');
       const first=(await entryOf('hostile outline '+index,{tab,max:40000})).entry,text=first.untrusted_content.outline,safe=quoted(squeezed(hostile));
       hostileGrammar(text);assert.ok(text.includes((index===12?'password ':'button ')+safe));
-      assert.equal(first.untrusted_content.title,visible(hostile.replace(/[\t\n\f\r ]+/g,' ').replace(/^ | $/g,'')));
+      const nativeTitle=(await bridge('tab_context',{tab})).title;
+      assert.equal(first.untrusted_content.title,visible(nativeTitle),'escape the title Chrome actually reports');
       const form=refAt(text,'form "Hostile form"'),table=refAt(text,'table "Hostile table"'),list=refAt(text,'list "Hostile list"'),link=refAt(text,'link "Detail link"');
       for(const [kind,ref]of [['form',form],['table',table],['list',list],['link',link]]){
         const detail=(await pages('hostile '+kind+' '+index,{tab,ref,max:40000})).text;hostileGrammar(detail);
@@ -373,10 +402,11 @@ export async function outlineReadMatrix({check,call,rpc,nav,target,getTab,setTab
         else if(kind==='list')assert.ok(detail.includes('listitem '+safe));
         else assert.ok(detail.includes('title: '+safe));
       }
-      const found=(await pages('hostile find '+index,{tab,find:'Path target',max:40000})).text;hostileGrammar(found);assert.ok(found.includes(' · in region '),'ancestor in hit path');
-      // The path can be capped at 80 characters; it still starts inside a
-      // quoted ancestor name, and never carries a raw break or direction mark.
-      assert.ok(found.includes('region '+safe)||squeezed(hostile).length>50,found);
+      const found=(await pages('hostile find '+index,{tab,find:'Path target',max:40000})).text;hostileGrammar(found);
+      // The accepted renderer caps each ancestor name at 24 characters and
+      // the whole path at 80. The cut still goes through quoted().
+      const name=Array.from(squeezed(hostile)),path='region '+quoted(name.slice(0,24).join(''))+(name.length>24?'…':'');
+      assert.ok(found.endsWith(' · in '+(Array.from(path).length>80?'…':path)),found);
       const fold=refAt(text,'… 5 more');await fixture.mutate('hostile-'+index,'review-change');
       const stale=await read('hostile stale '+index,{tab,ref:fold});assert.equal(stale.ok,true);
       const failed=stale.data.reads[0];assert.equal(failed.error.code,'stale_reference');
@@ -388,8 +418,10 @@ export async function outlineReadMatrix({check,call,rpc,nav,target,getTab,setTab
       try{setTab(tab);await call('click',await target('Open dialog'));openedDialog=await bridge('dialog_facts',{tab});}finally{setTab(driver);}
       assert.ok(openedDialog.dialog);
       const dialog=(await entryOf('hostile dialog '+index,{tab})).entry;
-      assert.equal(dialog.untrusted_content.outline,'');assert.equal(dialog.untrusted_content.dialog.text,visible(hostile));
-      await call('dialog',{tab,expected:openedDialog.dialog,accept:true});
+      assert.equal(dialog.untrusted_content.outline,'');assert.equal(dialog.untrusted_content.dialog.text,visible(openedDialog.dialog.text));
+      const answered=await call('dialog',{tab,expected:openedDialog.dialog,accept:true});
+      if(answered.approval)assert.equal((await call('submit',answered.approval)).operation.state,'done');
+      assert.equal((await bridge('page_state',{tab})).dialog,false,'the synthetic dialog was answered before close');
       await call('close_tab',{tab,discard_unsaved:true});opened.splice(opened.indexOf(tab),1);
     }
   }));
@@ -408,7 +440,7 @@ export async function outlineReadMatrix({check,call,rpc,nav,target,getTab,setTab
   }));
 
   await check('READ BRIEF28 small fixture outlines match the stored green browser results character for character',closing(async()=>{
-    for(const [name,url,loaded]of [['f7',fixtureUrl('f7','&page=1'),'Results page 1'],['f6',fixtureUrl('f6'),'Nested frame text'],['address',addressOf(),'Address frame text']]){
+    for(const [name,url,loaded]of [['f1',fixtureUrl('f1'),'Paragraph 0'],['f3',fixtureUrl('f3'),'Results'],['f7',fixtureUrl('f7','&page=1'),'Results page 1'],['f6',fixtureUrl('f6'),'Nested frame text'],['address',addressOf(),'Address frame text']]){
       const tab=await open(url,loaded),text=(await pages('expected '+name,{tab,max:40000})).text;
       assert.equal(stableReferences(text),fs.readFileSync(new URL('./outline-expected/'+name+'.txt',import.meta.url),'utf8'),name);
     }

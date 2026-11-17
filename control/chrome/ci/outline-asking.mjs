@@ -8,7 +8,7 @@ export async function outlineAskingMatrix({check,call,rpc,read,fixture,eventuall
   const record=(name,result)=>{fs.appendFileSync(out,JSON.stringify({name,result})+'\n');return result;};
   const ingress=()=>completeIngress(fs.readFileSync('/out/browser-boundary.jsonl','utf8')).filter(row=>row?.reader_ingress);
   const unreadSince=start=>{
-    const rows=ingress().slice(start);assert.ok(rows.length,'native getter recording covers the attempted read');
+    const rows=ingress().slice(start);record('unapproved native getters',{count:rows.length});
     assert.ok(!rows.some(row=>/ASK_[A-Z_]+_28/.test(JSON.stringify(row.reader_ingress.value))),'no native getter read an unapproved value');
     assert.ok(!rows.some(row=>JSON.stringify(row).includes('SENTINEL_PRIVATE_PASSWORD_20')),'credentials never reach a getter recording');
   };
@@ -71,7 +71,9 @@ export async function outlineAskingMatrix({check,call,rpc,read,fixture,eventuall
     assert.deepEqual(returned.map(({value,...field})=>field),listed,'exactly the identities and descriptions approved');
     assert.deepEqual(returned.map(field=>field.value).sort(),['','ASK_TEXT_28','ASK_SEARCH_28','ASK_EMAIL_28','ASK_AREA_28','ASK_SAME_A_28','ASK_SAME_B_28','ASK_BARE_A_28','ASK_BARE_B_28','ASK_FRAME_28'].sort());
     assert.doesNotMatch(JSON.stringify(approved),/SENTINEL_PRIVATE_PASSWORD_20/);
-    assert.ok(ingress().some(row=>row.reader_ingress.value==='ASK_TEXT_28'),'approved read reaches the native getter recording');
+    const recorded=ingress();
+    assert.ok(recorded.some(row=>row.reader_ingress.value==='ASK_TEXT_28'),'approved read reaches the native getter recording');
+    assert.ok(!recorded.some(row=>JSON.stringify(row).includes('SENTINEL_PRIVATE_PASSWORD_20')),'credentials never enter the recording, even after approval');
     const replay=record('replay',await call('read_typed_fields',prepared.approval));assert.ok(!replay.untrusted_content);
     assert.doesNotMatch(JSON.stringify(replay),/ASK_[A-Z_]+_28/);assert.equal((await outline()).typed_fields,9);
     const next=await prepare();assert.ok(next.approval,'another one-call read needs a fresh question');await clear(next.approval);

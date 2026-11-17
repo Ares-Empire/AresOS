@@ -6,7 +6,9 @@
   "calls": {
     "f7": "retake after",
     "address": "address outline",
-    "f6": "f6 until in a frame"
+    "f6": "f6 until in a frame",
+    "f1": "open Paragraph 0",
+    "f3": "f3 tab a"
   },
   "normalization": "Only short reference identities, by first appearance; all other characters unchanged."
 }
