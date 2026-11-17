@@ -40,7 +40,7 @@ package 25; nothing under `os/` changed.
   as the mod's side built and the supervisor's side waiting for package 25.
 - **Tests:**
   - `LifecycleClientTest`: 11 unit tests against `FakeSupervisor`, a fake `desktop.sock` in `mod/src/testShared`.
-  - `SaveNowClientGameTest`: client game test, last but one in the client list, no screenshots.
+  - `SaveNowClientGameTest`: client game test, after package 48 in the client list, with menu and Settings screenshots (merge with 48).
   - `SaveTimesClientGameTest`: the measurement, last in the list. It measures only with
     `mod/dev/client-test.sh -PmeasureSaves`; otherwise it logs one line and does nothing.
   - Step 2 made the measurement work: the 40 apps are counted as the town counts them, and the test waits only for the
@@ -171,7 +171,85 @@ close-container packet could clear that newly filled slot before `TakeAppPayload
 server. Added `waitForServerboundPackets()` before the server fixture is installed. All original assertions remain;
 no product inventory behavior changed.
 
+## Merge with 48
+
+Builder: Codex `gpt-6.1-sol xhigh`; brief `briefs/46-merge-48.md`. The requested brief was committed alone as
+`6a142e50`, with the supplied message and Claude trailers, before reading and executing it.
+
+**Done:** merged `origin/main` at `04aef030` (which includes package 48, `dec90106`) in merge commit `19113cb7`.
+The four conflicts were `docs/design/HUB.md`, the production client mixin list, the test client mixin list, and the
+client-test entrypoints. Kept 48's Esc-menu wording and 46's owner-approved HUD rule; combined every registration.
+The client initializer now registers both `HomeSwitch` and `WorldSaves` and starts the gated lifecycle channel.
+The automatically merged `build.gradle` retains the home-menu review directory and optional save measurement;
+`gradle.properties` needed no conflict resolution or version change. Package 48's client test stays in main's
+position; `SaveNowClientGameTest` and `SaveTimesClientGameTest` follow it. Updated the stale package-40 test-order
+comment. Package 48's screenshot names remain 0086–0089; package 46's new screenshots follow them.
+
+- **Saves across New home:** `LifecycleClient.Game.refusal()` vetoes requests before joining any waiting batch and
+  rechecks immediately before an answer is written. `WorldSaves` returns `no_world` whenever `HomeSwitch.busy()`;
+  switch start cancels queued requests with that reason and increments a revision. Execution checks the switch and
+  revision again; a save already running may finish its IO, but its result becomes `no_world` if a switch intervened.
+  Closing an old home, creating/closing staging, opening the replacement and every recovery/retry phase all stay
+  unavailable. After arrival the same channel can save normally. No staging-world success is acknowledged.
+- **One gate:** `HomeRules.home(session, desktopWorld)` holds the only predicate. `HomeScreen.home(client)` calls it;
+  `AresOsMenuScreen.replacesGameMenu(client)` calls `HomeScreen.home`. Neither consults the helper connection.
+- **Drawing:** the production saving-indicator mixin also suppresses extraction throughout `HomeSwitch.busy()`,
+  including the gaps without a desktop world. All three package-48 screen-replacement mixins remain registered.
+- **Wire identity:** the merged `ShellFocusClient.readyWorld` retains the busy guard and caches
+  `DesktopWorld.saveName(server)`, the same identity that `WorldSaves` returns.
+- **Tests:** the home-menu client test checks all eight session/world/helper cases with both menu callers and
+  actual menu opening. Its new `SwitchSaveChecks` fixture uses the real lifecycle socket to queue and join two
+  requests just before confirmation, then asks again during the switch. Those requests must each answer
+  `no_world`; requests after successful arrival and recovery must answer `ok:true` with the exact ready-world name.
+  It observes every tick of the existing successful Nether and flat switches and injected rename/open/recovery
+  failures, checking `WorldSaves` cannot start and readiness stays null. A fully visible saving indicator is forced
+  through the real HUD extractor at every probe, temporarily outside the session gate so the busy guard is tested
+  independently. A positive control first draws the text, and the draw counter also covers real frames between
+  probes. This includes staging, closing, the new home and the actionable recovery screen.
+- **Existing save cases:** Esc now requires the moving AresOS menu. Settings has its own paused-save case and disk
+  readback; the covered-world case and both review fixes' injected IO faults and reopen tests remain. Added a
+  lifecycle unit regression for refusing admission to a pending batch and rejecting its otherwise successful
+  result while switching. Updated HUB and OS-BASE B1 with the switch refusal and saving-text rule.
+
+**JUDGMENT-CALL:** none beyond the specified integration behavior and previously recorded choices.
+**PLAN-GAP:** none found for this merge. The existing fake-supervisor and real-play limits below still apply.
+**Open questions:** no new integration question.
+
 ## Verified
+
+- **Merge with 48 (2026-11-17):** source commit `634faed4`, with the merged main and both review fixes. All game
+  runs used the approved headless dev scripts on the RTX 4060, without `--force` or a daemon-stop command. Logs and
+  copied suite screenshots are under the ignored `.work/46-merge-48/` directory.
+
+  | Command/run | Result |
+  |---|---|
+  | `mod/dev/build.sh`, initial attempt | exit 1, `BUILD FAILED in 9s`; the new Settings test passed `Blocks.COPPER_BLOCK` (a weathering collection in 26.2) where it needed one block. Changed the fixture to `Blocks.COAL_BLOCK`; no assertion changed |
+  | `mod/dev/build.sh`, after correcting the fixture | exit 0, `BUILD SUCCESSFUL in 2m 47s`; 272 unit tests, zero failures/errors, six expected Windows skips; "All 104 required tests passed" |
+  | `mod/dev/client-test.sh --keep-screenshots .work/46-merge-48/client-1-screenshots build` | exit 0, `BUILD SUCCESSFUL in 13m 26s`; all eight shared-gate cases, nine switches with 363 drawing/execution probes, both arrival and recovery saves, AresOS menu, paused Settings, covered saves, both terrain repairs and failed empty-entity deletion/reopen checks passed; "All 104 required tests passed"; unit task `UP-TO-DATE` |
+  | `mod/dev/client-test.sh --keep-screenshots .work/46-merge-48/client-2-screenshots build` | exit 0, `BUILD SUCCESSFUL in 12m 48s`; same source `634faed4`; all eight shared-gate cases, nine switches with 371 drawing/execution probes, both arrivals/recoveries and the same save/fault regressions passed again; "All 104 required tests passed"; unit task `UP-TO-DATE` |
+
+  In the small save fixture, run 1's requested-save times were playing 109 ms, home screen 32 ms, AresOS menu 29 ms,
+  paused Settings 27 ms and covered 32 ms. These are regression-fixture timings, not a repeat of the original
+  40-app/glide measurement below. Run 2: playing 92 ms, home screen 41 ms, AresOS menu 42 ms, paused Settings
+  17 ms and covered 16 ms. The injected IO error logs in both runs are expected test faults.
+
+  An inline `python3` JSON audit compared all four production/test mixin lists with both parents: each printed
+  "both lists preserved, no duplicates". The entrypoint audit printed "main entrypoint order preserved, package 46
+  appended". `gh pr view 92 --json mergeable,mergeStateStatus,headRefOid,baseRefName` reported `MERGEABLE`, `CLEAN`
+  and source head `634faed4`.
+
+  New screenshots (inspected): [AresOS menu after a save](screenshots/0090_46-aresos-menu-after-save.png) and
+  [paused Settings after a save](screenshots/0091_46-settings-after-save.png). Both show no saving text. Package 48's
+  0086–0089 numbering is unchanged. The drawing probes test the full switch and recovery independently of the
+  session/world gate, including the gap without an open world, rather than relying on a still screenshot.
+
+  Hosted checks for `634faed4`: [Mod — build, test and reproduce jar](https://github.com/Ares-Empire/AresOS/actions/runs/44095573279)
+  and [Repo privacy](https://github.com/Ares-Empire/AresOS/actions/runs/44095573240) both passed. This resolves the
+  former conflicting-PR/no-hosted-check blocker recorded under review fix 2 below.
+
+  Both full `build runClientGameTest` suites passed on unchanged source `634faed4`. Preserved both runs in `.work/`,
+  then restored 55 tracked suite screenshots and removed 25 generated screenshots outside package 46.
+  `git diff --check` passed. Final `.work/` files over 500 MB: **none**; no large download or extracted image was made.
 
 - **Review fix 2 (2026-11-17):** all game/build runs use the approved dev scripts, headless, with no force or daemon
   stop option. Logs and copied suite screenshots are in the ignored `.work/review-fix-2/` directory.
@@ -198,8 +276,8 @@ no product inventory behavior changed.
   After pushing, `gh pr checks 92 --repo Ares-Empire/AresOS` printed `no checks reported on the
   'pkg/46-save-now' branch`. `gh pr view` reported `mergeStateStatus: DIRTY`, `mergeable: CONFLICTING`, and an
   empty check rollup for head `c1d30ab1`. The last hosted Mod/Repo privacy runs listed were successful runs for
-  the preceding fix's `490bfc99`, not this fix. Current-main conflict resolution is left to integration; package 48
-  was not merged into this branch. Hosted verification of this fix remains outstanding.
+  the preceding fix's `490bfc99`, not this fix. At that point current-main conflict resolution was left to integration and package 48 had not been merged.
+  This historical blocker is resolved by the merge-with-48 results above.
 
 - **Review fix 1 (2026-11-17):** all commands below ran from this worktree through the approved dev scripts.
   `origin/main` through `968727d2` was merged before the final checks; package 48 was not merged.
@@ -334,15 +412,13 @@ Measured with `SaveTimesClientGameTest`, run 3. The setup:
 - **The hidden "Saving world" text in real play** (owner fix 1). The client test shows that no frame draws it in the
   home screen, with its own fixture for the tick order (PLAN-GAP); nobody has looked at the corner during a save in
   the real session yet.
-- **Minecraft's "Saving world" screen while a world closes** is a different thing: a whole screen, not the corner
-  text, and owner fix 1 leaves it alone. Package 48 takes Save and Quit out of the home screen and gives its
-  "New home…" a screen of its own; a shutdown still closes the world.
+- **Minecraft's full-screen save/close flow during shutdown** still needs real-session observation. The integrated
+  package 48 replaces it during New home and recovery; this merge also suppresses the separate corner indicator
+  during those transitions.
 - **Other IO fault types in the game:** review fixes 1 and 2 inject actual asynchronous terrain-region and empty-entity
   deletion failures. Player, stats, advancements, metadata, saved-data, nonempty-entity and POI fault injection are not separately exercised;
   their required mixins load during the suites, and the accounting policy has unit coverage. Physical power loss
   and a real full filesystem were not simulated.
-- **Hosted checks for review fix 2:** GitHub reports a conflicting PR and no checks for the pushed fix; only earlier
-  heads have hosted results. See Verified above. No merge or unrelated integration change was made.
 - **Windows:** nothing changes there, because the gate is never set (unit test: no variable, no connection). There
   was no Windows run.
 
