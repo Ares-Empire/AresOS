@@ -5,6 +5,30 @@ differences) a fresh Claude agent (Opus 5.5) the same day; review 1's fixes a fr
 day (below). Nothing has been published, signed or pushed to GHCR. The owner's OK for publishing release 28 has not
 been given, and the ledger now stops a publish dispatch until it is (B1).
 
+## Reviews of steps 1 and 3 (Codex, 2026-11-17; the lead)
+
+- **REVIEW-3** (gpt-6-astra high, step 1 cross-review at `8792c274`): CHANGES-NEEDED, five should-fix + one nit in
+  `release_diff.py` (missing RPM files passed; generated-file globs too broad; alternatives per link; Prism's typed
+  inventory; GVDB lookup metadata; the jar pin's git mode). **REVIEW-4** (gpt-6-astra high, step 3 at `841de8d1`):
+  CHANGES-NEEDED, one blocking (the real-commit comparison could be skipped) + seven should-fix.
+- Fixes round 1 (gpt-6.1-sol xhigh, two runs in parallel; Codex's sandbox could not commit, so the lead committed):
+  `699fb9a6` (step 1, FIXES-3.md), `9d41a9e1` (step 3, FIXES-4.md; REVIEW-4's finding 3, Control's checker path, its
+  metadata and login-ordering checks, moved to step 2). **REVIEW-5** (step 1 fix check): five fixed, two should-fix
+  left in the alternatives. **REVIEW-6** (step 3 fix check): two blocking left (the instance layout; R27 without
+  R28's link targets) + one should-fix (saved worlds).
+- Fixes round 2 (gpt-6.1-sol xhigh): `6948f39f` (alternatives bound to `os/ci/release28-alternatives.json`, taken
+  from the pinned scriptlet; every selected public link checked; FIXES-5.md), `23311f42` (the provisioner's own
+  `expected_links()`; R27 compares link text only; synthetic saved worlds compared; FIXES-6.md).
+- **REVIEW-7** (step 1) and **REVIEW-8** (step 3): **SAFE**, no new findings. Merged head `c39d48cc`: host walk 268
+  sources; 25 pending files; locally OK: test_release28 (85), test_release28_rehearsal (44), test_owner_walk (34),
+  test_ways_back_probe (57), test_tools_local_wiring (42), test_release27 (41), test_checkout_sources (8),
+  test_rehearsal_budget, test_rehearsal_auth, test_owner_capabilities, test_release_squash_binding,
+  test_owner_step_limits.
+- Not yet proven: the new step 1 rules against a real image (the cut's dry run is the first). Finding 5's schema
+  rebuild runs the image's own `glib-compile-schemas` in the release job; the dry run shows whether it is
+  byte-identical there. Nothing of B has run in a VM (step 6).
+- Package 45 (main `968727d2`, mod/ and docs only) keeps the jar's sha256 `8090554997fd…`, so the pin holds.
+
 ## Step 3, continued: the rehearsal mode `release-28` (2026-11-17)
 
 Builder: a fresh Claude agent (Opus 5.5), from `b3d744a9`; nothing before it rebased or amended (the Codex Astra
@@ -182,7 +206,7 @@ and `os/minecraft/` (step 1).
 
 ### Left, in order
 
-1. The Codex Astra review of step 3 (from `8792c274`'s successor heads; this section lists what changed).
+1. ~~The Codex Astra review of step 3~~ done: REVIEW-4 to REVIEW-8 above, SAFE at `c39d48cc`.
 2. Step 2 (Control's rules) after PR #58: set `release28_walk.CONTROL_RIDES = True`, regenerate the host walk,
    `rebind.py pending`.
 3. Step 4 (the cut), then step 5 after the owner's OK: **preconditions** (the lead): 22c's and 22d's INSTALL-STATUS
