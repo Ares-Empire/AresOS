@@ -123,6 +123,64 @@ class WakeInputTest(unittest.TestCase):
             self.assertTrue(any(command.startswith('rel ') for command in commands))
 
 
+class CreationTest(unittest.TestCase):
+    def test_automatic_creation_uses_observed_time_and_rejects_wrong_home(self):
+        import creation
+        with tempfile.TemporaryDirectory(dir=ROOT / '../../../.work/pkg49') as directory:
+            rig=pathlib.Path(directory)
+            (rig/'marks.txt').write_text('game_detected 100\n')
+            (rig/'creation-marks.txt').write_text('flat\t123456\n')
+            creation.record(rig,'flat','automatic')
+            self.assertIn('create_start 123456\n',(rig/'marks.txt').read_text())
+            previous=(rig/'marks.txt').read_text()
+            with self.assertRaises(ValueError): creation.record(rig,'nether','menu')
+            self.assertEqual((rig/'marks.txt').read_text(),previous)
+
+    def test_menu_keeps_confirmation_time_and_requires_it(self):
+        import creation
+        with tempfile.TemporaryDirectory(dir=ROOT / '../../../.work/pkg49') as directory:
+            rig=pathlib.Path(directory)
+            (rig/'marks.txt').write_text('game_detected 100\n')
+            (rig/'creation-marks.txt').write_text('Nether\t456\n')
+            with self.assertRaises(ValueError): creation.record(rig,'nether','menu')
+            (rig/'marks.txt').write_text('game_detected 100\ncreate_start 123\n')
+            creation.record(rig,'nether','menu')
+            marks=dict(line.split() for line in (rig/'marks.txt').read_text().splitlines())
+            self.assertEqual(marks['create_start'],'123')
+            self.assertEqual(marks['world_create_start'],'456')
+
+
+class UiTest(unittest.TestCase):
+    def test_real_fifo_click_scales_observed_bounds_and_records_intent(self):
+        import base64, os, threading, ui
+        with tempfile.TemporaryDirectory(dir=ROOT / '../../../.work/pkg49') as directory:
+            rig=pathlib.Path(directory); commands=[]
+            (rig/'settings.txt').write_text('SIZE=1920x1080\n')
+            label=base64.b64encode('New home…'.encode()).decode()
+            (rig/'ui.txt').write_text(f'480\t270\tmenu\n{label}\t140\t127\t200\t20\ttrue\ttrue\n')
+            os.mkfifo(rig/'vin')
+            def reader():
+                with (rig/'vin').open() as source: commands.extend(source.read().splitlines())
+            worker=threading.Thread(target=reader,daemon=True);worker.start()
+            ui.click(rig,'New home…',mark='create_start')
+            worker.join(1)
+            self.assertFalse(worker.is_alive())
+            self.assertEqual(commands,['move 960 548','click left'])
+            self.assertTrue((rig/'marks.txt').read_text().startswith('create_start '))
+
+    def test_inactive_or_ambiguous_buttons_never_send_input(self):
+        import base64, ui
+        with tempfile.TemporaryDirectory(dir=ROOT / '../../../.work/pkg49') as directory:
+            rig=pathlib.Path(directory)
+            (rig/'settings.txt').write_text('SIZE=1920x1080\n')
+            label=base64.b64encode(b'Create').decode()
+            line=f'{label}\t1\t2\t20\t20\ttrue\ttrue\n'
+            (rig/'ui.txt').write_text('480\t270\tmenu\n'+line+line)
+            with self.assertRaises(ValueError): ui.click(rig,'Create',timeout=0)
+            (rig/'ui.txt').write_text('480\t270\tmenu\n'+line.replace('true\ttrue','false\ttrue'))
+            with self.assertRaises(TimeoutError): ui.click(rig,'Create',timeout=0)
+
+
 class WakeTest(unittest.TestCase):
     def test_frozen_gap_clipped_at_wake_and_33ms_is_exact(self):
         # An unthawed 5 minute gap must not be charged to wake latency.
