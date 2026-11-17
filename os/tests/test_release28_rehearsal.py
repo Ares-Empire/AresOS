@@ -449,6 +449,7 @@ class ReceiptTest(unittest.TestCase):
     def test_generator_records_the_production_setting_and_passes_it_to_the_walk(self):
         import runpy, test_owner_walk
         namespace = runpy.run_path(str(ROOT / 'reviews/42-release-28/walk-host.py'))
+        self.assertIn('os/config/usr/libexec/aresos-desktop', namespace['ADDED'])
         with tempfile.TemporaryDirectory() as temporary:
             root = pathlib.Path(temporary)
             previous = root / 'os/manifest/ci/22d/host-walk.json'
@@ -489,6 +490,98 @@ class ReceiptTest(unittest.TestCase):
         start.assert_not_called()
 
 
+class HomeProbeTest(unittest.TestCase):
+    """Run the submitted home probe, including its daily-user reader, against the provisioner's layout."""
+
+    def setUp(self):
+        from test_owner_walk import Release28Session
+        from types import SimpleNamespace
+        from unittest.mock import Mock
+        self.session = Release28Session(False)
+        self.addCleanup(self.session.close)
+        self.guest = SimpleNamespace(capture_json=self.session.capture)
+        self.vm = SimpleNamespace(sw=SimpleNamespace(framed=lambda source: source), td=SimpleNamespace(save=Mock()))
+        self.session.boot('release-28')
+        self.before = walk.home(self.guest, 'release-28', self.vm, plant=True)
+
+    def test_real_provisioner_links_are_required_at_their_actual_locations(self):
+        self.assertEqual(self.session.links, walk.INSTANCE_LINKS)
+        for name, target in self.session.links.items():
+            self.assertEqual(self.before['entries'][name]['target'], target)
+        self.assertNotIn('minecraft/libraries', self.before['entries'])
+        # The invented nested libraries layout and a missing patches link must both STOP.
+        for name in ('libraries', 'patches', 'minecraft/mods', 'minecraft/saves'):
+            with self.subTest(link=name):
+                p = self.session.Path(walk.INSTANCE + '/' + name)
+                target = p.readlink()
+                p.unlink()
+                try:
+                    with self.assertRaisesRegex(AssertionError, 'incorrect instance link'):
+                        walk.home(self.guest, 'final-28', self.vm)
+                finally:
+                    p.symlink_to(target)
+
+    def test_changed_link_text_stops_even_when_the_new_target_is_accessible(self):
+        p = self.session.Path(walk.INSTANCE + '/libraries')
+        p.unlink()
+        p.symlink_to(self.session.Path(walk.INSTANCE_LINKS['patches']))
+        with self.assertRaisesRegex(AssertionError, 'incorrect instance link'):
+            walk.home(self.guest, 'final-28', self.vm)
+
+    def test_rollback_preserves_link_text_and_worlds_without_r28_image_targets(self):
+        self.session.boot('previous-27')
+        targets = self.session.boots[-1]['targets']
+        self.assertEqual(targets, {name: name == 'minecraft/saves' for name in self.session.links})
+        back = walk.home(self.guest, 'previous-27', self.vm, image_targets=False)
+        walk.home_unchanged(self.before, back)
+        self.session.boot('final-28')
+        self.assertTrue(all(self.session.boots[-1]['targets'].values()))
+        again = walk.home(self.guest, 'final-28', self.vm)
+        walk.home_unchanged(self.before, again, prism_started=True)
+
+    def test_image_targets_are_required_again_after_forward(self):
+        self.session.boot('previous-27')
+        self.session.boot('final-28')
+        for name in ('patches', 'libraries', 'minecraft/mods'):
+            with self.subTest(link=name):
+                target = self.session.Path(self.session.links[name])
+                target.rmdir()
+                try:
+                    with self.assertRaisesRegex(AssertionError, 'inaccessible as ares'):
+                        walk.home(self.guest, 'final-28', self.vm)
+                finally:
+                    target.mkdir()
+
+    def test_saved_world_contains_owned_level_and_region_data_through_saves(self):
+        for name, data in walk.WORLD_FILES.items():
+            row = self.before['worlds'][walk.WORLD + '/' + name]
+            self.assertEqual(row['sha256'], hashlib.sha256(bytes.fromhex(data)).hexdigest())
+            self.assertEqual((row['uid'], row['gid']), (1001, 1001))
+        self.assertEqual(self.before['accessible']['worlds'], self.before['worlds'])
+
+    def test_world_deletion_corruption_and_denial_stop_on_either_boot(self):
+        for stage in ('previous-27', 'final-28'):
+            for name in walk.WORLD_FILES:
+                for fault in ('delete', 'corrupt', 'deny', 'owner', 'mode'):
+                    with self.subTest(stage=stage, file=name, fault=fault):
+                        self.session.boot(stage)
+                        p = self.session.Path(walk.INSTANCE_LINKS['minecraft/saves']) / walk.WORLD / name
+                        data = p.read_bytes()
+                        try:
+                            if fault == 'delete': p.unlink()
+                            if fault == 'corrupt': p.write_bytes(b'corrupt')
+                            if fault == 'deny': self.session.modes[str(p)] = 0
+                            if fault == 'owner': self.session.owners[str(p)] = (0, 0)
+                            if fault == 'mode': self.session.modes[str(p)] = 0o600
+                            with self.assertRaisesRegex(AssertionError, 'STOP:.*(saved-world|inaccessible as ares)'):
+                                after = walk.home(self.guest, stage, self.vm, image_targets=stage != 'previous-27')
+                                walk.home_unchanged(self.before, after, prism_started=stage == 'final-28')
+                        finally:
+                            p.write_bytes(data)
+                            self.session.modes.pop(str(p), None)
+                            self.session.owners.pop(str(p), None)
+
+
 class WalkTest(unittest.TestCase):
     """The local walk (test_owner_walk's release-28 route) with Control off, as it stays, and on."""
 
@@ -524,6 +617,7 @@ class WalkTest(unittest.TestCase):
                 self.assertEqual(result['no_foot']['stop'], walk.FOOT_STOP)
                 self.assertEqual(result['game_scope']['memory_high'], '2684354560')
                 self.assertTrue(result['home']['planted'])
+                self.assertEqual(result['home']['worlds'], result['home']['after_forward_worlds'])
                 self.assertFalse(result['qualified'])
                 self.assertEqual(result['terminal_path'], self.module.vm.DAILY_PATH)
                 names = [name for name, _ in walked['commands']]
@@ -532,6 +626,11 @@ class WalkTest(unittest.TestCase):
                 home_probe = next(source for name, source in walked['session'].executed if name == 'release-28-home')
                 self.assertIn("'schemaVersion': 4", home_probe)
                 self.assertEqual(walked['session'].events, ['foot ended', 'terminal opened', 'game scope'])
+                boots = {row['stage']: row['targets'] for row in walked['session'].boots}
+                for stage in ('release-27', 'previous-27'):
+                    self.assertEqual(boots[stage], {name: name == 'minecraft/saves' for name in walk.INSTANCE_LINKS})
+                for stage in ('release-28', 'final-28'):
+                    self.assertTrue(all(boots[stage].values()))
                 self.assertEqual(walked['local'].installs[-1], dict(manifest=result['tools'], previous_manifest=walk.TOOLS_V4,
                                                                     previous_version=4, tools_version=5))
                 self.assertLessEqual({'final-unattended-windows', 'final-detached-windows'}, set(walked['markers']))

@@ -173,7 +173,7 @@
       "path": "os/ci/rehearsal_guard.py"
     },
     {
-      "sha256": "00607aa83b3e03ce23dd7f6fdacbf2f07a5a330cdb9f931cf11898194a25c73e",
+      "sha256": "4ef313f34859a8afef1ca3cdb7485947a943d853bcfd639893ffda4871e9fe6a",
       "path": "os/ci/release28_walk.py"
     },
     {
@@ -207,6 +207,10 @@
     {
       "sha256": "5a14cfa61936b15700c53747e839a6407aa73cc1d7335ef36ebdd1ccbcdeba23",
       "path": "os/ci/vm.py"
+    },
+    {
+      "sha256": "a1ac18e257181e2f18fbf3d738a2c5e29d1aab8dc52244d969a4e721223c8786",
+      "path": "os/config/usr/libexec/aresos-desktop"
     },
     {
       "sha256": "1ab95aeeeb04ada969d55a9aa240f6154854adb87b3bfbf951a88f811190ca76",
@@ -1025,7 +1029,7 @@
       "path": "os/tests/test_owner_update.py"
     },
     {
-      "sha256": "b14a8f3d1fe772f300fc1e47bb724e813027261486c45b919b391256145a6442",
+      "sha256": "99710282d801ed5cb81e4b6f4692577331c978e50e341cf9a0d2ac20c07f34c0",
       "path": "os/tests/test_owner_walk.py"
     },
     {
@@ -1041,7 +1045,7 @@
       "path": "os/tests/test_rehearsal_retry.py"
     },
     {
-      "sha256": "f6754c4f617a589f11f9a2144eb16e4531597330c63078c6f7c1cae2074bcd32",
+      "sha256": "c8bf0e263f2dfdb94908d3dca7dae65032d55314d97f59dec8fa70783e7a3ed3",
       "path": "os/tests/test_release28_rehearsal.py"
     },
     {
@@ -1101,7 +1105,7 @@
       "path": "reviews/27-first-update-release/walk-host.py"
     },
     {
-      "sha256": "b37f11dbc640946f4956d976370193cee7c82449d370c0d74f9f63868a151d6f",
+      "sha256": "b985c985d89fd791c6e529dfb2509b536d0dab93eea56f475e127a05bd48a878",
       "path": "reviews/42-release-28/walk-host.py"
     }
   ]
