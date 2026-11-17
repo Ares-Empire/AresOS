@@ -4,8 +4,11 @@ The install map runs for real: `build.sh control-tree` is the same Python as the
 temporary folder. The image build's own extras (pip, the wheel record, the self-checks) run only in the image build;
 their record is checked here with stand-ins for pip's report and the vendored tree.
 """
+import base64
 import hashlib
+import importlib.util
 import json
+import marshal
 import os
 import pathlib
 import re
@@ -14,6 +17,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+import zipfile
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 CONTROL = ROOT / 'control'
@@ -334,6 +338,227 @@ class ImageCheckTest(unittest.TestCase):
         return subprocess.run(['openssl', 'req', '-x509', '-newkey', 'ec', '-pkeyopt', 'ec_paramgen_curve:prime256v1',
                                '-nodes', '-keyout', str(key), '-days', '1', '-subj', subject],
                               check=True, capture_output=True, timeout=60).stdout
+
+
+def load_vendor_check():
+    spec = importlib.util.spec_from_file_location('vendor_check_for_test', ROOT / 'os/ci/control/vendor_check.py')
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def wheel(folder, name, version, files, entry_points=None, unlisted=()):
+    """A wheel as a build backend writes one: its files, METADATA, WHEEL, entry_points.txt and RECORD. files maps a
+    member to its bytes, or to (bytes, zip mode). Members named in unlisted stay out of its RECORD."""
+    info = f'{name}-{version}.dist-info'
+    members = {path: value if isinstance(value, tuple) else (value, 0o100644) for path, value in files.items()}
+    members[f'{info}/METADATA'] = (f'Metadata-Version: 2.1\nName: {name}\nVersion: {version}\n'.encode(), 0o100644)
+    members[f'{info}/WHEEL'] = (b'Wheel-Version: 1.0\nGenerator: test\nRoot-Is-Purelib: true\nTag: py3-none-any\n',
+                                0o100644)
+    if entry_points:
+        members[f'{info}/entry_points.txt'] = (entry_points.encode(), 0o100644)
+    record = ''.join(f'{path},sha256={base64.urlsafe_b64encode(hashlib.sha256(data).digest()).decode().rstrip("=")},'
+                     f'{len(data)}\n' for path, (data, _) in members.items() if path not in unlisted)
+    members[f'{info}/RECORD'] = ((record + f'{info}/RECORD,,\n').encode(), 0o100644)
+    path = pathlib.Path(folder) / f'{name}-{version}-py3-none-any.whl'
+    with zipfile.ZipFile(path, 'w', zipfile.ZIP_DEFLATED) as archive:
+        for member, (data, mode) in members.items():
+            entry = zipfile.ZipInfo(member, date_time=(2026, 1, 1, 0, 0, 0))
+            entry.external_attr = mode << 16
+            archive.writestr(entry, data)
+    return dict(name=name, version=version, file=path.name, sha256=sha256(path.read_bytes()))
+
+
+@unittest.skipUnless(LINUX, 'compiles and installs into temporary folders')
+class VendorTreeTest(unittest.TestCase):
+    """REVIEW-X1 #1: the vendored tree and its record are what the locked wheels install, apart from the build."""
+
+    def setUp(self):
+        self.work = pathlib.Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, self.work)
+        self.vendor_check = load_vendor_check()
+        self.wheels = self.work / 'wheels'
+        self.wheels.mkdir()
+        self.recorded = [
+            wheel(self.wheels, 'demo', '1.0', {
+                'demo/__init__.py': b'NAMES = frozenset({"a", "b", "c"})\n',
+                'demo/cli.py': b'def main():\n    return 0\n',
+                'demo/_native.so': (b'\x7fELF stand-in', 0o100755)},
+                entry_points='[console_scripts]\ndemo = demo.cli:main [extra]\n\n[demo.plugins]\nx = demo:NAMES\n',
+                unlisted=('demo/cli.py',)),
+            wheel(self.wheels, 'other', '2.0', {'other.py': b'VALUE = 1\n'})]
+
+    def image(self):
+        """A root as the image build leaves it: the tree installed, compiled in place, recorded by build.sh's rule."""
+        root = pathlib.Path(tempfile.mkdtemp(dir=self.work))
+        record = dict(wheels=self.recorded)
+        self.vendor_check.install(self.vendor_check.expected_sources(record, self.wheels),
+                                  root / self.vendor_check.VENDOR, sys.executable)
+        return root, dict(record, vendor=self.vendor_check.tree_map(root))
+
+    def check(self, root, record):
+        return self.vendor_check.check(record, self.wheels, root, sys.executable)
+
+    def test_the_record_must_be_what_the_locked_wheels_install(self):
+        root, record = self.image()
+        vendor = '/' + self.vendor_check.VENDOR
+        self.assertLessEqual({f'{vendor}/demo/__init__.py', f'{vendor}/bin/demo', f'{vendor}/demo/_native.so',
+                              f'{vendor}/demo-1.0.dist-info/INSTALLER', f'{vendor}/demo-1.0.dist-info/REQUESTED',
+                              f'{vendor}/demo-1.0.dist-info/RECORD', f'{vendor}/other.py'}, set(record['vendor']))
+        self.assertEqual(record['vendor'][f'{vendor}/demo/_native.so']['mode'], '0755')
+        self.assertEqual(record['vendor'][f'{vendor}/bin/demo']['mode'], '0755')
+        self.assertTrue(any(name.endswith('.pyc') for name in record['vendor']))
+        found = self.check(root, record)
+        self.assertEqual((found['wheels'], found['paths']), (2, len(record['vendor'])))
+        script = (root / self.vendor_check.VENDOR / 'bin/demo').read_text()
+        self.assertEqual(script.splitlines()[:3], ['#!/usr/bin/python3', 'import sys', 'from demo.cli import main'])
+
+        def tampered(change):
+            """A fresh image with one change made to the tree and recorded, the wheel list untouched."""
+            root, record = self.image()
+            change(root / self.vendor_check.VENDOR)
+            return root, dict(record, vendor=self.vendor_check.tree_map(root))
+
+        def pyc_with_other_code(folder):
+            # A checked-hash header that names the right source, followed by other code.
+            pyc = next((folder / 'demo/__pycache__').glob('cli.*.pyc'))
+            code = compile('import os\nos.system("true")\n', str(folder / 'demo/cli.py'), 'exec')
+            pyc.write_bytes(pyc.read_bytes()[:16] + marshal.dumps(code))
+
+        def record_row_dropped(folder):
+            path = folder / 'other-2.0.dist-info/RECORD'
+            path.write_bytes(b''.join(path.read_bytes().splitlines(keepends=True)[1:]))
+
+        # The regression: one vendored file and its record changed, every wheel still the lock's.
+        for name, change in (
+                ('a source changed', lambda folder: (folder / 'demo/cli.py').write_text('def main():\n    return 1\n')),
+                ('bytecode with other code', pyc_with_other_code),
+                ('a file added', lambda folder: (folder / 'demo/extra.py').write_text('')),
+                ('direct_url.json', lambda folder: (folder / 'demo-1.0.dist-info/direct_url.json').write_text('{}')),
+                ('a mode', lambda folder: (folder / 'other.py').chmod(0o755)),
+                ('a generated script', lambda folder: (folder / 'bin/demo').write_text('#!/bin/sh\n')),
+                ('INSTALLER', lambda folder: (folder / 'demo-1.0.dist-info/INSTALLER').write_text('uv\n')),
+                ('a RECORD row', record_row_dropped),
+                ('a file removed', lambda folder: (folder / 'other.py').unlink())):
+            root, record = tampered(change)
+            with self.assertRaisesRegex(self.vendor_check.Mismatch, 'not what the locked wheels install', msg=name):
+                self.check(root, record)
+        # The image's tree differs from its record (image-checks.sh's finding, seen here too).
+        root, record = self.image()
+        (root / self.vendor_check.VENDOR / 'other.py').write_text('VALUE = 2\n')
+        with self.assertRaisesRegex(self.vendor_check.Mismatch, 'the image differs from its record'):
+            self.check(root, record)
+        # A wheel whose bytes are not the recorded SHA-256.
+        root, record = self.image()
+        bad = dict(record, wheels=[dict(self.recorded[0], sha256='0' * 64), self.recorded[1]])
+        with self.assertRaisesRegex(self.vendor_check.Mismatch, 'not the recorded SHA-256'):
+            self.check(root, bad)
+
+    @unittest.skipIf(os.path.exists('/run/.containerenv'), 'inside a container')
+    def test_it_replaces_the_real_vendor_folder_only_in_a_container(self):
+        with self.assertRaises(SystemExit):
+            self.vendor_check.check(dict(wheels=self.recorded, vendor={}), self.wheels)
+
+    def test_a_wheel_without_a_rule_stops_the_check(self):
+        cases = {
+            'a .data folder': dict(files={'demo-1.0.data/scripts/run': b'#!python\n'}),
+            'gui_scripts': dict(files={'demo/__init__.py': b''}, entry_points='[gui_scripts]\ndemo = demo:main\n'),
+            "pip's own entry point": dict(files={'pip/__init__.py': b''}, entry_points='[console_scripts]\npip = pip:main\n'),
+            'a link': dict(files={'demo/link': (b'/etc/passwd', 0o120777)}),
+            'a member outside its folder': dict(files={'../escape.py': b''}),
+            'a generated file in the wheel': dict(files={'demo-1.0.dist-info/INSTALLER': b'pip\n'}),
+        }
+        for name, case in cases.items():
+            folder = self.work / name.replace(' ', '-').replace("'", '')
+            folder.mkdir()
+            recorded = wheel(folder, 'demo', '1.0', **case)
+            with self.assertRaises(self.vendor_check.Mismatch, msg=name):
+                self.vendor_check.expected_sources(dict(wheels=[recorded]), folder)
+        folder = self.work / 'two-write-one'
+        folder.mkdir()
+        both = [wheel(folder, 'demo', '1.0', {'shared.py': b'A = 1\n'}),
+                wheel(folder, 'other', '2.0', {'shared.py': b'A = 2\n'})]
+        with self.assertRaisesRegex(self.vendor_check.Mismatch, 'shared.py: written by'):
+            self.vendor_check.expected_sources(dict(wheels=both), folder)
+
+    @unittest.skipUnless(subprocess.run([sys.executable, '-m', 'pip', '--version'], capture_output=True).returncode == 0,
+                         'needs pip')
+    def test_the_rules_are_what_pip_writes(self):
+        # pip --target --no-compile as the build runs it, from these wheels and without an index: every file pip
+        # writes (RECORD, INSTALLER, REQUESTED, modes, a file the wheel's RECORD doesn't list) is the derived one. The
+        # console script template is pip 26's (the image's); this runner's pip may be older, so the script is left
+        # to the image build's own comparison.
+        no_scripts = self.work / 'no-scripts'
+        no_scripts.mkdir()
+        recorded = [wheel(no_scripts, 'demo', '1.0', {
+            'demo/__init__.py': b'NAMES = frozenset({"a", "b"})\n', 'demo/cli.py': b'def main():\n    return 0\n',
+            'demo/_native.so': (b'\x7fELF stand-in', 0o100755), 'demo/data.bin': (b'\0\1', 0o644)},
+            unlisted=('demo/cli.py',)), wheel(no_scripts, 'other', '2.0', {'other.py': b'VALUE = 1\n'})]
+        target = self.work / 'pip' / self.vendor_check.VENDOR
+        result = subprocess.run(
+            [sys.executable, '-I', '-m', 'pip', 'install', '--quiet', '--disable-pip-version-check', '--no-cache-dir',
+             '--no-compile', '--no-index', '--find-links', str(no_scripts), '--only-binary=:all:', '--target',
+             str(target), 'demo==1.0', 'other==2.0'], capture_output=True, text=True, timeout=300,
+            env={'PATH': '/usr/bin:/bin', 'LANG': 'C.UTF-8', 'HOME': str(self.work)})
+        self.assertEqual(result.returncode, 0, result.stderr)
+        derived = self.work / 'derived' / self.vendor_check.VENDOR
+        sources = self.vendor_check.expected_sources(dict(wheels=recorded), no_scripts)
+        for name, (data, mode) in sources.items():
+            (derived / name).parent.mkdir(parents=True, exist_ok=True)
+            (derived / name).write_bytes(data)
+            (derived / name).chmod(mode)
+        self.assertEqual(self.vendor_check.tree_map(self.work / 'pip'), self.vendor_check.tree_map(self.work / 'derived'))
+
+    def test_the_compile_step_and_the_image_check_are_the_builds(self):
+        build = (ROOT / 'os/build.sh').read_text()
+        line = re.search(r'\n\s*env -i (PATH=\S+) (LANG=\S+) (/usr/bin/python3 -I -m compileall -q) \\\n'
+                         r'\s*(--invalidation-mode checked-hash) "\$vendor"\n', build)
+        self.assertIsNotNone(line, 'the compile step in build.sh')
+        self.assertEqual(f'{line[3]} {line[4]}'.split(), self.vendor_check.COMPILE)
+        self.assertEqual(dict(item.split('=', 1) for item in line.group(1, 2)), self.vendor_check.COMPILE_ENV)
+        self.assertIn('vendor=/usr/lib/aresos-control/vendor\n', build)
+        self.assertEqual(self.vendor_check.VENDOR, 'usr/lib/aresos-control/vendor')
+        check = (ROOT / 'os/ci/check-image.sh').read_text()
+        block = check[check.index('# REVIEW-X1 #1'):check.index('echo CHECK_BUILD_PASSED')]
+        order = [block.index(text) for text in (
+            'vendor_check.py fetch "$out/manifest/control.json"', '--network=none --entrypoint /usr/bin/bash "$image"',
+            'vendor_check.py check /tmp/vendor-check/control.json /tmp/vendor-check/wheels',
+            "grep -q '^CONTROL_VENDOR_FROM_WHEELS '")]
+        self.assertEqual(order, sorted(order))
+        # After the record is held to the checkout and its lock.
+        self.assertLess(check.index("raise SystemExit(\"The image's wheels are not this checkout's requirements.lock\")"),
+                        check.index('# REVIEW-X1 #1'))
+
+    def test_the_wheels_come_from_pypi_by_name_with_the_recorded_hash(self):
+        record = dict(wheels=self.recorded)
+        blobs = {item['file']: (self.wheels / item['file']).read_bytes() for item in self.recorded}
+
+        def index(override=None):
+            def get(url):
+                if url.startswith('https://pypi.org/pypi/'):
+                    name, version = url.split('/')[4:6]
+                    item = next(item for item in self.recorded if (item['name'], item['version']) == (name, version))
+                    entry = dict(filename=item['file'], digests=dict(sha256=item['sha256']),
+                                 url=f'https://files.pythonhosted.org/packages/xx/{item["file"]}')
+                    return json.dumps(dict(urls=[dict(entry, **(override or {}))])).encode()
+                self.assertTrue(url.startswith('https://files.pythonhosted.org/packages/xx/'), url)
+                return blobs[url.rsplit('/', 1)[1]]
+            return get
+
+        folder = self.work / 'fetched'
+        folder.mkdir()
+        self.assertEqual(self.vendor_check.fetch(record, folder, index()), sum(map(len, blobs.values())))
+        self.assertEqual({path.name: path.read_bytes() for path in folder.iterdir()}, blobs)
+        for name, get in (('another hash on the index', index(dict(digests=dict(sha256='0' * 64)))),
+                          ('another host', index(dict(url='https://example.invalid/demo-1.0-py3-none-any.whl'))),
+                          ('no such file', index(dict(filename='demo-1.0-py3-none-manylinux.whl')))):
+            with self.assertRaises(self.vendor_check.Mismatch, msg=name):
+                self.vendor_check.fetch(record, folder, get)
+        blobs[self.recorded[0]['file']] = b'other bytes'
+        with self.assertRaisesRegex(self.vendor_check.Mismatch, 'the download is not the recorded SHA-256'):
+            self.vendor_check.fetch(record, folder, index())
+        with self.assertRaisesRegex(self.vendor_check.Mismatch, 'not a wheel file name'):
+            self.vendor_check.fetch(dict(wheels=[dict(self.recorded[0], file='../demo.whl')]), folder, index())
 
 
 class ServiceUserTest(unittest.TestCase):

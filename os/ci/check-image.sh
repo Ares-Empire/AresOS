@@ -76,7 +76,8 @@ PY
 # install map recomputes them here. The build commit is this one, and the
 # vendored wheels are this checkout's requirements.lock: build.sh checked them
 # inside the build, and this check reads the lock again from the checkout,
-# apart from the build (REVIEW-A1 #6); image-checks.sh checked the installed bytes.
+# apart from the build (REVIEW-A1 #6); image-checks.sh checked the installed bytes
+# against the record, and vendor_check.py below the record against the wheels.
 expected=$(mktemp -d)
 bash os/build.sh control-tree os control "$expected/root" | tee "$out/control-tree.txt"
 python3 - "$out/manifest/control.json" "$expected/root/usr/share/aresos/manifest/control.json" "$(git rev-parse HEAD)" \
@@ -123,4 +124,20 @@ print(f'Control in the image is this checkout: {len(image["files"])} files from 
       f'{len(image["wheels"])} wheels from requirements.lock (sha256 {image["requirements_lock"]})')
 PY
 rm -rf "$expected"
+# REVIEW-X1 #1: the vendored tree itself, apart from the build. The wheels the record names (held to the lock just
+# above) come from PyPI again, each with its recorded SHA-256. In a throwaway container of the image, without
+# network, vendor_check.py derives the tree they install (the wheels' files and what pip writes, by the rules in its
+# docstring), compiles it with the build's command where the build compiled it, and requires the image's tree and
+# its record to be exactly that tree: paths, contents (bytecode included) and modes.
+vendor_work=$(mktemp -d)
+mkdir "$vendor_work/wheels"
+python3 -I os/ci/control/vendor_check.py fetch "$out/manifest/control.json" "$vendor_work/wheels" \
+    | tee "$out/control-vendor.txt"
+cp os/ci/control/vendor_check.py "$out/manifest/control.json" "$vendor_work/"
+tar -c -C "$vendor_work" . | sudo podman run --rm -i --network=none --entrypoint /usr/bin/bash "$image" -ec \
+    'mkdir /tmp/vendor-check && tar -x -C /tmp/vendor-check &&
+     exec /usr/bin/python3 -I /tmp/vendor-check/vendor_check.py check /tmp/vendor-check/control.json /tmp/vendor-check/wheels' \
+    | tee -a "$out/control-vendor.txt"
+grep -q '^CONTROL_VENDOR_FROM_WHEELS ' "$out/control-vendor.txt"
+rm -rf "$vendor_work"
 echo CHECK_BUILD_PASSED
