@@ -1,0 +1,153 @@
+<!doctype html>
+<!-- Development aid for AresOS package 44 (the laptop-screen home, a design study). Not product code.
+     Direction "Map table": the town from straight above, every logo laid flat at its real place (HUB.md 3.2).
+     Open this file in a browser; it needs only the files in ../shared. Options: see ../shared/home.js. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Map table · AresOS laptop home (prototype)</title>
+<link rel="stylesheet" href="../shared/home.css">
+<style>
+  .stage::before { content: ''; position: absolute; inset: 0; pointer-events: none;
+    background: radial-gradient(900px 520px at 0% 100%, rgba(201, 55, 44, 0.09), transparent 70%),
+                radial-gradient(1000px 560px at 100% 0%, rgba(93, 134, 179, 0.10), transparent 70%); }
+  /* A faint two-block grid, strongest around home: the table the map lies on. */
+  .grid { position: absolute; inset: 0; pointer-events: none;
+    background-image: linear-gradient(rgba(243, 241, 234, 0.045) 1px, transparent 1px), linear-gradient(90deg, rgba(243, 241, 234, 0.045) 1px, transparent 1px);
+    -webkit-mask-image: radial-gradient(closest-side, #000 35%, transparent 100%); mask-image: radial-gradient(closest-side, #000 35%, transparent 100%); }
+  #clock { position: absolute; left: 64px; top: 40px; }
+  #battery { position: absolute; right: 64px; top: 48px; }
+  #map { position: absolute; inset: 0; }
+  .road { position: absolute; background: #19191d; }
+  .road i { position: absolute; background: color-mix(in srgb, var(--b) 70%, var(--wall)); }
+  .pad { position: absolute; background: #222226; box-shadow: 0 0 0 1px #2c2b30; }
+  .pad i { position: absolute; background: linear-gradient(135deg, var(--gold-hi), var(--gold) 55%, #8c6a2c); box-shadow: 0 0 18px rgba(237, 202, 119, 0.35); }
+  .name { position: absolute; white-space: nowrap; line-height: 16px; font-size: 12px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--g); }
+  .name span { margin-left: 8px; font-family: var(--mono); font-weight: 400; letter-spacing: 0; text-transform: none; color: var(--ink-3); }
+  .free { position: absolute; border: 1px dashed #2b2a2f; border-radius: 3px; }
+
+  .tile { position: absolute; cursor: pointer; transition: opacity .15s; }
+  .tile canvas { filter: brightness(0.7) saturate(0.85); transition: filter .15s; }
+  .tile:hover canvas, .tile.is-running canvas, .tile.is-selected canvas, .tile.is-match canvas, .tile.is-opening canvas { filter: none; }
+  .tile.is-dim { opacity: 0.13; }
+  .tile-sign { position: absolute; left: 50%; top: 100%; transform: translateX(-50%); padding: 0 5px; white-space: nowrap; text-align: center;
+    font-size: var(--font); line-height: var(--gap); color: var(--ink-2); border-radius: 4px; z-index: 2; }
+  .tile-sign span { display: none; margin-left: 6px; font-family: var(--mono); font-size: 0.92em; color: var(--gold-hi); }
+  .tile:hover .tile-sign, .tile.is-running .tile-sign, .tile.is-selected .tile-sign, .tile.is-match .tile-sign { color: var(--ink); }
+  .tile:hover .tile-sign, .tile.is-selected .tile-sign, .tile.is-best .tile-sign { z-index: 5; background: #0a0a0cf2; font-size: 13px; line-height: 20px; }
+  .tile:hover .tile-sign span, .tile.is-selected .tile-sign span, .tile.is-best .tile-sign span { display: inline; }
+  .small .tile-sign { display: none; }
+  .small .tile:hover .tile-sign, .small .tile.is-selected .tile-sign, .small .tile.is-match .tile-sign { display: block; background: #0a0a0cf2; font-size: 13px; line-height: 20px; z-index: 5; }
+  .door { position: absolute; bottom: 0; }
+  .tile.is-running .door { background: linear-gradient(#ffe7a6, #e9b04a 55%, #b9791e); box-shadow: 0 0 20px 5px rgba(237, 202, 119, 0.45); }
+  .tile.is-opening .door { background: #b66bff; box-shadow: 0 0 24px 8px rgba(182, 107, 255, 0.55); }
+  .frame { position: absolute; inset: -6px; border: 2px solid var(--gold); border-radius: 5px; opacity: 0; pointer-events: none; }
+  .tile.is-best .frame, .tile.is-selected .frame { opacity: 1; }
+
+  #hotbar { position: absolute; left: 50%; top: 966px; transform: translateX(-50%); }
+  #finder { position: absolute; left: 50px; bottom: 30px; width: 480px; z-index: 40; }
+  .hint { position: absolute; right: 64px; bottom: 44px; }
+</style>
+</head>
+<body>
+<div class="stage" id="stage">
+  <div class="grid" id="grid"></div>
+  <div id="clock"></div>
+  <div id="battery"></div>
+  <div id="map"></div>
+  <div id="hotbar"></div>
+  <div id="finder"></div>
+  <div class="hint label">Click opens &nbsp;·&nbsp; 1 to 9 the hotbar &nbsp;·&nbsp; type to find</div>
+</div>
+<script src="../shared/home.js"></script>
+<script>
+'use strict';
+(() => {
+  const stage = document.getElementById('stage'), map = document.getElementById('map');
+  // HUB.md 3.1: the town's own numbers, in blocks.
+  const SIZE = 12, FIRST = 4, PITCH = 14, ROW0 = 20, STEP = 14;
+  // Outward and to the right of each group as the map shows them, north up (HUB.md 3.2).
+  const WAYS = { N: [[0, -1], [1, 0]], E: [[1, 0], [0, 1]], S: [[0, 1], [-1, 0]], W: [[-1, 0], [0, -1]] };
+  const byGroup = Home.GROUPS.map(g => Home.town.apps.filter(a => a.group === g.key));
+  const lastRow = list => list.reduce((most, app) => Math.max(most, app.place.row), 0);
+  // Where a group's road ends: one block past its last row laid flat. Its name stands beyond that end.
+  const end = Object.fromEntries(Home.GROUPS.map((g, i) => [g.letter, ROW0 + STEP * lastRow(byGroup[i]) + SIZE + 1]));
+  // The scale: the whole town and its names between the top edge and the hotbar, and between the side edges.
+  // Whole pixels a block, so the logos stay sharp.
+  const TOP = 24, BOTTOM = 944, north = end.N + 4, south = end.S + 5;
+  const s = Math.max(4, Math.min(11, Math.floor((BOTTOM - TOP) / (north + south)), Math.floor(1460 / (end.E + end.W))));
+  const cx = 960, cy = Math.round(TOP + (BOTTOM - TOP - (north + south) * s) / 2 + north * s);
+  // Block coordinates count from the middle of the home block.
+  const point = (letter, outward, sideways) => {
+    const [[ox, oy], [rx, ry]] = WAYS[letter];
+    return [cx + (ox * outward + rx * sideways) * s, cy + (oy * outward + ry * sideways) * s];
+  };
+  const box = (letter, a1, a2, b1, b2) => {
+    const [x1, y1] = point(letter, a1 - 0.5, b1 - 0.5), [x2, y2] = point(letter, a2 - 0.5, b2 - 0.5);
+    return { left: Math.min(x1, x2), top: Math.min(y1, y2), width: Math.abs(x2 - x1), height: Math.abs(y2 - y1) };
+  };
+  const put = (el, r) => { el.style.left = r.left + 'px'; el.style.top = r.top + 'px'; el.style.width = r.width + 'px'; el.style.height = r.height + 'px'; return el; };
+  const add = (className, r, parent = map) => { const el = document.createElement('div'); el.className = className; parent.append(put(el, r)); return el; };
+  const placeBox = (letter, p) => {
+    const b = p.side === 'R' ? FIRST + PITCH * p.k : -(FIRST + PITCH * p.k + SIZE - 1), a = ROW0 + STEP * p.row;
+    return box(letter, a, a + SIZE, b, b + SIZE);
+  };
+
+  const grid = document.getElementById('grid');
+  grid.style.backgroundSize = `${2 * s}px ${2 * s}px`;
+  grid.style.backgroundPosition = `${cx - s / 2}px ${cy - s / 2}px`;
+  map.classList.toggle('small', s < 7);
+  map.style.setProperty('--font', Math.max(10, Math.min(13, Math.round(s * 1.5))) + 'px');
+  map.style.setProperty('--gap', 2 * s + 'px');
+
+  Home.GROUPS.forEach((g, gi) => {
+    const list = byGroup[gi], L = g.letter, far = (end[L] - 0.5) * s;
+    // The avenue with its coloured middle line, as far as the group has logos.
+    const road = add('road', box(L, 3, end[L], -2, 3));
+    road.style.setProperty('--b', g.block);
+    const line = document.createElement('i');
+    const upright = L === 'N' || L === 'S';
+    line.style.cssText = upright ? `left:${2 * s}px;width:${s}px;top:0;bottom:0` : `top:${2 * s}px;height:${s}px;left:0;right:0`;
+    road.append(line);
+    // The group's name stands at the far end of its road, as on a map's edge.
+    const name = document.createElement('div');
+    name.className = 'name';
+    name.style.setProperty('--g', g.colour);
+    name.innerHTML = `${g.title.replace('&', '&amp;')}<span>${g.where} · ${list.length}</span>`;
+    if (L === 'N') name.style.cssText += `left:${cx - 200}px;width:400px;text-align:center;top:${cy - far - 24}px`;
+    if (L === 'S') name.style.cssText += `left:${cx - 200}px;width:400px;text-align:center;top:${cy + far + 1.5 * s + 4}px`;
+    if (L === 'E') name.style.cssText += `left:${cx + far + 14}px;top:${cy - 8}px`;
+    if (L === 'W') name.style.cssText += `right:${1920 - cx + far + 14}px;top:${cy - 8}px`;
+    map.append(name);
+
+    list.forEach(app => {
+      const tile = add('tile', placeBox(L, app.place));
+      tile.dataset.app = app.id;
+      const sign = document.createElement('div'), door = document.createElement('div'), frame = document.createElement('div');
+      sign.className = 'tile-sign'; door.className = 'door'; frame.className = 'frame';
+      const text = document.createElement('b'), short = document.createElement('span');
+      text.style.fontWeight = 500;
+      text.textContent = app.name;
+      short.textContent = '/' + app.short;
+      sign.append(text, short);
+      door.style.cssText = `left:${5 * s}px;width:${2 * s}px;height:${3 * s}px`;
+      tile.append(Home.logoCanvas(app, s), door, frame, sign);
+    });
+    // Where the group's next app will stand.
+    add('free', placeBox(L, Home.place(L, list.length)));
+  });
+  // The home pad, five blocks square, with the gold block he stands on.
+  const pad = add('pad', box('N', -2, 3, -2, 3));
+  const gold = document.createElement('i');
+  gold.style.cssText = `left:${2 * s}px;top:${2 * s}px;width:${s}px;height:${s}px`;
+  pad.append(gold);
+
+  Home.mountClock(document.getElementById('clock'));
+  Home.mountBattery(document.getElementById('battery'));
+  Home.mountHotbar(document.getElementById('hotbar'));
+  Home.mountFinder(document.getElementById('finder'));
+  Home.start(stage);
+})();
+</script>
+</body>
+</html>

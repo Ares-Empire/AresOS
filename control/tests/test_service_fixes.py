@@ -5,6 +5,7 @@ import json
 import os
 from contextlib import redirect_stdout
 from pathlib import Path
+import shutil
 import socket
 import sys
 import tempfile
@@ -525,33 +526,62 @@ class QuietUnlessUsed(unittest.TestCase):
         self.assertFalse(self.used(pid=71))  # level 5
         self.assertTrue(self.used(pid=72))  # level 4
 
-    def test_unreadable_marks_or_processes_count_as_marked(self):
-        self.mark(pid=10)
+    def test_unreadable_marks_or_processes_count_as_unmarked(self):
+        # Quiet unless used, whatever can't be read (lead, 2026-11-16, reversing 18e's "assume a mark").
+        self.mark()
+        self.assertTrue(self.used())
         self.process(60, 55, 3, 'python3')
         (self.proc / '55').mkdir()
-        self.assertTrue(self.used(pid=55))  # no stat for the parent
+        self.assertFalse(self.used(pid=55))  # no stat for the parent
         self.marks().chmod(0o755)
-        self.assertTrue(self.used())  # not a private folder
+        self.assertFalse(self.used())  # not a private folder
         self.marks().chmod(0o700)
+        self.assertTrue(self.used())
+        (self.marks() / '20-500').unlink()
         (self.marks() / '20-500').mkdir()
-        self.assertTrue(self.used())  # a folder where the session's mark should be
+        self.assertFalse(self.used())  # a folder where the session's mark should be
 
     def test_a_link_where_the_folder_should_be_is_never_followed(self):
         from aresos_control import usage
         elsewhere = self.root / 'elsewhere'
         elsewhere.mkdir(mode=0o700)
+
+        def planted(folder):
+            """This session's valid mark, where the link leads: found only by a read that follows the link."""
+            folder.mkdir(mode=0o700, exist_ok=True)
+            (folder / '20-500').touch(mode=0o600)
+
         (self.run_dir / str(self.uid) / 'aresos-control').symlink_to(elsewhere)
         with self.assertRaises(OSError):
             self.mark()
         self.assertEqual(list(elsewhere.iterdir()), [])
-        self.assertTrue(self.used())  # can't read: as if marked
+        planted(elsewhere / 'used')
+        self.assertFalse(self.used())  # never read through the link: unmarked (recheck 1)
+        self.assertFalse(self.notice())
+        shutil.rmtree(elsewhere / 'used')
         (self.run_dir / str(self.uid) / 'aresos-control').unlink()
         (self.run_dir / str(self.uid) / 'aresos-control').mkdir(mode=0o700)
         (self.run_dir / str(self.uid) / 'aresos-control' / 'used').symlink_to(elsewhere)
         with self.assertRaises(OSError):
             self.mark()
         self.assertEqual(list(elsewhere.iterdir()), [])
+        planted(elsewhere)
+        self.assertFalse(self.used())
+        self.assertFalse(self.notice())
+        # The same mark in the real folder is found: the link alone made the difference.
+        (self.run_dir / str(self.uid) / 'aresos-control' / 'used').unlink()
+        elsewhere.rename(self.marks())
         self.assertTrue(self.used())
+
+    def test_a_link_where_the_mark_should_be_is_no_mark(self):
+        # Recheck 1, nit 2: a link at the session's mark name, to another session's real mark, is never followed.
+        self.process(55, 50, 2, 'sh')
+        self.process(50, 1, 1, 'claude')
+        self.mark(pid=50)
+        self.assertTrue(self.used(pid=55))
+        (self.marks() / '20-500').symlink_to(self.marks() / '50-1')
+        self.assertFalse(self.used())
+        self.assertFalse(self.notice())
 
     def test_what_names_an_operation(self):
         from aresos_control.usage import names_operation
@@ -713,19 +743,22 @@ class QuietUnlessUsed(unittest.TestCase):
         self.reached()  # can't remove a folder; never raises
         self.assertTrue(self.told().is_dir())
 
-    def test_unreadable_marks_tell_at_every_stop_and_record_nothing(self):
+    def test_unreadable_marks_never_tell_and_record_nothing(self):
+        # As in `used` (lead, 2026-11-16, reversing 18e): no session is known to have used the tools.
         self.mark()
         self.marks().chmod(0o755)
-        self.assertTrue(self.notice())
-        self.assertTrue(self.notice())
+        self.assertFalse(self.notice())
+        self.assertFalse(self.notice())
         self.reached()
         self.marks().chmod(0o700)
         self.assertFalse(self.told().exists())
         (self.proc / '35' / 'stat').unlink()  # the hook's parent can't be read
-        self.assertTrue(self.notice())
-        self.assertTrue(self.notice())
+        self.assertFalse(self.notice())
+        self.assertFalse(self.notice())
         self.reached()
         self.assertFalse(self.told().exists())
+        self.process(35, 20, 899, 'sh')
+        self.assertTrue(self.notice())  # readable again: told
 
     def test_the_stop_hook_tells_once_per_outage(self):
         from functools import partial
@@ -858,8 +891,8 @@ class QuietUnlessUsed(unittest.TestCase):
         with patch.object(proxy.usage, 'mark', partial(usage.mark, uid=self.uid, run=self.run_dir, proc=self.proc)), \
                 patch.object(usage.os, 'getppid', return_value=20):
             self.assertEqual(within(lambda: proxy.note_use('testapp', 'prepare_send', approval, (20, 500))), {'value': None})
-        self.assertTrue(within(self.used)['value'])  # not a plain file: counts as marked
-        self.assertTrue(within(self.notice)['value'])
+        self.assertFalse(within(self.used)['value'])  # not a plain file: counts as unmarked
+        self.assertFalse(within(self.notice)['value'])
         (self.marks() / '20-500').unlink()
         self.mark()
         os.mkfifo(self.told())
@@ -1076,7 +1109,10 @@ class SocketStart(unittest.TestCase):
         return found
 
     def test_the_final_path_appears_only_with_its_mode_and_listening(self):
-        from aresos_control.daemon import Daemon, SOCKET_MODES
+        from aresos_control.daemon import Daemon
+        # The modes as written here, not daemon.py's own table, so a change to that table fails (recheck 2's nit):
+        # owner and Chrome connect to act and chrome, admin is root's alone.
+        modes = {'act': 0o666, 'admin': 0o600, 'chrome': 0o666}
         for name in ('state', 'independent'):
             (self.root / name).mkdir()
         steps = []
@@ -1096,8 +1132,8 @@ class SocketStart(unittest.TestCase):
         self.assertEqual([step for step, _ in steps if step in {'bind', 'listen'}], ['bind', 'listen'] * 3)
         for step, found in steps:
             for kind, seen in found.items():
-                self.assertEqual(seen, (SOCKET_MODES[kind], True), (step, kind))
-        self.assertEqual(self.found(), {kind: (mode, True) for kind, mode in SOCKET_MODES.items()})
+                self.assertEqual(seen, (modes[kind], True), (step, kind))
+        self.assertEqual(self.found(), {kind: (mode, True) for kind, mode in modes.items()})
         self.assertEqual(sorted(path.name for path in self.sockets.iterdir()), ['act.sock', 'admin.sock', 'chrome.sock'])
 
     def stale(self, name):
