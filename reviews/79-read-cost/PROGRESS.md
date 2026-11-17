@@ -2,7 +2,22 @@
 
 Empire brief 301. Lead: `linux-tools`. Brief: `briefs/79-read-cost.md`.
 
-**Status: Build done; next: the fresh review**
+**Status: Reviewed SAFE (REVIEW-1); merged by the lead**
+
+## The fresh review (2026-11-17)
+
+Codex `gpt-6-astra` xhigh reviewed `6d3aaff4` (code `48dcb513`) and wrote `REVIEW-1.md`: **SAFE**. It ran every row of the
+brief's mutation table in scratch copies (26 variants, 68 target runs, all killed; the stat shortcut against test 9's
+unchanged-signature regression and `return self._shipped` against test 13 included), the step 1 to 5 modules twice, the
+leg and `generate.py --check`, and checked the 18 protected files byte for byte. One NIT, accepted and not changed (the
+brief is frozen): the mutation table names `test_failed_forced_refresh_for_an_uncovered_version_is_attempted_once_per_connection`
+as catching `covers()` always false, but that test's version is already uncovered, so it survives; test 15 and
+`test_runtime_connection_refresh_for_uncovered_version_once_and_daily_caller` catch it.
+
+For PR #72 (package 28): merging #98 first leaves one conflict region each in `control/aresos_control/chrome/adapter.py`
+and `control/aresos_control/engine.py`. Keep #72's timing/context-manager blocks, use this PR's
+`qualification.switches(...)` calls inside them, and remove the engine's local module-function import; `service.py`
+merges cleanly. Test the combined result after resolving.
 
 ## Build part 2 (steps 6 to 8)
 
