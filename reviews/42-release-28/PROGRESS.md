@@ -5,6 +5,91 @@ differences) a fresh Claude agent (Opus 5.5) the same day; review 1's fixes a fr
 day (below). Nothing has been published, signed or pushed to GHCR. The owner's OK for publishing release 28 has not
 been given, and the ledger now stops a publish dispatch until it is (B1).
 
+## Step 3: stopped at B.1's check (PLAN-GAP 1), 2026-11-17
+
+Builder: a Claude agent (Opus 5.5), from `8792c274` (step 1's head, which the Codex Astra review reads; nothing
+before it was rebased or amended). The lead's brief for this step: check whether version 4 installs a same-version
+bundle with another fingerprint before building B, and stop with a PLAN-GAP if it refuses. It refuses, so **the
+rehearsal mode `release-28` is not built**: no walk, no wiring, no ledger kind, no host-walk receipt.
+
+Done:
+- **Main merged** (`66bc606e`) as `75a83393`: no conflicts. Nothing under `os/` or `mod/` changed (main brought
+  `control/`, `docs/control`, `.github/workflows/control-owner-oracle.yml`, briefs, reviews, STATE and HANDOFF), so
+  the image sources stay main's; the merge base with `origin/main` is now `66bc606e`.
+- `rebind.py pending "42 step 3: main merged"` (`d9727cc4`): the same 14 bound files wait; only the note is new.
+- **B.1's check** (below): version 4 refuses the bundle the brief describes.
+
+**The start state (recorded as the lead asked):** step 3 assumes the laptop has tools version 4 (`634e1237`,
+`dcbc375faa4b269bacaf316c5ddc24503b9773b2538bcd017065ce8e312597be`) after the owner's 22d session. That session has
+not happened yet; **the lead confirms version 4 once it is done.** The way to reach it in the VM, for the builder who
+continues: the laptop's own route, which `os/ci/tools_local.py` already walks (package 27's route to R27 with version
+2 from history, then 22d's folder and routine lines at `634e1237` on the stand-in origin, the window answered), not a
+setup shortcut. It is the path the laptop takes, its code is reviewed and passed in run 43737933979, and a shortcut
+(copying v4 into `/var/lib/ares` as root) would skip the journal, receipt and entry switch that version 4's
+`update_tools` then reads. Its cost is one more window stage in the walk.
+
+### PLAN-GAP 1 (blocks B.1 and everything after it)
+
+Brief B.1: the routine line installs "version 4's code with R28's reference, so a new fingerprint" over version 4.
+
+Version 4 refuses it before any write. `update_tools` (`os/owner-tools/owner.py:2651-2652` at `634e1237`; this
+head's `os/owner-tools` is the same tree, `73fb5929`):
+
+```python
+require(new['tools_version'] > old_version, 'Installed tools are version ' + str(old_version)
+    + '; refusing version ' + str(new['tools_version']) + ' (downgrade or same version)')
+```
+
+Both routes (folder and stick) reach it; the fingerprint differing is not enough. Every bundle so far took a new
+number: 15f's is 1, 27's 2, 22c's 3, 22d's 4 (22c's and 22d's with release 27's history unchanged).
+
+Evidence, run here on this head:
+- `test_owner_update`'s `test_downgrade_same_version_foreign_history_and_unknown_legacy_refuse_without_writes` (its
+  case "same version, other bytes"): OK.
+- A scratch reproduction over that module's fixtures (not committed): version 4 installed in
+  `tools-<fingerprint>/` with a two-release history standing in for [R13, R27], and a bundle at version 4 whose
+  history adds a third release. From the folder and from the stick: `Installed tools are version 4; refusing version
+  4 (downgrade or same version)`, nothing under the fixture's `/var/lib/ares` changed. The same bundle numbered 5,
+  from the folder: `Tools updated from version 4 to 5`.
+- On the laptop (and in the walk) the routine line would print `STOP: Installed tools are version 4; refusing version
+  4 (downgrade or same version)` and then the bootstrap's `STOP bootstrap: verification or install refused`; nothing
+  changes.
+
+Options for the lead (neither changes the tools' code):
+- **(a) Recommended:** release 28's bundle is version 4's code with `history.json`'s `tools_version` 5 (and R28's
+  record). Version 4 installs it from the folder (the scratch run above). Line 1 of `OWNER-TOOLS.md` then says
+  version 5, and package 43's tools (D19) take the next number. It is how 22c and 22d numbered bundles whose code
+  changed but whose release history did not; here only the history changes, but the rule is the same: newer only.
+- (b) The laptop stays on version 2 until release 28 (no 22d session first): then 4 > 2 and B.1 works as written,
+  but `dcbc375f` itself never goes on the laptop. The lead's note of 2026-11-16 already assumes the session happens.
+
+B.3 to B.6, the walk's install stage, its expected lines (`Tools updated from version 4 to N`, the receipt's
+`tools_version`) and the stand-in origin's commits depend on that choice, so none of it was built.
+
+### PLAN-GAP 2 (A.5's order; for steps 5 and 6, found while checking B.1)
+
+- The payload carries `release.json` (`bundle.PAYLOAD` copies `os/manifest/release.json`), and `owner.lineage`
+  refuses a bundle whose `release.json` does not name the history's newest record (`Release target differs from the
+  newest history record`). So the commit announced for B.1 must already have `os/manifest/release.json` at R28, while
+  A.5 says `release.json` changes only after the rehearsal passes. Package 27's rehearsal ran the same way
+  (`owner_vm.laptop_update` asserts the history's last two are R13 and `release.json`). What can wait for the
+  rehearsal: the guides' digest, `OWNER-TOOLS.md`, `INSTALL-STATUS.md`.
+- While 22c's and 22d's rows in `docs/INSTALL-STATUS.md` say `VM REHEARSAL PASSED; NOT ON THE LAPTOP`,
+  `test_checkout_sources` refuses any waiting change under `os/owner-tools/`, `os/release/` or `docs/`
+  (`MUST_NOT_WAIT`; 22d's REPORT, open questions). R28's payload (history, `release.json`, the fingerprint) is such
+  a change, so those rows move on first (22d's after the owner's session), or the test fails on step 5's commit.
+
+### For the builder who continues (what the code doesn't show)
+
+- `tools_local.rehearsal`'s start (`owner_vm.laptop_update`) reads R27 as `os/manifest/release.json` and asserts the
+  history's last two are [R13, `release.json`]. Once the payload targets R28 that no longer holds: the R28 mode needs
+  R27's facts from fixed sources (22d's step 6c read release 27's facts from its own source commit `b216f28f`).
+- `tools_local.standin_origin` holds version 3's tree, then the head's. For R28 it would hold `634e1237`'s
+  `os/owner-tools` (version 4, reached as the laptop does), then the announced commit's.
+- The lead's note: version 4's `check` reads `pgrep -u ares -x foot` through `Host.read`
+  (`os/owner-tools/owner.py:2016-2017`), so with no `foot` of `ares` it stops with `STOP: Read failed: pgrep -u ares
+  -x foot`. In the VM his session sits in SETUP, which shows a `foot`; the walk must end that `foot` first to see it.
+
 ## Done
 
 ### Step 1, phase 1 (code and tests; the dry run is phase 2)
@@ -299,7 +384,9 @@ Each finding was checked against the code first; none is disputed.
 3. The hosted checks-only run on a head with these fixes (brief C; its cap is 1 and its guard now counts it):
    review 1 noted the full suite has not run on any head of this branch.
 4. Step 2 (Control's rules; if Control's image part reads more than `IMAGE_SOURCES` names, add it there),
-   step 3 (the rehearsal mode; it adds its kind `release-28` to package 42's ledger and raises its minute cap).
+   step 3 (the rehearsal mode; it adds its kind `release-28` to package 42's ledger with cap 0, which step 6
+   raises with the lead's OK). **Step 3 waits on the lead's answer to PLAN-GAP 1** (top of this file); main is
+   merged and the pending list refreshed.
 5. Step 4, the cut: main merged in, the resolve if main's `mod/` moved (the guard now counts it: one resolve
    left), then the last dry run, `gh workflow run "OS image" --ref pkg/42-release-28 -f dry_run_28=true` (never
    `release_28`: it publishes, and until step 5 its guard stops it and the slip blocks the branch). What that dry
