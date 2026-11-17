@@ -105,6 +105,21 @@ function page(build,{watched=true}={}){
   return {run,outline,body,h};
 }
 
+test('a visible form stays readable when a named control shadows hidden, while a hidden form stays excluded',()=>{
+  const f=page(h=>{
+    const field=h('input',{id:'hidden',type:'hidden',name:'hidden name'});
+    const shown=h('form',{'aria-label':'Visible form'},field,h('textarea',{'aria-label':'Note',value:'Readable note'}));
+    const hidden=h('form',{'aria-label':'Hidden form',hidden:''},h('textarea',{'aria-label':'Private note',value:'Must stay out'}));
+    // HTMLFormElement's named-property lookup can override HTMLElement.hidden.
+    Object.defineProperty(shown,'hidden',{value:field});Object.defineProperty(hidden,'hidden',{value:false});
+    return [shown,hidden];
+  });
+  const nodes=f.outline().nodes,form=nodes.find(node=>node.role==='form'&&node.name==='Visible form');
+  assert.ok(form,'the form is visible despite its named property');assert.deepEqual(form.hidden,['hidden name']);
+  assert.ok(nodes.some(node=>node.parent===form.id&&node.value==='Readable note'));
+  assert.ok(!JSON.stringify(nodes).includes('Hidden form'));assert.ok(!JSON.stringify(nodes).includes('Must stay out'));
+});
+
 test('inline formatting is text of its element, and only the link stands between the runs',()=>{
   const f=page(h=>[h('p',{},'Order ',h('b',{},'confirmed'),' today, see ',h('i',{},'the ',h('a',{href:'/t'},'timetable')),'.')]);
   const data=f.outline();

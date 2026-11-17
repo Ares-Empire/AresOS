@@ -32,6 +32,7 @@
   const animatedValue=nativeGetter(globalThis.SVGAnimatedString,'animVal');
   const svgLink=element=>element.namespaceURI==='http://www.w3.org/2000/svg'&&element.localName==='a';
   const nodeBase=nativeGetter(globalThis.Node,'baseURI');
+  const elementHidden=nativeGetter(globalThis.HTMLElement,'hidden');
   const baseURI=node=>nodeBase?nodeBase.call(node):node.baseURI;
   const xlinkNamespace='http://www.w3.org/1999/xlink',elementAttributeNS=Element.prototype.getAttributeNS;
   const documentQueryAll=globalThis.Document?.prototype.querySelectorAll;
@@ -434,7 +435,9 @@
         // The exclusion comes before anything of the element is read.
         const kept=password(node);
         const style=getComputedStyle(node);
-        if(node.hidden||style.display==='none'||style.visibility==='hidden')return;
+        // A form's named controls can shadow hidden with an element. Read the
+        // native state so a control called "hidden" cannot hide its form.
+        if(html(node,HTMLElement)&&(elementHidden?elementHidden.call(node):node.hidden)||style.display==='none'||style.visibility==='hidden')return;
         if(kept){flush(owner);const label=name(node,false);owner.parts.push({element:node,out:{role:'password',...(label?{name:label}:{}),unread:true},parts:[]});return;}
         if(tag==='br'){owner.run+=owner.pre?'\n':' ';return;}
         const role=outlineRole(node,tag);
