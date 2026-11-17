@@ -9,10 +9,10 @@ import static org.junit.jupiter.api.Assertions.*;
 class HomeRulesTest {
     @Test
     void theAresOsMenuOnlyInASessionsDesktopWorld() {
-        assertTrue(HomeRules.menuReplacesGameMenu(true, true));
-        assertFalse(HomeRules.menuReplacesGameMenu(true, false), "a normal world keeps the game menu");
-        assertFalse(HomeRules.menuReplacesGameMenu(false, true), "the development client keeps the game menu");
-        assertFalse(HomeRules.menuReplacesGameMenu(false, false));
+        assertTrue(HomeRules.home(true, true));
+        assertFalse(HomeRules.home(true, false), "a normal world keeps the game menu");
+        assertFalse(HomeRules.home(false, true), "the development client keeps the game menu");
+        assertFalse(HomeRules.home(false, false));
     }
 
     @Test

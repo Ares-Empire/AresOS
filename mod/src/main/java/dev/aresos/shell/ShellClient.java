@@ -665,7 +665,8 @@ public final class ShellClient implements AutoCloseable {
         return message;
     }
 
-    private static JsonObject worldObject(String id) {
+    /** The desktop world's identity, as world_ready, heartbeats and the lifecycle channel's world_saved name it. */
+    static JsonObject worldObject(String id) {
         var object = new JsonObject();
         object.addProperty("id", id);
         object.addProperty("desktop", true);

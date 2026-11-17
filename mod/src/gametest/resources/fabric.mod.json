@@ -41,7 +41,9 @@
       "dev.aresos.test.GettingAroundClientGameTest",
       "dev.aresos.test.LogoColoursClientGameTest",
       "dev.aresos.test.HomeScreenClientGameTest",
-      "dev.aresos.test.HomeMenuClientGameTest"
+      "dev.aresos.test.HomeMenuClientGameTest",
+      "dev.aresos.test.SaveNowClientGameTest",
+      "dev.aresos.test.SaveTimesClientGameTest"
     ]
   },
   "mixins": [
