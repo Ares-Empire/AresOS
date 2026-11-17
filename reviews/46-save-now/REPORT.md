@@ -195,6 +195,12 @@ no product inventory behavior changed.
   then restored 51 tracked images and removed 25 generated images outside this package. `git diff --check` passed.
   Final `.work/` files over 500 MB: **none**. No large download or extracted image was created.
 
+  After pushing, `gh pr checks 92 --repo Ares-Empire/AresOS` printed `no checks reported on the
+  'pkg/46-save-now' branch`. `gh pr view` reported `mergeStateStatus: DIRTY`, `mergeable: CONFLICTING`, and an
+  empty check rollup for head `c1d30ab1`. The last hosted Mod/Repo privacy runs listed were successful runs for
+  the preceding fix's `490bfc99`, not this fix. Current-main conflict resolution is left to integration; package 48
+  was not merged into this branch. Hosted verification of this fix remains outstanding.
+
 - **Review fix 1 (2026-11-17):** all commands below ran from this worktree through the approved dev scripts.
   `origin/main` through `968727d2` was merged before the final checks; package 48 was not merged.
 
@@ -335,7 +341,8 @@ Measured with `SaveTimesClientGameTest`, run 3. The setup:
   deletion failures. Player, stats, advancements, metadata, saved-data, nonempty-entity and POI fault injection are not separately exercised;
   their required mixins load during the suites, and the accounting policy has unit coverage. Physical power loss
   and a real full filesystem were not simulated.
-- **Hosted checks at report commit time:** they start on push; the PR gives the final-head run links and results.
+- **Hosted checks for review fix 2:** GitHub reports a conflicting PR and no checks for the pushed fix; only earlier
+  heads have hosted results. See Verified above. No merge or unrelated integration change was made.
 - **Windows:** nothing changes there, because the gate is never set (unit test: no variable, no connection). There
   was no Windows run.
 
