@@ -77,3 +77,7 @@ shared game lock; the batch also waits 30 seconds. Interrupted/failed runs are n
 `GC=` replaces the extra JVM-argument string. Keep the v1 free-ratio arguments when overriding it, as `batch.py`
 and each recorded settings file do. Heap figures in the comparison table use post-G1 minima in the settled
 standing window, not join-time collections before the world is fully populated.
+
+The winner schedule includes a current v1 Nether glide before the winner's glide, from identical fresh base
+copies. This is one additional control: package 41's earlier code revision cannot by itself establish that
+Nether frames are unchanged. Inspect both glide tick totals as well as the frame and memory numbers.

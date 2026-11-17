@@ -143,6 +143,7 @@ for path in sorted(glob.glob(os.path.join(rig, 'snap-*.json'))):
         'gpu_process': snap.get('gpu_process_mib'), 'gpu_total': snap.get('gpu_total_used_mib')}
 logs = ''.join(open(os.path.join(rig, name), errors='replace').read()
                for name in ('game.txt', 'gradle.txt') if os.path.exists(os.path.join(rig, name)))
+summary['glide_tick_samples'] = [int(value) for value in re.findall(r'pkg41 glide ticks:\s*(\d+)', logs)]
 summary['out_of_memory'] = 'OutOfMemoryError' in logs
 summary['town_frozen'] = 'without the town' in logs
 summary['paused_lines'] = logs.count('Saving and pausing game')

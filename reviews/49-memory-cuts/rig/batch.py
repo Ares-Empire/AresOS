@@ -76,6 +76,8 @@ def matrix(stage, winners=None):
         if not base.exists():
             shutil.copytree(WORK/'rigs/setup-nether/world', base)
             subprocess.run([sys.executable,'-I',str(ROOT/'prepare-glide.py'),str(base)],check=True)
+        # A current v1 control verifies frames/TPS on the same untouched Nether base, not an older mod revision.
+        run('v1-nether', 'BASE=AresHub-nether-base', 'FLIGHT=glide')
         run('winner-nether', *settings, 'BASE=AresHub-nether-base', 'FLIGHT=glide')
         run('winner-long', *settings, 'LONG=20', 'COVER=0', 'FLIGHT=none')
         run('winner-nmt0', *settings, 'NMT=0')
