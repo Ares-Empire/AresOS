@@ -204,7 +204,6 @@ class EvidencePackingTest(unittest.TestCase):
     def test_a_tar_that_does_not_fit_is_left_out_and_named_never_raised(self):
         files, errors = {}, []
         sizes = self.actions.packed(files, {'small.tar.gz': self.case('small', 1000),
-                                            'missing.tar.gz': self.folder / 'missing',
                                             'huge.tar.gz': self.case('huge', 0)}, errors)
         self.assertEqual(sorted(files), ['huge.tar.gz', 'small.tar.gz'])
         self.assertEqual(errors, [])
@@ -215,6 +214,78 @@ class EvidencePackingTest(unittest.TestCase):
         self.assertEqual(list(files), ['small.tar.gz'])
         self.assertIsNone(sizes['huge.tar.gz'])
         self.assertIn('evidence huge.tar.gz left out', errors[0])
+
+    def test_a_missing_evidence_folder_fails_and_is_named(self):
+        # REVIEW-X1 #4: the packer skipped an absent folder, so check 9 could pass without its transcripts.
+        files, errors = {}, []
+        sizes = self.actions.packed(files, {'interactive/normal-yes.tar.gz': self.case('normal-yes', 1000),
+                                            'interactive/normal-yes-transcripts.tar.gz':
+                                                self.folder / 'normal-yes-transcripts'}, errors)
+        self.assertEqual(list(files), ['interactive/normal-yes.tar.gz'])
+        self.assertIsNone(sizes['interactive/normal-yes-transcripts.tar.gz'])
+        self.assertEqual(errors, [f'evidence interactive/normal-yes-transcripts.tar.gz missing: no folder '
+                                  f'{self.folder}/normal-yes-transcripts'])
+
+    def test_check_9_fails_without_its_transcripts(self):
+        # REVIEW-X1 #4: a case that ran must leave its own transcripts, and a copy that fails fails the check.
+        evidence = self.folder / 'evidence'
+        settings = self.folder / 'managed-settings.json'
+        settings.write_text('{}')
+        record = self.folder / 'control.json'
+        record.write_text(json.dumps({'files': {str(settings): {'sha256': self.actions.sha256(settings)}}}))
+        transcripts = self.folder / 'projects'
+
+        def session(out, steps, mode, answers):
+            (out / 'model').mkdir(parents=True)
+            (out / 'model/requests.json').write_text('[]')
+            return dict(turns=[dict(operation_id=f'op-{out.name}', prompt_shown=True, tool_result=None)],
+                        owner_answers=1, continuations=[{'messages': [self.actions.REMINDER]}])
+
+        def copy(target, before):
+            # What sessions.transcripts() does with this case's transcripts, by `mode` below.
+            if mode == 'raises':
+                raise OSError('disk full')
+            if mode == 'none':
+                return []
+            (target / 'work').mkdir(parents=True)
+            (target / 'work/session.jsonl').write_text('{}')
+            return [dict(name='work/session.jsonl', bytes=2)]
+
+        sessions = mock.Mock(WORK=self.folder / 'work', SKIP='skip', NORMAL='normal', session=session,
+                             transcripts=copy, transcript_files=dict, hook_lines=lambda log: [],
+                             user_settings=lambda *rules: {'rules': list(rules[0])}, own_hook=lambda *a, **k: {})
+        (self.folder / 'work').mkdir()
+
+        def arrivals(op_id):
+            return (1, {name: 1 for name in ('alpha', 'beta', 'hidden')}, 3) if op_id == 'op-normal-yes' else (0, {}, 0)
+
+        def status(op_id):
+            done = op_id == 'op-normal-yes'
+            return {'operation': {'state': 'done' if done else 'reserved'},
+                    'arrivals': ['alpha', 'beta', 'hidden'] if done else []}
+
+        for name, value in (('layer_modules', lambda: (sessions, None)), ('wait_active', lambda: {}),
+                            ('wait_sockets', lambda: ({'total': 0}, [])), ('EVIDENCE', evidence),
+                            ('MANAGED_SETTINGS', settings), ('RECORD', record), ('arrivals_in_receiver', arrivals),
+                            ('operation', status), ('release_held', lambda op_id: {'pending_after': 0}),
+                            ('cli', lambda *argv, value=None: {'returncode': 0, 'json': {'ok': True,
+                                                                                         'data': {'total': 0}}})):
+            mock.patch.object(self.actions, name, value).start()
+        self.addCleanup(mock.patch.stopall)
+        expected = dict(send_arrivals=0, hook_calls=0, owner_answers=1)
+        request = {'expected': {'normal-permission-user': expected}}
+        mode = 'copied'
+        passed = self.actions.interactive(request)
+        self.assertEqual(passed['returncode'], 0, passed['stderr'])
+        self.assertEqual(passed['summary']['transcripts']['normal-yes'], [{'name': 'work/session.jsonl', 'bytes': 2}])
+        for mode, message in (('none', 'normal-yes: Claude Code wrote no transcript in this case'),
+                              ('raises', 'normal-yes: transcripts not copied: OSError: disk full')):
+            shutil.rmtree(evidence)
+            failed = self.actions.interactive(request)
+            self.assertEqual(failed['returncode'], 1, mode)
+            self.assertIn(message, failed['stderr'], mode)
+            self.assertIn('evidence interactive/normal-permission-user-transcripts.tar.gz missing', failed['stderr'],
+                          mode)
 
     def test_the_intermediate_screens_go_first_and_the_budget_holds(self):
         files, errors = {}, []

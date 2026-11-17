@@ -741,13 +741,16 @@ def tree_out(folder, limit=TAR_LIMIT):
 
 
 def packed(files, folders, errors):
-    """Each existing folder of {evidence name: folder} as a tar into files, within the frame's budget. A tar that
-    can't be made or doesn't fit is left out and named in errors: the check fails, but it still returns its outcomes
-    and records (run 43568250360: check 9's transcripts tar, 1,057,224 bytes, raised past its whole record).
-    Returns each name's size, or None for one left out."""
+    """Each folder of {evidence name: folder} as a tar into files, within the frame's budget. Every folder named is
+    required evidence: one that is missing (REVIEW-X1 #4), or a tar that can't be made or doesn't fit, is left out and
+    named in errors. The check fails, but it still returns its outcomes and records (run 43568250360: check 9's
+    transcripts tar, 1,057,224 bytes, raised past its whole record). Returns each name's size, or None for one left
+    out."""
     left, sizes = TARS_BUDGET, {}
     for name, folder in folders.items():
-        if not folder.exists():
+        if not folder.is_dir():
+            errors.append(f'evidence {name} missing: no folder {folder}')
+            sizes[name] = None
             continue
         limit = min(TAR_LIMIT, left)
         try:
@@ -1435,13 +1438,17 @@ def interactive(request):
                                           [answer])
             finally:
                 # Only this case's transcripts (checks 6 and 7 wrote theirs before): its own tar, beside the case's.
+                # B2 requires them: a copy that fails fails the check (REVIEW-X1 #4).
                 try:
                     row['transcripts'] = sessions.transcripts(out / f'{case}-transcripts', before)
                 except Exception as error:
                     row['transcripts'] = f'not copied: {type(error).__name__}: {error}'
+                    errors.append(f'{case}: transcripts {row["transcripts"]}')
                 if log.exists():
                     (out / case).mkdir(parents=True, exist_ok=True)
                     shutil.copyfile(log, out / case / 'permission-hook.jsonl')
+            # A case that ran wrote at least its own session's transcript.
+            assert row['transcripts'] != [], f'{case}: Claude Code wrote no transcript in this case'
             turn = result['turns'][0]
             op_id = turn['operation_id']
             send_arrivals, per_recipient, receiver_total = arrivals_in_receiver(op_id)
