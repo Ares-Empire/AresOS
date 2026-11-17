@@ -135,14 +135,14 @@ class Qualification:
         return append_only(self.shipped, held)
 
     def accept(self, path, verifier=verify):
-        return self.hold(self.verified(path, verifier))
+        return self._hold(self.verified(path, verifier))
 
     def verified(self, path, verifier=verify):
         """The record path's update would give: verified, and append-only on the record held now."""
         verifier(path)
         return append_only(self.record(), json.loads(Path(path).read_text()))
 
-    def hold(self, candidate):
+    def _hold(self, candidate):
         """Write candidate as the held record. Only verified()'s output may be held."""
         self.store.write({'chrome:qualification': candidate}, 'chrome_qualification', 'Verified append-only Chrome qualification update')
         return candidate
@@ -177,7 +177,7 @@ class Qualification:
                 # store flushes deferred notices, and so can the unlink below
                 # (#93 review 1, finding 1).
                 written = True
-                self.hold(candidate)
+                self._hold(candidate)
             finally:
                 with cleanup('Qualification temporary unlink'):
                     os.unlink(temporary)

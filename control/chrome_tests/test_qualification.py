@@ -31,6 +31,9 @@ def record(*entries):
 
 
 class Records(unittest.TestCase):
+    def test_16_qualification_has_no_public_hold(self):
+        self.assertFalse(hasattr(q.Qualification, 'hold'))
+
     def test_strict_schema_rejects_malformed_entries_and_non_boolean_passes(self):
         invalid = [None, [], {'format': True, 'entries': []}, {'format': 1, 'entries': [None]}]
         for key, values in {'build': [None, 'a', [], 1], 'version': [None, '158', '158.1.2.3-extra'],
