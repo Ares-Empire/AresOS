@@ -18,6 +18,7 @@ import sys
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'os/tests'))
 import test_owner_walk
+import release28_walk
 
 # Read by this package's walk and harness in addition to package 22d's set.
 ADDED = {'os/ci/release28_walk.py', 'os/tests/test_release28_rehearsal.py', 'reviews/42-release-28/walk-host.py',
@@ -26,14 +27,14 @@ ROUTES = ('release-28',)
 
 
 def main():
-    walks = {route: test_owner_walk.walk(route=route) for route in ROUTES}
+    walks = {route: test_owner_walk.walk(route=route, control=release28_walk.CONTROL_RIDES) for route in ROUTES}
     previous = json.loads((ROOT / 'os/manifest/ci/22d/host-walk.json').read_text())
     inherited = {row['path'] for row in previous['sources']}
     # A file package 22d bound that no longer exists is named, never silently dropped.
     gone = sorted(path for path in inherited if not (ROOT / path).is_file())
     paths = (inherited - set(gone)) | ADDED
     sources = [dict(sha256=hashlib.sha256((ROOT / path).read_bytes()).hexdigest(), path=path) for path in sorted(paths)]
-    result = dict(status='passed',
+    result = dict(status='passed', control_rides=release28_walk.CONTROL_RIDES,
         kind="local synthetic owner host walk (package 42's route); not VM or physical qualification",
         stick_across_reboot=False,
         stages={route: walk['stages'] for route, walk in walks.items()},

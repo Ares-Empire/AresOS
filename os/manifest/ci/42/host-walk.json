@@ -1,5 +1,6 @@
 {
   "status": "passed",
+  "control_rides": false,
   "kind": "local synthetic owner host walk (package 42's route); not VM or physical qualification",
   "stick_across_reboot": false,
   "stages": {
@@ -27,10 +28,10 @@
     ]
   },
   "command_count": {
-    "release-28": 817
+    "release-28": 822
   },
   "typed_count": {
-    "release-28": 541
+    "release-28": 542
   },
   "inherited_from": "os/manifest/ci/22d/host-walk.json",
   "no_longer_bound": [],
@@ -144,7 +145,7 @@
       "path": "os/ci/owner_read_diagnostics.py"
     },
     {
-      "sha256": "8e9a4f78e19bfb4709b72909cad7d1d2926286b97e73b7300b2527615b883d7a",
+      "sha256": "c2d9b51764642b4ec2ffcd44c82bb34b9bab0acd84cd50a81867b2c68097d2c2",
       "path": "os/ci/owner_vm.py"
     },
     {
@@ -172,7 +173,7 @@
       "path": "os/ci/rehearsal_guard.py"
     },
     {
-      "sha256": "ae1f24315ca8124cec3a90282a774e708b25497385a8fcc00141dd703b880e82",
+      "sha256": "00607aa83b3e03ce23dd7f6fdacbf2f07a5a330cdb9f931cf11898194a25c73e",
       "path": "os/ci/release28_walk.py"
     },
     {
@@ -1024,7 +1025,7 @@
       "path": "os/tests/test_owner_update.py"
     },
     {
-      "sha256": "fce20095dd93ad36cfe9f09ef9287a9b70880af2f7dd015b312cf1ade9099609",
+      "sha256": "b14a8f3d1fe772f300fc1e47bb724e813027261486c45b919b391256145a6442",
       "path": "os/tests/test_owner_walk.py"
     },
     {
@@ -1040,7 +1041,7 @@
       "path": "os/tests/test_rehearsal_retry.py"
     },
     {
-      "sha256": "75fea241b65acee5d45bd292c62722b40c0e8440967a2f2593b1c745fd6379c8",
+      "sha256": "f6754c4f617a589f11f9a2144eb16e4531597330c63078c6f7c1cae2074bcd32",
       "path": "os/tests/test_release28_rehearsal.py"
     },
     {
@@ -1100,7 +1101,7 @@
       "path": "reviews/27-first-update-release/walk-host.py"
     },
     {
-      "sha256": "153cdaffa332b8b18aa409581da50652a4cc96bb05288db44bcd24684de389d5",
+      "sha256": "b37f11dbc640946f4956d976370193cee7c82449d370c0d74f9f63868a151d6f",
       "path": "reviews/42-release-28/walk-host.py"
     }
   ]
