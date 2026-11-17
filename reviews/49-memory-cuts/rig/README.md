@@ -40,10 +40,11 @@ zram changes can include other builders: use scope swap for attribution; zram by
 process's compressed physical cost. Anonymous VMAs are explicitly unattributed: smaps cannot prove which
 allocator owns them. The Java heap range, glibc brk heap, jemalloc library maps and NVIDIA maps are separated.
 
-Cover timing uses a fixed deadline from the cover mark, not a minute plus snapshot overhead. The world thaws,
-the cover closes and the game is activated before a ten-second frame window. `wake_start` precedes these actions;
-the first interval is clipped to that mark, so a five-minute frozen interval is not counted as a five-minute wake
-stall. `wake_first_frame_ms` includes thaw/activation overhead. Frames count gaps >17 and >33 ms exactly.
+Cover timing uses a fixed deadline from the cover mark, not a minute plus snapshot overhead. A return-request mark precedes thaw.
+The ten-second `wake_start` mark follows the cover process closing; activation and input follow it. The first
+interval is clipped to that mark, so a five-minute frozen interval is not counted as a five-minute wake stall.
+`return_to_first_frame_ms` includes thaw and window-close overhead; `wake_first_frame_ms` starts at cover close.
+These are recorder frame starts, not display presentation timestamps. Frames count gaps >17 and >33 ms exactly.
 
 `analyze.py` publishes small evidence and redacts worktree/home paths. Raw game logs, jars, worlds, frames and
 launcher/helper credentials remain in ignored `.work/`. Public data includes heap/probe outputs, snapshots,

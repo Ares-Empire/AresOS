@@ -84,6 +84,8 @@ def window(start, end, clip_start=False):
     stats.update(rss_max_mib=max((m[1] for m in sampled), default=None),
                  scope_max_mib=max((m[2] for m in sampled), default=None),
                  heap_before_gc_max_mib=max((c[1] for c in heaps), default=None),
+                 heap_after_gc_min_mib=min((c[2] for c in heaps), default=None),
+                 heap_after_gc_max_mib=max((c[2] for c in heaps), default=None),
                  heap_committed_max_mib=max((c[3] for c in heaps), default=None))
     return stats
 
@@ -105,6 +107,7 @@ for label in ('stand', 'flight', 'covered', 'wake', 'idle'):
 if 'wake_start' in marks:
     first = next((t for t in frames if t >= marks['wake_start']), None)
     summary['wake_first_frame_ms'] = None if first is None else round((first - marks['wake_start']) / 1e6, 2)
+    summary['return_to_first_frame_ms'] = None if first is None else round((first - marks.get('return_start', marks['wake_start'])) / 1e6, 2)
 if 'joined' in marks:
     start_sample = marks.get('game_detected', int(rows[1][0]) if len(rows) > 1 else marks['joined'])
     summary['game_start_to_join_s'] = round((marks['joined'] - start_sample) / 1e9, 2)
@@ -118,7 +121,8 @@ if 'joined' in marks:
                                  'max_ms': round(max((p[1] for p in pauses if p[0] < marks['joined']), default=0), 2)}
 if committed:
     summary['heap_committed_mib'] = {'max': max(c[3] for c in committed), 'last': committed[-1][3],
-                                     'max_before_gc': max(c[1] for c in committed)}
+                                     'max_before_gc': max(c[1] for c in committed),
+                                     'after_gc_min_after_join': min((c[2] for c in committed if c[0] >= marks.get('joined', 0)), default=None)}
 for path in sorted(glob.glob(os.path.join(rig, 'snap-*.json'))):
     snap = json.load(open(path))
     summary['snapshots'][snap['label']] = {

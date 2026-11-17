@@ -8,6 +8,10 @@ import snap
 from snap import smaps_classes
 
 
+def setUpModule():
+    (ROOT / '../../../.work/pkg49').resolve().mkdir(parents=True, exist_ok=True)
+
+
 class ScopeTest(unittest.TestCase):
     def test_unrelated_unit_refused_before_any_read(self):
         for unit in ('user.slice', 'app-owner.scope', 'pkg49-game-example.scope', '../memory.reclaim'):

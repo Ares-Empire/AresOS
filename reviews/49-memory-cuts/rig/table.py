@@ -22,7 +22,7 @@ def spread(values):
 
 
 print('All memory in MiB; paired savings are baseline minus factor, positive means less memory. Ranges are observed, not confidence intervals.\n')
-print('| Factor | Settled RSS saving, mean (range) | Post-flight RSS saving | Covered 5-min RSS saving | Post-GC live heap saving |')
+print('| Factor | Settled RSS saving, mean (range) | Post-flight RSS saving | Covered 5-min RSS saving | Post-G1 heap minimum saving |')
 print('|---|---:|---:|---:|---:|')
 for factor in ('coh','dedup','trim','system','arenas','threads','ferrite'):
     savings={label:[] for label in ('settled','flight','covered5m')}
@@ -33,11 +33,9 @@ for factor in ('coh','dedup','trim','system','arenas','threads','ferrite'):
         for label in savings:
             a,b=(get(row,'snapshots',label,'rss') for row in (baseline,variant))
             if a is not None and b is not None: savings[label].append(a-b)
-        # The comparable live-heap proxy is the last post-GC heap in the normal GC log, not arbitrary snapshot use.
-        # Live heap requires explicit diagnostic snapshots; non-probe snapshots are only current heap occupancy.
-        a,b=(get(row,'snapshots','settled','heap_used') for row in (baseline,variant))
-        if get(baseline,'settings','PROBE')=='1' and get(variant,'settings','PROBE')=='1' and a is not None and b is not None:
-            heaps.append(a-b)
+        # G1's after-collection minimum is a proxy; no extra full GC is injected into factor runs.
+        a,b=(get(row,'heap_committed_mib','after_gc_min_after_join') for row in (baseline,variant))
+        if a is not None and b is not None: heaps.append(a-b)
     print(f"| {factor} | {spread(savings['settled'])} | {spread(savings['flight'])} | {spread(savings['covered5m'])} | {spread(heaps)} |")
 
 print('\n| Run | Start to join s | Settled RSS / PSS | Post-flight RSS | Covered 5-min RSS / scope swap | Flight p99 / worst ms | Wake worst; >17 / >33 ms | Wake first frame ms | Majflt cover+wake | GC max after join ms | OOM / high / lost frames |')

@@ -310,13 +310,14 @@ if ((COVER > 0)); then
     delay=$((cover_start + COVER - SECONDS)); ((delay <= 0)) || sleep "$delay"
     mark covered_end
     python3 -I "$WT/reviews/40-real-home/rig/tl.py" "$RIG" list >>"$RIG/cover.txt" 2>&1
-    # Start the wake clock before thaw/closing the cover. The analyzer clips the first gap at this mark.
-    mark wake_start
+    # Record the complete return request, then start the ten-second frame window when the cover closes.
+    mark return_start
     if [[ $frozen == 1 ]]; then
         python3 -I "$here/scope.py" "$game" "$PKG49_GAME_UNIT" thaw "$RIG"
         frozen=0
     fi
     kill "$cover" 2>/dev/null || true; wait "$cover" 2>/dev/null || true; cover=
+    mark wake_start
     python3 -I "$WT/reviews/40-real-home/rig/tl.py" "$RIG" activate aresos-desktop >>"$RIG/cover.txt" 2>&1
     # Input lifts the vanilla inactivity limit without resetting the player's position.
     vin rel 1 0
