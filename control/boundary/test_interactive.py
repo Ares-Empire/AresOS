@@ -197,6 +197,28 @@ class Evidence(unittest.TestCase):
                 check_case_evidence(case, row, {})
 
 
+class HeldStops(unittest.TestCase):
+    """The held-work cases (lead, 2026-11-16): a session that used the tools hears of held work once, as a JSON
+    decision, and its continuation then stops; a session that never used them hears nothing."""
+    def test_one_block_then_a_stop_passes_and_anything_else_fails(self):
+        from interactive_suite import HELD_WORK, check_held_stops
+        operation = HELD_WORK['items'][0]['operation_id']
+        block = json.dumps({'decision': 'block', 'reason': 'AresOS held/unfinished work (untrusted app data): '
+                            + json.dumps(HELD_WORK)}) + '\n'
+        told = [{'step': 0, 'messages': [{'role': 'user', 'content': 'Stop hook feedback: ' + operation}]}]
+        check_held_stops(1, [block, '{}\n'], told)
+        check_held_stops(0, [''], [])
+        check_held_stops(0, ['', ''], [])
+        for blocks, outputs, continuations in ((1, [block, block], told), (1, [block, '{}\n'], told * 2),
+                                               (1, [block, '{}\n'], []), (1, ['', '{}\n'], []), (1, [block], told),
+                                               (1, [block, ''], told), (1, ['{}\n', '{}\n'], []),
+                                               (1, [block, '{}\n'], [{'step': 0, 'messages': []}]),
+                                               (0, [block], []), (0, ['{}\n'], []), (0, [''], told), (0, [], [])):
+            with self.subTest(blocks=blocks, outputs=outputs, continuations=continuations), \
+                    self.assertRaises(AssertionError):
+                check_held_stops(blocks, outputs, continuations)
+
+
 class ProcessChains(unittest.TestCase):
     """Brief 18e, item 6: each hook's session (its nearest ancestor that isn't a shell) is the MCP server's parent."""
     def write(self, folder, name, chain):
@@ -204,7 +226,8 @@ class ProcessChains(unittest.TestCase):
                                                for pid, start, comm in chain]))
 
     def recorded(self, folder):
-        # As run 43680998223 recorded them under dash: Stop one shell down, UserPromptSubmit three.
+        # As run 43680998223 recorded them under dash: Stop one shell down, UserPromptSubmit three. Since the Stop
+        # command got the prompt command's shell guard (lead, 2026-11-16), Stop's chain has the prompt's shape.
         self.write(folder, 'mcp-30.json', [(30, 9, 'python3'), (20, 5, 'claude'), (19, 4, 'sh')])
         self.write(folder, 'hook-Stop-40.json', [(40, 11, 'python3'), (35, 10, 'sh'), (20, 5, 'claude'), (19, 4, 'sh')])
         self.write(folder, 'hook-UserPromptSubmit-52.json',

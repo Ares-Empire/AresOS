@@ -13,8 +13,11 @@ the x64 seccomp helper. The image is x86-64 only. No model or real account runs.
 double. It records every request's complete `system`, tools and messages, plus
 returned tool results. Root temporarily adds only synthetic loopback auth and,
 for sandbox tests, the two exact fixed Bash grants. It restores settings on exit.
-The production notification commands are installed with an empty-pending hook
-stand-in in this container only; full hooks run in the base/Mail suites.
+The production notification commands are installed with a hook stand-in in this
+container only (`notification-fixture.py`): it runs the real `aresos_control.hooks`
+code with a stand-in service whose `control_pending` is empty unless the interactive
+suite put held work in `/home/assistant/held-work.json`. The service-backed hooks
+run in the base/Mail suites.
 
 ## Managed-ask precedence
 
@@ -134,6 +137,13 @@ counts; neither reusable module changes the installed service or its policy.
 
 The 17 cases cover Yes, both No modes, user/project/local allows, PreToolUse
 allow, DAA with sends 2 and 3, and all four PermissionRequest combinations.
+Two of them also hold work for the managed `Stop` hook (lead, 2026-11-16), through
+the real managed command and the real hook code: in `normal-yes`, whose session
+used the tools, the first stop is blocked once with a JSON decision naming the held
+operation, the model sees it in one continuation, and the continuation's stop
+(`stop_hook_active`) goes ahead; in `normal-no`, whose session never used them,
+every stop is quiet and nothing continues. Each `Stop` output is logged in order
+(`stop-decisions.jsonl`, saved as `held-stops.json`).
 PermissionRequest hook counts, arrivals and zero owner answers are compared with
 `interactive-permission-request-expected.json`. Raw `prompt_shown` is recorded
 for each case: a prompt can briefly render while a hook is still running, so

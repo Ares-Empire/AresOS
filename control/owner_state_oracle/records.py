@@ -42,6 +42,54 @@ class Record:
     restore_intervals: list = field(default_factory=list)
     head: tuple = None
     startup_sequence: int = 0
+    interrupted_confirm: bool = False
+
+
+def behind(sequence, committed):
+    """A restore lock needs the working head *behind* the last commit marker.
+
+    Only then is SQLite older than the journal's committed history, which the
+    owner must confirm (storage.py's startup lock, control/README.md). A head
+    *ahead* is the service's own write that failed at its marker: startup
+    finishes it and there is nothing to confirm. decoded_lock uses this rule,
+    and through it the decoder, consistency_errors and the alteration suite's
+    recompute. The lock's other terms stay as they are: restore_pending, a head
+    hash that differs from its record, and the startup rule for an unprepared
+    record.
+    """
+    return sequence < max(committed, default=0)
+
+
+def decoded_lock(rows, fences, committed, head):
+    """The restore lock a record's bytes decode to.
+
+    `fences` maps each sequence to its independent record. A pending restore
+    locks. Otherwise a store with independent records locks when its working
+    head is missing, behind the last commit marker, or carries a hash that
+    differs from its record's. The decoder, consistency_errors and the
+    alteration suite's recompute all use this one formula, so its terms cannot
+    drift apart; service_lock adds what a running service holds beyond it.
+    """
+    if rows.get('restore_pending'):
+        return True
+    if not fences:
+        return False
+    if head is None:
+        return True
+    sequence, head_hash = head
+    expected_hash = fences.get(sequence, {}).get('hash', '' if sequence == 0 else None)
+    return behind(sequence, committed) or head_hash != expected_hash
+
+
+def service_lock(record):
+    """The lock a running service holds beyond what its bytes decode to.
+
+    The driver sets both inputs. An unprepared record from before the last
+    start locks at startup. A confirm on a locked store that met a storage
+    fault keeps the lock until the next restart, even when the rollback of its
+    last commit marker failed and the marker's bytes stayed.
+    """
+    return any(seq <= record.startup_sequence for seq in record.unprepared_fences) or record.interrupted_confirm
 
 
 def restore_intervals(events):
@@ -73,12 +121,8 @@ def consistency_errors(record):
     errors, rows = [], {}
     fences = {f['seq']: f for f in record.fences}
     if record.head is not None:
-        seq, claimed_hash = record.head
-        expected_hash = fences.get(seq, {}).get('hash', '' if seq == 0 else None)
-        locked = bool(record.rows.get('restore_pending')) or bool(record.fences and (
-            seq != max(record.committed, default=0) or claimed_hash != expected_hash))
-        startup_lock = any(seq <= record.startup_sequence for seq in record.unprepared_fences)
-        if (locked or startup_lock) != record.locked:
+        locked = decoded_lock(record.rows, fences, record.committed, record.head)
+        if (locked or service_lock(record)) != record.locked:
             errors.append(('restore', 'unjustified-lock', ''))
     for seq in unexplained_sequences(record):
         errors.append(('sequence:' + str(seq), 'missing-committed-history', ''))
@@ -198,7 +242,5 @@ def decode(state, evidence):
                 result.rows[key] = value
     result.generation = result.rows.get('generation')
     result.unprepared_fences = set(fences) - result.committed - {event['seq'] for event in result.prepared}
-    expected_head = fences[head[0]]['hash'] if head and head[0] in fences else '' if head and head[0] == 0 else None
-    result.locked = bool(result.rows.get('restore_pending')) or bool(fences and
-        (head is None or head[0] != max(result.committed, default=0) or head[1] != expected_head))
+    result.locked = decoded_lock(result.rows, fences, result.committed, head)
     return result
