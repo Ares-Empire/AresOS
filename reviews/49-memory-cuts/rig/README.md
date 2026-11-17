@@ -73,6 +73,8 @@ the plan. Optional GUI observations let `ui.py` click a unique active button at 
 private input FIFO; they never call a button's action directly. `creation.py` rejects a wrong or duplicate home
 kind. Raw GUI history stays local because encoded labels could contain paths on an error screen. Only the plain
 creation kind/timestamp is published. Replay earlier measurements with their recorded source/rig revision.
+`QUIT=1` requires the launcher to report a clean game exit before copying the saved world; a vanished PID
+or a quit timeout fails the measurement instead of producing a reusable base.
 
 Checks without a game:
 

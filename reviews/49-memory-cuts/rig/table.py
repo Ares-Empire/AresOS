@@ -22,6 +22,7 @@ def spread(values):
 
 
 print('All memory in MiB; paired savings are baseline minus factor, positive means less memory. Ranges are observed, not confidence intervals.\n')
+print('Isolated factors and covered experiments use the original common mod tree. Combined validation uses fresh controls from the merged tree; see [source-refresh.json](source-refresh.json) and the provenance audit.\n')
 print('| Factor | Research estimate | Settled RSS saving, mean (range) | Post-flight RSS saving | Covered 5-min RSS saving | Standing post-G1 heap minimum saving |')
 print('|---|---|---:|---:|---:|---:|')
 labels={'coh':'compact headers','dedup':'compact headers + string dedup',
@@ -60,6 +61,19 @@ for factor,label in labels.items():
                 residuals[phase].append(residual(x)-residual(y))
                 if phase == 'flight': commits.append(x['heap_committed']-y['heap_committed'])
     print(f"| {label} | {spread(residuals['settled'])} | {spread(residuals['flight'])} | {spread(residuals['covered5m'])} | {spread(commits)} |")
+
+if any(name.startswith('winner-flat-') for name in rows):
+    print('\nCurrent-source combined candidate ([settings](winners.json)); fresh v1 controls and candidate runs, n=3 each. These absolute ranges and paired differences are measured directly, not summed from isolated factors.\n')
+    print('| Current-source group | Settled RSS | Post-flight RSS | Covered 5-min RSS |')
+    print('|---|---:|---:|---:|')
+    values={}
+    for label,prefix in (('fresh v1','v1-flat-'),('combined candidate','winner-flat-')):
+        values[label]={phase:[get(rows.get(prefix+str(i),{}),'snapshots',phase,'rss') for i in (1,2,3)]
+                       for phase in ('settled','flight','covered5m')}
+        print('| '+label+' | '+' | '.join(spread(values[label][phase]) for phase in values[label])+' |')
+    differences={phase:[a-b for a,b in zip(values['fresh v1'][phase],values['combined candidate'][phase])
+                        if a is not None and b is not None] for phase in values['fresh v1']}
+    print('| paired RSS saving | '+' | '.join(spread(values) for values in differences.values())+' |')
 
 print('\nCovered actions use v1 settings. Each saving below compares with the untreated run in the same round; these are independent JVMs, so inspect the pre-action RSS too. zram is device-wide and includes other builders. Its physical-memory change is not an attributed game cost.\n')
 print('| Covered run / status | RSS before / 5 min / wake | Saving vs untreated 5 min | Scope swap 5 min / wake | Global zram original / compressed / physical at 5 min (physical change) | Majflt covered / wake | Return to first frame ms | Wake worst; >17 / >33 ms | GC max after join ms |')

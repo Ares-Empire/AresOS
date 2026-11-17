@@ -389,8 +389,17 @@ if ((QUIT)); then
     # Close the game's window as he would: the game saves the world and quits; keep that save.
     python3 -I "$WT/reviews/40-real-home/rig/tl.py" "$RIG" close aresos-desktop >/dev/null 2>&1 || true
     for _ in $(seq 240); do kill -0 "$game" 2>/dev/null || break; sleep 0.5; done
-    if kill -0 "$game" 2>/dev/null; then echo "the game did not quit within 2 min" >&2
-    else rm -rf -- "$RIG/world"; cp -a -- "$SAVE" "$RIG/world"; echo "$(date +%T) the save is in $RIG/world"; fi
+    if kill -0 "$game" 2>/dev/null; then
+        echo "the game did not quit within 2 min" >&2
+        exit 1
+    else
+        # A vanished PID alone could be a crash. Require the launcher to confirm a clean exit before reusing the save.
+        for _ in $(seq 100); do grep -q '^GAME_EXIT=' "$RIG/env" && break; sleep 0.1; done
+        game_exit=$(sed -n 's/^GAME_EXIT=//p' "$RIG/env" | tail -n 1)
+        [[ $game_exit == 0 ]] || { echo "creation did not exit cleanly: ${game_exit:-unknown}" >&2; exit 1; }
+        rm -rf -- "$RIG/world"; cp -a -- "$SAVE" "$RIG/world"
+        echo "$(date +%T) the save is in $RIG/world"
+    fi
 fi
 mark done
 trap - EXIT

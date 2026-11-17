@@ -1,0 +1,282 @@
+{
+  "totals": {
+    "tests": 272,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 6
+  },
+  "suites": [
+    {
+      "file": "TEST-dev.aresos.catalogue.AppGroupTest.xml",
+      "tests": "4",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.102"
+    },
+    {
+      "file": "TEST-dev.aresos.catalogue.LinuxLauncherTest.xml",
+      "tests": "1",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.003"
+    },
+    {
+      "file": "TEST-dev.aresos.catalogue.WindowsCatalogueFixesTest.xml",
+      "tests": "6",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.106"
+    },
+    {
+      "file": "TEST-dev.aresos.catalogue.WindowsCatalogueIdentityTest.xml",
+      "tests": "7",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "2",
+      "time": "0.025"
+    },
+    {
+      "file": "TEST-dev.aresos.catalogue.WindowsCatalogueTest.xml",
+      "tests": "4",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "3",
+      "time": "0.003"
+    },
+    {
+      "file": "TEST-dev.aresos.catalogue.WindowsNotepadAliasTest.xml",
+      "tests": "3",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "1",
+      "time": "0.016"
+    },
+    {
+      "file": "TEST-dev.aresos.config.AppSearchTest.xml",
+      "tests": "6",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.005"
+    },
+    {
+      "file": "TEST-dev.aresos.config.AppsConfigTest.xml",
+      "tests": "18",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.081"
+    },
+    {
+      "file": "TEST-dev.aresos.focus.FocusReturnTest.xml",
+      "tests": "9",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.003"
+    },
+    {
+      "file": "TEST-dev.aresos.hub.AssignmentTest.xml",
+      "tests": "8",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.035"
+    },
+    {
+      "file": "TEST-dev.aresos.hub.HubDataTest.xml",
+      "tests": "6",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "2.744"
+    },
+    {
+      "file": "TEST-dev.aresos.hub.HubLayoutTest.xml",
+      "tests": "6",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.002"
+    },
+    {
+      "file": "TEST-dev.aresos.hub.PlaceTest.xml",
+      "tests": "6",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.137"
+    },
+    {
+      "file": "TEST-dev.aresos.hub.TownLinesTest.xml",
+      "tests": "8",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.005"
+    },
+    {
+      "file": "TEST-dev.aresos.hub.TownSealTest.xml",
+      "tests": "3",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.129"
+    },
+    {
+      "file": "TEST-dev.aresos.icon.AppIconsTest.xml",
+      "tests": "7",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.466"
+    },
+    {
+      "file": "TEST-dev.aresos.icon.IconRefreshTest.xml",
+      "tests": "4",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "3.181"
+    },
+    {
+      "file": "TEST-dev.aresos.icon.IconTest.xml",
+      "tests": "2",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.02"
+    },
+    {
+      "file": "TEST-dev.aresos.names.NameRulesTest.xml",
+      "tests": "43",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.081"
+    },
+    {
+      "file": "TEST-dev.aresos.names.OpenProgramsTest.xml",
+      "tests": "2",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.002"
+    },
+    {
+      "file": "TEST-dev.aresos.names.SavedNamesTest.xml",
+      "tests": "5",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.013"
+    },
+    {
+      "file": "TEST-dev.aresos.save.SaveFailuresTest.xml",
+      "tests": "10",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.003"
+    },
+    {
+      "file": "TEST-dev.aresos.shell.LifecycleClientTest.xml",
+      "tests": "13",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "2.068"
+    },
+    {
+      "file": "TEST-dev.aresos.shell.ShellClientTest.xml",
+      "tests": "22",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "11.61"
+    },
+    {
+      "file": "TEST-dev.aresos.shell.ShellListTest.xml",
+      "tests": "15",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "9.375"
+    },
+    {
+      "file": "TEST-dev.aresos.world.HomeRulesTest.xml",
+      "tests": "2",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.002"
+    },
+    {
+      "file": "TEST-dev.aresos.world.HomeSwapTest.xml",
+      "tests": "11",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.061"
+    },
+    {
+      "file": "TEST-dev.aresos.zone.AppZoneTest.xml",
+      "tests": "1",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.003"
+    },
+    {
+      "file": "TEST-dev.aresos.zone.GatePaletteTest.xml",
+      "tests": "5",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.004"
+    },
+    {
+      "file": "TEST-dev.aresos.zone.GatePictureColoursTest.xml",
+      "tests": "16",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "2.622"
+    },
+    {
+      "file": "TEST-dev.aresos.zone.GatePictureSourceTest.xml",
+      "tests": "4",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.13"
+    },
+    {
+      "file": "TEST-dev.aresos.zone.GatePictureTest.xml",
+      "tests": "11",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.171"
+    },
+    {
+      "file": "TEST-dev.aresos.zone.LogoPixelsTest.xml",
+      "tests": "2",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.007"
+    },
+    {
+      "file": "TEST-dev.aresos.zone.PictureReaderTest.xml",
+      "tests": "2",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.003"
+    }
+  ]
+}

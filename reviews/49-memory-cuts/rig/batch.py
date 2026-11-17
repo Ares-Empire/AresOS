@@ -82,8 +82,8 @@ def matrix(stage, winners=None):
             pair=[('v1-flat-'+str(repeat), []), ('winner-flat-'+str(repeat), settings)]
             for name, flags in (reversed(pair) if repeat == 2 else pair): run(name, *flags)
         # A current v1 control verifies frames/TPS on the same untouched Nether base, not an older mod revision.
-        run('v1-nether', 'BASE=AresHub-nether-base', 'FLIGHT=glide')
-        run('winner-nether', *settings, 'BASE=AresHub-nether-base', 'FLIGHT=glide')
+        run('v1-nether', 'BASE=AresHub-nether-base', 'HOMEKIND=nether', 'FLIGHT=glide')
+        run('winner-nether', *settings, 'BASE=AresHub-nether-base', 'HOMEKIND=nether', 'FLIGHT=glide')
         run('winner-long', *settings, 'LONG=20', 'COVER=0', 'FLIGHT=none')
         run('winner-nmt0', *settings, 'NMT=0')
     else: raise SystemExit(__doc__)
