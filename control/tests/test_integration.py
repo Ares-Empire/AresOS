@@ -112,9 +112,16 @@ class Integration(unittest.TestCase):
 
     def mark_session(self):
         """Mark this test process as a Claude Code session that used the tools: the hooks it launches run as its
-        children, so it is their session. A child marks it, as an MCP proxy started by Claude Code marks Claude Code."""
-        self.assertTrue(self.run_user(OWNER, "import json\nfrom aresos_control import usage\n"
-                                             "usage.mark(usage.parent())\nprint(json.dumps(True))"))
+        children, so it is their session. A child marks it, as an MCP proxy started by Claude Code marks Claude Code.
+
+        The child then asks `usage.used()`, which walks from the same process a hook's walk reaches over its shells,
+        so a mark the hooks won't find fails here, by name, instead of as an empty hook reply later. A hook never takes
+        PID 1 as its session (on the laptop PID 1 is systemd, never Claude Code), and a container's last `bash -c`
+        command is exec'd in place as its PID 1: such a suite needs an init (`docker run --init`)."""
+        found = self.run_user(OWNER, "import json\nfrom aresos_control import usage\n"
+                                     "usage.mark(usage.parent())\nprint(json.dumps(usage.used()))")
+        self.assertTrue(found, f"the hooks this test launches would not find its session's mark (test process pid "
+                               f"{os.getpid()}; a hook never takes PID 1 as its session: run the suite under an init)")
 
     def request(self, uid, kind, request):
         # An independent client process provides genuine kernel peer credentials.
@@ -558,19 +565,69 @@ print(json.dumps(results))
                 self.assertEqual(hook.stderr, "")
 
     def test_malformed_hook_input_gives_explicit_failure_feedback(self):
-        for name in ("Stop", "UserPromptSubmit"):
-            for wire in ('{"hook_event_name":"' + name + '","prompt":', '[]',
-                         canonical({"hook_event_name": "Stop" if name == "UserPromptSubmit" else "UserPromptSubmit"})):
-                with self.subTest(event=name, input=wire):
-                    hook = self.launch(OWNER, ["hook", name], input=wire)
-                    self.assertEqual(hook.stdout, "")
-                    if name == "Stop":
-                        self.assertEqual(hook.returncode, 2)
-                        self.assertIn("AresOS hook failed; inspect pending work", hook.stderr)
-                    else:
-                        self.assertEqual(hook.returncode, 0)
-                        self.assertEqual(hook.stderr, "")
-                    self.assertNotIn("Traceback", hook.stderr)
+        # Only to a session that used the tools, only as a JSON decision, and only when the input readably says
+        # `stop_hook_active` is false: the managed commands always exit 0 (lead, 2026-11-16). A session that never
+        # used the tools gets nothing.
+        for marked in (False, True):
+            if marked:
+                self.mark_session()
+            for name in ("Stop", "UserPromptSubmit"):
+                other = "Stop" if name == "UserPromptSubmit" else "UserPromptSubmit"
+                # (input, told at a used session's first stop)
+                for wire, readable in (('{"hook_event_name":"' + name + '","stop_hook_active":false,"prompt":', False),
+                                       ('[]', False),
+                                       (canonical({"hook_event_name": other, "stop_hook_active": False}), True),
+                                       # Review 1's lone surrogate, strictly refused: read leniently for the guard.
+                                       ('{"hook_event_name":"' + name + '","stop_hook_active":false,'
+                                        '"background_tasks":[{"description":"build \\ud83d"}]}', True),
+                                       ('{"hook_event_name":"' + name + '","stop_hook_active":true,'
+                                        '"background_tasks":[{"description":"build \\ud83d"}]}', False)):
+                    with self.subTest(marked=marked, event=name, input=wire):
+                        hook = self.launch(OWNER, ["hook", name], input=wire)
+                        self.assertEqual((hook.returncode, hook.stderr), (0, ""))
+                        if name == "Stop" and marked and readable:
+                            decision = json.loads(hook.stdout)
+                            self.assertEqual(decision["decision"], "block")
+                            self.assertTrue(decision["reason"].startswith("AresOS hook failed; inspect pending work"),
+                                            decision)
+                        else:
+                            self.assertEqual(hook.stdout, "")
+
+    def test_stop_hook_installation_failures_are_quiet(self):
+        # The managed Stop command's shell guard (lead, 2026-11-16): whatever fails before the hook's Python code runs,
+        # every session gets nothing and exit 0, even one that used the tools. Never exit 2 ("don't stop") or 1.
+        self.mark_session()
+        stop = canonical({"hook_event_name": "Stop", "stop_hook_active": False})
+        prepared = self.call(OWNER, "testapp_prepare_send", message())
+        self.assertTrue(prepared["ok"], prepared)
+        # With the installation intact the marked session hears of the held work, so the cases below are quiet for
+        # their failure alone.
+        hook = self.launch(OWNER, ["hook", "Stop"], input=stop)
+        self.assertEqual((hook.returncode, hook.stderr), (0, ""))
+        self.assertIn(prepared["data"]["approval"]["operation_id"], json.loads(hook.stdout)["reason"])
+        config = Path("/etc/aresos-control/proxy.json")
+        original = config.read_bytes()
+        try:
+            config.write_bytes(b"malformed configuration")
+            hook = self.launch(OWNER, ["hook", "Stop"], input=stop)
+            self.assertEqual((hook.returncode, hook.stdout, hook.stderr), (0, "", ""))
+        finally:
+            config.write_bytes(original)
+        prefix_file = Path("/usr/libexec/aresos-control/aresos_control/__init__.py")
+        mode = prefix_file.stat().st_mode & 0o777
+        try:
+            prefix_file.chmod(0o666)  # protected() refuses the installation
+            hook = self.launch(OWNER, ["hook", "Stop"], input=stop)
+            self.assertEqual((hook.returncode, hook.stdout, hook.stderr), (0, "", ""))
+        finally:
+            prefix_file.chmod(mode)
+        command = self.hook_command("Stop")
+        missing = [part.replace(LAUNCH, LAUNCH + ".missing") for part in command]
+        self.assertNotEqual(missing, command)
+        hook = subprocess.run(missing, preexec_fn=identity(OWNER), input=stop, capture_output=True, text=True, timeout=25)
+        self.assertEqual((hook.returncode, hook.stdout, hook.stderr), (0, "", ""))
+        hook = self.launch(OWNER, ["hook", "Stop"], input=stop)
+        self.assertIn(prepared["data"]["approval"]["operation_id"], json.loads(hook.stdout)["reason"])
 
     def test_prompt_hook_installation_and_service_failures_are_quiet(self):
         fd = os.open(self.home, os.O_RDONLY | os.O_DIRECTORY)

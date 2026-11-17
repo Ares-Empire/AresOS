@@ -118,7 +118,11 @@ def pages(read, action, arguments=None, section='data'):
     args, seen, restarts = dict(arguments or {}), set(), 0
     while True:
         reply = read(action, args)
-        page = reply.get(section, {'items': [], 'total': 0, 'cursor': None, 'unavailable': reply.get('error', {}).get('code', 'missing')})
+        # A refused read has no page. Its stand-in says locked exactly when the
+        # restore lock refused it: that refusal is how the owner is told.
+        code = reply.get('error', {}).get('code', 'missing')
+        page = reply.get(section, {'items': [], 'total': 0, 'cursor': None, 'unavailable': code,
+                                   'restore_required': code == 'restore_required'})
         if page.get('page_changed'):
             restarts = restart_count(restarts, action)
             seen.clear()
