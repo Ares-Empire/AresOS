@@ -575,6 +575,12 @@ none slipped). Its 53 fresh lists merge to the same 2,576,083 keys and reproduce
 `KNOWN-GAPS.json` byte for byte. The run is not all green: the ledger job fails as in
 the capture (see "Ledger job").
 
+**Final proof:** dispatch 43972005458 on `305ebcbd` (main merged at `d0b91522`, and the
+reviews' nits: one shared `records.decoded_lock`), attempt 1. All 61 jobs green: the
+ledger job, all 48 strict sweep and onboarding shards and all 12 alteration shards
+(2,080,049 alterations, none slipped). Its 53 lists reproduce `KNOWN-GAPS.json` byte for
+byte, and every flow's clean-run point count equals the earlier proof's.
+
 Regenerate from the downloaded artifacts (`gh run download 43893138937 -D .work/20f/capture/43893138937`):
 
 ```sh
@@ -646,5 +652,8 @@ channel keys pass before that point (`gaps.verify({'channel'})`), and
 was last changed by 18e (`139a9696`, "quiet unless used": `hooks.main` stays silent
 unless `usage.used()` finds its session's mark), merged with #69 after the last run of
 this workflow (43738332693). No oracle code takes part in the hook's output; the test
-needs root, so it was not reproduced on the laptop. For the lead.
+needs root, so it was not reproduced on the laptop. Fixed on main by #96: the job ran
+the test process as the container's PID 1, which a hook never takes as its session, so
+the hooks found no mark; it now runs under `docker run --init`. The final proof's ledger
+job passes.
 

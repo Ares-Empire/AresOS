@@ -1,5 +1,84 @@
 # Brief 20-restore-lock-followups: what was read and run
 
+## Final round (2026-11-16/17, Claude agent on Opus 5.5)
+
+**Outcome:** main merged, the reviews' nits in one commit, and the third dispatch, 43972005458, is green in all
+61 jobs. Its 53 lists reproduce the pin byte for byte, and the ledger job passes now (#96). No production code
+changed in this round. Dispatches used: 3 of 3.
+
+### The merge (`5dd77095`)
+
+- Main at `d0b91522`: #91 (`hooks.py`, `usage.py`, `boundary_policy.py`, the managed settings), #93
+  (`chrome/qualification.py`, `chrome/adapter.py`), #96 (the workflow's `ledger_only` input and `--init`, the
+  channel test harness), and docs. No conflicts.
+- Nothing under `control/owner_state_oracle`, `control/mail_tests` or `reviews/19b-owner-state` changed.
+- S4: `control/aresos_control/` did change (the five files above). The lead judged them off the sweep's path and
+  let the proof decide: no key moved.
+
+### The nits (`305ebcbd`)
+
+- **REVIEW-1 nit 1.** `test_interrupted_confirm_is_a_term_of_the_lock` also runs `coherent_change` on bytes that
+  decode unlocked (`history(2, 2, 2)`), with `interrupted_confirm` false and true: the recompute's lock must equal
+  it. Dropping the recompute's `service_lock(changed)` term, or cutting it to the startup rule, fails the subtest
+  `recompute=True, interrupted=True`. Both probes are in `mutations.py`; the source was restored.
+- **REVIEW-1 nit 2.** `records.decoded_lock(rows, fences, committed, head)`: a pending restore locks; otherwise a
+  store with fences locks when its head is missing, behind, or carries a hash that differs. Used by `decode`,
+  `consistency_errors` and `perturb.coherent_change`.
+  - `consistency_errors` keeps its exact semantics (it already used the fence map and `.get`). It is the caller
+    that also sees the alteration suite's malformed records.
+  - Two inputs differ only on paper, and neither can reach the other two callers. `decode` read `fences[seq]['hash']`,
+    which would raise for a fence without a hash, but `decode` already fails on such a record at its hash chain. The
+    recompute took the *first* fence with the head's sequence, and the map takes the *last*. A decoded record's
+    sequences are consecutive and unique (`decode` refuses others), and `coherent_change` never changes a `seq`.
+  - Checked: the local sample (below) is byte for byte the same with and without the nits, and the proof's lists
+    reproduce the pin.
+- **REVIEW-1 nit 3.** `driver.interrupted_confirm`'s docstring says only what the harness asserts: no such
+  confirm is answered `ok`, and one that released its lock and then failed shows as a lock gap.
+- **CLASSIFICATION-CHECK nits 1 and 2, and N7's board item**, in `reviews/19b-owner-state/KNOWN-GAPS.md`:
+  - N7's 544 `crash-restart` keys are the failed call's own reply, built before the crash;
+  - N7's decision is board item #337 (queue item 17);
+  - the 544,801 other `crash-locked` keys are 544,611 row and notice keys (the M14 hidden rows among them) and 190
+    `recovery-holds` keys, in 11 matrix rows.
+- **`mutations.py`:** its three per-caller item-3 probes matched the inline formulas, which no longer exist. One
+  probe in `decoded_lock` replaces them (caught by the oracle test's `ahead` subtest and by the sweep test), and
+  the two recompute probes are added. 14 probes, all rejected, every baseline passed; `mutations.json` was
+  regenerated (26 s).
+
+### Local results
+
+As an ordinary user: no container, no root, nothing under `os/tests`, no rpm-ostree, bootc or ostree.
+
+- The lead's command, `cd control && PYTHONPATH=.:mail_tests:tests python3 -m unittest
+  tests.test_owner_state_oracle tests.test_restore_batches`: the oracle's 124 tests pass, but
+  `test_restore_batches` fails to import. With `mail_tests` first on the path, `support` is the Mail suite's,
+  which has no `EngineCase`. This is path order, not the change; REVIEW-1 ran the two modules with different paths.
+  - `PYTHONPATH=.:tests:mail_tests`, both modules in one run: OK.
+  - Each module on its own: `test_owner_state_oracle` 124 OK; `test_restore_batches` (`PYTHONPATH=.:tests`) 4 OK.
+- The sweep module's 11 unit tests (all but the full sweep), as REVIEW-1 ran them: from the repo root with
+  `PYTHONPATH=control:control/mail_tests` and the managed-settings stand-in, 11 OK in 8.5 s.
+- With `test_owner_state_quiet`, `_regressions`, `_s2_effects`, `_plants` and `_contracts` added: 37 OK.
+- The local sample (`restore` 0, 26, 73, 74, 75, 75:76; `cancel` 0, 2, 2:3, 30, 67, 68, 69; every phase) was
+  recorded on this commit and on an exported copy of `5dd77095` (the merge, without the nits). Both give 1,048
+  entries in byte-identical files, as after the earlier merge. Clean-run points: `restore` 76, `cancel` 70. No key
+  ends in `.restore-lock`.
+
+### The proof: 43972005458
+
+On `305ebcbd`, default inputs, 2026-11-16 22:38 to 2026-11-17 00:27 UTC. Attempt 1, no rerun.
+
+| Job | Shards | Result |
+|---|---|---|
+| ledger | 1 | success. `test_paged_committed_pending_through_every_installed_channel` and `test_every_pinned_gap_belongs_to_an_executed_suite` OK; the channel test had failed in 43893138937 and 43919136534 |
+| sweep, strict | 24 | success |
+| onboarding, strict | 24 | success |
+| alterations | 12 | success: 110 scenario lines, 2,080,049 alterations, `slipped=0`, the same as both earlier runs |
+
+- **The pin, byte for byte.** `gaps.py`'s documented commands (`KNOWN-GAPS.md`) over the 53 lists give 2,576,083
+  keys, 1,930 groups and 892,234 bytes, SHA-256 `8b27b116…`. The `diff` against `KNOWN-GAPS.json` is empty.
+- **Clean-run point counts:** 34 flows, identical to proof 43919136534's.
+- **PR #95's own checks** on `305ebcbd`: 49 of 49 pass.
+- **`KNOWN-GAPS.md`:** the section's Proof and Ledger job paragraphs now name this run.
+
 ## Build (2026-11-16, Claude agent on Opus 5.5)
 
 Builder of the brief on this branch. **Outcome:** all three items built as the brief and review 1 say; the capture
