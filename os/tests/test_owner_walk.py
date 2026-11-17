@@ -48,15 +48,18 @@ WAYS_BACK_STAGES = UPDATE_STAGES[:5] + ['intl-27', 'trial-27', 'abandon-27', 'ba
 # Package 22d's rehearsal (os/ci/tools_local.py): package 27's route up to release 27 confirmed, the
 # dialog stages up to the cut, the restart after it (install, tamper, the next version, exports), the end.
 TOOLS_LOCAL_STAGES = UPDATE_STAGES[:5] + ['cut-27', 'final-27']
+# Package 42's rehearsal (os/ci/release28_walk.py): package 27's route up to release 27 confirmed, tools version 4
+# and then 5 from the window, the update to release 28, previous to release 27, forward to release 28.
+RELEASE28_STAGES = UPDATE_STAGES[:5] + ['release-28', 'previous-27', 'final-28']
 QUALIFICATION_STAGES = ['stock','tools-stock','corrected-stock','layout-reset-trial','layout-reset-recovery','aresos','aresos-intl','aresos-back-de','rollback-stock','default-stock']
 
 
-def laptop_rows(pair):
+def laptop_rows(pair, reference=None):
     """The laptop's three deployments (newer AresOS, older AresOS, stock), built from the retained
     release 13 pair, and the builder of rpm-ostree's and bootc's status for a list of them."""
     old = next(d for d in pair['rpm']['deployments'] if d['booted'])
     stock = next(d for d in pair['rpm']['deployments'] if d['pinned'])
-    reference = json.loads((ROOT / 'os/manifest/release.json').read_text())['reference']
+    reference = reference or json.loads((ROOT / 'os/manifest/release.json').read_text())['reference']
     new = copy.deepcopy(old)
     new.update(checksum='c2' * 32, serial=0, **{'container-image-reference': 'ostree-unverified-registry:' + reference,
                                                'container-image-reference-digest': reference.split('@')[1]})
@@ -76,9 +79,9 @@ def laptop_rows(pair):
     return new, old, stock, machine
 
 
-def update_states(pair):
+def update_states(pair, reference=None):
     """Package 22's three-deployment shapes."""
-    new, old, stock, machine = laptop_rows(pair)
+    new, old, stock, machine = laptop_rows(pair, reference)
     up = lambda row, **kw: dict(copy.deepcopy(row), **kw)
     return {'owner-update-staged': machine(up(new, booted=False, staged=True), up(old, booted=True), stock),
             'release-27': machine(up(new, booted=True), up(old, booted=False), stock),
@@ -396,6 +399,151 @@ class ToolsLocal:
         return done
 
 
+def release28_states(pair, r27, r28):
+    """Package 42's shapes: release 28 staged over the laptop's three, then release 28 beside release 27 and stock
+    (release 13 went at the update's shutdown), in the order each start and each queued change leaves."""
+    new, old, stock, machine = laptop_rows(pair, r27)
+    up = lambda row, **kw: dict(copy.deepcopy(row), **kw)
+    next_ = up(new, checksum='c8' * 32, **{'container-image-reference': 'ostree-unverified-registry:' + r28,
+                                           'container-image-reference-digest': r28.split('@')[1]})
+    return {'r28-update-staged': machine(up(next_, booted=False, staged=True), up(new, booted=True), up(old, booted=False), stock),
+            'release-28': machine(up(next_, booted=True), up(new, booted=False), stock),
+            'r28-previous-queued': machine(up(new, booted=False), up(next_, booted=True), stock),
+            'previous-27': machine(up(new, booted=True), up(next_, booted=False), stock),
+            'r28-forward-queued': machine(up(next_, booted=False), up(new, booted=True), stock),
+            'final-28': machine(up(next_, booted=True), up(new, booted=False), stock)}
+
+
+def release28_record():
+    """A stand-in for release 28's record (step 5 writes the real one): release 27's, with another digest and
+    package 42's signature identity."""
+    import release28_walk
+    record = json.loads((ROOT / 'os/manifest/releases/27.json').read_text())
+    record.update(reference='ghcr.io/ares-empire/aresos@sha256:' + '28' * 32, tag='28-' + 'b' * 40, source_commit='b' * 40)
+    record['signature'] = dict(record['signature'], identity=release28_walk.IDENTITY)
+    return (json.dumps(record, indent=2) + '\n').encode()
+
+
+class Release28Local(ToolsLocal):
+    """Package 42's guest in its dialogs: each caller's lines read from the stand-in commit it names (as the
+    caller reads them in the VM), and what the routine line does with the installed tools by the tools' own rule:
+    a bundle installs only over a lower tools version (owner.update_tools), else it STOPs and nothing changes."""
+    LOCAL = ToolsLocal.LOCAL + ('r28-v4-records', 'r28-tools-receipt')
+
+    def __init__(self, typed, media, ares_password, work):
+        super().__init__(typed, media, ares_password)
+        self.work, self.versions, self.installs = work, {vm.TOOLS_V2: 2}, []
+
+    def known(self, fingerprint, version):
+        self.versions[fingerprint] = version
+
+    def lines(self, stage):
+        import subprocess
+        params = self.callers[stage]
+        commands = json.loads(subprocess.check_output(['git', '-C', str(self.work / 'stand-in-28' / 'stand-in.git'), 'show',
+                                                        params['commit'] + ':os/owner-tools/commands.json']))
+        return dict(params['lines'], **{step: commands[entry] for step, entry in params['entries'].items()})
+
+    def answer(self, guest, name):
+        if name == 'r28-v4-records':
+            return list(self.machine['records'])
+        if name == 'r28-tools-receipt':
+            receipt = self.installs[-1]
+            return dict(status='passed', command=['install'], trace=[], source='folder', finished_from='folder',
+                        caller=dict(login_uid=1001, terminal=False), **receipt)
+        return super().answer(guest, name)
+
+    def run(self, stage):
+        params, lines, machine = self.callers[stage], self.lines(stage), self.machine
+        done = dict(uid=1001, loginuid='1001', stdin_terminal=False, terminal=False, tty_errno=6, wayland=True,
+                    runtime='/run/user/1001', line_sha256={step: hashlib.sha256(line.encode()).hexdigest() for step, line in lines.items()})
+        if 'folder' in params['steps']:
+            done['folder'] = dict(status=0, stdout='', stderr='')
+            machine['folder'] = params['commit']
+        window = self.windows[stage]
+        answered = any(text == self.ares_password + '\n' for text, _ in self.typed[window['typed']:])
+        new, = [fingerprint for fingerprint in self.versions if fingerprint in lines['routine']]
+        old = machine['tools']
+        routine = dict(signalled=[], helper=window['helper'], helper_gone=True)
+        if not answered:
+            routine.update(status=1, stdout='', stderr='sudo: no password was provided\n')
+        elif self.versions[new] <= self.versions[old]:
+            routine.update(status=1, stderr='', stdout='STOP: Installed tools are version ' + str(self.versions[old]) + '; refusing version '
+                           + str(self.versions[new]) + ' (downgrade or same version)\nSTOP bootstrap: verification or install refused\n')
+        else:
+            machine.update(tools=new, entry='tools-' + new + '/at', journal=dict(phase='complete', manifest=new, source='folder',
+                                                                                 previous=old, tools_version=self.versions[new]))
+            machine['records'].append('records/2026111' + str(len(self.installs)) + 'T120000.000000Z-tools-update.json')
+            self.installs.append(dict(manifest=new, previous_manifest=old, previous_version=self.versions[old],
+                                      tools_version=self.versions[new]))
+            routine.update(status=0, stderr='', stdout='Tools updated from version ' + str(self.versions[old]) + ' to '
+                           + str(self.versions[new]) + '\nPASS install\nPASS check\nPASS title\n')
+        done['routine'] = routine
+        if 'no-ticket' in params['steps'] and routine['status'] == 0:
+            done['no_ticket'] = dict(status=1, stderr='sudo: a password is required\n')
+        return done
+
+
+class Release28Session:
+    """Release 28's session as the walk sees it: his foot (the SETUP screen's, ended and opened again), the home
+    screen's files (apps.json planted once), the game scope's JVM, Control's account."""
+
+    def __init__(self, control):
+        import release28_walk
+        self.walk, self.control = release28_walk, control
+        self.foot, self.apps, self.sites, self.events = 1, None, None, []
+
+    def command(self, name, source):
+        if name.endswith('-sites'):
+            assert 'tee ' + self.walk.SITES in source and self.control
+            self.sites = hashlib.sha256((self.walk.SITES_LIST + '\n').encode()).hexdigest()
+        if name.endswith('-sites-hash'):
+            return self.sites + '\n'
+        return None
+
+    def capture(self, name, source):
+        walk = self.walk
+        if name.endswith('-session'):
+            return dict(labwc=1, rc='/etc/xdg/labwc/rc.xml', theme=walk.THEME, themerc=True, foot=self.foot,
+                        fonts={'Space Grotesk': walk.SPACE_GROTESK, 'Space Grotesk:bold': walk.SPACE_GROTESK})
+        if name.endswith('-end-foot'):
+            ended, self.foot = self.foot, 0
+            self.events.append('foot ended')
+            return dict(ended=ended, left=0)
+        if name.endswith('-terminal'):
+            self.foot += 1
+            self.events.append('terminal opened')
+            return dict(foot=self.foot, wayland=True)
+        if name.endswith('-home'):
+            planted = False
+            if 'if True and not apps.exists()' in source and self.apps is None:
+                self.apps, planted = 'a' * 64, True
+            return dict(instance=True, files=12, tree='f' * 64, apps=self.apps, planted=planted)
+        if name.endswith('-game-scope'):
+            self.events.append('game scope')
+            return dict(unit='aresos-game-1.scope', cgroup='/sys/fs/cgroup/user.slice/user-1001.slice/user@1001.service/aresos.slice/'
+                        'aresos-game-1.scope', in_scope=True, memory_high=walk.MEMORY_HIGH, wrapper_exit=137, wrapper_output='',
+                        state_before=dict(state='SETUP', jvm_pid=4242), state_after=dict(state='RECOVERY', latched=True))
+        if name.endswith('-control'):
+            assert self.control, 'Control checks while Control does not ride'
+            return dict(uid=250, gid=250, folders={'/var/lib/aresos-control': ['root', 'root', '0o755']},
+                        release_checks=dict(status=0, tail='PASS'))
+        return None
+
+    def owner(self, name, r27, r28):
+        """The tools' lines on this route, by the command's stage name."""
+        if name.endswith('-check-owner-result') and self.foot == 0:
+            # Tools version 4's check reads his foot (owner.py:2016-2017).
+            return dict(status='stopped', trace=[], error='Read failed: pgrep -u ares -x foot')
+        lines = {'r28-update-owner-result': ['At shutdown, this update removes older AresOS', 'Signed exact release staged ' + r28],
+                 'release-28-title-owner-result': ['Update to ' + r28 + ' confirmed after the restart'],
+                 'r28-previous-owner-result': ['Previous AresOS queued for the next start ' + r27],
+                 'previous-27-title-owner-result': ['Return to ' + r27 + ' confirmed after the restart'],
+                 'r28-forward-owner-result': ['Newest installed AresOS starts next ' + r28],
+                 'final-28-title-owner-result': ['Forward to ' + r28 + ' confirmed after the restart']}
+        return dict(status='passed', trace=[], result=lines[name]) if name in lines else None
+
+
 def tools_local_v3():
     import tools_local
     return tools_local.TOOLS_V3
@@ -406,13 +554,15 @@ def ast_literal(text):
     return ast.literal_eval(text)
 
 
-def walk(ps2=False, route='qualification'):
-    assert route in ('qualification', 'update', 'reorder-probe', 'ways-back', 'tools-local')
-    laptop = route in ('update', 'reorder-probe', 'ways-back', 'tools-local')
+def walk(ps2=False, route='qualification', control=False):
+    assert route in ('qualification', 'update', 'reorder-probe', 'ways-back', 'tools-local', 'release-28')
+    laptop = route in ('update', 'reorder-probe', 'ways-back', 'tools-local', 'release-28')
+    dialogs = route in ('tools-local', 'release-28')
     stages = dict(qualification=QUALIFICATION_STAGES, update=UPDATE_STAGES)
     stages['reorder-probe'] = PROBE_STAGES
     stages['ways-back'] = WAYS_BACK_STAGES
     stages['tools-local'] = TOOLS_LOCAL_STAGES
+    stages['release-28'] = RELEASE28_STAGES
     owner_words = {command: name for name, command in vm.COMMANDS.items()}
     oracle = [None]
     # The walk's own /var/lib/ares entry (InstalledTools): which toolset is installed, and the
@@ -433,9 +583,16 @@ def walk(ps2=False, route='qualification'):
     prompt_waits, idle_answers, hidden_reads = {}, [], []
     hidden_shapes, wait_shapes = [], []
     pinned, pair, staged, queued, rolled = (retained(n) for n in ('after-pin', 'aresos', 'after-switch-staged', 'after-rollback-queued', 'rollback'))
-    updates = update_states(pair)
     old_reference = json.loads((ROOT / 'os/manifest/releases/13.json').read_text())['reference']
     new_reference = json.loads((ROOT / 'os/manifest/release.json').read_text())['reference']
+    if route == 'release-28':
+        # Package 42 reads release 27 from fixed sources: this checkout's release.json may name release 28.
+        record_28 = release28_record()
+        new_reference = json.loads((ROOT / 'os/manifest/releases/27.json').read_text())['reference']
+    updates = update_states(pair, new_reference)
+    if route == 'release-28':
+        updates.update(release28_states(pair, new_reference, json.loads(record_28)['reference']))
+        r28_session = Release28Session(control)
     stock = copy.deepcopy(pinned['rpm']['deployments'][0])
     first = common.stock()
     first['bls'] = copy.deepcopy(pinned['bls'])
@@ -473,8 +630,12 @@ def walk(ps2=False, route='qualification'):
         def command(self, name, source, **kw):
             syntax(name, source)
             commands.append((name, source))
-            if route == 'tools-local':
+            if dialogs:
                 local.command(name, source)
+            if route == 'release-28':
+                said = r28_session.command(name, source)
+                if said is not None:
+                    return said
             if name.endswith('-prepare-input'):
                 self.physical_case = name.removesuffix('-prepare-input')
             if name.endswith('-input-result'):
@@ -617,8 +778,16 @@ def walk(ps2=False, route='qualification'):
                 index, = re.findall(r"^argv=\['ostree', 'admin', 'set-default', '([0-9]+)'\]$", script, re.M)
                 return disk.set_default(int(index))
             if disk is not None and name.endswith('-bls-entries'): return disk.inventory()
-            if route == 'tools-local' and local.answers(name):
+            if dialogs and local.answers(name):
                 return local.answer(self, name)
+            if route == 'release-28':
+                seen = r28_session.capture(name, source)
+                if seen is not None:
+                    return seen
+                if name.endswith('-owner-result') and self.stage in RELEASE28_STAGES[4:]:
+                    said = r28_session.owner(name, new_reference, json.loads(record_28)['reference'])
+                    if said is not None:
+                        return said
             if route == 'ways-back':
                 # The rehearsal's own captures; from tools version 3 on, the tools themselves answer.
                 if name == 'tools-3-install-owner-result':
@@ -698,7 +867,7 @@ def walk(ps2=False, route='qualification'):
             assert args['hold-time'] == 30
             assert all(k['type'] == 'qcode' for k in args['keys'])
             keys = [k['data'] for k in args['keys']]
-            if route == 'tools-local' and keys == ['esc']:
+            if dialogs and keys == ['esc']:
                 local.escaped = True
             if self.menu:
                 # The boot menu takes the keys; Enter starts the row under the cursor.
@@ -739,7 +908,7 @@ def walk(ps2=False, route='qualification'):
                 raw_output_retained=False, serial_input_flushed=True, physical_enter_sent=False)
         def screenshot(self, stage):
             assert self.screenshot_safe
-            if route == 'tools-local':
+            if dialogs:
                 local.screenshot(stage)
         def assert_offline(self, stage):
             vm.Guest.assert_offline(self, stage)
@@ -784,7 +953,7 @@ def walk(ps2=False, route='qualification'):
                 return
             else:
                 # Package 22c's and 22d's routes copy version 2 from history; the update rehearsal copied its checkout's payload.
-                assert self.fingerprint == vm.LAPTOP_TOOLS and (source is not None) == (route in ('reorder-probe', 'ways-back', 'tools-local'))
+                assert self.fingerprint == vm.LAPTOP_TOOLS and (source is not None) == (route in ('reorder-probe', 'ways-back', 'tools-local', 'release-28'))
             self.fingerprint = vm.TOOLS_V2 if source is not None else common.bundle.check(ROOT / 'os/owner-tools/payload')
             checks.append(stage + '-windows-copy')
         def attach(self, guest, stage):
@@ -868,6 +1037,19 @@ def walk(ps2=False, route='qualification'):
             tools_local.rehearsal(vm, audit, media, 'yz-/!ü0123456789abcdef', 'SYNTHETIC-HASH', 'abcdefghijklmnopqrstuvwx',
                                   pathlib.Path(temporary) / 'tools-version-2')
             result = json.loads((pathlib.Path(temporary) / 'tools-local-rehearsal-result.json').read_text())
+        elif route == 'release-28':
+            import subprocess, release28_walk
+            head = subprocess.check_output(['git', '-C', str(ROOT), 'rev-parse', 'HEAD'], text=True).strip()
+            stack.enter_context(patch.dict(os.environ, GITHUB_SHA=head))
+            stack.enter_context(patch.object(vm.td, 'WORK', pathlib.Path(temporary)))
+            stack.enter_context(patch.object(release28_walk, 'CONTROL_RIDES', control))
+            local = Release28Local(typed, media, 'abcdefghijklmnopqrstuvwx', pathlib.Path(temporary))
+            local.known(release28_walk.TOOLS_V4, 4)
+            local.known(release28_walk.announced(record_28)['fingerprint'], release28_walk.TOOLS_VERSION)
+            version_2 = vm.laptop_payload(pathlib.Path(temporary) / 'tools-version-2', vm.TOOLS_V2_COMMIT, vm.TOOLS_V2)
+            release28_walk.rehearsal(vm, audit, media, 'yz-/!ü0123456789abcdef', 'SYNTHETIC-HASH', 'abcdefghijklmnopqrstuvwx',
+                                     version_2, record_28)
+            result = json.loads((pathlib.Path(temporary) / 'release-28-rehearsal-result.json').read_text())
         elif route == 'ways-back':
             oracle[0] = Oracle(stack, disk, old_reference, new_reference)
             vm.ways_back_rehearsal(audit, media, 'yz-/!ü0123456789abcdef', 'SYNTHETIC-HASH', 'abcdefghijklmnopqrstuvwx',
@@ -900,6 +1082,7 @@ def walk(ps2=False, route='qualification'):
     assert checks.index('tools-stock-hotplug') < checks.index('tools-stock-detach') < checks.index('tools-stock-reboot-tools-absent')
     return dict(stages=visits, commands=commands, typed=typed, visible_blocks=visible_blocks, checks=checks, markers=markers,
         physical_cases=physical_cases, result=result, disk=disk, tool_readers=tool_readers, local=local,
+        session=r28_session if route == 'release-28' else None,
         prompt_waits=sorted(prompt_waits), fresh_idle_answers=idle_answers, resyncs=events,
         hidden_reads=hidden_reads, hidden_shapes=hidden_shapes, wait_shapes=wait_shapes)
 

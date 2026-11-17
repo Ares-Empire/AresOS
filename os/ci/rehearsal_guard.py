@@ -440,8 +440,9 @@ def probe_native(run, sha, current=False, kind='probe'):
 
 
 def own_native(kind):
-    """Kinds whose native step is proved in their own run: a probe, package 27's update, every VM mode of packages 22c and 22d."""
-    return kind in ('probe','update') or PACKAGE in OWN_RUN_PACKAGES and kind != 'checks'
+    """Kinds whose native step is proved in their own run: a probe, package 27's update, every VM mode of packages 22c and
+    22d, and package 42's release-28 rehearsal."""
+    return kind in ('probe','update') or PACKAGE in OWN_RUN_PACKAGES and kind != 'checks' or PACKAGE == '42' and kind == 'release-28'
 
 
 def native_gate(kind, mode, result, sha, current_run=None):
@@ -520,7 +521,8 @@ def main():
         assert (PACKAGE in ('13', '14', '16') and os.environ.get('REHEARSAL_MODE')=='probe'
                 or PACKAGE == '27' and os.environ.get('REHEARSAL_MODE')=='update'
                 or PACKAGE in OWN_RUN_PACKAGES and os.environ.get('REHEARSAL_MODE') in SETTINGS['dispatch_caps']
-                and os.environ.get('REHEARSAL_MODE') != 'checks'), 'STOP: native deferral is only for probe budget reservation'
+                and os.environ.get('REHEARSAL_MODE') != 'checks'
+                or PACKAGE == '42' and os.environ.get('REHEARSAL_MODE') == 'release-28'), 'STOP: native deferral is only for probe budget reservation'
     history = result.get('history')
     assert history and history['complete'] and history['ids_count'] == history['total_count'], 'STOP: no complete run-history proof'
     if PACKAGE in TITLED_PACKAGES:
@@ -544,7 +546,7 @@ def main():
         if kind in ('probe', 'keyboard', 'owner-tools', 'update') or own_native(kind):
             sha=os.environ.get('GITHUB_SHA') or subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
             result['native']=native_gate(kind,mode,result,sha,run if ci else None)
-            if PACKAGE in OWN_RUN_PACKAGES and own_native(kind):
+            if (PACKAGE in OWN_RUN_PACKAGES or PACKAGE == '42') and own_native(kind):
                 # Checked at the budget step already, so a dispatch without it stops before its minutes.
                 result['model']=model_gate(result,sha)
     if mode == 'part-b':

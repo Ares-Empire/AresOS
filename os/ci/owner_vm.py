@@ -1524,19 +1524,23 @@ def owner_scripts(guest, stage, commit=None, homebrew_stage='aresos'):
     return policy, hashes[0]
 
 
-def laptop_update(audit, media, password, hashed, bundle=None):
+def laptop_update(audit, media, password, hashed, bundle=None, target=None):
     """The laptop's history up to the restart into the new release (package 27's route, unchanged).
 
     Steps 4 to 6 with the laptop's 15f tools, then step 8 on release 13: the newer tools through the
     bootstrap, `update`, and the restart. bundle: (folder, fingerprint) of the step 8 tools when they
-    are not this checkout's payload (package 22c installs version 2 from history). Returns the
-    references, digests, stock record, Homebrew hash and first identities the later boots compare.
+    are not this checkout's payload (package 22c installs version 2 from history). target: the step 8
+    release when this checkout's release.json names a later one (package 42: release 27 from fixed sources);
+    the bundle's own history must then name it. Returns the references, digests, stock record, Homebrew hash
+    and first identities the later boots compare.
     """
     old = json.loads(pathlib.Path(LAPTOP_RELEASE).read_text())['reference']
-    new = json.loads(pathlib.Path('os/manifest/release.json').read_text())['reference']
+    new = target or json.loads(pathlib.Path('os/manifest/release.json').read_text())['reference']
     old_digest, new_digest = old.split('@')[1], new.split('@')[1]
     assert old != new and media.fingerprint == LAPTOP_TOOLS
-    history = json.loads(pathlib.Path('os/owner-tools/history.json').read_text())['releases']
+    assert target is None or bundle is not None, 'STOP: a fixed step 8 release needs its own bundle'
+    history = json.loads((pathlib.Path(bundle[0]) / 'history.json' if target else pathlib.Path('os/owner-tools/history.json'))
+                         .read_text())['releases']
     assert [r['reference'] for r in history[-2:]] == [old, new] and history[-1]['daily_wheel'] is True
     # Steps 4 to 6 as on 2026-11-08/09, with the laptop's own tools.
     stock, brew = prepare_and_switch(audit, media, password, hashed, old, laptop_commands())
@@ -2287,7 +2291,7 @@ def bound_sources(walk_sources, package='27', before='16'):
 def main():
     global PROBE_MEDIA
     mode, = sys.argv[1:]
-    assert mode in ('probe', 'owner-tools', 'update', 'reorder-probe', 'ways-back', 'tools-local')
+    assert mode in ('probe', 'owner-tools', 'update', 'reorder-probe', 'ways-back', 'tools-local', 'release-28')
     from owner_media import require_runner
     require_runner()
     package=os.environ['REHEARSAL_PACKAGE']
@@ -2295,6 +2299,7 @@ def main():
     assert (package=='27') == (mode=='update'), 'STOP: the update rehearsal is package 27 only'
     assert (package=='22c') == (mode in ('reorder-probe', 'ways-back')), 'STOP: the reorder probe and the ways-back rehearsal are package 22c only'
     assert (package=='22d') == (mode=='tools-local'), 'STOP: the tools-local rehearsal is package 22d only'
+    assert (package=='42') == (mode=='release-28'), 'STOP: the release-28 rehearsal is package 42 only'
     authorization = json.loads(pathlib.Path('evidence/'+package+'-dispatch-authorization.json').read_text())
     assert authorization['allowance'] == package and authorization['native']['status'] == 'passed'
     assert authorization['native']['sha'] == os.environ['GITHUB_SHA']
@@ -2306,7 +2311,8 @@ def main():
         # Package 27's update rehearsal proves its native step in its own run instead.
         assert authorization['probe']['status'] == 'passed' and authorization['probe']['commit'] == os.environ['GITHUB_SHA']
     walk_path={'16':'os/manifest/ci/16/host-walk.json','27':'os/manifest/ci/27/host-walk.json',
-               '22c':'os/manifest/ci/22c/host-walk.json','22d':'os/manifest/ci/22d/host-walk.json'}.get(package,'os/manifest/ci/14/host-walk/result.json')
+               '22c':'os/manifest/ci/22c/host-walk.json','22d':'os/manifest/ci/22d/host-walk.json',
+               '42':'os/manifest/ci/42/host-walk.json'}.get(package,'os/manifest/ci/14/host-walk/result.json')
     walk = json.loads(pathlib.Path(walk_path).read_text())
     assert walk['status'] == 'passed' and walk['stick_across_reboot'] is False
     assert isinstance(walk['sources'], list) and walk['sources']
@@ -2324,6 +2330,9 @@ def main():
     if mode == 'tools-local':
         # Package 22d's rehearsal rebinds package 22c's tables (rebind.py rebind, after a pass).
         td.save('22d-bound-sources', bound_sources(walk['sources'], '22d', '22c'))
+    if mode == 'release-28':
+        # Package 42's rehearsal rebinds package 22d's tables (its record step, after a pass).
+        td.save('42-bound-sources', bound_sources(walk['sources'], '42', '22d'))
     sw.WORK, sw.EVIDENCE = td.WORK, td.EVIDENCE
     td.Guest = sw.Guest = Guest
     Guest.order = 'protected-second'
@@ -2332,7 +2341,7 @@ def main():
         with (td.WORK / name).open('wb') as output:
             subprocess.run(['bsdtar', '-xOf', str(td.WORK / td.LIVE['filename']), 'images/pxeboot/' + name], stdout=output, check=True)
     media = Media()
-    if mode in ('update', 'reorder-probe', 'ways-back', 'tools-local'):
+    if mode in ('update', 'reorder-probe', 'ways-back', 'tools-local', 'release-28'):
         media.create(source=laptop_payload(td.WORK / 'laptop-tools'))
     else:
         media.create()
@@ -2388,6 +2397,18 @@ def main():
                 # This module runs as __main__: the walk gets it, never a second import of owner_vm.
                 tools_local.rehearsal(sys.modules[__name__], audit, media, password, hashed, ares_password,
                                       laptop_payload(td.WORK / 'tools-version-2', TOOLS_V2_COMMIT, TOOLS_V2))
+            finally:
+                del ares_password
+        elif mode == 'release-28':
+            # Package 42: the owner's route to release 28 (os/ci/release28_walk.py). Its record exists after step 5.
+            import release28_walk
+            record = pathlib.Path(release28_walk.RECORD)
+            assert record.is_file(), 'STOP: release 28 is not recorded (' + release28_walk.RECORD + '); its rehearsal runs after step 5'
+            ares_password = ''.join(secrets.choice(ARES_LETTERS) for _ in range(24))
+            print(f'::add-mask::{ares_password}', flush=True)
+            try:
+                release28_walk.rehearsal(sys.modules[__name__], audit, media, password, hashed, ares_password,
+                                         laptop_payload(td.WORK / 'tools-version-2', TOOLS_V2_COMMIT, TOOLS_V2), record.read_bytes())
             finally:
                 del ares_password
         else:

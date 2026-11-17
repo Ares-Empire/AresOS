@@ -59,12 +59,13 @@ if org and run['head_branch'] == 'pkg/27-first-update-release':
     assert sorted(row['path'] for row in trees) == sorted(['os/Containerfile', 'os/.containerignore', 'os/build.sh',
         'os/packages.lock.json', 'os/google-chrome.lock.json', 'os/config', 'os/policy', 'os/manifest/base.json', 'os/keys',
         'os/tests/audit.py'])
-    if (os.environ.get('GITHUB_REF_NAME'), os.environ.get('REHEARSAL_PACKAGE'), os.environ.get('REHEARSAL_MODE')) == \
-            ('pkg/22d-tools-without-stick', '22d', 'tools-local'):
+    if (os.environ.get('GITHUB_REF_NAME'), os.environ.get('REHEARSAL_PACKAGE'), os.environ.get('REHEARSAL_MODE')) in \
+            (('pkg/22d-tools-without-stick', '22d', 'tools-local'), ('pkg/42-release-28', '42', 'release-28')):
         # Package 22d's tools-local rehearsal (integrator, 2026-11-15): the VM runs the pinned, signed release 27
         # image, while this branch's image sources already hold the next release's unreleased changes (packages
         # 23, 30, 31 and others). Release 27's trees are bound to its own source commit, not to HEAD; the harness
-        # reads none of them from the checkout (reviews/22d-tools-without-stick/PROGRESS.md, step 6c).
+        # reads none of them from the checkout (reviews/22d-tools-without-stick/PROGRESS.md, step 6c). Package 42's
+        # release-28 rehearsal starts on release 27 too, while this branch's sources are release 28's.
         def tree_at(commit, path):
             found = subprocess.run(['git', 'rev-parse', '--verify', '--quiet', commit + ':' + path],
                                    capture_output=True, text=True)
