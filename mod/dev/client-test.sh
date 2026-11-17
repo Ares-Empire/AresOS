@@ -9,7 +9,9 @@
 #   the game cannot reach the owner's display. It gets no input but the tests' own, and its sound goes to
 #   OpenAL's null device. The AresOS launch variables are removed, so it can never reach a real app helper.
 # - Rendering: the RTX 4060 (PRIME render offload) if it works headless, else the Intel GPU, else software.
-#   --gpu picks one instead of trying them in that order.
+#   --gpu picks one instead of trying them in that order. An idle CUDA context holds NVIDIA active from before
+#   its probe until the client scopes stop, then releases it. If the holder cannot start, NVIDIA is skipped.
+#   This uses Python 3 and the installed driver library; it needs UVM already available, never loads a module.
 # - One run at a time on the laptop: it waits for ~/.cache/aresos-dev/client-test.lock and says so.
 # - Refuses (exit 75) while the owner's Lunar Client game runs or less than 6 GB of memory is available, at the
 #   start and again right before Gradle starts (after the lock and the probes); --force skips those two checks
@@ -62,6 +64,7 @@ aresos_check_room "$force"
 
 /usr/bin/mkdir -p -- "$ARESOS_DEV_CACHE"
 aresos_lock "$ARESOS_CLIENT_TEST_LOCK" "another client test run on this laptop"
+aresos_check_room "$force"
 
 # The render node (/dev/dri/renderD*) of the first GPU from this PCI vendor (0x10de NVIDIA, 0x8086 Intel).
 render_node() {
@@ -78,10 +81,12 @@ render_node() {
 # Sets compositor_env (the headless compositor's renderer, which Xwayland renders with too) and game_env for a
 # mode, and expected (what its OpenGL renderer string contains). Fails when this laptop has no such GPU.
 gpu_settings() {
-    local node
+    local node pci
     case $1 in
         nvidia)
             node=$(render_node 0x10de) || return 1
+            pci=$(/usr/bin/readlink -f -- "/sys/class/drm/${node##*/}/device") || return 1
+            aresos_hold_nvidia "${pci##*/}" || return 1
             compositor_env=(WLR_RENDER_DRM_DEVICE="$node")
             game_env=("${ARESOS_NVIDIA_OFFLOAD[@]}")
             expected=NVIDIA ;;

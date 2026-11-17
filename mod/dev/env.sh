@@ -198,6 +198,73 @@ aresos_scoped() {
     return "$status"
 }
 
+# An idle CUDA context prevents fine-grained RTD3 too; an open graphics device alone does not.
+# No toolkit is needed: Python calls the NVIDIA driver's existing libcuda directly.
+ARESOS_GPU_HOLDER_UNIT=
+aresos_hold_nvidia() {
+    local pci=$1 log="$ARESOS_DEV_CACHE/client-test-gpu-holder.log" job deadline=$((SECONDS + 30))
+    # cuInit must not need to load UVM or create its device through a privileged driver helper.
+    if [[ ! -d /sys/module/nvidia_uvm || ! -c /dev/nvidia-uvm || ! -r /dev/nvidia-uvm || ! -w /dev/nvidia-uvm ]]; then
+        aresos_say "NVIDIA power holding needs an already available /dev/nvidia-uvm; skipping its probe."
+        return 1
+    fi
+    if ! aresos_scope_start client-test-gpu-holder --property=TimeoutStopSec=5 -- \
+        /usr/bin/python3 -I -c '
+import ctypes
+import os
+import select
+import signal
+import sys
+
+def stop(*_):
+    sys.exit(0)
+
+for sig in (signal.SIGINT, signal.SIGTERM, signal.SIGHUP):
+    signal.signal(sig, stop)
+parent = os.pidfd_open(int(sys.argv[1]))
+cuda = ctypes.CDLL("libcuda.so.1")
+cuda.cuInit.argtypes = [ctypes.c_uint]
+cuda.cuDeviceGetByPCIBusId.argtypes = [ctypes.POINTER(ctypes.c_int), ctypes.c_char_p]
+cuda.cuDevicePrimaryCtxRetain.argtypes = [ctypes.POINTER(ctypes.c_void_p), ctypes.c_int]
+cuda.cuDevicePrimaryCtxRelease_v2.argtypes = [ctypes.c_int]
+
+def check(function, *args):
+    status = function(*args)
+    if status:
+        raise RuntimeError(f"{function.__name__}: CUDA error {status}")
+
+check(cuda.cuInit, 0)
+device = ctypes.c_int()
+check(cuda.cuDeviceGetByPCIBusId, ctypes.byref(device), sys.argv[2].encode("ascii"))
+context = ctypes.c_void_p()
+check(cuda.cuDevicePrimaryCtxRetain, ctypes.byref(context), device)
+try:
+    print("READY", flush=True)
+    # A pidfd becomes readable on parent death, including SIGKILL; it cannot follow a reused PID.
+    select.select([parent], [], [])
+finally:
+    check(cuda.cuDevicePrimaryCtxRelease_v2, device)
+' "$$" "$pci" >"$log" 2>&1; then
+        aresos_say "Could not start the NVIDIA power holder; see $log."
+        return 1
+    fi
+    ARESOS_GPU_HOLDER_UNIT=$ARESOS_UNIT
+    job=$ARESOS_JOB
+    while aresos_job_running "$job"; do
+        if /usr/bin/grep -qx READY "$log"; then
+            aresos_say "Holding NVIDIA active until the client scopes have stopped."
+            return 0
+        fi
+        ((SECONDS < deadline)) || break
+        /usr/bin/sleep 0.02
+    done
+    aresos_say "Cannot hold NVIDIA active; skipping its probe (see $log)."
+    aresos_stop_scopes "$ARESOS_GPU_HOLDER_UNIT"
+    wait "$job" || true
+    ARESOS_GPU_HOLDER_UNIT=
+    return 1
+}
+
 # aresos_lock <file> <what holds it>: holds an exclusive lock on <file> until this script and everything it
 # started have exited, waiting for it (and saying so) while another run holds it. The wait is one blocking `flock`
 # on that file in a scope of this script: it keeps its place in line with the other waiting runs (looking every
@@ -213,10 +280,15 @@ aresos_lock() {
 # them; signals are ignored meanwhile, so a second Ctrl+C cannot cut that short. A script adds its own steps by
 # defining aresos_cleanup, which runs with the exit code; if it fails, an exit code of 0 becomes 1.
 aresos_exit() {
-    local status=$?
+    local status=$? unit scopes=()
     trap - EXIT
     trap '' INT TERM HUP
-    ((${#ARESOS_SCOPES[@]} == 0)) || aresos_stop_scopes "${ARESOS_SCOPES[@]}"
+    # The CUDA context must outlive even the game's shutdown work, including cancellation.
+    for unit in "${ARESOS_SCOPES[@]}"; do
+        [[ $unit == "$ARESOS_GPU_HOLDER_UNIT" ]] || scopes+=("$unit")
+    done
+    ((${#scopes[@]} == 0)) || aresos_stop_scopes "${scopes[@]}"
+    [[ -z $ARESOS_GPU_HOLDER_UNIT ]] || aresos_stop_scopes "$ARESOS_GPU_HOLDER_UNIT"
     if declare -F aresos_cleanup >/dev/null; then aresos_cleanup "$status" || ((status)) || status=1; fi
     exit "$status"
 }
