@@ -2,9 +2,129 @@
 
 Empire brief 301. Lead: `linux-tools`. Brief: `briefs/79-read-cost.md`.
 
-## Status (2026-11-17)
+**Status: Build part 1 done; next: steps 6 to 8**
 
-**Brief READY** (`BRIEF-RECHECK-1.md`, Codex `gpt-6-astra` high, on `bcd37508`: all three findings closed, no new ones). **Next: the build on this branch, steps 1 to 8, Codex `gpt-6.1-sol` xhigh, as the Codex pace allows; then a fresh `gpt-6-astra` xhigh review with the mutation table.** No product code has changed.
+## Build part 1 (steps 1 to 5)
+
+Codex `gpt-6.1-sol`, 2026-11-17. Started at `16b7ba68` on `briefs/79-read-cost`; draft PR
+[#98](https://github.com/Ares-Empire/AresOS/pull/98) remains open and draft. Read AGENTS, the entire READY brief,
+both brief reviews, the lead's calls below, DESIGN, WORKFLOW, REVIEW and the existing implementation/tests.
+`git fetch origin` was the first command. `origin/main` is now `26425160`, past the brief's `d0b91522`, but
+`git diff d0b91522..origin/main` has no changes in any file touched by steps 1 to 5. Main was not merged.
+
+### Done (one commit per step)
+
+All five commits carry `[skip ci]`, end with `Built-by: gpt-6.1-sol`, and were normally pushed immediately after
+that step's checks. No force push, merge, workflow dispatch or instruction-text change.
+
+| Step | Commit | Built |
+|---|---|---|
+| 1 | `f16546c9` | Renamed `hold()` and its two callers to `_hold()`; test 16 rejects the public name. |
+| 2 | `7fb283e0` | The latency probe asserts `normal` locking on the store's own connection. The new test refuses `EXCLUSIVE`, then installs with `NORMAL`; the existing real-Store test passes. |
+| 3 | `a8babcfa` | `Projection.pin`, `holds`, `pinned_value`; exact bytes on every held-line comparison, without a stat shortcut. Nine direct pin tests include unchanged-signature rewrites, hash refusals, replacements, truncation and merged-key refusals. |
+| 4 | `042be077` | Per-Qualification slot, validation/reconciliation before filling it, private build entries, `switches`/`covers`, shared `own_switches`, deep-copying `record` and `shipped`, private constructor baseline. Tests 1 to 15 include immediate unchanged-signature rollback refusal and nested getter mutations before/after invalidation. |
+| 5 | `bad2dc77` | Adapter and engine callers use the methods; maintenance refreshes before mode reads switches. Replaced O2's record-call count with full-check counts; added steady-request and source-guard tests. |
+
+### Local runs
+
+Every unittest command below ran from the repo root with
+`PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/chrome_tests python3 -m unittest` followed by the listed
+modules. Every run exited 0, printed `OK`, and skipped no tests.
+
+| Step | Modules | Output |
+|---|---|---|
+| 1 | `test_qualification test_qualification_service` | `Ran 54 tests in 7.055s` / `OK` |
+| 2 | `test_latency` | `Ran 41 tests in 5.089s` / `OK` |
+| 3 | `test_committed` | `Ran 24 tests in 4.177s` / `OK` |
+| 4 | `test_qualification test_qualification_service test_qualification_fixture test_engine` | `Ran 109 tests in 19.113s` / `OK`; all existing assertions, including O2's original count, still unchanged at this step. |
+| 5 | `test_qualification test_qualification_service test_qualification_fixture test_engine test_committed test_state_fixes test_bridge test_owner_confirm test_questions test_sites test_full_disk_reads` | `Ran 246 tests in 145.639s` / `OK` |
+
+The final step-5 module counts, in the order above: **47, 24, 8, 32, 24, 21, 14, 15, 34, 17, 10**.
+`test_owner_confirm` ran all 15 tests; no permission refusal or socket-path failure. O1's two subtests and both
+#93 refresh regressions pass unchanged. The only replaced existing test is the brief-authorized O2 count test:
+the new test checks zero validations on the second mode call for the fixture peer, due daily refresh and gated
+refresh, retains `transport.call_count == 1`, then checks one validation for a newly committed record and zero
+on its next read. The steady read/click/submit test checks zero validations and one dispatch.
+
+The qualification suites printed `ResourceWarning` messages while cleaning up synthetic HTTP-error fixtures.
+`test_latency` also printed its expected synthetic background-maintenance failure/storage diagnostics; no run
+failed. These fixture messages are not a live network or disk failure.
+
+Also ran:
+
+- `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control python3 control/generate.py --check`: **Generated artifacts match definitions**, exit 0.
+- `git diff --check`: clean at each commit and on the completed code.
+- An AST comparison against `16b7ba68`: `Projection.get` and `sync`, and qualification's `version`, `validate_record`, `append_only`, `verified` are unchanged. The existing record-cache code remains unchanged.
+- Byte comparisons against `16b7ba68`: all five protected latency files, both definitions files, generated artifacts, `docs/control/TOOLS.md` and shipped `qualification.json` unchanged.
+- Direct instruction-length check: **Chrome server instruction characters: 4093**. The existing native CLI bound test also passed in `test_questions`.
+- `gh pr view 98 --json state,isDraft,headRefName,headRefOid,url`: OPEN, draft, branch `briefs/79-read-cost`, code head `bad2dc77`.
+
+### Mutations run after step 5
+
+Ran `PYTHONDONTWRITEBYTECODE=1 python3 .work/79-read-cost/mutations.py`. The runner copied `control/` into
+`.work/rc/`, changed only that scratch copy, cleared its `__pycache__` between runs, and set
+`PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/chrome_tests` for each subprocess. Each subprocess loaded
+the named tests with unittest, ran them and recorded both their identities and results. No mutation was committed.
+
+Positive baseline: **28 selected catching tests, OK, no skips**. All **20 applicable table rows**, including
+alternatives, were exercised: **23 mutations, 58 target-test executions, zero uncaught targets**. Each mutated
+process exited 1 and every selected named target failed or raised from the changed behavior. Numbers below
+refer to `test_qualification.Slot.test_XX_*`, matching the brief. Other names are from Service unless qualified.
+
+| Mutation | Catching tests actually run | Result |
+|---|---|---|
+| Never invalidate | 4, 5, 6, 7, 8, 9, 11; O1; both #93 tests; Delivery image-upgrade test; each-failed-core-group test | All 12 targets caught it. |
+| Invalidate on journal signature | 2, 10 | Both caught it. |
+| Offset only | 7, 8, 9 | All three caught it. |
+| Line length only | 7, 8, 9 | All three caught it. |
+| Restore unchanged-stat shortcut | 3, 9 | Both caught it, with no intervening write/cache eviction in 9. |
+| Fill slot before validation/reconciliation | 5, 7 | Both caught it on repeated reads. |
+| No reconciliation | 5, 6, 7, 9, 14; O1; ShippedHistory fixture rollback-refusal test | All seven caught it. |
+| Share slot on store | 14; Delivery image-upgrade test | Both caught it. |
+| Return slot record directly | 12 | Caught: leaked nested adapter mutation caused `KeyError` on the next switches read. |
+| Omit pinned-value hash check | 8 | Caught it. |
+| No slot; always fully check | 1, 2, 10; new O2; steady request | All five caught it. |
+| Own entries from held record | 6; O1 | Both caught it. |
+| Own entries from every build | 15; installed-build-id test | Both caught it. |
+| `covers()` always false | 15 | Caught it. |
+| `covers()` always true | 15 | Caught it. |
+| Read switches before maintenance | Both #93 tests | Both caught it. |
+| Retain constructor argument | 13 | Caught: the subsequent read raised `qualification_rollback` after the argument mutation. |
+| Public getter exposes `_shipped` | 13 | Caught it. |
+| Refresh holds fetched JSON without `verified()` | refresh-written/result test; Delivery bad-signature/rollback/malformed/oversized test | Both caught it. |
+| Remove probe assert | New exclusive-lock probe test | Caught it. |
+| Ask locking mode of a new connection | New exclusive-lock probe test | Caught it. |
+| Restore record caller in pending state | Source guard; steady request | Both caught it. |
+| Restore record caller in version notice | Source guard; steady request | Both caught it. |
+
+The scratch product files were restored after the mutations, then `.work/rc/` was deleted. The uncommitted
+runner, sanitized logs and machine-readable results remain under `.work/79-read-cost/` for the lead. No files
+over **500 MB** remain in `.work/` (checked recursively; none over 500 MiB either).
+
+### Left, in order
+
+1. **Step 6:** restore the 300-entry latency leg and its two specified edits; run its checks and the required second module pass, then push without `[skip ci]` and wait for both latency jobs.
+2. **Step 7:** verify and record the seven local sweep counts and CI aggregate beside main.
+3. **Step 8:** write REPORT.md with latency artifacts, per-phase comparisons, 301/1,001-entry hit/full-check timings and mutation evidence.
+4. **Fresh `gpt-6-astra` xhigh review**, including rollback mutations and the unchanged-signature case.
+
+### What the code doesn't show
+
+This part proves the specified local behavior and mutation sensitivity. It has not restored or measured the
+300-entry latency leg, run CI, measured real-browser latency, or verified the enlarged fault surface. In
+particular it makes no constant-time claim: byte comparisons scale with line size, `record()` copies the
+record, and switches process this build's entries. No human game check or screenshot applies to these
+browser-free control changes. No Gradle, boot tool, OS owner test, mount or system installation was run.
+
+### JUDGMENT-CALLs
+
+None added. Implemented the lead's six decisions below, including every-read byte comparison, private copies,
+maintenance returning no record and replacing only O2's count assertion.
+
+### PLAN-GAPs
+
+None encountered. As explicitly staged by this run's instruction, REPORT.md and steps 6 to 8 remain for the
+next run; the build evidence for part 1 is recorded here.
 
 ## The lead's calls after BRIEF-REVIEW-1 (2026-11-17)
 
@@ -100,9 +220,6 @@ All on the laptop, on `main` `d0b91522` and on a scratch copy outside the repo. 
 
 The prototype and the scratch tests are not in the repo. The builder writes its own from the brief.
 
-## Left, in order
+## Remaining work
 
-1. A short recheck of Revision 1.
-2. The build, steps 1 to 8 of the brief, by Codex `gpt-6.1-sol` xhigh.
-3. A fresh Codex `gpt-6-astra` xhigh review with the mutation table, running the rollback mutations including the
-   new unchanged-signature case.
+The current sequence is in **Build part 1 (steps 1 to 5)** above: steps 6, 7, 8, then the fresh astra xhigh review.
