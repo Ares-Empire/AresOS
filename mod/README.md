@@ -875,10 +875,12 @@ How the icon becomes blocks (`docs/design/HUB.md`, section 3.6):
   repo.
 - These are the rules of converter 2 (package 39). A town logo that an older
   converter drew is drawn again where it stands, the next time the town runs,
-  with two exceptions: a logo whose place is not loaded is drawn again when you
-  come near, and a logo with a block of yours in it moves one place on, as with
-  `hub rebuild` (your block stays). A gate built with `/aresos logo` keeps its
-  blocks until it is removed and built again.
+  with three exceptions: a logo whose place is not loaded is drawn again when you
+  come near; a logo with something of yours in its place moves one place on, as
+  with `hub rebuild` (what is yours stays); and a logo that something of yours
+  rests on (a torch on its doormat) stays as it was until you take that away,
+  which the game says once. A gate built with `/aresos logo` keeps its blocks
+  until it is removed and built again.
 - The doorway is cut out. Its back is black concrete, and so are the posts
   beside it and the bar above it wherever the icon has no block there.
 - An app without a readable icon gets a plain front in its group's colour.
