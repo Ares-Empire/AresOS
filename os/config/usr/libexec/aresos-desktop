@@ -880,7 +880,7 @@ class Persisted:
 class Launch:
     id: str
     nonce: str
-    mode: str  # 'setup' (title screen, the owner creates AresHub) or 'hub' (--world AresHub)
+    mode: str  # 'setup' (no --world: the mod makes AresHub, the title screen only if that fails) or 'hub' (--world AresHub)
     started: float = 0.0
     prism: object = None
     prism_exit: int = None
@@ -974,7 +974,8 @@ def message(state, reason, detail, lock, persisted):
         steps = ('1. Prism Launcher opens. Sign in there with your own Microsoft account.\n'
                  '2. Minecraft is downloaded (a few minutes the first time) and starts.\n'
                  '3. Making your home… (the first start takes a moment)\n'
-                 '   If creation fails and the title screen shows, click AresOS, then Create.\n'
+                 '   If that fails and the title screen shows, click AresOS: click Create if it is\n'
+                 '   offered, otherwise follow the message it shows.\n'
                  f'   Your hub is built and saved in {world}.\n')
         lead = {
             'setup': 'AresOS: first start\n\n',
@@ -1355,7 +1356,7 @@ class Supervisor:
             self.launch.prism_exit = -1
             self.settle(RECOVERY, 'prism_failed', str(error))
             return
-        LOG.info('launch %s: Prism started (%s)%s', self.launch.id, 'title screen for setup' if world is None
+        LOG.info('launch %s: Prism started (%s)%s', self.launch.id, 'setup, no --world' if world is None
                  else f'--world {world}', ', automatic restart' if automatic else '')
 
     # -- the helper

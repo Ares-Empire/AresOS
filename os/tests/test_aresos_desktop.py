@@ -2928,7 +2928,8 @@ class MessagesTest(Base):
                 ])
                 self.assertNotIn('click', '\n'.join(steps).lower())
                 self.assertNotIn('Create', '\n'.join(steps))
-                self.assertIn('\n   If creation fails and the title screen shows, click AresOS, then Create.\n', text)
+                self.assertIn('\n   If that fails and the title screen shows, click AresOS: click Create if it is\n'
+                              '   offered, otherwise follow the message it shows.\n', text)
                 self.assertIn(f'   Your hub is built and saved in ~/.local/share/aresos/worlds/{self.lock["world"]}.\n',
                               text)
                 if reason == 'setup_closed':
