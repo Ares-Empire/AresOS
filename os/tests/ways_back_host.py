@@ -97,7 +97,11 @@ class Host(KeyboardMachine):
         self.state = status([r for i, r in enumerate(rows) if i == 0 or not r.get('staged')])
         self.links = 1 - self.links
 
+    def before_mutation(self, operation):
+        """The driver observes visible output immediately before a host change."""
+
     def set_default(self, index):
+        self.before_mutation('set-default')
         rows = self.state['rpm']['deployments'][:]
         selected = rows.pop(index)
         self.write_list([selected, *rows])
@@ -149,12 +153,17 @@ class Host(KeyboardMachine):
             return ''
         if name == 'stock-session':
             return ''  # isolated boundary: stock login setup is outside this state machine
-        assert name in ('start-next', 'update'), name
+        assert name in ('start-next', 'update', 'update-preflight'), name
+        if name == 'update-preflight':
+            assert not mutation and text.startswith('set -- --check\n')
+            # Shell policy is a fixed, passing input here. The real shell's
+            # policy refusals are covered separately by test_owner_newest.
         code, tail = script_body(text, name)
 
         def run(argv, **kw):
             assert kw == {'check': True}
             if argv == ['sync']:
+                self.before_mutation('sync')
                 self.changes.append('sync')
                 return
             assert argv[:3] == ['ostree', 'admin', 'set-default'], argv
@@ -179,10 +188,11 @@ class Host(KeyboardMachine):
             line, = [line for line in tail.splitlines() if line.startswith('bootc switch --retain ')]
             reference = line.split()[-1]
             row, = [r for r in self.templates.values() if r['container-image-reference'].endswith(reference)]
+            self.before_mutation('stage')
             self.merge = identity(self.running())
             self.state = status([dict(row, staged=True, booted=False), *self.state['rpm']['deployments']])
             self.changes.append(line)
             if self.cut == 'primitive':
                 raise PowerCut('after staging')
-        self.trace.append(dict(script=name, mutation=True))
+        self.trace.append(dict(script=name, mutation=mutation))
         return ''

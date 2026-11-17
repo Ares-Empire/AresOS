@@ -1,5 +1,9 @@
 # Package 43 progress
 
+Latest: step 2's model is built and local verification is complete in both
+scopes. The hosted run remains with the lead. See "Step 2: model" below.
+The step 1 entries are historical.
+
 Step 1 is implemented in the worktree on `pkg/43-aresos-command`, based on
 `7dd5588c`. The final test results and the one commit-dependent failure are below. Nothing is committed or pushed;
 the lead commits, as requested. No owner-tool entry, root operation, dispatch,
@@ -67,9 +71,9 @@ deployment command, window or Gradle build ran on the laptop.
    and every pin again, per binding rule 1. Never merge the payload by hand and
    never invent a stand-in R28 record. Recheck the status-row gate before any
    tools/guide change if R28's rehearsal has closed the window.
-2. **Step 2:** ledger `choose`, model driver and I1–I4; measure the full model
-   before/after and run it hosted. No ledger/driver change or full-model result
-   is claimed in step 1.
+2. **Step 2:** implemented and locally verified below. The lead still needs
+   the hosted full-model/checks run on the committed head; this builder did
+   not dispatch it.
 3. **Step 3:** dispatcher, askpass helper, Control bindings/tests, three word
    sets, image checks/diff rules, then a check build. Carry **REVIEW-3 N1** here:
    `keep-stock` gets the plain-Bazzite refusal with its full console command.
@@ -259,3 +263,133 @@ Final checks: `git diff --check` passed; the payload/source check printed
 `PASS payload equals sources; fingerprint f66fd69442857b911b81775bbc2efb3edf53648b391615b38234b2ddcea9d135`.
 `.work files: 0`; `.work over 500 MB: []`. No new PLAN-GAP or JUDGMENT-CALL.
 The next-merge R28 task and the later steps above remain with the lead.
+
+## Step 2: model (2026-11-17)
+
+Built from clean HEAD `5611afd2b68aa10589cfbd9fbbb9c92298f2bc45`, after
+REVIEW-5 and REVIEW-6. No commit, push, dispatch, installed tools entry, privileged
+operation or deployment command ran. The owner tools, release scripts, payload,
+fingerprint pins and workflow are unchanged. No owner-tool defect has been found.
+
+- `os/tests/ways_back_ledger.py`: independent `choose(s)` for D2 rows 0–10,
+  chosen-word metadata and `newest` transitions. It resolves the survey before
+  acting, preserves the failed-update hold for this run alone, allows only
+  recording an already staged update from an older running release, refuses
+  its unstaged retry, and distinguishes a pending return from applied
+  `keep-stock`. `newest` is last in both existing command loops. Seeds,
+  state reduction, memoization and the slice budget are unchanged.
+- `os/tests/test_ways_back_model.py`: calls the real `Tools.newest`, supplies
+  the synthetic release's matching number, compares the independently chosen
+  word, and judges I1–I4 before comparing the actual state with the ledger.
+  I1 checks newly staged deployments and actual staging calls. I2 checks
+  STOPs and output, exempting only observed title lines with multiplicity.
+  I3 uses output snapshots before intent, staging and reorder; it also checks
+  a completed staging's record. I4 checks change/cut versus refusal, `Nothing`
+  after an announcement, and false forward announcements by both text and
+  chosen word. The stock-only prepared fixture now has coherent rpm/bootc
+  observations, so D2 row 1 reaches its own refusal.
+- `os/tests/ways_back_host.py`: output observation immediately before
+  set-default, staging and sync; support for the read-only update preflight.
+  Shell policy remains a fixed passing environment input here; step 1's
+  real-shell tests cover its refusals. No new primitive or VM replay is added;
+  22c's rehearsal `WORDS` and capture replay remain unchanged.
+- `os/tests/test_ways_back_newest.py`: table rows, all chosen cut phases,
+  the three forward wordings, completed staging on an older release,
+  failed-update and failed-reorder resolution, `check` consuming the notice,
+  pending returns, `keep-stock`, a survey-record cut before choice,
+  breadth-first prefix equality and cached/uncached execution with each /etc.
+  In-memory tools mutations must fail named I1, I2, I3 and I4 assertions;
+  an unrelated exception does not count as a revert proof. I3 tests the
+  primitive separately from the intent, and I4 also rejects a forward
+  announcement mislabeled as the chosen `update`.
+- `os/tests/test_ways_back_reverts.py`: repaired the old update-to-reorder
+  mutation's source anchor after step 1 inserted its guard. The mutation and
+  both guarding assertions are retained.
+
+### Measurements and verification
+
+Every command selects one module, with bytecode disabled:
+`PYTHONDONTWRITEBYTECODE=1 [ARESOS_MODEL_SCOPE=<scope>] python3 -m unittest discover -s os/tests -p '<module>.py'`.
+The scope variable is set only for `test_ways_back_model.py`. Logs are small,
+ignored local files in `.work/43-model/`.
+
+**Execution mistake:** short focused, revert, compatibility and path module runs
+overlapped the full baseline. This violated the requested one-module-at-a-time
+rule. The baseline exploration finished, but its time includes that overlap;
+it is not an isolated performance comparison. All runs after that baseline
+have been sequential. No two heavy explorations ran together.
+
+| Model run | Processed | Discovered | Steps/edges | Exploration time | Module result |
+|---|---:|---:|---:|---:|---|
+| Before, slice | 120,000 | 173,130 | 3,185,862 | 153.243 s | 26 tests, OK, 171.690 s |
+| Before, full | 967,215 | 967,215 | 26,519,328 | 978.648 s | 26 tests, OK, 1000.995 s; queue exhausted |
+| After, first slice measurement | 120,000 | 173,130 | 3,433,044 | 173.664 s | 26 tests, one failure in the old edge-count pin, 197.390 s |
+| After, first full measurement | 967,215 | 967,215 | 28,687,626 | 1070.733 s | 26 tests, one failure in the old edge-count pin, 1095.831 s; queue exhausted |
+| After, final full verification | 967,215 | 967,215 | 28,687,626 | 1022.399 s | 26 tests, OK, 1044.752 s; queue exhausted |
+| After, final slice verification | 120,000 | 173,130 | 3,433,044 | 163.085 s | 26 tests, OK, 184.251 s |
+
+The first updated slice completed every invariant and actual execution;
+only its final old edge-count pin failed. The pin now includes exactly the
+247,182 added `newest` edges: 81,046 PASS, 38,954 STOP and 127,182 cuts.
+The full exploration adds exactly 2,168,298 edges: 756,453 PASS, 210,762 STOP
+and 1,201,083 cuts. It exhausted the same 967,215 states, and every earlier
+command's edge counts and all outcome counts match the baseline. Its only
+failure was also the final old edge-count pin. Both numeric pins are now
+updated, and both final scope runs pass. The final full model took 17.040
+minutes locally, within the unchanged 35-minute hosted limit. A hosted time
+is still needed; the baseline overlap prevents an isolated speed comparison.
+
+After the last model/test source change, ran
+`PYTHONDONTWRITEBYTECODE=1 python3 reviews/27-first-update-release/rebind.py pending "43 step 2: independent newest choice, model driver and I1-I4 revert proofs"`.
+It printed `pending: 37 bound files differ from the active bindings, 0 removed`.
+The changed model/test sources are not in the active bindings; the 37 existing
+waiting rows remain, and the step 2 note is added. No payload refresh is needed.
+
+Earlier successful module runs (overlapped the full baseline):
+
+| Module | Printed result |
+|---|---|
+| `test_ways_back_newest.py` | 17 tests, OK, 1.770 s |
+| `test_ways_back_reverts.py` | 20 tests, OK, 6.160 s |
+| `test_ways_back_compatibility.py` | 21 tests, OK, 28.660 s |
+| `test_owner_path.py` | 48 tests, OK, 1.957 s |
+
+Final module verification, all sequential and on the final code:
+
+| Module | Printed result |
+|---|---|
+| `test_ways_back_model.py`, full | 26 tests, OK, 1044.752 s |
+| `test_ways_back_model.py`, slice | 26 tests, OK, 184.251 s |
+| `test_ways_back_newest.py` | 17 tests, OK, 1.832 s |
+| `test_ways_back_reverts.py` | 20 tests, OK, 6.715 s |
+| `test_ways_back_compatibility.py` | 21 tests, OK, 29.948 s |
+| `test_owner_path.py` | 48 tests, OK, 1.741 s |
+| `test_checkout_sources.py` | 8 tests, OK, 1.099 s |
+
+Compatibility again printed `B8: 13/13 historical shapes accepted;
+before-first-switch title text equal`, with no deployment mutation, and the
+successful v2 settle checks at 21/22 pre-publication cuts. All final commands
+exited 0. No test was skipped.
+
+Earlier focused runs had two failures, then one failure, among 16 tests:
+the invalid-journal fixture initially described a valid order; the stock-only
+prepared fixture had inconsistent bootc slots; and a driver's diagnostic
+evaluated an invalid journal's outcome before checking which command it was.
+All three were test/model fixture issues and are fixed. The first old-revert
+run had one failure among 20 tests because its source anchor no longer matched
+step 1; its final 20 tests pass. No assertion was weakened, removed or skipped.
+
+Final read-only checks: `git diff --check` passed;
+`git diff --exit-code -- os/owner-tools os/release .github/workflows` exited 0.
+The worktree has only the intended five model/test files, this progress log
+and the pending-rebind note. `.work files: 15`; `.work over 500 MB: []`.
+No Gradle daemon was started. No new PLAN-GAP or JUDGMENT-CALL.
+
+### Still with the lead
+
+Commit these changes, then run the hosted full-model job and checks on that
+same committed head. No hosted result is claimed here, and this builder was
+explicitly forbidden to dispatch. The workflow's 35-minute full-model limit
+is unchanged. If the hosted model outgrows it, follow lead decision/open point
+9: split the job, never the exploration; this step does not change the workflow.
+The later package steps, VM run and next-merge R28 metadata task above remain.

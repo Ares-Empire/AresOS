@@ -4,6 +4,7 @@ B2 holds at its original strength (briefs/22c-forward-command.md): each installe
 is one command away. The driver also judges "one word per meaning" on every executed
 edge, by the fake's state before and after: update never selects an installed system;
 forward never stages and never changes the set of deployments.
+Package 43 also judges I1–I4 on every actual newest execution.
 
 Only the environment is replaced: files, host processes, login sessions and time.
 Expected results are computed BEFORE executing a command. Nothing returned by Tools
@@ -75,6 +76,9 @@ class Driver:
         self.by_id = {tuple(value): name for name, value in self.ids.items()}
         self.by_digest = {row['container-image-reference-digest']: name for name, row in host.templates.items()}
         self.phase = ''
+        self.word = ''
+        self.output = None
+        host.before_mutation = self.checkpoint
         self.files = {}
         self.dependencies = None
         tools.store = MemoryPath(self.files, observe=self.observe)
@@ -92,6 +96,7 @@ class Driver:
         host.read = observed_read
         mutate = host.mutate
         def observed_mutate(*command, **kwargs):
+            self.checkpoint('mutation:' + command[0])
             # Include the pre-write value even for an idempotent write: a memo
             # effect must distinguish writing X from leaving an unread X alone.
             if command[0] == 'loadkeys':
@@ -109,12 +114,16 @@ class Driver:
         tools.save = self.save
         tools.keyboard = host.keyboard
         tools.session = self.get_session
-        self.saved = dict(state=dict(rpm=copy.deepcopy(base.VALUES['after-pin rpm-ostree-status']),
-                                    bootc=copy.deepcopy(base.VALUES['after-pin bootc-status'])))
-        self.saved['stock'] = copy.deepcopy(host.templates['S'])
-        self.saved['stock_identity'] = self.ids['S']
+        title = tools.title
+        def observed_title():
+            lines = title()
+            if self.word == 'newest':
+                self.title_lines.extend(lines)
+            return lines
+        tools.title = observed_title
         # The prepared state only determines which former stock entries are exempt.
-        self.saved['state']['rpm']['deployments'] = [dict(host.templates['S'], booted=True, staged=False)]
+        self.saved = dict(state=status([dict(host.templates['S'], booted=True, staged=False)]),
+                          stock=copy.deepcopy(host.templates['S']), stock_identity=self.ids['S'])
 
     def observe(self, name):
         if ':' in name and name.split(':', 1)[1] not in ('outcome-pending', 'layout-pending', 'layout-repair'):
@@ -135,11 +144,17 @@ class Driver:
 
     def save(self, name, value):
         self.observe('load:' + name)
+        if name == 'outcome-pending':
+            self.checkpoint('journal:' + value['status'])
         self.files[name] = copy.deepcopy(value)
         if name == 'outcome-pending' and self.phase == ('intent' if value['status'] == 'intent' else 'record'):
             raise PowerCut('after journal ' + value['status'])
         if name == 'layout-pending' and value.get('finishing') and self.phase == 'intent' and self.word == 'finish':
             raise PowerCut('after layout finishing intent')
+
+    def checkpoint(self, operation):
+        if self.word == 'newest' and self.output is not None:
+            self.checkpoints.append((operation, self.output.getvalue()))
 
     def journal_record(self, j):
         if j is None:
@@ -178,8 +193,10 @@ class Driver:
         h.loaded, h.changes, h.trace, h.cut_keyboard, h.cut = s.loaded, [], [], False, ''
         tools.boot[0], tools.notes = 'boot-2', []
         tools.release['reference'] = REFS[s.bundle]
+        tools.release['number'] = base.record(REFS[s.bundle], True)['number']
         tools.release['signature']['identity'] = base.IDENTITY
         tools._lineage = dict(tools_version=3, releases=base.H21 if s.bundle == '27' else base.H30)
+        tools.chosen, tools.said = None, []
         self.files.clear()
         self.files.update(prepared=copy.deepcopy(self.saved), disks={}, **{'network-verified': {},
                           'title': dict(state=copy.deepcopy(h.state), bls=h.entries())})
@@ -226,11 +243,14 @@ class Driver:
         word, self.phase = event
         self.word = word
         self.restored = set()
+        self.checkpoints, self.title_lines = [], []
         host.cut = self.phase
         host.cut_keyboard = word in ('finish', 'abandon') and self.phase == 'console'
         before_entries, before_rows = copy.deepcopy(host.entries()), copy.deepcopy(host.state['rpm']['deployments'])
+        before_journal = copy.deepcopy(self.files.get('outcome-pending'))
         cut, error, lines = False, '', []
         output = io.StringIO()
+        self.output = output
         self.dependencies = []
         with contextlib.redirect_stdout(output):
             try:
@@ -256,7 +276,7 @@ class Driver:
                 else:
                     method = {'update': tools.update, 'forward': tools.forward, 'previous': tools.previous, 'rollback': tools.recover,
                               'keep-stock': lambda: tools.recover(True), 'check': tools.check, 'title': tools.title,
-                              'records': tools.records, 'reboot': tools.reboot}[word]
+                              'records': tools.records, 'reboot': tools.reboot, 'newest': tools.newest}[word]
                     lines = method()
             except owner.Stop as problem:
                 error = str(problem)
@@ -269,6 +289,19 @@ class Driver:
         # as before, in their order), and forward never stages and never changes the set of
         # deployments (the same rows with the same flags and pins; nothing but the reorder).
         after_rows = host.state['rpm']['deployments']
+        if word == 'newest':
+            # Only title's own returned lines are exempt from I2. Count them
+            # so an extra identical line added by newest cannot hide in them.
+            title_lines = Counter(self.title_lines)
+            own_lines = output.getvalue().splitlines() + tools.notes[:]
+            for line in lines:
+                if title_lines[line]:
+                    title_lines[line] -= 1
+                else:
+                    own_lines.append(line)
+            self.judge_newest(before_rows, after_rows, before_journal, error, cut,
+                              output.getvalue(), lines + tools.notes, own_lines)
+            assert (tools.chosen or '') == expected.chosen, ('newest chose another word', expected.chosen, tools.chosen)
         if word == 'update':
             assert (not any(isinstance(c, str) and c.startswith('ostree admin set-default ') for c in host.changes)
                     and [r for r in after_rows if not r.get('staged')] == [r for r in before_rows if not r.get('staged')]), \
@@ -325,7 +358,7 @@ class Driver:
         assert ('confirmed after the restart' in text) == (expected.confirmation and not cut), ('premature/missing confirmation', event, text)
         if word == 'check' and expected.stop == 'layout':
             assert 'sudo /var/lib/ares/at layout ' in error, ('check has no executable next step', error)
-        if expected.state.outcome() == 'selection-applied' and word in ('title', 'check', 'records') and not error:
+        if word in ('title', 'check', 'records') and not error and expected.state.outcome() == 'selection-applied':
             assert 'runs and now starts next; no restart is waiting' in text, text
         if expected.announcement:
             assert (REFS[expected.announcement] + ' is removed when the update finishes at shutdown' in text or
@@ -337,6 +370,53 @@ class Driver:
                 assert self.host.templates[expected.announcement]['container-image-reference-digest'][7:19] in text, text
         assert [self.by_id[identity(r)] for r in host.state['rpm']['deployments'] if r['pinned']] == ['S'], 'stock pin changed'
         return found
+
+    def judge_newest(self, before, after, journal, error, cut, output, lines, own_lines):
+        """I1–I4 use only actual host inputs, writes and output, before oracle comparison.
+
+        Cache hits reuse these already judged observations for the same observed
+        inputs. Unread /etc values stay framed through by Executions as before.
+        """
+        installed = [r for r in before if not r.get('staged') and not r['pinned']]
+        # The fixture roles encode release order, independently of Tools.newest().
+        newest = max(installed, key=lambda r: self.by_id[identity(r)]) if installed else None
+        running = next(r for r in before if r['booted'])
+        staged_before = {identity(r) for r in before if r.get('staged')}
+        staged_now = (any(operation == 'stage' for operation, _ in self.checkpoints) or
+                      any(r.get('staged') and identity(r) not in staged_before for r in after))
+        assert not staged_now or running == newest == before[0], ('I1: staged away from running newest/default', before, after)
+
+        forbidden = (owner.typed('update'), owner.typed('forward'))
+        assert not any(word in line for word in forbidden for line in [error, *own_lines]), \
+            ('I2: newest points to an inner word', error, own_lines)
+
+        # Inspect every intent and mutation, including a cut that prevented any
+        # later announcement. A completion has only a record, not a new intent.
+        completion = journal and journal['mode'] == 'staging' and journal['status'] == 'intent' and staged_before
+        for operation, visible in self.checkpoints:
+            if (operation == 'journal:intent' or not operation.startswith('journal:') or
+                    completion and operation == 'journal:recorded'):
+                assert any(line.startswith('Update:') for line in visible.splitlines()), \
+                    ('I3: announcement missing before ' + operation, visible)
+
+        visible_lines = output.splitlines() + lines
+        announcements = [i for i, line in enumerate(visible_lines) if line.startswith('Update:')]
+        if announcements:
+            assert not error, ('I4: announcement followed by refusal', error, output)
+            changed = before != after or completion and journal != self.files.get('outcome-pending')
+            assert changed or cut, ('I4: announcement without change or cut', output, lines)
+            assert not any(line.startswith('Nothing') for line in visible_lines[announcements[0] + 1:]), \
+                ('I4: Nothing after announcement', output, lines)
+            forward_announced = any('latest installed version' in visible_lines[i] for i in announcements)
+            if self.tools.chosen == 'forward' or forward_announced:
+                assert not (running == newest == before[0]), 'I4: forward announced where newest runs and starts next'
+                # Pending is derived from the fake's saved record and list, not
+                # the ledger's outcome or the tools' survey answer.
+                pending = journal and journal['boot'] == self.tools.boot[0] and (
+                    journal['mode'] == 'staging' and journal['status'] == 'recorded' or
+                    journal['mode'] == 'reorder' and journal['intended'] == [list(identity(r)) for r in before]
+                    and journal['target'] != list(identity(running)))
+                assert not pending, 'I4: forward announced while a change waits'
 
 
 @contextlib.contextmanager
@@ -933,7 +1013,7 @@ class ModelTest(unittest.TestCase):
         else:
             self.assertEqual(found.processed, found.discovered)
             self.assertEqual(found.discovered, 967215)
-            self.assertEqual(found.edges, 26519328)
+            self.assertEqual(found.edges, 28687626)
 
 
 # The full model by default; the hosted checks-only job sets `slice` and its model
@@ -944,7 +1024,7 @@ SCOPE = os.environ.get('ARESOS_MODEL_SCOPE', 'full')
 # The order is fixed (starts() and steps() enumerate in code order), so the same
 # states are explored every time; the counts below pin that.
 SLICE = 120000
-SLICE_COUNTS = (173130, 3185862)  # discovered states, executed edges
+SLICE_COUNTS = (173130, 3433044)  # discovered states, executed edges (newest added last)
 
 
 def explore(budget=None):

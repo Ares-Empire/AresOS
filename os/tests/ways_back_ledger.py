@@ -2,7 +2,8 @@
 
 One word per meaning (briefs/22c-forward-command.md): update stages the bundle's
 release or changes nothing; forward selects the newest installed AresOS and never
-stages. Each installed system is one command away again.
+stages. Each installed system is one command away again. Package 43 adds newest,
+whose independent choice follows D2 without changing either inner word.
 
 The ledger records events that happened, including interrupted commands. Boot age
 and trial session are equivalence classes, never literal ids: the trial's own
@@ -90,6 +91,7 @@ class Result:
     archives: tuple = ()
     confirmation: bool = False
     announcement: str = ''
+    chosen: str = ''
 
 
 def trial_refusal(t):
@@ -98,9 +100,42 @@ def trial_refusal(t):
     return 'prove it or revert first' if t.same_boot else 'began before the last restart: from a fresh physical administrator login run sudo /var/lib/ares/at layout abandon'
 
 
+def choose(s):
+    """D2's first matching row, independently of Tools and before the survey resolves it.
+
+    Rows outside the reviewed deployment shapes are not exploration seeds. An
+    inconsistent journal represents row 0 here; the host tests cover the other
+    survey refusals, whose inputs (pins, signatures, busy tools) are not ledger state.
+    """
+    try:
+        outcome = s.outcome()
+    except AssertionError:
+        return 0
+    releases = tuple(r for r in s.rows if r not in ('S', s.stage))
+    if not releases:
+        return 1
+    newest = max(releases)
+    if outcome == 'not-applied' and s.journal.word == 'update':
+        return 2
+    if outcome == 'complete':
+        return 3
+    if outcome == 'retry':
+        return 4 if s.running == newest else 5
+    if outcome == 'waiting':
+        return 6
+    if s.running == newest == s.rows[0]:
+        return 8 if s.bundle in releases else 7
+    return 9 if s.rows[0] == newest else 10
+
+
 def transition(s, event):
     """Predict a step solely from the ledger and the chosen event, before calling any tools."""
     word, phase = event
+    choice = choose(s) if word == 'newest' else None
+    if choice == 0:
+        return Result(s, stop='neither as before it nor as it intended')
+    if choice == 1:
+        return Result(s, stop='No AresOS is installed')
     t, j = s.trial, s.journal
     if word in ('restart', 'power-off'):
         rows = s.rows
@@ -127,7 +162,7 @@ def transition(s, event):
     reads = word not in ('proof', 'revert', 'finish')
     outcome = s.outcome()
     if reads:
-        if outcome in ('retry', 'complete') and word != 'update':
+        if outcome in ('retry', 'complete') and word not in ('update', 'newest'):
             return Result(s, stop='update')
         if outcome == 'not-applied':
             archives.append('not-applied')
@@ -146,6 +181,15 @@ def transition(s, event):
             archives.append('confirmed')
             return replace(state, journal=None), True
         return state, False
+
+    if word == 'newest':
+        if choice == 5:
+            return result(stop='was begun on an older AresOS and interrupted')
+        if choice in (2, 6, 8, 9):
+            return result()
+        inner = 'forward' if choice == 10 else 'update'
+        selected = transition(s, (inner, phase))
+        return replace(selected, archives=tuple(archives) + selected.archives, chosen=inner)
 
     if word in ('check', 'title', 'records', 'reboot'):
         if word == 'reboot':
@@ -305,10 +349,10 @@ def transition(s, event):
 
 def steps(s):
     """Compute each candidate once; events and the exploration share these predictions."""
-    for word in ('check', 'title', 'records', 'reboot', 'update', 'forward', 'previous', 'rollback', 'keep-stock', 'abandon'):
+    for word in ('check', 'title', 'records', 'reboot', 'update', 'forward', 'previous', 'rollback', 'keep-stock', 'abandon', 'newest'):
         event = word, 'full'
         yield event, transition(s, event)
-    for word in ('update', 'forward', 'previous', 'rollback', 'keep-stock', 'abandon'):
+    for word in ('update', 'forward', 'previous', 'rollback', 'keep-stock', 'abandon', 'newest'):
         for phase in (('intent', 'console', 'persistent') if word == 'abandon' else ('intent', 'primitive', 'record')):
             # A refused/no-op command never reaches a phase to cut. Its full event
             # above still runs; omit only these physically nonexistent cut points.

@@ -13,7 +13,8 @@
     "22d and 22c on the laptop (2026-11-17)",
     "50: boot-only console keymap after Plymouth; vm.py requires boot-key and forced busy-VT repair evidence in the disposable check build",
     "43 step 1: isolated root steps, session check, newest and numbered release metadata; tools v6 payload and pins",
-    "43 step 1: REVIEW-5 fixes"
+    "43 step 1: REVIEW-5 fixes",
+    "43 step 2: independent newest choice, model driver and I1-I4 revert proofs"
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
