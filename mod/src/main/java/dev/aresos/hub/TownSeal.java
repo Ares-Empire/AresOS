@@ -83,6 +83,7 @@ public final class TownSeal {
             if (server != null) HubData.get(server);
             else holding(access.getLevelPath(LevelResource.ROOT)).ifPresent(CARRIED::set);
         } catch (RuntimeException error) {
+            dev.aresos.save.WorldSaveState.failure(access.getLevelPath(LevelResource.ROOT), "town seal before level.dat");
             AresOs.LOGGER.error("Could not read the town's seal before a save", error);
         }
     }
@@ -103,6 +104,7 @@ public final class TownSeal {
                 if (town.isPresent()) write(world, new Seal(written, seed(server), fingerprint(town.get())));
             } else if (carried != null) write(world, new Seal(written, carried.seed(), carried.town()));
         } catch (IOException | RuntimeException error) {
+            dev.aresos.save.WorldSaveState.failure(access.getLevelPath(LevelResource.ROOT), "town seal write");
             AresOs.LOGGER.error("Could not write the town's seal", error);
         }
     }

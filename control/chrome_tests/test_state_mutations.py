@@ -20,7 +20,7 @@ class Mutations(unittest.TestCase):
         cases=[
             ('S1 restore','aresos_control/storage.py',[("    def _restore_chrome(self):\n","    def _restore_chrome(self):\n        return\n")],
              'test_state_fixes.StateFixes.test_s1_restore_reconciles_revocation_readonly_and_qualification_offline'),
-            ('S1 qualification','aresos_control/chrome/qualification.py',[("self.store.chrome_state.get('chrome:qualification'","self.store.get('chrome:qualification'")],
+            ('S1 qualification','aresos_control/chrome/qualification.py',[("projection.pinned_value('chrome:qualification', pin)","self.store.get('chrome:qualification')")],
              'test_state_fixes.StateFixes.test_s1_readable_policy_rollback_cannot_hide_committed_qualification'),
             ('S1 large qualification','aresos_control/storage.py',[("            if key=='chrome:qualification':","            if False:")],
              'test_state_fixes.StateFixes.test_s1_large_qualification_history_restores_without_a_large_rewrite'),

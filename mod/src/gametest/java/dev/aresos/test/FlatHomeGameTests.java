@@ -68,13 +68,6 @@ public final class FlatHomeGameTests {
      * when most of those ticks passed before the chunks were there.
      */
     private static final int CONTROL_LIMIT = 2400;
-    /**
-     * The test server runs ticks as fast as it can; chunks load at the disk's and the other builds' pace. Counted in
-     * ticks, unlike {@link ChunkWaits}' waits: this test runs through {@code helper.onEachTick}, which registers one
-     * callback for every tick up to the framework's limit, and every tick looks through all of them. With
-     * {@link ChunkWaits#LOAD_TICKS} in that limit, the ten quiet minutes took over 25 minutes and did not end (39b).
-     */
-    private static final int LOAD_LIMIT = 6000;
     private static final List<GameRule<Boolean>> SWITCHES = List.of(GameRules.SPAWN_MOBS, GameRules.MOB_GRIEFING, GameRules.KEEP_INVENTORY,
             GameRules.SPAWN_PHANTOMS, GameRules.SPAWN_PATROLS, GameRules.SPAWN_WANDERING_TRADERS, GameRules.ADVANCE_TIME, GameRules.ADVANCE_WEATHER,
             GameRules.SPAWN_MONSTERS);
@@ -382,7 +375,7 @@ public final class FlatHomeGameTests {
      * slimes in any light). So the empty ten minutes are the rules' doing and not a world that could never spawn
      * anything. Alone in its test environment, because it changes the server's rules, and far from the test plots.
      */
-    @GameTest(environment = "aresos-test:flat_home", maxTicks = LOAD_LIMIT + CONTROL_LIMIT + TEN_MINUTES + 40)
+    @GameTest(environment = "aresos-test:flat_home", maxTicks = ChunkWaits.LOAD_TICKS + CONTROL_LIMIT + TEN_MINUTES + 40)
     public void noMobAppearsInTenMinutes(GameTestHelper helper) {
         var level = helper.getLevel();
         var server = level.getServer();
@@ -423,49 +416,65 @@ public final class FlatHomeGameTests {
             restore.run();
             throw error;
         }
-        long[] loadedAt = {-1};
-        long[] quietSince = {-1};
-        helper.onEachTick(() -> {
-            try {
-                long tick = helper.getTick();
-                if (quietSince[0] < 0) {
-                    var appeared = mobs(level, area[0]);
-                    if (additions[0].count() == 0) {
-                        if (loadedAt[0] < 0 && loaded(level, home)) loadedAt[0] = tick;
-                        if (loadedAt[0] < 0 && tick >= LOAD_LIMIT) throw new AssertionError("Fixture: the ground around home did not load within "
-                                + LOAD_LIMIT + " ticks. " + spawningState(level, home, player));
-                        if (loadedAt[0] >= 0 && tick - loadedAt[0] >= CONTROL_LIMIT) throw new AssertionError("Control: no mob appears here even"
-                                + " with mob spawning on, so ten quiet minutes would prove nothing. " + spawningState(level, home, player));
-                        return;
+        long loadingSince = System.nanoTime();
+        // Keep only the next tick scheduled: onEachTick would allocate a callback for every tick up to the limit.
+        helper.runAtTickTime(helper.getTick() + 1, new Runnable() {
+            long loadedAt = -1;
+            long quietSince = -1;
+
+            @Override
+            public void run() {
+                try {
+                    long tick = helper.getTick();
+                    if (quietSince < 0) {
+                        var appeared = mobs(level, area[0]);
+                        if (additions[0].count() == 0) {
+                            if (loadedAt < 0 && loaded(level, home)) loadedAt = tick;
+                            if (loadedAt < 0 && System.nanoTime() - loadingSince >= ChunkWaits.WAIT_NANOS)
+                                throw new AssertionError("Fixture: the ground around home did not load within "
+                                        + ChunkWaits.WAIT_NANOS / 1_000_000 + " ms (" + tick + " ticks). " + spawningState(level, home, player));
+                            if (loadedAt >= 0 && tick - loadedAt >= CONTROL_LIMIT) throw new AssertionError("Control: no mob appears here even"
+                                    + " with mob spawning on, so ten quiet minutes would prove nothing. " + spawningState(level, home, player));
+                        } else {
+                            AresOs.LOGGER.info("32 no-mob control: with mob spawning on, {} added within {} ticks", additions[0].examples(), tick);
+                            FlatHome.applyRules(rules, server);
+                            appeared.forEach(Entity::discard);
+                            additions[0].reset();
+                            quietSince = tick;
+                        }
+                    } else {
+                        check(additions[0].count() == 0, "Mob added during the quiet interval: " + additions[0].examples());
+                        if (tick >= quietSince + TEN_MINUTES) {
+                            check(!player.isRemoved() && player.level() == level && player.blockPosition().closerThan(home, 2),
+                                    "Fixture: the player is not at home: " + player.position());
+                            check(LiveMode.isLive(player), "Fixture: the player left Live mode");
+                            var spawning = level.getChunkSource().getLastSpawnState();
+                            check(spawning != null && spawning.getSpawnableChunkCount() > 0, "Fixture: no chunk near the player counts for spawning");
+                            check(server.getWorldData().getDifficulty() != net.minecraft.world.Difficulty.PEACEFUL, "Fixture: the world is peaceful");
+                            NetherHomeGameTests.assertRules(rules);
+                            var appeared = mobs(level, area[0]);
+                            check(appeared.isEmpty(), appeared.size() + " mob(s) appeared within ten minutes under the flat home's rules: " + describe(appeared));
+                            AresOs.LOGGER.info("32 server no-mob check: 12000 ticks, {} mob additions", additions[0].count());
+                            restore.run();
+                            helper.succeed();
+                            return;
+                        }
                     }
-                    AresOs.LOGGER.info("32 no-mob control: with mob spawning on, {} added within {} ticks", additions[0].examples(), tick);
-                    FlatHome.applyRules(rules, server);
-                    appeared.forEach(Entity::discard);
-                    additions[0].reset();
-                    quietSince[0] = tick;
-                } else {
-                    check(additions[0].count() == 0, "Mob added during the quiet interval: " + additions[0].examples());
-                    if (tick < quietSince[0] + TEN_MINUTES) return;
-                    check(!player.isRemoved() && player.level() == level && player.blockPosition().closerThan(home, 2),
-                            "Fixture: the player is not at home: " + player.position());
-                    check(LiveMode.isLive(player), "Fixture: the player left Live mode");
-                    var spawning = level.getChunkSource().getLastSpawnState();
-                    check(spawning != null && spawning.getSpawnableChunkCount() > 0, "Fixture: no chunk near the player counts for spawning");
-                    check(server.getWorldData().getDifficulty() != net.minecraft.world.Difficulty.PEACEFUL, "Fixture: the world is peaceful");
-                    NetherHomeGameTests.assertRules(rules);
-                    var appeared = mobs(level, area[0]);
-                    check(appeared.isEmpty(), appeared.size() + " mob(s) appeared within ten minutes under the flat home's rules: " + describe(appeared));
-                    AresOs.LOGGER.info("32 server no-mob check: 12000 ticks, {} mob additions", additions[0].count());
+                } catch (AssertionError error) {
                     restore.run();
-                    helper.succeed();
+                    // The test runner reports its own exception type from a tick callback, and no Error.
+                    helper.fail(error.getMessage());
+                    return;
+                } catch (RuntimeException error) {
+                    restore.run();
+                    throw error;
                 }
-            } catch (AssertionError error) {
-                restore.run();
-                // The test runner reports its own exception type from a tick callback, and no Error.
-                helper.fail(error.getMessage());
-            } catch (RuntimeException error) {
-                restore.run();
-                throw error;
+                // The framework removes the current Runnable after it returns, so the next callback needs its own key.
+                Runnable next = this;
+                helper.runAtTickTime(helper.getTick() + 1, new Runnable() {
+                    @Override
+                    public void run() { next.run(); }
+                });
             }
         });
     }

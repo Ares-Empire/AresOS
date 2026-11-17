@@ -8,7 +8,6 @@ import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.LevelLoadingScreen;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.world.level.storage.LevelResource;
 
 /** AresOS (Linux) only: follows the app helper's focus changes and reports when the desktop world is usable. */
 public final class ShellFocusClient {
@@ -52,15 +51,18 @@ public final class ShellFocusClient {
         AresOsClient.returnedFromApp();
     }
 
-    /** The marked desktop world's save folder once it is loaded and playable, otherwise null. */
+    /**
+     * The marked desktop world's save folder once it is loaded and playable, otherwise null. Null during a home switch
+     * (package 48) from start to end: the staging world is not his home, and the supervisor waits meanwhile.
+     */
     public static String readyWorld(Minecraft client) {
+        if (HomeSwitch.busy()) return null;
         var server = client.getSingleplayerServer();
         if (client.player == null || client.level == null || server == null || client.gui.overlay() != null
                 || client.gui.screen() instanceof LevelLoadingScreen || !DesktopWorld.isEnabled(server)) return null;
         if (server != namedServer) {
             namedServer = server;
-            var folder = server.getWorldPath(LevelResource.ROOT).toAbsolutePath().normalize().getFileName();
-            worldName = folder == null ? "world" : folder.toString();
+            worldName = DesktopWorld.saveName(server);
         }
         return worldName;
     }

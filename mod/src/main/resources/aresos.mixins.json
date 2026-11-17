@@ -22,7 +22,20 @@
     "DisplayAccess",
     "ServerStorageAccess",
     "LastPlayedMixin",
-    "TownSealMixin"
+    "TownSealMixin",
+    "ChunkSaveMixin",
+    "SavedDataSaveMixin",
+    "PoiSaveMixin",
+    "PlayerSaveMixin",
+    "LevelSaveMixin",
+    "StatsSaveMixin",
+    "AdvancementsSaveMixin",
+    "RegionSaveMixin",
+    "FileReplaceSaveMixin",
+    "ServerSaveMixin",
+    "EntitySaveMixin",
+    "PlayerSaveRetentionMixin",
+    "SerializationProblemMixin"
   ],
   "injectors": {
     "defaultRequire": 1
