@@ -275,6 +275,7 @@ for dir in /usr/lib/systemd/user /usr/lib/systemd/system; do
 done
 rm -f /etc/systemd/system/display-manager.service
 systemctl enable greetd.service getty@tty3.service
+systemctl enable aresos-console-keymap.service
 systemctl set-default graphical.target
 rm -f /usr/share/wayland-sessions/*.desktop /usr/share/xsessions/*.desktop
 
