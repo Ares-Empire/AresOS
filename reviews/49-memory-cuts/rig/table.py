@@ -62,7 +62,7 @@ for factor,label in labels.items():
     print(f"| {label} | {spread(residuals['settled'])} | {spread(residuals['flight'])} | {spread(residuals['covered5m'])} | {spread(commits)} |")
 
 print('\nCovered actions use v1 settings. Each saving below compares with the untreated run in the same round; these are independent JVMs, so inspect the pre-action RSS too. zram is device-wide and includes other builders. Its physical-memory change is not an attributed game cost.\n')
-print('| Covered run | RSS before / 5 min / wake | Saving vs untreated 5 min | Scope swap 5 min / wake | Global zram original / compressed / physical at 5 min (physical change) | Majflt cover+wake / wake only | Return to first frame ms | Wake worst; >17 / >33 ms | GC max after join ms |')
+print('| Covered run / status | RSS before / 5 min / wake | Saving vs untreated 5 min | Scope swap 5 min / wake | Global zram original / compressed / physical at 5 min (physical change) | Majflt covered / wake | Return to first frame ms | Wake worst; >17 / >33 ms | GC max after join ms |')
 print('|---|---:|---:|---:|---:|---:|---:|---:|---:|')
 
 
@@ -73,8 +73,11 @@ def zram(snap):
     return [sum(values[index] for values in devices.values()) / 2**20 for index in range(3)]
 
 
-for name,s in rows.items():
-    if not name.startswith('cover-'): continue
+covered_rows={name:(s,'complete') for name,s in rows.items() if name.startswith('cover-')}
+for path in sorted((root.parent/'failures').glob('cover-*/partial/summary.json')):
+    s=json.loads(path.read_text())
+    covered_rows[s['name']] = (s, 'FAILED; wake incomplete')
+for name,(s,status) in sorted(covered_rows.items()):
     before, covered, wake = (s['snapshots'].get(label, {}) for label in ('covered0','covered5m','wake'))
     control = rows.get('cover-none-'+name.rsplit('-',1)[1], {})
     baseline = get(control,'snapshots','covered5m','rss')
@@ -82,9 +85,10 @@ for name,s in rows.items():
     initial, final = zram(before), zram(covered)
     zr = '—' if initial is None or final is None else ' / '.join(f'{v:.1f}' for v in final)+f' ({final[2]-initial[2]:+.1f})'
     w = s['windows'].get('wake', {})
-    print(f"| {name} | {show(before.get('rss'))} / {show(covered.get('rss'))} / {show(wake.get('rss'))} | "
+    cover_faults = covered['majflt']-before['majflt'] if 'majflt' in covered and 'majflt' in before else None
+    print(f"| {name} ({status}) | {show(before.get('rss'))} / {show(covered.get('rss'))} / {show(wake.get('rss'))} | "
           f"{show(saving)} | {show(covered.get('cgroup_swap'))} / {show(wake.get('cgroup_swap'))} | {zr} | "
-          f"{show(s.get('cover_wake_majflt_delta'))} / {show(s.get('wake_majflt_delta'))} | "
+          f"{show(cover_faults)} / {show(s.get('wake_majflt_delta'))} | "
           f"{show(s.get('return_to_first_frame_ms'))} | {show(w.get('max_ms'))}; "
           f"{show(w.get('over_17ms'))} / {show(w.get('over_33ms'))} | {show(get(s,'gc_after_join','max_ms'))} |")
 
