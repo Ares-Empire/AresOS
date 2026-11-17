@@ -312,6 +312,11 @@ if ((COVER > 0)); then
     python3 -I "$WT/reviews/40-real-home/rig/tl.py" "$RIG" list >>"$RIG/cover.txt" 2>&1
     # Record the complete return request, then start the ten-second frame window when the cover closes.
     mark return_start
+    python3 -I - "$game" "$RIG/faults-return.json" <<'PYFAULT'
+import json, sys, time
+fields = open(f'/proc/{int(sys.argv[1])}/stat').read().rsplit(')', 1)[1].split()
+json.dump({'monotonic_ns': time.monotonic_ns(), 'majflt': int(fields[9]), 'minflt': int(fields[7])}, open(sys.argv[2], 'w'))
+PYFAULT
     if [[ $frozen == 1 ]]; then
         python3 -I "$here/scope.py" "$game" "$PKG49_GAME_UNIT" thaw "$RIG"
         frozen=0

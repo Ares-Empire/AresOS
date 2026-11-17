@@ -150,6 +150,9 @@ summary['lost_frames'] = sum(1 for line in open(os.path.join(rig, 'frames.txt'))
     if os.path.exists(os.path.join(rig, 'frames.txt')) else None
 if 'covered0' in summary['snapshots'] and 'wake' in summary['snapshots']:
     summary['cover_wake_majflt_delta'] = summary['snapshots']['wake']['majflt'] - summary['snapshots']['covered0']['majflt']
+fault_path = os.path.join(rig, 'faults-return.json')
+if os.path.exists(fault_path) and 'wake' in summary['snapshots']:
+    summary['wake_majflt_delta'] = summary['snapshots']['wake']['majflt'] - json.load(open(fault_path))['majflt']
 # Small evidence is public. Raw game and launcher logs remain local.
 worktree = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../..'))
 def public(value):
@@ -159,7 +162,7 @@ def public(value):
     return value
 summary = public(summary)
 json.dump(summary, open(os.path.join(out, 'summary.json'), 'w'), indent=1)
-for name in ('settings.txt', 'marks.txt', 'samples.csv', 'cover.txt', 'randr.txt', 'actions.jsonl', 'host-start.json', 'host-end.json'):
+for name in ('settings.txt', 'marks.txt', 'samples.csv', 'cover.txt', 'randr.txt', 'actions.jsonl', 'host-start.json', 'host-end.json', 'faults-return.json'):
     if os.path.exists(os.path.join(rig, name)):
         open(os.path.join(out, name), 'w').write(public(open(os.path.join(rig, name)).read()))
 if os.path.exists(os.path.join(rig, 'gc.txt')):
