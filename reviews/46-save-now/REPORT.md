@@ -82,8 +82,9 @@ write/serialization failures that can otherwise be swallowed:
 | Per-level and server-wide `SavedDataStorage.tryWrite` | Catches `IOException` on the IO executor, logs and returns; dirty bits were already cleared in `collectDirtyTagsToSave` | `SavedDataSaveMixin` at the catch's logging call; watches `scheduleSave`'s completion too, including exceptional asynchronous failures |
 | `ChunkMap.save` | `tryMarkSaved` clears the dirty bit first; catches synchronous serialization/write-submission `Exception` and calls `reportChunkSaveFailure` | `ChunkSaveMixin` intercepts that reporting call |
 | `ChunkMap.save`'s asynchronous write | Serialization supplier / `IOWorker.runStore` complete the write future exceptionally; `lambda$save$0` reports and consumes it, without making the enclosing save fail | `ChunkSaveMixin` watches the original write future and retains its outcome independently of vanilla's discarded dependent callback |
-| `SectionStorage` (POIs) | Codec `resultOrPartial` may log and omit a section; a non-compound tag only logs; asynchronous write failures are consumed by `lambda$writeChunk$0` after reporting | `PoiSaveMixin` observes both serialization cases; `RegionSaveMixin` watches the write future before its exception is consumed |
-| `EntityStorage` | Asynchronous entity-region failures are consumed by `reportSaveFailureIfPresent` after logging / `reportChunkSaveFailure` | `RegionSaveMixin` watches the original future; `EntitySaveMixin` scopes serialization diagnostics |
+| `SectionStorage` (POIs) | Codec `resultOrPartial` may log and omit a section; a non-compound tag only logs; asynchronous write failures are consumed by `lambda$writeChunk$0` after reporting | `PoiSaveMixin` observes both serialization cases; `write(ChunkPos, CompoundTag)` delegates to the shared `Supplier` overload, where `RegionSaveMixin` watches the original future once |
+| `EntityStorage`, nonempty chunk | Asynchronous entity-region failures are consumed by `reportSaveFailureIfPresent` after logging / `reportChunkSaveFailure` | The tag write delegates to the shared `Supplier` overload observed by `RegionSaveMixin`; `EntitySaveMixin` scopes serialization diagnostics |
+| `EntityStorage`, empty chunk (review fix 2) | `storeEntities` adds the position to `emptyChunks` before calling `write(ChunkPos, Supplier)` with `IOWorker.STORE_EMPTY`; its asynchronous failure is reported and consumed, and later saves skip the cached deletion | `RegionSaveMixin` now watches that shared `Supplier` overload directly, awaits accounting through the existing barrier, and latches the failure until reopening |
 | Player, block-entity and entity serialization | `ProblemReporter.ScopedCollector.close` logs diagnostics and permits an incomplete tag to be written | `SerializationProblemMixin` observes nonempty collectors only inside scoped save encoders; chunk encoding is scoped on both the server thread and its asynchronous serialization supplier |
 | `LevelStorageAccess.saveLevelData(CompoundTag)` | Catches `Exception`, logs and returns after a failed temp-file/compressed write | `LevelSaveMixin` at that catch's `Logger.error` |
 | `Util.safeReplaceFile` for player data / `level.dat` | Discards `safeReplaceOrMoveFile`'s false result after retry exhaustion (rename/delete/check helpers log and return false) | `FileReplaceSaveMixin` observes that false result by destination path, including replacement failures that never reach the outer catches |
@@ -121,7 +122,78 @@ clearing, asserts the real `WorldSaves` reply is `error`, then checks the next s
 block on disk. It repeats the fault during the game's own autosave and checks the next request repairs that too.
 The fault mixin and its arm exist only in the game-test mod. No screenshot numbering changes.
 
+## Review fix 2
+
+Builder: Codex `gpt-6.1-sol xhigh`; brief `briefs/46-review-fix-2.md`, finding in `REVIEW-2.md`.
+
+**Done:** moved `RegionSaveMixin`'s observer from the `CompoundTag` overload to the shared
+`write(ChunkPos, Supplier<CompoundTag>)` overload. Both normal entity/POI tags and empty-entity deletions now
+register exactly one barrier on the original write future. Failure accounting finishes before the barrier permits
+`WorldSaves` to answer. `ChunkMap` inherits this method too: it is explicitly excluded from the generic observer,
+because `ChunkSaveMixin` already watches terrain writes with their precise unload history. This avoids counting
+terrain twice or replacing its established in-place repair with the entity/POI reopen-only policy.
+
+**Failed empty-entity writes require reopening.** The log names the storage type and chunk position and explains
+that the empty-entry deletion was cached before its write succeeded, so retry cannot be proved. Every later
+request answers `ok:false, reason:"error"` until the world closes and is opened again. Chosen because vanilla's
+`emptyChunks` cache suppresses the very deletion that a generic full rewrite would need to retry. Clearing a
+failure flag or marking terrain dirty cannot repair that. A store-specific deletion retry could support recovery
+later, but would need its own lifecycle and fault tests; this fix keeps the existing conservative entity policy.
+Reopening starts a history for the world actually loaded from disk; it does not restore a deletion that was lost.
+
+**Swallow-point recheck:** regenerated bytecode listings from the cached Minecraft 26.2 common jar with Java 25's
+`javap -c -p` and inspected the callers of `SimpleRegionStorage`, `IOWorker`, and `RegionFileStorage`. The table
+above is updated with the two entity routes and POI's delegation. Additional overload/storage checks:
+
+| Path checked | Coverage or explanation |
+|---|---|
+| Terrain `ChunkMap.save` → inherited `write(ChunkPos, Supplier)` | Already watched by `ChunkSaveMixin`, including asynchronous serialization, failed futures and unload history; excluded only from the generic region observer |
+| POI `PoiManager` → `SectionStorage.writeChunk` → tag overload → supplier overload | Same observer and barrier as entity writes, plus the existing `PoiSaveMixin` serialization diagnostics and explicit `synchronize(true)` in `WorldSaves`; no second write overload bypass |
+| Both `IOWorker.store` overloads → `runStore` → `RegionFileStorage.write` | The tag overload delegates to the supplier overload; the low-level writer either writes NBT or calls `RegionFile.clear` for a null tag. Its IO failure completes the observed future exceptionally; no separate live-world deletion writer |
+| `RegionFileStorage.flush` / `IOWorker.synchronize` | Flush failures propagate; `IOWorker` logs and rethrows. The existing request catch returns `error` |
+| `RecreatingSimpleRegionStorage.write(ChunkPos, Supplier)` | Overrides the method and uses a separate write worker, but belongs to `RegionStorageUpgrader`'s offline conversion/recreation path. Neither integrated-server construction nor `saveEverything` uses it |
+| `ChunkNbt` / `StructureCheck` | File-fix utility writes use the delegating tag overload; structure checks only scan/read storage. Neither supplies another writer in a running world's save pipeline |
+| Player data, stats, advancements, saved data, `level.dat`, safe file replacement and town seal | Rechecked against the original swallow-point list; their existing hooks and accounting remain as listed above. No new alternate save writer was found |
+
+**Regression test:** extended `SaveNowClientGameTest` without changing the client test list or screenshot numbers.
+It saves one armor stand and confirms it exists in a copy of the entity-region file, removes the last entity, and
+injects an actual `RegionFileStorage.write` IOException only for the resulting null-tag deletion during vanilla's
+autosave. After the failed future drains, two real lifecycle requests through `WorldSaves` must each answer
+`error`; disk readback after each confirms stale entity data remains. The test then closes and reopens the same
+save and requires a clean request to answer `ok:true`. The existing terrain request/autosave repair tests still run.
+The fault selector and injection remain confined to the game-test mod.
+
+**Existing client fixture synchronization:** the first full client run stopped in `MyAppsClientGameTest.commands`
+before reaching the save test, with `Apps picked up a copy while crafting was occupied`. The preceding Apps test
+waited for the client's inventory screen to close, then immediately filled the server's crafting slot. Its still-pending
+close-container packet could clear that newly filled slot before `TakeAppPayload` arrived. Minecraft 26.2's
+`handleContainerClose` calls `doCloseContainer`, and `InventoryMenu.removed` clears the crafting container on the
+server. Added `waitForServerboundPackets()` before the server fixture is installed. All original assertions remain;
+no product inventory behavior changed.
+
 ## Verified
+
+- **Review fix 2 (2026-11-17):** all game/build runs use the approved dev scripts, headless, with no force or daemon
+  stop option. Logs and copied suite screenshots are in the ignored `.work/review-fix-2/` directory.
+
+  | Command/run | Result |
+  |---|---|
+  | `mod/dev/build.sh`, initial patch before the terrain observer exclusion | exit 0, `BUILD SUCCESSFUL in 2m 16s`; 258 unit tests, 0 failures/errors, 6 expected Windows skips; "All 104 required tests passed" |
+  | `mod/dev/client-test.sh --keep-screenshots .work/review-fix-2/client-1-screenshots build` | exit 1, `BUILD FAILED in 8m`; existing My apps crafting fixture raced the previous close packet, before the save test. Added the packet barrier described above; no assertion changed |
+  | `mod/dev/client-test.sh --keep-screenshots .work/review-fix-2/client-2-screenshots build`, final code (`62b0e0b6`) | exit 0, `BUILD SUCCESSFUL in 12m 54s`; 21 "checks passed" lines; terrain fault recovery and the empty-entity autosave failure/two refusals/same-world reopen checks passed. 258 unit tests, 0 failures/errors, 6 expected skips; "All 104 required tests passed" |
+  | `mod/dev/client-test.sh --keep-screenshots .work/review-fix-2/client-3-screenshots build`, same final code | exit 0, `BUILD SUCCESSFUL in 12m 3s`; 21 "checks passed" lines again, including both terrain repairs and the empty-entity failure/reopen regression; "All 104 required tests passed". Unit task `UP-TO-DATE`, reusing the preceding green results |
+  | `mod/dev/build.sh`, final code | exit 0, `BUILD SUCCESSFUL in 1m 43s`; "All 104 required tests passed"; unit task `UP-TO-DATE`, retaining the 258-test green results (0 failures/errors, 6 expected skips) |
+
+  Both final-code combined build/client runs passed without further edits. The deletion fault logged
+  `entities [0, 0]: empty-entry deletion was cached before the write succeeded; retry cannot be proved`, followed by
+  two `save cannot certify persistence until the world is reopened` messages. Each run then printed
+  `46 entity-deletion failure checks passed` after reopening the same save. The My apps test and its unchanged
+  crafting assertions passed in both runs too.
+
+  No new screenshots are needed for this persistence-only change; the regression checks copies of real region
+  files. Preserved the suite's screenshots under the three `.work/review-fix-2/client-*-screenshots/` directories,
+  then restored 51 tracked images and removed 25 generated images outside this package. `git diff --check` passed.
+  Final `.work/` files over 500 MB: **none**. No large download or extracted image was created.
 
 - **Review fix 1 (2026-11-17):** all commands below ran from this worktree through the approved dev scripts.
   `origin/main` through `968727d2` was merged before the final checks; package 48 was not merged.
@@ -259,8 +331,8 @@ Measured with `SaveTimesClientGameTest`, run 3. The setup:
 - **Minecraft's "Saving world" screen while a world closes** is a different thing: a whole screen, not the corner
   text, and owner fix 1 leaves it alone. Package 48 takes Save and Quit out of the home screen and gives its
   "New home…" a screen of its own; a shutdown still closes the world.
-- **Other IO fault types in the game:** review fix 1 injects an actual asynchronous terrain-region write failure.
-  Player, stats, advancements, metadata, saved-data, entity and POI fault injection are not separately exercised;
+- **Other IO fault types in the game:** review fixes 1 and 2 inject actual asynchronous terrain-region and empty-entity
+  deletion failures. Player, stats, advancements, metadata, saved-data, nonempty-entity and POI fault injection are not separately exercised;
   their required mixins load during the suites, and the accounting policy has unit coverage. Physical power loss
   and a real full filesystem were not simulated.
 - **Hosted checks at report commit time:** they start on push; the PR gives the final-head run links and results.
