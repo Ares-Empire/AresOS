@@ -198,6 +198,8 @@ class Chrome:
                 raise Refused('invalid_input','Invalid private Chrome step observation.')
             self.observe_step(event['step'],event['tab'])
         elif event.get('event') == 'released':
+            if event.get('session') == self.bridge.session and type(event.get('tab')) is int:
+                self.forget_tab(event['tab'])
             for key, operation in self.store.iter_items('op:'):
                 context = operation.get('payload', {}).get('binding', {})
                 if operation['app'] == 'chrome' and operation['state'] == 'reserved' and context.get('session') == event.get('session') and context.get('tab') == event.get('tab'):
@@ -209,6 +211,12 @@ class Chrome:
             sink = getattr(self.bridge, 'audit_sink', None)
             if sink is not None:
                 sink(event.get('data'))
+
+    def forget_tab(self, tab):
+        # Release disposes the reader too. Don't create a table (or draw its
+        # random prefix) just to discard a tab that has never been read.
+        if self._references is not None:
+            self._references.close(tab)
 
     # The details page reaches the owner-only list through chrome.sock, which any
     # process of the owner's user can open. Listing, revoking and read-only on go
@@ -929,6 +937,8 @@ class Chrome:
         self.store.checkpoint('chrome_before_dispatch')
         try:
             reply = self.bridge.call(**self.command(payload, op_id)) if payload else self.bridge.call(verb,**arguments)
+            if verb in {'close_tab', 'release_tab'} and reply.get('closed' if verb == 'close_tab' else 'released') == arguments['tab']:
+                self.forget_tab(arguments['tab'])
             if verb=='open':
                 op['payload']['created_tab']=copy.deepcopy(reply)
                 op['stages']['created_tab']=copy.deepcopy(reply)

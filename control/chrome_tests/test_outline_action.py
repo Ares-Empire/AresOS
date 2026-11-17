@@ -24,6 +24,7 @@ from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from aresos_control.common import RESULT_LIMIT, Refused, canonical, validate
 from aresos_control.chrome.adapter import PENDING_DRIFT
+from aresos_control.chrome.references import STALE, Stale
 from aresos_control.chrome.bridge import TimeLeft
 from aresos_control.chrome.definitions import OUTLINE, OUTLINE_SWITCH
 from aresos_control.engine import Engine
@@ -329,6 +330,74 @@ class Adapter(unittest.TestCase):
         self.assertIsNotNone(table)
         self.outline(tab=1)
         self.assertIs(self.chrome.references, table)
+
+    def assert_forgotten(self, tab, old, counter):
+        table = self.chrome.references
+        self.assertNotIn(tab, table._tabs)
+        self.assertTrue(all(ref not in table._references for ref in old))
+        self.assertEqual(table.counter, counter)
+        fresh = self.outline(tab=tab)['untrusted_content']['outline']
+        self.assertTrue(table.counter > counter)
+        self.assertTrue(set(old).isdisjoint(re.findall(r'[bcdfghjklmnpqrstvwxyz]{5}\d+', fresh)))
+        for ref in old:
+            with self.assertRaises(Stale) as caught:
+                table.resolve(ref, tab)
+            self.assertEqual((caught.exception.code, str(caught.exception)), ('stale_reference', STALE))
+            result = self.read(tab=tab, ref=ref)['reads'][0]
+            self.assertEqual(result['error'], {'code': 'stale_reference', 'message': STALE})
+
+    def test_tool_close_and_release_forget_entries_without_an_event(self):
+        for verb, key in (('close_tab', 'closed'), ('release_tab', 'released')):
+            with self.subTest(verb=verb):
+                self.outline(tab=1)
+                self.browser.outlines[2] = fixture(f2, tab=2)
+                self.outline(tab=2)
+                table = self.chrome.references
+                old = list(ref for ref, entry in table._references.items() if entry.tab == 1)
+                kept = list(ref for ref, entry in table._references.items() if entry.tab == 2)
+                counter = table.counter
+                original = self.browser.call
+                def answer(name, **args):
+                    if name == 'tab_context':
+                        return {'tab': args['tab']}
+                    if name == verb:
+                        return {key: args['tab']}
+                    return original(name, **args)
+                with patch.object(self.browser, 'call', answer):
+                    self.chrome.call(verb, {'tab': 1})
+                self.assert_forgotten(1, old, counter)
+                for ref in kept:
+                    self.assertEqual(table.resolve(ref, 2).tab, 2)
+
+    def test_extension_release_forgets_entries_and_ignores_old_sessions(self):
+        self.outline(tab=1)
+        table = self.chrome.references
+        old, counter = list(table._references), table.counter
+        for event in ({'session': 'old', 'tab': 1}, {'session': self.browser.session, 'tab': True}):
+            self.chrome.event({'event': 'released', **event})
+            self.assertTrue(all(ref in table._references for ref in old))
+        self.chrome.event({'event': 'released', 'session': self.browser.session, 'tab': 1})
+        # The tool reply may follow the event; cleanup is idempotent.
+        self.chrome.forget_tab(1)
+        self.assert_forgotten(1, old, counter)
+
+    def test_release_before_the_first_outline_creates_no_reference_table(self):
+        self.chrome.event({'event': 'released', 'session': self.browser.session, 'tab': 1})
+        self.assertIsNone(self.chrome._references)
+
+    def test_failed_close_does_not_forget_a_live_tabs_entries(self):
+        self.outline(tab=1)
+        table, original = self.chrome.references, self.browser.call
+        old = list(table._references)
+        def answer(name, **args):
+            if name == 'tab_context':
+                return {'tab': args['tab']}
+            if name == 'close_tab':
+                raise Refused('refused', 'Unsaved typing; nothing closed.')
+            return original(name, **args)
+        with patch.object(self.browser, 'call', answer), self.assertRaises(Refused):
+            self.chrome.call('close_tab', {'tab': 1})
+        self.assertTrue(all(ref in table._references for ref in old))
 
     def test_references_live_as_long_as_the_adapter(self):
         self.browser.outlines[1] = fixture(f2)
