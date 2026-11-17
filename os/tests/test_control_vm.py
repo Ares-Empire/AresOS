@@ -636,69 +636,321 @@ class PasswordScanTest(unittest.TestCase):
         self.assertEqual((found['journal_returncode'], found['errors']),
                          (1, ['journal export exited 1: Failed to open journal']))
 
+    def listed(self, folder, change, before=False):
+        """`change` runs once, on the real file system: when the scanner has read `folder`'s listing to its end and
+        before it opens a name in it (what a running process does between the two), or, with `before`, as it starts
+        to list the folder. By path (os.walk in X2's scanner) and by descriptor (this round's)."""
+        real, done = os.scandir, []
+        identity = (os.stat(folder).st_dev, os.stat(folder).st_ino)
+
+        class Listing:
+            def __init__(self, entries):
+                self.entries = entries
+
+            def __iter__(self):
+                return self
+
+            def __next__(self):
+                return next(self.entries)
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *error):
+                self.close()
+
+            def close(self):
+                self.entries.close()
+                if not done:
+                    done.append(True)
+                    change()
+
+        def scandir(path='.'):
+            info = os.stat(path)
+            if done or (info.st_dev, info.st_ino) != identity:
+                return real(path)
+            if before:
+                done.append(True)
+                change()
+                return real(path)
+            return Listing(real(path))
+
+        return mock.patch('os.scandir', side_effect=scandir)
+
+    def stated(self, path, clean=b'nothing\n'):
+        """RECHECK-X2 #1's race, on the real file system: once the scanner has stat'ed the file, a running process
+        removes it, and a clean file is under its name when the scanner looks there again. Returns the two patches
+        and what happened."""
+        real_lstat, real_fstat, first, happened = os.lstat, os.fstat, os.lstat(path), []
+
+        def lstat(target, **options):  # X2's scanner stats by path, and looks again when its open fails
+            if str(target) == path and happened == ['removed']:
+                pathlib.Path(path).write_bytes(clean)
+                happened.append('back')
+            info = real_lstat(target, **options)
+            if str(target) == path and not happened:
+                os.unlink(path)
+                happened.append('removed')
+            return info
+
+        def fstat(descriptor):  # this round's stats the file it holds open
+            info = real_fstat(descriptor)
+            if (info.st_dev, info.st_ino) == (first.st_dev, first.st_ino) and not happened:
+                os.unlink(path)
+                pathlib.Path(path).write_bytes(clean)
+                happened.extend(['removed', 'back'])
+            return info
+
+        return mock.patch('os.lstat', side_effect=lstat), mock.patch('os.fstat', side_effect=fstat), happened
+
     def test_runtime_content_that_vanishes_unread_fails_and_is_named(self):
         # RECHECK-X1 #2: a runtime file that a process removed between the listing and the read was skipped, so
         # check 8 could pass without having read it. Unread content fails like a file that can't be read.
-        real = self.scanner.holds
-        removed = {str(self.root / 'state/clean.txt')}
-
-        def holds(path, needles):
-            if path in removed:
-                os.unlink(path)  # a running process removed it between the listing and the read
-                raise FileNotFoundError(2, 'No such file or directory', path)
-            return real(path, needles)
-
-        with mock.patch.object(self.scanner, 'holds', side_effect=holds):
+        state, clean = self.root / 'state', self.root / 'state/clean.txt'
+        with self.listed(state, clean.unlink):  # a running process removed it between the listing and the read
             outside = self.scanner.scan([str(self.root)], [self.NEEDLE])
         self.assertEqual(outside['errors'], [f'{self.root}/state/clean.txt: FileNotFoundError: No such file or directory'])
-        (self.root / 'state/clean.txt').write_text('nothing\n')
+        clean.write_text('nothing\n')
         runtime_folders = mock.patch.object(self.scanner, 'VANISHING', (f'{self.root}/',))
-        with mock.patch.object(self.scanner, 'holds', side_effect=holds), runtime_folders:
+        with self.listed(state, clean.unlink), runtime_folders:
             runtime = self.scanner.scan([str(self.root)], [self.NEEDLE])
         self.assertEqual(runtime['errors'], [f'{self.root}/state/clean.txt: gone before it was read, so its content '
                                              'is unsearched'])
         self.assertEqual((runtime['vanished'], runtime['files']), ([str(self.root / 'state/clean.txt')],
                                                                    {str(self.root): 1}))
         # Check 8 fails on it: search_for() passes the error on, and passwords() asserts there is none.
-        (self.root / 'state/clean.txt').write_text('nothing\n')
-        with mock.patch.object(self.scanner, 'holds', side_effect=holds), runtime_folders:
+        clean.write_text('nothing\n')
+        with self.listed(state, clean.unlink), runtime_folders:
             self.assertEqual(len(self.search()['errors']), 1)
         # Only a path named in MAY_VANISH, with its reason, may vanish unread; MAY_VANISH names none today.
         self.assertEqual(self.scanner.MAY_VANISH, {})
-        (self.root / 'state/clean.txt').write_text('nothing\n')
-        with mock.patch.object(self.scanner, 'holds', side_effect=holds), runtime_folders, \
+        clean.write_text('nothing\n')
+        with self.listed(state, clean.unlink), runtime_folders, \
                 mock.patch.object(self.scanner, 'MAY_VANISH', {str(self.root / 'state/clean.txt'): 'a reason'}):
             exempt = self.scanner.scan([str(self.root)], [self.NEEDLE])
         self.assertEqual((exempt['errors'], exempt['vanished']), ([], [str(self.root / 'state/clean.txt')]))
-        # A folder that vanishes before it is listed: everything in it is unread too.
-        (self.root / 'state/clean.txt').write_text('nothing\n')
-        (self.root / 'cache').mkdir()
-        (self.root / 'cache/held.txt').write_bytes(self.NEEDLE)
-        listing = os.scandir
+        # A folder that vanishes before it is listed: everything in it is unread too. Removed as the scanner starts
+        # to list it (it lists as empty then), and removed before the scanner opens it.
+        clean.write_text('nothing\n')
+        cache = self.root / 'cache'
+        for folder, before in ((cache, True), (self.root, False)):
+            cache.mkdir()
+            (cache / 'held.txt').write_bytes(self.NEEDLE)
+            with self.listed(folder, lambda: shutil.rmtree(cache), before=before), runtime_folders:
+                gone = self.scanner.scan([str(self.root)], [self.NEEDLE])
+            self.assertEqual((gone['vanished'], gone['errors']), ([str(self.root / 'cache')], [
+                f'{self.root}/cache: gone before it was read, so its content is unsearched']), before)
+        # RECHECK-X2 #1: there is no second try. X2 read a file again that was gone and then back, and so searched
+        # whatever had been put there in place of the file it had listed. Gone when it is opened, and back under its
+        # name the moment the scanner has seen that: still gone unread, and the new file is not read in its place.
+        opening = os.open
 
-        def scandir(path='.'):
-            if str(path) == str(self.root / 'cache'):
-                shutil.rmtree(path)
-            return listing(path)
+        def back_once_seen_gone(path, flags, *more, **options):
+            try:
+                return opening(path, flags, *more, **options)
+            except FileNotFoundError:
+                clean.write_text('nothing\n')
+                raise
 
-        with mock.patch('os.scandir', side_effect=scandir), runtime_folders:
-            folder = self.scanner.scan([str(self.root)], [self.NEEDLE])
-        self.assertEqual((folder['vanished'], folder['errors']), ([str(self.root / 'cache')], [
-            f'{self.root}/cache: gone before it was read, so its content is unsearched']))
-        # Replaced between the listing and the read: read once more, the new file searched, nothing unread.
-        replaced = {'count': 0}
-
-        def holds_once_missing(path, needles):
-            if path.endswith('password') and not replaced['count']:
-                replaced['count'] += 1
-                raise FileNotFoundError(2, 'No such file or directory', path)
-            return real(path, needles)
-
-        with mock.patch.object(self.scanner, 'holds', side_effect=holds_once_missing), runtime_folders:
+        with self.listed(state, clean.unlink), mock.patch('os.open', side_effect=back_once_seen_gone), runtime_folders:
             again = self.scanner.scan([str(self.root)], [self.NEEDLE])
-        self.assertEqual((again['errors'], again['vanished'], again['hits']),
-                         ([], [], [[str(self.root / 'state/password'), 0]]))
+        self.assertTrue(clean.exists())
+        self.assertEqual((again['errors'], again['vanished'], again['files']), (
+            [f'{clean}: gone before it was read, so its content is unsearched'], [str(clean)], {str(self.root): 1}))
         self.assertEqual(self.vanishing, ('/run/', '/tmp/', '/var/tmp/'))
+
+    def test_a_file_removed_and_replaced_once_the_scanner_has_stated_it_is_the_one_searched(self):
+        # RECHECK-X2 #1: the scanner stats /tmp/control-debug.log, which holds the password; a process removes it
+        # before the scanner opens it, and a clean file is under that name when the scanner looks again. X2 read the
+        # clean file: errors [], vanished [], no hit, the listed content never searched.
+        debug, password = str(self.root / 'state/debug.log'), str(self.root / 'state/password')
+        pathlib.Path(debug).write_bytes(b'login ' + self.NEEDLE)
+        lstat, fstat, happened = self.stated(debug)
+        with lstat, fstat, mock.patch.object(self.scanner, 'VANISHING', (f'{self.root}/',)):
+            found = self.scanner.scan([str(self.root)], [self.NEEDLE])
+        self.assertEqual((happened, pathlib.Path(debug).read_bytes()), (['removed', 'back'], b'nothing\n'))
+        self.assertTrue([debug, 0] in found['hits'] or any(error.startswith(debug) for error in found['errors']),
+                        f'the file the scanner stat\'ed was removed and replaced; its content was neither searched '
+                        f'nor named as an error: {found}')
+        # The scanner holds the file it stat'ed, so that file is the one searched, removed or not; the clean one
+        # came after the listing and is no part of it.
+        self.assertEqual((found['hits'], found['errors'], found['vanished']), ([[debug, 0], [password, 0]], [], []))
+        self.assertEqual(found['files'], {str(self.root): 3})
+
+    def test_what_is_put_under_a_listed_name_before_it_is_opened_is_never_searched_in_its_place(self):
+        # RECHECK-X2 #1, one step earlier: the same swap between the folder's listing and the scanner's first look
+        # at the file. X2 never saw it (errors [], no hit). The listing's inode number says which file was listed.
+        state, debug, password = self.root / 'state', self.root / 'state/debug.log', str(self.root / 'state/password')
+        aside = self.folder / 'aside'
+        aside.mkdir()
+
+        def replaced(path):
+            listed = path.lstat().st_ino
+            return lambda: [f'{path}: not the file its folder listed (inode {listed} there, {path.lstat().st_ino} '
+                            'opened): replaced before it was read, so its content is unsearched']
+
+        def scan(folder, change, errors):
+            with self.listed(folder, change):
+                found = self.scanner.scan([str(self.root)], [self.NEEDLE])
+            # The listed one is an error; nothing put in its place is searched for it; the rest is searched.
+            self.assertEqual((found['errors'], found['hits'], found['vanished'], found['files']),
+                             (errors(), [[password, 0]], [], {str(self.root): 2}))
+
+        # A file, replaced as programs replace one: the new one written beside it and renamed over it.
+        debug.write_bytes(b'login ' + self.NEEDLE)
+        errors = replaced(debug)
+
+        def renamed_over():
+            (aside / 'debug.new').write_text('nothing\n')
+            os.replace(aside / 'debug.new', debug)
+
+        scan(state, renamed_over, errors)
+        debug.unlink()
+        # A folder, with another folder in its place: neither is walked as the one that was listed.
+        cache, other = self.root / 'cache', aside / 'other'
+        for folder in (cache, other):
+            folder.mkdir()
+        (cache / 'held.txt').write_bytes(self.NEEDLE)
+        (other / 'clean.txt').write_text('nothing\n')
+        errors = replaced(cache)
+
+        def another_folder():
+            os.rename(cache, aside / 'cache.old')
+            os.rename(other, cache)
+
+        scan(self.root, another_folder, errors)
+        # A folder, with a link in its place: not followed to where it leads.
+        (aside / 'elsewhere').mkdir()
+        (aside / 'elsewhere/held.txt').write_bytes(self.NEEDLE)
+        errors = replaced(cache)
+
+        def a_link():
+            os.rename(cache, aside / 'cache.older')
+            os.symlink(aside / 'elsewhere', cache)
+
+        scan(self.root, a_link, errors)
+        cache.unlink()
+        # A file, with a folder in its place.
+        debug.write_bytes(b'login ' + self.NEEDLE)
+        errors = replaced(debug)
+
+        def a_folder():
+            os.rename(debug, aside / 'debug.old')
+            debug.mkdir()
+            (debug / 'inside.txt').write_bytes(self.NEEDLE)
+
+        scan(state, a_folder, errors)
+
+    def test_a_listing_that_numbers_otherwise_is_asked_a_second_time(self):
+        # A listing's number is not always the file's own: a mount point is listed under the number of the folder it
+        # covers, and the document portal's FUSE server gives every name 4294967295 (read on the laptop's own portal
+        # mount, 2026-11-17). Such a listing repeats its number when asked again, and the file is searched.
+        state, password = self.root / 'state', str(self.root / 'state/password')
+        listing = self.scanner.listing
+        portal = mock.patch.object(self.scanner, 'listing', side_effect=lambda handle: dict.fromkeys(listing(handle),
+                                                                                                    4294967295))
+        with portal:
+            found = self.scanner.scan([str(self.root)], [self.NEEDLE])
+        self.assertEqual((found['errors'], found['hits'], found['files']), ([], [[password, 0]], {str(self.root): 2}))
+        self.assertEqual(found['paths'], {'learned': 4, 'searched': 2, 'listed': 2})
+        # Numbers that are not the files' own and still differ from file to file (a FUSE server passing on the
+        # numbers of the files behind it): a replaced file has another number in the second listing.
+        shifted = mock.patch.object(self.scanner, 'listing', side_effect=lambda handle: {
+            name: inode + 1000 for name, inode in listing(handle).items()})
+        debug = state / 'debug.log'
+        debug.write_bytes(b'login ' + self.NEEDLE)
+        before = debug.stat().st_ino
+
+        def renamed_over():
+            (self.folder / 'debug.new').write_text('nothing\n')
+            os.replace(self.folder / 'debug.new', debug)
+
+        with shifted, self.listed(state, renamed_over):
+            found = self.scanner.scan([str(self.root)], [self.NEEDLE])
+        self.assertEqual(found['errors'], [
+            f'{debug}: not the file its folder listed (inode {before + 1000} there, {debug.stat().st_ino} opened): '
+            'replaced before it was read, so its content is unsearched'])
+        self.assertEqual(found['hits'], [[password, 0]])
+        # The first number again in the second listing, because the listed file is back under its name by then (moved
+        # away, another file opened in its place, moved back): the file that was opened is still not the listed one.
+        debug.write_bytes(b'login ' + self.NEEDLE)
+        before, opened, asked = debug.stat().st_ino, [], []
+        folder = (state.stat().st_dev, state.stat().st_ino)
+
+        def moved_away():
+            os.rename(debug, self.folder / 'debug.listed')
+            debug.write_text('nothing\n')
+            opened.append(debug.stat().st_ino)
+
+        def moved_back_for_the_second(handle):
+            info = os.fstat(handle)
+            asked.append((info.st_dev, info.st_ino))
+            if asked.count(folder) == 2:
+                os.replace(self.folder / 'debug.listed', debug)
+            return listing(handle)
+
+        with mock.patch.object(self.scanner, 'listing', side_effect=moved_back_for_the_second), \
+                self.listed(state, moved_away):
+            found = self.scanner.scan([str(self.root)], [self.NEEDLE])
+        self.assertEqual((asked.count(folder), debug.stat().st_ino), (2, before))
+        self.assertEqual(found['errors'], [
+            f'{debug}: not the file its folder listed (inode {before} there, {opened[0]} opened): replaced before it '
+            'was read, so its content is unsearched'])
+        self.assertEqual(found['hits'], [[password, 0]])
+
+    def test_every_path_the_scan_learns_ends_in_one_outcome(self):
+        # RECHECK-X2: one record per learned path, and the answer is made from the records.
+        outside = self.folder / 'outside'
+        outside.mkdir()
+        (outside / 'held.txt').write_bytes(self.NEEDLE)
+        os.symlink(outside, self.root / 'link')  # never followed
+        os.symlink(self.root / 'state/password', self.root / 'state/again')  # the file it leads to is searched once
+        os.mkfifo(self.root / 'pipe')  # never opened: nobody writes to it, so a read would wait for ever
+        (self.root / 'empty').mkdir()
+        found = self.scanner.scan([str(self.root)], [self.NEEDLE])
+        self.assertEqual(found['paths'], {'learned': 8, 'searched': 2, 'listed': 3, 'not a file': 3})
+        self.assertEqual((found['hits'], found['errors'], found['files']), (
+            [[str(self.root / 'state/password'), 0]], [], {str(self.root): 2}))
+        # A root that is a link is followed (/root is one in the guest); a root that is a file is searched.
+        os.symlink(self.root / 'state', self.folder / 'root')
+        found = self.scanner.scan([str(self.folder / 'root'), str(outside / 'held.txt')], [self.NEEDLE])
+        self.assertEqual((found['files'], found['errors']),
+                         ({str(self.folder / 'root'): 2, str(outside / 'held.txt'): 1}, []))
+        self.assertEqual(found['hits'], [[str(self.folder / 'root/password'), 0], [str(outside / 'held.txt'), 0]])
+        # With paths that could not be read, the outcomes still add up to what was learned, and each of those paths
+        # is an error: a file that can't be read, a folder that can't be listed, one gone before it was opened.
+        if os.geteuid() != 0:
+            (self.root / 'state/locked.db').write_bytes(self.NEEDLE)
+            (self.root / 'state/locked.db').chmod(0)
+            (self.root / 'empty').chmod(0)
+            with self.listed(self.root, (self.root / 'pipe').unlink):
+                found = self.scanner.scan([str(self.root)], [self.NEEDLE])
+            self.assertEqual(found['paths'], {'learned': 9, 'searched': 2, 'listed': 2, 'not a file': 2, 'error': 3})
+            self.assertEqual(found['errors'], [f'{self.root}/empty: PermissionError: Permission denied',
+                                               f'{self.root}/pipe: FileNotFoundError: No such file or directory',
+                                               f'{self.root}/state/locked.db: PermissionError: Permission denied'])
+        self.assertEqual(sum(count for outcome, count in found['paths'].items() if outcome != 'learned'),
+                         found['paths']['learned'])
+
+    def test_a_needle_across_short_reads_is_found(self):
+        # A pipe, or a file still being written, hands out what it has: X2 kept only the last read's end, so a
+        # needle across three reads was missed. The journal's export is read with the same function.
+        class Stream:
+            def __init__(self, *pieces):
+                self.pieces = list(pieces)
+
+            def read(self, size):
+                return self.pieces.pop(0) if self.pieces else b''
+
+        needle = self.NEEDLE
+        pieces = (b'x' * 100 + needle[:20], needle[20:25], needle[25:] + b'y' * 50)
+        self.assertEqual(self.scanner.found_in(Stream(*pieces), [b'absent' * 6, needle]), {1})
+        self.assertEqual(self.scanner.found_in(Stream(b'x' * 100, needle[:-1], b'y'), [needle]), set())
+        mock.patch.object(self.actions, 'JOURNAL', [sys.executable, '-c', 'import sys; print("MESSAGE=" + sys.argv[1])',
+                                                    needle.decode()]).start()
+        self.assertEqual((self.search()['in_journal'], self.search()['errors']), (True, []))
+        source = (CONTROL_CI / 'actions.py').read_text()
+        self.assertIn('in_journal = bool(scanner.found_in(journal.stdout, needles))', source)
 
     def fuse_portal(self):
         """A stand-in for the document portal's FUSE mount under the scanned folder, and its mountinfo line."""
@@ -714,6 +966,20 @@ class PasswordScanTest(unittest.TestCase):
                          [(str(portal), 'fuse.portal', os.getuid()), (f'{self.root}/with space', 'fuse.gvfsd-fuse', 1001)])
         real = self.scanner.fuse_mounts
         return portal, mock.patch.object(self.scanner, 'fuse_mounts', side_effect=lambda roots: real(roots, info)[:1])
+
+    def owner(self, before=lambda: None):
+        """A stand-in for runuser: the real tree_scan.py, started as this user once `before` has changed what the
+        mount's owner will find. Returns the calls made and the patch."""
+        calls = []
+
+        def run(argv, input=None, timeout=300, cwd='/'):
+            calls.append((argv, input))
+            before()
+            result = subprocess.run([sys.executable, '-I', argv[-1]], input=input, capture_output=True, text=True,
+                                    timeout=60)
+            return dict(argv=argv, returncode=result.returncode, stdout=result.stdout, stderr=result.stderr)
+
+        return calls, mock.patch.object(self.actions, 'run', side_effect=run)
 
     def test_root_walks_a_fuse_mount_first_and_its_owner_only_where_root_is_refused(self):
         # RECHECK-X1 #2: not every FUSE mount refuses root (allow_other). One root can read is root's alone.
@@ -732,16 +998,8 @@ class PasswordScanTest(unittest.TestCase):
         portal, mounts = self.fuse_portal()
         (portal / 'held.txt').write_bytes(self.NEEDLE)
         portal.chmod(0)  # root's refusal, here this user's
-        calls = []
-
-        def run(argv, input=None, timeout=300, cwd='/'):
-            calls.append((argv, input))
-            portal.chmod(0o700)  # the owner's walk is let in
-            walked = self.scanner.scan(json.loads(input)['roots'],
-                                       [bytes.fromhex(needle) for needle in json.loads(input)['needles']])
-            return dict(argv=argv, returncode=0, stdout=json.dumps(walked), stderr='')
-
-        with mock.patch.object(self.actions, 'run', side_effect=run), mounts:
+        calls, run = self.owner(lambda: portal.chmod(0o700))  # the owner's walk is let in
+        with run, mounts:
             found = self.search()
         argv, given = calls[0]
         owner = pwd.getpwuid(os.getuid()).pw_name

@@ -1520,6 +1520,7 @@ def search_for(needles, roots=SCANNED):
     mounts = scanner.fuse_mounts(roots)
     found = scanner.scan(roots, needles, handover=[point for point, _, _ in mounts])
     refused = found.pop('refused')
+    del found['covered']  # root's own walk has nothing to cover
     found['fuse_mounts'], found['owner_walks'] = [], []
     for point, kind, uid in mounts:
         owner = pwd.getpwuid(uid).pw_name
@@ -1528,24 +1529,20 @@ def search_for(needles, roots=SCANNED):
         if not refusals:
             continue  # root read all of it (allow_other, say): its files are in root's count
         # The needles go on stdin, never on a command line.
-        request = json.dumps(dict(roots=[point], needles=[needle.hex() for needle in needles]))
+        request = json.dumps(dict(roots=[point], needles=[needle.hex() for needle in needles], cover=[]))
         result = run([*as_user(owner), '/usr/bin/python3', '-I', str(HERE / 'tree_scan.py')], input=request,
                      timeout=600)
         if result['returncode'] != 0:
-            found['errors'] += refusals + [f'{point} ({kind}) as {owner}: exit {result["returncode"]}: '
-                                           f'{result["stderr"][-500:]}']
+            found['errors'] += [refusal for _, _, refusal in refusals] + [
+                f'{point} ({kind}) as {owner}: exit {result["returncode"]}: {result["stderr"][-500:]}']
             continue
         walked = json.loads(result['stdout'])
         for key in ('hits', 'vanished', 'errors'):
             found[key] += walked[key]
         found['owner_walks'].append(dict(mount=point, type=kind, owner=owner, files=walked['files'][point],
                                          root_refused=len(refusals)))
-    longest = max(map(len, needles))
     with tempfile.TemporaryFile() as stderr, subprocess.Popen(JOURNAL, stdout=subprocess.PIPE, stderr=stderr) as journal:
-        in_journal, tail = False, b''
-        while chunk := journal.stdout.read(1 << 20):
-            in_journal = in_journal or any(needle in tail + chunk for needle in needles)
-            tail = chunk[-longest:]
+        in_journal = bool(scanner.found_in(journal.stdout, needles))
         code = journal.wait(timeout=120)
         stderr.seek(0)
         message = stderr.read()[-500:].decode(errors='replace')
@@ -1584,12 +1581,14 @@ def passwords(request):
                    journal_export_holds_it=found['in_journal'], journal_returncode=found['journal_returncode'],
                    journal_stderr=found['journal_stderr'], operations_jsonl_holds_it=operations.exists() and
                    bool(tree_scanner().holds(operations, needles)), forms_searched=len(needles),
-                   scanned=found['files'], fuse_mounts=found['fuse_mounts'], owner_walks=found['owner_walks'],
-                   vanished=found['vanished'], errors=found['errors'], modes=modes, refusals=refusals)
+                   scanned=found['files'], paths=found['paths'], fuse_mounts=found['fuse_mounts'],
+                   owner_walks=found['owner_walks'], vanished=found['vanished'], errors=found['errors'], modes=modes,
+                   refusals=refusals)
     # What couldn't be searched fails the check like a hit: "not found" must mean "looked everywhere".
     assert hits == [str(stored[0])] and not found['in_journal'] and not found['errors'], summary
     return dict(returncode=0, summary=dict(files_holding_it=len(hits), journal=found['in_journal'],
-                                           files_searched=sum(found['files'].values()), vanished=found['vanished'],
+                                           files_searched=sum(found['files'].values()), paths=found['paths'],
+                                           vanished=found['vanished'], fuse_mounts=found['fuse_mounts'],
                                            owner_walks=found['owner_walks']),
                 files=files_out({'passwords.json': summary}))
 
