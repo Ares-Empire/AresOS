@@ -17,7 +17,8 @@
     "42: dry-run cap 4 to 5 after review 1's fixes (fix check SAFE), to prove the new stops on a real build before the cut",
     "42 step 3: main merged",
     "42 step 3: the rehearsal mode release-28 (brief B), its wiring, its local walk and host-walk receipt",
-    "42 step 3: the rehearsal mode release-28 (brief B), its wiring, its local walk and host-walk receipt; the tests that pin the workflow's conditions"
+    "42 step 3: the rehearsal mode release-28 (brief B), its wiring, its local walk and host-walk receipt; the tests that pin the workflow's conditions",
+    "42: REVIEW-3 and REVIEW-4 fixes merged"
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
@@ -42,7 +43,7 @@
       "path": "os/ci/owner_media.py"
     },
     {
-      "sha256": "8e9a4f78e19bfb4709b72909cad7d1d2926286b97e73b7300b2527615b883d7a",
+      "sha256": "c2d9b51764642b4ec2ffcd44c82bb34b9bab0acd84cd50a81867b2c68097d2c2",
       "path": "os/ci/owner_vm.py"
     },
     {
@@ -106,7 +107,7 @@
       "path": "os/tests/test_owner_staged_release.py"
     },
     {
-      "sha256": "fce20095dd93ad36cfe9f09ef9287a9b70880af2f7dd015b312cf1ade9099609",
+      "sha256": "b14a8f3d1fe772f300fc1e47bb724e813027261486c45b919b391256145a6442",
       "path": "os/tests/test_owner_walk.py"
     },
     {
