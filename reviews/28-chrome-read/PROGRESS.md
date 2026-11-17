@@ -19,6 +19,174 @@ Builder steps keep this file; the last step turns it into the report. Newest sta
   after Codex refills (Tue 11-17 10:53). Step 13 is two runs: 13a the four reference cases plus the review case's wait
   and PLAN-GAP 2, 13b the rest of step 11's list. Reviews (package, security) on Codex astra.
 
+## Step 13a (2026-11-17, Codex gpt-6.1-sol): reference lifecycle cases, the review reload wait, and later calls on the stopped form
+
+### Done
+
+- **Fetched first; no merge.** Started at `276fab83`. At the fetch, `origin/main` was `04aef030`, 23 commits beyond
+  the branch's last merged main (`d0b91522`, merged by `e3013438`). Left it unmerged as requested.
+- **Four named `READ BRIEF28 …` cases** in `control/chrome/ci/outline-read.mjs`, all required by `SUPPORT` in
+  `verdicts.mjs` (and its test inventory). Each obtains fresh references before trying the old strings:
+  1. **Service restart:** read F7's list and next-page link; kill/start the service through `lifecycle`; restore
+     control, navigate to F7 with the tool and read it again. Read F3 in an extra tab until the new process has
+     issued numbers above every old number; every old reference on the driver's tab must answer `stale_reference`,
+     with no old string in either new outline.
+  2. **Chrome restart, then connection-only cut:** independently capture F7's references, kill/start Chrome or kill
+     only the native host, restore/take the driver's tab and navigate with the tool. Require live new references,
+     the service's same letters and increasing counter, no repeated string, and refusal of every captured string.
+     The hello session changes for Chrome's restart and survives the host-only cut.
+  3. **Capacity:** H1 `mode=many`; validate the first control's reference, then return more than 5,000 different
+     references by pages. Its dropped string must refuse; `find` reads that same control under a new string, that
+     string resolves, and the old one still refuses. Stop paging after crossing the bound, before the documented
+     cursor refusal can hide the eviction check.
+  4. **Release/retake:** F7, no navigation between the release and new take. Brief 20's read confirms that the next
+     link's document id and reader element id are unchanged. New references exist; none repeats an old string;
+     every old string refuses.
+  `matrices.mjs` passes `lifecycle`, `restoreControl` and its `setTab`; the latter keeps both the matrix and driver
+  on the restored tab. The cases remain at the end of core, immediately after group 9.
+- **H1's capacity fixture** (`efficiency-fixtures.mjs`): its 100,000 plain formatting elements previously became
+  one text run under the inline-formatting rule. They now include 6,000 empty controls named `Element N`, followed
+  by empty images. Every element has a readable role; the controls exceed the reference bound, the page exceeds
+  the reader's 20,000-node bound, and the compact reply fits the existing 1 MiB native limit. The fixture's Node
+  test checks the counts; a reader VM test checks the 20,000-node reply, omission count, 6,000 controls and wire size.
+- **Brief 20's review flake:** `guardedOtherTabClick` in `review-matrices.mjs` waits for the other tab's document id
+  to differ before its second click. Both original refusal assertions and all receiver assertions remain.
+  `review-reload.test.mjs` adds two scheduling regressions: old reads and a missing target cannot dispatch, and an
+  unchanged document never gets a second click.
+- **Step 12 PLAN-GAP 2 fits the existing form case.** After the page-started `requestSubmit` is refused, a later
+  `chrome_read` and a later `chrome_click` using the captured Continue target must each return the same unread-form
+  refusal, without a question, draft text, receiver arrival or reserved operation. Evidence stays in
+  `/out/unread-fields.json`. No asking-path code or server instruction text changed.
+
+### The mutation checks
+
+- **Python, local, temporary monkeypatches restored by `unittest.mock.patch`:** retaining entries on another
+  connection, resetting the counter on reconnect, disabling eviction, and omitting the reader instance from the
+  identity each fail their reference-table test (one failure each). Removing `refuse_withheld_form` fails both
+  existing `test_questions` refusal tests (two failures). The command ran six tests under five separate mutations;
+  no mutation changed a repository source file.
+- **Node, local:** a temporary copy of `guardedOtherTabClick` without the document-change comparison fails both new
+  scheduling regressions; the other three tests pass. The normal tests pass. The copy stayed in `.work/step13a/`.
+- **Capacity flow through the real Python renderer, local, with the final compact shape:** 20,000 nodes, 6,000
+  controls and the remaining empty images, four pages, 5,033 returned references. The old string refuses, the same
+  element receives a different string, the replacement resolves, and the old string still refuses.
+- **Not mutated in a browser:** these four new lifecycle cases. Their browser evidence is the CI runs below;
+  the local mutations exercise the existing reference tests and the new scheduling tests, not a claim that a
+  deliberately broken extension was run in Chrome.
+
+### Runs
+
+- **Local checks, one suite at a time:**
+  - The first `node --test control/chrome_tests/*.test.mjs` attempt printed `node: command not found` (exit 127).
+    Downloaded portable Node v22.15.0 into `.work/step13a/`, verified against the official SHA-256, and removed its
+    download archive. No system installation. With that binary, all 482 Node tests passed; after the fixture's
+    compact layout, all 482 passed again. The added reader wire-size test passed with its module (**10 tests, OK**).
+  - `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/chrome_tests python3 -m unittest test_view_references
+    test_view_paging test_outline_action test_questions test_efficiency test_credentials`: **120 tests, OK**,
+    19.417 seconds. The efficiency module's later `MISS … not measured` lines are its synthetic missing-row tests,
+    not browser measurements.
+  - The full Node command used `.work/step13a/node-v22.15.0-linux-x64/bin/node --test
+    control/chrome_tests/*.test.mjs`; the added reader test used the same binary with `--test
+    control/chrome_tests/outline.test.mjs`.
+  - `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control python3 control/generate.py --check`: **Generated artifacts match
+    definitions**. `node --check control/chrome/ci/outline-read.mjs` and `git diff --check`: exit 0.
+  - Temporary mutation script: five variants detected, with `1 / 1 / 1 / 1 / 2` failures; Node wait mutation:
+    **3 pass, 2 fail**, as intended.
+- **CI rounds:** two rounds, finished. Watched with `gh run watch <id> --exit-status --interval 60`; no workflow
+  dispatch or rerun. Stopped when both second-round runs were green. The progress-only closing commit uses
+  `[skip ci]`; the tested code head is `7d352d7b`.
+
+| Round / head | Control Chrome | Qualification | Result |
+|---|---|---|---|
+| 1 / `0ed7eed2` | [44096298188](https://github.com/Ares-Empire/AresOS/actions/runs/44096298188) | [44096297939](https://github.com/Ares-Empire/AresOS/actions/runs/44096297939) | **Red, one cause, mine.** Control Chrome 24/28 green: both core shards fail the host-only session assertion, then both aggregates fail. Qualification 30/34 green: its two core pairs fail the same assertion, then both combines fail. Every other job passes. Service restart passes in all four core jobs; the Chrome-restart half also completes before the host assertion. No flaky rerun. |
+| 2 / `7d352d7b` | [44106253829](https://github.com/Ares-Empire/AresOS/actions/runs/44106253829) | [44106253693](https://github.com/Ares-Empire/AresOS/actions/runs/44106253693) | **Green, first attempt:** Control Chrome 28/28, qualification 34/34. Every named case, both install modes, all Python shards, both latency legs and the efficiency read budgets pass. 483/483 Node tests in the core logs. No third round. |
+
+The four new reference cases and the expanded group 3 case pass in both Control Chrome core shards and both
+qualification core pairs. Both review shards pass the borrowed-wrappers case with the new document wait. In the
+policy core log the new reference cases take about 16 / 21 / 23 / 6 seconds (service / Chrome and host / capacity /
+retake); these are case times, not the read-latency comparison. The first round stops at the host assertion, so its
+capacity, retake and later-call checks are not evidence; the second round covers them.
+
+Code commits: `4a919f66` (review wait), `b1c12df6` (four reference cases and fixture), `0ed7eed2` (later read/step),
+`7d352d7b` (connection identity and compact fixture).
+
+### Left, in order
+
+1. **Step 13b:** the rest of step 11's list, exactly as step 12's second "Left" item: paging (100,000 characters by
+   ref at max 1,000; a wide table row; a 20,000-character value; non-ASCII and quote pages within 48 KiB with pending
+   operation and notice; five tabs); state token (frame change, 100 unchanged polls, never-quiet until); H1's hostile
+   roles, every hostile-text surface and the 100,000-character name; the asking-read cases on the taken tab before
+   reload; expected small-fixture outlines from a green run's `/out/outline-read/`. Register the cases as specified.
+2. **Step 14:** the final green run's latency comparison into `efficiency-baseline.json`, `HARNESS-MAP.md`,
+   `KNOWN-LIMITS.md`, the report, and green twice on the final head. Carry forward step 6/7/12's mapping notes.
+
+### What the code doesn't show
+
+- **The host-only cut leaves Chrome and its extension worker running.** Its hello `session` is the worker's UUID,
+  not a per-socket UUID. The case checks that it survives this cut; fresh references and the monotonic service
+  counter, rather than a changed hello session, are the evidence the reference checks use.
+- **The service case runs first after group 9.** Group 9's final service restart leaves its outline-reference
+  counter small. F3 advances the next process beyond the captured F7 numbers without changing the driver's newly
+  read F7 document. Each lifecycle snapshot captures all references of F7's full outline (the list and link).
+- **The later step on the stopped form uses a target read before the refusal.** A fresh target lookup would itself
+  be the later failing read and would prevent the requested input call from being attempted. The free Continue
+  handler may run again; its submission must still be refused with no receiver arrival or approval. There is no
+  retry of an uncertain sending input.
+- The tests use disposable CI Chrome profiles and synthetic fixtures. No browser, owner desktop input, mount,
+  privilege command, boot tool, OS owner test, or Gradle ran on the laptop.
+- Closing scan: no `.work/` file exceeds 500 MB (largest file 121,236,344 bytes). Local logs and the portable Node
+  runtime remain there.
+
+### JUDGMENT-CALLs
+
+1. **H1 has 6,000 reference-bearing controls and 94,000 empty readable images.** Rejected 100,000 text-bearing
+   buttons: the capped 20,000-node reply exceeds the existing native transport bound before eviction can be tested.
+   Rejected plain formatting: it produces no reference-bearing nodes. This changes only the synthetic fixture;
+   changing it later costs the fixture line and its count/wire-size assertions.
+2. **Use F7's complete small outline for lifecycle snapshots**, and an extra F3 tab to advance the restarted
+   counter. Rejected hundreds of stale-reference calls per snapshot from a full F3 outline: they add suite time
+   without another identity dimension. Cost: choose another small fixture and adjust the reference-count guard.
+
+### PLAN-GAPs
+
+- **Step 12 PLAN-GAP 2:** addressed by the two later calls in the existing case; passed in both Control Chrome
+  core shards and both qualification core pairs.
+- **H1's old formatting-only capacity page did not exercise the reference bound.** Corrected in the fixture;
+  no production limit was raised. The 100,000-element omission test remains for 13b's browser coverage.
+- **Existing close cleanup is not wired into the adapter.** Source inspection found no caller of
+  `References.close()` outside its unit tests. Brief 28 item 3 says closed-tab entries are dropped; currently a
+  closed tab can retain up to 5,000 entries until an extension-session change or service restart. No production
+  change in 13a; the lead should assign this follow-up. No live memory measurement was made.
+- `origin/main` advanced; intentionally not merged. No new owner decision or instruction-text change.
+
+### For `HARNESS-MAP.md`
+
+- Brief 20's `GROUP 2 REVIEW borrowed wrappers respect another controlled tab and an ordinary document` now uses
+  `guardedOtherTabClick`: wait for the child's changed document before the second click. **No original assertion
+  was changed or removed**; the case stays in the review shard and group 2. This fixes the race from 43973010529.
+- Four names were added to `SUPPORT` and its independent test inventory; no verdict group or shard was added.
+  `outlineReadMatrix` receives the existing lifecycle/restore helpers plus the tab synchroniser.
+- H1 `mode=many` is now reference-bearing and bounded on the native wire. The group 3 unread-form case gains a later
+  read and step; its original assertions and placement are preserved.
+
+### Known limits found
+
+- **Reference eviction still limits a paging chain after 5,000 references**, as step 1 documents. The new capacity
+  case stops just after eviction to test the old string directly; it does not promise an unbounded cursor chain.
+- **An unread form started by page script remains stopped in its document**, including later reads and input
+  (both Control Chrome core shards and both qualification core pairs pass). The owner must send it or load a new
+  document. Existing unit coverage:
+  `test_questions.Questions.test_post18df_form_with_withheld_values_refuses_before_reload_or_preparation` and
+  `test_post18df_form_added_withheld_field_and_changed_value_cannot_use_waiting_approval`.
+- **Closed-tab reference tables can remain in RAM** (the cleanup PLAN-GAP above). Harm: memory accumulates as
+  different tabs are read and closed during one service/extension session. The bound is per tab, not over all
+  formerly opened tabs; no stale-reference bypass or disk persistence was demonstrated.
+- **The native host still bounds one reply at 1 MiB, before the service renders its small outline.** This case
+  proves eviction on a compact page, not that 20,000 verbose controls fit the transport. No production bound
+  changed; the broader H1 and large-text browser cases remain for 13b.
+- **The five-consonant service prefix remains probabilistic across process runs** (brief 28, item 3). These cases
+  compare actual strings; they do not turn the roughly one-in-four-million prefix collision into a proof.
+
 ## Step 12 (2026-11-16/17, Claude agent on Fable 5.2): main merged twice, group 14's password cases, the read cases in the named inventory
 
 Fable because these cases test password exclusion: a case that is missing or too weak would let a leak go unseen. Built
