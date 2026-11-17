@@ -1,7 +1,7 @@
 # Package 43 progress
 
-Latest: step 2's model is built and local verification is complete in both
-scopes. The hosted run remains with the lead. See "Step 2: model" below.
+Latest: step 2's REVIEW-7 I4 fix is locally verified in both model scopes.
+The hosted run remains with the lead. See "Step 2: model" below.
 The step 1 entries are historical.
 
 Step 1 is implemented in the worktree on `pkg/43-aresos-command`, based on
@@ -285,8 +285,10 @@ fingerprint pins and workflow are unchanged. No owner-tool defect has been found
   STOPs and output, exempting only observed title lines with multiplicity.
   I3 uses output snapshots before intent, staging and reorder; it also checks
   a completed staging's record. I4 checks change/cut versus refusal, `Nothing`
-  after an announcement, and false forward announcements by both text and
-  chosen word. The stock-only prepared fixture now has coherent rpm/bootc
+  after an announcement, and false forward announcements. After REVIEW-7 it
+  also independently matches the printed operation and release number to the
+  observed staging, reorder or record completion (or durable intent at a cut),
+  without using the chosen word. The stock-only prepared fixture now has coherent rpm/bootc
   observations, so D2 row 1 reaches its own refusal.
 - `os/tests/ways_back_host.py`: output observation immediately before
   set-default, staging and sync; support for the read-only update preflight.
@@ -327,6 +329,8 @@ have been sequential. No two heavy explorations ran together.
 | After, first full measurement | 967,215 | 967,215 | 28,687,626 | 1070.733 s | 26 tests, one failure in the old edge-count pin, 1095.831 s; queue exhausted |
 | After, final full verification | 967,215 | 967,215 | 28,687,626 | 1022.399 s | 26 tests, OK, 1044.752 s; queue exhausted |
 | After, final slice verification | 120,000 | 173,130 | 3,433,044 | 163.085 s | 26 tests, OK, 184.251 s |
+| REVIEW-7 fix, slice | 120,000 | 173,130 | 3,433,044 | 177.959 s | 26 tests, OK, 202.580 s |
+| REVIEW-7 fix, full | 967,215 | 967,215 | 28,687,626 | 1050.983 s | 26 tests, OK, 1073.593 s; queue exhausted |
 
 The first updated slice completed every invariant and actual execution;
 only its final old edge-count pin failed. The pin now includes exactly the
@@ -384,6 +388,51 @@ Final read-only checks: `git diff --check` passed;
 The worktree has only the intended five model/test files, this progress log
 and the pending-rebind note. `.work files: 15`; `.work over 500 MB: []`.
 No Gradle daemon was started. No new PLAN-GAP or JUDGMENT-CALL.
+
+### REVIEW-7 I4 fix (2026-11-17)
+
+- `os/tests/test_ways_back_model.py:421`: I4 derives staging, reorder or
+  record completion and its exact target from the observed deployment list
+  and journal writes. An intent cut uses the saved intent before its primitive
+  can run. It parses each announcement independently and matches both the
+  operation and the target's fixture release number, including the separate
+  download line. Neither the tools' chosen word nor the ledger result supplies
+  these expectations. Existing I1–I3 and I4's refusal, no-change, pending and
+  `Nothing` checks remain.
+- `os/tests/test_ways_back_newest.py:263`: added REVIEW-7's exact in-memory
+  `announce_forward = announce_update` mutation in the older-running danger
+  state beside the reverse-direction proof. It must fail the named
+  `I4: announced operation/target differs from observed change` assertion.
+  Further mutations prove wrong release numbers fail for staging, retry,
+  reorder and completion across all cut phases; staging and recording the
+  same release cannot substitute for each other; and a wrong download target
+  fails even with a correct first line.
+
+All requested modules ran sequentially, with
+`PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s os/tests -p '<module>.py'`.
+Only the model module additionally set `ARESOS_MODEL_SCOPE`, first `slice`,
+then `full`. The measurements above are these runs' printed results; states,
+steps, outcome counts and command-edge counts are unchanged. Logs are
+`.work/43-model/review7-*.log`.
+
+| Module | Printed result |
+|---|---|
+| `test_ways_back_newest.py` | 21 tests, OK, 2.588 s |
+| `test_ways_back_reverts.py` | 20 tests, OK, 21.905 s |
+| `test_ways_back_model.py`, slice | 26 tests, OK, 202.580 s |
+| `test_ways_back_model.py`, full | 26 tests, OK, 1073.593 s |
+| `test_checkout_sources.py` | 8 tests, OK, 1.244 s |
+
+All commands exited 0; no tests were skipped. Only the two model/test files
+and this log changed. None is in the active source bindings, so no rebind was
+needed. No owner tools changed, no worktree commit or dispatch ran, and no
+privileged or real deployment operation ran. The hosted verification remains with the
+lead. No new PLAN-GAP or JUDGMENT-CALL.
+
+Final read-only checks: `git diff --check` passed;
+`git diff --exit-code -- os/owner-tools/ os/release/ .github/workflows/`
+exited 0. Compared both scopes' printed outcome and command-edge counts with
+their prior final logs: all match. `.work files: 20`; `.work over 500 MB: []`.
 
 ### Still with the lead
 

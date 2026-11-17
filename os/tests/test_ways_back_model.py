@@ -408,7 +408,7 @@ class Driver:
             assert not any(line.startswith('Nothing') for line in visible_lines[announcements[0] + 1:]), \
                 ('I4: Nothing after announcement', output, lines)
             forward_announced = any('latest installed version' in visible_lines[i] for i in announcements)
-            if self.tools.chosen == 'forward' or forward_announced:
+            if forward_announced:
                 assert not (running == newest == before[0]), 'I4: forward announced where newest runs and starts next'
                 # Pending is derived from the fake's saved record and list, not
                 # the ledger's outcome or the tools' survey answer.
@@ -417,6 +417,51 @@ class Driver:
                     journal['mode'] == 'reorder' and journal['intended'] == [list(identity(r)) for r in before]
                     and journal['target'] != list(identity(running)))
                 assert not pending, 'I4: forward announced while a change waits'
+
+            # Derive the operation and target from the host's change, never
+            # from the chosen word, announcement callback or ledger result.
+            recorded = self.files.get('outcome-pending')
+            if staged_now:
+                operation = 'stage'
+                targets = [r for r in after if r.get('staged') and identity(r) not in staged_before]
+            elif before != after:
+                assert sorted(before, key=identity) == sorted(after, key=identity), \
+                    'I4: announced reorder changed the deployment set'
+                operation, targets = 'reorder', after[:1]
+            elif completion and journal != recorded:
+                operation = 'record'
+                targets = [r for r in after if r.get('staged')]
+                assert recorded and recorded['status'] == 'recorded' and len(targets) == 1 and \
+                    recorded['target'] == list(identity(targets[0])) and \
+                    recorded['digest'] == targets[0]['container-image-reference-digest'], \
+                    'I4: announced completion did not record the staged target'
+            else:
+                # At an intent cut the primitive has not run. Its durable
+                # intent is the observed operation and names its exact target.
+                assert cut and self.checkpoints[-1][0] == 'journal:intent' and recorded, \
+                    'I4: announcement without an observed operation'
+                operation = {'staging': 'stage', 'reorder': 'reorder'}[recorded['mode']]
+                targets = [r for r in self.host.templates.values()
+                           if r['container-image-reference-digest'] == recorded['digest']]
+            assert len(targets) == 1, ('I4: ambiguous observed target', operation, targets)
+            role = self.by_id[identity(targets[0])]
+            number = base.record(REFS[role], True)['number']
+            observed = operation, str(number)
+            patterns = (
+                ('stage', r'Update: (?:installing the latest version, |continuing the interrupted update to )AresOS (\d+)\. Restart to finish'),
+                ('record', r'Update: AresOS (\d+) is already downloaded and ready\. Saving the record of the interrupted update\. Restart to finish'),
+                ('reorder', r'Update: switching (?:from plain Bazzite )?to the latest installed version, AresOS (\d+) \(already downloaded\)\. Restart to finish'),
+                ('reorder', r'Update: AresOS (\d+) is the latest installed version and is running\. Making it start next again instead of .+\. No restart is needed for this change'),
+            )
+            for i in announcements:
+                announced = [(action, match[1]) for action, pattern in patterns
+                             if (match := re.fullmatch(pattern, visible_lines[i]))]
+                assert announced == [observed], \
+                    ('I4: announced operation/target differs from observed change', visible_lines[i], observed)
+            for line in visible_lines:
+                if line.startswith('This downloads AresOS '):
+                    assert operation == 'stage' and line == 'This downloads AresOS ' + str(number), \
+                        ('I4: announced download differs from observed change', line, observed)
 
 
 @contextlib.contextmanager

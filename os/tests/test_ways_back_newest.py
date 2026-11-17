@@ -260,6 +260,44 @@ class JudgmentRevertsTest(unittest.TestCase):
             with self.assertRaisesRegex(AssertionError, 'I4: forward announced where newest runs and starts next'):
                 d.step(s, ('newest', 'full'), transition(s, ('newest', 'full')))
 
+    def test_i4_catches_an_install_announcement_when_the_danger_state_only_reorders(self):
+        s = danger()
+        with model.driver() as d, patch.object(owner.Tools, 'announce_forward', owner.Tools.announce_update):
+            with self.assertRaisesRegex(AssertionError, 'I4: announced operation/target differs from observed change'):
+                d.step(s, ('newest', 'full'), transition(s, ('newest', 'full')))
+
+    def test_i4_matches_the_release_named_to_each_observed_operation_and_cut(self):
+        real = owner.Tools.newest_say
+        def wrong_target(tools, line):
+            real(tools, line.replace('AresOS 21', 'AresOS 99').replace('AresOS 30', 'AresOS 99')
+                 if line.startswith('Update:') else line)
+        for s in (starts()[3], path(starts()[3], ('update', 'intent')),
+                  danger(), path(danger(), ('update', 'primitive'))):
+            for phase in ('intent', 'primitive', 'record', 'full'):
+                with self.subTest(rows=s.rows, phase=phase), model.driver() as d:
+                    with patch.object(owner.Tools, 'newest_say', wrong_target):
+                        with self.assertRaisesRegex(AssertionError, 'I4: announced operation/target differs from observed change'):
+                            d.step(s, ('newest', phase), transition(s, ('newest', phase)))
+
+    def test_i4_distinguishes_staging_from_recording_the_same_release(self):
+        real = owner.Tools.announce_update
+        def wrong_operation(tools, state, shape, settled):
+            real(tools, state, shape, 'complete' if settled != 'complete' else 'retry')
+        for s in (starts()[3], path(danger(), ('update', 'primitive'))):
+            with self.subTest(rows=s.rows), model.driver() as d:
+                with patch.object(owner.Tools, 'announce_update', wrong_operation):
+                    with self.assertRaisesRegex(AssertionError, 'I4: announced operation/target differs from observed change'):
+                        d.step(s, ('newest', 'full'), transition(s, ('newest', 'full')))
+
+    def test_i4_checks_the_download_target_beside_the_first_line(self):
+        real = owner.Tools.newest_say
+        def wrong_download(tools, line):
+            real(tools, 'This downloads AresOS 99' if line.startswith('This downloads AresOS ') else line)
+        s = starts()[3]
+        with model.driver() as d, patch.object(owner.Tools, 'newest_say', wrong_download):
+            with self.assertRaisesRegex(AssertionError, 'I4: announced download differs from observed change'):
+                d.step(s, ('newest', 'full'), transition(s, ('newest', 'full')))
+
 
 if __name__ == '__main__':
     unittest.main()
