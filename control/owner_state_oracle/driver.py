@@ -6,7 +6,7 @@ import time
 import sqlite3
 from unittest.mock import patch
 
-from .records import decode, canonical
+from .records import decode, canonical, service_lock
 from .model import Fact, Oracle
 from .context import MUTATIONS
 from .compare import compare_views, pages, compare_envelope, compare_status, compare_proofs
@@ -14,6 +14,19 @@ from .responses import read_response
 from .transcript import folder_name
 from .clock import recorded_samples
 from .effects import scan_complete
+
+
+def interrupted_confirm(calls):
+    """A running service keeps its restore lock when a confirm meets a storage fault.
+
+    The rule: the most recent scripted control_restore_confirm on a locked
+    store met a fault. `calls` starts at the last restart, which ends it. It
+    reads the fault trace only, never the reply. The sweep's harness asserts
+    that no such confirm is answered ok; one that released its lock and then
+    failed shows as a lock gap (brief 20-restore-lock-followups, item 1).
+    """
+    confirms = [call for call in calls if call['action'] == 'control_restore_confirm' and call.get('restore_precondition') is True]
+    return bool(confirms) and bool(confirms[-1].get('faults', {}).get('trace'))
 
 
 @contextmanager
@@ -37,8 +50,7 @@ class Driver:
             self.oracle.seed_calls = {call['call'] for call in self.oracle.script}
         self.context_start_sequence = max(self.record.committed, default=0)
         self.startup_sequence = max((fence['seq'] for fence in self.record.fences), default=0)
-        self.record.startup_sequence = self.startup_sequence
-        self.record.locked |= any(seq <= self.startup_sequence for seq in self.record.unprepared_fences)
+        self.apply_service_lock(decoded=False)
         # Establish starting obligations before the first action can restore or
         # remove their rows. Reading the first reply is already too late.
         self.oracle.expected(self.record)
@@ -53,11 +65,12 @@ class Driver:
         with outside_faults():
             paths = [f.root / 'state/control.sqlite', f.root / 'state/control.sqlite-journal', f.engine.store.evidence_dir / 'operations.jsonl']
             key = tuple((p.stat().st_size, p.stat().st_mtime_ns) if p.exists() else None for p in paths)
-            if key != getattr(self, '_snapshot_key', None):
+            decoded = key != getattr(self, '_snapshot_key', None)
+            if decoded:
                 self.record = decode(f.root / 'state', f.engine.store.evidence_dir)
                 self._snapshot_key = key
-            self.record.locked |= any(seq <= getattr(self, 'startup_sequence', 0) for seq in self.record.unprepared_fences)
-            self.record.startup_sequence = getattr(self, 'startup_sequence', 0)
+                self._decoded_lock = self.record.locked
+            self.apply_service_lock(decoded)
             active = getattr(self.oracle, 'active_call', None)
             if ACTIVE is not None and active is not None:
                 point = len(ACTIVE.points)
@@ -67,6 +80,35 @@ class Driver:
         if hasattr(self, 'alias_callback'):
             self.alias_callback(self.record)
         return self.record
+
+    def apply_service_lock(self, decoded):
+        """Assign the running service's own lock terms on every snapshot.
+
+        They are recomputed, never accumulated: the startup rule since the last
+        start, and a confirm that met a fault since then. A record that may
+        already have gone to a comparison is copied, not changed in place, so an
+        envelope keeps the lock it was captured with.
+        """
+        startup = getattr(self, 'startup_sequence', 0)
+        interrupted = interrupted_confirm(self.oracle.script[getattr(self, 'restart_index', 0):])
+        record = self.record
+        if not decoded:
+            if (record.startup_sequence, record.interrupted_confirm) == (startup, interrupted):
+                return
+            record = self.record = copy.copy(record)
+        record.startup_sequence, record.interrupted_confirm = startup, interrupted
+        record.locked = self._decoded_lock or service_lock(record)
+
+    def restarted(self):
+        """The service restarts on the bytes now on disk. Call before binding the new engine.
+
+        Its own lock terms start over: the startup rule covers every record
+        from before this start, and a confirm that met a fault before it no
+        longer holds the lock.
+        """
+        self.startup_sequence = max((fence['seq'] for fence in self.snapshot().fences), default=0)
+        self.restart_index = len(self.oracle.script)
+        self._snapshot_key = None
 
     def fixture_input(self, changes, summary):
         """Record a test's explicit legacy/interrupted input before writing it."""

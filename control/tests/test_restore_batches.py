@@ -1,7 +1,12 @@
 """Review 12: confirmation never adds a history-sized permanent journal line."""
+from contextlib import closing
+import errno
 import gc
+import os
 import sqlite3
 import tracemalloc
+from unittest.mock import patch
+import uuid
 
 from aresos_control.common import canonical
 from aresos_control.engine import Engine
@@ -84,3 +89,48 @@ class RestoreBatches(EngineCase):
         self.assertFalse(self.engine.store.locked)
         self.assertIsNone(self.engine.store.get('restore_pending'))
         self.assertEqual(sum(1 for _, op in self.engine.store.iter_items('op:') if op['state'] == 'unknown'), 100)
+
+    def confirm_failing_at_its_last_marker_sync(self, rollback_fails):
+        """Brief 20-restore-lock-followups, item 1: the running store keeps its lock."""
+        with closing(sqlite3.connect(self.root / 'older.sqlite')) as backup:
+            self.engine.store.db.backup(backup)
+        self.engine.store.write({'fixture:later': {'value': 1}}, 'fixture', 'Synthetic later commit')
+        self.engine.close()
+        (self.root / 'state/control.sqlite').write_bytes((self.root / 'older.sqlite').read_bytes())
+        self.engine = Engine(self.root / 'state', self.root / 'independent')
+        store = self.engine.store
+        self.assertTrue(store.locked)
+        before = store.generation
+        journal = store.evidence_dir / 'operations.jsonl'
+        sync, failed = os.fsync, []
+        def fsync(descriptor):
+            # The confirm's only write: its record, then its commit marker.
+            if descriptor == store.journal.fileno() and not failed and journal.read_bytes().splitlines()[-1].startswith(b'{"commit"'):
+                failed.append(descriptor)
+                raise OSError(errno.ENOSPC, 'Synthetic full disk at the last commit marker')
+            return sync(descriptor)
+        rollback = patch.object(store, '_truncate_journal', side_effect=OSError(errno.ENOSPC, 'Synthetic failed rollback')) \
+            if rollback_fails else patch.object(store, '_truncate_journal', wraps=store._truncate_journal)
+        generation = uuid.UUID(int=20)
+        with patch('aresos_control.storage.os.fsync', fsync), rollback, patch('aresos_control.storage.uuid.uuid4', return_value=generation):
+            reply = self.call('control_restore_confirm', {'confirm': 'invalidate earlier approvals'}, admin=True)
+        self.assertEqual(len(failed), 1)
+        self.assertEqual((reply['ok'], reply['error']['code']), (False, 'storage_limit'), reply)
+        # Rolled back or not, the marker's sync failed: the lock stays.
+        self.assertEqual(journal.read_bytes().splitlines()[-1].startswith(b'{"commit"'), rollback_fails)
+        self.assertTrue(store.locked)
+        pending = self.call('control_pending')
+        self.assertTrue(pending['ok'], pending)
+        self.assertIs(pending['data']['restore_required'], True)
+        self.assertEqual(self.call('control_log')['error']['code'], 'restore_required')
+        self.restart()
+        self.assertFalse(self.engine.store.locked)
+        self.assertEqual(self.engine.store.generation, generation.hex)
+        self.assertNotEqual(self.engine.store.generation, before)
+        self.assertIs(self.data('control_pending')['restore_required'], False)
+
+    def test_confirm_whose_last_marker_sync_fails_keeps_the_lock_until_a_restart(self):
+        self.confirm_failing_at_its_last_marker_sync(rollback_fails=False)
+
+    def test_confirm_whose_marker_stays_after_a_failed_sync_keeps_the_lock_until_a_restart(self):
+        self.confirm_failing_at_its_last_marker_sync(rollback_fails=True)
