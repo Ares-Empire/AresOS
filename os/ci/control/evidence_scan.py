@@ -3,7 +3,9 @@
 The checks pack their screens, model requests and transcripts into .tar.gz files (os/ci/control/actions.py), so a
 search over the files' raw bytes can't see into them (REVIEW-A1 #5). Every file is searched as it is and, when it is
 a gzip stream or a tar archive, member by member. An archive that can't be read counts as holding the password: what
-can't be searched can't be published.
+can't be searched can't be published. That includes (REVIEW-X1 #3) a gzip stream or tar archive nested deeper than
+DEPTH, a tar whose headers stop before its end (a bad checksum, a truncated header: tarfile ends such an archive
+quietly), and data in a compressed or archive format this scan doesn't unpack (xz, bzip2, zstd, lz4, zip, 7z).
 
 Used by control_vm.py after check 8 (scan) and by runner.sh stop (the command below), which first redacts the one
 log that is allowed to name the password (GreenMail's: it runs with auth disabled and logs the password it was
@@ -19,20 +21,29 @@ import gzip
 import io
 import json
 import pathlib
+import re
 import sys
 import tarfile
 import zlib
 
-# Archives inside archives: the evidence has none today; a deeper one is searched as raw bytes only.
+# Archives inside archives: the evidence has none today (a .tar.gz is two levels, gzip then tar); anything still
+# compressed or archived below this depth is unreadable, never searched as raw bytes only.
 DEPTH = 3
 # What one archive may unpack to (the evidence artifact stays under 180 MB): anything larger is unreadable.
 UNPACKED_LIMIT = 512 * 1024 * 1024
 GZIP_MAGIC = b'\x1f\x8b'
+# A POSIX or GNU tar header carries its magic and version at offset 257 (with a NUL, so no text line holds it);
+# tarfile writes one of them in every format, and a header with a bad checksum still has it.
+TAR_MAGICS = (tarfile.POSIX_MAGIC, tarfile.GNU_MAGIC)
+# Formats this scan recognises but doesn't unpack: their content would only be searched compressed.
+NOT_UNPACKED = [(re.compile(rb'\xfd7zXZ\x00'), 'xz'), (re.compile(rb'BZh[1-9](1AY&SY|\x17rE8P\x90)'), 'bzip2'),
+                (re.compile(rb'\x28\xb5\x2f\xfd'), 'zstd'), (re.compile(rb'\x04\x22\x4d\x18'), 'lz4'),
+                (re.compile(rb'PK(\x03\x04|\x05\x06|\x07\x08)'), 'zip'), (re.compile(rb"7z\xbc\xaf'\x1c"), '7z')]
 REDACTED = '[fixture password redacted]'
 
 
 class Unreadable(Exception):
-    """An archive that could not be opened or unpacked within the limit."""
+    """An archive that could not be opened, unpacked within the limit, or searched to its end."""
 
 
 def gunzip(data):
@@ -46,31 +57,48 @@ def gunzip(data):
     return inner
 
 
-def is_tar(data):
-    # A plain tar's first header ends with its magic at offset 257; is_tarfile alone also accepts some junk.
-    return len(data) >= 512 and data[257:262] == b'ustar' and tarfile.is_tarfile(io.BytesIO(data))
+def kind(data):
+    """'gzip', 'tar', the name of a format this scan doesn't unpack, or None for data to search as it is."""
+    if data[:2] == GZIP_MAGIC:
+        return 'gzip'
+    if data[257:265] in TAR_MAGICS:
+        return 'tar'
+    return next((name for pattern, name in NOT_UNPACKED if pattern.match(data)), None)
+
+
+def untar(data, name, depth):
+    """Every regular member of a tar archive; the archive must parse to its end, where only zero blocks follow."""
+    unpacked = 0
+    try:
+        with tarfile.open(fileobj=io.BytesIO(data), mode='r:') as archive:
+            for member in archive:
+                if not member.isfile():
+                    continue
+                unpacked += member.size
+                if unpacked > UNPACKED_LIMIT:
+                    raise Unreadable(f'tar: more than {UNPACKED_LIMIT} bytes unpacked')
+                yield from contents(archive.extractfile(member).read(), f'{name}!{member.name}', depth + 1)
+            # tarfile stops at the first header it can't read past the first one, as if the archive ended there.
+            if data[archive.offset:].strip(b'\0'):
+                raise Unreadable(f'tar: a header at byte {archive.offset} could not be read; the rest is unsearched')
+    except tarfile.TarError as error:
+        raise Unreadable(f'tar: {error}') from error
 
 
 def contents(data, name, depth=0):
     """(name, bytes) of the data itself and, for a gzip stream or a tar archive, of everything inside it."""
     yield name, data
-    if depth >= DEPTH:
+    found = kind(data)
+    if found is None:
         return
-    if data[:2] == GZIP_MAGIC:
+    if depth >= DEPTH:
+        raise Unreadable(f'{found} nested deeper than {DEPTH} levels')
+    if found == 'gzip':
         yield from contents(gunzip(data), f'{name}!gunzip', depth + 1)
-    elif is_tar(data):
-        unpacked = 0
-        try:
-            with tarfile.open(fileobj=io.BytesIO(data), mode='r:') as archive:
-                for member in archive:
-                    if not member.isfile():
-                        continue
-                    unpacked += member.size
-                    if unpacked > UNPACKED_LIMIT:
-                        raise Unreadable(f'tar: more than {UNPACKED_LIMIT} bytes unpacked')
-                    yield from contents(archive.extractfile(member).read(), f'{name}!{member.name}', depth + 1)
-        except tarfile.TarError as error:
-            raise Unreadable(f'tar: {error}') from error
+    elif found == 'tar':
+        yield from untar(data, name, depth)
+    else:
+        raise Unreadable(f'{found} data, which this scan does not unpack')
 
 
 def scan(folder, secret):

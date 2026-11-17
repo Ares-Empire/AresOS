@@ -541,6 +541,67 @@ class EvidenceScanTest(unittest.TestCase):
         self.assertEqual(found['hits'], [])
         self.assertIn('control/broken.tar.gz: gzip', found['unreadable'][0])
 
+    def test_archives_nested_past_the_depth_limit_are_unreadable(self):
+        # REVIEW-X1 #3: below DEPTH the bytes were searched raw only, so a fourth gzip level hid the password.
+        nested = self.SECRET
+        for level in range(1, 5):
+            nested = gzip.compress(nested)
+            (self.evidence / f'control/nested-{level}.gz').write_bytes(nested)
+        found = self.scan.scan(self.evidence, self.SECRET)
+        self.assertIn('control/nested-4.gz: gzip nested deeper than 3 levels', found['unreadable'])
+        self.assertIn('control/nested-4.gz', found['holding'])
+        # Three levels are read to the end and the password found inside them.
+        self.assertIn('control/nested-3.gz!gunzip!gunzip!gunzip', found['hits'])
+        self.assertEqual(len(found['unreadable']), 1, found['unreadable'])
+        # A tar.gz inside a tar.gz is four levels too.
+        inner = self.folder / 'inner.tar.gz'
+        self.tar(inner, {'deep.txt': self.SECRET})
+        self.tar(self.evidence / 'control/twice.tar.gz', {'inner.tar.gz': inner.read_bytes()})
+        found = self.scan.scan(self.evidence, self.SECRET)
+        self.assertIn('control/twice.tar.gz: tar nested deeper than 3 levels', found['unreadable'])
+
+    def test_a_damaged_tar_holding_a_compressed_password_is_unreadable(self):
+        # REVIEW-X1 #3: is_tarfile() refused a tar with a bad checksum, so it was searched as raw bytes, and tarfile
+        # ends an archive quietly at a later header it can't read.
+        def damaged(path, members, broken):
+            self.tar(path, members, compress=None)
+            data = bytearray(path.read_bytes())
+            data[broken + 148:broken + 156] = b'0000000\0'  # the header's checksum field, now wrong
+            path.write_bytes(bytes(data))
+        compressed = gzip.compress(b'login ' + self.SECRET)
+        damaged(self.evidence / 'control/first.tar', {'requests.json.gz': compressed}, 0)
+        # The second header: after the first one (512 bytes) and its data, padded to 512.
+        damaged(self.evidence / 'control/second.tar', {'clean.txt': b'nothing', 'requests.json.gz': compressed}, 1024)
+        self.assertNotIn(self.SECRET, (self.evidence / 'control/first.tar').read_bytes())
+        found = self.scan.scan(self.evidence, self.SECRET)
+        self.assertEqual(found['hits'], [])
+        self.assertEqual(found['holding'], ['control/first.tar', 'control/second.tar'])
+        self.assertIn('control/first.tar: tar: ', found['unreadable'][0])
+        self.assertIn('control/second.tar: tar: a header at byte 1024 could not be read', found['unreadable'][1])
+        # The same archives undamaged: the password is found, nothing unreadable.
+        (self.evidence / 'control/first.tar').unlink()
+        self.tar(self.evidence / 'control/second.tar', {'clean.txt': b'nothing', 'requests.json.gz': compressed},
+                 compress=None)
+        found = self.scan.scan(self.evidence, self.SECRET)
+        self.assertEqual((found['unreadable'], found['hits']),
+                         ([], ['control/second.tar!requests.json.gz!gunzip']))
+
+    def test_formats_the_scan_does_not_unpack_are_unreadable_and_ordinary_logs_are_not(self):
+        import lzma
+        import zipfile
+        (self.evidence / 'control/log.xz').write_bytes(lzma.compress(self.SECRET))
+        with zipfile.ZipFile(self.evidence / 'control/screens.zip', 'w', zipfile.ZIP_DEFLATED) as archive:
+            archive.writestr('screen.txt', self.SECRET)
+        (self.evidence / 'control/truncated.gz').write_bytes(gzip.compress(self.SECRET * 100)[:-20])
+        # Ordinary evidence: text that names the formats, a header-like line at byte 257, binary that isn't one.
+        (self.evidence / 'control/journal.txt').write_text('x' * 257 + 'ustar is a tar format; PK\x03\x04 BZh91AY\n')
+        (self.evidence / 'control/screen.png').write_bytes(b'\x89PNG\r\n\x1a\n' + os.urandom(2048))
+        found = self.scan.scan(self.evidence, self.SECRET)
+        self.assertEqual(found['holding'], ['control/log.xz', 'control/screens.zip', 'control/truncated.gz'])
+        self.assertEqual([line.split(': ', 1)[1] for line in found['unreadable']],
+                         ['xz data, which this scan does not unpack', 'zip data, which this scan does not unpack',
+                          'gzip: Compressed file ended before the end-of-stream marker was reached'])
+
     def test_the_runner_redacts_greenmail_only_and_fails_on_dovecot(self):
         password = self.folder / 'password'
         password.write_bytes(self.SECRET)
