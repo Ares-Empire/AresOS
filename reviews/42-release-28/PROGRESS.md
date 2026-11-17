@@ -5,6 +5,27 @@ differences) a fresh Claude agent (Opus 5.5) the same day; review 1's fixes a fr
 day (below). Nothing has been published, signed or pushed to GHCR. The owner's OK for publishing release 28 has not
 been given, and the ledger now stops a publish dispatch until it is (B1).
 
+## Package 50's rules
+
+Added after main's merge at `276eff4a` (2026-11-17): `release_diff.py` accepts only the new graphical-target
+wants link to `/usr/lib/systemd/system/aresos-console-keymap.service`, root:root 0777 with no xattrs, and exactly
+package 50's offline audit row. Both require the unit's exact source bytes and metadata and its merged origin,
+`50 (#101)` (`ff51cac4`). Other audit rows still match, in sorted order, with only the existing reviewed drop-in
+source additions allowed. A missing row stops even when the audit file is unchanged. Tests cover the unit's
+existing `config_rule`, wrong link targets/paths/metadata, extra or changed audit rows, missing rows and origins.
+The smoke fixture now includes the link, audit row, existing wants directory and console-check receipt.
+
+Verified, one module at a time with `PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s os/tests -p
+'test_<name>.py'`: `test_release28` **92 OK**, `test_release27` **41 OK**, `test_checkout_sources` **8 OK**,
+`test_console_keymap` **21 OK**; each printed `Ran <count> tests` and `OK`. `git diff --check` passed.
+The first release-28 run reported 20 failures from the smoke fixture's absent old wants directory and the
+build-check fixture's missing console receipt; both fixtures were corrected without weakening assertions.
+
+Package 48 changed `mod/` (jar SHA-256 `9d53bb84a5b9e90b51ba1054384f859d39185637b1a3e64b75868ca6ed2ba179`):
+the lead must renew the jar pin through **`check_build=resolve` before the cut's dry run**. S2 permits only the
+jar's `sha256` to differ from main's image sources. No pin renewal, real image diff, VM run, dispatch, rebind,
+owner-tools change or commit was performed here; those remain with the lead. No files over 500 MB remain in `.work/`.
+
 ## Reviews of steps 1 and 3 (Codex, 2026-11-17; the lead)
 
 - **REVIEW-3** (gpt-6-astra high, step 1 cross-review at `8792c274`): CHANGES-NEEDED, five should-fix + one nit in

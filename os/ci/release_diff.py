@@ -383,6 +383,13 @@ PACKAGE_REASONS_28 = {name: PACKAGE_REASONS[name] for name in (
 # build.sh's chmod 0755 line since package 23 (the desktop, its Java wrapper and 23b's cover).
 CHMOD_0755_28 = CHMOD_0755 | {'usr/libexec/aresos-desktop', 'usr/libexec/aresos-desktop-java', 'usr/libexec/aresos-cover'}
 DESKTOP_COMMAND = ('usr/bin/aresos-desktop', '../libexec/aresos-desktop')
+# Package 50, merged on main as ff51cac4 (#101): systemctl enable makes exactly this link.
+CONSOLE_KEYMAP_UNIT = 'usr/lib/systemd/system/aresos-console-keymap.service'
+CONSOLE_KEYMAP_LINK = ('etc/systemd/system/graphical.target.wants/aresos-console-keymap.service', '/' + CONSOLE_KEYMAP_UNIT)
+CONSOLE_KEYMAP_ORIGIN = '50 (#101)'
+CONSOLE_KEYMAP_AUDIT = dict(scope='system', name='aresos-console-keymap.service', state='enabled', suspicious=False,
+                           commands=['ExecStart=/usr/lib/systemd/systemd-vconsole-setup /dev/tty3'],
+                           sources=['/' + CONSOLE_KEYMAP_UNIT], active_state=None, load_state=None, sub_state=None)
 PRISM = 'usr/lib/prismlauncher'
 PRISM_COMMAND = ('usr/bin/prismlauncher', '/usr/lib/prismlauncher/bin/prismlauncher')
 PRISM_FILES = 'usr/share/aresos/manifest/prism-files.sha256'
@@ -919,21 +926,40 @@ def font_cache(data, layout='le64'):
     return version, folder
 
 
-def audit_changes(old, new, dropin):
+def audit_changes(old, new, dropin, addition=None):
     """The units whose sources differ between two updater audits (os/tests/audit.py's JSON), as rows.
 
-    None unless both list the same units in the same order, every field but
+    None unless both list the same units in sorted order, every field but
     `sources` is equal (so no state, command or "suspicious" verdict changed),
     and each changed unit keeps its old sources in order and gains only paths
-    for which dropin(scope, unit, path) is true.
+    for which dropin(scope, unit, path) is true. When supplied, `addition` is
+    exactly one required new unit row; every other row must still match.
     """
     try:
         before, after = json.loads(old), json.loads(new)
     except (TypeError, ValueError, UnicodeDecodeError):
         return None
-    if not isinstance(before, list) or not isinstance(after, list) or len(before) != len(after):
+    if not isinstance(before, list) or not isinstance(after, list):
         return None
+    for units in (before, after):
+        if not all(isinstance(unit, dict) and isinstance(unit.get('scope'), str)
+                   and isinstance(unit.get('name'), str) for unit in units):
+            return None
+        keys = [(unit['scope'], unit['name']) for unit in units]
+        if keys != sorted(set(keys)):
+            return None
     rows = []
+    if addition is not None:
+        key = (addition['scope'], addition['name'])
+        added = [unit for unit in after if (unit['scope'], unit['name']) == key]
+        # Compare JSON types too: suspicious: 0 is not the reviewed false verdict.
+        if any((unit['scope'], unit['name']) == key for unit in before) or len(added) != 1 \
+                or json.dumps(added[0], sort_keys=True) != json.dumps(addition, sort_keys=True):
+            return None
+        after = [unit for unit in after if (unit['scope'], unit['name']) != key]
+        rows.append(dict(scope=addition['scope'], unit=addition['name'], added=addition['sources'], change='added unit'))
+    if len(before) != len(after):
+        return None
     for unit_before, unit_after in zip(before, after):
         if not isinstance(unit_before, dict) or not isinstance(unit_after, dict) \
                 or unit_before.keys() != unit_after.keys() or not {'scope', 'name', 'sources'} <= unit_before.keys() \
@@ -1141,14 +1167,29 @@ class Classifier28:
             return ('manifest', "package 23: the mod jar's record: its pin, built from this commit")
         if name == 'updaters.json' and before is not None and before['kind'] == stat.S_IFREG:
             # build.sh's last step runs the updater audit over the image's units.
-            rows = audit_changes(self.read('old', rel), data, self.audit_dropin)
+            rows = self.audit_rows()
             if rows:
                 for row in rows:
                     row['from'] = list(dict.fromkeys(label for path in row['added'] for label in self.origin(path[1:])))
                 self.updater_rows = rows
-                return ('manifest', 'updater audit output: only new os/config drop-ins joined units\' sources: ' + '; '.join(
+                return ('manifest', 'updater audit output: only the reviewed new unit and new os/config drop-ins: ' + '; '.join(
                     f"{row['unit']} from {', '.join(row['from'])}" for row in rows))
         return None
+
+    def console_keymap_added(self):
+        """Package 50's merged unit, new in the image with its exact source bytes and metadata."""
+        before, after = entry(self.old_root, CONSOLE_KEYMAP_UNIT), entry(self.new_root, CONSOLE_KEYMAP_UNIT)
+        return before is None and CONSOLE_KEYMAP_ORIGIN in self.origin(CONSOLE_KEYMAP_UNIT) \
+            and self.config_rule(CONSOLE_KEYMAP_UNIT, before, after) is not None
+
+    def audit_rows(self):
+        addition = None
+        if entry(self.new_root, CONSOLE_KEYMAP_UNIT) is not None:
+            if not self.console_keymap_added():
+                return None
+            addition = CONSOLE_KEYMAP_AUDIT
+        rel = 'usr/share/aresos/manifest/updaters.json'
+        return audit_changes(self.read('old', rel), self.read('new', rel), self.audit_dropin, addition)
 
     def audit_dropin(self, scope, unit, path):
         """True for a drop-in of `unit` that a merged package added to os/config since release 27, in the image as its source."""
@@ -1263,6 +1304,11 @@ class Classifier28:
         return None
 
     def build_rule(self, rel, before, after):
+        if rel == CONSOLE_KEYMAP_LINK[0]:
+            if before is None and after and after['kind'] == stat.S_IFLNK and after['target'] == CONSOLE_KEYMAP_LINK[1] \
+                    and root_owned(after, 0o777) and not after['xattrs'] and self.console_keymap_added():
+                return ('build', 'package 50: systemctl enable console keymap link; from ' + ', '.join(self.origin(CONSOLE_KEYMAP_UNIT)))
+            return None
         if rel == DESKTOP_COMMAND[0]:
             if before is None and after and after['kind'] == stat.S_IFLNK and after['target'] == DESKTOP_COMMAND[1] \
                     and root_owned(after, 0o777):
@@ -1443,6 +1489,9 @@ class Classifier28:
         invalid_groups = sorted(self.expected_alternatives.keys() - self.alternatives().keys())
         if invalid_groups:
             problems.append('alternatives groups missing or different from the reviewed mapping: ' + ', '.join(invalid_groups))
+        # An unchanged audit never enters the diff: package 50's present unit still requires its new row.
+        if entry(self.new_root, CONSOLE_KEYMAP_UNIT) is not None and self.audit_rows() is None:
+            problems.append('package 50 updater audit row missing or different: aresos-console-keymap.service')
         old_rc, new_rc = self.read('old', RC_XML), self.read('new', RC_XML)
         return dict(schemas=self.schema_rows, schema_rebuild=self.rebuilt_schemas(),
                     font_caches=sorted(self.font_caches, key=lambda row: row['path']),

@@ -626,6 +626,8 @@ class Classifier28Test(unittest.TestCase):
     LINK_TARGET = '/usr/share/fonts/google-noto-sans-cjk-fonts'
     UPDATERS = 'usr/share/aresos/manifest/updaters.json'
     DROPIN = 'usr/lib/systemd/system/user.slice.d/50-aresos-recovery.conf'  # package 23's
+    CONSOLE_UNIT = 'usr/lib/systemd/system/aresos-console-keymap.service'
+    CONSOLE_LINK = 'etc/systemd/system/graphical.target.wants/aresos-console-keymap.service'
     JAVA_MAN = 'usr/lib/jvm/java-25-openjdk/man/man1/java.1'
     CACERTS = 'usr/lib/jvm/java-25/lib/security/cacerts'  # a link of the package, as Java's is
     LOCK = 'usr/share/aresos/manifest/packages.lock.json'
@@ -633,12 +635,19 @@ class Classifier28Test(unittest.TestCase):
     INSTALLED = ['java-25-openjdk-headless-1:25.0.5.0.8-3.1.fc44.x86_64', 'tzdata-java-2026f-1.fc44.noarch']
 
     @staticmethod
-    def audit(*added, **changes):
+    def audit(*added, console_keymap=False, **changes):
         """An updater audit (os/tests/audit.py's output) of two units; user.slice gains `added` and `changes`."""
         unit = lambda name, sources: dict(scope='system', name=name, state='static', suspicious=False, commands=[],
                                           active_state=None, load_state=None, sub_state=None, sources=sources)
         units = [unit('ModemManager.service', ['/usr/lib/systemd/system/ModemManager.service']),
                  dict(unit('user.slice', ['/usr/lib/systemd/system/user.slice', *added]), **changes)]
+        if console_keymap:
+            # Independent expectation from package 50's release note, not the classifier's constant.
+            units.append(dict(scope='system', name='aresos-console-keymap.service', state='enabled', suspicious=False,
+                              commands=['ExecStart=/usr/lib/systemd/systemd-vconsole-setup /dev/tty3'],
+                              sources=['/usr/lib/systemd/system/aresos-console-keymap.service'],
+                              active_state=None, load_state=None, sub_state=None))
+            units.sort(key=lambda row: (row['scope'], row['name']))
         return json.dumps(units, indent=2).encode() + b'\n'
 
     @staticmethod
@@ -1436,6 +1445,125 @@ class Classifier28Test(unittest.TestCase):
         self.assertFalse(self.classifier.audit_dropin('user', 'a@b.service', '/usr/lib/systemd/user/c@.service.d/x.conf'))
         self.assertFalse(self.classifier.audit_dropin('user', 'a@b.service', '/usr/lib/systemd/user/a@.service.d/../x.conf'))
 
+    @contextlib.contextmanager
+    def console_keymap(self):
+        with self.content(self.CONSOLE_UNIT, (ROOT / 'os/config' / self.CONSOLE_UNIT).read_bytes()), \
+                self.content(self.CONSOLE_LINK, ('link', '/' + self.CONSOLE_UNIT)), \
+                self.content(self.UPDATERS, self.audit('/' + self.DROPIN, console_keymap=True)):
+            yield
+
+    def test_package_50s_exact_unit_is_already_accepted_by_config_rule(self):
+        with self.console_keymap():
+            after = rd.entry(self.new, self.CONSOLE_UNIT)
+            self.assertEqual(after, dict(kind=stat.S_IFREG, mode=0o644, uid=0, gid=0, xattrs={},
+                                        sha256=rd.file_sha256(ROOT / 'os/config' / self.CONSOLE_UNIT),
+                                        bytes=len((ROOT / 'os/config' / self.CONSOLE_UNIT).read_bytes())))
+            self.assertEqual(self.classifier.origin(self.CONSOLE_UNIT), ['50 (#101)'])
+            self.assertEqual(self.classifier.config_rule(self.CONSOLE_UNIT, None, after),
+                             ('config', 'os/config file new since release 27, bytes equal the source; from 50 (#101)'))
+            self.assert_near_misses([
+                ('different bytes', self.CONSOLE_UNIT, self.content(self.CONSOLE_UNIT, b'[Unit]\n')),
+                ('another owner', self.CONSOLE_UNIT, self.image(self.CONSOLE_UNIT, uid=1000)),
+                ('another group', self.CONSOLE_UNIT, self.image(self.CONSOLE_UNIT, gid=1000)),
+                ('another mode', self.CONSOLE_UNIT, self.mode(self.CONSOLE_UNIT, 0o755)),
+                ('an extended attribute', self.CONSOLE_UNIT, self.image(self.CONSOLE_UNIT, xattrs={'user.x': '00'})),
+            ])
+
+    def test_package_50s_enable_link_requires_its_exact_path_target_and_metadata(self):
+        with self.console_keymap():
+            self.assertEqual(self.fresh_explain(self.CONSOLE_LINK),
+                             ('build', 'package 50: systemctl enable console keymap link; from 50 (#101)'))
+            self.assert_near_misses([
+                ('another target', self.CONSOLE_LINK, self.content(self.CONSOLE_LINK, ('link', '/usr/lib/systemd/system/other.service'))),
+                ('a relative target', self.CONSOLE_LINK, self.content(self.CONSOLE_LINK, ('link', '../../../../' + self.CONSOLE_UNIT))),
+                ('another owner', self.CONSOLE_LINK, self.image(self.CONSOLE_LINK, uid=1000)),
+                ('another group', self.CONSOLE_LINK, self.image(self.CONSOLE_LINK, gid=1000)),
+                ('another mode', self.CONSOLE_LINK, self.image(self.CONSOLE_LINK, mode=0o755)),
+                ('an extended attribute', self.CONSOLE_LINK, self.image(self.CONSOLE_LINK, xattrs={'user.x': '00'})),
+                ('a regular file', self.CONSOLE_LINK, self.content(self.CONSOLE_LINK, b'not a link\n')),
+                ('already in release 27', self.CONSOLE_LINK, self.content(self.CONSOLE_LINK, ('link', '/' + self.CONSOLE_UNIT), root=self.old)),
+                ('the unit is missing', self.CONSOLE_LINK, self.content(self.CONSOLE_UNIT, None)),
+                ('the unit has other bytes', self.CONSOLE_LINK, self.content(self.CONSOLE_UNIT, b'[Unit]\n')),
+                ('the unit has other metadata', self.CONSOLE_LINK, self.image(self.CONSOLE_UNIT, uid=1000)),
+            ])
+            for rel in ('etc/systemd/system/multi-user.target.wants/aresos-console-keymap.service',
+                        'etc/systemd/system/graphical.target.wants/other.service'):
+                with self.subTest(rel=rel), self.content(rel, ('link', '/' + self.CONSOLE_UNIT)):
+                    self.assertIsNone(self.fresh_explain(rel))
+
+    def test_package_50s_rules_require_its_merged_origin(self):
+        with self.console_keymap():
+            self.classifier.main_base = 'ff51cac4^'
+            for rel in (self.CONSOLE_UNIT, self.CONSOLE_LINK, self.UPDATERS):
+                with self.subTest(rel=rel):
+                    self.assertIsNone(self.fresh_explain(rel))
+            self.classifier.main_base = 'HEAD'
+            for rel in (self.CONSOLE_UNIT, self.CONSOLE_LINK, self.UPDATERS):
+                with self.subTest(rel=rel):
+                    self.assertIsNotNone(self.fresh_explain(rel))
+
+    def test_package_50s_audit_addition_preserves_the_release_28_dropin_change(self):
+        with self.console_keymap():
+            rule, reason = self.fresh_explain(self.UPDATERS)
+            self.assertEqual(rule, 'manifest')
+            self.assertIn('aresos-console-keymap.service from 50 (#101)', reason)
+            self.assertIn('user.slice from 23 (#36)', reason)
+            expected = dict(scope='system', unit='aresos-console-keymap.service', added=['/' + self.CONSOLE_UNIT],
+                            change='added unit', **{'from': ['50 (#101)']})
+            self.assertEqual(self.classifier.updater_rows, [expected, dict(
+                scope='system', unit='user.slice', added=['/' + self.DROPIN], **{'from': ['23 (#36)']})])
+            with self.content(self.UPDATERS, self.audit(console_keymap=True)):
+                self.assertIsNotNone(self.fresh_explain(self.UPDATERS))
+                self.assertEqual(self.classifier.updater_rows, [expected])
+
+    def test_package_50s_audit_rejects_every_near_miss_of_the_added_row(self):
+        with self.console_keymap():
+            units = json.loads((self.new / self.UPDATERS).read_bytes())
+            row = next(row for row in units if row['name'] == 'aresos-console-keymap.service')
+            cases = [dict(commands=['ExecStart=/usr/bin/true']), dict(scope='user'), dict(state='static'),
+                     dict(suspicious=True), dict(suspicious=0), dict(active_state='active'), dict(load_state='loaded'),
+                     dict(sub_state='exited'), dict(sources=[]), dict(sources=['/' + self.CONSOLE_UNIT, '/' + self.DROPIN]),
+                     dict(extra=None)]
+            for change in cases:
+                changed = [dict(unit, **change) if unit is row else unit for unit in units]
+                changed.sort(key=lambda unit: (unit['scope'], unit['name']))
+                with self.subTest(change=change), self.content(self.UPDATERS, json.dumps(changed).encode()):
+                    self.assertIsNone(self.fresh_explain(self.UPDATERS))
+            for key in row:
+                changed = [{name: value for name, value in unit.items() if name != key} if unit is row else unit for unit in units]
+                with self.subTest(missing=key), self.content(self.UPDATERS, json.dumps(changed).encode()):
+                    self.assertIsNone(self.fresh_explain(self.UPDATERS))
+            self.assertIsNotNone(self.fresh_explain(self.UPDATERS))
+
+    def test_package_50s_audit_still_rejects_other_rows_changes_and_unsorted_or_duplicate_units(self):
+        with self.console_keymap():
+            units = json.loads((self.new / self.UPDATERS).read_bytes())
+            extra = dict(units[1], name='z-unreviewed.service')
+            cases = {
+                'a second new audit row': units + [extra],
+                'a duplicate of the expected row': [*units[:2], units[1], *units[2:]],
+                'the expected row in the wrong position': [units[1], units[0], units[2]],
+                'old rows reordered': units[::-1],
+                'an old row removed': units[1:],
+                'an old command changed': [dict(units[0], commands=['ExecStart=/usr/bin/true']), *units[1:]],
+                'an old source removed': [*units[:2], dict(units[2], sources=['/' + self.DROPIN])],
+                'an unreviewed drop-in': [*units[:2], dict(units[2], sources=[*units[2]['sources'],
+                    '/usr/lib/systemd/system/user.slice.d/99-other.conf'])],
+            }
+            for what, changed in cases.items():
+                with self.subTest(what), self.content(self.UPDATERS, json.dumps(changed).encode()):
+                    self.assertIsNone(self.fresh_explain(self.UPDATERS))
+            for what, change in (
+                    ('missing row while unit is present', self.content(self.UPDATERS, self.audit('/' + self.DROPIN))),
+                    ('missing unit while row is present', self.content(self.CONSOLE_UNIT, None)),
+                    ('unit with different metadata', self.image(self.CONSOLE_UNIT, mode=0o755)),
+                    ('unit with different bytes', self.content(self.CONSOLE_UNIT, b'[Unit]\n')),
+                    ('unit already in release 27', self.content(self.CONSOLE_UNIT,
+                        (ROOT / 'os/config' / self.CONSOLE_UNIT).read_bytes(), root=self.old))):
+                with self.subTest(what), change:
+                    self.assertIsNone(self.fresh_explain(self.UPDATERS))
+            self.assertIsNotNone(self.fresh_explain(self.UPDATERS))
+
     def test_only_javas_two_man_folders_with_its_pages_are_explained_as_folders_rpm_made(self):
         folder, sub = rd.JAVA_MAN_FOLDERS
         self.assertIsNotNone(self.explain(folder))
@@ -1650,6 +1778,7 @@ class ReleaseChecksTest(unittest.TestCase):
         (work / 'os/ci/check-image.sh').write_text('echo "check-image $*" >> calls\n')
         (work / 'evidence/vm-pass-1').mkdir(parents=True)
         (work / 'evidence/vm-pass-1/policy-result.json').write_text('ARESOS_ACTIVE_SESSION_POLKIT_PASSED\n')
+        (work / 'evidence/vm-pass-1/console-keymap-result.json').write_text('CONSOLE_KEYMAP_PASSED\n')
         stubs = work / 'bin'
         stubs.mkdir()
         revision = 'a' * 40
@@ -1901,7 +2030,9 @@ class MainSmokeTest(unittest.TestCase):
                self.JAVA: b'java', Classifier28Test.JAVA_MAN: b'.TH java 1\n', tag: b'tag',
                rd.ALTERNATIVES_ADMIN + 'java': f'auto\n/usr/bin/java\n\n/{self.JAVA}\n25\n'.encode(),
                rd.ALTERNATIVES + 'java': ('link', '/' + self.JAVA), 'usr/bin/java': ('link', '/etc/alternatives/java'),
-               updaters: Classifier28Test.audit('/' + dropin), dropin: (ROOT / 'os/config' / dropin).read_bytes(),
+               updaters: Classifier28Test.audit('/' + dropin, console_keymap=True),
+               Classifier28Test.CONSOLE_LINK: ('link', '/' + Classifier28Test.CONSOLE_UNIT),
+               dropin: (ROOT / 'os/config' / dropin).read_bytes(),
                # 23b's font folder with its real caches in both formats (fixtures/release28-fontcache).
                **{rd.FONT_CACHES + path.name: path.read_bytes() for path in FontCacheTest.FIXTURES.glob('*.cache-9')},
                **{f'usr/share/fonts/aresos/{path.name}': path.read_bytes() for path in (ROOT / 'os/config/usr/share/fonts/aresos').iterdir()}}
@@ -1915,8 +2046,8 @@ class MainSmokeTest(unittest.TestCase):
             root = self.work / name
             root.mkdir()
             base.ClassifierTest.tree(None, root, files)
-            # These directories already exist in release 27; only the new group's records and links differ.
-            for folder in (rd.ALTERNATIVES, rd.ALTERNATIVES_ADMIN, 'usr/bin'):
+            # Release 27 already has the alternatives folders and greetd's graphical wants folder.
+            for folder in (rd.ALTERNATIVES, rd.ALTERNATIVES_ADMIN, 'usr/bin', 'etc/systemd/system/graphical.target.wants'):
                 (root / folder).mkdir(parents=True, exist_ok=True)
             for path in root.rglob('*'):
                 if path.is_dir():
@@ -2035,7 +2166,10 @@ class MainSmokeTest(unittest.TestCase):
             self.assertIn(expected, rules)
         self.assertEqual(sorted((row['format'], row['folder'], row['change']) for row in result['font_caches']),
                          [('le32d4', FontCacheTest.ARESOS, 'added'), ('le64', FontCacheTest.ARESOS, 'added')])
-        self.assertEqual(result['updaters'], [dict(scope='system', unit='user.slice', added=['/' + Classifier28Test.DROPIN],
+        self.assertIn('build: package 50: systemctl enable console keymap link; from 50 (#101)', rules)
+        self.assertEqual(result['updaters'], [dict(scope='system', unit='aresos-console-keymap.service',
+                                                   added=['/' + Classifier28Test.CONSOLE_UNIT], change='added unit', **{'from': ['50 (#101)']}),
+                                             dict(scope='system', unit='user.slice', added=['/' + Classifier28Test.DROPIN],
                                                    **{'from': ['23 (#36)']})])
         # S2: the merge base, and no image source differs from it; S5: rpm -V's evidence, clean here.
         self.assertEqual(result['main'], dict(merge_base='HEAD', branch_changes={}, differing=[]))
@@ -2044,6 +2178,16 @@ class MainSmokeTest(unittest.TestCase):
         self.assertIn('package: file of a package added by package 23 (Java 25 and its dependencies): owner, mode, link target '
                       'and bytes as its rpm database records them', result['rules'])
         self.assertNotIn('unexplained', ' '.join(result['rules']))
+
+    def test_package_50s_unit_requires_its_audit_row_even_when_the_audit_is_unchanged(self):
+        for dropins in (['/' + Classifier28Test.DROPIN], []):
+            with self.subTest(dropins=dropins):
+                (self.roots['new'] / Classifier28Test.UPDATERS).write_bytes(Classifier28Test.audit(*dropins))
+                self.assertTrue((self.roots['new'] / Classifier28Test.CONSOLE_UNIT).is_file())
+                with self.assertRaisesRegex(AssertionError, 'package 50 updater audit row missing or different'):
+                    self.run_main()
+                self.assertEqual(self.result['status'], 'stopped')
+                self.assertEqual(self.result['unexplained'], [Classifier28Test.UPDATERS] if dropins else [])
 
     def test_an_unexplained_path_or_another_theme_stops(self):
         (self.roots['new'] / 'etc/surprise').write_bytes(b'?')

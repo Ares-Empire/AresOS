@@ -20,7 +20,8 @@
     "42 step 3: the rehearsal mode release-28 (brief B), its wiring, its local walk and host-walk receipt; the tests that pin the workflow's conditions",
     "42: REVIEW-3 and REVIEW-4 fixes merged",
     "42: REVIEW-5 and REVIEW-6 fixes merged",
-    "42: main merged (packages 48, 50, the 22d status rows)"
+    "42: main merged (packages 48, 50, the 22d status rows)",
+    "42: package 50's two release-diff rules"
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
