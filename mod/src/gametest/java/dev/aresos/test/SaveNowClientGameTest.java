@@ -218,14 +218,14 @@ public final class SaveNowClientGameTest implements FabricClientGameTest {
                 "A clean request claimed recovery without rewriting the chunk whose dirty flag was lost");
 
         var automatic = new BlockPos(8, Y, 2);
-        place(world, automatic, Blocks.COPPER_BLOCK);
+        place(world, automatic, Blocks.AMETHYST_BLOCK);
         SaveFaults.once(info, ChunkPos.containing(automatic));
         autosave(context, world.getServer());
         check(!SaveFaults.armed(), "The autosave never reached the injected region write failure");
-        check(onDisk(folder, server, world, automatic) != Blocks.COPPER_BLOCK.defaultBlockState(),
+        check(onDisk(folder, server, world, automatic) != Blocks.AMETHYST_BLOCK.defaultBlockState(),
                 "The failed autosave reached disk; the fixture cannot test recovery");
         saved(context, supervisor, 13, name, false);
-        check(onDisk(folder, server, world, automatic) == Blocks.COPPER_BLOCK.defaultBlockState(),
+        check(onDisk(folder, server, world, automatic) == Blocks.AMETHYST_BLOCK.defaultBlockState(),
                 "The next request forgot the autosave failure and failed to rewrite its chunk");
         AresOs.LOGGER.info("46 save-failure checks passed: real asynchronous region write failure answered error; "
                 + "next request rewrote the unchanged chunk and answered ok:true; autosave failure was also repaired");
