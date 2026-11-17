@@ -1,7 +1,7 @@
 // Pure fixture scheduling regression; no browser or profile is accessed.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {guardedHandoffClick} from '../chrome/ci/review-matrices.mjs';
+import {guardedHandoffClick,guardedOtherTabClick} from '../chrome/ci/review-matrices.mjs';
 
 function scenario({inputError,initialError}={}){
   const before={reference:{document:'old',view:'old-view'},expected:{name:'Ready'}};
@@ -38,4 +38,27 @@ test('preexisting dialog fixture requires the intended guarded-reload refusal',a
   const value=scenario({initialError:'Page changed for another reason'});
   await assert.rejects(guardedHandoffClick(value.context),/reloaded to install its page guard/);
   assert.equal(value.state().reads,1);assert.equal(value.state().inputs,0);
+});
+
+test('borrowed wrappers fixture waits for the other tab document to change before its second click',async()=>{
+  const old={reference:{document:'old'},expected:{name:'Ready'}},fresh={reference:{document:'new'},expected:{name:'Ready'}};
+  const revisions=[old,old,undefined,old,fresh];let reads=0,inputs=0;
+  await guardedOtherTabClick({
+    async childTarget(){reads++;return revisions.shift();},
+    async eventually(check){for(let attempt=0;attempt<8;attempt++){assert.equal(inputs,0);const result=await check();if(result)return result;}throw Error('document never changed');},
+    async rpc(action,args){assert.equal(action,'click');assert.deepEqual(args,old);return {ok:false,error:{code:'stale_reference'}};},
+    async call(action,args){assert.equal(action,'click');assert.deepEqual(args,fresh);assert.equal(reads,5);inputs++;},
+  });
+  assert.equal(inputs,1);
+});
+
+test('borrowed wrappers fixture dispatches no second click while the old document remains',async()=>{
+  const old={reference:{document:'old'},expected:{name:'Ready'}};let inputs=0;
+  await assert.rejects(guardedOtherTabClick({
+    async childTarget(){return old;},
+    async eventually(check){for(let attempt=0;attempt<5;attempt++){const result=await check();if(result)return result;}throw Error('document never changed');},
+    async rpc(){return {ok:false,error:{code:'stale_reference'}};},
+    async call(){inputs++;},
+  }),/document never changed/);
+  assert.equal(inputs,0);
 });
