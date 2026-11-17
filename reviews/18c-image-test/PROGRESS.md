@@ -1,4 +1,376 @@
-# 18c image part: progress (Part A, step 1; B2, steps 2a to 2c; the Chrome follow-up; 18e in the VM pass; fix round 1, parts 1 and 2; the lead's merge of main; fix round X1; fix round X2)
+# 18c image part: progress (Part A, step 1; B2, steps 2a to 2c; the Chrome follow-up; 18e in the VM pass; fix round 1, parts 1 and 2; the lead's merge of main; fix round X1; fix round X2; fix round X3)
+
+## Fix round X3 (Codex astra's recheck X2) (2026-11-17, Claude agent on Fable 5.2)
+
+From `RECHECK-X2.md` (Codex `gpt-6-astra`'s recheck of fix round X2 on `fda41017`: CHANGES-NEEDED, two should-fixes,
+both in check 8's tree scan; the merge correct; security unchanged, SAFE), on head `23bff734`. Fable, because this is
+the third round on the same check and each round so far closed its findings while the next found edge cases one level
+deeper: the job was to make the check right by construction, not to patch the two cases. Commits: `8b2e60fa` (#1 and
+the scan's new structure), `7dbaea7b` (#2), `537790a2` (the merge of `main` at `3a5eea14`: packages 52, 46 and 79),
+and this file's commit (`[skip ci]`). **Final head: `537790a2`.** Everything this round changed is CI-only
+(`os/ci/control/tree_scan.py`, `os/ci/control/actions.py`, `os/tests/test_control_vm.py`) or this folder; nothing in the
+image, `control/` or the workflow. None of the three is a bound file (`test_checkout_sources` passes with the pending
+list untouched).
+
+### What check 8 guarantees now, and how
+
+Every path the scan learns is either searched, that very file, or named as an error that fails the check.
+`tree_scan.py` (`scan()`, `:245`) keeps **one record per learned path**: a root it is given, or a name a folder's
+listing returns. `Scan.read()` (`:171`) is the one place a record gets its outcome: `searched` (a regular file, read
+to its end), `listed` (a folder: its listing read to its end, every name in it a record before the first is read),
+`not a file` (a link, socket, pipe or device: nothing to search, never opened, a link never followed), or an error.
+`Scan.answer()` (`:213`) builds the whole answer from the records, so there is no second list a path could be missing
+from: whatever is not one of the three good outcomes is in `errors` (or, in root's walk of a FUSE mount, in `refused`,
+which `search_for()` turns into an error unless the mount's owner searched that path). The one exemption is X2's: a
+vanished path that `MAY_VANISH` names, and it still names none. `passwords.json` gains `paths`
+(how many paths were learned and how many ended in each outcome); `scanned`, `fuse_mounts`, `owner_walks`, `vanished`
+and `errors` keep their names and shapes, and no PASS line changed. Nothing in `os/ci/control/` or
+`reviews/18c-image-test/verify-evidence.py` reads those fields (checked: `control_vm.py` prints the action's summary
+and writes `passwords-runner.json` from the evidence scan; `verify-evidence.py` reads the boundary artifact only).
+
+### What changed, per finding and per sibling, and the test that pins it
+
+Each regression fails on `fda41017`'s code and passes now. The baseline: `git archive fda41017 os/ci control/boundary
+control/ci control/README.md` unpacked under `.work/x3/baseline/` (never committed), this round's
+`os/tests/test_control_vm.py` copied in, `PasswordScanTest` run there. The new tests make their races on the real file
+system, at a point both scanners pass (`listed()`, `:639`: once a folder's listing has been read; `stated()`, `:680`:
+once the scanner has stat'ed a file), so the baseline failures are X2's own behaviour, not a missing helper.
+
+1. **#1, replacement bytes standing in for unread content.** The choice was between failing an observed
+   disappearance even if the name reappears, and proving the retry read the same file. **Both, and one step more,
+   because either alone leaves a deeper case:**
+   - **The scanner holds the file.** A name is opened once, as a handle on the file itself (`O_PATH`, relative to
+     its folder's handle, links not followed; `Scan.search()`, `:188`). Its type is read from that handle and its
+     content through it (`reopened()`, `:114`: `/proc/self/fd`). There is no stat by name followed by an open by
+     name any more, so the reviewer's window (stat'ed, removed, replaced, read) is gone: the file the scanner stat'ed
+     is the one it reads, removed or not.
+   - **No second try.** A name that is gone when it is opened is an error ("gone before it was read", and named
+     under `vanished` in the runtime folders), also when it is back a moment later. **This removes X2's "a replaced
+     file is read again".** X2 kept it so that a file a process rewrites would not fail the check; but what it read
+     was whatever was under the name then, and the listed content stayed unsearched with no error, which is the
+     finding. X1's and X2's four control runs had `vanished: []` and `errors: []`, so failing costs nothing seen.
+   - **The listing says which file was listed.** Comparing `lstat`'s `st_dev`/`st_ino` with `fstat` of the opened
+     descriptor (the reviewer's example) would have left two holes: ext4 and XFS give a new file the number of one
+     just removed, so the replacement can carry the same pair; and the `lstat` itself comes after the listing, so a
+     swap between the two is never seen. So the number comes from the listing itself (`listing()`, `:120`: each
+     name with the inode number its folder's listing gives it), and the handle, which keeps its number from going to
+     another file, is compared with it. Another number: "not the file its folder listed (inode A there, B opened):
+     replaced before it was read, so its content is unsearched", an error; what was put there is not searched in
+     its place.
+   - **Listings that number otherwise** (`numbered_otherwise()`, `:135`). A mount point is listed under the number
+     of the folder it covers, and the document portal's FUSE server gives every name 4294967295 (read on the laptop's
+     own portal mount; its folders' own numbers are 2, 3, 4). So a differing number alone would fail every mount
+     point under `/run`. The listing is asked a second time: a listing whose numbers are the files' own now gives
+     the name the opened file's number, which is not the first one; only a listing that numbers otherwise repeats
+     the first. The name must still be the opened file afterwards.
+   - Tests (`os/tests/test_control_vm.py`, `PasswordScanTest`):
+     - `:762` `test_a_file_removed_and_replaced_once_the_scanner_has_stated_it_is_the_one_searched`: the reviewer's
+       sequence on the real file system (stat'ed; removed; a clean file under the name when the scanner looks
+       again). Now: the hit is in the file the scanner stat'ed, `errors: []`, `vanished: []`.
+       **Baseline:** "AssertionError: False is not true : the file the scanner stat'ed was removed and replaced; its
+       content was neither searched nor named as an error: {'files': {'…/scanned': 3}, 'hits': [['…/state/password',
+       0]], 'vanished': [], 'errors': [], 'refused': {}}": the reviewer's result.
+     - `:780` `test_what_is_put_under_a_listed_name_before_it_is_opened_is_never_searched_in_its_place`: the same
+       swap one step earlier, between the folder's listing and the scanner's first look, in four forms: a file
+       renamed over the listed one, a folder with another folder in its place, a folder with a link in its place
+       (not followed), a file with a folder in its place. Each is the "not the file its folder listed" error, no
+       hit from what was put there, the rest searched.
+       **Baseline:** "AssertionError: Tuples differ: ([], [['…/scanned/state/pass[43 chars]: 3}) !=
+       (['…/scanned/state/debug.log[216 chars]: 2})"; the diff under it has `([],` where this round has "…/state/
+       debug.log: not the file its folder listed (inode 20115792 there, 20115793 opened): replaced before it was
+       read, so its content is unsearched", and 3 files searched where this round has 2: X2 read the replacement, no
+       error.
+     - `:844` `test_a_listing_that_numbers_otherwise_is_asked_a_second_time`: a listing that gives every name
+       4294967295 passes with everything searched; a listing whose numbers are not the files' own but differ per
+       file still shows a replaced file; the first number again because the listed file was moved away and back,
+       with another file opened meanwhile, is still an error. (New functions; no baseline.)
+     - `:706` `test_runtime_content_that_vanishes_unread_fails_and_is_named` (X2's test): its assertions on vanished
+       files, the folder, `MAY_VANISH` and `search_for()` are unchanged, but the files are now removed at the moment
+       the folder's listing has been read (X2 removed them inside a stand-in for `holds()` and raised the failed open
+       itself; the scanner no longer calls `holds()` by path).
+       **Its last block is changed, because it encoded what this finding removes:** it asserted that a file gone
+       and back is read again with `errors: []`. It now asserts the opposite: gone when opened and back the moment
+       the scanner has seen that, it is `vanished` and an error, and the new file is not read in its place.
+2. **#2, the owner fallback discarding a known unread FUSE path.** `os/ci/control/actions.py`, `search_for()`
+   (`:1515`), and `Scan.answer()`:
+   - Root's refusals at or under a FUSE mount stay structured: `[path, the number root's listing gave it, the
+     refusal]` per mount.
+   - The owner still walks the whole mount, and is now told those paths (`cover`, `:1537`). Its answer names each
+     of them its walk met under that number and searched, listed or found not to be a file (`covered`).
+   - **Root's refusal stands as an error unless that very path is named** (`:1552`): "…: PermissionError: Permission
+     denied, and <owner>'s walk did not search it either". So a path that is gone by then, that the owner's view
+     leaves out, that is another file by then, or that is refused to the owner too, fails the check. The owner's
+     own errors are added as before, never in place of root's.
+   - Test `:1026` `test_what_root_is_refused_inside_a_fuse_mount_its_owner_must_search_path_by_path`, with the real
+     `tree_scan.py` started as the owner's process (`owner()`, `:970`): root lists the mount and is refused on
+     `private.log` in it. Recovered (the owner reads it: the hit is found, `errors: []`); gone or left out of the
+     owner's view (the error above); another file under the name by then ("not the file root was refused", and
+     root's refusal stands); refused to the owner too (both errors); a folder root can't list (its owner lists it
+     and finds what it holds); the mount gone before the owner's walk; an owner's answer without `covered` (X2's
+     scanner) raises.
+     **Baseline:** at the omission, "AssertionError: Tuples differ: ([], [['…/scanned/state/password', 0]]) !=
+     (["…/scanned/user/1001/doc/p[136 chars] 0]])"; the diff under it has `([],` where this round has "…/user/1001/doc/
+     private.log: PermissionError: Permission denied, and ares's walk did not search it either": X2 returned
+     `errors: []`. (The recovery passes on the baseline too, as the reviewer said.)
+3. **Siblings: other places where something known to be unread could leave the count.** Looked for in `tree_scan.py`,
+   the FUSE handover and `passwords()`; each fixed under the same rule:
+   - **A folder replaced after it was listed in its parent.** X2's `os.walk` walked whatever folder was under the
+     name by then, and skipped it without a word if it was a link by then (`islink` at the descent). Now a folder
+     is a record like a file: opened as a handle, compared with its listing's number. Test `:780` (its second and
+     third forms).
+   - **A file that is a folder by the time it is read** (or the reverse): X2 skipped it as "not a regular file". The
+     type now comes from the handle that is compared with the listing. Test `:780` (its fourth form).
+   - **A parent folder swapped for a link during the walk.** X2 opened every file by its full path, so a path could
+     lead through a link put there meanwhile into another tree, read under the old names. Every open is now
+     relative to the folder's handle, and no listed name is opened through a link (`O_NOFOLLOW`). Pinned by `:901`
+     and `:780` (they fail if links are followed).
+   - **A folder removed between its open and its listing.** New with handles: a removed folder lists as empty
+     (glibc reads the kernel's ENOENT as the end of the folder), so it would have counted as listed with nothing in
+     it. `listing()` checks the handle's link count after reading: 0 is "gone before it was read". Test `:706`
+     (X2's folder case, in both orders: removed as its listing starts, and removed before it is opened).
+   - **A needle across short reads.** `holds()` and the journal loop kept only the last read's tail, so a needle
+     spread over three reads, the middle one shorter than the needle, was missed. Not reachable through Python's
+     buffered reads of a file or pipe today (they are full until the end), but nothing said so. One function now,
+     `found_in()` (`:64`), keeps the tail across reads, and `search_for()` reads the journal's export with it
+     (`actions.py:1561`) instead of its own copy of the loop. Test `:935` (also: a journal export holding the
+     needle is reported).
+   - **The handover, by number.** A file put under the refused name before the owner's walk is not the file root
+     was refused: the owner's listing must give the name the number root's did (a FUSE server that gives every name
+     one number passes this without proof, as below). Test `:1026` ("another file").
+   - **The mount gone before its owner walks it.** The owner would walk the empty folder under the mount point and
+     answer "listed". `search_for()` requires the mount to be in `/proc/self/mountinfo` still when the walk has
+     ended (`:1555`). Test `:1026`.
+   - **Refusals with nowhere to go.** `search_for()` asserts that every refusal is filed under a mount its loop
+     meets, and that the owner's own answer hands nothing on (`:1526`, `:1546`): neither can happen as the code
+     stands, and neither can now happen silently.
+   - **Looked at and left:** `passwords()` asserts on `errors`, on the journal and on the hits being exactly the
+     stored file, which is also the scan's proof that it finds the password where it is; `operations_jsonl_holds_it`
+     is informational (that file is under a scanned root, so a hit there fails the check through `hits`); an owner
+     walk that exits non-zero keeps root's refusals and adds its failure; an exception anywhere in the action is a
+     failed check (`checks.py:596`), and `control_vm.py` prints a PASS line only for `returncode == 0`.
+
+### Known limits (stated at the top of `tree_scan.py`)
+
+- **A reused inode number.** A file system that gives a new file the number of one just removed (ext4 and XFS do;
+  tmpfs and btrfs count upwards) hides a file that is removed and made again between its folder's listing and its
+  open. The guest's scanned folders are on tmpfs (`/run`, `/tmp`) and btrfs (`/var`: `check-build.sh` builds the disk
+  with `--rootfs btrfs`), so it does not apply there. Nothing the kernel reports about a listed name outlasts the
+  file but that number; the folder's change time would show it, but it also changes with every unrelated file made
+  or removed in a busy folder.
+- **A FUSE server that gives every name one number** (the document portal) gives its listings nothing to hold a
+  file to. There the handle still makes the file opened the file searched, and no more. The same holds for the
+  number handed from root to the owner.
+- **The scan is a walk, not a snapshot.** A file removed before its folder is listed, or moved from a folder not
+  yet listed into one already listed, is never learned. Each file is searched as it was while it was read.
+- **A FUSE mount unmounted and mounted again** at the same point, of the same type and owner, between root's
+  refusal and the end of its owner's walk is taken for the same mount.
+- **Depth.** The walk recurses, two Python frames per folder level: a tree more than about 490 folders deep raises
+  `RecursionError`, which fails the check (X2's `os.walk` had no such limit; the guest's trees are a few levels deep).
+
+### The merge (`537790a2`, `main` at `3a5eea14`)
+
+After the regressions-only run was green on `7dbaea7b`. `main` moved from `04aef030` (X2's merge) to `3a5eea14`:
+**package 52** (`1dc4d188`: Prism's metadata pinned by commit, so image builds work again), package 46 (the mod saves
+the world on request: `mod/`, and nine lines of `os/tests/test_aresos_desktop.py`) and package 79 (Chrome's
+qualification record is checked once per record: `control/aresos_control/chrome/`, `control/aresos_control/engine.py`,
+`control/chrome/ci/`, `control/chrome_tests/`), with their briefs, reviews, `STATE.md` and `HANDOFF.md`. A normal merge
+commit, no rebase, **no conflicts**. Under `os/` it brings exactly two files, both `main`'s:
+`os/minecraft/desktop.lock.json` (the two metadata URLs now `raw.githubusercontent.com/PrismLauncher/meta-launcher/
+<commit>/…`, the SHA-256s unchanged) and `os/tests/test_aresos_desktop.py`; nothing under `.github/`.
+
+`os/manifest/ci/16/pending-rebind.json`: `main` did not change it since `04aef030`, so there was nothing to take a
+side on. Checked with the tool all the same (`rebind.py pending` with a note for this merge): "10 bound files differ
+from the active bindings, 0 removed", the same ten rows, only the note added; neither of `main`'s two `os/` files is
+a bound file. The note was reverted, as X1 and X2 did when no bound file changed, so the list is byte for byte X2's.
+
+### Checks run (laptop)
+
+- Before the merge (`7dbaea7b`), one module at a time: `test_control_vm` 54 OK (48 + 6 new tests; 1.0 s),
+  `test_control_image` 15 OK, `test_checkout_sources` 8 OK.
+- After the merge (`537790a2`): `test_control_vm` 54 OK (0.9 s), `test_control_image` 15 OK (4.3 s),
+  `test_checkout_sources` 8 OK (0.8 s), and `test_aresos_desktop` 189 OK (skipped=1; 168 s), which `main` changed.
+  Nothing left running. No owner module (`test_owner_*`), no `rpm-ostree`, `bootc` or `ostree` command, nothing
+  mounted, no sudo.
+- `bash -n os/ci/check-build.sh os/ci/check-image.sh os/ci/control/runner.sh` (no shell file changed this round);
+  `git diff --check` clean over this round's commits.
+- The baselines above, against `fda41017`'s `os/ci/control/` in `.work/x3/baseline/`: 4 failures and 3 errors of 13
+  (`:762`, `:780`, `:1026` and X2's changed `:706` fail; `:844`, `:901` and `:935` use functions and a field X2's
+  scanner doesn't have).
+- **Each rule is pinned:** eighteen one-line weakenings of this round's code (no listing number; every listing or
+  none taken to number otherwise; the second listing or the name after it not compared; a removed folder read as
+  empty; links followed; the last read's tail only; a vanished path not an error; errors not taken from the records;
+  the handover ignoring the number, the outcome or whether the path was met; root's refusal dropped after the
+  owner's walk or when the owner fails; `cover` not sent; the mount not checked after the walk; the file read by
+  its path again), each tried alone in a scratch copy: every one fails at least one `PasswordScanTest` test.
+- The scanner over this checkout's `os/` and `control/` as a plain user: 14,313 files searched and 1,041 folders
+  listed in 1.3 s, the numbers `find -type f` and `find -type d` give, no error.
+- Read on the laptop's own document portal mount (as its owner, listing only): every name's listing number is
+  4294967295, the folders' own numbers 2, 3 and 4, link counts 2. On tmpfs and btrfs here a listing's number is the
+  file's own; a file removed after it is opened is still read through its handle; a removed folder lists as empty.
+
+### Runs
+
+| Run | Head | Mode | Result |
+|---|---|---|---|
+| 44140465984 | `7dbaea7b` | regressions only (`checks_only`) | **success**: "Ran 1764 tests in 1881.560s" (log line 3752), "OK (skipped=4)" (3754): X2's 1758 and this round's 6; the job 17:49:10 to 18:21:16 UTC = 32 min 6 s, the ways-back model job green in 16 s |
+| 44147238097 | `537790a2` | `check_build=control` | **success** (below) |
+| 44152536778 | `537790a2` | `check_build=control` | **success** (below; a new dispatch, after the first had ended) |
+| 44166220023 | `537790a2` | `check_build=build` | **success** (below): the image's packages stage passes again with package 52's pin (`PINNED 9c23199a…2b46 …/net.minecraft.json`, log line 3339) |
+| PR #58's workflows on `537790a2` | | Repo privacy, Control base, Control boundary, Control Mail, Control Chrome, Control Chrome qualification | all **success** |
+
+No run was rerun: no infrastructure failure this round.
+
+**Log lines** (`gh run view <id> --log`, line numbers from 1; the two control logs have 4326 and 4394 lines, so
+their numbers differ):
+
+| Line | 44147238097 | 44152536778 |
+|---|---|---|
+| `CLAUDE_CODE_PINNED 2.1.319 sha512-FO4Sd23B…oOQ== dabafec8…8eed` | 1277 | 1348 |
+| `CONTROL_CHROME_BUILD 7854f4a2…cfbbfb` | 1662 | 1728 |
+| `CONTROL_INSTALLED 74 files, 28 wheels, 2024 vendored paths from 537790a2…` | 1663 | 1729 |
+| `CONTROL_CHROME_STARTUP_FILES build 7854f4a2…cfbbfb, 8 qualification entries` | 1664 | 1730 |
+| `CONTROL_GENERATED_MATCH 15 files` | 1665 | 1731 |
+| `CONTROL_FILES_RECORDED 74 files, 2024 vendored paths, 28 wheels from 537790a2…` | 3426 | 3492 |
+| `CONTROL_WHEELS_FETCHED 28 wheels, 9732253 bytes from PyPI` (2.0 s / 2.1 s) | 3536 | 3602 |
+| `CONTROL_VENDOR_FROM_WHEELS 2024 vendored paths: 1021 files from 28 wheels and pip, 712 bytecode, 291 folders` | 3537 | 3603 |
+| `CHECK_BUILD_PASSED` | 3538 | 3604 |
+| `CHECK_BUILD_CONTROL_DISK_READY` | 4227 | 4295 |
+| `CONTROL_IMAGE_FILES_PASS` | 4235 | 4303 |
+| `CONTROL_ETC_CLAUDE_CODE_PASS` | 4237 | 4305 |
+| `CONTROL_RELEASE_CHECKS_PASS` | 4239 | 4307 |
+| `CONTROL_IDLE_FOOTPRINT_RECORDED {…}` | 4241 | 4309 |
+| `CONTROL_FIXTURES_REACHABLE` | 4243 | 4311 |
+| `CONTROL_ENTRY_POINTS_PASS` | 4245 | 4313 |
+| `CONTROL_PRECONDITION_PASS` | 4247 | 4315 |
+| `CONTROL_USER_MCP_INSTALL_PASS` | 4249 | 4317 |
+| `CONTROL_SERVICE_SANDBOX_PASS` | 4251 | 4319 |
+| `CONTROL_ORDINARY_SESSION_PASS {…}` | 4253 | 4321 |
+| `CONTROL_MAIL_FLOWS_PASS` | 4255 | 4323 |
+| `CONTROL_PERMISSION_REQUEST_RECORDED {"normal-permission-user": {"hook_calls": 1, "owner_answers": 0, "prompt_shown": false, "send_arrivals": 1}}` | 4257 | 4325 |
+| `CONTROL_INTERACTIVE_ASK_PASS` | 4258 | 4326 |
+| `CONTROL_PASSWORDS_PRIVATE_PASS` | 4260 | 4328 |
+| `CONTROL_SELINUX_AFTER_CHECKS_PASS` | 4262 | 4330 |
+| `CONTROL_STORAGE_TESTS_PASS {…}` | 4264 | 4332 |
+| `CONTROL_SERVICE_RESTART_PASS` | 4266 | 4334 |
+| `CONTROL_VM_POWEROFF_CLEAN` | 4268 | 4336 |
+| `CHECK_BUILD_CONTROL_PASSED` | 4270 | 4338 |
+
+Every PASS line of X2's runs is there, in X2's order. Check 8's own summary is the line after its PASS line (4261,
+4329).
+
+**Run 44147238097**:
+- Times: job 18:26:49 to 18:51:33 UTC = 24 min 44 s (against 131); tools 2 min 42 s; build step 18:32:01 to
+  18:43:14 = 11 min 13 s; **Control VM step 18:43:14 to 18:51:27 = 8 min 13 s** against 16. A fast runner: every
+  phase was quicker than in any earlier run (the disk alone 6 min against X2's 31), with the same lines in the same
+  order and the image built from `537790a2` (`CONTROL_INSTALLED … from 537790a2…`).
+- The fixture stop step was green.
+- Step times (s): boot to channel 28.6, files 2.6, idle 59.7, entry points 3.4, precondition 1.4, user MCP 4.6,
+  **check 6 222.4**, check 7 32.3, check 9 104.9, check 8 0.4, storage tests 28.1, restart 0.7; the pass 491.9.
+
+**Run 44152536778**:
+- Times: job 19:05:52 to 20:08:16 UTC = 62 min 24 s (queued 13 min before that); tools 1 min 51 s; build step
+  19:08:52 to 19:58:28 = 49 min 36 s; **Control VM step 19:58:28 to 20:08:11 = 9 min 43 s** against 16.
+- The fixture stop step was green.
+- Step times (s): boot to channel 54.5, files 5.2, idle 59.4, entry points 5.4, precondition 2.5, user MCP 13.1,
+  **check 6 235.3**, check 7 39.2, check 9 119.2, check 8 0.6, storage tests 43.2, restart 1.2; the pass 582.5.
+
+**Run 44166220023** (`check_build=build`; its log has 4268 lines):
+- Times: job 20:13:04 to 20:59:35 UTC = 46 min 31 s (against 120); tools 5 min 34 s; build step 20:19:58 to
+  20:59:29 = 39 min 31 s. The two Control steps were skipped, as they are in this mode.
+- PASS lines: `CONTROL_CHROME_BUILD 7854f4a2…cfbbfb` (1650), `CONTROL_INSTALLED 74 files, 28 wheels, 2024 vendored
+  paths from 537790a2…` (1651), `CONTROL_CHROME_STARTUP_FILES build 7854f4a2…cfbbfb, 8 qualification entries` (1652),
+  `CONTROL_GENERATED_MATCH 15 files` (1653), `CROWN_FILES_PASSED: …` (3402), `CONTROL_FILES_RECORDED 74 files, 2024
+  vendored paths, 28 wheels from 537790a2…` (3414), `IMAGE_CHECKS_PASSED` (3503), `ROOTLESS_MAPPING_PASSED` (3515),
+  `POLKIT_CHECK_PASSED` (3517), `CONTROL_WHEELS_FETCHED 28 wheels, 9732253 bytes from PyPI, 1.6 s` (3524),
+  `CONTROL_VENDOR_FROM_WHEELS 2024 vendored paths: 1021 files from 28 wheels and pip, 712 bytecode, 291 folders; 2.1 s`
+  (3525), `CHECK_BUILD_PASSED` (3526), `ARESOS_ACTIVE_SESSION_POLKIT_PASSED` (4192), `ARESOS_GUEST_CHECKS_PASSED`
+  (4193), **`CONSOLE_KEYMAP_PASSED: boot setting and repair after a forced busy-VT skip` (4196)**,
+  `ARESOS_POWER_EVENTS_PASSED: lid and sleep keys observed/ignored; direct sleep requests rejected` (4200),
+  **`CHECK_BUILD_VM_PASSED` (4219)**. The console keymap line comes before `CHECK_BUILD_VM_PASSED`, as package 50
+  requires and as X2's merge placed its check: the merged build-only keymap path, which X2's failed build run left
+  unverified (`RECHECK-X2.md`), has now run on a head that carries it.
+
+### This round's evidence (run 44147238097 / run 44152536778)
+
+- **Check 8 in the guest** (`passwords.json`): **1851 / 1891 files searched by root, `errors: []`, `vanished: []`**
+  (so nothing needed `MAY_VANISH`, and no file was replaced between its listing and its open), the journal export
+  exit 0 with nothing on stderr; per folder `/var/home/ares` 931 / 931, `/run` 481 / 484, `/var/tmp` 402 / 439,
+  `/var/lib/aresos-tools` 14, `/var/log` 12, `/root` 5, `/tmp` 3, `/var/lib/aresos-operation-evidence` 3; the one file
+  holding the password is the stored one. (X2's runs: 1866 / 1874; the difference is `/var/tmp` and `/run`.)
+- **Every path accounted for** (`paths`, new): **2867 / 2910 paths learned by root = 1851 / 1891 searched + 718 / 721
+  folders listed + 297 / 297 not files + 1 / 1 refused**, no error, nothing gone. The sums are exact.
+- **The FUSE mount and the handover:** `fuse_mounts: [{mount: /run/user/1001/doc, type: fuse.portal, owner: ares,
+  root_refused: 1}]` both times: root's one refusal is the document portal's mount point. It went to `ares`'s walk
+  as the one path to cover; that walk listed it (0 files, no error), which took root's refusal back, and the mount
+  was still mounted afterwards. (On the laptop the portal lists its own `by-app` folder under 4294967295; the
+  guest's walk of the same file system raised no error.)
+- **Check 8's time:** 0.4 s and 0.6 s (X2: 0.4 s): handles and listing numbers cost nothing that shows.
+- **The vendor check**: `CONTROL_VENDOR_FROM_WHEELS 2024 vendored paths: 1021 files from 28 wheels and pip, 712
+  bytecode, 291 folders` both times: X2's counts.
+- **The evidence scan** (`runner.sh stop`, `fixtures/password-scan.json`): **192 files, 415 / 452 archive members**,
+  `"unreadable": []`, `"holding": []`, GreenMail redacted once, nothing removed. Check 8's own scan on the runner
+  (`passwords-runner.json`): 56 evidence files, 415 / 452 members, nothing unreadable. Each artifact has 195 files.
+- **Check 9's transcripts:** one per case in both runs (`normal-yes`, `skip-no`, `skip-user-allow-send`,
+  `normal-permission-user`).
+- **Unchanged from X2**, both runs: `desktop_with_service_failed` (the service `failed`, `NRestarts=5`,
+  `Result=exit-code`; logged out in 11.2 s / 11.4 s, the desktop up again in 12.5 s / 13.8 s, `SETUP`, not latched,
+  greetd session `1` then `3`, `marks_after_logout: false`); `held_work` 4 model requests, 1 extra, 1 continuation,
+  both reminders `true`; **`held_elsewhere` 2 model requests, 0 extra, 0 Stop continuations, `requests_carrying_it:
+  []`**; check 6's CLI while stopped `service_unavailable` after 3.18 s / 3.31 s; idle 1 context switch in 60 s,
+  1.1 ms / 1.7 ms of CPU, `memory.current` 32,948,224 B / 33,062,912 B, RSS 37,124 / 36,916 KiB, PSS 25,281 /
+  25,310 KiB, 1 process, 1 thread.
+
+### Done
+
+The two should-fixes of `RECHECK-X2.md`, each with its regression test and its baseline failure on `fda41017`, and
+the siblings found under the same rule, by restructuring the scan rather than by patching the two cases: one record
+per learned path, one outcome each, the answer made from the records. `main` merged at `3a5eea14` (package 52 in, no
+conflict). Regressions only green (1764 tests, on `7dbaea7b`), `check_build=control` green twice on the final head
+(44147238097, 44152536778), **`check_build=build` green once on the final head (44166220023), with
+`CONSOLE_KEYMAP_PASSED` before `CHECK_BUILD_VM_PASSED`**: the run X2 could not get. PR #58's six workflows green.
+Only this file changed after `537790a2`.
+
+No JUDGMENT-CALL for the owner: the round is CI-only. The technical choices are in "What changed" (hold the file
+and fail closed and compare with the listing's number; a replaced file is an error with no exemption; a listing that
+numbers otherwise is asked again instead of exempting FUSE or mount points by type).
+
+### Left, in order
+
+This replaces X2's list below (its item 1, the pinned Minecraft metadata, is package 52, merged here; its build run
+is 44166220023).
+
+1. A fresh `gpt-6-astra` recheck of this round's fixes and what they touched (`docs/REVIEW.md`, "Tools for Claude",
+   step 3): `23bff734..537790a2`, the merge included.
+2. `linux-aresos` reads this round's `os/` diff (agreed change 16): the section at the end is up to date with this
+   round. X2's was read (`main`'s `616ab0cd`).
+3. The lead assembles `reviews/18c-image-test/REPORT.md` as listed in the merge section below, with X1's known limits
+   word for word, X2's known limit (a V7 tar with a damaged first header), this round's known limits (above) and
+   this round's runs and log lines.
+4. Merge (the lead's).
+5. The last step deletes this file.
+
+### Observations for the lead
+
+- **Check 8 is stricter in one more way: a file replaced between its folder's listing and its open fails the check**
+  ("not the file its folder listed"), with no exemption table. Both runs had none. A program that rewrites a file
+  by writing a new one and renaming it over the old does exactly this, so a later run can fail if a file is
+  rewritten just as the scan reaches it; the path is then named. If one turns out to be harmless and regular, the
+  honest fix is to search what is there as well and exempt that path with its reason, like `MAY_VANISH`; nothing
+  needs it today.
+- **The regressions-only run was on `7dbaea7b`, before the merge,** as this round's order of work had it. The merged
+  head `537790a2` has the laptop's four modules, PR #58's six workflows, two control runs and the build run, but no
+  hosted run of all of `os/tests`; `main`'s own runs cover what the merge brought. One `checks_only` dispatch would
+  close that, if the lead wants it.
+- **`passwords.json` has one new field, `paths`,** and check 8's line in the log now carries `paths` and
+  `fuse_mounts` too, so the counts can be read from the log without the artifact. The owner's walk has no such
+  count in the evidence (`owner_walks` keeps X2's shape); if the recheck wants it, it is one field.
+- **`CONTROL_CHROME_BUILD` moved** to `7854f4a2…cfbbfb` with `main`'s package 79 (8 qualification entries, as
+  before): for `control/chrome/builds.json`, if the lead keeps that record.
+- **Runner speed varies a lot:** the first control run took 24 min 44 s, the second 62 min 24 s, on the same head
+  with the same lines: the first runner was fast in every phase.
+- `main` moved once more while this round ran (package 79, `3a5eea14`, after the lead's message about package 52):
+  it is in the merge, and the control and build runs cover it.
+- No infrastructure failure and no rerun this round.
 
 ## Fix round X2 (Codex astra's recheck) (2026-11-17, Claude agent on Opus 5.5)
 
@@ -2254,7 +2626,12 @@ again (`os/ci/control/vendor_check.py`, `tree_scan.py`, `actions.py`, `evidence_
 `check-image.sh` unchanged) and **merged `main` at `04aef030`** (`dcbb70dd`; packages 48, 50 and 51): this diff now
 stands against `04aef030`. The merge's two conflicts were 18c's `os/ci/check-build.sh` (50's console keymap grep put in
 the `build` branch) and the pending list (regenerated with `rebind.py pending`); `main`'s other `os/` changes merged
-untouched (fix round X2, "The merge"). Image side first, then CI only.
+untouched (fix round X2, "The merge"). Fix round X3 (2026-11-17) changed CI-only files once more
+(`os/ci/control/tree_scan.py`, `os/ci/control/actions.py` and `os/tests/test_control_vm.py`; nothing else under `os/`)
+and **merged `main` at `3a5eea14`** (`537790a2`; packages 52, 46 and 79; no conflict, the pending list untouched): this
+diff now stands against `3a5eea14`. That merge brought two `os/` files, both `main`'s and untouched:
+`os/minecraft/desktop.lock.json` (package 52's pin by commit) and `os/tests/test_aresos_desktop.py` (package 46). Image
+side first, then CI only.
 
 - `os/Containerfile`: the aresos stage copies `/source/control` from the existing source stage and runs `build.sh
   control` before `configure`; `FROM` lines and the other stages unchanged.
@@ -2302,18 +2679,22 @@ untouched (fix round X2, "The merge"). Image side first, then CI only.
     X1 it fails on what it can't search: archives below its depth, damaged tars, formats it doesn't unpack; since
     X2 a tar is whatever tarfile reads, magic or not), `tree_scan.py` (X1: check 8's file search, which fails on
     whatever it can't read; since X2 also on runtime content that vanished unread, and root walks a FUSE mount first,
-    its owner only where root is refused; the layer copies it), `vendor_check.py` (X1: Part A's vendor check above;
+    its owner only where root is refused; since X3 one record per path it learns, each file opened once as a handle
+    and held to the inode number its folder's listing gave it, no second try, and what root is refused in a FUSE
+    mount stays an error until the owner's walk names that path as searched; the layer copies it), `vendor_check.py` (X1: Part A's vendor check above;
     since X2 it derives all of `/usr/lib/aresos-control`, so a sibling of `vendor/` fails),
     `control_vm.py` (boots the disk, runs the checks, prints the PASS lines), `actions.py` (the guest's checks; since
     fix round 1 check 6 also logs ares out of the throwaway guest and lets greetd's auto-login start the desktop again
     while the service has failed, and check 2 looks for network listeners; since part 2 check 6 requires 18e's merged
-    held-work wording), `sessions.py` (Claude Code sessions with
+    held-work wording; since X3 check 8 hands the owner's walk the paths root was refused in a FUSE mount and keeps
+    each refusal as an error until that path is named as searched), `sessions.py` (Claude Code sessions with
     B1's driver), `release_checks.py` (agreed change 12: the rehearsal's check actions), `own-mcp.py` and
     `own-hook.py` (his own server and hooks). The layer also
     carries `control/boundary/interactive_{driver,model}.py`, `control/ci/image/mail_flows.py` and, for the storage
     tests, `control/chrome_tests/*.py` and `control/mail_tests/storage_faults.py`.
-  - `os/tests/test_control_vm.py` (48 tests, new; 11 since fix round X1; X2 replaced two and added four, and
-    `LayerHookTest` copies `console_keymap.py` beside `checks.py` since the merge).
+  - `os/tests/test_control_vm.py` (54 tests, new; 11 since fix round X1; X2 replaced two and added four, and
+    `LayerHookTest` copies `console_keymap.py` beside `checks.py` since the merge; X3 added six and changed the end of
+    one).
 - Not changed: base digest, `packages.lock.json`, Chrome pin, accounts, sudo, polkit, masks, session, PATH,
   repositories, `os/config/`, `os/policy/`, `os/release/`, `os/owner-tools/`, `os/manifest/` (except the pending
   list above), `ci/check-resolve.sh`, and every other job of `os-image.yml`.
