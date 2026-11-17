@@ -2,6 +2,282 @@
 
 Builder steps keep this file; the last step turns it into the report. Newest state first.
 
+## Step 12 (2026-11-16/17, Claude agent on Fable 5.2): main merged twice, group 14's password cases, the read cases in the named inventory
+
+Fable because these cases test password exclusion: a case that is missing or too weak would let a leak go unseen. Built
+against the lead's brief for this step, the brief's "Passwords, in group 14 and in `password_exclusion`" and step 11's
+"Left, in order" item 2. **The reference cases are not built** (the step's stop rule: the password cases took two CI
+rounds, a second merge of `main` and about two hours of runner queue); they stand first in "Left".
+
+### Done
+
+- **`origin/main` merged, twice.**
+  - `eb731959` (`main` at `1beddbc5`: #91, the Stop hook that never exits 2; #88, package 44's design study; STATE and
+    HANDOFF). **No conflict, and no file changed on both sides** (`comm` of the two name lists against the merge base
+    `40ea5981` is empty). Local tests of what it touched: `test_stop_hook` 8 tests OK; `test_service_fixes` 55 of 56
+    (the one left needs the MCP SDK the container installs). `test_integration`, `test_strict_json` and
+    `test_ingress_bounds` need the container's install (root, `/etc/claude-code`, the vendored SDK) and can't run on
+    the laptop; Control base ran them green on both heads (below).
+  - `e3013438` (`main` at `d0b91522`: #93, Chrome qualification follow-ups for #79; #96, the owner channel test).
+    `main` had moved while run 43949622638 ran, and the pull request conflicted, so the push of `be85eeb9` started no
+    workflow. **One conflict, `control/aresos_control/chrome/adapter.py`, in `pending_state`:** the branch runs that
+    check inside the call's deadline (step 10: `with self.bridge.bounded(deadline.look())`, the body one level
+    deeper), and #93 replaces the record the projection reads
+    (`self.committed.get('chrome:qualification', …shipped)` becomes `self.qualification.record()`, #79 O1). Kept
+    both: the branch's block with #93's line and comment inside it. The merged file's change lines against the
+    branch head are exactly `main`'s change lines against the merge base (`git diff HEAD`, read line by line); #93's
+    other hunks (`mode`, `maintenance`) merged by themselves. On the merged tree: `generate.py --check` "Generated
+    artifacts match definitions", and `test_engine test_qualification test_qualification_service
+    test_qualification_fixture test_outline_time test_outline_action test_questions test_publisher test_policy
+    test_sites test_bridge test_unit test_efficiency test_credentials`: 282 tests, OK.
+- **Group 14's password cases** (`f667d93e`, `be85eeb9`): `control/chrome/ci/unread-fixtures.mjs` (the pages, served as
+  `case=password-unread`, which group 7's recording already covers by its address rule) and
+  `control/chrome/ci/unread-matrix.mjs` (three named cases). Every result of every read is checked for group 7's
+  known password before anything else is looked at.
+  1. **`GROUP 7 BRIEF28 fields made plain before the reader came stay unread in every root and frame`**
+     (`password_exclusion`). The owner opens the page himself and the tab is taken, not reloaded.
+     - **Made plain:** nine fields labelled "Code", each holding the password: `type` changed from `password` to
+       `text`, `search`, `email` and `url`; `autocomplete="current-password"` removed; a mask removed as a style and
+       as a class, on an `input` and on a `textarea`. Each in the page, an open root, a closed root, and the same
+       three in a frame of the second site: 54 fields. The new read shows 54 times `"Code" (filled, not read)` and
+       nothing else named Code; brief 20's `chrome_read` has 54 rows with `value_status: filled` and no value.
+     - **The sign-in code known by its name** (`name="otp"`, a label "Verification code", no `autocomplete`) **and the
+       name rule:** an editable area labelled "Password", a `textarea` named `secret_value`, one labelled "Recovery
+       phrase", one labelled "Private key"; an editable area and a `textarea` masked right now. Each is a `password …
+       (not read)` line in the new read and `password: true` without a value in brief 20's.
+     - **What an unwatched document shows:** `text`, `search`, `email`, `url`, `tel`, `number`, an unknown type and a
+       `textarea` show `(filled, not read)`, an empty `input` and `textarea` `(empty)`, and none of their eight values
+       is in anything either read returned; a date, a ticked box, a radio choice, a range, a colour and a chosen
+       option keep their values; an editable area's draft is read whole.
+     - **The limit, shown honestly:** the editable area that was masked by a style, is labelled "Value" and was
+       unmasked before the reader came **is read** (it holds `LIMIT_UNMASKED_EDITOR_28`, not the password, because
+       the case asserts that it is read); the `textarea` with the same history shows `(filled, not read)`.
+     - **Every surface:** the outline, `full` by pages, four forms by `ref`, `find` and `until` for parts of the
+       password (never met), two tabs in one call; brief 20's `chrome_read`, `chrome_find` and `chrome_read_form`.
+     - **A watched document:** the same page in a tab Claude opened: no "Code" field shows a value, the named ones
+       are password lines, and a plain field is read.
+     - **After the tab's reload**, on the probe page (JUDGMENT-CALL 4): before it the plain, unnamed field "Note"
+       shows `(filled, not read)`; after it `"Note" = "PUBLIC_NOTE_28"` is read, the field named `otp` still isn't,
+       and no field that was a password field shows its value.
+     - **The recording** (group 7's): no line of `browser-boundary.jsonl` (what the content script's own reads
+       returned, every reply and event the extension handled), `tool.jsonl` or `service.txt` holds the password; a
+       public value of the page is in the recording, so it is known to have covered these pages.
+  2. **`GROUP 7 BRIEF28 a shadow root met late and the name rule keep secrets unread in a watched document`**
+     (`password_exclusion`). In Claude's tab, `<late-box>` is upgraded after the load (`customElements.define` through
+     the fixture's change channel) and attaches a closed root to an element that was already there. **The owner types
+     the password with real keys** (`xdotool`) into the field labelled "Password", the one labelled "Code" and a
+     `textarea`; Enter makes each plain. The page reports only how many fields hold text and that the keys were
+     trusted. Nothing reads the tab in between, so the next read is the reader's first meeting with the root:
+     - "Password" is a `password … (not read)` line (its name); "Code" and the `textarea` "Notes" are
+       `(filled, not read)` (they held text at the first meeting);
+     - "Comment", empty at that meeting, has no mark; Claude fills it, and `"Comment" = "PUBLIC_COMMENT_28"` is read;
+     - `chrome_fill_form` on "Code" is refused (the case accepts the code `owner_signin` or the reader's words "does
+       not type into it either"; I didn't read which the run returned);
+     - before the root exists, the page's named fields (the same seven as above) are password rows in a watched
+       document: the name rule in a document the reader watched from its start;
+     - every surface and the recording, as in case 1.
+  3. **`GROUP 3 BRIEF28 a form holding an unread field is refused unasked for a click Enter and a page submission`**
+     (`binding`), with the receiver's log. The late root holds a form: a draft the owner typed before the meeting, an
+     empty second field, Send.
+     - A click on Send, Enter in the second field (`chrome_press`), the click again after an **approved asking read**
+       (`chrome_prepare_read_typed_fields` lists "Draft", `chrome_read_typed_fields` returns it once), and the click
+       again after the draft's text changed: each answers "This form holds unread typed text; send it yourself…",
+       holds no approval and nothing of the draft, the receiver has no arrival, and no reserved operation of that
+       page exists that `chrome_submit` could run.
+     - **The same form with group 7's known password field** in the draft's place asks, sends once after
+       `chrome_submit`, and nothing more on a second `chrome_submit`; its question holds no password.
+     - **A form prepared while every field was readable**, into which the page moves the late root's filled draft
+       while the approval waits: `chrome_submit`, twice, ends without `done`, without a new question and without the
+       draft's text; the receiver stays at zero.
+     - **A submission the page starts from a click handler** (`requestSubmit` on the late root's form): the click's
+       result carries the same message and no approval, the receiver has nothing, nothing waits. It is the case's
+       last step (see "What the code doesn't show").
+- **Step 11's read cases are named cases now** (`outline-read.mjs`, `outlineReadMatrix`; step 11's JUDGMENT-CALL 5),
+  the same assertions under `check`: `GROUP 7 BRIEF28 the new read holds no password in any form of read`
+  (`password_exclusion`), and five beside brief 20's FEATURE and VIEW cases (`SUPPORT`, which gates every core
+  verdict): `READ BRIEF28 two tabs of one page share no reference and find with role returns its one link`, `… paging
+  joins whole and a cursor keeps its query`, `… typing moves the state token and until meets a value`, `… frames of a
+  second site and shadow roots are read`, `… addresses hold no sign-in and show an ordinary query`. A case that opens
+  tabs closes them also when it fails. The four time cases stay where they were, outside the inventory.
+- **Where they run:** at the end of the core block of `matrices.mjs`, after `GROUP 9 …` and before `GROUP 7 no
+  listening port after tool suite`: first the read cases, then the three password cases. `shards.mjs` and
+  `verdicts.test.mjs` count the two files into the core inventory; `site-results.test.mjs` takes `SUPPORT` from
+  `verdicts.mjs` instead of its own copy of three names. No core group was added and the record's format is
+  unchanged: `verdicts.mjs` grew by four names in group 7, one in group 3 and five in `SUPPORT`.
+- **Tests without a browser:** `control/chrome_tests/unread-fixtures.test.mjs` (5): the pages as the fixture server
+  serves them (the late ones with the change channel, unknown ones 404); every page script compiles; the plain page's
+  script run against a small document (nine kinds in three roots, each made plain one task later, the report after
+  it; the probe page holds no password); what the late pages hold; the three case names where the brief puts them.
+  480 of 480 Node tests pass in every fixtures shard.
+
+### The mutation checks
+
+- **In the browser, in the run itself** (case 1's last part; JUDGMENT-CALL 3). The probe page holds the same nine
+  fields in three roots with `MUTATION_PROBE_VALUE_28` in place of the password, in a taken tab before its reload.
+  Read with the history rule as built: 27 times `"Code" (filled, not read)`, the value nowhere. Read with the rule
+  switched off for that page in the test build (`prepare.mjs` rewrites `unknownHistory` for a page whose own address
+  carries `unprotect=history`; exactly one match, checked): 27 times `"Code" = "MUTATION_PROBE_VALUE_28"`, no
+  `(filled, not read)` left. So that one line is what keeps these fields out, and case 1's counts would have moved
+  without it. On the same two pages the field named `otp` holds the probe value and stays `password … (not read)`:
+  the name rule doesn't depend on the history rule. **Passed in both core shards of run 43973010529 and in
+  qualification 43973010469.**
+- **Python, locally:** `refuse_withheld_form` made to refuse nothing (`if False and …`): `test_questions` fails 2 of 34
+  (`test_post18df_form_with_withheld_values_refuses_before_reload_or_preparation`,
+  `test_post18df_form_added_withheld_field_and_changed_value_cannot_use_waiting_approval`). Restored from a copy;
+  `git status` showed no change to the file.
+- **Inside the cases, a field that differs only by the protection:**
+  - case 2: "Code" and "Comment" stand in the same late root, both plain text inputs at the first read; the one that
+    held text at the meeting is unread and the one that was empty is read. Only the late mark (`meet`) tells them
+    apart;
+  - case 1: the "Value" editable area and the "Value" `textarea` have the same history; the editable area's text is in
+    the result (so a value on that page does reach the result and the scan), the `textarea`'s isn't;
+  - case 3: the same form with a known password field sends once through the same click, so the receiver's zero for
+    the unread draft isn't a form that can't send.
+- **The inventory:** `verdicts.test.mjs` (unchanged tests) fails for every required name that is missing or failed,
+  the new five among them, and when a `check` name in the core files isn't in the lists.
+- **Not mutated in a browser:** the late mark by itself (`meet`), the credential words, the typing refusal and the
+  adapter's refusal. Their own tests are step 6's (`outline.test.mjs`, `reader.test.mjs`, `test_credentials.py`) and
+  `test_questions.py`.
+
+### Runs
+
+| Head | Holds | Control Chrome | Result |
+|---|---|---|---|
+| `f667d93e` | the first merge, the cases | 43949622638 (qualification 43949622600); Mail 43949622929, base 43949622849, boundary 43949622523, privacy 43949622634 | **Red, one cause, mine.** Both core shards: every case of brief 20, the four time cases and the six read cases passed; case 1 failed at its reload step. Brief 20 refuses to reload a taken tab whose page holds a frame with an unknown request method ("this document was loaded by a form submission or its request method is unknown; open its address fresh in a Claude tab"). Everything of case 1 before that step had passed; cases 2 and 3 didn't run. All other jobs green; Mail, base, boundary, privacy green. Qualification red, not read further (its core pairs run the same case). |
+| `be85eeb9` | + the reload on the probe page | none | No workflow: the pull request conflicted with `main` (#93). |
+| `e3013438` | + the second merge | 43973010529 (qualification 43973010469); Mail 43973010616, base 43973010657, boundary 43973010508, privacy 43973010609 | **First attempt: 26 of 28 jobs green; `fixtures (external, review)` red, and with it `aggregate (external)`.** Both core shards green with all ten new named cases (external: the read cases 1 min 19 s, case 1 34 s, case 2 20 s, case 3 2 min 15 s). Qualification green, 34 of 34, with the new cases in its core pairs. Mail, base, boundary, privacy green. **Second attempt (`--failed`, once): `fixtures (external, review)` green; both `aggregate` jobs red, by the workflow's construction** (below). |
+
+**The red review job is a timing flake of brief 20's case, not this step's code** (the lead asked for the call):
+`GROUP 2 REVIEW borrowed wrappers respect another controlled tab and an ordinary document` failed at
+`review-matrices.mjs:146`, the second click on the other tab's "Ready" (`stale_reference`, "Page changed; read again
+before acting"). The case reads that tab again right after the refused first click and doesn't wait for the guarded
+reload to commit, so the click can meet a page that changed under it. This step's cases run only in the core shard.
+What every shard got from it (the test build's switch in `prepare.mjs`, the fixture's new page) was already in run
+43949622638, where this job passed; the policy run of the same group passed on this head; two runs of other
+branches whose heads hold #93's Chrome code passed it (43924307413 on `fix/79-followups`, 43971997951 on
+`briefs/20-restore-lock-followups`). Rerun once
+(`gh run rerun 43973010529 --failed`): the same job on the same code passed. The fix would be to wait for the other tab's document to change before the
+second click, as `browser.mjs` does for the first taken tab; not changed here (brief 20's case).
+
+**No attempt of 43973010529 is green as a whole, and a rerun of failed jobs can't make one.** The `aggregate` jobs
+download their shards by run **and attempt** (`control-chrome-<run>-<attempt>-<install>-*`, `control-chrome.yml`). In
+attempt 2 only the rerun review shard has such an artifact, so `aggregate (external)` found 1 of 9 shards and
+`aggregate (policy)`, rerun as a dependent, none. Every other job is green in one of the two attempts, and the
+qualification run on the same head is green with the same inventory, review shard and aggregate included. A wholly
+green Control Chrome run on this head needs a full rerun (`gh run rerun 43973010529`, all 28 jobs) or the next
+push's run; I started neither (the lead asked for one rerun of the failed jobs).
+
+Fifteen full `control-chrome` runs started so far by this file's count (the lead's message calls 43973010529 run 14).
+
+### Left, in order
+
+1. **Step 13, first: group 14's reference cases** (the brief's "References that can't collide"; each first makes sure
+   new references exist):
+   - Chrome restarted, and separately only the extension's connection cut: every reference from before refused,
+     none of the new strings equals an old one;
+   - the service restarted: every reference from before refused although the new counter has passed the old numbers;
+   - more than 5,000 elements read in one tab (H1 `mode=many`): a dropped reference is refused and its string isn't
+     issued again;
+   - a tab released and taken again without a reload: a reference from before is refused although the document id
+     and the reader's element id are the same.
+   Where: named cases in `outline-read.mjs` (`READ BRIEF28 …`, registered in `SUPPORT`), which already has
+   `referencesOf` and runs right after `GROUP 9`; pass it `lifecycle` and `restoreControl` from `matrices.mjs`
+   (`lifecycle('kill_chrome')`, `'start_chrome'`, `'kill_host'`, `{fixture:'kill_service'}`, `{fixture:'start_service'}`,
+   as `GROUP 9` uses them). After a restart the driver's tab is an owner-opened page: take it and navigate with the
+   tool, never reload a page with frames (JUDGMENT-CALL 4).
+2. **Step 13, then** (step 11's list, unchanged): paging (100,000 characters by `ref` at `max` 1,000, a row wider
+   than `max`, a value of 20,000 characters, non-ASCII and quote pages inside 48 KiB with a pending operation and the
+   notice, five tabs); the state token (a change inside a frame, 100 polls of an unchanged page, `until` on a page
+   that never goes quiet); H1 (the hostile roles, the hostile text in every place, the 100,000-character name); the
+   asking read's cases on the taken, not yet reloaded tab (case 3 above already shows the asking read listing and
+   returning a late root's field in a Claude tab); the expected outlines of the small fixtures from a green run's
+   `/out/outline-read/`. Register each as a named case (`SUPPORT`; the asking read's in group 7).
+3. **Step 14:** the latency comparison into `efficiency-baseline.json` from a green run of the final head;
+   `HARNESS-MAP.md` (steps 6 and 7's notes and the one below); `KNOWN-LIMITS.md` (the lists of steps 1, 6 and this
+   one); the report; green twice on the final head.
+
+### What the code doesn't show
+
+- **The new cases run in every run of the inventory,** the qualification workflow's included (its pairs set
+  `RUNTIME_COMMIT`). They need a runtime with this package's reader and `chrome_outline`, which `run.sh` switches on in
+  both workflows. `control/chrome/builds.json` lists no shipped build, so the head is the only runtime today; an older
+  runtime could not pass this driver anyway (its Node tests are the driver's).
+- **A failing case still ends its shard** (`failBrowserCase` throws). The new ones stand last, so a failure there
+  hides none of brief 20's cases; step 11's read cases moved from the start of the core shard to its end for the same
+  reason.
+- **The keyboard.** Before the owner types into the late root, the case releases the tab, lets the owner navigate it
+  (which puts the keyboard into the page), takes it and navigates with the tool. That is the order the "typed by the
+  owner" reload case of brief 20 uses.
+- **The late root's meeting depends on nothing changing the page between the upgrade and the read.** The fixture
+  reports through `fetch` only. If something did change the light DOM in between, "Code" would be a password line
+  (seen as a password field) and the case would fail on its `(filled, not read)` count, not pass.
+- **The page-started submission stays queued in its document.** The case checks the click's result, the receiver and
+  that nothing waits, and makes no further call on that tab. What a later read or step on such a tab answers is not
+  covered by any browser case (the unit tests cover the refusal in `steps`).
+- **Case 3 takes 2 min 15 s.** Not measured where; my guess is the looks for a waiting operation, each of which asks
+  `chrome_operation_status` for every reserved Chrome operation earlier cases left.
+- **The test build's switch reads the page's own address,** top document only, and exists only in
+  `.work/20-instrumented-extension`; a runtime without that exact line (the latency pair's old one) gets none.
+- **`find` and `until` name parts of the password, never the whole,** so no request can put it into a log the scan
+  reads (as step 11's case).
+- `/out/unread-fields.json` in the core shard's artifact holds the refusals' results and the first 40 lines of the
+  taken tab's and the late root's outlines.
+
+### JUDGMENT-CALLs (technical; for the lead)
+
+1. **The password cases are required cases of groups 7 and 3 and run in every run,** the qualification's too. Cost to
+   change: the names in `verdicts.mjs` and two lines in `matrices.mjs`.
+2. **Step 11's read cases: the password one in group 7, the other five in `SUPPORT`,** which is how FEATURE and VIEW
+   are registered; the time cases stay outside. Cost: names in two lists.
+3. **The mutation check runs inside the green run, through a switch in the test build** (`prepare.mjs`), on a page
+   that holds no password. Rejected: a pushed broken commit (a full red run for each mutation and a broken head
+   meanwhile), and a second Node test on the reader's doubles (it would test the doubles, not the browser case). The
+   shipped reader is untouched. Cost to remove: five lines in `prepare.mjs`, the probe page, about twenty lines of
+   case 1.
+4. **"After the tab's reload" runs on the probe page, which has no frame.** The full page is shown watched from its
+   start in a tab Claude opened, which is what brief 20's refusal tells Claude to do. Cost: none to keep; a reload of
+   the framed page needs brief 20 to know a frame's request method in an owner-opened page.
+5. **Real keys only where the brief names them** (the late root). The fields made plain carry their value in the
+   markup, the editable area's draft too, and the "owner's" later change of the draft is the page's script. Cost: a
+   few `ownerType` calls each.
+6. **The limit's editable area holds a marker, not the password:** the case asserts that it is read, and the password
+   in a result would fail every scan of the run.
+7. **A second `chrome_submit` after the moved field is only required not to send, not to ask and not to show the
+   draft;** the case doesn't pin which refusal brief 20 gives (the brief names its comparison, the code reaches the
+   withheld-form refusal first).
+
+### PLAN-GAPs
+
+1. **The brief's "after the tab's reload a plain, unnamed text field of that page is read"** can't be done on the page
+   it describes: that page has a frame of another site, and brief 20 refuses to reload it in a taken tab
+   (JUDGMENT-CALL 4).
+2. **"Stays stopped"** for a page-started submission is checked only as far as the click's own result (see "What the
+   code doesn't show").
+3. **`prepare.mjs` changes the reader in the test build.** "The reader's password rule only gets stricter" is about
+   the shipped extension, which is unchanged; said here because the file is the reader's.
+
+### For `HARNESS-MAP.md`
+
+- No assertion of a brief 20 case changed in this step, and none of the four exceptions moved a test.
+- Lists that grew: `verdicts.mjs` (`REQUIRED[3]`, `REQUIRED[7]`, `SUPPORT`), `shards.mjs` (the core files),
+  `verdicts.test.mjs` (its copy of the support names and its file list), `site-results.test.mjs` (takes `SUPPORT` from
+  `verdicts.mjs`).
+- `browser.mjs` no longer runs the read cases before the matrices; `matrices.mjs` runs them and the password cases
+  at the end of the core block. `fixture.mjs` serves `case=password-unread` and gives its late pages the change
+  channel. `prepare.mjs` has the test build's switch.
+
+### Known limits found (for `KNOWN-LIMITS.md`)
+
+- **An editable area whose mask was taken off before the reader came, and whose label doesn't name it, is read**
+  (section 6 has it; the owner's choice, board #216). Case 1 shows it on purpose. *Harm:* a secret he un-hid in such an
+  editor reaches Claude. A `textarea` with the same history is not read.
+- **A taken tab whose page holds a frame can't always get its reload from the tool** (brief 20's rule, met here):
+  when the extension doesn't know a frame's request method, the reload is refused and Claude is told to open the
+  address fresh. *Harm:* Claude can't act in that tab of his; it works in a tab of its own. Nothing is read or sent
+  that shouldn't be.
+- **A submission the page starts for a form with an unread field stays stopped in that document.** *Harm:* the form
+  isn't sent until the owner sends it or the page is loaded again; nothing is sent unasked.
+
 ## The lead after step 11 (2026-11-16)
 
 - **Run 13 is green:** Control Chrome 43919373436 (28 of 28 jobs; group 16's six read rows within budget and better
