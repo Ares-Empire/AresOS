@@ -1,10 +1,12 @@
 # 43 design note: the `aresos` command
 
-Empire brief 296. Written 2026-11-15 on main `4d23b408` by a Claude agent on Fable 5.2 (the lead's choice: a new design for a tool that decides which installed system is replaced). Revised 2026-11-16 after review 1 (`REVIEW-1.md`, READY WITH CHANGES) by a fresh Claude agent on Fable 5.2 that wrote neither the note nor the review. Revised again 2026-11-16 after review 2 (`REVIEW-2.md`, READY WITH CHANGES) by another fresh Claude agent on Fable 5.2 that wrote neither the note nor the reviews. The last two sections map each finding to what changed. A design note only: it changes no tool, test, guide or workflow.
+Empire brief 296. Written 2026-11-15 on main `4d23b408` by a Claude agent on Fable 5.2 (the lead's choice: a new design for a tool that decides which installed system is replaced). Revised 2026-11-16 after review 1 (`REVIEW-1.md`, READY WITH CHANGES) by a fresh Claude agent on Fable 5.2 that wrote neither the note nor the review. Revised again 2026-11-16 after review 2 (`REVIEW-2.md`, READY WITH CHANGES) by another fresh Claude agent on Fable 5.2 that wrote neither the note nor the reviews. The change sections map each revision. A design note only: it changes no tool, test, guide or workflow.
+
+Revised 2026-11-17 after review 3 (READY), the owner's answers of 2026-11-16 and the lead's decisions; calls 1 and 2 have new proposals awaiting his OK.
 
 Made by reading code. No owner tool, `sudo`, ostree, bootc or rpm-ostree command ran, and no window was opened. The first revision ran one Python check as `ares` in an empty scratch folder (fact 10). The second ran three, as `ares`, in a scratch folder outside the repository, with bytecode off and nothing left behind: main's `owner.py` imported as a library for `Tools.outcome` on made-up deployment lists (no tools entry ran); D18's directory layer and its `-I` layer, each without the other; and `pgrep -x` on a script started through its `#!` line.
 
-**References.** No prefix is main. `22d:` is package 22d's tree, on main since `634e1237`; its line numbers were checked again on main at `937a1868`, where the tools, the guides and 22d's files are the bytes the note was written against, and for the second revision at `52d13cb7`, where `os/`, the guides and the workflow are byte-identical to `937a1868`. `18c:` is `origin/pkg/18c-image` (PR #58), checked again at `986192c3` and for the second revision at `dada7a9b`. `owner.py` is `os/owner-tools/owner.py` throughout.
+**References.** No prefix is main. `22d:` is package 22d's tree, on main since `634e1237`; its line numbers were checked again on main at `937a1868`, where the tools, the guides and 22d's files are the bytes the note was written against, and for the second revision at `52d13cb7`, where `os/`, the guides and the workflow are byte-identical to `937a1868`. This branch still stands on `4d23b408`; references added or changed on 2026-11-17 were read with `git show origin/main:<path>` at `dcbdabe9`. `18c:` is `origin/pkg/18c-image` (PR #58), checked again at `986192c3` and for the second revision at `dada7a9b`. `owner.py` is `os/owner-tools/owner.py` throughout.
 
 **Words.** *Inner word*: a word of `/var/lib/ares/at`. **N**: the newest installed AresOS (`newest()`, `owner.py:756`). **T**: the release the installed tools carry (`owner.py:1790`); it is last in their history, so when T is installed, T is N. *Runs* and *starts next* are the title's words: the booted deployment and the first one in the list. *Announcement*: a first line of `newest` that starts with `Update:` and says what the run is about to change.
 
@@ -19,12 +21,12 @@ Made by reading code. No owner tool, `sudo`, ostree, bootc or rpm-ostree command
 | D5 | `aresos update` runs `newest` and nothing else. The dispatcher has no row that reaches the inner `update` or `forward`, and prints no line that names them. |
 | D6 | Nine words work from the desktop: `update`, `previous`, `rollback`, `check`, `title`, `records`, `logs`, `export`, `reboot`. Nine are refused with one line that names where they work. |
 | D7 | One password window per `aresos` word, by 22d's mechanism unchanged. No sudoers rule, polkit action or service. |
-| D8 | The window's line is `AresOS: <fixed phrase>`, without a fingerprint. His rule has three conditions; the 8-character compare stays for new tools only. |
+| D8 | The window's line is a fixed phrase without a prefix or fingerprint. Its own character rule is in section 3. His rule has three conditions; the 8-character compare stays for new tools only. |
 | D9 | A root-owned helper closes an unanswered window after 10 minutes. The dispatcher becomes `sudo` (exec), so nothing sits between Claude and it. |
 | D10 | The dispatcher is one Python file, `os/config/usr/bin/aresos`: a pure `plan()` and an exec. It is not a security boundary. |
 | D11 | It starts `sudo` with an environment built from nothing: fixed values, his account's own name and home, and the variables that say where the screen is. |
 | D12 | Control's wrapper moves unchanged to `/usr/libexec/aresos-control/cli`; every first word that is not a tools word goes there unchanged. `newest` joins Control's reserved words, and a test holds the three word sets equal. |
-| D13 | "Nothing to do" and "newer tools would bring a newer release" are one state to the tools: one message, which prints the tools' version line. A different line on GitHub is not a go: Claude tells him and waits for the announcement. |
+| D13 | "AresOS is up to date" means the latest version these tools know. Their history and release records carry each release's number, printed as `AresOS <n>`. Row 8 also prints the tools' version line. A different line on GitHub is not a go: Claude tells him and waits for the announcement. |
 | D14 | The guides gain one box in front of the console boxes, which do not change; the emergency card gains four sentences. |
 | D15 | Proof: unit tests; the model with the new word and four new judgments; one check build for the image files; one VM run of 43's own for the tools; the dispatcher's stages ride R29's release rehearsal. |
 | D16 | In the image: two `os/config` files and Control's moved wrapper, explained by the release diff's existing rules; the helper's package version is pinned. |
@@ -42,7 +44,7 @@ Made by reading code. No owner tool, `sudo`, ostree, bootc or rpm-ostree command
 4. **An interrupted staging** in the same boot is `update`'s to continue; every other word stops and names it (`outcome`, `:1287-1341`).
 5. **What needs a terminal or the console in code:** `login` (a hidden prompt, `:1714`), `layout` (`Tools.session()`: the physical tty3/tty4 login of `ares-recovery`, `:2078-2110`), the tools update on the stick route (`:2593`) and the first install (`:2761`). Every other word requires only root (`:2888`); the guides alone route them to the console (22d's N10, `briefs/22d-tools-without-stick.md`).
 6. **The tools are root-only** (`/var/lib/ares`, 0700, `owner.py:2918-2919`). A program of `ares` cannot read what is installed, which toolset is current or its fingerprint.
-7. **`/usr/bin/aresos` is an image file.** Plain Bazzite and every AresOS before R29 have no dispatcher, and plain Bazzite has no `ares` account at all (`os/release/stock-session.sh:3`). There the full path at the console is the only route, as today.
+7. **`/usr/bin/aresos` is an image file.** Plain Bazzite and every AresOS before R29 have no dispatcher, and plain Bazzite has no `ares` account at all (`os/release/stock-session.sh:3`). Today the full path at the console is the only route there. Section 4's planned bridge supplies just three words from Claude's terminal before R29, without a dispatcher.
 8. **The password window proves that he approved a root command now, not which** (`22d:reviews/22d-tools-without-stick/DESIGN.md`, section 1). The caller sets the line inside; the title bar is the helper's own, "Enter SSH Credentials" (`22d:reviews/22d-tools-without-stick/STEP-0.md`). `ares` has `timestamp_timeout=0` (`os/config/etc/sudoers.d/aresos-everyday:5`, required by `os/ci/image-checks.sh:31`).
 9. **What 22c's reviews found** with both jobs in one word: the guide's "follow it" led from a return into a staging that nobody had announced (`reviews/22c-ways-back-after-update/REVIEW-4.md:8-9`). The cure there was one word per meaning, held by the model on every edge (`os/tests/test_ways_back_model.py:266-279`).
 10. **A root step reads Python modules from the directory it was started in.** `at` starts `owner.py` with `-I` but never changes directory (`os/owner-tools/at:10`). Each release step is a `bash -seu` with the inherited directory (`owner.py:377-379`). The steps' own Python starts as `python3 - <<'…'` without `-I` (`os/release/update.sh:4`, `start-next.sh:6`, five more starts in the payload's scripts, and `owner.py:1426`), and for a script on stdin Python puts the current directory first on its module path. `sudo` keeps the caller's directory (22d's step 0: `PWD=` of the caller in its journal line). Tried on the laptop's Python 3.14.8 as `ares`, in an empty scratch folder holding a marker-writing `json.py`: `import json, subprocess` from `bash -seu -c 'python3 -'` ran that file; with `python3 -I -` it did not.
@@ -69,14 +71,14 @@ Made by reading code. No owner tool, `sudo`, ostree, bootc or rpm-ostree command
 |---|---|---|---|---|
 | 0 | The survey itself stops (a list outside the reviewed set, a journal that fits neither list, a Bazzite update waiting) | Nothing | None; the STOP as it is | STOP |
 | 1 | No AresOS is installed | Nothing | None | STOP `NOT_INSTALLED`, as `forward` says today |
-| 2 | **This run's own survey** has just closed an update's journal as **not applied** (an update that did not finish at shutdown; `:1327-1330`) | Nothing more in this run | The survey's line, at once; then `Nothing changed: the last update did not finish …` | PASS |
-| 3 | An interrupted staging stands open in this boot and **is staged already** (`complete`); only its record is missing | Records it with the inner `update`. This run stages nothing | `Update: the interrupted update … is staged already; recording it`, then what it removes at shutdown | The inner word's |
-| 4 | An interrupted staging stands open in this boot, **nothing is staged yet** (`retry`), and N runs | Stages it again with the inner `update`, under the guard | `Update: continuing the interrupted update …` | The inner word's |
+| 2 | **This run's own survey** has just closed an update's journal as **not applied** (an update that did not finish at shutdown; `:1327-1330`) | Nothing more in this run | The survey's line, at once; then `The last update did not finish, so nothing changed. See Help before trying again` | PASS |
+| 3 | An interrupted staging stands open in this boot and **is staged already** (`complete`); only its record is missing | Records it with the inner `update`. This run stages nothing | `Update: AresOS <T> is already downloaded and ready. Saving the record of the interrupted update. Restart to finish`, then what it removes at shutdown | The inner word's |
+| 4 | An interrupted staging stands open in this boot, **nothing is staged yet** (`retry`), and N runs | Stages it again with the inner `update`, under the guard | `Update: continuing the interrupted update to AresOS <T>. Restart to finish` | The inner word's |
 | 5 | The same as row 4, but an older AresOS runs (the staging was begun there with the inner `update`, #263) | Nothing | None | STOP, a line of its own |
-| 6 | **A change waits for the restart** (`pending`: an update is staged, or a `previous`, `rollback` or `forward` of this boot is in place and its target does not run yet) | Nothing | `Nothing to do now: …`, which says what waits | PASS |
-| 7 | N runs and starts next; T is not installed | Installs T with the inner `update`, under the guard | `Update: installing the new AresOS release …` | The inner word's |
-| 8 | N runs and starts next; T is installed (it is N) | Nothing | `Nothing to update: …` | PASS |
-| 9 | **N starts next and another system runs** (a boot-menu start, or a forward whose restart landed elsewhere) | Nothing | `forward`'s own two lines: `… already starts next; nothing changed`, `It does not run yet: it starts at the next restart` | PASS |
+| 6 | **A change waits for the restart** (`pending`: an update is staged, or a `previous`, `rollback` or `forward` of this boot is in place and its target does not run yet) | Nothing | A line that says what is ready and `Restart to finish` (section 5) | PASS |
+| 7 | N runs and starts next; T is not installed | Installs T with the inner `update`, under the guard | `Update: installing the latest version, AresOS <T>. Restart to finish` | The inner word's |
+| 8 | N runs and starts next; T is installed (it is N) | Nothing | `AresOS is up to date (AresOS <N>)` | PASS |
+| 9 | **N starts next and another system runs** (a boot-menu start, or a forward whose restart landed elsewhere) | Nothing | `AresOS <N> will start next. Nothing changed`; `It is not running yet. Restart to finish` | PASS |
 | 10 | **N does not start next**: another system runs, or N itself runs while another system starts next | Goes forward with the inner `forward` | `Update: …`, worded by what runs (three wordings) | The inner word's |
 
 - The table is complete: the survey either stops (row 0) or returns a journal state; `retry` and `complete` are rows 3 to 5, `pending` is row 6, and every other state (none, `applied`, `done`, `elsewhere`) falls into exactly one of rows 7 to 10 by where N stands.
@@ -87,7 +89,7 @@ Made by reading code. No owner tool, `sudo`, ostree, bootc or rpm-ostree command
 - **Row 6 comes before rows 8 to 10** on purpose. It is the state right after every update, when the word is most likely run again; as first written, the rule fell through to "go forward" there, announced a newer AresOS that does not exist and then refused (review 1, B1). No word can undo a queued return before its restart (`may_change`, `:1628-1631`); row 6 says so and what the word does after the restart.
 - **Row 2: a failed update is not repeated in the run that finds it.** The survey closes the journal and notes one line that shows only once. Staging again in the same run would repeat the update without anyone deciding, against the card ("Help decides each repeat", `docs/EMERGENCY.md:23`, `:27`), and its `was not applied` line would appear under `PASS newest` above the new staging's lines, as if it were about the new attempt. So this run only says it. A reorder's journal closed as not applied (a cut `forward`) does not stop the run: its line is printed first, then the table goes on.
 - **Row 2 holds for one run, and only when `newest` is the word that finds the failed update** (review 2, S1). Every word that reads the list makes the same survey and closes the journal: `check` (`:1989`), `title` (`:1532`), `records` (`:1568`), `reboot` (`:1976`) and the reorder words (`survey`, `:1600-1606`). Once any of them has shown `was not applied`, no journal is open, and the next `newest` goes by where N stands: on N with T not installed it is row 7, which announces the install and stages again in that very run. The card puts `check` first, so that is the usual order. Checked with main's `Tools.outcome` on a made-up list with a staging journal from an earlier boot: the first survey returns nothing, notes the line and archives the journal as `not-applied`; the next survey, with `retry='update'`, returns nothing and has no note. After row 2's own run the same holds: the next `newest` acts.
-- **Row 3 on an older AresOS** (the inner `update` at the console staged T there and was cut before its record): recording changes nothing on the disk and lets every other word work again, so `newest` records it. It prints the two lines about the newer AresOS that this path of the inner word does not print (`:1791-1795`): that it is removed at shutdown, and that the new release starts with this system's settings and not the newer one's (the inner word's own sentences, `:1845-1849`; review 2, N7).
+- **Row 3 on an older AresOS** (the inner `update` at the console staged T there and was cut before its record): recording changes nothing on the disk and lets every other word work again, so `newest` records it. It prints the two facts about the newer AresOS that this path of the inner word does not print (`:1791-1795`): that it is removed at shutdown, and that the latest version starts with this system's settings and not the newer one's (`:1845-1849`; review 2, N7). Section 5 gives these added lines plain words and release numbers; the inner word's lines stay as built.
 - **Row 5:** `newest` never stages from an older AresOS, also not to continue what the inner `update` began there. Its line: `The update to <reference> was begun on an older AresOS and interrupted; this command does not continue it; nothing changed; do not reboot; get help: EMERGENCY Failed or bad update`. It names no restart and no command.
 
 **D21: after an update that did not finish, the tools tell once and remember nothing; the rule that guards the repeat is Claude's** (was JUDGMENT-CALL 7; the lead's decision after review 2, 2026-11-16).
@@ -174,11 +176,11 @@ So a unit row may show an announcement and then one of these refusals. What must
   - where it has not (releases 13 and 27): `foot`, as today.
   Exactly one of the two is asked, by what the running image holds, never either. The protection stays: a session that never reached its own program still fails.
 - **When the keeper has given up, `check` stops, and says so in a line of its own** (review 2, N3). That is a true result, in the state where a bad update is most likely, and `Read failed: pgrep -u ares -x aresos-desktop` would read like a fault of the tools. So this one read accepts "none found" (`pgrep`'s exit 1) and stops with: `The desktop's own program (aresos-desktop) is not running for ares: the session did not start it, or it gave up after repeated failures. This is about the running session, not about the tools; nothing was changed`. The line names no next command, because the routine after a STOP allows none (section 6). The read of `foot` on releases 13 and 27 stays as built. The guide's box says how Claude reads the line.
-- **Why by the image's file and not by a field in the release record** (the review's first option): the file is part of the signed image whose digest `check` has just matched against the history, so it says what a record would say, and `stock-session.sh:8` already reads a session file this way. A new field would change the history's strict form (`owner.py:163`), with which every installed bundle's history is read (`:175-184`), for one fact the image states itself.
+- **Why by the image's file and not by a field in the release record** (the review's first option): the file is part of the signed image whose digest `check` has just matched against the history, so it says what a record would say, and `stock-session.sh:8` already reads a session file this way. There is no need for a session-program field for a fact the image states itself. D13 now adds a release number for display and changes the history's strict form (`owner.py:163`); its reader must still accept older installed histories (`:175-184`). That separate change does not change D19's choice.
 - **Why not "open a terminal first" in the guide** (the review's second option): `check` must not depend on something the hub never shows.
 - **Proof.** Unit rows for both kinds of image, each with and without its program, the new line among them; a test that the name `check` asks for is the program labwc's autostart starts (read from `os/config`) and is shorter than 16 characters; in 43's VM run one `at check` on release 28 whose saved record shows the read of `aresos-desktop` passing and no read of `foot` (section 7).
 - **How `pgrep -x` finds it** (review 2, N3; the first revision listed this as not known from reading). The kernel names a process started through a `#!` line after the script file, not after the interpreter, and `pgrep -x` compares with that name, of which the kernel keeps 15 characters; `aresos-desktop` has 14. Tried by review 2 and again for this revision, as `ares`: a script of that name with `#!/usr/bin/python3` is found by `pgrep -u ares -x aresos-desktop` and not by `-x python3`. The VM stage still shows it on the image.
-- **For the lead:** with tools version 4, `at check` on release 28 passes only while a `foot` of `ares` runs, also at the console. Until 43's tools are on the laptop, R28's guide and any session there need "open the Terminal app first" before `check` (package 42).
+- **For the lead:** with tools version 4's code (also R28's version 5), `at check` on release 28 passes only while a `foot` of `ares` runs, also at the console. Until 43's tools are on the laptop, R28's guide and any session there need "open the Terminal app first" before `check` (package 42; lead point 8 is done).
 
 ## 2. The words (D5, D6)
 
@@ -190,7 +192,7 @@ So a unit row may show an announcement and then one of these refusals. What must
 | `update` | not reachable | fact 2; from the console by the full path, as built |
 | `forward` | refused, points to `aresos update` | `aresos update` goes forward in every state where `forward` would change anything (D2, row 10); one word (#262) |
 | `previous` | yes | the way back after a bad update while the desktop works; no console check (`owner.py:1963-1969`) |
-| `rollback` | yes | the way back to plain Bazzite; valid only on a running AresOS (`:1763-1767`), which is where the dispatcher is. After its restart he is on plain Bazzite, without Claude and without `aresos` (fact 7; JUDGMENT-CALL 8) |
+| `rollback` | yes | the way back to plain Bazzite; valid only on a running AresOS (`:1763-1767`), which is where the dispatcher is. After its restart he is on plain Bazzite, without Claude and without `aresos` (fact 7; call 8 answered yes, with its two rules) |
 | `keep-stock` | refused | valid only on running plain Bazzite (`:1763-1767`), which has no `aresos` |
 | `check` | yes | reads the system and writes only the private records; needs no open terminal (D19) |
 | `title`, `records`, `logs` | yes | they read the system and write only the private records |
@@ -220,25 +222,25 @@ Run as root, or with no desktop session (neither `WAYLAND_DISPLAY` nor `DISPLAY`
 
 **D7: 22d's mechanism, unchanged.** `SUDO_ASKPASS=<helper> SSH_ASKPASS_PROMPT= /usr/bin/sudo -k -A -p '<label>' /usr/bin/bash -c '/var/lib/ares/at <inner word>'` (`os/owner-tools/bootstrap.py:106-116`). The root command keeps 22d's form (`export-routine`, `bootstrap.py:128-130`), the one rehearsed behind this window. A direct `/var/lib/ares/at …` works as well: the guide's `sudo -k; sudo /var/lib/ares/at layout proof` is typed from the non-root tty4 login and has passed in the VM since qualification 21 (`docs/INSTALL-PROCEDURES.md:18`). It would only be tidier in `sudo`'s journal, and with D18 the directory no longer matters for either, so the rehearsed form stays. One window per `aresos` word. `update`'s and `forward`'s results already end in the title's lines (`owner.py:1850`, `:1688`), so an update needs no second window for the title; the restart is its own word and its own go.
 
-**D8: the label is `AresOS: <fixed phrase>`, with no fingerprint.**
+**D8: the label is a fixed phrase, with no prefix or fingerprint.**
 - In 22d the 8 characters name what is about to be installed from Claude's hands, and he compares them once with a public line. An `aresos` word installs nothing from Claude's hands: the command behind the window is fixed in the image, and the tools it runs went in under that earlier compare.
 - To show a fingerprint, root would have to publish it where `ares` can read it, and then any program can show it too. It would add a compare to every command and prove nothing.
-- So the honest answer to "how does he know the window is AresOS's own": from the window alone he cannot (fact 8). **His rule** for these windows: type the password only when (1) he told Claude to go just now, (2) the title bar says **Enter SSH Credentials**, and (3) the line inside starts with **AresOS:** and is the line for what he asked for, as the guide lists them. Otherwise Cancel. The guide repeats 22d's limit in the same words: the window stops accidents and a Claude that acts without asking, not a Claude that was tricked.
+- So the honest answer to "how does he know the window is AresOS's own": from the window alone he cannot (fact 8). **His rule** for these windows: type the password only when (1) he told Claude to go just now, (2) the title bar says **Enter SSH Credentials**, and (3) the line is the one for what he asked for, as the guide lists them. Otherwise Cancel. The guide repeats 22d's limit in the same words: the window stops accidents and a Claude that acts without asking, not a Claude that was tricked.
 - What the image adds over 22d: the root command is a fixed short line, so `sudo`'s journal entry names exactly what each window approved (seen in `STEP-0.md`).
 
-Proposed lines (wording: JUDGMENT-CALL 1). Each matches 22d's rule `[A-Za-z0-9 ,]+: [A-Za-z0-9 ,]+` (`bootstrap.py:91-104`), matches none of the helper's 16 remembered-prompt patterns (each needs a quote or a trailing ": "; `os/tests/test_owner_bootstrap.py:220`), and is shorter than the 70 characters 22d's walk shows wrapped:
+**Proposed after his answer, awaiting his OK** (JUDGMENT-CALL 1). These labels are image-file strings, not 22d's generated bundle lines. They get their own rule: `[A-Za-z0-9 ,]+`, letters, digits, spaces and commas only. No colon is needed; never `%`, quotes, `<` or `&`, and no trailing `: `. Each must match none of the 16 remembered-prompt patterns and stay under 70 characters. Parentheses are not allowed, so no release number goes into the window. The reasons for excluding those characters are 22d's (`bootstrap.py:91-103`); its generated labels keep their rule and stay unchanged, including the window for new tools. The patterns are in `os/tests/test_owner_bootstrap.py:19-39`, with their live check at `:220-242`; each needs a quote or a trailing `: `.
 
 | Word | Line in the window |
 |---|---|
-| `update` | `AresOS: update to the newest AresOS` |
-| `previous` | `AresOS: go back to the previous AresOS at the next start` |
-| `rollback` | `AresOS: go back to plain Bazzite at the next start` |
-| `check` | `AresOS: check this system` |
-| `title` | `AresOS: read what starts next and the boot menu rows` |
-| `records` | `AresOS: read the disk records` |
-| `logs` | `AresOS: save the log of the last start` |
-| `export` | `AresOS: export the records` |
-| `reboot` | `AresOS: restart the laptop now` |
+| `update` | `Update to the newest version` |
+| `previous` | `Go back to the previous version at the next restart` |
+| `rollback` | `Go back to plain Bazzite at the next restart` |
+| `check` | `Check the system` |
+| `title` | `Show what starts next` |
+| `records` | `Read disk records` |
+| `logs` | `Save the log of the last start` |
+| `export` | `Export records` |
+| `reboot` | `Restart` |
 
 The `update` line cannot say which row of D2 will run: that is known only as root (fact 6). The tools say it right after the password and before any change (D4), and Claude tells him.
 
@@ -260,8 +262,8 @@ The `update` line cannot say which row of D2 will run: that is known only as roo
 
 The dispatcher does not change directory: `sudo`'s journal line keeps saying where a word was started (`PWD=`), and the protection must not sit in a file that is no boundary. With D18 the tools run every step from `/` whoever starts them: what reaches a root step is `sudo`'s own reset environment and the directory `/`, and no directory of the caller.
 
-**Step 0's try on the laptop** (JUDGMENT-CALL 6; it shows D9 and D11 before anything is built). The helper is a copy in his home with 60 in place of 600; the command behind the window is `/usr/bin/true`:
-1. `/usr/bin/env -i` with exactly D11's values, then `/usr/bin/sudo -k -A -p 'AresOS: test' /usr/bin/true`. He types his password. Expected: the window of 22d's step 0 (the title bar, the line inside, no keyring question), exit 0, `sudo -n true` refused afterwards, `COMMAND=/usr/sbin/true` in `sudo`'s journal.
+**Step 0's try on the laptop** (call 6 answered yes, at a time he chooses; it shows D9 and D11 before anything is built). The helper is a copy in his home with 60 in place of 600; the command behind the window is `/usr/bin/true`:
+1. `/usr/bin/env -i` with exactly D11's values, then `/usr/bin/sudo -k -A -p 'Test the password window' /usr/bin/true`. He types his password. Expected: the window of 22d's step 0 (the title bar, the line inside, no keyring question), exit 0, `sudo -n true` refused afterwards, `COMMAND=/usr/sbin/true` in `sudo`'s journal.
 2. The same line once more; he leaves the window alone. Expected: it closes after one minute, `sudo: no password was provided`, exit 1, nothing ran.
 3. Only if the first window does not open or looks different: the same with the caller's whole environment and the fixed values set, to learn which variable is missing (LEAD 5).
 4. Afterwards Claude deletes the helper copy from his home; nothing else was written (the lead, fix check N3).
@@ -281,12 +283,14 @@ The dispatcher does not change directory: `sudo`'s journal line keeps saying whe
 **Tests** (`os/tests/test_aresos_command.py`, no root, no fakes of `sudo`):
 - for each offered word, the exact argv and environment; `update` maps to `newest`;
 - no string the dispatcher can print or exec contains `at update` or `at forward` (every row, every refusal, the root and no-session lines);
-- the three word sets; the labels against 22d's character rule and its pattern list (imported, not copied), their length, and that they differ;
+- the three word sets; the labels against D8's own character rule and 22d's pattern list (imported, not copied), their length, and that they differ;
 - every refusal: its line, status 2 and no exec; extra words; root; no desktop session;
 - hand-over: argv and environment unchanged for other words, none and `--help`, as `ares` and as root; the usage when Control's file is missing;
 - one test runs `main()` in a child process on a pseudo-terminal, with the hand-over target pointed at a stand-in: the stand-in sees a terminal on stdin and the arguments unchanged;
 - `main()` execs and the module imports no `subprocess`; the helper's two lines are pinned;
 - the guide's table of words and window lines equals `TABLE` (lands with the guide, step 4).
+
+**The bridge on release 28** (lead decision 6). Yes: 43's bundle carries three more generated routine lines, for `newest`, `reboot` and `check`. They use 22d's generator and window mechanism, with its tools fingerprint and its label rule unchanged, not D8's image labels. Each runs just its one installed inner word; the `newest` line is the bridge's update command. They need neither the dispatcher nor D9's image helper. The guide uses them until R29 is on the laptop, so the update from R28 to R29 can run from Claude's terminal. They are the last separable build step (5a), with their own unit checks, guide and fingerprint pins, review, and window stage in 43's VM run (stage 6). The existing window for installing new tools stays unchanged.
 
 **D16: in the image.**
 - Two new `os/config` files (the dispatcher, the helper), both committed executable, and Control's moved wrapper. No new package: `ksshaskpass`, `timeout` and Python are in the image already.
@@ -296,37 +300,44 @@ The dispatcher does not change directory: `sudo`'s journal line keeps saying whe
 
 ## 5. What `aresos update` says (D13)
 
-Every line below is the tools' (wording: JUDGMENT-CALL 2). `<name>` is the title's name for a system (`owner.py:752`); `<newest>` stands for `sudo /var/lib/ares/at newest`, spelled by `typed()`.
+Every line below is the tools'. The five lines in JUDGMENT-CALL 2 are **proposed after his answer, awaiting his OK**; the other rows follow the same plain style and are settled with them before step 6. `<T>`, `<N>`, `<other>` and `<target>` stand for releases' own numbers, such as 27 and 28, not tools versions. Thus row 7 for release 28 says `Update: installing the latest version, AresOS 28. Restart to finish`. `<newest>` stands for `sudo /var/lib/ares/at newest`, spelled by `typed()`. The inner words' existing lines still follow unchanged, including their references and the title's names (`owner.py:752-753`). These added lines do not change D4's timing or D21's rule.
+
+**Release numbers are new step 1 work.** Today `role()` expressly uses roles instead of release numbers (`owner.py:740-753`), and each history entry has only `reference`, `identity` and `daily_wheel` (`:149-171`). The tools must know the number they print:
+- each entry in `os/owner-tools/history.json` carries the release's own integer `number`; each release record carries the same number, including the target `os/manifest/release.json` copied to the bundle as `release.json` (`os/owner-tools/bundle.py:11-13`). The target's number must equal the last history entry's number, as its reference and signature identity already must;
+- the numbers belong to exact release references. The existing records for 13 and 27 identify their references and tags (`os/manifest/releases/13.json:2-3`, `os/manifest/releases/27.json:2-3`); step 1 records those numbers explicitly and does the same for R28's published record. A tools version is a separate number. Do not guess a release number from a tools version, an installed label or a digest;
+- the history reader and tools-upgrade comparison must accept the older installed histories without numbers (`installed_lineage`, `owner.py:175-189`). Match those entries to the new numbered history by exact reference, preserving the reference, identity, daily-account rule and append-only check. Never rewrite an installed older bundle. New entries must carry valid numbers; an omitted or conflicting number in the new bundle is refused before any change;
+- for plain Bazzite print `plain Bazzite`, with no AresOS number. If a deployment has no numbered history entry, print `Unrecognised system <12 digest characters> (version unknown)`, never an invented `AresOS <n>`. This is a naming fallback, not permission to accept a deployment outside the reviewed history: the survey still stops in row 0;
+- unit rows cover the numbered records, their agreement, older installed histories and both naming fallbacks. The metadata, readers, fixtures, payload and pins land together in step 1. D19 still reads the image's session file; the new number field does not decide which program `check` requires.
 
 | Row of D2 | Lines, in the order they appear |
 |---|---|
-| 2, not applied | `Update to <reference> was not applied: the deployments are as before it, and nothing is waiting` (the survey's own line, at once); `Nothing changed: the last update did not finish at shutdown, and this command does not repeat it now. It waits only this once: run again, it says what it does and does it. First see EMERGENCY, Failed or bad update` |
-| 3, record | `Update: the interrupted update to <reference> is staged already; recording it`; for every other installed AresOS `<Role> <reference> is removed when the update finishes at shutdown`, and where that one is newer than the running AresOS also `The new release starts with this system's settings (Wi-Fi, passwords, layout), not <name>'s` (the inner word's two sentences, `:1845-1849`); then the inner word's lines |
-| 4, continue | `Update: continuing the interrupted update to <reference>`; then the inner word's lines |
+| 2, not applied | `Update to <reference> was not applied: the deployments are as before it, and nothing is waiting` (the survey's own line, at once); `The last update did not finish, so nothing changed. See Help before trying again` |
+| 3, record | `Update: AresOS <T> is already downloaded and ready. Saving the record of the interrupted update. Restart to finish`; `This run downloads nothing`; for every other installed AresOS `AresOS <other> will be removed when the update finishes at shutdown`, and where that one is newer than the running AresOS also `AresOS <T> will start with this system's settings (Wi-Fi, passwords, layout), not AresOS <other>'s` (the facts of the inner word's two sentences, `:1845-1849`); then the inner word's lines |
+| 4, continue | `Update: continuing the interrupted update to AresOS <T>. Restart to finish`; then the inner word's lines |
 | 5 | the STOP of section 1 |
-| 6, an update waits | `Nothing to do now: the update to <reference> is staged and starts at the next restart` |
-| 6, a forward waits | `Nothing to do now: the forward to <reference> waits for the restart` |
-| 6, a return waits | `Nothing to do now: the <return to / rollback to> <reference> waits for the restart, and this command changes nothing before it. After the restart, <newest> goes forward again` (the middle words are the journal's own, `Tools.change`, `:1274-1278`; `keep-stock`'s "change to" never waits, D2) |
-| 7, install | `Update: installing the new AresOS release <reference>. This downloads it; it starts at the next restart`; then the inner word's lines |
-| 8, nothing to update | `Nothing to update: <name> runs and starts next, and it is the newest AresOS these tools know; nothing changed`; `Owner tools version <N>: <8 characters>`; `A newer AresOS comes with newer owner tools, after the maintainer's announcement; docs/OWNER-TOOLS.md on GitHub names the current ones` |
-| 9, already | `<Name> already starts next; nothing changed`; `It does not run yet: it starts at the next restart` |
-| 10, an older AresOS runs | `Update: a newer AresOS is installed already, <name>; going forward to it. Nothing is downloaded and nothing is removed` |
-| 10, plain Bazzite runs | `Update: plain Bazzite runs here and <name> is installed; going back to it. Nothing is downloaded and nothing is removed` |
-| 10, N runs | `Update: this is the newest installed AresOS, but <name> starts next; making this one the next start again. Nothing is downloaded and nothing is removed` |
+| 6, an update waits | `The update to AresOS <T> is ready. Restart to finish` |
+| 6, a forward waits | `The switch to AresOS <N> is ready. Restart to finish` |
+| 6, a return waits | After `previous`: `The return to the previous version, AresOS <target>, is ready. This command changes nothing before the restart. Restart to finish`. After `rollback`: `The return to plain Bazzite is ready. This command changes nothing before the restart. Restart to finish`. Both then say `After the restart, <newest> switches back to the latest installed version, AresOS <N>` (`keep-stock` never waits, D2) |
+| 7, install | `Update: installing the latest version, AresOS <T>. Restart to finish`; `This downloads AresOS <T>`; then the inner word's lines |
+| 8, nothing to update | `AresOS is up to date (AresOS <N>)`; `AresOS <N> is running and will start next. It is the latest version these tools know. Nothing changed`; `Owner tools version <tools version>: <8 characters>`; `A newer version comes with newer owner tools after the maintainer announces it. docs/OWNER-TOOLS.md on GitHub lists the current tools` |
+| 9, already | `AresOS <N> will start next. Nothing changed`; `It is not running yet. Restart to finish` |
+| 10, an older AresOS runs | `Update: switching to the latest version, AresOS <N> (already downloaded). Restart to finish`; `This downloads nothing and removes nothing` |
+| 10, plain Bazzite runs | `Update: switching from plain Bazzite to the latest installed version, AresOS <N> (already downloaded). Restart to finish`; `This downloads nothing and removes nothing` |
+| 10, N runs | `Update: AresOS <N> is the latest installed version and is running. Making it start next again instead of <next system>. No restart is needed for this change`; `This downloads nothing and removes nothing` (`<next system>` is the numbered AresOS or plain Bazzite that starts next before the change) |
 
 After rows 9 and 10, when T is not installed, one more line, the last of the result (in row 10 behind the title's lines). It has two endings, by whether a restart waits (review 2, S2):
-- row 9 and row 10 in its first two wordings (another system runs, and N starts at the next restart): `These tools also carry a newer release; after the restart, <newest> installs it`;
-- row 10 in its third wording (N runs and now starts next again; the title says "no restart is waiting", `:1507`): `These tools also carry a newer release; no restart is needed first: the next <newest> installs it`.
+- row 9 and row 10 in its first two wordings (another system runs, and N starts at the next restart): `These tools also carry the latest version, AresOS <T>. After the restart, <newest> installs it`;
+- row 10 in its third wording (N runs and now starts next again; the title says "no restart is waiting", `:1507`): `These tools also carry the latest version, AresOS <T>. No restart is needed first. The next <newest> installs it`.
 
 Both inform; the guide does not tell him to follow either without the release's announcement (fact 9).
 
-**Row 2's second line makes no forecast** (review 2, S2). As first written it ended "`<newest>` then repeats it". That is true where N runs and starts next. It is not true where the failed update was begun on an older AresOS with the inner `update` (#263): after the restart the older AresOS runs and starts next, the newer one is still installed, and the next run is row 10, which goes forward. So the line says only what holds in every case: this run does not repeat the update, it waits only this once (D21), and the next run says what it does before it changes anything.
+**Row 2's second line makes no forecast** (review 2, S2). As first written it ended "`<newest>` then repeats it". That is true where N runs and starts next. It is not true where the failed update was begun on an older AresOS with the inner `update` (#263): after the restart the older AresOS runs and starts next, the newer one is still installed, and the next run is row 10, which goes forward. The proposed line says only that nothing changed and Help comes before another try. D21 still holds: this pause lasts only for the run that finds the failed update; it is no durable hold.
 
-**"Nothing to do" and "newer tools would bring a newer release" are one state to the tools** (row 8): N runs and starts next, and T is N. The tools work offline and know no release after T. So row 8 prints the tools' own version line in the form of line 1 of `docs/OWNER-TOOLS.md`, and Claude compares it with that file on GitHub's main:
+**"AresOS is up to date" and "newer tools would bring a newer version" are one state to the tools** (row 8): N runs and starts next, and T is N. The tools work offline and know no release after T. So row 8 prints the tools' own version line in the form of line 1 of `docs/OWNER-TOOLS.md` (currently `Owner tools version 4: dcbc375f`), and Claude compares it with that file on GitHub's main:
 - equal: there is nothing newer; done;
 - different: main carries other tools. That is not an announcement and not a go. Claude tells him, and waits for the maintainer's board note with the announced commit and for his go, as 22d's box says (`docs/INSTALL.md:224`: "Claude installs only that commit, never the newest one on GitHub by itself").
 
-**The order after an announcement of a new release:** the new tools first (22d's route: his 8-character compare, one window), then `aresos update`, which installs their release. So the "Nothing to update" window is not spent just to learn the version. Row 8 still costs one window, because only root can read the tools; the guide therefore has Claude run `aresos update` after an announcement or after `previous`, not as a daily habit.
+**The order after an announcement of a new release:** the new tools first (22d's route: his 8-character compare, one window), then `aresos update`, which installs their release. So the "AresOS is up to date" window is not spent just to learn the version. Row 8 still costs one window, because only root can read the tools; the guide therefore has Claude run `aresos update` after an announcement or after `previous`, not as a daily habit.
 
 ## 6. The guides (D14)
 
@@ -337,17 +348,19 @@ Both inform; the guide does not tell him to follow either without the release's 
   - what `aresos update` prints in each row of section 5, with a pointer to the console box whose lines then follow ("Stage the new release", `:325`, or "Forward again", `:381`);
   - **one rule for reading the tools' messages:** a line that names `sudo /var/lib/ares/at <word>` means `aresos <word>` from Claude's terminal; for `newest`, `update` and `forward` it always means `aresos update`; a word the table refuses (`login`, `layout`) stays at the console, typed by him;
   - the order after an announcement (tools first, then `aresos update`), and that a different line in `OWNER-TOOLS.md` is not a go (section 5);
-  - after an update that did not finish (D21; review 2, S1): `aresos check` first, as the card says. **was not applied** shows once, from whichever owner word runs first, and that is usually this check. From then on `aresos update` repeats the update in that very run: Claude runs it only when Help has decided the repeat, never to see what it says. Only if `aresos update` happens to be the first word after the failed update does it change nothing: it then prints `was not applied` and `Nothing changed: the last update did not finish …`, and the same rule holds from there;
-  - `aresos update` again before the restart answers `Nothing to do now`; that is a PASS, not a problem;
-  - before `aresos reboot` after a run that changed nothing (`Nothing to update`, `already starts next`, `Nothing to do now`): `aresos title` first if `reboot` says the title is stale. Those runs save no title (`owner.py:1977-1978`);
-  - `aresos rollback`: after its restart he is on plain Bazzite, where there is no Claude and no `aresos`; the way back is `sudo /var/lib/ares/at forward`, typed by him at the console. "Roll back the update" in his words usually means `aresos previous`; Claude says which of the two it is about to run and where he lands, and waits for his go;
+  - after an update that did not finish (D21; review 2, S1): `aresos check` first, as the card says. **was not applied** shows once, from whichever owner word runs first, and that is usually this check. From then on `aresos update` repeats the update in that very run: Claude runs it only when Help has decided the repeat, never to see what it says. Only if `aresos update` happens to be the first word after the failed update does it change nothing: it then prints `was not applied` and `The last update did not finish, so nothing changed. See Help before trying again`, and the same rule holds from there;
+  - `aresos update` again before the restart says what is ready and `Restart to finish`; that is a PASS, not a problem;
+  - **after an update that waits for a restart, Claude asks "Restart now?" and runs `aresos reboot` only on his yes** (call 5). The update and restart stay two steps with two password windows. This is Claude's behaviour in the guide, not a change to either tool;
+  - before `aresos reboot` after a run that changed nothing (`AresOS is up to date`, row 9's `will start next`, row 6's `is ready`): `aresos title` first if `reboot` says the title is stale. Those runs save no title (`owner.py:1977-1978`);
+  - **`aresos rollback` is allowed with call 8's two rules.** "Roll back the update" means `aresos previous`, the previous AresOS version, unless he says plain Bazzite. Before `aresos rollback`, Claude says in one sentence where he lands and how he gets back, then waits for his go: after its restart he is on plain Bazzite, without Claude or `aresos`; the way back is `sudo /var/lib/ares/at forward`, typed by him at the console, then a restart;
   - `Registry login missing, expired or unreachable`: check the network first; a new login is typed by him at the console (`login` is refused here);
   - `Another owner command is running`: like Cancel, nothing ran. Let the first one finish and run the word again; no export routine;
   - `aresos check` stopping with `The desktop's own program (aresos-desktop) is not running for ares …` (D19): the desktop gave up or never started. That is a fact about the session, not a fault of the tools, and the tools still work. The routine is the same as after any STOP (the last point of this list); on the card it is "any other result", so Help decides, and `aresos title` shows what runs and what starts next when Help asks for it;
   - that Claude posts the title's lines to the board after every word that changes what starts next (22d's decision 8);
   - after any other STOP: every STOP line word for word, his go, then `aresos export`, nothing else.
 - 22d's box loses "every other owner command stays at the console … until a later release brings it here" in favour of "from AresOS 29 the next box".
-- **The console boxes do not change**, rule for rule. They are the way that always works and the only way on plain Bazzite, on a release before 29 and when the desktop is down. They keep `update` and `forward`; `sudo /var/lib/ares/at newest` is named once, as what `aresos update` runs and as usable there. (An owner command in a guide is written in full: `test_owner_equality`'s inline-command rule refuses a bare tools word in code type once `commands.json` knows it.)
+- On R28, before that next box applies, the bridge's three generated lines (section 4) run the installed `newest`, `reboot` and `check`. The same announcement, Help and "Restart now?" rules apply; Claude runs the generated reboot line only on his yes. This bridge is part of step 5a, with the generated labels shown to him separately from section 3's image labels.
+- **The console boxes do not change**, rule for rule. They are the way that always works and the only way on plain Bazzite or when the desktop is down. Before R29 the generated bridge supplies only its three words; the other commands keep their console route. The boxes keep `update` and `forward`; `sudo /var/lib/ares/at newest` is named once, as what `aresos update` runs and as usable there. (An owner command in a guide is written in full: `test_owner_equality`'s inline-command rule refuses a bare tools word in code type once `commands.json` knows it.)
 - **`docs/EMERGENCY.md`:**
   - "Failed or bad update" (`:18`) gains two sentences: if the desktop works, Claude runs `aresos check` and then, only as that card already says, `aresos previous`; and once **was not applied** has shown, `aresos update` repeats the update at once, so it runs only when Help has decided the repeat (D21). The card's own sentences stay: "**was not applied** shows only once" already says the first half.
   - "A routine tools command stopped" (`:64`) also covers `aresos` words, with `aresos export`.
@@ -366,7 +379,8 @@ Both inform; the guide does not tell him to follow either without the release's 
 - row 6 after `update`, `previous`, `rollback`, and a `forward` from another system, without a restart: a PASS, no inner word, no journal change, nothing announced;
 - after `keep-stock` in the same boot: row 10 in its second wording, and the inner `forward` runs (S4);
 - rows 7 and 8; row 9 with an older AresOS and with plain Bazzite running; row 10 in its three wordings;
-- the extra line after rows 9 and 10 in its two endings: "after the restart" in row 9 and in row 10's first two wordings, "no restart is needed first" in the third; and after that third one the next run, which is row 7 at once (S2);
+- the numbered history and release records, older installed histories without numbers, and the naming fallbacks of section 5; row 8's tools version line has exactly `docs/OWNER-TOOLS.md`'s first-line form;
+- the extra line after rows 9 and 10 in its two endings: "After the restart" in row 9 and in row 10's first two wordings, "No restart is needed first" in the third; and after that third one the next run, which is row 7 at once (S2);
 - every read-only refusal of the chosen word (no login, no network, a layout trial, a busy deployment tool, a staged row without a journal) with **no announcement before it**;
 - what may follow an announcement (D4; N1): a signature that does not verify; a deployment tool that became busy during verification; a list that changed during verification, with `:1810`'s text. Each shows the announcement first and stages nothing;
 - the guard (D3; N2): after the first `may_stage`, with its text, by `update()` called with D3's argument in the danger state; the guard's method called directly, for both answers; two calls of it in a staging run through `newest` and none through the inner `update`;
@@ -377,17 +391,18 @@ Both inform; the guide does not tell him to follow either without the release's 
 
 **One check build, at the end of step 3** (`check_build=build` on the branch: a throwaway image, never published, no owner OK needed). It is the first run of step 3's image checks, and it boots the image once in a VM. If 22d's window driver (`os/ci/tools_local.py`) can be used in that VM pass without a harness of its own, the pass drives one window with the made-up `ares` password the image checks already use: the helper's argument equals the label, Cancel runs nothing, `sudo -n true` is refused afterwards. If it cannot, the builder says so in `PROGRESS.md`, and D9 and D11 rest on step 0's try until R29's rehearsal.
 
-**A VM run of 43's own, before merge, for the tools at the console.** Why its own: the tools change is what can replace a system, the lead asked for a rehearsal (`STATE.md:14`), and the fingerprint must not reach the laptop unrehearsed. Why at the console: R28 has no dispatcher (fact 7). It reuses release 28's rehearsal mode (`briefs/42-release-28.md`, B) with 43's bundle:
+**A VM run of 43's own, before merge, for the tools.** Why its own: the tools change is what can replace a system, the lead asked for a rehearsal (`STATE.md:20`), and the fingerprint must not reach the laptop unrehearsed. Stages 1 to 5 use the console: R28 has no dispatcher (fact 7). Stage 6 walks the generated bridge lines in the window. The run reuses release 28's rehearsal mode (`briefs/42-release-28.md`, B) with 43's bundle:
 
 | Stage | What | Proves |
 |---|---|---|
 | 1 | On R27 (runs, starts next): `at newest` instead of `at update`, typed from a folder that holds a marker-writing `json.py` and `subprocess.py` | It announces the install and stages R28; no marker was written (D18, `update.sh`) |
-| 1b | `at newest` again, before the restart | `PASS newest`, `Nothing to do now: the update to … is staged …`; nothing announced, nothing changed (row 6; review 1, B1) |
-| 2 | On R28 after the restart: `at newest` | "Nothing to update", the tools' version line, no change |
+| 1b | `at newest` again, before the restart | `PASS newest`, `The update to AresOS 28 is ready. Restart to finish`; nothing announced, nothing changed (row 6; review 1, B1) |
+| 2 | On R28 after the restart: `at newest` | `AresOS is up to date (AresOS 28)`, the tools' version line, no change |
 | 2b | On R28: `at check`, with no `foot` of `ares` running if the harness can end it | `PASS check`; its saved record shows the read of `aresos-desktop` passing and no read of `foot` (D19) |
-| 3 | `at previous`, typed from the marker folder; `at newest` before the restart; restart; on R27: `at newest`; restart; `at check` | No marker (D18, `start-next.sh`); `Nothing to do now: the return to … waits …`; then it announces forward; nothing staged; "Forward to … confirmed" |
+| 3 | `at previous`, typed from the marker folder; `at newest` before the restart; restart; on R27: `at newest`; restart; `at check` | No marker (D18, `start-next.sh`); `The return to the previous version, AresOS 27, is ready …`; then it announces the switch to AresOS 28; nothing staged; "Forward to … confirmed" |
 | 4 | `at previous`, restart: R27 runs and starts next, R28 is installed. Then a harness-built next bundle whose release is a made-up one that is not installed (installed as in 22d's "stick with a next version" stage). Then `at newest`, stopped by 22c's cut watcher (`os/ci/owner_vm.py:1812`, `:2092`; here for the word `newest`) after its reorder is on disk and before its record, and one hard reset | The danger state, cut: the announcement says forward and is on the screen when the tools are stopped; the journal holds a `forward` intent for R28; no login asked, no network, nothing staged, R28 still in the list |
-| 5 | After the reset R28 starts: `at check`. Then `at previous`, restart, and on R27 `at newest` to its end; then `at newest` once more | The cut resolves as a cut `forward` does: `The interrupted forward to … had made its change; it is recorded now`. Then the danger state whole: `PASS newest`, forward, the extra line with "after the restart", nothing staged, R28 still in the list. The second run says `Nothing to do now: the forward to … waits for the restart` |
+| 5 | After the reset R28 starts: `at check`. Then `at previous`, restart, and on R27 `at newest` to its end; then `at newest` once more | The cut resolves as a cut `forward` does: `The interrupted forward to … had made its change; it is recorded now`. Then the danger state whole: `PASS newest`, forward, the extra line with "After the restart", nothing staged, R28 still in the list. The second run says `The switch to AresOS 28 is ready. Restart to finish` |
+| 6 | A separate window stage: restore a clean R27 checkpoint from before stage 1, with the real 43 bundle installed, not stage 4's made-up next bundle. Run its three generated routine lines from Claude's terminal: `newest` to install R28, `reboot`, then `check` on R28 | Each window uses 22d's generated label with the bundle's 8 characters; Cancel runs nothing; accepted passwords give the one intended word, no keyring, and `sudo -n true` refuses afterwards. The update waits for his separate restart approval; it boots R28, and the generated check passes. This proves the bridge without a dispatcher or image helper |
 
 **Why stage 4 is the cut one** (review 2, N5). As first written, stage 5 typed `at newest` once more where stage 4 ended. There the forward waits for the restart (row 6), so no intent is written that a reset could cut. Now the first run in the danger state is the cut one, and the whole one follows after one `previous` and one restart; the other order costs one restart more. Three things a builder should know:
 - 22c's watcher stops the tools once the reorder is on disk (`os/ci/owner_vm.py:1808-1811`), so the next word finds the change made and records it. It does not show `was not applied`, as the review expected for a cut forward.
@@ -400,9 +415,9 @@ Every stage keeps package 11's audits. Row 2 gets no stage: an update that does 
 
 1. `aresos --help` equals Control's help; `aresos layout` refuses with no window.
 2. `aresos check`: the helper's argument equals the label, a screenshot, no keyring process; Cancel runs nothing; then the password and `PASS check`; `sudo -n true` is refused afterwards (22d's driver, `os/ci/tools_local.py:488`).
-3. `aresos update`: "Nothing to update".
+3. `aresos update`: "AresOS is up to date".
 4. A window left unanswered closes after 10 minutes; `sudo: no password was provided`; nothing ran.
-5. `aresos previous`, started from a folder that holds the two marker files: no marker. `aresos update` before the restart: `Nothing to do now`. `aresos reboot`; on R28 at the console `at newest` goes forward; back on R29 `aresos check` shows the confirmation.
+5. `aresos previous`, started from a folder that holds the two marker files: no marker. `aresos update` before the restart says the return is ready and `Restart to finish`. `aresos reboot`; on R28 the bridge's generated `newest` line goes forward; its generated `reboot` line restarts after his yes; back on R29 `aresos check` shows the confirmation.
 
 **Staging through the dispatcher** first happens in R30's rehearsal (R29 to R30 by `aresos update`), before any laptop session does it. Until then its staging branch is proven at the console (stage 1) and its mapping by the unit tests.
 
@@ -410,33 +425,34 @@ Every stage keeps package 11's audits. Row 2 gets no stage: an update that does 
 
 ## 8. Build steps
 
-One fresh builder each, gpt-6.1-sol at xhigh against a tight brief, about 250k tokens; each commits, pushes and keeps `reviews/43-aresos-command/PROGRESS.md`. Reviews on gpt-6-astra. If the model step resists two rounds, it goes to Fable. (The lead picks the model again per step; Codex ends 2026-11-21. Step 1 changes what can replace a system and closes a root hole: LEAD 10.)
+One fresh builder each, gpt-6.1-sol at xhigh against a tight brief, about 250k tokens; each commits, pushes and keeps `reviews/43-aresos-command/PROGRESS.md`. Reviews on gpt-6-astra. **Step 1 is Codex gpt-6.1-sol xhigh, with an Astra high review** (lead decision 10, 2026-11-17). The Claude week is past its release line and Fable is near its cap. Step 1 goes to Fable only if it resists two rounds and Fable is free. The model step keeps the same two-round fallback, subject to Fable being free.
 
 | Step | What | Needs |
 |---|---|---|
-| 0 | The lead: `linux-tools` is told (D12, with its list of callers); with the owner's OK, the laptop try (section 4) | this note READY |
-| 1 | Tools: D18 and D19 with their tests; `newest` with D2's table, D3's guard, D4's function, the lines, `chosen` and `said`; their unit tests. The payload and every pin of the fingerprint; the `commands.json` entry with its guide sentence; the waiting rows | main merged into the branch (it stands on `4d23b408`, before 22d); **no row of `docs/INSTALL-STATUS.md` says "VM REHEARSAL PASSED; NOT ON THE LAPTOP"** (below) |
+| 0 | The lead tells `linux-tools` all of D12's list and lead decision 7; the approved laptop try at the owner's chosen time (section 4), showing D9 and settling D11's variable list | this note READY |
+| 1 | Tools: D18 and D19 with their tests; `newest` with D2's table, D3's guard, D4's function, the lines, `chosen` and `said`; D13's numbered history and release records, readers and compatibility tests. The payload and every pin of the fingerprint; the `commands.json` entry with its guide sentence; the waiting rows. The brief carries review 3's nits N1 and N4 to N7; this revision leaves them | main merged into the branch (it stands on `4d23b408`, before 22d); tools version 6 or the next free number at that merge; **no row of `docs/INSTALL-STATUS.md` says "VM REHEARSAL PASSED; NOT ON THE LAPTOP"** (below) |
 | 2 | The model: the ledger's `choose`, the driver, I1 to I4; the hosted full model; its time before and after | step 1 |
 | 3 | The dispatcher with D20's lines, the helper, their tests, the image checks, Control's moved wrapper with its pin, the three-set test, the diff test; then one check build | 18c Part A on main, or the lead's word that Control does not ride. Not held by the status rows (no tool, release script or guide changes) |
 | 4 | The guides and the card (D21's sentences and D19's among them), the equality tests, the owner's wording; the payload and its pins once more if a tools line changed | steps 1 to 3 and the owner's wording; no status row says the phrase |
 | 5 | Review of steps 1 to 4 | |
-| 6 | The harness variant, its ledger entry, the workflow's entries, 43's host-walk receipt and local walk, hosted checks with the full model on the same head, the VM run, the record step | R28 published and its rehearsal mode on main |
+| 5a | Last separable build step: the three generated bridge lines (`newest`, `reboot`, `check`), their tests, guide and pins; review this addition before step 6 | steps 1 to 5; the same status-row gate as steps 1 and 4 |
+| 6 | The harness variant, its ledger entry, the workflow's entries, 43's host-walk receipt and local walk, hosted checks with the full model on the same head, the VM run including the bridge's own window stage, the record step | step 5a; R28 published and its rehearsal mode on main; calls 1 and 2 and the new `check` line settled |
 | 7 | Hand-over: the five rehearsal stages and D16's diff note into R29's release brief | |
 
 **The binding rules the steps meet** (review 1, S4; 22d's steps are the pattern, `reviews/22d-tools-without-stick/REPORT.md`):
 
 1. **The payload equals its sources.** `bundle.check` fails as soon as `owner.py`, `at` or a release script differs from `os/owner-tools/payload/` (`os/owner-tools/bundle.py:50-58`, `os/tests/test_owner_equality.py:48`). So step 1 cannot leave "payload and pins" for later. In the commit that changes a payload source it runs `python3 os/owner-tools/bundle.py --refresh` and moves every pin of the fingerprint:
-   - `os/owner-tools/history.json`: the next tools version (an install refuses the same version, `owner.py:2651-2652`). If main's version moves before 43 merges (R28's bundle), 43's moves above it at the next merge of main;
+   - `os/owner-tools/history.json`: tools version **6 or the next free number at the merge of main** (an install refuses the same version, `owner.py:2651-2652`). R28's tools take version 5: version 4's code with R28's reference (package 42's lead decision, 2026-11-17). A new fingerprint does not make reusing version 4 valid. If main's version moves before 43 merges, 43's moves above it at the next merge of main;
    - `docs/OWNER-TOOLS.md` (lines 1 and 3), `docs/INSTALL.md` (the blocks and the fingerprint), `docs/EMERGENCY.md` (the export window's 8 characters), `os/owner-tools/commands.json` (the generated lines);
    - 22d's status row keeps its fingerprint as 8 characters once the payload moves (`check_fingerprints` refuses a full fingerprint that is not the payload's; 22c's row shows the form).
-   The payload is regenerated, never merged by hand: after every merge of main, refresh and pin again. The pins move once more in step 4 if a tools line changes with the owner's wording.
+   The payload is regenerated, never merged by hand: after every merge of main, refresh and pin again. The pins move once more in step 4 if a tools line changes with the owner's wording, and wherever step 5a's generated lines pin them.
 2. **Every changed bound file has its row on the waiting list.** After the last change to a bound file in a commit: `python3 reviews/27-first-update-release/rebind.py pending "<note>"`; `test_checkout_sources` compares the list with what that tool finds (`os/tests/test_checkout_sources.py:188-191`). The tool decides what is bound, not this note. In the active bindings (`os/manifest/ci/22d/source-bindings.json`, 263 paths) are `owner.py`, `at`, the payload, `commands.json`, `history.json`, every release script this package changes except `update.sh`, `docs/INSTALL.md`, `docs/EMERGENCY.md`, the workflow, the budget ledger and several tests; not in them are the model's two files, `docs/INSTALL-PROCEDURES.md`, the image checks and the two new `os/config` files.
 3. **While any status row says "VM REHEARSAL PASSED; NOT ON THE LAPTOP", nothing under `os/owner-tools/`, `os/release/` or `docs/` may wait,** and the payload must be the newest rehearsal's tools (`:25-31`, `:107-149`). Two rows say it on main at `937a1868`: 22c's and 22d's.
-   - 22d's row moves to "ON THE LAPTOP" when the laptop has run version 4's install (expected 2026-11-16). That frees the payload: the payload rule binds only the newest rehearsal's row.
+   - 22d's and 22c's rows move after the owner's version 4 install. That frees the payload once neither says the phrase: the payload rule binds only the newest rehearsal's row, but the waiting rule looks at every row.
    - 22c's row says the phrase for version 3, which never goes on the laptop (board #265); version 4 carries its ways back. The waiting rule looks at every row, so **steps 1 and 4 need 22c's row moved as well**, in the same commit as 22d's or in one of its own; its words are the lead's, and its pin in `os/tests/test_owner_path.py:1769-1772` follows.
    - Steps 1 and 4 check before their first change that `grep -c 'VM REHEARSAL PASSED; NOT ON THE LAPTOP' docs/INSTALL-STATUS.md` prints 0 on the merged base, and stop with a note to the lead if it does not.
    - Steps 2 and 3 are not held: test, harness, workflow and image files may wait while a row stands. If steps 1 and 4 must wait for the rows, step 3 may be built first; the three-set test then lands with step 1.
-   - Release 28's row will probably say the phrase between its rehearsal and the laptop's update. If main gains such a row while 43 is open, `test_a_row_that_says_vm_rehearsal_passed_holds_only_what_the_rehearsal_ran` is red on the merged branch until that release is on the laptop or until step 6's record step, whichever comes first. The builder names it in `PROGRESS.md` and never weakens it; the lead decides whether 43 waits (LEAD 11).
+   - Release 28's row will say the phrase between its VM rehearsal and the laptop's update. **Steps 1 and 4 run only while no row says it. If that window is closed when a step is ready, it waits until R28 is on the laptop** (lead decision 11). Step 5a changes tools-generated lines and guides, so the same gate applies. Step 6 is not a way around the gate. The builder records the wait in `PROGRESS.md` and never weakens the test.
 4. **`newest` is a command no rehearsal has walked.** Its `commands.json` entry (`"newest": "sudo /var/lib/ares/at newest"`) lands in step 1 with two things `test_owner_equality` asks for in the same commit: the one guide sentence that quotes it (section 6, the console boxes), and its name in `unwalked_commands` of `os/manifest/ci/16/pending-rebind.json` (`os/tests/test_owner_equality.py:233-256`). It leaves that list in step 6, when 43's walk types it.
 5. **Tests that stay red until step 6:** none are expected. If one can pass only after 43's own walk (a host-walk receipt, a status pin), the builder names it in `PROGRESS.md` with the reason.
 6. **Step 6's entries:**
@@ -450,90 +466,80 @@ One fresh builder each, gpt-6.1-sol at xhigh against a tight brief, about 250k t
 ## 9. The seam for the online update (D17)
 
 - **Carries over:** the dispatcher's table (the online package changes the `update` row's root command and nothing else); the labels and the helper; `newest` as the tools' rule for "one thing per run"; the guide's box; the rehearsal's window stages.
-- **The one message that changes:** "Nothing to update … the newest AresOS these tools know" becomes an answer from the registry.
+- **The one message that changes:** "AresOS is up to date … the latest version these tools know" becomes an answer from the registry.
 - **Deliberately not built:** a registry query, a signature check outside the tools, tools inside the image, a sudoers or polkit rule, a service, a timer, a helper with its own window.
 
 ## JUDGMENT-CALL (for the owner)
 
-Six calls, each about something he will see or do. Each is written to him and ready to post: the question, why it is asked, the advice, the options. A line "For the lead" is not for him: it says where the call sits in this note. Everything else in this note is decided and recorded with its reason.
+The owner answered all six calls on 2026-11-16. Calls 4, 5, 6 and 8 are settled. Calls 1 and 2 are answered with new lists proposed back to him, **awaiting his OK**. Their numbers stay so the reviews' references still fit.
 
-- **Calls 3 and 7 of the earlier list are decided** (the lead, after review 2): D20, what a refused word says, and D21, what happens after an update that did not finish. He is shown both at "try this" and is not asked. The other numbers stay as they were, so both reviews' references still fit.
-- **Calls 1 and 2 are about words.** Call 2's words sit inside the tools, so he settles them before step 6: after 43's VM run a changed line there needs a new VM run.
+- Calls 3 and 7 of the earlier list remain the lead's design decisions after review 2: D20 and D21. He is shown both at "try this" and is not asked.
+- A changed word is cheap until step 6's VM run. After that run a changed tools line needs a new VM run. Calls 1 and 2 and D19's new `check` line are settled before step 6.
 
-**1. The line in the password window**
-- **Question.** When Claude runs an `aresos` command for you, a password window opens, and one line in it says what you are about to allow. There are nine commands, so nine lines. Are these the lines you want to read there?
-  - update: `AresOS: update to the newest AresOS`
-  - back to the AresOS from before the update: `AresOS: go back to the previous AresOS at the next start`
-  - back to plain Bazzite: `AresOS: go back to plain Bazzite at the next start`
-  - check: `AresOS: check this system`
-  - what starts next: `AresOS: read what starts next and the boot menu rows`
-  - disk records: `AresOS: read the disk records`
-  - log: `AresOS: save the log of the last start`
-  - export: `AresOS: export the records`
-  - restart: `AresOS: restart the laptop now`
-- **Why.** You type your password only when the line fits what you just asked Claude to do. So you should know these lines when you see them.
-- **Advice.** Take them as they are. They can still change with any later release.
-- **Options.** A: as proposed. B: you reword some. A line may use letters, digits, spaces and commas, and stays under 70 characters so that it does not wrap.
-- **For the lead.** The same nine lines as section 3's table, which a test holds equal to the dispatcher and the guide.
+**1. The line in the password window — answered; proposed list awaiting his OK**
+- **His answer.** "I don't think it needs to say AresOS at every turn ... usually an OS just says update ... id say "newest version" "previous version" and also number versions like other OS do it. So maybe "newest version (AresOS 1.7)". What's check this system? What's read what starts next and boot menu? I'd also say just "Restart", "read disk records", "save log ..." "export records"."
+- **Proposed after his answer, awaiting his OK.** These are section 3's nine lines, in the same order:
+  1. `Update to the newest version`
+  2. `Go back to the previous version at the next restart`
+  3. `Go back to plain Bazzite at the next restart`
+  4. `Check the system`
+  5. `Show what starts next`
+  6. `Read disk records`
+  7. `Save the log of the last start`
+  8. `Export records`
+  9. `Restart`
+- **Result.** Drop the prefix. The guide's third condition is "the line is the one for what he asked for, as the guide lists them". These image labels have D8's own character rule; parentheses are not allowed, so release numbers go in the tools' answers, not in the window. 22d's generated label for installing new tools stays unchanged. The window alone still cannot prove it is AresOS's own.
 
-**2. What `aresos update` tells you**
-- **Question.** You say "update", Claude runs `aresos update`, you type your password once, and the first line of the answer says what this run does. Claude reads it to you. Do these lines say clearly what is happening?
-  - a new release gets installed: `Update: installing the new AresOS release …. This downloads it; it starts at the next restart`
-  - a newer AresOS is on the laptop already (after you went back): `Update: a newer AresOS is installed already, …; going forward to it. Nothing is downloaded and nothing is removed`
-  - there is nothing newer: `Nothing to update: … runs and starts next, and it is the newest AresOS these tools know; nothing changed`
-  - you ran it a second time before the restart: `Nothing to do now: the update to … is staged and starts at the next restart`
-  - the last update failed: `Nothing changed: the last update did not finish at shutdown, and this command does not repeat it now. It waits only this once: run again, it says what it does and does it. First see EMERGENCY, Failed or bad update`
-- **Why.** These lines are part of the tools, and the tools are rehearsed on a test machine before they reach your laptop. Before that rehearsal a word costs nothing to change. After it, one changed word means a new rehearsal run.
-- **Advice.** Take them as proposed.
-- **Options.** A: as proposed. B: you change words now.
-- **Only the words are asked.** Already decided, and shown to you when you try it: a second run before the restart ends as a normal result and not as an error; what a refused command says; and that after a failed update Claude repeats it only when Help has said so.
-- **For the lead.** The five lines are the ones he meets most; the rest are in section 5's table. The three decided things are D2 (rows 2, 6, 8 and 9 end with PASS), D20 and D21.
+**2. What `aresos update` tells you — answered; proposed list awaiting his OK**
+- **His answer.** "Update: Installing latest AresOS version", "Updating to latest AresOS version", "AresOS is up to date"; and "The last two msgs I don't understand."
+- **Proposed after his answer, awaiting his OK.** The number is the release's own number (27, 28, ...):
+  - row 7, install: `Update: installing the latest version, AresOS 28. Restart to finish`
+  - row 10, an older AresOS runs: `Update: switching to the latest version, AresOS 28 (already downloaded). Restart to finish`
+  - row 8, nothing newer: `AresOS is up to date (AresOS 28)`
+  - row 6, an update waits: `The update to AresOS 28 is ready. Restart to finish`
+  - row 2, the last update failed: `The last update did not finish, so nothing changed. See Help before trying again`
+- **Result.** Section 5 gives the other rows the same plain style. It keeps every fact about what runs, what starts next, downloads, removals, settings and a later install. Row 2 makes no forecast; D4's announcement timing, D13's offline limit and D21's Help rule stay. Row 8 still prints the tools' version line in `docs/OWNER-TOOLS.md`'s form. Step 1 adds the numbered release records needed to print these lines.
 
-**4. The title of the password window**
-- **Question.** Every AresOS password window has the title **Enter SSH Credentials**, because it is a ready-made window of the system. The AresOS line is inside it. Keep that title for now, or have a window of our own that says "AresOS"?
-- **Why.** You look at this title before you type your password, so it should be one you expect. A window of our own would look right, but it would not be safer: any program can open a window with any title. It is also one more small program to build and test.
-- **Advice.** Keep it until the online update is built. Until then every AresOS password window looks the same, the one for new tools included.
-- **Options.** A: keep "Enter SSH Credentials" for now. B: a window of our own titled "AresOS". That is an extra package with its own review and test, and the window for new tools keeps the old title until that one is changed too.
-- **For the lead.** D8 and fact 8; a helper with its own window is on D17's list of what is deliberately not built.
+**4. The title of the password window — answered**
+- **His answer.** Keep "Enter SSH Credentials".
+- **Result.** Keep that title and the existing window (D7, D8, fact 8). A window of our own is still outside this package.
 
-**5. The restart is a step of its own**
-- **Question.** An update takes two steps, each with your password. First `aresos update`: it downloads and prepares, and you keep working. Later, when you say so, `aresos reboot`. In between Claude tells you what will start next. An update never restarts the laptop by itself. Is that how you want it?
-- **Why.** A restart closes everything you have open, so it should come only on your word. The price is a second password.
-- **Advice.** Keep the two steps.
-- **Options.** A: two steps, as proposed. B: one step that updates and restarts. That is not a switch to flip: the command is built on "one run does one thing", so B means a new round of design, and the command comes later.
-- **For the lead.** What rests on the two steps: D2's "one thing per run", row 6 (`Nothing to do now`) and the saved title that `reboot` checks.
+**5. The restart is a step of its own — answered**
+- **His answer.** "Yes this is the common way. Usually installing an update means a window asking if restart now, we could do that too but no must."
+- **Result.** Two steps stay, each with its own password window. After an update that waits for a restart, Claude asks "Restart now?" and runs `aresos reboot` only on his yes. This is the guide's Claude behaviour (section 6), not a tools change or a new restart window. D2's one thing per run and `reboot`'s saved-title check stay.
 
-**6. A short try on your laptop**
-- **Question.** May Claude run a three-minute try with you before the command is built? Two password windows open, one after the other, each with the line `AresOS: test`, in front of a command that does nothing. Into the first you type your password. The second you leave alone for one minute and watch it close by itself. The system doesn't change. The try leaves one small helper file in your home folder, which Claude deletes afterwards.
-- **Why.** It shows on the real laptop that the window opens as planned and closes by itself when nobody answers. A surprise found later, in a release's rehearsal, costs days.
-- **Advice.** Yes, before step 3 is built.
-- **Options.** A: yes, at a time you choose. B: no. Both things are then first seen on a test machine, or in release 29's rehearsal.
-- **Your yes also covers** one more window if the first does not open or looks different, to find out why.
-- **For the lead.** The try is written out in section 4 (three points); it shows D9 and D11.
+**6. A short try on the laptop — answered**
+- **His answer.** Yes, at a time he chooses.
+- **Result.** Step 0's three-minute try is approved, with the temporary helper copy in his home and its removal afterwards (section 4). Two windows say `Test the password window`: he answers the first and leaves the second alone for one minute. The command is `/usr/bin/true`. If the first window does not open or looks different, the approved extra window finds why. The try shows D9's helper and decides D11's variable list.
 
-**8. `aresos rollback` from Claude's terminal**
-- **Question.** `aresos rollback` takes the laptop back to plain Bazzite at the next restart. Once there you have no Claude and no `aresos` command. To come back to AresOS you type one line yourself at the console, `sudo /var/lib/ares/at forward`, and restart. May Claude run `aresos rollback` for you, or should that step stay one you type yourself at the console?
-- **Why.** It is the one command after which you are on your own.
-- **Advice.** Let Claude run it, with two rules. "Roll back the update" means `aresos previous`, the AresOS from before the update, unless you say plain Bazzite. And before `aresos rollback` Claude says in one sentence where you land and how you get back, and waits for your go.
-- **Options.** A: Claude may run it, with the two rules. B: console only, typed by you, as today.
-- **For the lead.** Section 2's table (`rollback`: yes) and section 6's sentence for the box. With B, `rollback` joins the refused words with `layout`'s shape.
+**8. `aresos rollback` from Claude's terminal — answered**
+- **His answer.** Yes, with the two rules (A).
+- **Result.** `rollback` stays offered. "Roll back the update" means `aresos previous`, the previous AresOS version, unless he says plain Bazzite. Before `aresos rollback`, Claude says in one sentence where he lands and how he gets back, then waits for his go. After the restart he is on plain Bazzite without Claude or `aresos`; he returns by typing `sudo /var/lib/ares/at forward` himself at the console, then restarting. Section 6 carries both rules.
+
+## The lead's decisions (2026-11-17)
+
+The former open points are recorded here under their original numbers. Only the work still awaiting an answer or a try remains in the short list below.
+
+1. **The inner word's name.** Decision: keep `newest`, including `PASS newest` and the records.
+2. **`forward` and `rollback`.** Decision: `forward` stays refused. `rollback` works with call 8's two rules.
+3. **D9's helper.** Decision: keep it. Step 0's try shows it.
+4. **`bash -c` or a direct root command.** Already answered by review 1 (N2): both work; D7 keeps the rehearsed form.
+5. **D11's variable list.** Decision: step 0's try settles it, as section 4 says. If the window fails, try the caller's whole environment with the fixed values set.
+6. **Routine lines for R28.** Decision: yes. 43's bundle carries the three generated lines (`newest`, `reboot`, `check`), as a last separable step with its own window stage in the VM run. Sections 4, 6, 7 and step 5a carry it.
+7. **With `linux-tools`.** Decision: step 0 tells it the listed changes: `newest` in `RESERVED`; the wrapper's move and header comment; D12's callers; the top-level `log` shortcut; and whether Control's help gains a line naming the nine words.
+8. **`check` on R28 before 43's tools.** Done: brief 42 carries "open the Terminal app first" (`briefs/42-release-28.md:142`, read on main). D19's repair still rides in 43.
+9. **The model's time.** Decision: the rule stands. If it outgrows the hosted job, split the job, never the exploration.
+10. **Who builds step 1.** Decision: Codex gpt-6.1-sol xhigh, with an Astra high review. The Claude week is past its release line and Fable is near its cap. It goes to Fable only if it resists two rounds and Fable is free. Section 8 records it.
+11. **Version and status rows.** Decision: R28's tools take version 5 (v4's code with R28's reference; package 42's lead decision, 2026-11-17), so 43 takes version 6 or the next free number at its merge of main. Steps 1 and 4 run only while no status row says the phrase. 22d's and 22c's rows move after the owner's v4 install; R28's row says it between its VM rehearsal and the laptop update. If that window is closed when a step is ready, it waits until R28 is on the laptop. Section 8's binding rules carry both decisions; step 5a meets the same gate.
+12. **D18 sooner.** Decision: no. D18 rides with 43.
+13. **Decisions after review 2.** Recorded: S1 takes the review's first fix (D21); calls 3 and 7 are design decisions (D20, D21). The six remaining owner calls are now answered above, with calls 1 and 2's revised words still awaiting his OK.
+14. **D19's new `check` line.** Decision: it follows the same plain style as call 2's lines and is settled with them before step 6. It is not a separate owner call. Review 3's N7 stays for step 1's brief.
 
 ## Open points for the lead
 
-1. **The inner word's name,** `newest`. It shows in `PASS newest` and in the records.
-2. **`forward` refused** (section 2). Offering it too is defensible; `rollback` is JUDGMENT-CALL 8.
-3. **D9's helper** against keeping 22d's hand rule for every word.
-4. **`bash -c` against a direct root command** (D7): answered by review 1 (N2). Both work; the rehearsed form stays.
-5. **D11's variable list.** Step 0's try shows whether the window opens with it. If not, pass the caller's whole environment with the fixed values set, as 22d's lines in effect do.
-6. **Routine lines for R28.** Without them the update to R29 is still typed at the console, and the first update Claude can run is R29 to R30. 43's bundle could carry three more of 22d's generated lines (`newest`, `reboot`, `check`, each with the tools' 8 characters) so that the update to R29 already runs from Claude's terminal. Recommended: yes, as a last separable step with its own window stage in the VM run, if the lead wants that update without the console; they go when R29 is on the laptop.
-7. **With `linux-tools`:** `newest` in `RESERVED`; the wrapper's move and its header comment; the callers of D12; whether Control's help gains one line that names the nine words (today `aresos --help` shows Control's words only).
-8. **`check` on release 28 before 43's tools** (D19, last point): R28's guide needs "open the Terminal app first", or 43's tools go on before the next `check` in the hub.
-9. **The model's time** after step 2: if it outgrows the hosted job, split the job, never the exploration.
-10. **Who builds step 1.** It changes what can replace a system and closes a root hole; by the owner's rule for high-stakes work it may go to Fable, and its review is a high-stakes review either way.
-11. **The status rows** (section 8, rule 3): 22c's row moves with 22d's, or step 1 waits; and what 43 does if release 28's row says the phrase while it is open.
-12. **D18 sooner.** No route the guides name is open before 43's tools. If the lead wants the hole closed earlier, D18's three points are separable from `newest` as a tools change of their own, with its own fingerprint.
-13. **Decided by the lead after review 2** (2026-11-16), recorded here so the points above are read with them: S1 by the review's first fix (row 2 stays, the texts are made true; D21); JUDGMENT-CALLs 3 and 7 are design decisions (D20, D21); six calls go to the owner.
-14. **A line of `check` that is new with D19** (the keeper has given up; section 1a). It is a tools line like those of JUDGMENT-CALL 2, so its words are settled before step 6 as well. It is not asked of the owner: he meets it only through Claude, in a state the card already routes to Help.
+- The owner's OK on the two proposed lists (calls 1 and 2); settle the other tools lines and D19's `check` line with them before step 6.
+- The owner's chosen time for step 0's approved try, and its result for D9 and D11.
+- Step 0's coordination with `linux-tools`, including the help-line choice in decision 7.
 
 ## Changes after review 1
 
@@ -595,3 +601,22 @@ Found while checking, named by neither review:
 - **Section 6's sentence for a failed update** now also says "never to see what it says": the old text invited exactly that run.
 
 Left for the builder: how `check` reads "none found" for the desktop's program (`pgrep`'s exit 1 through `Host.read`'s `allowed`); how the directory test changes and restores its own directory; where the guard's method lives. The behaviour is fixed above.
+
+## Changes after the owner's answers (2026-11-17)
+
+Review 3 (`REVIEW-3.md`) was READY. This revision folds in the owner's answers of 2026-11-16 and the lead's decisions of 2026-11-17. It changes this note only. The earlier change sections remain a record of their revisions; this section supersedes them where the owner's answers changed the words or added work.
+
+| Change | Where it landed |
+|---|---|
+| **Call 1: no repeated OS name in the window** | D8, section 3 and call 1: nine prefix-free labels, proposed after his answer and awaiting his OK. The image labels get their own character rule, under 70 characters, with none of the 16 remembered-prompt patterns. Parentheses and release numbers stay out of these windows. His third condition names the line for what he asked for. The window alone still proves no origin. 22d's generated label for new tools stays unchanged; step 0's test label and section 4's label tests follow D8 |
+| **Call 2: plain words and numbered versions** | D13, D2's first-line column, section 5, the guide's quoted results and the VM expectations: the five proposed lines, awaiting his OK, and the other rows in the same style. Row 2 forecasts nothing. Download, removal, settings, running and next-start facts stay, as do D4, D13 and D21. The two later-install endings still distinguish whether a restart waits. Row 8 keeps the tools' version line in `docs/OWNER-TOOLS.md`'s form |
+| **New work: numbers the tools can print** | Section 5, section 7's unit rows and step 1: each history and release entry carries its release number; the target agrees with the last history entry. Older installed histories remain readable. Plain Bazzite has no AresOS number; an unrecognised deployment has a digest and `version unknown`, with no wider acceptance. D19's reason is updated to distinguish this new display field from a session-program field |
+| **Calls 4, 5, 6 and 8 answered** | The JUDGMENT-CALL section records his answers and results. Keep "Enter SSH Credentials". Keep two update/restart steps; section 6 has Claude ask "Restart now?" and run reboot only on his yes. Step 0's try is approved at his chosen time, including the temporary helper and its removal. `rollback` stays offered with both rules in section 6 |
+| **Lead points 1 to 5, 7 to 9, 12 and 13** | The dated decision list records each under its old number. Keep `newest`, refuse `forward`, offer `rollback`, keep D9, and let step 0 settle D11. Step 0 tells `linux-tools` the listed changes. Brief 42 already carries the Terminal-app instruction. The model-time rule stands. D18 rides with 43; D20 and D21 stay decided. The remaining open list is three dependencies |
+| **Lead point 6: the R28 bridge** | Sections 4 and 6, step 5a and VM stage 6: yes to three generated lines (`newest`, `reboot`, `check`), as the last separable build step with its own review and window stage. Their labels use 22d's generator unchanged. R29's return walk uses the bridge on R28 |
+| **Lead point 10: step 1's builder and reviewer** | Section 8 and the decision list: Codex gpt-6.1-sol xhigh, Astra high review; Fable only after two resistant rounds and if free. The Claude week is past its release line and Fable is near its cap |
+| **Lead point 11: tools versions and status rows** | Section 8's table and binding rules: R28 takes tools version 5; 43 takes 6 or the next free number at its merge of main. Steps 1 and 4 run only while no row says the phrase; if R28 closes that window, they wait for its laptop update. Step 5a meets the same gate. Both 22c's and 22d's rows move after the owner's v4 install |
+| **Lead point 14 and review 3's remaining nits** | The decision list and step 6's needs: D19's new `check` line follows the same plain style and is settled with call 2 before the VM run. N1 and N4 to N7 go to step 1's brief and are left by this revision |
+| **Moved reference** | Section 7's rehearsal decision is now `STATE.md:20` on main; the old `:14` is blank |
+
+References added or changed here were checked against main at `dcbdabe9`, read through `git show` because the branch predates 22d. No tool, test, guide or workflow was changed or run. The nine proposed image labels were checked as data against D8's character and length rules and all 16 patterns from main, including with a final newline. Their list equals call 1's list. Calls 1 and 2 still await the owner's OK; the laptop try and VM stages remain future work.
