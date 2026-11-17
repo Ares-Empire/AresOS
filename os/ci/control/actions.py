@@ -1515,12 +1515,15 @@ def tree_scanner():
 def search_for(needles, roots=SCANNED):
     """Check 8's search (REVIEW-X1 #2): every file under the roots, a FUSE mount there as root first and as its
     owner where root was refused (tree_scan.py), and the journal's export to its end. `errors` names whatever could
-    not be searched, a runtime file that vanished unread included; check 8 fails on any."""
+    not be searched, a runtime file that vanished unread included; check 8 fails on any. What root was refused is
+    an error until the owner's walk names that very path as searched (RECHECK-X2 #2)."""
     scanner = tree_scanner()
     mounts = scanner.fuse_mounts(roots)
     found = scanner.scan(roots, needles, handover=[point for point, _, _ in mounts])
     refused = found.pop('refused')
     del found['covered']  # root's own walk has nothing to cover
+    # scan() files a refusal under one of the handover points, so the loop below meets every one of them.
+    assert set(refused) <= {point for point, _, _ in mounts}, refused
     found['fuse_mounts'], found['owner_walks'] = [], []
     for point, kind, uid in mounts:
         owner = pwd.getpwuid(uid).pw_name
@@ -1528,8 +1531,10 @@ def search_for(needles, roots=SCANNED):
         found['fuse_mounts'].append(dict(mount=point, type=kind, owner=owner, root_refused=len(refusals)))
         if not refusals:
             continue  # root read all of it (allow_other, say): its files are in root's count
-        # The needles go on stdin, never on a command line.
-        request = json.dumps(dict(roots=[point], needles=[needle.hex() for needle in needles], cover=[]))
+        # The needles go on stdin, never on a command line. The owner walks the whole mount, and is told which
+        # paths root was refused (RECHECK-X2 #2), each with the number root's listing gave it.
+        request = json.dumps(dict(roots=[point], needles=[needle.hex() for needle in needles],
+                                  cover=[[path, inode] for path, inode, _ in refusals]))
         result = run([*as_user(owner), '/usr/bin/python3', '-I', str(HERE / 'tree_scan.py')], input=request,
                      timeout=600)
         if result['returncode'] != 0:
@@ -1537,8 +1542,19 @@ def search_for(needles, roots=SCANNED):
                 f'{point} ({kind}) as {owner}: exit {result["returncode"]}: {result["stderr"][-500:]}']
             continue
         walked = json.loads(result['stdout'])
+        # The owner's walk hands nothing on: what it can't read is an error of its own.
+        assert not walked['refused'], walked['refused']
         for key in ('hits', 'vanished', 'errors'):
             found[key] += walked[key]
+        # Root's refusal stands, as an error, unless the owner's walk met that very path and searched it, listed it
+        # or found it not to be a file: a path that is gone by then, or that the owner's view leaves out, was never
+        # searched by anyone.
+        found['errors'] += [f"{refusal}, and {owner}'s walk did not search it either"
+                            for path, _, refusal in refusals if path not in walked['covered']]
+        # And it was that mount the owner walked: unmounted meanwhile, the walk was of the folder under it.
+        if (point, kind, uid) not in scanner.fuse_mounts(roots):
+            found['errors'].append(f"{point} ({kind}): no longer mounted after {owner}'s walk, so what root was "
+                                   'refused there may not be what was walked')
         found['owner_walks'].append(dict(mount=point, type=kind, owner=owner, files=walked['files'][point],
                                          root_refused=len(refusals)))
     with tempfile.TemporaryFile() as stderr, subprocess.Popen(JOURNAL, stdout=subprocess.PIPE, stderr=stderr) as journal:

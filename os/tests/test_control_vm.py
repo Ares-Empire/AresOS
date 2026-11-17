@@ -1022,6 +1022,82 @@ class PasswordScanTest(unittest.TestCase):
                                            f'{portal} (fuse.portal) as {owner}: exit 1: refused'])
         # A refusal outside any FUSE mount stays an error (test_a_folder_that_cannot_be_listed_fails).
 
+    @unittest.skipIf(os.geteuid() == 0, 'root reads a file of mode 0000')
+    def test_what_root_is_refused_inside_a_fuse_mount_its_owner_must_search_path_by_path(self):
+        # RECHECK-X2 #2: root lists a FUSE folder and is refused on private.log in it. X2 handed the owner only the
+        # mount point and took the owner's answer for the whole mount: a private.log that was gone by then, or that
+        # the owner's view left out, was searched by nobody, with no error.
+        portal, mounts = self.fuse_portal()
+        private, password = portal / 'private.log', str(self.root / 'state/password')
+        owner = pwd.getpwuid(os.getuid()).pw_name
+        refusal = f'{private}: PermissionError: Permission denied'
+        unsearched = f"{refusal}, and {owner}'s walk did not search it either"
+
+        def search(before):
+            private.unlink(missing_ok=True)
+            private.write_bytes(b'login ' + self.NEEDLE)
+            private.chmod(0)  # root's refusal on this one file, here this user's
+            calls, run = self.owner(before)
+            with run, mounts:
+                found = self.search()
+            self.assertEqual(found['fuse_mounts'], [dict(mount=str(portal), type='fuse.portal', owner=owner,
+                                                         root_refused=1)])
+            # Root searched what it could: the two files outside the mount and shared.txt in it.
+            self.assertEqual(found['files'], {str(self.root): 3})
+            return found, json.loads(calls[0][1])
+
+        # Recovered: the owner can read it, so the owner's walk searches it and finds what it holds.
+        found, request = search(lambda: private.chmod(0o600))
+        self.assertEqual((found['hits'], found['errors']), ([[password, 0], [str(private), 0]], []))
+        self.assertEqual(found['owner_walks'], [dict(mount=str(portal), type='fuse.portal', owner=owner, files=2,
+                                                     root_refused=1)])
+        # Gone before the owner's walk, or left out of the owner's view: the walk never meets it, and root's
+        # refusal stands.
+        found, request = search(private.unlink)
+        self.assertEqual((found['errors'], found['hits']), ([unsearched], [[password, 0]]))
+        # The owner is told the path, with the number root's listing gave it, and walks the whole mount.
+        self.assertEqual((request['roots'], request['cover']), ([str(portal)], [[str(private), mock.ANY]]))
+        # Another file under that name by then: not the one root was refused.
+        def another_file():
+            (self.folder / 'private.new').write_text('nothing\n')
+            os.replace(self.folder / 'private.new', private)
+
+        found, request = search(another_file)
+        self.assertEqual(found['errors'], [
+            f'{private}: not the file root was refused (inode {request["cover"][0][1]} in root\'s listing, '
+            f'{private.stat().st_ino} in this one), so that one is unsearched', unsearched])
+        self.assertEqual(found['hits'], [[password, 0]])
+        # Refused to its owner too: the owner's error, and root's refusal stands.
+        found, request = search(lambda: None)
+        self.assertEqual((found['errors'], found['hits']), ([refusal, unsearched], [[password, 0]]))
+        # A folder in the mount that root can't list: its owner lists it and searches what is in it.
+        private.unlink()
+        (portal / 'by-app').mkdir()
+        (portal / 'by-app/held.txt').write_bytes(self.NEEDLE)
+        (portal / 'by-app').chmod(0)
+        calls, run = self.owner(lambda: (portal / 'by-app').chmod(0o700))
+        with run, mounts:
+            found = self.search()
+        self.assertEqual((found['hits'], found['errors']), ([[password, 0], [str(portal / 'by-app/held.txt'), 0]], []))
+        self.assertEqual(json.loads(calls[0][1])['cover'],
+                         [[str(portal / 'by-app'), (portal / 'by-app').stat().st_ino]])
+        # Unmounted before its owner walked it: the walk was of the folder under the mount point, not of the mount.
+        (portal / 'by-app').chmod(0)
+        mountinfo = (self.folder / 'mountinfo').read_text()
+        calls, run = self.owner(lambda: ((portal / 'by-app').chmod(0o700), (self.folder / 'mountinfo').write_text('')))
+        with run, mounts:
+            found = self.search()
+        self.assertEqual(found['errors'], [f"{portal} (fuse.portal): no longer mounted after {owner}'s walk, so what "
+                                           'root was refused there may not be what was walked'])
+        (self.folder / 'mountinfo').write_text(mountinfo)
+        # An owner's answer that names no covered paths (X2's tree_scan.py) never passes: root's refusal can only be
+        # taken back by the path being named.
+        (portal / 'by-app').chmod(0)
+        old = dict(returncode=0, stderr='', stdout=json.dumps(dict(files={str(portal): 0}, hits=[], vanished=[],
+                                                                  errors=[], refused={})))
+        with mock.patch.object(self.actions, 'run', return_value=old), mounts, self.assertRaises(KeyError):
+            self.search()
+
 
 class EvidenceScanTest(unittest.TestCase):
     """REVIEW-A1 #5: the password checks read inside the evidence's archives; only GreenMail's log is redacted."""
