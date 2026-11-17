@@ -95,3 +95,9 @@ flat-control frame ranges and the winner's same-base Nether comparison. It does 
 failures into passes or introduce a frame tolerance. The zram table uses the kernel's first three `mm_stat`
 fields (original bytes, compressed bytes, total allocated memory including overhead), summed over devices;
 all three remain global observations rather than a per-game physical-memory measurement.
+
+The first freeze attempt exited during return (game status 137, followed by a broken virtual-input pipe).
+It is retained under `failures/`, with partial measurements and no qualified wake window. The unchanged
+second attempt adds `observe-return.py <pid> <owned-scope> <rig>`: read-only scope counters and process state
+at 20 ms intervals for three seconds after the return mark. This diagnostic checks exact scope membership
+and PID start time, and neither attaches to the JVM nor changes freezer state. It is not part of winner runs.

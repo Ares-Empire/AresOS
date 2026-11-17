@@ -163,7 +163,7 @@ def public(value):
     return value
 summary = public(summary)
 json.dump(summary, open(os.path.join(out, 'summary.json'), 'w'), indent=1)
-for name in ('settings.txt', 'marks.txt', 'samples.csv', 'cover.txt', 'randr.txt', 'actions.jsonl', 'host-start.json', 'host-end.json', 'faults-return.json', 'wake-input.jsonl'):
+for name in ('settings.txt', 'marks.txt', 'samples.csv', 'cover.txt', 'randr.txt', 'actions.jsonl', 'host-start.json', 'host-end.json', 'faults-return.json', 'wake-input.jsonl', 'return-observer.jsonl'):
     if os.path.exists(os.path.join(rig, name)):
         open(os.path.join(out, name), 'w').write(public(open(os.path.join(rig, name)).read()).rstrip() + '\n')
 if os.path.exists(os.path.join(rig, 'gc.txt')):

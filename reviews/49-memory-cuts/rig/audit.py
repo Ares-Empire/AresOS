@@ -20,9 +20,10 @@ def guards(s):
     oom = s['out_of_memory'] or any(v.get('oom', 0) or v.get('oom_kill', 0) for v in events)
     high = max((v.get('high', 0) for v in events), default=0)
     gc = s.get('gc_after_join', {}).get('max_ms')
-    return {'oom': bool(oom), 'high_events': high, 'gc_after_join_max_ms': gc,
+    town_unavailable = s.get('town_frozen', True)
+    return {'oom': bool(oom), 'town_unavailable':town_unavailable, 'high_events': high, 'gc_after_join_max_ms': gc,
             'gc_at_most_50ms': gc is not None and gc <= 50, 'lost_frames': s.get('lost_frames'),
-            'memory_gc_recorder_pass': not oom and high == 0 and gc is not None and gc <= 50 and s.get('lost_frames') == 0}
+            'memory_gc_recorder_pass': not oom and not town_unavailable and high == 0 and gc is not None and gc <= 50 and s.get('lost_frames') == 0}
 
 
 metrics = ('p99_ms', 'max_ms', 'over_17ms', 'over_33ms', 'fps')
@@ -42,8 +43,11 @@ for name in rows:
     settings = dict(line.split('=',1) for line in path.read_text().splitlines() if '=' in line)
     revision = settings['source_revision']
     if revision not in sources:
-        tree = subprocess.check_output(['git','rev-parse',revision+':mod'], cwd=WT, text=True).strip()
-        sources[revision] = {'mod_tree':tree, 'runs':[]}
+        objects = subprocess.check_output(['git','rev-parse',revision+':mod',
+            revision+':os/config/usr/libexec/aresos-shell', revision+':os/config/usr/share/aresos/labwc/rc.xml'],
+            cwd=WT, text=True).splitlines()
+        sources[revision] = dict(zip(('mod_tree','helper_blob','labwc_config_blob'), objects))
+        sources[revision]['runs'] = []
     sources[revision]['runs'].append(name)
     run_trees[name] = sources[revision]['mod_tree']
 
@@ -94,6 +98,7 @@ for name,s in rows.items():
             snap.get('nmt_disabled_confirmed') is True for snap in s['snapshots'].values() if not snap['frozen'])
 
 result = {'valid_completed_run_count':len(rows),
+          'failed_experiments':{p.parent.name:json.loads(p.read_text()) for p in sorted((ROOT/'failures').glob('*/failure.json'))},
           'guards_all_runs':{name:guards(s) for name,s in rows.items()},
           'source_revisions':sources, 'all_measured_mod_trees_equal':len({v['mod_tree'] for v in sources.values()}) == 1,
           'run_mod_trees':run_trees, 'flat_controls_by_mod_tree':control_groups,
