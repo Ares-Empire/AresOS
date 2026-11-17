@@ -130,6 +130,7 @@ public final class HomeSwitch {
         working = new HomeWorkingScreen(WORKING);
         AresOs.LOGGER.info("New home: making a {} home from {} ({})", plan.kind(), previousHome.getFileName(), previousLevelName);
         enter(Phase.CLOSING_OLD);
+        WorldSaves.INSTANCE.homeSwitchStarted();
         client.gui.setScreen(working);
         closeWorld(client);
     }

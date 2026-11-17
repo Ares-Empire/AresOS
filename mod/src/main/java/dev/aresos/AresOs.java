@@ -198,6 +198,7 @@ public final class AresOs implements ModInitializer {
         dev.aresos.zone.ZoneCommands.register();
         dev.aresos.hub.TownKeeper.register();
         dev.aresos.hub.TownSeal.register();
+        dev.aresos.save.WorldSaveState.register();
         PayloadTypeRegistry.serverboundPlay().register(ToggleModePayload.TYPE, ToggleModePayload.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(dev.aresos.mode.ModeSwitchStatePayload.TYPE, dev.aresos.mode.ModeSwitchStatePayload.CODEC);
         PayloadTypeRegistry.serverboundPlay().register(dev.aresos.mode.ModeSwitchAckPayload.TYPE, dev.aresos.mode.ModeSwitchAckPayload.CODEC);

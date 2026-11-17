@@ -51,13 +51,13 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
  * Package 40: the world as the home screen, without a real session or helper. An app in front never opens the pause
- * menu while Esc opens the AresOS menu (package 48), the game's own fullscreen is off in a session, and a launch that fails leaves a line in
- * the chat. The first check shows the game pausing without these rules, so the others prove something.
+ * menu while Esc opens the AresOS menu (package 48), the game's own fullscreen is off in a session, and a launch that
+ * fails leaves a line in the chat. The first check shows the game pausing without these rules, so the others prove something.
  *
  * <p>Step 2: a window that covers the world pauses it without a screen and slows its frame rate, while the helper keeps
  * hearing ready heartbeats (package 23's supervisor takes missing ones for a dead world). This part runs a real shell
- * client against a fake helper, wired up as in the session ({@link ShellFocusClient#register}). It is the last client
- * test, so the tick listener that registration leaves behind runs only against a closed client.
+ * client against a fake helper, wired up as in the session ({@link ShellFocusClient#register}). The menu and save tests
+ * run after it; the tick listener that registration leaves behind only sees a closed client.
  *
  * <p>Review fixes 1: that part asks {@link HomeScreen#active} itself, with the game's helper connection set to the
  * test's (false before it connects, true connected in a session and a desktop world, false once the connection is
