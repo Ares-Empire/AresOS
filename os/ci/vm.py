@@ -111,6 +111,7 @@ try:
     incoming = Frames(checks.recv)
     assert incoming.receive() == {'ready': True, 'protocol': 1}
     request('policy')
+    request('console-keymap')
     assert {'backend.json', 'runtime-updaters.json', 'updater-regressions.json'} <= export().keys()
     request('power-events')
     assert 'power-events.json' in export()

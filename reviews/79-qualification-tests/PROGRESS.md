@@ -125,7 +125,8 @@ branch's record).
   tests, pairs and combine.
   **State on 2026-11-16, 09:45 UTC** (Control Chrome run 43831972611, qualification run 43831972629):
   - **Green:**
-    - All four Python shards: 86, 79, 106 and 82 tests, each OK. Shard 1 includes the six new tests.
+    - All four Python shards, each OK: `python-shards (0)` 86 tests, `python-shards (1)` 82, `python-shards (2)` 79
+      and `python-shards (3)` 106. `python-shards (1)` holds the six new tests.
     - Both latency legs, so the harness's `install()` works for the current and the `ab7aba92` runtime.
     - `native-precedence`, the five fixture shards finished so far, and the qualification workflow's
       `qualification-tests`, `qualification-plan`, `delivery-attestation` and the first 12 pair shards.
@@ -135,8 +136,9 @@ branch's record).
     nothing under `control/boundary`, and the same workflow passed on other branches 20 minutes earlier, so I take it
     for an environment flake and re-ran the failed job once.
   - **Other workflows:** Control base and Repo privacy green; Control Mail still running.
-- **Shard balance:** the new test file moves the sorted file partition by one, so shard 1 now holds both long modules,
-  `test_fault_surface` and `test_storage`, and took 29 minutes (17 on main). The job limit is 120 minutes.
+- **Shard balance:** the new test file moves the sorted file partition by one, so `python-shards (1)` now holds both
+  long modules, `test_fault_surface` and `test_storage`, as well as `test_qualification_fixture`, and took 29 minutes
+  (17 on main). The job limit is 120 minutes.
 - **On #83 once this is on main:** #83's checks run on its merge ref, main plus the data branch's record. That is the
   real proof for the browser harness with a non-empty shipped copy: every Control Chrome and qualification job green.
   Its latest runs (head `0a285b24`) are waiting for approval (`action_required`). Merge #83 with a merge commit, never

@@ -78,6 +78,7 @@ case $mode in
         else
             sudo -E env ARESOS_VM_PASS=1 python3 os/ci/vm.py
             grep -q ARESOS_ACTIVE_SESSION_POLKIT_PASSED evidence/vm-pass-1/policy-result.json
+            grep -q CONSOLE_KEYMAP_PASSED evidence/vm-pass-1/console-keymap-result.json
             echo CHECK_BUILD_VM_PASSED
         fi
         ;;

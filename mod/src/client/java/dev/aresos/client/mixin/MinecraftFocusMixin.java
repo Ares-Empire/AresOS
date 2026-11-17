@@ -28,11 +28,13 @@ public abstract class MinecraftFocusMixin {
     @Redirect(method = "pauseIfInactive", at = @At(value = "INVOKE",
             target = "Lnet/minecraft/client/Minecraft;pauseGame(Z)V"))
     private void aresos$rememberFocusPause(Minecraft client, boolean suppressMenu) {
-        // The home screen (package 40): an app in front never opens the pause menu. Esc still does.
+        // The home screen (package 40): an app in front never opens the pause menu. Esc opens the AresOS menu
+        // (package 48, GuiMenuMixin), and so does this call in a session's desktop world without the helper.
         if (dev.aresos.client.HomeScreen.active(client)) return;
         boolean capture = AresOsClient.FOCUS_RETURN.beforeFocusPause(System.nanoTime(), client.gui.screen());
         client.pauseGame(suppressMenu);
-        if (capture && client.gui.screen() instanceof PauseScreen) {
+        if (capture && (client.gui.screen() instanceof PauseScreen
+                || client.gui.screen() instanceof dev.aresos.client.AresOsMenuScreen)) {
             AresOsClient.FOCUS_RETURN.recordPause(client.gui.screen());
         }
     }
