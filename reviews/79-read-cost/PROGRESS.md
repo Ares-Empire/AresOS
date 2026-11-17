@@ -31,7 +31,8 @@ All on the laptop, on `main` `d0b91522` and on a scratch copy outside the repo. 
     long path. It fails the same way on the unchanged scratch copy.
   - Scratch versions of the brief's 16 unit tests, its three `Service` tests and the probe test pass.
   - Every mutation in the brief's table fails the tests named there.
-  - The fault sweep's surface for `qualification`, `delivery`, `readonly` and `drop` equals `main`'s.
+  - The fault sweep's surface for `qualification`, `delivery`, `readonly`, `drop`, `allow`, `trusted` and
+    `stopped_submit` equals `main`'s, flow by flow.
 - **The variant that compares the bytes on every read** was prototyped too: `drop` went from 333 to 469 pair cases.
 - **PR #72:** its diff against `main` at `e3013438`, hunk by hunk for the files this build touches.
 

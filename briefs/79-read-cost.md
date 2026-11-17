@@ -170,8 +170,8 @@ judgment call 1.
 The build adds no disk operation to a read: the held line is read from disk when the journal changed, which is
 when `get()` reads it today. (One exception: when the bytes at the pinned offset turn out different, the line is
 read a second time for the full check.) Measured on the prototype: the fault sweep's surface is the same as on
-`main` for the flows `qualification` (54/54/98), `delivery` (109/109/259), `readonly` (52/52/202) and `drop`
-(68/68/333).
+`main` for all seven flows tried: `qualification` (54/54/98), `delivery` (109/109/259), `readonly` (52/52/202),
+`drop` (68/68/333), `allow` (52/52/202), `trusted` (437/437/2148) and `stopped_submit` (393/393/1925).
 
 ### Every failure stays closed
 
@@ -380,8 +380,8 @@ the same two edits inside #72's blocks; #72 adds no other reader of the record.
 
 1. **When the bytes are compared.** Chosen: after every journal change. Stronger: on every read, which also catches
    a rewrite that keeps inode, size and time. Cost of the stronger form: a journal open per read, 0.04 ms at 301
-   entries, and a larger fault sweep (`drop`: 333 to 469 pair cases; the other three flows unchanged). Changing
-   later is one line in `holds()` and tests 3 and 9.
+   entries, and a larger fault sweep (`drop`: 333 to 469 pair cases; `qualification`, `delivery` and `readonly`
+   unchanged; the others not tried). Changing later is one line in `holds()` and tests 3 and 9.
 2. **`maintenance()` returns nothing, and the O2 count test is replaced.** The alternative keeps the returned record
    and pays a copy of the whole record per `mode()` call.
 3. **`record()` always returns a private copy.**
