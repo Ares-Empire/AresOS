@@ -306,3 +306,79 @@ changes the system.
     `7e1ffa764c263ef78025cee21c9d7ef2b6959e370765da40ae55046dc45a23d4` and the label **AresOS owner tools dcbc375f:
     export the records**. Expect `Tools stick absent: records copied to /run/ares-records with SHA256 readback`, then
     `This copy is on this laptop, not off it; uid 1001 can read it, and a restart deletes it`.
+
+## The laptop session (2026-11-17)
+
+The lead supplied these facts on 2026-11-17. This updates the pre-session "Not verified" list above: the
+uninterrupted version 2 to 4 install and Claude's own caller have now run on the laptop. This status update
+ran no laptop owner-tools, disk or boot commands.
+
+- The owner gave his go in the lead's session. Claude ran the prechecks, the folder line and the routine
+  line at announced commit `634e12378b68f77398f7c8b633fcea988a768acf`. The routine line's SHA-256 was
+  `0b11cfc562841f58393bdb11f7962556418f851241885ce21d11594a4e13c079`. The owner compared the window's
+  8 characters with line 1 of OWNER-TOOLS.md on his phone and approved the window.
+- The result was `PASS install`, `Tools updated from version 2 to 4`, and
+  `manifest SHA256 dcbc375faa4b269bacaf316c5ddc24503b9773b2538bcd017065ce8e312597be`.
+  The installed tools were complete. Version 3 itself never went on the laptop; its ways back arrived in version 4.
+- The following check STOPped: `Loaded console keys differ from system layout; get help`. The image has
+  a boot race: systemd-vconsole-setup finds every console busy while Plymouth holds them, leaving the
+  console's US map loaded while vconsole.conf says `de`. Package 50 fixes this for release 28.
+- On his go the export ran: `PASS export`, with the records copied to `/run/ares-records`. Raw records stay
+  private and off this public repository; this copy is on the laptop and a restart deletes it.
+- On his go one window ran `loadkeys -C /dev/tty3 -- de`, the tools' own trial command, for this session.
+  In dumpkeys, keycode 21 changed from `+y` to `+z`. Then `PASS check` and `PASS title` had the expected lines:
+  - `newer AresOS 5fad242fceac runs and starts next`
+  - `Boot menu at the next start: (ostree:0) newer AresOS 5fad242fceac, starts next; (ostree:1) older AresOS 9b19b7942bc1; (ostree:2) plain Bazzite ed93d2158a1b`
+  - `pin yes; transaction idle` and `staged False; rollback queued False`
+  - `Previous title INVALID; use this record until the next reorder`, as expected after an install.
+- `sudo -n true` was refused: no ticket was kept. His physical typing proof `yz-/!ü` matched on tty3 and
+  in the terminal.
+- The first try, on 2026-11-16, ran nothing: the window went behind another window without OK and was
+  closed by "Try this" step 8's rule, ending with `sudo: no password was provided`.
+
+**Done in this status update:**
+
+- `docs/INSTALL-STATUS.md`: dated the table and its evidence to 2026-11-17; recorded 22d's version 4 install,
+  STOP, export, console trial, check/title and typing results; recorded 22c's arrival inside version 4 with its
+  calm test still OPEN. In the update-route row, retained the first-update history and replaced only the stale
+  current-tools claim and the claim that the later recovery/layout procedures still refuse until 22c.
+- `os/tests/test_owner_path.py`: updated the table-date and update-route pins, and the 22c/22d status and
+  session pins; retained the VM evidence pins and the open calm-test and LOQ recovery-menu gates.
+- `os/tests/test_checkout_sources.py` needed no change: its moved-status case already accepts
+  `VM REHEARSAL PASSED; ON THE LAPTOP <date>`. Its gate still refuses waiting owner-tools, release or docs
+  changes while any row says the pre-laptop rehearsal phrase.
+- Other guides: searched `docs/` for `851eb742`, `version 2` and the laptop's tools (including broader
+  laptop/tools matches). No sentence outside the three status rows claimed that version 2 was still current;
+  no other guide changed. Procedure text held equal to the tools and `os/owner-tools/` stayed unchanged.
+- `os/manifest/ci/16/pending-rebind.json`: refreshed the waiting checkout bytes with
+  `python3 reviews/27-first-update-release/rebind.py pending "22d and 22c on the laptop (2026-11-17)"`.
+
+**Verified in this status update:**
+
+Each module ran separately with
+`PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s os/tests -p '<module>.py'`:
+
+| Module | Printed result |
+|---|---|
+| `test_owner_path.py` | `Ran 48 tests in 1.727s`, `OK`; after clarifying that the owner compared the window, rerun: `Ran 48 tests in 1.825s`, `OK` |
+| `test_checkout_sources.py` | `Ran 8 tests in 0.943s`, `OK` |
+| `test_owner_equality.py` | `Ran 11 tests in 92.588s`, `OK` |
+| `test_owner_bootstrap.py` | `Ran 13 tests in 1.787s`, `OK` |
+
+All module runs exited 0, with no skipped tests. The checkout-source checks accept the new statuses and
+still exercise rejection of waiting tools, release scripts and docs under a pre-laptop rehearsal row.
+
+- The rebind command above printed `pending: 9 bound files differ from the active bindings, 0 removed`.
+- `grep -c 'VM REHEARSAL PASSED; NOT ON THE LAPTOP' docs/INSTALL-STATUS.md` printed `0`
+  (grep exits 1 when there are no matching lines).
+- `git diff --check` exited 0 with no output. `git diff --numstat -- os/owner-tools/` printed nothing.
+- A `.work/` scan found no files over 500 MB. No downloads were made. No commit or dispatch was made;
+  the lead commits this work. No other test module pins the text changed here.
+
+**Not verified here:** the calm test stays OPEN with his OK: read the boot menu against the title's row map;
+previous, restart, forward, restart, then rollback, restart, forward, restart. The LOQ shortcuts/recovery-menu
+gate also stays OPEN. The release 28 boot-race fix has not run on the laptop; the console trial above is for
+that session. This documentation update does not rerun the supplied laptop session or dispatch hosted checks.
+
+**JUDGMENT-CALL:** none. **PLAN-GAP:** none beyond the recorded boot race assigned to package 50.
+**Open questions:** the calm test and LOQ gate above remain open.
