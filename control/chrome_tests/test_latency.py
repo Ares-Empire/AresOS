@@ -767,6 +767,14 @@ class MainFixStorageStages(unittest.TestCase):
         if not self.profile.OUT.exists():return []
         return [self.json.loads(line) for line in self.profile.OUT.read_text().splitlines() if self.json.loads(line).get('stage')==stage]
 
+    def test_profile_refuses_the_store_connections_exclusive_lock(self):
+        database=self.engine.store.db
+        self.assertEqual(database.execute('PRAGMA locking_mode=EXCLUSIVE').fetchone()[0],'exclusive')
+        with self.assertRaisesRegex(AssertionError,'exclusive'):
+            self.profile.install(self.daemon)
+        self.assertEqual(database.execute('PRAGMA locking_mode=NORMAL').fetchone()[0],'normal')
+        self.profile.install(self.daemon)
+
     def test_store_write_and_journal_fsync_are_summed_per_marked_sample_only(self):
         self.profile.install(self.daemon)
         self.assertIsNot(storage.os,self.os);self.assertEqual(storage.os.SEEK_END,self.os.SEEK_END)
