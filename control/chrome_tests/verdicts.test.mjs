@@ -4,6 +4,8 @@ import fs from 'node:fs';
 import {REQUIRED,ADAPTER_REQUIRED,SUPPORT,verdicts,assertComplete} from '../chrome/ci/verdicts.mjs';
 
 const support=['FEATURE tools forms options find wait fill_form scroll and full catalogues','VIEW representative long article/form complete paging','QUALIFICATION conservative activations ask and core failures gate before reads',
+  'READ BRIEF28 a service restart refuses old references after the new counter passes them','READ BRIEF28 Chrome restart and extension reconnect each refuse every old reference without reissuing strings',
+  'READ BRIEF28 more than 5000 elements drop an old reference and never issue its string again','READ BRIEF28 release and retake refuse an old reference with the same document and element id',
   'READ BRIEF28 two tabs of one page share no reference and find with role returns its one link','READ BRIEF28 paging joins whole and a cursor keeps its query','READ BRIEF28 typing moves the state token and until meets a value',
   'READ BRIEF28 frames of a second site and shadow roots are read','READ BRIEF28 addresses hold no sign-in and show an ordinary query'];
 const complete=()=>[...Object.values(REQUIRED).flat(),...support].map(name=>({name,passed:true}));

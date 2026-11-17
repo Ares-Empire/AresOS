@@ -517,7 +517,7 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,setTa
   });
   // Brief 28, group 14, at the end of the core shard, after every case of brief 20 that uses the tab: the new read's
   // cases (outline-read.mjs), then the password cases (unread-matrix.mjs), whose last step leaves a submission stopped.
-  if(runs('core'))await outlineReadMatrix({check:inBlock('core'),call,rpc,nav,target,getTab:()=>tab});
+  if(runs('core'))await outlineReadMatrix({check:inBlock('core'),call,rpc,nav,target,getTab:()=>tab,setTab,lifecycle,restoreControl});
   if(runs('core'))await unreadMatrix({check:inBlock('core'),call,rpc,read,nav,target,counts,approval,fixture,eventually,ownerNavigate,ownerKey,ownerType,getTab:()=>tab});
   await check('GROUP 7 no listening port after tool suite',async()=>isolationAfter());
   const precedence=fs.existsSync('/out/chrome-precedence.json')?JSON.parse(fs.readFileSync('/out/chrome-precedence.json')):null;

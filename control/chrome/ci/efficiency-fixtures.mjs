@@ -101,7 +101,7 @@ export const H1_ROLES=['button\n  link "Pay now" kqtvm5','button" kqtvm5','b'.re
 export const H1_ELEMENTS=100000,H1_NAME='Long name '.repeat(10000);
 const inline=value=>JSON.stringify(value).replaceAll('<','\\u003c');
 function h1(mode,title){
-  if(mode==='many')return {body:'<h1>Many elements</h1><div id="many"></div>',script:titled('Many')+"document.querySelector('#many').innerHTML=Array.from({length:"+H1_ELEMENTS+"},(_,index)=>'<i>'+index+'</i>').join('');"};
+  if(mode==='many')return {body:'<h1>Many elements</h1><div id="many"></div>',script:titled('Many')+"document.querySelector('#many').innerHTML=Array.from({length:"+H1_ELEMENTS+"},(_,index)=>'<i role=\"button\">Element '+index+'</i>').join('');"};
   if(mode==='name')return {body:'<h1>Long name</h1><button type="button" id="long"></button>',script:titled('Long name')+"document.querySelector('#long').setAttribute('aria-label',"+inline(H1_NAME)+");"};
   return {body:'<main><h1>Hostile text</h1></main>',script:'const strings='+inline(HOSTILE)+',roles='+inline(H1_ROLES)+',main=document.querySelector("main");document.title=strings['+title+'];'
     +'const el=(tag,attributes={},text)=>{const node=document.createElement(tag);for(const [key,value]of Object.entries(attributes))node.setAttribute(key,value);if(text!==undefined)node.textContent=text;return node;};'

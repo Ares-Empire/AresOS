@@ -14,10 +14,10 @@ import {F3_UNIQUE,ADDRESS_MARK,ADDRESS_LINKS,addressOf} from './efficiency-fixtu
 const fixtureUrl=(name,query='')=>'http://fixture.test:8765/?case=efficiency-'+name+query;
 // A reference ends its line: five consonants of this run, then its number.
 const REFERENCES=/ ([bcdfghjklmnpqrstvwxyz]{5})(\d+)$/gm;
-const referencesOf=outline=>[...String(outline).matchAll(REFERENCES)].map(match=>({string:match[1]+match[2],letters:match[1]}));
+const referencesOf=outline=>[...String(outline).matchAll(REFERENCES)].map(match=>({string:match[1]+match[2],letters:match[1],number:Number(match[2])}));
 const OUT='/out/outline-read';
 
-export async function outlineReadMatrix({check,call,rpc,nav,target,getTab}){
+export async function outlineReadMatrix({check,call,rpc,nav,target,getTab,setTab,lifecycle,restoreControl}){
   fs.mkdirSync(OUT,{recursive:true});
   const opened=[];
   // A case that opens tabs closes them, also when it fails.
@@ -50,6 +50,92 @@ export async function outlineReadMatrix({check,call,rpc,nav,target,getTab}){
     assert.equal(entry.until_met,true,'loaded: '+text);
     return tab;
   };
+  const issued=async name=>{
+    const {entry}=await entryOf(name,{tab:getTab(),full:true,max:40000});
+    const refs=referencesOf(entry.untrusted_content.outline);
+    assert.ok(refs.length>=2,name+': the list and next-page link have references');
+    return refs;
+  };
+  const disjoint=(old,fresh,name)=>{
+    assert.ok(old.length&&fresh.length,name+': both reads issued references');
+    const strings=new Set(old.map(ref=>ref.string));
+    assert.deepEqual(fresh.filter(ref=>strings.has(ref.string)),[],name+': no old string is issued again');
+  };
+  const refused=async(name,tab,refs)=>{
+    for(const ref of refs){
+      const result=await read(name,{tab,ref:ref.string});
+      assert.equal(result.ok,true,JSON.stringify(result.error));
+      assert.equal(result.data.reads[0].error?.code,'stale_reference',name+': '+ref.string);
+    }
+  };
+  // restoreControl takes the driver's owner-opened page. Navigate with the
+  // tool afterwards; a guarded reload of an owner page with frames can refuse.
+  const restored=async()=>{setTab(await restoreControl());await nav('efficiency-f7&page=1');};
+
+  // First, while GROUP 9's last service restart has left a small counter.
+  // The extra tab advances the new counter without changing the old page.
+  await check('READ BRIEF28 a service restart refuses old references after the new counter passes them',closing(async()=>{
+    await nav('efficiency-f7&page=1');const old=await issued('service before');
+    await lifecycle({fixture:'kill_service'});await lifecycle({fixture:'start_service'});await restored();
+    const fresh=await issued('service after'),advance=await open(fixtureUrl('f3'),'Results');
+    const further=referencesOf((await pages('service counter advanced',{tab:advance,full:true,max:40000})).text);
+    assert.ok(further.length>=300,'the restarted service issues references for the other tab');
+    assert.ok(Math.max(...further.map(ref=>ref.number))>Math.max(...old.map(ref=>ref.number)),'the new counter has passed every old number');
+    disjoint(old,[...fresh,...further],'service restart');
+    await refused('service old refused',getTab(),old);
+  }));
+
+  await check('READ BRIEF28 Chrome restart and extension reconnect each refuse every old reference without reissuing strings',async()=>{
+    for(const component of ['chrome','host']){
+      await nav('efficiency-f7&page=1');const old=await issued(component+' before');
+      const session=(await call('tabs')).session;
+      await lifecycle('kill_'+component);if(component==='chrome')await lifecycle('start_chrome');
+      await restored();const fresh=await issued(component+' after');
+      assert.notEqual((await call('tabs')).session,session,component+': a new extension connection');
+      assert.equal(fresh[0].letters,old[0].letters,component+': the service did not restart');
+      assert.ok(Math.min(...fresh.map(ref=>ref.number))>Math.max(...old.map(ref=>ref.number)),component+': the counter goes on');
+      disjoint(old,fresh,component);await refused(component+' old refused',getTab(),old);
+    }
+  });
+
+  await check('READ BRIEF28 more than 5000 elements drop an old reference and never issue its string again',closing(async()=>{
+    const tab=await open(fixtureUrl('h1','&mode=many'),'Many elements');
+    const {entry:initial}=await entryOf('many first element',{tab,find:'Element 0',role:'button'});
+    const [first]=referencesOf(initial.untrusted_content.outline);assert.ok(first,'the first element has a reference');
+    await entryOf('many first reference live',{tab,ref:first.string});
+    let cursor,seen=new Set();
+    // Stop as soon as returned pages exceed the table's bound. Continuing
+    // that cursor can itself refuse after eviction (the documented limit).
+    for(let page=0;page<10&&seen.size<=5000;page++){
+      const {entry}=await entryOf('many page '+page,{tab,full:true,max:40000,...(cursor?{cursor}:{})});
+      const refs=referencesOf(entry.untrusted_content.outline);
+      assert.ok(refs.length,'the page returns references');
+      if(page===0){
+        const line=entry.untrusted_content.outline.split('\n').find(line=>line.startsWith('button "Element 0" '));
+        assert.ok(line,'the first element is on the first page');assert.equal(referencesOf(line)[0]?.string,first.string);
+      }
+      for(const ref of refs)seen.add(ref.string);
+      cursor=entry.cursor;assert.ok(cursor,'more of the 100000 elements remain');
+    }
+    assert.ok(seen.size>5000,'more than 5000 different references were returned: '+seen.size);
+    await refused('many dropped reference',tab,[first]);
+    const {entry}=await entryOf('many first element again',{tab,find:'Element 0',role:'button'});
+    const fresh=referencesOf(entry.untrusted_content.outline);
+    assert.equal(fresh.length,1,'find reads the same first element');
+    assert.match(entry.untrusted_content.outline,/button "Element 0" /);
+    disjoint([first],fresh,'dropped element read again');
+    await entryOf('many replacement live',{tab,ref:fresh[0].string});
+    await refused('many old still refused',tab,[first]);
+  }));
+
+  await check('READ BRIEF28 release and retake refuse an old reference with the same document and element id',async()=>{
+    await nav('efficiency-f7&page=1');const before=await target('Next page'),old=await issued('retake before');
+    await call('release_tab',{tab:getTab()});await call('take_tab',{tab:getTab()});
+    const after=await target('Next page'),fresh=await issued('retake after');
+    assert.equal(after.reference.document,before.reference.document,'no reload between release and retake');
+    assert.equal(after.reference.element,before.reference.element,'the reader reused the same element id');
+    disjoint(old,fresh,'retake');await refused('retake old refused',getTab(),old);
+  });
   // Passwords (GROUP 7's page): the new read holds no password, in any form of
   // read. No argument names the whole value, so it is in no request either.
   await check('GROUP 7 BRIEF28 the new read holds no password in any form of read',async()=>{
