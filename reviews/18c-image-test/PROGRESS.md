@@ -1,4 +1,246 @@
-# 18c image part: progress (Part A, step 1; B2, steps 2a to 2c; the Chrome follow-up; 18e in the VM pass; fix round 1, parts 1 and 2; the lead's merge of main; fix round X1)
+# 18c image part: progress (Part A, step 1; B2, steps 2a to 2c; the Chrome follow-up; 18e in the VM pass; fix round 1, parts 1 and 2; the lead's merge of main; fix round X1; fix round X2)
+
+## Fix round X2 (Codex astra's recheck) (2026-11-17, Claude agent on Opus 5.5)
+
+From `RECHECK-X1.md` (Codex `gpt-6-astra`'s recheck of fix round X1 on `48570285`: CHANGES-NEEDED, three should-fixes,
+all in CI checks; security unchanged, SAFE), on head `8cbdfd02`. Opus, because the fixes were decided by the lead.
+Commits: `8d9954b6` (#1), `a2bd7ddb` (#2), `dc9ca2aa` (#3), `dcbb70dd` (the merge of `main`, the lead's addition),
+`fda41017` (a test the merge needed), and this file's commit (`[skip ci]`). **Final head: `fda41017`.** Everything this
+round changed is CI-only (`os/ci/control/`, `os/tests/`) or this folder; nothing in the image, `control/` or the
+workflow. `check-image.sh` is unchanged. `rebind.py pending` recorded no bound file for the three fixes (only its note,
+reverted, as in X1); the merge's run of it is below.
+
+### What changed, per finding, and the test that pins it
+
+Each regression fails on `48570285`'s code and passes now (run against the old file on the laptop, as X1 did: the file
+swapped for `git show 48570285:<path>`, the test run, the file put back).
+
+1. **#1, siblings of `vendor/`.** `os/ci/control/vendor_check.py`, `check()` (`:206`):
+   - **What `build.sh` puts in `/usr/lib/aresos-control`:** only `vendor/`. `build.sh control` requires the folder
+     absent (`test ! -e /usr/lib/aresos-control`), then `pip install --target …/vendor` and the compile fill
+     `vendor/`; `bin/` (console scripts) is inside it. **No other check binds a file there to the checkout:**
+     `check-image.sh` holds the record's `files`, `directories` and `links` to `build.sh control-tree`, and none of
+     them is under that folder; the record's `vendor` map is the whole folder (`walk(DEPENDENCIES)`).
+   - So the whole tree is derived independently: `check()` now removes all of `/usr/lib/aresos-control` (`:216`,
+     was only `vendor/`) and writes the tree the wheels install at `vendor/`. A sibling of `vendor/`, recorded in the
+     manifest or not, is "recorded, not derived". The docstring says why.
+   - Test (`os/tests/test_control_image.py`, `test_the_record_must_be_what_the_locked_wheels_install`, `:403`, the
+     block at `:448`): a sibling source file (`extra.py`), a sibling `.pyc` (compiled, its source removed) and a
+     sibling folder, each made in the image and recorded in its manifest, fail with "recorded, not derived".
+   - **Baseline:** with `48570285`'s `vendor_check.py` the test fails at its first sibling ("Mismatch not raised : a
+     sibling source file"); a probe of each case alone: all three accepted by the old check, all three refused now.
+2. **#2, runtime content that vanished unread.** `os/ci/control/tree_scan.py`, `os/ci/control/actions.py`:
+   - A file or folder under `/run/`, `/tmp/` or `/var/tmp/` that is gone when read and still gone when looked up
+     again is named in `vanished`, **and is now an error** ("gone before it was read, so its content is unsearched"):
+     check 8 asserts no error, so it fails. A vanished folder is the same (its whole content unread). A replaced
+     file (gone, then back) is still read again.
+   - **The exemption table `MAY_VANISH` (`tree_scan.py:29`) is empty:** X1's two control runs had `vanished: []`. A
+     path goes there only with the reason its content can't hold the password, in a comment there and here.
+   - **FUSE (the reviewer's note):** root now walks every FUSE mount itself (no prune). Only a mount where root was
+     refused, a `PermissionError` at or under its mount point, is walked again as its owner (`search_for()`,
+     `actions.py:1515`); root's refusals there give way to that walk, and if the owner's walk fails, they and the
+     failure are errors. A mount root can read (`allow_other`) stays root's, with no owner walk. A refusal outside a
+     FUSE mount stays an error. `passwords.json` now lists every FUSE mount (`fuse_mounts`: mount, type, owner,
+     `root_refused`), and each owner walk carries `root_refused`.
+   - Tests (`os/tests/test_control_vm.py`, `PasswordScanTest`):
+     - `:639` (the existing runtime-disappearance test, changed: it permitted the pass): a runtime file that vanishes
+       is an error and named, and `search_for()` passes the error to check 8; outside the runtime folders it is the
+       plain ENOENT error as before; a vanished folder is an error and named; a path in `MAY_VANISH` is named without
+       an error; `MAY_VANISH` is empty; a replaced file is read again.
+     - `:718` a FUSE mount root can read is root's alone (no owner walk; `root_refused: 0`).
+     - `:730` a FUSE mount that refuses root (mode 0 for this user) is walked as its owner, its hit found,
+       `root_refused: 1`; the owner's walk failing leaves root's refusal and the failure as errors.
+   - **Baseline:** with `48570285`'s `tree_scan.py` and `actions.py`, `:639` fails ("Lists differ: [] != ['…/clean.txt:
+     gone before it was read…']": the old scan passed it), `:718` fails ("no owner walk": the old code pruned the
+     mount from root's walk and always walked it as the owner), and `:730` fails only on the new `root_refused` field.
+3. **#3, tar recognition.** `os/ci/control/evidence_scan.py`:
+   - A tar is now any data whose first block tarfile reads as a header (`tar_header()`, `:67`: `TarInfo.frombuf`, the
+     check `tarfile.open` makes of the first block, the checksum and numbers where numbers go), **or** that carries
+     POSIX's `ustar\0` at byte 257 whatever its two version bytes, or GNU's `ustar  \0` (`TAR_MAGICS`, `:44`;
+     `kind()`, `:76`). Both magics hold a NUL, so no text line has one.
+   - So a V7 tar (no magic) and a ustar header with version `01` are read and searched; a recognisable but damaged
+     one (either magic, bad checksum) is `Unreadable`. X1's depth limit and its trailing-blocks check (a later
+     header tarfile can't read) are unchanged.
+   - One more silent path of the same kind: a member of a type tarfile doesn't know (say `Z`) was skipped by
+     `isfile()`, though `extractfile()` hands it out as a regular file (as GNU tar extracts it). It is searched now
+     (`:92`).
+   - Test (`EvidenceScanTest`, `test_every_tar_tarfile_reads_is_searched_whatever_its_magic`, `:870`): a V7 tar, a
+     version-`01` tar (checksum recomputed) and an unknown-type member, each holding `secret.gz` with the synthetic
+     password gzipped, each read by tarfile, give the hit `…!secret.gz!gunzip`; version `01` and GNU, each with a bad
+     checksum, are unreadable. `:914` also keeps a text log with `ustar  00` at byte 257 ordinary, beside X1's `ustar
+     is a tar format` log and the PNG.
+   - **Baseline:** with `48570285`'s `evidence_scan.py` the test fails (no hits: "Lists differ: [] != ['control/
+     unknown-type.tar!secret.gz!gunzip', …]"); per case, the old scanner gives 0 members and no hit for all three
+     archives, the new one 2 members and the hit.
+   - **The real evidence still scans:** run 43927257316's artifact (194 files) and X1's run 44076179152's (195 files),
+     with the old and the new scanner: **417 and 429 archive members both times, nothing unreadable, no hit** (a
+     random stand-in password), 13 gzip streams at the top each; equal to X1's own counts.
+   - **Known limit (not fixable by recognition):** a V7 tar whose first header is damaged has neither a magic nor a
+     valid checksum, so nothing tells it from other data; it is searched as plain bytes. A ustar or GNU tar damaged
+     the same way stays unreadable.
+
+### The merge (`dcbb70dd`, `main` at `04aef030`)
+
+The lead's addition to this round, so the runs cover the final head. `main` moved from `91487807` (the last merge) to
+`04aef030`: packages 48 (Esc menu and first start), 50 (console keymap) and 51 (first-start window), and work under
+`control/` and `mod/`. A normal merge commit, no rebase. Two conflicts:
+
+- `os/ci/check-build.sh`: **18c's `control|build` structure kept**; package 50's new line `grep -q CONSOLE_KEYMAP_PASSED
+  evidence/vm-pass-1/console-keymap-result.json` goes in the `build` branch, after the polkit grep and before `echo
+  CHECK_BUILD_VM_PASSED`. `control` mode makes its disk without a VM pass of `vm.py`, as before.
+- `os/manifest/ci/16/pending-rebind.json`: **not hand-merged** (`linux-aresos`'s correction). The branch's side taken,
+  then `reviews/27-first-update-release/rebind.py pending` run three times: with `main`'s two new notes, word for word
+  ("22d and 22c on the laptop (2026-11-17)", "50: boot-only console keymap …"), and with this merge's note. So both
+  sides' notes stay, and the rows are the tool's: `main`'s rows (its new bytes for `os/ci/vm.py` and
+  `os/tests/test_owner_path.py`) plus 18c's `.github/workflows/os-image.yml`. "10 bound files differ from the active
+  bindings, 0 removed".
+
+What the merge changed under `os/` (all `main`'s, auto-merged): `os/build.sh` (+1: `systemctl enable
+aresos-console-keymap.service`), `os/config/usr/lib/systemd/system/aresos-console-keymap.service` (new),
+`os/config/usr/libexec/aresos-desktop`, `os/ci/image-checks.sh` (+38: package 50's unit checks, at the top; 18c's
+Control section untouched), `os/ci/overlay/Containerfile` (+1: copies `console_keymap.py`), `os/ci/overlay/checks.py`
+(+3: imports `console_keymap`, the `console-keymap` action), `os/ci/overlay/console_keymap.py` (new), `os/ci/vm.py`
+(+1: `request('console-keymap')`), `os/tests/test_aresos_desktop.py`, `os/tests/test_console_keymap.py` (new),
+`os/tests/test_owner_path.py`; outside `os/`: `.github/workflows/control-owner-oracle.yml`, `control/` (Chrome
+qualification, the owner-state oracle, `control/tests/test_integration.py`) and `mod/`. Checked together:
+- `os/ci/overlay/Containerfile` still copies `console_keymap.py` beside `checks.py`, and `os/ci/vm.py`'s
+  `console-keymap` step survives; the Control layer is `FROM localhost/aresos:vm`, so its `checks.py` finds the module.
+- **One 18c test needed the module too** (`fda41017`): `LayerHookTest` (`os/tests/test_control_vm.py:40`) builds a
+  stand-in layer from `checks.py` and `channel.py` alone, so after the merge its three tests failed with
+  "ModuleNotFoundError: No module named 'console_keymap'". It now copies `overlay/console_keymap.py` too, as the
+  overlay's Containerfile does. Test-only, in 18c's own file; nothing of `main`'s changed.
+
+### Checks run (laptop)
+
+- Before the merge, one module at a time: `test_control_image` 15 OK, `test_control_vm` 48 OK (46 − 2 replaced + 4),
+  `test_checkout_sources` 8 OK.
+- After the merge (`fda41017`): `test_control_image` 15 OK (4.6 s), `test_control_vm` 48 OK (0.7 s; 3 errors on
+  `dcbb70dd` before `fda41017`, above), `test_checkout_sources` 8 OK, `test_aresos_desktop` 189 OK (skipped=1; 173 s),
+  `test_owner_path` 48 OK (1.2 s), `test_owner_equality` 11 OK (83.8 s), one at a time, nothing left running. Never
+  `test_owner_update`; no `rpm-ostree`, `bootc` or `ostree` command, nothing mounted, no sudo.
+- `bash -n os/ci/check-build.sh os/ci/check-image.sh`; `git diff --check` clean over this round's commits and over
+  `os/`, `control/` and `.github/` against `main` (the X1 review files' Markdown line breaks are Codex's, unchanged).
+- The baselines above, against `48570285`'s files.
+
+### Runs on the final head `fda41017`
+
+| Run | Mode | Result |
+|---|---|---|
+| 44097419307 | regressions only (`checks_only`) | **success**: "Ran 1758 tests in 1764.828s", "OK (skipped=4)" (X1's 1734, this round's net 2, and `main`'s new tests; the 4 skips are main's 23b cover tests, as before); the job 14:00:01 to 14:30:08 UTC = 30 min 7 s, the ways-back model job green in 17 s |
+| 44103926487 attempt 1 | `check_build=control` | failure, **not this branch**: in the image's packages stage, `curl: (56) Recv failure: Connection reset by peer` fetching `asm-util-9.10.1.jar` from `maven.fabricmc.net` (14:39:48 UTC), before any Control step; rerun once |
+| 44103926487 attempt 2 | `check_build=control` | **success** (below) |
+| 44117467369 | `check_build=control` | **success** (below; a new dispatch, so both runs keep their evidence artifact) |
+| 44129709609 | `check_build=build` | failure, **not this branch, and not passing on a rerun**: in the image's packages stage, `AssertionError: net.minecraft.json differs from its pin` (17:00:02 UTC; log line 1551), before any Control step and before `check-image.sh`. Prism's metadata service regenerated `https://meta.prismlauncher.org/v1/net.minecraft/26.2.json` at 16:04 UTC (its repo's commit `e5a979dd`, "Update 2026-11-17"): only Mojang's asset index entry changed (`sha1`, `totalSize`, `url`), same size 24493, SHA-256 now `48b0d18b…1338f`; the pin in `os/minecraft/desktop.lock.json`, `9c23199a…2b46`, is exactly upstream's 2026-11-10 version. Not rerun: the URL now serves the new bytes, so every image build fails there, `main`'s too, until the lock is re-pinned (below) |
+| PR #58's workflows on `fda41017` | Repo privacy, Control base, Control boundary, Control Mail, Control Chrome, Control Chrome qualification | all **success** |
+
+**Log lines** (`gh run view <id> --log`, line numbers from 1; 44103926487's is attempt 2, the run's latest; both runs'
+logs have 4375 lines and the same numbers):
+
+| Line | 44103926487 attempt 2 and 44117467369 |
+|---|---|
+| 3584 | `CONTROL_VENDOR_FROM_WHEELS 2024 vendored paths: 1021 files from 28 wheels and pip, 712 bytecode, 291 folders; 1.7 s` (both) |
+| 3585 | `CHECK_BUILD_PASSED` |
+| 4306 | `CONTROL_PERMISSION_REQUEST_RECORDED {"normal-permission-user": {"hook_calls": 1, "owner_answers": 0, "prompt_shown": false, "send_arrivals": 1}}` (both) |
+| 4307 | `CONTROL_INTERACTIVE_ASK_PASS` |
+| 4309 | `CONTROL_PASSWORDS_PRIVATE_PASS` |
+| 4319 | `CHECK_BUILD_CONTROL_PASSED` |
+
+**Run 44103926487 attempt 2**:
+- Times: job 14:42:45 to 15:42:11 UTC = 59 min 26 s (against 131); tools 2 min 26 s; build step 14:46:48 to 15:32:59 =
+  46 min 11 s; **Control VM step 15:32:59 to 15:42:04 = 9 min 5 s** against 16.
+- PASS lines, every one in X1's order: `CLAUDE_CODE_PINNED 2.1.319 sha512-FO4Sd23B…oOQ== dabafec8…8eed` (1329),
+  **`CONTROL_CHROME_BUILD 239de9b9…44b0fb`** (1709; `main`'s Chrome changes, was `8f7036e8…d385c`), `CONTROL_INSTALLED
+  74 files, 28 wheels, 2024 vendored paths from fda41017…` (1710), `CONTROL_CHROME_STARTUP_FILES build 239de9b9…44b0fb,
+  8 qualification entries` (1711), `CONTROL_GENERATED_MATCH 15 files` (1712), `CONTROL_FILES_RECORDED 74 files, 2024
+  vendored paths, 28 wheels from fda41017…` (3473), `CONTROL_WHEELS_FETCHED 28 wheels, 9732253 bytes from PyPI, 1.5 s`
+  (3583), `CONTROL_VENDOR_FROM_WHEELS …` (3584), `CHECK_BUILD_PASSED` (3585), `CHECK_BUILD_CONTROL_DISK_READY` (4276),
+  `CONTROL_IMAGE_FILES_PASS`, `CONTROL_ETC_CLAUDE_CODE_PASS`, `CONTROL_RELEASE_CHECKS_PASS`,
+  `CONTROL_IDLE_FOOTPRINT_RECORDED {…}`, `CONTROL_FIXTURES_REACHABLE`, `CONTROL_ENTRY_POINTS_PASS`,
+  `CONTROL_PRECONDITION_PASS`, `CONTROL_USER_MCP_INSTALL_PASS`, `CONTROL_SERVICE_SANDBOX_PASS`,
+  `CONTROL_ORDINARY_SESSION_PASS {…}` (4302), `CONTROL_MAIL_FLOWS_PASS`, `CONTROL_PERMISSION_REQUEST_RECORDED …` (4306),
+  `CONTROL_INTERACTIVE_ASK_PASS` (4307), `CONTROL_PASSWORDS_PRIVATE_PASS` (4309), `CONTROL_SELINUX_AFTER_CHECKS_PASS`,
+  `CONTROL_STORAGE_TESTS_PASS {…}`, `CONTROL_SERVICE_RESTART_PASS`, `CONTROL_VM_POWEROFF_CLEAN` (4317),
+  `CHECK_BUILD_CONTROL_PASSED` (4319).
+- The fixture stop step was green.
+- Step times (s): boot to channel 45.9, files 3.4, idle 59.5, entry points 4.2, precondition 1.9, user MCP 10.8,
+  **check 6 229.2**, check 7 36.2, check 9 111.1, check 8 0.4, storage tests 36.9, restart 1.0; the pass 544.1.
+
+**Run 44117467369**:
+- Times: job 15:42:52 to 16:46:45 UTC = 63 min 53 s; tools 3 min 43 s; build step 15:49:14 to 16:37:22 = 48 min 8 s;
+  **Control VM step 16:37:23 to 16:46:39 = 9 min 16 s** against 16.
+- PASS lines: the same lines in the same order on the same log lines, with `CONTROL_WHEELS_FETCHED 28 wheels, 9732253
+  bytes from PyPI, 1.6 s` and the same `CONTROL_PERMISSION_REQUEST_RECORDED` (`prompt_shown: false` again).
+- The fixture stop step was green.
+- Step times (s): boot to channel 49.3, files 5.2, idle 59.1, entry points 4.5, precondition 2.2, user MCP 10.8,
+  **check 6 231.3**, check 7 36.9, check 9 112.7, check 8 0.4, storage tests 38.9, restart 0.9; the pass 556.0.
+
+### This round's evidence (run 44103926487 attempt 2 / run 44117467369)
+
+- **Check 8 in the guest** (`passwords.json`): **1866 / 1874 files searched by root, `errors: []`, `vanished: []`**
+  (so nothing needed `MAY_VANISH`), the journal export exit 0 with nothing on stderr; per folder `/var/home/ares` 931 /
+  931, `/run` 483 / 483, `/var/tmp` 415 / 423, `/var/lib/aresos-tools` 14, `/var/log` 12, `/root` 5, `/tmp` 3,
+  `/var/lib/aresos-operation-evidence` 3; the one file holding the password is the stored one.
+- **The FUSE mount, root first:** `fuse_mounts: [{mount: /run/user/1001/doc, type: fuse.portal, owner: ares,
+  root_refused: 1}]` both times: **root's walk was refused at the document portal's mount point**, so it was walked
+  as `ares`: 0 files, no error. X1 assumed the refusal; these runs show it (one refusal, at the mount point itself).
+- **The vendor check**: `CONTROL_VENDOR_FROM_WHEELS 2024 vendored paths: 1021 files from 28 wheels and pip, 712
+  bytecode, 291 folders` both times: the same counts as X1. The derived tree now includes `/usr/lib/aresos-control`
+  itself; the record had nothing else beside `vendor/`.
+- **The evidence scan** (`runner.sh stop`, `fixtures/password-scan.json`, the new scanner): **192 files, 428 / 436
+  archive members**, `"unreadable": []`, `"holding": []`, GreenMail redacted once, nothing removed. Check 8's own scan
+  on the runner (`passwords-runner.json`): 56 evidence files, 428 / 436 members, nothing unreadable. On the laptop,
+  the downloaded artifacts (195 files each) with the new scanner: 428 / 436 members, nothing unreadable, 13 gzip
+  streams at the top; with `48570285`'s scanner the same counts.
+- **Check 9's transcripts:** one per case in both runs (`normal-yes`, `skip-no`, `skip-user-allow-send`,
+  `normal-permission-user`).
+- **Unchanged from X1**, both runs: `desktop_with_service_failed` (the service `failed`, `NRestarts=5`,
+  `Result=exit-code`; logged out in 11.3 s, the desktop up again in 13.7 s, `SETUP`, not latched, greetd session `1`
+  then `3`, `marks_after_logout: false`); `held_work` 4 model requests, 1 extra, 1 continuation, both reminders `true`;
+  **`held_elsewhere` 2 model requests, 0 extra, 0 Stop continuations, `requests_carrying_it: []`**; check 6's CLI
+  while stopped `service_unavailable` after 3.25 s; idle 1 context switch in 60 s, 1.4 ms / 0.9 ms of CPU,
+  `memory.current` 32,755,712 B / 33,042,432 B, RSS 37,064 / 37,192 KiB, PSS 25,286 / 25,262 KiB, 1 process, 1 thread.
+
+### Done
+
+The three should-fixes of `RECHECK-X1.md`, each with its regression test and its baseline failure on `48570285`;
+`main` merged at `04aef030` (two conflicts, resolved as the lead set out), and the one 18c test the merge needed.
+Regressions only green (1758 tests), `check_build=control` green twice (44103926487 attempt 2, 44117467369),
+PR #58's six workflows green. **`check_build=build` is not green:** run 44129709609 stopped at the image's pinned
+Minecraft metadata, which Prism's service changed upstream at 16:04 UTC (Runs, above); the two control runs built
+their images before that. Only this file changed after `fda41017`.
+
+### Left, in order
+
+This replaces X1's list below (its item 1 is `RECHECK-X1.md`, whose findings this round closes).
+
+1. **The pinned Minecraft metadata** (the lead's call; `linux-aresos`'s or `main`'s file, outside this round's
+   scope): re-pin `net.minecraft.json` in `os/minecraft/desktop.lock.json` to upstream's new bytes (or pin a URL that
+   can't change), on `main` and then merged here; then `check_build=build` once on the final head, recording its
+   `CONSOLE_KEYMAP_PASSED: boot setting and repair after a forced busy-VT skip` line (printed by `vm.py` before
+   `CHECK_BUILD_VM_PASSED`) and its log line numbers. A new head also needs the control runs again.
+2. A fresh recheck of this round's fixes and what they touched (`docs/REVIEW.md`, "Tools for Claude", step 3).
+3. `linux-aresos` reads this round's `os/` diff (agreed change 16), the merge's resolution included: the section at the
+   end is up to date with this round.
+4. The lead assembles `reviews/18c-image-test/REPORT.md` as listed in the merge section below, with X1's known limits
+   word for word, this round's known limit (a V7 tar with a damaged first header), and this round's runs and log lines.
+5. Merge (the lead's).
+6. The last step deletes this file.
+
+### Observations for the lead
+
+- **Check 8 is now strict about vanishing runtime files.** Both runs had `vanished: []`, as X1's. If a later run
+  fails check 8 on "gone before it was read", the path is named; it may go in `MAY_VANISH` only with the reason its
+  content can't hold the password.
+- **The merge needed one change beyond the two conflicts**, in 18c's own test (`fda41017`, `LayerHookTest`): `main`'s
+  `checks.py` imports `console_keymap`. Nothing of `main`'s code changed.
+- **`CONTROL_CHROME_BUILD` moved** to `239de9b9…44b0fb` with `main`'s Chrome changes (8 qualification entries, as
+  before): for `control/chrome/builds.json`, if the lead keeps that record.
+- **Every image build fails today at `net.minecraft.json`** (44129709609, above), `main`'s included: Prism's
+  metadata service regenerates `v1/net.minecraft/<version>.json` weekly (its repo shows updates on 2026-11-03, -10
+  and -17), and an asset index change upstream changes the file's bytes. The lock pins a URL whose content moves, so
+  this is likely to recur each week unless the pin points at fixed content.
+- One infrastructure failure, rerun once: `maven.fabricmc.net` reset a connection in the packages stage (44103926487
+  attempt 1). X1's was Maven Central's 429.
 
 ## Fix round X1 (Codex astra's review) (2026-11-17, Claude agent on Opus 5.5)
 
@@ -2007,7 +2249,12 @@ follow-up, after the 18e merge `86ad8e12` (2026-11-15; 18e changes only `control
 limit, check 6's wording; nothing in the image). The lead's merge of `main` at `91487807` (`a1e7aad9`, 2026-11-16)
 changed no file under `os/` or `.github/`: `main` changed none there since `5bb1500e`, so this diff stands against
 `91487807` too. Fix round X1 (2026-11-17) changed CI-only files: `check-image.sh`, `os/ci/control/` (two new modules,
-three changed files) and the two test modules; nothing in the image. Image side first, then CI only.
+three changed files) and the two test modules; nothing in the image. Fix round X2 (2026-11-17) changed CI-only files
+again (`os/ci/control/vendor_check.py`, `tree_scan.py`, `actions.py`, `evidence_scan.py` and the two test modules;
+`check-image.sh` unchanged) and **merged `main` at `04aef030`** (`dcbb70dd`; packages 48, 50 and 51): this diff now
+stands against `04aef030`. The merge's two conflicts were 18c's `os/ci/check-build.sh` (50's console keymap grep put in
+the `build` branch) and the pending list (regenerated with `rebind.py pending`); `main`'s other `os/` changes merged
+untouched (fix round X2, "The merge"). Image side first, then CI only.
 
 - `os/Containerfile`: the aresos stage copies `/source/control` from the existing source stage and runs `build.sh
   control` before `configure`; `FROM` lines and the other stages unchanged.
@@ -2028,7 +2275,7 @@ three changed files) and the two test modules; nothing in the image. Image side 
   `kind=release`).
 - `os/ci/check-resolve.sh`: **unchanged** (equal to main's; `gh` moved to 18c-b).
 - `os/README.md`: one paragraph on Control in the image (with Chrome's startup files).
-- `os/tests/test_control_image.py` (15 tests, new; 6 since fix round X1) and `os/tests/test_aresos_desktop.py` (the source-stage test
+- `os/tests/test_control_image.py` (15 tests, new; 6 since fix round X1; X2 adds the sibling cases to one) and `os/tests/test_aresos_desktop.py` (the source-stage test
   expects `control/` beside `mod/`, JUDGMENT-CALL 6).
 - CI only, never in a release:
   - `.github/workflows/os-image.yml` (`check-build` job only, no new permission or secret): `check_build` gains
@@ -2040,18 +2287,23 @@ three changed files) and the two test modules; nothing in the image. Image side 
     slow pass before the step's own 16), each recorded with `rebind.py pending`.
   - `os/manifest/ci/16/pending-rebind.json`: the workflow's bytes wait for the next rehearsal; after main's 22c
     rehearsal, and again after 22d's (fix round 1 part 2: main's list taken, then `rebind.py pending`), the merge
-    re-recorded 18c's notes (those bindings don't include them).
+    re-recorded 18c's notes (those bindings don't include them). X2's merge: the branch's list, then `rebind.py
+    pending` with `main`'s two new notes and the merge's, so the rows are `main`'s plus `os-image.yml`.
   - `os/ci/check-build.sh`: `control|build)` share the build; `control` starts the fixtures first, builds the Control
     layer after the CI layer and makes the disk from `localhost/aresos:control` (`CHECK_BUILD_CONTROL_DISK_READY`);
-    new `control-pass` boots it with `control_vm.py` (`CHECK_BUILD_CONTROL_PASSED`). `build` mode unchanged.
+    new `control-pass` boots it with `control_vm.py` (`CHECK_BUILD_CONTROL_PASSED`). `build` mode unchanged: since
+    the X2 merge it carries `main`'s console keymap grep (package 50) between the polkit grep and
+    `CHECK_BUILD_VM_PASSED`, as on `main`.
   - `os/ci/overlay/checks.py`: the hook (agreed change 8): `layer_actions()` loads `actions.d/*.py` after the fixed
     actions; a layer adds actions, never replaces one.
   - `os/ci/control/` (new): `Containerfile` (the test layer `FROM localhost/aresos:vm`), `runner.sh` (fixture CA,
     GreenMail and Dovecot on the runner's loopback, Claude Code from the boundary's lock, the layer, the stop and
     password-leak check), `evidence_scan.py` (that check, also inside the evidence's archives; fix round 1; since
-    X1 it fails on what it can't search: archives below its depth, damaged tars, formats it doesn't unpack),
-    `tree_scan.py` (X1: check 8's file search, which fails on whatever it can't read and walks a FUSE mount as its
-    owner; the layer copies it), `vendor_check.py` (X1: Part A's vendor check above),
+    X1 it fails on what it can't search: archives below its depth, damaged tars, formats it doesn't unpack; since
+    X2 a tar is whatever tarfile reads, magic or not), `tree_scan.py` (X1: check 8's file search, which fails on
+    whatever it can't read; since X2 also on runtime content that vanished unread, and root walks a FUSE mount first,
+    its owner only where root is refused; the layer copies it), `vendor_check.py` (X1: Part A's vendor check above;
+    since X2 it derives all of `/usr/lib/aresos-control`, so a sibling of `vendor/` fails),
     `control_vm.py` (boots the disk, runs the checks, prints the PASS lines), `actions.py` (the guest's checks; since
     fix round 1 check 6 also logs ares out of the throwaway guest and lets greetd's auto-login start the desktop again
     while the service has failed, and check 2 looks for network listeners; since part 2 check 6 requires 18e's merged
@@ -2060,7 +2312,8 @@ three changed files) and the two test modules; nothing in the image. Image side 
     `own-hook.py` (his own server and hooks). The layer also
     carries `control/boundary/interactive_{driver,model}.py`, `control/ci/image/mail_flows.py` and, for the storage
     tests, `control/chrome_tests/*.py` and `control/mail_tests/storage_faults.py`.
-  - `os/tests/test_control_vm.py` (46 tests, new; 11 since fix round X1).
+  - `os/tests/test_control_vm.py` (48 tests, new; 11 since fix round X1; X2 replaced two and added four, and
+    `LayerHookTest` copies `console_keymap.py` beside `checks.py` since the merge).
 - Not changed: base digest, `packages.lock.json`, Chrome pin, accounts, sudo, polkit, masks, session, PATH,
   repositories, `os/config/`, `os/policy/`, `os/release/`, `os/owner-tools/`, `os/manifest/` (except the pending
   list above), `ci/check-resolve.sh`, and every other job of `os-image.yml`.
