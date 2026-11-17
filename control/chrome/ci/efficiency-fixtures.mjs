@@ -98,10 +98,13 @@ function f6(mode){
 // name of 100,000 characters.
 export const HOSTILE=JSON.parse(fs.readFileSync(new URL('./hostile-text.json',import.meta.url),'utf8')).strings;
 export const H1_ROLES=['button\n  link "Pay now" kqtvm5','button" kqtvm5','b'.repeat(10000),'  BUTTON  '];
-export const H1_ELEMENTS=100000,H1_NAME='Long name '.repeat(10000);
+export const H1_ELEMENTS=100000,H1_REFERENCES=6000,H1_NAME='Long name '.repeat(10000);
 const inline=value=>JSON.stringify(value).replaceAll('<','\\u003c');
 function h1(mode,title){
-  if(mode==='many')return {body:'<h1>Many elements</h1><div id="many"></div>',script:titled('Many')+"document.querySelector('#many').innerHTML=Array.from({length:"+H1_ELEMENTS+"},(_,index)=>'<i role=\"button\">Element '+index+'</i>').join('');"};
+  // More than 5000 controls exercise eviction. Empty images fill the rest
+  // of the 100000-node page without overflowing the native host's 1 MiB
+  // reply limit before the reader's 20000-node bound can be observed.
+  if(mode==='many')return {body:'<h1>Many elements</h1><div id="many"></div>',script:titled('Many')+"document.querySelector('#many').innerHTML=Array.from({length:"+H1_ELEMENTS+"},(_,index)=>index<"+H1_REFERENCES+"?'<i role=\"button\" aria-label=\"Element '+index+'\"></i>':'<i role=\"img\"></i>').join('');"};
   if(mode==='name')return {body:'<h1>Long name</h1><button type="button" id="long"></button>',script:titled('Long name')+"document.querySelector('#long').setAttribute('aria-label',"+inline(H1_NAME)+");"};
   return {body:'<main><h1>Hostile text</h1></main>',script:'const strings='+inline(HOSTILE)+',roles='+inline(H1_ROLES)+',main=document.querySelector("main");document.title=strings['+title+'];'
     +'const el=(tag,attributes={},text)=>{const node=document.createElement(tag);for(const [key,value]of Object.entries(attributes))node.setAttribute(key,value);if(text!==undefined)node.textContent=text;return node;};'

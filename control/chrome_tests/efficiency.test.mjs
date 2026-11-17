@@ -7,7 +7,7 @@ import os from 'node:os';
 import path from 'node:path';
 import vm from 'node:vm';
 import {fixtures} from '../chrome/ci/fixture.mjs';
-import {efficiencyPage,f1Body,f2Cell,f2Header,f3Name,F2_ROWS,F2_COLUMNS,F3_UNIQUE,ADDRESS_MARK,ADDRESS_QUERY,ADDRESS_LINKS,addressOf,F4_FILLED,tabTitle,HOSTILE,H1_ROLES,H1_ELEMENTS,H1_NAME} from '../chrome/ci/efficiency-fixtures.mjs';
+import {efficiencyPage,f1Body,f2Cell,f2Header,f3Name,F2_ROWS,F2_COLUMNS,F3_UNIQUE,ADDRESS_MARK,ADDRESS_QUERY,ADDRESS_LINKS,addressOf,F4_FILLED,tabTitle,HOSTILE,H1_ROLES,H1_ELEMENTS,H1_REFERENCES,H1_NAME} from '../chrome/ci/efficiency-fixtures.mjs';
 import {TASKS,OUTLINE_TASKS,efficiencyProbe,followsPlan,parseRows,EFFICIENCY_WARMUPS,EFFICIENCY_RUNS,EFFICIENCY_TAB_COUNT} from '../chrome/ci/efficiency-probe.mjs';
 
 const served=async(base,query)=>{const response=await fetch(base+'/?'+query);return {status:response.status,html:await response.text()};};
@@ -62,11 +62,13 @@ test('group 14 F6 and H1 pages as served, and H1 puts every hostile string in ev
   }
   assert.match(efficiencyPage(new URL('http://fixture.test/?case=efficiency-f6')).body,/src="http:\/\/second\.test:8766\/\?case=efficiency-f6&amp;mode=child"/);
   assert.equal(HOSTILE.length,14);assert.equal(H1_ROLES[2].length,10000);assert.equal(H1_ELEMENTS,100000);assert.equal(H1_NAME.length,100000);
-  // Formatting alone gets no outline node. The capacity page needs controls
-  // so its 100000 elements really exercise the reference table's bound.
+  // Formatting alone gets no outline node. This page needs enough controls
+  // to exceed the reference bound and readable nodes to exceed the reader's.
   const many={innerHTML:''};
   vm.runInNewContext(efficiencyPage(new URL('http://fixture.test/?case=efficiency-h1&mode=many')).script,{document:{querySelector:()=>many}});
-  assert.equal(count(many.innerHTML,/<i role="button">Element \d+<\/i>/g),H1_ELEMENTS);
+  assert.ok(H1_REFERENCES>5000);
+  assert.equal(count(many.innerHTML,/<i role="button" aria-label="Element \d+"><\/i>/g),H1_REFERENCES);
+  assert.equal(count(many.innerHTML,/<i role="img"><\/i>/g),H1_ELEMENTS-H1_REFERENCES);
   // H1's script against a minimal document: each string in each place, and the chosen title.
   const made=[],fake=tag=>{const node={tag,attributes:{},children:[],setAttribute(key,value){this.attributes[key]=value;},append(...items){this.children.push(...items);}};made.push(node);return node;};
   const main=fake('main'),document={title:'',querySelector:selector=>selector==='main'?main:null,createElement:fake,createTextNode:text=>({text})};

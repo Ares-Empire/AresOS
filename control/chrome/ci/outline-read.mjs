@@ -91,7 +91,11 @@ export async function outlineReadMatrix({check,call,rpc,nav,target,getTab,setTab
       const session=(await call('tabs')).session;
       await lifecycle('kill_'+component);if(component==='chrome')await lifecycle('start_chrome');
       await restored();const fresh=await issued(component+' after');
-      assert.notEqual((await call('tabs')).session,session,component+': a new extension connection');
+      // The hello session names the extension worker. Killing only its host
+      // cuts the connection while the worker (and that session) survives.
+      const current=(await call('tabs')).session;
+      if(component==='chrome')assert.notEqual(current,session,'Chrome restarted its extension worker');
+      else assert.equal(current,session,'only the native connection was cut');
       assert.equal(fresh[0].letters,old[0].letters,component+': the service did not restart');
       assert.ok(Math.min(...fresh.map(ref=>ref.number))>Math.max(...old.map(ref=>ref.number)),component+': the counter goes on');
       disjoint(old,fresh,component);await refused(component+' old refused',getTab(),old);

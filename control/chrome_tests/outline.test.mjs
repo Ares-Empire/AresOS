@@ -5,6 +5,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
+import {H1_REFERENCES} from '../chrome/ci/efficiency-fixtures.mjs';
 
 const XHTML='http://www.w3.org/1999/xhtml',BASE='https://fixture.test/';
 // nodes.py: ROLES and the keys a node may hold.
@@ -188,6 +189,17 @@ test('beyond 20,000 nodes the reply says how many were left out',()=>{
   const cut=limit=>{const result=small.run({command:'outline',limit});assert.equal(result.ok,true,JSON.stringify(result));return [result.data.nodes.map(node=>node.role),result.data.omitted];};
   assert.deepEqual(cut(3),[['p','list','listitem'],2]);assert.deepEqual(cut(1),[['p'],4]);assert.deepEqual(cut(0),[[],5]);
   for(const limit of [5,20001,-1,1.5,'2',null])assert.deepEqual(cut(limit),[['p','list','listitem','listitem','p'],0],String(limit));
+});
+
+test('H1 controls exceed the reference bound while its capped outline fits the native reply',()=>{
+  const f=page(h=>Array.from({length:20001},(_,index)=>index<H1_REFERENCES?
+    h('i',{role:'button','aria-label':'Element '+index}):h('i',{role:'img'})));
+  const data=f.outline();
+  assert.equal(data.nodes.length,20000);assert.equal(data.omitted,1);
+  assert.equal(data.nodes.filter(node=>node.role==='button').length,H1_REFERENCES);
+  assert.ok(H1_REFERENCES>5000);
+  // Leave room for the background's tab, frame, session and command envelope.
+  assert.ok(Buffer.byteLength(JSON.stringify(data))<1024*1024-4096);
 });
 
 test('page_state moves with a typed value and a tick, and carries no value',()=>{
