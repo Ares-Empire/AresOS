@@ -1,0 +1,18 @@
+[Unit]
+Description=Finished console keymap after the boot splash
+Documentation=man:systemd-vconsole-setup.service(8) man:vconsole.conf(5)
+# A wanted unit normally holds its target back. Run after graphical.target instead,
+# so a failed or slow console setup cannot delay the graphical login.
+DefaultDependencies=no
+After=graphical.target plymouth-quit-wait.service systemd-vconsole-setup.service
+Conflicts=shutdown.target
+Before=shutdown.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/lib/systemd/systemd-vconsole-setup /dev/tty3
+RemainAfterExit=yes
+TimeoutStartSec=15s
+
+[Install]
+WantedBy=graphical.target

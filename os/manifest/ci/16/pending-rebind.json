@@ -9,12 +9,13 @@
     "40: the checks-only job's 40 minutes, as 22d step 2 and 23b: its time limit in os-image.yml (25 to 40) and the 22c ledger's checks bound in os/ci/rehearsal-packages.json (35 to 40); no tool, guide or image file changed",
     "23b (startup cover), merged with main after package 40: os/ci/vm.py gains the cover's screenshots and session font check in the check build (harness only); the regressions time limit (40 minutes) arrived with package 40 identically",
     "22d step 8: main merged in (bound files main changed wait for the next rehearsal)",
-    "2026-11-15, board #306 (owner: scrub current files): the owner's machine username became owner in 372 files (reviews/username-scrub/RECORD.md). Three bound files changed, text only: os/manifest/ci/14/14zze-preflight/commit-preflight.py, final-local.py and local-privacy.py (archived preflight tools). No binding table or host walk was edited."
+    "2026-11-15, board #306 (owner: scrub current files): the owner's machine username became owner in 372 files (reviews/username-scrub/RECORD.md). Three bound files changed, text only: os/manifest/ci/14/14zze-preflight/commit-preflight.py, final-local.py and local-privacy.py (archived preflight tools). No binding table or host walk was edited.",
+    "50: boot-only console keymap after Plymouth; vm.py requires boot-key and forced busy-VT repair evidence in the disposable check build"
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
     {
-      "sha256": "5a14cfa61936b15700c53747e839a6407aa73cc1d7335ef36ebdd1ccbcdeba23",
+      "sha256": "8e13aa279047545915e430afa53ec8abde59e92db74b0b3451ef3cd3075ed148",
       "path": "os/ci/vm.py"
     },
     {
