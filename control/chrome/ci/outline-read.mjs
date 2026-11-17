@@ -386,12 +386,16 @@ export async function outlineReadMatrix({check:report,call,rpc,nav,target,getTab
   }));
 
   await check('READ BRIEF28 H1 names values options tables forms paths stale lines titles and dialogs stay quoted',closing(async()=>{
-    for(const [index,hostile]of HOSTILE.entries()){
+    for(const [index,raw]of HOSTILE.entries()){
+      // The native boundary replaces lone surrogates; every service surface
+      // still applies the same escaping to that well-formed page text.
+      const hostile=raw.toWellFormed();
       const tab=await open(fixtureUrl('h1','&mode=surfaces&title='+index+'&id=hostile-'+index),'Hostile surfaces');
       const first=(await entryOf('hostile outline '+index,{tab,max:40000})).entry,text=first.untrusted_content.outline,safe=quoted(squeezed(hostile));
       hostileGrammar(text);assert.ok(text.includes((index===12?'password ':'button ')+safe));
       const nativeTitle=(await bridge('tab_context',{tab})).title;
       assert.equal(first.untrusted_content.title,visible(nativeTitle),'escape the title Chrome actually reports');
+      if(index===13)assert.equal(first.untrusted_content.title,visible(hostile),'the lone surrogate is U+FFFD in the title');
       const form=refAt(text,'form "Hostile form"'),table=refAt(text,'table "Hostile table"'),list=refAt(text,'list "Hostile list"'),link=refAt(text,'link "Detail link"');
       for(const [kind,ref]of [['form',form],['table',table],['list',list],['link',link]]){
         const detail=(await pages('hostile '+kind+' '+index,{tab,ref,max:40000})).text;hostileGrammar(detail);
@@ -419,6 +423,7 @@ export async function outlineReadMatrix({check:report,call,rpc,nav,target,getTab
       assert.ok(openedDialog.dialog);
       const dialog=(await entryOf('hostile dialog '+index,{tab})).entry;
       assert.equal(dialog.untrusted_content.outline,'');assert.equal(dialog.untrusted_content.dialog.text,visible(openedDialog.dialog.text));
+      if(index===13)assert.equal(dialog.untrusted_content.dialog.text,visible(hostile),'the lone surrogate is U+FFFD in the dialog');
       const answered=await call('dialog',{tab,expected:openedDialog.dialog,accept:true});
       if(answered.approval)assert.equal((await call('submit',answered.approval)).operation.state,'done');
       assert.equal((await bridge('page_state',{tab})).dialog,false,'the synthetic dialog was answered before close');

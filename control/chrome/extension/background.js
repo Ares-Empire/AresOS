@@ -124,7 +124,7 @@ async function preloadEvent(source,method,params){
       if(params.targetInfo.type!=='iframe')throw Error('refused: only frame startup is auto-attached');
       assertTarget(parent);const prepared=await prepareTarget(child,parent.tab,params.targetInfo.targetId);await targetCommand(prepared,'Runtime.runIfWaitingForDebugger');
     }
-    catch(error){port?.postMessage({event:'reader_error',error:String(error),tab:parent.tab});try{await preloadCommand(source,'Target.detachFromTarget',{sessionId:params.sessionId});}catch{}}
+    catch(error){respond({event:'reader_error',error:String(error),tab:parent.tab});try{await preloadCommand(source,'Target.detachFromTarget',{sessionId:params.sessionId});}catch{}}
     return;
   }
   const state=preloadTargets.get(targetKey(source));if(!state)return;
@@ -247,7 +247,7 @@ async function preloadEvent(source,method,params){
     const activated=await documentCommand('Runtime.callFunctionOn',{objectId:installed.cleanup,functionDeclaration:'function(){return this.activate();}',returnByValue:true});
     if(activated.exceptionDetails)throw Error('refused: document guard activation failed');
     installed.ready=true;
-  }catch(error){if(preloadTargets.get(targetKey(source))===state&&controlled.get(state.tab)?.epoch===state.epoch&&sameDocument()){state.failures??=new Map();state.failures.set(startup?.main.uniqueId||'unknown',{main:startup?.main.uniqueId,isolated:startup?.isolated.uniqueId,error:String(error)});port?.postMessage({event:'reader_error',error:String(error),tab:state.tab});}}
+  }catch(error){if(preloadTargets.get(targetKey(source))===state&&controlled.get(state.tab)?.epoch===state.epoch&&sameDocument()){state.failures??=new Map();state.failures.set(startup?.main.uniqueId||'unknown',{main:startup?.main.uniqueId,isolated:startup?.isolated.uniqueId,error:String(error)});respond({event:'reader_error',error:String(error),tab:state.tab});}}
   finally{try{if(state.pause===pause&&sameDocument()&&controlled.get(state.tab)?.epoch===state.epoch)await targetCommand(state,'Debugger.resume');}catch{}state.installing.delete(installing);complete();}
 }
 // The extension's own record of how each document of a controlled tab got its
@@ -332,10 +332,34 @@ function waitDialog(tab){
 function wakeDialog(tab,value={dialog:true}){for(const resolve of dialogWake.get(tab)||[])resolve(value);}
 function assertControl(tab,epoch=dispatchEpoch){if(!epoch || controlled.get(tab)?.epoch !== epoch)throw Error('stale_reference: control ended');}
 const audit = value => {
-  if(recording && port){const text=JSON.stringify(value??null);if(text && text.length>64000){for(let offset=0;offset<text.length;offset+=64000)port.postMessage({event:'audit',data:{json_fragment:text.slice(offset,offset+64000),offset,total:text.length}});}else port.postMessage({event:'audit',data:value??null});}
+  if(recording && port)respond({event:'audit',data:value??null});
   return value;
 };
+function wellFormed(value){
+  if(typeof value==='string')return typeof value.toWellFormed==='function'?value.toWellFormed():Array.from(value,c=>c.length===1&&c.charCodeAt(0)>=0xd800&&c.charCodeAt(0)<=0xdfff?'\ufffd':c).join('');
+  if(Array.isArray(value))return value.map(wellFormed);
+  if(value&&typeof value==='object')return Object.fromEntries(Object.entries(value).map(([key,item])=>[wellFormed(key),wellFormed(item)]));
+  return value;
+}
+// Every native-host reply and event crosses this boundary before serialization.
+// JSON.stringify escapes lone surrogates instead of repairing them; the service
+// rightly refuses those escapes. Repair page text here, keeping its other text.
 function respond(value) {
+  value=wellFormed(value);
+  if(value.event==='audit'){
+    const text=JSON.stringify(value.data??null);
+    if(text.length>64000){
+      for(let offset=0;offset<text.length;){
+        let end=Math.min(offset+64000,text.length);
+        // A fragment is itself a string on the native wire. Keep a valid pair
+        // in one fragment so the wire never holds either half on its own.
+        if(end<text.length&&text.charCodeAt(end-1)>=0xd800&&text.charCodeAt(end-1)<=0xdbff)end--;
+        port?.postMessage({event:'audit',data:{json_fragment:text.slice(offset,end),offset,total:text.length}});offset=end;
+      }
+      return;
+    }
+  }
+  if(value.event){port?.postMessage(value);return;}
   const bytes=new TextEncoder().encode(JSON.stringify(value));
   if(bytes.length<=512*1024){port?.postMessage(value);return;}
   if(bytes.length>32*1024*1024){port?.postMessage({id:value.id,ok:false,error:(effectStarted?'unknown: input may have run; ':'refused: ')+'complete browser snapshot exceeds 32 MiB; inspect status and use a smaller document'});return;}
@@ -534,7 +558,7 @@ async function admitTab(tab,generation,opener=null) {
 async function createdTarget({sourceTabId,tabId}){
   const parent=controlled.get(sourceTabId);if(!parent)return;
   try{await take(tabId,{tab:sourceTabId,epoch:parent.epoch});}
-  catch(error){port?.postMessage({event:'reader_error',error:String(error),tab:tabId});}
+  catch(error){respond({event:'reader_error',error:String(error),tab:tabId});}
 }
 async function content(tab, frame, command, parameters={},browserDocument=null,expires=null) {
   const effectful=['focus','select','check','install_file'].includes(command);
@@ -609,7 +633,7 @@ function observeStep(message,sender){
       current.stepOverflow=true;value.id='overflow-'+value.id;value.kind='activation_unknown';value.cancellable=false;value.label='Additional page steps exceeded the response limit; inspect with the owner and never replay.';
     }
     current.steps.set(stepKey(value),value);
-    port?.postMessage({event:'held_step',session,tab:sender.tab.id,step:value});
+    respond({event:'held_step',session,tab:sender.tab.id,step:value});
   }
   return true;
 }
@@ -709,7 +733,7 @@ async function release(tab) {
   wakeDialog(tab,{interrupted:true});
   for(const [id,barrier]of fixtureBarriers)if(barrier.tab===tab){fixtureBarriers.delete(id);barrier.reject(Error('unknown: interrupted after input'));}
   for(const [token,stage] of stagedUploads)if(stage.tab===tab)stagedUploads.delete(token);
-  port?.postMessage({event:'released',tab,session});
+  respond({event:'released',tab,session});
   const record={original,promise:null};releasing.set(tab,record);
   record.promise=(async()=>{
     await rules();
@@ -744,8 +768,8 @@ async function release(tab) {
     if(!controlled.size&&!releasing.size)groupId=null;
     await rules();await badge();return {released:tab,cleanup_pending:false};
   })();
-  badge().catch(error=>port?.postMessage({event:'reader_error',error:'Control badge unavailable: '+String(error),tab}));
-  record.promise.catch(error=>port?.postMessage({event:'reader_error',error:'Private cleanup remains pending: '+String(error),tab}));
+  badge().catch(error=>respond({event:'reader_error',error:'Control badge unavailable: '+String(error),tab}));
+  record.promise.catch(error=>respond({event:'reader_error',error:'Private cleanup remains pending: '+String(error),tab}));
   return boundedRelease(tab,record.promise);
 }
 async function boundedRelease(tab,promise){return Promise.race([promise,new Promise(resolve=>setTimeout(()=>resolve({stopped:tab,cleanup_pending:true,message:'Stopped. Close its dialog, or close the tab if returning it remains pending.'}),1000))]);}
@@ -1157,7 +1181,7 @@ async function dispatch(command,expires=null) {
     assertControl(tab);const selected=await chrome.tabs.get(tab);assertControl(tab);
     if(!selected.active){effectStarted=true;await chrome.tabs.update(tab,{active:true});}
   }
-  if(recording&&command.fixture_arm_delay){port?.postMessage({event:'fixture_arm_wait',operation:command.operation});await new Promise(resolve=>setTimeout(resolve,command.fixture_arm_delay));}
+  if(recording&&command.fixture_arm_delay){respond({event:'fixture_arm_wait',operation:command.operation});await new Promise(resolve=>setTimeout(resolve,command.fixture_arm_delay));}
   // Arming other frames may take time. Compare again at the actual input boundary.
   snapshot=await facts(tab,reference);
   refuseWithheldSubmission(snapshot,reference,command);
@@ -1210,7 +1234,7 @@ async function dispatch(command,expires=null) {
   const uncertain_finish=owner.uncertainFinish;
   const steps=await collectSteps(tab,dispatchEpoch);
   if(recording && command.fixture_cut==='after-input'){
-    await new Promise((resolve,reject)=>{fixtureBarriers.set(command.operation,{tab,resolve,reject});port?.postMessage({event:'fixture_after_input',operation:command.operation});});
+    await new Promise((resolve,reject)=>{fixtureBarriers.set(command.operation,{tab,resolve,reject});respond({event:'fixture_after_input',operation:command.operation});});
   }
   const confirmation=confirmationPlans.get(tab);confirmationPlans.delete(tab);
   return {checked:!!command.binding,dispatched:!noChange,no_change:noChange,steps,dialog:await readyDialog(tab),uncertain_finish,confirmations:confirmation?.matched || [],page:await observation(tab,reference,dispatchEpoch)};
@@ -1235,11 +1259,11 @@ function within(promise,expires){
 function enqueue(message){
   const valid=validTime(message),expires=valid&&Object.hasOwn(message,'time_left_ms')?performance.now()+message.time_left_ms:null;
   serial=serial.then(async()=>{
-    if(!valid){audit({command:message.command?.name,phase:'invalid_time'});port?.postMessage({id:message.id,ok:false,error:INVALID_TIME});return;}
-    if(expires!==null&&performance.now()>=expires){audit({command:message.command?.name,phase:'expired'});port?.postMessage({id:message.id,ok:false,error:'expired: the time of this command ran out while it waited in the queue; it was not started'});return;}
+    if(!valid){audit({command:message.command?.name,phase:'invalid_time'});respond({id:message.id,ok:false,error:INVALID_TIME});return;}
+    if(expires!==null&&performance.now()>=expires){audit({command:message.command?.name,phase:'expired'});respond({id:message.id,ok:false,error:'expired: the time of this command ran out while it waited in the queue; it was not started'});return;}
     effectStarted=false;dispatchEpoch=null;audit({command:message.command?.name,phase:'begin'});
     try { respond({id:message.id,ok:true,data:await dispatch(message.command,expires)}); }
-    catch(error) { port?.postMessage({id:message.id,ok:false,error:effectStarted ? 'unknown: Input may have started; inspect status and the page, never retry. '+String(error.message):String(error.message)}); }
+    catch(error) { respond({id:message.id,ok:false,error:effectStarted ? 'unknown: Input may have started; inspect status and the page, never retry. '+String(error.message):String(error.message)}); }
   });
 }
 async function connect() {
@@ -1249,7 +1273,7 @@ async function connect() {
   port=chrome.runtime.connectNative('org.aresos.chrome');
   const entropy=await navigator.userAgentData.getHighEntropyValues(['fullVersionList']);
   const version=entropy.fullVersionList.find(item=>item.brand === 'Google Chrome')?.version;
-  port.postMessage({event:'hello',session,version});
+  respond({event:'hello',session,version});
   port.onMessage.addListener(message=>{
     if (message.owner_reply) { const pending=ownerRequests.get(message.owner_reply); if(pending){ownerRequests.delete(message.owner_reply);pending(message.result);} return; }
     enqueue(message);
@@ -1280,7 +1304,7 @@ chrome.runtime.onMessage.addListener((message,sender,reply)=>{
     owner.clipboardRoutes??=new Set();owner.clipboardRoutes.add(message.route);reply({received:true});return;
   }
   if(sender.id===chrome.runtime.id&&message?.event==='held_step'){reply({received:observeStep(message,sender)});return;}
-  if(sender.id === chrome.runtime.id && message?.event === 'reader_error') { port?.postMessage({event:'reader_error',error:message.error,tab:sender.tab?.id,frame:sender.frameId});reply({received:true});return; }
+  if(sender.id === chrome.runtime.id && message?.event === 'reader_error') { respond({event:'reader_error',error:message.error,tab:sender.tab?.id,frame:sender.frameId});reply({received:true});return; }
   const popup=chrome.runtime.getURL('popup.html'),details=chrome.runtime.getURL('details.html');
   if (sender.id !== chrome.runtime.id || ![popup,details].includes(sender.url) || sender.frameId && sender.frameId !== 0) return;
   if (message?.command === 'stop') { stop().then(reply); return true; }
@@ -1290,7 +1314,7 @@ chrome.runtime.onMessage.addListener((message,sender,reply)=>{
   if (sender.url === details && sender.tab?.id && sender.frameId === 0 && message?.command === 'sites') {
     const request_id=crypto.randomUUID();
     ownerRequests.set(request_id,reply);
-    port?.postMessage({event:'owner_sites',request_id,arguments:message.arguments});
+    respond({event:'owner_sites',request_id,arguments:message.arguments});
     // Loosening waits for the owner's password in a polkit dialog; the service gives up first (confirm.TIMEOUT).
     const args=message.arguments||{},loosening=!(args.command==='list'||args.command==='revoke'||args.command==='readonly'&&(Object.hasOwn(args,'enabled')?args.enabled:true)===true);
     setTimeout(()=>{if(ownerRequests.has(request_id)){ownerRequests.delete(request_id);reply({ok:false,error:{message:'Service unavailable; use the admin command.'}});}},loosening?LOOSEN_WAIT_MS:10000);
@@ -1388,7 +1412,7 @@ chrome.debugger.onEvent.addListener(async(source,method,params)=>{
     if(matched){
       // Consume before entering the page again; a nested second dialog is a new question.
       plan.expected=null;plan.matched.push({...expected});
-      try{const armed=await armDialog(tab,undefined,true);dialogInputs.set(dialog,{epoch:input.epoch,nonce:armed.nonce,managed:true});await cdp(tab,'Page.handleJavaScriptDialog',{accept:true});await armed.ready;const uncertain=await finishFrames(tab,armed.frames,input.epoch,armed.nonce);if(armed.owner.hold?.nonce===armed.nonce){armed.owner.hold.inFlight=uncertain;armed.owner.hold.until=Date.now()+POLICY.holdMs;expireDefaults(tab,armed.nonce);}}catch(error){port?.postMessage({event:'reader_error',tab,error:String(error)});}
+      try{const armed=await armDialog(tab,undefined,true);dialogInputs.set(dialog,{epoch:input.epoch,nonce:armed.nonce,managed:true});await cdp(tab,'Page.handleJavaScriptDialog',{accept:true});await armed.ready;const uncertain=await finishFrames(tab,armed.frames,input.epoch,armed.nonce);if(armed.owner.hold?.nonce===armed.nonce){armed.owner.hold.inFlight=uncertain;armed.owner.hold.until=Date.now()+POLICY.holdMs;expireDefaults(tab,armed.nonce);}}catch(error){respond({event:'reader_error',tab,error:String(error)});}
     }
   }
   if (method === 'Page.javascriptDialogClosed') {
