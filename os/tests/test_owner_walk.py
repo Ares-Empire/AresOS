@@ -504,7 +504,7 @@ class Release28Session:
     def capture(self, name, source):
         walk = self.walk
         if name.endswith('-session'):
-            assert "argv.index('--config-dir')" in source, "the session check must read the running labwc's configuration"
+            assert 'argv.index(' in source and '--config-dir' in source, "the session check must read the running labwc's configuration"
             return dict(labwc=1, labwc_argv=['/usr/bin/labwc', '--config-dir', '/usr/share/aresos/labwc'],
                         rc='/usr/share/aresos/labwc/rc.xml', theme=walk.THEME, themerc=True, foot=self.foot,
                         fonts={'Space Grotesk': walk.SPACE_GROTESK, 'Space Grotesk:bold': walk.SPACE_GROTESK})

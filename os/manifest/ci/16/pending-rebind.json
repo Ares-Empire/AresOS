@@ -106,7 +106,7 @@
       "path": "os/tests/test_owner_staged_release.py"
     },
     {
-      "sha256": "5bb11b57d6aaa3e8c65365bf70f3ad78480073d7ee0bf51d79d43f885c3c66c0",
+      "sha256": "fce20095dd93ad36cfe9f09ef9287a9b70880af2f7dd015b312cf1ade9099609",
       "path": "os/tests/test_owner_walk.py"
     },
     {
