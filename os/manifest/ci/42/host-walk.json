@@ -880,7 +880,7 @@
       "path": "os/tests/test_owner_bootstrap.py"
     },
     {
-      "sha256": "ecd07ef561f3d4da2b9c706daf0f3584fef5f764a0008a3e49877d8b0cf7d571",
+      "sha256": "863d2673b18d6a274e4d1ceb52c691e7f7d450227c0a950fc57080df3e1c51be",
       "path": "os/tests/test_owner_capabilities.py"
     },
     {
@@ -936,7 +936,7 @@
       "path": "os/tests/test_owner_format_audit.py"
     },
     {
-      "sha256": "892e347bd49471c053fb1adf07e15dbd0274566f960ed053ac3494a4d5c8643d",
+      "sha256": "3113f433c1a0ef60b9685ed1dc3fd3c81a671824c076fcf70f70bdd1b6d0e40f",
       "path": "os/tests/test_owner_guard.py"
     },
     {
@@ -1028,7 +1028,7 @@
       "path": "os/tests/test_owner_walk.py"
     },
     {
-      "sha256": "1bfd71afda4144a1339cef92c3d6bdb6c21fb47b9afa29b8cc0d3844751a7d31",
+      "sha256": "ef950c0ab2f33e0d612e35ecfe018a2d5e7499ac9a1dff12478b360a3a517e2d",
       "path": "os/tests/test_rehearsal_budget.py"
     },
     {

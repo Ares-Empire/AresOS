@@ -1015,7 +1015,7 @@ REVIEWED_DECISIONS = {
         'package 27 records the checkout bytes it walked (27-bound-sources)',
     ('os/ci/owner_vm.py', "mode == 'update'"):
         "the update rehearsal runs its own route",
-    ('os/ci/owner_vm.py', "mode in ('update', 'reorder-probe', 'ways-back', 'tools-local')"):
+    ('os/ci/owner_vm.py', "mode in ('update', 'reorder-probe', 'ways-back', 'tools-local', 'release-28')"):
         "the update rehearsal (and package 22c's probe and rehearsal, and package 22d's) starts from the laptop's tools",
     ('os/ci/rehearsal_auth.py', "mode in ('probe', 'part-b') or release_diff"):
         'owner-secret auth: its create, preflight and pull steps do not run on pkg/27',

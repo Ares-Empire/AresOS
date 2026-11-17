@@ -1369,14 +1369,19 @@ class Guard42Test(unittest.TestCase):
         runs, api = self.history([titles['resolve']] + [titles['dry-run-28']] * 5)
         with patch.object(guard, 'api', side_effect=api):
             result = guard.budget(0)
-            self.assertEqual(result['dispatch_counts'], {'dry-run-28': 5, 'publish-28': 0, 'resolve': 1, 'checks': 0})
+            # Step 3 added the rehearsal kind release-28 (cap 0; test_release28_rehearsal holds it).
+            self.assertEqual(result['dispatch_counts'], {'dry-run-28': 5, 'publish-28': 0, 'resolve': 1, 'checks': 0, 'release-28': 0})
             self.assertEqual(result['consumed_minutes'], 360)
             runs.append(dict(runs[-1], id=99, display_title=titles['dry-run-28']))
             with self.assertRaisesRegex(AssertionError, 'dry-run-28 dispatch allowance exhausted'):
                 guard.budget(0)
-            # A title the ledger does not know (step 3 adds the rehearsal) stops with a line that names it.
+            # Step 3's rehearsal is known with cap 0: its first dispatch stops until step 6 raises the cap.
             runs[-1]['display_title'] = 'Two-disk rehearsal (release-28)'
-            with self.assertRaisesRegex(AssertionError, r"^STOP: run 99 is titled 'Two-disk rehearsal \(release-28\)', "
+            with self.assertRaisesRegex(AssertionError, 'STOP: release-28 dispatch allowance exhausted'):
+                guard.budget(0)
+            # A title the ledger does not know stops with a line that names it.
+            runs[-1]['display_title'] = 'Two-disk rehearsal (tools-local)'
+            with self.assertRaisesRegex(AssertionError, r"^STOP: run 99 is titled 'Two-disk rehearsal \(tools-local\)', "
                                                         "which package 42's ledger does not know"):
                 guard.budget(0)
             runs[-1]['display_title'] = titles['publish-28']
@@ -1472,10 +1477,11 @@ class ReleaseBuildGateTest(unittest.TestCase):
                     build_tools.build_release(tools, '28')
 
     def test_the_job_token_read_accepts_only_package_42s_kinds_on_its_branch(self):
-        for mode in ('publish-28', 'dry-run-28'):
+        # Step 3's rehearsal (release-28) reads with the job token too; test_release28_rehearsal holds its gates.
+        for mode in ('publish-28', 'dry-run-28', 'release-28'):
             with patch.dict(os.environ, dict(self.ENVIRONMENT, REHEARSAL_MODE=mode), clear=True):
                 registry_auth.require_dispatch()
-        for changes in (dict(REHEARSAL_MODE='release-27'), dict(REHEARSAL_MODE='update'), dict(REHEARSAL_MODE='release-28'),
+        for changes in (dict(REHEARSAL_MODE='release-27'), dict(REHEARSAL_MODE='update'), dict(REHEARSAL_MODE='tools-local'),
                         dict(REHEARSAL_PACKAGE='27'), dict(GITHUB_REF_NAME='main'), dict(GITHUB_EVENT_NAME='push')):
             environment = dict(self.ENVIRONMENT, REHEARSAL_MODE='dry-run-28')
             environment.update(changes)

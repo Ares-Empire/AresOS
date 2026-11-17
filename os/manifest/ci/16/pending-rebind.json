@@ -16,7 +16,8 @@
     "42 review 1 (B1, S3, N1, N3): package 42's ledger shuts publishing until the owner's OK (publish-28 and publish_cap 0, a publish_gate note); the guard names an unknown run title in a STOP line and refuses publishing while publish_cap allows none; os-image.yml runs the checks guard on pkg/42-release-28, gives check-build a resolve guard step on that branch (actions and packages read, the checkout keeps no token), titles both release 28 inputs together as a dry run, and keeps the old release jobs off release 28's inputs; no tool, guide or image file changed",
     "42: dry-run cap 4 to 5 after review 1's fixes (fix check SAFE), to prove the new stops on a real build before the cut",
     "42 step 3: main merged",
-    "42 step 3: the rehearsal mode release-28 (brief B), its wiring, its local walk and host-walk receipt"
+    "42 step 3: the rehearsal mode release-28 (brief B), its wiring, its local walk and host-walk receipt",
+    "42 step 3: the rehearsal mode release-28 (brief B), its wiring, its local walk and host-walk receipt; the tests that pin the workflow's conditions"
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
@@ -85,8 +86,16 @@
       "path": "os/tests/test_checkout_sources.py"
     },
     {
+      "sha256": "863d2673b18d6a274e4d1ceb52c691e7f7d450227c0a950fc57080df3e1c51be",
+      "path": "os/tests/test_owner_capabilities.py"
+    },
+    {
       "sha256": "93c66f3c6f18716e349da52323a68114c3431ccb21fc3447dea3adf491b98c08",
       "path": "os/tests/test_owner_equality.py"
+    },
+    {
+      "sha256": "3113f433c1a0ef60b9685ed1dc3fd3c81a671824c076fcf70f70bdd1b6d0e40f",
+      "path": "os/tests/test_owner_guard.py"
     },
     {
       "sha256": "3d7a7e7d033965ade9df6015d79a5683a77aeb75ca4f6b41e8725ca6e1963a0c",
@@ -99,6 +108,10 @@
     {
       "sha256": "5bb11b57d6aaa3e8c65365bf70f3ad78480073d7ee0bf51d79d43f885c3c66c0",
       "path": "os/tests/test_owner_walk.py"
+    },
+    {
+      "sha256": "ef950c0ab2f33e0d612e35ecfe018a2d5e7499ac9a1dff12478b360a3a517e2d",
+      "path": "os/tests/test_rehearsal_budget.py"
     },
     {
       "sha256": "8813a3dda9dad0dee09354a5315d7519c28910d41fee8c36c764ac28794c9f2e",
