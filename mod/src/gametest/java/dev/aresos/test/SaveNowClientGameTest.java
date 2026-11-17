@@ -162,6 +162,8 @@ public final class SaveNowClientGameTest implements FabricClientGameTest {
                 // dedicated server; in this integrated one it is an unknown command.)
                 autosave(context, world.getServer());
 
+                failedWrites(context, world, supervisor, folder, name);
+
                 // The real stop: a request while the world closes is refused (the test's listener asks on the server
                 // thread, after the mod's own listener ran).
                 arm.set(server);
@@ -188,6 +190,7 @@ public final class SaveNowClientGameTest implements FabricClientGameTest {
         } catch (IOException error) {
             throw new UncheckedIOException(error);
         } finally {
+            SaveFaults.clear();
             SavingText.stop();
             arm.set(null);
             context.runOnClient(client -> {
@@ -196,6 +199,36 @@ public final class SaveNowClientGameTest implements FabricClientGameTest {
             });
             deleteTree(folder);
         }
+    }
+
+    /** Both a requested save and an intervening autosave lose their dirty bit before the injected IO failure. */
+    private static void failedWrites(ClientGameTestContext context, TestSingleplayerContext world,
+                                     FakeSupervisor supervisor, Path folder, String name) {
+        var server = context.computeOnClient(Minecraft::getSingleplayerServer);
+        var info = world.getServer().computeOnServer(s -> world.getConnection().getServerLevel().getChunkSource().chunkMap.storageInfo());
+        var requested = new BlockPos(7, Y, 2);
+        place(world, requested, Blocks.REDSTONE_BLOCK);
+        SaveFaults.once(info, ChunkPos.containing(requested));
+        refused(context, supervisor, 11, "error");
+        check(!SaveFaults.armed(), "The requested save never reached the injected region write failure");
+        check(onDisk(folder, server, world, requested) != Blocks.REDSTONE_BLOCK.defaultBlockState(),
+                "The failed write reached disk; the fixture cannot test recovery");
+        saved(context, supervisor, 12, name, false);
+        check(onDisk(folder, server, world, requested) == Blocks.REDSTONE_BLOCK.defaultBlockState(),
+                "A clean request claimed recovery without rewriting the chunk whose dirty flag was lost");
+
+        var automatic = new BlockPos(8, Y, 2);
+        place(world, automatic, Blocks.COPPER_BLOCK);
+        SaveFaults.once(info, ChunkPos.containing(automatic));
+        autosave(context, world.getServer());
+        check(!SaveFaults.armed(), "The autosave never reached the injected region write failure");
+        check(onDisk(folder, server, world, automatic) != Blocks.COPPER_BLOCK.defaultBlockState(),
+                "The failed autosave reached disk; the fixture cannot test recovery");
+        saved(context, supervisor, 13, name, false);
+        check(onDisk(folder, server, world, automatic) == Blocks.COPPER_BLOCK.defaultBlockState(),
+                "The next request forgot the autosave failure and failed to rewrite its chunk");
+        AresOs.LOGGER.info("46 save-failure checks passed: real asynchronous region write failure answered error; "
+                + "next request rewrote the unchanged chunk and answered ok:true; autosave failure was also repaired");
     }
 
     /**

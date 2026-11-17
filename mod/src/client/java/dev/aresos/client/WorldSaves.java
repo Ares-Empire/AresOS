@@ -4,6 +4,8 @@ import dev.aresos.AresOs;
 import dev.aresos.shell.LifecycleClient;
 import dev.aresos.shell.LifecycleClient.Saved;
 import dev.aresos.world.DesktopWorld;
+import dev.aresos.save.SaveRepair;
+import dev.aresos.save.WorldSaveState;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.minecraft.server.MinecraftServer;
 
@@ -112,15 +114,33 @@ public final class WorldSaves implements LifecycleClient.Game {
         if (!DesktopWorld.isEnabled(server)) return Saved.refused("not_desktop_world");
         starting.run();
         long began = System.nanoTime();
+        var state = WorldSaveState.of(server);
+        // Earlier autosaves may still be completing. Account for them before deciding what needs rewriting.
+        state.failures.awaitWrites();
+        var attempt = state.failures.begin();
+        boolean saved = false;
         try {
+            if (attempt.rewrite()) {
+                ((SaveRepair) server.getDataStorage()).aresos$rewrite();
+                for (var level : server.getAllLevels()) {
+                    ((SaveRepair) level.getChunkSource().getDataStorage()).aresos$rewrite();
+                    ((SaveRepair) level.getChunkSource().getPoiManager()).aresos$rewrite();
+                    ((SaveRepair) level.getChunkSource().chunkMap).aresos$rewrite();
+                }
+            }
             // save-all flush: quiet logs, flush, and saved even if saving was turned off.
-            boolean saved = server.saveEverything(true, true, true);
-            long ms = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - began);
-            if (saved) return Saved.done(ms, DesktopWorld.saveName(server));
-            AresOs.LOGGER.error("The save the AresOS supervisor asked for saved nothing");
+            saved = server.saveEverything(true, true, true);
+            // Vanilla's POI flush only queues writes; its own synchronization also forces the region files.
+            for (var level : server.getAllLevels())
+                ((SaveRepair) level.getChunkSource().getPoiManager()).aresos$flush();
         } catch (RuntimeException error) {
+            saved = false;
             AresOs.LOGGER.error("The save the AresOS supervisor asked for failed", error);
+        } finally {
+            state.failures.awaitWrites();
         }
+        if (state.failures.finish(attempt, saved))
+            return Saved.done(TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - began), DesktopWorld.saveName(server));
         return Saved.refused("error");
     }
 

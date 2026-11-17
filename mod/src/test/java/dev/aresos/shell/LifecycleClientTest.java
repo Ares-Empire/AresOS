@@ -223,6 +223,29 @@ class LifecycleClientTest {
         assertTrue(supervisor.answer(2, 5).get("ok").getAsBoolean());
     }
 
+    @Test void joinedFollowUpAnswersForItsOwnFailureHistory() throws Exception {
+        var failures = new dev.aresos.save.SaveFailures(unused -> { });
+        connect();
+        supervisor.save(1, "backup");
+        var first = game.next();
+        first.begin();
+        var attempt = failures.begin();
+        supervisor.save(2, "shutdown");
+        supervisor.save(3, "update");
+        taken(3);
+        var followUp = game.next();
+        failures.chunkFailure("overworld 1,2");
+        first.finish(failures.finish(attempt, true) ? Saved.done(1, "AresHub") : Saved.refused("error"));
+        assertEquals("error", supervisor.answer(1, 5).get("reason").getAsString());
+        assertTrue(supervisor.answers(2).isEmpty());
+        followUp.begin();
+        var repair = failures.begin();
+        assertTrue(repair.rewrite());
+        followUp.finish(failures.finish(repair, true) ? Saved.done(2, "AresHub") : Saved.refused("error"));
+        assertTrue(supervisor.answer(2, 5).get("ok").getAsBoolean());
+        assertTrue(supervisor.answer(3, 5).get("ok").getAsBoolean());
+    }
+
     @Test void linesThatAreNoRequestChangeNothing() throws Exception {
         // The real supervisor replies to every line it reads; those replies come back to the mod.
         supervisor.reply = new JsonObject();
