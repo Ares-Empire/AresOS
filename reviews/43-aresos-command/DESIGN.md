@@ -321,13 +321,13 @@ Every line below is the tools'. The five lines in JUDGMENT-CALL 2 are **proposed
 | 7, install | `Update: installing the latest version, AresOS <T>. Restart to finish`; `This downloads AresOS <T>`; then the inner word's lines |
 | 8, nothing to update | `AresOS is up to date (AresOS <N>)`; `AresOS <N> is running and will start next. It is the latest version these tools know. Nothing changed`; `Owner tools version <tools version>: <8 characters>`; `A newer version comes with newer owner tools after the maintainer announces it. docs/OWNER-TOOLS.md on GitHub lists the current tools` |
 | 9, already | `AresOS <N> will start next. Nothing changed`; `It is not running yet. Restart to finish` |
-| 10, an older AresOS runs | `Update: switching to the latest version, AresOS <N> (already downloaded). Restart to finish`; `This downloads nothing and removes nothing` |
+| 10, an older AresOS runs | `Update: switching to the latest installed version, AresOS <N> (already downloaded). Restart to finish`; `This downloads nothing and removes nothing` |
 | 10, plain Bazzite runs | `Update: switching from plain Bazzite to the latest installed version, AresOS <N> (already downloaded). Restart to finish`; `This downloads nothing and removes nothing` |
 | 10, N runs | `Update: AresOS <N> is the latest installed version and is running. Making it start next again instead of <next system>. No restart is needed for this change`; `This downloads nothing and removes nothing` (`<next system>` is the numbered AresOS or plain Bazzite that starts next before the change) |
 
 After rows 9 and 10, when T is not installed, one more line, the last of the result (in row 10 behind the title's lines). It has two endings, by whether a restart waits (review 2, S2):
-- row 9 and row 10 in its first two wordings (another system runs, and N starts at the next restart): `These tools also carry the latest version, AresOS <T>. After the restart, <newest> installs it`;
-- row 10 in its third wording (N runs and now starts next again; the title says "no restart is waiting", `:1507`): `These tools also carry the latest version, AresOS <T>. No restart is needed first. The next <newest> installs it`.
+- row 9 and row 10 in its first two wordings (another system runs, and N starts at the next restart): `These tools also carry a newer version, AresOS <T>. After the restart, <newest> installs it`;
+- row 10 in its third wording (N runs and now starts next again; the title says "no restart is waiting", `:1507`): `These tools also carry a newer version, AresOS <T>. No restart is needed first. The next <newest> installs it`.
 
 Both inform; the guide does not tell him to follow either without the release's announcement (fact 9).
 
@@ -494,7 +494,7 @@ The owner answered all six calls on 2026-11-16. Calls 4, 5, 6 and 8 are settled.
 - **His answer.** "Update: Installing latest AresOS version", "Updating to latest AresOS version", "AresOS is up to date"; and "The last two msgs I don't understand."
 - **Proposed after his answer, awaiting his OK.** The number is the release's own number (27, 28, ...):
   - row 7, install: `Update: installing the latest version, AresOS 28. Restart to finish`
-  - row 10, an older AresOS runs: `Update: switching to the latest version, AresOS 28 (already downloaded). Restart to finish`
+  - row 10, an older AresOS runs: `Update: switching to the latest installed version, AresOS 28 (already downloaded). Restart to finish`
   - row 8, nothing newer: `AresOS is up to date (AresOS 28)`
   - row 6, an update waits: `The update to AresOS 28 is ready. Restart to finish`
   - row 2, the last update failed: `The last update did not finish, so nothing changed. See Help before trying again`
@@ -620,3 +620,5 @@ Review 3 (`REVIEW-3.md`) was READY. This revision folds in the owner's answers o
 | **Moved reference** | Section 7's rehearsal decision is now `STATE.md:20` on main; the old `:14` is blank |
 
 References added or changed here were checked against main at `dcbdabe9`, read through `git show` because the branch predates 22d. No tool, test, guide or workflow was changed or run. The nine proposed image labels were checked as data against D8's character and length rules and all 16 patterns from main, including with a final newline. Their list equals call 1's list. Calls 1 and 2 still await the owner's OK; the laptop try and VM stages remain future work.
+
+- **Fix check (Codex gpt-6-astra high, 2026-11-17), one should-fix:** "latest version" named two releases when the tools carry a newer one than the newest installed (R27 runs, R28 installed, tools carry R29). Row 10's first wording and call 2's line now say "the latest **installed** version"; the extra line after rows 9 and 10 says "a newer version, AresOS <T>". Step 1 pins that wording in the N≠T unit case. Applied by the lead.
