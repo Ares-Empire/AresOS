@@ -17,6 +17,7 @@
     "SoundTestAccess",
     "SoundEngineTestAccess",
     "MusicManagerTestAccess",
+    "ScreenLogMixin",
     "SavingTextTestMixin",
     "AutosaveTestAccess"
   ],

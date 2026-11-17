@@ -1,0 +1,34 @@
+# Package 48, real-path check (real-switch.sh switch1, 2026-11-16, at 0f0d2b04): lines from the game's log and the helper's.
+# Game log: AresOS lines, joins and leaves, server stops.
+[17:45:15] [Render thread/INFO] (aresos) First start: no AresHub yet, making the flat home
+[17:45:18] [Server thread/INFO] (Minecraft) Player546 joined the game
+[17:45:24] [Server thread/INFO] (aresos) Town: The town is built: 40 logos. /apps lists them.
+[17:46:10] [Render thread/INFO] (aresos) New home: making a flat home
+[17:46:10] [Server thread/INFO] (Minecraft) Stopping server
+[17:46:10] [Server thread/INFO] (Minecraft) Player546 left the game
+[17:46:10] [Server thread/INFO] (Minecraft) Stopping singleplayer server as player logged out
+[17:46:11] [Render thread/INFO] (aresos) New home: building it in AresHub-new-2026-11-16_17-46-11-074
+[17:46:12] [Server thread/INFO] (Minecraft) Player546 joined the game
+[17:46:12] [Server thread/INFO] (Minecraft) Player546 left the game
+[17:46:12] [Server thread/INFO] (Minecraft) Stopping singleplayer server as player logged out
+[17:46:12] [Server thread/INFO] (Minecraft) Stopping server
+[17:46:12] [Render thread/INFO] (aresos) New home: in place as AresHub; the old one is AresHub-2026-11-16_17-46-12-645; no AresHub on disk for 324 µs
+[17:46:13] [Server thread/INFO] (Minecraft) Player546 joined the game
+[17:46:13] [Render thread/INFO] (aresos) New home: ready 3225 ms after he chose it
+[17:46:14] [Server thread/INFO] (aresos) Town: The town is built: 32 logos. /apps lists them.
+[17:46:19] [Server thread/INFO] (aresos) Town: The town changed: 8 logos built. /apps lists where your apps stand.
+[17:47:14] [Render thread/INFO] (Minecraft) Stopping!
+[17:47:14] [Server thread/INFO] (Minecraft) Stopping server
+[17:47:14] [Server thread/INFO] (Minecraft) Player546 left the game
+[17:47:14] [Server thread/INFO] (Minecraft) Stopping singleplayer server as player logged out
+# Helper log (aresos-shell): what the session's helper saw.
+aresos-shell: INFO serving aresos-shell/1.1 on /run/user/1001/pkg41-rig-3226303/shell.sock (40 apps)
+aresos-shell: INFO desktop connected (minor 1)
+aresos-shell: INFO desktop world ready
+aresos-shell: INFO desktop world no longer ready
+aresos-shell: INFO desktop world ready
+aresos-shell: INFO desktop world no longer ready
+aresos-shell: ERROR lost the compositor: the compositor closed the connection
+# saves after the game quit:
+AresHub
+AresHub-2026-11-16_17-46-12-645

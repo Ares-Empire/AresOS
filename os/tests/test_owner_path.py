@@ -28,16 +28,16 @@ UPDATE_GATE = ('**Update gate: require STEP 5 COMPLETE and a checked running Are
                'before authentication or updating.**')
 SENSITIVE = re.compile(r'^sudo /var/lib/ares/at (?:login|switch|update)$')
 LINK = re.compile(r'(?<!!)\[[^\]\n]+\]\(([^\s)]+)\)')
-# Package 27b: the laptop's step 8 update as INSTALL-STATUS records it. Each
+# Packages 27b and 22d: the laptop's update records in INSTALL-STATUS. Each
 # clause is pinned whole, between its neighbours, so no word in it or next to
 # it changes unnoticed: (line start, before, clause, after); an empty after
 # means the clause ends the line.
 STEP8_RECORD = (
     ('This is the **single current gate/status table**', 'table**, ',
-     "as of **2026-11-13**, based on the retained reports, the owner decision in brief 16, the maintainer's checks "
+     "as of **2026-11-17**, based on the retained reports, the owner decision in brief 16, the maintainer's checks "
      "of Stage A's and Stage B's records, the step 4 result supplied in brief 15g, the step 5–7 records the "
      "maintainer checked on 2026-11-08/09 and the step 8 update records the maintainer checked on 2026-11-13 "
-     "(brief 27b).",
+     "(brief 27b), plus the laptop tools session supplied by the lead on 2026-11-17.",
      ' Historical results'),
     ('- **R13 (previous):**', '13.json)). ',
      "Installed on the laptop at step 6 and ran there until the owner's step 8 update on 2026-11-13; since then "
@@ -69,9 +69,10 @@ STEP8_RECORD = (
      "owner had set `ares`'s password) `sudo -v` passed. A read-only check on the laptop the same day: the "
      "booted deployment is R27, the second R13 and the third the pinned stock `bazzite-nvidia-open:stable`, the "
      "transaction state is idle and `ares` is in `wheel`. `at previous` has run only in the VM rehearsal, never on "
-     "the laptop. After this first update the stock rollback, keep-stock, recovery-menu and layout-trial "
-     "procedures refuse, as the [step 8 update route](INSTALL.md#update-aresos-to-a-new-release) says, until "
-     "package 22c. Raw records stay private and off this public repository.",
+     "the laptop. Version 4, installed on 2026-11-17, brings package 22c's stock rollback, keep-stock, recovery-menu "
+     "and layout-trial procedures after an update, as the "
+     "[step 8 update route](INSTALL.md#update-aresos-to-a-new-release) says (next row). "
+     "Raw records stay private and off this public repository.",
      ' **Announcement for step 8:**'),
 )
 HEADING = re.compile(r'^#{1,6} (.+)$')
@@ -1760,46 +1761,63 @@ class OwnerPathTest(unittest.TestCase):
         emergency = texts['EMERGENCY.md']
         self.assertLess(emergency.index('## A tools command stopped'), emergency.index('## A routine tools command stopped'))
 
-    def test_status_names_22c_built_rehearsed_and_not_on_the_laptop(self):
+    def test_status_names_22c_and_22d_on_the_laptop_with_calm_test_open(self):
         status = documents()['INSTALL-STATUS.md']
         fingerprint = hashlib.sha256((ROOT/'os/owner-tools/payload/SHA256SUMS').read_bytes()).hexdigest()
         row = next(line for line in status.splitlines() if line.startswith('| Ways back after an update (package 22c) |'))
         # The rehearsal passed and its record step rebound the sources: the row links the run the bindings name.
         bindings = json.loads((ROOT/'os/manifest/ci/22c/source-bindings.json').read_text())
-        # 22d: version 3 never goes on the laptop (board #265); its row keeps the short fingerprint.
-        for value in ('**BUILT AND REVIEWED; VM REHEARSAL PASSED; NOT ON THE LAPTOP**', "the laptop's tools stay `851eb742…`",
-                      'Tools fingerprint `2084c786…`', 'version 3 never goes on the laptop',
-                      "package 22d's version 4 (next row) carries these ways back over version 2",
+        # 22d carried 22c's ways back onto the laptop; version 3's fingerprint stays historical.
+        for value in ('**BUILT AND REVIEWED; VM REHEARSAL PASSED; ON THE LAPTOP 2026-11-17 (IN VERSION 4); CALM TEST OPEN**',
+                      'Ways back on the laptop in tools version 4 since 2026-11-17',
+                      'Tools fingerprint `2084c786…`', 'version 3 itself never went on the laptop',
+                      "package 22d's version 4 (next row) brought these ways back over version 2 on 2026-11-17",
                       '(../reviews/22c-ways-back-after-update/REPORT.md)', '**VM rehearsal passed**',
                       '(' + bindings['run'] + ')', 'every protected-disk audit was unchanged',
-                      'tools-only update', '**Before this row may say "on the laptop":**', 'the owner installs these tools',
-                      'calm test', "the title's row map", 'stays OPEN',
+                      'tools-only update', '**On the laptop 2026-11-17:**',
+                      '`PASS check` and `PASS title` followed version 4\'s install and the one-session console layout trial',
+                      '**Calm test OPEN, with his OK:**', "the title's row map", 'stays OPEN',
                       # One word per meaning: forward returns, update only installs; review 7 found it SAFE.
                       'one word per destination', '`at forward` goes to the newest installed AresOS from every system',
                       '`at update` only installs a new release', 'reviewed SAFE (review 7)',
                       'previous, restart, forward, restart, then rollback, restart, forward, restart'):
             self.assertIn(value, row)
         for value in ('`at update` goes to', 'the newer AresOS from the boot menu, update', 'NOT REHEARSED', 'Not rehearsed yet',
-                      'its review follows', 'the rehearsal passes'):
+                      'its review follows', 'the rehearsal passes', 'NOT ON THE LAPTOP',
+                      '**Before this row may say "on the laptop":**', "the laptop's tools stay `851eb742…`"):
             self.assertNotIn(value, row)
         self.assertNotIn(fingerprint, row)
         row = next(line for line in status.splitlines() if line.startswith('| Owner tools without the stick (package 22d) |'))
         # 22d's rehearsal passed and its record step rebound the sources: the row links the run the bindings name.
         rebound = json.loads((ROOT/'os/manifest/ci/22d/source-bindings.json').read_text())
-        for value in ('**BUILT AND REVIEWED; VM REHEARSAL PASSED; NOT ON THE LAPTOP**', "to install over the laptop's `851eb742…` (version 2)",
+        for value in ('**BUILT AND REVIEWED; VM REHEARSAL PASSED; ON THE LAPTOP 2026-11-17**',
+                      'on the laptop since 2026-11-17 over version 2 `851eb742…`',
                       'Tools fingerprint `' + fingerprint + '`', '[OWNER-TOOLS.md](OWNER-TOOLS.md)', '**Enter SSH Credentials**',
                       'not a tricked Claude', 'the first installation stays on the stick', '`/run/ares-records`, on this laptop only',
                       'the routine box first', '(EMERGENCY.md#a-routine-tools-command-stopped)', '**VM rehearsal passed**',
                       '(' + rebound['run'] + ')', 'on `' + rebound['commit'][:8] + '`', '(../reviews/22d-tools-without-stick/runs/tools-local-' + rebound['run'].rsplit('/', 1)[1] + '/index.json)',
                       '`PASS install`, `PASS check` and `PASS title`', 'every protected-disk audit was unchanged',
-                      'The laptop has not run this route yet', '**Before this row may say "on the laptop":**', 'the final review passes'):
+                      'With his go on 2026-11-17', '`634e12378b68f77398f7c8b633fcea988a768acf`',
+                      'routine line hash `0b11cfc5…`', 'OWNER-TOOLS.md line 1 on his phone and approved it',
+                      '`PASS install` updated version 2 to 4',
+                      '`Loaded console keys differ from system layout; get help`',
+                      'Plymouth left every console busy for systemd-vconsole-setup',
+                      'package 50 fixes it for release 28', 'the install was complete',
+                      '`PASS export` copied records to `/run/ares-records`',
+                      'one-session `loadkeys -C /dev/tty3 -- de` trial', 'keycode 21 from `+y` to `+z`',
+                      '`PASS check` and `PASS title` showed R27 `5fad242fceac` running and starting next',
+                      'R13 `9b19b7942bc1` and plain Bazzite `ed93d2158a1b`', 'pin yes, nothing staged',
+                      'previous title INVALID as expected after install',
+                      '`sudo -n true` was refused (no ticket kept)', '`yz-/!ü` typing matched on tty3 and in the terminal'):
             self.assertIn(value, row)
-        for value in ('NOT REHEARSED', '**not rehearsed**', 'not yet reviewed', 'the VM rehearsal passes'):
+        for value in ('NOT REHEARSED', '**not rehearsed**', 'not yet reviewed', 'the VM rehearsal passes',
+                      'NOT ON THE LAPTOP', 'The laptop has not run this route yet',
+                      '**Before this row may say "on the laptop":**', "to install over the laptop's `851eb742…`"):
             self.assertNotIn(value, row)
         self.assertEqual(status.splitlines().index(row) - 1,
                          next(i for i, line in enumerate(status.splitlines()) if line.startswith('| Ways back after an update (package 22c) |')))
         update = next(line for line in status.splitlines() if line.startswith('| Update route (packages 22 and 27) |'))
-        self.assertIn("the laptop's tools until the owner installs package 22c's", update)
+        self.assertIn("the laptop's tools are version 4 (`dcbc375f…`) since 2026-11-17", update)
         self.assertNotIn(fingerprint, update)
         menu = next(line for line in status.splitlines() if line.startswith('| LOQ shortcuts and recovery menu |'))
         self.assertIn('**OPEN**', menu)

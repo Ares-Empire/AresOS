@@ -114,6 +114,7 @@ tasks.named('runClientGameTest') {
     systemProperty 'aresos.goReviewDir', file('../reviews/37-getting-around/screenshots').absolutePath
     systemProperty 'aresos.coloursReviewDir', file('../reviews/39-logo-colours/screenshots').absolutePath
     systemProperty 'aresos.homeScreenReviewDir', file('../reviews/40-real-home/screenshots').absolutePath
+    systemProperty 'aresos.homeMenuReviewDir', file('../reviews/48-home-menu/screenshots').absolutePath
     systemProperty 'aresos.seedReviewDir', file('../reviews/04-nether-home/seeds').absolutePath
     // Package 46: the save times are measured only when asked, on the laptop (dev/client-test.sh -PmeasureSaves).
     if (project.hasProperty('measureSaves')) systemProperty 'aresos.measureSaves', 'true'

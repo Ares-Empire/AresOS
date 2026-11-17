@@ -8,6 +8,7 @@ import time
 import traceback
 
 from channel import Frames, export_bytes, frame
+import console_keymap
 
 HERE = pathlib.Path(__file__).parent
 EXPORTS = {'backend.json': '/run/aresos-backend.json',
@@ -452,6 +453,8 @@ def shortcut_reached_the_supervisor():
 
 
 def check(action, request):
+    if action == 'console-keymap':
+        return console_keymap.check()
     if action == 'policy':
         wait_session()
         regressions = run('python3', str(HERE / 'updater_regressions.py'))

@@ -51,8 +51,12 @@ public final class ShellFocusClient {
         AresOsClient.returnedFromApp();
     }
 
-    /** The marked desktop world's save folder once it is loaded and playable, otherwise null. */
+    /**
+     * The marked desktop world's save folder once it is loaded and playable, otherwise null. Null during a home switch
+     * (package 48) from start to end: the staging world is not his home, and the supervisor waits meanwhile.
+     */
     public static String readyWorld(Minecraft client) {
+        if (HomeSwitch.busy()) return null;
         var server = client.getSingleplayerServer();
         if (client.player == null || client.level == null || server == null || client.gui.overlay() != null
                 || client.gui.screen() instanceof LevelLoadingScreen || !DesktopWorld.isEnabled(server)) return null;
