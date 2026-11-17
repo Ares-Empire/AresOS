@@ -16,6 +16,44 @@ expect_failure() {
     LAST_STATUS=$status
 }
 
+# --- Package 50: the finished console map, once Plymouth has released the VTs.
+console_unit=/usr/lib/systemd/system/aresos-console-keymap.service
+test -f "$console_unit"
+test ! -L "$console_unit"
+test "$(stat -c '%a %u %g' "$console_unit")" = '644 0 0'
+test -x /usr/lib/systemd/systemd-vconsole-setup
+python3 - "$console_unit" <<'CONSOLE_UNIT'
+import configparser, sys
+unit = configparser.ConfigParser(interpolation=None)
+assert unit.read(sys.argv[1]), 'console keymap unit missing'
+expected = {
+    'Unit': {
+        'Description': 'Finished console keymap after the boot splash',
+        'Documentation': 'man:systemd-vconsole-setup.service(8) man:vconsole.conf(5)',
+        'DefaultDependencies': 'no',
+        'After': 'graphical.target plymouth-quit-wait.service systemd-vconsole-setup.service',
+        'Conflicts': 'shutdown.target',
+        'Before': 'shutdown.target',
+    },
+    'Service': {
+        'Type': 'oneshot',
+        'ExecStart': '/usr/lib/systemd/systemd-vconsole-setup /dev/tty3',
+        'RemainAfterExit': 'yes',
+        'TimeoutStartSec': '15s',
+    },
+    'Install': {'WantedBy': 'graphical.target'},
+}
+assert not unit.defaults(), 'unexpected console keymap defaults'
+assert {section: dict(unit[section]) for section in unit.sections()} == {
+    section: {key.lower(): value for key, value in entries.items()} for section, entries in expected.items()
+}, 'console keymap unit differs from the reviewed boot-only setup'
+CONSOLE_UNIT
+test "$(systemctl --root=/ is-enabled aresos-console-keymap.service)" = enabled
+console_link=/etc/systemd/system/graphical.target.wants/aresos-console-keymap.service
+test "$(readlink "$console_link")" = "$console_unit"
+test "$(stat -c '%a %u %g' "$console_link")" = '777 0 0'
+pass 'console keymap unit: root-owned, bounded boot-only setup on tty3 after Plymouth, enabled without delaying login'
+
 # --- The everyday account: wheel, a password it does not have yet.
 systemd-tmpfiles --create /usr/lib/tmpfiles.d/aresos.conf
 test -d /var/home/ares
