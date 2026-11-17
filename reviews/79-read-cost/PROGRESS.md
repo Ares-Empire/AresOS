@@ -2,7 +2,128 @@
 
 Empire brief 301. Lead: `linux-tools`. Brief: `briefs/79-read-cost.md`.
 
-**Status: Build part 1 done; next: steps 6 to 8**
+**Status: Build done; next: the fresh review**
+
+## Build part 2 (steps 6 to 8)
+
+Codex `gpt-6.1-sol`, 2026-11-17. Started at `1beec6c7` on `briefs/79-read-cost` after
+`git fetch origin`. Read AGENTS, the full READY brief/recheck, part 1, the lead's calls,
+DESIGN, WORKFLOW, REVIEW and the existing code. Main was `26425160`, past the brief's
+`d0b91522`; a later fetch advanced it to `a2d9b6ee`, still with no changes in files this
+build touches. Main was not merged; its latest Chrome run remained `44093263185`.
+
+### Done
+
+| Step | Commit | Built |
+|---|---|---|
+| 6 | `abe81184` | Cherry-picked `e2e4eedc` with `-x`; restored the 300-entry plain/current leg, excluded efficiency probes, and accepted either pair-script revision variable in the source assertion. |
+| CI correction | `48dcb513` | Retargeted S1's removal mutation from the removed projection `get` call to `pinned_value`, still replacing committed evidence with the SQLite cache. The catching rollback test and every assertion stay unchanged. |
+| 7 | `aba7ca5a` | Recorded and pushed the seven local writer flows and main/CI's full writer inventories, with the exact isolated runner and local output. |
+| 8 | This evidence commit | [REPORT.md](REPORT.md), the final latency and timing records, mutation results, final CI confirmation and this handoff. |
+
+Both code commits were normally pushed without `[skip ci]`. Evidence-only commits carry
+`[skip ci]` to avoid a third code-test round. Every new commit ends with
+`Built-by: gpt-6.1-sol`. PR #98 stays draft; no force push, merge, workflow dispatch or
+instruction-text change.
+
+### Runs
+
+All unittest commands used `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/chrome_tests
+python3 -m unittest` from the root. Each local run exited 0, printed `OK`, and skipped no tests.
+
+- Step 6, `test_latency test_qualification_fixture`: **52 tests in 8.906s**.
+- Required second pass, `test_qualification test_qualification_service test_qualification_fixture
+  test_engine test_latency test_committed test_state_fixes test_bridge test_owner_confirm
+  test_questions test_sites test_full_disk_reads`: **290 tests in 129.449s**.
+  All 15 `test_owner_confirm` tests ran again.
+- CI correction, `test_state_mutations`: **1 test in 69.073s**, all **24 S1–S12 mutations caught**.
+- `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control python3 control/generate.py --check`:
+  **Generated artifacts match definitions**. Protected byte/AST comparisons and
+  `git diff --check` pass; instructions remain **4,093 characters**.
+- Local latency-leg mutations: positive baseline passed; removing the efficiency guard or
+  realistic history each failed the named `RealisticRecord` test, exit 1. Part 1's **23
+  mutations / 58 target executions / zero uncaught targets** are retained in the report's
+  records with the tests' identities. No mutation touched the working product tree.
+
+Watched with `gh run watch <id> --exit-status --interval 60`. All runs are attempt 1;
+no workflow dispatch or rerun. **Two code-test rounds; the final round is green throughout.**
+
+| Workflow | Round 1, `abe81184` | Round 2, `48dcb513` |
+|---|---|---|
+| Control Chrome | [44120119006](https://github.com/Ares-Empire/AresOS/actions/runs/44120119006) **FAIL** | [44121122119](https://github.com/Ares-Empire/AresOS/actions/runs/44121122119) **PASS** |
+| Control Chrome qualification | [44120118648](https://github.com/Ares-Empire/AresOS/actions/runs/44120118648) **FAIL** | [44121121888](https://github.com/Ares-Empire/AresOS/actions/runs/44121121888) **PASS** |
+| Control base | [44120118739](https://github.com/Ares-Empire/AresOS/actions/runs/44120118739) **CANCELLED** | [44121122010](https://github.com/Ares-Empire/AresOS/actions/runs/44121122010) **PASS** |
+| Control boundary | [44120118046](https://github.com/Ares-Empire/AresOS/actions/runs/44120118046) **PASS** | [44121121873](https://github.com/Ares-Empire/AresOS/actions/runs/44121121873) **PASS** |
+| Control Mail | [44120119804](https://github.com/Ares-Empire/AresOS/actions/runs/44120119804) **CANCELLED** | [44121121982](https://github.com/Ares-Empire/AresOS/actions/runs/44121121982) **PASS** |
+| Repo privacy | [44120118501](https://github.com/Ares-Empire/AresOS/actions/runs/44120118501) **PASS** | [44121121943](https://github.com/Ares-Empire/AresOS/actions/runs/44121121943) **PASS** |
+
+Round one's failed Python shard propagated to its aggregates/combines; their browser shards,
+all 999 word cases and native group 12 passed. Its base/Mail runs were cancelled by their
+configured concurrency when the correction push replaced them. Round two passes all of these.
+The final code tested is `48dcb513`; subsequent commits only record evidence.
+
+
+Both final latency profiles passed all six call kinds in every history phase at **60 current /
+20 historical samples**, with no sync failures. Plain/current `service.txt` confirms **300 shipped /
+301 held** entries. At history-4000: plain `read` **20.137 / 21.402 ms**, `asking_click`
+**26.311 / 27.729 ms**; audit **19.612 / 20.585** and **25.280 / 26.576 ms** (median/p95).
+Ceilings remain **35 / 60** and **60 / 100 ms**. Every final runner factor is below 1; no
+ceiling scaling was needed. [REPORT.md](REPORT.md) compares every phase with main run
+`44093263185`, with raw factors and both latency rounds. Sync counts stay **0, 2, 4, 10**.
+
+Local hit/full-check medians at 301 entries: **0.083045 / 2.184075 ms**; at 1,001 entries:
+**0.154594 / 7.174058 ms**, 101 samples per row. Full details and p95s are in the report.
+
+### Sweep counts
+
+All seven local flows passed through `state_sweeps.isolated_flows` with
+`test_fault_surface.Writers`, in **3,365.962s**, with single/persistent faults, cleanup pairs,
+restored-space and restart checks. Main's column comes from its last Control Chrome run,
+`44093263185`; main was not rerun locally. Counts are **single / persistent / cleanup pairs**.
+
+| Flow | Main | Build, local and both hosted Chrome rounds |
+|---|---|---|
+| qualification | 54 / 54 / 98 | 54 / 54 / 98 |
+| delivery | 109 / 109 / 259 | 109 / 109 / 259 |
+| readonly | 52 / 52 / 202 | 52 / 52 / 202 |
+| drop | 68 / 68 / 333 | 68 / 68 / 469 |
+| allow | 52 / 52 / 202 | 52 / 52 / 202 |
+| trusted | 437 / 437 / 2148 | 437 / 437 / 2438 |
+| stopped_submit | 393 / 393 / 1925 | 393 / 393 / 2165 |
+
+The selected local total is **1,165 / 1,165 / 5,833**, versus main's **1,165 / 1,165 / 5,167**:
+all **666** added selected cleanup-pair cases passed. Both Chrome CI rounds printed
+`Chrome full writer surface {'single': 2130, 'persistent': 2130, 'pairs': 9434}` beside
+main's **2,130 / 2,130 / 8,488**: **946** added full-surface pairs, verified. Each hosted fault/
+storage shard passed all 84 tests. The extra journal reads explain the allowed surface growth;
+no product write was added, and the existing sweep assertions stay unchanged.
+
+### Left, in order
+
+1. **Fresh `gpt-6-astra` xhigh review**, including rollback mutations and the immediate unchanged-signature case.
+2. **The lead's merge** of draft PR #98 after review.
+
+### What the code doesn't show
+
+The proof uses disposable synthetic histories and CI browser fixtures, not the owner's live
+profile. It removes repeated whole-history work; byte comparisons still scale with line size,
+`record()` still copies, and switches still process this build's entries. PR #72's combined
+result still needs checking when its two conflicts are resolved. No human game check or
+screenshot applies here. On the laptop, no Gradle, boot tool, OS owner module, mount,
+installation, real profile or owner-desktop input was used. No files over **500 MB** remain in `.work/`.
+
+### JUDGMENT-CALLs
+
+None added; followed the lead's six decisions. The rollback rule, replies, instructions,
+qualification data, ceilings, sample counts and protected latency files remain unchanged.
+
+### PLAN-GAPs
+
+The brief left `test_state_mutations` to CI but omitted its S1 source-anchor update. Round one
+found that the intended read-path replacement removed the old anchor. `48dcb513` retargets
+the same unsafe SQLite-read mutation to the new pin path, with the same catching test and
+all assertions unchanged. The full mutation module passes locally and in the final code round.
+
 
 ## Build part 1 (steps 1 to 5)
 
@@ -222,4 +343,4 @@ The prototype and the scratch tests are not in the repo. The builder writes its 
 
 ## Remaining work
 
-The current sequence is in **Build part 1 (steps 1 to 5)** above: steps 6, 7, 8, then the fresh astra xhigh review.
+The build is complete. Next: the fresh astra xhigh review, then the lead's merge, as recorded in **Build part 2 (steps 6 to 8)** above.
