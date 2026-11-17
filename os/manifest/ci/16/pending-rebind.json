@@ -18,7 +18,8 @@
     "42 step 3: main merged",
     "42 step 3: the rehearsal mode release-28 (brief B), its wiring, its local walk and host-walk receipt",
     "42 step 3: the rehearsal mode release-28 (brief B), its wiring, its local walk and host-walk receipt; the tests that pin the workflow's conditions",
-    "42: REVIEW-3 and REVIEW-4 fixes merged"
+    "42: REVIEW-3 and REVIEW-4 fixes merged",
+    "42: REVIEW-5 and REVIEW-6 fixes merged"
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
@@ -107,7 +108,7 @@
       "path": "os/tests/test_owner_staged_release.py"
     },
     {
-      "sha256": "b14a8f3d1fe772f300fc1e47bb724e813027261486c45b919b391256145a6442",
+      "sha256": "99710282d801ed5cb81e4b6f4692577331c978e50e341cf9a0d2ac20c07f34c0",
       "path": "os/tests/test_owner_walk.py"
     },
     {
