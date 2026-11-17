@@ -785,7 +785,7 @@ test('P24 uncovered and unreadable frames count as possibly unsaved before both 
 });
 test('P25 satisfied checks and isolated selections do not activate an inactive tab',async()=>{
   for(const input of [{verb:'check',checked:true},{verb:'select',value:'second'}]){
-    const f=fixture();f.run("excludedHosts=[];controlled.set(7,{epoch:'epoch'});requireTab=async()=>({});facts=async()=>({frames:[{frame:0,target:{element:'e1',states:{checked:true}}}]});globalThis.activated=0;content=async()=>({});chrome.webNavigation={getAllFrames:async()=>[{frameId:0}]};chrome.tabs.get=async()=>({active:false});chrome.tabs.update=async()=>activated++;collectSteps=async()=>[];");
+    const f=fixture();f.run("excludedHosts=[];controlled.set(7,{epoch:'epoch'});requireTab=async()=>({});facts=async()=>({frames:[{frame:0,target:{element:'e1',states:{checked:true},options:[{value:'second',label:'Second',disabled:false}]}}]});globalThis.activated=0;content=async()=>({});chrome.webNavigation={getAllFrames:async()=>[{frameId:0}]};chrome.tabs.get=async()=>({active:false});chrome.tabs.update=async()=>activated++;collectSteps=async()=>[];");
     const result=await f.run('dispatch('+JSON.stringify({name:'input',tab:7,reference:{frame:0,element:'e1'},input})+')');assert.equal(f.run('activated'),0);assert.equal(result.dispatched,input.verb!=='check');assert.equal(result.no_change,input.verb==='check');
   }
 });
@@ -798,8 +798,8 @@ test('P28 final binding refusal finishes every armed frame',async()=>{
   await assert.rejects(f.run("dispatch({name:'input',tab:7,reference:{frame:0,element:'e1'},input:{verb:'select'},binding:approved})"),/page changed/);assert.deepEqual(Array.from(f.run('finished')),[0]);
 });
 test('P23 input page evidence contains the bounded post-input notice',async()=>{
-  const f=fixture();f.run("excludedHosts=[];controlled.set(7,{epoch:'epoch'});requireTab=async()=>({});facts=async()=>({frames:[{frame:0,target:{element:'e1'}}]});content=async(tab,frame,command)=>command==='observe'?{url:'http://fixture.test/',notices:['ERROR: the change failed']} : {};chrome.webNavigation={getAllFrames:async()=>[{frameId:0}]};collectSteps=async()=>[];");
-  const result=await f.run("dispatch({name:'input',tab:7,reference:{frame:0,element:'e1'},input:{verb:'select'}})");assert.equal(result.page.notices[0],'ERROR: the change failed');
+  const f=fixture();f.run("excludedHosts=[];controlled.set(7,{epoch:'epoch'});requireTab=async()=>({});facts=async()=>({frames:[{frame:0,target:{element:'e1',options:[{value:'first',label:'First',disabled:false}]}}]});content=async(tab,frame,command)=>command==='observe'?{url:'http://fixture.test/',notices:['ERROR: the change failed']} : {};chrome.webNavigation={getAllFrames:async()=>[{frameId:0}]};collectSteps=async()=>[];");
+  const result=await f.run("dispatch({name:'input',tab:7,reference:{frame:0,element:'e1'},input:{verb:'select',value:'first'}})");assert.equal(result.page.notices[0],'ERROR: the change failed');
 });
 
 
@@ -811,7 +811,7 @@ test('P3 startup inherits an active hold before activation without any approval 
   assert.ok(armed<calls.findIndex(row=>row.method==='Runtime.callFunctionOn'&&row.parameters.functionDeclaration.includes('this.activate()')));
 });
 test('P3 a frame appearing on the final snapshot is armed without an allowance before input',async()=>{
-  const f=fixture();f.run("excludedHosts=[];controlled.set(7,{epoch:'epoch'});requireTab=async()=>({});globalThis.reads=0;globalThis.arms=[];const top={frame:0,document:'top',browser_document:'native-top',target:{element:'e1'}};const child={frame:2,document:'child',browser_document:'native-child'};facts=async()=>({frames:++reads===1?[top]:[top,child]});isPreloaded=()=>true;content=async(tab,frame,command,args)=>{if(command==='arm')arms.push({frame,args});return {}};chrome.webNavigation={getAllFrames:async()=>[{frameId:0,documentId:'native-top'},{frameId:2,documentId:'native-child'}]};collectSteps=async()=>[];");
+  const f=fixture();f.run("excludedHosts=[];controlled.set(7,{epoch:'epoch'});requireTab=async()=>({});globalThis.reads=0;globalThis.arms=[];const top={frame:0,document:'top',browser_document:'native-top',target:{element:'e1',options:[{value:'a',label:'A',disabled:false}]}};const child={frame:2,document:'child',browser_document:'native-child'};facts=async()=>({frames:++reads===1?[top]:[top,child]});isPreloaded=()=>true;content=async(tab,frame,command,args)=>{if(command==='arm')arms.push({frame,args});return {}};chrome.webNavigation={getAllFrames:async()=>[{frameId:0,documentId:'native-top'},{frameId:2,documentId:'native-child'}]};collectSteps=async()=>[];");
   await f.run("dispatch({name:'input',tab:7,reference:{frame:0,element:'e1'},input:{verb:'select',value:'a'}})");
   assert.deepEqual(Array.from(f.run('arms.map(row=>row.frame)')),[0,2]);assert.equal(f.run('arms[1].args.operation'),undefined);
 });

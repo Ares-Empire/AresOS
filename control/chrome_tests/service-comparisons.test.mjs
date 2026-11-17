@@ -12,6 +12,7 @@ const mutations={
   'remove-typed-binding':['stable(wellFormed(current))!==stable(command.binding)','stable(current)!==stable(command.binding)'],
   'remove-dialog-binding':['stable(wellFormed(expected))!==stable(command.binding)','stable(expected)!==stable(command.binding)'],
   'remove-confirmation':['expected[key]===wellFormed(dialog[key])','expected[key]===dialog[key]'],
+  'remove-option-value':['wellFormed(option.value)===input.value','option.value===input.value'],
 };
 function fixture(){
   let code=source.replace("import {POLICY} from './policy.js';",'');
@@ -87,6 +88,34 @@ for(const key of ['name','label','title','value','rich'])test(`repaired command.
     if(changed){await assert.rejects(f.run('dispatch(command)'),/stale_reference: element no longer holds/);assert.equal(f.run('inputs'),0);}
     else assert.equal((await f.run('dispatch(command)')).dispatched,true);
   }
+});
+
+test('repaired select value resolves one raw option; visible changes and repaired collisions refuse',async()=>{
+  for(const variant of ['same','surrogate-only','visible','ambiguous','disabled']){
+    const f=inputFixture();f.run(`command.input={verb:'select',value:'Option \\ufffd'};
+      snapshot.frames[0].target.options=[{label:'Choice',value:'Option \\ud800'}];
+      globalThis.selected=[];content=async(tab,frame,name,message)=>{if(name==='select')selected.push(message.value);return {}};`);
+    // No binding here: isolate the value lookup rather than an earlier binding refusal.
+    if(variant==='surrogate-only')f.run("snapshot.frames[0].target.options[0].value='Option \\udc00'");
+    if(variant==='visible')f.run("snapshot.frames[0].target.options[0].value+=' '");
+    if(variant==='ambiguous')f.run("snapshot.frames[0].target.options.push({label:'Other',value:'Option \\ud801'})");
+    if(variant==='disabled')f.run('snapshot.frames[0].target.options[0].disabled=true');
+    if(['same','surrogate-only'].includes(variant)){
+      assert.equal((await f.run('dispatch(command)')).dispatched,true);
+      assert.equal(f.run('selected.length'),1);assert.equal(f.run('selected[0]'),variant==='same'?'Option \ud800':'Option \udc00');
+      assert.equal(f.run('snapshot.frames[0].target.options[0].value'),f.run('selected[0]'),'send the existing raw option without rewriting it');
+    }else{
+      await assert.rejects(f.run('dispatch(command)'),/stale_reference: the exact enabled option is missing or ambiguous/);
+      assert.equal(f.run('selected.length'),0);
+    }
+  }
+});
+
+test('select without native option facts keeps the reader refusal before comparing or setting values',async()=>{
+  const f=inputFixture();f.run(`command.input={verb:'select',value:'Choice'};delete snapshot.frames[0].target.options;
+    content=async(tab,frame,name)=>{if(name==='select')throw Error('refused: choose an enabled native select control');return {}};`);
+  await assert.rejects(f.run('dispatch(command)'),/^Error: refused: choose an enabled native select control$/);
+  assert.equal(f.run('inputs'),0);
 });
 
 function typedFixture(){

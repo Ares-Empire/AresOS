@@ -1223,7 +1223,17 @@ async function dispatch(command,expires=null) {
       }
     } else if (input.verb === 'upload') await content(tab,reference.frame,'install_file',{element:reference.element,token:command.upload.token});
     else if (input.verb === 'check') {noChange=true;}
-    else if (input.verb === 'select') await content(tab,reference.frame,input.verb,{element:reference.element,...input});
+    else if (input.verb === 'select') {
+      // The service chose the displayed value. Resolve it to one fresh raw
+      // option; the reader still checks that exact option immediately before input.
+      let value=input.value;
+      if(Array.isArray(target.options)){
+        const choices=target.options.filter(option=>wellFormed(option.value)===input.value);
+        if(choices.length!==1||choices[0].disabled)throw Error('stale_reference: the exact enabled option is missing or ambiguous; read again');
+        value=choices[0].value;
+      }
+      await content(tab,reference.frame,input.verb,{element:reference.element,...input,value});
+    }
     else if (input.verb === 'scroll') {const point=await pointer(tab,snapshot,reference,target);await cdp(tab,'Input.dispatchMouseEvent',{type:'mouseWheel',...point,deltaX:input.x,deltaY:input.y});}
     else throw Error('permission_denied: unsupported input');
   }
