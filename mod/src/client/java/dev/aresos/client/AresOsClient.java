@@ -43,6 +43,7 @@ public final class AresOsClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         HomeButton.register();
+        HomeSwitch.register();
         AppsScreen.register();
         IconReload.register(dev.aresos.item.MyAppsGame.icons());
         if (AresOs.shell() != null) ShellFocusClient.register(AresOs.shell());
@@ -106,10 +107,14 @@ public final class AresOsClient implements ClientModInitializer {
                 && client.getSingleplayerServer() != null && dev.aresos.world.DesktopWorld.isEnabled(client.getSingleplayerServer())
                 && (client.gui.screen() instanceof net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?>
                     || client.gui.screen() instanceof AppsScreen
+                    || client.gui.screen() instanceof AresOsMenuScreen
                     || client.gui.screen() instanceof net.minecraft.client.gui.screens.PauseScreen)) {
             client.gui.hud.setOverlayMessage(Component.literal("Close the menu before switching AresOS mode"), false);
         }
     }
+
+    /** The Build/Live key as registered (null before the client initialized), for the AresOS menu's hint. */
+    static KeyMapping modeKey() { return modeToggle; }
 
     public static void discardModeToggle() {
         if (modeToggle != null) while (modeToggle.consumeClick()) { }

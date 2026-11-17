@@ -2,6 +2,7 @@ package dev.aresos.client;
 
 import dev.aresos.AresOs;
 import dev.aresos.world.FlatHome;
+import dev.aresos.world.HomeSwap;
 import dev.aresos.world.NetherHome;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
 import net.fabricmc.fabric.api.client.screen.v1.Screens;
@@ -11,13 +12,8 @@ import net.minecraft.client.gui.screens.AlertScreen;
 import net.minecraft.client.gui.screens.ConfirmScreen;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.TitleScreen;
-import net.minecraft.core.HolderLookup;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.DirectoryLock;
-import net.minecraft.world.level.GameType;
-import net.minecraft.world.level.LevelSettings;
-import net.minecraft.world.level.WorldDataConfiguration;
-import net.minecraft.world.level.levelgen.WorldDimensions;
 import net.minecraft.world.level.levelgen.WorldOptions;
 import net.minecraft.world.level.levelgen.presets.WorldPresets;
 
@@ -25,8 +21,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.function.Function;
 
 public final class HomeButton {
     private HomeButton() { }
@@ -60,33 +54,31 @@ public final class HomeButton {
         } catch (IOException error) { showError(client, parent, error); }
     }
 
-    static void create(Minecraft client, Screen parent, long seed, boolean placeholder) {
+    /** A Nether home: the seed and the placeholder hub as chosen on the create screen. */
+    static HomePlan netherPlan(long seed, boolean placeholder) {
         var request = seed == 49 ? NetherHome.DEFAULT_SITE : new NetherHome.Site(seed, 0, 64, 0, 0);
-        createWorld(client, parent, directory -> NetherHome.writeManifest(directory, request, placeholder),
+        return new HomePlan("Nether", directory -> NetherHome.writeManifest(directory, request, placeholder),
                 new WorldOptions(seed, true, false), WorldPresets::createNormalWorldDimensions);
     }
 
     /** The flat home: the same save folder and create flow, with a flat Overworld and no structures. */
-    static void createFlat(Minecraft client, Screen parent) {
-        createWorld(client, parent, NetherHome::writeFlatManifest,
-                new WorldOptions(FlatHome.SEED, false, false), FlatHome::dimensions);
+    static HomePlan flatPlan() {
+        return new HomePlan("flat", NetherHome::writeFlatManifest, new WorldOptions(FlatHome.SEED, false, false),
+                FlatHome::dimensions);
     }
 
-    private interface ManifestWriter { void write(Path directory) throws IOException; }
+    /** The flat home as AresHub, at once (the first start, package 48); {@code parent} shows if it cannot be made. */
+    static void createFlat(Minecraft client, Screen parent) {
+        createWorld(client, parent, flatPlan());
+    }
 
-    /** Survival, normal difficulty, cheats off, through the game's own create flow; the server provisions the home. */
-    private static void createWorld(Minecraft client, Screen parent, ManifestWriter manifest, WorldOptions options,
-                                    Function<HolderLookup.Provider, WorldDimensions> dimensions) {
+    /** Makes the plan as AresHub at once, as the title screen's AresOS button always has. */
+    static void createWorld(Minecraft client, Screen parent, HomePlan plan) {
         var source = client.getLevelSource();
-        var directory = source.getBaseDir().resolve(NetherHome.SAVE_FOLDER);
         try {
             Files.createDirectories(source.getBaseDir());
-            Files.createDirectory(directory);
-            manifest.write(directory);
-            NetherHome.createNewWorld(directory, () -> client.createWorldOpenFlows().createFreshLevel(NetherHome.SAVE_FOLDER,
-                    new LevelSettings("AresOS", GameType.SURVIVAL, LevelSettings.DifficultySettings.DEFAULT,
-                            false, WorldDataConfiguration.DEFAULT),
-                    options, dimensions, parent));
+            Path directory = Files.createDirectory(source.getBaseDir().resolve(NetherHome.SAVE_FOLDER));
+            plan.create(client, directory, parent);
         } catch (IOException error) { showError(client, parent, error); }
     }
 
@@ -110,9 +102,7 @@ public final class HomeButton {
         } catch (java.nio.channels.OverlappingFileLockException error) {
             throw new IOException("AresHub is in use. Close it before creating another world.", error);
         }
-        String name = "AresHub-" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss-SSS"));
-        Path target = saves.resolve(name);
-        for (int suffix = 1; Files.exists(target); suffix++) target = saves.resolve(name + "-" + suffix);
+        Path target = HomeSwap.datedName(saves, HomeSwap.ARCHIVE_PREFIX, LocalDateTime.now());
         // No replacement option: a collision or failed rename must leave the original save alone.
         Files.move(current, target);
     }
