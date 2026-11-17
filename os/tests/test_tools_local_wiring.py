@@ -163,7 +163,8 @@ class JobGatesTest(unittest.TestCase):
 REVIEWED = {
     ('os/ci/owner_vm.py', "authorization['allowance'] == package"): "the guard's dispatch authorization names the running package",
     ('os/ci/owner_vm.py', "{'16': 'os/manifest/ci/16/host-walk.json', '27': 'os/manifest/ci/27/host-walk.json', "
-                          "'22c': 'os/manifest/ci/22c/host-walk.json', '22d': 'os/manifest/ci/22d/host-walk.json'}"
+                          "'22c': 'os/manifest/ci/22c/host-walk.json', '22d': 'os/manifest/ci/22d/host-walk.json', "
+                          "'42': 'os/manifest/ci/42/host-walk.json'}"
                           ".get(package, 'os/manifest/ci/14/host-walk/result.json')"):
         "each package's own host walk (22c's receipt stays frozen; review 1)",
     ('os/ci/owner_vm.py', "mode == 'ways-back'"): "22c's rehearsal records its bound sources and walks brief 22c's route",

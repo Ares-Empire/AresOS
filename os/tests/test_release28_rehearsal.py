@@ -154,6 +154,25 @@ class JobGatesTest(unittest.TestCase):
         self.assertTrue(all('secrets.GHCR_READ_TOKEN' not in json.dumps(step) for step, _ in steps))
 
 
+# Where package 42's VM step decides otherwise than package 22d's rehearsal, each with its reason.
+REVIEWED = {
+    ('os/ci/owner_vm.py', "authorization['allowance'] == package"): "the guard's dispatch authorization names the running package",
+    ('os/ci/owner_vm.py', [key for key in local.REVIEWED if key[1].startswith("{'16'")][0][1]): "each package's own host walk",
+    ('os/ci/owner_vm.py', "mode == 'tools-local'"): "22d's rehearsal records its bound sources and walks brief 22d's route",
+    ('os/ci/owner_vm.py', "mode == 'release-28'"): "42's rehearsal records its bound sources and walks brief 42's route (B)",
+}
+
+
+class DecisionsTest(unittest.TestCase):
+    def test_the_rehearsal_decides_like_package_22ds_except_where_reviewed(self):
+        release_28 = dict(REHEARSAL_PACKAGE='42', REHEARSAL_MODE=MODE, GITHUB_REF_NAME=BRANCH, argv=['os/ci/owner_vm.py', MODE])
+        tools_local = dict(REHEARSAL_PACKAGE='22d', REHEARSAL_MODE='tools-local', GITHUB_REF_NAME=local.BRANCH,
+                           argv=['os/ci/owner_vm.py', 'tools-local'])
+        differing, used, paths = base.differing_decisions([release_28, tools_local], REVIEWED)
+        self.assertEqual(differing, [])
+        self.assertEqual(sorted(set(REVIEWED) - used), [], 'stale reviewed decisions')
+
+
 class GuardTest(unittest.TestCase):
     def setUp(self):
         guard.configure('42')

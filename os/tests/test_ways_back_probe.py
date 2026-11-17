@@ -177,7 +177,8 @@ class JobGatesTest(unittest.TestCase):
 REVIEWED = {
     ('os/ci/owner_vm.py', "authorization['allowance'] == package"): "the guard's dispatch authorization names the running package",
     ('os/ci/owner_vm.py', "{'16': 'os/manifest/ci/16/host-walk.json', '27': 'os/manifest/ci/27/host-walk.json', "
-                          "'22c': 'os/manifest/ci/22c/host-walk.json', '22d': 'os/manifest/ci/22d/host-walk.json'}"
+                          "'22c': 'os/manifest/ci/22c/host-walk.json', '22d': 'os/manifest/ci/22d/host-walk.json', "
+                          "'42': 'os/manifest/ci/42/host-walk.json'}"
                           ".get(package, 'os/manifest/ci/14/host-walk/result.json')"):
         "each package's own host walk",
     ('os/ci/owner_vm.py', "package == '27'"): 'package 27 recorded its bound sources; package 22c does so in stage 2',
