@@ -25,6 +25,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.HashSet;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.function.Supplier;
 
 @Mixin(ChunkMap.class)
@@ -46,13 +47,19 @@ public abstract class ChunkSaveMixin implements SaveRepair {
                 () -> original.call(chunk));
     }
 
+    @Redirect(method = "save", at = @At(value = "INVOKE", target = "Ljava/util/concurrent/CompletableFuture;supplyAsync(Ljava/util/function/Supplier;Ljava/util/concurrent/Executor;)Ljava/util/concurrent/CompletableFuture;", remap = false))
+    private CompletableFuture<CompoundTag> aresos$encodeAsync(Supplier<CompoundTag> action, Executor executor, ChunkAccess chunk) {
+        var state = WorldSaveState.of(level.getServer());
+        String key = aresos$key(chunk.getPos());
+        return CompletableFuture.supplyAsync(() -> state.encoding(key, "asynchronous chunk serialization", true, action), executor);
+    }
+
     @Redirect(method = "save", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/level/ChunkMap;write(Lnet/minecraft/world/level/ChunkPos;Ljava/util/function/Supplier;)Ljava/util/concurrent/CompletableFuture;"))
     private CompletableFuture<Void> aresos$write(ChunkMap map, ChunkPos pos, Supplier<CompoundTag> data) {
         var failures = WorldSaveState.of(level.getServer()).failures;
         var write = failures.writing(aresos$key(pos));
         try {
-            var state = WorldSaveState.of(level.getServer());
-            var future = map.write(pos, () -> state.encoding(aresos$key(pos), "asynchronous chunk serialization", true, data));
+            var future = map.write(pos, data);
             failures.watch(future, ok -> failures.written(write, ok));
             return future;
         } catch (RuntimeException error) {

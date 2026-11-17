@@ -58,6 +58,14 @@ class SaveFailuresTest {
         assertTrue(failures.finish(failures.begin(), true));
     }
 
+    @Test void lateSerializationDiagnosticAfterUnloadLatchesEvenWhenWriteFutureSucceeds() {
+        var write = failures.writing("overworld 1,2");
+        failures.unloaded("overworld 1,2");
+        failures.chunkFailure("overworld 1,2");
+        failures.written(write, true);
+        assertFalse(failures.finish(failures.begin(), true));
+    }
+
     @Test void joinedFollowUpHasItsOwnFailureBoundary() {
         var first = failures.begin();
         failures.failure("player data");

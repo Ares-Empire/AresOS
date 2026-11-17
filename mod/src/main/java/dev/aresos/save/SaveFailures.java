@@ -41,6 +41,9 @@ public final class SaveFailures {
     public synchronized void chunkFailure(String chunk) {
         failedChunks.add(chunk);
         failure("chunk " + chunk);
+        // A codec can report an incomplete tag and still complete the write future successfully.
+        if (writes.stream().anyMatch(write -> write.chunk.equals(chunk) && write.unloaded))
+            lost("failed chunk " + chunk + " left memory before serialization reported its failure");
     }
 
     public synchronized Write writing(String chunk) {
