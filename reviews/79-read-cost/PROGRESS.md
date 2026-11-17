@@ -4,7 +4,34 @@ Empire brief 301. Lead: `linux-tools`. Brief: `briefs/79-read-cost.md`.
 
 ## Status (2026-11-17)
 
-**Brief written; next: brief review.** No product code has changed.
+**Brief reviewed (NOT READY); the lead's calls below; next: the brief's revision.** No product code has changed.
+
+## The lead's calls after BRIEF-REVIEW-1 (2026-11-17)
+
+`BRIEF-REVIEW-1.md` (Codex `gpt-6-astra`, high, on `bbbabdc6`): **NOT READY**: one blocker, one should-fix, one nit.
+The lead's calls, with the reviewer's view taken in:
+
+1. **When the bytes are compared: on every cached read** (changed from "after every journal change"). The review's
+   blocker shows the stat shortcut loses a reread that today's code does by accident: after five other committed
+   reads, today's `get()` cache has dropped the qualification parse and rereads the journal, so an in-place rewrite
+   with size and mtime kept is refused as `qualification_rollback`; the proposed slot would still serve the old
+   record. The rollback check must not get weaker, and the cost is one journal open per read (0.04 ms at 301
+   entries). The larger fault sweep (`drop` 333 to 469 pair cases) is verification work, not a reason against it.
+   Add the review's unchanged-signature regression, without waiting for another write (test 9 waits, so it misses it).
+2. **`maintenance()` returns nothing; O2's count test is replaced:** agreed (the review agrees; the new-record check and
+   the behavioural regressions stay).
+3. **`record()` returns a private copy, and so does `shipped`** (review finding 2): the public getter returns a deep
+   copy, internal code uses the private baseline; test 13 mutates nested values obtained through the getter and checks
+   the results before and after the slot is invalidated; one more mutation exposes `_shipped` directly.
+4. **Build before #72 merges:** agreed; check the combined result after the conflicts are resolved.
+5. **Builder and review:** builder Codex `gpt-6.1-sol` xhigh. Review: a fresh Codex `gpt-6-astra` xhigh (Fable is
+   closed this week past the release line), which runs the rollback mutations, the new unchanged-signature case
+   included.
+6. **Build on this branch:** agreed.
+
+Also from the review: narrow the constant-time claim (nit 3), and say there are six calls, not seven.
+
+**Next:** a revision of the brief (Codex `gpt-6.1-sol` xhigh), then a short recheck of the revision.
 
 ## What the brief decides
 
