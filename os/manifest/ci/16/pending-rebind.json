@@ -14,7 +14,8 @@
     "42: dry-run cap 2 to 3 (lead, 2026-11-16)",
     "42: dry-run cap 3 to 4 after a snapshot.ubuntu.com outage (lead, 2026-11-16)",
     "42 review 1 (B1, S3, N1, N3): package 42's ledger shuts publishing until the owner's OK (publish-28 and publish_cap 0, a publish_gate note); the guard names an unknown run title in a STOP line and refuses publishing while publish_cap allows none; os-image.yml runs the checks guard on pkg/42-release-28, gives check-build a resolve guard step on that branch (actions and packages read, the checkout keeps no token), titles both release 28 inputs together as a dry run, and keeps the old release jobs off release 28's inputs; no tool, guide or image file changed",
-    "42: dry-run cap 4 to 5 after review 1's fixes (fix check SAFE), to prove the new stops on a real build before the cut"
+    "42: dry-run cap 4 to 5 after review 1's fixes (fix check SAFE), to prove the new stops on a real build before the cut",
+    "42 step 3: main merged"
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
