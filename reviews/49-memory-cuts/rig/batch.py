@@ -68,7 +68,12 @@ def matrix(stage, winners=None):
                 run('cover-'+name+'-'+str(repeat), *flags)
     elif stage == 'winners':
         settings=json.loads(pathlib.Path(winners).read_text())['settings']
-        for repeat in (1,2,3): run('winner-flat-'+str(repeat), *settings)
+        # Main moved during the long factor matrix. Qualify the combination against fresh controls
+        # from the merged mod tree, rather than pooling the earlier revision's controls invisibly.
+        for repeat in (1,2,3):
+            pair=[('v1-flat-'+str(repeat), []), ('winner-flat-'+str(repeat), settings)]
+            for name, flags in (reversed(pair) if repeat == 2 else pair): run(name, *flags)
+        run('v1-create', 'MODE=create', 'HOMEKIND=flat', 'QUIT=1')
         run('winner-create', *settings, 'MODE=create', 'HOMEKIND=flat', 'QUIT=1')
         # Nether first-creation setup is separate evidence, not a reused flat world renamed Nether.
         run('setup-nether', *settings, 'MODE=create', 'HOMEKIND=nether', 'FLIGHT=none', 'QUIT=1')

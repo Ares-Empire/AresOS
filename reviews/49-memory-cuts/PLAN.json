@@ -30,5 +30,12 @@
   ],
   "stop_line": "Exit 75: five-minute wait, at most six retries; stop the measurement schedule if still refused. Other failures stop immediately.",
   "noise": "Record host load, free memory, selected executable counts each snapshot. Pause 30s between games to release the lock.",
-  "scope": "Only reviews/49-memory-cuts changes. Measurement jars/worlds/logs local. No shipping settings or mods."
+  "scope": "Only reviews/49-memory-cuts changes. Measurement jars/worlds/logs local. No shipping settings or mods.",
+  "source_refresh": {
+    "observed_main": "58d2ae1b",
+    "reason": "Main moved during the factor/covered matrix and includes changes to mod/. Preserve that matrix on its original tree, then merge and repeat full client qualification before winner validation.",
+    "winner_controls": "Fresh paired v1 flat controls x3 (A/B, B/A, A/B), current v1 first creation, and current v1 Nether glide. Group frame ranges by source mod tree.",
+    "planned_valid_runs": 54,
+    "count_note": "28 factor/control runs, 2 step-0 runs, 10 covered runs, 7 required winner runs, 2 setup runs, and 5 current-source controls. Failed/retired evidence is excluded."
+  }
 }

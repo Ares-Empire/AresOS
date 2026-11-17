@@ -22,11 +22,14 @@ def spread(values):
 
 
 print('All memory in MiB; paired savings are baseline minus factor, positive means less memory. Ranges are observed, not confidence intervals.\n')
-print('| Factor | Settled RSS saving, mean (range) | Post-flight RSS saving | Covered 5-min RSS saving | Standing post-G1 heap minimum saving |')
-print('|---|---:|---:|---:|---:|')
+print('| Factor | Research estimate | Settled RSS saving, mean (range) | Post-flight RSS saving | Covered 5-min RSS saving | Standing post-G1 heap minimum saving |')
+print('|---|---|---:|---:|---:|---:|')
 labels={'coh':'compact headers','dedup':'compact headers + string dedup',
         'trim':'native trim every 60 s','system':'60 s trim + LWJGL system allocator',
         'arenas':'MALLOC_ARENA_MAX=2','threads':'GC/background thread limits','ferrite':'FerriteCore 9.0.0'}
+estimates={'coh':'30–60', 'dedup':'0–20 extra over headers', 'trim':'50–200 native total',
+           'system':'50–200 native total; not additive', 'arenas':'50–200 native total; not additive',
+           'threads':'10–40', 'ferrite':'15–45'}
 for factor in labels:
     savings={label:[] for label in ('settled','flight','covered5m')}
     heaps=[]
@@ -40,7 +43,23 @@ for factor in labels:
         # This is an after-G1 proxy; no extra full GC is injected into factor runs.
         a,b=(get(row,'windows','stand','heap_after_gc_min_mib') for row in (baseline,variant))
         if a is not None and b is not None: heaps.append(a-b)
-    print(f"| {labels[factor]} | {spread(savings['settled'])} | {spread(savings['flight'])} | {spread(savings['covered5m'])} | {spread(heaps)} |")
+    print(f"| {labels[factor]} | {estimates[factor]} | {spread(savings['settled'])} | {spread(savings['flight'])} | {spread(savings['covered5m'])} | {spread(heaps)} |")
+
+print('\nAccounting residual: RssAnon − (NMT total committed − shared class space). Committed bytes are not resident bytes: this is a rough residual, not a measured allocator heap. Positive paired savings mean a smaller residual.\n')
+print('| Factor | Settled residual saving | Post-flight residual saving | Covered residual saving | Post-flight committed Java heap saving |')
+print('|---|---:|---:|---:|---:|')
+for factor,label in labels.items():
+    residuals={phase:[] for phase in ('settled','flight','covered5m')}
+    commits=[]
+    for repeat in (1,2):
+        a,b=(rows.get(f'{prefix}{factor}-{repeat}',{}) for prefix in ('v1-',''))
+        for phase in residuals:
+            x,y=(get(row,'snapshots',phase) for row in (a,b))
+            if x and y and x['nmt_total'] is not None and y['nmt_total'] is not None:
+                residual=lambda v:v['rss_anon']-v['nmt_total']+v['nmt'].get('Shared class space',0)
+                residuals[phase].append(residual(x)-residual(y))
+                if phase == 'flight': commits.append(x['heap_committed']-y['heap_committed'])
+    print(f"| {label} | {spread(residuals['settled'])} | {spread(residuals['flight'])} | {spread(residuals['covered5m'])} | {spread(commits)} |")
 
 print('\nCovered actions use v1 settings. Each saving below compares with the untreated run in the same round; these are independent JVMs, so inspect the pre-action RSS too. zram is device-wide and includes other builders. Its physical-memory change is not an attributed game cost.\n')
 print('| Covered run | RSS before / 5 min / wake | Saving vs untreated 5 min | Scope swap 5 min / wake | Global zram original / compressed / physical at 5 min (physical change) | Majflt cover+wake / wake only | Return to first frame ms | Wake worst; >17 / >33 ms | GC max after join ms |')

@@ -82,6 +82,13 @@ The winner schedule includes a current v1 Nether glide before the winner's glide
 copies. This is one additional control: package 41's earlier code revision cannot by itself establish that
 Nether frames are unchanged. Inspect both glide tick totals as well as the frame and memory numbers.
 
+Main moved during the original matrix, including product mod changes. Finish that matrix on its original
+tree, merge main, and repeat the full client qualification before the winner stage. That stage now pairs
+each of the three flat winner runs with a fresh v1 control (A/B, B/A, A/B), and adds a current v1 first
+creation. Source grouping in the audit keeps the earlier factor controls separate from the merged tree.
+These four controls bring the planned valid-run count to 54, including both setup runs and the additional
+Nether control. Failed attempts and retired pairs are separate evidence, not extra repetitions in a mean.
+
 After the runs, `table.py` generates the paired, covered and individual-run tables from public summaries.
 `audit.py` records each run's memory/GC/recorder guards, source mod-tree identity, action durations, observed
 flat-control frame ranges and the winner's same-base Nether comparison. It does not turn experimental GC
