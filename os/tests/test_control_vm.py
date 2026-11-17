@@ -1,5 +1,6 @@
 """Package 18c, B2: the pieces of the Control VM test that run without a VM (os/ci/control/, the checks.py hook)."""
 import ast
+import contextlib
 import gzip
 import importlib.util
 import io
@@ -14,6 +15,7 @@ import subprocess
 import sys
 import tarfile
 import tempfile
+import types
 import unittest
 from unittest import mock
 
@@ -841,62 +843,235 @@ class PasswordScanTest(unittest.TestCase):
 
         scan(state, a_folder, errors)
 
-    def test_a_listing_that_numbers_otherwise_is_asked_a_second_time(self):
-        # A listing's number is not always the file's own: a mount point is listed under the number of the folder it
-        # covers, and the document portal's FUSE server gives every name 4294967295 (read on the laptop's own portal
-        # mount, 2026-11-17). Such a listing repeats its number when asked again, and the file is searched.
+    def mountinfo(self, mounts):
+        """Mount facts only; real temporary files supply every listing and opened inode."""
+        info = self.folder / 'numbering-mountinfo'
+        info.write_text(''.join(f'{40 + index} 30 0:21 / {str(point).replace(" ", r"\040")} rw - {kind} fixture '
+                                f'rw,user_id={os.getuid()},group_id={os.getgid()}\n'
+                                for index, (point, kind) in enumerate(mounts.items())))
+        real = open
+
+        def opened(path, *args, **kwargs):
+            return real(info if path == '/proc/self/mountinfo' else path, *args, **kwargs)
+
+        return mock.patch('builtins.open', side_effect=opened)
+
+    def entries(self, folder, transform):
+        """Transform a real directory iterator, without mounting anything or replacing file contents/stat results."""
+        real, identity = os.scandir, folder.stat().st_ino
+
+        @contextlib.contextmanager
+        def scandir(fd):
+            with real(fd) as entries:
+                if isinstance(fd, int) and os.fstat(fd).st_ino == identity:
+                    yield iter(transform(entries))
+                else:
+                    yield entries
+
+        return mock.patch('os.scandir', side_effect=scandir)
+
+    @staticmethod
+    def numbered(entry, inode):
+        return types.SimpleNamespace(name=entry.name, inode=lambda: inode)
+
+    def test_mount_points_and_portal_numbering_are_established_from_mountinfo(self):
         state, password = self.root / 'state', str(self.root / 'state/password')
-        listing = self.scanner.listing
-        portal = mock.patch.object(self.scanner, 'listing', side_effect=lambda handle: dict.fromkeys(listing(handle),
-                                                                                                    4294967295))
-        with portal:
+        # A mount point's listing number belongs to the covered folder, independently of another listing.
+        with self.mountinfo({state: 'tmpfs'}), self.entries(self.root, lambda entries: (
+                self.numbered(entry, 123456789) for entry in entries)):
+            found = self.scanner.scan([str(self.root)], [self.NEEDLE])
+        self.assertEqual((found['errors'], found['hits'], found['files']), ([], [[password, 0]], {str(self.root): 2}))
+        # The portal convention needs both FUSE mount facts and the constant on every name.
+        with self.mountinfo({state: 'fuse.portal'}), self.entries(state, lambda entries: (
+                self.numbered(entry, 4294967295) for entry in entries)):
             found = self.scanner.scan([str(self.root)], [self.NEEDLE])
         self.assertEqual((found['errors'], found['hits'], found['files']), ([], [[password, 0]], {str(self.root): 2}))
         self.assertEqual(found['paths'], {'learned': 4, 'searched': 2, 'listed': 2})
-        # Numbers that are not the files' own and still differ from file to file (a FUSE server passing on the
-        # numbers of the files behind it): a replaced file has another number in the second listing.
-        shifted = mock.patch.object(self.scanner, 'listing', side_effect=lambda handle: {
-            name: inode + 1000 for name, inode in listing(handle).items()})
-        debug = state / 'debug.log'
-        debug.write_bytes(b'login ' + self.NEEDLE)
-        before = debug.stat().st_ino
 
-        def renamed_over():
-            (self.folder / 'debug.new').write_text('nothing\n')
-            os.replace(self.folder / 'debug.new', debug)
+    def test_non_fuse_non_mount_point_numbering_mismatches_are_errors(self):
+        state = self.root / 'state'
+        for mounts in ({self.root: 'tmpfs'}, {self.root: 'fuse.portal', state: 'tmpfs'}):
+            with self.subTest(mounts=mounts), self.mountinfo(mounts), self.entries(state, lambda entries: (
+                    self.numbered(entry, 4294967295) for entry in entries)):
+                found = self.scanner.scan([str(self.root)], [self.NEEDLE])
+            self.assertEqual(len(found['errors']), 2)
+            self.assertTrue(all('not the file its folder listed' in error for error in found['errors']))
+            self.assertEqual((found['hits'], found['files']), ([], {str(self.root): 0}))
+        # FUSE alone is insufficient, as is one constant name in a mixed listing.
+        for number in (lambda entry: entry.inode() + 1000,
+                       lambda entry: 4294967295 if entry.name == 'password' else entry.inode()):
+            with self.subTest(number=number), self.mountinfo({state: 'fuse.portal'}), self.entries(
+                    state, lambda entries: (self.numbered(entry, number(entry)) for entry in entries)):
+                found = self.scanner.scan([str(self.root)], [self.NEEDLE])
+            self.assertTrue(any(str(state / 'password') in error for error in found['errors']))
+            self.assertEqual(found['hits'], [])
 
-        with shifted, self.listed(state, renamed_over):
-            found = self.scanner.scan([str(self.root)], [self.NEEDLE])
+    def test_double_rename_fools_numbering_detection(self):
+        # RECHECK-X3 #2: A listed, B opened, A restored for verification, B restored for stat/read.
+        state, debug = self.root / 'state', self.root / 'state/debug.log'
+        first, second = self.folder / 'first', self.folder / 'second'
+        debug.write_bytes(self.NEEDLE)
+        second.write_text('clean replacement')
+        a, b = debug.stat().st_ino, second.stat().st_ino
+        self.assertNotEqual(a, b)
+        identity, original, calls = state.stat().st_ino, self.scanner.listing, []
+
+        def listing(fd, *args):
+            if os.fstat(fd).st_ino != identity:
+                return original(fd, *args)
+            calls.append('listing')
+            if len(calls) == 1:
+                result = original(fd, *args)
+                debug.rename(first)
+                second.rename(debug)
+                return result
+            self.assertEqual(len(calls), 2)
+            debug.rename(second)
+            first.rename(debug)
+            result = original(fd, *args)
+            debug.rename(first)
+            second.rename(debug)
+            return result
+
+        with mock.patch.object(self.scanner, 'listing', side_effect=listing):
+            found = self.search()
         self.assertEqual(found['errors'], [
-            f'{debug}: not the file its folder listed (inode {before + 1000} there, {debug.stat().st_ino} opened): '
-            'replaced before it was read, so its content is unsearched'])
-        self.assertEqual(found['hits'], [[password, 0]])
-        # The first number again in the second listing, because the listed file is back under its name by then (moved
-        # away, another file opened in its place, moved back): the file that was opened is still not the listed one.
-        debug.write_bytes(b'login ' + self.NEEDLE)
-        before, opened, asked = debug.stat().st_ino, [], []
-        folder = (state.stat().st_dev, state.stat().st_ino)
+            f'{debug}: not the file its folder listed (inode {a} there, {b} opened): replaced before it was read, '
+            'so its content is unsearched'])
+        self.assertEqual(len(calls), 1)  # Ordinary mismatches never ask the changing listing for permission.
+        self.assertEqual(first.read_bytes(), self.NEEDLE)
+        self.assertEqual((found['hits'], found['files']), ([[str(state / 'password'), 0]], {str(self.root): 2}))
 
-        def moved_away():
-            os.rename(debug, self.folder / 'debug.listed')
-            debug.write_text('nothing\n')
-            opened.append(debug.stat().st_ino)
+    def test_second_listing_learns_a_new_name_then_discards_it(self):
+        # RECHECK-X3 #1: a verification listing observes late.log, which must join the same work list.
+        state, late = self.root / 'state', self.root / 'state/late.log'
+        identity, original, observed = state.stat().st_ino, self.scanner.listing, []
 
-        def moved_back_for_the_second(handle):
-            info = os.fstat(handle)
-            asked.append((info.st_dev, info.st_ino))
-            if asked.count(folder) == 2:
-                os.replace(self.folder / 'debug.listed', debug)
-            return listing(handle)
+        def listing(fd, *args):
+            result = original(fd, *args)
+            if os.fstat(fd).st_ino == identity and len(observed) == 1:
+                late.write_bytes(self.NEEDLE)
+            return result
 
-        with mock.patch.object(self.scanner, 'listing', side_effect=moved_back_for_the_second), \
-                self.listed(state, moved_away):
-            found = self.scanner.scan([str(self.root)], [self.NEEDLE])
-        self.assertEqual((asked.count(folder), debug.stat().st_ino), (2, before))
-        self.assertEqual(found['errors'], [
-            f'{debug}: not the file its folder listed (inode {before} there, {opened[0]} opened): replaced before it '
-            'was read, so its content is unsearched'])
-        self.assertEqual(found['hits'], [[password, 0]])
+        def entries(real):
+            names = []
+            observed.append(names)
+            for entry in real:
+                names.append(entry.name)
+                yield self.numbered(entry, 4294967295)
+
+        with self.mountinfo({state: 'fuse.portal'}), self.entries(state, entries), \
+                mock.patch.object(self.scanner, 'listing', side_effect=listing):
+            found = self.search()
+        self.assertTrue(any('late.log' in names for names in observed[1:]))
+        self.assertIn([str(late), 0], found['hits'])
+        self.assertEqual(found['errors'], [])
+        self.assertEqual(found['paths'], {'learned': 5, 'searched': 3, 'listed': 2})
+
+    def test_partial_listing_refusal_discards_yielded_names(self):
+        # RECHECK-X3 #1: the real owner's subprocess cannot clear an observed name that disappeared.
+        portal, mounts = self.fuse_portal()
+        private = portal / 'private.log'
+        private.write_bytes(self.NEEDLE)
+        inode, yielded = private.stat().st_ino, []
+
+        def partial(entries):
+            for entry in entries:
+                if entry.name == 'private.log':
+                    yielded.append(entry.name)
+                    yield entry
+                    raise PermissionError(13, 'Permission denied')
+            raise AssertionError('private.log was not listed')
+
+        calls, owner = self.owner(private.unlink)
+        with self.entries(portal, partial), mounts, owner:
+            found = self.search()
+        self.assertEqual(yielded, ['private.log'])
+        self.assertTrue(any(str(private) in error and 'did not search it either' in error for error in found['errors']),
+                        found)
+        self.assertIn([str(private), inode], json.loads(calls[0][1])['cover'])
+        self.assertEqual(found['paths']['refused'], 2)
+        self.assertEqual(found['hits'], [[str(self.root / 'state/password'), 0]])
+        # If it remains, both the folder and its observed file can be covered by the owner.
+        private.write_bytes(self.NEEDLE)
+        calls, owner = self.owner()
+        with self.entries(portal, partial), mounts, owner:
+            recovered = self.search()
+        self.assertEqual(recovered['errors'], [])
+        self.assertIn([str(private), 0], recovered['hits'])
+
+    def test_repeated_name_cannot_overwrite_its_first_observed_identity(self):
+        # Sibling: a dict comprehension used to keep only the last of two entries for the same name.
+        state, debug = self.root / 'state', self.root / 'state/debug.log'
+        held, replacement = self.folder / 'held', self.folder / 'replacement'
+        debug.write_bytes(self.NEEDLE)
+        replacement.write_text('clean replacement')
+        real = os.scandir
+
+        def repeated(entries):
+            for entry in entries:
+                yield entry
+                if entry.name == 'debug.log':
+                    debug.rename(held)
+                    replacement.rename(debug)
+                    with real(state) as again:
+                        yield next(item for item in again if item.name == 'debug.log')
+
+        with self.entries(state, repeated):
+            found = self.search()
+        self.assertTrue(any(str(debug) in error for error in found['errors']), found)
+        self.assertEqual(held.read_bytes(), self.NEEDLE)
+
+    def test_a_name_whose_inode_is_refused_cannot_be_cleared_by_the_owner(self):
+        # Sibling: observing the name precedes entry.inode(); without that identity handover cannot prove coverage.
+        portal, mounts = self.fuse_portal()
+        private = portal / 'private.log'
+        private.write_bytes(self.NEEDLE)
+
+        def refused_inode():
+            raise PermissionError(13, 'Permission denied')
+
+        def entries(real):
+            for entry in real:
+                if entry.name == 'private.log':
+                    yield types.SimpleNamespace(name=entry.name, inode=refused_inode)
+                else:
+                    yield entry
+
+        _, owner = self.owner(private.unlink)
+        with self.entries(portal, entries), mounts, owner:
+            found = self.search()
+        self.assertTrue(any(str(private) in error for error in found['errors']), found)
+
+    def test_benign_atomic_rewrite_fails_closed(self):
+        state, clean = self.root / 'state', self.root / 'state/clean.txt'
+        replacement = self.folder / 'replacement'
+        replacement.write_text('also harmless')
+        with self.listed(state, lambda: os.replace(replacement, clean)):
+            found = self.search()
+        self.assertEqual(len(found['errors']), 1)
+        self.assertIn(f'{clean}: not the file its folder listed', found['errors'][0])
+
+    def test_a_repeated_name_whose_inode_is_refused_stays_an_error(self):
+        # An earlier successful observation cannot supply the identity missing from a later observation.
+        state, seen = self.root / 'state', []
+
+        def refused_inode():
+            raise PermissionError(13, 'Permission denied')
+
+        def entries(real):
+            for entry in real:
+                if entry.name == 'password':
+                    seen.append(entry.name)
+                    if len(seen) > 1:
+                        yield types.SimpleNamespace(name=entry.name, inode=refused_inode)
+                        continue
+                yield self.numbered(entry, 4294967295)
+
+        with self.mountinfo({state: 'fuse.portal'}), self.entries(state, entries):
+            found = self.scanner.scan([str(self.root)], [self.NEEDLE], handover=[str(state)])
+        self.assertGreater(len(seen), 1)
+        self.assertTrue(any(str(state / 'password') in error for error in found['errors']), found)
 
     def test_every_path_the_scan_learns_ends_in_one_outcome(self):
         # RECHECK-X2: one record per learned path, and the answer is made from the records.

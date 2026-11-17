@@ -13,8 +13,8 @@ Searched means that file, not another one under its name:
   followed). Its type is read from that handle and its content through it (/proc/self/fd), so the name cannot come to
   mean another file between the stat and the read, and a file removed meanwhile is still the one searched.
 - A listing gives every name an inode number. A file opened under another number than the listing's was put there
-  after the listing: an error, never searched in the listed file's place (numbered_otherwise() for mount points and
-  FUSE, whose listings number otherwise).
+  after the listing: an error, never searched in the listed file's place. Only mount points named in mountinfo and
+  a FUSE folder listing every name as 4294967295 have independently established numbering exceptions.
 - There is no second try. A name that is gone when it is opened is an error, also when it is back a moment later.
 
 Runtime files: a path under VANISHING that is gone when it is opened (a running process removed it after the listing)
@@ -59,6 +59,7 @@ MAY_VANISH = {}
 # REFUSED (root's walk only) stands until the mount's owner has covered the path, and anything else is an error.
 SEARCHED, LISTED, NOT_A_FILE, GONE, REFUSED, ERROR = 'searched', 'listed', 'not a file', 'gone', 'refused', 'error'
 SETTLED = (SEARCHED, LISTED, NOT_A_FILE)
+PORTAL_INODE = 4294967295
 
 
 def found_in(stream, needles):
@@ -83,6 +84,17 @@ def unescape(field):
     return re.sub(r'\\([0-7]{3})', lambda match: chr(int(match[1], 8)), field)
 
 
+def mount_types(mountinfo='/proc/self/mountinfo'):
+    """All mount points, including non-FUSE mounts nested inside FUSE: the deepest mount owns a folder."""
+    with open(mountinfo) as lines:
+        fields = [line.split() for line in lines]
+    return {unescape(row[4]): row[row.index('-') + 1] for row in fields}
+
+
+def is_fuse(kind):
+    return kind == 'fuse' or kind.startswith('fuse.')
+
+
 def fuse_mounts(roots, mountinfo='/proc/self/mountinfo'):
     """[(mount point, file system type, owner uid)] of every FUSE mount at or under one of the roots."""
     found = []
@@ -91,7 +103,7 @@ def fuse_mounts(roots, mountinfo='/proc/self/mountinfo'):
             fields = line.split()
             separator = fields.index('-')
             point, kind, options = unescape(fields[4]), fields[separator + 1], fields[separator + 3]
-            if kind != 'fuse' and not kind.startswith('fuse.'):
+            if not is_fuse(kind):
                 continue
             if any(point == root or point.startswith(root.rstrip('/') + '/') for root in roots):
                 owner = re.search(r'(?:^|,)user_id=(\d+)(?:,|$)', options)
@@ -117,34 +129,19 @@ def reopened(handle, flags):
     return os.open(f'/proc/self/fd/{handle}', flags | os.O_CLOEXEC)
 
 
-def listing(handle):
-    """{name: the inode number the listing gives it} of the folder a handle holds, read to its end."""
+def listing(handle, observe):
+    """Register each entry as it arrives, even if reading the next entry or this entry's inode fails."""
     descriptor = reopened(handle, os.O_RDONLY | os.O_DIRECTORY)
     try:
         with os.scandir(descriptor) as entries:
-            names = {entry.name: entry.inode() for entry in entries}
+            for entry in entries:
+                observe(entry)
     finally:
         os.close(descriptor)
     # A folder removed meanwhile lists as empty (glibc reads getdents' ENOENT as the end of the folder), and what it
     # held is unread: no links are left to a removed folder.
     if os.fstat(handle).st_nlink == 0:
         raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT))
-    return names
-
-
-def numbered_otherwise(folder, name, inode, info):
-    """Whether this folder's listing numbers the name by something else than the file's own inode number, so that the
-    opened file (info) having another number doesn't make it another file. A mount point is listed under the number
-    of the folder it covers, a btrfs subvolume under its volume's, and a FUSE server sends what it likes (the
-    document portal 4294967295 for every name).
-
-    The listing itself is asked, a second time. If its numbers were the files' own, it would now give the name the
-    opened file's number (the handle keeps that number from going to another file), which is not the first
-    listing's; only a listing that numbers otherwise gives the first one again. The name must still be the opened
-    file afterwards."""
-    again = listing(folder).get(name)
-    now = os.stat(name, dir_fd=folder, follow_symlinks=False)
-    return again == inode and (now.st_dev, now.st_ino) == (info.st_dev, info.st_ino)
 
 
 class Replaced(Exception):
@@ -162,18 +159,20 @@ class Record:
 class Scan:
     def __init__(self, needles, handover):
         self.needles, self.handover, self.records, self.hits = needles, handover, [], []
+        self.mounts = mount_types()
 
     def learn(self, path, root, inode=None):
         record = Record(path, root, inode)
         self.records.append(record)
         return record
 
-    def read(self, record, name, folder=None):
+    def read(self, record, name, folder=None, portal_numbering=lambda: False):
         """Reads what a record names (name, in the folder a handle holds; a root by its path) and gives the record
         its outcome: the one place an outcome is set."""
         assert record.outcome is None, f'{record.path}: read twice'
+        learned_before = len(self.records)
         try:
-            record.outcome = self.search(record, name, folder)
+            record.outcome = self.search(record, name, folder, portal_numbering)
         except Replaced as error:
             record.outcome, record.detail = ERROR, f'{record.path}: {error}'
         except OSError as error:
@@ -184,15 +183,22 @@ class Scan:
             else:
                 record.outcome = ERROR
             record.detail = describe(record.path, error)
+            if record.outcome == REFUSED:
+                # A partial listing's names remain obligations for the owner, not just its folder. Without an
+                # inode we cannot bind the owner's answer to the observed entry, so that name stays an error.
+                for child in self.records[learned_before:]:
+                    if child.outcome is None:
+                        child.outcome = REFUSED if child.inode is not None else ERROR
+                        child.detail = f'{child.path}: unread because {record.detail}'
 
-    def search(self, record, name, folder):
+    def search(self, record, name, folder, portal_numbering):
         """The outcome of a path that could be read to its end; OSError or Replaced for one that couldn't."""
         # A root is opened by its path, links followed (/root is one); a listed name never through a link.
         handle = os.open(name, os.O_PATH | os.O_CLOEXEC | (os.O_NOFOLLOW if folder is not None else 0), dir_fd=folder)
         try:
             info = os.fstat(handle)
             if folder is not None and info.st_ino != record.inode \
-                    and not numbered_otherwise(folder, name, record.inode, info):
+                    and record.path not in self.mounts and not portal_numbering():
                 raise Replaced(f'not the file its folder listed (inode {record.inode} there, {info.st_ino} opened): '
                                'replaced before it was read, so its content is unsearched')
             if stat.S_ISREG(info.st_mode):
@@ -200,11 +206,39 @@ class Scan:
                 self.hits += [[record.path, index] for index in sorted(found)]
                 return SEARCHED
             if stat.S_ISDIR(info.st_mode):
-                # Every name is a record before the first is read: a walk that stops short leaves them unread.
-                children = [(self.learn(os.path.join(record.path, child), record.root, inode), child)
-                            for child, inode in sorted(listing(handle).items())]
+                children, known = [], {}
+
+                def observe(entry):
+                    if entry.name not in known:
+                        child = self.learn(os.path.join(record.path, entry.name), record.root)
+                        known[entry.name] = child
+                        children.append((child, entry.name))
+                    child = known[entry.name]
+                    try:
+                        inode = entry.inode()
+                    except OSError as error:
+                        # This observation has no identity, even if an earlier one of the same name did. An
+                        # owner's later listing cannot establish which file supplied this entry.
+                        raise Replaced(f'{child.path}: cannot read listing inode: {error}') from error
+                    if child.inode is not None and child.inode != inode:
+                        raise Replaced(f'{child.path}: listing changed inode from {child.inode} to {inode}')
+                    child.inode = inode
+
+                def portal_numbering():
+                    point = within(record.path, self.mounts)
+                    if point is None or not is_fuse(self.mounts[point]) \
+                            or not all(child.inode == PORTAL_INODE for child, _ in children):
+                        return False
+                    # Only the documented FUSE constant is accepted. A verification listing can learn new
+                    # names too: append them to the same work list, retaining each name's first identity.
+                    listing(handle, observe)
+                    return all(child.inode == PORTAL_INODE for child, _ in children)
+
+                listing(handle, observe)
+                children.sort(key=lambda item: item[1])
                 for child, child_name in children:
-                    self.read(child, child_name, handle)
+                    if child.outcome is None:
+                        self.read(child, child_name, handle, portal_numbering)
                 return LISTED
             return NOT_A_FILE
         finally:
@@ -216,7 +250,7 @@ class Scan:
                       paths=dict(collections.Counter(record.outcome for record in self.records),
                                  learned=len(self.records)))
         met = collections.defaultdict(list)
-        for record in self.records:
+        for record in sorted(self.records, key=lambda item: item.path):
             met[record.path].append(record)
             if record.outcome == SEARCHED:
                 answer['files'][record.root] += 1
