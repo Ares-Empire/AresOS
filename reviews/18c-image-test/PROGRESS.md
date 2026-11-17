@@ -1,4 +1,244 @@
-# 18c image part: progress (Part A, step 1; B2, steps 2a to 2c; the Chrome follow-up; 18e in the VM pass; fix round 1, parts 1 and 2; the lead's merge of main)
+# 18c image part: progress (Part A, step 1; B2, steps 2a to 2c; the Chrome follow-up; 18e in the VM pass; fix round 1, parts 1 and 2; the lead's merge of main; fix round X1)
+
+## Fix round X1 (Codex astra's review) (2026-11-17, Claude agent on Opus 5.5)
+
+From `REVIEW-X1.md` (the package review: CHANGES-NEEDED, four should-fixes) and `SECURITY-REVIEW-X1.md` (the security
+review: SAFE), both Codex `gpt-6-astra` reviews of `6234b916`, on head `896f45e6`. Opus, because the list was decided:
+four findings, each with its fix and its regression named by the lead. Commits: `bf5cba71` (the lead's request: the two
+X1 reviews linked absolute paths under the laptop's home folder; only the six link targets changed, now
+`../../<path>#L<line>`), `9674dbcf` (#1), `6e1964ff` (#3), `4cb8e152` (#2), `48570285` (#4), and this file's commit
+(`[skip ci]`). **Final head: `48570285`.** Everything changed is CI-only (`os/ci/check-image.sh`, `os/ci/control/`,
+`os/tests/`) or this folder; nothing in the image, `control/` or the workflow. `rebind.py pending` recorded no bound
+file (only its note), so the note was reverted.
+
+### What changed, per finding, and the test that pins it
+
+Each regression test fails on `896f45e6` and passes now (run against the old files on the laptop: the vendor test
+errors without `vendor_check.py`; the three new scan tests fail with the old `evidence_scan.py`; with the old
+`actions.py` the six check 8 tests and the missing-folder test error, and the check 9 test fails).
+
+1. **#1, the installed vendor bytes against the locked wheels.** New `os/ci/control/vendor_check.py`, called by
+   `os/ci/check-image.sh:127-142` after the record is held to the checkout and its lock (so the release job's
+   `check-build.sh build` runs it too):
+   - **`fetch`**, on the runner: each wheel the record names, from PyPI's JSON for its name and version, by its file
+     name; the recorded SHA-256 must be the index's and the downloaded bytes'. The record's wheels were held to the
+     checkout's `requirements.lock` just before, so the chain is lock → record → bytes.
+   - **`check`**, in a throwaway container of the built image (`--network=none`; it refuses to run outside a
+     container): the installed tree must equal the record; then the tree is replaced by the one derived from the
+     wheels, compiled with the build's own command at the build's path, and the record must equal it: paths,
+     contents and modes. Prints `CONTROL_VENDOR_FROM_WHEELS <paths> vendored paths: <files> files from <n> wheels and
+     pip, <bytecode> bytecode, <folders> folders; <s> s`.
+   - **The rules for what pip writes** (pip 26.0.1, the image's `python3-pip`; the module's docstring has them):
+     `INSTALLER` is `pip\n`; `REQUESTED` empty for every wheel (all are in the lock); `direct_url.json` never (index
+     installs), so one present fails; `bin/<name>` per `console_scripts` entry point, pip 26's template behind
+     `#!/usr/bin/python3`, mode 0755 (the extras of `mcp = mcp.cli:app [cli]` are dropped as pip does); `RECORD` is the
+     wheel's own rows, a hashed row per generated file, a hashless row for a file the wheel's RECORD omits, sorted, CSV
+     with CRLF, compared byte for byte. A member is executable when its zip mode is a regular file with an execute bit
+     (pip's rule); modes then as `build.sh` sets them (0755 / 0644). Anything without a rule stops the check: a `.data`
+     folder, `gui_scripts`, pip's own entry points, a link, a member leaving its folder, a wheel holding a file pip
+     generates, two wheels writing one path.
+   - **Bytecode** is generated at build time (`pip --no-compile`, then `compileall --invalidation-mode checked-hash`
+     in place) and bound by recompiling the derived sources with the image's own Python and that exact command
+     (`COMPILE`, pinned to `build.sh`'s line by a test) at `/usr/lib/aresos-control/vendor`, and comparing bytes. A
+     `.pyc` whose checked-hash header names the right source but whose code differs fails.
+   - Checked on the laptop against run 43927257316's real record (the laptop has the image's `python3-3.14.8-1.fc44`
+     and `python3-pip-26.0.1-3.fc44`): the derivation equals all 1203 recorded non-bytecode paths; recompiling gives
+     all 712 recorded `.pyc` byte for byte, with a random hash seed and with seeds 0 and 12345; a laptop pip install of
+     the 28 wheels plus the build's compile passes `check()` (2024 paths) in 1.6 s; `fetch` took 3.7 s for 9,732,253
+     bytes.
+   - Tests (`os/tests/test_control_image.py`, `VendorTreeTest`, `:373`): `:402` the regression: a changed source, a
+     `.pyc` with other code behind its valid header, an added file, `direct_url.json`, a mode, the generated script,
+     `INSTALLER`, a dropped `RECORD` row and a removed file, each made in the tree and recorded with the wheel list
+     still valid, fail; an image differing from its record and a wheel with another SHA-256 fail. `:462` wheels without
+     a rule stop it; `:486` the rules equal what this Python's pip writes (no console script there: the runner's pip
+     may be older than the image's, whose template the image build compares); `:512` the compile step is `build.sh`'s
+     and the order in `check-image.sh`; `:532` the fetch (another hash on the index, another host, no such file, other
+     bytes, a bad file name); `:458` it refuses outside a container.
+2. **#2, the password scan.** New `os/ci/control/tree_scan.py` (the test layer copies it beside `release_checks.py`);
+   `actions.py:1515` `search_for()`, used by `passwords()` (`:1552`):
+   - the walk passes `onerror`: a folder that can't be listed, a file that can't be read and a scanned root that
+     isn't there are errors; the journal export (`JOURNAL`, `:1505`) must exit 0 (its stderr tail is recorded);
+     check 8 asserts no error beside no hit.
+   - **The one retry** (`tree_scan.py:21`, `VANISHING`: `/run/`, `/tmp/`, `/var/tmp/`): a file or folder there that
+     is gone when read (ENOENT) is looked up again; back again (replaced), it is read once more; still gone, it is
+     skipped and named in `vanished`, which the summary and `passwords.json` carry and the run prints. ENOENT anywhere
+     else, or twice, is an error.
+   - **FUSE mounts** under the folders are walked as their owner: FUSE refuses root, and his session mounts the
+     document portal at `/run/user/1001/doc` (the laptop's own AresOS session has it, `fuse.portal`, `user_id=1001`).
+     Root's walk leaves the mount out and the same module walks it under `runuser`, the needles on stdin, never on a
+     command line; `owner_walks` records each. Before this round root's `os.walk` dropped such a folder silently.
+   - Tests (`os/tests/test_control_vm.py`, `PasswordScanTest`, `:569`): `:612` one unreadable file fails; `:630` the
+     journal export exiting 1 fails; `:620` a folder that can't be listed and a missing root fail; `:637` a runtime
+     file may vanish and is named, outside the runtime folders it fails, a replaced one is read again; `:673` a FUSE
+     mount is walked as its owner; `:601` a clean search, and `passwords()` asserts on the errors.
+3. **#3, the archive scan.** `os/ci/control/evidence_scan.py`:
+   - below `DEPTH` (3) a gzip stream or tar archive is `Unreadable` (`contents()`, `:88`), never searched raw only;
+   - a tar is recognised by tarfile's POSIX or GNU magic at byte 257 (`:37`), which a damaged header keeps, and must
+     parse to its end: tarfile ends an archive quietly at a later header it can't read, so the bytes after the last
+     member must be zero blocks (`untar()`, `:69`); a bad checksum or truncation is `Unreadable`;
+   - data in a format the scan doesn't unpack (xz, bzip2, zstd, lz4, zip, 7z, by their magic at the start: `:39`) is
+     `Unreadable`; a truncated gzip was already.
+   - Unreadable evidence counts as holding the password, as fix round 1 made it: `runner.sh stop` removes it and fails
+     the step, `control_vm.py` fails check 8.
+   - Tests (`EvidenceScanTest`): `:756` four nested gzip streams around the password are unreadable, three are read and
+     the hit found, a `.tar.gz` inside a `.tar.gz` is unreadable; `:775` a tar holding a gzipped password with its
+     first or its second header's checksum broken is unreadable, the same tar undamaged gives the hit; `:801` xz, zip
+     and a truncated gzip are unreadable, a log naming the formats (with `ustar ` at byte 257) and a PNG are not.
+   - **Today's real evidence still scans:** run 43927257316 attempt 2's artifact (194 files: the 191 the runner scanned
+     and 3 written after) with the new scanner: 194 files, **417 archive members** (as the old scanner, and the run's
+     own `password-scan.json`), nothing unreadable; 13 gzip streams and 13 tars, all the checks' `.tar.gz`.
+4. **#4, check 9's transcripts.** `actions.py`:
+   - `packed()` (`:743`) treats every folder it is given as required evidence: a missing one is named in the errors
+     (checks 6, 7 and 9; all their folders existed in every green run);
+   - check 9: a transcript copy that raises is added to the errors (`:1446`), and a case whose session ran must have
+     copied at least one transcript (`:1451`).
+   - Tests (`EvidencePackingTest`): `:218` a missing transcript folder fails and is named; `:229` check 9 with stand-ins
+     for the guest passes with transcripts and fails when a case copies none or the copy raises. The test that kept a
+     missing folder out without an error (`test_a_tar_that_does_not_fit_...`) now leaves that case to `:218`.
+
+### Known limits for the report (not fixed here; word for word as the reviews state them)
+
+From `SECURITY-REVIEW-X1.md`:
+
+1. **Known limit — internal hook errors can still deliberately block one Stop.**
+   Where: [hooks.py:146](../../control/aresos_control/hooks.py#L146).
+
+   Concrete case: a session previously used Control; its Stop input contains a lone Unicode surrogate in an otherwise
+   unused field and `stop_hook_active:false`. Strict parsing fails, and the hook emits a JSON diagnostic block. The
+   continuation with `stop_hook_active:true` is quiet. An unused session is quiet before parsing.
+
+   I reproduced this in memory. It is bounded diagnostic feedback, inherited from #91, rather than the former
+   exit-code loop. No merge fix required, but the behavior must not be described as “every internal failure is
+   silent.”
+
+2. **Known limit — the fixed service ID still depends on deployment checks.**
+   Where: [aresos-tools.sysusers:2](../../control/packaging/aresos-tools.sysusers#L2),
+   [release_checks.py:44](../../os/ci/control/release_checks.py#L44).
+
+   If a previous deployment assigns UID/GID 250 elsewhere, sysusers can choose another number; persistent `/var` state
+   then no longer has the intended identity relationship. The fresh-image checks cannot establish the state of every
+   previous deployment.
+
+   The supplied rehearsal checks detect the wrong IDs and state ownership. This satisfies the agreed scope of this PR;
+   the next release must run them against the actual update path. This review does not certify that migration.
+
+3. **K1 remains a known test gap that I had not separately recorded:** auto mode is not exercised. Explicit ask rules
+   remain documented exceptions to automatic approval, but that is not equivalent to testing the pinned binary. Add
+   the proposed auto-mode cases.
+
+So the report must never say "every internal failure is silent": hook errors can still deliberately block one Stop
+with a JSON diagnostic. UID/GID 250 rests on the release rehearsal's deployment checks.
+
+### Checks run (laptop)
+
+- `python3 -m unittest discover -s os/tests -p <module>`, one module at a time: `test_control_image` 15 OK (9 + 6
+  new), `test_control_vm` 46 OK (35 + 11 new), `test_checkout_sources` 8 OK.
+- `bash -n os/ci/check-image.sh`; the static test compiles every `os/ci/control/*.py`, the two new modules included.
+- Run against the old files: the regressions above fail on `896f45e6`.
+- After the lead lifted `linux-aresos`'s install hold (owner tools v4 installed): `test_owner_path` 48 OK (1.2 s) and
+  `test_owner_equality` 11 OK (89.6 s), one at a time, nothing left running. Never `test_owner_update`; no
+  `rpm-ostree`, `bootc` or `ostree` command, nothing mounted, no sudo. The hosted `checks_only` run below ran the
+  whole `os/tests` suite.
+- Main's Repo privacy pattern: nothing new holds a home path (the PR's own Repo privacy run below).
+
+### Runs on the final head `48570285`
+
+| Run | Mode | Result |
+|---|---|---|
+| 44065772401 | regressions only (`checks_only`) | **success**: "Ran 1734 tests in 1274.232s", "OK (skipped=4)" (1717 + this round's 17; the 4 skips are main's 23b cover tests, as before); `test_the_rules_are_what_pip_writes` ran (the runner's pip) and passed; the job 10:32:55 to 10:55:19 UTC = 22 min 24 s, the ways-back model job green in 25 s |
+| 44069456146 attempt 1 | `check_build=control` | failure, **not this branch**: the mod stage's Gradle got "Received status code 429 from server: Too Many Requests" from Maven Central (`repo.maven.apache.org`, 11:09 UTC), before any Control step; rerun once |
+| 44069456146 attempt 2 | `check_build=control` | **success** (below) |
+| 44076179152 | `check_build=control` | **success** (below; a new dispatch rather than a rerun, so both runs keep their evidence artifact) |
+| 44085918977 | `check_build=build` | **success**: job 12:44:12 to 13:26:01 UTC = 41 min 49 s, tools 2 min 7 s, build step 12:47:46 to 13:25:57 = 38 min 11 s, the Control VM step skipped as it should be; `CONTROL_CHROME_BUILD 8f7036e8…d385c`, `CONTROL_INSTALLED 74 files, 28 wheels, 2024 vendored paths from 48570285…`, `CONTROL_CHROME_STARTUP_FILES build 8f7036e8…d385c, 8 qualification entries`, `CONTROL_GENERATED_MATCH 15 files`, `CONTROL_FILES_RECORDED 74 files, 2024 vendored paths, 28 wheels from 48570285…`, `CONTROL_WHEELS_FETCHED 28 wheels, 9732253 bytes from PyPI, 2.7 s`, `CONTROL_VENDOR_FROM_WHEELS 2024 vendored paths: 1021 files from 28 wheels and pip, 712 bytecode, 291 folders; 1.7 s`, `CHECK_BUILD_PASSED`, `CHECK_BUILD_VM_PASSED` |
+| PR #58's workflows on `48570285` | Repo privacy, Control base, Control boundary, Control Mail, Control Chrome, Control Chrome qualification | all **success** |
+
+**Run 44069456146 attempt 2**:
+- Times: job 11:10:42 to 11:38:53 UTC = 28 min 11 s (a fast runner: the packages stage took 48 s); tools 7 min 21 s;
+  build step 11:19:53 to 11:30:40 = 10 min 47 s; **Control VM step 11:30:40 to 11:38:50 = 8 min 10 s** against 16.
+- PASS lines, every one in the earlier order, with the two new ones after `CONTROL_FILES_RECORDED`:
+  `CLAUDE_CODE_PINNED 2.1.319 sha512-FO4Sd23B…oOQ== dabafec8…8eed`, `CONTROL_CHROME_BUILD 8f7036e8…d385c`,
+  `CONTROL_INSTALLED 74 files, 28 wheels, 2024 vendored paths from 48570285…`, `CONTROL_CHROME_STARTUP_FILES build
+  8f7036e8…d385c, 8 qualification entries`, `CONTROL_GENERATED_MATCH 15 files`, `CONTROL_FILES_RECORDED`,
+  **`CONTROL_WHEELS_FETCHED 28 wheels, 9732253 bytes from PyPI, 0.6 s`**, **`CONTROL_VENDOR_FROM_WHEELS 2024 vendored
+  paths: 1021 files from 28 wheels and pip, 712 bytecode, 291 folders; 1.4 s`**, `CHECK_BUILD_PASSED`,
+  `CHECK_BUILD_CONTROL_DISK_READY`, `CONTROL_IMAGE_FILES_PASS`, `CONTROL_ETC_CLAUDE_CODE_PASS`,
+  `CONTROL_RELEASE_CHECKS_PASS`, `CONTROL_IDLE_FOOTPRINT_RECORDED {…}`, `CONTROL_FIXTURES_REACHABLE`,
+  `CONTROL_ENTRY_POINTS_PASS`, `CONTROL_PRECONDITION_PASS`, `CONTROL_USER_MCP_INSTALL_PASS`,
+  `CONTROL_SERVICE_SANDBOX_PASS`, `CONTROL_ORDINARY_SESSION_PASS {…}`, `CONTROL_MAIL_FLOWS_PASS`,
+  `CONTROL_PERMISSION_REQUEST_RECORDED {"normal-permission-user": {"hook_calls": 1, "owner_answers": 0,
+  "prompt_shown": false, "send_arrivals": 1}}`, `CONTROL_INTERACTIVE_ASK_PASS`, `CONTROL_PASSWORDS_PRIVATE_PASS`,
+  `CONTROL_SELINUX_AFTER_CHECKS_PASS`, `CONTROL_STORAGE_TESTS_PASS {…}`, `CONTROL_SERVICE_RESTART_PASS`,
+  `CONTROL_VM_POWEROFF_CLEAN`, `CHECK_BUILD_CONTROL_PASSED`.
+- The fixture stop step was green.
+- Step times (s): boot to channel 25.9, files 2.0, idle 60.0, entry points 3.4, precondition 1.4, user MCP 5.1,
+  **check 6 223.0**, check 7 32.4, check 9 104.8, check 8 0.5, storage tests 27.4, restart 0.7; the pass 489.4.
+
+**Run 44076179152**:
+- Times: job 11:40:53 to 12:43:39 UTC = 62 min 46 s; tools 3 min 47 s; build step 11:47:04 to 12:34:18 = 47 min 14 s;
+  **Control VM step 12:34:18 to 12:43:34 = 9 min 16 s** against 16.
+- PASS lines: the same lines in the same order, with `CONTROL_WHEELS_FETCHED 28 wheels, 9732253 bytes from PyPI, 2.7
+  s`, `CONTROL_VENDOR_FROM_WHEELS 2024 vendored paths: 1021 files from 28 wheels and pip, 712 bytecode, 291 folders;
+  1.6 s` and `CONTROL_PERMISSION_REQUEST_RECORDED {"normal-permission-user": {"hook_calls": 1, "owner_answers": 0,
+  "prompt_shown": true, "send_arrivals": 1}}`, ending in `CONTROL_VM_POWEROFF_CLEAN`, `CHECK_BUILD_CONTROL_PASSED`.
+- The fixture stop step was green.
+- Step times (s): boot to channel 45.8, files 4.1, idle 60.1, entry points 4.1, precondition 2.0, user MCP 11.4,
+  **check 6 230.6**, check 7 37.8, check 9 112.7, check 8 0.5, storage tests 42.1, restart 1.3; the pass 556.4.
+
+### This round's evidence (run 44069456146 attempt 2 / run 44076179152)
+
+- **The vendor check's added time** (from the line before it, "Control in the image is this checkout", to
+  `CHECK_BUILD_PASSED`, in the job's own timestamps): **2.4 s / 4.8 s** (the fetch 0.6 s / 2.7 s, the container's
+  check 1.4 s / 1.6 s, the rest `podman run` and `tar`), against the build step's 80 minutes. In the build run: 5.0 s (2.7 s, 1.7 s).
+- **The evidence scan** (`runner.sh stop`, `fixtures/password-scan.json`, the new scanner): **192 files, 418 / 429
+  archive members**, `"unreadable": []`, `"holding": []`, GreenMail redacted once, nothing removed. Check 8's own scan
+  on the runner (`passwords-runner.json`): 56 evidence files, 418 / 429 members, nothing unreadable. The member count
+  moves with the screens kept in each `.tar.gz` (464, 423, 454 and 417 in earlier runs).
+- **Check 8 in the guest** (`passwords.json`): **1854 / 1867 files searched by root, `errors: []`, `vanished: []`**,
+  the journal export exit 0 with nothing on stderr; per folder `/var/home/ares` 931 / 931, `/run` 481 / 483,
+  `/var/tmp` 405 / 416, `/var/lib/aresos-tools` 14, `/var/log` 12, `/root` 5, `/tmp` 3,
+  `/var/lib/aresos-operation-evidence` 3. **The document portal's FUSE mount `/run/user/1001/doc` (`fuse.portal`) is
+  in the guest's session**, walked as `ares`: 0 files both times. FUSE refuses root there; before this round root's
+  `os.walk` had no `onerror`, so that refusal dropped the folder without a word.
+- **Check 9's transcripts:** one per case in both runs (`normal-yes`, `skip-no`, `skip-user-allow-send`,
+  `normal-permission-user`), and the eight tars in `interactive/`.
+- **Unchanged from `a1e7aad9`**, both runs: `desktop_with_service_failed` (the service `failed`, `NRestarts=5`,
+  `Result=exit-code`; logged out in 11.2 s / 11.4 s, the desktop up again in 12.5 s / 13.8 s, `SETUP`, not latched,
+  greetd session `1` then `3`, `marks_after_logout: false`); `held_work` 4 model requests, 1 extra, 1 continuation,
+  both reminders `true`; **`held_elsewhere` 2 model requests, 0 extra, 0 Stop continuations, `requests_carrying_it:
+  []`**; `network_listeners: 0` (`nrestarts 0`, `Enforcing`, `aresos-tools`); check 6's CLI while stopped
+  `service_unavailable` after 3.18 s / 3.26 s, the managed hooks while stopped 0.128 / 0.126 s and 0.195 / 0.202 s,
+  the first calls after each start 0.38 to 0.39 s / 0.46 to 0.51 s, his Stop hook 13 lines for 13 turns, nothing
+  pending after; idle 1 context switch in 60 s (0.017 wake-ups a second), 0.6 ms / 1.8 ms of CPU, `memory.current`
+  32,964,608 B / 33,087,488 B, RSS 37,004 / 37,204 KiB, PSS 25,299 / 25,415 KiB, 1 process, 1 thread; check 9's four
+  outcomes as before, `normal-permission-user` `hook_calls 1, owner_answers 0, send_arrivals 1` (the prompt flashed
+  only in the second run).
+
+### Done
+
+The four should-fixes of `REVIEW-X1.md`, each with its regression test; the X1 reviews' links repo-relative.
+Regressions only green (1734 tests), `check_build=control` green twice (44069456146 attempt 2, 44076179152),
+`check_build=build` green once (44085918977); PR #58's six workflows green. Only this file changed after `48570285`.
+
+### Left, in order
+
+This replaces the list in the merge section below: its item 1 was fixed in `6234b916` (PR #58's Control base and
+Control Mail are green on `48570285`), its item 2 is `REVIEW-X1.md` and `SECURITY-REVIEW-X1.md`.
+
+1. A fresh reviewer checks this round's fixes and what they touched (`docs/REVIEW.md`, "Tools for Claude", step 3).
+2. `linux-aresos` reads the `os/` diff (agreed change 16): the section at the end is up to date with this round
+   (`check-image.sh`'s vendor block, the two new modules under `os/ci/control/`, the test layer's one new file).
+3. The lead assembles `reviews/18c-image-test/REPORT.md` as listed in the merge section below, now with the known limits
+   above, word for word, and this round's runs.
+4. The last step deletes this file.
+
+### Observations for the lead
+
+- Older review files in this folder still link absolute paths under the laptop's home folder (`BRIEF-REVIEW-1.md` to
+  `-3.md`, `REVIEW-B1.md`, `REVIEW-B1-2.md`, `REVIEW-B1-3.md`, `SECURITY-REVIEW-B1.md`); only the two X1 files were in
+  this round's scope, so they are unchanged. The Repo privacy check looks only for macOS and Windows home paths and
+  passes them.
+- A `.data` folder, `gui_scripts` or a new pip version in the base image will stop `vendor_check.py` until its rules
+  are extended; that is deliberate (a new rule, then the wheel), and the message names the wheel and the file.
 
 ## The lead's merge of main (2026-11-16): head `a1e7aad9`
 
@@ -1766,7 +2006,8 @@ follow-up, after the 18e merge `86ad8e12` (2026-11-15; 18e changes only `control
 (2026-11-16: CI-only files and `check-image.sh`, nothing in the image) and in its part 2 (the merge, the VM step's
 limit, check 6's wording; nothing in the image). The lead's merge of `main` at `91487807` (`a1e7aad9`, 2026-11-16)
 changed no file under `os/` or `.github/`: `main` changed none there since `5bb1500e`, so this diff stands against
-`91487807` too. Image side first, then CI only.
+`91487807` too. Fix round X1 (2026-11-17) changed CI-only files: `check-image.sh`, `os/ci/control/` (two new modules,
+three changed files) and the two test modules; nothing in the image. Image side first, then CI only.
 
 - `os/Containerfile`: the aresos stage copies `/source/control` from the existing source stage and runs `build.sh
   control` before `configure`; `FROM` lines and the other stages unchanged.
@@ -1779,11 +2020,15 @@ changed no file under `os/` or `.github/`: `main` changed none there since `5bb1
   the end (files, managed files, unit policy, sysusers, tmpfiles, config, launcher, no fixture traces).
 - `os/ci/check-image.sh`: a new block after the existing lock check: `control.json` equals what `build.sh control-tree`
   makes from the checkout, from `HEAD`; the recorded wheels are exactly the checkout's `control/requirements.lock`
-  (its own strict parse, every SHA-256 one of the pins; fix round 1). The release job reaches it too
-  (`check-build.sh build`, `kind=release`).
+  (its own strict parse, every SHA-256 one of the pins; fix round 1). Since fix round X1 a third block binds the
+  vendored tree to those wheels: `os/ci/control/vendor_check.py` fetches the recorded wheels from PyPI (each with its
+  recorded SHA-256) on the runner, then, in a `--network=none` container of the built image, derives the tree they
+  install, compiles it with the build's command where the build did and requires the installed tree and its record
+  to equal it (`CONTROL_VENDOR_FROM_WHEELS`). The release job reaches all of it too (`check-build.sh build`,
+  `kind=release`).
 - `os/ci/check-resolve.sh`: **unchanged** (equal to main's; `gh` moved to 18c-b).
 - `os/README.md`: one paragraph on Control in the image (with Chrome's startup files).
-- `os/tests/test_control_image.py` (9 tests, new) and `os/tests/test_aresos_desktop.py` (the source-stage test
+- `os/tests/test_control_image.py` (15 tests, new; 6 since fix round X1) and `os/tests/test_aresos_desktop.py` (the source-stage test
   expects `control/` beside `mod/`, JUDGMENT-CALL 6).
 - CI only, never in a release:
   - `.github/workflows/os-image.yml` (`check-build` job only, no new permission or secret): `check_build` gains
@@ -1803,7 +2048,10 @@ changed no file under `os/` or `.github/`: `main` changed none there since `5bb1
     actions; a layer adds actions, never replaces one.
   - `os/ci/control/` (new): `Containerfile` (the test layer `FROM localhost/aresos:vm`), `runner.sh` (fixture CA,
     GreenMail and Dovecot on the runner's loopback, Claude Code from the boundary's lock, the layer, the stop and
-    password-leak check), `evidence_scan.py` (that check, also inside the evidence's archives; fix round 1),
+    password-leak check), `evidence_scan.py` (that check, also inside the evidence's archives; fix round 1; since
+    X1 it fails on what it can't search: archives below its depth, damaged tars, formats it doesn't unpack),
+    `tree_scan.py` (X1: check 8's file search, which fails on whatever it can't read and walks a FUSE mount as its
+    owner; the layer copies it), `vendor_check.py` (X1: Part A's vendor check above),
     `control_vm.py` (boots the disk, runs the checks, prints the PASS lines), `actions.py` (the guest's checks; since
     fix round 1 check 6 also logs ares out of the throwaway guest and lets greetd's auto-login start the desktop again
     while the service has failed, and check 2 looks for network listeners; since part 2 check 6 requires 18e's merged
@@ -1812,7 +2060,7 @@ changed no file under `os/` or `.github/`: `main` changed none there since `5bb1
     `own-hook.py` (his own server and hooks). The layer also
     carries `control/boundary/interactive_{driver,model}.py`, `control/ci/image/mail_flows.py` and, for the storage
     tests, `control/chrome_tests/*.py` and `control/mail_tests/storage_faults.py`.
-  - `os/tests/test_control_vm.py` (35 tests, new).
+  - `os/tests/test_control_vm.py` (46 tests, new; 11 since fix round X1).
 - Not changed: base digest, `packages.lock.json`, Chrome pin, accounts, sudo, polkit, masks, session, PATH,
   repositories, `os/config/`, `os/policy/`, `os/release/`, `os/owner-tools/`, `os/manifest/` (except the pending
   list above), `ci/check-resolve.sh`, and every other job of `os-image.yml`.
