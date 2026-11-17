@@ -5,6 +5,192 @@ differences) a fresh Claude agent (Opus 5.5) the same day; review 1's fixes a fr
 day (below). Nothing has been published, signed or pushed to GHCR. The owner's OK for publishing release 28 has not
 been given, and the ledger now stops a publish dispatch until it is (B1).
 
+## Step 3, continued: the rehearsal mode `release-28` (2026-11-17)
+
+Builder: a fresh Claude agent (Opus 5.5), from `b3d744a9`; nothing before it rebased or amended (the Codex Astra
+review reads `8792c274`). No GitHub dispatch, no VM, no sudo, no `rpm-ostree`/`bootc`/`ostree` command was run.
+
+### Lead's decisions, 2026-11-17
+
+1. **PLAN-GAP 1 → option (a).** R28's tools bundle is version 4's code with **`tools_version` 5** and R28's
+   reference, so a new fingerprint; line 1 of `OWNER-TOOLS.md` will say version 5; package 43's tools take the next
+   number. Reason: every bundle carries its release's reference, and the tools install only a higher version, so
+   each bundle gets the next number, as 22c (3) and 22d (4) did. The tools' code is not changed. Brief B.1's wording
+   on the branch now says "version 4's code with `tools_version` 5 and R28's reference" (done, `acbe72d0`).
+2. **PLAN-GAP 2.** The bump to 5 and `release.json` naming R28 happen in step 5's real payload commit, not in this
+   step; the real `release.json` still moves only after the rehearsal (A.5). The walk's stand-in origin holds
+   `634e1237`, then a **stand-in announced commit** with version 5 and `release.json` naming the R28 image under
+   test; the walk records that commit's hash and its `os/owner-tools` and `os/manifest/release.json` tree and blob
+   hashes; the real announced commit must be byte-identical in those paths, checkable from the walk's receipt
+   (22d's pattern). The INSTALL-STATUS gate in `test_checkout_sources` stays as it is: **step 5 precondition:**
+   22d's and 22c's rows move to ON THE LAPTOP after the owner's session (the lead does that), before step 5's
+   payload commit, or `test_checkout_sources` refuses that commit.
+3. **The start route:** the first builder's JUDGMENT-CALL is accepted. The VM reaches version 4 the way the laptop
+   does: 27's route to R27 with version 2, then 22d's folder and routine lines at `634e1237` (`dcbc375f…`). The
+   start assumes version 4; the lead confirms it after the owner's session.
+
+### Done (step 3)
+
+- **`os/ci/release28_walk.py`** (new): the walk (its docstring lists the stages).
+  - `announced(record)`: the files of the announced commit, from release 28's record bytes and `634e1237` alone:
+    `history.json` (both copies) with R28's row (`reference`, its signature identity
+    `…@refs/heads/pkg/42-release-28`, `daily_wheel: true`) and `tools_version` 5; the payload's `release.json` and
+    `os/manifest/release.json` equal to the record; `SHA256.json`/`SHA256SUMS` as `bundle.py --refresh` makes them;
+    `commands.json` with version 4's own `bootstrap.py` (read from `634e1237`) for the new fingerprint;
+    `docs/OWNER-TOOLS.md` lines 1 and 3 (`Owner tools version 5: <8>`, the full value). It refuses a record with
+    another identity, without the daily wheel, not an org digest, not newline-ended, or one version 4 already knows.
+  - `standin_origin(destination, record)`: a bare stand-in (git plumbing only: `ls-tree`/`mktree`/`hash-object`)
+    whose `main` holds the stand-in for `634e1237` (its `os/owner-tools` tree `73fb5929`, its `release.json` and
+    `OWNER-TOOLS.md` blobs, tag `version-4`), then the stand-in announced commit (only `announced()`'s files differ).
+    It records `hashes[...]` of `os/owner-tools`, `os/manifest/release.json` and `docs/OWNER-TOOLS.md`.
+  - `matches(commit, recorded)` lists the bound paths in which a real commit differs from the receipt;
+    `real_commit(head, standin)`: when the checkout's history already names R28 (after step 5's payload commit), the
+    walk STOPs unless its `os/owner-tools` tree and `release.json` blob equal the stand-in's; otherwise it records
+    that the real commit is still to be cut.
+  - `Walk(tools_local.Walk)`: 22d's dialog driver (step 6d's settle and screen checks, the one-shot launcher and its
+    retry) over this origin; `compare()` checks, before any password, that line 1 of the stand-in's
+    `OWNER-TOOLS.md` names the window label's 8 characters (the owner's look at his phone bookmark).
+  - `rehearsal(...)`: 27's route with version 2 and R27 from fixed sources (`facts_27`: version 2's own bundle at
+    `41b06513` names R27, and `os/manifest/releases/27.json` agrees; never `release.json`), then boot `release-27`:
+    `passwd`, his sudo, 22d's lines at the `634e1237` stand-in (expect `Tools updated from version 2 to 4` and three
+    PASS lines), B.1 at the announced stand-in (`Tools updated from version 4 to 5`, three PASS lines, no sudo
+    ticket kept, the receipt names version 4 to 5, the folder, uid 1001, no terminal), B.2 if `CONTROL_RIDES`, then
+    B.3 on tty3: `update` (`Signed exact release staged <R28>`; list [R28 staged, R27, R13, stock]), `title`,
+    `reboot`. Boot `release-28`: list [R28, R27, stock] (R13 removed at the update's shutdown: 22's JUDGMENT-CALL 1),
+    `check`/`title` with `Update to <R28> confirmed`, package 21's rules (`owner_vm.release_rules`), the session
+    (`SESSION`: the theme in the rc.xml of the running labwc's `--config-dir` is `Ares-Crown` with its themerc, `fc-match` `Space Grotesk` and `:bold` as ares
+    give `/usr/share/fonts/aresos/SpaceGrotesk-Variable.ttf`), Control's checks if it rides, the lead's no-foot
+    check (end every foot of ares, `at check` must STOP with `Read failed: pgrep -u ares -x foot` and change
+    nothing, then the Terminal app's foot is opened again in his session), the home screen's files, `previous`
+    (list [R27, R28, stock], rollback queued). Boot `previous-27`: `Return to <R27> confirmed`, the home screen's
+    files unchanged, `forward` (`Newest installed AresOS starts next <R28>`). Boot `final-28`: `Forward to <R28>
+    confirmed`, apps.json unchanged, then 23d's game scope last (`JVM`: the check-build VM's method from
+    `os/ci/overlay/checks.py`, a real JVM through `/usr/libexec/aresos-desktop-java` paused at startup, its cgroup
+    `…/aresos.slice/aresos-game-<launch>.scope` with `memory.high` 2684354560, then the scope killed). Every boot
+    ends in `owner_vm.finish` (package 11's audits); the Windows markers at the end.
+  - **`CONTROL_RIDES = False`**: B.2 (root writes `{"format":1,"hosts":["rehearsal.invalid"]}` with `tee`,
+    `/var/lib/aresos-control` root's 0755 first if missing, its SHA-256 recorded) and Control's checks (UID/GID 250,
+    the folder's owner, `release_checks.py`; the hash unchanged on `release-28`, `previous-27` and `final-28`). Both
+    settings are walked and tested; step 2 turns it on after PR #58 merges.
+- **`os/ci/owner_vm.py`:** `laptop_update(..., target=)`: a fixed step 8 release, checked against the bundle's own
+  history instead of the checkout's. `main()`: mode `release-28` for package 42 only (and package 42 only that mode),
+  its host walk `os/manifest/ci/42/host-walk.json`, `42-bound-sources` (rebinding 22d's tables), and the walk; it
+  STOPs without `os/manifest/releases/28.json` ("its rehearsal runs after step 5").
+- **Wiring:** `.github/workflows/os-image.yml` (option `release-28`; the rehearsal job runs it on
+  `pkg/42-release-28` only and only with no other input; every own-run-VM condition (bounds 345/315, guard,
+  native step, registry steps, cosign) names `pkg/42-release-28 && release-28`; the owner VM driver for
+  `REHEARSAL_PACKAGE` 42; the GHCR_READ_TOKEN cleanup skipped on the branch), `rehearsal_guard.py` (`own_native`
+  and the model gate for 42's `release-28`; `probe-budget-ci` accepts it), `rehearsal-packages.json` (entry 42:
+  `release-28` cap **0**, job bound 345, title `Two-disk rehearsal (release-28)`, the budget text says step 6
+  raises it with the lead's OK), `registry_auth.py` (`release-28` on the branch; `signature` allows the branch only
+  in that mode), `owner_media.require_runner`, `owner_capabilities.py` and `owner_devices.py` (their mode lists),
+  `installer_webui.OWNER_VM_PACKAGES` and `two_disk_vm`'s native signature proof (package 42), `verify_release.py`
+  (R27's trees at its source commit in this mode, as 22d's step 6c).
+- **Tests:** new `os/tests/test_release28_rehearsal.py` (30 tests: ledger and cap 0, dispatch conditions, every
+  step script under 42's environment, decisions like 22d's but where reviewed, guard, runner and registry gates,
+  verify_release, `announced()` (manifests equal `bundle.manifests`, `owner.lineage` accepts it, lines, guide
+  line 1, refusals), the stand-in origin, `matches`/`real_commit`, the local walk with Control off and on).
+  `test_owner_walk.walk(route='release-28', control=...)` with `Release28Local` (the window's caller reads its
+  lines from the stand-in commit it names; the routine line installs only over a lower version, else the tools'
+  STOP) and `Release28Session` (foot, apps.json, the game scope, Control). Updated pins: `test_tools_local_wiring`,
+  `test_release27`, `test_ways_back_probe` (owner_vm's host-walk table), `test_release28` (dispatch counts, the job
+  token read for `release-28`, a known `release-28` title stops at cap 0), `test_owner_capabilities`,
+  `test_owner_guard`, `test_rehearsal_auth`, `test_rehearsal_budget` (condition strings).
+- **Host walk:** `reviews/42-release-28/walk-host.py` writes `os/manifest/ci/42/host-walk.json` (route
+  `release-28`, 8 boots, 267 sources: 22d's set and `release28_walk.py`, its test, the script, `releases/27.json`).
+- **Pending list:** `rebind.py pending` (25 bound files wait; none under `os/owner-tools/`, `os/release/`, `docs/`).
+
+### Verified (step 3, this laptop)
+
+Each module alone, bytecode off, after the owner-tools checks (`pgrep` for `ksshaskpass` and the tools' window)
+printed nothing, on the final code: `test_release28_rehearsal` 30 OK, `test_tools_local_wiring` 42 OK,
+`test_release28` 59 OK, `test_release27` 41 OK, `test_release_squash_binding` 7 OK, `test_owner_step_limits` 4 OK,
+`test_checkout_sources` 8 OK, `test_owner_equality` 11 OK (106 s), `test_owner_walk` 27 OK, `test_owner_capabilities`
+6 OK, `test_owner_guard` 12 OK, `test_owner_devices` 6 OK, `test_ways_back_probe` 57 OK, `test_ci_step_environment`
+4 OK, `test_ci_api_permissions` 4 OK, `test_installer_webui` 9 OK, `test_rehearsal_budget` 4 OK,
+`test_rehearsal_history` 9 OK, `test_rehearsal_auth` 9 OK, `test_aresos_desktop` 188 OK (1 skipped),
+`test_ways_back_model` 26 OK with `ARESOS_MODEL_SCOPE=slice` (the full model runs hosted). Not run here:
+`test_owner_update` (hosted only), `test_inherited_homebrew` and `test_sysusers` (they call `sudo -n`), and the rest
+of the suite. The wiring test found two real gaps on its first run (`owner_capabilities.py` and `owner_devices.py`
+refused the mode; `installer_webui` and `two_disk_vm` did not list package 42), fixed in `7ebfdd05` and `acbe72d0`.
+
+The local walk ran in `walk-host.py` (Control off: 8 boots, 176 checks, 817 commands, 541 typed blocks) and in
+`test_release28_rehearsal.WalkTest` (off and on; with Control on also the sites list's four hash reads). A scratch run built the stand-in
+origin from a stand-in record: the `634e1237` stand-in's three hashes equal the real commit's
+(`73fb5929…`, `9b66a3a1…`, `53c075c8…`), the announced commit differs in exactly the 8 generated files.
+
+### Needs a hosted run or a VM run
+
+- **VM (step 6, cap 0 until the lead's OK):** everything in the guest. Never run: version 4 installing a version 5
+  bundle through the window (the first builder's scratch run over `test_owner_update`'s fixtures showed version 4
+  installs a version 5 bundle from the folder), the update to R28 and its deployment lists (taken from the tools'
+  code: `update` keeps the retained rows and names "At shutdown, this update removes older AresOS …"), `previous`
+  and `forward` on R27/R28, the session reads on R28 (rc.xml's theme element as read, `fc-match` in the deployed
+  image, `aresos-desktop status`'s `jvm_pid` in SETUP), the no-foot STOP and the Terminal app reopened from the
+  root shell with his session's environment, apps.json planted under the instance in SETUP.
+- **Hosted checks-only run:** the full suite (`test_owner_update` runs hosted only; `test_inherited_homebrew` and
+  `test_sysusers` need root), the full ways-back model (model_scope may select it: `owner_vm.py` and the workflow
+  changed).
+
+### What the code doesn't show
+
+- **Release 28's record is the walk's parameter.** CI reads `os/manifest/releases/28.json` (step 5 writes it); the
+  announced files depend only on its bytes and `634e1237`. **Step 5's real payload commit must reproduce them:**
+  `os/manifest/release.json` and `os/owner-tools/payload/release.json` byte-equal to `releases/28.json`;
+  `history.json` and its payload copy `json.dumps(indent=2)` + newline with R28's row last and `tools_version` 5;
+  `bundle.py --refresh`; `commands.json` regenerated with `bootstrap.command`/`bootstrap.lines` for the new
+  fingerprint (same order, `indent=2`); nothing else under `os/owner-tools/` changes. `release28_walk.announced()`
+  is the reference: comparing its files with the real commit's is the quickest check, and the walk itself STOPs
+  if the checkout carries R28 with other bytes. After the run, `git rev-parse <commit>:os/owner-tools
+  <commit>:os/manifest/release.json` must print the result's `announced[1].bound` values (`matches()`).
+- **`verify_release.py` knows no release 28** (step 1's PLAN-GAP, still open): the rehearsal job copies
+  `os/manifest/release.json` to the evidence and verifies it; once step 5's commit names R28 there, it STOPs until
+  release 28's job name (`Package 28 release …`), branch identity and `source_trees` are added (step 5). Likewise
+  `registry_auth`'s preflight, pull and native signature read `release.json`: R27 now, R28 after step 5 (then R27's
+  signature is checked by version 2's tools in the guest, as before).
+- `os/manifest/release.json` and `os/manifest/releases/27.json` are bound by the host walk: step 5's commit makes the
+  receipt stale, so step 6 regenerates it (`python3 reviews/42-release-28/walk-host.py`) and refreshes the pending
+  list before any dispatch.
+- The ledger's minute cap (1200) has no room reserved for the three rehearsal runs (345 each); step 6 raises it with
+  `release-28`'s cap.
+- The game-scope check latches RECOVERY (as in the check-build VM), so it runs last; the R28 session stays in SETUP
+  in the VM (no Minecraft account).
+- `test_owner_walk.laptop_rows`/`update_states` take the R27 reference for this route, since `release.json` will
+  name R28 after step 5.
+
+### JUDGMENT-CALLs (step 3; technical, for the lead)
+
+1. **One source for the announced bundle.** The stand-in announced commit is generated from `634e1237` and R28's
+   record (`announced()`) both in the local walk (a stand-in record) and in the VM run (the real record), instead of
+   taking HEAD's trees as 22d did; when HEAD already carries R28, the walk requires equality. This keeps one code path
+   whatever order steps 5 and 6 take, and makes the real commit checkable from the receipt.
+2. **The 8 characters** are compared host-side with line 1 of the stand-in's `OWNER-TOOLS.md` before the window
+   check and the password; the window check then requires the helper's label to be exactly that label.
+3. **B.2's write** runs `tee` in root's serial shell (the guide's `sudo tee` from his terminal ends in the same root
+   write); the folder is made root's 0755 only if missing.
+4. **The Terminal app after the no-foot STOP** is the hub terminal's argv (`owner_vm.HUB_TERMINAL`) started as ares
+   with his labwc session's environment from the root shell (SETUP has no hub to click).
+5. **apps.json in the VM:** SETUP never creates the hub, so the walk plants a marker `apps.json` (owned by ares)
+   under the instance on R28 before `previous`, then requires it byte-equal on R27 and after `forward`; the instance's
+   file tree must be unchanged on R27 and is recorded again on R28 (Prism may rewrite its files there).
+6. **The game scope** is proved at the end of the last boot (it latches RECOVERY), with the check-build VM's method.
+
+### PLAN-GAPs (step 3)
+
+None new. Open from earlier: `verify_release.py` for release 28 (above; step 5); release 28's record binding `mod/`
+and `os/minecraft/` (step 1).
+
+### Left, in order
+
+1. The Codex Astra review of step 3 (from `8792c274`'s successor heads; this section lists what changed).
+2. Step 2 (Control's rules) after PR #58: set `release28_walk.CONTROL_RIDES = True`, regenerate the host walk,
+   `rebind.py pending`.
+3. Step 4 (the cut), then step 5 after the owner's OK: **preconditions** (the lead): 22c's and 22d's INSTALL-STATUS
+   rows on ON THE LAPTOP; version 4 confirmed on the laptop. Then the publish, `releases/28.json`, `verify_release.py`
+   for R28, and the payload commit reproducing `announced()` (above).
+4. Step 6: regenerate the host walk and the pending list; the lead raises `release-28` (and the minute cap); the
+   VM runs; then the pins and guides (A.5) and the record step (`42-bound-sources` → `os/manifest/ci/42/`).
+
 ## Step 3: stopped at B.1's check (PLAN-GAP 1), 2026-11-17
 
 Builder: a Claude agent (Opus 5.5), from `8792c274` (step 1's head, which the Codex Astra review reads; nothing
@@ -393,8 +579,8 @@ Each finding was checked against the code first; none is disputed.
    review 1 noted the full suite has not run on any head of this branch.
 4. Step 2 (Control's rules; if Control's image part reads more than `IMAGE_SOURCES` names, add it there),
    step 3 (the rehearsal mode; it adds its kind `release-28` to package 42's ledger with cap 0, which step 6
-   raises with the lead's OK). **Step 3 waits on the lead's answer to PLAN-GAP 1** (top of this file); main is
-   merged and the pending list refreshed.
+   raises with the lead's OK). Step 3 is built (the lead answered PLAN-GAP 1 on 2026-11-17; see the top section
+   and its own "Left, in order").
 5. Step 4, the cut: main merged in, the resolve if main's `mod/` moved (the guard now counts it: one resolve
    left), then the last dry run, `gh workflow run "OS image" --ref pkg/42-release-28 -f dry_run_28=true` (never
    `release_28`: it publishes, and until step 5 its guard stops it and the slip blocks the branch). What that dry
