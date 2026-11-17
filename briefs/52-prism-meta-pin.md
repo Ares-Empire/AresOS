@@ -29,5 +29,6 @@ build run 44129709609). A re-pin would break again next week.
 
 ## Not changed
 
-`build.sh`'s fetch and check, the Prism tarball, Fabric's libraries and mods, and release 28's rules
-(`release_diff.minecraft_pins` reads the components' SHA-256, which is unchanged).
+`build.sh`'s fetch and check, the Prism tarball, Fabric's libraries and mods. Release 28's rules (branch
+`pkg/42-release-28`, `os/ci/release_diff.py`'s `minecraft_pins`, not on `main` yet) read the components' SHA-256,
+which is unchanged; the lock's URL change rides from `main` like any other change there.
