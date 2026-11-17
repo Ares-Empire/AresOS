@@ -59,7 +59,102 @@ package 25; nothing under `os/` changed.
     PLAN-GAP) and `AutosaveTestAccess` (brings the game's own autosave to the next tick).
   - `docs/design/HUB.md`, package 40's corrections: one line that the home screen shows no "Saving world" text.
 
+## Review fix 1
+
+Builder: Codex `gpt-6.1-sol xhigh`; brief `briefs/46-review-fix-1.md`, finding in `REVIEW-1.md`.
+
+**Done:** `world_saved ok:true` now depends on a per-world history of observed persistence failures, rather than
+`saveEverything`'s boolean. The history starts at server startup and includes autosaves. Nothing resets it at request
+start, on reconnect, or when the test simulates a refused stop. Actual world closure discards it.
+
+### Swallow points in Minecraft 26.2
+
+Read with Java 25's `javap -c -p -classpath <cached minecraft-common-deobf-26.2.jar> <class>` from the Gradle cache;
+also inspected the client/server save call sites. The actual request order is **players first**, then each level's
+saved data, chunks/POIs and entities, then `level.dat`, the town seal, and server-wide saved data. These are the
+write/serialization failures that can otherwise be swallowed:
+
+| Where | How vanilla catches or hides it | How this fix observes it |
+|---|---|---|
+| `PlayerDataStorage.save` | Catches `Exception`, warns, and returns normally, including failed temp-file creation/compression | `PlayerSaveMixin` at that catch's `Logger.warn` |
+| `ServerStatsCounter.save` | Catches `IOException` / `JsonIOException`, logs and returns | `StatsSaveMixin` at the catch's `Logger.error` |
+| `PlayerAdvancements.save` | Same IO/JSON catch and normal return | `AdvancementsSaveMixin` at the catch's `Logger.error` |
+| Per-level and server-wide `SavedDataStorage.tryWrite` | Catches `IOException` on the IO executor, logs and returns; dirty bits were already cleared in `collectDirtyTagsToSave` | `SavedDataSaveMixin` at the catch's logging call; watches `scheduleSave`'s completion too, including exceptional asynchronous failures |
+| `ChunkMap.save` | `tryMarkSaved` clears the dirty bit first; catches synchronous serialization/write-submission `Exception` and calls `reportChunkSaveFailure` | `ChunkSaveMixin` intercepts that reporting call |
+| `ChunkMap.save`'s asynchronous write | Serialization supplier / `IOWorker.runStore` complete the write future exceptionally; `lambda$save$0` reports and consumes it, without making the enclosing save fail | `ChunkSaveMixin` watches the original write future and retains its outcome independently of vanilla's discarded dependent callback |
+| `SectionStorage` (POIs) | Codec `resultOrPartial` may log and omit a section; a non-compound tag only logs; asynchronous write failures are consumed by `lambda$writeChunk$0` after reporting | `PoiSaveMixin` observes both serialization cases; `RegionSaveMixin` watches the write future before its exception is consumed |
+| `EntityStorage` | Asynchronous entity-region failures are consumed by `reportSaveFailureIfPresent` after logging / `reportChunkSaveFailure` | `RegionSaveMixin` watches the original future; `EntitySaveMixin` scopes serialization diagnostics |
+| Player, block-entity and entity serialization | `ProblemReporter.ScopedCollector.close` logs diagnostics and permits an incomplete tag to be written | `SerializationProblemMixin` observes nonempty collectors only inside scoped save encoders; chunk encoding is scoped on both the server thread and its asynchronous serialization supplier |
+| `LevelStorageAccess.saveLevelData(CompoundTag)` | Catches `Exception`, logs and returns after a failed temp-file/compressed write | `LevelSaveMixin` at that catch's `Logger.error` |
+| `Util.safeReplaceFile` for player data / `level.dat` | Discards `safeReplaceOrMoveFile`'s false result after retry exhaustion (rename/delete/check helpers log and return false) | `FileReplaceSaveMixin` observes that false result by destination path, including replacement failures that never reach the outer catches |
+| AresOS `TownSeal.before` / `after` | Our existing code logs caught read/write failures and returns | Explicit failure accounting at those catches, associated with the world storage path |
+
+`IOWorker`'s region synchronization logs **and rethrows** failures; they escape through the joined future and fail
+the request. It is not another silent-success catch. The mod also explicitly synchronizes POI storage: vanilla's
+`flushAll` only queues those writes. Saved-data and region-write barriers finish only after failure accounting, so
+vanilla's successful return cannot race ahead of an asynchronous error notification.
+
+### Rules as built
+
+- Every request takes a failure revision after draining prior writes. Any new failure during its own save makes
+  it answer `ok:false, reason:"error"`, with the failed part named in the log. An escaped exception or a save that
+  saved nothing also requires repair.
+- After any failure, the next request rewrites all retained serializable chunks, including holders skipped by
+  vanilla's accessibility filter and pending unloads; marks all cached saved data and retained POIs dirty; then runs
+  the normal player, chunk, entity, metadata and saved-data save with flush. No block edit is needed to restore a
+  cleared dirty flag. Only a clean completed save clears the repair requirement.
+- A failed chunk leaving memory latches `error` until reopening. In-flight chunk writes carry their unload history,
+  so a failure reported **after** the unload also latches. Reloading that coordinate cannot erase the old lost write.
+- Conservative uncertainty: an entity/POI failure latches until reopening, because those stores have independent
+  unload/eviction histories. A player leaving before a required repair does likewise. These cases still attempt the
+  full rewrite, but never certify recovery from a potentially stale in-memory copy. Supporting recovery there later
+  needs store-specific retention tracking; it does not change the wire protocol. This follows the brief's "If unsure:
+  answer error" rule.
+- Each joined follow-up uses its own revision and repair pass. It can succeed after repairing the preceding save's
+  failure, or fail for its own write error. The lifecycle channel's joining and refusal behavior is unchanged.
+
+**Tests:** ten `SaveFailuresTest` cases cover request and autosave failures, repair, actual and late unloads (including an incomplete serialization with a successful write future),
+replacement chunks at the same coordinate, successful/unrelated unloads, follow-up boundaries, barriers and uncertain
+retention. A further `LifecycleClientTest` exercises joined requests over the fake supervisor socket with this
+journal. `SaveNowClientGameTest` injects one real `RegionFileStorage.write` IOException after serialization and dirty-bit
+clearing, asserts the real `WorldSaves` reply is `error`, then checks the next successful request puts the unchanged
+block on disk. It repeats the fault during the game's own autosave and checks the next request repairs that too.
+The fault mixin and its arm exist only in the game-test mod. No screenshot numbering changes.
+
 ## Verified
+
+- **Review fix 1 (2026-11-17):** all commands below ran from this worktree through the approved dev scripts.
+  `origin/main` through `968727d2` was merged before the final checks; package 48 was not merged.
+
+  | Command/run | Result |
+  |---|---|
+  | `mod/dev/build.sh`, initial implementation / partial test additions | `BUILD SUCCESSFUL in 2m 13s`; 256 unit tests, 0 failures, 6 skipped; "All 104 required tests passed" |
+  | `mod/dev/build.sh`, updated fault fixture | `BUILD FAILED in 8s`: three compilation errors because 26.2's `Blocks.COPPER_BLOCK` is a weathering collection. Changed the fixture to amethyst; no assertion was weakened |
+  | `mod/dev/build.sh`, before the late-serialization edge fix (`5d9ed7c8` sources) | `BUILD SUCCESSFUL in 2m 16s`; 257 unit tests, 0 failures/errors, 6 expected Windows skips; "All 104 required tests passed" |
+  | `mod/dev/client-test.sh`, before the late-serialization edge fix | exit 0, `BUILD SUCCESSFUL in 10m 13s`, headless NVIDIA RTX 4060, 20 "checks passed" lines; both injected IO faults and their disk-readback recoveries passed |
+
+  Final-code build: `mod/dev/build.sh` at `76de2c29` exited 0, `BUILD SUCCESSFUL in 2m 19s`; 258 unit tests,
+  zero failures/errors, six expected skips; "All 104 required tests passed".
+
+  Client run 1: the failed requested write answered `error`; the next request (`id:12`) rewrote the unchanged chunk in
+  430 ms. The failed autosave was repaired by `id:13` in 240 ms. The suite also retained all original package-46
+  pause/cover/indicator/refusal assertions. The subsequent edge fix adds coverage for a late serialization diagnostic
+  after unload even when the IO future succeeds; repeat runs below cover that final code.
+
+  Final-code repeat 1: `mod/dev/client-test.sh build` at `76de2c29` exited 0, `BUILD SUCCESSFUL in 11m 52s`;
+  headless NVIDIA RTX 4060, 20 "checks passed" lines, both real IO fault/recovery checks passed (330 ms / 250 ms
+  for the two repairs). The full server suite printed "All 104 required tests passed" again; the unit task was
+  `UP-TO-DATE` from the successful 258-test run above.
+
+  Final-code repeat 2: `mod/dev/client-test.sh` at `76de2c29` exited 0, `BUILD SUCCESSFUL in 10m 20s`;
+  headless NVIDIA RTX 4060, 20 "checks passed" lines. The two unchanged-chunk repairs took 696 ms / 289 ms.
+  Final sources therefore passed the full client suite twice and the full build twice. No tests/assertions were
+  weakened or removed. No new screenshots were needed for these disk/answer assertions; the existing suite's
+  regenerated screenshots were restored to their committed versions, and its generated untracked captures removed.
+
+  `git diff --check` passed. A Python recursive file-size inventory of `.work/` (>500 MiB) printed no files;
+  no large downloads or extracted images remain there. Dev scripts used single-use Gradle processes and cleaned
+  up their own scopes; no `--stop` or `--force` was used.
 
 - **Owner fix 1** (headless compositor, RTX 4060):
 
@@ -128,6 +223,8 @@ package 25; nothing under `os/` changed.
 
 ## Measured save times
 
+These are the original package measurements, before review fix 1; they were not remeasured for the fix.
+
 Measured with `SaveTimesClientGameTest`, run 3. The setup:
 
 - A flat home (the mod's real home creation) with a town of 40 test apps, in package 41's mix (6 Internet, 3 Games,
@@ -162,13 +259,21 @@ Measured with `SaveTimesClientGameTest`, run 3. The setup:
 - **Minecraft's "Saving world" screen while a world closes** is a different thing: a whole screen, not the corner
   text, and owner fix 1 leaves it alone. Package 48 takes Save and Quit out of the home screen and gives its
   "New home…" a screen of its own; a shutdown still closes the world.
-- **`WorldSaves`'s `error` paths in the game:** a save that saves nothing, or a throw before or during it. They are
-  compiled and the channel's side is unit-tested with a fake game, but they were never provoked in the game.
-- **The hosted checks:** they start on push; the PR gives the run links.
+- **Other IO fault types in the game:** review fix 1 injects an actual asynchronous terrain-region write failure.
+  Player, stats, advancements, metadata, saved-data, entity and POI fault injection are not separately exercised;
+  their required mixins load during the suites, and the accounting policy has unit coverage. Physical power loss
+  and a real full filesystem were not simulated.
+- **Hosted checks at report commit time:** they start on push; the PR gives the final-head run links and results.
 - **Windows:** nothing changes there, because the gate is never set (unit test: no variable, no connection). There
   was no Windows run.
 
 ## JUDGMENT-CALL
+
+**Review fix 1: refuse uncertain recovery.** Entity/POI failures and a player leaving before a full repair require
+reopening the world before another `ok:true`. Their independent unload histories make a generic cleared error flag
+unsafe. Chosen under the brief's explicit "If unsure: answer error" instruction; the alternative of allowing recovery
+without proving retention could certify lost state. A later change needs per-store retention tracking and fault tests,
+with no save-format or protocol migration. Terrain writes with a retained chunk do recover in place.
 
 **Answered by the owner: "Hide it"** (board #331, 2026-11-16). In the home screen the "Saving world" text never
 shows, for any save. Built in owner fix 1 (`briefs/46-owner-fix-1.md`):
