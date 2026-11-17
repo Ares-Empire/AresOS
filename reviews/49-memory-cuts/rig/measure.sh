@@ -182,6 +182,7 @@ until [[ -n $game ]]; do
 done
 echo "GAME_PID=$game" >>"$RIG/settings.txt"
 echo "$(date +%T) game PID $game in $PKG49_GAME_UNIT"
+mark game_detected
 python3 -I "$here/sample.py" "$game" "$RIG/samples.csv" 2 &
 sampler=$!
 log=$WT/mod/run/logs/latest.log
@@ -319,7 +320,11 @@ if ((COVER > 0)); then
     python3 -I "$WT/reviews/40-real-home/rig/tl.py" "$RIG" activate aresos-desktop >>"$RIG/cover.txt" 2>&1
     # Input lifts the vanilla inactivity limit without resetting the player's position.
     vin rel 1 0
-    sleep 10
+    python3 -I - "$RIG/marks.txt" <<'PYWAKE'
+import sys, time
+marks = dict(line.split() for line in open(sys.argv[1]))
+time.sleep(max(0, (int(marks['wake_start']) + 10_000_000_000 - time.monotonic_ns()) / 1e9))
+PYWAKE
     mark wake_end
     python3 -I "$here/snap.py" "$game" wake "$RIG"
 fi

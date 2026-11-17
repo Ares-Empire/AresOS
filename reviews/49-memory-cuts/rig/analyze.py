@@ -106,7 +106,7 @@ if 'wake_start' in marks:
     first = next((t for t in frames if t >= marks['wake_start']), None)
     summary['wake_first_frame_ms'] = None if first is None else round((first - marks['wake_start']) / 1e6, 2)
 if 'joined' in marks:
-    start_sample = int(rows[1][0]) if len(rows) > 1 else marks['joined']
+    start_sample = marks.get('game_detected', int(rows[1][0]) if len(rows) > 1 else marks['joined'])
     summary['game_start_to_join_s'] = round((marks['joined'] - start_sample) / 1e9, 2)
     end = marks.get('done', max(marks.values()))
     summary['windows']['whole_run'] = window(marks['joined'], end)
