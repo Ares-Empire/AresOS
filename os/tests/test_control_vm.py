@@ -43,7 +43,9 @@ class LayerHookTest(unittest.TestCase):
     def setUp(self):
         self.folder = pathlib.Path(tempfile.mkdtemp())
         self.addCleanup(shutil.rmtree, self.folder)
-        for name in ('overlay/checks.py', 'channel.py'):
+        # What the CI layer puts beside checks.py and it imports (os/ci/overlay/Containerfile; console_keymap.py
+        # since package 50).
+        for name in ('overlay/checks.py', 'channel.py', 'overlay/console_keymap.py'):
             shutil.copy(ROOT / 'os/ci' / name, self.folder)
         (self.folder / 'actions.d').mkdir()
         sys.path.insert(0, str(self.folder))
