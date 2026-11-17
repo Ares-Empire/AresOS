@@ -12,6 +12,7 @@ import stat
 import struct
 import subprocess
 import sys
+import tarfile
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -38,6 +39,27 @@ OVERRIDE = (ROOT / 'os/config' / rd.SCHEMA_OVERRIDE).read_text()
 PACKAGE31_CROWN = 'cf01b9b105fc38847e6bf6382056862f3c460d8fc6864cc6d0932794fbd2153e'
 PACKAGE31_COMMIT = '29e4fbc6'
 GITHUB = dict(base.UPDATE_GITHUB, GITHUB_REF_NAME=BRANCH)
+
+
+def corrupt_schema_lookup(data):
+    """Corrupt only runtime lookup metadata, leaving all enumerated names and values intact."""
+    start, end = struct.unpack_from('<II', data, 16)
+    bloom, buckets = struct.unpack_from('<II', data, start)
+    bucket_start = start + 8 + 4 * (bloom & ((1 << 27) - 1))
+    first = bucket_start + 4 * buckets
+    count = (end - first) // 24
+    for index in range(count):
+        _, _, key, size = struct.unpack_from('<IIIH', data, first + 24 * index)
+        if data[key:key + size] == b'org.gnome.desktop.wm.preferences':
+            hashed = bytearray(data)
+            hashed[first + 24 * index] ^= 1
+            break
+    else:
+        raise AssertionError('fixture must contain the reviewed schema')
+    bucketed = bytearray(data)
+    old = struct.unpack_from('<I', data, bucket_start)[0]
+    struct.pack_into('<I', bucketed, bucket_start, (old + 1) % (count + 1))
+    return {'hash': bytes(hashed), 'bucket': bytes(bucketed)}
 
 
 def git(*args):
@@ -162,6 +184,48 @@ class SchemaTest(unittest.TestCase):
             rd.gvdb_entries(b'not a compiled file' * 4)
         with self.assertRaises(ValueError):
             rd.gvariant('(si)', b'ab\0\0\0')
+
+
+class SchemaRebuildTest(unittest.TestCase):
+    def setUp(self):
+        self.work = pathlib.Path(tempfile.mkdtemp(dir=ROOT / 'os/tests'))
+        self.addCleanup(shutil.rmtree, self.work)
+        self.schemas, self.output = self.work / 'schemas', self.work / 'output'
+        self.schemas.mkdir()
+        self.output.mkdir()
+        self.expected = (FIXTURES / 'after.compiled').read_bytes()
+        self.compiled = self.schemas / 'gschemas.compiled'
+        self.compiled.write_bytes(self.expected)
+        # An image compiler stand-in: an independent deterministic result, never the file under test.
+        self.compiler = self.work / 'compiler'
+        self.compiler.write_text(f'#!{sys.executable}\nimport pathlib, sys\n'
+                                 f'assert sys.argv[1:] == ["--strict", "--targetdir={self.output}", "{self.schemas}"]\n'
+                                 f'pathlib.Path({str(self.output / "gschemas.compiled")!r}).write_bytes(bytes.fromhex({self.expected.hex()!r}))\n')
+        self.compiler.chmod(0o755)
+        self.enterContext(patch.object(image_diff, 'command', side_effect=self.command))
+
+    def command(self, *args):
+        self.assertEqual(args[:-1], ('podman', 'run', '--pull=never', '--network=none', '--read-only', '--rm',
+                                    '--tmpfs=/tmp:rw,nosuid,nodev,noexec,size=64m', '--entrypoint=/usr/bin/python3', rd.NEW, '-c'))
+        program = args[-1].replace('/usr/bin/glib-compile-schemas', str(self.compiler)) \
+            .replace('/usr/share/glib-2.0/schemas', str(self.schemas)) \
+            .replace("'--targetdir=/tmp'", repr('--targetdir=' + str(self.output))) \
+            .replace("'/tmp/gschemas.compiled'", repr(str(self.output / 'gschemas.compiled')))
+        # Execute the actual comparison program; a stand-in container only substitutes its paths.
+        return subprocess.check_output([sys.executable, '-c', program], text=True, stderr=subprocess.PIPE).strip()
+
+    def test_rebuild_checks_the_actual_bytes_including_hashes_and_buckets(self):
+        self.assertTrue(rd.rebuild_schemas(rd.NEW)['matches'])
+        for kind, corrupt in corrupt_schema_lookup(self.expected).items():
+            with self.subTest(kind=kind):
+                self.compiled.write_bytes(corrupt)
+                result = rd.rebuild_schemas(rd.NEW)
+                self.assertFalse(result['matches'])
+                self.assertNotEqual(result['exit_code'], 0)
+        # A compiler failure also stops; no accepted result can be inferred from an old output file.
+        self.compiled.write_bytes(self.expected)
+        self.compiler.write_text(f'#!{sys.executable}\nraise SystemExit(7)\n')
+        self.assertFalse(rd.rebuild_schemas(rd.NEW)['matches'])
 
 
 class FontCacheTest(unittest.TestCase):
@@ -310,6 +374,22 @@ class SourceChangesTest(unittest.TestCase):
         fabric['mods'][0]['sha256'] = 'e' * 64
         self.assertFalse(rd.jar_pin_only(same, json.dumps(fabric)))
 
+    def test_a_jar_pin_renewal_cannot_change_the_git_mode_or_type(self):
+        for kind in ('executable', 'symlink'):
+            with self.subTest(kind=kind):
+                self.git('checkout', '-q', '-B', 'branch', self.base)
+                self.write({self.LOCK: self.lock_text(jar='b' * 64)})
+                path = self.repo / self.LOCK
+                if kind == 'executable':
+                    path.chmod(0o755)
+                else:
+                    # A link's blob can itself be parseable JSON; content validation alone is insufficient.
+                    text = path.read_text()
+                    path.unlink()
+                    path.symlink_to(text)
+                self.commit('branch: pin with another mode or type')
+                self.assertEqual(rd.source_changes(self.base), ({}, [self.LOCK]))
+
 
 class ImageSourcesTest(unittest.TestCase):
     def test_this_branch_changes_no_image_source_but_the_jar_pin(self):
@@ -353,19 +433,98 @@ class PrismListPinTest(unittest.TestCase):
         self.assertEqual(rd.PRISM_FILE_LISTS, {lock['prism']['sha256']: '9df32315bf6a3116992df8df23387f1cf5d060bf1c655cfae9cf89ed00994a03'})
 
 
+class PrismInventoryTest(unittest.TestCase):
+    def setUp(self):
+        self.work = pathlib.Path(tempfile.mkdtemp(dir=ROOT / 'os/tests'))
+        self.addCleanup(shutil.rmtree, self.work)
+
+    def archive(self, target='bin/prismlauncher'):
+        stream = io.BytesIO()
+        with tarfile.open(fileobj=stream, mode='w:gz') as archive:
+            for name, raw in (('bin/prismlauncher', b'prism'), ('portable.txt', b''), ('bin/prismlauncher_updater', b'updater'),
+                              ('shared/bin/prismlauncher_updater', b'updater')):
+                member = tarfile.TarInfo(name)
+                member.size, member.mode = len(raw), 0o755 if name.startswith('bin/') else 0o644
+                archive.addfile(member, io.BytesIO(raw))
+            member = tarfile.TarInfo('libprism.so')
+            member.type, member.linkname = tarfile.SYMTYPE, target
+            archive.addfile(member)
+        raw = stream.getvalue()
+        return raw, dict(url='https://example.invalid/prism.tar.gz', sha256=hashlib.sha256(raw).hexdigest(), size=len(raw))
+
+    def test_the_pinned_archive_binds_every_type_mode_target_and_expected_path(self):
+        raw, pin = self.archive()
+        with patch.object(rd.urllib.request, 'urlopen', return_value=io.BytesIO(raw)) as download:
+            expected = rd.prism_inventory(pin, self.work)
+        self.assertEqual(download.call_args.args, (pin['url'],))
+        self.assertEqual(set(expected), {rd.PRISM, *(rd.PRISM + '/' + path for path in
+                          ('bin', 'bin/prismlauncher', 'libprism.so', 'shared', 'shared/bin'))})
+        self.assertEqual(expected[rd.PRISM + '/bin/prismlauncher'], dict(kind=stat.S_IFREG, mode=0o755, uid=0, gid=0,
+                         xattrs={}, bytes=5, sha256=hashlib.sha256(b'prism').hexdigest()))
+        self.assertEqual(expected[rd.PRISM + '/libprism.so'], dict(kind=stat.S_IFLNK, mode=0o777, uid=0, gid=0,
+                                                                 xattrs={}, target='bin/prismlauncher'))
+        self.assertEqual(expected[rd.PRISM]['mode'], 0o755)
+        with patch.object(rd.urllib.request, 'urlopen', side_effect=AssertionError('verified cache must be reused')):
+            self.assertEqual(rd.prism_inventory(pin, self.work), expected)
+            with contextlib.chdir(self.work.parent):
+                self.assertEqual(rd.prism_inventory(pin, self.work.name), expected)
+        self.assertEqual([path.name for path in self.work.iterdir()], ['prism-' + pin['sha256'] + '.tar.gz'])
+
+    def test_a_bad_archive_pin_is_fatal_and_partial_or_unverified_copies_do_not_survive(self):
+        raw, pin = self.archive()
+        for change in (dict(sha256='0' * 64), dict(size=pin['size'] + 1)):
+            with self.subTest(change=change), patch.object(rd.urllib.request, 'urlopen', return_value=io.BytesIO(raw)):
+                with self.assertRaisesRegex(AssertionError, 'Prism archive differs from its pin'):
+                    rd.prism_inventory(dict(pin, **change), self.work)
+                self.assertEqual(list(self.work.iterdir()), [])
+        cached = self.work / ('prism-' + pin['sha256'] + '.tar.gz')
+        cached.write_bytes(b'corrupt cached archive')
+        with self.assertRaisesRegex(AssertionError, 'cached Prism archive differs from its pin'):
+            rd.prism_inventory(pin, self.work)
+        self.assertFalse(cached.exists())
+
+    def test_even_a_pinned_archive_must_not_supply_a_dangling_or_escaping_link(self):
+        for target in ('missing.so', '../outside'):
+            raw, pin = self.archive(target)
+            with self.subTest(target=target), patch.object(rd.urllib.request, 'urlopen', return_value=io.BytesIO(raw)):
+                with self.assertRaises((FileNotFoundError, tarfile.FilterError, AssertionError)):
+                    rd.prism_inventory(pin, self.work)
+                self.assertFalse(any(path.is_dir() for path in self.work.iterdir()))
+
+
 class AlternativesAdminTest(unittest.TestCase):
     def test_links_and_targets_are_read_with_and_without_a_family(self):
         plain = b'auto\n/usr/bin/ld\n\n/usr/bin/ld.bfd\n50\n'
-        self.assertEqual(rd.alternatives_admin(plain), ({'/usr/bin/ld': None}, ['/usr/bin/ld.bfd']))
+        self.assertEqual(rd.alternatives_admin(plain), dict(mode='auto', links={'/usr/bin/ld': None},
+                                                          choices=[dict(priority=50, targets={None: '/usr/bin/ld.bfd'})]))
         java = (b'auto\n/usr/bin/java\nkeytool\n/usr/bin/keytool\njre\n/usr/lib/jvm/jre\n\n'
-                b'@java-25-openjdk.x86_64@/usr/lib/jvm/java-25/bin/java\n25000500\n/usr/lib/jvm/java-25/bin/keytool\n\n')
-        links, targets = rd.alternatives_admin(java)
-        self.assertEqual(links, {'/usr/bin/java': None, '/usr/bin/keytool': 'keytool', '/usr/lib/jvm/jre': 'jre'})
-        self.assertEqual(targets, ['/usr/lib/jvm/java-25/bin/java', '/usr/lib/jvm/java-25/bin/keytool'])
+                b'/usr/lib/jvm/java-25/bin/java\n@java-25-openjdk.x86_64@25000500\n/usr/lib/jvm/java-25/bin/keytool\n\n')
+        record = rd.alternatives_admin(java)
+        self.assertEqual(record['links'], {'/usr/bin/java': None, '/usr/bin/keytool': 'keytool', '/usr/lib/jvm/jre': 'jre'})
+        self.assertEqual(record['choices'], [dict(priority=25000500, targets={None: '/usr/lib/jvm/java-25/bin/java',
+                                                                            'keytool': '/usr/lib/jvm/java-25/bin/keytool', 'jre': ''})])
         for bad in (b'maybe\n/usr/bin/ld\n\n/usr/bin/ld.bfd\n50\n', b'auto\nld\n\n/usr/bin/ld.bfd\n50\n',
                     b'auto\n/usr/bin/ld\n\n', b'auto\n/usr/bin/ld\n\n/usr/bin/ld.bfd\nfifty\n'):
             with self.subTest(bad=bad):
                 self.assertIsNone(rd.alternatives_admin(bad))
+
+    def test_the_entire_record_structure_is_required(self):
+        record = b'auto\n/usr/bin/java\nkeytool\n/usr/bin/keytool\n\n/jdk/bin/java\n25\n/jdk/bin/keytool\n'
+        for bad in (record.replace(b'25\n', b''), record.replace(b'25\n', b'25\n99\n'),
+                    record.removesuffix(b'/jdk/bin/keytool\n'), record + b'7\n', record[:-1],
+                    record.replace(b'keytool\n/usr/bin/keytool', b'bad/name\n/usr/bin/keytool'),
+                    record.replace(b'\n\n/jdk', b'\nkeytool\n/usr/bin/other\n\n/jdk'),
+                    record.replace(b'/usr/bin/keytool', b'/usr/bin/java'),
+                    record.replace(b'/jdk/bin/keytool', b'/jdk/../bin/keytool'),
+                    record.replace(b'/jdk/bin/java\n25', b'@java@/jdk/bin/java\n25'),
+                    record.replace(b'25\n', b'@@25\n'), record.replace(b'25\n', b'@unterminated25\n'),
+                    record.replace(b'25\n', b'25 unexpected-service\n')):
+            with self.subTest(bad=bad):
+                self.assertIsNone(rd.alternatives_admin(bad))
+        # Multiple alternatives retain separate target maps; an empty slave consumes its own line.
+        multiple = record + b'/other/bin/java\n20\n\n'
+        parsed = rd.alternatives_admin(multiple)
+        self.assertEqual(parsed['choices'][1], dict(priority=20, targets={None: '/other/bin/java', 'keytool': ''}))
 
 
 class ThemeAndRcXmlTest(unittest.TestCase):
@@ -459,7 +618,7 @@ class Classifier28Test(unittest.TestCase):
                **prism, 'usr/lib/prismlauncher/lib/libq.so.6': ('link', 'libq.so.6.1'), rd.PRISM_FILES: listing.encode(),
                rd.MINECRAFT + '/libraries/x-1.jar': b'x', self.cache_path: cache,
                rd.ALTERNATIVES_ADMIN + 'java': (b'auto\n/usr/bin/java\nkeytool\n/usr/bin/keytool\n\n'
-                                                b'@java-25@' + self.JAVA.encode() + b'\n25\n' + self.KEYTOOL.encode() + b'\n'),
+                                                + self.JAVA.encode() + b'\n@java-25@25\n' + self.KEYTOOL.encode() + b'\n'),
                rd.ALTERNATIVES + 'java': ('link', self.JAVA), rd.ALTERNATIVES + 'keytool': ('link', self.KEYTOOL),
                'usr/bin/java': ('link', '/etc/alternatives/java'), 'usr/bin/keytool': ('link', '/etc/alternatives/keytool'),
                self.JAVA[1:]: b'java', self.CACERTS: ('link', '/etc/pki/java/cacerts'),
@@ -496,7 +655,10 @@ class Classifier28Test(unittest.TestCase):
         # The added packages' files as their rpm database records them (release_diff.rpm_files).
         self.records = {rel: [self.rpm_record(rel)] for rel in (self.JAVA[1:], self.JAVA_MAN, self.CACERTS, 'usr/lib/jvm/java-25')}
         self.classifier = rd.Classifier28(self.roots, packages, owned, dict(
-            executables=rd.CHMOD_0755_28, inventory=inventory, main_base='HEAD', records=self.records))
+            executables=rd.CHMOD_0755_28, inventory=inventory, main_base='HEAD', records=self.records, new_image=rd.NEW,
+            prism_inventory={rel: value for rel, value in inventory.items() if rel == rd.PRISM or rel.startswith(rd.PRISM + '/')}))
+        self.enterContext(patch.object(rd, 'rebuild_schemas', side_effect=lambda image: dict(
+            matches=(self.new / rd.SCHEMAS).read_bytes() == (FIXTURES / 'after.compiled').read_bytes())))
         self.classifier.pins = {rd.MINECRAFT + '/libraries/x-1.jar': (hashlib.sha256(b'x').hexdigest(), 1, 'pinned x')}
         # The fixture's Prism file list stands in for the reviewed one of the real Prism pin.
         self.enterContext(patch.dict(rd.PRISM_FILE_LISTS, {self.classifier.prism_pin: hashlib.sha256(listing.encode()).hexdigest()}))
@@ -576,6 +738,15 @@ class Classifier28Test(unittest.TestCase):
     def fresh_explain(self, rel):
         # The classifier keeps what it read once (Prism's list, the alternatives, the origins); read again.
         self.classifier.prism, self.classifier.groups, self.classifier.origins = None, None, {}
+        self.classifier.schema_rebuild = None
+        # main() inventories after the image is complete; these tests mutate it between classifications.
+        inventory = self.classifier.policy['inventory']
+        for path in [path for path in inventory if path == rd.PRISM or path.startswith(rd.PRISM + '/')]:
+            del inventory[path]
+        for path in [self.new / rd.PRISM, *(self.new / rd.PRISM).rglob('*')]:
+            path_rel = str(path.relative_to(self.new))
+            if (value := rd.entry(self.new, path_rel)) is not None:
+                inventory[path_rel] = value
         return self.explain(rel)
 
     def explain(self, rel):
@@ -598,7 +769,8 @@ class Classifier28Test(unittest.TestCase):
             self.CACERTS: 'package', 'usr/lib/jvm/java-25': 'package', self.LOCK: 'manifest', self.PACKAGES: 'manifest'}
         for rel, rule in expected.items():
             with self.subTest(rel=rel):
-                found = self.explain(rel) if rel != 'var/log/dnf5.log' else self.classifier.generated_rule(rel, {}, {})
+                regular = dict(kind=stat.S_IFREG, uid=0, gid=0, mode=0o644, xattrs={})
+                found = self.explain(rel) if rel != 'var/log/dnf5.log' else self.classifier.generated_rule(rel, regular, regular)
                 self.assertIsNotNone(found)
                 self.assertEqual(found[0], rule)
         self.assertRegex(self.explain(self.STEAM)[1], r'from .*\(#[0-9]+\)')
@@ -615,7 +787,7 @@ class Classifier28Test(unittest.TestCase):
                                 *((path, self.LINKED, layout, 'link', 'added') for layout, path in self.cache_paths(self.LINKED).items())})
         extra, problems = self.classifier.extra()
         self.assertEqual(extra['updaters'], [dict(scope='system', unit='user.slice', added=['/' + self.DROPIN], **{'from': ['23 (#36)']})])
-        self.assertEqual(extra['alternatives'], {'java': [self.JAVA, self.KEYTOOL]})
+        self.assertEqual(extra['alternatives'], {'java': {'java': self.JAVA, 'keytool': self.KEYTOOL}})
         self.assertEqual(problems[0], f'the Ares-Crown theme in the image (None) is not the one image-checks.sh pins ({PACKAGE31_CROWN})')
         # The fixture holds only two of the os/config files changed since release 27: the converse names the others.
         lacking, = problems[1:]
@@ -719,6 +891,19 @@ class Classifier28Test(unittest.TestCase):
             ('a world-writable folder', 'usr/lib/prismlauncher/bin', self.mode('usr/lib/prismlauncher/bin', 0o757)),
         ])
 
+    def test_prisms_typed_inventory_rejects_dangling_missing_or_different_links_and_modes(self):
+        link = rd.PRISM + '/lib/libq.so.6'
+        self.assert_near_misses([
+            ('a dangling internal link', link, self.content(link, ('link', 'nonexistent.so'))),
+            ('a link to another existing file', link, self.content(link, ('link', '../bin/prismlauncher'))),
+            ('an executable loses its execute bits', rd.PRISM + '/bin/prismlauncher', self.mode(rd.PRISM + '/bin/prismlauncher', 0o644)),
+            ('a directory gains execute restrictions', rd.PRISM + '/lib', self.mode(rd.PRISM + '/lib', 0o700)),
+        ])
+        for target in (link, rd.PRISM + '/lib/libq.so.6.1'):
+            with self.subTest(target=target), self.content(target, None):
+                self.assertIsNone(self.fresh_explain(rd.PRISM_FILES))
+                self.assertIn('Prism bundle differs', ' '.join(self.classifier.extra()[1]))
+
     def test_near_misses_of_the_alternatives_and_the_commands(self):
         record = rd.ALTERNATIVES_ADMIN + 'java'
         self.assert_near_misses([
@@ -737,6 +922,29 @@ class Classifier28Test(unittest.TestCase):
             for rel in ('usr/bin/java', rd.ALTERNATIVES + 'java'):
                 with self.subTest(rel=rel):
                     self.assertIsNone(self.fresh_explain(rel))
+
+    def test_swapping_alternatives_targets_stops_the_record_and_both_commands(self):
+        java, keytool = rd.ALTERNATIVES + 'java', rd.ALTERNATIVES + 'keytool'
+        for changes in (((java, self.KEYTOOL),), ((keytool, self.JAVA),), ((java, self.KEYTOOL), (keytool, self.JAVA))):
+            with self.subTest(changes=changes), contextlib.ExitStack() as stack:
+                for rel, target in changes:
+                    stack.enter_context(self.content(rel, ('link', target)))
+                for rel in (rd.ALTERNATIVES_ADMIN + 'java', java, keytool, 'usr/bin/java', 'usr/bin/keytool'):
+                    self.assertIsNone(self.fresh_explain(rel), rel)
+
+    def test_alternatives_cannot_mix_two_choices_or_choose_a_lower_automatic_priority(self):
+        record = rd.ALTERNATIVES_ADMIN + 'java'
+        raw = (self.new / record).read_bytes()
+        other_java, other_keytool = '/jdk2/bin/java', '/jdk2/bin/keytool'
+        self.classifier.owned['new'].update((other_java, other_keytool))
+        for priority in (24, 26):
+            with self.subTest(priority=priority), self.content(record, raw + f'{other_java}\n{priority}\n{other_keytool}\n'.encode()):
+                if priority == 24:
+                    self.assertIsNotNone(self.fresh_explain(record))
+                else:
+                    self.assertIsNone(self.fresh_explain(record))
+                with self.content(rd.ALTERNATIVES + 'keytool', ('link', other_keytool)):
+                    self.assertIsNone(self.fresh_explain(record))
 
     def test_near_misses_of_shadow_and_the_font_caches(self):
         old_cache = FontCacheTest.cache(self.CACHE_FOLDER)
@@ -775,7 +983,8 @@ class Classifier28Test(unittest.TestCase):
         used = set()
         for rel in needed:
             with self.subTest(rel=rel):
-                found = self.classifier.generated_rule(rel, {}, {})
+                regular = dict(kind=stat.S_IFREG, uid=0, gid=0, mode=0o600 if rel.endswith('aux-cache') else 0o644, xattrs={})
+                found = self.classifier.generated_rule(rel, regular, regular)
                 self.assertEqual(found[0], 'generated')
                 used.add(found[1])
         self.assertEqual(used, {reason for _, reason in rd.GENERATED_28})
@@ -788,6 +997,29 @@ class Classifier28Test(unittest.TestCase):
             with self.subTest(rel=rel):
                 self.assertIsNone(self.classifier.generated_rule(rel, {}, {}))
                 self.assertIsNone(self.classifier.classify(rel, dict(changed, sha256='a' * 64), changed))
+
+    def test_generated_exceptions_reject_neighbours_and_every_unreviewed_operation_or_metadata(self):
+        regular = dict(kind=stat.S_IFREG, uid=0, gid=0, mode=0o644, xattrs={})
+        # Review 3's three probes, plus close neighbours of every retained filename family.
+        for rel in ('usr/lib/sysimage/libdnf5/unreviewed.sh',
+                    'var/lib/dnf/repos/fedora-cff72538bc9825a4/not-countme',
+                    'var/lib/dnf/repos/unreviewed-0000000000000000/countme',
+                    'usr/lib/sysimage/libdnf5/transaction_history.sqlite-backup',
+                    'usr/lib/sysimage/libdnf5/packages.toml/child', 'var/log/dnf5.log.1'):
+            with self.subTest(rel=rel):
+                self.assertIsNone(self.classifier.generated_rule(rel, regular, dict(regular, mode=0o4755)))
+                self.assertIsNone(self.classifier.generated_rule(rel, regular, regular))
+        for rel in [rd.RPM_DATABASE, *(path for path, _ in rd.GENERATED_28)]:
+            good = dict(regular, mode=0o600 if rel.endswith('aux-cache') else 0o644)
+            for before, after in ((None, good), (good, None)):
+                with self.subTest(rel=rel, before=before, after=after):
+                    self.assertIsNone(self.classifier.generated_rule(rel, before, after))
+            for change in (dict(uid=1000), dict(gid=1000), dict(mode=0o4755), dict(mode=0o755),
+                           dict(kind=stat.S_IFDIR), dict(kind=stat.S_IFLNK), dict(xattrs={'user.x': '00'})):
+                with self.subTest(rel=rel, change=change):
+                    bad = dict(good, **change)
+                    self.assertIsNone(self.classifier.generated_rule(rel, good, bad))
+                    self.assertIsNone(self.classifier.generated_rule(rel, bad, good))
 
     def test_files_of_the_added_packages_must_be_what_their_rpm_database_records(self):
         # Review 1, S5: owner, mode, link target and bytes as rpm records them; no attribute, setuid or writable bit.
@@ -819,6 +1051,9 @@ class Classifier28Test(unittest.TestCase):
                 self.assertIsNone(self.fresh_explain(java))
         with self.mode(folder, 0o1777), recorded(folder, mode=stat.S_IFDIR | 0o1777):
             self.assertIsNone(self.fresh_explain(folder))
+        # A shared non-ghost record still requires the file, even if another package marks it ghost.
+        with patch.dict(self.records, {java: [self.rpm_record(java), self.rpm_record(java, flags=rd.RPMFILE_GHOST)]}):
+            self.assertIsNotNone(self.fresh_explain(java))
         fifo = 'usr/lib/jvm/java-25/lib/fifo'
         os.mkfifo(self.new / fifo, 0o644)
         (self.new / fifo).chmod(0o644)
@@ -860,6 +1095,12 @@ class Classifier28Test(unittest.TestCase):
             ("the key's choices changed", rd.SCHEMAS, self.content(rd.SCHEMAS, (FIXTURES / 'choices.compiled').read_bytes())),
             ('not a compiled file', rd.SCHEMAS, self.content(rd.SCHEMAS, b'GVariant' + bytes(40))),
         ])
+
+    def test_corrupted_schema_hashes_and_buckets_are_not_explained(self):
+        for kind, corrupted in corrupt_schema_lookup((FIXTURES / 'after.compiled').read_bytes()).items():
+            with self.subTest(kind=kind), self.content(rd.SCHEMAS, corrupted):
+                self.assertIsNone(self.fresh_explain(rd.SCHEMAS))
+                self.assertIn('compiled schemas differ from deterministic rebuild', ' '.join(self.classifier.extra()[1]))
 
     def replace(self, rel, value):
         path = self.new / rel
@@ -1505,9 +1746,13 @@ class MainSmokeTest(unittest.TestCase):
         updaters, dropin = Classifier28Test.UPDATERS, Classifier28Test.DROPIN
         tag = rd.FONT_CACHES + 'CACHEDIR.TAG'
         old = {**policy, 'etc/hostname': b'aresos\n', 'usr/share/aresos/manifest/packages.lock.json': show('os/packages.lock.json'),
+               rd.SCHEMAS: (FIXTURES / 'before.compiled').read_bytes(),
                rd.RC_XML: show('os/config/' + rd.RC_XML), 'usr/share/aresos/apps/terminal.json': show('os/config/usr/share/aresos/apps/terminal.json'),
                updaters: Classifier28Test.audit(), tag: b'tag'}
         new = {**policy, 'etc/hostname': b'aresos\n', 'usr/share/aresos/manifest/packages.lock.json': (ROOT / 'os/packages.lock.json').read_bytes(),
+               rd.SCHEMAS: (FIXTURES / 'after.compiled').read_bytes(),
+               rd.PRISM + '/bin/prismlauncher': b'prism', rd.PRISM + '/libprism.so': ('link', 'bin/prismlauncher'),
+               rd.PRISM_FILES: f'{hashlib.sha256(b"prism").hexdigest()}  /{rd.PRISM}/bin/prismlauncher\n'.encode(),
                rd.RC_XML: (ROOT / 'os/config' / rd.RC_XML).read_bytes(),
                'usr/share/aresos/apps/terminal.json': (ROOT / 'os/config/usr/share/aresos/apps/terminal.json').read_bytes(),
                self.JAVA: b'java', Classifier28Test.JAVA_MAN: b'.TH java 1\n', tag: b'tag',
@@ -1549,6 +1794,12 @@ class MainSmokeTest(unittest.TestCase):
         self.enterContext(patch.object(rd, 'entry', side_effect=lambda root, rel: None if real_entry(root, rel) is None
                                        else dict(real_entry(root, rel), uid=0, gid=0, xattrs={})))
         self.enterContext(patch.object(image_diff, 'command', side_effect=self.command))
+        # The independently pinned tarball's expected inventory stays fixed while tests mutate the image.
+        inventory = image_diff.inventory(self.roots['new'])
+        self.enterContext(patch.object(rd, 'prism_inventory', return_value={rel: value for rel, value in inventory.items()
+                          if rel == rd.PRISM or rel.startswith(rd.PRISM + '/')}))
+        prism_pin = json.loads((ROOT / 'os/minecraft/desktop.lock.json').read_text())['prism']['sha256']
+        self.enterContext(patch.dict(rd.PRISM_FILE_LISTS, {prism_pin: rd.file_sha256(self.roots['new'] / rd.PRISM_FILES)}))
         self.enterContext(patch.dict(os.environ, GITHUB_SHA='a' * 40))
         # main's merge base: this commit itself, so the image sources equal main's (S2's own tests change it).
         self.enterContext(patch.object(rd, 'main_merge_base', return_value='HEAD'))
@@ -1561,14 +1812,14 @@ class MainSmokeTest(unittest.TestCase):
              'javapackages-filesystem': ['/usr/lib/jvm']}
 
     def rpm_query(self, nevras):
-        """rpm -q --qf RPM_FILE_FORMAT of the stand-in packages: each file as the new image has it, changed by record_changes."""
+        """Independent package records: never derive expected presence or bytes from the image under test."""
         lines = []
         for path in (path for nevra in nevras for key, paths in self.OWNED.items() if key in nevra for path in paths):
-            meta = (self.roots['new'] / path[1:]).lstat()
-            regular = stat.S_ISREG(meta.st_mode)
-            record = dict(user='root', group='root', flags='0', size=str(meta.st_size if regular else 4096), algorithm='8',
-                          digest=hashlib.sha256((self.roots['new'] / path[1:]).read_bytes()).hexdigest() if regular else '',
-                          target='', caps='', mode=str(meta.st_mode))
+            data = {'/' + self.JAVA: b'java', '/' + Classifier28Test.JAVA_MAN: b'.TH java 1\n',
+                    '/usr/lib/jvm/java-25/bin/keytool': b'keytool'}.get(path)
+            record = dict(user='root', group='root', flags='0', size=str(len(data) if data is not None else 4096), algorithm='8',
+                          digest=hashlib.sha256(data).hexdigest() if data is not None else '', target='', caps='',
+                          mode=str((stat.S_IFREG | 0o644) if data is not None else (stat.S_IFDIR | 0o755)))
             record.update(self.record_changes.get(path, {}))
             lines.append('\t'.join([path] + [record[field] for field in rd.RPM_FILE_FIELDS[1:]]))
         return '\n'.join(lines)
@@ -1579,6 +1830,13 @@ class MainSmokeTest(unittest.TestCase):
         if args[0] in ('unmount', 'rm'):
             return ''
         if args[0] == 'run':
+            if '--entrypoint=/usr/bin/python3' in args:
+                self.assertEqual(args, ('run', '--pull=never', '--network=none', '--read-only', '--rm',
+                                       '--tmpfs=/tmp:rw,nosuid,nodev,noexec,size=64m', '--entrypoint=/usr/bin/python3',
+                                       rd.NEW, '-c', rd.SCHEMA_REBUILD))
+                if (self.roots['new'] / rd.SCHEMAS).read_bytes() != (FIXTURES / 'after.compiled').read_bytes():
+                    raise subprocess.CalledProcessError(1, ['schema rebuild'], output='compiled schemas differ from deterministic rebuild')
+                return 'SCHEMA_REBUILD_MATCHED'
             image = self.images[args[args.index('--entrypoint=/usr/bin/rpm') + 1]]
             if '-qa' in args:
                 return '\n'.join(f'{nevra}\t{base.name_of(nevra)}' for nevra in self.rpms[image])
@@ -1650,6 +1908,24 @@ class MainSmokeTest(unittest.TestCase):
             self.run_main()
         self.assertEqual(self.result['status'], 'stopped')
 
+    def test_a_missing_expected_prism_link_stops_even_when_absent_from_both_images(self):
+        link = rd.PRISM + '/libprism.so'
+        (self.roots['new'] / link).unlink()
+        with self.assertRaisesRegex(AssertionError, 'Prism bundle differs from the complete typed inventory'):
+            self.run_main()
+        self.assertEqual(self.result['status'], 'stopped')
+        self.assertNotIn(link, self.result['unexplained'])
+
+    def test_corrupted_schema_lookup_metadata_stops_the_result(self):
+        for kind, corrupted in corrupt_schema_lookup((FIXTURES / 'after.compiled').read_bytes()).items():
+            with self.subTest(kind=kind):
+                (self.roots['new'] / rd.SCHEMAS).write_bytes(corrupted)
+                with self.assertRaisesRegex(AssertionError, 'compiled schemas differ from deterministic rebuild'):
+                    self.run_main()
+                self.assertEqual(self.result['status'], 'stopped')
+                self.assertFalse(self.result['schema_rebuild']['matches'])
+                self.assertIn(rd.SCHEMAS, self.result['unexplained'])
+
     def test_the_image_sources_must_be_mains_at_the_merge_base(self):
         # Review 1, S2: built from a commit whose image sources differ from main's (here: release 27's source as
         # "main"), the diff stops and names each differing file, beside the paths main's history cannot explain.
@@ -1662,20 +1938,52 @@ class MainSmokeTest(unittest.TestCase):
             self.assertIn(path, differing)
         self.assertIn(', '.join(differing), ' '.join(self.result['problems']))
 
-    def test_a_package_file_other_than_its_rpm_record_stops_and_rpm_v_is_evidence(self):
-        # S5: rpm -V finding something is recorded, not (yet) a stop.
-        self.verify = (1, 'S.5....T.    /usr/lib/jvm/java-25/bin/java')
-        with contextlib.redirect_stdout(io.StringIO()):
-            result = self.run_main()
-        self.assertEqual(result['rpm_verify']['exit_code'], 1)
-        self.assertEqual(result['rpm_verify']['lines'], ['S.5....T.    /usr/lib/jvm/java-25/bin/java'])
+    def test_rpm_verification_failure_is_fatal_even_when_every_path_is_explained(self):
+        for verification in ((1, 'S.5....T.    /usr/lib/jvm/java-25/bin/java'), (2, 'rpm: unexpected failure'), (1, ''),
+                             (0, 'unexpected output')):
+            with self.subTest(verification=verification):
+                self.verify = verification
+                with self.assertRaisesRegex(AssertionError, 'rpm verification of the added packages failed'):
+                    self.run_main()
+                self.assertEqual(self.result['status'], 'stopped')
+                self.assertEqual(self.result['rpm_verify']['exit_code'], verification[0])
+                self.assertEqual(self.result['unexplained'], [])
+
+    def test_a_package_file_other_than_its_rpm_record_stops(self):
         # The rule itself stops on a file whose bytes or mode are not its record's.
         for change in (dict(digest='0' * 64), dict(mode=str(stat.S_IFREG | 0o755)), dict(user='ares'), dict(flags='64')):
             with self.subTest(change=change):
                 self.record_changes = {'/' + self.JAVA: change}
-                with self.assertRaisesRegex(AssertionError, 'STOP: 1 unexplained image differences'):
+                with self.assertRaisesRegex(AssertionError, 'STOP: '):
                     self.run_main()
                 self.assertEqual(self.result['unexplained'], [self.JAVA])
+
+    def test_a_missing_expected_rpm_file_stops_even_when_absent_from_both_images(self):
+        keytool = '/usr/lib/jvm/java-25/bin/keytool'
+        # The package says keytool exists; neither image has it, so no changed path can expose it.
+        with patch.dict(self.OWNED, headless=[*self.OWNED['headless'], keytool]):
+            for verification in ((0, ''), (1, 'missing     ' + keytool)):
+                with self.subTest(verification=verification):
+                    self.verify = verification
+                    with self.assertRaisesRegex(AssertionError, 'expected RPM paths missing or different.*keytool'):
+                        self.run_main()
+                    self.assertEqual(self.result['status'], 'stopped')
+                    self.assertEqual(self.result['unexplained'], [])
+            # Ghost files are allowed to be absent, even with an independently recorded path.
+            self.verify = (0, '')
+            self.record_changes[keytool] = dict(flags=str(rd.RPMFILE_GHOST))
+            with contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(self.run_main()['status'], 'passed')
+
+    def test_an_unchanged_rpm_file_must_still_match_its_record(self):
+        (self.roots['old'] / self.JAVA).parent.mkdir(parents=True)
+        (self.roots['old'] / self.JAVA).write_bytes(b'java')
+        (self.roots['old'] / self.JAVA).chmod(0o644)
+        self.record_changes['/' + self.JAVA] = dict(digest='0' * 64)
+        with self.assertRaisesRegex(AssertionError, 'expected RPM paths missing or different.*bin/java'):
+            self.run_main()
+        self.assertEqual(self.result['status'], 'stopped')
+        self.assertNotIn(self.JAVA, self.result['unexplained'])
 
     def test_each_stop_of_main(self):
         """Review 1, S4: each check main() makes beside the rules stops the diff, with its own words."""
@@ -1692,6 +2000,17 @@ class MainSmokeTest(unittest.TestCase):
                 path.parent.mkdir(parents=True, exist_ok=True)
                 path.write_bytes(data)
             return change
+
+        @contextlib.contextmanager
+        def generated_unit():
+            # The narrowed exceptions cannot match units. Exercise main's independent guard with a
+            # stand-in future classifier that accidentally introduces such an exception.
+            write(unit, b'[Unit]\n')()
+            original = rd.Classifier28.generated_rule
+            def generated(classifier, rel, before, after):
+                return ('generated', 'stand-in generated unit') if '/systemd/' in rel else original(classifier, rel, before, after)
+            with patch.object(rd.Classifier28, 'generated_rule', generated):
+                yield
         cases = [
             ('the revision label is not this run', 'release 28 source labels differ from this run',
              lambda: labels().update({'org.opencontainers.image.revision': 'b' * 40})),
@@ -1705,7 +2024,7 @@ class MainSmokeTest(unittest.TestCase):
              lambda: self.configs['new']['rootfs'].update(diff_ids=['sha256:x', 'sha256:n'])),
             ("release 27's base ancestry", 'release 27 base ancestry differs',
              lambda: self.configs['old']['rootfs'].update(diff_ids=['sha256:x', 'sha256:o'])),
-            ('a unit changed only as a generated file', 'a unit changed only as a generated file', write(unit, b'[Unit]\n')),
+            ('a unit changed only as a generated file', 'a unit changed only as a generated file', generated_unit()),
             ('release 27 was built on another base', 'release 27 was built on another base',
              patch.dict(rd.RELEASES['28'], previous=str(other_base))),
             ("release 27's lock is not its source", 'release 27 lock differs from its source',

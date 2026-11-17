@@ -22,9 +22,13 @@ import os
 import pathlib
 import posixpath
 import re
+import shutil
 import stat
 import struct
 import subprocess
+import tarfile
+import tempfile
+import urllib.request
 import xml.etree.ElementTree as ET
 
 import image_diff
@@ -415,9 +419,12 @@ RC_XML = 'usr/share/aresos/labwc/rc.xml'
 # there stops and needs its own rule with its real cause; the font caches have
 # theirs (package 23b).
 GENERATED_28 = (
-    ('usr/lib/sysimage/libdnf5/*', "dnf5 transaction history (the package step; package 23's Java 25)"),
-    ('var/lib/dnf/*', 'dnf5 repository state: countme markers of the repositories the package step read'),
-    ('var/log/dnf5.log*', "dnf5 log (the package step; package 23's Java 25)"),
+    *((f'usr/lib/sysimage/libdnf5/{name}', "dnf5 transaction history (the package step; package 23's Java 25)")
+      for name in ('nevras.toml', 'packages.toml', 'system.toml', 'transaction_history.sqlite',
+                   'transaction_history.sqlite-shm', 'transaction_history.sqlite-wal')),
+    *((f'var/lib/dnf/repos/{repo}/countme', 'dnf5 repository state: countme markers of the repositories the package step read')
+      for repo in ('fedora-cff72538bc9825a4', 'updates-3cc07c89a20302f2')),
+    ('var/log/dnf5.log', "dnf5 log (the package step; package 23's Java 25)"),
     ('var/cache/ldconfig/aux-cache', "ldconfig's auxiliary cache, rewritten when the package step runs ldconfig (it keys on file times)"),
 )
 
@@ -444,6 +451,71 @@ RPM_FILE_FORMAT = (r'[%{FILENAMES}\t%{FILEUSERNAME}\t%{FILEGROUPNAME}\t%{FILEFLA
 RPM_FILE_FIELDS = ('path', 'user', 'group', 'flags', 'size', 'algorithm', 'digest', 'target', 'caps', 'mode')
 RPM_SHA256 = '8'
 RPMFILE_GHOST = 64
+
+# Use the image's compiler, libraries and schema inputs. Only the output directory is writable;
+# byte equality also covers GVDB hashes, bloom filters, buckets and all other lookup metadata.
+SCHEMA_REBUILD = '''import pathlib, subprocess
+subprocess.run(['/usr/bin/glib-compile-schemas', '--strict', '--targetdir=/tmp',
+                '/usr/share/glib-2.0/schemas'], check=True)
+assert pathlib.Path('/tmp/gschemas.compiled').read_bytes() == pathlib.Path(
+    '/usr/share/glib-2.0/schemas/gschemas.compiled').read_bytes(), 'compiled schemas differ from deterministic rebuild'
+print('SCHEMA_REBUILD_MATCHED')
+'''
+
+
+def rebuild_schemas(image):
+    try:
+        output = image_diff.command('podman', 'run', '--pull=never', '--network=none', '--read-only', '--rm',
+                                    '--tmpfs=/tmp:rw,nosuid,nodev,noexec,size=64m', '--entrypoint=/usr/bin/python3',
+                                    image, '-c', SCHEMA_REBUILD)
+        code = 0
+    except subprocess.CalledProcessError as error:
+        output, code = (error.output or '').strip(), error.returncode
+    return dict(matches=code == 0 and output == 'SCHEMA_REBUILD_MATCHED', exit_code=code, output=output[:4000])
+
+
+def prism_inventory(pin, work='.work/release-diff'):
+    """Full expected inventory derived from the *hash-pinned archive*, never from the image under test.
+
+    Replay build.sh's data-filtered extraction and three exclusions in temporary storage. Keep one
+    verified archive for reuse; no extracted bundle survives. The archive pin binds every type, mode,
+    target and path, including links missing from both images and links to missing targets.
+    """
+    work = pathlib.Path(work).resolve()
+    work.mkdir(parents=True, exist_ok=True)
+    archive = work / ('prism-' + pin['sha256'] + '.tar.gz')
+    if not archive.exists():
+        partial = archive.with_suffix('.partial')
+        try:
+            with urllib.request.urlopen(pin['url'], timeout=60) as source, partial.open('wb') as target:
+                shutil.copyfileobj(source, target)
+            assert file_sha256(partial) == pin['sha256'] and partial.stat().st_size == pin['size'], 'STOP: Prism archive differs from its pin'
+            partial.rename(archive)
+        finally:
+            partial.unlink(missing_ok=True)
+    if file_sha256(archive) != pin['sha256'] or archive.stat().st_size != pin['size']:
+        archive.unlink()
+        raise AssertionError('STOP: cached Prism archive differs from its pin')
+    with tempfile.TemporaryDirectory(prefix='prism-', dir=work) as temporary:
+        root = pathlib.Path(temporary) / 'bundle'
+        root.mkdir(mode=0o755)
+        with tarfile.open(archive) as bundle:
+            bundle.extractall(root, filter='data')
+        for name in ('portable.txt', 'bin/prismlauncher_updater', 'shared/bin/prismlauncher_updater'):
+            (root / name).unlink()
+        inventory = {PRISM: entry(root.parent, root.name)}
+        inventory.update({PRISM + '/' + rel: value for rel, value in image_diff.inventory(root).items()})
+        for value in inventory.values():
+            # The archive has no xattrs; discard labels inherited from the runner's temporary folder.
+            # The image must have none, as in the reviewed build, regardless of the runner's labels.
+            value.update(uid=0, gid=0, xattrs={})
+        # Resolve links only inside this disposable bundle, so no expected dangling link or escape is allowed.
+        for rel, value in inventory.items():
+            if value['kind'] == stat.S_IFLNK:
+                path = root / pathlib.PurePosixPath(rel).relative_to(PRISM)
+                target = path.resolve(strict=True)
+                assert target.is_relative_to(root), 'STOP: Prism link escapes its bundle: ' + rel
+        return inventory
 
 
 def root_owned(value, mode):
@@ -508,7 +580,10 @@ def source_changes(base, head='HEAD'):
     allowed, differing = {}, []
     for path in sorted(name for name in names if name):
         reason, allows = BRANCH_SOURCE_CHANGES.get(path, (None, None))
-        if allows and allows(blob(base, path), blob(head, path)):
+        # Equal JSON bytes cannot explain changing a regular file into a link or making it executable.
+        old_entry = git('ls-tree', base, '--', path, text=True).split()[:2]
+        new_entry = git('ls-tree', head, '--', path, text=True).split()[:2]
+        if allows and old_entry == new_entry == ['100644', 'blob'] and allows(blob(base, path), blob(head, path)):
             allowed[path] = reason
         else:
             differing.append(path)
@@ -882,34 +957,48 @@ def audit_changes(old, new, dropin):
 
 
 def alternatives_admin(raw):
-    """(links {link path: alternative name}, targets) of an alternatives admin file, or None when malformed.
+    """An alternatives record with each choice's own master/slave targets, or None when malformed.
 
     The file names the master link, then pairs of slave name and link up to an
-    empty line, then each alternative: its target (after an optional
-    @family@), its priority and its slave targets (empty when missing).
+    empty line, then each alternative: its target, its priority (after an
+    optional @family@) and its slave targets (empty when missing). Java has no
+    init-script suffix on its priority; unexpected suffixes fail closed.
     """
     try:
         lines = raw.decode().split('\n')
     except UnicodeDecodeError:
         return None
-    if len(lines) < 4 or lines[0] not in ('auto', 'manual') or not lines[1].startswith('/'):
+    def absolute(path):
+        return path.startswith('/') and not path.startswith('//') and posixpath.normpath(path) == path and path != '/'
+
+    if len(lines) < 4 or lines[-1] != '' or lines[0] not in ('auto', 'manual') or not absolute(lines[1]):
         return None
-    links, at = {lines[1]: None}, 2
-    while at + 1 < len(lines) and lines[at]:
-        if not lines[at + 1].startswith('/'):
+    lines.pop()  # the final newline, not an absent slave target
+    links, slaves, at = {lines[1]: None}, [], 2
+    while at < len(lines) and lines[at]:
+        if at + 1 >= len(lines) or not re.fullmatch(r'[\w.+-]+', lines[at]) or lines[at] in slaves \
+                or not absolute(lines[at + 1]) or lines[at + 1] in links:
             return None
         links[lines[at + 1]] = lines[at]
+        slaves.append(lines[at])
         at += 2
     if at >= len(lines) or lines[at]:
         return None
-    targets = []
-    for line in lines[at + 1:]:
-        found = re.fullmatch(r'(?:@[^@/]+@)?(/.*)', line)
-        if found:
-            targets.append(found.group(1))
-        elif line and not re.fullmatch(r'-?[0-9]+', line):
+    choices, at, masters = [], at + 1, set()
+    while at < len(lines):
+        end = at + 2 + len(slaves)
+        if end > len(lines) or not absolute(lines[at]) or lines[at] in masters:
             return None
-    return (links, targets) if targets else None
+        priority = re.fullmatch(r'(?:@([^@/]+)@)?(-?[0-9]+)', lines[at + 1])
+        if not priority:
+            return None
+        targets = dict(zip([None, *slaves], [lines[at], *lines[at + 2:end]]))
+        if any(target and not absolute(target) for target in targets.values()):
+            return None
+        masters.add(lines[at])
+        choices.append(dict(priority=int(priority.group(2)), targets=targets))
+        at = end
+    return dict(mode=lines[0], links=links, choices=choices) if choices else None
 
 
 def crown_digest(folder):
@@ -958,6 +1047,7 @@ class Classifier28:
         self.mod_pin = next(mod['sha256'] for mod in lock['mods'] if mod['file'] == 'aresos.jar' and 'url' not in mod)
         self.prism_pin = lock['prism']['sha256']
         self.origins, self.prism, self.groups = {}, None, None
+        self.schema_rebuild = None
         self.schema_rows, self.font_caches, self.updater_rows = None, [], None
 
     def read(self, which, rel):
@@ -1008,8 +1098,7 @@ class Classifier28:
         return ('config', f'{what} since release 27, bytes equal the source; from ' + ', '.join(self.origin(rel)))
 
     def prism_files(self):
-        """{path: sha256} from the image's prism-files.sha256, or None unless it lists exactly
-        the regular files under usr/lib/prismlauncher with their bytes and is the list PRISM_FILE_LISTS pins."""
+        """The pinned regular-file list, only when the *whole typed bundle* equals its pinned archive."""
         if self.prism is None:
             listed, raw = {}, self.read('new', PRISM_FILES)
             for line in (raw or b'').decode().splitlines():
@@ -1019,10 +1108,10 @@ class Classifier28:
                     break
                 listed[found.group(2)] = found.group(1)
             inventory = self.policy['inventory']
-            actual = {rel: value['sha256'] for rel, value in inventory.items()
-                      if rel.startswith(PRISM + '/') and value['kind'] == stat.S_IFREG}
+            typed = {rel: value for rel, value in inventory.items() if rel == PRISM or rel.startswith(PRISM + '/')}
+            actual = {rel: value['sha256'] for rel, value in typed.items() if value['kind'] == stat.S_IFREG}
             pinned = raw and hashlib.sha256(raw).hexdigest() == PRISM_FILE_LISTS.get(self.prism_pin)
-            self.prism = listed if pinned and listed and listed == actual else False
+            self.prism = listed if pinned and listed and listed == actual and typed == self.policy['prism_inventory'] else False
         return self.prism or None
 
     def manifest_rule(self, rel, before, after):
@@ -1082,31 +1171,21 @@ class Classifier28:
     def prism_rule(self, rel, before, after):
         if rel == PRISM_COMMAND[0]:
             if before is None and after and after['kind'] == stat.S_IFLNK and after['target'] == PRISM_COMMAND[1] \
-                    and root_owned(after, 0o777):
+                    and root_owned(after, 0o777) and not after['xattrs'] and self.prism_files():
                 return ('build', "package 23: the prismlauncher command, a link into Prism's bundle")
             return None
         if rel != PRISM and not rel.startswith(PRISM + '/'):
             return None
         if before is not None or after is None or after['uid'] or after['gid'] or after['xattrs']:
             return None
-        if after['kind'] == stat.S_IFLNK:
-            # Relative links that stay inside the bundle, as Prism's tarball has them.
-            target = posixpath.normpath(posixpath.join('/' + posixpath.dirname(rel), after['target']))
-            if not after['target'].startswith('/') and target.startswith('/' + PRISM + '/'):
-                return ('build', "package 23: link inside Prism's pinned bundle")
-            return None
-        if after['mode'] & 0o7022:
-            return None  # no setuid, setgid or sticky bit, nothing group- or world-writable
-        if after['kind'] == stat.S_IFDIR:
-            return ('build', "package 23: folder of Prism's pinned bundle")
         files = self.prism_files()
-        if after['kind'] == stat.S_IFREG and files and files.get(rel) == after['sha256']:
-            return ('build', "package 23: file of Prism's pinned bundle, as prism-files.sha256 records it")
+        if files and after == self.policy['prism_inventory'].get(rel):
+            return ('build', "package 23: path of Prism's pinned bundle, including its type, mode, target and bytes")
         return None
 
     def alternatives(self):
-        """{alternative name: (links, targets)} of each new alternatives admin file whose targets
-        are all files of added packages (Java's %post registers them)."""
+        """{group: (links, selected targets)}. Every link must select its own target from one complete
+        choice in the record; auto mode must select a choice of the highest priority."""
         if self.groups is None:
             self.groups = {}
             folder = self.new_root / ALTERNATIVES_ADMIN
@@ -1115,9 +1194,24 @@ class Classifier28:
                 if entry(self.old_root, rel) is not None or path.is_symlink() or not path.is_file():
                     continue
                 parsed = alternatives_admin(path.read_bytes())
-                if parsed and all(target in self.owned['new'] for target in parsed[1]):
-                    self.groups[path.name] = parsed
+                if not parsed or path.name in parsed['links'].values() or any(
+                        target not in self.owned['new'] for choice in parsed['choices']
+                        for target in choice['targets'].values() if target):
+                    continue
+                priority = max(choice['priority'] for choice in parsed['choices'])
+                for choice in parsed['choices']:
+                    if parsed['mode'] == 'auto' and choice['priority'] != priority:
+                        continue
+                    targets = {name or path.name: target for name, target in choice['targets'].items()}
+                    if all(self.alternative_target(name, target) for name, target in targets.items()):
+                        self.groups[path.name] = (parsed['links'], targets)
+                        break
         return self.groups
+
+    def alternative_target(self, name, target):
+        link = entry(self.new_root, ALTERNATIVES + name)
+        return (link is None if not target else link is not None and link['kind'] == stat.S_IFLNK
+                and root_owned(link, 0o777) and not link['xattrs'] and link['target'] == target)
 
     def alternatives_rule(self, rel, before, after):
         if rel.startswith(ALTERNATIVES_ADMIN):
@@ -1125,20 +1219,18 @@ class Classifier28:
                     and not after['xattrs'] and rel[len(ALTERNATIVES_ADMIN):] in self.alternatives():
                 return ('package', 'package 23: alternatives record of an added package, every target a file of it')
             return None
-        names = {name for group, (links, _) in self.alternatives().items() for name in [group, *links.values()] if name}
+        targets = {name: target for _, group_targets in self.alternatives().values() for name, target in group_targets.items()}
         if rel.startswith(ALTERNATIVES):
             if before is None and after and after['kind'] == stat.S_IFLNK and root_owned(after, 0o777) \
-                    and rel[len(ALTERNATIVES):] in names and after['target'] in self.owned['new']:
+                    and not after['xattrs'] and after['target'] == targets.get(rel[len(ALTERNATIVES):]):
                 return ('package', 'package 23: alternatives link to a file of an added package')
             return None
         links = {link: name or group for group, (group_links, _) in self.alternatives().items()
                  for link, name in group_links.items()}
         if '/' + rel in links:
             name = links['/' + rel]
-            chosen = entry(self.new_root, ALTERNATIVES + name)
             if before is None and after and after['kind'] == stat.S_IFLNK and root_owned(after, 0o777) \
-                    and after['target'] == '/' + ALTERNATIVES + name and chosen and chosen['kind'] == stat.S_IFLNK \
-                    and chosen['target'] in self.owned['new']:
+                    and not after['xattrs'] and after['target'] == '/' + ALTERNATIVES + name and targets.get(name):
                 return ('package', f'package 23: the {name} command or file, through its alternatives link')
         return None
 
@@ -1166,6 +1258,8 @@ class Classifier28:
         override = pathlib.Path('os/config') / SCHEMA_OVERRIDE
         if self.read('new', SCHEMA_OVERRIDE) != override.read_bytes():
             return None
+        if not self.rebuilt_schemas()['matches']:
+            return None
         try:
             rows = schema_changes(self.read('old', SCHEMAS), self.read('new', SCHEMAS), override.read_text())
         except (ValueError, struct.error, UnicodeDecodeError):
@@ -1175,6 +1269,11 @@ class Classifier28:
         self.schema_rows = rows
         return ('build', 'package 31: glib-compile-schemas compiled zz-aresos.gschema.override; only its keys changed: '
                 + ', '.join(f"{row['schema']} {row['key']}" for row in rows))
+
+    def rebuilt_schemas(self):
+        if self.schema_rebuild is None:
+            self.schema_rebuild = rebuild_schemas(self.policy['new_image'])
+        return self.schema_rebuild
 
     def image_folder(self, rel):
         """True when rel and each folder above it are folders (not links) in the new image."""
@@ -1230,8 +1329,8 @@ class Classifier28:
         """True when the image's path is exactly what each record of it in the added packages' rpm database says:
         no %ghost, root's, its kind and mode, its link target, its size and SHA-256, no file capability; and no
         extended attribute, nothing setuid, setgid, sticky or group- or world-writable."""
-        records = self.policy['records'].get(rel)
-        if not records or after['uid'] or after['gid'] or after['xattrs'] \
+        records = [record for record in self.policy['records'].get(rel, []) if not record['flags'] & RPMFILE_GHOST]
+        if not records or after is None or after['uid'] or after['gid'] or after['xattrs'] \
                 or after['kind'] not in (stat.S_IFREG, stat.S_IFDIR, stat.S_IFLNK):
             return False
         if after['kind'] != stat.S_IFLNK and after['mode'] & 0o7022:
@@ -1264,11 +1363,17 @@ class Classifier28:
 
     def generated_rule(self, rel, before, after):
         if rel == RPM_DATABASE:
-            if before and after and before['kind'] == after['kind'] == stat.S_IFREG and same_meta(before, after):
+            if before and after and all(value['kind'] == stat.S_IFREG and root_owned(value, 0o644) and not value['xattrs']
+                                        for value in (before, after)):
                 return ('generated', 'rpm database (package list compared separately)')
             return None
-        for pattern, reason in GENERATED_28:
-            if fnmatch.fnmatchcase(rel, pattern):
+        for path, reason in GENERATED_28:
+            # These ten observed paths were rewritten, never added or removed. No executable, link,
+            # directory or metadata change is explained by regeneration of their contents.
+            mode = 0o600 if path == 'var/cache/ldconfig/aux-cache' else 0o644
+            if rel == path and before and after and all(
+                    value['kind'] == stat.S_IFREG and root_owned(value, mode) and not value['xattrs']
+                    for value in (before, after)):
                 return ('generated', reason)
         return None
 
@@ -1296,10 +1401,22 @@ class Classifier28:
                             + ', '.join(missing))
         if kept:
             problems.append('os/config files removed since release 27 that the image still has: ' + ', '.join(kept))
+        # A path absent in both images never enters the diff. Check the independently queried RPM
+        # records too, including unchanged paths shared with packages already in release 27.
+        invalid = [rel for rel, records in sorted(self.policy['records'].items())
+                   if any(not record['flags'] & RPMFILE_GHOST for record in records)
+                   and not self.package_file(rel, self.policy['inventory'].get(rel))]
+        if invalid:
+            problems.append('expected RPM paths missing or different from their records: ' + ', '.join(invalid))
+        if not self.prism_files():
+            problems.append('Prism bundle differs from the complete typed inventory of its pinned archive')
+        if not self.rebuilt_schemas()['matches']:
+            problems.append('compiled schemas differ from deterministic rebuild with the image compiler and schema directory')
         old_rc, new_rc = self.read('old', RC_XML), self.read('new', RC_XML)
-        return dict(schemas=self.schema_rows, font_caches=sorted(self.font_caches, key=lambda row: row['path']),
+        return dict(schemas=self.schema_rows, schema_rebuild=self.rebuilt_schemas(),
+                    font_caches=sorted(self.font_caches, key=lambda row: row['path']),
                     updaters=self.updater_rows,
-                    alternatives={name: sorted(targets) for name, (_, targets) in sorted(self.alternatives().items())},
+                    alternatives={name: dict(sorted(targets.items())) for name, (_, targets) in sorted(self.alternatives().items())},
                     theme=dict(image=crown, image_checks=pin, equal=crown == pin),
                     rc_xml=rc_xml_changes(old_rc, new_rc) if old_rc and new_rc else None), problems
 
@@ -1339,8 +1456,7 @@ def package_diff(old, new, old_lock, new_lock, reasons=None):
 
 
 def rpm_verify(image, nevras):
-    """Evidence, not a stop (yet): rpm -V of the added packages in the new image, rpm's own check of each of their
-    files against its database. It exits non-zero when anything differs; the lines say what."""
+    """rpm -V of the added packages. Release 28 requires a clean verification, as dry runs 3 and 4 recorded."""
     if not nevras:
         return None
     try:
@@ -1418,6 +1534,9 @@ def main(tools, run=None, release='27', evidence='evidence/image-diff'):
         children = lambda rel: any(p.startswith(rel + '/') for p in old)
         policy = dict(unmasked=unmasked, executables=profile['executables'], old_has_children=children, inventory=new,
                       main_base=main_base, records=records)
+        if release == '28':
+            policy.update(new_image=images['new'], prism_inventory=prism_inventory(
+                json.loads(pathlib.Path('os/minecraft/desktop.lock.json').read_text())['prism']))
         classifier = profile['classifier']((roots['old'], roots['new'], roots['base']), packages, ownership, policy)
         details, unexplained = {}, []
         for rel in changed:
@@ -1454,6 +1573,8 @@ def main(tools, run=None, release='27', evidence='evidence/image-diff'):
                 problems.append(f'image sources differ from main at the merge base {main_base}: ' + ', '.join(differing))
         if profile['package_files']:
             extra['rpm_verify'] = rpm_verify(images['new'], added)
+            if extra['rpm_verify'] and (extra['rpm_verify']['exit_code'] != 0 or extra['rpm_verify']['line_count']):
+                problems.append('rpm verification of the added packages failed or produced unexpected output')
 
         configs = [json.loads(command('skopeo', 'inspect', '--config', 'containers-storage:' + images[n])) for n in ('old', 'new')]
         base_config = json.loads(command('skopeo', 'inspect', '--config', 'containers-storage:' + base_reference))
