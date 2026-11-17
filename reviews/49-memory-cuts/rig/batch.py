@@ -68,19 +68,19 @@ def matrix(stage, winners=None):
                 run('cover-'+name+'-'+str(repeat), *flags)
     elif stage == 'winners':
         settings=json.loads(pathlib.Path(winners).read_text())['settings']
+        # Verify the refreshed automatic/menu creation observations before the longer flat matrix.
+        run('v1-create', 'MODE=create', 'HOMEKIND=flat', 'CREATE_FLOW=automatic', 'QUIT=1')
+        run('winner-create', *settings, 'MODE=create', 'HOMEKIND=flat', 'CREATE_FLOW=automatic', 'QUIT=1')
+        run('setup-nether', *settings, 'MODE=create', 'HOMEKIND=nether', 'CREATE_FLOW=menu', 'FLIGHT=none', 'QUIT=1')
+        base=WORK/'AresHub-nether-base'
+        if not base.exists():
+            shutil.copytree(WORK/'rigs/setup-nether/world', base)
+            subprocess.run([sys.executable,'-I',str(ROOT/'prepare-glide.py'),str(base)],check=True)
         # Main moved during the long factor matrix. Qualify the combination against fresh controls
         # from the merged mod tree, rather than pooling the earlier revision's controls invisibly.
         for repeat in (1,2,3):
             pair=[('v1-flat-'+str(repeat), []), ('winner-flat-'+str(repeat), settings)]
             for name, flags in (reversed(pair) if repeat == 2 else pair): run(name, *flags)
-        run('v1-create', 'MODE=create', 'HOMEKIND=flat', 'QUIT=1')
-        run('winner-create', *settings, 'MODE=create', 'HOMEKIND=flat', 'QUIT=1')
-        # Nether first-creation setup is separate evidence, not a reused flat world renamed Nether.
-        run('setup-nether', *settings, 'MODE=create', 'HOMEKIND=nether', 'FLIGHT=none', 'QUIT=1')
-        base=WORK/'AresHub-nether-base'
-        if not base.exists():
-            shutil.copytree(WORK/'rigs/setup-nether/world', base)
-            subprocess.run([sys.executable,'-I',str(ROOT/'prepare-glide.py'),str(base)],check=True)
         # A current v1 control verifies frames/TPS on the same untouched Nether base, not an older mod revision.
         run('v1-nether', 'BASE=AresHub-nether-base', 'FLIGHT=glide')
         run('winner-nether', *settings, 'BASE=AresHub-nether-base', 'FLIGHT=glide')

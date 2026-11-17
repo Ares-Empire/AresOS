@@ -1,0 +1,15 @@
+{
+  "settings": [
+    "GC=-XX:MaxHeapFreeRatio=30,-XX:MinHeapFreeRatio=10,-XX:+UseCompactObjectHeaders,-XX:TrimNativeHeapInterval=60000",
+    "ENV=MALLOC_ARENA_MAX=2"
+  ],
+  "purpose": "Combined candidate selected for current-source qualification; final recommendation depends on all recorded guards and comparisons.",
+  "cover_policy": "No forced GC, reclaim or freezing; ordinary covered pause plus the JVM trim interval.",
+  "selection": {
+    "headers": "Standing post-G1 heap minimum 17-23 MiB lower in both pairs, active frames clean.",
+    "arena_cap": "Both pairs saved 182-185 MiB settled and 248-295 MiB post-flight with no standing/flight frames over 17 ms.",
+    "native_interval": "Both pairs saved 170-206 MiB settled and 184-283 MiB post-flight. One isolated 18.5 ms flight frame makes combined frame qualification necessary.",
+    "non_additive": "Arena and interval savings overlap; no sum of isolated savings is claimed.",
+    "excluded": "String dedup, LWJGL system allocation, worker limits and FerriteCore lacked consistent additional benefit; forced covered GC exceeded 50 ms, and both frozen returns failed."
+  }
+}

@@ -37,11 +37,11 @@ name=${1:?usage: run.sh <name> [KEY=value ...]}
 shift
 RD=8 SD=5 HEAP=1024 MIN_HEAP=256 GC=-XX:MaxHeapFreeRatio=30,-XX:MinHeapFreeRatio=10 MEMHIGH=2560M SIZE=1920x1080 REFRESH=144 SETTLE=120 WINDOW=60 COVER=0 MODE=measure WORLD=base SHOTS=1
 HOMEKIND=flat BASE=AresHub-base FLIGHT=roads QUIT=0
-ENV= MODS= PROBE=0 RECLAIM= FREEZE=0 LONG=0 NMT=1 COVER_ACTION=none
+ENV= MODS= PROBE=0 RECLAIM= FREEZE=0 LONG=0 NMT=1 COVER_ACTION=none CREATE_FLOW=manual
 for setting; do
     key=${setting%%=*}
     case $key in
-        RD|SD|HEAP|MIN_HEAP|GC|MEMHIGH|SIZE|REFRESH|SETTLE|WINDOW|COVER|MODE|WORLD|SHOTS|HOMEKIND|BASE|FLIGHT|QUIT|ENV|MODS|PROBE|RECLAIM|FREEZE|LONG|NMT|COVER_ACTION)
+        RD|SD|HEAP|MIN_HEAP|GC|MEMHIGH|SIZE|REFRESH|SETTLE|WINDOW|COVER|MODE|WORLD|SHOTS|HOMEKIND|BASE|FLIGHT|QUIT|ENV|MODS|PROBE|RECLAIM|FREEZE|LONG|NMT|COVER_ACTION|CREATE_FLOW)
             printf -v "$key" '%s' "${setting#*=}" ;;
         *) echo "unknown setting $key" >&2; exit 2 ;;
     esac
@@ -50,6 +50,10 @@ case $MODE/$HOMEKIND/$FLIGHT/$QUIT in
     measure/*/roads/[01] | measure/*/glide/[01] | measure/*/none/[01] | hold/*/*/0 \
         | create/flat/roads/[01] | create/flat/none/[01] | create/nether/none/[01]) ;;
     *) echo "settings do not fit: MODE=$MODE HOMEKIND=$HOMEKIND FLIGHT=$FLIGHT QUIT=$QUIT" >&2; exit 2 ;;
+esac
+case $CREATE_FLOW/$MODE/$HOMEKIND in
+    manual/*/* | automatic/create/flat | menu/create/nether) ;;
+    *) echo "creation flow does not fit this mode/home" >&2; exit 2 ;;
 esac
 [[ $BASE =~ ^[A-Za-z0-9-]+$ ]] || { echo "BASE: a folder name in .work/pkg49" >&2; exit 2; }
 [[ ${PKG49_LOCK_HELD:-0} == 1 ]] || { echo "run through run.sh under the shared lock" >&2; exit 2; }
@@ -90,7 +94,11 @@ if [[ $MODE == measure && $WORLD == base ]]; then
     cp -a -- "$BASE" "$SAVE"
 fi
 # A first creation starts with no AresHub (the rig's working copy; the base worlds stay in .work/pkg49).
-[[ $MODE != create ]] || rm -rf -- "$SAVE"
+if [[ $MODE == create ]]; then
+    rm -rf -- "$SAVE"
+    # Package 48 creates flat automatically. Its Nether choice is reached from the real home menu.
+    [[ $CREATE_FLOW != menu ]] || cp -a -- "$BASE" "$SAVE"
+fi
 python3 -I - "$WT/mod/run/options.txt" "$RD" "$SD" <<'PY'
 import os, sys
 path, rd, sd = sys.argv[1], sys.argv[2], sys.argv[3]
@@ -124,12 +132,15 @@ if [[ -n $MODS ]]; then
     extra_mods=":${MODS//,/:}"
 fi
 jvm+=" -Dfabric.addMods=$FRAMES_JAR$extra_mods -Dpkg41.frames=$RIG/frames.txt ${GC//,/ }"
+if [[ $MODE == create && $CREATE_FLOW != manual ]]; then
+    jvm+=" -Dpkg49.ui=$RIG/ui.txt -Dpkg49.creation_marks=$RIG/creation-marks.txt"
+fi
 export PKG49_JVM_ARGS=$jvm PKG49_GAME_ENV=$ENV PKG49_PROBE=$PROBE PKG49_NMT=$NMT
 python3 -I "$here/host.py" "$RIG/host-start.json"
 if [[ $MODE == measure || -d $SAVE ]]; then export GAME_ARGS="--quickPlaySingleplayer AresHub"; else export GAME_ARGS=; fi
 printf '%s\n' "name=$name" "RD=$RD" "SD=$SD" "HEAP=$HEAP" "MIN_HEAP=$MIN_HEAP" "GC=$GC" "MEMHIGH=$MEMHIGH" "SIZE=$SIZE" \
     "REFRESH=$REFRESH" "SETTLE=$SETTLE" "WINDOW=$WINDOW" "COVER=$COVER" "MODE=$MODE" "WORLD=$WORLD" \
-    "HOMEKIND=$HOMEKIND" "BASE=$BASE" "FLIGHT=$FLIGHT" "QUIT=$QUIT" \
+    "HOMEKIND=$HOMEKIND" "BASE=$BASE" "FLIGHT=$FLIGHT" "QUIT=$QUIT" "CREATE_FLOW=$CREATE_FLOW" \
     "ENV=$ENV" "MODS=$MODS" "PROBE=$PROBE" "RECLAIM=$RECLAIM" "FREEZE=$FREEZE" "LONG=$LONG" "NMT=$NMT" "COVER_ACTION=$COVER_ACTION" "WAKE_INPUT=active-v3" \
     "JVM_ARGS=$jvm" "GAME_ARGS=$GAME_ARGS" "source_revision=$(git -C "$WT" rev-parse HEAD)" "started=$(date -Is)" >"$RIG/settings.txt"
 
@@ -186,7 +197,7 @@ mark game_detected
 python3 -I "$here/sample.py" "$game" "$RIG/samples.csv" 2 &
 sampler=$!
 log=$WT/mod/run/logs/latest.log
-if [[ $MODE == create ]]; then
+if [[ $MODE == create && $CREATE_FLOW == manual ]]; then
     # The title screen (GUI scale 4 at 1920 x 1080: 480 x 270 units). AresOS spans 140..340 x 91..111 with no AresHub;
     # on the create screen "Home: Flat" spans 100..380 x 53..73 and Create 100..236 x 221..241 (HomeCreateScreen).
     until [[ $log -nt $RIG/settings.txt ]] && grep -q 'Sound engine started' "$log"; do
@@ -203,6 +214,36 @@ if [[ $MODE == create ]]; then
     mark create_start
     vin click left
     vin move 960 1079
+fi
+if [[ $MODE == create && $CREATE_FLOW == menu ]]; then
+    until [[ $log -nt $RIG/settings.txt ]] && grep -q 'joined the game' "$log"; do
+        kill -0 "$game" 2>/dev/null || { echo "game ended before the setup flat home" >&2; exit 1; }
+        ((SECONDS < deadline)) || exit 1
+        sleep 0.2
+    done
+    mark setup_joined
+    sleep 3
+    vin key esc
+    python3 -I "$here/ui.py" "$RIG" 'New home…'
+    python3 -I "$here/ui.py" "$RIG" 'Home:' --prefix
+    sleep 0.5
+    shot create-screen
+    python3 -I "$here/ui.py" "$RIG" 'Create' --prefix
+    shot create-confirmation
+    python3 -I "$here/ui.py" "$RIG" 'Make the new home' --mark create_start
+    until grep -q 'New home: ready' "$log"; do
+        kill -0 "$game" 2>/dev/null || { echo "game ended while switching to the Nether" >&2; exit 1; }
+        ((SECONDS < deadline)) || { echo "Nether switch did not finish" >&2; exit 1; }
+        sleep 0.2
+    done
+fi
+if [[ $MODE == create && $CREATE_FLOW != manual ]]; then
+    until [[ -s $RIG/creation-marks.txt ]]; do
+        kill -0 "$game" 2>/dev/null || { echo "game ended before creation was observed" >&2; exit 1; }
+        ((SECONDS < deadline)) || { echo "no creation observation" >&2; exit 1; }
+        sleep 0.1
+    done
+    python3 -I "$here/creation.py" "$RIG" "$HOMEKIND" "$CREATE_FLOW"
 fi
 until [[ $log -nt $RIG/settings.txt ]] && grep -q 'joined the game' "$log"; do
     kill -0 "$game" 2>/dev/null || { echo "the game ended before the world opened" >&2; exit 1; }

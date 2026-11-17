@@ -92,7 +92,7 @@ def window(start, end, clip_start=False):
 
 summary = {'name': settings.get('name'), 'settings': {k: settings.get(k) for k in
            ('RD', 'SD', 'HEAP', 'MIN_HEAP', 'GC', 'MEMHIGH', 'SIZE', 'REFRESH', 'SETTLE', 'WINDOW', 'COVER', 'MODE',
-            'HOMEKIND', 'BASE', 'FLIGHT', 'ENV', 'MODS', 'PROBE', 'RECLAIM', 'FREEZE', 'LONG', 'NMT', 'COVER_ACTION', 'WAKE_INPUT')},
+            'HOMEKIND', 'BASE', 'FLIGHT', 'ENV', 'MODS', 'PROBE', 'RECLAIM', 'FREEZE', 'LONG', 'NMT', 'COVER_ACTION', 'WAKE_INPUT', 'CREATE_FLOW')},
            'windows': {}, 'snapshots': {}}
 # A first creation (MODE=create): from the Create click to joining, then while the town builds (flat), and the first
 # 30 s in the new world (60 s would reach vanilla's 30-frames limit, 60 s after the last input: the Create click).
@@ -163,7 +163,7 @@ def public(value):
     return value
 summary = public(summary)
 json.dump(summary, open(os.path.join(out, 'summary.json'), 'w'), indent=1)
-for name in ('settings.txt', 'marks.txt', 'samples.csv', 'cover.txt', 'randr.txt', 'actions.jsonl', 'host-start.json', 'host-end.json', 'faults-return.json', 'wake-input.jsonl', 'return-observer.jsonl'):
+for name in ('settings.txt', 'marks.txt', 'samples.csv', 'cover.txt', 'randr.txt', 'actions.jsonl', 'host-start.json', 'host-end.json', 'faults-return.json', 'wake-input.jsonl', 'return-observer.jsonl', 'creation-marks.txt'):
     if os.path.exists(os.path.join(rig, name)):
         open(os.path.join(out, name), 'w').write(public(open(os.path.join(rig, name)).read()).rstrip() + '\n')
 if os.path.exists(os.path.join(rig, 'gc.txt')):

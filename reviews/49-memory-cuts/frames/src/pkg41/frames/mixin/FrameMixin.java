@@ -12,5 +12,6 @@ abstract class FrameMixin {
     @Inject(method = "runTick", at = @At("HEAD"))
     private void pkg41$frame(boolean advanceGameTime, CallbackInfo info) {
         pkg41.frames.Frames.mark();
+        pkg41.frames.Observations.screen();
     }
 }

@@ -29,6 +29,6 @@ for n in /sys/class/drm/renderD*; do
 done
 [[ -n $node ]] || { echo "no NVIDIA render node" >&2; exit 1; }
 exec /usr/bin/env -u DISPLAY -u WAYLAND_DISPLAY -u WAYLAND_SOCKET -u ARESOS_LAUNCH_NONCE -u ARESOS_DESKTOP_INSTANCE \
-    -u ARESOS_SHELL_SOCKET WLR_BACKENDS=headless WLR_LIBINPUT_NO_DEVICES=1 WLR_RENDER_DRM_DEVICE="$node" \
+    -u ARESOS_SHELL_SOCKET -u ARESOS_DESKTOP_LIFECYCLE WLR_BACKENDS=headless WLR_LIBINPUT_NO_DEVICES=1 WLR_RENDER_DRM_DEVICE="$node" \
     /usr/bin/systemd-run --user --scope --collect --quiet --unit="pkg49-rig-$$" -- \
     /usr/bin/labwc -C "$RIG/labwc" -s "$here/inner.sh" >"$RIG/labwc.txt" 2>&1

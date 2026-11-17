@@ -17,6 +17,6 @@ test_reader_reopening_gap_and_multiple_commands (test_rig.WakeInputTest.test_rea
 test_frozen_gap_clipped_at_wake_and_33ms_is_exact (test_rig.WakeTest.test_frozen_gap_clipped_at_wake_and_33ms_is_exact) ... ok
 
 ----------------------------------------------------------------------
-Ran 14 tests in 2.260s
+Ran 14 tests in 2.273s
 
 OK
