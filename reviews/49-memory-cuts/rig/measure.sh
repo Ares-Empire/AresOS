@@ -130,7 +130,7 @@ if [[ $MODE == measure || -d $SAVE ]]; then export GAME_ARGS="--quickPlaySinglep
 printf '%s\n' "name=$name" "RD=$RD" "SD=$SD" "HEAP=$HEAP" "MIN_HEAP=$MIN_HEAP" "GC=$GC" "MEMHIGH=$MEMHIGH" "SIZE=$SIZE" \
     "REFRESH=$REFRESH" "SETTLE=$SETTLE" "WINDOW=$WINDOW" "COVER=$COVER" "MODE=$MODE" "WORLD=$WORLD" \
     "HOMEKIND=$HOMEKIND" "BASE=$BASE" "FLIGHT=$FLIGHT" "QUIT=$QUIT" \
-    "ENV=$ENV" "MODS=$MODS" "PROBE=$PROBE" "RECLAIM=$RECLAIM" "FREEZE=$FREEZE" "LONG=$LONG" "NMT=$NMT" "COVER_ACTION=$COVER_ACTION" \
+    "ENV=$ENV" "MODS=$MODS" "PROBE=$PROBE" "RECLAIM=$RECLAIM" "FREEZE=$FREEZE" "LONG=$LONG" "NMT=$NMT" "COVER_ACTION=$COVER_ACTION" "WAKE_INPUT=active-v2" \
     "JVM_ARGS=$jvm" "GAME_ARGS=$GAME_ARGS" "source_revision=$(git -C "$WT" rev-parse HEAD)" "started=$(date -Is)" >"$RIG/settings.txt"
 
 mono() { python3 -I -c 'import time; print(time.monotonic_ns())'; }
@@ -324,13 +324,8 @@ PYFAULT
     kill "$cover" 2>/dev/null || true; wait "$cover" 2>/dev/null || true; cover=
     mark wake_start
     python3 -I "$WT/reviews/40-real-home/rig/tl.py" "$RIG" activate aresos-desktop >>"$RIG/cover.txt" 2>&1
-    # Input lifts the vanilla inactivity limit without resetting the player's position.
-    vin rel 1 0
-    python3 -I - "$RIG/marks.txt" <<'PYWAKE'
-import sys, time
-marks = dict(line.split() for line in open(sys.argv[1]))
-time.sleep(max(0, (int(marks['wake_start']) + 10_000_000_000 - time.monotonic_ns()) / 1e9))
-PYWAKE
+    # Repeated input makes this an active return; the probe's single count left vanilla capped at 30 fps.
+    python3 -I "$here/wake.py" "$RIG"
     mark wake_end
     python3 -I "$here/snap.py" "$game" wake "$RIG"
 fi

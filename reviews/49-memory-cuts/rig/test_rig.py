@@ -69,6 +69,18 @@ class FrozenSnapshotTest(unittest.TestCase):
             self.assertEqual(result['nmt_committed_mib'],{})
 
 
+class WakeInputTest(unittest.TestCase):
+    def test_dead_virtual_input_reader_fails_instead_of_holding_the_game_lock(self):
+        import os, time
+        with tempfile.TemporaryDirectory(dir=ROOT / '../../../.work/pkg49') as directory:
+            rig=pathlib.Path(directory)
+            (rig/'marks.txt').write_text(f'wake_start {time.monotonic_ns()}\n')
+            os.mkfifo(rig/'vin')
+            result=subprocess.run([sys.executable,'-I',str(ROOT/'wake.py'),str(rig)],capture_output=True,text=True,timeout=2)
+            self.assertNotEqual(result.returncode,0)
+            self.assertIn('[Errno 6]',result.stderr)
+
+
 class WakeTest(unittest.TestCase):
     def test_frozen_gap_clipped_at_wake_and_33ms_is_exact(self):
         # An unthawed 5 minute gap must not be charged to wake latency.
@@ -78,8 +90,13 @@ class WakeTest(unittest.TestCase):
             (rig/'settings.txt').write_text('name=fixture\n')
             (rig/'marks.txt').write_text('joined 1000000000\nwake_start 301000000000\nwake_end 311000000000\ndone 311000000000\n')
             (rig/'frames.txt').write_text('1000000000\n301100000000\n301133200000\n301150000000\n')
+            (rig/'faults-return.json').write_text(json.dumps({'majflt':3}))
+            (rig/'snap-wake.json').write_text(json.dumps({'label':'wake','status_mib':{},'smaps_rollup_mib':{},
+                'nmt_committed_mib':{},'cgroup_mib':{'current':1,'peak':1,'swap':0,'high':'2684354560'},
+                'cgroup_events':{},'majflt':23,'zram_mm_stat':{},'smaps_classes':{},'frozen':False}))
             subprocess.run([sys.executable, '-I', str(ROOT/'analyze.py'), str(rig), str(out)], check=True, capture_output=True)
             summary=json.loads((out/'summary.json').read_text())
+            self.assertEqual(summary['wake_majflt_delta'],20)
             self.assertEqual(summary['wake_first_frame_ms'],100)
             self.assertEqual(summary['windows']['wake']['max_ms'],100)
             self.assertEqual(summary['windows']['wake']['over_33ms'],2)

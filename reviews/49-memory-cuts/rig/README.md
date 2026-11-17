@@ -45,6 +45,10 @@ The ten-second `wake_start` mark follows the cover process closing; activation a
 interval is clipped to that mark, so a five-minute frozen interval is not counted as a five-minute wake stall.
 `return_to_first_frame_ms` includes thaw and window-close overhead; `wake_first_frame_ms` starts at cover close.
 These are recorder frame starts, not display presentation timestamps. Frames count gaps >17 and >33 ms exactly.
+The diagnostic `s0-probe` used one tiny relative movement and stayed at vanilla's 30 fps inactivity cap after
+cover close. Its raw wake data is retained, but all comparisons use `WAKE_INPUT=active-v2`: a control-key
+transition plus repeated camera turns through the wake window (`wake.py`), like the active standing workload.
+The helper fails promptly if the virtual input reader is gone, instead of holding the shared lock forever.
 
 `analyze.py` publishes small evidence and redacts worktree/home paths. Raw game logs, jars, worlds, frames and
 launcher/helper credentials remain in ignored `.work/`. Public data includes heap/probe outputs, snapshots,
@@ -61,3 +65,9 @@ Checks without a game:
 python3 -m unittest discover -s reviews/49-memory-cuts/rig -p 'test_rig.py' -v
 for script in reviews/49-memory-cuts/rig/*.sh reviews/49-memory-cuts/frames/build.sh; do bash -n "$script"; done
 ```
+
+`batch.py` provides the ordered `step0`, `factors`, `covered` and `winners <settings.json>` schedules. The factor
+stage waits for `.work/pkg49/factors-ready`: create that marker only after auditing the step-0 summaries and rig
+controls. The winner settings file contains `{"settings": ["KEY=value", "..."]}`; choose it from the evidence.
+Each factor has a fresh baseline, in A/B order in round 1 and B/A in round 2. Every completed run releases the
+shared game lock; the batch also waits 30 seconds. Interrupted/failed runs are never silently overwritten.

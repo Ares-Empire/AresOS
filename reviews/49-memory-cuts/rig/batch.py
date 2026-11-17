@@ -38,6 +38,8 @@ def matrix(stage, winners=None):
         run('s0-probe', 'PROBE=1')
         run('s0-long', 'LONG=20', 'FLIGHT=none', 'COVER=0')
     elif stage == 'factors':
+        print('Waiting for the step-0 measurement audit (factors-ready marker).', flush=True)
+        while not (WORK/'factors-ready').exists(): time.sleep(5)
         snaps = json.loads((OUT/'s0-probe/summary.json').read_text())['snapshots']
         # Use the larger observed return from either direct trim or the post-GC trim, at every snapshot.
         skip_native = all(max(v['probe_trim_rss_delta_mib'], v['probe_gc_trim_rss_delta_mib']) < 30 for v in snaps.values())

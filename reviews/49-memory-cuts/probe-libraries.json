@@ -1,0 +1,17 @@
+{
+  "run": "s0-probe",
+  "phase": "covered",
+  "libraries": [
+    "libEGL.so.1.1.0",
+    "libGLX.so.0.0.0",
+    "libGLX_nvidia.so.0",
+    "libjemalloc.so",
+    "libnvidia-allocator.so.615.78.08",
+    "libnvidia-glcore.so.615.78.08",
+    "libnvidia-glsi.so.615.78.08",
+    "libnvidia-gpucomp.so.615.78.08",
+    "libnvidia-tls.so.615.78.08",
+    "nvidia0",
+    "nvidiactl"
+  ]
+}

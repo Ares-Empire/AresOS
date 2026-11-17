@@ -1,0 +1,20 @@
+[
+ {
+  "command": "System.trim_native_heap",
+  "exit": 0,
+  "stdout": "259041:\nTrim native heap: RSS+Swap: 1232M->1199M (-33788K)\n",
+  "stderr": ""
+ },
+ {
+  "command": "GC.run",
+  "exit": 0,
+  "stdout": "259041:\nCommand executed successfully\n",
+  "stderr": ""
+ },
+ {
+  "command": "System.trim_native_heap",
+  "exit": 0,
+  "stdout": "259041:\nTrim native heap: RSS+Swap: 1201M->1190M (-11400K)\n",
+  "stderr": ""
+ }
+]

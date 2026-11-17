@@ -1,0 +1,13 @@
+test_frozen_snapshot_never_attaches_jcmd (test_rig.FrozenSnapshotTest.test_frozen_snapshot_never_attaches_jcmd) ... ok
+test_exact_owned_scope_with_membership (test_rig.ScopeTest.test_exact_owned_scope_with_membership) ... ok
+test_pid_in_ancestor_or_different_scope_refused (test_rig.ScopeTest.test_pid_in_ancestor_or_different_scope_refused) ... ok
+test_unrelated_unit_refused_before_any_read (test_rig.ScopeTest.test_unrelated_unit_refused_before_any_read) ... ok
+test_mapping_totals_and_unattributed_anonymous (test_rig.SmapsTest.test_mapping_totals_and_unattributed_anonymous) ... ok
+test_dead_virtual_input_reader_fails_instead_of_holding_the_game_lock (test_rig.WakeInputTest.test_dead_virtual_input_reader_fails_instead_of_holding_the_game_lock) ... ok
+test_frozen_gap_clipped_at_wake_and_33ms_is_exact (test_rig.WakeTest.test_frozen_gap_clipped_at_wake_and_33ms_is_exact) ... ok
+
+----------------------------------------------------------------------
+Ran 7 tests in 0.081s
+
+OK
+frozen: RSS 100 MiB; heap None; scope 100 MiB; swap 2 MiB; majflt 3
