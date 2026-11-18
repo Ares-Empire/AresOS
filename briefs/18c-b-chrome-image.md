@@ -22,8 +22,9 @@ anyone touching it. A throwaway CI image proves all of it in the CI virtual mach
 **What the owner will see once a release carries it:** Chrome opens with a pinned "AresOS Chrome" button he can't
 remove, and Chrome's menu says the browser is managed. Claude's Chrome reads and actions answer "not set up yet"
 until he writes his never-list once with `sudo` in the live sitting (his dashboard's host first; an empty list
-only if he has no site to exclude; "For his guide" below). After that they work, and keep working after an update
-or going back a version without another step.
+only if he has no site to exclude; "For his guide" below). After that they work. Installation follows an update
+or rollback automatically; once 28b adds profile pinning,
+reconnection follows the open owner choice in "CROSS-5 identity handoff" below.
 "Allow editing" asks for his password in the usual dialog.
 
 ## Why now
@@ -115,8 +116,9 @@ pinned base, so its `/usr` shows what the base has. Check each one in the tree b
   polkit action allows only an active local session (`allow_active=auth_admin`, the others `no`). Whether polkit
   counts such a process as his active session is unproven (`control-chrome-polkit.yml` used a CI-only rule instead
   and left this to 18c-b).
-- **The extension keeps nothing in the browser:** no `chrome.storage`, IndexedDB, `localStorage` or
-  `sessionStorage` in `control/chrome/extension/`. A new extension identity therefore loses nothing.
+- **The extension on this baseline keeps nothing in the browser:** no `chrome.storage`, IndexedDB, `localStorage` or
+  `sessionStorage` in `control/chrome/extension/`. The sole proposed future exception is 28b's installation
+  identity, deliberately lost on replacement; it is not the persistent profile pin (handoff below).
 - **Test group 12** (the managed ask on `chrome_submit`) already runs in 18d's container harness on `main` (job
   `native-precedence` in `control-chrome.yml`). It is not part of this package.
 
@@ -131,7 +133,8 @@ pinned base, so its `/usr` shows what the base has. Check each one in the tree b
   never change, so `/etc`'s per-deployment merge has nothing to get wrong, and an update or rollback swaps the real
   files with the image.
 - **Accepted with it:** after an update Chrome removes the old extension and installs the new one; anything the
-  extension stored in the browser would be lost (it stores nothing, and item 1 pins that).
+  extension stored in the browser would be lost. Item 1 pins that storage boundary; 28b's proposed exception
+  requires owner-confirmed relinking, never automatic acceptance of a replacement identity.
 - **Not reproducible, on purpose.** Two builds of one commit give different `extension.crx`, ID and generated files
   (a fresh key each time). What is compared instead: the packed files (`payload`, names and SHA-256) equal the
   commit's extension files, the generated files equal the templates rendered with the recorded ID, and
@@ -140,6 +143,70 @@ pinned base, so its `/usr` shows what the base has. Check each one in the tree b
   list at first boot as a placeholder the existing validator refuses. Until he writes a `format` 1 list as root (an
   empty one counts), every Chrome read and action answers `chrome_settings_unavailable`. The list lives in `/var`,
   shared by all deployments, so updates and `previous` keep it; the service can never write it.
+
+## CROSS-5 identity handoff (finding 1; owner decision pending)
+
+**Decision and why.** Keep the per-image signing key and tested replacement/rollback design. The old blanket
+storage prohibition and 28b's permanent pin of an IndexedDB id cannot both be built. A replacement id proves
+nothing about which Chrome profile connected. The recommendation is **owner-confirmed continuity**, not a new
+permanent signing secret; 28b item 1 specifies the protocol and tests.
+
+**Question for the owner:** after an update or rollback replaces Chrome's helper, are you willing to confirm
+once that Claude is reconnecting to the profile you want? **Options:** confirm after each replacement
+(recommended), or make it automatic, which needs a separate persistent identity design and delays this part.
+**Why it matters:** Claude's tools pause until you confirm, but another Chrome profile can't silently take over.
+The recommendation preserves the install work already proven and avoids keeping a signing secret. A permanent
+extension key alone doesn't solve rollback: it must also prove which extension version Chrome runs.
+`linux-tools` records his answer; this revision does not supply it.
+
+Under the recommended choice, 28b stores only a random **installation id** in an extension-owned IndexedDB
+module `profile_identity.js` (no new manifest permission). A durable logical profile pin in the service keeps
+the currently owner-authorized `(extension id, installation id)` pair. The same pair reconnects; a new pair is
+refused until the owner relinks it to that pin through the admin command. Relinking revokes the previous pair;
+rollback to A also requires confirmation when its storage was replaced. The logical pin stays identical through
+A → B → A. A different profile is refused even when it is first to connect after replacement; deliberate
+profile switching is a separate owner command. This is explicit owner authorization, not an asserted automatic
+proof of profile continuity. Old refs, lists and approvals never survive a connection change.
+
+**Storage pin amendment (`control/chrome_tests/test_extension_stores_nothing.py`), only with that choice:** keep
+rejecting `chrome.storage`, `localStorage`,
+`sessionStorage` and IndexedDB everywhere except that one identity module. Its behavioral tests permit one
+versioned installation-id record and nothing else: no page data, tabs, fields, host lists, approvals or logs.
+Other modules call its narrow get-or-create interface, never open a database. Test a forbidden storage call
+outside it and an extra stored field inside it. Update its `DECIDE_FIRST` explanation too: installation-only
+data does not require a permanent key.
+This replaces the blanket IndexedDB ban, not the test itself;
+the owner must approve the exception before it lands. No attempt to preserve the old extension's storage is
+made. Until 28b is integrated, the blanket test still passes and stays in force.
+
+**Remaining steps of PR #76 (1a–2b already built; 3a next after PR #58):**
+
+- **3a:** install the current bundle as planned, with no permanent key or new profile file. Record this pending
+  owner decision and the pin integration dependency in `PROGRESS.md`; don't repeat 1a–2b or treat their
+  connection-only proof as a profile proof. If the owner-approved 28b module is present by then, update the
+  storage test narrowly in the integrating PR and rerun the packer/install tests; otherwise retain the ban.
+- **3b:** `gh` work is unchanged. It supplies no profile identity and never resets a pin.
+- **4/4b:** keep C3/C6's first-use tests. When pinning is present, seed one synthetic logical pin via the real
+  supported setup and inspect only test identifiers; do not bypass the gate to make C3 green. No laptop profile.
+- **5:** extend case 3/C4 with 28b's real handshake/store once available: same profile A → B → A, pin unchanged,
+  each replacement refused before owner relink and accepted after; second profile refused on A and B, also
+  connecting first, and retired pairs refused. Ordinary restart needs no relink. Keep the existing assertions
+  about old extension removal, current origin, code version and probe refusal. If 28b is not merged yet, keep
+  the combined container case 3 as an explicit integration dependency for **28b**; `linux-tools` assigns C4
+  to the image/release build when pinning lands. Both are required before shipping. Do not claim
+  end-to-end pin continuity from the existing stand-in service.
+- **6:** report installation separately from profile continuity, carry the owner-approved reconnection step
+  into the guide, and pass the release rehearsal dependency to `linux-aresos` through the lead. No release
+  containing 28b ships without the combined proof; this does not stop unrelated image work.
+
+The handoff explicitly permits editing the existing storage test and install-proof files for this integration,
+despite the earlier new-files-only scope. Runtime pin/handshake changes belong to 28b, not to 18c-b.
+
+**Tests and reviewer mutations:** case 3/C4 must fail if a replacement hello automatically replaces the accepted
+pair (the second-profile case), if relinking changes the logical pin (A → B → A), or if old pairs remain accepted
+(retired-pair case). The storage test must fail when an ordinary extension file opens IndexedDB or the identity
+module stores a page field. Keep the existing packer mutation/negative checks too. Record actual commands and
+results; this revision runs no image, browser or workflow.
 
 ## The work
 
@@ -176,9 +243,11 @@ pinned base, so its `/usr` shows what the base has. Check each one in the tree b
     path. No wildcard, no second origin.
   - Fixed values for the image: `UPDATE_URL` is `file:///usr/share/aresos/chrome/update.xml`, `CRX_URL` is
     `file:///usr/share/aresos/chrome/extension.crx`.
-- **Pin "stores nothing":** a test that fails when the extension's sources start using `chrome.storage`, IndexedDB,
+- **Pin "stores nothing", with only the owner-approved exception above:** a test that fails when the extension's
+  sources start using `chrome.storage`, IndexedDB,
   `localStorage` or `sessionStorage`, with a message that points here: a per-image identity drops such data at
-  every update, so that change needs the owner's decision first.
+  every update, so that change needs the owner's decision first. The handoff above defines the narrow amendment
+  when 28b lands; no blanket deletion or general storage exemption.
 - **The excluded-sites list moves to `/var` and starts refused** (the only change to the service, and to its tests
   and CI, that this package makes):
   - `control/aresos_control/chrome/exclusions.py`: `SETTING` (line 8) becomes
@@ -414,6 +483,9 @@ version) or **assumed**, with the measured times of the VM pass.
 
 ### For his guide (the report carries these lines; the lead puts them in the live-sitting guide)
 
+With 28b, add the owner-approved profile reconnection procedure from the CROSS-5 handoff. Do not promise that
+the tools reconnect automatically after replacing the extension until that choice and its proof are complete.
+
 - **His never-list, once, before Claude's first session in his Chrome.** Until then every Chrome read and action
   answers that the excluded-sites setting is not set up yet. Run
   `sudo tee /var/lib/aresos-control/chrome-excluded-sites.json >/dev/null`
@@ -555,7 +627,8 @@ in its records workflow, the others with the Control suites and `checks_only`; l
   a special file in the extension folder is refused; no private key in any returned value, in the output folder or
   in a temporary folder afterwards (the key scan below); a `node` test verifies a `pack.py` package with
   `node:crypto`, so the two packers agree on the format. All under `control/chrome/ci/install/`.
-- The storage pin and the placeholder test of item 1 with its sweep over the tool list (`control/chrome_tests/`).
+- The storage pin (including the conditional CROSS-5 exception) and the placeholder test of item 1 with its
+  sweep over the tool list (`control/chrome_tests/`).
 - `record_build.py`: item 4's tests.
 - `os/tests`: `control-tree` leaves `control/` byte-identical and its `build-id.json` equals `build.py` on the
   checkout (the ordering rule); no installed file contains `EXTENSION_ID`, `UPDATE_URL` or `CRX_URL`; the `/etc`
@@ -637,6 +710,8 @@ Watch with `gh run watch <id> --exit-status --interval 300`.
 | **Chrome telling a store about our extension.** | Item 2's case 5 and C9: no request names our ID except `file:` ones, and no request at all to the update service (which would carry the ID in a body the log doesn't show), each with the probe as a positive control; in the container a negative control without `override_update_url` must fail the scan. |
 
 ## Steps (one fresh agent each, about 250k tokens; PROGRESS.md after each)
+
+Follow "CROSS-5 identity handoff" for the additions to remaining steps 3a–6; 1a–2b are already built.
 
 - **1a. Packer, templates, pins** (item 1: `pack.py` and its tests, the templates, the storage pin, the
   excluded-sites path, message, tmpfiles file and their test, the README). Starts at once.

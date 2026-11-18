@@ -13,14 +13,15 @@ he goes to uni website. Although the permission interpretation on this needs to 
 rules for fields and addresses, and the new read. Brief 28a (`briefs/28a-chrome-act.md`) builds the new tool list
 and everything that acts. This package waits for 28a: building starts only after PR #27, brief 28 and brief 28a
 are merged, from `main` after 28a's merge. **None of the three reaches the owner's laptop before all three are
-merged,** so this is the last package before the tool does. The owner has answered every question it had
-("JUDGMENT-CALLs" below). It adds one tool, the asking `chrome_take_reload` (item 4). It changes what `chrome_read`,
+merged,** so this is the last package before the tool does. The two new owner questions under
+"JUDGMENT-CALLs" must be answered before their dependent build steps. It adds one tool, the asking
+`chrome_take_reload` (item 4). It changes what `chrome_read`,
 `chrome_take`, `chrome_close`, `chrome_open` and the asking read (`chrome_prepare_read_typed_fields` with
 `chrome_read_typed_fields`) do with his tabs, gives them one new input, `request`, and changes
 what he sees.
 
-**Builder (recommended, the lead confirms at launch):** a Claude agent on Fable 5.2: the work is in his own tabs,
-needs judgment about what counts as his work, and must not be cut off halfway. **Review** (`docs/REVIEW.md`,
+**Builder:** Codex gpt-6.1-sol, one builder at a time, following "Build order" below. The lead is `linux-tools`.
+The work is in his own tabs and needs judgment about what counts as his work. **Review** (`docs/REVIEW.md`,
 "Tools for Claude"): a package review and a security review at once. The security review is one of the high-stakes
 ones (his own tabs, where he types passwords; the asking read on a tab of his; the last package before the tool
 reaches his laptop): Fable 5.2, or Codex's frontier model while it is available. **The security review also
@@ -35,7 +36,8 @@ a frame he used that the page removed, and an approval for `chrome_take_reload` 
 **One kind of path stays open and is a known limit** (the lead, 2026-11-16, after reviews 5 and 6): what the
 page's own script does after a step that item 4 doesn't check, which the tool can't see beforehand. That is a
 button, a `javascript:` or `#` link, or a link that opens a new tab, whose handler navigates; a form's other
-control whose handler submits; and a script that clears his work without navigating (item 4). The package review
+control whose handler submits **without being held**; and a script that clears his work without navigating (item
+4). A held submission is checked separately under item 4c before resumption. The package review
 runs on Opus or Codex's workhorse.
 
 ## Background (read first)
@@ -68,7 +70,25 @@ else.
 
 ## JUDGMENT-CALLs
 
-No open JUDGMENT-CALL. The owner has answered every question this package had.
+**Owner questions added after BRIEF-CROSS-5 (not yet answered).** The lead `linux-tools` takes these to him.
+The recommendations below are concrete build contracts, conditional on his choice; they are not recorded as
+owner acceptance. Unrelated steps may proceed. Until answered, keep mismatched profiles disconnected and held
+submissions with possible loss stopped; don't ship a temporary bypass.
+
+1. **After an image update replaces Chrome's helper, should you confirm once that Claude is reconnecting to
+   the same Chrome profile?** This keeps Claude away from another profile, but the Chrome tools wait for you
+   after an update or a rollback. Options: **confirm the profile after each replacement** (recommended; item 1's
+   lifecycle), or **make reconnection automatic**, which needs a separately reviewed persistent identity design
+   and delays this part of the build. A permanent signing key alone isn't that design: it also has to prove
+   that rollback runs the old image's extension code, not a newer copy kept in the profile. Recommend the
+   explicit confirmation because it preserves 18c-b's tested image replacement and needs no permanent signing
+   secret. Changing later costs the identity protocol, storage/migration and install/update tests.
+2. **When a delayed form send is held, should one question let you send it and discard other work on that page?**
+   A page can hold another draft beside that form. Options: **one question showing the send and naming the
+   possible loss** (recommended; item 4c), or **always stop when other work may be lost**, so you finish it or
+   send the form yourself. Recommend the combined question: it keeps your delayed submissions working (board
+   #138) without treating a send approval as permission to throw away an unrelated draft. A refusal or changed
+   page sends nothing. Changing later costs only the held-submission policy/question tests, not the hold.
 
 **Already decided by the owner** (his words; `docs/control/PLAN.md` and the board):
 
@@ -120,10 +140,12 @@ No open JUDGMENT-CALL. The owner has answered every question this package had.
 - Reloading a tab of his that isn't known clean asks him through `chrome_take_reload`, a managed ask (lead,
   2026-11-14: losing his typing is data loss). It is never offered for a frame that doesn't answer (item 4; N8).
 - `chrome_open` with `tab` opens the address the list showed, wherever his tab has gone since (item 2; N4).
-- No marker watches his tabs; the reader a read installs keeps its passive observers (item 3; N5).
+- No marker watches his tabs merely because they are open; the reader keeps passive observers after a read
+  (item 3; N5), and preparing a loss question adds item 4d's passive freshness observation.
 - In a taken tab, a page he has used since the take is asked about like his typing, and a step that follows a
   link, submits a form or resets one is checked first. What a page's own script does after any other step,
-  navigation or not, is a known limit (item 4; the lead, 2026-11-16, after reviews 5 and 6).
+  navigation or not, remains the earlier script-effect limit only while it is outside the tool's control. A held
+  submission is excluded: item 4c supersedes that part of the reviews 5/6 decision after CROSS-5.
 
 **Decided here, and the lead's to defend:**
 
@@ -134,26 +156,67 @@ No open JUDGMENT-CALL. The owner has answered every question this package had.
 
 ## What to build
 
+### 0. Inherit package 28 and 28a before adding his-tab paths
+
+Keep 28a item 0's native-boundary repair and **every fresh-side comparison** in its repaired representation,
+including the new listed-page, field-description, reload and held-loss bindings. Keep the full private facts,
+not public-address projections. Retain package 28's native option resolution and end-of-control reference
+cleanup; a release or Stop drops references as well as approvals, without resetting the counter.
+
+28a item 3b owns the asking-path change for distinguishable fields. Every field named in this package's asking
+read, reload or held-send question inherits that rule, also across frames with the same name. Do not reopen the
+frozen asking read to read extra values. Repeat the two-same-label sentence/identity tests in his in-place tabs.
+
+28a item 5b owns the structured loss-error transport. Reuse its fixed service-written `reload_required` message
+and `untrusted_content.loss` for bare errors, batched refusals and kept-tab reports. Questions use
+`description.untrusted_content.loss`; labels never enter trusted error, reason, stage or notice prose. Test
+hostile labels containing instructions and serialization delimiters through each of these new branches and
+operation-status serialization. Mutation: flatten a loss label into `message`; that envelope test must fail.
+
 ### 1. What Claude sees
 
 - `chrome_tabs` as brief 28a built it: every tab of every normal window, whose it is, the marks, the title, and the
   address in brief 28's short form (no query, no fragment, no sign-in path).
 - **Incognito never.** Add `"incognito": "not_allowed"` to the manifest. An incognito window's tabs are never
   listed, read or taken.
-- **One profile, and it is pinned.** Brief 20's service accepts one native host at a time: whichever profile's
-  extension connects, also after a reconnect (`Bridge.accept` in `bridge.py`; the hello carries a session and a
-  version, nothing about the profile). So a second Chrome profile could quietly take the place of the one Claude
-  worked in. Build the smallest thing that stops it:
-  - the extension keeps a random id for its profile in its own storage (the service worker's IndexedDB; no new
-    permission) and sends it in its hello;
-  - the service remembers the first profile id that ever connects, and refuses a hello with another one. While
-    only that other profile runs, the tools answer `chrome_unavailable`, "Chrome is connected from another profile
-    than the one Claude works in";
-  - he changes the pinned profile himself: the extension's details page shows its profile's id, and the owner-only
-    `chrome_sites` gets one command, `profile`, behind `sudo aresos admin chrome profile <id>`;
-  - on every new connection the service empties the reference table and drops every list (`seen`), as briefs 28
-    and 28a built it, so nothing chosen under one connection is used under another.
-  Add the line "Claude sees one Chrome profile, the pinned one" to `docs/control/FEATURES.md`. Don't build more.
+- **One profile, and it is pinned (CROSS-5 finding 1; owner question 1).** A per-extension IndexedDB id is an
+  **installation id**, not proof of a profile across replacements. 18c-b installs a different extension id per
+  image and removes the old storage. Never accept a changed id just because the image changed.
+  The recommended lifecycle, built only after the owner chooses it:
+  1. The extension's new `profile_identity.js` module creates one random installation id (at least 128 random
+     bits) in its IndexedDB, once, before hello, and sends it with its extension id. The details page shows that
+     pair locally, even while the service
+     refuses connection. No page data, account, path or browser profile name is needed. Repeated worker starts
+     use that same id; missing/corrupt storage yields an unapproved new candidate, never a matching id invented
+     from the service's pin. This is 18c-b's **sole storage exception**, adopted together with its test amendment.
+  2. At first setup the service creates a durable logical profile pin and records the first accepted pair under
+     it. After that only that exact current pair connects automatically. The logical pin lives in the service's
+     existing persistent store across service restarts and image A → B → A; it is not replaced when the
+     extension is. An unmatched hello gets no browser commands and no access to tabs; it cannot displace a live
+     accepted connection. It may be recorded only as a bounded pending candidate for owner pairing.
+  3. After replacement, including rollback to A, the owner opens the helper's details **in the profile he wants**
+     and uses `sudo aresos admin chrome profile relink <extension-id> <installation-id>` to associate that
+     currently pending pair with the existing logical pin. This is an explicit owner assertion of continuity,
+     not an automatic browser proof. The command requires the exact current candidate, refuses an absent/stale
+     candidate, atomically replaces the accepted pair and revokes the old one. Never retain an allow-list of
+     every past installation. Reusing A's package need not restore A's old storage; its new candidate is
+     confirmed the same way. Until then tools answer `chrome_unavailable` with fixed owner-setup advice.
+  4. A deliberate switch to **another** profile uses the separate owner command `profile switch` with the same
+     pair arguments; it replaces the logical pin and revokes the old pair. Neither command is available on the
+     ordinary tool socket or through page text. A mismatched extension can't select or inherit the pin itself.
+  5. Any relink/switch closes the old connection and invalidates references, `seen` lists and prepared operations;
+     none is migrated to the new connection. Store a versioned record that both A and B of the supported rollback
+     pair can read; unknown/corrupt records fail closed, never reset to first-connect enrollment. Pairing reads
+     only the candidate handshake, not that profile's pages. The existing same-user native-host impersonation
+     limit stays; this does not claim protection against a process that can copy the profile's local state.
+
+  **Why this recommendation:** it retains the tested per-image signing/rollback design without pretending an
+  extension replacement proves which profile it came from. It costs an owner step, which is why it needs his
+  decision. Automatic continuity needs its own proven persistent anchor; it is not a builder's fallback.
+  18c-b steps 1a–2b stay evidence of installation, not evidence of this pin. Its remaining steps and the
+  cross-package test are specified in that brief's "CROSS-5 identity handoff". Whichever package merges second
+  integrates that proof with the real pin before declaring the combined build ready for the laptop.
+  Add the profile limitation and the chosen update behavior to `docs/control/FEATURES.md`.
 
 ### 2. Looking in place
 
@@ -207,7 +270,8 @@ No open JUDGMENT-CALL. The owner has answered every question this package had.
   does (brief 28, item 2): the list showed that tab without its query, the read of the tab his request needs shows
   it.
 - **References** from one of his tabs work for further reads (`ref`, `find`) and for `chrome_open` with `ref` (open
-  that link in a Claude tab). An action on one answers `take_first`.
+  that link in a Claude tab **only after 28a item 4's recognised-action check**; an asking link refuses and
+  points to the asking click path). An action on one answers `take_first`.
 - `chrome_open` with `tab` already works for his tabs (brief 28a). Keep it: it is how Claude works on the same page
   without touching his tab. It shows Claude the same page as a read would, so it takes `request` like a read and
   is written to the popup list and the log ("opened as a copy"). It sets no **READ** sign: his tab wasn't read.
@@ -229,7 +293,8 @@ past. So the reader doesn't guess.
   - a tick, a radio choice, a chosen option, a range, a colour and a date or time keep their values.
 - **Ask first** (owner, 2026-11-13, board #210: "Ask first"). Brief 20's asking read, `chrome_read_typed_fields`,
   is the way to the value of a typed field, single-line or multi-line (brief 28, item 5, says what the tool is;
-  this package doesn't redesign it). Here it also works **on one of his tabs read in place,** not only on a taken
+  this package inherits 28a item 3b's distinct descriptions and doesn't redesign its read policy). Here it also
+  works **on one of his tabs read in place,** not only on a taken
   tab before its reload:
   - the prepare tool takes `seen` and `request` like every call on one of his tabs, and the read is held to what
     its approval binds (item 2). The tab must still show the page of that list when the question is prepared
@@ -249,9 +314,10 @@ past. So the reader doesn't guess.
   watch for "show password" switches. It couldn't cover a field inside a shadow root, a mask taken off by a style,
   or a page loaded before the extension, and a password is never a known limit (owner, 2026-11-11). That marker is
   gone: no content script from the manifest, none registered for his tabs beyond brief 20's empty `context.js`,
-  and nothing that observes a tab before a read. The one exception is narrow and separate from passwords: the
-  drop-and-paste record of item 4a, added only if the measurement there requires it. It records that a drop or a
-  paste happened and nothing else, and it is never evidence about a field's history.
+  and nothing that observes a tab before a read or preparation of a loss question. The exceptions are narrow
+  and separate from passwords: item 4d's passive freshness observer starts before that question's snapshot;
+  the drop-and-paste record of item 4a is added only if its measurement requires it. That record says that a
+  drop or paste happened and nothing else. Neither supplies evidence about a field's earlier password history.
 - **The reader that a read installs keeps its passive observers** (package re-check 2, N5). The in-place reader
   is brief 20's `reader.js`, installed on demand, and it brings its two `MutationObserver`s. One counts DOM
   changes; the state token, `until` and every cursor need that count (brief 28, item 1). The other remembers a
@@ -289,9 +355,10 @@ keep brief 20's rule and say so (PLAN-GAP).
 2. **Is it known that nothing of his is lost?** Run the check of item 4a, in place. If the answer isn't "known
    clean", answer `reload_required` and **change nothing**: the tab isn't attached, moved
    or reloaded. The answer says what the tool found, in the tool's own words: how many fields hold text, with their
-   labels (never their values), an editor, a chosen file, a canvas, playing media, or "you have used this page and
+   distinct descriptions under `untrusted_content.loss` (never their values; item 0), an editor, a chosen file,
+   a canvas, playing media, or "you have used this page and
    the tool can't see whether it holds unsaved work". It carries the approval for `chrome_take_reload` (point 4),
-   except in the four cases that tool never overrides.
+   except in the four cases that tool never overrides or without item 4d's continuous freshness evidence.
 3. **Otherwise take it, where it stands:** attach and mark it (item 4b). Then **run item 4a's check once more, as
    the last thing before the reload** (review 5, S1): the attach, the breakpoint and the group take a few hundred
    milliseconds, and what he types in them would be lost. If the tab is no longer known clean, undo the attach and
@@ -315,7 +382,8 @@ keep brief 20's rule and say so (PLAN-GAP).
      throws away what the page holds, and what the check found (the labels of the changed fields and whose typing
      each is, never their values; playing media; "work the page may keep in its memory"). For a tab not yet taken
      it also says that Claude takes the tab: it gets the Claude label and stays under Claude's control until it is
-     given back (review 5, N2). The preparation binds the tab, its document, what the check found, and for a tab
+     given back (review 5, N2). The preparation binds item 4d's private identities and edit generations in addition
+     to the tab, its document, what the check found, and for a tab
      not yet taken the list's `seen` and `request`.
      `chrome_take_reload`'s one input is that approval, passed unchanged (main's `APPROVAL_INSTRUCTION`), so Claude
      Code's prompt shows the question. It sits under the managed ask rules like `chrome_submit`, with the rule
@@ -325,8 +393,10 @@ keep brief 20's rule and say so (PLAN-GAP).
      approval is used once and expires as main's prepared operations do. The service refuses an approval that doesn't
      match the tab's present state: it runs the check again, as the last thing before the reload, and if the page
      changed since the question (a new document, or a loss the question didn't show: another field changed, typing of
-     his where the question showed Claude's, media that started), it changes nothing and answers `reload_required`
-     again, with the new findings and a new approval. **In the four cases below that answer carries no approval**
+     his where the question showed Claude's, media that started, **or any later owner edit under item 4d even in
+     the same field**), it changes nothing and answers `reload_required`
+     again, with the new findings and a new approval. **In the four cases below, or without item 4d's continuous
+     freshness evidence, that answer carries no approval**
      (review 5, S2): a dialog may have opened, a load started or a frame stopped answering since the question. For
      a tab not yet taken the re-check runs where point 3 puts it, after the attach and the mark, and a refusal
      there undoes both. After the reload the tool returns what `chrome_take` returns, the reloaded page's outline
@@ -359,7 +429,8 @@ keep brief 20's rule and say so (PLAN-GAP).
        the target, even `body`, Claude's. A dispatch whose finish never came counts as his, as it does for typing
        (`unconfirmed`). A trusted `click` counts too while no dispatch is in flight: an assistive tool can
        activate a control without a press. Pointer moves, wheel scrolling, the up events, a `click` during a
-       dispatch (Claude's Enter clicks a form's default button) and a script's own events don't count;
+       dispatch (Claude's Enter clicks a form's default button) and a script's own events don't count toward
+       this sticky-use rule; item 4d additionally counts drawing moves for approval freshness;
      - a drop or a paste. Item 4a's record counts where it is built. Where it isn't (the browser's own mark
        covered them there, and that mark is no help in a taken tab), the guard puts the used mark on the document
        for a trusted `drop` and `paste`, with a passive listener beside its `copy` listener. Both always count as
@@ -367,8 +438,9 @@ keep brief 20's rule and say so (PLAN-GAP).
      One frame that says yes makes the tab used, and so does a frame whose document the guard didn't watch from
      its start. **The answer is sticky in the extension** (review 6, S2), as security re-check 4 requires for
      drops: the first time a document gets a mark of his (typing, a press, a drop or a paste), the guard reports
-     it once to the extension through the reader, as `reader.report` reports a held step. The extension keeps
-     the tab used until an approved `chrome_take_reload` or a new top document, and the check reads that flag
+     it to the extension through the reader, as `reader.report` reports a held step. The first report sets sticky
+     use; item 4d additionally records/reports **every later edit generation**, independently of that flag. The
+     extension keeps the tab used until an approved `chrome_take_reload` or a new top document, and the check reads that flag
      as well as asking the frames. So a frame he used that the page then removes, or that moves to a new
      document, leaves the tab used. `chrome_go` and a `chrome_do` step whose guarded reload runs then answer
      `reload_required` with the reason "you have used this page since Claude took it, and the tool can't see
@@ -386,7 +458,8 @@ keep brief 20's rule and say so (PLAN-GAP).
      doesn't first ask him in the chat for an OK that can't be used. It names `chrome_release`: Claude gives the
      tab back and he looks at it himself. For his typing and for a page he has used it also carries the approval
      for `chrome_take_reload`, so that he can answer in Claude Code's prompt instead. A frame that couldn't be
-     inspected gets no approval, because `chrome_take_reload` never overrides it (below). Closing a taken tab
+     inspected, or one without item 4d's freshness evidence, gets no approval, because `chrome_take_reload`
+     never overrides it (below). Closing a taken tab
      stays refused ("release it").
    - **Which `chrome_do` steps that covers.** With this package the take does the reload, and the first input after
      a take doesn't reload again. A `chrome_do` step reaches the check only through brief 20's guarded reload
@@ -401,7 +474,8 @@ keep brief 20's rule and say so (PLAN-GAP).
      (`to: reload`) and repeat the upload (review 5, N8).
    - **A step that leaves the page is checked first** (review 5, B1; the lead, 2026-11-16). On `main` an input
      after which the page navigates isn't checked. Here the tool checks the three kinds it can see beforehand in
-     the target's facts:
+     the target's facts. These ordinary input checks do not route a held submission to a reload: the
+     `hold`/`resume` branch uses item 4c instead, at both preparation and dispatch:
      - a step that follows a link to another document: a click, or a key that activates it, on a link (an `a` or
        an `area` with an `href`, an SVG `a` included) whose `href` is neither a fragment of the same page nor a
        `javascript:` address and that doesn't open in a new tab;
@@ -463,20 +537,23 @@ keep brief 20's rule and say so (PLAN-GAP).
      effect in the page, such as Claude's fill over a field, isn't of this kind: it follows the asking rules as in
      Claude's tabs. A submission that the page starts is held and asked with its own question only while the
      hold after Claude's step runs, and never for a GET search form (`search()` in `guard.js` lets it through);
-     otherwise it navigates unasked. A held one is resumed as on `main`, and his own delayed step in a taken tab
-     (board #138) keeps working that way. A page that guards its work makes Chrome ask "Leave site?", and that
-     question is his (item 4a). This is the one loss the brief accepts in a taken tab; the header and "Known
+     otherwise it navigates unasked. **A held one is no longer part of this exception:** item 4c checks the work
+     it could discard at preparation and resumption, and defines board #138's delayed-owner path. A page that
+     guards its work makes Chrome ask "Leave site?", and that
+     question is his (item 4a). This remaining unheld script-effect limit does not authorize a held resumption;
+     the header and "Known
      limits" name it.
    - `chrome_take_reload` never overrides four things: a dialog that is open; a load or a form submission that is
      still under way; a page that a form submission loaded; and a frame that doesn't answer the check, on a tab
      already taken too. For those there is no question at all and the refusal carries no approval: the tool found
      nothing to show him, the page may be stuck or behind a dialog, the result says so, and he looks at the tab
-     himself.
+     himself. Missing item 4d freshness evidence also refuses without a question, even if the frame answers.
    Tests: the question names the tab and the changed fields' labels and no value; an allow rule, a `PreToolUse`
    allow hook and skip-permissions don't skip it (as for `chrome_submit`); an approval Claude changed (another tab,
    another finding, a shortened question), one prepared for another tab and one used a second time are refused,
    and the tab is unchanged; a changed page after the question asks again with a new approval; a refused question
-   changes nothing in the tab; the four cases above never ask, and their refusals carry no approval, also when
+   changes nothing in the tab; the four cases above and missing freshness evidence never ask, and their refusals
+   carry no approval, also when
    one of them arises while an approval waits (a frame stops answering, and the re-check's refusal carries none);
    the question for a tab not yet taken says that Claude takes it; the approved call returns the reloaded page's
    outline within 18 seconds. Generated files, the tool list, the ask rules (one line added,
@@ -523,7 +600,8 @@ Text in a field of a page that is fresh and not used came with the page, so it n
 canvas, a wizard and every other page that keeps work in its script's memory are covered by point 4.
 
 **What follows for a used tab.** A take answers `reload_required` with the reason "you have used this page and
-the tool can't see whether it holds unsaved work", and `chrome_take_reload` asks him (item 4). A close keeps
+the tool can't see whether it holds unsaved work", and `chrome_take_reload` asks him if item 4d's freshness
+evidence can be established (otherwise no approval). A close keeps
 the tab: there is no override, and the result tells him which tabs were kept and why (item 5).
 
 **Can a content script read that mark reliably?** PR #27 reads it nowhere (its `reloadState` looks only at
@@ -552,9 +630,10 @@ Three things documentation doesn't settle. Measure each in CI and write the resu
   security confirmation, `BRIEF-SECURITY-4.md`): the listeners are passive and listen in the capture phase from
   the document's start, so a page's own handlers can't hide a drop or a paste from them; they run in every frame;
   the tab's "used" result is sticky in the extension and doesn't go away when a child frame is removed or
-  replaced; and a frame the record doesn't cover makes the tab used, never clean. So a take of it answers
-  `reload_required` with an approval, unlike a frame that doesn't answer, for which none is offered; otherwise
-  no tab older than an extension update could ever be taken (review 5, N7). Test each;
+  replaced; and a frame the record doesn't cover makes the tab used, never clean. A take can offer an approval
+  if continuous observation from before preparation is established under item 4d; its earlier history stays
+  unknown. A frame that doesn't answer gets none. This keeps an old document eligible for an asking take
+  without accepting missing freshness evidence (review 5, N7, tightened after CROSS-5). Test each;
 - that nothing of ours sets it. An in-place read, the check itself and a message from the extension must leave
   it false, or every tab Claude looked at would count as used.
 
@@ -626,6 +705,100 @@ Brief 20's `restoreTab` swallows every error. Here a step that fails is named in
 it still run. The measurement of item 7 (input in a background tab) is a separate matter: it changes nothing
 about what a take records or how a release restores.
 
+### 4c. A held submission checks the work its resumption could discard
+
+**Decision and why (CROSS-5 finding 2; owner question 2).** Once a submission is held, its resumption is under
+the tool's control. Losing unrelated owner work then is a fix under `docs/REVIEW.md`, not a script-effect limit.
+This replaces the earlier exception in ALIGNMENT's reviews 5/6 decisions. The contract below is the recommended
+combined-question path, pending the owner's choice; refusal is the fallback while that choice is unresolved.
+
+- For **every** held `native_submit` or `submit_event` in a taken tab, `steps`/`payload(hold=…)` runs the whole-tab
+  loss check before reserving a send. Reuse the reload loss report, the used flag and item 4d's freshness evidence;
+  don't inspect only the submitted form or guess that its target, a handler or an owner-origin hint makes other
+  work safe. Report possible work in other forms/frames and in page memory. Unread values remain unread. Existing
+  unread-form, credential and size refusals still win. A held step isn't a submission **under way on the network**
+  for the four never-override cases; a separate live load/submission, open dialog or uninspectable frame still
+  blocks it with no loss approval. No new resumption exception is made for GET search forms that were never held.
+- If the check finds possible loss, prepare **one** `chrome_submit` approval that describes both the original
+  send (its unchanged full form binding) and that resuming may leave the page and discard the named work.
+  Put the loss details in `description.untrusted_content.loss` using 28a items 3b/5b; the question explicitly
+  names the possible loss as well as the send. Even work inside the submitted form is not silently exempted;
+  sending does not prove it was saved. Do not reload first and do not send him to `chrome_take_reload`: that
+  would destroy the held form and make board #138 impossible. Refuse if the complete approval doesn't fit.
+- Bind a separate private loss snapshot alongside the form binding: connection, control epoch, tab, frame and
+  document/reader identities, affected field identities and owner-edit generations (item 4d). `command` carries
+  this binding for `resume`; the extension rechecks it after arming, before any effect, and again at the last
+  boundary before native resumption, with no service round trip. Keep the two original form comparisons too.
+  Check even when the original report was clean: owner work may arrive while a send approval waits.
+- A changed loss snapshot sends nothing and fails the old operation as not dispatched. Through main's
+  `NothingLeft.replacement` path, reprepare the still-held submission with fresh send **and** loss facts and a
+  new ordinary `approval` for `chrome_submit`, never `reload_approval`. Reuse the existing held-step identity;
+  don't re-dispatch the earlier click, fill or key, don't duplicate the queued step, and don't extend its
+  original expiry. The failed operation stays consumed; the still-held native step is consumed only when it
+  actually resumes, so a fresh approval can authorize it once. An uncheckable state or expired hold gets a fixed
+  refusal, no replacement, and stays stopped.
+  A refused or oversized preparation is recorded/acknowledged as non-resumable, as 28a item 3a requires, so
+  later reads work. `chrome_submit_trusted` cannot run an operation carrying a possible-loss approval; it needs
+  the managed question even if an adapter's send is trusted. Its dispatch also rechecks a formerly clean report.
+- **Board #138's explicit path:** owner input whose delayed submission falls inside Claude's hold is still held.
+  In a taken tab it follows exactly the combined send/loss preparation above; approving it resumes the native
+  `submit()` or `requestSubmit()` once, with the original submitter and kind. Refusing or editing while the
+  question waits sends nothing. Same-task owner input outside Claude's in-flight dispatch keeps its existing
+  unheld path. No page-supplied or guessed "owner initiated" flag skips a loss check.
+
+**Tests:** two unrelated forms in a taken tab; he types into form B, and a free select in form A starts a held
+submission. Both held kinds must show B's distinct description and the possible loss in the send question,
+with no B value read for that report. Before approval and after refusal the receiver has nothing and B's draft
+remains. Approve unchanged: one native resume, one arrival, no earlier input repeated. Then prepare afresh and
+continue typing in B while the question waits: old approval sends nothing; new send/loss question required.
+Repeat with a canvas/removed child frame, a formerly clean report, uninspectable frame, oversized loss question,
+trusted-send entry and both of board #138's delayed-owner cases **in taken tabs**, not moved to Claude tabs.
+**Mutations:** omit the prepare-time check (question lacks B); omit the dispatch recheck (later B edit sends);
+check only the submitted form (two-form test sends without naming B); exempt owner-delayed steps (#138 test
+loses B); reload before resume (#138's one-arrival/no-reload test fails).
+
+### 4d. Private freshness for every loss approval
+
+**Decision and why (CROSS-5 finding 4).** A sticky "used" flag records that work exists, not that it is still the
+work he approved losing. Bind an edit generation, including edits after the first, without reading its values.
+
+- The snapshot binds the connection/control epoch and the tab's top document; every frame's browser document
+  and reader instance; the affected field element identities (not their labels), types and the non-value facts
+  used by their distinct descriptions; the loss reasons and media state; and a monotonic **owner-edit generation**
+  for every document plus a tab generation retained when a frame disappears. Frame membership, replacement,
+  removal and reader restart invalidate it. Never turn a missing frame into an empty successful check.
+- Install isolated passive edit observation **before** the first snapshot for the question, including in
+  untaken tabs. Each later owner input/change, key/press, cut, paste, drop and drawing gesture advances the
+  generation, even on the same already-dirty field. Canvas pointer movement with a button/pen down counts too,
+  including continuation of a stroke begun before the question. Never use only first-use notification or DOM
+  mutations as the clock. Use the established owner-versus-Claude attribution; uncertainty counts as owner work.
+  Coalescing is allowed only if any edit after a captured snapshot necessarily changes its generation.
+- The extension retains generations/sticky use across frame removal, and the final check queries live per-frame
+  generations too: a delayed event report must not let the reload win. A missing sequence, lost observation,
+  restart, changed frame set or unreadable frame invalidates the approval. Don't reset a generation on a read or
+  after preparing an approval. Only a new document starts a new document generation, with a new identity.
+- A document whose earlier work is unknown under items 4/4a stays not known clean. For an unwatched document
+  that needs a loss approval, offer a question about that uncertainty **only** if continuous observation from
+  before the question's snapshot through the final check can be proved in all
+  frames. Preserve that observation through attach/mark: do not silently replace its reader or reset its
+  epoch to make an old approval pass. An unchanged approved take must succeed once. Arriving late supplies no
+  evidence about earlier work or password history. If the fresh watcher
+  cannot be installed/proved, refuse without an approval and name owner handoff; don't offer a question that
+  could never be safely used. No hidden value, value hash, clipboard contents or canvas pixels are read for this.
+- `chrome_take_reload` checks this private snapshot as the last thing before reload (after attach/mark when
+  necessary); item 4c does so before resume. A new generation invalidates approval even if labels, field count,
+  displayed loss reasons and the sticky used flag are identical. Apply package 28's `wellFormed()` rule to the
+  fresh textual facts in these comparisons. Keep counters and identity fields exact.
+
+**Tests:** continue typing in the same dirty field while a reload approval waits; add another canvas stroke,
+and continue an existing stroke; replace a field by another with the same label; remove a used frame; lose the
+watcher before dispatch; delay an edit notification until after the final live-generation query (the query
+still sees the edit). None reloads/resumes with the old approval. An unchanged snapshot succeeds once.
+An unwatched document with proven observation since preparation can ask and execute; one without it never
+offers an approval. Getter/wire recording proves unread values stay unread. **Mutations:** advance only on the
+first use (typing/canvas tests fail); bind labels instead of element ids (replacement test fails); accept a
+missing watcher (unwatched case fails); trust only queued reports (delayed-report test fails).
+
 ### 5. Closing his tabs
 
 The owner, 2026-11-13 (board #201): "Yes, when I ask."
@@ -673,14 +846,20 @@ The owner, 2026-11-13 (board #201): "Yes, when I ask."
 
 Brief 28a leaves the Chrome server's MCP instructions at most 2,800 characters in all, the 1,652 characters of
 `COMMON_INSTRUCTIONS` that every app shares included (its item 7). This package's rules for his tabs that span tools
-go there, in at most 1,000 characters, so that the whole stays within 3,800 (the lead, 2026-11-15, after review 4).
+go there only after confirming that headroom, in at most 1,000 characters, so that the whole stays within 3,800
+(the lead, 2026-11-15, after review 4).
 Claude Code 2.1.319 passes on only the first 4,096 characters, and `control/chrome_tests/test_questions.py`
 (`test_fixes_b_server_instructions_fit_the_native_cli_limit`, about line 456) checks every app against that. **A
 rule that belongs to one tool goes into that tool's description, not the instructions**, as in brief 28a. Edit for
 size and keep every point. If the block doesn't fit in 1,000 characters, stop and tell the lead (PLAN-GAP). Brief
 28a's test pins the Chrome instructions at 2,800; this package moves that pin to 3,800, beside the 4,096 check.
 
-For the instructions (828 characters as written here):
+The pre-28a instructions at this revision are **4,093 of 4,096 characters**. Do not append to that baseline:
+28a must first make room and pin 2,800. Measure the whole generated catalogue before this package adds rules;
+compact/move single-tool rules into descriptions within the existing totals. This revision adds no instruction
+text; the builder must fit all applicable contracts, including held loss, within the unchanged budgets.
+
+For the instructions (828 characters as previously written here; the builder revises within those budgets):
 
 > The owner's own tabs (his, in chrome_tabs): read or take one only when his current request names it or can't be
 > done without it. Choose by site, not by title alone; if two tabs fit or none clearly does, ask him which. Never
@@ -773,18 +952,42 @@ holds the Anthropic sites only. This package changes none of it.
   (the popup list of item 6 is the likely place), its `installs` rows get a review of their own first. Say in the
   report whether it does.
 
+## Build order (gpt-6.1-sol, one bounded step at a time)
+
+Record each step in `reviews/28b-chrome-his-tabs/PROGRESS.md`: code, commands/results, mutations, next step.
+Do not roll the entire package into one step. Owner choices hold only their dependent work.
+
+1. Verify inherited package 28/28a contracts, generated sizes and the instruction headroom (items 0/8). Add
+   browser-free failing cases for this brief's new contracts. Keep all existing tool paths usable.
+2. After owner question 1 is answered, build item 1's pin record, handshake, local details and admin lifecycle,
+   then its unit/Node tests. Coordinate 18c-b's storage test and A → B → A proof through `linux-tools`.
+3. Build in-place reads, `seen`/`request`, distinct field descriptions and visibility (items 2, 3, 6), with group
+   17 read/password cases. These do not depend on the loss-policy choice.
+4. Build non-value freshness evidence first (4d), then the stricter checks and asking reload (4/4a), then the
+   wrapper/restore and close behavior (4b/5). Add each unit/Node regression before its browser counterpart.
+5. After owner question 2 is answered, build held-loss preparation and resume together (4c), including both
+   native kinds, changed-state replacement, trusted-send refusal and the board #138 cases in taken tabs.
+6. Build/measure background input, finish the placeholder sweep and follow-ups (7/9/10), regenerate and pin
+   descriptions/instructions within item 8, then run the full required suites twice on the final code head.
+
+For CROSS-5, run every named mutation against its targeted regression, require failure, restore, and require
+green. Repeat 28a's Unicode comparison/option and end-of-control cleanup mutations on the new his-tab paths;
+run two same-labelled fields through the in-place asking sentence, then reorder/replace them before approval.
+All browser evidence stays on CI; a unit double alone is not an update/rollback or owner-input proof.
+
 ## What must not change
 
-- **The asking path and the hold,** exactly as briefs 28 and 28a list them. In `dispatch`'s input part only two
-  things may change: the tab selection of item 7, and item 4's check before a step that leaves a taken tab, which
-  sits right after the frames are armed, before the selection and brief 28a's `reveal`, and can only refuse. In
-  the service only item 4's two refusals are added (review 6, S4): `payload` refuses a leaving step that would
-  ask on a used taken tab before `engine.reserve`, from the used result the `facts` reply now carries, and
-  `execute` returns the extension's `reload_required` for an approved step as a failed operation with
-  `reload_approval`, through main's replacement path. Neither asks less, binds less or sends anything. In
-  `guard.js` only item 4's used marks for his clicks, keys, drops and pastes are added, with the one report of a
-  document's first mark of his to the extension; they record, and cancel, hold or change nothing. In the `dialog`
-  branch only one thing is added: a "Leave site?" question is refused with `owner_dialog` (item 4a).
+- **The asking path and the hold,** as briefs 28 and 28a list them, with these explicit exceptions. The two
+  existing input changes remain: the tab selection of item 7 and the pre-effect leaving-step check of item 4.
+  Explicit additional exceptions after CROSS-5: item 4c adds loss preparation in `steps`/`payload`, the combined
+  question in `prepare`/`question`, a separate private loss binding in `command`, revalidation in the extension's
+  `resume` path, failed/replacement mapping in `execute`, and the loss-approval exclusion in `trusted`.
+  Item 4d adds non-value identity and generation evidence to reload/resume checks. Original form comparisons,
+  one-use marks, native submit kind, 500 ms hold and expiry stay intact. `guard.js` may add passive observation
+  and reporting for every edit generation as well as sticky use; it never cancels, holds or changes an extra
+  event. The reader may install the same passive freshness observer in untaken tabs only when preparing a loss
+  question. The `dialog` branch still only adds refusal of "Leave site?" with `owner_dialog` (item 4a).
+  28a's distinct descriptions, fixed loss envelopes and repaired-fact comparisons are inherited, not optional.
 - **The take rules:** a reload before the first input; whatever could be lost reported first (item 4a makes that
   check stricter, never looser); no reload of a page that a form submission loaded.
 - **The password rule,** as brief 28 left it (its name and history additions included). Nothing is relaxed.
@@ -832,7 +1035,15 @@ owner with real keys and clicks (`owner-ui.mjs`). Every new rule gets a test tha
 - **One profile:** two profiles run with the extension. The first to connect is pinned; the second is refused,
   also after the first one's windows close; none of its tabs is ever listed. After the owner command names the
   second profile it connects, and every `seen` and reference from before is refused. If two profiles can't run in
-  the container, say so (PLAN-GAP) and prove the rule with a second connection that presents another profile id.
+  the container, say so (PLAN-GAP) and prove the rule with a second connection that presents another installation pair.
+  **Update lifecycle:** image A → B → A in the same synthetic profile keeps one logical service pin. Each
+  replacement is refused before the explicit owner relink, accepted after it, and accepted on later ordinary
+  restarts. A second profile under each image, even if it connects first after replacement, is refused; old
+  pairs, an unknown/corrupt pin record and a stale owner candidate never enroll automatically. Prove the
+  service pin survives restart and rollback and every old approval/reference/list is invalid. Test the storage
+  exception against 18c-b's real packaging test. **Mutations:** auto-accept an unmatched hello (second-profile
+  case fails); replace the logical pin on relink (A → B → A pin assertion fails); retain old accepted pairs
+  (retired-pair case fails); remove the storage allow-list boundary (forbidden-storage case fails).
 - **Never readable:** a tab of the fixed list, of his never-list, a `chrome://` page and a page with a fixed-list
   frame (the frame left out) are handled as section 6 says.
 - **The reason:** a read, a take and a close of one of his tabs without `request` are refused. With it, the popup
@@ -1020,7 +1231,8 @@ List every changed assertion in `reviews/28b-chrome-his-tabs/HARNESS-MAP.md`, ol
   which the owner types or clicks in a taken tab and Claude then follows a link, or submits or resets a form,
   there would now end in `reload_required`. Where such a case is about the question, the binding or the
   receiver, it runs in a Claude tab instead, with its assertions as they are; name each in the map. If one can't
-  be moved, stop and report.
+  be moved, stop and report. The held-submission and board #138 cases of item 4c **stay in taken tabs**;
+  add explicit combined-loss assertions, with old receiver counts and one-shot behavior unchanged.
 
 **Everything briefs 20, 28 and 28a test** still passes, with the changes just listed: groups 1 to 16, twice on the
 final head, both install modes; the base, Mail, boundary and qualification workflows; the generated artifacts in
@@ -1040,16 +1252,20 @@ sync; the Chrome ask rules are `main`'s plus `mcp__chrome__take_reload`, and not
 ## Paths
 
 **May change:** in `control/chrome/extension/`: `background.js`, `reader.js`, `guard.js` (its isolated part only:
-a passive mode, and item 4's used record for his clicks, keys, drops and pastes, beside the typing record: one
-statement in `captureInput`, one call that reports a document's first mark of his to the extension, and, where
-item 4a's record isn't built, one passive listener), `manifest.json` (the
+a passive mode, and item 4's used record for his clicks, keys, drops and pastes, beside the typing record:
+passive observation/reporting of each edit generation and sticky use under item 4d, and, where
+item 4a's record isn't built, passive drop/paste listeners), `manifest.json` (the
 one entry above), `popup.html`, `popup.js`, `details.html` and
-`details.js` (the profile id); `control/aresos_control/chrome/adapter.py`, `definitions.py`, the view module and
-`bridge.py` (the hello); `control/aresos_control/definitions.py` (only the Chrome branch of `instructions_for`, as
-in brief 28a); `control/aresos_control/cli.py` (the one `admin chrome profile` line); the generated
+`details.js` (the installation pair), new `profile_identity.js` (item 1's sole storage module); `control/aresos_control/chrome/adapter.py`, `definitions.py`, the view module and
+`bridge.py` (the identity handshake and preserved loss data), a new Chrome-local profile helper if needed, using the existing store API for the versioned pin; `control/aresos_control/definitions.py` (only the Chrome branch of `instructions_for`, as
+in brief 28a); `control/aresos_control/cli.py` (the owner-only `admin chrome profile relink/switch` commands); the generated
 files; `control/chrome_tests/`, `control/chrome/ci/`; `.github/workflows/control-chrome.yml` (not the
 qualification workflow); `docs/control/TOOLS.md`, `docs/control/FEATURES.md`, `control/README.md`;
 `reviews/28b-chrome-his-tabs/`.
+If this package integrates the pin after 18c-b, it may also amend that package's storage test and container
+install proof under the already allowed `control/` test paths. The combined container case 3 is required here;
+C4's VM/release proof is coordinated through `linux-tools` with the image build, not implemented by silently
+expanding this package's `os/` scope.
 
 **Must not touch:** `page.js`, `policy.js`, `policy.py`, `context.js`, `sites.py`, `qualification.py`, `qualify.py`,
 `committed.py`, `uploads.py`; and everything brief 28a lists outside the Chrome code (`os/`, `mod/`, `docs/design/`,
@@ -1057,6 +1273,9 @@ qualification workflow); `docs/control/TOOLS.md`, `docs/control/FEATURES.md`, `c
 `reviews/`).
 
 ## Acceptance
+
+- The owner choices are recorded, and the combined pin/update proof and items 4c/4d's regression/mutation
+  results are present. Unanswered choices do not count as acceptance.
 
 - Group 17 passes, and groups 1 to 16 pass twice on the final head.
 - In one of his tabs a read changes nothing the fixture can observe, and a take, a release and a close behave as
@@ -1073,6 +1292,7 @@ first) must be added on his laptop in the live setup, before the first session i
 anywhere in the repo; what an in-place read installs in the tab and what it leaves there, with the fixture's record
 as evidence; the measurement of item 7, per input kind and install mode; what Chrome does with a "Leave site?" guard
 on the take's reload and on a close (item 4a); what the check gets from a frame that takes no reader (item 4a);
+the owner decisions, cross-package pin/update proof and every CROSS-5 mutation result;
 which of Claude's own steps, if any, set the used mark of item 4; what F5, Ctrl+R, Alt+ArrowLeft and Ctrl+W sent
 through DevTools did in a taken tab (item 4); screenshots of the **READ** badge, the popup
 list, **Give back**, and a taken tab marked in place (a plain tab, one from his group, a pinned one), saved under
@@ -1085,10 +1305,11 @@ A password or sign-in code read, an action without its question, a tab of his ch
 lost, or his normal use broken is never a limit: fix it or stop. **One kind of loss is a limit, and only this
 one** (the lead, 2026-11-16, after reviews 5 and 6): in a taken tab, what the page's own script does after a step
 of Claude's that item 4 doesn't check. That is a button, a `javascript:` or `#` link, or a link that opens a new
-tab, whose handler navigates; a form's other control whose handler submits; and a script that clears his work
+tab, whose handler navigates; a form's other control whose submission is not held; and a script that clears his work
 without navigating. The tool can't see it beforehand, the tab is marked as Claude's while it is taken, and
 Chrome's "Leave site?" is his where the page guards itself. Every path the tool can see (`chrome_go`, a reload, a
-link, a form submission or reset, a close) asks or refuses (item 4).
+link, a form submission or reset, a close, **resuming a held submission**) asks with its loss named or refuses
+(items 4c/4d). A held submission never inherits the unheld-script loss exception.
 
 ## If unsure
 
