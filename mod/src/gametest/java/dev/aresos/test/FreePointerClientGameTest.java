@@ -390,13 +390,19 @@ public final class FreePointerClientGameTest implements FabricClientGameTest {
                 long handle = client.getWindow().handle();
                 previousMove = GLFW.glfwSetCursorPosCallback(handle, (window, x, y) -> {
                     var w = client.getWindow();
-                    var real = (net.fabricmc.fabric.impl.client.gametest.util.WindowHooks)(Object)w;
-                    mouse(client).aresos$onMove(window, x * w.getScreenWidth() / real.fabric_getRealWidth(),
-                            y * w.getScreenHeight() / real.fabric_getRealHeight());
+                    try (var stack = org.lwjgl.system.MemoryStack.stackPush()) {
+                        var width = stack.mallocInt(1); var height = stack.mallocInt(1);
+                        GLFW.glfwGetWindowSize(window, width, height);
+                        mouse(client).aresos$onMove(window, x * w.getScreenWidth() / width.get(0),
+                                y * w.getScreenHeight() / height.get(0));
+                    }
                 });
                 previousButton = GLFW.glfwSetMouseButtonCallback(handle, (window, button, action, modifiers) ->
                         mouse(client).aresos$onButton(window, new MouseButtonInfo(button, modifiers), action));
             });
+            // Earlier fullscreen tests can unmaximize the shared native window. Put the desktop back as in the image.
+            tool("max", "desktop");
+            context.waitTicks(3);
             open("notepad"); open("terminal");
         }
         void open(String app) throws IOException {
@@ -417,11 +423,12 @@ public final class FreePointerClientGameTest implements FabricClientGameTest {
                 try (var stack = org.lwjgl.system.MemoryStack.stackPush()) {
                     var x = stack.mallocInt(1); var y = stack.mallocInt(1);
                     GLFW.glfwGetWindowPos(w.handle(), x, y);
-                    var real = (net.fabricmc.fabric.impl.client.gametest.util.WindowHooks)(Object)w;
+                    var width = stack.mallocInt(1); var height = stack.mallocInt(1);
+                    GLFW.glfwGetWindowSize(w.handle(), width, height);
                     return "move " + (x.get(0) + (int)((w.getGuiScaledWidth() / 2 - 80 + slot * 20)
-                            * (double)real.fabric_getRealWidth() / w.getGuiScaledWidth()))
+                            * (double)width.get(0) / w.getGuiScaledWidth()))
                             + " " + (y.get(0) + (int)((w.getGuiScaledHeight() - 11)
-                            * (double)real.fabric_getRealHeight() / w.getGuiScaledHeight()));
+                            * (double)height.get(0) / w.getGuiScaledHeight()));
                 }
             });
             AresOs.LOGGER.info("56 native pointer command: {}", command);
@@ -448,6 +455,8 @@ public final class FreePointerClientGameTest implements FabricClientGameTest {
                         .redirectErrorStream(true).start();
                 String output = new String(p.getInputStream().readAllBytes());
                 check(p.waitFor() == 0, "Native app action failed: " + output);
+                if (action.equals("max")) check(output.lines().anyMatch(line -> line.contains("aresos-desktop")
+                        && line.contains("maximized")), "Desktop did not maximize: " + output);
                 if (action.equals("activate") || action.equals("list")) check(output.lines().anyMatch(line -> line.contains(app.equals("desktop") ? "aresos-desktop" : "aresos.pkg56." + app) && line.contains("activated")), "App did not take focus: " + output);
             } catch(IOException e) { throw new UncheckedIOException(e); } catch(InterruptedException e) { Thread.currentThread().interrupt(); throw new RuntimeException(e); }
         }
