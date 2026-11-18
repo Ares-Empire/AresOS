@@ -742,3 +742,11 @@ check build still needs to exercise the installed files and the real `runuser`
 descriptor hand-off; local tests exercise the actual refusal block with its
 stand-in. The two intentional integration PLAN-GAPs above remain unchanged.
 No new PLAN-GAP, JUDGMENT-CALL or open question.
+
+### Step 3 reviewed (2026-11-18)
+
+REVIEW-9 (one should-fix, one note) and REVIEW-10 (two should-fix) are fixed; **REVIEW-11 SAFE** on `a93c07a5`.
+Check build 44212704741 on `82bd71bd` (before the fixes): IMAGE_CHECKS_PASSED, CHECK_BUILD_PASSED,
+CHECK_BUILD_VM_PASSED, CONSOLE_KEYMAP_PASSED, Control 74 files. A second check build runs on the reviewed head, since
+the fixes changed `check-image.sh` and `image-checks.sh`. The two red tests still wait for `linux-tools`' `newest` in
+Control's RESERVED and for R28's Control rule (lead's note above).
