@@ -163,7 +163,7 @@ Updated 2026-11-15. The live truth is `git log`, `gh pr list` and `git worktree 
     - Brightness: a backlight device exists now (`nvidia_wmi_ec_backlight`, firmware type, 0 to 800) and brightnessctl is installed and sees it. The panel hangs on the Intel card (hybrid mode). Whether the keys change the screen is the owner's test, still open.
     - Power button: logind watches both power-button devices and `HandlePowerKey=poweroff` is set. The journal holds one "Power key pressed short" in all boots (2026-11-09 21:40), and the fixed-feature button counter is 0. Which device reports a press, and how reliably, needs a watched press (root, or an inhibitor so the press doesn't power off).
   - **2026-11-18, the owner via `mac-capacity`:**
-    - 21b on the laptop: "brightness works" (the keys change the screen). The power button is not tested yet (#140 stays open).
+    - 21b on the laptop: "brightness works" (the keys change the screen). **Power button (#140) tested the same evening** under a handle-power-key inhibitor (nothing powered off): two quick taps reached nothing (no input event, no ACPI interrupt; the embedded controller drops them); a press held about one second fired the ACPI fixed-feature button (`ff_pwr_btn` 0 → 1, one SCI) and logind logged "Power key pressed short". So the button works when held about a second; with `HandlePowerKey=poweroff` that is a clean shutdown. What it should do (shut down, sleep after a suspend test on this hybrid Intel/NVIDIA laptop, or nothing) is his call, asked 2026-11-18.
     - New wish: an on-screen indicator for brightness, and for volume with it ("brightness has no indicator. we should add that").
     - **His design decision:** "we should customize buttons / fields like that. the brightness thing, volume, password fields etc. … My call: minecraft first (whole AresOS match) then later complete aresos overall version 2 in Ares apps style (new homescreen, buttons, design etc). basically 2 designs but later." So first AresOS's own UI (indicators, password windows, buttons, menus) in the hub's Minecraft look; later an AresOS v2 in the Ares apps' style. Split proposed by `linux-hub` (agree after the R28 cut): the hub makes one design study in HUB.md's language with our own pixel art (never Mojang's textures or font; the repo is public) and clickable prototypes for him to pick from; the OS lead builds the components into the image's surfaces. The password window is on the owner tools' checked path (ksshaskpass and its fingerprint label; 43's askpass helper), so restyling it gets its own review there. A new, unscoped design: a Fable design agent.
     - **Package 55 (Ctrl+V pastes in the terminal, rides R28):** the owner's "yes" 2026-11-18; his own `~/.config/foot/foot.ini` got the same binding that evening.
@@ -210,6 +210,23 @@ Updated 2026-11-15. The live truth is `git log`, `gh pr list` and `git worktree 
 - Hub: the owner explores seeds, picks a spot and builds it in creative later. Nothing is locked until they say so.
 
 ## Next, in order
+
+**After R28: the owner's order (2026-11-18, via `mac-capacity`).** The older list below stays for its open items.
+1. **Deskflow first** ("deskflow higher prio, I use it every day"): labwc with pointer constraints on layer-shell
+   surfaces (the item under "In progress": backport upstream `b7820667a2` onto 0.9.6, or build 0.20.3). It means
+   building our own labwc in the image build (new: a pinned source, a build stage, image checks, and R29's release-diff
+   rules for a changed labwc package), so it rides **R29**, not R28's cut.
+2. **Memory:** the sleeping world (board #364), with `linux-hub`.
+3. **Tools:** Chrome's steps (18c-b), adapters, Aresium, and the first Minecraft tool alongside.
+4. **The normal OS pieces in one new desktop session with design agents** (he starts that session): brightness and
+   volume indicators, window buttons, split screen, app switching and overview, in the Minecraft look from the start.
+   Orientation: Windows (buttons top right; the top-of-window layout menu for placing apps), but in his words not
+   "just replicate windows in a different color but actually make a unique, useful OS"; good feature ideas are
+   welcome. Design questions go to him with `board ask`, each explained. The split agreed with `linux-hub` for the
+   Minecraft-look components (its design study, our build, the password window's own review) feeds this.
+5. **"Claude runs my laptop" test:** a quick first version right after R28 (his yes), the full one after the tools.
+6. **Companions:** an AresOS home, then the hub, then walking into an app's logo and coming out in the real app.
+Later: more app tools, the Minecraft player stages, AresOS v2 in the Ares apps' style.
 
 1. **Physical install, staged (owner decision 2026-11-02; package 16 merged as `4e69540`):**
    - **Stage A (steps 1–2) is DONE and CHECKED (2026-11-05),** recorded in INSTALL-STATUS by PR #1 of the public repo (merged `e0f737b`).
