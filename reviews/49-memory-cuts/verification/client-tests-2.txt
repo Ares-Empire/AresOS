@@ -1,0 +1,24 @@
+2026-11-17T16:29:21+01:00 attempt=0 command=mod/dev/client-test.sh --gpu nvidia --keep-screenshots <worktree>/.work/pkg49/test-shots-2 -I <worktree>/reviews/49-memory-cuts/rig/client-mods.gradle build
+client-test.sh: Only 5.3 GB of memory is available and a run needs 6 GB; try again later, or pass --force.
+2026-11-17T16:29:21+01:00 attempt=0 exit=75
+2026-11-17T16:34:21+01:00 attempt=1 command=mod/dev/client-test.sh --gpu nvidia --keep-screenshots <worktree>/.work/pkg49/test-shots-2 -I <worktree>/reviews/49-memory-cuts/rig/client-mods.gradle build
+client-test.sh: Only 5.1 GB of memory is available and a run needs 6 GB; try again later, or pass --force.
+2026-11-17T16:34:22+01:00 attempt=1 exit=75
+2026-11-17T16:39:22+01:00 attempt=2 command=mod/dev/client-test.sh --gpu nvidia --keep-screenshots <worktree>/.work/pkg49/test-shots-2 -I <worktree>/reviews/49-memory-cuts/rig/client-mods.gradle build
+	- ferritecore 9.0.0
+[16:40:34] [Server thread/INFO] (Minecraft) Only the singleplayer host can edit AresOS zones
+[16:40:34] [Server thread/INFO] (Minecraft) Only the singleplayer host can edit AresOS zones
+[16:40:34] [Server thread/INFO] (Minecraft) Only the singleplayer host can edit AresOS zones
+[16:40:34] [Server thread/INFO] (Minecraft) Only the singleplayer host can edit AresOS zones
+[16:40:34] [Server thread/INFO] (Minecraft) Only the singleplayer host can edit AresOS zones
+[16:40:34] [Server thread/INFO] (Minecraft) Only the singleplayer host can edit AresOS zones
+[16:43:44] [Server thread/INFO] (Minecraft) Only the singleplayer host can change the desktop marker
+[16:45:47] [Server thread/INFO] (Minecraft) Only the singleplayer host can use AresOS home commands
+[16:45:47] [Server thread/INFO] (Minecraft) Only the singleplayer host can use AresOS home commands
+[16:45:47] [Server thread/INFO] (Minecraft) Only the singleplayer host can use AresOS home commands
+[16:50:22] [Server thread/INFO] (Minecraft) ========= 104 GAME TESTS COMPLETE IN 1.079 min ======================
+[16:50:22] [Server thread/INFO] (Minecraft) All 104 required tests passed :)
+BUILD SUCCESSFUL in 11m 12s
+19 actionable tasks: 4 executed, 15 up-to-date
+client-test.sh: Client tests ended with exit code 0 after 11 min 15 s (nvidia: NVIDIA GeForce RTX 4060 Laptop GPU/PCIe/SSE2 (NVIDIA Corporation)).
+2026-11-17T16:50:39+01:00 attempt=2 exit=0

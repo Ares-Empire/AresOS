@@ -1,0 +1,8 @@
+{
+  "run": "ferrite-1",
+  "status": "invalid wake window; rerun entire pair",
+  "cause": "Wake sender reopened a nonblocking FIFO writer for each command; vinput.py briefly closes/reopens its reader at EOF. ENXIO occurred during a transient reader gap.",
+  "game_crashed": false,
+  "fix": "Retain one writer for the wake window; retry ENXIO at startup for at most one second; dead-reader timeout assertion remains two seconds.",
+  "data": "Partial trial and its preceding valid control retained here. Neither counts toward the two completed pairs."
+}

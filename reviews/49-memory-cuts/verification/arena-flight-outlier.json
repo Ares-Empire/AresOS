@@ -1,0 +1,30 @@
+{
+  "run": "winner-flat-1",
+  "artifact_directory": "runs/winner-flat-1",
+  "status": "One extra active frame over17ms versus this pair control; retain for final source-matched comparison. No settings or thresholds changed.",
+  "outliers": [
+    {
+      "frame_ms": 19.948,
+      "jvm_uptime_s": 235.928634,
+      "GC_within_200ms": [
+        "[235.912s][273177133017043ns] GC(286) Pause Young (Prepare Mixed) (G1 Evacuation Pause) 351M->329M(372M) 1.999ms",
+        "[236.118s][273177339116276ns] GC(287) Pause Young (Mixed) (G1 Evacuation Pause) 351M->326M(372M) 3.024ms"
+      ],
+      "nearest_host_sample": {
+        "monotonic_ns": "273176558245073",
+        "rss_mib": "1061",
+        "cgroup_current_mib": "885",
+        "cgroup_anon_mib": "859",
+        "cgroup_file_mib": "16",
+        "cpu_s": "186.64",
+        "majflt": "0",
+        "cgroup_swap_mib": "0",
+        "host_available_mib": "7664",
+        "host_load1": "1.62"
+      }
+    }
+  ],
+  "control_flight_max_ms": 15.1,
+  "control_flight_over17": 0,
+  "interpretation": "GC proximity and two-second host samples cannot by themselves identify the cause of the whole frame."
+}

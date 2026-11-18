@@ -1,0 +1,3 @@
+367817:
+garbage-first heap   total reserved 1048576K, committed 381952K, used 324665K [0x00000000c0000000, 0x0000000100000000)
+ region size 1024K, 12 young (12288K), 1 survivors (1024K)

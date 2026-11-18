@@ -1,0 +1,14 @@
+{
+  "run": "v1-nether",
+  "status": "interrupted at return; no complete wake window",
+  "controller_exit_status": 143,
+  "launcher_game_exit": "1",
+  "cause": "Unknown sender of SIGTERM; controller disappeared and private compositor/X connection ended. This is not attributed to GC, OOM, the allocator or an owner action.",
+  "completed_route_tick_samples": [
+    1200,
+    1200
+  ],
+  "gc_max_after_join_ms": 11.64,
+  "qualified_wake": false,
+  "repetition": "Repeat the entire baseline once, unchanged, from the same fresh saved base; retain this partial record outside final means. No parameter or assertion changed."
+}

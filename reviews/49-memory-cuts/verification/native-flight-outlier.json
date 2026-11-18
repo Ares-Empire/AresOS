@@ -1,0 +1,24 @@
+{
+  "frame_ms": 34.916,
+  "jvm_uptime_s": 246.208387,
+  "seconds_from_nearest_60s": 6.208387,
+  "GC_within_200ms": [
+    "[246.175s][270008894110796ns] GC(197) Pause Young (Prepare Mixed) (G1 Evacuation Pause) 370M->334M(392M) 1.285ms",
+    "[246.378s][270009097066206ns] GC(198) Pause Young (Mixed) (G1 Evacuation Pause) 370M->330M(392M) 3.318ms"
+  ],
+  "nearest_host_sample": {
+    "monotonic_ns": "270007933412048",
+    "rss_mib": "1058",
+    "cgroup_current_mib": "882",
+    "cgroup_anon_mib": "856",
+    "cgroup_file_mib": "16",
+    "cpu_s": "190.47",
+    "majflt": "0",
+    "cgroup_swap_mib": "0",
+    "host_available_mib": "7622",
+    "host_load1": "2.21"
+  },
+  "run": "winner-flat-2",
+  "status": "Unresolved extra >33ms active frame; assess against complete current-source controls without relaxing the pass line.",
+  "interpretation": "Nominal 60-second boundaries are not observed trim timestamps. Nearby short GC records do not explain the entire frame. Two-second host samples cannot assign causality."
+}

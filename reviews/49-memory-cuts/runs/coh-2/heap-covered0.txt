@@ -1,0 +1,3 @@
+354178:
+garbage-first heap   total reserved 1048576K, committed 378880K, used 327579K [0x00000000c0000000, 0x0000000100000000)
+ region size 1024K, 18 young (18432K), 7 survivors (7168K)
