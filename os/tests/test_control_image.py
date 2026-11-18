@@ -318,15 +318,17 @@ class ImageCheckTest(unittest.TestCase):
     def test_refusal_probes_observe_and_block_process_attempts(self):
         code = heredoc('os/ci/image-checks.sh',
                        '    runuser -u ares -- env -i PATH=/usr/bin:/bin "$@" /usr/bin/python3 -ISB - '
-                       '/usr/bin/aresos "$word" <<\'PY\'\n')
+                       '3 /usr/bin/aresos "$word" 3>"$attempts" <<\'PY\' || status=$?\n')
         source = (ROOT / 'os/config/usr/bin/aresos').read_text()
         dispatcher = self.work / 'aresos'
 
         def probe(text, word, **environment):
             dispatcher.write_text(text)
-            return subprocess.run([sys.executable, '-ISB', '-c', code, str(dispatcher), word],
-                                  env=dict(PATH='/usr/bin:/bin', **environment),
-                                  capture_output=True, text=True, timeout=15)
+            with tempfile.TemporaryFile() as attempts:
+                return subprocess.run([sys.executable, '-ISB', '-c', code, str(attempts.fileno()),
+                                       str(dispatcher), word], pass_fds=(attempts.fileno(),),
+                                      env=dict(PATH='/usr/bin:/bin', **environment),
+                                      capture_output=True, text=True, timeout=15)
 
         for word, environment, reason in (
                 ('layout', dict(WAYLAND_DISPLAY='wayland-ci'), 'this works only at the recovery console'),
@@ -350,19 +352,46 @@ class ImageCheckTest(unittest.TestCase):
                     self.assertNotIn('nothing ran', result.stderr)
 
         # Exercise the surrounding shell too: xtrace must not pollute the exact refusal comparisons.
+        dispatcher.write_text(source)
+        result = subprocess.run(['bash', '-c', self.refusal_wrapper(dispatcher)],
+                                capture_output=True, text=True, timeout=15)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn('PASS aresos dispatcher and askpass:', result.stdout)
+
+    def refusal_wrapper(self, dispatcher):
         script = (ROOT / 'os/ci/image-checks.sh').read_text()
         start = script.index('expect_failure() {')
         failure_function = script[start:script.index('\n}\n', start) + 3]
         start = script.index('aresos_refusal_probe() {')
         block = script[start:script.index('\n# --- Package 18c:', start)]
         block = block.replace('/usr/bin/aresos "$word"', f'{shlex.quote(str(dispatcher))} "$word"')
-        dispatcher.write_text(source)
-        wrapper = ('set -euxo pipefail\n' + failure_function + '\n'
-                   'runuser() { [[ $1 == -u && $2 == ares && $3 == -- ]]; shift 3; "$@"; }\n'
-                   'pass() { printf "PASS %s\\n" "$*"; }\n' + block)
-        result = subprocess.run(['bash', '-c', wrapper], capture_output=True, text=True, timeout=15)
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertIn('PASS aresos dispatcher and askpass:', result.stdout)
+        return ('set -euxo pipefail\n' + failure_function + '\n'
+                'runuser() { [[ $1 == -u && $2 == ares && $3 == -- ]]; shift 3; "$@"; }\n'
+                'pass() { printf "PASS %s\\n" "$*"; }\n' + block)
+
+    def test_refusal_probes_reject_process_attempts_even_when_dispatcher_catches_exception(self):
+        source = (ROOT / 'os/config/usr/bin/aresos').read_text()
+        dispatcher = self.work / 'aresos'
+        wrapper = self.refusal_wrapper(dispatcher)
+        for word in ('layout', 'update'):
+            for attempt, event in (
+                    ("os.execve('/usr/bin/sudo', ('/usr/bin/sudo',), {})", 'os.exec'),
+                    ("os.execve(CONTROL, (CONTROL,), {})", 'os.exec'),
+                    ("os.posix_spawn('/usr/bin/true', ('/usr/bin/true',), {})", 'os.posix_spawn'),
+                    ("os.system('true')", 'os.system'),
+                    ("os.fork()", 'os.fork'),
+                    ("os.forkpty()", 'os.forkpty'),
+                    ("__import__('subprocess').run(['/usr/bin/true'])", 'subprocess.Popen')):
+                with self.subTest(word=word, event=event, attempt=attempt):
+                    # REVIEW-10: swallowing the hook's exception must not erase the attempted process.
+                    mutation = (f'def main():\n    if sys.argv[1] == {word!r}:\n'
+                                f'        try:\n            {attempt}\n'
+                                '        except Exception:\n            pass\n')
+                    dispatcher.write_text(source.replace('def main():\n', mutation, 1))
+                    result = subprocess.run(['bash', '-c', wrapper], capture_output=True, text=True, timeout=15)
+                    self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+                    self.assertIn(f'aresos refusal attempted a process: {event}', result.stdout)
+                    self.assertNotIn('PASS aresos dispatcher and askpass:', result.stdout)
 
     def test_check_image_holds_the_record_to_this_checkout(self):
         subprocess.run(['bash', str(ROOT / 'os/build.sh'), 'control-tree', str(ROOT / 'os'), str(CONTROL),

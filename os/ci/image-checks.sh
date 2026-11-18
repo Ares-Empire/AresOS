@@ -808,18 +808,29 @@ assert Path('/usr/libexec/aresos-askpass').read_text() == (
 PY
 # Run the installed dispatcher under an audit hook: an exec or child attempt
 # fails before it can reach sudo or Control, even if it would print a refusal.
+# The shell owns the attempt record so a caught hook exception cannot hide it.
 aresos_refusal_probe() {
     local word=$1
     shift
-    runuser -u ares -- env -i PATH=/usr/bin:/bin "$@" /usr/bin/python3 -ISB - /usr/bin/aresos "$word" <<'PY'
-import runpy, sys
+    local attempts status=0
+    attempts=$(mktemp) || return 1
+    runuser -u ares -- env -i PATH=/usr/bin:/bin "$@" /usr/bin/python3 -ISB - 3 /usr/bin/aresos "$word" 3>"$attempts" <<'PY' || status=$?
+import os, runpy, sys
+attempts_fd = int(sys.argv.pop(1))
 def no_process(event, args):
     if event in ('os.exec', 'os.posix_spawn', 'os.system', 'os.fork', 'os.forkpty', 'subprocess.Popen'):
+        os.write(attempts_fd, f'aresos refusal attempted a process: {event}\n'.encode())
         raise AssertionError(f'aresos refusal attempted a process: {event}')
 sys.argv = sys.argv[1:]
 sys.addaudithook(no_process)
 runpy.run_path(sys.argv[0], run_name='__main__')
 PY
+    if [[ -s "$attempts" ]]; then
+        cat "$attempts" >&2
+        status=1
+    fi
+    rm -f "$attempts"
+    return "$status"
 }
 # Function traces would become part of expect_failure's captured stderr.
 set +x

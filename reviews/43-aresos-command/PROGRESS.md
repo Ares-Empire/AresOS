@@ -678,3 +678,67 @@ check build must run the new export/comparison and refusal probes against the
 installed files; local tests exercise their actual check code with fixtures.
 The two integration failures remain exactly the lead's documented gaps above.
 No new PLAN-GAP, JUDGMENT-CALL or open question.
+
+## REVIEW-10 fixes (2026-11-18)
+
+Built from clean `928c145d`, which records REVIEW-10 of `6662c152`.
+Nothing is committed or pushed; the lead commits. The excluded trees
+(`control/`, `os/owner-tools/`, `os/release/`, `docs/`) are unchanged.
+No sudo, owner-tool dispatch, deployment command, rebind, window or Gradle
+command ran.
+
+- **Duplicate environment names — `os/config/usr/bin/aresos:74`:** the
+  original-environment reader now keeps the first entry for each name, matching
+  `os.environ` and glibc's `getenv`. It still reads `/proc/self/environ` and
+  filesystem-decodes the original values, without Python's startup locale
+  coercion. The comment explicitly says that a mapping hand-over collapses
+  duplicates to the first entry; it does not preserve duplicate entries.
+- **Raw-exec regression — `os/tests/test_aresos_command.py:237`:** libc's
+  `execve` supplies `DISPLAY=` followed by `DISPLAY=:2`, plus `LANG=C` and
+  duplicate non-UTF-8 values. A copy of the real dispatcher runs through its
+  real shebang. `check` must refuse with the exact existing line and status 2;
+  Control's stand-in (`/usr/bin/env -0`) must receive only the first values,
+  with no added `LC_CTYPE`. The fixture forces an ordinary account even in
+  root CI and replaces sudo with `/usr/bin/false` so a broken refusal is safe.
+- **Caught audit exceptions — `os/ci/image-checks.sh:812`:** the shell creates
+  and owns an attempt file and gives the audited interpreter a write descriptor.
+  The hook writes each process event before raising. After the interpreter
+  exits, any recorded attempt forces status 1, even if the dispatcher caught
+  the exception and returned its normal refusal. The shell prints the record
+  and removes the temporary file. Existing exact refusal/status checks remain.
+- **Caught-attempt mutations — `os/tests/test_control_image.py:372`:** run
+  the complete Bash refusal block with a stand-in for `runuser`. For each of
+  its two refusal paths, inject REVIEW-10's `try/except Exception: pass` around
+  sudo exec, Control exec, posix-spawn, shell, fork, forkpty and subprocess
+  attempts. All 14 mutations must fail the block, report the event and omit
+  its PASS marker. The existing uncaught-attempt coverage still runs using
+  an inherited attempt descriptor.
+
+Each module ran separately with exactly
+`PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s os/tests -p '<module>.py'`.
+Before changing production code, the new command regression failed alongside
+the intentional word-set failure (`Ran 16 tests in 0.221s`,
+`FAILED (failures=2)`). The image module's new mutation test failed all 14
+subcases (`Ran 19 tests in 6.332s`, `FAILED (failures=14)`): the old complete
+Bash block incorrectly exited 0 and printed PASS after each caught attempt.
+
+Final results after both fixes:
+
+| Module | Printed result |
+|---|---|
+| `test_aresos_command.py` | `Ran 16 tests in 0.259s`, `FAILED (failures=1)`; 15 pass, only the intentional missing Control `newest` reservation |
+| `test_aresos_command_diff.py` | `Ran 2 tests in 0.150s`, `FAILED (failures=1)`; only the intentional absent `cli` diff rule |
+| `test_control_image.py` | `Ran 19 tests in 6.150s`, `OK` |
+| `test_owner_path.py` | `Ran 48 tests in 1.724s`, `OK` |
+
+No test was skipped, deleted or weakened. No environmental temporary-file or
+socket error occurred. `bash -n os/ci/image-checks.sh`, `git diff --check`
+and `git diff --exit-code -- control/ os/owner-tools/ os/release/ docs/`
+exited 0 without output. `.work files over 500 MB: []`; no download or
+screenshot was made.
+
+**Not verified:** no image build or container/image execution ran. The lead's
+check build still needs to exercise the installed files and the real `runuser`
+descriptor hand-off; local tests exercise the actual refusal block with its
+stand-in. The two intentional integration PLAN-GAPs above remain unchanged.
+No new PLAN-GAP, JUDGMENT-CALL or open question.

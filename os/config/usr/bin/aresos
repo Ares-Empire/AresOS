@@ -74,8 +74,14 @@ def plan(argv, environ, account):
 def original_environment():
     # Python can add LC_CTYPE during startup; Control must receive the caller's bytes.
     with open('/proc/self/environ', 'rb') as source:
-        # An entry without '=' is skipped, as os.environ skips it.
-        return dict(os.fsdecode(entry).split('=', 1) for entry in source.read().split(b'\0') if b'=' in entry)
+        environ = {}
+        for entry in source.read().split(b'\0'):
+            # An entry without '=' is skipped, as os.environ skips it.
+            if b'=' in entry:
+                name, value = os.fsdecode(entry).split('=', 1)
+                # A hand-over by mapping collapses duplicates to the first, like os.environ/getenv.
+                environ.setdefault(name, value)
+        return environ
 
 
 def main():

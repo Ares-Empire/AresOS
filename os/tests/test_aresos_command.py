@@ -234,6 +234,42 @@ class MainTest(unittest.TestCase):
                     self.assertEqual(result.stderr, b'')
                     self.assertEqual(result.stdout, b''.join(entry + b'\0' for entry in environment))
 
+    def test_raw_execve_duplicate_names_keep_first_for_refusal_and_control_handover(self):
+        # subprocess's environment mapping cannot express duplicate names; libc execve can.
+        launch = '''
+import ctypes, os, sys
+libc = ctypes.CDLL(None, use_errno=True)
+vector = ctypes.POINTER(ctypes.c_char_p)
+libc.execve.argtypes = (ctypes.c_char_p, vector, vector)
+libc.execve.restype = ctypes.c_int
+argv = [os.fsencode(word) for word in sys.argv[1:]]
+environment = [b'DISPLAY=', b'DISPLAY=:2', b'LANG=C', b'RAW=\\xff=with spaces', b'RAW=last']
+libc.execve(argv[0], (ctypes.c_char_p * (len(argv) + 1))(*argv, None),
+            (ctypes.c_char_p * (len(environment) + 1))(*environment, None))
+error = ctypes.get_errno()
+raise OSError(error, os.strerror(error))
+'''
+        with tempfile.TemporaryDirectory() as folder:
+            dispatcher = pathlib.Path(folder) / 'aresos'
+            source = DISPATCHER.read_text()
+            # Force an ordinary account even in root CI; a broken refusal must never reach sudo.
+            source = source.replace('pwd.getpwuid(os.getuid())', f'pwd.struct_passwd({tuple(OWNER)!r})')
+            source = source.replace("'/usr/bin/sudo'", "'/usr/bin/false'")
+            source = source.replace(f'CONTROL = {command.CONTROL!r}', "CONTROL = '/usr/bin/env'")
+            dispatcher.write_text(source)
+            dispatcher.chmod(0o755)
+            result = subprocess.run([sys.executable, '-ISB', '-c', launch, str(dispatcher), 'check'],
+                                    capture_output=True, timeout=15)
+            self.assertEqual(result.returncode, 2, result.stderr)
+            self.assertEqual(result.stdout, b'')
+            self.assertEqual(result.stderr, b'aresos check: this works at the recovery console, typed by you: '
+                             b'sudo /var/lib/ares/at check; nothing ran\n')
+            result = subprocess.run([sys.executable, '-ISB', '-c', launch, str(dispatcher), '-0'],
+                                    capture_output=True, timeout=15)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(result.stderr, b'')
+            self.assertEqual(result.stdout, b'DISPLAY=\0LANG=C\0RAW=\xff=with spaces\0')
+
 
 class AskpassTest(unittest.TestCase):
     def test_helper_is_the_two_line_timeout_exec_with_unchanged_arguments(self):
