@@ -4,7 +4,7 @@
 
 `mod/dev/client-test.sh` takes the shared client lock and checks room again before waking NVIDIA. Before its NVIDIA probe it starts an idle CUDA context on the same PCI device as the selected render node. Explicit Intel/software runs do not start a holder. NVIDIA is skipped if holding fails; `auto` retains the existing Intel/software fallback, and an explicit `--gpu nvidia` fails rather than probing without the holder.
 
-`mod/dev/env.sh` calls the installed driver's `libcuda.so.1` through Python's standard-library `ctypes`; no CUDA toolkit or GPU work loop is needed. It requires the UVM module and accessible device to be present already. Initialization has a 30-second deadline, and the run-owned holder scope has a five-second stop timeout. After review fix 1, an independent supervisor watches the script through a pidfd, owns scope launchers, and keeps the shared lock through ordered cleanup: client scopes first, CUDA worker last. CUDA calls run only in that worker. The stand-in tests below cover parent death during hanging initialization/context creation/release, persistent clients, and holder failure after readiness; they establish bounded cleanup in those tested conditions. They do not establish recovery from an unkillable kernel task or failure of the supervisor itself. Nothing is cached across runs or boots.
+`mod/dev/env.sh` calls the installed driver's `libcuda.so.1` through Python's standard-library `ctypes`; no CUDA toolkit or GPU work loop is needed. It requires the UVM module and accessible device to be present already. Initialization has a 30-second deadline, and the run-owned holder scope has a five-second stop timeout. After review fix 1, an independent supervisor watches the script through a pidfd, owns scope launchers, and keeps the shared lock through ordered cleanup: client scopes first, CUDA worker last. CUDA calls run only in that worker. The stand-in tests below cover parent death during hanging initialization/context creation, parent SIGKILL followed by a hanging release, persistent clients, and holder failure after readiness; they establish bounded cleanup in those tested conditions. They do not establish recovery from an unkillable kernel task or failure of the supervisor itself. Nothing is cached across runs or boots.
 
 Only those two implementation files change; the review fix also adds a reproducible stand-in lifecycle harness under this review directory. The branch includes current main through the merges before hosted verification. PR: [#103](https://github.com/Ares-Empire/AresOS/pull/103).
 
@@ -135,7 +135,7 @@ Cleanup checks found no remaining scopes for the baseline, interrupted build or 
 1. **Parent death inside a CUDA call:** CUDA now runs in a worker scope under an independent Python supervisor. The supervisor watches a pidfd for the calling shell throughout startup, readiness, and execution. It owns each `systemd-run` launcher as a child, so parent death during scope creation can cancel that launcher too. No CUDA function executes in the supervisor. Initialization still has its existing 30-second deadline. Cleanup gives ordinary client/probe scopes 20 seconds and the CUDA worker five seconds, then sends KILL by the invocation-owned unit names and child PIDs. System-manager calls have a one-second timeout, and final removal checks have a three-second deadline per group. The normal case is much faster; combined cleanup has a 40-second bound under the tested, responsive Linux/systemd conditions.
 2. **Parent SIGKILL with a running game:** the supervisor inherits the shared lock and stops the invocation's ordinary scopes before stopping its CUDA worker. This covers the headless compositor, its Xwayland, the game and Gradle processes in those scopes. Only names and launchers registered by this invocation are targeted. RPC helpers close their inherited lock descriptor; ordinary commands do not inherit it from the supervisor. Explicit Intel/software runs use the same cleanup supervisor without starting CUDA.
 3. **Holder death after `READY`:** the supervisor watches the worker until its intentional release, including while cleaning up ordinary scopes. Unexpected exit prints `NVIDIA power holder exited unexpectedly; aborting client tests.`, signals the calling shell through its pidfd, stops the client scopes, and makes the run fail. The CUDA worker ignores terminal INT/HUP so those signals cannot release the context ahead of ordered cleanup; its supervisor sends TERM for intentional release and KILL if release hangs.
-4. **Corrected claim:** the original unconditional statement that killing the script cannot orphan a context was too broad. The new tests establish cleanup for parent SIGKILL during hanging initialization, context creation and release, and with persistent client descendants; they also establish failure and cleanup when the ready holder is killed. They do not prove recovery from an unkillable kernel task, a killed supervisor, or a broken system manager. No real wedged driver was induced.
+4. **Corrected claim:** the original unconditional statement that killing the script cannot orphan a context was too broad. The new tests establish cleanup for parent SIGKILL during hanging initialization or context creation, parent SIGKILL followed by a hanging release, and parent SIGKILL with persistent client descendants; they also establish failure and cleanup when the ready holder is killed. They do not prove recovery from an unkillable kernel task, a killed supervisor, or a broken system manager. No real wedged driver was induced.
 
 The shared lock, two memory/owner-game checks before probing, final room check before Gradle, headless display isolation and NVIDIA → Intel → software order remain in place. CUDA still requires already available UVM and uses the installed driver library. No privileged operation, system configuration write, process-name kill or persistent GPU policy was added. The supervisor starts only after this run acquires the shared lock.
 
@@ -188,6 +188,59 @@ Tracked PNG rewrites were restored after the screenshot copies; generated untrac
 - [OS image 44242554926](https://github.com/Ares-Empire/AresOS/actions/runs/44242554926): **success**, dispatched with `gh workflow run "OS image" --ref pkg/47-gpu-awake -f checks_only=true`; `gh run watch 44242554926 --exit-status --interval 60` exited **0**. The regression job completed in **23m 42s**, printing `Ran 1772 tests in 1367.146s`, `OK (skipped=4)`. All four existing skips are the three headless labwc/grim/GTK cover checks and its GTK/gi no-display check. Syntax checks, the hosted system-manager query and upstream input/signature verification passed. The separate full-model job correctly selected the existing bounded slice because its sources did not change; no skip condition or test was changed here.
 
 These runs target implementation `92f9fbd6`. Final report/evidence-only updates do not change that implementation. The preceding exploratory OS run and superseded Mod/privacy runs at `96eb4ee0` were cancelled before completion when the lock/signal fixes were pushed; they are not passing evidence. No local `os/tests` module was run.
+
+## Review fix 2
+
+### Findings and cleanup behavior
+
+`mod/dev/env.sh` now calls `holder_lost()` on every iteration of ordinary-scope cleanup's final confirmation, and once more immediately before intentional holder release. The existing `holder_failed` latch retains failure through later successful scope removal; its diagnostic prints once. Intentional holder shutdown still follows ordinary-scope shutdown and does not count as an unexpected loss. No cleanup deadline or launch/fallback policy changed.
+
+The timing claim in Done and Review fix 1 is corrected: `parent-kill-release-hang` proves **parent SIGKILL followed by a hanging release**. It does not kill the parent during a release that was already hanging. No new claim about a wedged real driver is made.
+
+### Stand-in verification
+
+```sh
+python3 reviews/47-gpu-awake/lifecycle-test.py > .work/47/lifecycle-review-fix-2-final.log 2>&1
+bash -n mod/dev/env.sh mod/dev/client-test.sh mod/dev/build.sh mod/dev/run-hub.sh
+git diff --check
+```
+
+All exited **0**. The existing **14 cases** and the new deterministic `cleanup-final-holder-kill` case passed; exact output is in [lifecycle-review-fix-2.txt](lifecycle-review-fix-2.txt). The new case took **20.80 s**, returned **1**, printed the required diagnostic exactly once, and left its scopes gone, both client pidfds exited, and its private lock immediately available.
+
+For that case only, a `systemctl` shim keeps the ordinary scope unconfirmed until the supervisor enters KILL escalation. Inside the first final-confirmation query it kills the recorded holder unit and waits for its recorded worker pidfd to exit. It keeps confirmation pending for another iteration, and asserts that the diagnostic has appeared before returning the real scope state. Every stop/kill reaches the real user manager and targets only this trial's recorded units. CUDA is a compiled stand-in; no real game or driver call is used in the harness.
+
+A focused run of the new case passed in **20.77 s**. Running the same case against the pre-fix `env.sh`, with a separate worktree-local cache, reproduced cleanup returning **0** after the injected holder death. The local reproduction command `python3 .work/47/reproduce-review-fix-2.py` exited **0** and printed `Pre-fix regression reproduced: cleanup returned 0 after holder death during final confirmation; expected 1.`
+
+The first full harness attempt passed the existing 14 cases but failed the new case because its injection looked for a separate `systemd-run` process after the scope launcher had already execed the worker. The shim now uses the worker PID recorded by the fake CUDA library; the failure-status assertion remains unchanged. Harness and embedded-supervisor Python parsing also passed. CLI checks `mod/dev/build.sh --daemon` and `mod/dev/client-test.sh --gpu invalid` each returned **2**, respectively printing the daemon-switch refusal and the accepted GPU choices, without launching a game or build.
+
+### Real GPU verification
+
+Implementation `93921c06`, with main through `87d86471` merged first by `25854164`. The same read-only 20 ms sampler starts three seconds before each command and samples for 30 seconds afterward. Both complete `build runClientGameTest` runs used the shared lock, normal memory/owner-game checks, private headless compositor, and NVIDIA holder. No `--force`, direct Gradle invocation, privileged operation, or system configuration change was used.
+
+```sh
+python3 .work/47/measure.py review-fix-2-final-1 mod/dev/client-test.sh --keep-screenshots .work/47/review-fix-2-final-1-screenshots build
+python3 .work/47/measure.py review-fix-2-final-2 mod/dev/client-test.sh --keep-screenshots .work/47/review-fix-2-final-2-screenshots build --rerun-tasks
+```
+
+Both exited **0** and reported NVIDIA GeForce RTX 4060 Laptop GPU. Run 1 printed `BUILD SUCCESSFUL in 13m 1s`, `19 actionable tasks: 4 executed, 15 up-to-date`; its unit-test task was up-to-date. Run 2 printed `BUILD SUCCESSFUL in 13m 50s`, `19 actionable tasks: 19 executed`. Each passed the complete client suite and all **104 required server game tests**. The forced run's unit XML contains **272 tests, zero failures/errors, six existing Windows-only skips**. Each command copied **92 PNGs** to its requested worktree-local directory.
+
+| Complete run | Observation | Wake-ups / suspends | Active-time increase | Suspended-time increase |
+|---|---:|---:|---:|---:|
+| 1 | 818.2045 s | 1 / 1 | 791,983 ms | 26,223 ms |
+| 2, forced tasks | 867.0223 s | 1 / 1 | 841,949 ms | 25,074 ms |
+
+[power-review-fix-2.csv](power-review-fix-2.csv) records all status transitions and final samples. Full traces and command logs remain under `.work/47/`. Both traces start and end suspended, with exactly one resume and one suspend; every active sample has the same suspended-time counter within its run. The card returned to suspend at **07:18:10.596** and **07:32:57.609 CET**, respectively. Checks by the recorded script PIDs found **zero remaining scopes** after each run. No invocation returned exit 75. The shared lock was released between runs, including the 30-second post-exit sampling interval, and after the second run.
+
+Screenshot copies were retained locally, then the suite's 56 changed tracked PNGs were restored and its 25 generated untracked PNGs removed. There is no visual change in this fix. No lasting Gradle daemon was started, and no shared-daemon stop command was used. `find .work -type f -size +500M -printf '%P %s bytes\n'` returned no files: **nothing over 500 MiB remains in `.work/`**. No ISO, image layer, or extracted disk image was created.
+
+### Hosted verification
+
+- [Mod 44248844116](https://github.com/Ares-Empire/AresOS/actions/runs/44248844116): **success**, watched with `gh run watch 44248844116 --exit-status --interval 60` (exit **0**). Both builds passed all 104 required server game tests, printing `BUILD SUCCESSFUL in 1m 48s` and `BUILD SUCCESSFUL in 1m 44s`; jar hash comparison passed.
+- [Repo privacy 44248844081](https://github.com/Ares-Empire/AresOS/actions/runs/44248844081): **success**, `gh run watch 44248844081 --exit-status --interval 60` exited **0**. The same privacy script also passed locally, printing `No file holds a home path with a real user name.`
+
+- [OS image 44248863844](https://github.com/Ares-Empire/AresOS/actions/runs/44248863844): **success**, dispatched with `gh workflow run "OS image" --ref pkg/47-gpu-awake -f checks_only=true`; `gh run watch 44248863844 --exit-status --interval 60` exited **0**. The regression job took **22m 55s**, printing `Ran 1772 tests in 1268.565s`, `OK (skipped=4)`. The four existing skips are three headless labwc/grim/GTK cover tests and the GTK/gi no-display test. Syntax, the hosted system-manager query, release-input resolution and upstream-signature verification passed. The unchanged full-model selector chose the existing bounded slice because its sources did not change. The existing org package-visibility limitation was recorded; private metadata verification is not enabled on this branch. No skip condition or test was changed.
+
+These hosted runs target implementation `93921c06`. This closing commit changes only the report and evidence. No local `os/tests` module was run. The final staged privacy check passed with `No file holds a home path with a real user name.`
 
 ## Not verified
 
