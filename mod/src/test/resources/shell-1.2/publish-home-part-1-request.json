@@ -1,0 +1,16 @@
+{
+  "protocol": "aresos-shell/1.2",
+  "id": "p-3",
+  "op": "publish_home",
+  "revision": "18",
+  "part": 1,
+  "last": true,
+  "apps": [
+    {
+      "id": "terminal",
+      "short": "term",
+      "group": "system_tools",
+      "cells": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    }
+  ]
+}

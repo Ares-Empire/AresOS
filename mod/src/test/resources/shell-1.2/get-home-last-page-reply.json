@@ -1,0 +1,18 @@
+{
+  "protocol": "aresos-shell/1.2",
+  "id": "g-2",
+  "ok": true,
+  "revision": "18",
+  "palette": {
+    "a": "#e9ecec",
+    "b": "#2389c6"
+  },
+  "apps": [
+    {
+      "id": "terminal",
+      "short": "term",
+      "group": "system_tools",
+      "cells": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    }
+  ]
+}
