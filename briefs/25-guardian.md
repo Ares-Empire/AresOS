@@ -257,3 +257,18 @@ inhibitors, "close your apps first", the lid, the battery, `request_power`. A mo
 anything under `mod/`. The owner tools and the `aresos` command. A shutdown button in the hub.
 
 **CI timing (the lead, 2026-11-19):** the R28 release cut has CI first from Thu 2026-11-19 12:00 until `linux-aresos` says it is through. Start the `check_build=build` run only after that; until then, run the `checks_only=true` run alone and say in PROGRESS.md that the check build waits.
+
+## The owner's answer (board #379, 2026-11-19)
+
+Asked: "Shutdown saves your world first: a few seconds normally, at most 60 s if the game hangs. If a save could not
+be confirmed, the next start shows one window and waits for you. OK?" He answered: "Yes but no visible 60s shutdown
+lag. Let's put a black screen and do it in the background? Because once I press shutdown I close the lid and leave
+right away". So, on top of the recommendations above, which he accepted:
+- **No visible wait at shutdown.** The moment a shutdown starts, every screen goes black: turn the outputs off, or
+  cover them with a plain black surface, whichever is reliable in the VM. No text, no progress. The save and the stop
+  run behind it, and the machine powers off by itself when they are done or the budget runs out.
+- **Closing the lid must not stop the save.** While the stop routine runs, it holds a logind block on the lid switch
+  and on sleep (`handle-lid-switch:sleep`, mode `block`), so a lid closed right after pressing shutdown does not
+  suspend the laptop mid-save. It releases the block when it ends. Test in the VM: a lid event during the save does
+  not suspend, and the machine still powers off.
+- Logout and restart behave the same way (the screen black while it saves), so there is one behaviour to learn.
