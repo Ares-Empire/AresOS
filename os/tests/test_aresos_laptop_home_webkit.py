@@ -7,7 +7,7 @@ import threading
 import time
 import unittest
 
-from laptop_home_headless import Headless, VENDORS, headless_available, load_program, scratch, wait_for
+from laptop_home_headless import Headless, VENDORS, engines, headless_available, load_program, scratch, wait_for
 from laptop_home_helper import StandIn, png
 
 
@@ -15,30 +15,6 @@ class Listener(socketserver.BaseRequestHandler):
     def handle(self):
         self.server.connections.append(True)
         self.request.sendall(b'HTTP/1.1 200 OK\r\nContent-Length: 2\r\nConnection: close\r\n\r\nOK')
-
-
-def descendants(pid):
-    found = []
-    for task in Path(f'/proc/{pid}/task').glob('*/children'):
-        try:
-            for child in map(int, task.read_text().split()):
-                found.append(child)
-                found.extend(descendants(child))
-        except FileNotFoundError:
-            continue
-    return set(found)
-
-
-def engines(pid):
-    found = {}
-    for child in descendants(pid):
-        try:
-            command = Path(f'/proc/{child}/cmdline').read_bytes().split(b'\0')[0]
-            if b'WebKit' in command and command.endswith(b'Process'):
-                found[child] = os.fsdecode(command.rsplit(b'/', 1)[-1])
-        except FileNotFoundError:
-            continue
-    return found
 
 
 @unittest.skipUnless(headless_available(), 'headless labwc, Mesa pins and GTK 4/WebKitGTK 6.0')

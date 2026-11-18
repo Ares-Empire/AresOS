@@ -62,8 +62,32 @@ def headless_available():
             and all(Path(path).is_file() for path in VENDORS.values()))
 
 
+def descendants(pid):
+    found = []
+    for task in Path(f'/proc/{pid}/task').glob('*/children'):
+        try:
+            for child in map(int, task.read_text().split()):
+                found.append(child)
+                found.extend(descendants(child))
+        except FileNotFoundError:
+            continue
+    return set(found)
+
+
+def engines(pid):
+    found = {}
+    for child in descendants(pid):
+        try:
+            command = Path(f'/proc/{child}/cmdline').read_bytes().split(b'\0')[0]
+            if b'WebKit' in command and command.endswith(b'Process'):
+                found[child] = os.fsdecode(command.rsplit(b'/', 1)[-1])
+        except FileNotFoundError:
+            continue
+    return found
+
+
 class Headless:
-    def __init__(self, path, socket_path, *, page=FIXTURE):
+    def __init__(self, path, socket_path, *, page=FIXTURE, size=None, script='', font_dir=None, battery=True):
         self.path = path
         self.runtime = path / 'run'
         self.runtime.mkdir(mode=0o700)
@@ -89,6 +113,12 @@ class Headless:
                         GDK_BACKEND='wayland', GTK_A11Y='none', LIBGL_ALWAYS_SOFTWARE='1',
                         WEBKIT_DISABLE_DMABUF_RENDERER='1', GSK_RENDERER='cairo',
                         ARESOS_SHELL_SOCKET=str(socket_path), ARESOS_DESKTOP_INSTANCE=INSTANCE, **VENDORS)
+        if font_dir is not None:
+            fonts = path / '.local/share/fonts'
+            fonts.mkdir(parents=True)
+            for font in font_dir.glob('*.ttf'):
+                shutil.copyfile(font, fonts / font.name)
+        (path / 'setup.json').write_text(json.dumps(dict(size=size, script=script, battery=battery)))
         layer_dir = os.environ.get('LAPTOP_HOME_TEST_LAYER_DIR')
         lib_dir = Path(layer_dir).resolve() if layer_dir else Path('/usr/lib64')
         lib = lib_dir / 'libgtk4-layer-shell.so.0'
@@ -146,8 +176,14 @@ class Headless:
     def until(self, expression):
         return wait_for(lambda: self.evaluate(f'return Boolean({expression});'))
 
+    def snapshot(self):
+        return self.path / self.evaluate('@snapshot')
+
 
 def fixture_main(path, page):
+    setup = json.loads((path / 'setup.json').read_text())
+    if setup['size']:
+        subprocess.run(['/usr/bin/wlr-randr', '--output', 'HEADLESS-1', '--custom-mode', setup['size']], check=True)
     program = load_program()
     libc = ctypes.CDLL(None)
     libc.getenv.argtypes = [ctypes.c_char_p]
@@ -165,6 +201,10 @@ def fixture_main(path, page):
 
     def create(home):
         original(home)
+        if setup['script']:
+            home.manager.add_script(home.WebKit.UserScript.new(
+                setup['script'], home.WebKit.UserContentInjectedFrames.TOP_FRAME,
+                home.WebKit.UserScriptInjectionTime.START, [program.PAGE], None))
         parent['ephemeral'] = home.view.get_network_session().is_ephemeral()
         parent['app_id'] = home.window.get_application().get_application_id()
         if home.layer is not None and home.layer.is_layer_window(home.window):
@@ -209,6 +249,15 @@ def fixture_main(path, page):
             except (home.GLib.Error, ValueError, TypeError) as error:
                 write(error=str(error))
 
+        def snapshot(view, result):
+            try:
+                photo = view.get_snapshot_finish(result)
+                if not photo.save_to_png(str(path / 'snapshot.png')):
+                    raise ValueError('could not save the WebKit snapshot')
+                write(value='snapshot.png')
+            except (home.GLib.Error, ValueError) as error:
+                write(error=str(error))
+
         def check():
             nonlocal allow_foreign
             request = path / 'request.js'
@@ -223,6 +272,9 @@ def fixture_main(path, page):
             elif body == '@window':
                 home.window.close()
                 write(value={'fullscreen': home.window.is_fullscreen(), 'visible': home.window.get_visible()})
+            elif body == '@snapshot':
+                home.view.get_snapshot(home.WebKit.SnapshotRegion.VISIBLE, home.WebKit.SnapshotOptions.NONE,
+                                       None, snapshot)
             else:
                 home.view.call_async_javascript_function(body, -1, None, None, None, None, finish)
             return True
@@ -233,7 +285,8 @@ def fixture_main(path, page):
         return next(monitor for monitor in monitors if monitor.get_connector() == 'HEADLESS-1')
 
     program.LaptopHome.create_view = create
-    return program.run(token, root=page, select_monitor=monitor, sample_power=lambda: program.battery(68, True))
+    power = program.battery(68, True) if setup['battery'] else program.NO_BATTERY
+    return program.run(token, root=page, select_monitor=monitor, sample_power=lambda: power)
 
 
 if __name__ == '__main__':
