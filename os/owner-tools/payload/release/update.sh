@@ -1,7 +1,7 @@
 #!/usr/bin/bash
 set -euo pipefail
 test -r /etc/ostree/auth.json
-python3 - <<'UPDATE'
+python3 -I - <<'UPDATE'
 import json, subprocess
 status = json.loads(subprocess.check_output(['bootc', 'status', '--json']))['status']
 assert not status.get('staged') and not status.get('rollbackQueued'), 'STOP: pending deployment before update; see EMERGENCY.md / get help'
@@ -43,6 +43,9 @@ while read -r unit; do
         exit 1
     fi
 done < "$policy/masked-user-units.txt"
+# newest runs these same read-only checks before announcing; staging checks
+# them again because the configuration can change during signature verification.
+if [[ ${1:-} == --check ]]; then exit 0; fi
 unmasked=()
 restore() {
     local status=$?

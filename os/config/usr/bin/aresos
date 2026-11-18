@@ -1,0 +1,103 @@
+#!/usr/bin/python3 -ISB
+"""Desktop owner commands; everything else belongs to Control's CLI."""
+from dataclasses import dataclass
+import os
+import pwd
+import sys
+
+
+CONTROL = '/usr/libexec/aresos-control/cli'
+TABLE = {
+    'update': ('newest', 'Update to the newest version'),
+    'previous': ('previous', 'Go back to the previous version at the next restart'),
+    'rollback': ('rollback', 'Go back to plain Bazzite at the next restart'),
+    'check': ('check', 'Check the system'),
+    'title': ('title', 'Show what starts next'),
+    'records': ('records', 'Read disk records'),
+    'logs': ('logs', 'Save the log of the last start'),
+    'export': ('export', 'Export records'),
+    'reboot': ('reboot', 'Restart'),
+    'forward': 'use aresos update here, it goes forward by itself when a newer AresOS is installed',
+    'newest': 'use aresos update here, it goes forward by itself when a newer AresOS is installed',
+    'layout': 'this works only at the recovery console, typed by you: sudo /var/lib/ares/at layout',
+    'login': 'this works only at the recovery console, typed by you: sudo /var/lib/ares/at login',
+    'keep-stock': 'this works only on plain Bazzite, at the recovery console, typed by you: '
+                  'sudo /var/lib/ares/at keep-stock',
+    'install': 'this belongs to installing AresOS from plain Bazzite, at the recovery console; see docs/INSTALL.md',
+    'prepare': 'this belongs to installing AresOS from plain Bazzite, at the recovery console; see docs/INSTALL.md',
+    'verify': 'this belongs to installing AresOS from plain Bazzite, at the recovery console; see docs/INSTALL.md',
+    'switch': 'this belongs to installing AresOS from plain Bazzite, at the recovery console; see docs/INSTALL.md',
+}
+SCREEN = ('XDG_RUNTIME_DIR', 'WAYLAND_DISPLAY', 'DISPLAY', 'XDG_SESSION_TYPE', 'DBUS_SESSION_BUS_ADDRESS')
+
+
+@dataclass(frozen=True)
+class Exec:
+    path: str
+    argv: tuple[str, ...]
+    environ: dict[str, str]
+
+
+@dataclass(frozen=True)
+class Refusal:
+    line: str
+    status: int = 2
+
+
+def refuse(word, reason):
+    return Refusal(f'aresos {word}: {reason}; nothing ran')
+
+
+def plan(argv, environ, account):
+    """Choose an exec or a refusal without reading the system."""
+    if not argv or argv[0] not in TABLE:
+        return Exec(CONTROL, (CONTROL, *argv), dict(environ))
+    word = argv[0]
+    row = TABLE[word]
+    if isinstance(row, str):
+        return refuse(word, row)
+    if len(argv) != 1:
+        return refuse(word, 'takes no further words')
+    inner, label = row
+    if account.pw_uid == 0 or not (environ.get('WAYLAND_DISPLAY') or environ.get('DISPLAY')):
+        return refuse(word, f'this works at the recovery console, typed by you: sudo /var/lib/ares/at {inner}')
+    clean = {
+        'PATH': '/usr/bin:/bin', 'LANG': 'C.UTF-8',
+        'SUDO_ASKPASS': '/usr/libexec/aresos-askpass', 'SSH_ASKPASS_PROMPT': '',
+        'HOME': account.pw_dir, 'USER': account.pw_name, 'LOGNAME': account.pw_name,
+        **{name: environ[name] for name in SCREEN if name in environ},
+    }
+    return Exec('/usr/bin/sudo', ('/usr/bin/sudo', '-k', '-A', '-p', label,
+                                 '/usr/bin/bash', '-c', f'/var/lib/ares/at {inner}'), clean)
+
+
+def original_environment():
+    # Python can add LC_CTYPE during startup; Control must receive the caller's bytes.
+    with open('/proc/self/environ', 'rb') as source:
+        environ = {}
+        for entry in source.read().split(b'\0'):
+            # An entry without '=' is skipped, as os.environ skips it.
+            if b'=' in entry:
+                name, value = os.fsdecode(entry).split('=', 1)
+                # A hand-over by mapping collapses duplicates to the first, like os.environ/getenv.
+                environ.setdefault(name, value)
+        return environ
+
+
+def main():
+    result = plan(sys.argv[1:], original_environment(), pwd.getpwuid(os.getuid()))
+    if isinstance(result, Refusal):
+        print(result.line, file=sys.stderr)
+        return result.status
+    try:
+        os.execve(result.path, result.argv, result.environ)
+    except FileNotFoundError:
+        if result.path != CONTROL:
+            raise
+        offered = ', '.join(word for word, row in TABLE.items() if isinstance(row, tuple))
+        print(f'aresos: choose {offered}; Control is not installed; nothing ran', file=sys.stderr)
+        return 2
+
+
+if __name__ == '__main__':
+    raise SystemExit(main())

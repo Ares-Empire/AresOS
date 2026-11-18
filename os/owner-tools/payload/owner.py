@@ -146,7 +146,7 @@ def image_reference(deployment):
     return deployment['container-image-reference'].removeprefix('ostree-unverified-registry:').removeprefix('ostree-image-signed:docker://')
 
 
-def lineage(root):
+def lineage(root, installed=False):
     """The bundle's tools version and its append-only AresOS release records.
 
     Records are oldest first; the last one is the bundle's target and must be
@@ -160,22 +160,30 @@ def lineage(root):
     require(type(version) is int and version >= 2, 'Invalid tools version')
     require(isinstance(rows, list) and rows, 'Empty release history')
     for row in rows:
-        require(isinstance(row, dict) and list(row) == ['reference', 'identity', 'daily_wheel'], 'Invalid release record fields')
+        fields = ['reference', 'identity', 'daily_wheel']
+        require(isinstance(row, dict) and (list(row) == [*fields, 'number']
+            or installed and list(row) == fields), 'Invalid release record fields')
         require(isinstance(row['reference'], str) and re.fullmatch(RELEASE_REFERENCE, row['reference'])
             and isinstance(row['identity'], str) and re.fullmatch(RELEASE_IDENTITY, row['identity'])
             and type(row['daily_wheel']) is bool, 'Invalid release record')
+        require('number' not in row or type(row['number']) is int and row['number'] > 0, 'Invalid release number')
     digests = [row['reference'].split('@')[1] for row in rows]
     require(len(set(digests)) == len(digests) and BASE not in digests, 'Duplicate or stock release in history')
-    release = json.loads((root / 'release.json').read_text())
+    numbers = [row['number'] for row in rows if 'number' in row]
+    require(len(set(numbers)) == len(numbers), 'Conflicting release numbers in history')
+    release = json.loads((root / 'release.json').read_text(), object_pairs_hook=unique_pairs)
     require(release['reference'] == rows[-1]['reference'] and release['signature']['identity'] == rows[-1]['identity'],
         'Release target differs from the newest history record')
+    require(installed and 'number' not in release and 'number' not in rows[-1]
+        or type(release.get('number')) is int and release['number'] > 0 and release['number'] == rows[-1].get('number'),
+        'Release number differs from the newest history record')
     return dict(tools_version=version, releases=rows)
 
 
 def installed_lineage(root, fingerprint):
     """Read an installed bundle's history as data; its code is never run."""
     if (pathlib.Path(root) / 'history.json').exists():
-        value = lineage(root)
+        value = lineage(root, installed=True)
         return value['tools_version'], value['releases']
     require(fingerprint in LEGACY_TOOLS, 'Installed tools have no release history and are not the known 15f tools; get help')
     release = json.loads((pathlib.Path(root) / 'release.json').read_text())
@@ -186,7 +194,8 @@ def installed_lineage(root, fingerprint):
 
 def extends(old, new):
     return len(new) >= len(old) and all(a['reference'] == b['reference'] and a['identity'] == b['identity']
-        and a['daily_wheel'] is b['daily_wheel'] for a, b in zip(old, new))
+        and a['daily_wheel'] is b['daily_wheel'] and ('number' not in a or a['number'] == b.get('number'))
+        for a, b in zip(old, new))
 
 
 def bundle_source(payload):
@@ -309,7 +318,7 @@ class Host:
     def read(self, *command, allowed=(0,), timeout=READ_TIMEOUT):
         path = shutil.which(command[0], path='/usr/sbin:/usr/bin:/sbin:/bin')
         require(path and pathlib.Path(path).is_absolute(), 'Required tool missing: ' + command[0])
-        result = subprocess.run([path, *command[1:]], text=True, capture_output=True, timeout=timeout)
+        result = subprocess.run([path, *command[1:]], text=True, capture_output=True, timeout=timeout, cwd='/')
         self.trace.append(dict(command=list(command), returncode=result.returncode,
                                stdout=result.stdout, stderr=result.stderr, mutation=False))
         require(result.returncode in allowed, 'Read failed: ' + ' '.join(command))
@@ -323,7 +332,7 @@ class Host:
     def mutate(self, *command, timeout=1800):
         path = shutil.which(command[0], path='/usr/sbin:/usr/bin:/sbin:/bin')
         require(path and pathlib.Path(path).is_absolute(), 'Required tool missing: ' + command[0])
-        result = subprocess.run([path, *command[1:]], text=True, capture_output=True, timeout=timeout)
+        result = subprocess.run([path, *command[1:]], text=True, capture_output=True, timeout=timeout, cwd='/')
         self.trace.append(dict(command=list(command), returncode=result.returncode,
                                stdout=result.stdout, stderr=result.stderr, mutation=True))
         require(result.returncode == 0, 'Operation failed: ' + command[0] + '; do not reboot')
@@ -376,7 +385,7 @@ class Step:
         self.name, self.stdout, self.stderr = name, '', ''
         self.process = subprocess.Popen(['/usr/bin/bash', '-seu'], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
             stderr=subprocess.PIPE, text=True, env=dict(os.environ, PATH='/usr/sbin:/usr/bin:/sbin:/bin'),
-            start_new_session=True)
+            start_new_session=True, cwd='/')
         self.session = self.process.pid
         self.text = text
 
@@ -1321,12 +1330,14 @@ class Tools:
                 if retry == 'update' and self.completion(value, state) is not None:
                     return 'complete'
                 raise Stop('The ' + change + ' was interrupted before its result was recorded; do not reboot; run '
-                    + typed('update') + ' to continue it, or get help: EMERGENCY Failed or bad update')
+                    + typed('newest' if getattr(self, 'choosing_newest', False) else 'update')
+                    + ' to continue it, or get help: EMERGENCY Failed or bad update')
             require(keys == value['staged'] and waiting, 'The ' + change + ' changed before the restart; do not reboot; get help')
             return 'pending'
         if keys == value['before'] and not waiting:
             self.archive('not-applied', dict(raw, found_state=state))
             self.note(self.change(value, True) + ' was not applied: the deployments are as before it, and nothing is waiting')
+            self.not_applied = value['word']
             return None
         record = value if value['status'] == 'recorded' else self.completion(value, state)
         if record is None or waiting or keys != record['intended']:
@@ -1423,7 +1434,7 @@ class Tools:
     def pin_step(self, cleanup_only):
         body = (self.payload / 'release/pin-stock.sh').read_text().split("<<'PIN_STOCK'\n", 1)[1].split('\nPIN_STOCK', 1)[0]
         source = "__name__ = 'owner_shared_step'\n" + body + '\npin_stock(cleanup_only=' + repr(cleanup_only) + ')\n'
-        self.host.script("python3 - <<'OWNER_PIN'\n" + source + '\nOWNER_PIN\n', 'cleanup' if cleanup_only else 'pin')
+        self.host.script("python3 -I - <<'OWNER_PIN'\n" + source + '\nOWNER_PIN\n', 'cleanup' if cleanup_only else 'pin')
 
     def prepare(self):
         state = observations(self.host)
@@ -1640,7 +1651,7 @@ class Tools:
         require(not self.repair_note(booted), "This system's keyboard layout is half written: run "
             + typed('layout', 'abandon') + ' first, then update again; nothing changed')
 
-    def start_next(self, word, state, shape, settled, target):
+    def start_next(self, word, state, shape, settled, target, announce=None):
         """Rule 3, the one reorder: target becomes the first deployment by one `ostree admin
         set-default`. It never creates or removes a deployment and never touches a pin, kernel
         arguments or any /etc. Journalled before, recorded after; returns the state afterwards."""
@@ -1648,6 +1659,8 @@ class Tools:
         rows, reference = state['rpm']['deployments'], target['container-image-reference']
         require(len([d for d in rows if key(d) == key(target)]) == 1 and re.fullmatch('[A-Za-z0-9:/.@_-]+', reference),
             'Target deployment missing or ambiguous; nothing changed; get help')
+        if announce is not None:
+            announce(state, shape, settled)
         self.intend(word, state, settled, target)
         try:
             self.script('start-next', {'CHECKSUM': target['checksum'], 'SERIAL': str(target['serial']),
@@ -1680,17 +1693,133 @@ class Tools:
         return [label[0].upper() + label[1:] + ' already starts next; nothing changed',
                 'It runs now' if target is shape['booted'] else 'It does not run yet: it starts at the next restart']
 
-    def select(self, word, state, shape, settled, target, done):
+    def select(self, word, state, shape, settled, target, done, announce=None):
         """Rule 4: make target the next start. Already first: nothing changes and no journal is written."""
         if state['rpm']['deployments'][0] is target:
             return self.already(shape, target)
-        self.start_next(word, state, shape, settled, target)
+        self.start_next(word, state, shape, settled, target, announce)
         return [done, *self.title()]
 
     def tools_release(self, shape):
         """The installed deployment of the release of these tools, or None while it is not installed."""
         digest = self.release['reference'].split('@')[1]
         return next((d for d in shape['ares'] if d['container-image-reference-digest'] == digest), None)
+
+    def release_name(self, row):
+        """Numbers belong to exact references; this display fallback accepts no extra deployment."""
+        digest = row['container-image-reference-digest']
+        if digest == BASE:
+            return 'plain Bazzite'
+        record = next((r for r in self.lineage()['releases'] if r['reference'] == image_reference(row)), None)
+        if record is not None and 'number' in record:
+            return 'AresOS ' + str(record['number'])
+        return 'Unrecognised system ' + digest.split(':')[1][:12] + ' (version unknown)'
+
+    def newest_guard(self, shape):
+        require(shape['booted'] is newest(shape),
+            'A newer AresOS than the running one is installed, and this command installs a release only from the newest; nothing changed')
+
+    def newest_say(self, line):
+        self.said.append(line)
+        say(line)
+
+    def announce_update(self, state, shape, settled):
+        target = 'AresOS ' + str(self.release['number'])
+        if settled == 'complete':
+            self.newest_say('Update: ' + target + ' is already downloaded and ready. '
+                'Saving the record of the interrupted update. Restart to finish')
+            self.newest_say('This run downloads nothing')
+            rank = lambda d: shape['known'][d['container-image-reference-digest']][0]
+            for other in (d for d in shape['ares'] if d is not shape['booted']):
+                label = self.release_name(other)
+                self.newest_say(label + ' will be removed when the update finishes at shutdown')
+                if rank(shape['booted']) < rank(other):
+                    self.newest_say(target + " will start with this system's settings (Wi-Fi, passwords, layout), not " + label + "'s")
+        elif settled == 'retry':
+            self.newest_say('Update: continuing the interrupted update to ' + target + '. Restart to finish')
+        else:
+            self.newest_say('Update: installing the latest version, ' + target + '. Restart to finish')
+            self.newest_say('This downloads ' + target)
+
+    def announce_forward(self, state, shape, settled):
+        target = newest(shape)
+        label = self.release_name(target)
+        if shape['booted'] is target:
+            line = ('Update: ' + label + ' is the latest installed version and is running. Making it start next again instead of '
+                + self.release_name(state['rpm']['deployments'][0]) + '. No restart is needed for this change')
+        else:
+            line = ('Update: switching ' + ('from plain Bazzite ' if shape['booted'] is shape['stock'] else '')
+                + 'to the latest installed version, ' + label + ' (already downloaded). Restart to finish')
+        self.newest_say(line)
+        self.newest_say('This downloads nothing and removes nothing')
+
+    def newest_later(self, state, shape, settled):
+        """The next install follows the chosen operation's read, even when already first."""
+        if self.tools_release(shape) is not None:
+            return []
+        later = ('No restart is needed first. The next ' + typed('newest') + ' installs it'
+            if shape['booted'] is newest(shape) else 'After the restart, ' + typed('newest') + ' installs it')
+        return ['These tools also carry a newer version, AresOS ' + str(self.release['number']) + '. ' + later]
+
+    def newest(self):
+        """D2: one choice under the caller's lock; the inner word owns every change and journal."""
+        self.chosen, self.said, self.not_applied = None, [], None
+        self.choosing_newest = True
+        try:
+            return self.newest_result()
+        finally:
+            self.choosing_newest = False
+
+    def newest_result(self):
+        try:
+            state, shape, settled = self.survey(retry='update')
+        finally:
+            # main still prints notes added by the chosen word's later reads.
+            for line in getattr(self, 'notes', None) or []:
+                self.newest_say(line)
+            self.notes = []
+        require(shape is not None, NOT_INSTALLED)
+        target = newest(shape)
+        label = self.release_name(target)
+        if self.not_applied == 'update':
+            return ['The last update did not finish, so nothing changed. See Help before trying again']
+        if settled in ('complete', 'retry'):
+            if settled == 'retry':
+                require(shape['booted'] is target, 'The update to ' + self.release['reference']
+                    + ' was begun on an older AresOS and interrupted; this command does not continue it; '
+                    'nothing changed; do not reboot; get help: EMERGENCY Failed or bad update')
+            self.chosen = 'update'
+            return self.update(self.announce_update)
+        if settled == 'pending':
+            value = journalled(self.load(OUTCOME))
+            if value['word'] == 'update':
+                return ['The update to AresOS ' + str(self.release['number']) + ' is ready. Restart to finish']
+            if value['word'] == 'forward':
+                return ['The switch to ' + label + ' is ready. Restart to finish']
+            if value['word'] == 'previous':
+                row = next(d for d in shape['ares'] if list(key(d)) == value['target'])
+                line = 'The return to the previous version, ' + self.release_name(row) + ', is ready. '
+            else:
+                line = 'The return to plain Bazzite is ready. '
+            return [line + 'This command changes nothing before the restart. Restart to finish',
+                'After the restart, ' + typed('newest') + ' switches back to the latest installed version, ' + label]
+        runs, first = shape['booted'] is target, state['rpm']['deployments'][0] is target
+        installed = self.tools_release(shape) is not None
+        if runs and first:
+            if not installed:
+                self.chosen = 'update'
+                return self.update(self.announce_update)
+            version = self.lineage()['tools_version']
+            return ['AresOS is up to date (' + label + ')',
+                label + ' is running and will start next. It is the latest version these tools know. Nothing changed',
+                'Owner tools version ' + str(version) + ': ' + checked_bundle(self.payload)[:8],
+                'A newer version comes with newer owner tools after the maintainer announces it. '
+                'docs/OWNER-TOOLS.md on GitHub lists the current tools']
+        if first:
+            return [label + ' will start next. Nothing changed', 'It is not running yet. Restart to finish',
+                *self.newest_later(state, shape, settled)]
+        self.chosen = 'forward'
+        return self.forward(self.announce_forward, self.newest_later)
 
     def login(self):
         # Before the first switch the stock rules apply unchanged. With an AresOS
@@ -1728,7 +1857,7 @@ class Tools:
         auth.parent.mkdir(mode=0o700, exist_ok=True)
         # Never capture or retain podman's output, even on an authentication error.
         result = subprocess.run([podman, 'login', '--authfile', str(auth), '--username', username,
-            '--password-stdin', 'ghcr.io'], input=secret.encode(), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=90)
+            '--password-stdin', 'ghcr.io'], input=secret.encode(), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=90, cwd='/')
         del secret
         require(result.returncode == 0, 'Registry login failed; recheck token scope/expiry; no reboot')
         auth.chmod(0o600)
@@ -1775,7 +1904,7 @@ class Tools:
         return self.select('keep-stock' if keep else 'rollback', state, shape, settled, shape['stock'],
             'Saved stock is default' if keep else 'Saved stock rollback queued')
 
-    def update(self):
+    def update(self, announce=None):
         """The release of these tools, by staging, and nothing else (briefs/22c-forward-command.md).
 
         It is not installed and an AresOS runs and is first: verify and stage it over the running
@@ -1791,6 +1920,8 @@ class Tools:
         if settled == 'complete':
             # An interrupted run verified and staged this release; only its record is missing.
             require(journalled(self.load(OUTCOME))['digest'] == target.split('@')[1], 'The interrupted update was for another release; get help')
+            if announce is not None:
+                announce(before, shape, settled)
             record = self.finish(before)
             return ['Interrupted update recorded: ' + record['reference'], *self.title()]
         booted, rows = shape['booted'], before['rpm']['deployments']
@@ -1801,13 +1932,22 @@ class Tools:
                 return self.already(shape, installed)
             raise Stop(RELEASE_INSTALLED)
         self.may_stage(before, shape, settled)
+        if announce is not None:
+            self.newest_guard(shape)
         stored_login(target)
         require(shutil.which('cosign', path='/usr/sbin:/usr/bin:/sbin:/bin'), 'cosign is missing')
+        if announce is not None:
+            text = self.render('update', {'REFERENCE': target, 'CURRENT': image_reference(booted),
+                                          'CURRENT_DIGEST': booted['container-image-reference-digest']})
+            self.host.script('set -- --check\n' + text, 'update-preflight', mutation=False)
+            announce(before, shape, settled)
         self.script('verify', {'REFERENCE': target, 'IDENTITY': identity})
         # Verification takes time: every safety check again, immediately before staging.
         again, shape, settled = self.survey(retry='update')
         self.may_stage(again, shape, settled)
         require(again['rpm']['deployments'] == rows, 'Deployments changed during verification; nothing was staged; get help')
+        if announce is not None:
+            self.newest_guard(shape)
         booted = shape['booted']
         removed = finalizer_masks()
         self.intend('update', again, settled)
@@ -1950,7 +2090,7 @@ class Tools:
                 'the staged update could not be removed')
         return True
 
-    def forward(self):
+    def forward(self, announce=None, closing=None):
         """The newest installed AresOS starts next, from every system, stock included: rule 3's
         reorder, journalled and confirmed like every reorder. It never stages, downloads, removes
         or creates a deployment: no network, no login and no signature check (the release was
@@ -1958,7 +2098,9 @@ class Tools:
         state, shape, settled = self.survey()
         require(shape is not None, NOT_INSTALLED)
         target = newest(shape)
-        return self.select('forward', state, shape, settled, target, 'Newest installed AresOS starts next ' + image_reference(target))
+        lines = self.select('forward', state, shape, settled, target,
+            'Newest installed AresOS starts next ' + image_reference(target), announce)
+        return [*lines, *closing(state, shape, settled)] if closing is not None else lines
 
     def previous(self):
         """The older of two installed AresOS releases starts next, from every system, stock included."""
@@ -2014,7 +2156,13 @@ class Tools:
                 and ('wheel' in self.host.read('id', '-nG', 'ares').split()) is wheel,
                 'Daily account identity/privilege differs from this release record')
             self.host.read('pgrep', '-u', 'ares', '-x', 'labwc')
-            self.host.read('pgrep', '-u', 'ares', '-x', 'foot')
+            if pathlib.Path('/usr/libexec/aresos-desktop').exists():
+                found = self.host.read('pgrep', '-u', 'ares', '-x', 'aresos-desktop', allowed=(0, 1))
+                require(found.strip(), "The desktop's own program (aresos-desktop) is not running for ares: "
+                    'the session did not start it, or it gave up after repeated failures. '
+                    'This is about the running session, not about the tools; nothing was changed')
+            else:
+                self.host.read('pgrep', '-u', 'ares', '-x', 'foot')
         else:
             require(booted == BASE, 'Unknown booted image; get help')
             self.script('stock-session')
@@ -2749,6 +2897,7 @@ def install(payload, host=None, source='stick'):
     # Recovery first, before any check (main settled already; direct callers get the same).
     intent = settle_tools()
     fingerprint = checked_bundle(payload)
+    lineage(payload)
     if installed_update(fingerprint):
         try:
             return update_tools(payload, fingerprint, host if host is not None else Host(), intent, source)
@@ -2888,7 +3037,7 @@ def main():
     require(os.geteuid() == 0, 'Use sudo from the authenticated ares-recovery session')
     host = Host()
     known = {'install', 'prepare', 'records', 'title', 'login', 'verify', 'switch', 'rollback',
-        'keep-stock', 'export', 'layout', 'reboot', 'check', 'logs', 'update', 'forward', 'previous'}
+        'keep-stock', 'export', 'layout', 'reboot', 'check', 'logs', 'update', 'forward', 'previous', 'newest'}
     command = sys.argv[1] if len(sys.argv) >= 2 and sys.argv[1] in known else 'invalid'
     # Never record arbitrary argv: an accidentally pasted credential is not a
     # command. Layout choices are the only accepted extra arguments.
@@ -2928,16 +3077,20 @@ def main():
                        'login': tools.login, 'verify': tools.verify, 'switch': tools.switch,
                        'rollback': tools.recover, 'keep-stock': lambda: tools.recover(True), 'export': tools.export,
                        'layout': lambda: tools.layout(*action[1:]), 'reboot': tools.reboot, 'check': tools.check, 'logs': tools.logs,
-                       'update': tools.update, 'forward': tools.forward, 'previous': tools.previous}
+                       'update': tools.update, 'forward': tools.forward, 'previous': tools.previous, 'newest': tools.newest}
             lines = methods[command]()
             lines = [*(getattr(tools, 'notes', None) or []), *lines]
             result.update(status='passed', result=lines)
+            if command == 'newest':
+                result.update(chosen=getattr(tools, 'chosen', None), said=getattr(tools, 'said', []))
             stamp = datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%S.%fZ')
             tools.save(stamp + '-' + command, result)
     except (Stop, OSError, ValueError, KeyError, TypeError, subprocess.SubprocessError, AssertionError, EOFError, KeyboardInterrupt) as error:
         for line in getattr(tools, 'notes', None) or []:
             say(line)  # what rule 5 resolved before the STOP
         result['status'] = 'stopped'
+        if command == 'newest':
+            result.update(chosen=getattr(tools, 'chosen', None), said=getattr(tools, 'said', []))
         result['error'] = str(error) if not isinstance(error, (EOFError, KeyboardInterrupt)) else 'Input ended or interrupted'
         try:
             refusal_record(host, result)

@@ -1,3 +1,3 @@
 #!/bin/sh
-# DRAFT root-owned /usr/bin/aresos.
+# DRAFT root-owned /usr/libexec/aresos-control/cli, reached through /usr/bin/aresos (the OS dispatcher, package 43).
 exec /usr/bin/env -i PATH=/usr/bin:/bin LANG=C.UTF-8 /usr/bin/python3 -I -S /usr/libexec/aresos-control/launch.py cli "$@"

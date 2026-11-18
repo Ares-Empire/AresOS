@@ -128,10 +128,10 @@ class RuleRevertsTest(unittest.TestCase):
         installed = mutated(owner.Tools.update, 'raise Stop(RELEASE_INSTALLED)',
                             "return self.select('update', before, shape, settled, installed, 'Newest AresOS starts next ' + target)")
         # 2. The reorder put back where update may not stage (stock runs, or the running AresOS is not first).
-        elsewhere = mutated(owner.Tools.update, '    self.may_stage(before, shape, settled)\n    stored_login(target)',
+        elsewhere = mutated(owner.Tools.update, '    self.may_stage(before, shape, settled)',
                             "    if booted is shape['stock'] or rows[0] is not booted:\n"
                             "        return self.select('update', before, shape, settled, newest(shape), 'Newest installed AresOS starts next')\n"
-                            '    self.may_stage(before, shape, settled)\n    stored_login(target)')
+                            '    self.may_stage(before, shape, settled)')
         for change, state in ((installed, returned), (elsewhere, replace(starts()[3], rows=('S', '27', '13'), running='S'))):
             with self.subTest(state=state.rows + (state.bundle, state.running)), patch.object(owner.Tools, 'update', change):
                 with model.driver() as d:

@@ -10,18 +10,36 @@
     "23b (startup cover), merged with main after package 40: os/ci/vm.py gains the cover's screenshots and session font check in the check build (harness only); the regressions time limit (40 minutes) arrived with package 40 identically",
     "22d step 8: main merged in (bound files main changed wait for the next rehearsal)",
     "2026-11-15, board #306 (owner: scrub current files): the owner's machine username became owner in 372 files (reviews/username-scrub/RECORD.md). Three bound files changed, text only: os/manifest/ci/14/14zze-preflight/commit-preflight.py, final-local.py and local-privacy.py (archived preflight tools). No binding table or host walk was edited.",
+    "22d and 22c on the laptop (2026-11-17)",
+    "50: boot-only console keymap after Plymouth; vm.py requires boot-key and forced busy-VT repair evidence in the disposable check build",
+    "43 step 1: isolated root steps, session check, newest and numbered release metadata; tools v6 payload and pins",
+    "43 step 1: REVIEW-5 fixes",
+    "43 step 2: independent newest choice, model driver and I1-I4 revert proofs",
     "Package 18c's fix round 1, part 2 merged main after 22d's rehearsal (run 43737933979), which bound the workflow without 18c's changes (check_build gains control; the job's limit 127 minutes for control, 120 for the other modes; the Control VM pass step, 12 minutes, and the always() step stopping its fixture servers): they wait again for the next rehearsal; no tool, guide or image file changed",
     "Package 18c's fix round 1, part 2: the Control VM pass step's limit goes from 12 to 16 minutes (the last passes took 7 min 50 s and 7 min 9 s; the round adds about 2 to 3 minutes for the logout and greetd's auto-login and check 6's two new sessions; about 1.5 times the slower pass with that added); the job's limit and every other mode unchanged; no tool, guide or image file changed",
     "Package 18c's fix round 1, part 2 (linux-aresos, agreed change 15): the check-build job's limit for check_build=control goes from 127 to 131 minutes and its comment's sum follows the Control VM pass step's 16 minutes, so the job can't cut a slow pass before the step's own limit; every other mode unchanged; no tool, guide or image file changed",
-    "22d and 22c on the laptop (2026-11-17)",
-    "50: boot-only console keymap after Plymouth; vm.py requires boot-key and forced busy-VT repair evidence in the disposable check build",
-    "Package 18c's fix round X2 merged main at 04aef030 (packages 48, 50 and 51): bound files main changed wait for the next rehearsal; os/ci/check-build.sh keeps 18c's control|build split, with 50's console keymap check in the build branch"
+    "Package 18c's fix round X2 merged main at 04aef030 (packages 48, 50 and 51): bound files main changed wait for the next rehearsal; os/ci/check-build.sh keeps 18c's control|build split, with 50's console keymap check in the build branch",
+    "43: main merged at 98363516 (#58 18c Part A and B2, 52, 46, 79)",
+    "43 step 4: the guides for the aresos command (docs/INSTALL.md's new box, docs/EMERGENCY.md, the guide/TABLE equality test); no tools, payload or fingerprint change",
+    "43 step 4, REVIEW-12 fixes: EMERGENCY.md's two refusals that are not a STOP, and the was-not-applied warning inside its branch",
+    "43 step 4, REVIEW-12 fixes: test_owner_path pins the was-not-applied warning inside its branch",
+    "43 step 4, REVIEW-12 fixes: test_owner_path pins the routine STOP card's two refusals",
+    "43 step 5a: the R28 bridge's three generated routine lines (newest, reboot, check) by 22d's generator; guides, commands.json and tests; tools fingerprint f66fd694 unchanged",
+    "43: the owner's OK on calls 1 and 2 (board #350, 'OK as shown'); docs/INSTALL.md drops its two pending-OK sentences"
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
     {
       "sha256": "4bf4a988691367ff866a58012c47f6fdf8112a82afcef08d8d30307455a4d996",
       "path": ".github/workflows/os-image.yml"
+    },
+    {
+      "sha256": "77b12dd8f19837b3c7bd003ed213fa1dcda66ff3d7ea55cfb8619ecf6a111dc2",
+      "path": "docs/EMERGENCY.md"
+    },
+    {
+      "sha256": "15cac3d5ee698e3f738e1517eb90c7a8e84b6d774dfd41188a3b40b135308810",
+      "path": "docs/INSTALL.md"
     },
     {
       "sha256": "8e13aa279047545915e430afa53ec8abde59e92db74b0b3451ef3cd3075ed148",
@@ -40,16 +58,128 @@
       "path": "os/manifest/ci/14/14zze-preflight/local-privacy.py"
     },
     {
+      "sha256": "95ec3b5a00894ba0a6a4edd9f1755afbbb062ac30b53e679295f272e9b021740",
+      "path": "os/manifest/release.json"
+    },
+    {
+      "sha256": "f429a9ee88bcefb24e1e0c4294136dd17d6c51b690b1c9ad6bbf46522d56fe94",
+      "path": "os/manifest/releases/13.json"
+    },
+    {
+      "sha256": "0b9f63421fbb059dfd561780381264e8f324f4234a0ebbe2e4663dbc5c1d838c",
+      "path": "os/owner-tools/at"
+    },
+    {
+      "sha256": "4c66fadb7c4d2888e487f3c208d15e58567dab17eb3c791c681829963ceab1c2",
+      "path": "os/owner-tools/bootstrap.py"
+    },
+    {
+      "sha256": "2190e1cb1f729df343310c94953176eb5ca72f81dbf70cb9cc17561c55aa90d6",
+      "path": "os/owner-tools/commands.json"
+    },
+    {
+      "sha256": "6dc74d16055aac8c4747dd6bbc4c3f3461c7913f88d353ce4c9e7a5e297abe9b",
+      "path": "os/owner-tools/history.json"
+    },
+    {
+      "sha256": "3f3b1064fd42921733626c5849e713b4b75d806c71dba954575af64a53f39a90",
+      "path": "os/owner-tools/owner.py"
+    },
+    {
+      "sha256": "8bdd13b27f2af3426453acd851f8fb908548791abaf9721748103a496b383620",
+      "path": "os/owner-tools/payload/SHA256.json"
+    },
+    {
+      "sha256": "f66fd69442857b911b81775bbc2efb3edf53648b391615b38234b2ddcea9d135",
+      "path": "os/owner-tools/payload/SHA256SUMS"
+    },
+    {
+      "sha256": "0b9f63421fbb059dfd561780381264e8f324f4234a0ebbe2e4663dbc5c1d838c",
+      "path": "os/owner-tools/payload/at"
+    },
+    {
+      "sha256": "6dc74d16055aac8c4747dd6bbc4c3f3461c7913f88d353ce4c9e7a5e297abe9b",
+      "path": "os/owner-tools/payload/history.json"
+    },
+    {
+      "sha256": "3f3b1064fd42921733626c5849e713b4b75d806c71dba954575af64a53f39a90",
+      "path": "os/owner-tools/payload/owner.py"
+    },
+    {
+      "sha256": "95ec3b5a00894ba0a6a4edd9f1755afbbb062ac30b53e679295f272e9b021740",
+      "path": "os/owner-tools/payload/release.json"
+    },
+    {
+      "sha256": "3e12bb6bb9c8b0264b3d77e086af0c4d4679619b0d1e48083faf9286f44b09d6",
+      "path": "os/owner-tools/payload/release/pause-stock-updates.sh"
+    },
+    {
+      "sha256": "f47bcd1c9e41175f7c49a22d2c27aafcf4987c9e5b6e570e7b80bd10f97f2538",
+      "path": "os/owner-tools/payload/release/pin-stock.sh"
+    },
+    {
+      "sha256": "6b80f4a49903410791d6a891ab2de47529e709c4bb65b72606842abace1f9d18",
+      "path": "os/owner-tools/payload/release/start-next.sh"
+    },
+    {
+      "sha256": "b44f5273029f33b94528414c95c7badeed3b482004c4b237c3384f72d67c3af2",
+      "path": "os/owner-tools/payload/release/switch.sh"
+    },
+    {
+      "sha256": "45087cf3c80d57e9763838d468d1182b949c058d50a307580f8c76a20cae881a",
+      "path": "os/owner-tools/payload/release/system-keyboard.sh"
+    },
+    {
+      "sha256": "3e12bb6bb9c8b0264b3d77e086af0c4d4679619b0d1e48083faf9286f44b09d6",
+      "path": "os/release/pause-stock-updates.sh"
+    },
+    {
+      "sha256": "f47bcd1c9e41175f7c49a22d2c27aafcf4987c9e5b6e570e7b80bd10f97f2538",
+      "path": "os/release/pin-stock.sh"
+    },
+    {
+      "sha256": "6b80f4a49903410791d6a891ab2de47529e709c4bb65b72606842abace1f9d18",
+      "path": "os/release/start-next.sh"
+    },
+    {
+      "sha256": "b44f5273029f33b94528414c95c7badeed3b482004c4b237c3384f72d67c3af2",
+      "path": "os/release/switch.sh"
+    },
+    {
+      "sha256": "45087cf3c80d57e9763838d468d1182b949c058d50a307580f8c76a20cae881a",
+      "path": "os/release/system-keyboard.sh"
+    },
+    {
       "sha256": "74d708a2f68cf704cbdb8009a35da9e07eaeb13eeee5097890a3aa66713e639e",
       "path": "os/tests/test_checkout_sources.py"
     },
     {
-      "sha256": "93c66f3c6f18716e349da52323a68114c3431ccb21fc3447dea3adf491b98c08",
+      "sha256": "2cc6cb2322dab5ac388b534d8f9180c89812476d1b528c27de19aaf1eee2b942",
+      "path": "os/tests/test_owner_bootstrap.py"
+    },
+    {
+      "sha256": "873d3fb40d0cadf9f6e40c616172fb8558754897c4ae54ec4aeb12011bc7eb8d",
+      "path": "os/tests/test_owner_commands.py"
+    },
+    {
+      "sha256": "b49b070159c60460410307757ab45db577ecc3597ee5b28a3822691898123c3d",
+      "path": "os/tests/test_owner_entry.py"
+    },
+    {
+      "sha256": "311fd1b9cf68b8f8a4d2fc843f383c217f25454f255b0081c59d3ab7afb74cda",
       "path": "os/tests/test_owner_equality.py"
     },
     {
-      "sha256": "5e19d417b16166d4d338fc7ceaa0038e9b71443a1f513c9e74cf3440a36ca572",
+      "sha256": "7567542ad548cf62773d1836b5ade80528aedf31ea83ad8006b4a8d846f12383",
       "path": "os/tests/test_owner_path.py"
+    },
+    {
+      "sha256": "e6c75f6fa816d524862b331d4f3277a6b4210f907df9eea43b2dae122083281c",
+      "path": "os/tests/test_owner_tools.py"
+    },
+    {
+      "sha256": "a5f8508b04457643c9c2b514c5414bbbd6deed9aff94b500f6e7f250e19ec7bb",
+      "path": "os/tests/test_owner_update.py"
     },
     {
       "sha256": "07c7fa007ddb33101995e7bf3787cef216198a0036a0c11137fba30c57904cf3",
@@ -60,8 +190,13 @@
       "path": "os/tests/test_ways_back_probe.py"
     }
   ],
-  "unwalked_commands": [],
-  "unwalked_rule": "Commands added by package 22 are typed by the local walk of package 27's update rehearsal (os/tests/test_owner_walk.py, route update). Package 22c's forward (briefs/22c-forward-command.md) is typed by the local walk of package 22c's rehearsal (route ways-back: from plain Bazzite, after previous, and on the newer AresOS taken in the boot menu) and left this list in stage 2. Package 22d's generated lines (Claude's folder line, the tools-only routine line and the routine export line) are typed by no one: 22d's rehearsal (run 43737933979) ran them through its caller in the desktop session without a terminal, each taken by name from the announced commit's commands.json, and they left this list in 22d's step 7b. test_owner_equality counts a command as walked when a rehearsal's walk types it or, on 22d's route, its caller runs it, and refuses a listed command once it is walked.",
+  "unwalked_commands": [
+    "newest",
+    "newest-routine",
+    "reboot-routine",
+    "check-routine"
+  ],
+  "unwalked_rule": "Commands added by package 22 are typed by the local walk of package 27's update rehearsal (os/tests/test_owner_walk.py, route update). Package 22c's forward (briefs/22c-forward-command.md) is typed by the local walk of package 22c's rehearsal (route ways-back: from plain Bazzite, after previous, and on the newer AresOS taken in the boot menu) and left this list in stage 2. Package 22d's generated lines (Claude's folder line, the tools-only routine line and the routine export line) are typed by no one: 22d's rehearsal (run 43737933979) ran them through its caller in the desktop session without a terminal, each taken by name from the announced commit's commands.json, and they left this list in 22d's step 7b. test_owner_equality counts a command as walked when a rehearsal's walk types it or, on 22d's route, its caller runs it, and refuses a listed command once it is walked. Package 43's three bridge lines for release 28 (newest-routine, reboot-routine and check-routine, step 5a) are walked by no rehearsal yet: 43's VM run (step 6) runs them through 22d's caller in the desktop session, and they leave this list then.",
   "rebound": [
     {
       "status": "rebound by package 27's update rehearsal",

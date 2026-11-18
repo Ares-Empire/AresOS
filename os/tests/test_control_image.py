@@ -7,15 +7,18 @@ their record is checked here with stand-ins for pip's report and the vendored tr
 import base64
 import hashlib
 import importlib.util
+import io
 import json
 import marshal
 import os
 import pathlib
 import py_compile
 import re
+import shlex
 import shutil
 import subprocess
 import sys
+import tarfile
 import tempfile
 import unittest
 import zipfile
@@ -27,7 +30,7 @@ REVISION = 'cd' * 20
 FILES = {
     '/etc/claude-code/CLAUDE.md': ('0644', 'control/settings/CLAUDE.md'),
     '/etc/claude-code/managed-settings.json': ('0644', 'control/settings/managed-settings.draft.json'),
-    '/usr/bin/aresos': ('0755', 'control/packaging/aresos'),
+    '/usr/libexec/aresos-control/cli': ('0755', 'control/packaging/aresos'),
     '/usr/bin/aresos-mcp': ('0755', 'control/packaging/aresos-mcp'),
     '/usr/bin/aresos-toold': ('0755', 'control/packaging/aresos-toold'),
     '/usr/lib/systemd/system/aresos-toold.service': ('0644', 'control/packaging/aresos-toold.service'),
@@ -155,6 +158,23 @@ class InstallMapTest(unittest.TestCase):
         for event in json.loads((CONTROL / 'settings/managed-settings.draft.json').read_text())['hooks'].values():
             self.assertIn('/usr/libexec/aresos-control/launch.py hook ', event[0]['hooks'][0]['command'])
 
+    def test_the_moved_wrapper_leaves_the_dispatcher_intact_and_is_recorded_unchanged(self):
+        dest = self.work / 'with-dispatcher'
+        dispatcher = dest / 'usr/bin/aresos'
+        dispatcher.parent.mkdir(parents=True)
+        source = ROOT / 'os/config/usr/bin/aresos'
+        shutil.copy2(source, dispatcher)
+        result, _ = self.tree(dest=dest)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(dispatcher.read_bytes(), source.read_bytes())
+        self.assertEqual(dispatcher.stat().st_mode & 0o7777, 0o755)
+        wrapper = '/usr/libexec/aresos-control/cli'
+        self.assertEqual((dest / wrapper.lstrip('/')).read_bytes(), (CONTROL / 'packaging/aresos').read_bytes())
+        record = self.record(dest)
+        self.assertNotIn('/usr/bin/aresos', record['files'])
+        self.assertEqual(record['files'][wrapper], dict(mode='0755', source='control/packaging/aresos',
+                                                       sha256=sha256((CONTROL / 'packaging/aresos').read_bytes())))
+
     def test_the_config_follows_the_images_account_declaration(self):
         result, dest = self.tree()
         self.assertEqual(result.returncode, 0, result.stderr)
@@ -251,6 +271,127 @@ class ImageCheckTest(unittest.TestCase):
     def setUp(self):
         self.work = pathlib.Path(tempfile.mkdtemp())
         self.addCleanup(shutil.rmtree, self.work)
+
+    def test_check_image_holds_dispatcher_and_helper_bytes_and_metadata_to_checkout(self):
+        script = (ROOT / 'os/ci/check-image.sh').read_text()
+        self.assertIn('--entrypoint /usr/bin/tar "$image" -c -C / \\\n'
+                      '    usr/bin/aresos usr/libexec/aresos-askpass > "$out/aresos-command.tar"', script)
+        code = heredoc('os/ci/check-image.sh', 'python3 - "$out/aresos-command.tar" os/config '
+                       '<<\'PY\' | tee "$out/aresos-command.txt"\n')
+        sources = {name: (ROOT / 'os/config' / name).read_bytes()
+                   for name in ('usr/bin/aresos', 'usr/libexec/aresos-askpass')}
+
+        def check(changed=None, **metadata):
+            archive = self.work / 'commands.tar'
+            with tarfile.open(archive, 'w') as image:
+                for name, source in sources.items():
+                    member = tarfile.TarInfo(name)
+                    member.mode = 0o755
+                    if name == changed:
+                        source = metadata.get('data', source)
+                        for key, value in metadata.items():
+                            if key != 'data':
+                                setattr(member, key, value)
+                    member.size = len(source)
+                    image.addfile(member, io.BytesIO(source))
+            return subprocess.run([sys.executable, '-I', '-c', code, str(archive), str(ROOT / 'os/config')],
+                                  capture_output=True, text=True, timeout=15)
+
+        result = check()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('ARESOS_COMMAND_FROM_CHECKOUT', result.stdout)
+        # REVIEW-9: the old refusal probes miss this broken offered branch.
+        broken = sources['usr/bin/aresos'].replace(b"'update': ('newest',", b"'update': ('update',")
+        self.assertNotEqual(broken, sources['usr/bin/aresos'])
+        result = check('usr/bin/aresos', data=broken)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('usr/bin/aresos: bytes differ from checkout', result.stderr)
+        for name, source in sources.items():
+            for mutation in (dict(data=source + b'\n'), dict(mode=0o644), dict(mode=0o4755),
+                             dict(uid=1001), dict(gid=1001), dict(type=tarfile.SYMTYPE, linkname='elsewhere'),
+                             dict(type=tarfile.LNKTYPE, linkname='elsewhere')):
+                with self.subTest(name=name, mutation=mutation.keys()):
+                    result = check(name, **mutation)
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertNotIn('ARESOS_COMMAND_FROM_CHECKOUT', result.stdout)
+
+    def test_refusal_probes_observe_and_block_process_attempts(self):
+        code = heredoc('os/ci/image-checks.sh',
+                       '    runuser -u ares -- env -i PATH=/usr/bin:/bin "$@" /usr/bin/python3 -ISB - '
+                       '3 /usr/bin/aresos "$word" 3>"$attempts" <<\'PY\' || status=$?\n')
+        source = (ROOT / 'os/config/usr/bin/aresos').read_text()
+        dispatcher = self.work / 'aresos'
+
+        def probe(text, word, **environment):
+            dispatcher.write_text(text)
+            with tempfile.TemporaryFile() as attempts:
+                return subprocess.run([sys.executable, '-ISB', '-c', code, str(attempts.fileno()),
+                                       str(dispatcher), word], pass_fds=(attempts.fileno(),),
+                                      env=dict(PATH='/usr/bin:/bin', **environment),
+                                      capture_output=True, text=True, timeout=15)
+
+        for word, environment, reason in (
+                ('layout', dict(WAYLAND_DISPLAY='wayland-ci'), 'this works only at the recovery console'),
+                ('update', {}, 'this works at the recovery console')):
+            with self.subTest(word=word):
+                result = probe(source, word, **environment)
+                self.assertEqual(result.returncode, 2, result.stderr)
+                self.assertIn(reason, result.stderr)
+                self.assertIn('nothing ran', result.stderr)
+                self.assertEqual(result.stdout, '')
+                for attempt, event in (
+                        ("os.execve('/usr/bin/sudo', ('/usr/bin/sudo',), {})", 'os.exec'),
+                        ("os.execve(CONTROL, (CONTROL,), {})", 'os.exec'),
+                        ("os.system('true')", 'os.system'),
+                        ("__import__('subprocess').run(['/usr/bin/true'])", 'subprocess.Popen')):
+                    # No real command starts: the same hook as the image check blocks each attempt.
+                    broken = source.replace('def main():\n', f'def main():\n    {attempt}\n', 1)
+                    result = probe(broken, word, **environment)
+                    self.assertNotEqual(result.returncode, 2, result.stderr)
+                    self.assertIn(f'aresos refusal attempted a process: {event}', result.stderr)
+                    self.assertNotIn('nothing ran', result.stderr)
+
+        # Exercise the surrounding shell too: xtrace must not pollute the exact refusal comparisons.
+        dispatcher.write_text(source)
+        result = subprocess.run(['bash', '-c', self.refusal_wrapper(dispatcher)],
+                                capture_output=True, text=True, timeout=15)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn('PASS aresos dispatcher and askpass:', result.stdout)
+
+    def refusal_wrapper(self, dispatcher):
+        script = (ROOT / 'os/ci/image-checks.sh').read_text()
+        start = script.index('expect_failure() {')
+        failure_function = script[start:script.index('\n}\n', start) + 3]
+        start = script.index('aresos_refusal_probe() {')
+        block = script[start:script.index('\n# --- Package 18c:', start)]
+        block = block.replace('/usr/bin/aresos "$word"', f'{shlex.quote(str(dispatcher))} "$word"')
+        return ('set -euxo pipefail\n' + failure_function + '\n'
+                'runuser() { [[ $1 == -u && $2 == ares && $3 == -- ]]; shift 3; "$@"; }\n'
+                'pass() { printf "PASS %s\\n" "$*"; }\n' + block)
+
+    def test_refusal_probes_reject_process_attempts_even_when_dispatcher_catches_exception(self):
+        source = (ROOT / 'os/config/usr/bin/aresos').read_text()
+        dispatcher = self.work / 'aresos'
+        wrapper = self.refusal_wrapper(dispatcher)
+        for word in ('layout', 'update'):
+            for attempt, event in (
+                    ("os.execve('/usr/bin/sudo', ('/usr/bin/sudo',), {})", 'os.exec'),
+                    ("os.execve(CONTROL, (CONTROL,), {})", 'os.exec'),
+                    ("os.posix_spawn('/usr/bin/true', ('/usr/bin/true',), {})", 'os.posix_spawn'),
+                    ("os.system('true')", 'os.system'),
+                    ("os.fork()", 'os.fork'),
+                    ("os.forkpty()", 'os.forkpty'),
+                    ("__import__('subprocess').run(['/usr/bin/true'])", 'subprocess.Popen')):
+                with self.subTest(word=word, event=event, attempt=attempt):
+                    # REVIEW-10: swallowing the hook's exception must not erase the attempted process.
+                    mutation = (f'def main():\n    if sys.argv[1] == {word!r}:\n'
+                                f'        try:\n            {attempt}\n'
+                                '        except Exception:\n            pass\n')
+                    dispatcher.write_text(source.replace('def main():\n', mutation, 1))
+                    result = subprocess.run(['bash', '-c', wrapper], capture_output=True, text=True, timeout=15)
+                    self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+                    self.assertIn(f'aresos refusal attempted a process: {event}', result.stdout)
+                    self.assertNotIn('PASS aresos dispatcher and askpass:', result.stdout)
 
     def test_check_image_holds_the_record_to_this_checkout(self):
         subprocess.run(['bash', str(ROOT / 'os/build.sh'), 'control-tree', str(ROOT / 'os'), str(CONTROL),

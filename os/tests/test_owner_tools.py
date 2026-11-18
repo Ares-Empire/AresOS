@@ -258,7 +258,7 @@ def release13_bundle(destination):
     payload = ROOT / 'os/owner-tools/payload'
     record = json.loads((ROOT / 'os/manifest/releases/13.json').read_text())
     history = dict(tools_version=json.loads((payload / 'history.json').read_text())['tools_version'],
-                   releases=[dict(reference=record['reference'], identity=record['signature']['identity'], daily_wheel=False)])
+                   releases=[dict(reference=record['reference'], identity=record['signature']['identity'], daily_wheel=False, number=record['number'])])
     files = {row['path']: (payload / row['path']).read_bytes() for row in json.loads((payload / 'SHA256.json').read_text())}
     files['history.json'] = (json.dumps(history, indent=2) + '\n').encode()
     files['release.json'] = (ROOT / 'os/manifest/releases/13.json').read_bytes()

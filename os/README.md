@@ -8,6 +8,17 @@ Minecraft (Prism downloads it after the owner signs in), installer or hardware
 setup. Do not use the CI VM disk as an
 installer or as a system containing valuable data.
 
+Package 43 adds the desktop `aresos` command for AresOS 29 and later. Nine
+owner commands use a password window each; `aresos update` runs the installed
+tools' newest command. A run goes forward to the newest installed AresOS or
+installs a later release; it does one thing at a time. Every first word outside
+the tools' offered and refused words goes to Control's CLI at
+`/usr/libexec/aresos-control/cli`. Plain Bazzite and earlier AresOS releases keep
+the full commands at the recovery console. See the [terminal guide](../docs/INSTALL.md#update-aresos-to-a-new-release)
+for the password rule, announcements, Help and separate restart approval, and
+the [open route gate](../docs/INSTALL-STATUS.md#current-gates) for its proof limits:
+the tools need package 43's VM rehearsal, and the dispatcher needs R29's.
+
 **Package 06c image handoff is qualified in CI.** The private signed release
 `ghcr.io/carlsenares/aresos@sha256:362af9b7d2a5573363d2cc441505dd076603d1d96c1b5c01af55589db2b6c402`
 passed [two fresh VM boots and publication](https://github.com/carlsenares/AresOS/actions/runs/39818554327).

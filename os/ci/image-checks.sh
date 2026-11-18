@@ -790,6 +790,59 @@ printf '%s\n' "$layout"
 test "$layout" = "'appmenu:minimize,maximize,close'"
 pass 'Ares-Crown files installed; compiled AresOS default gives apps all three buttons'
 
+# --- Package 43: fixed desktop dispatcher and bounded password helper.
+for command_file in /usr/bin/aresos /usr/libexec/aresos-askpass; do
+    test -f "$command_file"
+    test ! -L "$command_file"
+    test -x "$command_file"
+    test "$(stat -c '%U:%G %a' "$command_file")" = 'root:root 755'
+done
+test -x /usr/bin/timeout
+test -x /usr/bin/ksshaskpass
+test "$(rpm -q --qf '%{VERSION}' ksshaskpass)" = 6.7.5
+python3 - <<'PY'
+from pathlib import Path
+assert Path('/usr/bin/aresos').read_text().splitlines()[0] == '#!/usr/bin/python3 -ISB'
+assert Path('/usr/libexec/aresos-askpass').read_text() == (
+    '#!/bin/sh\nexec /usr/bin/timeout --foreground -k 10 600 /usr/bin/ksshaskpass "$@"\n')
+PY
+# Run the installed dispatcher under an audit hook: an exec or child attempt
+# fails before it can reach sudo or Control, even if it would print a refusal.
+# The shell owns the attempt record so a caught hook exception cannot hide it.
+aresos_refusal_probe() {
+    local word=$1
+    shift
+    local attempts status=0
+    attempts=$(mktemp) || return 1
+    runuser -u ares -- env -i PATH=/usr/bin:/bin "$@" /usr/bin/python3 -ISB - 3 /usr/bin/aresos "$word" 3>"$attempts" <<'PY' || status=$?
+import os, runpy, sys
+attempts_fd = int(sys.argv.pop(1))
+def no_process(event, args):
+    if event in ('os.exec', 'os.posix_spawn', 'os.system', 'os.fork', 'os.forkpty', 'subprocess.Popen'):
+        os.write(attempts_fd, f'aresos refusal attempted a process: {event}\n'.encode())
+        raise AssertionError(f'aresos refusal attempted a process: {event}')
+sys.argv = sys.argv[1:]
+sys.addaudithook(no_process)
+runpy.run_path(sys.argv[0], run_name='__main__')
+PY
+    if [[ -s "$attempts" ]]; then
+        cat "$attempts" >&2
+        status=1
+    fi
+    rm -f "$attempts"
+    return "$status"
+}
+# Function traces would become part of expect_failure's captured stderr.
+set +x
+expect_failure aresos_refusal_probe layout WAYLAND_DISPLAY=wayland-ci
+test "$LAST_STATUS" = 2
+test "$LAST_FAILURE" = 'aresos layout: this works only at the recovery console, typed by you: sudo /var/lib/ares/at layout; nothing ran'
+expect_failure aresos_refusal_probe update
+test "$LAST_STATUS" = 2
+test "$LAST_FAILURE" = 'aresos update: this works at the recovery console, typed by you: sudo /var/lib/ares/at newest; nothing ran'
+set -x
+pass 'aresos dispatcher and askpass: root:root 0755, no links; refusals without exec or children; timeout and ksshaskpass 6.7.5'
+
 # --- Package 18c: the Control tools (the tool service, its commands, Claude
 # Code's managed files). Every path the image records in control.json is here
 # with its mode and content, root-owned with root-owned parents and no links,

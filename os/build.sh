@@ -89,7 +89,7 @@ UNIT = 'usr/lib/systemd/system/aresos-toold.service'
 TREES = {f'{CODE}/aresos_control': 'aresos_control', f'{CODE}/generated': 'generated'}
 FILES = {
     f'{CODE}/launch.py': ('launch.py', 0o644),
-    'usr/bin/aresos': ('packaging/aresos', 0o755),
+    f'{CODE}/cli': ('packaging/aresos', 0o755),
     'usr/bin/aresos-mcp': ('packaging/aresos-mcp', 0o755),
     'usr/bin/aresos-toold': ('packaging/aresos-toold', 0o755),
     UNIT: ('packaging/aresos-toold.service', 0o644),

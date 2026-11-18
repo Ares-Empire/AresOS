@@ -1,0 +1,2 @@
+#!/bin/sh
+exec /usr/bin/timeout --foreground -k 10 600 /usr/bin/ksshaskpass "$@"

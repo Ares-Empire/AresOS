@@ -1,7 +1,7 @@
 #!/usr/bin/bash
 set -euo pipefail
 test "$(id -u)" = 0
-python3 - <<'PAUSE_STOCK'
+python3 -I - <<'PAUSE_STOCK'
 import json
 import pathlib
 import subprocess

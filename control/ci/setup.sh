@@ -13,7 +13,9 @@ install -m 0644 control/settings/CLAUDE.md /etc/claude-code/CLAUDE.md
 cp -r control/aresos_control control/generated control/chrome control/launch.py /usr/libexec/aresos-control/
 python3 -c 'import json,sys;sys.path.insert(0,"control/chrome");from build import build_hash;json.dump({"build":build_hash()},open("/usr/libexec/aresos-control/chrome/build-id.json","w"))'
 cp control/settings/proxy.json control/settings/service.json /usr/share/aresos/control/
-install -m 0755 control/packaging/aresos control/packaging/aresos-mcp control/packaging/aresos-toold /usr/bin/
+install -m 0755 control/packaging/aresos-mcp control/packaging/aresos-toold /usr/bin/
+# As in the image (package 43): Control's wrapper is cli, and /usr/bin/aresos is the OS dispatcher in front of it.
+install -m 0755 control/packaging/aresos /usr/libexec/aresos-control/cli
 python3 -m pip install --no-cache-dir --require-hashes --only-binary=:all: --target /usr/lib/aresos-control/vendor -r control/requirements.lock
 chmod -R go-w /usr/libexec/aresos-control /usr/lib/aresos-control/vendor /usr/share/aresos/control
 export PYTHONPATH="$PWD/control:/usr/lib/aresos-control/vendor"

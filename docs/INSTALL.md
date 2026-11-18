@@ -81,7 +81,7 @@ Import-Module ./docs/install-tools/OwnerTools.psm1 -Force
 Copy-AresOwnerTools -Source ./os/owner-tools/payload -DriveLetter T
 ```
 
-Require `PASS tools manifest SHA256 dcbc375faa4b269bacaf316c5ddc24503b9773b2538bcd017065ce8e312597be` and `PASS ARESTOOLS ready; safely eject and unplug before shutdown/restart or record B.` The Windows helper checks both SHA256.json and SHA256SUMS. Safely eject/unplug. Do not use WINDOWS RECOVERY. Run record B **after-bazzite**, both sticks absent; **Return to step 4** here with PASS.
+Require `PASS tools manifest SHA256 f66fd69442857b911b81775bbc2efb3edf53648b391615b38234b2ddcea9d135` and `PASS ARESTOOLS ready; safely eject and unplug before shutdown/restart or record B.` The Windows helper checks both SHA256.json and SHA256SUMS. Safely eject/unplug. Do not use WINDOWS RECOVERY. Run record B **after-bazzite**, both sticks absent; **Return to step 4** here with PASS.
 - [ ] **F12** (or **Fn+F12**) → **Bazzite** (the installer's recorded Linux entry; [step 8 explains Fedora](#8-everyday-boot-and-recovery)) → **ares-recovery** sign-in. [Enter tty3 and become administrator](INSTALL-REFERENCE.md#console); **Return to step 4** here, keeping that session open. Only now insert ARESTOOLS. If text covers the prompt, press Enter. Type this entire 13-line block exactly; the continuation prompt is expected until the final quote:
 
 ```bash
@@ -92,7 +92,7 @@ p=$(mktemp -d /run/ares-bootstrap.XXXXXX); mkdir "$p/m"
 mount -o ro,nodev,nosuid,noexec LABEL=ARESTOOLS "$p/m"; trap "umount $p/m" EXIT
 cd "$p"; cp -R --no-preserve=mode,ownership m/ares-tools .; test ! -L ares-tools; cd ares-tools
 test -z "$(find . ! -type d ! -type f -print -quit)"
-echo "dcbc375faa4b269bacaf316c5ddc24503b9773b2538bcd017065ce8e312597be  SHA256SUMS" | sha256sum -c --strict
+echo "f66fd69442857b911b81775bbc2efb3edf53648b391615b38234b2ddcea9d135  SHA256SUMS" | sha256sum -c --strict
 cmp -s \
   <(find . -type f -printf "%P\n" | sort) \
   <({ cut -c67- SHA256SUMS; echo SHA256SUMS; } | sort)
@@ -188,7 +188,7 @@ sudo /var/lib/ares/at title
 sudo /var/lib/ares/at records
 ```
 
-Require all PASS: exact AresOS + corrected pinned stock final pair, no surviving old serial or retained keymap overrides, daily `ares` UID1001/no wheel and running labwc/foot. Save refreshed stock title before trusting recovery; staged title is now INVALID. Prove console `yz-/!ü` and fresh password sudo as step 5; return to desktop using the console-exit instructions. Test the same public text in foot without executing it.
+Require all PASS: exact AresOS + corrected pinned stock final pair, no surviving old serial or retained keymap overrides, daily `ares` UID1001/no wheel, running labwc and the session's own program (`aresos-desktop` from AresOS 28, foot before it). Save refreshed stock title before trusting recovery; staged title is now INVALID. Prove console `yz-/!ü` and fresh password sudo as step 5; return to desktop using the console-exit instructions. Test the same public text in foot without executing it.
 - [ ] Stay on AC, lid open. Check RTX4060 with `nvidia-smi`, display/brightness, audible sound, network after reboot and touchpad. Test **Super+Ctrl+Escape (Ctrl = Strg)**, fresh recovery login/logout/desktop return. For restarts: recovery account → `sudo /var/lib/ares/at reboot`; expect `PASS reboot` / `Reboot requested; Windows stays default; F12 then Linux for one Linux start` (screen may disappear), all sticks absent → **F12** (or **Fn+F12**) → **Bazzite**. Require a second Linux boot. Hung shutdown/restart → [wait and recovery rule](INSTALL-REFERENCE.md#hung-shutdown-or-restart), then Return to step 7 after resolution.
 - [ ] Log out the recovery console to its login prompt. From the desktop briefly press physical power; require clean shutdown. Boot **F12 → Bazzite** again, recovery tty3 → `sudo -i`:
 
@@ -225,7 +225,7 @@ Later work is outside this installation path: [update to a new release](#update-
 
 After the first update three systems are installed: the **newer AresOS**, the **older AresOS** and **plain Bazzite** (the corrected stock). An update keeps Windows the firmware default, the **current AresOS as rollback** and the **corrected stock pinned**, and removes the other AresOS when it finishes at shutdown. With the current tools (this guide's fingerprint) each of these commands names where the next start goes, works from every installed system and never creates or deletes one: **forward** the newest installed AresOS (forward again after **previous**, back from plain Bazzite), **previous** the older AresOS, **rollback** (on an AresOS) and **keep-stock** (on plain Bazzite) plain Bazzite. A new release comes only through **update** (the stage box). Layout trials work on an AresOS that starts next. Every title names what runs, what starts next and the boot menu's rows: [rollback, keep-stock and the boot menu](INSTALL-PROCEDURES.md#recovery-menu), [what you notice on each system](INSTALL-PROCEDURES.md#what-you-notice-on-each-system). **Older tools** (before package 22c) STOP these after an update with **Expected exact stock/AresOS pair**: that line means **install the current tools first**: the routine box below, or the stick's Windows box, tools box and tools-only box after it. Run one owner command at a time: a second one STOPs with **Another owner command is running**; let the first finish.
 
-- [ ] **New tools from Claude's terminal** (the routine way; no stick, no Windows, no console): on the running AresOS, R27 or later (before R27 your daily account `ares` is no administrator), with you at the laptop and signed in to its desktop. Claude runs the lines; you approve the one line that changes the laptop by typing your password into a window. If anything below differs, press **Cancel** and use the stick boxes after this one instead. Only this box's install line and its export line run this way for now: every other owner command stays at the console (the boxes below) until a later release brings it here.
+- [ ] **New tools from Claude's terminal** (the routine way; no stick, no Windows, no console): on the running AresOS, R27 or later (before R27 your daily account `ares` is no administrator), with you at the laptop and signed in to its desktop. Claude runs the lines; you approve the one line that changes the laptop by typing your password into a window. If anything below differs, press **Cancel** and use the stick boxes after this one instead. This box installs new tools; from AresOS 29, the next box brings the everyday commands to Claude's terminal.
 
   First Claude, in its own terminal as `ares` (no window yet), brings its copy of the repository up to the announced commit only by a fast-forward pull (never a reset, and never a checkout over other sessions' work), and runs this line with the commit's full hash added at the end. From here until the last PASS line no other Claude session runs an owner command: they run one at a time, and two at once make one of them STOP.
 
@@ -238,24 +238,24 @@ cd /var/home/ares/AresOS
 git fetch --quiet origin +refs/heads/main:refs/remotes/origin/main
 git merge-base --is-ancestor "$c" refs/remotes/origin/main || { echo "STOP tools folder: $c is not on origin/main"; exit 1; }
 git diff --quiet "$c" -- os/owner-tools || { echo "STOP tools folder: this checkout differs from $c in os/owner-tools"; exit 1; }
-[[ $(git show "$c":os/owner-tools/payload/SHA256SUMS | sha256sum) == "dcbc375faa4b269bacaf316c5ddc24503b9773b2538bcd017065ce8e312597be  -" ]] || { echo "STOP tools folder: $c holds other tools than dcbc375f"; exit 1; }
+[[ $(git show "$c":os/owner-tools/payload/SHA256SUMS | sha256sum) == "f66fd69442857b911b81775bbc2efb3edf53648b391615b38234b2ddcea9d135  -" ]] || { echo "STOP tools folder: $c holds other tools than f66fd694"; exit 1; }
 rm -rf /var/home/ares/ares-tools; mkdir /var/home/ares/ares-tools
 git archive "$c":os/owner-tools/payload | tar -x -C /var/home/ares/ares-tools
-cd /var/home/ares/ares-tools; echo "dcbc375faa4b269bacaf316c5ddc24503b9773b2538bcd017065ce8e312597be  SHA256SUMS" | sha256sum -c --strict' tools-folder
+cd /var/home/ares/ares-tools; echo "f66fd69442857b911b81775bbc2efb3edf53648b391615b38234b2ddcea9d135  SHA256SUMS" | sha256sum -c --strict' tools-folder
 ```
 
   It fetches GitHub's main and refuses unless the announced commit is on it, Claude's copy of the tools equals that commit and the commit's tools have this guide's fingerprint; only then it fills the tools folder from that commit and checks the fingerprint again. Require `SHA256SUMS: OK`. A line starting **STOP tools folder** installed nothing and opened no window: Claude tells you and stops there, with no export.
 
-  Then Claude tells you what it installs (tools version 4, `dcbc375f`) and waits for your go. On your go it runs this one line, which it takes from the announced commit itself, never from its working copy: `git -C /var/home/ares/AresOS show <commit>:os/owner-tools/commands.json`, entry **tools-routine** (the export line below is entry **export-routine**):
+  Then Claude tells you what it installs (tools version 6, `f66fd694`) and waits for your go. On your go it runs this one line, which it takes from the announced commit itself, never from its working copy: `git -C /var/home/ares/AresOS show <commit>:os/owner-tools/commands.json`, entry **tools-routine** (the export line below is entry **export-routine**):
 
 ```bash
-SUDO_ASKPASS=/usr/bin/ksshaskpass SSH_ASKPASS_PROMPT= /usr/bin/sudo -k -A -p 'AresOS owner tools dcbc375f: install these tools, then check and title' /usr/bin/bash -c 'set -euo pipefail
+SUDO_ASKPASS=/usr/bin/ksshaskpass SSH_ASKPASS_PROMPT= /usr/bin/sudo -k -A -p 'AresOS owner tools f66fd694: install these tools, then check and title' /usr/bin/bash -c 'set -euo pipefail
 export PATH=/usr/sbin:/usr/bin:/sbin:/bin; umask 077
 trap "echo STOP bootstrap: verification or install refused" ERR
 p=$(mktemp -d /run/ares-bootstrap.XXXXXX)
 cd "$p"; cp -R --no-preserve=mode,ownership /var/home/ares/ares-tools .; test ! -L ares-tools; cd ares-tools
 test -z "$(find . ! -type d ! -type f -print -quit)"
-echo "dcbc375faa4b269bacaf316c5ddc24503b9773b2538bcd017065ce8e312597be  SHA256SUMS" | sha256sum -c --strict
+echo "f66fd69442857b911b81775bbc2efb3edf53648b391615b38234b2ddcea9d135  SHA256SUMS" | sha256sum -c --strict
 cmp -s \
   <(find . -type f -printf "%P\n" | sort) \
   <({ cut -c67- SHA256SUMS; echo SHA256SUMS; } | sort)
@@ -266,24 +266,117 @@ trap "echo STOP after install: check or title refused" ERR
 /var/lib/ares/at title'
 ```
 
-  A small window opens on the laptop's screen. Its title bar says **Enter SSH Credentials** (the helper program's fixed title; it cannot be changed). Inside it says **AresOS owner tools dcbc375f: install these tools, then check and title**, then **Password:**, **OK** and **Cancel**. **Your rule:** type your password only when all three hold:
+  A small window opens on the laptop's screen. Its title bar says **Enter SSH Credentials** (the helper program's fixed title; it cannot be changed). Inside it says **AresOS owner tools f66fd694: install these tools, then check and title**, then **Password:**, **OK** and **Cancel**. **Your rule:** type your password only when all three hold:
   - you told Claude to go just now;
   - the line inside starts with **AresOS owner tools**;
-  - its 8 characters, `dcbc375f`, are the same as line 1 of `github.com/Ares-Empire/AresOS/blob/main/docs/OWNER-TOOLS.md`, which you open on your phone (not on the laptop) from your own bookmark of that address (type it once into your phone's browser and save it as a bookmark; open it from there): check that it says `main`, and never use a link Claude sends you at that moment.
+  - its 8 characters, `f66fd694`, are the same as line 1 of `github.com/Ares-Empire/AresOS/blob/main/docs/OWNER-TOOLS.md`, which you open on your phone (not on the laptop) from your own bookmark of that address (type it once into your phone's browser and save it as a bookmark; open it from there): check that it says `main`, and never use a link Claude sends you at that moment.
 
   Otherwise press **Cancel**: nothing runs and nothing changes, and Claude asks you before it tries again. **What the window cannot do:** it stops accidents and a Claude that acts without asking. It does not stop a Claude that has been tricked into showing you one thing and running another: once you type your password into such a window, that program can do anything as administrator, now and later, without asking again. If you do not want that, use the stick boxes for new tools instead.
 
   One password runs all three: require `PASS install` with **Tools updated from version** and the same fingerprint (a repeat says **Tools already installed; nothing changed**), then `PASS check` and `PASS title`, read as in the tools-only box below. The title is your saved title; older titles are INVALID. Claude posts the title's lines (which system runs and starts next, and the boot menu's rows, no disk serials) to the board under topic `aresos`, so they reach your phone; it does the same after every later command that changes what starts next. If you do not answer within 10 minutes, Claude closes the window by stopping the password helper it opened, never the administrator command itself: sudo then ends with **sudo: no password was provided**, which shows that nothing ran, and Claude asks you again. If you have already answered, Claude stops nothing and waits for the result.
 
-  **A STOP** (Cancel is not one): Claude copies every STOP line to you word for word and asks for your go; only on your go it runs the export line below, and it tries nothing else ([routine-route card](EMERGENCY.md#a-routine-tools-command-stopped)). After a **STOP tools folder** (Claude's own line; no administrator command ran) there is no export and no window. The export window says **AresOS owner tools dcbc375f: export the records**; the same rule holds.
+  **A STOP** (Cancel is not one): Claude copies every STOP line to you word for word and asks for your go; only on your go it runs the export line below, and it tries nothing else ([routine-route card](EMERGENCY.md#a-routine-tools-command-stopped)). After a **STOP tools folder** (Claude's own line; no administrator command ran) there is no export and no window. The export window says **AresOS owner tools f66fd694: export the records**; the same rule holds. On AresOS 29 or later, use `aresos export` from the next box instead; its password rule applies.
 
 ```bash
-SUDO_ASKPASS=/usr/bin/ksshaskpass SSH_ASKPASS_PROMPT= /usr/bin/sudo -k -A -p 'AresOS owner tools dcbc375f: export the records' /usr/bin/bash -c '/var/lib/ares/at export'
+SUDO_ASKPASS=/usr/bin/ksshaskpass SSH_ASKPASS_PROMPT= /usr/bin/sudo -k -A -p 'AresOS owner tools f66fd694: export the records' /usr/bin/bash -c '/var/lib/ares/at export'
 ```
 
-  Version 4 tools without a stick answer `Tools stick absent: records copied to /run/ares-records with SHA256 readback`, then `This copy is on this laptop, not off it; uid 1001 can read it, and a restart deletes it`. Older tools (when the install stopped before it finished) answer `Tools stick absent; full records remain internal`. Either way the records stay on this laptop: only the stick's **SAFE TO REMOVE ARESTOOLS** means a copy off it. Claude reads that copy only to help you, and never copies it into the repository, a pull request or the board (it holds disk serials and firmware entries). After this box the tools stick still holds older tools: it still takes records (export to it then adds `The stick holds tools this laptop installed before (SHA256 …), not the installed ones`), but it cannot bring the current tools until Claude writes it again (for now from Windows, the box below); Claude asks you for the stick about once per release. **Record:** the announced commit, the fingerprint and the three PASS lines; then [Return to step 8](#8-everyday-boot-and-recovery). For a new release, [enter tty3 and become administrator](INSTALL-REFERENCE.md#console) and go on with the stage box.
+  Version 4 tools without a stick answer `Tools stick absent: records copied to /run/ares-records with SHA256 readback`, then `This copy is on this laptop, not off it; uid 1001 can read it, and a restart deletes it`. Older tools (when the install stopped before it finished) answer `Tools stick absent; full records remain internal`. Either way the records stay on this laptop: only the stick's **SAFE TO REMOVE ARESTOOLS** means a copy off it. Claude reads that copy only to help you, and never copies it into the repository, a pull request or the board (it holds disk serials and firmware entries). After this box the tools stick still holds older tools: it still takes records (export to it then adds `The stick holds tools this laptop installed before (SHA256 …), not the installed ones`), but it cannot bring the current tools until Claude writes it again (for now from Windows, the box below); Claude asks you for the stick about once per release. **Record:** the announced commit, the fingerprint and the three PASS lines; then [Return to step 8](#8-everyday-boot-and-recovery). For a new release, on AresOS 29 or later use the next box; on AresOS 28 use the [bridge](#release-28-bridge); otherwise [enter tty3 and become administrator](INSTALL-REFERENCE.md#console) and go on with the stage box.
 
-- [ ] **Windows side** (the stick route for new tools, second after the routine box: when the desktop or Claude is unavailable, or when you prefer the stick). The maintainer runs it in PowerShell 7 in the reviewed repository at the announced commit, only ARESTOOLS connected; replace `T` with its actual D–Z letter, never C:. The first line keeps the old bundle under a dated name (skip it on a stick without `ares-tools`):
+- [ ] **From Claude's terminal, on AresOS 29 or later:** with you signed in to its desktop, Claude runs one command below after your go. Each command opens its own password window.
+
+| Command | Line in the window |
+|---|---|
+| `aresos update` | Update to the newest version |
+| `aresos previous` | Go back to the previous version at the next restart |
+| `aresos rollback` | Go back to plain Bazzite at the next restart |
+| `aresos check` | Check the system |
+| `aresos title` | Show what starts next |
+| `aresos records` | Read disk records |
+| `aresos logs` | Save the log of the last start |
+| `aresos export` | Export records |
+| `aresos reboot` | Restart |
+
+  **Your rule:** type your password only when all three hold:
+  - you told Claude to go just now;
+  - the title bar says **Enter SSH Credentials**;
+  - the line inside is the one in this table for what you asked for.
+
+  Otherwise press **Cancel**: nothing ran, and Claude asks before trying again. The window closes by itself after 10 minutes without an answer; **sudo: no password was provided** means nothing ran. **What the window cannot do:** it stops accidents and a Claude that acts without asking. It does not stop a Claude that has been tricked into showing you one thing and running another: once you type your password into such a window, that program can do anything as administrator, now and later, without asking again. The 8-character comparison in the preceding box still applies when installing new tools.
+
+  **Updating:** after the maintainer announces a new release, install its announced tools first using the preceding box, then run `aresos update`. After a return to the previous version, the same command goes forward to the newest installed version first. Do not run it as a daily version check. It runs `sudo /var/lib/ares/at newest`, which also works at the console; a successful result starts with `PASS newest`. The tools name versions as **AresOS 28**, for example; that is the release number, not the tools version. The numbers below are examples; your result names the actual releases.
+
+| What the tools say | What it means and what Claude does |
+|---|---|
+| `Update: installing the latest version, AresOS 28. Restart to finish` | It also says `This downloads AresOS 28`. Read the lines that follow as in **Stage the new release** below: the running AresOS stays as rollback, the other AresOS goes at shutdown, and corrected stock stays pinned. |
+| `Update: switching to the latest installed version, AresOS 28 (already downloaded). Restart to finish` | An older AresOS runs. `This downloads nothing and removes nothing`. Read the following lines as in **Forward again, or back from plain Bazzite** below. |
+| `AresOS is up to date (AresOS 28)` | `AresOS 28 is running and will start next. It is the latest version these tools know. Nothing changed`. The tools print their own **Owner tools version** line and say `A newer version comes with newer owner tools after the maintainer announces it. docs/OWNER-TOOLS.md on GitHub lists the current tools`. Claude compares that version line with [OWNER-TOOLS.md on GitHub's main](https://github.com/Ares-Empire/AresOS/blob/main/docs/OWNER-TOOLS.md): equal means done; different means tell you and wait for the maintainer's announcement and your go. A different line alone is not permission to install tools or a release. |
+| `The update to AresOS 28 is ready. Restart to finish` | An update already waits for the restart. Running the command again before restarting is a PASS, not a problem. |
+| `The last update did not finish, so nothing changed. See Help before trying again` | This follows **Update to … was not applied** only when this command is the first owner command after the failed update. This one run changes nothing. Follow the failed-update rule below. |
+| `Update: AresOS 28 is already downloaded and ready. Saving the record of the interrupted update. Restart to finish` | `This run downloads nothing`. It saves the missing record. For each other AresOS it says, for example, `AresOS 27 will be removed when the update finishes at shutdown`. If that release is newer than the running one, it also says `AresOS 28 will start with this system's settings (Wi-Fi, passwords, layout), not AresOS 27's`. The **Stage the new release** lines follow. |
+| `Update: continuing the interrupted update to AresOS 28. Restart to finish` | It continues the interrupted work; the **Stage the new release** lines follow. |
+| **The update to … was begun on an older AresOS and interrupted; this command does not continue it; nothing changed; do not reboot; get help: EMERGENCY Failed or bad update** | It cannot safely continue that update. Keep the screen and follow the STOP rule below, then the failed-update card. |
+| `The switch to AresOS 28 is ready. Restart to finish` | A switch to the newest installed AresOS already waits. Nothing more is needed before the restart. |
+| `The return to the previous version, AresOS 27, is ready. This command changes nothing before the restart. Restart to finish` | A previous-version return already waits. It also says **After the restart, sudo /var/lib/ares/at newest switches back to the latest installed version, AresOS 28**. Read that console command by the rule below; this is information, not a request to undo your return. |
+| `The return to plain Bazzite is ready. This command changes nothing before the restart. Restart to finish` | A return to plain Bazzite already waits. The same line about switching back follows. On plain Bazzite the way back stays at the console, as the rollback rule below explains. |
+| `AresOS 28 will start next. Nothing changed` | `It is not running yet. Restart to finish`. The **Forward again, or back from plain Bazzite** box explains the unchanged next start. |
+| `Update: switching from plain Bazzite to the latest installed version, AresOS 28 (already downloaded). Restart to finish` | This can appear at the console: plain Bazzite has no `aresos` command. It downloads and removes nothing; the **Forward again, or back from plain Bazzite** lines follow. |
+| `Update: AresOS 28 is the latest installed version and is running. Making it start next again instead of plain Bazzite. No restart is needed for this change` | The system named after **instead of** can also be another numbered AresOS. It downloads and removes nothing; the **Forward again, or back from plain Bazzite** lines follow. No restart waits for this change. |
+| **These tools also carry a newer version, AresOS 29. After the restart, sudo /var/lib/ares/at newest installs it** | This is the last line after going forward, or finding that the newest installed version already starts next, when the tools carry a later release. If no restart is needed first, its ending is instead **No restart is needed first. The next sudo /var/lib/ares/at newest installs it**. Both inform you; Claude waits for that release's announcement and your go before installing it. |
+
+  **Reading console commands in the results:** Claude uses the matching full command from the window table. Console newest, update and forward all mean `aresos update` here. Login and layout stay at the recovery console, typed by you; use `sudo /var/lib/ares/at login` or the [layout procedure](INSTALL-PROCEDURES.md#later-layout). The other refused words also keep their console routes below and in the [recovery procedures](INSTALL-PROCEDURES.md#recovery-menu). On AresOS 28 the [bridge](#release-28-bridge) supplies update, restart and check. On plain Bazzite, earlier AresOS, or with the desktop down, use the full console commands in those boxes; other words on AresOS 28 also stay at the console.
+
+  **After a failed update:** `aresos check` comes first; follow the [failed-update card](EMERGENCY.md#failed-or-bad-update), using the result of a check just run. **was not applied** shows only once, from whichever owner command runs first, usually that check. After it has shown, `aresos update` can repeat the update in that very run; if an older AresOS runs, it goes forward to the newest installed AresOS first. Claude runs it only when Help has decided the repeat, never to see what it says. If it was the first command after the failure, the table's failed-update line applies; from then on the same Help rule holds. A STOP about unfinished work follows the STOP rule below.
+
+  **Restart:** after an update that waits for a restart, Claude asks **Restart now?** and runs `aresos reboot` only on your yes. The update and restart are two steps with two password windows. If that restart command says the saved title is stale, run `aresos title` first, then ask again before `aresos reboot`. An unchanged result saves no new title: this can happen after **AresOS is up to date**, **will start next**, or **is ready**. Save the current title, remove any tools stick after safe export, and follow **Restart into the new release** and **Check** below, using this table's commands while the desktop works. For this route, check proves labwc and the session's own program as in [step 7](#7-check-the-first-aresos-session); it needs no open terminal. Open Terminal for the foot typing proof below.
+
+  **Going back:** “Roll back the update” means `aresos previous`, the previous AresOS version, unless you say plain Bazzite. Check first and use it only where the failed-update card allows previous. Before `aresos rollback`, Claude tells you: **After the restart you will be on plain Bazzite, without Claude or the aresos command; to get back, type sudo /var/lib/ares/at forward yourself at the recovery console, then restart.** It waits for your go before running it. The full way back is in **Forward again, or back from plain Bazzite** below. Each restart still needs your yes.
+
+  **A refusal or STOP:** **Registry login missing, expired or unreachable** means check the network first; a new login is typed by you at the console, never through Claude. **Another owner command is running** is like Cancel: nothing ran in this second command. Let the first finish, then ask before running the word again; no export is needed for that refusal. If `aresos check` says **The desktop's own program (aresos-desktop) is not running for ares**, the desktop never started its program or gave up after repeated failures. That is about the running session; the installed tools still work. Follow the same STOP rule: Claude copies every STOP line to you word for word, asks for your go, then only on your go runs `aresos export`, and tries nothing else. [Help](INSTALL-REFERENCE.md#help) decides what follows; when Help asks, `aresos title` shows what runs and what starts next. Keep records private as in the [routine STOP card](EMERGENCY.md#a-routine-tools-command-stopped).
+
+  After every command that changes what starts next, Claude posts the title's lines to the board under topic `aresos`: what runs, what starts next and the boot menu's rows, without disk serials. Save that title; older titles are INVALID. **Record:** the tools version, every PASS line and the current title. A completed check → [Return to step 8](#8-everyday-boot-and-recovery); every other STOP → [routine STOP card](EMERGENCY.md#a-routine-tools-command-stopped), then Help.
+
+<a id="release-28-bridge"></a>
+
+- [ ] **From Claude's terminal, on AresOS 28 (the bridge):** with you signed in to its desktop and the announced package 43 tools installed by the new-tools box above. This supplies only update, restart and check until AresOS 29 is on the laptop. It needs neither the aresos command nor the image's password helper. Every other word, including title, previous, login and layout, keeps its full command at the console.
+
+  After the maintainer announces a release, install its announced tools first, then Claude asks for your go before running the generated update line below. After a return to the previous AresOS, the same line goes forward to the newest installed version first. Do not use it as a daily version check. A different **Owner tools version** line on GitHub is not an announcement or permission to install anything. Read the results by **What the tools say** above, using this bridge's update line wherever that table says aresos update. Its successful result starts with `PASS newest`.
+
+  Claude takes each line from the announced commit itself, never from its working copy: `git -C /var/home/ares/AresOS show <commit>:os/owner-tools/commands.json`, by the entry names below. These are 22d's generated labels, shown separately from the image's AresOS 29 table:
+
+| Bridge action / entry | Generated line in the window |
+|---|---|
+| Update / **newest-routine** | AresOS owner tools f66fd694: update AresOS |
+| Restart / **reboot-routine** | AresOS owner tools f66fd694: restart AresOS |
+| Check / **check-routine** | AresOS owner tools f66fd694: check AresOS |
+
+  **Your rule:** type your password only when you told Claude to go just now, the title bar says **Enter SSH Credentials**, the line matches the bridge action above, and its 8 characters, `f66fd694`, match line 1 of `github.com/Ares-Empire/AresOS/blob/main/docs/OWNER-TOOLS.md` opened on your phone from your own bookmark, showing `main`, never a link Claude sends you at that moment. Otherwise press **Cancel**: nothing ran; Claude asks before trying again. The window has the same limit as the new-tools box: it stops accidents and a Claude that acts without asking. It does not stop a Claude that has been tricked into showing you one thing and running another: once you type your password into such a window, that program can do anything as administrator, now and later, without asking again. After 10 minutes without an answer, Claude stops only the password helper it opened, never the administrator command; **sudo: no password was provided** means nothing ran. If you have already answered, Claude stops nothing and waits for the result. These lines do not close the window by themselves.
+
+  **Update (entry newest-routine):** runs just the installed newest word.
+
+```bash
+SUDO_ASKPASS=/usr/bin/ksshaskpass SSH_ASKPASS_PROMPT= /usr/bin/sudo -k -A -p 'AresOS owner tools f66fd694: update AresOS' /usr/bin/bash -c '/var/lib/ares/at newest'
+```
+
+  **Restart (entry reboot-routine):** after an update that waits for a restart, Claude asks **Restart now?** and runs this generated reboot line only on your yes. Update and restart are two steps with two password windows. Save the current title and remove any tools stick after safe export. An unchanged result saves no new title. If the restart says the saved title is stale, get a current title with the full console command first, then ask again before running this line. Follow **Restart into the new release** below.
+
+```bash
+SUDO_ASKPASS=/usr/bin/ksshaskpass SSH_ASKPASS_PROMPT= /usr/bin/sudo -k -A -p 'AresOS owner tools f66fd694: restart AresOS' /usr/bin/bash -c '/var/lib/ares/at reboot'
+```
+
+  **Check (entry check-routine):** after the restart, require `PASS check` and read its result by **Check** below. It proves labwc and the running image's own session program; with these tools on AresOS 28 it needs no open terminal. Open Terminal separately for the foot typing proof. On AresOS 29 use the preceding command table instead.
+
+```bash
+SUDO_ASKPASS=/usr/bin/ksshaskpass SSH_ASKPASS_PROMPT= /usr/bin/sudo -k -A -p 'AresOS owner tools f66fd694: check AresOS' /usr/bin/bash -c '/var/lib/ares/at check'
+```
+
+  **After a failed update:** the generated check line comes first; use the result of a check just run and follow the [failed-update card](EMERGENCY.md#failed-or-bad-update). **was not applied** shows only once, usually from that check. After it has shown, the generated update line can repeat the update in that very run (an older running AresOS goes forward first). Claude runs it only when [Help](INSTALL-REFERENCE.md#help) has decided the repeat, never to see what it says. If the update line itself was first after the failure, it changes nothing that once and says **See Help before trying again**; the same Help rule then holds. Previous, if the card allows it, stays at the console.
+
+  **A refusal or STOP:** **Another owner command is running** is like Cancel: let the first finish, then ask before trying again; no export is needed. **Registry login missing, expired or unreachable** means check the network first; a new login stays at the console, typed by you. For any other STOP, including the desktop's own program not running, Claude copies every STOP line to you word for word, asks for your go, then only on your go runs the new-tools box's **export-routine** line and tries nothing else. Follow the [routine STOP card](EMERGENCY.md#a-routine-tools-command-stopped), then Help. When Help asks for title, use its full console command. Keep records private as in that card.
+
+  After every command that changes what starts next, Claude posts the title's lines to the board under topic `aresos`, without disk serials; older titles are INVALID. **Record:** the announced commit, tools version and fingerprint, every PASS line and the current title. A completed check → [Return to step 8](#8-everyday-boot-and-recovery).
+
+- [ ] **Windows side** (the stick route for new tools: when the desktop or Claude is unavailable, or when you prefer the stick). The maintainer runs it in PowerShell 7 in the reviewed repository at the announced commit, only ARESTOOLS connected; replace `T` with its actual D–Z letter, never C:. The first line keeps the old bundle under a dated name (skip it on a stick without `ares-tools`):
 
 ```powershell
 Rename-Item -LiteralPath T:\ares-tools -NewName ('ares-tools-replaced-' + (Get-Date -Format yyyyMMdd-HHmm))
@@ -291,7 +384,7 @@ Import-Module ./docs/install-tools/OwnerTools.psm1 -Force
 Copy-AresOwnerTools -Source ./os/owner-tools/payload -DriveLetter T
 ```
 
-Require `PASS tools manifest SHA256 dcbc375faa4b269bacaf316c5ddc24503b9773b2538bcd017065ce8e312597be` and `PASS ARESTOOLS ready; safely eject and unplug before shutdown/restart or record B.` Safely eject and unplug. Another fingerprint or any STOP → **STOP → [Help](INSTALL-REFERENCE.md#help)**; Return to this update route after resolution.
+Require `PASS tools manifest SHA256 f66fd69442857b911b81775bbc2efb3edf53648b391615b38234b2ddcea9d135` and `PASS ARESTOOLS ready; safely eject and unplug before shutdown/restart or record B.` Safely eject and unplug. Another fingerprint or any STOP → **STOP → [Help](INSTALL-REFERENCE.md#help)**; Return to this update route after resolution.
 
 - [ ] **AresOS, tools first:** all sticks absent, **F12** (or **Fn+F12**) → **Bazzite** → AresOS desktop. [Enter tty3 and become administrator](INSTALL-REFERENCE.md#console), then Return to this update route, keeping that session open. Only now insert ARESTOOLS. Type this entire 13-line block exactly, as in step 4; compare **line 8** with this guide before Enter:
 
@@ -303,7 +396,7 @@ p=$(mktemp -d /run/ares-bootstrap.XXXXXX); mkdir "$p/m"
 mount -o ro,nodev,nosuid,noexec LABEL=ARESTOOLS "$p/m"; trap "umount $p/m" EXIT
 cd "$p"; cp -R --no-preserve=mode,ownership m/ares-tools .; test ! -L ares-tools; cd ares-tools
 test -z "$(find . ! -type d ! -type f -print -quit)"
-echo "dcbc375faa4b269bacaf316c5ddc24503b9773b2538bcd017065ce8e312597be  SHA256SUMS" | sha256sum -c --strict
+echo "f66fd69442857b911b81775bbc2efb3edf53648b391615b38234b2ddcea9d135  SHA256SUMS" | sha256sum -c --strict
 cmp -s \
   <(find . -type f -printf "%P\n" | sort) \
   <({ cut -c67- SHA256SUMS; echo SHA256SUMS; } | sort)
