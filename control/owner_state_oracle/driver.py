@@ -1,5 +1,5 @@
 """Production-facing test driver; never imported by expectation modules."""
-from contextlib import contextmanager, ExitStack
+from contextlib import closing, contextmanager, ExitStack
 from email.parser import BytesParser
 import copy
 import time
@@ -115,7 +115,19 @@ class Driver:
         generation = None
         if hasattr(self, 'scenario'):
             with outside_faults():
-                row = self.scenario.fixture.engine.store.db.execute("SELECT v FROM kv WHERE k='generation'").fetchone()
+                query = "SELECT v FROM kv WHERE k='generation'"
+                try:
+                    row = self.scenario.fixture.engine.store.db.execute(query).fetchone()
+                except sqlite3.ProgrammingError as exc:
+                    if str(exc) != 'Cannot operate on a closed database.':
+                        raise
+                    # A failed startup leaves the already-closed fixture
+                    # engine bound. Read its persisted generation without
+                    # writing to the crash bytes. Live handles must keep
+                    # their own view, including an unfinished transaction.
+                    path = self.scenario.fixture.root / 'state/control.sqlite'
+                    with closing(sqlite3.connect(path.resolve().as_uri() + '?mode=ro', uri=True)) as db:
+                        row = db.execute(query).fetchone()
                 generation = __import__('json').loads(row[0]) if row else None
         self.startup_obligation = startup_obligation(record, self.oracle.script[getattr(self, 'restart_index', 0):], generation)
         self.startup_sequence = max((fence['seq'] for fence in record.fences), default=0)
