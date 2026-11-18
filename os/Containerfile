@@ -5,7 +5,7 @@ RUN test ! -e /tmp/aresos/ci && bash /tmp/aresos/build.sh packages
 
 # Package 23: every image build builds the AresOS mod jar from this exact source
 # revision. The source stage fetches that commit in the pinned base (which has
-# curl) and keeps only mod/; the mod stage runs only Gradle on it, in the
+# curl) and keeps only mod/ (and control/, package 18c); the mod stage runs only Gradle on it, in the
 # digest-pinned JDK (minecraft/desktop.lock.json, "builder"; it has no curl or
 # wget). The configure step below accepts the jar only with its pinned SHA-256,
 # unless os/ci/check-build.sh says this build is thrown away (ARESOS_BUILD_KIND).
@@ -27,7 +27,10 @@ ARG ARESOS_BUILD_KIND=release
 LABEL org.opencontainers.image.source="https://github.com/Ares-Empire/AresOS" \
       org.opencontainers.image.revision="${ARESOS_SOURCE_REVISION}"
 COPY --from=mod /out/aresos.jar /tmp/aresos/minecraft/aresos.jar
+# Package 18c: the Control tools from the same commit (the source stage keeps control/).
+COPY --from=source /source/control /tmp/aresos/control
 RUN cp -a /tmp/aresos/config/. / && \
     cp -a /tmp/aresos/policy /usr/share/aresos/ && \
     install -m 0755 /tmp/aresos/tests/audit.py /usr/libexec/aresos-audit && \
+    bash /tmp/aresos/build.sh control && \
     bash /tmp/aresos/build.sh configure && bootc container lint
