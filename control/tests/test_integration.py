@@ -61,8 +61,8 @@ class Integration(unittest.TestCase):
         self.boundary_paths = install_boundary('/etc/claude-code')
         self.proxy_config = {"act_socket": str(self.root / "sockets/act.sock"), "admin_socket": str(self.root / "sockets/admin.sock"),
                              "home": str(self.home), "folders": [str(self.home / name) for name in ("Documents", "Downloads", "Desktop")]}
-        Path("/etc/aresos-control/service.json").write_text(canonical(self.service_config))
-        Path("/etc/aresos-control/proxy.json").write_text(canonical(self.proxy_config))
+        Path("/usr/share/aresos/control/service.json").write_text(canonical(self.service_config))
+        Path("/usr/share/aresos/control/proxy.json").write_text(canonical(self.proxy_config))
         self.output = open(self.root / "daemon-output.txt", "w+")
         self.daemon = subprocess.Popen(["/usr/bin/python3", "-I", "-S", LAUNCH, "service"],
                                        preexec_fn=identity(SERVICE), stdout=self.output, stderr=subprocess.STDOUT)
@@ -114,14 +114,21 @@ class Integration(unittest.TestCase):
         """Mark this test process as a Claude Code session that used the tools: the hooks it launches run as its
         children, so it is their session. A child marks it, as an MCP proxy started by Claude Code marks Claude Code.
 
-        The child then asks `usage.used()`, which walks from the same process a hook's walk reaches over its shells,
-        so a mark the hooks won't find fails here, by name, instead of as an empty hook reply later. A hook never takes
-        PID 1 as its session (on the laptop PID 1 is systemd, never Claude Code), and a container's last `bash -c`
-        command is exec'd in place as its PID 1: such a suite needs an init (`docker run --init`)."""
+        The child then asks `usage.used()`, whose walk starts at this test process. That checks the end of a hook's
+        walk, not the path to it: it fails here, by name, when this process itself can't be a hook's session, instead
+        of as an empty hook reply later. A hook's walk (`usage._session`) passes only shells, at most four levels, and
+        never takes PID 1 (on the laptop PID 1 is systemd, never Claude Code). A container's last `bash -c` command is
+        exec'd in place as its PID 1: such a suite needs an init (`docker run --init`). A non-shell wrapper or deeper
+        nesting between this process and the hook isn't checked here; the hook tests' own assertions catch that."""
         found = self.run_user(OWNER, "import json\nfrom aresos_control import usage\n"
                                      "usage.mark(usage.parent())\nprint(json.dumps(usage.used()))")
+        if os.getpid() == 1:
+            why = "a hook never takes PID 1 as its session: run the suite under an init (docker run --init)"
+        else:
+            why = ("see the hook's walk, usage._session in control/aresos_control/usage.py: only shells, at most "
+                   "four levels, never PID 1")
         self.assertTrue(found, f"the hooks this test launches would not find its session's mark (test process pid "
-                               f"{os.getpid()}; a hook never takes PID 1 as its session: run the suite under an init)")
+                               f"{os.getpid()}; {why})")
 
     def request(self, uid, kind, request):
         # An independent client process provides genuine kernel peer credentials.
@@ -322,7 +329,7 @@ print(json.dumps(proxy.call("file_import", {"path": sys.argv[2]})))
         for path in (self.root / "sockets").glob("*.sock"):
             path.unlink()
         self.service_config["file_limit"] = 128
-        Path("/etc/aresos-control/service.json").write_text(canonical(self.service_config))
+        Path("/usr/share/aresos/control/service.json").write_text(canonical(self.service_config))
         self.daemon = subprocess.Popen(["/usr/bin/python3", "-I", "-S", LAUNCH, "service"],
                                        preexec_fn=identity(SERVICE), stdout=self.output, stderr=subprocess.STDOUT)
         for _ in range(100):
@@ -441,7 +448,7 @@ print(json.dumps(results))
         self.daemon.terminate()
         self.daemon.wait(timeout=8)
         self.service_config["approval_ttl"] = 0.2
-        Path("/etc/aresos-control/service.json").write_text(canonical(self.service_config))
+        Path("/usr/share/aresos/control/service.json").write_text(canonical(self.service_config))
         self.daemon = subprocess.Popen(["/usr/bin/python3", "-I", "-S", LAUNCH, "service"],
                                        preexec_fn=identity(SERVICE), stdout=self.output, stderr=subprocess.STDOUT)
         deadline = time.monotonic() + 8
@@ -605,7 +612,7 @@ print(json.dumps(results))
         hook = self.launch(OWNER, ["hook", "Stop"], input=stop)
         self.assertEqual((hook.returncode, hook.stderr), (0, ""))
         self.assertIn(prepared["data"]["approval"]["operation_id"], json.loads(hook.stdout)["reason"])
-        config = Path("/etc/aresos-control/proxy.json")
+        config = Path("/usr/share/aresos/control/proxy.json")
         original = config.read_bytes()
         try:
             config.write_bytes(b"malformed configuration")
@@ -637,7 +644,7 @@ print(json.dumps(results))
             self.assertEqual((hook.returncode, hook.stdout, hook.stderr), (0, "", ""))
         finally:
             os.close(fd)
-        config = Path("/etc/aresos-control/proxy.json")
+        config = Path("/usr/share/aresos/control/proxy.json")
         original = config.read_bytes()
         try:
             config.write_bytes(b"malformed configuration")

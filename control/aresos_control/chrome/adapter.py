@@ -208,10 +208,8 @@ class Chrome:
         if getattr(self, '_configured_exclusions', None) != (self.bridge.session, hosts):
             self.bridge.call('configure', excluded_hosts=hosts)
             self._configured_exclusions = (self.bridge.session, hosts)
-        record = self.maintenance()
-        if record is None:
-            record = self.qualification.record()
-        mode = switches(record, self.qualification.build, self.bridge.version)
+        self.maintenance()
+        mode = self.qualification.switches(self.bridge.version)
         groups = ['classification','page_script','binding','password_exclusion'] if acting else ['password_exclusion']
         for group in groups:
             if not mode['core'][group]:
@@ -219,28 +217,16 @@ class Chrome:
         return mode
 
     def maintenance(self):
-        """Prune uploads and refresh qualification when due.
-
-        Returns the reconciled record when it read one to decide the refresh,
-        else None. mode() trusts that record instead of reading it again: each
-        read validates both histories, and the record only grows (#79 O2).
-        """
+        """Prune uploads and refresh qualification when due."""
         if not isinstance(self.bridge, Bridge):return None
         from .uploads import prune
         prune(self, admit=False)
         if not self.refresh_qualification or not isinstance(self.bridge, Bridge) or not self.bridge.version:
             return None
         identity = (self.bridge.session, self.bridge.version)
-        record = self.qualification.record()
-        uncovered = not any(item['build'] == self.qualification.build and item['version'] == self.bridge.version
-                            for item in record['entries'])
-        force = uncovered and getattr(self, '_refresh_attempted', None) != identity
+        force = not self.qualification.covers(self.bridge.version) and getattr(self, '_refresh_attempted', None) != identity
         self._refresh_attempted = identity
-        if self.qualification.refresh(force=force):
-            # It wrote a verified update, perhaps raising after the commit: the
-            # record read above may be stale, so trust a fresh read.
-            record = self.qualification.record()
-        return record
+        self.qualification.refresh(force=force)
 
     def pending_state(self, operation, projection=False):
         payload = operation.get('payload', {})
@@ -257,7 +243,7 @@ class Chrome:
                 self.read_owner_hosts()
                 # The record mode() trusts, reconciled with the shipped copy,
                 # so a row never shows current where acting refuses (#79 O1).
-                mode=switches(self.qualification.record(),self.qualification.build,self.bridge.version)
+                mode=self.qualification.switches(self.bridge.version)
                 if not all(mode['core'].values()):raise Refused('qualification_failed','Chrome core qualification currently refuses this operation.')
                 if not payload.get('typed_read'):self.check_readonly(payload,self.committed.get)
             else:

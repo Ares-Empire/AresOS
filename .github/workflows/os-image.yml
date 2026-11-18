@@ -32,7 +32,7 @@ on:
       check_build:
         description: 'Throwaway image (package 21): resolve inputs or build and check this ref; never pushes, signs or publishes'
         type: choice
-        options: ['', resolve, build]
+        options: ['', resolve, build, control]
         default: ''
       full_model:
         description: 'Checks only: run the full ways-back model even when none of its sources changed'
@@ -174,7 +174,9 @@ jobs:
     name: Throwaway image build and checks (never pushed, signed or published)
     if: github.event_name == 'workflow_dispatch' && github.ref_name != 'pkg/16-staged-release' && inputs.check_build != '' && !inputs.rehearsal && !inputs.release_13 && !inputs.release_27 && !inputs.checks_only && !inputs.switch_from_run
     runs-on: ubuntu-24.04
-    timeout-minutes: 120
+    # check_build=control adds its own VM step (below) after the build step:
+    # tools 20 + build 80 + Control VM pass 16 + 15.
+    timeout-minutes: ${{ inputs.check_build == 'control' && 131 || 120 }}
     # Read-only on purpose: no packages/id-token permission and no secrets, so
     # this job cannot push, sign or publish the image it builds.
     permissions:
@@ -205,6 +207,16 @@ jobs:
         env:
           CHECK_BUILD_MODE: ${{ inputs.check_build }}
         run: bash os/ci/check-build.sh "$CHECK_BUILD_MODE"
+      - name: Control VM pass (check_build=control only)
+        if: inputs.check_build == 'control'
+        # The last passes took 7 min 50 s and 7 min 9 s (run 43687234953); 18c's fix round 1 adds about
+        # 2 to 3 minutes (the full logout and greetd's auto-login, check 6's two new sessions). 16 is about
+        # 1.5 times the slower pass with that added.
+        timeout-minutes: 16
+        run: bash os/ci/check-build.sh control-pass
+      - name: Stop the Control fixture servers (check_build=control only)
+        if: always() && inputs.check_build == 'control'
+        run: bash os/ci/control/runner.sh stop
       - name: Bound evidence
         if: always()
         run: |
