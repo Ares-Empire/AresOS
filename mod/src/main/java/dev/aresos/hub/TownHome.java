@@ -65,9 +65,14 @@ final class TownHome {
         var standing = new HashMap<String, HubData.Logo>();
         for (var logo : hub.logos()) standing.put(logo.app(), logo);
         var rows = new ArrayList<HomeState.App>();
+        boolean waitingForName = false;
         for (var app : apps) {
+            if (!app.mine()) continue;
             String shortName = NameRules.mainName(app);
-            if (!app.mine() || shortName.isEmpty()) continue;
+            if (shortName.isEmpty()) {
+                waitingForName = true;
+                continue;
+            }
 
             var logo = standing.get(app.id());
             var place = Place.parse(logo == null ? app.place() : logo.place());
@@ -83,6 +88,7 @@ final class TownHome {
             rows.add(new HomeState.App(app.id(), app.name(), shortName, AppGroup.of(app).key(),
                     place.map(Place::name).orElse(null), slots.get(app.id()), front, logo != null));
         }
+        if (rows.isEmpty() && waitingForName) return Optional.empty();
         return Optional.of(new HomeState(rows));
     }
 

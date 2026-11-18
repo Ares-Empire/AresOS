@@ -95,4 +95,21 @@ class TownHomeTest {
         assertEquals(List.of(2, 7), second.apps().subList(0, 2).stream().map(HomeState.App::slot).toList());
         assertEquals("nowready", second.apps().getLast().shortName());
     }
+
+    @Test void waitsWhenAllMyAppsNeedNamesButPublishesAnEmptyMyApps() {
+        var hub = hub();
+        var notes = app("notes", "Notes").withNames(List.of());
+        var term = app("term", "Terminal").withNames(List.of());
+        var unowned = app("other", "Other").withMine(false);
+
+        assertTrue(TownHome.capture(List.of(notes, term, unowned), hub, Map.of(),
+                app -> Optional.of(TownKeeper.plainFront(app))).isEmpty());
+
+        var named = TownHome.capture(List.of(notes.withNames(List.of("notes")), term, unowned), hub, Map.of(),
+                app -> Optional.of(TownKeeper.plainFront(app))).orElseThrow();
+        assertEquals(List.of("notes"), named.apps().stream().map(HomeState.App::shortName).toList());
+
+        var empty = TownHome.capture(List.of(unowned), hub, Map.of(), app -> Optional.empty()).orElseThrow();
+        assertTrue(empty.apps().isEmpty());
+    }
 }
