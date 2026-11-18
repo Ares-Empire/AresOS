@@ -9,6 +9,11 @@ import sys
 CALLS={'read','navigate','free_click','fill','asking_click','approval_to_done'}
 PHASES={'fresh','history-1000','history-4000'}
 INPUTS={'free_click','fill','approval_to_done'}
+# Disk syncs per sample (brief 20-ci-noise): the journal's fsyncs and the
+# commits of control.sqlite, counted by latency-profile.py and gated by
+# latency-check.py. Counts, not timings: they stay out of the stage percentiles.
+SYNC_COUNTS=('journal_fsync','sqlite_commit')
+STORE=('/var/lib/aresos-tools','/var/lib/aresos-operation-evidence')
 TARGETS=json.loads(Path(__file__).with_name('latency-targets.json').read_text())
 # The lead's sample counts (latency-targets.json); the client takes them too.
 # The current runtime: 60 per call and history phase.
@@ -47,13 +52,35 @@ def summarize(root):
     for row in rows:
         assert row['call'] in CALLS and row['sample'].startswith(row['phase']+':')
         stages[(row['phase'],row['call'],'client_total')].append(row['milliseconds'])
-    internal=collections.defaultdict(float);history=[]
+    internal=collections.defaultdict(float);history=[];syncs={}
     for line in (root/'latency-service.jsonl').read_text().splitlines():
         row=json.loads(line)
         if row.get('stage')=='history_fixture':history.append(row);continue
         if row.get('sample') is None:continue
         assert (row['sample'],row['call']) in identities
+        if row['stage'] in SYNC_COUNTS:
+            # Summed over the sample's requests, like the timings below.
+            assert type(row['count']) is int and row['count']>=0,'Bad sync count'
+            syncs[(row['sample'],row['call'],row['stage'])]=syncs.get((row['sample'],row['call'],row['stage']),0)+row['count']
+            if 'milliseconds' not in row:continue
         internal[(row['sample'],row['call'],row['stage'])]+=row['milliseconds']
+    # Every sample carries both counts, so the sync gate can't pass on missing ones.
+    sync_counts={phase:{call:{} for call in sorted(CALLS)} for phase in sorted(PHASES)}
+    for phase in PHASES:
+        for call in CALLS:
+            samples=[row['sample'] for row in rows if row['phase']==phase and row['call']==call]
+            for counter in SYNC_COUNTS:
+                assert all((sample,call,counter) in syncs for sample in samples),'Missing '+counter+' counts for '+phase+' '+call
+                values=[syncs[(sample,call,counter)] for sample in samples]
+                sync_counts[phase][call][counter]={'samples':count,'min':min(values),'max':max(values)}
+    # Where the store was, as the kernel reported it inside the container (run.sh).
+    store=json.loads((root/'latency-store.json').read_text())['directories']
+    for directory in STORE:
+        assert store[directory]['fstype']=='tmpfs','The store was not on a tmpfs: '+directory+' is on '+store[directory]['fstype']
+        # The end record is written after the service stops, only once the
+        # mount is found unchanged; without it that check didn't run.
+        used=store[directory].get('used_bytes_end')
+        assert type(used) is int and used>=0,'The store has no end-of-run record: '+directory
     for (sample,call,stage),duration in internal.items():stages[(phases[sample],call,stage)].append(duration)
     for row in rows:
         service=internal.get((row['sample'],row['call'],'service_total'))
@@ -71,11 +98,12 @@ def summarize(root):
     assert all(detail['client_total']['samples']==count for group in groups.values() for detail in group.values())
     assert [row['count'] for row in history]==[1000,4000]
     return {'runtime':client['baseline'],'privacy':client['privacy'],'chrome':(root/'chrome-version.txt').read_text().strip(),
-        'build':(root/'runtime-build.txt').read_text().strip(),'samples_per_call':count,'calls':groups['fresh'],'phases':groups,'input_samples':pairs,'history_fixtures':history,
+        'build':(root/'runtime-build.txt').read_text().strip(),'samples_per_call':count,'store':store,'sync_counts':sync_counts,'calls':groups['fresh'],'phases':groups,'input_samples':pairs,'history_fixtures':history,
         'notes':[f'{count} samples per call and history phase; owner think time absent.',
             'Retained history is disposable synthetic timing input shaped from a real completed free input, not receiver or qualification evidence.',
             'Page handlers are no-op/local receiver; browser dispatch is not pure tool CPU.',
             'Nested stages overlap. Missing historical stages are absent, never fabricated zeros.',
+            'The store (journal and SQLite files) was on a tmpfs for both runtimes; sync_counts holds the fsyncs and SQLite commits per sample.',
             'Client outside service includes daemon expiry/queueing, IPC and framing; only complete expiry sweeps wholly inside a sample receive the daemon stage.',
             'The unchanged fixed post-input wait is holdMs + 25 ms (525 ms at holdMs=500).']}
 

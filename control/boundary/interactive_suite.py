@@ -11,6 +11,7 @@ sys.path.insert(0, '/opt/aresos-control')
 
 from interactive_driver import Terminal, options
 from interactive_model import Model
+import process_chain
 
 ROOT = Path('/opt/aresos-control')
 OUT = Path('/evidence/interactive')
@@ -22,6 +23,13 @@ PREPARE = 'mcp__testapp__prepare_send'
 KEY = 'SYNTHETIC_BOUNDARY_NONCREDENTIAL'
 SCOPES = {'user': HOME / '.claude/settings.json',
           'project': WORK / '.claude/settings.json', 'local': WORK / '.claude/settings.local.json'}
+# Held work for the cases that check the managed Stop hook end to end, with the real hook code behind the real managed
+# command (lead, 2026-11-16): the session that used the tools hears of it once, as a JSON decision, and its
+# continuation then stops; the session that never used them hears nothing. The hook stand-in answers it
+# (notification-fixture.py).
+HELD = HOME / 'held-work.json'
+HELD_WORK = {'items': [{'operation_id': 'fixture:held-work', 'state': 'held'}], 'total': 1}
+HELD_CASES = {'normal-yes': 1, 'normal-no': 0}
 ENV = {'PATH': '/usr/local/bin:/usr/bin:/bin', 'HOME': str(HOME), 'USER': 'assistant',
        'LOGNAME': 'assistant', 'TERM': 'xterm-256color', 'LANG': 'C.UTF-8',
        'DISABLE_AUTOUPDATER': '1', 'CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC': '1',
@@ -105,6 +113,35 @@ def check_send_turn(script, index, requests, results, before, after, allowed):
             "The user doesn't want to proceed with this tool use. The tool use was rejected"), result
 
 
+def stop_decisions(blocks, timeout=60):
+    """The Stop hook's outputs in this case, in order, once all are in: the block and then the stop after its
+    continuation for a session that used the tools (`blocks` 1), the stop after the owner's turn otherwise (0)."""
+    path = process_chain.FOLDER / 'stop-decisions.jsonl'
+    deadline = time.monotonic() + timeout
+    while True:
+        lines = path.read_text().split('\n')[:-1] if path.exists() else []
+        if len(lines) >= 1 + blocks:
+            return [json.loads(line)['output'] for line in lines]
+        assert time.monotonic() < deadline, ('STOP: the Stop hook did not run as expected', lines)
+        time.sleep(.1)
+
+
+def check_held_stops(blocks, outputs, continuations):
+    """Quiet unless used (owner, #254); only a JSON decision blocks a stop, and only once (lead, 2026-11-16)."""
+    operation = HELD_WORK['items'][0]['operation_id']
+    if blocks:
+        decisions = [json.loads(output) if output.strip() else None for output in outputs]
+        assert len(decisions) == 2, outputs
+        first = decisions[0]
+        assert isinstance(first, dict) and set(first) == {'decision', 'reason'} and first['decision'] == 'block', first
+        assert first['reason'].startswith('AresOS held/unfinished work') and operation in first['reason'], first
+        assert decisions[1] == {}, outputs  # stop_hook_active: the continuation's stop goes ahead
+        assert len(continuations) == 1 and operation in json.dumps(continuations[0]['messages']), continuations
+    else:
+        assert outputs and all(output == '' for output in outputs), outputs
+        assert not continuations, continuations
+
+
 def check_case_evidence(case_out, row, expected_permission):
     """Run the artifact checks before this case can claim PASS in CI."""
     case = row['case']
@@ -170,7 +207,7 @@ def check_case_evidence(case_out, row, expected_permission):
         assert {key: row[key] for key in ('send_arrivals', 'hook_calls', 'owner_answers')} == expected_permission[case]
 
 
-def exercise(case, skip, steps, answers, permission=False):
+def exercise(case, skip, steps, answers, permission=False, held_blocks=None):
     evidence = OUT / case / ('session-' + str(steps[0]['prompt'][-1]))
     evidence.mkdir(parents=True, exist_ok=True)
     env = dict(ENV, ARESOS_BOUNDARY_CASE=case)
@@ -241,6 +278,11 @@ def exercise(case, skip, steps, answers, permission=False):
                                 before_arrivals, after_arrivals, permission or answer in ('Yes', 'DAA'))
                 warnings.append(terminal.warning)
                 (evidence / ('settings-after-turn-' + str(index + 1) + '.json')).write_text(json.dumps(snapshot(), indent=2))
+            held_stops = None
+            if held_blocks is not None:
+                held_stops = stop_decisions(held_blocks)
+                (evidence / 'held-stops.json').write_text(json.dumps(held_stops, indent=2))
+                check_held_stops(held_blocks, held_stops, model.script.continuations)
     # Native transcript, not a reconstruction of model requests.
     transcripts = HOME / '.claude/projects'
     if transcripts.exists():
@@ -254,7 +296,7 @@ def exercise(case, skip, steps, answers, permission=False):
                         for a in (json.loads(line) for line in actions.read_text().splitlines())) if actions.exists() else 0
     return {'owner_answers': owner_answers, 'prompt_shown': shown, 'daa_offered': daa, 'warning_answered': any(warnings),
             'model_requests': len(model.requests), 'stop_continuations': len(model.script.continuations),
-            'resumed_after_no': resumed}
+            'resumed_after_no': resumed, **({'held_stops': held_stops} if held_stops is not None else {})}
 
 
 def main():
@@ -314,9 +356,24 @@ def main():
                       'args': ['-I', str(ROOT / 'mcp-fixture.py'), 'testapp']}
             run(['/usr/local/bin/claude', 'mcp', 'add-json', '--scope', 'user', 'testapp', json.dumps(server)])
             assert arrivals(case) == 0
+            # Fresh per case: the chains of this case's sessions only (brief 18e, item 6).
+            shutil.rmtree(process_chain.FOLDER, ignore_errors=True)
+            process_chain.FOLDER.mkdir()
+            os.chown(process_chain.FOLDER, 10001, 10001)
+            # The owner's runtime folder, as logind makes it; this case's usage marks start empty.
+            runtime = Path('/run/user/10001')
+            runtime.mkdir(parents=True, exist_ok=True)
+            os.chown(runtime, 10001, 10001)
+            runtime.chmod(0o700)
+            shutil.rmtree(runtime / 'aresos-control', ignore_errors=True)
+            HELD.unlink(missing_ok=True)
+            if case in HELD_CASES:
+                put(HELD, HELD_WORK)
             row = {'case': case, 'mode': 'bypassPermissions' if skip else 'default'}
             first = exercise(case, skip, [step(1), step(2)] if answer == 'DAA' else [step(1)],
-                             ['DAA', 'No'] if answer == 'DAA' else [answer], event == 'PermissionRequest')
+                             ['DAA', 'No'] if answer == 'DAA' else [answer], event == 'PermissionRequest',
+                             HELD_CASES.get(case))
+            HELD.unlink(missing_ok=True)
             row.update(first)
             if answer == 'DAA':
                 third = exercise(case, skip, [step(3)], ['No'])
@@ -332,6 +389,10 @@ def main():
             if marker and marker.exists():
                 shutil.copyfile(marker, case_out / 'hook-events.jsonl')
             row.update(send_arrivals=count, hook_calls=hook_calls)
+            chains = process_chain.check(process_chain.FOLDER)
+            (case_out / 'process-chains.json').write_text(json.dumps(chains, indent=2))
+            row['process_chains'] = process_chain.summary(chains)
+            row['stop_used'] = process_chain.check_used(chains, count)
             check_case_evidence(case_out, row, expected)
             summary.append(row)
             (OUT / 'summary.json').write_text(json.dumps(summary, indent=2))
@@ -345,11 +406,13 @@ def main():
                   for case, row in observed.items()}
         assert pinned == expected, 'Interactive PermissionRequest pin changed: ' + json.dumps(observed)
         assert len(summary) == len({row['case'] for row in summary}) == 17
+        assert {row['case']: row['stop_continuations'] for row in summary if row['case'] in HELD_CASES} == HELD_CASES
         assert sum(row['send_arrivals'] for row in summary) == 7
         assert sum(len(json.loads(path.read_text())) for path in OUT.glob('*/session-*/results.json')) == 21
         assert sum(path.stat().st_size for path in OUT.parent.rglob('*') if path.is_file()) < 180_000_000
         print('CONTROL_INTERACTIVE_ASK_PASS cases=' + str(len(summary)), flush=True)
     finally:
+        HELD.unlink(missing_ok=True)
         POLICY.write_bytes(original)
         stub.terminate()
         stub.wait(timeout=10)

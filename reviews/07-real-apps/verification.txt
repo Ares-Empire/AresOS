@@ -100,8 +100,8 @@ BUILD SUCCESSFUL in 5s
 7 actionable tasks: 7 executed
 
 Recovery command stdout/stderr (fixture-only paths):
-WARNING: restoring the schema-1 backup. Later apps, names and pins remain ONLY in C:\Users\pab\AresOS-07-real-apps\.work\downgrade\apps.json.schema-2-before-downgrade-f4741bd5-2ad3-4318-ba59-ce34be60595c.bak
-Restored original schema-1 apps.json. Compare later edits in C:\Users\pab\AresOS-07-real-apps\.work\downgrade\apps.json.schema-2-before-downgrade-f4741bd5-2ad3-4318-ba59-ce34be60595c.bak before using the older mod.
+WARNING: restoring the schema-1 backup. Later apps, names and pins remain ONLY in C:\Users\owner\AresOS-07-real-apps\.work\downgrade\apps.json.schema-2-before-downgrade-f4741bd5-2ad3-4318-ba59-ce34be60595c.bak
+Restored original schema-1 apps.json. Compare later edits in C:\Users\owner\AresOS-07-real-apps\.work\downgrade\apps.json.schema-2-before-downgrade-f4741bd5-2ad3-4318-ba59-ce34be60595c.bak before using the older mod.
 BUILD SUCCESSFUL in 1s
 3 actionable tasks: 2 executed, 1 up-to-date
 Python byte/JSON assertion: Recovery smoke: exact schema-1 bytes restored; later schema-2 edits retained.

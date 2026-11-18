@@ -6,7 +6,7 @@ No files were edited and no containers were run.
 
 **Should-fix: the optional oracle misreads an escaped Trash label as “ordinary.”**
 
-Location: [compare.py:58](/Users/pab/AresOS-19b-state/control/owner_state_oracle/compare.py:58), especially lines 65–67. The resulting inaccurate claim appears in [owner_state_quiet_gaps.json:50](/Users/pab/AresOS-19b-state/control/mail_tests/owner_state_quiet_gaps.json:50) and [REPORT.md:2942](/Users/pab/AresOS-19b-state/reviews/19b-owner-state/REPORT.md:2942).
+Location: [compare.py:58](/Users/owner/AresOS-19b-state/control/owner_state_oracle/compare.py:58), especially lines 65–67. The resulting inaccurate claim appears in [owner_state_quiet_gaps.json:50](/Users/owner/AresOS-19b-state/control/mail_tests/owner_state_quiet_gaps.json:50) and [REPORT.md:2942](/Users/owner/AresOS-19b-state/reviews/19b-owner-state/REPORT.md:2942).
 
 The production warning escapes the backslash in the IMAP role `\Trash`, producing two literal backslashes in the public string. The oracle’s expression accepts only zero or one before the role name. It therefore classifies a warning that names Trash as ordinary.
 

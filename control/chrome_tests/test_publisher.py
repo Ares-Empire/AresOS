@@ -86,15 +86,118 @@ class Publisher(unittest.TestCase):
     def test_real_remote_mutations_refuse_on_this_branch_and_notifications_are_stubs(self):
         result=subprocess.run([sys.executable,str(ROOT/'control/chrome/qualify.py'),'publish'],cwd=ROOT,capture_output=True,text=True,env={'GITHUB_REF':'refs/heads/pkg/20-chrome','GITHUB_REPOSITORY':qualify.REPOSITORY})
         self.assertNotEqual(result.returncode,0);self.assertIn('restricted',result.stderr)
-        runner=Mock(return_value=Mock(stdout='[]'))
-        qualify.notify(None,False,runner);self.assertEqual(runner.call_count,1)
-        self.assertIn('issue',runner.call_args.args[0])
+        runner=Mock(return_value=Mock(stdout=''))
+        with patch.dict(qualify.os.environ,GITHUB_RUN_ID='fixture'):qualify.notify(None,False,runner)
+        self.assertEqual(runner.call_count,2)
+        self.assertEqual(runner.call_args.args[0][:3],['gh','issue','create'])
         with tempfile.TemporaryDirectory(dir=ROOT/'.work/20-chrome') as temporary:
             path=Path(temporary)/'record.json';failed=entry();failed['core']['binding']=False
             path.write_text(json.dumps({'format':1,'entries':[failed]}));runner.reset_mock()
-            qualify.notify(path,True,runner)
-            self.assertEqual(runner.call_count,3)
+            with patch.dict(qualify.os.environ,GITHUB_RUN_ID='fixture'):qualify.notify(path,True,runner)
+            # Failing groups and the shipped-copy update: one issue each, never a pull request.
+            self.assertEqual([call.args[0][1:3] for call in runner.call_args_list][1::2],[['issue','create']]*2)
+            self.assertEqual([call.args[0][1] for call in runner.call_args_list],['api','issue']*2)
             self.assertTrue(any('binding' in argument for call in runner.call_args_list for argument in call.args[0]))
+
+    def test_notify_keeps_one_open_issue_per_title_and_shows_gh_errors(self):
+        # The repository doesn't let workflows create pull requests (main run 43696892949), and
+        # the daily runs must not pile up duplicates: one open issue per title, a comment only
+        # for new text, and gh's own error text in the log when a write is refused. The
+        # repository is public, so only the workflow's own issues and comments count.
+        title='Chrome qualification publication refused'
+        bot={'user':'github-actions[bot]','type':'Bot'}
+        stranger={'user':'someone','type':'User'}
+        def recording(listed=(),comments=()):
+            calls=[]
+            def run(command,**options):
+                calls.append(command[1:])
+                if command[1]=='api' and command[3].endswith('/comments'):
+                    return Mock(stdout=''.join(json.dumps(row)+'\n' for row in comments))
+                if command[1]=='api':
+                    self.assertIn('creator=github-actions%5Bbot%5D',command[3])
+                    return Mock(stdout=''.join(json.dumps(row)+'\n' for row in listed))
+                return Mock(stdout='')
+            return run,calls
+        def issue(number,issue_title,body='older',author=bot,pull=False):
+            return {'number':number,'title':issue_title,'body':body,'pull':pull,**author}
+        with patch.dict(qualify.os.environ,GITHUB_RUN_ID='7'):
+            run,calls=recording();qualify.notify(None,False,run)
+            body=calls[-1][calls[-1].index('--body')+1]
+            self.assertEqual(calls[-1][:2],['issue','create']);self.assertIn('/actions/runs/7',body)
+            listed=[issue(9,title),issue(5,title),issue(3,'Other'),issue(2,title,author=stranger),issue(1,title,pull=True)]
+            for first,comments,commented in [(body,[],False),('older',[{'body':body,**bot}],False),
+                                             ('older',[{'body':'other',**bot}],True),('older',[{'body':body,**stranger}],True)]:
+                with self.subTest(first=first,comments=comments):
+                    listed[1]['body']=first
+                    run,calls=recording(listed,comments);qualify.notify(None,False,run)
+                    self.assertNotIn(['issue','create'],[call[:2] for call in calls])
+                    self.assertTrue(calls[1][2].endswith('/issues/5/comments'))
+                    self.assertEqual(['issue','comment','5'] in [call[:3] for call in calls],commented)
+            # A same-title issue someone else opened, or a pull request, is never the workflow's issue.
+            for others in [[issue(3,'Other')],[issue(2,title,body=body,author=stranger)],[issue(1,title,body=body,pull=True)]]:
+                with self.subTest(others=others):
+                    run,calls=recording(others);qualify.notify(None,False,run)
+                    self.assertEqual(calls[-1][:2],['issue','create'])
+        def refused(command,**options):
+            raise subprocess.CalledProcessError(1,command,stderr='HTTP 403: Resource not accessible by integration\n')
+        try:
+            with patch.dict(qualify.os.environ,GITHUB_RUN_ID='7'):qualify.notify(None,False,refused)
+        except BaseException as error:caught=error
+        else:caught=None
+        self.assertIsInstance(caught,SystemExit)
+        self.assertTrue(str(caught).startswith('gh api '))
+        self.assertIn('failed: HTTP 403: Resource not accessible by integration',str(caught))
+
+    def test_failing_groups_issue_names_only_this_run_s_entries(self):
+        # The record is append-only: an old build's all-false entry (issue #74) must not be
+        # reported again by every later run. The shipped-copy issue still lists every entry.
+        failing='Chrome qualification has failing groups';shipped='Update shipped Chrome qualification record'
+        bot={'user':'github-actions[bot]','type':'Bot'}
+        earlier=entry(build='b'*64,channel='beta',version='159.0.1.0',run='41');earlier['core']['binding']=False
+        current=entry(version='157.0.2.0',run='42');current['adapters']['gmail']=False
+        passing=entry(version='157.0.3.0',run='42')
+        def recording(listed=()):
+            calls=[]
+            def run(command,**options):
+                calls.append(command[1:])
+                if command[1]=='api' and not command[3].endswith('/comments'):
+                    return Mock(stdout=''.join(json.dumps(row)+'\n' for row in listed))
+                return Mock(stdout='')
+            return run,calls
+        def bodies(calls,title):
+            return [call[call.index('--body')+1] for call in calls if call[:2]==['issue','create'] and call[call.index('--title')+1]==title]
+        with tempfile.TemporaryDirectory(dir=ROOT/'.work/20-chrome') as temporary:
+            path=Path(temporary)/'record.json'
+            path.write_text(json.dumps({'format':1,'entries':[earlier,current,passing]}))
+            with patch.dict(qualify.os.environ,GITHUB_RUN_ID='42'):
+                run,calls=recording();qualify.notify(path,True,run)
+            [body]=bodies(calls,failing)
+            self.assertIn(current['build']+' stable 157.0.2.0: gmail',body)
+            self.assertNotIn(earlier['build'],body);self.assertNotIn('binding',body);self.assertNotIn('157.0.3.0',body)
+            [listing]=bodies(calls,shipped)
+            for held in [earlier,current,passing]:self.assertIn(held['build'][:12]+' '+held['channel']+' '+held['version'],listing)
+            # No failing entry from this run: no new failing-groups issue and no comment on the
+            # open one, even though the record still holds the earlier run's failure.
+            path.write_text(json.dumps({'format':1,'entries':[earlier,passing]}))
+            listed=[{'number':11,'title':failing,'body':'older','pull':False,**bot},{'number':12,'title':shipped,'body':'older','pull':False,**bot}]
+            with patch.dict(qualify.os.environ,GITHUB_RUN_ID='42'):
+                run,calls=recording(listed);qualify.notify(path,True,run)
+            self.assertEqual(bodies(calls,failing),[])
+            self.assertNotIn(['issue','comment','11'],[call[:3] for call in calls])
+            self.assertFalse(any(call[0]=='api' and call[3].endswith('/issues/11/comments') for call in calls))
+            self.assertIn(['issue','comment','12'],[call[:3] for call in calls])
+            # Without a run ID notify can't tell this run's entries apart, nor link the run whose
+            # publication was refused: on both paths it refuses before any GitHub call, rather
+            # than report the whole record or open an issue that links to no run.
+            path.write_text(json.dumps({'format':1,'entries':[earlier,current]}))
+            for missing in [None,'']:
+                for published in [True,False]:
+                    with self.subTest(run_id=missing,published=published), patch.dict(qualify.os.environ,GITHUB_RUN_ID='unset'):
+                        if missing is None:del qualify.os.environ['GITHUB_RUN_ID']
+                        else:qualify.os.environ['GITHUB_RUN_ID']=missing
+                        run,calls=recording()
+                        with self.assertRaises(SystemExit) as refusal:qualify.notify(path,published,run)
+                        self.assertIn('GITHUB_RUN_ID',str(refusal.exception));self.assertEqual(calls,[])
 
     def test_missing_repeat_or_missing_group_never_qualifies(self):
         with tempfile.TemporaryDirectory(dir=ROOT/'.work/20-chrome') as temporary:
@@ -159,6 +262,17 @@ class Publisher(unittest.TestCase):
                     qualify.main()
                 result=json.loads((root/'pair.json').read_text())
                 self.assertEqual(all(result['core'].values()),passes);self.assertEqual(all(result['adapters'].values()),passes)
+            # Real `chrome --version` lines (main run 43696892949): stable ends in a space and
+            # beta in its channel word. The version is the token after the name, never the
+            # last word, which turned every passing beta pair into an all-false entry.
+            for text,passes in [('Google Chrome 157.0.1.0 \n',True),('Google Chrome 157.0.1.0 beta\n',True),
+                                ('Google Chrome beta\n',False),('Chromium 157.0.1.0\n',False),
+                                ('Google Chrome 157.0.1\n',False),('Google Chrome 157.0.1.0 beta extra\n',False),('',False)]:
+                (root/'chrome-version.txt').write_text(text)
+                with self.subTest(version_text=text), patch.object(sys,'argv',['qualify.py','pair','--artifacts',str(root),'--runtime-root',str(ROOT)]), patch.dict(qualify.os.environ,QUALIFICATION_PAIR=json.dumps(identity),QUALIFICATION_OUTCOME='success'), patch.object(qualify,'runtime_identity',return_value='a'*64):
+                    qualify.main()
+                    result=json.loads((root/'pair.json').read_text())
+                    self.assertEqual(all(result['core'].values()),passes);self.assertEqual(all(result['adapters'].values()),passes)
             for outcome in ['failure', 'cancelled', 'skipped', '']:
                 with self.subTest(outcome=outcome), patch.object(sys,'argv',['qualify.py','pair','--artifacts',str(root),'--runtime-root',str(ROOT)]), patch.dict(qualify.os.environ,QUALIFICATION_PAIR=json.dumps(identity),QUALIFICATION_OUTCOME=outcome), patch.object(qualify,'runtime_identity',return_value='a'*64):
                     (root/'chrome-version.txt').write_text('Google Chrome 157.0.1.0\n')
@@ -364,18 +478,21 @@ class Publisher(unittest.TestCase):
             inserted=copy.deepcopy(newer);inserted['entries'].append(entry(version='159.0.1.0'));path.write_text(json.dumps(inserted))
             qualify.git(seed,'add','.');qualify.git(seed,'-c','user.name=Fixture','-c','user.email=fixture@fixture.test','commit','-m','Unsigned fixture insertion');qualify.git(remote,'fetch',str(seed),'chrome-qualification:chrome-qualification')
             before=qualify.git(remote,'rev-parse','chrome-qualification')
-            runner=Mock(return_value=Mock(stdout='[]'))
+            runner=Mock(return_value=Mock(stdout=''))
             try:qualify.prepare(seed,[],baseline,Mock(side_effect=Refused('qualification_invalid','Unsigned fixture')))
-            except Refused:qualify.notify(None,False,runner)
+            except Refused:
+                # Main's notify step, where GitHub sets the run ID.
+                with patch.dict(qualify.os.environ,GITHUB_RUN_ID='fixture'):qualify.notify(None,False,runner)
             else:self.fail('Unsigned publication accepted')
-            self.assertEqual(runner.call_count,1);self.assertIn('issue',runner.call_args.args[0])
+            self.assertEqual(runner.call_count,2);self.assertEqual(runner.call_args.args[0][:3],['gh','issue','create'])
             self.assertEqual(qualify.git(remote,'rev-parse','chrome-qualification'),before)
             # A valid signature cannot waive the shipped append-only baseline.
             path.write_text(json.dumps({'format':1,'entries':[]}));runner.reset_mock()
             try:qualify.prepare(seed,[],baseline,Mock())
-            except Refused:qualify.notify(None,False,runner)
+            except Refused:
+                with patch.dict(qualify.os.environ,GITHUB_RUN_ID='fixture'):qualify.notify(None,False,runner)
             else:self.fail('Rollback publication accepted')
-            self.assertEqual(runner.call_count,1)
+            self.assertEqual(runner.call_count,2)
             self.assertEqual(qualify.git(remote,'rev-parse','chrome-qualification'),before)
             self.assertEqual(qualify.git(remote,'rev-parse','main'),main)
 

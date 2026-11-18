@@ -78,11 +78,11 @@
       "message": "Inspect the pinned live ISO before two-disk qualification",
       "timestamp": "2026-10-22T22:20:27Z",
       "author": {
-        "name": "pab",
+        "name": "owner",
         "email": "admin@example.com"
       },
       "committer": {
-        "name": "pab",
+        "name": "owner",
         "email": "admin@example.com"
       }
     },

@@ -78,11 +78,11 @@
       "message": "Verify target EFI identity and record final-run assumptions",
       "timestamp": "2026-10-22T23:03:18Z",
       "author": {
-        "name": "pab",
+        "name": "owner",
         "email": "admin@example.com"
       },
       "committer": {
-        "name": "pab",
+        "name": "owner",
         "email": "admin@example.com"
       }
     },

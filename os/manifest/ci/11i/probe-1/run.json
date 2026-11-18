@@ -101,11 +101,11 @@
     "message": "Make keyboard prediction read-only and verify installed German settings",
     "timestamp": "2026-10-24T14:23:16Z",
     "author": {
-      "name": "pab",
+      "name": "owner",
       "email": "admin@example.com"
     },
     "committer": {
-      "name": "pab",
+      "name": "owner",
       "email": "admin@example.com"
     }
   },

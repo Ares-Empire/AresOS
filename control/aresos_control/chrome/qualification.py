@@ -1,4 +1,5 @@
 """Signed, append-only qualification and per-build/per-major switches."""
+import copy
 import json
 import hashlib
 import os
@@ -58,7 +59,12 @@ def append_only(held, candidate):
 
 def switches(record, build, chrome_version):
     current = version(chrome_version)
-    entries = [entry for entry in validate_record(record)['entries'] if entry['build'] == build and version(entry['version'])[0] == current[0]]
+    own = [entry for entry in validate_record(record)['entries'] if entry['build'] == build]
+    return own_switches(own, current)
+
+
+def own_switches(own, current):
+    entries = [entry for entry in own if version(entry['version'])[0] == current[0]]
     if not entries:
         return {'conservative': True, 'notice': NOTICE, 'core': {key: True for key in CORE_GROUPS}, 'adapters': {key: False for key in HOSTS}}
     applicable = [entry for entry in entries if version(entry['version']) <= current]
@@ -124,28 +130,66 @@ def verify(path, *, branch='main', ref=None, bundle=None, workflow=WORKFLOW):
 
 class Qualification:
     def __init__(self, store, build, shipped):
-        self.store, self.build, self.shipped = store, build, validate_record(shipped)
+        self.store, self.build = store, build
+        self._shipped = copy.deepcopy(validate_record(shipped))
+        self._slot = None
 
-    def record(self):
-        held = validate_record(self.store.chrome_state.get('chrome:qualification', self.shipped))
+    @property
+    def shipped(self):
+        return copy.deepcopy(self._shipped)
+
+    def _current(self):
+        projection = self.store.chrome_state
+        if self._slot is not None and projection.holds('chrome:qualification', self._slot['pin']):
+            return self._slot
+        pin = projection.pin('chrome:qualification')
+        held = self._shipped if pin is None else validate_record(projection.pinned_value('chrome:qualification', pin))
         # Image updates can advance the trusted shipped baseline beyond a
         # previously fetched record. Neither trusted history may be rewritten.
-        if len(held['entries']) <= len(self.shipped['entries']):
-            return append_only(held, self.shipped)
-        return append_only(self.shipped, held)
+        older, record = (held, self._shipped) if len(held['entries']) <= len(self._shipped['entries']) else (self._shipped, held)
+        if record['entries'][:len(older['entries'])] != older['entries']:
+            raise Refused('qualification_rollback', 'Fetched qualification changed or removed held history; held record retained.')
+        self._slot = {'pin': pin, 'record': record,
+                      'own': [entry for entry in record['entries'] if entry['build'] == self.build]}
+        return self._slot
+
+    def record(self):
+        return copy.deepcopy(self._current()['record'])
+
+    def switches(self, chrome_version):
+        current = version(chrome_version)
+        return own_switches(self._current()['own'], current)
+
+    def covers(self, chrome_version):
+        version(chrome_version)
+        return any(entry['version'] == chrome_version for entry in self._current()['own'])
 
     def accept(self, path, verifier=verify):
+        return self._hold(self.verified(path, verifier))
+
+    def verified(self, path, verifier=verify):
+        """The record path's update would give: verified, and append-only on the record held now."""
         verifier(path)
-        candidate = append_only(self.record(), json.loads(Path(path).read_text()))
+        return append_only(self.record(), json.loads(Path(path).read_text()))
+
+    def _hold(self, candidate):
+        """Write candidate as the held record. Only verified()'s output may be held."""
         self.store.write({'chrome:qualification': candidate}, 'chrome_qualification', 'Verified append-only Chrome qualification update')
         return candidate
 
     def refresh(self, *, now=None, verifier=verify, force=False):
+        """Fetch and verify the published record when due.
+
+        True once it has written, or tried to write, a verified record: the
+        held record may have changed, even if the write raised after its commit,
+        so a caller must read it again.
+        """
         now = time.time() if now is None else now
         previous = self.store.get('chrome:qualification_fetch', {})
         if not force and 'time' in previous and now - previous['time'] < 86400:
-            return
+            return False
         url = f'https://raw.githubusercontent.com/{REPOSITORY}/refs/heads/chrome-qualification/control/chrome/qualification.json'
+        written = False
         try:
             for obsolete in self.store.state_dir.glob('.qualification-*'):
                 obsolete.unlink()
@@ -158,7 +202,12 @@ class Qualification:
             try:
                 with storage_stream(os.fdopen(fd,'wb')) as stream:
                     stream.write(data);stream.flush()
-                self.accept(temporary,verifier)
+                candidate = self.verified(temporary, verifier)
+                # Set before the write: it can raise after its commit, when the
+                # store flushes deferred notices, and so can the unlink below
+                # (#93 review 1, finding 1).
+                written = True
+                self._hold(candidate)
             finally:
                 with cleanup('Qualification temporary unlink'):
                     os.unlink(temporary)
@@ -166,5 +215,9 @@ class Qualification:
         except Exception as exc:
             # Do not copy transport output or remote content into owner logs.
             reason = exc.code if isinstance(exc, Refused) else type(exc).__name__
-            result = f'Qualification refresh refused ({reason}); held record retained.'
+            if written:
+                result = f'Qualification refresh failed after verification ({reason}); the held record may have been updated.'
+            else:
+                result = f'Qualification refresh refused ({reason}); held record retained.'
         self.store.write({'chrome:qualification_fetch': {'time': now, 'result': result}}, 'chrome_qualification', result)
+        return written

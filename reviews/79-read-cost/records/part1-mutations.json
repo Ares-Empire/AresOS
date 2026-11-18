@@ -1,0 +1,407 @@
+[
+  {
+    "run": 12,
+    "failures": [
+      "test_04_new_committed_record_is_used_on_the_next_read (test_qualification.Slot.test_04_new_committed_record_is_used_on_the_next_read)",
+      "test_05_failed_checks_never_fill_the_slot (test_qualification.Slot.test_05_failed_checks_never_fill_the_slot)",
+      "test_06_shorter_held_history_uses_the_shipped_copy_for_every_reader (test_qualification.Slot.test_06_shorter_held_history_uses_the_shipped_copy_for_every_reader)",
+      "test_07_same_length_rewrite_with_valid_hash_refuses_rollback (test_qualification.Slot.test_07_same_length_rewrite_with_valid_hash_refuses_rollback)",
+      "test_08_same_length_rewrite_without_rehash_refuses_corruption (test_qualification.Slot.test_08_same_length_rewrite_without_rehash_refuses_corruption)",
+      "test_09_unchanged_signature_rewrite_refuses_without_another_write (test_qualification.Slot.test_09_unchanged_signature_rewrite_refuses_without_another_write)",
+      "test_11_truncation_refuses_every_read (test_qualification.Slot.test_11_truncation_refuses_every_read)",
+      "test_o1_a_pending_row_refuses_where_acting_refuses_when_the_shipped_copy_is_ahead (test_qualification_service.Service.test_o1_a_pending_row_refuses_where_acting_refuses_when_the_shipped_copy_is_ahead) [held record behind the shipped copy]",
+      "test_o1_a_pending_row_refuses_where_acting_refuses_when_the_shipped_copy_is_ahead (test_qualification_service.Service.test_o1_a_pending_row_refuses_where_acting_refuses_when_the_shipped_copy_is_ahead) [held record diverged from the shipped copy]",
+      "test_o2_mode_trusts_the_record_its_own_refresh_accepted (test_qualification_service.Service.test_o2_mode_trusts_the_record_its_own_refresh_accepted)",
+      "test_o2_mode_refuses_by_a_fetched_record_whose_write_raised_after_its_commit (test_qualification_service.Service.test_o2_mode_refuses_by_a_fetched_record_whose_write_raised_after_its_commit)",
+      "test_image_upgrade_reconciles_older_held_history_and_can_fetch_again (test_qualification.Delivery.test_image_upgrade_reconciles_older_held_history_and_can_fetch_again)",
+      "test_each_failed_core_group_refuses_acting_with_reason_and_password_group_refuses_reads (test_qualification_service.Service.test_each_failed_core_group_refuses_acting_with_reason_and_password_group_refuses_reads) (group='page_script')",
+      "test_each_failed_core_group_refuses_acting_with_reason_and_password_group_refuses_reads (test_qualification_service.Service.test_each_failed_core_group_refuses_acting_with_reason_and_password_group_refuses_reads) (group='binding')",
+      "test_each_failed_core_group_refuses_acting_with_reason_and_password_group_refuses_reads (test_qualification_service.Service.test_each_failed_core_group_refuses_acting_with_reason_and_password_group_refuses_reads) (group='password_exclusion')"
+    ],
+    "errors": [],
+    "skipped": 0,
+    "label": "01-never-invalidate",
+    "exit": 1,
+    "tests": [
+      "test_qualification.Slot.test_04_new_committed_record_is_used_on_the_next_read",
+      "test_qualification.Slot.test_05_failed_checks_never_fill_the_slot",
+      "test_qualification.Slot.test_06_shorter_held_history_uses_the_shipped_copy_for_every_reader",
+      "test_qualification.Slot.test_07_same_length_rewrite_with_valid_hash_refuses_rollback",
+      "test_qualification.Slot.test_08_same_length_rewrite_without_rehash_refuses_corruption",
+      "test_qualification.Slot.test_09_unchanged_signature_rewrite_refuses_without_another_write",
+      "test_qualification.Slot.test_11_truncation_refuses_every_read",
+      "test_qualification_service.Service.test_o1_a_pending_row_refuses_where_acting_refuses_when_the_shipped_copy_is_ahead",
+      "test_qualification_service.Service.test_o2_mode_trusts_the_record_its_own_refresh_accepted",
+      "test_qualification_service.Service.test_o2_mode_refuses_by_a_fetched_record_whose_write_raised_after_its_commit",
+      "test_qualification.Delivery.test_image_upgrade_reconciles_older_held_history_and_can_fetch_again",
+      "test_qualification_service.Service.test_each_failed_core_group_refuses_acting_with_reason_and_password_group_refuses_reads"
+    ],
+    "missed": []
+  },
+  {
+    "run": 2,
+    "failures": [
+      "test_02_another_keys_commit_keeps_the_slot (test_qualification.Slot.test_02_another_keys_commit_keeps_the_slot)",
+      "test_10_identical_replacement_keeps_the_slot (test_qualification.Slot.test_10_identical_replacement_keeps_the_slot)"
+    ],
+    "errors": [],
+    "skipped": 0,
+    "label": "02-signature-key",
+    "exit": 1,
+    "tests": [
+      "test_qualification.Slot.test_02_another_keys_commit_keeps_the_slot",
+      "test_qualification.Slot.test_10_identical_replacement_keeps_the_slot"
+    ],
+    "missed": []
+  },
+  {
+    "run": 3,
+    "failures": [
+      "test_07_same_length_rewrite_with_valid_hash_refuses_rollback (test_qualification.Slot.test_07_same_length_rewrite_with_valid_hash_refuses_rollback)",
+      "test_08_same_length_rewrite_without_rehash_refuses_corruption (test_qualification.Slot.test_08_same_length_rewrite_without_rehash_refuses_corruption)",
+      "test_09_unchanged_signature_rewrite_refuses_without_another_write (test_qualification.Slot.test_09_unchanged_signature_rewrite_refuses_without_another_write)"
+    ],
+    "errors": [],
+    "skipped": 0,
+    "label": "03-offset-only",
+    "exit": 1,
+    "tests": [
+      "test_qualification.Slot.test_07_same_length_rewrite_with_valid_hash_refuses_rollback",
+      "test_qualification.Slot.test_08_same_length_rewrite_without_rehash_refuses_corruption",
+      "test_qualification.Slot.test_09_unchanged_signature_rewrite_refuses_without_another_write"
+    ],
+    "missed": []
+  },
+  {
+    "run": 3,
+    "failures": [
+      "test_07_same_length_rewrite_with_valid_hash_refuses_rollback (test_qualification.Slot.test_07_same_length_rewrite_with_valid_hash_refuses_rollback)",
+      "test_08_same_length_rewrite_without_rehash_refuses_corruption (test_qualification.Slot.test_08_same_length_rewrite_without_rehash_refuses_corruption)",
+      "test_09_unchanged_signature_rewrite_refuses_without_another_write (test_qualification.Slot.test_09_unchanged_signature_rewrite_refuses_without_another_write)"
+    ],
+    "errors": [],
+    "skipped": 0,
+    "label": "04-length-only",
+    "exit": 1,
+    "tests": [
+      "test_qualification.Slot.test_07_same_length_rewrite_with_valid_hash_refuses_rollback",
+      "test_qualification.Slot.test_08_same_length_rewrite_without_rehash_refuses_corruption",
+      "test_qualification.Slot.test_09_unchanged_signature_rewrite_refuses_without_another_write"
+    ],
+    "missed": []
+  },
+  {
+    "run": 2,
+    "failures": [
+      "test_03_every_cached_read_opens_the_journal (test_qualification.Slot.test_03_every_cached_read_opens_the_journal)",
+      "test_09_unchanged_signature_rewrite_refuses_without_another_write (test_qualification.Slot.test_09_unchanged_signature_rewrite_refuses_without_another_write)"
+    ],
+    "errors": [],
+    "skipped": 0,
+    "label": "05-stat-shortcut",
+    "exit": 1,
+    "tests": [
+      "test_qualification.Slot.test_03_every_cached_read_opens_the_journal",
+      "test_qualification.Slot.test_09_unchanged_signature_rewrite_refuses_without_another_write"
+    ],
+    "missed": []
+  },
+  {
+    "run": 2,
+    "failures": [
+      "test_05_failed_checks_never_fill_the_slot (test_qualification.Slot.test_05_failed_checks_never_fill_the_slot)",
+      "test_07_same_length_rewrite_with_valid_hash_refuses_rollback (test_qualification.Slot.test_07_same_length_rewrite_with_valid_hash_refuses_rollback)"
+    ],
+    "errors": [],
+    "skipped": 0,
+    "label": "06-fill-before-checks",
+    "exit": 1,
+    "tests": [
+      "test_qualification.Slot.test_05_failed_checks_never_fill_the_slot",
+      "test_qualification.Slot.test_07_same_length_rewrite_with_valid_hash_refuses_rollback"
+    ],
+    "missed": []
+  },
+  {
+    "run": 7,
+    "failures": [
+      "test_05_failed_checks_never_fill_the_slot (test_qualification.Slot.test_05_failed_checks_never_fill_the_slot)",
+      "test_06_shorter_held_history_uses_the_shipped_copy_for_every_reader (test_qualification.Slot.test_06_shorter_held_history_uses_the_shipped_copy_for_every_reader)",
+      "test_07_same_length_rewrite_with_valid_hash_refuses_rollback (test_qualification.Slot.test_07_same_length_rewrite_with_valid_hash_refuses_rollback)",
+      "test_09_unchanged_signature_rewrite_refuses_without_another_write (test_qualification.Slot.test_09_unchanged_signature_rewrite_refuses_without_another_write)",
+      "test_14_slots_belong_to_each_qualification_object (test_qualification.Slot.test_14_slots_belong_to_each_qualification_object)",
+      "test_o1_a_pending_row_refuses_where_acting_refuses_when_the_shipped_copy_is_ahead (test_qualification_service.Service.test_o1_a_pending_row_refuses_where_acting_refuses_when_the_shipped_copy_is_ahead) [held record behind the shipped copy]",
+      "test_o1_a_pending_row_refuses_where_acting_refuses_when_the_shipped_copy_is_ahead (test_qualification_service.Service.test_o1_a_pending_row_refuses_where_acting_refuses_when_the_shipped_copy_is_ahead) [held record diverged from the shipped copy]",
+      "test_fixture_records_meet_the_rollback_refusal_on_a_shipped_copy_with_history (test_qualification_fixture.ShippedHistory.test_fixture_records_meet_the_rollback_refusal_on_a_shipped_copy_with_history)"
+    ],
+    "errors": [],
+    "skipped": 0,
+    "label": "07-no-reconcile",
+    "exit": 1,
+    "tests": [
+      "test_qualification.Slot.test_05_failed_checks_never_fill_the_slot",
+      "test_qualification.Slot.test_06_shorter_held_history_uses_the_shipped_copy_for_every_reader",
+      "test_qualification.Slot.test_07_same_length_rewrite_with_valid_hash_refuses_rollback",
+      "test_qualification.Slot.test_09_unchanged_signature_rewrite_refuses_without_another_write",
+      "test_qualification.Slot.test_14_slots_belong_to_each_qualification_object",
+      "test_qualification_service.Service.test_o1_a_pending_row_refuses_where_acting_refuses_when_the_shipped_copy_is_ahead",
+      "test_qualification_fixture.ShippedHistory.test_fixture_records_meet_the_rollback_refusal_on_a_shipped_copy_with_history"
+    ],
+    "missed": []
+  },
+  {
+    "run": 2,
+    "failures": [
+      "test_14_slots_belong_to_each_qualification_object (test_qualification.Slot.test_14_slots_belong_to_each_qualification_object)",
+      "test_image_upgrade_reconciles_older_held_history_and_can_fetch_again (test_qualification.Delivery.test_image_upgrade_reconciles_older_held_history_and_can_fetch_again)"
+    ],
+    "errors": [],
+    "skipped": 0,
+    "label": "08-shared-slot",
+    "exit": 1,
+    "tests": [
+      "test_qualification.Slot.test_14_slots_belong_to_each_qualification_object",
+      "test_qualification.Delivery.test_image_upgrade_reconciles_older_held_history_and_can_fetch_again"
+    ],
+    "missed": []
+  },
+  {
+    "run": 1,
+    "failures": [],
+    "errors": [
+      "test_12_returned_records_and_switches_are_private (test_qualification.Slot.test_12_returned_records_and_switches_are_private)"
+    ],
+    "skipped": 0,
+    "label": "09-record-alias",
+    "exit": 1,
+    "tests": [
+      "test_qualification.Slot.test_12_returned_records_and_switches_are_private"
+    ],
+    "missed": []
+  },
+  {
+    "run": 1,
+    "failures": [
+      "test_08_same_length_rewrite_without_rehash_refuses_corruption (test_qualification.Slot.test_08_same_length_rewrite_without_rehash_refuses_corruption)"
+    ],
+    "errors": [],
+    "skipped": 0,
+    "label": "10-no-pinned-hash",
+    "exit": 1,
+    "tests": [
+      "test_qualification.Slot.test_08_same_length_rewrite_without_rehash_refuses_corruption"
+    ],
+    "missed": []
+  },
+  {
+    "run": 5,
+    "failures": [
+      "test_01_repeated_reads_do_no_full_check (test_qualification.Slot.test_01_repeated_reads_do_no_full_check)",
+      "test_02_another_keys_commit_keeps_the_slot (test_qualification.Slot.test_02_another_keys_commit_keeps_the_slot)",
+      "test_10_identical_replacement_keeps_the_slot (test_qualification.Slot.test_10_identical_replacement_keeps_the_slot)",
+      "test_o2_mode_checks_the_record_only_when_it_changed (test_qualification_service.Service.test_o2_mode_checks_the_record_only_when_it_changed)",
+      "test_steady_requests_do_no_full_qualification_check (test_qualification_service.Service.test_steady_requests_do_no_full_qualification_check)"
+    ],
+    "errors": [],
+    "skipped": 0,
+    "label": "11-no-slot",
+    "exit": 1,
+    "tests": [
+      "test_qualification.Slot.test_01_repeated_reads_do_no_full_check",
+      "test_qualification.Slot.test_02_another_keys_commit_keeps_the_slot",
+      "test_qualification.Slot.test_10_identical_replacement_keeps_the_slot",
+      "test_qualification_service.Service.test_o2_mode_checks_the_record_only_when_it_changed",
+      "test_qualification_service.Service.test_steady_requests_do_no_full_qualification_check"
+    ],
+    "missed": []
+  },
+  {
+    "run": 2,
+    "failures": [
+      "test_06_shorter_held_history_uses_the_shipped_copy_for_every_reader (test_qualification.Slot.test_06_shorter_held_history_uses_the_shipped_copy_for_every_reader)",
+      "test_o1_a_pending_row_refuses_where_acting_refuses_when_the_shipped_copy_is_ahead (test_qualification_service.Service.test_o1_a_pending_row_refuses_where_acting_refuses_when_the_shipped_copy_is_ahead) [held record behind the shipped copy]"
+    ],
+    "errors": [],
+    "skipped": 0,
+    "label": "12-own-from-held",
+    "exit": 1,
+    "tests": [
+      "test_qualification.Slot.test_06_shorter_held_history_uses_the_shipped_copy_for_every_reader",
+      "test_qualification_service.Service.test_o1_a_pending_row_refuses_where_acting_refuses_when_the_shipped_copy_is_ahead"
+    ],
+    "missed": []
+  },
+  {
+    "run": 2,
+    "failures": [
+      "test_15_methods_equal_the_function_and_exact_version_scan (test_qualification.Slot.test_15_methods_equal_the_function_and_exact_version_scan) (version='157.0.2.0')",
+      "test_installed_build_id_is_used_and_shared_code_new_build_pass_cannot_enable_old_build (test_qualification_service.Service.test_installed_build_id_is_used_and_shared_code_new_build_pass_cannot_enable_old_build)"
+    ],
+    "errors": [],
+    "skipped": 0,
+    "label": "13-all-builds",
+    "exit": 1,
+    "tests": [
+      "test_qualification.Slot.test_15_methods_equal_the_function_and_exact_version_scan",
+      "test_qualification_service.Service.test_installed_build_id_is_used_and_shared_code_new_build_pass_cannot_enable_old_build"
+    ],
+    "missed": []
+  },
+  {
+    "run": 1,
+    "failures": [
+      "test_15_methods_equal_the_function_and_exact_version_scan (test_qualification.Slot.test_15_methods_equal_the_function_and_exact_version_scan) (version='157.0.1.0')",
+      "test_15_methods_equal_the_function_and_exact_version_scan (test_qualification.Slot.test_15_methods_equal_the_function_and_exact_version_scan) (version='157.0.3.0')",
+      "test_15_methods_equal_the_function_and_exact_version_scan (test_qualification.Slot.test_15_methods_equal_the_function_and_exact_version_scan) (version='157.0.5.0')",
+      "test_15_methods_equal_the_function_and_exact_version_scan (test_qualification.Slot.test_15_methods_equal_the_function_and_exact_version_scan) (version='158.0.2.0')"
+    ],
+    "errors": [],
+    "skipped": 0,
+    "label": "14-covers-false",
+    "exit": 1,
+    "tests": [
+      "test_qualification.Slot.test_15_methods_equal_the_function_and_exact_version_scan"
+    ],
+    "missed": []
+  },
+  {
+    "run": 1,
+    "failures": [
+      "test_15_methods_equal_the_function_and_exact_version_scan (test_qualification.Slot.test_15_methods_equal_the_function_and_exact_version_scan) (version='156.0.1.0')",
+      "test_15_methods_equal_the_function_and_exact_version_scan (test_qualification.Slot.test_15_methods_equal_the_function_and_exact_version_scan) (version='157.0.0.0')",
+      "test_15_methods_equal_the_function_and_exact_version_scan (test_qualification.Slot.test_15_methods_equal_the_function_and_exact_version_scan) (version='157.0.2.0')",
+      "test_15_methods_equal_the_function_and_exact_version_scan (test_qualification.Slot.test_15_methods_equal_the_function_and_exact_version_scan) (version='157.0.4.0')",
+      "test_15_methods_equal_the_function_and_exact_version_scan (test_qualification.Slot.test_15_methods_equal_the_function_and_exact_version_scan) (version='157.0.6.0')",
+      "test_15_methods_equal_the_function_and_exact_version_scan (test_qualification.Slot.test_15_methods_equal_the_function_and_exact_version_scan) (version='158.0.1.0')",
+      "test_15_methods_equal_the_function_and_exact_version_scan (test_qualification.Slot.test_15_methods_equal_the_function_and_exact_version_scan) (version='159.0.1.0')"
+    ],
+    "errors": [],
+    "skipped": 0,
+    "label": "14-covers-true",
+    "exit": 1,
+    "tests": [
+      "test_qualification.Slot.test_15_methods_equal_the_function_and_exact_version_scan"
+    ],
+    "missed": []
+  },
+  {
+    "run": 2,
+    "failures": [
+      "test_o2_mode_trusts_the_record_its_own_refresh_accepted (test_qualification_service.Service.test_o2_mode_trusts_the_record_its_own_refresh_accepted)",
+      "test_o2_mode_refuses_by_a_fetched_record_whose_write_raised_after_its_commit (test_qualification_service.Service.test_o2_mode_refuses_by_a_fetched_record_whose_write_raised_after_its_commit)"
+    ],
+    "errors": [],
+    "skipped": 0,
+    "label": "15-switches-before-maintenance",
+    "exit": 1,
+    "tests": [
+      "test_qualification_service.Service.test_o2_mode_trusts_the_record_its_own_refresh_accepted",
+      "test_qualification_service.Service.test_o2_mode_refuses_by_a_fetched_record_whose_write_raised_after_its_commit"
+    ],
+    "missed": []
+  },
+  {
+    "run": 1,
+    "failures": [],
+    "errors": [
+      "test_13_constructor_and_shipped_getter_protect_the_baseline (test_qualification.Slot.test_13_constructor_and_shipped_getter_protect_the_baseline)"
+    ],
+    "skipped": 0,
+    "label": "16-constructor-alias",
+    "exit": 1,
+    "tests": [
+      "test_qualification.Slot.test_13_constructor_and_shipped_getter_protect_the_baseline"
+    ],
+    "missed": []
+  },
+  {
+    "run": 1,
+    "failures": [
+      "test_13_constructor_and_shipped_getter_protect_the_baseline (test_qualification.Slot.test_13_constructor_and_shipped_getter_protect_the_baseline)"
+    ],
+    "errors": [],
+    "skipped": 0,
+    "label": "17-getter-alias",
+    "exit": 1,
+    "tests": [
+      "test_qualification.Slot.test_13_constructor_and_shipped_getter_protect_the_baseline"
+    ],
+    "missed": []
+  },
+  {
+    "run": 2,
+    "failures": [
+      "test_o2_refresh_says_whether_the_held_record_may_have_changed (test_qualification_service.Service.test_o2_refresh_says_whether_the_held_record_may_have_changed)",
+      "test_bad_signature_rollback_malformed_and_oversized_downloads_keep_held (test_qualification.Delivery.test_bad_signature_rollback_malformed_and_oversized_downloads_keep_held)"
+    ],
+    "errors": [],
+    "skipped": 0,
+    "label": "18-unverified-fetch",
+    "exit": 1,
+    "tests": [
+      "test_qualification_service.Service.test_o2_refresh_says_whether_the_held_record_may_have_changed",
+      "test_qualification.Delivery.test_bad_signature_rollback_malformed_and_oversized_downloads_keep_held"
+    ],
+    "missed": []
+  },
+  {
+    "run": 1,
+    "failures": [
+      "test_profile_refuses_the_store_connections_exclusive_lock (test_latency.MainFixStorageStages.test_profile_refuses_the_store_connections_exclusive_lock)"
+    ],
+    "errors": [],
+    "skipped": 0,
+    "label": "19a-no-probe-assert",
+    "exit": 1,
+    "tests": [
+      "test_latency.MainFixStorageStages.test_profile_refuses_the_store_connections_exclusive_lock"
+    ],
+    "missed": []
+  },
+  {
+    "run": 1,
+    "failures": [
+      "test_profile_refuses_the_store_connections_exclusive_lock (test_latency.MainFixStorageStages.test_profile_refuses_the_store_connections_exclusive_lock)"
+    ],
+    "errors": [],
+    "skipped": 0,
+    "label": "19b-probe-new-connection",
+    "exit": 1,
+    "tests": [
+      "test_latency.MainFixStorageStages.test_profile_refuses_the_store_connections_exclusive_lock"
+    ],
+    "missed": []
+  },
+  {
+    "run": 2,
+    "failures": [
+      "test_product_callers_do_not_read_qualification_records (test_qualification_service.Service.test_product_callers_do_not_read_qualification_records)",
+      "test_steady_requests_do_no_full_qualification_check (test_qualification_service.Service.test_steady_requests_do_no_full_qualification_check)"
+    ],
+    "errors": [],
+    "skipped": 0,
+    "label": "20a-record-in-pending",
+    "exit": 1,
+    "tests": [
+      "test_qualification_service.Service.test_product_callers_do_not_read_qualification_records",
+      "test_qualification_service.Service.test_steady_requests_do_no_full_qualification_check"
+    ],
+    "missed": []
+  },
+  {
+    "run": 2,
+    "failures": [
+      "test_product_callers_do_not_read_qualification_records (test_qualification_service.Service.test_product_callers_do_not_read_qualification_records)",
+      "test_steady_requests_do_no_full_qualification_check (test_qualification_service.Service.test_steady_requests_do_no_full_qualification_check)"
+    ],
+    "errors": [],
+    "skipped": 0,
+    "label": "20b-record-in-notice",
+    "exit": 1,
+    "tests": [
+      "test_qualification_service.Service.test_product_callers_do_not_read_qualification_records",
+      "test_qualification_service.Service.test_steady_requests_do_no_full_qualification_check"
+    ],
+    "missed": []
+  }
+]

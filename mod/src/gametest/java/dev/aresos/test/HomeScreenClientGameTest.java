@@ -2,6 +2,7 @@ package dev.aresos.test;
 
 import dev.aresos.AresOs;
 import dev.aresos.client.AresOsClient;
+import dev.aresos.client.AresOsMenuScreen;
 import dev.aresos.client.HomeScreen;
 import dev.aresos.client.ModeSwitchClient;
 import dev.aresos.client.ShellFocusClient;
@@ -50,13 +51,13 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
  * Package 40: the world as the home screen, without a real session or helper. An app in front never opens the pause
- * menu while Esc still does, the game's own fullscreen is off in a session, and a launch that fails leaves a line in
- * the chat. The first check shows the game pausing without these rules, so the others prove something.
+ * menu while Esc opens the AresOS menu (package 48), the game's own fullscreen is off in a session, and a launch that
+ * fails leaves a line in the chat. The first check shows the game pausing without these rules, so the others prove something.
  *
  * <p>Step 2: a window that covers the world pauses it without a screen and slows its frame rate, while the helper keeps
  * hearing ready heartbeats (package 23's supervisor takes missing ones for a dead world). This part runs a real shell
- * client against a fake helper, wired up as in the session ({@link ShellFocusClient#register}). It is the last client
- * test, so the tick listener that registration leaves behind runs only against a closed client.
+ * client against a fake helper, wired up as in the session ({@link ShellFocusClient#register}). The menu and save tests
+ * run after it; the tick listener that registration leaves behind only sees a closed client.
  *
  * <p>Review fixes 1: that part asks {@link HomeScreen#active} itself, with the game's helper connection set to the
  * test's (false before it connects, true connected in a session and a desktop world, false once the connection is
@@ -94,9 +95,9 @@ public final class HomeScreenClientGameTest implements FabricClientGameTest {
                 check(client.gui.screen() == null, "An app in front opened a screen over the home screen: "
                         + client.gui.screen());
                 check(!client.mouseHandler.isMouseGrabbed(), "The mouse stayed captured while the focus was away");
-                // Esc is Minecraft's own menu and stays.
+                // Package 48: Esc opens the AresOS menu here, never the game menu (HomeMenuClientGameTest has more).
                 client.pauseGame(false);
-                check(client.gui.screen() instanceof PauseScreen, "Esc no longer opens the game menu");
+                check(client.gui.screen() instanceof AresOsMenuScreen, "Esc in the home screen opened " + client.gui.screen());
                 client.gui.setScreen(null);
                 regainFocus(client);
 
@@ -112,7 +113,7 @@ public final class HomeScreenClientGameTest implements FabricClientGameTest {
             liveMode(context, world);
             covered(context, world.getServer());
             AresOs.LOGGER.info("40 home screen checks passed: the pause menu opens on focus loss outside the home "
-                    + "screen and not in it, the mouse is let go, Esc still opens the menu, F11 does nothing in a "
+                    + "screen and not in it, the mouse is let go, Esc opens the AresOS menu, F11 does nothing in a "
                     + "session, a failed launch leaves a chat line, Live mode shows only the hotbar, walks faster "
                     + "with the field of view kept, still flies after G and G and flies on a double space, a saved "
                     + "fullscreen opens windowed in a session, the home screen is active only while the helper is "

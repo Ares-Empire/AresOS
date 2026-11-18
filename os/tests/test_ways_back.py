@@ -228,8 +228,10 @@ class ShapeTest(Unchanged, unittest.TestCase):
 
     def test_one_helper_spells_every_command_as_commands_json_does(self):
         commands = json.loads((ROOT / 'os/owner-tools/commands.json').read_text())
+        # The start block and brief 22d's generated lines (bootstrap.py) are not one owner command.
+        generated = set(base.common.module('bootstrap').lines('0' * 64))
         for name, text in commands.items():
-            if name == 'install':
+            if name == 'install' or name in generated:
                 continue
             words = ['layout', {'us': 'begin us', 'intl': 'begin us-intl', 'de': 'begin de'}.get(name[7:], name[7:])] if name.startswith('layout-') else [name]
             self.assertEqual(text.removeprefix('sudo -k; '), owner.typed(*' '.join(words).split()))
@@ -896,6 +898,72 @@ class StagingTest(Unchanged, unittest.TestCase):
             tools.title()
             tools.reboot()
 
+    @contextlib.contextmanager
+    def failing_update(self, point):
+        """update's step fails before ('before') or after ('after') it staged; the stop routine runs.
+        No finalizer is masked unless a test says so (this host's own /etc is never read)."""
+        with laptop(listed((R21, R13, 'S'), R21), H30) as (tools, host, store), \
+                patch.object(owner, 'finalizer_masks', return_value=[]), contextlib.redirect_stdout(io.StringIO()):
+            host.interrupt, host.wheel = ('update', point), True  # R27's record: ares is an administrator
+            yield tools, host, store
+
+    def test_a_clean_stop_closes_the_intent_and_check_title_and_reboot_pass_in_the_same_start(self):
+        """Review 8 of package 22c, finding 2: the stop routine's "Nothing changes at the next
+        start; run update again later" holds in the same start too."""
+        for point in ('before', 'after'):
+            with self.subTest(point=point), self.failing_update(point) as (tools, host, store):
+                before = copy.deepcopy(host.state)
+                with self.assertRaises(owner.Stop) as caught:
+                    tools.update()
+                self.assertIn('The update failed and was stopped safely: '
+                              + ('its staged release was removed, ' if point == 'after' else 'nothing was staged, '), str(caught.exception))
+                self.assertIn('Nothing changes at the next start; run update again later', str(caught.exception))
+                self.assertEqual(host.state, before)
+                self.assertEqual(host.changes.count(('rpm-ostree', 'cleanup', '--pending')), int(point == 'after'))
+                # The intent is closed, with why, and nothing else is left open.
+                self.assertEqual((journal(store), archived(store)), (None, ['stopped-not-applied']))
+                closed = json.loads(next(store.glob('*-outcome-stopped-not-applied.json')).read_text())
+                self.assertEqual((closed['word'], closed['mode'], closed['status'], closed['stopped'], closed['staged_release_removed']),
+                                 ('update', 'staging', 'intent', 'failed', point == 'after'))
+                tools.check()
+                self.assertTrue(any(line.startswith('Boot menu at the next start:') for line in tools.title()))
+                self.assertEqual(tools.reboot(), ['Reboot requested; Windows stays default; F12 then Linux for one Linux start'])
+                self.assertEqual(host.changes[-1], ('systemctl', 'reboot'))
+                self.assertEqual(tools.notes, [])
+                # update again, still in the same start, stages as it would have.
+                self.assertIn('Signed exact release staged ' + R30, tools.update())
+                self.assertEqual(roles(host)[0], [R30, R21, R13, 'S'])
+                self.assertEqual(archived(store), ['stopped-not-applied'])
+
+    def test_a_stop_with_errors_leaves_the_intent_open_and_every_other_command_stops_on_it(self):
+        mask = 'ostree-finalize-staged.service'
+        for point, error in itertools.product(('before', 'after'), ('process survived', 'mask failed', 'record failed')):
+            with self.subTest(point=point, error=error), self.failing_update(point) as (tools, host, store), contextlib.ExitStack() as stack:
+                if error == 'process survived':
+                    stack.enter_context(patch.object(base.ModelStep, 'stop', return_value=False))
+                    expected = 'a process of the update step survived TERM and KILL, so nothing was deleted'
+                elif error == 'record failed':
+                    # The list is proved as before, but the intent could not be closed: it stays open.
+                    stack.enter_context(patch.object(tools, 'archive', side_effect=OSError('injected archive failure')))
+                    expected = 'records: OSError: injected archive failure'
+                else:
+                    stack.enter_context(patch.object(owner, 'finalizer_masks', return_value=[mask]))
+                    stack.enter_context(patch.object(owner, 'restore_masks',
+                        side_effect=owner.Stop('The ' + mask + ' mask was changed; do not reboot; get help')))
+                    expected = 'finalizer masks: The ' + mask + ' mask was changed'
+                with self.assertRaises(owner.Stop) as caught:
+                    tools.update()
+                self.assertIn('The update failed, and stopping it did not finish: ' + expected, str(caught.exception))
+                self.assertIn('Do not reboot; export records and get help', str(caught.exception))
+                self.assertNotIn('stopped safely', str(caught.exception))
+                # Only a step that survived keeps its staged row; a failed mask or record comes after the removal.
+                self.assertEqual(roles(host)[0][0] == R30, point == 'after' and error == 'process survived')
+                self.assertEqual((journal(store)['status'], archived(store)), ('intent', []))
+                for command in (tools.check, tools.title, tools.reboot, tools.forward, tools.previous, tools.recover):
+                    self.unchanged(host, command, 'The update to ' + R30 + ' was interrupted before its result was recorded; '
+                                   'do not reboot; run sudo /var/lib/ares/at update to continue it')
+                self.assertEqual(journal(store)['status'], 'intent')
+
     def test_the_stop_routine_deletes_nothing_when_another_row_comes_before_the_running_one(self):
         with laptop(listed((R21, R13, 'S'), R21), H30) as (tools, host, store):
             before = copy.deepcopy(host.state)
@@ -1104,6 +1172,48 @@ class LayoutTest(Unchanged, unittest.TestCase):
             tools.layout('abandon')
             self.assertEqual((host.settings, host.loaded), (before, 'de'))
             self.assertFalse((store / 'layout-pending.json').exists())
+
+    SAME_BOOT = ('Layout trial is unfinished; prove it or revert first; if the console that began it is closed, '
+                 'from a fresh physical administrator login run sudo /var/lib/ares/at layout abandon')
+    EARLIER_BOOT = ('Layout trial is unfinished and began before the last restart: from a fresh physical administrator '
+                    'login run sudo /var/lib/ares/at layout abandon, then run this command again')
+
+    def refused(self, host, method, message):
+        """The exact refusal, with the list, the pins and the changes as they were."""
+        before, offset = copy.deepcopy(host.state), len(host.changes)
+        with self.assertRaises(owner.Stop) as caught:
+            method()
+        self.assertEqual(str(caught.exception), message)
+        self.assertEqual((host.state, host.changes[offset:]), (before, []))
+
+    def test_a_trial_names_proof_or_revert_in_its_own_boot_and_abandon_after_a_restart(self):
+        """Review 8 of package 22c, finding 5: after a restart proof and revert refuse, so the
+        refusal of the list-changing words and reboot names the step that works."""
+        with laptop(listed((R13, R21, 'S'), R13), host_class=KeyboardMachine) as (tools, host, store), keyboard_sessions(tools, host) as current:
+            tools.layout('begin', 'us')
+            for method in (tools.forward, tools.recover, tools.reboot, lambda: tools.layout('begin', 'de')):
+                self.refused(host, method, self.SAME_BOOT)
+            self.boot(tools, host, current, R13)
+            for method in (tools.forward, tools.recover, tools.reboot, lambda: tools.layout('begin', 'de')):
+                self.refused(host, method, self.EARLIER_BOOT)
+            self.refused(host, lambda: tools.layout('proof'), 'Trial crossed a reboot without completing the proof')
+            self.boot(tools, host, current, 'S')
+            for method in (tools.forward, lambda: tools.recover(True), tools.reboot):
+                self.refused(host, method, self.EARLIER_BOOT)
+            # The step it names works, from the fresh login, and the words work again.
+            tools.layout('abandon')
+            self.assertFalse((store / 'layout-pending.json').exists())
+            self.assertEqual(tools.recover(True)[0], 'Saved stock is default')
+
+    def test_a_trial_record_without_a_readable_boot_keeps_the_first_wording(self):
+        for value in ({}, dict(administrator=None), dict(administrator=dict(boot=7)), [], 'trial'):
+            with self.subTest(value=value), laptop(listed((R13, R21, 'S'), R13)) as (tools, host, store):
+                tools.save('layout-pending', value)
+                for method in (tools.forward, tools.reboot):
+                    self.refused(host, method, self.SAME_BOOT)
+        with laptop(listed((R13, R21, 'S'), R13)) as (tools, host, store):
+            (store / 'layout-pending.json').write_text('{not json')
+            self.refused(host, tools.forward, self.SAME_BOOT)
 
     def test_begin_refuses_on_stock_when_not_default_and_with_a_change_waiting(self):
         for order, running, waiting, message in (

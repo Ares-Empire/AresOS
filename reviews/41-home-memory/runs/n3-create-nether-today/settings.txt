@@ -1,0 +1,22 @@
+name=n3-create-nether-today
+RD=8
+SD=5
+HEAP=3072
+MIN_HEAP=512
+GC=
+MEMHIGH=5G
+SIZE=1920x1080
+REFRESH=144
+SETTLE=120
+WINDOW=60
+COVER=0
+MODE=create
+WORLD=base
+HOMEKIND=nether
+BASE=/var/home/ares/AresOS-41-home-memory/.work/pkg41/AresHub-base
+FLIGHT=none
+QUIT=0
+JVM_ARGS=-Xms512m -Xmx3072m -XX:NativeMemoryTracking=summary -Xlog:gc:file=/var/home/ares/AresOS-41-home-memory/.work/pkg41/rigs/n3-create-nether-today/gc.txt:tn,u -Dfabric.addMods=/var/home/ares/AresOS-41-home-memory/.work/pkg41/pkg41-frames.jar -Dpkg41.frames=/var/home/ares/AresOS-41-home-memory/.work/pkg41/rigs/n3-create-nether-today/frames.txt 
+GAME_ARGS=
+started=2026-11-15T12:35:48+01:00
+GAME_PID=891508

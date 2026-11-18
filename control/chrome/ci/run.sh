@@ -31,6 +31,19 @@ if test "${LATENCY_PROBE:-}" != true; then
 PYTHONPATH=control:control/chrome_tests python3 -m unittest test_policy test_questions test_sites test_unit -v 2>&1 | tee /out/python-page.txt
 node --test control/chrome_tests/*.test.mjs 2>&1 | tee /out/node.txt
 fi
+# Brief 20-ci-noise: the latency pair keeps the service's store (its journal
+# and SQLite files) on a tmpfs for both runtimes, so the timed phases measure
+# the product, not the shared runner's disk sync. Added disk syncs are caught
+# by their counts instead (latency-check.py). In CI run 43745378252 the store
+# used up to 77 MiB (about 81 MB) of state and 39 MiB of evidence; 512 MB
+# each leaves the room the storage ledger's free-space check needs.
+# latency-store.py records the mounts as the kernel reports them.
+if test "${LATENCY_PROBE:-}" = true; then
+  for store_dir in /var/lib/aresos-tools /var/lib/aresos-operation-evidence; do
+    mount -t tmpfs -o rw,nosuid,nodev,noexec,size=512m,mode=0755,uid="$(id -u aresos-tools)" latency-store "$store_dir"
+  done
+  python3 control/chrome/ci/latency-store.py start /out/latency-store.json
+fi
 runuser -u owner -- env GITHUB_ACTIONS=true dbus-run-session -- xvfb-run -a -s '-screen 0 1440x1000x24' bash -c '
   openbox > /out/baseline-openbox.txt 2>&1 &
   node control/chrome/ci/baseline.mjs
@@ -39,7 +52,7 @@ node control/chrome/ci/prepare.mjs
 # Main fix H5: the latency pair keeps its two harness streams (the service's
 # stdout and the browser-boundary audit sink) on a tmpfs the pair mounts, so
 # their flushes are not in the disk journal the store's fsyncs wait on. They
-# are copied to /out when the probe ends; the store itself stays on disk.
+# are copied to /out when the probe ends. The store has its own tmpfs (above).
 FIXTURE_LOG_DIR=/out
 if test "${LATENCY_PROBE:-}" = true && test -d /scratch; then FIXTURE_LOG_DIR=/scratch; fi
 export FIXTURE_LOG_DIR
@@ -62,6 +75,7 @@ if test "${DESTINATION_PROBE:-}" = true || test "${LATENCY_PROBE:-}" = true; the
     wait "$service_pid" 2>/dev/null || true
     cp "$FIXTURE_LOG_DIR/service.txt" "$FIXTURE_LOG_DIR/browser-boundary.jsonl" /out/
   fi
+  if test "${LATENCY_PROBE:-}" = true; then python3 control/chrome/ci/latency-store.py end /out/latency-store.json; fi
   echo 'Post-18d safety probes complete; not full acceptance'
   exit
 fi

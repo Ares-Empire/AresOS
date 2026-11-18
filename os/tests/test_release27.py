@@ -411,44 +411,88 @@ class PublishBranchTest(unittest.TestCase):
         self.assertLess(text.index('esac'), text.index('rehearsal_guard.py publish-ci'))
 
 
+RELEASE27_TREES = {path: format(n, '040x') for n, path in enumerate(sorted(['os/Containerfile', 'os/.containerignore',
+    'os/build.sh', 'os/packages.lock.json', 'os/google-chrome.lock.json', 'os/config', 'os/policy', 'os/manifest/base.json',
+    'os/keys', 'os/tests/audit.py']), 1)}
+RELEASE27_SOURCE = 'b' * 40
+# The variables that choose package 22d's tools-local check in verify_release.py.
+MODE_VARIABLES = ('GITHUB_REF_NAME', 'REHEARSAL_PACKAGE', 'REHEARSAL_MODE')
+
+
+def run_verify_release(case, release=None, job='Package 27 release build, image diff, VM and publish', head=None,
+                       trees=None, environment=None, at_source=None, present=True):
+    """os/ci/verify_release.py for release 27 against fakes; never gh or git.
+
+    head: trees at HEAD that differ from the release's (None: the path is missing). environment: the
+    branch, package and mode variables (none set by default). at_source: trees at the source commit that
+    differ from the release's (None: missing); present: whether that commit is in the clone before a fetch.
+    Returns (exit status, what it printed, the git commands it ran with subprocess.run).
+    """
+    import contextlib, io
+    source = RELEASE27_SOURCE
+    release = release or dict(reference='ghcr.io/ares-empire/aresos@sha256:' + '27' * 32, source_commit=source,
+        visibility='private', base=json.loads((ROOT / 'os/manifest/base.json').read_text())['reference'],
+        run='https://github.com/Ares-Empire/AresOS/actions/runs/42807087845',
+        signature=dict(method='cosign keyless', issuer='https://token.actions.githubusercontent.com',
+            identity='https://github.com/Ares-Empire/AresOS/.github/workflows/os-image.yml@refs/heads/pkg/27-first-update-release'),
+        image_diff=dict(status='passed', unexplained=[]), job_token_read=dict(status='passed', owner_token_used=False),
+        source_trees=trees if trees is not None else [dict(tree=tree, path=path) for path, tree in RELEASE27_TREES.items()])
+    head = dict(RELEASE27_TREES, **(head or {}))
+    at_source = dict(RELEASE27_TREES, **(at_source or {}))
+    run = dict(head_sha=source, path='.github/workflows/os-image.yml', head_branch='pkg/27-first-update-release',
+               event='workflow_dispatch', display_title='Package 27 image release', run_attempt=1)
+    prefix = 'repos/Ares-Empire/AresOS/actions/runs/42807087845'
+    calls, fetched = [], []
+
+    def output(command, **kwargs):
+        if command == ['git', 'rev-parse', '--is-shallow-repository']:
+            return b'false\n'
+        if command[:2] == ['git', 'rev-parse']:
+            case.assertTrue(command[2].startswith('HEAD:'))
+            if head[command[2].removeprefix('HEAD:')] is None:
+                raise subprocess.CalledProcessError(128, command)
+            return (head[command[2].removeprefix('HEAD:')] + '\n').encode()
+        case.assertEqual(command[:2], ['gh', 'api'])
+        return json.dumps(run if command[2] == prefix else dict(total_count=1, jobs=[dict(name=job, conclusion='success')])).encode()
+
+    def git(command, **kwargs):
+        calls.append(command)
+        here = present or fetched
+        if command[:3] == ['git', 'cat-file', '-e']:
+            case.assertEqual(command[3], source + '^{commit}')
+            return subprocess.CompletedProcess(command, 0 if here else 128)
+        if command[:4] == ['git', 'fetch', '--no-tags', 'origin']:
+            case.assertEqual((command[4:], kwargs), ([source], dict(check=True)))
+            fetched.append(source)
+            return subprocess.CompletedProcess(command, 0)
+        case.assertEqual(command[:4], ['git', 'rev-parse', '--verify', '--quiet'])
+        commit, path = command[4].split(':', 1)
+        tree = head.get(path) if commit == 'HEAD' else at_source.get(path) if commit == source and here else None
+        return subprocess.CompletedProcess(command, 0 if tree else 1, stdout=tree + '\n' if tree else '', stderr='')
+    original = pathlib.Path.read_text
+    read = lambda path, *a, **k: json.dumps(release) if path.as_posix() == 'evidence/release.json' else original(path, *a, **k)
+    path = ROOT / 'os/ci/verify_release.py'
+    # Only the variables given: the hosted rehearsal step runs these tests with its own branch and mode.
+    variables = {k: v for k, v in os.environ.items() if k not in MODE_VARIABLES}
+    variables.update(GITHUB_REPOSITORY='Ares-Empire/AresOS', **(environment or {}))
+    printed = io.StringIO()
+    with patch.object(sys, 'argv', ['verify_release.py', '42807087845']), \
+         patch.dict(os.environ, variables, clear=True), patch('pathlib.Path.read_text', read), \
+         patch('subprocess.check_output', side_effect=output), patch('subprocess.run', side_effect=git), \
+         contextlib.redirect_stdout(printed), case.assertRaises(SystemExit) as done:
+        exec(compile(ast.parse(path.read_text()), str(path), 'exec'), {'__name__': '__main__'})
+    return done.exception.code, printed.getvalue(), calls
+
+
 class VerifyRelease27Test(unittest.TestCase):
     """verify_release.py binds release 27 to its source trees and its own release job."""
-    TREES = {path: format(n, '040x') for n, path in enumerate(sorted(['os/Containerfile', 'os/.containerignore', 'os/build.sh',
-        'os/packages.lock.json', 'os/google-chrome.lock.json', 'os/config', 'os/policy', 'os/manifest/base.json',
-        'os/keys', 'os/tests/audit.py']), 1)}
+    TREES = RELEASE27_TREES
 
-    def verify(self, release=None, job='Package 27 release build, image diff, VM and publish', head=None, trees=None):
-        import ast, contextlib, io
-        source = 'b' * 40
-        release = release or dict(reference='ghcr.io/ares-empire/aresos@sha256:' + '27' * 32, source_commit=source,
-            visibility='private', base=json.loads((ROOT / 'os/manifest/base.json').read_text())['reference'],
-            run='https://github.com/Ares-Empire/AresOS/actions/runs/42807087845',
-            signature=dict(method='cosign keyless', issuer='https://token.actions.githubusercontent.com',
-                identity='https://github.com/Ares-Empire/AresOS/.github/workflows/os-image.yml@refs/heads/pkg/27-first-update-release'),
-            image_diff=dict(status='passed', unexplained=[]), job_token_read=dict(status='passed', owner_token_used=False),
-            source_trees=trees if trees is not None else [dict(tree=tree, path=path) for path, tree in self.TREES.items()])
-        head = dict(self.TREES, **(head or {}))
-        run = dict(head_sha=source, path='.github/workflows/os-image.yml', head_branch='pkg/27-first-update-release',
-                   event='workflow_dispatch', display_title='Package 27 image release', run_attempt=1)
-        prefix = 'repos/Ares-Empire/AresOS/actions/runs/42807087845'
-
-        def output(command, **kwargs):
-            if command == ['git', 'rev-parse', '--is-shallow-repository']:
-                return b'false\n'
-            if command[:2] == ['git', 'rev-parse']:
-                return (head[command[2].removeprefix('HEAD:')] + '\n').encode()
-            self.assertEqual(command[:2], ['gh', 'api'])
-            return json.dumps(run if command[2] == prefix else dict(total_count=1, jobs=[dict(name=job, conclusion='success')])).encode()
-        original = pathlib.Path.read_text
-        read = lambda path, *a, **k: json.dumps(release) if path.as_posix() == 'evidence/release.json' else original(path, *a, **k)
-        path = ROOT / 'os/ci/verify_release.py'
-        with patch.object(sys, 'argv', ['verify_release.py', '42807087845']), \
-             patch.dict(os.environ, GITHUB_REPOSITORY='Ares-Empire/AresOS'), patch('pathlib.Path.read_text', read), \
-             patch('subprocess.check_output', side_effect=output), patch('subprocess.run') as git, \
-             contextlib.redirect_stdout(io.StringIO()), self.assertRaises(SystemExit) as done:
-            exec(compile(ast.parse(path.read_text()), str(path), 'exec'), {'__name__': '__main__'})
-        git.assert_not_called()  # no fetch or ancestry: a squash merge keeps the trees
-        return done.exception.code
+    def verify(self, release=None, job='Package 27 release build, image diff, VM and publish', head=None, trees=None,
+               environment=None):
+        code, _, calls = run_verify_release(self, release, job, head, trees, environment)
+        self.assertEqual(calls, [])  # no fetch or ancestry: a squash merge keeps the trees
+        return code
 
     def test_release27_passes_on_its_own_trees_and_job(self):
         self.assertEqual(self.verify(), 0)
@@ -962,14 +1006,15 @@ REVIEWED_DECISIONS = {
     ('os/ci/owner_vm.py', "mode == 'owner-tools'"):
         'only the qualification needs a passing probe on the same commit (JUDGMENT-CALL 5)',
     ('os/ci/owner_vm.py', "{'16': 'os/manifest/ci/16/host-walk.json', '27': 'os/manifest/ci/27/host-walk.json', "
-                          "'22c': 'os/manifest/ci/22c/host-walk.json'}.get(package, 'os/manifest/ci/14/host-walk/result.json')"):
+                          "'22c': 'os/manifest/ci/22c/host-walk.json', '22d': 'os/manifest/ci/22d/host-walk.json'}"
+                          ".get(package, 'os/manifest/ci/14/host-walk/result.json')"):
         "each package's own host walk",
     ('os/ci/owner_vm.py', "package == '27'"):
         'package 27 records the checkout bytes it walked (27-bound-sources)',
     ('os/ci/owner_vm.py', "mode == 'update'"):
         "the update rehearsal runs its own route",
-    ('os/ci/owner_vm.py', "mode in ('update', 'reorder-probe', 'ways-back')"):
-        "the update rehearsal (and package 22c's probe and rehearsal) starts from the laptop's tools",
+    ('os/ci/owner_vm.py', "mode in ('update', 'reorder-probe', 'ways-back', 'tools-local')"):
+        "the update rehearsal (and package 22c's probe and rehearsal, and package 22d's) starts from the laptop's tools",
     ('os/ci/rehearsal_auth.py', "mode in ('probe', 'part-b') or release_diff"):
         'owner-secret auth: its create, preflight and pull steps do not run on pkg/27',
 }

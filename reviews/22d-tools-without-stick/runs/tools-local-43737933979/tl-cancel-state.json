@@ -1,0 +1,57 @@
+{
+  "tools": "59dbb1a9d8ae013df3fd41f6c59abc118cd03066a2331910dbd85b9895c3cbd0",
+  "entry": "tools-851eb742bfe20bd4b47370b9f2558494edf4b74056d7023cc0d412e32fee6f33/at",
+  "toolsets": [
+    "tools-851eb742bfe20bd4b47370b9f2558494edf4b74056d7023cc0d412e32fee6f33",
+    "tools-update-intent.json"
+  ],
+  "journal": {
+    "phase": "complete",
+    "manifest": "851eb742bfe20bd4b47370b9f2558494edf4b74056d7023cc0d412e32fee6f33",
+    "source": null,
+    "previous": "3ef85c4adab3c8a5daf5bf26c2a40805d24bcb0c17b9327cfc55e7e96aeebefc",
+    "tools_version": 2
+  },
+  "records": [
+    "diagnostics/20261115T181121.714431Z-login.json",
+    "diagnostics/20261115T184200.253784Z-install.json",
+    "records/20261115T170159.407928Z-install.json",
+    "records/20261115T170225.832639Z-prepare.json",
+    "records/20261115T170304.432910Z-prepare.json",
+    "records/20261115T180335.308819Z-title.json",
+    "records/20261115T180352.978427Z-records.json",
+    "records/20261115T180415.833327Z-export.json",
+    "records/20261115T180512.864989Z-title.json",
+    "records/20261115T180533.066934Z-reboot.json",
+    "records/20261115T181009.931107Z-title.json",
+    "records/20261115T181027.445159Z-records.json",
+    "records/20261115T181335.835995Z-login.json",
+    "records/20261115T181419.162741Z-verify.json",
+    "records/20261115T181904.530485Z-switch.json",
+    "records/20261115T182009.764796Z-title.json",
+    "records/20261115T182037.316097Z-reboot.json",
+    "records/20261115T182411.406310Z-check.json",
+    "records/20261115T182456.392320Z-title.json",
+    "records/20261115T182513.176775Z-records.json",
+    "records/20261115T182809.732020Z-tools-update.json",
+    "records/20261115T183000.968648Z-update.json",
+    "records/20261115T183051.827123Z-title.json",
+    "records/20261115T183112.190003Z-export.json",
+    "records/20261115T183210.988257Z-reboot.json",
+    "records/20261115T183540.668731Z-outcome-confirmed.json",
+    "records/20261115T183540.901840Z-check.json",
+    "records/20261115T183638.226716Z-title.json",
+    "records/disks.json",
+    "records/installation.json",
+    "records/network-verified.json",
+    "records/prepare-intent.json",
+    "records/prepared.json",
+    "records/record-c.json",
+    "records/title.json",
+    "records/verified.json"
+  ],
+  "bootstrap": [
+    "/run/ares-bootstrap.pmt5kO"
+  ],
+  "folder": "78015dbec60b2f6a836a257cda9a161697e83a2304ac3f372b1e4a9b486e3dd9"
+}

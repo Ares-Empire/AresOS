@@ -1,6 +1,6 @@
 Reviewed design commit `c1908bc`. No files changed; no VM or hardware tests run.
 
-1. **High — Shutdown protects the world but does not establish that other apps can safely close.** [Location](C:/Users/pab/AresOS-02-os-base-design/docs/design/OS-BASE.md:199)
+1. **High — Shutdown protects the world but does not establish that other apps can safely close.** [Location](C:/Users/owner/AresOS-02-os-base-design/docs/design/OS-BASE.md:199)
 
    **Scenario:** The owner has an unsaved document open and selects Save and Shut Down. Minecraft exits, its backup succeeds, and the helper calls logind. Nothing specifies how the document gets a save/cancel opportunity. “No automatic force-close” does not supply that missing step.
 
@@ -10,7 +10,7 @@ Reviewed design commit `c1908bc`. No files changed; no VM or hardware tests run.
 
    **Check:** Shut down with an unsaved editor document and a browser form. Cancel must preserve both and leave a usable desktop; completing shutdown must not silently discard either.
 
-2. **High — Hiding Sleep until qualification does not prevent lid and power-button actions from bypassing the helper.** [Location](C:/Users/pab/AresOS-02-os-base-design/docs/design/OS-BASE.md:119)
+2. **High — Hiding Sleep until qualification does not prevent lid and power-button actions from bypassing the helper.** [Location](C:/Users/owner/AresOS-02-os-base-design/docs/design/OS-BASE.md:119)
 
    **Scenario:** During the initial SSD trial, the owner closes the lid or briefly presses the power button. The design specifies no policy for intercepting these events. Upstream logind defaults include lid-triggered suspend and power-button shutdown; lid handling also ignores high-level suspend blockers by default. [systemd documentation](https://www.freedesktop.org/software/systemd/man/latest/logind.conf.html)
 
@@ -20,7 +20,7 @@ Reviewed design commit `c1908bc`. No files changed; no VM or hardware tests run.
 
    **Check:** Exercise these events during loading, editing, saving and helper failure. Before qualification, none may trigger suspend; power-off must follow the defined save policy.
 
-3. **High — The package order postpones the decisive hardware evidence until after substantial optional work.** [Location](C:/Users/pab/AresOS-02-os-base-design/docs/design/OS-BASE.md:249)
+3. **High — The package order postpones the decisive hardware evidence until after substantial optional work.** [Location](C:/Users/owner/AresOS-02-os-base-design/docs/design/OS-BASE.md:249)
 
    **Scenario:** P1–P9 build and review successfully, including a custom updater and Plymouth presentation. P10 then discovers that the selected signed NVIDIA stack or external boot path does not work on this LOQ.
 
@@ -30,7 +30,7 @@ Reviewed design commit `c1908bc`. No files changed; no VM or hardware tests run.
 
    **Check:** The first milestone should demonstrate F12 → controllable Nether hub → open/close one app → clean shutdown → normal Windows boot, plus restoration of a changed test world. Optional polish must not be a prerequisite.
 
-4. **Should-fix — The suspend contract stops Minecraft but has no corresponding resume contract.** [Location](C:/Users/pab/AresOS-02-os-base-design/docs/design/OS-BASE.md:197)
+4. **Should-fix — The suspend contract stops Minecraft but has no corresponding resume contract.** [Location](C:/Users/owner/AresOS-02-os-base-design/docs/design/OS-BASE.md:197)
 
    **Scenario:** Sleep records an intentional stop, exits Minecraft, backs up and suspends. On wake, the intentional-stop rule still suppresses restart; no RESUMING transition launches the world again. Simply adding a relaunch would also impose game loading and the README’s return-to-hub behavior.
 
@@ -40,7 +40,7 @@ Reviewed design commit `c1908bc`. No files changed; no VM or hardware tests run.
 
    **Check:** Sleep while away from the hub and while a browser is foreground. Wake must restore the specified position and focus without duplicate game instances or manual recovery; measure time until input works.
 
-5. **Should-fix — There is no memory budget or acceptance test for Minecraft sharing this 16 GB laptop with real work.** [Locations: graphics](C:/Users/pab/AresOS-02-os-base-design/docs/design/OS-BASE.md:53), [acceptance trials](C:/Users/pab/AresOS-02-os-base-design/docs/design/OS-BASE.md:227)
+5. **Should-fix — There is no memory budget or acceptance test for Minecraft sharing this 16 GB laptop with real work.** [Locations: graphics](C:/Users/owner/AresOS-02-os-base-design/docs/design/OS-BASE.md:53), [acceptance trials](C:/Users/owner/AresOS-02-os-base-design/docs/design/OS-BASE.md:227)
 
    **Scenario:** The shader world passes its standalone test. The owner then opens browser tabs, a video call and an editor. Memory pressure makes switching sluggish or terminates a process; restarting Minecraft adds pressure again.
 
@@ -50,7 +50,7 @@ Reviewed design commit `c1908bc`. No files changed; no VM or hardware tests run.
 
    **Check:** Run a representative study session with Minecraft resident. Record total memory, swap activity and switching latency; require no lost app state, restart cycle or inaccessible recovery UI.
 
-6. **Should-fix — Frame-rate caps are specified, but inactivity and acceptable battery/heat behavior are not.** [Locations: power policy](C:/Users/pab/AresOS-02-os-base-design/docs/design/OS-BASE.md:61), [measurement trial](C:/Users/pab/AresOS-02-os-base-design/docs/design/OS-BASE.md:239)
+6. **Should-fix — Frame-rate caps are specified, but inactivity and acceptable battery/heat behavior are not.** [Locations: power policy](C:/Users/owner/AresOS-02-os-base-design/docs/design/OS-BASE.md:61), [measurement trial](C:/Users/owner/AresOS-02-os-base-design/docs/design/OS-BASE.md:239)
 
    **Scenario:** The owner reads notes for an hour while Minecraft renders behind the browser, or leaves the visible hub unattended. Five FPS and disabled shaders can satisfy the configuration while the laptop still consumes unacceptable power. NVIDIA documents that GPU and video-memory power states depend on workload and retained resources, not just an FPS setting. [NVIDIA documentation](https://download.nvidia.com/XFree86/Linux-x86_64/580.95.05/README/dynamicpowermanagement.html)
 
@@ -60,7 +60,7 @@ Reviewed design commit `c1908bc`. No files changed; no VM or hardware tests run.
 
    **Check:** Compare the same browser workload with Minecraft stopped, hidden and visible, on AC and battery. Include idle periods and charger transitions; record whole-system draw, temperatures, fan behavior and return responsiveness.
 
-7. **Should-fix — The return-to-world rule can steal focus when a background app closes.** [Location](C:/Users/pab/AresOS-02-os-base-design/docs/design/OS-BASE.md:191)
+7. **Should-fix — The return-to-world rule can steal focus when a background app closes.** [Location](C:/Users/owner/AresOS-02-os-base-design/docs/design/OS-BASE.md:191)
 
    **Scenario:** A terminal task finishes and its last window closes while the owner is typing in the browser. The stated final-window rule focuses Minecraft even though the owner did not leave the browser.
 

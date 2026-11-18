@@ -2,7 +2,7 @@ Findings 1–2 are fixed. One new regression remains.
 
 1. **Should-fix — unrelated incoming mail makes a complete filing scan fail oracle validation.**
 
-   **Where:** [effects.py:54](/Users/pab/AresOS-19b-state/control/owner_state_oracle/effects.py:54), consumed by [model.py:659](/Users/pab/AresOS-19b-state/control/owner_state_oracle/model.py:659).
+   **Where:** [effects.py:54](/Users/owner/AresOS-19b-state/control/owner_state_oracle/effects.py:54), consumed by [model.py:659](/Users/owner/AresOS-19b-state/control/owner_state_oracle/model.py:659).
 
    **Reproduction, run in memory:** Seed an interrupted MOVE with healthy roles and an existing destination. After the scan’s LIST snapshot records Source UID 1, insert unrelated UID 2 immediately before SELECT. SEARCH correctly returns `1 2`; both bodies are fetched successfully. Production commits `state=partial`, a closed check, complete locations and an unacknowledged warning.
 

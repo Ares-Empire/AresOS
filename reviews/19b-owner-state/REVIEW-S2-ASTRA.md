@@ -4,9 +4,9 @@ Reviewed `9eb193f2..31eeb030`, the requested briefs, coverage, compact ledger, r
 
 1. **Blocking: renaming an ordinary folder now refuses on a healthy disk because of a message’s MIME contents.**
 
-   **Where:** [filing.py:73](/Users/pab/AresOS-19b-state/control/aresos_control/mail/filing.py:73), especially the full-message fetch and parse at lines 78–80.
+   **Where:** [filing.py:73](/Users/owner/AresOS-19b-state/control/aresos_control/mail/filing.py:73), especially the full-message fetch and parse at lines 78–80.
 
-   Stage 2 obtains RENAME context by fetching and parsing every message in the source folder. This introduces the message-reading limits from [transport.py:203](/Users/pab/AresOS-19b-state/control/aresos_control/mail/transport.py:203) and [codec.py:39](/Users/pab/AresOS-19b-state/control/aresos_control/mail/codec.py:39) into folder renaming.
+   Stage 2 obtains RENAME context by fetching and parsing every message in the source folder. This introduces the message-reading limits from [transport.py:203](/Users/owner/AresOS-19b-state/control/aresos_control/mail/transport.py:203) and [codec.py:39](/Users/owner/AresOS-19b-state/control/aresos_control/mail/codec.py:39) into folder renaming.
 
    **Reproduction run:** I called the production `rename_folder` using an in-memory store and IMAP fixture. The source was an ordinary folder with one UID, unchanged UIDVALIDITY, and normal Inbox/Sent/Drafts/Trash roles. Its small message contained 45 nested `message/rfc822` parts. There were no storage faults.
 
@@ -25,7 +25,7 @@ Reviewed `9eb193f2..31eeb030`, the requested briefs, coverage, compact ledger, r
 
 2. **Blocking acceptance defect: the oracle silently drops an unfinished RENAME warning when LIST does not contain the destination.**
 
-   **Where:** [model.py:530](/Users/pab/AresOS-19b-state/control/owner_state_oracle/model.py:530), the check-closing gate at [model.py:824](/Users/pab/AresOS-19b-state/control/owner_state_oracle/model.py:824), and evidence selection at [model.py:1232](/Users/pab/AresOS-19b-state/control/owner_state_oracle/model.py:1232).
+   **Where:** [model.py:530](/Users/owner/AresOS-19b-state/control/owner_state_oracle/model.py:530), the check-closing gate at [model.py:824](/Users/owner/AresOS-19b-state/control/owner_state_oracle/model.py:824), and evidence selection at [model.py:1232](/Users/owner/AresOS-19b-state/control/owner_state_oracle/model.py:1232).
 
    `result_proof()` accepts a delivered LIST with unique Sent, Drafts and Trash roles as sufficient corroboration to close a filing/rename check. It does not require the rename destination to exist.
 
@@ -48,13 +48,13 @@ Reviewed `9eb193f2..31eeb030`, the requested briefs, coverage, compact ledger, r
 
    **Rule broken:** structure S’s independently corroborated resolution requirement and prohibition on silent expectation shrinkage; round 27’s requirement to keep a warning-producing check open until its actual result is committed. This permits an owner-warning loss to pass acceptance.
 
-   **Important distinction:** current production correctly leaves this particular check open when the target is absent, at [filing.py:192](/Users/pab/AresOS-19b-state/control/aresos_control/mail/filing.py:192). This finding concerns the oracle accepting a planted violation, not an observed production loss.
+   **Important distinction:** current production correctly leaves this particular check open when the target is absent, at [filing.py:192](/Users/owner/AresOS-19b-state/control/aresos_control/mail/filing.py:192). This finding concerns the oracle accepting a planted violation, not an observed production loss.
 
    **Fix:** require evidence of the actual source-specific check result. A LIST with healthy account roles is insufficient to resolve an absent destination. Preserve the recovery obligation and report an unjustified close. Add this interrupted/restarted scenario to the perturbation corpus, including subsequent acknowledgement, repeated reads and expiry/archive attempts.
 
 3. **Should-fix: the oracle accepts a second draft APPEND under the same intent, including after a simulated storage failure.**
 
-   **Where:** per-command validation in [context.py:220](/Users/pab/AresOS-19b-state/control/owner_state_oracle/context.py:220), generic intent completion in [model.py:967](/Users/pab/AresOS-19b-state/control/owner_state_oracle/model.py:967), and completion checks restricted to terminal `op:` rows at [model.py:1303](/Users/pab/AresOS-19b-state/control/owner_state_oracle/model.py:1303).
+   **Where:** per-command validation in [context.py:220](/Users/owner/AresOS-19b-state/control/owner_state_oracle/context.py:220), generic intent completion in [model.py:967](/Users/owner/AresOS-19b-state/control/owner_state_oracle/model.py:967), and completion checks restricted to terminal `op:` rows at [model.py:1303](/Users/owner/AresOS-19b-state/control/owner_state_oracle/model.py:1303).
 
    Context validation checks each APPEND independently. Generic intent completion accepts all delivered replies without enforcing the permitted number of effects. Draft APPEND uses a generic intent rather than an `op:` row, so the operation completion checks do not supply the missing constraint.
 
@@ -75,7 +75,7 @@ Reviewed `9eb193f2..31eeb030`, the requested briefs, coverage, compact ledger, r
 
 4. **Should-fix: the new local flag mutation lacks an independent effect model and full owner-state fault coverage.**
 
-   **Where:** the production addition at [testapp.py:104](/Users/pab/AresOS-19b-state/control/aresos_control/testapp.py:104); local validation at [local.py:40](/Users/pab/AresOS-19b-state/control/owner_state_oracle/local.py:40); completion corroboration at [model.py:984](/Users/pab/AresOS-19b-state/control/owner_state_oracle/model.py:984); and sweep selection at [test_owner_state_sweep.py:22](/Users/pab/AresOS-19b-state/control/mail_tests/test_owner_state_sweep.py:22).
+   **Where:** the production addition at [testapp.py:104](/Users/owner/AresOS-19b-state/control/aresos_control/testapp.py:104); local validation at [local.py:40](/Users/owner/AresOS-19b-state/control/owner_state_oracle/local.py:40); completion corroboration at [model.py:984](/Users/owner/AresOS-19b-state/control/owner_state_oracle/model.py:984); and sweep selection at [test_owner_state_sweep.py:22](/Users/owner/AresOS-19b-state/control/mail_tests/test_owner_state_sweep.py:22).
 
    Production now commits a `LOCAL_FLAG` intent before changing the test-app item. The independent local validator recognizes deletion and account changes, but not `testapp_flag`. Generic intent completion likewise has no local-flag proof.
 
@@ -86,7 +86,7 @@ Reviewed `9eb193f2..31eeb030`, the requested briefs, coverage, compact ledger, r
 
    It therefore accepts the missing-context violation and rejects the valid lifecycle.
 
-   `local_flag` does appear in [test_action_context.py:326](/Users/pab/AresOS-19b-state/control/mail_tests/test_action_context.py:326), but that fence test validates server mutation events and, after crashes, receiver database tables. Those assertions do not establish the local item’s effect or owner-visible warning lifecycle. The full owner-state sweep omits `local_flag`, leaving persistent exhaustion, cleanup pairs and recovery without restart uncovered for this addition.
+   `local_flag` does appear in [test_action_context.py:326](/Users/owner/AresOS-19b-state/control/mail_tests/test_action_context.py:326), but that fence test validates server mutation events and, after crashes, receiver database tables. Those assertions do not establish the local item’s effect or owner-visible warning lifecycle. The full owner-state sweep omits `local_flag`, leaving persistent exhaustion, cleanup pairs and recovery without restart uncovered for this addition.
 
    **Rule implicated:** R2 applies before every mutation in both apps. The comparison contract requires independently derived owner state across the specified fault modes.
 

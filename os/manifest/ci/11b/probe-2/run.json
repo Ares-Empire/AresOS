@@ -101,11 +101,11 @@
     "message": "Bound installer HTTP checks and preserve redacted timeout evidence",
     "timestamp": "2026-10-22T23:58:59Z",
     "author": {
-      "name": "pab",
+      "name": "owner",
       "email": "admin@example.com"
     },
     "committer": {
-      "name": "pab",
+      "name": "owner",
       "email": "admin@example.com"
     }
   },

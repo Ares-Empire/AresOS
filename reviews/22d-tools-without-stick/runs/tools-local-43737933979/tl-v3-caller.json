@@ -1,0 +1,26 @@
+{
+  "uid": 1001,
+  "loginuid": "1001",
+  "stdin_terminal": false,
+  "wayland": true,
+  "runtime": "/run/user/1001",
+  "terminal": false,
+  "tty_errno": 6,
+  "line_sha256": {
+    "folder": "823dd79da54204b1233833c242260630f03d95bebaba4f31dc8a347fe9f03a1c",
+    "routine": "8f0ecf60a8e8cff87202a4700be3c753f07b3674c8f7a342949a531448d65fad"
+  },
+  "folder": {
+    "status": 0,
+    "stdout": "SHA256SUMS: OK\n",
+    "stderr": ""
+  },
+  "routine": {
+    "status": 1,
+    "stdout": "SHA256SUMS: OK\nat: OK\nhistory.json: OK\nmedia.py: OK\nowner.py: OK\nrelease.json: OK\nrelease/pause-stock-updates.sh: OK\nrelease/pin-stock.sh: OK\nrelease/start-next.sh: OK\nrelease/stock-session.sh: OK\nrelease/switch.sh: OK\nrelease/system-keyboard.sh: OK\nrelease/update.sh: OK\nrelease/verify.sh: OK\nSHA256.json: OK\nFull diagnostics: /var/lib/ares/diagnostics (private)\nSTOP: Tools update runs only from the physical recovery console\nKeep the current administrator session open. Preserve diagnostics; do not reboot or retry a different target. See EMERGENCY / get help.\nSTOP bootstrap: verification or install refused\n",
+    "stderr": "",
+    "signalled": [],
+    "helper": null,
+    "helper_gone": true
+  }
+}

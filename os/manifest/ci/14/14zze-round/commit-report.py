@@ -18,7 +18,7 @@ paths=sorted(set(subprocess.check_output(['git','diff','--name-only'],text=True)
 assert paths and all(p in ('docs/INSTALL.md','docs/EMERGENCY.md','reviews/14-owner-tools/REPORT.md','reviews/14-owner-tools/BUDGET.json') or p.startswith('os/manifest/ci/14/14zze-round/') for p in paths),paths
 subprocess.run(['git','diff','--check'],check=True)
 with (w/'14zze/closing-hash-order.log').open('wb') as log:
- q=subprocess.run(['wsl.exe','--exec','bash','-lc','cd /mnt/c/Users/pab/AresOS-14-owner-tools && PYTHONPATH=os/ci:os/tests python3 -B -m unittest test_owner_equality.EqualityTest.test_package_hash_manifests_put_hashes_before_paths'],stdout=log,stderr=subprocess.STDOUT)
+ q=subprocess.run(['wsl.exe','--exec','bash','-lc','cd /mnt/c/Users/owner/AresOS-14-owner-tools && PYTHONPATH=os/ci:os/tests python3 -B -m unittest test_owner_equality.EqualityTest.test_package_hash_manifests_put_hashes_before_paths'],stdout=log,stderr=subprocess.STDOUT)
 assert q.returncode==0,'STOP: closing hash order'
 pending=w/'14zze/pending-closing';assert not pending.exists();pending.mkdir()
 for name in paths:

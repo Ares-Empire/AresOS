@@ -209,7 +209,7 @@ class Chrome:
             self.bridge.call('configure', excluded_hosts=hosts)
             self._configured_exclusions = (self.bridge.session, hosts)
         self.maintenance()
-        mode = switches(self.qualification.record(), self.qualification.build, self.bridge.version)
+        mode = self.qualification.switches(self.bridge.version)
         groups = ['classification','page_script','binding','password_exclusion'] if acting else ['password_exclusion']
         for group in groups:
             if not mode['core'][group]:
@@ -217,15 +217,14 @@ class Chrome:
         return mode
 
     def maintenance(self):
-        if not isinstance(self.bridge, Bridge):return
+        """Prune uploads and refresh qualification when due."""
+        if not isinstance(self.bridge, Bridge):return None
         from .uploads import prune
         prune(self, admit=False)
         if not self.refresh_qualification or not isinstance(self.bridge, Bridge) or not self.bridge.version:
-            return
+            return None
         identity = (self.bridge.session, self.bridge.version)
-        uncovered = not any(item['build'] == self.qualification.build and item['version'] == self.bridge.version
-                            for item in self.qualification.record()['entries'])
-        force = uncovered and getattr(self, '_refresh_attempted', None) != identity
+        force = not self.qualification.covers(self.bridge.version) and getattr(self, '_refresh_attempted', None) != identity
         self._refresh_attempted = identity
         self.qualification.refresh(force=force)
 
@@ -242,7 +241,9 @@ class Chrome:
                 raise Refused('stale_approval', 'Browser or service session changed; drop this preparation and prepare again.')
             if projection:
                 self.read_owner_hosts()
-                mode=switches(self.committed.get('chrome:qualification',self.qualification.shipped),self.qualification.build,self.bridge.version)
+                # The record mode() trusts, reconciled with the shipped copy,
+                # so a row never shows current where acting refuses (#79 O1).
+                mode=self.qualification.switches(self.bridge.version)
                 if not all(mode['core'].values()):raise Refused('qualification_failed','Chrome core qualification currently refuses this operation.')
                 if not payload.get('typed_read'):self.check_readonly(payload,self.committed.get)
             else:

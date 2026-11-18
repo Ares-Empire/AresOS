@@ -32,7 +32,9 @@ def require_dispatch():
             branch == 'pkg/27-first-update-release' and os.environ.get('REHEARSAL_PACKAGE') == '27'
             and os.environ['REHEARSAL_MODE'] in ('release-27', 'update') or
             branch == 'pkg/22c-ways-back-after-update' and os.environ.get('REHEARSAL_PACKAGE') == '22c'
-            and os.environ['REHEARSAL_MODE'] in ('reorder-probe', 'ways-back'))
+            and os.environ['REHEARSAL_MODE'] in ('reorder-probe', 'ways-back') or
+            branch == 'pkg/22d-tools-without-stick' and os.environ.get('REHEARSAL_PACKAGE') == '22d'
+            and os.environ['REHEARSAL_MODE'] == 'tools-local')
     assert org_release() and RELEASE['visibility'] == 'private'
 
 
@@ -127,7 +129,7 @@ guest_mount_command = legacy.guest_mount_command
 def signature(cosign):
     require_dispatch()
     assert os.environ['GITHUB_REF_NAME'] in ('pkg/14-owner-tools','pkg/16-staged-release','pkg/27-first-update-release',
-                                             'pkg/22c-ways-back-after-update')
+                                             'pkg/22c-ways-back-after-update','pkg/22d-tools-without-stick')
     tool = pathlib.Path(cosign)
     assert tool.is_absolute() and tool.is_file() and os.access(tool, os.X_OK), 'Resolve cosign before sudo'
     config = directory() / 'config.json'

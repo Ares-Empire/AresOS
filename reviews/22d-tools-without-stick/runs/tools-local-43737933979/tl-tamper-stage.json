@@ -1,0 +1,5 @@
+{
+  "stage": "tl-tamper",
+  "stop": "STOP bootstrap: verification or install refused",
+  "nothing_changed": true
+}

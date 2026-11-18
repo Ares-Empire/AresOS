@@ -1,0 +1,20 @@
+{
+  "uid": 1001,
+  "loginuid": "1001",
+  "stdin_terminal": false,
+  "wayland": true,
+  "runtime": "/run/user/1001",
+  "terminal": false,
+  "tty_errno": 6,
+  "line_sha256": {
+    "routine": "7e1ffa764c263ef78025cee21c9d7ef2b6959e370765da40ae55046dc45a23d4"
+  },
+  "routine": {
+    "status": 0,
+    "stdout": "PASS export\nTools stick absent: records copied to /run/ares-records with SHA256 readback\nThis copy is on this laptop, not off it; uid 1001 can read it, and a restart deletes it\nFor a copy off the laptop plug in the tools stick and run export again\nFull diagnostics: /var/lib/ares/records (private)\n",
+    "stderr": "",
+    "signalled": [],
+    "helper": null,
+    "helper_gone": true
+  }
+}

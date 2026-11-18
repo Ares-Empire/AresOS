@@ -4,8 +4,8 @@ import datetime, hashlib, json, pathlib, re, subprocess
 ROOT=pathlib.Path.cwd()
 WORK=ROOT/'.work/14'
 BASH='C:/Program Files/Git/bin/bash.exe'
-CHECKER=pathlib.Path('C:/Users/pab/aresync/privacy-check.sh')
-POSIX_CHECKER='/c/Users/pab/aresync/privacy-check.sh'
+CHECKER=pathlib.Path('C:/Users/owner/aresync/privacy-check.sh')
+POSIX_CHECKER='/c/Users/owner/aresync/privacy-check.sh'
 BRANCH='pkg/14-owner-tools'
 
 def out(*args):

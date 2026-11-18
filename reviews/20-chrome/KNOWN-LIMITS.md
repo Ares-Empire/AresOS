@@ -27,3 +27,11 @@ The lead accepted the all-borrowed-native A-3 limit in `briefs/20-recheck-fixes-
 - The discard report runs before the first act after every take and retake (input in a taken or retaken document waits for its guarded reload, which gives the report; navigate and close_tab give it themselves) and before every reload, navigate, back, forward and close_tab. It does not run when a page action of Claude's, while he holds the tab (a click on a link, a submit, or another input of his that the page answers by navigating), makes the page navigate: typing the owner did in that tab while Claude held and drove it can be lost with the document. The narrower case is Claude's `fill` of a field the owner typed into while Claude held the tab, which replaces his text without a report. The harm is one owner draft; accepted because a click is what navigates, and cancelling the page's own navigation on every Claude click would break normal clicks; the owner is at the keyboard and sees the tab he typed in (fixes b, G3).
 
 - **Accepted by the owner (board #216, 2026-11-13):** editable areas remain readable without asking in an unwatched document. A secret the owner un-hid in such an editor, without a credential label, would be read. Text-capable inputs and textareas in unwatched documents require the separate asking read; credential-like fields remain excluded even after approval.
+
+- **Found by package 28's baseline (run 43698395453, 2026-11-15; not yet accepted, brief 28a fixes it):** a form whose
+  binding is large can't be sent at all. The approval carries the whole binding in its description, and a select's
+  binding lists every option, so a form with a 200-option country list exceeds the 16,384-byte approval limit
+  (`asking_input_too_large`, nothing reserved, nothing sent). The failure is closed: Claude tells the owner to send it
+  himself. Brief 28a (PR #48) bounds what the approval describes. From reading the code (not yet run): when the
+  page itself submits such a form, the held step's refusal is uncaught, so every later read of that tab fails the
+  same way until the document goes; nothing is sent. Brief 28a item 3a fixes that too.

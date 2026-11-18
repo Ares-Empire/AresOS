@@ -101,11 +101,11 @@
     "message": "Record unavailable failure counters after unexpected QEMU exits",
     "timestamp": "2026-10-24T04:19:49Z",
     "author": {
-      "name": "pab",
+      "name": "owner",
       "email": "admin@example.com"
     },
     "committer": {
-      "name": "pab",
+      "name": "owner",
       "email": "admin@example.com"
     }
   },

@@ -114,9 +114,15 @@ Existing scope names are avoided, and a failed creation is never stopped.
   a query, or another process deliberately taking a just-checked random scope
   name, is outside these scripts' guarantees.
 
-Click **AresOS** above Singleplayer on the title screen to reopen **AresHub**,
-or to create it if it does not exist. The create screen has one choice,
-**Home: Flat** or **Home: Nether** (click it to switch). Flat is chosen first.
+In the AresOS session (package 23's supervisor or `dev/run-hub.sh`) there is no
+title screen to go through: the game opens **AresHub**, and on the first start,
+when no `AresHub` folder exists, it makes the flat home at once and opens it
+(package 48, "The home screen" below). Another home comes from the AresOS menu's
+**New home…** (Esc). Outside a session (the plain development client, another
+launcher), click **AresOS** above Singleplayer on the title screen to reopen
+**AresHub**, or to create it if it does not exist. The create screen has one
+choice, **Home: Flat** or **Home: Nether** (click it to switch). Flat is chosen
+first.
 
 **The flat home** is a flat Overworld: bedrock at y -64, stone up to y 59,
 three layers of dirt and grass at y 63, plains everywhere, no structures,
@@ -189,7 +195,8 @@ saving provisioning), `data/aresos/nether_home.dat` (initial site and optional
 exact home; despite its name the flat home's too), for a flat home
 `data/aresos/hub.dat`, and the existing desktop marker. Keep the whole world
 directory with backups. All of this holds for both homes.
-Only a new creation through the AresOS button can build a hub. If an existing
+Only a new creation through the AresOS button, the first start or **New home…**
+can build a hub. If an existing
 home loses its home data, it opens without rebuilding, changing gamerules or
 enabling the desktop marker, and chat explains how to restore a backup. This
 also protects older saves without the separate provisioning claim.
@@ -501,7 +508,7 @@ conditions, in `client/HomeScreen.java`:
   frameless and always on bottom (`rc.xml`). This holds from the title screen on.
 - **An active home screen** (`HomeScreen.active()`): a session in a desktop
   world with the helper connected. Another window having the focus opens no
-  pause menu (Esc still does); keys and the mouse are let go while an app is in
+  menu (Esc opens the AresOS menu, below); keys and the mouse are let go while an app is in
   front and the mouse is captured again when the world has the focus, from the
   helper's `shell_focus` (under labwc GLFW reports the game focused while a
   Wayland app is in front). While the helper says `shell_covered` (a maximized
@@ -519,6 +526,30 @@ hotbar ("Couldn't open Test App: it failed to start"). A program that started
 but showed no window the helper can tell is its own is reported as "it started,
 but no window of it appeared" after the open deadline (45 seconds) instead of
 "no answer from the app helper", and a walk-in the client refuses says so.
+
+**The AresOS menu** (package 48, `AresOsMenuScreen`): in a session's desktop
+world, with or without the helper, every way the game opens its menu opens this
+one instead (`GuiMenuMixin` at `Gui.setPauseScreen`, the only place 26.2 makes a
+game menu: Esc, F3+Esc, focus loss, a mod's `pauseGame`). It has Back to the
+world, Apps… (greyed out in Build mode), Settings… (the game's options), New
+home… and a line with the keys; it does not pause. The gate is
+`HomeRules.menuReplacesGameMenu`. Elsewhere the game menu is as always.
+
+**New home…** (`HomeSwitch`): the home choice, one confirmation, then
+"Making your new home…" until he is in the new home. The new home is made in
+`AresHub-new-<date>`, joined once (so it is provisioned), closed, checked as the
+supervisor's `check_world` does (`HomeSwap.checkComplete`), and only then
+renamed into place, after the old AresHub went to `AresHub-<date>`; if the second
+rename fails the first is undone. Any failure reopens the old home with a chat
+line. While it runs, `HomeSwitch.busy()` is true: `ShellFocusClient.readyWorld`
+reports no world, and every title screen, message and progress screen the game
+sets becomes the working screen (`GuiScreenMixin`); the game's loading screens
+show the same line (`LevelLoadingCoverMixin`).
+
+**The first start** (`FirstStart`, `HomeRules.firstStart`): in a session, the
+first title screen of a game start, with no `AresHub` folder at all, makes the
+flat home through the title screen's own create path instead of showing. If that
+fails, its error screen's OK leads to the title screen with the AresOS button.
 
 **Live mode** stays `SURVIVAL` (its own inventory, no instant building, the
 creative inventory's slot packets refused) but gets creative's `mayfly` and
@@ -545,7 +576,12 @@ fake helper set as the game's connection, `HomeScreen.active()` itself, the
 covered pause and its silence (the music and a record pause and go on, the
 music's countdown stands still); its picture goes to
 `../reviews/40-real-home/screenshots/`. The helper's side is in
-`os/tests/test_aresos_shell_home.py`.
+`os/tests/test_aresos_shell_home.py`. `HomeMenuClientGameTest` (after it, the
+last client test) covers package 48: the game menu outside a session's desktop
+world, the AresOS menu's items, keys and screens, the first start, and New home
+(cancelled, flat to a Nether home with seed 50, and a failure injected at the
+second rename); its pictures go to `../reviews/48-home-menu/screenshots/`.
+`HomeRulesTest` and `HomeSwapTest` are its unit tests.
 
 **The rig** (`../reviews/40-real-home/rig/`, a development aid): what only a real
 labwc shows (the window rules, stacking on click, Alt+Tab, minimize, close, and
@@ -839,10 +875,12 @@ How the icon becomes blocks (`docs/design/HUB.md`, section 3.6):
   repo.
 - These are the rules of converter 2 (package 39). A town logo that an older
   converter drew is drawn again where it stands, the next time the town runs,
-  with two exceptions: a logo whose place is not loaded is drawn again when you
-  come near, and a logo with a block of yours in it moves one place on, as with
-  `hub rebuild` (your block stays). A gate built with `/aresos logo` keeps its
-  blocks until it is removed and built again.
+  with three exceptions: a logo whose place is not loaded is drawn again when you
+  come near; a logo with something of yours in its place moves one place on, as
+  with `hub rebuild` (what is yours stays); and a logo that something of yours
+  rests on (a torch on its doormat) stays as it was until you take that away,
+  which the game says once. A gate built with `/aresos logo` keeps its blocks
+  until it is removed and built again.
 - The doorway is cut out. Its back is black concrete, and so are the posts
   beside it and the bar above it wherever the icon has no block there.
 - An app without a readable icon gets a plain front in its group's colour.

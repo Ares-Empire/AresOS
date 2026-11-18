@@ -1,0 +1,15 @@
+{
+  "status": "window",
+  "sudo": 26581,
+  "helper": 26598,
+  "parent": 26581,
+  "uid": 1001,
+  "argv": [
+    "/usr/bin/ksshaskpass",
+    "AresOS owner tools dcbc375f: export the records"
+  ],
+  "keyrings": [],
+  "settled": true,
+  "gone": false,
+  "settle_seconds": 4.6
+}

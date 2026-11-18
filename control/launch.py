@@ -10,7 +10,7 @@ import sys
 
 PREFIX = Path("/usr/libexec/aresos-control")
 VENDOR = Path("/usr/lib/aresos-control/vendor")
-CONFIG = Path("/etc/aresos-control")
+CONFIG = Path("/usr/share/aresos/control")
 
 
 def protected(path):
@@ -68,5 +68,7 @@ if __name__ == "__main__":
     except (Exception, SystemExit):
         # The prompt event is known before parsing input or loading configuration.
         # Even a broken installation must never discard the owner's prompt.
+        # Stop's failures stay visible to a person who runs this by hand; its managed
+        # command drops them and exits 0 (boundary_policy.hook_command).
         if sys.argv[1:] != ["hook", "UserPromptSubmit"]:
             raise

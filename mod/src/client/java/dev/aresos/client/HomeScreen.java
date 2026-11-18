@@ -2,6 +2,7 @@ package dev.aresos.client;
 
 import dev.aresos.AresOs;
 import dev.aresos.shell.ShellClient;
+import dev.aresos.world.HomeRules;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.sounds.SoundSource;
@@ -26,6 +27,10 @@ import java.util.Locale;
  * change: they come from the shell client's own threads and from {@link ShellFocusClient#readyWorld}, which a pause
  * without a screen leaves as it is. While covered the home screen is silent, music included, and every sound goes on
  * where it was when the cover ends (orchestrator, 2026-11-15); with a smaller window in front the sound goes on.
+ *
+ * <p><b>The home</b> ({@link #home}): a desktop world in a game the session started, whether or not the helper is
+ * connected right now. It shows no game notices: no "Saving world" text in the corner, for any save (package 46, the
+ * owner on 2026-11-16: "Hide it").
  */
 public final class HomeScreen {
     private static final boolean SESSION = System.getProperty("os.name").toLowerCase(Locale.ROOT).startsWith("linux")
@@ -45,6 +50,14 @@ public final class HomeScreen {
     /** The AresOS session started this game (its supervisor, or run-hub.sh): its window is the desktop. */
     public static boolean session() {
         return sessionForTests != null ? sessionForTests : SESSION;
+    }
+
+    /**
+     * A desktop world in a game the session started. Unlike {@link #active} it does not need the helper: a helper that
+     * dropped must not bring the game's notices or Save and Quit back. The menu shares this gate.
+     */
+    public static boolean home(Minecraft client) {
+        return HomeRules.home(session(), AresOsClient.acceptsAppCommands(client));
     }
 
     /** A desktop world with the app helper connected. Outside it the game treats focus as Minecraft always does. */

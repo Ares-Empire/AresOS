@@ -28,13 +28,25 @@ digest = 'sha256:' + hashlib.sha256(raw).hexdigest()
     version='44.20261012.1', architecture='amd64'), indent=2) + '\n')
 print(f'Candidate base: ghcr.io/{name}@{digest}', flush=True)
 # The website itself can challenge non-browser clients. Its official Git source
-# supplies the same link templates without scraping unrelated site scripts.
-source = 'https://raw.githubusercontent.com/ublue-os/bazzite.gg/main/content/themes/betheme-child/script135.js'
+# supplies the same link templates without scraping unrelated site scripts. The
+# picker script's file name changes with each site release (script135.js became
+# script136.js on 2026-11-15), so take the name the site's index.html loads.
+site = 'https://raw.githubusercontent.com/ublue-os/bazzite.gg/main/'
+index = fetch(site + 'index.html').decode()
+scripts = sorted(set(re.findall(r'content/themes/betheme-child/script\d+\.js', index)))
+assert len(scripts) == 1, f'Expected one picker script in the site index, found {scripts}'
+source = site + scripts[0]
 content = fetch(source).decode()
 assert "https://download.bazzite.gg/" in content
 (evidence / 'iso-picker.js').write_text(content)
 isos = []
-for kind, suffix in [('legacy', ''), ('live', '-live')]:
+# Bazzite's site stopped offering the legacy ISO on 2026-11-15 ("Remove legacy ISOs");
+# record a kind only while the picker still builds its link. The live ISO is required.
+offered = [(kind, suffix) for kind, suffix in [('legacy', ''), ('live', '-live')]
+           if f"'-stable{suffix}-amd64.iso'" in content]
+assert ('live', '-live') in offered, 'The picker no longer offers the live ISO'
+print('Picker offers: ' + ', '.join(kind for kind, _ in offered), flush=True)
+for kind, suffix in offered:
     filename = f'bazzite-nvidia-open-stable{suffix}-amd64.iso'
     url = f'https://download.bazzite.gg/{filename}'
     checksum = fetch(url + '-CHECKSUM').decode()

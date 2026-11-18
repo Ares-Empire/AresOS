@@ -35,7 +35,7 @@ function browser({race='late',answer=extension,records=null,attach='after-naviga
   let next=20,generation=0,log='',looks=0;
   const arrive=(kind,body='')=>arrivals.push({url:'/receive?case='+kind,body});
   const load=popup=>{popup.loaded=true;popup.document='document-'+(++generation);arrive('loaded-'+popup.id,JSON.stringify({opener:true,name:'popup-'+popup.id}));};
-  const admit=popup=>{popup.admitted=true;log+=JSON.stringify({popup_admitted:{tab:popup.tab,window:popup.tab,type:'popup',opener:7,badge:'POP on opener'}})+'\n';};
+  const admit=popup=>{popup.admitted=true;log+=JSON.stringify({popup_admitted:{tab:popup.tab,window:popup.tab,type:'popup',opener:7,badge:'POP on opener',owner_dialog:false}})+'\n';};
   const gate=popup=>{popup.waiting=false;popup.path=popup.admitted?'document_start':'late';load(popup);};
   const open=(id,mode,byClaude)=>{
     const popup={tab:next++,id,mode,controlled:byClaude,loaded:false,admitted:false,path:null};popups.set(popup.tab,popup);
@@ -148,7 +148,7 @@ test('popup rows: an answer against the recorded path fails its row, on either p
 
 test('popup rows: a forced row whose record names the other path fails, even with a matching answer',async()=>{
   // typed-early released before the admission: the stand-in loads it late.
-  const early=browser();early.harness.boundary={size:()=>0,since:()=>JSON.stringify({popup_admitted:{tab:99,type:'popup',opener:7}})+'\n'};
+  const early=browser();early.harness.boundary={size:()=>0,since:()=>JSON.stringify({popup_admitted:{tab:99,type:'popup',opener:7,owner_dialog:false}})+'\n'};
   await assert.rejects(rows(early.harness),/typed-early must get the install path it forces/);
   // typed-late recorded as a document-start install.
   const late=browser({records:(rows,popups)=>rows.map(row=>popups.get(row.tab).mode==='typed-late'?{...row,install:'document_start',ready:true}:row),answer:(mode,path)=>mode==='typed-late'?'stale_reference':extension(mode,path)});
@@ -176,8 +176,14 @@ test('popup rows: an unfinished document-start install and unknown rows have no 
 
 test('popup rows: the admission line names the opener and a popup window',()=>{
   const line=value=>JSON.stringify(value)+'\n';
-  assert.equal(admittedAfter(line({popup_admitted:{tab:9,type:'popup',opener:7}}),7),true);
-  assert.equal(admittedAfter(line({popup_admitted:{tab:9,type:'popup',opener:8}})+line({popup_admitted:{tab:9,type:'normal',opener:7}}),7),false);
-  assert.equal(admittedAfter('{"popup_admitted":{"tab":9,"type":"popup","opener":7}}',7),true,'a whole line is enough without its newline');
+  assert.equal(admittedAfter(line({popup_admitted:{tab:9,type:'popup',opener:7,owner_dialog:false}}),7),true);
+  assert.equal(admittedAfter(line({popup_admitted:{tab:9,type:'popup',opener:8,owner_dialog:false}})+line({popup_admitted:{tab:9,type:'normal',opener:7,owner_dialog:false}}),7),false);
+  // popuprace: the 5 s fallback writes the line too, with owner_dialog:true;
+  // no debugger and no breakpoint are attached then, so it is no admission for
+  // the gate. A line that does not say is not one either.
+  assert.equal(admittedAfter(line({popup_admitted:{tab:9,type:'popup',opener:7,owner_dialog:true}}),7),false,'the fallback handoff is not an admission');
+  assert.equal(admittedAfter(line({popup_admitted:{tab:9,type:'popup',opener:7}}),7),false,'a line without the flag does not count');
+  assert.equal(admittedAfter(line({popup_admitted:{tab:9,type:'popup',opener:7,owner_dialog:true}})+line({popup_admitted:{tab:9,type:'popup',opener:7,owner_dialog:false}}),7),true,'a real admission after the handoff counts');
+  assert.equal(admittedAfter('{"popup_admitted":{"tab":9,"type":"popup","opener":7,"owner_dialog":false}}',7),true,'a whole line is enough without its newline');
   assert.equal(admittedAfter('{"popup_admitted":{"tab":9,"type":"pop',7),false,'a line still being written is not one');
 });

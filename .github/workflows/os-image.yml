@@ -7,7 +7,7 @@ on:
       rehearsal:
         description: 'Package 11: inspect pinned ISO or rehearse installation; never build/publish'
         type: choice
-        options: ['', inspect, fixture, probe, part-b, keyboard, owner-tools, update, reorder-probe, ways-back]
+        options: ['', inspect, fixture, probe, part-b, keyboard, owner-tools, update, reorder-probe, ways-back, tools-local]
         default: ''
       release_13:
         description: 'One private org keyboard release; package 13 branch only'
@@ -32,7 +32,7 @@ on:
       check_build:
         description: 'Throwaway image (package 21): resolve inputs or build and check this ref; never pushes, signs or publishes'
         type: choice
-        options: ['', resolve, build]
+        options: ['', resolve, build, control]
         default: ''
       full_model:
         description: 'Checks only: run the full ways-back model even when none of its sources changed'
@@ -43,7 +43,7 @@ permissions:
   contents: read
 
 env:
-  REHEARSAL_PACKAGE: ${{ github.ref_name == 'pkg/22c-ways-back-after-update' && '22c' || github.ref_name == 'pkg/27-first-update-release' && '27' || github.ref_name == 'pkg/16-staged-release' && '16' || github.ref_name == 'pkg/14-owner-tools' && '14' || github.ref_name == 'pkg/13-keyboard-layout' && '13' || '11c' }}
+  REHEARSAL_PACKAGE: ${{ github.ref_name == 'pkg/22d-tools-without-stick' && '22d' || github.ref_name == 'pkg/22c-ways-back-after-update' && '22c' || github.ref_name == 'pkg/27-first-update-release' && '27' || github.ref_name == 'pkg/16-staged-release' && '16' || github.ref_name == 'pkg/14-owner-tools' && '14' || github.ref_name == 'pkg/13-keyboard-layout' && '13' || '11c' }}
 
 concurrency:
   group: os-image-${{ github.ref }}
@@ -174,7 +174,9 @@ jobs:
     name: Throwaway image build and checks (never pushed, signed or published)
     if: github.event_name == 'workflow_dispatch' && github.ref_name != 'pkg/16-staged-release' && inputs.check_build != '' && !inputs.rehearsal && !inputs.release_13 && !inputs.release_27 && !inputs.checks_only && !inputs.switch_from_run
     runs-on: ubuntu-24.04
-    timeout-minutes: 120
+    # check_build=control adds its own VM step (below) after the build step:
+    # tools 20 + build 80 + Control VM pass 16 + 15.
+    timeout-minutes: ${{ inputs.check_build == 'control' && 131 || 120 }}
     # Read-only on purpose: no packages/id-token permission and no secrets, so
     # this job cannot push, sign or publish the image it builds.
     permissions:
@@ -205,6 +207,16 @@ jobs:
         env:
           CHECK_BUILD_MODE: ${{ inputs.check_build }}
         run: bash os/ci/check-build.sh "$CHECK_BUILD_MODE"
+      - name: Control VM pass (check_build=control only)
+        if: inputs.check_build == 'control'
+        # The last passes took 7 min 50 s and 7 min 9 s (run 43687234953); 18c's fix round 1 adds about
+        # 2 to 3 minutes (the full logout and greetd's auto-login, check 6's two new sessions). 16 is about
+        # 1.5 times the slower pass with that added.
+        timeout-minutes: 16
+        run: bash os/ci/check-build.sh control-pass
+      - name: Stop the Control fixture servers (check_build=control only)
+        if: always() && inputs.check_build == 'control'
+        run: bash os/ci/control/runner.sh stop
       - name: Bound evidence
         if: always()
         run: |
@@ -505,6 +517,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_RUN: ${{ inputs.switch_from_run || github.run_id }}
+          REHEARSAL_MODE: ${{ inputs.rehearsal }}
         run: python3 os/ci/verify_release.py "$RELEASE_RUN"
       - name: Start switch quota measurements
         run: |
@@ -550,9 +563,9 @@ jobs:
           if-no-files-found: error
   rehearsal:
     name: Pinned live ISO inspection and two-disk rehearsal
-    if: github.event_name == 'workflow_dispatch' && inputs.rehearsal != '' && (github.ref_name != 'pkg/16-staged-release' || (inputs.rehearsal == 'probe' && !inputs.release_13 && !inputs.checks_only && !inputs.switch_from_run && !inputs.probe_run)) && (inputs.rehearsal == 'update') == (github.ref_name == 'pkg/27-first-update-release') && (github.ref_name == 'pkg/27-first-update-release' && !inputs.release_13 && !inputs.release_27 && !inputs.checks_only && !inputs.switch_from_run && !inputs.probe_run || github.ref_name != 'pkg/27-first-update-release') && (inputs.rehearsal == 'reorder-probe' || inputs.rehearsal == 'ways-back') == (github.ref_name == 'pkg/22c-ways-back-after-update') && (github.ref_name != 'pkg/22c-ways-back-after-update' || !inputs.release_13 && !inputs.release_27 && !inputs.checks_only && !inputs.switch_from_run && !inputs.probe_run && inputs.check_build == '')
+    if: github.event_name == 'workflow_dispatch' && inputs.rehearsal != '' && (github.ref_name != 'pkg/16-staged-release' || (inputs.rehearsal == 'probe' && !inputs.release_13 && !inputs.checks_only && !inputs.switch_from_run && !inputs.probe_run)) && (inputs.rehearsal == 'update') == (github.ref_name == 'pkg/27-first-update-release') && (github.ref_name == 'pkg/27-first-update-release' && !inputs.release_13 && !inputs.release_27 && !inputs.checks_only && !inputs.switch_from_run && !inputs.probe_run || github.ref_name != 'pkg/27-first-update-release') && (inputs.rehearsal == 'reorder-probe' || inputs.rehearsal == 'ways-back') == (github.ref_name == 'pkg/22c-ways-back-after-update') && (inputs.rehearsal == 'tools-local') == (github.ref_name == 'pkg/22d-tools-without-stick') && (github.ref_name != 'pkg/22c-ways-back-after-update' && github.ref_name != 'pkg/22d-tools-without-stick' || !inputs.release_13 && !inputs.release_27 && !inputs.checks_only && !inputs.switch_from_run && !inputs.probe_run && inputs.check_build == '')
     runs-on: ubuntu-24.04
-    timeout-minutes: ${{ github.ref_name == 'pkg/22c-ways-back-after-update' && 345 || inputs.rehearsal == 'update' && 300 || inputs.rehearsal == 'owner-tools' && 240 || (github.ref_name == 'pkg/14-owner-tools' || github.ref_name == 'pkg/16-staged-release') && inputs.rehearsal == 'probe' && 70 || (inputs.rehearsal == 'part-b' || inputs.rehearsal == 'keyboard') && 130 || 40 }}
+    timeout-minutes: ${{ (github.ref_name == 'pkg/22c-ways-back-after-update' || github.ref_name == 'pkg/22d-tools-without-stick') && 345 || inputs.rehearsal == 'update' && 300 || inputs.rehearsal == 'owner-tools' && 240 || (github.ref_name == 'pkg/14-owner-tools' || github.ref_name == 'pkg/16-staged-release') && inputs.rehearsal == 'probe' && 70 || (inputs.rehearsal == 'part-b' || inputs.rehearsal == 'keyboard') && 130 || 40 }}
     permissions:
       contents: read
       packages: read
@@ -566,7 +579,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REHEARSAL_MODE: ${{ inputs.rehearsal }}
           PROBE_RUN: ${{ inputs.probe_run }}
-        run: python3 os/ci/rehearsal_guard.py '${{ ((github.ref_name == 'pkg/13-keyboard-layout' || (github.ref_name == 'pkg/14-owner-tools' || github.ref_name == 'pkg/16-staged-release')) && inputs.rehearsal == 'probe' || github.ref_name == 'pkg/27-first-update-release' && inputs.rehearsal == 'update' || github.ref_name == 'pkg/22c-ways-back-after-update') && 'probe-budget-ci' || 'ci' }}' '${{ github.ref_name == 'pkg/22c-ways-back-after-update' && 345 || inputs.rehearsal == 'update' && 300 || inputs.rehearsal == 'owner-tools' && 240 || (github.ref_name == 'pkg/14-owner-tools' || github.ref_name == 'pkg/16-staged-release') && inputs.rehearsal == 'probe' && 72 || (inputs.rehearsal == 'part-b' || inputs.rehearsal == 'keyboard') && 130 || 42 }}'
+        run: python3 os/ci/rehearsal_guard.py '${{ ((github.ref_name == 'pkg/13-keyboard-layout' || (github.ref_name == 'pkg/14-owner-tools' || github.ref_name == 'pkg/16-staged-release')) && inputs.rehearsal == 'probe' || github.ref_name == 'pkg/27-first-update-release' && inputs.rehearsal == 'update' || (github.ref_name == 'pkg/22c-ways-back-after-update' || github.ref_name == 'pkg/22d-tools-without-stick')) && 'probe-budget-ci' || 'ci' }}' '${{ (github.ref_name == 'pkg/22c-ways-back-after-update' || github.ref_name == 'pkg/22d-tools-without-stick') && 345 || inputs.rehearsal == 'update' && 300 || inputs.rehearsal == 'owner-tools' && 240 || (github.ref_name == 'pkg/14-owner-tools' || github.ref_name == 'pkg/16-staged-release') && inputs.rehearsal == 'probe' && 72 || (inputs.rehearsal == 'part-b' || inputs.rehearsal == 'keyboard') && 130 || 42 }}'
       - uses: ublue-os/remove-unwanted-software@695eb75bc387dbcd9685a8e72d23439d8686cba6
         with:
           extra-squeeze: 'true'
@@ -574,10 +587,10 @@ jobs:
         # Package 27's update rehearsal (run 42933781975 took 16 of 20 minutes
         # here) gets the release job's patience with the snapshot mirror; every
         # other rehearsal keeps three retries, apt's own timeouts and 20 minutes.
-        timeout-minutes: ${{ (inputs.rehearsal == 'update' || github.ref_name == 'pkg/22c-ways-back-after-update') && 40 || 20 }}
+        timeout-minutes: ${{ (inputs.rehearsal == 'update' || (github.ref_name == 'pkg/22c-ways-back-after-update' || github.ref_name == 'pkg/22d-tools-without-stick')) && 40 || 20 }}
         env:
-          ARESOS_APT_RETRIES: ${{ (inputs.rehearsal == 'update' || github.ref_name == 'pkg/22c-ways-back-after-update') && '5' || '' }}
-          ARESOS_APT_TIMEOUT: ${{ (inputs.rehearsal == 'update' || github.ref_name == 'pkg/22c-ways-back-after-update') && '60' || '' }}
+          ARESOS_APT_RETRIES: ${{ (inputs.rehearsal == 'update' || (github.ref_name == 'pkg/22c-ways-back-after-update' || github.ref_name == 'pkg/22d-tools-without-stick')) && '5' || '' }}
+          ARESOS_APT_TIMEOUT: ${{ (inputs.rehearsal == 'update' || (github.ref_name == 'pkg/22c-ways-back-after-update' || github.ref_name == 'pkg/22d-tools-without-stick')) && '60' || '' }}
         run: |
           set -euo pipefail
           mkdir -p evidence .work/installer
@@ -585,7 +598,7 @@ jobs:
           sudo apt-get -o Acquire::Retries=3 install -y --no-install-recommends libarchive-tools squashfs-tools gnu-efi ntfs-3g dosfstools exfatprogs exfat-fuse gdisk mtools psmisc tesseract-ocr python3-venv
           dpkg-query -W > evidence/rehearsal-host-packages.txt
       - name: Prove package 14 native host capabilities before expensive downloads
-        if: (github.ref_name == 'pkg/14-owner-tools' || github.ref_name == 'pkg/16-staged-release') || github.ref_name == 'pkg/27-first-update-release' || github.ref_name == 'pkg/22c-ways-back-after-update'
+        if: (github.ref_name == 'pkg/14-owner-tools' || github.ref_name == 'pkg/16-staged-release') || github.ref_name == 'pkg/27-first-update-release' || (github.ref_name == 'pkg/22c-ways-back-after-update' || github.ref_name == 'pkg/22d-tools-without-stick')
         timeout-minutes: 3
         env:
           REHEARSAL_MODE: ${{ inputs.rehearsal }}
@@ -617,7 +630,7 @@ jobs:
           .work/browser-env/bin/python -c 'import crypt, PIL, playwright.sync_api'
           dpkg-query -W > evidence/rehearsal-host-packages.txt
           env -u REHEARSAL_PACKAGE python3 -m unittest discover -s os/tests -v
-          if test "$GITHUB_REF_NAME" = pkg/14-owner-tools || test "$GITHUB_REF_NAME" = pkg/16-staged-release || test "$GITHUB_REF_NAME" = pkg/27-first-update-release || test "$GITHUB_REF_NAME" = pkg/22c-ways-back-after-update; then
+          if test "$GITHUB_REF_NAME" = pkg/14-owner-tools || test "$GITHUB_REF_NAME" = pkg/16-staged-release || test "$GITHUB_REF_NAME" = pkg/27-first-update-release || test "$GITHUB_REF_NAME" = pkg/22c-ways-back-after-update || test "$GITHUB_REF_NAME" = pkg/22d-tools-without-stick; then
             sudo -E env -u GH_TOKEN python3 os/ci/owner_devices.py
             sudo -E env -u GH_TOKEN python3 os/ci/owner_counter_kernel.py
           fi
@@ -628,11 +641,11 @@ jobs:
           cp os/manifest/release.json evidence/release.json
           python3 os/ci/verify_release.py "$(jq -r .run evidence/release.json | sed 's|.*/||')"
       - name: Require completed native preflight before any package 13 VM
-        if: (github.ref_name == 'pkg/13-keyboard-layout' || (github.ref_name == 'pkg/14-owner-tools' || github.ref_name == 'pkg/16-staged-release')) && inputs.rehearsal == 'probe' || github.ref_name == 'pkg/27-first-update-release' && inputs.rehearsal == 'update' || github.ref_name == 'pkg/22c-ways-back-after-update'
+        if: (github.ref_name == 'pkg/13-keyboard-layout' || (github.ref_name == 'pkg/14-owner-tools' || github.ref_name == 'pkg/16-staged-release')) && inputs.rehearsal == 'probe' || github.ref_name == 'pkg/27-first-update-release' && inputs.rehearsal == 'update' || (github.ref_name == 'pkg/22c-ways-back-after-update' || github.ref_name == 'pkg/22d-tools-without-stick')
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REHEARSAL_MODE: ${{ inputs.rehearsal }}
-        run: python3 os/ci/rehearsal_guard.py ci '${{ github.ref_name == 'pkg/22c-ways-back-after-update' && 345 || inputs.rehearsal == 'update' && 300 || (github.ref_name == 'pkg/14-owner-tools' || github.ref_name == 'pkg/16-staged-release') && 72 || 42 }}'
+        run: python3 os/ci/rehearsal_guard.py ci '${{ (github.ref_name == 'pkg/22c-ways-back-after-update' || github.ref_name == 'pkg/22d-tools-without-stick') && 345 || inputs.rehearsal == 'update' && 300 || (github.ref_name == 'pkg/14-owner-tools' || github.ref_name == 'pkg/16-staged-release') && 72 || 42 }}'
       - name: Create runner-temporary pinned-image credentials
         if: github.event_name == 'workflow_dispatch' && github.ref_name != 'pkg/13-keyboard-layout' && github.ref_name != 'pkg/14-owner-tools' && github.ref_name != 'pkg/16-staged-release' && github.ref_name != 'pkg/27-first-update-release' && (inputs.rehearsal == 'probe' || inputs.rehearsal == 'part-b')
         env:
@@ -640,28 +653,28 @@ jobs:
           REHEARSAL_MODE: ${{ inputs.rehearsal }}
         run: sudo -E python3 os/ci/rehearsal_auth.py create
       - name: Prepare package 13 job-token credentials without owner-secret fallback
-        if: (github.ref_name == 'pkg/13-keyboard-layout' || (github.ref_name == 'pkg/14-owner-tools' || github.ref_name == 'pkg/16-staged-release')) && (inputs.rehearsal == 'probe' || inputs.rehearsal == 'keyboard' || inputs.rehearsal == 'owner-tools') || github.ref_name == 'pkg/27-first-update-release' && inputs.rehearsal == 'update' || github.ref_name == 'pkg/22c-ways-back-after-update'
+        if: (github.ref_name == 'pkg/13-keyboard-layout' || (github.ref_name == 'pkg/14-owner-tools' || github.ref_name == 'pkg/16-staged-release')) && (inputs.rehearsal == 'probe' || inputs.rehearsal == 'keyboard' || inputs.rehearsal == 'owner-tools') || github.ref_name == 'pkg/27-first-update-release' && inputs.rehearsal == 'update' || (github.ref_name == 'pkg/22c-ways-back-after-update' || github.ref_name == 'pkg/22d-tools-without-stick')
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REHEARSAL_MODE: ${{ inputs.rehearsal }}
         run: sudo -E python3 os/ci/registry_auth.py create
       - name: Verify exact private manifest with scoped credentials
-        if: github.event_name == 'workflow_dispatch' && (inputs.rehearsal == 'probe' || inputs.rehearsal == 'part-b' || inputs.rehearsal == 'keyboard' || inputs.rehearsal == 'owner-tools' || inputs.rehearsal == 'update' || github.ref_name == 'pkg/22c-ways-back-after-update')
+        if: github.event_name == 'workflow_dispatch' && (inputs.rehearsal == 'probe' || inputs.rehearsal == 'part-b' || inputs.rehearsal == 'keyboard' || inputs.rehearsal == 'owner-tools' || inputs.rehearsal == 'update' || (github.ref_name == 'pkg/22c-ways-back-after-update' || github.ref_name == 'pkg/22d-tools-without-stick'))
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REHEARSAL_MODE: ${{ inputs.rehearsal }}
         run: sudo -E python3 os/ci/registry_auth.py preflight
       - uses: sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac # v3
-        if: (github.ref_name == 'pkg/14-owner-tools' || github.ref_name == 'pkg/16-staged-release') || github.ref_name == 'pkg/27-first-update-release' || github.ref_name == 'pkg/22c-ways-back-after-update'
+        if: (github.ref_name == 'pkg/14-owner-tools' || github.ref_name == 'pkg/16-staged-release') || github.ref_name == 'pkg/27-first-update-release' || (github.ref_name == 'pkg/22c-ways-back-after-update' || github.ref_name == 'pkg/22d-tools-without-stick')
         with:
           cosign-release: v2.6.1
       - name: Verify the exact private signature natively for the offline guest
-        if: (github.ref_name == 'pkg/14-owner-tools' || github.ref_name == 'pkg/16-staged-release') || github.ref_name == 'pkg/27-first-update-release' || github.ref_name == 'pkg/22c-ways-back-after-update'
+        if: (github.ref_name == 'pkg/14-owner-tools' || github.ref_name == 'pkg/16-staged-release') || github.ref_name == 'pkg/27-first-update-release' || (github.ref_name == 'pkg/22c-ways-back-after-update' || github.ref_name == 'pkg/22d-tools-without-stick')
         env:
           REHEARSAL_MODE: ${{ inputs.rehearsal }}
         run: sudo -E python3 os/ci/registry_auth.py signature "$(command -v cosign)"
       - name: Qualify the exact pinned layer pull without installing
-        if: github.event_name == 'workflow_dispatch' && (inputs.rehearsal == 'probe' || inputs.rehearsal == 'part-b' || inputs.rehearsal == 'keyboard' || inputs.rehearsal == 'owner-tools' || inputs.rehearsal == 'update' || github.ref_name == 'pkg/22c-ways-back-after-update')
+        if: github.event_name == 'workflow_dispatch' && (inputs.rehearsal == 'probe' || inputs.rehearsal == 'part-b' || inputs.rehearsal == 'keyboard' || inputs.rehearsal == 'owner-tools' || inputs.rehearsal == 'update' || (github.ref_name == 'pkg/22c-ways-back-after-update' || github.ref_name == 'pkg/22d-tools-without-stick'))
         timeout-minutes: 9
         env:
           REHEARSAL_MODE: ${{ inputs.rehearsal }}
@@ -675,7 +688,7 @@ jobs:
           python3 os/ci/installer_inspect.py
       - name: Prepare disposable file disks and qualify the real live environment
         if: inputs.rehearsal != 'inspect'
-        timeout-minutes: ${{ github.ref_name == 'pkg/22c-ways-back-after-update' && 315 || inputs.rehearsal == 'update' && 270 || inputs.rehearsal == 'owner-tools' && 200 || (inputs.rehearsal == 'part-b' || inputs.rehearsal == 'keyboard') && 106 || 80 }}
+        timeout-minutes: ${{ (github.ref_name == 'pkg/22c-ways-back-after-update' || github.ref_name == 'pkg/22d-tools-without-stick') && 315 || inputs.rehearsal == 'update' && 270 || inputs.rehearsal == 'owner-tools' && 200 || (inputs.rehearsal == 'part-b' || inputs.rehearsal == 'keyboard') && 106 || 80 }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REHEARSAL_MODE: ${{ inputs.rehearsal }}
@@ -694,7 +707,7 @@ jobs:
           pathlib.Path('evidence/native-fixture.json').write_text(json.dumps(result, indent=2) + '\n')
           print('Native file-backed GPT/EFI/MSR/NTFS/recovery and offline audit passed; no VM started')
           PY
-          elif test "$REHEARSAL_PACKAGE" = 14 || test "$REHEARSAL_PACKAGE" = 16 || test "$REHEARSAL_PACKAGE" = 27 || test "$REHEARSAL_PACKAGE" = 22c; then
+          elif test "$REHEARSAL_PACKAGE" = 14 || test "$REHEARSAL_PACKAGE" = 16 || test "$REHEARSAL_PACKAGE" = 27 || test "$REHEARSAL_PACKAGE" = 22c || test "$REHEARSAL_PACKAGE" = 22d; then
             sudo -E .work/browser-env/bin/python os/ci/owner_vm.py '${{ inputs.rehearsal }}'
           elif test "$REHEARSAL_PACKAGE" = 13; then
             sudo -E .work/browser-env/bin/python os/ci/keyboard_vm.py '${{ inputs.rehearsal }}'
@@ -702,12 +715,12 @@ jobs:
             sudo -E .work/browser-env/bin/python os/ci/two_disk_vm.py '${{ inputs.rehearsal }}'
           fi
       - name: Remove owner registry credentials
-        if: always() && github.ref_name != 'pkg/13-keyboard-layout' && github.ref_name != 'pkg/14-owner-tools' && github.ref_name != 'pkg/16-staged-release' && github.ref_name != 'pkg/27-first-update-release' && github.ref_name != 'pkg/22c-ways-back-after-update'
+        if: always() && github.ref_name != 'pkg/13-keyboard-layout' && github.ref_name != 'pkg/14-owner-tools' && github.ref_name != 'pkg/16-staged-release' && github.ref_name != 'pkg/27-first-update-release' && github.ref_name != 'pkg/22c-ways-back-after-update' && github.ref_name != 'pkg/22d-tools-without-stick'
         env:
           REHEARSAL_MODE: ${{ inputs.rehearsal }}
         run: sudo -E python3 os/ci/rehearsal_auth.py cleanup
       - name: Remove package 13 job-token credentials
-        if: always() && (github.ref_name == 'pkg/13-keyboard-layout' || (github.ref_name == 'pkg/14-owner-tools' || github.ref_name == 'pkg/16-staged-release') || github.ref_name == 'pkg/27-first-update-release' || github.ref_name == 'pkg/22c-ways-back-after-update')
+        if: always() && (github.ref_name == 'pkg/13-keyboard-layout' || (github.ref_name == 'pkg/14-owner-tools' || github.ref_name == 'pkg/16-staged-release') || github.ref_name == 'pkg/27-first-update-release' || (github.ref_name == 'pkg/22c-ways-back-after-update' || github.ref_name == 'pkg/22d-tools-without-stick'))
         env:
           REHEARSAL_MODE: ${{ inputs.rehearsal }}
         run: sudo -E python3 os/ci/registry_auth.py cleanup

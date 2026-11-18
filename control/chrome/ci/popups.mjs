@@ -32,9 +32,11 @@ export function firstAnswer(mode,path){
   throw Error('unknown install path '+path);
 }
 // The extension's popup_admitted audit line in the boundary log: the popup's
-// target is attached and its startup breakpoint set.
+// target is attached and its startup breakpoint set. A line with
+// owner_dialog:true is the 5 s fallback (no debugger, no breakpoint) and does
+// not count; neither does a line that does not say.
 export function admittedAfter(text,opener){
-  return text.split('\n').some(line=>{try{const row=JSON.parse(line)?.popup_admitted;return row?.opener===opener&&row.type==='popup';}catch{return false;}});
+  return text.split('\n').some(line=>{try{const row=JSON.parse(line)?.popup_admitted;return row?.opener===opener&&row.type==='popup'&&row.owner_dialog===false;}catch{return false;}});
 }
 const BOUNDARY='/out/browser-boundary.jsonl';
 const boundaryLog={

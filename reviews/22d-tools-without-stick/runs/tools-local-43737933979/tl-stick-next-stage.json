@@ -1,0 +1,7 @@
+{
+  "stage": "tl-stick-next",
+  "tools_version": 5,
+  "fingerprint": "4125f556e6d483108437c6165f561519882f7ae3e6b7478a39d011400522836c",
+  "source": "stick",
+  "console": "tty3"
+}

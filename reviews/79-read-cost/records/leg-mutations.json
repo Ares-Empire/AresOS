@@ -1,0 +1,17 @@
+[
+  {
+    "mutation": "baseline",
+    "test": "test_latency.RealisticRecord.test_only_the_plain_leg_s_current_runtime_starts_from_several_hundred_entries",
+    "exit": 0
+  },
+  {
+    "mutation": "omit-efficiency-guard",
+    "test": "test_latency.RealisticRecord.test_only_the_plain_leg_s_current_runtime_starts_from_several_hundred_entries",
+    "exit": 1
+  },
+  {
+    "mutation": "remove-realistic-history",
+    "test": "test_latency.RealisticRecord.test_only_the_plain_leg_s_current_runtime_starts_from_several_hundred_entries",
+    "exit": 1
+  }
+]

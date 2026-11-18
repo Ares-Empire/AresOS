@@ -101,11 +101,11 @@
     "message": "Apply the authorized firmware device-set rule with real-store and strict safety regressions",
     "timestamp": "2026-10-24T00:09:04Z",
     "author": {
-      "name": "pab",
+      "name": "owner",
       "email": "admin@example.com"
     },
     "committer": {
-      "name": "pab",
+      "name": "owner",
       "email": "admin@example.com"
     }
   },

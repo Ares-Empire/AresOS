@@ -50,79 +50,79 @@ Daily irritation will come from focus theft, relaunch loops, memory pressure, ba
 The findings below are ranked by severity. **BLOCKING means the plan must change before implementation.** Deferred capabilities can retain later implementation gates; these amendments do not require finishing the updater or suspend support before the prototype.
 
 1. **BLOCKING — Off-device backups can survive while their recovery credentials disappear.**  
-   **Where:** [Backup contract](/C:/Users/pab/AresOS-02-os-base-design/docs/design/OS-BASE.md:205).  
+   **Where:** [Backup contract](/C:/Users/owner/AresOS-02-os-base-design/docs/design/OS-BASE.md:205).  
    **Scenario and impact:** Restic backups and local restore tests pass, then the AresOS SSD dies with the only repository password and backend credentials. The surviving snapshots cannot restore the world. Restic requires a repository password. [Restic documentation](https://restic.readthedocs.io/en/stable/030_preparing_a_new_repo.html)  
    **Fix:** Require independently retained repository location, recovery credentials, instructions and matching game manifest before keeping valuable saves. Keep secrets outside Git.  
    **Check:** Restore on a fresh system with the original SSD unavailable; verify known builds, inventory and player identity.
 
 2. **BLOCKING — Lid, power-key and critical-battery events can bypass clean saving.**  
-   **Where:** [Power controls](/C:/Users/pab/AresOS-02-os-base-design/docs/design/OS-BASE.md:115), shutdown contract at line 199.  
+   **Where:** [Power controls](/C:/Users/owner/AresOS-02-os-base-design/docs/design/OS-BASE.md:115), shutdown contract at line 199.  
    **Scenario and impact:** Sleep is hidden, but closing the lid suspends during a save; a power-button request shuts down before saving completes. Logind documents these defaults and a five-second default delay-inhibitor limit. [Logind documentation](https://www.freedesktop.org/software/systemd/man/latest/logind.conf.html)  
    **Fix:** Specify event ownership and system-level defaults, including helper failure. Disable unqualified sleep paths. Route ordinary shutdown through saving; give critical battery a bounded emergency policy prioritizing saving over backup transfer.  
    **Check:** Inject these events during loading, saving and maintenance, including saves exceeding five seconds and a failed helper. Verify the resulting world reopens.
 
 3. **BLOCKING — Shutdown has no checkpoint for unsaved work in other apps.**  
-   **Where:** [Shutdown contract](/C:/Users/pab/AresOS-02-os-base-design/docs/design/OS-BASE.md:199).  
+   **Where:** [Shutdown contract](/C:/Users/owner/AresOS-02-os-base-design/docs/design/OS-BASE.md:199).  
    **Scenario and impact:** Minecraft saves successfully, then power-off discards an unsaved document or browser form. “No automatic force-close” does not define how shutdown waits or cancels.  
    **Fix:** Before stopping Minecraft, request ordinary app closure and let the owner resolve remaining windows. A cancellable “close your apps first” flow is sufficient initially.  
    **Check:** Attempt shutdown with an unsaved editor and browser form. Cancellation must preserve both and leave a usable desktop; completion must not silently discard work.
 
 4. **BLOCKING — Recovery lacks a complete, independently usable previous system and private-state contract.**  
-   **Where:** [Recovery policy](/C:/Users/pab/AresOS-02-os-base-design/docs/design/OS-BASE.md:140), state boundary at line 182.  
+   **Where:** [Recovery policy](/C:/Users/owner/AresOS-02-os-base-design/docs/design/OS-BASE.md:140), state boundary at line 182.  
    **Scenario and impact:** An interrupted update leaves root unbootable without internet. Retained payloads lack OS dependencies; an older kernel may mismatch updated NVIDIA userspace. Root reinstall preserves `/home` but loses Wi-Fi profiles or recovery credentials. [NVIDIA compatibility](https://ubuntu.com/server/docs/how-to/graphics/install-nvidia-drivers/), [NetworkManager storage](https://networkmanager.dev/docs/api/latest/nm-settings-keyfile.html)  
    **Fix:** Before enabling updates, require independent recovery media and a complete previous compatible OS/driver set. Inventory machine settings outside `/home`, assigning selective restore or explicit reprovisioning policies. Preserve the existing root-only recovery safeguards.  
    **Check:** Offline, recover separately from broken root and damaged AresOS ESP. Verify NVIDIA rendering, networking, recovery login, world access and unchanged protected-disk/BootOrder state.
 
 5. **BLOCKING — Release ownership does not enforce either controlled updates or convergence.**  
-   **Where:** [Updates](/C:/Users/pab/AresOS-02-os-base-design/docs/design/OS-BASE.md:136), package contract at line 178.  
+   **Where:** [Updates](/C:/Users/owner/AresOS-02-os-base-design/docs/design/OS-BASE.md:136), package contract at line 178.  
    **Scenario and impact:** A native updater changes packages before the save gate, or upgrading A→B leaves an obsolete supervisor enabled while a clean B installation passes. The installed release then behaves differently from the tested release. Ubuntu documents automatic security installation and affected-service restarts. [Ubuntu updates](https://ubuntu.com/server/docs/how-to/software/automatic-updates/)  
    **Fix:** Define one maintenance authority covering package additions/removals, managed configuration and service enablement. Integrate or disable competing installation mechanisms, including those inherited from an atomic image, while retaining security-update cadence.  
    **Check:** Compare fresh B with upgraded A→B; include a removed package, renamed service, configuration migration and native timers firing outside maintenance.
 
 6. **BLOCKING — The base decision accepts recurring recovery work without comparing a concrete signed-NVIDIA atomic candidate.**  
-   **Where:** [Base comparison](/C:/Users/pab/AresOS-02-os-base-design/docs/design/OS-BASE.md:43).  
+   **Where:** [Base comparison](/C:/Users/owner/AresOS-02-os-base-design/docs/design/OS-BASE.md:43).  
    **Scenario and impact:** A driver regression requires owner-operated repair after Ubuntu was selected chiefly to avoid an enrollment whose implications were insufficiently distinguished. Maintained compatible kernel/module packages and an enrollment path exist. [Universal Blue integration](https://github.com/ublue-os/akmods/blob/main/README.md)  
    **Fix:** Apply the base recommendation above: compare one pinned atomic candidate against Ubuntu, including session customization, trust, update ownership and recovery effort.  
    **Check:** Demonstrate signed-driver loading, isolated installation, F12 discovery, direct Windows return and offline previous-deployment recovery. Documentation alone cannot qualify the laptop.
 
 7. **BLOCKING — The OS-owned app interface conflicts with the frozen mod brief without a migration contract.**  
-   **Where:** [Helper contract](/C:/Users/pab/AresOS-02-os-base-design/docs/design/OS-BASE.md:186), [first-app brief](/C:/Users/pab/AresOS-02-os-base-design/briefs/01-first-app.md:13).  
+   **Where:** [Helper contract](/C:/Users/owner/AresOS-02-os-base-design/docs/design/OS-BASE.md:186), [first-app brief](/C:/Users/owner/AresOS-02-os-base-design/briefs/01-first-app.md:13).  
    **Scenario and impact:** The mod follows its command-based `apps.json`/`ProcessBuilder` brief while the helper expects registered IDs. Both pass isolated tests, but app activation bypasses window tracking and GPU-environment isolation.  
    **Fix:** Specify the small versioned interface before these components diverge. Preserve existing app IDs; place Linux launch definitions in the OS adapter and Minecraft appearance/world behavior in the mod.  
    **Check:** Exercise the real mod→helper→app path, existing-config migration and incompatible-version rejection. A second-theme implementation is unnecessary for this milestone.
 
 8. **NON-BLOCKING — Memory pressure can disable both the desktop and its recovery path.**  
-   **Where:** [App isolation](/C:/Users/pab/AresOS-02-os-base-design/docs/design/OS-BASE.md:193).  
+   **Where:** [App isolation](/C:/Users/owner/AresOS-02-os-base-design/docs/design/OS-BASE.md:193).  
    **Scenario and impact:** Minecraft, shaders, browser tabs and a call exhaust 16 GB; recovery becomes unresponsive or the game restarts into the same shortage.  
    **Fix:** Measure a conservative Java/render baseline, provide an explicit swap/OOM policy on AresOS storage, separate game and recovery resource groups, and suppress pressure-driven restart loops.  
    **Check:** Run a representative study workload plus controlled memory pressure. Require responsive recovery, preserved app work and no repeated game restart.
 
 9. **NON-BLOCKING — The restart limit permits endless slower crash loops.**  
-   **Where:** [Supervisor states](/C:/Users/pab/AresOS-02-os-base-design/docs/design/OS-BASE.md:197).  
+   **Where:** [Supervisor states](/C:/Users/owner/AresOS-02-os-base-design/docs/design/OS-BASE.md:197).  
    **Scenario and impact:** Minecraft reaches the world, crashes every four minutes, and never exceeds three failures in five minutes. The broken desktop continually reopens the save.  
    **Fix:** Add a consecutive-failure budget that resets only after sustained healthy operation or explicit retry.  
    **Check:** Simulate repeated ready-then-crash cycles four minutes apart, including supervisor restart; require a finite transition into persistent recovery.
 
 10. **NON-BLOCKING — Closing a background app can steal active typing focus.**  
-    **Where:** [Final-window rule](/C:/Users/pab/AresOS-02-os-base-design/docs/design/OS-BASE.md:191).  
+    **Where:** [Final-window rule](/C:/Users/owner/AresOS-02-os-base-design/docs/design/OS-BASE.md:191).  
     **Scenario and impact:** A terminal finishes while the owner types in a browser; its last window closes and Minecraft receives subsequent keys.  
     **Fix:** Return to Minecraft when the closing window owned the active interaction. Background closure preserves focus; transitions clear held game inputs.  
     **Check:** Close a background terminal during continuous browser typing, then separately test foreground closure, dialogs, Alt+Tab and pointer capture.
 
 11. **NON-BLOCKING — Hardware feasibility is tested after substantial optional investment.**  
-    **Where:** [Package order](/C:/Users/pab/AresOS-02-os-base-design/docs/design/OS-BASE.md:249).  
+    **Where:** [Package order](/C:/Users/owner/AresOS-02-os-base-design/docs/design/OS-BASE.md:249).  
     **Scenario and impact:** P2–P9 succeed before P10 discovers an unusable signed graphics stack or undiscoverable removable boot path. Considerable base-specific work needs revisiting.  
     **Fix:** Split P10 into early feasibility and later qualification; separate essential backups from update automation in P8. Use the shortened milestone above.  
     **Check:** Require the early end-to-end hardware demonstration before investing in the remaining base-specific polish.
 
 12. **NON-BLOCKING — Sleep specifies intentional exit without a matching resume transition.**  
-    **Where:** [Lifecycle and sleep](/C:/Users/pab/AresOS-02-os-base-design/docs/design/OS-BASE.md:197).  
+    **Where:** [Lifecycle and sleep](/C:/Users/owner/AresOS-02-os-base-design/docs/design/OS-BASE.md:197).  
     **Scenario and impact:** Sleep stops Minecraft intentionally; wake leaves it stopped. An improvised relaunch instead reloads the game and may relocate the player to the hub.  
     **Fix:** Keep suspend deferred. Before enabling it, choose retained-process versus stop/relaunch behavior and specify position, foreground focus and wake-to-input expectations.  
     **Check:** Sleep away from the hub and with a foreground browser. Verify the chosen position/focus behavior, no duplicate instance and measured wake latency.
 
 13. **NON-BLOCKING — FPS settings do not establish acceptable daily heat, noise or battery use.**  
-    **Where:** [Power policy](/C:/Users/pab/AresOS-02-os-base-design/docs/design/OS-BASE.md:61), measurements at line 239.  
+    **Where:** [Power policy](/C:/Users/owner/AresOS-02-os-base-design/docs/design/OS-BASE.md:61), measurements at line 239.  
     **Scenario and impact:** Five background FPS passes configuration checks while an hour of reading still produces unacceptable fan noise and drain.  
     **Fix:** Define active-world, app-focused and idle behavior, including simulation/audio and display blanking. Set an owner-accepted comfort/power limit and a fallback if measurements fail it.  
     **Check:** Compare the same browser workload with Minecraft stopped, hidden and visible, on AC and battery; measure whole-system consumption and return responsiveness.

@@ -1,0 +1,21 @@
+{
+  "stage": "tl-install",
+  "resumed_phase": "publish",
+  "passes": [
+    "PASS install",
+    "PASS check",
+    "PASS title"
+  ],
+  "receipt": {
+    "source": "folder",
+    "caller": {
+      "login_uid": 1001,
+      "terminal": false
+    },
+    "manifest": "dcbc375faa4b269bacaf316c5ddc24503b9773b2538bcd017065ce8e312597be"
+  },
+  "sudo_n_true": {
+    "status": 1,
+    "stderr": "sudo: a password is required\n"
+  }
+}

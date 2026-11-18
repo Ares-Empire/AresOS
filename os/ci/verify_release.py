@@ -59,6 +59,29 @@ if org and run['head_branch'] == 'pkg/27-first-update-release':
     assert sorted(row['path'] for row in trees) == sorted(['os/Containerfile', 'os/.containerignore', 'os/build.sh',
         'os/packages.lock.json', 'os/google-chrome.lock.json', 'os/config', 'os/policy', 'os/manifest/base.json', 'os/keys',
         'os/tests/audit.py'])
+    if (os.environ.get('GITHUB_REF_NAME'), os.environ.get('REHEARSAL_PACKAGE'), os.environ.get('REHEARSAL_MODE')) == \
+            ('pkg/22d-tools-without-stick', '22d', 'tools-local'):
+        # Package 22d's tools-local rehearsal (integrator, 2026-11-15): the VM runs the pinned, signed release 27
+        # image, while this branch's image sources already hold the next release's unreleased changes (packages
+        # 23, 30, 31 and others). Release 27's trees are bound to its own source commit, not to HEAD; the harness
+        # reads none of them from the checkout (reviews/22d-tools-without-stick/PROGRESS.md, step 6c).
+        def tree_at(commit, path):
+            found = subprocess.run(['git', 'rev-parse', '--verify', '--quiet', commit + ':' + path],
+                                   capture_output=True, text=True)
+            return found.stdout.strip() if found.returncode == 0 else None
+        if subprocess.run(['git', 'cat-file', '-e', source + '^{commit}'], capture_output=True).returncode != 0:
+            subprocess.run(['git', 'fetch', '--no-tags', 'origin', source], check=True)
+        differing = []
+        for row in trees:
+            assert re.fullmatch(r'[0-9a-f]{40}', row['tree'])
+            assert tree_at(source, row['path']) == row['tree'], \
+                'Release 27 source commit ' + source + ' does not hold its recorded tree: ' + row['path']
+            if tree_at('HEAD', row['path']) != row['tree']:
+                differing.append(row['path'])
+        print(f'Qualified private org release {source}; the image under test is release 27 built from {source} '
+              f'(every recorded tree is there); this checkout\'s image sources differ in '
+              f'{", ".join(differing) or "no path"} because they hold unreleased changes; testing {release["reference"]}')
+        sys.exit(0)
     for row in trees:
         assert re.fullmatch(r'[0-9a-f]{40}', row['tree'])
         actual = subprocess.check_output(['git', 'rev-parse', 'HEAD:' + row['path']]).decode().strip()

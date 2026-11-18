@@ -1,0 +1,12 @@
+{
+  "stage": "tl-unanswered",
+  "wait_seconds": 30,
+  "signalled": [
+    48083
+  ],
+  "helper": 48083,
+  "sudo": 48066,
+  "status": 1,
+  "stderr": "sudo: no password was provided",
+  "nothing_changed": true
+}
