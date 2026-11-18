@@ -148,6 +148,6 @@ def instructions_for(app):
         raise ValueError("Unknown app: " + app)
     from .mail.definitions import MAIL_INSTRUCTIONS
     if app=='chrome':
-        from .chrome.definitions import SHARED
-        return COMMON_INSTRUCTIONS+'\n\n'+SHARED
+        from .chrome.definitions import SHARED, CLIPBOARD_NOTICE
+        return COMMON_INSTRUCTIONS+'\n\n'+SHARED+' '+CLIPBOARD_NOTICE
     return COMMON_INSTRUCTIONS + ("\n\n" + MAIL_INSTRUCTIONS if app == "mail" else "")
