@@ -336,9 +336,19 @@ for root in ('/etc/yum.repos.d', '/etc/dnf', '/etc/zypp'):
         if path.is_file():
             text = path.read_bytes().lower()
             assert b'cli.github.com' not in text and b'gh-cli' not in text, str(path)
+# Check gh's own payload; the base may carry similarly named files.
+legacy = []
 for root in ('/usr/share/man', '/usr/share/bash-completion', '/usr/share/fish', '/usr/share/zsh'):
-    assert not [p for p in pathlib.Path(root).rglob('*') if p.name in ('gh', '_gh', 'gh.fish')
-                or p.name.startswith(('gh.', 'gh-'))], 'gh documentation or completions were installed'
+    legacy.extend(str(p) for p in pathlib.Path(root).rglob('*') if p.name in ('gh', '_gh', 'gh.fish')
+                  or p.name.startswith(('gh.', 'gh-')))
+print('INFO gh legacy name matches=' + json.dumps(sorted(legacy)))
+unexpected = []
+for name in pin['payload_paths']:
+    if name != '/usr/bin/gh':
+        path = pathlib.Path(name)
+        if path.exists() or path.is_symlink():
+            unexpected.append(name)
+assert not unexpected, 'Unexpected gh RPM payload paths: ' + ', '.join(unexpected)
 print(f'CONTROL_GH_IMAGE_PASS {version} {pin["binary_sha256"]}')
 PY
 

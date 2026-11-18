@@ -1056,6 +1056,7 @@ class GhImageTest(unittest.TestCase):
         self.ns = {'__name__': 'gh_fixture'}
         exec(compile(self.code, 'build.sh gh', 'exec'), self.ns)
         self.pin = json.loads((ROOT / 'os/gh.lock.json').read_text())
+        self.payload_paths = self.pin['payload_paths'].copy()
         self.key = ROOT / 'os' / self.pin['signing_key']['file']
         self.package = self.work / 'gh.rpm'
         self.package.write_bytes(b'fixture rpm')
@@ -1079,6 +1080,8 @@ class GhImageTest(unittest.TestCase):
         if args[:3] == ('rpmkeys', '--checksig', '--verbose'):
             return self.signature
         if args[:3] == ('rpm', '-qp', '--nosignature'):
+            if args[3:5] == ('--qf', '[%{FILENAMES}\n]'):
+                return '\n'.join(self.payload_paths) + '\n'
             if '--scripts' in args:
                 self.assertIn('--triggers', args)
                 self.assertIn('--filetriggers', args)
@@ -1119,7 +1122,8 @@ class GhImageTest(unittest.TestCase):
 
     def test_lock_shape_order_provenance_and_committed_licence(self):
         pin = json.loads((ROOT / 'os/gh.lock.json').read_text())
-        self.assertEqual(list(pin), ['nevra', 'url', 'sha256', 'signing_key', 'binary_sha256', 'license_sha256'])
+        self.assertEqual(list(pin), ['nevra', 'url', 'sha256', 'signing_key', 'binary_sha256', 'license_sha256',
+                                    'payload_paths'])
         key = pin['signing_key']
         self.assertEqual(list(key)[:4], ['file', 'source', 'sha256', 'fingerprint'])
         self.assertEqual(key['file'], 'keys/github-cli-rpm.pub')
@@ -1152,6 +1156,69 @@ class GhImageTest(unittest.TestCase):
         self.assertEqual(self.keys, [self.base])
         deleted = [c[2] for c in self.calls if c[:2] == ('rpmkeys', '--delete')]
         self.assertEqual(set(deleted), {self.fingerprint, 'b' * 40})
+
+    def test_payload_list_must_equal_the_verified_rpm(self):
+        self.payload_paths.append('/usr/share/man/man1/gh-new-command.1')
+        with self.assertRaisesRegex(AssertionError, 'RPM payload paths differ from its pin'):
+            self.verify()
+        self.assertEqual(self.keys, [self.base])
+
+    def check_payload(self):
+        code = heredoc('os/ci/image-checks.sh', "# --- gh is one pinned binary, not an installed RPM or a repository.\npython3 - <<'PY'\n")
+        code = code.split("# Check gh's own payload; the base may carry similarly named files.\n", 1)[1]
+        image = self.work / 'image'
+        path_class = pathlib.Path
+        stream = io.StringIO()
+        with patch('pathlib.Path', side_effect=lambda name: image / path_class(name).relative_to('/')), \
+                contextlib.redirect_stdout(stream):
+            exec(compile(code, 'image-checks.sh gh payload', 'exec'),
+                 dict(pathlib=pathlib, json=json, pin=self.pin, version='fixture'))
+        return stream.getvalue()
+
+    def payload_file(self, name):
+        path = self.work / 'image' / name.lstrip('/')
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(b'fixture')
+        return path
+
+    def test_image_payload_check_allows_only_the_binary(self):
+        self.payload_file('/usr/bin/gh')
+        self.assertIn('CONTROL_GH_IMAGE_PASS', self.check_payload())
+
+    def test_image_payload_check_names_each_man_page_or_completion(self):
+        names = ('/usr/share/man/man1/gh.1', '/usr/share/bash-completion/completions/gh',
+                 '/usr/share/fish/vendor_completions.d/gh.fish', '/usr/share/zsh/site-functions/_gh')
+        for name in names:
+            with self.subTest(name=name):
+                self.assertIn(name, self.pin['payload_paths'])
+                path = self.payload_file(name)
+                with self.assertRaisesRegex(AssertionError, re.escape(name)):
+                    self.check_payload()
+                path.unlink()
+        for name in names:
+            self.payload_file(name)
+        with self.assertRaises(AssertionError) as raised:
+            self.check_payload()
+        for name in names:
+            self.assertIn(name, str(raised.exception))
+
+    def test_image_payload_check_refuses_a_dangling_payload_link(self):
+        name = '/usr/share/man/man1/gh.1'
+        path = self.payload_file(name)
+        path.unlink()
+        path.symlink_to('missing-target')
+        with self.assertRaisesRegex(AssertionError, re.escape(name)):
+            self.check_payload()
+
+    def test_image_payload_check_allows_unrelated_base_file_and_logs_old_match(self):
+        name = '/usr/share/bash-completion/completions/gh-base-tool'
+        self.assertNotIn(name, self.pin['payload_paths'])
+        self.payload_file('/usr/bin/gh')
+        self.payload_file(name)
+        output = self.check_payload()
+        self.assertIn('CONTROL_GH_IMAGE_PASS', output)
+        self.assertIn('INFO gh legacy name matches=', output)
+        self.assertIn('gh-base-tool', output)
 
     def test_wrong_rpm_hash_and_key_hash_stop_before_import(self):
         for field in ('rpm', 'key'):

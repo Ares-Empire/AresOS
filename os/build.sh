@@ -486,6 +486,9 @@ def verify_rpm(pin, key, package, work):
             assert re.fullmatch('[0-9a-f]{40,64}', added), 'Unrecognized RPM key fingerprint'
             subprocess.run(['rpmkeys', '--delete', added], check=True)
         assert keyring() == before, 'gh import left a changed RPM keyring'
+    paths = output('rpm', '-qp', '--nosignature', '--qf', '[%{FILENAMES}\n]', str(package)).splitlines()
+    assert paths == pin['payload_paths'], 'gh RPM payload paths differ from its pin'
+    print(f'CONTROL_GH_PAYLOAD_PASS {len(paths)} paths')
     print('CONTROL_GH_RPM_PASS ' + pin['nevra'] + ' ' + fingerprint)
 
 
