@@ -2,6 +2,7 @@
 
 Only disposable tracked-source exports are mutated. Exact patches, commands and
 unabridged logs stay in .work/302/step5; receipts contain repo-relative paths.
+OWNER_MUTATION_ROUND=part4 keeps rerun logs, exports and receipts separate.
 Each test runs unchanged first, then with one mutation, then source is restored.
 No pin, installed service or FilePolicy change is involved.
 """
@@ -15,7 +16,8 @@ import subprocess
 import sys
 
 ROOT = Path(__file__).resolve().parents[2]
-WORK = ROOT / '.work/302/step5'
+ROUND = os.environ.get('OWNER_MUTATION_ROUND', 'step5')
+WORK = ROOT / '.work/302' / ROUND
 EXPORTS = ROOT / 'control/test-work/302-exports'
 S = 'control/aresos_control/storage.py'
 R = 'control/owner_state_oracle/records.py'
@@ -142,6 +144,11 @@ case(25, 'Use marked boundary for all call attribution, moving applied event to 
 case(26, 'Drop empty-journal decoded-lock control', R,
      '    if not fences:\n        return False\n',
      '', ('base', LOCK))
+case(27, 'Ignore live recheck latch refusal without a fresh physical fault', M,
+     "                        bool(self.script[-1].get('faults', {}).get('trace')) or\n"
+     "                        latch_refusal_first(getattr(self, 'transaction_record', record), self.script[-1]))\n",
+     "                        bool(self.script[-1].get('faults', {}).get('trace')))\n",
+     ('base', O + 'WriteLatch302.test_live_sent_copy_recheck_refused_by_latch_without_a_fresh_fault_is_unchecked'))
 
 
 def run_export():
@@ -165,10 +172,10 @@ def main():
     (WORK / 'tmp').mkdir(exist_ok=True)
     source_head = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip()
     selected = [c for c in CASES if not sys.argv[1:] or c['id'] in sys.argv[1:]]
-    receipt_file = Path(__file__).with_name('mutations.json')
+    receipt_file = Path(__file__).with_name('mutations.json' if ROUND == 'step5' else f'mutations-{ROUND}.json')
     receipts = json.loads(receipt_file.read_text()) if receipt_file.exists() else []
     for probe in selected:
-        target = EXPORTS / ('step5-' + probe['id'])
+        target = EXPORTS / (ROUND + '-' + probe['id'])
         assert not any(p.startswith('.') for p in target.resolve().parts)
         if target.exists():
             shutil.rmtree(target)

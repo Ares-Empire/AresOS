@@ -313,6 +313,14 @@ class OwnerStateSweep(unittest.TestCase):
                 driver.oracle.projection(record)
                 calls = driver.oracle.calls_at(event['seq'])
                 self.assertTrue(any(c['action'] == driver.scenario.action for c in calls), (event['seq'], calls))
+                # The nested Engine request must not mask a truncated outer
+                # Driver range: both records belong to the producing call.
+                outer = [c for c in driver.oracle.script if c['action'] == driver.scenario.action and 'parent' not in c
+                         and c.get('start_seq', -1) < event['seq']]
+                self.assertEqual(len(outer), 1, outer)
+                self.assertLess(outer[0]['start_seq'], event['seq'])
+                self.assertGreaterEqual(outer[0]['end_seq'], event['seq'], 'Outer producing call must include its applied event')
+                self.assertIn(outer[0], calls)
                 self.assertFalse(any(c['action'] in {'control_pending', 'control_log', 'mail_accounts'} and
                                      c.get('start_seq', -1) >= event['seq'] for c in calls))
                 checked.append((driver.scenario.flow, event['seq']))
@@ -752,5 +760,13 @@ class WriteLatchSweep302(unittest.TestCase):
         status = [k for k in gaps.entries if k.endswith('.status')]
         self.assertEqual(status, [])
         self.assertEqual([k for k in gaps.entries if k.endswith('.restore-lock')], [])
+        # Refused status reads have no row; the status checker covers those.
+        # Every returned row must agree with the independent local history,
+        # including when a staged event has not reached the SQLite head.
+        row_differences = [key for key, gap in gaps.entries.items()
+                           if key.rsplit('/', 1)[-1] in {'operation-approval', 'operation-stages', 'operation-state'}
+                           and any(fact[1].endswith('.mismatch') for failure in gap['delta']['failures']
+                                   for fact in failure['extra'])]
+        self.assertEqual(row_differences, [], 'Returned status rows must match applied history')
         print('302 latch independent-view sweep runs:', cases, 'phases:', len(gaps.executed),
               'other recorded gap keys:', len(gaps.entries), flush=True)
