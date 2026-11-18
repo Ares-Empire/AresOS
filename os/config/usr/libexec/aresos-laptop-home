@@ -587,11 +587,10 @@ class LaptopHome:
 
     def create_view(self):
         WebKit = self.WebKit
-        # Let WebKit reclaim the page's drawing caches after startup rather than retaining the peak.
+        # Give WebKit a chance to reclaim drawing caches shortly after startup.
         pressure = WebKit.MemoryPressureSettings.new()
         pressure.set_memory_limit(96)
         pressure.set_poll_interval(3)
-        pressure.set_conservative_threshold(0.55)
         pressure.set_strict_threshold(0.85)
         context = WebKit.WebContext(memory_pressure_settings=pressure)
         security = context.get_security_manager()
