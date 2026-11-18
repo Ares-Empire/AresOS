@@ -7,6 +7,12 @@
 - `mod/src/main/java/dev/aresos/item/AppInventory.java` reads slot numbers. `mode/ModeInventories.java` supplies the saved Live slots while Build is active and waits through an in-progress mode switch. The publisher uses the existing `config/` My apps list, `names/NameRules` short names, and `zone/` gate pictures and palette.
 - `mod/src/testShared/` validates incoming parts in the socket fake. The unit tests cover the contract examples and limits, legacy negotiation, startup and reconnect, burst coalescing, refusal, and front and slot data. The final client test drives the same paths in an integrated home. `mod/README.md` describes what the helper receives.
 
+### Review fix 1
+
+- `HomePublishClientGameTest` moves a pre-existing `AresHub` to a unique sibling of the save before cleaning `a53b`. It restores the original when the test ends and recovers backups left by interrupted runs, including the old `a53b/previous-home`. If `AresHub` is occupied during recovery, the test keeps that save under its own unique recovery name. If it finds several backups, setup stops and reports their paths. Regression tests cover an initial move failure, a failing test body, and both backup locations.
+- `TownHome` defers publication while every My apps entry is waiting for a saved short name. The capture test checks that a saved name produces a row and an empty My apps produces `apps: []`.
+- `ShellClient` logs the helper's `message` on a `publish_home` refusal. The socket fake uses that field, and the refusal tests check the warning text and a successful follow-up on the same connection.
+
 ## Verified
 
 - `mod/dev/build.sh --dry-run` printed `BUILD SUCCESSFUL in 8s` with all tasks listed as skipped for the dry run.
@@ -16,6 +22,19 @@
 - `mod/dev/client-test.sh build`, second run, printed `BUILD SUCCESSFUL in 15m 2s`, `All 106 required tests passed :)`, and exit code 0. The new client test passed again on the same GPU. Both combined runs reran the client and server game tests and reported the unit-test task as up to date.
 - Restored only the tracked screenshots the runs rewrote, 58 for the first run and 56 for the second. Archived 25 new screenshots from each run in its own ignored `.work/` folder, including the seed screenshots. The publication test verifies the town and hotbar directly.
 - `git diff --check origin/main...HEAD` passed. `find .work -type f -size +500M -print` returned no files.
+
+### Review fix 1
+
+- `mod/dev/build.sh` printed `BUILD SUCCESSFUL in 3m 6s` and `All 106 required tests passed :)`. JUnit reported 305 tests, with 299 passes and six expected Windows-specific skips.
+- The first `mod/dev/client-test.sh build` run printed `BUILD SUCCESSFUL in 14m 30s`, `All 106 required tests passed :)`, and exit code 0. The headless RTX 4060 client printed `53b home publish checks passed: wait for host, standing places, pin, swap, saved Live slots, name, move, add, remove and front edit`.
+- The second `mod/dev/client-test.sh build` run printed `BUILD SUCCESSFUL in 14m 34s`, `All 106 required tests passed :)`, the same home publication checks on the RTX 4060, and exit code 0. Both combined runs reported the unit-test task as up to date.
+- Restored only the tracked screenshots each run rewrote, 60 for the first and 59 for the second. Archived 25 new PNGs from each run in its own ignored `.work/` folder. `git diff --check` and `git diff --check origin/main...HEAD` passed. `find .work -type f -size +500M -print` returned no files.
+
+## Known limits
+
+- A reinstall with identical published fields can leave the laptop house missing until another change triggers publication.
+- A standing logo's recorded place and resolved group can disagree while a category change waits for the logo to move.
+- After a refusal, a burst of changes that returns to the refused snapshot can leave the helper showing its last accepted town.
 
 ## Not verified
 
