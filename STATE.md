@@ -212,10 +212,7 @@ Updated 2026-11-15. The live truth is `git log`, `gh pr list` and `git worktree 
 ## Next, in order
 
 **After R28: the owner's order (2026-11-18, via `mac-capacity`).** The older list below stays for its open items.
-1. **Deskflow first** ("deskflow higher prio, I use it every day"): labwc with pointer constraints on layer-shell
-   surfaces (the item under "In progress": backport upstream `b7820667a2` onto 0.9.6, or build 0.20.3). It means
-   building our own labwc in the image build (new: a pinned source, a build stage, image checks, and R29's release-diff
-   rules for a changed labwc package), so it rides **R29**, not R28's cut.
+1. **Mouse and keyboard sharing (Lan Mouse through the labwc fix)** (he asked for it first: "deskflow higher prio, I use it every day"). Correction from `linux-deskflow` (2026-11-18): the labwc fix (upstream `b7820667a2`, pointer constraints on layer-shell surfaces) unblocks **Lan Mouse**, not Deskflow, which needs the InputCapture and RemoteDesktop portals that labwc lacks. Lan Mouse 0.11.0 shows no clipboard option, so copy and paste between the machines may be lost (not tested). The fix means building our own labwc in the image build (a pinned source, a build stage, image checks, and R29's release-diff rules for a changed labwc package), so it rides **R29**, not R28. **On hold** until `mac-capacity` passes on the owner's answer (Lan Mouse without clipboard; who builds it).
 2. **Memory:** the sleeping world (board #364), with `linux-hub`.
 3. **Tools:** Chrome's steps (18c-b), adapters, Aresium, and the first Minecraft tool alongside.
 4. **The normal OS pieces in one new desktop session with design agents** (he starts that session): brightness and
