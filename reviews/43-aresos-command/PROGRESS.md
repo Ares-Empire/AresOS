@@ -1,10 +1,11 @@
 # Package 43 progress
 
-Latest: step 3's dispatcher, helper, wrapper move and image checks are built on
-`07cce64b` (main merged, including PR #58). Two strict new integration tests
-remain red: Control has not reserved `newest`, and the release classifier has
-no rule for the moved wrapper. See "Step 3" below for PLAN-GAPs and all results.
-The check build and hosted runs remain with the lead. Earlier steps are historical.
+Latest: step 4's guides, card and equality checks are built from `1a4d783f`;
+see "Step 4" below. Nothing committed; the lead commits and refreshes the
+waiting bindings. Calls 1 and 2's wording still needs the owner's OK before
+step 6. The two intentional integration failures remain (Control's `newest`
+reservation and the moved wrapper's release-diff rule). Step 3 is reviewed
+SAFE and its check build passed, as recorded below. Earlier steps are historical.
 
 Step 1 is implemented in the worktree on `pkg/43-aresos-command`, based on
 `7dd5588c`. The final test results and the one commit-dependent failure are below. Nothing is committed or pushed;
@@ -79,13 +80,12 @@ deployment command, window or Gradle build ran on the laptop.
 3. **Step 3:** image implementation and tests are built below, including
    **REVIEW-3 N1**'s plain-Bazzite `keep-stock` refusal and full console command.
    Resolve the two integration PLAN-GAPs, then the lead runs the check build.
-4. **Step 4:** guide box/card, equality tests, the owner's final wording and
-   D19's keeper-failure wording; refresh payload and pins again if tools text
-   changes. Carry **REVIEW-3 N4** here: after `was not applied`, an older running
-   AresOS goes forward first. Carry **REVIEW-3 N7** here: decide whether the card
-   names the keeper's give-up case and the Help/title route explicitly. Recheck
-   the status-row gate first. D19's existing labwc/foot guide sentence belongs
-   to this step with its other guide changes.
+4. **Step 4:** guides, card and equality checks built; **REVIEW-3 N4 and N7**
+   addressed in the Step 4 section below. The owner still needs to approve
+   calls 1 and 2's proposed lists, the other tools lines and D19's keeper line
+   before step 6. No tools text changed in this step; the payload and pins
+   remain unchanged. The lead must refresh the waiting list for the four
+   changed bound files before the binding check can pass.
 5. **Step 5:** independent review of steps 1–4 (the step 1 Astra review follows
    this handoff).
 6. **Step 5a:** the three generated bridge lines (`newest`, `reboot`, `check`),
@@ -751,3 +751,162 @@ CHECK_BUILD_VM_PASSED, CONSOLE_KEYMAP_PASSED, Control 74 files. Check build 4421
 changed `check-image.sh` and `image-checks.sh`) passed: ARESOS_COMMAND_FROM_CHECKOUT, IMAGE_CHECKS_PASSED,
 CHECK_BUILD_PASSED, CHECK_BUILD_VM_PASSED, CONSOLE_KEYMAP_PASSED. The two red tests still wait for `linux-tools`' `newest` in
 Control's RESERVED and for R28's Control rule (lead's note above).
+
+## Step 4 (2026-11-18)
+
+Built from clean `1a4d783f` on `pkg/43-aresos-command`. Nothing committed or
+pushed; the lead commits. Before reading or changing the guides,
+`rg -n 'NOT ON THE LAPTOP' docs/INSTALL-STATUS.md` printed nothing (no matches).
+The status-row gate passed. No owner-tool entry, sudo, workflow dispatch,
+deployment command, rebind, window or Gradle command ran.
+
+### Done
+
+- `docs/INSTALL.md`: the new AresOS 29 terminal box follows 22d's routine box.
+  It holds all nine commands and exact window lines, the three password
+  conditions and the window's limit, the automatic ten-minute close, every
+  section 5 outcome and the interrupted-older-update STOP. The two console
+  outcome boxes are named where their lines follow. It explains console-word
+  translation, tools before a release, the offline tools-version comparison,
+  announcements, failed updates, separate restart approval, stale titles,
+  both rollback rules, login/network and lock refusals, keeper failure,
+  title posts and STOP/export. The routine box's opening and final handoffs
+  now point to the next box on AresOS 29; its generated lines are unchanged.
+  The first-session check proof names the session's own program.
+- The console boxes retain their rules and command bytes. Only the Windows
+  box's obsolete position wording changed; the single full newest-command
+  sentence moved into the new box. A comparison of the console portion
+  against HEAD, normalising just those two changes, passed.
+- `docs/EMERGENCY.md`: availability near the top, desktop check/previous under
+  the existing failed-update branches, the once-only warning and Help rule,
+  and the aresos STOP/export route. The card keeps the same 16 headings and
+  symptom layout (102 lines before, 103 after); no new section or table.
+- `docs/INSTALL-STATUS.md`: the aresos route is explicitly OPEN until R29's
+  dispatcher rehearsal. It distinguishes image/unit checks, package 43's
+  future tools VM proof and R29's future dispatcher proof. No tools rehearsal
+  receipt was invented. `os/README.md` adds the command, dispatch and proof
+  paragraph.
+- `os/tests/test_aresos_command.py`: the new test compares the complete guide
+  window table, including order, full commands, labels and row count, with
+  every offered TABLE row. Extra/refused/duplicate rows cannot hide in a dict.
+- `os/tests/test_owner_equality.py`: inline commands also accept exactly the
+  offered desktop invocations, read as data from TABLE, without a second
+  word list or any dispatcher execution. They still reject shorthand, extra
+  arguments, a sudo prefix and refused desktop aliases. Bare aresos remains
+  a descriptive program name. Bundle-command and bootstrap equality rules
+  remain intact. `test_owner_path.py` pins the new box position and the new
+  N4/N7 card text; its existing console-order and recovery assertions remain.
+
+### N4 and N7
+
+**REVIEW-3 N4:** both guide and card say that after **was not applied** the next
+update can repeat immediately, but an older running AresOS goes forward to
+the newest installed AresOS first. The first owner word, usually check, shows
+the warning once. Only an update that is itself first pauses without changing
+anything. Every repeat remains Help's decision, never a run to see what it says.
+
+**REVIEW-3 N7:** chose to name the keeper's never-started/give-up case explicitly
+inside the card's existing **Any other result** branch, with Help allowed to
+ask for aresos title. Otherwise a true session failure could look like broken
+tools, and the owner would have no obvious route to the running/next-start
+facts. Rejected leaving this implicit under **Any other result** for that
+reason. No new branch or automatic title after a STOP: Help decides, and the
+normal STOP/export rule still applies. This is reversible guide wording, with
+one test pin to update later; no tools behavior changed.
+
+### Tools, bridge and bindings
+
+No tools text or bytes changed. The dispatcher/helper, `control/`, release
+scripts, payload, commands.json, history, pending-rebind.json and
+`docs/OWNER-TOOLS.md` are unchanged. Checked commands.json's newest entry is
+the exact full console command. Tools version 6 and fingerprint
+`f66fd69442857b911b81775bbc2efb3edf53648b391615b38234b2ddcea9d135`
+still match OWNER-TOOLS.md. No payload generation or fingerprint pin refresh
+was needed or run.
+
+The R28 bridge is only a marked HTML placeholder in INSTALL.md before the
+Windows-side box. Step 5a fills it with its three generated lines and their
+own fingerprint labels; none was generated or added here. The placeholder
+records the announcement, Help and Restart now? rules that step 5a must carry.
+Until then the visible guide keeps AresOS before 29 on the console route.
+
+Changed bound files, all already on the waiting list with older hashes:
+
+- `docs/INSTALL.md`
+- `docs/EMERGENCY.md`
+- `os/tests/test_owner_equality.py`
+- `os/tests/test_owner_path.py`
+
+The other changed files are unbound. Per this run's instruction, no rebind
+ran and the waiting list was not edited by hand. The lead must refresh those
+four rows; the binding check correctly refuses their stale hashes meanwhile.
+
+### Verified
+
+Every module ran alone with exactly
+`PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s os/tests -p '<module>.py'`.
+
+| Module | Result |
+|---|---|
+| `test_owner_equality.py` | `Ran 12 tests`, `OK` |
+| `test_owner_path.py` | `Ran 48 tests`, `OK` |
+| `test_aresos_command.py` | `Ran 17 tests`, `FAILED (failures=1)`; only the intentional three-word-set failure: Control lacks newest. The new guide-table test passes |
+| `test_owner_newest.py` | `Ran 21 tests`, `OK` |
+| `test_owner_release_numbers.py` | `Ran 7 tests`, `OK` |
+| `test_release27.py` | `Ran 41 tests`, `OK` |
+| `test_checkout_sources.py` | `Ran 8 tests`, `FAILED (failures=1)`; exactly the four changed bound files listed above have stale waiting hashes |
+| `test_aresos_command_diff.py` | `Ran 2 tests`, `FAILED (failures=1)`; only the intentional missing rule for `/usr/libexec/aresos-control/cli` |
+
+The first owner-path run had two failures: the old eleven-box count and the
+old exact **Any other result** sentence. Its pins now require twelve boxes,
+the unchanged console ordering, and the explicit new N4/N7 instructions; the
+rerun passed. No assertion was weakened, skipped or deleted. No temporary-file
+or socket error occurred. The equality module was repeated after the final
+guide additions; final results above are for the finished text.
+
+`git diff --check` passed without output. The protected-tree diff printed
+nothing. Read-only checks printed PASS for the unchanged console boxes, newest
+entry and fingerprint. `.work files over 500 MB: []`. No download or screenshot
+was made. No live password window, phone reading/page layout, reboot, real
+update, new tools VM rehearsal or dispatcher rehearsal was tested in this step.
+
+### Owner wording still pending; show before step 6
+
+These are locations, not another copy of either proposed list:
+
+- **Call 1:** INSTALL.md's **Command / Line in the window** table, lines
+  288–298. All nine prefix-free proposed labels are together and held equal
+  to TABLE. Their list still awaits the owner's OK.
+- **Call 2:** the first five rows of **What the tools say**, lines 311–315,
+  are the five proposed answers to him, in the proposed order. The remaining
+  rows through line 325 and their second-column sentences hold every other
+  update/return/ready line, removal and settings fact, tools-version limit,
+  and both later-install endings. Show those too; settle them with call 2.
+- **D19:** show the exact existing keeper STOP in
+  `os/owner-tools/owner.py:2161` (the full sentence is also in DESIGN.md,
+  section 1a), together with INSTALL.md:335's session/Help explanation and
+  EMERGENCY.md:25's explicit Help/title branch. It remains to be settled with
+  call 2, not as a separate owner call. No tools wording was changed here.
+- At the try, also show the three password conditions and their limit
+  (INSTALL.md:300), the failed-update rule (329), **Restart now?** and its
+  separate window (331), both rollback rules and the exact sentence Claude
+  says before plain Bazzite (333), and the STOP/export rule (335). These
+  implement the owner's settled answers and the lead's D20/D21 decisions;
+  they do not reopen calls 4, 5 or 8.
+
+### Left (in order) / PLAN-GAPs
+
+1. Lead: refresh the four waiting hashes and commit this step; Astra review
+   follows. Rerun the binding module after refresh. No new PLAN-GAP from the
+   guide work; do not call the branch green with its current binding failure.
+2. Keep the top-level merge-of-main task: real R28 record/number/target, payload
+   and every pin, with the status-row gate rechecked. The two existing
+   integration PLAN-GAPs remain with Control/R28; do not weaken their tests.
+3. Step 5: independent review of steps 1–4. Settle the wording above before
+   step 6; until then it stays explicitly proposed.
+4. Step 5a: build and review the R28 bridge, replacing only the marked
+   placeholder and refreshing any generated pins it needs.
+5. Step 6: same-head hosted checks/full model, tools VM rehearsal including
+   bridge windows, then rebind and record real evidence. No rehearsal claim
+   was added here. Step 7 hands the dispatcher stages to R29; its route stays
+   OPEN until R29's rehearsal. Live/phone proof remains with those steps.

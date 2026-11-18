@@ -1,3 +1,4 @@
+import ast
 import json
 import hashlib
 import pathlib
@@ -93,7 +94,7 @@ def check_inline_commands(guide, commands):
     unrelated shell commands are not invocations. This conservative convention
     lets the check catch shorthand without guessing the author's intent.
     """
-    allowed = set(commands.values())
+    allowed = set(commands.values()) | desktop_commands()
     verbs = set(commands) | {'layout'}
     fenced = False
     outside = []
@@ -108,12 +109,23 @@ def check_inline_commands(guide, commands):
         code = match[1]
         words = code.split()
         first = words[1] if len(words) > 1 and words[0] == 'sudo' else words[0]
+        offset = 1 if words[0] == 'sudo' else 0
+        desktop = first == 'aresos' and len(words) > offset + 1 and words[offset + 1] in verbs
         if ('/var/lib/ares/at' in code or '/mnt/ares-tools/at' in code or first in verbs
+                or desktop
                 or words[:3] == ['sudo', 'bash', '-c'] or words[0].startswith('SUDO_ASKPASS=')
                 or '/var/home/ares/ares-tools' in code):
             if code not in allowed:
                 number = text[:match.start()].count('\n') + 1
                 raise AssertionError(f'Noncanonical inline owner command at line {number}: {code}')
+
+
+def desktop_commands():
+    # Image commands are not bundle-generated lines in commands.json.
+    tree = ast.parse((ROOT/'os/config/usr/bin/aresos').read_text())
+    table = next(node.value for node in tree.body if isinstance(node, ast.Assign)
+                 and any(isinstance(target, ast.Name) and target.id == 'TABLE' for target in node.targets))
+    return {'aresos ' + word for word, row in ast.literal_eval(table).items() if isinstance(row, tuple)}
 
 
 class EqualityTest(unittest.TestCase):
@@ -289,6 +301,21 @@ class EqualityTest(unittest.TestCase):
                 shorthand = 'layout proof' if name == 'layout-proof' else name
                 with self.assertRaisesRegex(AssertionError, 'Noncanonical inline owner command'):
                     check_inline_commands('Then `' + shorthand + '`.', commands)
+
+    def test_inline_desktop_commands_are_complete_and_take_no_further_words(self):
+        commands = json.loads((ROOT/'os/owner-tools/commands.json').read_text())
+        check_inline_commands('The `aresos` command.', commands)
+        for command in desktop_commands():
+            with self.subTest(command=command):
+                check_inline_commands('Run `' + command + '`.', commands)
+                for changed in (command + ' extra', 'sudo ' + command):
+                    with self.assertRaisesRegex(AssertionError, 'Noncanonical inline owner command'):
+                        check_inline_commands('Run `' + changed + '`.', commands)
+        for word in set(commands) | {'layout'}:
+            command = 'aresos ' + word
+            if command not in desktop_commands():
+                with self.subTest(refused=word), self.assertRaisesRegex(AssertionError, 'Noncanonical inline owner command'):
+                    check_inline_commands('Run `' + command + '`.', commands)
 
     def test_privileged_tool_refusals_never_offer_an_alternate_target(self):
         script=(ROOT/'os/owner-tools/owner.py').read_text()

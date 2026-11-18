@@ -126,6 +126,15 @@ class PlanTest(unittest.TestCase):
             for pattern in KSSHASKPASS_PROMPTS:
                 self.assertIsNone(re.search(pattern, label), (label, pattern))
 
+    def test_guide_window_table_equals_every_offered_command_and_label(self):
+        guide = (ROOT / 'docs/INSTALL.md').read_text()
+        box = guide.split("- [ ] **From Claude's terminal, on AresOS 29 or later:**", 1)[1]
+        box = box.split('- [ ] **Windows side**', 1)[0]
+        table = box.split('| Command | Line in the window |\n|---|---|\n', 1)[1].split('\n\n', 1)[0]
+        rows = [[cell.strip() for cell in line.strip('|').split('|')] for line in table.splitlines()]
+        self.assertEqual(rows, [[f'`aresos {word}`', row[1]] for word, row in command.TABLE.items()
+                                if isinstance(row, tuple)])
+
     def test_control_receives_all_other_argv_and_the_whole_environment_even_as_root(self):
         for argv in ([], ['--help'], ['admin', 'mail', 'account', 'add'], ['testapp', 'list'],
                      ['control', 'log'], ['unknown', '--strange', 'with spaces', ''], ['CHECK']):

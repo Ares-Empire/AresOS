@@ -1046,12 +1046,14 @@ class OwnerPathTest(unittest.TestCase):
             self.assertGreaterEqual(found, 0, value)
             position = found + len(value)
         boxes = [line for line in route.splitlines() if line.startswith('- [ ]')]
-        # 22d: the routine box first; then Windows, tools, tools only (the stick route), stage, title and stick,
-        # restart, check, password, misbehaves, forward again.
-        self.assertEqual(len(boxes), 11)
+        # 43: the new desktop-command box follows 22d's routine box. The ten console boxes
+        # retain their order: Windows, tools, tools only, stage, title/stick, restart, check,
+        # password, misbehaves, forward again.
+        self.assertEqual(len(boxes), 12)
         self.assertTrue(boxes[0].startswith("- [ ] **New tools from Claude's terminal**"))
-        self.assertTrue(boxes[1].startswith('- [ ] **Windows side** (the stick route for new tools, second after the routine box'))
-        self.assertTrue(boxes[3].startswith('- [ ] **Tools only**') and boxes[-1].startswith('- [ ] **Forward again'))
+        self.assertTrue(boxes[1].startswith("- [ ] **From Claude's terminal, on AresOS 29 or later:**"))
+        self.assertTrue(boxes[2].startswith('- [ ] **Windows side** (the stick route for new tools:'))
+        self.assertTrue(boxes[4].startswith('- [ ] **Tools only**') and boxes[-1].startswith('- [ ] **Forward again'))
         self.assertGreaterEqual(route.count('STOP →'), 4)
         self.assertGreaterEqual(route.count('Return to this update route'), 4)
         # A login refusal points to login, then the same update once more.
@@ -1142,8 +1144,14 @@ class OwnerPathTest(unittest.TestCase):
                       "If you came here from a check you just ran (the update route's check box or misbehaves box, "
                       "or the boot menu), use that check's result", '**was not applied** shows only once',
                       '`' + commands['check'] + '` now', 'Then go by what that check shows',
-                      '- Any other result, also a check with none of these lines: do **not** run previous; '
-                      '**STOP → go to [Help](INSTALL-REFERENCE.md#help)**',
+                      '- Any other result, also a check with none of these lines or '
+                      "**The desktop's own program … is not running** when the desktop never started or gave up: "
+                      'do **not** run previous; **STOP → go to [Help](INSTALL-REFERENCE.md#help)**',
+                      'which may ask Claude for `aresos title` to show what runs and starts next',
+                      'Claude runs `aresos check` first and `aresos previous` only where the branches below allow it',
+                      'Once **was not applied** has shown, `aresos update` can repeat the update at once '
+                      '(an older running AresOS goes forward first)',
+                      'Claude runs it only when Help has decided the repeat, never to see what it says',
                       '**Previous AresOS queued for the next start**', '**Return to … confirmed after the restart**',
                       '**newer AresOS … runs and starts next**', 'with that confirmation in your record',
                       # One word per meaning: a return's confirmation says Forward, never Update (review 5's case).
@@ -1668,14 +1676,13 @@ class OwnerPathTest(unittest.TestCase):
         fingerprint = hashlib.sha256((ROOT/'os/owner-tools/payload/SHA256SUMS').read_bytes()).hexdigest()
         bootstrap = common.module('bootstrap')
         route = section(texts['INSTALL.md'], UPDATE)
-        box = route.split("- [ ] **New tools from Claude's terminal**", 1)[1].split('- [ ] **Windows side**', 1)[0]
+        box = route.split("- [ ] **New tools from Claude's terminal**", 1)[1].split("- [ ] **From Claude's terminal,", 1)[0]
         gate = route.splitlines()[2]
         for value in ("the maintainer's board note for you with the full commit hash and the tools fingerprint",
                       '**announced commit**', 'never the newest one on GitHub by itself'):
             self.assertIn(value, gate)
         stale = 'The stick holds tools this laptop installed before (SHA256 …), not the installed ones'
-        order = ("Only this box's install line and its export line run this way for now",
-                 'every other owner command stays at the console (the boxes below) until a later release brings it here',
+        order = ("This box installs new tools; from AresOS 29, the next box brings the everyday commands to Claude's terminal",
                  "as `ares` (no window yet)", 'only by a fast-forward pull',
                  "(never a reset, and never a checkout over other sessions' work)", "the commit's full hash added at the end",
                  'From here until the last PASS line no other Claude session runs an owner command',

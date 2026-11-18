@@ -19,7 +19,8 @@
     "Package 18c's fix round 1, part 2: the Control VM pass step's limit goes from 12 to 16 minutes (the last passes took 7 min 50 s and 7 min 9 s; the round adds about 2 to 3 minutes for the logout and greetd's auto-login and check 6's two new sessions; about 1.5 times the slower pass with that added); the job's limit and every other mode unchanged; no tool, guide or image file changed",
     "Package 18c's fix round 1, part 2 (linux-aresos, agreed change 15): the check-build job's limit for check_build=control goes from 127 to 131 minutes and its comment's sum follows the Control VM pass step's 16 minutes, so the job can't cut a slow pass before the step's own limit; every other mode unchanged; no tool, guide or image file changed",
     "Package 18c's fix round X2 merged main at 04aef030 (packages 48, 50 and 51): bound files main changed wait for the next rehearsal; os/ci/check-build.sh keeps 18c's control|build split, with 50's console keymap check in the build branch",
-    "43: main merged at 98363516 (#58 18c Part A and B2, 52, 46, 79)"
+    "43: main merged at 98363516 (#58 18c Part A and B2, 52, 46, 79)",
+    "43 step 4: the guides for the aresos command (docs/INSTALL.md's new box, docs/EMERGENCY.md, the guide/TABLE equality test); no tools, payload or fingerprint change"
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
@@ -28,11 +29,11 @@
       "path": ".github/workflows/os-image.yml"
     },
     {
-      "sha256": "4b3a6d6cd623b85e327be9c5bba9e733e267bdc7e6a14a58f6f8560a3848fa91",
+      "sha256": "6d14e3571bfbb8593a13254cca295156746204cf85a4e93f559fe5d1a3ed30da",
       "path": "docs/EMERGENCY.md"
     },
     {
-      "sha256": "8267429bc05cf31d2b4a66d55725ff5a7a188898243081740e924baac1c191f2",
+      "sha256": "b7c0de6f1e2fd6ce619817e297823921f0ee69a44b065ec7da1efd2746c8b792",
       "path": "docs/INSTALL.md"
     },
     {
@@ -152,11 +153,11 @@
       "path": "os/tests/test_owner_entry.py"
     },
     {
-      "sha256": "93c66f3c6f18716e349da52323a68114c3431ccb21fc3447dea3adf491b98c08",
+      "sha256": "15670c94994e8d17c86ac48dea2bfa36ebb0317f4c3619766d922756f4a1b172",
       "path": "os/tests/test_owner_equality.py"
     },
     {
-      "sha256": "a41c8c071bcc354dab9c70e77a59bf783b4dc569def325e7ad66a6ec6997c559",
+      "sha256": "199e023bdf7482010ad9acc2a2c734f4b561f72129be3b7ffec33cb4e6ffec3f",
       "path": "os/tests/test_owner_path.py"
     },
     {
