@@ -66,15 +66,15 @@ for factor,label in labels.items():
     print(f"| {label} | {spread(residuals['settled'])} | {spread(residuals['flight'])} | {spread(residuals['covered5m'])} | {spread(commits)} |")
 
 if any(name.startswith('winner-flat-') for name in rows):
-    print('\nCurrent-source combined candidate ([settings](winners.json)); fresh v1 controls and candidate runs, n=3 each. These absolute ranges and paired differences are measured directly, not summed from isolated factors.\n')
+    print('\nCurrent-source final candidate ([settings](winners.json)); fresh v1 controls and candidate runs, n=3 each. These absolute ranges and paired differences are measured directly, not summed from isolated factors.\n')
     print('| Current-source group | Settled RSS | Post-flight RSS | Covered 5-min RSS |')
     print('|---|---:|---:|---:|')
     values={}
-    for label,prefix in (('fresh v1','v1-flat-'),('combined candidate','winner-flat-')):
+    for label,prefix in (('fresh v1','v1-flat-'),('final candidate','winner-flat-')):
         values[label]={phase:[get(rows.get(prefix+str(i),{}),'snapshots',phase,'rss') for i in (1,2,3)]
                        for phase in ('settled','flight','covered5m')}
         print('| '+label+' | '+' | '.join(spread(values[label][phase]) for phase in values[label])+' |')
-    differences={phase:[a-b for a,b in zip(values['fresh v1'][phase],values['combined candidate'][phase])
+    differences={phase:[a-b for a,b in zip(values['fresh v1'][phase],values['final candidate'][phase])
                         if a is not None and b is not None] for phase in values['fresh v1']}
     print('| paired RSS saving | '+' | '.join(spread(values) for values in differences.values())+' |')
 

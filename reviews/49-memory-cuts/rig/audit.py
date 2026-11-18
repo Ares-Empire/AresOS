@@ -97,7 +97,24 @@ for name,s in rows.items():
         winners[name]['all_live_snapshots_confirm_nmt_disabled'] = bool(s['snapshots']) and all(
             snap.get('nmt_disabled_confirmed') is True for snap in s['snapshots'].values() if not snap['frozen'])
 
-result = {'valid_completed_run_count':len(rows),
+required_final = ['v1-create', 'winner-create', 'v1-nether', 'winner-nether', 'winner-long', 'winner-nmt0'] + [
+    prefix + str(repeat) for repeat in (1,2,3) for prefix in ('v1-flat-', 'winner-flat-')]
+rejected_records = sorted((ROOT/'candidates').glob('*/*/summary.json'))
+failed_or_retired_records = sorted((ROOT/'failures').glob('**/summary.json'))
+head_mod_tree = subprocess.check_output(['git','rev-parse','HEAD:mod'],cwd=WT,text=True).strip()
+expected_settings = dict(value.split('=',1) for value in json.loads((ROOT/'winners.json').read_text())['settings'])
+result = {'completed_run_count':len(rows),
+          'count_definition':'A completed measurement can fail experimental guards; this is not a count of qualified configurations.',
+          'measurement_attempt_counts':{'completed':len(rows), 'rejected_candidate_completed':len(rejected_records),
+              'failed_or_retired_records':len(failed_or_retired_records),
+              'total_recorded_attempts':len(rows)+len(rejected_records)+len(failed_or_retired_records)},
+          'final_schedule':{'required':required_final, 'missing':[name for name in required_final if name not in rows],
+              'complete':all(name in rows for name in required_final),
+              'head_mod_tree':head_mod_tree,
+              'all_present_runs_match_head_mod_tree':all(run_trees[name] == head_mod_tree for name in required_final if name in rows),
+              'candidate_settings_match_selected':{name:all(s['settings'].get(key) == value for key,value in expected_settings.items())
+                  for name,s in rows.items() if name.startswith('winner-')},
+              'frame_qualification':'Review the recorded paired comparisons without adding a tolerance; memory/GC guards alone do not qualify a candidate.'},
           'failed_experiments':{p.parent.name:json.loads(p.read_text()) for p in sorted((ROOT/'failures').glob('*/failure.json'))},
           'rejected_candidates':{p.parent.name:json.loads(p.read_text()) for p in sorted((ROOT/'candidates').glob('*/candidate.json'))},
           'guards_all_runs':{name:guards(s) for name,s in rows.items()},
