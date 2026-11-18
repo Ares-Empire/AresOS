@@ -442,6 +442,8 @@ public final class MyAppsClientGameTest implements FabricClientGameTest {
     private static void commands(ClientGameTestContext context, TestSingleplayerContext world, Path config) throws IOException {
         var his = Set.of("browser", "terminal", "notepad", "lunar-client", "discord", "ark");
         check(mine().equals(his), "Before the commands My apps is " + mine());
+        // The preceding Esc closed only the client's screen; its close packet must finish before we fill crafting.
+        world.getConnection().waitForServerboundPackets();
         // Picking through Apps must not manufacture a second item while the first is in the 2x2 grid.
         world.getServer().runOnServer(server -> {
             var player = world.getConnection().getServerPlayer();

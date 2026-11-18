@@ -8,7 +8,6 @@ import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.LevelLoadingScreen;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.world.level.storage.LevelResource;
 
 /** AresOS (Linux) only: follows the app helper's focus changes and reports when the desktop world is usable. */
 public final class ShellFocusClient {
@@ -63,8 +62,7 @@ public final class ShellFocusClient {
                 || client.gui.screen() instanceof LevelLoadingScreen || !DesktopWorld.isEnabled(server)) return null;
         if (server != namedServer) {
             namedServer = server;
-            var folder = server.getWorldPath(LevelResource.ROOT).toAbsolutePath().normalize().getFileName();
-            worldName = folder == null ? "world" : folder.toString();
+            worldName = DesktopWorld.saveName(server);
         }
         return worldName;
     }

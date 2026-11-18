@@ -1877,7 +1877,12 @@ class Guard42Test(unittest.TestCase):
         self.assertIn('Step 5 raises both to 1 only after his OK', ledger['publish_gate'])
         self.assertEqual(ledger['job_bounds']['publish-28'], int(WORKFLOW['jobs']['release-28']['timeout-minutes']))
         self.assertEqual(ledger['job_bounds']['dry-run-28'], int(WORKFLOW['jobs']['release-28-dry-run']['timeout-minutes']))
-        self.assertEqual(ledger['job_bounds']['resolve'], int(WORKFLOW['jobs']['check-build']['timeout-minutes']))
+        # The check-build job's limit depends on its mode since 18c (131 for control, 120 otherwise); the ledger
+        # bounds the resolve mode, the only check build package 42 dispatches.
+        resolve = dict(base.UPDATE_INPUTS, **{'github.ref_name': 'pkg/42-release-28', 'inputs.rehearsal': '',
+                                              'inputs.check_build': 'resolve'})
+        self.assertEqual(str(ledger['job_bounds']['resolve']),
+                         base.workflow_text(str(WORKFLOW['jobs']['check-build']['timeout-minutes']), resolve))
         titles = ledger['titles']
         runs, api = self.history([titles['resolve']] + [titles['dry-run-28']] * 5)
         with patch.object(guard, 'api', side_effect=api):

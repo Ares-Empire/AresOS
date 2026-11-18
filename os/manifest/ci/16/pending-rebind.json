@@ -21,12 +21,19 @@
     "42: REVIEW-3 and REVIEW-4 fixes merged",
     "42: REVIEW-5 and REVIEW-6 fixes merged",
     "42: main merged (packages 48, 50, the 22d status rows)",
-    "42: package 50's two release-diff rules"
+    "42: package 50's two release-diff rules",
+    "Package 18c's fix round 1, part 2 merged main after 22d's rehearsal (run 43737933979), which bound the workflow without 18c's changes (check_build gains control; the job's limit 127 minutes for control, 120 for the other modes; the Control VM pass step, 12 minutes, and the always() step stopping its fixture servers): they wait again for the next rehearsal; no tool, guide or image file changed",
+    "Package 18c's fix round 1, part 2: the Control VM pass step's limit goes from 12 to 16 minutes (the last passes took 7 min 50 s and 7 min 9 s; the round adds about 2 to 3 minutes for the logout and greetd's auto-login and check 6's two new sessions; about 1.5 times the slower pass with that added); the job's limit and every other mode unchanged; no tool, guide or image file changed",
+    "Package 18c's fix round 1, part 2 (linux-aresos, agreed change 15): the check-build job's limit for check_build=control goes from 127 to 131 minutes and its comment's sum follows the Control VM pass step's 16 minutes, so the job can't cut a slow pass before the step's own limit; every other mode unchanged; no tool, guide or image file changed",
+    "22d and 22c on the laptop (2026-11-17)",
+    "50: boot-only console keymap after Plymouth; vm.py requires boot-key and forced busy-VT repair evidence in the disposable check build",
+    "Package 18c's fix round X2 merged main at 04aef030 (packages 48, 50 and 51): bound files main changed wait for the next rehearsal; os/ci/check-build.sh keeps 18c's control|build split, with 50's console keymap check in the build branch",
+    "42: main merged at 98363516 (#58, 18c Part A and B2; 52's Prism pin; 46; 79): os-image.yml keeps 42's read-only check-build guard and comment with 18c's control limit (131 for control, 120 otherwise)"
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
     {
-      "sha256": "f27f76c614778cf96cba6356477d3662eb491c1e2d349adba59daf8d72f3751c",
+      "sha256": "84ba39e0f3d2bdc429d59416c6753799eb01dff8a93fb975cbfc8c099816cd0a",
       "path": ".github/workflows/os-image.yml"
     },
     {

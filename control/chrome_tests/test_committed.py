@@ -199,3 +199,116 @@ class Reads(unittest.TestCase):
             prepared=self.chrome.steps([step],1);self.assertIn('approval',prepared[0]);self.assertEqual(len(acks),1)
             same=self.chrome.steps([step],1);self.assertEqual(same,[]);self.assertEqual(len(acks),2)
             self.assertEqual(len([v for _,v in self.engine.store.iter_items('op:') if v['state']=='reserved']),1)
+
+
+def rewrite_line(path, offset, change, *, rehash=True, preserve_time=False):
+    """Same-length external rewrite, including downstream chain links and fences."""
+    import json
+    import os
+    from aresos_control.common import canonical, digest
+    info=path.stat();original=path.read_bytes();lines=original.splitlines(keepends=True)
+    cursor=0;previous='';latest=None;rewritten=[]
+    for line in lines:
+        value=json.loads(line)
+        if 'commit' not in value:
+            if cursor==offset:change(value)
+            if rehash:
+                value['previous']=previous
+                value['hash']=digest({key:item for key,item in value.items() if key!='hash'})
+            previous=value['hash'];latest=value
+        elif rehash:
+            value={'commit':latest['seq'],'hash':latest['hash']}
+        rewritten.append((canonical(value)+'\n').encode())
+        cursor+=len(line)
+    data=b''.join(rewritten)
+    if len(data)!=len(original):raise AssertionError('Rewrite must preserve journal length')
+    with path.open('r+b') as stream:stream.write(data)
+    os.utime(path,ns=(info.st_atime_ns,info.st_mtime_ns if preserve_time else info.st_mtime_ns+1_000_000_000))
+
+
+class Pins(unittest.TestCase):
+    def setUp(self):
+        import tempfile
+        from pathlib import Path
+        from aresos_control.storage import Store
+        self.temporary=tempfile.TemporaryDirectory(dir=fixture.WORK)
+        self.addCleanup(self.temporary.cleanup)
+        root=Path(self.temporary.name)
+        self.store=Store(root/'state',root/'evidence');self.addCleanup(self.store.close)
+        self.projection=self.store.chrome_state
+        self.path=root/'evidence/operations.jsonl'
+        self.key='chrome:qualification'
+        self.store.write({self.key:{'run':'fixture'}},'chrome_test','Synthetic pinned value')
+        self.pin=self.projection.pin(self.key)
+
+    def test_pin_reads_committed_bytes_and_not_the_parse_cache(self):
+        from unittest.mock import patch
+        self.assertTrue(self.pin['line'].endswith(b'\n'))
+        with patch.object(self.projection,'record_cache',{self.pin['offset']:{'invented':True}}):
+            self.assertEqual(self.projection.pinned_value(self.key,self.pin),{'run':'fixture'})
+            self.assertEqual(self.projection.pin(self.key),self.pin)
+        value=self.projection.pinned_value(self.key,self.pin);value['run']='changed'
+        self.assertEqual(self.projection.pinned_value(self.key,self.pin),{'run':'fixture'})
+
+    def test_other_key_keeps_pin_and_a_new_value_changes_offset(self):
+        self.store.write({'chrome:other':1},'chrome_test','Other key')
+        self.assertTrue(self.projection.holds(self.key,self.pin))
+        self.store.write({self.key:{'run':'updated'}},'chrome_test','New pinned value')
+        self.assertFalse(self.projection.holds(self.key,self.pin))
+        new=self.projection.pin(self.key)
+        self.assertNotEqual(new['offset'],self.pin['offset'])
+        self.assertEqual(self.projection.pinned_value(self.key,new),{'run':'updated'})
+
+    def test_missing_and_retired_keys_have_no_pin(self):
+        self.assertIsNone(self.projection.pin('chrome:missing'))
+        self.assertTrue(self.projection.holds('chrome:missing',None))
+        self.assertFalse(self.projection.holds(self.key,None))
+        self.store.write({self.key:None},'chrome_test','Retire pinned value')
+        self.assertIsNone(self.projection.pin(self.key))
+        self.assertFalse(self.projection.holds(self.key,self.pin))
+        self.assertTrue(self.projection.holds(self.key,None))
+
+    def test_same_length_rewrite_with_a_valid_hash_breaks_pin(self):
+        rewrite_line(self.path,self.pin['offset'],lambda row:row['chrome'][self.key].update(run='changed'))
+        for _ in range(2):self.assertFalse(self.projection.holds(self.key,self.pin))
+        self.assertEqual(self.projection.pinned_value(self.key,self.projection.pin(self.key)),{'run':'changed'})
+        self.assertEqual(self.projection.pinned_value(self.key,self.pin),{'run':'fixture'})
+
+    def test_same_length_rewrite_with_a_bad_hash_is_refused(self):
+        from aresos_control.common import Refused
+        rewrite_line(self.path,self.pin['offset'],lambda row:row['chrome'][self.key].update(run='changed'),rehash=False)
+        for _ in range(2):
+            self.assertFalse(self.projection.holds(self.key,self.pin))
+            with self.assertRaises(Refused) as caught:
+                self.projection.pinned_value(self.key,self.projection.pin(self.key))
+            self.assertEqual(caught.exception.code,'evidence_corrupt')
+
+    def test_unchanged_signature_still_compares_bytes_on_every_read(self):
+        from unittest.mock import patch
+        signature=self.projection.signature
+        with patch.object(self.projection,'journal_reader',wraps=self.projection.journal_reader) as reader:
+            for number in range(1,4):
+                self.assertTrue(self.projection.holds(self.key,self.pin));self.assertEqual(reader.call_count,number)
+        rewrite_line(self.path,self.pin['offset'],lambda row:row['chrome'][self.key].update(run='changed'),preserve_time=True)
+        info=self.path.stat();self.assertEqual((info.st_ino,info.st_size,info.st_mtime_ns),signature)
+        for _ in range(2):self.assertFalse(self.projection.holds(self.key,self.pin))
+        self.assertEqual(self.projection.pinned_value(self.key,self.projection.pin(self.key)),{'run':'changed'})
+
+    def test_replacement_with_identical_bytes_keeps_pin(self):
+        replacement=self.path.with_suffix('.replacement');replacement.write_bytes(self.path.read_bytes())
+        replacement.replace(self.path)
+        self.assertTrue(self.projection.holds(self.key,self.pin))
+        self.assertEqual(self.projection.pin(self.key),self.pin)
+
+    def test_truncation_is_refused_on_every_read(self):
+        from aresos_control.common import Refused
+        with self.path.open('r+b') as stream:stream.truncate(self.pin['offset'])
+        for _ in range(2):
+            for read in [lambda:self.projection.pin(self.key),lambda:self.projection.holds(self.key,self.pin)]:
+                with self.assertRaises(Refused) as caught:read()
+                self.assertEqual(caught.exception.code,'evidence_corrupt')
+
+    def test_merged_keys_cannot_be_pinned(self):
+        for key in ['op:fixture','notice:fixture']:
+            for read in [lambda:self.projection.pin(key),lambda:self.projection.holds(key,self.pin),lambda:self.projection.pinned_value(key,self.pin)]:
+                with self.subTest(key=key),self.assertRaises(ValueError):read()

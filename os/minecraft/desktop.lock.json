@@ -8,7 +8,7 @@
       "uid": "net.minecraft",
       "version": "26.2",
       "file": "net.minecraft.json",
-      "url": "https://meta.prismlauncher.org/v1/net.minecraft/26.2.json",
+      "url": "https://raw.githubusercontent.com/PrismLauncher/meta-launcher/b8e2a3e1ba241414f8b861f13c9a6fd6bc5d922d/net.minecraft/26.2.json",
       "sha256": "9c23199aa2f78c34f705a631c6c794bea40d671b5d718034f9ed9b429c832b46",
       "size": 24493
     },
@@ -16,7 +16,7 @@
       "uid": "org.lwjgl3",
       "version": "3.4.1",
       "file": "org.lwjgl3.json",
-      "url": "https://meta.prismlauncher.org/v1/org.lwjgl3/3.4.1.json",
+      "url": "https://raw.githubusercontent.com/PrismLauncher/meta-launcher/1977d95e9aa980361f9976cf502a7f584facae0e/org.lwjgl3/3.4.1.json",
       "sha256": "4108a1aaaf182a397b588d9ee086a7473d1bc15407169475676740e04da6966b",
       "size": 73685
     }
