@@ -35,6 +35,11 @@ The client test task has a ten-minute timeout for a stuck game startup.
 
 ## On Linux (AresOS)
 
+The mod publishes its town and Live hotbar to the AresOS app helper once the
+host's home is ready and whenever it changes. The laptop home reads that
+snapshot so it can use the same places, short names, slots and block-logo
+fronts Minecraft uses.
+
 On the AresOS laptop, use the scripts in `dev/` (from any directory). They need
 no system install and change no shell setup:
 

@@ -52,9 +52,9 @@ class ShellClientTest {
         var apps = connect().apps();
         var hello = helper.received("hello").getFirst();
         // hello carries the client's own version; after a 1.0 helper's reply everything else says 1.0.
-        assertEquals("aresos-shell/1.1", hello.get("protocol").getAsString());
+        assertEquals("aresos-shell/1.2", hello.get("protocol").getAsString());
         assertEquals(1, hello.get("major").getAsInt());
-        assertEquals(1, hello.get("minor").getAsInt());
+        assertEquals(2, hello.get("minor").getAsInt());
         assertEquals(FakeHelper.INSTANCE, hello.get("instance").getAsString());
         assertEquals(FakeHelper.NONCE, hello.get("nonce").getAsString());
         var capabilities = hello.getAsJsonArray("capabilities").asList().stream().map(value -> value.getAsString()).toList();
@@ -64,7 +64,7 @@ class ShellClientTest {
         client.world("AresOS");
         FakeHelper.await(() -> !helper.received("world_ready").isEmpty(), "world_ready");
         for (var message : helper.received) {
-            assertEquals(message == hello ? "aresos-shell/1.1" : "aresos-shell/1.0", message.get("protocol").getAsString());
+            assertEquals(message == hello ? "aresos-shell/1.2" : "aresos-shell/1.0", message.get("protocol").getAsString());
             assertTrue(message.get("id").getAsString().matches("[A-Za-z0-9._:-]{1,128}"));
         }
         assertFalse(client.detailed());
@@ -129,7 +129,7 @@ class ShellClientTest {
         var launcher = new LinuxAppLauncher(() -> null);
         var app = new AppDefinition("notepad", "Notepad", List.of("notepad.exe"), "minecraft:paper", true);
         var failure = assertThrows(CompletionException.class, () -> launcher.launch(app).toCompletableFuture().join());
-        assertTrue(failure.getCause().getMessage().contains("aresos-shell/1.1"));
+        assertTrue(failure.getCause().getMessage().contains("aresos-shell/1.2"));
         assertEquals("app helper unavailable", LinuxAppLauncher.reason(failure));
         assertThrows(IOException.class, () -> new LinuxAppCatalogue().listApps());
     }
