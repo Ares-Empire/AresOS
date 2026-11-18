@@ -3,6 +3,16 @@
 Brief: `briefs/18c-b-chrome-image.md` (on `main` since PR #73).
 Branch `pkg/18c-b-chrome`, one builder at a time. Each step is a fresh agent; this file is the handoff.
 
+## Step 3b: the lead's runs on 5a027074 (2026-11-19)
+
+The lead dispatched and watched these from the shell (the builder pushes and stops):
+- checks_only 44397757752: **success**; "Ran 1805 tests", "OK (skipped=4)" (log 3595/3597); CONTROL_GH_PAYLOAD_PASS 240 paths, CONTROL_GH_RPM_PASS, CONTROL_GH_INSTALL_PASS (2371-2379); CONTROL_CHROME_CHECKOUT_PASS and CONTROL_CHROME_BUILD_LOG_PASS (2108-2109, 2380).
+- check_build=build 44409288317: **success**. CONTROL_GH_PAYLOAD_PASS 240 paths (1561), CONTROL_GH_RPM_PASS (1562), CONTROL_GH_INSTALL_PASS (1563), CONTROL_GH_KEYRING_PASS (1564), CONTROL_GH_IMAGE_PASS 2.103.3 (2336), CONTROL_CHROME_BUNDLE_PASS (2928), CONTROL_CHROME_KEY_SCAN_PASS (2929), CONTROL_GH_CHECKOUT_PASS (3586), CONTROL_CHROME_CHECKOUT_PASS (3587), CHECK_BUILD_PASSED (3590), CONTROL_CHROME_BUILD_LOG_PASS (3591), CHECK_BUILD_VM_PASSED (4284).
+- The old name check's diagnostic (2335): `INFO gh legacy name matches=["/usr/share/bash-completion/completions/_gh", "/usr/share/fish/completions/gh.fish"]`. Both are base-image files, not paths of the pinned gh RPM's payload, so the payload-bound check is right to pass them.
+- check_build=resolve 44344811923 (on 6b80a139): "INFO gh newest=v2.105.0 pinned=gh-2.103.3" (1397).
+
+**3b is green.** Next: `linux-aresos` reads 3b's `os/` diff; then step 4 (the VM's first half), on a Claude Opus agent (Codex is kept for reviews until about 2026-11-25).
+
 ## Step 3b (2026-11-18, gpt-6-astra)
 
 ### Done
