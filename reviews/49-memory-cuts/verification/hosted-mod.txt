@@ -1,0 +1,8 @@
+Build, test and reproduce jar	Build and run unit and server game tests	2026-11-18T01:16:34.5888707Z [01:16:34] [Server thread/INFO] (Minecraft) ========= 104 GAME TESTS COMPLETE IN 29.21 s ======================
+Build, test and reproduce jar	Build and run unit and server game tests	2026-11-18T01:16:34.5889732Z [01:16:34] [Server thread/INFO] (Minecraft) All 104 required tests passed :)
+Build, test and reproduce jar	Build and run unit and server game tests	2026-11-18T01:17:11.6883648Z BUILD SUCCESSFUL in 1m 33s
+Build, test and reproduce jar	Build and test the second checkout	2026-11-18T01:18:35.5801398Z [01:18:35] [Server thread/INFO] (Minecraft) ========= 104 GAME TESTS COMPLETE IN 27.86 s ======================
+Build, test and reproduce jar	Build and test the second checkout	2026-11-18T01:18:35.5802343Z [01:18:35] [Server thread/INFO] (Minecraft) All 104 required tests passed :)
+Build, test and reproduce jar	Build and test the second checkout	2026-11-18T01:19:12.7424267Z BUILD SUCCESSFUL in 1m 29s
+Build, test and reproduce jar	Compare hashes and publish summary	2026-11-18T01:19:13.1477167Z e88194c52e956e5c098477d02cc5debc7ce3b3d4c234c05ca676235152f45b48  first/mod/build/libs/aresos-0.1.0.jar
+Build, test and reproduce jar	Compare hashes and publish summary	2026-11-18T01:19:13.1477860Z e88194c52e956e5c098477d02cc5debc7ce3b3d4c234c05ca676235152f45b48  second/mod/build/libs/aresos-0.1.0.jar
