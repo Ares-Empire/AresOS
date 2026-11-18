@@ -716,6 +716,8 @@ def run(token, *, root=PAGE_ROOT, select_monitor=laptop_monitor, sample_power=No
     socket_path = os.environ.pop('ARESOS_SHELL_SOCKET', '') or os.path.join(runtime, 'aresos/shell.sock')
     instance = os.environ.pop('ARESOS_DESKTOP_INSTANCE', '')
     os.environ.pop('ARESOS_LAUNCH_NONCE', None)
+    # GTK only presents the WebKit view. Cairo avoids a second GPU renderer in the window process.
+    os.environ.setdefault('GSK_RENDERER', 'cairo')
     try:
         gui = load_gui()
     except (ImportError, ValueError):
