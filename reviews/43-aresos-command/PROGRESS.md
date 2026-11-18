@@ -1099,3 +1099,8 @@ test_owner_equality failed on the generated lines. Restored by hand (the list an
 tool regenerates only `changes` and `files` and keeps the other keys): test_owner_equality 12 OK,
 test_checkout_sources 8 OK, test_owner_path 49 OK. Lesson: regenerate the rows on top of the builder's file, never
 from a checkout of it, when the builder changed keys other than the rows.
+
+**Step 5a reviewed:** REVIEW-15's must-fix fixed in `a400768b`; **REVIEW-16 SAFE**. Steps 1 to 5a are done.
+**Next: step 6**, which needs R28 published with its rehearsal mode on main, and calls 1 and 2 and the new `check`
+line settled with the owner. Before it: the merge of main after R28's payload commit (Left, item 1), and the two
+red tests going green (Control's `newest` from `linux-tools`; R28's Control rule, then the rule's `cli` path here).
