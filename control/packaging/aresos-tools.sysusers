@@ -1,2 +1,2 @@
 # DRAFT
-u aresos-tools - "AresOS tool service" /var/lib/aresos-tools /usr/sbin/nologin
+u aresos-tools 250 "AresOS tool service" /var/lib/aresos-tools /usr/sbin/nologin
