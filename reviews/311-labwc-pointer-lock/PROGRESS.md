@@ -1,142 +1,211 @@
 # 311 progress: labwc that holds a pointer lock on layer-shell surfaces
 
-**State: stopped on a PLAN-GAP.** The fix is proven, but the lock cannot be written, because the build
-dependencies do not resolve on the pinned Bazzite base. The brief says to stop and report this. The branch does
-not build an image until the lead decides (see PLAN-GAP 1). It must not be merged as it stands.
+**State: ready for review.** Briefs 311 and 311b are built and checked locally. Guard 5 (the session starts in the
+check build's VM pass) is `NOT RUN (lead, after the cut)`. Nothing was dispatched, merged or changed on the laptop.
 
 ## Done
 
-- `os/labwc/0001-allow-constraints-for-layer-surfaces.patch`: upstream `b7820667a2` adapted to 0.9.6. Same size as
-  upstream (37 insertions, 8 deletions). The header names the commit and lists what was adapted.
-- `os/labwc/stage.py`: `build`, `install` and `resolve`. Every refusal is one `LABWC_REFUSED` line.
-- `os/Containerfile`: the `labwc` stage on the pinned base, and the swap in the final stage before `configure`.
-- `os/ci/check-resolve.sh`: `check_build=resolve` prints a fresh resolution and a candidate lock (`labwc.txt`).
-- `os/ci/image-checks.sh`: labwc's NEVRA, only one labwc, `rpm -V labwc` clean.
+- `os/labwc/0001-allow-constraints-for-layer-surfaces.patch`: upstream `b7820667a2` adapted to 0.9.6.
+- `os/labwc/labwc.lock.json`: the pinned `fedora:44` and its 146 packages, the source package, the patch, the result
+  and 306 build dependencies, each by exact NEVRA, SHA-256 and Fedora's signed copy on Koji.
+- `os/labwc/stage.py`: `fetch`, `build`, `install` and `resolve`. Every refusal is one `LABWC_REFUSED` line.
+- `os/labwc/install-inputs.sh`: puts the checked inputs into `fedora:44`, signatures on, repositories off.
+- `os/labwc/resolve-download.sh`: the half of `check_build=resolve` that runs on `fedora:44`.
+- `os/Containerfile`: the `labwc-inputs` stage (pinned base), the `labwc` stage (pinned `fedora:44`), the final swap.
+- `os/ci/check-build.sh`, `os/ci/check-resolve.sh`: the fresh resolution and candidate lock (`evidence/resolve/labwc.txt`).
+- `os/ci/image-checks.sh`: the NEVRA, only one labwc, `rpm -V labwc`, and guards 3 and 4.
 - `os/ci/check-image.sh`: the image's copy of the lock must equal the reviewed one.
-- `os/tests/test_labwc_stage.py`: the lock's shape, every refusal, and the wiring.
-- `os/tests/test_aresos_desktop.py`: the stage list and one fixture now include the new stage and lock.
-- `reviews/311-labwc-pointer-lock/lock-probe/`: the headless behaviour probe.
+- `os/tests/test_labwc_stage.py`: 84 tests. `os/tests/test_aresos_desktop.py`: the stage list and one fixture.
+- `reviews/311-labwc-pointer-lock/lock-probe/`, `install-proof.sh`: the behaviour probe and the swap proof.
 
-## Left, in order
+## The `fedora:44` digest
 
-1. The lead decides PLAN-GAP 1.
-2. Change the stage's `FROM` if that is the decision, and the matching line in `test_aresos_desktop.py`.
-3. Run `stage.py resolve` in the chosen base with a bootstrap lock, and commit the candidate as
-   `os/labwc/labwc.lock.json`. `resolve` looks for Fedora's signed copy on Koji for each package.
-4. Run `podman build --target labwc`, then repeat acceptance items 1 to 4 on that RPM.
-5. Build the final stage far enough to run `stage.py install` for real, including `rpm -V labwc`.
-6. Run `test_labwc_stage` and `test_aresos_desktop` again: all 7 failing tests below need only the lock.
-7. Run `rebind.py pending` again after the last change to a bound file.
+`registry.fedoraproject.org/fedora@sha256:b02bb57e0e8ec2e057f0826436d2fc58765fa2b3b82d2abd322ece06e39c88f5`
 
-## Acceptance
+Two digests name this image. `sha256:7c338691...` is the multi-architecture index and `sha256:b02bb57e...` is the
+x86_64 image inside it (`skopeo inspect --raw`). A fresh `podman pull` of each, in an empty private store, gave the same
+image ID `9e2f6840a826...`. The x86_64 digest is pinned because it names exactly the bytes that are built on, and
+cannot resolve to another architecture.
 
-Items 1 to 4 ran in a plain `registry.fedoraproject.org/fedora:44` container
-(`sha256:b02bb57e0e8ec2e057f0826436d2fc58765fa2b3b82d2abd322ece06e39c88f5`), as the brief says to do first. The
-build dependencies there were Fedora's current ones, **not** a locked set, and the build was not on the pinned base.
+## Acceptance of 311b
 
 | # | Item | Result | Evidence |
 |---|---|---|---|
-| 1 | Patched source builds to the NEVRA | PASS (fedora:44 only) | `labwc-0.9.6-1.fc44.aresos1.x86_64`, SHA-256 `4e35a3bd...f5c732` |
-| 2 | Same file list and dependencies | PASS, with one explained difference | See below |
-| 3 | Lock works on a layer surface, and the test can fail | PASS | Fedora's build fails, ours passes |
-| 4 | A normal window's lock still works | PASS | Passes on both builds |
-| 5 | New `os/tests` modules pass | **FAIL** | 41 of 47 pass, 6 errors: `labwc.lock.json` does not exist |
-| 6 | Pending rebind list refreshed | PASS | `rebind.py pending`: 10 files before and after, only the note was added |
-| - | The `labwc` stage and the final image | **NOT RUN** | No lock, so neither was ever built |
+| 1 | `podman build --target labwc` gives the NEVRA from the locked environment | PASS | `LABWC_BUILT labwc-0.9.6-1.fc44.aresos1.x86_64 e5e33686...f25364d` |
+| 2 | Brief 311's items 1 to 4 on that RPM | PASS | See below |
+| 3 | `stage.py install` for real in the pinned base, `rpm -V`, guards 2 to 4 | PASS | `install-proof.sh` ended `INSTALL_PROOF_PASSED` |
+| 4 | `test_labwc_stage`, `test_aresos_desktop` and the first builder's modules | PASS | See below |
+| 5 | `rebind.py pending` after the last bound change | PASS | 10 files before and after, only the note was added |
+| 6 | This file ends with the NEVRA and the file list | PASS | Last section |
 
-### Item 1
+Commands, from the repository root (`$F` is the digest above, `$P` the pinned base):
 
-Rebuilt with the same spec edit `stage.py` makes (`%{autorelease}.aresos1` and one `Patch0` line). `rpm -qp` reports
-`labwc-0.9.6-1.fc44.aresos1.x86_64`. The compiler flags (`%{OPTFLAGS}`) equal those of Fedora's build.
+```
+podman --cgroup-manager=cgroupfs build --target labwc --format=oci --tag localhost/aresos-labwc:311b --file os/Containerfile os
+podman run --rm --cgroups=disabled -v <rpms>:/rpms:ro -v reviews/311-labwc-pointer-lock/lock-probe:/probe:ro $F bash /probe/in-container.sh /rpms/<rpm> /probe
+podman run --rm --cgroups=disabled -v ...:/proof/... -v os:/os:ro --entrypoint /usr/bin/bash $P /install-proof.sh
+```
 
-### Item 2
+### Comparison with Fedora's RPM
 
-Compared with Fedora's `labwc-0.9.6-1.fc44.x86_64`, SHA-256 `9438b595...16f60b`, the same as `os/packages.lock.json`,
-with Fedora's signature verified.
+Fedora's `labwc-0.9.6-1.fc44.x86_64`, SHA-256 `9438b595...16f60b`: the same hash as `os/packages.lock.json`, and
+`rpmkeys --checksig` reports its signature OK.
 
-- **Files:** 64 in each. Identical except for the two `/usr/lib/.build-id/` entries (each a folder and a link). Those
+- **Files:** 64 in each. The only difference is the two `/usr/lib/.build-id/` entries (a folder and a link each). Those
   names are hashes of the compiled binaries, so a patched binary must differ.
-- **Requires:** identical.
-- **Provides:** differ only in the version of `labwc` and `labwc(x86-64)`, which is the release suffix.
+- **Requires:** 59 in each, identical.
+- **Provides:** 2 in each. They differ only in the version of `labwc` and `labwc(x86-64)`, which is the release suffix.
+- **Compiler flags:** `%{OPTFLAGS}` is identical.
 
-### Items 3 and 4
-
-Run: `podman run ... fedora:44 bash /probe/in-container.sh <rpm> /probe`. Each mode gets its own labwc with
-`WLR_BACKENDS=headless` on a private `XDG_RUNTIME_DIR`. Full output: `evidence/probe-fedora-unpatched.txt` and
-`evidence/probe-aresos1.txt`.
+### Headless probe (`WLR_BACKENDS=headless`, private `XDG_RUNTIME_DIR`, inside a `fedora:44` container)
 
 | Check | Fedora, layer | Ours, layer | Fedora, window | Ours, window |
 |---|---|---|---|---|
 | Lock activated | FAIL | PASS | PASS | PASS |
 | Relative motion arrives in full | PASS | PASS | PASS | PASS |
 | No absolute motion while locked | FAIL (20 events) | PASS (0) | PASS | PASS |
-| Cursor stays still | FAIL (moved 200, 100) | PASS | PASS | PASS |
+| Cursor stays still | FAIL | PASS | PASS | PASS |
 | Second lock activated | FAIL | PASS | PASS | PASS |
 | Unlock moves the cursor to the hint | FAIL | PASS | PASS | PASS |
 | Confinement activated | FAIL | PASS | PASS | PASS |
 | Pointer stops at the region's edge | FAIL | PASS | PASS | PASS |
 | **Exit code** | **1** | **0** | **0** | **0** |
 
-The probe exits 2, not 1, when the compositor cannot be used, so a broken setup cannot pass as "fails on Fedora".
+The RPM is the one the locked stage produced. The probe exits 2, not 1, when the compositor cannot be used.
 
-### Item 5
+### Tests
 
-`python3 -m unittest discover -s os/tests -p 'test_labwc_stage.py'`: 47 tests, 6 errors. All 6 are in
-`ReviewedLockTest`, which reads the missing lock.
-
-Existing modules that read the changed files:
+Each module ran alone with `python3 -m unittest discover -s os/tests -p '<module>'`.
 
 | Module | Result |
 |---|---|
+| `test_labwc_stage` | 84 tests, OK |
+| `test_aresos_desktop` | 189 tests, OK, 1 skipped (no user systemd manager reachable) |
 | `test_shell_assertions` | 9 tests, OK |
 | `test_control_image` | 15 tests, OK |
 | `test_checkout_sources` | 8 tests, OK |
-| `test_aresos_desktop` | 189 tests. The full run predates its two test edits. Rerun of the two tests it failed: the stage list passes; `test_check_image_holds_a_release_image_to_the_reviewed_locks` still errors on the missing lock |
+| `test_aresos_shell_icons`, `test_aresos_cover`, `test_control_vm` | 43, 9 and 62 tests, OK |
+| `test_owner_equality`, `test_everyday_account`, `test_owner_path` | 11, 34 and 48 tests, OK |
+| `test_release_squash_binding`, `test_release27` | 7 and 41 tests, OK |
+| `test_console_keymap`, `test_tools_local_wiring` | 21 and 42 tests, OK |
+| `test_ways_back_model` | **NOT FINISHED**: stopped by this run's 280-second limit. It only names `os/Containerfile` in a fixture |
 
-The full `test_aresos_desktop` module was not rerun after those edits.
+### `check_build=resolve`
+
+Both halves ran against the committed lock: `Resolved 306 build dependencies; the lock has 306`, `LABWC_LOCK_CURRENT`, and
+the candidate file is byte-identical to `os/labwc/labwc.lock.json`. The hosted job itself has not run.
+
+## The five guards
+
+| # | Guard | Result | How it was shown to fire |
+|---|---|---|---|
+| 1 | Same wlroots | PASS | Real swap with a changed lock: `LABWC_REFUSED the locked wlroots0.19-devel-0.19.4-1.fc44.x86_64 is not the same build as the image's wlroots0.19-0.19.3-1.fc44.x86_64`. `fetch` refuses too (tests) |
+| 2 | Checked install | PASS | An RPM of the same NEVRA with an unmet Requires: `LABWC_REFUSED ... did not install (dnf5 exit 1)`, Fedora's labwc stayed |
+| 3 | No missing library | PASS | Library moved away: `LABWC_RUNTIME_FAILED ldd exit 0, not found: ['libwlroots-0.19.so => not found']` |
+| 4 | Requires met by the base | PASS | wlroots0.19 taken out of the package database: `LABWC_RUNTIME_FAILED no package of this image provides: ['libwlroots-0.19.so()(64bit)']`. On the real swap: `LABWC_RUNTIME_OK 55 requirements` |
+| 5 | The session starts | NOT RUN (lead, after the cut) | The check build's VM pass |
 
 ## PLAN-GAP
 
-### 1. The build dependencies do not resolve on the pinned base (blocking)
-
-`wlroots0.19-devel` needs `pkgconfig(gbm)`, which only `mesa-libgbm-devel` provides. That package must match the
-installed `mesa-libgbm`, and no source offers a match for the base's:
-
-| Source | What it has | Why it does not work |
-|---|---|---|
-| Pinned base | Terra's `mesa-libgbm-1:26.2.4-1.fc44` (epoch 1) | The runtime that must be matched |
-| Fedora's `fedora` and `updates` | `26.0.3-4` and `26.2.7-1` | Excluded on the base, wrong version, epoch 0 |
-| Koji | `mesa-libgbm-devel-26.2.4-1.fc44` | Needs `mesa-libgbm(x86-64) = 26.2.4-1.fc44`; dnf5 refuses it against Terra's epoch 1. No signed copy under Fedora 44's key either |
-| Terra | Only `1:26.2.7-1.fc44` today | Needs the same 26.2.7 runtime |
-
-Commands and output: `evidence/base-mesa-gap.txt`.
-
-Options for the lead (only A has been shown to work):
-
-- **A (recommended): build the stage on a digest-pinned `fedora:44`.** Every dependency then comes from Fedora, signed
-  and available on Koji, and the buildroot matches how Fedora built labwc. It departs from the brief's "same pinned
-  base digest", which is why this builder did not choose it. Still to check: that the RPM runs on the base's
-  libraries, since the buildroot's libraries may be newer than the base's.
-- **B: replace Terra's mesa with Fedora's inside the throwaway stage.** Stays on the base, but changes both
-  architectures of mesa there, and `stage.py` would have to allow replaced base packages. Not tried.
-- **C: force Fedora's `mesa-libgbm-devel` 26.2.4 in with `rpm --nodeps`.** Same upstream headers, but it skips a
-  dependency check and uses an unsigned file. Not tried.
-
-### 2. R29's release-diff rule must cover more than the NEVRA (for `linux-aresos`, out of scope here)
-
-`os/ci/release_diff.py` stops on a package outside `packages.lock.json`, so it will stop on
-`labwc-0.9.6-1.fc44.aresos1.x86_64`. The rule must also accept the new `usr/share/aresos/manifest/labwc.lock.json`.
+1. **`fedora:44` has no Python and no `rpmbuild`.** `stage.py` cannot start there. The pinned base therefore downloads and
+   checks every input in a new `labwc-inputs` stage, `install-inputs.sh` installs them, and `stage.py build` then proves
+   that the installed packages are exactly the locked environment. `check_build=resolve` has two halves for the same
+   reason. No check was weakened.
+2. **The pinned base has no `wlroots0.19`.** Brief 311b's guard 1 says it does. The package comes from
+   `os/packages.lock.json`, in the `packages` stage. The guard therefore compares against that lock in `fetch`, and against
+   the package really installed in the image at the swap.
+3. **R29's release-diff rule (for `linux-aresos`, out of scope here).** `os/ci/release_diff.py` stops on a package outside
+   `packages.lock.json`, so it will stop on `labwc-0.9.6-1.fc44.aresos1.x86_64`. The rule must also accept the new
+   `usr/share/aresos/manifest/labwc.lock.json`.
 
 ## JUDGMENT-CALL
 
-None. Nothing here changes what the owner sees, and no owner-facing choice was made.
+None. Nothing here changes what the owner sees.
+
+## Not verified
+
+- A full image build, and guard 5. The swap proof installed Fedora's labwc and its dependencies from the live Fedora
+  repositories with wlroots pinned, not through `build.sh packages`.
+- The probe ran on `fedora:44`. labwc has not been started on the pinned base's libraries: guards 3 and 4 show that they
+  resolve, and the VM pass must show that the session runs.
+- Real hardware and Lan Mouse's `test-capture`.
 
 ## What the code does not show
 
-- The source package URL in the brief is Koji's unsigned copy. Its contents (`labwc.spec`, `labwc-0.9.6.tar.gz`) are
-  byte-identical to Fedora's signed copy, whose signature was verified with the Fedora 44 key.
-- Koji's top-level `x86_64/` copies are unsigned and have different hashes from the repository's. `stage.py resolve`
-  therefore uses `data/signed/<key>/`, whose labwc copy has the same SHA-256 as `os/packages.lock.json`.
-- The probe's lock request comes after the layer surface has focus, which is the path that fails on 0.9.6.
-- Not tested: real hardware, Lan Mouse's `test-capture`, or labwc on the pinned base.
-- The pinned base image (about 5.6 GB compressed) and `fedora:44` remain in rootless podman storage for the next step.
+- The source package in the lock is Koji's unsigned copy. Its payload and header digests equal those of Fedora's signed copy,
+  whose signature was verified.
+- The build environment has `mesa-libgbm-26.2.7`, the image Terra's `26.2.4`. labwc's Requires are identical to Fedora's.
+- A locked package may replace its older copy in the base (`expected_environment`). The current lock replaces none.
+- `evidence/` is ignored by git, so the results that matter are written out in this file.
+
+## Final NEVRA and file list (for `linux-aresos`'s R29 rule)
+
+`labwc-0.9.6-1.fc44.aresos1.x86_64`, built here with SHA-256
+`e5e33686e6e30e9c74132ce145ffe3aaa0948a612c9047f8b2067be04f25364d`. The two `.build-id` names follow the compiled binaries.
+
+```
+/usr/bin/lab-sensible-terminal
+/usr/bin/labnag
+/usr/bin/labwc
+/usr/lib/.build-id
+/usr/lib/.build-id/0d
+/usr/lib/.build-id/0d/65667b21a13425316714134871edf36aca3728
+/usr/lib/.build-id/46
+/usr/lib/.build-id/46/b7b1406d74be14d9197545cc6d317b7db65d53
+/usr/share/doc/labwc
+/usr/share/doc/labwc/NEWS.md
+/usr/share/doc/labwc/README
+/usr/share/doc/labwc/autostart
+/usr/share/doc/labwc/environment
+/usr/share/doc/labwc/menu.xml
+/usr/share/doc/labwc/rc.xml
+/usr/share/doc/labwc/rc.xml.all
+/usr/share/doc/labwc/shutdown
+/usr/share/doc/labwc/themerc
+/usr/share/licenses/labwc
+/usr/share/licenses/labwc/LICENSE
+/usr/share/locale/ar/LC_MESSAGES/labwc.mo
+/usr/share/locale/ca/LC_MESSAGES/labwc.mo
+/usr/share/locale/cs/LC_MESSAGES/labwc.mo
+/usr/share/locale/da/LC_MESSAGES/labwc.mo
+/usr/share/locale/de/LC_MESSAGES/labwc.mo
+/usr/share/locale/el/LC_MESSAGES/labwc.mo
+/usr/share/locale/es/LC_MESSAGES/labwc.mo
+/usr/share/locale/et/LC_MESSAGES/labwc.mo
+/usr/share/locale/eu/LC_MESSAGES/labwc.mo
+/usr/share/locale/fa/LC_MESSAGES/labwc.mo
+/usr/share/locale/fi/LC_MESSAGES/labwc.mo
+/usr/share/locale/fr/LC_MESSAGES/labwc.mo
+/usr/share/locale/gl/LC_MESSAGES/labwc.mo
+/usr/share/locale/he/LC_MESSAGES/labwc.mo
+/usr/share/locale/hr/LC_MESSAGES/labwc.mo
+/usr/share/locale/hu/LC_MESSAGES/labwc.mo
+/usr/share/locale/id/LC_MESSAGES/labwc.mo
+/usr/share/locale/it/LC_MESSAGES/labwc.mo
+/usr/share/locale/ja/LC_MESSAGES/labwc.mo
+/usr/share/locale/ka/LC_MESSAGES/labwc.mo
+/usr/share/locale/kk/LC_MESSAGES/labwc.mo
+/usr/share/locale/ko/LC_MESSAGES/labwc.mo
+/usr/share/locale/lt/LC_MESSAGES/labwc.mo
+/usr/share/locale/ms/LC_MESSAGES/labwc.mo
+/usr/share/locale/nl/LC_MESSAGES/labwc.mo
+/usr/share/locale/pa/LC_MESSAGES/labwc.mo
+/usr/share/locale/pl/LC_MESSAGES/labwc.mo
+/usr/share/locale/pt/LC_MESSAGES/labwc.mo
+/usr/share/locale/pt_BR/LC_MESSAGES/labwc.mo
+/usr/share/locale/ru/LC_MESSAGES/labwc.mo
+/usr/share/locale/sk/LC_MESSAGES/labwc.mo
+/usr/share/locale/sv/LC_MESSAGES/labwc.mo
+/usr/share/locale/tr/LC_MESSAGES/labwc.mo
+/usr/share/locale/uk/LC_MESSAGES/labwc.mo
+/usr/share/locale/vi/LC_MESSAGES/labwc.mo
+/usr/share/locale/zh_CN/LC_MESSAGES/labwc.mo
+/usr/share/locale/zh_TW/LC_MESSAGES/labwc.mo
+/usr/share/man/man1/labnag.1.gz
+/usr/share/man/man1/labwc.1.gz
+/usr/share/man/man5/labwc-actions.5.gz
+/usr/share/man/man5/labwc-config.5.gz
+/usr/share/man/man5/labwc-menu.5.gz
+/usr/share/man/man5/labwc-theme.5.gz
+/usr/share/xdg-desktop-portal/labwc-portals.conf
+```
