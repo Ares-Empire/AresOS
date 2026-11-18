@@ -1,4 +1,4 @@
-2026-11-18T04:06:09+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh v1-nether COVER=300 BASE=AresHub-nether-base HOMEKIND=nether FLIGHT=glide 
+2026-11-18T04:06:09+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh v1-nether COVER=300 BASE=AresHub-nether-base HOMEKIND=nether FLIGHT=glide
 04:06:09 waiting for the lock and the game (v1-nether)
 04:06:19 game PID 888767 in pkg49-game-v1-nether-888282.scope
 04:06:19 game_detected
