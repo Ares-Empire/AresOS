@@ -8,6 +8,7 @@ import json
 import math
 import os
 import pathlib
+import re
 import shutil
 import signal
 import struct
@@ -301,7 +302,13 @@ class PinnedInputsTest(unittest.TestCase):
             desktop.library_file(library)
         self.assertTrue(LOCK['prism']['url'].startswith(
             'https://github.com/PrismLauncher/PrismLauncher/releases/download/11.1.1/'))
-        mods = {mod['file']: mod for mod in LOCK['mods']}
+        # Package 52: Prism's metadata comes from one commit of its meta repository, never from
+        # meta.prismlauncher.org, which Prism regenerates weekly (the 2026-11-17 update broke every build).
+        for component in LOCK['components']:
+            self.assertRegex(component['sha256'], r'\A[0-9a-f]{64}\Z', component)
+            self.assertRegex(component['url'], r'\Ahttps://raw\.githubusercontent\.com/PrismLauncher/meta-launcher/'
+                             r'[0-9a-f]{40}/' + re.escape(f"{component['uid']}/{component['version']}.json") + r'\Z')
+        mods ={mod['file']: mod for mod in LOCK['mods']}
         self.assertEqual(set(mods), {'fabric-api.jar', 'aresos.jar'})
         self.assertEqual(mods['fabric-api.jar']['version'], '0.161.0+26.2')
         # The mod jar is built from this repository, never downloaded; its builder is pinned by digest.
@@ -3046,7 +3053,7 @@ class ImageBuildTest(unittest.TestCase):
             self.assertIn('curl: command not found', fetch.stderr)
 
     @unittest.skipUnless(LINUX, 'runs build.sh with a stand-in for the network')
-    def test_the_source_stage_fetches_the_named_commit_and_keeps_only_mod(self):
+    def test_the_source_stage_fetches_the_named_commit_and_keeps_only_mod_and_control(self):
         with tempfile.TemporaryDirectory() as folder:
             root = pathlib.Path(folder)
             revision = 'ab' * 20
@@ -3056,6 +3063,12 @@ class ImageBuildTest(unittest.TestCase):
             (tree / 'mod/gradlew').chmod(0o755)
             (tree / 'os').mkdir()
             (tree / 'os/unrelated').write_text('not extracted')
+            # Package 18c: control/ comes from the same fetch; docs/control/ is not it.
+            (tree / 'control/aresos_control').mkdir(parents=True)
+            (tree / 'control/launch.py').write_text('launcher')
+            (tree / 'control/aresos_control/cli.py').write_text('cli')
+            (tree / 'docs/control').mkdir(parents=True)
+            (tree / 'docs/control/PLAN.md').write_text('not extracted')
             archive = root / 'source.tar.gz'
             subprocess.run(['tar', '-czf', str(archive), '-C', str(root), tree.name], check=True)
             stubs = root / 'bin'
@@ -3072,7 +3085,9 @@ class ImageBuildTest(unittest.TestCase):
                              ['-fsSL', '--proto', '=https', '--tlsv1.2', '--retry', '3', '-o',
                               (root / 'curl-args').read_text().split()[7],
                               f'https://codeload.github.com/Ares-Empire/AresOS/tar.gz/{revision}'])
-            self.assertEqual(sorted(p.name for p in (root / 'out').iterdir()), ['mod'])
+            self.assertEqual(sorted(p.name for p in (root / 'out').iterdir()), ['control', 'mod'])
+            self.assertEqual(sorted(str(p.relative_to(root / 'out/control')) for p in (root / 'out/control').rglob('*')),
+                             ['aresos_control', 'aresos_control/cli.py', 'launch.py'])
             self.assertTrue(os.access(root / 'out/mod/gradlew', os.X_OK))
             digest = hashlib.sha256(archive.read_bytes()).hexdigest()
             self.assertIn(f'MOD_SOURCE {revision} {digest}', result.stdout)

@@ -13,7 +13,7 @@ public final class HomeRules {
      * not asked: a helper that dropped must not bring Save and Quit back. A normal world, the plain development
      * client and a game the session did not start keep Minecraft's own menu.
      */
-    public static boolean menuReplacesGameMenu(boolean session, boolean desktopWorld) {
+    public static boolean home(boolean session, boolean desktopWorld) {
         return session && desktopWorld;
     }
 

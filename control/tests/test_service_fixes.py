@@ -323,15 +323,28 @@ class IdleLoop(unittest.TestCase):
     def expires(self, approval):
         return self.engine.store.get('op:' + approval['operation_id'])['expires']
 
-    def passes(self, count, sleep=False, check=lambda: None):
-        """Run serve() for `count` selects; record each timeout (and `check()`), optionally sleeping it."""
+    def clock(self):
+        """Stop the wall clock for this test; it moves only when the test moves `.now`.
+
+        Reservations expire on wall-clock time. On a slow runner, the store's fsyncs alone took a 0.4 s reservation
+        to 0.09 s before the loop's first select (PR #91's Control Mail run), so a test that times expiry against the
+        real clock fails there. The loop's maintenance timer keeps the real monotonic clock.
+        """
+        clock = SimpleNamespace(now=time.time())
+        patcher = patch.object(time, 'time', lambda: clock.now)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        return clock
+
+    def passes(self, count, clock=None, check=lambda: None):
+        """Run serve() for `count` selects; record each timeout (and `check()`), moving `clock` on by it if given."""
         timeouts, self.checked = [], []
         def select(timeout):
             timeouts.append(timeout)
             self.checked.append(check())
-            if sleep:
-                # Like a real select whose deadline arrives; the long idle sleep is only recorded.
-                time.sleep(min(timeout, 1))
+            if clock is not None:
+                # Like a real select whose deadline arrives, without the wait.
+                clock.now += timeout
             if len(timeouts) >= count:
                 self.daemon.stopping = True
             return []
@@ -342,6 +355,7 @@ class IdleLoop(unittest.TestCase):
 
     def test_next_deadline_is_none_idle_and_the_earliest_open_reservation_otherwise(self):
         from aresos_control import engine as engine_module
+        clock = self.clock()
         self.assertIsNone(self.engine.next_deadline())
         self.engine.ttl = 0.6
         later = self.reserve(subject='later')
@@ -349,19 +363,20 @@ class IdleLoop(unittest.TestCase):
         first = self.reserve(subject='first')  # reserved second, expires first
         self.assertLess(self.expires(first), self.expires(later))
         self.assertEqual(self.engine.next_deadline(), self.expires(first))
-        self.assertAlmostEqual(self.engine.next_deadline(), time.time() + 0.4, delta=0.2)
-        time.sleep(0.45)
+        self.assertAlmostEqual(self.engine.next_deadline(), clock.now + 0.4, delta=0.001)
+        clock.now += 0.45  # past the first, not the later
         self.engine.expire()
         self.assertEqual(self.engine.next_deadline(), self.expires(later))
-        time.sleep(0.2)
+        clock.now += 0.2  # past both
         self.engine.expire()
         self.assertIsNone(self.engine.next_deadline())
         self.engine.store.deferred_notices['n'] = ({}, 'control_maintenance', 'synthetic')
-        self.assertAlmostEqual(self.engine.next_deadline(), time.time() + engine_module.NOTICE_RETRY, delta=0.2)
+        self.assertAlmostEqual(self.engine.next_deadline(), clock.now + engine_module.NOTICE_RETRY, delta=0.001)
 
     def test_deferred_notices_never_delay_an_earlier_reservation(self):
         # Review 1 #1 (minor): the 1 s notice retry used to hide a reservation expiring sooner.
         from aresos_control import engine as engine_module
+        self.clock()  # the reservation stays open however slowly the runner gets to next_deadline()
         approval = self.reserve()
         self.engine.store.deferred_notices['n'] = ({}, 'control_maintenance', 'synthetic')
         self.assertEqual(self.engine.next_deadline(), self.expires(approval))
@@ -398,7 +413,11 @@ class IdleLoop(unittest.TestCase):
                                      (-0.001, daemon_module.OVERDUE_RETRY)):
                 with self.subTest(offset=offset), \
                         patch('aresos_control.daemon.time.time', return_value=self.expires(approval) - offset):
-                    self.assertAlmostEqual(self.passes(1)[0], expected, places=6)
+                    timeout = self.passes(1)[0]
+                    self.assertAlmostEqual(timeout, expected, places=6)
+                    if offset > 0:
+                        # Keep lateness bounded independently of the product's margin.
+                        self.assertLessEqual(timeout, 0.012)
 
     def test_idle_sleeps_until_maintenance(self):
         timeouts = self.passes(3)
@@ -407,20 +426,24 @@ class IdleLoop(unittest.TestCase):
             self.assertLessEqual(timeout, 60)
 
     def test_a_pending_expiry_is_met_on_time(self):
+        from aresos_control import daemon as daemon_module
+        clock = self.clock()
         approval = self.reserve()
-        started = time.monotonic()
+        expires = self.expires(approval)
         def state():
             status = self.engine.request({'v': 1, 'method': 'call', 'action': 'testapp_operation_status',
                                           'arguments': {'operation_id': approval['operation_id']}})
-            return status['data']['operation']['state'], time.monotonic() - started
-        timeouts = self.passes(2, sleep=True, check=state)
-        # The first select sleeps until the expiry, not 0.1 s; the pass after it expires the reservation.
-        self.assertGreater(timeouts[0], 0.3)
+            return status['data']['operation']['state'], clock.now
+        timeouts = self.passes(2, clock=clock, check=state)
+        # The first select sleeps until the expiry and its margin, not 0.1 s or 60 s; the pass it wakes for, at that
+        # time, expires the reservation. Then nothing is pending: the idle sleep.
+        self.assertAlmostEqual(timeouts[0], self.engine.ttl + daemon_module.DEADLINE_MARGIN, places=6)
+        # A larger product margin must not silently weaken this 0.4 s reservation's deadline.
         self.assertLessEqual(timeouts[0], 0.41)
         self.assertGreater(timeouts[1], 59)
         self.assertEqual(self.checked[0][0], 'reserved')
         self.assertEqual(self.checked[1][0], 'failed')
-        self.assertLess(self.checked[1][1], 0.6)
+        self.assertAlmostEqual(self.checked[1][1], expires + daemon_module.DEADLINE_MARGIN, delta=0.001)
 
     def test_a_waiting_confirmation_is_polled_and_its_answer_handled(self):
         chrome = self.engine.adapters['chrome']

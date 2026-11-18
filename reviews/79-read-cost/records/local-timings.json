@@ -1,0 +1,34 @@
+[
+  {
+    "entries": 301,
+    "mode": "hit",
+    "samples": 101,
+    "median_ms": 0.083045,
+    "p95_ms": 0.094252,
+    "validations_per_call": 0
+  },
+  {
+    "entries": 301,
+    "mode": "full",
+    "samples": 101,
+    "median_ms": 2.184075,
+    "p95_ms": 2.699435,
+    "validations_per_call": 1
+  },
+  {
+    "entries": 1001,
+    "mode": "hit",
+    "samples": 101,
+    "median_ms": 0.154594,
+    "p95_ms": 0.177963,
+    "validations_per_call": 0
+  },
+  {
+    "entries": 1001,
+    "mode": "full",
+    "samples": 101,
+    "median_ms": 7.174058,
+    "p95_ms": 7.684178,
+    "validations_per_call": 1
+  }
+]

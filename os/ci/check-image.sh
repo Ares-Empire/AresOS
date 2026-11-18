@@ -1,5 +1,5 @@
 #!/usr/bin/bash
-# Check packages 21 and 23 on a locally built image (never pushed).
+# Check packages 21, 23 and 18c on a locally built image (never pushed).
 set -euo pipefail
 image=$1
 # release or throwaway, as check-build.sh built it (build.sh configure, the mod jar).
@@ -71,4 +71,73 @@ for name, reviewed in (('packages.lock.json', json.loads(pathlib.Path('os/packag
     assert json.loads((manifest / name).read_text()) == reviewed, name
 print('Image manifest locks equal the reviewed locks')
 PY
+# Package 18c: the Control files the image records (image-checks.sh proved the
+# image holds exactly them) are what this checkout installs: build.sh's own
+# install map recomputes them here. The build commit is this one, and the
+# vendored wheels are this checkout's requirements.lock: build.sh checked them
+# inside the build, and this check reads the lock again from the checkout,
+# apart from the build (REVIEW-A1 #6); image-checks.sh checked the installed bytes
+# against the record, and vendor_check.py below the record against the wheels.
+expected=$(mktemp -d)
+bash os/build.sh control-tree os control "$expected/root" | tee "$out/control-tree.txt"
+python3 - "$out/manifest/control.json" "$expected/root/usr/share/aresos/manifest/control.json" "$(git rev-parse HEAD)" \
+    control/requirements.lock <<'PY'
+import json, re, sys
+image, expected = (json.load(open(path)) for path in sys.argv[1:3])
+revision = sys.argv[3]
+assert image['source_revision'] == revision, f'Control in the image is from {image["source_revision"]}, not {revision}'
+# The lock as pip reads it: `name==version \` then one or more `--hash=sha256:` lines. Every other line is a comment
+# or blank, so no pin can be skipped by a line this parser doesn't know.
+normal = lambda name: re.sub(r'[-_.]+', '-', name).lower()
+lock, current = {}, None
+for line in open(sys.argv[4]).read().splitlines():
+    if match := re.fullmatch(r'([A-Za-z0-9._-]+)==(\S+) \\', line):
+        current = (normal(match[1]), match[2])
+        assert current not in lock, f'requirements.lock pins {current} twice'
+        lock[current] = set()
+    elif match := re.fullmatch(r'\s+--hash=sha256:([0-9a-f]{64})( \\)?', line):
+        assert current is not None, f'a hash before any pin in requirements.lock: {line}'
+        lock[current].add(match[1])
+    else:
+        assert not line.strip() or line.startswith('#'), f'requirements.lock line not understood: {line}'
+assert lock and all(lock.values()), 'requirements.lock has no pins, or a pin without a hash'
+wheels = image['wheels']
+installed = [(wheel['name'], wheel['version']) for wheel in wheels]
+assert len(set(installed)) == len(installed), f'a wheel is recorded twice: {installed}'
+if set(installed) != set(lock):
+    print(f'not in the lock: {sorted(set(installed) - set(lock))}; not installed: {sorted(set(lock) - set(installed))}',
+          file=sys.stderr)
+    raise SystemExit("The image's wheels are not this checkout's requirements.lock")
+unpinned = [wheel for wheel in wheels if wheel['sha256'] not in lock[(wheel['name'], wheel['version'])]
+            or not wheel['file'].endswith('.whl')]
+assert not unpinned, f"wheels whose SHA-256 is not one of the lock's pins: {unpinned}"
+for key in ('format', 'requirements_lock', 'links', 'directories', 'files'):
+    if image[key] != expected[key]:
+        if isinstance(expected[key], dict):
+            changed = sorted(name for name in image[key].keys() | expected[key].keys()
+                             if image[key].get(name) != expected[key].get(name))
+            print(f'control.json {key} differs at: {changed[:20]}', file=sys.stderr)
+        raise SystemExit(f'control.json {key} is not what this checkout installs')
+assert image['wheels'] and all(name == '/usr/lib/aresos-control' or name.startswith('/usr/lib/aresos-control/')
+                               for name in image['vendor']), 'vendored paths outside /usr/lib/aresos-control'
+print(f'Control in the image is this checkout: {len(image["files"])} files from {revision}, '
+      f'{len(image["wheels"])} wheels from requirements.lock (sha256 {image["requirements_lock"]})')
+PY
+rm -rf "$expected"
+# REVIEW-X1 #1: the vendored tree itself, apart from the build. The wheels the record names (held to the lock just
+# above) come from PyPI again, each with its recorded SHA-256. In a throwaway container of the image, without
+# network, vendor_check.py derives the tree they install (the wheels' files and what pip writes, by the rules in its
+# docstring), compiles it with the build's command where the build compiled it, and requires the image's tree and
+# its record to be exactly that tree: paths, contents (bytecode included) and modes.
+vendor_work=$(mktemp -d)
+mkdir "$vendor_work/wheels"
+python3 -I os/ci/control/vendor_check.py fetch "$out/manifest/control.json" "$vendor_work/wheels" \
+    | tee "$out/control-vendor.txt"
+cp os/ci/control/vendor_check.py "$out/manifest/control.json" "$vendor_work/"
+tar -c -C "$vendor_work" . | sudo podman run --rm -i --network=none --entrypoint /usr/bin/bash "$image" -ec \
+    'mkdir /tmp/vendor-check && tar -x -C /tmp/vendor-check &&
+     exec /usr/bin/python3 -I /tmp/vendor-check/vendor_check.py check /tmp/vendor-check/control.json /tmp/vendor-check/wheels' \
+    | tee -a "$out/control-vendor.txt"
+grep -q '^CONTROL_VENDOR_FROM_WHEELS ' "$out/control-vendor.txt"
+rm -rf "$vendor_work"
 echo CHECK_BUILD_PASSED
