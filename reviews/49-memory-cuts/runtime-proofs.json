@@ -33,5 +33,36 @@
       "classes.jsa"
     ],
     "artifact_directory": "candidates/compact-headers-native/control"
+  },
+  "revised_current_baseline": {
+    "run": "v1-create",
+    "artifact_directory": "runs/v1-create",
+    "pid": 472699,
+    "scope_identity_checked": true,
+    "lifecycle_gate_present": false,
+    "private_instance": true,
+    "private_helper": true,
+    "offscreen_wayland": true,
+    "offscreen_x11": true,
+    "MALLOC_ARENA_MAX": null,
+    "mapped_CDS_archive_basenames": [
+      "classes.jsa"
+    ]
+  },
+  "revised_native_candidate": {
+    "run": "winner-create",
+    "artifact_directory": "runs/winner-create",
+    "pid": 522426,
+    "scope_identity_checked": true,
+    "lifecycle_gate_present": false,
+    "private_instance": true,
+    "private_helper": true,
+    "offscreen_wayland": true,
+    "offscreen_x11": true,
+    "MALLOC_ARENA_MAX": "2",
+    "mapped_CDS_archive_basenames": [
+      "classes.jsa"
+    ],
+    "coh_archive_mapped": false
   }
 }
