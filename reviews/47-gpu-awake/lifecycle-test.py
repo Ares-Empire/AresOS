@@ -63,6 +63,50 @@ while True:
     time.sleep(1)
 '''
 (ROOT / 'client.py').write_text(CLIENT)
+# Keep the ordinary scope unconfirmed until KILL escalation, then kill the holder
+# inside the first final-confirmation query. Only this case uses the shim; every
+# stop/kill still reaches the real user manager and targets this trial's units.
+SHIM = r'''#!/usr/bin/python3
+import os
+from pathlib import Path
+import select
+import subprocess
+import sys
+
+cache = Path(os.environ["TRIAL_CACHE"])
+args = sys.argv[1:]
+ordinary = any(arg.startswith("aresos-dev-trial-client-") for arg in args)
+escalated = cache / "escalated"
+killed = cache / "confirmation-holder-killed"
+if ordinary and "kill" in args and "--signal=KILL" in args:
+    escalated.touch()
+if ordinary and "show" in args:
+    if not escalated.exists():
+        print("deactivating")
+        sys.exit(0)
+    if not killed.exists():
+        unit = (cache / "holder.unit").read_text().strip()
+        # systemd-run --scope execs the worker in its launcher PID. Wait for that
+        # owned child to exit so holder_lost() sees it dead when this query returns.
+        worker = int(next(line.split()[2] for line in (cache / "events").read_text().splitlines()
+                          if line.startswith("retain ")))
+        fd = os.pidfd_open(worker)
+        subprocess.run(["/usr/bin/systemctl", "--user", "kill", "--signal=KILL", "--", unit],
+                       check=True, timeout=.5)
+        assert select.select([fd], [], [], .5)[0], "holder worker survived"
+        os.close(fd)
+        killed.touch()
+        # Stay in final confirmation for another iteration to check monitoring
+        # there, before the separate check at the intentional-release boundary.
+        print("deactivating")
+        sys.exit(0)
+    assert "NVIDIA power holder exited unexpectedly; aborting client tests." in (cache / "output.log").read_text()
+    (cache / "confirmation-loss-observed").touch()
+os.execv("/usr/bin/systemctl", ["systemctl", *args])
+'''
+(ROOT / 'shim').mkdir(exist_ok=True)
+(ROOT / 'shim/systemctl').write_text(SHIM)
+(ROOT / 'shim/systemctl').chmod(0o755)
 TRIAL = f'''#!/usr/bin/bash
 set -euo pipefail
 source {shlex.quote(str(REPO / 'mod/dev/env.sh'))}
@@ -75,6 +119,11 @@ printf '%s\\n' "$ARESOS_GUARD_JOB" >"$ARESOS_DEV_CACHE/guard.pid"
 if ! aresos_hold_nvidia 0000:01:00.0; then exit 7; fi
 printf '%s\\n' "$ARESOS_GPU_HOLDER_UNIT" >"$ARESOS_DEV_CACHE/holder.unit"
 if [[ $2 == normal || $2 == release-hang ]]; then exit 0; fi
+if [[ $2 == cleanup-final-holder-kill ]]; then
+    aresos_scope_start trial-client -- /usr/bin/python3 -I {shlex.quote(str(ROOT / 'client.py'))} "$1" "$3"
+    while [[ ! -f $ARESOS_DEV_CACHE/begin-cleanup ]]; do /usr/bin/sleep 0.02; done
+    exit 0
+fi
 # Exercise stdout, compositor stderr, fd 3, exported variables, and exit-code forwarding too.
 if [[ $2 == descriptors ]]; then
     export TRIAL_EXPORTED=preserved
@@ -117,6 +166,8 @@ def run(name, variables=(), trigger=None, expected=0, stubborn=False):
     (cache / 'client-test-gpu-holder.log').write_text('READY\n')
     environment = dict(os.environ, LD_LIBRARY_PATH=str(ROOT), TRIAL_EVENTS=str(events))
     environment.update(dict.fromkeys(variables, '1'))
+    if name == 'cleanup-final-holder-kill':
+        environment.update(PATH=str(ROOT / 'shim') + os.pathsep + os.environ['PATH'], TRIAL_CACHE=str(cache))
     start = time.monotonic()
     with (cache / 'output.log').open('w') as output:
         process = subprocess.Popen(['bash', str(ROOT / 'trial.sh'), str(cache), name,
@@ -134,7 +185,9 @@ def run(name, variables=(), trigger=None, expected=0, stubborn=False):
             elif trigger is not None:
                 until(lambda: (cache / 'client.pids').exists())
                 client_fds = [os.pidfd_open(int(p)) for p in (cache / 'client.pids').read_text().split()]
-                if trigger in ('holder', 'terminal-holder'):
+                if trigger == 'cleanup-final-holder':
+                    (cache / 'begin-cleanup').touch()
+                elif trigger in ('holder', 'terminal-holder'):
                     until(lambda: (cache / 'holder.unit').exists())
                     holder_pid = int(next(line.split()[2] for line in events.read_text().splitlines()
                                           if line.startswith('retain ')))
@@ -166,9 +219,12 @@ def run(name, variables=(), trigger=None, expected=0, stubborn=False):
                 text = (cache / 'output.log').read_text()
                 assert 'STDOUT' in text and 'GAME' in text, text
                 assert (cache / 'compositor.log').read_text() == 'COMPOSITOR\n'
-            if trigger == 'holder':
-                assert 'NVIDIA power holder exited unexpectedly; aborting client tests.' in (cache / 'output.log').read_text()
-            if name not in ('init-parent-kill', 'retain-parent-kill', 'init-timeout', 'init-fail', 'holder-kill-client'):
+            if trigger in ('holder', 'cleanup-final-holder'):
+                assert (cache / 'output.log').read_text().count('NVIDIA power holder exited unexpectedly; aborting client tests.') == 1
+            if trigger == 'cleanup-final-holder':
+                assert (cache / 'confirmation-holder-killed').exists()
+                assert (cache / 'confirmation-loss-observed').exists(), 'holder loss missed in final confirmation'
+            if name not in ('init-parent-kill', 'retain-parent-kill', 'init-timeout', 'init-fail', 'holder-kill-client', 'cleanup-final-holder-kill'):
                 assert any(line.startswith('release ') for line in lines), (name, lines)
             if name == 'parent-kill-client':
                 release_at = float(next(line.split()[1] for line in lines if line.startswith('release ')))
@@ -199,3 +255,4 @@ run('int-client', trigger=signal.SIGINT, expected=130)
 run('term-client', trigger=signal.SIGTERM, expected=143)
 run('hup-client', trigger=signal.SIGHUP, expected=129)
 run('init-timeout', ('TRIAL_INIT_HANG',), expected=7)
+run('cleanup-final-holder-kill', trigger='cleanup-final-holder', expected=1)

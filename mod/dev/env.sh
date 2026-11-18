@@ -195,6 +195,8 @@ def stop_scopes(units, seconds):
             # Confirm removal before releasing the lock; an unkillable kernel task is reported, not green.
             until = time.monotonic() + 3
             while time.monotonic() < until:
+                if units == ordinary:
+                    holder_lost()
                 result = ctl("show", "--property=ActiveState", "--value", "--", *units)
                 if (result is not None and
                     all(s in ("inactive", "failed") for s in result.stdout.split()) and
@@ -274,6 +276,8 @@ finally:
     ordinary = [u for u in children if not u.startswith("aresos-dev-client-test-gpu-holder-")]
     holders = [u for u in children if u not in ordinary]
     clients_stopped = stop_scopes(ordinary, 20)
+    # Latch a loss even if it happened during the last scope query (or there were no ordinary scopes).
+    holder_lost()
     holder_stopped = stop_scopes(holders, 5)
     for child, peer in children.values():
         if peer is not None:
