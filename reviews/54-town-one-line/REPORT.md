@@ -1,3 +1,132 @@
+# Package 54: review fix 2
+
+## Done
+
+- Merged `origin/main` through `7417c19a` before editing (merge commit `8f6935eb`). This follow-up stays on
+  `pkg/54-town-one-line` and updates PR #108.
+- Implementation commits: `219b0485` (keeper and 48-row table), `ec0a7225` (client timing assertion),
+  `345ba61d` (client-test shutdown repair).
+- **Cause:** a pending replacement retained only `MOVED` or `RENEWED`. A renewal could therefore complete at a
+  different place while still saying it was renewed. Cancellation discarded that marker even when the old logo
+  had already come down, losing the removal announcement.
+- **`TownKeeper`:** one replacement record retains the app, starting operation, original place and successful
+  removal. Retries preserve it. Completion compares the actual place with the original: the same place means
+  `RENEWED`; another place means `MOVED`, including a renewal whose category or obstruction changed its destination.
+  A replacement is never counted as a fresh build. A refused removal leaves the old logo standing and clears the
+  attempt; ordinary removal handles any subsequent cancellation. Cancelling after removal emits one `DOWN` line
+  before discarding the replacement, including when the app record itself disappeared.
+- **Keeper coverage:** a table of 48 keeper cases crosses renewal/move, original/different/obstructed destination,
+  completion/cancellation/return after processed cancellation/return before a complete retry, and removal succeeded/
+  removal still waiting. Every row repeats pending and terminal passes. It checks exactly one ordinary terminal line
+  per operation, the expected kind and place, WAY lines and preservation of the obstruction. It covers all three
+  cancellation reasons (My apps, uninstalled, absent app record) and uses its own environment, fixture and chunk tickets.
+- **Return semantics:** a processed cancellation ends the old operation with one take-down; a later return is a fresh
+  build. An app returning before a complete retry continues the same replacement, including across an incomplete
+  catalogue pass. If removal never succeeded and the requested move is withdrawn, the original logo stays silently.
+- **Client timing:** the first-start assertion now checks delivery from completion (0–5 server ticks) and measures
+  the 200-tick deadline from the first actual build, retaining the earlier loading and expiry scenarios.
+- **Test shutdown repair:** the second full client attempt exposed an existing Fabric barrier deadlock in the
+  mounted-rejoin test, before package 54 ran. `IntegratedServer.halt` blocks on an initial server task before Fabric's
+  later disconnect busy-wait hook can advance its test barrier. A client-test-only mixin submits that same task and
+  invokes Fabric's existing task pump until completion, then joins it so failures remain visible. Server-thread and
+  non-test calls retain the original execution. No assertion, case or screenshot ordering changed.
+- No production saved-data format, deadline policy or staging change in this follow-up.
+
+## Verified
+
+- First full `mod/dev/build.sh --rerun-tasks`: `BUILD SUCCESSFUL in 2m 37s`, exit 0; all 17 tasks executed.
+  All **106 required server game tests passed**, including all **48 replacement-table rows** and the previous
+  keeper regressions. JUnit XML: **285 tests, 0 failures, 0 errors, 6 existing Windows-only skips** (279 passed).
+- First full `mod/dev/client-test.sh`: `BUILD SUCCESSFUL in 12m 23s`, exit 0. The script reported
+  `Client tests ended with exit code 0 after 12 min 25 s`, NVIDIA RTX 4060, headless. Controlled first start:
+  **9 at tick 3**, **40 at tick 103**, sole complete announcement at **tick 104**. New home (Flat): **24 at
+  tick 2**, **40 at tick 102**, exactly one full line. Staging built zero logos. Controlled expiry: **9 at tick 2**,
+  partial announcement at **tick 202**, **31 later builds at tick 302** reported as a change. All three scenarios
+  watched another 220 ticks for duplicates.
+- Inspected the first run's three screenshots: [first start](screenshots/0092_54-first-start.png),
+  [New home](screenshots/0093_54-new-home-flat.png), [expiry and later change](screenshots/0094_54-first-build-expired.png).
+- Second full `mod/dev/build.sh --rerun-tasks`, after the test-only shutdown repair: `BUILD SUCCESSFUL in
+  2m 34s`, exit 0; **17/17 tasks executed**. Again **106 required server tests passed**, including all **48 table
+  rows**; JUnit XML again recorded **285 tests, 0 failures, 0 errors, 6 Windows-only skips** (279 passed).
+  `sha256sum -c .work/pkg54/fix2/build-1-jar.sha256` printed `mod/build/libs/aresos-0.1.0.jar: OK`.
+- Hosted checks on `ec0a7225`: [Mod](https://github.com/Ares-Empire/AresOS/actions/runs/44292390965) and
+  [Repo privacy](https://github.com/Ares-Empire/AresOS/actions/runs/44292390997) both completed with `success`.
+  These preceded the client-test-only shutdown repair; both local full builds above passed.
+- First full client run with the shutdown repair (`mod/dev/client-test.sh`, attempt 3):
+  `BUILD SUCCESSFUL in 12m 24s`, exit 0; script reported `exit code 0 after 12 min 25 s`, NVIDIA, headless.
+  Both mounted-rejoin cases and the missing-home-data regression passed. First start again built **9 at tick 3**,
+  completed **40 at tick 103**, announced at **tick 104**; New home completed at **tick 102** with one full line.
+  Expiry again announced nine at **tick 202** and reported the remaining 31 after building at **tick 302**.
+  Inspected all three screenshots again. This is the first complete passing run with the final test-harness code.
+- Second full client run with the unchanged shutdown repair (`mod/dev/client-test.sh`, attempt 4):
+  `BUILD SUCCESSFUL in 12m 21s`, exit 0; script reported `exit code 0 after 12 min 22 s`, again headless on NVIDIA.
+  Both mounted-rejoin cases passed again. Controlled first start again built **9 at tick 3**, completed **40 at
+  tick 103**, and delivered its one full line at **tick 104**. New home again built **24 at tick 2**, completed **40
+  at tick 102**, and said one full line. Expiry again said nine at **tick 202**, then 31 later builds at **tick 302**
+  as a change. The 220-tick duplicate observation windows passed in every scenario. Both complete final client
+  suites passed on the same production jar and unchanged implementation/test sources.
+- Inspected all three final screenshots again. Restored **57** other tracked review files and removed **25**
+  newly numbered PNGs outside package 54 after the final run; only this package's three pictures remain changed.
+- Hosted checks including the test-only shutdown repair on `345ba61d`:
+  [Mod](https://github.com/Ares-Empire/AresOS/actions/runs/44300568276) and
+  [Repo privacy](https://github.com/Ares-Empire/AresOS/actions/runs/44300568328) both completed with `success`.
+- Final `sha256sum -c .work/pkg54/fix2/build-1-jar.sha256` again printed `mod/build/libs/aresos-0.1.0.jar: OK`.
+  Production jar: `e66257e0d977b4334ea6eeab4b305520d02835247d00f59163890e053be21647`.
+- Closing artifact check (`rg --files --hidden --no-ignore .work`, then file sizes): **no file over 500 MB** remains
+  in `.work/`. No large download or extracted image was made. The scripts completed their scope cleanup, and the
+  final process check found **zero Java processes referring to this worktree**. No Gradle daemon-control command was used.
+- `git diff --check` passed. `bash .work/pkg54/repo-privacy.sh` printed
+  `No file holds a home path with a real user name.`, exit 0.
+
+### Interrupted verification attempts
+
+- The second-build waiting shell exited 143 before any Gradle invocation (no build log was created). It was
+  rescheduled sequentially; it is not passing build evidence.
+- Second full `mod/dev/client-test.sh`: stopped only this script with TERM, exit 143, after its progress halted
+  during `NetherHomeClientGameTest.testMountedRejoin`. `jcmd 1119145 Thread.print` captured the render thread
+  blocked in `IntegratedServer.halt -> executeBlocking`, while the server and test thread waited at Fabric's phaser.
+  The script printed `Client tests ended with exit code 143 after 10 min 28 s`. This attempt did not reach package 54
+  and is not passing evidence. Its scopes were cleaned up by the script. The repair changes the shutdown mechanism,
+  with every assertion retained.
+- An intermediate screenshot cleanup stopped at a nested screenshot directory. The completed run's package 54
+  images were already preserved; other packages' tracked files had been restored. Final cleanup handles all generated
+  PNGs, including nested screenshot and seed folders.
+
+## Not verified
+
+- The home-switch tests still use `HomeSwitch.closeFromTestTasksForTests` to cross Fabric's close-world barrier.
+  The real creation, provisioning, save, rename, reopen and town scheduler paths run.
+- The owner's real desktop, real catalogue and subjective waiting experience require the owner in the game.
+
+## JUDGMENT-CALL
+
+- None beyond the explicit replacement and cancellation rules in review fix 2. The existing 200-tick deadline
+  and staging hold remain as authorized by review fix 1.
+
+## PLAN-GAP
+
+- The full-suite repeat exposed an existing shutdown race in Fabric's client test harness. The required repeat
+  cannot count a hung run as passing; the test-only repair above closes the missing barrier pump before rerunning.
+
+## Rules met
+
+- Both full builds used `mod/dev/build.sh --rerun-tasks` after the required
+  `/usr/bin/flock -n ~/.cache/aresos-dev/client-test.lock true` preflight; busy preflights waited with one-minute
+  checks. Each build held that lock for its duration. The client scripts took the same lock themselves, so the
+  queued repeat could not overlap the active run. No exit 75 or `--force` was needed.
+- Two full builds and two full client runs with the repaired shutdown passed. The earlier hung run is recorded
+  above and is not counted as passing. Tests and assertions were retained.
+- All work remains on `pkg/54-town-one-line` and PR #108. No new PR, PR merge, push to main, `--no-verify`, or
+  Gradle `--stop`. Each new commit has the brief's required model trailer.
+
+## Open questions
+
+- None.
+
+---
+
+The following reports retain the earlier implementation's evidence; they do not verify review fix 2.
+
 # Package 54: review fix 1
 
 Implementation commit: `6992a29d`.
