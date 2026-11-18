@@ -20,6 +20,10 @@
   slide. Day roads stay fixed.
 - The paged stand-in and headless harness drive both looks of the packaged page and record the actual
   `open_app` requests. The image script adds the WebKitGTK 6.0 Python import check for R29.
+- **Review 1 fixes.** The shell helper clears the foreground app when no app toplevel has focus and preserves the
+  short close handoff. The laptop home reads and writes a cache sized for 200 houses with maximum-width names and
+  sends authenticated running IDs to the page while the initial catalogue read is pending. The day grid test now
+  checks painted slabs and turf and compares the rendered house bounds across all four streets after a slide.
 
 ## Verified
 
@@ -52,6 +56,30 @@ house, report the hidden counts, and expose intermediate slide geometry. The day
 verifies each side's exact plot count, and samples all four terraces' road, turf and bank pixels. At rest over
 13 seconds, the page checks observed zero animation starts, canvas draws, frame callbacks or unexpected DOM
 changes. Night changes one star every four seconds. The clock can tick once a minute in either look.
+
+### Review 1 verification
+
+The modules ran one at a time with `TMPDIR="$PWD/.work/tmp"`. The page tests used private headless labwc and the
+fullscreen fallback. The helper tests cover the layer surface's lack of a foreign toplevel and the filtered fallback
+window. Closing the foreground editor returned to the world. Closing the editor after either home focus transition
+left the keyboard at home, and a later app activation did not renew an expired handoff.
+
+| Command | Result |
+| --- | --- |
+| `python3 -m unittest discover -s os/tests -p 'test_aresos_laptop_home_page.py' -v` | 4 tests, `OK` |
+| `python3 -m unittest discover -s os/tests -p 'test_aresos_laptop_home.py'` | 11 tests, `OK` |
+| `python3 -m unittest discover -s os/tests -p 'test_aresos_shell_views.py'` | 27 tests, `OK` |
+| `python3 -m unittest discover -s os/tests -p 'test_aresos_shell.py'` | 75 tests, `OK`. Python 3.14 emitted unclosed-socket `ResourceWarning`s in the shell test module. |
+| `git diff --check` | Exit 0 |
+
+The maximum-width UTF-8 fixture round-tripped at 181,615 bytes. The 161,904-byte headless fixture kept all 200
+houses on screen after a null revision. Its running house was lit on the first draw with the final catalogue page
+held back. The bridge refused an open during that read and enabled opening when the last page arrived.
+
+For the negative grid check, I removed the `.day .plots` background declaration from a temporary copy of `home.css`
+and ran `LaptopHomePageTest.test_day` with that copy in headless WebKit. It exited 1 with `FAILED (failures=1)` at
+the first `empty plot slab` sample. The pixel at `(1170, 309)` was turf `(138, 178, 84)` and the test expected the
+slab's `(185, 199, 162)`.
 
 ### Pinned memory at rest
 
@@ -108,15 +136,24 @@ No files over 500 MB remained in `.work/`.
 - The checks-only workflow was dispatched for `74ec9b3f`. The lead will collect the result.
   [OS image run 44362345145](https://github.com/Ares-Empire/AresOS/actions/runs/44362345145)
 
+## Known limits
+
+- Mapping the fullscreen fallback can take focus from the world during an unattended start. Package 23c's restart rule must account for this.
+- A launch that fails after the helper reports `starting` leaves the page without a reason for the failure.
+
 ## JUDGMENT-CALL
 
 - The packaged page selects day in its entry point and keeps night in the same modules. A theme picker would add
   a visible control before the laptop trial. A later preference can select the existing look with one startup setting.
 - When a cut end hides houses but none match, the sign shows zero and still lets the owner pan. Hiding the sign
   would remove that route through the street during search. Changing this later is limited to the end-sign rendering.
-- The first draw waits for the bridge replay. Run A's window gives the initial helper lookup up to 500 ms after
-  the resource filter is ready. Showing the town earlier could initially show a running house as idle. Changing
-  the wait costs one startup policy change.
+- The first draw waits for the bridge replay and gives the initial lookup up to 500 ms after the resource filter is
+  ready. A longer wait would also hold back the kept town when the helper is away. Changing the wait costs one
+  startup policy change.
+- The compositor can report deactivation before a real close, and focus on a layer surface also leaves no active
+  app toplevel. The helper retains the existing half-second handoff for that ambiguity. Dropping the handoff would
+  break genuine closes delivered across compositor reads. Distinguishing the two within the interval would require
+  a compositor focus signal for the home.
 
 ## PLAN-GAP
 

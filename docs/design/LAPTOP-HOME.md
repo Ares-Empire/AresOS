@@ -491,6 +491,8 @@ restarts (with each new game start), opening is off for those seconds, as above.
     `ToggleAlwaysOnBottom`.
   - The helper must then leave that app-id out of covering, of the return of focus and of the list of unknown
     windows, as it does for `aresos.cover`, and the window program must refuse to close.
+  - Mapping the fullscreen fallback can take keyboard focus from the world. Package 23c's unattended restart
+    rule must account for this when the fallback is in use.
 - **From the world to the laptop home.** While the world on the monitor has the focus, the game holds the pointer
   and the keyboard (package 40: it lets go of the mouse only while an app is in front). So from inside the world
   he presses Esc (or E, or T), moves the pointer down to the laptop screen and clicks. From an app the pointer is
