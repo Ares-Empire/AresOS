@@ -1,5 +1,231 @@
 # Empire brief 302 — progress
 
+## Build part 7 (the re-pin)
+
+Status: **Re-pinned; proof not yet dispatched**.
+
+Started at `f8d77702` on `pkg/302-store-oracle`, existing draft PR #111. This run changes only the executable pin, its summary and this classification. Capture source is `6a818646`; `git diff 6a818646 HEAD -- control .github/workflows` was empty before the re-pin. No code, assertion, allowed set, workflow or format changed.
+
+### Capture gate: every job
+
+Capture [44375098965](https://github.com/Ares-Empire/AresOS/actions/runs/44375098965), attempt 1: **48 failures, 13 successes**. All **61 artifacts**, the paginated artifact inventory, run metadata and full job/step logs are under `.work/302/capture-44375098965/`. The downloaded artifact directory names exactly match the API inventory.
+
+All 48 failed jobs have **one failure, zero errors**: `test_all_flows_all_storage_modes_independent_views` reaches `gaps.py:229`, `assert not errors, errors`, after writing its actual list. No other failed test/step, error annotation (apart from that step's exit 1), timeout or recovered setup timeout was found. The ledger passes its two tests. All alteration jobs pass four tests, run their candidates, and report `slipped=0` on every scenario and aggregate line. Part 5's closed-database errors and `3 not greater than 3` corpus assertion are both absent from every full log.
+
+**P** below is that strict old-pin failure; each line reference is to the downloaded top-level full job log, including timestamps. Passed jobs have N/A in the pin-only column. Alteration cells give scenario partitions / candidates; all seven alteration kinds occur on each shard.
+
+| Job | Result | Failed only on pin, no other error/timeout? | Full-log evidence |
+|---|---|---|---|
+| [ledger](https://github.com/Ares-Empire/AresOS/actions/runs/44375098965/job/135052042565) | success | N/A — passed | `60_ledger.txt`: 2 tests OK |
+| [sweep (0, 0)](https://github.com/Ares-Empire/AresOS/actions/runs/44375098965/job/135052043753) | failure | Yes | `2_sweep (0, 0).txt`: P at 503; 1 failure / 0 errors |
+| [sweep (0, 1)](https://github.com/Ares-Empire/AresOS/actions/runs/44375098965/job/135052043355) | failure | Yes | `53_sweep (0, 1).txt`: P at 414; 1 failure / 0 errors |
+| [sweep (0, 2)](https://github.com/Ares-Empire/AresOS/actions/runs/44375098965/job/135052043430) | failure | Yes | `32_sweep (0, 2).txt`: P at 408; 1 failure / 0 errors |
+| [sweep (0, 3)](https://github.com/Ares-Empire/AresOS/actions/runs/44375098965/job/135052043867) | failure | Yes | `4_sweep (0, 3).txt`: P at 452; 1 failure / 0 errors |
+| [sweep (0, 4)](https://github.com/Ares-Empire/AresOS/actions/runs/44375098965/job/135052043315) | failure | Yes | `57_sweep (0, 4).txt`: P at 407; 1 failure / 0 errors |
+| [sweep (0, 5)](https://github.com/Ares-Empire/AresOS/actions/runs/44375098965/job/135052043362) | failure | Yes | `50_sweep (0, 5).txt`: P at 411; 1 failure / 0 errors |
+| [sweep (0, 6)](https://github.com/Ares-Empire/AresOS/actions/runs/44375098965/job/135052043444) | failure | Yes | `47_sweep (0, 6).txt`: P at 427; 1 failure / 0 errors |
+| [sweep (0, 7)](https://github.com/Ares-Empire/AresOS/actions/runs/44375098965/job/135052044078) | failure | Yes | `10_sweep (0, 7).txt`: P at 463; 1 failure / 0 errors |
+| [sweep (0, 8)](https://github.com/Ares-Empire/AresOS/actions/runs/44375098965/job/135052044031) | failure | Yes | `1_sweep (0, 8).txt`: P at 415; 1 failure / 0 errors |
+| [sweep (0, 9)](https://github.com/Ares-Empire/AresOS/actions/runs/44375098965/job/135052045112) | failure | Yes | `0_sweep (0, 9).txt`: P at 405; 1 failure / 0 errors |
+| [sweep (0, 10)](https://github.com/Ares-Empire/AresOS/actions/runs/44375098965/job/135052043408) | failure | Yes | `39_sweep (0, 10).txt`: P at 425; 1 failure / 0 errors |
+| [sweep (0, 11)](https://github.com/Ares-Empire/AresOS/actions/runs/44375098965/job/135052043506) | failure | Yes | `44_sweep (0, 11).txt`: P at 394; 1 failure / 0 errors |
+| [sweep (1, 0)](https://github.com/Ares-Empire/AresOS/actions/runs/44375098965/job/135052043461) | failure | Yes | `45_sweep (1, 0).txt`: P at 407; 1 failure / 0 errors |
+| [sweep (1, 1)](https://github.com/Ares-Empire/AresOS/actions/runs/44375098965/job/135052043530) | failure | Yes | `9_sweep (1, 1).txt`: P at 424; 1 failure / 0 errors |
+| [sweep (1, 2)](https://github.com/Ares-Empire/AresOS/actions/runs/44375098965/job/135052043566) | failure | Yes | `26_sweep (1, 2).txt`: P at 408; 1 failure / 0 errors |
+| [sweep (1, 3)](https://github.com/Ares-Empire/AresOS/actions/runs/44375098965/job/135052043374) | failure | Yes | `51_sweep (1, 3).txt`: P at 406; 1 failure / 0 errors |
+| [sweep (1, 4)](https://github.com/Ares-Empire/AresOS/actions/runs/44375098965/job/135052043499) | failure | Yes | `24_sweep (1, 4).txt`: P at 428; 1 failure / 0 errors |
+| [sweep (1, 5)](https://github.com/Ares-Empire/AresOS/actions/runs/44375098965/job/135052043505) | failure | Yes | `18_sweep (1, 5).txt`: P at 437; 1 failure / 0 errors |
+| [sweep (1, 6)](https://github.com/Ares-Empire/AresOS/actions/runs/44375098965/job/135052043581) | failure | Yes | `41_sweep (1, 6).txt`: P at 404; 1 failure / 0 errors |
+| [sweep (1, 7)](https://github.com/Ares-Empire/AresOS/actions/runs/44375098965/job/135052044172) | failure | Yes | `16_sweep (1, 7).txt`: P at 417; 1 failure / 0 errors |
+| [sweep (1, 8)](https://github.com/Ares-Empire/AresOS/actions/runs/44375098965/job/135052043983) | failure | Yes | `5_sweep (1, 8).txt`: P at 419; 1 failure / 0 errors |
+| [sweep (1, 9)](https://github.com/Ares-Empire/AresOS/actions/runs/44375098965/job/135052043450) | failure | Yes | `40_sweep (1, 9).txt`: P at 420; 1 failure / 0 errors |
+| [sweep (1, 10)](https://github.com/Ares-Empire/AresOS/actions/runs/44375098965/job/135052043330) | failure | Yes | `59_sweep (1, 10).txt`: P at 415; 1 failure / 0 errors |
+| [sweep (1, 11)](https://github.com/Ares-Empire/AresOS/actions/runs/44375098965/job/135052043670) | failure | Yes | `13_sweep (1, 11).txt`: P at 427; 1 failure / 0 errors |
+| [onboarding (0)](https://github.com/Ares-Empire/AresOS/actions/runs/44375098965/job/135052043479) | failure | Yes | `46_onboarding (0).txt`: P at 363; 1 failure / 0 errors |
+| [onboarding (1)](https://github.com/Ares-Empire/AresOS/actions/runs/44375098965/job/135052043608) | failure | Yes | `30_onboarding (1).txt`: P at 365; 1 failure / 0 errors |
+| [onboarding (2)](https://github.com/Ares-Empire/AresOS/actions/runs/44375098965/job/135052043719) | failure | Yes | `22_onboarding (2).txt`: P at 365; 1 failure / 0 errors |
+| [onboarding (3)](https://github.com/Ares-Empire/AresOS/actions/runs/44375098965/job/135052044055) | failure | Yes | `3_onboarding (3).txt`: P at 363; 1 failure / 0 errors |
+| [onboarding (4)](https://github.com/Ares-Empire/AresOS/actions/runs/44375098965/job/135052043638) | failure | Yes | `11_onboarding (4).txt`: P at 362; 1 failure / 0 errors |
+| [onboarding (5)](https://github.com/Ares-Empire/AresOS/actions/runs/44375098965/job/135052043611) | failure | Yes | `28_onboarding (5).txt`: P at 361; 1 failure / 0 errors |
+| [onboarding (6)](https://github.com/Ares-Empire/AresOS/actions/runs/44375098965/job/135052043342) | failure | Yes | `52_onboarding (6).txt`: P at 365; 1 failure / 0 errors |
+| [onboarding (7)](https://github.com/Ares-Empire/AresOS/actions/runs/44375098965/job/135052044187) | failure | Yes | `7_onboarding (7).txt`: P at 362; 1 failure / 0 errors |
+| [onboarding (8)](https://github.com/Ares-Empire/AresOS/actions/runs/44375098965/job/135052044206) | failure | Yes | `8_onboarding (8).txt`: P at 363; 1 failure / 0 errors |
+| [onboarding (9)](https://github.com/Ares-Empire/AresOS/actions/runs/44375098965/job/135052043628) | failure | Yes | `35_onboarding (9).txt`: P at 377; 1 failure / 0 errors |
+| [onboarding (10)](https://github.com/Ares-Empire/AresOS/actions/runs/44375098965/job/135052043397) | failure | Yes | `55_onboarding (10).txt`: P at 363; 1 failure / 0 errors |
+| [onboarding (11)](https://github.com/Ares-Empire/AresOS/actions/runs/44375098965/job/135052043532) | failure | Yes | `21_onboarding (11).txt`: P at 381; 1 failure / 0 errors |
+| [onboarding (12)](https://github.com/Ares-Empire/AresOS/actions/runs/44375098965/job/135052043359) | failure | Yes | `43_onboarding (12).txt`: P at 364; 1 failure / 0 errors |
+| [onboarding (13)](https://github.com/Ares-Empire/AresOS/actions/runs/44375098965/job/135052043366) | failure | Yes | `58_onboarding (13).txt`: P at 361; 1 failure / 0 errors |
+| [onboarding (14)](https://github.com/Ares-Empire/AresOS/actions/runs/44375098965/job/135052043813) | failure | Yes | `19_onboarding (14).txt`: P at 363; 1 failure / 0 errors |
+| [onboarding (15)](https://github.com/Ares-Empire/AresOS/actions/runs/44375098965/job/135052043600) | failure | Yes | `36_onboarding (15).txt`: P at 363; 1 failure / 0 errors |
+| [onboarding (16)](https://github.com/Ares-Empire/AresOS/actions/runs/44375098965/job/135052043824) | failure | Yes | `15_onboarding (16).txt`: P at 362; 1 failure / 0 errors |
+| [onboarding (17)](https://github.com/Ares-Empire/AresOS/actions/runs/44375098965/job/135052043410) | failure | Yes | `54_onboarding (17).txt`: P at 363; 1 failure / 0 errors |
+| [onboarding (18)](https://github.com/Ares-Empire/AresOS/actions/runs/44375098965/job/135052043542) | failure | Yes | `49_onboarding (18).txt`: P at 363; 1 failure / 0 errors |
+| [onboarding (19)](https://github.com/Ares-Empire/AresOS/actions/runs/44375098965/job/135052043452) | failure | Yes | `48_onboarding (19).txt`: P at 377; 1 failure / 0 errors |
+| [onboarding (20)](https://github.com/Ares-Empire/AresOS/actions/runs/44375098965/job/135052043551) | failure | Yes | `25_onboarding (20).txt`: P at 365; 1 failure / 0 errors |
+| [onboarding (21)](https://github.com/Ares-Empire/AresOS/actions/runs/44375098965/job/135052043441) | failure | Yes | `17_onboarding (21).txt`: P at 380; 1 failure / 0 errors |
+| [onboarding (22)](https://github.com/Ares-Empire/AresOS/actions/runs/44375098965/job/135052043546) | failure | Yes | `6_onboarding (22).txt`: P at 363; 1 failure / 0 errors |
+| [onboarding (23)](https://github.com/Ares-Empire/AresOS/actions/runs/44375098965/job/135052043609) | failure | Yes | `33_onboarding (23).txt`: P at 361; 1 failure / 0 errors |
+| [alterations (0)](https://github.com/Ares-Empire/AresOS/actions/runs/44375098965/job/135052043700) | success | N/A — passed | `27_alterations (0).txt`:385: 10 / 228,154; `slipped=0`; 4 tests OK |
+| [alterations (1)](https://github.com/Ares-Empire/AresOS/actions/runs/44375098965/job/135052043363) | success | N/A — passed | `12_alterations (1).txt`:371: 8 / 127,812; `slipped=0`; 4 tests OK |
+| [alterations (2)](https://github.com/Ares-Empire/AresOS/actions/runs/44375098965/job/135052043713) | success | N/A — passed | `34_alterations (2).txt`:370: 9 / 129,349; `slipped=0`; 4 tests OK |
+| [alterations (3)](https://github.com/Ares-Empire/AresOS/actions/runs/44375098965/job/135052043854) | success | N/A — passed | `31_alterations (3).txt`:373: 10 / 187,689; `slipped=0`; 4 tests OK |
+| [alterations (4)](https://github.com/Ares-Empire/AresOS/actions/runs/44375098965/job/135052043660) | success | N/A — passed | `29_alterations (4).txt`:373: 10 / 133,537; `slipped=0`; 4 tests OK |
+| [alterations (5)](https://github.com/Ares-Empire/AresOS/actions/runs/44375098965/job/135052043598) | success | N/A — passed | `56_alterations (5).txt`:389: 11 / 227,582; `slipped=0`; 4 tests OK |
+| [alterations (6)](https://github.com/Ares-Empire/AresOS/actions/runs/44375098965/job/135052043621) | success | N/A — passed | `37_alterations (6).txt`:370: 12 / 182,536; `slipped=0`; 4 tests OK |
+| [alterations (7)](https://github.com/Ares-Empire/AresOS/actions/runs/44375098965/job/135052043864) | success | N/A — passed | `23_alterations (7).txt`:388: 9 / 200,826; `slipped=0`; 4 tests OK |
+| [alterations (8)](https://github.com/Ares-Empire/AresOS/actions/runs/44375098965/job/135052043593) | success | N/A — passed | `42_alterations (8).txt`:367: 10 / 203,117; `slipped=0`; 4 tests OK |
+| [alterations (9)](https://github.com/Ares-Empire/AresOS/actions/runs/44375098965/job/135052043787) | success | N/A — passed | `14_alterations (9).txt`:369: 10 / 176,389; `slipped=0`; 4 tests OK |
+| [alterations (10)](https://github.com/Ares-Empire/AresOS/actions/runs/44375098965/job/135052043743) | success | N/A — passed | `20_alterations (10).txt`:371: 9 / 151,630; `slipped=0`; 4 tests OK |
+| [alterations (11)](https://github.com/Ares-Empire/AresOS/actions/runs/44375098965/job/135052043570) | success | N/A — passed | `38_alterations (11).txt`:366: 6 / 147,420; `slipped=0`; 4 tests OK |
+
+Alteration totals: **114 scenario partitions, 2,096,041 candidates, zero slipped**. The discovered recovery corpus runs on the hosted trace; no local numeric offset was substituted. Per-shard totals above include applied-tail and staged-restore recordings.
+
+### Historical reproduction, assembly and new pin
+
+The **53 lists of historical proof 43972005458** merge without conflict, with **495 identical shared occurrences**, and reproduce the old pin **byte for byte**: **2,576,083 keys / 1,930 groups / 892,234 bytes**, format 3, SHA-256 `8b27b1161505ac19eeaa41a6f1a69c95886de5da338249801963a96a083b74b1`. This reproduction preceded comparison with the new lists.
+
+For the exact historical H/N7 membership, also downloaded all artifacts of **43722918063**. Its 53 lists regenerate the earlier committed `b04c7e77` pin byte for byte: **2,622,072 keys / 1,997 groups / 921,711 bytes**, SHA-256 `ee326914fff6ccddcb78afbf3c346207148471f3e8b1dd0f96868a776291e68d`. H is the original 1,386-case set; N7 is exactly the 6,224 beyond-alias row/notice changes plus 725 additions in the subsequent historical pin.
+
+The new capture has **52 actual lists**, not 53: 48 sweep/onboarding lists plus contract, G22-rename, G22-evidence and channel. G22-latch no longer writes a list because it is a direct passing regression (`sweep (0, 0)`, `mail.txt:39`). This is the deliberate inventory change recorded in parts 5/6, not missing evidence; no artificial empty list was added. All 52 merge without conflict, again with 495 identical shared occurrences.
+
+Regenerated with the documented `owner_state_oracle.gaps` full-list → compact conversion, then sorted indent-1 JSON. New pin: **2,420,003 keys / 1,860 groups / 860,653 bytes**, all stage 3, format 3, SHA-256 **`1b21f564533df6cdc1c99a5c4068d87538047f54a5243b6d0ed930d378ca2295`**. Format and strict exact-delta verification are unchanged.
+
+### Complete classification against the expected shape
+
+Every key in the union has a receipt in `.work/302/repin/classification.jsonl.gz`: exact key, status, item(s), phase, comparison family and cause. No key falls through the classifier. Full deltas remain in the downloaded lists and generated full ledgers. Counts below distinguish semantic changes from identity aliases. Alias-only entries preserve row, stage, calls, pages and facts and pass a consistent **one-to-one alias mapping**, including ordering changes in fact arrays.
+
+| Outcome | Keys |
+|---|---:|
+| Closed | 303,001 |
+| Changed semantically | 108,155 |
+| Changed only by aliases | 8,159 |
+| New | 146,921 |
+| Byte-identical | 2,156,768 |
+
+The net reduction is 156,080; the large post-start changes are explicitly included below. They are not all N7 and are not an extra store fix. Item 3 changed producing-call ranges from marked to staged sequence, so validation now attributes an interrupted ordinary event to its original call when startup finishes it. This affects staged writes outside historical H too: false lifecycle/hold and pending projections close, while retained public recovery notices and saved-envelope omissions can become visible as new deltas. Item 1's fully rolled-back fence exception also admits later explicit reads/checks which the old latch refused; those can change audit pages, notices and counts. Joint buckets retain both causes instead of assigning every interaction to N7.
+
+| Comparison/cause | Closed | Semantic change | New |
+|---|---:|---:|---:|
+| Item 1: G22 healthy next write | 1 | 0 | 0 |
+| Item 1: latch/status and first-error rules | 92,820 | 522 | 18 |
+| Part 4 / item 3: unchecked live-check component and residuals | 9,047 | 7,661 | 3,205 |
+| Items 1/3: lifecycle, operation, completion and holds | 21,783 | 5,061 | 959 |
+| Items 1/3: applied/staged rows, pending pages/envelopes | 61,663 | 31,526 | 1,174 |
+| Items 1/3: recovery, filing, unchecked notices and counts | 113,306 | 60,908 | 134,385 |
+| Items 1/3: visible audit history / admitted checks | 4,365 | 231 | 7,140 |
+| Items 1/3: filing locations and refused-read paging | 16 | 2,246 | 24 |
+| Item 3: applied account qualification in saved refusal | 0 | 0 | 16 |
+
+These buckets classify the affected comparison, not a claim that every independent residual in that comparison is fixed. In particular the live-check bucket removes an `unchecked` component (or is its matching count/page); its remaining/new other deltas keep their own matrix labels. All 293 phase/fact-change signatures are retained in `.work/302/repin/analyze.json`.
+
+- **Item 1 / G22:** `G22-latch/assertion` closes by the passing unchanged healthy-retry assertion. The other **376 fixed contract/G22/channel keys are byte-identical**. Of status changes, 92,820 keys close, 522 change and 18 appear; these include read-only `stale_reference` residuals and call/page changes, rather than treating every later read as latched. The 18 additions are `stale_reference` against expected `allowed`, not new accepted `journal_incomplete` permissions.
+
+- **Item 2:** **zero `startup-replay` failures**, zero `crash-startup` keys and still **zero `.restore-lock` keys**. The new check adds coverage without adding a pinned startup obligation.
+
+- **Item 3 / H:** the original H set remains 1,386 cases. Its old 63,379 keys become **37,328**: **32,478 closed, 7,025 semantically changed, 545 alias-only, 6,427 new, 23,331 identical**. This includes other defects at H; it does not erase the entire set.
+
+- **N7, all 6,949:** **4,100 closed; 928 semantically changed; 365 alias-only; 1,556 identical**. The false marked-versus-applied component is gone. Remaining pending-row deltas are omissions from cached/refused envelopes or pending pages, not model/store state pairs: the retained N7 deltas have **zero same-operation differing pending-state pairs**. There are 1,134 identical and 356 changed pending-row keys; 182 identical, 269 changed and 187 alias-only count keys; 240 identical, 303 changed and 178 alias-only notice keys. The latter retain independent unchecked/Sent-copy, recovery and disclosure/continuation obligations; a count can keep the same mismatch after its underlying membership changes. No N7 key is relabelled as a restore-lock failure.
+
+- **All 544 saved pre-crash envelopes:** **440 close, 32 change, 72 remain identical**, with no alias-only entries. The 32 are 16 count and 16 recovery-head residuals for account-add/repair envelopes; the 72 are 36 count and 36 unchecked/recovery-head residuals (including the archive failure's still-public unchecked warning). They remain tied to the original captured record; these are not newly read post-start rows.
+
+- **Part 4 / M07/C01:** all **84** target sample keys are absent in the fresh full capture (42 repair, 42 send at its hosted final marker 877/878; local marker 873/874). **76** existed in the historical pin and close; the eight count keys first exposed by item 3 are avoided additions. More unchecked components close/change in the complete live-check bucket above. This is distinct from decoder row visibility and from safe first-fence retry.
+
+- **Broader residuals, kept visible:** the 16 new `qualification.mail_account_add` keys expect the independently derived qualification of an applied account in its failed producer's saved envelope; the refusal has no account projection. The history-proof bucket includes 959 new keys, including newly visible applied check reopen/close, stage and missing-notice-source validation. Existing gates still reject those claims; they were not loosened to make a row agree. Representative raw-record probes reproduce archive sequence 15 applied above marker 14 (`unjustified-check-reopen`), filing check-close/notice-source failures and the background-notice source after a safe rollback. These remain lifecycle/response gaps, not additional startup or store fixes.
+
+- **Unrelated classes:** all **544,801 `crash-locked` keys** retain their semantic deltas: **544,273 identical, 528 bijective alias-only**; no key is added/closed there. The R2 failing-key set is empty before and after, and the existing context-before-command checks introduce no failure in any capture sweep case. G22-rename, G22-evidence and channels remain exact. There are **2,572 computed row-label changes**, all accompanied by semantic fact changes in the affected comparison; **zero label-only changes and zero closing-stage changes**. Examples: removing a filing/account recovery component leaves generic M14 or M06; adding a background-storage/source obligation produces M08 or M06/M09/M14. No manual relabelling occurred. The transition counts follow.
+
+| Old computed row | New computed row | Keys |
+|---|---|---:|
+| M14 | M06/M09/M14 | 462 |
+| M14 | M08 | 18 |
+| M02/C02/C04/M14 | M14 | 414 |
+| M02/C02/C04/M14 | M06 | 122 |
+| M02/C02/C04/M14 | M02/C04 | 18 |
+| M06 | M02/C02/C04/M14 | 24 |
+| M03/C03/M14 | M06 | 158 |
+| M03/C03/M14 | M14 | 194 |
+| M06 | M03/C03/M14 | 12 |
+| M12/C05/M14 | M06 | 106 |
+| M14 | M06 | 936 |
+| M06 | M14 | 72 |
+| M07/C01 | M14 | 36 |
+
+Phase totals over the full union (fixed includes the named suites):
+
+| Phase | Closed | Semantic change | Alias-only | New | Identical |
+|---|---:|---:|---:|---:|---:|
+| fixed | 1 | 0 | 0 | 0 | 376 |
+| exhausted | 5,236 | 5,349 | 61 | 2,981 | 225,060 |
+| live-restored | 113,755 | 43,757 | 6,492 | 19,175 | 955,143 |
+| crash-locked | 0 | 0 | 528 | 0 | 544,273 |
+| crash-restart | 184,009 | 59,049 | 1,078 | 124,765 | 431,916 |
+
+### Drift and flow-point counts
+
+Compared historical proof `305ebcbd` to pre-302 baseline `4a6acc2e`: no oracle implementation or optional-workflow change. The intervening changes are Chrome qualification/committed-read/cache work (#98), the CLI shortcut/help wording, installed daemon config default and sweep comment wording. The Engine difference is only the Chrome qualification cache call, inactive in the Mail/Testapp sweep fixtures. Part 4's main merge `947606b8` changes no `control/` or workflow file; part 6 changes only the two diagnosed harness paths. No concurrent main merge was performed after capture. Protected deltas and all hosted point counts below agree; no unrelated drift was folded into this pin.
+
+Every repeated `Owner oracle flow=… points=…` observation agrees in all three hosted runs: historical 43972005458, rejected 44352598226 and accepted 44375098965. These are **point counts**, not a claim that the artifacts contain complete clean traces. The seven local clean traces were already byte-identical in parts 4/6. No count/site move is observed or silently remapped; the documented native/hosted onboarding (2,570/2,610) and send (875/879) differences are not new moves.
+
+| Flow | Historical proof | Accepted capture |
+|---|---:|---:|
+| `archive` | 373 | 373 |
+| `attachment_export` | 280 | 280 |
+| `cancel` | 70 | 70 |
+| `delete_permanent` | 420 | 420 |
+| `delete_trash` | 282 | 282 |
+| `draft_append` | 173 | 173 |
+| `expiry` | 69 | 69 |
+| `export_rollback` | 280 | 280 |
+| `filing_copy` | 353 | 353 |
+| `filing_move` | 352 | 352 |
+| `filing_rename` | 229 | 229 |
+| `flag` | 120 | 120 |
+| `folder_create` | 118 | 118 |
+| `folder_delete` | 213 | 213 |
+| `folder_review` | 173 | 173 |
+| `local_flag` | 118 | 118 |
+| `maintenance` | 62 | 62 |
+| `onboarding` | 2,610 | 2,610 |
+| `password` | 131 | 131 |
+| `repair` | 366 | 366 |
+| `restart_index` | 32 | 32 |
+| `restart_tail` | 34 | 34 |
+| `restore` | 76 | 76 |
+| `send` | 879 | 879 |
+| `send_duplicate` | 965 | 965 |
+| `settings` | 174 | 174 |
+| `settlement` | 157 | 157 |
+| `status` | 156 | 156 |
+| `testapp_config` | 134 | 134 |
+| `testapp_delete` | 282 | 282 |
+| `testapp_export` | 147 | 147 |
+| `testapp_send` | 391 | 391 |
+| `unsubscribe_https` | 350 | 350 |
+| `unsubscribe_mailto` | 881 | 881 |
+
+### Commands and evidence
+
+Read-only downloads, all exit 0: `gh run view 44375098965 --json databaseId,headSha,status,conclusion,jobs`; paginated `gh api .../actions/runs/44375098965/artifacts?per_page=100`; `gh run download 44375098965 -D .work/302/capture-44375098965/artifacts`; `gh api .../actions/runs/44375098965/logs`; and `gh run download 43722918063 -D .work/302/historical-43722918063/artifacts`. The complete 43972005458 download was retained from part 5 and reused. The GitHub connector was used to inspect capture artifact metadata; `gh` supplied local bulk downloads and the complete inventory.
+
+For each historical/accepted list set, `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control python3 -m owner_state_oracle.gaps <all sorted owner-gaps-*.json.gz paths> --full --output .work/302/repin/{old,new}-full.json`, then the same module over that full file with `--output .../{old,new}-compact.json`, then `json.dumps(..., sort_keys=True, indent=1) + "\n"`. Converter output: old **2,576,083 / 1,930**, new **2,420,003 / 1,860**, stage 2 **0** in both. Both merges reject conflicting shared keys. The ancestor lists were converted directly to compact and compared to `git show b04c7e77:reviews/19b-owner-state/KNOWN-GAPS.json`.
+
+Offline commands under `.work/302/repin/`: `audit7.py` checks every log/inventory; `detail.py` derives exact H/N7 and separates array-order aliases; `analyze.py` records every fact-change signature; `classify.py` checks every union key, bijective aliases, protected sets, row labels and part-4 targets. All final invocations exit 0. These are hosted-evidence analysis, not local full-matrix test runs. The small `probes.py ... repin302 mail ignored` diagnostic executes eight synthetic flow/mode/phase cases with the documented managed-settings stand-in and records **35 comparisons**; it exits 0. Its first scratch version omitted the required `iter_items` prefix and was corrected; no assertion/test was changed. The classifier's initial draft lacked the qualification-envelope bucket; the 16 actual deltas above were inspected and added explicitly before acceptance.
+
+Per-list paths/bytes/SHA-256: `.work/302/repin/list-manifest.json`. Per-job frames/line numbers/log hashes: `part7-audit.json`. Per-key classification SHA-256: `940dcaa7d3b05c0a7ed77c7ab7d9f2ee483f650fc78cb088bbfe271cc3623834`. The independent checker can regenerate all evidence from these run IDs and full lists; scratch scripts are not part of the executable pin.
+
+### Proof dispatch and Left, in order
+
+The pin/classification commit will be pushed normally, then exactly one `gh workflow run control-owner-oracle.yml --ref pkg/302-store-oracle -f ledger_only=false` will be dispatched on it. Its run ID will be recorded in the next progress-only commit. The lead, **linux-tools**, owns watching; this run will not watch, rerun or dispatch any other workflow.
+
+1. **Proof green**: all 61 jobs, its **52** fresh actual lists reproduce the new pin byte for byte, all 12 alteration shards `slipped=0`; linux-tools watches it.
+2. **Control CI green twice**.
+3. A fresh **package review**, **security review** and **independent full classification check**.
+
+**Not verified:** the dispatched proof and subsequent CI/reviews, or real installed owner-service recovery. No local installed/root test, OS owner module, boot/update command, mount, sudo, live-service action, mod/Gradle build or process termination. **JUDGMENT-CALL:** none beyond the already approved brief; no store behaviour is changed here. **PLAN-GAP:** 52 fresh lists after G22-latch becomes a passing assertion, as recorded above. **Open:** proof/CI/review gates only.
+
+Closing local checks: `git diff --check` passes; running the exact Repo privacy workflow script locally prints `No file holds a home path with a real user name.` No files over 500 MB remain under `.work/`. All `.work/302/` evidence, including downloaded lists and intermediate ledgers, totals about 552 MB (below 2 GB). No Gradle daemon was started.
+
+---
 ## Build part 6 (capture fixes)
 
 Status: **Capture fixes pushed; capture 44375098965 dispatched; next: the re-pin**.

@@ -9,14 +9,12 @@ the final fix round: **1,966,234 keys / 2,010 groups**. Correctly disclosed Tras
 roles no longer count as missing; the separate `G22-rename` pin is unchanged.
 
 **Current executable pin:** the last section, "Re-pin after
-20-restore-lock-followups": **2,576,083 keys / 1,930 groups / 892,234 bytes**,
-SHA-256 `8b27b1161505ac19eeaa41a6f1a69c95886de5da338249801963a96a083b74b1`.
-It replaces the 2,622,072-key pin of board #185 (the section before it), which
-replaced the 1,966,234-key pin above, which includes the final escaped-role
-correction below; earlier sections retain their historical conversion and
-verification evidence.
+20-store-oracle-followups (brief 302)": **2,420,003 keys / 1,860 groups / 860,653 bytes**,
+SHA-256 `1b21f564533df6cdc1c99a5c4068d87538047f54a5243b6d0ed930d378ca2295`.
+It replaces the 2,576,083-key pin from 20-restore-lock-followups; earlier sections
+retain their historical conversion and verification evidence.
 
-The list starts with Mail review 22's three blocking cases. They remain failures in production; stage 1 exposes them without changing their assertions.
+The original list started with Mail review 22's three blocking cases. G22-latch now passes its healthy-retry assertion (brief 302); G22-rename and G22-evidence remain pinned. The table retains their original failure descriptions.
 
 | Named assertion | Matrix row | Closing stage | Expected / observed |
 | --- | --- | --- | --- |
@@ -657,3 +655,60 @@ the test process as the container's PID 1, which a hook never takes as its sessi
 the hooks found no mark; it now runs under `docker run --init`. The final proof's ledger
 job passes.
 
+
+## Re-pin after 20-store-oracle-followups (brief 302)
+
+Capture **44375098965**, attempt 1, source `6a818646`: all 48 sweep/onboarding
+jobs fail only the final strict old-pin comparison after emitting full lists;
+the ledger and all 12 alteration shards pass (**2,096,041 candidates, slipped=0**).
+No closed-database restart error, corpus assertion, other test error or timeout.
+The historical proof **43972005458**'s 53 lists reproduce its pin byte for byte
+(2,576,083 keys, 1,930 groups, 892,234 bytes, SHA-256 `8b27b116…`).
+
+The capture has **52** actual lists: the passing G22-latch regression no longer
+writes a known-gap list. No placeholder list was added. They merge without
+conflicts (495 identical shared occurrences). Format 3 and strict exact-delta
+checking remain. The new pin has **2,420,003 keys / 1,860 groups / 860,653 bytes**,
+all stage 3, SHA-256
+`1b21f564533df6cdc1c99a5c4068d87538047f54a5243b6d0ed930d378ca2295`.
+
+Against the historical full list: **303,001 closed, 108,155 semantic changes,
+8,159 bijective alias-only changes, 146,921 new, 2,156,768 identical**. Full
+per-job evidence, item/phase/cause counts, all computed row transitions and
+flow-point counts are in
+[`Build part 7`](../20-store-oracle-followups/PROGRESS.md#build-part-7-the-re-pin).
+All 34 hosted point counts agree; no unrelated main drift was folded in.
+
+G22-latch closes by a passing healthy next write; the other 376 fixed keys
+are exact. No startup-replay or restore-lock failure is pinned. N7's exact
+6,949 historical keys: 4,100 closed, 928 semantically changed, 365 alias-only,
+1,556 identical. Its false marked/applied component is gone; residuals are
+pending omissions, notice/count and saved-envelope disclosure gaps. Its 544
+saved pre-crash envelopes: 440 closed, 32 changed, 72 identical. The 84 part-4
+M07/C01 sample targets are absent (76 historical closures, eight avoided
+additions). All 544,801 crash-locked deltas retain their semantics (528 change
+only aliases). There are zero label-only or stage changes. Ordinary staged
+call attribution also corrects post-start lifecycle/pending projections outside
+H and exposes retained recovery notices; those broader deltas are classified
+explicitly in the progress record, not counted as N7 or extra store fixes.
+
+Regenerate from this capture's actual lists, using the same converter as above:
+
+```sh
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control python3 -m owner_state_oracle.gaps $(rg --files --hidden --no-ignore .work/302/capture-44375098965/artifacts -g 'owner-gaps-*.json.gz' | sort) --full --output .work/302/repin/new-full.json
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control python3 -m owner_state_oracle.gaps .work/302/repin/new-full.json --output .work/302/repin/new-compact.json
+python3 - <<'PY'
+import json
+from pathlib import Path
+p = Path('.work/302/repin/new-compact.json')
+p.write_text(json.dumps(json.loads(p.read_text()), sort_keys=True, indent=1) + '\n')
+PY
+diff -u reviews/19b-owner-state/KNOWN-GAPS.json .work/302/repin/new-compact.json
+```
+
+**Proof:** the single dispatch on the committed pin and its run ID are recorded
+in Build part 7 of the progress record. The lead watches it. This capture is
+classification evidence, not strict green verification. Required next gates:
+all 61 proof jobs green and 52 fresh lists byte-identical to the pin, every
+alteration shard slipped=0; Control CI green twice; fresh package/security
+reviews and an independent full classification check.
