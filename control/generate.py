@@ -58,7 +58,7 @@ def generated():
     files['control/settings/user-mcp.json'] = json.dumps(servers, indent=2) + '\n'
     files['control/settings/CLAUDE.md'] = OWNER_INSTRUCTIONS
     files['control/settings/managed-hooks.json'] = json.dumps({'hooks': settings['hooks']}, indent=2) + '\n'
-    help_text = "Usage: aresos [admin] <app> <action> [--input JSON] [--json]\n       aresos log [--input JSON]\n\nActions (input is the definition's JSON object; --help on any action shows its schema):\n"
+    help_text = "Usage: aresos [admin] <app> <action> [--input JSON] [--json]\n       aresos control log [--input JSON]\n\nActions (input is the definition's JSON object; --help on any action shows its schema):\n"
     doc = "# Control tools (generated; do not edit)\n\nSettings and packaging are drafts. Run `python3 control/generate.py` after editing the catalogue.\n\n"
     for app in apps:
         doc += f"## `{app}` server instructions (sent once at initialization)\n\n{instructions_for(app)}\n\n"

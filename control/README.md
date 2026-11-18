@@ -190,7 +190,7 @@ ids, generations, exact input hashes, the service's short descriptions (action,
 account, recipients/targets, subject/title), and states with timestamps. Sequence,
 format and chain/commit hashes provide the restore fence. Bodies, attachment bytes
 and metadata, item contents, detailed stages and full audit events stay in SQLite
-or the blob store. `aresos log` reads today's audit events from SQLite. The fake
+or the blob store. `aresos control log` reads today's audit events from SQLite. The fake
 receiver keeps its separate far-side SQLite fixture in the evidence directory;
 production Mail/Chrome will use genuinely remote evidence.
 
@@ -691,7 +691,7 @@ again before DATA. A mismatch fails without submission or replay.
 
 Mail audit summaries use service-written text. External values, recipient stage
 keys and caller save paths are structured inside escaped `untrusted_content`;
-`control_log` and `aresos log` also mark historical Mail summaries. A mail's
+`control_log` and `aresos control log` also mark historical Mail summaries. A mail's
 instructions never become instructions from the audit service.
 
 ### Mail rounds 9–11: filing warnings and blob exports
@@ -709,7 +709,7 @@ scan completeness. Nothing is moved back or deleted; copies
 are never expunged. Missing COPYUID is partial even when role names remain stable.
 Connection loss during reporting preserves observations so far and records partial.
 The newest three compact unacknowledged warnings stay in following Mail results'
-pending notices and in `aresos log`, including on later days; a count points to
+pending notices and in `aresos control log`, including on later days; a count points to
 `mail_filing_notices` to page all remaining warnings. Each warning includes the
 filing id, affected-message count and at most three folder names of 64 characters
 (with an ellipsis for longer names and "and N more" for additional folders).
