@@ -9,7 +9,9 @@ PR #72 remains draft. The final code/run evidence for X1 is recorded below; step
 Main is `7417c19a`; `git diff --name-only HEAD...origin/main` has no overlap with this round's
 changed paths, so **no main merge**. PR #72 stays draft on `pkg/28-chrome`.
 Commits: `955f10e5` (reader withholding/state and Node regressions), `14064439` (fragment filtering,
-reference cleanup, complete option reads and Python regressions). Every new commit has
+reference cleanup, complete option reads and Python regressions), `427cd1e0` (X1 evidence), and
+`52891587` (explicit route commitment and question-mark-in-name regression; final code head).
+The closing evidence commit changes only review documents. Every new commit has
 `Built-by: gpt-6-astra` as its final line.
 
 | Finding | Fix and regression (repo-relative file:line) | Actual baseline failure on `659e7164` |
@@ -46,14 +48,14 @@ existing outline suite without changing that suite's assertions.
   `.work/x1/baseline-python.log`: **8 tests, 160 failing subcases**, no errors. The select constant mutation:
   `.work/x1/select-mutation.log`: **3 tests, 3 fail**. Baseline reader restored afterward.
 - `.work/step13a/node-v22.15.0-linux-x64/bin/node --test control/chrome_tests/*.test.mjs`:
-  **567 tests, 567 pass**, 0 failed/cancelled/skipped/todo, 32,680.477 ms (`.work/x1/node-suite.log`).
+  **567 tests, 567 pass**, 0 failed/cancelled/skipped/todo, 32,649.956651 ms (`.work/x1/final-node-suite.log`).
 - `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/chrome_tests python3 -m unittest test_outline_action test_view_references test_view_paging test_view_hostile test_questions test_efficiency test_credentials test_bridge test_fix_x1 test_view_address test_view_nodes test_view_outline test_view_budgets test_outline_time`:
-  **281 tests in 46.628s, OK** (`.work/x1/python-suite.log`). EFFICIENCY MISS lines are the unchanged negative test.
+  **281 tests in 32.930s, OK** (`.work/x1/final-python-suite.log`). EFFICIENCY MISS lines are the unchanged negative test.
 - `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control python3 control/generate.py --check`:
   **Generated artifacts match definitions**. Chrome instructions: **4,093 / 4,096 characters**.
 - AST comparison against `origin/main`: nine named functions identical, plus the typed-read branch inside
   `prepare` and the typed-read branch inside `call`, separately, identical (`.work/x1/asking-ast.log`).
-- `git diff --check`: clean. No `.work/` file exceeds 500 MB. No browser/profile, Gradle, OS tool,
+- `git diff --check`: clean. No `.work/` file exceeds 500 MB. No local browser or owner profile, Gradle, OS tool,
   system installation, mount, desktop window/input or process-name stopping used.
 
 **Verification corrections / run:** The first long-label baseline probe hit StopIteration because its
@@ -63,10 +65,22 @@ Action definition first fixed the harness. Neither is counted as product evidenc
 overlaps occurred while collecting asynchronous results; the final results above are actual completed runs.
 
 **Runs:** Round 1 on `427cd1e0`: Control Chrome `44297668466`, qualification `44297668419`,
-both started and watched with `--interval 60`. Before completion, final review of the parser found the
-question-mark-in-name sibling; its extended baseline fails and the correction passes **27 tests in 1.969s, OK**
-(`test_fix_x1 test_view_address`, `.work/x1/address-followup.log`). The next normal push carries that correction;
-round 2 validates it, then round 3 reruns both entire green runs on that final code head.
+both watched with `--interval 60`, then cancelled as superseded. Before completion, final review of the parser
+found the question-mark-in-name sibling; its extended baseline fails and the correction passes **27 tests in
+1.969s, OK** (`test_fix_x1 test_view_address`, `.work/x1/address-followup.log`). After normal cancellation,
+queued always-run cleanup jobs kept the obsolete runs open and blocked qualification's concurrency group;
+GitHub's force-cancel endpoint closed those two exact run IDs. Neither cancelled run is green evidence.
+
+Final code head: `5289158712b40a6b71ceae74266ba40920caf7d7`. Round 2 validates it, then round 3 reruns
+both entire green runs on that same head. All watches use `gh run watch <id> --exit-status --interval 60`.
+
+| Workflow | Run ID | Attempt | CI round | Result |
+|---|---|---|---|---|
+| Control Chrome | `44298565749` | 1 | 2 | success; 28/28 jobs |
+| Control Chrome qualification | `44298565614` | 1 | 2 | success; 34/34 jobs |
+| Control Chrome | `44298565749` | 2 | 3 | success; 28/28 jobs (whole-run rerun) |
+| Control Chrome qualification | `44298565614` | 2 | 3 | success; 34/34 jobs (whole-run rerun) |
+
 No workflow dispatch, force push, approval bypass, ready marking or merge.
 
 **JUDGMENT-CALL:** Ambiguous assignment-like sign-in routes hide the whole fragment rather than guessing that
