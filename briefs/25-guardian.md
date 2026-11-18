@@ -255,3 +255,5 @@ it changes the same file, so keep your code in functions of its own and do not r
 `save_runtime` or `PRIVATE_ENVIRONMENT` beyond what you need. Package 53. OS-BASE B3's power coordinator: block
 inhibitors, "close your apps first", the lid, the battery, `request_power`. A mod-side `prepare_stop`, and
 anything under `mod/`. The owner tools and the `aresos` command. A shutdown button in the hub.
+
+**CI timing (the lead, 2026-11-19):** the R28 release cut has CI first from Thu 2026-11-19 12:00 until `linux-aresos` says it is through. Start the `check_build=build` run only after that; until then, run the `checks_only=true` run alone and say in PROGRESS.md that the check build waits.
