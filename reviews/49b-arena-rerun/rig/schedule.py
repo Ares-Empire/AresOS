@@ -27,11 +27,23 @@ def run(slot, settings, utility=False):
     while True:
         name=slot if attempt==1 else f'{slot}-repeat-{attempt}'
         out=ROOT/'runs'/name
+        failure=ROOT/'failures'/name
+        if (failure/'attempt.json').exists():
+            print('Retained earlier failure:',name,flush=True)
+            attempt+=1
+            continue
         if not (out/'summary.json').exists():
             print(time.strftime('%Y-%m-%dT%H:%M:%S'), 'START', name, flush=True)
             with (WORK/(name+'.txt')).open('a') as log:
                 result=subprocess.run([str(HERE/'retry.sh'),str(HERE/'run.sh'),name,'COVER=300','SHOTS=0',*settings],stdout=log,stderr=subprocess.STDOUT)
             if result.returncode:
+                failure.mkdir(parents=True,exist_ok=True)
+                partial=WORK/'rigs'/name
+                for path in partial.glob('*'):
+                    if path.is_file() and (path.name in ('settings.txt','marks.txt','samples.csv','host-start.json','host-end.json','health-failure.json','host-watch.jsonl','provenance.json','gc.txt') or path.name.startswith('snap-')):
+                        text=path.read_text().replace(str(HERE.parents[2]),'<worktree>').replace(str(Path.home()),'<home>')
+                        (failure/path.name).write_text(text)
+                (failure/'attempt.json').write_text(json.dumps({'slot':slot,'attempt':name,'utility':utility,'accepted':False,'exit':result.returncode,'reason':'non-zero rig exit; stopped for diagnosis'},indent=2)+'\n')
                 raise SystemExit(f'{name}: exit {result.returncode}; schedule stopped, no later slot started')
         watch=[json.loads(line) for line in (out/'host-watch.jsonl').read_text().splitlines()]
         external=[{'monotonic_ns':row['monotonic_ns'],'external_java':row['external_java']} for row in watch if any(p['kind'] in ('gradle','game') for p in row['external_java'])]
