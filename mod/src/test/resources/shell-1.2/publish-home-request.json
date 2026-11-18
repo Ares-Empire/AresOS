@@ -1,0 +1,22 @@
+{
+  "protocol": "aresos-shell/1.2",
+  "id": "p-1",
+  "op": "publish_home",
+  "revision": "17",
+  "part": 0,
+  "last": true,
+  "palette": {
+    "a": "#e9ecec",
+    "b": "#2389c6"
+  },
+  "apps": [
+    {
+      "id": "notepad",
+      "short": "notepad",
+      "group": "system_tools",
+      "place": "S0L0",
+      "slot": 2,
+      "cells": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    }
+  ]
+}

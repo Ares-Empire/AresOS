@@ -124,7 +124,7 @@ class StalledMountTest(HardeningBase, Base):
             with self.subTest(request_id):
                 self.assertEqual((answer['ok'], answer['state'], answer['error'], answer['reason'], answer['launch_id']),
                                  (False, 'failed', 'unavailable', 'not_responding', None))
-                self.assertEqual(helper.journal.entries[request_id]['reason'], 'not_responding')
+                self.assertEqual(helper.journal.entries[shell.DESKTOP, request_id]['reason'], 'not_responding')
         self.assertEqual(self.popen.call_count, 1)  # only Other started
         # A resent request ID replays its answer; it never starts a second check or a launch.
         replay = self.request(helper, conn, 'open_app', 'o-1', app_id='stalled')
