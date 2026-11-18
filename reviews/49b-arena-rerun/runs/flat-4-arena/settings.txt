@@ -1,0 +1,33 @@
+name=flat-4-arena
+RD=8
+SD=5
+HEAP=1024
+MIN_HEAP=256
+GC=-XX:MaxHeapFreeRatio=30,-XX:MinHeapFreeRatio=10
+MEMHIGH=2560M
+SIZE=1920x1080
+REFRESH=144
+SETTLE=120
+WINDOW=60
+COVER=300
+MODE=measure
+WORLD=base
+HOMEKIND=flat
+BASE=<worktree>/.work/pkg49b/AresHub-base
+FLIGHT=roads
+QUIT=0
+CREATE_FLOW=manual
+ENV=MALLOC_ARENA_MAX=2
+MODS=
+PROBE=0
+RECLAIM=
+FREEZE=0
+LONG=0
+NMT=1
+COVER_ACTION=none
+WAKE_INPUT=active-v3
+JVM_ARGS=-Xms256m -Xmx1024m -Xlog:gc:file=<worktree>/.work/pkg49b/rigs/flat-4-arena/gc.txt:tn,u -XX:NativeMemoryTracking=summary -Dfabric.addMods=<worktree>/.work/pkg49b/pkg41-frames.jar -Dpkg41.frames=<worktree>/.work/pkg49b/rigs/flat-4-arena/frames.txt -XX:MaxHeapFreeRatio=30 -XX:MinHeapFreeRatio=10
+GAME_ARGS=--quickPlaySingleplayer AresHub
+source_revision=32bcdb551e8d921113ad1c7ed0e9d5dd6b6fd4be
+started=2026-11-18T11:14:51+01:00
+GAME_PID=1090730

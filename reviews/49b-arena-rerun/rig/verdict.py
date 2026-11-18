@@ -1,6 +1,7 @@
 """Recompute the frozen pass line directly from retained frame windows and paired snapshots."""
 import hashlib
 import json
+import re
 from pathlib import Path
 import statistics
 import subprocess
@@ -24,7 +25,14 @@ def frames(slot,label):
 safety={}
 for slot,s in rows.items():
     events=[v['cgroup_events'] for v in s['snapshots'].values()]
-    safety[slot]={'oom':s['out_of_memory'] or any(e.get('oom',0) or e.get('oom_kill',0) for e in events),'high':max(e.get('high',0) for e in events),'gc_ms':s['gc_after_join']['max_ms'],'lost_frames':s['lost_frames']}
+    marks=dict(line.split() for line in (ROOT/'runs'/accepted[slot]/'marks.txt').read_text().splitlines())
+    pauses=[]
+    for line in (ROOT/'runs'/accepted[slot]/'gc.txt').read_text().splitlines():
+        match=re.match(r'^\[[0-9.]+s\]\[(\d+)ns\].*\bPause\b.*\s(\d+(?:\.\d+)?)ms$',line)
+        if match and int(match[1])>=int(marks['joined']):pauses.append(float(match[2]))
+    exact_gc=max(pauses,default=0)
+    assert round(exact_gc,2)==s['gc_after_join']['max_ms'],(slot,'GC parser mismatch')
+    safety[slot]={'oom':s['out_of_memory'] or any(e.get('oom',0) or e.get('oom_kill',0) for e in events),'high':max(e.get('high',0) for e in events),'gc_ms':exact_gc,'lost_frames':s['lost_frames']}
     assert not s['town_frozen'] and s['lost_frames']==0,(slot,'invalid workload/recorder')
     terminal=json.loads((ROOT/'runs'/accepted[slot]/'terminal.json').read_text())
     final_events=dict(line.split() for line in terminal['memory.events'].splitlines())

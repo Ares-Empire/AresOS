@@ -1,0 +1,47 @@
+{
+  "regular_total_bytes": 150234530,
+  "over_500_mib": [],
+  "largest_regular_files": [
+    {
+      "path": ".work/pkg49b/build-2.txt",
+      "bytes": 23981016
+    },
+    {
+      "path": ".work/pkg49b/client-1.txt",
+      "bytes": 10190636
+    },
+    {
+      "path": ".work/pkg49b/hosted-mod-log.txt",
+      "bytes": 6657425
+    },
+    {
+      "path": ".work/pkg49b/rigs/setup-flat/world/dimensions/minecraft/overworld/region/r.-1.0.mca",
+      "bytes": 3678208
+    },
+    {
+      "path": ".work/pkg49b/AresHub-base/dimensions/minecraft/overworld/region/r.-1.0.mca",
+      "bytes": 3678208
+    },
+    {
+      "path": ".work/pkg49b/rigs/setup-flat/world/dimensions/minecraft/overworld/region/r.-1.-1.mca",
+      "bytes": 3358720
+    },
+    {
+      "path": ".work/pkg49b/AresHub-base/dimensions/minecraft/overworld/region/r.-1.-1.mca",
+      "bytes": 3358720
+    },
+    {
+      "path": ".work/pkg49b/rigs/setup-flat/world/dimensions/minecraft/overworld/region/r.0.-1.mca",
+      "bytes": 2891776
+    },
+    {
+      "path": ".work/pkg49b/AresHub-base/dimensions/minecraft/overworld/region/r.0.-1.mca",
+      "bytes": 2891776
+    },
+    {
+      "path": ".work/pkg49b/rigs/setup-flat/world/dimensions/minecraft/overworld/region/r.0.0.mca",
+      "bytes": 2797568
+    }
+  ],
+  "large_downloads": "none; no ISO/image/download extraction used"
+}
