@@ -139,8 +139,10 @@ helper changes below and for how `aresos.cover` is left out of window tracking.
 
 ## Acceptance
 
-- Run A's and run B's tests pass, each module run by name. One hosted run for the full count: `gh workflow run "OS
-  image" --ref pkg/53c-laptop-home -f checks_only=true`, then `gh run watch <id> --exit-status --interval 60`.
+- Run A's and run B's tests pass, each module run by name. For the full count, start one hosted run after your last
+  push (`gh workflow run "OS image" --ref pkg/53c-laptop-home -f checks_only=true`) and put its run ID in the report.
+  **Push, then stop: never wait for or watch CI** (no `gh run watch`, no polling). The lead watches it from a shell
+  and sends you any failure in a new run.
 - The pictures exist, match the study's day look, and the report says where they differ and why.
 - `reviews/53c-laptop-home/REPORT.md` in the AGENTS.md format: the memory measured at rest with the pin (section 4
   expects about 150 to 180 MiB), and what only the laptop trial can check (the real chips, a click from the world,
