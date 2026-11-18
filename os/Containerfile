@@ -20,6 +20,12 @@ COPY build.sh /tmp/aresos-mod/build.sh
 COPY --from=source /source/mod /tmp/aresos-mod/mod
 RUN bash /tmp/aresos-mod/build.sh mod /tmp/aresos-mod/mod /out "$ARESOS_SOURCE_REVISION"
 
+# Package 311: Fedora's labwc source package with one upstream fix, so a pointer lock holds on a layer-shell
+# surface. Every input is exact (labwc/labwc.lock.json); /out holds the RPM and nothing else.
+FROM ghcr.io/ublue-os/bazzite-nvidia-open@sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151 AS labwc
+COPY labwc/ /tmp/aresos-labwc/
+RUN python3 -I /tmp/aresos-labwc/stage.py build /tmp/aresos-labwc /out
+
 FROM packages AS aresos
 ARG ARESOS_SOURCE_REVISION=unrecorded
 # release: the mod jar must be its pin. Only os/ci/check-build.sh passes throwaway.
@@ -29,7 +35,10 @@ LABEL org.opencontainers.image.source="https://github.com/Ares-Empire/AresOS" \
 COPY --from=mod /out/aresos.jar /tmp/aresos/minecraft/aresos.jar
 # Package 18c: the Control tools from the same commit (the source stage keeps control/).
 COPY --from=source /source/control /tmp/aresos/control
-RUN cp -a /tmp/aresos/config/. / && \
+COPY --from=labwc /out/ /tmp/aresos-labwc-rpm/
+RUN python3 -I /tmp/aresos/labwc/stage.py install /tmp/aresos-labwc-rpm /tmp/aresos/labwc && \
+    rm -rf /tmp/aresos-labwc-rpm && \
+    cp -a /tmp/aresos/config/. / && \
     cp -a /tmp/aresos/policy /usr/share/aresos/ && \
     install -m 0755 /tmp/aresos/tests/audit.py /usr/libexec/aresos-audit && \
     bash /tmp/aresos/build.sh control && \

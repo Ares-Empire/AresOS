@@ -576,6 +576,14 @@ test "$(sha256sum /etc/subuid /etc/subgid)" = "$before"
 test "$(systemctl --root=/ is-enabled aresos-subids.service)" = enabled
 pass 'ares has subordinate ID ranges; the boot service is enabled and idempotent'
 
+# --- Package 311: labwc is our rebuild of Fedora's source package, the only labwc, unchanged since it was installed.
+labwc_nevra=$(python3 -c 'import json; print(json.load(open("/usr/share/aresos/manifest/labwc.lock.json"))["result"]["nevra"])')
+test "$labwc_nevra" = labwc-0.9.6-1.fc44.aresos1.x86_64
+test "$(rpm -q --qf '%{NEVRA}\n' labwc)" = "$labwc_nevra"
+labwc_verify=$(rpm -V labwc)
+test -z "$labwc_verify"
+pass "labwc is the locked rebuild ($labwc_nevra), the only labwc installed, and rpm -V labwc is clean"
+
 # --- Package 23: Minecraft starts in AresOS.
 lock=/usr/share/aresos/minecraft/desktop.lock.json
 java=$(python3 -c 'import json, sys; print(json.load(open(sys.argv[1]))["java"]["path"])' "$lock")

@@ -260,4 +260,11 @@ PY
     section install-preview
     dnf5 --disable-repo='*' --setopt=install_weak_deps=False install --assumeno /tmp/ares-rpms/*.rpm "$chrome/google-chrome.rpm"
 } > "$out/candidate.txt" 2>&1
+
+# Package 311: a fresh resolution of labwc's build dependencies against this base, with a candidate lock.
+{
+    section labwc-build-dependencies
+    python3 -I /tmp/aresos/labwc/stage.py resolve /tmp/aresos/labwc "$out"
+    echo "labwc resolve exit=$?"
+} > "$out/labwc.txt" 2>&1
 echo 'Resolution finished; see evidence/resolve/'
