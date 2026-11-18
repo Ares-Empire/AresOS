@@ -285,7 +285,11 @@ public final class WorldSearchScreen extends Screen {
                 graphics.centeredText(font, MENU_HELP, width / 2, bandBottom + 6, CommonColors.WHITE);
             }
             case HOTBAR -> {
-                if (shown > 0) graphics.fill(frame.listX - 3, listTop - 3, frame.listX + frame.listWidth + 3, frame.boxY - 1, PLATE);
+                if (shown > 0) {
+                    int left = frame.listX - 4, top = listTop - 4, plateWidth = frame.listWidth + 8;
+                    graphics.fill(left, top, left + plateWidth, frame.boxY - 1, PLATE);
+                    graphics.outline(left, top, plateWidth, frame.boxY - 1 - top, RULE);
+                }
             }
         }
         super.extractRenderState(graphics, mouseX, mouseY, delta);

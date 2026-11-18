@@ -91,8 +91,12 @@ public final class WorldSearchClientGameTest implements FabricClientGameTest {
                 // His apps have their short names once the world is a desktop: the rows show them in gold.
                 context.waitFor(client -> AresOs.apps().stream().filter(AppDefinition::mine).noneMatch(app -> app.names().isEmpty())
                         && AresOsClient.acceptsAppCommands(client));
+                // Noon, as in his flat home, where it always is: the brightest sky the bar has to be read over.
+                world.getServer().runOnServer(server -> server.getCommands().performPrefixedCommand(
+                        server.createCommandSourceStack().withSuppressedOutput(), "time set 6000"));
                 context.runOnClient(client -> { client.gui.hud.getChat().clearMessages(true); client.gui.toastManager().clear(); });
-                context.waitTicks(5);
+                // The name of the item in his hand stands over the hotbar for two seconds after he gets it.
+                context.waitTicks(80);
 
                 for (var look : WorldSearchScreen.Look.values()) pictures(context, look);
                 context.runOnClient(client -> WorldSearchScreen.lookForTests(null));
