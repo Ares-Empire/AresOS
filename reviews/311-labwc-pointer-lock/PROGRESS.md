@@ -204,9 +204,9 @@ debug packages are not kept. A changing `BUILDTIME` alone already gives every bu
 
 ### Limit of the check
 
-It reads the Containerfile in the build context. A build given a different file with `--file` would not be seen. Both
-image builds that reach this stage's callers use `--file os/Containerfile os` (`os/ci/check-build.sh`; `os/ci/build-mod.sh`
-stops at `--target mod` and does not run these stages).
+It reads the Containerfile in the build context, so a build given a different file with `--file` would not be seen. The
+image build in `os/ci/check-build.sh` uses `--file os/Containerfile os`. `os/ci/build-mod.sh` uses the same file but stops
+at `--target mod`, so it never runs these stages.
 
 ### PLAN-GAP
 
