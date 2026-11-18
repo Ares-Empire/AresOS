@@ -165,10 +165,15 @@ def host_processes():
     return [tuple(map(int, line.split()[:3])) for line in listing.splitlines() if HOST_PROCESS in line]
 
 
-def service_peers():
+def service_peers(directory='/run/aresos-tools'):
     """The connections the kernel shows on the service's chrome.sock."""
     listing = subprocess.run(['ss', '-x', '-a', '-n'], capture_output=True, text=True, check=True).stdout
-    return [line for line in listing.splitlines() if '/run/aresos-tools/chrome.sock' in line and 'ESTAB' in line]
+    # 18e publishes the listener atomically by renaming .chrome.sock.new.
+    # ss retains the address passed to bind, not the socket's current path.
+    # Count server endpoints only; a peer address or a prefix match is not one.
+    names = {f'{directory}/chrome.sock', f'{directory}/.chrome.sock.new'}
+    return [line for line in listing.splitlines()
+            if len(fields := line.split()) >= 6 and fields[:2] == ['u_str', 'ESTAB'] and fields[4] in names]
 
 
 class Pages:
@@ -863,10 +868,10 @@ def case_ordinary(p):
                       'the page of the extension loaded by hand')
         own = page.evaluate('chrome.management.getSelf().then(self => [self.id, self.installType])', wait=True)
     except (cdp.Error, Failure, KeyError) as error:
-        # This Chrome would not load one that way, so the question was not put. The brief asks it of the
-        # probe alone; the rule for an ordinary extension then stays read from Chrome's code.
+        # Lead's decision after 2b: a check that could not ask is a failed
+        # check on the pinned Chrome, never a passing observation of nothing.
         log('an extension loaded by hand: not asked:', error)
-        return {'asked': False, 'why': str(error)[:400]}
+        raise Failure('The pinned Chrome must allow the hand-loaded extension to be asked: ' + str(error)[:400]) from error
     expect(own == [identity, 'development'], f'the extension loaded by hand is not installed by policy: {own}')
     try:
         page.evaluate(f"chrome.management.setEnabled('{a['id']}', false)", wait=True)
