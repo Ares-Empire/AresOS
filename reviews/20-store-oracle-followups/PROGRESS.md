@@ -1,5 +1,172 @@
 # Empire brief 302 — progress
 
+## Build part 6 (capture fixes)
+
+Status: **Capture fixes pushed; capture 44375098965 dispatched; next: the re-pin**.
+
+Started at `793387035a5f0d460745d54c65723124cf2847c5`, branch
+`pkg/302-store-oracle`, existing draft PR #111. Scope is the oracle harness,
+its tests and this progress record. No product, workflow, pin, allowed set or
+existing assertion was changed. The lead authorized exactly one replacement
+capture because 44352598226 was rejected.
+
+### Causes and fixes
+
+1. **Closed old database in restart flows.** The inherited Scenario constructor
+   closes its fixture engine *before* `restart_index`/`restart_tail` attempts
+   startup. When that startup fails, `bind` never replaces the closed engine.
+   Step 3's `6f12f561` added the unconditional generation query in
+   `Driver.restarted`; it consequently queries a closed handle during the
+   crash phase. This is locally reproducible at the hosted point numbers. The
+   compact sample has seven flows and includes neither restart flow; the small
+   sweep suite also did not run their full matrix. Native restart traces are
+   28/30 points versus 32/34 hosted, so numerical parity is not assumed. It was a coverage gap, not
+   a runner-only close-ordering change. `Scenario` is unchanged since the
+   pre-302 baseline, and part 1 did not change `Store.close`.
+
+   `Driver.restarted` still reads the original live connection before closing,
+   including its unfinished transaction's view. Only the exact closed-handle
+   `ProgrammingError` falls back to the same SQL through a freshly opened
+   `mode=ro` connection to the same file, under `outside_faults`, closed before
+   crash-byte copying. Other programming/storage errors still propagate. The
+   generation, crash snapshot, startup obligation, saved envelopes and restart
+   cases retain their meanings.
+
+2. **Applied-tail corpus tied to local offsets.** `recovery_recordings` selected
+   cancel 69/onboarding 61 (and staged restore 26) numerically. Those local
+   offsets are not portable: the hosted trace has 2,610 onboarding points versus
+   2,570 locally. Hosted setup reports Python 3.15.2; this laptop has Python
+   3.14.8 / SQLite 3.51.2. The failure was corpus construction before any
+   candidates, not an alteration slip or pin comparison. Exact new hosted
+   marker numbers are left to the replacement capture's discovery output.
+
+   The corpus now identifies the intended cancellation/account event at its
+   commit-marker append and arms the next raw site using the current trace's
+   length. It asserts that the event was found, the fault fired and that site
+   was `journal.write`. The original `tail['seq'] > max(record.committed)` and
+   exact account/cancellation row assertions remain. Final restore similarly
+   arms at application after its full generation-changing event is staged;
+   intermediate restore keeps its existing application-boundary discovery.
+   No numeric corpus offsets remain. All four recording names/order and the
+   measured-cost manifest remain unchanged. Missing boundaries fail loudly.
+
+### Regressions and baseline failures
+
+New `control/mail_tests/test_owner_state_capture.py` adds:
+
+- `test_failed_startup_can_be_crashed_with_the_old_engine_already_closed`:
+  hosted points `restart_index/27`, `restart_tail/29`, both fault modes, through
+  crash startup and post-restart comparison, with empty startup/lock gaps.
+- `test_recovery_corpus_discovers_boundaries_after_trace_points_move`: inserts
+  eight synthetic VFS trace sites before onboarding's real call. The old 61
+  then hits an earlier transaction and reproduces **`3 not greater than 3`**;
+  discovery instead finds marker-write 69, sequence 4 above marker 3. It still
+  builds all four recovery recordings and asserts the applied account tail.
+  This reproduces the hosted *condition*, not the entire hosted runtime.
+- `test_restart_preserves_the_live_connections_generation_view`: a live,
+  uncommitted generation must reach the startup obligation unchanged. This
+  guards the original observation while adding the closed-handle fallback.
+
+An executable export of **79338703**, with only the final new test module
+copied in, ran `python3 .work/302/run.py control/test-work/302-exports/part6old mail test_owner_state_capture`:
+**3 tests, FAILED (failures=1, errors=4)**, 1.334 s
+(`.work/302/part6/baseline-final-tests.log`). The four errors are exactly
+`Cannot operate on a closed database`; the failure is exactly
+`3 not greater than 3`. The live-view control passes. These are harness
+failures, not import, fixture or pin failures.
+
+### Local verification
+
+Final executable export: `control/test-work/302-exports/part6fix/`, no
+dot-prefixed ancestor, same path length as part 4's export. One worker;
+synthetic fixtures, the documented managed-settings stand-in, ordered base/Mail
+imports, exported PYTHONPATH, local TMPDIR, bytecode disabled. Commands below
+use `PYTHONDONTWRITEBYTECODE=1`; logs are under `.work/302/part6/`.
+
+- `python3 .work/302/run.py control/test-work/302-exports/part6fix mail test_owner_state_capture`:
+  **3 tests OK**, 4.126 s (`regressions.log`). Shifted account marker is 69;
+  cancellation marker is 68. All original applied-tail assertions hold.
+- `python3 .work/302/base-only.py control/test-work/302-exports/part6fix base test_owner_state_oracle test_owner_state_fixes_s2 test_mail_ci_selection`:
+  **174 tests OK**, 1.689 s (`base-final.log`), without Mail helper imports.
+- `python3 .work/302/run.py control/test-work/302-exports/part6fix mail sweep-units`:
+  **16 tests OK**, 274.741 s (`sweep-units-final.log`). Includes 48 applied-tail
+  cases / 76 cleanup phase runs, 47 discovered restore points / 137 cleanup
+  pairs, 154 latch view runs / 275 phases and 77 retry/restart cases.
+- `python3 .work/302/sample.py control/test-work/302-exports/part6fix mail .work/302/part6/sample`:
+  **104 runs, 187 checked phases, 1,444 keys** (`sample.log`).
+  `python3 .work/302/part4-delta.py .work/302/part4-after-main .work/302/part6/sample .work/302/part6/sample-delta.json same`:
+  **0 closed, 0 changed, 0 new, 1,444 identical; all seven clean traces
+  byte-identical** (`sample-delta.log`). No startup-replay/restore-lock keys.
+- `python3 .work/302/part6/restart-native.py control/test-work/302-exports/part6fix mail ignored`:
+  **1 test OK**, 87.195 s (`restart-native.log`): the existing full-matrix
+  test, restricted to the two restart flows in recording mode. **2 clean,
+  42 single, 42 persistent, 84 crash, 130 cleanup-pair cases** (pairs run live
+  and crash); **686 checked phases, zero gap entries**. All discovered sites
+  and cleanup pairs run under the same close-site policy as the hosted suite.
+- `OWNER_PERTURB_SHARD=6 OWNER_PERTURB_SHARDS=12 python3 .work/302/run.py control/test-work/302-exports/part6fix mail test_owner_state_perturb.SystematicPerturbations.test_recorded_scenarios_have_no_silent_owner_state_change`:
+  **1 test OK**, 716.001 s (`alteration-shard6.log`): **12 recordings,
+  183,894 alterations, 21,052 coherent changes, slipped=0**. All seven
+  alteration kinds ran. Includes discovered onboarding 1789 and the repaired
+  applied-tail cancellation's **2,631 alterations, slipped=0**.
+
+Earlier attempts remain recorded: `baseline-regressions.log` is the initial
+baseline failure; `fixed-regressions.log` caught an initially incorrect trailing
+slash in the new phase-presence assertion, corrected to the actual case name.
+An initial always-read-only implementation ran 16 sweep tests in 169.140 s,
+**FAILED (errors=6)** with `attempt to write a readonly database` at active
+restore transactions (`sweep-readonly-trial.log`). The final implementation
+preserves the live handle and uses read-only access only after it is closed;
+the live-view regression and final sweep run cover this correction. No test
+was weakened to accommodate that attempt. The first restart diagnostic
+(`restart-cases.py`, `restart-cases.log`) completed both native matrices but
+then failed an extra, incorrect assumption that all 214 hosted numeric case
+labels must exist locally. It is retained unchanged. Local traces are 28/30,
+hosted 32/34; 74 numeric case labels differ, including sites/cleanup numbers
+which move across close boundaries. This is not a failed restart case. The
+unmodified matrix rerun above verifies all native cases; the new regression
+separately reproduces both hosted closed-handle conditions. No numerical
+remapping or hosted full-matrix reproduction is claimed locally.
+
+### Capture handoff and Left
+
+Harness fixes: `6a818646ebd138180fb211ae37dfd4a0b205cb6d`, pushed normally to
+`pkg/302-store-oracle` (from `79338703`), with the required Built-by trailer.
+Dispatched exactly one full capture after the successful local runs and push:
+
+```sh
+gh workflow run control-owner-oracle.yml --ref pkg/302-store-oracle -f ledger_only=false
+```
+
+The command exited 0 and returned
+**[44375098965](https://github.com/Ares-Empire/AresOS/actions/runs/44375098965)**.
+This is the lead-authorized replacement for rejected capture 44352598226.
+No other workflow was dispatched, rerun or watched. The capture was not watched,
+awaited or downloaded; `linux-tools` owns that shell. This progress-only commit
+records its ID, is pushed normally, and ends the build run.
+
+Left, for `linux-tools` and the subsequent re-pin run:
+
+1. Validate the new capture, download/reconcile its **52** fresh actual lists
+   (part 5 explains the removed G22-latch artifact), reproduce the old pin from
+   historical full lists, classify every delta and re-pin once.
+2. Full proof on that pin: all 61 jobs green; lists reproduce it byte for byte;
+   all 12 alteration shards report `slipped=0`.
+3. Required Control CI green twice.
+4. Fresh package/security reviews and the independent full classification check.
+
+No full-pin, whole-matrix, hosted-boundary or CI-green claim is made by these
+local runs. No OS/owner module, installed/root/channel, mod/Gradle, boot,
+mount, sudo or live-service action was run. No process was stopped.
+`git diff --check` and the repository privacy script pass. Closing scan of
+`.work/` and `control/test-work/`: **no files over 500 MB**; the downloaded
+rejected capture is 23 MB (below 2 GB).
+
+**JUDGMENT-CALL:** none. **PLAN-GAP:** the compact sample omitted failed startup
+with an already-closed engine, and the recovery corpus retained local offsets
+although the brief required discovery. Both are now covered explicitly.
+
+---
+
 ## Build part 5 (the re-pin)
 
 Status: **Stopped before re-pin; capture 44352598226 has non-pin failures; no proof dispatched**.
