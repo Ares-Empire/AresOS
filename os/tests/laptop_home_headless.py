@@ -29,8 +29,8 @@ VENDORS = {
 FOREIGN = 'aresos-home://page/foreign.html'
 
 
-def load_program():
-    loader = importlib.machinery.SourceFileLoader('aresos_laptop_home', str(PROGRAM))
+def load_program(path=PROGRAM):
+    loader = importlib.machinery.SourceFileLoader('aresos_laptop_home', str(path))
     module = types.ModuleType(loader.name)
     loader.exec_module(module)
     return module
@@ -89,8 +89,21 @@ def engines(pid):
     return found
 
 
+def layer_state(window, layer):
+    if layer is None or not layer.is_layer_window(window):
+        return None
+    return {
+        'background': layer.get_layer(window) == layer.Layer.BACKGROUND,
+        'on_demand': layer.get_keyboard_mode(window) == layer.KeyboardMode.ON_DEMAND,
+        'anchored': all(layer.get_anchor(window, getattr(layer.Edge, edge))
+                        for edge in ('TOP', 'BOTTOM', 'LEFT', 'RIGHT')),
+        'output': layer.get_monitor(window).get_connector(),
+    }
+
+
 class Headless:
-    def __init__(self, path, socket_path, *, page=FIXTURE, size=None, script='', font_dir=None, battery=True):
+    def __init__(self, path, socket_path, *, page=FIXTURE, size=None, script='', font_dir=None, battery=True,
+                 legacy_renderers=None, isolate_drm=False, native=False, program=PROGRAM):
         self.path = path
         self.runtime = path / 'run'
         self.runtime.mkdir(mode=0o700)
@@ -112,31 +125,50 @@ class Headless:
         # Keep Wayland, home, state and D-Bus isolated. Pin both the compositor and every process it starts.
         self.env = dict(HOME=str(path), PATH='/usr/bin:/bin', XDG_RUNTIME_DIR=str(self.runtime),
                         XDG_STATE_HOME=str(self.state), XDG_CONFIG_HOME=str(config),
+                        XDG_DATA_HOME=str(path / '.local/share'), XDG_CACHE_HOME=str(path / '.cache'),
+                        TMPDIR=str(self.runtime),
                         WLR_BACKENDS='headless', WLR_RENDERER='pixman', WLR_LIBINPUT_NO_DEVICES='1',
                         GDK_BACKEND='wayland', GTK_A11Y='none', LIBGL_ALWAYS_SOFTWARE='1',
-                        WEBKIT_DISABLE_DMABUF_RENDERER='1', GSK_RENDERER='cairo',
                         ARESOS_SHELL_SOCKET=str(socket_path), ARESOS_DESKTOP_INSTANCE=INSTANCE, **VENDORS)
+        if legacy_renderers is None:
+            legacy_renderers = os.environ.get('LAPTOP_HOME_TEST_CURRENT_RENDERERS') != '1'
+        self.isolate_drm = isolate_drm or not legacy_renderers
+        if legacy_renderers:
+            self.env.update(WEBKIT_DISABLE_DMABUF_RENDERER='1', GSK_RENDERER='cairo')
         if font_dir is not None:
             fonts = path / '.local/share/fonts'
             fonts.mkdir(parents=True)
             for font in font_dir.glob('*.ttf'):
                 shutil.copyfile(font, fonts / font.name)
-        (path / 'setup.json').write_text(json.dumps(dict(size=size, script=script, battery=battery)))
+        (path / 'setup.json').write_text(json.dumps(dict(size=size, script=script, battery=battery,
+                                                        program=str(program.resolve()))))
         layer_dir = os.environ.get('LAPTOP_HOME_TEST_LAYER_DIR')
         lib_dir = Path(layer_dir).resolve() if layer_dir else Path('/usr/lib64')
         lib = lib_dir / 'libgtk4-layer-shell.so.0'
-        self.expect_layer = bool(layer_dir) or lib.is_file()
-        overrides = [f'GI_TYPELIB_PATH={lib_dir / "girepository-1.0"}'] if layer_dir else []
-        self.command = ['env', *overrides, f'LD_PRELOAD={lib if self.expect_layer else "libm.so.6"}',
-                        f'ARESOS_VIEW_TOKEN={TOKEN}', sys.executable,
-                        str(Path(__file__).resolve()), str(path), str(page)]
+        typelib_dir = lib_dir / 'girepository-1.0'
+        if layer_dir and not (lib.is_file() and (typelib_dir / 'Gtk4LayerShell-1.0.typelib').is_file()):
+            raise FileNotFoundError('the configured layer library and typelib are required')
+        self.expect_layer = lib.is_file()
+        overrides = [f'GI_TYPELIB_PATH={typelib_dir}'] if layer_dir else []
+        preload = f'LD_PRELOAD={lib if self.expect_layer else "libm.so.6"}'
+        if native:
+            runner = Path(__file__).with_name('laptop_home_native.py').resolve()
+            self.command = ['env', *overrides, preload, sys.executable, str(runner), str(path)]
+        else:
+            self.command = ['env', *overrides, preload, f'ARESOS_VIEW_TOKEN={TOKEN}', sys.executable,
+                            str(Path(__file__).resolve()), str(path), str(page)]
         self.config = config
 
     def __enter__(self):
         self.log = (self.path / 'log').open('w+')
+        isolation = []
+        if self.isolate_drm:
+            # Mesa can inspect a DRM device even in software mode. Hide the host devices before labwc starts.
+            isolation = ['/usr/bin/bwrap', '--die-with-parent', '--ro-bind', '/', '/', '--dev', '/dev',
+                         '--proc', '/proc', '--tmpfs', '/tmp', '--bind', str(self.path), str(self.path), '--']
         self.process = subprocess.Popen(
-            ['/usr/bin/dbus-run-session', f'--config-file={self.bus}', '--', '/usr/bin/labwc', '-C', str(self.config),
-             '-S', shlex.join(self.command)],
+            [*isolation, '/usr/bin/dbus-run-session', f'--config-file={self.bus}', '--',
+             '/usr/bin/labwc', '-C', str(self.config), '-S', shlex.join(self.command)],
             env=self.env, stdin=subprocess.DEVNULL, stdout=self.log, stderr=self.log, start_new_session=True)
         return self
 
@@ -225,7 +257,7 @@ def fixture_main(path, page):
     setup = json.loads((path / 'setup.json').read_text())
     if setup['size']:
         subprocess.run(['/usr/bin/wlr-randr', '--output', 'HEADLESS-1', '--custom-mode', setup['size']], check=True)
-    program = load_program()
+    program = load_program(setup['program'])
     libc = ctypes.CDLL(None)
     libc.getenv.argtypes = [ctypes.c_char_p]
     libc.getenv.restype = ctypes.c_char_p
@@ -237,6 +269,7 @@ def fixture_main(path, page):
     before = unset()
     token = program.take_token()
     parent = dict(pid=os.getpid(), before=before, after=unset(),
+                  drm_hidden=not Path('/dev/dri').exists() and not any(Path('/dev').glob('nvidia*')),
                   pins=[os.environ.get(key) for key in VENDORS])
     original = program.LaptopHome.create_view
 
@@ -249,14 +282,8 @@ def fixture_main(path, page):
         parent['ephemeral'] = home.view.get_network_session().is_ephemeral()
         parent['app_id'] = home.window.get_application().get_application_id()
         parent['display'] = os.environ['WAYLAND_DISPLAY']
-        if home.layer is not None and home.layer.is_layer_window(home.window):
-            parent['layer'] = {
-                'background': home.layer.get_layer(home.window) == home.layer.Layer.BACKGROUND,
-                'on_demand': home.layer.get_keyboard_mode(home.window) == home.layer.KeyboardMode.ON_DEMAND,
-                'anchored': all(home.layer.get_anchor(home.window, getattr(home.layer.Edge, edge))
-                                for edge in ('TOP', 'BOTTOM', 'LEFT', 'RIGHT')),
-                'output': home.layer.get_monitor(home.window).get_connector(),
-            }
+        if layer := layer_state(home.window, home.layer):
+            parent['layer'] = layer
         parent_path = path / 'parent.tmp'
         parent_path.write_text(json.dumps(parent))
         parent_path.rename(path / 'parent.json')
@@ -273,12 +300,6 @@ def fixture_main(path, page):
                     decision.use()
                     return True
             return False
-
-        # This one test action bypasses production navigation to inspect a document that normally cannot load.
-        home.view.connect('decide-policy', decide)
-        # Run the harness's handler first; the product handler consumes every decision.
-        home.view.disconnect_by_func(home.decide)
-        home.view.connect('decide-policy', home.decide)
 
         def write(**reply):
             tmp = path / 'reply.tmp'
@@ -309,7 +330,12 @@ def fixture_main(path, page):
             body = request.read_text()
             request.unlink()
             if body == '@foreign':
-                allow_foreign = True
+                # Inspect a normally unreachable document without modifying the initial load's policy.
+                if not allow_foreign:
+                    allow_foreign = True
+                    home.view.disconnect_by_func(home.decide)
+                    home.view.connect('decide-policy', decide)
+                    home.view.connect('decide-policy', home.decide)
                 home.view.load_uri(FOREIGN)
                 write(value=None)
             elif body == '@window':
@@ -328,6 +354,9 @@ def fixture_main(path, page):
             elif body == '@snapshot':
                 home.view.get_snapshot(home.WebKit.SnapshotRegion.VISIBLE, home.WebKit.SnapshotOptions.NONE,
                                        None, snapshot)
+            elif body == '@renderer':
+                write(value={'gsk': home.window.get_renderer().__gtype__.name,
+                             'web_acceleration_policy': home.view.get_settings().get_hardware_acceleration_policy().value_nick})
             else:
                 home.view.call_async_javascript_function(body, -1, None, None, None, None, finish)
             return True

@@ -121,8 +121,9 @@ class LaptopHomePageTest(unittest.TestCase):
 
     def picture(self, name):
         if os.environ.get('LAPTOP_HOME_TEST_PICTURES'):
-            PICTURES.mkdir(exist_ok=True)
-            shutil.copyfile(self.view.snapshot(), PICTURES / f'{self.look}-{name}.png')
+            pictures = Path(os.environ.get('LAPTOP_HOME_TEST_PICTURES_DIR') or PICTURES)
+            pictures.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(self.view.snapshot(), pictures / f'{self.look}-{name}.png')
 
     def replace_town(self, streets, *, holes=(), edit=None):
         houses, programs = generated_town(streets, self.icon, holes=holes)
