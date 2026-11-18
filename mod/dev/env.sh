@@ -113,6 +113,225 @@ ARESOS_SCOPES=()
 ARESOS_DEFER=0
 ARESOS_PENDING=0
 
+# client-test opts in after taking the lock. This process owns the launchers, not just their scope names:
+# if the shell dies halfway through starting a scope, it can cancel that launcher before it can start late.
+# It inherits the lock, and releases it only after stopping clients first and the CUDA worker last. CUDA calls
+# never run here, so even a stuck driver call cannot block parent-death detection or the cleanup deadlines.
+ARESOS_GUARD_DIR=
+aresos_supervise() {
+    ARESOS_GUARD_DIR=$(/usr/bin/mktemp -d -- "$ARESOS_DEV_CACHE/client-test-guard.XXXXXX")
+    ARESOS_DEFER=1
+    /usr/bin/python3 -I -c '
+import array
+import json
+import os
+import select
+import signal
+import socket
+import subprocess
+import sys
+import time
+
+directory, parent_pid = sys.argv[1:]
+for sig in (signal.SIGINT, signal.SIGTERM, signal.SIGHUP):
+    signal.signal(sig, signal.SIG_IGN)
+parent = os.pidfd_open(int(parent_pid))
+server = socket.socket(socket.AF_UNIX, socket.SOCK_SEQPACKET)
+cwd = os.getcwd()
+os.chdir(directory)
+server.bind("socket")
+os.chdir(cwd)
+server.listen()
+children = {}
+watch = None
+finishing = None
+holder_failed = False
+
+def ctl(*args):
+    try:
+        return subprocess.run(["systemctl", "--user", *args], stdout=subprocess.PIPE,
+                              stderr=subprocess.DEVNULL, text=True, timeout=1)
+    except subprocess.TimeoutExpired:
+        return None
+
+def child_signals():
+    # The supervisor ignores terminal signals; its commands must still respond to scope stops.
+    for sig in (signal.SIGINT, signal.SIGTERM, signal.SIGHUP):
+        signal.signal(sig, signal.SIG_DFL)
+
+def holder_lost():
+    global holder_failed
+    if watch and children[watch][0].poll() is not None:
+        if not holder_failed:
+            print("client-test: NVIDIA power holder exited unexpectedly; aborting client tests.",
+                  file=sys.stderr, flush=True)
+        holder_failed = True
+    return holder_failed
+
+def stop_scopes(units, seconds):
+    if not units:
+        return True
+    # Cancel a launcher that has not yet joined its scope too. Popen retains ownership until it is reaped.
+    deadline = time.monotonic() + seconds
+    ctl("stop", "--no-block", "--", *units)
+    while True:
+        if units == ordinary:
+            holder_lost()
+        result = ctl("show", "--property=ActiveState", "--value", "--", *units)
+        live = units if (result is None or
+                         any(s not in ("inactive", "failed") for s in result.stdout.split())) else []
+        for unit in units:
+            child, peer = children[unit]
+            if child.poll() is None:
+                child.terminate()
+        if not live and all(children[u][0].poll() is not None for u in units):
+            return True
+        if time.monotonic() >= deadline:
+            ctl("kill", "--signal=KILL", "--", *units)
+            for unit in units:
+                child = children[unit][0]
+                if child.poll() is None:
+                    child.kill()
+            # Confirm removal before releasing the lock; an unkillable kernel task is reported, not green.
+            until = time.monotonic() + 3
+            while time.monotonic() < until:
+                result = ctl("show", "--property=ActiveState", "--value", "--", *units)
+                if (result is not None and
+                    all(s in ("inactive", "failed") for s in result.stdout.split()) and
+                    all(children[u][0].poll() is not None for u in units)):
+                    return True
+                time.sleep(0.1)
+            print("client-test: FAILED to confirm owned scopes stopped: " + " ".join(units),
+                  file=sys.stderr, flush=True)
+            return False
+        ctl("kill", "--signal=TERM", "--", *live) if live else None
+        time.sleep(0.1)
+
+def reply(peer, status):
+    try:
+        peer.send(str(status).encode())
+    except (BrokenPipeError, ConnectionResetError):
+        pass
+    peer.close()
+
+try:
+    while True:
+        # Check the worker for the entire interval after READY, including probes and game shutdown.
+        if holder_lost():
+            try:
+                signal.pidfd_send_signal(parent, signal.SIGUSR1)
+            except ProcessLookupError:
+                pass
+            break
+        ready, _, _ = select.select([parent, server], [], [], 0.05)
+        if parent in ready:
+            break
+        for unit, (child, peer) in children.items():
+            status = child.poll()
+            if peer is not None and status is not None:
+                reply(peer, status if status >= 0 else 128 - status)
+                children[unit] = (child, None)
+        if server not in ready:
+            continue
+        peer, _ = server.accept()
+        # A dead or stalled RPC sender must not delay the pidfd check.
+        peer.settimeout(1)
+        fds = array.array("i")
+        try:
+            data, ancillary, _, _ = peer.recvmsg(131072, socket.CMSG_SPACE(4 * fds.itemsize))
+            for level, kind, values in ancillary:
+                if level == socket.SOL_SOCKET and kind == socket.SCM_RIGHTS:
+                    fds.frombytes(values)
+            request = json.loads(data)
+            action = request[0]
+            if action == "start":
+                _, unit, args, environment = request
+                environment["ARESOS_SCOPED_STDERR_FD"] = str(fds[3])
+                child = subprocess.Popen(
+                    ["systemd-run", "--user", "--scope", "--quiet", "--collect", "--unit=" + unit,
+                     "--property=TimeoutStopSec=20", *args],
+                    env=environment, stdin=fds[0], stdout=fds[1], stderr=fds[2], pass_fds=(fds[3],),
+                    preexec_fn=child_signals)
+                children[unit] = (child, peer)
+            elif action == "watch":
+                watch = request[1]
+                reply(peer, 0)
+            elif action == "finish":
+                finishing = peer
+                break
+            else:
+                raise ValueError("unknown supervisor request")
+        except Exception as error:
+            print("client-test: supervisor request failed: " + str(error), file=sys.stderr, flush=True)
+            reply(peer, 1)
+        finally:
+            for fd in fds:
+                os.close(fd)
+finally:
+    # Ignore terminal signals during cleanup, just as the shell EXIT trap does.
+    for sig in (signal.SIGINT, signal.SIGTERM, signal.SIGHUP):
+        signal.signal(sig, signal.SIG_IGN)
+    ordinary = [u for u in children if not u.startswith("aresos-dev-client-test-gpu-holder-")]
+    holders = [u for u in children if u not in ordinary]
+    clients_stopped = stop_scopes(ordinary, 20)
+    holder_stopped = stop_scopes(holders, 5)
+    for child, peer in children.values():
+        if peer is not None:
+            status = child.poll()
+            reply(peer, status if status is not None and status >= 0 else 1)
+    if finishing is not None:
+        reply(finishing, 0 if clients_stopped and holder_stopped and not holder_failed else 1)
+    server.close()
+    os.unlink(directory + "/socket")
+    os.rmdir(directory)
+' "$ARESOS_GUARD_DIR" "$$" &
+    ARESOS_GUARD_JOB=$!
+    local deadline=$((SECONDS + 5))
+    while [[ ! -S $ARESOS_GUARD_DIR/socket ]]; do
+        aresos_job_running "$ARESOS_GUARD_JOB" && ((SECONDS < deadline)) \
+            || aresos_fail 1 "Could not start the client-test supervisor."
+        /usr/bin/sleep 0.02
+    done
+    ARESOS_DEFER=0
+    ((ARESOS_PENDING == 0)) || exit "$ARESOS_PENDING"
+}
+
+# A launcher RPC stays alive until the owned command exits, preserving aresos_scope_start/scoped job semantics.
+# Pass the call site descriptors (including the game stderr) and environment so redirections/isolation survive.
+aresos_guard_request() {
+    /usr/bin/python3 -I -c '
+import array
+import json
+import os
+import socket
+import sys
+
+request = sys.argv[2:]
+if request[0] == "start":
+    try:
+        extra = os.dup(3)
+    except OSError:
+        extra = os.dup(2)
+peer = socket.socket(socket.AF_UNIX, socket.SOCK_SEQPACKET)
+try:
+    os.chdir(sys.argv[1])
+    peer.connect("socket")
+except (FileNotFoundError, ConnectionRefusedError):
+    sys.exit("client-test: supervisor has stopped; aborting.")
+if request[0] == "start":
+    request = ["start", request[1], request[2:], dict(os.environ)]
+    fds = array.array("i", [0, 1, 2, extra])
+    peer.sendmsg([json.dumps(request).encode()], [(socket.SOL_SOCKET, socket.SCM_RIGHTS, fds)])
+else:
+    peer.send(json.dumps(request).encode())
+try:
+    status = peer.recv(32)
+except ConnectionResetError:
+    sys.exit("client-test: supervisor has stopped; aborting.")
+sys.exit(int(status) if status else 1)
+' "$ARESOS_GUARD_DIR" "$@"
+}
+
 # True while the background job with this PID has not ended (bash's own job table, so a reused PID never counts).
 aresos_job_running() {
     local pid
@@ -138,7 +357,11 @@ aresos_scope_start() {
     # a command that is about to start. A signal until the scope exists is held, then acted on below.
     ARESOS_DEFER=1
     ARESOS_SCOPES+=("$ARESOS_UNIT")
-    systemd-run --user --scope --quiet --collect --unit="$ARESOS_UNIT" --property=TimeoutStopSec=20 "$@" &
+    if [[ -n $ARESOS_GUARD_DIR ]]; then
+        aresos_guard_request start "$ARESOS_UNIT" "$@" &
+    else
+        systemd-run --user --scope --quiet --collect --unit="$ARESOS_UNIT" --property=TimeoutStopSec=20 "$@" &
+    fi
     ARESOS_JOB=$!
     while ! systemctl --user --quiet is-active "$ARESOS_UNIT"; do
         if ! aresos_job_running "$ARESOS_JOB"; then
@@ -211,8 +434,6 @@ aresos_hold_nvidia() {
     if ! aresos_scope_start client-test-gpu-holder --property=TimeoutStopSec=5 -- \
         /usr/bin/python3 -I -c '
 import ctypes
-import os
-import select
 import signal
 import sys
 
@@ -221,7 +442,6 @@ def stop(*_):
 
 for sig in (signal.SIGINT, signal.SIGTERM, signal.SIGHUP):
     signal.signal(sig, stop)
-parent = os.pidfd_open(int(sys.argv[1]))
 cuda = ctypes.CDLL("libcuda.so.1")
 cuda.cuInit.argtypes = [ctypes.c_uint]
 cuda.cuDeviceGetByPCIBusId.argtypes = [ctypes.POINTER(ctypes.c_int), ctypes.c_char_p]
@@ -235,16 +455,17 @@ def check(function, *args):
 
 check(cuda.cuInit, 0)
 device = ctypes.c_int()
-check(cuda.cuDeviceGetByPCIBusId, ctypes.byref(device), sys.argv[2].encode("ascii"))
+check(cuda.cuDeviceGetByPCIBusId, ctypes.byref(device), sys.argv[1].encode("ascii"))
 context = ctypes.c_void_p()
 check(cuda.cuDevicePrimaryCtxRetain, ctypes.byref(context), device)
 try:
     print("READY", flush=True)
-    # A pidfd becomes readable on parent death, including SIGKILL; it cannot follow a reused PID.
-    select.select([parent], [], [])
+    # Only the independent supervisor releases this worker, after its client scopes are gone.
+    while True:
+        signal.pause()
 finally:
     check(cuda.cuDevicePrimaryCtxRelease_v2, device)
-' "$$" "$pci" >"$log" 2>&1; then
+' "$pci" >"$log" 2>&1; then
         aresos_say "Could not start the NVIDIA power holder; see $log."
         return 1
     fi
@@ -252,6 +473,7 @@ finally:
     job=$ARESOS_JOB
     while aresos_job_running "$job"; do
         if /usr/bin/grep -qx READY "$log"; then
+            aresos_guard_request watch "$ARESOS_GPU_HOLDER_UNIT" || aresos_fail 1 "Could not watch the NVIDIA power holder."
             aresos_say "Holding NVIDIA active until the client scopes have stopped."
             return 0
         fi
@@ -284,11 +506,16 @@ aresos_exit() {
     trap - EXIT
     trap '' INT TERM HUP
     # The CUDA context must outlive even the game's shutdown work, including cancellation.
-    for unit in "${ARESOS_SCOPES[@]}"; do
-        [[ $unit == "$ARESOS_GPU_HOLDER_UNIT" ]] || scopes+=("$unit")
-    done
-    ((${#scopes[@]} == 0)) || aresos_stop_scopes "${scopes[@]}"
-    [[ -z $ARESOS_GPU_HOLDER_UNIT ]] || aresos_stop_scopes "$ARESOS_GPU_HOLDER_UNIT"
+    if [[ -n $ARESOS_GUARD_DIR ]]; then
+        aresos_guard_request finish || ((status)) || status=1
+        wait "$ARESOS_GUARD_JOB" || ((status)) || status=1
+    else
+        for unit in "${ARESOS_SCOPES[@]}"; do
+            [[ $unit == "$ARESOS_GPU_HOLDER_UNIT" ]] || scopes+=("$unit")
+        done
+        ((${#scopes[@]} == 0)) || aresos_stop_scopes "${scopes[@]}"
+        [[ -z $ARESOS_GPU_HOLDER_UNIT ]] || aresos_stop_scopes "$ARESOS_GPU_HOLDER_UNIT"
+    fi
     if declare -F aresos_cleanup >/dev/null; then aresos_cleanup "$status" || ((status)) || status=1; fi
     exit "$status"
 }
@@ -300,3 +527,4 @@ trap aresos_exit EXIT
 trap 'aresos_signal 130' INT
 trap 'aresos_signal 143' TERM
 trap 'aresos_signal 129' HUP
+trap 'aresos_signal 1' USR1

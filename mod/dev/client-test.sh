@@ -66,6 +66,9 @@ aresos_check_room "$force"
 aresos_lock "$ARESOS_CLIENT_TEST_LOCK" "another client test run on this laptop"
 aresos_check_room "$force"
 
+# Survives a SIGKILL of this shell and holds the lock until its owned scopes are gone.
+aresos_supervise
+
 # The render node (/dev/dri/renderD*) of the first GPU from this PCI vendor (0x10de NVIDIA, 0x8086 Intel).
 render_node() {
     local node
@@ -174,5 +177,5 @@ stamp=$(/usr/bin/mktemp -- "$ARESOS_DEV_CACHE/client-test-started.XXXXXX")
 # Gradle and the game keep the terminal's stderr (fd 3 inside); only the compositor's own log goes to the file.
 aresos_scoped client-test -- /usr/bin/env "${ISOLATE[@]}" "${compositor_env[@]}" /usr/bin/cage -- \
     /usr/bin/env "${game_env[@]}" ALSOFT_DRIVERS=null \
-    /usr/bin/bash -c 'exec 2>&3 3>&-; exec "$@"' client-test "${ARESOS_GRADLE[@]}" runClientGameTest "${gradle_args[@]}" \
+    /usr/bin/bash -c 'exec 2>&"${ARESOS_SCOPED_STDERR_FD:-3}"; exec "$@"' client-test "${ARESOS_GRADLE[@]}" runClientGameTest "${gradle_args[@]}" \
     3>&2 2>"$COMPOSITOR_LOG"
