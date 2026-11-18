@@ -10,9 +10,29 @@ The builder changes only `reviews/49-memory-cuts/`. The branch also retains the 
 
 Every comparison uses a fresh copy of the forty-app flat base (seed 0); Nether controls/trials use the same seed 49 placeholder-hub base. [Fixture identities](fixture-hashes.json) record their manifests and saved-input hashes. Factor order is A/B in round 1 and B/A in round 2, with a new v1 control for each factor. Each run releases the shared lock and the batch waits another 30 seconds. All launches enforce the owner's-game and 6 GiB memory guards. Exit 75 waits five minutes and permits at most six retries; other failures stop that schedule.
 
-Small snapshots, GC logs, sampling, marks, settings and frame summaries are public. Raw frame/game/launcher logs, helper credentials, worlds and jars remain in ignored `.work/`. `table.py` regenerates the comparison tables; `audit.py` records guards, provenance and source-matched frame comparisons. Runtime jars are identified by hashes, not committed. The FerriteCore jar remains a single verified local download; its SHA-512 and MIT metadata are in `ferritecore.json`.
+Small snapshots, GC logs, sampling, marks, settings and frame summaries are public. The [decisive frame excerpts](verification/decisive-frame-timestamps.json) also retain the two first-flat flight windows and the two first-creation startup windows; [their reading guide](verification/decisive-frames.md) explains the boundaries and comparisons. Remaining raw frame/game/launcher logs, helper credentials, worlds and jars remain in ignored `.work/`. `table.py` regenerates the comparison tables; `audit.py` records guards, provenance and source-matched frame comparisons. Runtime jars are identified by hashes, not committed. The FerriteCore jar remains a single verified local download; its SHA-512 and MIT metadata are in `ferritecore.json`.
 
 The [results tables](TABLES.md) give every factor/control pair, observed saving/spread, approximate NMT residual, covered result and individual completed run. The [measurement audit](verification/measurement-audit.json) records completeness, source identity and guard/frame comparisons.
+
+### Writes outside the repo
+
+The original brief explicitly authorized `memory.reclaim` and `cgroup.freeze` on the rig's own game scope. The lead's review-fix decision reconciles that narrow exception with the review prompt's broader prohibition on `/sys` writes; no rig change is required. These were the rig's direct writes under `/sys/fs/cgroup`, below the current user's delegated `user.slice/user-<uid>.slice/user@<uid>.service/app.slice/pkg49-game-<run>-<controller-pid>.scope/`:
+
+| File within that scope | Exact content written | Runs |
+|---|---|---|
+| `memory.reclaim` | `300M swappiness=max\n` | `cover-r300-1`, `cover-r300-2` |
+| `memory.reclaim` | `600M swappiness=max\n` | `cover-r600-1`, `cover-r600-2`, `cover-freeze-1`, `cover-freeze-2` |
+| `cgroup.freeze` | `1\n` to freeze, then `0\n` to thaw | `cover-freeze-1`, `cover-freeze-2` |
+
+Here `\n` denotes the final newline. The four reclaim-trial [action records](runs/cover-r300-1/actions.jsonl), [second 300M](runs/cover-r300-2/actions.jsonl), [first 600M](runs/cover-r600-1/actions.jsonl), [second 600M](runs/cover-r600-2/actions.jsonl) and both retained freezer-failure records ([1](failures/cover-freeze-1/partial/actions.jsonl), [2](failures/cover-freeze-2/partial/actions.jsonl)) record completed reclaim requests and confirmed freeze/thaw transitions. Cleanup also attempts a scope-checked thaw if interrupted while marked frozen; the recorded freezer attempts had already confirmed thaw before their later failures.
+
+`measure.sh` supplies the run-specific unit it created, including the controller PID. Before every action, `scope.py:owned_scope` requires a package-49 game-unit name, exact equality between the game's `/proc/<pid>/cgroup` membership and `systemctl --user show -P ControlGroup` for that unit, a matching final scope path component, and the game PID in that group's `cgroup.procs`. It writes only the fixed filenames in the table. The scope is created by `systemd-run --user` under the user's delegated cgroup, without root; no ancestor, owner-session or unrelated scope is a target. Systemd separately manages scope creation/removal, process placement and the requested game-only `MemoryHigh=2560M`; those are user-manager operations, not additional direct rig file writes. The rig wrote nothing else under `/sys`, `/proc` or `/etc`; DRM/zram and process-accounting files were read only. Other runtime outputs used the worktree and normal per-user runtime sockets/locks.
+
+### Before the rig is reused
+
+The committed rig stays exactly as it produced these measurements. It has an unresolved input failure: if `vinput.py` dies, `measure.sh:149`'s `vin()` opens the FIFO with a blocking shell redirection and can wait indefinitely before writing a standing, flight, chat or screenshot-related command. The controller then never exits through its cleanup trap, so its processes can remain alive and the inherited shared client lock stays held. `wake.py`'s bounded writer covers only the wake path; the earlier FIFO reopening fix does not bound every command.
+
+Before any rerun, replace every command's blocking FIFO access with a bounded input helper, fail promptly on input-reader or compositor loss, and exit through the existing owned-process cleanup (including thaw when needed and lock release). Any follow-up must first validate that cleanup under reader/compositor failure. This required repair is documented here rather than applied to the historical rig.
 
 ### Measurement limits
 
@@ -111,6 +131,16 @@ A later current-source Nether control was interrupted at return: the controller 
 
 ## Verified
 
+### Review fix 1 (2026-11-18)
+
+`git fetch origin` found main still at `774d7954`, already an ancestor of the starting head `54f4d0df`; `git rev-list --count HEAD..origin/main` printed `0`, so no new merge was needed. The rig, all measurement summaries and `TABLES.md` remain unchanged. The recommendation remains to retain current product settings.
+
+The read-only `python3` command in [the timestamp guide](verification/decisive-frames.md) printed the six matching comparison-window results and `Decisive flight endpoints and all six comparison windows match.` A separate inline Python comparison confirmed that all four arrays are exact contiguous extracts of the surviving raw frame logs; [printed output](verification/review-fix-1-frame-check.txt) retains both checks. The extract contains 21,527 frame timestamps in 431,153 bytes, including the predecessor at each window boundary. Both decisive discrepancies are preserved without rerunning analysis or changing any table. Byte comparison confirmed the two original FerriteCore screenshots were identical before removing the second copy; the interrupted Nether screenshot was removed while retaining all its failure data.
+
+The [review-fix check record](verification/review-fix-1-checks.json) records both changed JSON files parsing successfully, all 46 local Markdown links resolving, and the full-branch `git diff --check origin/main` exiting 0 with no output. The exact shell body of the hosted Repo privacy workflow executed locally, exited 0 and printed `No file holds a home path with a real user name.` The closing `.work/` inventory found no regular file over 500,000,000 bytes. No shell script changed, so no shell syntax check was needed. No client test, game, Gradle, rig script or hosted game/build workflow was run for this fix. The historical verification below describes the original study, not new executions. The FIFO cleanup repair remains unimplemented and must precede reuse of the rig.
+
+### Original measurement verification
+
 [Hosted Mod run 44214086556](https://github.com/Ares-Empire/AresOS/actions/runs/44214086556) passed at commit `f2fdcd3d` after the second main merge. `gh workflow run "Mod" --ref pkg/49-memory-cuts` and `gh run watch 44214086556 --exit-status --interval 60` completed successfully. Both clean checkouts passed 104 required server game tests and printed `BUILD SUCCESSFUL in 1m 33s` / `1m 29s`; their jars had the identical SHA-256 `e88194c52e956e5c098477d02cc5debc7ce3b3d4c234c05ca676235152f45b48` ([extract](verification/hosted-mod.txt), [run identity](verification/hosted-mod.json)). It tests the same mod tree as final measurements, without the rig-only FerriteCore injection. Later report/data commits do not change that product tree.
 
 Hosted Repo privacy had not started at the closing snapshot: the [PR run](https://github.com/Ares-Empire/AresOS/actions/runs/44237258777) remained queued after over twenty minutes and a [same-branch dispatch](https://github.com/Ares-Empire/AresOS/actions/runs/44239580127) was also queued, both with zero steps. [Observed statuses](verification/hosted-privacy-pending.json) record this without claiming a hosted pass; [live PR checks](https://github.com/Ares-Empire/AresOS/pull/107/checks) show subsequent state. The exact shell body from `.github/workflows/repo-privacy.yml` ran locally with exit 0 and printed “No file holds a home path with a real user name.” ([local record](verification/privacy-local.json)). Both watchers used `--exit-status --interval 60`.
@@ -123,9 +153,9 @@ Both saved fixture hashes were unchanged after all measurements. The [closing st
 
 Selected screenshots were inspected and saved here:
 
-- [Current full client suite 3](screenshots/client-tests-3-0090-home-menu.png) and [suite 4](screenshots/client-tests-4-0090-home-menu.png); [original FerriteCore client 1](screenshots/ferrite-client-1-home.png) and [2](screenshots/ferrite-client-2-home.png).
+- [Current full client suite 3](screenshots/client-tests-3-0090-home-menu.png) and [suite 4](screenshots/client-tests-4-0090-home-menu.png); [original FerriteCore clients 1 and 2](screenshots/ferrite-client-1-home.png) share one byte-identical screenshot, retained once.
 - [Forty-app base](screenshots/setup-flat-forty.png), [final automatic creation](screenshots/arena-create-after-flight.png) and [final flat repetition 3](screenshots/arena-flat-3-after-flight.png).
-- [Actual Nether choice](screenshots/setup-nether-choice.png), [Nether room](screenshots/setup-nether-room.png), [complete control glide](screenshots/nether-control-after-glide.png) and [arena-only glide](screenshots/arena-nether-after-glide.png). The [interrupted control image](screenshots/interrupted-nether-control-after-glide.png) is labelled separately; it does not prove a successful return.
+- [Actual Nether choice](screenshots/setup-nether-choice.png), [Nether room](screenshots/setup-nether-room.png), [complete control glide](screenshots/nether-control-after-glide.png) and [arena-only glide](screenshots/arena-nether-after-glide.png). The interrupted control's screenshot was dropped in review fix 1; its failure data remain under `failures/nether-control-interrupted/`.
 
 The recorded invocation pattern for both full qualifications on each source was:
 
@@ -207,7 +237,7 @@ FerriteCore's consistent 9–12 MiB post-G1 heap saving did not lower flight/cov
 
 ## Open questions
 
-- Can an independent larger repeat reproduce the arena cap's extra active gap, with the pass line fixed in advance? This study does not establish its cause or qualify the set by dropping that run.
+- Can an independent larger repeat reproduce the arena cap's extra active gap, with the pass line fixed in advance? This study does not establish its cause or qualify the set by dropping that run. Before that repeat, or any other rig rerun, apply and validate the bounded-input/reader-loss/compositor-loss cleanup fix described in "Before the rig is reused".
 - If JVM flags are revisited later, what migration should linux-aresos use for an existing managed Prism instance while preserving owner-edited arguments?
 - What killed both thawing games despite zero scope OOM/high counters, and how should heartbeat, compositor and audio behavior be handled before any freezer revisit?
 - How much do game, Prism, helper, supervisor and the laptop home cost together in the real session? That is the research's later product check, outside this rig.
