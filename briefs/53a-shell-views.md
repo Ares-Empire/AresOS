@@ -30,10 +30,15 @@ session") and section 9 step 1. `docs/design/HUB.md` 3.8 (what 1.1 is). Then `os
 1. **1.2 and its capabilities.** The helper answers `aresos-shell/1.2` and offers `views`, `home_state` and
    `apps_running` to a client that asks for minor 2. A 1.0 or 1.1 client sees exactly what it sees today.
 2. **Who a hello is.** The helper reads the view token from `ARESOS_VIEW_TOKEN` at start and adds that name to its
-   `PRIVATE_ENVIRONMENT`, so no app it launches inherits it.
-   - A hello holding the nonce is the desktop; a hello holding `instance` and the view token is a view. The role
-     comes from what the hello holds. A `role` that does not match it, a hello holding both, or a view without a
-     valid `view` name (`[a-z0-9-]{1,32}`) is refused with `not_authorized` (bad name: `malformed`).
+   `PRIVATE_ENVIRONMENT`. **No child the helper starts inherits `PRIVATE_ENVIRONMENT`**: not the apps it launches,
+   and not its own tools either (today `query_scopes()` runs `systemctl` with the helper's full environment, nonce
+   included; give it the filtered environment too).
+   - Both roles must carry the matching `instance`, as the desktop's hello does today. A hello with `instance` and
+     the nonce (field `nonce`), and `role` missing or `"desktop"`, is the desktop. A hello with `instance`, the view
+     token (field `token`) and `"role": "view"` is a view. Everything else is refused with `not_authorized`: a wrong
+     instance with either secret, a role that does not match the secret, both secrets in one hello, a token without
+     `"role": "view"`. A view without a valid `view` name (`[a-z0-9-]{1,32}`) is `malformed`. The nonce keeps its
+     current accepted range (`NONCE`).
    - Compare tokens and nonces with `hmac.compare_digest`. Never log a token or put it in a reply.
    - With no `ARESOS_VIEW_TOKEN` (or an empty one) every view hello is refused. Until package 23c the supervisor
      sets none, so on a real session nothing changes.
@@ -62,40 +67,62 @@ session") and section 9 step 1. `docs/design/HUB.md` 3.8 (what 1.1 is). Then `os
    particular `world_ready`, `heartbeat` and `publish_home`.
 5. **What a view gets:** `apps_changed`, `home_changed`, `apps_running`, and `app_state` for its own launches. Never
    `shell_focus`, `shell_covered`, or any later desktop-only event.
-6. **Launches per client.** Journal entries are keyed by client (`desktop` or `view:<name>`) and request ID; the
-   duplicate rule holds within one client only. The desktop keeps its `JOURNAL_LIMIT` (256); each view has 32 of its
+6. **Launches per client.** Every piece of state a request ID keys is keyed by client (`desktop` or
+   `view:<name>`) and request ID: the pending checks `open_app` looks up before the journal, the journal, process and
+   window tracking, and restart reconciliation. The original ID stays on the wire. The duplicate rule holds within
+   one client only. A launch a view asked for never changes the desktop's window rules (`window_minor`), also when
+   it is reconciled after a helper restart. The journal keeps entries for at most four view names; when a fifth
+   name appears, the entries of the view name used longest ago go. The desktop keeps its `JOURNAL_LIMIT` (256); each view has 32 of its
    own, so a view can never make the world's opens fail with `journal_full`. Each entry remembers who asked and
    survives a helper restart as entries do today; `app_state` goes to that client only, or to a view that comes back
    with the same name. An entry from a journal written before this package counts as the desktop's.
 
 ### B. The home (section 5, `publish_home`, `get_home`, `home_changed`)
 
-1. **`publish_home`** from the desktop (minor 2): validate shapes and bounds only, as section 5 gives them
-   (`revision` a 1.1-style string, `part` from 0 counting up by one, `last`, `palette` of single-character keys to
-   `#rrggbb`, at most 200 apps across all parts, `cells` exactly 144 characters of `.` or a palette key, `slot`
-   0–8 or missing, `place` and `short` and `group` strings as in 1.1). Bound the parts too: at most 16 per
-   revision, and a part of another revision, a gap or a repeat drops the half-built home and keeps the last complete
-   one. The home is taken over only when the part with `"last": true` arrives. Keep it in memory only.
+1. **`publish_home`** from the desktop (minor 2): validate shapes and bounds only. These bounds are the contract
+   for the mod (53b) and the window program (53c) too; write them into section 5:
+   - `revision`: as 1.1's revision strings. `part`: an integer from 0, counting up by one, at most 16 parts per
+     revision. `last`: a boolean.
+   - `palette`: **only in part 0**, required there, absent from later parts. At most 64 keys, each one character
+     of `[A-Za-z0-9]`, each value `#rrggbb`.
+   - `apps`: at most 200 across all parts; IDs as 1.1's app IDs, unique across the whole revision.
+     - `short`: required, 1–64 characters, no control characters.
+     - `group`: required, `[a-z0-9_]{1,64}`.
+     - `place`: optional (missing while the app has none), `[A-Za-z0-9_-]{1,32}`.
+     - `slot`: optional, an integer 0–8.
+     - `cells`: required, exactly 144 characters, each `.` or a key of the revision's palette.
+   - A part of another revision, a gap, a repeat, a palette outside part 0, a duplicate ID or a cell without a
+     palette key drops the half-built home and keeps the last complete one. The home is taken over only when the
+     part with `"last": true` arrives. Keep it in memory only.
 2. **Unknown apps.** An app whose ID the helper does not list is left out, logged once per publish, and the rest of
    the town stands. Apply this when serving `get_home` too, against the current list, so an uninstall after a
-   publish never shows a dead house and never empties the town.
-3. **`get_home`** from a view, paged like `list_apps` (cursor, `next`, the same page size rules). Before any
-   complete publish: `"revision": null` and no apps.
+   publish never shows a dead house. Filter only against a **complete** catalogue: while the first discovery scan
+   has not finished (the starter-only list), serve the home as published, so a slow scan never empties the town.
+3. **`get_home`** from a view, paged like `list_apps` (cursor, `next`, the same page size rules). Every page carries
+   `revision` and the whole `palette`, so each page decodes alone. Before any complete publish: `"revision": null`
+   and no apps.
 4. **`home_changed`** to every view when a new complete home arrives.
 
 ### C. Running apps (section 5, `apps_running`)
 
 `apps_running` to each view once after its hello and then at each change: the sorted IDs of the apps that have at
-least one window, from the helper's window tracking. Coalesce bursts (one event per loop turn is enough). Without
-window tracking, send an empty list once and nothing after.
+least one window, from the helper's window tracking, identified against the **whole catalogue** (discovered apps
+included), whatever desktop is connected, if any (none, 1.0, 1.1 or 1.2). This must not change what the desktop's
+window rules see or own. Coalesce bursts (one event per loop turn is enough). Without window tracking, send an empty
+list once and nothing after.
 
 ### D. The focus return, decided by screen (REVIEW-2 should-fix 1 of package 44; this replaces section 5's "a
 launch a view asked for is not the desktop's")
 
-When an app's last window closes on a screen that is **known** not to be the world's (its outputs are known and
-none is one of the desktop window's outputs, as `Windows.covering(known_screen=True)` decides), the helper does not
-return to the world: no activation and no `shell_focus`. Whoever opened the app does not matter, and an app moved
-between screens follows where its window was. With unknown outputs or one screen, today's behaviour stays. Update
+**Only while at least one view is connected** (the laptop home runs; without it the other screen holds nothing
+and today's return is right): when an app's last window closes on a screen that is **known** not to be the
+world's, the helper does not return to the world, so no activation and no `shell_focus` with `reason: app_closed`.
+"Known": the closing window's last recorded outputs are known and none is one of the desktop window's outputs
+(compare them directly, as `Windows.covering` does for its screens; record them before the window is forgotten, and
+carry the decision through the discovered-app delay). Whoever opened the app does not matter, and an app moved
+between screens follows where its window was. With unknown outputs, one screen or no view, today's behaviour stays.
+Only the helper's own return is suppressed: a real activation of the world by the compositor still reaches the game
+as today. Update
 section 5's sentence in `LAPTOP-HOME.md` to this rule and add a line for `linux-aresos` beside the PLAN-GAP there,
 since it touches 23c's screens.
 
@@ -111,18 +138,26 @@ change nothing else under `mod/`.
 - A new test module `os/tests/test_aresos_shell_views.py` (more modules if it grows), covering section 9's list:
   - a view never displaces the desktop and never counts for readiness;
   - a hello with the view token is a view whatever its `role` says, and a mismatch is refused; both secrets in one
-    hello, a wrong token, no token configured, and the nonce in a view's hello are refused;
+    hello, a wrong token, no token configured, a token without `"role": "view"`, a wrong instance with each
+    otherwise-correct secret, and the nonce in a view's hello are refused;
   - a view's hello leaves the window rules, the returns and the status pipe alone;
   - a busy view cannot fill the desktop's journal (33 view launches, then the desktop still opens);
-  - a view's request ID never returns a launch of the game's (same ID from both);
+  - a view's request ID never returns a launch of the game's (same ID from both), also while the first launch's
+    check is still pending; a view's launch reconciled after a restart leaves `window_minor` alone; a fifth view
+    name's launches push out the oldest name's journal entries;
   - `app_state` reaches only the client that asked, also after a helper restart and a view's reconnect;
   - an unknown ID in `publish_home` drops that app only; an uninstall after a publish drops it from `get_home`;
-  - parts: two-part town, a gap, a repeat, a new revision mid-way, 17 parts, 201 apps, bad cells and palette;
+  - parts: two-part town, a gap, a repeat, a new revision mid-way, 17 parts, 201 apps, bad cells and palette, a
+    palette outside part 0, a duplicate ID; every `get_home` page carries the palette; a home served before the
+    first discovery scan finishes keeps its discovered houses;
   - a fifth view, a second view with the same name, a view sending `world_ready`, `heartbeat`, `publish_home`;
-  - views never receive `shell_focus` or `shell_covered`; `apps_running` after hello and on change;
-  - D: an app closing on the other screen sends no `shell_focus` and activates nothing; on the world's screen and
-    with unknown outputs it returns as today;
-  - an app launched by the helper does not see `ARESOS_VIEW_TOKEN` in its environment;
+  - views never receive `shell_focus` or `shell_covered`; `apps_running` after hello and on change, and it lists a
+    discovered app's window with the view connected first, with a 1.0 desktop and after a helper restart;
+  - D: with a view connected, an app closing on the other screen sends no `shell_focus` and activates nothing; on
+    the world's screen, with unknown outputs, and with no view connected it returns as today; a compositor
+    activation of the world still reaches the game;
+  - neither an app launched by the helper nor the `systemctl` of `query_scopes()` sees `ARESOS_VIEW_TOKEN` or the
+    nonce in its environment;
   - each example file under `shell-1.2/` is read and checked by the tests.
 - Run only the modules you touch, one at a time (`python3 -m unittest discover -s os/tests -p
   'test_aresos_shell_views.py'`, then each existing `test_aresos_shell*.py` module by name). Never the whole
