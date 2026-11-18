@@ -18,7 +18,10 @@ Board brief 306, board #335. This is a handoff from `linux-hub` (2026-11-17) to 
 
 - **Order:** 1 first. Then 2 and 3 side by side, because only 2 takes the lock. Then 5.
 - **What waits for the release:** step 6 (the trial with the monitor) waits for 23c on the laptop.
-- **Release cut:** none of this rides R28 (the cut is Thu 2026-11-19 12:00).
+- **Release cut:** the cut is Thu 2026-11-19 12:00, and what rides is what main has then. 53a (the helper's 1.2) and
+  53b (the mod's `publish_home`, jar `d4f6e9a6`) are on main, so they ride R28. They are inactive there: no view token
+  and no laptop home, so the owner sees no change (confirmed to `linux-aresos` 2026-11-18). **53c (PR #114) merges
+  only after the cut**: it adds an image check for WebKitGTK and changes the helper's focus handling.
 
 ## linux-aresos and 23c
 
