@@ -3,12 +3,289 @@
 Brief: `briefs/18c-b-chrome-image.md` (on `main` since PR #73).
 Branch `pkg/18c-b-chrome`, one builder at a time. Each step is a fresh agent; this file is the handoff.
 
+## Step 3a (2026-11-18, gpt-6-astra)
+
+**Stopped incomplete after the two allowed image-build rounds.** Both builds failed in the new CI checker,
+not on infrastructure. The first defect (requiring 0755 on the image's 0555 root) is fixed; the second remains:
+the PEM scan assumes `<scan-root>/root` resolves to a directory. Run 44247363499 reports `FileNotFoundError`
+there. No third run or post-limit code fix was made. The image/key/placeholder/checkout proof is not green;
+3b must wait for the lead's disposition of this 3a finding.
+
+### Done
+
+Chrome's image files are installed by 18c's existing map. No `gh` installation, service/extension change, instruction
+text or storage exception is included. `build.py` on this head prints
+`c689b9c8f7d748c137dd5f64b0a317368a13f5b781ce0d17a21b199b03c4eaa9`.
+
+| Installed path | Mode | Binding/check |
+|---|---|---|
+| `/usr/libexec/aresos-control/chrome/host` | 0755 | `FILES`, recorded source/SHA-256/mode, image ownership and checkout comparison |
+| `/usr/libexec/aresos-control/chrome/native_host.py` | 0644 | same; unchanged native relay |
+| `/usr/share/polkit-1/actions/org.aresos.control.chrome-loosen.policy` | 0644 | same; XML and real `pkaction` defaults no/no/auth_admin, owner annotation equals unit user, no rule names it, existing uncached test remains |
+| `/usr/lib/tmpfiles.d/aresos-control-chrome.conf` | 0644 | same; exact two lines, boot placeholder, content preserved and group/mode restored on second invocation, installed `owner_hosts` as service user |
+| `/usr/share/aresos/chrome/extension.crx` | 0644 | one `pack.py` invocation per image, public record, independent CRX3 reader/signature/key-derived ID, exact zip payload hashes, checkout payload |
+| `/usr/share/aresos/chrome/update.xml` | 0644 | recorded SHA-256, exact XML ID/version and fixed file URL, checkout template rendered for recorded ID |
+| `/usr/share/aresos/chrome/policy.json` | 0644 | recorded SHA-256, exactly one force-installed/force-pinned entry with override, checkout template |
+| `/usr/share/aresos/chrome/native-host.json` | 0644 | recorded SHA-256, exact manifest and one allowed origin, checkout template |
+| `/etc/opt/chrome/policies/managed/aresos.json` | symlink | record's `links`, exact target `/usr/share/aresos/chrome/policy.json`, root-owned 0755 parents under `/etc` and the base's 0555 `/`, only entry in managed folder |
+| `/etc/opt/chrome/native-messaging-hosts/org.aresos.chrome.json` | symlink | record's `links`, exact target `/usr/share/aresos/chrome/native-host.json`, same parent checks, base host retained |
+| `/usr/share/aresos/manifest/control.json` | 0644 | gains `chrome_build`, `chrome_extension` (public packer fields plus four file modes/hashes) and the two links |
+
+The bundle folder is 0755; every installed file above is root:root. The map now records 78 deterministic
+files, nine directories and three links, plus the four per-build files. `control-tree` installs the same
+deterministic map and an empty bundle folder, without signing. The real image build hashes untouched `control/`
+before generating settings or invoking the packer. No generated output goes back into `control/`.
+The existing `chrome/build-id.json` must contain exactly the new `chrome_build` value; the existing wheel and
+vendor checks remain in place.
+
+The install map writes neither `/var/lib/aresos-control` nor the old `/etc/aresos/control/chrome-excluded-sites.json`.
+The tmpfiles configuration makes the root:root 0755 folder and root:aresos-tools 0640 regular placeholder at boot:
+`{"format":0,"hosts":[]}`. The installed validator refuses it and accepts an empty format-1 list; the service
+unit cannot write this folder. Only made-up `.invalid` hosts are used in checks. The new image-side tmpfiles
+and installed-validator checks were not reached in either build; the local source tests are separate evidence.
+
+The new checker is CI-only: `check-image.sh` mounts `os/ci/control/chrome_image.py` read-only in the check
+container; it is not copied into the image. A non-recursive bind of `/` inside the CI container exposes the image files
+under the helper and Podman metadata mounts for the key scans. It checks bundle contents, metadata and identity independently of
+the packer, scans every regular image file outside `/proc`, `/sys`, `/dev` for the build's modulus (raw, hex,
+base64 and base64url with all three alignments, wrapped forms included), and requires the sole raw occurrence
+in the CRX. It scans recorded files, the bundle and temporary/root folders for PEM private-key markers.
+The runner is wired to repeat the modulus scan over `evidence/build.log` after `check-image.sh`. Only the public modulus,
+ID and hashes are printed. Negative checks reject another bundle, policy, AresOS host or unrecorded Chrome
+startup file. The checker's compare command uses only stdlib and the packer's payload/template readers.
+These describe the implemented checks: the failed PEM-directory traversal prevents the full scan, its PASS
+markers, the build-log scan and checkout comparison from completing in a built image.
+
+### The merge and its resolutions
+
+- `a5e91c5c`: `git fetch origin`, then `git merge --no-commit origin/main`, committed separately. Parent
+  `ce3d01e2`; main `774d7954` includes PR #58 (`beb42ec8`), #98 and the later packages. Git reported
+  `Automatic merge went well`; there were no conflicts or hand resolutions. The branch's earlier Chrome work
+  and main's service/qualification changes both remain.
+- `pending-rebind.json` was exactly main's after the merge. Later `rebind.py pending` calls recalculated the
+  pending record and added four notes for 3a. Its ten existing rows stayed the same; all of main's notes and
+  rebound history were checked equal word for word. This records pending work, not a new rehearsal rebind.
+- Main already has the correct workflow sum `tools 20 + build 80 + Control VM pass 16 + 15` and limit 131.
+  There is no step-3a workflow edit or commit requiring a notice to linux-aresos.
+- The merge-only `git diff --cached --check` reported existing trailing Markdown whitespace from main's
+  historical reviews. Those files were retained unchanged; the step-3a diff check passes.
+- `74de4a19`: the install and checks. `7fb12b0e`: scan the non-recursive image view so container mounts cannot
+  hide image files. `bb2af7f4`: pin the manifest
+  metadata and test unsafe owners, modes and parents. Every commit ends with `Built-by: gpt-6-astra`; normal push to the existing
+  draft PR #76, no merge or ready conversion.
+
+- `a7e66405`: merge follow-up in the existing install proof. 18e's `daemon.listen` binds
+  `.chrome.sock.new` and renames it to `chrome.sock`; the kernel's `ss` address retains the bind name. The old
+  proof counted zero connected peers despite successful tool calls. `service_peers` now counts exact established
+  server endpoints at both bind names (not peer addresses, prefix matches or listeners). The lead's decision 3
+  is applied: failure to ask a hand-loaded extension fails case 1. No runtime file or Chrome build hash changes.
+- `c1110036`: the placeholder sweep imports `Engine` through `test_engine`, as main's qualification fixture
+  requires, so it uses the fixture baseline rather than the source tree's shipped qualification history.
+  The refusal assertions, production engine and runtime hash are unchanged.
+- `10ba0470`: the first image build found that my link checker expected 0755 even for `/`; the pinned image
+  keeps `/` at 0555. The check now pins that read-only root and retains 0755 for all `/etc` parents. Link metadata
+  uses one `lstat`, and a new regression rejects wrong owners, groups, types, targets and modes. No image
+  permission, policy or workflow changes; the same runtime hash remains.
+
+### Tests and what they catch
+
+All local scratch stayed under `.work/`: 3a's logs and mutation copies in `.work/18c-b-3a/`, and the existing
+suites' fixtures in `.work/18c-b-chrome/` and `.work/20-chrome/`. No local container, VM, Chrome, privileged
+command, owner-test module or Gradle process was started.
+Closing scratch audit: no file over 500 MB; 11,999,363 regular-file bytes at the audit. No large download or
+extracted image remains. The quick tests did not cover an absent or dangling root-home path in the scan view;
+that gap is the second build's finding, not a passing test.
+
+| Command (with `TMPDIR` under `.work/18c-b-3a/tmp`) | Actual result | What it catches |
+|---|---|---|
+| `python3 -B -m unittest discover -s os/tests -p 'test_control_image.py'` after merge | 15 tests, OK | 18c's install map, wheels/vendor and account declarations remain intact |
+| same after 3a | 22 tests before the first build; 23 after its root-mode finding, all OK | new fixed files/links, source byte identity, hash-before-generation, exactly one pack call, independent CRX checks, checkout comparison, streaming key scans and both links beneath the read-only root |
+| `PYTHONPATH=control:control/chrome_tests python3 -B -m unittest test_excluded_sites_placeholder test_exclusions test_build test_extension_stores_nothing test_unit` | 19 tests, OK | current tool sweep, refused placeholder, excluded path, unchanged storage ban, hash and sandbox |
+| `python3 -B -m unittest discover -s control/chrome/ci/install -p 'test_*.py'` | 25 tests after merge; 28 after proof correction, all OK | packer, key disposal, network log reader, DevTools pipe, exact server endpoint counting and refused unasked case |
+| `python3 -B -m unittest discover -s control/chrome/ci/records -p 'test_*.py'` | 21 tests, OK | archived-commit build records and release-manifest checks |
+| `PYTHONPATH=control:control/chrome_tests python3 -B -m unittest test_excluded_sites_placeholder test_qualification_fixture` | 17 tests, OK | placeholder sweep uses the isolated qualification baseline; shipped-history guard and fixture regressions pass. Python 3.14 prints a ResourceWarning while cleaning a synthetic HTTPError used by a test. |
+| `python3 -B control/chrome/record_build.py check` | `record_build check passed` | current manifests have no control object; registry unchanged |
+| `bash -n` separately for each of `os/build.sh`, `os/ci/check-image.sh`, `os/ci/image-checks.sh`, `os/ci/check-build.sh`; `git diff --check` | four syntax PASS lines; diff check exit 0 | shell syntax and patch whitespace |
+| Exact `Repo privacy` workflow shell body extracted into scratch and run with scratch `RUNNER_TEMP` | `No file holds a home path with a real user name.`; exit 0 | final tracked files, including this handoff, contain no disallowed home-path username |
+
+The new suite mutates signed bytes with the record updated too, a foreign CRX, recorded ID/payload/version,
+wildcard policy, missing override, a second origin, network update/CRX URLs, leftover template token and an extra
+bundle. Separate comparisons mutate build, link, payload, version, mode and template hashes. The scanner tests
+raw newlines across chunks, both hex cases, base64/base64url at three alignments, wrapped encodings, private-key
+marker variants and build-log leakage. These are executed tests, not assertions inferred from code.
+
+Eight additional source mutations were run in a disposable scratch copy, each with its catching test, then removed:
+
+| Mutation | Result |
+|---|---|
+| Require 0755 on the image root again | FAILED: the valid 0555 root rejected, reproducing the first build's exact finding |
+| Remove image ownership/group check | FAILED: wrong-owner metadata unexpectedly accepted |
+| Remove CRX signature verification | FAILED: broken-signature mutation unexpectedly accepted |
+| Remove CRX payload comparison | FAILED: recorded-payload mutation unexpectedly accepted |
+| Remove checkout template/mode comparison | FAILED: mode mutation unexpectedly accepted |
+| Remove streaming overlap | FAILED: newline-containing raw modulus crossing the chunk missed |
+| Replace build hash with 64 zeros | FAILED: installed hash differs from the untouched source's hash |
+| Call pack.py twice | FAILED: call sequence is build.py, pack.py, pack.py |
+
+The proof correction adds three tests: exact `ss` endpoint/state parsing, the real current daemon's extracted
+`listen` function with zero/one/two/disconnected scratch peers, and load failures that must fail case 1.
+Only the tested functions are extracted from AST; the proof's root/container guard stays intact and no Chrome or
+service is started locally. Both behavioral regressions fail on `bb2af7f4`'s proof (two failures, no errors).
+The qualification fixture's existing module-import guard was also run before its correction: one failure naming
+`test_excluded_sites_placeholder`. The same guard and both whole modules pass after the one-line import change.
+
+### Runs
+
+Dispatched with `gh workflow run os-image.yml --ref pkg/18c-b-chrome -f checks_only=true` (twice, sequentially),
+then `gh workflow run os-image.yml --ref pkg/18c-b-chrome -f check_build=build` (two sequential rounds).
+
+| Run | Head | Result / full `gh run view --log` line numbers |
+|---|---|---|
+| 44227811908, checks-only | `74de4a19` | PASS; 1778 tests at 3546, `OK (skipped=4)` at 3548; tools-manifest PASS 3549; 17 destination refusals PASS 3550. Four existing GTK/labwc tests are skipped by their environment guards (293–296); none is a Chrome test. |
+| 44232510221, checks-only | `bb2af7f4` | PASS; 1779 tests at 3760, `OK (skipped=4)` at 3762; tools-manifest PASS 3763; 17 destination refusals PASS 3764. Same four existing GUI skips. Second and final checks round; regression job 22m25s after waiting about 52 minutes for a runner. |
+| 44241272420, `check_build=build` | `c1110036` | FAIL in 19m5s: the link-parent checker expected 0755 on `/`, whose actual mode is 0555 (trace 2924–2934). Our checker error, not infrastructure. Chrome polkit PASS at 1882. Bundle identity printed at 1654 (below), but the full image/key/checkout checks were not reached. Fixed by `10ba0470`; no blind rerun. |
+| 44247363499, `check_build=build` | `10ba0470` | FAIL in 16m3s: PEM scan raises `FileNotFoundError` for `<scan-root>/root` (trace 2902–2914, checker line 237). Our directory-traversal assumption, not infrastructure. Chrome polkit PASS 1860; existing uncached polkit PASS 1901. Bundle identity 1632 and build hash 1633. The root-mode check was passed on the way to this later failure. Second and final allowed build round; no rerun or further source fix. |
+| 44239451590, PR Control Chrome install | `c1110036` | PASS in 3m11s; 28 unit tests at 2218 (`OK` 2220), node:crypto cross-check at 2224; `CONTROL_CHROME_INSTALL_CASE_1_PASS` through `_5_PASS` at 2296–2300, `CONTROL_CHROME_INSTALL_PROOF_PASSED` at 2301. The downloaded 1,282,344-byte artifact has all five verdicts true and case `1-ordinary` explicitly `asked: true`. |
+| 44239451427, PR Control base | `c1110036` | PASS; `Control base suite PASS` at 684. |
+| 44239451552, PR Control boundary | `c1110036` | PASS; `PRECEDENCE_OK cases=24` at 2050, `CONTROL_PERMISSION_REQUEST_RECORDED` at 2721, `CONTROL_INTERACTIVE_ASK_PASS cases=17` at 2722. |
+| 44239451516, PR Chrome records | `c1110036` | PASS; 21 tests at 187, `OK` at 189. |
+| 44239451435, PR Repo privacy | `c1110036` | PASS (16s). |
+| 44247360319, PR Control Chrome install | `10ba0470` | PASS; 28 tests at 2221 (`OK` 2223), node:crypto cross-check 2227; five case PASS lines 2299–2303, `CONTROL_CHROME_INSTALL_PROOF_PASSED` 2304. |
+| 44247360306, PR Control base | `10ba0470` | PASS; `Control base suite PASS` 693. |
+| 44247360506, PR Control boundary | `10ba0470` | PASS; `PRECEDENCE_OK cases=24` 2061, `CONTROL_PERMISSION_REQUEST_RECORDED` 2732, `CONTROL_INTERACTIVE_ASK_PASS cases=17` 2733. |
+| 44247360328, PR Chrome records | `10ba0470` | PASS; 21 tests at 199, `OK` 201. |
+| 44247360400, PR Repo privacy | `10ba0470` | PASS. |
+| 44247360331 / 44247360457 / 44247360354, PR Chrome / Mail / qualification | `10ba0470` | Still queued or running at the stop. Last check snapshot: 18 passed, 4 running, 25 queued; no reported current-head PR failure. These are not complete-suite PASS claims. The report-only push may supersede these checks. |
+
+The first run's `CONTROL_CHROME_*` lines 2326–2331 are unit-test stand-ins, not an image bundle's evidence.
+The first failed image build printed at line 1654:
+
+```text
+CONTROL_CHROME_EXTENSION hlohdejcdlkcapgadfbliibpkcchhlho 0f788c247fe8f0f3b6b2cecf3feb59d4983321bbecf28580a7b268fbb2aae5af
+```
+
+The second failed image build printed at line 1632:
+
+```text
+CONTROL_CHROME_EXTENSION gcibdegialobgchchpfljagigklhcgmd 4a77bc474f5f7fb338eab80e9f63b51f9af4651c29d373c8d8ae7fe6407a2370
+```
+
+Neither run printed `CONTROL_CHROME_BUNDLE_PASS`, `CONTROL_CHROME_KEY_SCAN_PASS`,
+`CONTROL_CHROME_CHECKOUT_PASS` or `CONTROL_CHROME_BUILD_LOG_PASS`. The log proves that `<scan-root>/root`
+does not resolve; it does not establish whether the image entry is absent or a dangling link. The next fix
+must inspect that layout and cover it without ignoring read failures or letting a symlink escape the image
+view. I have left the failing check intact for the lead rather than suppressing the error.
+
+The first `check_build=build` dispatch followed the second OS checks run. The checks-only runs cover the final
+install map and the checkers before the root-mode correction. The later `a7e66405` and `c1110036` change only test
+harnesses; `10ba0470` changes the CI link checker, covered by the 23 local image tests, the scratch mutation and
+the second build run up to its later failure. No third checks-only or build round is dispatched: the user
+limited each mode to two. Neither failure was infrastructure, and no whole-run infrastructure rerun was used.
+
+PR install run **44229730715** on `bb2af7f4` failed cases 2 and 3 at log lines 2357–2358: the old socket-path
+counter saw zero peers (trace 2245–2255 and 2295–2305). Cases 1, 4 and 5 passed at 2356, 2359 and 2360. This is
+an integration failure from merging 18e, not infrastructure; no blind rerun was used. `a7e66405` corrects the
+observation without changing the one-peer assertions. Run 44239451590 now passes all five cases on `c1110036`.
+Earlier PR runs 44227807617 (Control Chrome, Python shard 3) and 44227807705 (qualification, both Python shard-3
+repeats) also found the missing isolated-fixture import. Jobs 134545193405, 134551231548 and 134551231722 all
+reported only `test_excluded_sites_placeholder` in that guard's missing-module list (per-job log lines 312, 450
+and 450, respectively). This is another merge
+integration failure, corrected by `c1110036`, not an infrastructure rerun or a relaxed guard.
+Superseded Control Chrome runs 44235110518 (`a7e66405`) and 44229730688 (`bb2af7f4`) were cancelled from the
+queue after `c1110036` was pushed. Later, runs 44227807705 (`74de4a19`, qualification) and 44228697962
+(`7fb12b0e`, Chrome) were cancelled while awaiting aggregation, to release the remaining backlog and the
+qualification concurrency group. Run 44227807617 had already finished with failure. The failed guard logs were
+read and retained in scratch. After the root-mode fix, cancellation was also requested for superseded
+`c1110036` runs 44239451436 (Chrome) and 44239451508 (qualification). Those runs and 44228697962 still had
+aggregation queued after ordinary cancellation, so `gh run cancel <id> --force` was used for these three obsolete
+runs. The current
+head's complete suites and both OS checks runs were kept; no test or assertion was disabled.
+Each OS run is watched with `gh run watch <id> --exit-status --interval 60`, never concurrent on this ref.
+PR checks are watched with `gh pr checks 76 --watch --interval 60`.
+
+### Left, in order
+
+First resolve the incomplete 3a image proof above with the lead; the code remains at `10ba0470` and the final
+commit adds this report only. After 3a is accepted, the brief's remaining order is:
+
+1. **3b — `gh`:** pinned RPM/key/licence, extraction and signature checks, lock/record/resolve line, its tests,
+   then `check_build=build` green once more.
+2. **4:** start with the real-session polkit probe; then the Chrome VM pass and first checks. Tell the lead before
+   committing any `os-image.yml` change. The current Control limit is 131, so account for that when adding the
+   Chrome pass.
+3. **4b:** the documented split if step 4 reaches its budget; C3, remaining C6, C10 and C11.
+4. **5:** update/rollback and broken/missing bundle, store-request proof, password dialog/cancel/ask-again checks.
+5. **6:** rehearsal checks, final-head runs, guides and final report.
+
+### What the code doesn't show
+
+- This does not yet prove the complete image installation: both built-image checks failed as recorded above.
+  No image-side key-scan, placeholder, checkout or build-log PASS is claimed. The owner has not used this
+  image. No release was built for publication, signed, pinned or deployed. Booted Chrome/polkit flows, browser
+  VM cases and real update / `previous` preservation remain for the later steps.
+- The randomized bundle is intentionally absent from `control-tree`; comparing a second CRX's bytes would be
+  wrong. The image's independent reader binds the actual CRX to its record, and the runner binds that record's
+  payload/rendered templates/build/links to the checkout. The known per-image-identity consequences stay.
+- The PEM scan excludes vendored packages and the rest of `/usr`, whose legitimate crypto code contains key
+  markers; the unique-modulus scan covers those paths. It counts paths without following symlinks, fails on
+  read/list errors, and handles line-wrapped encoded keys as well as raw binary.
+- The host and polkit action are installed byte for byte; there is no change to service policy, unit sandbox or
+  Chrome launch flags. No instruction text was added. Decision 3's case-1 `asked:false` rule is applied in the
+  proof correction; inability to load/ask now fails. Decisions 4–8 and 10 remain instructions for steps 4–6.
+
+### JUDGMENT-CALLs
+
+- No new owner-facing choice. The install follows the agreed paths, modes, policy shape and placeholder exactly.
+- The independent checker lives under `os/ci/control/`, is mounted only in the check container, and also provides
+  the runner's comparison/log scan. This avoids shipping test code and keeps the two modulus scans identical. The non-recursive view prevents
+  those check-only mounts from hiding image files.
+- The modulus scan additionally removes ASCII whitespace for encoded forms, so wrapped PEM/base64 cannot evade
+  it. The raw stream is still checked with overlap, without line splitting.
+
+### PLAN-GAPs
+
+- **Open dependency, PR #106:** 28b's proposed profile pin may require a storage exception. It is undecided.
+  3a preserves the brief's complete storage ban; no exception or profile pin is implemented here.
+- The old timeout note in decision 11 is already resolved by main; no workflow edit is necessary.
+- Main's 18e atomically published socket retains `.chrome.sock.new` in kernel observations. The old step-2
+  proof's literal `chrome.sock` observation was stale after this required merge. Corrected in the test harness,
+  with no service or extension change; future VM peer checks must account for the original bind name too.
+- Main's qualification fixtures require every test that constructs an engine/Chrome adapter to import
+  `test_engine`. The earlier placeholder sweep missed that new convention; its import now installs the shared
+  isolated baseline, preserving both sides' test intent.
+
+### The os/ diff for linux-aresos
+
+Every path below is relative to this repository; this list covers step 3a's changes after the merge:
+
+- `os/build.sh`: four deterministic FILES entries, two links, hash-before-generation comment, one per-image pack
+  call, `chrome_build`/`chrome_extension` and `CONTROL_CHROME_EXTENSION`.
+- `os/ci/image-checks.sh`: real pkaction/annotation and no-rule check; stronger policy-folder/bundle check;
+  boot-only placeholder, second tmpfiles invocation and installed-validator checks.
+- `os/ci/control/chrome_image.py` (new): independent CRX/policy/host/XML/metadata checker, full-image key scans,
+  stdlib checkout comparison and build-log scan; never shipped.
+- `os/ci/check-image.sh`: read-only checker mount, deterministic build comparison and per-build payload/template
+  comparison, preserving the existing wheel and vendor checks.
+- `os/ci/check-build.sh`: scan the runner's build log with the checked public modulus before disk/VM work.
+- `os/tests/test_control_image.py`: extended install expectations and eight new tests described above.
+- `os/README.md`: browser-side install, per-build identity and refused placeholder; `gh` left for 3b.
+- `os/manifest/ci/16/pending-rebind.json`: four generated pending notes; main's rows/notes/history unchanged.
+
+
 ## Where it stands
 
-**Steps 1a, 1b and 2 are built and green.** (1a, 2 and 2b: Claude Fable 5.2; 1b: Claude Opus 5.5, as the brief
-recommends.) Item 2's workflow passes all five cases on the image's pinned Chrome on head `c4514015`
-(run 43729218613, `CONTROL_CHROME_INSTALL_PROOF_PASSED`). Next: 3a, which waits for PR #58 on `main` and the
-lead's go.
+**Step 3a is implemented but incomplete; stopped at the two-build-round limit.** Main (including PR #58) is merged in
+`a5e91c5c`; the install and checks are `74de4a19`, followed by scan correction `7fb12b0e` and manifest metadata check `bb2af7f4`. Local image
+suite: 23 tests, OK. Test-harness merge fixes are `a7e66405` and `c1110036`. OS checks-only run 44227811908 passed
+(1778 tests, four existing GUI skips), as did 44232510221 (1779 tests, the same four skips).
+Image build 44241272420 on `c1110036` exposed the checker's wrong 0755 expectation for the base's 0555 root;
+`10ba0470` fixes it without changing the image's permissions. The second/final build, 44247363499, failed the
+PEM traversal's assumption that `<scan-root>/root` resolves. That checker defect remains; no third run or
+post-limit fix was made. The full image/key/placeholder/checkout proof is not green.
+The PR install proof on `10ba0470` (44247360319) passes all five cases; base, boundary, records and privacy also
+pass. Chrome, Mail and qualification remain pending at the stop. Steps 1a, 1b, 2 and 2b remain built. Item 2
+passed on `c4514015` (43729218613). Lead disposition of the 3a finding comes first; then **3b, `gh`**.
+PR #106's proposed 28b profile pin/storage exception is undecided; the storage ban remains unchanged.
 
 ## The lead's decisions after step 2b (2026-11-15)
 
