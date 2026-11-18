@@ -8,6 +8,26 @@ kind=$2
 out=evidence/image
 mkdir -p "$out/polkit" "$out/manifest"
 
+# Package 43: retain the image's metadata in the archive, without extracting as
+# the runner's user. The dispatcher and helper must be exactly the tested sources.
+sudo podman run --rm --network=none --entrypoint /usr/bin/tar "$image" -c -C / \
+    usr/bin/aresos usr/libexec/aresos-askpass > "$out/aresos-command.tar"
+python3 - "$out/aresos-command.tar" os/config <<'PY' | tee "$out/aresos-command.txt"
+import pathlib, stat, sys, tarfile
+names = ['usr/bin/aresos', 'usr/libexec/aresos-askpass']
+with tarfile.open(sys.argv[1]) as image:
+    members = image.getmembers()
+    assert [member.name for member in members] == names, 'unexpected dispatcher/helper archive members'
+    for member in members:
+        source = pathlib.Path(sys.argv[2]) / member.name
+        info = source.lstat()
+        assert member.isfile() and stat.S_ISREG(info.st_mode), f'{member.name}: not a regular file'
+        assert member.mode == stat.S_IMODE(info.st_mode) == 0o755, f'{member.name}: mode differs from checkout or is not 0755'
+        assert (member.uid, member.gid) == (0, 0), f'{member.name}: not owned by root:root'
+        assert image.extractfile(member).read() == source.read_bytes(), f'{member.name}: bytes differ from checkout'
+print('ARESOS_COMMAND_FROM_CHECKOUT: dispatcher and helper bytes, root:root 0755, no links')
+PY
+
 # Checks that run inside the image, as root, without network. runuser and
 # podman need their PAM session and user namespaces, hence --privileged.
 sudo podman run --rm -i --privileged --network=none --entrypoint /usr/bin/bash "$image" -s < os/ci/image-checks.sh \

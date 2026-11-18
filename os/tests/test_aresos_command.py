@@ -153,7 +153,7 @@ class MainTest(unittest.TestCase):
         stderr = io.StringIO()
         with mock.patch.object(sys, 'argv', ['aresos', *argv]), \
                 mock.patch.object(command.pwd, 'getpwuid', return_value=account) as lookup, \
-                mock.patch.object(command.os, 'environ', environ), \
+                mock.patch.object(command, 'original_environment', return_value=environ), \
                 mock.patch.object(command.os, 'execve', side_effect=error) as execute, \
                 contextlib.redirect_stderr(stderr):
             status = command.main()
@@ -216,6 +216,23 @@ class MainTest(unittest.TestCase):
                 os.close(slave)
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertEqual(json.loads(result.stdout), dict(terminal=True, argv=argv, env='unchanged', cwd=str(root)))
+
+    def test_real_shebang_handover_preserves_empty_and_c_locale_environments_exactly(self):
+        with tempfile.TemporaryDirectory() as folder:
+            dispatcher = pathlib.Path(folder) / 'aresos'
+            # Only the destination changes: env prints the exec's bytes without another Python startup.
+            source = DISPATCHER.read_text()
+            self.assertEqual(source.count(f'CONTROL = {command.CONTROL!r}'), 1)
+            dispatcher.write_text(source.replace(f'CONTROL = {command.CONTROL!r}', "CONTROL = '/usr/bin/env'"))
+            dispatcher.chmod(0o755)
+            for environment in ([], [b'LANG=C'], [b'LANG=C', b'RAW=\xff=with spaces', b'EMPTY='],
+                                [b'LC_ALL=C', b'LC_CTYPE=C']):
+                with self.subTest(environment=environment):
+                    result = subprocess.run(['/usr/bin/env', '-i', *environment, str(dispatcher), '-0'],
+                                            capture_output=True, timeout=15)
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                    self.assertEqual(result.stderr, b'')
+                    self.assertEqual(result.stdout, b''.join(entry + b'\0' for entry in environment))
 
 
 class AskpassTest(unittest.TestCase):

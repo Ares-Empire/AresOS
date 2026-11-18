@@ -806,13 +806,31 @@ assert Path('/usr/bin/aresos').read_text().splitlines()[0] == '#!/usr/bin/python
 assert Path('/usr/libexec/aresos-askpass').read_text() == (
     '#!/bin/sh\nexec /usr/bin/timeout --foreground -k 10 600 /usr/bin/ksshaskpass "$@"\n')
 PY
-expect_failure runuser -u ares -- env -i PATH=/usr/bin:/bin WAYLAND_DISPLAY=wayland-ci /usr/bin/aresos layout
+# Run the installed dispatcher under an audit hook: an exec or child attempt
+# fails before it can reach sudo or Control, even if it would print a refusal.
+aresos_refusal_probe() {
+    local word=$1
+    shift
+    runuser -u ares -- env -i PATH=/usr/bin:/bin "$@" /usr/bin/python3 -ISB - /usr/bin/aresos "$word" <<'PY'
+import runpy, sys
+def no_process(event, args):
+    if event in ('os.exec', 'os.posix_spawn', 'os.system', 'os.fork', 'os.forkpty', 'subprocess.Popen'):
+        raise AssertionError(f'aresos refusal attempted a process: {event}')
+sys.argv = sys.argv[1:]
+sys.addaudithook(no_process)
+runpy.run_path(sys.argv[0], run_name='__main__')
+PY
+}
+# Function traces would become part of expect_failure's captured stderr.
+set +x
+expect_failure aresos_refusal_probe layout WAYLAND_DISPLAY=wayland-ci
 test "$LAST_STATUS" = 2
 test "$LAST_FAILURE" = 'aresos layout: this works only at the recovery console, typed by you: sudo /var/lib/ares/at layout; nothing ran'
-expect_failure runuser -u ares -- env -i PATH=/usr/bin:/bin /usr/bin/aresos update
+expect_failure aresos_refusal_probe update
 test "$LAST_STATUS" = 2
 test "$LAST_FAILURE" = 'aresos update: this works at the recovery console, typed by you: sudo /var/lib/ares/at newest; nothing ran'
-pass 'aresos dispatcher and askpass: root:root 0755, no links; refusals without a window; timeout and ksshaskpass 6.7.5'
+set -x
+pass 'aresos dispatcher and askpass: root:root 0755, no links; refusals without exec or children; timeout and ksshaskpass 6.7.5'
 
 # --- Package 18c: the Control tools (the tool service, its commands, Claude
 # Code's managed files). Every path the image records in control.json is here

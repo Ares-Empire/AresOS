@@ -613,3 +613,68 @@ proposed D8 labels. The two integration gaps above are not reported green.
   them.
 - Local, outside the sandbox: `test_control_vm` 62 OK and `test_control_image` 16 OK (the sandbox's socket errors
   were environmental); `test_aresos_command` 14 (1 failure, gap 1); `test_aresos_command_diff` 2 (1 failure, gap 2).
+
+## REVIEW-9 fixes (2026-11-18)
+
+Built from clean `01733209` (the review record after `6e2b03d4`). Nothing is
+committed or pushed; the lead commits. The excluded trees (`control/`,
+`os/owner-tools/`, `os/release/`, `docs/`) are unchanged. No sudo, dispatch,
+deployment command, rebind, window or Gradle command ran.
+
+- **Installed bytes and metadata — `os/ci/check-image.sh:11`:** copy the two
+  installed files into an evidence tar archive before running image checks.
+  Its Python check compares `/usr/bin/aresos` and `/usr/libexec/aresos-askpass`
+  byte for byte with this checkout's `os/config` sources, requires both source
+  and installed files to be regular and 0755, and requires installed numeric
+  owner/group 0:0. Keeping tar metadata avoids losing ownership when extracting
+  as the runner. Symlinks and hard links fail. The archive and the
+  `ARESOS_COMMAND_FROM_CHECKOUT` result stay under `evidence/image/`.
+- **Refusal execution — `os/ci/image-checks.sh:811`:** both refusal probes run
+  the installed dispatcher with an audit hook that rejects exec, spawn, shell
+  and fork attempts before they execute. The exact existing stderr/status
+  checks remain. Xtrace is disabled around the function probes so its own
+  trace cannot contaminate captured stderr.
+- **Exact hand-over — `os/config/usr/bin/aresos:74`:** `main()` supplies
+  `plan()` the process's original `/proc/self/environ`, rather than Python's
+  coerced environment. Filesystem decoding preserves arbitrary environment
+  bytes through `execve`. The shebang stays `-ISB`; the sole new read is the
+  kernel's original environment, as requested by this review fix.
+- **Regressions — `os/tests/test_control_image.py:275`:** execute the new
+  checkout-comparison heredoc on fixture archives. REVIEW-9's exact offered
+  branch mutation (`update` mapping to inner `update`) fails with
+  `usr/bin/aresos: bytes differ from checkout`. Changed bytes, either owner,
+  mode (including setuid), symlinks and hard links fail for either file. At
+  `:318`, execute the refusal heredoc on both paths and prove attempted sudo,
+  Control, shell and subprocess starts are observed and blocked. The complete
+  surrounding Bash refusal block also runs with a stand-in for `runuser` and
+  the fixture dispatcher, including xtrace and exact output/status checks.
+- **Locale regression — `os/tests/test_aresos_command.py:220`:** execute a copy
+  of the real dispatcher through its real shebang, changing only Control's
+  destination to `/usr/bin/env -0`. Compare the entire emitted byte stream
+  under `env -i`, `env -i LANG=C`, explicit C locale variables, and values
+  containing non-UTF-8 bytes, equals signs, spaces and an empty value. No
+  second Python interpreter can mask the hand-over by coercing its input.
+  Unit `main()` fixtures at `:152` now supply the original-environment reader.
+
+Each requested module ran separately with exactly
+`PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s os/tests -p '<module>.py'`:
+
+| Module | Printed result |
+|---|---|
+| `test_aresos_command.py` | `Ran 15 tests in 0.164s`, `FAILED (failures=1)`; 14 pass, only Control's deliberately missing `newest` |
+| `test_aresos_command_diff.py` | `Ran 2 tests in 0.146s`, `FAILED (failures=1)`; only the deliberately absent Control wrapper diff rule |
+| `test_control_image.py` | `Ran 18 tests in 5.492s`, `OK` |
+| `test_owner_path.py` | `Ran 48 tests in 1.778s`, `OK` |
+
+An earlier `test_control_image.py` run also passed all 18 tests in 5.355s,
+before the surrounding Bash-block coverage was added. No test was skipped,
+deleted or weakened. No environmental temporary-file or socket error occurred.
+`bash -n os/ci/check-image.sh os/ci/image-checks.sh` and `git diff --check`
+exited 0 without output. The excluded-tree diff also exited 0 without output.
+`.work files over 500 MB: []`; no download or screenshot was made.
+
+**Not verified:** no image build or container/image execution ran. The lead's
+check build must run the new export/comparison and refusal probes against the
+installed files; local tests exercise their actual check code with fixtures.
+The two integration failures remain exactly the lead's documented gaps above.
+No new PLAN-GAP, JUDGMENT-CALL or open question.

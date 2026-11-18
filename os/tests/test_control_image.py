@@ -7,15 +7,18 @@ their record is checked here with stand-ins for pip's report and the vendored tr
 import base64
 import hashlib
 import importlib.util
+import io
 import json
 import marshal
 import os
 import pathlib
 import py_compile
 import re
+import shlex
 import shutil
 import subprocess
 import sys
+import tarfile
 import tempfile
 import unittest
 import zipfile
@@ -268,6 +271,98 @@ class ImageCheckTest(unittest.TestCase):
     def setUp(self):
         self.work = pathlib.Path(tempfile.mkdtemp())
         self.addCleanup(shutil.rmtree, self.work)
+
+    def test_check_image_holds_dispatcher_and_helper_bytes_and_metadata_to_checkout(self):
+        script = (ROOT / 'os/ci/check-image.sh').read_text()
+        self.assertIn('--entrypoint /usr/bin/tar "$image" -c -C / \\\n'
+                      '    usr/bin/aresos usr/libexec/aresos-askpass > "$out/aresos-command.tar"', script)
+        code = heredoc('os/ci/check-image.sh', 'python3 - "$out/aresos-command.tar" os/config '
+                       '<<\'PY\' | tee "$out/aresos-command.txt"\n')
+        sources = {name: (ROOT / 'os/config' / name).read_bytes()
+                   for name in ('usr/bin/aresos', 'usr/libexec/aresos-askpass')}
+
+        def check(changed=None, **metadata):
+            archive = self.work / 'commands.tar'
+            with tarfile.open(archive, 'w') as image:
+                for name, source in sources.items():
+                    member = tarfile.TarInfo(name)
+                    member.mode = 0o755
+                    if name == changed:
+                        source = metadata.get('data', source)
+                        for key, value in metadata.items():
+                            if key != 'data':
+                                setattr(member, key, value)
+                    member.size = len(source)
+                    image.addfile(member, io.BytesIO(source))
+            return subprocess.run([sys.executable, '-I', '-c', code, str(archive), str(ROOT / 'os/config')],
+                                  capture_output=True, text=True, timeout=15)
+
+        result = check()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('ARESOS_COMMAND_FROM_CHECKOUT', result.stdout)
+        # REVIEW-9: the old refusal probes miss this broken offered branch.
+        broken = sources['usr/bin/aresos'].replace(b"'update': ('newest',", b"'update': ('update',")
+        self.assertNotEqual(broken, sources['usr/bin/aresos'])
+        result = check('usr/bin/aresos', data=broken)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('usr/bin/aresos: bytes differ from checkout', result.stderr)
+        for name, source in sources.items():
+            for mutation in (dict(data=source + b'\n'), dict(mode=0o644), dict(mode=0o4755),
+                             dict(uid=1001), dict(gid=1001), dict(type=tarfile.SYMTYPE, linkname='elsewhere'),
+                             dict(type=tarfile.LNKTYPE, linkname='elsewhere')):
+                with self.subTest(name=name, mutation=mutation.keys()):
+                    result = check(name, **mutation)
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertNotIn('ARESOS_COMMAND_FROM_CHECKOUT', result.stdout)
+
+    def test_refusal_probes_observe_and_block_process_attempts(self):
+        code = heredoc('os/ci/image-checks.sh',
+                       '    runuser -u ares -- env -i PATH=/usr/bin:/bin "$@" /usr/bin/python3 -ISB - '
+                       '/usr/bin/aresos "$word" <<\'PY\'\n')
+        source = (ROOT / 'os/config/usr/bin/aresos').read_text()
+        dispatcher = self.work / 'aresos'
+
+        def probe(text, word, **environment):
+            dispatcher.write_text(text)
+            return subprocess.run([sys.executable, '-ISB', '-c', code, str(dispatcher), word],
+                                  env=dict(PATH='/usr/bin:/bin', **environment),
+                                  capture_output=True, text=True, timeout=15)
+
+        for word, environment, reason in (
+                ('layout', dict(WAYLAND_DISPLAY='wayland-ci'), 'this works only at the recovery console'),
+                ('update', {}, 'this works at the recovery console')):
+            with self.subTest(word=word):
+                result = probe(source, word, **environment)
+                self.assertEqual(result.returncode, 2, result.stderr)
+                self.assertIn(reason, result.stderr)
+                self.assertIn('nothing ran', result.stderr)
+                self.assertEqual(result.stdout, '')
+                for attempt, event in (
+                        ("os.execve('/usr/bin/sudo', ('/usr/bin/sudo',), {})", 'os.exec'),
+                        ("os.execve(CONTROL, (CONTROL,), {})", 'os.exec'),
+                        ("os.system('true')", 'os.system'),
+                        ("__import__('subprocess').run(['/usr/bin/true'])", 'subprocess.Popen')):
+                    # No real command starts: the same hook as the image check blocks each attempt.
+                    broken = source.replace('def main():\n', f'def main():\n    {attempt}\n', 1)
+                    result = probe(broken, word, **environment)
+                    self.assertNotEqual(result.returncode, 2, result.stderr)
+                    self.assertIn(f'aresos refusal attempted a process: {event}', result.stderr)
+                    self.assertNotIn('nothing ran', result.stderr)
+
+        # Exercise the surrounding shell too: xtrace must not pollute the exact refusal comparisons.
+        script = (ROOT / 'os/ci/image-checks.sh').read_text()
+        start = script.index('expect_failure() {')
+        failure_function = script[start:script.index('\n}\n', start) + 3]
+        start = script.index('aresos_refusal_probe() {')
+        block = script[start:script.index('\n# --- Package 18c:', start)]
+        block = block.replace('/usr/bin/aresos "$word"', f'{shlex.quote(str(dispatcher))} "$word"')
+        dispatcher.write_text(source)
+        wrapper = ('set -euxo pipefail\n' + failure_function + '\n'
+                   'runuser() { [[ $1 == -u && $2 == ares && $3 == -- ]]; shift 3; "$@"; }\n'
+                   'pass() { printf "PASS %s\\n" "$*"; }\n' + block)
+        result = subprocess.run(['bash', '-c', wrapper], capture_output=True, text=True, timeout=15)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn('PASS aresos dispatcher and askpass:', result.stdout)
 
     def test_check_image_holds_the_record_to_this_checkout(self):
         subprocess.run(['bash', str(ROOT / 'os/build.sh'), 'control-tree', str(ROOT / 'os'), str(CONTROL),
