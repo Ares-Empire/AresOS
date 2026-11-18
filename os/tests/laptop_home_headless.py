@@ -1,6 +1,7 @@
 """Run the real laptop-home window inside a disposable labwc; evaluate test JavaScript in its web view."""
 
 import ctypes
+from contextlib import contextmanager
 import importlib.machinery
 import json
 import os
@@ -8,6 +9,8 @@ from pathlib import Path
 import shlex
 import shutil
 import signal
+import socket
+import struct
 import subprocess
 import sys
 import tempfile
@@ -179,6 +182,44 @@ class Headless:
     def snapshot(self):
         return self.path / self.evaluate('@snapshot')
 
+    @contextmanager
+    def virtual_click(self):
+        from test_aresos_shell import shell
+
+        # Bind only to the display started in this test's private runtime directory.
+        display = self.runtime / Path(self.parent()['display']).name
+        with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as sock:
+            sock.settimeout(5)
+            sock.connect(str(display))
+            client = shell.ForeignToplevels(sock, None)
+            client.roundtrip()
+
+            def bind(interface):
+                name = next(n for n, (kind, _) in client.globals.items() if kind == interface)
+                obj = client._new(interface)
+                client._send(client.registry, 0, struct.pack('=I', name) + client.string(interface)
+                             + struct.pack('=II', 1, obj))
+                return obj
+
+            seat = bind('wl_seat')
+            keyboard = bind('zwp_virtual_keyboard_manager_v1')
+            pointer = bind('zwlr_virtual_pointer_manager_v1')
+            client._send(keyboard, 0, struct.pack('=II', seat, client._new('virtual keyboard')))
+            device = client._new('virtual pointer')
+            client._send(pointer, 0, struct.pack('=II', seat, device))
+            client.roundtrip()
+
+            def click():
+                now = int(time.monotonic() * 1000) & 0xffffffff
+                client._send(device, 1, struct.pack('=5I', now, 50, 50, 100, 100))
+                client._send(device, 4)
+                for pressed in (1, 0):
+                    client._send(device, 2, struct.pack('=III', now, 0x110, pressed))
+                    client._send(device, 4)
+                client.roundtrip()
+
+            yield click
+
 
 def fixture_main(path, page):
     setup = json.loads((path / 'setup.json').read_text())
@@ -207,6 +248,7 @@ def fixture_main(path, page):
                 home.WebKit.UserScriptInjectionTime.START, [program.PAGE], None))
         parent['ephemeral'] = home.view.get_network_session().is_ephemeral()
         parent['app_id'] = home.window.get_application().get_application_id()
+        parent['display'] = os.environ['WAYLAND_DISPLAY']
         if home.layer is not None and home.layer.is_layer_window(home.window):
             parent['layer'] = {
                 'background': home.layer.get_layer(home.window) == home.layer.Layer.BACKGROUND,
@@ -219,6 +261,7 @@ def fixture_main(path, page):
         parent_path.write_text(json.dumps(parent))
         parent_path.rename(path / 'parent.json')
         allow_foreign = False
+        other_window = None
 
         def decide(_view, decision, kind):
             if allow_foreign and kind == home.WebKit.PolicyDecisionType.NAVIGATION_ACTION:
@@ -259,7 +302,7 @@ def fixture_main(path, page):
                 write(error=str(error))
 
         def check():
-            nonlocal allow_foreign
+            nonlocal allow_foreign, other_window
             request = path / 'request.js'
             if not request.exists() or home.view.get_uri() is None:
                 return True
@@ -272,6 +315,16 @@ def fixture_main(path, page):
             elif body == '@window':
                 home.window.close()
                 write(value={'fullscreen': home.window.is_fullscreen(), 'visible': home.window.get_visible()})
+            elif body == '@other-window':
+                other_window = home.Gtk.Window(application=home.app)
+                other_window.fullscreen()
+                other_window.present()
+                write(value=None)
+            elif body == '@close-other-window':
+                other_window.destroy()
+                other_window = None
+                home.window.get_display().sync()
+                write(value=None)
             elif body == '@snapshot':
                 home.view.get_snapshot(home.WebKit.SnapshotRegion.VISIBLE, home.WebKit.SnapshotOptions.NONE,
                                        None, snapshot)

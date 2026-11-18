@@ -84,6 +84,15 @@ class ViewBase(Base):
 
 
 class AuthenticationTest(ViewBase):
+    def test_view_focus_requires_an_authenticated_view_and_a_boolean(self):
+        helper = self.start()
+        desktop, view = self.desktop(helper), self.view(helper)
+        self.assertEqual(self.call(helper, desktop, 'view_focus', focused=True)['error'], 'invalid_state')
+        for fields in ({}, {'focused': 1}, {'focused': 'true'}, {'focused': None}):
+            with self.subTest(fields=fields):
+                self.assertEqual(self.call(helper, view, 'view_focus', **fields)['error'], 'malformed')
+        self.assertFalse(helper.view_has_focus())
+
     def test_only_desktop_launches_cancel_a_pending_return(self):
         helper = self.start(tracked=True)
         desktop, view = self.desktop(helper), self.view(helper)
@@ -627,31 +636,73 @@ class WindowViewsTest(ViewBase):
         self.assertEqual(self.activations, [1])
         self.assertIsNone(windows.active())
 
-    def test_editor_closing_after_focus_leaves_it_keeps_the_keyboard_at_home(self):
-        for fallback in (False, True):
-            with self.subTest(fallback=fallback):
-                helper = self.start(tracked=True)
-                desktop = self.desktop(helper)
-                self.view(helper)
-                windows = helper.windows
-                self.show(windows, 1, GAME, outputs=(1,))
-                self.show(windows, 2, NOTEPAD, active=True, outputs=(1,))
-                helper.windows_changed()
-                self.assertEqual(helper.foreground_app, 'notepad')
+    def test_close_uses_reported_view_focus_even_when_deactivation_and_close_arrive_separately(self):
+        for app_id in (NOTEPAD, WEB.app_ids[0]):
+            for view_transition, delay, returns in (
+                    ('none', 0, True), ('none', 2, True),
+                    ('focused', 0.1, False), ('focused', 60, False),
+                    ('blurred', 2, True), ('disconnected', 2, True),
+                    ('replaced', 2, True), ('other toplevel', 0.1, False),
+                    ('other toplevel in same batch', 0.1, False)):
+                for fallback in (False, True) if view_transition != 'none' else (False,):
+                    with self.subTest(app_id=app_id, transition=view_transition, delay=delay, fallback=fallback):
+                        self.activations.clear()
+                        helper = self.start(tracked=True)
+                        desktop, view = self.desktop(helper), self.view(helper)
+                        windows = helper.windows
+                        self.show(windows, 1, GAME, outputs=(1,))
+                        self.show(windows, 2, app_id, active=True, outputs=(1,))
+                        helper.windows_changed()
 
-                windows.state(2, False)
-                windows.done(2)
-                if fallback:
-                    self.show(windows, 3, shell.LAPTOP_HOME_APP_ID, active=True, outputs=(2,))
-                # A layer surface has no foreign toplevel. The owner's typing does not change focus.
-                helper.windows_changed()
-                self.assertIsNone(helper.foreground_app)
-                self.now[0] += 60
-                helper.windows_changed()
-                windows.gone(2)
-                helper.windows_changed()
-                self.assertEqual(self.activations, [])
-                self.assertEqual([event['reason'] for event in desktop.events('shell_focus')], ['app_activated'])
+                        if fallback or view_transition == 'none':
+                            windows.state(2, False)
+                            windows.done(2)
+                        if fallback:
+                            self.show(windows, 3, shell.LAPTOP_HOME_APP_ID, active=True, outputs=(2,))
+                        # labwc can leave a foreign toplevel activated when a layer takes keyboard focus.
+                        helper.windows_changed()
+                        if view_transition != 'none':
+                            self.assertTrue(self.call(helper, view, 'view_focus', focused=True)['ok'])
+                            self.assertIsNone(helper.foreground_app)
+                            if view_transition == 'blurred' or view_transition.startswith('other toplevel'):
+                                self.assertTrue(self.call(helper, view, 'view_focus', focused=False)['ok'])
+                            if view_transition == 'disconnected':
+                                helper.disconnected(view)
+                            if view_transition == 'replaced':
+                                self.view(helper)
+                                helper.disconnected(view)
+                            if view_transition.startswith('other toplevel'):
+                                windows.state(2, False)
+                                windows.done(2)
+                                self.show(windows, 4, TERMINAL, active=True, outputs=(1,))
+                                if view_transition == 'other toplevel':
+                                    helper.windows_changed()
+
+                        self.now[0] += delay
+                        windows.gone(2)
+                        helper.windows_changed()
+                        self.now[0] += shell.HANDOFF + 0.01
+                        helper.tick()
+                        self.assertEqual(self.activations, [1] if returns else [])
+                        reasons = [event['reason'] for event in desktop.events('shell_focus')]
+                        self.assertEqual(reasons, ['app_activated', 'app_closed'] if returns else ['app_activated'])
+
+    def test_view_focus_cancels_a_discovered_return_already_waiting_for_the_handoff(self):
+        helper = self.start(tracked=True)
+        desktop, view = self.desktop(helper), self.view(helper)
+        windows = helper.windows
+        self.show(windows, 1, GAME)
+        self.show(windows, 2, WEB.app_ids[0], active=True)
+        helper.windows_changed()
+        windows.gone(2)
+        helper.windows_changed()
+        self.assertTrue(helper.discovered_closing[WEB.id][1])
+
+        self.assertTrue(self.call(helper, view, 'view_focus', focused=True)['ok'])
+        self.now[0] += shell.HANDOFF + 0.01
+        helper.tick()
+        self.assertEqual(self.activations, [])
+        self.assertEqual([e['reason'] for e in desktop.events('shell_focus')], ['app_activated'])
 
     def test_laptop_home_is_not_an_unknown_app(self):
         helper = self.start(tracked=True)
@@ -695,6 +746,8 @@ class ContractExamplesTest(ViewBase):
         helper.connected(view)
         request(view, 'view-hello')
         self.assertEqual(view.events(), [fixture('apps-running-empty-event')])
+        request(view, 'view-focus-in')
+        request(view, 'view-focus-out')
         for refusal in ('wrong-token', 'wrong-instance', 'both-secrets', 'no-role', 'bad-name'):
             peer = Conn()
             helper.connected(peer)

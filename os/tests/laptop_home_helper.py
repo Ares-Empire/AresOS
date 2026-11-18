@@ -137,6 +137,11 @@ class StandIn:
                 return
             reply(major=1, minor=2, capabilities=CAPABILITIES)
             self.event('apps_running', (peer,), apps=self.running)
+        elif op == 'view_focus':
+            if type(request.get('focused')) is bool:
+                reply()
+            else:
+                reply(False, error='malformed')
         elif op in ('get_home', 'list_apps'):
             if self.before_page is not None:
                 self.before_page(request)

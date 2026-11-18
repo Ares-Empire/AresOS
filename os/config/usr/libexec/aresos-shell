@@ -27,7 +27,7 @@ covers the desktop's window on its screen: {"covered": true|false}. A connection
 starts uncovered on both sides; the helper sends the value whenever it changes
 and once after hello when it is true. The game pauses the world while covered.
 
-Minor 2 adds views, home_state and apps_running (LAPTOP-HOME.md section 5).
+Minor 2 adds views, view_focus, home_state and apps_running (LAPTOP-HOME.md section 5).
 The desktop can publish_home in parts, and views can get_home in pages. Up to
 four named views authenticate with the session instance and ARESOS_VIEW_TOKEN.
 Views can list and open apps and see their own launch states, catalogue changes,
@@ -103,7 +103,7 @@ MAX_APPS = 256
 MAX_LIST = 32
 HELLO_TIMEOUT = 10.0
 WINDOW_TIMEOUT = 30.0
-# A close this soon after its window lost focus is the compositor handing focus on, not the owner switching.
+# A close this soon after a direct toplevel switch can be the compositor choosing the next window.
 HANDOFF = 0.5
 # A restored desktop window that takes focus this soon after appearing gives it back (keep_foreground).
 KEEP_WINDOW = 3.0
@@ -138,7 +138,7 @@ LAPTOP_HOME_APP_ID = 'aresos.laptop-home'
 BASE_CAPABILITIES = frozenset({'list_apps', 'open_app', 'app_state', 'world_ready', 'heartbeat'})
 DETAIL_CAPABILITIES = frozenset({'app_details', 'apps_changed', 'list_paging'})
 VIEW_CAPABILITIES = frozenset({'views', 'home_state', 'apps_running'})
-VIEW_OPERATIONS = frozenset({'hello', 'list_apps', 'open_app', 'get_home'})
+VIEW_OPERATIONS = frozenset({'hello', 'list_apps', 'open_app', 'get_home', 'view_focus'})
 VIEW_EVENTS = frozenset({'app_state', 'apps_changed', 'home_changed', 'apps_running'})
 MAX_HOME_PARTS = 16
 MAX_HOME_APPS = 200
@@ -3005,9 +3005,10 @@ class Helper:
         self.discovered_closing = {}
         self.view_closing = {}
         self.shell = 'foreground'
-        self.foreground_app = None
+        self.last_foreground_app = None
         self.active_handle = None
         self.active_owner = None
+        self.focus_loss = None
         self.handoff = None
         self.returning_until = None
         self.adopting = set()
@@ -3098,6 +3099,7 @@ class Helper:
         conn.client = None
         conn.event_number = 0
         conn.running_apps = None
+        conn.focused = False
         # What this connection was last told about covering; both sides start a connection uncovered.
         conn.covered = False
         conn.capabilities = frozenset()
@@ -3170,7 +3172,8 @@ class Helper:
                 raise Failure('unknown_operation', f'unknown operation {operation!r}')
             handler = {'hello': self.hello, 'list_apps': self.list_apps, 'open_app': self.open_app,
                        'world_ready': self.world_ready, 'heartbeat': self.heartbeat,
-                       'publish_home': self.publish_home, 'get_home': self.get_home}.get(operation)
+                       'publish_home': self.publish_home, 'get_home': self.get_home,
+                       'view_focus': self.view_focus}.get(operation)
             if handler is None:
                 raise Failure('unknown_operation', f'unknown operation {operation[:64]!r}')
             if not conn.authenticated and operation != 'hello':
@@ -3364,6 +3367,19 @@ class Helper:
             rows = [row for key, row in sorted(self.home.apps.items())
                     if self.home_awaits_catalogue or key in self.catalogue_apps]
         return self.page(conn, request_id, message, rows, fields, stream='home:')
+
+    def view_focus(self, conn, request_id, message):
+        if self.views.get(conn.client) is not conn:
+            raise Failure('invalid_state', 'only views can report view focus')
+        focused = message.get('focused')
+        if type(focused) is not bool:
+            raise Failure('malformed', 'focused must be a boolean')
+        conn.focused = focused
+        if focused:
+            self.focus_loss = 'view'
+            self.handoff = None
+            self.cancel_returns()
+        return {}
 
     def publish_home(self, conn, request_id, message):
         pending, self.publishing = self.publishing, None
@@ -3840,9 +3856,17 @@ class Helper:
         self.match_discovered(self.windows, closed, self.discovered_closing, now)
         self.follow_view_launches(catalogue_closed, now)
         other_screen = self.closed_on_other_screen(closed)
+        active = self.windows.active()
+        view_focused = self.view_has_focus()
+        foreground_app = self.foreground_app
+        if self.focus_loss == 'view' and active is not None and active.handle != self.active_handle:
+            # The view already broke the handoff. This activation supersedes the app that lost focus to the view.
+            foreground_app = None
         returned = False
         for toplevel in closed:
             app = toplevel.owner
+            if app is not None and app == self.last_foreground_app and not self.windows.of(app):
+                self.last_foreground_app = None
             definition = self.apps.get(app)
             if definition is not None and definition.discovered:
                 if not self.windows.of(app):
@@ -3850,12 +3874,11 @@ class Helper:
                                   and now - self.handoff[2] <= HANDOFF)
                     pending = self.discovered_closing.get(app)
                     # A window already active now is the compositor's pick (it may arrive before the close).
-                    pick = self.windows.active()
                     self.discovered_closing[app] = (pending[0] if pending else now + HANDOFF,
                                                     app not in other_screen and (bool(pending and pending[1])
-                                                                                 or app == self.foreground_app
+                                                                                 or app == foreground_app
                                                                                  or handed_off),
-                                                    pending[2] if pending else pick and pick.handle)
+                                                    pending[2] if pending else active and active.handle)
                     for key in list(self.handles):
                         if key[0] == DESKTOP and self.journal.entries[key]['app_id'] == app:
                             del self.handles[key]
@@ -3873,10 +3896,9 @@ class Helper:
                           and now - self.handoff[2] <= HANDOFF)
             # For a 1.1 desktop the registry's apps leave a window nobody owns in front too (review 2, finding 4); a
             # 1.0 desktop keeps today's immediate return.
-            if (app == self.foreground_app or handed_off) and not (self.window_minor >= 1 and self.unowned_windows()):
+            if (app == foreground_app or handed_off) and not (self.window_minor >= 1 and self.unowned_windows()):
                 returned = True
                 self.return_to_desktop(app)
-        active = self.windows.active()
         if active is not None and active.handle != self.active_handle and active.owner != Windows.SHELL:
             # The first window activated after a close is the compositor's own pick and keeps the return; a later
             # switch is his choice, and a return he no longer wants is dropped (review 1, finding 4). Taken into
@@ -3906,11 +3928,8 @@ class Helper:
             focused = active is not None and active.handle in handles
             self.set_state(key, 'focused' if focused else 'background')
         if active is None:
-            # The laptop home can take focus without an active app toplevel. A close may also arrive
-            # just after deactivation, so remember that transition once for the usual handoff.
-            if self.foreground_app is not None:
-                self.handoff = (self.foreground_app, self.active_handle, now)
-                self.foreground_app = None
+            # Deactivation alone does not tell us where the keyboard went, and a close may arrive later.
+            self.focus_loss = self.focus_loss or 'deactivated'
             return
         previous_handle, previous_owner = self.active_handle, self.active_owner
         self.active_handle, self.active_owner = active.handle, active.owner
@@ -3943,7 +3962,8 @@ class Helper:
             self.cancel_returns()
             self.returning_until = None
             self.handoff = None
-            self.foreground_app = None
+            self.focus_loss = None
+            self.last_foreground_app = None
             if self.shell == 'background':
                 self.shell = 'foreground'
                 self.emit('shell_focus', focus='foreground', reason='desktop_activated')
@@ -3953,14 +3973,13 @@ class Helper:
             return
         self.returning_until = None
         if active.handle != previous_handle:
-            if self.foreground_app is not None:
-                self.handoff = ((self.foreground_app, previous_handle, now)
-                                if self.foreground_app != active.owner else None)
-            elif previous_owner is None:
-                self.handoff = None
+            self.handoff = ((previous_owner, previous_handle, now)
+                            if not view_focused and self.focus_loss is None
+                            and previous_owner not in (None, Windows.SHELL) and previous_owner != active.owner else None)
+            self.focus_loss = None
         if self.handoff is not None and self.handoff[0] == active.owner:
             self.handoff = None
-        self.foreground_app = active.owner
+        self.last_foreground_app = active.owner
         if self.shell == 'foreground':
             self.shell = 'background'
             fields = {'focus': 'background', 'reason': 'app_activated' if active.owner else 'other_window'}
@@ -4019,6 +4038,14 @@ class Helper:
         outputs = {t.owner: t.outputs for t in closed}
         return {app for app, screens in outputs.items() if screens and screens.isdisjoint(desktop_outputs)}
 
+    def view_has_focus(self):
+        return any(view.focused for view in self.views.values())
+
+    @property
+    def foreground_app(self):
+        # Keep the last app available if a view releases the keyboard before that app closes.
+        return None if self.view_has_focus() else self.last_foreground_app
+
     def cancel_returns(self):
         """Pending closes still end their launches, but none of them brings the hub back any more."""
         self.discovered_closing = {app: (deadline, False, pick)
@@ -4039,7 +4066,7 @@ class Helper:
         """The foreground app's last relevant window closed: give the hub its focus back."""
         desktop = self.windows.of(Windows.SHELL)
         activated = bool(desktop) and self.activate_window is not None and bool(self.activate_window(desktop[-1].handle))
-        self.foreground_app = None
+        self.last_foreground_app = None
         self.handoff = None
         self.shell = 'foreground'
         self.returning_until = self.clock() + HANDOFF if activated else None

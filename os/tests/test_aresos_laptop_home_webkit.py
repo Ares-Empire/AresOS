@@ -29,6 +29,30 @@ class WebKitTest(unittest.TestCase):
                              holes=['test-web-2'], unpinned=['test-tool-1'])
         self.chrome = Headless(self.root, self.helper.path)
 
+    def test_reports_real_surface_focus_and_replays_it_after_hello(self):
+        def reports():
+            with self.helper.lock:
+                return [request['focused'] for request in self.helper.requests if request['op'] == 'view_focus']
+
+        with self.helper, self.chrome as gui, gui.virtual_click() as click:
+            gui.until('window.probe?.events.some(e => e.name === "helper" && e.detail)')
+            self.assertIs(reports()[0], False)
+            click()
+            wait_for(lambda: reports()[-1] is True)
+            gui.evaluate('@other-window')
+            wait_for(lambda: reports()[-1] is False)
+            gui.evaluate('@close-other-window')
+            click()
+            wait_for(lambda: reports()[-1] is True)
+
+            self.helper.drop()
+            gui.until('probe.events.at(-1).name === "helper" && !probe.events.at(-1).detail')
+            before = len(self.helper.requests)
+            self.helper.start()
+            gui.until('probe.events.at(-1).name === "helper" && probe.events.at(-1).detail')
+            hello, focus = self.helper.requests[before:before + 2]
+            self.assertEqual((hello['op'], focus['op'], focus['focused']), ('hello', 'view_focus', True))
+
     def test_bridge_resources_boundary_startup_and_vendor_pin(self):
         self.helper.running = ['test-web-1']
         local_file = self.root / 'private.json'
