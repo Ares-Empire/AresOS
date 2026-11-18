@@ -627,6 +627,32 @@ class WindowViewsTest(ViewBase):
         self.assertEqual(self.activations, [1])
         self.assertIsNone(windows.active())
 
+    def test_editor_closing_after_focus_leaves_it_keeps_the_keyboard_at_home(self):
+        for fallback in (False, True):
+            with self.subTest(fallback=fallback):
+                helper = self.start(tracked=True)
+                desktop = self.desktop(helper)
+                self.view(helper)
+                windows = helper.windows
+                self.show(windows, 1, GAME, outputs=(1,))
+                self.show(windows, 2, NOTEPAD, active=True, outputs=(1,))
+                helper.windows_changed()
+                self.assertEqual(helper.foreground_app, 'notepad')
+
+                windows.state(2, False)
+                windows.done(2)
+                if fallback:
+                    self.show(windows, 3, shell.LAPTOP_HOME_APP_ID, active=True, outputs=(2,))
+                # A layer surface has no foreign toplevel. The owner's typing does not change focus.
+                helper.windows_changed()
+                self.assertIsNone(helper.foreground_app)
+                self.now[0] += 60
+                helper.windows_changed()
+                windows.gone(2)
+                helper.windows_changed()
+                self.assertEqual(self.activations, [])
+                self.assertEqual([event['reason'] for event in desktop.events('shell_focus')], ['app_activated'])
+
     def test_laptop_home_is_not_an_unknown_app(self):
         helper = self.start(tracked=True)
         self.show(helper.windows, 1, 'aresos.laptop-home')

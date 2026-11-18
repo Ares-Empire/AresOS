@@ -1056,6 +1056,22 @@ class WindowTest(Base):
         self.assertEqual(self.helper_.foreground_app, 'terminal')
         self.assertEqual(self.helper_.journal.entries[shell.DESKTOP, 'o-2']['state'], 'closed')
 
+    def test_focusing_another_window_does_not_renew_an_expired_handoff(self):
+        self.open('terminal', 'o-1')
+        self.window(2, 'aresos.terminal')
+        self.open('notepad', 'o-2')
+        self.window(3, 'org.kde.kwrite', activated=True)
+        self.windows.state(3, False)
+        self.windows.done(3)
+        self.helper_.windows_changed()
+        self.now[0] += shell.HANDOFF + 0.1
+
+        self.focus(2)
+        self.close(3)
+        self.assertEqual(self.activations, [])
+        self.assertEqual(self.helper_.foreground_app, 'terminal')
+        self.assertEqual(self.helper_.journal.entries[shell.DESKTOP, 'o-2']['state'], 'closed')
+
     def test_dialogs_count_as_their_apps_windows(self):
         self.open('notepad', 'o-1')
         self.window(2, 'org.kde.kwrite', activated=True)

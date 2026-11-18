@@ -3906,6 +3906,11 @@ class Helper:
             focused = active is not None and active.handle in handles
             self.set_state(key, 'focused' if focused else 'background')
         if active is None:
+            # The laptop home can take focus without an active app toplevel. A close may also arrive
+            # just after deactivation, so remember that transition once for the usual handoff.
+            if self.foreground_app is not None:
+                self.handoff = (self.foreground_app, self.active_handle, now)
+                self.foreground_app = None
             return
         previous_handle, previous_owner = self.active_handle, self.active_owner
         self.active_handle, self.active_owner = active.handle, active.owner
@@ -3948,8 +3953,13 @@ class Helper:
             return
         self.returning_until = None
         if active.handle != previous_handle:
-            self.handoff = ((previous_owner, previous_handle, now)
-                            if previous_owner not in (None, Windows.SHELL) and previous_owner != active.owner else None)
+            if self.foreground_app is not None:
+                self.handoff = ((self.foreground_app, previous_handle, now)
+                                if self.foreground_app != active.owner else None)
+            elif previous_owner is None:
+                self.handoff = None
+        if self.handoff is not None and self.handoff[0] == active.owner:
+            self.handoff = None
         self.foreground_app = active.owner
         if self.shell == 'foreground':
             self.shell = 'background'
