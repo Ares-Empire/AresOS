@@ -58,8 +58,13 @@ def run(slot, settings, utility=False):
 def fixtures():
     flat=WORK/'AresHub-base'
     if not flat.exists():
-        name=run('setup-flat',['MODE=create','CREATE_FLOW=automatic','QUIT=1','COVER=0'],True)
+        name=run('setup-flat',['MODE=create','CREATE_FLOW=automatic','QUIT=1','COVER=0','SHOTS=1'],True)
         shutil.copytree(WORK/'rigs'/name/'world',flat)
+        pictures=ROOT/'screenshots'
+        pictures.mkdir(exist_ok=True)
+        for file in ('home-south.png','above-south.png'):
+            source=WORK/'rigs'/name/'shots'/file
+            if source.exists(): shutil.copy2(source,pictures/file)
     path=ROOT/'fixture-hashes.json'
     facts=json.loads(path.read_text()) if path.exists() else {}
     facts.setdefault('flat',fingerprint(flat));path.write_text(json.dumps(facts,indent=2)+'\n')
