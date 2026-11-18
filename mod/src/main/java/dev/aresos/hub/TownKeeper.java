@@ -109,8 +109,12 @@ public final class TownKeeper {
     private final Map<String, Read> pictures = new HashMap<>();
     /** Apps whose logo {@code hub rebuild} asked to be built again and that still stand as they were. */
     private final Set<String> renew = new HashSet<>();
-    /** A replacement keeps its kind after the old logo comes down, until a later pass can build it. */
-    private final Map<String, TownLines.Kind> changes = new HashMap<>();
+    /** A replacement's history survives retries; its destination, rather than its starting operation, decides its line. */
+    private record Replacement(AppDefinition app, TownLines.Kind operation, Place original, boolean cameDown) {
+        Replacement removed() { return new Replacement(app, operation, original, true); }
+        TownLines.Kind completed(Place at) { return original.equals(at) ? TownLines.Kind.RENEWED : TownLines.Kind.MOVED; }
+    }
+    private final Map<String, Replacement> replacements = new HashMap<>();
     /**
      * The count each group's name shows, as a pass of this keeper last wrote it. The pass of a swap or move writes
      * only what its apps change in it (review fixes 2, point 1).
@@ -415,6 +419,15 @@ public final class TownKeeper {
         }
         boolean first = hub.logos().isEmpty();
         var lines = new TownLines();
+        var wanted = apps.values().stream().filter(TownKeeper::wanted).map(AppDefinition::id).collect(Collectors.toSet());
+        for (var entries = replacements.entrySet().iterator(); entries.hasNext();) {
+            var entry = entries.next();
+            if (!scope.covers(entry.getKey()) || wanted.contains(entry.getKey())) continue;
+            var replacement = entry.getValue();
+            if (replacement.cameDown()) lines.add(TownLines.Kind.DOWN, gone(apps.get(entry.getKey()), replacement.app().name()));
+            entries.remove();
+        }
+        if (!replacements.isEmpty()) lines.changeStarted();
         var need = new LinkedHashSet<String>();
         Round round;
         // A build refused in a place that looked free blocks that place, and the app goes on to its group's next
@@ -430,8 +443,6 @@ public final class TownKeeper {
         doorways(server, hub, lines, scope);
         // 5. Roads and names.
         boolean roads = scope.whole() ? roads(level, hub, round.assignment()) : roads(level, hub, scope, from);
-        var wanted = apps.values().stream().filter(TownKeeper::wanted).map(AppDefinition::id).collect(Collectors.toSet());
-        changes.keySet().retainAll(wanted);
         var spoken = new ArrayList<String>();
         if (scope.whole()) spoken.addAll(firstBuild.said(lines, first, rebuilt, round.waiting(),
                 round.pending() || !need.isEmpty(), server.getTickCount(), wanted));
@@ -470,16 +481,16 @@ public final class TownKeeper {
             if (target != null && at.equals(Optional.of(target))) continue;
             if (down != null && !down.contains(logo.app())) continue;
             if (target != null) {
-                changes.put(logo.app(), TownLines.Kind.MOVED);
-                lines.changeStarted();
+                replacing(apps.get(logo.app()), logo, TownLines.Kind.MOVED, lines);
             }
             try {
                 Town.remove(server, logo.app());
                 if (target == null) {
-                    changes.remove(logo.app());
-                    lines.add(TownLines.Kind.DOWN, gone(apps.get(logo.app()), logo));
-                }
+                    replacements.remove(logo.app());
+                    lines.add(TownLines.Kind.DOWN, gone(apps.get(logo.app()), logo.name()));
+                } else replacements.computeIfPresent(logo.app(), (id, replacement) -> replacement.removed());
             } catch (IOException refusal) {
+                replacements.remove(logo.app());
                 stays.add(logo.app());
                 at.ifPresent(waitingFor::add);
                 if (refusal instanceof GateBuilder.NotLoaded) pending = true;
@@ -506,11 +517,12 @@ public final class TownKeeper {
             }
             if (standing.isPresent()) {
                 if (!changed(standing.get(), app, picture.get()) && !renew.contains(app.id())) continue;
-                changes.put(app.id(), TownLines.Kind.RENEWED);
-                lines.changeStarted();
+                replacing(app, standing.get(), TownLines.Kind.RENEWED, lines);
                 try {
                     Town.remove(server, app.id());
+                    replacements.computeIfPresent(app.id(), (id, replacement) -> replacement.removed());
                 } catch (IOException refusal) {
+                    replacements.remove(app.id());
                     if (refusal instanceof GateBuilder.NotLoaded) {
                         pending = true;
                         if (renew.contains(app.id())) waiting++;
@@ -521,7 +533,8 @@ public final class TownKeeper {
             try {
                 Town.build(server, app, place, picture.get());
                 renew.remove(app.id());
-                var kind = changes.remove(app.id());
+                var replacement = replacements.remove(app.id());
+                var kind = replacement == null ? TownLines.Kind.BUILT : replacement.completed(place);
                 boolean moved = kind == TownLines.Kind.MOVED;
                 if (kind == TownLines.Kind.RENEWED) lines.add(TownLines.Kind.RENEWED, "The logo of " + app.name() + " was renewed.");
                 else if (!(moved && !scope.whole()))
@@ -535,8 +548,6 @@ public final class TownKeeper {
                 // ordinary pass tries that place again by its own rules.
                 if (scope.whole()) {
                     refused.add(place);
-                    // The replacement now has to move on, even if it began as a renewal in place.
-                    if (changes.containsKey(app.id())) changes.put(app.id(), TownLines.Kind.MOVED);
                 }
                 pending = true;
                 if (standing.isPresent()) {
@@ -561,6 +572,11 @@ public final class TownKeeper {
         for (var id : assignment.unplaced()) if (scope.covers(id))
             once(lines, apps.get(id).name() + " has no free place in " + AppGroup.of(apps.get(id)).title() + ": every place there is blocked.");
         return new Round(assignment, pending, need, waiting);
+    }
+
+    private void replacing(AppDefinition app, HubData.Logo logo, TownLines.Kind operation, TownLines lines) {
+        replacements.computeIfAbsent(app.id(), id -> new Replacement(app, operation, Place.parse(logo.place()).orElseThrow(), false));
+        lines.changeStarted();
     }
 
     /**
@@ -730,8 +746,8 @@ public final class TownKeeper {
         return app.name() + " stands in " + where + "." + opens;
     }
 
-    private static String gone(AppDefinition app, HubData.Logo logo) {
-        if (app == null) return "The logo of " + logo.name() + " came down: the app is gone from your apps file.";
+    private static String gone(AppDefinition app, String originalName) {
+        if (app == null) return "The logo of " + originalName + " came down: the app is gone from your apps file.";
         if (app.absent()) return app.name() + " is no longer installed. Its logo came down; its place is kept for its return.";
         if (!app.mine()) return app.name() + " left My apps. Its logo came down.";
         return "The logo of " + app.name() + " came down.";
