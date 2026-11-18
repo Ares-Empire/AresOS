@@ -1401,7 +1401,6 @@ class Painter:
             self.show(cr, bolt, x + (w - bolt_width) / 2, y + (h - bolt_height) / 2, GOLD_HI, (1, 1, 1))
 
     def street(self, cr, scene, street, day):
-        cairo = self.cairo
         if day:
             self.road(cr, street, day)
         masked = day and (street['ends']['L']['cut'] or street['ends']['R']['cut'])
@@ -1421,14 +1420,17 @@ class Painter:
             self.house(cr, scene, house, day, street['colour'])
         if masked:
             cr.pop_group_to_source()
-            mask = cairo.LinearGradient(0, 0, WIDTH, 0)
-            cut_left = 0 if street['ends']['L']['cut'] else 1
-            cut_right = 0 if street['ends']['R']['cut'] else 1
-            for at, alpha in ((0, cut_left), (EDGE / 2, cut_left), (EDGE, 1), (WIDTH - EDGE, 1),
-                              (WIDTH - EDGE / 2, cut_right), (WIDTH, cut_right)):
-                mask.add_color_stop_rgba(at / WIDTH, 0, 0, 0, alpha)
-            cr.mask(mask)
+            self.view_mask(cr, street)
         cr.restore()
+
+    def view_mask(self, cr, street):
+        mask = self.cairo.LinearGradient(0, 0, WIDTH, 0)
+        cut_left = 0 if street['ends']['L']['cut'] else 1
+        cut_right = 0 if street['ends']['R']['cut'] else 1
+        for at, alpha in ((0, cut_left), (EDGE / 2, cut_left), (EDGE, 1), (WIDTH - EDGE, 1),
+                          (WIDTH - EDGE / 2, cut_right), (WIDTH, cut_right)):
+            mask.add_color_stop_rgba(at / WIDTH, 0, 0, 0, alpha)
+        cr.mask(mask)
 
     def road(self, cr, street, day):
         x, y, w, h = street['road']['rect']
@@ -1520,18 +1522,21 @@ class Painter:
         else:
             self.fill(cr, mat, colour)
         if house['framed']:
-            if day:
-                self.ring(cr, house['frame'], 5, 2, SHADOW, 0.82)
-                self.ring(cr, house['frame'], 5, 3, GOLD_HI, outside=False)
-                x, y, w, h = house['frame']
-                self.ring(cr, (x + 3, y + 3, w - 6, h - 6), 2, 1, SHADOW, 0.5, outside=False)
-            else:
-                self.ring(cr, house['frame'], 5, 2, GOLD, outside=False)
+            self.frame(cr, house['frame'], day)
         self.house_sign(cr, house, day, look)
         if house['dim']:
             cr.pop_group_to_source()
             cr.paint_with_alpha(look['hidden'])
         cr.restore()
+
+    def frame(self, cr, frame, day):
+        if day:
+            self.ring(cr, frame, 5, 2, SHADOW, 0.82)
+            self.ring(cr, frame, 5, 3, GOLD_HI, outside=False)
+            x, y, w, h = frame
+            self.ring(cr, (x + 3, y + 3, w - 6, h - 6), 2, 1, SHADOW, 0.5, outside=False)
+        else:
+            self.ring(cr, frame, 5, 2, GOLD, outside=False)
 
     def gold_door(self, cr, door):
         x, y, w, h = door
