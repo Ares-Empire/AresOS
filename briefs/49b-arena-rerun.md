@@ -41,6 +41,8 @@ The data cannot tell whether that was noise or a real cost. This package answers
    - **NOT QUALIFIED:** say which rule failed and by how much.
    - **Either way:** report the spread, and whether 49's 19.948 ms frame recurred.
 
+**Since package 49, main has package 47** (`fd9cb695`): `mod/dev/client-test.sh` keeps the NVIDIA card awake for the lock-held run. If the rig goes through `mod/dev/env.sh` or the client-test lock path, controls and candidate both run under it. Say in the report how this run's conditions differ from 49's, and compare only within this package's pairs.
+
 ## Rules
 
 - **Package 49's rules apply** (`briefs/49-memory-cuts.md`, "Rules"). Only `reviews/49b-arena-rerun/` and this brief change, and nothing under `mod/src` or `os/`.
