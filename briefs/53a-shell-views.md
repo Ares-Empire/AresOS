@@ -3,8 +3,9 @@
 Board #335, brief 306, step 1 of `docs/design/LAPTOP-HOME.md` section 9. OS helper package. The lead's handoff for
 the whole build is `briefs/53-laptop-home-build.md` (it rides this PR).
 
-**Builder:** Codex `gpt-6.1-sol` `xhigh`: data and rules against a tight design, which Sol builds well.
-**Review:** a fresh Codex `gpt-6-astra` `high`, read-only, with one focused security pass on the view token.
+**Builder:** Codex `gpt-6.2-sol` `xhigh`: data and rules against a tight design, which Sol builds well. The handoff
+named `gpt-6.1-sol`; 6.2 is the current generation of the same workhorse (models list, 2026-11-18).
+**Review:** a fresh Codex `gpt-6.2-astra` `high`, read-only, with one focused security pass on the view token.
 
 ## Why
 
