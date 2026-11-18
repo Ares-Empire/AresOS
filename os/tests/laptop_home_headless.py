@@ -387,6 +387,8 @@ def fixture_main(path):
     if broken := setup['broken']:
         if broken == 'idle':
             program.idle_colour = lambda colour, _look: colour
+        elif broken == 'view_mask':
+            program.Painter.view_mask = lambda _painter, cr, _street: cr.paint()   # the view without its fade
         else:
             setattr(program.Painter, broken, lambda *_args, **_fields: None)
     original = program.LaptopHome.create_area
