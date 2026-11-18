@@ -1,6 +1,6 @@
 # Package 28: Chrome read
 
-**Status:** The merge pair is green. This baseline/documents commit awaits two full green executions of each Chrome workflow; the closing report-only commit will record their run IDs and attempts.
+**Status:** Final validation head `659e71647096c52914ae0fbeeb2e6f3ee21dbace` is green twice in both Chrome workflows. This closing `[skip ci]` commit changes only `reviews/28-chrome-read/REPORT.md`; the preceding baseline/documents head is the head validated by all four final executions. PR #72 remains draft and unmerged. The lead's Codex astra package and security reviews remain.
 
 ## Done
 
@@ -44,7 +44,7 @@ returns 0: no Chrome package change from the merge. Main's image/service-user an
 | Step 14 commit | Contents |
 |---|---|
 | `f282553ba631b189383ee5d1591f7544528ce918` | standalone merge of main; normal push, no CI skip |
-| `the baseline/documents commit` | baseline comparison, harness map, known limits, report and short step-14 history; normal push, no CI skip; final validation head |
+| `659e71647096c52914ae0fbeeb2e6f3ee21dbace` | baseline comparison, harness map, known limits, report and short step-14 history; normal push, no CI skip; final validation head |
 | report-only commit containing this final table | only `reviews/28-chrome-read/REPORT.md`; `[skip ci]`; no runtime, test, baseline, map or history change |
 
 Every step 14 commit ends with `Built-by: gpt-6.1-sol`. The last commit changes **only this report**;
@@ -111,7 +111,7 @@ what the service/owner saw and still refuse visible or identity changes. No broa
 | `instructions_for('chrome')` length assertion | `Chrome server instructions: 4093 characters` |
 | Chrome/generated merge-diff check and asking-function AST comparison above | exit 0 / all eleven named functions IDENTICAL |
 | Step 14 authored-file whitespace, relative link, inventory and baseline-preservation audit | exit 0; all 36 new browser names map exactly once, Python names and repo-relative links resolve, frozen baseline preserved and the single comparison equals the green summary |
-| Pre-push privacy hook / workflow shell check | normal merge push accepted; local workflow shell exits 0: `No file holds a home path with a real user name.`; merge privacy workflow is green |
+| Pre-push privacy hook / workflow shell check | both normal code/doc pushes accepted by the privacy hook; local workflow shell exits 0: `No file holds a home path with a real user name.`; merge and final-head Repo privacy workflows are green |
 
 **run / not green:** a raw `git diff --cached --check` before the merge commit reported Markdown hard-break
 whitespace in review files carried directly from main; checking the branch against main also found the
@@ -132,10 +132,10 @@ run/attempt identities. Both attempts must be green on the same final validation
 |---|---|---|---|
 | 1 / `f282553b` | Control Chrome | [44226934670](https://github.com/Ares-Empire/AresOS/actions/runs/44226934670) / 1 | **success, 28/28 jobs**; both cores, both latency profiles and both aggregates pass |
 | 1 / `f282553b` | Control Chrome qualification | [44226934711](https://github.com/Ares-Empire/AresOS/actions/runs/44226934711) / 1 | **success, 34/34 jobs**; both independent pairs, both combines and publish verification pass |
-| 2 / `the baseline/documents commit` | Control Chrome | not yet started / 1 | pending |
-| 2 / `the baseline/documents commit` | Control Chrome qualification | not yet started / 1 | pending |
-| 3 / `the baseline/documents commit` | Control Chrome | not yet started / 2 (whole run) | pending |
-| 3 / `the baseline/documents commit` | Control Chrome qualification | not yet started / 2 (whole run) | pending |
+| 2 / `659e71647096c52914ae0fbeeb2e6f3ee21dbace` | Control Chrome | [44255375396](https://github.com/Ares-Empire/AresOS/actions/runs/44255375396) / 1 | **success, 28/28 jobs** |
+| 2 / `659e71647096c52914ae0fbeeb2e6f3ee21dbace` | Control Chrome qualification | [44255375583](https://github.com/Ares-Empire/AresOS/actions/runs/44255375583) / 1 | **success, 34/34 jobs** |
+| 3 / `659e71647096c52914ae0fbeeb2e6f3ee21dbace` | Control Chrome | [44255375396](https://github.com/Ares-Empire/AresOS/actions/runs/44255375396) / 2 (whole run) | **success, 28/28 jobs** |
+| 3 / `659e71647096c52914ae0fbeeb2e6f3ee21dbace` | Control Chrome qualification | [44255375583](https://github.com/Ares-Empire/AresOS/actions/runs/44255375583) / 2 (whole run) | **success, 34/34 jobs** |
 
 **run:** Merge-head regression workflows were also watched at 60 seconds and completed successfully:
 
@@ -146,8 +146,17 @@ run/attempt identities. Both attempts must be green on the same final validation
 | `f282553b` | Control Mail | [44226934661](https://github.com/Ares-Empire/AresOS/actions/runs/44226934661) | success |
 | `f282553b` | Repo privacy | [44226934706](https://github.com/Ares-Empire/AresOS/actions/runs/44226934706) | success |
 
+**run:** Final-head regression workflows also completed successfully, each watched with `--interval 60`:
 
-**run:** Downloaded completed-job logs confirm all 36 new mandatory case names end in `PASS` exactly once in both install modes and both qualification repeats on merged main. Line numbers below are in `gh run view <run> --job <job> --log` output. The completion line follows the named cases. The five Control Chrome time lines are four required checks plus their overall PASS; qualification excludes those time-only checks.
+| Head | Workflow | Run ID | Result |
+|---|---|---|---|
+| `659e7164` | Control base | [44255375419](https://github.com/Ares-Empire/AresOS/actions/runs/44255375419) | success |
+| `659e7164` | Control boundary | [44255375477](https://github.com/Ares-Empire/AresOS/actions/runs/44255375477) | success |
+| `659e7164` | Control Mail | [44255375414](https://github.com/Ares-Empire/AresOS/actions/runs/44255375414) | success |
+| `659e7164` | Repo privacy | [44255375563](https://github.com/Ares-Empire/AresOS/actions/runs/44255375563) | success |
+
+
+**run:** Downloaded completed-job logs confirm all 36 new mandatory case names end in `PASS` exactly once in every core below: merged main, then both final-head attempts. Each log also identifies `BROWSER_SHARD: core`. Line numbers are in `gh run view <run> --attempt <attempt> --job <job> --log` output. The completion line follows the named cases. The five Control Chrome time lines are four required checks plus their overall PASS; qualification excludes those time-only checks.
 
 | Run / attempt | Core job | 36 named PASS lines, first–last | Shard complete line | Time PASS lines |
 |---|---|---|---|---|
@@ -155,6 +164,16 @@ run/attempt identities. Both attempts must be green on the same final validation
 | 44226934670 / 1 | [134545688930](https://github.com/Ares-Empire/AresOS/actions/runs/44226934670/job/134545688930) | 5576–5613 | 5615 | 5493, 5494, 5495, 5496, 5497 |
 | 44226934711 / 1 | [134600716138](https://github.com/Ares-Empire/AresOS/actions/runs/44226934711/job/134600716138) | 5706–5743 | 5745 | not in qualification |
 | 44226934711 / 1 | [134600716154](https://github.com/Ares-Empire/AresOS/actions/runs/44226934711/job/134600716154) | 5704–5741 | 5743 | not in qualification |
+| 44255375396 / 1 | [134640845895](https://github.com/Ares-Empire/AresOS/actions/runs/44255375396/job/134640845895) | 5584–5621 | 5623 | 5501, 5502, 5503, 5504, 5505 |
+| 44255375396 / 1 | [134640845842](https://github.com/Ares-Empire/AresOS/actions/runs/44255375396/job/134640845842) | 5603–5640 | 5642 | 5520, 5521, 5522, 5523, 5524 |
+| 44255375583 / 1 | [134635838744](https://github.com/Ares-Empire/AresOS/actions/runs/44255375583/job/134635838744) | 5729–5766 | 5768 | not in qualification |
+| 44255375583 / 1 | [134635838789](https://github.com/Ares-Empire/AresOS/actions/runs/44255375583/job/134635838789) | 5728–5765 | 5767 | not in qualification |
+| 44255375396 / 2 | [134697517555](https://github.com/Ares-Empire/AresOS/actions/runs/44255375396/job/134697517555) | 5584–5621 | 5623 | 5501, 5502, 5503, 5504, 5505 |
+| 44255375396 / 2 | [134697517762](https://github.com/Ares-Empire/AresOS/actions/runs/44255375396/job/134697517762) | 5584–5621 | 5623 | 5501, 5502, 5503, 5504, 5505 |
+| 44255375583 / 2 | [134698337037](https://github.com/Ares-Empire/AresOS/actions/runs/44255375583/job/134698337037) | 5727–5764 | 5766 | not in qualification |
+| 44255375583 / 2 | [134698337449](https://github.com/Ares-Empire/AresOS/actions/runs/44255375583/job/134698337449) | 5767–5804 | 5806 | not in qualification |
+
+**run:** No CI job failed in these three rounds, and no flaky-job retry was needed. `gh run rerun 44255375583` printed `failed to rerun: HTTP 502: Server Error`; a single `gh run view 44255375583 --json databaseId,headSha,status,attempt,conclusion` read-back confirmed attempt 2 queued on the correct head. The request was accepted and was not sent again. The Chrome rerun request exited 0. A parallel `gh run view 44255375396 --attempt 1 --job 134640845895 --log` download printed `failed to get run log: opening cache entry: zip: not a valid zip file`; fetching that log with isolated repo-local `XDG_CACHE_HOME` and `TMPDIR` exited 0. These were API/download responses, not test failures. All later job-log downloads used isolated repo-local caches, and no extra workflow was dispatched.
 
 
 **read / historical:** Step 13d's final code pair, 44207652690 / 44207652784 on `e07a88eb`, already passed
@@ -577,8 +596,9 @@ all address surfaces, navigation/change reports, final tool budgets/instructions
 descriptions per PR #106) then 28b (owner tabs in place, take/restore/window choices, same password/asking
 rules and real-page limitations). None reaches the laptop until all three packages are merged.
 
-**read:** PR #106 is open at the step-14 check. Besides carrying repaired-Unicode comparisons, cleanup and
-distinct field descriptions, its 28a/28b revision defines replacement/profile lifecycle, held-submission work
+**read / closing check:** PR #106 merged on 2026-11-18 at 08:58 UTC as `7417c19a`, after step 14's
+main snapshot. Its merged requirements are the handoff contract for the remaining builds. Besides carrying
+repaired-Unicode comparisons, cleanup and distinct field descriptions, its 28a/28b revision defines replacement/profile lifecycle, held-submission work
 checks, reference-open classification, private edit freshness and untrusted loss errors, with tests and
 reviewer mutations. Two dependent owner choices remain with the lead's `linux-tools` work: confirm the chosen
 profile after extension replacement, and use one combined send/loss question for a held submission. This
@@ -596,4 +616,5 @@ portable Node was reused. No cleanup was applied to another worktree or builder.
 |---|---:|---:|
 | [HARNESS-MAP.md](HARNESS-MAP.md) | 257 | 39,771 |
 | [KNOWN-LIMITS.md](KNOWN-LIMITS.md) | 357 | 31,480 |
-| [REPORT.md](REPORT.md) | 599 | 48,353 |
+| [REPORT.md](REPORT.md) | 620 | 51,974 |
+| [PROGRESS.md](PROGRESS.md) | 3,111 | 263,549 |
