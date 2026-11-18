@@ -1,3 +1,132 @@
+# Package 54: review fix 1
+
+Implementation commit: `6992a29d`.
+
+## Done
+
+- Merged `origin/main` through `fd9cb695` before editing (merge commit `d711bdaa`).
+- **Cause confirmed:** the old keeper's `cameDown` set belonged to one pass. A category change could take down a
+  standing logo with the wanted IDs unchanged, defer its destination, then count its replacement as a new build.
+  Since no `MOVED` line existed in the removal pass, first-build collection continued and could count 41 for 40 apps.
+- **`TownKeeper` / `TownLines`:** signal a real move or renewal when it begins, before attempting removal. That signal
+  ends first-build collection even without a completed change line. Keep `MOVED` / `RENEWED` per app across rounds
+  and later passes until the replacement is built; discard entries for apps no longer wanted. Commands retain their
+  existing messages. No saved-data or world-format change.
+- **First-build deadline:** 200 server ticks (about 10 seconds), starting with the first pass that actually builds.
+  Say the complete total immediately when all original work is ready; otherwise expiry says what has been built,
+  and later passes use the existing ordinary-change messages. Empty attempts before any logo is built do not start
+  the clock. `WAY` lines and rebuild's own line retain their rules.
+- **Regressions:** a keeper test with 40 unchanged IDs builds 32, changes one app's catalogue category from Network
+  to Game, defers its new place, and expects the 32-logo first line followed by one change line for eight builds and
+  one move. It also delays a renewal after removal and checks that it remains a renewal. The test has its own batch
+  and owns all chunk tickets it releases. Its fixture resets its own isolated ground and text displays before a run
+  and removes its logos at teardown, so a kept test world or an interrupted run cannot obstruct the next run.
+- **Controlled client loading:** the first-start case delays southern places until tick 100, checks an early partial
+  build and exactly one full line by tick 200, and retains the real New home (Flat) scenario. An additional New home
+  keeps some places unavailable past the deadline, checks the partial line 200 ticks after building started, then
+  releases them and checks the later change line. A test-only mixin can delay loading checks; it never makes an
+  actually unloaded place appear loaded. Original screenshot order is preserved; the expiry picture is appended.
+
+## Verified
+
+- Initial keeper-corrected `mod/dev/build.sh` (before the fixture cleanup below): `BUILD SUCCESSFUL in 3m 43s`,
+  exit 0. All **105 required server game tests passed**. JUnit XML: **285 tests, 0 failures, 0 errors, 6 skipped**
+  (279 passed); the skips are the existing
+  Windows-only catalogue cases. All **13** `TownFirstBuildTest` cases passed.
+- First full `mod/dev/client-test.sh`: `BUILD SUCCESSFUL in 12m 25s`, exit 0; script reported `Client tests ended
+  with exit code 0 after 12 min 27 s`, NVIDIA RTX 4060, headless. The controlled first start built **9 at tick 3**,
+  completed **40 at tick 103**, and received its sole complete line at **tick 104**, before tick 200. Ordinary New
+  home completed at **tick 102** with exactly one 40-logo line and staging built nothing. The expiry case built
+  **9 at tick 2**, received the partial nine-logo line at **tick 202**, then built the remaining **31 at tick 302**
+  and said one ordinary change line. Each arrival remained under observation for another 220 ticks.
+- Inspected all three screenshots from this run: [first start](screenshots/0092_54-first-start.png),
+  [New home](screenshots/0093_54-new-home-flat.png), and [expiry then later change](screenshots/0094_54-first-build-expired.png).
+  The first two show one complete 40-logo announcement; the last shows the nine-logo first line and the later
+  31-logo change line.
+- After the initial fixture cleanup (before separating its location), full `mod/dev/build.sh --rerun-tasks`:
+  `BUILD SUCCESSFUL in 2m 25s`, exit 0,
+  **17/17 tasks executed**. All **105 required server tests passed**; JUnit XML again recorded **285 tests,
+  0 failures, 0 errors, 6 skipped**. `sha256sum -c .work/pkg54/review-fix-jar-1.sha256` printed
+  `mod/build/libs/aresos-0.1.0.jar: OK`: production bytes match the build used by the first successful client run.
+- After fixture separation to the unused location, full `mod/dev/build.sh --rerun-tasks`: `BUILD SUCCESSFUL in
+  2m 34s`, exit 0, **17/17 tasks executed**. All **105 required server tests passed**; JUnit XML again recorded
+  **285 tests, 0 failures, 0 errors, 6 skipped**. The production jar hash check again printed `OK`.
+- Repeated the same full `mod/dev/build.sh --rerun-tasks` on the unchanged final source and kept world:
+  `BUILD SUCCESSFUL in 2m 28s`, exit 0, **17/17 tasks executed**. Again **105 required server tests passed**;
+  JUnit XML again recorded **285 tests, 0 failures, 0 errors, 6 skipped**, including all 13 first-build unit cases.
+  `sha256sum -c .work/pkg54/review-fix-jar-1.sha256` again printed `mod/build/libs/aresos-0.1.0.jar: OK`.
+  The reproducible production jar is `cfa0492b870e43f6e2063016e3ce5edf3dca2771f081275eee1c306c5bc6d8b3`.
+- Second full `mod/dev/client-test.sh`: `BUILD SUCCESSFUL in 12m 22s`, exit 0; script reported `Client tests ended
+  with exit code 0 after 12 min 24 s`, again headless on NVIDIA. First start again built **9 at tick 3**, completed
+  **40 at tick 103**, and received its one full line at **tick 104**. New home built **24 at tick 2**, completed
+  **40 at tick 102**, and said one complete line. Staging built no logos. Expiry again announced **9 at tick 202**
+  after building began at **tick 2**, then built **31 at tick 302** and said one ordinary change line. All three
+  scenarios again watched another 220 ticks with exactly the expected messages. The client code and production
+  jar are unchanged between the two successful client runs; the intervening corrections were server-fixture setup.
+- Inspected all three final screenshots again. Restored the other packages' tracked pictures and removed their
+  newly numbered pictures after both client runs; only this package's three pictures remain changed or added.
+- `git diff --check` and `git diff --cached --check` passed. `bash .work/pkg54/repo-privacy.sh` (the workflow's
+  exact shell block, with its scratch output redirected into this worktree) printed
+  `No file holds a home path with a real user name.`, exit 0.
+- Closing artifact check, using `rg --files --hidden --no-ignore .work` and file sizes: **no file over 500 MB**
+  remains in `.work/`. It contains diagnostic logs, small verification scratch files and screenshots. No large
+  download or extracted image was made. The scripts finished their scope cleanup successfully; the final process
+  check found no Java process referring to this worktree. No `--force` or Gradle daemon-control command was used.
+
+### Interrupted and failing attempts in this follow-up
+
+- Initial `mod/dev/build.sh`: mistakenly started after the required preflight lock check returned 1. Stopped only
+  this build script promptly with TERM (exit 143); its scope cleanup left no worktree Java process. It had reached
+  server startup. This was an orchestration error and is not passing evidence; it briefly overlapped the held lock.
+  Subsequent builds check the lock, wait in one-minute intervals when busy, and hold it for the duration of the build.
+- Next `mod/dev/build.sh`, after the lock cleared: `BUILD FAILED in 1m 5s`, exit 1. The unchanged existing rebuild
+  regression expected `5 logos built again, 1 moved`, but the initial replacement tracking said six renewals.
+  Corrected the keeper: a replacement refused by an actual obstruction must move on and keeps `MOVED`; a renewal
+  merely waiting for loading retains `RENEWED`. No assertion was weakened.
+- First repeated `mod/dev/build.sh --rerun-tasks`: `BUILD FAILED in 1m 23s`, exit 1. The new regression's first
+  partial build saw saved-world fixture blocks as obstructions and moved apps away from their saved places.
+  Inspection also found that its initial 23,000-block offset was already used by a navigation fixture. Moved it to
+  the unused 35,000-block offset and fixed setup/teardown to reset only its isolated, ticketed ground and clean up
+  its logos. The first 32-logo assertion stays intact. Production and client test code did not change for this
+  fixture correction.
+
+## Not verified
+
+- The owner's real desktop, real app catalogue and how the ten-second bound feels in normal use. All client checks
+  use development saves and the scripts' isolated headless compositor.
+- As in the original run, the home-switch test uses `HomeSwitch.closeFromTestTasksForTests` to cross Fabric's
+  close-world barrier. The real create, provision, save, rename, reopen and town scheduler paths still run.
+
+## JUDGMENT-CALL
+
+- No new owner decision. The lead's decision in `briefs/54-review-fix-1.md` explicitly replaces the original
+  "first start must not get slower" rule with a maximum of 200 ticks from the first actual build. The earlier
+  600-tick choice recorded in the historical report below is superseded. This remains a constant and per-server
+  state; changing it later needs no migration.
+
+## PLAN-GAP
+
+- No new gap beyond the two findings addressed by this follow-up. The original staging-world cause and its hold
+  remain unchanged.
+
+## Rules met
+
+- The current first-start rule is **one complete line as soon as ready, with a 200-tick bound from the first build**,
+  replacing the original brief's "no slower" line as authorized on 2026-11-18.
+- Builds used the required `/usr/bin/flock -n ~/.cache/aresos-dev/client-test.lock true` preflight. Busy locks were
+  checked in one-minute intervals; the build also held that lock throughout its run. The interrupted initial
+  preflight mistake is recorded above. Two final full builds and two full client suites passed.
+- Work stays on `pkg/54-town-one-line` and PR #108. No merge of the PR, push to main, new PR or `--no-verify`.
+
+## Open questions
+
+- None.
+
+---
+
+The following is the original implementation report and its historical verification, before REVIEW-1.
+Its 600-tick policy and original test counts are superseded by the follow-up above.
+
 # Package 54: the town arrives in one line after New home
 
 ## Done
