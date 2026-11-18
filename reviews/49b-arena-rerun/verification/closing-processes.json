@@ -1,0 +1,11 @@
+{
+  "time_utc": "2026-11-18T13:17:27Z",
+  "owned_scopes": [],
+  "exact_rig_script_processes": [],
+  "scope_checks": [
+    "pkg49b-game-*",
+    "pkg49b-rig-*",
+    "aresos-dev-pkg49b-controller-*"
+  ],
+  "gradle_daemon_policy": "no persistent daemon; guarded scripts and owned scopes only; no --stop used"
+}

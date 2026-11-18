@@ -1,0 +1,20 @@
+[
+  {
+    "run": 1,
+    "exit": 0,
+    "build": "BUILD SUCCESSFUL in 14m 14s",
+    "nvidia_holder": true,
+    "screenshots_local": ".work/pkg49b/client-1",
+    "log_sha256": "d0a1e732cba7584cf1f4a7a5269e144e486fa8892af51e2ee3fb13eeb1d0b65e",
+    "result": "passed"
+  },
+  {
+    "run": 2,
+    "exit": 143,
+    "build": null,
+    "nvidia_holder": true,
+    "screenshots_local": ".work/pkg49b/client-2",
+    "log_sha256": "99a0a63eb6a110a22eabbd7dd3e5ec43cf001d9a4a839efe605a6d854ea99853",
+    "result": "deadlocked; owned invocation cancelled after two thread dumps"
+  }
+]

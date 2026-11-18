@@ -1,0 +1,30 @@
+{
+  "fabric-loom/26.2/minecraft-client-only.jar": {
+    "bytes": 12712653,
+    "sha256": "5d6c021d01f5e30f6ce0ed423eaddaf42c34e3a21775c3161d7a5e2782d97c52"
+  },
+  "fabric-loom/26.2/minecraft-client.jar": {
+    "bytes": 39193383,
+    "sha256": "40896ee9f1e2bec3c934daac7e93d41e9e3d9c2f8ae0ca366d52ffbfd1afa290"
+  },
+  "fabric-loom/26.2/minecraft-common.jar": {
+    "bytes": 23137253,
+    "sha256": "14fb20864d56dec119149a80bade652bce0e65405d2fbd8a7b759bb00a6c1020"
+  },
+  "fabric-loom/26.2/minecraft-extracted_server.jar": {
+    "bytes": 24952681,
+    "sha256": "183c0499c5f855570ee487dd38e141a53f0121f83a0b07a3bac2d8b6698823e8"
+  },
+  "fabric-loom/26.2/minecraft-server.jar": {
+    "bytes": 60894273,
+    "sha256": "cdacdfb25898de5e4b4b0e5ddcc2722f77067e46605709c2d886c000ebb63ec5"
+  },
+  "modules-2/files-2.1/net.fabricmc/fabric-loader/0.19.5/ff9e65cffca4a67f31523e1807fe0855940fcbfa/fabric-loader-0.19.5.jar": {
+    "bytes": 1984980,
+    "sha256": "93044e4dd46de5d8136701292f05e868da096d2c9fddb4793e4fdbcc63efc695"
+  },
+  "modules-2/files-2.1/net.fabricmc.fabric-api/fabric-api/0.161.0+26.2/332da34ebb72171e603a0c538de17f4c54ea9e29/fabric-api-0.161.0+26.2.jar": {
+    "bytes": 2566123,
+    "sha256": "e5b858ceb13290c274e31cb888ff5a1a40cb91067e7ffab0b5b775aec51e216a"
+  }
+}

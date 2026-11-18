@@ -1,0 +1,3 @@
+client-test.sh: Holding NVIDIA active until the client scopes have stopped.
+client-test.sh: Rendering headless on nvidia: NVIDIA GeForce RTX 4060 Laptop GPU/PCIe/SSE2
+client-test.sh: Client tests ended with exit code 143 after 10 min 40 s (nvidia: NVIDIA GeForce RTX 4060 Laptop GPU/PCIe/SSE2 (NVIDIA Corporation)).
