@@ -1,0 +1,3 @@
+639135:
+garbage-first heap   total reserved 1048576K, committed 382976K, used 345914K [0x00000000c0000000, 0x0000000100000000)
+ region size 1024K, 24 young (24576K), 1 survivors (1024K)
