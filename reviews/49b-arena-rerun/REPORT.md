@@ -264,8 +264,10 @@ builds used single-use daemons; **no daemon-stop command was run**.
 
 Final local syntax, JSON, whitespace and the exact Repo privacy workflow body
 passed ([record](verification/final-local-checks.json)). The privacy check printed
-“No file holds a home path with a real user name.” The PR's hosted privacy result
-is pending publication; no hosted privacy pass is asserted yet.
+“No file holds a home path with a real user name.” [Hosted Repo privacy](https://github.com/Ares-Empire/AresOS/actions/runs/44311238838)
+also passed at report/data commit `c3c706cf` (16-second job), with the same printed
+message. [Run identity](verification/hosted-privacy.json), [extract](verification/hosted-privacy.txt).
+This hosted pass does not resolve the separate full client-suite deadlock.
 
 ## Not verified
 
