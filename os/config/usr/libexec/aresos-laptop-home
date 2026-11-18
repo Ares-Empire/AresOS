@@ -11,6 +11,7 @@ import re
 import secrets
 import signal
 import stat
+import string
 import struct
 import sys
 import tempfile
@@ -26,9 +27,23 @@ CAPABILITIES = ['views', 'home_state', 'apps_running', 'apps_changed', 'app_stat
                 'app_details', 'open_app']
 MAX_MESSAGE = 64 * 1024
 MAX_ICON = 1024 * 1024
+MAX_HOME_APPS = 200
 PNG_HEADER = b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR'
 ID = re.compile(r'[a-z0-9_-]{1,64}')
 EMPTY_HOME = {'palette': {}, 'apps': []}
+
+
+def encode_home(home):
+    return json.dumps(home, ensure_ascii=False).encode('utf-8')
+
+
+# Match the helper's publish and catalogue limits. Short names can use four-byte UTF-8 characters.
+# The catalogue can retain the name of an invalid registry entry, so allow six bytes for JSON-escaped controls.
+MAX_HOME_BYTES = len(encode_home({
+    'palette': dict.fromkeys(string.ascii_letters + string.digits, '#000000'),
+    'apps': [dict(id='a' * 64, short='\U0001f7e6' * 64, name='\0' * 64,
+                  group='a' * 64, place='a' * 32, slot=8, cells='.' * 144)] * MAX_HOME_APPS,
+}))
 NO_BATTERY = {'battery': None}
 UNAVAILABLE = {'state': 'failed', 'message': 'Opening is back in a moment'}
 FILE_FLAGS = os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK
@@ -141,29 +156,35 @@ def page_home(palette, rows, names):
     ]}
 
 
+def cached_home(raw):
+    rows = raw['apps']
+    if not isinstance(rows, list) or len(rows) > MAX_HOME_APPS:
+        raise ValueError('invalid saved town')
+    for row in rows:
+        if (not valid_id(row['id'])
+                or not all(isinstance(row[key], str) for key in ('name', 'short', 'group', 'cells'))
+                or len(row['cells']) != 144 or ('place' in row and not isinstance(row['place'], str))
+                or ('slot' in row and (type(row['slot']) is not int or not 0 <= row['slot'] <= 8))):
+            raise ValueError('invalid saved house')
+    return page_home(raw['palette'], rows, {row['id']: row['name'] for row in rows})
+
+
 def load_home(path):
     try:
-        raw = json.loads(read_regular(path, limit=2 * MAX_MESSAGE))
-        rows = raw['apps']
-        if not isinstance(rows, list) or len(rows) > 200:
-            return EMPTY_HOME
-        for row in rows:
-            if (not valid_id(row['id'])
-                    or not all(isinstance(row[key], str) for key in ('name', 'short', 'group', 'cells'))
-                    or len(row['cells']) != 144 or ('place' in row and not isinstance(row['place'], str))
-                    or ('slot' in row and (type(row['slot']) is not int or not 0 <= row['slot'] <= 8))):
-                return EMPTY_HOME
-        return page_home(raw['palette'], rows, {row['id']: row['name'] for row in rows})
+        return cached_home(json.loads(read_regular(path, limit=MAX_HOME_BYTES)))
     except (OSError, ValueError, KeyError, TypeError, AttributeError, RecursionError):
         return EMPTY_HOME
 
 
 def save_home(path, home):
+    data = encode_home(cached_home(home))
+    if len(data) > MAX_HOME_BYTES:
+        raise ValueError('saved town is too large')
     path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
     fd, temporary = tempfile.mkstemp(prefix='.home-', dir=path.parent)
     try:
-        with os.fdopen(fd, 'w', encoding='utf-8') as stream:
-            json.dump(home, stream, ensure_ascii=False)
+        with os.fdopen(fd, 'wb') as stream:
+            stream.write(data)
             stream.flush()
             os.fsync(stream.fileno())
         os.replace(temporary, path)
@@ -201,7 +222,8 @@ class HelperPeer:
         self.prefix = secrets.token_hex(8)
         self.serial = 0
         self.requests = {}
-        self.running = []
+        self.authenticated = False
+        self.running = None
         self.refresh = asyncio.Event()
         self.refresh.set()
 
@@ -331,6 +353,9 @@ class HelperView:
                                    token=self.token, capabilities=CAPABILITIES, requires=CAPABILITIES[:3])
         if not hello['ok'] or hello.get('minor') != 2:
             raise ValueError('helper rejected view')
+        peer.authenticated = True
+        if peer.running is not None:
+            self.running_changed(peer, peer.running)
         while True:
             await peer.refresh.wait()
             peer.refresh.clear()
@@ -343,23 +368,24 @@ class HelperView:
                 continue
             fields, rows = home
             programs, icons = catalogue(apps[1])
-            changed = {'programs': programs, 'running': peer.running, 'helper': True}
+            changed = {'programs': programs, 'running': peer.running or [], 'helper': True}
             if fields['revision'] is not None:
-                if not isinstance(fields['revision'], str) or not fields['revision'] or len(rows) > 200:
+                if not isinstance(fields['revision'], str) or not fields['revision'] or len(rows) > MAX_HOME_APPS:
                     raise ValueError('invalid home revision')
                 changed['home'] = page_home(fields['palette'], rows, {row['id']: row['name'] for row in programs})
                 try:
                     if changed['home'] != self.kept_home:
                         save_home(self.home_path, changed['home'])
                         self.kept_home = changed['home']
-                except (OSError, UnicodeError):
+                except (OSError, ValueError):
                     print('aresos-laptop-home: could not keep the town', file=sys.stderr)
             self.peer = peer
             self.schedule(self.publish, peer, changed, icons)
 
     def running_changed(self, peer, apps):
-        if self.peer is peer:
-            self.schedule(self.publish, peer, {'running': apps}, None)
+        if peer.authenticated:
+            # The page can light the kept town while opening waits for both paged reads.
+            self.schedule(self.publish, self.peer, {'running': apps}, None)
 
     def open(self, peer, app_id, callback):
         async def ask():

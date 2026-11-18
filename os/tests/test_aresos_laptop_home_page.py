@@ -4,6 +4,7 @@ import hashlib
 import os
 from pathlib import Path
 import shutil
+import threading
 import unittest
 
 from laptop_home_headless import ROOT, Headless, engines, headless_available, load_program, scratch, wait_for
@@ -220,7 +221,6 @@ class LaptopHomePageTest(unittest.TestCase):
             const x = el => parseFloat(el.style.left), end = el => x(el) + parseFloat(el.style.width);
             const houses = all('.house'), lattice = houses.every(el => (x(el) - x(houses[0])) % pitch === 0);
             const firstR = 960 + 15 * cell, lastL = 960 - 15 * cell;
-            const fits = firstR + (cols - 1) * pitch + size;
             const plots = streets.every(street => ['L', 'R'].every(side => {
               const row = street.querySelector('.plots-' + side);
               const local = [...street.querySelectorAll(`.house[data-side="${side}"]`)];
@@ -232,8 +232,8 @@ class LaptopHomePageTest(unittest.TestCase):
             }));
             return {streets: tops, equal: tops.slice(1).every((top, i) => top - tops[i] === 202), roads: roads.length,
               full: roads.every(road => road.left === 0 && road.right === innerWidth && road.height === 16),
-              lattice, plots, fills: fits <= 1880 && fits + pitch > 1880};
-        """, dict(streets=[126, 328, 530, 732], equal=True, roads=4, full=True, lattice=True, plots=True, fills=True))
+              lattice, plots};
+        """, dict(streets=[126, 328, 530, 732], equal=True, roads=4, full=True, lattice=True, plots=True))
 
     def check_terraces(self):
         from PIL import Image
@@ -244,6 +244,28 @@ class LaptopHomePageTest(unittest.TestCase):
             for base in (312, 514, 716, 918):
                 samples = [photo.getpixel((20, y)) for y in (base - 12, base + 1, base + 17, base + 20)]
                 self.assertEqual(samples, [(138, 178, 84), (43, 40, 50), (138, 178, 84), (54, 80, 42)])
+
+    def check_empty_plots(self):
+        from PIL import Image
+
+        # In the one-house town the entire right side is vacant. Sample inside its first slab and in the next gap.
+        with Image.open(self.view.snapshot()) as snapshot:
+            photo = snapshot.convert('RGB')
+            for base in (312, 514, 716, 918):
+                with self.subTest(road_y=base):
+                    self.assertEqual(photo.getpixel((1170, base - 3)), (185, 199, 162), 'empty plot slab')
+                    self.assertEqual(photo.getpixel((1243, base - 3)), (138, 178, 84), 'turf between plots')
+
+    def check_slid_grid(self):
+        self.check("""
+            const bounds = id => {
+              const {left, right} = house('test-' + id).getBoundingClientRect();
+              return [left, right];
+            };
+            return [snapshot().streetOffsets.system_tools,
+              ['web-3', 'game-3', 'work-3', 'tool-7'].map(bounds),
+              ['web-6', 'game-6', 'work-6', 'tool-2'].map(bounds)];
+        """, [196, [[673, 757]] * 4, [[1261, 1345]] * 4])
 
     def check_street(self):
         self.replace_town((9, 7, 9, 20))
@@ -312,6 +334,8 @@ class LaptopHomePageTest(unittest.TestCase):
             await wait(380);
             return [intermediate, inView(house('test-tool-19')), !inView(house('test-tool-14'))];
         """, [True, True, True])
+        if self.look == 'day':
+            self.check_slid_grid()
         self.check("""
             type('tool14'); await wait(390);
             const offset = snapshot().streetOffsets.system_tools;
@@ -410,6 +434,7 @@ class LaptopHomePageTest(unittest.TestCase):
             if look == 'day':
                 self.replace_town((1, 0, 0, 0))
                 self.check_grid()
+                self.check_empty_plots()
             self.check_street()
             self.check_rest()
             self.check_reconnect()
@@ -435,3 +460,46 @@ class LaptopHomePageTest(unittest.TestCase):
                   house('test-web-2').querySelector('b').textContent,
                   el('#hotbar').getBoundingClientRect().height, all('.slot').length];
             """, [True, 'Opening is back in a moment', 'R', '1', 'Test Web 2', 78, 9])
+
+    def test_full_kept_town_lights_on_first_draw_while_catalogue_is_pending(self):
+        houses, programs = town(200)
+        for row in houses:
+            row.update(id=row['id'].ljust(64, '-'), short='🟦' * 64)
+        for row in programs:
+            row.update(id=row['id'].ljust(64, '-'), name='🟧' * 64)
+        self.helper.houses, self.helper.programs = houses, programs
+        self.helper.revision = None
+        self.helper.page_size = 25
+        lit = houses[0]['id']
+        self.helper.running = [lit]
+        last_page_requested = threading.Event()
+        release_last_page = threading.Event()
+
+        def delay_last_page(request):
+            if request['op'] == 'list_apps' and request.get('cursor') == '175':
+                last_page_requested.set()
+                release_last_page.wait(5)
+
+        self.helper.before_page = delay_last_page
+        program = load_program()
+        gui = self.gui('day')
+        cached = program.page_home(StandIn.palette, houses, {row['id']: row['name'] for row in programs})
+        program.save_home(gui.home_path, cached)
+        self.assertGreater(gui.home_path.stat().st_size, 2 * program.MAX_MESSAGE)
+        self.assertEqual(program.load_home(gui.home_path), cached)
+        with self.helper, gui as self.view:
+            try:
+                self.assertTrue(last_page_requested.wait(4))
+                self.view.until('!!window.pageProbe?.().first && document.querySelector("#stage")?.hidden === false')
+                self.check("""
+                    return [all('.house').length, pageProbe().first, el('.house').getAttribute('aria-disabled'),
+                      el('.finder-hint').textContent, aresosHome.programs().length,
+                      (await aresosHome.open(el('.house').dataset.app)).state];
+                """, [200, [lit], 'true', 'Opening is back in a moment', 0, 'failed'])
+                self.assertEqual(self.helper.opens, [])
+            finally:
+                release_last_page.set()
+            self.view.until('document.querySelector(".house.is-running[aria-disabled=false]")')
+            self.check("return [all('.house').length, el('.house.is-running').dataset.app, aresosHome.programs().length];",
+                       [200, lit, 200])
+            self.assertEqual(program.load_home(gui.home_path), cached)

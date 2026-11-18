@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 import queue
 import stat
+import string
 from types import SimpleNamespace
 import unittest
 from unittest import mock
@@ -239,3 +240,23 @@ class SyncTest(unittest.TestCase):
         row = {'id': 'test-web-1', 'short': 'web', 'name': 'Test Web 1', 'group': 'internet', 'cells': 'a' * 144}
         self.path.write_text(json.dumps({'palette': {'a': '#abcdef'}, 'apps': [dict(row, exec_name='internal')]}))
         self.assertEqual(home.load_home(self.path), {'palette': {'a': '#abcdef'}, 'apps': [row]})
+
+    def test_full_multibyte_cache_round_trips_at_the_helper_limits(self):
+        palette = dict.fromkeys(string.ascii_letters + string.digits, '#abcdef')
+        rows = [dict(id=f'app-{n:060d}', short='🟦' * 64, name='🟧' * 64, group='a' * 64,
+                     place='a' * 32, slot=8, cells='a' * 144) for n in range(200)]
+        kept = {'palette': palette, 'apps': rows}
+        home.save_home(self.path, kept)
+        self.assertGreater(self.path.stat().st_size, 2 * home.MAX_MESSAGE)
+        self.assertEqual(home.load_home(self.path), kept)
+
+    def test_writer_refuses_an_unreadable_cache_and_keeps_the_previous_file(self):
+        row = dict(id='test-web-1', short='web', name='Test Web 1', group='internet', cells='a' * 144)
+        kept = {'palette': {'a': '#abcdef'}, 'apps': [row]}
+        home.save_home(self.path, kept)
+        for change in ({'cells': 'a'}, {'name': 'x' * (home.MAX_HOME_BYTES + 1)}):
+            with self.subTest(field=next(iter(change))):
+                with self.assertRaises(ValueError):
+                    home.save_home(self.path, dict(kept, apps=[dict(row, **change)]))
+                self.assertEqual(home.load_home(self.path), kept)
+                self.assertEqual(list(self.path.parent.iterdir()), [self.path])
