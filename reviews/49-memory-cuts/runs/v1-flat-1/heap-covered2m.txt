@@ -1,0 +1,3 @@
+740712:
+garbage-first heap   total reserved 1048576K, committed 384000K, used 339435K [0x00000000c0000000, 0x0000000100000000)
+ region size 1024K, 23 young (23552K), 2 survivors (2048K)

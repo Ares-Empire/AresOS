@@ -1,0 +1,3 @@
+305220:
+garbage-first heap   total reserved 1048576K, committed 404480K, used 360720K [0x00000000c0000000, 0x0000000100000000)
+ region size 1024K, 43 young (44032K), 2 survivors (2048K)

@@ -1,0 +1,39 @@
+2026-11-17T23:43:00+01:00 attempt=0 command=reviews/49-memory-cuts/rig/run.sh cover-freeze-2 COVER=300 RECLAIM=600M FREEZE=1
+23:43:01 waiting for the lock and the game (cover-freeze-2)
+23:43:10 game PID 428293 in pkg49-game-cover-freeze-2-427792.scope
+23:43:10 game_detected
+23:43:19 joined
+23:43:19 settling
+settled: RSS 1119 MiB; heap {'reserved': 1024, 'committed': 342, 'used': 316}; scope 935 MiB; swap 0 MiB; majflt 0
+23:45:22 stand_start
+23:46:19 stand_end
+stand: RSS 1131 MiB; heap {'reserved': 1024, 'committed': 342, 'used': 273}; scope 946 MiB; swap 0 MiB; majflt 0
+23:46:25 flight_start
+23:47:25 flight_end
+flight: RSS 1311 MiB; heap {'reserved': 1024, 'committed': 488, 'used': 350}; scope 1135 MiB; swap 0 MiB; majflt 0
+23:47:28 covered_start
+covered0: RSS 1308 MiB; heap {'reserved': 1024, 'committed': 485, 'used': 452}; scope 1132 MiB; swap 0 MiB; majflt 0
+{"action": "gc-trim", "monotonic_ns": 260569183464967, "pid": 428293, "scope": "pkg49-game-cover-freeze-2-427792.scope", "commands": [{"command": "GC.run", "exit": 0, "stdout": "428293:\nCommand executed successfully\n", "stderr": ""}, {"command": "System.trim_native_heap", "exit": 0, "stdout": "428293:\nTrim native heap: RSS+Swap: 1313M->1160M (-152M)\n", "stderr": ""}], "end_monotonic_ns": 260569400971637}
+{"action": "reclaim:600M", "monotonic_ns": 260569439962571, "pid": 428293, "scope": "pkg49-game-cover-freeze-2-427792.scope", "before": {"memory.current": "961499136", "memory.swap.current": "0"}, "result": "completed", "after": {"memory.current": "331894784", "memory.swap.current": "628817920"}, "end_monotonic_ns": 260572398992101}
+{"action": "freeze", "monotonic_ns": 260572434243526, "pid": 428293, "scope": "pkg49-game-cover-freeze-2-427792.scope", "result": "confirmed", "end_monotonic_ns": 260572434489575}
+covered1m: RSS 494 MiB; heap None; scope 316 MiB; swap 599 MiB; majflt 153
+covered2m: RSS 494 MiB; heap None; scope 316 MiB; swap 599 MiB; majflt 153
+covered3m: RSS 494 MiB; heap None; scope 315 MiB; swap 599 MiB; majflt 153
+covered4m: RSS 494 MiB; heap None; scope 315 MiB; swap 599 MiB; majflt 153
+covered5m: RSS 494 MiB; heap None; scope 315 MiB; swap 599 MiB; majflt 153
+23:52:29 covered_end
+23:52:29 return_start
+{"action": "thaw", "monotonic_ns": 260840912349866, "pid": 428293, "scope": "pkg49-game-cover-freeze-2-427792.scope", "result": "confirmed", "end_monotonic_ns": 260840912616648}
+23:52:29 wake_start
+Traceback (most recent call last):
+  File "<worktree>/reviews/49-memory-cuts/rig/wake.py", line 40, in <module>
+    if __name__ == '__main__': wake(sys.argv[1])
+                               ~~~~^^^^^^^^^^^^^
+  File "<worktree>/reviews/49-memory-cuts/rig/wake.py", line 33, in wake
+    send(f'rel {200*turn} 0 15')
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<worktree>/reviews/49-memory-cuts/rig/wake.py", line 25, in send
+    os.write(fd,(command+'\n').encode())
+    ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+BrokenPipeError: [Errno 32] Broken pipe
+2026-11-17T23:52:31+01:00 attempt=0 exit=1

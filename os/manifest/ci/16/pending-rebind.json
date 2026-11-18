@@ -19,7 +19,8 @@
     "18c-b step 3a: install Chrome's per-build bundle, native host, polkit action and boot-only refused excluded-sites placeholder; bind their image and checkout checks",
     "18c-b step 3a: inspect the image's own files beneath container mounts during the key scans",
     "18c-b step 3a: pin control.json ownership and mode and test unsafe image metadata",
-    "18c-b step 3a: keep the pinned image root at 0555 while checking Chrome's etc link parents at 0755"
+    "18c-b step 3a: keep the pinned image root at 0555 while checking Chrome's etc link parents at 0755",
+    "18c-b step 3a fix: merge main through PR #106; keep the storage ban pending 28b and the in-session profile-ask handoff"
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [

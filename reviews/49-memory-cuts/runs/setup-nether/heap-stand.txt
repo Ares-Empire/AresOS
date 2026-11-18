@@ -1,0 +1,3 @@
+467545:
+garbage-first heap   total reserved 1048576K, committed 439296K, used 323491K [0x00000000c0000000, 0x0000000100000000)
+ region size 1024K, 3 young (3072K), 2 survivors (2048K)

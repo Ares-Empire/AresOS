@@ -1,0 +1,8 @@
+v1-flat-1 flight: 7198 gaps, max 15.072578 ms, >17/33/50/100 [0, 0, 0, 0]
+winner-flat-1 flight: 7194 gaps, max 19.947929 ms, >17/33/50/100 [1, 0, 0, 0]
+v1-create first_30s: 3567 gaps, max 105.628670 ms, >17/33/50/100 [6, 1, 1, 1]
+v1-create town: 287 gaps, max 32.218305 ms, >17/33/50/100 [5, 0, 0, 0]
+winner-create first_30s: 3564 gaps, max 101.973190 ms, >17/33/50/100 [6, 3, 2, 1]
+winner-create town: 274 gaps, max 101.973190 ms, >17/33/50/100 [5, 2, 1, 1]
+Decisive flight endpoints and all six comparison windows match.
+All four arrays are exact contiguous raw-log extracts.

@@ -19,21 +19,24 @@ advised (`reviews/28-chrome-capability/` holds the design's reviews):
 
 Each package leaves `main` working and is reviewed by itself. **None of the three reaches the owner's laptop before
 all three are merged:** this package still keeps brief 20's check before a taken tab's reload, which 28b replaces.
-The owner has answered every question of all three ("Already decided" at the end).
+Earlier owner decisions stand. BRIEF-CROSS-5's two owner questions are answered: board #353 chose one
+send/loss question; board #355 chose "Yes/no in the session (recommended)" after board #354 asked about updates
+(2026-11-18; `reviews/28-chrome-capability/REVISION-CROSS-5.md`, Owner answers).
+Revision 3 assigns committed profile admission, restore connection retirement and the in-session managed ask
+to **28b step 2**, replacing Revision 2's profile password dialog. They add no tool or instruction work to 28a;
+its contracts and order stay here.
 
 **Building starts only after brief 28 is merged** (and with it PR #27). Branch from `main` after that merge. Paths
 and line numbers in this brief come from PR #27 at `8b7e799c`; read them again on merged `main`. PR #27 merged as
 `09cedc84` (final head `d25ccbd3`); the names and facts in this brief were checked against it on 2026-11-15
 (`reviews/28-chrome-capability/ALIGNMENT.md`).
 
-**Builder (recommended, the lead confirms at launch):** a Claude agent on Fable 5.2. The work changes a dense,
-security-reviewed code base, replaces the tool list and the way every action names its element, and must not be cut
-off halfway; Codex is away from about 2026-11-14 to 11-17 and ends on 11-21. **Review** (`docs/REVIEW.md`, "Tools
+**Builder:** Codex gpt-6.1-sol, in the bounded steps of item 8, one builder at a time; the lead is `linux-tools`.
+The work changes a dense, security-reviewed code base. **Review** (`docs/REVIEW.md`, "Tools
 for Claude"): two fresh reviewers at once, a package review and a security review, Codex while it is available,
-otherwise Claude. This is the package that reaches into the asking path itself, in five narrow places: the form of
-addresses in a question and in a stage text (item 3), a list's options in a description (item 3a), the reveal
-before an input and the time check before its dispatch (item 5), and the asking read's place in the new list
-(item 6). So its security review is high-stakes: Fable 5.2, or Codex's frontier model while it is available. The
+otherwise Claude. The six narrow exceptions in "What must not change" include distinct field descriptions
+(item 3b) and structured loss refusals (item 5b), added after BRIEF-CROSS-5. Its security review is high-stakes:
+Fable 5.2, or Codex's frontier model while it is available. The
 package review runs on Opus or Codex's workhorse.
 
 ## Background (read first)
@@ -65,6 +68,30 @@ package review runs on Opus or Codex's workhorse.
   - `control/chrome/ci/browser.mjs` (the helpers `rpc`, `call`, `read`, `target`, `nav`) and `ci/verdicts.mjs`.
 
 ## What to build
+
+### 0. The package 28 contract inherited here
+
+Read `reviews/28-chrome-read/PROGRESS.md`, steps 13b to 13d on the merged package 28 head. The revision was
+checked against `origin/pkg/28-chrome` at `e07a88eb`: its progress file has 13b/13c, while commits `42163e2c`
+and `978536d7` already implement the follow-up comparisons and option resolution. Recheck the final merge.
+
+- Page strings crossing the native-host boundary are `wellFormed()`: lone surrogates become U+FFFD, valid pairs
+  stay unchanged. Every comparison of service-held facts with fresh extension facts repairs the **fresh side**
+  the same way, including both approved-input comparisons, dialogs and asking reads. New fingerprints hash
+  that representation too, in `outline`, `facts` and `observe`. This is neither Unicode normalization nor
+  address redaction: full addresses, complete field facts and every option still bind. Never skip a comparison
+  to admit malformed text, and never repair the page itself. Raw-to-raw checks wholly inside the reader stay raw.
+- Selecting by a repaired option value must resolve to exactly one enabled native option; zero or several
+  matches refuse. Keep package 28's resolution back to the native value at dispatch. Repair can make two raw
+  values equal; it is not permission to choose the first.
+- A current-session end of control, or confirmed close/release, drops that tab's references without resetting
+  the counter. Keep this on all renamed tools, including Stop, detach and controlled-child release. An old
+  session event or a refused close does not discard current references. A new take issues new references.
+- Item 3b, built in **28a**, closes 13b's duplicate-label PLAN-GAP in the frozen asking path; 28b inherits it.
+- Brief 28 items 2 and 7 are normative for the complete random-token rule (including `_` and `-`) and the
+  5,000-reference paging limit. Item 8's first step carries their tests forward, including the mutations below.
+
+Tests and reviewer mutations for these inherited rules are in "CROSS-5 regression contracts" below.
 
 ### 1. The new read becomes `chrome_read`
 
@@ -165,10 +192,12 @@ PR #27's adapter has no `stage` method, and its stage texts are made in `execute
   `stage('page', …)`), and `Engine.stage` stores that text on the operation and writes it to the audit log. So
   `execute` builds those two texts from a copy of the reply in which each address (the `url` the extension
   reports after an input, a frame's and a dialog's address) went through `public_address` in the short form,
-  before it serialises them. Those two lines are the one change inside `execute`. `Engine.stage` isn't changed.
+  before it serialises them. These are item 3's changes inside `execute`; item 5b separately preserves loss
+  details as untrusted data through errors/status. `Engine.stage`'s storage behavior isn't changed.
 - **`steps`** writes its page-step warning (`chrome_page_step`) to the log with addresses in the short form.
 
-The payload isn't touched anywhere, and no comparison reads a projected text. Show these lines in the report.
+For this address projection the payload isn't touched, and no comparison reads a projected text. Show these
+lines in the report.
 
 Claude uses an address it can't see whole by reference: a link's `ref`, his tab's number, a library entry's `ref`
 (items 4 and 6). So a `…` never blocks a navigation.
@@ -225,7 +254,9 @@ the one a `select` step is about to choose is shown as `choosing`.
 input (`background.js`: before the frames are armed, and again at the input boundary). A page that adds, removes,
 renames or re-values an option while the approval waits is refused (`stale_approval`), also when that option is one
 the description doesn't list. `binding`, `question`, `revalidate`, `command`, `execute` and the extension aren't
-changed for this: `question` never read the options. No digest is added: the payload holds the list itself.
+changed **for this list projection**: `question` never read the options. Item 3b separately adds description
+identity/order facts and item 0 requires the inherited repaired comparisons. No digest is added: the payload
+holds the list itself.
 
 **Sizes.** Bytes of canonical JSON after escaping, as `approval_input` counts them. Worked through on main's code
 (`d1a87959`) for F4's page, not yet measured in a run; measure them and give them in the report.
@@ -270,6 +301,34 @@ in `untrusted_content.stopped`.
 The entry in `reviews/20-chrome/KNOWN-LIMITS.md` is the lead's to close at the merge. Say in the report what a run
 showed for F4.
 
+### 3b. Every field in an asking question is distinguishable
+
+**Decision and why (package 28 step 13b).** Bound element ids prevent a swap, but two occurrences of the same
+label don't tell him which field he is allowing. 28a changes this frozen asking path; 28b reuses it in place.
+
+Give every field mentioned in a question or its content fields a human description that distinguishes it within
+that question, including unnamed fields and labels made equal by item 0's repair or display shortening. Use the
+label plus its position among equally labelled fields in document order (for example, "Note, 1 of 2"), and a
+frame description/position when necessary. A nearby heading may help but never substitutes for a unique ordinal
+when headings collide. No raw element id alone counts as a human description. Never read a withheld value to
+make the description. Keep full names and sent values where the existing question requires them; don't cut them
+to fund this addition. If the complete question exceeds the existing limits, refuse.
+
+The reader supplies the non-value identity/order facts. The service derives descriptions once from that bound
+list for `prepare`/`question` and the committed description in `free`, including the asking-read branch and all
+field locations of item 3a. Keep element, frame, document and reader identities; bind the description's source
+facts and ordering, compare them again before any approved value read/input, and ask afresh when they change.
+Both service and extension use item 0's repaired representation. This permits a narrow addition to `binding`,
+the typed-field preparation and their revalidation; it never replaces identity binding with label matching.
+Reload questions added in 28b use this same description rule, with no values.
+
+**Test:** two fields labelled "Note" have distinct descriptions in the actual asking sentence and content
+fields, not merely distinct ids. Approving an unchanged list reads exactly those two fields once; swapping,
+replacing or reordering them while it waits reads nothing and asks again. Repeat across two identically titled
+frames, for unnamed fields, and for two labels that repair to the same text. Check a send's field descriptions
+as well. **Mutation:** render labels alone; the question-description test must fail even though the identity-swap
+test still passes. Separately omit identity/order revalidation; the swap/reorder case must fail.
+
 ### 4. `chrome_open` and `chrome_go` (effect change)
 
 **`chrome_open`** input: exactly one of `url`; `tab` (open the address that tab shows; with `seen` when the tab is
@@ -295,12 +354,27 @@ Result of both:
 - `chrome_open` with `tab` or `ref`: the service takes the full address from its own record (the list Claude named
   with `seen`, the tab's present address for a Claude tab, or the reference table). Claude only ever saw the
   public form. The rules of "Where Claude may go" apply to it.
+- **A link reference keeps its recognised meaning (CROSS-5 finding 3).** Resolve and fingerprint-check it, then
+  classify a click on its fresh target facts with the same policy, adapter, read-only and qualification rules as
+  `chrome_do`. If that activation would ask, `chrome_open(ref=…)` refuses with a fixed `refused` message directing
+  Claude to `chrome_do`'s asking click path. It creates no tab, follows no address and sends no request. Failed
+  or missing classification facts refuse too. This read/check must not call an acting `payload` branch that
+  takes or reloads the source tab. 28b applies it to references read in his tabs without a take as well.
+  A free reference opens the full bound address only while those fresh facts still match; a changed target is
+  stale. A library reference has no selected page control to classify. Explicit `url` and `tab` inputs retain
+  the separately accepted free-URL policy: this fix does not classify arbitrary URL strings or recover a label
+  from history. A reference must never fall back to that route after its classification refuses.
+  **Test:** visible Delete and Unsubscribe links with GET receiver endpoints, including a hidden token in the
+  destination: opening either reference refuses; clicking it prepares; neither sends a request before approval;
+  the approved click sends once. Also test ordinary links, conservative mode, stale hrefs, and a supplied URL
+  as the explicit policy control. **Mutation:** bypass classification in reference-open; this receiver test fails.
 - The outline is the same as `chrome_read`'s, with references ready for the next call.
 - **`chrome_go` keeps main's guard for unsaved work** (the lead, 2026-11-15). Every direction and an address first
   runs brief 20's check (`requireDiscard`): unsaved typing (by field label, marked as typed by the owner or by
   Claude), playing media and frames that couldn't be inspected come back as `reload_required`, and nothing is done
-  until the call is repeated with `discard_unsaved: true`. The meaning and the refusal are main's
-  `chrome_navigate`'s, and `reload` still never reloads a form-loaded document.
+  until the call is repeated with `discard_unsaved: true`. The discard policy is main's `chrome_navigate`'s;
+  item 5b replaces the unsafe text shape of its refusal, and `reload` still never reloads a form-loaded
+  document.
 
 **"Loaded", defined once** (for `chrome_open`, `chrome_go`, `chrome_take` and a step that navigates), on brief 28's
 state token and its "quiet" (the token unchanged for 150 ms):
@@ -341,7 +415,8 @@ What each step is, exactly:
   screen is scrolled into view by the reader (a new content command, `reveal`: to the centre, at once). This
   happens inside the armed hold, so what the page does on that scroll is held like after any input, and the hit
   test that follows is brief 20's. It applies to an approved input too, because a prepared click may wait off
-  screen. Nothing else in `input` changes.
+  screen. Other permitted changes are listed in "What must not change"; this reveal applies to dispatched input,
+  not a held submission's native resumption.
 - **`select`:** the service matches `value` against the options in the fresh facts. First as an option's value,
   exactly. If no option has that value, as an option's label, exactly after trimming and joining runs of spaces.
   No match, a disabled option, or a label that several options carry: the step is `refused` ("no such option",
@@ -537,6 +612,33 @@ lead, 2026-11-16, after review 5, S4).
     `late`, also where a check exists. After the late install's guarded reload, the next install from a pause is
     `document_start` (review 6, N4).
 
+### 5b. Loss refusals carry page text only as untrusted content
+
+**Decision and why (CROSS-5 finding 5).** Keep the inherited reload/unsaved-work policy, not main's interpolation
+of field labels into `requireDiscard`'s exception. Escaping a label doesn't make an ordinary error untrusted.
+
+The extension returns a structured, bounded loss report with a fixed reason code; the bridge preserves it as
+data, and the service chooses a fixed code/message from its own literals. For `reload_required` use
+"This action may discard work. Nothing was done; inspect the loss report." No page-derived string goes into
+`message`, an operation's `reason`, a stage's prose or a notice's prose. Numeric counts and service-enumerated
+reasons may accompany it. Labels, titles and addresses belong in `untrusted_content.loss`, with item 3's address
+forms and brief 28's escaping. Field descriptions use item 3b; never include a field's value in a loss report.
+
+Cover **bare errors and batched steps**, `chrome_go`, `chrome_take`, `chrome_upload`, first-input reloads and
+`chrome_close`'s kept entries. A batched loss report carries its step index under `untrusted_content.loss` so it
+can't be mistaken for another step's loss; each kept tab has its own untrusted loss report. The error, step and
+kept-entry schemas must declare those shapes. Preserve the report through bridge, adapter, engine/public error
+serialization and MCP/CLI envelopes; a missing or malformed report still refuses with the fixed message and
+never falls back to an arbitrary extension exception. Add only the narrow shared error-envelope support if
+needed; keep other apps' errors unchanged. 28b reuses this shape for loss refusals and
+`description.untrusted_content.loss` for its questions, with quoted page descriptions in the question itself.
+
+**Test:** a label containing instructions, quotes, braces, a newline and serialization delimiters in a bare
+reload error, a refusal after an earlier batched step ran, a kept tab, and the stored operation/status result.
+Assert fixed code/message, valid declared schemas, no marker in trusted prose, and the complete escaped label
+only inside the untrusted loss data; the receiver and document stay unchanged. **Mutation:** restore main's
+`fields.join` interpolation, or flatten the report into `Refused.message`; these envelope tests must fail.
+
 ### 6. The smaller tools
 
 - **`chrome_tabs`** (read; input: `cursor`). Every tab of every normal window in one result; a cursor only beyond
@@ -604,7 +706,8 @@ lead, 2026-11-16, after review 5, S4).
     (`requireDiscard`) and then navigates, without the guarded reload. Here it first goes through `prepare_control`,
     as a first input does: `reload_required` when brief 20's check finds typing, an editor or playing media,
     otherwise the guarded reload, and then the navigation.
-  - **Brief 20's check before that reload is unchanged in this package.** On merged `main` it is `requireDiscard` in
+  - **Brief 20's discard policy before that reload is unchanged; item 5b changes its report.** On merged `main`
+    it is `requireDiscard` in
     `background.js` with `reloadState` in `reader.js`: in a document the reader didn't watch from its start every
     text field, textarea and hidden input counts; in a watched one a field counts when it differs from its default or
     got typing since the load and still holds text; an editor counts once it got input (always, where that isn't
@@ -618,13 +721,14 @@ lead, 2026-11-16, after review 5, S4).
   service keeps the full address under that reference for as long as the snapshot lives.
 - **`chrome_read_typed_fields`** (an asking read, under the managed ask rules). The owner, 2026-11-13 (board
   #210): "Ask first." Brief 20 built this tool, and brief 28 says what it is, how its approval is bound to a
-  prepared read, and which fields it may read (brief 28, item 5). **This package keeps it rather than redesigns
-  it.** Keep its name unless it collides with one here.
+  prepared read, and which fields it may read (brief 28, item 5). **This package keeps its read policy and adds
+  item 3b's distinct descriptions.** Keep its name unless it collides with one here.
 
   What this package does with it, and nothing more:
   - **main's two tools stay** (the lead, 2026-11-15): `chrome_prepare_read_typed_fields` takes the tab and returns
     the approval, whose question lists the fields, and `chrome_read_typed_fields` takes that approval unchanged.
-    They are the eighteenth and nineteenth tools of the new list, with their names, inputs and behaviour unchanged.
+    They are the eighteenth and nineteenth tools of the new list, with their names, inputs and read policy
+    unchanged; item 3b changes their field descriptions.
     The managed ask rule stays on `mcp__chrome__read_typed_fields` alone, and it is part of the generated rules that
     must not change by a byte;
   - in its result each field is named by its label and by its short reference in place of brief 20's reference
@@ -632,7 +736,8 @@ lead, 2026-11-16, after review 5, S4).
   - an address in its question is in the public form (item 3);
   - a normal read tells Claude that it exists for a tab (`typed_fields`, brief 28), and the instructions say when
     to use it: only when his request needs what such a field holds;
-  - its approval's binding to the prepared read stays exactly as brief 28 describes it and PR #27 built it. The
+  - its identity binding to the prepared read stays as brief 28 describes it, with item 3b's additional
+    description/order facts. The
     short reference in the result is a name for Claude; the preparation keeps holding the reader's own
     elements;
   - an approved read changes nothing else. A later normal read shows `(filled, not read)` again, and the field
@@ -641,9 +746,8 @@ lead, 2026-11-16, after review 5, S4).
   file branch stays as it is, apart from the field names it reads. It has no `discard_unsaved`: where its
   first-input reload reports unsaved work, the refusal says to reload first (`chrome_take` with `reload: true` for
   a taken tab, `chrome_go` with `to: reload` for a popup) and then repeat the upload (review 5, N8).
-- **Unchanged in name, input, result and behaviour:** `chrome_submit`, `chrome_submit_trusted`, `chrome_drop`,
-  `chrome_operation_status`, `chrome_notices`, `chrome_notice_ack`, and the owner-only `chrome_sites`. The one
-  thing that differs in what they return is item 3's: every address in a question or a description is in the
+- **Unchanged except for items 3, 3a, 3b and 5b:** `chrome_submit`, `chrome_submit_trusted`, `chrome_drop`,
+  `chrome_operation_status`, `chrome_notices`, `chrome_notice_ack`, and the owner-only `chrome_sites`. In particular, item 3 requires: every address in a question or a description is in the
   public form, so a value that looks like a sign-in shows as `…`, and every address in a stage text or a notice is
   in the short form.
 - A new error code, `take_first`, for `chrome_read`, `chrome_go`, `chrome_do` and `chrome_upload` on a tab that
@@ -672,21 +776,24 @@ lead, 2026-11-16, after review 5, S4).
   is specific to its action. Write them for Claude: what it does, when to use it, what comes back.
 - **The instructions keep only rules that span tools, in at most 2,800 characters in all** (the lead, 2026-11-15,
   after review 4). 1,652 of them are `COMMON_INSTRUCTIONS`, which every app shares and this package doesn't change,
-  so Chrome's own text gets at most 1,148 characters, less than half of main's 2,429. Brief 28b then has 1,000 left
+  so Chrome's own text gets at most 1,148 characters, less than half of main's 2,441. Brief 28b then has 1,000 left
   for its rules for his tabs, under a ceiling of 3,800: Claude Code 2.1.319 passes only the first 4,096 characters of
   an MCP server's instructions, `control/chrome_tests/test_questions.py`
   (`test_fixes_b_server_instructions_fit_the_native_cli_limit`, about line 456) fails any app above that, and 3,800
-  leaves a margin. On merged `main` the Chrome server's instructions are 4,081 characters since PR #77 (4,052
-  before). **A rule in the list above that belongs to one tool goes into that tool's description, not the
+  leaves a margin. On merged `main` the Chrome server's instructions are 4,093 characters at this revision
+  (4,081 after PR #77; 4,052
+  before it). **A rule in the list above that belongs to one tool goes into that tool's description, not the
   instructions** (for example
   `chrome_do`'s rules for asking steps and steps not run, or what `reload: true` does on `chrome_take`); this package
-  does the move. Measure both early: the instructions against 2,800, and the whole tool list against the sizes
+  does the move. Before adding any instruction text, move single-tool rules into descriptions and compact the
+  shared Chrome rules; retain all safety meaning. This revision supplies no new instruction text. Measure both
+  early: the instructions against 2,800, and the whole tool list against the sizes
   below. Add a test that pins the Chrome instructions at most 2,800 characters, beside the existing 4,096 check for
   every app; brief 28b moves that pin to 3,800. If the rules still can't fit, stop and tell the lead (PLAN-GAP).
 - **Sizes** (measured as brief 18d measured Mail's), for nineteen tools: **not above the baseline** (the lead,
   2026-11-15, after review 4: making the list smaller is the point). The baseline is main's catalogue measured with
   `tools_for('chrome')` and `instructions_for('chrome')` at this package's start: all descriptions plus the
-  instructions (about 9,166 characters on main after PR #77: 5,085 and 4,081), and all names plus input schemas as
+  instructions (about 9,178 characters on main after PR #77: 5,085 and 4,093), and all names plus input schemas as
   compact JSON (about 11,080). Record the exact numbers in the baseline file and in the report. The new list must
   stay within both, with everything this package adds counted in: `chrome_prepare_read_typed_fields`, and
   `discard_unsaved` on `chrome_go`, `chrome_close` and `chrome_do` with main's rule for unsaved work (review 4, S8).
@@ -710,22 +817,32 @@ lead, 2026-11-16, after review 5, S4).
 
 ### 8. The order of the change
 
-Restructure in steps that keep everything working:
+Restructure in steps that keep everything working. Each numbered stage may be several small commits; record
+commands, evidence and the next step in `PROGRESS.md` for a fresh gpt-6.1-sol builder.
 
-1. Add the new commands and the new tools. Four names exist in both tool sets with different inputs
-   (`chrome_tabs`, `chrome_read`, `chrome_open`, `chrome_upload`), so the two can't simply stand side by side.
-   **From this step on the catalogue is the new one:** the definitions, every generated file and the size pins.
-   Brief 28's internal action is now `chrome_read` and is gone under its old name. Brief 20's tools stay callable
-   under their names with the prefix `chrome_old_`, only when the service is started with brief 28's test-only
-   switch: the environment variable that the CI container sets and the image never does (brief 28's test pins
-   that the packaged unit doesn't set it). Unit tests and groups 14 to 16 pass, group 16's size rows included,
-   because they measure the generated catalogue. Brief 20's groups pass unchanged through the old tools. The
-   side-by-side latency run happens here (group 16).
+0. **Foundation, three bounded steps:** 0a records the exact merged-package-28 baseline, checks its plain
+   tests, Unicode comparisons, reference cleanup and instruction size, then makes room under item 7 with the old
+   catalogue still working. 0b builds item 5b's structured errors, schema/transport tests and mutations. 0c builds
+   item 3b's distinct descriptions, identity/order tests and mutations. These are explicit frozen-path exceptions.
+1. **New implementation, then catalogue switch:** build behind private helpers, with the old public catalogue
+   working until 1d; no temporary extra public tool names.
+   - **1a:** reader fingerprints/reveal and service reference resolution, with the new binding/Unicode cases.
+   - **1b:** address/list projections and the navigation/smaller-tool implementations (items 3, 3a, 4, 6),
+     including reference-open classification, with targeted tests through private entry points.
+   - **1c:** batched execution, deadlines, change reports and item 5a, tested with fake bridges and Node doubles.
+   - **1d:** wire the new definitions and switch the catalogue, regenerate and pin the complete sizes. Four names
+     overlap with different inputs (`chrome_tabs`, `chrome_read`, `chrome_open`, `chrome_upload`), so only now
+     expose the new catalogue. Brief 28's internal read becomes `chrome_read`. Brief 20's tools remain callable
+     as `chrome_old_…` only with brief 28's CI-only switch (never enabled in the image). Run groups 14–16 and
+     the old groups through their old helpers, and the side-by-side latency run (group 16). The public catalogue
+     and generated files must agree at every commit; private helpers need not be offered to Claude to be tested.
 2. Move the CI harness to the new tools **in its helper functions only**. Before you start, list in
    `reviews/28a-chrome-act/HARNESS-MAP.md` every helper you change, and every test that builds a `reference`,
    an `expected` or a `view` by hand (the staleness and mismatch cases), with its new form. A test may change how
    it reaches the tool. It never changes what it asserts about the receiver's log, the question, the binding or the
-   outcome. A test of the old "any change makes every reference stale" rule becomes a test of item 2's rule, named
+   outcome. Item 3b's deliberate question-description change and item 5b's error envelope are mapped
+   explicitly: old safety/receiver assertions stay, with new distinct-description/untrusted-envelope assertions.
+   A test of the old "any change makes every reference stale" rule becomes a test of item 2's rule, named
    in the map. The assertions that brief 28's field rules changed are in brief 28's map already; don't change
    them again.
 3. Remove brief 20's replaced tools (`chrome_find`, `chrome_read_form`, `chrome_wait`, `chrome_click`,
@@ -757,7 +874,7 @@ Restructure in steps that keep everything working:
   (`sites.py`); `chrome_submit`, `chrome_submit_trusted`, `chrome_drop`, `chrome_operation_status` and the notices;
   the 15-minute deadline; one approval, one run. Brief 20's asking read belongs to it too: `chrome_read_typed_fields`
   with its question, its binding to the prepared read, its one approval for one call, its refusal of
-  credential-like fields and its new question when a field was added, replaced or relabelled. **Four narrow
+  credential-like fields and its new question when a field was added, replaced or relabelled. **Six narrow
   exceptions, each named where it is specified, and nothing beyond them:**
   1. `prepare` and `question` write addresses in the public form, and `execute` writes its two stage texts with
      addresses in the short form, while the payload and every comparison keep the full address (item 3);
@@ -766,7 +883,13 @@ Restructure in steps that keep everything working:
      (item 5, "Time");
   4. `prepare` writes a list into the description as its chosen options and their number, and for a `select`
      step the option it will choose, while the payload and every comparison keep every option (item 3a).
-  What asks, what is bound, and what is compared before an approved input don't change.
+  5. Item 3b adds distinguishable field descriptions and their identity/order facts to the existing preparation
+     and comparisons, including the asking read; it reads no extra value and never drops an existing binding.
+  6. Item 5b replaces page-bearing reload error strings with structured loss data and fixed service prose,
+     including the bridge and public error envelope. It changes no discard policy.
+  Item 0's repaired-fact comparisons and reference cleanup are inherited requirements throughout. Item 4's
+  reference-open classification refuses before navigation; it adds no new asking execution path.
+  What asks never becomes less, and every existing bound fact stays compared.
 - **The places where this package touches the asking path stay as security re-check 2 judged them**
   (`reviews/28-chrome-capability/BRIEF-SECURITY-2.md`). Build each exactly so, and show its lines in the report:
   - *Public addresses in a question.* Only the description changes. The payload and the last comparison keep the
@@ -780,7 +903,7 @@ Restructure in steps that keep everything working:
     tested.
   The fourth place it judged, the password additions, is brief 28's and is on `main` when this package starts:
   a form that holds a field withheld for unknown history is refused, not asked. That stays, through `chrome_do`
-  too. **Four places are newer than that review,** and this package's security review looks at them first:
+  too. **These places are newer than that review,** and this package's security review looks at them first:
   - *The time check in `input`* (it came with package re-check 2, N2). It can only stop a dispatch, never start
     or change one.
   - *A list's options in a description* (item 3a; it came with package 28's baseline, 2026-11-15). Only the
@@ -796,6 +919,9 @@ Restructure in steps that keep everything working:
     popup is admitted.
   - *The pause check before an install* (item 5a; review 5, S3). It can only make a document count as not
     watched from its start, which reads less and reloads once more. It never makes one count as watched.
+  - *Distinct field descriptions and structured loss errors* (items 3b and 5b): human-readable uniqueness must
+    survive repair and truncation; labels must stay untrusted in bare errors and stored results too.
+  - *Link-reference opening* (item 4): the recognised-action check runs before any open/navigation request.
 - **Brief 28's field rules and its read:** the password rule with its two additions, the outline format, the
   reference table and its run letters, the read's deadline. Nothing in them is relaxed or reshaped here.
 - **The hold:** `guard.js`, `page.js`, the 500 ms window (`HOLD_MS` in `policy.py`, `holdMs` in the extension) and
@@ -816,8 +942,10 @@ Restructure in steps that keep everything working:
 holds every tab at once with the fields item 6 needs; the check of `seen` in `take` (item 6); two additions to
 `input` (item 5: "on screen first", and the check of the command's time right before the dispatch); item 5a's
 two points (the popup's admission outcome carried from `createdTarget` into the step's result through `dispatch`,
-and the pause check before an install from a pause); and the text of `WITHHELD_FORM` (item 8, step 3). Not the
-rest of `input`, not `resume`, `dialog`, `prepare_control`, `release`, the rest of admission, the debugger methods
+and the pause check before an install from a pause); item 3b's field-description facts and comparisons; item
+5b's structured loss refusal; and the text of `WITHHELD_FORM` (item 8, step 3). Not the
+rest of `input`, not the execution policy of `resume`, `dialog`, `prepare_control` or `release`, the rest of
+admission, the debugger methods
 or the session rules.
 
 ## Tests
@@ -827,6 +955,18 @@ Linux runners, through the control-chrome workflows. Never start, read or touch 
 profile on the machine you run on; locally run only plain Python and Node tests that start no browser.**
 
 Every new rule gets a test that fails without it.
+
+**CROSS-5 regression contracts.** Run the targeted test with the named mutation, require failure, restore the
+source and require the test green. Put exact commands/results in the report. Browser counterparts stay in CI.
+
+| Rule | Test and evidence | Reviewer mutation caught by that test |
+|---|---|---|
+| Repaired Unicode (item 0) | Unchanged lone-surrogate title/label/option/dialog passes preparation and execution with U+FFFD; valid pairs stay exact. A changed repaired fact refuses; unchanged `outline`/`facts`/`observe` fingerprints agree. Exercise asking reads and both input boundaries. | Remove fresh-side `wellFormed` at each comparison in turn, or hash raw facts in one command: unchanged malformed-text case fails. Remove a comparison entirely: changed-fact case fails. |
+| Native option resolution | One native option whose value needs repair selects exactly that option; two raw values with the same repair refuse with no input. | Choose the first repaired match: ambiguous-option case fails. |
+| Control ends | Release, Stop, detach and parent/child release drop both reference indexes; old reference refuses after a take; counter increases. Old-session event and refused close retain current entries. | Remove cleanup from each event/reply path in turn: lifecycle case fails. |
+| Finding 6: address parity | Inherited address tests hide a 20+ mixed-case/digit token split by `_` and `-`, retain a lowercase slug, and agree on public/short forms. | Remove the mixed-case separator rule: token case fails. |
+| Finding 6: paging limit | Inherited >5,000-reference fixture refuses the old cursor after eviction, never returns a dropped ref as valid, and still permits `find`/subtree reads. | Stop binding cursors to returned reference text, or reuse an evicted ref: paging/identity case fails. |
+| Distinct fields; findings 3 and 5 | The question, receiver and envelope tests in items 3b, 4 and 5b, including real public serialization. | Run each mutation named in those items; a test of ids alone is not the distinct-question test. |
 
 **Without a browser** (Python and Node). Brief 28's tests stay and pass. Added here:
 
@@ -855,7 +995,8 @@ Every new rule gets a test that fails without it.
     list, also when the step named the option by its label: the target shows `choosing` with the label and value
     of the option the step will select, `chosen` still shows the option selected now, and F4's approval stays
     within 9,000 bytes. A free `select`'s committed description shows `choosing` too;
-  - every other key of the description equals the binding's, apart from item 3's addresses. The operation's
+  - every other key of the description equals the binding's, apart from item 3's addresses and item 3b's field
+    descriptions. The operation's
     payload holds the binding with all 200 options, and the command the bridge gets on `chrome_submit` carries
     that binding whole;
   - F4's approval is at most 9,000 bytes, and the same facts with the options left whole are refused, which is
@@ -1034,7 +1175,7 @@ baseline.
 | Compare three open tabs: `chrome_read` with `tabs` | 1 call |
 | List 25 open tabs (titles of about 30 characters): `chrome_tabs` | 1 call, at most 3,500 characters |
 | F5: a free click that changes part of the page: from an outline in hand, one `chrome_do` | 1 call, at most 2,500 characters, every changed line named (`more_changes` is 0) |
-| Descriptions plus instructions (19 tools) | not above main's, measured at the start (about 9,166); the final total pinned |
+| Descriptions plus instructions (19 tools) | not above main's, measured at the start (about 9,178); the final total pinned |
 | The server instructions alone | at most 2,800 characters, the shared 1,652 included (and every app within 4,096) |
 | Names plus input schemas (19 tools) | not above main's, measured at the start (about 11,080); the final total pinned |
 | Latency (the comparison in one run, below) | the first read of F1, a free click with its report, and F4's six fills and click up to the question are each at most 1.10 times brief 20's median plus 50 ms; PR #27's latency gate (`latency-targets.json`) stays within its ceilings |
@@ -1101,7 +1242,7 @@ The base's, 18d's and Mail's suites still pass, and the generated artifacts are 
 ## Out of scope
 
 - His open tabs in place, the **READ** sign, the popup list, incognito, tabs in the background: brief 28b.
-- Anything in the asking path or the hold beyond the four exceptions named in "What must not change". That
+- Anything in the asking path or the hold beyond the six exceptions named in "What must not change". That
   includes showing less of what a form sends (a cut value, a field left out) and a larger `ASK_LIMIT`.
 - **A shorter hold after each input: possible later, not now.** Most of a click or a fill is brief 20's fixed
   hold of about half a second after the input, in which a submission the page starts is stopped (measured on PR
@@ -1119,11 +1260,12 @@ The base's, 18d's and Mail's suites still pass, and the generated artifacts are 
 ## Paths
 
 **May change:** `control/aresos_control/chrome/adapter.py`, `definitions.py`, the view module and new modules
-beside them; `control/aresos_control/chrome/bridge.py` (only the reply wait for an input, item 5, "Time");
-`control/chrome/extension/reader.js` (the fingerprint function, the reveal, the instance id in `facts`) and
-`background.js` (only as items 5, 5a, 6 and 8 say); `control/aresos_control/definitions.py` (only the Chrome branch
+beside them; `control/aresos_control/chrome/bridge.py` (the reply wait for an input, item 5, "Time", and
+structured loss errors, item 5b);
+`control/chrome/extension/reader.js` (the fingerprint function, the reveal, the instance id in `facts`, item 3b's non-value description facts and item 5b's structured loss fields) and
+`background.js` (only as items 0, 3b, 4, 5, 5a, 5b, 6 and 8 say); `control/aresos_control/definitions.py` (only the Chrome branch
 of `instructions_for`, which appends the Chrome text; `COMMON_INSTRUCTIONS` and every other app stay byte-identical);
-`control/aresos_control/proxy.py` (the Chrome upload branch's field names); the generated files;
+`control/aresos_control/proxy.py` (the Chrome upload branch's field names); narrow shared error serialization/schema support only if item 5b requires it; the generated files;
 `control/chrome_tests/`, `control/chrome/ci/`; `.github/workflows/control-chrome.yml` (not the qualification
 workflow); `docs/control/TOOLS.md`, `docs/control/FEATURES.md` (item 9), `control/README.md`;
 `reviews/28a-chrome-act/`.
@@ -1152,9 +1294,10 @@ AGENTS.md's format (Done, Verified, Not verified, JUDGMENT-CALL, PLAN-GAP, Open 
 
 - the baseline and the measured numbers side by side, per task, with run ids;
 - the tool descriptions and instructions as Claude will read them, with anything you are unsure reads well;
-- what changed in `adapter.py`'s `payload` and `facts`, line by line; the lines of the four exceptions (the
+- what changed in `adapter.py`'s `payload` and `facts`, line by line; the lines of the six exceptions (the
   projected addresses in `prepare`, `question` and `execute`; the reveal in `input`; the time check in `input`;
-  the lists in a description, with F4's approval in bytes as a run measured it); and a statement that nothing
+  the lists in a description, with F4's approval in bytes as a run measured it; the distinct field descriptions;
+  the structured loss errors); and a statement that nothing
   else in the asking path changed, with the diff command that shows it;
 - for the asking read: that its binding cases still pass through the new list, with the run id. The brief claims
   nothing about that binding; the report says what a run showed;
@@ -1189,11 +1332,12 @@ No open JUDGMENT-CALL.
 
 - The design is built as three packages, 28, 28a and 28b, in that order, and none reaches the laptop before all
   three are merged.
-- The four places where the design touches the asking path stay as security re-check 2 judged them ("What must
+- The places covered by security re-check 2 keep its guarantees, with the explicit later exceptions ("What must
   not change").
 - A form that holds a field withheld for unknown history isn't sent by Claude, through `chrome_do` either, and
   an approved asking read doesn't lift that (brief 28, item 1).
-- The asking read's approval is bound to a prepared read; PR #27 built it, and this package keeps it (item 6).
+- The asking read's approval is bound to a prepared read; PR #27 built it, and this package keeps that guarantee
+  while adding distinguishable descriptions (items 3b and 6).
 - A deadline reaches the extension by the time each command carries. For an input that adds one check right
   before the dispatch, a bounded wait in the bridge and the dropping of a late reply, and nothing more (item 5,
   "Time"; package re-check 2, N2).
@@ -1231,8 +1375,8 @@ fewer characters. Say what you chose in the report.
 
 - Stop and report, rather than weaken a rule, if a budget can only be met by leaving out something Claude needs to
   act safely, if a budget can't be met with the calls its row names, or if the asking path would have to change
-  beyond the four exceptions named in "What must not change". If F4's approval doesn't fit with item 3a's rule
-  alone, stop: don't cut a value, drop a field or raise a limit.
+  beyond the six exceptions named in "What must not change". If F4's approval doesn't fit with items 3a and 3b,
+  stop: don't cut a value, drop a field or raise a limit.
 - Stop if a binding case of the asking read fails through the new list.
 - Stop if any test would need a real site or a real account.
 - A full `control-chrome.yml` run takes about 40 to 60 minutes in 28 parallel jobs (PR #27's final pair on
