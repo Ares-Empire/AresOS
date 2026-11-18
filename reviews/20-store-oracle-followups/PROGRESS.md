@@ -1,5 +1,253 @@
 # Empire brief 302 — progress
 
+## Build part 5 (the re-pin)
+
+Status: **Stopped before re-pin; capture 44352598226 has non-pin failures; no proof dispatched**.
+
+### Capture rejected at step 1
+
+Started at `99a5176e`, branch `pkg/302-store-oracle`, existing draft PR #111.
+Capture [44352598226](https://github.com/Ares-Empire/AresOS/actions/runs/44352598226),
+attempt 1, completed on `e52ae87b4469e6f794dc01aee0f8c19ecc2b4851`:
+**60 failed jobs, 1 successful ledger job**. Downloaded all **61 artifacts**
+and the complete run log archive under `.work/302/capture-44352598226/`.
+The artifact directory names match the paginated API inventory exactly.
+
+The required stop condition is met. Among the failed jobs:
+
+- **22 sweep jobs have 214 additional subtest errors**: 102 in `restart_index`,
+  112 in `restart_tail`, all `sqlite3.ProgrammingError: Cannot operate on a
+  closed database.` The traceback is `test_owner_state_sweep.py:247` →
+  `Driver.restarted`, `control/owner_state_oracle/driver.py:118`, which queries
+  the old engine's `store.db` for `generation`. Those jobs also reach the final
+  strict old-pin failure; reaching it does not make their incomplete cases valid.
+- **All 12 alteration shards fail corpus construction**, before partitioning
+  or running alteration candidates. `test_owner_state_perturb.py:198` calls
+  `recovery_recordings`; line 39's `assertGreater(tail['seq'],
+  max(record.committed))` raises **`AssertionError: 3 not greater than 3`**.
+  Each shard reports `Ran 4 tests` / `FAILED (failures=1)`; the three plant tests
+  pass. There are **zero candidate/scenario total lines and zero `slipped=`
+  lines** in every shard. This supplies no `slipped=0` evidence; it is not a
+  strict-pin failure. The corpus hardcodes local cancel/onboarding offsets
+  69/61; the hosted traceback itself does not identify which iteration fails,
+  so the failing flow and replacement discovered boundary remain unverified.
+- **26 jobs have only a strict-pin unittest failure**: the other two sweep
+  jobs and all 24 onboarding jobs. Of these, `onboarding (15)` also logs a
+  recovered setup `ReadTimeoutError` from pip fetching `annotated-types`;
+  installation then succeeds and the tests finish. It is marked **No** below
+  under the request's literal no-timeout condition. No Actions job timed out.
+  Thus **25 failed jobs meet the complete pin-only/no-timeout condition**.
+
+No new pin, classification acceptance or proof can follow this capture.
+No product, oracle, test, assertion, allowed set or workflow was changed.
+No fix, replacement capture, rerun, or extra dispatch was attempted.
+
+### Every capture job
+
+Each job link opens that job's logs. Evidence refers to the downloaded full job
+log under `.work/302/capture-44352598226/logs/`; line numbers include timestamps.
+**P** = the final `test_all_flows_all_storage_modes_independent_views` failure,
+with the traceback through `gaps.py:229`, `assert not errors, errors`, and the
+old-pin count/digest diagnostics. **D** = the closed-database subtest error above;
+**A** = the alteration corpus assertion above; **T** = the recovered pip timeout.
+Each P job has exactly one failure; D counts below are additional errors.
+The audit found no other failing Actions step besides the test step, no other
+Actions error annotation besides its exit code 1, and no nonzero `slipped` line.
+The absence of alteration output is explicitly a blocker, not a passing result.
+
+| Job | Result | Failed only on pin, with no other error/timeout? | Log evidence |
+|---|---|---|---|
+| [ledger](https://github.com/Ares-Empire/AresOS/actions/runs/44352598226/job/134972017257) | success | N/A — passed | `60_ledger.txt`: 2 tests OK |
+| [sweep (0, 0)](https://github.com/Ares-Empire/AresOS/actions/runs/44352598226/job/134972017801) | failure | No | `10_sweep (0, 0).txt`: P at 699; D × 12 from 519 |
+| [sweep (0, 1)](https://github.com/Ares-Empire/AresOS/actions/runs/44352598226/job/134972020758) | failure | Yes | `2_sweep (0, 1).txt`: P at 416 |
+| [sweep (0, 2)](https://github.com/Ares-Empire/AresOS/actions/runs/44352598226/job/134972017815) | failure | No | `40_sweep (0, 2).txt`: P at 613; D × 13 from 418 |
+| [sweep (0, 3)](https://github.com/Ares-Empire/AresOS/actions/runs/44352598226/job/134972020260) | failure | No | `3_sweep (0, 3).txt`: P at 530; D × 5 from 455 |
+| [sweep (0, 4)](https://github.com/Ares-Empire/AresOS/actions/runs/44352598226/job/134972018318) | failure | No | `47_sweep (0, 4).txt`: P at 588; D × 11 from 423 |
+| [sweep (0, 5)](https://github.com/Ares-Empire/AresOS/actions/runs/44352598226/job/134972018382) | failure | No | `44_sweep (0, 5).txt`: P at 553; D × 10 from 403 |
+| [sweep (0, 6)](https://github.com/Ares-Empire/AresOS/actions/runs/44352598226/job/134972017993) | failure | No | `25_sweep (0, 6).txt`: P at 591; D × 10 from 441 |
+| [sweep (0, 7)](https://github.com/Ares-Empire/AresOS/actions/runs/44352598226/job/134972017931) | failure | No | `56_sweep (0, 7).txt`: P at 524; D × 5 from 449 |
+| [sweep (0, 8)](https://github.com/Ares-Empire/AresOS/actions/runs/44352598226/job/134972017697) | failure | No | `24_sweep (0, 8).txt`: P at 512; D × 6 from 422 |
+| [sweep (0, 9)](https://github.com/Ares-Empire/AresOS/actions/runs/44352598226/job/134972017890) | failure | No | `54_sweep (0, 9).txt`: P at 503; D × 6 from 413 |
+| [sweep (0, 10)](https://github.com/Ares-Empire/AresOS/actions/runs/44352598226/job/134972017720) | failure | No | `27_sweep (0, 10).txt`: P at 647; D × 14 from 437 |
+| [sweep (0, 11)](https://github.com/Ares-Empire/AresOS/actions/runs/44352598226/job/134972018343) | failure | No | `6_sweep (0, 11).txt`: P at 557; D × 10 from 407 |
+| [sweep (1, 0)](https://github.com/Ares-Empire/AresOS/actions/runs/44352598226/job/134972017834) | failure | No | `52_sweep (1, 0).txt`: P at 653; D × 15 from 428 |
+| [sweep (1, 1)](https://github.com/Ares-Empire/AresOS/actions/runs/44352598226/job/134972017920) | failure | Yes | `33_sweep (1, 1).txt`: P at 424 |
+| [sweep (1, 2)](https://github.com/Ares-Empire/AresOS/actions/runs/44352598226/job/134972017964) | failure | No | `49_sweep (1, 2).txt`: P at 665; D × 16 from 425 |
+| [sweep (1, 3)](https://github.com/Ares-Empire/AresOS/actions/runs/44352598226/job/134972017823) | failure | No | `19_sweep (1, 3).txt`: P at 505; D × 5 from 430 |
+| [sweep (1, 4)](https://github.com/Ares-Empire/AresOS/actions/runs/44352598226/job/134972018002) | failure | No | `0_sweep (1, 4).txt`: P at 602; D × 10 from 452 |
+| [sweep (1, 5)](https://github.com/Ares-Empire/AresOS/actions/runs/44352598226/job/134972017914) | failure | No | `39_sweep (1, 5).txt`: P at 613; D × 11 from 448 |
+| [sweep (1, 6)](https://github.com/Ares-Empire/AresOS/actions/runs/44352598226/job/134972017854) | failure | No | `35_sweep (1, 6).txt`: P at 484; D × 5 from 409 |
+| [sweep (1, 7)](https://github.com/Ares-Empire/AresOS/actions/runs/44352598226/job/134972018347) | failure | No | `13_sweep (1, 7).txt`: P at 755; D × 21 from 440 |
+| [sweep (1, 8)](https://github.com/Ares-Empire/AresOS/actions/runs/44352598226/job/134972018087) | failure | No | `38_sweep (1, 8).txt`: P at 483; D × 4 from 423 |
+| [sweep (1, 9)](https://github.com/Ares-Empire/AresOS/actions/runs/44352598226/job/134972017967) | failure | No | `18_sweep (1, 9).txt`: P at 544; D × 8 from 424 |
+| [sweep (1, 10)](https://github.com/Ares-Empire/AresOS/actions/runs/44352598226/job/134972018243) | failure | No | `9_sweep (1, 10).txt`: P at 511; D × 6 from 421 |
+| [sweep (1, 11)](https://github.com/Ares-Empire/AresOS/actions/runs/44352598226/job/134972017793) | failure | No | `59_sweep (1, 11).txt`: P at 589; D × 11 from 424 |
+| [onboarding (0)](https://github.com/Ares-Empire/AresOS/actions/runs/44352598226/job/134972017694) | failure | Yes | `45_onboarding (0).txt`: P at 362 |
+| [onboarding (1)](https://github.com/Ares-Empire/AresOS/actions/runs/44352598226/job/134972018816) | failure | Yes | `5_onboarding (1).txt`: P at 364 |
+| [onboarding (2)](https://github.com/Ares-Empire/AresOS/actions/runs/44352598226/job/134972017745) | failure | Yes | `57_onboarding (2).txt`: P at 363 |
+| [onboarding (3)](https://github.com/Ares-Empire/AresOS/actions/runs/44352598226/job/134972017798) | failure | Yes | `26_onboarding (3).txt`: P at 367 |
+| [onboarding (4)](https://github.com/Ares-Empire/AresOS/actions/runs/44352598226/job/134972017649) | failure | Yes | `21_onboarding (4).txt`: P at 363 |
+| [onboarding (5)](https://github.com/Ares-Empire/AresOS/actions/runs/44352598226/job/134972017817) | failure | Yes | `41_onboarding (5).txt`: P at 362 |
+| [onboarding (6)](https://github.com/Ares-Empire/AresOS/actions/runs/44352598226/job/134972017746) | failure | Yes | `17_onboarding (6).txt`: P at 364 |
+| [onboarding (7)](https://github.com/Ares-Empire/AresOS/actions/runs/44352598226/job/134972018354) | failure | Yes | `34_onboarding (7).txt`: P at 380 |
+| [onboarding (8)](https://github.com/Ares-Empire/AresOS/actions/runs/44352598226/job/134972017976) | failure | Yes | `22_onboarding (8).txt`: P at 364 |
+| [onboarding (9)](https://github.com/Ares-Empire/AresOS/actions/runs/44352598226/job/134972018303) | failure | Yes | `48_onboarding (9).txt`: P at 362 |
+| [onboarding (10)](https://github.com/Ares-Empire/AresOS/actions/runs/44352598226/job/134972018944) | failure | Yes | `12_onboarding (10).txt`: P at 365 |
+| [onboarding (11)](https://github.com/Ares-Empire/AresOS/actions/runs/44352598226/job/134972017608) | failure | Yes | `16_onboarding (11).txt`: P at 364 |
+| [onboarding (12)](https://github.com/Ares-Empire/AresOS/actions/runs/44352598226/job/134972018056) | failure | Yes | `31_onboarding (12).txt`: P at 365 |
+| [onboarding (13)](https://github.com/Ares-Empire/AresOS/actions/runs/44352598226/job/134972017783) | failure | Yes | `14_onboarding (13).txt`: P at 380 |
+| [onboarding (14)](https://github.com/Ares-Empire/AresOS/actions/runs/44352598226/job/134972017765) | failure | Yes | `8_onboarding (14).txt`: P at 360 |
+| [onboarding (15)](https://github.com/Ares-Empire/AresOS/actions/runs/44352598226/job/134972017955) | failure | No | `32_onboarding (15).txt`: P at 376; T at 236 (recovered) |
+| [onboarding (16)](https://github.com/Ares-Empire/AresOS/actions/runs/44352598226/job/134972018228) | failure | Yes | `11_onboarding (16).txt`: P at 365 |
+| [onboarding (17)](https://github.com/Ares-Empire/AresOS/actions/runs/44352598226/job/134972018271) | failure | Yes | `29_onboarding (17).txt`: P at 365 |
+| [onboarding (18)](https://github.com/Ares-Empire/AresOS/actions/runs/44352598226/job/134972017863) | failure | Yes | `51_onboarding (18).txt`: P at 383 |
+| [onboarding (19)](https://github.com/Ares-Empire/AresOS/actions/runs/44352598226/job/134972017722) | failure | Yes | `36_onboarding (19).txt`: P at 363 |
+| [onboarding (20)](https://github.com/Ares-Empire/AresOS/actions/runs/44352598226/job/134972018350) | failure | Yes | `46_onboarding (20).txt`: P at 364 |
+| [onboarding (21)](https://github.com/Ares-Empire/AresOS/actions/runs/44352598226/job/134972017702) | failure | Yes | `1_onboarding (21).txt`: P at 365 |
+| [onboarding (22)](https://github.com/Ares-Empire/AresOS/actions/runs/44352598226/job/134972017826) | failure | Yes | `30_onboarding (22).txt`: P at 361 |
+| [onboarding (23)](https://github.com/Ares-Empire/AresOS/actions/runs/44352598226/job/134972017741) | failure | Yes | `58_onboarding (23).txt`: P at 360 |
+| [alterations (0)](https://github.com/Ares-Empire/AresOS/actions/runs/44352598226/job/134972018151) | failure | No | `7_alterations (0).txt`: A at 399; no alteration totals |
+| [alterations (1)](https://github.com/Ares-Empire/AresOS/actions/runs/44352598226/job/134972018257) | failure | No | `50_alterations (1).txt`: A at 377; no alteration totals |
+| [alterations (2)](https://github.com/Ares-Empire/AresOS/actions/runs/44352598226/job/134972018268) | failure | No | `43_alterations (2).txt`: A at 379; no alteration totals |
+| [alterations (3)](https://github.com/Ares-Empire/AresOS/actions/runs/44352598226/job/134972018401) | failure | No | `23_alterations (3).txt`: A at 380; no alteration totals |
+| [alterations (4)](https://github.com/Ares-Empire/AresOS/actions/runs/44352598226/job/134972017752) | failure | No | `55_alterations (4).txt`: A at 380; no alteration totals |
+| [alterations (5)](https://github.com/Ares-Empire/AresOS/actions/runs/44352598226/job/134972018417) | failure | No | `15_alterations (5).txt`: A at 378; no alteration totals |
+| [alterations (6)](https://github.com/Ares-Empire/AresOS/actions/runs/44352598226/job/134972018588) | failure | No | `42_alterations (6).txt`: A at 380; no alteration totals |
+| [alterations (7)](https://github.com/Ares-Empire/AresOS/actions/runs/44352598226/job/134972018785) | failure | No | `4_alterations (7).txt`: A at 381; no alteration totals |
+| [alterations (8)](https://github.com/Ares-Empire/AresOS/actions/runs/44352598226/job/134972018596) | failure | No | `37_alterations (8).txt`: A at 397; no alteration totals |
+| [alterations (9)](https://github.com/Ares-Empire/AresOS/actions/runs/44352598226/job/134972018394) | failure | No | `28_alterations (9).txt`: A at 379; no alteration totals |
+| [alterations (10)](https://github.com/Ares-Empire/AresOS/actions/runs/44352598226/job/134972018050) | failure | No | `53_alterations (10).txt`: A at 382; no alteration totals |
+| [alterations (11)](https://github.com/Ares-Empire/AresOS/actions/runs/44352598226/job/134972018477) | failure | No | `20_alterations (11).txt`: A at 378; no alteration totals |
+
+### Lists, old pin, and classification stop
+
+There are **52 fresh actual-list files**, not 53: 48 sweep/onboarding lists,
+`contract`, `G22-rename`, `G22-evidence`, and `channel`. The old `G22-latch`
+file is absent because that regression now asserts the healthy retry directly
+and no longer calls `known_gap`; the regression is **OK** in the capture's
+`sweep (0, 0)` in-process five-test run. A subsequent valid capture's inventory
+must account for that deliberate artifact-count change instead of inventing
+an empty list. These are downloaded individual lists; they have **not** been
+accepted as a complete reproduction or merged into a new pin.
+
+Historical proof **43972005458** was downloaded concurrently, before discovery
+of the blockers: its 61 artifact directories, 53 full lists, and log archive
+are under `.work/302/historical-43972005458/`. **Old-list reproduction was not
+run**: the requested step-1 stop precedes assembly and classification. The
+existing file itself still has **2,576,083 keys / 1,930 groups / 892,234 bytes**,
+format 3, SHA-256
+`8b27b1161505ac19eeaa41a6f1a69c95886de5da338249801963a96a083b74b1`.
+That file/hash check is not claimed as historical-list reproduction.
+
+**New pin:** not generated; no new keys/groups/bytes/hash exist.
+**Classification:** stopped before full key-by-key comparison. N7's 6,949 keys,
+the 544 saved envelopes, alias-only changes, the other 376 fixed keys,
+M07/C01's whole-pin closures, startup-replay, restore-lock absence, and unrelated
+class preservation are **not verified by this run**. The passing G22 regression
+and equal point counts do not waive the failed capture gate. Format 3 and strict
+exact-delta checking remain unchanged.
+
+### Flow-point counts
+
+Read the `Owner oracle flow=… points=…` lines in every downloaded capture job
+and historical proof log; repeated observations of each flow agree. All **34
+hosted clean-run counts are identical** between 43972005458 and 44352598226.
+This checks counts, not equality of full clean-run traces or all fault sites.
+There is no observed count move to explain. The previously recorded local/
+hosted onboarding difference remains: 2,570 locally, 2,610 in both hosted runs;
+local send is 875, both hosted runs 879. No offset was remapped in this run.
+
+| Flow | Historical proof 43972005458 | Capture 44352598226 |
+|---|---:|---:|
+| `archive` | 373 | 373 |
+| `attachment_export` | 280 | 280 |
+| `cancel` | 70 | 70 |
+| `delete_permanent` | 420 | 420 |
+| `delete_trash` | 282 | 282 |
+| `draft_append` | 173 | 173 |
+| `expiry` | 69 | 69 |
+| `export_rollback` | 280 | 280 |
+| `filing_copy` | 353 | 353 |
+| `filing_move` | 352 | 352 |
+| `filing_rename` | 229 | 229 |
+| `flag` | 120 | 120 |
+| `folder_create` | 118 | 118 |
+| `folder_delete` | 213 | 213 |
+| `folder_review` | 173 | 173 |
+| `local_flag` | 118 | 118 |
+| `maintenance` | 62 | 62 |
+| `onboarding` | 2,610 | 2,610 |
+| `password` | 131 | 131 |
+| `repair` | 366 | 366 |
+| `restart_index` | 32 | 32 |
+| `restart_tail` | 34 | 34 |
+| `restore` | 76 | 76 |
+| `send` | 879 | 879 |
+| `send_duplicate` | 965 | 965 |
+| `settings` | 174 | 174 |
+| `settlement` | 157 | 157 |
+| `status` | 156 | 156 |
+| `testapp_config` | 134 | 134 |
+| `testapp_delete` | 282 | 282 |
+| `testapp_export` | 147 | 147 |
+| `testapp_send` | 391 | 391 |
+| `unsubscribe_https` | 350 | 350 |
+| `unsubscribe_mailto` | 881 | 881 |
+
+### Commands, verification and handoff
+
+Read-only GitHub commands (all exit 0):
+
+```sh
+gh run view 44352598226 --json databaseId,headSha,status,conclusion,jobs
+gh api --paginate --slurp repos/Ares-Empire/AresOS/actions/runs/44352598226/artifacts
+gh run download 44352598226 -D .work/302/capture-44352598226/artifacts
+gh api repos/Ares-Empire/AresOS/actions/runs/44352598226/logs
+gh run download 43972005458 -D .work/302/historical-43972005458/artifacts
+gh api repos/Ares-Empire/AresOS/actions/runs/43972005458/logs
+```
+
+API/log output was saved under those run directories, not printed wholesale.
+`python3 .work/302/repin/audit.py` reads every full job log and inventory:
+`artifacts=61`, `lists=52`, `pin_only=25`, `blocked_jobs=35`,
+`nonpin_errors=226` (214 database errors + 12 corpus assertion failures).
+Its one timeout detection is the recovered pip warning described above.
+Full per-incident frames and log hashes: `.work/302/repin/capture-audit.json`;
+point-count comparison against the historical log was saved there separately.
+This is analysis of hosted evidence; **no tests were executed locally**.
+
+**Proof run ID: none.** No workflow was dispatched or watched in this run.
+The requested successful status text cannot be set truthfully: re-pin and
+proof dispatch were stopped at the explicit non-pin-failure gate.
+The lead (`linux-tools`) must settle the two capture blockers and authorize
+any replacement capture before re-pin work resumes. The same historical
+reproduction, complete delta classification and single-pin gate still apply.
+
+### Left, in order
+
+Before the proof sequence: resolve the rejected capture, obtain complete valid
+capture evidence, reproduce the old pin, classify all changes and re-pin.
+Then:
+
+1. **Full proof green**, all 61 jobs, fresh lists reproduce the new pin byte
+   for byte and every alteration shard reports `slipped=0`; the lead watches it.
+2. **Control CI green twice**.
+3. Fresh **package and security reviews**, then an independent **classification
+   check** against the full historical and fresh lists.
+
+**JUDGMENT-CALL:** none. **PLAN-GAP:** capture inventory falls from 53 to 52
+files when the G22-latch gap is replaced by its direct passing regression;
+this must be accounted for explicitly when resuming. **Open:** the closed-db
+startup capture and hosted applied-tail corpus boundaries above.
+
+Closing checks: `git diff --check` passes; the repository privacy script prints
+`No file holds a home path with a real user name.` No files over 500 MB remain
+under `.work/`; downloaded capture and historical evidence together are below
+2 GB. No Gradle process was started. No OS, installed/root test, boot, mount,
+sudo, live-service action, process termination, or additional workflow dispatch.
+
+---
+
 ## Build part 4
 
 Status: **Build part 4 done; capture 44352598226 dispatched; next: the re-pin**.
