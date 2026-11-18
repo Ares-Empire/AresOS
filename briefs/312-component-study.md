@@ -17,11 +17,28 @@
 
 The brightness and volume indicator comes first (`linux-aresos`, 2026-11-18).
 
+## Two looks, side by side, for Patrik to choose
+
+Patrik isn't sure our own pixel art is the right call: "currently its just my private OS … maybe we decide when we know what the look difference is" (relayed by `linux-hub`, 2026-11-19). The study shows both versions on the same pieces, says what each costs, and recommends one. He chooses.
+
+- **A: our own pixel art,** committed to the repo.
+- **B: Minecraft's real textures and font, loaded at runtime** from the Minecraft already installed on his laptop through Prism.
+  - They are copied at first start into a cache in his home folder, never into the repo or the image.
+  - If the game isn't there, B falls back to A, so A's art has to exist either way.
+
+For B, the study must say:
+- which files it reads from the version's jar, and when it copies them;
+- what happens when Minecraft updates, or when a file moves or disappears;
+- that it reads only the AresOS Prism instance's game files, read-only, and never `~/.minecraft` or `~/.lunarclient` (repo hard rule 3);
+- that B works only on a machine with the game installed, and what that means if AresOS is ever shared with anyone else.
+
+**Pictures of B:** screenshots of B stay out of the repo and out of the pull request's committed files. They may be shown on a private artifact page. Everything committed uses A's art.
+
 ## Fixed limits
 
 **Art**
-- Our own pixel art only. No Mojang textures or font, not even traced. The repo is public.
-- No pixel font or Minecraft-look palette exists yet. The study proposes them, and any font must have a licence we can ship.
+- Nothing from Mojang is ever committed or built into the image (repo hard rule 2; the repo is public). Version A's art is not traced from Mojang's.
+- No pixel font or Minecraft-look palette exists yet. The study proposes them for version A, and any font must have a licence we can ship.
 - Draw on an integer pixel grid that maps to Minecraft's GUI scale (1 GUI unit = 1 art pixel × scale), with button height 20 and 9-slice sprites, so the mod can later ship the same sprites as its widget textures.
 - It must be readable at 1920×1080 and at the laptop's GUI scale.
 
@@ -75,7 +92,7 @@ The brightness and volume indicator comes first (`linux-aresos`, 2026-11-18).
 
 ## What the next hub session checks
 
-- No Mojang textures or font, not even traced.
+- No Mojang textures or font in any committed file or in the image, and version A's art is not traced from them.
 - Sprites sit on the GUI grid, so the mod can adopt them.
 - It sits next to the noon world and the laptop home's day street without clashing.
 - Readable at 1920×1080 and at the laptop's GUI scale.
