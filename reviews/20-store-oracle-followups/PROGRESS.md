@@ -2,81 +2,248 @@
 
 ## Build part 2 (steps 3 and 4)
 
-Status: **Step 3 verified; step 4 in progress**.
+Status: **Build part 2 done; next: step 5**.
 
-### Done
+### Done (commits per step)
 
-- Fetched origin at the start. `origin/main` moved only in `STATE.md` since
-  part 1; no file changed here overlaps, so no merge was needed.
-- Step 3: independent immutable before-start restore obligation, checked as
-  `startup-replay` immediately after Engine binding, before any view, flush or
-  scripted confirm. It requires the matching marker, valid applied head, exact
-  event and SQLite effects, generation, pending flag and service lock. Intermediate
-  batches complete only their saved work and retain the old generation/lock.
-  A failed startup cannot claim readiness; a healthy subsequent startup finishes.
-  The obligation is consumed once and later restarts cannot inherit an old confirm.
-  Captured failed envelopes remain unchanged. No store behaviour changed.
-- Strengthened the two lock-test nits: opposite input lock before recompute and
-  all decoded-lock terms. Recompute now handles a missing head and preserves an
-  unchanged fence's head hash instead of silently replacing it. This is test
-  oracle/alteration plumbing, not a product lock-rule change.
+- `git fetch origin` succeeded at the start. The fetched main tip `dddc8d58`
+  differs from part 1 only in `STATE.md`. No file changed here overlaps, so
+  no merge was needed. Branch `pkg/302-store-oracle`, existing draft PR #111.
+- Step 3: `6f12f561` (pushed). A canonical immutable before-start restore
+  obligation is saved from the full matching event, restore plan and scripted
+  confirm precondition. `Driver.started` sends `startup-replay` to the shared
+  checker immediately after binding, before views, flushes or another confirm.
+  It requires the matching marker, valid applied head, exact event and SQLite
+  effects, generation, pending flag and service lock. Intermediate batches finish
+  only their saved work and retain generation/lock. Failed starts cannot claim
+  readiness; healthy subsequent starts finish the saved event. Obligations end
+  after checking, and later restarts cannot inherit an old confirm. Captured
+  failed envelopes remain immutable. No production Store change.
+- Base-container fixture follow-up: `d425882e` (pushed), after the CI finding
+  described below; it changes only two mock tests, not Driver or the real VFS.
+- Step 4: `efa70045` (pushed). `records.visible_history` keeps `events` and
+  `committed` exact and extends local rows only with an ordinary validated tail
+  matching the last fence and applied SQLite head. The event remains prepared.
+  Lifecycle, current notices/catalogues, paging, qualification and audit use the
+  same history and the same identity/effect/transition proof gates. Archive
+  discovery still starts from marked hash-qualified manifests. Restore batches
+  retain their separate rule; Chrome's committed projection is unchanged.
+- Call ranges use staged sequence; local read evidence uses applied sequence;
+  pre-command snapshots/permission and unfinished space plans use marked history.
+  An applied event stays with its producing call through its failed envelope and
+  restart. Visibility neither authorizes another app command nor releases a
+  recovery hold before its marker. This required changing part 1's driver range
+  and trace inputs, but not its Store/barrier/advice implementation.
+- Alterations mutate applied rows, event versions and coherent row/event/fence
+  claims while preserving markers/startup inputs. The corpus appends applied
+  cancellation/account tails and staged final/intermediate restores; its four
+  new cost entries are measured locally. Rejected prepared candidates still get
+  independent fence checks. Identity errors reach semantic comparison before
+  malformed encodings interrupt replay; generation/input hash are immutable.
+  Fence hashes are checked even when restore lost their working events. These
+  redundant encoding checks cannot count as semantic catches of coherent lies.
+- Took RECHECK-1's two nits: recompute receives the opposite input lock, and
+  the full decoded-lock table covers pending, absent head, hash, behind/equal/ahead
+  and empty records. Recompute handles absent heads and preserves a bad head
+  hash unless a matching original fence was actually re-encoded.
 
-### Tests so far
+### Tests and mutation
 
-Executable exports: `control/test-work/302-exports/step302a` and disposable
-`skip302a`, using part 1's `.work/302/run.py`, managed-settings stand-in, exported
-PYTHONPATH and base/Mail import ordering. Logs remain under `.work/302/`.
+All execution uses tracked-source exports under
+`control/test-work/302-exports/` with no dot-prefixed ancestor. Logs, patches,
+scripts and recordings are under `.work/302/`. The runner applies the prior
+package's managed-settings `Boundary.read` stand-in, exports absolute PYTHONPATH,
+disables bytecode, sets TMPDIR to `.work/302/tmp`, and orders base `tests` before
+`mail_tests`; Mail runs separately. No FilePolicy change.
 
-- `PYTHONDONTWRITEBYTECODE=1 python3 .work/302/run.py control/test-work/302-exports/step302a base test_owner_state_oracle test_restore_batches test_review22_storage`:
-  **148 tests OK**, 46.613 s (`step3-base-final.log`): oracle 131, restore 9,
-  storage 8. Restore 1k/10k retained/peak bytes: 13,785/217,066 and 13,785/217,069.
-  Covers staged final/intermediate, missing/mismatched full event, ordinary
-  prepared/record-only controls, failed replay then healthy start, exact effects,
-  independent marker/head/lock/generation checks, single use and second restart.
-- Runner `mail test_owner_state_sweep.OwnerStateSweep.test_startup_replay_proof_precedes_any_automatic_confirm test_owner_state_sweep.OwnerStateSweep.test_discovered_staged_restore_interval_and_cleanup_pairs_replay_at_startup`:
-  **2 tests OK**, 97.370 s (`step3-sweep-final.log`; earlier run 109.238 s). Six named checks at 26/40/73
-  in both modes. Discovery examines all 76 clean points; 47 staged-final-confirm
-  points have endpoints 26/73. All 100 single/persistent cases including controls
-  25/74/75, plus 137 cleanup pairs, have empty startup proofs and no lock gaps.
-- The skipped-startup mutation changes only the special staged-restore branch
-  condition (`skipped-startup.patch`) in the disposable export. Same named
-  pre-confirm test: **1 test FAILED (failures=1)**, by its `startup-replay must
-  finish before any automatic confirm` assertion, with six startup proof gaps.
-  No import, fixture or pin failure (`step3-skipped-startup-final.log`, 2.569 s). The baseline
-  passed in the two-test run immediately above.
-- Final driver-only oracle recheck: **131 tests OK** (`step3-oracle-final.log`).
-- The first mutation unexpectedly passed (`step3-skipped-startup.log`): the new
-  checker buffered differences without `finish()`. Added that call and a direct
-  assertion on the raw proof results, then reran the baseline and mutation above.
-- Initial base run: 139 tests, two failures retained in `step3-base.log`.
-  One exposed the recompute's unrelated head-hash replacement; fixed above.
-  The other assumed 32 rows per intermediate batch, but byte limits fill the
-  real fixture's first batch at 30. The test now asserts exactly the saved batch
-  of the 70-change restore, no invented remaining batches, and unchanged generation.
+- Step 3 export `step302a`: `PYTHONDONTWRITEBYTECODE=1 python3 .work/302/run.py control/test-work/302-exports/step302a base test_owner_state_oracle test_restore_batches test_review22_storage`:
+  **148 tests OK**, 46.613 s (`step3-base-final.log`: 131 oracle, 9 restore,
+  8 storage). Driver-only final recheck: **131 OK**, 1.136 s
+  (`step3-oracle-final.log`). Restore 1k/10k retained/peak bytes:
+  13,785/217,066 and 13,785/217,069.
+- Step 3 runner `mail test_owner_state_sweep.OwnerStateSweep.test_startup_replay_proof_precedes_any_automatic_confirm test_owner_state_sweep.OwnerStateSweep.test_discovered_staged_restore_interval_and_cleanup_pairs_replay_at_startup`:
+  **2 tests OK**, 97.370 s (`step3-sweep-final.log`). The six named 26/40/73
+  cases cover both modes. Discovery examines all 76 clean points: 47 staged-final
+  points, endpoints 26/73; 100 single/persistent cases including 25/74/75 controls,
+  plus 137 cleanup pairs. All startup proofs empty; no restore-lock gaps.
+- Skipped-startup mutation: disposable `skip302a`, only the special startup
+  branch condition bypassed (`skipped-startup.patch`). Same named pre-confirm
+  test: **1 test FAILED (failures=1)**, 2.569 s
+  (`step3-skipped-startup-final.log`). All six cases fail the assertion
+  `startup-replay must finish before any automatic confirm`, with missing
+  marker/head/effects/generation/lock proof. It is not an import, fixture or pin
+  failure. The baseline immediately above passes. Its first attempt passed
+  unexpectedly because the new checker had not called `finish()`; added that
+  call and a direct raw-proof assertion, then reran both baseline and mutant.
+- Step 4 export `step302c`, before the last coherent-input regression: runner `base test_owner_state_oracle test_owner_state_fixes_s2 test_review22_storage test_restore_batches test_mail_ci_selection`:
+  **190 tests OK**, 47.453 s (`step4-base-final2.log`: oracle 140, S2 26,
+  storage 9, restore 9, CI selection 6). Store coverage includes cancellation,
+  acknowledgement and account-like rows at marker failures, single/persistent
+  write faults and failed rollback, refused retry without byte changes, visible
+  applied rows, staged-only controls, same rows after restart and zero receiver
+  arrivals. Decoder/model negatives include head/hash/fence/staging/restore,
+  missing rows, unmarked archive manifests, exact cancellation/ack identity,
+  coherent identity deletion/generation/input hash/outcome/effect claims, and
+  applied context unable to authorize a command before its marker.
+- After the final coherent-input fix, runner `base test_owner_state_oracle test_owner_state_fixes_s2 test_mail_ci_selection`: **173 tests OK**, 1.597 s (`step4-oracle-final3.log`: oracle 141, S2 26, CI selection 6). Includes completed/failed marker controls: coherent re-encoding preserves the raw journal history and marker set, and both status/request-state checks retain the original physical latch expectation.
+- `PYTHONDONTWRITEBYTECODE=1 python3 .work/302/final-mail.py control/test-work/302-exports/step302c mail`: **42 tests OK**, 433.488 s (`step4-mail-sweep-final.log`): ordinary owner contracts, quiet, regressions, S2 effects and plants (26), plus all sweep unit tests (16), excluding only the full matrix. Final latch coverage: 154 view runs / 275 checked phases, 3,598 other recorded gap keys, and 77 phase/retry/restart variants including 41 cleanup pairs. No status/restore-lock disagreements in those latch assertions. The other gaps are recordings, not a full-pin pass.
+- With `mail_tests` removed from both sys.path and exported PYTHONPATH, and an assertion that `storage_faults` cannot be imported, `.work/302/base-only.py` runs `base test_owner_state_oracle test_owner_state_fixes_s2 test_mail_ci_selection`: **173 tests OK**, 1.636 s (`step4-base-only-verified.log`). The startup SQL mock explicitly uses an empty fault scope; the pre-command mock supplies only `ACTIVE=None`. Every assertion remains. Real Mail/VFS tests remain unchanged.
+- The new applied-tail sweep discovers marker writes at cancel 68, onboarding
+  61, repair 364, status 154, archive 231 and send 873, then exercises each write
+  and sync in both modes and live/crash phases: **48 cases + 76 cleanup phase
+  runs**. Checks include every view/page/count/envelope, 56 live applied records
+  with correct producing-call identity, and 62 restarts with immutable saved
+  envelopes and no repeated remote action. Staged-but-unapplied controls remain
+  in the latch sweep. Startup coverage still has zero proof/lock gaps.
+- `OWNER_PERTURB_SHARD=6 OWNER_PERTURB_SHARDS=12 PYTHONDONTWRITEBYTECODE=1 python3 .work/302/run.py control/test-work/302-exports/step302c mail test_owner_state_perturb.SystematicPerturbations.test_recorded_scenarios_have_no_silent_owner_state_change`: **1 test OK**, 720.004 s (`step4-alteration-shard6-verified.log`): **12 recordings, 183,894 alterations, 21,052 coherent changes, slipped=0**. All seven required alteration kinds occur; the previously failing large onboarding contract passes all 23,070 candidates in its selected part. Includes the applied-tail cancellation recording and all intact/disabled validator controls.
+- Focused four-record corpus: `PYTHONDONTWRITEBYTECODE=1 python3 .work/302/new-alterations.py control/test-work/302-exports/step302c mail ignored`:
+  **12,284 alterations, slipped=0** (`step4-new-alterations-final4.log`):
+  cancel 2,211, onboarding 1,234, staged final 1,264, staged intermediate 7,575.
+  Both row-only and coherent claims are checked (202 coherent candidates in the
+  two applied-tail recordings). New costs record measured seconds/counts for this focused vocabulary, not
+  invented hosted timing. The full shard uses the whole-corpus vocabulary and
+  therefore has different candidate counts (cancel 2,631 there). Existing cost weights retain their hosted provenance.
+
+Earlier non-green logs are retained. The initial decoder assertion still expected
+an applied unmarked generation to be invisible; changed it to require visibility
+while keeping marked/prepared sets separate and adding unapplied controls.
+A direct Store application fault raises the raw OSError, unlike Engine's bounded
+reply; the store test now checks its mapped original refusal. The new corpus found
+silent generation/identity-deletion/lost-fence alterations; the independent and
+semantic checks above fix them without weakening an assertion or allowed set.
+Its intermediate fixture originally reused one composition and correctly got one
+idempotent preparation; distinct synthetic subjects now make 35 operations. An
+interim sample exposed eight premature hold releases; fixed by retaining marked
+space-plan authority. The first shard attempt was interrupted by its exact PID
+(exit 130) before rerunning the final source; it is not evidence of a pass.
+The next full shard exposed a phantom latch after coherent hash re-encoding
+(`step4-alteration-shard6-final.log`, 1 test failed after 346.524 s). A coherent
+writer now preserves the original physical transaction record as independent
+input to the existing latch rule, for status and request-state checks. It changes
+no raw trace, marker or startup input, and does not weaken the live hash/phase
+checks. The focused regression and the final full rerun cover this distinction.
+
+### Compact sample delta against part 1
+
+`PYTHONDONTWRITEBYTECODE=1 python3 .work/302/sample.py control/test-work/302-exports/step302c mail .work/302/after-item3-final`:
+**104 runs, 187 checked phases, 1,528 keys** (`step4-sample-final.log`). The 52
+additional phases are the new immediate startup checks, all empty. Against
+part 1's final `after-item1/sample.json` (2,345 keys): **825 closed, 147 changed,
+8 new, 1,373 identical** (`step4-sample-delta-final.json`). Twelve changed keys
+are alias-only. Against the original 2,498-key baseline: 978 closed, 151 changed,
+8 new, 1,369 identical. All seven complete clean trace files are byte-identical.
+
+| Flow | Closed | Changed | New |
+|---|---:|---:|---:|
+| archive | 31 | 0 | 0 |
+| cancel | 118 | 26 | 0 |
+| onboarding | 132 | 18 | 0 |
+| repair | 263 | 28 | 0 |
+| restore | 54 | 27 | 0 |
+| send | 175 | 20 | 8 |
+| status | 52 | 28 | 0 |
+
+- Applied rows now agree at H: cancel 69 is `failed` in both store and model;
+  onboarding 61/62 includes the saved account. The staged/unapplied controls do
+  not become visible. The historical 1439 case still is not the local first
+  account boundary, and remains explicitly exercised.
+- Restore's 54 closures and 27 changes are after-start lifecycle/row-reason
+  corrections from assigning the replayed batch to its original staged confirm.
+  The old marked end range excluded that event. No store, restore-lock formula,
+  restore-row projection or captured pre-crash record was changed to force it.
+- The eight new keys are `control_pending.notice-count` and `mail catalogue.total`
+  at send marker 873/874: model 0, store 1, in live/exhausted phases. They expose
+  count disagreements after correcting the applied row, not startup/lock gaps.
+  No new recovery-hold keys remain. Their whole-pin classification belongs to
+  step 6; this sample does not promise N7's historical total or erase other gaps.
+- No key ends in `.restore-lock` or `/startup-replay`. The standalone startup
+  proof adds coverage rather than an accepted baseline gap. No pin change.
+
+### Push checks
+
+Latest observed push (`d425882e`):
+
+| Workflow | Run | Observed |
+|---|---:|---|
+| Control boundary | 44339324452 | pending |
+| Control Chrome | 44339324376 | queued |
+| Control Chrome qualification | 44339324396 | pending |
+| Control base | 44339324334 | pending |
+| Repo privacy | 44339324446 | pending |
+| Control Mail | 44339324269 | queued |
+
+Step 3 (`6f12f561`): Repo privacy **44327232557 passed** and Control boundary
+**44327232070 passed**. Control base **44327233131 failed**: 407 tests, one
+`ModuleNotFoundError: storage_faults` in the new base-only startup mock. The
+local two-path runner had included Mail helpers, masking that missing dependency.
+Reading the failed log also led to checking the new applied-context mock without
+Mail imports; it had the same dependency. `d425882e` gives only those mocks their
+explicit empty inputs. The isolated 173-test recheck above passes. The hosted
+retry is pending, not claimed green (`step3-base-ci-failure.log`).
+
+At the same observation, `efa70045` Base/Mail/boundary/privacy/qualification
+runs were cancelled and Chrome was queued. Step 3 Mail/qualification were
+cancelled and Chrome was queued. Raw observations: `step3-push-checks.json`,
+`step4-push-checks.json`, `part2-push-checks-final.json`. No workflow was
+dispatched, rerun or awaited past this work; the closing documentation push
+changes no executable source.
 
 ### Left, in order
 
-Step 4 is in progress. Then step 5 (remaining mutations), step 6 (one re-pin,
-full capture and proof), then the package/security and independent classification
-reviews in their assigned runs. No workflow dispatch or pin update in this run.
+1. Step 5: every reviewer mutation on the final build, with passing baselines and exact
+   patches/failures in disposable executable exports. The skipped-startup probe
+   above is completed; it does not waive the full final-build matrix gate.
+2. Step 6: integrate current main, settle drift, re-pin once, full capture,
+   pin classification and proof, and required Control CI green twice.
+3. The assigned package/security and independent classification reviews.
 
 ### What the code doesn't show
 
-Synthetic local exports do not prove installed/root/channel behaviour, the hosted
-point-count difference, the full sweep/alteration matrix or whole-pin classification.
+Local exports and synthetic fixtures prove no installed/root/channel behaviour,
+real owner account/service restart, full sweep/alteration matrix, hosted point
+portability or whole-pin classification. Required pushed workflows are reported
+only as observed above; no dispatch, rerun or wait past this work. No production
+Store/Engine, OS, boot, mount or live-service change, and no mod test is needed.
 
 ### JUDGMENT-CALLs
 
-No new product choice; owner board #352 already approved the brief. The canonical
-startup obligation is kept on Driver rather than Record, so it is independent
-of decoded state and requires no new Record exclusion or on-disk format.
+No new product choice; board #352 already approved keeping applied rows visible
+and the restart advice. Reversible oracle choices: derive applied history via a
+helper rather than another mutable Record projection; keep the canonical startup
+obligation on Driver, separate from decoded state; keep permission and space plans
+marked while local rows are applied. No schema/journal format or Record exclusion
+was added. Changing these later costs test/oracle work, not data migration.
 
 ### PLAN-GAPs
 
-Intermediate batches are bounded by bytes as well as row count; the >32-change
-fixture produces a first batch of 30 operations. The full restore still has 70
-changes. Discovery finds 47 staged-final points within 26..73, rather than assuming
-that every syscall in that numeric interval leaves identical staged bytes.
+- Intermediate restore batches fill their byte limit as well as their row limit:
+  the 70-change store fixture's first batch has 30 operations. The test asserts
+  the saved batch exactly, retained generation/lock and no invented remaining work.
+  Discovery finds 47 staged-final points within 26..73, rather than treating every
+  syscall in that interval as identical staged bytes.
+- The new alteration corpus exposed validation blind spots in rejected prepared
+  claims, coherent missing identity and old fences without working events. These
+  needed shared proof checks; copying rows into the final projection or counting
+  a format exception as a semantic catch was not sufficient.
+- Local visible rows do not finish a space plan. The brief did not name
+  `hold_facts`; it must retain marked rights until the marker to avoid introducing
+  eight false hold discrepancies. No live reservation or Store code was changed.
+- Item 1's raw marker hashes also need independence from item 3's coherent
+  fence re-encoding. Otherwise a healthy completed physical write appears latched
+  merely because an alteration re-encoded its claim. The original immutable
+  transaction record now supplies those inputs; no cached latch flag or returned
+  error is used.
+- The brief's local base path includes Mail helpers, while the hosted base
+  container omits them. That hid two new mock fixtures' imports of the Mail VFS
+  module. Explicit empty mock inputs and a no-Mail-path recheck close the gap;
+  production fault injection is unchanged.
+- Part 1's hosted/local onboarding difference (2,610 versus 2,570 points) remains
+  unresolved and explicitly deferred to same-runtime capture/classification.
+  All seven local clean traces match part 1 exactly; no point was silently skipped.
+
+Closing scratch scan: no files over 500 MB under `.work/` or `control/test-work/`.
+No Gradle daemon was started. No installed/root/channel test, workflow dispatch,
+OS owner module, boot tool, mount or live-service action was run.
 
 ---
 
