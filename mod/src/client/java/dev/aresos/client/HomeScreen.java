@@ -126,8 +126,9 @@ public final class HomeScreen {
             wasFocused = true;
             // A helper event can precede the player/world while joining or switching homes. Keep its focus until
             // the helper changes it; clearing it here used to capture the mouse behind the still-focused app.
-            if (!session() || dev.aresos.AresOs.shell() == null
-                    || dev.aresos.AresOs.shell().status().state() != ShellClient.State.CONNECTED) appInFront = false;
+            var shell = dev.aresos.AresOs.shell();
+            var state = shell == null ? ShellClient.State.CLOSED : shell.status().state();
+            if (!session() || (state != ShellClient.State.CONNECTED && state != ShellClient.State.STARTING)) appInFront = false;
             return;
         }
         if (appInFront && client.mouseHandler.isMouseGrabbed()) client.mouseHandler.releaseMouse();

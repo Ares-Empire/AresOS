@@ -57,14 +57,21 @@ public final class FreePointerClientGameTest implements FabricClientGameTest {
                     AppsTestAccess.aresos$setShell(shell);
                     AresOsClient.replaceLauncher(new LinuxAppLauncher(() -> shell));
                     HomeScreen.forTests(true, null);
-                    ShellFocusClient.register(shell);
+                });
+                var heardFocus = new java.util.concurrent.atomic.AtomicInteger();
+                shell.addListener(new ShellClient.Listener() {
+                    @Override public void focus(ShellClient.Focus focus) { heardFocus.incrementAndGet(); }
                 });
                 shell.start();
                 shell.awaitApps(Duration.ofSeconds(10));
+                // Production starts the common helper before the client initializer registers its listener.
+                background(helper, "notepad");
+                context.waitFor(client -> heardFocus.get() > 0);
+                context.runOnClient(client -> ShellFocusClient.register(shell));
+                context.waitTicks(4);
                 try (var world = context.worldBuilder().create()) {
                     // The actual defect: a background event arrives before a desktop world is playable. Frames in
                     // between must not erase it, and setScreen(null) must not capture behind the focused app.
-                    background(helper, "notepad");
                     context.waitTicks(4);
                     world.getServer().runOnServer(server -> DesktopWorld.setEnabled(server, true));
                     context.waitFor(HomeScreen::freePointer);
@@ -76,6 +83,7 @@ public final class FreePointerClientGameTest implements FabricClientGameTest {
                     setupHotbar(context, world);
                     nativeApps.activate("notepad");
                     checkEdges(context, helper, nativeApps);
+                    reconnect(context, helper, shell, heardFocus);
                     hotbar(context, world, helper, nativeApps);
                     lostRelease(context, helper);
                     gates(context, world, helper);
@@ -301,6 +309,35 @@ public final class FreePointerClientGameTest implements FabricClientGameTest {
                 net.minecraft.client.KeyMapping.releaseAll();
                 AppInput.reset();
             });
+        }
+    }
+
+    private static void reconnect(ClientGameTestContext context, FakeHelper helper, ShellClient shell,
+                                  java.util.concurrent.atomic.AtomicInteger heardFocus) throws IOException {
+        int previous = heardFocus.get();
+        var releaseList = new java.util.concurrent.CountDownLatch(1);
+        helper.override = request -> {
+            if (request.get("op").getAsString().equals("list_apps") && helper.connections.get() > 1) {
+                background(helper, "notepad");
+                try { check(releaseList.await(5, java.util.concurrent.TimeUnit.SECONDS), "Reconnect list was not released"); }
+                catch (InterruptedException error) { Thread.currentThread().interrupt(); throw new RuntimeException(error); }
+            }
+            return null;
+        };
+        try {
+            helper.drop();
+            context.waitFor(client -> heardFocus.get() > previous);
+            context.waitTicks(4);
+            check(shell.status().state() == ShellClient.State.STARTING, "Reconnect handshake is not STARTING");
+            releaseList.countDown();
+            context.waitFor(HomeScreen::freePointer);
+            context.runOnClient(client -> {
+                client.mouseHandler.grabMouse();
+                check(!client.mouseHandler.isMouseGrabbed(), "Frames during reconnect erased the new background focus");
+            });
+        } finally {
+            releaseList.countDown();
+            helper.override = request -> null;
         }
     }
 

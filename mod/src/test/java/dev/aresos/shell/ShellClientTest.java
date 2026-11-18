@@ -364,6 +364,75 @@ class ShellClientTest {
                 new ShellClient.Focus(true, "desktop_activated", null, false)), focus);
     }
 
+    @Test void aLateListenerReceivesFocusReportedDuringTheHandshake() throws Exception {
+        helper.override = message -> {
+            if ("hello".equals(FakeHelper.string(message, "op"))) try {
+                helper.event("shell_focus", Map.of("focus", "background", "reason", "app_activated", "app_id", "notepad"));
+            } catch (IOException error) { throw new java.io.UncheckedIOException(error); }
+            return null;
+        };
+        connect();
+        var focus = new CopyOnWriteArrayList<ShellClient.Focus>();
+        client.addListener(new ShellClient.Listener() {
+            @Override public void focus(ShellClient.Focus event) { focus.add(event); }
+        });
+        assertEquals(List.of(new ShellClient.Focus(false, "app_activated", "notepad", false)), focus);
+    }
+
+    @Test void aFocusReplayCannotArriveAfterANewerFocusEvent() throws Exception {
+        connect();
+        var first = new CopyOnWriteArrayList<ShellClient.Focus>();
+        client.addListener(new ShellClient.Listener() {
+            @Override public void focus(ShellClient.Focus event) { first.add(event); }
+        });
+        helper.event("shell_focus", Map.of("focus", "background", "reason", "app_activated", "app_id", "notepad"));
+        FakeHelper.await(() -> first.size() == 1, "initial focus received");
+        var replaying = new CountDownLatch(1);
+        var release = new CountDownLatch(1);
+        var focus = new CopyOnWriteArrayList<ShellClient.Focus>();
+        var subscribed = CompletableFuture.runAsync(() -> client.addListener(new ShellClient.Listener() {
+            @Override public void focus(ShellClient.Focus event) {
+                if (!event.foreground()) {
+                    replaying.countDown();
+                    try { assertTrue(release.await(5, TimeUnit.SECONDS)); }
+                    catch (InterruptedException error) { Thread.currentThread().interrupt(); throw new RuntimeException(error); }
+                }
+                focus.add(event);
+            }
+        }));
+        try {
+            assertTrue(replaying.await(5, TimeUnit.SECONDS));
+            helper.event("shell_focus", Map.of("focus", "foreground", "reason", "desktop_activated"));
+            helper.launchState = "focused";
+            var opened = client.open("terminal");
+            // Its reply is behind the focus event on the same socket: neither may overtake the blocked replay.
+            assertThrows(TimeoutException.class, () -> opened.get(100, TimeUnit.MILLISECONDS));
+            release.countDown();
+            subscribed.get(5, TimeUnit.SECONDS);
+            opened.get(5, TimeUnit.SECONDS);
+            assertEquals(List.of(new ShellClient.Focus(false, "app_activated", "notepad", false),
+                    new ShellClient.Focus(true, "desktop_activated", null, false)), focus);
+        } finally { release.countDown(); }
+    }
+
+    @Test void aLostConnectionDoesNotReplayItsOldFocusToANewListener() throws Exception {
+        connect();
+        var first = new CopyOnWriteArrayList<ShellClient.Focus>();
+        client.addListener(new ShellClient.Listener() {
+            @Override public void focus(ShellClient.Focus event) { first.add(event); }
+        });
+        helper.event("shell_focus", Map.of("focus", "background", "reason", "app_activated", "app_id", "notepad"));
+        FakeHelper.await(() -> first.size() == 1, "initial focus received");
+        helper.override = message -> "hello".equals(FakeHelper.string(message, "op")) ? new JsonObject() : null;
+        helper.drop();
+        FakeHelper.await(() -> client.status().state() != ShellClient.State.CONNECTED, "connection lost");
+        var replayed = new CopyOnWriteArrayList<ShellClient.Focus>();
+        client.addListener(new ShellClient.Listener() {
+            @Override public void focus(ShellClient.Focus event) { replayed.add(event); }
+        });
+        assertTrue(replayed.isEmpty());
+    }
+
     @Test void aHelperThatNeverAnswersTimesOut() throws Exception {
         helper.override = message -> "open_app".equals(FakeHelper.string(message, "op")) ? new JsonObject() : null;
         // An empty object still gets the protocol stamp but no id: the client must ignore it and keep waiting.

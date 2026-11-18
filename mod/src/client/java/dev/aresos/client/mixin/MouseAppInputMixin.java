@@ -38,7 +38,11 @@ public abstract class MouseAppInputMixin {
 
     @Inject(method = "grabMouse", at = @At("HEAD"), cancellable = true)
     private void aresos$keepPointerFree(CallbackInfo ci) {
-        if (HomeScreen.freePointer(Minecraft.getInstance())) ci.cancel();
+        if (HomeScreen.freePointer(Minecraft.getInstance())) {
+            // Loading may have captured before the desktop marker/player became active.
+            ((MouseHandler) (Object) this).releaseMouse();
+            ci.cancel();
+        }
     }
 
     @Inject(method = "turnPlayer", at = @At("HEAD"), cancellable = true)

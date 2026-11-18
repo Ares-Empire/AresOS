@@ -31,3 +31,9 @@ front=false active=true glfwFocused=true grabbed=true yaw=200.1 pitch=3.7000017
 ```
 
 The virtual seat alone did not reliably reproduce raw motion in the captured Xwayland window; callback replay is stated explicitly here. The focus state, erroneous capture and resulting camera change were observed in the real session preview. `HomeScreen.frame` had erased the helper's background state while `active()` was false during loading. Closing the loading screen could then capture the pointer, and neither capture nor turning checked the helper's focus. The final client test covers both the erased-state transition and the unguarded screen-close/capture path, plus real seat movement and native focus transitions.
+
+## Startup delivery follow-up
+
+The ordinary preview was repeated after the initial mod changes. It still showed `front=false` / `grabbed=true`; inspecting the new client cache showed `helperFocus=null`. The helper had already changed to background before the game connected and sent only later transitions. The final fix sends the current background focus after hello, caches/replays it for the client initializer, and preserves it while initial/reconnect app listing runs. The client fixture now receives background focus before its game listener subscribes and before the world loads; it also holds a reconnect list reply across client frames.
+
+With the complete startup path fixed, the same ordinary preview reported `front=true active=true glfwFocused=true grabbed=false` and a cached background `Focus`. Attempting `grabMouse` and replaying motion kept yaw/pitch at `180/-8`. Closing the small app then reported `front=false` / `grabbed=true`, with the view unchanged. This ordinary preview verifies actual GLFW capture, which Fabric disables in client game tests.
