@@ -246,9 +246,12 @@ def resolve(lock_folder, out):
     specs = [*BUILD_TOOLS, *wanted]
     print('Requested: ' + ', '.join(specs))
     downloads = work / 'downloads'
-    subprocess.run(['dnf5', '--disable-repo=*', '--enable-repo=fedora', '--enable-repo=updates',
-                    '--setopt=install_weak_deps=False', '--setopt=skip_if_unavailable=False', '--setopt=gpgcheck=True',
-                    'download', '--resolve', f'--destdir={downloads}', *specs], check=True)
+    result = subprocess.run(['dnf5', '--disable-repo=*', '--enable-repo=fedora', '--enable-repo=updates',
+                             '--setopt=install_weak_deps=False', '--setopt=skip_if_unavailable=False',
+                             '--setopt=gpgcheck=True', 'download', '--resolve', f'--destdir={downloads}', *specs])
+    if result.returncode != 0:
+        raise Refusal(f"the build dependencies do not resolve on this base from Fedora's repositories "
+                      f'(dnf5 exit {result.returncode})')
     candidates, unavailable = [], []
     check = work / 'koji'
     check.mkdir()

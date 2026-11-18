@@ -2970,7 +2970,8 @@ class ImageBuildTest(unittest.TestCase):
         base = json.loads((ROOT / 'os/manifest/base.json').read_text())['reference']
         # The workflow checks the first FROM against the pinned base; it stays first.
         self.assertEqual(stages, [['FROM', base, 'AS', 'packages'], ['FROM', base, 'AS', 'source'],
-                                  ['FROM', self.BUILDER, 'AS', 'mod'], ['FROM', 'packages', 'AS', 'aresos']])
+                                  ['FROM', self.BUILDER, 'AS', 'mod'], ['FROM', base, 'AS', 'labwc'],
+                                  ['FROM', 'packages', 'AS', 'aresos']])
         source_stage = containerfile.split(' AS source\n', 1)[1].split('\nFROM ', 1)[0]
         self.assertIn('RUN bash /tmp/aresos-mod/build.sh source "$ARESOS_SOURCE_REVISION" /source', source_stage)
         mod_stage = containerfile.split(' AS mod\n', 1)[1].split('\nFROM ', 1)[0]
@@ -3239,6 +3240,7 @@ class ModJarPinTest(unittest.TestCase):
             shutil.copy(share / 'minecraft/desktop.lock.json', manifest / 'desktop.lock.json')
             for name in ('packages.lock.json', 'google-chrome.lock.json'):
                 shutil.copy(ROOT / 'os' / name, manifest / name)
+            shutil.copy(ROOT / 'os/labwc/labwc.lock.json', manifest / 'labwc.lock.json')
             return self.python(check, manifest, kind, cwd=ROOT)
 
         _, share, _ = self.configure(b'other bytes', ARESOS_BUILD_KIND='throwaway')

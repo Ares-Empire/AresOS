@@ -348,6 +348,10 @@ class ResolveTest(StageCase):
         self.assert_refused(self.resolve(), 'the source package has SHA-256')
         self.assertFalse(self.called('dnf5'))
 
+    def test_refuses_dependencies_that_do_not_resolve(self):
+        self.state['dnf_exit'] = 1
+        self.assert_refused(self.resolve(), 'do not resolve on this base')
+
     def test_the_koji_address_is_fedoras_signed_copy(self):
         state_file = self.tmp / 'state.json'
         state_file.write_text(json.dumps(self.state))
