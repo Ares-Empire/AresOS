@@ -1,0 +1,3 @@
+858522:
+garbage-first heap   total reserved 1048576K, committed 470016K, used 341598K [0x00000000c0000000, 0x0000000100000000)
+ region size 1024K, 21 young (21504K), 7 survivors (7168K)
