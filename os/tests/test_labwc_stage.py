@@ -5,6 +5,7 @@ needs root, the network or a Fedora system.
 """
 import contextlib
 import copy
+import fnmatch
 import hashlib
 import importlib.util
 import io
@@ -142,6 +143,7 @@ class StageCase(unittest.TestCase):
                                 for nevra, data in sorted(self.dependencies.items())])
         self.write_lock()
         self.write_image_packages(WLROOTS)
+        self.write_containerfile(f'FROM {FEDORA_BASE} AS labwc\n')
         self.state = dict(
             calls=[], urls={self.source_url: self.source_bytes.hex(),
                             **{self.dep_url(n): data.hex() for n, data in self.dependencies.items()}},
@@ -158,6 +160,9 @@ class StageCase(unittest.TestCase):
 
     def write_image_packages(self, *nevras):
         (self.tmp / 'packages.lock.json').write_text(json.dumps(dict(packages=[dict(nevra=n) for n in nevras])))
+
+    def write_containerfile(self, text):
+        (self.tmp / 'Containerfile').write_text(text)
 
     def prepare_inputs(self):
         """What the labwc-inputs stage hands over, on the locked environment install-inputs.sh made."""
@@ -249,6 +254,78 @@ class FetchTest(StageCase):
     def test_guard_1_refuses_an_image_without_one_wlroots(self):
         self.write_image_packages('glibc-2.43-1.fc44.x86_64')
         self.assert_refused(self.fetch(), 'must hold exactly one wlroots0.19')
+
+
+class LockedBaseTest(StageCase):
+    """311c: the Fedora image the labwc stage is built from is the one the lock records."""
+    OTHER = 'registry.fedoraproject.org/fedora@sha256:' + 'c' * 64
+
+    def assert_base_refused(self, pattern='must be built from the locked'):
+        self.assert_refused(self.fetch(), pattern)
+        self.assertFalse(self.called('curl'), 'the refusal comes before any download')
+        self.assertFalse(self.inputs.exists(), 'the refusal comes before any input is handed over')
+
+    def test_another_digest_in_the_stage_is_refused(self):
+        self.write_containerfile(f'FROM {self.OTHER} AS labwc\n')
+        self.assert_base_refused(re.escape(f"Containerfile says ['{self.OTHER}']"))
+
+    def test_another_digest_in_the_lock_is_refused(self):
+        self.lock['base']['reference'] = self.OTHER
+        self.write_lock()
+        self.assert_base_refused(re.escape(f"the locked {self.OTHER}, Containerfile says ['{FEDORA_BASE}']"))
+
+    def test_a_stage_it_cannot_read_as_the_locked_digest_is_refused(self):
+        cases = {
+            'no stage': 'FROM packages AS aresos\n',
+            'a second stage': f'FROM {FEDORA_BASE} AS labwc\nFROM {self.OTHER} AS labwc\n',
+            'lower case': f'from {self.OTHER} as labwc\n',
+            'a tag': 'FROM registry.fedoraproject.org/fedora:44 AS labwc\n',
+            'a build argument': 'FROM ${FEDORA} AS labwc\n',
+            'a flag': f'FROM --platform=linux/amd64 {FEDORA_BASE} AS labwc\n',
+            'two lines': f'FROM {FEDORA_BASE} \\\n    AS labwc\n',
+        }
+        for name, text in cases.items():
+            with self.subTest(name):
+                self.state['calls'] = []
+                self.write_containerfile(text)
+                self.assert_base_refused()
+
+    def test_other_stages_and_comments_are_not_the_labwc_stage(self):
+        self.write_containerfile(f'# FROM {self.OTHER} AS labwc\nFROM {self.OTHER} AS labwc-inputs\n'
+                                 f'FROM {FEDORA_BASE} AS labwc\nFROM packages AS aresos\n')
+        self.assertEqual(self.fetch(), 0, self.stderr)
+
+    def test_a_missing_containerfile_is_refused(self):
+        (self.tmp / 'Containerfile').unlink()
+        self.assert_base_refused('Containerfile cannot be read')
+
+    def real_files(self):
+        """A copy of this repository's Containerfile and lock, as the labwc-inputs stage sees them."""
+        tree = self.tmp / 'real'
+        (tree / 'labwc').mkdir(parents=True, exist_ok=True)
+        for name in ('Containerfile', 'packages.lock.json', 'labwc/labwc.lock.json'):
+            (tree / name).write_bytes((ROOT / name).read_bytes())
+        return tree
+
+    def test_the_real_files_pass_the_check_and_go_on_to_the_downloads(self):
+        stage.require_locked_base(stage.load_lock(ROOT / 'labwc'), ROOT / 'labwc')
+        # The stand-in curl has no files here, so the first download is as far as this run gets.
+        self.state['urls'] = {}
+        self.assert_refused(self.run_stage('fetch', ROOT / 'labwc', self.inputs), 'could not download')
+        self.assertEqual(len(self.called('curl')), 1)
+
+    def test_the_real_files_are_refused_when_either_side_changes(self):
+        locked = stage.load_lock(ROOT / 'labwc')['base']['reference']
+        for name in ('Containerfile', 'labwc/labwc.lock.json'):
+            with self.subTest(name):
+                tree = self.real_files()
+                text = (tree / name).read_text()
+                self.assertEqual(text.count(locked), 1)
+                (tree / name).write_text(text.replace(locked, self.OTHER))
+                self.state['calls'] = []
+                self.assert_refused(self.run_stage('fetch', tree / 'labwc', self.inputs),
+                                    'must be built from the locked')
+                self.assertFalse(self.called('curl'))
 
 
 class BuildTest(StageCase):
@@ -677,6 +754,16 @@ class WiringTest(unittest.TestCase):
         self.assertIn('COPY --from=labwc /out/ /tmp/aresos-labwc-rpm/\n', final)
         swap = final.index('stage.py install /tmp/aresos-labwc-rpm /tmp/aresos/labwc')
         self.assertLess(swap, final.index('build.sh configure'))
+
+    def test_the_digest_check_reads_the_containerfile_before_any_dependency_is_installed(self):
+        inputs = self.containerfile.split(' AS labwc-inputs\n')[1].split('\nFROM ')[0]
+        # The lock folder's parent: where stage.py looks for it.
+        self.assertLess(inputs.index('COPY Containerfile /tmp/aresos/Containerfile\n'), inputs.index('stage.py fetch'))
+        ignored = (ROOT / '.containerignore').read_text().split('\n')
+        self.assertFalse([rule for rule in ignored if rule and fnmatch.fnmatch('Containerfile', rule.rstrip('/'))])
+        section = self.containerfile.split(' AS labwc\n')[1].split('\nFROM ')[0]
+        # This COPY makes the labwc stage wait for the stage that holds the check.
+        self.assertLess(section.index('COPY --from=labwc-inputs '), section.index('install-inputs.sh'))
 
     def test_guard_2_no_step_skips_a_check(self):
         for name in ('labwc/stage.py', 'labwc/install-inputs.sh', 'labwc/resolve-download.sh', 'Containerfile'):

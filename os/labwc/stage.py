@@ -19,6 +19,9 @@ import sys
 import tempfile
 
 LOCK_NAME = 'labwc.lock.json'
+CONTAINERFILE = 'Containerfile'
+# Any spelling of the line that starts the labwc stage: what it names must then be exactly the locked reference.
+LABWC_STAGE = re.compile(r'^[ \t]*FROM[ \t]+(.+?)[ \t]+AS[ \t]+labwc[ \t]*$', re.IGNORECASE | re.MULTILINE)
 SOURCE_FILE = 'source.src.rpm'
 MANIFEST = pathlib.Path('/usr/share/aresos/manifest')
 KOJI = 'https://kojipkgs.fedoraproject.org/packages/'
@@ -161,6 +164,21 @@ def image_wlroots(lock_folder):
     return found[0]
 
 
+def require_locked_base(lock, lock_folder):
+    """The labwc stage is built on the image the lock records, the one check_build=resolve resolves against.
+
+    The environment check in build() cannot see this: two images can hold the same packages and build differently.
+    """
+    path = pathlib.Path(lock_folder).parent / CONTAINERFILE
+    try:
+        found = LABWC_STAGE.findall(path.read_text())
+    except (OSError, ValueError) as error:
+        raise Refusal(f'{CONTAINERFILE} cannot be read: {error}') from error
+    locked = lock['base']['reference']
+    if found != [locked]:
+        raise Refusal(f'the labwc stage must be built from the locked {locked}, {CONTAINERFILE} says {found}')
+
+
 def check_patch(lock, lock_folder):
     patch = pathlib.Path(lock_folder) / lock['patch']['file']
     if not patch.is_file():
@@ -173,6 +191,7 @@ def fetch_inputs(lock_folder, inputs):
     """Every input, checked against the lock, for the labwc stage (which has no Python until they are installed)."""
     lock_folder, inputs = pathlib.Path(lock_folder), pathlib.Path(inputs)
     lock = load_lock(lock_folder)
+    require_locked_base(lock, lock_folder)
     check_patch(lock, lock_folder)
     require_same_wlroots(lock, image_wlroots(lock_folder))
     (inputs / 'rpms').mkdir(parents=True)
