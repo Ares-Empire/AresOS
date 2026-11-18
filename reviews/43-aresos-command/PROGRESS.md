@@ -1104,3 +1104,10 @@ from a checkout of it, when the builder changed keys other than the rows.
 **Next: step 6**, which needs R28 published with its rehearsal mode on main, and calls 1 and 2 and the new `check`
 line settled with the owner. Before it: the merge of main after R28's payload commit (Left, item 1), and the two
 red tests going green (Control's `newest` from `linux-tools`; R28's Control rule, then the rule's `cli` path here).
+
+### The owner's OK on calls 1 and 2 (2026-11-18)
+
+Board #350 ("OK for the aresos command's wording? …", the window-line table and the `aresos update` result lines as
+docs/INSTALL.md shows them): **"OK as shown"**. The guide's two "proposed, awaiting your OK" sentences are gone
+(docs/INSTALL.md, the window table's lead-in and the Updating paragraph). Step 6's precondition "calls 1 and 2
+settled" is met; the new `check` line (D19) shipped unchanged.

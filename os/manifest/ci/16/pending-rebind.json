@@ -24,7 +24,8 @@
     "43 step 4, REVIEW-12 fixes: EMERGENCY.md's two refusals that are not a STOP, and the was-not-applied warning inside its branch",
     "43 step 4, REVIEW-12 fixes: test_owner_path pins the was-not-applied warning inside its branch",
     "43 step 4, REVIEW-12 fixes: test_owner_path pins the routine STOP card's two refusals",
-    "43 step 5a: the R28 bridge's three generated routine lines (newest, reboot, check) by 22d's generator; guides, commands.json and tests; tools fingerprint f66fd694 unchanged"
+    "43 step 5a: the R28 bridge's three generated routine lines (newest, reboot, check) by 22d's generator; guides, commands.json and tests; tools fingerprint f66fd694 unchanged",
+    "43: the owner's OK on calls 1 and 2 (board #350, 'OK as shown'); docs/INSTALL.md drops its two pending-OK sentences"
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
@@ -37,7 +38,7 @@
       "path": "docs/EMERGENCY.md"
     },
     {
-      "sha256": "51d378dd57a8453ac79bade0c0889c1d7bd61ef8201d07621cc4b651b07a7e1a",
+      "sha256": "15cac3d5ee698e3f738e1517eb90c7a8e84b6d774dfd41188a3b40b135308810",
       "path": "docs/INSTALL.md"
     },
     {
