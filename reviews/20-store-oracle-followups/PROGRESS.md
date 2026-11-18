@@ -2,7 +2,7 @@
 
 ## Build part 4
 
-Status: **Build part 4 checks done; baseline settled; capture pending**.
+Status: **Build part 4 done; capture 44352598226 dispatched; next: the re-pin**.
 
 ### Three PLAN-GAPs closed
 
@@ -137,15 +137,19 @@ capture comparison; no local point was remapped or skipped.
 
 ### Capture handoff
 
-Baseline settled. One full capture will be dispatched on the pushed branch:
+Baseline settled. Dispatched exactly one full capture on pushed commit
+`e52ae87b4469e6f794dc01aee0f8c19ecc2b4851`:
 
 ```sh
 gh workflow run control-owner-oracle.yml --ref pkg/302-store-oracle -f ledger_only=false
 ```
 
-Capture run ID: pending dispatch. The builder stops after recording and pushing
-it. `linux-tools` watches the capture. The strict old-pin failure is expected
-capture evidence; no full-pin or CI-green claim is made here.
+Capture run ID: **[44352598226](https://github.com/Ares-Empire/AresOS/actions/runs/44352598226)**.
+The dispatch exited 0 and returned that URL. There was no earlier dispatch on
+this branch; no other workflow was dispatched. The builder records and pushes
+this ID, then stops without watching, waiting for, or downloading the capture.
+`linux-tools` watches it. The strict old-pin failure is expected capture
+evidence; no full-pin or CI-green claim is made here.
 
 ### Left, in order
 
