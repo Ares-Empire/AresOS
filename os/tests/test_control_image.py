@@ -27,7 +27,7 @@ REVISION = 'cd' * 20
 FILES = {
     '/etc/claude-code/CLAUDE.md': ('0644', 'control/settings/CLAUDE.md'),
     '/etc/claude-code/managed-settings.json': ('0644', 'control/settings/managed-settings.draft.json'),
-    '/usr/bin/aresos': ('0755', 'control/packaging/aresos'),
+    '/usr/libexec/aresos-control/cli': ('0755', 'control/packaging/aresos'),
     '/usr/bin/aresos-mcp': ('0755', 'control/packaging/aresos-mcp'),
     '/usr/bin/aresos-toold': ('0755', 'control/packaging/aresos-toold'),
     '/usr/lib/systemd/system/aresos-toold.service': ('0644', 'control/packaging/aresos-toold.service'),
@@ -154,6 +154,23 @@ class InstallMapTest(unittest.TestCase):
             self.assertIn('/usr/libexec/aresos-control/launch.py', server['args'])
         for event in json.loads((CONTROL / 'settings/managed-settings.draft.json').read_text())['hooks'].values():
             self.assertIn('/usr/libexec/aresos-control/launch.py hook ', event[0]['hooks'][0]['command'])
+
+    def test_the_moved_wrapper_leaves_the_dispatcher_intact_and_is_recorded_unchanged(self):
+        dest = self.work / 'with-dispatcher'
+        dispatcher = dest / 'usr/bin/aresos'
+        dispatcher.parent.mkdir(parents=True)
+        source = ROOT / 'os/config/usr/bin/aresos'
+        shutil.copy2(source, dispatcher)
+        result, _ = self.tree(dest=dest)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(dispatcher.read_bytes(), source.read_bytes())
+        self.assertEqual(dispatcher.stat().st_mode & 0o7777, 0o755)
+        wrapper = '/usr/libexec/aresos-control/cli'
+        self.assertEqual((dest / wrapper.lstrip('/')).read_bytes(), (CONTROL / 'packaging/aresos').read_bytes())
+        record = self.record(dest)
+        self.assertNotIn('/usr/bin/aresos', record['files'])
+        self.assertEqual(record['files'][wrapper], dict(mode='0755', source='control/packaging/aresos',
+                                                       sha256=sha256((CONTROL / 'packaging/aresos').read_bytes())))
 
     def test_the_config_follows_the_images_account_declaration(self):
         result, dest = self.tree()

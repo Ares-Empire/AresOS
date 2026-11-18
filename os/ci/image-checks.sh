@@ -790,6 +790,30 @@ printf '%s\n' "$layout"
 test "$layout" = "'appmenu:minimize,maximize,close'"
 pass 'Ares-Crown files installed; compiled AresOS default gives apps all three buttons'
 
+# --- Package 43: fixed desktop dispatcher and bounded password helper.
+for command_file in /usr/bin/aresos /usr/libexec/aresos-askpass; do
+    test -f "$command_file"
+    test ! -L "$command_file"
+    test -x "$command_file"
+    test "$(stat -c '%U:%G %a' "$command_file")" = 'root:root 755'
+done
+test -x /usr/bin/timeout
+test -x /usr/bin/ksshaskpass
+test "$(rpm -q --qf '%{VERSION}' ksshaskpass)" = 6.7.5
+python3 - <<'PY'
+from pathlib import Path
+assert Path('/usr/bin/aresos').read_text().splitlines()[0] == '#!/usr/bin/python3 -ISB'
+assert Path('/usr/libexec/aresos-askpass').read_text() == (
+    '#!/bin/sh\nexec /usr/bin/timeout --foreground -k 10 600 /usr/bin/ksshaskpass "$@"\n')
+PY
+expect_failure runuser -u ares -- env -i PATH=/usr/bin:/bin WAYLAND_DISPLAY=wayland-ci /usr/bin/aresos layout
+test "$LAST_STATUS" = 2
+test "$LAST_FAILURE" = 'aresos layout: this works only at the recovery console, typed by you: sudo /var/lib/ares/at layout; nothing ran'
+expect_failure runuser -u ares -- env -i PATH=/usr/bin:/bin /usr/bin/aresos update
+test "$LAST_STATUS" = 2
+test "$LAST_FAILURE" = 'aresos update: this works at the recovery console, typed by you: sudo /var/lib/ares/at newest; nothing ran'
+pass 'aresos dispatcher and askpass: root:root 0755, no links; refusals without a window; timeout and ksshaskpass 6.7.5'
+
 # --- Package 18c: the Control tools (the tool service, its commands, Claude
 # Code's managed files). Every path the image records in control.json is here
 # with its mode and content, root-owned with root-owned parents and no links,

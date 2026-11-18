@@ -1,8 +1,10 @@
 # Package 43 progress
 
-Latest: step 2's REVIEW-7 I4 fix is locally verified in both model scopes.
-The hosted run remains with the lead. See "Step 2: model" below.
-The step 1 entries are historical.
+Latest: step 3's dispatcher, helper, wrapper move and image checks are built on
+`07cce64b` (main merged, including PR #58). Two strict new integration tests
+remain red: Control has not reserved `newest`, and the release classifier has
+no rule for the moved wrapper. See "Step 3" below for PLAN-GAPs and all results.
+The check build and hosted runs remain with the lead. Earlier steps are historical.
 
 Step 1 is implemented in the worktree on `pkg/43-aresos-command`, based on
 `7dd5588c`. The final test results and the one commit-dependent failure are below. Nothing is committed or pushed;
@@ -74,9 +76,9 @@ deployment command, window or Gradle build ran on the laptop.
 2. **Step 2:** implemented and locally verified below. The lead still needs
    the hosted full-model/checks run on the committed head; this builder did
    not dispatch it.
-3. **Step 3:** dispatcher, askpass helper, Control bindings/tests, three word
-   sets, image checks/diff rules, then a check build. Carry **REVIEW-3 N1** here:
-   `keep-stock` gets the plain-Bazzite refusal with its full console command.
+3. **Step 3:** image implementation and tests are built below, including
+   **REVIEW-3 N1**'s plain-Bazzite `keep-stock` refusal and full console command.
+   Resolve the two integration PLAN-GAPs, then the lead runs the check build.
 4. **Step 4:** guide box/card, equality tests, the owner's final wording and
    D19's keeper-failure wording; refresh payload and pins again if tools text
    changes. Carry **REVIEW-3 N4** here: after `was not applied`, an older running
@@ -442,3 +444,172 @@ explicitly forbidden to dispatch. The workflow's 35-minute full-model limit
 is unchanged. If the hosted model outgrows it, follow lead decision/open point
 9: split the job, never the exploration; this step does not change the workflow.
 The later package steps, VM run and next-merge R28 metadata task above remain.
+
+## Step 3 (2026-11-18)
+
+Built against `07cce64b`, after the lead's merge of main and PR #58
+(18c Part A, squash `beb42ec8`). Nothing committed or pushed: the lead commits.
+No file under `os/owner-tools/`, `os/release/`, `docs/` or `control/` changed.
+No sudo, workflow dispatch, deployment command, rebind, window or Gradle build ran.
+
+### Done
+
+- `os/config/usr/bin/aresos`: executable Python dispatcher with the specified
+  `-ISB` shebang, one table for all 18 tools words, pure `plan()` and exec in
+  `main()`. The nine offered words use D7's exact sudo/bash form; `update` maps
+  only to `newest`. D11's environment is built from fixed values, the caller's
+  account entry and the five screen variables. Root/no-session instructions
+  name the safe full console command. Refusals print one stderr line, status 2,
+  with `nothing ran`; extra arguments never reach sudo. **REVIEW-3 N1**:
+  `keep-stock` says it works only on plain Bazzite, at the recovery console,
+  typed by the owner, and gives `sudo /var/lib/ares/at keep-stock`.
+- `os/config/usr/libexec/aresos-askpass`: executable, exactly D9's two lines,
+  with `timeout --foreground -k 10 600` and quoted `"$@"`.
+- `os/build.sh`: only the install-map entry moves, from `/usr/bin/aresos` to
+  `/usr/libexec/aresos-control/cli`. The wrapper bytes come unchanged from
+  `control/packaging/aresos`; the generated `control.json` records the new path,
+  source, mode and hash. The old path is no longer in Control's file record.
+  Control's source wrapper, including its existing header comment, is untouched.
+- `os/tests/test_control_image.py`: moved the map pin; added a real
+  `control-tree` install over an existing dispatcher. It proves the dispatcher
+  survives unchanged and the wrapper's bytes, mode, hash and source are recorded.
+  All #58 assertions remain, including exact complete file/folder/link sets.
+- `os/tests/test_aresos_command.py`: exact argv/environment and refusal cases,
+  labels against the imported 16 ksshaskpass patterns, all three word sets,
+  no generated `at update`/`at forward` instruction, root/no-session behavior,
+  argument rejection, Control handover and missing-Control usage. A child runs
+  real `main()` and execs a harmless stand-in, proving stdin stays a terminal,
+  arguments and a caller environment value survive, and the directory stays.
+  Askpass tests pin its two lines and expand its actual exec line's arguments
+  through a harmless Bash function; no timeout, sudo or GUI helper starts.
+- `os/tests/test_aresos_command_diff.py`: a real `control-tree` plus the two
+  executable config sources is fed to `release_diff.Classifier.classify()`.
+  Root ownership is represented in the temporary inventory; config discovery
+  represents the new files after the lead's commit. Both config files classify
+  as `config`; altered bytes, ownership, mode or type remain unexplained.
+  The moved `cli` is required to classify too, and currently fails (below).
+- `os/ci/image-checks.sh`: checks both new files as regular, executable,
+  root:root 0755 and no links, the exact helper and dispatcher shebang,
+  executable timeout/ksshaskpass and ksshaskpass RPM version **6.7.5**. As `ares`,
+  a refused desktop word and an offered word without a desktop must return the
+  exact safe instructions and status 2. Existing Control help handover checks
+  remain unchanged.
+- `.gitignore`: a narrow exception exposes this new dispatcher to Git; the
+  existing `bin/` output rule otherwise hid it. Both new image files are 0755
+  in the worktree; the lead must preserve the executable bits when committing.
+
+### Verified
+
+Each final module command was exactly
+`PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s os/tests -p '<module>.py'`,
+one module at a time. No tests were skipped, deleted or weakened.
+
+| Module | Printed result |
+|---|---|
+| `test_aresos_command.py` | `Ran 14 tests`, `FAILED (failures=1)`; only the three-set equality fails, missing Control's `newest` |
+| `test_aresos_command_diff.py` | `Ran 2 tests`, `FAILED (failures=1)`; only `/usr/libexec/aresos-control/cli` is unexplained |
+| `test_control_image.py` | `Ran 16 tests`, `OK` |
+| `test_control_vm.py` | `Ran 62 tests`, `FAILED (errors=1)`; socket creation in `test_check_2_sees_a_listening_socket_and_an_unconnected_udp_one` raises `PermissionError: [Errno 1] Operation not permitted` |
+| `test_aresos_desktop.py` | `Ran 189 tests in 68.979s`, `FAILED (errors=42)`; LoopTest/WrapperTest socket binds are denied with the same `PermissionError`; ResourceWarnings also printed |
+| `test_owner_path.py` | `Ran 48 tests`, `OK` |
+| `test_checkout_sources.py` | `Ran 8 tests`, `OK` |
+| `test_release27.py` | `Ran 41 tests`, `OK` |
+| `test_owner_capabilities.py` | `Ran 6 tests`, `OK` |
+
+Earlier probe: the first command-module run also failed because `/bin/sh`
+refuses defining a function called `exec` in POSIX mode. The harmless test
+probe now uses Bash; the pinned production helper is unchanged. One initial
+diff-module run misspelled the bytecode environment variable; the exact command
+above reran it with the same one failure, and its generated bytecode was removed.
+
+`bash -n os/build.sh os/ci/image-checks.sh`,
+`sh -n os/config/usr/libexec/aresos-askpass` and `git diff --check` all exited 0
+without output. The protected-tree diff printed nothing. `.work files: 20`;
+`.work over 500 MB: []`. No download or screenshot was made.
+
+### PLAN-GAPs and left (in order)
+
+1. **D12's Control changes are absent from the merged #58 tree.**
+   `control/tests/test_reserved_words.py` has 17 reserved words, missing
+   `newest`; the tools and dispatcher each have the same 18. The strict new
+   equality test stays red until the Control-side change lands. The same
+   coordination still needs the integration caller (currently
+   `control/tests/test_integration.py:388`) moved to `cli`: `control-tree`
+   intentionally installs no dispatcher. Control's top-level `log` alias and
+   original wrapper header also remain. The help-line choice is the lead's.
+   Those are D12's `linux-tools` work, not changes allowed in this run; no
+   Control test or source was changed to conceal this dependency.
+2. **D16's existing-diff-rule premise does not hold on this base.**
+   `release_diff.py` has no Control rule and never reads `control.json`.
+   Its config rule correctly explains `/usr/bin/aresos` and the askpass helper,
+   but cannot explain `/usr/libexec/aresos-control/cli`. A manifest entry alone
+   cannot change that. The new diff test deliberately requires all three and
+   fails for `cli`. The lead must resolve the rule/design gap before R29;
+   no broad rule or duplicate wrapper source was added here. R29 must have
+   **zero unexplained files**, including the wrapper and Control's changed
+   manifest. This run does not establish a complete release-image diff.
+3. Lead: after resolving those integration gaps, commit (including executable
+   bits), run any required rebind, rerun the two strict new modules, and run the
+   check build below. The sandbox socket errors need an environment where those
+   modules can bind sockets; their assertions are unchanged.
+4. Continue the earlier ordered list: step 4's guide/card/equality work and
+   settled owner wording; review; step 5a's reviewed bridge; step 6's hosted
+   checks/full model and tools VM rehearsal; step 7's R29 handover. The R28
+   metadata merge task and status-row gate remain with their owning steps.
+
+### What the code does not show; the lead's check build
+
+No image was built or booted in this run. The lead's single throwaway,
+never-published **`check_build=build`** on this branch must show:
+
+- The new image checks actually run and pass: both files' installed owner,
+  mode and no-link checks, safe refusal/status checks, helper bytes and the
+  ksshaskpass 6.7.5 pin. Unit tests and checks-only runs do not run these checks.
+- Control's wrapper appears only at `cli`, matches its source and record, and
+  `/usr/bin/aresos` remains the dispatcher. Existing root/ares `aresos --help`
+  comparisons prove the handover against the installed Control, and the
+  checkout-to-`control.json` and vendor checks still pass unchanged.
+- The normal check-build evidence reaches `IMAGE_CHECKS_PASSED`,
+  `CHECK_BUILD_PASSED` and `CHECK_BUILD_VM_PASSED`, including its one normal VM
+  boot, active-session polkit and console-keymap checks. This is image proof;
+  neither this build nor its normal VM pass qualifies 43's changed owner tools.
+
+**22d's `os/ci/tools_local.py` does not fit this VM pass unchanged or without
+its own harness.** Its `helpers_of` finds only a direct child of sudo running
+`/usr/bin/ksshaskpass`; D9 inserts `timeout` as that child. `Walk.window()` also
+requires the generated bootstrap fingerprint label and direct-parent relation,
+not D8's fixed image label. Its caller/state/walk require the installed-tools
+rehearsal's guest, serial-console interface and stand-in Git origin. The normal
+`os/ci/vm.py` uses fixed virtio-channel checks and lacks that walk interface.
+No window-driver/harness expansion was made as part of step 3.
+
+Therefore **D9 and D11 rest on step 0's approved laptop try until R29's
+rehearsal**. No completed try or its result is recorded here; the lead still
+needs that evidence. Local tests do not prove window appearance, title, no
+keyring, actual Cancel, authentication, post-window ticket refusal, toolkit
+behavior with D11's environment, or D9's real ten-minute expiry.
+
+R29's rehearsal must retain section 7's five dispatcher stages: Control help
+and no-window refusal; check label/screenshot, Cancel then authentication and
+no cached sudo ticket; up-to-date update; unattended ten-minute timeout; and
+previous/update/reboot from a marker folder with the R28 bridge return. Staging
+through the dispatcher remains R30's rehearsal obligation. Step 4 still adds
+the guide/TABLE equality test, and final labels remain subject to the owner's
+wording decision before step 6.
+
+No new JUDGMENT-CALL: the implementation follows D20 with REVIEW-3 N1 and the
+proposed D8 labels. The two integration gaps above are not reported green.
+
+### The lead on step 3's PLAN-GAPs (2026-11-18)
+
+- **Gap 1 (Control's side of D12):** sent to `linux-tools` on 2026-11-18 02:15. `newest` in `RESERVED` and the
+  dropped top-level `log` shortcut land on `main` (they ride R28 with Control); the integration test's caller
+  (`cli`) and the wrapper's header comment land on this branch with the install-map move, never on `main` first.
+  `test_aresos_command`'s three-set test is red until `newest` is in `RESERVED`; that is the test working.
+- **Gap 2 (no Control rule in `release_diff.py`):** R28 step 2 (`pkg/42-release-28`, running) adds Control's rules.
+  At this branch's merge of `main` after R28 (Left, item 1), Control's wrapper rule moves to
+  `/usr/libexec/aresos-control/cli` and `test_aresos_command_diff` must pass. It stays red until then, deliberately.
+- **Decision 7's help line:** no line in Control's help naming the OS words for now; the guide card (step 4) names
+  them.
+- Local, outside the sandbox: `test_control_vm` 62 OK and `test_control_image` 16 OK (the sandbox's socket errors
+  were environmental); `test_aresos_command` 14 (1 failure, gap 1); `test_aresos_command_diff` 2 (1 failure, gap 2).

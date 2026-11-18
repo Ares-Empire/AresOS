@@ -9,6 +9,10 @@ __pycache__/
 /os/manifest/ci/11e/**/installer/squashfs-files.txt
 out/
 bin/
+# The image dispatcher is source, not compiler output.
+!/os/config/usr/bin/
+/os/config/usr/bin/*
+!/os/config/usr/bin/aresos
 run/
 *.class
 
