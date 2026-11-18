@@ -85,7 +85,20 @@ Pending the committed rules' verdict. No product setting ships in this package.
 
 ## PLAN-GAP
 
-None at plan freeze.
+None at plan freeze. The frozen pass line above remains unchanged.
+
+The second full build/client qualification deadlocked in the unmodified
+`NetherHomeClientGameTest.testMountedRejoin` during `TestSingleplayerContext.close`.
+Two [thread dumps](verification/client-2-deadlock.txt) show the render thread
+waiting in `IntegratedServer.halt` / `executeBlocking`, while server and test
+threads wait at Fabric phase barriers. Its log stopped advancing at 09:18:30
+local. Only this invocation was cancelled through `client-test.sh`'s owned-scope
+cleanup, which exited 143 after 10 min 40 s; all its scopes stopped and screenshots
+were backed up/restored. The first full qualification passed. This is not two
+passing qualifications and cannot be reported green. Changing the product test or
+Fabric dependency is outside this brief's allowed files. Independent measurement
+work continues, with this verification gap retained for review; a later passing
+rerun alone would not fix the observed deadlock.
 
 ## Open questions
 
