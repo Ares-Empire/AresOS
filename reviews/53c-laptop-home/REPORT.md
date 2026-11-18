@@ -367,6 +367,9 @@ No files over 500 MB remained in `.work/`.
   [OS image run 44365447042](https://github.com/Ares-Empire/AresOS/actions/runs/44365447042)
 - The Review 2 fixes dispatched checks-only at `3efe522d`. The result is for the lead to collect.
   [OS image run 44368010857](https://github.com/Ares-Empire/AresOS/actions/runs/44368010857)
+- For Review 3, `gh workflow run "OS image" --ref pkg/53c-laptop-home -f checks_only=true` dispatched
+  one run at `2dea6dbc`. The lead will collect the result.
+  [OS image run 44370102423](https://github.com/Ares-Empire/AresOS/actions/runs/44370102423)
 
 ## Known limits
 
