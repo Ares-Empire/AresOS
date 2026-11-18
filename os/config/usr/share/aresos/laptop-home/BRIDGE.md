@@ -46,3 +46,10 @@ their houses. Subsequent events contain the values as of that update.
 While the helper is away, the town and running IDs stay visible. A reconnect before the game
 publishes retains the saved town and supplies current running IDs. The helper accepts opens
 again at that point. A complete published empty town clears the saved town.
+
+## Page geometry
+
+`window.laptopHome.world.snapshot()` gives the viewport, floor, road and roof ledges, and
+house occluders in 1920 × 1080 stage coordinates. Its `streetOffsets` maps each group ID to
+the current horizontal translation in those coordinates. Read it on demand during a slide.
+The houses and roofs move with their streets. Day roads and their ledges stay in place.
