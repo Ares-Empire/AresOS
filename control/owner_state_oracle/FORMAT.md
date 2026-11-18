@@ -23,7 +23,7 @@ startup obligation is checked separately, as described below.
 
 `evidence/operations.jsonl` is ASCII canonical JSON (sorted keys, separators comma/colon), one LF per record. A format-2 fence has format, seq, previous, time, generation, operations and hash. Hash is SHA-256 over the canonical object without hash; previous is the preceding fence hash (initially the empty string). A commit marker has commit=seq and matching hash. The decoder rejects corruption and unsupported versions; only an unterminated final line can be ignored. Format 1 is accepted with the same hash-chain contract.
 
-`state/control.sqlite` contains events(seq,value), head(id,seq,hash), kv(k,v), retained(k,created), operation_versions(id,seq). The decoder reads events and head, **never kv or the production index**. Each event contains seq/time/action/summary/outcome/operation_id/set/record and optional space/untrusted_content. Its record must equal the independent fence. Only a matching commit marker makes set's values committed (null deletes a key). Prepared events are separate evidence, never completed actions. Immutable events recover state without relying on working warning selection. Archives are JSONL `aresos-history-1` exports containing event or key/value entries; only a manifest in committed history, with matching SHA-256, authorizes reading their events. Projection format will be added in stage 3 without changing old records.
+`state/control.sqlite` contains events(seq,value), head(id,seq,hash), kv(k,v), retained(k,created), operation_versions(id,seq). The decoder reads events and head, **never kv or the production index**. The immediate startup proof separately compares actual SQLite rows against its saved before-start obligation. Each event contains seq/time/action/summary/outcome/operation_id/set/record and optional space/untrusted_content. Its record must equal the independent fence. Only a matching commit marker makes set's values committed (null deletes a key). Prepared events are separate evidence, never completed actions. Immutable events recover state without relying on working warning selection. Archives are JSONL `aresos-history-1` exports containing event or key/value entries; only a manifest in committed history, with matching SHA-256, authorizes reading their events. Projection format will be added in stage 3 without changing old records.
 
 Server trace entries carry call correlation, command, account, selected folder, exact message identities (including raw-byte hash/Message-ID where applicable), roles, attempted/accepted and reply delivered/lost. The script carries ordered action/arguments, clock, fault number/label/mode/cleanup point and delivered/lost caller reply. Traces stay in memory outside fault injection; optional JSON exports are written after faults end. Credentials and AUTH arguments are excluded. The oracle retains evidence independently of whether the service commits its warning. Occurrence UUIDs are opaque: the decoder binds them to independently selected evidence; changing or deleting a notice cannot delete an expected occurrence. Unknown UUID binding is explicit `uncommitted:…` and fails comparison.
 Pre-command snapshots include the committed sequence, the creation sequence of each source and the scenario call's start sequence. Explicit approved operation IDs bind exact operations; repairs follow only their own `repair_of` link. Free filing/rename intents must belong to the current call, account and target. New generic contexts use command/account/identities/source/destination/roles/recipients plus command-specific flags, wire hash or POST body. `context.py` also decodes the existing Mail payloads. A historical row with matching strings cannot satisfy another attempt.
@@ -383,3 +383,36 @@ generation and the lock. The immutable canonical obligation lives on Driver,
 separate from decoded state, and is consumed after this check. A failed start
 cannot claim readiness; a later healthy start can still finish the saved event.
 Captured failed-call envelopes retain their pre-restart records.
+
+
+`visible_history(record)` preserves the exact marked `events`/`committed` history
+and adds only an ordinary prepared tail whose full validated event matches the
+last hash-checked fence and the SQLite head, ahead of the last marker. It keeps
+that event in `prepared`; no marker is invented. Staged-but-unapplied, fence-only,
+wrong-head/hash and restore-batch inputs cannot add local rows through this rule.
+Rows, audit, lifecycle validation, notices, counts and qualification use this same
+history. Applied claims pass the same scripted identity, effect and transition
+checks as marked claims. Archive discovery still starts only from marked manifests.
+
+Call ranges use the staged/fenced sequence so an unmarked event stays attached
+to its producing call, including its failed envelope. Current local rows use the
+applied boundary. Pre-command context snapshots and their high-water mark use
+marked history only; a visible tail grants no permission for another app command.
+Alterations cover both encodings of applied events, their projected rows, and
+coherent row/event/fence versions. They preserve the independent marker set,
+startup boundary and fault inputs. Chrome's separate committed projection is
+unchanged. The corpus includes ordinary applied tails and staged restore records.
+Recovery holds retain their marked space-plan state until the transaction finishes;
+visibility of an applied cancellation or repair does not consume its held right.
+Prepared claims rejected from visible history still undergo fence validation.
+Operation identity errors reach the semantic checker before malformed encodings
+can interrupt replay, and generation/input hash stay immutable across versions.
+The alteration proof also rechecks fence hashes when restore lost working events;
+coherent detections cannot count that redundant encoding check as semantic evidence.
+A coherent alteration's `transaction_record` retains the original immutable
+physical snapshot for the latch's hash/phase/cleanup calculation. Re-encoding a
+claim's fence does not constitute another physical write. Status and request-state
+checks recompute from those independent inputs; they never cache an expected
+latch bit or rewrite JournalAttempt/marker/startup inputs to fit a claim. Ordinary
+Driver comparisons use their current captured record. Dedicated completed/failed
+marker controls check both paths and retain the live hash-mismatch negative.

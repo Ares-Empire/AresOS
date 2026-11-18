@@ -6,7 +6,7 @@ import time
 import sqlite3
 from unittest.mock import patch
 
-from .records import decode, canonical, service_lock, JournalAttempt, write_latched, startup_obligation, startup_errors
+from .records import decode, canonical, service_lock, JournalAttempt, write_latched, startup_obligation, startup_errors, staged_sequence, visible_history, history_rows, applied_sequence
 from .model import Fact, Oracle
 from .context import MUTATIONS
 from .compare import compare_views, pages, compare_envelope, compare_status, compare_proofs
@@ -77,7 +77,7 @@ class Driver:
             active = getattr(self.oracle, 'active_call', None)
             if ACTIVE is not None and active is not None:
                 point = len(ACTIVE.points)
-                for event in self.record.events:
+                for event in visible_history(self.record):
                     marker = active, event['seq']
                     self.oracle.commit_fault_points[marker] = min(point, self.oracle.commit_fault_points.get(marker, point))
         if hasattr(self, 'alias_callback'):
@@ -142,9 +142,9 @@ class Driver:
         """Record a test's explicit legacy/interrupted input before writing it."""
         self.oracle.call('fixture_input', {'changes': changes}, time.time())
         index = len(self.oracle.script) - 1
-        self.oracle.script[index]['start_seq'] = max(self.snapshot().committed, default=0)
+        self.oracle.script[index]['start_seq'] = staged_sequence(self.snapshot())
         result = self.scenario.fixture.engine.store.write(changes, 'fixture', summary)
-        self.oracle.script[index].update(end_seq=max(self.snapshot().committed, default=0), reply='delivered')
+        self.oracle.script[index].update(end_seq=staged_sequence(self.snapshot()), reply='delivered')
         return result
 
     def precommit(self):
@@ -155,7 +155,7 @@ class Driver:
             for key, value in event['set'].items():
                 if value is not None:
                     created.setdefault(key, event['seq'])
-        return dict(committed_before=copy.deepcopy(record.rows), created_before=created,
+        return dict(committed_before=copy.deepcopy(history_rows(record.events)), created_before=created,
                     call_start_seq=getattr(self.oracle, 'active_start_seq', 0), before_seq=max(record.committed, default=0),
                     fault_point=len(ACTIVE.points) if ACTIVE else 0)
 
@@ -175,7 +175,7 @@ class Driver:
         previous_call = getattr(oracle, 'active_call', None)
         previous_start = getattr(oracle, 'active_start_seq', 0)
         before = self.snapshot()
-        oracle.active_start_seq = max(before.committed, default=0)
+        oracle.active_start_seq = staged_sequence(before)
         oracle.call(s.action, s.args, time.time(), {'mode': faults.mode, 'at': faults.fail_at,
                     'cleanup': faults.cleanup_at, 'background': getattr(s, 'flow', '') in {'expiry', 'maintenance'}} if faults else {})
         self.call_index = len(oracle.script) - 1
@@ -204,7 +204,7 @@ class Driver:
                 if match:
                     name = folder_name(match[2])
                     oracle.delimiters[name] = None if match[1] == b'NIL' else json.loads(match[1])
-            oracle.server('LIST', getattr(self, 'account_id', 'box'), accepted=answer[0] == 'OK', before_seq=max(self.snapshot().committed, default=0), check_sources=[self.checking_source] if getattr(self, 'checking_source', None) else [], roles=f.imap.roles, mailboxes={name: self.identities(name) for name in f.imap.boxes})
+            oracle.server('LIST', getattr(self, 'account_id', 'box'), accepted=answer[0] == 'OK', before_seq=applied_sequence(self.snapshot()), check_sources=[self.checking_source] if getattr(self, 'checking_source', None) else [], roles=f.imap.roles, mailboxes={name: self.identities(name) for name in f.imap.boxes})
             return answer
         def selected(*args, **kwargs):
             answer = select(*args, **kwargs)
@@ -229,7 +229,7 @@ class Driver:
                     if isinstance(call.get('arguments'), dict) and isinstance(call['arguments'].get('operation_id'), str))
                 for operation_id in operation_ids:
                     if '<' + operation_id.replace(':', '.') + '@mail.aresos.invalid>' == mid:
-                        oracle.server('SENT', getattr(self, 'account_id', 'box'), folder, identities, f.imap.roles, source='op:' + operation_id, before_seq=max(record.committed, default=0))
+                        oracle.server('SENT', getattr(self, 'account_id', 'box'), folder, identities, f.imap.roles, source='op:' + operation_id, before_seq=applied_sequence(record))
             return answer
         response = f.imap.response
         def responded(name):
@@ -429,7 +429,7 @@ class Driver:
         def scanned(mail, account, records):
             start = len(oracle.servers)
             result = scan(mail, account, records)
-            event = oracle.server('SCAN_RESULT', account['id'], accepted=False, before_seq=max(self.snapshot().committed, default=0),
+            event = oracle.server('SCAN_RESULT', account['id'], accepted=False, before_seq=applied_sequence(self.snapshot()),
                           check_sources=[self.checking_source] if self.checking_source else [], scan_start=start)
             event['accepted'] = scan_complete(oracle.servers, event)
             return result
@@ -441,7 +441,7 @@ class Driver:
             yield
         if faults and faults.journal_trace:
             self.journal_scopes[faults] = tuple(JournalAttempt(**entry) for entry in faults.journal_trace)
-        oracle.script[self.call_index]['end_seq'] = max(self.snapshot().committed, default=0)
+        oracle.script[self.call_index]['end_seq'] = staged_sequence(self.snapshot())
         oracle.script[self.call_index]['staged_end_seq'] = max((f['seq'] for f in self.record.fences), default=0)
         if faults:
             oracle.script[self.call_index]['faults']['trace'] = [entry for entry in faults.failures if entry[0] > fault_start]
@@ -466,7 +466,7 @@ class Driver:
         active = getattr(self.oracle, 'active_call', None)
         for pending in self.oracle.script:
             if pending['call'] == active:
-                pending['end_seq'] = max(record.committed, default=0)
+                pending['end_seq'] = staged_sequence(record)
                 pending['staged_end_seq'] = max((f['seq'] for f in record.fences), default=0)
         expected = self.oracle.expected(record)
         self.envelopes.append((copy.deepcopy(call), copy.deepcopy(reply), record, expected))

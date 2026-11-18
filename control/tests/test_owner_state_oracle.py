@@ -268,10 +268,12 @@ class OwnerOracle(unittest.TestCase):
                 _, changed = coherent_change(Oracle(), record, 'fixture:2')
                 self.assertIs(changed.locked, locked)
 
-    def test_decoder_distinguishes_prepared_and_committed_without_kv(self):
+    def test_decoder_keeps_applied_prepared_separate_from_marked_without_kv(self):
         state, evidence = self.disk(False)
         record = decode(state, evidence)
-        self.assertEqual(record.rows, {})
+        self.assertEqual(record.rows, {'generation': 'g'})
+        self.assertEqual(record.events, [])
+        self.assertEqual(record.committed, set())
         self.assertEqual(len(record.prepared), 1)
         state, evidence = self.disk()
         self.assertEqual(decode(state, evidence).generation, 'g')
@@ -2154,3 +2156,172 @@ class StartupObligations(unittest.TestCase):
                 self.assertIs(decoded_lock(rows, fences, committed, head), locked)
                 record = Record(rows=rows, fences=list(fences.values()), committed=committed, head=head, locked=not locked)
                 self.assertIs(coherent_change(Oracle(), record, 'fixture:absent')[1].locked, locked)
+
+
+class AppliedHistory(unittest.TestCase):
+    history = OwnerOracle.history
+
+    def test_decoder_applied_tail_matrix_and_missing_projection_row(self):
+        from owner_state_oracle.records import visible_history, consistency_errors
+        for variant in ('applied', 'marked', 'staged', 'fence-only', 'hash', 'wrong-head', 'restored', 'restore-batch', 'removed-row'):
+            state, evidence = self.history(3, 2, 3)
+            with closing(sqlite3.connect(state / 'control.sqlite')) as db:
+                if variant == 'staged': db.execute("UPDATE head SET seq=2,hash=(SELECT json_extract(value,'$.record.hash') FROM events WHERE seq=2)")
+                if variant == 'fence-only': db.execute('DELETE FROM events WHERE seq=3')
+                if variant == 'hash': db.execute("UPDATE head SET hash='wrong'")
+                if variant == 'wrong-head': db.execute("UPDATE head SET seq=4")
+                if variant == 'restored': db.execute("UPDATE head SET seq=1,hash=(SELECT json_extract(value,'$.record.hash') FROM events WHERE seq=1)")
+                if variant == 'restore-batch':
+                    event = json.loads(db.execute('SELECT value FROM events WHERE seq=3').fetchone()[0])
+                    event.update(action='control_restore_confirm', space={'restoring': True})
+                    db.execute('UPDATE events SET value=? WHERE seq=3', (canonical(event),))
+                db.commit()
+            if variant == 'marked':
+                fence = decode(state, evidence).fences[-1]
+                with (evidence / 'operations.jsonl').open('a') as f:
+                    f.write(canonical({'commit': 3, 'hash': fence['hash']}) + '\n')
+            record = decode(state, evidence)
+            with self.subTest(variant=variant):
+                visible = variant in ('applied', 'marked', 'removed-row')
+                self.assertEqual('fixture:3' in record.rows, visible)
+                self.assertEqual(len(visible_history(record)), 3 if visible else 2)
+                self.assertEqual(record.committed, {1, 2, 3} if variant == 'marked' else {1, 2})
+                self.assertEqual(len(record.events), 3 if variant == 'marked' else 2)
+                self.assertEqual(len(record.prepared), 0 if variant in ('marked', 'fence-only') else 1)
+                if variant == 'removed-row':
+                    record.rows.pop('fixture:3')
+                    self.assertIn(('fixture:3', 'changed-decoded-projection', ''), consistency_errors(record))
+
+    def tail(self, ack=False):
+        from owner_state_oracle.records import history_rows
+        key = 'op:g:p'
+        reserved = dict(id='g:p', app='testapp', action='testapp_send', state='reserved',
+                        generation='g', input_hash='h', expires=100, reason='Awaiting exact approval; nothing submitted.')
+        cancelled = {**reserved, 'state': 'failed', 'reason': 'cancelled: nothing submitted', 'notice': True}
+        old = cancelled if ack else reserved
+        row = {**old, 'ack': True} if ack else cancelled
+        fences, events, previous = [], [], ''
+        for seq, value in ((1, old), (2, row)):
+            fence = dict(format=2, seq=seq, previous=previous, time=seq, generation='g',
+                         operations=[{k: value[k] for k in ('id', 'generation', 'input_hash', 'state')}])
+            fence['hash'] = previous = fingerprint(fence)
+            event = dict(seq=seq, time=seq, action='fixture' if seq == 1 else 'testapp_notice_ack' if ack else 'testapp_operation_cancel',
+                         set={key: value}, record=fence, operation_id='g:p', outcome=value['state'],
+                         summary='seed' if seq == 1 else 'notice acknowledged' if ack else 'cancelled before submission')
+            fences.append(fence); events.append(event)
+        record = Record(events=events[:1], prepared=events[1:], fences=fences, head=(2, fences[-1]['hash']),
+                        committed={1}, rows=history_rows(events))
+        oracle = Oracle()
+        oracle.seed_sequence, oracle.seed_events = 1, copy.deepcopy(events[:1])
+        oracle.call(events[-1]['action'], {'operation_id': 'g:p'}, 2)
+        oracle.script[-1].update(start_seq=1, end_seq=2)
+        return oracle, record, key
+
+    def test_applied_cancellation_and_acknowledgement_still_require_exact_script_identity(self):
+        from owner_state_oracle.perturb import evaluate, clone
+        for ack in (False, True):
+            oracle, record, key = self.tail(ack)
+            expected, errors = evaluate(oracle, record)
+            self.assertFalse(errors, errors)
+            self.assertEqual(any(f.kind == 'operation-notice' for f in expected), not ack)
+            self.assertEqual(oracle.projection(record).rows[key]['state'], 'failed')
+            wrong = clone(oracle)
+            wrong.script = copy.deepcopy(oracle.script)
+            wrong.script[-1]['arguments']['operation_id'] = 'g:other'
+            _, errors = evaluate(wrong, record)
+            self.assertTrue(any(f.kind in {'unjustified-ack', 'unsupported-resolution'} for _, f in errors), errors)
+
+    def test_coherent_applied_identity_outcome_and_missing_effect_are_rejected(self):
+        from owner_state_oracle.perturb import coherent_change, evaluate
+        for ack, path, replacement in ((False, ('id',), 'g:other'), (False, ('state',), 'done'),
+                                       (False, ('reason',), 'invented outcome'), (False, ('generation',), 'other'),
+                                       (False, ('input_hash',), 'changed'), (True, ('id',), 'g:other')):
+            oracle, record, key = self.tail(ack)
+            replay, changed = coherent_change(oracle, record, key, path, 'effect', replacement, since=2)
+            self.assertEqual(changed.committed, {1})
+            self.assertEqual(changed.events, record.events)
+            _, errors = evaluate(replay, changed)
+            self.assertTrue(any(f.kind not in {'changed-decoded-projection', 'changed-independent-fence', 'changed-fenced-operation'} for _, f in errors), errors)
+
+    def test_applied_context_cannot_authorize_a_remote_command_before_its_marker(self):
+        from owner_state_oracle.driver import Driver
+        from types import SimpleNamespace
+        oracle, record, key = self.tail()
+        record.prepared[0]['set'][key]['context'] = {'command': 'DATA'}
+        driver = Driver.__new__(Driver)
+        driver.oracle, driver.snapshot = oracle, lambda: record
+        snapshot = driver.precommit()
+        self.assertEqual(snapshot['before_seq'], 1)
+        self.assertNotIn('context', snapshot['committed_before'][key])
+        self.assertEqual(snapshot['created_before'][key], 1)
+        event = oracle.server('DATA', 'fixture', identities=[], accepted=True, **snapshot)
+        self.assertTrue(oracle.context_errors())
+
+
+    def test_staged_applied_and_marked_boundaries_are_distinct(self):
+        from owner_state_oracle.records import staged_sequence, applied_sequence, visible_history
+        _, record, _ = self.tail()
+        self.assertEqual((staged_sequence(record), applied_sequence(record), max(record.committed)), (2, 2, 1))
+        record.head = (1, record.fences[0]['hash'])
+        self.assertEqual((staged_sequence(record), applied_sequence(record), max(record.committed)), (2, 1, 1))
+        self.assertEqual(visible_history(record), record.events)
+
+    def test_unmarked_applied_manifest_cannot_discover_archive_history(self):
+        state, evidence = self.history(3, 2, 3)
+        with closing(sqlite3.connect(state / 'control.sqlite')) as db:
+            event = json.loads(db.execute('SELECT value FROM events WHERE seq=3').fetchone()[0])
+            event['set']['archive:future'] = {'path': str(evidence / 'missing.jsonl'), 'sha256': '0' * 64}
+            db.execute('UPDATE events SET value=? WHERE seq=3', (canonical(event),))
+            db.commit()
+        record = decode(state, evidence)
+        self.assertIn('archive:future', record.rows)
+        self.assertEqual([e['seq'] for e in record.events], [1, 2])
+        self.assertEqual([e['seq'] for e in record.prepared], [3])
+
+
+    def test_coherent_applied_identity_deletion_reaches_semantic_checker(self):
+        from owner_state_oracle.perturb import coherent_change, evaluate
+        oracle, record, key = self.tail()
+        replay, changed = coherent_change(oracle, record, key, ('id',), 'key-deletion', None, since=2)
+        _, errors = evaluate(replay, changed)
+        self.assertTrue(any(f.kind == 'operation-identity' for _, f in errors), errors)
+
+    def test_a_lost_working_event_does_not_hide_a_changed_independent_fence(self):
+        from owner_state_oracle.records import consistency_errors
+        record = decode(*self.history(3, 2, 3))
+        record.events = record.events[:1]
+        before = set(consistency_errors(record))
+        record.fences[1] = copy.deepcopy(record.fences[1])
+        record.fences[1]['operations'].append({'id': 'g:invented'})
+        self.assertIn(('sequence:2', 'changed-independent-chain', ''), set(consistency_errors(record)) - before)
+
+    def test_applied_cancellation_keeps_its_recovery_right_until_the_marker(self):
+        oracle, record, key = self.tail()
+        self.assertEqual(oracle.projection(record).rows[key]['state'], 'failed')
+        self.assertIn(Fact('cancel:g:p', 'held'), oracle.holds(record))
+        record.events = record.events + record.prepared
+        record.prepared = []
+        record.committed.add(2)
+        self.assertNotIn(Fact('cancel:g:p', 'held'), oracle.holds(record))
+
+
+    def test_coherent_reencoding_preserves_independent_transaction_evidence(self):
+        from owner_state_oracle.perturb import coherent_change
+        from owner_state_oracle.records import JournalAttempt
+        for completed in (False, True):
+            oracle, record, key = self.tail()
+            record.events += record.prepared
+            record.prepared = []
+            record.committed.add(2)
+            physical_hash = record.fences[-1]['hash']
+            record.journal_history = (JournalAttempt('marker', 2, physical_hash, 100, True, completed, False, False),)
+            call = oracle.script[-1]
+            call['write_attempted'] = True
+            statuses = oracle.permitted_status(record, call), oracle.request_state(record, call)
+            replay, changed = coherent_change(oracle, record, key, ('generation',), 'effect', 'different', since=2)
+            self.assertNotEqual(changed.fences[-1]['hash'], physical_hash)
+            self.assertEqual(changed.journal_history, record.journal_history)
+            self.assertEqual(changed.committed, record.committed)
+            self.assertIs(replay.transaction_record, record)
+            self.assertEqual((replay.permitted_status(changed, call), replay.request_state(changed, call)), statuses)
+            self.assertEqual(statuses[0], {'allowed'} if completed else {'journal_incomplete'})

@@ -182,6 +182,14 @@ a restore. The owner must run `restore_confirm` below; the operations named by
 that record become `unknown` with their short descriptions, even reservations
 that were never acknowledged. Nothing is silently dropped or resumed.
 
+An ordinary write whose SQLite changes and head committed stays visible even
+if its separate commit marker fails. A saved cancellation remains cancelled;
+a saved account remains listed. The failed request reports the storage error,
+and startup finishes that same staged write without repeating app work. The
+owner-state oracle reconstructs this validated applied tail separately from
+marked history. App work still requires the matching durable marker first;
+restore batches retain their separate lock and confirmation rules.
+
 An interrupted live write keeps a write latch until startup recovery. Later
 write attempts return `journal_incomplete`; the first failed request retains
 its original storage error and cleanup notes. Fix the storage problem, then ask

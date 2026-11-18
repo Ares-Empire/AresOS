@@ -6,7 +6,7 @@ from contextlib import ExitStack
 import sqlite3
 from unittest.mock import patch
 
-from aresos_control.common import Refused
+from aresos_control.common import Refused, storage_refusal
 from aresos_control.engine import Engine
 from aresos_control.results import RESTART_ADVICE
 from support import EngineCase, message
@@ -204,3 +204,55 @@ class Journal22(EngineCase):
         self.assertFalse(store.write_failed)
         self.assertEqual(self.call('control_pending'), expected)
         self.reserve()
+
+    def test_applied_cancel_ack_and_account_rows_survive_failed_markers_and_restart(self):
+        for kind in ('cancel', 'ack', 'account'):
+            for mode in ('single', 'persistent', 'rollback-failure', 'staged-only'):
+                with self.subTest(kind=kind, mode=mode):
+                    self.restart()
+                    approval = self.reserve()
+                    operation_id = approval['operation_id']
+                    if kind == 'ack':
+                        self.data('testapp_operation_cancel', {'operation_id': operation_id})
+                    store = self.engine.store
+                    key = 'mail:account:synthetic' if kind == 'account' else 'op:' + operation_id
+                    before = store.get(key)
+                    account = {'id': 'synthetic', 'ready': False, 'revision': mode}
+                    write, attempted = store.journal.write, []
+                    def fail(data):
+                        if 'commit' in json.loads(data) and (not attempted or mode == 'persistent'):
+                            attempted.append(1)
+                            raise OSError(errno.ENOSPC, 'Synthetic failed marker')
+                        return write(data)
+                    with ExitStack() as stack:
+                        stack.enter_context(patch.object(store.journal, 'write', side_effect=fail))
+                        if mode == 'rollback-failure':
+                            stack.enter_context(patch.object(store, '_truncate_journal', side_effect=OSError(errno.EIO, 'Synthetic rollback failure')))
+                        if mode == 'staged-only':
+                            stack.enter_context(patch.object(store, '_apply', side_effect=OSError(errno.ENOSPC, 'Synthetic application failure')))
+                        if kind == 'account':
+                            with self.assertRaises((Refused, OSError)) as error:
+                                store.write({key: account}, 'fixture', 'Synthetic account-like row')
+                            self.assertEqual(storage_refusal(error.exception).code, 'storage_limit')
+                        else:
+                            reply = self.call('testapp_operation_cancel' if kind == 'cancel' else 'testapp_notice_ack', {'operation_id': operation_id})
+                            self.assertEqual(reply['error']['code'], 'storage_limit')
+                    self.assertTrue(store.write_failed)
+                    applied = store.get(key)
+                    if mode == 'staged-only':
+                        self.assertEqual(applied, before)
+                    elif kind == 'cancel': self.assertEqual(applied['state'], 'failed')
+                    elif kind == 'ack': self.assertIs(applied['ack'], True)
+                    else: self.assertEqual(applied, account)
+                    self.assertEqual(self.engine.receiver.evidence(operation_id)['arrivals'], [])
+                    journal = store.evidence_dir / 'operations.jsonl'
+                    raw = journal.read_bytes()
+                    self.assertEqual(self.call('testapp_prepare_send', message())['error']['code'], 'journal_incomplete')
+                    self.assertEqual(journal.read_bytes(), raw)
+                    self.restart()
+                    self.assertFalse(self.engine.store.locked)
+                    if mode != 'staged-only': self.assertEqual(self.engine.store.get(key), applied)
+                    elif kind == 'cancel': self.assertEqual(self.engine.store.get(key)['state'], 'failed')
+                    elif kind == 'ack': self.assertIs(self.engine.store.get(key)['ack'], True)
+                    else: self.assertEqual(self.engine.store.get(key), account)
+                    self.assertEqual(self.engine.receiver.evidence(operation_id)['arrivals'], [])

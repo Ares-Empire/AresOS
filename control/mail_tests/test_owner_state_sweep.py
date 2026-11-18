@@ -12,6 +12,7 @@ from unittest.mock import patch
 
 from aresos_control.engine import Engine
 from owner_state_oracle.driver import Driver
+from owner_state_oracle.records import staged_sequence
 from owner_state_oracle.model import Oracle
 from owner_state_oracle.gaps import Gaps, owner, BUCKETS, SUITE_BUCKETS
 from owner_state_oracle.clock import scripted_calendar, recorded_samples
@@ -85,7 +86,7 @@ class OwnerScenario(Scenario):
             observer = getattr(self.owner_oracle, 'response_observer', None)
             if observer:
                 before = observer.__self__.snapshot()
-                self.owner_oracle.script[index]['start_seq'] = max(before.committed, default=0)
+                self.owner_oracle.script[index]['start_seq'] = staged_sequence(before)
                 self.owner_oracle.script[index]['restore_precondition'] = before.locked
             try:
                 with recorded_samples(self.owner_oracle, index):
@@ -97,7 +98,7 @@ class OwnerScenario(Scenario):
             observer = getattr(self.owner_oracle, 'response_observer', None)
             if observer:
                 record = observer.__self__.snapshot()
-                self.owner_oracle.script[index]['end_seq'] = max(record.committed, default=0)
+                self.owner_oracle.script[index]['end_seq'] = staged_sequence(record)
                 self.owner_oracle.script[index]['staged_end_seq'] = max((f['seq'] for f in record.fences), default=0)
                 if fault:
                     self.owner_oracle.script[index]['faults']['trace'] = [entry for entry in fault.failures if entry[0] > fault_start]
@@ -275,6 +276,77 @@ def exercise(flow, number=None, mode='single', cleanup_at=None, gaps=None, phase
 
 
 class OwnerStateSweep(unittest.TestCase):
+    def test_applied_tail_views_keep_the_producing_call_and_restart_never_resubmits(self):
+        from owner_state_oracle.records import visible_history
+        from owner_state_oracle.driver import outside_faults
+        discovered, cases, pairs = {}, 0, 0
+        for flow in ('cancel', 'onboarding', 'repair', 'status', 'archive', 'send'):
+            scenario = OwnerScenario(flow)
+            try:
+                driver, fault = Driver(scenario), OSWrites()
+                append, markers = scenario.fixture.engine.store._append, []
+                def appended(value):
+                    if 'commit' in value:
+                        record = driver.snapshot()
+                        event = next((e for e in record.prepared if e['seq'] == value['commit']), None)
+                        if event is not None:
+                            markers.append((len(fault.points) + 1, event))
+                    return append(value)
+                with patch.object(scenario.fixture.engine.store, '_append', side_effect=appended), driver.observe(fault), fault.wrap(scenario.fixture.engine.store):
+                    reply = scenario.call()
+                self.assertTrue(reply['ok'], reply)
+                selected = next((m for m in markers if 'mail:account:new' in m[1]['set']), None) if flow == 'onboarding' else markers[-1]
+                self.assertIsNotNone(selected, flow)
+                discovered[flow] = selected[0]
+            finally:
+                scenario.close()
+        compare, restarted, started = Driver.compare, Driver.restarted, Driver.started
+        checked, preserved = [], []
+        def before_compare(driver, checker):
+            record = driver.snapshot()
+            history = visible_history(record)
+            if history and history[-1]['seq'] > max(record.committed, default=0):
+                event = history[-1]
+                with outside_faults():
+                    for key, value in event['set'].items():
+                        self.assertEqual(driver.scenario.fixture.engine.store.get(key), value, (driver.scenario.flow, key))
+                driver.oracle.projection(record)
+                calls = driver.oracle.calls_at(event['seq'])
+                self.assertTrue(any(c['action'] == driver.scenario.action for c in calls), (event['seq'], calls))
+                self.assertFalse(any(c['action'] in {'control_pending', 'control_log', 'mail_accounts'} and
+                                     c.get('start_seq', -1) >= event['seq'] for c in calls))
+                checked.append((driver.scenario.flow, event['seq']))
+            return compare(driver, checker)
+        def before_restart(driver):
+            driver._test_remote = dict(driver.scenario.remote)
+            driver._test_envelopes = [(record, __import__('json').dumps(record.rows, sort_keys=True))
+                                     for _, _, record, _ in driver.envelopes]
+            return restarted(driver)
+        def after_start(driver, checker):
+            self.assertEqual(dict(driver.scenario.remote), driver._test_remote)
+            for record, encoded in driver._test_envelopes:
+                self.assertEqual(__import__('json').dumps(record.rows, sort_keys=True), encoded)
+            preserved.append(driver.scenario.flow)
+            return started(driver, checker)
+        gaps = Gaps(recording=True)
+        with patch.object(Driver, 'compare', before_compare), patch.object(Driver, 'restarted', before_restart), patch.object(Driver, 'started', after_start):
+            for flow, point in discovered.items():
+                for site in (point, point + 1):
+                    for mode in ('single', 'persistent'):
+                        for phase in ('live', 'crash'):
+                            _, cleanup = exercise(flow, site, mode, gaps=gaps, phase=phase)
+                            cases += 1
+                            if mode == 'single' and phase == 'live':
+                                for cleanup_at in sorted({n for n, _, _ in cleanup if n > site}):
+                                    for pair_phase in ('live', 'crash'):
+                                        exercise(flow, site, cleanup_at=cleanup_at, gaps=gaps, phase=pair_phase)
+                                        pairs += 1
+        self.assertEqual({flow for flow, _ in checked}, set(discovered))
+        self.assertEqual(set(preserved), set(discovered))
+        self.assertEqual([key for key in gaps.entries if key.endswith(('/startup-replay', '.restore-lock'))], [])
+        print('Applied-tail boundaries:', discovered, '; cases', cases, '; cleanup phase runs', pairs,
+              '; live applied records', len(checked), '; preserved restart envelopes', len(preserved), flush=True)
+
     def test_startup_replay_proof_precedes_any_automatic_confirm(self):
         # Named mutation target: gaps must appear at startup even if the later
         # sweep confirm repairs the skipped batch completely.

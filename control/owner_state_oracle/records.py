@@ -229,19 +229,90 @@ def unexplained_sequences(record):
     return record.committed - present - explained
 
 
+def staged_sequence(record):
+    """Bind a write to its producing call even before application or marking."""
+    return max((f['seq'] for f in record.fences), default=max(
+        (e['seq'] for e in [*record.events, *record.prepared]), default=0))
+
+
+def visible_history(record):
+    """Marked history plus the ordinary tail proven applied by SQLite's head.
+
+    Decode already checked the entire fence chain and full events. Recheck the
+    tail's identity here so altered records cannot promote a different claim.
+    Restore batches keep their own lock/replay rules, never this live-row rule.
+    """
+    if not record.head or not record.fences:
+        return record.events
+    fence = record.fences[-1]
+    seq = fence['seq']
+    if record.head != (seq, fence.get('hash')) or seq <= max(record.committed, default=0):
+        return record.events
+    for event in record.prepared:
+        if (event.get('seq') == seq and event.get('record') == fence and event.get('time') == fence.get('time') and
+                event.get('action') != 'control_restore_confirm' and not event.get('space', {}).get('restoring') and
+                all(isinstance(op.get('id'), str) and (event['set'].get('op:' + op['id']) is None or all(
+                    event['set']['op:' + op['id']].get(k) == op.get(k) for k in ('id', 'generation', 'input_hash', 'state')))
+                    for op in fence.get('operations', []))):
+            return [*record.events, event]
+    return record.events
+
+
+def history_rows(events):
+    rows = {}
+    for event in events:
+        for key, value in event['set'].items():
+            if value is None:
+                rows.pop(key, None)
+            else:
+                rows[key] = value
+    return rows
+
+
+def applied_sequence(record):
+    # Restore projections retain their existing marked-history rules. Only a
+    # validated ordinary applied tail can extend a local observation boundary.
+    return max(max(record.committed, default=0), max((e['seq'] for e in visible_history(record)), default=0))
+
+
 def consistency_errors(record):
-    """Compare the decoded projection to its commits, including compact fences."""
+    """Compare visible rows to validated history, including compact fences."""
     errors, rows = [], {}
     fences = {f['seq']: f for f in record.fences}
+    previous = ''
+    for index, fence in enumerate(record.fences, 1):
+        # Minimal unit records can omit physical encodings. A decoded fence
+        # carries these fields even when its working event was lost in restore.
+        if 'hash' in fence and 'previous' in fence and (
+                fence['seq'] != index or fence['previous'] != previous or
+                fence['hash'] != fingerprint({k: v for k, v in fence.items() if k != 'hash'})):
+            errors.append(('sequence:' + str(fence['seq']), 'changed-independent-chain', ''))
+        previous = fence.get('hash', '')
     if record.head is not None:
         locked = decoded_lock(record.rows, fences, record.committed, record.head)
         if (locked or service_lock(record)) != record.locked:
             errors.append(('restore', 'unjustified-lock', ''))
     for seq in unexplained_sequences(record):
         errors.append(('sequence:' + str(seq), 'missing-committed-history', ''))
-    for event in record.events:
+    # Rejected tail candidates still carry claims. Dropping them from visible
+    # history must not erase a mismatch between the full event and its fence.
+    for event in record.prepared:
         seq = event['seq']
-        if record.committed and seq not in record.committed:
+        fence = fences.get(seq)
+        if not fence or event.get('record') != fence or event.get('time') != fence.get('time'):
+            errors.append(('sequence:' + str(seq), 'changed-independent-fence', ''))
+        for op in (fence or {}).get('operations', []):
+            row = event['set'].get('op:' + str(op.get('id')))
+            if row is not None and any(row.get(k) != op.get(k) for k in ('id', 'generation', 'input_hash', 'state')):
+                errors.append(('op:' + str(op.get('id')), 'changed-fenced-operation', str(seq)))
+        restoring = event.get('space', {}).get('restoring', False)
+        if 'restoring' in event.get('space', {}) and (type(restoring) is not bool or
+                restoring != (event['action'] == 'control_restore_confirm')):
+            errors.append(('sequence:' + str(seq), 'invalid-restore-plan', ''))
+    marked_sequences = {e['seq'] for e in record.events}
+    for event in visible_history(record):
+        seq = event['seq']
+        if seq in marked_sequences and record.committed and seq not in record.committed:
             errors.append(('sequence:' + str(seq), 'uncommitted-event', ''))
         fence = fences.get(seq)
         if fence and event.get('record') != fence:
@@ -268,7 +339,8 @@ def consistency_errors(record):
 def decode(state, evidence):
     """Only hash-valid, commit-marked events supply committed local outcomes.
 
-    A valid fence with no working event is restore evidence, not a completion.
+    Ordinary applied rows additionally use visible_history, without inventing
+    a commit marker. A fence alone is restore evidence, not a completion.
     Archive exports are read only after checking the committed manifest hash.
     A torn final journal line is ignored; a corrupt complete line is an error.
     """
@@ -347,12 +419,7 @@ def decode(state, evidence):
     result.restore_intervals = restore_intervals(result.events)
     if head and head[0] == max(result.committed, default=0) and unexplained_sequences(result):
         raise ValueError('Committed history missing from working log and qualified archives')
-    for event in result.events:
-        for key, value in event['set'].items():
-            if value is None:
-                result.rows.pop(key, None)
-            else:
-                result.rows[key] = value
+    result.rows = history_rows(visible_history(result))
     result.generation = result.rows.get('generation')
     result.unprepared_fences = set(fences) - result.committed - {event['seq'] for event in result.prepared}
     result.locked = decoded_lock(result.rows, fences, result.committed, head)
