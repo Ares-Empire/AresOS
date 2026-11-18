@@ -370,3 +370,4 @@ Revision 2 after `RECHECK-CROSS-5.md`, from `d175acdd`; `linux-tools` remains th
 - **Dialog ownership:** 28b step 2 builds the candidate channel, name UI and bound polkit lifecycle; 18c-b 3a already installs the action, with 4/4b and 5/C7 proving the real-session dialog before shipping; failure still stops for the lead.
 - **18c-b handoff:** at `91ad33d6`, next is **3a fix** for the PEM scan's root-home link to boot-created `var/roothome`; keep the two-image-round stop and require the lead's disposition before any further image run or 3b.
 - **Unchanged:** findings 2–6 stay closed as specifications, owner question 2 stays word for word, and Unicode/cleanup, distinct descriptions, 28a's 2,800 then 28b's 3,800 caps and step order remain.
+- **Owner question 2 answered** (board #353, 2026-11-18): "One question (recommended)". 28b item 4c builds the combined send/loss question as written; refusal is no longer the interim fallback for it.

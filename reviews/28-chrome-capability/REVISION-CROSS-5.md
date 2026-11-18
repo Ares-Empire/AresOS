@@ -300,3 +300,8 @@ a signing key without proving rollback is not an alternative implementation of t
   specify future tests; they cannot establish implementation correctness. No product source or generated file
   changes. No owner browser/profile, desktop input, system installation, mount or boot command used.
 - **Open questions:** the two owner choices above; final implementation proofs belong to the package builders.
+
+## Owner answers
+
+- **Question 2** (board #353, 2026-11-18): "One question (recommended)".
+- **Question 1:** asked after the recheck of revision 2.

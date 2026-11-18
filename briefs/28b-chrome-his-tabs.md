@@ -70,7 +70,7 @@ else.
 
 ## JUDGMENT-CALLs
 
-**Owner questions added after BRIEF-CROSS-5 (not yet answered).** The lead `linux-tools` takes these to him.
+**Owner questions added after BRIEF-CROSS-5.** Question 2 is answered (board #353, 2026-11-18: "One question (recommended)"); question 1 is not yet answered. The lead `linux-tools` takes these to him.
 The recommendations below are concrete build contracts, conditional on his choice; they are not recorded as
 owner acceptance. Unrelated steps may proceed. Until answered, keep mismatched profiles disconnected and held
 submissions with possible loss stopped; don't ship a temporary bypass.
@@ -758,8 +758,8 @@ about what a take records or how a release restores.
 
 **Decision and why (CROSS-5 finding 2; owner question 2).** Once a submission is held, its resumption is under
 the tool's control. Losing unrelated owner work then is a fix under `docs/REVIEW.md`, not a script-effect limit.
-This replaces the earlier exception in ALIGNMENT's reviews 5/6 decisions. The contract below is the recommended
-combined-question path, pending the owner's choice; refusal is the fallback while that choice is unresolved.
+This replaces the earlier exception in ALIGNMENT's reviews 5/6 decisions. The contract below is the combined-question
+path. **Owner's answer (board #353, 2026-11-18): "One question (recommended)"**, so it is built as written.
 
 - For **every** held `native_submit` or `submit_event` in a taken tab, `steps`/`payload(hold=…)` runs the whole-tab
   loss check before reserving a send. Reuse the reload loss report, the used flag and item 4d's freshness evidence;
@@ -1015,7 +1015,7 @@ Do not roll the entire package into one step. Owner choices hold only their depe
    17 read/password cases. These do not depend on the loss-policy choice.
 4. Build non-value freshness evidence first (4d), then the stricter checks and asking reload (4/4a), then the
    wrapper/restore and close behavior (4b/5). Add each unit/Node regression before its browser counterpart.
-5. After owner question 2 is answered, build held-loss preparation and resume together (4c), including both
+5. Owner question 2 is answered (board #353: one question). Build held-loss preparation and resume together (4c), including both
    native kinds, changed-state replacement, trusted-send refusal and the board #138 cases in taken tabs.
 6. Build/measure background input, finish the placeholder sweep and follow-ups (7/9/10), regenerate and pin
    descriptions/instructions within item 8, then run the full required suites twice on the final code head.
