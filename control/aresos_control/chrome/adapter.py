@@ -476,33 +476,39 @@ class Chrome:
         and with `tabs` each tab's share of it.
         """
         outline_query(args)
-        with self.call_time() as deadline:
-            deadline.reading = True
-            several = 'tabs' in args
-            tabs = args['tabs'] if several else [args['tab']]
-            limit = args.get('max', OUTLINE_TAB_MAX if several else OUTLINE_MAX)
-            query = outline_view.asked(args.get('ref'), args.get('find'), args.get('role'), args.get('full', False))
-            parts = []
-            with self.bridge.bounded(deadline.at(COMMANDS)):
-                try:
-                    mode = self.mode()
-                except Refused as exc:
-                    if exc.code != 'expired':
-                        raise
-                    raise Refused('not_read', NOT_READ) from exc
-                for index, tab in enumerate(tabs):
+        tabs = args['tabs'] if 'tabs' in args else [args['tab']]
+        try:
+            with self.call_time() as deadline:
+                deadline.reading = True
+                several = 'tabs' in args
+                limit = args.get('max', OUTLINE_TAB_MAX if several else OUTLINE_MAX)
+                query = outline_view.asked(args.get('ref'), args.get('find'), args.get('role'), args.get('full', False))
+                parts = []
+                with self.bridge.bounded(deadline.at(COMMANDS)):
                     try:
-                        with self.bridge.bounded(deadline.share(len(tabs) - index)):
-                            parts.append(self.outline_tab(tab, args, query, limit, deadline))
+                        mode = self.mode()
                     except Refused as exc:
-                        if exc.code == 'expired':
-                            exc = Refused('not_read', NOT_READ)
-                        if exc.code not in TAB_ERRORS:
+                        if exc.code != 'expired':
                             raise
-                        parts.append(outline_view.Failure(tab, exc))
-            # The measure's look at pending comes after the read's commands, with the time of the looks after it.
-            reads = outline_view.fit(parts, self.outline_measure(mode['notice']), self.references, RESULT_LIMIT - PENDING_DRIFT)
-            return {'reads': reads, 'version_notice': mode['notice']}
+                        raise Refused('not_read', NOT_READ) from exc
+                    for index, tab in enumerate(tabs):
+                        try:
+                            with self.bridge.bounded(deadline.share(len(tabs) - index)):
+                                parts.append(self.outline_tab(tab, args, query, limit, deadline))
+                        except Refused as exc:
+                            if exc.code == 'expired':
+                                exc = Refused('not_read', NOT_READ)
+                            if exc.code not in TAB_ERRORS:
+                                raise
+                            parts.append(outline_view.Failure(tab, exc))
+                # The measure's look at pending comes after the read's commands, with the time of the looks after it.
+                reads = outline_view.fit(parts, self.outline_measure(mode['notice']), self.references, RESULT_LIMIT - PENDING_DRIFT)
+                return {'reads': reads, 'version_notice': mode['notice']}
+        finally:
+            # Rendering allocates before cursor checks and envelope fitting.
+            # Every refusal (including later tabs and measurement) must trim too.
+            for tab in tabs:
+                self.references.trim(tab)
 
     def outline_tab(self, tab, args, query, limit, deadline):
         state, view = self.outline_view(tab)
@@ -521,9 +527,11 @@ class Chrome:
                 if current.get('dialog') or current.get('token') != state.get('token'):
                     state, view = self.outline_view(tab)
                     until_met = self.until_met(view, args['until'])
-        options = self.outline_options(view, args['ref']) if 'ref' in args and 'find' not in args else None
+        if 'find' not in args:
+            for node in outline_view.option_fields(view, self.references, args.get('ref'), args.get('full', False)):
+                node.options = self.outline_options(view, node)
         text = outline_view.render(view, self.references, ref=args.get('ref'), full=args.get('full', False),
-                                   find=args.get('find'), role=args.get('role'), options=options)
+                                   find=args.get('find'), role=args.get('role'))
         # The cursor binds the state token taken just before this outline; a
         # change between the two only makes the next page stale, never mixed.
         return outline_view.Reading(view, text, state.get('token'), query, args.get('cursor'), limit, until_met=until_met)
@@ -554,28 +562,21 @@ class Chrome:
             return outline_view.contains(view, until['text'])
         return not outline_view.contains(view, until['gone'])
 
-    def outline_options(self, view, ref):
-        """Every option of the list field `ref` names, when the outline holds only the first ones; else None."""
-        self.references.connect(view.session)
-        try:
-            entry = self.references.resolve(ref, view.tab)
-        except Stale:
-            return None  # render refuses it, with the element's present line where there is one
-        document = view.frames.get(entry.frame)
-        if type(entry.target) is not int or document is None or (document.document, document.reader) != (entry.document, entry.reader):
-            return None
-        node = document.nodes.get(entry.target)
-        if node is None or node.unread or node.role not in outline_view.LISTS or node.option_count <= len(node.options):
-            return None
-        reply = self.bridge.call('options', tab=view.tab, frame=entry.frame, document=entry.document,
-                                 reader=entry.reader, element=entry.target)
+    def outline_options(self, view, node):
+        """Fetch one incomplete list under the existing tab/command deadline."""
+        document = node.document
+        reply = self.bridge.call('options', tab=view.tab, frame=document.frame, document=document.document,
+                                 reader=document.reader, element=node.id)
         if not isinstance(reply, dict) or [reply.get(key) for key in ('session', 'tab', 'frame', 'document', 'reader')] != \
-                [view.session, view.tab, entry.frame, entry.document, entry.reader]:
+                [view.session, view.tab, document.frame, document.document, document.reader]:
             raise Stale()
         try:
-            return outline_nodes.options(reply.get('options'))
+            options = outline_nodes.options(reply.get('options'))
         except outline_nodes.Malformed as exc:
             raise Refused('transport_error', f"The reader's options didn't have the agreed shape ({exc}); nothing of them is shown.") from exc
+        if len(options) != node.option_count:
+            raise Stale()
+        return options
 
     def outline_measure(self, notice):
         """The bytes of the whole result as the engine sends it (`engine.request`): the reads, the

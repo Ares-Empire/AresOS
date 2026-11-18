@@ -497,10 +497,14 @@ class _Renderer:
             return  # the line gives the count
         shown = node.options if whole or self.full or not rich else node.options[:FORM_OPTIONS]
         for option in shown:
-            line = _Line(depth, "option " + quoted(option.label))
+            line = _Line(depth, "option")
+            kept, left_out = self._fit([("run", option.label)], None if whole or self.full else CUT)
+            self._write(line, kept, left_out)
             if whole and option.value != option.label:
                 line.add(" = " + quoted(option.value))
             line.add((" selected" if option.chosen else "") + (" disabled" if option.disabled else ""))
+            if left_out:
+                self._reference(line, node)  # the field's detail reads every complete label
             self.out.add(line)
         if node.option_count > len(shown):
             # More than the reader sent along: the field's own reference reads them all.
@@ -782,6 +786,21 @@ def present_line(view, references, node):
     return renderer.out.text()
 
 
+def option_fields(view, references, ref=None, full=False):
+    """Incomplete lists the requested read promises to show whole, including child frames."""
+    references.connect(view.session)
+    if view.dialog is not None:
+        return []
+    renderer = _Renderer(view, references, full)
+    if ref is None:
+        candidates = view.nodes() if full else ()
+    else:
+        starts, single = renderer.locate(ref)
+        candidates = (node for node, _ in renderer._lined(starts)) if full else starts if single else ()
+    return [node for node in candidates if not node.unread and node.role in LISTS and
+            node.option_count > len(node.options)]
+
+
 def render(view, references, ref=None, full=False, find=None, role=None, options=None):
     """The whole text of one read of one tab, before it is cut into pages.
 
@@ -896,7 +915,7 @@ def start_from(cursor, text, token, query):
         raise Refused("invalid_input", "This cursor belongs to another read; pass the same ref, find, role and full, or read again without it.")
     position = int(parts[0])
     if not 0 < position < len(text) or parts[2] != _state(text, position, token):
-        raise Refused("stale_reference", "The page changed; read again without the cursor.")
+        raise Refused("stale_reference", "page changed, read again without the cursor")
     return position
 
 

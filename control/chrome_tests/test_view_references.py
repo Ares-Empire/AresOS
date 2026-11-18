@@ -202,7 +202,7 @@ class Bound(unittest.TestCase):
         with self.assertRaises(Refused) as caught:
             Reading(shown, render(shown, table, full=True), "token", asked(full=True), cursor, 40000)
         self.assertEqual((caught.exception.code, str(caught.exception)),
-                         ("stale_reference", "The page changed; read again without the cursor."))
+                         ("stale_reference", "page changed, read again without the cursor"))
         dropped = [reference for reference in seen if reference not in table._references]
         self.assertTrue(dropped)
         self.assertFalse(set(dropped) & set(re.findall(r"kqtvm\d+", render(shown, table, full=True).text)))

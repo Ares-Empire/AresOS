@@ -118,7 +118,7 @@ class Cursors(unittest.TestCase):
             with self.assertRaises(Refused) as caught:
                 start_from(cursor, text, token, asked())
             self.assertEqual((caught.exception.code, str(caught.exception)),
-                             ("stale_reference", "The page changed; read again without the cursor."))
+                             ("stale_reference", "page changed, read again without the cursor"))
         # What comes after the cursor may differ: only what was returned is bound.
         self.assertEqual(start_from(cursor, self.TEXT[:70] + "something else", "token", asked()), 70)
 
