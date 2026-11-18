@@ -1,5 +1,176 @@
 # Empire brief 302 — progress
 
+## Build part 4
+
+Status: **Build part 4 checks done; baseline settled; capture pending**.
+
+### Three PLAN-GAPs closed
+
+Started at `680e85ea`, branch `pkg/302-store-oracle`, existing draft PR #111.
+The lead's part-3 decisions are implemented; production service code is unchanged.
+
+- **M07/C01, `13839137`:** `Oracle.expected.failed_recheck` now uses the same
+  independent `latch_refusal_first` rule as status/request-state checks, in
+  addition to fresh physical faults. A live recheck refused without a fresh
+  fault still expects the conservative Sent-copy unchecked notice. It uses the
+  physical transaction record during alterations, never the returned error or
+  Store's latch flag. New test
+  `WriteLatch302.test_live_sent_copy_recheck_refused_by_latch_without_a_fresh_fault_is_unchecked`
+  pins that case and passive/read-only/healthy controls (four subcases).
+- **m17, `1546da20`:** the applied-tail sweep selects the outer Driver call
+  independently of the nested Engine request and requires its start/end range
+  to include the applied event. Later status reads cannot stand in for the
+  producing call. The named mutation now fails with **`5 not greater than or
+  equal to 6 : Outer producing call must include its applied event`**.
+- **m15, `1546da20`:** the latch status sweep now rejects returned operation-row
+  differences in approval, stages and state. Refused reads' absent rows remain
+  covered by the existing status checker; they are not returned row values.
+  Promoting all prepared events now fails **`Returned status rows must match
+  applied history`**, starting at `cancel/single/24/0/live-restored/operation-state`.
+
+### Verification and mutation reruns
+
+Disposable tracked-source exports remain under `control/test-work/302-exports/`,
+with no dot-prefixed ancestor. Logs and exact patches are under `.work/302/`.
+The existing runner supplies the documented managed-settings stand-in, an
+exported absolute PYTHONPATH, separate base/Mail import order, repo-local TMPDIR
+and disabled bytecode. FilePolicy is unchanged. Python commands below all used
+`PYTHONDONTWRITEBYTECODE=1`.
+
+- Before merge: `python3 .work/302/base-only.py control/test-work/302-exports/part4 base test_owner_state_oracle test_owner_state_fixes_s2 test_mail_ci_selection`:
+  **174 tests OK**, 1.556 s (`part4-base.log`), without Mail helper imports.
+- Initial `run.py ... part4 mail sweep-units`: **16 tests, one failure**, 271.085 s
+  (`part4-sweep-initial.log`). My first outer-call selector also selected a later
+  same-action status read. It now requires a call starting before the event;
+  the end-bound assertion stays independent. Focused rerun of
+  `OwnerStateSweep.test_applied_tail_views_keep_the_producing_call_and_restart_never_resubmits`:
+  **1 test OK**, 77.302 s (`part4-tail-final.log`): 48 cases, 76 cleanup runs,
+  56 live applied records, 62 preserved restart envelopes, six discovered flows.
+  The full final suite below reruns all 16 sweep unit tests successfully.
+- `OWNER_MUTATION_ROUND=part4 python3 reviews/20-store-oracle-followups/mutations.py m04 m07 m14 m15 m17 m18 m25 m27`:
+  exit 0; **8 patches, 13 passing baseline invocations, 13 assertion kills**.
+  Includes both survivors and every probe affecting the changed model rule or
+  named sweep assertions, plus the new rule's direct removal (m27). There are
+  no import, fixture, pin or other invalid failures. Exports are restored and
+  patch SHA-256 values match. Part 3's receipts/logs are preserved separately.
+
+| ID | Mutation | Baselines passed / assertion kills |
+|---|---|---:|
+| m04 | Replay old storage cause on later latched request | 3 / 3 |
+| m07 | Infer latch from any call fault, including read/admission faults | 2 / 2 |
+| m14 | Ignore applied tail and project marked rows only | 2 / 2 |
+| m15 | Promote every prepared event without application proof | 2 / 2 |
+| m17 | End producing call at marked sequence, leaving applied event to later reads | 1 / 1 |
+| m18 | Accept unscripted cancellation and acknowledgement | 1 / 1 |
+| m25 | Use marked boundary for all call attribution, moving applied event to later capture | 1 / 1 |
+| m27 | Ignore live recheck latch refusal without a fresh physical fault | 1 / 1 |
+
+Exact child commands, failure lines, source commit, log paths and patch hashes:
+[mutations-part4.json](mutations-part4.json). Evidence commit: `52255786`.
+Parent log: `.work/302/part4-mutations.log`; patches/logs: `.work/302/part4/`.
+
+### Compact sample: eight keys closed; additional closures explained
+
+`python3 .work/302/sample.py control/test-work/302-exports/part4pre mail .work/302/part4-before-main`:
+**104 runs, 187 checked phases, 1,444 keys** (`part4-sample-before-main.log`).
+Against part 3's 1,528 keys: **84 closed, 0 changed, 0 new, 1,444 identical**.
+All eight keys in [new-key-classification.json](new-key-classification.json) close.
+All seven complete clean traces are byte-identical.
+
+The other **76 closures have the same M07/C01 cause**, not unrelated drift or
+another row-visibility fix. The complete 84 are 42 repair and 42 send keys, at
+364/365 and 873/874 respectively, in six live/exhausted phases per flow. There
+are 36 count discrepancies (model 0 / public 1) and 48 extra unchecked notice
+fact discrepancies across log heads, pending heads and catalogue pages/completeness.
+The eight identified in part 3 were the keys newly exposed by item 3; existing
+instances of this expectation omission also close when the shared rule is fixed.
+
+The first delta diagnostic assumed only eight closures and rejected 84. Before
+settling the sample, `python3 .work/302/part4-closures.py control/test-work/302-exports/part4pre mail ignored`
+replayed all affected live cases and asserted **every formerly failing page**:
+expected equals actual, fresh fault trace empty, write attempted, latch check
+recorded, independent latch rule true, and checked Sent-copy rows still in the
+Store. Exit 0: `84 closed keys: every former failing page now agrees; each has a
+write attempt, a latch refusal and no fresh fault; checked Sent-copy rows retained`.
+Full per-key evidence: `.work/302/part4-closure-evidence.json`.
+
+`python3 .work/302/part4-delta.py .work/302/after-item3-final .work/302/part4-before-main .work/302/part4-sample-delta.json eight`
+then verifies the target eight are a subset, the exact closed set equals the
+independently traced set, no other delta, and all clean traces match. This is
+sample classification, not a broadened pin or a whole-pin M07/C01 total. Keep
+these additional closures separate from N7 in the full classification.
+
+### Main merge and drift gate
+
+- `git fetch origin`: exit 0. Fetched main `fef66186`; normal merge `947606b8`
+  (`git merge --no-ff origin/main`), no conflicts. The five commits since part 1's
+  baseline `4a6acc2e` change shell/laptop-home docs, OS shell code/tests and mod
+  fixtures. Diff under **all `control/` and `.github/workflows/` is empty**;
+  production, oracle, tests and capture workflow therefore retain the same code.
+  The branch's production service code is also unchanged from part 3.
+- Inspected #109 (`89801940`) and #97 (`4737bb69`), already in the part-1
+  baseline. #109's channel caller uses `['cli', 'control', 'log', ...]`; CLI and
+  help reserve `newest`. The oracle still compares the historical **`aresos log`**
+  label by directly calling `control_log`. #97's stopped-clock idle checks,
+  independent timing bounds and CI `--init` are retained. Installed-channel
+  execution belongs to the hosted ledger; it was not run on the laptop.
+- After merge: `python3 .work/302/base-only.py control/test-work/302-exports/part4end base test_owner_state_oracle test_owner_state_fixes_s2 test_mail_ci_selection test_cli test_reserved_words test_service_fixes.IdleLoop`:
+  **187 tests OK**, 3.806 s (`part4-post-main-base.log`).
+- `python3 control/generate.py --check`: exit 0, **`Generated artifacts match definitions`**
+  (`part4-generated.log`).
+- `python3 .work/302/final-mail.py control/test-work/302-exports/part4end mail`:
+  **42 tests OK**, 403.982 s (`part4-post-main-mail.log`): ordinary owner
+  contracts, quiet, G22/regressions, S2 effects, plants, and every sweep unit
+  test (only the full matrix is left to the capture). Includes the strengthened
+  m15/m17 checks, startup replay, failed-cleanup pairs and immutable envelopes.
+- `python3 .work/302/sample.py control/test-work/302-exports/part4end mail .work/302/part4-after-main`:
+  **104 runs, 187 checked phases, 1,444 keys** (`part4-sample-after-main.log`).
+  `python3 .work/302/part4-delta.py .work/302/part4-before-main .work/302/part4-after-main .work/302/part4-main-drift.json same`:
+  **0 closed, 0 changed, 0 new, 1,444 identical**; seven clean traces byte-identical.
+  No unrelated key or point drift. No startup-replay or restore-lock keys.
+
+Tracked sample deltas, all 84 closure keys and trace hashes:
+[sample-part4.json](sample-part4.json). Clean point counts remain restore 76,
+cancel 70, onboarding 2,570, repair 366, status 156, archive 373, send 875.
+The known hosted/local onboarding difference remains for the same-runtime full
+capture comparison; no local point was remapped or skipped.
+
+### Capture handoff
+
+Baseline settled. One full capture will be dispatched on the pushed branch:
+
+```sh
+gh workflow run control-owner-oracle.yml --ref pkg/302-store-oracle -f ledger_only=false
+```
+
+Capture run ID: pending dispatch. The builder stops after recording and pushing
+it. `linux-tools` watches the capture. The strict old-pin failure is expected
+capture evidence; no full-pin or CI-green claim is made here.
+
+### Left, in order
+
+1. Download the capture's **53 fresh lists**, reassemble without conflicting
+   shared keys, verify the historical lists reproduce the old pin, and classify
+   every closed/changed/new/unchanged delta (including the 544 saved envelopes,
+   aliases, point counts and these M07/C01 closures).
+2. **Re-pin once** with the gap tool; commit the new pin and exact classification.
+3. Dispatch and watch the **full proof** on that pin: all 61 jobs pass, fresh 53
+   lists reproduce it byte for byte, every alteration shard has `slipped=0`.
+4. Required **Control CI twice**.
+5. Fresh **package and security reviews**, then the independent **classification
+   check** against the full historical/fresh lists.
+
+No new product judgment call; the lead's three cheap contract fixes are complete.
+No FilePolicy, approval, storage/schema, restore-lock policy or service change.
+The pin is unchanged: SHA-256 `8b27b1161505ac19eeaa41a6f1a69c95886de5da338249801963a96a083b74b1`.
+Final `git diff --check` and repository privacy check pass. Closing scan of
+`.work/` and `control/test-work/`: **no files over 500 MB**. No large downloads.
+No mod/Gradle, installed-channel/root, OS owner-module, boot, mount, sudo or
+live-service work; no other workflow dispatch. Capture/proof watching is left
+to the lead and subsequent run as requested.
+
+---
+
 ## Build part 3 (step 5)
 
 Status: **Build part 3 done; next: step 6**.
