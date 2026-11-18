@@ -925,3 +925,17 @@ test('post18df facts beside late textareas omit withheld compose values and reta
     if(submit)assert.equal(result.data.form.fields.find(field=>field.element===f.read().data.rows.find(row=>row.name==='Draft').element).unknown_history,true);
   }
 });
+
+test('X1 sibling: a generic role never copies native control child text around withholding',()=>{
+  for(const kind of ['textarea','text','search','email','url','tel','number']){
+    const f=fixture([{type:kind==='textarea'?'textarea':kind,tagName:kind==='textarea'?'TEXTAREA':'INPUT',attrs:{role:'generic','aria-label':'Notes'}}],{watched:false});
+    const control=f.nodes[0];if(kind==='textarea')f.textarea(control);
+    control.childNodes=[{nodeType:3,textContent:'withheld-default-fixture',parentElement:control}];
+    Object.defineProperty(control,'value',{get(){throw Error('WITHHELD VALUE READ');}});
+    const result=f.read();assert.equal(result.ok,true,JSON.stringify(result));
+    assert.ok(!JSON.stringify(result).includes('withheld-default-fixture'),kind);
+    assert.equal(result.data.rows[0].value_status,'filled');
+    assert.equal(result.data.rows[0].name,'Notes');
+    assert.equal(result.data.typed_fields.fields.length,1);
+  }
+});

@@ -357,6 +357,9 @@
     if(tag==='input')return element.type==='hidden'?null:inputRoles.get(element.type)||'textbox';
     if(tag==='select')return element.multiple||element.size>1?'listbox':'combobox';
     if(element.isContentEditable)return 'textbox';
+    // Native controls still take the value/withholding path under presentation roles.
+    if(tag==='textarea')return 'textbox';
+    if(tag==='button')return 'button';
     if(word==='presentation'||word==='none')return null;
     if(tag==='header'||tag==='footer')return element.parentElement?.localName==='body'?(tag==='header'?'banner':'contentinfo'):null;
     if(tag==='section')return element.hasAttribute('aria-label')||element.hasAttribute('aria-labelledby')?'region':null;
@@ -444,7 +447,8 @@
         if(role===null&&(node.namespaceURI!==XHTML||formattingTags.has(tag))){for(const child of composedChildren(node))visit(child,owner);return;}
         flush(owner);
         const record={element:node,out:{role},parts:[],run:'',pre:tag==='pre'||/^(?:pre|break-spaces)/.test(style.whiteSpace||'')};
-        if(role===null||!describe(node,tag,role,record.out))for(const child of composedChildren(node))visit(child,record);
+        // A textarea's default text is never generic page text, whatever its role.
+        if((role===null||!describe(node,tag,role,record.out))&&tag!=='textarea')for(const child of composedChildren(node))visit(child,record);
         flush(record);
         // No role and no text of its own: no node, and its children move up.
         if(role===null&&!record.parts.some(part=>typeof part==='string'&&part.trim()))owner.parts.push(...record.parts.filter(part=>typeof part!=='string'));
@@ -495,7 +499,7 @@
       if(password(element))state='p';
       else if(tag==='select')state='s'+[...element.options].map(option=>option.selected?1:0).join('');
       else if(['checkbox','radio'].includes(element.type))state=element.checked?'c1':'c0';
-      else if(element.type==='file')state='f'+element.files.length;
+      else if(element.type==='file')state='f'+JSON.stringify([...element.files].map(file=>String(file.name)));
       else{const safe=safeValue(element,false);state=typeof safe.value==='string'?'v'+safe.value:'u'+(safe.value_status||'');}
       fields.push(state.length+':'+state);
     }
@@ -687,7 +691,8 @@
     const nodes = all(), modal = nodes.find(node => node.matches('dialog[open],[role=dialog][aria-modal=true],[role=alertdialog][aria-modal=true]'));
     const rows = nodes.filter(node => (!modal || modal.contains(node)) && !['SCRIPT','STYLE','NOSCRIPT','OPTION'].includes(node.tagName)).map(node => {
       const facts = targetFacts(node);
-      if (facts.role === 'generic' && !node.isContentEditable) {
+      // Native controls already went through safeValue; their child text is not a fallback name.
+      if (facts.role === 'generic' && !node.isContentEditable && !['INPUT','TEXTAREA','SELECT','BUTTON'].includes(node.tagName)) {
         if(password(node))return null;
         const own=[...node.childNodes].filter(child=>child.nodeType===Node.TEXT_NODE).map(child=>child.textContent).join(' ').replace(/\s+/g,' ').trim();
         if(!own || password(node) || node.hidden || getComputedStyle(node).display==='none' || getComputedStyle(node).visibility==='hidden')return null;
