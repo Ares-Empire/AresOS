@@ -514,6 +514,8 @@ def main():
         assert reserve==plan['before_probe' if mode=='probe' else 'before_qualification'], 'STOP: incomplete owner dispatch reservation'
     if PACKAGE in TITLED_PACKAGES:
         assert os.environ.get('GITHUB_REF_NAME', BRANCH) == BRANCH, 'STOP: wrong package branch'
+    if ci and PACKAGE == '42':
+        assert os.environ.get('GITHUB_REF', '').startswith('refs/heads/'), 'STOP: a branch ref is required'
     result = budget(reserve, current)
     if plan is not None:
         result['reservation_plan']=plan

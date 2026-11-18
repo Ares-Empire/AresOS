@@ -5,6 +5,150 @@ differences) a fresh Claude agent (Opus 5.5) the same day; review 1's fixes a fr
 day (below). Nothing has been published, signed or pushed to GHCR. The owner's OK for publishing release 28 has not
 been given, and the ledger now stops a publish dispatch until it is (B1).
 
+## Step 2: Control's Part A rules (2026-11-18)
+
+Built on `pkg/42-release-28` after the lead merged PR #58. No commit, push, dispatch, rebind, publish or VM run
+was performed in this step. Nothing in `control/` or `os/owner-tools/` was changed.
+
+### Done
+
+- **Shipping scope checked first:** `bash os/build.sh control-tree os control .work/42-control-tree` exited 0 and
+  printed `CONTROL_CHROME_BUILD <derived build ID>` and `CONTROL_INSTALLED 74 files`. Inspected its `control.json`
+  and the image build's additional wheel/vendor fields. The 74 files include Mail, the Chrome **adapter** and its
+  generated `chrome/build-id.json` and qualification file. No browser-side `/usr/share/aresos/chrome/`, Chrome
+  polkit action, excluded-sites tmpfiles line or locked `gh` is installed. No Chrome build hash was copied into
+  source, tests or this report; the install map recomputes the adapter's ID from the current `control/` tree.
+- **N8:** `release_diff.IMAGE_SOURCES` includes the actual top-level `control/` fetched by the source stage. Its
+  source-coverage test maps `/tmp/aresos/control` back to that tree and tests a changed `control/launch.py` too.
+- **A.3:** exact Part A rules in `os/ci/release_diff.py`: the recomputed install map, root ownership, type, mode,
+  empty xattrs, file bytes, managed Claude Code files, service enable link, both tmpfiles files, and the full
+  vendor tree as recorded by `control.json`. The manifest must have exactly the build's fields, its source revision
+  must be the build commit, and every wheel must match `control/requirements.lock`. Missing paths and extra rows
+  stop the converse check, including unchanged/missing paths that never enter the diff. The existing independent
+  wheel-to-vendor check in `check-image.sh` still supplies that part's real-image evidence.
+- **Accounts and audit:** only the exact `aresos-tools` passwd/group/shadow/gshadow row and UID/GID 250 may be
+  added, with the existing allowance for shadow creation dates. Other rows and metadata must match; neighbouring
+  paths, extra rows, changed IDs and a duplicate 250 fail. Part A creates the account at **boot** (the image build
+  runs sysusers with only the daily account's declaration), so its presence is required by the boot checker, not
+  invented as a build-time requirement. The updater audit accepts exactly Control's enabled service row alongside
+  package 50's row, with their actual installed units, and rejects changed or extra audit rows.
+- **A.4/A.5:** `verify_release.py` recognises release 28's own job and signature, binds `control/` alongside every
+  image source, and checks `control.source_revision`. `publish.sh` runs `release28_record.py` for release 28;
+  the latter reads `evidence/image/manifest/control.json`, requires its source to equal the release/build source,
+  and writes the top-level `control: {source_revision: ...}` and the source tree rows to `evidence/release.json`.
+  This step prepares that job; no real `os/manifest/releases/28.json` is written before publication.
+- **B / REVIEW-4 finding 3:** `CONTROL_RIDES = True`, `CHROME_RIDES = False`. The bound checker is sent to
+  `/usr/bin/python3 -I -` on stdin, its real supported interface. Raw stdout, stderr and status are saved before
+  validation; all five results, UID/GID 250, state owners/modes, foreign state ownership, and the fresh VM's daily
+  folders' owners/types/modes are required. The login probe retains and traverses `After`, `Requires`, `Requisite`
+  and `BindsTo` from greetd and systemd-user-sessions, rejecting a direct or transitive Control dependency. Missing
+  optional ordering units may be leaves; missing login roots or failed queries stop. Control runs on both the first
+  R28 boot and the final R28 boot after forward, with both results in the rehearsal result.
+- **Host walk:** regenerated with `PYTHONDONTWRITEBYTECODE=1 python3 reviews/42-release-28/walk-host.py`.
+  It printed `PASS package 42 host walk (release-28): 269 sources; no VM started`; the receipt explicitly records
+  `control_rides: true` and adds the checker to its bound sources. The local model executes the submitted checker
+  and probe against controlled account, filesystem and process interfaces. Wrong state/daily-folder metadata,
+  ordering/required login dependencies and missing/failed login queries fail the route, including on final R28.
+- **N2:** package 42's CI guard and every `publish.sh` invocation require a full `refs/heads/` ref, before budget
+  reads or publish commands. Tests reject a same-named tag, a bare name and a missing ref. Earlier release tests'
+  simulated GitHub environments now include their actual full branch ref.
+- **Pending source accounting:** `test_checkout_sources` initially reported 8 tests with 1 failure: the existing
+  pending hashes for `os/ci/rehearsal_guard.py`, `os/ci/verify_release.py` and `os/tests/test_owner_walk.py` were stale.
+  Only those three existing rows were refreshed through `checkout_sources.records()`'s checkout replay, with a
+  change note in `os/manifest/ci/16/pending-rebind.json`. No historical source-binding table was rewritten and
+  `rebind.py` was not run. The files still await the real rehearsal.
+- **gh pin:** #58 ships no gh lock or locked gh installation. No pin was renewed on this branch; no new
+  `BRANCH_SOURCE_CHANGES` exception is needed. A future locked gh renewal must be made on main before its cut,
+  or get a separately reviewed exception then.
+
+### Verified
+
+Every module below uses exactly
+`PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s os/tests -p '<module>.py'`, one at a time.
+
+| Module | Tests | Result |
+|---|---:|---|
+| `test_release28.py` | 92 | `Ran 92 tests ... OK` (exit 0) |
+| `test_release28_control.py` | 13 | `Ran 13 tests ... OK` (exit 0) |
+| `test_release28_rehearsal.py` | 44 | `Ran 44 tests ... OK` (exit 0) |
+| `test_owner_walk.py` | 34 | `Ran 34 tests ... OK` (exit 0) |
+| `test_release27.py` | 41 | `Ran 41 tests ... OK` (exit 0) |
+| `test_checkout_sources.py` | 8 | `Ran 8 tests ... OK` (exit 0) |
+| `test_release_squash_binding.py` | 7 | `Ran 7 tests ... OK` (exit 0) |
+| `test_rehearsal_budget.py` | 4 | `Ran 4 tests ... OK` (exit 0) |
+| `test_rehearsal_auth.py` | 9 | `Ran 9 tests ... OK` (exit 0) |
+| `test_control_image.py` | 15 | `Ran 15 tests ... OK` (exit 0) |
+| `test_ci_api_permissions.py` | 4 | `Ran 4 tests ... OK` (exit 0) |
+| `test_ci_step_environment.py` | 4 | `Ran 4 tests ... OK` (exit 0) |
+| `test_keyboard_release.py` | 5 | `Ran 5 tests ... OK` (exit 0) |
+
+`git diff --check` passed. All 269 host-receipt source hashes match the checkout, with `control_rides: true`.
+The prohibited modules and Gradle were not run. None of `sudo`, `rpm-ostree`, `bootc`, `ostree`, a dispatch
+or `rebind.py` was executed.
+
+The required initial `test_release28` ran **92 tests, FAILED (failures=1)**: precisely ImageSourcesTest's missing
+`control` entry (N8). During implementation, fixture corrections were needed: `test_release28` reported 17
+failures, then 1, as the old miniature image lacked existing R27 parent directories and its expected audit output
+omitted the new Control row. `test_release28_rehearsal` first reported 39 tests with 1 failure and 2 errors (the
+full ref and the controlled checker's pathlib interface were missing); its corrected run passed 44 tests.
+No production assertion was weakened to fix those fixtures.
+
+### Changed files
+
+| File:line | Change |
+|---|---|
+| `os/ci/release_diff.py:452` | Control source binding, exact Part A rules, accounts, vendor and audit |
+| `os/ci/verify_release.py:44` | Release 28 job/signature and all source-tree identities, including Control |
+| `os/ci/release28_record.py:12` | Image-derived Control provenance and source trees in the release record |
+| `os/ci/publish.sh:7` | Full branch ref; release 28 record completion at line 65 |
+| `os/ci/rehearsal_guard.py:517` | Package 42 CI requires a branch ref, including its publishing guard |
+| `os/ci/release28_walk.py:73` | Part A enabled; bound stdin checker and login graph at line 498; both R28 boots checked |
+| `os/tests/test_release28.py:92` | Actual Control install-map fixture, source coverage, full refs and smoke audit |
+| `os/tests/test_release28_control.py:23` | Negative Part A rules, account rows, provenance/verifier and tag-ref tests |
+| `os/tests/test_release28_rehearsal.py:434` | Enabled Control path, both boot checks and browser-side exclusion |
+| `os/tests/test_owner_walk.py:561` | Execute real submitted Control probes with controlled interfaces and fault injections |
+| `os/tests/test_release27.py:405` | Complete simulated GitHub branch refs |
+| `reviews/42-release-28/walk-host.py:24` | Bind the supported release checker |
+| `os/manifest/ci/42/host-walk.json:3` | Regenerated receipt, Control true, 269 sources |
+| `os/manifest/ci/16/pending-rebind.json:32` | Three existing pending source hashes refreshed, with the reason |
+| `reviews/42-release-28/PROGRESS.md:8` | This step's scope, results, limits and release-after list |
+
+### Left, in order
+
+1. Fresh Astra review of this step; the lead commits the reviewed changes (this sandbox cannot write git metadata).
+2. The lead's pending-source/rebind work and the cut's source merge and mod-pin resolve if needed.
+3. The remaining real cut dry run: Part A's complete wheel/vendor record, audit row, exact path metadata and any
+   generated cache changes must all pass the image diff. Inspect `result.json`, including its `main`, `control`
+   and rpm-verification evidence; explain any newly observed path before proceeding.
+4. The owner's publish OK and the lead's publish/record step, then the hosted release-28 VM rehearsal. Both R28
+   Control results, the login graph, the protected-disk audits and the actual release record must pass there.
+5. Only after that rehearsal: the release/tool pins and guides. None was moved here.
+
+### What the code doesn't show
+
+The local walk is synthetic evidence. It does not prove the real first-boot sysusers allocation, pip's real
+vendored bytes, systemd's real ordering graph, merged `/etc/claude-code` or a live Control process on the release
+image. Those need the cut dry run and VM boots. Daily Downloads/Documents are freshly created 0700 in this VM;
+Part A's tmpfiles `:0700` deliberately preserves an owner's existing folder mode. The actual Minecraft world and
+Mail with the owner's account still need their separate live checks. No privileged command or owner window was
+used here. No files over 500 MB remain in `.work/`.
+
+### Left for the release after
+
+- **18c-b's browser side**, including `/usr/share/aresos/chrome/` and its per-build diff rule.
+- The browser-side polkit action, links/units and excluded-sites tmpfiles line; Part A's service link and tmpfiles
+  files are covered now.
+- Top-level **`chrome_build`** in the release record: Part A's `control.json` has no such field. Its internal
+  adapter `chrome/build-id.json` is already covered by the exact Part A install-map rule.
+- `control/chrome/record_build.py add` in the release job and its build-registration row.
+- B.2's excluded-sites list and the update/previous/forward hash checks. The route keeps the future code gated by
+  `CHROME_RIDES = False` and writes no browser-side list in this release.
+- A locked gh installation and pin rule, if 18c-b actually supplies one; no such lock rides from #58.
+
+**PLAN-GAP (resolved by this step's instructions):** the frozen brief couples step 2 and A.5/B.2 to 18c-b. The
+lead's release scope explicitly carries only #58's Part A with 18e's fixes. The absent browser items above are
+therefore deferred individually. There is no unresolved blocker or new product JUDGMENT-CALL in this step.
+
 ## Package 50's rules
 
 Added after main's merge at `276eff4a` (2026-11-17): `release_diff.py` accepts only the new graphical-target

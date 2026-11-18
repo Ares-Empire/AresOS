@@ -558,12 +558,35 @@ class Release28Session:
             self.Path(target).mkdir(parents=True, exist_ok=True)
             self.Path(release28_walk.INSTANCE + '/' + name).symlink_to(self.Path(target))
 
+    def control_fixture(self):
+        record = {'files': {}}
+        for file in ('CLAUDE.md', 'managed-settings.json'):
+            content = '# managed fixture\n' if file.endswith('.md') else '{}\n'
+            for top in ('/etc/claude-code', '/usr/etc/claude-code'):
+                path = top + '/' + file
+                self.write(path, content)
+                self.owners[str(self.Path(path))] = (0, 0)
+                self.Path(path).chmod(0o644)
+            record['files']['/etc/claude-code/' + file] = dict(mode='0644', sha256=hashlib.sha256(content.encode()).hexdigest())
+        self.write('/usr/share/aresos/manifest/control.json', json.dumps(record))
+        self.write('/usr/share/aresos/control/service.json', json.dumps(dict(owner_uid=1001)))
+        self.write('/usr/share/aresos/control/proxy.json', json.dumps(dict(folders=['/var/home/ares/Downloads', '/var/home/ares/Documents'])))
+        for path, mode in {'/var/lib/aresos-tools': 0o700, '/var/lib/aresos-operation-evidence': 0o700, '/run/aresos-tools': 0o711,
+                           '/var/home/ares/Downloads': 0o700, '/var/home/ares/Documents': 0o700}.items():
+            self.Path(path).mkdir(parents=True, exist_ok=True)
+            self.Path(path).chmod(mode)
+            if not path.startswith('/var/home/'):
+                self.owners[str(self.Path(path))] = (250, 250)
+        self.write('/proc/4243/status', 'Uid:\t250\t250\t250\t250\nGid:\t250\t250\t250\t250\n')
+
     def boot(self, stage):
         """Switch the model's image payload, leaving home and its symlink text alone."""
         if stage in ('release-28', 'final-28'):
             if self.absent_share.exists(): self.absent_share.rename(self.share)
         elif self.share.exists():
             self.share.rename(self.absent_share)
+        if self.control and stage in ('release-28', 'final-28') and not self.Path('/run/aresos-tools').exists():
+            self.control_fixture()
         self.boots.append(dict(stage=stage, targets={
             name: self.Path(self.walk.INSTANCE + '/' + name).exists() for name in self.links}))
 
@@ -579,7 +602,7 @@ class Release28Session:
         p.parent.mkdir(parents=True, exist_ok=True)
         p.write_text(data)
 
-    def execute(self, script, *, uid=0, argv=()):
+    def execute(self, script, *, uid=0, argv=(), allow_exit=False):
         import builtins, io, subprocess, xml.etree.ElementTree as ET
 
         def access(path, mode):
@@ -589,13 +612,17 @@ class Release28Session:
             shift = 6 if uid == s.st_uid else 3 if s.st_gid == 1001 else 0
             return uid == 0 or ((s.st_mode >> shift) & mode) == mode
 
-        modules = dict(pathlib=SimpleNamespace(Path=self.Path),
+        modules = dict(pathlib=SimpleNamespace(Path=self.Path, PurePath=pathlib.PurePath),
             os=SimpleNamespace(walk=os.walk, chown=lambda p,u,g: self.owners.__setitem__(str(p), (u,g)),
                 readlink=self.readlink, access=access, R_OK=os.R_OK, W_OK=os.W_OK, X_OK=os.X_OK,
                 getuid=lambda: uid, environ=dict(PATH='/usr/bin' if 'bad_path' in self.faults else vm.DAILY_PATH)),
             subprocess=SimpleNamespace(run=self.run, check_output=self.check_output, Popen=self.popen,
                 DEVNULL=subprocess.DEVNULL, PIPE=subprocess.PIPE, STDOUT=subprocess.STDOUT, TimeoutExpired=subprocess.TimeoutExpired),
-            time=SimpleNamespace(sleep=lambda _: None), sys=SimpleNamespace(argv=['probe', *argv]),
+            time=SimpleNamespace(sleep=lambda _: None, monotonic=lambda: 0),
+            sys=SimpleNamespace(argv=['probe', *argv], exit=lambda code: (_ for _ in ()).throw(SystemExit(code))),
+            pwd=SimpleNamespace(getpwnam=lambda _: SimpleNamespace(pw_uid=250,pw_gid=250,pw_dir='/var/lib/aresos-tools',pw_shell='/usr/sbin/nologin'),
+                getpwall=lambda: [SimpleNamespace(pw_name='aresos-tools',pw_uid=250)]),
+            grp=SimpleNamespace(getgrnam=lambda _: SimpleNamespace(gr_gid=250),getgrall=lambda: [SimpleNamespace(gr_name='aresos-tools',gr_gid=250)]),
             xml=SimpleNamespace(etree=SimpleNamespace(ElementTree=SimpleNamespace(
                 parse=lambda p: ET.ElementTree(ET.fromstring(p.read_text()))))))
         allowed = {'hashlib', 'json', 'stat', 're'}
@@ -607,11 +634,16 @@ class Release28Session:
             return builtins.__import__(name, globals, locals, fromlist, level)
 
         output = io.StringIO()
+        status = 0
         with contextlib.redirect_stdout(output):
-            exec(compile(script, '<submitted-release28-probe>', 'exec'),
-                 dict(__builtins__=dict(vars(builtins), __import__=imports,
-                      open=lambda p,*a,**kw: self.Path(p).open(*a,**kw))))
-        return output.getvalue()
+            try:
+                exec(compile(script, '<submitted-release28-probe>', 'exec'),
+                     dict(__name__='__main__', __builtins__=dict(vars(builtins), __import__=imports,
+                          open=lambda p,*a,**kw: self.Path(p).open(*a,**kw))))
+            except SystemExit as error:
+                if not allow_exit: raise
+                status = error.code
+        return (status, output.getvalue()) if allow_exit else output.getvalue()
 
     def check_output(self, argv, **kw):
         done = self.run(argv, **kw)
@@ -639,6 +671,24 @@ class Release28Session:
             self.foot += 1
             self.events.append('terminal opened')
         elif words[0] == '/usr/bin/fc-match': stdout = self.walk.SPACE_GROTESK
+        elif words == ['/usr/bin/python3', '-I', '-']:
+            assert kw.get('input') == (ROOT / self.walk.CONTROL_CHECKER).read_text(), 'Not the bound checker on stdin'
+            code, stdout = self.execute(kw['input'], allow_exit=True)
+        elif words[:2] == ['systemctl', 'show']:
+            if words[2] == 'aresos-toold.service':
+                stdout = 'ActiveState=active\nSubState=running\nMainPID=4243\nNRestarts=0\nUnitFileState=enabled\n'
+            else:
+                name = words[-1]
+                after = 'basic.target' if name == 'greetd.service' else ''
+                if 'control_delays_login' in self.faults and name == 'basic.target': after = 'aresos-toold.service'
+                requires = 'aresos-toold.service' if 'control_required_login' in self.faults and name == 'greetd.service' else ''
+                state = 'loaded'
+                if 'optional_login_unit' in self.faults:
+                    if name == 'greetd.service': after += ' optional.service'
+                    if name == 'optional.service': state, code = 'not-found', 1
+                if 'missing_login_root' in self.faults and name == 'greetd.service': state, code = 'not-found', 1
+                if 'failed_login_query' in self.faults and name == 'basic.target': code = 1
+                stdout = f'Id={name}\nLoadState={state}\nAfter={after}\nRequires={requires}\nRequisite=\nBindsTo=\n'
         elif words[0] == 'python3' and words[1] == '-c':
             try: stdout = self.execute(words[2], uid=uid, argv=words[3:])
             except (AssertionError, OSError) as error: code, stderr = 1, str(error)
@@ -681,7 +731,7 @@ class Release28Session:
 
     def capture(self, name, source):
         if not name.startswith(('release-28-', 'previous-27-', 'final-28-')): return None
-        suffixes = ('-session', '-end-foot', '-terminal', '-home', '-game-scope', '-polkit', '-path-result')
+        suffixes = ('-session', '-end-foot', '-terminal', '-home', '-game-scope', '-polkit', '-path-result', '-control')
         if not name.endswith(suffixes): return None
         if name.endswith('-path-result'):
             # Execute the program prepared for, and typed into, the reopened terminal, then its reader.
@@ -690,6 +740,10 @@ class Release28Session:
         else:
             words = shlex.split(source)
             script = words[words.index('python3')+2]
+        if name == 'final-28-control':
+            if 'bad_control_state' in self.faults: self.modes[str(self.Path('/var/lib/aresos-tools'))] = 0o755
+            if 'bad_control_folder' in self.faults: self.modes[str(self.Path('/var/home/ares/Downloads'))] = 0o755
+            if 'bad_control_owner' in self.faults: self.owners[str(self.Path('/run/aresos-tools'))] = (0, 0)
         if name == 'final-28-home':
             if 'wrong_owner' in self.faults: self.owners[str(self.Path(self.walk.APPS))] = (0, 0)
             if 'missing_instance' in self.faults: self.Path(self.walk.INSTANCE + '/mmc-pack.json').unlink()
@@ -1274,7 +1328,10 @@ def walk(ps2=False, route='qualification', control=False, faults=()):
 
 class Release28ProbeTest(unittest.TestCase):
     def test_injected_guest_failures_stop_the_route(self):
-        cases = {'retained_foot': 'still running', 'changed_sites': "sites list's hash changed",
+        cases = {'retained_foot': 'still running', 'bad_control_state': 'Control release checker failed',
+                 'bad_control_folder': 'Control daily folder metadata differs', 'bad_control_owner': 'Control release checker failed',
+                 'control_delays_login': 'Control service delays login', 'control_required_login': 'Control service delays login',
+                 'failed_login_query': 'login dependency query failed', 'missing_login_root': 'login dependency query failed',
                  'wrong_owner': 'ownership changed', 'missing_instance': 'inaccessible as ares',
                  'bad_permissions': 'inaccessible as ares', 'stable_changed': 'stable instance',
                  'bad_instance_mode': 'stable instance', 'bad_memory': 'memory.high',
@@ -1283,7 +1340,7 @@ class Release28ProbeTest(unittest.TestCase):
                  'denied_world': 'inaccessible as ares'}
         for fault, error in cases.items():
             with self.subTest(fault=fault), self.assertRaisesRegex(AssertionError, error):
-                walk(route='release-28', control=fault == 'changed_sites', faults=[fault])
+                walk(route='release-28', control=fault.startswith(('bad_control', 'control_')) or fault in ('failed_login_query', 'missing_login_root'), faults=[fault])
 
     def test_removing_the_submitted_kill_no_longer_gets_a_canned_success(self):
         import release28_walk

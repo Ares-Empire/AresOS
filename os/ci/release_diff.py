@@ -446,10 +446,10 @@ PRISM_FILE_LISTS = {'e21949a8101c1803dbc6f67a2cdad48ba80ede1c133f0d1f2a89da07af0
 # os/.containerignore's paths) to /tmp/aresos and uses build.sh, config/,
 # policy/ and tests/audit.py from it; build.sh reads the two package locks,
 # keys/ (Chrome's signing key) and minecraft/; its source stage fetches this
-# commit's mod/; base.json pins the base the Containerfile names.
+# commit's mod/ and control/; base.json pins the base the Containerfile names.
 # test_release28 holds this list against build.sh's and the Containerfile's
 # /tmp/aresos paths.
-IMAGE_SOURCES = ('mod', 'os/.containerignore', 'os/Containerfile', 'os/build.sh', 'os/config', 'os/google-chrome.lock.json',
+IMAGE_SOURCES = ('control', 'mod', 'os/.containerignore', 'os/Containerfile', 'os/build.sh', 'os/config', 'os/google-chrome.lock.json',
                  'os/keys', 'os/manifest/base.json', 'os/minecraft', 'os/packages.lock.json', 'os/policy', 'os/tests/audit.py')
 # The rpm query of the added packages' files, as their rpm database records
 # them. The path comes first and the mode last, so neither end of the output
@@ -528,6 +528,130 @@ def prism_inventory(pin, work='.work/release-diff'):
 
 def root_owned(value, mode):
     return value['uid'] == 0 and value['gid'] == 0 and value['mode'] == mode
+
+
+CONTROL_RECORD = 'usr/share/aresos/manifest/control.json'
+CONTROL_UNIT = 'usr/lib/systemd/system/aresos-toold.service'
+CONTROL_ROOTS = ('usr/libexec/aresos-control', 'usr/lib/aresos-control', 'usr/share/aresos/control', 'etc/claude-code')
+CONTROL_ACCOUNTS = tuple('etc/' + name + suffix for name in ('passwd', 'group', 'shadow', 'gshadow') for suffix in ('', '-'))
+CONTROL_AUDIT = dict(scope='system', name='aresos-toold.service', state='enabled', suspicious=False,
+    commands=['ExecStart=/usr/bin/env -i PATH=/usr/bin:/bin LANG=C.UTF-8 /usr/bin/python3 -I -S /usr/libexec/aresos-control/launch.py service'],
+    sources=['/' + CONTROL_UNIT], active_state=None, load_state=None, sub_state=None)
+
+
+def control_account_row(name, raw):
+    """The single account systemd-sysusers makes from Control's fixed declaration."""
+    rows = [row for row in account_rows(raw) if row[0] == 'aresos-tools']
+    if len(rows) != 1:
+        return False
+    row, kind = rows[0], name.removeprefix('etc/').rstrip('-')
+    expected = {
+        'passwd': ['aresos-tools', 'x', '250', '250', 'AresOS tool service', '/var/lib/aresos-tools', '/usr/sbin/nologin'],
+        'group': ['aresos-tools', 'x', '250', ''],
+        'gshadow': ['aresos-tools', '!', '', ''],
+    }
+    if kind == 'shadow':
+        return len(row) == 9 and row[:2] == ['aresos-tools', '!*'] and row[2].isdigit() and row[3:] == [''] * 6
+    return row == expected[kind]
+
+
+def control_accounts(name, old, new):
+    if old is None or new is None:
+        return False
+    a, b = account_rows(old), account_rows(new)
+    previous = [row for row in a if row[0] == 'aresos-tools']
+    current = [row for row in b if row[0] == 'aresos-tools']
+    # Backup files may predate the sysusers transaction. Their existing rows still have to match.
+    if not current:
+        return not previous and accounts_explained(name, old, new)
+    if not control_account_row(name, new) or previous and not control_account_row(name, old):
+        return False
+    kind = name.removeprefix('etc/').rstrip('-')
+    if kind in ('passwd', 'group'):
+        if any(row[0] != 'aresos-tools' and (row[2] == '250' or kind == 'passwd' and row[3] == '250') for row in b):
+            return False
+    strip = lambda rows: ('\n'.join(':'.join(row) for row in rows if row[0] != 'aresos-tools') + '\n').encode()
+    return accounts_explained(name, strip(a), strip(b))
+
+
+def control_install_map():
+    """Recompute the build's supported install map, without pip, downloads or privileges."""
+    with tempfile.TemporaryDirectory() as folder:
+        root = pathlib.Path(folder) / 'root'
+        subprocess.run(['bash', 'os/build.sh', 'control-tree', 'os', 'control', str(root)],
+                       check=True, capture_output=True, text=True, timeout=120)
+        return json.loads((root / CONTROL_RECORD).read_text())
+
+
+def control_wheels(record):
+    normal = lambda name: re.sub(r'[-_.]+', '-', name).lower()
+    lock, current = {}, None
+    for line in pathlib.Path('control/requirements.lock').read_text().splitlines():
+        if found := re.fullmatch(r'([A-Za-z0-9._-]+)==(\S+) \\', line):
+            current = normal(found[1]), found[2]
+            assert current not in lock, 'duplicate Control requirement'
+            lock[current] = set()
+        elif found := re.fullmatch(r'\s+--hash=sha256:([0-9a-f]{64})( \\)?', line):
+            assert current is not None
+            lock[current].add(found[1])
+        else:
+            assert not line.strip() or line.startswith('#'), 'unknown Control requirement line'
+    wheels = record['wheels']
+    assert lock and all(lock.values()) and isinstance(wheels, list) and len(wheels) == len(lock), 'Control wheel count'
+    assert {(w['name'], w['version']) for w in wheels} == set(lock), 'Control wheels differ from lock'
+    assert all(set(w) == {'name', 'version', 'file', 'sha256'} and w['sha256'] in lock[w['name'], w['version']]
+               and '/' not in w['file'] and w['file'].endswith('.whl') for w in wheels), 'Control wheel pin differs'
+
+
+def control_inventory(root, revision):
+    """Part A's exact install map and locked vendor record. check-image.sh also derives vendor bytes from wheels.
+
+    Hold the record to this checkout and require the whole of every Control folder to match, including absent
+    entries: a missing path never enters the diff. Every changed path still needs its own rule.
+    """
+    record = json.loads((root / CONTROL_RECORD).read_text())
+    expected = control_install_map()
+    assert set(record) == set(expected) | {'source_revision', 'wheels', 'vendor'}, 'Control record fields'
+    assert re.fullmatch('[0-9a-f]{40}', revision) and record['source_revision'] == revision, 'Control source revision'
+    assert json.dumps({key: record[key] for key in expected}, sort_keys=True) == json.dumps(expected, sort_keys=True), \
+        'Control install map differs from checkout'
+    control_wheels(record)
+    vendor = record['vendor']
+    assert isinstance(vendor, dict) and '/usr/lib/aresos-control/vendor' in vendor, 'Control vendor missing'
+    rows = {**record['files'], **{p: dict(mode=m, sha256=None) for p, m in record['directories'].items()}}
+    for path, row in vendor.items():
+        assert path in ('/usr/lib/aresos-control', '/usr/lib/aresos-control/vendor') or path.startswith('/usr/lib/aresos-control/vendor/'), \
+            'Control vendor neighbour: ' + path
+        assert posixpath.normpath(path) == path and set(row) == {'mode', 'sha256'}, 'Control vendor row'
+        assert row['mode'] in ('0644', '0755') and (row['sha256'] is not None or row['mode'] == '0755'), 'Control vendor mode'
+        assert row['sha256'] is None or re.fullmatch('[0-9a-f]{64}', row['sha256']), 'Control vendor digest'
+        rows[path] = row
+    typed = {}
+    for path, row in rows.items():
+        rel, mode = path[1:], int(row['mode'], 8)
+        now = entry(root, rel)
+        kind = stat.S_IFDIR if row['sha256'] is None else stat.S_IFREG
+        assert now and now['kind'] == kind and root_owned(now, mode) and not now['xattrs'], 'Control metadata: ' + path
+        if kind == stat.S_IFREG:
+            assert now['sha256'] == row['sha256'], 'Control bytes: ' + path
+        for parent in pathlib.PurePosixPath(rel).parents:
+            if str(parent) == '.':
+                continue
+            meta = entry(root, str(parent))
+            assert meta and meta['kind'] == stat.S_IFDIR and root_owned(meta, 0o755) and not meta['xattrs'], 'Control parent: ' + str(parent)
+        typed[rel] = now
+    for top in CONTROL_ROOTS:
+        actual = {top, *(p.relative_to(root).as_posix() for p in (root / top).rglob('*'))}
+        assert actual == {p for p in typed if p == top or p.startswith(top + '/')}, 'Control extra or missing paths: ' + top
+    for path, target in record['links'].items():
+        now = entry(root, path[1:])
+        assert now and now['kind'] == stat.S_IFLNK and now['target'] == target and root_owned(now, 0o777) and not now['xattrs'], \
+            'Control enable link: ' + path
+        typed[path[1:]] = now
+    now = entry(root, CONTROL_RECORD)
+    assert now and now['kind'] == stat.S_IFREG and root_owned(now, 0o644) and not now['xattrs'], 'Control manifest metadata'
+    typed[CONTROL_RECORD] = now
+    return typed
 
 
 def rpm_files(output):
@@ -933,7 +1057,7 @@ def audit_changes(old, new, dropin, addition=None):
     `sources` is equal (so no state, command or "suspicious" verdict changed),
     and each changed unit keeps its old sources in order and gains only paths
     for which dropin(scope, unit, path) is true. When supplied, `addition` is
-    exactly one required new unit row; every other row must still match.
+    one required new unit row or a list of such rows; every other row must still match.
     """
     try:
         before, after = json.loads(old), json.loads(new)
@@ -949,7 +1073,8 @@ def audit_changes(old, new, dropin, addition=None):
         if keys != sorted(set(keys)):
             return None
     rows = []
-    if addition is not None:
+    additions = [addition] if isinstance(addition, dict) else addition or []
+    for addition in additions:
         key = (addition['scope'], addition['name'])
         added = [unit for unit in after if (unit['scope'], unit['name']) == key]
         # Compare JSON types too: suspicious: 0 is not the reviewed false verdict.
@@ -1086,6 +1211,7 @@ class Classifier28:
         self.expected_alternatives = reviewed_alternatives(packages)
         self.schema_rebuild = None
         self.schema_rows, self.font_caches, self.updater_rows = None, [], None
+        self.control, self.control_error = None, None
 
     def read(self, which, rel):
         root = {'old': self.old_root, 'new': self.new_root, 'base': self.base_root}[which]
@@ -1094,7 +1220,7 @@ class Classifier28:
 
     def classify(self, rel, before, after):
         """Return (rule, reason) or None when nothing explains the difference."""
-        for rule in (self.config_rule, self.manifest_rule, self.minecraft_rule, self.prism_rule,
+        for rule in (self.control_rule, self.config_rule, self.manifest_rule, self.minecraft_rule, self.prism_rule,
                      self.alternatives_rule, self.build_rule, self.package_rule, self.generated_rule):
             found = rule(rel, before, after)
             if found:
@@ -1134,6 +1260,20 @@ class Classifier28:
         what = 'os/config file new' if before is None else 'os/config file changed'
         return ('config', f'{what} since release 27, bytes equal the source; from ' + ', '.join(self.origin(rel)))
 
+    def control_entries(self):
+        if self.control is None:
+            try:
+                self.control = control_inventory(self.new_root, os.environ['GITHUB_SHA'])
+            except (AssertionError, ValueError, KeyError, TypeError, OSError) as error:
+                self.control, self.control_error = {}, str(error)
+        return self.control
+
+    def control_rule(self, rel, before, after):
+        expected = self.control_entries().get(rel)
+        if before is None and after is not None and expected == after:
+            return ('control', 'package 18c Part A (#58), with merged Control fixes: exact install map and locked vendor record')
+        return None
+
     def prism_files(self):
         """The pinned regular-file list, only when the *whole typed bundle* equals its pinned archive."""
         if self.prism is None:
@@ -1170,7 +1310,8 @@ class Classifier28:
             rows = self.audit_rows()
             if rows:
                 for row in rows:
-                    row['from'] = list(dict.fromkeys(label for path in row['added'] for label in self.origin(path[1:])))
+                    row['from'] = list(dict.fromkeys(label for path in row['added']
+                        for label in (['18c Part A (#58)'] if path == '/' + CONTROL_UNIT else self.origin(path[1:]))))
                 self.updater_rows = rows
                 return ('manifest', 'updater audit output: only the reviewed new unit and new os/config drop-ins: ' + '; '.join(
                     f"{row['unit']} from {', '.join(row['from'])}" for row in rows))
@@ -1183,13 +1324,17 @@ class Classifier28:
             and self.config_rule(CONSOLE_KEYMAP_UNIT, before, after) is not None
 
     def audit_rows(self):
-        addition = None
+        additions = []
+        if entry(self.new_root, CONTROL_UNIT) is not None:
+            if not self.control_entries():
+                return None
+            additions.append(CONTROL_AUDIT)
         if entry(self.new_root, CONSOLE_KEYMAP_UNIT) is not None:
             if not self.console_keymap_added():
                 return None
-            addition = CONSOLE_KEYMAP_AUDIT
+            additions.append(CONSOLE_KEYMAP_AUDIT)
         rel = 'usr/share/aresos/manifest/updaters.json'
-        return audit_changes(self.read('old', rel), self.read('new', rel), self.audit_dropin, addition)
+        return audit_changes(self.read('old', rel), self.read('new', rel), self.audit_dropin, additions)
 
     def audit_dropin(self, scope, unit, path):
         """True for a drop-in of `unit` that a merged package added to os/config since release 27, in the image as its source."""
@@ -1318,10 +1463,11 @@ class Classifier28:
             return self.schema_rule(before, after)
         if rel.startswith(FONT_CACHES):
             return self.font_cache_rule(rel, before, after)
-        if rel in ('etc/shadow', 'etc/shadow-'):
+        if rel in CONTROL_ACCOUNTS:
             old, new = self.read('old', rel), self.read('new', rel)
-            if old is not None and new is not None and same_meta(before, after) and accounts_explained(rel, old, new):
-                return ('build', 'systemd-sysusers at build: the accounts\' creation dates are the build date')
+            if before and after and same_meta(before, after) and before['xattrs'] == after['xattrs'] \
+                    and control_accounts(rel, old, new):
+                return ('build', 'package 18c Part A (#58): systemd-sysusers adds only aresos-tools UID/GID 250; creation dates may change')
             return None
         return None
 
@@ -1492,8 +1638,12 @@ class Classifier28:
         # An unchanged audit never enters the diff: package 50's present unit still requires its new row.
         if entry(self.new_root, CONSOLE_KEYMAP_UNIT) is not None and self.audit_rows() is None:
             problems.append('package 50 updater audit row missing or different: aresos-console-keymap.service')
+        if entry(self.new_root, CONTROL_UNIT) is not None and self.audit_rows() is None:
+            problems.append('Control updater audit row missing or different: aresos-toold.service')
+        if not self.control_entries():
+            problems.append('Control install differs from this checkout or control.json: ' + str(self.control_error))
         old_rc, new_rc = self.read('old', RC_XML), self.read('new', RC_XML)
-        return dict(schemas=self.schema_rows, schema_rebuild=self.rebuilt_schemas(),
+        return dict(control=dict(source_revision=os.environ.get('GITHUB_SHA'), error=self.control_error), schemas=self.schema_rows, schema_rebuild=self.rebuilt_schemas(),
                     font_caches=sorted(self.font_caches, key=lambda row: row['path']),
                     updaters=self.updater_rows,
                     alternatives={name: dict(sorted(targets.items())) for name, (_, targets) in sorted(self.alternatives().items())},

@@ -402,7 +402,7 @@ class PublishBranchTest(unittest.TestCase):
     @unittest.skipIf(os.name == 'nt' or shutil.which('bash') is None, 'needs a Linux bash')
     def test_only_the_two_release_branches_may_publish(self):
         env = dict(os.environ, GITHUB_EVENT_NAME='workflow_dispatch', GITHUB_REPOSITORY='Ares-Empire/AresOS',
-                   GITHUB_REF_NAME='pkg/23-minecraft-starts', PATH=os.environ.get('PATH', ''))
+                   GITHUB_REF_NAME='pkg/23-minecraft-starts', GITHUB_REF='refs/heads/pkg/23-minecraft-starts', PATH=os.environ.get('PATH', ''))
         result = subprocess.run(['bash', 'os/ci/publish.sh'], cwd=ROOT, env=env, capture_output=True, text=True)
         self.assertNotEqual(result.returncode, 0)
         self.assertIn('Refusing to publish from pkg/23-minecraft-starts', result.stderr)
@@ -588,7 +588,7 @@ class DispatchMatrixTest(unittest.TestCase):
 
 UPDATE_REF = 'pkg/27-first-update-release'
 # GitHub's own variables for an update dispatch on the package 27 branch.
-UPDATE_GITHUB = dict(GITHUB_REF_NAME=UPDATE_REF, GITHUB_EVENT_NAME='workflow_dispatch', GITHUB_ACTIONS='true',
+UPDATE_GITHUB = dict(GITHUB_REF_NAME=UPDATE_REF, GITHUB_REF='refs/heads/' + UPDATE_REF, GITHUB_EVENT_NAME='workflow_dispatch', GITHUB_ACTIONS='true',
                      GITHUB_REPOSITORY='Ares-Empire/AresOS', GITHUB_SHA='a' * 40, GITHUB_RUN_ID='1', GITHUB_RUN_ATTEMPT='1')
 UPDATE_INPUTS = {'github.ref_name': UPDATE_REF, 'github.event_name': 'workflow_dispatch', 'inputs.rehearsal': 'update',
                  'inputs.checks_only': False, 'inputs.release_13': False, 'inputs.release_27': False,

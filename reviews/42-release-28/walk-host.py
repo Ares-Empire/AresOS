@@ -21,7 +21,7 @@ import test_owner_walk
 import release28_walk
 
 # Read by this package's walk and harness in addition to package 22d's set.
-ADDED = {'os/ci/release28_walk.py', 'os/tests/test_release28_rehearsal.py', 'reviews/42-release-28/walk-host.py',
+ADDED = {'os/ci/control/release_checks.py', 'os/ci/release28_walk.py', 'os/tests/test_release28_rehearsal.py', 'reviews/42-release-28/walk-host.py',
          'os/manifest/releases/27.json', 'os/config/usr/libexec/aresos-desktop'}
 ROUTES = ('release-28',)
 

@@ -41,9 +41,30 @@ assert job_listing['total_count'] == len(job_listing['jobs']) <= 100, 'Incomplet
 jobs = job_listing['jobs']
 # Package 27 built and published in its own reviewed job (release_27).
 RELEASE27 = 'Package 27 release build, image diff, VM and publish'
-job_name = RELEASE27 if run.get('head_branch') == 'pkg/27-first-update-release' else 'image'
+RELEASE28 = 'Package 28 release build, image diff, VM and publish'
+job_name = (RELEASE28 if run.get('head_branch') == 'pkg/42-release-28' else
+            RELEASE27 if run.get('head_branch') == 'pkg/27-first-update-release' else 'image')
 qualified = [job for job in jobs if job['name'] == job_name and job['conclusion'] == 'success']
 assert len(qualified) == 1, 'Original image build/two-VM/publish job must have succeeded'
+if org and run['head_branch'] == 'pkg/42-release-28':
+    from release_diff import IMAGE_SOURCES
+    assert repository == 'Ares-Empire/AresOS'
+    assert run['event'] == 'workflow_dispatch' and run['display_title'] == 'Package 28 image release' and run['run_attempt'] == 1
+    assert release['signature'] == dict(method='cosign keyless',
+        identity='https://github.com/Ares-Empire/AresOS/.github/workflows/os-image.yml@refs/heads/pkg/42-release-28',
+        issuer='https://token.actions.githubusercontent.com')
+    assert release['image_diff']['status'] == 'passed' and not release['image_diff']['unexplained']
+    assert release['job_token_read']['status'] == 'passed' and not release['job_token_read']['owner_token_used']
+    assert release['control'] == dict(source_revision=source), 'Control source differs from release source'
+    trees = release['source_trees']
+    assert isinstance(trees, list) and all(isinstance(row, dict) and list(row) == ['tree', 'path'] for row in trees)
+    assert sorted(row['path'] for row in trees) == sorted(IMAGE_SOURCES), 'Release 28 image source paths differ'
+    for row in trees:
+        assert re.fullmatch(r'[0-9a-f]{40}', row['tree'])
+        actual = subprocess.check_output(['git', 'rev-parse', 'HEAD:' + row['path']]).decode().strip()
+        assert actual == row['tree'], 'Release 28 runtime payload changed: ' + row['path']
+    print(f'Qualified private org release {source}; OS, mod and Control payload unchanged; testing {release["reference"]}')
+    sys.exit(0)
 if org and run['head_branch'] == 'pkg/27-first-update-release':
     assert repository == 'Ares-Empire/AresOS'
     assert run['event'] == 'workflow_dispatch' and run['display_title'] == 'Package 27 image release' and run['run_attempt'] == 1

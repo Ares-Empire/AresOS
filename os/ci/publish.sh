@@ -4,6 +4,10 @@ umask 077
 
 test "$GITHUB_EVENT_NAME" = workflow_dispatch
 test "$GITHUB_REPOSITORY" = Ares-Empire/AresOS
+case ${GITHUB_REF-} in
+    refs/heads/*) ;;
+    *) echo 'Refusing to publish without a branch ref' >&2; exit 1 ;;
+esac
 # Each release has its own reviewed branch; no other branch may publish.
 case "$GITHUB_REF_NAME" in
     pkg/13-keyboard-layout) release=13 ;;
@@ -58,4 +62,7 @@ jq -n --arg reference "$reference" --arg tag "$tag" --arg commit "$GITHUB_SHA" \
     --arg run "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
     --slurpfile diff evidence/image-diff/result.json --slurpfile read evidence/org-job-token-read.json \
     '{reference:$reference,tag:$tag,source_commit:$commit,base:$base,visibility:"private",signature:{method:"cosign keyless",identity:$identity,issuer:"https://token.actions.githubusercontent.com"},run:$run,image_diff:$diff[0],job_token_read:$read[0]}' > evidence/release.json
+if [[ $release == 28 ]]; then
+    python3 os/ci/release28_record.py evidence/release.json evidence/image/manifest/control.json
+fi
 echo "Published private signed image: $reference"

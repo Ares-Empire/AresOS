@@ -44,7 +44,7 @@ def inputs(mode=MODE):
 
 def job_steps(mode=MODE):
     world = inputs(mode)
-    github = dict(base.UPDATE_GITHUB, GITHUB_REF_NAME=BRANCH)
+    github = dict(base.UPDATE_GITHUB, GITHUB_REF_NAME=BRANCH, GITHUB_REF='refs/heads/' + BRANCH)
     merged = {**WORKFLOW.get('env', {}), **JOB.get('env', {})}
     environment = dict(github, **{k: base.workflow_text(v, world) for k, v in merged.items()})
     for step in JOB['steps']:
@@ -166,7 +166,7 @@ REVIEWED = {
 
 class DecisionsTest(unittest.TestCase):
     def test_the_rehearsal_decides_like_package_22ds_except_where_reviewed(self):
-        release_28 = dict(REHEARSAL_PACKAGE='42', REHEARSAL_MODE=MODE, GITHUB_REF_NAME=BRANCH, argv=['os/ci/owner_vm.py', MODE])
+        release_28 = dict(REHEARSAL_PACKAGE='42', REHEARSAL_MODE=MODE, GITHUB_REF_NAME=BRANCH, GITHUB_REF='refs/heads/' + BRANCH, argv=['os/ci/owner_vm.py', MODE])
         tools_local = dict(REHEARSAL_PACKAGE='22d', REHEARSAL_MODE='tools-local', GITHUB_REF_NAME=local.BRANCH,
                            argv=['os/ci/owner_vm.py', 'tools-local'])
         differing, used, paths = base.differing_decisions([release_28, tools_local], REVIEWED)
@@ -188,7 +188,7 @@ class GuardTest(unittest.TestCase):
     def test_the_guard_step_stops_at_cap_0_and_writes_package_42s_authorization_once_raised(self):
         run = dict(event='workflow_dispatch', head_sha='a' * 40, run_attempt=1, status='in_progress', conclusion=None,
                    created_at='2026-11-17T18:00:00Z', id=11, display_title=LEDGER['titles'][MODE], head_branch=BRANCH)
-        environment = dict(REHEARSAL_PACKAGE='42', REHEARSAL_MODE=MODE, GITHUB_RUN_ID='11', GITHUB_SHA='a' * 40, GITHUB_REF_NAME=BRANCH)
+        environment = dict(REHEARSAL_PACKAGE='42', REHEARSAL_MODE=MODE, GITHUB_RUN_ID='11', GITHUB_SHA='a' * 40, GITHUB_REF_NAME=BRANCH, GITHUB_REF='refs/heads/' + BRANCH)
         proof = dict(complete=True, ids_count=1, total_count=1)
         api = lambda path: dict(workflow_runs=[run], history=proof) if path.startswith('actions/runs?') else run
 
@@ -208,7 +208,7 @@ class GuardTest(unittest.TestCase):
 
 class RunnerTest(unittest.TestCase):
     ENVIRONMENT = dict(GITHUB_ACTIONS='true', GITHUB_EVENT_NAME='workflow_dispatch', GITHUB_REPOSITORY=guard.REPOSITORY,
-                       GITHUB_REF_NAME=BRANCH, REHEARSAL_PACKAGE='42', REHEARSAL_MODE=MODE)
+                       GITHUB_REF_NAME=BRANCH, GITHUB_REF='refs/heads/' + BRANCH, REHEARSAL_PACKAGE='42', REHEARSAL_MODE=MODE)
 
     def test_runner_and_registry_accept_only_package_42s_branch_package_and_mode(self):
         with patch.dict(os.environ, self.ENVIRONMENT, clear=True):
@@ -242,7 +242,7 @@ class RunnerTest(unittest.TestCase):
 class VerifyReleaseTest(local.VerifyReleaseTest):
     """Release 27's trees at its source commit in this mode too (the VM starts on release 27; this branch's image
     sources are release 28's)."""
-    MODE_ENVIRONMENT = dict(GITHUB_REF_NAME=BRANCH, REHEARSAL_PACKAGE='42', REHEARSAL_MODE=MODE)
+    MODE_ENVIRONMENT = dict(GITHUB_REF_NAME=BRANCH, GITHUB_REF='refs/heads/' + BRANCH, REHEARSAL_PACKAGE='42', REHEARSAL_MODE=MODE)
 
     def verify(self, environment=MODE_ENVIRONMENT, **kwargs):
         return base.run_verify_release(self, environment=environment, **kwargs)
@@ -431,18 +431,19 @@ class StandInOriginTest(unittest.TestCase):
             walk.rehearsal(vm, None, None, None, None, None, None, self.record)
         vm.laptop_update.assert_not_called()
 
-    def test_control_qualification_stays_blocked_until_step_two(self):
+    def test_control_qualification_reaches_the_route_after_real_commit_comparison(self):
         from types import SimpleNamespace
         from unittest.mock import Mock
-        vm = SimpleNamespace(td=SimpleNamespace(WORK=pathlib.Path(self.folder.name)), Console=Mock(), laptop_update=Mock())
+        vm = SimpleNamespace(td=SimpleNamespace(WORK=pathlib.Path(self.folder.name)), Console=Mock(),
+                             laptop_update=Mock(side_effect=RuntimeError('route started')), TOOLS_V2='fixture')
         with patch.dict(os.environ, GITHUB_SHA=walk.V4_COMMIT), \
                 patch.object(walk, 'facts_27', return_value=json.loads(self.record)), \
                 patch.object(walk, 'standin_origin', return_value=self.standin), \
                 patch.object(walk, 'real_commit', return_value=dict(equal=True)), \
                 patch.object(walk, 'CONTROL_RIDES', True), \
-                self.assertRaisesRegex(AssertionError, 'Control qualification awaits step 2'):
+                self.assertRaisesRegex(RuntimeError, 'route started'):
             walk.rehearsal(vm, None, None, None, None, None, None, self.record)
-        vm.laptop_update.assert_not_called()
+        vm.laptop_update.assert_called_once()
 
 
 class ReceiptTest(unittest.TestCase):
@@ -591,8 +592,9 @@ class WalkTest(unittest.TestCase):
         cls.module = test_owner_walk
         cls.walked = {control: test_owner_walk.walk(route=MODE, control=control) for control in (False, True)}
 
-    def test_control_rides_is_off(self):
-        self.assertIs(walk.CONTROL_RIDES, False)
+    def test_only_control_part_a_rides(self):
+        self.assertIs(walk.CONTROL_RIDES, True)
+        self.assertIs(walk.CHROME_RIDES, False)
 
     def test_local_walk_uses_the_real_release_record_after_the_cut(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -635,17 +637,19 @@ class WalkTest(unittest.TestCase):
                                                                     previous_version=4, tools_version=5))
                 self.assertLessEqual({'final-unattended-windows', 'final-detached-windows'}, set(walked['markers']))
 
-    def test_only_sites_persistence_runs_when_control_rides(self):
+    def test_part_a_runs_the_bound_checker_on_both_r28_boots_without_browser_sites(self):
         off, on = self.walked[False]['result'], self.walked[True]['result']
-        self.assertEqual(off['sites_sha256'], None)
         self.assertFalse(off['control_checked'])
-        self.assertFalse(on['control_checked'])
-        self.assertEqual(on['sites_sha256'], hashlib.sha256((walk.SITES_LIST + '\n').encode()).hexdigest())
-        names = lambda control: [name for name, _ in self.walked[control]['commands']]
-        self.assertFalse([n for n in names(False) if n.endswith(('-sites', '-sites-hash', '-control'))])
-        self.assertFalse([n for n in names(True) if n.endswith('-control')])
-        self.assertEqual([n for n in names(True) if n.endswith('-sites-hash')],
-                         ['r28-before-update-sites-hash', 'release-28-sites-hash', 'previous-27-sites-hash', 'final-28-sites-hash'])
+        self.assertTrue(on['control_checked'])
+        self.assertEqual(set(on['control']), {'release-28', 'final-28'})
+        for walked in self.walked.values():
+            self.assertIsNone(walked['result']['sites_sha256'])
+            self.assertFalse([name for name, _ in walked['commands'] if name.endswith(('-sites', '-sites-hash'))])
+        for row in on['control'].values():
+            self.assertEqual(row['checker_sha256'], hashlib.sha256((ROOT / walk.CONTROL_CHECKER).read_bytes()).hexdigest())
+            self.assertTrue(all(r['ok'] for r in row['checks'].values()))
+        names = [name for name, _ in self.walked[True]['commands']]
+        self.assertEqual([name for name in names if name.endswith('-control')], ['release-28-control', 'final-28-control'])
 
     def test_each_announced_commit_records_its_bound_hashes(self):
         rows = self.walked[False]['result']['announced']

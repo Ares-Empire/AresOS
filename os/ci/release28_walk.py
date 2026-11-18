@@ -12,12 +12,13 @@ package 22d's dialog driver (os/ci/tools_local.Walk, with its step 6d safeguards
   1. B.1, from Claude's terminal: the folder and routine lines at the stand-in announced commit. Before the
      password, the 8 characters of the window's label equal line 1 of the stand-in's docs/OWNER-TOOLS.md. Then
      `Tools updated from version 4 to 5`, PASS install, PASS check, PASS title; the receipt names version 4 to 5.
-  2. B.2 (only while CONTROL_RIDES): root writes the made-up sites list with tee, as the guide does, and records
+  2. B.2 (only while CHROME_RIDES): root writes the made-up sites list with tee, as the guide does, and records
      its SHA-256.
   3. B.3, on the console (tty3): `at update` (release 28 staged), `at title`, `at reboot`; the guide's start
      (F12, Bazzite: the harness's one-time Linux start); `at check` and `at title` confirm the update. On release
      28: package 21's rules, fc-match gives Space Grotesk as ares, package 31's Ares-Crown is labwc's theme, and
-     its terminal PATH and runtime polkit grants are checked. Control qualification awaits step 2 after PR #58.
+     its terminal PATH and runtime polkit grants are checked. Control's boot state and absence of login
+     dependencies are checked here and again after forward.
      The lead's note (2026-11-16): with no `foot` of ares, `at check` STOPs with
      `Read failed: pgrep -u ares -x foot`; the SETUP screen's foot is ended first, then the Terminal app's foot
      is opened again (the guide's "open the Terminal app first").
@@ -68,9 +69,10 @@ GUIDE = 'docs/OWNER-TOOLS.md'
 GENERATED = ('commands.json', 'history.json', 'payload/history.json', 'payload/release.json', 'payload/SHA256.json',
              'payload/SHA256SUMS')
 
-# B.2 sites persistence rides only when Control is in the image. Step 2 must add Control's actual checker,
-# metadata and login-ordering checks after PR #58 merges, then enable this setting and remove the pending guard.
-CONTROL_RIDES = False
+# Part A is in release 28. The browser side and its excluded-sites list ride the release after.
+CONTROL_RIDES = True
+CHROME_RIDES = False
+CONTROL_CHECKER = 'os/ci/control/release_checks.py'
 SITES = '/var/lib/aresos-control/chrome-excluded-sites.json'
 SITES_LIST = '{"format":1,"hosts":["rehearsal.invalid"]}'
 # Package 23d's soft memory target of the game scope (aresos-desktop's MEMORY_HIGH, 2560M).
@@ -492,6 +494,78 @@ def receipt_setting(receipt):
         'STOP: host walk Control setting differs from the VM driver'
 
 
+# The release checker is bound by the host receipt and passed through its documented stdin interface.
+CONTROL = '''import json, subprocess
+checked=subprocess.run(['/usr/bin/python3','-I','-'],input=@CHECKER@,capture_output=True,text=True,timeout=150)
+roots=['greetd.service','systemd-user-sessions.service']
+graph={}
+pending=list(roots)
+while pending:
+    name=pending.pop(0)
+    if name in graph: continue
+    assert len(graph)<1024, 'login dependency graph too large'
+    shown=subprocess.run(['systemctl','show','-p','Id','-p','LoadState','-p','After','-p','Requires','-p','Requisite','-p','BindsTo','--',name],capture_output=True,text=True,timeout=30)
+    row=dict(line.split('=',1) for line in shown.stdout.splitlines() if '=' in line)
+    graph[name]=dict(status=shown.returncode,properties=row,stderr=shown.stderr)
+    pending.extend(dep for key in ('After','Requires','Requisite','BindsTo') for dep in row.get(key,'').split() if dep not in graph)
+print(json.dumps(dict(release_checks=dict(status=checked.returncode,stdout=checked.stdout,stderr=checked.stderr),login=dict(roots=roots,graph=graph))))
+'''
+
+
+def control(guest, stage, vm):
+    source = pathlib.Path(CONTROL_CHECKER).read_text()
+    value = guest.capture_json(stage + '-control', vm.sw.framed('python3 -c ' + shlex.quote(program(CONTROL, checker=source))))
+    # Retain failures too, before making assertions on the result.
+    vm.td.save(stage + '-control', value)
+    checked = value['release_checks']
+    lines = checked['stdout'].splitlines()
+    assert checked['status'] == 0 and len(lines) == 2 and lines[-1] == 'CONTROL_RELEASE_CHECKS_PASS', \
+        'STOP: Control release checker failed: ' + json.dumps(checked)
+    results = json.loads(lines[0])
+    assert set(results) == {'service_user', 'unit', 'claude_code_files', 'folders', 'state_folders'} \
+        and all(row['ok'] is True for row in results.values()), 'STOP: Control checks missing or failed'
+    user = results['service_user']['value']
+    assert (user['uid'], user['gid'], user['group_gid']) == (250, 250, 250) \
+        and user['users_with_250'] == user['groups_with_250'] == ['aresos-tools'], 'STOP: Control account differs'
+    state = results['state_folders']['value']
+    expected = {'/var/lib/aresos-tools': '0700', '/var/lib/aresos-operation-evidence': '0700', '/run/aresos-tools': '0711'}
+    assert set(state) == set(expected), 'STOP: Control state folders missing'
+    for name, mode in expected.items():
+        row = state[name]
+        assert row['directory'] is True and row['owner'] == [250, 250] and row['mode'] == row['expected_mode'] == mode, \
+            'STOP: Control state folder metadata differs: ' + name
+        if name.startswith('/var/'):
+            assert row['not_owned_count'] == 0 and row['not_owned'] == [], 'STOP: Control state has foreign owners'
+    folders = results['folders']['value']
+    assert folders['owner_uid'] == 1001 and set(folders['folders']) == {'/var/home/ares/Downloads', '/var/home/ares/Documents'}, \
+        'STOP: Control daily folders differ'
+    for name, row in folders['folders'].items():
+        assert row['exists'] is True and row['directory'] is True and row['link'] is False and row['uid'] == 1001 \
+            and row['mode'] == '0700', 'STOP: Control daily folder metadata differs: ' + name
+    login = value['login']
+    assert login['roots'] == ['greetd.service', 'systemd-user-sessions.service'], 'STOP: missing login roots'
+    graph = login['graph']
+    pending, seen = list(login['roots']), set()
+    while pending:
+        name = pending.pop()
+        assert name != 'aresos-toold.service', 'STOP: Control service delays login'
+        if name in seen:
+            continue
+        seen.add(name)
+        row = graph[name]
+        properties = row['properties']
+        assert properties.get('Id') and properties['Id'] != 'aresos-toold.service', 'STOP: login dependency query failed or names Control'
+        dependencies = [dep for key in ('After', 'Requires', 'Requisite', 'BindsTo') for dep in properties.get(key, '').split()]
+        # Optional After= units (for example home.mount on an Atomic image) can be absent. They cannot delay
+        # login; a missing root or an unreadable graph still stops the walk.
+        absent = properties.get('LoadState') == 'not-found' and name not in login['roots'] and not dependencies
+        assert (row['status'] == 0 and properties.get('LoadState') == 'loaded') or (absent and row['status'] in (0, 1)), \
+            'STOP: login dependency query failed: ' + name
+        pending.extend(dependencies)
+    assert set(graph) == seen, 'STOP: login graph has unvisited entries'
+    return dict(checks=results, login=login, checker_sha256=hashlib.sha256(source.encode()).hexdigest())
+
+
 def sites_hash(guest, stage):
     """The made-up sites list's SHA-256 as root reads it (B.2, B.3, B.4: the check must be able to fail)."""
     return guest.command(stage + '-sites-hash', 'set -e; sha256sum < ' + SITES + " | cut -d' ' -f1").strip().splitlines()[-1]
@@ -588,7 +662,6 @@ def rehearsal(vm, audit, media, password, hashed, ares_password, version_2, reco
     standin = standin_origin(td.WORK / 'stand-in-28', record)
     fingerprint = standin['fingerprint']
     real = real_commit(head, standin, allow_deferred=allow_deferred)
-    assert allow_deferred or not CONTROL_RIDES, 'STOP: Control qualification awaits step 2 after PR #58'
     announced_rows = [dict(standin=standin['commits'][key], real=V4_COMMIT if key == 'v4' else head if real['equal'] else None,
                            bound={path: standin['hashes'][key][path] for path in BOUND}, guide=standin['hashes'][key][GUIDE],
                            fingerprint=TOOLS_V4 if key == 'v4' else fingerprint, version=4 if key == 'v4' else TOOLS_VERSION)
@@ -599,7 +672,7 @@ def rehearsal(vm, audit, media, password, hashed, ares_password, version_2, reco
     bootstrap = vm.bundle_module('bootstrap')
     routine_action = bootstrap.ACTIONS['tools-routine']
     entries = dict(folder='tools-folder', routine='tools-routine')
-    sites = None
+    sites, controls = None, {}
     guest = td.start_installed(password, hashed, 'release-27')
     try:
         console, identities = vm.confirmed_update(guest, password, route)
@@ -650,8 +723,8 @@ def rehearsal(vm, audit, media, password, hashed, ares_password, version_2, reco
         walk.record('r28-tools', commit=stand, passes=passes, tools=fingerprint, tools_version=TOOLS_VERSION,
                     receipt=dict(source=receipt['source'], caller=receipt['caller'], previous_version=4))
 
-        # B.2 (Control only): the made-up sites list.
-        if CONTROL_RIDES:
+        # B.2 (Chrome browser side only): the made-up sites list.
+        if CHROME_RIDES:
             sites = write_sites(guest, 'r28-before-update')
 
         # B.3: the console's update box.
@@ -679,6 +752,8 @@ def rehearsal(vm, audit, media, password, hashed, ares_password, version_2, reco
         rules = vm.release_rules(guest, 'release-28')
         seen = session(guest, 'release-28', vm)
         if CONTROL_RIDES:
+            controls['release-28'] = control(guest, 'release-28', vm)
+        if CHROME_RIDES:
             assert sites_hash(guest, 'release-28') == sites, "STOP: the sites list's hash changed with the update"
         foot = no_foot(console, guest, 'release-28', vm)
         terminal = vm.terminal_path(guest, 'release-28')
@@ -706,7 +781,7 @@ def rehearsal(vm, audit, media, password, hashed, ares_password, version_2, reco
         checked = console.run('check', 'previous-27-check')
         titled = console.run('title', 'previous-27-title')
         assert 'Return to ' + r27 + ' confirmed after the restart' in vm.result_lines(checked, titled), 'STOP: return not confirmed'
-        if CONTROL_RIDES:
+        if CHROME_RIDES:
             assert sites_hash(guest, 'previous-27') == sites, "STOP: the sites list's hash changed with previous"
         back = home(guest, 'previous-27', vm, image_targets=False)
         home_unchanged(kept, back)
@@ -729,8 +804,10 @@ def rehearsal(vm, audit, media, password, hashed, ares_password, version_2, reco
         checked = console.run('check', 'final-28-check')
         titled = console.run('title', 'final-28-title')
         assert 'Forward to ' + r28 + ' confirmed after the restart' in vm.result_lines(checked, titled), 'STOP: forward not confirmed'
-        if CONTROL_RIDES:
+        if CHROME_RIDES:
             assert sites_hash(guest, 'final-28') == sites, "STOP: the sites list's hash changed on the way back"
+        if CONTROL_RIDES:
+            controls['final-28'] = control(guest, 'final-28', vm)
         again = home(guest, 'final-28', vm)
         home_unchanged(kept, again, prism_started=True)
         scope = game_scope(guest, 'final-28', vm)
@@ -739,15 +816,15 @@ def rehearsal(vm, audit, media, password, hashed, ares_password, version_2, reco
         vm.finish(guest, audit, 'final-28')
     td.marker(audit, 'final-unattended-windows')
     td.marker(audit, 'final-detached-windows', detached=True)
-    result = dict(status='passed', qualified=not allow_deferred and real['equal'] and not CONTROL_RIDES, commit=head, order='protected-second',
+    result = dict(status='passed', qualified=not allow_deferred and real['equal'] and (not CONTROL_RIDES or set(controls) == {'release-28', 'final-28'}), commit=head, order='protected-second',
         starting_state="package 27's route (release 27 by tools version 2), then 22d's lines at 634e1237's stand-in: tools version 4",
         release_27=r27, release_28=r28, tools_version_2=vm.TOOLS_V2, tools_version_4=TOOLS_V4, tools=fingerprint,
         tools_version=TOOLS_VERSION, announced=announced_rows, real_commit=real, compared=walk.compared,
-        dialogs=walk.dialogs, stages=walk.stages, control_rides=CONTROL_RIDES, sites_sha256=sites,
+        dialogs=walk.dialogs, stages=walk.stages, control_rides=CONTROL_RIDES, chrome_rides=CHROME_RIDES, sites_sha256=sites,
         package21_rules={k: rules[k] for k in ('ares_in_wheel', 'sudo_all_with_password', 'sudo_keeps_no_ticket', 'sudo_n_refused')},
         terminal_path=terminal['path'], terminal_path_retried=terminal['retried'],
         polkit_sweep=dict(actions=polkit['actions'], answers=polkit['answers'], passwordless=len(polkit['passwordless'])),
-        session=dict(theme=seen['theme'], fonts=seen['fonts']), control_checked=False, no_foot=foot,
+        session=dict(theme=seen['theme'], fonts=seen['fonts']), control_checked=CONTROL_RIDES and set(controls) == {'release-28', 'final-28'}, control=controls, no_foot=foot,
         home=dict(apps=kept['apps'], instance_tree=kept['tree'], planted=kept['planted'], after_forward_tree=again['tree'],
                   worlds=kept['worlds'], after_forward_worlds=again['worlds']),
         game_scope=dict(unit=scope['unit'], memory_high=scope['memory_high']), caller_terminal=False,

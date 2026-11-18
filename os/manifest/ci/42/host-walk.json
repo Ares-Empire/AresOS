@@ -1,6 +1,6 @@
 {
   "status": "passed",
-  "control_rides": false,
+  "control_rides": true,
   "kind": "local synthetic owner host walk (package 42's route); not VM or physical qualification",
   "stick_across_reboot": false,
   "stages": {
@@ -28,7 +28,7 @@
     ]
   },
   "command_count": {
-    "release-28": 822
+    "release-28": 824
   },
   "typed_count": {
     "release-28": 542
@@ -41,7 +41,7 @@
       "path": ".gitattributes"
     },
     {
-      "sha256": "f27f76c614778cf96cba6356477d3662eb491c1e2d349adba59daf8d72f3751c",
+      "sha256": "84ba39e0f3d2bdc429d59416c6753799eb01dff8a93fb975cbfc8c099816cd0a",
       "path": ".github/workflows/os-image.yml"
     },
     {
@@ -67,6 +67,10 @@
     {
       "sha256": "21820f72d679346288ad411cf0f68ab02104b550117ec549c01793b797791028",
       "path": "os/ci/checkout_sources.py"
+    },
+    {
+      "sha256": "ee504684f57aac6f07b227b99412323daf458d15ecaf7adfc2358297be211576",
+      "path": "os/ci/control/release_checks.py"
     },
     {
       "sha256": "661741f8506495c1043aa703c14d14e33093abac687681efb2c8041292ba9f86",
@@ -169,11 +173,11 @@
       "path": "os/ci/rehearsal-packages.json"
     },
     {
-      "sha256": "0d7b8aacb0fb2c167a9ed80891a57dc2aa242637198577a473031ba8293b5970",
+      "sha256": "4cffd69c1a2aacf65dd74d829b53e71f76c7a2153f43b52e87691d4c30f55c01",
       "path": "os/ci/rehearsal_guard.py"
     },
     {
-      "sha256": "4ef313f34859a8afef1ca3cdb7485947a943d853bcfd639893ffda4871e9fe6a",
+      "sha256": "8840510a2736ca2e7f7284dc27639d7841f3811acb9e7185c077a02365471a19",
       "path": "os/ci/release28_walk.py"
     },
     {
@@ -201,7 +205,7 @@
       "path": "os/ci/two_disk_vm.py"
     },
     {
-      "sha256": "c391136eb8856e7f1a4785801c69009d406a0d8d0b6f1c5d25e2fdafb5cead0b",
+      "sha256": "7a1ed96eee5c81bd6c810515d74a6666a3ddd6bab804d5247897d5db5eafd589",
       "path": "os/ci/verify_release.py"
     },
     {
@@ -209,7 +213,7 @@
       "path": "os/ci/vm.py"
     },
     {
-      "sha256": "a1ac18e257181e2f18fbf3d738a2c5e29d1aab8dc52244d969a4e721223c8786",
+      "sha256": "d3e764db23a1f60d7184718153f208f92d7e2173c75bacc863994fa1b291fe43",
       "path": "os/config/usr/libexec/aresos-desktop"
     },
     {
@@ -1029,7 +1033,7 @@
       "path": "os/tests/test_owner_update.py"
     },
     {
-      "sha256": "99710282d801ed5cb81e4b6f4692577331c978e50e341cf9a0d2ac20c07f34c0",
+      "sha256": "8acf720d8f257fa68e7b7d58c88b786f69e48580299de39d862d9caed31bf122",
       "path": "os/tests/test_owner_walk.py"
     },
     {
@@ -1045,7 +1049,7 @@
       "path": "os/tests/test_rehearsal_retry.py"
     },
     {
-      "sha256": "c8bf0e263f2dfdb94908d3dca7dae65032d55314d97f59dec8fa70783e7a3ed3",
+      "sha256": "ba45479869b231cb2989f931b4101694a6116e887306a475df3f8398cd02cae0",
       "path": "os/tests/test_release28_rehearsal.py"
     },
     {
@@ -1105,7 +1109,7 @@
       "path": "reviews/27-first-update-release/walk-host.py"
     },
     {
-      "sha256": "b985c985d89fd791c6e529dfb2509b536d0dab93eea56f475e127a05bd48a878",
+      "sha256": "81502babef1eb26d558a661becd298fdb45eb75da6f2d7de52415eaf4e56cc84",
       "path": "reviews/42-release-28/walk-host.py"
     }
   ]

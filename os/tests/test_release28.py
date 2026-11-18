@@ -39,7 +39,7 @@ OVERRIDE = (ROOT / 'os/config' / rd.SCHEMA_OVERRIDE).read_text()
 # Package 31's reviewed theme checksum (reviews/31-window-frame/REVIEW-2.md, computed from the committed blobs).
 PACKAGE31_CROWN = 'cf01b9b105fc38847e6bf6382056862f3c460d8fc6864cc6d0932794fbd2153e'
 PACKAGE31_COMMIT = '29e4fbc6'
-GITHUB = dict(base.UPDATE_GITHUB, GITHUB_REF_NAME=BRANCH)
+GITHUB = dict(base.UPDATE_GITHUB, GITHUB_REF_NAME=BRANCH, GITHUB_REF='refs/heads/' + BRANCH)
 
 
 def corrupt_schema_lookup(data):
@@ -87,6 +87,27 @@ def job_steps(job, world):
     for step in WORKFLOW['jobs'][job]['steps']:
         if 'run' in step and base.workflow_expression(step.get('if', 'success()'), world):
             yield step, dict(environment, **{k: base.workflow_text(v, world) for k, v in step.get('env', {}).items()})
+
+
+def install_control_fixture(root):
+    """The real install map plus a synthetic, locked wheel record; never install pip packages on this host."""
+    result = subprocess.run(['bash', 'os/build.sh', 'control-tree', 'os', 'control', str(root)],
+                            cwd=ROOT, capture_output=True, text=True, check=True)
+    record = json.loads((root / rd.CONTROL_RECORD).read_text())
+    from test_control_image import lock_pins
+    wheels = [dict(name=name, version=version, file=f'{name}-{version}-py3-none-any.whl', sha256=digests[0])
+              for (name, version), digests in lock_pins().items()]
+    vendor = root / 'usr/lib/aresos-control/vendor'
+    vendor.mkdir(parents=True)
+    (vendor / 'fixture.py').write_text('# synthetic wheel file\n')
+    paths = [vendor.parent, vendor, vendor / 'fixture.py']
+    for path in paths:
+        path.chmod(0o755 if path.is_dir() else 0o644)
+    record.update(source_revision='a' * 40, wheels=wheels, vendor={
+        '/' + p.relative_to(root).as_posix(): dict(mode=f'{stat.S_IMODE(p.stat().st_mode):04o}',
+            sha256=None if p.is_dir() else rd.file_sha256(p)) for p in paths})
+    (root / rd.CONTROL_RECORD).write_text(json.dumps(record))
+    return record
 
 
 class Release27SourceTest(unittest.TestCase):
@@ -324,6 +345,7 @@ class SourceChangesTest(unittest.TestCase):
             'os/build.sh': {'os/build.sh': None},
             'os/tests/audit.py': {'os/tests/audit.py': 'changed\n'},
             'mod/src/B.java': {'mod/src/B.java': 'class B {}\n'},
+            'control/launch.py': {'control/launch.py': '# changed Control source\n'},
             self.LOCK: {self.LOCK: self.lock_text(jar='b' * 64, prism=dict(version='2'))},
         }
         for name, files in cases.items():
@@ -414,12 +436,14 @@ class ImageSourcesTest(unittest.TestCase):
                               'tests/audit.py', 'policy', 'config'}, read)
         for rel in sorted(read):
             with self.subTest(rel=rel):
-                self.assertTrue(any(('os/' + rel + '/').startswith(source + '/') for source in rd.IMAGE_SOURCES), rel)
+                path = rel if rel == 'control' or rel.startswith('control/') else 'os/' + rel
+                self.assertTrue(any((path + '/').startswith(source + '/') for source in rd.IMAGE_SOURCES), rel)
         # Chrome's signing key, named by its lock; the source stage keeps only mod/ of this commit.
         key = json.loads((ROOT / 'os/google-chrome.lock.json').read_text())['signing_key']['file']
         self.assertTrue(('os/' + key).startswith('os/keys/'))
         self.assertIn('keep only mod/', build)
         self.assertIn('mod', rd.IMAGE_SOURCES)
+        self.assertIn('control', rd.IMAGE_SOURCES)
         self.assertIn('os/.containerignore', rd.IMAGE_SOURCES)
         # Every listed source exists here, and the branch's exceptions are among them.
         for source in rd.IMAGE_SOURCES:
@@ -853,7 +877,8 @@ class Classifier28Test(unittest.TestCase):
         self.assertEqual(extra['alternatives'], {'java': {'java': self.JAVA, 'keytool': self.KEYTOOL}})
         self.assertEqual(problems[0], f'the Ares-Crown theme in the image (None) is not the one image-checks.sh pins ({PACKAGE31_CROWN})')
         # The fixture holds only two of the os/config files changed since release 27: the converse names the others.
-        lacking, = problems[1:]
+        lacking, = problems[1:2]
+        self.assertIn('Control install differs', problems[2])
         self.assertTrue(lacking.startswith('os/config files changed since release 27 that the image lacks or holds with other bytes: '))
         self.assertIn(rd.RC_XML, lacking.split(': ', 1)[1].split(', '))
         self.assertNotIn(self.STEAM, lacking)
@@ -1911,13 +1936,13 @@ class Guard42Test(unittest.TestCase):
             with self.assertRaisesRegex(AssertionError, 'STOP: resolve dispatch allowance exhausted'):
                 guard.budget(0)
 
-    def run_main(self, mode, kind, history=None, title=None):
+    def run_main(self, mode, kind, history=None, title=None, ref=None):
         titles = guard.PACKAGES['42']['titles']
         runs, api = self.history([titles['dry-run-28']] if history is None else history)
         current = dict(event='workflow_dispatch', head_sha='a' * 40, run_attempt=1, id=50, status='in_progress', conclusion=None,
                        display_title=title or titles[kind], head_branch=BRANCH, created_at='2026-11-16T09:00:00Z')
         runs.append(current)
-        environment = dict(REHEARSAL_PACKAGE='42', REHEARSAL_MODE=kind, GITHUB_REF_NAME=BRANCH, GITHUB_RUN_ID='50',
+        environment = dict(REHEARSAL_PACKAGE='42', REHEARSAL_MODE=kind, GITHUB_REF_NAME=BRANCH, GITHUB_REF=ref if ref is not None else 'refs/heads/' + BRANCH, GITHUB_RUN_ID='50',
                            GITHUB_SHA='a' * 40, GITHUB_EVENT_NAME='workflow_dispatch', GITHUB_REPOSITORY='Ares-Empire/AresOS')
         with tempfile.TemporaryDirectory(dir=ROOT / 'os/tests') as directory, contextlib.chdir(directory), \
                 patch.object(guard, 'api', side_effect=api), patch.dict(os.environ, environment, clear=True), \
@@ -1969,7 +1994,7 @@ class Guard42Test(unittest.TestCase):
         self.assertIn('    pkg/42-release-28) release=28 ;;\n', text)
         self.assertLess(text.index('esac'), text.index('rehearsal_guard.py publish-ci'))
         environment = dict(os.environ, GITHUB_EVENT_NAME='workflow_dispatch', GITHUB_REPOSITORY='Ares-Empire/AresOS',
-                           GITHUB_REF_NAME='pkg/42-release-28-other', PATH=os.environ.get('PATH', ''))
+                           GITHUB_REF_NAME='pkg/42-release-28-other', GITHUB_REF='refs/heads/pkg/42-release-28-other', PATH=os.environ.get('PATH', ''))
         result = subprocess.run(['bash', 'os/ci/publish.sh'], cwd=ROOT, env=environment, capture_output=True, text=True)
         self.assertNotEqual(result.returncode, 0)
         self.assertIn('Refusing to publish from pkg/42-release-28-other', result.stderr)
@@ -2052,12 +2077,17 @@ class MainSmokeTest(unittest.TestCase):
             root.mkdir()
             base.ClassifierTest.tree(None, root, files)
             # Release 27 already has the alternatives folders and greetd's graphical wants folder.
-            for folder in (rd.ALTERNATIVES, rd.ALTERNATIVES_ADMIN, 'usr/bin', 'etc/systemd/system/graphical.target.wants'):
+            for folder in (rd.ALTERNATIVES, rd.ALTERNATIVES_ADMIN, 'usr/bin', 'etc/systemd/system/graphical.target.wants',
+                           'etc/systemd/system/multi-user.target.wants', 'usr/lib/sysusers.d', 'usr/lib/tmpfiles.d'):
                 (root / folder).mkdir(parents=True, exist_ok=True)
             for path in root.rglob('*'):
                 if path.is_dir():
                     path.chmod(0o755)
             self.roots[name] = root
+        install_control_fixture(self.roots['new'])
+        audit_path = self.roots['new'] / updaters
+        rows = json.loads(audit_path.read_text()) + [rd.CONTROL_AUDIT]
+        audit_path.write_text(json.dumps(sorted(rows, key=lambda row: (row['scope'], row['name']))))
         for rel in changed:  # build.sh's chmod 0755 line, and os/config's own executables
             if rel in rd.CHMOD_0755_28 or os.access(ROOT / 'os/config' / rel, os.X_OK):
                 (self.roots['new'] / rel).chmod(0o755)
@@ -2172,7 +2202,10 @@ class MainSmokeTest(unittest.TestCase):
         self.assertEqual(sorted((row['format'], row['folder'], row['change']) for row in result['font_caches']),
                          [('le32d4', FontCacheTest.ARESOS, 'added'), ('le64', FontCacheTest.ARESOS, 'added')])
         self.assertIn('build: package 50: systemctl enable console keymap link; from 50 (#101)', rules)
-        self.assertEqual(result['updaters'], [dict(scope='system', unit='aresos-console-keymap.service',
+        self.assertEqual(result['updaters'], [dict(scope='system', unit='aresos-toold.service',
+                                               added=['/usr/lib/systemd/system/aresos-toold.service'], change='added unit',
+                                               **{'from': ['18c Part A (#58)']}),
+                                         dict(scope='system', unit='aresos-console-keymap.service',
                                                    added=['/' + Classifier28Test.CONSOLE_UNIT], change='added unit', **{'from': ['50 (#101)']}),
                                              dict(scope='system', unit='user.slice', added=['/' + Classifier28Test.DROPIN],
                                                    **{'from': ['23 (#36)']})])
