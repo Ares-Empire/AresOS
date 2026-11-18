@@ -1,15 +1,15 @@
 {
   "settings": [
-    "GC=-XX:MaxHeapFreeRatio=30,-XX:MinHeapFreeRatio=10,-XX:TrimNativeHeapInterval=60000",
+    "GC=-XX:MaxHeapFreeRatio=30,-XX:MinHeapFreeRatio=10",
     "ENV=MALLOC_ARENA_MAX=2"
   ],
-  "purpose": "Revised native-memory candidate for full current-source qualification after retaining the compact-header combination's failed first-creation frame comparison.",
-  "cover_policy": "No forced GC, reclaim or freezing; ordinary covered pause plus the JVM trim interval.",
+  "purpose": "Final conservative candidate: game-only arena cap, retaining baseline JVM arguments. Fresh full qualification follows two retained unsuccessful combinations.",
+  "cover_policy": "No added GC, native trim timer, reclaim or freezing; ordinary covered pause only.",
   "selection": {
-    "headers": "Omitted from the final candidate: the initial combined first creation added one 21.9 ms standing frame and one 26.3 ms flight frame, aligned with 19.9 ms Mixed GC and 18.6 ms Remark pauses. Both were away from a 60 s trim boundary. This does not identify a sole cause, but the optional 17-23 MiB header heap saving is not needed to test the larger native-memory cuts.",
-    "arena_cap": "Both pairs saved 182-185 MiB settled and 248-295 MiB post-flight with no standing/flight frames over 17 ms.",
-    "native_interval": "Both pairs saved 170-206 MiB settled and 184-283 MiB post-flight. One isolated 18.5 ms flight frame makes combined frame qualification necessary.",
-    "non_additive": "Arena and interval savings overlap; measure the revised combination directly. No additive saving or causal attribution to headers alone is claimed.",
-    "excluded": "String dedup, LWJGL system allocation, worker limits and FerriteCore lacked consistent additional benefit; forced covered GC exceeded 50 ms, and both frozen returns failed."
+    "arena_cap": "Both isolated pairs saved 182-185 MiB settled and 248-295 MiB post-flight, with zero standing/flight frames over17ms. It is the dominant consistent isolated native-memory saving.",
+    "native_interval": "Omitted after the trim+arena combination added a 34.916ms flight frame versus its paired current control11.565ms. The cause is unknown; omission does not prove the timer caused it. The interval and arena gains overlap, so retain the simpler choice and measure it directly.",
+    "headers": "Initial header+native combination failed creation standing/flight comparison; retained under candidates/compact-headers-native.",
+    "non_additive": "No sum of isolated savings is asserted. Final arena-only creation, flatx3, Nether, long20 and NMT-off measurements must justify any shipping recommendation.",
+    "excluded": "No string dedup, LWJGL system allocation, worker limits or FerriteCore; forced covered GC exceeded50ms, and both frozen returns failed."
   }
 }

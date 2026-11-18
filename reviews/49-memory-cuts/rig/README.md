@@ -125,3 +125,10 @@ It is retained under `failures/`, with partial measurements and no qualified wak
 second attempt adds `observe-return.py <pid> <owned-scope> <rig>`: read-only scope counters and process state
 at 20 ms intervals for three seconds after the return mark. This diagnostic checks exact scope membership
 and PID start time, and neither attaches to the JVM nor changes freezer state. It is not part of winner runs.
+
+The revised trim+arena combination also failed its second flat comparison: one 34.916 ms flight frame versus
+11.565 ms for the paired control, with one extra >33 ms frame. Its creation and two flat pairs (six completed
+measurements) remain under `candidates/native-interval-arena/`. Nearby GC was short; the cause is unknown.
+The final conservative candidate keeps only the game-local arena cap and the baseline JVM arguments, and
+restarts all twelve current qualification measurements with fresh controls. No timer-caused regression or
+additive saving is inferred. Including the two rejected sets, the final expected attempt count is 64.

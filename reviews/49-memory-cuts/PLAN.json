@@ -45,5 +45,12 @@
     "nether_setup": "Completed utility fixture from initial candidate, not a qualification of revised flags. Final control/trial glides use identical fresh copies and their own runtime settings.",
     "expected_actual_attempts_if_remaining_complete": 58,
     "count_note": "52 final valid runs including utility setups, two failed freeze attempts, the rejected two-run creation pair, and the earlier retired/partial FerriteCore pair."
+  },
+  "arena_only_revision": {
+    "reason": "Trim+arena candidate failed second flat paired frame comparison, retained6measurements under candidates/native-interval-arena. Causeunknown, no thresholdrelaxed.",
+    "settings": "Baseline JVM arguments unchanged; game-only MALLOC_ARENA_MAX=2",
+    "full_fresh_schedule": "12 measurements plus previously completed Nether utility; fresh controls for creation, flatx3 and Nether",
+    "expected_actual_attempts_if_complete": 64,
+    "count_note": "52 completed measurements, 2 failed freeze attempts, 2 retired/partial FerriteCore attempts, 2 rejected header creation measurements and6rejected native-combination measurements."
   }
 }

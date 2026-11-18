@@ -34,7 +34,7 @@
     ],
     "artifact_directory": "candidates/compact-headers-native/control"
   },
-  "revised_current_baseline": {
+  "rejected_native_current_baseline": {
     "run": "v1-create",
     "artifact_directory": "runs/v1-create",
     "pid": 472699,
@@ -49,7 +49,7 @@
       "classes.jsa"
     ]
   },
-  "revised_native_candidate": {
+  "rejected_native_interval_candidate": {
     "run": "winner-create",
     "artifact_directory": "runs/winner-create",
     "pid": 522426,
