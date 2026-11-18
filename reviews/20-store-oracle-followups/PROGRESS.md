@@ -1,5 +1,225 @@
 # Empire brief 302 — progress
 
+## Build part 3 (step 5)
+
+Status: **Build part 3 done; next: step 6**.
+
+### Scope and result
+
+- Started at `5716bb2a` on `pkg/302-store-oracle`, existing draft PR #111.
+  `git fetch origin` exited 0; main is `fef66186`. Its changes since this
+  branch's base are in unrelated STATE, laptop-home/shell, OS and mod fixture
+  files. The intersection with this branch's changed paths is empty. No merge.
+- Ran all 14 reviewer-mutation purposes, expanding the independent alternatives
+  and decoded-lock terms to **26 patches**. **37 baseline invocations passed**;
+  **35 mutant invocations failed named assertions**, and **2 passed**. By patch,
+  **25 were killed and 1 survived**; m15 was killed by the decoder but survived
+  its additional status sweep. The surviving checks are findings below. No
+  product, oracle, test, FilePolicy or pin was changed to kill them.
+- Added `mutations.py` and `mutations.json` here for replay and exact receipts.
+  Each patch has its command, baseline, result, failure excerpt, local full-log
+  path, SHA-256 and restoration check. Each test ran on unchanged source first,
+  then one mutant. Every mutated export source was restored and byte-compared.
+  Exports are under `control/test-work/302-exports/step5-*`; their resolved
+  paths have no dot-prefixed ancestor. Patches/logs stay in `.work/302/step5/`.
+  The runner uses the documented managed-settings stand-in, ordered base/Mail
+  paths, exported absolute PYTHONPATH, no bytecode and local TMPDIR. One worker.
+- Mutation evidence commit: `32f1353c`; the closing documentation commit adds
+  the eight-key classification and this handoff. All executable AresOS sources
+  still match the tested starting head.
+
+### Every mutation
+
+Full test IDs and exact commands are also in [mutations.json](mutations.json).
+Failure cells quote the first assertion line (long envelopes abbreviated); full
+outputs remain at the receipt's log path. `OK` means a surviving named check.
+
+| ID | Patch, in one line | Named test | Killed or survived | Failure line |
+|---|---|---|---|---|
+| m01 | First-fence catch: `write_failed = False` → `True` | `test_owner_state_regressions.ReviewRegressions.test_review22_zero_byte_journal_enospc_recovers_without_restart_M10_M13`<br>`test_owner_state_sweep.WriteLatchSweep302.test_latch_phases_cleanup_pairs_and_restart` | killed<br>killed | `AssertionError: False is not true : {'ok': False, 'error': {'code': 'journal_incomplete', 'message': 'A storage write did not finish. Fix the storage problem, then ask the owner to restar…`<br>`AssertionError: False is not true : {'ok': False, 'error': {'code': 'journal_incomplete', 'message': 'A storage write did not finish. Fix the storage problem, then ask the owner to restar…` |
+| m02 | `Observations.require_writable()` → `return` | `test_review_fixes_24.Filing24.test_failed_predispatch_flush_blocks_effect_until_next_request` | killed | `AssertionError: 1 != 0 : Failed flush must cause zero SMTP DATA` |
+| m03 | `_append` failure: `write_failed = True` → `False` | `test_review22_storage.Journal22.test_first_fence_fsync_rollback_and_later_phase_failures`<br>`test_restore_batches.RestoreBatches.test_confirm_whose_marker_stays_after_a_failed_sync_keeps_the_lock_until_a_restart` | killed<br>killed | `AssertionError: False != True`<br>`AssertionError: 0 != 1` |
+| m04 | Later refusal: raise `storage_cause` before `journal_incomplete` | `test_review22_storage.Journal22.test_first_fence_fsync_rollback_and_later_phase_failures`<br>`test_restore_batches.RestoreBatches.test_confirm_whose_last_marker_sync_fails_keeps_the_lock_until_a_restart`<br>`test_owner_state_sweep.WriteLatchSweep302.test_latch_cases_use_the_same_status_checker_in_every_phase` | killed<br>killed<br>killed | `AssertionError: 'storage_limit' != 'journal_incomplete'`<br>`AssertionError: {'code': 'storage_limit', 'message': 'Disk full or [291 chars]ge.'} != {'code': 'journal_incomplete', 'message': 'A storag[184 chars]ge.'}`<br>`AssertionError: Lists differ: ['cancel/persistent/1/0/exhausted/response[9933 chars]tus'] != []` |
+| m05 | Disable the `finish` restart-advice guard with `False and` | `test_review22_storage.Journal22.test_first_fence_fsync_rollback_and_later_phase_failures`<br>`test_review23_results.ResponseSchemas23.test_first_storage_error_notes_and_restart_advice_survive_bounding` | killed<br>killed | `AssertionError: False != True`<br>`AssertionError: 0 != 1` |
+| m06 | `finish` first error code → `'journal_incomplete'` | `test_review22_storage.Journal22.test_first_fence_fsync_rollback_and_later_phase_failures`<br>`test_review23_results.ResponseSchemas23.test_first_storage_error_notes_and_restart_advice_survive_bounding` | killed<br>killed | `AssertionError: 'journal_incomplete' != 'storage_limit'`<br>`AssertionError: 'journal_incomplete' != 'storage_error'` |
+| m07 | `latch_refusal_first`: any nonempty call faults → `True` | `test_owner_state_oracle.WriteLatch302.test_fault_count_read_only_and_admission_failures_are_not_latch_evidence`<br>`test_owner_state_oracle.WriteLatch302.test_journal_phases_and_actual_cleanup_determine_the_latch` | killed<br>killed | `AssertionError: 'journal_incomplete' unexpectedly found in {'journal_incomplete'}`<br>`AssertionError: Items in the first set but not the second:` |
+| m08 | Remove `journal_scopes = {}` from `Driver.restarted` | `test_owner_state_sweep.WriteLatchSweep302.test_latch_phases_cleanup_pairs_and_restart` | killed | `AssertionError: Tuples differ: (JournalAttempt(phase='fence', sequence=6,[521 chars]lse)) != ()` |
+| m09 | Special staged-restore startup condition → `False and …` | `test_owner_state_sweep.OwnerStateSweep.test_startup_replay_proof_precedes_any_automatic_confirm` | killed | `AssertionError: Lists differ: [{Fact(source='op:4d9298963f0d492190981daa[8545 chars]e')}] != []` |
+| m10 | Special startup: replace `_replay(prepared)` with `locked = False` | `test_restore_batches.RestoreBatches.test_startup_finishes_staged_final_confirm_without_another_confirmation`<br>`test_owner_state_sweep.OwnerStateSweep.test_startup_replay_proof_precedes_any_automatic_confirm` | killed<br>killed | `AssertionError: 2 not greater than or equal to 4`<br>`AssertionError: Lists differ: [{Fact(source='op:4d9298963f0d492190981daa[8053 chars]"')}] != []` |
+| m11 | Special startup: append commit marker and advance committed, omit apply | `test_restore_batches.RestoreBatches.test_startup_finishes_staged_final_confirm_without_another_confirmation`<br>`test_owner_state_sweep.OwnerStateSweep.test_startup_replay_proof_precedes_any_automatic_confirm` | killed<br>killed | `AssertionError: 2 not greater than or equal to 4`<br>`AssertionError: Lists differ: [{Fact(source='generation', kind='wrong-st[7051 chars]}')}] != []` |
+| m12 | After intermediate replay: delete pending, change generation, unlock | `test_restore_batches.RestoreBatches.test_startup_finishes_only_the_staged_intermediate_batch` | killed | `AssertionError: None != True : restore_pending` |
+| m13 | Remove clearing `startup_obligation` after its check | `test_owner_state_oracle.StartupObligations.test_driver_checks_before_requests_consumes_once_and_second_restart_has_no_old_obligation` | killed | `AssertionError: StartupReplay(event='{"action":"control_restore_confirm","record":{"format":2,"hash":"2f7bdb72784d2269830343ca2298108c07ad70de99138865d75ee026b8bcad8e","operations":[],"pr…` |
+| m14 | `visible_history` → marked `record.events` only | `test_owner_state_oracle.AppliedHistory.test_decoder_applied_tail_matrix_and_missing_projection_row`<br>`test_owner_state_sweep.OwnerStateSweep.test_applied_tail_views_keep_the_producing_call_and_restart_never_resubmits` | killed<br>killed | `AssertionError: False != True`<br>`AssertionError: Items in the second set but not the first:` |
+| m15 | `visible_history` → all `events + prepared`, unconditionally | `test_owner_state_oracle.AppliedHistory.test_decoder_applied_tail_matrix_and_missing_projection_row`<br>`test_owner_state_sweep.WriteLatchSweep302.test_latch_cases_use_the_same_status_checker_in_every_phase` | killed<br>survived | `AssertionError: True != False`<br>`OK (mutant survived)` |
+| m16 | Applied-tail head check: compare sequence only, omit hash | `test_owner_state_oracle.AppliedHistory.test_decoder_applied_tail_matrix_and_missing_projection_row` | killed | `AssertionError: True != False` |
+| m17 | Outer `Driver.observe.end_seq` → maximum marked sequence | `test_owner_state_sweep.OwnerStateSweep.test_applied_tail_views_keep_the_producing_call_and_restart_never_resubmits` | survived | `OK (mutant survived)` |
+| m18 | `scripted_transition` → `True` for cancellation/ack suffixes | `test_owner_state_oracle.AppliedHistory.test_applied_cancellation_and_acknowledgement_still_require_exact_script_identity` | killed | `AssertionError: False is not true : set()` |
+| m19 | `precommit` uses applied rows and applied `before_seq` | `test_owner_state_oracle.AppliedHistory.test_applied_context_cannot_authorize_a_remote_command_before_its_marker` | killed | `AssertionError: 2 != 1` |
+| m20 | Recompute → `changed.locked = record.locked` | `test_owner_state_oracle.StartupObligations.test_every_decoded_lock_term_and_wrong_input_recompute` | killed | `AssertionError: False is not True` |
+| m21 | Disable `restore_pending` decoded-lock term | `test_owner_state_oracle.StartupObligations.test_every_decoded_lock_term_and_wrong_input_recompute` | killed | `AssertionError: False is not True` |
+| m22 | Missing-head decoded-lock result → `False` | `test_owner_state_oracle.StartupObligations.test_every_decoded_lock_term_and_wrong_input_recompute` | killed | `AssertionError: False is not True` |
+| m23 | Remove head-hash comparison from decoded lock | `test_owner_state_oracle.StartupObligations.test_every_decoded_lock_term_and_wrong_input_recompute` | killed | `AssertionError: False is not True` |
+| m24 | Remove behind-marker comparison from decoded lock | `test_owner_state_oracle.StartupObligations.test_every_decoded_lock_term_and_wrong_input_recompute` | killed | `AssertionError: False is not True` |
+| m25 | Shared `staged_sequence` → maximum marked sequence | `test_owner_state_sweep.OwnerStateSweep.test_applied_tail_views_keep_the_producing_call_and_restart_never_resubmits` | killed | `AssertionError: False is not true : (6, [])` |
+| m26 | Remove empty-fence decoded-lock guard | `test_owner_state_oracle.StartupObligations.test_every_decoded_lock_term_and_wrong_input_recompute` | killed | `AssertionError: True is not False` |
+
+### Findings and verification details
+
+- **m17 survived** `OwnerStateSweep.test_applied_tail_views_keep_the_producing_call_and_restart_never_resubmits`:
+  the outer Driver call ends at the marked sequence, but the nested recorded
+  Engine request still ends at the staged sequence. The assertion only requires
+  *any* same-action call to own the event, so the inner call masks the wrong outer
+  range. That named ordering test should independently check the outer producing
+  call as well. The broader m25 changes the shared boundary used by both records
+  and is killed by `AssertionError: False is not true : (6, [])`. m17's pass is
+  retained as a coverage finding, not counted as a kill by m25.
+- **m15 survived the additional**
+  `WriteLatchSweep302.test_latch_cases_use_the_same_status_checker_in_every_phase`.
+  Both runs check 154 runs / 275 phases and report OK. Other recorded gaps grow
+  from **3,598 to 3,943**; only status and restore-lock lists are asserted empty.
+  That test needs an explicit staged-but-unapplied row expectation if it is to
+  serve as the brief's sweep control for this mutation. The independent decoder
+  matrix does kill m15 at its visibility assertion. No allowed set was broadened.
+- The broad-clear m03's first extra latch-phase sweep stopped at `KeyError:
+  'error'` when an invalid retry succeeded, then Chrome rejected the corrupted
+  history. That is **invalid assertion evidence**, not a surviving mutant or a
+  semantic kill. It is retained as `invalid-m03-2-{baseline,mutant}.log` and
+  `invalid-m03-sweep-receipt.json`. The runner now rejects non-assertion failures.
+  The final m03 receipt reruns a fresh baseline and the named failed-marker-
+  rollback confirm test; both it and the store phase table kill m03 on assertions.
+  This did not require editing a test or the product.
+- Barrier m02 fails all **six** zero-DATA variants (before dispatch/after
+  admission × zero/short/fence-sync): `1 != 0 : Failed flush must cause zero SMTP
+  DATA`. Its baseline passes the healthy next request without restart.
+- Skipped startup m09 fails the pre-confirm proof at **26, 40 and 73 in both
+  modes**. Its output ends `startup-replay must finish before any automatic
+  confirm`, with missing marker/head/effects/generation/lock facts. m10 and m11
+  independently fail the exact applied-head Store assertion and that startup
+  proof. m12 fails the retained intermediate `restore_pending` assertion.
+- Baseline applied-tail sweeps discover cancel 68, onboarding 61, repair 364,
+  status 154, archive 231 and send 873: **48 cases, 76 cleanup phase runs,
+  56 live applied records, 62 preserved restart envelopes**. m14 removes all six
+  flows' applied-record coverage and fails the final set equality. The decoder
+  separately rejects marked-only, every-prepared and missing-head-hash mutants.
+
+Commands from the worktree root (the receipts list every child command):
+
+```sh
+PYTHONDONTWRITEBYTECODE=1 python3 reviews/20-store-oracle-followups/mutations.py
+PYTHONDONTWRITEBYTECODE=1 python3 reviews/20-store-oracle-followups/mutations.py m03 m25 m26
+PYTHONDONTWRITEBYTECODE=1 python3 .work/302/classify-new.py control/test-work/302-exports/step5-classify mail ignored
+PYTHONDONTWRITEBYTECODE=1 python3 .work/302/restart-count-controls.py control/test-work/302-exports/step5-classify mail ignored
+PYTHONDONTWRITEBYTECODE=1 python3 .work/302/run.py control/test-work/302-exports/step5-classify base test_owner_state_oracle.AppliedHistory.test_coherent_applied_identity_outcome_and_missing_effect_are_rejected test_owner_state_oracle.AppliedHistory.test_coherent_applied_identity_deletion_reaches_semantic_checker test_owner_state_oracle.OwnerOracle.test_r2_command_before_context_is_caught
+```
+
+- Mutation parent commands: exit 0; final outcomes are the table above, **not an
+  all-mutants-killed claim**. Parent logs: `step5-run.log`, `step5-followup.log`.
+- Classification: exit 0, `diagnostic records 8 all eight exact sample deltas
+  reproduced` (`step5-new-key-classification.log`). Raw rows, calls and replies:
+  `step5-new-key-diagnostics.json`; independent repeated deltas:
+  `step5-new-key-gaps.json`. These are synthetic recordings.
+- Three corresponding healthy-restart controls: exit 0, `3 healthy-restart
+  controls: zero count, startup-replay or restore-lock gaps; other keys: 0`
+  (`step5-restart-count-controls.log`).
+- Coherent applied identity/outcome/effect, identity deletion and existing R2
+  command-before-context controls on restored source: **3 tests OK**, 0.009 s
+  (`step5-coherent-context-controls.log`). These are additional passing controls,
+  not mutant kills.
+
+### The eight new sample keys: classification for step 6
+
+All eight are **real residual oracle-expectation gaps exposed by item 3**, in
+**M07/C01 (Sent-copy checks and their live recheck refusal)**, not sample or alias
+artifacts. This is a classification of the compact sample's **825 closed /
+147 changed / 8 new** delta; it does not establish the whole pin's new total or
+membership. Each repeated delta is **model count 0, public count 1**.
+
+| New key | Classification |
+|---|---|
+| `send/persistent/873/0/exhausted/control_pending.notice-count` | M07/C01; real oracle gap, no sample artifact |
+| `send/persistent/873/0/exhausted/mail catalogue.total` | M07/C01; real oracle gap, no sample artifact |
+| `send/persistent/873/0/live-restored/control_pending.notice-count` | M07/C01; real oracle gap, no sample artifact |
+| `send/persistent/873/0/live-restored/mail catalogue.total` | M07/C01; real oracle gap, no sample artifact |
+| `send/single/873/0/live-restored/control_pending.notice-count` | M07/C01; real oracle gap, no sample artifact |
+| `send/single/873/0/live-restored/mail catalogue.total` | M07/C01; real oracle gap, no sample artifact |
+| `send/single/874/0/live-restored/control_pending.notice-count` | M07/C01; real oracle gap, no sample artifact |
+| `send/single/874/0/live-restored/mail catalogue.total` | M07/C01; real oracle gap, no sample artifact |
+
+At each key, the last ordinary event is `mail_send`, sequence **17**, SQLite's
+head is **17**, and the last marker is **16**. The corrected model and raw SQLite
+both show **done**, `sent_copy_check = {state: checked, clean: true}`. Part 1's
+sample still projected **submitting** at that boundary. Item 3 correctly removes
+that false N7 row discrepancy.
+
+A later `control_pending` or `mail_filing_notices` request tries to open a fresh
+Sent-copy check. Its trace records a write attempt and latch check **0**, an
+empty fresh fault trace, and `journal_incomplete`. The service conservatively
+returns the `sent_copies` unchecked notice because the new check cannot be
+registered/committed. `Oracle.expected`'s `failed_recheck` only considers a fresh
+physical fault trace; with the now-visible checked row and no such trace, it
+expects no notice. The old incorrect submitting row made its count happen to
+match. This exposes an independent live-check expectation gap; it does not show
+that the applied row should be hidden again.
+
+Keep it separate from item 1's newly permitted safe-rollback writes, startup
+obligations, and N7's false marked-versus-applied row discrepancy. The generated
+count-only matrix row is still **M14** because `gaps.checker` sees only catalogue
+count facts. That fallback label is not evidence of M14's hidden rows under a
+restore lock: these records are unlocked, and no startup/restore-lock key is
+new. Do not silently relabel unrelated whole-pin keys. Step 6 and its independent
+checker must match fresh full lists to this semantic cause; a key can retain
+another defect after the N7 component closes, as the brief explicitly allows.
+
+Machine-readable per-key evidence and exact deltas:
+[new-key-classification.json](new-key-classification.json). All eight reproduce
+in a fresh, unmutated tracked-source export; all three corresponding healthy
+restart controls converge with no recorded gaps. No classification code, pin or
+product was changed to erase these eight keys.
+
+### Left, in order
+
+1. **Step 6:** fetch/integrate current main as required, settle any runtime/point
+   drift with linux-tools, re-pin once from the full capture, classify exact
+   deltas (including these residuals and saved envelopes), and run the full proof
+   plus required Control CI green twice. The part-1 hosted/local onboarding
+   difference remains for that same-runtime capture. No capture/proof dispatch
+   or CI wait was performed here.
+2. A **fresh package review and fresh security review** of the resulting build,
+   including the surviving checks and invalid sweep evidence above.
+3. An **independent classification check** against the full historical/fresh
+   lists. This run supplies the eight sample classifications, not that review.
+
+### JUDGMENT-CALLs
+
+No new product decision. Applied rows, owner approvals, restart policy, schema,
+journal format and FilePolicy remain as built in parts 1/2. Keeping survivors
+visible and deferring fixes follows this run's explicit scope.
+
+### PLAN-GAPs
+
+- The named H ordering sweep permits the correct nested request to mask an
+  incorrect outer call boundary (m17). Its assertion does not fully pin the
+  producing-call distinction the brief describes.
+- The latch status sweep records row differences rather than asserting their
+  absence (m15); it cannot supply staged-only visibility rejection on its own.
+  Its direct error indexing also prevents the broad-clear mutant from reaching
+  a clean sweep assertion. The decoder/Store kills remain valid; do not promote
+  those auxiliary runs into evidence they did not produce.
+- Applied clean rows expose a remaining M07/C01 expectation omission for a
+  latch-refused live recheck without a fresh physical fault. The generic M14
+  count label cannot classify the cause; the eight keys need the separate
+  semantic classification above during step 6.
+
+Closing checks: `git diff --check` passes; all export mutations are restored and
+all patch hashes match their receipts. No files over 500 MB remain under
+`.work/` or `control/test-work/`. No Gradle daemon, mod build, installed-channel
+or root test, OS owner module, boot tool, mount, sudo, workflow dispatch or
+live-service action was run. The repository's privacy script prints `No file
+holds a home path with a real user name.` No CI result is claimed for this run;
+CI is left to the lead.
+
+---
+
 ## Build part 2 (steps 3 and 4)
 
 Status: **Build part 2 done; next: step 5**.
