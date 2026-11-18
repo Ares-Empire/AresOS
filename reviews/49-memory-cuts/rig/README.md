@@ -106,6 +106,13 @@ Nether control. Failed attempts and retired pairs are separate evidence, not ext
 The winner schedule checks both automatic flat creations and the menu-driven Nether setup before the three
 flat pairs, so the changed creation flow is exercised early.
 
+The initial combined first-creation pair included compact headers. It saved memory but added a 21.9 ms standing
+frame and 26.3 ms flight frame, aligned with Mixed/Remark GC rather than a trim boundary. That pair is retained
+under `candidates/compact-headers-native/`, outside final-candidate averages. Qualification is restarted with the
+two native-memory measures and a fresh creation pair. This does not establish a sole cause for the outliers.
+The completed Nether setup from that first candidate is a utility fixture; both final Nether measurement JVMs
+load fresh identical copies and use their own recorded runtime flags.
+
 After the runs, `table.py` generates the paired, covered and individual-run tables from public summaries.
 `audit.py` records each run's memory/GC/recorder guards, source mod-tree identity, action durations, observed
 flat-control frame ranges and the winner's same-base Nether comparison. It does not turn experimental GC

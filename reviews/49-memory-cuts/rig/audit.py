@@ -99,6 +99,7 @@ for name,s in rows.items():
 
 result = {'valid_completed_run_count':len(rows),
           'failed_experiments':{p.parent.name:json.loads(p.read_text()) for p in sorted((ROOT/'failures').glob('*/failure.json'))},
+          'rejected_candidates':{p.parent.name:json.loads(p.read_text()) for p in sorted((ROOT/'candidates').glob('*/candidate.json'))},
           'guards_all_runs':{name:guards(s) for name,s in rows.items()},
           'source_revisions':sources, 'all_measured_mod_trees_equal':len({v['mod_tree'] for v in sources.values()}) == 1,
           'run_mod_trees':run_trees, 'flat_controls_by_mod_tree':control_groups,

@@ -23,6 +23,9 @@ def spread(values):
 
 print('All memory in MiB; paired savings are baseline minus factor, positive means less memory. Ranges are observed, not confidence intervals.\n')
 print('Isolated factors and covered experiments use the original common mod tree. Combined validation uses fresh controls from the merged tree; see [source-refresh.json](source-refresh.json) and the provenance audit.\n')
+for path in sorted((root.parent/'candidates').glob('*/candidate.json')):
+    candidate=json.loads(path.read_text())
+    print(f"Retained candidate: [{candidate['candidate']}](candidates/{path.parent.name}/candidate.json) — {candidate['status']}. Its control/trial are excluded from the final candidate's means.\n")
 print('| Factor | Research estimate | Settled RSS saving, mean (range) | Post-flight RSS saving | Covered 5-min RSS saving | Standing post-G1 heap minimum saving |')
 print('|---|---|---:|---:|---:|---:|')
 labels={'coh':'compact headers','dedup':'compact headers + string dedup',

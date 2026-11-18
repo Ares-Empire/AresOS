@@ -1,0 +1,3 @@
+458731:
+garbage-first heap   total reserved 1048576K, committed 442368K, used 390807K [0x00000000c0000000, 0x0000000100000000)
+ region size 1024K, 60 young (61440K), 8 survivors (8192K)

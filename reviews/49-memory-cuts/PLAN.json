@@ -37,5 +37,13 @@
     "winner_controls": "Fresh paired v1 flat controls x3 (A/B, B/A, A/B), current v1 first creation, and current v1 Nether glide. Group frame ranges by source mod tree.",
     "planned_valid_runs": 54,
     "count_note": "28 factor/control runs, 2 step-0 runs, 10 covered runs, 7 required winner runs, 2 setup runs, and 5 current-source controls. Failed/retired evidence is excluded."
+  },
+  "candidate_revision": {
+    "reason": "Initial compact-header/native combination failed its first-creation frame comparison (GC-linked 21.9 ms standing /26.3 ms flight frames). Retain both sides, omit optional compact headers, and restart with fresh creation controls.",
+    "retained": "candidates/compact-headers-native/candidate.json",
+    "revised_settings": "winners.json: native interval + game-only arena cap; no compact headers",
+    "nether_setup": "Completed utility fixture from initial candidate, not a qualification of revised flags. Final control/trial glides use identical fresh copies and their own runtime settings.",
+    "expected_actual_attempts_if_remaining_complete": 58,
+    "count_note": "52 final valid runs including utility setups, two failed freeze attempts, the rejected two-run creation pair, and the earlier retired/partial FerriteCore pair."
   }
 }

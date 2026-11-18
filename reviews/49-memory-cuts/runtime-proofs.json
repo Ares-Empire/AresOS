@@ -1,0 +1,37 @@
+{
+  "rejected_compact_headers_candidate": {
+    "run": "winner-create",
+    "pid": 462661,
+    "scope_identity_checked": true,
+    "lifecycle_gate_present": false,
+    "private_instance": true,
+    "private_helper": true,
+    "offscreen_wayland": true,
+    "offscreen_x11": true,
+    "MALLOC_ARENA_MAX": "2",
+    "GLIBC_TUNABLES_present": false,
+    "JE_MALLOC_CONF_present": false,
+    "mapped_CDS_archive_basenames": [
+      "classes_coh.jsa"
+    ],
+    "coh_archive_mapped": true,
+    "artifact_directory": "candidates/compact-headers-native/trial"
+  },
+  "retired_creation_control": {
+    "run": "v1-create",
+    "pid": 458731,
+    "scope_identity_checked": true,
+    "lifecycle_gate_present": false,
+    "private_instance": true,
+    "private_helper": true,
+    "offscreen_wayland": true,
+    "offscreen_x11": true,
+    "MALLOC_ARENA_MAX": null,
+    "GLIBC_TUNABLES_present": false,
+    "JE_MALLOC_CONF_present": false,
+    "mapped_CDS_archive_basenames": [
+      "classes.jsa"
+    ],
+    "artifact_directory": "candidates/compact-headers-native/control"
+  }
+}
