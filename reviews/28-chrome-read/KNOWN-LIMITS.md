@@ -224,8 +224,7 @@ present disposition. Browser evidence is mapped in [HARNESS-MAP.md](HARNESS-MAP.
 ### Reference paging and fold counts — step 1
 
 - **A read can be paged until it has shown 5,000 references.** Then the first of them are dropped, their
-  elements get new strings, and the next cursor is refused with "The page changed; read again without the
-  cursor." (test `test_a_read_of_more_than_5000_elements_never_returns_a_dropped_reference`). *Harm:* a page
+  elements get new strings, and the next cursor is refused with "page changed, read again without the cursor" (test `test_a_read_of_more_than_5000_elements_never_returns_a_dropped_reference`). *Harm:* a page
   with more than 5,000 links or controls can't be read to its end with `full` in one chain; parts by `ref` and
   `find` still work. Every reference on a returned page is valid when it is returned.
 - **A fold's count can be off by a few characters on such a page:** hidden references that were dropped are
@@ -290,9 +289,10 @@ frame method is unknown. No promise of reloading every framed owner page is made
 
 ### Native reply size, process prefix and close cleanup — steps 13a–13b
 
-- **The native host still bounds one reply at 1 MiB, before the service renders its small outline.** This case
-  proves eviction on a compact page, not that 20,000 verbose controls fit the transport. No production bound
-  changed; the broader H1 and large-text browser cases remain for 13b.
+- **Transport limits are separate from the rendered outline bound.** The native host bounds each individual
+  message at **1 MiB**. The extension chunks replies above **512 KiB**; the bridge bounds an assembled reply
+  at **32 MiB**; the strict JSON decoder then imposes its **6 MiB** input bound. No production bound changed.
+  Compact H1 proves reference eviction, not that every verbose 20,000-node snapshot fits these limits.
 - **The five-consonant service prefix remains probabilistic across process runs** (brief 28, item 3). These cases
   compare actual strings; they do not turn the roughly one-in-four-million prefix collision into a proof.
 - **The cleanup cannot run on an event the service never receives.** A confirmed tool reply also clears entries;
@@ -307,7 +307,7 @@ not proof of closure. If both event and reply are lost, the remaining RAM can la
 service restart; the bound is per tab, not across all former tabs. No stale-reference bypass was found.
 `test_outline_action.Adapter` has the named event/reply/failed-close tests; reference restart and retake cases
 run in the browser. Compact H1 reaches 20,000 nodes / 80,001 omitted; it does not prove verbose controls fit
-the unchanged 1 MiB native bound. A refused oversized read is accepted as fail-closed.
+the unchanged native-message, assembled-reply and strict-decoder bounds. A refused oversized read is accepted as fail-closed.
 
 ### Malformed UTF-16 and option ambiguity — steps 13c–13d
 
@@ -355,3 +355,21 @@ completed descriptive coverage. See steps 13b–13d, `outline-asking.mjs`'s dupl
 
 **assumed / review boundary:** synthetic browser profiles do not prove behavior on the owner's real pages.
 The lead's Codex astra package and security reviews remain; deployment waits for 28a and 28b as well.
+
+### Fix round X1 — rejected defects and narrow remaining costs
+
+**read / fixed, not accepted limits:** Presentation roles no longer bypass native field withholding or expose
+textarea default text; the legacy generic-role fallback is covered too. Slashes and later question marks in
+credential parameter values cannot select route parsing. Failed reads trim every tab to 5,000 references.
+File-name and selected-option changes move the state token, wake until and invalidate cursors. Full page and
+subtree reads fetch all select options within the existing deadline; a compact option label is cut at 200
+characters with the select reference as the route to its complete text. Tests and baseline failures are in
+REPORT's X1 table and HARNESS-MAP.
+
+**read / conservative display choice:** An assignment-like fragment whose name also contains a sign-in route
+segment is wholly hidden. This can hide a harmless unusual route; it prevents exposing a sign-in path tail as
+a parameter name. Ordinary `#/inbox/thread/1` routes remain readable. The X1 request explicitly calls for
+ambiguity to fail toward redaction. Full reads with many incomplete selects may exhaust their existing command
+deadline and return `not_read`; they never present a 50-option prefix as the complete list. A clipped ordinary
+option label takes a field-detail call (and paging if needed) to recover the whole label. No new approval or
+asking-path behavior is introduced.

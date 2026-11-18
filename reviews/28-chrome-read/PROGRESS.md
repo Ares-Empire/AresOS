@@ -2,6 +2,79 @@
 
 Builder steps keep this file; the last step turns it into the report. Newest state first.
 
+## Fix round X1 (2026-11-18, Codex gpt-6-astra)
+
+**Done / read:** Started at `e5493c1e`, with reviewed code `659e7164`. Fetched origin first.
+Main is `7417c19a`; `git diff --name-only HEAD...origin/main` has no overlap with this round's
+changed paths, so **no main merge**. PR #72 stays draft on `pkg/28-chrome`.
+Commits: `955f10e5` (reader withholding/state and Node regressions), `14064439` (fragment filtering,
+reference cleanup, complete option reads and Python regressions). Every new commit has
+`Built-by: gpt-6-astra` as its final line.
+
+| Finding | Fix and regression (repo-relative file:line) | Actual baseline failure on `659e7164` |
+|---|---|---|
+| Security blocker 1: presentational textarea | Native controls retain their safe description path; textarea default text never enters the outline's generic walker. `control/chrome_tests/fix-x1.test.mjs:14` tests both roles, watched/unwatched/late-root histories, every typed-input kind, credential-protected nontext controls, select/button/editor, and outline/full/find through `Engine.request`, including typed-field counts and throwing getters. | Six history cases fail because default text reaches the service result; protected-credential cases already pass. |
+| Security blocker 2: fragment slash | An assignment before the first question mark commits to parameter filtering. Slashes in any value cannot change that; ordinary `#/inbox/thread/1` and route queries remain readable. `control/chrome_tests/test_fix_x1.py:17` independently lists every brief credential name, all slash positions and the review examples. | Credential values survive in the public address, including `otp` beside `next=/home` and the initial portion of `access_token=fixture/part`. |
+| Security should-fix 3: leaked references | `Chrome.outline` trims every requested tab in `finally`, after success or any failure, including cursor validation, envelope fitting and measurement. `control/chrome_tests/test_fix_x1.py:54` repeats four failure modes three times through `Engine.request` on 6,000 controls and checks both indexes. | Each failure mode retains 6,001 → 12,002 → 18,003 references. Fixed: at most 5,000 after every call. |
+| Package should-fix 1: field state | File-state digest includes the ordered filenames. The existing selected-option bits remain. `control/chrome_tests/fix-x1.test.mjs:41` independently tests token, until and cursor for same-count file replacement and selection changes, with actual reader snapshots fed to the service. | All three file tests fail: equal digest, until false, cursor accepted. Selection already passes on the baseline; replacing its digest with a constant in scratch now fails **all three** tests (the review's surviving mutation is killed). |
+| Package should-fix 2: full options | Full page/subtree reads fetch every incomplete list in their scope before rendering, under the existing tab/command deadline; ordinary form-detail limits remain. `control/chrome_tests/test_fix_x1.py:110`, `:113`, `:116`, `:135`: F4's page/form full reads reconstruct all 200 options across max-1,000 pages, stay within 48 KiB/7 seconds, scope requests to the form, and return not_read on options expiry. | Page and form return only 50 labels; no options command runs, so deadline/scope checks fail too. |
+| Package should-fix 3: long label | Ordinary option labels use the normal 200-character quoted-text budget and omitted count. A cut line carries the select's reference, whose detail pages return every full label. `control/chrome_tests/test_fix_x1.py:154`. | The 10,000-character label has no 200-character cut/9,800 omitted marker. |
+| Withholding sibling: legacy generic role | `snapshot` no longer copies native control child text into a generic fallback name after safeValue withheld the field. `control/chrome_tests/reader.test.mjs:929` starts with a real textarea-kind double, then other typed controls, a throwing value getter, and checks retained filled status and asking-field count. | `role=generic` leaks the textarea's default marker into its name. |
+| Address sibling: later question mark | The same parameter commitment also prevents `?` after a credential value from starting route-query parsing; ambiguous assignment-like sign-in routes are conservatively hidden. `control/chrome_tests/test_fix_x1.py:41` and the sign-in-route checks at `:38`. | Three `#otp=fixture-value?.../home` variants expose the value. Existing sign-in route hiding remains covered. |
+
+**Sibling search / read:** Inspected `ownPassword`, credential signals, `safeValue`, `name`, all text walkers,
+outline role/description dispatch, legacy snapshot/compose/adapter reads, and address site/path/query/fragment
+routing. Found the two siblings above. No additional withholding bypass or later-character parser switch was
+found. The accepted ordinary-name short-code and unmasked-editor choices are unchanged. No approval, asking,
+input, binding or hold behavior changed beyond the specified withholding fixes.
+
+**NITs / read:** Cursor refusal now says exactly `page changed, read again without the cursor`;
+`test_view_paging.py:121` and `test_view_references.py:205` pin it. The inherited shared form refusal stays
+verbatim: main's `test_questions.py:471` / `:476` and `background.test.mjs:1223` pin its reload instructions.
+This is an explicit exception to the brief's fixed form sentence, as permitted in the X1 request.
+KNOWN-LIMITS separates the native message/chunk/assembly/decoder bounds. The old report now distinguishes
+nine identical named functions from the two unchanged dispatched typed-read branches.
+
+**Verified / run:** All baseline source was extracted with `git archive 659e7164` under
+`.work/x1/baseline/`, with only the new tests/helper copied in. Nothing under `.work/` is committed.
+The tests descend from `.work/security-28/pkg28-reader-probe.mjs`, `pkg28-late-root-probe.mjs`,
+`pkg28-service-probe.py` and `.work/review-28/probe-reader.mjs`; the shared DOM helper was moved from the
+existing outline suite without changing that suite's assertions.
+
+- Baseline: `.work/x1/baseline-node.log`: **18 tests, 9 pass / 9 fail**; sibling reader: **1 fail**;
+  `.work/x1/baseline-python.log`: **8 tests, 159 failing subcases**, no errors. The select constant mutation:
+  `.work/x1/select-mutation.log`: **3 tests, 3 fail**. Baseline reader restored afterward.
+- `.work/step13a/node-v22.15.0-linux-x64/bin/node --test control/chrome_tests/*.test.mjs`:
+  **567 tests, 567 pass**, 0 failed/cancelled/skipped/todo, 32,680.477 ms (`.work/x1/node-suite.log`).
+- `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/chrome_tests python3 -m unittest test_outline_action test_view_references test_view_paging test_view_hostile test_questions test_efficiency test_credentials test_bridge test_fix_x1 test_view_address test_view_nodes test_view_outline test_view_budgets test_outline_time`:
+  **281 tests in 46.628s, OK** (`.work/x1/python-suite.log`). EFFICIENCY MISS lines are the unchanged negative test.
+- `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control python3 control/generate.py --check`:
+  **Generated artifacts match definitions**. Chrome instructions: **4,093 / 4,096 characters**.
+- AST comparison against `origin/main`: nine named functions identical, plus the typed-read branch inside
+  `prepare` and the typed-read branch inside `call`, separately, identical (`.work/x1/asking-ast.log`).
+- `git diff --check`: clean. No `.work/` file exceeds 500 MB. No browser/profile, Gradle, OS tool,
+  system installation, mount, desktop window/input or process-name stopping used.
+
+**Verification corrections / run:** The first long-label baseline probe hit StopIteration because its
+10,000-character line started on the next page; max 40,000 exposes the entire baseline line and gives the
+intended failed cut assertion. The first Engine-test import hit a circular import; importing the shared
+Action definition first fixed the harness. Neither is counted as product evidence. Two brief local suite
+overlaps occurred while collecting asynchronous results; the final results above are actual completed runs.
+
+**Runs:** Hosted validation pending the first normal push. Only PR-triggered Control Chrome and Control Chrome
+qualification runs will be watched with `--interval 60`, then each whole run rerun once on the final code head.
+No workflow dispatch, force push, approval bypass, ready marking or merge.
+
+**JUDGMENT-CALL:** Ambiguous assignment-like sign-in routes hide the whole fragment rather than guessing that
+part of a credential is a route name. Ordinary routes remain readable; reversing this would require changing
+one parsing branch and its regression. This is the requested fail-toward-redaction choice. A cut option line
+uses its existing select reference (whole field detail), avoiding a new option-reference identity format.
+
+**PLAN-GAP:** The shared inherited form sentence is the main-pinned exception above. Selected-option hashing
+already existed; the missing protection was regression coverage, now demonstrated by the killed mutation.
+**Not verified:** Owner-profile/manual use; this round uses synthetic fixtures only.
+**Left:** A fresh Codex astra recheck of both reviews, then the lead's merge. PR #72 remains draft.
+
 ## Step 14 (2026-11-18, Codex gpt-6.1-sol): main merged, final evidence and review documents
 
 - Standalone merge `f282553b` brings in main `774d7954`, including #58 (`beb42ec8`), #97 (`4737bb69`)

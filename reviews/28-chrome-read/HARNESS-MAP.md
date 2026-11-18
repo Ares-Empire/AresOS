@@ -5,6 +5,28 @@
 A source mapping alone is not a passing execution. Tests use synthetic fixtures and disposable hosted
 profiles; no owner profile or real account was exercised.
 
+## Fix round X1 regression coverage
+
+These additions run in the existing full Node/Python suites; no browser verdict name, group or previous
+assertion is removed. The DOM-double helper moved from `outline.test.mjs` to `outline-dom.mjs`, preserving
+its existing tests. `x1_service_probe.py` passes the actual reader replies/state through `Engine.request`;
+it does not synthesize the expected withholding or state digest. Baseline results are in REPORT.
+
+| Requirement | New regression | Execution |
+|---|---|---|
+| Presentation roles cannot bypass native withholding; outline/full/find and typed count | `fix-x1.test.mjs:14`, 12 combinations of both roles, three histories, and history/credential protection; all typed kinds plus protected nontext controls/select/button/editor | full Node + Python service probe |
+| Legacy `role=generic` cannot use native child text as its name | `reader.test.mjs:929`, textarea first, then six typed input kinds; throwing getter, no marker, filled/asking metadata retained | full Node |
+| File names and selected options affect token/wait/cursor | `fix-x1.test.mjs:41`, six separate tests; constant selected-state mutation fails all three selection tests | full Node + Python service probe |
+| Slash position and later question marks never disable credential filtering; route preservation | `test_fix_x1.Addresses`, `:17` and `:41`; independent brief word list, review examples and sign-in-route regression | Python partition |
+| Every failed call retains at most 5,000 references | `test_fix_x1.Adapter.test_failing_reads_keep_6000_control_reference_table_bounded:54`; actual Engine.request; three repetitions of oversized header, stale cursor, wrong query and failed measurement | Python partition |
+| Page/form full gets F4's 200 options, paging, deadline, subtree scope | `test_fix_x1.py:110`, `:113`, `:116`, `:135` | Python partition |
+| 10,000-character option uses ordinary cut and whole-label reference route | `test_fix_x1.py:154` | Python partition |
+| Brief-exact cursor sentence | `test_view_paging.py:121`, `test_view_references.py:205`; only expected wording changes | Python partition |
+
+The inherited form-refusal sentence remains because main's shared-path tests pin it; REPORT records the
+explicit specification exception. Nine named asking-path functions and two dispatch branches compare unchanged.
+The above tests add no claims about owner-profile behavior or new mandatory browser verdict cases.
+
 ## Verdict and execution inventory
 
 [verdicts.mjs](../../control/chrome/ci/verdicts.mjs#L3) is the exact named inventory: `REQUIRED[1..11,13]`, `SUPPORT`,
