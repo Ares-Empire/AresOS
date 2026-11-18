@@ -12,5 +12,11 @@
     "stderr": ""
   },
   "cds_compact_headers_archive": true,
-  "git_start": "80d3549a33b43bd05b2f70e6b0fdd717c911fc50"
+  "git_start": "80d3549a33b43bd05b2f70e6b0fdd717c911fc50",
+  "glibc_observed_during_final_stage": {
+    "command": "getconf GNU_LIBC_VERSION",
+    "stdout": "glibc 2.43",
+    "exit": 0,
+    "observed_utc": "2026-11-18T01:59:29.051901+00:00"
+  }
 }

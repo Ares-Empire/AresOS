@@ -36,7 +36,7 @@
   },
   "rejected_native_current_baseline": {
     "run": "v1-create",
-    "artifact_directory": "runs/v1-create",
+    "artifact_directory": "candidates/native-interval-arena/v1-create",
     "pid": 472699,
     "scope_identity_checked": true,
     "lifecycle_gate_present": false,
@@ -51,7 +51,7 @@
   },
   "rejected_native_interval_candidate": {
     "run": "winner-create",
-    "artifact_directory": "runs/winner-create",
+    "artifact_directory": "candidates/native-interval-arena/winner-create",
     "pid": 522426,
     "scope_identity_checked": true,
     "lifecycle_gate_present": false,
@@ -64,5 +64,31 @@
       "classes.jsa"
     ],
     "coh_archive_mapped": false
+  },
+  "final_arena_only_candidate": {
+    "run": "winner-create",
+    "artifact_directory": "runs/winner-create",
+    "pid": 695864,
+    "scope_identity_checked": true,
+    "lifecycle_gate_present": false,
+    "private_instance": true,
+    "private_helper": true,
+    "offscreen_wayland": true,
+    "offscreen_x11": true,
+    "MALLOC_ARENA_MAX": "2",
+    "GLIBC_TUNABLES_present": false,
+    "JE_MALLOC_CONF_present": false,
+    "mapped_CDS_archive_basenames": [
+      "classes.jsa"
+    ],
+    "coh_archive_mapped": false,
+    "trim_interval_argument_present": false,
+    "selected_memory_arguments": [
+      "-XX:MaxHeapFreeRatio=30",
+      "-XX:MinHeapFreeRatio=10",
+      "-Xms256m",
+      "-Xmx1024m"
+    ],
+    "private_endpoints_match_run_record": true
   }
 }
