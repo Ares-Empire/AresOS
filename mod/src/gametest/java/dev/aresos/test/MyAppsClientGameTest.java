@@ -644,7 +644,8 @@ public final class MyAppsClientGameTest implements FabricClientGameTest {
         list.add(program(icons, list.size(), id, name, source, kind, keywords, categories, picture));
     }
 
-    private static JsonObject program(Path icons, int number, String id, String name, String source, String kind,
+    /** Also the search over the world's fixture (package 53d). */
+    static JsonObject program(Path icons, int number, String id, String name, String source, String kind,
                                       List<String> keywords, List<String> categories, boolean picture) throws IOException {
         var entry = FakeHelper.entry(id, name, null, source);
         if (kind != null) entry.addProperty("generic_name", kind);
