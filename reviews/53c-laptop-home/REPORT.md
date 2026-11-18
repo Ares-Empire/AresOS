@@ -24,6 +24,11 @@
   short close handoff. The laptop home reads and writes a cache sized for 200 houses with maximum-width names and
   sends authenticated running IDs to the page while the initial catalogue read is pending. The day grid test now
   checks painted slabs and turf and compares the rendered house bounds across all four streets after a slide.
+- **Review 2 fix.** The laptop home sends `view_focus` when GTK reports keyboard focus entering or leaving
+  its window and immediately after each authenticated hello. The helper tracks focus per connected view and
+  clears the old handoff when a view takes the keyboard. A view losing focus, disconnecting or being replaced
+  releases its claim. An app that deactivates without a replacement can still return focus whenever its last
+  window closes. The existing handoff between toplevels and the separate-output rule still apply.
 
 ## Verified
 
@@ -80,6 +85,34 @@ For the negative grid check, I removed the `.day .plots` background declaration 
 and ran `LaptopHomePageTest.test_day` with that copy in headless WebKit. It exited 1 with `FAILED (failures=1)` at
 the first `empty plot slab` sample. The pixel at `(1170, 309)` was turf `(138, 178, 84)` and the test expected the
 slab's `(185, 199, 162)`.
+
+### Review 2 verification
+
+The helper tests use the real protocol and a fake clock. They cover a close two seconds after deactivation,
+background closes 100 ms and 60 seconds after a focus report, blur, disconnection, same-name replacement,
+and another toplevel taking over. They exercise both reviewed and discovered apps, the separate-output rule,
+and the cancellation of a discovered return already in its handoff. The protocol tests check the wire examples,
+invalid desktop requests and malformed focus fields.
+
+The WebKit focus test uses labwc's virtual pointer on the private test display. A click focuses the home, a
+second GTK window takes focus, and dismissing that window and clicking the home gives focus back. The test
+checks the actual socket requests, including the focus snapshot after reconnect. The layer run used a verified
+Fedora 44 layer-shell RPM extracted inside `.work/`.
+
+The modules ran one at a time with `TMPDIR="$PWD/.work/tmp"`.
+
+| Command | Result |
+| --- | --- |
+| `python3 -m unittest discover -s os/tests -p 'test_aresos_shell_views.py'` | 29 tests, `OK` |
+| `python3 -m unittest discover -s os/tests -p 'test_aresos_shell.py'` | 75 tests, `OK`, with existing unclosed-socket `ResourceWarning`s |
+| `python3 -m unittest discover -s os/tests -p 'test_aresos_laptop_home.py'` | 11 tests, `OK` |
+| `python3 -m unittest discover -s os/tests -p 'test_aresos_laptop_home_webkit.py' -v` | 3 tests, `OK` in the fullscreen fallback |
+| `LAPTOP_HOME_TEST_LAYER_DIR=.work/layer-test/extracted/usr/lib64 python3 -m unittest discover -s os/tests -p 'test_aresos_laptop_home_webkit.py' -v` | 3 tests, `OK` on the background layer |
+| `python3 -m unittest discover -s os/tests -p 'test_aresos_laptop_home_page.py' -v` | 4 tests, `OK` in the fullscreen fallback |
+| `git diff --check` | Exit 0 |
+
+An intermediate helper run reported 24 failing split-read subtests. Applying same-batch suppression only after
+an explicit view focus report restored the existing results across all compositor message splits.
 
 ### Pinned memory at rest
 
@@ -152,10 +185,6 @@ No files over 500 MB remained in `.work/`.
 - The first draw waits for the bridge replay and gives the initial lookup up to 500 ms after the resource filter is
   ready. A longer wait would also hold back the kept town when the helper is away. Changing the wait costs one
   startup policy change.
-- The compositor can report deactivation before a real close, and focus on a layer surface also leaves no active
-  app toplevel. The helper retains the existing half-second handoff for that ambiguity. Dropping the handoff would
-  break genuine closes delivered across compositor reads. Distinguishing the two within the interval would require
-  a compositor focus signal for the home.
 
 ## PLAN-GAP
 
