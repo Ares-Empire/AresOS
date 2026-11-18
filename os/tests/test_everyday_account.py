@@ -421,7 +421,10 @@ class DesktopDefaultsTest(unittest.TestCase):
         foot = configparser.ConfigParser()
         foot.read(CONFIG / 'etc/xdg/foot/foot.ini')
         self.assertEqual(foot['main']['font'], 'monospace:size=16')
-        self.assertEqual(foot.sections(), ['main'])
+        self.assertEqual(foot.sections(), ['main', 'key-bindings'])
+        # Package 55 (owner, 2026-11-18): Ctrl+V pastes as everywhere else, Ctrl+Shift+V still works,
+        # and Ctrl+C stays with the program (stop the running command).
+        self.assertEqual(dict(foot['key-bindings']), {'clipboard-paste': 'Control+v Control+Shift+v XF86Paste'})
 
     def test_brightness_volume_and_mic_keys_use_tools_in_the_image(self):
         rc = ET.parse(CONFIG / 'usr/share/aresos/labwc/rc.xml').getroot()

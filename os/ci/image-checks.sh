@@ -537,6 +537,9 @@ PY
 pass 'every power profile ares can switch to leaves the bootloader and kernel arguments alone'
 grep -qx 'font=monospace:size=16' /etc/xdg/foot/foot.ini
 pass 'foot default font size 16 (a user foot.ini replaces this file)'
+grep -qx 'clipboard-paste=Control+v Control+Shift+v XF86Paste' /etc/xdg/foot/foot.ini
+foot --check-config -c /etc/xdg/foot/foot.ini
+pass 'foot pastes with Ctrl+V and Ctrl+Shift+V, and its config parses (package 55)'
 grep -qx '/usr/libexec/kf6/polkit-kde-authentication-agent-1 &' /usr/share/aresos/labwc/autostart
 test -x /usr/libexec/kf6/polkit-kde-authentication-agent-1
 rpm -qf /usr/libexec/kf6/polkit-kde-authentication-agent-1
