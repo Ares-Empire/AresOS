@@ -90,6 +90,81 @@ class LayerHookTest(unittest.TestCase):
         self.assertTrue(all(re.fullmatch('CONTROL_[A-Z_]+', line) for line in lines))
 
 
+class ChromePassTest(unittest.TestCase):
+    """Brief 18c-b, item 5: the Chrome pass's pieces that run without a VM."""
+
+    def actions(self):
+        return load(CONTROL_CI / 'chrome_actions.py', f'chrome_actions_{id(self)}')
+
+    def test_the_layer_installs_the_chrome_actions_and_the_runner_asks_each_once(self):
+        containerfile = (CONTROL_CI / 'Containerfile').read_text()
+        self.assertIn('COPY os/ci/control/chrome_actions.py /usr/libexec/aresos-ci/actions.d/chrome.py\n', containerfile)
+        self.assertIn('RUN python3 -I -B /tmp/aresos-ci-chrome/chrome_layer.py /tmp/aresos-ci-chrome', containerfile)
+        tree = ast.parse((CONTROL_CI / 'chrome_actions.py').read_text())
+        actions = next(node.value for node in tree.body if isinstance(node, ast.Assign)
+                       and [target.id for target in node.targets] == ['ACTIONS'])
+        names = [key.value for key in actions.keys]
+        runner = load(CONTROL_CI / 'control_vm.py', 'control_vm_for_chrome')
+        acts = [step for step in runner.CHROME_STEPS if step[0] == 'act']
+        self.assertEqual([step[1] for step in acts], names)
+        lines = [step[2] for step in acts if step[2]]
+        self.assertEqual(len(set(lines)), len(lines))
+        self.assertTrue(all(re.fullmatch('CONTROL_CHROME_[A-Z_]+', line) for line in lines))
+        # The probe comes first and the last step carries a line, so no part is left without one.
+        self.assertEqual(acts[0][1], 'chrome-polkit-start')
+        self.assertTrue(acts[-1][2])
+        self.assertEqual([step for step in runner.CHROME_STEPS if step[0] == 'reboot'], [('reboot',)])
+        self.assertFalse(set(names) & {action for action, _ in runner.CHECKS})
+        script = (ROOT / 'os/ci/check-build.sh').read_text()
+        self.assertIn('sudo -E python3 os/ci/control/control_vm.py chrome\n        echo CHECK_BUILD_CONTROL_CHROME_PASSED',
+                      script)
+
+    def test_pkcheck_runs_under_the_units_own_sandbox(self):
+        chrome = self.actions()
+        properties = chrome.sandbox_properties((ROOT / 'control/packaging/aresos-toold.service').read_text())
+        self.assertIn('User=aresos-tools', properties)
+        self.assertIn('ProtectSystem=strict', properties)
+        self.assertIn('ReadWritePaths=/run/aresos-tools /var/lib/aresos-tools /var/lib/aresos-operation-evidence',
+                      properties)
+        self.assertIn('CapabilityBoundingSet=', properties)
+        self.assertFalse([p for p in properties if p.split('=', 1)[0] in ('ExecStart', 'Type', 'Restart', 'RestartSec')])
+        self.assertFalse([p for p in properties if p.startswith(('StartLimit', 'Description', 'WantedBy'))])
+        with mock.patch.object(chrome, 'UNIT_FILE', ROOT / 'control/packaging/aresos-toold.service'):
+            command = chrome.as_service('probe', ['/usr/bin/pkcheck', '--action-id', 'x'])
+        self.assertEqual(command[:2], ['systemd-run', '--unit=probe'])
+        self.assertEqual(command[-4:], ['--', '/usr/bin/pkcheck', '--action-id', 'x'])
+        self.assertIn('--property=User=aresos-tools', command)
+        self.assertIn('--setenv=PATH=/usr/bin:/bin', command)
+
+    def test_the_placeholder_and_the_message_are_read_from_the_installed_files(self):
+        chrome = self.actions()
+        tmpfiles = (ROOT / 'control/chrome/packaging/aresos-control-chrome.tmpfiles').read_text()
+        self.assertEqual(chrome.placeholder(tmpfiles), b'{"format":0,"hosts":[]}')
+        with self.assertRaises(chrome.Failure):
+            chrome.placeholder(tmpfiles.replace('f /var/lib', 'f /var/other'))
+        source = (ROOT / 'control/aresos_control/chrome/exclusions.py').read_text()
+        message = chrome.settings_message(source)
+        self.assertTrue(message.startswith('Chrome refuses reads and actions:'), message)
+        self.assertIn('not a valid list', message)
+        self.assertIn(chrome.EMPTY_LIST.strip(), tmpfiles.encode())
+
+    def test_the_probe_host_moves_its_two_paths_to_the_run_folder(self):
+        layer = load(CONTROL_CI / 'chrome_layer.py', 'chrome_layer_for_test')
+        text = layer.probe_host(ROOT / 'control/chrome/ci/install/probe_host.py')
+        self.assertIn("SOCKET = '/run/aresos-install-test/probe.sock'", text)
+        self.assertIn("LOG = '/run/aresos-install-test/probe.jsonl'", text)
+        self.assertNotIn('/out/', text)
+        broken = self.folder / 'probe_host.py'
+        broken.write_text(text)
+        with self.assertRaises(AssertionError):
+            layer.probe_host(broken)
+        self.assertEqual(self.actions().RUN, pathlib.Path(layer.RUN))
+
+    def setUp(self):
+        self.folder = pathlib.Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, self.folder)
+
+
 class RunnerInputsTest(unittest.TestCase):
     def test_the_install_step_is_the_readmes_block_word_for_word(self):
         runner = load(CONTROL_CI / 'control_vm.py', 'control_vm_for_readme')

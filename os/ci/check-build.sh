@@ -93,8 +93,15 @@ case $mode in
         sudo -E env "ARESOS_REVISION=$revision" python3 os/ci/control/control_vm.py
         echo CHECK_BUILD_CONTROL_PASSED
         ;;
+    control-chrome-pass)
+        # Brief 18c-b, item 5: check_build=control's second VM step with its own time limit. The same disk with a
+        # fresh overlay: Chrome's checks in his session, with the pass's one reboot (control_vm.py chrome).
+        test -d vm-work/output
+        sudo -E python3 os/ci/control/control_vm.py chrome
+        echo CHECK_BUILD_CONTROL_CHROME_PASSED
+        ;;
     *)
-        echo "Unknown check-build mode: '$mode' (expected resolve, build, control or control-pass)" >&2
+        echo "Unknown check-build mode: '$mode' (expected resolve, build, control, control-pass or control-chrome-pass)" >&2
         exit 2
         ;;
 esac

@@ -25,7 +25,8 @@
     "18c-b step 3a fix: resolve PEM scan links only within the image view, record missing targets, retain read failures and cover host-view escape; remove the temporary layout diagnostic",
     "18c-b step 3b: pin and verify GitHub CLI 2.103.3, extract only gh, restore RPM trust, bind lock and binary to image checks, add informational resolve and failure fixtures.",
     "18c-b step 3b checks-only follow-up: retain exact gh lock byte comparison outside the older-lock JSON fixture, and test equal, changed and missing image locks.",
-    "18c-b step 3b check fix: record gh RPM payload paths in its lock, verify them against the pinned RPM, and reject only those paths in the image while printing legacy name matches."
+    "18c-b step 3b check fix: record gh RPM payload paths in its lock, verify them against the pinned RPM, and reject only those paths in the image while printing legacy name matches.",
+    "18c-b step 4: the Chrome VM pass (control_vm.py chrome, check-build.sh control-chrome-pass), its actions and test-layer pieces (probe, hand-loaded extension, bundles B and C), the polkit probe, C1, C2 and C6's first use with its reboot."
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
