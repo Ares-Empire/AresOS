@@ -41,7 +41,8 @@ processResources {
 tasks.withType(JavaCompile).configureEach { options.release = 25 }
 test {
     useJUnitPlatform()
-    def tempDir = layout.buildDirectory.dir('tmp/unit-tests')
+    // Unix socket fixtures add nested paths; leave room below Linux's 108-byte limit in named worktrees.
+    def tempDir = layout.buildDirectory.dir('tmp/t')
     doFirst { tempDir.get().asFile.mkdirs() }
     systemProperty 'java.io.tmpdir', tempDir.get().asFile.absolutePath
     testLogging { events 'passed', 'skipped', 'failed' }
