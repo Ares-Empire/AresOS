@@ -371,3 +371,26 @@ Revision 2 after `RECHECK-CROSS-5.md`, from `d175acdd`; `linux-tools` remains th
 - **18c-b handoff:** at `91ad33d6`, next is **3a fix** for the PEM scan's root-home link to boot-created `var/roothome`; keep the two-image-round stop and require the lead's disposition before any further image run or 3b.
 - **Unchanged:** findings 2–6 stay closed as specifications, owner question 2 stays word for word, and Unicode/cleanup, distinct descriptions, 28a's 2,800 then 28b's 3,800 caps and step order remain.
 - **Owner question 2 answered** (board #353, 2026-11-18): "One question (recommended)". 28b item 4c builds the combined send/loss question as written; refusal is no longer the interim fallback for it.
+
+
+Revision 3 (2026-11-18), after `RECHECK-CROSS-5-2.md`; the Revision 2 profile-password recommendation above is
+superseded by the owner's answer, while its committed-state/restore safeguards remain:
+
+- **Owner question 1 answered:** board #354 asked why confirmation follows every update; each image gives the
+  helper a new identity. Board #355 chose **"Yes/no in the session (recommended)"**. The first Chrome tool call
+  after replacement asks `Keep using Chrome profile <name>?` in Claude Code's permission prompt through
+  Control's managed ask, like a mail send; no password or helper approval button (28b item 1/step 2; CONTROL §6).
+- **Binding and sessions:** fixed waiting refusal, no page data; send-style exact operation binding plus pair,
+  peer, name, pin/recovery generations. Prepare never takes the pin. No/cancel/no answer/stale leaves it unchanged.
+  First valid yes commits once across sessions, later answers are stale; later sessions need no question until
+  another replacement. Other candidates never win by arriving first or matching the name.
+- **Known limits:** same direct-service, PermissionRequest and relay residuals as a send (CONTROL §7), copied
+  profile state, and **K1: auto mode is not tested**. An owner-added user allow hook can approve without showing
+  the prompt. This is the send's accepted boundary, not F7's independent password boundary.
+- **Tests/mutations:** 28b's `profile_ask_yes`, `profile_ask_waits`, `profile_ask_bound`, `profile_ask_sessions` and
+  `profile_ask_prompt`, plus the retained restore regression. Skip ask → prompt/waits; another candidate's
+  answer → bound; pin on prepare → waits. Restore lookup/retirement mutations remain independently required.
+- **Image/steps and instructions:** 28b step 2 owns the ask and case 3/C4 integration. 18c-b no longer needs any
+  profile polkit lifecycle/probe/C7 cases; its real-session probe and C7 remain for loosening only. Its **3a fix**
+  gate stays. CONTROL §6 and 18c-b change together; 28a changes only its dependency note. Added server-instruction
+  text: **0 characters**, retaining 3,800 and the twenty-tool count. No product code or workflow change/run.

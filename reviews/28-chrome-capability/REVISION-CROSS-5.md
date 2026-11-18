@@ -1,8 +1,9 @@
 # Revision after BRIEF-CROSS-5
 
 Documentation revision for `linux-tools`, 2026-11-18. Branch `briefs/28ab-cross-5`, from `main` at `918fba67`.
-No product code. All six findings are accepted; the two owner choices below remain open. This is a proposed
-build contract, not browser-test evidence or permission to implement an unresolved owner choice.
+No product code. All six findings are accepted. Both owner choices are now recorded under "Owner answers";
+**Revision 3 is the current profile-approval contract**, superseding Revision 2's password proposal. Earlier
+revision evidence is retained as history, not browser-test evidence for this unbuilt contract.
 
 ## What changed per finding
 
@@ -112,20 +113,15 @@ and common instructions remain. No server instruction text was added here.
 
 ## Questions for the owner
 
-1. **After an update or rollback replaces Chrome's helper, should the tools ask for your password once to keep
-   using your chosen Chrome profile?**
-   **What you do:** open the helper in that Chrome profile, check its name and choose **Keep using this profile**.
-   The system password dialog asks whether Claude should keep using that named profile. You type your password,
-   never an ID, and run no administrator command. At first setup, enter the name Chrome shows in its profile
-   picker; correct it in the helper if you rename it. Normal Chrome/service restarts need no confirmation.
-   **Why it matters:** the tools wait for you after a replacement. No, cancel or timeout leaves the pin as it
-   was and this helper's tools refused. Your yes authorizes the new helper; it is not technical proof against
-   someone copying a profile's local files.
-   **Options:** confirm with your password after each replacement; or make reconnection automatic, which needs
-   a separate reviewed design and delays this part of the build.
-   **Recommendation:** confirm with your password. It keeps the tested update/rollback behavior and needs no
-   permanent signing secret. The same profile pin survives. 28b builds the helper's confirmation flow using
-   the password dialog that Chrome's rule changes already use. This changes 18c-b's “without another step”.
+1. **After an update or rollback replaces Chrome's helper, how should you confirm continued use?**
+   Board #354 asked why each update needed confirmation; each image builds the helper with a new identity.
+   Board #355 chose **"Yes/no in the session (recommended)"** on 2026-11-18. The first Chrome tool call in a
+   Claude Code session asks `Keep using Chrome profile <name>?`, through the same managed ask and permission
+   prompt as a mail send. No password or helper-page confirmation button. At setup enter Chrome's picker name
+   in local details and correct renames there. Yes accepts the bound replacement for later sessions until the
+   next replacement; no, cancel, no answer or stale answer leaves the pin unchanged and tools refused.
+   Revision 2's password proposal is superseded. Automatic continuity remains outside this choice. This asks
+   for authorization, not proof against copied profile files; it inherits the send's known approval limits.
 
 2. **If a delayed form send could discard another draft or drawing on the page, should one question let you
    approve both the send and that loss?**
@@ -135,8 +131,8 @@ and common instructions remain. No server instruction text was added here.
    **Recommendation:** one combined question. It preserves your delayed submissions (board #138). No reload
    happens first. Refusal sends nothing, and further work while the question waits requires a fresh question.
 
-Neither answer is inferred from this revision or from the earlier READY. `linux-tools` records the choices
-before their dependent implementation steps; unrelated image/read work can continue.
+Neither answer is inferred from a READY: the owner's words are recorded under "Owner answers".
+`linux-tools` remains the lead; both dependent build contracts now follow those choices.
 
 ## What 18c-b must now do differently
 
@@ -150,8 +146,9 @@ and storage ban until the approved narrow exception lands. **3b** otherwise stay
 **4/4b** uses a synthetic real pin when 28b is available, without bypassing first-use gates.
 **5** extends case 3/C4 to pin continuity, refusal before relink, owner-confirmed acceptance, retired pairs and
 another profile; if 28b merges later, its PR owns the combined container proof and `linux-tools` assigns the
-VM/release confirmation to the image builder before shipping. C7 adds the named-profile F7 password flow,
-including refusal, cancel, timeout and stale/cached confirmation; its integration has the same ownership rule.
+VM/release confirmation to the image builder before shipping. Profile acceptance now uses the in-session
+managed ask and 28b's named prompt/binding tests in case 3/C4. No profile polkit lifecycle, real-session profile
+dialog probe or C7 profile-password cases are needed; 4/4b and C7 retain real-session proof for F7 loosening only.
 **6** separates installation evidence
 from pin evidence and adds the chosen owner step to the guide/release handoff. No permanent signing key,
 profile-file installation or automatic enrollment is added to the image.
@@ -159,6 +156,8 @@ profile-file installation or automatic enrollment is added to the image.
 ## Revision 2
 
 2026-11-18, after `RECHECK-CROSS-5.md`, starting at `d175acdd` on the same branch/draft PR #106.
+**Historical record:** Revision 3 below supersedes this revision's profile password/UI proposal and its
+profile-specific C7 work, while retaining the committed pin and restore contract.
 The blocker and should-fix are accepted. Findings 2–6 remain closed as specifications; owner question 2 above
 is unchanged, and neither owner answer is inferred. This revision adds no product code.
 Contract commit: `83a1f64b`; this report and the ALIGNMENT decisions follow in a separate documentation commit.
@@ -304,4 +303,94 @@ a signing key without proving rollback is not an alternative implementation of t
 ## Owner answers
 
 - **Question 2** (board #353, 2026-11-18): "One question (recommended)".
-- **Question 1:** asked after the recheck of revision 2.
+- **Question 1** (2026-11-18): board **#354 asked** why he would have to confirm again after every update;
+  he was told each image builds the helper with a new identity. Board **#355**: **"Yes/no in the session
+  (recommended)"**. Revision 3 implements this decision in the briefs; the password proposal is superseded.
+
+
+## Revision 3
+
+2026-11-18, from `eb4314e9`, same branch `briefs/28ab-cross-5` and draft PR #106; lead `linux-tools`.
+Documentation only, for board #354/#355. Earlier revision verification is historical, not evidence of this ask.
+Contract commit: `78af45de`; the decision record and verification follow in the next documentation commit.
+
+- **28b “JUDGMENT-CALLs”, “1. What Claude sees”, “Build order”, “Paths”, “What must not change”:** step 2 builds
+  profile-only preparation and confirmation through existing `chrome_submit`/managed ask, with no profile
+  password or helper approval button. Retain committed `chrome_state`, quarantine, retirement of every
+  connection/ask before recovery opens, fresh handshake, missing-state refusal and the copied-profile limit.
+- **28b “Tests”; CONTROL §6 “Which tabs Claude works in” / “Tests”; 18c-b “Tests and reviewer mutations”:** name
+  `profile_ask_yes`, `profile_ask_waits`, `profile_ask_bound`, `profile_ask_sessions`, `profile_ask_prompt` and retain
+  the restore regression. Skip the ask → prompt/waits; accept another candidate's answer → bound; take the pin
+  on prepare → waits. Existing lookup/recovery mutations still fail the restore regression independently.
+- **CONTROL §6 “How the tool reaches Chrome”, “Actions”, “Known limits”; 28b item 1:** copy the send's direct-service
+  and PermissionRequest residuals, retain the relay limit and copied-profile limit, and explicitly record K1
+  (auto mode untested). An owner-added user allow hook can approve without showing the prompt. This is weaker
+  than F7's independent password boundary: it can expose a replacement profile without a visible yes, for the
+  same reasons a send can skip its question. No absolute claim that Claude cannot bypass normal user access.
+- **18c-b “Goal”, “CROSS-5 identity handoff” / remaining steps; 28a opening dependency note:** profile work is
+  28b step 2; case 3/C4 carries session proof. No profile polkit integration, profile-dialog probe or C7 profile
+  password proof; 4/4b and C7 still prove F7 loosening in the real session. Keep **3a fix**, its exhausted two-round
+  allowance and lead gate. CONTROL §6 and 18c-b's text both change; section 7 and product code do not.
+- **28b “8. What the instructions tell Claude”:** **0 added server-instruction characters**, existing submit
+  approval schema and twenty-tool count, with only a description clarification inside the existing total.
+  The fixed refusal carries routing; 28a's 2,800 and 28b's 3,800 pins remain.
+- **“Owner answers”; ALIGNMENT “After BRIEF-CROSS-5”; 28b owner-questions header:** record board #354's question
+  and board #355's exact choice. Board #353's combined send/loss decision and all unrelated contracts stay.
+
+### The ask in six lines
+
+1. **When:** the first Chrome tool call in a session after helper replacement prepares the question and routes it to the permission prompt.
+2. **Claude sees:** a fixed `chrome_profile_confirmation_required` refusal plus the waiting question/approval; never page data.
+3. **Binding:** send-style operation id/hash, exact question/description and deadline; private pair, peer, name, committed pin revision and recovery generation.
+4. **Yes:** one serialized committed write replaces the accepted pair, retains the logical pin, retires old approvals and holds across later sessions; concurrent late answers are stale.
+5. **No/cancel/no answer/stale:** no pin write; tools remain refused, except after another session's valid yes; no automatic prompt loop.
+6. **Instruction cost:** 0 added server-instruction characters; keep 3,800 and existing catalogue budgets.
+
+### Evidence and verification
+
+**Read on fetched main `a8e582b8`:** `control/aresos_control/engine.py` (`reserve`, `submit`, restore gate),
+`control/aresos_control/chrome/adapter.py` (prepare/revalidate/execute), `control/aresos_control/hooks.py`, and
+`control/settings/`. Managed `permissions.ask`
+rules ask; `hooks.py` handles Stop/UserPromptSubmit reminders. There is **no production managed PermissionRequest
+allow hook** implementing a send's approval: adding one would bypass its prompt. The operation binds id/hash,
+exact question-first input, expiry and generation; it does not cryptographically attest a human clicked yes.
+Section 7 explicitly accepts direct-service and PermissionRequest bypasses. K1's wording comes from
+`reviews/18c-image-test/SECURITY-REVIEW-A1.md`. These are source checks, not proof of future profile behavior.
+
+- **Run:** `git fetch origin` first: exit 0, no output; clean on `briefs/28ab-cross-5` at `eb4314e9`.
+- **Run:** `PYTHONDONTWRITEBYTECODE=1 TMPDIR="$PWD/.work/cross5-revision3/tmp" PYTHONPATH=control:control/tests python3 -B .work/cross5-revision3/run_control_tests.py`:
+  `Ran 32 tests in 4.439s`, `FAILED (failures=24)`. The unchanged `test_approval_questions`, `test_operations`
+  and `test_slim_policy` tests used only a redirected scratch directory. Asking operations failed with
+  `boundary_not_installed`: the installed managed-settings file is absent in this environment. This is not a
+  green unit run; no machine configuration, product code, assertion or approval check was changed to pass it.
+- **Run:** catalogue measurement via `instructions_for`/`tools_for`, with `PYTHONPATH=control python3 -B`:
+  `Unchanged current catalogue: instructions=4093, descriptions=5085, combined=9178, tools=30`.
+  Those are the pre-28a implementation numbers, not the future 3,800/twenty-tool result; this revision adds no
+  server-instruction block and keeps the builder's size checks mandatory.
+- **Run:** `git diff --check`: exit 0, no output.
+- **Run:** `PYTHONDONTWRITEBYTECODE=1 python3 -B .work/cross5-revision3/check_docs.py`: exit 0, printed:
+
+  ```text
+  PASS: exactly six requested Markdown files; no product or untracked changes
+  PASS: CONTROL changes confined to section 6; send/relay limits in section 7 unchanged
+  PASS: 28a changes only its dependency note; all mutation mappings and budgets unchanged
+  PASS: unrelated 28b contracts, instruction block, later steps and mutation tables unchanged; profile ask adds 0 instruction characters
+  PASS: all three ask mutations map to named tests; restore authority/retirement/absence rows retained independently
+  PASS: 18c-b changes only goal/handoff; original C7 loosening proof, steps and exhausted-run gate retained
+  PASS: owner answer recorded; send residuals, owner-added allow hook and untested K1 named; alignment history retained
+  PASS: no new personal paths/mail addresses; .work files over 500 MB: none
+  ```
+
+- **Not verified:** future profile tests/mutations and the actual prompt, browser, container, VM or image proof.
+  No workflows dispatched, mod builds or privileged commands run. Mutation tables were checked as contracts,
+  not executed against an implementation. No screenshots from this documentation revision.
+- **JUDGMENT-CALL:** share one pending operation across sessions for a candidate/generation and serialize its
+  first yes, rather than create independent authorizations. This matches the owner's durable yes and makes
+  late answers explicitly stale. Changing that later costs the concurrency and replay tests. The local switch
+  control selects intent only; all profile approval moves into the session, leaving F7 for loosening.
+- **PLAN-GAP:** the requested “managed PermissionRequest hook” is actually a managed ask rule on main;
+  PermissionRequest allow hooks are a bypass residual, not the approval mechanism to implement. Use the
+  existing `chrome_submit` rule, with no new auto-allow hook.
+- **Open questions:** no owner question remains for these two choices. Implementation/integration evidence and
+  the lead's existing 3a-fix disposition remain the builders' work.
+- **Large artifacts left:** none over 500 MB in `.work/`; no downloads or extracted images created.
