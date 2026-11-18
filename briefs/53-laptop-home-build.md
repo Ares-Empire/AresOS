@@ -100,3 +100,7 @@ Board brief 306, board #335. This is a handoff from `linux-hub` (2026-11-17) to 
   finishes and stops; Codex Sol for cross-reviews)**, and Codex does the
   cross-reviews (`gpt-6.2-sol` by default, `gpt-6.2-astra` only where the stakes need it, such as 53c's security
   pass). Codex's second-model review is the part Claude can't replace.
+- **The laptop home is native** (owner, board #375, 2026-11-19: "yea sounds good"). 53e measured the WebKit page at 418
+  MiB PSS at rest at best (524 unchanged) against 47 MiB for a native GTK 4 and Cairo town. 53c still merges after the
+  cut (its program skeleton and helper changes stay); 53f replaces its web view and page with a native drawing of the
+  same look and deletes the web engine. The companions later bring their own web view, only while switched on.
