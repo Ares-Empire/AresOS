@@ -3,6 +3,253 @@
 Brief: `briefs/18c-b-chrome-image.md` (on `main` since PR #73).
 Branch `pkg/18c-b-chrome`, one builder at a time. Each step is a fresh agent; this file is the handoff.
 
+## Step 3b (2026-11-18, gpt-6-astra)
+
+### Done
+
+- `61644462`: pins GitHub CLI **2.103.3**, its one exported 2026 public key and the tag's licence.
+  No patch upgrade: GitHub CLI's published advisories inspected on this date did not require a newer
+  2.103 patch. The RPM is `gh-2.103.3-1.x86_64` from
+  `https://github.com/cli/cli/releases/download/v2.103.3/gh_2.103.3_linux_amd64.rpm`.
+- `b3e0c0e5`: packages verifies HTTPS-only download/redirects, RPM hash and NEVRA, no scripts or triggers
+  (file triggers included), one committed primary key, and the pinned header signature with every result
+  line OK. It deletes all newly imported keys even when signature checking raises, then requires the key
+  list equal to its previous value. Chrome's cleanup also removes every added key; a second comparison
+  spans the first Chrome import through the last gh deletion.
+- Only `./usr/bin/gh` is read from `rpm2cpio` by `cpio --extract --to-stdout`; both processes must succeed.
+  The binary hash is checked before copying and afterwards, mode 0755, root:root. The licence is committed
+  once and installed by the existing config copy. No gh RPM install, git dependency, repository, completion
+  or man page. The lock goes to `usr/share/aresos/manifest/gh.lock.json`, 0644 root:root.
+- The existing Control map records `gh: {version, binary_sha256}`; the actual build checks the installed
+  binary against that record. The image check runs `--version` as root and the daily account, requires
+  at least 2.102.0 and exact lock version, checks the binary/licence hashes and all three files' modes,
+  owners and parents, absence of a gh RPM, repository, trusted key and every other path in gh's own RPM.
+  The runner requires the reviewed lock byte for byte and `control.json.gh` equal to the checkout's.
+- Resolve prints `INFO gh newest=... pinned=...` to the console and `resolve/gh.txt`. Network errors,
+  nonzero curl, timeouts and malformed responses produce `unavailable (lookup failed)` without failing.
+- `git fetch origin` completed. Main changed no file this step changes, so no merge. The starting head was
+  `f96ca4aa`. `pending-rebind.json` was regenerated only by
+  `python3 -B reviews/27-first-update-release/rebind.py pending "18c-b step 3b: pin and verify GitHub CLI 2.103.3, extract only gh, restore RPM trust, bind lock and binary to image checks, add informational resolve and failure fixtures."`:
+  `pending: 10 bound files differ from the active bindings, 0 removed`.
+  No workflow, runtime Control code, release pin or laptop deployment changed.
+
+`6b80a139`: the first hosted checks-only run exposed an older-lock fixture in
+`test_aresos_desktop` that supplies only the existing locks. Removed the redundant gh entry from that
+JSON comparison, keeping the already present, stronger byte-for-byte `cmp` outside it. The existing
+fixture and its assertions are unchanged. The gh test now executes that exact shell comparison against
+equal, changed-but-JSON-equivalent, and missing locks; only the equal one passes. The 43-test touched
+module passes again (5.894s); pending bindings were regenerated with the follow-up note. The second
+checks-only dispatch was the final round authorized at that point. No infrastructure rerun was used. The
+lead later authorized this one check fix and assigned the next checks-only/build dispatches to its shell.
+
+### The lock and key provenance
+
+`os/gh.lock.json` preserves Chrome's field names/order, then adds `binary_sha256`, `license_sha256`
+and (in the check follow-up) `payload_paths`. The signing-key object extends the same first four fields with `source_sha256` and the provenance record.
+
+| Input | SHA-256 |
+|---|---|
+| RPM | `65d55875faa3281959676d91da15a9380583281586ac31bbd3d32b7924a9f4d2` |
+| Extracted binary | `b768184570b12536be4ac1528893f6340d1c6a7b40b56ad45bca9cd0e87ad34d` |
+| Published ASCII keyring | `cec6e9ed82d3949ca5f4428cc968b41ef5e7416cb3653cdfc2a421977663bbfd` |
+| Committed exported key | `5cf71eb7df215f2dd79b8eb7cfbb069bd62458d8be8d64c141c02945838e754f` |
+| Tag's LICENSE | `6da4adc42392c8485e40b4251c7e332fc3352df1947c9ffade71dd60b14a7a4f` |
+
+Fetched `https://cli.github.com/packages/githubcli-archive-keyring.asc` over HTTPS with HTTPS-only redirects.
+Its checksum and both primary fingerprints match GitHub CLI's own
+[installation documentation](https://github.com/cli/cli/blob/trunk/docs/install_linux.md):
+`2C6106201985B60E6C7AC87323F3D4EA75716059` (expired 2026-09-05) and
+`7F38BBB59D064DBCB3D84D725612B36462313325`. Imported the bundle with `gpg --no-options --batch
+--no-autostart --no-auto-key-retrieve --auto-key-locate clear` into the temporary home
+`.work/18c-b-3b/gnupg`, then used `--armor --export 7F38BBB59D064DBCB3D84D725612B36462313325`.
+These import/export operations use the downloaded file only, without network or a keyserver.
+Only the exported key is committed. `gpg --import-options show-only --with-colons` counts primary keys
+in the actual committed file; its test refuses a second primary key or another fingerprint.
+
+The licence was fetched once from `https://raw.githubusercontent.com/cli/cli/v2.103.3/LICENSE`.
+The pinned RPM matched the brief's hash, and the signature check printed:
+
+```text
+Header OpenPGP V4 RSA/SHA512 signature, key fingerprint: 7f38bbb59d064dbcb3d84d725612b36462313325: OK
+Header SHA256 digest: OK
+Payload SHA256 digest: OK
+```
+
+`rpm -qp --scripts --triggers --filetriggers` printed nothing; NEVRA was `gh-2.103.3-1.x86_64`.
+`file` reports the extracted binary is a statically linked x86-64 ELF. The actual `verify_rpm` code also ran
+with every rpm/rpmkeys command scoped to a fresh `.work/18c-b-3b/verification-rpmdb` and `_keyring rpmdb`:
+`CONTROL_GH_RPM_PASS ...` then `REAL_GH_RPM_AND_KEY_CLEANUP_PASS isolated scratch RPM database`.
+The key list started and ended empty. The laptop's RPM database/keyring was never changed.
+
+### Local tests and named scratch mutations (initial implementation)
+
+`TMPDIR` for local tests and scratch scripts was `.work/18c-b-3b/tmp`.
+`python3 -B -m unittest discover -s os/tests -p 'test_control_image.py'`: **43 tests, OK**, 5.704s,
+no skips. This includes the 32 existing image tests and 11 gh cases. No owner test module or full local
+OS suite was run. `for script in os/build.sh os/ci/check-image.sh os/ci/image-checks.sh os/ci/check-resolve.sh; do bash -n "$script" || exit; done`
+and `git diff --check`: exit 0. No Gradle process was started locally.
+
+`python3 -B .work/18c-b-3b/mutations.py` executed the following against the actual packages-step
+functions extracted from `build.sh`, in disposable scratch fixtures. RPM query/import/delete commands
+are stand-ins in these adversarial cases; the two-key case invokes real GnuPG over the changed file.
+
+| Mutation | Actual result |
+|---|---|
+| `wrong-binary-hash`: change the fixture lock's binary hash to 64 zeros | `MUTATION_KILLED wrong-binary-hash: gh binary differs from its pin`; no image binary written |
+| `second-key-in-committed-file`: append a different committed public key to a scratch copy | `MUTATION_KILLED second-key-in-committed-file: gh key file must hold exactly the pinned primary key` |
+| `leftover-imported-key`: deletion returns success but leaves its key | `MUTATION_KILLED leftover-imported-key: gh import left a changed RPM keyring` |
+| `rpm-with-script`: RPM query reports a postinstall shell script | `MUTATION_KILLED rpm-with-script: gh RPM carries scripts or triggers`; import not reached |
+
+Additional regressions refuse wrong RPM/key/licence hashes, NEVRA, a bad signature/digest line, another
+signer, missing header signature and nonzero verifier exit; cleanup removes multiple additions and also
+runs after verification failure. Fixtures assert the one cpio member, file modes, root ownership request,
+key cleanup before extraction, and scratch removal. Checkout comparison rejects a changed `gh` record;
+resolve handles success, lookup failure and malformed replies in one informational line.
+
+### Check fix follow-up (2026-11-18)
+
+Commit `689d8a48`, **Bind gh image exclusions to the pinned RPM payload**, completes the requested check
+fix. No extraction, signature policy, version, installed payload or workflow changed.
+
+- `os/gh.lock.json` now records `payload_paths`, the **240** filenames returned by
+  `rpm -qp --nosignature --qf '[%{FILENAMES}\n]' .work/18c-b-3b/downloads/gh_2.103.3_linux_amd64.rpm`.
+  The cached RPM's SHA-256 was checked first and equals the existing pin. Nothing was downloaded again.
+- `os/build.sh` re-queries that list from the downloaded RPM after its existing hash, signature, script
+  and key-cleanup checks. Exact list equality is required before extraction; success prints
+  `CONTROL_GH_PAYLOAD_PASS 240 paths`. The existing lock copy carries that same list into the image and
+  `check-image.sh` already compares the complete lock byte for byte against the checkout.
+- `os/ci/image-checks.sh` checks all **239** other pinned paths, allowing only `/usr/bin/gh` from the
+  RPM. Existing files, directories and symlinks (including dangling links) fail with
+  `Unexpected gh RPM payload paths: <all offending paths>`. Unrelated base files do not fail it.
+- Five added tests in `os/tests/test_control_image.py` exercise the actual checker code and the packages
+  verifier: RPM/list disagreement, binary-only success, man-page and all three completion paths rejected
+  individually and together with their names, a dangling payload link rejected, and an unrelated
+  `gh-base-tool` completion accepted. The existing 43 tests remain.
+
+**Verified locally in this follow-up:**
+
+- `TMPDIR="$PWD/.work/18c-b-3b-check-fix/tmp" python3 -B -m unittest discover -s os/tests -p 'test_control_image.py'`:
+  `Ran 48 tests in 6.448s`, `OK`, no skips. Only this touched OS test module was run; no owner module.
+- `for script in os/build.sh os/ci/check-image.sh os/ci/image-checks.sh os/ci/check-resolve.sh; do bash -n "$script" || exit; done`:
+  exit 0, no output. `git diff --check`: exit 0, no output.
+- `python3 -B reviews/27-first-update-release/rebind.py pending "18c-b step 3b check fix: record gh RPM payload paths in its lock, verify them against the pinned RPM, and reject only those paths in the image while printing legacy name matches."`:
+  `pending: 10 bound files differ from the active bindings, 0 removed`. The pending file was generated,
+  never edited by hand.
+- The exact Repo privacy workflow shell, extracted to `.work/18c-b-3b-check-fix/privacy-check.sh`, ran with
+  `RUNNER_TEMP` under the same scratch folder: exit 0, `No file holds a home path with a real user name.`
+- `TMPDIR="$PWD/.work/18c-b-3b-check-fix/tmp" python3 -B .work/18c-b-3b-check-fix/mutation.py`:
+  put the original name-based assertion back in a scratch copy of `image-checks.sh`, then ran the new
+  unrelated-base-file test against that copy. It printed
+  `MUTATION_KILLED name-based-check: Ran 1 test; FAILED (failures=1)` and
+  `AssertionError: gh documentation or completions were installed`. The fixture path is
+  `/usr/share/bash-completion/completions/gh-base-tool`, absent from the pinned payload. The working
+  checker was never replaced by the mutant.
+
+**Old pattern diagnostic:** the old name search runs as a diagnostic before the new assertion. In the
+new base-file test it lists the synthetic `gh-base-tool` path above and the new check passes. That is a
+fixture, not an observation of the real base image. The supplied failing build log names no matched
+paths; no real base-image match is claimed here. The lead's next `check_build=build` on the pushed head
+will print `INFO gh legacy name matches=<sorted JSON array of full paths>` for every match under the
+same four man/completion folders. This supplies the missing base-image path evidence without failing
+on unrelated names. Any actual gh payload path still fails and is named separately.
+
+**Not verified here:** the corrected checker in a built image. No workflow was dispatched or watched in
+this follow-up, and no laptop RPM keyring was changed. The lead's shell owns the next two runs.
+No new owner-facing JUDGMENT-CALL; the PLAN-GAP was the old assertion's assumption that a matching name
+belongs to gh. Open questions: none for this fix.
+
+### Runs
+
+The original builder ran checks-only, build, then resolve, one at a time. The completed results for
+`44329677029`, `44339552024` and `44344811923` below are from the lead's shell, supplied with this
+follow-up; they were not re-watched here. Other rows retain the draft's historical evidence. Full-log
+line numbers are used below; unit-test fixture PASS markers are not image proof.
+
+| Run | Mode/workflow | Result / full log lines |
+|---|---|---|
+| 44323572283 | checks-only round 1, `b3e0c0e5` | FAIL; one failure in 1800 tests (3819–3821), four existing GUI skips. The older-lock fixture has no gh lock: failure/trace 3802–3815. This is our integration failure, not infrastructure. |
+| 44329677029 | checks-only round 2, `6b80a139` | PASS (lead's shell). |
+| 44339552024 | `check_build=build`, `6b80a139` | FAIL; `CONTROL_GH_RPM_PASS`, `CONTROL_GH_INSTALL_PASS`, `CONTROL_GH_KEYRING_PASS` at 1561–1563, then root and daily-account `gh --version` lines; `AssertionError: gh documentation or completions were installed` in `image-checks.sh` 339–341. Fixed by `689d8a48`; no image-check PASS claimed for this run. |
+| 44344811923 | `check_build=resolve`, `6b80a139` | PASS; `INFO gh newest=v2.105.0 pinned=gh-2.103.3` at 1397 (lead's shell). |
+| 44323585982 | PR Control Chrome install | PASS; 28 tests 2229, node:crypto cross-check 2235; five cases PASS 2307–2311; `CONTROL_CHROME_INSTALL_PROOF_PASSED` 2312 |
+| 44323586219 | PR Chrome records | PASS; 21 tests 216; `record_build check passed` 227 |
+| 44323586423 | PR Control boundary | PASS; `PRECEDENCE_OK cases=24` 2060; `CONTROL_INTERACTIVE_ASK_PASS cases=17` 2732 |
+| 44323586285 | PR Control base | PASS; `Control base suite PASS` 715 |
+| 44323586189 | PR Repo privacy | PASS |
+| 44323586012 / 44323587243 / 44323586057 | Superseded PR qualification / Chrome / Mail | Qualification and Chrome cancelled after the fix push to unblock its checks; Mail cancelled automatically. No PASS claim. |
+
+Fixed-head PR evidence (`6b80a139`):
+
+| Run | Workflow | Result / full log lines |
+|---|---|---|
+| 44329692789 | Control Chrome install | PASS; 28 tests 2228, node:crypto 2234; cases 1–5 PASS 2306–2310; `CONTROL_CHROME_INSTALL_PROOF_PASSED` 2311 |
+| 44329693134 | Chrome records | PASS; 21 tests 199; `record_build check passed` 210 |
+| 44329692739 | Control boundary | PASS; `PRECEDENCE_OK cases=24` 2059; `CONTROL_INTERACTIVE_ASK_PASS cases=17` 2731 |
+| 44329692726 | Control base | PASS; `Control base suite PASS` 699 |
+| 44329692951 | Repo privacy | PASS |
+| 44329692733 / 44329692894 / 44329693644 | Chrome / qualification / Mail | Pending in the original draft; not rechecked in this follow-up, no PASS claim. |
+
+The first push's five completed PR workflows passed. Its still-queued qualification and Chrome runs
+received `gh run cancel` after the fix push; because the queued qualification run remained active,
+`gh run cancel --force` was used for these two superseded runs. The qualification concurrency group
+otherwise blocks the new head. Mail was cancelled by its own concurrency rule. Those workflow notes are
+historical; no cancellation is counted as a passing check, and this follow-up watches no runs.
+
+The build's three gh package markers and both version lines establish installation and execution before
+its checker failure; they do not establish a passing image check. On the pushed follow-up head the lead's
+**checks-only must pass**, then **one `check_build=build` must pass completely**, including
+`CONTROL_GH_PAYLOAD_PASS 240 paths`, `CONTROL_GH_RPM_PASS`, `CONTROL_GH_INSTALL_PASS`,
+`CONTROL_GH_KEYRING_PASS`, both exact-version lines, the legacy-match diagnostic,
+`CONTROL_GH_IMAGE_PASS` and `CONTROL_GH_CHECKOUT_PASS`. The diagnostic's actual matched base paths belong
+in that run's evidence. Resolve is already green; no new resolve run is requested by this fix.
+
+### Left, in order
+
+1. **Lead (`linux-tools`):** dispatch checks-only and then one `check_build=build` on this pushed head;
+   the lead's shell watches both and records the markers and actual legacy-pattern matches above.
+2. **4:** real-session polkit probe, then Chrome VM first half. Tell the lead before committing any
+   `os-image.yml` change so linux-aresos hears first.
+3. **4b:** C3, remaining C6, C10 and C11 if step 4 reaches its budget. C10 still must run gh as the service
+   user under the real unit sandbox and establish no verifier login/token.
+4. **5:** update/rollback, broken/missing bundles, store requests and password/cancel/ask-again flows.
+   With 28b integrated, prove the in-session profile ask and durable pin continuity too.
+5. **6:** rehearsal checks, final-head runs, guides and final report; distinguish installation from profile
+   continuity. No release containing 28b before the combined proof.
+
+### JUDGMENT-CALLs
+
+No new owner-facing choice and no version upgrade. For implementation review: cpio streams the one member
+instead of recreating RPM paths; script refusal includes ordinary, transaction and file triggers; key cleanup
+checks the full key listing and deletes every addition, including Chrome's. Replacing this with a private
+verification database in the image was rejected because the brief explicitly requires import/delete and
+before/after proof in the image's keyring. None of these changes expands installed content or privileges.
+
+### PLAN-GAPs
+
+The first checks-only run exposed a fixture boundary: the existing lock-loop test builds only its three older manifests. The gh lock is checked separately, byte for byte, without changing that test. No supply-chain stop condition was encountered. The existing Step 3a storage/profile boundaries remain.
+This step proves supply-chain installation and image execution; it does not establish C10's sandboxed service
+execution or any later Chrome VM flow. Open questions: none for 3b.
+
+### The os/ diff for linux-aresos
+
+Net from `f96ca4aa`:
+
+- `os/gh.lock.json`: new reviewed RPM/binary/licence/key pins, provenance and 240 RPM payload paths.
+- `os/keys/github-cli-rpm.pub`: new, exactly the 2026 public key.
+- `os/config/usr/share/licenses/gh/LICENSE`: new, exact tag licence.
+- `os/build.sh`: verify/extract gh, restore full key list, record/check gh in the existing Control map.
+- `os/ci/check-image.sh`: reviewed gh lock and checkout-record equality, `CONTROL_GH_CHECKOUT_PASS`.
+- `os/ci/image-checks.sh`: installed gh version/hash/metadata and absence checks, `CONTROL_GH_IMAGE_PASS`.
+- `os/ci/check-resolve.sh`: non-failing newest-versus-pin info and evidence line.
+- `os/tests/test_control_image.py`: sixteen gh tests, gh record expectations and fixture lock.
+- `os/README.md`: gh install and verification description.
+- `os/manifest/ci/16/pending-rebind.json`: generated pending note; no table rebound.
+
+`.github/workflows/os-image.yml` is unchanged. The closing `.work/` audit printed
+`Files over 500 MB in .work/:` followed by `Total: 0`. No large download, extracted image or partial
+file needed removal. Scratch for this follow-up is `.work/18c-b-3b-check-fix/`; the prior cached RPM is
+reused. No Gradle process was started.
+
 ## Step 3a fix (2026-11-18, gpt-6-astra)
 
 **The complete 3a image proof is green on `2e2516b1`.** The earlier two-build stop below stays
@@ -456,18 +703,17 @@ Every path below is relative to this repository; this list covers step 3a's chan
 
 ## Where it stands
 
-**The complete step 3a image proof is green on `2e2516b1`.** Main through PR #106 is merged in `405f6fe3`.
-The diagnostic in `32f38e36` proved that `root` links to the absent `var/roothome`; the fix resolves links
-inside the image view, records missing targets and retains all other errors. Local image suite: 32 tests,
-`OK`; the named host-view mutation fails. Checks-only 44280758650 passed (1780 tests, four existing GUI
-skips). Build 44288748140 passed all Chrome image/key/placeholder/checkout/build-log checks and the existing
-VM pass in 40m2s. All workflows on the diagnostic push passed. On the fix push, six workflows passed and
-Chrome/qualification are still finishing at this evidence-only commit; the runs and snapshot are recorded above.
-The report-only push is also watched through completion.
-Steps 1a–2b and 3a's installation work remain built. Next is **3b, `gh`**, then 4, 4b, 5 and 6. The approved
-profile ask is in-session, without a profile password dialog; 28b owns its pin and narrow installation-ID
-storage exception. The complete storage ban remains intact in this step. No workflow was changed and no
-release was published, pinned or deployed.
+**Step 3b's check fix is implemented in `689d8a48`; the lead's new-head CI proof is left.** The gh
+2.103.3 RPM, 2026 key and licence remain pinned. Its exact RPM payload list now replaces the name-only
+exclusion; all 48 local image tests pass and the restored name check fails the new base-file regression.
+The lead reports checks-only `44329677029` and resolve `44344811923` green on `6b80a139`; build
+`44339552024` reached the gh install/keyring/version proof, then failed the old name check. No passing
+3b image check is claimed. The lead's shell dispatches and watches checks-only and one build on the
+pushed follow-up head; this builder commits, pushes normally and stops.
+
+The complete step 3a image proof remains green on `2e2516b1`. After 3b, the order remains **4, 4b, 5, 6**.
+The approved profile ask is in-session; 28b owns its pin and narrow installation-ID storage exception.
+No workflow file, release pin or laptop deployment has changed.
 
 ## The lead's decisions after step 2b (2026-11-15)
 
