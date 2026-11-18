@@ -44,12 +44,15 @@ session") and section 9 step 1. `docs/design/HUB.md` 3.8 (what 1.1 is). Then `os
      - **Made:** once per session, by the session's first supervisor, at the moment it makes `instance` (its runtime
        file does not exist yet). A restarted supervisor reads it back. Never new for a game start, a retry or a
        helper restart.
+     - **A restarted supervisor without a valid token** (missing, malformed, or the file of another instance) makes a
+       new one with that instance and restarts the helper and the laptop home, so no process keeps an old token. The
+       game is never restarted for this: it keeps its launch and nonce.
      - **Kept:** as `view_token` in the supervisor's runtime file under `$XDG_RUNTIME_DIR` (written atomically, mode
        0600), never in a file under `HOME`, so it ends with the session.
      - **Given:** as `ARESOS_VIEW_TOKEN` to every helper the supervisor starts and to the laptop home, never to the
        game; both the supervisor and the helper list it in `PRIVATE_ENVIRONMENT`.
-     - **In the helper:** read once at start. A malformed value counts as none and is logged once, without the
-       value. A wrong token and no token configured both get `not_authorized` with the same text and close the
+     - **In the helper:** read once at start, and compared with `hmac.compare_digest`, never `==`. A malformed value
+       counts as none and is logged once, without the value. A wrong token and no token configured both get `not_authorized` with the same text and close the
        connection, so a client cannot tell them apart; only the helper's log says which, never with a value.
 3. **A view never touches the desktop's state.** Its hello does not close the desktop's connection (nor a desktop's
    hello a view's), does not set `window_minor`, does not call `cancel_returns()`, does not set `windows_pending`,
