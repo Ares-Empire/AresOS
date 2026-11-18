@@ -747,6 +747,7 @@ No new PLAN-GAP, JUDGMENT-CALL or open question.
 
 REVIEW-9 (one should-fix, one note) and REVIEW-10 (two should-fix) are fixed; **REVIEW-11 SAFE** on `a93c07a5`.
 Check build 44212704741 on `82bd71bd` (before the fixes): IMAGE_CHECKS_PASSED, CHECK_BUILD_PASSED,
-CHECK_BUILD_VM_PASSED, CONSOLE_KEYMAP_PASSED, Control 74 files. A second check build runs on the reviewed head, since
-the fixes changed `check-image.sh` and `image-checks.sh`. The two red tests still wait for `linux-tools`' `newest` in
+CHECK_BUILD_VM_PASSED, CONSOLE_KEYMAP_PASSED, Control 74 files. Check build 44215602914 on the reviewed head `b9452705` (run because the fixes
+changed `check-image.sh` and `image-checks.sh`) passed: ARESOS_COMMAND_FROM_CHECKOUT, IMAGE_CHECKS_PASSED,
+CHECK_BUILD_PASSED, CHECK_BUILD_VM_PASSED, CONSOLE_KEYMAP_PASSED. The two red tests still wait for `linux-tools`' `newest` in
 Control's RESERVED and for R28's Control rule (lead's note above).
