@@ -381,8 +381,12 @@ sites and synthetic profiles).
   links to them. Replacement loses extension-local storage. The cross-package profile contract is now in
   brief 28b item 1 and 18c-b's "CROSS-5 identity handoff": **owner decision pending**. The recommendation keeps
   one durable logical profile pin in the service, permits only an installation id in extension IndexedDB, and
-  requires the owner's explicit relink after each replacement (rollback included). It never automatically
-  trusts a new identity. Installation and profile continuity need separate evidence. On Linux, Chrome installs
+  requires the owner's explicit relink after each replacement (rollback included): check the Chrome profile
+  name in the helper and choose **Keep using this profile**, then enter his password in F7's system dialog.
+  No IDs or administrator command. 28b step 2 builds the candidate-specific UI/confirmation; 18c-b 3a already
+  installs the action, with its checker proof stopped for **3a fix**, and 4/4b plus 5/C7 prove the real dialog.
+  It never automatically trusts a new identity. Installation and profile continuity need separate evidence.
+  On Linux, Chrome installs
   an extension from outside its web store only by policy (17b *checked* the
   `ExtensionInstallForcelist` form; 18c-b proves this one on the shipped Chrome). Chrome starts our **native
   messaging host**, registered system-wide under `/etc/opt/chrome/native-messaging-hosts/`; the manifest and the
@@ -543,16 +547,38 @@ the front when he should look at it or sign in there.
   - **Incognito windows are never listed, read or taken.** The extension's manifest says `"incognito":
     "not_allowed"`. Incognito is his way of saying "not for the record".
   - **Other Chrome profiles** aren't listed. Claude sees one profile, and it is pinned: the service remembers the
-    first profile whose extension connected and refuses any other, also after a reconnect. Under the pending
+    first pair accepted at explicit setup and refuses any other, also after a reconnect. Under the pending
     CROSS-5 recommendation, the pin is a persistent logical service record with one accepted extension/install
     pair: an ordinary restart reconnects; image A → B → A keeps that pin but each replacement needs the owner's
-    `profile relink` confirmation from the chosen profile's details page. A different profile, a retired pair
-    or an unknown/corrupt record is refused, never auto-enrolled. A separate owner-only `profile switch`
-    deliberately changes profiles. The alternative, automatic continuity, needs its own reviewed persistent
+    **Keep using this profile** confirmation from the chosen profile's helper, with the same uncached polkit
+    password dialog as F7. Its question names the profile as Chrome names it: at setup the owner enters the
+    picker name in the helper, checks it before confirming a replacement and corrects it after a rename. The
+    existing handshake supplies no display name; this label lives only in the private service pin and local UI,
+    never acts as identity evidence and needs no additional extension storage or profile-file read. The helper
+    carries the IDs internally. No, cancel, timeout, a missing dialog or a stale/cached answer leaves the pin
+    unchanged and the candidate's tools refused, with no automatic reprompt on reconnect. The password binds
+    the pending peer/connection, exact pair, displayed name, committed pin revision and recovery generation;
+    none may change before commitment. Pending peers have only a bounded pairing channel, no normal owner-site
+    access or browser commands. A different profile, a retired pair
+    or an unknown/corrupt record is refused, never auto-enrolled. A separate owner-only **Use this profile
+    instead** button/password question deliberately changes profiles. This is the owner's authorization, not
+    technical proof against a copied profile. The alternative, automatic continuity, needs its own reviewed
+    persistent
     identity and rollback design; the owner has not chosen it or the recommendation yet. Brief 20 accepts
     whichever extension connects (read in its `bridge.py`), so without
     the pin a
     second profile could quietly take the first one's place. [`FEATURES.md`](../control/FEATURES.md) says so.
+    **Restores:** `store.chrome_state`'s committed Chrome evidence is the pin's sole authority; ordinary `get()`
+    and the disposable database never authorize it. During the restore lock, only the current committed pair
+    may connect in quarantine with `restore_required`; it gets no browser commands, owner settings or pairing
+    prompt. Retired/unmatched peers are refused; missing/unreadable/corrupt evidence fails closed. Confirmation
+    closes every admitted peer, including one admitted during the lock, and pending candidates/dialogs before
+    the app gate reopens; invalidate refs, lists and approvals and drop queued messages. A fresh handshake then
+    checks committed evidence in the new generation. Missing restored state never enables first-connect
+    enrollment. 28b step 2 builds the daemon/engine hooks; the existing store reconstructs Chrome rows but does
+    not retire the bridge. Its P → backup → switch Q → restore P database regression tries both sides of
+    confirmation and proves P never serves Q. Moving admission to ordinary `get()` or omitting recovery
+    closure/revalidation must each fail that same test, including Q's required fresh connection after recovery.
   - **Never readable:** the pages of "Where Claude may go" (the fixed list, his own never-list, anything that isn't a
     web page). They are listed with title and site and marked `no`, so Claude can say why it can't help there.
 - **Looking needs no take.** `chrome_read` works on every listed tab that isn't marked `no`. One of his tabs is read
@@ -1775,7 +1801,8 @@ itself instead of the first input (brief 28b).
       result, while opening the tab's address still opens the one the list showed; unchanged, each works with
       no further step;
     - one profile: a second profile's extension is refused, also after the first one disconnects, until the owner
-      command names it; then every token and reference from before is refused;
+      chooses **Use this profile instead** in that helper and answers its named-profile password question;
+      then every token and reference from before is refused;
     - the reason: a read, a take or a close of one of his tabs without `request` is refused; with it, the popup and
       `aresos log` show the tab, the time and the request, and the button shows **READ**;
     - taking: a tab that isn't known clean gives `reload_required` with the reason and hasn't moved: a changed
@@ -1827,7 +1854,9 @@ itself instead of the first input (brief 28b).
 including repaired-label collisions, then swap/reorder/refuse before values are read; group 15 tests both click
 and reference-open on Delete/Unsubscribe GET links with zero receiver requests before approval, and hostile loss
 labels only inside untrusted envelopes for bare/batched/stored results. Group 17 tests the same-profile A → B → A
-lifecycle and refused second profile under the owner-approved contract, further typing and canvas work while a
+lifecycle and refused second profile under the owner-approved contract, the P → Q → restored-P-database
+regression and its two independent lookup/recovery mutations, the named-profile password question and its
+no/cancel/timeout/stale-answer refusals, further typing and canvas work while a
 reload approval waits, missing freshness observation, and two unrelated forms with owner work outside the held
 submission. Board #138's delayed-owner cases remain in **taken tabs**, with one combined send/loss question and
 no preliminary reload. Both 28a/28b inherit Unicode fresh-side comparison and end-of-control reference cleanup

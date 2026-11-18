@@ -21,6 +21,8 @@ Each package leaves `main` working and is reviewed by itself. **None of the thre
 all three are merged:** this package still keeps brief 20's check before a taken tab's reload, which 28b replaces.
 Earlier owner decisions stand. BRIEF-CROSS-5 adds two owner questions for 28b and 18c-b; see
 `reviews/28-chrome-capability/REVISION-CROSS-5.md`. Neither is silently answered by this revision.
+Its Revision 2 assigns committed profile admission, restore connection retirement and the owner's no-ID
+password dialog to **28b step 2**. They add no tool or instruction work to 28a; its contracts and order stay here.
 
 **Building starts only after brief 28 is merged** (and with it PR #27). Branch from `main` after that merge. Paths
 and line numbers in this brief come from PR #27 at `8b7e799c`; read them again on merged `main`. PR #27 merged as

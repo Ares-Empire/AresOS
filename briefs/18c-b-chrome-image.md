@@ -151,9 +151,13 @@ storage prohibition and 28b's permanent pin of an IndexedDB id cannot both be bu
 nothing about which Chrome profile connected. The recommendation is **owner-confirmed continuity**, not a new
 permanent signing secret; 28b item 1 specifies the protocol and tests.
 
-**Question for the owner:** after an update or rollback replaces Chrome's helper, are you willing to confirm
-once that Claude is reconnecting to the profile you want? **Options:** confirm after each replacement
-(recommended), or make it automatic, which needs a separate persistent identity design and delays this part.
+**Question for the owner:** after an update or rollback replaces Chrome's helper, should the tools ask for your
+password once to keep using your chosen Chrome profile? Open the helper in that profile, check its name and
+choose **Keep using this profile**; the system password dialog names it. No IDs to type or administrator command.
+At first setup you enter the name Chrome shows in its profile picker; correct it in the helper if you rename it.
+**Options:** confirm with your password after each replacement (recommended), or make it automatic, which needs
+a separate persistent identity design and delays this part. No, cancel or timeout leaves the pin as it was and
+the replacement helper's tools refused. Normal restarts need no confirmation.
 **Why it matters:** Claude's tools pause until you confirm, but another Chrome profile can't silently take over.
 The recommendation preserves the install work already proven and avoids keeping a signing secret. A permanent
 extension key alone doesn't solve rollback: it must also prove which extension version Chrome runs.
@@ -162,11 +166,27 @@ extension key alone doesn't solve rollback: it must also prove which extension v
 Under the recommended choice, 28b stores only a random **installation id** in an extension-owned IndexedDB
 module `profile_identity.js` (no new manifest permission). A durable logical profile pin in the service keeps
 the currently owner-authorized `(extension id, installation id)` pair. The same pair reconnects; a new pair is
-refused until the owner relinks it to that pin through the admin command. Relinking revokes the previous pair;
+refused until the owner relinks it with the helper's **Keep using this profile** button and F7's system password
+dialog. The IDs are carried internally, not typed. Relinking revokes the previous pair;
 rollback to A also requires confirmation when its storage was replaced. The logical pin stays identical through
 A → B → A. A different profile is refused even when it is first to connect after replacement; deliberate
-profile switching is a separate owner command. This is explicit owner authorization, not an asserted automatic
+profile switching is a separate **Use this profile instead** button and password question. This is explicit
+owner authorization, not technical proof against copied profile state or an asserted automatic
 proof of profile continuity. Old refs, lists and approvals never survive a connection change.
+The pin's sole authority is committed Chrome evidence (`store.chrome_state`), never ordinary `get()` or the
+disposable database. Under the restore lock only that exact pair may connect in quarantine with `restore_required`;
+no browser command or pairing prompt runs. Before confirmation reopens the app gate, close every admitted
+connection and pending candidate/dialog; a fresh handshake must check committed evidence again. Missing restored
+state never enrolls. 28b item 1 and its restore regression define these rules; the image never resets the pin.
+
+**Dialog dependency, not an installed feature yet:** 3a already installs the existing `chrome-loosen` polkit
+action with uncached `auth_admin`, its service-owner annotation and no permission change. F7 already supplies
+the peer-bound password check, but only for an admitted host's site settings. **28b step 2** builds the restricted
+pending-candidate channel, helper buttons, committed pin/recovery integration and candidate-bound confirmation.
+It also builds the local name entry/check: the existing handshake has no Chrome display name, so the owner
+supplies Chrome's picker name at setup and corrects renames; only the service pin keeps that label. It is display
+text, never identity proof. No extra extension storage, profile-file read or signing key is added. The real
+session polkit probe in 4/4b and C7 in 5 remain required; a failure stops for the lead, with no CLI fallback.
 
 **Storage pin amendment (`control/chrome_tests/test_extension_stores_nothing.py`), only with that choice:** keep
 rejecting `chrome.storage`, `localStorage`,
@@ -179,21 +199,30 @@ This replaces the blanket IndexedDB ban, not the test itself;
 the owner must approve the exception before it lands. No attempt to preserve the old extension's storage is
 made. Until 28b is integrated, the blanket test still passes and stays in force.
 
-**Remaining steps of PR #76 (1a–2b already built; 3a next after PR #58):**
+**Remaining steps of PR #76 (head `91ad33d6`: 1a–2b and 3a built; next is 3a fix):**
 
-- **3a:** install the current bundle as planned, with no permanent key or new profile file. Record this pending
-  owner decision and the pin integration dependency in `PROGRESS.md`; don't repeat 1a–2b or treat their
+- **3a fix:** 3a stopped incomplete after its **two allowed image-build rounds**; its image proof is not green.
+  The remaining defect is the PEM scan assuming `<scan-root>/root` resolves to a directory. In the image,
+  `root` links to `var/roothome`, whose directory is made at boot. The lead supplies that layout fact; the
+  progress log itself proved only the unresolved path. Fix the checker for that image layout without skipping
+  real read failures or following links outside the image view. **The lead decides before any further image
+  run or 3b**; no third run is authorized by this revised brief. Keep the stop recorded in `PROGRESS.md`.
+  Keep the installed bundle, no permanent key or new profile file, and record the pending owner decision and
+  pin integration dependency; don't repeat completed installation work or treat its
   connection-only proof as a profile proof. If the owner-approved 28b module is present by then, update the
   storage test narrowly in the integrating PR and rerun the packer/install tests; otherwise retain the ban.
-- **3b:** `gh` work is unchanged. It supplies no profile identity and never resets a pin.
+- **3b:** after the lead's disposition of 3a fix, `gh` work is unchanged. It supplies no profile identity and never resets a pin.
 - **4/4b:** keep C3/C6's first-use tests. When pinning is present, seed one synthetic logical pin via the real
   supported setup and inspect only test identifiers; do not bypass the gate to make C3 green. No laptop profile.
 - **5:** extend case 3/C4 with 28b's real handshake/store once available: same profile A → B → A, pin unchanged,
-  each replacement refused before owner relink and accepted after; second profile refused on A and B, also
+  each replacement refused before owner relink and accepted after the no-ID helper/password flow; second profile refused on A and B, also
   connecting first, and retired pairs refused. Ordinary restart needs no relink. Keep the existing assertions
   about old extension removal, current origin, code version and probe refusal. If 28b is not merged yet, keep
   the combined container case 3 as an explicit integration dependency for **28b**; `linux-tools` assigns C4
-  to the image/release build when pinning lands. Both are required before shipping. Do not claim
+  to the image/release build when pinning lands. Add the same profile-named confirmation to C7: correct pending
+  peer, no/cancel/timeout unchanged, stale candidate/restore success refused, and a fresh password each time.
+  If 28b lands later, its PR owns the combined container proof and `linux-tools` assigns both C4 and C7's
+  profile additions to the image/release builder. All are required before shipping. Do not claim
   end-to-end pin continuity from the existing stand-in service.
 - **6:** report installation separately from profile continuity, carry the owner-approved reconnection step
   into the guide, and pass the release rehearsal dependency to `linux-aresos` through the lead. No release
@@ -205,7 +234,11 @@ despite the earlier new-files-only scope. Runtime pin/handshake changes belong t
 **Tests and reviewer mutations:** case 3/C4 must fail if a replacement hello automatically replaces the accepted
 pair (the second-profile case), if relinking changes the logical pin (A → B → A), or if old pairs remain accepted
 (retired-pair case). The storage test must fail when an ordinary extension file opens IndexedDB or the identity
-module stores a page field. Keep the existing packer mutation/negative checks too. Record actual commands and
+module stores a page field. Carry 28b's restore test/mutations into the combined evidence: P → backup → switch Q
+→ restore P database, attempts before/after confirmation, P never serving Q; ordinary-`get()` admission and
+omitted recovery closure/revalidation must each fail it. C7's profile cases must fail if a non-yes or stale/cached
+password result authorizes the candidate, or the dialog substitutes an ID for the checked Chrome name.
+Keep the existing packer mutation/negative checks too. Record actual commands and
 results; this revision runs no image, browser or workflow.
 
 ## The work
@@ -711,17 +744,18 @@ Watch with `gh run watch <id> --exit-status --interval 300`.
 
 ## Steps (one fresh agent each, about 250k tokens; PROGRESS.md after each)
 
-Follow "CROSS-5 identity handoff" for the additions to remaining steps 3a–6; 1a–2b are already built.
+Follow "CROSS-5 identity handoff" for the additions to remaining steps **3a fix**, 3b, 4/4b, 5 and 6.
+At `91ad33d6`, 1a–2b and 3a are built; 3a is stopped after its two image-build rounds, with its proof not green.
 
 - **1a. Packer, templates, pins** (item 1: `pack.py` and its tests, the templates, the storage pin, the
   excluded-sites path, message, tmpfiles file and their test, the README). Starts at once.
 - **1b. `record_build.py`** (item 4, its tests, the records workflow, the one recorded run). After 1a.
 - **2. Install proof in the container** (item 2). After 1a; one builder on the branch at a time.
-- **3a. Image install, Chrome's files** (item 3 without `gh`: the install map, the bundle, the tmpfiles file, the
-  links, the polkit action, their image checks, `check-image.sh`, `os/tests`; `checks_only` green, then
-  `check_build=build` green once, so what 3a wrote runs under its own builder). Needs PR #58 on `main`, the lead's
-  go (it has told `linux-aresos` the changes after review 1) and the owner's answer in words to the lead's
-  question 5.
+- **3a fix. Finish the built Chrome image installation's checker proof** (item 3 without `gh`). The install
+  map, bundle, tmpfiles file, links, polkit action and checks already exist at `91ad33d6`. The PEM traversal
+  wrongly requires `<scan-root>/root` to resolve; the image's root-home link targets `var/roothome`, made at boot.
+  Preserve the stopped status after two image-build rounds. The lead decides the checker fix's disposition
+  **before any further image run or 3b**; do not repeat 3a installation or infer a fresh run allowance.
 - **3b. `gh`** (item 3's `gh` part: lock, key, licence, the step, the resolve line, their checks and `os/tests`),
   then `check_build=build` green once more. Its own stop conditions are `gh`'s line under "Stop and report".
 - **4. VM, first half:** the polkit probe first; the second pass and its layer; C1, C2, C6's first use with its
@@ -773,6 +807,8 @@ where what was built differs from the install text the lead wrote there (PR #48)
 - The image needs anything outside "Agree": a package, a repository, an enabled unit, a listener, a sudo or polkit
   rule, a workflow permission or secret, a base change.
 - PR #58 isn't on `main`, or the lead hasn't given the go, when step 3a would start.
+- 3a's two image-build rounds are exhausted at `91ad33d6`. Its PEM scan fix is next; any further image run or
+  3b requires the lead's disposition. This revision does not reset that stop or the run budget.
 - A pinned download that has nothing to do with this branch has vanished: one line for `linux-aresos`, go on with
   what doesn't need the build.
 

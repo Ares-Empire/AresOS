@@ -75,14 +75,18 @@ The recommendations below are concrete build contracts, conditional on his choic
 owner acceptance. Unrelated steps may proceed. Until answered, keep mismatched profiles disconnected and held
 submissions with possible loss stopped; don't ship a temporary bypass.
 
-1. **After an image update replaces Chrome's helper, should you confirm once that Claude is reconnecting to
-   the same Chrome profile?** This keeps Claude away from another profile, but the Chrome tools wait for you
-   after an update or a rollback. Options: **confirm the profile after each replacement** (recommended; item 1's
-   lifecycle), or **make reconnection automatic**, which needs a separately reviewed persistent identity design
+1. **After an update or rollback replaces Chrome's helper, should the tools ask for your password once to keep
+   using your chosen Chrome profile?** Open the helper in that profile, check its name and choose **Keep using
+   this profile**; the system password dialog names it. You never type an ID or run an administrator command.
+   At first setup you enter the name Chrome shows in its profile picker; correct it here if you rename it.
+   No, cancel or timeout leaves the old pin unchanged and this helper's tools refused. Options: **confirm with
+   your password after each replacement** (recommended; item 1's lifecycle), or **make reconnection automatic**,
+   which needs a separately reviewed persistent identity design
    and delays this part of the build. A permanent signing key alone isn't that design: it also has to prove
    that rollback runs the old image's extension code, not a newer copy kept in the profile. Recommend the
    explicit confirmation because it preserves 18c-b's tested image replacement and needs no permanent signing
-   secret. Changing later costs the identity protocol, storage/migration and install/update tests.
+   secret. Your answer authorizes this helper; it is not technical proof against a copied profile. Normal
+   restarts need no confirmation. Changing later costs the identity protocol, storage/migration and install/update tests.
 2. **When a delayed form send is held, should one question let you send it and discard other work on that page?**
    A page can hold another draft beside that form. Options: **one question showing the send and naming the
    possible loss** (recommended; item 4c), or **always stop when other work may be lost**, so you finish it or
@@ -184,31 +188,76 @@ operation-status serialization. Mutation: flatten a loss label into `message`; t
   image and removes the old storage. Never accept a changed id just because the image changed.
   The recommended lifecycle, built only after the owner chooses it:
   1. The extension's new `profile_identity.js` module creates one random installation id (at least 128 random
-     bits) in its IndexedDB, once, before hello, and sends it with its extension id. The details page shows that
-     pair locally, even while the service
-     refuses connection. No page data, account, path or browser profile name is needed. Repeated worker starts
+     bits) in its IndexedDB, once, before hello, and sends it with its extension id. The details page carries that
+     pair internally, even while the service refuses application access; the owner never types it. No page
+     data, account, path or browser profile name is stored in the extension. Repeated worker starts
      use that same id; missing/corrupt storage yields an unapproved new candidate, never a matching id invented
      from the service's pin. This is 18c-b's **sole storage exception**, adopted together with its test amendment.
   2. At first setup the service creates a durable logical profile pin and records the first accepted pair under
      it. After that only that exact current pair connects automatically. The logical pin lives in the service's
      existing persistent store across service restarts and image A → B → A; it is not replaced when the
-     extension is. An unmatched hello gets no browser commands and no access to tabs; it cannot displace a live
-     accepted connection. It may be recorded only as a bounded pending candidate for owner pairing.
-  3. After replacement, including rollback to A, the owner opens the helper's details **in the profile he wants**
-     and uses `sudo aresos admin chrome profile relink <extension-id> <installation-id>` to associate that
-     currently pending pair with the existing logical pin. This is an explicit owner assertion of continuity,
-     not an automatic browser proof. The command requires the exact current candidate, refuses an absent/stale
-     candidate, atomically replaces the accepted pair and revokes the old one. Never retain an allow-list of
-     every past installation. Reusing A's package need not restore A's old storage; its new candidate is
-     confirmed the same way. Until then tools answer `chrome_unavailable` with fixed owner-setup advice.
-  4. A deliberate switch to **another** profile uses the separate owner command `profile switch` with the same
-     pair arguments; it replaces the logical pin and revokes the old pair. Neither command is available on the
-     ordinary tool socket or through page text. A mismatched extension can't select or inherit the pin itself.
+     extension is. **Only committed Chrome evidence, `store.chrome_state`, authorizes the pin**, including its
+     enrolled status and current pair. Write a versioned `chrome:` record through the store; ordinary `get()`,
+     SQLite and caches of those reads never decide admission, relink, switch or recovery. An unmatched hello
+     gets no browser commands or access to tabs and cannot displace an accepted connection. A bounded pending
+     channel may carry only pairing UI messages, never normal owner-site events, reads or actions.
+  3. After replacement, including rollback to A, the helper shows **Keep using this profile** in its local
+     details in the profile the owner chooses. The button carries the pending pair automatically. It starts
+     the existing F7 polkit password flow with the plain change text **Keep using Chrome profile “[profile name]” with
+     Claude after replacing its helper?** The dialog uses the same installed `chrome-loosen` action, its
+     uncached `auth_admin` challenge and the pending native peer's PID/UID/start time. The owner types only his
+     password. No, cancel, timeout, missing agent or cached authorization changes nothing: the pin stays and
+     this candidate's tools remain refused. No automatic prompt loop on reconnect; another attempt requires
+     his button again. Keep F7's one-password-question-at-a-time rule. A pending candidate never wins by
+     connecting first or by claiming the old name.
+     Bind the question to its connection, exact pair, displayed name, committed pin revision and recovery
+     generation; recheck all of them after the password, before the atomic committed write. A changed or
+     disconnected candidate, changed pin, restore or stale/replayed answer refuses. Success retains the logical
+     pin, replaces its one accepted pair and revokes the old one. Never retain an allow-list of past pairs.
+     Reusing A's package need not restore A's storage; its new candidate is confirmed the same way. Until then
+     tools answer `chrome_unavailable` with fixed advice to open the helper in the chosen profile.
+  4. A deliberate switch to **another** profile uses a separate **Use this profile instead** button and password
+     question in that profile's helper. It replaces the logical pin and revokes the old pair; it also carries
+     the IDs automatically. Neither pairing operation is callable on the ordinary tool socket or by page
+     text, and no unapproved connection gains the existing owner-settings channel. The helper UI is outside
+     the tool's readable/controllable pages. This is owner authorization of continuity, not technical proof
+     that a candidate comes from the old profile.
   5. Any relink/switch closes the old connection and invalidates references, `seen` lists and prepared operations;
      none is migrated to the new connection. Store a versioned record that both A and B of the supported rollback
      pair can read; unknown/corrupt records fail closed, never reset to first-connect enrollment. Pairing reads
      only the candidate handshake, not that profile's pages. The existing same-user native-host impersonation
      limit stays; this does not claim protection against a process that can copy the profile's local state.
+
+  **Profile name and what must be built (step 2).** The existing hello and F7 flow carry no Chrome display name.
+  Do not invent one from an installation id, account or folder, or silently read profile files. At first setup
+  the owner enters the name Chrome shows in its profile picker in the helper's local details. Store that label
+  with the committed service pin, not in extension storage; show it for him to check against Chrome before
+  **Keep using this profile**, and let him correct a renamed profile there before the password question. This
+  is an owner-supplied display label, never admission evidence; equal names do not link profiles. It goes only
+  to the local pairing UI/dialog and private pin record, not tool results or public evidence. Repair Unicode
+  and safely quote it; if it cannot be displayed faithfully within the dialog bound, refuse instead of silently
+  shortening to another name. Tests use synthetic names, including duplicates and a rename.
+  28b step 2 builds this UI, the restricted candidate channel and pending-peer polkit lifecycle by reusing
+  `chrome/confirm.py`; today's `owner_sites` is bound to the already admitted bridge and cannot simply be
+  exposed to candidates. No new action, permission, profile-file reader or signing secret is needed. 18c-b 3a
+  already installs the action; its 4/4b probe and step 5 C7 must prove a real dialog for the session's launch
+  context. If that probe fails, stop for the lead: no silent CLI fallback or new promise of automatic naming.
+
+  **Restore contract (also step 2).** During the restore lock, a valid hello matching the current committed
+  pair may remain connected only in quarantine: its reply says `restore_required`, and it receives no browser
+  commands, owner-setting access or pairing prompt. A retired/unmatched pair is refused with `permission_denied`;
+  unavailable, missing, unknown or corrupt committed pin evidence refuses with `owner_state_unavailable`.
+  None displaces a quarantined current peer. Freeze enrollment, relink and switch throughout recovery.
+  On owner restore confirmation, close **every admitted browser connection**, including a current peer admitted
+  during the lock, and all pending candidates/dialogs before the application gate reopens. Invalidate refs,
+  `seen` lists and prepared operations; drop queued messages. Reconstructed SQLite rows do not validate a cached
+  connection. A fresh handshake must read `chrome_state` again in the new generation. The close is this brief's
+  chosen way to meet the close-or-revalidate requirement; do it before `confirm_restore()` releases its lock,
+  with admission serialized against recovery. On failure keep access refused, never reopen around a failed
+  close. A crash/restart also starts with no admitted connection. Missing restored state never means first
+  connect: only explicit first setup on a demonstrably new, unlocked store can enroll; absent/corrupt evidence
+  after initialization or recovery requires owner repair and stays refused, even when SQLite has no pin row.
+  `daemon.py` admits native peers outside `engine.py`'s app gate today; step 2 must connect both lifecycles.
 
   **Why this recommendation:** it retains the tested per-image signing/rollback design without pretending an
   extension replacement proves which profile it came from. It costs an owner step, which is why it needs his
@@ -959,8 +1008,9 @@ Do not roll the entire package into one step. Owner choices hold only their depe
 
 1. Verify inherited package 28/28a contracts, generated sizes and the instruction headroom (items 0/8). Add
    browser-free failing cases for this brief's new contracts. Keep all existing tool paths usable.
-2. After owner question 1 is answered, build item 1's pin record, handshake, local details and admin lifecycle,
-   then its unit/Node tests. Coordinate 18c-b's storage test and A → B → A proof through `linux-tools`.
+2. After owner question 1 is answered, build item 1's committed pin, restore/connection lifecycle, local profile
+   name/details and pending-peer F7 password confirmation, then its unit/Node tests. Coordinate 18c-b's storage
+   test, real-dialog C7 and A → B → A proof through `linux-tools`.
 3. Build in-place reads, `seen`/`request`, distinct field descriptions and visibility (items 2, 3, 6), with group
    17 read/password cases. These do not depend on the loss-policy choice.
 4. Build non-value freshness evidence first (4d), then the stricter checks and asking reload (4/4a), then the
@@ -997,7 +1047,8 @@ All browser evidence stays on CI; a unit double alone is not an update/rollback 
   drop-and-paste record of item 4a, if the measurement there requires it (isolated world, two passive listeners,
   one flag, no content read).
 - **No new DevTools method.**
-- The qualification record's format, the service unit, Mail, the base, `os/`.
+- The qualification record's format, the service unit, Mail, the base and `os/`, except the narrow Chrome
+  admission/restore-confirmation hooks in `daemon.py`/`engine.py` allowed under Paths. Store semantics stay intact.
 
 ## Tests
 
@@ -1032,9 +1083,10 @@ owner with real keys and clicks (`owner-ui.mjs`). Every new rule gets a test tha
   the private page's marker is in no result, and his tab records nothing. With the tab unchanged every call works
   with no further step. For a tab asleep the address binds: he wakes it and navigates it, and the read is
   refused.
-- **One profile:** two profiles run with the extension. The first to connect is pinned; the second is refused,
-  also after the first one's windows close; none of its tabs is ever listed. After the owner command names the
-  second profile it connects, and every `seen` and reference from before is refused. If two profiles can't run in
+- **One profile:** two profiles run with the extension. Explicit first setup pins the first accepted pair; the
+  second is refused, also after the first one's windows close; none of its tabs is ever listed. After the owner
+  uses **Use this profile instead** and its password dialog in the second profile it connects, and every `seen`
+  and reference from before is refused. If two profiles can't run in
   the container, say so (PLAN-GAP) and prove the rule with a second connection that presents another installation pair.
   **Update lifecycle:** image A → B → A in the same synthetic profile keeps one logical service pin. Each
   replacement is refused before the explicit owner relink, accepted after it, and accepted on later ordinary
@@ -1044,6 +1096,36 @@ owner with real keys and clicks (`owner-ui.mjs`). Every new rule gets a test tha
   exception against 18c-b's real packaging test. **Mutations:** auto-accept an unmatched hello (second-profile
   case fails); replace the logical pin on relink (A → B → A pin assertion fails); retain old accepted pairs
   (retired-pair case fails); remove the storage allow-list boundary (forbidden-storage case fails).
+- **Restore pin regression (real Store plus daemon/bridge, without a browser):** pin P, back up the working
+  database, then explicitly switch to Q so committed evidence revokes P. Restore the P database while keeping
+  the evidence. Assert `store.get(pin)` is P but `store.chrome_state.get(pin)` is Q. Try P and Q before owner
+  confirmation: P is refused, Q gets only the quarantined `restore_required` handshake and neither receives a
+  browser command. Try an unmatched helper too: no pairing dialog or enrollment. Confirm restore through the
+  real engine entry. Assert Q's pre-confirmation connection is closed before an app call can proceed, pending
+  dialogs and queued wire messages are dropped, and old refs/lists/approvals are invalid. An app request without a fresh hello is
+  refused; try P again (refused), then Q with a new hello (accepted). Only Q's fixture receives the next request;
+  P never serves Q's requests. Repeat with a backup from before the pin existed, with missing/corrupt committed
+  evidence, and with confirmation interrupted before its final marker: none can enroll from absence or reopen
+  access. The same regression must kill each restore mutation below **independently**; checking just the final
+  pin row or an empty receiver is insufficient to catch a cached connection surviving confirmation.
+- **Profile confirmation (F7, plus case 3/C4 and C7):** exercise the helper's actual buttons with synthetic
+  Chrome profile names, including two equal names and an owner-corrected rename. No ID is typed. Inspect the
+  question's full name and operation, the candidate peer's PID/UID/start time, and no write before success.
+  No, cancel, timeout, absent agent and cached authorization keep the committed pin unchanged and candidate
+  tools refused. Reconnect does not raise repeated prompts. Disconnect, replacement of the candidate, a changed
+  displayed name, another pin change or restore while the question waits invalidates even a later success. A second profile connecting
+  first never takes over or inherits a password answer. Normal restart needs no dialog. Use a polkit stub for
+  these unit cases; a real agent in C7 must show the same text and cancellation, ask afresh next time and accept
+  only the bound replacement. A stub alone is not evidence of a usable desktop dialog.
+
+| Profile rule | Regression | Reviewer mutation caught by that regression |
+|---|---|---|
+| Committed pin is the only authority | P → backup → switch Q → restore P database, before and after confirmation | Move the admission lookup from `chrome_state.get()` to ordinary `get()`/disposable SQLite: P's locked-handshake refusal fails. |
+| Recovery retires every admitted connection before reopening | Same restore regression: quarantined Q is closed; the next app call requires a fresh Q handshake | Omit recovery connection closure/revalidation: the pre-confirmation Q connection survives or serves the call, so the test fails even with the correct committed lookup. |
+| Absence is never restored enrollment | Same regression with pre-pin backup, missing/corrupt evidence and interrupted confirmation | Treat a missing restored record as first connect: absence/refusal assertion fails. |
+| Owner authorizes exactly one candidate | Profile-confirmation cases and real C7 | Accept no/cancel/timeout or a cached success; omit candidate/name/pin/generation binding in turn: unchanged-pin or stale-success refusal fails. |
+| Name is for the owner, never proof | Duplicate-name/rename question and second-profile-first cases | Admit by matching name, or render an id/generic label instead: refusal or exact question-text assertion fails. |
+
 - **Never readable:** a tab of the fixed list, of his never-list, a `chrome://` page and a page with a fixed-list
   frame (the frame left out) are handled as section 6 says.
 - **The reason:** a read, a take and a close of one of his tabs without `request` are refused. With it, the popup
@@ -1256,19 +1338,25 @@ a passive mode, and item 4's used record for his clicks, keys, drops and pastes,
 passive observation/reporting of each edit generation and sticky use under item 4d, and, where
 item 4a's record isn't built, passive drop/paste listeners), `manifest.json` (the
 one entry above), `popup.html`, `popup.js`, `details.html` and
-`details.js` (the installation pair), new `profile_identity.js` (item 1's sole storage module); `control/aresos_control/chrome/adapter.py`, `definitions.py`, the view module and
-`bridge.py` (the identity handshake and preserved loss data), a new Chrome-local profile helper if needed, using the existing store API for the versioned pin; `control/aresos_control/definitions.py` (only the Chrome branch of `instructions_for`, as
-in brief 28a); `control/aresos_control/cli.py` (the owner-only `admin chrome profile relink/switch` commands); the generated
-files; `control/chrome_tests/`, `control/chrome/ci/`; `.github/workflows/control-chrome.yml` (not the
+`details.js` (the profile-name and pairing UI), new `profile_identity.js` (item 1's sole storage module);
+`control/aresos_control/chrome/adapter.py`, `definitions.py`, the view module, `confirm.py` (reuse F7 for the
+pending peer without weakening its checks) and `bridge.py` (the identity handshake and preserved loss data),
+a new Chrome-local profile helper if needed, using the existing store's committed Chrome view and write API
+for the versioned pin; `control/aresos_control/daemon.py` and `engine.py` **only** to quarantine/admit Chrome
+peers, poll/cancel their bound confirmation and close them before restore confirmation reopens the app gate;
+`control/aresos_control/definitions.py` (only the Chrome branch of `instructions_for`, as in brief 28a); the generated
+files; `control/chrome_tests/`, `control/chrome/ci/`; `.github/workflows/control-chrome.yml` and the existing
+`control-chrome-polkit.yml` (only the new profile-dialog tests, no policy/permission change; not the
 qualification workflow); `docs/control/TOOLS.md`, `docs/control/FEATURES.md`, `control/README.md`;
 `reviews/28b-chrome-his-tabs/`.
 If this package integrates the pin after 18c-b, it may also amend that package's storage test and container
 install proof under the already allowed `control/` test paths. The combined container case 3 is required here;
-C4's VM/release proof is coordinated through `linux-tools` with the image build, not implemented by silently
+C4/C7's VM/release proof is coordinated through `linux-tools` with the image build, not implemented by silently
 expanding this package's `os/` scope.
 
 **Must not touch:** `page.js`, `policy.js`, `policy.py`, `context.js`, `sites.py`, `qualification.py`, `qualify.py`,
-`committed.py`, `uploads.py`; and everything brief 28a lists outside the Chrome code (`os/`, `mod/`, `docs/design/`,
+`committed.py`, `uploads.py`, `storage.py`, the polkit action's defaults and owner annotation; and everything
+brief 28a lists outside the Chrome code except the explicit daemon/engine hooks above (`os/`, `mod/`, `docs/design/`,
 `docs/control/PLAN.md`, `STATE.md`, `HANDOFF.md`, `briefs/`, Mail, the boundary, the packaging, other packages'
 `reviews/`).
 
