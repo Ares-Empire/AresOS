@@ -22,5 +22,11 @@
     "merge_commit": "2cf920a8c064b32ccbc033081bfd9efb95683363",
     "mod_helper_labwc_unchanged": true,
     "verification": "git diff 58d2ae1b origin/main -- mod os/config/usr/libexec/aresos-shell os/config/usr/share/aresos/labwc/rc.xml produced no changes"
+  },
+  "final_hosted_refresh": {
+    "merged_main": "774d79540ba0909acb5959c2d8ca585136d4989f",
+    "merge_commit": "d1467cedc7709771f77ec0f1a8fa9eb289e8c24e",
+    "mod_helper_labwc_unchanged": true,
+    "changes": "Handoff notes only; git diff 918fba67 origin/main -- mod os/config/usr/libexec/aresos-shell os/config/usr/share/aresos/labwc/rc.xml was empty."
   }
 }
