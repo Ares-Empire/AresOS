@@ -76,3 +76,7 @@ Board brief 306, board #335. This is a handoff from `linux-hub` (2026-11-17) to 
 - **Package 25** (the supervisor's recovery fixes) came over to this session as second work. It rides R29 at the
   earliest and gets a Fable review (or Astra while Codex lasts), because it guards the world through save and
   shutdown. Its notes are in STATE.md ("P2's remaining packages", package 48's leftovers, 23b's late SIGTERM).
+- **Known hang in the client suite** (`linux-hub`, 14:25): `NetherHomeClientGameTest.testMountedRejoin` can
+  deadlock while closing (render thread in `IntegratedServer.halt`/`executeBlocking`, server at a Fabric test
+  barrier). PR #108 (package 54, commit 345ba61d) carries a test-only fix. Until it merges, 53b's and 53d's briefs say
+  that a full suite hung in that test is this bug, not theirs.
