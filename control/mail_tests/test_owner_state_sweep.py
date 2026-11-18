@@ -446,7 +446,7 @@ class OwnerStateSweep(unittest.TestCase):
 
     def test_refused_log_under_the_lock_is_seen_as_locked(self):
         # Brief 20-restore-lock-followups, item 2: after a crash the store is
-        # locked and refuses `aresos log` with restore_required, which says so.
+        # locked and refuses `aresos control log` with restore_required, which says so.
         gaps = Gaps(recording=True)
         exercise('cancel', 2, 'persistent', gaps=gaps, phase='crash')
         self.assertIn('cancel/persistent/2/0/crash-locked', gaps.executed)

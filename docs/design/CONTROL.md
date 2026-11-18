@@ -236,7 +236,7 @@ two actions.
    directly or through his sessions, agents and the briefs they hand Claude; a message from another of his Claude
    sessions or agents is a teammate's request, never his approval. The managed `CLAUDE.md` says so (section 7); it states the
    policy and enforces nothing.
-9. **Everything that changes something is logged.** Time, action, input summary, outcome. `aresos log` shows the
+9. **Everything that changes something is logged.** Time, action, input summary, outcome. `aresos control log` shows the
    owner what Claude did today.
 10. **Nothing waiting is forgotten, and nothing waits forever.** Anything prepared or unfinished (a Chrome
     operation waiting for approval, a `partial` mail) shows up in every following result of that app. A managed
@@ -631,7 +631,7 @@ the front when he should look at it or sign in there.
     where he can see it.
   - *He sees it, afterwards.* The tab's toolbar button shows **READ** after Claude looked at it, until the tab loads
     another page. The button's popup lists each of his tabs that Claude looked at, copied, took or closed in this Chrome
-    session, with the time and the request. `aresos log` records the same (rule 4.9 covers these reads although they
+    session, with the time and the request. `aresos control log` records the same (rule 4.9 covers these reads although they
     change nothing). The tool result names the tab, so Claude tells him.
 - **Acting takes the tab.** Before its first input in one of his tabs Claude calls `chrome_take`. He sees a
   **Claude** group label appear around the tab, where it stands, and its button show **ON**. The tab isn't moved:
@@ -1847,7 +1847,7 @@ itself instead of the first input (brief 28b).
       selects **Use this profile instead** in local details and answers its bound in-session permission question;
       selection/prepare alone changes nothing; after yes every old token and reference is refused;
     - the reason: a read, a take or a close of one of his tabs without `request` is refused; with it, the popup and
-      `aresos log` show the tab, the time and the request, and the button shows **READ**;
+      `aresos control log` show the tab, the time and the request, and the button shows **READ**;
     - taking: a tab that isn't known clean gives `reload_required` with the reason and hasn't moved: a changed
       field, typing on a page that copies it into the field's default, an editor, a chosen file, a canvas he
       used, a wizard whose finished step lives only in its script's memory, any other page he clicked or typed
@@ -2073,7 +2073,7 @@ improvement if he asks for it.
 | 10. Graphical tools on the wrong session | Chrome bridge and session wiring checked in the image qualification |
 | 11. CI success isn't AresOS integration | evidence kept separate: container, VM, laptop (section 8) |
 | 12. Provider and dependency assumptions | capabilities checked at run time; pinned versions; the real account only after the first boot |
-| 13. Works but unusable | the tool-user rounds; the terminal command works without Claude or network for local things (`aresos log`) |
+| 13. Works but unusable | the tool-user rounds; the terminal command works without Claude or network for local things (`aresos control log`) |
 
 ## 10. Open questions
 
