@@ -20,6 +20,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.EnumMap;
@@ -34,6 +35,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.WeakHashMap;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -87,6 +89,8 @@ public final class TownKeeper {
     private static final int ROUNDS = 3;
     private static final AtomicBoolean ASKED = new AtomicBoolean();
     private static volatile boolean complete;
+    // HomeSwitch marks its staging folder before its server starts, and releases it after that server closes.
+    private static final Set<Path> PREPARING_HOMES = ConcurrentHashMap.newKeySet();
     // Server thread only, like the servers themselves.
     private static final Map<MinecraftServer, TownKeeper> KEEPERS = new WeakHashMap<>();
 
@@ -113,6 +117,7 @@ public final class TownKeeper {
     private CompletableFuture<Map<String, Read>> reading;
     private boolean stale, due, pending;
     private long retryAt;
+    private final TownLines.FirstBuild firstBuild = new TownLines.FirstBuild();
 
     public static void register() {
         ServerTickEvents.END_SERVER_TICK.register(TownKeeper::tick);
@@ -206,7 +211,21 @@ public final class TownKeeper {
 
     static boolean wanted(AppDefinition app) { return app.mine() && !app.absent(); }
 
+    /** A New home's hidden staging world provisions the hub only; the town starts when the actual home opens. */
+    public static void preparingHome(Path directory, boolean preparing) {
+        if (directory == null) return;
+        Path path = directory.toAbsolutePath().normalize();
+        if (preparing) PREPARING_HOMES.add(path);
+        else PREPARING_HOMES.remove(path);
+    }
+
+    private static boolean preparingHome(MinecraftServer server) {
+        return PREPARING_HOMES.contains(server.getWorldPath(net.minecraft.world.level.storage.LevelResource.ROOT).toAbsolutePath().normalize());
+    }
+
     private void step(MinecraftServer server) {
+        if (preparingHome(server)) return;
+        if (host(server).isPresent()) say(server, firstBuild.expire(server.getTickCount()));
         if (ASKED.getAndSet(false)) stale = true;
         if (reading != null) {
             if (!reading.isDone()) return;
@@ -258,15 +277,20 @@ public final class TownKeeper {
 
     /** Says a pass's lines to the host and schedules what it left: a retry, pictures to read. */
     Pass tell(MinecraftServer server, Pass pass) {
-        var host = host(server);
-        for (var line : pass.lines()) {
-            AresOs.LOGGER.info("Town: {}", line);
-            host.ifPresent(player -> player.sendSystemMessage(Component.literal(line)));
-        }
+        say(server, pass.lines());
         pending = pass.pending();
         retryAt = server.getTickCount() + RETRY_TICKS;
         if (!pass.pictures().isEmpty()) read(server, AresOs.apps().stream().filter(app -> pass.pictures().contains(app.id())).toList());
         return pass;
+    }
+
+    private static void say(MinecraftServer server, List<String> lines) {
+        if (lines.isEmpty()) return;
+        var host = host(server);
+        for (var line : lines) {
+            AresOs.LOGGER.info("Town: {}", line);
+            host.ifPresent(player -> player.sendSystemMessage(Component.literal(line)));
+        }
     }
 
     private static Optional<ServerPlayer> host(MinecraftServer server) {
@@ -367,7 +391,7 @@ public final class TownKeeper {
 
     private Pass keep(MinecraftServer server, Programs programs, Function<AppDefinition, Optional<GatePicture>> pictures, Spots spots,
                       boolean rebuilt, Scope scope) {
-        if (!programs.complete()) return Pass.NOTHING;
+        if (!programs.complete() || preparingHome(server)) return Pass.NOTHING;
         var hub = HubData.get(server);
         // A town file that does not fit this world (point 3), or a frozen town (review fixes 2, point 1): the town
         // builds, takes down, renews and paves nothing, and puts no zone back.
@@ -405,7 +429,15 @@ public final class TownKeeper {
         doorways(server, hub, lines, scope);
         // 5. Roads and names.
         boolean roads = scope.whole() ? roads(level, hub, round.assignment()) : roads(level, hub, scope, from);
-        return new Pass(lines.said(first, rebuilt, round.waiting()), round.pending() || !roads, need);
+        var wanted = apps.values().stream().filter(TownKeeper::wanted).map(AppDefinition::id).collect(Collectors.toSet());
+        var spoken = new ArrayList<String>();
+        if (scope.whole()) spoken.addAll(firstBuild.said(lines, first, rebuilt, round.waiting(),
+                round.pending() || !need.isEmpty(), server.getTickCount(), wanted));
+        else {
+            spoken.addAll(firstBuild.finish());
+            spoken.addAll(lines.said(first, rebuilt, round.waiting()));
+        }
+        return new Pass(spoken, round.pending() || !roads, need);
     }
 
     /** What one round of a pass left: who stands where, work that waits, pictures it lacked, rebuilt logos that wait. */

@@ -499,10 +499,10 @@ public final class TownGameTests {
         HubData.store(server, hub);
 
         // The first build: pinned first, so Chrome gets N0L0 although Discord comes first in the file. The far place
-        // is not loaded: its build waits, nothing is said about it, its place stays saved.
+        // is not loaded: its build and the first-build total wait; its place stays saved.
         var first = fake.pass(server);
-        // A first build says one line, whatever the count (review fixes 1, step B, point 6).
-        check(first.lines().equals(List.of("The town is built: 2 logos. /apps lists them.")), "First build: " + first.lines());
+        // Package 54: a first build spans its later passes, up to the bound.
+        check(first.lines().isEmpty(), "An incomplete first build spoke too soon: " + first.lines());
         check(place(server, "keep-chrome").equals("N0L0") && place(server, "keep-discord").equals("N0R0") && hub.logos().size() == 2, "Day one: " + hub.logos());
         check(first.pending() && first.pictures().isEmpty(), "The far place's build does not wait: " + first);
         check("N0L0".equals(fake.get("keep-chrome").place()) && "N0R0".equals(fake.get("keep-discord").place())
@@ -533,7 +533,8 @@ public final class TownGameTests {
         // A newcomer joins My apps.
         fake.change("keep-spotify", app -> app.withMine(true));
         var joined = fake.pass(server);
-        check(joined.lines().equals(List.of("Spotify is new. It stands in Work & Media, west. /spotify opens it.")) && place(server, "keep-spotify").equals("W0L0"),
+        check(joined.lines().equals(List.of("The town is built: 2 logos. /apps lists them.",
+                "Spotify is new. It stands in Work & Media, west. /spotify opens it.")) && place(server, "keep-spotify").equals("W0L0"),
                 "A newcomer: " + joined.lines());
 
         // A missing trigger zone (review fixes 1, step B, point 5): a mod of packages 33 to 35 took Spotify's away with
