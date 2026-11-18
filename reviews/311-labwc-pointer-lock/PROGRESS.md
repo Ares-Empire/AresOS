@@ -1,6 +1,6 @@
 # 311 progress: labwc that holds a pointer lock on layer-shell surfaces
 
-**State: ready for review.** Briefs 311 and 311b are built and checked locally. Guard 5 (the session starts in the
+**State: ready for review.** Briefs 311, 311b and 311c are built and checked locally. Guard 5 (the session starts in the
 check build's VM pass) is `NOT RUN (lead, after the cut)`. Nothing was dispatched, merged or changed on the laptop.
 
 ## Done
@@ -138,10 +138,88 @@ None. Nothing here changes what the owner sees.
 - A locked package may replace its older copy in the base (`expected_environment`). The current lock replaces none.
 - `evidence/` is ignored by git, so the results that matter are written out in this file.
 
+## 311c: the labwc build is bound to the locked Fedora digest
+
+Review 1's blocking finding. `stage.py fetch` (the `labwc-inputs` stage) now reads the Containerfile and refuses, before
+any download, unless the `labwc` stage's `FROM` is exactly the lock's `base.reference`. The `labwc` stage copies from
+`labwc-inputs`, so it cannot start after a refusal. A `FROM` line the check cannot read as that reference (two stages, a
+tag, a build argument, a flag, a line continuation, no stage at all) is refused too.
+
+The Containerfile was already in the build context (`os/.containerignore` does not exclude it), so the only context change
+is one line in the stage: `COPY Containerfile /tmp/aresos/Containerfile`.
+
+| # | Item | Result | Evidence |
+|---|---|---|---|
+| 1 | A changed digest stops the build before dependencies are installed | PASS | Both sides, below. 0 steps of the `labwc` stage started |
+| 2a | `podman build --target labwc` produces the NEVRA | PASS | `LABWC_BUILT labwc-0.9.6-1.fc44.aresos1.x86_64 ef2cf81d...0404c82d` |
+| 2b | The same SHA-256 as before (`e5e33686...`) | **FAIL, explained below** | The RPM is not byte-reproducible, with or without 311c |
+| 3 | `test_labwc_stage` and `test_aresos_desktop` | PASS | 92 tests OK; 189 tests OK, 1 skipped |
+| 4 | `rebind.py pending` if a bound file changed | PASS | No bound file changed: still 10 pending files. The run only added a note, which was dropped |
+
+### Item 1: the refusal
+
+From a scratch export of this commit's `os/`, with one digest replaced by `sha256:aaaa...`:
+
+```
+podman --cgroup-manager=cgroupfs build --target labwc --format=oci --tag localhost/aresos-labwc:311c-mismatch --file os/Containerfile os
+```
+
+Changed in `os/Containerfile` (exit 1):
+
+```
+LABWC_REFUSED the labwc stage must be built from the locked registry.fedoraproject.org/fedora@sha256:b02bb57e0e8ec2e057f0826436d2fc58765fa2b3b82d2abd322ece06e39c88f5, Containerfile says ['registry.fedoraproject.org/fedora@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa']
+```
+
+Changed in `os/labwc/labwc.lock.json` (exit 1):
+
+```
+LABWC_REFUSED the labwc stage must be built from the locked registry.fedoraproject.org/fedora@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa, Containerfile says ['registry.fedoraproject.org/fedora@sha256:b02bb57e0e8ec2e057f0826436d2fc58765fa2b3b82d2abd322ece06e39c88f5']
+```
+
+Both logs stop at the `RUN ... stage.py fetch` step: no `LABWC_INPUTS` line and no `install-inputs.sh`.
+
+The new tests run the real `stage.py` on fixtures and on copies of the real files. Five mutants were each caught: the call
+removed, the call moved after the first download, the `COPY` removed, any matching line accepted, and the Containerfile
+added to `.containerignore`.
+
+### Item 2: why the hash differs
+
+| Build | Source | SHA-256 |
+|---|---|---|
+| 311b's build | before 311c | `e5e33686e6e30e9c74132ce145ffe3aaa0948a612c9047f8b2067be04f25364d` |
+| 311c | `4f36e0fd` | `ef2cf81d9bd79e78358f076588a4e0bcfd968c085ced21f78a16d3630404c82d` |
+| Control | `1be3c0f9`, the commit before 311c | `8c10e78d888534db5312320df9fd5072cfac3e4b741228a7f7981df47cf78b5f` |
+
+The control rebuilt the old source and also got a new hash, so 311c is not the cause. Compared with 311b's RPM, both new
+builds differ in the same places only:
+
+- **RPM header:** `BUILDTIME`, `BUILDHOST` (the build container's random name), the sizes, and the digests that follow.
+- **`/usr/bin/labwc` and `/usr/bin/labnag`:** the `.note.gnu.build-id`, `.gnu_debuglink` and `.gnu_debugdata` sections.
+  With those three sections removed, every remaining byte of both binaries is identical. The symbols in `.gnu_debugdata`
+  are the same too.
+- **File list:** the two `/usr/lib/.build-id/` names, which follow the build IDs.
+
+Requires, Provides, the changelog and all other payload files are the same. Why the debug data varies was not traced: the
+debug packages are not kept. A changing `BUILDTIME` alone already gives every build its own hash.
+
+### Limit of the check
+
+It reads the Containerfile in the build context. A build given a different file with `--file` would not be seen. Both
+image builds that reach this stage's callers use `--file os/Containerfile os` (`os/ci/check-build.sh`; `os/ci/build-mod.sh`
+stops at `--target mod` and does not run these stages).
+
+### PLAN-GAP
+
+1. **Brief 311c's acceptance 2 expects a stable hash.** The RPM's SHA-256 changes with every build, so it cannot prove
+   that a rebuild is the same. The comparison above is what does.
+2. **For `linux-aresos`'s R29 rule:** the SHA-256 and the two `.build-id` paths in the list below describe one build.
+   They differ in each build, so the rule cannot pin them.
+
 ## Final NEVRA and file list (for `linux-aresos`'s R29 rule)
 
 `labwc-0.9.6-1.fc44.aresos1.x86_64`, built here with SHA-256
-`e5e33686e6e30e9c74132ce145ffe3aaa0948a612c9047f8b2067be04f25364d`. The two `.build-id` names follow the compiled binaries.
+`e5e33686e6e30e9c74132ce145ffe3aaa0948a612c9047f8b2067be04f25364d`. The SHA-256 and the two `.build-id` names change with
+every build (see 311c); the other paths do not.
 
 ```
 /usr/bin/lab-sensible-terminal
