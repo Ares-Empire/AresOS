@@ -71,9 +71,9 @@ else.
 ## JUDGMENT-CALLs
 
 **Owner questions added after BRIEF-CROSS-5.** Question 2 is answered (board #353, 2026-11-18: "One question (recommended)"); question 1 is not yet answered. The lead `linux-tools` takes these to him.
-The recommendations below are concrete build contracts, conditional on his choice; they are not recorded as
-owner acceptance. Unrelated steps may proceed. Until answered, keep mismatched profiles disconnected and held
-submissions with possible loss stopped; don't ship a temporary bypass.
+Question 2's recommendation is his decision and is built as written. Question 1's recommendation is a concrete
+build contract, conditional on his choice, and not recorded as owner acceptance. Unrelated steps may proceed. Until
+question 1 is answered, keep mismatched profiles disconnected; don't ship a temporary bypass.
 
 1. **After an update or rollback replaces Chrome's helper, should the tools ask for your password once to keep
    using your chosen Chrome profile?** Open the helper in that profile, check its name and choose **Keep using

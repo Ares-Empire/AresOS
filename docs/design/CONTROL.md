@@ -650,8 +650,8 @@ the front when he should look at it or sign in there.
     is checked the same way before it runs, also when its send was approved meanwhile. What the page's own script
     does after any other step can't be seen beforehand ("Known limits"). Once a submission is held, however,
     its resumption is controlled: check the whole tab at preparation and immediately before resuming (28b item
-    4c). Under owner question 2's recommended path, one `chrome_submit` question shows the send and explicitly
-    names work the navigation may discard; otherwise refuse. Never reload the form first or use
+    4c). As the owner chose (board #353, 2026-11-18), one `chrome_submit` question shows the send and explicitly
+    names work the navigation may discard; a no sends nothing. Never reload the form first or use
     `discard_unsaved` to bypass this. This supersedes the held-submission part of the earlier loss exception.
   - **A page loaded by a form submission is never reloaded,** because Chrome might submit it again. Claude opens its
     address fresh in a Claude tab instead.
