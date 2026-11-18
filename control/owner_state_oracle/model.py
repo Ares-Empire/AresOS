@@ -492,7 +492,9 @@ class Oracle:
                     facts.add(Fact(key, 'recovery'))
                 check = row.get('sent_copy_check', {})
                 if row['app'] == 'mail' and (app is None or app == 'mail'):
-                    failed_recheck = live and bool(check) and self.script and bool(self.script[-1].get('faults', {}).get('trace'))
+                    failed_recheck = live and bool(check) and self.script and (
+                        bool(self.script[-1].get('faults', {}).get('trace')) or
+                        latch_refusal_first(getattr(self, 'transaction_record', record), self.script[-1]))
                     if (check.get('state') == 'open' or failed_recheck) and not any(f.source == key and f.kind == 'sent_copies' and f.occurrence not in self.acknowledged for f in self.detected):
                         facts.add(Fact(key, 'unchecked'))
             elif key.startswith(('mail:filing:', 'mail:rename:', 'intent:', 'export:', 'mail:account:')):

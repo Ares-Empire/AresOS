@@ -1995,6 +1995,25 @@ class StageTwoPartA(unittest.TestCase):
 
 
 class WriteLatch302(unittest.TestCase):
+    def test_live_sent_copy_recheck_refused_by_latch_without_a_fresh_fault_is_unchecked(self):
+        from owner_state_oracle.records import JournalAttempt
+        operation = {'id': 'g:send', 'app': 'mail', 'state': 'done',
+                     'sent_copy_check': {'state': 'checked', 'clean': True}}
+        failed_marker = JournalAttempt('marker', 1, 'hash', 0, False, False, True, True)
+        for live, attempted, latched, expected in ((True, True, True, True),
+                                                  (False, True, True, False),
+                                                  (True, False, True, False),
+                                                  (True, True, False, False)):
+            with self.subTest(live=live, attempted=attempted, latched=latched):
+                oracle = Oracle()
+                record = Record(rows={'op:g:send': operation},
+                                journal_history=(failed_marker,) if latched else ())
+                oracle.call('control_pending', {}, 123)
+                oracle.script[-1].update(write_attempted=attempted,
+                                        latch_checks=[0] if attempted and latched else [])
+                self.assertFalse(oracle.script[-1]['faults'].get('trace'))
+                self.assertEqual(Fact('op:g:send', 'unchecked') in oracle.expected(record, live=live), expected)
+
     def test_journal_phases_and_actual_cleanup_determine_the_latch(self):
         from owner_state_oracle.records import JournalAttempt, write_latched
         from owner_state_oracle.perturb import RECORD_EXCLUSIONS, field_paths
