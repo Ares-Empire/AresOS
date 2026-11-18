@@ -1,5 +1,112 @@
 # Empire brief 302 — progress
 
+## Build part 1 (steps 1 and 2)
+
+Status: **Build in progress; baseline established; next: step 2**.
+
+### Done
+
+- Step 1: baseline at `4a6acc2e`. `git fetch origin` returned exit 0;
+  `HEAD` and `origin/main` both resolve to `4a6acc2e`, so no merge was needed.
+  The branch is `pkg/302-store-oracle`. Baseline commit: this commit.
+- Step 2: implementation and focused verification in progress.
+
+### The baseline and the sample
+
+Executable tracked-file exports are under ignored
+`control/test-work/302-exports/` (no dot-prefixed ancestor). Logs, scripts and
+recordings are in `.work/302/`. Tests use the documented managed-settings
+`Boundary.read` stand-in, bytecode disabled, absolute `PYTHONPATH` exported for
+subprocesses, and `TMPDIR` resolved to `.work/302/tmp`. Base imports put
+`control/tests` before `control/mail_tests`; Mail uses the reverse order. The
+export needs an empty `.work/` for existing decoder fixtures. FilePolicy is
+unchanged. These local exports are test fixtures, not an installed service.
+
+Commands from the worktree root:
+
+- `git archive HEAD control reviews/19b-owner-state | tar -x -C control/test-work/302-exports/baseline`
+- `PYTHONDONTWRITEBYTECODE=1 python3 .work/302/run.py control/test-work/302-exports/baseline base test_owner_state_oracle test_review22_storage test_restore_batches`:
+  **134 tests OK** (124 + 6 + 4), 42.374 s, `baseline-base-rerun.log`.
+  Restore verification printed `(13785, 217066)` / `(13785, 217069)` retained/peak bytes.
+  The first attempt ran 134 with 5 fixture errors (export lacked `.work/`);
+  `baseline-base.log` retains that failure. No test was changed to fix it.
+- `PYTHONDONTWRITEBYTECODE=1 python3 .work/302/run.py control/test-work/302-exports/baseline mail sweep-units`:
+  **11 tests OK**, 9.847 s, `baseline-sweep.log`; excludes only the full matrix.
+- `PYTHONDONTWRITEBYTECODE=1 python3 .work/302/sample.py control/test-work/302-exports/baseline mail .work/302/baseline`:
+  **104 sampled runs, 135 checked phases, 2,498 recorded keys**,
+  `baseline-sample-rerun.log`, `baseline/sample.json`, and seven clean traces.
+  No key ends in `.restore-lock`. This is a recording, not a strict pin proof.
+  The first sample attempt failed because its diagnostic row reads were inside
+  injected faults; those diagnostics now use `outside_faults`, without changing
+  the sweep's observations or faults.
+- `PYTHONDONTWRITEBYTECODE=1 python3 .work/302/baseline-values.py`:
+  `Expected baseline row and lock assertions: OK` (`baseline-values-final.log`).
+  Direct pre/post-start probes assert the staged final generation without a
+  second confirm. Points 26/40/73/74/75 finish unlocked; 25 stays locked.
+  Startup can append a recovery event after sequence 6 (head 7), so the probe
+  checks completion and the exact staged generation, not an assumed head of 6.
+  Earlier probe logs retain its overstrict head/count assertions and corrections.
+
+Clean points and resolved sample boundaries:
+
+| Flow | Clean points | Sample points (write/sync for the selected marker) |
+|---|---:|---|
+| restore | 76 | 25, 26, 40, 73, 74, 75; cleanup pair 75:76 |
+| cancel | 70 | 1, 2, 10, 24, 30, 67, 68, 69; cleanup pair 2:3 |
+| onboarding | 2,570 | first account marker 61/62; historical 1439 also exercised |
+| repair | 366 | last marker 364/365 |
+| status | 156 | last marker 154/155 |
+| archive | 373 | last marker 231/232 (later points are export/cleanup) |
+| send | 875 | last marker 873/874 |
+
+Every listed non-pair point ran in single/persistent mode and live/crash phases;
+cleanup pairs ran in single mode and both phases. Cancel 69/single/live has
+head 6, marker 5, prepared event 6: the store shows `failed`, the model
+`reserved`, both unlocked. Onboarding 61 in either mode and 62/single shows
+one more account than the model (raw fixture totals 2/1; the new-account
+catalogue is 1/0). At 62/persistent the marker survives failed cleanup, so both
+count 2. Historical 1439 is now in a later transaction, with head/marker 24 and
+prepared 25; it does not reproduce the historical account key. Nothing was
+silently skipped. Local onboarding still has 2,570 rather than hosted 2,610
+points; attribution remains for the later capture on the same runtime.
+
+### Item 1 tests and the barrier mutation
+
+Pending step 2.
+
+### Left, in order
+
+1. Step 2: finish item 1 and its local oracle checks.
+2. Step 3: item 2, independent startup obligation and pre-confirm proof.
+3. Step 4: item 3, applied history, lifecycle ordering and alterations.
+4. Step 5: all remaining mutations and fresh reviews.
+5. Step 6: merge current main, re-pin once, full capture and proof.
+6. Final package/security reviews and independent classification review.
+
+### What the code doesn't show
+
+Local checks use synthetic fixtures and the managed-settings stand-in. They
+prove no installed-channel/root behaviour, hosted point portability, whole-pin
+classification, full sweep or alteration matrix. No workflow was dispatched.
+No OS, boot, mounted-disk, owner-module or mod tests belong to this run.
+
+### JUDGMENT-CALLs
+
+The owner approved the brief's restart advice and continued visibility of saved
+rows on board #352. No new product decision so far.
+
+### PLAN-GAPs
+
+- Existing decoder tests require an export-local `.work/`; added that fixture
+  directory. No policy change. Startup's post-replay head can advance beyond
+  the final confirm due to normal recovery, so the baseline assertion checks
+  the staged generation and matching event instead of head equality.
+- Historical onboarding 1439 does not represent the local first account marker;
+  exercised it and 61/62 separately. The 40-point hosted difference remains
+  unresolved, as the brief anticipated; no pin or point list was rewritten.
+
+---
+
 **READY (BRIEF-RECHECK-1); owner answered board #352 "Yes (recommended)"; merged by the lead; next: the build (Codex gpt-6.1-sol xhigh, in the brief's steps)**. Lead: `linux-tools`.
 Source baseline: main `4737bb69`, after `git fetch origin` and
 `git merge --ff-only origin/main` (from `67bf1909`). Only the brief and this file
