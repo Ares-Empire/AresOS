@@ -193,7 +193,7 @@ def owned(path, mode, directory=False):
         assert not stat.S_ISLNK(info.st_mode), part
 
 
-def image():
+def image(scan_root):
     record = json.loads(Path('/usr/share/aresos/manifest/control.json').read_bytes())
     extension = record['chrome_extension']
     folder = Path(BUNDLE)
@@ -219,18 +219,20 @@ def image():
     assert not any(Path('/etc/opt/chrome/policies/recommended').glob('*'))
     code = Path('/usr/libexec/aresos-control/chrome')
     assert sorted(p.name for p in code.iterdir()) == ['build-id.json', 'host', 'native_host.py', 'qualification.json']
-    for path in (*map(Path, record['files']), *(folder / name for name in NAMES)):
+    # The caller binds / non-recursively here: podman's /etc/hosts and the
+    # checker mount must not hide an image file from either key scan.
+    for path in (scan_root / name.lstrip('/') for name in (*record['files'], *extension['files'])):
         private_markers(path)
         assert not any(token in path.read_bytes() for token in PLACEHOLDERS), f'unrendered template: {path}'
-    for name in ('/tmp', '/var/tmp', '/root'):
-        for path in regular_files(Path(name)):
+    for name in ('tmp', 'var/tmp', 'root'):
+        for path in regular_files(scan_root / name):
             private_markers(path)
     needles = forms(modulus)
     matches = {}
-    for path in regular_files(Path('/'), excluded=tuple(map(Path, ('/proc', '/sys', '/dev')))):
+    for path in regular_files(scan_root, excluded=tuple(scan_root / name for name in ('proc', 'sys', 'dev'))):
         found = hits(path, needles)
         if found:
-            matches[str(path)] = found
+            matches['/' + path.relative_to(scan_root).as_posix()] = found
     assert set(matches) == {BUNDLE + '/extension.crx'}, f'public modulus outside CRX: {sorted(matches)}'
     raw_hits = [hit for hit in matches[BUNDLE + '/extension.crx'] if hit[:2] == (0, needles.index(modulus))]
     assert len(raw_hits) == 1, 'modulus must occur exactly once in CRX'
@@ -267,11 +269,11 @@ def build_log(checks, log):
 
 
 if __name__ == '__main__':
-    if sys.argv[1:] == ['image']:
-        image()
+    if len(sys.argv) == 3 and sys.argv[1] == 'image':
+        image(Path(sys.argv[2]))
     elif len(sys.argv) == 5 and sys.argv[1] == 'compare':
         compare(json.loads(Path(sys.argv[2]).read_bytes()), json.loads(Path(sys.argv[3]).read_bytes()), Path(sys.argv[4]))
     elif len(sys.argv) == 4 and sys.argv[1] == 'build-log':
         build_log(Path(sys.argv[2]), Path(sys.argv[3]))
     else:
-        raise SystemExit('expected image, compare IMAGE_RECORD EXPECTED_RECORD CONTROL, or build-log CHECKS LOG')
+        raise SystemExit('expected image SCAN_ROOT, compare IMAGE_RECORD EXPECTED_RECORD CONTROL, or build-log CHECKS LOG')

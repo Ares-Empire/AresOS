@@ -346,7 +346,11 @@ test "$handler" = google-chrome.desktop
 pass 'xdg-open sends http and https links to Chrome in the AresOS session'
 # The folder is now installed, not made and removed by the check. The reader
 # verifies its exact contents, both links, the signed payload and key disposal.
-python3 -I -B /tmp/aresos-chrome-image-check.py image
+chrome_scan_root=$(mktemp -d)
+mount --bind / "$chrome_scan_root"
+python3 -I -B /tmp/aresos-chrome-image-check.py image "$chrome_scan_root"
+umount "$chrome_scan_root"
+rmdir "$chrome_scan_root"
 pass 'Chrome bundle: signed CRX3, one identity and origin, fixed file URLs, exact policy folder and links, root-owned recorded bytes; no key or test bundle'
 
 # --- The daily login shell: PATH, Homebrew through /usr/bin/brew, no Flatpak errors.
