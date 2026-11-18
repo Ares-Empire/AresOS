@@ -135,6 +135,8 @@ No files over 500 MB remained in `.work/`.
 - The WebKit import block ran on the local machine. The image-level check is pending R29.
 - The checks-only workflow was dispatched for `74ec9b3f`. The lead will collect the result.
   [OS image run 44362345145](https://github.com/Ares-Empire/AresOS/actions/runs/44362345145)
+- The Review 1 fixes dispatched checks-only at `4098b4a5`. The result is for the lead to collect.
+  [OS image run 44365447042](https://github.com/Ares-Empire/AresOS/actions/runs/44365447042)
 
 ## Known limits
 
