@@ -1,4 +1,228 @@
-# 18c image part: progress (Part A, step 1; B2, steps 2a to 2c; the Chrome follow-up; 18e in the VM pass; fix round 1, parts 1 and 2; the lead's merge of main; fix round X1; fix round X2; fix round X3)
+# 18c image part: progress (Part A, step 1; B2, steps 2a to 2c; the Chrome follow-up; 18e in the VM pass; fix round 1, parts 1 and 2; the lead's merge of main; fix round X1; fix round X2; fix round X3; fix round X4)
+
+## Fix round X4 (Codex astra's recheck X3) (2026-11-17–18, Codex gpt-6-astra)
+
+From `RECHECK-X3.md` and the longer scratch review/probes in `.work/recheck-x3/`, on `6c172793` (code head
+`537790a2`). Code and regressions: `16bcc784`; this file's later commit uses `[skip ci]`. Only
+`os/ci/control/tree_scan.py`, `os/tests/test_control_vm.py` and this file changed. X3's records, held descriptors,
+owner handover protocol and final password assertion remain. `actions.py` needed no change: its existing `cover`
+handover now receives the records previously lost by the scanner. No image, `control/` or workflow change.
+`git fetch origin` completed; `origin/main` is `58d2ae1b`, not merged, as instructed.
+
+### What changed, per finding and per sibling, and the tests
+
+1. **Finding 1: observed names before a record exists.** `listing()` calls the observer for every entry as it
+   arrives. The observer registers the name before asking for its inode, retains its first inode, and adds new
+   names to the same work list during verification listings. A refused partial listing hands its already-observed,
+   unread names to the owner along with the folder; each remains a refusal until covered, or becomes an error.
+   Tests in `os/tests/test_control_vm.py`:
+   - `:971`, `test_partial_listing_refusal_discards_yielded_names`: a real entry is yielded, then readdir is
+     denied; the real file disappears before the real owner scanner subprocess runs. Its path and inode are in
+     `cover`, and the missing file remains an error. The recovery case also passes when the owner can search it.
+     **X3 baseline:** `AssertionError: False is not true`, `errors: []`; only the folder was refused.
+   - `:945`, `test_second_listing_learns_a_new_name_then_discards_it`: a real password file appears after the
+     initial listing and is observed during FUSE verification. It is searched: five learned paths = three searched
+     files + two listed folders. **X3 baseline:** the `[late.log, 0]` hit is absent; only the stored password is found.
+2. **Finding 2: an ordinary mismatch authorized by a second observation of a changing name.** Mountinfo now
+   establishes the exceptions: the name is a mount point, or its parent folder's deepest mount is FUSE and every
+   entry has the portal constant `4294967295`. Ordinary mismatches are errors immediately. FUSE verification still
+   checks that constant and learns all its names; it never infers a numbering scheme from matching repeated stats.
+   - `:909`, `test_double_rename_fools_numbering_detection`: the reviewer's real A/B renames, with distinct real
+     inodes. The mismatch fails before any second listing; B is never credited for A. **X3 baseline:** `[]` instead
+     of the required identity error; both extra renames execute and B is credited as searched.
+   - `:891`, `test_non_fuse_non_mount_point_numbering_mismatches_are_errors`: a non-FUSE folder, a non-FUSE mount
+     nested inside FUSE, shifted FUSE numbers, and mixed constant/ordinary FUSE numbers all reject the mismatching
+     files. **X3 baseline:** `AssertionError: 0 != 2` on the ordinary folder.
+   - `:877`, `test_mount_points_and_portal_numbering_are_established_from_mountinfo`: both supported exceptions
+     still search the expected files. This replaces X3's test of the removed heuristic with the specified mount
+     facts; its positive cases pass on both versions. `:1046`, `test_benign_atomic_rewrite_fails_closed`, also passes
+     on both: a harmless atomic rewrite still fails coverage, as requested.
+3. **Sibling audit, limited to lost observed names and unproven identity acceptance:**
+   - **Repeated names could overwrite their first identity in the dictionary.** The same record is reused, and a
+     different inode is a named error. Test `:1003`, `test_repeated_name_cannot_overwrite_its_first_observed_identity`,
+     yields real directory entries for a real file before and after replacement. **X3 baseline:** `errors: []`,
+     three files credited, only the stored-password hit; the first file remains unread.
+   - **`DirEntry.inode()` can fail after the name was observed, including on a repeated observation.** The name is
+     already registered; failure to establish that observation's identity is a hard error, which an owner's later
+     listing cannot clear. Tests `:1025`, `test_a_name_whose_inode_is_refused_cannot_be_cleared_by_the_owner`, and
+     `:1055`, `test_a_repeated_name_whose_inode_is_refused_stays_an_error`. **X3 baseline:** both fail with
+     `AssertionError: False is not true`, `errors: []`; the first observation is lost, or the repeated observation
+     becomes a recoverable refusal instead of an identity error.
+   - Read the remaining name-learning and identity paths in `tree_scan.py`, `search_for()` and `passwords()` once
+     under those two rules. No further sibling found. Existing missing-owner-coverage, mount-disappearance,
+     changed-file, descriptor, symlink and vanished-content tests still pass. Errors are sorted by path, preserving
+     deterministic diagnostics now that registration happens in readdir order.
+
+### Checks run (laptop)
+
+Scratch and temporary test files are under `.work/x4/`; none is committed. The baseline is `git archive 537790a2
+os/ci control/boundary control/ci control/README.md` extracted to `.work/x4/baseline/`, with the current test module
+copied in. `cmp` confirmed its scanner equals `git show 537790a2:os/ci/control/tree_scan.py`.
+
+- `TMPDIR="$PWD/.work/x4" PYTHONDONTWRITEBYTECODE=1 python3 .work/x4/baseline/os/tests/test_control_vm.py
+  PasswordScanTest -v`: **21 tests, FAILED (failures=7)**, 0.956 s; all seven are behavioral assertions, no missing
+  interfaces or import errors. The three requested escape probes and the sibling cases fail as described above.
+- One module at a time from the worktree root, with the same `TMPDIR` and `PYTHONDONTWRITEBYTECODE`:
+  `python3 -m unittest discover -s os/tests -p 'test_control_vm.py' -v`: **62 tests, OK**, 1.176 s;
+  `-p 'test_control_image.py'`: **15 tests, OK**, 4.467 s;
+  `-p 'test_checkout_sources.py'`: **8 tests, OK**, 0.841 s. No skips.
+- In-memory `compile(..., 'exec')` on the two changed Python files: **Syntax: 2 changed Python files, OK**.
+  `git diff --check`: clean.
+- Read `rebind.py` and compared the changed paths with `checkout.active_tables()`: **Changed bound files: []**.
+  No `pending` write was needed; `pending-rebind.json` is unchanged.
+- No owner module, local image/VM, mount, system change or Gradle process. No file over 500 MB remains in `.work/`
+  (final inventory: `[]`).
+
+### Runs
+
+Every watch uses `gh run watch <id> --exit-status --interval 60`. Logs are saved from `gh run view <id> --log`,
+with line numbers counted from 1 over that complete output. Dispatches are sequential, all through `os-image.yml`.
+
+| Run | Head | Mode | Result |
+|---|---|---|---|
+| 44175714681 | `6ea1d437` (code `537790a2`; only PROGRESS differs) | existing `checks_only` run | **success**: 1,764 tests in 1399.757 s at line 3730; `OK (skipped=4)` at 3732; regression job 24 min 2 s |
+| 44180217274 | `16bcc784` | X4 `checks_only` | **success**: 1,772 tests in 1267.634 s at line 3527; `OK (skipped=4)` at 3529 |
+| 44184266040 | `16bcc784` | first `check_build=control` | **success**: password PASS 4307; final Control PASS 4317 |
+| 44195810105 | `16bcc784` | second `check_build=control` | **success**: password PASS 4262; final Control PASS 4272 |
+| 44199832455 | `16bcc784` | `check_build=build` | **success**: `CONSOLE_KEYMAP_PASSED` 4202, then `CHECK_BUILD_VM_PASSED` 4225 |
+
+**Control log lines** (complete logs: 4,373 / 4,328 lines):
+
+| Marker | 44184266040 | 44195810105 |
+|---|---|---|
+| `CLAUDE_CODE_PINNED` | 1327 | 1279 |
+| `CONTROL_CHROME_BUILD` | 1707 | 1664 |
+| `CONTROL_INSTALLED` | 1708 | 1665 |
+| `CONTROL_CHROME_STARTUP_FILES` | 1709 | 1666 |
+| `CONTROL_GENERATED_MATCH` | 1710 | 1667 |
+| `CONTROL_FILES_RECORDED` | 3471 | 3428 |
+| `CONTROL_WHEELS_FETCHED` | 3581 | 3538 |
+| `CONTROL_VENDOR_FROM_WHEELS` | 3582 | 3539 |
+| `CHECK_BUILD_PASSED` | 3583 | 3540 |
+| `CHECK_BUILD_CONTROL_DISK_READY` | 4274 | 4229 |
+| `CONTROL_IMAGE_FILES_PASS` | 4282 | 4237 |
+| `CONTROL_ETC_CLAUDE_CODE_PASS` | 4284 | 4239 |
+| `CONTROL_RELEASE_CHECKS_PASS` | 4286 | 4241 |
+| `CONTROL_IDLE_FOOTPRINT_RECORDED` | 4288 | 4243 |
+| `CONTROL_FIXTURES_REACHABLE` | 4290 | 4245 |
+| `CONTROL_ENTRY_POINTS_PASS` | 4292 | 4247 |
+| `CONTROL_PRECONDITION_PASS` | 4294 | 4249 |
+| `CONTROL_USER_MCP_INSTALL_PASS` | 4296 | 4251 |
+| `CONTROL_SERVICE_SANDBOX_PASS` | 4298 | 4253 |
+| `CONTROL_ORDINARY_SESSION_PASS` | 4300 | 4255 |
+| `CONTROL_MAIL_FLOWS_PASS` | 4302 | 4257 |
+| `CONTROL_PERMISSION_REQUEST_RECORDED` | 4304 | 4259 |
+| `CONTROL_INTERACTIVE_ASK_PASS` | 4305 | 4260 |
+| `CONTROL_PASSWORDS_PRIVATE_PASS` | 4307 | 4262 |
+| `CONTROL_SELINUX_AFTER_CHECKS_PASS` | 4309 | 4264 |
+| `CONTROL_STORAGE_TESTS_PASS` | 4311 | 4266 |
+| `CONTROL_SERVICE_RESTART_PASS` | 4313 | 4268 |
+| `CONTROL_VM_POWEROFF_CLEAN` | 4315 | 4270 |
+| `CHECK_BUILD_CONTROL_PASSED` | 4317 | 4272 |
+
+The image records identify `16bcc784`; both have 74 installed files, 28 wheels and 2,024 vendored paths.
+The vendor check derives 1,021 files, 712 bytecode files and 291 folders. Production Chrome build hash
+`7854f4a2…cfbbfb` is unchanged. The permission result remains one hook call, zero owner answers, no prompt
+and one fixture arrival in `normal-permission-user` (lines 4304 / 4259).
+
+**Check 8** (log summaries at 4308 / 4263, checked against each artifact's `control/passwords.json`):
+
+| Count / outcome | 44184266040 | 44195810105 |
+|---|---|---|
+| Files searched by root | 1877 | 1851 |
+| Learned paths (root) | 2896 | 2867 |
+| Searched | 1877 | 1851 |
+| Listed folders | 721 | 718 |
+| Not a file | 297 | 297 |
+| Refused by root | 1 | 1 |
+| Errors after owner coverage | 0 | 0 |
+| Vanished | 0 | 0 |
+| FUSE mounts | 1 | 1 |
+| Root refusals in those mounts | 1 | 1 |
+| Files searched by the owner | 0 | 0 |
+
+Both sums were checked: **2,896 = 1,877 + 721 + 297 + 1** and
+**2,867 = 1,851 + 718 + 297 + 1**. The single FUSE mount is `/run/user/1001/doc` (`fuse.portal`);
+the owner covers root's mount-point refusal by listing it. Both journals exit 0 with no password hit;
+the only file holding the password is its stored file. `MAY_VANISH` remains empty.
+
+The final evidence scans search 192 files and 439 / 415 archive members: no hits, no unreadable archives,
+no files removed; the fixture log is redacted once. Check 8's runner scan searches 56 evidence files and
+the same 439 / 415 members, with nothing holding the password and nothing unreadable. These are read from
+`control/fixtures/password-scan.json` and `control/passwords-runner.json` in the artifacts.
+
+Control job times: **67 min 45 s / 26 min 2 s**; image/disk build step **48 min 57 s / 11 min 8 s**;
+VM pass **9 min 11 s / 8 min 12 s**, both within its 16-minute limit. The slow first run still completed
+successfully. Neither Control run was retried.
+
+**Build run 44199832455** (complete log: 4,274 lines). Job **47 min 40 s**; build/check step **41 min 44 s**.
+The Control-only steps were skipped by this mode; its general VM checks ran.
+
+| Marker | Log line |
+|---|---|
+| `CONTROL_CHROME_BUILD` | 1656 |
+| `CONTROL_INSTALLED` (74 files, 28 wheels, 2,024 vendored paths, from `16bcc784`) | 1657 |
+| `CONTROL_CHROME_STARTUP_FILES` | 1658 |
+| `CONTROL_GENERATED_MATCH` | 1659 |
+| `CROWN_FILES_PASSED` | 3408 |
+| `CONTROL_FILES_RECORDED` | 3420 |
+| `IMAGE_CHECKS_PASSED` | 3509 |
+| `ROOTLESS_MAPPING_PASSED` | 3520 |
+| `POLKIT_CHECK_PASSED` | 3523 |
+| `CONTROL_WHEELS_FETCHED` | 3530 |
+| `CONTROL_VENDOR_FROM_WHEELS` | 3531 |
+| `CHECK_BUILD_PASSED` | 3532 |
+| `ARESOS_ACTIVE_SESSION_POLKIT_PASSED` | 4198 |
+| `ARESOS_GUEST_CHECKS_PASSED` | 4199 |
+| **`CONSOLE_KEYMAP_PASSED`** | **4202** |
+| `ARESOS_POWER_EVENTS_PASSED` | 4206 |
+| **`CHECK_BUILD_VM_PASSED`** | **4225** |
+
+The keymap marker records the boot setting and repair after a forced busy-VT skip, and precedes the final VM marker.
+**No infrastructure failure, rerun or second CI fix round was needed.** All four X4 dispatches ran sequentially on
+`16bcc784`; the existing X3 run finished successfully before the first X4 dispatch.
+
+### Known limits
+
+- A reused inode can hide replacement between listing and open. Normal tmpfs/btrfs allocation is not a global
+  uniqueness guarantee across wraparound or remounts. Changing bytes in an open file, names never observed,
+  equivalent unmount/remount and recursion depth retain X3's limits. This is not a filesystem snapshot.
+- The FUSE exception is now limited to mountinfo's FUSE type and the portal's constant on every observed name.
+  That constant still cannot distinguish replacements; the held descriptor ensures the opened file is the one read.
+  Arbitrary shifted numbering, mixed numbering and other unproven mismatches fail closed, even if benign.
+- A mount point's covered-folder inode cannot identify the mounted root. Mountinfo independently establishes the
+  exception, but is not a lock against mount changes during the walk. No new claim of snapshot or remount detection.
+- Failure to read an observed entry's inode is a hard error, even if the owner could later list its name: that later
+  observation cannot establish the missing identity. A benign atomic rewrite remains an error; no exemption added.
+
+### Done
+
+Both RECHECK-X3 findings and the two related sibling cases are closed, with checked-in real-file regressions and
+seven behavioral baseline failures on `537790a2`. The local modules, syntax and whitespace checks pass. The existing
+merged-code X3 checks-only run passed; X4 checks-only passed 1,772 tests; two separate Control runs and the build
+run passed on `16bcc784`, with the required keymap marker before the final build VM marker. All requested evidence
+and counts are above. Only this progress record changes after that code head.
+
+No new owner JUDGMENT-CALL. This is a CI-only correction implementing the requested exceptions and fail-closed
+policy, with X3's record structure preserved. The technical limits above remain explicit.
+
+### Left, in order
+
+1. A fresh `gpt-6-astra` recheck of X4, `6c172793..16bcc784`, including the baseline regressions.
+2. `linux-aresos` reads the `os/` diff for this round (the section below is updated).
+3. The lead (`linux-tools`) assembles `reviews/18c-image-test/REPORT.md`, including these results and the prior
+   production/security limits.
+4. The merge, by the lead. PR #58 remains unmerged; this session did not mark it ready.
+
+### Observations for the lead
+
+- Summing records only proves coverage after names are registered. Registration now precedes inode lookup and
+  survives partial/repeated/verification listings; the tests specifically exercise those boundaries.
+- Ordinary filesystems have no second-listing identity heuristic. Both supported exceptions rely on mount facts;
+  the portal's weaker identity guarantee remains visible rather than being generalized to other mismatches.
+- The old X3 observation requesting a merged-head checks-only run is superseded by run 44175714681 above.
+- Evidence and baseline logs remain under `.work/x4/`; only code, tests and this progress record are pushed.
+
 
 ## Fix round X3 (Codex astra's recheck X2) (2026-11-17, Claude agent on Fable 5.2)
 
@@ -2633,6 +2857,15 @@ diff now stands against `3a5eea14`. That merge brought two `os/` files, both `ma
 `os/minecraft/desktop.lock.json` (package 52's pin by commit) and `os/tests/test_aresos_desktop.py` (package 46). Image
 side first, then CI only.
 
+Fix round X4 (`16bcc784`, 2026-11-17) changes only `os/ci/control/tree_scan.py` and
+`os/tests/test_control_vm.py`: immediate registration of entries from partial/repeated/verification listings,
+owner coverage for the names a refused listing already observed, and identity exceptions established from
+mountinfo plus the portal constant. The ordinary second-listing heuristic is removed. Repeated identities cannot
+be overwritten, and a failed inode lookup is a hard error. X3's records and descriptor reads remain. The VM test
+module now has 62 tests (eight more); the three escape regressions and related cases fail behaviorally on X3.
+No image, action, workflow or bound-file change in X4. `origin/main` at `58d2ae1b` has no newer `os/` changes and
+was not merged; the diff below therefore still stands against the fetched main.
+
 - `os/Containerfile`: the aresos stage copies `/source/control` from the existing source stage and runs `build.sh
   control` before `configure`; `FROM` lines and the other stages unchanged.
 - `os/build.sh`: `source` also extracts `AresOS-<commit>/control`; new `control` mode (pip vendor, install map,
@@ -2681,7 +2914,9 @@ side first, then CI only.
     whatever it can't read; since X2 also on runtime content that vanished unread, and root walks a FUSE mount first,
     its owner only where root is refused; since X3 one record per path it learns, each file opened once as a handle
     and held to the inode number its folder's listing gave it, no second try, and what root is refused in a FUSE
-    mount stays an error until the owner's walk names that path as searched; the layer copies it), `vendor_check.py` (X1: Part A's vendor check above;
+    mount stays an error until the owner's walk names that path as searched; X4 registers entries immediately,
+    preserves partial and verification listings, and restricts numbering exceptions to mountinfo-backed mount
+    points or the FUSE portal constant; the layer copies it), `vendor_check.py` (X1: Part A's vendor check above;
     since X2 it derives all of `/usr/lib/aresos-control`, so a sibling of `vendor/` fails),
     `control_vm.py` (boots the disk, runs the checks, prints the PASS lines), `actions.py` (the guest's checks; since
     fix round 1 check 6 also logs ares out of the throwaway guest and lets greetd's auto-login start the desktop again
@@ -2692,9 +2927,9 @@ side first, then CI only.
     `own-hook.py` (his own server and hooks). The layer also
     carries `control/boundary/interactive_{driver,model}.py`, `control/ci/image/mail_flows.py` and, for the storage
     tests, `control/chrome_tests/*.py` and `control/mail_tests/storage_faults.py`.
-  - `os/tests/test_control_vm.py` (54 tests, new; 11 since fix round X1; X2 replaced two and added four, and
+  - `os/tests/test_control_vm.py` (62 tests, new; 11 since fix round X1; X2 replaced two and added four, and
     `LayerHookTest` copies `console_keymap.py` beside `checks.py` since the merge; X3 added six and changed the end of
-    one).
+    one; X4 adds eight and replaces the old numbering-heuristic test with mountinfo-backed cases).
 - Not changed: base digest, `packages.lock.json`, Chrome pin, accounts, sudo, polkit, masks, session, PATH,
   repositories, `os/config/`, `os/policy/`, `os/release/`, `os/owner-tools/`, `os/manifest/` (except the pending
   list above), `ci/check-resolve.sh`, and every other job of `os-image.yml`.
