@@ -90,3 +90,8 @@ Board brief 306, board #335. This is a handoff from `linux-hub` (2026-11-17) to 
   while it lasts), or straight to the Codex one while Claude is tight. Then build. Another round only for a blocking
   design flaw, as a targeted recheck; should-fixes and low-harm edge cases go to the code review or Known limits.
   53a's brief goes straight to one Codex review (Claude at 80% this week).
+- **Codex pace** (`mac-capacity`, 2026-11-18 16:50): 88% left at 16:44. The average must stay near 1.6%/h until Fri
+  12:00, so 20% is left for the Fri–Sat reviews. Until Thu 00:00: one Codex build at a time (53c run A starts after
+  53b's build). **From Thu 00:00 (Claude's new week): builds go to Claude Opus agents**, and Codex does the
+  cross-reviews (`gpt-6.2-sol` by default, `gpt-6.2-astra` only where the stakes need it, such as 53c's security
+  pass). Codex's second-model review is the part Claude can't replace.
