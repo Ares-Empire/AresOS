@@ -44,34 +44,66 @@ helper changes below and for how `aresos.cover` is left out of window tracking.
 3. **The scheme.** The page loads from `aresos-home:` served from `/usr/share/aresos/laptop-home/` only (no `..`,
    no symlinks out). Register it as secure and CORS-enabled, with `text/javascript`, `text/css`, `application/json`
    and the font and image types the page uses. `aresos-home://icon/<app id>` serves only the file the helper gave
-   as that app's `icon`, with the size and type limits the mod uses for icons (a regular file, at most 1 MiB, PNG
-   or SVG). Every other address is refused. Ephemeral network session, no developer tools, no context menu, no
+   as that app's `icon`, with the mod's limits (`mod/.../icon/AppIcons.java`) checked on the file it actually opens:
+   a regular file that is not a symlink, at most 1 MiB, a PNG of at most 512 × 512, served as `image/png` (the
+   helper already converts SVGs to PNG). Ephemeral network session, no developer tools, no context menu, no
    downloads, no new windows.
+   - **Deny by default:** every request the web view makes, sub-resources included (WebKit handles `http(s)`
+     sub-resources apart from the scheme handler), is refused unless it is `aresos-home:`. An ephemeral session
+     alone still allows network traffic.
+   - **The bridge** (`window.aresosHome`) exists only in the packaged main document; a frame or any other document
+     cannot reach it or call `open(id)`.
 4. **The connection** as a 1.2 view (section 5): `hello` with `instance`, `token`, `"role": "view"` and the view
    name `laptop-home`. Then `get_home` (all pages), `list_apps`, and the events. Reconnects after 0.5, 1 and 2
    seconds, then every 2 seconds; in between the page keeps the last town, with opening switched off. The last
    complete home is kept in `$XDG_STATE_HOME/aresos/laptop-home/home.json` (written atomically, mode 0600) and shown
-   at start until the helper answers. On `apps_changed` it reads `list_apps` **and** `get_home` again (catalogue
-   changes can change which houses the home shows).
+   at start. **The kept town is replaced only by a complete non-null revision** (all pages arrived). A helper that
+   answers `"revision": null` (it restarted and the game has not published yet) keeps the kept town on screen, with
+   opening on and fresh `apps_running` applied (section 5, "While the game is not there"). A published empty town
+   does replace it. On `apps_changed` it reads `list_apps` **and** `get_home` again (catalogue changes can change
+   which houses the home shows).
 5. **`window.aresosHome`**, exactly as section 4's table: `home()`, `programs()`, `open(id)`, `status()` and the
-   events `home`, `programs`, `running`, `status`, `helper`. The battery comes from UPower over D-Bus, or
+   events `home`, `programs`, `running`, `status`, `helper`.
+   - Document every field and event payload the page gets in `os/config/usr/share/aresos/laptop-home/BRIDGE.md`,
+     and test them. Only the fields section 4's table names reach the page: never `icon` paths, `exec_name`,
+     commands or the socket.
+   - The display name comes from joining `get_home`'s apps with the complete `list_apps` catalogue by ID (all
+     pages). Keep the names in the kept town too, so it reads right while the helper is away.
+   - **The page's starting state:** the helper sends `apps_running` right after hello, before the page may be
+     listening. When the page says it is ready, the program replays the current home, programs, running apps,
+     battery and helper state to it, so open apps are lit from the first frame. The battery comes from UPower over D-Bus, or
    `/sys/class/power_supply` when UPower is missing. Missing battery: `status()` says so and the page shows none.
 6. **The helper's two changes** (53a's REVIEW-2, `reviews/53a-shell-views/REVIEW-2.md`):
    - leave app ID `aresos.laptop-home` out of covering, the return of focus and the unknown windows, as
      `aresos.cover` is left out;
    - a view's `open_app` does not call `cancel_returns()`: only the desktop's opens cancel a pending return.
-7. **The stand-in helper** for tests: a small 1.2 view server in `os/tests/` that answers from the example files
-   and can drop and come back, publish a new home, change `apps_running`, and refuse.
+7. **The stand-in helper** for tests, in `os/tests/`, for both runs: a 1.2 view server that answers the view's
+   hello, serves paged `list_apps` and `get_home` for **generated towns** (any number of apps, holes, pinned and
+   unpinned, generic names "Test Web 1"), records every `open_app` and can answer it with success or failure, emits
+   `home_changed`, `apps_changed` and `apps_running`, and can drop and come back with `"revision": null`. Leave with
+   it a runnable bridge test page, so run B can drive the real program and page and assert both the request the
+   helper got and what the page shows. The product never ships simulated windows or the prototype's URL-triggered
+   opens.
 8. **The vendor pin from the first run.** Every run of the program in tests sets `__EGL_VENDOR_LIBRARY_FILENAMES`
    and `VK_DRIVER_FILES` as section 4 gives them, so the NVIDIA card is never woken. A test runs the program in a
    headless compositor and checks that neither it nor any of the engine's processes maps a library with `nvidia` in
    its name (`/proc/<pid>/maps`).
 
 **Run A's tests** (new modules `os/tests/test_aresos_laptop_home*.py`, run by name, never the whole `os/tests`):
-the token and `LD_PRELOAD` are gone from the program's environment and from every engine process's
-`/proc/<pid>/environ`; the scheme serves the page with the right types, refuses `..`, a symlink out, other schemes,
-`http(s):` and `file:`; the icon address serves only the helper's path for that ID; reconnect timing, opening off
-while the helper is away, the kept home at start; the vendor pin; the helper's two changes, in its own test modules.
+- the token and `LD_PRELOAD`, both seeded, are gone from Python's and C's `getenv` in the program and from every
+  engine process's `/proc/<pid>/environ` (the program's own procfs environment keeps the initial values after
+  `unsetenv`; the children are what count);
+- the scheme serves the page with the right types and refuses `..`, a symlink out, other schemes, `http(s):` and
+  `file:`; from inside the packaged page, its module, JSON and an icon load, while a `fetch` and an image to a
+  loopback listener reach nothing; a foreign document cannot call `open(id)`;
+- the icon address: only the helper's path for that ID; an SVG, a PNG over 512 × 512, a file over 1 MiB and a
+  symlink are refused;
+- reconnect timing, opening off while the helper is away, the kept home at start, a `null` revision keeping it and a
+  published empty town replacing it, the starting-state replay, the bridge's fields;
+- the vendor pin (the headless compositor in the test draws in software or is pinned too, so nothing wakes the
+  NVIDIA card);
+- the helper's two changes, in the helper's own test modules; check the unknown-window list (`unowned_windows()`)
+  separately from covering, since the cover's exclusion today applies to covering only.
 
 ## Run B: the page
 
@@ -100,8 +132,10 @@ while the helper is away, the kept home at start; the vendor pin; the helper's t
    picture yourself and compare with the study's `day2-*` set.
 4. **Motion set-ups** (REVIEW-2 should-fix 3): if you measure motion, record each set-up's full environment and what
    its numbers leave out, next to the numbers.
-5. **Image check:** a test that WebKitGTK 6.0 and its Python binding (`gi` with `WebKit` 6.0) are in the image.
-   gtk4-layer-shell and JetBrains Mono get their checks in `linux-aresos`'s R29 image package, not here.
+5. **Image check:** add to `os/ci/image-checks.sh` a check that WebKitGTK 6.0 and its Python binding (`gi` with
+   `WebKit` 6.0) import in the image. Do not build an image for it (the R28 cut has CI first): it runs with
+   `linux-aresos`'s R29 image package, which also adds gtk4-layer-shell and JetBrains Mono with their checks. The
+   report lists it as pending.
 
 ## Acceptance
 
@@ -117,6 +151,11 @@ while the helper is away, the kept home at start; the vendor pin; the helper's t
 - **Headless compositors only** (`cage` as `shots.sh` does, or a headless `labwc` for the layer surface; remove
   `DISPLAY`, `WAYLAND_DISPLAY` and `WAYLAND_SOCKET` first). Never open a window in, reconfigure or send input to the
   owner's session (`wayland-0`). Never touch his `.minecraft`, Lunar Client or `~/AresOS-try`.
+- **Every test run is private:** its own temporary `HOME`, `XDG_STATE_HOME`, `XDG_RUNTIME_DIR`, a session bus of its
+  own (`dbus-run-session`), the stand-in's socket, and no autostart; `os/tests/test_aresos_cover.py` shows the
+  pattern. A headless compositor's output is `HEADLESS-1`, not `eDP-*`: let the test harness name the output the
+  program picks (a test-only setting the product never reads from the session), and keep the `eDP` rule itself
+  under test.
 - No client-test lock is needed. No Gradle, no game.
 - Keep memory light: one engine at a time, and stop every compositor and engine process you start.
 
