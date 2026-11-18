@@ -2,6 +2,251 @@
 
 Builder steps keep this file; the last step turns it into the report. Newest state first.
 
+## Step 13d (2026-11-18, Codex gpt-6.1-sol): approval comparisons use the repaired page representation
+
+**Green on tested code head `e07a88eb`; stopped after two code CI rounds.** The six approval/expected
+comparisons and the option-value lookup use the same repaired representation as the native wire. All requested
+H1, stored-outline, asking-read and unread cases pass in both Chrome install modes and both qualification
+repeats. The first round exposed a fixture stream collision; its fix preserves every assertion and hostile string.
+Final-head double green and the final latency row remain step 14.
+
+### Done
+
+- Fetched `origin` first, starting at `2efc1678` (code `209f9e67`). `origin/main` was `58d2ae1b` at that fetch;
+  `git diff --name-only HEAD...origin/main` on every changed extension, test and progress path has no overlap.
+  Main stays unmerged. The existing draft PR is #72; the branch stays `pkg/28-chrome`.
+- `42163e2c`: use the existing recursive `wellFormed()` at each comparison of fresh page facts with facts
+  returned by the service. Neither `stable`, `binding`, the service, the strict JSON guard nor the repair
+  implementation changes. Only the fresh operand is repaired, as a copy. No page strings are rewritten.
+- `978536d7`: selecting a returned option value resolves its repaired value to one fresh raw option before
+  handing it to the reader's exact check. Missing, disabled and ambiguous choices still refuse. Two distinct raw
+  values that repair to the same value refuse as ambiguous. The reader's existing non-native-control refusal is
+  preserved. No fixture assertion or hostile string changes.
+- `e07a88eb`: CI finds a fixture collision after the first asking-read case passes. The asking child and
+  parent both register an SSE under the parent reporting id; the child can replace the parent stream and has no
+  `reviewChange`. Omit only the child's unused mutation stream. Its frame reporting, page contents, navigation
+  and every driver mutation/assertion/deadline remain unchanged. The new served-script regression first fails
+  with `TypeError: globalThis.reviewChange is not a function`; after the fix the parent adds the exact field and
+  acknowledges its nonce. This is a harness correction, not a product refusal or a flaky retry.
+- All changed comparisons and their tests are below. `service-comparisons.test.mjs` loads the actual background
+  functions and obtains service-side facts through real `respond` and JSON, rather than manually replacing U+D800.
+  Test doubles model DOM/CDP and record dispatch/value-read counts; they do not start a local browser.
+
+| Fresh comparison in `control/chrome/extension/background.js` | Test in `control/chrome_tests/service-comparisons.test.mjs` |
+|---|---|
+| Initial `binding(snapshot,...)` against `command.binding` | `repaired action binding 1`: 15 text paths, including tab/frame titles, target name/label/title/value/rich/options, form label/value, compose, selected-file label, editor value, item and item field. Raw U+D800 against repaired U+FFFD passes; visible and whitespace changes refuse before input. |
+| Binding again after frame setup | The same 15 paths under `repaired action binding 2`, with the mutation occurring only on the second facts call. Refusal is pinned to the final boundary and no native input runs. |
+| Fresh target against `command.expected` | `repaired command.expected`: name, label, title, value and rich text, each accepted raw/repaired and refused after a visible change. |
+| Fresh complete `typedFacts` against asking-read `command.binding`, initially, before each frame and after extraction | `repaired asking list`: raw title/label accepted, preparation reads no values, approval reads once, replay refuses; title/label/type/element/reader/document/addition/order changes refuse before any value. Final title change refuses after extraction. Document-history loss still takes its earlier private-history refusal. |
+| Native dialog/opener facts against `command.binding` | `repaired dialog answer`: raw dialog text and title accepted; changed text/title (including a trailing space) refuse before an answer. |
+| Fresh native confirmation fields against `plan.expected` from the service | `repaired anticipated confirmation`: raw text accepted once, a visible text change is not automatically answered; opener/document/guard checks remain. |
+| Fresh option value against the service's chosen value | `repaired select value`: lone surrogate accepted as U+FFFD, raw value handed to the reader; visible change, repaired collision and disabled choice refuse before selection. |
+
+The action-binding tests also change a lone high surrogate to another high or a low surrogate: both repair to
+U+FFFD and are accepted at both boundaries. Asking-list and confirmation tests cover that equivalence too.
+They separately require the raw page/internal strings to remain raw.
+
+**The remaining comparison audit:**
+
+- `adapter.py`'s payload `expected`, `typed_binding`/`revalidate`, destination/compose rechecks and native-dialog
+  expectation compare facts that already crossed `respond`. The service is unchanged. `test_questions.py` adds
+  `test_step13d_repaired_question_and_field_description_still_require_exact_echo`: the repaired title/label
+  appear in the question, edited question or field description is rejected without reading, and exact approval
+  succeeds once. The existing changed-list/identity/question tests remain.
+- The reader's `readTypedFields` compares an execution-local raw list from fresh `typedFacts`, not the service's
+  repaired preparation. The background test asserts that its `message.expected` still contains that raw label;
+  `reader.test.mjs`'s `step13d reader field verification uses fresh raw private metadata` checks this actual reader
+  path before getters run. Guard `expected_form` likewise comes from the fresh raw execution snapshot, and the
+  final select check now receives the uniquely resolved raw option. These raw-to-raw private checks stay strict.
+- Short-reference identities, fingerprints and stale `present_line` live in Python, where outline facts already
+  crossed the native repair. `test_view_hostile.py` adds
+  `test_step13d_repaired_stale_present_line_keeps_the_same_escaping`: moved fold refuses with the fixed sentence,
+  repaired current line stays quoted, U+FFFD stays and a page newline stays escaped. No renderer change.
+- Session/control/document/reader/element/operation ids are generated identities, not page text. Their direct
+  checks, reader-origin authentication, raw-to-raw guarded reload identity, keyboard classification, hold and
+  upload digests, coverage and password/credential checks remain unchanged. No global normalization of `stable`.
+- The isolated confirmation-listener test in `sites.test.mjs` now loads the real helper; every original mismatch
+  and consume-once assertion stays. Three background-only selection doubles now include actual option metadata
+  (and the notice test supplies its value), so the existing activation, notice and new-frame assertions still
+  exercise successful selections. No assertion was dropped or weakened.
+
+### The mutation checks
+
+Run from the root, once for each name below:
+
+`SERVICE_COMPARISON_MUTATION=<name> .work/step13a/node-v22.15.0-linux-x64/bin/node --test control/chrome_tests/service-comparisons.test.mjs`
+
+Each mutation removes only that comparison's `wellFormed` call in the VM source. No tracked product file is
+mutated. The confirmation listener is loaded from that same mutated source. Each exits **1**, with no skips.
+
+| Mutation | Pass | Fail |
+|---|---:|---:|
+| `remove-initial-binding` | 20 | 30 |
+| `remove-final-binding` | 20 | 30 |
+| `remove-expected` | 45 | 5 |
+| `remove-typed-binding` | 47 | 3 |
+| `remove-dialog-binding` | 48 | 2 |
+| `remove-confirmation` | 49 | 1 |
+| `remove-option-value` | 49 | 1 |
+
+The ordinary comparison module has **50 pass, 0 fail**. No broken extension was run in Chrome.
+The first `remove-confirmation` invocation incorrectly passed **48/48**: the isolated listener was loaded from
+unmutated source. The runner now loads it from the same mutated source; its final result above fails the
+intended confirmation acceptance test. This was a mutation-harness correction, not product evidence.
+
+### Runs
+
+- Development comparison-only run: **45 pass, 3 fail**. The title-change double changed its title after
+  `requireTab` had already captured it, and the changed document correctly hit the earlier private-history
+  guard. Moving the test change before collection and expecting that earlier refusal gives **48/48**.
+- Initial full Node command: `.work/step13a/node-v22.15.0-linux-x64/bin/node --test control/chrome_tests/*.test.mjs`:
+  **544 pass, 1 fail**, `wellFormed is not defined` in the isolated `sites.test.mjs` listener. Loading the real
+  helper corrects the fixture; the same full command then **545 pass, 0 fail**, 32.644 seconds, no skips.
+- After the option lookup, the background + comparison modules first had **204 pass, 3 fail**: the three old
+  background doubles provided no options (one provided no requested value). Their assertion bodies stay intact;
+  their inputs now model successful native selections. Full Node then **546 pass, 0 fail**, 32.681 seconds.
+  The final non-native-select refusal regression also passes; full Node **547 pass, 0 fail**, 32.719 seconds, no skips.
+- Fixture baseline command: `.work/step13a/node-v22.15.0-linux-x64/bin/node --test
+  control/chrome_tests/outline-fixtures.test.mjs`: **5 pass, 1 fail**, the child's missing `reviewChange`.
+- Harness correction: full Node command **548 pass, 0 fail**, 32.667 seconds, no skips.
+- Python root command: `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/chrome_tests python3 -m unittest
+  test_outline_action test_view_references test_view_paging test_view_hostile test_questions test_efficiency
+  test_credentials test_bridge`: **150 tests, OK**, 21.744 seconds. The efficiency module's synthetic `MISS`
+  lines are expected; server instructions remain **4,093** characters.
+- `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control python3 control/generate.py --check`:
+  **Generated artifacts match definitions**. Portable Node `--check` on `background.js` and `fixture.mjs`,
+  and `git diff --check`: exit 0.
+- `git diff --exit-code 2efc1678 -- control/aresos_control control/definitions.py control/generated`: exit 0,
+  confirming the service and its strict guard/instructions are unchanged. A final `git diff --exit-code
+  2efc1678` also checks `control/aresos_control`, `control/generated`, `hostile-text.json`, `outline-read.mjs`,
+  `outline-asking.mjs` and `outline-expected/`: exit 0. Every hostile string, driver assertion and stored outline
+  is unchanged; only the fixture channel registration differs.
+- Reused the already verified portable Node under `.work/step13a/`; no download or installation.
+- Hosted qualification unit job: round 1 **100 Python tests, OK; 545 Node pass, 0 fail**. Round 2
+  **100 Python tests, OK; 548 Node pass, 0 fail**. The full file partitions are also required by both workflows.
+- Final report privacy check: the exact shell block from `.github/workflows/repo-privacy.yml`, run as
+  `bash .work/step13d/privacy.sh` with its temporary output under `.work/step13d/`: exit 0,
+  **No file holds a home path with a real user name.** Final `git diff --check`: exit 0.
+- Every workflow watch uses `gh run watch <id> --exit-status --interval 60`. Both code pushes were normal,
+  without CI skip markers. No workflow dispatch, whole-run rerun or third code validation round. The final
+  report-only push also uses no skip marker; its head verification remains step 14.
+
+| Round / tested code head | Control Chrome | Qualification | Result |
+|---|---|---|---|
+| 1 / `42163e2c` | [44198050278](https://github.com/Ares-Empire/AresOS/actions/runs/44198050278) | [44198050202](https://github.com/Ares-Empire/AresOS/actions/runs/44198050202) | Chrome **24/28 pass**, both cores hit the added-field mutation timeout; both aggregates refuse a missing core (`8 !== 9`). Qualification **30/34 pass**: both core repeats hit the same fixture timeout, and both combines refuse the missing core (`8 !== 9`). Every other job passes. Both latency jobs pass. |
+| 2 / `e07a88eb` | [44207652690](https://github.com/Ares-Empire/AresOS/actions/runs/44207652690) | [44207652784](https://github.com/Ares-Empire/AresOS/actions/runs/44207652784) | **Green: Chrome 28/28, qualification 34/34.** Both latency modes, both aggregates and both qualification combines pass. All four core executions pass every requested remaining case. No rerun. |
+
+First-round inspected core jobs: Chrome policy `134444781032`, external `134444781023`, qualification
+`134445243799` and `134445243942`. Each reaches the same added-field mutation timeout after the following passes.
+The last old qualification core was still running when round 2 was pushed and then confirmed the same failure;
+its watch overlaps round 2, all at 60 seconds.
+No whole-run rerun or workflow dispatch was used.
+
+| Required blocked case | Round 1, inspected cores | Round 2 |
+|---|---|---|
+| H1 roles/tag fallbacks | PASS | PASS, all four cores |
+| H1 every surface, including string 13's native dialog and title | PASS, all fourteen strings; dialog answered before close | PASS, all four cores |
+| H1 100,000-character name | PASS, folded once and exact whole name over max-1,000 pages | PASS, all four cores |
+| H1 100,000 elements | PASS, 20,000 nodes / 80,001 omitted | PASS, all four cores |
+| Stored F1 outline | PASS | PASS, all four cores |
+| Stored F3 outline | PASS | PASS, all four cores |
+| Stored F7 page 1 outline | PASS | PASS, all four cores |
+| Stored F6 outline | PASS | PASS, all four cores |
+| Stored address outline | PASS | PASS, all four cores |
+| Taken values withheld; exact one-call approval; credential exclusion; refusal/replay/fresh question | PASS, ten exact returned fields including the empty one | PASS, all four cores |
+| Added field | FAIL before product check: child SSE replaced parent; mutation unacknowledged | PASS, all four cores |
+| Same-label replacement | NOT REACHED | PASS, all four cores |
+| Relabelled field | NOT REACHED | PASS, all four cores |
+| Duplicate-labelled swap, identity binding | NOT REACHED | PASS, all four cores |
+| Unlabelled swap, distinct descriptions | NOT REACHED | PASS, all four cores |
+| Listed-frame navigation with unchanged top document | NOT REACHED | PASS, all four cores |
+| Listed field becomes password | NOT REACHED | PASS, all four cores |
+| Listed field becomes masked | NOT REACHED | PASS, all four cores |
+| Altered question / altered list | NOT REACHED | PASS, all four cores |
+| unreadMatrix: pre-reader plain fields, every root/frame | PASS | PASS, all four cores |
+| unreadMatrix: late root and credential-name rule | PASS | PASS, all four cores |
+| unreadMatrix: unread form refused unasked, including later read/step | PASS | PASS, all four cores |
+
+The inspected policy artifact is `control-chrome-44198050278-1-policy-core`, id `14382208953`.
+Its `outline-read/calls.jsonl` includes `hostile dialog 13`, with U+FFFD in title and dialog and the unchanged
+escaping of the Unicode tag; all five `expected` calls are present. `bridge.jsonl` has exactly 20,000 nodes and
+80,001 omissions. `asking.jsonl` records the first successful approved read of ten fields, refusal and replay;
+no credential marker is present. Its final entry is the added-field preparation, before the timed-out mutation.
+The first completed final-round artifact is `control-chrome-44207652690-1-external-core`, id `14387651513`.
+Its asking results contain ten approved fields; all eight changed-page modes return a failed old operation,
+a new approval and no values; altered question/list replies have `ok:false`. The credential marker is absent.
+Its bridge cap is still 20,000 nodes / 80,001 omissions. The selected qualification artifact is
+`qualification-shard-e7833479fd186c7e311499a760fd4123bc306678006c8b36e858b8600c0e0fbf-stable-2-core`,
+id `14387318579`. It has every asking result, no credential marker, and U+FFFD in string 13's native title/dialog.
+All four final core logs were inspected: Chrome `134477796653` / `134477796727`, qualification
+`134483170466` / `134483170510`. Every case in the table above passes in every one of those four executions.
+
+### Left, in order
+
+1. **Step 14:** the final green run's latency comparison from `44207652690` into `efficiency-baseline.json`,
+   `HARNESS-MAP.md`, `KNOWN-LIMITS.md`, the report, and **green twice on the final head**. Carry forward the
+   step 6/7/12/13a/13b/13c mapping notes and this step's notes. Neither a frozen latency row nor final-head
+   double green is claimed here. The closing report-only commit changes no runtime or test code.
+2. **Duplicate-label descriptions:** the lead's 28a/28b brief revision still owns the stronger requirement that
+   the question itself distinguish identically labelled fields. Identity binding passes; the asking path's
+   descriptions and server instructions stay unchanged.
+
+### What the code doesn't show
+
+- Browser evidence comes from disposable CI profiles and synthetic fixtures. No owner profile, local Chrome
+  window, desktop input, boot tool, OS test, mount, sudo, installation or Gradle invocation was used.
+- Malformed native-option selection has VM dispatch coverage; no dedicated new Chrome selection variant was
+  added. H1 checks its malformed option text in the real browser.
+- Local tests count reader requests/getters and dispatches in doubles. They are not wire captures from an owner
+  session. No human-in-the-game verification is needed for this Chrome-only step; real owner-page behavior remains
+  for the package review and later deployment.
+- No baseline timing is frozen here; step 14 owns the final green run's comparison and final-head double green.
+- **Closing scratch scan:** no files over 500 MB remain under `.work/`; no downloaded artifact ZIP remains.
+  Only selected synthetic artifact files, CI logs and small probes were retained under `.work/step13d/`.
+  The pre-existing verified portable Node binary is still reused, with no new download.
+
+### JUDGMENT-CALLs
+
+No new owner decision. Followed the lead's explicit rule that approval binds what the service and owner saw.
+The option lookup retains uniqueness after repair, because one displayed value must not silently choose among
+several native options. Step 13b's accepted cleanup/reference judgments stand.
+
+### PLAN-GAPs
+
+- **CLOSED, representation:** the service-held/fresh-fact mismatch found by 13c uses the same `wellFormed()`
+  now. Visible differences, credentials, identities and original approval requirements still refuse.
+- **Duplicate labels, unchanged:** the lead takes the question-description requirement to the 28a/28b brief
+  revision. No asking-description redesign or instruction text was added here.
+- No further product gap was found in these requested cases. The round-1 blocker was the fixture-only SSE
+  collision described under Done, not permission to weaken the asking-read binding.
+
+### For `HARNESS-MAP.md`
+
+- Add `service-comparisons.test.mjs`'s seven named removal mutations and acceptance/refusal tests, beside 13c's
+  boundary repair and strict-decoder tests. Add the raw-reader, exact Python question/description and repaired
+  stale-present-line regressions. Existing confirmation mismatch assertions still run with the actual helper.
+- On `e07a88eb`, both Chrome install modes and both qualification repeats pass all four H1 cases, five stored
+  outline comparisons, ten taken-tab asking cases and three unread cases. The fixture regression applies and
+  acknowledges the parent mutation; its pre-fix child handler throws. No case moved or assertion changed.
+  The duplicate-label swap case proves identity binding; it does not settle the separate human-description gap.
+- Carry forward the step 6/7/12/13a/13b/13c mapping notes, including expected-outline provenance, complete
+  asking getter recordings, raw wire-byte measurement and every named case's mandatory registration.
+
+### Known limits found
+
+- **A lone surrogate in page text is shown as U+FFFD** (the lead's accepted 13c display limit). The identity of
+  that malformed UTF-16 code unit is lost; the other text keeps its existing escaping.
+- **Different lone surrogates that both repair to U+FFFD are indistinguishable
+  at service-held approval/expected comparisons**. Changing only U+D800 to U+D801 or U+DC00 is accepted there,
+  because Claude and the owner saw the same repaired string. Any change visible after repair, including added
+  whitespace, still refuses. Valid surrogate pairs and all other characters stay unchanged. This is the lead's
+  specified limit, not a change to strict JSON validation.
+- Two native option values that collapse to the same repaired value are ambiguous and are refused. The owner
+  selects them himself. The page's native option strings remain unchanged.
+- Carry forward 13b/13c's lost-event cleanup, native-host bound, reference-eviction cursor, probabilistic process
+  prefix and stopped unread-form limits. The cap fixture is compact: its passing 20,000 nodes does not prove
+  that 20,000 verbose controls fit the unchanged native-host bound.
+
 ## Step 13c (2026-11-18, Codex gpt-6.1-sol): merged read-cost work and the native Unicode boundary
 
 **Partial; stopped after two CI rounds.** The wire repair and visible-form fix are built and tested. H1 now
