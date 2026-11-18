@@ -193,6 +193,15 @@ def owned(path, mode, directory=False):
         assert not stat.S_ISLNK(info.st_mode), part
 
 
+def owned_link(path, target):
+    info = path.lstat()
+    assert stat.S_ISLNK(info.st_mode) and os.readlink(path) == target, path
+    assert (info.st_uid, info.st_gid) == (0, 0), path
+    for parent in path.parents:
+        # The pinned image keeps / read-only; /etc and Chrome's parents are 0755.
+        owned(parent, 0o555 if parent == Path('/') else 0o755, directory=True)
+
+
 def image(scan_root):
     manifest = Path('/usr/share/aresos/manifest/control.json')
     owned(manifest, 0o644)
@@ -210,10 +219,8 @@ def image(scan_root):
         'build': record['chrome_build']}
     for name, target in LINKS.items():
         path = Path(name)
-        assert path.is_symlink() and os.readlink(path) == target and record['links'][name] == target, name
-        assert (path.lstat().st_uid, path.lstat().st_gid) == (0, 0), name
-        for parent in path.parents:
-            owned(parent, 0o755, directory=True)
+        assert record['links'][name] == target, name
+        owned_link(path, target)
     assert sorted(p.name for p in Path('/etc/opt/chrome/policies/managed').iterdir()) == ['aresos.json']
     # Keep the base's KDE host; no probe, second AresOS host or separate policy.
     for path in regular_files(Path('/etc/opt/chrome')):

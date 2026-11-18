@@ -801,6 +801,38 @@ class ChromeImageTest(unittest.TestCase):
                     self.checker.owned(path, 0o644)
                 rows[target] = previous
 
+    def test_chrome_links_keep_the_readonly_image_root_and_pin_etc_parents(self):
+        def info(mode, uid=0, gid=0):
+            return os.stat_result((mode, 0, 0, 1, uid, gid, 0, 0, 0, 0))
+
+        root = pathlib.Path('/')
+        for name, target in self.checker.LINKS.items():
+            path = pathlib.Path(name)
+            rows = {parent: info(0o040755) for parent in path.parents}
+            rows[root] = info(0o040555)
+            rows[path] = info(0o120777)
+            with patch.object(pathlib.Path, 'lstat', lambda p: rows[p]), \
+                    patch.object(self.checker.os, 'readlink', return_value=target) as link:
+                self.checker.owned_link(path, target)
+                for label, changed_path, changed in (
+                        ('ordinary file', path, info(0o100644)),
+                        ('link owner', path, info(0o120777, uid=1001)),
+                        ('link group', path, info(0o120777, gid=250)),
+                        ('parent mode', path.parent, info(0o040555)),
+                        ('parent writable', path.parent, info(0o040775)),
+                        ('root owner', root, info(0o040555, uid=1001)),
+                        ('root group', root, info(0o040555, gid=250)),
+                        ('root mode', root, info(0o040755)),
+                        ('root writable', root, info(0o040575))):
+                    previous = rows[changed_path]
+                    rows[changed_path] = changed
+                    with self.assertRaises(AssertionError, msg=f'{name}: {label}'):
+                        self.checker.owned_link(path, target)
+                    rows[changed_path] = previous
+                link.return_value = '/tmp/another-bundle.json'
+                with self.assertRaises(AssertionError):
+                    self.checker.owned_link(path, target)
+
 
 class ServiceUserTest(unittest.TestCase):
     """Agreed change 5: one fixed number, unused by Fedora's static block and the image's own declarations."""
