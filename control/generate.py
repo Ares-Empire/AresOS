@@ -1,5 +1,6 @@
 """Run from the checkout: python3 control/generate.py [--check]. No dependencies."""
 import json
+import os
 from pathlib import Path
 import sys
 
@@ -23,6 +24,12 @@ def schema_check(schema):
 
 
 def generated():
+    # Brief 28, item 6: the internal read exists only behind a test-only
+    # switch, so no generated file may be written or checked with it set.
+    # Present at all is enough, whatever its value.
+    from aresos_control.chrome.definitions import OUTLINE_SWITCH
+    if OUTLINE_SWITCH in os.environ:
+        raise SystemExit(f"Refused: unset {OUTLINE_SWITCH}; it is a test-only switch and no generated file may carry its action.")
     for action in ACTIONS:
         if action.result is None:
             raise ValueError("Missing result schema: " + action.name)

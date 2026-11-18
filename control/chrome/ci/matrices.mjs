@@ -9,6 +9,9 @@ import {completeIngress,protocolEvents} from './ingress-scan.mjs';
 import {animatedDefaultMatrix} from './animated-default-matrix.mjs';
 import {lateBindingMatrix} from './late-binding-matrix.mjs';
 import {lateReaderMatrix} from './late-reader-matrix.mjs';
+import {outlineReadMatrix} from './outline-read.mjs';
+import {outlineAskingMatrix} from './outline-asking.mjs';
+import {unreadMatrix} from './unread-matrix.mjs';
 import {destinationMatrix} from './destination-matrix.mjs';
 import {recheck3Matrices} from './recheck3-matrices.mjs';
 import {recheck2Matrices} from './recheck2-matrices.mjs';
@@ -19,7 +22,7 @@ import {receiverSnapshot} from './receiver-evidence.mjs';
 import {allTabs} from './tabs.mjs';
 import {failBrowserCase} from './failure.mjs';
 
-export async function matrices({call,read,nav,target,counts,eventually,tab,setTab:syncTab=()=>{},fixture,admin,rpc,caller,ownerNavigate,ownerOpenPopup,popupEvidence,popupControl,nativeDonor,closeNativeDonor,ownerKey,ownerType,ownerChooseFile,ownerDismiss,ownerHistory,ownerBookmark,lifecycle,restoreControl,stopClick,baseline,isolationAfter}) {
+export async function matrices({call,read,nav,target,counts,eventually,tab,setTab:syncTab=()=>{},fixture,admin,rpc,caller,ownerNavigate,ownerOpenPopup,popupEvidence,popupControl,nativeDonor,closeNativeDonor,ownerKey,ownerType,ownerChooseFile,ownerDismiss,ownerHistory,ownerBookmark,lifecycle,restoreControl,stopClick,baseline,isolationAfter,envelopeResults}) {
   const results=[];let trustOperation;const shard=process.env.BROWSER_SHARD||null;
   // The owner helpers (ownerNavigate and the others) close over the driver's
   // own current tab, so a matrix that moves to another tab tells the driver
@@ -322,6 +325,7 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,setTa
     for(const prefix of ['top','cross'])for(let index=0;index<3;index++){
       const selected=await target('Submit '+prefix+' '+index),id='password-'+prefix+'-'+index;
       const form=await call('read_form',{tab,reference:selected.reference});assert.doesNotMatch(JSON.stringify(form),/SENTINEL_PRIVATE_PASSWORD_20/);
+      assert.match(JSON.stringify(form),/Public draft/,'a typed field empty when the reader met its root is read once the page fills it');
       const prepared=await call('click',selected);assert.doesNotMatch(JSON.stringify(prepared),/SENTINEL_PRIVATE_PASSWORD_20/);
       await approval(prepared,id);
     }
@@ -512,6 +516,11 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,setTa
       console.log('GROUP 9 CUT',id,'receiver',before,JSON.stringify(replay));
     }
   });
+  // Brief 28, group 14, at the end of the core shard, after every case of brief 20 that uses the tab: the new read's
+  // cases (outline-read.mjs), then the password cases (unread-matrix.mjs), whose last step leaves a submission stopped.
+  if(runs('core'))await outlineReadMatrix({check:inBlock('core'),call,rpc,nav,target,getTab:()=>tab,setTab,lifecycle,restoreControl,fixture,eventually,envelopeResults});
+  if(runs('core'))await unreadMatrix({check:inBlock('core'),call,rpc,read,nav,target,counts,approval,fixture,eventually,ownerNavigate,ownerKey,ownerType,getTab:()=>tab});
+  if(runs('core'))await outlineAskingMatrix({check:inBlock('core'),call,rpc,read,fixture,eventually,ownerNavigate,getTab:()=>tab});
   await check('GROUP 7 no listening port after tool suite',async()=>isolationAfter());
   const precedence=fs.existsSync('/out/chrome-precedence.json')?JSON.parse(fs.readFileSync('/out/chrome-precedence.json')):null;
   const qualified=verdicts(results,baseline,adapters,precedence);

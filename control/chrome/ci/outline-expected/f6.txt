@@ -1,0 +1,18 @@
+h1 "Frames and roots"
+p "Top document text"
+h2 "Open root"
+link "Open root link" REF1
+searchbox "Open search" REF2
+p "Closed root text"
+button "Closed root button" REF3
+button "Nested root button" REF4
+frame "Second site" REF5
+frame "Second site" → http://second.test:8766
+  h2 "Second site frame"
+  p "Text of the second site"
+  link "Second site link" → http://second.test:8766 REF6
+  button "Frame root button" REF7
+  frame "Nested second site" REF8
+frame "Nested frame" → http://second.test:8766
+  p "Nested frame text"
+  button "Nested frame button" REF9

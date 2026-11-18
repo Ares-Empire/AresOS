@@ -8,9 +8,10 @@ async function __latencyTime(stage,fn){const context=__latencyContext,start=perf
   source=source.replace("effectStarted=false;dispatchEpoch=null;audit({command:message.command?.name,phase:'begin'});","__latencyWire=message.id;effectStarted=false;dispatchEpoch=null;audit({command:message.command?.name,phase:'begin'});");
   source=source.replace('function expireDefaults(tab,nonce,delay=POLICY.holdMs){','function expireDefaults(tab,nonce,delay=POLICY.holdMs){const __expiryContext=__latencyContext;').replace('networkHolds.delete(tab);rules().catch(()=>{});','networkHolds.delete(tab);const previous=__latencyContext;__latencyContext=__expiryContext;try{rules().catch(()=>{});}finally{__latencyContext=previous;}');
   source=source.replace('await new Promise(resolve=>setTimeout(resolve,POLICY.holdMs+25));',"await __latencyTime('post_input_observation_wait',()=>new Promise(resolve=>setTimeout(resolve,POLICY.holdMs+25)));");
+  // The wrappers pass on what they don't name: a command's time (brief 28, item 4).
   const wrappers=`
-const __content=typeof content==='function'?content:null;if(__content)content=(tab,frame,command,parameters={},document=null)=>__content(tab,frame,command,{...parameters,__latency_wire:__latencyContext?.wire},document);
-const __dispatch=dispatch;dispatch=async command=>{const previous=__latencyContext;__latencyContext={sequence:++__latencySequence,command:command.name,wire:__latencyWire};try{return await __latencyTime('extension_total',()=>__dispatch(command));}finally{__latencyContext=previous;}};
+const __content=typeof content==='function'?content:null;if(__content)content=(tab,frame,command,parameters={},document=null,...rest)=>__content(tab,frame,command,{...parameters,__latency_wire:__latencyContext?.wire},document,...rest);
+const __dispatch=dispatch;dispatch=async(command,...rest)=>{const previous=__latencyContext;__latencyContext={sequence:++__latencySequence,command:command.name,wire:__latencyWire};try{return await __latencyTime('extension_total',()=>__dispatch(command,...rest));}finally{__latencyContext=previous;}};
 for(const [stage,get,set]of [
  ['session_rule_add',()=>typeof holdDefaults==='function'?holdDefaults:null,value=>{holdDefaults=value;}],
  ['session_rule_update',()=>rules,value=>{rules=value;}],

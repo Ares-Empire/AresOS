@@ -2,15 +2,16 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
+import {createHash} from 'node:crypto';
 
-function fixture(){
+function fixture(transform=source=>source){
   const policy=JSON.parse(fs.readFileSync('control/chrome/extension/policy.js','utf8').match(/\{[\s\S]*\}/)[0]);
   const registrations=[],rules=[];
   const chrome={tabs:{get:async()=>({active:false}),update:async()=>({})},scripting:{getRegisteredContentScripts:async()=>[],registerContentScripts:async scripts=>registrations.push(...scripts)},
     declarativeNetRequest:{getSessionRules:async()=>[],updateSessionRules:async value=>rules.push(value)}};
-  let source=fs.readFileSync('control/chrome/extension/background.js','utf8').replace("import {POLICY} from './policy.js';",'');
+  let source=transform(fs.readFileSync('control/chrome/extension/background.js','utf8')).replace("import {POLICY} from './policy.js';",'');
   source=source.slice(0,source.indexOf('async function connect()'));
-  const context=vm.createContext({POLICY:policy,chrome,crypto:{randomUUID:()=> 'fixture-session'},URL,Promise,setTimeout,clearTimeout,TextEncoder,btoa:value=>Buffer.from(value,'binary').toString('base64')});
+  const context=vm.createContext({POLICY:policy,chrome,crypto:{randomUUID:()=> 'fixture-session'},URL,Promise,setTimeout,clearTimeout,TextEncoder,performance,btoa:value=>Buffer.from(value,'binary').toString('base64')});
   vm.runInContext(source,context);
   return {run:code=>vm.runInContext(code,context),registrations,rules};
 }
@@ -50,7 +51,7 @@ function startupFixture(){
 }
 async function startupContexts(f,prefix,start=1,source={tabId:7}){
   for(const context of [{id:start,uniqueId:prefix+'-main',origin:'http://fixture.test',auxData:{isDefault:true,frameId:'frame'}},{id:start+1,uniqueId:prefix+'-isolated',origin:'chrome-extension://fixture',auxData:{isDefault:false,frameId:'frame'}}])await f.run(`preloadEvent(${JSON.stringify(source)},'Runtime.executionContextCreated',{context:${JSON.stringify(context)}})`);
-  await f.run(`preloadEvent(${JSON.stringify(source)},'Debugger.scriptParsed',{scriptId:${JSON.stringify(prefix)},executionContextId:${start+1},url:'chrome-extension://fixture/context.js',executionContextAuxData:{isDefault:false,frameId:'frame'}})`);
+  await f.run(`preloadEvent(${JSON.stringify(source)},'Debugger.scriptParsed',{scriptId:${JSON.stringify(prefix)},executionContextId:${start+1},url:'chrome-extension://fixture/context.js',embedderName:'chrome-extension://fixture/context.js',executionContextAuxData:{isDefault:false,frameId:'frame'}})`);
 }
 const paused=(f,script,source={tabId:7})=>f.run(`preloadEvent(${JSON.stringify(source)},'Debugger.paused',{hitBreakpoints:['inert-breakpoint'],callFrames:[{location:{scriptId:${JSON.stringify(script)}}}]})`);
 
@@ -291,7 +292,7 @@ test('startup evaluates only fixed bundles in authenticated private contexts bef
   const f=fixture();f.run("globalThis.startup=[];chrome.runtime={getURL:path=>'chrome-extension://fixture/'+path};chrome.debugger={sendCommand:async(source,method,parameters)=>{startup.push({source,method,parameters});if(method==='Debugger.setBreakpointByUrl')return {breakpointId:'inert-breakpoint'};if(method==='Runtime.evaluate')return parameters.returnByValue?{result:{value:'private-document'}}:{result:{objectId:'private-cleanup'}};if(method==='Runtime.callFunctionOn')return parameters.returnByValue?{result:{value:'private-document'}}:{result:{objectId:'relay'}};if(method==='DOM.describeNode')return {node:{backendNodeId:1}};if(method==='DOM.resolveNode')return {object:{objectId:'isolated-relay'}};return {};}};preloadBundle=Promise.resolve(['// guard fixture','// reader fixture','// wrapper fixture']);controlled.set(7,{epoch:'epoch'});");
   await f.run('prepareTarget({tabId:7})');
   for(const context of [{id:1,uniqueId:'main',origin:'http://fixture.test',auxData:{isDefault:true,frameId:'frame'}},{id:2,uniqueId:'isolated',origin:'chrome-extension://fixture',auxData:{isDefault:false,frameId:'frame'}}])await f.run(`preloadEvent({tabId:7},'Runtime.executionContextCreated',{context:${JSON.stringify(context)}})`);
-  await f.run("preloadEvent({tabId:7},'Debugger.scriptParsed',{scriptId:'bootstrap',executionContextId:2,url:'chrome-extension://fixture/context.js',executionContextAuxData:{isDefault:false,frameId:'frame'}})");
+  await f.run("preloadEvent({tabId:7},'Debugger.scriptParsed',{scriptId:'bootstrap',executionContextId:2,url:'chrome-extension://fixture/context.js',embedderName:'chrome-extension://fixture/context.js',executionContextAuxData:{isDefault:false,frameId:'frame'}})");
   await f.run("preloadEvent({tabId:7},'Debugger.paused',{hitBreakpoints:['inert-breakpoint'],callFrames:[{location:{scriptId:'bootstrap'}}]})");
   const commands=Array.from(f.run('startup'));
   const evaluated=commands.filter(value=>value.method==='Runtime.evaluate');
@@ -784,7 +785,7 @@ test('P24 uncovered and unreadable frames count as possibly unsaved before both 
 });
 test('P25 satisfied checks and isolated selections do not activate an inactive tab',async()=>{
   for(const input of [{verb:'check',checked:true},{verb:'select',value:'second'}]){
-    const f=fixture();f.run("excludedHosts=[];controlled.set(7,{epoch:'epoch'});requireTab=async()=>({});facts=async()=>({frames:[{frame:0,target:{element:'e1',states:{checked:true}}}]});globalThis.activated=0;content=async()=>({});chrome.webNavigation={getAllFrames:async()=>[{frameId:0}]};chrome.tabs.get=async()=>({active:false});chrome.tabs.update=async()=>activated++;collectSteps=async()=>[];");
+    const f=fixture();f.run("excludedHosts=[];controlled.set(7,{epoch:'epoch'});requireTab=async()=>({});facts=async()=>({frames:[{frame:0,target:{element:'e1',states:{checked:true},options:[{value:'second',label:'Second',disabled:false}]}}]});globalThis.activated=0;content=async()=>({});chrome.webNavigation={getAllFrames:async()=>[{frameId:0}]};chrome.tabs.get=async()=>({active:false});chrome.tabs.update=async()=>activated++;collectSteps=async()=>[];");
     const result=await f.run('dispatch('+JSON.stringify({name:'input',tab:7,reference:{frame:0,element:'e1'},input})+')');assert.equal(f.run('activated'),0);assert.equal(result.dispatched,input.verb!=='check');assert.equal(result.no_change,input.verb==='check');
   }
 });
@@ -797,8 +798,8 @@ test('P28 final binding refusal finishes every armed frame',async()=>{
   await assert.rejects(f.run("dispatch({name:'input',tab:7,reference:{frame:0,element:'e1'},input:{verb:'select'},binding:approved})"),/page changed/);assert.deepEqual(Array.from(f.run('finished')),[0]);
 });
 test('P23 input page evidence contains the bounded post-input notice',async()=>{
-  const f=fixture();f.run("excludedHosts=[];controlled.set(7,{epoch:'epoch'});requireTab=async()=>({});facts=async()=>({frames:[{frame:0,target:{element:'e1'}}]});content=async(tab,frame,command)=>command==='observe'?{url:'http://fixture.test/',notices:['ERROR: the change failed']} : {};chrome.webNavigation={getAllFrames:async()=>[{frameId:0}]};collectSteps=async()=>[];");
-  const result=await f.run("dispatch({name:'input',tab:7,reference:{frame:0,element:'e1'},input:{verb:'select'}})");assert.equal(result.page.notices[0],'ERROR: the change failed');
+  const f=fixture();f.run("excludedHosts=[];controlled.set(7,{epoch:'epoch'});requireTab=async()=>({});facts=async()=>({frames:[{frame:0,target:{element:'e1',options:[{value:'first',label:'First',disabled:false}]}}]});content=async(tab,frame,command)=>command==='observe'?{url:'http://fixture.test/',notices:['ERROR: the change failed']} : {};chrome.webNavigation={getAllFrames:async()=>[{frameId:0}]};collectSteps=async()=>[];");
+  const result=await f.run("dispatch({name:'input',tab:7,reference:{frame:0,element:'e1'},input:{verb:'select',value:'first'}})");assert.equal(result.page.notices[0],'ERROR: the change failed');
 });
 
 
@@ -810,7 +811,7 @@ test('P3 startup inherits an active hold before activation without any approval 
   assert.ok(armed<calls.findIndex(row=>row.method==='Runtime.callFunctionOn'&&row.parameters.functionDeclaration.includes('this.activate()')));
 });
 test('P3 a frame appearing on the final snapshot is armed without an allowance before input',async()=>{
-  const f=fixture();f.run("excludedHosts=[];controlled.set(7,{epoch:'epoch'});requireTab=async()=>({});globalThis.reads=0;globalThis.arms=[];const top={frame:0,document:'top',browser_document:'native-top',target:{element:'e1'}};const child={frame:2,document:'child',browser_document:'native-child'};facts=async()=>({frames:++reads===1?[top]:[top,child]});isPreloaded=()=>true;content=async(tab,frame,command,args)=>{if(command==='arm')arms.push({frame,args});return {}};chrome.webNavigation={getAllFrames:async()=>[{frameId:0,documentId:'native-top'},{frameId:2,documentId:'native-child'}]};collectSteps=async()=>[];");
+  const f=fixture();f.run("excludedHosts=[];controlled.set(7,{epoch:'epoch'});requireTab=async()=>({});globalThis.reads=0;globalThis.arms=[];const top={frame:0,document:'top',browser_document:'native-top',target:{element:'e1',options:[{value:'a',label:'A',disabled:false}]}};const child={frame:2,document:'child',browser_document:'native-child'};facts=async()=>({frames:++reads===1?[top]:[top,child]});isPreloaded=()=>true;content=async(tab,frame,command,args)=>{if(command==='arm')arms.push({frame,args});return {}};chrome.webNavigation={getAllFrames:async()=>[{frameId:0,documentId:'native-top'},{frameId:2,documentId:'native-child'}]};collectSteps=async()=>[];");
   await f.run("dispatch({name:'input',tab:7,reference:{frame:0,element:'e1'},input:{verb:'select',value:'a'}})");
   assert.deepEqual(Array.from(f.run('arms.map(row=>row.frame)')),[0,2]);assert.equal(f.run('arms[1].args.operation'),undefined);
 });
@@ -1023,7 +1024,7 @@ test('P19 root navigation retires descendant records before a renderer reuses co
   f.run(source.slice(source.indexOf('chrome.debugger.onEvent.addListener('),source.indexOf('chrome.debugger.onDetach.addListener(')));
   await f.run("onEvent({tabId:7},'Page.frameNavigated',{frame:{id:'frame',loaderId:'second-native-document'}})");
   assert.equal(f.run("preloadTargets.get('[7,null]').documents.size"),0);assert.equal(f.run("preloadTargets.get('[7,null]').contexts.size"),0);
-  await f.run("preloadEvent({tabId:7},'Debugger.scriptParsed',{scriptId:'reused',executionContextId:2,url:'chrome-extension://fixture/context.js',executionContextAuxData:{isDefault:false,frameId:'frame'}})");await paused(f,'reused');
+  await f.run("preloadEvent({tabId:7},'Debugger.scriptParsed',{scriptId:'reused',executionContextId:2,url:'chrome-extension://fixture/context.js',embedderName:'chrome-extension://fixture/context.js',executionContextAuxData:{isDefault:false,frameId:'frame'}})");await paused(f,'reused');
   assert.equal(f.run("startup.filter(row=>row.method==='Runtime.evaluate'&&row.parameters.expression.includes('guard fixture')).length"),2,'both native documents install before page code');
   assert.equal(f.run("preloadTargets.get('[7,null]').documents.get('isolated-2-navigation-1').ready"),true);
   const before=f.run("preloadTargets.get('[7,null]').documents.size");await f.run("onEvent({tabId:7},'Page.frameNavigated',{frame:{id:'unrelated-child',parentId:'frame'}})");assert.equal(f.run("preloadTargets.get('[7,null]').documents.size"),before,'a child navigation cannot retire the current parent guard');
@@ -1035,7 +1036,7 @@ test('P19 a cancelled startup cannot evaluate or resume a reused native context'
   f.run(source.slice(source.indexOf('chrome.debugger.onEvent.addListener('),source.indexOf('chrome.debugger.onDetach.addListener(')));
   const old=paused(f,'old');await spin(f,"typeof oldBundle==='function'");
   await f.run("onEvent({tabId:7},'Page.frameNavigated',{frame:{id:'frame',loaderId:'replacement'}})");
-  await f.run("preloadEvent({tabId:7},'Debugger.scriptParsed',{scriptId:'replacement',executionContextId:2,url:'chrome-extension://fixture/context.js',executionContextAuxData:{isDefault:false,frameId:'frame'}})");
+  await f.run("preloadEvent({tabId:7},'Debugger.scriptParsed',{scriptId:'replacement',executionContextId:2,url:'chrome-extension://fixture/context.js',embedderName:'chrome-extension://fixture/context.js',executionContextAuxData:{isDefault:false,frameId:'frame'}})");
   f.run("oldBundle(['// guard fixture','// reader fixture','// wrapper fixture'])");await old;
   assert.equal(f.run("startup.filter(row=>row.method==='Runtime.evaluate').length"),0,'old setup cannot run in the replacement context');assert.equal(f.run("startup.filter(row=>row.method==='Debugger.resume').length"),0,'old setup cannot release a replacement pause');
   await paused(f,'replacement');assert.equal(f.run("preloadTargets.get('[7,null]').documents.get('isolated-2-navigation-1').ready"),true);assert.equal(f.run("startup.filter(row=>row.method==='Debugger.resume').length"),1);
@@ -1083,7 +1084,7 @@ test('P1 an old private end query cannot resume a replacement startup',async()=>
   f.run(source.slice(source.indexOf('chrome.debugger.onEvent.addListener('),source.indexOf('chrome.debugger.onDetach.addListener(')));
   await f.run("preloadEvent({tabId:7},'Debugger.scriptParsed',{scriptId:'old-private-end',executionContextId:2,url:'',executionContextAuxData:{isDefault:false,frameId:'frame'}})");
   const old=f.run("preloadEvent({tabId:7},'Debugger.paused',{hitBreakpoints:[],callFrames:[{location:{scriptId:'old-private-end'}}]})");await spin(f,"typeof endReply==='function'");
-  await f.run("onEvent({tabId:7},'Page.frameNavigated',{frame:{id:'frame'}})");await f.run("preloadEvent({tabId:7},'Debugger.scriptParsed',{scriptId:'new-startup',executionContextId:2,url:'chrome-extension://fixture/context.js',executionContextAuxData:{isDefault:false,frameId:'frame'}})");
+  await f.run("onEvent({tabId:7},'Page.frameNavigated',{frame:{id:'frame'}})");await f.run("preloadEvent({tabId:7},'Debugger.scriptParsed',{scriptId:'new-startup',executionContextId:2,url:'chrome-extension://fixture/context.js',embedderName:'chrome-extension://fixture/context.js',executionContextAuxData:{isDefault:false,frameId:'frame'}})");
   f.run("preloadBundle=new Promise(resolve=>{globalThis.newBundle=resolve})");const next=paused(f,'new-startup');await spin(f,"typeof newBundle==='function'");f.run("endReply({result:{value:{document:'private-document',token:'old-token'}}})");await old;
   assert.equal(f.run("startup.filter(row=>row.method==='Debugger.resume').length"),1,'only the first completed startup has resumed');f.run("newBundle(['// guard fixture','// reader fixture','// wrapper fixture'])");await next;assert.equal(f.run("startup.filter(row=>row.method==='Debugger.resume').length"),2);
 });
@@ -1093,7 +1094,7 @@ test('P1 an old dialog return query cannot poison a replacement document',async(
   f.run("const state=preloadTargets.get('[7,null]');state.frameId='frame';const doc=state.documents.get('isolated-2');controlled.get(7).hold={nonce:'old-hold',config:POLICY,inFlight:false,until:0};globalThis.barrierReady=new Promise((resolve,reject)=>{state.dialogBarrier={nonce:'old-hold',token:'old-token',documents:[{state,doc}],source:{state,doc},resolve,reject}});barrierReady.catch(()=>{});const send=chrome.debugger.sendCommand;chrome.debugger.sendCommand=(source,method,args)=>method==='Runtime.evaluate'&&args.expression.includes('dialogBoundary')?new Promise(resolve=>{globalThis.oldReturn=resolve}):send(source,method,args);chrome.debugger.onEvent={addListener:fn=>{globalThis.onEvent=fn}};");
   f.run(source.slice(source.indexOf('chrome.debugger.onEvent.addListener('),source.indexOf('chrome.debugger.onDetach.addListener(')));
   const old=f.run("preloadEvent({tabId:7},'Debugger.paused',{hitBreakpoints:[]})");await spin(f,"typeof oldReturn==='function'");
-  await f.run("onEvent({tabId:7},'Page.frameNavigated',{frame:{id:'frame'}})");await f.run("preloadEvent({tabId:7},'Debugger.scriptParsed',{scriptId:'replacement-startup',executionContextId:2,url:'chrome-extension://fixture/context.js',executionContextAuxData:{isDefault:false,frameId:'frame'}})");
+  await f.run("onEvent({tabId:7},'Page.frameNavigated',{frame:{id:'frame'}})");await f.run("preloadEvent({tabId:7},'Debugger.scriptParsed',{scriptId:'replacement-startup',executionContextId:2,url:'chrome-extension://fixture/context.js',embedderName:'chrome-extension://fixture/context.js',executionContextAuxData:{isDefault:false,frameId:'frame'}})");
   f.run("preloadBundle=new Promise(resolve=>{globalThis.replacementBundle=resolve})");const next=paused(f,'replacement-startup');f.run("oldReturn({result:{value:{document:'private-document',token:'old-token'}}})");await old;
   await assert.rejects(f.run('barrierReady'),/source changed|context disappeared/);assert.equal(f.run('controlled.get(7).dialogPauseFailed'),undefined,'the old failure cannot disable the replacement control');assert.equal(f.run("startup.filter(row=>row.method==='Debugger.resume').length"),1);
   f.run("replacementBundle(['// guard fixture','// reader fixture','// wrapper fixture'])");await next;assert.equal(f.run("preloadTargets.get('[7,null]').documents.get('isolated-2-navigation-1').ready"),true);
@@ -1230,7 +1231,7 @@ test('gate60b the install record names each controlled document\'s path from bac
   const f=startupFixture();await f.run('prepareTarget({tabId:7})');await startupContexts(f,'early');await paused(f,'early');
   // A loaded document of the same tab whose reader joined late: its isolated
   // context is known, and its guard reports its own identity.
-  await f.run("preloadEvent({tabId:7},'Debugger.scriptParsed',{scriptId:'late',executionContextId:9,url:'chrome-extension://fixture/context.js',executionContextAuxData:{isDefault:false,frameId:'loaded-frame'}})");
+  await f.run("preloadEvent({tabId:7},'Debugger.scriptParsed',{scriptId:'late',executionContextId:9,url:'chrome-extension://fixture/context.js',embedderName:'chrome-extension://fixture/context.js',executionContextAuxData:{isDefault:false,frameId:'loaded-frame'}})");
   f.run("const send=chrome.debugger.sendCommand;chrome.debugger.sendCommand=(source,method,parameters)=>method==='Runtime.callFunctionOn'&&parameters.returnByValue&&parameters.functionDeclaration.includes('this.document')?Promise.resolve({result:{value:'late-document'}}):send(source,method,parameters)");
   await f.run('lateReader(7)');
   const record=()=>JSON.parse(JSON.stringify(f.run('installRecord()')));
@@ -1312,10 +1313,10 @@ function swappedPopupFixture(){
     chrome.tabs.get=async tab=>({id:tab,url:tab===8?'http://popup.test/post-document':'http://fixture.test/',windowId:tab===7?1:2,index:0,groupId:tab===7?1:-1,openerTabId:tab===8?7:undefined});
     chrome.windows.get=async window=>({type:window===1?'normal':'popup'});
     chrome.webNavigation.getAllFrames=async({tabId})=>tabId===8?[{frameId:0,parentFrameId:-1,documentId:'post-document',url:'http://popup.test/post-document'}]:[];
-    chrome.scripting.executeScript=async request=>{injections.push(request);if(injectionReports)for(const [scriptId,file]of [['5','guard.js'],['6','reader.js']])await preloadEvent({tabId:8},'Debugger.scriptParsed',{scriptId,executionContextId:2,url:'chrome-extension://fixture/'+file,executionContextAuxData:{isDefault:false,frameId:'popup-frame'}});};
+    chrome.scripting.executeScript=async request=>{injections.push(request);if(injectionReports)for(const [scriptId,file]of [['5','guard.js'],['6','reader.js']])await preloadEvent({tabId:8},'Debugger.scriptParsed',{scriptId,executionContextId:2,url:'chrome-extension://fixture/'+file,embedderName:'chrome-extension://fixture/'+file,executionContextAuxData:{isDefault:false,frameId:'popup-frame'}});};
     chrome.tabs.sendMessage=async(tab,message)=>{messages.push(message.command);return {ok:true,data:message.command==='set_control'?{controlled:true}:[]};};
     chrome.debugger.sendCommand=async(source,method,parameters)=>{lifecycleCalls.push(method);
-      const parsed=(scriptId,executionContextId,url,isDefault)=>preloadEvent(source,'Debugger.scriptParsed',{scriptId,executionContextId,url,executionContextAuxData:{isDefault,frameId:'popup-frame'}});
+      const parsed=(scriptId,executionContextId,url,isDefault)=>preloadEvent(source,'Debugger.scriptParsed',{scriptId,executionContextId,url,embedderName:url,executionContextAuxData:{isDefault,frameId:'popup-frame'}});
       if(method==='Debugger.enable'){if(swapped){await parsed('3',2,'chrome-extension://fixture/context.js',false);await parsed('4',1,'http://popup.test/post-document',true);return {debuggerId:'popup-renderer'};}await parsed('29',7,'chrome-extension://fixture/context.js',false);return {debuggerId:'opener-renderer'};}
       if(method==='Debugger.setBreakpointByUrl'){if(swapReplay&&!swapped){swapped=true;await parsed('3',2,'chrome-extension://fixture/context.js',false);await parsed('4',1,'http://popup.test/post-document',true);}if(breakpointErrors.length){const error=breakpointErrors.shift();if(pauseOn==='error'&&error===DUPLICATE)await pause();throw Error(error);}return {breakpointId:'startup',locations:[{scriptId:'3'}]};}
       if(method==='Debugger.disable'&&pauseOn==='disable'){pauseOn=null;await pause();}
@@ -1390,6 +1391,145 @@ test('post-popup the live context is also learned from the injected guard\'s own
   assert.deepEqual(JSON.parse(f.run('JSON.stringify(evaluated)')),[{context:7,dispose:false},{context:2,dispose:false}]);
   const audits=JSON.parse(f.run('JSON.stringify(audits)'));
   assert.equal(audits.filter(row=>row.data?.popup_admitted).length,1);assert.equal(audits.some(row=>row.event==='reader_error'||row.event==='released'),false);
+});
+
+// Brief 28, item 1: the three read-only commands of the new read. The readers
+// are doubles; what is tested is what the background joins and checks.
+function readFixture(){
+  const f=fixture();
+  f.run('crypto').subtle={digest:async(name,bytes)=>{assert.equal(name,'SHA-256');const hash=createHash('sha256').update(Buffer.from(bytes)).digest();return hash.buffer.slice(hash.byteOffset,hash.byteOffset+hash.byteLength);}};
+  f.run(`excludedHosts=['approval.test'];controlled.set(7,{epoch:'epoch'});requireTab=async()=>({url:'http://fixture.test/page?x=1',title:'Fixture'});
+    globalThis.nativeFrames=[{frameId:0,parentFrameId:-1,documentId:'top-native',url:'http://fixture.test/page?x=1'},{frameId:4,parentFrameId:0,documentId:'child-native',url:'http://second.test/inner'},{frameId:5,parentFrameId:0,documentId:'excluded-native',url:'http://approval.test/'}];
+    chrome.webNavigation={getAllFrames:async()=>nativeFrames};
+    globalThis.outlines={
+      0:{document:'top-private',reader:'reader-top',watched:true,origin:'http://fixture.test',url:'http://fixture.test/page?x=1',title:'Top',scroll:0,height:900,omitted:0,
+        nodes:[{id:1,parent:null,role:'frame',name:'Inner',frame:4},{id:2,parent:null,role:'frame',name:'Excluded',frame:5},{id:3,parent:null,role:'p',text:['Top text']}]},
+      4:{document:'child-private',reader:'reader-child',watched:false,origin:'http://second.test',url:'http://second.test/inner',title:'Inner',scroll:0,height:100,omitted:0,nodes:[{id:1,parent:null,role:'p',text:['Inner text']}]}};
+    globalThis.states={
+      0:{document:'top-private',reader:'reader-top',origin:'http://fixture.test',revision:3,address:'a'.repeat(64),fields:'b'.repeat(64),ready:true},
+      4:{document:'child-private',reader:'reader-child',origin:'http://second.test',revision:0,address:'c'.repeat(64),fields:'d'.repeat(64),ready:false}};
+    globalThis.asked=[];
+    content=async(tab,frame,command,parameters={},browserDocument=null)=>{
+      asked.push({frame,command,parameters,browserDocument});
+      const reply=command==='outline'?outlines[frame]:command==='page_state'?states[frame]:command==='options'?[{label:'One',value:'1',chosen:true,disabled:false}]:null;
+      if(!reply)throw Error('Could not establish connection. Receiving end does not exist.');
+      return JSON.parse(JSON.stringify(reply));
+    };`);
+  const plain=value=>JSON.parse(JSON.stringify(value));
+  return {...f,asked:()=>JSON.parse(f.run('JSON.stringify(asked)')),call:async command=>plain(await f.run('dispatch('+JSON.stringify(command)+')'))};
+}
+
+test('brief 28 outline asks every readable frame for its outline and joins Chrome\'s frame and document ids',async()=>{
+  const f=readFixture(),view=await f.call({name:'outline',tab:7});
+  assert.deepEqual(f.asked(),[
+    {frame:0,command:'outline',parameters:{limit:20000},browserDocument:'top-native'},
+    {frame:4,command:'outline',parameters:{limit:19997},browserDocument:'child-native'}],'the excluded frame is never asked, and each frame gets what is left of the tab\'s nodes');
+  assert.deepEqual(Object.keys(view).sort(),['control','dialog','frames','needs_reload','session','tab','title','uncovered','url']);
+  assert.deepEqual([view.session,view.tab,view.control,view.url,view.title,view.dialog,view.needs_reload],['fixture-session',7,'epoch','http://fixture.test/page?x=1','Fixture',null,true]);
+  assert.deepEqual(view.frames.map(frame=>[frame.frame,frame.parent,frame.browser_document,frame.document,frame.reader,frame.watched,frame.effective_url]),[
+    [0,-1,'top-native','top-private','reader-top',true,'http://fixture.test/page?x=1'],[4,0,'child-native','child-private','reader-child',false,'http://second.test/inner']]);
+  // A frame element names its frame only when that frame's outline is in the reply.
+  assert.deepEqual(view.frames[0].nodes,[{id:1,parent:null,role:'frame',name:'Inner',frame:4},{id:2,parent:null,role:'frame',name:'Excluded'},{id:3,parent:null,role:'p',text:['Top text']}]);
+  assert.deepEqual(view.frames[1].nodes,[{id:1,parent:null,role:'p',text:['Inner text']}]);
+  assert.deepEqual(view.uncovered,[{frame:5,eligible:false,reason:'excluded origin or scheme'}]);
+  // The second read holds each reader to the document the first one pinned.
+  await f.call({name:'outline',tab:7});
+  assert.deepEqual(f.asked().slice(2).map(item=>item.parameters),[{limit:20000,expected_document:'top-private'},{limit:19997,expected_document:'child-private'}]);
+  f.run("outlines[0].document='replacement'");
+  await assert.rejects(f.run("dispatch({name:'outline',tab:7})"),/password history was lost/);
+});
+
+test('brief 28 outline lists the top document first, cuts at 20,000 nodes a tab and leaves out a frame without an outline',async()=>{
+  const f=readFixture();
+  f.run("nativeFrames.reverse();outlines[4].nodes.push({id:2,parent:null,role:'frame',frame:0},{id:3,parent:null,role:'frame',frame:4})");
+  const reordered=await f.call({name:'outline',tab:7});
+  assert.deepEqual(reordered.frames.map(frame=>frame.frame),[0,4]);
+  assert.deepEqual(reordered.frames[1].nodes.slice(1),[{id:2,parent:null,role:'frame'},{id:3,parent:null,role:'frame'}],'a frame element never names the top frame or its own');
+  f.run("nativeFrames.reverse();asked.length=0;outlines[0].nodes=Array.from({length:20000},(_,index)=>({id:index+1,parent:null,role:'p'}))");
+  await f.call({name:'outline',tab:7});
+  assert.deepEqual(f.asked().map(item=>item.parameters.limit),[20000,0]);
+  // A reader that answers without nodes (an older one) is a frame that wasn't read, never an empty page.
+  f.run("outlines[0].nodes=[{id:1,parent:null,role:'frame',frame:4}];outlines[4]={document:'child-private',reader:'reader-child',origin:'http://second.test'}");
+  const partial=await f.call({name:'outline',tab:7});
+  assert.deepEqual(partial.frames.map(frame=>frame.frame),[0]);assert.deepEqual(partial.frames[0].nodes,[{id:1,parent:null,role:'frame'}]);
+  assert.deepEqual(partial.uncovered.find(frame=>frame.frame===4),{frame:4,eligible:true,reason:'reader or inherited origin unavailable'});
+});
+
+test('brief 28 outline with a native dialog open returns the dialog\'s kind and text and asks no reader',async()=>{
+  const f=readFixture();f.run("dialogs.set(7,{id:'dialog',kind:'confirm',text:'Leave the page?',frame:0,frame_url:'http://fixture.test/page?x=1',button:'OK'})");
+  const view=await f.call({name:'outline',tab:7});
+  assert.deepEqual(view.dialog,{kind:'confirm',text:'Leave the page?'});assert.deepEqual(view.frames,[]);assert.deepEqual(view.uncovered,[]);assert.deepEqual(f.asked(),[]);
+});
+
+test('brief 28 options asks one frame of a document an outline has read, bound to its reader instance',async()=>{
+  const f=readFixture(),reference={name:'options',tab:7,frame:4,document:'child-private',reader:'reader-child',element:9};
+  await assert.rejects(f.run('dispatch('+JSON.stringify(reference)+')'),/stale_reference: document changed/,'no outline has read this document yet');
+  await f.call({name:'outline',tab:7});f.run('asked.length=0');
+  assert.deepEqual(await f.call(reference),{session:'fixture-session',tab:7,frame:4,document:'child-private',reader:'reader-child',options:[{label:'One',value:'1',chosen:true,disabled:false}]});
+  assert.deepEqual(f.asked(),[{frame:4,command:'options',parameters:{element:9,document:'child-private',reader:'reader-child',expected_document:'child-private'},browserDocument:'child-native'}]);
+  f.run('asked.length=0');
+  for(const [change,pattern] of [[{frame:9},/stale_reference: frame is gone/],[{frame:5},/refused: excluded frame/],[{document:'top-private'},/stale_reference: document changed/],[{document:undefined},/stale_reference: document changed/]])
+    await assert.rejects(f.run('dispatch('+JSON.stringify({...reference,...change})+')'),pattern,JSON.stringify(change));
+  f.run("nativeFrames[1].documentId='child-native-2'");
+  await assert.rejects(f.run('dispatch('+JSON.stringify(reference)+')'),/stale_reference: document changed/,'the frame navigated');
+  f.run("nativeFrames[1].documentId='child-native';controlled.delete(7);requireTab=async()=>{throw Error('stale_reference: tab is outside the Claude group')}");
+  await assert.rejects(f.run('dispatch('+JSON.stringify(reference)+')'),/outside the Claude group/);
+  assert.deepEqual(f.asked(),[],'no refusal asked a reader');
+});
+
+test('brief 28 page_state joins every readable frame\'s state into one token that moves with each part',async()=>{
+  const f=readFixture(),state=()=>f.call({name:'page_state',tab:7});
+  const first=await state();
+  assert.deepEqual(Object.keys(first).sort(),['address','control','dialog','document','queued','ready','session','tab','token']);
+  assert.match(first.token,/^[0-9a-f]{64}$/);assert.equal(first.address,createHash('sha256').update('http://fixture.test/page?x=1').digest('hex'));
+  assert.deepEqual([first.session,first.tab,first.control,first.document,first.ready,first.dialog,first.queued],['fixture-session',7,'epoch','top-native',true,false,false]);
+  assert.deepEqual(f.asked().map(item=>[item.frame,item.command,item.browserDocument]),[[0,'page_state','top-native'],[4,'page_state','child-native']]);
+  assert.deepEqual(await state(),first,'nothing changed, the same token');
+  assert.deepEqual(f.asked().slice(2).map(item=>item.parameters),[{expected_document:'top-private'},{expected_document:'child-private'}]);
+  const seen=new Set([first.token]);
+  // Typing in a frame, a DOM change, a new reader instance, an address, a navigated frame, a reader that left.
+  for(const change of ["states[4].fields='e'.repeat(64)","states[0].revision=4","states[4].reader='reader-new'","states[0].address='f'.repeat(64)","nativeFrames[1].documentId='child-native-2'","states[4]=null"]){
+    f.run(change);const next=await state();assert.match(next.token,/^[0-9a-f]{64}$/);assert.equal(seen.has(next.token),false,change);seen.add(next.token);
+    assert.deepEqual([next.address,next.document,next.ready],[first.address,'top-native',true],change);
+  }
+  f.run("states[0].ready=false;controlled.get(7).steps=new Map([['step',{id:'s1'}]])");
+  const loading=await state();assert.deepEqual([loading.ready,loading.queued],[false,true]);
+  assert.ok(!JSON.stringify(loading).includes('reader-top')&&!JSON.stringify(loading).includes('top-private'),'the token is a digest, not the parts');
+  f.run("states[0].document='replacement'");
+  await assert.rejects(f.run("dispatch({name:'page_state',tab:7})"),/password history was lost/);
+});
+
+test('brief 28 page_state with a native dialog open says so, holds no token and asks no reader',async()=>{
+  const f=readFixture();f.run("dialogs.set(7,{id:'dialog',kind:'alert',text:'Stop',frame:0,frame_url:'http://fixture.test/page?x=1'})");
+  const state=await f.call({name:'page_state',tab:7});
+  assert.deepEqual(Object.keys(state).sort(),['address','control','dialog','queued','session','tab']);assert.equal(state.dialog,true);assert.deepEqual(f.asked(),[]);
+  // A dialog that opens while a frame is asked ends the same way.
+  f.run("dialogs.delete(7);const answer=content;content=async(...args)=>{if(args[1]===4){dialogs.set(7,{id:'late',kind:'alert',text:'Late',frame:0,frame_url:'http://fixture.test/'});throw Error('refused: a native dialog blocks this frame query');}return answer(...args);}");
+  const interrupted=await f.call({name:'page_state',tab:7});assert.equal(interrupted.dialog,true);assert.equal('token' in interrupted,false);
+});
+
+test('brief 28 the read-only commands are refused for a tab without its document-start guard',async()=>{
+  const f=readFixture();await f.call({name:'outline',tab:7});
+  f.run("asked.length=0;preloadTargets.set('failed',{tab:7,failures:new Map([['frame',{}]])})");
+  for(const command of [{name:'outline',tab:7},{name:'page_state',tab:7},{name:'options',tab:7,frame:4,document:'child-private',reader:'reader-child',element:9}])
+    await assert.rejects(f.run('dispatch('+JSON.stringify(command)+')'),/could not install its document-start guard/,command.name);
+  assert.deepEqual(f.asked(),[]);
+});
+
+// Brief 28, item 8 (PR #27's round-5 security re-check, NOTE 1).
+test('brief 28 item 8 a script is one of ours only when the browser names it so, never by its url alone',async()=>{
+  const ours='chrome-extension://fixture/context.js';
+  for(const [embedderName,taken] of [[ours,true],['http://fixture.test/page.js',false],['chrome-extension://fixture/reader.js',false],['',false],[undefined,false]]){
+    const f=startupFixture();await f.run('prepareTarget({tabId:7})');
+    const event={scriptId:'named',executionContextId:5,url:ours,...(embedderName===undefined?{}:{embedderName}),executionContextAuxData:{isDefault:false,frameId:'frame'}};
+    await f.run("preloadEvent({tabId:7},'Debugger.scriptParsed',"+JSON.stringify(event)+')');
+    assert.equal(f.run("preloadTargets.get('[7,null]').contexts.has(5)"),taken,String(embedderName));
+    assert.equal(f.run("preloadTargets.get('[7,null]').scripts.has('named')"),taken,String(embedderName));
+  }
+  // The browser's name alone, under another url, isn't enough either.
+  const f=startupFixture();await f.run('prepareTarget({tabId:7})');
+  await f.run("preloadEvent({tabId:7},'Debugger.scriptParsed',"+JSON.stringify({scriptId:'renamed',executionContextId:5,url:'http://fixture.test/page.js',embedderName:ours,executionContextAuxData:{isDefault:false,frameId:'frame'}})+')');
+  assert.equal(f.run("preloadTargets.get('[7,null]').contexts.has(5)"),false);
 });
 
 // popuprace (brief 20-popup-race, run 43671248371): Chrome's replay of an
@@ -1505,4 +1645,135 @@ test('popuprace a stalled popup that has loaded, or has a dialog on record, keep
     assert.deepEqual(admittedLines(f).map(row=>row.owner_dialog),[true],'the line says the fallback ran');
     const act=assert.rejects(f.run('requireTab(8)'),/owner_dialog: Ask the owner: Please answer the dialog yourself/);await stall(f,act,1);
   }
+});
+
+// Brief 28, item 4: a command of the new read carries the milliseconds it has
+// left; the queue doesn't start it once that time is up, and its waits for a
+// frame or the reader end then, with `expired`. Without it, nothing changes.
+const pause=milliseconds=>new Promise(resolve=>setTimeout(resolve,milliseconds));
+function waitFixture(){
+  const f=fixture();
+  f.run('crypto').subtle={digest:async(name,bytes)=>{const hash=createHash('sha256').update(Buffer.from(bytes)).digest();return hash.buffer.slice(hash.byteOffset,hash.byteOffset+hash.byteLength);}};
+  f.run(`excludedHosts=['approval.test'];for(const tab of [7,8,9,10,11])controlled.set(tab,{epoch:'epoch'});
+    requireTab=async()=>({url:'http://fixture.test/page',title:'Fixture'});
+    globalThis.nativeFrames=[{frameId:0,parentFrameId:-1,documentId:'top-native',url:'http://fixture.test/page'}];
+    chrome.webNavigation={getAllFrames:async()=>nativeFrames,getFrame:async({frameId})=>nativeFrames.find(frame=>frame.frameId===frameId)};
+    globalThis.silent=new Set();globalThis.silentTabs=new Set();globalThis.asked=[];globalThis.posted=[];
+    port={postMessage:message=>posted.push(message)};
+    chrome.tabs={sendMessage:(tab,message,options)=>{
+      asked.push({tab,command:message.command});
+      if(silent.has(message.command)||silentTabs.has(tab))return new Promise(()=>{});
+      const data={outline:{document:'top-private',reader:'reader-top',watched:true,origin:'http://fixture.test',url:'http://fixture.test/page',title:'Top',scroll:0,height:900,omitted:0,nodes:[{id:1,parent:null,role:'listbox',name:'Pick'}]},
+        page_state:{document:'top-private',reader:'reader-top',origin:'http://fixture.test',revision:1,address:'a'.repeat(64),fields:'b'.repeat(64),ready:true},
+        ready:{document:'top-private',element_present:true},options:[{label:'One',value:'1',chosen:true,disabled:false}]}[message.command];
+      return Promise.resolve(data?{ok:true,data}:{ok:false,error:'refused: not in this fixture'});
+    }};`);
+  return f;
+}
+
+test('brief 28 item 4 a frame that never answers ends each read command at its time with expired',async()=>{
+  const f=waitFixture();
+  // An outline first pins the document, so options may ask it.
+  assert.equal((await f.run("dispatch({name:'outline',tab:7})")).frames.length,1);
+  for(const [command,silent] of [[{name:'outline',tab:7},'outline'],[{name:'page_state',tab:7},'page_state'],
+    [{name:'options',tab:7,frame:0,document:'top-private',reader:'reader-top',element:1},'options'],
+    [{name:'validity',tab:7,reference:{frame:0,element:'e1',document:'top-private'}},'ready'],
+    [{name:'read',tab:7},'read'],[{name:'typed_fields',tab:7},'typed_fields']]){
+    f.run(`silent.clear();silent.add(${JSON.stringify(silent)})`);
+    const started=performance.now();
+    await assert.rejects(f.run(`dispatch(${JSON.stringify(command)},performance.now()+60)`),/expired: /,command.name);
+    const elapsed=performance.now()-started;
+    assert.ok(elapsed>=50&&elapsed<1000,command.name+' '+elapsed);
+    assert.equal(f.run('dialogWake.size'),0,command.name+' disposes its dialog waiter');
+  }
+  assert.equal(f.run('controlled.has(7)'),true,'running out of time keeps control');
+});
+
+test('brief 28 item 4 a command without a time waits for its frame as before',async()=>{
+  const f=waitFixture();f.run("silent.add('outline')");
+  let settled=false;f.run("dispatch({name:'outline',tab:7})").then(()=>{settled=true;},()=>{settled=true;});
+  await pause(200);
+  assert.equal(settled,false);
+  assert.deepEqual(JSON.parse(f.run('JSON.stringify(asked)')),[{tab:7,command:'outline'}]);
+});
+
+test('brief 28 item 4 the queue starts no command whose time is up when it reaches the front',async()=>{
+  const f=fixture();
+  f.run(`globalThis.posted=[];port={postMessage:message=>posted.push(message)};globalThis.started=[];globalThis.release=null;
+    dispatch=async(command,expires)=>{started.push({name:command.name,expires});if(command.name==='slow')await new Promise(resolve=>{release=resolve;});return {done:command.name};};
+    enqueue({id:'a',command:{name:'slow'}});enqueue({id:'b',time_left_ms:30,command:{name:'outline',tab:7}});
+    enqueue({id:'c',command:{name:'page_state',tab:7}});enqueue({id:'d',time_left_ms:5000,command:{name:'outline',tab:7}});`);
+  await pause(80);f.run('release()');
+  for(let round=0;round<100&&f.run('posted.length')<4;round++)await pause(5);
+  const posted=JSON.parse(f.run('JSON.stringify(posted)'));
+  assert.deepEqual(posted.map(message=>message.id),['a','b','c','d'],'one queue, in order');
+  assert.equal(posted[1].ok,false);assert.match(posted[1].error,/^expired: .*not started/);
+  assert.deepEqual(posted.filter(message=>message.ok).map(message=>message.data.done),['slow','page_state','outline']);
+  const started=JSON.parse(f.run('JSON.stringify(started)'));
+  assert.deepEqual(started.map(row=>row.name),['slow','page_state','outline'],'the expired command never started');
+  assert.equal(started[1].expires,null,'a command without a time gets none');
+  assert.equal(typeof started[2].expires,'number');
+});
+
+// The lead after step 10: a malformed time can only be a fault in the
+// service's bridge, so it is refused unrun (invalid_input), never run untimed.
+const MALFORMED_TIMES=[-1,1.5,-0.5,'500',null,true,{},[5],2**53];
+async function timedQueue(transform){
+  const f=fixture(transform);
+  f.run(`globalThis.posted=[];port={postMessage:message=>posted.push(message)};globalThis.started=[];
+    dispatch=async(command,expires)=>{started.push({id:command.id,expires});return {done:command.id};};
+    enqueue({id:'before',command:{name:'outline',id:'before'}});`
+    +MALFORMED_TIMES.map((value,index)=>`enqueue({id:'bad${index}',time_left_ms:${JSON.stringify(value)},command:{name:'outline',id:'bad${index}'}});`).join('')
+    +`enqueue({id:'zero',time_left_ms:0,command:{name:'outline',id:'zero'}});enqueue({id:'after',time_left_ms:5000,command:{name:'outline',id:'after'}});`);
+  for(let round=0;round<100&&f.run('posted.length')<MALFORMED_TIMES.length+3;round++)await pause(5);
+  return {posted:JSON.parse(f.run('JSON.stringify(posted)')),started:JSON.parse(f.run('JSON.stringify(started)'))};
+}
+
+test('brief 28 item 4 a malformed time is refused unrun in its turn and never runs without a time',async()=>{
+  const {posted,started}=await timedQueue();
+  assert.deepEqual(posted.map(message=>message.id),['before',...MALFORMED_TIMES.map((_,index)=>'bad'+index),'zero','after'],'one queue, in order');
+  for(const [index,value] of MALFORMED_TIMES.entries()){
+    const reply=posted[index+1];
+    assert.equal(reply.ok,false,JSON.stringify(value));
+    assert.equal(reply.error,'invalid_input: time_left_ms must be a whole number of milliseconds, 0 or more; the command was not run',JSON.stringify(value));
+  }
+  assert.match(posted.at(-2).error,/^expired: .*not started/,'0 is a time that is up, not a malformed one');
+  assert.deepEqual(started.map(row=>row.id),['before','after'],'no malformed command started');
+  assert.equal(started[0].expires,null);assert.equal(typeof started[1].expires,'number');
+});
+
+test('brief 28 item 4 the malformed-time test fails without the refusal',async()=>{
+  // The mutation, run in CI where Node is: the refusal cut out, the same queue
+  // runs every malformed command without a time, as JUDGMENT-CALL 9 had it.
+  let cut=0;
+  const {posted,started}=await timedQueue(source=>source.replaceAll('if(!valid){',()=>{cut++;return 'if(false){';}));
+  assert.equal(cut,1,'the refusal is written once');
+  assert.ok(posted.slice(1,MALFORMED_TIMES.length+1).every(reply=>reply.ok),JSON.stringify(posted));
+  assert.deepEqual(started.map(row=>row.id),['before',...MALFORMED_TIMES.map((_,index)=>'bad'+index),'after']);
+  assert.ok(started.slice(1,-1).every(row=>row.expires===null));
+});
+
+test('brief 28 item 4 with five tabs a slow first one costs only its share',async()=>{
+  const f=waitFixture();f.run('silentTabs.add(7)');
+  // The service's rule: each tab an equal share of what is left when its turn comes.
+  const total=700,start=performance.now(),replies=[];
+  for(let index=0;index<5;index++){
+    const left=Math.floor((start+total-performance.now())/(5-index)),id='tab-'+index;
+    f.run(`enqueue({id:${JSON.stringify(id)},time_left_ms:${left},command:{name:'outline',tab:${7+index}}})`);
+    for(let round=0;round<400&&!f.run(`posted.some(message=>message.id===${JSON.stringify(id)})`);round++)await pause(2);
+    replies.push(JSON.parse(f.run(`JSON.stringify(posted.find(message=>message.id===${JSON.stringify(id)}))`)));
+  }
+  const elapsed=performance.now()-start;
+  assert.match(replies[0].error,/^expired: /);
+  assert.ok(replies.slice(1).every(reply=>reply.ok&&reply.data.frames.length===1),JSON.stringify(replies));
+  assert.ok(elapsed>=130&&elapsed<total,'the slow tab took its share and no more: '+elapsed);
+});
+
+test('brief 28 item 4 a popup setup wait ends at the command time and keeps control',async()=>{
+  const f=fixture();
+  f.run("excludedHosts=[];groupId=1;chrome.tabs.get=async()=>({url:'http://fixture.test/',groupId:1});controlled.set(7,{epoch:'epoch',pendingSetup:{preload:new Promise(()=>{}),ready:new Promise(()=>{})}})");
+  await assert.rejects(f.run('requireTab(7,performance.now()+50)'),/expired: /);
+  assert.equal(f.run('controlled.has(7)'),true);assert.equal(f.run('!!controlled.get(7).pendingSetup'),true);assert.equal(f.run('dialogWake.size'),0);
+  let settled=false;f.run('requireTab(7)').then(()=>{settled=true;},()=>{settled=true;});
+  await pause(150);assert.equal(settled,false,'without a time it waits as before');
 });

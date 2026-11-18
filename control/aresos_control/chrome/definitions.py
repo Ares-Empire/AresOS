@@ -1,6 +1,22 @@
 """Chrome action descriptions; app-wide rules are MCP instructions."""
+import os
+
 from ..definitions import obj, string, array, APPROVAL, OP, BLOB, PAGE, PREPARED_RESULT, OP_RESULT
 from .policy import WORDS, WORD_LIST_VERSION
+
+# Brief 28, item 6: the new read is reachable only as the internal action
+# chrome_outline, and only in a process started with this test-only switch.
+# The CI container's run.sh sets it for the service and the browser harness;
+# the packaged service, CLI and MCP wrappers start with `env -i`, so it never
+# reaches them, and generate.py refuses to run while it is set. The service,
+# the MCP proxy and the aresos command each build their own catalogue at
+# import, so each needs it in its own environment.
+OUTLINE_SWITCH = 'ARESOS_TEST_CHROME_OUTLINE'
+
+
+def outline_switch():
+    return os.environ.get(OUTLINE_SWITCH) == '1'
+
 
 TAB = {'type': 'integer', 'minimum': 0}
 REF = obj({'session': string(64), 'tab': TAB, 'frame': TAB, 'document': string(128), 'view': string(128), 'element': string(32)})
@@ -83,4 +99,19 @@ def actions(Action):
          'site': string(), 'operation_id': string(80), 'id': string(80), 'enabled': {'type': 'boolean'}, **PAGE['properties']}, ['command']),
         'Owner lists or changes read-only sites and exact adapter-kind permissions. allow names a recently approved operation; revoke names the entry id. Requires sudo on admin.sock. '
         "The owner's Chrome details page lists, revokes and marks sites read-only directly; its allow and read-only off ask for his password in a polkit dialog, once for each change.", True)
+    if outline_switch():
+        # Last, so every other tool keeps its place in the list.
+        add('outline', 'read', OUTLINE,
+            'Test-only internal read (brief 28): the outline of a Claude tab with folds and short references; '
+            'a part by ref, full, find with role, until with timeout_ms, several tabs with max, pages by cursor.')
     return result
+
+
+# The input of brief 28's read. What the schema subset can't say (tabs only
+# with max, role only with find, timeout_ms only with until, exactly one of
+# tab and tabs) the adapter checks.
+QUERY = string(200)
+OUTLINE = obj({'tab': TAB, 'tabs': {**array(TAB, 5), 'minItems': 2}, 'ref': string(32), 'full': {'type': 'boolean'},
+               'find': QUERY, 'role': string(32), 'until': {'anyOf': [obj({'text': QUERY}), obj({'gone': QUERY})]},
+               'timeout_ms': {'type': 'integer', 'minimum': 0, 'maximum': 6000},
+               'max': {'type': 'integer', 'minimum': 1000, 'maximum': 40000}, 'cursor': string(512)}, [])

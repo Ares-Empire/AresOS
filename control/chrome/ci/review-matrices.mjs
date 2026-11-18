@@ -6,6 +6,16 @@ import {allTabs} from './tabs.mjs';
 import {createHash} from 'node:crypto';
 import fs from 'node:fs';
 
+export async function guardedOtherTabClick({rpc,call,childTarget,eventually}){
+  const old=await eventually(childTarget,'other tab reader');
+  const first=await rpc('click',old);assert.equal(first.ok,false);assert.equal(first.error.code,'stale_reference');
+  const fresh=await eventually(async()=>{
+    const current=await childTarget();
+    return current&&current.reference.document!==old.reference.document&&current;
+  },'guarded other tab document changed');
+  await call('click',fresh);
+}
+
 export async function guardedHandoffClick({rpc,call,target,eventually,receiverEvidence,id}){
   const before=await target('Ready');
   const first=await rpc('click',{...before,discard_unsaved:true});
@@ -142,8 +152,7 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
       const id='review-cross-tab-'+outside;await nav('review-page&mode=cross-tab&id='+id);await call('click',await target('Open window'));
       const child=await eventually(async()=>(await allTabs(call)).items.find(row=>row.url?.includes('mode=cross-tab-inner&id='+id)),'controlled other tab');
       const childTarget=async()=>{const page=await call('read',{tab:child.tab});const row=page.untrusted_content.tree.split('\n').filter(line=>line.startsWith('{')).map(JSON.parse).find(row=>row.expected.name==='Ready');return row&&{reference:row.reference,expected:row.expected};};
-      const old=await eventually(childTarget,'other tab reader');const first=await rpc('click',old);assert.equal(first.ok,false);assert.equal(first.error.code,'stale_reference');
-      await call('click',await eventually(childTarget,'guarded other tab'));
+      await guardedOtherTabClick({rpc,call,childTarget,eventually});
       if(outside)await call('release_tab',{tab:child.tab});
       await call('click',await target('Continue'));
       if(outside){await eventually(()=>counts(id)===1,'outside document takes native path');await call('take_tab',{tab:child.tab});await call('close_tab',{tab:child.tab,discard_unsaved:true});}
