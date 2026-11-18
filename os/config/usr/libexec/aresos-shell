@@ -2952,6 +2952,7 @@ class Helper:
         self.catalogue = catalogue
         self.icons = icons
         self.catalogue_apps = self.apps
+        self.view_only_apps = set()
         self.base_revision = self.revision
         self.legacy_apps, self.legacy_revision = (catalogue.legacy if catalogue is not None
                                                  else ({k: a for k, a in self.apps.items() if not a.discovered},
@@ -3069,8 +3070,12 @@ class Helper:
 
     def adopt_windows(self):
         """After a restart, give launches that had windows the app's current windows, or close them."""
+        waiting = set()
         for key, entry in self.journal.entries.items():
             if key not in self.adopting or entry['state'] in FINAL:
+                continue
+            if self.is_discovered(entry) and not self.catalogue_complete():
+                waiting.add(key)
                 continue
             tracker = self.windows if key[0] == DESKTOP else self.catalogue_windows
             windows = {toplevel.handle for toplevel in tracker.of(entry['app_id'])}
@@ -3079,7 +3084,7 @@ class Helper:
                 self.handles[key] = windows
             else:
                 self.set_state(key, 'closed')
-        self.adopting.clear()
+        self.adopting = waiting
 
     # -- connections
 
@@ -3363,7 +3368,7 @@ class Helper:
             return {}
         self.refresh_catalogue()
         self.home = home
-        self.home_awaits_catalogue = isinstance(self.catalogue, Discovery) and not self.catalogue.complete
+        self.home_awaits_catalogue = not self.catalogue_complete()
         if not self.home_awaits_catalogue:
             self.filter_published_home()
         self.emit_views('home_changed', revision=home.revision)
@@ -3376,6 +3381,7 @@ class Helper:
             for app_id in unknown:
                 del self.home.apps[app_id]
         self.home_awaits_catalogue = False
+        return bool(unknown)
 
     def app_row(self, app, details=False):
         # The catalogue's published value: listing touches no file (review 2, FIX 1).
@@ -3397,15 +3403,9 @@ class Helper:
             self.catalogue_apps = {
                 key: dataclasses.replace(app, icon=old.icon) if (old := self.catalogue_apps.get(key)) is not None
                 and old.icon_name == app.icon_name else app for key, app in self.catalogue.apps.items()}
-            if self.home_awaits_catalogue:
-                self.filter_published_home()
-            # Uninstalling an entry must not erase an existing window's owner or its pending return.
-            retained = {key: app for key, app in self.apps.items() if key not in self.catalogue_apps
-                        and (any(entry['app_id'] == key and entry['state'] not in FINAL
-                                 for entry in self.journal.entries.values())
-                             or any(scope['app_id'] == key for scope in self.discovered_scopes.values())
-                             or (self.catalogue_windows is not None and self.catalogue_windows.of(key)))}
-            self.apps = dict(retained, **self.catalogue_apps)
+            if self.home_awaits_catalogue and self.filter_published_home():
+                self.emit_views('home_changed', revision=self.home.revision)
+            self.retain_launch_definitions()
             if self.windows is not None:
                 self.windows.set_registry(self.window_apps())
                 self.catalogue_windows.set_registry(self.apps)
@@ -3422,6 +3422,28 @@ class Helper:
         if self.revision != previous:
             self.emit('apps_changed', revision=self.revision)
             self.emit_views('apps_changed', revision=self.revision)
+
+    def catalogue_complete(self):
+        return not isinstance(self.catalogue, Discovery) or self.catalogue.complete
+
+    def retain_launch_definitions(self):
+        """Keep uninstalled definitions while in use, with view-only retention outside desktop ownership."""
+        in_use = [(client, entry['app_id']) for (client, _), entry in self.journal.entries.items()
+                  if entry['state'] not in FINAL]
+        in_use.extend((scope['launch_key'][0], scope['app_id']) for scope in self.discovered_scopes.values())
+        desktop = {app_id for client, app_id in in_use if client == DESKTOP}
+        active = {app_id for _, app_id in in_use}
+        retained = {}
+        self.view_only_apps.clear()
+        for app_id, app in self.apps.items():
+            if app_id in self.catalogue_apps:
+                continue
+            if app_id in desktop or (self.windows is not None and self.windows.of(app_id)):
+                retained[app_id] = app
+            elif app_id in active:
+                retained[app_id] = app
+                self.view_only_apps.add(app_id)
+        self.apps = dict(retained, **self.catalogue_apps)
 
     def open_app(self, conn, request_id, message):
         app_id = message.get('app_id')
@@ -3547,6 +3569,7 @@ class Helper:
             self.deadlines.pop(removed, None)
             self.started.pop(removed, None)
             self.view_closing.pop(removed, None)
+            self.adopting.discard(removed)
             if (process := self.processes.pop(removed, None)) is not None:
                 self.reaping.append(process)
         self.journal.save()
@@ -3594,7 +3617,7 @@ class Helper:
 
     def is_discovered(self, entry):
         app = self.apps.get(entry['app_id'])
-        return app is not None and app.discovered
+        return entry.get('discovered', False) or (app is not None and app.discovered)
 
     def set_state(self, key, state, **fields):
         entry = self.journal.entries.get(key)
@@ -3639,7 +3662,9 @@ class Helper:
     def end_of_scope(self, entry):
         """What a launch becomes once its scope is gone and no process of ours can say how it ended."""
         app = self.apps.get(entry['app_id'])
-        single = app is not None and (app.discovered or app.instance == 'single')
+        single = self.is_discovered(entry) or (app is not None and app.instance == 'single')
+        if self.windows is not None and self.is_discovered(entry) and not self.catalogue_complete():
+            return None, {}  # the first scan may still let a window confirm this launch
         if entry.get('uncertain'):
             return 'failed', {'error': 'launch_uncertain',
                               'message': 'the helper restarted while starting this app; it was not retried'}
@@ -3736,7 +3761,8 @@ class Helper:
                     if self.is_discovered(entry):
                         # No instance contract: a clean early exit can hand over to a resident process. With
                         # a live/unknown scope keep waiting; once it is gone the usual bounded window wait ends.
-                        if entry.get('unit') in self.discovered_scopes or key in self.processes:
+                        if (not self.catalogue_complete() or entry.get('unit') in self.discovered_scopes
+                                or key in self.processes):
                             self.deadlines[key] = now + self.window_timeout
                             continue
                     self.set_state(key, 'failed', error='no_window',
@@ -3986,9 +4012,8 @@ class Helper:
         """The programs whose windows the helper tells apart. With a 1.0 desktop that is today's set, the reviewed
         registry alone: a discovered program's window is nobody's, so it never forces a return (review 1, finding 2).
         """
-        if self.window_minor >= 1:
-            return self.apps
-        return {key: app for key, app in self.apps.items() if not app.discovered}
+        return {key: app for key, app in self.apps.items()
+                if key not in self.view_only_apps and (self.window_minor >= 1 or not app.discovered)}
 
     def unowned_windows(self):
         return [toplevel for toplevel in self.windows.toplevels.values() if toplevel.ready and toplevel.owner is None]

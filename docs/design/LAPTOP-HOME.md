@@ -446,12 +446,14 @@ helper that does not know them works as today.
     replacement. The complete home is held in memory across desktop reconnects.
   - Once the helper has a complete catalogue, it omits unknown IDs from the publish and logs them once together.
     While discovery is still on the starter catalogue, the helper serves the published IDs and defers this filter
-    until the first complete scan. A later uninstall is also filtered from `get_home`.
+    until the first complete scan. If the deferred filter removes houses, views receive another `home_changed`
+    for the same revision. A later uninstall is also filtered from `get_home`.
 - **`get_home`** (view to helper). The last complete home in app-ID order, using `list_apps` cursor and byte
   limits. Each page carries the `revision` and the whole `palette`. Before the first complete publish the reply
   has `"revision": null`, `"palette": {}` and `"apps": []`. Catalogue changes can affect which houses appear,
   so views can fetch again on `apps_changed` as well as on `home_changed`.
-- **`home_changed`** (to views). `{"event": "home_changed", "revision": "17"}` when a new complete home arrives.
+- **`home_changed`** (to views). `{"event": "home_changed", "revision": "17"}` when a new complete home arrives
+  or the first complete catalogue removes unknown houses.
 - **`apps_running`** (to views). `{"event": "apps_running", "apps": ["notepad", "terminal"]}` once after hello
   and whenever the list changes, with bursts coalesced per serving loop. It lists the sorted IDs of current
   catalogue apps with at least one window, using the whole catalogue whether or not a desktop is connected.

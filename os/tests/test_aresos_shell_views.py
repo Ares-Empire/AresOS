@@ -26,6 +26,10 @@ def house(app_id='notepad', **changes):
 
 
 class ViewBase(Base):
+    @staticmethod
+    def discovery():
+        return shell.Discovery(shell.Catalogue(REGISTRY, entry_dirs=(), deployments=(), executable=lambda _: True))
+
     def start(self, *, tracked=False, token=TOKEN, status=shell.no_status, catalogue=None, windows=None):
         if tracked and windows is None:
             windows = shell.Windows(self.clock)
@@ -298,6 +302,47 @@ class LaunchIsolationTest(ViewBase):
         self.assertEqual(other.events('app_state'), [])
         self.assertEqual(game_conn.events('app_state'), [])
 
+    def test_restart_waits_to_adopt_a_discovered_window_until_the_catalogue_is_complete(self):
+        helper = self.start(tracked=True)
+        view = self.view(helper)
+        launch = self.call(helper, view, 'open_app', 'web', app_id=WEB.id)
+        self.show(helper.windows, 3, WEB.app_ids[0], active=True)
+        helper.windows_changed()
+        self.assertEqual(view.events('app_state')[-1]['state'], 'focused')
+
+        catalogue = self.discovery()
+        restarted = self.start(windows=helper.windows, catalogue=catalogue)
+        view = self.view(restarted)
+        before_scan = self.call(restarted, view, 'open_app', 'web', app_id=WEB.id)
+        self.assertEqual((before_scan['launch_id'], before_scan['state']), (launch['launch_id'], 'focused'))
+        self.assertEqual(view.events('apps_running')[-1]['apps'], [])
+        catalogue.finished = ({**catalogue.apps, WEB.id: WEB}, 'complete', catalogue.legacy)
+        restarted.tick()
+        self.assertEqual(view.events('apps_running')[-1]['apps'], [WEB.id])
+        self.assertEqual(restarted.handles['view:laptop-home', 'web'], {3})
+        restarted.windows.gone(3)
+        restarted.windows_changed()
+        self.now[0] += shell.HANDOFF + 0.01
+        restarted.tick()
+        self.assertEqual([event['state'] for event in view.events('app_state')], ['closed'])
+
+    def test_restart_with_slow_discovery_preserves_the_window_wait(self):
+        helper = self.start(tracked=True)
+        launch = self.call(helper, self.view(helper), 'open_app', 'web', app_id=WEB.id)
+        catalogue = self.discovery()
+        restarted = self.start(tracked=True, catalogue=catalogue)
+        view = self.view(restarted)
+        self.scope_pass(restarted)
+        self.now[0] += shell.WINDOW_TIMEOUT + 0.01
+        restarted.tick()
+        replay = self.call(restarted, view, 'open_app', 'web', app_id=WEB.id)
+        self.assertEqual((replay['launch_id'], replay['state']), (launch['launch_id'], 'starting'))
+        self.show(restarted.windows, 3, WEB.app_ids[0], active=True)
+        restarted.windows_changed()
+        catalogue.finished = ({**catalogue.apps, WEB.id: WEB}, 'complete', catalogue.legacy)
+        restarted.tick()
+        self.assertEqual([event['state'] for event in view.events('app_state')], ['focused'])
+
 
 class HomeTest(ViewBase):
     def test_bad_parts_discard_only_the_incomplete_revision(self):
@@ -363,8 +408,7 @@ class HomeTest(ViewBase):
         self.assertIsNone(self.call(rebooted, self.view(rebooted), 'get_home')['revision'])
 
     def test_only_complete_catalogue_can_remove_unknown_apps_and_uninstalls(self):
-        catalogue = shell.Discovery(shell.Catalogue(REGISTRY, entry_dirs=(), deployments=(),
-                                                    executable=lambda _: True))
+        catalogue = self.discovery()
         helper = self.start(catalogue=catalogue)
         desktop, view = self.desktop(helper), self.view(helper)
         apps = [house(), house(WEB.id), house('not-installed')]
@@ -385,9 +429,20 @@ class HomeTest(ViewBase):
                               'uninstalled', catalogue.legacy)
         self.assertEqual(self.call(helper, view, 'get_home')['apps'], [house()])
 
+    def test_deferred_filter_notifies_views_even_when_catalogue_revision_is_unchanged(self):
+        catalogue = self.discovery()
+        helper = self.start(catalogue=catalogue)
+        desktop, view = self.desktop(helper), self.view(helper)
+        self.assertTrue(self.publish(helper, desktop, [house(), house('not-installed')])['ok'])
+        self.assertEqual(len(self.call(helper, view, 'get_home')['apps']), 2)
+        catalogue.finished = (catalogue.apps, catalogue.revision, catalogue.legacy)
+        helper.tick()
+        self.assertEqual(view.events('apps_changed'), [])
+        self.assertEqual([event['revision'] for event in view.events('home_changed')], ['17', '17'])
+        self.assertEqual(self.call(helper, view, 'get_home')['apps'], [house()])
+
     def test_real_wire_limit_paginates_large_unicode_home_with_palette_on_every_page(self):
-        catalogue = shell.Discovery(shell.Catalogue(REGISTRY, entry_dirs=(), deployments=(),
-                                                    executable=lambda _: True))
+        catalogue = self.discovery()
         helper = self.start(catalogue=catalogue)
         desktop, view = self.desktop(helper), self.view(helper)
         apps = [house(f'app-{index:03d}', short='🏠' * 64, group='g' * 64, place='p' * 32, slot=8)
@@ -466,6 +521,35 @@ class WindowViewsTest(ViewBase):
         self.call(helper, view, 'open_app', app_id='terminal')
         helper.tick()
         self.assertEqual(view.events('apps_running'), [example('apps-running-empty-event')])
+
+    def test_view_window_observation_does_not_retain_an_uninstalled_desktop_owner(self):
+        for view_launch in (False, True):
+            with self.subTest(view_launch=view_launch):
+                catalogue = self.discovery()
+                starters = catalogue.apps
+                catalogue.finished = ({**starters, WEB.id: WEB}, 'complete', catalogue.legacy)
+                catalogue.refresh(self.clock())
+                helper = self.start(tracked=True, catalogue=catalogue)
+                self.desktop(helper, minor=0)
+                view = self.view(helper)
+                if view_launch:
+                    self.assertTrue(self.call(helper, view, 'open_app', 'web', app_id=WEB.id)['ok'])
+                self.show(helper.windows, 1, WEB.app_ids[0], active=True)
+                helper.windows_changed()
+                helper.tick()
+                self.assertEqual(view.events('apps_running')[-1]['apps'], [WEB.id])
+                catalogue.finished = (starters, 'uninstalled', catalogue.legacy)
+                helper.tick()
+                self.assertEqual(view.events('apps_running')[-1]['apps'], [])
+                self.desktop(helper, minor=1)
+                helper.tick()
+                self.assertIsNone(helper.windows.toplevels[1].owner)
+                if view_launch:
+                    helper.windows.gone(1)
+                    helper.windows_changed()
+                    self.now[0] += shell.HANDOFF + 0.01
+                    helper.tick()
+                    self.assertEqual([e['state'] for e in view.events('app_state')], ['focused', 'closed'])
 
     def test_last_window_output_controls_return_for_reviewed_and_discovered_apps(self):
         for app_id in (NOTEPAD, WEB.app_ids[0]):
