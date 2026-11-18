@@ -5,7 +5,7 @@ Branch `pkg/18c-b-chrome`, one builder at a time. Each step is a fresh agent; th
 
 ## Step 3a fix (2026-11-18, gpt-6-astra)
 
-**In progress under the lead's explicit disposition of the 3a stop.** The earlier two-build stop below stays
+**The complete 3a image proof is green on `2e2516b1`.** The earlier two-build stop below stays
 as history. This step permits one checks-only run, then two build rounds, with one whole-run rerun only for an
 infrastructure failure. No workflow edit, storage exception or server-instruction text is part of this fix.
 
@@ -33,7 +33,7 @@ infrastructure failure. No workflow edit, storage exception or server-instructio
 
 ### Fix and verification
 
-`os/ci/control/chrome_image.py` now resolves each selected name component by component using `lstat`.
+Fix commit `2e2516b1`: `os/ci/control/chrome_image.py` now resolves each selected name component by component using `lstat`.
 Absolute link targets start at the scan root, and `..` stops there. Existing targets are traversed and their
 regular files checked; a missing link target returns no content and produces a `CONTROL_CHROME_SCAN_LINK`
 JSON row with the link, target, resolved image-relative path and `status: missing`. The function returns the
@@ -79,20 +79,72 @@ mutation; no allowlist, bypass or force-push is used.
 
 ### Runs
 
-All OS dispatches use `os-image.yml` on `pkg/18c-b-chrome`, one at a time, watched with
-`gh run watch <id> --exit-status --interval 60`. PR checks use `gh pr checks 76 --watch --interval 60`.
+The exact dispatches are `gh workflow run os-image.yml --ref pkg/18c-b-chrome -f checks_only=true` once,
+then `gh workflow run os-image.yml --ref pkg/18c-b-chrome -f check_build=build` twice, one at a time.
+Each uses `gh run watch <id> --exit-status --interval 60`; PR checks use
+`gh pr checks 76 --watch --interval 60`. No other workflow was dispatched and no infrastructure rerun used.
 
 | Run | Head | Result / full `gh run view --log` line numbers |
 |---|---|---|
 | 44280758650, checks-only | `32f38e36` | PASS; 1780 tests at 3776, `OK (skipped=4)` 3778; tools-manifest PASS 3779; 17 destination refusals PASS 3780. Regression job 30m30s. Four existing GTK/labwc environment skips at 524–527; no Chrome test skipped. |
 | 44286574648, build round 1 (layout observation) | `32f38e36` | FAIL as expected at the unchanged scan, in 8m2s. Layout 2867–2869; trace 2871–2883. Extension ID/CRX hash 1597; Chrome polkit PASS 1825. BUNDLE, KEY_SCAN, CHECKOUT and BUILD_LOG were not reached. |
+| 44288748140, build round 2 (fixed scanner) | `2e2516b1` | PASS in 40m2s, including the complete image checks and VM pass. Every Chrome image PASS is listed below; no rerun used. |
 | 44280744725, PR Control Chrome install | `32f38e36` | PASS; case 1–5 at 2295–2299; `CONTROL_CHROME_INSTALL_PROOF_PASSED` 2300. |
 | 44280744759, PR Chrome records | `32f38e36` | PASS; 21 tests 194, `OK` 196; `record_build check passed` 205. |
 | 44280744560 / 44280744736 / 44280744399 / 44280744700, PR boundary / base / Mail / privacy | `32f38e36` | All PASS. |
+| 44280744308 / 44280744312, PR Chrome qualification / Chrome | `32f38e36` | Both PASS; every workflow on this push completed successfully. |
+| 44288754083, PR Control Chrome install | `2e2516b1` | PASS; 28 unit tests at 2213, node:crypto cross-check 2219; cases 1–5 PASS 2291–2295; `CONTROL_CHROME_INSTALL_PROOF_PASSED` 2296. |
+| 44288754676, PR Chrome records | `2e2516b1` | PASS; 21 tests 195, `OK` 197; `record_build check passed` 206. |
+| 44288754410 / 44288754273 / 44288754854, PR boundary / base / privacy | `2e2516b1` | All PASS. |
+| 44288754707, PR Mail | `2e2516b1` | PASS. |
+| 44288754376 / 44288754297, PR Chrome / qualification | `2e2516b1` | Still in progress at the evidence-only report commit; last check snapshot 45 passed, two core browser jobs running, no failures. These are not complete-workflow PASS claims. |
+
+The final commit changes this progress file only. Its PR workflows are watched separately through completion;
+the exact manual runs and their source head remain those above. No pending workflow is counted as passed.
+
+### Image evidence from the green build
+
+These are full `gh run view 44288748140 --log` line numbers, not the unit-test stand-ins in checks-only:
+
+| Evidence | Log line | Result |
+|---|---|---|
+| `CONTROL_CHROME_EXTENSION` | 1640 | `fiacjggnpbfbgiaiaanigeddhgnegmfe`, CRX SHA-256 `4459d94d7d9029a111226946f2ac1ea5d9ee85c07bb829b0e477bbb7813b4004` |
+| `CONTROL_CHROME_BUILD` | 1641 | `c689b9c8f7d748c137dd5f64b0a317368a13f5b781ce0d17a21b199b03c4eaa9`, unchanged runtime |
+| Chrome polkit action PASS | 1868 | no/no/auth_admin, never kept, owner is the service user; no rule names it; pkcheck and agent present |
+| Existing uncached-polkit PASS | 1909 | The same process is asked again; the cached control action is reused |
+| `CONTROL_CHROME_SCAN_LINK` | 2910 | `root` → `var/roothome`, target missing, no content |
+| `CONTROL_CHROME_PUBLIC_MODULUS` | 2911 | Public modulus printed for the runner's build-log scan |
+| `CONTROL_CHROME_BUNDLE_PASS` | 2912 | Same ID and CRX hash as 1640 |
+| `CONTROL_CHROME_KEY_SCAN_PASS` | 2913 | Complete image scan passed |
+| Chrome excluded-sites PASS | 3520 | Absent in image; tmpfiles creates refused placeholder, preserves changed content, restores mode/group; installed validator refuses format 0 and accepts empty format 1; unit cannot write the folder |
+| `IMAGE_CHECKS_PASSED` | 3549 | Complete image checks |
+| `CONTROL_CHROME_CHECKOUT_PASS` | 3570 | Same runtime hash and ID; image bound to checkout |
+| `CHECK_BUILD_PASSED` | 3573 | Complete runner comparison, including the installed vendor tree |
+| `CONTROL_CHROME_BUILD_LOG_PASS` | 3574 | No modulus or PEM private-key marker in the image build log |
+| `CHECK_BUILD_VM_PASSED` | 4267 | Existing general image VM pass; not the later Chrome-specific VM pass |
+
+The downloaded `check-build-evidence` artifact independently retains the same link row at
+`image/checks.txt` line 1203 and BUNDLE/KEY_SCAN at 1205/1206. Its `image/control-chrome-checkout.txt` and
+`image/control-chrome-build-log.txt` contain their corresponding PASS lines. The link row is:
+
+```json
+{"path": "root", "resolved": "var/roothome", "status": "missing", "target": "var/roothome"}
+```
+
+The one hosted checks-only run covers the merged baseline and diagnostic. The later scanner change is
+covered by the final 32 local image tests (all the touched module), the killed host-view mutation, and this
+complete built-image run. No second checks-only dispatch is claimed. Its unit-test stand-in PASS lines
+(2556–2557 and 2561) are not image proof.
+
+### Not verified
+
+The Chrome-specific VM flows, real-session rule-loosening dialog, browser update/rollback and profile
+continuity remain for steps 4–6 and the 28b integration. No `gh` installation is built by this step. No owner
+profile, hosts or laptop deployment was used. No local Gradle process was started.
 
 ### Left, in order
 
-Finish 3a fix and its image evidence, then:
+After the lead accepts this 3a fix:
 
 1. **3b — `gh`:** pinned RPM, key and licence; extraction/signature checks, lock/record/resolve line, tests,
    then another green `check_build=build`.
@@ -114,7 +166,8 @@ with no profile password dialog. The existing polkit dialog still belongs to F7 
 The older Step 3a entry's claim that the storage exception is undecided is superseded by PR #106. The narrow
 installation-ID exception and its runtime pin/handshake implementation belong to 28b. That module is absent
 here; 3a keeps the complete storage ban. Installation evidence does not prove profile continuity, and the
-combined proof remains required before a release containing 28b ships.
+combined proof remains required before a release containing 28b ships. There is no outstanding scanner gap
+from this step. Open questions for 3a fix: none.
 
 ### The os/ diff for linux-aresos
 
@@ -128,6 +181,9 @@ Net changes from the starting head `91ad33d6`:
 
 `os/ci/image-checks.sh` has a temporary diagnostic in `32f38e36`, removed by the fix; its net step diff is empty.
 `.github/workflows/os-image.yml` is unchanged. The earlier Step 3a section below lists the full installation diff.
+
+Scratch audit: no file over 500 MB remains in `.work/`. No image layer, ISO or extracted disk was downloaded
+to the laptop. Retained scratch holds small logs, test scripts and the CI evidence artifact.
 
 ## Step 3a (2026-11-18, gpt-6-astra)
 
@@ -400,15 +456,18 @@ Every path below is relative to this repository; this list covers step 3a's chan
 
 ## Where it stands
 
-**Step 3a fix is in progress under the lead's new authorization.** Main through PR #106 is merged in
-`405f6fe3`; `32f38e36` records the image layout before changing the failed scan. Checks-only run 44280758650
-passed (1780 tests; four existing GUI skips). Layout-observation build 44286574648 proved
-`root` → `var/roothome`, target absent, then failed at the unchanged checker. The scanner is now fixed and
-all 32 local image tests pass; the host-view mutation fails its test. The image proof awaits the second
-authorized build round.
-Steps 1a–2b and 3a's installation work remain built. Next after the accepted 3a fix is **3b, `gh`**, then 4,
-4b, 5 and 6. The approved profile ask is in-session, without a profile password dialog; 28b owns its pin and
-narrow installation-ID storage exception. The storage ban remains intact in this step.
+**The complete step 3a image proof is green on `2e2516b1`.** Main through PR #106 is merged in `405f6fe3`.
+The diagnostic in `32f38e36` proved that `root` links to the absent `var/roothome`; the fix resolves links
+inside the image view, records missing targets and retains all other errors. Local image suite: 32 tests,
+`OK`; the named host-view mutation fails. Checks-only 44280758650 passed (1780 tests, four existing GUI
+skips). Build 44288748140 passed all Chrome image/key/placeholder/checkout/build-log checks and the existing
+VM pass in 40m2s. All workflows on the diagnostic push passed. On the fix push, six workflows passed and
+Chrome/qualification are still finishing at this evidence-only commit; the runs and snapshot are recorded above.
+The report-only push is also watched through completion.
+Steps 1a–2b and 3a's installation work remain built. Next is **3b, `gh`**, then 4, 4b, 5 and 6. The approved
+profile ask is in-session, without a profile password dialog; 28b owns its pin and narrow installation-ID
+storage exception. The complete storage ban remains intact in this step. No workflow was changed and no
+release was published, pinned or deployed.
 
 ## The lead's decisions after step 2b (2026-11-15)
 
