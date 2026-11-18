@@ -37,6 +37,20 @@ session") and section 9 step 1. `docs/design/HUB.md` 3.8 (what 1.1 is). Then `os
    - Compare tokens and nonces with `hmac.compare_digest`. Never log a token or put it in a reply.
    - With no `ARESOS_VIEW_TOKEN` (or an empty one) every view hello is refused. Until package 23c the supervisor
      sets none, so on a real session nothing changes.
+   - **The token's contract** (the lead's call; `linux-aresos` builds 23c's side from it, so write it into
+     `LAPTOP-HOME.md` section 5 word for word as built):
+     - **Format:** `secrets.token_urlsafe(32)`, 43 characters of `[A-Za-z0-9_-]` (256 bits). The helper accepts
+       exactly that shape; it differs from the nonce's 32 characters, so a mix-up shows.
+     - **Made:** once per session, by the session's first supervisor, at the moment it makes `instance` (its runtime
+       file does not exist yet). A restarted supervisor reads it back. Never new for a game start, a retry or a
+       helper restart.
+     - **Kept:** as `view_token` in the supervisor's runtime file under `$XDG_RUNTIME_DIR` (written atomically, mode
+       0600), never in a file under `HOME`, so it ends with the session.
+     - **Given:** as `ARESOS_VIEW_TOKEN` to every helper the supervisor starts and to the laptop home, never to the
+       game; both the supervisor and the helper list it in `PRIVATE_ENVIRONMENT`.
+     - **In the helper:** read once at start. A malformed value counts as none and is logged once, without the
+       value. A wrong token and no token configured both get `not_authorized` with the same text and close the
+       connection, so a client cannot tell them apart; only the helper's log says which, never with a value.
 3. **A view never touches the desktop's state.** Its hello does not close the desktop's connection (nor a desktop's
    hello a view's), does not set `window_minor`, does not call `cancel_returns()`, does not set `windows_pending`,
    writes nothing to the status pipe, and never counts for readiness. A second view with the same name closes the

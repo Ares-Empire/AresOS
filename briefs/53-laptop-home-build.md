@@ -60,3 +60,19 @@ Board brief 306, board #335. This is a handoff from `linux-hub` (2026-11-17) to 
 - **The repo is public:**
   - test apps get generic names ("Test Web 1") and generated pictures;
   - no real app icons and no screenshots of his screen.
+
+## Since the handoff (linux-laptop-home, 2026-11-18)
+
+`linux-aresos` answered the asks above (14:25):
+- **Image items ride R29**, in one OS image package after the R28 cut: gtk4-layer-shell, and JetBrains Mono under
+  `/usr/share/fonts/aresos/`. It sends the package number.
+- **The Mesa vendor pin is not an image change.** Bazzite already ships `/usr/share/glvnd/egl_vendor.d/50_mesa.json` and
+  `/usr/share/vulkan/icd.d/intel_icd.x86_64.json`. The pin is the supervisor's launch environment for
+  `/usr/libexec/aresos-laptop-home` (`__EGL_VENDOR_LIBRARY_FILENAMES`, `VK_DRIVER_FILES`), so it goes with 23c. The
+  image package adds a check that both files exist. 53c sets the same environment in its own tests.
+- **The view token's contract** is fixed in 53a's brief (A2), and 53a writes it into section 5 for 23c's brief.
+- **The supervisor's `search` command goes into 23c**, as a step of its own, because both change `aresos-desktop`.
+  53d keeps the helper's `shell_search`, the mod's bar and the `rc.xml` keybind (with notice to `linux-aresos`).
+- **Package 25** (the supervisor's recovery fixes) came over to this session as second work. It rides R29 at the
+  earliest and gets a Fable review (or Astra while Codex lasts), because it guards the world through save and
+  shutdown. Its notes are in STATE.md ("P2's remaining packages", package 48's leftovers, 23b's late SIGTERM).
