@@ -30,6 +30,8 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 
+import static java.nio.file.LinkOption.NOFOLLOW_LINKS;
+
 public final class HomePublishClientGameTest implements FabricClientGameTest {
     @Override public void runTest(ClientGameTestContext context) {
         var oldApps = AresOs.apps();
@@ -38,11 +40,15 @@ public final class HomePublishClientGameTest implements FabricClientGameTest {
         String oldConfig = System.getProperty("aresos.appsConfig");
         Path home = context.computeOnClient(client -> client.getLevelSource().getBaseDir().resolve(NetherHome.SAVE_FOLDER));
         Path root = Path.of("a53b");
-        Path oldHome = root.resolve("previous-home");
+        HomePublishTestSave save;
         try {
+            save = HomePublishTestSave.prepare(home, root);
+        } catch (IOException error) {
+            throw new UncheckedIOException(error);
+        }
+        try (save) {
             TownClientGameTest.deleteTree(root);
             Files.createDirectories(root);
-            if (Files.exists(home)) Files.move(home, oldHome);
             try (var helper = new FakeHelper(root); var shell = helper.client(FakeHelper.fast())) {
                 helper.minor = 2;
                 helper.entries = List.of(FakeHelper.entry("notepad", "Notepad", null, "image"),
@@ -60,9 +66,11 @@ public final class HomePublishClientGameTest implements FabricClientGameTest {
                 context.waitFor(client -> shell.tracksHome(), 200);
                 check(helper.received("publish_home").isEmpty(), "Hello without a host published a home");
 
+                check(Files.notExists(home, NOFOLLOW_LINKS), "AresHub appeared after backup");
                 TownClientGameTest.openCreateScreen(context, home);
                 context.clickScreenButton("aresos.home.create");
                 context.waitFor(client -> client.player != null && client.gui.screen() == null, 2400);
+                save.created();
                 try (var world = new TestSingleplayerContextImpl(context, new TestWorldSaveImpl(context, home),
                         context.computeOnClient(Minecraft::getSingleplayerServer))) {
                     world.getConnection().waitForChunksRender();
@@ -157,8 +165,6 @@ public final class HomePublishClientGameTest implements FabricClientGameTest {
             if (oldConfig == null) System.clearProperty("aresos.appsConfig");
             else System.setProperty("aresos.appsConfig", oldConfig);
             try {
-                TownClientGameTest.deleteTree(home);
-                if (Files.exists(oldHome)) Files.move(oldHome, home);
                 TownClientGameTest.deleteTree(root);
             } catch (IOException error) { throw new UncheckedIOException(error); }
         }
