@@ -43,6 +43,12 @@ class Addresses(unittest.TestCase):
             with self.subTest(tail=tail):
                 self.assertNotIn('fixture-value', public_address('https://fixture.test/#otp=fixture-value' + tail))
 
+        # Without an explicit leading /, ? may be part of a parameter name.
+        # Appending a slash-bearing value must not turn otp?x into a route.
+        for fragment in ('otp?x=fixture-value', 'otp?x=fixture-value&next=/home'):
+            with self.subTest(fragment=fragment):
+                self.assertNotIn('fixture-value', public_address('https://fixture.test/#' + fragment))
+
 
 class Adapter(unittest.TestCase):
     setUp = support.Adapter.setUp

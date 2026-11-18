@@ -18,9 +18,9 @@ it does not synthesize the expected withholding or state digest. Baseline result
 | Legacy `role=generic` cannot use native child text as its name | `reader.test.mjs:929`, textarea first, then six typed input kinds; throwing getter, no marker, filled/asking metadata retained | full Node |
 | File names and selected options affect token/wait/cursor | `fix-x1.test.mjs:41`, six separate tests; constant selected-state mutation fails all three selection tests | full Node + Python service probe |
 | Slash position and later question marks never disable credential filtering; route preservation | `test_fix_x1.Addresses`, `:17` and `:41`; independent brief word list, review examples and sign-in-route regression | Python partition |
-| Every failed call retains at most 5,000 references | `test_fix_x1.Adapter.test_failing_reads_keep_6000_control_reference_table_bounded:54`; actual Engine.request; three repetitions of oversized header, stale cursor, wrong query and failed measurement | Python partition |
-| Page/form full gets F4's 200 options, paging, deadline, subtree scope | `test_fix_x1.py:110`, `:113`, `:116`, `:135` | Python partition |
-| 10,000-character option uses ordinary cut and whole-label reference route | `test_fix_x1.py:154` | Python partition |
+| Every failed call retains at most 5,000 references | `test_fix_x1.Adapter.test_failing_reads_keep_6000_control_reference_table_bounded:60`; actual Engine.request; three repetitions of oversized header, stale cursor, wrong query and failed measurement | Python partition |
+| Page/form full gets F4's 200 options, paging, deadline, subtree scope | `test_fix_x1.py:116`, `:119`, `:122`, `:141` | Python partition |
+| 10,000-character option uses ordinary cut and whole-label reference route | `test_fix_x1.py:160` | Python partition |
 | Brief-exact cursor sentence | `test_view_paging.py:121`, `test_view_references.py:205`; only expected wording changes | Python partition |
 
 The inherited form-refusal sentence remains because main's shared-path tests pin it; REPORT records the

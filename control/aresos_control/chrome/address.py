@@ -126,16 +126,17 @@ def _query(query):
 
 def _fragment(fragment):
     path, question, query = fragment.partition("?")
-    # An equals sign before the route's query marker commits to parameters.
-    # Neither a slash nor a later question mark inside a value can undo that.
-    # Ambiguous route-like assignments fail toward credential redaction.
-    if "=" in path:
-        name = path.partition("=")[0]
+    # Only an explicit /route?query prefix selects route parsing. An assignment
+    # commits every other fragment to parameters: later / or ? cannot undo it.
+    if path.startswith("/") and question and "=" not in path:
+        return _path(path) + question + _query(query)
+    if "=" in fragment:
+        name = fragment.partition("=")[0]
         if "/" in name and any(sign_in_segment(segment) for segment in name.split("/")):
             return MARK  # ambiguous sign-in route: don't expose its tail as a parameter name
         return _query(fragment)
-    if question or "/" in path:
-        return _path(path) + (question + _query(query) if question else "")
+    if "/" in fragment:
+        return _path(fragment)
     return MARK if looks_random(unquote(fragment)) else _safe(fragment)
 
 
