@@ -167,13 +167,13 @@ public final class FakeHelper implements AutoCloseable {
         }
     }
 
-    private static JsonObject homeReply(JsonObject request, String error, String reason) {
+    private static JsonObject homeReply(JsonObject request, String error, String message) {
         var reply = new JsonObject();
         reply.add("id", request.get("id"));
         reply.addProperty("ok", error == null);
         if (error != null) {
             reply.addProperty("error", error);
-            reply.addProperty("reason", reason);
+            reply.addProperty("message", message);
         }
         return reply;
     }

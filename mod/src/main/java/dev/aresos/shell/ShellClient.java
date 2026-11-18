@@ -711,7 +711,7 @@ public final class ShellClient implements AutoCloseable {
             return;
         }
         if (!bool(reply, "ok")) {
-            String detail = text(reply, "reason");
+            String detail = text(reply, "message");
             LOG.log(System.Logger.Level.WARNING, "AresOS app helper refused publish_home ("
                     + clip(String.valueOf(text(reply, "error"))) + "): " + (detail == null ? "no reason given" : clip(detail)));
         }

@@ -21,6 +21,11 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.logging.Handler;
+import java.util.logging.Level;
+import java.util.logging.LogRecord;
+import java.util.logging.Logger;
 import java.util.stream.IntStream;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -245,12 +250,25 @@ class HomePublishTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"invalid_state", "malformed"})
-    void refusalKeepsTheConnectionAndTheNextChangePublishes(String refusal) throws Exception {
+    void refusalLogsTheHelperMessageKeepsTheConnectionAndTheNextChangePublishes(String refusal) throws Exception {
+        var logger = Logger.getLogger("aresos");
+        var warning = new AtomicReference<String>();
+        String prefix = "AresOS app helper refused publish_home (" + refusal + "): ";
+        var handler = new Handler() {
+            @Override public void publish(LogRecord record) {
+                if (record.getLevel() == Level.WARNING && record.getMessage().startsWith(prefix))
+                    warning.set(record.getMessage());
+            }
+            @Override public void flush() { }
+            @Override public void close() { }
+        };
+        logger.addHandler(handler);
         try (var helper = new FakeHelper(directory); var client = connect(helper, 2)) {
             helper.refuseHome = refusal;
             helper.launchState = "focused";
             client.home(largeTown("光"));
-            FakeHelper.await(() -> helper.received("publish_home").size() == 1, "refused part 0");
+            FakeHelper.await(() -> warning.get() != null, "warning for refused part 0");
+            assertEquals(prefix + "the test refused this home", warning.get());
             client.open("notepad").get(3, TimeUnit.SECONDS);
             assertTrue(helper.homes.isEmpty());
             assertEquals(1, helper.received("publish_home").size(), "stops sending the refused revision");
@@ -260,6 +278,8 @@ class HomePublishTest {
             assertEquals("again", shortName(helper.homes.getLast()));
             assertEquals(1, helper.connections.get());
             assertValid(helper);
+        } finally {
+            logger.removeHandler(handler);
         }
     }
 
