@@ -275,7 +275,9 @@ export async function fixtures(options={}) {
       body='<button aria-label="">●</button><textarea aria-label="Autosave"></textarea>';
       script="document.querySelector('button').onclick=()=>fetch('/receive?case=residual-click',{method:'POST',body:'ordinary click'});document.querySelector('textarea').oninput=e=>fetch('/receive?case=residual-autosave',{method:'POST',body:e.target.value});";
     } else {res.statusCode=404;res.end('Unknown synthetic fixture');return;}
-    const mutationId=!lateBindingChild&&(['outline-state','password-outline','review-page','binding','page-dialog','upload','draft-inner','stop-modal'].includes(kind)||kind==='efficiency-h1'&&url.searchParams.get('id')||kind==='password-unread'&&url.searchParams.get('mode')==='late'||kind==='site'&&url.searchParams.get('id')?.startsWith('adapter-bind-'))?url.searchParams.get('id'):null;
+    // Only the asking parent mutates. Its child shares the reporting id and
+    // would otherwise replace the parent's SSE with a handler that has no reviewChange.
+    const mutationId=!lateBindingChild&&!(kind==='password-outline'&&url.searchParams.get('mode')==='child')&&(['outline-state','password-outline','review-page','binding','page-dialog','upload','draft-inner','stop-modal'].includes(kind)||kind==='efficiency-h1'&&url.searchParams.get('id')||kind==='password-unread'&&url.searchParams.get('mode')==='late'||kind==='site'&&url.searchParams.get('id')?.startsWith('adapter-bind-'))?url.searchParams.get('id'):null;
     if(mutationId)script+=`;new EventSource('/events?id='+${JSON.stringify(mutationId)}).onmessage=event=>{
       const mutation=JSON.parse(event.data),change=mutation.change,form=document.querySelector('form'),button=document.querySelector('button');
       if(change==='review-change')globalThis.reviewChange();

@@ -30,6 +30,27 @@ test('remaining paging and asking fixtures are served with exact stress sizes an
   }
 });
 
+test('asking child cannot replace its parent mutation stream; the parent applies and acknowledges the added field',async()=>{
+  const fixture=await fixtures({port:0,secondPort:0}),base='http://127.0.0.1:'+fixture.port;
+  const handlers=new Map(),added=[],acks=[];
+  try{
+    for(const mode of ['added','child']){
+      const html=await(await fetch(base+'/?case=password-outline&mode='+mode+'&id=asking-parent')).text();
+      const script=[...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].at(-1)[1];
+      vm.runInNewContext(script,{
+        document:{title:'',querySelector:()=>null,createElement:()=>({setAttribute(name,value){this[name]=value;}}),body:{append:field=>added.push(field)}},
+        EventSource:class{constructor(url){this.url=url;}set onmessage(handler){handlers.set(this.url,handler);}},
+        fetch:(url)=>{acks.push(url);return Promise.resolve();},location:{href:base+'/'},URL,
+      });
+    }
+    assert.equal(handlers.size,1,'only the parent owns a mutation channel');
+    const apply=handlers.get('/events?id=asking-parent');assert.equal(typeof apply,'function');
+    apply({data:JSON.stringify({change:'review-change',nonce:'added'})});
+    assert.equal(added.length,1);assert.equal(added[0]['aria-label'],'Added field');assert.equal(added[0].value,'ASK_ADDED_28');
+    assert.ok(acks.includes('/mutation-ack?nonce=added'),'only an applied mutation is acknowledged');
+  }finally{fixture.close();}
+});
+
 test('H1 puts each hostile string on the additional form list title and stale-line surfaces',()=>{
   for(let title=0;title<HOSTILE.length;title++){
     const {body,script}=efficiencyPage(new URL('http://fixture.test/?case=efficiency-h1&mode=surfaces&title='+title));
