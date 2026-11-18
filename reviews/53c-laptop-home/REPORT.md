@@ -170,6 +170,8 @@ No files over 500 MB remained in `.work/`.
   [OS image run 44362345145](https://github.com/Ares-Empire/AresOS/actions/runs/44362345145)
 - The Review 1 fixes dispatched checks-only at `4098b4a5`. The result is for the lead to collect.
   [OS image run 44365447042](https://github.com/Ares-Empire/AresOS/actions/runs/44365447042)
+- The Review 2 fixes dispatched checks-only at `3efe522d`. The result is for the lead to collect.
+  [OS image run 44368010857](https://github.com/Ares-Empire/AresOS/actions/runs/44368010857)
 
 ## Known limits
 
