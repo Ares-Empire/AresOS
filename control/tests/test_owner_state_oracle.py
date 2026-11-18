@@ -1,5 +1,5 @@
 """Independent oracle tests run in the base container, without a mail server."""
-from contextlib import closing
+from contextlib import closing, nullcontext
 import ast
 import copy
 import json
@@ -10,7 +10,7 @@ import sys
 import tempfile
 import unittest
 
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 from owner_state_oracle.model import Fact, Oracle
 from owner_state_oracle.records import Record, canonical, decode, fingerprint
@@ -2130,15 +2130,17 @@ class StartupObligations(unittest.TestCase):
         driver.scenario = SimpleNamespace(fixture=SimpleNamespace(engine=SimpleNamespace(store=SimpleNamespace(db=db, locked=False))))
         driver.snapshot = lambda: post
         checks = []
-        driver.started(lambda *args: checks.append(args))
-        self.assertEqual(checks, [('startup-replay', set(), set())])
-        self.assertIsNone(driver.startup_obligation)
-        driver.oracle = Oracle()
-        driver.oracle.script = calls
-        driver.restart_index = len(calls)
-        db.execute.return_value.fetchone.return_value = (canonical('new'),)
-        driver.restarted()
-        self.assertIsNone(driver.startup_obligation)
+        # This base-only fixture has mock SQL, not Mail's SQLite VFS injector.
+        with patch('owner_state_oracle.driver.outside_faults', nullcontext):
+            driver.started(lambda *args: checks.append(args))
+            self.assertEqual(checks, [('startup-replay', set(), set())])
+            self.assertIsNone(driver.startup_obligation)
+            driver.oracle = Oracle()
+            driver.oracle.script = calls
+            driver.restart_index = len(calls)
+            db.execute.return_value.fetchone.return_value = (canonical('new'),)
+            driver.restarted()
+            self.assertIsNone(driver.startup_obligation)
 
     def test_every_decoded_lock_term_and_wrong_input_recompute(self):
         from owner_state_oracle.records import decoded_lock
@@ -2250,7 +2252,9 @@ class AppliedHistory(unittest.TestCase):
         record.prepared[0]['set'][key]['context'] = {'command': 'DATA'}
         driver = Driver.__new__(Driver)
         driver.oracle, driver.snapshot = oracle, lambda: record
-        snapshot = driver.precommit()
+        # This synthetic context test has no active physical I/O injector.
+        with patch.dict(sys.modules, {'storage_faults': SimpleNamespace(ACTIVE=None)}):
+            snapshot = driver.precommit()
         self.assertEqual(snapshot['before_seq'], 1)
         self.assertNotIn('context', snapshot['committed_before'][key])
         self.assertEqual(snapshot['created_before'][key], 1)
