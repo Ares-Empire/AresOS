@@ -41,6 +41,8 @@ public final class ShellClient implements AutoCloseable {
     public static final int MAX_APPS = 1024;
     /** Wayland app_id and X11 class of the desktop window, so the helper can hand focus back to it. */
     public static final String DESKTOP_APP_ID = "aresos-desktop";
+    /** {@code open_app}'s "screen" for the screen that shows the world (1.2, docs/design/LAPTOP-HOME.md section 5). */
+    public static final String SCREEN_WORLD = "world";
     // app_details, apps_changed and list_paging are 1.1's, shell_covered is package 40's. The helper sends an event
     // only to a client that offered its name, so the events must be offered; none is required, which keeps a 1.0
     // helper compatible.
@@ -106,15 +108,18 @@ public final class ShellClient implements AutoCloseable {
 
     private static final class PendingOpen {
         private final String id, appId;
+        /** Where the app should open ({@link #SCREEN_WORLD}), or null for where the pointer is. Kept for every resend. */
+        private final String screen;
         private final CompletableFuture<Launch> future;
         // Writer-owned: publication callbacks can queue a normal send before startup queues its replay.
         private Connection lastSent;
         /** The helper started the program and waits for its window: a deadline after this is no missing answer. */
         private volatile boolean starting;
 
-        PendingOpen(String id, String appId, CompletableFuture<Launch> future) {
+        PendingOpen(String id, String appId, String screen, CompletableFuture<Launch> future) {
             this.id = id;
             this.appId = appId;
+            this.screen = screen;
             this.future = future;
         }
         String id() { return id; }
@@ -248,12 +253,22 @@ public final class ShellClient implements AutoCloseable {
 
     /** One deliberate action, one request ID. A reconnect resends it under the same ID, so it never launches twice. */
     public CompletableFuture<Launch> open(String appId) {
+        return open(appId, null);
+    }
+
+    /**
+     * Like {@link #open(String)}, and says on which screen the app should open: {@link #SCREEN_WORLD} for the search
+     * over the world (package 53d), whose app opens where the world is even when the pointer is on the other screen.
+     * Null leaves the place to the helper. The hint is part of 1.2: a helper that agreed to less never sees it.
+     */
+    public CompletableFuture<Launch> open(String appId, String screen) {
+        if (screen != null && !SCREEN_WORLD.equals(screen)) throw new IllegalArgumentException("unknown screen: " + screen);
         var future = new CompletableFuture<Launch>();
         if (connection == null) {
             future.completeExceptionally(notConnected());
             return future;
         }
-        var open = new PendingOpen("o-" + session + "-" + ids.incrementAndGet(), appId, future);
+        var open = new PendingOpen("o-" + session + "-" + ids.incrementAndGet(), appId, screen, future);
         opens.put(open.id(), open);
         // One deadline, two meanings (package 40): a helper that never answered, or one that started the program and
         // is still waiting for a window it can tell is this program's. The second is said as what it is.
@@ -488,12 +503,14 @@ public final class ShellClient implements AutoCloseable {
         return message;
     }
 
-    private JsonObject openRequest(PendingOpen open) {
+    private JsonObject openRequest(Connection current, PendingOpen open) {
         var message = new JsonObject();
         message.addProperty("protocol", PROTOCOL);
         message.addProperty("id", open.id());
         message.addProperty("op", "open_app");
         message.addProperty("app_id", open.appId());
+        // An older helper calls the key malformed and would open nothing; without it the app opens where the pointer is.
+        if (open.screen != null && current.minor >= 2) message.addProperty("screen", open.screen);
         return message;
     }
 
@@ -501,7 +518,7 @@ public final class ShellClient implements AutoCloseable {
     private void sendOnce(Connection current, PendingOpen open) {
         if (connection != current || open.lastSent == current) return;
         open.lastSent = current;
-        try { current.send(openRequest(open)); }
+        try { current.send(openRequest(current, open)); }
         catch (IOException lost) { current.close(); }
     }
 
