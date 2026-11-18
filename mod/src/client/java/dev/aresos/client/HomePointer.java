@@ -27,6 +27,8 @@ public final class HomePointer {
     /** True means neither this press nor its release belongs to Minecraft's item input. */
     public static boolean button(Minecraft client, int button, int action) {
         int bit = button >= 0 && button < 8 ? 1 << button : 0;
+        // The previous release may have gone to the app that just took focus. It cannot belong to this new press.
+        if (action == GLFW.GLFW_PRESS) swallowedButtons &= ~bit;
         if (action == GLFW.GLFW_RELEASE && (swallowedButtons & bit) != 0) {
             swallowedButtons &= ~bit;
             return true;

@@ -10,6 +10,8 @@ The existing client-test lock, memory checks, NVIDIA holder and owned-scope clea
 
 `FreePointerClientGameTest` opens two `foot` stand-ins with distinct app IDs and requested 480 × 260 content sizes, outside the image's recovery-terminal maximize rule. `pointer.py` puts a virtual keyboard and pointer on that compositor only; it takes the test's `env` file, refuses `wayland-0`, accepts one command per stdin line and answers `done` after a compositor round trip. The test uses package 40's `tl.py` to activate/list/close these windows and checks actual focus, including Alt+Tab and the remaining window after close. It also replays `MouseHandler.onMove` with GLFW's misleading focused state, so a compositor that filters raw motion cannot hide the original defect.
 
+Fabric deliberately disables native input callbacks and mouse grabbing, and uses a virtual render size independent of the maximized compositor window. The final native test temporarily installs only mouse callbacks, maps real content coordinates to that virtual size, and restores the previous callbacks before leaving. The ordinary preview is used for the actual GLFW capture behavior.
+
 The game screenshot is captured by Fabric, including the hover border and the game's own item-name line. `grim` is not needed for the automated assertions. Without `--session`, all game-callback, input-gate, launch and flight assertions still run; native windows and seat input require the headless session option.
 
 ## Cause reproduction before the fix

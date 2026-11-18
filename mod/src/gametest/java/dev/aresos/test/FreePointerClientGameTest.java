@@ -77,6 +77,7 @@ public final class FreePointerClientGameTest implements FabricClientGameTest {
                     nativeApps.activate("notepad");
                     checkEdges(context, helper, nativeApps);
                     hotbar(context, world, helper, nativeApps);
+                    lostRelease(context, helper);
                     gates(context, world, helper);
                     nativeApps.activate("desktop");
                     flight(context, world);
@@ -92,7 +93,7 @@ public final class FreePointerClientGameTest implements FabricClientGameTest {
             }
             AresOs.LOGGER.info("56 free-pointer checks passed: early focus and screen-close capture, all edges slow/fast, "
                     + "Alt+Tab and close, live unpaused world, hover/name screenshot, open_app and failure chat, both "
-                    + "activation/click orders, empty/non-app/world entry without item use, vanilla gates and measured "
+                    + "activation/click orders, lost mouse releases, empty/non-app/world entry without item use, vanilla gates and measured "
                     + "Live/Build/vanilla flight with/without sprint and unchanged FOV");
         } catch (IOException error) { throw new UncheckedIOException(error); }
         finally {
@@ -279,6 +280,28 @@ public final class FreePointerClientGameTest implements FabricClientGameTest {
         world.getServer().runOnServer(server -> DesktopWorld.setEnabled(server, true));
         context.waitFor(AresOsClient::acceptsAppCommands);
         context.runOnClient(client -> ShellFocusClient.apply(client, new ShellClient.Focus(true, "app_closed", "notepad", true)));
+    }
+
+    private static void lostRelease(ClientGameTestContext context, FakeHelper helper) {
+        for (int button : new int[]{GLFW.GLFW_MOUSE_BUTTON_LEFT, GLFW.GLFW_MOUSE_BUTTON_RIGHT, GLFW.GLFW_MOUSE_BUTTON_MIDDLE}) {
+            background(helper, "notepad");
+            context.waitTicks(2);
+            context.runOnClient(client -> {
+                pointAtSlot(client, 0);
+                mouse(client).aresos$onButton(client.getWindow().handle(), new MouseButtonInfo(button, 0), GLFW.GLFW_PRESS);
+                // That release was delivered to an app. Close/Alt+Tab back without sending it to Minecraft.
+                ShellFocusClient.apply(client, new ShellClient.Focus(true, "app_closed", "notepad", true));
+                mouse(client).aresos$onButton(client.getWindow().handle(), new MouseButtonInfo(button, 0), GLFW.GLFW_PRESS);
+                if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT) check(client.options.keyAttack.isDown(), "Normal attack press was swallowed");
+                if (button == GLFW.GLFW_MOUSE_BUTTON_RIGHT) check(client.options.keyUse.isDown(), "Normal use press was swallowed");
+                mouse(client).aresos$onButton(client.getWindow().handle(), new MouseButtonInfo(button, 0), GLFW.GLFW_RELEASE);
+                check(!client.options.keyAttack.isDown() && !client.options.keyUse.isDown(), "A lost app release left world input held");
+                check(!client.mouseHandler.isLeftPressed() && !client.mouseHandler.isRightPressed()
+                        && !client.mouseHandler.isMiddlePressed(), "A lost app release left a raw mouse button held");
+                net.minecraft.client.KeyMapping.releaseAll();
+                AppInput.reset();
+            });
+        }
     }
 
     private record Flight(double speed, float fov) { }
