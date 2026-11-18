@@ -18,4 +18,13 @@ public interface AppLauncher {
     default CompletionStage<String> launchTracked(AppDefinition app) {
         return launch(app).thenApply(ignored -> null);
     }
+
+    /**
+     * Like {@link #launchTracked}, for the search over the world (package 53d): the app opens on the screen that
+     * shows the world, wherever the pointer is. Only AresOS has a second screen to choose from; elsewhere it is a
+     * plain launch.
+     */
+    default CompletionStage<String> launchOnWorldScreen(AppDefinition app) {
+        return launchTracked(app);
+    }
 }

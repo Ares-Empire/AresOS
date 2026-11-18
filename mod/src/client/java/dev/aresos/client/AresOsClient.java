@@ -58,7 +58,7 @@ public final class AresOsClient implements ClientModInitializer {
         ClientPlayNetworking.registerGlobalReceiver(ZoneLaunchPayload.TYPE, (payload, context) -> {
             // A remote Minecraft server must never be able to auto-launch local programs.
             if (acceptsAppCommands(Minecraft.getInstance())
-                    && (payload.visit() == 0 || AppsScreen.active(Minecraft.getInstance()))) launch(payload.app(), payload.visit());
+                    && (payload.visit() == 0 || AppsScreen.active(Minecraft.getInstance()))) launch(payload.app(), payload.visit(), false);
             else {
                 if (ClientPlayNetworking.canSend(ZoneReturnPayload.TYPE))
                     ClientPlayNetworking.send(new ZoneReturnPayload(payload.visit(), false));
@@ -132,7 +132,12 @@ public final class AresOsClient implements ClientModInitializer {
     }
 
     public static void launch(String id) {
-        launch(id, 0);
+        launch(id, 0, false);
+    }
+
+    /** From the search over the world (package 53d): as {@link #launch(String)}, on the screen that shows the world. */
+    public static void launchOnWorldScreen(String id) {
+        launch(id, 0, true);
     }
 
     public static boolean regainedFocus(Object screen) {
@@ -153,7 +158,7 @@ public final class AresOsClient implements ClientModInitializer {
         zoneVisit = 0; zoneFocusToken = 0;
     }
 
-    private static void launch(String id, long visit) {
+    private static void launch(String id, long visit, boolean worldScreen) {
         Minecraft client = Minecraft.getInstance();
         finishZone(false);
         var app = AresOs.app(id);
@@ -167,7 +172,7 @@ public final class AresOsClient implements ClientModInitializer {
         zoneFocusToken = visit == 0 ? 0 : token;
         zoneVisit = visit;
         try {
-            launcher.launchTracked(app).whenComplete((requestId, error) -> {
+            (worldScreen ? launcher.launchOnWorldScreen(app) : launcher.launchTracked(app)).whenComplete((requestId, error) -> {
                 if (error == null && requestId != null) client.execute(() -> LATE_TOKENS.put(requestId, token));
                 if (error != null) {
                     client.execute(() -> {
