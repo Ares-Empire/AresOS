@@ -348,23 +348,6 @@ pass 'xdg-open sends http and https links to Chrome in the AresOS session'
 # verifies its exact contents, both links, the signed payload and key disposal.
 chrome_scan_root=$(mktemp -d)
 mount --bind / "$chrome_scan_root"
-python3 -I -B - "$chrome_scan_root" <<'PY'
-import json, os, pathlib, stat, sys
-root = pathlib.Path(sys.argv[1])
-for name in ('root', 'var', 'var/roothome'):
-    path = root / name
-    try:
-        info = path.lstat()
-    except FileNotFoundError:
-        row = dict(path=name, status='missing')
-    else:
-        row = dict(path=name, mode=stat.filemode(info.st_mode), status='present')
-        if stat.S_ISLNK(info.st_mode):
-            row['target'] = os.readlink(path)
-    print('CONTROL_CHROME_SCAN_LAYOUT', json.dumps(row, sort_keys=True), flush=True)
-    if name == 'var':
-        assert row['status'] == 'present' and stat.S_ISDIR(info.st_mode), row
-PY
 python3 -I -B /tmp/aresos-chrome-image-check.py image "$chrome_scan_root"
 umount "$chrome_scan_root"
 rmdir "$chrome_scan_root"

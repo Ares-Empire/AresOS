@@ -21,7 +21,8 @@
     "18c-b step 3a: pin control.json ownership and mode and test unsafe image metadata",
     "18c-b step 3a: keep the pinned image root at 0555 while checking Chrome's etc link parents at 0755",
     "18c-b step 3a fix: merge main through PR #106; keep the storage ban pending 28b and the in-session profile-ask handoff",
-    "18c-b step 3a fix: record root, var and var/roothome metadata in the CI image view before correcting the failed PEM scan"
+    "18c-b step 3a fix: record root, var and var/roothome metadata in the CI image view before correcting the failed PEM scan",
+    "18c-b step 3a fix: resolve PEM scan links only within the image view, record missing targets, retain read failures and cover host-view escape; remove the temporary layout diagnostic"
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [

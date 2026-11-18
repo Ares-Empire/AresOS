@@ -5,9 +5,11 @@ temporary folder. The image build's own extras (pip, the wheel record, the self-
 their record is checked here with stand-ins for pip's report and the vendored tree.
 """
 import base64
+import contextlib
 import copy
 import hashlib
 import importlib.util
+import io
 import json
 import marshal
 import os
@@ -769,6 +771,7 @@ class ChromeImageTest(unittest.TestCase):
         self.assertIn('image "$chrome_scan_root"', image)
         self.assertIn('umount "$chrome_scan_root"', image)
         checker = (ROOT / 'os/ci/control/chrome_image.py').read_text()
+        self.assertIn('private_scan(scan_root)', checker)
         self.assertIn("regular_files(scan_root, excluded=tuple(scan_root / name for name in ('proc', 'sys', 'dev')))", checker)
         self.assertIn('chrome_image.py:/tmp/aresos-chrome-image-check.py:ro', runner)
         self.assertNotIn('rmdir /etc/opt/chrome/policies', image)
@@ -832,6 +835,153 @@ class ChromeImageTest(unittest.TestCase):
                 link.return_value = '/tmp/another-bundle.json'
                 with self.assertRaises(AssertionError):
                     self.checker.owned_link(path, target)
+
+
+class ChromePrivateScanTest(unittest.TestCase):
+    def setUp(self):
+        self.work = pathlib.Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, self.work)
+        self.root = self.work / 'image'
+        self.root.mkdir()
+        self.checker = load_chrome_check()
+        self.marker = b'-----BEGIN ' + b'PRIVATE KEY-----\n'
+        for name in ('tmp', 'var/tmp', 'root'):
+            (self.root / name).mkdir(parents=True)
+
+    def scan(self):
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            evidence = self.checker.private_scan(self.root)
+        rows = [json.loads(line.removeprefix('CONTROL_CHROME_SCAN_LINK '))
+                for line in output.getvalue().splitlines()]
+        self.assertEqual(rows, evidence, 'every link observation is retained in checks.txt')
+        return evidence
+
+    def test_linked_folder_with_private_marker_fails_for_each_scan_name(self):
+        target = self.root / 'var/scan-content'
+        target.mkdir()
+        (target / 'key').write_bytes(self.marker)
+        for name in ('tmp', 'var/tmp', 'root'):
+            with self.subTest(name=name):
+                link = self.root / name
+                link.rmdir()
+                link.symlink_to('scan-content' if name == 'var/tmp' else 'var/scan-content')
+                with self.assertRaisesRegex(AssertionError, 'private key marker'):
+                    self.scan()
+                link.unlink()
+                link.mkdir()
+
+    def test_missing_link_target_passes_and_is_recorded_for_each_scan_name(self):
+        for name in ('tmp', 'var/tmp', 'root'):
+            with self.subTest(name=name):
+                link = self.root / name
+                link.rmdir()
+                target = 'roothome' if name == 'var/tmp' else 'var/roothome'
+                link.symlink_to(target)
+                self.assertEqual(self.scan(), [dict(path=name, target=target,
+                                                   resolved='var/roothome', status='missing')])
+                link.unlink()
+                link.mkdir()
+
+    def test_absolute_link_uses_image_contents_never_the_host_view(self):
+        # Both views exist, entirely in this test's scratch directory. Host
+        # Path.resolve() would choose the clean decoy and miss the image key.
+        outside = (self.work / 'host-decoy').absolute()
+        outside.mkdir()
+        target = self.root / outside.as_posix().lstrip('/')
+        target.mkdir(parents=True)
+        (outside / 'key').write_bytes(b'clean host decoy')
+        (target / 'key').write_bytes(self.marker)
+        link = self.root / 'root'
+        link.rmdir()
+        link.symlink_to(outside)
+        with self.assertRaisesRegex(AssertionError, 'private key marker'):
+            self.scan()
+        (target / 'key').write_bytes(b'clean image content')
+        (outside / 'key').write_bytes(self.marker)
+        rows = self.scan()
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]['status'], 'present')
+        self.assertEqual(rows[0]['resolved'], target.relative_to(self.root).as_posix())
+
+    def test_unreadable_folder_fails_instead_of_becoming_a_missing_target(self):
+        target = self.root / 'var/roothome'
+        target.mkdir()
+        (self.root / 'root').rmdir()
+        (self.root / 'root').symlink_to('var/roothome')
+        scandir = os.scandir
+
+        def unreadable(path):
+            if pathlib.Path(path) == target:
+                raise PermissionError('unreadable image folder')
+            return scandir(path)
+
+        # Inject the kernel's read error even on CI jobs running as root.
+        with patch.object(self.checker.os, 'scandir', unreadable):
+            with self.assertRaisesRegex(PermissionError, 'unreadable image folder'):
+                self.scan()
+
+    def test_read_and_lstat_errors_and_missing_plain_names_fail(self):
+        path = self.root / 'root/file'
+        path.write_bytes(b'content')
+        with patch.object(pathlib.Path, 'open', side_effect=PermissionError('unreadable image file')):
+            with self.assertRaisesRegex(PermissionError, 'unreadable image file'):
+                self.scan()
+        lstat = pathlib.Path.lstat
+
+        def unreadable(entry, *args, **kwargs):
+            if entry == path:
+                raise PermissionError('unreadable image metadata')
+            return lstat(entry, *args, **kwargs)
+
+        with patch.object(pathlib.Path, 'lstat', unreadable):
+            with self.assertRaisesRegex(PermissionError, 'unreadable image metadata'):
+                self.scan()
+        path.unlink()
+        (self.root / 'root').rmdir()
+        with self.assertRaises(FileNotFoundError):
+            self.scan()
+
+    def test_nested_and_parent_links_are_resolved_inside_the_image(self):
+        (self.root / 'var/tmp').rmdir()
+        (self.root / 'var').rmdir()
+        (self.root / 'storage/tmp').mkdir(parents=True)
+        (self.root / 'var').symlink_to('/storage')
+        (self.root / 'tmp/nested').symlink_to('/var/secret')
+        (self.root / 'storage/secret').write_bytes(self.marker)
+        with self.assertRaisesRegex(AssertionError, 'private key marker'):
+            self.scan()
+        (self.root / 'storage/secret').write_bytes(b'clean')
+        self.assertTrue(self.scan())
+
+    def test_parent_traversal_stops_at_image_root(self):
+        (self.root / 'root').rmdir()
+        (self.root / 'root').symlink_to('../../../../var/tmp')
+        (self.root / 'var/tmp/key').write_bytes(self.marker)
+        # Scan only root here: scanning var/tmp first would hide an escape bug.
+        with self.assertRaisesRegex(AssertionError, 'private key marker'):
+            self.checker.private_scan(self.root, names=('root',))
+
+    def test_missing_plain_child_of_existing_link_target_still_fails(self):
+        (self.root / 'var/tmp').rmdir()
+        (self.root / 'var').rmdir()
+        (self.root / 'storage').mkdir()
+        (self.root / 'var').symlink_to('/storage')
+        with self.assertRaises(FileNotFoundError):
+            self.scan()
+
+    def test_link_cycles_and_non_directory_parents_fail(self):
+        link = self.root / 'root/loop'
+        for target in ('loop', '.', '/root'):
+            with self.subTest(target=target):
+                link.symlink_to(target)
+                with self.assertRaises(OSError):
+                    self.scan()
+                link.unlink()
+        (self.root / 'file').write_bytes(b'ordinary file')
+        link.symlink_to('/file/child')
+        with self.assertRaises(NotADirectoryError):
+            self.scan()
 
 
 class ServiceUserTest(unittest.TestCase):

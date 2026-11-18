@@ -5,6 +5,7 @@ the same streaming key scan for build.log. Only `image` needs cryptography;
 `compare` imports the packer's stdlib payload/template readers, never signs.
 """
 import base64
+import errno
 import hashlib
 import importlib.util
 import io
@@ -161,17 +162,96 @@ def hits(path, needles, chunk_size=1024 * 1024):
 
 def regular_files(root, excluded=()):
     """No symlink traversal, no ignored read/list failures, no special files."""
-    def visit(folder):
-        with os.scandir(folder) as entries:
-            for entry in entries:
-                path = Path(entry.path)
-                if path in excluded:
-                    continue
-                if entry.is_dir(follow_symlinks=False):
-                    yield from visit(path)
-                elif entry.is_file(follow_symlinks=False):
-                    yield path
+    def visit(path):
+        if path in excluded:
+            return
+        info = path.lstat()
+        if stat.S_ISDIR(info.st_mode):
+            with os.scandir(path) as entries:
+                for entry in entries:
+                    yield from visit(Path(entry.path))
+        elif stat.S_ISREG(info.st_mode):
+            yield path
     yield from visit(root)
+
+
+def image_path(scan_root, name):
+    """Resolve links component by component in the image, never in the host view.
+
+    Only a missing link target has no content. A missing ordinary scan name,
+    unreadable metadata, a non-directory parent or a link loop is an error.
+    """
+    assert stat.S_ISDIR(scan_root.lstat().st_mode), 'scan root must be a directory, not a link'
+    links = []
+
+    def resolve(base, parts, missing_target=False):
+        path, info = base, base.lstat()
+        for part in parts:
+            if not stat.S_ISDIR(info.st_mode):
+                raise NotADirectoryError(errno.ENOTDIR, 'not an image directory',
+                                        path.relative_to(scan_root).as_posix())
+            if part in ('', '.'):
+                continue
+            if part == '..':
+                # Like an image booted as /, even ../../.. stays at its root.
+                path = path.parent if path != scan_root else scan_root
+                info = path.lstat()
+                continue
+            candidate = path / part
+            try:
+                info = candidate.lstat()
+            except FileNotFoundError:
+                if missing_target:
+                    return candidate, None
+                raise
+            if stat.S_ISLNK(info.st_mode):
+                target = os.readlink(candidate)
+                row = dict(path=candidate.relative_to(scan_root).as_posix(), target=target)
+                links.append(row)
+                if len(links) > 40:
+                    raise OSError(errno.ELOOP, 'image link loop or too many links', row['path'])
+                path, info = resolve(scan_root if target.startswith('/') else path,
+                                     target.split('/'), missing_target=True)
+                row.update(resolved=path.relative_to(scan_root).as_posix(),
+                           status='missing' if info is None else 'present')
+                if info is None:
+                    return path, None
+            else:
+                path = candidate
+        return path, info
+
+    path, info = resolve(scan_root, str(name).split('/'))
+    return path, info, links
+
+
+def private_scan(scan_root, names=('tmp', 'var/tmp', 'root')):
+    """Scan every regular file reachable through these image names; retain link evidence."""
+    evidence, active = [], set()
+
+    def visit(name):
+        path, info, links = image_path(scan_root, name)
+        for row in links:
+            evidence.append(row)
+            # check-image.sh tees stdout into the retained image/checks.txt.
+            print('CONTROL_CHROME_SCAN_LINK', json.dumps(row, sort_keys=True), flush=True)
+        if info is None:
+            return
+        if stat.S_ISDIR(info.st_mode):
+            if path in active:
+                raise OSError(errno.ELOOP, 'image directory link cycle', str(name))
+            active.add(path)
+            try:
+                with os.scandir(path) as entries:
+                    for entry in entries:
+                        visit(Path(entry.path).relative_to(scan_root))
+            finally:
+                active.remove(path)
+        elif stat.S_ISREG(info.st_mode):
+            private_markers(path)
+
+    for name in names:
+        visit(name)
+    return evidence
 
 
 def private_markers(path):
@@ -233,9 +313,7 @@ def image(scan_root):
     for path in (scan_root / name.lstrip('/') for name in (*record['files'], *extension['files'])):
         private_markers(path)
         assert not any(token in path.read_bytes() for token in PLACEHOLDERS), f'unrendered template: {path}'
-    for name in ('tmp', 'var/tmp', 'root'):
-        for path in regular_files(scan_root / name):
-            private_markers(path)
+    private_scan(scan_root)
     needles = forms(modulus)
     matches = {}
     for path in regular_files(scan_root, excluded=tuple(scan_root / name for name in ('proc', 'sys', 'dev'))):

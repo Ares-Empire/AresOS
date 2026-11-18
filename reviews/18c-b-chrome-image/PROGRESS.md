@@ -3,6 +3,132 @@
 Brief: `briefs/18c-b-chrome-image.md` (on `main` since PR #73).
 Branch `pkg/18c-b-chrome`, one builder at a time. Each step is a fresh agent; this file is the handoff.
 
+## Step 3a fix (2026-11-18, gpt-6-astra)
+
+**In progress under the lead's explicit disposition of the 3a stop.** The earlier two-build stop below stays
+as history. This step permits one checks-only run, then two build rounds, with one whole-run rerun only for an
+infrastructure failure. No workflow edit, storage exception or server-instruction text is part of this fix.
+
+### Merge and facts before the fix
+
+- `405f6fe3`: separate merge of `origin/main` at `7417c19a` (PR #106). Git reported
+  `Automatic merge went well`; no conflict resolution was needed. Main's brief/design and mod development
+  work remain alongside the branch's Chrome install work. For `pending-rebind.json`, main's complete file was
+  selected, the four branch-only notes re-added through `rebind.py pending`, and a merge note added through
+  the same tool. All 13 main notes and the rebound history were checked equal word for word. The regenerated
+  record has ten changed bound files and no removed files. No workflow changed in this merge.
+- The downloaded `check-build-evidence` artifact and full log of 44247363499 show only the unresolved path:
+  log 2902–2914, artifact `image/checks.txt` 1203–1215. Neither records the link type or target. The lead's
+  revised brief supplied the expected `root` → `var/roothome` layout; the new run below establishes it.
+- `32f38e36`: temporary CI-only `lstat` diagnostic for `root`, `var`, and `var/roothome` in the non-recursive
+  image view, before the unchanged failing scanner. It records link text without following `root`, checks that
+  `var` is a directory, and prints the target's presence. The first authorized build round established the
+  actual layout; the second is reserved for the corrected scan. No laptop container or system path is inspected.
+
+- **Observed in the image, run 44286574648:** `root` is `lrwxrwxrwx`, with link text `var/roothome`
+  (log 2867); `var` is a real `drwxr-xr-x` directory (2868); `var/roothome` is missing (2869).
+  The unchanged checker then fails with `FileNotFoundError` (2871–2883). This is the known checker defect,
+  not infrastructure; there is no blind rerun. This observation consumed the first of the two authorized
+  build rounds. Nothing was inspected on the laptop's own system.
+
+### Fix and verification
+
+`os/ci/control/chrome_image.py` now resolves each selected name component by component using `lstat`.
+Absolute link targets start at the scan root, and `..` stops there. Existing targets are traversed and their
+regular files checked; a missing link target returns no content and produces a `CONTROL_CHROME_SCAN_LINK`
+JSON row with the link, target, resolved image-relative path and `status: missing`. The function returns the
+same rows as evidence, and `check-image.sh` retains the printed rows in `image/checks.txt`. The same traversal
+handles `tmp`, `var/tmp`, `root`, nested links and linked parent directories. Only `FileNotFoundError` while
+resolving a link target is treated as empty. Missing ordinary names (including a missing child after an
+existing parent-link target), unreadable metadata/folders/files, non-directory parents and cycles fail.
+The whole-image modulus walk now also calls `lstat` on every visited entry; it still does not follow links.
+No read/list error is ignored. The temporary shell diagnostic is removed; `image-checks.sh` returns to its
+pre-step bytes. No workflow, installed file, control code, storage policy or instruction text changes.
+
+The added `ChromePrivateScanTest` cases cover all three scan names for an existing folder containing a PEM
+marker and for a missing target with exact printed/returned evidence. Other cases cover absolute links with
+opposite host/image contents, unreadable folders (an injected `PermissionError`, effective even when CI is
+root), file-read and metadata errors, nested and parent links, `..` containment, missing ordinary children,
+link/directory cycles and non-directory parents. The absolute-link fixture's two views are both artificial
+scratch folders within this worktree.
+
+| Command (scratch `TMPDIR` under `.work/18c-b-3a-fix/tmp`) | Actual result |
+|---|---|
+| `python3 -B -m unittest discover -s os/tests -p 'test_control_image.py'` after the fix | 32 tests, `OK`; nine new regression cases, no skips |
+| `python3 -B .work/18c-b-3a-fix/host-view-mutation.py` | `follow-image-links-in-host-view` replaces the image-relative scan with host `Path.resolve()` plus the regular-file walk. `test_absolute_link_uses_image_contents_never_the_host_view` fails with `AssertionError not raised`; one failure, no errors, followed by `MUTATION_KILLED follow-image-links-in-host-view: image PEM was missed`. The mutation is only in a disposable imported module, never the source file. |
+
+Local pre-fix check:
+`TMPDIR="$PWD/.work/18c-b-3a-fix/tmp" python3 -B -m unittest discover -s os/tests -p 'test_control_image.py'`:
+23 tests, `OK`. `bash -n os/ci/image-checks.sh` and `git diff --check`: exit 0.
+`PYTHONPATH=control:control/chrome_tests python3 -B -m unittest test_extension_stores_nothing`: 3 tests, `OK`.
+`python3 -B -m unittest discover -s control/chrome/ci/install -p 'test_*.py'`: 28 tests, `OK`.
+Both use the same scratch `TMPDIR`. `python3 -B control/chrome/build.py` still prints
+`c689b9c8f7d748c137dd5f64b0a317368a13f5b781ce0d17a21b199b03c4eaa9`.
+The exact privacy workflow shell body, with scratch `RUNNER_TEMP`, prints
+`No file holds a home path with a real user name.` and exits 0.
+
+Before changing the scanner, the new regressions were also run against its existing loop in a disposable
+module: the missing-target test produced `FileNotFoundError` for all three names, and the absolute-link test
+failed with `AssertionError not raised` because the old loop read the clean host decoy and missed the image PEM.
+Only artificial scratch trees were used.
+
+The first push of the fix was blocked by the privacy hook's private-key rule on literal synthetic PEM headers
+in the new tests. There was no key material. The fixture now constructs the identical header bytes from two
+pieces, like the existing marker tests. The unpushed fix commit was amended after rerunning the suite and
+mutation; no allowlist, bypass or force-push is used.
+
+### Runs
+
+All OS dispatches use `os-image.yml` on `pkg/18c-b-chrome`, one at a time, watched with
+`gh run watch <id> --exit-status --interval 60`. PR checks use `gh pr checks 76 --watch --interval 60`.
+
+| Run | Head | Result / full `gh run view --log` line numbers |
+|---|---|---|
+| 44280758650, checks-only | `32f38e36` | PASS; 1780 tests at 3776, `OK (skipped=4)` 3778; tools-manifest PASS 3779; 17 destination refusals PASS 3780. Regression job 30m30s. Four existing GTK/labwc environment skips at 524–527; no Chrome test skipped. |
+| 44286574648, build round 1 (layout observation) | `32f38e36` | FAIL as expected at the unchanged scan, in 8m2s. Layout 2867–2869; trace 2871–2883. Extension ID/CRX hash 1597; Chrome polkit PASS 1825. BUNDLE, KEY_SCAN, CHECKOUT and BUILD_LOG were not reached. |
+| 44280744725, PR Control Chrome install | `32f38e36` | PASS; case 1–5 at 2295–2299; `CONTROL_CHROME_INSTALL_PROOF_PASSED` 2300. |
+| 44280744759, PR Chrome records | `32f38e36` | PASS; 21 tests 194, `OK` 196; `record_build check passed` 205. |
+| 44280744560 / 44280744736 / 44280744399 / 44280744700, PR boundary / base / Mail / privacy | `32f38e36` | All PASS. |
+
+### Left, in order
+
+Finish 3a fix and its image evidence, then:
+
+1. **3b — `gh`:** pinned RPM, key and licence; extraction/signature checks, lock/record/resolve line, tests,
+   then another green `check_build=build`.
+2. **4:** real-session polkit probe for rule loosening, then the Chrome VM pass. Tell the lead before committing
+   any `os-image.yml` change so linux-aresos hears first.
+3. **4b:** the brief's split for C3, remaining C6, C10 and C11 if step 4 reaches its budget.
+4. **5:** update/rollback, missing/broken bundles, store requests, and F7's password/cancel/ask-again checks.
+   When 28b is integrated, case 3/C4 also proves the in-session profile ask and durable pin continuity.
+5. **6:** rehearsal checks, final-head runs, guides and final report, with installation and profile continuity
+   reported separately.
+
+### JUDGMENT-CALLs
+
+No new owner-facing decision. The profile decision in PR #106 is settled: a managed yes/no ask in the session,
+with no profile password dialog. The existing polkit dialog still belongs to F7 rule loosening.
+
+### PLAN-GAPs
+
+The older Step 3a entry's claim that the storage exception is undecided is superseded by PR #106. The narrow
+installation-ID exception and its runtime pin/handshake implementation belong to 28b. That module is absent
+here; 3a keeps the complete storage ban. Installation evidence does not prove profile continuity, and the
+combined proof remains required before a release containing 28b ships.
+
+### The os/ diff for linux-aresos
+
+Net changes from the starting head `91ad33d6`:
+
+- `os/ci/control/chrome_image.py`: image-relative link traversal, missing-target evidence, strict `lstat`
+  walks; no installed/runtime change.
+- `os/tests/test_control_image.py`: nine scanner regressions and the image-to-helper wiring assertion.
+- `os/manifest/ci/16/pending-rebind.json`: generated pending record; main's notes/history and branch notes
+  retained, with this step's merge/diagnostic/fix notes. No rehearsal table is rebound.
+
+`os/ci/image-checks.sh` has a temporary diagnostic in `32f38e36`, removed by the fix; its net step diff is empty.
+`.github/workflows/os-image.yml` is unchanged. The earlier Step 3a section below lists the full installation diff.
+
 ## Step 3a (2026-11-18, gpt-6-astra)
 
 **Stopped incomplete after the two allowed image-build rounds.** Both builds failed in the new CI checker,
@@ -274,18 +400,15 @@ Every path below is relative to this repository; this list covers step 3a's chan
 
 ## Where it stands
 
-**Step 3a is implemented but incomplete; stopped at the two-build-round limit.** Main (including PR #58) is merged in
-`a5e91c5c`; the install and checks are `74de4a19`, followed by scan correction `7fb12b0e` and manifest metadata check `bb2af7f4`. Local image
-suite: 23 tests, OK. Test-harness merge fixes are `a7e66405` and `c1110036`. OS checks-only run 44227811908 passed
-(1778 tests, four existing GUI skips), as did 44232510221 (1779 tests, the same four skips).
-Image build 44241272420 on `c1110036` exposed the checker's wrong 0755 expectation for the base's 0555 root;
-`10ba0470` fixes it without changing the image's permissions. The second/final build, 44247363499, failed the
-PEM traversal's assumption that `<scan-root>/root` resolves. That checker defect remains; no third run or
-post-limit fix was made. The full image/key/placeholder/checkout proof is not green.
-The PR install proof on `10ba0470` (44247360319) passes all five cases; base, boundary, records and privacy also
-pass. Chrome, Mail and qualification remain pending at the stop. Steps 1a, 1b, 2 and 2b remain built. Item 2
-passed on `c4514015` (43729218613). Lead disposition of the 3a finding comes first; then **3b, `gh`**.
-PR #106's proposed 28b profile pin/storage exception is undecided; the storage ban remains unchanged.
+**Step 3a fix is in progress under the lead's new authorization.** Main through PR #106 is merged in
+`405f6fe3`; `32f38e36` records the image layout before changing the failed scan. Checks-only run 44280758650
+passed (1780 tests; four existing GUI skips). Layout-observation build 44286574648 proved
+`root` → `var/roothome`, target absent, then failed at the unchanged checker. The scanner is now fixed and
+all 32 local image tests pass; the host-view mutation fails its test. The image proof awaits the second
+authorized build round.
+Steps 1a–2b and 3a's installation work remain built. Next after the accepted 3a fix is **3b, `gh`**, then 4,
+4b, 5 and 6. The approved profile ask is in-session, without a profile password dialog; 28b owns its pin and
+narrow installation-ID storage exception. The storage ban remains intact in this step.
 
 ## The lead's decisions after step 2b (2026-11-15)
 
