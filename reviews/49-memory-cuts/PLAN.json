@@ -52,5 +52,10 @@
     "full_fresh_schedule": "12 measurements plus previously completed Nether utility; fresh controls for creation, flatx3 and Nether",
     "expected_actual_attempts_if_complete": 64,
     "count_note": "52 completed measurements, 2 failed freeze attempts, 2 retired/partial FerriteCore attempts, 2 rejected header creation measurements and6rejected native-combination measurements."
+  },
+  "interrupted_nether_control": {
+    "status": "Unknown SIGTERM at return, completed glide but incomplete wake; preserve and repeat whole baseline unchanged once.",
+    "expected_attempt_count_if_remaining_complete": 65,
+    "evidence": "failures/nether-control-interrupted/failure.json"
   }
 }
