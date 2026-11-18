@@ -86,3 +86,7 @@ Board brief 306, board #335. This is a handoff from `linux-hub` (2026-11-17) to 
   - Real-harm findings get fixed: data loss, credentials (the view token), system changes, anything hard to undo.
   - Low-harm edge cases go under Known limits or into a follow-up, not into another fix round.
   - Every reviewer brief states this bar.
+- **Brief reviews** (Patrik, 2026-11-18 through `mac-capacity`): one Claude review, then one cross-model review (Codex
+  while it lasts), or straight to the Codex one while Claude is tight. Then build. Another round only for a blocking
+  design flaw, as a targeted recheck; should-fixes and low-harm edge cases go to the code review or Known limits.
+  53a's brief goes straight to one Codex review (Claude at 80% this week).
