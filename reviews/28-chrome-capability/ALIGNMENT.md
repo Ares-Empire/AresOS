@@ -361,3 +361,12 @@ Owner questions below are recommendations for his decision, not decisions attrib
 The detailed changes, code evidence, owner options and 18c-b remaining-step handoff are in
 [`REVISION-CROSS-5.md`](REVISION-CROSS-5.md). No finding is rejected. No product code or workflow was run/changed
 by this revision; the builder tests described above remain implementation work.
+
+Revision 2 after `RECHECK-CROSS-5.md`, from `d175acdd`; `linux-tools` remains the lead:
+
+- **Pin restore authority:** only committed `store.chrome_state`; locked current-pair hellos are quarantined, every admitted connection closes before recovery reopens the gate, and missing restored state never enrolls (28b item 1/step 2; CONTROL §6).
+- **Restore regression/mutations:** P → backup → switch Q → restore P database, attempts before/after confirmation, P never serves Q and Q must reconnect; disposable lookup and omitted recovery closure/revalidation each fail that regression (28b Tests).
+- **Profile confirmation recommendation:** helper button plus F7's uncached password dialog, no typed IDs or administrator command; the owner checks the Chrome picker name supplied at setup, and no/cancel/timeout leaves the pin unchanged and candidate refused; authorization is not proof against copied state (owner question 1 remains open).
+- **Dialog ownership:** 28b step 2 builds the candidate channel, name UI and bound polkit lifecycle; 18c-b 3a already installs the action, with 4/4b and 5/C7 proving the real-session dialog before shipping; failure still stops for the lead.
+- **18c-b handoff:** at `91ad33d6`, next is **3a fix** for the PEM scan's root-home link to boot-created `var/roothome`; keep the two-image-round stop and require the lead's disposition before any further image run or 3b.
+- **Unchanged:** findings 2–6 stay closed as specifications, owner question 2 stays word for word, and Unicode/cleanup, distinct descriptions, 28a's 2,800 then 28b's 3,800 caps and step order remain.

@@ -112,14 +112,20 @@ and common instructions remain. No server instruction text was added here.
 
 ## Questions for the owner
 
-1. **After an update or rollback replaces Chrome's helper, should you confirm once which Chrome profile Claude
-   reconnects to?**
-   **Why it matters:** the tools wait for you, but another profile cannot silently become the one Claude reads.
-   **Options:** confirm the chosen profile after each replacement; or make reconnection automatic, which needs
+1. **After an update or rollback replaces Chrome's helper, should the tools ask for your password once to keep
+   using your chosen Chrome profile?**
+   **What you do:** open the helper in that Chrome profile, check its name and choose **Keep using this profile**.
+   The system password dialog asks whether Claude should keep using that named profile. You type your password,
+   never an ID, and run no administrator command. At first setup, enter the name Chrome shows in its profile
+   picker; correct it in the helper if you rename it. Normal Chrome/service restarts need no confirmation.
+   **Why it matters:** the tools wait for you after a replacement. No, cancel or timeout leaves the pin as it
+   was and this helper's tools refused. Your yes authorizes the new helper; it is not technical proof against
+   someone copying a profile's local files.
+   **Options:** confirm with your password after each replacement; or make reconnection automatic, which needs
    a separate reviewed design and delays this part of the build.
-   **Recommendation:** confirm after replacement. It keeps the tested image rollback behavior and needs no
-   permanent signing secret. Normal Chrome/service restarts need no confirmation. The same logical profile pin
-   survives; you authorize its new helper identity. This is a real change from 18c-b's “without another step”.
+   **Recommendation:** confirm with your password. It keeps the tested update/rollback behavior and needs no
+   permanent signing secret. The same profile pin survives. 28b builds the helper's confirmation flow using
+   the password dialog that Chrome's rule changes already use. This changes 18c-b's “without another step”.
 
 2. **If a delayed form send could discard another draft or drawing on the page, should one question let you
    approve both the send and that loss?**
@@ -134,14 +140,129 @@ before their dependent implementation steps; unrelated image/read work can conti
 
 ## What 18c-b must now do differently
 
-The new handoff names every remaining step; completed steps 1a–2b are not replayed. **3a** installs as planned
-but records the pending identity dependency and keeps the storage ban until the approved narrow exception lands.
-**3b** is unchanged. **4/4b** uses a synthetic real pin when 28b is available, without bypassing first-use gates.
+The new handoff names every remaining step. At `91ad33d6`, steps 1a–2b and **3a are built**; 3a stopped after its
+two allowed image-build rounds, with the image proof not green. Next is **3a fix**: the PEM scanner assumes
+`<scan-root>/root` resolves to a folder, but the image's `root` is a link to `var/roothome`, made at boot. The
+lead supplied that layout detail; the branch progress itself proves only that the scan path did not resolve.
+Do not repeat the installation, ignore read failures or follow a link outside the image view. **The lead decides
+before any further image run or 3b**; the stop/run allowance is not reset. Keep the pending identity dependency
+and storage ban until the approved narrow exception lands. **3b** otherwise stays unchanged.
+**4/4b** uses a synthetic real pin when 28b is available, without bypassing first-use gates.
 **5** extends case 3/C4 to pin continuity, refusal before relink, owner-confirmed acceptance, retired pairs and
 another profile; if 28b merges later, its PR owns the combined container proof and `linux-tools` assigns the
-VM/release confirmation to the image builder before shipping. **6** separates installation evidence
+VM/release confirmation to the image builder before shipping. C7 adds the named-profile F7 password flow,
+including refusal, cancel, timeout and stale/cached confirmation; its integration has the same ownership rule.
+**6** separates installation evidence
 from pin evidence and adds the chosen owner step to the guide/release handoff. No permanent signing key,
 profile-file installation or automatic enrollment is added to the image.
+
+## Revision 2
+
+2026-11-18, after `RECHECK-CROSS-5.md`, starting at `d175acdd` on the same branch/draft PR #106.
+The blocker and should-fix are accepted. Findings 2–6 remain closed as specifications; owner question 2 above
+is unchanged, and neither owner answer is inferred. This revision adds no product code.
+Contract commit: `83a1f64b`; this report and the ALIGNMENT decisions follow in a separate documentation commit.
+
+### Changed sections and decisions
+
+- **28b “1. What Claude sees” — Restore contract; “Tests” — Restore pin regression and profile mutation table;
+  “Build order”, “Paths”, “What must not change”.** Committed `store.chrome_state` alone authorizes the pin;
+  the disposable database never does. Define the locked hello, connection retirement before reopening and
+  missing-state refusal. Step 2 owns the narrow daemon/engine hooks, reusing the store without changing its
+  semantics. The P → backup → switch Q → restore-P-backup regression tries both before/after confirmation;
+  it must independently catch disposable lookup and omitted recovery closure/revalidation. It also checks
+  Q's mandatory fresh handshake, so the latter mutation cannot survive just because P was correctly refused.
+- **28b “JUDGMENT-CALLs”, item 1 — lifecycle / Profile name and what must be built; “Tests”, “Build order” and
+  “Paths”; 18c-b “CROSS-5 identity handoff”; CONTROL §6 “How the tool reaches Chrome” / “Which tabs Claude works
+  in”; this report “Questions for the owner”.** Replace typed-ID administrator relinking with helper buttons
+  and the existing F7 password dialog. The candidate's exact pair is supplied internally. A no, cancel or
+  timeout leaves the old pin unchanged and that candidate refused; stale/cached success cannot authorize it.
+  The displayed Chrome name is an owner-supplied label, not identity evidence. 28b step 2 builds the missing
+  candidate channel/UI and binding; 18c-b already installs the action and owns the real-session probe/C7 proof.
+- **18c-b “CROSS-5 identity handoff”, “Steps”, “Stop and report”; this report “What 18c-b must now do differently”.**
+  Correct the next step to **3a fix**, record head `91ad33d6`, the root-home symlink/boot-created-target defect
+  and the two-round stop. The lead decides before another image run or 3b. Later step order stays unchanged.
+- **28a opening dependency note; ALIGNMENT “After BRIEF-CROSS-5”.** Assign the new profile work to 28b step 2
+  and add the one-line decisions. 28a's mutation table is unchanged; 28b's new table and 18c-b's mutation list
+  name the matching regressions. All earlier mutation requirements remain. Repaired Unicode, reference
+  cleanup, distinguishable descriptions, the 2,800/3,800 instruction caps and build order are unchanged.
+
+### Restore contract in five lines
+
+1. The pin, accepted pair and enrollment status come only from committed `store.chrome_state`, never ordinary `get()` or SQLite.
+2. Under the restore lock the current committed pair gets a quarantined `restore_required` hello; other pairs refuse, and no browser command or pairing runs.
+3. Before confirmation reopens the app gate, close every admitted connection and pending candidate/dialog, drop queued messages and invalidate refs, lists and approvals.
+4. After confirmation a fresh handshake checks committed evidence in the new generation; restored P never serves requests authorized for Q.
+5. Missing, unreadable or corrupt restored evidence stays refused and never becomes first-connect enrollment.
+
+### Dialog feasibility and evidence checked
+
+**Read:** `control/aresos_control/chrome/confirm.py:52` builds the action call for PID/start-time/UID with
+`change` text; `:75` refuses timeout/cached authorization. The installed action's message interpolates that
+text, with uncached `auth_admin` and the service-owner annotation
+(`control/chrome/packaging/org.aresos.control.chrome-loosen.policy:23`).
+`control/aresos_control/chrome/adapter.py:142` starts F7 only on the admitted bridge; `:173` cancels on connection
+change and checks the password result before writing. These pieces support the proposed dialog, but **do not
+yet implement profile confirmation**. 28b step 2 must give pending candidates only its restricted pairing
+channel and bind the answer to candidate, peer, displayed name, committed pin revision and restore generation.
+18c-b's “The polkit probe comes first in step 4” and C7 still decide whether its real session can show the dialog;
+the existing stop on failure stands. No action-default or service-sandbox change is authorized.
+
+**Name gap, handled explicitly:** `control/aresos_control/chrome/bridge.py:49`'s hello contains session/version,
+not a Chrome profile name, and `control/chrome/native_host.py:14` only relays. The documented
+[`getProfileUserInfo`](https://developer.chrome.com/docs/extensions/reference/api/identity#method-getProfileUserInfo)
+returns account information, not the picker name. This revision adds no account permission or profile-file
+reader. At setup he enters Chrome's picker name in the helper; the service retains it privately and the helper
+asks him to check/correct it before the password prompt. This modest setup/rename step is stated in question 1;
+there is no claim of automatic name discovery or technical proof against a copied profile.
+
+**Read:** `control/aresos_control/daemon.py:238` admits native peers separately from
+`control/aresos_control/engine.py:575`'s restore gate. The confirm branch at `engine.py:577` calls the store
+directly, with no connection retirement. `control/aresos_control/storage.py:820` reads disposable SQLite;
+`control/aresos_control/chrome/committed.py:154` reads committed evidence; `storage.py:506` reconstructs Chrome
+rows and `:942` releases the restore lock. These support the recheck's blocker; the future pin must connect the
+two lifecycles. The recheck correctly describes a specification gap, not a demonstrated bypass in built 28b.
+
+**Read:** `git show origin/pkg/18c-b-chrome:reviews/18c-b-chrome-image/PROGRESS.md`, branch head `91ad33d6`,
+records the stop at lines 6–12 and the unresolved scan at lines 173–177. Its checker
+`os/ci/control/chrome_image.py:237` traverses the root-home entry as a directory. The symlink target/boot timing
+comes from the lead's instruction in this revision; no local image was inspected. No disagreement with the
+recheck's findings or its two owner-question assessments. The new dialog replaces the command it accurately
+described; it is not claimed to exist already.
+
+### Verification of Revision 2
+
+- **Run:** `git fetch origin` first: exit 0, no output. Starting branch `briefs/28ab-cross-5`, clean at `d175acdd`.
+- **Run:** `PYTHONDONTWRITEBYTECODE=1 TMPDIR="$PWD/.work/cross5-revision2/tmp" PYTHONPATH=control:control/chrome_tests python3 -B -m unittest test_owner_confirm test_bridge test_restore_lock`:
+  `Ran 34 tests in 16.739s`, `OK`. These test existing F7/bridge/restore behavior, not the future pin/dialog.
+- **Run:** `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control python3 -B .work/recheck-28ab/restore_pin_probe.py`:
+  `PASS: restore lock; ordinary read returns retired pair; committed read returns current pair`, then
+  `PASS: restore confirmation restores current pair; handshake must not cache the retired pair`.
+- **Run:** `git diff --check`: exit 0, no output.
+- **Run:** `PYTHONDONTWRITEBYTECODE=1 python3 -B .work/cross5-revision2/check_docs.py`: exit 0, printed:
+
+  ```text
+  PASS: exactly six requested Markdown files; no product or untracked changes
+  PASS: CONTROL changes confined to section 6
+  PASS: 28a changes only its dependency note; descriptions, budget and mutation table unchanged
+  PASS: 28b findings 2-6, Unicode/cleanup, instruction cap, later steps and existing mutation cases unchanged
+  PASS: both restore mutations mapped independently to the P/Q regression and Q reconnect assertion
+  PASS: owner question 2 unchanged word for word; ALIGNMENT history retained
+  PASS: 18c-b handoff is 3a fix and preserves the lead gate and exhausted allowance
+  PASS: no personal home paths or accidental replacement characters; .work files over 500 MB: none
+  ```
+
+- **Large artifacts left:** no file over 500 MB in `.work/`; no download or extracted image created.
+- **Not run:** future pin tests/mutations, browser/VM/image tests, workflows or mod builds. The two new restore
+  mutations are requirements checked for test coverage in the text, not executed implementation evidence.
+- **JUDGMENT-CALL:** close every admitted connection on restore confirmation, rather than keep one after an
+  in-place revalidation; this requires a reconnect but gives recovery a single clear boundary. Changing later
+  needs equivalent peer/generation checks and tests. The profile dialog remains conditional on owner question 1;
+  its display-name entry/check is explicit because the existing handshake has no name source.
+- **PLAN-GAP:** the old pin text did not select the committed view or define recovery connection handling;
+  the old handoff omitted completed 3a and its stop. Both are amended above. No other finding is reopened.
+- **Open questions:** owner questions 1 and 2; the lead's disposition of 3a fix. No owner choice or additional
+  image-run permission follows from this documentation revision.
 
 ## Disagreements and limits of this revision
 
