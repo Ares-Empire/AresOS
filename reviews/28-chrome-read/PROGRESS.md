@@ -2,6 +2,24 @@
 
 Builder steps keep this file; the last step turns it into the report. Newest state first.
 
+## Step 14 (2026-11-18, Codex gpt-6.1-sol): main merged, final evidence and review documents
+
+- Standalone merge `f282553b` brings in main `774d7954`, including #58 (`beb42ec8`), #97 (`4737bb69`)
+  and handoffs. Git merged cleanly: no conflicts or manual resolutions; Chrome runtime/tests/generated files
+  are unchanged by the merge. Local Node: **548/548**; named Python suite: **150 tests, OK**; generator check:
+  **Generated artifacts match definitions**. Chrome server instructions remain **4,093** characters.
+- The merge's Control Chrome run is **44226934670**, qualification **44226934711**. The one baseline comparison
+  comes from that merge run after both are green. No frozen baseline field besides `latency_comparisons` changes.
+- [HARNESS-MAP.md](HARNESS-MAP.md) maps all 36 new mandatory browser cases and the brief's other tests;
+  [KNOWN-LIMITS.md](KNOWN-LIMITS.md) retains accepted wording and the PR #106 duplicate-label handoff.
+  [REPORT.md](REPORT.md) records final heads, run IDs **and attempts**, measured rows/ceilings, historical
+  judgments/gaps, source lines and what remains. This file stays the build history.
+- The baseline/documents commit is validated by both workflows, then each whole run is rerun once on that same
+  head. GitHub keeps a run's ID on rerun, so the report's four final rows identify the two IDs and two attempts.
+  The closing `[skip ci]` commit changes only REPORT.md. All watches use `--interval 60`; no workflow dispatch.
+- No runtime/test/instruction text is authored in step 14. The lead's Codex astra package and security reviews
+  remain, then 28a/28b (including stronger duplicate-label question descriptions). PR #72 remains draft.
+
 ## Step 13d (2026-11-18, Codex gpt-6.1-sol): approval comparisons use the repaired page representation
 
 **Green on tested code head `e07a88eb`; stopped after two code CI rounds.** The six approval/expected

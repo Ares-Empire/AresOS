@@ -584,5 +584,37 @@
     "descriptions_and_instructions": 9137,
     "names_and_input_schemas": 11080
   },
-  "latency_comparisons": []
+  "latency_comparisons": [
+    {
+      "run_id": "44226934670",
+      "sha": "d90ff73ab56dbfec3c6946e5971d41e46ce06e82",
+      "row": "F1: the first read",
+      "runs": 5,
+      "old": {
+        "tool": "chrome_read",
+        "milliseconds": 69.8,
+        "milliseconds_per_run": [
+          69.2,
+          65.3,
+          71.7,
+          69.8,
+          71.0
+        ]
+      },
+      "new": {
+        "tool": "chrome_outline",
+        "milliseconds": 40.9,
+        "milliseconds_per_run": [
+          39.9,
+          40.9,
+          43.5,
+          40.4,
+          41.4
+        ]
+      },
+      "rule": "new median <= 1.10 x old median + 50 ms",
+      "allowed_milliseconds": 126.8,
+      "passed": true
+    }
+  ]
 }
