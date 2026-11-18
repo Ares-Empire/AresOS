@@ -1,6 +1,6 @@
 # Empire brief 302 — progress
 
-**Revised after BRIEF-REVIEW-1; next: a short recheck**. Lead: `linux-tools`.
+**READY (BRIEF-RECHECK-1); owner answered board #352 "Yes (recommended)"; merged by the lead; next: the build (Codex gpt-6.1-sol xhigh, in the brief's steps)**. Lead: `linux-tools`.
 Source baseline: main `4737bb69`, after `git fetch origin` and
 `git merge --ff-only origin/main` (from `67bf1909`). Only the brief and this file
 are committed. No product code, workflow dispatch or running-service change.

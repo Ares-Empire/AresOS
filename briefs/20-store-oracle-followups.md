@@ -495,6 +495,8 @@ visible even when the request reports a storage error. This recovery resends
 nothing. If the failed save was completely undone, the failed request would
 still stop, but your next explicit request could work without a restart.”
 
+**Owner's answer (board #352, 2026-11-18): "Yes (recommended)".** The builder builds it as written.
+
 **Recommendation: yes.** This gives useful recovery advice, keeps incomplete
 writes from starting new work, and avoids hiding saved changes. Item 1's request
 barrier makes the narrow exception safe: even a caught flush failure cannot let
