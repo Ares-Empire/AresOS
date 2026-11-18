@@ -134,13 +134,17 @@ def run(name, variables=(), trigger=None, expected=0, stubborn=False):
             elif trigger is not None:
                 until(lambda: (cache / 'client.pids').exists())
                 client_fds = [os.pidfd_open(int(p)) for p in (cache / 'client.pids').read_text().split()]
-                if trigger == 'holder':
+                if trigger in ('holder', 'terminal-holder'):
                     until(lambda: (cache / 'holder.unit').exists())
                     holder_pid = int(next(line.split()[2] for line in events.read_text().splitlines()
                                           if line.startswith('retain ')))
                     holder_fd = os.pidfd_open(holder_pid)
-                    signal.pidfd_send_signal(holder_fd, signal.SIGKILL)
+                    signal.pidfd_send_signal(holder_fd, signal.SIGKILL if trigger == 'holder' else signal.SIGINT)
                     os.close(holder_fd)
+                    if trigger == 'terminal-holder':
+                        time.sleep(.2)
+                        assert 'release ' not in events.read_text(), 'terminal INT released the holder early'
+                        signal.pidfd_send_signal(script_fd, signal.SIGHUP)
                 else:
                     signal.pidfd_send_signal(script_fd, trigger)
             result = process.wait(timeout=42)
@@ -190,6 +194,7 @@ run('release-hang', ('TRIAL_RELEASE_HANG',))
 run('parent-kill-client', trigger=signal.SIGKILL, expected=-9, stubborn=True)
 run('parent-kill-release-hang', ('TRIAL_RELEASE_HANG',), trigger=signal.SIGKILL, expected=-9)
 run('holder-kill-client', trigger='holder', expected=1)
+run('terminal-holder', trigger='terminal-holder', expected=129)
 run('int-client', trigger=signal.SIGINT, expected=130)
 run('term-client', trigger=signal.SIGTERM, expected=143)
 run('hup-client', trigger=signal.SIGHUP, expected=129)

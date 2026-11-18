@@ -306,7 +306,11 @@ import os
 import socket
 import sys
 
-request = sys.argv[2:]
+try:
+    os.close(int(sys.argv[2]))  # Only the shell and independent supervisor retain the lock.
+except OSError:
+    pass  # The background launcher already closed its copy before starting Python.
+request = sys.argv[3:]
 if request[0] == "start":
     try:
         extra = os.dup(3)
@@ -329,7 +333,7 @@ try:
 except ConnectionResetError:
     sys.exit("client-test: supervisor has stopped; aborting.")
 sys.exit(int(status) if status else 1)
-' "$ARESOS_GUARD_DIR" "$@"
+' "$ARESOS_GUARD_DIR" "$ARESOS_LOCK_FD" "$@"
 }
 
 # True while the background job with this PID has not ended (bash's own job table, so a reused PID never counts).
@@ -358,7 +362,8 @@ aresos_scope_start() {
     ARESOS_DEFER=1
     ARESOS_SCOPES+=("$ARESOS_UNIT")
     if [[ -n $ARESOS_GUARD_DIR ]]; then
-        aresos_guard_request start "$ARESOS_UNIT" "$@" &
+        # The RPC subprocess must not keep the lock alive after the supervisor has finished cleanup.
+        { exec {ARESOS_LOCK_FD}>&-; aresos_guard_request start "$ARESOS_UNIT" "$@"; } &
     else
         systemd-run --user --scope --quiet --collect --unit="$ARESOS_UNIT" --property=TimeoutStopSec=20 "$@" &
     fi
@@ -440,8 +445,9 @@ import sys
 def stop(*_):
     sys.exit(0)
 
-for sig in (signal.SIGINT, signal.SIGTERM, signal.SIGHUP):
-    signal.signal(sig, stop)
+for sig in (signal.SIGINT, signal.SIGHUP):
+    signal.signal(sig, signal.SIG_IGN)
+signal.signal(signal.SIGTERM, stop)
 cuda = ctypes.CDLL("libcuda.so.1")
 cuda.cuInit.argtypes = [ctypes.c_uint]
 cuda.cuDeviceGetByPCIBusId.argtypes = [ctypes.POINTER(ctypes.c_int), ctypes.c_char_p]
