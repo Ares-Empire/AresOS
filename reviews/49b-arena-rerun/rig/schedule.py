@@ -40,7 +40,7 @@ def run(slot, settings, utility=False):
                 failure.mkdir(parents=True,exist_ok=True)
                 partial=WORK/'rigs'/name
                 for path in partial.glob('*'):
-                    if path.is_file() and (path.name in ('settings.txt','marks.txt','samples.csv','host-start.json','host-end.json','health-failure.json','host-watch.jsonl','provenance.json','gc.txt') or path.name.startswith('snap-')):
+                    if path.is_file() and (path.name in ('settings.txt','marks.txt','samples.csv','host-start.json','host-end.json','health-failure.json','host-watch.jsonl','provenance.json','gc.txt','terminal.json') or path.name.startswith('snap-')):
                         text=path.read_text().replace(str(HERE.parents[2]),'<worktree>').replace(str(Path.home()),'<home>')
                         (failure/path.name).write_text(text)
                 (failure/'attempt.json').write_text(json.dumps({'slot':slot,'attempt':name,'utility':utility,'accepted':False,'exit':result.returncode,'reason':'non-zero rig exit; stopped for diagnosis'},indent=2)+'\n')

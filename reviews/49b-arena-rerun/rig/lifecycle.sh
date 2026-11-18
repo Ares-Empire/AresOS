@@ -17,6 +17,9 @@ finish() {
     [[ -z ${host_watch:-} ]] || { kill "$host_watch" 2>/dev/null || true; wait "$host_watch" 2>/dev/null || true; }
     [[ -z $sampler ]] || kill "$sampler" 2>/dev/null || true
     [[ -z $cover ]] || kill "$cover" 2>/dev/null || true
+    if [[ -n $game ]]; then
+        python3 -I "$here/terminal.py" "$game" "$PKG49_GAME_UNIT" "$RIG" || status=1
+    fi
     # Stop both owned scopes immediately; never wait for a dead input reader to end the game.
     timeout 2 systemctl --user stop --no-block "$PKG49_GAME_UNIT" "pkg49b-rig-$start_pid.scope" 2>/dev/null || true
     local unit state deadline=$((SECONDS + 15)) live

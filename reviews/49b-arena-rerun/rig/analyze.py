@@ -173,7 +173,7 @@ for label, start, end in ([('flight', marks.get('flight_start'), marks.get('flig
 json.dump(frame_evidence, open(os.path.join(out, 'decisive-frames.json'), 'w'), separators=(',', ':'))
 summary = public(summary)
 json.dump(summary, open(os.path.join(out, 'summary.json'), 'w'), indent=1)
-for name in ('settings.txt', 'marks.txt', 'samples.csv', 'cover.txt', 'randr.txt', 'actions.jsonl', 'host-start.json', 'host-end.json', 'faults-return.json', 'wake-input.jsonl', 'return-observer.jsonl', 'creation-marks.txt', 'host-watch.jsonl', 'provenance.json', 'health-failure.json', 'options.txt'):
+for name in ('settings.txt', 'marks.txt', 'samples.csv', 'cover.txt', 'randr.txt', 'actions.jsonl', 'host-start.json', 'host-end.json', 'faults-return.json', 'wake-input.jsonl', 'return-observer.jsonl', 'creation-marks.txt', 'host-watch.jsonl', 'provenance.json', 'health-failure.json', 'options.txt', 'terminal.json'):
     if os.path.exists(os.path.join(rig, name)):
         open(os.path.join(out, name), 'w').write(public(open(os.path.join(rig, name)).read()).rstrip() + '\n')
 if os.path.exists(os.path.join(rig, 'gc.txt')):

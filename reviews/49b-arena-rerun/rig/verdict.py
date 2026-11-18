@@ -26,6 +26,10 @@ for slot,s in rows.items():
     events=[v['cgroup_events'] for v in s['snapshots'].values()]
     safety[slot]={'oom':s['out_of_memory'] or any(e.get('oom',0) or e.get('oom_kill',0) for e in events),'high':max(e.get('high',0) for e in events),'gc_ms':s['gc_after_join']['max_ms'],'lost_frames':s['lost_frames']}
     assert not s['town_frozen'] and s['lost_frames']==0,(slot,'invalid workload/recorder')
+    terminal=json.loads((ROOT/'runs'/accepted[slot]/'terminal.json').read_text())
+    final_events=dict(line.split() for line in terminal['memory.events'].splitlines())
+    safety[slot]['oom'] |= bool(int(final_events.get('oom',0)) or int(final_events.get('oom_kill',0)))
+    safety[slot]['high']=max(safety[slot]['high'],int(final_events.get('high',0)))
     proof=json.loads((ROOT/'runs'/accepted[slot]/'provenance.json').read_text())
     assert proof['environment']['MALLOC_ARENA_MAX']==('2' if slot.endswith('arena') else ''),(slot,'wrong actual game environment')
     assert not json.loads((ROOT/'runs'/accepted[slot]/'attempt.json').read_text())['contaminated']
