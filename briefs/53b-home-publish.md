@@ -18,8 +18,9 @@ the town changes. Nothing in the game looks different.
 `docs/design/LAPTOP-HOME.md` section 5 (`publish_home` and its bounds, written by 53a; this is the contract) and the
 example messages under `mod/src/test/resources/shell-1.2/` with their `README.md`. `docs/design/HUB.md` 3.8 (1.1)
 and the parts on places, short names and logos. Then `mod/src/main/java/dev/aresos/shell/ShellClient.java`,
-`hub/` (`Town`, `TownKeeper`, `Place`, `HubData`), `config/MyApps.java`, `names/`, `zone/LogoBuilder.java` and
-`zone/LogoPixels.java`, how hotbar pins are kept (`item/`), and `src/testShared/java/dev/aresos/shell/FakeHelper.java`
+`hub/` (`Town`, `TownKeeper`, `Place`, `HubData`), `config/MyApps.java`, `names/` (`NameRules`), `zone/GatePicture`
+and `zone/GatePalette`, `item/AppInventory.java` and `mode/ModeInventories.java`, `AresOs.java` (when the helper
+starts), and `src/testShared/java/dev/aresos/shell/FakeHelper.java`
 with `src/test/java/dev/aresos/shell/ShellClientTest.java`.
 
 ## Build
@@ -27,13 +28,28 @@ with `src/test/java/dev/aresos/shell/ShellClientTest.java`.
 1. **1.2 in `ShellClient`.** Ask for minor 2. When the helper offers `home_state`, the mod publishes. With a 1.0
    or 1.1 helper, or on Windows, everything behaves as today and nothing is sent.
 2. **What is published** (section 5): for each of My apps, `id`, `short`, `group`, `place` (missing while it has
-   none), `slot` (0–8 when pinned, missing otherwise) and `cells`, the logo as built (12 × 12, row by row from the
-   top, `.` for no block). The `palette` gives each block's colour from the colours the mod already holds for its
-   logos. An app without a readable picture sends its plain front, as the town builds it. Take every value from the
-   same code that builds the town and the hotbar, so the laptop can never disagree with the world. Do not write a
-   second logo converter.
-3. **When.** After every successful hello, and after any change to My apps, a short name, a place, a hotbar slot or
-   a logo. Coalesce bursts: at most one publish a second, and the latest state is always sent at the end of a
+   none), `slot` (0–8 when pinned, missing otherwise) and `cells`. Take every value from the same code that builds
+   the town and the hotbar, so the laptop can never disagree with the world. Do not write a second logo converter.
+   - **`cells`** is the front as the town builds it: for a standing logo, the front and place `HubData` recorded;
+     for one not built yet, the town's `GatePicture` or its plain-front fallback. Doorway holes are `.`.
+     `GatePicture` counts rows from the ground, so row `r` from the top is `at(x, 11 - r)`. (`zone/LogoBuilder` and
+     `LogoPixels` draw walls and floors; they are not the source.)
+   - **`palette`**: one key per block colour the cells use, with the RGB from `GatePalette.BLOCKS`.
+   - **`slot`**: the host's ordered **Live** hotbar, slots 0–8 (`AppInventory.hotbar()` is a set and cannot give
+     it). While Build mode is active, keep publishing the Live order as it was saved (`ModeInventories`). Two pinned
+     apps swapping slots is a change.
+   - **`group`**: the town's resolved group for the app.
+   - **Rows that cannot be sent:** an app without a short name yet (`NameRules.mainName()` can be empty) waits and
+     is published once it has one; an app whose ID does not fit the contract is skipped and logged once, never
+     altered; a place that does not fit the contract's shape is left out (the app is sent without `place`). One
+     bad row never invalidates the publish.
+3. **When.** After every successful hello **once the host's home is ready**, and after any change to My apps, a
+   short name, a place, a hotbar slot or a logo. The mod starts the helper before a world or host exists
+   (`AresOs.java`), and the town reads its pictures after the host arrives: a hello before that queues the publish
+   until the home is ready. **Never publish an empty or partial town** in its place, because it would replace the
+   helper's last complete home. Hook the town's real outcomes in `TownKeeper` (a logo built, moved or taken down; a
+   pending replacement finished), not its chat lines: since package 54 a pending replacement is one record that ends
+   as one line, and a fresh home's first build waits up to 200 ticks. Coalesce bursts: at most one publish a second, and the latest state is always sent at the end of a
    burst. Nothing is sent while nothing changed. A publish never blocks the game thread: build the snapshot on the
    thread that owns the data, then send it as `ShellClient` sends today.
 4. **Revision and parts.** `revision` is a string that rises within one game run, at most 128 characters. Split a
@@ -42,11 +58,11 @@ with `src/test/java/dev/aresos/shell/ShellClientTest.java`.
 5. **Bounds the mod enforces before sending**, so the helper never has to refuse a publish:
    - at most 200 apps: apps with a place first, then pinned ones, then the rest by name; log once when some are
      left out;
-   - at most 64 palette keys: keep the 64 most-used colours and map each other colour to its nearest one by RGB
-     distance; log once;
+   - at most 62 palette keys (`[A-Za-z0-9]`; `.` is no block): keep the 62 most-used colours and map each other
+     colour to its nearest one by RGB distance; log once (today's palette has 60 colours);
    - at most 16 parts;
-   - `short`, `group` and `place` in the contract's shapes. A value that would not fit is left out or shortened by
-     the contract's rule, never sent as an error.
+   - every row in the contract's shapes, by the row rules in point 2; each serialized message, newline included,
+     under 64 KiB.
 6. **A refused publish** (`invalid_state`, `malformed`) is logged with its reason. It never disconnects the mod
    from the helper or changes the game. The next change publishes again.
 7. **The test helper.** `FakeHelper` speaks 1.2: it offers `home_state`, accepts and records `publish_home` with the
@@ -59,7 +75,12 @@ with `src/test/java/dev/aresos/shell/ShellClientTest.java`.
     in shape; every message the mod sends passes `FakeHelper`'s validation;
   - a 1.1 helper gets no publish; minor 2 is asked for;
   - a burst of ten changes gives at most two publishes and ends with the latest state;
-  - 201 apps, 70 colours, a town that needs several parts, a reconnect in the middle of a multi-part publish;
+  - 201 apps, 70 synthetic colours, a town that needs several parts, a reconnect in the middle of a multi-part
+    publish, a town change after part 0 (the helper gets consecutive parts of one revision, then the latest);
+  - an asymmetric front with doorway holes and a colour only gates use, compared cell by cell with the town;
+  - hello before the world opens publishes nothing until the home is ready; a reconnect after that publishes at once;
+  - two pinned apps swapped in the inventory publish their new slots; Build mode keeps the Live order;
+  - an app without a short name yet, an over-long ID and a malformed place, each beside good rows;
   - a refused publish keeps the connection and the next change publishes again;
   - each kind of change publishes: an app added to and removed from My apps, a short name, a place moved, a pin
     moved, a logo changed.
@@ -67,10 +88,10 @@ with `src/test/java/dev/aresos/shell/ShellClientTest.java`.
   opens, `FakeHelper` holds a complete home whose apps, places and slots match the hotbar and the town the test sees.
   Pinning an app then publishes a new revision. No screenshot is needed.
 - `mod/dev/build.sh` passes. `mod/dev/client-test.sh` passes **twice**; it takes the machine's client-test lock and
-  exits 75 under 6 GiB free (wait about five minutes and try again; never `--force`). **Known hang:** until PR #108
-  is on main, `NetherHomeClientGameTest.testMountedRejoin` can deadlock while closing. A full suite hung in that test
-  is that bug, not yours: note it and rerun. Afterwards `git checkout -- reviews/` for the screenshots the suite
-  rewrites.
+  exits 75 under 6 GiB free (wait about five minutes and try again; never `--force`). Package 54's test mixin (on
+  main) fixes the old `testMountedRejoin` hang. **Screenshots:** commit your own work before a suite run; afterwards
+  restore only the tracked screenshot files the suite rewrote (`git status --porcelain -- 'reviews/*/screenshots/*'`),
+  never a blanket `git checkout -- reviews/`.
 - `mod/README.md` says in one paragraph that the mod publishes its home to the helper and why.
 - `reviews/53b-home-publish/REPORT.md` in the AGENTS.md format, with the files you changed under `shell/`, `hub/`,
   `config/`, `names/`, `zone/` and `item/`.
