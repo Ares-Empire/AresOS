@@ -1090,3 +1090,12 @@ stages. It is required before any rehearsal claim or laptop use:
 - `.work files over 500 MB: []`. No downloads were made. No new hard-to-undo
   JUDGMENT-CALL or open question; the three new action labels are shown in
   INSTALL.md's separate bridge table for the lead's review.
+
+### REVIEW-15's must-fix (the lead, 2026-11-18)
+
+The builder had added the three bridge names to `pending-rebind.json`'s `unwalked_commands`. The lead discarded
+that file before regenerating its rows with `rebind.py pending`, so the commit `b6625761` lost them and
+test_owner_equality failed on the generated lines. Restored by hand (the list and `unwalked_rule`'s sentence; the
+tool regenerates only `changes` and `files` and keeps the other keys): test_owner_equality 12 OK,
+test_checkout_sources 8 OK, test_owner_path 49 OK. Lesson: regenerate the rows on top of the builder's file, never
+from a checkout of it, when the builder changed keys other than the rows.
