@@ -84,6 +84,17 @@ as his own user under the permissions he sets; our tools only add safe saving an
 | His own `PermissionRequest` hooks (hooks that answer permission prompts for him, for example a broad auto-approve) | his settings | owner | they must not match our asking tools (the send, delete and submit tools of Mail, Chrome and later apps), so such a hook never answers for him; whether one could approve a managed ask at all is tested in brief 18c |
 | Our app servers (Mail, Chrome, later apps) | installed for his user by the image's setup, like any MCP server | | first: their send, delete and submit tools always ask |
 
+## Which tool a site gets, and later tool families (owner, 2026-11-18)
+
+**The route rule.** A site with a real API or command-line tool gets a direct tool (GitHub: `gh`, already there).
+Our own Empire apps get API tools (below). Everything else goes through the Chrome tool and its site adapters.
+
+| Feature | Tool | Effect | State |
+|---|---|---|---|
+| Tools for our own Empire apps (Aresium, Arestemis, Aresus on our server) | an API tool per app | read; sends ask | later: we own both sides, so they are cheap, clean tools; the strongest candidate for the family after the Chrome adapters |
+| Minecraft: Claude reads where he is and what's around, builds, goes places and runs commands in his world | through our own Fabric mod (the hub's channel) | change | later: after the Chrome adapters, with `linux-hub`, which owns the mod. Only in our Prism/Fabric setup; Lunar is closed |
+| Claude as a Minecraft player ("claude can actually play minecraft really well and quickly, like a normal player") | two layers: Claude plans, a fast bot layer acts (pathfinding, mining, building, mobs), either Mineflayer/Mindcraft-style as a second player or Baritone-style inside the mod | change | later: a research project after the Minecraft tool. Singleplayer or his own server only; bots get banned on public servers |
+
 ## Chrome
 
 The light tool (decision 25): our extension in his normal Chrome, no proxy and no certificate. It asks before
