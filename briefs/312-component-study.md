@@ -34,6 +34,15 @@ For B, the study must say:
 
 **Pictures of B:** screenshots of B stay out of the repo and out of the pull request's committed files. They may be shown on a private artifact page. Everything committed uses A's art.
 
+## Function and look stay separate
+
+Patrik: "at some point we wanna add the completely diff look in ares app style (not necessarily prio but just a thing once functionality is there)" (relayed by `mac-capacity`, 2026-11-18).
+
+- Design every OS piece so its function is separate from its look. Colours, shapes, pixel art and fonts live in a replaceable theme layer, so the Ares-style look can come later without rebuilding the pieces.
+- Keep it simple: one theme today and no theme switcher. Do not design or build the Ares-style look now.
+- Versions A and B above should both fit this layer, as two sets of art for the same pieces.
+- The study says what this separation costs.
+
 ## Fixed limits
 
 **Art**
