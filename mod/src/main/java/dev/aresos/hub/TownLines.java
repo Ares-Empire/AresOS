@@ -24,8 +24,12 @@ public final class TownLines {
     public record Line(Kind kind, String text) { }
 
     private final List<Line> lines = new ArrayList<>();
+    private boolean changeStarted;
 
     public void add(Kind kind, String text) { lines.add(new Line(kind, text)); }
+
+    /** A standing logo needs moving or renewing, even if its replacement cannot be built this pass. */
+    public void changeStarted() { changeStarted = true; }
 
     public boolean isEmpty() { return lines.isEmpty(); }
 
@@ -52,14 +56,15 @@ public final class TownLines {
 
     /**
      * The first build belongs to the home, rather than to one pass. Keep its ordinary lines until its places and
-     * pictures are ready, for at most 600 ticks (about 30 seconds). A complete first pass still speaks at once.
+     * pictures are ready, for at most 200 ticks (about 10 seconds) after the first actual build.
+     * A complete first pass still speaks at once.
      * WAY lines never wait. A rebuild, a changed app list or an ordinary change ends this first build.
      */
     public static final class FirstBuild {
-        public static final int WAIT_TICKS = 600;
+        public static final int WAIT_TICKS = 200;
         private final TownLines built = new TownLines();
         private Set<String> apps;
-        private long until;
+        private long until = Long.MAX_VALUE;
         private boolean finished;
 
         /** The server tick also checks the bound while a picture is still being read. */
@@ -89,14 +94,14 @@ public final class TownLines {
                     return pass.said(false, false, waiting);
                 }
                 apps = Set.copyOf(wanted);
-                until = tick + WAIT_TICKS;
             }
-            if (!apps.equals(wanted) || pass.lines.stream().anyMatch(line -> line.kind() != Kind.BUILT && line.kind() != Kind.WAY)) {
+            if (pass.changeStarted || !apps.equals(wanted) || pass.lines.stream().anyMatch(line -> line.kind() != Kind.BUILT && line.kind() != Kind.WAY)) {
                 finished = true;
                 var said = new ArrayList<>(built.said(true, false, 0));
-                said.addAll(pass.said(first, false, waiting));
+                said.addAll(pass.said(false, false, waiting));
                 return said;
             }
+            if (until == Long.MAX_VALUE && pass.lines.stream().anyMatch(line -> line.kind() == Kind.BUILT)) until = tick + WAIT_TICKS;
             pass.lines.stream().filter(line -> line.kind() == Kind.BUILT).forEach(built.lines::add);
             var said = new ArrayList<String>();
             if (!pending || tick >= until) {

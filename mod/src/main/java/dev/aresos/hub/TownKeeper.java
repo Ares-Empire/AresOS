@@ -109,6 +109,8 @@ public final class TownKeeper {
     private final Map<String, Read> pictures = new HashMap<>();
     /** Apps whose logo {@code hub rebuild} asked to be built again and that still stand as they were. */
     private final Set<String> renew = new HashSet<>();
+    /** A replacement keeps its kind after the old logo comes down, until a later pass can build it. */
+    private final Map<String, TownLines.Kind> changes = new HashMap<>();
     /**
      * The count each group's name shows, as a pass of this keeper last wrote it. The pass of a swap or move writes
      * only what its apps change in it (review fixes 2, point 1).
@@ -414,13 +416,12 @@ public final class TownKeeper {
         boolean first = hub.logos().isEmpty();
         var lines = new TownLines();
         var need = new LinkedHashSet<String>();
-        var cameDown = new HashSet<String>();
         Round round;
         // A build refused in a place that looked free blocks that place, and the app goes on to its group's next
         // place in this same pass: a few more rounds, each only after a new refusal.
         for (int rounds = 1; ; rounds++) {
             int refusals = refused.size();
-            round = round(server, hub, apps, pictures, spots, lines, cameDown, scope);
+            round = round(server, hub, apps, pictures, spots, lines, scope);
             need.addAll(round.need());
             // The pass of a swap or move makes one round: it never moves an app of the command on to another place.
             if (!scope.whole() || refused.size() == refusals || rounds == ROUNDS) break;
@@ -430,6 +431,7 @@ public final class TownKeeper {
         // 5. Roads and names.
         boolean roads = scope.whole() ? roads(level, hub, round.assignment()) : roads(level, hub, scope, from);
         var wanted = apps.values().stream().filter(TownKeeper::wanted).map(AppDefinition::id).collect(Collectors.toSet());
+        changes.keySet().retainAll(wanted);
         var spoken = new ArrayList<String>();
         if (scope.whole()) spoken.addAll(firstBuild.said(lines, first, rebuilt, round.waiting(),
                 round.pending() || !need.isEmpty(), server.getTickCount(), wanted));
@@ -445,7 +447,7 @@ public final class TownKeeper {
 
     /** Points 1 to 4 and 6 of HUB.md 3.4, once. */
     private Round round(MinecraftServer server, HubData hub, Map<String, AppDefinition> apps, Function<AppDefinition, Optional<GatePicture>> pictures,
-                        Spots spots, TownLines lines, Set<String> cameDown, Scope scope) {
+                        Spots spots, TownLines lines, Scope scope) {
         var saved = new HashMap<String, Place>();
         for (var app : apps.values()) {
             var place = saved(app, hub.logo(app.id()));
@@ -467,10 +469,16 @@ public final class TownKeeper {
             var at = Place.parse(logo.place());
             if (target != null && at.equals(Optional.of(target))) continue;
             if (down != null && !down.contains(logo.app())) continue;
+            if (target != null) {
+                changes.put(logo.app(), TownLines.Kind.MOVED);
+                lines.changeStarted();
+            }
             try {
                 Town.remove(server, logo.app());
-                cameDown.add(logo.app());
-                if (target == null) lines.add(TownLines.Kind.DOWN, gone(apps.get(logo.app()), logo));
+                if (target == null) {
+                    changes.remove(logo.app());
+                    lines.add(TownLines.Kind.DOWN, gone(apps.get(logo.app()), logo));
+                }
             } catch (IOException refusal) {
                 stays.add(logo.app());
                 at.ifPresent(waitingFor::add);
@@ -498,6 +506,8 @@ public final class TownKeeper {
             }
             if (standing.isPresent()) {
                 if (!changed(standing.get(), app, picture.get()) && !renew.contains(app.id())) continue;
+                changes.put(app.id(), TownLines.Kind.RENEWED);
+                lines.changeStarted();
                 try {
                     Town.remove(server, app.id());
                 } catch (IOException refusal) {
@@ -511,8 +521,9 @@ public final class TownKeeper {
             try {
                 Town.build(server, app, place, picture.get());
                 renew.remove(app.id());
-                boolean moved = cameDown.contains(app.id());
-                if (standing.isPresent()) lines.add(TownLines.Kind.RENEWED, "The logo of " + app.name() + " was renewed.");
+                var kind = changes.remove(app.id());
+                boolean moved = kind == TownLines.Kind.MOVED;
+                if (kind == TownLines.Kind.RENEWED) lines.add(TownLines.Kind.RENEWED, "The logo of " + app.name() + " was renewed.");
                 else if (!(moved && !scope.whole()))
                     lines.add(moved ? TownLines.Kind.MOVED : TownLines.Kind.BUILT, built(app, place, saved.get(app.id()), moved));
             } catch (GateBuilder.NotLoaded notLoaded) {
@@ -522,10 +533,13 @@ public final class TownKeeper {
                 // air above the sign, or a block he changed in its old logo stayed his. The place is blocked from now
                 // on; the next round moves the app on and says so. The pass of a swap or move blocks nothing: the next
                 // ordinary pass tries that place again by its own rules.
-                if (scope.whole()) refused.add(place);
+                if (scope.whole()) {
+                    refused.add(place);
+                    // The replacement now has to move on, even if it began as a renewal in place.
+                    if (changes.containsKey(app.id())) changes.put(app.id(), TownLines.Kind.MOVED);
+                }
                 pending = true;
                 if (standing.isPresent()) {
-                    cameDown.add(app.id());
                     lines.add(TownLines.Kind.WAY, "The logo of " + app.name() + " came down to be renewed but cannot stand at "
                             + place.name() + " again: " + refusal.getMessage());
                 }

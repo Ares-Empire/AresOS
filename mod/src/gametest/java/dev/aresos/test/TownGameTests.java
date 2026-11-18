@@ -163,15 +163,23 @@ public final class TownGameTests {
 
     /** Runs the body around a home block of its own once the ground there is loaded, and puts back the server's hub record. */
     private static void inTown(GameTestHelper helper, int offset, Body body) {
+        inTown(helper, offset, TOWN_FROM, TOWN_TO, false, body);
+    }
+
+    private static void inTown(GameTestHelper helper, int offset, BlockPos from, BlockPos to, boolean resetArrival, Body body) {
         var level = helper.getLevel();
         var server = level.getServer();
         BlockPos column = helper.absolutePos(BlockPos.ZERO).offset(offset, 0, 0);
-        var chunks = town(column);
+        var chunks = chunks(column.offset(from), column.offset(to));
         hold(level, chunks, true);
         helper.startSequence().thenWaitUntil(waitFor(helper, level, chunks, () -> loaded(level, chunks), "The town's chunks are not loaded yet", () -> { })).thenExecute(() -> {
             var previous = HubData.get(server);
             try {
-                BlockPos home = new BlockPos(column.getX(), level.getHeight(Heightmap.Types.WORLD_SURFACE, column.getX(), column.getZ()), column.getZ());
+                // The arrival fixture may hold an old gate at its new home column. Its far corner is beyond every
+                // gate it builds, so use that grass surface before resetting its own ground.
+                var surface = resetArrival ? column.offset(to.getX(), 0, to.getZ()) : column;
+                BlockPos home = new BlockPos(column.getX(), level.getHeight(Heightmap.Types.WORLD_SURFACE, surface.getX(), surface.getZ()), column.getZ());
+                if (resetArrival) resetArrivalFixture(level, home);
                 check(level.getBlockState(home.below()).is(Blocks.GRASS_BLOCK) && level.getBlockState(home).isAir(), "Fixture: no grass surface at " + home);
                 body.run(level, home);
             } catch (IOException error) {
@@ -419,6 +427,78 @@ public final class TownGameTests {
 
     private static String place(MinecraftServer server, String app) {
         return HubData.get(server).logo(app).map(HubData.Logo::place).orElse("none");
+    }
+
+    /** Inside this gate, beyond the neighbouring gate's inspection margin. */
+    private static BlockPos loadingMarker(Place place, BlockPos home) {
+        return place.origin(home).relative(place.group().right(), HubLayout.SIZE / 2).above(HubLayout.SIZE / 2);
+    }
+
+    /** This test's far-away ground is kept between runs, including a run that failed before cleanup. */
+    private static void resetArrivalFixture(ServerLevel level, BlockPos home) {
+        var from = home.offset(-128, -1, -128);
+        var to = home.offset(128, 24, 32);
+        var box = new net.minecraft.world.phys.AABB(from.getX(), from.getY(), from.getZ(), to.getX() + 1, to.getY() + 1, to.getZ() + 1);
+        level.getEntitiesOfClass(Display.TextDisplay.class, box).forEach(Display.TextDisplay::discard);
+        for (var pos : BlockPos.betweenClosed(from, to)) {
+            var state = pos.getY() == home.getY() - 1 ? Blocks.GRASS_BLOCK.defaultBlockState() : Blocks.AIR.defaultBlockState();
+            if (!level.getBlockState(pos).equals(state)) level.setBlock(pos, state, 2);
+        }
+    }
+
+    @GameTest(environment = "aresos-test:town_arrival", maxTicks = MAX_TICKS)
+    public void aDeferredCategoryMoveEndsTheFirstBuildAndKeepsItsKind(GameTestHelper helper) {
+        inTown(helper, 35000, new BlockPos(-128, 0, -128), new BlockPos(128, 0, 32), true, (level, home) -> {
+            var server = level.getServer();
+            var hub = new HubData(HubLayout.LOOK, HubLayout.numbers(), GlobalPos.of(level.dimension(), home), FlatHub.build(level, home));
+            HubData.store(server, hub);
+            var fake = new Fake();
+            fake.prefix = "arrival-move-";
+            fake.clearZones(server);
+            var places = Place.inOrder(AppGroup.INTERNET).limit(40).toList();
+            var delayed = new HashSet<BlockPos>();
+            for (int i = 0; i < 40; i++) {
+                fake.apps.add(app(fake.prefix + i, "App " + i, null, AppGroup.INTERNET, false, true)
+                        .withSpot(places.get(i).name(), null)
+                        .withSystem(new dev.aresos.config.SystemInfo("user", null, List.of("Network"), null, null, null, null, null)));
+                if (i >= 32) delayed.add(loadingMarker(places.get(i), home));
+            }
+            TownLoading.delayed = (world, pos) -> world == level && delayed.contains(pos);
+            try {
+                var first = fake.pass(server);
+                check(first.lines().isEmpty() && first.pending() && hub.logos().size() == 32, "First partial build: " + first);
+                var ids = fake.apps.stream().map(AppDefinition::id).toList();
+                String moving = fake.prefix + 0;
+                fake.change(moving, app -> app.withSystem(new dev.aresos.config.SystemInfo("user", null, List.of("Game"), null, null, null, null, null)));
+                var destination = Place.parse("E0L0").orElseThrow();
+                delayed.add(loadingMarker(destination, home));
+                var move = fake.pass(server);
+                check(ids.equals(fake.apps.stream().map(AppDefinition::id).toList()), "The category change changed IDs");
+                check(move.lines().equals(List.of("The town is built: 32 logos. /apps lists them.")) && move.pending()
+                        && hub.logo(moving).isEmpty() && destination.name().equals(fake.get(moving).place()), "Deferred move: " + move);
+                check(fake.pass(server).lines().isEmpty(), "The unloaded move spoke twice");
+                delayed.clear();
+                var completed = fake.pass(server);
+                check(completed.lines().equals(List.of("The town changed: 8 logos built, 1 moved. /apps lists where your apps stand."))
+                        && hub.logos().size() == 40 && place(server, moving).equals("E0L0"), "Completed move: " + completed);
+                check(fake.pass(server).lines().isEmpty(), "Completed move spoke twice");
+
+                // A renewal can also lose its old record before its replacement is ready.
+                fake.pictures.put(moving, picture(0xff376627));
+                TownLoading.delayed = (world, pos) -> world == level && pos.equals(loadingMarker(destination, home)) && hub.logo(moving).isEmpty();
+                var renewal = fake.pass(server);
+                check(renewal.lines().isEmpty() && renewal.pending() && hub.logo(moving).isEmpty(), "Deferred renewal: " + renewal);
+                TownLoading.delayed = null;
+                check(fake.pass(server).lines().equals(List.of("The logo of App 0 was renewed.")), "Deferred renewal lost its kind");
+            } finally {
+                TownLoading.delayed = null;
+                try {
+                    for (var logo : hub.logos()) Town.remove(server, logo.app());
+                } finally {
+                    fake.clearZones(server);
+                }
+            }
+        });
     }
 
     /**
