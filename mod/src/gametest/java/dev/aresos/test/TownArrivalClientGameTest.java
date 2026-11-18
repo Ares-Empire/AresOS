@@ -155,9 +155,12 @@ public final class TownArrivalClientGameTest implements FabricClientGameTest {
             var announced = timed.stream().filter(line -> line.text().equals(BUILT)).toList();
             check(controlled.first > 0 && controlled.first < 20 && controlled.initial > 0 && controlled.initial < 40,
                     "First start was not a controlled partial build near tick 3: " + controlled.first + ", " + controlled.initial);
-            check(controlled.completed >= 100 && controlled.completed < 200 && announced.size() == 1
-                            && announced.getFirst().tick() <= 200,
-                    "The full first-start line missed tick 200: " + announced + ", completion " + controlled.completed);
+            check(controlled.completed >= 100 && controlled.completed - controlled.first <= 200 && announced.size() == 1
+                            && announced.getFirst().tick() >= controlled.completed
+                            && announced.getFirst().tick() - controlled.completed <= 5
+                            && announced.getFirst().tick() - controlled.first <= 200,
+                    "The full first-start line missed completion or its 200-tick deadline: " + announced
+                            + ", completion " + controlled.completed + ", first " + controlled.first);
             AresOs.LOGGER.info("54 controlled first start: {} at tick {}, 40 at tick {}, announcement {}",
                     controlled.initial, controlled.first, controlled.completed, announced);
             TownLoading.delayed = null;
