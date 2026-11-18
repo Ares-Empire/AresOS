@@ -1,6 +1,6 @@
 # AresOS emergency card
 
-Keep this on your phone. Pick the symptom below. **Ctrl = Strg**; Super = Windows-logo key. The `aresos` command exists only on AresOS 29 and later; everywhere else use the full commands at the recovery console.
+Keep this on your phone. Pick the symptom below. **Ctrl = Strg**; Super = Windows-logo key. The `aresos` command exists only on AresOS 29 and later. On AresOS 28 the [bridge in the update route](INSTALL.md#update-aresos-to-a-new-release) supplies update, restart and check; other routes use the full commands at the recovery console.
 
 ## Frozen laptop
 

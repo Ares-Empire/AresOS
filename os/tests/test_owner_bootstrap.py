@@ -217,6 +217,33 @@ class BootstrapTest(unittest.TestCase):
                         self.assertEqual(got['argv'],['-k','-A','-p',bootstrap.label(fingerprint,bootstrap.ACTIONS[name]),
                                                       '/usr/bin/bash','-c',shlex.split(line)[9]])
 
+    def test_release28_bridge_runs_only_its_one_installed_word_and_preserves_its_result(self):
+        """No dispatcher or image helper: inspect the window command, run only a harmless at stand-in."""
+        fingerprint = common.bundle.check(common.ROOT/'os/owner-tools/payload')
+        expected = {'newest-routine': ('newest', 'update AresOS'),
+                    'reboot-routine': ('reboot', 'restart AresOS'),
+                    'check-routine': ('check', 'check AresOS')}
+        with tempfile.TemporaryDirectory(dir=common.ROOT/'os/tests') as temporary:
+            root = pathlib.Path(temporary); log = root/'calls'; installed = root/'at'
+            installed.write_text('#!/bin/bash\nprintf "%s\\n" "$@" >> "$ARES_BRIDGE_CALLS"\n'
+                                 'if [ "$ARES_BRIDGE_FAIL" = yes ]; then echo "STOP $1 refused"; exit 7; fi\n'
+                                 'echo "PASS $1"\n')
+            installed.chmod(0o700)
+            for name, (word, action) in expected.items():
+                words = shlex.split(bootstrap.lines(fingerprint)[name])
+                with self.subTest(line=name):
+                    self.assertEqual(words, ['SUDO_ASKPASS=/usr/bin/ksshaskpass', 'SSH_ASKPASS_PROMPT=',
+                                             '/usr/bin/sudo', '-k', '-A', '-p',
+                                             'AresOS owner tools '+fingerprint[:8]+': '+action,
+                                             '/usr/bin/bash', '-c', '/var/lib/ares/at '+word])
+                    for fails, status, output in (('no', 0, 'PASS '+word), ('yes', 7, 'STOP '+word+' refused')):
+                        log.unlink(missing_ok=True)
+                        result = subprocess.run(['/usr/bin/bash', '-c', words[9].replace(bootstrap.INSTALLED, shlex.quote(str(installed)))],
+                                                env=dict(os.environ, ARES_BRIDGE_CALLS=str(log), ARES_BRIDGE_FAIL=fails),
+                                                text=True, capture_output=True, timeout=15)
+                        self.assertEqual((result.returncode, result.stdout, result.stderr), (status, output+'\n', ''))
+                        self.assertEqual(log.read_text().splitlines(), [word])
+
     def test_no_label_matches_a_prompt_ksshaskpass_remembers(self):
         import re
         self.assertEqual(len(KSSHASKPASS_PROMPTS),16)

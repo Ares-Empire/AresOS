@@ -23,7 +23,8 @@
     "43 step 4: the guides for the aresos command (docs/INSTALL.md's new box, docs/EMERGENCY.md, the guide/TABLE equality test); no tools, payload or fingerprint change",
     "43 step 4, REVIEW-12 fixes: EMERGENCY.md's two refusals that are not a STOP, and the was-not-applied warning inside its branch",
     "43 step 4, REVIEW-12 fixes: test_owner_path pins the was-not-applied warning inside its branch",
-    "43 step 4, REVIEW-12 fixes: test_owner_path pins the routine STOP card's two refusals"
+    "43 step 4, REVIEW-12 fixes: test_owner_path pins the routine STOP card's two refusals",
+    "43 step 5a: the R28 bridge's three generated routine lines (newest, reboot, check) by 22d's generator; guides, commands.json and tests; tools fingerprint f66fd694 unchanged"
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
@@ -32,11 +33,11 @@
       "path": ".github/workflows/os-image.yml"
     },
     {
-      "sha256": "e9785377c2356be0f0fbfb1dfa56a3db07553a6291c1c813ed24c03c5242971f",
+      "sha256": "77b12dd8f19837b3c7bd003ed213fa1dcda66ff3d7ea55cfb8619ecf6a111dc2",
       "path": "docs/EMERGENCY.md"
     },
     {
-      "sha256": "b7c0de6f1e2fd6ce619817e297823921f0ee69a44b065ec7da1efd2746c8b792",
+      "sha256": "51d378dd57a8453ac79bade0c0889c1d7bd61ef8201d07621cc4b651b07a7e1a",
       "path": "docs/INSTALL.md"
     },
     {
@@ -68,7 +69,11 @@
       "path": "os/owner-tools/at"
     },
     {
-      "sha256": "cdf2faf1c8d1388ab0cf1d16304a780b01f4994a49f02d9360e51a2c02930e7f",
+      "sha256": "4c66fadb7c4d2888e487f3c208d15e58567dab17eb3c791c681829963ceab1c2",
+      "path": "os/owner-tools/bootstrap.py"
+    },
+    {
+      "sha256": "2190e1cb1f729df343310c94953176eb5ca72f81dbf70cb9cc17561c55aa90d6",
       "path": "os/owner-tools/commands.json"
     },
     {
@@ -148,6 +153,10 @@
       "path": "os/tests/test_checkout_sources.py"
     },
     {
+      "sha256": "2cc6cb2322dab5ac388b534d8f9180c89812476d1b528c27de19aaf1eee2b942",
+      "path": "os/tests/test_owner_bootstrap.py"
+    },
+    {
       "sha256": "873d3fb40d0cadf9f6e40c616172fb8558754897c4ae54ec4aeb12011bc7eb8d",
       "path": "os/tests/test_owner_commands.py"
     },
@@ -156,11 +165,11 @@
       "path": "os/tests/test_owner_entry.py"
     },
     {
-      "sha256": "15670c94994e8d17c86ac48dea2bfa36ebb0317f4c3619766d922756f4a1b172",
+      "sha256": "311fd1b9cf68b8f8a4d2fc843f383c217f25454f255b0081c59d3ab7afb74cda",
       "path": "os/tests/test_owner_equality.py"
     },
     {
-      "sha256": "2a44f162b281fd0af81b0ed082b3f511720a1166040f3694ff7e45541994e3f5",
+      "sha256": "7567542ad548cf62773d1836b5ade80528aedf31ea83ad8006b4a8d846f12383",
       "path": "os/tests/test_owner_path.py"
     },
     {

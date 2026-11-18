@@ -1,11 +1,12 @@
 # Package 43 progress
 
-Latest: step 4's guides, card and equality checks are built from `1a4d783f`;
-see "Step 4" below. Nothing committed; the lead commits and refreshes the
-waiting bindings. Calls 1 and 2's wording still needs the owner's OK before
-step 6. The two intentional integration failures remain (Control's `newest`
-reservation and the moved wrapper's release-diff rule). Step 3 is reviewed
-SAFE and its check build passed, as recorded below. Earlier steps are historical.
+Latest: step 5a's release 28 bridge is built from `9e8c3fa2`; see "Step 5a"
+below. Nothing committed; the lead commits, refreshes the seven changed bound
+files, and arranges the bridge's Astra review. Calls 1 and 2's wording still
+needs the owner's OK before step 6. The two intentional integration failures
+remain (Control's `newest` reservation and the moved wrapper's release-diff
+rule). Steps 1–5 are reviewed SAFE per this step's brief. Earlier sections
+are historical.
 
 Step 1 is implemented in the worktree on `pkg/43-aresos-command`, based on
 `7dd5588c`. The final test results and the one commit-dependent failure are below. Nothing is committed or pushed;
@@ -88,8 +89,10 @@ deployment command, window or Gradle build ran on the laptop.
    changed bound files before the binding check can pass.
 5. **Step 5:** independent review of steps 1–4 (the step 1 Astra review follows
    this handoff).
-6. **Step 5a:** the three generated bridge lines (`newest`, `reboot`, `check`),
-   tests, guides, pins and independent review. Same status-row gate.
+6. **Step 5a:** the three generated bridge lines, tests and guides are built
+   below. Payload regeneration kept the existing fingerprint. The lead must
+   refresh seven waiting hashes, commit, and arrange the addition's independent
+   review before step 6. The status-row gate passed.
 7. **Step 6:** harness/workflow/budget/local walk/host-walk receipt, hosted checks
    and full model on the same head, VM rehearsal including bridge windows,
    then rebind and record the result. Requires published R28 and settled words.
@@ -921,3 +924,169 @@ wording still waits for his OK (the report of step 4 lists every sentence he sho
 
 **Next:** step 5 (an independent review of steps 1–4 together), then step 5a (the bridge's three generated lines),
 then step 6 (needs published R28 and settled words).
+
+
+## Step 5a (2026-11-18)
+
+Built from clean `9e8c3fa2` on `pkg/43-aresos-command`, with steps 1–5
+reviewed SAFE per the lead's brief. Nothing committed or pushed; the lead
+commits. Before reading or changing tools/guides,
+`rg -n 'NOT ON THE LAPTOP' docs/INSTALL-STATUS.md` printed nothing (exit 1,
+no matches). The status-row gate passed. No sudo, owner-tool entry, dispatch,
+deployment command, real password window, rebind or Gradle command ran.
+
+### Done
+
+- `os/owner-tools/bootstrap.py`: three more entries in 22d's generator,
+  `newest-routine`, `reboot-routine`, `check-routine`. Each uses the unchanged
+  routine mechanism and label rule with the payload fingerprint, directly
+  running only its one installed inner word. No dispatcher or image helper.
+  The existing tools-install, folder and export lines remain byte-identical.
+- `os/owner-tools/commands.json`: regenerated all generated entries using
+  `bootstrap.command` and `bootstrap.lines`; only the three additions differ.
+  `pending-rebind.json`: added those names to `unwalked_commands` and recorded
+  their step 6 walk. No waiting hash, binding table or receipt was edited.
+- `docs/INSTALL.md`: filled the marked bridge placeholder, with a separate
+  generated-label table and three exact generated blocks. It carries tools
+  before the release, the announced-commit source, the phone comparison,
+  Cancel and the window's limit, caller-managed ten-minute helper shutdown,
+  the failed-update check/Help rules, a separate **Restart now?** yes before
+  the generated reboot line, title handling, STOP/export, and private records.
+  Other words stay at the console. The old handoffs now point R28 at the
+  bridge; the R29 image table and all console command blocks keep their bytes.
+  `docs/EMERGENCY.md`'s availability line links to the bridge; no branch or
+  symptom section was added to the card.
+- `test_owner_bootstrap.py`: exact argv/label and one-word command checks,
+  plus a harmless installed-entry stand-in proving PASS and STOP output and
+  exit status pass through without a second word. Existing environment and
+  all 16 remembered-prompt checks now include the new generated labels.
+  `test_owner_equality.py`: all six generated lines must appear exactly once
+  and equal commands.json; missing entries/blocks, duplicate blocks and
+  modified bytes refuse. `test_owner_path.py`: bridge table equality and the
+  announcement, Help, password and restart rules, plus the new box's position
+  while the ten console boxes retain their order.
+
+### Payload and fingerprint pins
+
+Ran `PYTHONDONTWRITEBYTECODE=1 python3 os/owner-tools/bundle.py --refresh`.
+It printed:
+
+```text
+PASS bundle manifest SHA256 f66fd69442857b911b81775bbc2efb3edf53648b391615b38234b2ddcea9d135
+```
+
+The payload was regenerated, never edited or merged by hand. No payload
+source changed: bootstrap.py and commands.json are outside `bundle.PAYLOAD`.
+Consequently no payload bytes, tools version or fingerprint moved. The
+existing OWNER-TOOLS.md (version 6, `f66fd694`), install/export labels and all
+full fingerprint pins still match. The generated bridge labels use that
+same fingerprint. Do not fabricate an R28 target: at the next merge of main,
+add its real release number/record/history as already required, regenerate
+again and move every pin, including this bridge's three labels and lines.
+
+### Bindings for the lead
+
+These **seven changed bound files** were checked against every source table
+in the active `os/manifest/ci/22d/source-bindings.json`:
+
+- `docs/EMERGENCY.md`
+- `docs/INSTALL.md`
+- `os/owner-tools/bootstrap.py`
+- `os/owner-tools/commands.json`
+- `os/tests/test_owner_bootstrap.py`
+- `os/tests/test_owner_equality.py`
+- `os/tests/test_owner_path.py`
+
+`os/manifest/ci/16/pending-rebind.json` and this progress file are unbound.
+Only the unwalked-command list and its explanation changed in the pending
+file, not its waiting rows. Per this run's instruction, no rebind.py ran;
+the lead must add the two new waiting rows (bootstrap.py and
+test_owner_bootstrap.py) and refresh the other five after the last change.
+
+### Verified
+
+Every module ran alone with exactly
+`PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s os/tests -p '<module>.py'`.
+
+| Module | Printed result |
+|---|---|
+| `test_owner_bootstrap.py` | `Ran 14 tests`, `OK` |
+| `test_owner_equality.py` | `Ran 12 tests`, `OK`, twice; the final run followed the gate-link correction |
+| `test_owner_path.py` | `Ran 49 tests`, `OK` after the gate-link correction below |
+| `test_tools_local_wiring.py` | `Ran 42 tests`, `FAILED (failures=1)`; only `StandInOriginTest.test_main_holds_version_3_then_this_head_with_the_real_trees`: line 355 compares committed HEAD's commands.json with the uncommitted three additions. The lead's commit is required; no assertion changed |
+| `test_owner_newest.py` | `Ran 21 tests`, `OK` |
+| `test_owner_release_numbers.py` | `Ran 7 tests`, `OK` |
+| `test_release27.py` | `Ran 41 tests`, `OK` |
+| `test_checkout_sources.py` | `Ran 8 tests`, `FAILED (failures=1)`; binding mismatch for bootstrap.py and test_owner_bootstrap.py, the two newly changed bound files without waiting rows. The other five changed bound files have stale waiting hashes. The lead must refresh all seven |
+| `test_aresos_command.py` | `Ran 17 tests`, `FAILED (failures=1)`; only the intentional three-word-set failure: Control lacks newest. The unchanged image-label-table equality passes alongside the separate bridge table |
+| `test_aresos_command_diff.py` | `Ran 2 tests`, `FAILED (failures=1)`; only the intentional missing rule for `/usr/libexec/aresos-control/cli` |
+
+The first owner-path run printed `Ran 49 tests`, `FAILED (failures=1)`:
+its navigation walk caught the emergency card's new link jumping directly
+into the bridge and bypassing the update entry gate. The link now enters at
+**Update AresOS to a new release**, through its existing gate, before the
+reader finds the bridge. The unchanged navigation assertion then passed.
+No assertion was weakened, skipped or deleted. No temporary-file or socket
+error occurred. Tools-local also printed its existing Git default-branch
+hint and `warning: remote HEAD refers to nonexistent ref, unable to checkout`;
+its only failure was the HEAD/working-copy comparison above.
+
+Read-only comparisons printed
+`PASS all existing command bytes and console boxes unchanged; separate image/bridge tables`.
+The protected-tree diff printed nothing: control/, dispatcher, image helper,
+release scripts, payload and OWNER-TOOLS.md are unchanged. The seven binding
+rows were enumerated read-only (add two, refresh five). `git diff --check`
+passed without output. No full mod suite or hosted workflow was run: this
+step changes no mod or image code, and dispatch is forbidden in the brief.
+
+### Step 6: the bridge's own window stage
+
+This is stage 6 of DESIGN.md section 7, separate from its five console
+stages. It is required before any rehearsal claim or laptop use:
+
+1. Restore a clean R27 checkpoint from before stage 1. Install the real,
+   same-head package 43 bundle targeting the published R28, with its actual
+   tools version and fingerprint. Do not reuse stage 4's made-up next bundle.
+   Run the three generated lines from the announced commit's commands.json
+   through 22d's caller in the desktop session, as Claude would. Neither
+   `/usr/bin/aresos` nor `/usr/libexec/aresos-askpass` may be needed or called.
+2. For **each** of newest-routine, reboot-routine and check-routine, retain
+   the exact command/entry, helper argument, screenshot of **Enter SSH
+   Credentials** and its generated fingerprint label, and result. Cancel
+   must run no owner entry and change no deployment or title/journal. Then
+   accepting the made-up VM password must run only the intended entry word,
+   without a keyring prompt; prove `sudo -n true` refuses afterwards. Keep
+   22d's password-helper/caller audit and package 11's normal disk/firmware
+   audits. Fingerprint and label rules remain 22d's, separate from TABLE.
+3. Accepted newest-routine on R27 must announce/stage the real R28 and finish
+   with `PASS newest`, chosen update, the correct title and restart waiting.
+   It must not reboot or invoke reboot-routine itself. Record a separate
+   restart go representing **Restart now?** yes before the reboot line starts;
+   it gets its own fresh password window. Require `PASS reboot` and boot R28.
+4. On that R28 run the generated check-routine, require `PASS check` and
+   confirmation of the update. Its saved record must show `aresos-desktop`
+   passing, no `foot` query (and no open foot if the harness can end it).
+   Retain the new release/title/deployment evidence and screenshots with the
+   actual fingerprint. This proves the bridge's installed entry commands,
+   window mechanism and real update separately from R29's future dispatcher.
+5. Only when the local walk and VM have actually run those entries may their
+   three names leave `unwalked_commands` in step 6. The console stages must
+   also walk newest before its separate name leaves the list. Bind all
+   changed sources to that same head and retain the receipt; no receipt or
+   status-row claim was invented in step 5a.
+
+### Not verified / PLAN-GAPs / handoff
+
+- The lead's commit and waiting-hash refresh, Astra review, published R28
+  merge, settled owner wording and step 6's same-head hosted checks/full
+  model and real VM windows remain. No new design PLAN-GAP. The existing
+  Control RESERVED and release-diff cli integration gaps stay red on purpose.
+- The guide distinguishes caller-managed ten-minute cancellation from the
+  R29 image helper's automatic timeout. This is 22d's existing mechanism,
+  not a new helper or an image change.
+- No live window, password, reboot, update or screenshot was tested or made.
+  Emergency card's one-page/phone fit still needs the owner check already
+  recorded after step 4; the availability sentence now mentions the bridge.
+- `.work files over 500 MB: []`. No downloads were made. No new hard-to-undo
+  JUDGMENT-CALL or open question; the three new action labels are shown in
+  INSTALL.md's separate bridge table for the lead's review.

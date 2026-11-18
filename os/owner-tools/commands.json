@@ -25,5 +25,8 @@
   "layout-revert": "sudo /var/lib/ares/at layout revert",
   "layout-finish": "sudo /var/lib/ares/at layout finish",
   "layout-abandon": "sudo /var/lib/ares/at layout abandon",
-  "newest": "sudo /var/lib/ares/at newest"
+  "newest": "sudo /var/lib/ares/at newest",
+  "newest-routine": "SUDO_ASKPASS=/usr/bin/ksshaskpass SSH_ASKPASS_PROMPT= /usr/bin/sudo -k -A -p 'AresOS owner tools f66fd694: update AresOS' /usr/bin/bash -c '/var/lib/ares/at newest'",
+  "reboot-routine": "SUDO_ASKPASS=/usr/bin/ksshaskpass SSH_ASKPASS_PROMPT= /usr/bin/sudo -k -A -p 'AresOS owner tools f66fd694: restart AresOS' /usr/bin/bash -c '/var/lib/ares/at reboot'",
+  "check-routine": "SUDO_ASKPASS=/usr/bin/ksshaskpass SSH_ASKPASS_PROMPT= /usr/bin/sudo -k -A -p 'AresOS owner tools f66fd694: check AresOS' /usr/bin/bash -c '/var/lib/ares/at check'"
 }

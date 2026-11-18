@@ -26,6 +26,9 @@ by typing his password into the desktop's window (decisions 2, 3 and 5):
   shell, stopping at the first STOP. The label names the tools' first 8 hex and the
   action. Claude takes each routine line from the announced commit itself
   (FROM_COMMIT), never from the working tree (review 2 of 22d, R3).
+
+Package 43 adds release 28's bridge: three routine lines, each running only one
+installed word (newest, reboot or check), with the same window and label rules.
 """
 import re
 import shlex
@@ -45,7 +48,10 @@ FROM_COMMIT = 'git -C ' + CHECKOUT + ' show <commit>:os/owner-tools/commands.jso
 INSTALLED = '/var/lib/ares/at'
 # The action each routine line's window names, after "AresOS owner tools <8 hex>: ".
 ACTIONS = {'tools-routine': 'install these tools, then check and title',
-           'export-routine': 'export the records'}
+           'export-routine': 'export the records',
+           'newest-routine': 'update AresOS',
+           'reboot-routine': 'restart AresOS',
+           'check-routine': 'check AresOS'}
 
 
 def source_lines(source):
@@ -162,4 +168,8 @@ def tools_folder(fingerprint):
 def lines(fingerprint):
     """Every generated line commands.json holds besides the stick block, by its name there."""
     return {'tools-folder': tools_folder(fingerprint), 'tools-routine': tools_routine(fingerprint),
-            'export-routine': export_routine(fingerprint)}
+            'export-routine': export_routine(fingerprint),
+            # Release 28's bridge runs the installed tools, one word per window.
+            'newest-routine': routine(fingerprint, ACTIONS['newest-routine'], INSTALLED + ' newest'),
+            'reboot-routine': routine(fingerprint, ACTIONS['reboot-routine'], INSTALLED + ' reboot'),
+            'check-routine': routine(fingerprint, ACTIONS['check-routine'], INSTALLED + ' check')}
