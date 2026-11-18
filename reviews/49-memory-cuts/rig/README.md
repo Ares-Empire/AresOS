@@ -131,4 +131,11 @@ The revised trim+arena combination also failed its second flat comparison: one 3
 measurements) remain under `candidates/native-interval-arena/`. Nearby GC was short; the cause is unknown.
 The final conservative candidate keeps only the game-local arena cap and the baseline JVM arguments, and
 restarts all twelve current qualification measurements with fresh controls. No timer-caused regression or
-additive saving is inferred. Including the two rejected sets, the final expected attempt count is 64.
+additive saving is inferred. Including the two rejected sets, the expected attempt count before the later interruption was 64.
+
+The completed study has 65 measurement attempts: 52 complete, eight rejected-candidate measurements, and
+five failed/retired partial records. An unknown SIGTERM interrupted the first Nether control at return; its
+partial evidence was retained and a complete unchanged fresh control succeeded. All twelve final protocol
+runs completed, and all ten NMT-off snapshots confirmed disabled tracking. The final arena-only set still
+does not meet the full frame pass line (one 19.948 ms flight gap versus the paired control15.1 ms/zero>17).
+[REPORT.md](../REPORT.md) and [TABLES.md](../TABLES.md) retain the limits and negative results; no setting ships.

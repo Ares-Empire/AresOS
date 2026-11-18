@@ -57,5 +57,15 @@
     "status": "Unknown SIGTERM at return, completed glide but incomplete wake; preserve and repeat whole baseline unchanged once.",
     "expected_attempt_count_if_remaining_complete": 65,
     "evidence": "failures/nether-control-interrupted/failure.json"
+  },
+  "final_record": {
+    "actual_measurement_attempts": 65,
+    "completed_measurements": 52,
+    "rejected_candidate_measurements": 8,
+    "failed_or_retired_records": 5,
+    "required_final_protocol_runs_complete": 12,
+    "full_pass_line_met": false,
+    "shipping_recommendation": "Retain current product settings; arena cap remains a follow-up candidate.",
+    "note": "Four refused pre-launch low-memory attempts and four full build/client qualifications are recorded separately."
   }
 }

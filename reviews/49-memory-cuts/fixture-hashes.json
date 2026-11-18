@@ -24,7 +24,8 @@
     "aggregate_method": "Sorted relative filename, NUL, SHA256(file), LF; aggregate SHA256. Identifies this saved input, not a promise of byte-identical world recreation from its seed.",
     "file_count": 47,
     "total_bytes": 7860291,
-    "home_kind": "flat"
+    "home_kind": "flat",
+    "verified_unchanged_after_all_measurements": true
   },
   "nether": {
     "utility_source": "runs/setup-nether",
@@ -52,6 +53,7 @@
     "file_count": 57,
     "total_bytes": 11876635,
     "prepared_changes": "Disposable base only: allowCommands enabled and rig/glide installed for the1200tick route; source utility used the earlier rejected candidate flags. Both final measurement JVMs load fresh copies with their own actual flags.",
-    "home_kind": "nether"
+    "home_kind": "nether",
+    "verified_unchanged_after_all_measurements": true
   }
 }

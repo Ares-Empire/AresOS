@@ -1,0 +1,1981 @@
+{
+  "completed_run_count": 52,
+  "count_definition": "A completed measurement can fail experimental guards; this is not a count of qualified configurations.",
+  "measurement_attempt_counts": {
+    "completed": 52,
+    "rejected_candidate_completed": 8,
+    "failed_or_retired_records": 5,
+    "total_recorded_attempts": 65
+  },
+  "final_schedule": {
+    "required": [
+      "v1-create",
+      "winner-create",
+      "v1-nether",
+      "winner-nether",
+      "winner-long",
+      "winner-nmt0",
+      "v1-flat-1",
+      "winner-flat-1",
+      "v1-flat-2",
+      "winner-flat-2",
+      "v1-flat-3",
+      "winner-flat-3"
+    ],
+    "missing": [],
+    "complete": true,
+    "head_mod_tree": "b038c0ddf5feb8bf5ab5ecad92b32fc2b63a47d3",
+    "all_present_runs_match_head_mod_tree": true,
+    "candidate_settings_match_selected": {
+      "winner-create": true,
+      "winner-flat-1": true,
+      "winner-flat-2": true,
+      "winner-flat-3": true,
+      "winner-long": true,
+      "winner-nether": true,
+      "winner-nmt0": true
+    },
+    "frame_qualification": "Review the recorded paired comparisons without adding a tolerance; memory/GC guards alone do not qualify a candidate."
+  },
+  "failed_experiments": {
+    "cover-freeze-1": {
+      "experiment": "cover-freeze-1",
+      "status": "failed; not a completed wake measurement",
+      "runner_exit": 1,
+      "game_exit_reported_by_gradle": 137,
+      "first_frame_after_return_request_ms": 56.16,
+      "scope_thaw": "confirmed before input failure",
+      "last_frozen_rss_mib": 510,
+      "last_frozen_scope_swap_mib": 598,
+      "last_frozen_memory_events": {
+        "low": 0,
+        "high": 0,
+        "max": 0,
+        "oom": 0,
+        "oom_kill": 0,
+        "oom_group_kill": 0,
+        "sock_throttled": 0
+      },
+      "cause": "Unknown. Game exit 137 and heartbeat catch-up/reconnect warnings accompany thaw. The subsequent input pipe broke; do not classify this as the earlier FIFO ENXIO race or as a successful wake.",
+      "next": "Repeat unchanged as cover-freeze-2; keep this failed experiment and exclude it from valid-run averages.",
+      "recorded_frames_at_or_after_wake_start": 0,
+      "recorder_limit": "The abrupt game exit can lose buffered frame records. Zero recorded wake frames is not proof of zero frames actually rendered."
+    },
+    "cover-freeze-2": {
+      "experiment": "cover-freeze-2",
+      "status": "failed; not a completed wake measurement",
+      "runner_exit": 1,
+      "game_exit_reported_by_gradle": 137,
+      "observed_zombie_exit_code": 9,
+      "observed_signal": "SIGKILL (9)",
+      "first_observed_zombie_after_return_ms": 253.138,
+      "memory_events_at_zombie": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0\nsock_throttled 0",
+      "major_faults_at_zombie": 6561,
+      "last_frozen_rss_mib": 494,
+      "last_frozen_scope_swap_mib": 599,
+      "last_frozen_majflt": 153,
+      "scope_thaw": "confirmed",
+      "recorded_frames_at_or_after_wake_start": 0,
+      "cause": "Unknown sender of SIGKILL. Scope high/oom/oom_kill counters stayed zero through process death. The game again emitted tick-backlog and helper reconnect warnings during thaw, before the input pipe broke.",
+      "recorder_limit": "Abrupt death can lose buffered frames; no qualified ten-second wake measurement exists.",
+      "next": "Do not recommend freezing. Continue the remaining unfrozen matrix experiments; no product code is changed."
+    },
+    "ferrite-1-input-race": {
+      "run": "ferrite-1",
+      "status": "invalid wake window; rerun entire pair",
+      "cause": "Wake sender reopened a nonblocking FIFO writer for each command; vinput.py briefly closes/reopens its reader at EOF. ENXIO occurred during a transient reader gap.",
+      "game_crashed": false,
+      "fix": "Retain one writer for the wake window; retry ENXIO at startup for at most one second; dead-reader timeout assertion remains two seconds.",
+      "data": "Partial trial and its preceding valid control retained here. Neither counts toward the two completed pairs."
+    },
+    "nether-control-interrupted": {
+      "run": "v1-nether",
+      "status": "interrupted at return; no complete wake window",
+      "controller_exit_status": 143,
+      "launcher_game_exit": "1",
+      "cause": "Unknown sender of SIGTERM; controller disappeared and private compositor/X connection ended. This is not attributed to GC, OOM, the allocator or an owner action.",
+      "completed_route_tick_samples": [
+        1200,
+        1200
+      ],
+      "gc_max_after_join_ms": 11.64,
+      "qualified_wake": false,
+      "repetition": "Repeat the entire baseline once, unchanged, from the same fresh saved base; retain this partial record outside final means. No parameter or assertion changed."
+    }
+  },
+  "rejected_candidates": {
+    "compact-headers-native": {
+      "candidate": "compact headers + native interval + arena cap",
+      "status": "not qualified: first-creation standing/flight frames worse than paired current v1",
+      "settings": {
+        "RD": "8",
+        "SD": "5",
+        "HEAP": "1024",
+        "MIN_HEAP": "256",
+        "GC": "-XX:MaxHeapFreeRatio=30,-XX:MinHeapFreeRatio=10,-XX:+UseCompactObjectHeaders,-XX:TrimNativeHeapInterval=60000",
+        "MEMHIGH": "2560M",
+        "SIZE": "1920x1080",
+        "REFRESH": "144",
+        "SETTLE": "120",
+        "WINDOW": "60",
+        "COVER": "300",
+        "MODE": "create",
+        "HOMEKIND": "flat",
+        "BASE": "<worktree>/.work/pkg49/AresHub-base",
+        "FLIGHT": "roads",
+        "ENV": "MALLOC_ARENA_MAX=2",
+        "MODS": "",
+        "PROBE": "0",
+        "RECLAIM": "",
+        "FREEZE": "0",
+        "LONG": "0",
+        "NMT": "1",
+        "COVER_ACTION": "none",
+        "WAKE_INPUT": "active-v3",
+        "CREATE_FLOW": "automatic"
+      },
+      "memory_saving_mib": {
+        "settled": 324,
+        "flight": 385,
+        "covered5m": 456
+      },
+      "observed_active_outliers": [
+        {
+          "window": "stand",
+          "frame_ms": 21.902,
+          "jvm_uptime_s": 142.7427,
+          "gc": "Mixed",
+          "gc_pause_ms": 19.914,
+          "seconds_from_nearest_trim_boundary": 22.7427
+        },
+        {
+          "window": "flight",
+          "frame_ms": 26.317,
+          "jvm_uptime_s": 230.3431,
+          "gc": "Remark",
+          "gc_pause_ms": 18.596,
+          "seconds_from_nearest_trim_boundary": 9.6569
+        }
+      ],
+      "control_active_max_ms": {
+        "stand": 12.0,
+        "flight": 12.3
+      },
+      "interpretation": "These are GC-linked stalls away from trim boundaries. This pair does not prove a sole cause or that compact headers always regress frames. Preserve the observations, omit the small optional header saving, and qualify the larger native-memory cuts directly.",
+      "next": "Fresh automatic creation control/trial followed by all required native-only combination validations. The active Nether setup is a utility fixture, not a qualification of the revised settings."
+    },
+    "native-interval-arena": {
+      "candidate": "native trim every60s + arena cap2",
+      "status": "not qualified: second flat flight had34.916ms frame versus paired current control11.565ms, with one extra >33ms frame",
+      "settings": {
+        "RD": "8",
+        "SD": "5",
+        "HEAP": "1024",
+        "MIN_HEAP": "256",
+        "GC": "-XX:MaxHeapFreeRatio=30,-XX:MinHeapFreeRatio=10,-XX:TrimNativeHeapInterval=60000",
+        "MEMHIGH": "2560M",
+        "SIZE": "1920x1080",
+        "REFRESH": "144",
+        "SETTLE": "120",
+        "WINDOW": "60",
+        "COVER": "300",
+        "MODE": "measure",
+        "HOMEKIND": "flat",
+        "BASE": "<worktree>/.work/pkg49/AresHub-base",
+        "FLIGHT": "roads",
+        "ENV": "MALLOC_ARENA_MAX=2",
+        "MODS": "",
+        "PROBE": "0",
+        "RECLAIM": "",
+        "FREEZE": "0",
+        "LONG": "0",
+        "NMT": "1",
+        "COVER_ACTION": "none",
+        "WAKE_INPUT": "active-v3",
+        "CREATE_FLOW": "manual"
+      },
+      "retained_runs": [
+        "v1-create",
+        "winner-create",
+        "v1-flat-1",
+        "winner-flat-1",
+        "winner-flat-2",
+        "v1-flat-2"
+      ],
+      "observed_outlier": {
+        "frame_ms": 34.916,
+        "jvm_uptime_s": 246.208387,
+        "seconds_from_nearest_60s": 6.208387,
+        "GC_within_200ms": [
+          "[246.175s][270008894110796ns] GC(197) Pause Young (Prepare Mixed) (G1 Evacuation Pause) 370M->334M(392M) 1.285ms",
+          "[246.378s][270009097066206ns] GC(198) Pause Young (Mixed) (G1 Evacuation Pause) 370M->330M(392M) 3.318ms"
+        ],
+        "nearest_host_sample": {
+          "monotonic_ns": "270007933412048",
+          "rss_mib": "1058",
+          "cgroup_current_mib": "882",
+          "cgroup_anon_mib": "856",
+          "cgroup_file_mib": "16",
+          "cpu_s": "190.47",
+          "majflt": "0",
+          "cgroup_swap_mib": "0",
+          "host_available_mib": "7622",
+          "host_load1": "2.21"
+        },
+        "run": "winner-flat-2",
+        "status": "Unresolved extra >33ms active frame; assess against complete current-source controls without relaxing the pass line.",
+        "interpretation": "Nominal 60-second boundaries are not observed trim timestamps. Nearby short GC records do not explain the entire frame. Two-second host samples cannot assign causality."
+      },
+      "paired_memory_savings_mib": {
+        "winner-create": {
+          "settled": 282,
+          "flight": 325,
+          "covered5m": 377
+        },
+        "winner-flat-1": {
+          "settled": 67,
+          "flight": 234,
+          "covered5m": 279
+        },
+        "winner-flat-2": {
+          "settled": 222,
+          "flight": 303,
+          "covered5m": 361
+        }
+      },
+      "interpretation": "The cause of the extra flight gap is unknown. Native interval and arena cap gains overlap; retain the simpler arena-only candidate and qualify it fresh. This does not establish that trimming caused the gap. No frame threshold or assertion was changed.",
+      "schedule": "First creation pair and two flat pairs completed. The scheduler alone was paused while the last control completed normally, then terminated before any next game; no measured child was interrupted.",
+      "next": "Fresh arena-only automatic creation pair, flatx3 pairs, paired Nether, long20 and NMT0."
+    }
+  },
+  "guards_all_runs": {
+    "arenas-1": {
+      "oom": false,
+      "town_unavailable": false,
+      "high_events": 0,
+      "gc_after_join_max_ms": 15.48,
+      "gc_at_most_50ms": true,
+      "lost_frames": 0,
+      "memory_gc_recorder_pass": true
+    },
+    "arenas-2": {
+      "oom": false,
+      "town_unavailable": false,
+      "high_events": 0,
+      "gc_after_join_max_ms": 15.57,
+      "gc_at_most_50ms": true,
+      "lost_frames": 0,
+      "memory_gc_recorder_pass": true
+    },
+    "coh-1": {
+      "oom": false,
+      "town_unavailable": false,
+      "high_events": 0,
+      "gc_after_join_max_ms": 11.96,
+      "gc_at_most_50ms": true,
+      "lost_frames": 0,
+      "memory_gc_recorder_pass": true
+    },
+    "coh-2": {
+      "oom": false,
+      "town_unavailable": false,
+      "high_events": 0,
+      "gc_after_join_max_ms": 18.99,
+      "gc_at_most_50ms": true,
+      "lost_frames": 0,
+      "memory_gc_recorder_pass": true
+    },
+    "cover-gc-1": {
+      "oom": false,
+      "town_unavailable": false,
+      "high_events": 0,
+      "gc_after_join_max_ms": 73.28,
+      "gc_at_most_50ms": false,
+      "lost_frames": 0,
+      "memory_gc_recorder_pass": false
+    },
+    "cover-gc-2": {
+      "oom": false,
+      "town_unavailable": false,
+      "high_events": 0,
+      "gc_after_join_max_ms": 74.66,
+      "gc_at_most_50ms": false,
+      "lost_frames": 0,
+      "memory_gc_recorder_pass": false
+    },
+    "cover-none-1": {
+      "oom": false,
+      "town_unavailable": false,
+      "high_events": 0,
+      "gc_after_join_max_ms": 11.69,
+      "gc_at_most_50ms": true,
+      "lost_frames": 0,
+      "memory_gc_recorder_pass": true
+    },
+    "cover-none-2": {
+      "oom": false,
+      "town_unavailable": false,
+      "high_events": 0,
+      "gc_after_join_max_ms": 11.54,
+      "gc_at_most_50ms": true,
+      "lost_frames": 0,
+      "memory_gc_recorder_pass": true
+    },
+    "cover-r300-1": {
+      "oom": false,
+      "town_unavailable": false,
+      "high_events": 0,
+      "gc_after_join_max_ms": 69.84,
+      "gc_at_most_50ms": false,
+      "lost_frames": 0,
+      "memory_gc_recorder_pass": false
+    },
+    "cover-r300-2": {
+      "oom": false,
+      "town_unavailable": false,
+      "high_events": 0,
+      "gc_after_join_max_ms": 72.83,
+      "gc_at_most_50ms": false,
+      "lost_frames": 0,
+      "memory_gc_recorder_pass": false
+    },
+    "cover-r600-1": {
+      "oom": false,
+      "town_unavailable": false,
+      "high_events": 0,
+      "gc_after_join_max_ms": 80.08,
+      "gc_at_most_50ms": false,
+      "lost_frames": 0,
+      "memory_gc_recorder_pass": false
+    },
+    "cover-r600-2": {
+      "oom": false,
+      "town_unavailable": false,
+      "high_events": 0,
+      "gc_after_join_max_ms": 71.05,
+      "gc_at_most_50ms": false,
+      "lost_frames": 0,
+      "memory_gc_recorder_pass": false
+    },
+    "dedup-1": {
+      "oom": false,
+      "town_unavailable": false,
+      "high_events": 0,
+      "gc_after_join_max_ms": 15.29,
+      "gc_at_most_50ms": true,
+      "lost_frames": 0,
+      "memory_gc_recorder_pass": true
+    },
+    "dedup-2": {
+      "oom": false,
+      "town_unavailable": false,
+      "high_events": 0,
+      "gc_after_join_max_ms": 15.17,
+      "gc_at_most_50ms": true,
+      "lost_frames": 0,
+      "memory_gc_recorder_pass": true
+    },
+    "ferrite-1": {
+      "oom": false,
+      "town_unavailable": false,
+      "high_events": 0,
+      "gc_after_join_max_ms": 14.23,
+      "gc_at_most_50ms": true,
+      "lost_frames": 0,
+      "memory_gc_recorder_pass": true
+    },
+    "ferrite-2": {
+      "oom": false,
+      "town_unavailable": false,
+      "high_events": 0,
+      "gc_after_join_max_ms": 14.58,
+      "gc_at_most_50ms": true,
+      "lost_frames": 0,
+      "memory_gc_recorder_pass": true
+    },
+    "s0-long": {
+      "oom": false,
+      "town_unavailable": false,
+      "high_events": 0,
+      "gc_after_join_max_ms": 12.84,
+      "gc_at_most_50ms": true,
+      "lost_frames": 0,
+      "memory_gc_recorder_pass": true
+    },
+    "s0-probe": {
+      "oom": false,
+      "town_unavailable": false,
+      "high_events": 0,
+      "gc_after_join_max_ms": 77.34,
+      "gc_at_most_50ms": false,
+      "lost_frames": 0,
+      "memory_gc_recorder_pass": false
+    },
+    "setup-flat": {
+      "oom": false,
+      "town_unavailable": false,
+      "high_events": 0,
+      "gc_after_join_max_ms": 10.35,
+      "gc_at_most_50ms": true,
+      "lost_frames": 0,
+      "memory_gc_recorder_pass": true
+    },
+    "setup-nether": {
+      "oom": false,
+      "town_unavailable": false,
+      "high_events": 0,
+      "gc_after_join_max_ms": 7.42,
+      "gc_at_most_50ms": true,
+      "lost_frames": 0,
+      "memory_gc_recorder_pass": true
+    },
+    "system-1": {
+      "oom": false,
+      "town_unavailable": false,
+      "high_events": 0,
+      "gc_after_join_max_ms": 12.79,
+      "gc_at_most_50ms": true,
+      "lost_frames": 0,
+      "memory_gc_recorder_pass": true
+    },
+    "system-2": {
+      "oom": false,
+      "town_unavailable": false,
+      "high_events": 0,
+      "gc_after_join_max_ms": 13.09,
+      "gc_at_most_50ms": true,
+      "lost_frames": 0,
+      "memory_gc_recorder_pass": true
+    },
+    "threads-1": {
+      "oom": false,
+      "town_unavailable": false,
+      "high_events": 0,
+      "gc_after_join_max_ms": 16.13,
+      "gc_at_most_50ms": true,
+      "lost_frames": 0,
+      "memory_gc_recorder_pass": true
+    },
+    "threads-2": {
+      "oom": false,
+      "town_unavailable": false,
+      "high_events": 0,
+      "gc_after_join_max_ms": 14.97,
+      "gc_at_most_50ms": true,
+      "lost_frames": 0,
+      "memory_gc_recorder_pass": true
+    },
+    "trim-1": {
+      "oom": false,
+      "town_unavailable": false,
+      "high_events": 0,
+      "gc_after_join_max_ms": 11.14,
+      "gc_at_most_50ms": true,
+      "lost_frames": 0,
+      "memory_gc_recorder_pass": true
+    },
+    "trim-2": {
+      "oom": false,
+      "town_unavailable": false,
+      "high_events": 0,
+      "gc_after_join_max_ms": 13.39,
+      "gc_at_most_50ms": true,
+      "lost_frames": 0,
+      "memory_gc_recorder_pass": true
+    },
+    "v1-arenas-1": {
+      "oom": false,
+      "town_unavailable": false,
+      "high_events": 0,
+      "gc_after_join_max_ms": 11.48,
+      "gc_at_most_50ms": true,
+      "lost_frames": 0,
+      "memory_gc_recorder_pass": true
+    },
+    "v1-arenas-2": {
+      "oom": false,
+      "town_unavailable": false,
+      "high_events": 0,
+      "gc_after_join_max_ms": 13.48,
+      "gc_at_most_50ms": true,
+      "lost_frames": 0,
+      "memory_gc_recorder_pass": true
+    },
+    "v1-coh-1": {
+      "oom": false,
+      "town_unavailable": false,
+      "high_events": 0,
+      "gc_after_join_max_ms": 12.23,
+      "gc_at_most_50ms": true,
+      "lost_frames": 0,
+      "memory_gc_recorder_pass": true
+    },
+    "v1-coh-2": {
+      "oom": false,
+      "town_unavailable": false,
+      "high_events": 0,
+      "gc_after_join_max_ms": 11.64,
+      "gc_at_most_50ms": true,
+      "lost_frames": 0,
+      "memory_gc_recorder_pass": true
+    },
+    "v1-create": {
+      "oom": false,
+      "town_unavailable": false,
+      "high_events": 0,
+      "gc_after_join_max_ms": 11.72,
+      "gc_at_most_50ms": true,
+      "lost_frames": 0,
+      "memory_gc_recorder_pass": true
+    },
+    "v1-dedup-1": {
+      "oom": false,
+      "town_unavailable": false,
+      "high_events": 0,
+      "gc_after_join_max_ms": 12.64,
+      "gc_at_most_50ms": true,
+      "lost_frames": 0,
+      "memory_gc_recorder_pass": true
+    },
+    "v1-dedup-2": {
+      "oom": false,
+      "town_unavailable": false,
+      "high_events": 0,
+      "gc_after_join_max_ms": 14.57,
+      "gc_at_most_50ms": true,
+      "lost_frames": 0,
+      "memory_gc_recorder_pass": true
+    },
+    "v1-ferrite-1": {
+      "oom": false,
+      "town_unavailable": false,
+      "high_events": 0,
+      "gc_after_join_max_ms": 11.78,
+      "gc_at_most_50ms": true,
+      "lost_frames": 0,
+      "memory_gc_recorder_pass": true
+    },
+    "v1-ferrite-2": {
+      "oom": false,
+      "town_unavailable": false,
+      "high_events": 0,
+      "gc_after_join_max_ms": 12.35,
+      "gc_at_most_50ms": true,
+      "lost_frames": 0,
+      "memory_gc_recorder_pass": true
+    },
+    "v1-flat-1": {
+      "oom": false,
+      "town_unavailable": false,
+      "high_events": 0,
+      "gc_after_join_max_ms": 14.11,
+      "gc_at_most_50ms": true,
+      "lost_frames": 0,
+      "memory_gc_recorder_pass": true
+    },
+    "v1-flat-2": {
+      "oom": false,
+      "town_unavailable": false,
+      "high_events": 0,
+      "gc_after_join_max_ms": 12.14,
+      "gc_at_most_50ms": true,
+      "lost_frames": 0,
+      "memory_gc_recorder_pass": true
+    },
+    "v1-flat-3": {
+      "oom": false,
+      "town_unavailable": false,
+      "high_events": 0,
+      "gc_after_join_max_ms": 11.1,
+      "gc_at_most_50ms": true,
+      "lost_frames": 0,
+      "memory_gc_recorder_pass": true
+    },
+    "v1-nether": {
+      "oom": false,
+      "town_unavailable": false,
+      "high_events": 0,
+      "gc_after_join_max_ms": 13.63,
+      "gc_at_most_50ms": true,
+      "lost_frames": 0,
+      "memory_gc_recorder_pass": true
+    },
+    "v1-system-1": {
+      "oom": false,
+      "town_unavailable": false,
+      "high_events": 0,
+      "gc_after_join_max_ms": 13.29,
+      "gc_at_most_50ms": true,
+      "lost_frames": 0,
+      "memory_gc_recorder_pass": true
+    },
+    "v1-system-2": {
+      "oom": false,
+      "town_unavailable": false,
+      "high_events": 0,
+      "gc_after_join_max_ms": 12.53,
+      "gc_at_most_50ms": true,
+      "lost_frames": 0,
+      "memory_gc_recorder_pass": true
+    },
+    "v1-threads-1": {
+      "oom": false,
+      "town_unavailable": false,
+      "high_events": 0,
+      "gc_after_join_max_ms": 11.67,
+      "gc_at_most_50ms": true,
+      "lost_frames": 0,
+      "memory_gc_recorder_pass": true
+    },
+    "v1-threads-2": {
+      "oom": false,
+      "town_unavailable": false,
+      "high_events": 0,
+      "gc_after_join_max_ms": 15.58,
+      "gc_at_most_50ms": true,
+      "lost_frames": 0,
+      "memory_gc_recorder_pass": true
+    },
+    "v1-trim-1": {
+      "oom": false,
+      "town_unavailable": false,
+      "high_events": 0,
+      "gc_after_join_max_ms": 11.43,
+      "gc_at_most_50ms": true,
+      "lost_frames": 0,
+      "memory_gc_recorder_pass": true
+    },
+    "v1-trim-2": {
+      "oom": false,
+      "town_unavailable": false,
+      "high_events": 0,
+      "gc_after_join_max_ms": 13.49,
+      "gc_at_most_50ms": true,
+      "lost_frames": 0,
+      "memory_gc_recorder_pass": true
+    },
+    "winner-create": {
+      "oom": false,
+      "town_unavailable": false,
+      "high_events": 0,
+      "gc_after_join_max_ms": 22.53,
+      "gc_at_most_50ms": true,
+      "lost_frames": 0,
+      "memory_gc_recorder_pass": true
+    },
+    "winner-flat-1": {
+      "oom": false,
+      "town_unavailable": false,
+      "high_events": 0,
+      "gc_after_join_max_ms": 11.55,
+      "gc_at_most_50ms": true,
+      "lost_frames": 0,
+      "memory_gc_recorder_pass": true
+    },
+    "winner-flat-2": {
+      "oom": false,
+      "town_unavailable": false,
+      "high_events": 0,
+      "gc_after_join_max_ms": 12.2,
+      "gc_at_most_50ms": true,
+      "lost_frames": 0,
+      "memory_gc_recorder_pass": true
+    },
+    "winner-flat-3": {
+      "oom": false,
+      "town_unavailable": false,
+      "high_events": 0,
+      "gc_after_join_max_ms": 10.94,
+      "gc_at_most_50ms": true,
+      "lost_frames": 0,
+      "memory_gc_recorder_pass": true
+    },
+    "winner-long": {
+      "oom": false,
+      "town_unavailable": false,
+      "high_events": 0,
+      "gc_after_join_max_ms": 13.59,
+      "gc_at_most_50ms": true,
+      "lost_frames": 0,
+      "memory_gc_recorder_pass": true
+    },
+    "winner-nether": {
+      "oom": false,
+      "town_unavailable": false,
+      "high_events": 0,
+      "gc_after_join_max_ms": 20.01,
+      "gc_at_most_50ms": true,
+      "lost_frames": 0,
+      "memory_gc_recorder_pass": true
+    },
+    "winner-nmt0": {
+      "oom": false,
+      "town_unavailable": false,
+      "high_events": 0,
+      "gc_after_join_max_ms": 13.15,
+      "gc_at_most_50ms": true,
+      "lost_frames": 0,
+      "memory_gc_recorder_pass": true
+    }
+  },
+  "source_revisions": {
+    "d1ebe47532bfb9f42ad814e273c358263b110afb": {
+      "mod_tree": "4ec6bfe95886d84ef689430e6443bab642d41e95",
+      "helper_blob": "a2567c4b11e5739af2478ca13ee98c1d4cdfc0e9",
+      "labwc_config_blob": "6ea557a97357f3336b267f371126c25e43403974",
+      "runs": [
+        "arenas-1",
+        "coh-1",
+        "dedup-1",
+        "system-1",
+        "trim-1",
+        "v1-arenas-1",
+        "v1-coh-1",
+        "v1-dedup-1",
+        "v1-system-1",
+        "v1-trim-1"
+      ]
+    },
+    "fc1f3eb5b2932bb099b152f82e5320294b30c86b": {
+      "mod_tree": "4ec6bfe95886d84ef689430e6443bab642d41e95",
+      "helper_blob": "a2567c4b11e5739af2478ca13ee98c1d4cdfc0e9",
+      "labwc_config_blob": "6ea557a97357f3336b267f371126c25e43403974",
+      "runs": [
+        "arenas-2",
+        "system-2",
+        "v1-system-2",
+        "v1-trim-2"
+      ]
+    },
+    "d4df70c430acb6a2b4ea99ca5abb927596a5289f": {
+      "mod_tree": "4ec6bfe95886d84ef689430e6443bab642d41e95",
+      "helper_blob": "a2567c4b11e5739af2478ca13ee98c1d4cdfc0e9",
+      "labwc_config_blob": "6ea557a97357f3336b267f371126c25e43403974",
+      "runs": [
+        "coh-2",
+        "ferrite-1",
+        "v1-ferrite-1"
+      ]
+    },
+    "3cd5fb9c1d4f55c30b983f5b5cf48b2508f0b409": {
+      "mod_tree": "4ec6bfe95886d84ef689430e6443bab642d41e95",
+      "helper_blob": "a2567c4b11e5739af2478ca13ee98c1d4cdfc0e9",
+      "labwc_config_blob": "6ea557a97357f3336b267f371126c25e43403974",
+      "runs": [
+        "cover-gc-1",
+        "cover-r300-1"
+      ]
+    },
+    "6cb2516b543fe8213cd49b8260fe0d19d50ae674": {
+      "mod_tree": "4ec6bfe95886d84ef689430e6443bab642d41e95",
+      "helper_blob": "a2567c4b11e5739af2478ca13ee98c1d4cdfc0e9",
+      "labwc_config_blob": "6ea557a97357f3336b267f371126c25e43403974",
+      "runs": [
+        "cover-gc-2",
+        "cover-r300-2"
+      ]
+    },
+    "95968b1ad4aadbffa61fb964d08323cb7fadb5cc": {
+      "mod_tree": "4ec6bfe95886d84ef689430e6443bab642d41e95",
+      "helper_blob": "a2567c4b11e5739af2478ca13ee98c1d4cdfc0e9",
+      "labwc_config_blob": "6ea557a97357f3336b267f371126c25e43403974",
+      "runs": [
+        "cover-none-1",
+        "v1-ferrite-2"
+      ]
+    },
+    "dc6ec331f328541d7c0b0cb958d059149cbca02d": {
+      "mod_tree": "4ec6bfe95886d84ef689430e6443bab642d41e95",
+      "helper_blob": "a2567c4b11e5739af2478ca13ee98c1d4cdfc0e9",
+      "labwc_config_blob": "6ea557a97357f3336b267f371126c25e43403974",
+      "runs": [
+        "cover-none-2"
+      ]
+    },
+    "0b99a1d96ce3f55a352ad367070de228893e7603": {
+      "mod_tree": "4ec6bfe95886d84ef689430e6443bab642d41e95",
+      "helper_blob": "a2567c4b11e5739af2478ca13ee98c1d4cdfc0e9",
+      "labwc_config_blob": "6ea557a97357f3336b267f371126c25e43403974",
+      "runs": [
+        "cover-r600-1"
+      ]
+    },
+    "67ec522ae665603b81bbb43fcdeadfccf12c7a97": {
+      "mod_tree": "4ec6bfe95886d84ef689430e6443bab642d41e95",
+      "helper_blob": "a2567c4b11e5739af2478ca13ee98c1d4cdfc0e9",
+      "labwc_config_blob": "6ea557a97357f3336b267f371126c25e43403974",
+      "runs": [
+        "cover-r600-2"
+      ]
+    },
+    "45145118a262a2e69cd41ea1a56920822aedc4cd": {
+      "mod_tree": "4ec6bfe95886d84ef689430e6443bab642d41e95",
+      "helper_blob": "a2567c4b11e5739af2478ca13ee98c1d4cdfc0e9",
+      "labwc_config_blob": "6ea557a97357f3336b267f371126c25e43403974",
+      "runs": [
+        "dedup-2",
+        "trim-2",
+        "v1-coh-2",
+        "v1-dedup-2"
+      ]
+    },
+    "150c1efe8716cb149a23724eb3869c9b1e5febcd": {
+      "mod_tree": "4ec6bfe95886d84ef689430e6443bab642d41e95",
+      "helper_blob": "a2567c4b11e5739af2478ca13ee98c1d4cdfc0e9",
+      "labwc_config_blob": "6ea557a97357f3336b267f371126c25e43403974",
+      "runs": [
+        "ferrite-2",
+        "threads-2",
+        "v1-arenas-2",
+        "v1-threads-2"
+      ]
+    },
+    "124a4304a1470e210f1bb233257d06f095cb0318": {
+      "mod_tree": "4ec6bfe95886d84ef689430e6443bab642d41e95",
+      "helper_blob": "a2567c4b11e5739af2478ca13ee98c1d4cdfc0e9",
+      "labwc_config_blob": "6ea557a97357f3336b267f371126c25e43403974",
+      "runs": [
+        "s0-long",
+        "s0-probe"
+      ]
+    },
+    "d0e3fd720c810b9af736eda5af414c6de6ad85ca": {
+      "mod_tree": "4ec6bfe95886d84ef689430e6443bab642d41e95",
+      "helper_blob": "a2567c4b11e5739af2478ca13ee98c1d4cdfc0e9",
+      "labwc_config_blob": "6ea557a97357f3336b267f371126c25e43403974",
+      "runs": [
+        "setup-flat"
+      ]
+    },
+    "7e834a66871283cafb2962d7fa8646f5314f942b": {
+      "mod_tree": "b038c0ddf5feb8bf5ab5ecad92b32fc2b63a47d3",
+      "helper_blob": "a2567c4b11e5739af2478ca13ee98c1d4cdfc0e9",
+      "labwc_config_blob": "6ea557a97357f3336b267f371126c25e43403974",
+      "runs": [
+        "setup-nether"
+      ]
+    },
+    "9f263cf1963a9bb576283e0c1f388da674644b93": {
+      "mod_tree": "4ec6bfe95886d84ef689430e6443bab642d41e95",
+      "helper_blob": "a2567c4b11e5739af2478ca13ee98c1d4cdfc0e9",
+      "labwc_config_blob": "6ea557a97357f3336b267f371126c25e43403974",
+      "runs": [
+        "threads-1",
+        "v1-threads-1"
+      ]
+    },
+    "29790573464658f2f2c0f1b37a9d4f5ea9b64d41": {
+      "mod_tree": "b038c0ddf5feb8bf5ab5ecad92b32fc2b63a47d3",
+      "helper_blob": "a2567c4b11e5739af2478ca13ee98c1d4cdfc0e9",
+      "labwc_config_blob": "6ea557a97357f3336b267f371126c25e43403974",
+      "runs": [
+        "v1-create"
+      ]
+    },
+    "fc73b36b72237ac0ddac5b4e8b69df5e49fc99b9": {
+      "mod_tree": "b038c0ddf5feb8bf5ab5ecad92b32fc2b63a47d3",
+      "helper_blob": "a2567c4b11e5739af2478ca13ee98c1d4cdfc0e9",
+      "labwc_config_blob": "6ea557a97357f3336b267f371126c25e43403974",
+      "runs": [
+        "v1-flat-1",
+        "winner-flat-1"
+      ]
+    },
+    "c0b45889c72aca86783e5a5cdc27a5d607eca651": {
+      "mod_tree": "b038c0ddf5feb8bf5ab5ecad92b32fc2b63a47d3",
+      "helper_blob": "a2567c4b11e5739af2478ca13ee98c1d4cdfc0e9",
+      "labwc_config_blob": "6ea557a97357f3336b267f371126c25e43403974",
+      "runs": [
+        "v1-flat-2"
+      ]
+    },
+    "9113d032235c9ec993071257d7c4d0d20412ef93": {
+      "mod_tree": "b038c0ddf5feb8bf5ab5ecad92b32fc2b63a47d3",
+      "helper_blob": "a2567c4b11e5739af2478ca13ee98c1d4cdfc0e9",
+      "labwc_config_blob": "6ea557a97357f3336b267f371126c25e43403974",
+      "runs": [
+        "v1-flat-3"
+      ]
+    },
+    "1241caac25f51f130cb121dda454f006473cdc76": {
+      "mod_tree": "b038c0ddf5feb8bf5ab5ecad92b32fc2b63a47d3",
+      "helper_blob": "a2567c4b11e5739af2478ca13ee98c1d4cdfc0e9",
+      "labwc_config_blob": "6ea557a97357f3336b267f371126c25e43403974",
+      "runs": [
+        "v1-nether",
+        "winner-nether"
+      ]
+    },
+    "1a6f4054ed910076aad542a22d5788484c477567": {
+      "mod_tree": "b038c0ddf5feb8bf5ab5ecad92b32fc2b63a47d3",
+      "helper_blob": "a2567c4b11e5739af2478ca13ee98c1d4cdfc0e9",
+      "labwc_config_blob": "6ea557a97357f3336b267f371126c25e43403974",
+      "runs": [
+        "winner-create"
+      ]
+    },
+    "c02b69ea4c27c90e8ee2bdd8614d475d1634cd0d": {
+      "mod_tree": "b038c0ddf5feb8bf5ab5ecad92b32fc2b63a47d3",
+      "helper_blob": "a2567c4b11e5739af2478ca13ee98c1d4cdfc0e9",
+      "labwc_config_blob": "6ea557a97357f3336b267f371126c25e43403974",
+      "runs": [
+        "winner-flat-2"
+      ]
+    },
+    "8b219c38a0669767ba71264fd807f7c54b6f16b9": {
+      "mod_tree": "b038c0ddf5feb8bf5ab5ecad92b32fc2b63a47d3",
+      "helper_blob": "a2567c4b11e5739af2478ca13ee98c1d4cdfc0e9",
+      "labwc_config_blob": "6ea557a97357f3336b267f371126c25e43403974",
+      "runs": [
+        "winner-flat-3"
+      ]
+    },
+    "be73df94eb0e3e8cb2130c366747fcdeb5125cf6": {
+      "mod_tree": "b038c0ddf5feb8bf5ab5ecad92b32fc2b63a47d3",
+      "helper_blob": "a2567c4b11e5739af2478ca13ee98c1d4cdfc0e9",
+      "labwc_config_blob": "6ea557a97357f3336b267f371126c25e43403974",
+      "runs": [
+        "winner-long"
+      ]
+    },
+    "65f1cb8bb488d2e9e82e2cc857ad365d3f561bfe": {
+      "mod_tree": "b038c0ddf5feb8bf5ab5ecad92b32fc2b63a47d3",
+      "helper_blob": "a2567c4b11e5739af2478ca13ee98c1d4cdfc0e9",
+      "labwc_config_blob": "6ea557a97357f3336b267f371126c25e43403974",
+      "runs": [
+        "winner-nmt0"
+      ]
+    }
+  },
+  "all_measured_mod_trees_equal": false,
+  "run_mod_trees": {
+    "arenas-1": "4ec6bfe95886d84ef689430e6443bab642d41e95",
+    "arenas-2": "4ec6bfe95886d84ef689430e6443bab642d41e95",
+    "coh-1": "4ec6bfe95886d84ef689430e6443bab642d41e95",
+    "coh-2": "4ec6bfe95886d84ef689430e6443bab642d41e95",
+    "cover-gc-1": "4ec6bfe95886d84ef689430e6443bab642d41e95",
+    "cover-gc-2": "4ec6bfe95886d84ef689430e6443bab642d41e95",
+    "cover-none-1": "4ec6bfe95886d84ef689430e6443bab642d41e95",
+    "cover-none-2": "4ec6bfe95886d84ef689430e6443bab642d41e95",
+    "cover-r300-1": "4ec6bfe95886d84ef689430e6443bab642d41e95",
+    "cover-r300-2": "4ec6bfe95886d84ef689430e6443bab642d41e95",
+    "cover-r600-1": "4ec6bfe95886d84ef689430e6443bab642d41e95",
+    "cover-r600-2": "4ec6bfe95886d84ef689430e6443bab642d41e95",
+    "dedup-1": "4ec6bfe95886d84ef689430e6443bab642d41e95",
+    "dedup-2": "4ec6bfe95886d84ef689430e6443bab642d41e95",
+    "ferrite-1": "4ec6bfe95886d84ef689430e6443bab642d41e95",
+    "ferrite-2": "4ec6bfe95886d84ef689430e6443bab642d41e95",
+    "s0-long": "4ec6bfe95886d84ef689430e6443bab642d41e95",
+    "s0-probe": "4ec6bfe95886d84ef689430e6443bab642d41e95",
+    "setup-flat": "4ec6bfe95886d84ef689430e6443bab642d41e95",
+    "setup-nether": "b038c0ddf5feb8bf5ab5ecad92b32fc2b63a47d3",
+    "system-1": "4ec6bfe95886d84ef689430e6443bab642d41e95",
+    "system-2": "4ec6bfe95886d84ef689430e6443bab642d41e95",
+    "threads-1": "4ec6bfe95886d84ef689430e6443bab642d41e95",
+    "threads-2": "4ec6bfe95886d84ef689430e6443bab642d41e95",
+    "trim-1": "4ec6bfe95886d84ef689430e6443bab642d41e95",
+    "trim-2": "4ec6bfe95886d84ef689430e6443bab642d41e95",
+    "v1-arenas-1": "4ec6bfe95886d84ef689430e6443bab642d41e95",
+    "v1-arenas-2": "4ec6bfe95886d84ef689430e6443bab642d41e95",
+    "v1-coh-1": "4ec6bfe95886d84ef689430e6443bab642d41e95",
+    "v1-coh-2": "4ec6bfe95886d84ef689430e6443bab642d41e95",
+    "v1-create": "b038c0ddf5feb8bf5ab5ecad92b32fc2b63a47d3",
+    "v1-dedup-1": "4ec6bfe95886d84ef689430e6443bab642d41e95",
+    "v1-dedup-2": "4ec6bfe95886d84ef689430e6443bab642d41e95",
+    "v1-ferrite-1": "4ec6bfe95886d84ef689430e6443bab642d41e95",
+    "v1-ferrite-2": "4ec6bfe95886d84ef689430e6443bab642d41e95",
+    "v1-flat-1": "b038c0ddf5feb8bf5ab5ecad92b32fc2b63a47d3",
+    "v1-flat-2": "b038c0ddf5feb8bf5ab5ecad92b32fc2b63a47d3",
+    "v1-flat-3": "b038c0ddf5feb8bf5ab5ecad92b32fc2b63a47d3",
+    "v1-nether": "b038c0ddf5feb8bf5ab5ecad92b32fc2b63a47d3",
+    "v1-system-1": "4ec6bfe95886d84ef689430e6443bab642d41e95",
+    "v1-system-2": "4ec6bfe95886d84ef689430e6443bab642d41e95",
+    "v1-threads-1": "4ec6bfe95886d84ef689430e6443bab642d41e95",
+    "v1-threads-2": "4ec6bfe95886d84ef689430e6443bab642d41e95",
+    "v1-trim-1": "4ec6bfe95886d84ef689430e6443bab642d41e95",
+    "v1-trim-2": "4ec6bfe95886d84ef689430e6443bab642d41e95",
+    "winner-create": "b038c0ddf5feb8bf5ab5ecad92b32fc2b63a47d3",
+    "winner-flat-1": "b038c0ddf5feb8bf5ab5ecad92b32fc2b63a47d3",
+    "winner-flat-2": "b038c0ddf5feb8bf5ab5ecad92b32fc2b63a47d3",
+    "winner-flat-3": "b038c0ddf5feb8bf5ab5ecad92b32fc2b63a47d3",
+    "winner-long": "b038c0ddf5feb8bf5ab5ecad92b32fc2b63a47d3",
+    "winner-nether": "b038c0ddf5feb8bf5ab5ecad92b32fc2b63a47d3",
+    "winner-nmt0": "b038c0ddf5feb8bf5ab5ecad92b32fc2b63a47d3"
+  },
+  "flat_controls_by_mod_tree": {
+    "4ec6bfe95886d84ef689430e6443bab642d41e95": {
+      "names": [
+        "v1-arenas-1",
+        "v1-arenas-2",
+        "v1-coh-1",
+        "v1-coh-2",
+        "v1-dedup-1",
+        "v1-dedup-2",
+        "v1-ferrite-1",
+        "v1-ferrite-2",
+        "v1-system-1",
+        "v1-system-2",
+        "v1-threads-1",
+        "v1-threads-2",
+        "v1-trim-1",
+        "v1-trim-2"
+      ],
+      "frame_envelopes": {
+        "stand": {
+          "p99_ms": {
+            "min": 8.42,
+            "max": 8.47,
+            "n": 14
+          },
+          "max_ms": {
+            "min": 9.9,
+            "max": 20.9,
+            "n": 14
+          },
+          "over_17ms": {
+            "min": 0,
+            "max": 1,
+            "n": 14
+          },
+          "over_33ms": {
+            "min": 0,
+            "max": 0,
+            "n": 14
+          },
+          "fps": {
+            "min": 120.0,
+            "max": 120.0,
+            "n": 14
+          }
+        },
+        "flight": {
+          "p99_ms": {
+            "min": 8.47,
+            "max": 8.56,
+            "n": 14
+          },
+          "max_ms": {
+            "min": 11.3,
+            "max": 18.1,
+            "n": 14
+          },
+          "over_17ms": {
+            "min": 0,
+            "max": 1,
+            "n": 14
+          },
+          "over_33ms": {
+            "min": 0,
+            "max": 0,
+            "n": 14
+          },
+          "fps": {
+            "min": 119.9,
+            "max": 120.0,
+            "n": 14
+          }
+        },
+        "wake": {
+          "p99_ms": {
+            "min": 9.63,
+            "max": 33.19,
+            "n": 14
+          },
+          "max_ms": {
+            "min": 33.4,
+            "max": 77.1,
+            "n": 14
+          },
+          "over_17ms": {
+            "min": 11,
+            "max": 12,
+            "n": 14
+          },
+          "over_33ms": {
+            "min": 10,
+            "max": 12,
+            "n": 14
+          },
+          "fps": {
+            "min": 116.1,
+            "max": 116.5,
+            "n": 14
+          }
+        }
+      }
+    },
+    "b038c0ddf5feb8bf5ab5ecad92b32fc2b63a47d3": {
+      "names": [
+        "v1-flat-1",
+        "v1-flat-2",
+        "v1-flat-3"
+      ],
+      "frame_envelopes": {
+        "stand": {
+          "p99_ms": {
+            "min": 8.47,
+            "max": 8.49,
+            "n": 3
+          },
+          "max_ms": {
+            "min": 9.8,
+            "max": 10.2,
+            "n": 3
+          },
+          "over_17ms": {
+            "min": 0,
+            "max": 0,
+            "n": 3
+          },
+          "over_33ms": {
+            "min": 0,
+            "max": 0,
+            "n": 3
+          },
+          "fps": {
+            "min": 120.0,
+            "max": 120.0,
+            "n": 3
+          }
+        },
+        "flight": {
+          "p99_ms": {
+            "min": 8.49,
+            "max": 8.6,
+            "n": 3
+          },
+          "max_ms": {
+            "min": 11.4,
+            "max": 15.1,
+            "n": 3
+          },
+          "over_17ms": {
+            "min": 0,
+            "max": 0,
+            "n": 3
+          },
+          "over_33ms": {
+            "min": 0,
+            "max": 0,
+            "n": 3
+          },
+          "fps": {
+            "min": 119.8,
+            "max": 119.9,
+            "n": 3
+          }
+        },
+        "wake": {
+          "p99_ms": {
+            "min": 10.86,
+            "max": 32.96,
+            "n": 3
+          },
+          "max_ms": {
+            "min": 33.6,
+            "max": 75.1,
+            "n": 3
+          },
+          "over_17ms": {
+            "min": 11,
+            "max": 12,
+            "n": 3
+          },
+          "over_33ms": {
+            "min": 11,
+            "max": 11,
+            "n": 3
+          },
+          "fps": {
+            "min": 116.2,
+            "max": 116.5,
+            "n": 3
+          }
+        }
+      }
+    }
+  },
+  "frame_interpretation": "Observed ranges are descriptive, not confidence intervals or new pass tolerances. Compare counts, p99 and worst together; a first-creation loading frame is not a settled standing frame.",
+  "covered_actions": {
+    "cover-gc-1": [
+      {
+        "action": "gc-trim",
+        "duration_ms": 229.3,
+        "result": null,
+        "errno": null,
+        "failure": null
+      }
+    ],
+    "cover-gc-2": [
+      {
+        "action": "gc-trim",
+        "duration_ms": 235.73,
+        "result": null,
+        "errno": null,
+        "failure": null
+      }
+    ],
+    "cover-r300-1": [
+      {
+        "action": "gc-trim",
+        "duration_ms": 220.59,
+        "result": null,
+        "errno": null,
+        "failure": null
+      },
+      {
+        "action": "reclaim:300M",
+        "duration_ms": 1522.06,
+        "result": "completed",
+        "errno": null,
+        "failure": null,
+        "scope_current_change_mib": -299.04,
+        "scope_swap_change_mib": 298.54
+      }
+    ],
+    "cover-r300-2": [
+      {
+        "action": "gc-trim",
+        "duration_ms": 229.78,
+        "result": null,
+        "errno": null,
+        "failure": null
+      },
+      {
+        "action": "reclaim:300M",
+        "duration_ms": 1574.78,
+        "result": "completed",
+        "errno": null,
+        "failure": null,
+        "scope_current_change_mib": -296.36,
+        "scope_swap_change_mib": 296.35
+      }
+    ],
+    "cover-r600-1": [
+      {
+        "action": "gc-trim",
+        "duration_ms": 248.41,
+        "result": null,
+        "errno": null,
+        "failure": null
+      },
+      {
+        "action": "reclaim:600M",
+        "duration_ms": 2966.82,
+        "result": "completed",
+        "errno": null,
+        "failure": null,
+        "scope_current_change_mib": -595.9,
+        "scope_swap_change_mib": 596.1
+      }
+    ],
+    "cover-r600-2": [
+      {
+        "action": "gc-trim",
+        "duration_ms": 219.16,
+        "result": null,
+        "errno": null,
+        "failure": null
+      },
+      {
+        "action": "reclaim:600M",
+        "duration_ms": 2877.64,
+        "result": "completed",
+        "errno": null,
+        "failure": null,
+        "scope_current_change_mib": -600.48,
+        "scope_swap_change_mib": 600.14
+      }
+    ]
+  },
+  "winners": {
+    "winner-create": {
+      "guards": {
+        "oom": false,
+        "town_unavailable": false,
+        "high_events": 0,
+        "gc_after_join_max_ms": 22.53,
+        "gc_at_most_50ms": true,
+        "lost_frames": 0,
+        "memory_gc_recorder_pass": true
+      },
+      "observed_frames": {
+        "create": {
+          "p99_ms": 2127.74,
+          "max_ms": 2127.7,
+          "over_17ms": 6,
+          "over_33ms": 4,
+          "fps": 15.7
+        },
+        "town": {
+          "p99_ms": 31.47,
+          "max_ms": 102.0,
+          "over_17ms": 5,
+          "over_33ms": 2,
+          "fps": 109.5
+        },
+        "first_30s": {
+          "p99_ms": 8.62,
+          "max_ms": 102.0,
+          "over_17ms": 6,
+          "over_33ms": 3,
+          "fps": 118.8
+        },
+        "stand": {
+          "p99_ms": 8.47,
+          "max_ms": 11.1,
+          "over_17ms": 0,
+          "over_33ms": 0,
+          "fps": 120.0
+        },
+        "flight": {
+          "p99_ms": 8.52,
+          "max_ms": 14.1,
+          "over_17ms": 0,
+          "over_33ms": 0,
+          "fps": 119.9
+        },
+        "wake": {
+          "p99_ms": 33.16,
+          "max_ms": 33.6,
+          "over_17ms": 12,
+          "over_33ms": 12,
+          "fps": 116.3
+        }
+      },
+      "glide_tick_samples": [],
+      "first_creation_control_comparison": {
+        "stand": {
+          "p99_ms": {
+            "candidate": 8.47,
+            "control": 8.46
+          },
+          "max_ms": {
+            "candidate": 11.1,
+            "control": 13.6
+          },
+          "over_17ms": {
+            "candidate": 0,
+            "control": 0
+          },
+          "over_33ms": {
+            "candidate": 0,
+            "control": 0
+          },
+          "fps": {
+            "candidate": 120.0,
+            "control": 119.9
+          }
+        },
+        "flight": {
+          "p99_ms": {
+            "candidate": 8.52,
+            "control": 8.58
+          },
+          "max_ms": {
+            "candidate": 14.1,
+            "control": 13.9
+          },
+          "over_17ms": {
+            "candidate": 0,
+            "control": 0
+          },
+          "over_33ms": {
+            "candidate": 0,
+            "control": 0
+          },
+          "fps": {
+            "candidate": 119.9,
+            "control": 119.9
+          }
+        },
+        "wake": {
+          "p99_ms": {
+            "candidate": 33.16,
+            "control": 33.15
+          },
+          "max_ms": {
+            "candidate": 33.6,
+            "control": 36.9
+          },
+          "over_17ms": {
+            "candidate": 12,
+            "control": 12
+          },
+          "over_33ms": {
+            "candidate": 12,
+            "control": 12
+          },
+          "fps": {
+            "candidate": 116.3,
+            "control": 116.3
+          }
+        },
+        "first_30s": {
+          "p99_ms": {
+            "candidate": 8.62,
+            "control": 9.38
+          },
+          "max_ms": {
+            "candidate": 102.0,
+            "control": 105.6
+          },
+          "over_17ms": {
+            "candidate": 6,
+            "control": 6
+          },
+          "over_33ms": {
+            "candidate": 3,
+            "control": 1
+          },
+          "fps": {
+            "candidate": 118.8,
+            "control": 118.9
+          }
+        },
+        "create": {
+          "p99_ms": {
+            "candidate": 2127.74,
+            "control": 2268.53
+          },
+          "max_ms": {
+            "candidate": 2127.7,
+            "control": 2268.5
+          },
+          "over_17ms": {
+            "candidate": 6,
+            "control": 4
+          },
+          "over_33ms": {
+            "candidate": 4,
+            "control": 4
+          },
+          "fps": {
+            "candidate": 15.7,
+            "control": 12.3
+          }
+        },
+        "town": {
+          "p99_ms": {
+            "candidate": 31.47,
+            "control": 29.79
+          },
+          "max_ms": {
+            "candidate": 102.0,
+            "control": 32.2
+          },
+          "over_17ms": {
+            "candidate": 5,
+            "control": 5
+          },
+          "over_33ms": {
+            "candidate": 2,
+            "control": 0
+          },
+          "fps": {
+            "candidate": 109.5,
+            "control": 113.3
+          }
+        }
+      },
+      "control_mod_tree_matches": true,
+      "mod_tree": "b038c0ddf5feb8bf5ab5ecad92b32fc2b63a47d3",
+      "matching_flat_control_group": "b038c0ddf5feb8bf5ab5ecad92b32fc2b63a47d3"
+    },
+    "winner-flat-1": {
+      "guards": {
+        "oom": false,
+        "town_unavailable": false,
+        "high_events": 0,
+        "gc_after_join_max_ms": 11.55,
+        "gc_at_most_50ms": true,
+        "lost_frames": 0,
+        "memory_gc_recorder_pass": true
+      },
+      "observed_frames": {
+        "stand": {
+          "p99_ms": 8.48,
+          "max_ms": 11.7,
+          "over_17ms": 0,
+          "over_33ms": 0,
+          "fps": 120.0
+        },
+        "flight": {
+          "p99_ms": 8.54,
+          "max_ms": 19.9,
+          "over_17ms": 1,
+          "over_33ms": 0,
+          "fps": 119.9
+        },
+        "wake": {
+          "p99_ms": 29.6,
+          "max_ms": 33.4,
+          "over_17ms": 12,
+          "over_33ms": 11,
+          "fps": 116.5
+        }
+      },
+      "glide_tick_samples": [],
+      "paired_control_comparison": {
+        "stand": {
+          "p99_ms": {
+            "candidate": 8.48,
+            "control": 8.49
+          },
+          "max_ms": {
+            "candidate": 11.7,
+            "control": 9.8
+          },
+          "over_17ms": {
+            "candidate": 0,
+            "control": 0
+          },
+          "over_33ms": {
+            "candidate": 0,
+            "control": 0
+          },
+          "fps": {
+            "candidate": 120.0,
+            "control": 120.0
+          }
+        },
+        "flight": {
+          "p99_ms": {
+            "candidate": 8.54,
+            "control": 8.55
+          },
+          "max_ms": {
+            "candidate": 19.9,
+            "control": 15.1
+          },
+          "over_17ms": {
+            "candidate": 1,
+            "control": 0
+          },
+          "over_33ms": {
+            "candidate": 0,
+            "control": 0
+          },
+          "fps": {
+            "candidate": 119.9,
+            "control": 119.9
+          }
+        },
+        "wake": {
+          "p99_ms": {
+            "candidate": 29.6,
+            "control": 10.86
+          },
+          "max_ms": {
+            "candidate": 33.4,
+            "control": 75.1
+          },
+          "over_17ms": {
+            "candidate": 12,
+            "control": 11
+          },
+          "over_33ms": {
+            "candidate": 11,
+            "control": 11
+          },
+          "fps": {
+            "candidate": 116.5,
+            "control": 116.2
+          }
+        }
+      },
+      "control_mod_tree_matches": true,
+      "mod_tree": "b038c0ddf5feb8bf5ab5ecad92b32fc2b63a47d3",
+      "matching_flat_control_group": "b038c0ddf5feb8bf5ab5ecad92b32fc2b63a47d3"
+    },
+    "winner-flat-2": {
+      "guards": {
+        "oom": false,
+        "town_unavailable": false,
+        "high_events": 0,
+        "gc_after_join_max_ms": 12.2,
+        "gc_at_most_50ms": true,
+        "lost_frames": 0,
+        "memory_gc_recorder_pass": true
+      },
+      "observed_frames": {
+        "stand": {
+          "p99_ms": 8.47,
+          "max_ms": 14.4,
+          "over_17ms": 0,
+          "over_33ms": 0,
+          "fps": 120.0
+        },
+        "flight": {
+          "p99_ms": 8.54,
+          "max_ms": 13.8,
+          "over_17ms": 0,
+          "over_33ms": 0,
+          "fps": 119.9
+        },
+        "wake": {
+          "p99_ms": 32.97,
+          "max_ms": 40.8,
+          "over_17ms": 12,
+          "over_33ms": 11,
+          "fps": 116.3
+        }
+      },
+      "glide_tick_samples": [],
+      "paired_control_comparison": {
+        "stand": {
+          "p99_ms": {
+            "candidate": 8.47,
+            "control": 8.47
+          },
+          "max_ms": {
+            "candidate": 14.4,
+            "control": 10.2
+          },
+          "over_17ms": {
+            "candidate": 0,
+            "control": 0
+          },
+          "over_33ms": {
+            "candidate": 0,
+            "control": 0
+          },
+          "fps": {
+            "candidate": 120.0,
+            "control": 120.0
+          }
+        },
+        "flight": {
+          "p99_ms": {
+            "candidate": 8.54,
+            "control": 8.6
+          },
+          "max_ms": {
+            "candidate": 13.8,
+            "control": 14.3
+          },
+          "over_17ms": {
+            "candidate": 0,
+            "control": 0
+          },
+          "over_33ms": {
+            "candidate": 0,
+            "control": 0
+          },
+          "fps": {
+            "candidate": 119.9,
+            "control": 119.8
+          }
+        },
+        "wake": {
+          "p99_ms": {
+            "candidate": 32.97,
+            "control": 32.96
+          },
+          "max_ms": {
+            "candidate": 40.8,
+            "control": 33.8
+          },
+          "over_17ms": {
+            "candidate": 12,
+            "control": 12
+          },
+          "over_33ms": {
+            "candidate": 11,
+            "control": 11
+          },
+          "fps": {
+            "candidate": 116.3,
+            "control": 116.4
+          }
+        }
+      },
+      "control_mod_tree_matches": true,
+      "mod_tree": "b038c0ddf5feb8bf5ab5ecad92b32fc2b63a47d3",
+      "matching_flat_control_group": "b038c0ddf5feb8bf5ab5ecad92b32fc2b63a47d3"
+    },
+    "winner-flat-3": {
+      "guards": {
+        "oom": false,
+        "town_unavailable": false,
+        "high_events": 0,
+        "gc_after_join_max_ms": 10.94,
+        "gc_at_most_50ms": true,
+        "lost_frames": 0,
+        "memory_gc_recorder_pass": true
+      },
+      "observed_frames": {
+        "stand": {
+          "p99_ms": 8.46,
+          "max_ms": 11.5,
+          "over_17ms": 0,
+          "over_33ms": 0,
+          "fps": 120.0
+        },
+        "flight": {
+          "p99_ms": 8.52,
+          "max_ms": 11.6,
+          "over_17ms": 0,
+          "over_33ms": 0,
+          "fps": 119.9
+        },
+        "wake": {
+          "p99_ms": 33.2,
+          "max_ms": 51.4,
+          "over_17ms": 12,
+          "over_33ms": 12,
+          "fps": 116.2
+        }
+      },
+      "glide_tick_samples": [],
+      "paired_control_comparison": {
+        "stand": {
+          "p99_ms": {
+            "candidate": 8.46,
+            "control": 8.47
+          },
+          "max_ms": {
+            "candidate": 11.5,
+            "control": 10.1
+          },
+          "over_17ms": {
+            "candidate": 0,
+            "control": 0
+          },
+          "over_33ms": {
+            "candidate": 0,
+            "control": 0
+          },
+          "fps": {
+            "candidate": 120.0,
+            "control": 120.0
+          }
+        },
+        "flight": {
+          "p99_ms": {
+            "candidate": 8.52,
+            "control": 8.49
+          },
+          "max_ms": {
+            "candidate": 11.6,
+            "control": 11.4
+          },
+          "over_17ms": {
+            "candidate": 0,
+            "control": 0
+          },
+          "over_33ms": {
+            "candidate": 0,
+            "control": 0
+          },
+          "fps": {
+            "candidate": 119.9,
+            "control": 119.9
+          }
+        },
+        "wake": {
+          "p99_ms": {
+            "candidate": 33.2,
+            "control": 26.97
+          },
+          "max_ms": {
+            "candidate": 51.4,
+            "control": 33.6
+          },
+          "over_17ms": {
+            "candidate": 12,
+            "control": 12
+          },
+          "over_33ms": {
+            "candidate": 12,
+            "control": 11
+          },
+          "fps": {
+            "candidate": 116.2,
+            "control": 116.5
+          }
+        }
+      },
+      "control_mod_tree_matches": true,
+      "mod_tree": "b038c0ddf5feb8bf5ab5ecad92b32fc2b63a47d3",
+      "matching_flat_control_group": "b038c0ddf5feb8bf5ab5ecad92b32fc2b63a47d3"
+    },
+    "winner-long": {
+      "guards": {
+        "oom": false,
+        "town_unavailable": false,
+        "high_events": 0,
+        "gc_after_join_max_ms": 13.59,
+        "gc_at_most_50ms": true,
+        "lost_frames": 0,
+        "memory_gc_recorder_pass": true
+      },
+      "observed_frames": {
+        "stand": {
+          "p99_ms": 8.45,
+          "max_ms": 13.8,
+          "over_17ms": 0,
+          "over_33ms": 0,
+          "fps": 120.0
+        },
+        "idle": {
+          "p99_ms": 100.18,
+          "max_ms": 100.8,
+          "over_17ms": 22293,
+          "over_33ms": 22257,
+          "fps": 24.2
+        }
+      },
+      "glide_tick_samples": [],
+      "mod_tree": "b038c0ddf5feb8bf5ab5ecad92b32fc2b63a47d3",
+      "matching_flat_control_group": "b038c0ddf5feb8bf5ab5ecad92b32fc2b63a47d3"
+    },
+    "winner-nether": {
+      "guards": {
+        "oom": false,
+        "town_unavailable": false,
+        "high_events": 0,
+        "gc_after_join_max_ms": 20.01,
+        "gc_at_most_50ms": true,
+        "lost_frames": 0,
+        "memory_gc_recorder_pass": true
+      },
+      "observed_frames": {
+        "stand": {
+          "p99_ms": 8.47,
+          "max_ms": 10.1,
+          "over_17ms": 0,
+          "over_33ms": 0,
+          "fps": 120.0
+        },
+        "flight": {
+          "p99_ms": 9.76,
+          "max_ms": 21.8,
+          "over_17ms": 1,
+          "over_33ms": 0,
+          "fps": 119.6
+        },
+        "wake": {
+          "p99_ms": 33.16,
+          "max_ms": 48.2,
+          "over_17ms": 13,
+          "over_33ms": 12,
+          "fps": 115.6
+        }
+      },
+      "glide_tick_samples": [
+        1200,
+        1200
+      ],
+      "same_base_control_comparison": {
+        "stand": {
+          "p99_ms": {
+            "candidate": 8.47,
+            "control": 8.48
+          },
+          "max_ms": {
+            "candidate": 10.1,
+            "control": 12.1
+          },
+          "over_17ms": {
+            "candidate": 0,
+            "control": 0
+          },
+          "over_33ms": {
+            "candidate": 0,
+            "control": 0
+          },
+          "fps": {
+            "candidate": 120.0,
+            "control": 120.0
+          }
+        },
+        "flight": {
+          "p99_ms": {
+            "candidate": 9.76,
+            "control": 10.15
+          },
+          "max_ms": {
+            "candidate": 21.8,
+            "control": 29.1
+          },
+          "over_17ms": {
+            "candidate": 1,
+            "control": 4
+          },
+          "over_33ms": {
+            "candidate": 0,
+            "control": 0
+          },
+          "fps": {
+            "candidate": 119.6,
+            "control": 119.5
+          }
+        },
+        "wake": {
+          "p99_ms": {
+            "candidate": 33.16,
+            "control": 33.12
+          },
+          "max_ms": {
+            "candidate": 48.2,
+            "control": 33.7
+          },
+          "over_17ms": {
+            "candidate": 13,
+            "control": 14
+          },
+          "over_33ms": {
+            "candidate": 12,
+            "control": 12
+          },
+          "fps": {
+            "candidate": 115.6,
+            "control": 115.7
+          }
+        }
+      },
+      "control_mod_tree_matches": true,
+      "mod_tree": "b038c0ddf5feb8bf5ab5ecad92b32fc2b63a47d3",
+      "matching_flat_control_group": "b038c0ddf5feb8bf5ab5ecad92b32fc2b63a47d3"
+    },
+    "winner-nmt0": {
+      "guards": {
+        "oom": false,
+        "town_unavailable": false,
+        "high_events": 0,
+        "gc_after_join_max_ms": 13.15,
+        "gc_at_most_50ms": true,
+        "lost_frames": 0,
+        "memory_gc_recorder_pass": true
+      },
+      "observed_frames": {
+        "stand": {
+          "p99_ms": 8.46,
+          "max_ms": 16.2,
+          "over_17ms": 0,
+          "over_33ms": 0,
+          "fps": 120.0
+        },
+        "flight": {
+          "p99_ms": 8.49,
+          "max_ms": 22.3,
+          "over_17ms": 1,
+          "over_33ms": 0,
+          "fps": 119.9
+        },
+        "wake": {
+          "p99_ms": 33.09,
+          "max_ms": 51.1,
+          "over_17ms": 12,
+          "over_33ms": 12,
+          "fps": 116.2
+        }
+      },
+      "glide_tick_samples": [],
+      "mod_tree": "b038c0ddf5feb8bf5ab5ecad92b32fc2b63a47d3",
+      "matching_flat_control_group": "b038c0ddf5feb8bf5ab5ecad92b32fc2b63a47d3",
+      "all_live_snapshots_confirm_nmt_disabled": true
+    }
+  }
+}
