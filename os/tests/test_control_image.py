@@ -5,6 +5,7 @@ temporary folder. The image build's own extras (pip, the wheel record, the self-
 their record is checked here with stand-ins for pip's report and the vendored tree.
 """
 import base64
+import copy
 import hashlib
 import importlib.util
 import json
@@ -18,6 +19,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 import zipfile
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
@@ -34,12 +36,21 @@ FILES = {
     '/usr/lib/sysusers.d/aresos-tools.conf': ('0644', 'control/packaging/aresos-tools.sysusers'),
     '/usr/lib/tmpfiles.d/aresos-tools.conf': ('0644', 'control/packaging/aresos-tools.tmpfiles'),
     '/usr/libexec/aresos-control/chrome/qualification.json': ('0644', 'control/chrome/qualification.json'),
+    '/usr/libexec/aresos-control/chrome/host': ('0755', 'control/chrome/packaging/host'),
+    '/usr/libexec/aresos-control/chrome/native_host.py': ('0644', 'control/chrome/native_host.py'),
+    '/usr/share/polkit-1/actions/org.aresos.control.chrome-loosen.policy':
+        ('0644', 'control/chrome/packaging/org.aresos.control.chrome-loosen.policy'),
+    '/usr/lib/tmpfiles.d/aresos-control-chrome.conf': ('0644', 'control/chrome/packaging/aresos-control-chrome.tmpfiles'),
     '/usr/libexec/aresos-control/launch.py': ('0644', 'control/launch.py'),
     '/usr/share/aresos/control/user-mcp.json': ('0644', 'control/settings/user-mcp.json'),
 }
 DERIVED = ('/usr/lib/tmpfiles.d/aresos-control-folders.conf', '/usr/libexec/aresos-control/chrome/build-id.json',
            '/usr/share/aresos/control/proxy.json', '/usr/share/aresos/control/service.json')
 LINK = ('/etc/systemd/system/multi-user.target.wants/aresos-toold.service', '/usr/lib/systemd/system/aresos-toold.service')
+CHROME_LINKS = {
+    '/etc/opt/chrome/policies/managed/aresos.json': '/usr/share/aresos/chrome/policy.json',
+    '/etc/opt/chrome/native-messaging-hosts/org.aresos.chrome.json': '/usr/share/aresos/chrome/native-host.json',
+}
 
 
 def sha256(data):
@@ -97,7 +108,13 @@ class InstallMapTest(unittest.TestCase):
                          '{"build":"%s"}\n' % build)
         self.assertEqual(record['format'], 1)
         self.assertEqual(record['requirements_lock'], sha256((CONTROL / 'requirements.lock').read_bytes()))
-        self.assertEqual(record['links'], dict([LINK]))
+        self.assertEqual(record['chrome_build'], build)
+        self.assertNotIn('chrome_extension', record, 'control-tree must not sign a bundle')
+        self.assertEqual(list((dest / 'usr/share/aresos/chrome').iterdir()), [])
+        self.assertEqual(record['links'], dict([LINK], **CHROME_LINKS))
+        for name, target in CHROME_LINKS.items():
+            self.assertTrue((dest / name.lstrip('/')).is_symlink())
+            self.assertEqual(os.readlink(dest / name.lstrip('/')), target)
         self.assertEqual(os.readlink(dest / LINK[0].lstrip('/')), LINK[1])
         expected = {name: dict(mode=mode, sha256=sha256((ROOT / source).read_bytes()), source=source)
                     for name, (mode, source) in FILES.items()}
@@ -119,7 +136,7 @@ class InstallMapTest(unittest.TestCase):
         self.assertEqual(sorted(record['directories']), sorted(
             ['/etc/claude-code', '/usr/libexec/aresos-control', '/usr/libexec/aresos-control/aresos_control',
              '/usr/libexec/aresos-control/chrome',
-             '/usr/libexec/aresos-control/generated', '/usr/share/aresos/control',
+             '/usr/libexec/aresos-control/generated', '/usr/share/aresos/control', '/usr/share/aresos/chrome',
              *{'/usr/libexec/aresos-control/aresos_control/' + p.parent.relative_to(CONTROL / 'aresos_control').as_posix()
                for p in tree_files('aresos_control') if p.parent != CONTROL / 'aresos_control'}]))
         # No exclusive MCP file, no Python bytecode from the checkout, nothing under his home.
@@ -227,6 +244,12 @@ class InstallMapTest(unittest.TestCase):
         result, dest = run(pinned)
         self.assertEqual(result.returncode, 0, result.stderr)
         record = json.loads((dest / 'usr/share/aresos/manifest/control.json').read_text())
+        checker = load_chrome_check()
+        extension = record['chrome_extension']
+        self.assertIn(f'CONTROL_CHROME_EXTENSION {extension["id"]} {extension["crx_sha256"]}', result.stdout)
+        checker.bundle_content({name: (dest / checker.BUNDLE.lstrip('/') / name).read_bytes()
+                                for name in checker.NAMES}, extension)
+        checker.compare(record, record, CONTROL)
         self.assertEqual(record['source_revision'], REVISION)
         self.assertEqual([(w['name'], w['version'], w['sha256']) for w in record['wheels']],
                          sorted((name.lower(), version, digest) for name, version, digest in pinned))
@@ -296,7 +319,7 @@ class ImageCheckTest(unittest.TestCase):
         result = check(changed)
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("control.json files differs at: ['/usr/share/aresos/control/service.json']", result.stderr)
-        for key, value in (('requirements_lock', '0' * 64), ('links', {}), ('directories', {}),
+        for key, value in (('requirements_lock', '0' * 64), ('chrome_build', '0' * 64), ('links', {}), ('directories', {}),
                            ('vendor', {'/usr/lib/python3.14/site-packages/mcp': dict(mode='0755', sha256=None)})):
             self.assertNotEqual(check(dict(record, **{key: value})).returncode, 0, key)
         extra = json.loads(json.dumps(record))
@@ -582,6 +605,173 @@ class VendorTreeTest(unittest.TestCase):
             self.vendor_check.fetch(record, folder, index())
         with self.assertRaisesRegex(self.vendor_check.Mismatch, 'not a wheel file name'):
             self.vendor_check.fetch(dict(wheels=[dict(self.recorded[0], file='../demo.whl')]), folder, index())
+
+
+def load_chrome_check():
+    spec = importlib.util.spec_from_file_location('chrome_image', ROOT / 'os/ci/control/chrome_image.py')
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+class ChromeImageTest(unittest.TestCase):
+    def setUp(self):
+        self.work = pathlib.Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, self.work)
+        self.checker = load_chrome_check()
+        spec = importlib.util.spec_from_file_location('chrome_pack', CONTROL / 'chrome/packaging/pack.py')
+        self.pack = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(self.pack)
+
+    def bundle(self):
+        files, extension = self.pack.pack(CONTROL / 'chrome/extension')
+        extension['files'] = {self.checker.BUNDLE + '/' + name: {'mode': '0644', 'sha256': sha256(data)}
+                              for name, data in files.items()}
+        return files, extension
+
+    def test_control_tree_hashes_before_generation_and_leaves_sources_byte_identical(self):
+        control = self.work / 'source/control'
+        shutil.copytree(CONTROL, control, ignore=shutil.ignore_patterns('__pycache__'))
+        dest = self.work / 'root'
+        # This runs in the actual build subprocess. Generating even a destination
+        # file first fails, not just a source edit that later happens to be undone.
+        build_py = control / 'chrome/build.py'
+        build_py.write_text('from pathlib import Path\nimport os\n'
+                            'assert not Path(os.environ["CHROME_ORDER_DEST"]).exists(), "generated before hash"\n'
+                            + build_py.read_text())
+        before = {str(p.relative_to(control)): p.read_bytes() for p in control.rglob('*') if p.is_file()}
+        expected = subprocess.run([sys.executable, '-I', '-B', str(build_py)], capture_output=True, text=True,
+                                  check=True, env={**os.environ, 'CHROME_ORDER_DEST': str(dest)}).stdout.strip()
+        result = subprocess.run(['bash', str(ROOT / 'os/build.sh'), 'control-tree', str(ROOT / 'os'), str(control), str(dest)],
+                                capture_output=True, text=True, env={**os.environ, 'CHROME_ORDER_DEST': str(dest)}, timeout=120)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(before, {str(p.relative_to(control)): p.read_bytes() for p in control.rglob('*') if p.is_file()})
+        record = json.loads((dest / 'usr/share/aresos/manifest/control.json').read_bytes())
+        self.assertEqual(record['chrome_build'], expected)
+        self.assertEqual(json.loads((dest / 'usr/libexec/aresos-control/chrome/build-id.json').read_bytes()), {'build': expected})
+        for name in record['files']:
+            data = (dest / name.lstrip('/')).read_bytes()
+            for token in self.checker.PLACEHOLDERS:
+                self.assertNotIn(token, data, name)
+        self.assertFalse((dest / 'var').exists())
+        self.assertFalse((dest / 'etc/aresos/control/chrome-excluded-sites.json').exists())
+
+    def test_one_packer_call_only_in_image_mode_after_hash_and_no_source_writes(self):
+        dest = self.work / 'root'
+        report = self.work / 'pip-report.json'
+        report.write_text(json.dumps({'install': [
+            {'metadata': {'name': name, 'version': version}, 'download_info': {
+                'url': f'https://files.invalid/{name}-{version}-py3-none-any.whl',
+                'archive_info': {'hashes': {'sha256': digests[0]}}}}
+            for (name, version), digests in lock_pins().items()]}))
+        code = heredoc('os/build.sh', 'python3 - "$os_dir" "$control_dir" "$dest" $report <<\'PY\'\n')
+        calls = []
+        run = subprocess.run
+        before = {str(p.relative_to(CONTROL)): p.read_bytes() for p in CONTROL.rglob('*')
+                  if p.is_file() and '__pycache__' not in p.parts}
+
+        def tracked(argv, **kwargs):
+            calls.append(argv)
+            if argv[3].endswith('/build.py'):
+                self.assertFalse(dest.exists(), 'a destination exists before build.py runs')
+            return run(argv, **kwargs)
+
+        with patch.object(sys, 'argv', ['-', str(ROOT / 'os'), str(CONTROL), str(dest), str(report)]), \
+                patch.dict(os.environ, {'ARESOS_SOURCE_REVISION': REVISION}), patch('subprocess.run', tracked):
+            exec(compile(code, 'build.sh control map', 'exec'), {})
+        self.assertEqual([pathlib.Path(argv[3]).name for argv in calls], ['build.py', 'pack.py'])
+        self.assertEqual(before, {str(p.relative_to(CONTROL)): p.read_bytes() for p in CONTROL.rglob('*')
+                                  if p.is_file() and '__pycache__' not in p.parts})
+        record = json.loads((dest / 'usr/share/aresos/manifest/control.json').read_bytes())
+        self.checker.bundle_content({name: (dest / self.checker.BUNDLE.lstrip('/') / name).read_bytes()
+                                    for name in self.checker.NAMES}, record['chrome_extension'])
+
+    def test_independent_reader_rejects_signature_payload_identity_and_policy_mutations(self):
+        files, record = self.bundle()
+        self.checker.bundle_content(files, record)
+        other, _ = self.bundle()
+        self.assertNotEqual(files['extension.crx'], other['extension.crx'])
+        cases = {
+            'broken signature': lambda f, r: f.__setitem__('extension.crx', f['extension.crx'][:-1] + bytes([f['extension.crx'][-1] ^ 1])),
+            'foreign CRX': lambda f, r: f.__setitem__('extension.crx', other['extension.crx']),
+            'recorded identity': lambda f, r: r.__setitem__('id', 'a' * 32),
+            'recorded payload': lambda f, r: r['payload'][0].__setitem__('sha256', '0' * 64),
+            'recorded version': lambda f, r: r.__setitem__('version', '99'),
+            'wildcard policy': lambda f, r: f.__setitem__('policy.json', b'{"ExtensionSettings":{"*":{}}}'),
+            'override removed': lambda f, r: f.__setitem__('policy.json', f['policy.json'].replace(b'"override_update_url":true,', b'')),
+            'second origin': lambda f, r: f.__setitem__('native-host.json', f['native-host.json'].replace(b'"]', b'","chrome-extension://aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/"]')),
+            'network update': lambda f, r: f.__setitem__('policy.json', f['policy.json'].replace(b'file:///usr/share', b'https://example.invalid')),
+            'network CRX': lambda f, r: f.__setitem__('update.xml', f['update.xml'].replace(b'file:///usr/share', b'https://example.invalid')),
+            'template left': lambda f, r: f.__setitem__('update.xml', f['update.xml'].replace(r['version'].encode(), b'EXTENSION_VERSION')),
+            'extra bundle': lambda f, r: f.__setitem__('probe.crx', b'probe'),
+        }
+        for name, change in cases.items():
+            with self.subTest(name=name):
+                f, r = copy.deepcopy(files), copy.deepcopy(record)
+                change(f, r)
+                self.assertTrue(f != files or r != record, 'mutation did not change anything')
+                # Bind the edited bytes too: the independent content checks,
+                # not merely a stale hash, must detect these mutations.
+                r['files'] = {self.checker.BUNDLE + '/' + key: {'mode': '0644', 'sha256': sha256(data)} for key, data in f.items()}
+                r['crx_sha256'] = sha256(f['extension.crx'])
+                with self.assertRaises(Exception):
+                    self.checker.bundle_content(f, r)
+
+    def test_checkout_comparison_binds_payload_templates_build_and_links(self):
+        _, extension = self.bundle()
+        record = {'chrome_build': 'c' * 64, 'links': dict(CHROME_LINKS), 'chrome_extension': extension}
+        self.checker.compare(record, record, CONTROL)
+        for name, change in (
+                ('build', lambda r: r.__setitem__('chrome_build', 'd' * 64)),
+                ('link', lambda r: r['links'].__setitem__(next(iter(CHROME_LINKS)), '/tmp/other')),
+                ('payload', lambda r: r['chrome_extension']['payload'][0].__setitem__('sha256', '0' * 64)),
+                ('version', lambda r: r['chrome_extension'].__setitem__('version', '99')),
+                ('mode', lambda r: r['chrome_extension']['files'][self.checker.BUNDLE + '/policy.json'].__setitem__('mode', '0664')),
+                ('template', lambda r: r['chrome_extension']['files'][self.checker.BUNDLE + '/policy.json'].__setitem__('sha256', '0' * 64))):
+            changed = copy.deepcopy(record)
+            change(changed)
+            with self.assertRaises(AssertionError, msg=name):
+                self.checker.compare(changed, record, CONTROL)
+
+    def test_key_scans_find_newlines_chunk_boundaries_every_encoding_and_pem(self):
+        value = bytes(range(256))
+        needles = self.checker.forms(value)
+        path = self.work / 'scan'
+        for name, data in [('raw', value), ('hex', value.hex().encode()), ('HEX', value.hex().upper().encode())] + [
+                (f'{encoding}-{alignment}', encode(b'x' * alignment + value + b'y' * 3))
+                for encoding, encode in [('base64', base64.b64encode), ('base64url', base64.urlsafe_b64encode)]
+                for alignment in range(3)]:
+            for wrap in (False, True):
+                encoded = b'\n'.join(data[n:n + 64] for n in range(0, len(data), 64)) if wrap and name != 'raw' else data
+                path.write_bytes(b'x' * 1023 + encoded + b'z' * 500)
+                self.assertTrue(self.checker.hits(path, needles, chunk_size=1024), (name, wrap))
+        path.write_bytes(b'no key here')
+        self.assertFalse(self.checker.hits(path, needles, chunk_size=1024))
+        checks = self.work / 'checks.txt'
+        checks.write_text('CONTROL_CHROME_PUBLIC_MODULUS ' + value.hex() + '\n')
+        self.checker.build_log(checks, path)
+        path.write_bytes(b'x' * 1023 + value + b'\n')
+        with self.assertRaisesRegex(AssertionError, 'public modulus in build log'):
+            self.checker.build_log(checks, path)
+        for kind in (b'', b'RSA ', b'EC ', b'ENCRYPTED '):
+            path.write_bytes(b'x' * (1024 * 1024 - 4) + b'-----BEGIN ' + kind + b'PRIVATE KEY-----\n')
+            with self.assertRaisesRegex(AssertionError, 'private key marker'):
+                self.checker.private_markers(path)
+        with self.assertRaises(FileNotFoundError):
+            list(self.checker.regular_files(self.work / 'absent'))
+
+    def test_image_and_runner_wire_all_chrome_checks(self):
+        image = (ROOT / 'os/ci/image-checks.sh').read_text()
+        runner = (ROOT / 'os/ci/check-image.sh').read_text()
+        build = (ROOT / 'os/ci/check-build.sh').read_text()
+        self.assertIn('python3 -I -B /tmp/aresos-chrome-image-check.py image', image)
+        self.assertIn('chrome_image.py:/tmp/aresos-chrome-image-check.py:ro', runner)
+        self.assertNotIn('rmdir /etc/opt/chrome/policies', image)
+        self.assertIn('pkaction --action-id org.aresos.control.chrome-loosen --verbose', image)
+        self.assertEqual(image.count('systemd-tmpfiles --create /usr/lib/tmpfiles.d/aresos-control-chrome.conf'), 2)
+        self.assertIn('chrome_image.py compare', runner)
+        self.assertIn('chrome_image.py build-log evidence/image/checks.txt evidence/build.log', build)
+        self.assertLess(build.index('bash os/ci/check-image.sh'), build.index('chrome_image.py build-log'))
 
 
 class ServiceUserTest(unittest.TestCase):

@@ -120,8 +120,19 @@ managed files in `/etc/claude-code/` (no `managed-mcp.json`), and
 The service's Chrome adapter starts from two files in
 `/usr/libexec/aresos-control/chrome/`: `qualification.json` (the shipped
 baseline) and `build-id.json`, the hash `control/chrome/build.py` computes over
-`control/` at image build. Chrome's browser side (extension, native host,
-policies, the excluded-sites list) and `gh` come with package 18c-b.
+`control/` before the build generates anything. Package 18c-b installs the
+native host beside those files, the uncached Chrome polkit action, and a
+policy-installed extension in `/usr/share/aresos/chrome/`. One packer call
+makes its CRX, policy, update manifest and host manifest under a fresh signing
+key which is discarded. The two Chrome entries in `/etc` are fixed links into
+that folder. Each build therefore has a different extension ID and signature;
+`control.json` records `chrome_build` and `chrome_extension`, and the checks
+bind the signed payload and rendered files to this checkout.
+The image carries no excluded-sites list. At boot tmpfiles creates
+`/var/lib/aresos-control/chrome-excluded-sites.json` as a refused format-0
+placeholder; Chrome reads and actions stay refused until the owner writes
+his format-1 list. A later boot preserves the content and restores its
+root ownership, service group and 0640 mode. `gh` remains step 3b of 18c-b.
 The config's owner UID and home come from `ares`'s `sysusers.d` line; the tools
 may use `~/Downloads` and `~/Documents`, which tmpfiles makes at boot when they
 are missing and leaves alone when they exist. `/usr/share/aresos/manifest/control.json`

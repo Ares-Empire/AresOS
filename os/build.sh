@@ -102,6 +102,16 @@ FILES = {
     # The Chrome adapter's shipped qualification baseline, read when the service starts
     # (aresos_control/chrome/adapter.py; control/chrome/packaging/README.md).
     f'{CODE}/chrome/qualification.json': ('chrome/qualification.json', 0o644),
+    f'{CODE}/chrome/host': ('chrome/packaging/host', 0o755),
+    f'{CODE}/chrome/native_host.py': ('chrome/native_host.py', 0o644),
+    'usr/share/polkit-1/actions/org.aresos.control.chrome-loosen.policy':
+        ('chrome/packaging/org.aresos.control.chrome-loosen.policy', 0o644),
+    'usr/lib/tmpfiles.d/aresos-control-chrome.conf': ('chrome/packaging/aresos-control-chrome.tmpfiles', 0o644),
+}
+CHROME = 'usr/share/aresos/chrome'
+CHROME_LINKS = {
+    'etc/opt/chrome/policies/managed/aresos.json': '/' + CHROME + '/policy.json',
+    'etc/opt/chrome/native-messaging-hosts/org.aresos.chrome.json': '/' + CHROME + '/native-host.json',
 }
 # Folders that belong to Control alone; the record lists everything under them.
 # The vendored dependencies (DEPENDENCIES) are recorded on their own.
@@ -140,6 +150,8 @@ def chrome_build():
     return value
 
 
+# Hash the untouched inputs before settings or the bundle are generated. Outputs
+# belong only to dest: packaging/ and extension/ are part of this hash.
 build = chrome_build()
 DERIVED = {
     f'{CONFIG}/service.json': (settings('service.json', owner_uid=uid),
@@ -187,6 +199,16 @@ wanted = re.findall(r'^WantedBy=(\S+)$', (dest / UNIT).read_text(), re.M)
 assert wanted == ['multi-user.target'], wanted
 link = f'etc/systemd/system/{wanted[0]}.wants/aresos-toold.service'
 target(link).symlink_to('/' + UNIT)
+for name, destination in CHROME_LINKS.items():
+    target(name).symlink_to(destination)
+    # Chrome's policy path must be real, root-owned 0755 directories in the image.
+    parent = (dest / name).parent
+    while parent != dest / 'etc':
+        assert not parent.is_symlink(), parent
+        parent.chmod(0o755)
+        parent = parent.parent
+(dest / CHROME).mkdir(parents=True, exist_ok=False)
+(dest / CHROME).chmod(0o755)
 
 
 def walk(*roots):
@@ -207,8 +229,9 @@ def sha256(path):
 sources = {**{rel: f'control/{source}' for rel, (source, _) in FILES.items()},
            **{rel: origin for rel, (_, origin) in DERIVED.items()}}
 # The lock the vendored wheels must come from (checked below in the image build).
-record = dict(format=1, files={}, directories={}, links={'/' + link: '/' + UNIT},
-              requirements_lock=sha256(control / 'requirements.lock'))
+record = dict(format=1, files={}, directories={'/' + CHROME: '0755'},
+              links={'/' + link: '/' + UNIT, **{'/' + name: value for name, value in CHROME_LINKS.items()}},
+              requirements_lock=sha256(control / 'requirements.lock'), chrome_build=build)
 for path in walk(*OWN, *FILES, *DERIVED):
     rel = path.relative_to(dest).as_posix()
     if path.is_symlink():
@@ -225,6 +248,16 @@ record['directories'] = dict(sorted(record['directories'].items()))
 record['files'] = dict(sorted(record['files'].items()))
 
 if report:
+    # One process, one fresh key, four mutually consistent files. control-tree
+    # deliberately does not sign: the runner compares payload and rendered templates.
+    packed = subprocess.run([sys.executable, '-I', '-B', str(control / 'chrome/packaging/pack.py'),
+                             str(control / 'chrome/extension'), str(dest / CHROME)],
+                            capture_output=True, text=True, timeout=120, check=True)
+    extension = json.loads(packed.stdout)
+    extension['files'] = {'/' + CHROME + '/' + name: dict(mode='0644', sha256=sha256(dest / CHROME / name))
+                          for name in ('extension.crx', 'native-host.json', 'policy.json', 'update.xml')}
+    record['chrome_extension'] = extension
+    print(f'CONTROL_CHROME_EXTENSION {extension["id"]} {extension["crx_sha256"]}')
     revision = os.environ.get('ARESOS_SOURCE_REVISION', '')
     assert re.fullmatch('[0-9a-f]{40}', revision), f'Control is recorded with its exact commit (got {revision!r})'
     # Every wheel pip installed, against requirements.lock: the same set, each with one of its pinned hashes.

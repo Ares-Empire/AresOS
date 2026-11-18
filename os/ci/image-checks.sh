@@ -176,6 +176,34 @@ for _ in $(seq 100); do
     sleep 0.2
 done
 busctl --system status org.freedesktop.PolicyKit1 > /dev/null
+# 18c-b: ask the real authority while this check's system bus is running.
+pkaction --action-id org.aresos.control.chrome-loosen --verbose > /tmp/chrome-polkit-action.txt
+cat /tmp/chrome-polkit-action.txt
+python3 - <<'PY'
+import pathlib, re, xml.etree.ElementTree as ET
+action = 'org.aresos.control.chrome-loosen'
+root = ET.parse('/usr/share/polkit-1/actions/' + action + '.policy').getroot()
+assert [node.get('id') for node in root.findall('action')] == [action]
+node = root.find('action')
+assert {child.tag: child.text for child in node.find('defaults')} == {
+    'allow_any': 'no', 'allow_inactive': 'no', 'allow_active': 'auth_admin'}
+unit = pathlib.Path('/usr/lib/systemd/system/aresos-toold.service').read_text()
+user = re.findall(r'^User=(\S+)$', unit, re.M)
+assert len(user) == 1
+assert [(a.get('key'), a.text) for a in node.findall('annotate')] == [
+    ('org.freedesktop.policykit.owner', 'unix-user:' + user[0])]
+reported = pathlib.Path('/tmp/chrome-polkit-action.txt').read_text()
+for key, value in [('implicit any', 'no'), ('implicit inactive', 'no'), ('implicit active', 'auth_admin')]:
+    assert re.search(r'^\s*' + re.escape(key) + r':\s*' + re.escape(value) + r'\s*$', reported, re.M), reported
+assert re.search(r'^\s*annotation:\s*org\.freedesktop\.policykit\.owner -> unix-user:'
+                 + re.escape(user[0]) + r'\s*$', reported, re.M), reported
+for folder in ('/usr/share/polkit-1/rules.d', '/etc/polkit-1/rules.d'):
+    for path in pathlib.Path(folder).glob('*.rules'):
+        assert action not in path.read_text(), f'a rule names the Chrome action: {path}'
+PY
+test -x /usr/bin/pkcheck
+test -x /usr/libexec/kf6/polkit-kde-authentication-agent-1
+pass 'Chrome polkit action: no/no/auth_admin, never kept, owner is the service user; no rule names it; pkcheck and agent exist'
 runuser -u ares -- python3 - org.aresos.ci.cached org.freedesktop.NetworkManager.settings.modify.system \
     org.fedoraproject.FirewallD1.config > /tmp/polkit-reuse.json <<'PY'
 import json, os, pty, select, subprocess, sys, time
@@ -316,10 +344,10 @@ test "$handler" = google-chrome.desktop
 handler=$(runuser -u ares -- env HOME=/var/home/ares XDG_CURRENT_DESKTOP=AresOS xdg-mime query default x-scheme-handler/http)
 test "$handler" = google-chrome.desktop
 pass 'xdg-open sends http and https links to Chrome in the AresOS session'
-test ! -e /etc/opt/chrome || test -d /etc/opt/chrome
-mkdir -p /etc/opt/chrome/policies/managed
-rmdir /etc/opt/chrome/policies/managed /etc/opt/chrome/policies
-pass '/etc/opt/chrome/policies can be created for the control layer'
+# The folder is now installed, not made and removed by the check. The reader
+# verifies its exact contents, both links, the signed payload and key disposal.
+python3 -I -B /tmp/aresos-chrome-image-check.py image
+pass 'Chrome bundle: signed CRX3, one identity and origin, fixed file URLs, exact policy folder and links, root-owned recorded bytes; no key or test bundle'
 
 # --- The daily login shell: PATH, Homebrew through /usr/bin/brew, no Flatpak errors.
 # A stand-in for the stock administrator who owns the inherited Homebrew.
@@ -884,6 +912,70 @@ test "$(stat -c '%a %U %G' /var/home/ares/Documents)" = '700 root root'
 chmod 0700 /var/home/ares/Downloads
 chown ares:ares /var/home/ares/Documents
 pass 'tmpfiles: /run/aresos-tools 0711, both state folders 0700 for aresos-tools; Downloads and Documents 0700 for ares when missing, kept as they are when present'
+
+# 18c-b: no owner setting is baked into the image. Only boot creates it, and
+# a later boot restores permissions without replacing the owner's content.
+test ! -e /var/lib/aresos-control
+test ! -L /var/lib/aresos-control
+test ! -e /etc/aresos/control/chrome-excluded-sites.json
+test ! -L /etc/aresos/control/chrome-excluded-sites.json
+python3 - <<'PY'
+import pathlib, shlex
+tmpfiles = pathlib.Path('/usr/lib/tmpfiles.d/aresos-control-chrome.conf').read_text()
+assert [line for line in tmpfiles.splitlines() if line and not line.startswith('#')] == [
+    'd /var/lib/aresos-control 0755 root root -',
+    'f /var/lib/aresos-control/chrome-excluded-sites.json 0640 root aresos-tools - {"format":0,"hosts":[]}']
+unit = pathlib.Path('/usr/lib/systemd/system/aresos-toold.service').read_text()
+target = pathlib.PurePosixPath('/var/lib/aresos-control')
+for line in unit.splitlines():
+    key, _, value = line.partition('=')
+    if key not in ('ReadWritePaths', 'StateDirectory'):
+        continue
+    for name in shlex.split(value):
+        name = name.lstrip('-+')
+        path = pathlib.PurePosixPath('/var/lib') / name.split(':')[0] if key == 'StateDirectory' else pathlib.PurePosixPath(name)
+        assert path != target and path not in target.parents and target not in path.parents, line
+PY
+systemd-tmpfiles --create /usr/lib/tmpfiles.d/aresos-control-chrome.conf
+test "$(stat -c '%a %U %G' /var/lib/aresos-control)" = '755 root root'
+test "$(stat -c '%a %U %G' /var/lib/aresos-control/chrome-excluded-sites.json)" = '640 root aresos-tools'
+python3 - <<'PY'
+import pathlib, stat
+path = pathlib.Path('/var/lib/aresos-control/chrome-excluded-sites.json')
+assert stat.S_ISREG(path.lstat().st_mode)
+assert path.read_bytes() == b'{"format":0,"hosts":[]}'
+path.write_bytes(b'{"format":1,"hosts":["rehearsal.invalid"]}')
+PY
+chmod 0644 /var/lib/aresos-control/chrome-excluded-sites.json
+chown root:root /var/lib/aresos-control/chrome-excluded-sites.json
+systemd-tmpfiles --create /usr/lib/tmpfiles.d/aresos-control-chrome.conf
+test "$(stat -c '%a %U %G' /var/lib/aresos-control/chrome-excluded-sites.json)" = '640 root aresos-tools'
+python3 - <<'PY'
+from pathlib import Path
+assert Path('/var/lib/aresos-control/chrome-excluded-sites.json').read_bytes() == b'{"format":1,"hosts":["rehearsal.invalid"]}'
+PY
+rm -r /var/lib/aresos-control
+# Boundary.read rejects /tmp as a parent. Use a root-owned folder, and invoke
+# the installed validator as the service user so its read permission is real.
+install -d -o root -g root -m 0755 /run/aresos-chrome-setting-check
+install -o root -g aresos-tools -m 0640 /dev/null /run/aresos-chrome-setting-check/sites.json
+for format in 0 1; do
+    printf '{"format":%s,"hosts":[]}' "$format" > /run/aresos-chrome-setting-check/sites.json
+    runuser -u aresos-tools -- /usr/bin/python3 -I -B - "$format" <<'PY'
+import sys
+sys.path[:0] = ['/usr/libexec/aresos-control', '/usr/lib/aresos-control/vendor']
+from aresos_control.chrome.exclusions import owner_hosts
+from aresos_control.common import Refused
+try:
+    value = owner_hosts('/run/aresos-chrome-setting-check/sites.json')
+except Refused as error:
+    assert sys.argv[1] == '0' and error.code == 'chrome_settings_unavailable', error
+else:
+    assert sys.argv[1] == '1' and value == [], value
+PY
+done
+rm -r /run/aresos-chrome-setting-check
+pass 'Chrome excluded sites: absent in image; tmpfiles creates refused placeholder, keeps changed content and restores mode/group; installed validator refuses format 0 and accepts empty format 1; unit cannot write its folder'
 
 # Agreed change 7: the config follows the image's own account declaration.
 python3 - <<'PY'

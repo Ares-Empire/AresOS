@@ -52,6 +52,8 @@ case $mode in
         date +%s > evidence/build-end-time.txt
         sudo podman image inspect localhost/aresos:check > evidence/image-inspect.json
         bash os/ci/check-image.sh localhost/aresos:check "$kind"
+        python3 -B os/ci/control/chrome_image.py build-log evidence/image/checks.txt evidence/build.log \
+            | tee evidence/image/control-chrome-build-log.txt
         # Then boot it once as the release job does, still without publishing:
         # the CI-only test layer, a file-backed disk and one fresh VM pass. Its
         # guest policy checks polkit for the daily account's real active
