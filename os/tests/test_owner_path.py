@@ -1149,8 +1149,9 @@ class OwnerPathTest(unittest.TestCase):
                       'do **not** run previous; **STOP → go to [Help](INSTALL-REFERENCE.md#help)**',
                       'which may ask Claude for `aresos title` to show what runs and starts next',
                       'Claude runs `aresos check` first and `aresos previous` only where the branches below allow it',
-                      'Once **was not applied** has shown, `aresos update` can repeat the update at once '
-                      '(an older running AresOS goes forward first)',
+                      # REVIEW-12: the warning sits inside the was-not-applied branch, so it renders there.
+                      'the AresOS from before the update starts again. Help decides each repeat. From now on '
+                      '`aresos update` repeats the update at once (an older running AresOS goes forward first)',
                       'Claude runs it only when Help has decided the repeat, never to see what it says',
                       '**Previous AresOS queued for the next start**', '**Return to … confirmed after the restart**',
                       '**newer AresOS … runs and starts next**', 'with that confirmation in your record',
@@ -1745,7 +1746,13 @@ class OwnerPathTest(unittest.TestCase):
         card = section(texts['EMERGENCY.md'], 'a-routine-tools-command-stopped')
         # Review 4, S1: the card never sets the whole last line aside; its do-not-reboot half is his.
         self.assertNotIn('is for the console:', card)
+        # REVIEW-12: the two refusals that are not a STOP come before the STOP rule.
+        self.assertLess(card.index('Two refusals are not this STOP'), card.index('Claude copies every STOP line'))
         for value in ('**Action:**', 'Claude copies every STOP line to you word for word and asks for your go',
+                      '**Another owner command is running** means nothing ran, so let the first finish and ask '
+                      'before running the word again, with no export',
+                      'a restart that says the saved title is stale means `aresos title` first, then ask again '
+                      'before `aresos reboot`',
                       "only on your go it runs the routine box's export line", 'tries nothing else',
                       'no other line, no second try, no restart',
                       "After a **STOP tools folder** (Claude's own line; no administrator command ran) there is no export and no window",

@@ -20,7 +20,10 @@
     "Package 18c's fix round 1, part 2 (linux-aresos, agreed change 15): the check-build job's limit for check_build=control goes from 127 to 131 minutes and its comment's sum follows the Control VM pass step's 16 minutes, so the job can't cut a slow pass before the step's own limit; every other mode unchanged; no tool, guide or image file changed",
     "Package 18c's fix round X2 merged main at 04aef030 (packages 48, 50 and 51): bound files main changed wait for the next rehearsal; os/ci/check-build.sh keeps 18c's control|build split, with 50's console keymap check in the build branch",
     "43: main merged at 98363516 (#58 18c Part A and B2, 52, 46, 79)",
-    "43 step 4: the guides for the aresos command (docs/INSTALL.md's new box, docs/EMERGENCY.md, the guide/TABLE equality test); no tools, payload or fingerprint change"
+    "43 step 4: the guides for the aresos command (docs/INSTALL.md's new box, docs/EMERGENCY.md, the guide/TABLE equality test); no tools, payload or fingerprint change",
+    "43 step 4, REVIEW-12 fixes: EMERGENCY.md's two refusals that are not a STOP, and the was-not-applied warning inside its branch",
+    "43 step 4, REVIEW-12 fixes: test_owner_path pins the was-not-applied warning inside its branch",
+    "43 step 4, REVIEW-12 fixes: test_owner_path pins the routine STOP card's two refusals"
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
@@ -29,7 +32,7 @@
       "path": ".github/workflows/os-image.yml"
     },
     {
-      "sha256": "6d14e3571bfbb8593a13254cca295156746204cf85a4e93f559fe5d1a3ed30da",
+      "sha256": "e9785377c2356be0f0fbfb1dfa56a3db07553a6291c1c813ed24c03c5242971f",
       "path": "docs/EMERGENCY.md"
     },
     {
@@ -157,7 +160,7 @@
       "path": "os/tests/test_owner_equality.py"
     },
     {
-      "sha256": "199e023bdf7482010ad9acc2a2c734f4b561f72129be3b7ffec33cb4e6ffec3f",
+      "sha256": "2a44f162b281fd0af81b0ed082b3f511720a1166040f3694ff7e45541994e3f5",
       "path": "os/tests/test_owner_path.py"
     },
     {
