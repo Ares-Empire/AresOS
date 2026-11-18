@@ -19,7 +19,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from aresos_control.chrome import exclusions
 from aresos_control.common import Refused, strict_json_loads
 from aresos_control.definitions import ACTIONS
-from aresos_control.engine import Engine
+from test_engine import Engine  # Use the fixture's own qualification baseline.
 from test_policy import entry
 
 ROOT = Path(__file__).resolve().parents[2]
