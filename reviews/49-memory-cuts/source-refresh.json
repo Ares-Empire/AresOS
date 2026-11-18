@@ -1,0 +1,32 @@
+{
+  "initial_source_reference": "80d3549a",
+  "merged_main": "58d2ae1bfc536ae47785d3efd39ac5a0ac6878a4",
+  "merge_commit": "3be460c6d6f8154977c628d05f981fe494c4fd2b",
+  "sources": {
+    "80d3549a": {
+      "mod_tree": "4ec6bfe95886d84ef689430e6443bab642d41e95",
+      "helper_blob": "a2567c4b11e5739af2478ca13ee98c1d4cdfc0e9",
+      "labwc_config_blob": "6ea557a97357f3336b267f371126c25e43403974"
+    },
+    "HEAD": {
+      "mod_tree": "b038c0ddf5feb8bf5ab5ecad92b32fc2b63a47d3",
+      "helper_blob": "a2567c4b11e5739af2478ca13ee98c1d4cdfc0e9",
+      "labwc_config_blob": "6ea557a97357f3336b267f371126c25e43403974"
+    }
+  },
+  "method": "Original factors and covered matrix stay on their common original source. Combined validation gets fresh current flat x3, automatic first-creation and Nether controls.",
+  "creation_flow": "Current product automatic flat first start; Nether setup through real Esc/New home/choice/confirmation, with read-only GUI/creation observations.",
+  "lifecycle_isolation": "Drop ARESOS_DESKTOP_LIFECYCLE in rig/start.sh and in the current client qualification command; retain only the rig private app-helper channel.",
+  "pre_hosted_refresh": {
+    "merged_main": "918fba67239021f36e0c1ae241135cb253c42c8a",
+    "merge_commit": "2cf920a8c064b32ccbc033081bfd9efb95683363",
+    "mod_helper_labwc_unchanged": true,
+    "verification": "git diff 58d2ae1b origin/main -- mod os/config/usr/libexec/aresos-shell os/config/usr/share/aresos/labwc/rc.xml produced no changes"
+  },
+  "final_hosted_refresh": {
+    "merged_main": "774d79540ba0909acb5959c2d8ca585136d4989f",
+    "merge_commit": "d1467cedc7709771f77ec0f1a8fa9eb289e8c24e",
+    "mod_helper_labwc_unchanged": true,
+    "changes": "Handoff notes only; git diff 918fba67 origin/main -- mod os/config/usr/libexec/aresos-shell os/config/usr/share/aresos/labwc/rc.xml was empty."
+  }
+}

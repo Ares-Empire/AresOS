@@ -1,0 +1,3 @@
+695864:
+garbage-first heap   total reserved 1048576K, committed 436224K, used 357784K [0x00000000c0000000, 0x0000000100000000)
+ region size 1024K, 29 young (29696K), 1 survivors (1024K)

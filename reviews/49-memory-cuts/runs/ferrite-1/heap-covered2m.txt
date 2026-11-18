@@ -1,0 +1,3 @@
+349548:
+garbage-first heap   total reserved 1048576K, committed 378880K, used 322682K [0x00000000c0000000, 0x0000000100000000)
+ region size 1024K, 12 young (12288K), 1 survivors (1024K)
