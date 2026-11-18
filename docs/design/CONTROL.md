@@ -379,13 +379,15 @@ sites and synthetic profiles).
   Each image build signs the package with a fresh key it throws away, so every image has its own extension ID; the
   policy, the update manifest and the native host's one allowed origin are generated with it, and `/etc` holds only
   links to them. Replacement loses extension-local storage. The cross-package profile contract is now in
-  brief 28b item 1 and 18c-b's "CROSS-5 identity handoff": **owner decision pending**. The recommendation keeps
-  one durable logical profile pin in the service, permits only an installation id in extension IndexedDB, and
-  requires the owner's explicit relink after each replacement (rollback included): check the Chrome profile
-  name in the helper and choose **Keep using this profile**, then enter his password in F7's system dialog.
-  No IDs or administrator command. 28b step 2 builds the candidate-specific UI/confirmation; 18c-b 3a already
-  installs the action, with its checker proof stopped for **3a fix**, and 4/4b plus 5/C7 prove the real dialog.
-  It never automatically trusts a new identity. Installation and profile continuity need separate evidence.
+  brief 28b item 1 and 18c-b's "CROSS-5 identity handoff": **board #355, 2026-11-18, "Yes/no in the session
+  (recommended)"**, after board #354 asked about updates. One durable logical pin in the service, with only an
+  installation id in extension IndexedDB: after replacement (rollback included), the first Chrome tool call in
+  a Claude Code session asks `Keep using Chrome profile <name>?` through Control's managed ask in Claude
+  Code's permission prompt, like a mail send. No password or helper-page confirmation button. 28b step 2 builds
+  it using `chrome_submit` and its existing ask rule; 18c-b's case 3/C4 proves the integration. Its 3a action,
+  4/4b polkit probe and 5/C7 dialog proof stay only for F7's rule loosening; **3a fix** and its lead gate remain.
+  A yes lasts across sessions until the next replacement; new identities are never trusted automatically.
+  Installation and profile continuity need separate evidence.
   On Linux, Chrome installs
   an extension from outside its web store only by policy (17b *checked* the
   `ExtensionInstallForcelist` form; 18c-b proves this one on the shipped Chrome). Chrome starts our **native
@@ -547,38 +549,55 @@ the front when he should look at it or sign in there.
   - **Incognito windows are never listed, read or taken.** The extension's manifest says `"incognito":
     "not_allowed"`. Incognito is his way of saying "not for the record".
   - **Other Chrome profiles** aren't listed. Claude sees one profile, and it is pinned: the service remembers the
-    first pair accepted at explicit setup and refuses any other, also after a reconnect. Under the pending
-    CROSS-5 recommendation, the pin is a persistent logical service record with one accepted extension/install
-    pair: an ordinary restart reconnects; image A → B → A keeps that pin but each replacement needs the owner's
-    **Keep using this profile** confirmation from the chosen profile's helper, with the same uncached polkit
-    password dialog as F7. Its question names the profile as Chrome names it: at setup the owner enters the
-    picker name in the helper, checks it before confirming a replacement and corrects it after a rename. The
-    existing handshake supplies no display name; this label lives only in the private service pin and local UI,
-    never acts as identity evidence and needs no additional extension storage or profile-file read. The helper
-    carries the IDs internally. No, cancel, timeout, a missing dialog or a stale/cached answer leaves the pin
-    unchanged and the candidate's tools refused, with no automatic reprompt on reconnect. The password binds
-    the pending peer/connection, exact pair, displayed name, committed pin revision and recovery generation;
-    none may change before commitment. Pending peers have only a bounded pairing channel, no normal owner-site
-    access or browser commands. A different profile, a retired pair
-    or an unknown/corrupt record is refused, never auto-enrolled. A separate owner-only **Use this profile
-    instead** button/password question deliberately changes profiles. This is the owner's authorization, not
-    technical proof against a copied profile. The alternative, automatic continuity, needs its own reviewed
-    persistent
-    identity and rollback design; the owner has not chosen it or the recommendation yet. Brief 20 accepts
-    whichever extension connects (read in its `bridge.py`), so without
-    the pin a
-    second profile could quietly take the first one's place. [`FEATURES.md`](../control/FEATURES.md) says so.
+    first pair accepted at explicit setup and refuses any other, also after a reconnect. Board #355's chosen
+    lifecycle keeps a persistent logical pin with one accepted extension/install pair: ordinary restarts reconnect;
+    image A → B → A keeps that pin but each replacement needs the in-session `Keep using Chrome profile <name>?`
+    ask. At setup the owner supplies the picker name in local helper details and corrects renames there; the
+    handshake has no automatic name source. This label lives in the private pin and is displayed, safely quoted
+    in full, in the approval question and untrusted description; it is never identity evidence. No profile-file
+    read or additional extension storage. The IDs are supplied internally, never typed.
+    The first blocked Chrome tool call prepares a profile-only operation. Until yes, browser tools return the
+    fixed `chrome_profile_confirmation_required` refusal naming the waiting `approval.question`, with that
+    question/approval and no page data (including cached or pending/notices data). Claude passes it unchanged
+    to `chrome_submit`, whose managed ask shows the owner's permission prompt; chat text, model-supplied yes,
+    helper/page events and another session's message cannot answer it. There is no profile password dialog or
+    helper approval button. Only the profile operation's submit/status/drop work while browser access is refused;
+    page operations and trusted submits cannot bypass it. **Known limits** below qualify this supported-path rule.
+    As for a send, the service-issued operation id/hash, exact question-first approval and deadline bind private
+    candidate facts: pending native peer/connection, exact pair, full displayed name, committed logical pin and
+    revision (pin generation), and recovery generation. Recheck before the atomic committed write; preparation
+    never changes the pin. No, cancel, no answer/expiry or stale/replayed answer leaves the pin unchanged and
+    tools refused. Denial need not notify the service; a pending reservation is never approval. No reconnect
+    prompt loop. Changed/disconnected candidate, name/pin change, restart or restore invalidates the answer.
+    A valid yes consumes the operation once, retains the logical pin, replaces its accepted pair and retires
+    the old one. It holds for later sessions until the next replacement. Two sessions share the same candidate's
+    pending operation; the first valid yes wins under serialization, later answers are stale, and later calls
+    need no question. A no/cancel cannot undo another session's valid yes. Different pending candidates refuse
+    ambiguity; neither arrival order nor equal names selects one. Pending peers get only identity/name/switch
+    selection messages, no owner-site access or browser commands; another candidate cannot trigger a replacement
+    ask while the accepted peer is connected. Another profile, retired pair or corrupt/
+    unknown record never auto-enrolls. A deliberate switch is selected in local details, then approved by the
+    distinct `Use Chrome profile <name> instead?` in-session ask with the same binding; only that yes replaces
+    the logical pin. This is owner authorization, not technical proof against copied profile state. Brief 20
+    accepts whichever extension connects (its `bridge.py`); without the pin a second profile can quietly take
+    the first one's place. [`FEATURES.md`](../control/FEATURES.md) records the limits.
     **Restores:** `store.chrome_state`'s committed Chrome evidence is the pin's sole authority; ordinary `get()`
     and the disposable database never authorize it. During the restore lock, only the current committed pair
     may connect in quarantine with `restore_required`; it gets no browser commands, owner settings or pairing
     prompt. Retired/unmatched peers are refused; missing/unreadable/corrupt evidence fails closed. Confirmation
-    closes every admitted peer, including one admitted during the lock, and pending candidates/dialogs before
+    closes every admitted peer, including one admitted during the lock, and pending candidates/profile asks before
     the app gate reopens; invalidate refs, lists and approvals and drop queued messages. A fresh handshake then
     checks committed evidence in the new generation. Missing restored state never enables first-connect
     enrollment. 28b step 2 builds the daemon/engine hooks; the existing store reconstructs Chrome rows but does
     not retire the bridge. Its P → backup → switch Q → restore P database regression tries both sides of
     confirmation and proves P never serves Q. Moving admission to ordinary `get()` or omitting recovery
     closure/revalidation must each fail that same test, including Q's required fresh connection after recovery.
+    **Ask tests/mutations (28b Tests):** `profile_ask_yes` takes the new pair; `profile_ask_waits` covers prepare,
+    no/cancel/no answer and all tools refused without page data; `profile_ask_bound` rejects another candidate,
+    stale/replayed answers and restore; `profile_ask_sessions` proves concurrency and no second-session question
+    after yes; `profile_ask_prompt` proves the actual permission prompt. Skip the ask must fail prompt/waits;
+    accept another candidate's answer must fail bound; take the pin on prepare must fail waits. F7/C7 remains
+    loosening-only. The profile ask adds **0 server-instruction characters**, inside 28b's unchanged 3,800 pin.
   - **Never readable:** the pages of "Where Claude may go" (the fixed list, his own never-list, anything that isn't a
     web page). They are listed with title and site and marked `no`, so Claude can say why it can't help there.
 - **Looking needs no take.** `chrome_read` works on every listed tab that isn't marked `no`. One of his tabs is read
@@ -1275,7 +1294,7 @@ accounts; a page an adapter doesn't recognise falls back to the generic rules. T
 | `chrome_take`, `chrome_release` | change | take one of his tabs for acting (it reloads once; where the tool can't rule out a loss, `chrome_take_reload` asks him first; never a page of the fixed list); give it back to its place | `chrome_take_tab`, `chrome_release_tab` |
 | `chrome_take_reload` | change, **ask** (as a delete) | *brief 28b*: reload a tab of his where something could be lost (one that isn't known clean, or a taken one that holds his typing or that he has used). It takes the question a `reload_required` refusal prepared and asks him; a tab not yet taken is taken with it; returns the reloaded page's outline | new |
 | `chrome_library` | read | his downloads (and where Chrome saved them), bookmarks or history, to find pages: titles, addresses in the short form, and a reference per entry to open it | `chrome_downloads`, `chrome_bookmarks`, `chrome_history` |
-| `chrome_submit` | **send** | run one prepared operation, by id and hash, after the page-state check | the same |
+| `chrome_submit` | **send** | run one prepared operation, by id and hash, after the page-state check; 28b also confirms the profile-only operation before browser admission, with its candidate/pin checks | the same |
 | `chrome_submit_trusted` | send, free | as `chrome_submit`, only for a kind he set to "don't ask again" | the same |
 | `chrome_drop` | change | drop a prepared operation; a stopped page step stays stopped and nothing happens on the page | the same |
 | `chrome_operation_status` | read | an operation's stages (rule 4.3) | the same |
@@ -1372,6 +1391,30 @@ own Chromium from the terminal and an empty profile, without his sign-ins.
 The list every tool keeps (`docs/REVIEW.md`, "Tools for Claude"): what it is, the harm, and why it is accepted. It
 starts from brief 20's re-checks (`reviews/20-chrome/KNOWN-LIMITS.md`, *brief 20*). A limit is for low harm; a flaw
 with real harm is fixed instead (owner, 2026-11-11). Each brief's report keeps the list true.
+
+**Profile confirmation uses the send's approval boundary**
+
+The in-session profile ask inherits section 7's accepted residuals, in the same words:
+
+- Without a mandatory sandbox, a tricked Claude can also call the tool service directly (the `aresos` command, or its
+  socket, which his user can reach) with a prepared operation, and so skip the question. That is the same level as
+  anything else a tricked Claude can do on a normal OS: it already acts with his user's rights. The tools add no
+  route around his approval beyond that.
+- A `PermissionRequest` hook can approve a managed ask (brief 18d, print mode; 18c checks the interactive case), so a
+  hook that Claude or he writes could approve our asking tools without him answering. That is the same level as
+  calling the service directly, and is accepted with it.
+- A session tricked by content can pass a request on to another of his sessions, for example to read a mail or a
+  signed-in page and report back. The receiver takes it as a teammate's request (rule 4.8): its sends and deletes
+  still ask him, but its reads don't, so the content it reads can leave through the first session without any send.
+  The line before 2026-11-16 (other sessions' messages are data) closed this route; the narrowed line rests on the
+  session that reads the content. That is the level of normal Claude Code with mail and browser tools (decision 24).
+
+A user-level `PermissionRequest` allow hook the owner adds himself can therefore approve the profile ask
+without the prompt showing; his hooks must not match our asking tools. **K1. Auto mode is not tested.**
+That send-approval test gap (`reviews/18c-image-test/SECURITY-REVIEW-A1.md`, K1) also applies here. These limits
+mean a prepared relink could be approved and expose that profile's pages without a visible yes; this is the
+send's accepted boundary, not the independent F7 password boundary. Copied profile state still cannot be
+technically distinguished; a displayed name and an approval are authorization, not proof of origin.
 
 **A page acting on its own**
 
@@ -1801,8 +1844,8 @@ itself instead of the first input (brief 28b).
       result, while opening the tab's address still opens the one the list showed; unchanged, each works with
       no further step;
     - one profile: a second profile's extension is refused, also after the first one disconnects, until the owner
-      chooses **Use this profile instead** in that helper and answers its named-profile password question;
-      then every token and reference from before is refused;
+      selects **Use this profile instead** in local details and answers its bound in-session permission question;
+      selection/prepare alone changes nothing; after yes every old token and reference is refused;
     - the reason: a read, a take or a close of one of his tabs without `request` is refused; with it, the popup and
       `aresos log` show the tab, the time and the request, and the button shows **READ**;
     - taking: a tab that isn't known clean gives `reload_required` with the reason and hasn't moved: a changed
@@ -1855,8 +1898,10 @@ including repaired-label collisions, then swap/reorder/refuse before values are 
 and reference-open on Delete/Unsubscribe GET links with zero receiver requests before approval, and hostile loss
 labels only inside untrusted envelopes for bare/batched/stored results. Group 17 tests the same-profile A → B → A
 lifecycle and refused second profile under the owner-approved contract, the P → Q → restored-P-database
-regression and its two independent lookup/recovery mutations, the named-profile password question and its
-no/cancel/timeout/stale-answer refusals, further typing and canvas work while a
+regression and its two independent lookup/recovery mutations, the named in-session profile ask and its
+no/cancel/no-answer/stale/replayed-answer refusals, all tools refused without page data until yes, and a second
+session needing no question after yes. The three ask mutations are skip the ask, accept another candidate's
+answer and take the pin on prepare, mapped to 28b's named tests above. Also test further typing and canvas work while a
 reload approval waits, missing freshness observation, and two unrelated forms with owner work outside the held
 submission. Board #138's delayed-owner cases remain in **taken tabs**, with one combined send/loss question and
 no preliminary reload. Both 28a/28b inherit Unicode fresh-side comparison and end-of-control reference cleanup

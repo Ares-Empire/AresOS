@@ -24,7 +24,7 @@ remove, and Chrome's menu says the browser is managed. Claude's Chrome reads and
 until he writes his never-list once with `sudo` in the live sitting (his dashboard's host first; an empty list
 only if he has no site to exclude; "For his guide" below). After that they work. Installation follows an update
 or rollback automatically; once 28b adds profile pinning,
-reconnection follows the open owner choice in "CROSS-5 identity handoff" below.
+the first Chrome tool call asks in the session to keep using the named profile ("CROSS-5 identity handoff" below).
 "Allow editing" asks for his password in the usual dialog.
 
 ## Why now
@@ -144,51 +144,60 @@ pinned base, so its `/usr` shows what the base has. Check each one in the tree b
   empty one counts), every Chrome read and action answers `chrome_settings_unavailable`. The list lives in `/var`,
   shared by all deployments, so updates and `previous` keep it; the service can never write it.
 
-## CROSS-5 identity handoff (finding 1; owner decision pending)
+## CROSS-5 identity handoff (finding 1; owner decision #355)
 
 **Decision and why.** Keep the per-image signing key and tested replacement/rollback design. The old blanket
 storage prohibition and 28b's permanent pin of an IndexedDB id cannot both be built. A replacement id proves
-nothing about which Chrome profile connected. The recommendation is **owner-confirmed continuity**, not a new
-permanent signing secret; 28b item 1 specifies the protocol and tests.
+nothing about which Chrome profile connected. Board #354 asked why confirmation follows updates; board #355
+(2026-11-18) chose **"Yes/no in the session (recommended)"**. The lead is `linux-tools`. 28b item 1 specifies
+owner-confirmed continuity, with no permanent signing secret and no claim of automatic profile identity.
 
-**Question for the owner:** after an update or rollback replaces Chrome's helper, should the tools ask for your
-password once to keep using your chosen Chrome profile? Open the helper in that profile, check its name and
-choose **Keep using this profile**; the system password dialog names it. No IDs to type or administrator command.
-At first setup you enter the name Chrome shows in its profile picker; correct it in the helper if you rename it.
-**Options:** confirm with your password after each replacement (recommended), or make it automatic, which needs
-a separate persistent identity design and delays this part. No, cancel or timeout leaves the pin as it was and
-the replacement helper's tools refused. Normal restarts need no confirmation.
-**Why it matters:** Claude's tools pause until you confirm, but another Chrome profile can't silently take over.
-The recommendation preserves the install work already proven and avoids keeping a signing secret. A permanent
-extension key alone doesn't solve rollback: it must also prove which extension version Chrome runs.
-`linux-tools` records his answer; this revision does not supply it.
+**What the owner does:** after an update or rollback replaces the helper, the first Chrome tool call in a
+Claude Code session prepares `Keep using Chrome profile <name>?` and asks through Control's managed ask,
+in Claude Code's permission prompt, like a mail send. No password and no helper-page confirmation button.
+At setup he supplies Chrome's picker name in the helper's local details and corrects it after a rename; it
+is display text, never identity proof. A yes holds for later sessions until the next replacement. No, cancel,
+no answer or a stale answer leaves the pin unchanged and the tools refused. Normal restarts need no question.
 
-Under the recommended choice, 28b stores only a random **installation id** in an extension-owned IndexedDB
-module `profile_identity.js` (no new manifest permission). A durable logical profile pin in the service keeps
-the currently owner-authorized `(extension id, installation id)` pair. The same pair reconnects; a new pair is
-refused until the owner relinks it with the helper's **Keep using this profile** button and F7's system password
-dialog. The IDs are carried internally, not typed. Relinking revokes the previous pair;
-rollback to A also requires confirmation when its storage was replaced. The logical pin stays identical through
-A → B → A. A different profile is refused even when it is first to connect after replacement; deliberate
-profile switching is a separate **Use this profile instead** button and password question. This is explicit
-owner authorization, not technical proof against copied profile state or an asserted automatic
-proof of profile continuity. Old refs, lists and approvals never survive a connection change.
+28b stores only a random **installation id** in `profile_identity.js`'s extension-owned IndexedDB (no new
+manifest permission). A durable logical service pin keeps one authorized `(extension id, installation id)`
+pair. An unmatched helper gets no browser access; the first tool call returns the fixed
+`chrome_profile_confirmation_required` refusal with the waiting question/approval, never page data. The exact
+question-first operation id/hash and deadline bind the candidate pair, native peer/connection, displayed name,
+committed pin/revision and recovery generation. The existing `chrome_submit` is the asking confirm tool;
+prepare never takes the pin. Only a current yes atomically replaces the accepted pair and retires the old one,
+keeping the logical pin through A → B → A. Two sessions share the pending operation: the first valid yes wins
+once, later answers are stale, and subsequent calls use the accepted pair without a question. Different pending
+candidates refuse ambiguity; first arrival or an equal name never authorizes one. Deliberate switching remains
+a distinct selected intent in local details and a bound in-session `Use Chrome profile <name> instead?` ask,
+not a helper approval or password dialog. Its yes replaces the logical pin. Old refs, lists and approvals never
+survive a connection change; a copied profile's local state still cannot be distinguished by this contract.
+
+**Known limits:** the same as a send, in CONTROL §7's words: "Without a mandatory sandbox, a tricked Claude can
+also call the tool service directly" with a prepared operation, "and so skip the question"; "A
+`PermissionRequest` hook can approve a managed ask", so "a hook that Claude or he writes could approve our
+asking tools without him answering." A user-level allow hook the owner adds himself can therefore approve this
+ask without its prompt showing. **K1. Auto mode is not tested.** Section 7's relay limit also applies: another
+session's message is a teammate's request, never his approval; reads can leave through that session without a
+send. 28b item 1 and CONTROL §6 retain these limits and their harm; no stronger approval guarantee is claimed.
+
 The pin's sole authority is committed Chrome evidence (`store.chrome_state`), never ordinary `get()` or the
 disposable database. Under the restore lock only that exact pair may connect in quarantine with `restore_required`;
-no browser command or pairing prompt runs. Before confirmation reopens the app gate, close every admitted
-connection and pending candidate/dialog; a fresh handshake must check committed evidence again. Missing restored
+no browser command or profile ask runs. Before confirmation reopens the app gate, close every admitted
+connection and pending candidate/ask; a fresh handshake must check committed evidence again. Missing restored
 state never enrolls. 28b item 1 and its restore regression define these rules; the image never resets the pin.
 
-**Dialog dependency, not an installed feature yet:** 3a already installs the existing `chrome-loosen` polkit
-action with uncached `auth_admin`, its service-owner annotation and no permission change. F7 already supplies
-the peer-bound password check, but only for an admitted host's site settings. **28b step 2** builds the restricted
-pending-candidate channel, helper buttons, committed pin/recovery integration and candidate-bound confirmation.
-It also builds the local name entry/check: the existing handshake has no Chrome display name, so the owner
-supplies Chrome's picker name at setup and corrects renames; only the service pin keeps that label. It is display
-text, never identity proof. No extra extension storage, profile-file read or signing key is added. The real
-session polkit probe in 4/4b and C7 in 5 remain required; a failure stops for the lead, with no CLI fallback.
+**Ask dependency, not an installed feature yet:** **28b step 2** builds the restricted candidate channel,
+name/switch selection, committed pin/recovery integration and profile-only preparation/managed ask/submit.
+It reuses the send's operation checks and `chrome_submit` rule, with **0 added server-instruction characters**
+inside 28b's unchanged 3,800 pin. No extra extension storage, profile-file read or signing key.
+18c-b 3a's installed `chrome-loosen` action stays for F7 rule loosening only; the profile needs no new polkit
+integration, pending-peer password lifecycle, profile-dialog probe or C7 profile-password cases. The real-session
+polkit probe in 4/4b and C7 in 5 remain required **only for loosening Chrome's rules**, with the existing stop
+on failure. Profile approval is proved in the session, in case 3/C4 and 28b's named tests. CONTROL §6 and this
+handoff change together; F7 itself is unchanged.
 
-**Storage pin amendment (`control/chrome_tests/test_extension_stores_nothing.py`), only with that choice:** keep
+**Storage pin amendment (`control/chrome_tests/test_extension_stores_nothing.py`), with the chosen lifecycle:** keep
 rejecting `chrome.storage`, `localStorage`,
 `sessionStorage` and IndexedDB everywhere except that one identity module. Its behavioral tests permit one
 versioned installation-id record and nothing else: no page data, tabs, fields, host lists, approvals or logs.
@@ -196,7 +205,7 @@ Other modules call its narrow get-or-create interface, never open a database. Te
 outside it and an extra stored field inside it. Update its `DECIDE_FIRST` explanation too: installation-only
 data does not require a permanent key.
 This replaces the blanket IndexedDB ban, not the test itself;
-the owner must approve the exception before it lands. No attempt to preserve the old extension's storage is
+board #355 selects the lifecycle with this narrow exception. No attempt to preserve the old extension's storage is
 made. Until 28b is integrated, the blanket test still passes and stays in force.
 
 **Remaining steps of PR #76 (head `91ad33d6`: 1a–2b and 3a built; next is 3a fix):**
@@ -207,23 +216,21 @@ made. Until 28b is integrated, the blanket test still passes and stays in force.
   progress log itself proved only the unresolved path. Fix the checker for that image layout without skipping
   real read failures or following links outside the image view. **The lead decides before any further image
   run or 3b**; no third run is authorized by this revised brief. Keep the stop recorded in `PROGRESS.md`.
-  Keep the installed bundle, no permanent key or new profile file, and record the pending owner decision and
-  pin integration dependency; don't repeat completed installation work or treat its
+  Keep the installed bundle, no permanent key or new profile file, and record the chosen in-session ask and
+  pending pin integration dependency; don't repeat completed installation work or treat its
   connection-only proof as a profile proof. If the owner-approved 28b module is present by then, update the
   storage test narrowly in the integrating PR and rerun the packer/install tests; otherwise retain the ban.
 - **3b:** after the lead's disposition of 3a fix, `gh` work is unchanged. It supplies no profile identity and never resets a pin.
 - **4/4b:** keep C3/C6's first-use tests. When pinning is present, seed one synthetic logical pin via the real
   supported setup and inspect only test identifiers; do not bypass the gate to make C3 green. No laptop profile.
 - **5:** extend case 3/C4 with 28b's real handshake/store once available: same profile A → B → A, pin unchanged,
-  each replacement refused before owner relink and accepted after the no-ID helper/password flow; second profile refused on A and B, also
-  connecting first, and retired pairs refused. Ordinary restart needs no relink. Keep the existing assertions
-  about old extension removal, current origin, code version and probe refusal. If 28b is not merged yet, keep
-  the combined container case 3 as an explicit integration dependency for **28b**; `linux-tools` assigns C4
-  to the image/release build when pinning lands. Add the same profile-named confirmation to C7: correct pending
-  peer, no/cancel/timeout unchanged, stale candidate/restore success refused, and a fresh password each time.
-  If 28b lands later, its PR owns the combined container proof and `linux-tools` assigns both C4 and C7's
-  profile additions to the image/release builder. All are required before shipping. Do not claim
-  end-to-end pin continuity from the existing stand-in service.
+  each replacement refused until its first tool call's in-session managed ask is answered yes; second profile
+  refused on A and B, also connecting first, and retired pairs refused. Include no/cancel/no answer, stale/replayed
+  answers, tools refused before yes, and another session after yes needing no question (`profile_ask_*` tests
+  in 28b). Keep old extension removal, current origin, code version and probe refusal. If 28b is not merged yet,
+  its PR owns combined container case 3; `linux-tools` assigns C4 to the image/release builder when pinning lands.
+  C7 tests only F7's loosening dialog; remove Revision 2's profile-password additions. The combined session/C4
+  evidence is required before shipping; the existing stand-in service cannot prove pin continuity.
 - **6:** report installation separately from profile continuity, carry the owner-approved reconnection step
   into the guide, and pass the release rehearsal dependency to `linux-aresos` through the lead. No release
   containing 28b ships without the combined proof; this does not stop unrelated image work.
@@ -236,9 +243,12 @@ pair (the second-profile case), if relinking changes the logical pin (A → B �
 (retired-pair case). The storage test must fail when an ordinary extension file opens IndexedDB or the identity
 module stores a page field. Carry 28b's restore test/mutations into the combined evidence: P → backup → switch Q
 → restore P database, attempts before/after confirmation, P never serving Q; ordinary-`get()` admission and
-omitted recovery closure/revalidation must each fail it. C7's profile cases must fail if a non-yes or stale/cached
-password result authorizes the candidate, or the dialog substitutes an ID for the checked Chrome name.
-Keep the existing packer mutation/negative checks too. Record actual commands and
+omitted recovery closure/revalidation must each fail it. Carry these named 28b mutations into case 3/C4:
+**skip the ask** must fail `profile_ask_prompt`/`profile_ask_waits`; **accept an answer bound to another candidate**
+must fail `profile_ask_bound`; **take the pin on prepare instead of on approval** must fail `profile_ask_waits`.
+`profile_ask_yes` checks the new pair and exact named question; `profile_ask_sessions` catches per-session-only
+acceptance or a second question after yes, and `profile_ask_bound` rejects stale/replayed answers. These are
+requirements, not results of this documentation revision. C7's existing loosening cases and packer mutations stay. Record actual commands and
 results; this revision runs no image, browser or workflow.
 
 ## The work
