@@ -1,0 +1,8 @@
+{
+ "slot": "setup-nether",
+ "attempt": "setup-nether",
+ "utility": true,
+ "contaminated": false,
+ "interference_samples": [],
+ "accepted": true
+}

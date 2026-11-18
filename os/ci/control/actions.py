@@ -367,7 +367,7 @@ def entry_points(request):
     wait_active()
     listed = answered(cli('ares', 'testapp', 'list', value={'limit': 3}))
     assert len(listed['data']['items']) <= 3, listed
-    log = answered(cli('ares', 'log'))
+    log = answered(cli('ares', 'control', 'log'))
     servers = {}
     # Chrome with no browser connected (its browser side is brief 18c-b): a read is a clear refusal, never a hang.
     no_browser = [('tabs', {})]

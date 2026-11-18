@@ -163,15 +163,23 @@ public final class TownGameTests {
 
     /** Runs the body around a home block of its own once the ground there is loaded, and puts back the server's hub record. */
     private static void inTown(GameTestHelper helper, int offset, Body body) {
+        inTown(helper, offset, TOWN_FROM, TOWN_TO, false, body);
+    }
+
+    private static void inTown(GameTestHelper helper, int offset, BlockPos from, BlockPos to, boolean resetArrival, Body body) {
         var level = helper.getLevel();
         var server = level.getServer();
         BlockPos column = helper.absolutePos(BlockPos.ZERO).offset(offset, 0, 0);
-        var chunks = town(column);
+        var chunks = chunks(column.offset(from), column.offset(to));
         hold(level, chunks, true);
         helper.startSequence().thenWaitUntil(waitFor(helper, level, chunks, () -> loaded(level, chunks), "The town's chunks are not loaded yet", () -> { })).thenExecute(() -> {
             var previous = HubData.get(server);
             try {
-                BlockPos home = new BlockPos(column.getX(), level.getHeight(Heightmap.Types.WORLD_SURFACE, column.getX(), column.getZ()), column.getZ());
+                // The arrival fixture may hold an old gate at its new home column. Its far corner is beyond every
+                // gate it builds, so use that grass surface before resetting its own ground.
+                var surface = resetArrival ? column.offset(to.getX(), 0, to.getZ()) : column;
+                BlockPos home = new BlockPos(column.getX(), level.getHeight(Heightmap.Types.WORLD_SURFACE, surface.getX(), surface.getZ()), column.getZ());
+                if (resetArrival) resetArrivalFixture(level, home);
                 check(level.getBlockState(home.below()).is(Blocks.GRASS_BLOCK) && level.getBlockState(home).isAir(), "Fixture: no grass surface at " + home);
                 body.run(level, home);
             } catch (IOException error) {
@@ -421,6 +429,198 @@ public final class TownGameTests {
         return HubData.get(server).logo(app).map(HubData.Logo::place).orElse("none");
     }
 
+    /** Inside this gate, beyond the neighbouring gate's inspection margin. */
+    private static BlockPos loadingMarker(Place place, BlockPos home) {
+        return place.origin(home).relative(place.group().right(), HubLayout.SIZE / 2).above(HubLayout.SIZE / 2);
+    }
+
+    /** This test's far-away ground is kept between runs, including a run that failed before cleanup. */
+    private static void resetArrivalFixture(ServerLevel level, BlockPos home) {
+        var from = home.offset(-128, -1, -128);
+        var to = home.offset(128, 24, 32);
+        var box = new net.minecraft.world.phys.AABB(from.getX(), from.getY(), from.getZ(), to.getX() + 1, to.getY() + 1, to.getZ() + 1);
+        level.getEntitiesOfClass(Display.TextDisplay.class, box).forEach(Display.TextDisplay::discard);
+        for (var pos : BlockPos.betweenClosed(from, to)) {
+            var state = pos.getY() == home.getY() - 1 ? Blocks.GRASS_BLOCK.defaultBlockState() : Blocks.AIR.defaultBlockState();
+            if (!level.getBlockState(pos).equals(state)) level.setBlock(pos, state, 2);
+        }
+    }
+
+    @GameTest(environment = "aresos-test:town_arrival", maxTicks = MAX_TICKS)
+    public void aDeferredCategoryMoveEndsTheFirstBuildAndKeepsItsKind(GameTestHelper helper) {
+        inTown(helper, 35000, new BlockPos(-128, 0, -128), new BlockPos(128, 0, 32), true, (level, home) -> {
+            var server = level.getServer();
+            var hub = new HubData(HubLayout.LOOK, HubLayout.numbers(), GlobalPos.of(level.dimension(), home), FlatHub.build(level, home));
+            HubData.store(server, hub);
+            var fake = new Fake();
+            fake.prefix = "arrival-move-";
+            fake.clearZones(server);
+            var places = Place.inOrder(AppGroup.INTERNET).limit(40).toList();
+            var delayed = new HashSet<BlockPos>();
+            for (int i = 0; i < 40; i++) {
+                fake.apps.add(app(fake.prefix + i, "App " + i, null, AppGroup.INTERNET, false, true)
+                        .withSpot(places.get(i).name(), null)
+                        .withSystem(new dev.aresos.config.SystemInfo("user", null, List.of("Network"), null, null, null, null, null)));
+                if (i >= 32) delayed.add(loadingMarker(places.get(i), home));
+            }
+            TownLoading.delayed = (world, pos) -> world == level && delayed.contains(pos);
+            try {
+                var first = fake.pass(server);
+                check(first.lines().isEmpty() && first.pending() && hub.logos().size() == 32, "First partial build: " + first);
+                var ids = fake.apps.stream().map(AppDefinition::id).toList();
+                String moving = fake.prefix + 0;
+                fake.change(moving, app -> app.withSystem(new dev.aresos.config.SystemInfo("user", null, List.of("Game"), null, null, null, null, null)));
+                var destination = Place.parse("E0L0").orElseThrow();
+                delayed.add(loadingMarker(destination, home));
+                var move = fake.pass(server);
+                check(ids.equals(fake.apps.stream().map(AppDefinition::id).toList()), "The category change changed IDs");
+                check(move.lines().equals(List.of("The town is built: 32 logos. /apps lists them.")) && move.pending()
+                        && hub.logo(moving).isEmpty() && destination.name().equals(fake.get(moving).place()), "Deferred move: " + move);
+                check(fake.pass(server).lines().isEmpty(), "The unloaded move spoke twice");
+                delayed.clear();
+                var completed = fake.pass(server);
+                check(completed.lines().equals(List.of("The town changed: 8 logos built, 1 moved. /apps lists where your apps stand."))
+                        && hub.logos().size() == 40 && place(server, moving).equals("E0L0"), "Completed move: " + completed);
+                check(fake.pass(server).lines().isEmpty(), "Completed move spoke twice");
+
+                // A renewal can also lose its old record before its replacement is ready.
+                fake.pictures.put(moving, picture(0xff376627));
+                TownLoading.delayed = (world, pos) -> world == level && pos.equals(loadingMarker(destination, home)) && hub.logo(moving).isEmpty();
+                var renewal = fake.pass(server);
+                check(renewal.lines().isEmpty() && renewal.pending() && hub.logo(moving).isEmpty(), "Deferred renewal: " + renewal);
+                TownLoading.delayed = null;
+                check(fake.pass(server).lines().equals(List.of("The logo of App 0 was renewed.")), "Deferred renewal lost its kind");
+            } finally {
+                TownLoading.delayed = null;
+                try {
+                    for (var logo : hub.logos()) Town.remove(server, logo.app());
+                } finally {
+                    fake.clearZones(server);
+                }
+            }
+        });
+    }
+
+    private enum ReplacementOperation { RENEWAL, MOVE }
+    private enum ReplacementDestination { ORIGINAL, DIFFERENT, OBSTRUCTED }
+    private enum ReplacementOutcome { COMPLETES, CANCELLED, CANCELLED_THEN_RETURNS, RETURNS_BEFORE_RETRY }
+
+    /** Each row runs real keeping passes, including retries before and after its single terminal announcement. */
+    @GameTest(environment = "aresos-test:town_replacements", maxTicks = MAX_TICKS)
+    public void pendingReplacementsKeepTheirOriginAndAnnounceTheirOutcomeOnce(GameTestHelper helper) {
+        inTown(helper, 37000, new BlockPos(-128, 0, -128), new BlockPos(128, 0, 32), true, (level, home) -> {
+            var server = level.getServer();
+            var fixed = FlatHub.build(level, home);
+            int cases = 0;
+            for (var operation : ReplacementOperation.values()) for (var destination : ReplacementDestination.values())
+                for (var outcome : ReplacementOutcome.values()) for (boolean removalWaits : new boolean[]{false, true}) {
+                    String row = operation + "/" + destination + "/" + outcome + "/removalWaits=" + removalWaits;
+                    var hub = new HubData(HubLayout.LOOK, HubLayout.numbers(), GlobalPos.of(level.dimension(), home), fixed);
+                    HubData.store(server, hub);
+                    var fake = new Fake();
+                    fake.prefix = "replacement-";
+                    fake.clearZones(server);
+                    String id = fake.prefix + "app";
+                    var original = Place.parse("N0L0").orElseThrow();
+                    var other = Place.parse("E0L0").orElseThrow();
+                    var obstruction = loadingMarker(removalWaits ? other : original, home);
+                    fake.apps.add(app(id, "Replacement app", null, AppGroup.INTERNET, false, true).withSpot(original.name(), null)
+                            .withSystem(new dev.aresos.config.SystemInfo("user", null, List.of("Network"), null, null, null, null, null)));
+                    fake.apps.add(app(fake.prefix + "anchor", "Anchor app", null, AppGroup.INTERNET, false, true).withSpot("N0R0", AppGroup.INTERNET.key()));
+                    var delayed = new HashSet<BlockPos>();
+                    try {
+                        check(fake.pass(server).lines().equals(List.of("The town is built: 2 logos. /apps lists them.")), row + ": initial build");
+                        if (operation == ReplacementOperation.RENEWAL) fake.pictures.put(id, picture(0xff376627));
+                        else fake.change(id, app -> app.withSystem(new dev.aresos.config.SystemInfo("user", null, List.of("Game"), null, null, null, null, null)));
+                        var initialDestination = operation == ReplacementOperation.RENEWAL ? original : other;
+                        delayed.add(loadingMarker(initialDestination, home));
+                        if (removalWaits) delayed.add(loadingMarker(original, home));
+                        TownLoading.delayed = (world, pos) -> world == level && delayed.contains(pos)
+                                && (removalWaits || hub.logo(id).isEmpty());
+                        for (int retry = 0; retry < 3; retry++) {
+                            var waiting = fake.pass(server);
+                            check(waiting.lines().isEmpty() && waiting.pending() && hub.logo(id).isPresent() == removalWaits,
+                                    row + ": waiting " + retry + ": " + waiting);
+                        }
+
+                        // The destination changes after removal, without a failed build promoting its kind.
+                        boolean changeGroup = destination == ReplacementDestination.DIFFERENT
+                                || destination == ReplacementDestination.OBSTRUCTED && removalWaits;
+                        String category = changeGroup ? "Game" : "Network";
+                        fake.change(id, app -> app.withSpot((changeGroup ? other : original).name(), null)
+                                .withSystem(new dev.aresos.config.SystemInfo("user", null, List.of(category), null, null, null, null, null)));
+                        if (destination == ReplacementDestination.OBSTRUCTED) level.setBlock(obstruction, Blocks.GLASS.defaultBlockState(), 2);
+
+                        boolean cancelled = outcome == ReplacementOutcome.CANCELLED || outcome == ReplacementOutcome.CANCELLED_THEN_RETURNS;
+                        if (cancelled || outcome == ReplacementOutcome.RETURNS_BEFORE_RETRY) {
+                            var returning = fake.get(id);
+                            // Exercise all three reasons for an app to stop being wanted, including a missing app record.
+                            switch (destination) {
+                                case ORIGINAL -> fake.change(id, app -> app.withMine(false));
+                                case DIFFERENT -> fake.change(id, app -> app.withAbsent(true));
+                                case OBSTRUCTED -> fake.apps.removeIf(app -> app.id().equals(id));
+                            }
+                            String down = switch (destination) {
+                                case ORIGINAL -> "Replacement app left My apps. Its logo came down.";
+                                case DIFFERENT -> "Replacement app is no longer installed. Its logo came down; its place is kept for its return.";
+                                case OBSTRUCTED -> "The logo of Replacement app came down: the app is gone from your apps file.";
+                            };
+                            if (cancelled) {
+                                var cancellation = fake.pass(server);
+                                check(cancellation.lines().equals(removalWaits ? List.of() : List.of(down)), row + ": cancellation " + cancellation);
+                                for (int retry = 0; retry < 3; retry++) check(fake.pass(server).lines().isEmpty(), row + ": cancellation repeated");
+                                // If removal was refused, the standing logo's ordinary removal path speaks when loaded.
+                                if (outcome == ReplacementOutcome.CANCELLED) {
+                                    delayed.clear();
+                                    check(fake.pass(server).lines().equals(removalWaits ? List.of(down) : List.of()), row + ": final removal");
+                                    check(hub.logo(id).isEmpty(), row + ": cancelled logo still stands");
+                                    for (int retry = 0; retry < 3; retry++) check(fake.pass(server).lines().isEmpty(), row + ": removal repeated");
+                                    cases++;
+                                    continue;
+                                }
+                            } else {
+                                // An incomplete catalogue cannot cancel a replacement; its app can return before retry.
+                                check(fake.pass(server, false).lines().isEmpty(), row + ": incomplete catalogue spoke");
+                            }
+                            fake.apps.removeIf(app -> app.id().equals(id));
+                            fake.apps.add(returning);
+                        }
+
+                        delayed.clear();
+                        var complete = fake.pass(server);
+                        var at = Place.parse(hub.logo(id).orElseThrow().place()).orElseThrow();
+                        boolean moved = !at.equals(original);
+                        check(destination == ReplacementDestination.ORIGINAL ? !moved : moved, row + ": wrong destination " + at);
+                        if (destination == ReplacementDestination.DIFFERENT) check(at.equals(other), row + ": category destination " + at);
+                        if (destination == ReplacementDestination.OBSTRUCTED) check(level.getBlockState(obstruction).is(Blocks.GLASS), row + ": obstruction removed");
+                        boolean fresh = outcome == ReplacementOutcome.CANCELLED_THEN_RETURNS && !removalWaits;
+                        boolean unchanged = removalWaits && operation == ReplacementOperation.MOVE && !moved;
+                        String expected = fresh ? "Replacement app stands in " + at.group().title() + ", " + at.group().outward().getSerializedName() + "."
+                                : moved ? "Replacement app moved to " + at.group().title() + ", " + at.group().outward().getSerializedName() + "."
+                                : "The logo of Replacement app was renewed.";
+                        var ordinary = complete.lines().stream().filter(line -> !line.contains("blocked by something of yours")).toList();
+                        check(ordinary.equals(unchanged ? List.of() : List.of(expected)), row + ": completion " + complete);
+                        check(complete.lines().size() == ordinary.size() + (destination == ReplacementDestination.OBSTRUCTED ? 1 : 0),
+                                row + ": unexpected WAY lines " + complete);
+                        for (int retry = 0; retry < 3; retry++) check(fake.pass(server).lines().isEmpty(), row + ": completion repeated");
+                        cases++;
+                    } catch (AssertionError error) {
+                        throw new AssertionError(row + ": " + error.getMessage(), error);
+                    } finally {
+                        TownLoading.delayed = null;
+                        level.setBlock(obstruction, Blocks.AIR.defaultBlockState(), 2);
+                        try {
+                            for (var logo : hub.logos()) Town.remove(server, logo.app());
+                        } finally {
+                            fake.clearZones(server);
+                        }
+                    }
+                }
+            check(cases == 48, "Replacement table did not cover all 48 rows: " + cases);
+            dev.aresos.AresOs.LOGGER.info("54 replacement table: all {} rows passed, with repeated pending and terminal passes", cases);
+        });
+    }
+
     /**
      * HUB.md 3.4 with a fake program list and drawn pictures: never on an incomplete list or in a town of other rules;
      * the first build (pinned first); a pass in step that changes nothing; hub.dat written again by an older mod; the
@@ -499,10 +699,10 @@ public final class TownGameTests {
         HubData.store(server, hub);
 
         // The first build: pinned first, so Chrome gets N0L0 although Discord comes first in the file. The far place
-        // is not loaded: its build waits, nothing is said about it, its place stays saved.
+        // is not loaded: its build and the first-build total wait; its place stays saved.
         var first = fake.pass(server);
-        // A first build says one line, whatever the count (review fixes 1, step B, point 6).
-        check(first.lines().equals(List.of("The town is built: 2 logos. /apps lists them.")), "First build: " + first.lines());
+        // Package 54: a first build spans its later passes, up to the bound.
+        check(first.lines().isEmpty(), "An incomplete first build spoke too soon: " + first.lines());
         check(place(server, "keep-chrome").equals("N0L0") && place(server, "keep-discord").equals("N0R0") && hub.logos().size() == 2, "Day one: " + hub.logos());
         check(first.pending() && first.pictures().isEmpty(), "The far place's build does not wait: " + first);
         check("N0L0".equals(fake.get("keep-chrome").place()) && "N0R0".equals(fake.get("keep-discord").place())
@@ -533,7 +733,8 @@ public final class TownGameTests {
         // A newcomer joins My apps.
         fake.change("keep-spotify", app -> app.withMine(true));
         var joined = fake.pass(server);
-        check(joined.lines().equals(List.of("Spotify is new. It stands in Work & Media, west. /spotify opens it.")) && place(server, "keep-spotify").equals("W0L0"),
+        check(joined.lines().equals(List.of("The town is built: 2 logos. /apps lists them.",
+                "Spotify is new. It stands in Work & Media, west. /spotify opens it.")) && place(server, "keep-spotify").equals("W0L0"),
                 "A newcomer: " + joined.lines());
 
         // A missing trigger zone (review fixes 1, step B, point 5): a mod of packages 33 to 35 took Spotify's away with

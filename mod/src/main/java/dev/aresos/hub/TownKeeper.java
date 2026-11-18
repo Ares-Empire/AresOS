@@ -20,6 +20,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.EnumMap;
@@ -34,6 +35,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.WeakHashMap;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -87,6 +89,8 @@ public final class TownKeeper {
     private static final int ROUNDS = 3;
     private static final AtomicBoolean ASKED = new AtomicBoolean();
     private static volatile boolean complete;
+    // HomeSwitch marks its staging folder before its server starts, and releases it after that server closes.
+    private static final Set<Path> PREPARING_HOMES = ConcurrentHashMap.newKeySet();
     // Server thread only, like the servers themselves.
     private static final Map<MinecraftServer, TownKeeper> KEEPERS = new WeakHashMap<>();
 
@@ -105,6 +109,12 @@ public final class TownKeeper {
     private final Map<String, Read> pictures = new HashMap<>();
     /** Apps whose logo {@code hub rebuild} asked to be built again and that still stand as they were. */
     private final Set<String> renew = new HashSet<>();
+    /** A replacement's history survives retries; its destination, rather than its starting operation, decides its line. */
+    private record Replacement(AppDefinition app, TownLines.Kind operation, Place original, boolean cameDown) {
+        Replacement removed() { return new Replacement(app, operation, original, true); }
+        TownLines.Kind completed(Place at) { return original.equals(at) ? TownLines.Kind.RENEWED : TownLines.Kind.MOVED; }
+    }
+    private final Map<String, Replacement> replacements = new HashMap<>();
     /**
      * The count each group's name shows, as a pass of this keeper last wrote it. The pass of a swap or move writes
      * only what its apps change in it (review fixes 2, point 1).
@@ -113,6 +123,7 @@ public final class TownKeeper {
     private CompletableFuture<Map<String, Read>> reading;
     private boolean stale, due, pending;
     private long retryAt;
+    private final TownLines.FirstBuild firstBuild = new TownLines.FirstBuild();
 
     public static void register() {
         ServerTickEvents.END_SERVER_TICK.register(TownKeeper::tick);
@@ -206,7 +217,21 @@ public final class TownKeeper {
 
     static boolean wanted(AppDefinition app) { return app.mine() && !app.absent(); }
 
+    /** A New home's hidden staging world provisions the hub only; the town starts when the actual home opens. */
+    public static void preparingHome(Path directory, boolean preparing) {
+        if (directory == null) return;
+        Path path = directory.toAbsolutePath().normalize();
+        if (preparing) PREPARING_HOMES.add(path);
+        else PREPARING_HOMES.remove(path);
+    }
+
+    private static boolean preparingHome(MinecraftServer server) {
+        return PREPARING_HOMES.contains(server.getWorldPath(net.minecraft.world.level.storage.LevelResource.ROOT).toAbsolutePath().normalize());
+    }
+
     private void step(MinecraftServer server) {
+        if (preparingHome(server)) return;
+        if (host(server).isPresent()) say(server, firstBuild.expire(server.getTickCount()));
         if (ASKED.getAndSet(false)) stale = true;
         if (reading != null) {
             if (!reading.isDone()) return;
@@ -258,15 +283,20 @@ public final class TownKeeper {
 
     /** Says a pass's lines to the host and schedules what it left: a retry, pictures to read. */
     Pass tell(MinecraftServer server, Pass pass) {
-        var host = host(server);
-        for (var line : pass.lines()) {
-            AresOs.LOGGER.info("Town: {}", line);
-            host.ifPresent(player -> player.sendSystemMessage(Component.literal(line)));
-        }
+        say(server, pass.lines());
         pending = pass.pending();
         retryAt = server.getTickCount() + RETRY_TICKS;
         if (!pass.pictures().isEmpty()) read(server, AresOs.apps().stream().filter(app -> pass.pictures().contains(app.id())).toList());
         return pass;
+    }
+
+    private static void say(MinecraftServer server, List<String> lines) {
+        if (lines.isEmpty()) return;
+        var host = host(server);
+        for (var line : lines) {
+            AresOs.LOGGER.info("Town: {}", line);
+            host.ifPresent(player -> player.sendSystemMessage(Component.literal(line)));
+        }
     }
 
     private static Optional<ServerPlayer> host(MinecraftServer server) {
@@ -367,7 +397,7 @@ public final class TownKeeper {
 
     private Pass keep(MinecraftServer server, Programs programs, Function<AppDefinition, Optional<GatePicture>> pictures, Spots spots,
                       boolean rebuilt, Scope scope) {
-        if (!programs.complete()) return Pass.NOTHING;
+        if (!programs.complete() || preparingHome(server)) return Pass.NOTHING;
         var hub = HubData.get(server);
         // A town file that does not fit this world (point 3), or a frozen town (review fixes 2, point 1): the town
         // builds, takes down, renews and paves nothing, and puts no zone back.
@@ -389,14 +419,22 @@ public final class TownKeeper {
         }
         boolean first = hub.logos().isEmpty();
         var lines = new TownLines();
+        var wanted = apps.values().stream().filter(TownKeeper::wanted).map(AppDefinition::id).collect(Collectors.toSet());
+        for (var entries = replacements.entrySet().iterator(); entries.hasNext();) {
+            var entry = entries.next();
+            if (!scope.covers(entry.getKey()) || wanted.contains(entry.getKey())) continue;
+            var replacement = entry.getValue();
+            if (replacement.cameDown()) lines.add(TownLines.Kind.DOWN, gone(apps.get(entry.getKey()), replacement.app().name()));
+            entries.remove();
+        }
+        if (!replacements.isEmpty()) lines.changeStarted();
         var need = new LinkedHashSet<String>();
-        var cameDown = new HashSet<String>();
         Round round;
         // A build refused in a place that looked free blocks that place, and the app goes on to its group's next
         // place in this same pass: a few more rounds, each only after a new refusal.
         for (int rounds = 1; ; rounds++) {
             int refusals = refused.size();
-            round = round(server, hub, apps, pictures, spots, lines, cameDown, scope);
+            round = round(server, hub, apps, pictures, spots, lines, scope);
             need.addAll(round.need());
             // The pass of a swap or move makes one round: it never moves an app of the command on to another place.
             if (!scope.whole() || refused.size() == refusals || rounds == ROUNDS) break;
@@ -405,7 +443,14 @@ public final class TownKeeper {
         doorways(server, hub, lines, scope);
         // 5. Roads and names.
         boolean roads = scope.whole() ? roads(level, hub, round.assignment()) : roads(level, hub, scope, from);
-        return new Pass(lines.said(first, rebuilt, round.waiting()), round.pending() || !roads, need);
+        var spoken = new ArrayList<String>();
+        if (scope.whole()) spoken.addAll(firstBuild.said(lines, first, rebuilt, round.waiting(),
+                round.pending() || !need.isEmpty(), server.getTickCount(), wanted));
+        else {
+            spoken.addAll(firstBuild.finish());
+            spoken.addAll(lines.said(first, rebuilt, round.waiting()));
+        }
+        return new Pass(spoken, round.pending() || !roads, need);
     }
 
     /** What one round of a pass left: who stands where, work that waits, pictures it lacked, rebuilt logos that wait. */
@@ -413,7 +458,7 @@ public final class TownKeeper {
 
     /** Points 1 to 4 and 6 of HUB.md 3.4, once. */
     private Round round(MinecraftServer server, HubData hub, Map<String, AppDefinition> apps, Function<AppDefinition, Optional<GatePicture>> pictures,
-                        Spots spots, TownLines lines, Set<String> cameDown, Scope scope) {
+                        Spots spots, TownLines lines, Scope scope) {
         var saved = new HashMap<String, Place>();
         for (var app : apps.values()) {
             var place = saved(app, hub.logo(app.id()));
@@ -435,11 +480,17 @@ public final class TownKeeper {
             var at = Place.parse(logo.place());
             if (target != null && at.equals(Optional.of(target))) continue;
             if (down != null && !down.contains(logo.app())) continue;
+            if (target != null) {
+                replacing(apps.get(logo.app()), logo, TownLines.Kind.MOVED, lines);
+            }
             try {
                 Town.remove(server, logo.app());
-                cameDown.add(logo.app());
-                if (target == null) lines.add(TownLines.Kind.DOWN, gone(apps.get(logo.app()), logo));
+                if (target == null) {
+                    replacements.remove(logo.app());
+                    lines.add(TownLines.Kind.DOWN, gone(apps.get(logo.app()), logo.name()));
+                } else replacements.computeIfPresent(logo.app(), (id, replacement) -> replacement.removed());
             } catch (IOException refusal) {
+                replacements.remove(logo.app());
                 stays.add(logo.app());
                 at.ifPresent(waitingFor::add);
                 if (refusal instanceof GateBuilder.NotLoaded) pending = true;
@@ -466,9 +517,12 @@ public final class TownKeeper {
             }
             if (standing.isPresent()) {
                 if (!changed(standing.get(), app, picture.get()) && !renew.contains(app.id())) continue;
+                replacing(app, standing.get(), TownLines.Kind.RENEWED, lines);
                 try {
                     Town.remove(server, app.id());
+                    replacements.computeIfPresent(app.id(), (id, replacement) -> replacement.removed());
                 } catch (IOException refusal) {
+                    replacements.remove(app.id());
                     if (refusal instanceof GateBuilder.NotLoaded) {
                         pending = true;
                         if (renew.contains(app.id())) waiting++;
@@ -479,8 +533,10 @@ public final class TownKeeper {
             try {
                 Town.build(server, app, place, picture.get());
                 renew.remove(app.id());
-                boolean moved = cameDown.contains(app.id());
-                if (standing.isPresent()) lines.add(TownLines.Kind.RENEWED, "The logo of " + app.name() + " was renewed.");
+                var replacement = replacements.remove(app.id());
+                var kind = replacement == null ? TownLines.Kind.BUILT : replacement.completed(place);
+                boolean moved = kind == TownLines.Kind.MOVED;
+                if (kind == TownLines.Kind.RENEWED) lines.add(TownLines.Kind.RENEWED, "The logo of " + app.name() + " was renewed.");
                 else if (!(moved && !scope.whole()))
                     lines.add(moved ? TownLines.Kind.MOVED : TownLines.Kind.BUILT, built(app, place, saved.get(app.id()), moved));
             } catch (GateBuilder.NotLoaded notLoaded) {
@@ -490,10 +546,11 @@ public final class TownKeeper {
                 // air above the sign, or a block he changed in its old logo stayed his. The place is blocked from now
                 // on; the next round moves the app on and says so. The pass of a swap or move blocks nothing: the next
                 // ordinary pass tries that place again by its own rules.
-                if (scope.whole()) refused.add(place);
+                if (scope.whole()) {
+                    refused.add(place);
+                }
                 pending = true;
                 if (standing.isPresent()) {
-                    cameDown.add(app.id());
                     lines.add(TownLines.Kind.WAY, "The logo of " + app.name() + " came down to be renewed but cannot stand at "
                             + place.name() + " again: " + refusal.getMessage());
                 }
@@ -515,6 +572,11 @@ public final class TownKeeper {
         for (var id : assignment.unplaced()) if (scope.covers(id))
             once(lines, apps.get(id).name() + " has no free place in " + AppGroup.of(apps.get(id)).title() + ": every place there is blocked.");
         return new Round(assignment, pending, need, waiting);
+    }
+
+    private void replacing(AppDefinition app, HubData.Logo logo, TownLines.Kind operation, TownLines lines) {
+        replacements.computeIfAbsent(app.id(), id -> new Replacement(app, operation, Place.parse(logo.place()).orElseThrow(), false));
+        lines.changeStarted();
     }
 
     /**
@@ -684,8 +746,8 @@ public final class TownKeeper {
         return app.name() + " stands in " + where + "." + opens;
     }
 
-    private static String gone(AppDefinition app, HubData.Logo logo) {
-        if (app == null) return "The logo of " + logo.name() + " came down: the app is gone from your apps file.";
+    private static String gone(AppDefinition app, String originalName) {
+        if (app == null) return "The logo of " + originalName + " came down: the app is gone from your apps file.";
         if (app.absent()) return app.name() + " is no longer installed. Its logo came down; its place is kept for its return.";
         if (!app.mine()) return app.name() + " left My apps. Its logo came down.";
         return "The logo of " + app.name() + " came down.";

@@ -1,0 +1,3 @@
+296120:
+garbage-first heap   total reserved 1048576K, committed 463872K, used 374287K [0x00000000c0000000, 0x0000000100000000)
+ region size 1024K, 57 young (58368K), 7 survivors (7168K)

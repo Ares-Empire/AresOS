@@ -1,0 +1,11 @@
+client-test.sh: Holding NVIDIA active until the client scopes have stopped.
+client-test.sh: Rendering headless on nvidia: NVIDIA GeForce RTX 4060 Laptop GPU/PCIe/SSE2
+[09:10:47] [Server thread/INFO] (Minecraft) All 104 required tests passed :)
+WindowsCatalogueIdentityTest > migratedDefaultNotepadReconcilesStoreAndShortcutWithoutChangingOwnerFields() SKIPPED
+WindowsCatalogueIdentityTest > nativeCmdShortcutsWithDifferentRawQuotingRemainTwoApps() SKIPPED
+WindowsCatalogueTest > fixtureStartMenusAndUwpProduceStableUnpinnedAppsAndRealIcons() SKIPPED
+WindowsCatalogueTest > nativeShortcutIdentityIncludesArgvAndWorkingDirectory() SKIPPED
+WindowsCatalogueTest > nativeMissingIconSourceClearsPreviousExtraction() SKIPPED
+WindowsNotepadAliasTest > knownWindowsPathsResolveVariablesCaseAndDotSegments() SKIPPED
+BUILD SUCCESSFUL in 14m 14s
+client-test.sh: Client tests ended with exit code 0 after 14 min 16 s (nvidia: NVIDIA GeForce RTX 4060 Laptop GPU/PCIe/SSE2 (NVIDIA Corporation)).

@@ -1,0 +1,41 @@
+{
+  "1": {
+    "raw_log_basename": "client-tests-1.txt",
+    "printed_task_outcomes": [
+      "> Task :runClientGameTest",
+      "> Task :runGameTest",
+      "> Task :runGameTest",
+      "> Task :test",
+      "> Task :test"
+    ],
+    "unit_results_reused": false
+  },
+  "2": {
+    "raw_log_basename": "client-tests-2.txt",
+    "printed_task_outcomes": [
+      "> Task :runClientGameTest",
+      "> Task :runGameTest",
+      "> Task :test UP-TO-DATE"
+    ],
+    "unit_results_reused": true
+  },
+  "3": {
+    "raw_log_basename": "client-tests-3-raw.txt",
+    "printed_task_outcomes": [
+      "> Task :runClientGameTest",
+      "> Task :runGameTest",
+      "> Task :runGameTest",
+      "> Task :test"
+    ],
+    "unit_results_reused": false
+  },
+  "4": {
+    "raw_log_basename": "client-tests-4-raw.txt",
+    "printed_task_outcomes": [
+      "> Task :runClientGameTest",
+      "> Task :runGameTest",
+      "> Task :test UP-TO-DATE"
+    ],
+    "unit_results_reused": true
+  }
+}

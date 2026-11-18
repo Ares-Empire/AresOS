@@ -1,0 +1,459 @@
+{
+ "name": "setup-flat",
+ "settings": {
+  "RD": "8",
+  "SD": "5",
+  "HEAP": "1024",
+  "MIN_HEAP": "256",
+  "GC": "-XX:MaxHeapFreeRatio=30,-XX:MinHeapFreeRatio=10",
+  "MEMHIGH": "2560M",
+  "SIZE": "1920x1080",
+  "REFRESH": "144",
+  "SETTLE": "30",
+  "WINDOW": "6",
+  "COVER": "0",
+  "MODE": "create",
+  "HOMEKIND": "flat",
+  "BASE": "<worktree>/.work/pkg49/AresHub-base",
+  "FLIGHT": "none",
+  "ENV": "",
+  "MODS": "",
+  "PROBE": "0",
+  "RECLAIM": "",
+  "FREEZE": "0",
+  "LONG": "0",
+  "NMT": "1",
+  "COVER_ACTION": "none"
+ },
+ "windows": {
+  "create": {
+   "seconds": 3.0,
+   "cpu_percent": null,
+   "frames": 52,
+   "fps": 17.1,
+   "avg_ms": 58.45,
+   "p50_ms": 16.66,
+   "p99_ms": 1996.55,
+   "max_ms": 1996.5,
+   "over_17ms": 8,
+   "over_33ms": 4,
+   "over_50ms": 3,
+   "over_100ms": 2,
+   "gc_pauses": 23,
+   "gc_max_ms": 11.46,
+   "gc_total_ms": 81.0,
+   "gc_over_50ms": 0,
+   "gc_kinds": [
+    "Pause Cleanup",
+    "Pause Remark",
+    "Pause Young (Concurrent Start) (G1 Evacuation Pause)",
+    "Pause Young (Mixed) (G1 Evacuation Pause)",
+    "Pause Young (Normal) (G1 Evacuation Pause)",
+    "Pause Young (Prepare Mixed) (G1 Evacuation Pause)"
+   ],
+   "rss_max_mib": 1053,
+   "scope_max_mib": 1020,
+   "heap_before_gc_max_mib": 320,
+   "heap_after_gc_min_mib": 224,
+   "heap_after_gc_max_mib": 297,
+   "heap_committed_max_mib": 344
+  },
+  "town": {
+   "seconds": 3.0,
+   "cpu_percent": 543,
+   "frames": 343,
+   "fps": 112.2,
+   "avg_ms": 8.91,
+   "p50_ms": 8.34,
+   "p99_ms": 19.89,
+   "max_ms": 70.5,
+   "over_17ms": 6,
+   "over_33ms": 1,
+   "over_50ms": 1,
+   "over_100ms": 0,
+   "gc_pauses": 29,
+   "gc_max_ms": 10.35,
+   "gc_total_ms": 62.3,
+   "gc_over_50ms": 0,
+   "gc_kinds": [
+    "Pause Cleanup",
+    "Pause Remark",
+    "Pause Young (Concurrent Start) (G1 Evacuation Pause)",
+    "Pause Young (Mixed) (G1 Evacuation Pause)",
+    "Pause Young (Normal) (G1 Evacuation Pause)",
+    "Pause Young (Prepare Mixed) (G1 Evacuation Pause)"
+   ],
+   "rss_max_mib": 1119,
+   "scope_max_mib": 1067,
+   "heap_before_gc_max_mib": 314,
+   "heap_after_gc_min_mib": 266,
+   "heap_after_gc_max_mib": 314,
+   "heap_committed_max_mib": 333
+  },
+  "first_30s": {
+   "seconds": 30.0,
+   "cpu_percent": 129,
+   "frames": 3575,
+   "fps": 119.1,
+   "avg_ms": 8.4,
+   "p50_ms": 8.33,
+   "p99_ms": 9.43,
+   "max_ms": 70.5,
+   "over_17ms": 6,
+   "over_33ms": 1,
+   "over_50ms": 1,
+   "over_100ms": 0,
+   "gc_pauses": 116,
+   "gc_max_ms": 10.35,
+   "gc_total_ms": 213.2,
+   "gc_over_50ms": 0,
+   "gc_kinds": [
+    "Pause Cleanup",
+    "Pause Remark",
+    "Pause Young (Concurrent Start) (G1 Evacuation Pause)",
+    "Pause Young (Mixed) (G1 Evacuation Pause)",
+    "Pause Young (Normal) (G1 Evacuation Pause)",
+    "Pause Young (Prepare Mixed) (G1 Evacuation Pause)"
+   ],
+   "rss_max_mib": 1145,
+   "scope_max_mib": 1092,
+   "heap_before_gc_max_mib": 329,
+   "heap_after_gc_min_mib": 266,
+   "heap_after_gc_max_mib": 327,
+   "heap_committed_max_mib": 348
+  },
+  "stand": {
+   "seconds": 5.7,
+   "cpu_percent": 50,
+   "frames": 687,
+   "fps": 120.0,
+   "avg_ms": 8.34,
+   "p50_ms": 8.33,
+   "p99_ms": 8.46,
+   "max_ms": 9.6,
+   "over_17ms": 0,
+   "over_33ms": 0,
+   "over_50ms": 0,
+   "over_100ms": 0,
+   "gc_pauses": 10,
+   "gc_max_ms": 3.64,
+   "gc_total_ms": 18.5,
+   "gc_over_50ms": 0,
+   "gc_kinds": [
+    "Pause Cleanup",
+    "Pause Remark",
+    "Pause Young (Concurrent Start) (G1 Evacuation Pause)",
+    "Pause Young (Mixed) (G1 Evacuation Pause)",
+    "Pause Young (Prepare Mixed) (G1 Evacuation Pause)"
+   ],
+   "rss_max_mib": 1146,
+   "scope_max_mib": 1093,
+   "heap_before_gc_max_mib": 329,
+   "heap_after_gc_min_mib": 302,
+   "heap_after_gc_max_mib": 307,
+   "heap_committed_max_mib": 348
+  },
+  "whole_run": {
+   "seconds": 57.5,
+   "cpu_percent": 102,
+   "frames": 6709,
+   "fps": 119.5,
+   "avg_ms": 8.37,
+   "p50_ms": 8.33,
+   "p99_ms": 8.54,
+   "max_ms": 70.5,
+   "over_17ms": 6,
+   "over_33ms": 1,
+   "over_50ms": 1,
+   "over_100ms": 0,
+   "gc_pauses": 180,
+   "gc_max_ms": 10.35,
+   "gc_total_ms": 331.2,
+   "gc_over_50ms": 0,
+   "gc_kinds": [
+    "Pause Cleanup",
+    "Pause Remark",
+    "Pause Young (Concurrent Start) (G1 Evacuation Pause)",
+    "Pause Young (Mixed) (G1 Evacuation Pause)",
+    "Pause Young (Normal) (G1 Evacuation Pause)",
+    "Pause Young (Prepare Mixed) (G1 Evacuation Pause)"
+   ],
+   "rss_max_mib": 1370,
+   "scope_max_mib": 1325,
+   "heap_before_gc_max_mib": 566,
+   "heap_after_gc_min_mib": 266,
+   "heap_after_gc_max_mib": 501,
+   "heap_committed_max_mib": 598
+  }
+ },
+ "snapshots": {
+  "settled": {
+   "rss": 1145,
+   "rss_peak": 1145,
+   "pss": 1029,
+   "rss_anon": 926,
+   "rss_file": 152,
+   "swap": 0,
+   "heap_used": 326,
+   "heap_committed": 348,
+   "nmt_total": 688,
+   "nmt": {
+    "Java Heap": 348,
+    "Class": 26,
+    "Thread": 9,
+    "Code": 60,
+    "GC": 67,
+    "Symbol": 23,
+    "Native Memory Tracking": 10,
+    "Shared class space": 14,
+    "Metaspace": 120
+   },
+   "cgroup_current": 1092,
+   "cgroup_peak": 1093,
+   "cgroup_anon": 926,
+   "cgroup_file": 156,
+   "cgroup_high_events": 0,
+   "cgroup_events": {
+    "low": 0,
+    "high": 0,
+    "max": 0,
+    "oom": 0,
+    "oom_kill": 0,
+    "oom_group_kill": 0,
+    "sock_throttled": 0
+   },
+   "cgroup_swap": 0,
+   "majflt": 92,
+   "zram_mm_stat": {
+    "zram0": [
+     6188003328,
+     2111105795,
+     2149900288,
+     0,
+     2308247552,
+     76196,
+     163984,
+     226529,
+     334005
+    ]
+   },
+   "smaps_classes": {
+    "anonymous-unattributed": {
+     "Size_kib": 7730788,
+     "Rss_kib": 566332,
+     "Pss_kib": 566316,
+     "Private_Dirty_kib": 566316,
+     "Anonymous_kib": 566316,
+     "Swap_kib": 0
+    },
+    "other-files": {
+     "Size_kib": 599332,
+     "Rss_kib": 78648,
+     "Pss_kib": 40605,
+     "Private_Dirty_kib": 21148,
+     "Anonymous_kib": 15744,
+     "Swap_kib": 0
+    },
+    "java-heap": {
+     "Size_kib": 1048576,
+     "Rss_kib": 352308,
+     "Pss_kib": 352063,
+     "Private_Dirty_kib": 351920,
+     "Anonymous_kib": 351920,
+     "Swap_kib": 0
+    },
+    "glibc-brk": {
+     "Size_kib": 34264,
+     "Rss_kib": 9496,
+     "Pss_kib": 9496,
+     "Private_Dirty_kib": 9496,
+     "Anonymous_kib": 9496,
+     "Swap_kib": 0
+    },
+    "nvidia-other": {
+     "Size_kib": 299592,
+     "Rss_kib": 40952,
+     "Pss_kib": 22249,
+     "Private_Dirty_kib": 5236,
+     "Anonymous_kib": 5236,
+     "Swap_kib": 0
+    },
+    "nvidiactl": {
+     "Size_kib": 62500,
+     "Rss_kib": 62500,
+     "Pss_kib": 62496,
+     "Private_Dirty_kib": 43280,
+     "Anonymous_kib": 0,
+     "Swap_kib": 0
+    },
+    "jemalloc-library": {
+     "Size_kib": 516,
+     "Rss_kib": 480,
+     "Pss_kib": 480,
+     "Private_Dirty_kib": 480,
+     "Anonymous_kib": 28,
+     "Swap_kib": 0
+    },
+    "stack": {
+     "Size_kib": 136,
+     "Rss_kib": 40,
+     "Pss_kib": 40,
+     "Private_Dirty_kib": 40,
+     "Anonymous_kib": 40,
+     "Swap_kib": 0
+    }
+   },
+   "frozen": false,
+   "probe_trim_rss_delta_mib": null,
+   "probe_gc_trim_rss_delta_mib": null,
+   "memory_high": "2684354560",
+   "gpu_process": 317,
+   "gpu_total": 382
+  },
+  "stand": {
+   "rss": 1146,
+   "rss_peak": 1146,
+   "pss": 1029,
+   "rss_anon": 926,
+   "rss_file": 152,
+   "swap": 0,
+   "heap_used": 304,
+   "heap_committed": 348,
+   "nmt_total": 702,
+   "nmt": {
+    "Java Heap": 348,
+    "Class": 26,
+    "Thread": 8,
+    "Code": 60,
+    "GC": 67,
+    "Symbol": 23,
+    "Native Memory Tracking": 10,
+    "Shared class space": 14,
+    "Arena Chunk": 15,
+    "Metaspace": 120
+   },
+   "cgroup_current": 1093,
+   "cgroup_peak": 1093,
+   "cgroup_anon": 926,
+   "cgroup_file": 157,
+   "cgroup_high_events": 0,
+   "cgroup_events": {
+    "low": 0,
+    "high": 0,
+    "max": 0,
+    "oom": 0,
+    "oom_kill": 0,
+    "oom_group_kill": 0,
+    "sock_throttled": 0
+   },
+   "cgroup_swap": 0,
+   "majflt": 92,
+   "zram_mm_stat": {
+    "zram0": [
+     6187995136,
+     2111102294,
+     2149900288,
+     0,
+     2308247552,
+     76196,
+     163984,
+     226529,
+     334005
+    ]
+   },
+   "smaps_classes": {
+    "anonymous-unattributed": {
+     "Size_kib": 7730788,
+     "Rss_kib": 566664,
+     "Pss_kib": 566648,
+     "Private_Dirty_kib": 566648,
+     "Anonymous_kib": 566648,
+     "Swap_kib": 0
+    },
+    "other-files": {
+     "Size_kib": 599332,
+     "Rss_kib": 78652,
+     "Pss_kib": 40609,
+     "Private_Dirty_kib": 21148,
+     "Anonymous_kib": 15744,
+     "Swap_kib": 0
+    },
+    "java-heap": {
+     "Size_kib": 1048576,
+     "Rss_kib": 352308,
+     "Pss_kib": 352063,
+     "Private_Dirty_kib": 351920,
+     "Anonymous_kib": 351920,
+     "Swap_kib": 0
+    },
+    "glibc-brk": {
+     "Size_kib": 34264,
+     "Rss_kib": 9496,
+     "Pss_kib": 9496,
+     "Private_Dirty_kib": 9496,
+     "Anonymous_kib": 9496,
+     "Swap_kib": 0
+    },
+    "nvidia-other": {
+     "Size_kib": 299592,
+     "Rss_kib": 40952,
+     "Pss_kib": 22249,
+     "Private_Dirty_kib": 5236,
+     "Anonymous_kib": 5236,
+     "Swap_kib": 0
+    },
+    "nvidiactl": {
+     "Size_kib": 62500,
+     "Rss_kib": 62500,
+     "Pss_kib": 62496,
+     "Private_Dirty_kib": 43280,
+     "Anonymous_kib": 0,
+     "Swap_kib": 0
+    },
+    "jemalloc-library": {
+     "Size_kib": 516,
+     "Rss_kib": 480,
+     "Pss_kib": 480,
+     "Private_Dirty_kib": 480,
+     "Anonymous_kib": 28,
+     "Swap_kib": 0
+    },
+    "stack": {
+     "Size_kib": 136,
+     "Rss_kib": 40,
+     "Pss_kib": 40,
+     "Private_Dirty_kib": 40,
+     "Anonymous_kib": 40,
+     "Swap_kib": 0
+    }
+   },
+   "frozen": false,
+   "probe_trim_rss_delta_mib": null,
+   "probe_gc_trim_rss_delta_mib": null,
+   "memory_high": "2684354560",
+   "gpu_process": 317,
+   "gpu_total": 382
+  }
+ },
+ "game_start_to_join_s": 31.36,
+ "gc_after_join": {
+  "pauses": 180,
+  "max_ms": 10.35,
+  "full": 0,
+  "concurrent_cycles": 33
+ },
+ "gc_before_join": {
+  "pauses": 66,
+  "max_ms": 15.0
+ },
+ "heap_committed_mib": {
+  "max": 598,
+  "last": 533,
+  "max_before_gc": 566,
+  "after_gc_min_after_join": 266
+ },
+ "out_of_memory": false,
+ "town_frozen": false,
+ "paused_lines": 0,
+ "lost_frames": 0
+}

@@ -1,0 +1,14 @@
+{
+  "flat": {
+    "aggregate_tree_sha256": "5db20fe06c42a8dc752ad0c90d8e87186d8c59551bb93f06a81351c7d0419d3f",
+    "files": 55,
+    "bytes": 16474209,
+    "manifest": "#AresOS flat home provisioning v1; keep with this save\n#Wed Nov 18 09:27:37 CET 2026\nhome=flat\nseed=0\nversion=1\nx=0\ny=63\nyaw=180.0\nz=0\n"
+  },
+  "nether": {
+    "aggregate_tree_sha256": "289a7cc7e2da135db4df05d644e8165814c24338265b8f237b4b4b3711bb7ed4",
+    "files": 57,
+    "bytes": 11852099,
+    "manifest": "#AresOS Nether home provisioning v1; keep with this save\n#Wed Nov 18 13:37:41 CET 2026\nplaceholder=true\nseed=49\nversion=1\nx=-64\ny=56\nyaw=0.0\nz=32\n"
+  }
+}

@@ -119,7 +119,7 @@ class OwnerOracle(unittest.TestCase):
         self.assertEqual(len(restarts), 4)
 
     def test_refused_read_page_says_locked_only_when_the_lock_refused_it(self):
-        # Brief 20-restore-lock-followups, item 2: `aresos log` is refused under
+        # Brief 20-restore-lock-followups, item 2: `aresos control log` is refused under
         # the restore lock. That refusal tells the owner about the lock; the
         # page read in its place says so, and no other refusal does.
         def refused(code):

@@ -1,0 +1,23 @@
+2026-11-18T04:06:09+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh v1-nether COVER=300 BASE=AresHub-nether-base HOMEKIND=nether FLIGHT=glide
+04:06:09 waiting for the lock and the game (v1-nether)
+04:06:19 game PID 888767 in pkg49-game-v1-nether-888282.scope
+04:06:19 game_detected
+04:06:28 joined
+04:06:28 settling
+settled: RSS 1168 MiB; heap {'reserved': 1024, 'committed': 380, 'used': 304}; scope 992 MiB; swap 0 MiB; majflt 0
+04:08:31 stand_start
+04:09:28 stand_end
+stand: RSS 1208 MiB; heap {'reserved': 1024, 'committed': 380, 'used': 302}; scope 1034 MiB; swap 0 MiB; majflt 0
+04:09:36 flight_start
+04:10:36 flight_end
+flight: RSS 1456 MiB; heap {'reserved': 1024, 'committed': 548, 'used': 513}; scope 1289 MiB; swap 0 MiB; majflt 0
+04:10:41 covered_start
+covered0: RSS 1469 MiB; heap {'reserved': 1024, 'committed': 561, 'used': 444}; scope 1302 MiB; swap 0 MiB; majflt 0
+covered1m: RSS 1453 MiB; heap {'reserved': 1024, 'committed': 548, 'used': 489}; scope 1285 MiB; swap 0 MiB; majflt 0
+covered2m: RSS 1454 MiB; heap {'reserved': 1024, 'committed': 551, 'used': 370}; scope 1287 MiB; swap 0 MiB; majflt 0
+covered3m: RSS 1425 MiB; heap {'reserved': 1024, 'committed': 520, 'used': 401}; scope 1258 MiB; swap 0 MiB; majflt 0
+covered4m: RSS 1435 MiB; heap {'reserved': 1024, 'committed': 530, 'used': 434}; scope 1267 MiB; swap 0 MiB; majflt 0
+covered5m: RSS 1435 MiB; heap {'reserved': 1024, 'committed': 530, 'used': 477}; scope 1267 MiB; swap 0 MiB; majflt 0
+04:15:41 covered_end
+04:15:41 return_start
+04:15:41 wake_start

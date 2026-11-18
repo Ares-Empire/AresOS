@@ -1,0 +1,3 @@
+{"monotonic_ns": 260841315172089, "command": "key lctrl down"}
+{"monotonic_ns": 260841415747579, "command": "key lctrl up"}
+{"monotonic_ns": 260841416040885, "command": "rel 200 0 15"}
