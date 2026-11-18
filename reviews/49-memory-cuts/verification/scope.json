@@ -1,0 +1,10 @@
+{
+  "checked_head": "897764e9912b7b388586c6318030fb756d1c2876",
+  "base": "774d79540ba0909acb5959c2d8ca585136d4989f",
+  "own_package_path": "reviews/49-memory-cuts/",
+  "only_other_pr_path": "briefs/49-memory-cuts.md",
+  "other_path_is_unchanged_from_supplied_commit": "fc1d31de",
+  "mod_diff_empty": true,
+  "os_diff_empty": true,
+  "pr_path_count": 2795
+}

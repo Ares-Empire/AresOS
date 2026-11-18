@@ -1,0 +1,47 @@
+{
+  "observed_utc": "2026-11-18T04:55:51.277747+00:00",
+  "hosted_execution_confirmed": false,
+  "note": "Both jobs had status queued and zero steps at this snapshot. No hosted privacy pass is claimed. Subsequent metadata pushes may supersede an earlier PR run.",
+  "pr_checks_url": "https://github.com/Ares-Empire/AresOS/pull/107/checks",
+  "pr_triggered_run": {
+    "conclusion": "",
+    "createdAt": "2026-11-18T04:25:48Z",
+    "headSha": "897764e9912b7b388586c6318030fb756d1c2876",
+    "jobs": [
+      {
+        "completedAt": "0001-01-01T00:00:00Z",
+        "conclusion": "",
+        "databaseId": 134576265143,
+        "name": "home-paths",
+        "startedAt": "2026-11-18T04:25:49Z",
+        "status": "queued",
+        "steps": [],
+        "url": "https://github.com/Ares-Empire/AresOS/actions/runs/44237258777/job/134576265143"
+      }
+    ],
+    "status": "queued",
+    "updatedAt": "2026-11-18T04:25:48Z",
+    "url": "https://github.com/Ares-Empire/AresOS/actions/runs/44237258777"
+  },
+  "branch_dispatch_diagnostic": {
+    "conclusion": "",
+    "createdAt": "2026-11-18T04:46:00Z",
+    "headSha": "897764e9912b7b388586c6318030fb756d1c2876",
+    "jobs": [
+      {
+        "completedAt": "0001-01-01T00:00:00Z",
+        "conclusion": "",
+        "databaseId": 134583888306,
+        "name": "home-paths",
+        "startedAt": "2026-11-18T04:46:02Z",
+        "status": "queued",
+        "steps": [],
+        "url": "https://github.com/Ares-Empire/AresOS/actions/runs/44239580127/job/134583888306"
+      }
+    ],
+    "status": "queued",
+    "updatedAt": "2026-11-18T04:46:00Z",
+    "url": "https://github.com/Ares-Empire/AresOS/actions/runs/44239580127"
+  },
+  "same_workflow_local_exit": 0
+}
