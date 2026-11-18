@@ -13,6 +13,7 @@ import os
 import pathlib
 import re
 import stat
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -25,7 +26,13 @@ spec.loader.exec_module(stage)
 
 RESULT = 'labwc-0.9.6-1.fc44.aresos1.x86_64'
 FEDORA = 'labwc-0.9.6-1.fc44.x86_64'
-BASE_PACKAGES = ['glibc-2.43-1.fc44.x86_64', FEDORA]
+WLROOTS = 'wlroots0.19-0.19.3-1.fc44.x86_64'
+WLROOTS_DEVEL = 'wlroots0.19-devel-0.19.3-1.fc44.x86_64'
+# The image the final stage swaps labwc in.
+BASE_PACKAGES = ['glibc-2.43-1.fc44.x86_64', FEDORA, WLROOTS]
+# The locked fedora:44 the labwc stage builds on.
+BUILD_BASE = ['bash-5.3-1.fc44.x86_64', 'glibc-2.43-1.fc44.x86_64']
+FEDORA_BASE = 'registry.fedoraproject.org/fedora@sha256:' + 'b' * 64
 SPEC = ('Name:       labwc\nRelease:    %autorelease\nSummary:    A compositor\n'
         'Source:     %{forgesource}\n\nBuildRequires: gcc\n')
 
@@ -85,8 +92,12 @@ elif tool == 'rpm':
         else:
             sys.stdout.write(nevra_of(args[-1]))
     elif '-q' in args:
-        lines = [nevra for nevra in state['installed'] if nevra.startswith('labwc-')]
-        print('\n'.join(state['labwc_query'] if state['labwc_query'] is not None else lines))
+        wanted = args[-1]
+        lines = [nevra for nevra in state['installed'] if nevra.rsplit('-', 2)[0] == wanted]
+        if wanted == 'labwc' and state['labwc_query'] is not None:
+            lines = state['labwc_query']
+        print('\n'.join(lines) if lines else f'package {wanted} is not installed')
+        code = 0 if lines else 1
     elif '-i' in args:
         top = pathlib.Path(args[args.index('--define') + 1].split(' ', 1)[1])
         (top / 'SOURCES').mkdir(parents=True)
@@ -120,14 +131,17 @@ class StageCase(unittest.TestCase):
         (self.lock_dir / 'fix.patch').write_bytes(self.patch_bytes)
         self.source_url = stage.KOJI + 'labwc/0.9.6/1.fc44/src/labwc-0.9.6-1.fc44.src.rpm'
         self.source_bytes = b'source package'
-        self.dependencies = {'aaa-devel-1.0-1.fc44.x86_64': b'first', 'bbb-2.0-3.fc44.noarch': b'second'}
+        self.dependencies = {'aaa-devel-1.0-1.fc44.x86_64': b'first', 'bbb-2.0-3.fc44.noarch': b'second',
+                             WLROOTS_DEVEL: b'third'}
         self.lock = dict(
+            base=dict(reference=FEDORA_BASE, packages=BUILD_BASE),
             source=dict(url=self.source_url, sha256=digest(self.source_bytes)),
             patch=dict(file='fix.patch', sha256=digest(self.patch_bytes)),
             result=dict(nevra=RESULT, replaces=FEDORA),
             build_dependencies=[dict(nevra=nevra, url=self.dep_url(nevra), sha256=digest(data))
                                 for nevra, data in sorted(self.dependencies.items())])
         self.write_lock()
+        self.write_image_packages(WLROOTS)
         self.state = dict(
             calls=[], urls={self.source_url: self.source_bytes.hex(),
                             **{self.dep_url(n): data.hex() for n, data in self.dependencies.items()}},
@@ -140,6 +154,18 @@ class StageCase(unittest.TestCase):
         self.rpms = self.tmp / 'rpms'
         self.rpms.mkdir()
         (self.rpms / f'{RESULT}.rpm').write_bytes(b'built rpm')
+        self.inputs = self.tmp / 'inputs'
+
+    def write_image_packages(self, *nevras):
+        (self.tmp / 'packages.lock.json').write_text(json.dumps(dict(packages=[dict(nevra=n) for n in nevras])))
+
+    def prepare_inputs(self):
+        """What the labwc-inputs stage hands over, on the locked environment install-inputs.sh made."""
+        (self.inputs / 'rpms').mkdir(parents=True)
+        (self.inputs / stage.SOURCE_FILE).write_bytes(self.source_bytes)
+        for nevra, data in self.dependencies.items():
+            (self.inputs / 'rpms' / f'{nevra}.rpm').write_bytes(data)
+        self.state['installed'] = sorted([*BUILD_BASE, *self.dependencies])
 
     @staticmethod
     def dep_url(nevra):
@@ -170,26 +196,75 @@ class StageCase(unittest.TestCase):
         self.assertRegex(lines[0], '^LABWC_REFUSED ')
         self.assertRegex(lines[0], pattern)
 
+    def fetch(self):
+        return self.run_stage('fetch', self.lock_dir, self.inputs)
+
     def build(self):
-        return self.run_stage('build', self.lock_dir, self.out)
+        return self.run_stage('build', self.lock_dir, self.inputs, self.out)
 
     def install(self):
         return self.run_stage('install', self.rpms, self.lock_dir)
 
 
+class FetchTest(StageCase):
+    def test_exact_inputs_are_handed_over(self):
+        self.assertEqual(self.fetch(), 0, self.stderr)
+        self.assertEqual((self.inputs / stage.SOURCE_FILE).read_bytes(), self.source_bytes)
+        self.assertEqual(sorted(path.name for path in (self.inputs / 'rpms').iterdir()),
+                         sorted(f'{nevra}.rpm' for nevra in self.dependencies))
+
+    def test_refuses_a_wrong_source_hash(self):
+        self.state['urls'][self.source_url] = b'other source'.hex()
+        self.assert_refused(self.fetch(), 'the source package has SHA-256')
+
+    def test_refuses_a_wrong_patch_hash(self):
+        (self.lock_dir / 'fix.patch').write_bytes(b'another patch\n')
+        self.assert_refused(self.fetch(), 'the patch has SHA-256')
+        self.assertFalse(self.called('curl'))
+
+    def test_refuses_a_missing_patch(self):
+        (self.lock_dir / 'fix.patch').unlink()
+        self.assert_refused(self.fetch(), 'the patch fix.patch is missing')
+
+    def test_refuses_a_dependency_with_other_bytes(self):
+        nevra = 'bbb-2.0-3.fc44.noarch'
+        self.state['urls'][self.dep_url(nevra)] = b'newer build'.hex()
+        self.assert_refused(self.fetch(), f'build dependency {nevra} has SHA-256')
+
+    def test_refuses_a_dependency_that_is_another_package(self):
+        self.state['nevra_of'] = {'aaa-devel-1.0-1.fc44.x86_64.rpm': 'aaa-devel-1.1-1.fc44.x86_64'}
+        self.assert_refused(self.fetch(), 'is really aaa-devel-1.1-1.fc44.x86_64')
+
+    def test_refuses_a_download_that_fails(self):
+        del self.state['urls'][self.dep_url('aaa-devel-1.0-1.fc44.x86_64')]
+        self.assert_refused(self.fetch(), 'could not download')
+
+    def test_guard_1_refuses_headers_of_another_wlroots_build(self):
+        for runtime in ('wlroots0.19-0.19.4-1.fc44.x86_64', 'wlroots0.19-0.19.3-2.fc44.x86_64'):
+            with self.subTest(runtime):
+                self.write_image_packages(runtime)
+                self.assert_refused(self.fetch(), f'is not the same build as the image.s {runtime}')
+                self.assertFalse(self.called('curl'))
+
+    def test_guard_1_refuses_an_image_without_one_wlroots(self):
+        self.write_image_packages('glibc-2.43-1.fc44.x86_64')
+        self.assert_refused(self.fetch(), 'must hold exactly one wlroots0.19')
+
+
 class BuildTest(StageCase):
+    def setUp(self):
+        super().setUp()
+        self.prepare_inputs()
+
     def test_exact_inputs_give_the_rpm_and_nothing_else(self):
         self.assertEqual(self.build(), 0, self.stderr)
         self.assertEqual([path.name for path in self.out.iterdir()], [f'{RESULT}.rpm'])
         self.assertIn(f'LABWC_BUILT {RESULT} ', self.stdout)
 
-    def test_dependencies_install_with_repositories_off_and_signatures_on(self):
+    def test_the_build_downloads_and_installs_nothing(self):
         self.assertEqual(self.build(), 0, self.stderr)
-        install = self.called('dnf5', 'install')
-        self.assertEqual(len(install), 1)
-        self.assertIn('--disable-repo=*', install[0])
-        self.assertIn('--setopt=localpkg_gpgcheck=True', install[0])
-        self.assertNotIn('--enable-repo=fedora', install[0])
+        self.assertFalse(self.called('curl'))
+        self.assertFalse(self.called('dnf5'))
 
     def test_the_spec_edit_is_the_release_suffix_and_one_patch_line(self):
         spec_file = self.tmp / 'edited.spec'
@@ -200,61 +275,68 @@ class BuildTest(StageCase):
         self.assertEqual(spec_file.read_text(), expected)
 
     def test_refuses_a_wrong_source_hash(self):
-        self.state['urls'][self.source_url] = b'other source'.hex()
+        (self.inputs / stage.SOURCE_FILE).write_bytes(b'other source')
         self.assert_refused(self.build(), 'the source package has SHA-256')
-        self.assertFalse(self.called('dnf5'))
         self.assertFalse(self.called('rpmbuild'))
+
+    def test_refuses_a_missing_source(self):
+        (self.inputs / stage.SOURCE_FILE).unlink()
+        self.assert_refused(self.build(), 'the source package is missing')
 
     def test_refuses_a_wrong_patch_hash(self):
         (self.lock_dir / 'fix.patch').write_bytes(b'another patch\n')
         self.assert_refused(self.build(), 'the patch has SHA-256')
-        self.assertFalse(self.called('curl'))
-        self.assertFalse(self.called('dnf5'))
-
-    def test_refuses_a_missing_patch(self):
-        (self.lock_dir / 'fix.patch').unlink()
-        self.assert_refused(self.build(), 'the patch fix.patch is missing')
+        self.assertFalse(self.called('rpmbuild'))
 
     def test_refuses_a_dependency_with_other_bytes(self):
         nevra = 'bbb-2.0-3.fc44.noarch'
-        self.state['urls'][self.dep_url(nevra)] = b'newer build'.hex()
+        (self.inputs / 'rpms' / f'{nevra}.rpm').write_bytes(b'newer build')
         self.assert_refused(self.build(), f'build dependency {nevra} has SHA-256')
-        self.assertFalse(self.called('dnf5'))
-
-    def test_refuses_a_dependency_that_is_another_package(self):
-        self.state['nevra_of'] = {'aaa-devel-1.0-1.fc44.x86_64.rpm': 'aaa-devel-1.1-1.fc44.x86_64'}
-        self.assert_refused(self.build(), 'is really aaa-devel-1.1-1.fc44.x86_64')
-        self.assertFalse(self.called('dnf5'))
-
-    def test_refuses_a_download_that_fails(self):
-        del self.state['urls'][self.dep_url('aaa-devel-1.0-1.fc44.x86_64')]
-        self.assert_refused(self.build(), 'could not download')
-        self.assertFalse(self.called('dnf5'))
-
-    def test_refuses_dependencies_that_do_not_install(self):
-        self.state['dnf_exit'] = 1
-        self.assert_refused(self.build(), 'do not install on this base')
         self.assertFalse(self.called('rpmbuild'))
 
+    def test_refuses_an_input_outside_the_lock(self):
+        (self.inputs / 'rpms/surprise-9-1.fc44.x86_64.rpm').write_bytes(b'x')
+        self.assert_refused(self.build(), r"outside the lock \['surprise-9-1.fc44.x86_64.rpm'\]")
+        self.assertFalse(self.called('rpmbuild'))
+
+    def test_refuses_a_missing_input(self):
+        (self.inputs / 'rpms/bbb-2.0-3.fc44.noarch.rpm').unlink()
+        self.assert_refused(self.build(), r"missing \['bbb-2.0-3.fc44.noarch.rpm'\]")
+
     def test_refuses_a_package_outside_the_lock(self):
-        self.state['dnf_adds'] = [*self.dependencies, 'surprise-9-1.fc44.x86_64']
+        self.state['installed'].append('surprise-9-1.fc44.x86_64')
         self.assert_refused(self.build(), r"drifted: outside the lock \['surprise-9-1.fc44.x86_64'\]")
         self.assertFalse(self.called('rpmbuild'))
 
     def test_refuses_a_locked_package_that_was_not_installed(self):
-        self.state['dnf_adds'] = ['aaa-devel-1.0-1.fc44.x86_64']
-        self.assert_refused(self.build(), r"not installed \['bbb-2.0-3.fc44.noarch'\]")
+        self.state['installed'].remove('aaa-devel-1.0-1.fc44.x86_64')
+        self.assert_refused(self.build(), r"missing \['aaa-devel-1.0-1.fc44.x86_64'\]")
 
-    def test_refuses_a_replaced_base_package(self):
-        self.state['dnf_removes'] = ['glibc-2.43-1.fc44.x86_64']
-        self.assert_refused(self.build(), r"replaced in the base \['glibc-2.43-1.fc44.x86_64'\]")
+    def test_refuses_another_base(self):
+        self.state['installed'].remove('bash-5.3-1.fc44.x86_64')
+        self.state['installed'].append('bash-5.4-1.fc44.x86_64')
+        self.assert_refused(self.build(), r"outside the lock \['bash-5.4-1.fc44.x86_64'\], missing "
+                                          r"\['bash-5.3-1.fc44.x86_64'\]")
         self.assertFalse(self.called('rpmbuild'))
+
+    def test_a_locked_upgrade_replaces_its_copy_in_the_base(self):
+        newer = 'glibc-2.43-9.fc44.x86_64'
+        self.lock['build_dependencies'] = sorted([*self.lock['build_dependencies'], dict(
+            nevra=newer, url=self.dep_url(newer), sha256=digest(b'newer glibc'))], key=lambda entry: entry['nevra'])
+        self.write_lock()
+        (self.inputs / 'rpms' / f'{newer}.rpm').write_bytes(b'newer glibc')
+        self.state['installed'] = sorted(['bash-5.3-1.fc44.x86_64', newer, *self.dependencies])
+        self.assertEqual(self.build(), 0, self.stderr)
+
+    def test_the_signing_keys_are_not_part_of_the_environment(self):
+        self.state['installed'].append('gpg-pubkey-6d9f90a6-6786af3b')
+        self.assertEqual(self.build(), 0, self.stderr)
 
     def test_refuses_a_spec_it_does_not_know(self):
         for changed in (SPEC.replace('%autorelease', '2%{?dist}'), SPEC.replace('%{forgesource}', 'other.tar.gz'),
                         SPEC + SPEC):
             with self.subTest(changed=changed):
-                self.state.update(spec=changed, installed=list(BASE_PACKAGES), calls=[])
+                self.state.update(spec=changed, calls=[])
                 self.assert_refused(self.build(), "Fedora's spec does not have exactly one line")
                 self.assertFalse(self.called('rpmbuild'))
 
@@ -269,10 +351,38 @@ class BuildTest(StageCase):
         self.assert_refused(self.build(), 'the RPM and nothing else')
 
 
+class InstallInputsTest(StageCase):
+    def run_script(self):
+        state_file = self.tmp / 'state.json'
+        state_file.write_text(json.dumps(self.state))
+        (self.inputs / 'rpms').mkdir(parents=True)
+        (self.inputs / 'rpms/one-1-1.fc44.x86_64.rpm').write_bytes(b'x')
+        result = subprocess.run(['bash', str(ROOT / 'labwc/install-inputs.sh'), str(self.inputs)], capture_output=True,
+                                text=True, env=dict(PATH=f'{self.tools}:/usr/bin:/bin', FAKE_STATE=str(state_file)))
+        self.state = json.loads(state_file.read_text())
+        return result
+
+    def test_signatures_stay_on_and_repositories_off(self):
+        result = self.run_script()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        install = self.called('dnf5', 'install')
+        self.assertEqual(len(install), 1)
+        self.assertIn('--disable-repo=*', install[0])
+        self.assertIn('--setopt=localpkg_gpgcheck=True', install[0])
+        self.assertIn('--setopt=install_weak_deps=False', install[0])
+
+    def test_a_failed_install_is_one_clear_line(self):
+        self.state['dnf_exit'] = 1
+        result = self.run_script()
+        self.assertEqual(result.returncode, 1)
+        self.assertEqual(len(result.stderr.strip().splitlines()), 1, result.stderr)
+        self.assertRegex(result.stderr, '^LABWC_REFUSED the locked build dependencies do not install')
+
+
 class InstallTest(StageCase):
     def test_our_rpm_replaces_fedoras(self):
         self.assertEqual(self.install(), 0, self.stderr)
-        self.assertEqual(sorted(self.state['installed']), sorted(['glibc-2.43-1.fc44.x86_64', RESULT]))
+        self.assertEqual(sorted(self.state['installed']), sorted(['glibc-2.43-1.fc44.x86_64', RESULT, WLROOTS]))
         self.assertIn(f'LABWC_INSTALLED {RESULT} replaces {FEDORA}', self.stdout)
 
     def test_the_signature_exception_covers_this_one_file(self):
@@ -286,7 +396,7 @@ class InstallTest(StageCase):
     def test_the_manifest_lists_the_installed_packages_and_the_lock(self):
         self.assertEqual(self.install(), 0, self.stderr)
         self.assertEqual((self.manifest / 'packages.txt').read_text().splitlines(),
-                         sorted(['glibc-2.43-1.fc44.x86_64', RESULT]))
+                         sorted(['glibc-2.43-1.fc44.x86_64', RESULT, WLROOTS]))
         self.assertEqual(json.loads((self.manifest / 'labwc.lock.json').read_text()), self.lock)
 
     def test_refuses_both_packages_present(self):
@@ -332,6 +442,30 @@ class InstallTest(StageCase):
         self.state['dnf_adds'] = [RESULT, 'surprise-9-1.fc44.x86_64']
         self.assert_refused(self.install(), 'the swap changed other packages')
 
+    def test_guard_1_refuses_an_image_with_another_wlroots_build(self):
+        other = 'wlroots0.19-0.19.3-2.fc44.x86_64'
+        self.state['installed'] = ['glibc-2.43-1.fc44.x86_64', FEDORA, other]
+        self.assert_refused(self.install(), f'is not the same build as the image.s {other}')
+        self.assertFalse(self.called('dnf5'))
+
+    def test_guard_1_refuses_an_image_without_wlroots(self):
+        self.state['installed'] = ['glibc-2.43-1.fc44.x86_64', FEDORA]
+        self.assert_refused(self.install(), 'wlroots0.19')
+        self.assertFalse(self.called('dnf5'))
+
+    def test_guard_2_the_install_keeps_every_dependency_check(self):
+        self.assertEqual(self.install(), 0, self.stderr)
+        install = self.called('dnf5', 'install')[0]
+        for shortcut in ('--nodeps', '--nodigest', '--nosignature', '--no-gpgchecks', '--skip-broken', '--skip-unavailable',
+                         '--setopt=gpgcheck=False', '--setopt=pkg_gpgcheck=False'):
+            self.assertNotIn(shortcut, install)
+        self.assertEqual(self.called('rpm', '-i'), [])
+
+    def test_guard_2_an_unmet_dependency_stops_the_swap(self):
+        self.state['dnf_exit'] = 1
+        self.assert_refused(self.install(), f'{RESULT} did not install')
+        self.assertFalse((self.manifest / 'packages.txt').exists())
+
     def test_refuses_a_dirty_verify(self):
         self.state['verify_output'] = 'S.5....T.    /usr/bin/labwc\n'
         self.state['verify_exit'] = 1
@@ -340,17 +474,71 @@ class InstallTest(StageCase):
 
 
 class ResolveTest(StageCase):
+    def setUp(self):
+        super().setUp()
+        self.resolved = self.tmp / 'resolved'
+        (self.resolved / 'downloads').mkdir(parents=True)
+        (self.resolved / 'base-packages.txt').write_text('\n'.join(BUILD_BASE) + '\n')
+        self.signed = {}
+        for nevra, data in self.dependencies.items():
+            self.add_download(nevra, data)
+
+    def add_download(self, nevra, data):
+        (self.resolved / 'downloads' / f'{nevra}.rpm').write_bytes(data)
+        # The stand-in rpm reports every package as x86_64.
+        url = f'{stage.KOJI}dep/1.0/1.fc44/data/signed/23456789/x86_64/{nevra}.rpm'
+        self.state['urls'][url] = data.hex()
+        self.signed[nevra] = url
+
     def resolve(self):
-        return self.run_stage('resolve', self.lock_dir, self.tmp / 'evidence')
+        return self.run_stage('resolve', self.lock_dir, self.resolved, self.tmp / 'evidence')
 
-    def test_refuses_a_wrong_source_hash(self):
-        self.state['urls'][self.source_url] = b'other source'.hex()
-        self.assert_refused(self.resolve(), 'the source package has SHA-256')
-        self.assertFalse(self.called('dnf5'))
+    def candidate(self):
+        return json.loads((self.tmp / 'evidence/candidate-labwc.lock.json').read_text())
 
-    def test_refuses_dependencies_that_do_not_resolve(self):
-        self.state['dnf_exit'] = 1
-        self.assert_refused(self.resolve(), 'do not resolve on this base')
+    def test_the_same_resolution_is_current(self):
+        self.assertEqual(self.resolve(), 0, self.stderr)
+        self.assertIn('LABWC_LOCK_CURRENT', self.stdout)
+        self.assertEqual(self.candidate()['base'], self.lock['base'])
+
+    def test_a_new_package_makes_a_valid_candidate(self):
+        self.add_download('ccc-3-1.fc44.x86_64', b'fourth')
+        self.assertEqual(self.resolve(), 0, self.stderr)
+        self.assertIn('NEW ccc-3-1.fc44.x86_64', self.stdout)
+        self.assertIn('LABWC_LOCK_DIFFERS', self.stdout)
+        stage.validate_lock(self.candidate())
+
+    def test_a_changed_base_is_reported_and_recorded(self):
+        (self.resolved / 'base-packages.txt').write_text('bash-5.4-1.fc44.x86_64\nglibc-2.43-1.fc44.x86_64\n')
+        self.assertEqual(self.resolve(), 0, self.stderr)
+        self.assertIn('BASE_CHANGED', self.stdout)
+        self.assertIn('LABWC_LOCK_DIFFERS', self.stdout)
+        self.assertEqual(self.candidate()['base']['packages'], ['bash-5.4-1.fc44.x86_64', 'glibc-2.43-1.fc44.x86_64'])
+
+    def test_guard_1_is_reported_for_a_fresh_resolution(self):
+        self.write_image_packages('wlroots0.19-0.19.4-1.fc44.x86_64')
+        self.assertEqual(self.resolve(), 0, self.stderr)
+        self.assertIn('WLROOTS_DIFFERS', self.stdout)
+        self.assertIn('LABWC_LOCK_DIFFERS', self.stdout)
+
+    def test_a_package_koji_does_not_keep_is_reported(self):
+        del self.state['urls'][self.signed['bbb-2.0-3.fc44.noarch']]
+        self.assertEqual(self.resolve(), 0, self.stderr)
+        self.assertIn('NOT_ON_KOJI bbb-2.0-3.fc44.noarch', self.stdout)
+        self.assertIn('LABWC_LOCK_DIFFERS', self.stdout)
+
+    def test_refuses_when_nothing_was_resolved(self):
+        for path in (self.resolved / 'downloads').iterdir():
+            path.unlink()
+        self.assert_refused(self.resolve(), 'did not resolve on fedora:44')
+
+    def test_refuses_when_the_base_was_not_listed(self):
+        (self.resolved / 'base-packages.txt').unlink()
+        self.assert_refused(self.resolve(), 'did not resolve on fedora:44')
+
+    def test_an_epoch_is_not_part_of_the_koji_file_name(self):
+        self.assertEqual(stage.file_name('xz-devel-1:5.8.2-2.fc44.x86_64'), 'xz-devel-5.8.2-2.fc44.x86_64.rpm')
+        self.assertEqual(stage.file_name('gcc-16-1.fc44.x86_64'), 'gcc-16-1.fc44.x86_64.rpm')
 
     def test_the_koji_address_is_fedoras_signed_copy(self):
         state_file = self.tmp / 'state.json'
@@ -383,6 +571,16 @@ class LockShapeTest(StageCase):
         first = lambda lock: lock['build_dependencies'][0]
         cases = {
             'extra key': (lambda lock: lock.update(extra=1), 'expected exactly'),
+            'base key': (lambda lock: lock['base'].update(extra=1), 'base needs exactly'),
+            'tag instead of digest': (lambda lock: lock['base'].update(
+                reference='registry.fedoraproject.org/fedora:44'), 'pinned by digest'),
+            'other registry': (lambda lock: lock['base'].update(
+                reference='docker.io/library/fedora@sha256:' + 'b' * 64), 'pinned by digest'),
+            'no base packages': (lambda lock: lock['base'].update(packages=[]), 'base.packages must list'),
+            'loose base package': (lambda lock: lock['base'].update(packages=['bash']), 'base.packages must list'),
+            'base order': (lambda lock: lock['base']['packages'].reverse(), 'sorted and without repeats'),
+            'no wlroots headers': (lambda lock: lock.update(build_dependencies=lock['build_dependencies'][:2]),
+                                   'exactly one wlroots0.19-devel'),
             'source key': (lambda lock: lock['source'].update(name='x'), 'source needs exactly'),
             'source host': (lambda lock: lock['source'].update(url='https://example.com/a.src.rpm'), 'source.url'),
             'source hash': (lambda lock: lock['source'].update(sha256='abc'), 'source.sha256'),
@@ -435,6 +633,17 @@ class ReviewedLockTest(unittest.TestCase):
             self.assertRegex(entry['url'], r'^https://kojipkgs\.fedoraproject\.org/packages/[^/]+/[^/]+/[^/]+/'
                                            r'data/signed/[0-9a-f]{8}/(x86_64|noarch)/[^/]+\.rpm$')
 
+    def test_guard_1_the_headers_are_the_wlroots_build_the_image_installs(self):
+        stage.require_same_wlroots(self.lock, stage.image_wlroots(self.folder))
+
+    def test_python_runs_the_stage_from_the_locked_packages(self):
+        names = {stage.split_nevra(entry['nevra'])[0] for entry in self.lock['build_dependencies']}
+        self.assertLessEqual({'python3', 'rpm-build', 'redhat-rpm-config', 'wlroots0.19-devel'}, names)
+
+    def test_the_base_is_the_stage_that_builds(self):
+        self.assertIn((self.lock['base']['reference'], 'labwc'),
+                      re.findall(r'^FROM (\S+) AS (\S+)$', (ROOT / 'Containerfile').read_text(), re.M))
+
     def test_fedoras_labwc_stays_in_the_package_lock(self):
         # The packages stage still installs Fedora's labwc and its dependencies; the final stage swaps it.
         nevras = [entry['nevra'] for entry in json.loads((ROOT / 'packages.lock.json').read_text())['packages']]
@@ -448,18 +657,32 @@ class WiringTest(unittest.TestCase):
     def stages(self):
         return re.findall(r'^FROM (\S+) AS (\S+)$', self.containerfile, re.M)
 
-    def test_the_stage_is_on_the_pinned_base(self):
+    def test_the_inputs_come_from_the_pinned_base(self):
         base = json.loads((ROOT / 'manifest/base.json').read_text())['reference']
-        self.assertIn((base, 'labwc'), self.stages())
+        self.assertIn((base, 'labwc-inputs'), self.stages())
 
-    def test_the_stage_builds_and_the_final_stage_installs(self):
+    def test_the_stage_is_on_a_digest_pinned_fedora(self):
+        reference = dict((name, image) for image, name in self.stages())['labwc']
+        self.assertRegex(reference, r'^registry\.fedoraproject\.org/fedora@sha256:[0-9a-f]{64}$')
+
+    def test_the_stages_fetch_build_and_install(self):
+        inputs = self.containerfile.split(' AS labwc-inputs\n')[1].split('\nFROM ')[0]
+        self.assertIn('COPY packages.lock.json /tmp/aresos/packages.lock.json\n', inputs)
+        self.assertIn('RUN python3 -I /tmp/aresos/labwc/stage.py fetch /tmp/aresos/labwc /inputs', inputs)
         section = self.containerfile.split(' AS labwc\n')[1].split('\nFROM ')[0]
-        self.assertIn('COPY labwc/ /tmp/aresos-labwc/\n', section)
-        self.assertIn('RUN python3 -I /tmp/aresos-labwc/stage.py build /tmp/aresos-labwc /out\n', section + '\n')
+        self.assertIn('COPY --from=labwc-inputs /inputs/ /tmp/aresos-labwc-inputs/\n', section)
+        self.assertLess(section.index('install-inputs.sh /tmp/aresos-labwc-inputs'), section.index('stage.py build'))
+        self.assertIn('stage.py build /tmp/aresos-labwc /tmp/aresos-labwc-inputs /out', section)
         final = self.containerfile.split(' AS aresos\n')[1]
         self.assertIn('COPY --from=labwc /out/ /tmp/aresos-labwc-rpm/\n', final)
         swap = final.index('stage.py install /tmp/aresos-labwc-rpm /tmp/aresos/labwc')
         self.assertLess(swap, final.index('build.sh configure'))
+
+    def test_guard_2_no_step_skips_a_check(self):
+        for name in ('labwc/stage.py', 'labwc/install-inputs.sh', 'labwc/resolve-download.sh', 'Containerfile'):
+            text = (ROOT / name).read_text()
+            for shortcut in ('--nodeps', '--nodigest', '--no-gpgchecks', '--skip-broken', 'rpm -U', 'rpm -i '):
+                self.assertNotIn(shortcut, text, name)
 
     def test_only_the_swap_turns_the_signature_check_off(self):
         self.assertEqual((ROOT / 'labwc/stage.py').read_text().count("'--setopt=localpkg_gpgcheck=False'"), 1)
@@ -470,7 +693,10 @@ class WiringTest(unittest.TestCase):
 
     def test_the_resolve_check_prints_a_fresh_resolution(self):
         text = (ROOT / 'ci/check-resolve.sh').read_text()
-        self.assertIn('stage.py resolve /tmp/aresos/labwc "$out"', text)
+        self.assertIn('stage.py resolve /tmp/aresos/labwc /evidence/labwc-resolved "$out"', text)
+        build = (ROOT / 'ci/check-build.sh').read_text().split('    resolve)\n')[1].split('\n        ;;')[0]
+        self.assertIn('"$labwc_base" /tmp/aresos-labwc/resolve-download.sh', build)
+        self.assertLess(build.index('/tmp/aresos-labwc/resolve-download.sh'), build.index('/tmp/aresos/ci/check-resolve.sh'))
 
     def test_the_image_checks_read_the_lock(self):
         text = (ROOT / 'ci/image-checks.sh').read_text()
@@ -478,6 +704,98 @@ class WiringTest(unittest.TestCase):
         self.assertIn('labwc_verify=$(rpm -V labwc)', text)
         self.assertIn("('labwc.lock.json', json.loads(pathlib.Path('os/labwc/labwc.lock.json').read_text()))",
                       (ROOT / 'ci/check-image.sh').read_text())
+
+
+class ResolveDownloadTest(StageCase):
+    def run_script(self, sha256):
+        state_file = self.tmp / 'state.json'
+        state_file.write_text(json.dumps(self.state))
+        result = subprocess.run(['bash', str(ROOT / 'labwc/resolve-download.sh'), self.source_url, sha256,
+                                 str(self.tmp / 'resolved')], capture_output=True, text=True,
+                                env=dict(PATH=f'{self.tools}:/usr/bin:/bin', FAKE_STATE=str(state_file),
+                                         TMPDIR=str(self.tmp)))
+        self.state = json.loads(state_file.read_text())
+        return result
+
+    def test_refuses_a_wrong_source_hash(self):
+        result = self.run_script('0' * 64)
+        self.assertEqual(result.returncode, 1)
+        self.assertRegex(result.stderr, '^LABWC_REFUSED the source package differs from the lock')
+        self.assertFalse(self.called('dnf5'))
+
+    def test_refuses_a_failed_resolution(self):
+        self.state['dnf_exit'] = 1
+        result = self.run_script(digest(self.source_bytes))
+        self.assertEqual(result.returncode, 1)
+        self.assertRegex(result.stderr, '^LABWC_REFUSED the build dependencies do not resolve')
+
+    def test_asks_for_the_build_tools_and_the_spec_by_name(self):
+        self.run_script(digest(self.source_bytes))
+        call = self.called('dnf5', 'install')[0]
+        self.assertIn('--downloadonly', call)
+        self.assertLessEqual({'python3', 'rpm-build', 'redhat-rpm-config', 'gcc', 'meson'}, set(call))
+        self.assertNotIn('rpmlib(CompressedFileNames)', call)
+
+
+class RuntimeCheckTest(unittest.TestCase):
+    """Guards 3 and 4: the real check from os/ci/image-checks.sh, against stand-ins for ldd and rpm."""
+    GOOD = ('libwlroots-0.19.so()(64bit)', 'libc.so.6()(64bit)')
+
+    def setUp(self):
+        folder = tempfile.TemporaryDirectory()
+        self.addCleanup(folder.cleanup)
+        self.tmp = pathlib.Path(folder.name)
+        source = (ROOT / 'ci/image-checks.sh').read_text()
+        self.check = source.split("<<'LABWC_RUNTIME'\n", 1)[1].split('\nLABWC_RUNTIME\n', 1)[0]
+
+    def run_check(self, ldd='\tlibc.so.6 => /usr/lib64/libc.so.6\n', ldd_exit=0, requires=GOOD, providers=None):
+        providers = {name: ['glibc'] for name in requires} if providers is None else providers
+        (self.tmp / 'data.json').write_text(json.dumps(dict(ldd=ldd, ldd_exit=ldd_exit, requires=list(requires),
+                                                            providers=providers)))
+        tool = (f'#!{sys.executable} -I\nimport json, pathlib, sys\n'
+                f'data = json.loads(pathlib.Path({str(self.tmp / "data.json")!r}).read_text())\n'
+                'if pathlib.Path(sys.argv[0]).name == "ldd":\n'
+                '    sys.stdout.write(data["ldd"]); sys.exit(data["ldd_exit"])\n'
+                'if "--whatprovides" in sys.argv:\n'
+                '    found = data["providers"].get(sys.argv[-1], [])\n'
+                '    print("\\n".join(found) if found else "no package provides " + sys.argv[-1])\n'
+                '    sys.exit(0 if found else 1)\n'
+                'print("\\n".join(data["requires"]))\n')
+        for name in ('ldd', 'rpm'):
+            (self.tmp / name).write_text(tool)
+            (self.tmp / name).chmod(0o755)
+        return subprocess.run([sys.executable, '-I', '-c', self.check], capture_output=True, text=True,
+                              env=dict(PATH=str(self.tmp)))
+
+    def assert_fails(self, result, pattern):
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertRegex(result.stderr, 'LABWC_RUNTIME_FAILED ' + pattern)
+
+    def test_a_complete_image_passes(self):
+        result = self.run_check()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('LABWC_RUNTIME_OK 2 requirements', result.stdout)
+
+    def test_rpmlib_entries_are_rpm_features(self):
+        result = self.run_check(requires=[*self.GOOD, 'rpmlib(CompressedFileNames)'],
+                                providers={name: ['glibc'] for name in self.GOOD})
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_guard_3_a_missing_library_fails(self):
+        self.assert_fails(self.run_check(ldd='\tlibwlroots-0.19.so => not found\n'), 'ldd exit 0, not found')
+
+    def test_guard_3_a_failing_ldd_fails(self):
+        self.assert_fails(self.run_check(ldd_exit=1), 'ldd exit 1')
+
+    def test_guard_4_an_unprovided_requirement_fails(self):
+        self.assert_fails(self.run_check(providers={self.GOOD[1]: ['glibc']}), 'no package of this image provides')
+
+    def test_guard_4_labwc_cannot_provide_its_own_requirement(self):
+        self.assert_fails(self.run_check(providers={self.GOOD[0]: ['labwc'], self.GOOD[1]: ['glibc']}),
+                          'no package of this image provides')
+
+    def test_guard_4_a_package_without_requires_fails(self):
+        self.assert_fails(self.run_check(requires=()), 'cannot read the Requires')
 
 
 if __name__ == '__main__':

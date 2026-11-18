@@ -21,10 +21,19 @@ COPY --from=source /source/mod /tmp/aresos-mod/mod
 RUN bash /tmp/aresos-mod/build.sh mod /tmp/aresos-mod/mod /out "$ARESOS_SOURCE_REVISION"
 
 # Package 311: Fedora's labwc source package with one upstream fix, so a pointer lock holds on a layer-shell
-# surface. Every input is exact (labwc/labwc.lock.json); /out holds the RPM and nothing else.
-FROM ghcr.io/ublue-os/bazzite-nvidia-open@sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151 AS labwc
+# surface. Every input is exact (labwc/labwc.lock.json); /out holds the RPM and nothing else. The build runs on a
+# pinned fedora:44 because the base's Terra mesa has no matching mesa-libgbm-devel. That image has no Python, so the
+# pinned base downloads and checks the inputs first.
+FROM ghcr.io/ublue-os/bazzite-nvidia-open@sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151 AS labwc-inputs
+COPY labwc/ /tmp/aresos/labwc/
+COPY packages.lock.json /tmp/aresos/packages.lock.json
+RUN python3 -I /tmp/aresos/labwc/stage.py fetch /tmp/aresos/labwc /inputs
+
+FROM registry.fedoraproject.org/fedora@sha256:b02bb57e0e8ec2e057f0826436d2fc58765fa2b3b82d2abd322ece06e39c88f5 AS labwc
 COPY labwc/ /tmp/aresos-labwc/
-RUN python3 -I /tmp/aresos-labwc/stage.py build /tmp/aresos-labwc /out
+COPY --from=labwc-inputs /inputs/ /tmp/aresos-labwc-inputs/
+RUN bash /tmp/aresos-labwc/install-inputs.sh /tmp/aresos-labwc-inputs && \
+    python3 -I /tmp/aresos-labwc/stage.py build /tmp/aresos-labwc /tmp/aresos-labwc-inputs /out
 
 FROM packages AS aresos
 ARG ARESOS_SOURCE_REVISION=unrecorded

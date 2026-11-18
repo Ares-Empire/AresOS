@@ -583,6 +583,35 @@ test "$(rpm -q --qf '%{NEVRA}\n' labwc)" = "$labwc_nevra"
 labwc_verify=$(rpm -V labwc)
 test -z "$labwc_verify"
 pass "labwc is the locked rebuild ($labwc_nevra), the only labwc installed, and rpm -V labwc is clean"
+# labwc is built on fedora:44 and runs on this image: every library must be found here, and every Requires must be
+# met by a package of this image. labwc is the only package that comes from that stage. rpm -V above checks versions.
+python3 -I - <<'LABWC_RUNTIME'
+import subprocess
+import sys
+
+
+def run(*command):
+    return subprocess.run(command, capture_output=True, text=True)
+
+
+ldd = run('ldd', '/usr/bin/labwc')
+missing = [line.strip() for line in ldd.stdout.splitlines() if 'not found' in line]
+if ldd.returncode != 0 or missing:
+    sys.exit(f'LABWC_RUNTIME_FAILED ldd exit {ldd.returncode}, not found: {missing}')
+requires = run('rpm', '-q', '--qf', '[%{REQUIRENAME}\\n]', 'labwc')
+names = sorted({name for name in requires.stdout.split('\n') if name and not name.startswith('rpmlib(')})
+if requires.returncode != 0 or not names:
+    sys.exit(f'LABWC_RUNTIME_FAILED cannot read the Requires of labwc: {requires.stderr.strip()}')
+unmet = []
+for name in names:
+    providers = run('rpm', '-q', '--whatprovides', '--qf', '%{NAME}\\n', name)
+    if providers.returncode != 0 or not set(providers.stdout.split()) - {'labwc'}:
+        unmet.append(name)
+if unmet:
+    sys.exit(f'LABWC_RUNTIME_FAILED no package of this image provides: {unmet}')
+print(f'LABWC_RUNTIME_OK {len(names)} requirements')
+LABWC_RUNTIME
+pass 'labwc finds every library, and packages of this image provide everything it requires'
 
 # --- Package 23: Minecraft starts in AresOS.
 lock=/usr/share/aresos/minecraft/desktop.lock.json
