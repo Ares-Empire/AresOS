@@ -3,6 +3,6 @@ nmt-off: RSS 100 MiB; heap None; scope 100 MiB; swap 0 MiB; majflt 0
 clicked 'New home…' at 960,548
 ....
 ----------------------------------------------------------------------
-Ran 14 tests in 2.326s
+Ran 14 tests in 2.274s
 
 OK

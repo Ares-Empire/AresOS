@@ -47,6 +47,9 @@ if [[ $2 == flight ]]; then
     vin key w down
     mark flight_start
 fi
+if [[ $2 == compositor ]]; then
+    python3 -I -c 'import os,pathlib,time; pathlib.Path(os.environ["RIG"],"foreground-pid").write_text(str(os.getpid())); time.sleep(300)'
+fi
 sleep 300
 vin rel 200 0 15
 exit 0
@@ -68,9 +71,12 @@ for scenario in ('standing','flight','compositor'):
         proc=subprocess.Popen(['bash',str(WORK/'trial.sh'),str(rig),scenario],stdout=out,stderr=subprocess.STDOUT)
         try:
             until(lambda: (rig/'marks.txt').exists() and ('flight_start' if scenario=='flight' else 'stand_ready') in (rig/'marks.txt').read_text())
+            if scenario=='compositor': until(lambda: (rig/'foreground-pid').exists())
             peers=[int(p) for p in (rig/'peer-pids').read_text().split()]
             game=int((rig/'game-pid').read_text())
-            fds=[os.pidfd_open(p) for p in [*peers,game]]
+            owned=[*peers,game]
+            if scenario=='compositor':owned.append(int((rig/'foreground-pid').read_text()))
+            fds=[os.pidfd_open(p) for p in owned]
             target=peers[0 if scenario=='compositor' else 1]
             targetfd=os.pidfd_open(target)
             start=time.monotonic()

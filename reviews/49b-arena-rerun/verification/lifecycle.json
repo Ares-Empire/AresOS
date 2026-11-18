@@ -2,7 +2,7 @@
   {
     "scenario": "standing",
     "exit": 1,
-    "seconds": 0.114,
+    "seconds": 0.164,
     "all_owned_processes_exited": true,
     "scopes_gone": true,
     "lock_free": true,
