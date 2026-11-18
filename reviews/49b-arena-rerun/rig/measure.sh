@@ -106,7 +106,7 @@ import os, sys
 path, rd, sd = sys.argv[1], sys.argv[2], sys.argv[3]
 lines = open(path).read().splitlines() if os.path.exists(path) else []
 want = {'renderDistance': rd, 'simulationDistance': sd, 'fullscreen': 'false', 'onboardAccessibility': 'false',
-        'tutorialStep': 'none'}
+        'tutorialStep': 'none', 'maxFps': '120'}
 seen = set()
 for i, line in enumerate(lines):
     key = line.split(':', 1)[0]
@@ -138,6 +138,7 @@ if [[ $MODE == create && $CREATE_FLOW != manual ]]; then
     jvm+=" -Dpkg49b.ui=$RIG/ui.txt -Dpkg49b.creation_marks=$RIG/creation-marks.txt"
 fi
 export PKG49_JVM_ARGS=$jvm PKG49_GAME_ENV=$ENV PKG49_PROBE=$PROBE PKG49_NMT=$NMT
+cp -- "$WT/mod/run/options.txt" "$RIG/options.txt"
 python3 -I "$here/host.py" "$RIG/host-start.json"
 if [[ $MODE == measure || -d $SAVE ]]; then export GAME_ARGS="--quickPlaySingleplayer AresHub"; else export GAME_ARGS=; fi
 printf '%s\n' "name=$name" "RD=$RD" "SD=$SD" "HEAP=$HEAP" "MIN_HEAP=$MIN_HEAP" "GC=$GC" "MEMHIGH=$MEMHIGH" "SIZE=$SIZE" \
