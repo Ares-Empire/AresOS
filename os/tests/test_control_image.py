@@ -1270,7 +1270,22 @@ class GhImageTest(unittest.TestCase):
         for token in ('CONTROL_GH_IMAGE_PASS', "['rpm', '-q', 'gh']", 'license_sha256', "['runuser', '-u', 'ares', '--']"):
             self.assertIn(token, image)
         check = (ROOT / 'os/ci/check-image.sh').read_text()
-        self.assertIn("('gh.lock.json', json.loads(pathlib.Path('os/gh.lock.json').read_text()))", check)
+        comparison = 'cmp os/gh.lock.json "$out/manifest/gh.lock.json"'
+        self.assertIn(comparison, check)
+        (self.work / 'os').mkdir()
+        reviewed = self.work / 'os/gh.lock.json'
+        shutil.copyfile(ROOT / 'os/gh.lock.json', reviewed)
+        shipped = self.work / 'out/manifest/gh.lock.json'
+        shipped.parent.mkdir(parents=True)
+        shipped.write_bytes(reviewed.read_bytes())
+        def compare():
+            return subprocess.run(['bash', '-c', comparison], cwd=self.work,
+                                  env={**os.environ, 'out': 'out'}, capture_output=True).returncode
+        self.assertEqual(compare(), 0)
+        shipped.write_bytes(reviewed.read_bytes() + b'\n')
+        self.assertNotEqual(compare(), 0, 'even JSON-equivalent changes must fail the byte comparison')
+        shipped.unlink()
+        self.assertNotEqual(compare(), 0, 'a missing image lock must fail')
         self.assertIn("'chrome_build', 'gh'):", check)
         self.assertIn('CONTROL_GH_CHECKOUT_PASS', check)
 
