@@ -71,9 +71,10 @@ class OwnerScenario(Scenario):
         self.clock_patches.enter_context(scripted_ids(flow))
         self.owner_oracle = Oracle()
         request = Engine.request
-        def scripted(engine, envelope, *args, **kwargs):
+        def recorded(engine, envelope, *args, **kwargs):
             from storage_faults import ACTIVE
             fault = ACTIVE
+            fault_start = len(fault.points) if fault else 0
             self.test_clock += 0.001
             clock = time.time()
             self.owner_oracle.call(envelope.get('action', envelope.get('method')), envelope.get('arguments', {key: value for key, value in envelope.items() if key not in {'v', 'password'}}), clock,
@@ -98,10 +99,19 @@ class OwnerScenario(Scenario):
                 record = observer.__self__.snapshot()
                 self.owner_oracle.script[index]['end_seq'] = max(record.committed, default=0)
                 if fault:
-                    self.owner_oracle.script[index]['faults']['trace'] = list(fault.failures)
+                    self.owner_oracle.script[index]['faults']['trace'] = [entry for entry in fault.failures if entry[0] > fault_start]
+                    self.owner_oracle.script[index]['faults']['journal'] = [dict(entry) for entry in fault.journal_trace]
                     self.owner_oracle.script[index]['faults']['active_exhaustion'] = fault.mode == 'persistent' and fault.failed
                 observer(index, reply)
             return reply
+        def scripted(engine, envelope, *args, **kwargs):
+            from storage_faults import ACTIVE
+            # Healthy requests still supply raw phase evidence (including a
+            # later confirm after safe rollback). Never instrument twice.
+            if ACTIVE is None and getattr(self.owner_oracle, 'response_observer', None):
+                with OSWrites().wrap(engine.store):
+                    return recorded(engine, envelope, *args, **kwargs)
+            return recorded(engine, envelope, *args, **kwargs)
         self.script_patch = patch.object(Engine, 'request', side_effect=None, autospec=True)
         # Use a real function so Engine's descriptor still binds self.
         self.script_patch = patch.object(Engine, 'request', scripted)
@@ -521,3 +531,94 @@ class OwnerStateSweep(unittest.TestCase):
             print(f'Owner oracle flow={flow} points={len(points)} elapsed={time.monotonic()-started:.3f}s', flush=True)
         gaps.verify(set(flows), shard, shards, worker, workers)
         print(f'Owner oracle shard={shard}/{shards} worker={worker}/{workers} modes={dict(counts)} strict expected failures={len(gaps.seen)}', flush=True)
+
+
+class WriteLatchSweep302(unittest.TestCase):
+    def test_latch_phases_cleanup_pairs_and_restart(self):
+        from owner_state_oracle.records import write_latched
+        counts = Counter()
+        for flow in ('cancel', 'restore'):
+            clean, _ = exercise(flow, gaps=Gaps(recording=True))
+            first = clean.index('journal.write') + 1
+            marker = max(i for i, label in enumerate(clean, 1) if label == 'journal.write')
+            # First fence, index, staging, application, H and final marker.
+            main = [i for i, label in enumerate(clean, 1) if label == 'sqlite.main.create']
+            sites = (first, first + 1, first + 2, main[0], main[1], main[1] + 6,
+                     marker - 1, marker, marker + 1)
+            for point in sites:
+                _, cleanups = exercise(flow, point, gaps=Gaps(recording=True))
+                pairs = sorted({n for n, _, _ in cleanups if n > point})
+                variants = [('single', None), ('persistent', None)] + [('single', n) for n in pairs]
+                for mode, secondary in variants:
+                    with self.subTest(flow=flow, point=point, mode=mode, cleanup=secondary):
+                        scenario = OwnerScenario(flow)
+                        try:
+                            f, driver = scenario.fixture, Driver(scenario)
+                            initial = driver.snapshot()
+                            fault = OSWrites(point, mode=mode, cleanup_at=secondary)
+                            with driver.observe(fault), fault.wrap(f.engine.store):
+                                reply = scenario.call()
+                            driver.reply(reply)
+                            self.assertEqual(reply['error']['code'], 'storage_limit', reply)
+                            record = driver.snapshot()
+                            history = record.journal_history
+                            self.assertTrue(history)
+                            self.assertEqual(initial.journal_history, ())
+                            self.assertIsNot(initial, record)
+                            rollback_sites = {n for n, _, purpose in cleanups if purpose == 'journal truncation'}
+                            expected = not (point in (first, first + 1) and mode == 'single' and secondary not in rollback_sites)
+                            self.assertEqual(write_latched(record), expected)
+                            # A refused retry cannot append or stage a new event.
+                            before = (f.root / 'evidence/operations.jsonl').read_bytes()
+                            with driver.observe():
+                                second = scenario.call()
+                            driver.reply(second)
+                            if expected:
+                                self.assertEqual(second['error']['code'], 'journal_incomplete', second)
+                                self.assertEqual((f.root / 'evidence/operations.jsonl').read_bytes(), before)
+                            else:
+                                self.assertTrue(second['ok'], second)
+                                self.assertFalse(write_latched(driver.snapshot()))
+                                if flow == 'restore':
+                                    self.assertFalse(driver.snapshot().interrupted_confirm)
+                                    self.assertFalse(f.engine.store.locked)
+                            self.assertEqual(record.journal_history, history)
+                            # Freeze the old envelopes before the new service.
+                            saved = [(r, r.journal_history) for _, _, r, _ in driver.envelopes]
+                            driver.restarted()
+                            f.engine.close()
+                            scenario.bind(Engine(f.root / 'state', f.root / 'evidence'))
+                            self.assertFalse(write_latched(driver.snapshot()))
+                            self.assertEqual(driver.snapshot().journal_history, ())
+                            for captured, old_history in saved:
+                                self.assertEqual(captured.journal_history, old_history)
+                            self.assertFalse(scenario.remote, 'No second effect during latch recovery')
+                            counts['cases'] += 1
+                            counts['cleanup-pairs'] += secondary is not None
+                        finally:
+                            scenario.close()
+        print('302 latch phase/retry/restart cases:', dict(counts), flush=True)
+
+    def test_latch_cases_use_the_same_status_checker_in_every_phase(self):
+        gaps = Gaps(recording=True)
+        cases = 0
+        for flow in ('cancel', 'restore'):
+            clean, _ = exercise(flow, gaps=gaps)
+            first = clean.index('journal.write') + 1
+            marker = max(i for i, label in enumerate(clean, 1) if label == 'journal.write')
+            main = [i for i, label in enumerate(clean, 1) if label == 'sqlite.main.create']
+            for point in (first, first + 1, first + 2, main[0], main[1], main[1] + 6, marker - 1, marker, marker + 1):
+                for mode in ('single', 'persistent'):
+                    for phase in ('live', 'crash'):
+                        exercise(flow, point, mode, gaps=gaps, phase=phase)
+                        cases += 1
+                _, cleanups = exercise(flow, point, gaps=gaps)
+                for secondary in sorted({n for n, _, _ in cleanups if n > point}):
+                    for phase in ('live', 'crash'):
+                        exercise(flow, point, cleanup_at=secondary, gaps=gaps, phase=phase)
+                        cases += 1
+        status = [k for k in gaps.entries if k.endswith('.status')]
+        self.assertEqual(status, [])
+        self.assertEqual([k for k in gaps.entries if k.endswith('.restore-lock')], [])
+        print('302 latch independent-view sweep runs:', cases, 'phases:', len(gaps.executed),
+              'other recorded gap keys:', len(gaps.entries), flush=True)

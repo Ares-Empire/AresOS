@@ -33,3 +33,31 @@ class ResponseSchemas23(EngineCase):
         with patch.object(self.engine, '_admitted_request', return_value=response):
             with self.assertRaises(ValidationError):
                 self.engine.request({'v': 1, 'method': 'call', 'action': 'mail_operation_repair', 'arguments': {}})
+
+    def test_first_storage_error_notes_and_restart_advice_survive_bounding(self):
+        import errno
+        import json
+        from aresos_control.results import Observations, RESTART_ADVICE
+        from aresos_control.common import Refused
+        store = self.engine.store
+        facts = Observations()
+        first = Refused('storage_error', 'Synthetic original I/O refusal. ' + 'detail ' * 10000)
+        first.add_note('Cleanup journal truncation failed: Synthetic cleanup error.')
+        facts.storage(first)
+        facts.storage(OSError(errno.ENOSPC, 'Synthetic later error'))
+        facts.observe('synthetic', {'detail': 'Synthetic observation ' * 10000})
+        store.write_failed = True
+        result = facts.finish({'ok': False, 'error': {'code': 'journal_incomplete', 'message': 'Later refusal'}, 'pending': {}}, store)
+        self.assertEqual(result['error']['code'], 'storage_error')
+        self.assertTrue(result['error']['message'].startswith('Synthetic original I/O refusal.'))
+        self.assertEqual(result['error']['message'].count(RESTART_ADVICE), 1)
+        saved = json.loads(store.observation_snapshot['json'])
+        self.assertEqual(saved['error']['notes'], first.__notes__)
+        self.assertEqual(result['error']['message'], str(first) + ' ' + RESTART_ADVICE)
+        from aresos_control.results import bound_result
+        oversized = bound_result({'ok': False, 'error': {'code': 'storage_error',
+            'message': 'Synthetic original. ' * 10000 + RESTART_ADVICE}, 'pending': {}}, store)
+        self.assertEqual(oversized['error']['message'].count(RESTART_ADVICE), 1)
+        # A successful read keeps its exact reply even on the latched store.
+        self.assertEqual(Observations().finish({'ok': True, 'data': {}, 'pending': {}}, store),
+                         {'ok': True, 'data': {}, 'pending': {}})

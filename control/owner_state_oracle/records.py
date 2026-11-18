@@ -43,6 +43,56 @@ class Record:
     head: tuple = None
     startup_sequence: int = 0
     interrupted_confirm: bool = False
+    journal_history: tuple = ()
+
+
+@dataclass(frozen=True)
+class JournalAttempt:
+    phase: str
+    sequence: int
+    hash: str
+    offset: int
+    write: bool
+    sync: bool
+    truncate: bool
+    rollback_sync: bool
+
+
+def write_latched(record):
+    """Running transaction state from raw journal phases and validated bytes.
+
+    Only a failed first fence with proven truncation AND rollback sync can be
+    retried live. A failed marker stays latched even if its bytes survived.
+    Startup ends this running history; old prepared bytes are recovery input.
+    """
+    latched = False
+    fences = {f['seq']: f['hash'] for f in record.fences}
+    for attempt in record.journal_history:
+        complete = attempt.write and attempt.sync
+        if attempt.phase == 'fence':
+            undone = (not complete and attempt.truncate and attempt.rollback_sync and
+                      fences.get(attempt.sequence) != attempt.hash)
+            latched = not undone
+        elif attempt.phase == 'marker':
+            latched = not (complete and attempt.sequence in record.committed and
+                           fences.get(attempt.sequence) == attempt.hash)
+    return latched or any(e['seq'] > record.startup_sequence for e in record.prepared) or any(
+        f['seq'] > record.startup_sequence and f['seq'] not in record.committed for f in record.fences)
+
+
+def latch_refusal_first(record, call):
+    """A later passive-pending fault cannot replace an earlier latch refusal."""
+    if not call.get('write_attempted'):
+        return False
+    checks = call.get('latch_checks', ())
+    faults = call.get('faults', {}).get('trace', ())
+    # SQLite ignores xClose errors from the read handles preceding a write
+    # check. They are fault sites, but cannot supply the request's first error.
+    # Python file.close errors do propagate and must keep their precedence.
+    faults = [f for f in faults if not (f[1].startswith('sqlite.') and f[1].endswith('.close'))]
+    if faults:
+        return any(point < faults[0][0] for point in checks)
+    return bool(checks) or write_latched(record)
 
 
 def behind(sequence, committed):

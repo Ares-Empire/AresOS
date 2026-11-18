@@ -1,11 +1,14 @@
 """Review 14: interrupted writes preserve complete fences and storage errors."""
 import errno
 import json
+import os
+from contextlib import ExitStack
 import sqlite3
 from unittest.mock import patch
 
 from aresos_control.common import Refused
 from aresos_control.engine import Engine
+from aresos_control.results import RESTART_ADVICE
 from support import EngineCase, message
 
 
@@ -25,8 +28,8 @@ class Journal22(EngineCase):
         self.assertTrue(before.endswith(b'\n'))
         self.assertNotIn('commit', json.loads(before.splitlines()[-1]))
         refused = self.call('testapp_prepare_send', message())
-        self.assertEqual(refused['error']['code'], 'storage_limit')
-        self.assertIn('Disk full', refused['error']['message'])
+        self.assertEqual(refused['error']['code'], 'journal_incomplete')
+        self.assertEqual(refused['error']['message'], RESTART_ADVICE)
         self.assertTrue(store.write_failed)
         self.assertEqual((store.evidence_dir / 'operations.jsonl').read_bytes(), before)
         self.restart()
@@ -48,10 +51,9 @@ class Journal22(EngineCase):
         self.assertFalse(result['ok'], result)
         self.assertEqual(result['error']['code'], 'storage_limit')
         self.assertIn('Disk full', result['error']['message'])
-        self.assertTrue(store.write_failed)
+        self.assertFalse(store.write_failed)
         self.assertEqual((store.evidence_dir / 'operations.jsonl').read_bytes(), before)
         sync.assert_called_once_with(store.journal.fileno())
-        self.restart()
         self.reserve()
 
     def test_review22_zero_and_short_event_writes_are_not_success(self):
@@ -64,9 +66,9 @@ class Journal22(EngineCase):
             with self.subTest(count=count), patch.object(store.journal, 'write', side_effect=short):
                 result = self.call('testapp_prepare_send', message())
             self.assertEqual(result['error']['code'], 'storage_limit', result)
-            self.assertTrue(store.write_failed)
+            self.assertFalse(store.write_failed)
             self.assertEqual((store.evidence_dir / 'operations.jsonl').read_bytes(), before)
-            self.restart()
+            self.reserve()
 
     def test_review22_startup_truncates_torn_event_or_commit_and_replays_prepared(self):
         for tail in ('event', 'commit'):
@@ -116,3 +118,89 @@ class Journal22(EngineCase):
             self.assertEqual(result['error']['code'], code)
             self.assertNotIn('transport', result['error']['message'].lower())
             self.engine.store.write_failed = False
+
+    def test_first_fence_fsync_rollback_and_later_phase_failures(self):
+        errors = [(lambda n=n: OSError(n, 'Synthetic storage failure'),
+                   'storage_error' if n == errno.EIO else 'storage_limit')
+                  for n in (errno.ENOSPC, errno.EDQUOT, errno.EIO)]
+        for n in (sqlite3.SQLITE_FULL, sqlite3.SQLITE_IOERR):
+            def sql_error(n=n):
+                error = sqlite3.OperationalError('Synthetic SQLite failure')
+                error.sqlite_errorcode = n
+                return error
+            errors.append((sql_error, 'storage_limit' if n == sqlite3.SQLITE_FULL else 'storage_error'))
+        for phase in ('fence-sync', 'truncate', 'rollback-sync', 'index', 'staging', 'apply', 'marker-write', 'marker-sync'):
+            for error, code in errors:
+                # Raw journal calls raise OSError; SQLite phases cover FULL/IOERR.
+                if phase not in ('index', 'staging', 'apply') and isinstance(error(), sqlite3.Error):
+                    continue
+                with self.subTest(phase=phase, code=code, error=type(error()).__name__):
+                    self.restart()
+                    store = self.engine.store
+                    journal = store.evidence_dir / 'operations.jsonl'
+                    before = journal.read_bytes()
+                    write, sync = store.journal.write, os.fsync
+                    writes = []
+                    def write_fault(data):
+                        marker = 'commit' in json.loads(data)
+                        writes.append(marker)
+                        if phase in ('truncate', 'rollback-sync') and not marker or phase == 'marker-write' and marker:
+                            raise error()
+                        return write(data)
+                    failed = []
+                    def sync_fault(fd):
+                        if fd == store.journal.fileno():
+                            marker = bool(writes and writes[-1])
+                            if (phase == 'fence-sync' and not failed or
+                                    phase == 'rollback-sync' or phase == 'marker-sync' and marker and not failed):
+                                failed.append(fd)
+                                raise error()
+                        return sync(fd)
+                    # A proxy preserves SQLite's real transaction semantics,
+                    # while failing precisely the event-staging statement.
+                    db = store.db
+                    class StageFailure:
+                        def __getattr__(self, name): return getattr(db, name)
+                        def __enter__(self): db.__enter__(); return self
+                        def __exit__(self, *args): return db.__exit__(*args)
+                        def execute(self, sql, *args):
+                            if sql.startswith('INSERT OR REPLACE INTO events'): raise error()
+                            return db.execute(sql, *args)
+                    with ExitStack() as stack:
+                        stack.enter_context(patch.object(store.journal, 'write', side_effect=write_fault))
+                        stack.enter_context(patch('os.fsync', side_effect=sync_fault))
+                        if phase == 'truncate':
+                            stack.enter_context(patch.object(store.journal, 'truncate', side_effect=OSError(errno.EIO, 'Synthetic cleanup failure')))
+                        if phase in ('index', 'apply'):
+                            stack.enter_context(patch.object(store, '_index_record' if phase == 'index' else '_apply', side_effect=error()))
+                        if phase == 'staging': stack.enter_context(patch.object(store, 'db', StageFailure()))
+                        result = self.call('testapp_prepare_send', message())
+                    self.assertEqual(result['error']['code'], code, result)
+                    latched = phase != 'fence-sync'
+                    self.assertEqual(store.write_failed, latched)
+                    self.assertEqual(RESTART_ADVICE in result['error']['message'], latched)
+                    if phase in ('truncate', 'rollback-sync'):
+                        self.assertTrue(any('Cleanup journal truncation failed:' in note for note in result['error']['notes']))
+                    after = journal.read_bytes()
+                    if latched:
+                        refused = self.call('testapp_prepare_send', message())
+                        self.assertEqual(refused['error']['code'], 'journal_incomplete', refused)
+                        self.assertEqual(refused['error']['message'], RESTART_ADVICE)
+                        self.assertEqual(journal.read_bytes(), after)
+                        self.assertEqual(store.storage_cause.code, code)
+                        self.restart()
+                        if self.engine.store.locked:
+                            self.data('control_restore_confirm', {'confirm': 'invalidate earlier approvals'}, admin=True)
+                    else:
+                        self.assertEqual(after, before)
+                    self.reserve(subject='Explicit healthy request')
+
+    def test_admission_refusal_and_successful_read_keep_exact_text(self):
+        store = self.engine.store
+        expected = self.call('control_pending')
+        with patch.object(store.ledger, 'admit', side_effect=Refused('storage_limit', 'Synthetic admission only.')):
+            result = self.call('testapp_prepare_send', message())
+        self.assertEqual(result['error'], {'code': 'storage_limit', 'message': 'Synthetic admission only.'})
+        self.assertFalse(store.write_failed)
+        self.assertEqual(self.call('control_pending'), expected)
+        self.reserve()

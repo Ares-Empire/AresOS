@@ -1987,3 +1987,65 @@ class StageTwoPartA(unittest.TestCase):
         self.assertIn('identities', differences(event, script)[1])
         del rows['op:second']
         self.assertIsNone(bind(event, script)[0])
+
+
+class WriteLatch302(unittest.TestCase):
+    def test_journal_phases_and_actual_cleanup_determine_the_latch(self):
+        from owner_state_oracle.records import JournalAttempt, write_latched
+        from owner_state_oracle.perturb import RECORD_EXCLUSIONS, field_paths
+        oracle = Oracle()
+        for phase in ('fence', 'marker'):
+            for written, synced in ((False, False), (True, False), (True, True)):
+                for truncate, rollback_sync in ((False, False), (True, False), (True, True)):
+                    complete = written and synced
+                    undone = not complete and truncate and rollback_sync
+                    committed = {1} if phase == 'marker' and (complete or not truncate) else set()
+                    fences = [{'seq': 1, 'hash': 'hash'}] if phase == 'marker' or complete else []
+                    record = Record(fences=fences, committed=committed, head=(1, 'hash') if fences else (0, ''))
+                    record.journal_history = (JournalAttempt(phase, 1, 'hash', 0, written, synced, truncate, rollback_sync),)
+                    expected = (not undone) if phase == 'fence' else not complete
+                    with self.subTest(phase=phase, written=written, synced=synced, truncate=truncate, rollback_sync=rollback_sync):
+                        self.assertEqual(write_latched(record), expected)
+                        call = {'action': 'mail_accounts', 'write_attempted': True}
+                        self.assertEqual('journal_incomplete' in oracle.permitted_status(record, call), expected)
+                        self.assertEqual(oracle.request_state(record, call), {Fact('request', 'journal_incomplete' if expected else 'allowed')})
+                        # A later read without a write attempt is still answered.
+                        self.assertEqual(oracle.permitted_status(record, {'action': 'mail_accounts'}), {'allowed'})
+                        # A fresh I/O failure wins over an existing latch.
+                        fresh = {**call, 'faults': {'trace': [(1, 'file.close', 'EIO'), (2, 'file.close', 'ENOSPC')]}}
+                        self.assertEqual(oracle.request_state(record, fresh), {Fact('request', 'storage_error')})
+                        self.assertNotIn('journal_incomplete', oracle.permitted_status(record, fresh))
+                        if expected:
+                            # Latch check at point zero precedes the passive
+                            # pending fault; the same fault before the check
+                            # must keep its original I/O error instead.
+                            earlier = {**fresh, 'latch_checks': [0]}
+                            later = {**fresh, 'latch_checks': [1]}
+                            self.assertEqual(oracle.request_state(record, earlier), {Fact('request', 'journal_incomplete')})
+                            self.assertEqual(oracle.permitted_status(record, earlier), {'journal_incomplete'})
+                            self.assertEqual(oracle.request_state(record, later), {Fact('request', 'storage_error')})
+                            ignored = {**call, 'latch_checks': [5], 'faults': {'trace': [(1, 'sqlite.main.close', 'ENOSPC')]}}
+                            self.assertEqual(oracle.request_state(record, ignored), {Fact('request', 'journal_incomplete')})
+        self.assertIn('journal_history', RECORD_EXCLUSIONS)
+        field_paths(Record())
+        from dataclasses import FrozenInstanceError
+        with self.assertRaises(FrozenInstanceError):
+            record.journal_history[0].sync = False
+
+    def test_fault_count_read_only_and_admission_failures_are_not_latch_evidence(self):
+        from owner_state_oracle.records import write_latched
+        oracle, record = Oracle(), Record()
+        for faults in ({}, {'admission': 'full'}, {'trace': [(1, 'file.close', 'ENOSPC'), (2, 'file.close', 'EIO')]}):
+            with self.subTest(faults=faults):
+                self.assertFalse(write_latched(record))
+                self.assertNotIn('journal_incomplete', oracle.permitted_status(record, {'action': 'mail_accounts', 'faults': faults, 'write_attempted': True}))
+        record.prepared = [{'seq': 3}]
+        self.assertTrue(write_latched(record))
+        record.startup_sequence = 3
+        self.assertFalse(write_latched(record), 'Restart ends live history; prepared startup bytes are separate')
+
+    def test_completed_marker_must_match_the_validated_fence(self):
+        from owner_state_oracle.records import JournalAttempt, write_latched
+        record = Record(fences=[{'seq': 1, 'hash': 'real'}], committed={1},
+                        journal_history=(JournalAttempt('marker', 1, 'wrong', 0, True, True, False, False),))
+        self.assertTrue(write_latched(record))

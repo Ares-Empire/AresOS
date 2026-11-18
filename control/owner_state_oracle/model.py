@@ -6,7 +6,7 @@ import copy
 import hashlib
 import json
 import re
-from .records import canonical, fingerprint, visible, restore_intervals, consistency_errors
+from .records import canonical, fingerprint, visible, restore_intervals, consistency_errors, latch_refusal_first
 from .resolutions import RESOLUTIONS, permitted
 from .context import bind as bind_context, differences as context_differences, special_roles, special_delimiters, missing_flag_commands, rename_destination, MUTATIONS
 from .local import errors as local_errors
@@ -1468,23 +1468,23 @@ class Oracle:
         # Status is checked even when every catalogue is empty. A handled raw
         # failure may still yield success; only injected causes permit errors.
         allowed = {'allowed'}
+        faults = call.get('faults', {})
+        if latch_refusal_first(record, call):
+            return {'journal_incomplete'}
         if record.locked:
             # The restore lock refuses every app action, but these reads are
             # answered so committed warnings stay visible. Only a write such a
             # read attempts meets the lock's refusal (recorded by the driver).
-            if call.get('action') not in LOCKED_READS:
+            if call.get('action') not in LOCKED_READS and not (faults.get('trace') and call.get('write_attempted')):
                 return {'restore_required'}
             if call.get('lock_refused_write'):
                 allowed.add('restore_required')
-        faults = call.get('faults', {})
         if faults.get('admission') == 'full':
             return {'storage_limit'}
         if faults.get('trace') or faults.get('active_exhaustion'):
             allowed.add('storage_limit')
             if any(f[2] == 'EIO' for f in faults.get('trace', [])):
                 allowed.add('storage_error')
-        if record.prepared or len(record.fences) > max(record.committed, default=0):
-            allowed.add('journal_incomplete')
         if any(e['call'] == call.get('call') and not e['accepted'] and e['command'] in {'CONNECT', 'FETCH', 'LIST', 'SEARCH'} for e in self.servers):
             allowed.add('transport_error')
         return allowed
@@ -1726,10 +1726,13 @@ class Oracle:
         return target in roles and complete and not protected and not failed_scan
 
     def request_state(self, record, call):
+        faults = call.get('faults', {})
+        if latch_refusal_first(record, call):
+            return {Fact('request', 'journal_incomplete')}
+        if faults.get('trace'):
+            return {Fact('request', 'storage_error' if faults['trace'][0][2] == 'EIO' else 'storage_limit')}
         if record.locked:
             return {Fact('request', 'restore_required')}
-        if record.prepared or len(record.fences) > max(record.committed, default=0):
-            return {Fact('request', 'journal_incomplete')}
         if call.get('faults', {}).get('admission') == 'full':
             return {Fact('request', 'storage_limit')}
         return {Fact('request', 'allowed')}

@@ -6,7 +6,7 @@ import time
 import sqlite3
 from unittest.mock import patch
 
-from .records import decode, canonical, service_lock
+from .records import decode, canonical, service_lock, JournalAttempt, write_latched
 from .model import Fact, Oracle
 from .context import MUTATIONS
 from .compare import compare_views, pages, compare_envelope, compare_status, compare_proofs
@@ -41,6 +41,7 @@ class Driver:
     def __init__(self, scenario):
         self.scenario = scenario
         self.oracle = getattr(scenario, 'owner_oracle', None) or Oracle()
+        self.journal_scopes = {}
         self.record = self.snapshot()
         if not hasattr(self.oracle, 'seed_sequence'):
             # Fixture setup precedes the faulted script. Its explicitly seeded
@@ -63,6 +64,8 @@ class Driver:
         from storage_faults import ACTIVE
         f = self.scenario.fixture
         with outside_faults():
+            if ACTIVE is not None and ACTIVE.journal_trace:
+                self.journal_scopes[ACTIVE] = tuple(JournalAttempt(**entry) for entry in ACTIVE.journal_trace)
             paths = [f.root / 'state/control.sqlite', f.root / 'state/control.sqlite-journal', f.engine.store.evidence_dir / 'operations.jsonl']
             key = tuple((p.stat().st_size, p.stat().st_mtime_ns) if p.exists() else None for p in paths)
             decoded = key != getattr(self, '_snapshot_key', None)
@@ -91,12 +94,14 @@ class Driver:
         """
         startup = getattr(self, 'startup_sequence', 0)
         interrupted = interrupted_confirm(self.oracle.script[getattr(self, 'restart_index', 0):])
+        history = tuple(entry for scope in getattr(self, 'journal_scopes', {}).values() for entry in scope)
         record = self.record
         if not decoded:
-            if (record.startup_sequence, record.interrupted_confirm) == (startup, interrupted):
+            if (record.startup_sequence, record.interrupted_confirm, record.journal_history) == (startup, interrupted, history):
                 return
             record = self.record = copy.copy(record)
         record.startup_sequence, record.interrupted_confirm = startup, interrupted
+        record.journal_history = history
         record.locked = self._decoded_lock or service_lock(record)
 
     def restarted(self):
@@ -108,6 +113,7 @@ class Driver:
         """
         self.startup_sequence = max((fence['seq'] for fence in self.snapshot().fences), default=0)
         self.restart_index = len(self.oracle.script)
+        self.journal_scopes = {}
         self._snapshot_key = None
 
     def fixture_input(self, changes, summary):
@@ -143,6 +149,7 @@ class Driver:
         s, f, oracle = self.scenario, self.scenario.fixture, self.oracle
         from storage_faults import ACTIVE
         faults = faults or ACTIVE
+        fault_start = len(faults.points) if faults else 0
         previous_call = getattr(oracle, 'active_call', None)
         previous_start = getattr(oracle, 'active_start_seq', 0)
         before = self.snapshot()
@@ -238,7 +245,14 @@ class Driver:
         # write. Record that attempt as an input; the reply is never consulted.
         from aresos_control.common import Refused
         index, store_write = self.call_index, f.engine.store.write
+        def write_attempted():
+            oracle.script[index]['write_attempted'] = True
+            # The sweep also records the actual Engine request nested in the
+            # observed operation. Both identities need the same boundary input.
+            if oracle.script:
+                oracle.script[-1]['write_attempted'] = True
         def write(*args, **kwargs):
+            write_attempted()
             try:
                 return store_write(*args, **kwargs)
             except Refused as exc:
@@ -246,6 +260,17 @@ class Driver:
                     oracle.script[index]['lock_refused_write'] = True
                 raise
         extra.enter_context(patch.object(f.engine.store, 'write', write))
+        writable = f.engine.store.ensure_writable
+        def ensure_writable():
+            from storage_faults import ACTIVE as current_fault
+            write_attempted()
+            if write_latched(self.snapshot()):
+                point = len(current_fault.points) if current_fault is not None else 0
+                oracle.script[index].setdefault('latch_checks', []).append(point)
+                if oracle.script[-1] is not oracle.script[index]:
+                    oracle.script[-1].setdefault('latch_checks', []).append(point)
+            return writable()
+        extra.enter_context(patch.object(f.engine.store, 'ensure_writable', ensure_writable))
         imap = f.mail.transport.imap
         @contextmanager
         def imap_session(account):
@@ -392,9 +417,12 @@ class Driver:
         with extra, patch.object(f.imap, 'response', side_effect=responded), patch.object(f.imap, 'rename', side_effect=renamed, create=True), patch.object(f.imap, 'uid', side_effect=command), patch.object(f.imap, 'list', side_effect=listed), \
              patch.object(f.imap, 'select', side_effect=selected), patch.object(f.mail, 'append', side_effect=appended):
             yield
+        if faults and faults.journal_trace:
+            self.journal_scopes[faults] = tuple(JournalAttempt(**entry) for entry in faults.journal_trace)
         oracle.script[self.call_index]['end_seq'] = max(self.snapshot().committed, default=0)
         if faults:
-            oracle.script[self.call_index]['faults']['trace'] = list(faults.failures)
+            oracle.script[self.call_index]['faults']['trace'] = [entry for entry in faults.failures if entry[0] > fault_start]
+            oracle.script[self.call_index]['faults']['journal'] = copy.deepcopy(faults.journal_trace)
             oracle.script[self.call_index]['faults']['active_exhaustion'] = faults.mode == 'persistent' and faults.failed
         oracle.active_call = previous_call
         oracle.active_start_seq = previous_start

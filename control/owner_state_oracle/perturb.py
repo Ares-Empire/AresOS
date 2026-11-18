@@ -190,6 +190,7 @@ RECORD_EXCLUSIONS = {
     'head': 'Independent SQLite head/chain validation has dedicated decoder tests',
     'startup_sequence': 'Test recorder startup boundary, not production-written',
     'interrupted_confirm': 'Test recorder fault-trace rule (a confirm on a locked store met a fault), not production-written',
+    'journal_history': 'Immutable raw journal phase/cleanup inputs; independently table-tested, not production-written',
 }
 
 

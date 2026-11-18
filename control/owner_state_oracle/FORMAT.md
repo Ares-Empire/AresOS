@@ -2,6 +2,25 @@
 
 No expectation module imports `aresos_control` or the driver. `records.py`, `model.py` and `compare.py` use the standard library only. The test driver is allowed to invoke production APIs and record their replies; a reply never supplies its own expected warnings.
 
+The live write-latch rule shares `records.write_latched` between status and
+request-state checks. The raw I/O recorder supplies fence/marker identity and
+offset, full-write and fsync completion, and actual rollback truncate/fsync
+completion. Captures freeze those inputs as `JournalAttempt` tuples on each
+record, even when the disk bytes did not change. A failed first fence can end
+the latch only with both cleanup completions; a failed marker cannot. Validated
+fences/prepared events and markers corroborate live transaction state. No store
+latch flag, reply or fault count supplies the expected latch. A read can meet
+this refusal only if the driver recorded a write/pre-command storage check;
+fresh failures retain their storage cause instead of becoming a later latch
+refusal. The trace also records the raw-point position of a storage check whose
+decoded inputs were already latched. A fault during later passive pending
+collection cannot replace that earlier refusal; a fresh fault before the check
+keeps its original cause. Fault lists are scoped to each request, while journal
+phase history survives across requests until restart.
+`Driver.restarted()` clears running history and bounds old prepared
+bytes as startup input, preserving captured pre-crash records. This does not
+yet impose the staged-restore startup obligation of brief 302 item 2.
+
 `evidence/operations.jsonl` is ASCII canonical JSON (sorted keys, separators comma/colon), one LF per record. A format-2 fence has format, seq, previous, time, generation, operations and hash. Hash is SHA-256 over the canonical object without hash; previous is the preceding fence hash (initially the empty string). A commit marker has commit=seq and matching hash. The decoder rejects corruption and unsupported versions; only an unterminated final line can be ignored. Format 1 is accepted with the same hash-chain contract.
 
 `state/control.sqlite` contains events(seq,value), head(id,seq,hash), kv(k,v), retained(k,created), operation_versions(id,seq). The decoder reads events and head, **never kv or the production index**. Each event contains seq/time/action/summary/outcome/operation_id/set/record and optional space/untrusted_content. Its record must equal the independent fence. Only a matching commit marker makes set's values committed (null deletes a key). Prepared events are separate evidence, never completed actions. Immutable events recover state without relying on working warning selection. Archives are JSONL `aresos-history-1` exports containing event or key/value entries; only a manifest in committed history, with matching SHA-256, authorizes reading their events. Projection format will be added in stage 3 without changing old records.

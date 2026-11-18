@@ -8,6 +8,7 @@ import tracemalloc
 from unittest.mock import patch
 import uuid
 
+from aresos_control.results import RESTART_ADVICE
 from aresos_control.common import canonical
 from aresos_control.engine import Engine
 from aresos_control.storage import RESTORE_BATCH_BYTES, RESTORE_BATCH_COUNT
@@ -115,6 +116,15 @@ class RestoreBatches(EngineCase):
         with patch('aresos_control.storage.os.fsync', fsync), rollback, patch('aresos_control.storage.uuid.uuid4', return_value=generation):
             reply = self.call('control_restore_confirm', {'confirm': 'invalidate earlier approvals'}, admin=True)
         self.assertEqual(len(failed), 1)
+        self.assertEqual(reply['error']['message'].count(RESTART_ADVICE), 1)
+        if rollback_fails:
+            self.assertIn('Cleanup journal truncation failed:', reply['error']['notes'][0])
+        staged_generation = store.generation
+        bytes_before = journal.read_bytes()
+        second = self.call('control_restore_confirm', {'confirm': 'invalidate earlier approvals'}, admin=True)
+        self.assertEqual(second['error'], {'code': 'journal_incomplete', 'message': RESTART_ADVICE})
+        self.assertEqual(journal.read_bytes(), bytes_before)
+        self.assertEqual(store.generation, staged_generation)
         self.assertEqual((reply['ok'], reply['error']['code']), (False, 'storage_limit'), reply)
         # Rolled back or not, the marker's sync failed: the lock stays.
         self.assertEqual(journal.read_bytes().splitlines()[-1].startswith(b'{"commit"'), rollback_fails)

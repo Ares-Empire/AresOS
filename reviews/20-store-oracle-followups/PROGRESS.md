@@ -2,14 +2,28 @@
 
 ## Build part 1 (steps 1 and 2)
 
-Status: **Build in progress; baseline established; next: step 2**.
+Status: **Build part 1 done; next: step 3**.
 
 ### Done
 
 - Step 1: baseline at `4a6acc2e`. `git fetch origin` returned exit 0;
   `HEAD` and `origin/main` both resolve to `4a6acc2e`, so no merge was needed.
-  The branch is `pkg/302-store-oracle`. Baseline commit: this commit.
-- Step 2: implementation and focused verification in progress.
+  The branch is `pkg/302-store-oracle`. Baseline commit: `2de6da86` (pushed).
+- Step 2: the implementation commit containing this section (hash recorded in
+  the closing handoff): `_append` reports actual rollback completion; only
+  `Store.write`'s first fence can clear the persistent latch. Fresh observations
+  hold the request barrier before dispatch and at later writable checks, through
+  reply finishing. Failed writes/flushes retain the first cause and queued notice.
+  Surviving latches refuse later writes with `journal_incomplete`; restart advice
+  is appended once after first-error selection and survives bounded replies.
+- The independent oracle records raw fence/marker write, sync and cleanup
+  completion, plus the position of a storage check whose decoded inputs were
+  already latched. Frozen `JournalAttempt` tuples survive unchanged bytes and
+  captured envelopes; restart ends running history. One shared rule supplies
+  status and request-state expectations. No store latch flag, returned error or
+  fault count supplies the expected latch. Reads need an actual write/check
+  attempt to permit a latch refusal. G22 is now an ordinary passing assertion;
+  its pin stays untouched until step 6. README/FORMAT document item 1 only.
 
 ### The baseline and the sample
 
@@ -72,16 +86,101 @@ points; attribution remains for the later capture on the same runtime.
 
 ### Item 1 tests and the barrier mutation
 
-Pending step 2.
+Final executable export: `control/test-work/302-exports/build302/`, whose path
+has the same length as the baseline export. Commands use `run.py`'s stand-in and
+import ordering described above. Every full matrix is excluded.
+
+- `python3 .work/302/run.py control/test-work/302-exports/build302 base test_owner_state_oracle test_review22_storage test_restore_batches test_review23_results test_journal_closed`:
+  **148 tests OK**, 45.782 s (`final-base.log`). The source at that run included
+  the store/barrier/advice changes; later oracle-only refinements were rechecked
+  with **127 tests OK**, 1.037 s, using the same runner with
+  `base test_owner_state_oracle` (`oracle-verified.log`). Restore peaks remain
+  217,066 / 217,069 bytes.
+- `python3 .work/302/run.py control/test-work/302-exports/build302 mail test_review_fixes_22 test_review_fixes_23 test_review_fixes_24 test_owner_state_regressions.ReviewRegressions.test_review22_zero_byte_journal_enospc_recovers_without_restart_M10_M13`:
+  **18 tests OK**, 11.699 s (`final-mail.log`). Includes G22 and the named
+  failed-pre-dispatch-flush regression. Its final strengthened test records the
+  caught pre-command refusal and asserts it outside Engine's exception handler.
+- `python3 .work/302/run.py control/test-work/302-exports/build302 mail test_review24_io test_review_fixes_24.Filing24.test_failed_predispatch_flush_blocks_effect_until_next_request`:
+  **3 tests OK**, 3.307 s (`raw-and-barrier-verified.log`): two raw-I/O tests and
+  the final named barrier regression (six variants: before dispatch / after
+  admission, each zero / short / fence-sync). Each failed request causes zero
+  DATA; the next explicit request succeeds without restart, exactly one DATA
+  and one APPEND in total. Separate coverage blocks reads and cancellation in
+  the failed request and permits their healthy retry.
+- `python3 .work/302/run.py control/test-work/302-exports/build302 mail sweep-units`:
+  **13 tests OK**, 93.305 s (`sweep-verified.log`). New tests execute **154 view
+  runs** (plus clean/discovery helpers), **198 unique checked phase identifiers**,
+  **3,994 other recorded gap keys**, and separately **77 phase/retry/restart
+  variants including 41 cleanup pairs**. Zero status and restore-lock gaps in
+  these cases. Covers both modes, live/exhausted/restarted phases, first fence,
+  index, staging, application, H and final confirm. Successful later confirm
+  ends the interrupted-confirm flag after safe first-fence rollback.
+- Store tests cover zero/short writes, fence fsync, truncate and rollback-sync
+  failure, index/staging/application and marker write/sync, ENOSPC/EDQUOT/EIO and
+  SQLite FULL/IOERR. They retain failed-write assertions, require healthy explicit
+  retry after proven rollback, preserve notes/advice/first error, refuse later
+  writes without changing bytes, and verify restart recovery. Both final-confirm
+  marker rollback outcomes retain the lock and staged generation; the second
+  confirm is `journal_incomplete` with no new write/generation, and restart
+  finishes the same generation without another owner confirmation.
+- Oracle table: 18 phase/completion/cleanup combinations, read-only/admission
+  controls, marker/fence identity, immutable entries, restart bounds, and both
+  first-error orderings. Raw read-handle SQLite close faults demonstrably return
+  no Python exception; they cannot displace the first propagated refusal.
+
+**Barrier removal mutation:** disposable `mutate02` export; exact patch in
+`.work/302/barrier-removal-final.patch`. Changed only the body of
+`Observations.require_writable` to `return`, disabling both request gates while
+retaining narrow latch clearing and the original final error envelope.
+
+`python3 .work/302/run.py control/test-work/302-exports/mutate02 mail test_review_fixes_24.Filing24.test_failed_predispatch_flush_blocks_effect_until_next_request`:
+**1 test, FAILED (failures=6)**, 3.032 s (`barrier-mutation-final.log`). Every
+variant fails `1 != 0 : Failed flush must cause zero SMTP DATA`, not an import,
+fixture or pin error. The same named baseline passed immediately beforehand in
+the 3-test run above. An earlier narrower mutation also failed the three
+pre-dispatch zero-DATA assertions (`barrier-mutant.log`); final evidence removes
+both gates and catches all six variants.
+
+**Compact sample after item 1:**
+`python3 .work/302/sample.py control/test-work/302-exports/build302 mail .work/302/after-item1`:
+104 runs / 135 checked phases, **2,345 keys** (`sample-verified.log`,
+`after-item1/sample.json`). Compared with baseline: **153 closed, 8 changed,
+0 new, 2,337 identical** (`sample-delta-final.json`). All seven full clean traces
+are byte-identical, not just equal point counts. Still zero `.restore-lock` keys.
+
+- The 153 closed keys are statuses: cancel 75, onboarding 6, repair 24, status 24,
+  send 24. They concern later latch refusals and the new independent expectations.
+- Four changed archive status deltas remove `journal_incomplete` from the expected
+  set for a read that attempted no write; the existing `stale_reference` defect
+  remains. Four cancel 1/2 envelope deltas retain the exact same missing reserved
+  row/count mismatch, now repeated on four log pages instead of two. A direct
+  before/after audit probe is saved as `audit-delta-{baseline,item1}.log`; live
+  checks can now write after safe first-fence rollback, extending the audit log.
+- H's row discrepancy remains a control: cancel 69 still shows model `reserved`
+  versus store `failed`. Item 2's startup proof and item 3's row correction have
+  not been built. No pin change or full-pin classification is claimed.
+
+Earlier non-green logs are retained, not represented as passes: the first oracle
+run exposed a hand-built Driver fixture without new trace state and an overly
+broad restore-lock status exception; the initial bounds test incorrectly assumed
+an already-shortened message needed fragment storage; the first retry sweep
+mistook a later read-only close failure for failed journal cleanup. Expanded
+samples then found first-error ordering and ignored SQLite-close issues. Those
+causes were fixed and tested; no assertion, FilePolicy rule or allowed set was
+weakened to hide a pin failure. `git diff --check` passes.
+
+Push checks so far: baseline commit's Repo privacy run **44319148928 passed**.
+Control workflows are path-filtered for that documentation-only push. The
+implementation push's observations are recorded in the closing handoff; no
+workflow is dispatched or awaited beyond this work.
 
 ### Left, in order
 
-1. Step 2: finish item 1 and its local oracle checks.
-2. Step 3: item 2, independent startup obligation and pre-confirm proof.
-3. Step 4: item 3, applied history, lifecycle ordering and alterations.
-4. Step 5: all remaining mutations and fresh reviews.
-5. Step 6: merge current main, re-pin once, full capture and proof.
-6. Final package/security reviews and independent classification review.
+1. Step 3: item 2, independent startup obligation and pre-confirm proof.
+2. Step 4: item 3, applied history, lifecycle ordering and alterations.
+3. Step 5: all remaining mutations and fresh reviews.
+4. Step 6: merge current main, re-pin once, full capture and proof.
+5. Final package/security reviews and independent classification review.
 
 ### What the code doesn't show
 
@@ -93,7 +192,10 @@ No OS, boot, mounted-disk, owner-module or mod tests belong to this run.
 ### JUDGMENT-CALLs
 
 The owner approved the brief's restart advice and continued visibility of saved
-rows on board #352. No new product decision so far.
+rows on board #352. No new product judgment call. Technical choices are reversible:
+the rollback fact is an attribute of the raised refusal, consumed only at the
+first fence; immutable raw history is stored on Record with an audited exclusion,
+and storage-check order on the script. No on-disk format changes.
 
 ### PLAN-GAPs
 
@@ -104,6 +206,18 @@ rows on board #352. No new product decision so far.
 - Historical onboarding 1439 does not represent the local first account marker;
   exercised it and 61/62 separately. The 40-point hosted difference remains
   unresolved, as the brief anticipated; no pin or point list was rewritten.
+- Adjacent `test_journal_closed` and Mail `test_review_fixes_22` also pinned the
+  old latch behaviour beyond the named modules. Updated only those expectations
+  to the new contract and ran both modules, adding a healthy explicit status retry.
+- The brief requires first-error preservation but does not spell out the ignored
+  raw SQLite read-close case. Recorded storage-check order, scoped raw faults to
+  each request and added an executable raw-I/O control rather than treating every
+  fault site as a propagated storage error. Intermediate sample regressions are
+  recorded above, with zero new keys after the correction.
+
+Closing scratch scan: no files over 500 MB under `.work/` or `control/test-work/`.
+No Gradle daemon was started. No installed/root/channel test, workflow dispatch,
+OS owner module, boot tool, mount or live-service action was run.
 
 ---
 
