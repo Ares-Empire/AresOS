@@ -2,7 +2,7 @@
 
 ## Build part 7 (the re-pin)
 
-Status: **Re-pinned; proof not yet dispatched**.
+Status: **Re-pinned; proof 44395635207 dispatched**.
 
 Started at `f8d77702` on `pkg/302-store-oracle`, existing draft PR #111. This run changes only the executable pin, its summary and this classification. Capture source is `6a818646`; `git diff 6a818646 HEAD -- control .github/workflows` was empty before the re-pin. No code, assertion, allowed set, workflow or format changed.
 
@@ -215,7 +215,7 @@ Per-list paths/bytes/SHA-256: `.work/302/repin/list-manifest.json`. Per-job fram
 
 ### Proof dispatch and Left, in order
 
-The pin/classification commit will be pushed normally, then exactly one `gh workflow run control-owner-oracle.yml --ref pkg/302-store-oracle -f ledger_only=false` will be dispatched on it. Its run ID will be recorded in the next progress-only commit. The lead, **linux-tools**, owns watching; this run will not watch, rerun or dispatch any other workflow.
+Pin/classification commit **`b2d50247`** was pushed normally from `f8d77702`. Then exactly one `gh workflow run control-owner-oracle.yml --ref pkg/302-store-oracle -f ledger_only=false` was dispatched on that committed pin. The command exited 0 and returned **[44395635207](https://github.com/Ares-Empire/AresOS/actions/runs/44395635207)** (receipt: `.work/302/repin/proof-dispatch.txt`). This progress-only commit records the ID and is pushed normally. No other workflow was dispatched, rerun or watched. The lead, **linux-tools**, owns watching; this build run stops here.
 
 1. **Proof green**: all 61 jobs, its **52** fresh actual lists reproduce the new pin byte for byte, all 12 alteration shards `slipped=0`; linux-tools watches it.
 2. **Control CI green twice**.
