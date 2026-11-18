@@ -95,6 +95,7 @@ Board brief 306, board #335. This is a handoff from `linux-hub` (2026-11-17) to 
   53a's brief goes straight to one Codex review (Claude at 80% this week).
 - **Codex pace** (`mac-capacity`, 2026-11-18 16:50): 88% left at 16:44. The average must stay near 1.6%/h until Fri
   12:00, so 20% is left for the Fri–Sat reviews. Until Thu 00:00: one Codex build at a time (53c run A starts after
-  53b's build). **From Thu 00:00 (Claude's new week): builds go to Claude Opus agents**, and Codex does the
+  53b's build). ~~From Thu 00:00 builds go to Claude Opus agents~~ **(replaced 2026-11-18 21:50: builds stay on Codex Sol until
+  Sat, one at a time per lead, at about 2%/h across all leads; Claude for design, UI and what Codex does poorly)**, and Codex does the
   cross-reviews (`gpt-6.2-sol` by default, `gpt-6.2-astra` only where the stakes need it, such as 53c's security
   pass). Codex's second-model review is the part Claude can't replace.
