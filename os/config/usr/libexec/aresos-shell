@@ -134,6 +134,7 @@ DESKTOP_APP_IDS = frozenset({'aresos-desktop'})
 # over the game's own loading screens until world_ready. It never counts as covering the world and is never minimized:
 # labwc activates the game's window under it, and minimizing it then would show those loading screens after all.
 STARTUP_COVER_APP_ID = 'aresos.cover'
+LAPTOP_HOME_APP_ID = 'aresos.laptop-home'
 BASE_CAPABILITIES = frozenset({'list_apps', 'open_app', 'app_state', 'world_ready', 'heartbeat'})
 DETAIL_CAPABILITIES = frozenset({'app_details', 'apps_changed', 'list_paging'})
 VIEW_CAPABILITIES = frozenset({'views', 'home_state', 'apps_running'})
@@ -2584,6 +2585,8 @@ class Windows:
             self.closed.append(toplevel)
 
     def _owner(self, toplevel, seen):
+        if toplevel.app_id == LAPTOP_HOME_APP_ID:
+            return None
         if toplevel.app_id in DESKTOP_APP_IDS:
             return self.SHELL
         if toplevel.app_id in self.owners:
@@ -2622,7 +2625,8 @@ class Windows:
         return opened, closed
 
     def active(self):
-        return next((t for t in self.toplevels.values() if t.ready and t.activated), None)
+        return next((t for t in self.toplevels.values()
+                     if t.ready and t.activated and t.app_id != LAPTOP_HOME_APP_ID), None)
 
     def of(self, owner):
         return [t for t in self.toplevels.values() if t.ready and t.owner == owner]
@@ -2638,7 +2642,7 @@ class Windows:
         An output list the compositor has not sent yet counts as the same screen, as with a single screen: for the
         pause that errs toward pausing. With known_screen only windows on a screen known to be the desktop's count:
         the ones uncovering minimizes, because hiding a window that may be on the other screen is not harmless
-        (package 40, review 1, finding 4). Package 23b's start-up cover never counts.
+        (package 40, review 1, finding 4). The start-up cover and laptop home never count.
         """
         desktop = self.of(self.SHELL)
         if not desktop:
@@ -2651,7 +2655,8 @@ class Windows:
             return not screens or not toplevel.outputs or bool(toplevel.outputs & screens)
 
         return [t for t in self.toplevels.values()
-                if t.ready and t.owner != self.SHELL and t.app_id != STARTUP_COVER_APP_ID and not t.minimized
+                if t.ready and t.owner != self.SHELL
+                and t.app_id not in (STARTUP_COVER_APP_ID, LAPTOP_HOME_APP_ID) and not t.minimized
                 and (t.maximized or t.fullscreen) and on_its_screen(t)]
 
 
@@ -3552,7 +3557,8 @@ class Helper:
         self.journal.save()
         self.processes[key] = process
         # A deliberate launch says where he wants to be: an earlier close's pending return is dropped (finding 4).
-        self.cancel_returns()
+        if key[0] == DESKTOP:
+            self.cancel_returns()
         if app.discovered:
             self.discovered_scopes[unit] = dict(app_id=app_id, state=ACTIVE, started=entry['started'],
                                                launch_key=key, process=process)
@@ -4016,7 +4022,8 @@ class Helper:
                 if key not in self.view_only_apps and (self.window_minor >= 1 or not app.discovered)}
 
     def unowned_windows(self):
-        return [toplevel for toplevel in self.windows.toplevels.values() if toplevel.ready and toplevel.owner is None]
+        return [t for t in self.windows.toplevels.values()
+                if t.ready and t.owner is None and t.app_id != LAPTOP_HOME_APP_ID]
 
     def return_to_desktop(self, app):
         """The foreground app's last relevant window closed: give the hub its focus back."""

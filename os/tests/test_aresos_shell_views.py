@@ -84,6 +84,16 @@ class ViewBase(Base):
 
 
 class AuthenticationTest(ViewBase):
+    def test_only_desktop_launches_cancel_a_pending_return(self):
+        helper = self.start(tracked=True)
+        desktop, view = self.desktop(helper), self.view(helper)
+        pending = (self.clock() + shell.HANDOFF, True, 7)
+        helper.discovered_closing[WEB.id] = pending
+        self.assertTrue(self.call(helper, view, 'open_app', app_id='notepad')['ok'])
+        self.assertEqual(helper.discovered_closing[WEB.id], pending)
+        self.assertTrue(self.call(helper, desktop, 'open_app', app_id='notepad')['ok'])
+        self.assertEqual(helper.discovered_closing[WEB.id], (pending[0], False, pending[2]))
+
     def test_view_leaves_desktop_connection_readiness_window_rules_and_returns_alone(self):
         status = mock.Mock()
         helper = self.start(tracked=True, status=status)
@@ -592,6 +602,37 @@ class WindowViewsTest(ViewBase):
                         helper.windows_changed()
                         self.assertEqual(desktop.events('shell_focus')[-1]['reason'], 'desktop_activated')
                         self.assertEqual(self.activations, [])
+
+    def test_laptop_home_does_not_cover_or_interfere_with_return(self):
+        helper = self.start(tracked=True)
+        self.desktop(helper)
+        self.view(helper)
+        windows = helper.windows
+        self.show(windows, 1, GAME, active=True, outputs=(1,))
+        helper.windows_changed()
+        self.show(windows, 2, 'aresos.laptop-home', maximized=True)  # compositor has not named the output yet
+        self.assertEqual(windows.covering(), [])
+        windows.output(2, 1, True)
+        windows.done(2)
+        self.assertEqual(windows.covering(known_screen=True), [])
+
+        windows.state(1, False)
+        windows.done(1)
+        self.show(windows, 3, NOTEPAD, active=True, outputs=(1,))
+        helper.windows_changed()
+        windows.gone(3)
+        windows.state(2, True, fullscreen=True)
+        windows.done(2)
+        helper.windows_changed()
+        self.assertEqual(self.activations, [1])
+        self.assertIsNone(windows.active())
+
+    def test_laptop_home_is_not_an_unknown_app(self):
+        helper = self.start(tracked=True)
+        self.show(helper.windows, 1, 'aresos.laptop-home')
+        self.show(helper.windows, 2, 'aresos.cover')
+        self.show(helper.windows, 3, 'unknown-app')
+        self.assertEqual([t.handle for t in helper.unowned_windows()], [2, 3])
 
     def test_focus_uses_last_window_closed_in_a_batch(self):
         helper = self.start(tracked=True)
