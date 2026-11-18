@@ -9,7 +9,8 @@ set -euo pipefail
 rig=${1:?usage: check-flight.sh <rig folder> [glide]}
 how=${2:-roads}
 shot=$(cd -- "$(dirname -- "$0")/../../40-real-home/rig" && pwd)/shot.sh
-vin() { echo "$*" >"$rig/vin"; }
+here=$(cd -- "$(dirname -- "$0")" && pwd)
+vin() { python3 -I "$here/input.py" "$rig" "$@"; }
 mkdir -p "$rig/shots"
 chat() { vin key slash; sleep 0.5; vin type "$1"; sleep 0.3; vin key enter; sleep 0.5; }
 vin key h; sleep 1.5

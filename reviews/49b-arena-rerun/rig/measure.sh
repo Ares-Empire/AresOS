@@ -237,7 +237,6 @@ if [[ $MODE == create && $HOMEKIND == flat ]]; then
 fi
 
 if [[ $MODE == hold ]]; then
-    kill "$health" 2>/dev/null || true; wait "$health" 2>/dev/null || true; health=
     echo "$(date +%T) holding: drive it with $RIG/vin, stop it by quitting the game"
     while kill -0 "$game" 2>/dev/null; do sleep 2; done
     exit 0
