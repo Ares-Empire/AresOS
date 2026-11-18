@@ -111,6 +111,8 @@ class InstallMapTest(unittest.TestCase):
         self.assertEqual(record['format'], 1)
         self.assertEqual(record['requirements_lock'], sha256((CONTROL / 'requirements.lock').read_bytes()))
         self.assertEqual(record['chrome_build'], build)
+        gh = json.loads((ROOT / 'os/gh.lock.json').read_text())
+        self.assertEqual(record['gh'], dict(version=gh['nevra'].split('-')[1], binary_sha256=gh['binary_sha256']))
         self.assertNotIn('chrome_extension', record, 'control-tree must not sign a bundle')
         self.assertEqual(list((dest / 'usr/share/aresos/chrome').iterdir()), [])
         self.assertEqual(record['links'], dict([LINK], **CHROME_LINKS))
@@ -191,6 +193,7 @@ class InstallMapTest(unittest.TestCase):
         # Another declared account changes every derived value and nothing else.
         other = self.work / 'os'
         (other / 'config/usr/lib/sysusers.d').mkdir(parents=True)
+        shutil.copyfile(ROOT / 'os/gh.lock.json', other / 'gh.lock.json')
         declaration = (ROOT / 'os/config/usr/lib/sysusers.d/aresos.conf').read_text()
         (other / 'config/usr/lib/sysusers.d/aresos.conf').write_text(
             declaration.replace('1001', '1002').replace(' ares ', ' pat ').replace('/var/home/ares', '/var/home/pat'))
@@ -321,7 +324,7 @@ class ImageCheckTest(unittest.TestCase):
         result = check(changed)
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("control.json files differs at: ['/usr/share/aresos/control/service.json']", result.stderr)
-        for key, value in (('requirements_lock', '0' * 64), ('chrome_build', '0' * 64), ('links', {}), ('directories', {}),
+        for key, value in (('requirements_lock', '0' * 64), ('chrome_build', '0' * 64), ('gh', {}), ('links', {}), ('directories', {}),
                            ('vendor', {'/usr/lib/python3.14/site-packages/mcp': dict(mode='0755', sha256=None)})):
             self.assertNotEqual(check(dict(record, **{key: value})).returncode, 0, key)
         extra = json.loads(json.dumps(record))
@@ -1042,6 +1045,234 @@ class ContainerfileTest(unittest.TestCase):
         build = (ROOT / 'os/build.sh').read_text()
         self.assertIn('"AresOS-$revision/control"', build.split('if [[ $1 == source ]]', 1)[1].split('\nfi\n', 1)[0])
 
+
+
+class GhImageTest(unittest.TestCase):
+    """Exercise the packages step's checks, without importing any host RPM key."""
+    def setUp(self):
+        self.work = pathlib.Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, self.work)
+        self.code = heredoc('os/build.sh', "python3 - /tmp/aresos /tmp/ares-gh / <<'PY'\n")
+        self.ns = {'__name__': 'gh_fixture'}
+        exec(compile(self.code, 'build.sh gh', 'exec'), self.ns)
+        self.pin = json.loads((ROOT / 'os/gh.lock.json').read_text())
+        self.key = ROOT / 'os' / self.pin['signing_key']['file']
+        self.package = self.work / 'gh.rpm'
+        self.package.write_bytes(b'fixture rpm')
+        self.pin['sha256'] = sha256(self.package.read_bytes())
+        self.fingerprint = self.pin['signing_key']['fingerprint']
+        self.scripts = ''
+        self.nevra = self.pin['nevra']
+        self.signature = (str(self.package) + ':\n    Header OpenPGP V4 RSA/SHA512 signature, key fingerprint: '
+                          + self.fingerprint + ': OK\n    Header SHA256 digest: OK\n    Payload SHA256 digest: OK\n')
+        self.base = 'a' * 40 + ' fixture base key'
+        self.added = self.fingerprint + ' fixture signing key'
+        self.keys = [self.base]
+        self.import_extra = False
+        self.leave_key = False
+        self.calls = []
+
+    def output(self, *args):
+        self.calls.append(args)
+        if args == ('rpmkeys', '--list'):
+            return '\n'.join(self.keys) + '\n'
+        if args[:3] == ('rpmkeys', '--checksig', '--verbose'):
+            return self.signature
+        if args[:3] == ('rpm', '-qp', '--nosignature'):
+            if '--scripts' in args:
+                self.assertIn('--triggers', args)
+                self.assertIn('--filetriggers', args)
+                return self.scripts
+            return self.nevra
+        self.fail(f'Unexpected command: {args}')
+
+    def command(self, args, **kwargs):
+        self.calls.append(tuple(args))
+        if args[:2] == ['rpmkeys', '--import']:
+            self.keys.append(self.added)
+            if self.import_extra:
+                self.keys.append('b' * 40 + ' fixture second imported key')
+        elif args[:2] == ['rpmkeys', '--delete']:
+            if not self.leave_key:
+                self.keys = [row for row in self.keys if row.split()[0] != args[2]]
+        elif args[0] == 'curl':
+            self.assertIn('--proto-redir', args)
+            self.assertEqual(args[args.index('--proto') + 1], '=https')
+            pathlib.Path(args[args.index('-o') + 1]).write_bytes(self.package.read_bytes())
+        elif args[0] == 'cpio':
+            self.assertEqual(args, ['cpio', '--extract', '--to-stdout', '--quiet', './usr/bin/gh'])
+            self.assertEqual(self.keys, [self.base], 'key cleanup must precede extraction')
+            kwargs['stdout'].write(b'fixture binary')
+        else:
+            self.fail(f'Unexpected mutation command: {args}')
+        return subprocess.CompletedProcess(args, 0)
+
+    @contextlib.contextmanager
+    def fixtures(self):
+        with patch.dict(self.ns, output=self.output, check_key=lambda *args: None), \
+                patch('subprocess.run', self.command):
+            yield
+
+    def verify(self):
+        with self.fixtures():
+            self.ns['verify_rpm'](self.pin, self.key, self.package, self.work)
+
+    def test_lock_shape_order_provenance_and_committed_licence(self):
+        pin = json.loads((ROOT / 'os/gh.lock.json').read_text())
+        self.assertEqual(list(pin), ['nevra', 'url', 'sha256', 'signing_key', 'binary_sha256', 'license_sha256'])
+        key = pin['signing_key']
+        self.assertEqual(list(key)[:4], ['file', 'source', 'sha256', 'fingerprint'])
+        self.assertEqual(key['file'], 'keys/github-cli-rpm.pub')
+        for digest in (pin['sha256'], pin['binary_sha256'], pin['license_sha256'], key['sha256'], key['source_sha256']):
+            self.assertRegex(digest, r'^[0-9a-f]{64}$')
+        self.assertEqual(key['fingerprint'], '7f38bbb59d064dbcb3d84d725612b36462313325')
+        self.assertEqual(key['provenance']['published_fingerprints'],
+                         ['2c6106201985b60e6c7ac87323f3d4ea75716059', key['fingerprint']])
+        self.assertEqual(key['source'], 'https://cli.github.com/packages/githubcli-archive-keyring.asc')
+        self.assertTrue(key['provenance']['documentation'].startswith('https://github.com/cli/cli/'))
+        self.assertTrue(key['provenance']['confirmation'])
+        self.assertEqual(sha256(self.key.read_bytes()), key['sha256'])
+        self.assertEqual(sha256((ROOT / 'os/config/usr/share/licenses/gh/LICENSE').read_bytes()), pin['license_sha256'])
+        version = re.fullmatch(r'gh-(\d+\.\d+\.\d+)-1.x86_64', pin['nevra']).group(1)
+        self.assertEqual(pin['url'], f'https://github.com/cli/cli/releases/download/v{version}/gh_{version}_linux_amd64.rpm')
+        self.assertGreaterEqual(tuple(map(int, version.split('.'))), (2, 102, 0))
+
+    def test_committed_key_is_exactly_one_and_second_key_is_refused(self):
+        self.ns['check_key'](self.key, self.fingerprint, self.work)
+        second = self.work / 'two-keys.pub'
+        second.write_bytes(self.key.read_bytes() + (ROOT / 'os/keys/google-linux-signing-key.pub').read_bytes())
+        with self.assertRaisesRegex(AssertionError, 'exactly the pinned primary key'):
+            self.ns['check_key'](second, self.fingerprint, self.work)
+        with self.assertRaisesRegex(AssertionError, 'exactly the pinned primary key'):
+            self.ns['check_key'](self.key, '0' * 40, self.work)
+
+    def test_valid_rpm_and_all_imported_keys_are_removed(self):
+        self.import_extra = True
+        self.verify()
+        self.assertEqual(self.keys, [self.base])
+        deleted = [c[2] for c in self.calls if c[:2] == ('rpmkeys', '--delete')]
+        self.assertEqual(set(deleted), {self.fingerprint, 'b' * 40})
+
+    def test_wrong_rpm_hash_and_key_hash_stop_before_import(self):
+        for field in ('rpm', 'key'):
+            with self.subTest(field=field):
+                pin = copy.deepcopy(self.pin)
+                if field == 'rpm':
+                    self.pin['sha256'] = '0' * 64
+                else:
+                    self.pin['signing_key']['sha256'] = '0' * 64
+                with self.assertRaisesRegex(AssertionError, 'differs from its pin'):
+                    self.verify()
+                self.assertFalse(any(c[:2] == ('rpmkeys', '--import') for c in self.calls))
+                self.pin = pin
+
+    def test_wrong_nevra_and_rpm_with_script_are_refused_before_import(self):
+        self.nevra = 'gh-0.0.0-1.x86_64'
+        with self.assertRaisesRegex(AssertionError, 'NEVRA'):
+            self.verify()
+        self.nevra = self.pin['nevra']
+        self.scripts = 'postinstall scriptlet (using /bin/sh):\necho fixture\n'
+        with self.assertRaisesRegex(AssertionError, 'scripts or triggers'):
+            self.verify()
+        self.assertFalse(any(c[:2] == ('rpmkeys', '--import') for c in self.calls))
+
+    def test_bad_signature_lines_other_key_and_nonzero_verifier_fail(self):
+        good = self.signature
+        for bad in (good.replace('digest: OK', 'digest: BAD'),
+                    good.replace(self.fingerprint, '0' * 40),
+                    good + 'unrecognized diagnostic\n', str(self.package) + ':\n',
+                    good.replace('Header OpenPGP', 'Payload OpenPGP')):
+            with self.subTest(bad=bad):
+                self.signature = bad
+                with self.assertRaisesRegex(AssertionError, 'signature|fingerprint'):
+                    self.verify()
+                self.assertEqual(self.keys, [self.base])
+        real = self.output
+        def failed(*args):
+            if args[:2] == ('rpmkeys', '--checksig'):
+                raise subprocess.CalledProcessError(1, args)
+            return real(*args)
+        with self.fixtures(), patch.dict(self.ns, output=failed):
+            with self.assertRaises(subprocess.CalledProcessError):
+                self.ns['verify_rpm'](self.pin, self.key, self.package, self.work)
+        self.assertEqual(self.keys, [self.base])
+
+    def test_leftover_imported_key_is_refused(self):
+        self.leave_key = True
+        with self.assertRaisesRegex(AssertionError, 'changed RPM keyring'):
+            self.verify()
+
+    def install(self, binary_hash=None, license_hash=None):
+        source, dest = self.work / 'os', self.work / 'image'
+        source.mkdir(exist_ok=True)
+        (source / 'keys').mkdir(exist_ok=True)
+        shutil.copyfile(self.key, source / 'keys/github-cli-rpm.pub')
+        license = source / 'config/usr/share/licenses/gh/LICENSE'
+        license.parent.mkdir(parents=True, exist_ok=True)
+        license.write_bytes(b'fixture licence')
+        self.pin['binary_sha256'] = binary_hash or sha256(b'fixture binary')
+        self.pin['license_sha256'] = license_hash or sha256(license.read_bytes())
+        (source / 'gh.lock.json').write_text(json.dumps(self.pin))
+        (dest / 'usr/bin').mkdir(parents=True, exist_ok=True)
+        (dest / 'usr/share/aresos/manifest').mkdir(parents=True, exist_ok=True)
+        self.signature = self.signature.replace(str(self.package), str(self.work / 'download/gh.rpm'))
+        class RpmPipe:
+            def __init__(pipe, args, **kwargs):
+                self.assertEqual(args, ['rpm2cpio', str(self.work / 'download/gh.rpm')])
+                pipe.stdout = io.BytesIO(b'fixture cpio')
+            def __enter__(pipe): return pipe
+            def __exit__(pipe, *args): pipe.stdout.close()
+            def wait(pipe): return 0
+        with self.fixtures(), patch('subprocess.Popen', RpmPipe), patch('os.chown') as chown:
+            self.ns['install_gh'](source, self.work / 'download', dest)
+        self.assertEqual(chown.call_args_list[0].args, (dest / 'usr/bin/gh', 0, 0))
+        return dest
+
+    def test_extracts_only_binary_and_lock_with_modes_and_cleans_scratch(self):
+        dest = self.install()
+        self.assertEqual({p.relative_to(dest).as_posix() for p in dest.rglob('*') if p.is_file()},
+                         {'usr/bin/gh', 'usr/share/aresos/manifest/gh.lock.json'})
+        self.assertEqual((dest / 'usr/bin/gh').read_bytes(), b'fixture binary')
+        self.assertEqual((dest / 'usr/bin/gh').stat().st_mode & 0o777, 0o755)
+        self.assertEqual((dest / 'usr/share/aresos/manifest/gh.lock.json').stat().st_mode & 0o777, 0o644)
+        self.assertFalse((self.work / 'download').exists())
+
+    def test_wrong_binary_hash_and_licence_hash_refused(self):
+        for kw, message in (({'binary_hash': '0' * 64}, 'gh binary'),
+                            ({'license_hash': '0' * 64}, 'gh licence')):
+            with self.subTest(kw=kw), self.assertRaisesRegex(AssertionError, message):
+                self.install(**kw)
+            self.assertFalse((self.work / 'image/usr/bin/gh').exists())
+            self.assertFalse((self.work / 'download').exists())
+
+    def test_resolve_is_informational_on_success_failure_and_malformed_reply(self):
+        code = heredoc('os/ci/check-resolve.sh', "python3 - /tmp/aresos/gh.lock.json <<'PY' | tee \"$out/gh.txt\" || true\n")
+        for response in ('{"tag_name":"v9.8.7"}', '{}', '{', '{"tag_name":"injected\\nline"}', None):
+            stream = io.StringIO()
+            with patch.object(sys, 'argv', ['-', str(ROOT / 'os/gh.lock.json')]), \
+                    patch('subprocess.check_output', return_value=response,
+                          side_effect=subprocess.CalledProcessError(22, ['curl']) if response is None else None), \
+                    contextlib.redirect_stdout(stream):
+                exec(compile(code, 'check-resolve.sh gh', 'exec'), {})
+            text = stream.getvalue()
+            self.assertEqual(len(text.splitlines()), 1)
+            self.assertIn('INFO gh newest=', text)
+            self.assertIn('pinned=' + self.pin['nevra'], text)
+            self.assertIn('v9.8.7' if response == '{"tag_name":"v9.8.7"}' else 'unavailable (lookup failed)', text)
+
+    def test_packages_key_list_spans_both_imports_and_image_checks_are_wired(self):
+        build = (ROOT / 'os/build.sh').read_text()
+        before = build.index('rpmkeys --list | sort > /tmp/ares-chrome/keys-before.txt')
+        self.assertLess(before, build.index('rpmkeys --import /tmp/aresos/keys/google-linux-signing-key.pub'))
+        self.assertLess(build.index(self.code), build.index('cmp /tmp/ares-chrome/keys-before.txt /tmp/ares-chrome/keys-final.txt'))
+        self.assertIn("'Installed gh binary differs from control.json'", build)
+        image = (ROOT / 'os/ci/image-checks.sh').read_text()
+        for token in ('CONTROL_GH_IMAGE_PASS', "['rpm', '-q', 'gh']", 'license_sha256', "['runuser', '-u', 'ares', '--']"):
+            self.assertIn(token, image)
+        check = (ROOT / 'os/ci/check-image.sh').read_text()
+        self.assertIn("('gh.lock.json', json.loads(pathlib.Path('os/gh.lock.json').read_text()))", check)
+        self.assertIn("'chrome_build', 'gh'):", check)
+        self.assertIn('CONTROL_GH_CHECKOUT_PASS', check)
 
 if __name__ == '__main__':
     unittest.main()

@@ -232,6 +232,9 @@ sources = {**{rel: f'control/{source}' for rel, (source, _) in FILES.items()},
 record = dict(format=1, files={}, directories={'/' + CHROME: '0755'},
               links={'/' + link: '/' + UNIT, **{'/' + name: value for name, value in CHROME_LINKS.items()}},
               requirements_lock=sha256(control / 'requirements.lock'), chrome_build=build)
+gh = json.loads((os_dir / 'gh.lock.json').read_text())
+gh_version = re.fullmatch(r'gh-(\d+\.\d+\.\d+)-[^-]+\.x86_64', gh['nevra']).group(1)
+record['gh'] = dict(version=gh_version, binary_sha256=gh['binary_sha256'])
 for path in walk(*OWN, *FILES, *DERIVED):
     rel = path.relative_to(dest).as_posix()
     if path.is_symlink():
@@ -298,6 +301,12 @@ PY
     if [[ $1 == control-tree ]]; then
         exit 0
     fi
+    python3 - <<'PY'
+import hashlib, json, pathlib
+gh = json.loads(pathlib.Path('/usr/share/aresos/manifest/control.json').read_text())['gh']
+assert hashlib.sha256(pathlib.Path('/usr/bin/gh').read_bytes()).hexdigest() == gh['binary_sha256'], \
+    'Installed gh binary differs from control.json'
+PY
     # Self-checks: a broken tree fails the build here. The installed launcher
     # (root-owned, no symlinks, nothing writable: launch.py checks all of it)...
     /usr/bin/aresos --help > /tmp/ares-control/help.txt
@@ -372,6 +381,7 @@ assert hashlib.sha256(package.read_bytes()).hexdigest() == pin['sha256'], 'Googl
 nevra = subprocess.check_output(['rpm', '-qp', '--nosignature', '--qf', '%{NEVRA}', str(package)], text=True)
 assert nevra == pin['nevra'], f'Google Chrome RPM is {nevra}, pinned {pin["nevra"]}'
 PY
+    rpmkeys --list | sort > /tmp/ares-chrome/keys-before.txt
     rpmkeys --import /tmp/aresos/keys/google-linux-signing-key.pub
     chrome_key=$(python3 -c 'import json; print(json.load(open("/tmp/aresos/google-chrome.lock.json"))["signing_key"]["fingerprint"])')
     rpmkeys --checksig --verbose /tmp/ares-chrome/google-chrome.rpm | tee /tmp/ares-chrome/checksig.txt
@@ -387,7 +397,12 @@ PY
     dnf5 --disable-repo='*' --setopt=install_weak_deps=False --setopt=localpkg_gpgcheck=True install -y \
         /tmp/ares-rpms/*.rpm /tmp/ares-chrome/google-chrome.rpm
     # The key was needed only to verify this RPM; the image trusts no new key.
-    rpmkeys --delete "$chrome_key"
+    rpmkeys --list | sort > /tmp/ares-chrome/keys-imported.txt
+    while read -r fingerprint rest; do
+        rpmkeys --delete "$fingerprint"
+    done < <(comm -13 /tmp/ares-chrome/keys-before.txt /tmp/ares-chrome/keys-imported.txt)
+    rpmkeys --list | sort > /tmp/ares-chrome/keys-after.txt
+    cmp /tmp/ares-chrome/keys-before.txt /tmp/ares-chrome/keys-after.txt
     # /opt is /var/opt on bootc and is not replaced by an image update. Keep
     # Chrome in the image under /usr/lib/opt, as rpm-ostree does, with direct
     # commands; tmpfiles links /opt/google there at boot for anything else.
@@ -406,6 +421,115 @@ PY
         exit 1
     fi
     cp /tmp/aresos/google-chrome.lock.json /usr/share/aresos/manifest/google-chrome.lock.json
+    # gh's RPM depends on git, which the verifier does not need. Verify the
+    # package, then take only its binary; never install the RPM or run scripts.
+    python3 - /tmp/aresos /tmp/ares-gh / <<'PY'
+import hashlib, json, os, pathlib, re, shutil, subprocess, sys, tempfile
+
+
+def digest(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def output(*args):
+    return subprocess.check_output(args, text=True, stderr=subprocess.STDOUT)
+
+
+def keyring():
+    return sorted(output('rpmkeys', '--list').splitlines())
+
+
+def check_key(key, fingerprint, work):
+    # A throwaway home avoids the builder's keyring, config and key discovery.
+    with tempfile.TemporaryDirectory(dir=work) as home:
+        rows = output('gpg', '--no-options', '--homedir', home, '--batch', '--no-autostart',
+                      '--no-auto-key-retrieve', '--auto-key-locate', 'clear', '--with-colons',
+                      '--import-options', 'show-only', '--import', str(key)).splitlines()
+    primary, kind = [], None
+    for row in rows:
+        fields = row.split(':')
+        if fields[0] in ('pub', 'sub'):
+            kind = fields[0]
+        elif fields[0] == 'fpr' and kind == 'pub':
+            primary.append(fields[9].lower())
+    assert primary == [fingerprint], 'gh key file must hold exactly the pinned primary key'
+
+
+def check_signature(text, package, fingerprint):
+    lines = text.splitlines()
+    assert lines and lines[0] == str(package) + ':', 'gh signature output has no package header'
+    assert len(lines) > 1 and all(re.fullmatch(r'\s+.+: OK', line) for line in lines[1:]), \
+        'gh signature check reported a line that is not OK'
+    assert any(re.fullmatch(r'\s+Header OpenPGP .*signature, key fingerprint: ' + fingerprint + r': OK', line)
+               for line in lines[1:]), 'gh header was not signed by the pinned fingerprint'
+
+
+def verify_rpm(pin, key, package, work):
+    assert digest(package) == pin['sha256'], 'gh RPM differs from its pin'
+    assert digest(key) == pin['signing_key']['sha256'], 'gh key differs from its pin'
+    fingerprint = pin['signing_key']['fingerprint']
+    check_key(key, fingerprint, work)
+    nevra = output('rpm', '-qp', '--nosignature', '--qf', '%{NEVRA}', str(package)).strip()
+    assert nevra == pin['nevra'], 'gh RPM NEVRA differs from its pin'
+    scripts = output('rpm', '-qp', '--nosignature', '--scripts', '--triggers', '--filetriggers', str(package))
+    assert not scripts.strip(), 'gh RPM carries scripts or triggers'
+    before = keyring()
+    try:
+        subprocess.run(['rpmkeys', '--import', str(key)], check=True)
+        signed = output('rpmkeys', '--checksig', '--verbose', str(package))
+        check_signature(signed, package, fingerprint)
+    finally:
+        # Imports may add more than one key. Never assume deleting one key ID
+        # restores trust; compare the complete key list even after a failure.
+        for row in sorted(set(keyring()) - set(before)):
+            added = row.split()[0]
+            assert re.fullmatch('[0-9a-f]{40,64}', added), 'Unrecognized RPM key fingerprint'
+            subprocess.run(['rpmkeys', '--delete', added], check=True)
+        assert keyring() == before, 'gh import left a changed RPM keyring'
+    print('CONTROL_GH_RPM_PASS ' + pin['nevra'] + ' ' + fingerprint)
+
+
+def install_gh(os_dir, work, dest):
+    pin = json.loads((os_dir / 'gh.lock.json').read_text())
+    work.mkdir()
+    try:
+        package = work / 'gh.rpm'
+        subprocess.run(['curl', '-fsSL', '--proto', '=https', '--proto-redir', '=https', '--tlsv1.2',
+                        '--retry', '3', '-o', str(package), pin['url']], check=True)
+        verify_rpm(pin, os_dir / pin['signing_key']['file'], package, work)
+        binary = work / 'gh'
+        # cpio writes only the requested member to stdout, never RPM paths to
+        # the filesystem. Both processes must succeed before the hash check.
+        with binary.open('xb') as stream, subprocess.Popen(['rpm2cpio', str(package)], stdout=subprocess.PIPE) as rpm:
+            extracted = subprocess.run(['cpio', '--extract', '--to-stdout', '--quiet', './usr/bin/gh'],
+                                       stdin=rpm.stdout, stdout=stream)
+            rpm.stdout.close()
+            assert rpm.wait() == 0, 'gh rpm2cpio failed'
+            extracted.check_returncode()
+        assert digest(binary) == pin['binary_sha256'], 'gh binary differs from its pin'
+        license = os_dir / 'config/usr/share/licenses/gh/LICENSE'
+        assert digest(license) == pin['license_sha256'], 'gh licence differs from its pin'
+        target = dest / 'usr/bin/gh'
+        assert not target.exists() and not target.is_symlink(), 'gh already exists in the base'
+        shutil.copyfile(binary, target)
+        target.chmod(0o755)
+        os.chown(target, 0, 0)
+        assert digest(target) == pin['binary_sha256'], 'Installed gh differs from its pin'
+        manifest = dest / 'usr/share/aresos/manifest/gh.lock.json'
+        shutil.copyfile(os_dir / 'gh.lock.json', manifest)
+        manifest.chmod(0o644)
+        os.chown(manifest, 0, 0)
+        print('CONTROL_GH_INSTALL_PASS ' + pin['nevra'] + ' ' + pin['binary_sha256'])
+    finally:
+        shutil.rmtree(work)
+
+
+if __name__ == '__main__':
+    install_gh(*(pathlib.Path(arg) for arg in sys.argv[1:]))
+PY
+    rpmkeys --list | sort > /tmp/ares-chrome/keys-final.txt
+    cmp /tmp/ares-chrome/keys-before.txt /tmp/ares-chrome/keys-final.txt
+    echo 'CONTROL_GH_KEYRING_PASS: RPM key list equals the base before Chrome and gh imports'
     # Package 23: Prism Launcher's official Linux bundle and the desktop's
     # Fabric inputs, each from its pinned URL and accepted only with its pinned
     # SHA-256 and size (os/minecraft/desktop.lock.json). The AresOS mod jar is

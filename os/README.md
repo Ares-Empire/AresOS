@@ -132,7 +132,14 @@ The image carries no excluded-sites list. At boot tmpfiles creates
 `/var/lib/aresos-control/chrome-excluded-sites.json` as a refused format-0
 placeholder; Chrome reads and actions stay refused until the owner writes
 his format-1 list. A later boot preserves the content and restores its
-root ownership, service group and 0640 mode. `gh` remains step 3b of 18c-b.
+root ownership, service group and 0640 mode. The qualification verifier's `gh`
+comes from `gh.lock.json`: exact RPM bytes and NEVRA, no scripts or triggers,
+and a header signature verified by the single committed GitHub CLI key.
+Only the pinned binary is extracted; its licence is committed with its hash.
+No gh RPM, repository, git dependency, completions or signing trust is installed.
+The packages step restores the RPM key list after both Chrome and gh imports;
+the image and checkout checks bind the binary and its `control.json` record to
+the reviewed lock. Resolve reports the latest gh release as information only.
 The config's owner UID and home come from `ares`'s `sysusers.d` line; the tools
 may use `~/Downloads` and `~/Documents`, which tmpfiles makes at boot when they
 are missing and leaves alone when they exist. `/usr/share/aresos/manifest/control.json`

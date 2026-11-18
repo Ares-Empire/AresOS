@@ -298,6 +298,50 @@ done
 python3 /usr/libexec/aresos-audit --output /tmp/updaters.json
 pass 'automatic updaters masked; Flatpak helpers available; static updater audit passes'
 
+# --- gh is one pinned binary, not an installed RPM or a repository.
+python3 - <<'PY'
+import hashlib, json, pathlib, re, stat, subprocess
+pin = json.loads(pathlib.Path('/usr/share/aresos/manifest/gh.lock.json').read_text())
+record = json.loads(pathlib.Path('/usr/share/aresos/manifest/control.json').read_text())['gh']
+version = re.fullmatch(r'gh-(\d+\.\d+\.\d+)-[^-]+\.x86_64', pin['nevra']).group(1)
+assert tuple(map(int, version.split('.'))) >= (2, 102, 0), 'gh is too old for qualification'
+assert record == dict(version=version, binary_sha256=pin['binary_sha256']), 'gh record differs from its lock'
+for name, mode, digest in (
+        ('/usr/bin/gh', 0o755, pin['binary_sha256']),
+        ('/usr/share/licenses/gh/LICENSE', 0o644, pin['license_sha256']),
+        ('/usr/share/aresos/manifest/gh.lock.json', 0o644, None)):
+    path = pathlib.Path(name)
+    info = path.lstat()
+    assert stat.S_ISREG(info.st_mode) and stat.S_IMODE(info.st_mode) == mode, name
+    assert (info.st_uid, info.st_gid) == (0, 0), name
+    if digest:
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == digest, name
+    for parent in path.parents:
+        info = parent.lstat()
+        assert stat.S_ISDIR(info.st_mode) and not info.st_mode & 0o022, str(parent)
+        assert (info.st_uid, info.st_gid) == (0, 0), str(parent)
+for prefix in ([], ['runuser', '-u', 'ares', '--']):
+    text = subprocess.check_output([*prefix, 'env', '-i', 'PATH=/usr/bin:/bin', 'HOME=/tmp',
+                                    '/usr/bin/gh', '--version'], text=True)
+    assert text.splitlines()[0].split()[:3] == ['gh', 'version', version], text
+    print(('ares' if prefix else 'root') + ': ' + text.splitlines()[0])
+query = subprocess.run(['rpm', '-q', 'gh'], capture_output=True, text=True)
+assert query.returncode == 1 and 'package gh is not installed' in query.stdout, query.stdout
+keys = subprocess.check_output(['rpm', '-q', 'gpg-pubkey', '--qf', '%{NAME}-%{VERSION}\n'], text=True)
+assert pin['signing_key']['fingerprint'] not in keys.lower(), 'RPM database trusts gh signing key'
+listed = subprocess.check_output(['rpmkeys', '--list'], text=True)
+assert pin['signing_key']['fingerprint'] not in listed.lower(), 'RPM keyring trusts gh signing key'
+for root in ('/etc/yum.repos.d', '/etc/dnf', '/etc/zypp'):
+    for path in pathlib.Path(root).rglob('*'):
+        if path.is_file():
+            text = path.read_bytes().lower()
+            assert b'cli.github.com' not in text and b'gh-cli' not in text, str(path)
+for root in ('/usr/share/man', '/usr/share/bash-completion', '/usr/share/fish', '/usr/share/zsh'):
+    assert not [p for p in pathlib.Path(root).rglob('*') if p.name in ('gh', '_gh', 'gh.fish')
+                or p.name.startswith(('gh.', 'gh-'))], 'gh documentation or completions were installed'
+print(f'CONTROL_GH_IMAGE_PASS {version} {pin["binary_sha256"]}')
+PY
+
 # --- Google Chrome from the image, under /usr, without a side updater.
 lock=/usr/share/aresos/manifest/google-chrome.lock.json
 test "$(rpm -q --qf '%{NEVRA}' google-chrome-stable)" = "$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["nevra"])' "$lock")"

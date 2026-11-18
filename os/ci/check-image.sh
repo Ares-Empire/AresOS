@@ -69,6 +69,7 @@ if record['sha256'] != mod['sha256']:
     mod['sha256'] = record['sha256']
 for name, reviewed in (('packages.lock.json', json.loads(pathlib.Path('os/packages.lock.json').read_text())),
                        ('google-chrome.lock.json', json.loads(pathlib.Path('os/google-chrome.lock.json').read_text())),
+                       ('gh.lock.json', json.loads(pathlib.Path('os/gh.lock.json').read_text())),
                        ('desktop.lock.json', desktop)):
     assert json.loads((manifest / name).read_text()) == reviewed, name
 print('Image manifest locks equal the reviewed locks')
@@ -81,6 +82,7 @@ PY
 # apart from the build (REVIEW-A1 #6); image-checks.sh checked the installed bytes
 # against the record, and vendor_check.py below the record against the wheels.
 expected=$(mktemp -d)
+cmp os/gh.lock.json "$out/manifest/gh.lock.json"
 bash os/build.sh control-tree os control "$expected/root" | tee "$out/control-tree.txt"
 python3 - "$out/manifest/control.json" "$expected/root/usr/share/aresos/manifest/control.json" "$(git rev-parse HEAD)" \
     control/requirements.lock <<'PY'
@@ -113,7 +115,7 @@ if set(installed) != set(lock):
 unpinned = [wheel for wheel in wheels if wheel['sha256'] not in lock[(wheel['name'], wheel['version'])]
             or not wheel['file'].endswith('.whl')]
 assert not unpinned, f"wheels whose SHA-256 is not one of the lock's pins: {unpinned}"
-for key in ('format', 'requirements_lock', 'links', 'directories', 'files', 'chrome_build'):
+for key in ('format', 'requirements_lock', 'links', 'directories', 'files', 'chrome_build', 'gh'):
     if image[key] != expected[key]:
         if isinstance(expected[key], dict):
             changed = sorted(name for name in image[key].keys() | expected[key].keys()
@@ -124,6 +126,7 @@ assert image['wheels'] and all(name == '/usr/lib/aresos-control' or name.startsw
                                for name in image['vendor']), 'vendored paths outside /usr/lib/aresos-control'
 print(f'Control in the image is this checkout: {len(image["files"])} files from {revision}, '
       f'{len(image["wheels"])} wheels from requirements.lock (sha256 {image["requirements_lock"]})')
+print(f'CONTROL_GH_CHECKOUT_PASS {image["gh"]["version"]} {image["gh"]["binary_sha256"]}')
 PY
 python3 -B os/ci/control/chrome_image.py compare "$out/manifest/control.json" \
     "$expected/root/usr/share/aresos/manifest/control.json" control | tee "$out/control-chrome-checkout.txt"
