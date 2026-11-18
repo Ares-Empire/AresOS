@@ -10,6 +10,8 @@ import sys
 import tempfile
 import unittest
 
+from unittest.mock import MagicMock
+
 from owner_state_oracle.model import Fact, Oracle
 from owner_state_oracle.records import Record, canonical, decode, fingerprint
 from owner_state_oracle.compare import pages
@@ -145,7 +147,8 @@ class OwnerOracle(unittest.TestCase):
                     self.assertEqual(lock in consistency_errors(record), locked != interrupted)
             # The alteration suite's recompute keeps the term too: these bytes decode unlocked.
             record = decode(*self.history(2, 2, 2))
-            record.interrupted_confirm = record.locked = interrupted
+            record.interrupted_confirm = interrupted
+            record.locked = not interrupted
             with self.subTest(recompute=True, interrupted=interrupted):
                 self.assertIs(coherent_change(Oracle(), record, 'fixture:2')[1].locked, interrupted)
 
@@ -2049,3 +2052,105 @@ class WriteLatch302(unittest.TestCase):
         record = Record(fences=[{'seq': 1, 'hash': 'real'}], committed={1},
                         journal_history=(JournalAttempt('marker', 1, 'wrong', 0, True, True, False, False),))
         self.assertTrue(write_latched(record))
+
+
+class StartupObligations(unittest.TestCase):
+    def recording(self, final=True):
+        from owner_state_oracle.records import startup_obligation
+        fence = {'format': 2, 'seq': 1, 'previous': '', 'time': 10, 'operations': []}
+        fence['hash'] = fingerprint(fence)
+        changes = {'fixture:restored': {'value': 7}, 'restore_pending': None if final else True}
+        if final:
+            changes['generation'] = 'new'
+        event = {'seq': 1, 'time': 10, 'record': fence, 'action': 'control_restore_confirm',
+                 'set': changes, 'space': {'restoring': True, 'updates': {'restore': 4096}, 'consume': []}}
+        before = Record(fences=[fence], prepared=[event], head=(0, ''), locked=True)
+        calls = [dict(action='control_restore_confirm', restore_precondition=True, start_seq=0, staged_end_seq=1)]
+        return before, calls, startup_obligation(before, calls, 'old')
+
+    def test_only_matching_full_restore_plan_with_scripted_confirmation_creates_obligation(self):
+        from owner_state_oracle.records import startup_obligation
+        before, calls, obligation = self.recording()
+        self.assertIsNotNone(obligation)
+        for variant in ('missing', 'mismatch', 'ordinary', 'no-plan', 'no-confirm', 'unlocked', 'wrong-range'):
+            record, script = copy.deepcopy(before), copy.deepcopy(calls)
+            if variant == 'missing': record.prepared = []
+            if variant == 'mismatch': record.prepared[0]['record'] = {'hash': 'wrong'}
+            if variant == 'ordinary': record.prepared[0]['action'] = 'fixture'
+            if variant == 'no-plan': record.prepared[0]['space'] = {}
+            if variant == 'no-confirm': script = []
+            if variant == 'unlocked': script[0]['restore_precondition'] = False
+            if variant == 'wrong-range': script[0]['staged_end_seq'] = 0
+            with self.subTest(variant=variant):
+                self.assertIsNone(startup_obligation(record, script, 'old'))
+
+    def test_exact_startup_effects_head_marker_generation_and_lock_are_independent(self):
+        from owner_state_oracle.records import startup_errors
+        for final in (False, True):
+            before, _, obligation = self.recording(final)
+            event = copy.deepcopy(before.prepared[0])
+            record = Record(events=[event], fences=before.fences, committed={1}, head=(1, event['record']['hash']))
+            rows = {'generation': 'new' if final else 'old', 'fixture:restored': {'value': 7}}
+            if not final: rows['restore_pending'] = True
+            self.assertEqual(startup_errors(obligation, record, rows, not final), [])
+            for variant in ('marker', 'head', 'head-hash', 'chain', 'event', 'effect', 'generation', 'pending', 'lock'):
+                post, actual = copy.deepcopy(record), copy.deepcopy(rows)
+                locked = not final
+                if variant == 'marker': post.committed = set()
+                if variant == 'head': post.head = (0, '')
+                if variant == 'head-hash': post.head = (1, 'wrong')
+                if variant == 'chain': post.fences[0]['previous'] = 'wrong'
+                if variant == 'event': post.events = []
+                if variant == 'effect': actual.pop('fixture:restored')
+                if variant == 'generation': actual['generation'] = 'invented'
+                if variant == 'pending': actual['restore_pending'] = final
+                if variant == 'lock': locked = final
+                with self.subTest(final=final, variant=variant):
+                    self.assertTrue(startup_errors(obligation, post, actual, locked))
+            before.prepared[0]['set']['fixture:restored']['value'] = 999
+            self.assertIn('7', obligation.event)
+            self.assertNotIn('999', obligation.event)
+
+    def test_driver_checks_before_requests_consumes_once_and_second_restart_has_no_old_obligation(self):
+        from owner_state_oracle.driver import Driver
+        from types import SimpleNamespace
+        from unittest.mock import Mock
+        before, calls, obligation = self.recording()
+        event = json.loads(obligation.event)
+        post = Record(events=[event], fences=before.fences, committed={1}, head=(1, event['record']['hash']))
+        db = Mock()
+        rows = {k: v for k, v in event['set'].items() if v is not None}
+        cursor = MagicMock()
+        cursor.__iter__.return_value = iter((k, canonical(v)) for k, v in rows.items())
+        db.execute.return_value = cursor
+        driver = Driver.__new__(Driver)
+        driver.startup_obligation = obligation
+        driver.scenario = SimpleNamespace(fixture=SimpleNamespace(engine=SimpleNamespace(store=SimpleNamespace(db=db, locked=False))))
+        driver.snapshot = lambda: post
+        checks = []
+        driver.started(lambda *args: checks.append(args))
+        self.assertEqual(checks, [('startup-replay', set(), set())])
+        self.assertIsNone(driver.startup_obligation)
+        driver.oracle = Oracle()
+        driver.oracle.script = calls
+        driver.restart_index = len(calls)
+        db.execute.return_value.fetchone.return_value = (canonical('new'),)
+        driver.restarted()
+        self.assertIsNone(driver.startup_obligation)
+
+    def test_every_decoded_lock_term_and_wrong_input_recompute(self):
+        from owner_state_oracle.records import decoded_lock
+        from owner_state_oracle.perturb import coherent_change
+        fence = {'seq': 1, 'hash': 'h'}
+        for label, rows, fences, committed, head, locked in (
+                ('pending', {'restore_pending': True}, {}, set(), (0, ''), True),
+                ('empty', {}, {}, set(), None, False),
+                ('missing', {}, {1: fence}, {1}, None, True),
+                ('hash', {}, {1: fence}, {1}, (1, 'wrong'), True),
+                ('behind', {}, {1: fence}, {2}, (1, 'h'), True),
+                ('equal', {}, {1: fence}, {1}, (1, 'h'), False),
+                ('ahead', {}, {1: fence}, set(), (1, 'h'), False)):
+            with self.subTest(term=label):
+                self.assertIs(decoded_lock(rows, fences, committed, head), locked)
+                record = Record(rows=rows, fences=list(fences.values()), committed=committed, head=head, locked=not locked)
+                self.assertIs(coherent_change(Oracle(), record, 'fixture:absent')[1].locked, locked)

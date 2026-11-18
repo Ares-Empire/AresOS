@@ -58,6 +58,69 @@ class JournalAttempt:
     rollback_sync: bool
 
 
+@dataclass(frozen=True)
+class StartupReplay:
+    # Canonical bytes keep the pre-start authority independent of later records.
+    event: str
+    generation: str
+
+
+def startup_obligation(record, calls, generation):
+    """A full, fenced restore plan plus the recorded owner confirm permits replay.
+
+    A fence alone, an ordinary prepared write, or an unrelated confirm grants
+    no authority to finish a restore. This expectation is saved BEFORE startup.
+    """
+    if not record.fences:
+        return None
+    fence = record.fences[-1]
+    event = next((e for e in [*record.events, *record.prepared] if e['seq'] == fence['seq']), None)
+    if not event or event.get('record') != fence or event.get('time') != fence['time']:
+        return None
+    if event.get('action') != 'control_restore_confirm' or not event.get('space', {}).get('restoring'):
+        return None
+    if not any(c['action'] == 'control_restore_confirm' and c.get('restore_precondition') is True and
+               c.get('start_seq', -1) < event['seq'] <= c.get('staged_end_seq', c.get('end_seq', -1))
+               for c in calls):
+        return None
+    changes = event['set']
+    if not (changes.get('restore_pending') is True or
+            isinstance(changes.get('generation'), str) and changes.get('restore_pending', False) is None):
+        return None
+    return StartupReplay(canonical(event), generation)
+
+
+def startup_errors(obligation, record, rows, locked):
+    """Check the successful start itself, before a request can repair it."""
+    if obligation is None:
+        return []
+    event = json.loads(obligation.event)
+    seq, fence = event['seq'], event['record']
+    errors, previous = [], ''
+    chain = True
+    for index, entry in enumerate(record.fences, 1):
+        chain &= (entry.get('seq') == index and entry.get('previous') == previous and
+                  entry.get('hash') == fingerprint({k: v for k, v in entry.items() if k != 'hash'}))
+        previous = entry.get('hash')
+    fences = {f['seq']: f for f in record.fences}
+    if not chain or fences.get(seq) != fence or seq not in record.committed:
+        errors.append(('sequence:' + str(seq), 'missing-startup-marker', ''))
+    if not record.head or record.head[0] < seq or fences.get(record.head[0], {}).get('hash') != record.head[1]:
+        errors.append(('sequence:' + str(seq), 'unapplied-startup-head', ''))
+    if not any(e == event for e in record.events):
+        errors.append(('sequence:' + str(seq), 'changed-startup-event', ''))
+    for key, value in event['set'].items():
+        if (key in rows if value is None else rows.get(key) != value):
+            errors.append((key, 'unapplied-startup-effect', canonical(value)))
+    final = event['set'].get('restore_pending') is None
+    generation = event['set']['generation'] if final else obligation.generation
+    if rows.get('generation') != generation:
+        errors.append(('generation', 'wrong-startup-generation', canonical(generation)))
+    if bool(locked) != (not final) or bool(rows.get('restore_pending')) != (not final):
+        errors.append(('restore', 'wrong-startup-lock', str(not final)))
+    return errors
+
+
 def write_latched(record):
     """Running transaction state from raw journal phases and validated bytes.
 

@@ -1,5 +1,85 @@
 # Empire brief 302 — progress
 
+## Build part 2 (steps 3 and 4)
+
+Status: **Step 3 verified; step 4 in progress**.
+
+### Done
+
+- Fetched origin at the start. `origin/main` moved only in `STATE.md` since
+  part 1; no file changed here overlaps, so no merge was needed.
+- Step 3: independent immutable before-start restore obligation, checked as
+  `startup-replay` immediately after Engine binding, before any view, flush or
+  scripted confirm. It requires the matching marker, valid applied head, exact
+  event and SQLite effects, generation, pending flag and service lock. Intermediate
+  batches complete only their saved work and retain the old generation/lock.
+  A failed startup cannot claim readiness; a healthy subsequent startup finishes.
+  The obligation is consumed once and later restarts cannot inherit an old confirm.
+  Captured failed envelopes remain unchanged. No store behaviour changed.
+- Strengthened the two lock-test nits: opposite input lock before recompute and
+  all decoded-lock terms. Recompute now handles a missing head and preserves an
+  unchanged fence's head hash instead of silently replacing it. This is test
+  oracle/alteration plumbing, not a product lock-rule change.
+
+### Tests so far
+
+Executable exports: `control/test-work/302-exports/step302a` and disposable
+`skip302a`, using part 1's `.work/302/run.py`, managed-settings stand-in, exported
+PYTHONPATH and base/Mail import ordering. Logs remain under `.work/302/`.
+
+- `PYTHONDONTWRITEBYTECODE=1 python3 .work/302/run.py control/test-work/302-exports/step302a base test_owner_state_oracle test_restore_batches test_review22_storage`:
+  **148 tests OK**, 46.613 s (`step3-base-final.log`): oracle 131, restore 9,
+  storage 8. Restore 1k/10k retained/peak bytes: 13,785/217,066 and 13,785/217,069.
+  Covers staged final/intermediate, missing/mismatched full event, ordinary
+  prepared/record-only controls, failed replay then healthy start, exact effects,
+  independent marker/head/lock/generation checks, single use and second restart.
+- Runner `mail test_owner_state_sweep.OwnerStateSweep.test_startup_replay_proof_precedes_any_automatic_confirm test_owner_state_sweep.OwnerStateSweep.test_discovered_staged_restore_interval_and_cleanup_pairs_replay_at_startup`:
+  **2 tests OK**, 97.370 s (`step3-sweep-final.log`; earlier run 109.238 s). Six named checks at 26/40/73
+  in both modes. Discovery examines all 76 clean points; 47 staged-final-confirm
+  points have endpoints 26/73. All 100 single/persistent cases including controls
+  25/74/75, plus 137 cleanup pairs, have empty startup proofs and no lock gaps.
+- The skipped-startup mutation changes only the special staged-restore branch
+  condition (`skipped-startup.patch`) in the disposable export. Same named
+  pre-confirm test: **1 test FAILED (failures=1)**, by its `startup-replay must
+  finish before any automatic confirm` assertion, with six startup proof gaps.
+  No import, fixture or pin failure (`step3-skipped-startup-final.log`, 2.569 s). The baseline
+  passed in the two-test run immediately above.
+- Final driver-only oracle recheck: **131 tests OK** (`step3-oracle-final.log`).
+- The first mutation unexpectedly passed (`step3-skipped-startup.log`): the new
+  checker buffered differences without `finish()`. Added that call and a direct
+  assertion on the raw proof results, then reran the baseline and mutation above.
+- Initial base run: 139 tests, two failures retained in `step3-base.log`.
+  One exposed the recompute's unrelated head-hash replacement; fixed above.
+  The other assumed 32 rows per intermediate batch, but byte limits fill the
+  real fixture's first batch at 30. The test now asserts exactly the saved batch
+  of the 70-change restore, no invented remaining batches, and unchanged generation.
+
+### Left, in order
+
+Step 4 is in progress. Then step 5 (remaining mutations), step 6 (one re-pin,
+full capture and proof), then the package/security and independent classification
+reviews in their assigned runs. No workflow dispatch or pin update in this run.
+
+### What the code doesn't show
+
+Synthetic local exports do not prove installed/root/channel behaviour, the hosted
+point-count difference, the full sweep/alteration matrix or whole-pin classification.
+
+### JUDGMENT-CALLs
+
+No new product choice; owner board #352 already approved the brief. The canonical
+startup obligation is kept on Driver rather than Record, so it is independent
+of decoded state and requires no new Record exclusion or on-disk format.
+
+### PLAN-GAPs
+
+Intermediate batches are bounded by bytes as well as row count; the >32-change
+fixture produces a first batch of 30 operations. The full restore still has 70
+changes. Discovery finds 47 staged-final points within 26..73, rather than assuming
+that every syscall in that numeric interval leaves identical staged bytes.
+
+---
+
 ## Build part 1 (steps 1 and 2)
 
 Status: **Build part 1 done; next: step 3**.

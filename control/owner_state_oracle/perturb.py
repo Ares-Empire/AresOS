@@ -474,14 +474,13 @@ def coherent_change(oracle, record, key, path=(), kind='row', replacement=None, 
         previous = fence.get('hash', previous)
         if fence is not original_fence and fence['seq'] in versions:
             versions[fence['seq']]['record'] = fence
-        if changed.head and changed.head[0] == fence['seq']:
+        if fence is not original_fence and changed.head and changed.head[0] == fence['seq']:
             changed.head = (changed.head[0], fence.get('hash', changed.head[1]))
     changed.generation = changed.rows.get('generation')
     changed.restore_intervals = restore_intervals(changed.events)
-    if changed.head is not None:
-        # The fences come from a decoded record, so their sequences are unique.
-        fences = {fence['seq']: fence for fence in changed.fences}
-        changed.locked = decoded_lock(changed.rows, fences, changed.committed, changed.head) or service_lock(changed)
+    # Recompute even a missing head; copying the input lock hides alterations.
+    fences = {fence['seq']: fence for fence in changed.fences}
+    changed.locked = decoded_lock(changed.rows, fences, changed.committed, changed.head) or service_lock(changed)
     replay.validated_input = replay.validated_record = None
     return replay, changed
 

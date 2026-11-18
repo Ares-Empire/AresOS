@@ -144,3 +144,115 @@ class RestoreBatches(EngineCase):
 
     def test_confirm_whose_marker_stays_after_a_failed_sync_keeps_the_lock_until_a_restart(self):
         self.confirm_failing_at_its_last_marker_sync(rollback_fails=True)
+
+    def staged_restore(self, count=1):
+        """Stop after SQLite staging, before even the first applied row."""
+        import copy
+        with closing(sqlite3.connect(self.root / 'older.sqlite')) as db:
+            self.engine.store.db.backup(db)
+        streaming.JournalStreaming.seed_history(self, count, operations=True)
+        self.engine.close()
+        (self.root / 'state/control.sqlite').write_bytes((self.root / 'older.sqlite').read_bytes())
+        self.engine = Engine(self.root / 'state', self.root / 'independent')
+        self.assertTrue(self.engine.store.locked)
+        generation, staged = self.engine.store.generation, []
+        class Crash(BaseException): pass
+        def stop(event):
+            staged.append(copy.deepcopy(event))
+            raise Crash()
+        with patch.object(self.engine.store, '_apply', side_effect=stop), self.assertRaises(Crash):
+            self.engine.store.confirm_restore()
+        self.assertEqual(len(staged), 1)
+        return generation, staged[0]
+
+    def assert_replayed_batch(self, event):
+        import json
+        store = self.engine.store
+        seq = event['seq']
+        self.assertGreaterEqual(store.db.execute('SELECT seq FROM head').fetchone()[0], seq)
+        markers = [json.loads(line) for line in (store.evidence_dir / 'operations.jsonl').read_text().splitlines()]
+        self.assertIn({'commit': seq, 'hash': event['record']['hash']}, markers)
+        self.assertEqual(json.loads(store.db.execute('SELECT value FROM events WHERE seq=?', (seq,)).fetchone()[0]), event)
+        for key, value in event['set'].items():
+            self.assertEqual(store.get(key), value, key)
+
+    def test_startup_finishes_staged_final_confirm_without_another_confirmation(self):
+        before, event = self.staged_restore()
+        self.assertIsNone(event['set']['restore_pending'])
+        self.restart()
+        self.assert_replayed_batch(event)
+        self.assertEqual(self.engine.store.generation, event['set']['generation'])
+        self.assertNotEqual(self.engine.store.generation, before)
+        self.assertFalse(self.engine.store.locked)
+
+    def test_startup_finishes_only_the_staged_intermediate_batch(self):
+        before, event = self.staged_restore(70)
+        self.assertIs(event['set']['restore_pending'], True)
+        batch = {k for k in event['set'] if k.startswith('op:')}
+        self.assertTrue(batch)
+        self.assertLessEqual(len(batch), RESTORE_BATCH_COUNT)
+        self.assertLess(len(batch), 70)
+        self.restart()
+        self.assert_replayed_batch(event)
+        self.assertEqual(self.engine.store.generation, before)
+        self.assertTrue(self.engine.store.locked)
+        self.assertEqual(self.engine.store.sequence, event['seq'])
+        self.assertEqual({k for k, _ in self.engine.store.iter_items('op:')}, batch)
+
+    def test_startup_restore_requires_matching_full_event(self):
+        import json
+        from aresos_control.common import Refused
+        _, event = self.staged_restore()
+        import shutil
+        self.engine.close()
+        for variant in ('missing', 'mismatch'):
+            with self.subTest(variant=variant):
+                root = self.root / variant
+                shutil.copytree(self.root / 'state', root / 'state')
+                shutil.copytree(self.root / 'independent', root / 'independent')
+                with closing(sqlite3.connect(root / 'state/control.sqlite')) as db:
+                    if variant == 'missing':
+                        db.execute('DELETE FROM events WHERE seq=?', (event['seq'],))
+                    else:
+                        changed = json.loads(canonical(event))
+                        changed['record']['hash'] = 'different'
+                        db.execute('UPDATE events SET value=? WHERE seq=?', (canonical(changed), event['seq']))
+                    db.commit()
+                try:
+                    engine = Engine(root / 'state', root / 'independent')
+                except Refused as exc:
+                    self.assertEqual(exc.code, 'evidence_mismatch')
+                else:
+                    try:
+                        self.assertTrue(engine.store.locked)
+                        self.assertNotEqual(engine.store.generation, event['set']['generation'])
+                    finally:
+                        engine.close()
+
+    def test_startup_replay_storage_failure_fails_start_then_healthy_start_finishes(self):
+        from aresos_control.common import Refused
+        from aresos_control.storage import Store
+        _, event = self.staged_restore()
+        self.engine.close()
+        with patch.object(Store, '_apply', side_effect=OSError(errno.EIO, 'Synthetic replay I/O failure')):
+            with self.assertRaises((OSError, Refused)):
+                Engine(self.root / 'state', self.root / 'independent')
+        self.engine = Engine(self.root / 'state', self.root / 'independent')
+        self.assert_replayed_batch(event)
+        self.assertFalse(self.engine.store.locked)
+
+    def test_startup_ordinary_prepared_write_and_record_only_tail_are_controls(self):
+        class Crash(BaseException): pass
+        with patch.object(self.engine.store, '_apply', side_effect=Crash), self.assertRaises(Crash):
+            self.engine.store.write({'fixture:ordinary': {'value': 8}}, 'fixture', 'Synthetic ordinary staged write')
+        self.restart()
+        self.assertFalse(self.engine.store.locked)
+        self.assertEqual(self.engine.store.get('fixture:ordinary'), {'value': 8})
+        with patch.object(self.engine.store, '_apply', side_effect=Crash), self.assertRaises(Crash):
+            self.engine.store.write({'fixture:record-only': {'value': 9}}, 'fixture', 'Synthetic record-only tail')
+        seq = self.engine.store.sequence
+        self.engine.store.db.execute('DELETE FROM events WHERE seq=?', (seq,))
+        self.engine.store.db.commit()
+        self.restart()
+        self.assertTrue(self.engine.store.locked)
+        self.assertIsNone(self.engine.store.get('fixture:record-only'))

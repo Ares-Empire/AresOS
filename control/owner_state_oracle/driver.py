@@ -6,7 +6,7 @@ import time
 import sqlite3
 from unittest.mock import patch
 
-from .records import decode, canonical, service_lock, JournalAttempt, write_latched
+from .records import decode, canonical, service_lock, JournalAttempt, write_latched, startup_obligation, startup_errors
 from .model import Fact, Oracle
 from .context import MUTATIONS
 from .compare import compare_views, pages, compare_envelope, compare_status, compare_proofs
@@ -111,10 +111,32 @@ class Driver:
         from before this start, and a confirm that met a fault before it no
         longer holds the lock.
         """
-        self.startup_sequence = max((fence['seq'] for fence in self.snapshot().fences), default=0)
+        record = self.snapshot()
+        generation = None
+        if hasattr(self, 'scenario'):
+            with outside_faults():
+                row = self.scenario.fixture.engine.store.db.execute("SELECT v FROM kv WHERE k='generation'").fetchone()
+                generation = __import__('json').loads(row[0]) if row else None
+        self.startup_obligation = startup_obligation(record, self.oracle.script[getattr(self, 'restart_index', 0):], generation)
+        self.startup_sequence = max((fence['seq'] for fence in record.fences), default=0)
         self.restart_index = len(self.oracle.script)
         self.journal_scopes = {}
         self._snapshot_key = None
+
+    def started(self, check=None):
+        """Consume this start's obligation before any view, flush or confirm."""
+        obligation = getattr(self, 'startup_obligation', None)
+        record = self.snapshot()
+        with outside_faults():
+            store = self.scenario.fixture.engine.store
+            rows = {k: __import__('json').loads(v) for k, v in store.db.execute('SELECT k,v FROM kv')}
+        errors = {Fact(source, kind, detail=detail) for source, kind, detail in
+                  startup_errors(obligation, record, rows, store.locked)}
+        checker = check or self.oracle.compare
+        checker('startup-replay', set(), errors)
+        if hasattr(checker, 'finish'):
+            checker.finish()
+        self.startup_obligation = None
 
     def fixture_input(self, changes, summary):
         """Record a test's explicit legacy/interrupted input before writing it."""
@@ -420,6 +442,7 @@ class Driver:
         if faults and faults.journal_trace:
             self.journal_scopes[faults] = tuple(JournalAttempt(**entry) for entry in faults.journal_trace)
         oracle.script[self.call_index]['end_seq'] = max(self.snapshot().committed, default=0)
+        oracle.script[self.call_index]['staged_end_seq'] = max((f['seq'] for f in self.record.fences), default=0)
         if faults:
             oracle.script[self.call_index]['faults']['trace'] = [entry for entry in faults.failures if entry[0] > fault_start]
             oracle.script[self.call_index]['faults']['journal'] = copy.deepcopy(faults.journal_trace)
@@ -444,6 +467,7 @@ class Driver:
         for pending in self.oracle.script:
             if pending['call'] == active:
                 pending['end_seq'] = max(record.committed, default=0)
+                pending['staged_end_seq'] = max((f['seq'] for f in record.fences), default=0)
         expected = self.oracle.expected(record)
         self.envelopes.append((copy.deepcopy(call), copy.deepcopy(reply), record, expected))
 

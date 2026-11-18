@@ -98,6 +98,7 @@ class OwnerScenario(Scenario):
             if observer:
                 record = observer.__self__.snapshot()
                 self.owner_oracle.script[index]['end_seq'] = max(record.committed, default=0)
+                self.owner_oracle.script[index]['staged_end_seq'] = max((f['seq'] for f in record.fences), default=0)
                 if fault:
                     self.owner_oracle.script[index]['faults']['trace'] = [entry for entry in fault.failures if entry[0] > fault_start]
                     self.owner_oracle.script[index]['faults']['journal'] = [dict(entry) for entry in fault.journal_trace]
@@ -252,6 +253,7 @@ def exercise(flow, number=None, mode='single', cleanup_at=None, gaps=None, phase
                     shutil.rmtree(f.root / name)
                     shutil.copytree(saved / name, f.root / name)
             s.bind(Engine(f.root / 'state', f.root / 'evidence'))
+            d.started(gaps.checker(case + '/crash-startup'))
             if f.engine.store.locked:
                 d.compare(gaps.checker(case + '/crash-locked'))
                 f.engine.request({'v': 1, 'method': 'call', 'action': 'control_restore_confirm',
@@ -273,6 +275,64 @@ def exercise(flow, number=None, mode='single', cleanup_at=None, gaps=None, phase
 
 
 class OwnerStateSweep(unittest.TestCase):
+    def test_startup_replay_proof_precedes_any_automatic_confirm(self):
+        # Named mutation target: gaps must appear at startup even if the later
+        # sweep confirm repairs the skipped batch completely.
+        gaps = Gaps(recording=True)
+        proofs = []
+        started = Driver.started
+        def checked(driver, checker):
+            obligation = driver.startup_obligation
+            def check(label, expected, actual):
+                proofs.append((obligation, label, actual, len(driver.oracle.script)))
+                checker(label, expected, actual)
+            check.finish = checker.finish
+            return started(driver, check)
+        with patch.object(Driver, 'started', checked):
+            for point in (26, 40, 73):
+                for mode in ('single', 'persistent'):
+                    exercise('restore', point, mode, gaps=gaps, phase='crash')
+        self.assertEqual(len(proofs), 6)
+        self.assertTrue(all(obligation is not None and label == 'startup-replay' for obligation, label, _, _ in proofs))
+        self.assertEqual([actual for _, _, actual, _ in proofs if actual], [],
+                         'startup-replay must finish before any automatic confirm')
+        self.assertEqual([key for key in gaps.entries if key.endswith('/startup-replay')], [],
+                         'startup-replay must finish before any automatic confirm')
+
+    def test_discovered_staged_restore_interval_and_cleanup_pairs_replay_at_startup(self):
+        import json
+        points, _ = exercise('restore', gaps=Gaps(recording=True))
+        staged, pairs = [], []
+        # Discover from crash records, not a hardcoded range of SQL syscall IDs.
+        for point in range(1, len(points) + 1):
+            scenario = OwnerScenario('restore')
+            try:
+                driver, fault = Driver(scenario), OSWrites(point)
+                with driver.observe(fault), fault.wrap(scenario.fixture.engine.store):
+                    result = scenario.call()
+                driver.reply(result)
+                record = driver.snapshot()
+                driver.restarted()
+                obligation = driver.startup_obligation
+                if obligation:
+                    event = json.loads(obligation.event)
+                    if record.head[0] < event['seq'] and event['set'].get('generation'):
+                        staged.append(point)
+                        pairs.extend((point, n) for n, _, _ in fault.cleanup_points if n > point)
+            finally:
+                scenario.close()
+        self.assertTrue(staged)
+        self.assertEqual((min(staged), max(staged)), (26, 73))
+        gaps = Gaps(recording=True)
+        for point in [25, *staged, 74, 75]:
+            for mode in ('single', 'persistent'):
+                exercise('restore', point, mode, gaps=gaps, phase='crash')
+        for point, cleanup in sorted(set(pairs)):
+            exercise('restore', point, cleanup_at=cleanup, gaps=gaps, phase='crash')
+        self.assertEqual([key for key in gaps.entries if key.endswith(('/startup-replay', '.restore-lock'))], [])
+        print('Startup replay interval:', len(staged), 'points;', 2 * (len(staged) + 3),
+              'single/persistent cases;', len(set(pairs)), 'cleanup pairs; startup proofs empty', flush=True)
+
     def test_last_status_committed_lie_is_in_same_comparisons_proof(self):
         scenario = OwnerScenario('send')
         try:

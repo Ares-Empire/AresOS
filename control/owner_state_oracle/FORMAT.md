@@ -18,8 +18,8 @@ collection cannot replace that earlier refusal; a fresh fault before the check
 keeps its original cause. Fault lists are scoped to each request, while journal
 phase history survives across requests until restart.
 `Driver.restarted()` clears running history and bounds old prepared
-bytes as startup input, preserving captured pre-crash records. This does not
-yet impose the staged-restore startup obligation of brief 302 item 2.
+bytes as startup input, preserving captured pre-crash records. The staged-restore
+startup obligation is checked separately, as described below.
 
 `evidence/operations.jsonl` is ASCII canonical JSON (sorted keys, separators comma/colon), one LF per record. A format-2 fence has format, seq, previous, time, generation, operations and hash. Hash is SHA-256 over the canonical object without hash; previous is the preceding fence hash (initially the empty string). A commit marker has commit=seq and matching hash. The decoder rejects corruption and unsupported versions; only an unterminated final line can be ignored. Format 1 is accepted with the same hash-chain contract.
 
@@ -371,3 +371,15 @@ Onboarding folder DELETE records its pre-command mailbox inventory independently
 of the service's payload/context. Probe account/folder/empty/empty-state claims
 are validated against this inventory and the scripted account-add account before
 qualification can use them; a coherent flag lie is a payload proof difference.
+
+A restart saves an independent startup obligation before constructing the new
+Engine. Only a full staged restore event matching the verified last fence, its
+restore plan and a recorded confirm on a locked service supplies that authority.
+The immediate `startup-replay` comparison precedes views, flushes and the sweep's
+automatic confirm. It checks the matching marker, hash-valid applied head, exact
+batch/event and actual SQLite effects. A final batch must use its saved generation,
+clear restore_pending and unlock; an intermediate batch keeps the previous
+generation and the lock. The immutable canonical obligation lives on Driver,
+separate from decoded state, and is consumed after this check. A failed start
+cannot claim readiness; a later healthy start can still finish the saved event.
+Captured failed-call envelopes retain their pre-restart records.
