@@ -105,7 +105,8 @@ No files over 500 MB remained in `.work/`.
   a click from the world and keyboard focus, Alt+Tab, a maximized app over the home, plugging and unplugging,
   a game restart, and memory and motion cost in the real session.
 - The WebKit import block ran on the local machine. The image-level check is pending R29.
-- Hosted checks-only run: pending dispatch after the implementation and report push. The lead will collect the result.
+- The checks-only workflow was dispatched for `74ec9b3f`. The lead will collect the result.
+  [OS image run 44362345145](https://github.com/Ares-Empire/AresOS/actions/runs/44362345145)
 
 ## JUDGMENT-CALL
 
