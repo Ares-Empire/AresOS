@@ -26,8 +26,8 @@ finish() {
     while :; do
         live=0
         for unit in "$PKG49_GAME_UNIT" "pkg49b-rig-$start_pid.scope"; do
-            state=$(timeout 2 systemctl --user show -P ActiveState "$unit" 2>/dev/null) || state=inactive
-            case $state in inactive|failed|'') ;; *) live=1 ;; esac
+            state=$(timeout 2 systemctl --user show -P ActiveState "$unit" 2>/dev/null) || state=unknown
+            case $state in inactive|failed) ;; *) live=1 ;; esac
         done
         ((live)) || break
         if ((SECONDS >= deadline)); then

@@ -4,9 +4,7 @@
 Keep one writer open: vinput.py closes/reopens its reader after EOF. Opening a new nonblocking writer for each
 command races that brief gap. A bounded startup retry permits a reopening reader and still detects a dead peer.
 """
-import errno, json, os, pathlib, sys, time
-
-import sys
+import json, pathlib, sys, time
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 from input import Writer
 

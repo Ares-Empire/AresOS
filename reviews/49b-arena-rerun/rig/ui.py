@@ -2,8 +2,6 @@
 """Click a uniquely named active button observed in this rig's private game, through its virtual-input FIFO."""
 import argparse
 import base64
-import errno
-import os
 import pathlib
 import time
 

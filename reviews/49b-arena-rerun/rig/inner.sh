@@ -23,6 +23,17 @@ helper=$!
 for _ in $(seq 50); do [[ -S $PRIVATE/shell.sock ]] && break; sleep 0.1; done
 /usr/bin/python3 -I "$here/vinput.py" "$RIG" >"$RIG/vinput.txt" 2>&1 &
 vinput=$!
+cleanup_inner() {
+    trap - EXIT
+    kill "$helper" "$vinput" 2>/dev/null || true
+    wait "$helper" "$vinput" 2>/dev/null || true
+    rm -rf -- "$PRIVATE"
+    kill "$LABWC_PID" 2>/dev/null || true
+}
+trap cleanup_inner EXIT
+trap 'exit 143' TERM
+trap 'exit 129' HUP
+trap 'exit 130' INT
 echo "VINPUT_PID=$vinput" >>"$RIG/env"
 sleep 1
 export ARESOS_SHELL_SOCKET="$PRIVATE/shell.sock"
@@ -31,6 +42,4 @@ env __NV_PRIME_RENDER_OFFLOAD=1 __GLX_VENDOR_LIBRARY_NAME=nvidia __VK_LAYER_NV_o
     "$WT/mod/gradlew" --no-daemon -I "$here/jvm41.gradle" runClient ${GAME_ARGS:+"--args=$GAME_ARGS"} \
     >"$RIG/gradle.txt" 2>&1
 echo "GAME_EXIT=$?" >>"$RIG/env"
-kill "$helper" "$vinput" 2>/dev/null
-rm -rf -- "$PRIVATE"
-kill "$LABWC_PID"
+exit 0
