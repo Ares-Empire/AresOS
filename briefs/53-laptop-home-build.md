@@ -80,3 +80,9 @@ Board brief 306, board #335. This is a handoff from `linux-hub` (2026-11-17) to 
   deadlock while closing (render thread in `IntegratedServer.halt`/`executeBlocking`, server at a Fabric test
   barrier). PR #108 (package 54, commit 345ba61d) carries a test-only fix. Until it merges, 53b's and 53d's briefs say
   that a full suite hung in that test is this bug, not theirs.
+- **The safety bar for every review and fix round** (decision 24, as clarified 2026-11-11; Patrik restated it
+  2026-11-18 through `mac-capacity`: "it needs to be reasonable … safe right? Not every edge case safe? We once wasted
+  time on that … genuinely legitimate safety things make sense to do"):
+  - Real-harm findings get fixed: data loss, credentials (the view token), system changes, anything hard to undo.
+  - Low-harm edge cases go under Known limits or into a follow-up, not into another fix round.
+  - Every reviewer brief states this bar.
