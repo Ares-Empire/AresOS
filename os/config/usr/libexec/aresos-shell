@@ -145,7 +145,7 @@ WINDOW_CAPABILITIES = frozenset({'shell_focus', 'windows', 'shell_covered'})
 LATER_CAPABILITIES = DETAIL_CAPABILITIES | {'shell_covered'}
 # The launch secrets stay with the desktop; launched apps never inherit them,
 # nor the helper's own service plumbing.
-PRIVATE_ENVIRONMENT = ('ARESOS_LAUNCH_NONCE', 'ARESOS_DESKTOP_INSTANCE', 'ARESOS_SHELL_STATUS_FD',
+PRIVATE_ENVIRONMENT = ('ARESOS_LAUNCH_NONCE', 'ARESOS_VIEW_TOKEN', 'ARESOS_DESKTOP_INSTANCE', 'ARESOS_SHELL_STATUS_FD',
                        'ARESOS_SHELL_KEEP_FOREGROUND', 'NOTIFY_SOCKET', 'LISTEN_FDS', 'LISTEN_PID', 'LISTEN_FDNAMES',
                        'WATCHDOG_PID', 'WATCHDOG_USEC')
 
@@ -2151,6 +2151,10 @@ def nvidia_present(root='/'):
         return False
 
 
+def child_environment(environ):
+    return {key: value for key, value in environ.items() if key not in PRIVATE_ENVIRONMENT}
+
+
 class ScopeLauncher:
     """Start apps in their own user scope, outside the game's and the helper's cgroups."""
 
@@ -2172,7 +2176,9 @@ class ScopeLauncher:
                 '--expand-environment=no', '--', *argv]
 
     def environment(self, app=None):
-        env = {key: value for key, value in self.environ.items() if key not in PRIVATE_ENVIRONMENT and key not in GPU_KEYS}
+        env = child_environment(self.environ)
+        for key in GPU_KEYS:
+            env.pop(key, None)
         if app is not None:
             # A reviewed hint's values (30b): after the session's are filtered, before the NVIDIA values.
             env.update(app.environment)
@@ -2281,7 +2287,8 @@ def classify(state):
 def query_scopes(units, run=subprocess.run, timeout=SCOPE_TIMEOUT):
     """One batched call for all units: each is ACTIVE, GONE or UNKNOWN (the call failed or made no sense)."""
     try:
-        done = run(LIST_SCOPES, capture_output=True, text=True, timeout=timeout, stdin=subprocess.DEVNULL)
+        done = run(LIST_SCOPES, capture_output=True, text=True, timeout=timeout, stdin=subprocess.DEVNULL,
+                   env=child_environment(os.environ))
     except (OSError, ValueError, subprocess.SubprocessError):
         return {unit: UNKNOWN for unit in units}
     states = parse_scopes(done.stdout) if done.returncode == 0 and isinstance(done.stdout, str) else None
