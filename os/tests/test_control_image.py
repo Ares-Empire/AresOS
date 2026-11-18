@@ -778,6 +778,29 @@ class ChromeImageTest(unittest.TestCase):
         self.assertIn('chrome_image.py build-log evidence/image/checks.txt evidence/build.log', build)
         self.assertLess(build.index('bash os/ci/check-image.sh'), build.index('chrome_image.py build-log'))
 
+    def test_image_metadata_rejects_wrong_mode_owner_group_and_unsafe_parents(self):
+        path = self.work / 'record.json'
+
+        def info(mode, uid=0, gid=0):
+            return os.stat_result((mode, 0, 0, 1, uid, gid, 0, 0, 0, 0))
+
+        rows = {parent: info(0o040755) for parent in path.parents}
+        rows[path] = info(0o100644)
+        with patch.object(pathlib.Path, 'lstat', lambda p: rows[p]):
+            self.checker.owned(path, 0o644)
+            for name, target, changed in (
+                    ('file mode', path, info(0o100600)), ('file writable', path, info(0o100666)),
+                    ('file owner', path, info(0o100644, uid=1001)), ('file group', path, info(0o100644, gid=250)),
+                    ('file link', path, info(0o120777)), ('file is a folder', path, info(0o040644)),
+                    ('parent owner', path.parent, info(0o040755, uid=1001)),
+                    ('parent group', path.parent, info(0o040755, gid=250)),
+                    ('parent writable', path.parent, info(0o040775)), ('parent link', path.parent, info(0o120755))):
+                previous = rows[target]
+                rows[target] = changed
+                with self.assertRaises(AssertionError, msg=name):
+                    self.checker.owned(path, 0o644)
+                rows[target] = previous
+
 
 class ServiceUserTest(unittest.TestCase):
     """Agreed change 5: one fixed number, unused by Fedora's static block and the image's own declarations."""

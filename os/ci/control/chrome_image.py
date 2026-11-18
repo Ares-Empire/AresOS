@@ -194,7 +194,9 @@ def owned(path, mode, directory=False):
 
 
 def image(scan_root):
-    record = json.loads(Path('/usr/share/aresos/manifest/control.json').read_bytes())
+    manifest = Path('/usr/share/aresos/manifest/control.json')
+    owned(manifest, 0o644)
+    record = json.loads(manifest.read_bytes())
     extension = record['chrome_extension']
     folder = Path(BUNDLE)
     owned(folder, 0o755, directory=True)
