@@ -848,3 +848,12 @@ Dry run 4 (43897120279, on `bfe92f45`, 15:30Z to 16:10Z) passed: the guard count
 changed paths, all explained`. result.json: `main.merge_base` `e33ffc46`, the only branch change is the jar pin,
 `differing` empty (S2); `rpm_verify` of the four added packages exit 0 with no lines (S5; a later step may make it a
 stop). Review 1's fixes hold on a real build. One dry run is left, for the cut.
+
+### Step 2 reviewed (2026-11-18)
+
+REVIEW-10 (Codex gpt-6-astra, high) on `b82e8fb3`: **SAFE**, three notes. Its first note (a login-graph timeout in
+`release28_walk.py:507` drops the checker's stdout before it is exported) fails closed; it is a diagnostics
+improvement for a later step, not a release blocker. `linux-tools` confirmed on 2026-11-18 03:15 that R28 needs
+neither the record's `chrome_build` nor a builds.json entry: at runtime Control reads its build only from the
+image's `chrome/build-id.json` and qualification only from `chrome/qualification.json`, builds.json is read only by
+the CI qualification pipeline, and without the browser side R28's Chrome tools answer that Chrome is unavailable.
