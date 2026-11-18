@@ -69,7 +69,7 @@ def window(start, end, clip_start=False):
         gaps = sorted((b - a) / 1e6 for a, b in zip(inside, inside[1:]))
         stats.update(frames=len(gaps), fps=round(len(gaps) / ((inside[-1] - inside[0]) / 1e9), 1),
                      avg_ms=round(statistics.fmean(gaps), 2), p50_ms=round(gaps[len(gaps) // 2], 2),
-                     p99_ms=round(gaps[min(len(gaps) - 1, int(len(gaps) * 0.99))], 2), max_ms=round(gaps[-1], 1),
+                     p99_ms=round(gaps[min(len(gaps) - 1, int(len(gaps) * 0.99))], 2), max_ms=round(gaps[-1], 1), max_ms_exact=gaps[-1],
                      over_17ms=sum(g > 17 for g in gaps), over_33ms=sum(g > 33 for g in gaps),
                      over_50ms=sum(g > 50 for g in gaps), over_100ms=sum(g > 100 for g in gaps))
     in_window = [p for p in pauses if start <= p[0] - p[1] * 1e6 < end]
@@ -161,6 +161,16 @@ def public(value):
     if isinstance(value, dict): return {k: public(v) for k, v in value.items()}
     if isinstance(value, list): return [public(v) for v in value]
     return value
+# Retain the decisive frame timestamps, including the preceding frame at each boundary.
+# Raw startup/idle/cover frames remain local; these compact windows independently reproduce the rules.
+frame_evidence = {}
+for label, start, end in ([('flight', marks.get('flight_start'), marks.get('flight_end'))] +
+                          ([('first_30s', marks['joined'], marks['joined']+30*10**9)] if 'create_start' in marks and 'joined' in marks else [])):
+    if start is None or end is None: continue
+    before = [t for t in frames if t < start]
+    times = before[-1:] + [t for t in frames if start <= t < end]
+    frame_evidence[label] = {'start_ns':start, 'end_ns':end, 'timestamps_ns':times}
+json.dump(frame_evidence, open(os.path.join(out, 'decisive-frames.json'), 'w'), separators=(',', ':'))
 summary = public(summary)
 json.dump(summary, open(os.path.join(out, 'summary.json'), 'w'), indent=1)
 for name in ('settings.txt', 'marks.txt', 'samples.csv', 'cover.txt', 'randr.txt', 'actions.jsonl', 'host-start.json', 'host-end.json', 'faults-return.json', 'wake-input.jsonl', 'return-observer.jsonl', 'creation-marks.txt', 'host-watch.jsonl', 'provenance.json', 'health-failure.json', 'options.txt'):
