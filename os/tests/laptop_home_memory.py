@@ -97,6 +97,12 @@ def ticks(pid):
     return int(fields[11]) + int(fields[12])
 
 
+def cpu_usage(pids, before, duration):
+    ticks_per_second = os.sysconf('SC_CLK_TCK')
+    return {name: (ticks(pid) - before[pid]) * 100 / (ticks_per_second * duration)
+            for pid, name in pids.items()}
+
+
 def motion(gui, pids):
     start = time.monotonic()
     before = {pid: ticks(pid) for pid in pids}
@@ -104,10 +110,7 @@ def motion(gui, pids):
     duration = time.monotonic() - start
     result['fps'] = result['frames'] / result['seconds']
     result['p95_ms'] = sorted(result.pop('intervals'))[int((result['frames'] - 2) * 0.95)]
-    result['cpu_percent'] = {
-        name: (ticks(pid) - before[pid]) * 100 / (os.sysconf('SC_CLK_TCK') * duration)
-        for pid, name in pids.items()
-    }
+    result['cpu_percent'] = cpu_usage(pids, before, duration)
     return result
 
 
@@ -129,7 +132,7 @@ def measure(*, legacy=False, motion_check=False, native=False, program=PROGRAM, 
         helper.palette = STUDY_PALETTE
         helper.houses, helper.programs = generated_town((9, 7, 9, 20), icon)
         helper.programs = [row for row in helper.programs if row['id'] != 'test-archive']
-        gui = Headless(root, helper.path, page=page, size=SIZE, font_dir=STUDY_FONTS,
+        gui = Headless(root, helper.path, page=page, size=SIZE, font_dir=None if native else STUDY_FONTS,
                        legacy_renderers=legacy, isolate_drm=True, native=native, program=program)
         if not gui.expect_layer:
             raise RuntimeError('need gtk4-layer-shell or LAPTOP_HOME_TEST_LAYER_DIR pointing to its extracted lib64')
@@ -151,12 +154,16 @@ def measure(*, legacy=False, motion_check=False, native=False, program=PROGRAM, 
                     raise RuntimeError(f'unexpected native town dimensions {parent["size"]}')
                 children = {}
                 renderer = parent['renderer']
+            pids = {pid: 'program', **children}
+            before = {pid: ticks(pid) for pid in pids}
+            rest_start = time.monotonic()
             time.sleep(15)
             if engines(pid) != children:
                 raise RuntimeError('WebKit process tree changed before the rest sample')
-            pids = {pid: 'program', **children}
+            idle_cpu = cpu_usage(pids, before, time.monotonic() - rest_start)
             processes = [sample(pid, name) for pid, name in pids.items()]
             result = dict(setup='S', surface='background', size=SIZE, renderer=renderer, processes=processes,
+                          rest_cpu_percent=idle_cpu,
                           total=sum(process['Pss'] for process in processes))
             if motion_check:
                 result['motion'] = motion(gui, {pid: name for pid, name in pids.items()
