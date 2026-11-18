@@ -66,7 +66,7 @@ for factor,label in labels.items():
     print(f"| {label} | {spread(residuals['settled'])} | {spread(residuals['flight'])} | {spread(residuals['covered5m'])} | {spread(commits)} |")
 
 if any(name.startswith('winner-flat-') for name in rows):
-    print('\nCurrent-source final candidate ([settings](winners.json)); fresh v1 controls and candidate runs, n=3 each. These absolute ranges and paired differences are measured directly, not summed from isolated factors.\n')
+    print('\nCurrent-source final candidate ([settings](winners.json)); fresh v1 controls and candidate runs, planned n=3 each; cells show the recorded n. These absolute ranges and paired differences are measured directly, not summed from isolated factors.\n')
     print('| Current-source group | Settled RSS | Post-flight RSS | Covered 5-min RSS |')
     print('|---|---:|---:|---:|')
     values={}
