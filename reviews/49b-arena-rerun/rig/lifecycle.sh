@@ -14,6 +14,7 @@ finish() {
     if [[ $frozen == 1 ]]; then
         python3 -I "$here/scope.py" "$game" "$PKG49_GAME_UNIT" thaw "$RIG" || true
     fi
+    [[ -z ${host_watch:-} ]] || { kill "$host_watch" 2>/dev/null || true; wait "$host_watch" 2>/dev/null || true; }
     [[ -z $sampler ]] || kill "$sampler" 2>/dev/null || true
     [[ -z $cover ]] || kill "$cover" 2>/dev/null || true
     # Stop both owned scopes immediately; never wait for a dead input reader to end the game.

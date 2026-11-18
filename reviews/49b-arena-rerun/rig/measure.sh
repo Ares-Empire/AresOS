@@ -152,6 +152,8 @@ shot() { mkdir -p "$RIG/shots"; "$WT/reviews/40-real-home/rig/shot.sh" "$RIG" "$
 
 source "$here/lifecycle.sh"
 rig_start "$here/start.sh"
+python3 -I "$here/interference.py" "$RIG/host-watch.jsonl" &
+host_watch=$!
 
 echo "$(date +%T) waiting for the lock and the game ($name)"
 deadline=$((SECONDS + 1200))
@@ -167,6 +169,7 @@ done
 echo "GAME_PID=$game" >>"$RIG/settings.txt"
 echo "$(date +%T) game PID $game in $PKG49_GAME_UNIT"
 mark game_detected
+python3 -I "$here/provenance.py" "$game" "$RIG"
 python3 -I "$here/sample.py" "$game" "$RIG/samples.csv" 2 &
 sampler=$!
 log=$WT/mod/run/logs/latest.log
