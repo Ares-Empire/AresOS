@@ -371,50 +371,58 @@ runtime draws, at 60 frames a second, for a minute.
 Everything in 1.1 stays. A 1.2 helper offers the capabilities `views`, `home_state` and `apps_running`. A mod or a
 helper that does not know them works as today.
 
-- **A view.** `hello` may carry `"role": "view"` and `"view": "<name>"` (`[a-z0-9-]{1,32}`, here `laptop-home`).
-  Without `role`, or with `"role": "desktop"`, hello means what it means today.
-  - **A view proves who it is with a token of its own, not the nonce.**
-    - The supervisor makes one view token per session (`ARESOS_VIEW_TOKEN`, as random as the nonce). It keeps the
-      token beside the instance in its runtime file, so a restarted supervisor keeps it too.
-    - It gives the token to every helper it starts and to the laptop home. The game never gets it.
-    - A view's hello carries `instance` and `token`, never the nonce.
-    - The helper takes the role from what the hello holds: the nonce makes a desktop, the view token a view. A
-      hello whose `role` does not match what it holds is refused (`not_authorized`).
-    - So a view can never displace the game, and the game's nonce never leaves the game and the helper.
-    - The supervisor and the helper both add `ARESOS_VIEW_TOKEN` to their `PRIVATE_ENVIRONMENT`, so nothing they
-      start inherits it.
+- **A view.** `hello` carries the matching `instance`, `"role": "view"`, `token` and `view` (a name matching
+  `[a-z0-9-]{1,32}`, here `laptop-home`). A desktop presents the matching `instance` and `nonce`, with no
+  `role` or with `"role": "desktop"`. It keeps the existing nonce range of 16–128 URL-safe characters.
+  A mismatched role, a wrong instance, a token without the view role, or both credentials are `not_authorized`.
+  An authenticated view hello with an invalid or missing name is `malformed`. Views require minor 2.
+  - **The token's contract.**
+    - **Format:** `secrets.token_urlsafe(32)`, 43 characters of `[A-Za-z0-9_-]` (256 bits). The helper accepts
+      exactly that shape; it differs from the nonce's 32 characters, so a mix-up shows.
+    - **Made:** once per session, by the session's first supervisor, at the moment it makes `instance` (its runtime
+      file does not exist yet). A restarted supervisor reads it back. Never new for a game start, a retry or a
+      helper restart.
+    - **A restarted supervisor without a valid token** (missing, malformed, or the file of another instance) makes a
+      new one with that instance and restarts the helper and the laptop home, so no process keeps an old token. The
+      game is never restarted for this: it keeps its launch and nonce.
+    - **Kept:** as `view_token` in the supervisor's runtime file under `$XDG_RUNTIME_DIR` (written atomically, mode
+      0600), never in a file under `HOME`, so it ends with the session.
+    - **Given:** as `ARESOS_VIEW_TOKEN` to every helper the supervisor starts and to the laptop home, never to the
+      game; both the supervisor and the helper list it in `PRIVATE_ENVIRONMENT`.
+    - **In the helper:** read once at start, and compared with `hmac.compare_digest`, never `==`. A malformed value
+      counts as none and is logged once, without the value. A wrong token and no token configured both get `not_authorized` with the same text and close the
+      connection, so a client cannot tell them apart; only the helper's log says which, never with a value.
   - **The token lasts the whole session.** Each game start gives the game and the helper a new nonce
-    (`ensure_helper(restart=True)` in `aresos-desktop`), not a new view token.
-    - The helper restarts, and the view's connection drops.
-    - The window program connects again with the same token: after 0.5, 1 and 2 seconds, then every 2 seconds.
-      These reconnects are not restarts of the program (section 6).
-    - In between it shows the last town it had, with the open apps lit as they were. Opening is switched off, and
-      the typing line says "Opening is back in a moment".
-    - When the helper answers, the program reads `get_home`, `list_apps` and `apps_running` again.
-  - **PLAN-GAP:** making the token, handing it over and starting the laptop home are the supervisor's, package 23c's
-    side (`linux-aresos`).
-  - **A view never becomes the desktop.** It does not close the desktop's connection, and a desktop's hello does not
-    close a view's. A second view with the same name closes the first. At most four views.
-  - **A view's hello leaves the desktop's state alone.** It does not set the window rules (`window_minor`), does not
-    cancel returns (`cancel_returns()`), does not set `windows_pending`, and writes nothing to the supervisor's
-    status pipe (`desktop_connected` is the game's).
-  - A view may send `list_apps`, `open_app` and `get_home`. `world_ready`, `heartbeat` and `publish_home` are
-    refused (`invalid_state`). A view never counts for readiness.
-  - **Launches are kept per client.**
-    - Journal entries are keyed by client (`desktop` or `view:<name>`) and request ID. B1's duplicate rule holds
-      within one client, so a view's ID can never return one of the game's launches.
-    - The desktop keeps its 256 entries (`JOURNAL_LIMIT`). Each view gets 32 of its own, so a busy view can never
-      make the world's opens fail with `journal_full`.
-    - A view's request IDs carry a random part for each connection, as the game's do (`ShellClient`: prefix,
-      session, counter).
-  - **Each launch remembers who asked**, in the journal, so it survives a helper restart. `app_state` goes to that
-    client only, or to a view that comes back with the same name.
-  - A view gets `apps_changed`, `home_changed` and `apps_running`, and `app_state` for its own launches. It never
-    gets `shell_focus` or `shell_covered`.
-  - A launch a view asked for is not "the desktop's": when its app closes, the helper does not give the focus to
-    the world.
-- **`publish_home`** (desktop to helper). The mod sends it after hello and after every change of My apps, a short
-  name, a place, a hotbar slot or a logo:
+    (`ensure_helper(restart=True)` in `aresos-desktop`). The view reconnects with the same token after 0.5, 1
+    and 2 seconds, then every 2 seconds. While disconnected, it shows the last town and running apps it saw,
+    disables opening, and shows "Opening is back in a moment". After hello it fetches `get_home` and
+    `list_apps` and receives a fresh `apps_running`.
+  - **PLAN-GAP.** The supervisor makes and hands over the token and starts the laptop home in package 23c
+    (`linux-aresos`). The runtime-field export in `os/ci/overlay/checks.py` needs to redact `view_token` before
+    the supervisor starts saving it.
+  - **For `linux-aresos`.** The helper's focus return now uses the last window's compositor outputs when a view
+    is connected. Check the 23c screen moves and disconnects against that rule.
+  - **Connections.** A same-name hello replaces only that view. A fifth distinct connected view gets `busy`.
+    View hello leaves the desktop connection, window rules, pending returns and status pipe alone. Only the
+    desktop counts for readiness.
+  - A view may send `hello`, `list_apps`, `open_app` and `get_home`. Any other operation gets `invalid_state`.
+    A successful hello advertises the catalogue, launch and 1.2 view capabilities to a view. It gets
+    `apps_changed`, `home_changed`, `apps_running` and `app_state` for its own launches. The desktop gets
+    `shell_focus` and `shell_covered` under its existing capability rules.
+  - **Launches are kept per client.** Pending checks, the journal and launch tracking key requests by client
+    (`desktop` or `view:<name>`) and original request ID. B1's duplicate rule holds within one client. The
+    desktop keeps 256 journal entries and each view name gets 32. The helper keeps the four most recently used
+    view histories, including launches or replays made before a restart. A launch's `app_state` goes to the
+    asking client, including a view reconnecting with the same name. View launches leave the desktop's window
+    rules as they were, including after a helper restart. A view client should include a random part in its
+    request IDs for each connection, as the game does.
+  - **Focus return.** While a view is connected, the helper suppresses its own return to the world when an app's
+    last window closes on a known output separate from the world's outputs. It compares the last recorded
+    outputs and carries the decision through the discovered-app delay. The closing window's location decides,
+    including after a move and regardless of who opened the app. With unknown outputs, one screen or no view,
+    the existing return applies. An actual compositor activation of the world still reaches the game.
+- **`publish_home`** (minor-2 desktop to helper). The mod sends it after hello and after every change of My apps,
+  a short name, a place, a hotbar slot or a logo. Example fields inside the request envelope:
 
   ```json
   {"op": "publish_home", "revision": "17", "part": 0, "last": true,
@@ -423,21 +431,31 @@ helper that does not know them works as today.
              "cells": "............ (144 characters)"}]}
   ```
 
-  - `cells` is the logo as built, row by row from the top, one character a cell: `.` for no block, otherwise a key
-    of `palette`. `palette` gives each block's colour (numbers the mod already holds). `slot` is 0 to 8 for a pinned
-    app and missing otherwise. `place` is missing while the app has none. An app without a readable picture sends
-    its plain front.
-  - Several messages with `part` counting up carry a town that does not fit in 64 KiB; the helper takes the home
-    over when the one with `"last": true` arrives.
-  - The helper checks shapes and bounds only (at most 200 apps, strings as in 1.1) and keeps the last complete home
-    in memory. It does not read meaning into it.
-  - An app whose ID the helper no longer lists is dropped from the home, and the helper logs it; the rest of the
-    town stands. An uninstall during a publish cannot empty the laptop screen.
-- **`get_home`** (view to helper). The last complete home, paged like `list_apps`. Before the mod has published:
-  `"revision": null` and no apps.
-- **`home_changed`** (to views): `{"event": "home_changed", "revision": "17"}` when a new complete home arrived.
-- **`apps_running`** (to views): `{"event": "apps_running", "apps": ["notepad", "terminal"]}` once after hello and
-  at each change: the apps that have at least one window, from the helper's window tracking.
+  - `revision` is a nonempty string as in 1.1, bounded here to 128 characters without control characters.
+    `part` is an integer starting at 0 and increasing by one, with at most 16 parts. `last` is a boolean.
+  - `palette` is required in part 0 and absent in later parts. It holds at most 64 keys, each one character
+    matching `[A-Za-z0-9]`, and each value is `#rrggbb` with hexadecimal digits.
+  - `apps` holds at most 200 entries across all parts. Each has a unique 1.1 app ID matching
+    `[a-z0-9_-]{1,64}`, a required `short` of 1–64 characters without control characters and a required
+    `group` matching `[a-z0-9_]{1,64}`. Optional `place` matches `[A-Za-z0-9_-]{1,32}`. Optional `slot`
+    is an integer from 0 to 8. Omit either field when the app has no place or slot.
+  - `cells` is required and is exactly 144 characters, row by row from the top. Each character is a palette key
+    or `.` for no block. An app without a readable picture sends its plain front.
+  - The helper acknowledges each accepted part and takes over the home only on `"last": true`. An invalid part
+    discards the incomplete publish and keeps the last complete one, as does a desktop disconnect or
+    replacement. The complete home is held in memory across desktop reconnects.
+  - Once the helper has a complete catalogue, it omits unknown IDs from the publish and logs them once together.
+    While discovery is still on the starter catalogue, the helper serves the published IDs and defers this filter
+    until the first complete scan. A later uninstall is also filtered from `get_home`.
+- **`get_home`** (view to helper). The last complete home in app-ID order, using `list_apps` cursor and byte
+  limits. Each page carries the `revision` and the whole `palette`. Before the first complete publish the reply
+  has `"revision": null`, `"palette": {}` and `"apps": []`. Catalogue changes can affect which houses appear,
+  so views can fetch again on `apps_changed` as well as on `home_changed`.
+- **`home_changed`** (to views). `{"event": "home_changed", "revision": "17"}` when a new complete home arrives.
+- **`apps_running`** (to views). `{"event": "apps_running", "apps": ["notepad", "terminal"]}` once after hello
+  and whenever the list changes, with bursts coalesced per serving loop. It lists the sorted IDs of current
+  catalogue apps with at least one window, using the whole catalogue whether or not a desktop is connected.
+  Without window tracking, the initial list is empty.
 - **Never sent to a view:** a command, arguments, an environment, a path other than `icon`.
 - **Example messages** go beside 1.1's (`mod/src/test/resources/shell-1.2/`), read by the tests of both sides.
 
