@@ -1,0 +1,23 @@
+{
+  "nevra": "gh-2.103.3-1.x86_64",
+  "url": "https://github.com/cli/cli/releases/download/v2.103.3/gh_2.103.3_linux_amd64.rpm",
+  "sha256": "65d55875faa3281959676d91da15a9380583281586ac31bbd3d32b7924a9f4d2",
+  "signing_key": {
+    "file": "keys/github-cli-rpm.pub",
+    "source": "https://cli.github.com/packages/githubcli-archive-keyring.asc",
+    "sha256": "5cf71eb7df215f2dd79b8eb7cfbb069bd62458d8be8d64c141c02945838e754f",
+    "fingerprint": "7f38bbb59d064dbcb3d84d725612b36462313325",
+    "source_sha256": "cec6e9ed82d3949ca5f4428cc968b41ef5e7416cb3653cdfc2a421977663bbfd",
+    "provenance": {
+      "documentation": "https://github.com/cli/cli/blob/trunk/docs/install_linux.md",
+      "checked_on": "2026-11-18",
+      "published_fingerprints": [
+        "2c6106201985b60e6c7ac87323f3d4ea75716059",
+        "7f38bbb59d064dbcb3d84d725612b36462313325"
+      ],
+      "confirmation": "Fetched the published ASCII keyring over HTTPS; its SHA-256 and both primary fingerprints equal GitHub CLI official installation documentation. The 2022 key expired on 2026-09-05. Imported locally into a temporary GnuPG home without network and exported only the 2026 fingerprint; rpmkeys verified the pinned RPM header with that key."
+    }
+  },
+  "binary_sha256": "b768184570b12536be4ac1528893f6340d1c6a7b40b56ad45bca9cd0e87ad34d",
+  "license_sha256": "6da4adc42392c8485e40b4251c7e332fc3352df1947c9ffade71dd60b14a7a4f"
+}
