@@ -1,5 +1,56 @@
 # Empire brief 302 — progress
 
+## Fix after the proof (Mail review25)
+
+**Cause.** Control Mail [44395716355](https://github.com/Ares-Empire/AresOS/actions/runs/44395716355)
+(job `containers (2)`, on `f1098bf0`) errored in
+`test_review_fixes_25.Responses25.test_review25_long_id_350_copies_post_move_enospc_keeps_warning_and_location_pages`
+at `control/mail_tests/test_review_fixes_25.py:50` (`KeyError: 'data'`). The same
+test failed in the earlier Control Mail runs 44352678117, 44368668476 and 44375244438.
+Reproduced locally. After the MOVE, every journal write fails. The filing's write
+fails at its first fence. Rollback succeeds, so the store is not latched and the
+notice with its location pages stays queued in memory. The test's second request,
+`mail_filing_locations`, ran while the fault was still active. Its pre-dispatch
+flush failed again at a first fence and set the request barrier.
+`_admitted_request` (`engine.py:776`) then refused the read before dispatch. The
+reply was `storage_limit` with passive pending information and no `data`. The old
+latch had replayed the first cause during that flush, the read had then run, and
+the error was added to the reply.
+
+**(b), an adjacent test that pinned the old latch.** Brief item 1.2
+(`briefs/20-store-oracle-followups.md:83-87`) puts the barrier at the start of
+`_admitted_request` "for reads as well as mutations: a failed flush returns the
+storage refusal with passive pending information (`resolve_checks=False`) and
+causes **zero app effects**". Line 93 says to keep the failed notice queued for a
+new explicit request. Lines 110-111 say errors after a fully successful
+first-append rollback keep their old text. The location pages are the failed
+write's unsaved, deferred pages, not saved state. The saved-state warning still
+shows in the refused reply's pending notices. No product code changed.
+
+**Change.** In the failed second request, the test now asserts `storage_limit`,
+"Disk full" with no restart advice, no `data`, the pending notice for this
+`filing_id` with "Nothing was deleted", and a still-queued notice. After the fault
+is removed, a new explicit request on the same Engine (no restart) flushes the
+notice and reads the location page (fragment offset > 0). The warning still
+shows. Target holds 350 copies and there was still exactly one MOVE.
+
+**Local tests** (executable exports `control/test-work/302-exports/r25fix` and
+`r25mut`, run with `.work/302/run.py`; logs in `.work/302/r25/`):
+- Mail `test_review_fixes_25 test_review_fixes_24 test_review_fixes_22 test_review_fixes_23`
+  and the G22 regression: **26 tests OK** (`mail-fixed.log`). This includes
+  `test_failed_predispatch_flush_blocks_effect_until_next_request`.
+- Base `test_owner_state_oracle test_review22_storage test_restore_batches test_review23_results test_journal_closed`:
+  **169 tests OK** (`base-fixed.log`), including `WriteLatch302`.
+- Barrier removal (`require_writable` returns, as in `barrier-removal-final.patch`):
+  **FAILED (failures=7)** (`barrier-mutation.log`). All six named-regression
+  variants fail with `Failed flush must cause zero SMTP DATA`. The updated review25
+  test fails with `The failed request must stop before dispatching the read`.
+
+The laptop has no containers, so the full Mail suite is proven only by CI.
+**The lead's CI must show Control Mail green twice.** The pin cannot move: no
+product, oracle, workflow or selection file changed, and the oracle's
+`owner`/`perturb` runs do not select this module. Proof 44395635207 stands.
+
 ## Build part 7 (the re-pin)
 
 Status: **Re-pinned; proof 44395635207 dispatched**.
