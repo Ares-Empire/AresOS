@@ -1,6 +1,8 @@
 # Empire brief 302 — 20-store-oracle-followups: the write latch, the oracle's startup blind spot, rows left at H
 
 Lead: `linux-tools`. Written on 2026-11-17 against main `4737bb69`.
+Revision 1, 2026-11-18: `BRIEF-REVIEW-1` addressed; overlaps checked against
+main `87d86471`. The code line numbers below retain the original baseline.
 Builder: Codex `gpt-6.1-sol` xhigh or Claude Opus. This is a build brief, not a build.
 The brief writer changed no product code and dispatched no workflow.
 
@@ -39,6 +41,11 @@ files in `owner_state_oracle/`.
   Confirmation also reaches it (`storage.py:905-906`). Reads can encounter it
   through deferred notices or live checks. `Observations.finish`,
   `results.py:67-75`, preserves the request's first storage error over later ones.
+- `Engine.request`, `engine.py:753-759`, catches a deferred-notice flush failure
+  and continues into `_admitted_request`. Clearing the store latch alone can
+  therefore let the **same** request act, even though its final reply preserves
+  the storage error. The review's narrow-rollback probe produced one SMTP DATA
+  in that request; the baseline produced none.
 - In a local reproduction, a failed confirm's second attempt, with faults off,
   still returned `storage_limit` and the same “Disk full … before retrying” text.
   Restart recovered the staged confirm and unlocked. A zero-byte first append
@@ -53,26 +60,51 @@ began. Free space alone cannot settle an incomplete transaction. Starting a new
 one could overwrite its sequence or lose its recovery rights. A restart already
 validates and recovers these bytes. Do not add live replay or retry app work.
 
-There is one safe exception. If **the first fence append in `Store.write` fails,
-and both truncation to its original offset and that truncation's fsync succeed**,
-the write has not reached SQLite. Clear the latch for the next explicit request.
-Keep the failed request failed. This includes zero and short writes, and a failed
+There is one safe exception. If **this invocation's first fence append in
+`Store.write` fails, truncation to that invocation's original offset actually
+succeeds, and the following journal fsync actually succeeds**, indexing, SQLite
+staging and application have never been reached. Clear the persistent latch for
+the next explicit request, but keep a request-local barrier against further app
+effects in the failed request. This includes zero and short writes, and a failed
 fence fsync followed by successful rollback. It does not include a failed commit
 marker, an index failure after the fence, or a failed cleanup.
 
 1. Make `_append` report successful rollback explicitly on its raised failure.
-   Set that fact only after truncate **and** fsync return. Consume it only around
-   `write`'s first `_append(record)`. Never clear the latch in `_append` itself:
-   the same method writes commit markers, including in `confirm_restore`.
-2. A later call refused by a surviving latch gets `journal_incomplete`, not a
+   Set that fact only after truncate **and** fsync return successfully, inside
+   the cleanup body. Returning from `common.py:64`'s `cleanup` context is not
+   evidence: it suppresses cleanup exceptions and attaches notes. Consume the
+   fact only around this invocation's first `_append(record)` in `Store.write`.
+   Never clear the latch in `_append` itself: the same method writes commit
+   markers, including in `confirm_restore`.
+2. Put the barrier in the fresh request observations established by
+   `Engine.request` **before pending collection and deferred-notice flushing**.
+   Record the failed first append's storage refusal there before clearing the
+   persistent latch; a caller catching that failure must not clear the barrier.
+   Check it at the start of `_admitted_request`, inside its existing refusal
+   `try`, before admission or `_request`. This is the gate immediately after
+   `Engine.request`'s pre-dispatch flush/catch, for reads as well as mutations:
+   a failed flush returns the storage refusal with passive pending information
+   (`resolve_checks=False`) and causes **zero app effects**, such as SMTP DATA.
+   Consult the same barrier in `Store.ensure_writable` before the persistent
+   latch check, while the request is active, so a failure caught after admission
+   cannot authorize another write, deferred flush or app effect through the
+   existing pre-command storage checks. Keep those checks at effect boundaries;
+   do not permit a caught failure to bypass them. Do not retry the flush within
+   that request. Keep the failed notice queued for a new explicit request.
+   The barrier lasts through reply finishing; reset it only for a new request,
+   not on a successful cleanup or another caught exception. Outside the request
+   it must not become a second persistent latch. Preserve the original refusal
+   through `Observations.finish` and `bound_result`; changing the final envelope
+   alone is not a barrier. No earlier app effect is undone or resubmitted.
+3. A later call refused by a surviving latch gets `journal_incomplete`, not a
    replay of the earlier `storage_limit` or `storage_error`. Keep `storage_cause`
    for diagnosis and existing background notices. Preserve cleanup notes.
-3. Give every storage refusal whose store is still latched this advice:
+4. Give every storage refusal whose store is still latched this advice:
    “A storage write did not finish. Fix the storage problem, then ask the owner
    to restart the AresOS tool service. Check the recorded request or operation
    after restart before trying another change.” The installed unit is
    `aresos-toold.service`. Do not restart it from a tool request.
-4. The **first failed request** keeps its original error code, cause and notes.
+5. The **first failed request** keeps its original error code, cause and notes.
    Append the advice once, after the first-error choice in `Observations.finish`
    and before `bound_result`. A later latch refusal uses `journal_incomplete`
    with that advice. Successful reads keep their replies. Admission-only errors
@@ -93,6 +125,17 @@ partially staged one need recovery, not another app action.
   retry, and a successful explicit write after the permitted rollback or restart.
   Existing tests which expect a latch after successful first-append rollback
   must now assert the stronger healthy retry. Keep their failed-write assertions.
+- Add `test_failed_predispatch_flush_blocks_effect_until_next_request` in
+  `mail_tests/test_review_fixes_24.py`: queue a deferred notice, then make an
+  approved send request whose pre-dispatch flush has a zero-byte first-fence
+  failure with proven truncate-and-fsync success. Assert the original storage
+  refusal, zero app effects (zero SMTP DATA), a still-reserved operation and a
+  still-queued notice. With the fault removed, a **new explicit request** on
+  the same Engine flushes the notice and succeeds, with exactly one DATA in
+  total and no restart. Also exercise a caught failure after admission at the
+  next pre-command storage check, and the short-write/fence-fsync variants.
+  Removing the request barrier while retaining the narrow latch clear must
+  fail the zero-effects assertion, not just change an error envelope.
 - For the failed final confirm, test both successful and failed marker rollback.
   First reply: original storage error with restart advice. Second confirm with
   faults off: `journal_incomplete`, lock held, no write and no new generation.
@@ -299,10 +342,12 @@ silence it by broadening an allowed set. Explain it in the capture classificatio
    and the sweep module's unit tests (all except its full matrix). Save clean
    flow traces and the sample described below. Test expected row/lock values,
    not just the number of recorded gaps.
-2. Build item 1's store change and focused tests. Run those modules, the G22
-   regression, and affected error/observation tests (`test_review23_results` and
-   Mail `test_review_fixes_23`, `test_review_fixes_24`). Then build its independent
-   oracle trace/status rule and run its sweep cases. Commit and record the delta.
+2. Build item 1's store change, request barrier and focused tests. Run those
+   modules, the G22 regression, the named failed-pre-dispatch-flush regression
+   and its barrier-removal mutation, and affected error/observation tests
+   (`test_review23_results` and Mail `test_review_fixes_23`,
+   `test_review_fixes_24`). Then build its independent oracle trace/status rule
+   and run its sweep cases. Commit and record the delta.
 3. Build item 2 and its pre-confirm startup check. Run its store and model tests,
    the restore sweep cases and the skipped-startup mutation. Commit. No baseline
    startup-proof gap is expected; the new check exposes broken recovery.
@@ -310,7 +355,9 @@ silence it by broadening an allowed set. Explain it in the capture classificatio
    `test_owner_state_fixes_s2`, the ordinary owner contracts, quiet/regression/S2
    effect/plant suites, and the sweep's unit tests. Run the sample again and one
    local alteration shard before spending a full workflow run. Commit.
-5. Run every mutation below, one at a time in disposable exports under `.work/`.
+5. Run every mutation below, one at a time in disposable executable exports under
+   the ignored `control/test-work/302-exports/`, with no dot-prefixed ancestor
+   in the resolved export path. Keep logs and patches under `.work/302/`.
    Each baseline must pass. Each mutant must fail its named assertion, not an
    import, fixture or pin error. Restore the export between mutants. Record the
    exact patch, command and failure. Have fresh package/security reviewers and
@@ -324,6 +371,9 @@ for base tests; both contain `support.py`. Run Mail tests separately. Set
 `PYTHONPATH` in the environment too, since an oracle test starts a subprocess.
 Do not run installed-channel/root tests on the laptop. CI's ledger job owns them.
 Do not run the OS owner modules, boot tools, mounts or sudo. No mod build is needed.
+The export location matters: `test_review23_sweep.py:269` derives its synthetic
+caller home from the source tree, and FilePolicy rejects dot-prefixed ancestors.
+Do not weaken FilePolicy to accommodate an export under `.work/`.
 
 The compact sample starts with clean `restore` and `cancel`; restore points
 25, 26, 40, 73, 74, 75 and pair 75:76; cancel first append, failed-cleanup pair,
@@ -341,6 +391,7 @@ The reviewer must run them, not just inspect their source.
 | Mutation | Test which must reject it |
 |---|---|
 | Keep the latch after a fully rolled-back first fence | G22 healthy-next-write regression and first-append sweep test |
+| Remove the request barrier, leaving the narrow first-fence latch clear | `test_failed_predispatch_flush_blocks_effect_until_next_request`: the failed pre-dispatch flush must cause zero app effects, then a new explicit request must succeed without restart |
 | Clear it after any append failure, including a marker or failed rollback fsync | Store marker/cleanup tests; item-1 sweep with no second effect |
 | Raise the old cause on a later latched request | Two-request store test and final-confirm sweep status test |
 | Remove restart advice, or replace the first error with `journal_incomplete` | Exact first/second-error tests, including cleanup notes and bounded observations |
@@ -416,29 +467,41 @@ committed reads, storage reservations and the durability order. Keep other gap
 classes and all negative checks. No journal/schema migration or live service
 change belongs here.
 
-Checked after `git fetch origin` and `git merge --ff-only origin/main`, using
-`git diff origin/main...origin/<branch> --stat` for both open branches:
+Rechecked on 2026-11-18 after fetching main `87d86471` and PR #72's branch,
+using its three-dot diff and the merged commits. This brief revision does not
+merge main or make package 43's Control change:
 
 | Work | Diff checked | Overlap |
 |---|---|---|
-| PR #72, `pkg/28-chrome`, `5b051f305a0f` | 73 files, +12,931/-177 | `engine.py` request wrapper gains Chrome's `call_time` scope around observations, admission and reply finishing. Keep it around the final bounded reply if this build touches that area. No storage/oracle edit in its diff. Re-run Chrome request/deadline tests after integration. |
-| PR #58, `pkg/18c-image`, `537790a22185` | 43 files, +9,251/-30 | No storage/engine/oracle edit. Shared `control/README.md` changes the installed config path near line 293, away from this brief's durability text. Its daemon/launcher config paths and integration fixtures affect hosted/installed tests; keep those paths. No reason to run image or boot work for this brief. |
-| PR #98, `3a5eea14`, merged 2026-11-17 | Included in the fast-forward | Does touch `engine.py:764`: qualification now uses the held object's `switches(version)`. It also changes Chrome qualification/committed reads and their tests. Keep that call and cache behaviour. No storage or owner-oracle change. |
-| PR #97, `4737bb69`, merged 2026-11-17 | Included in the fast-forward | Test/CI overlap only: base workflow, `control/ci/test.sh`, integration and service-fix tests. No storage, engine or owner-oracle change. Keep its idle-loop timing and environment checks. |
+| PR #72, `pkg/28-chrome`, `f282553ba631` | Open; 76 files, +13,703/-188 | `engine.py` request wrapper gains Chrome's `call_time` scope around the whole request: observations, pending collection, deferred flushing, admission and reply finishing. Keep the request barrier and final bounded reply inside that scope. No storage/oracle edit in its diff. Re-run Chrome request/deadline tests after integration. |
+| PR #58, merged as `beb42ec8`, 2026-11-18 | Included in current main; 46 files, +11,409/-30 | No storage/engine/oracle edit. Shared `control/README.md` changes the installed config path near line 293, away from this brief's durability text. Its daemon/launcher config paths and integration fixtures affect hosted/installed tests; keep those paths. No reason to run image or boot work for this brief. |
+| PR #98, `3a5eea14`, merged 2026-11-17 | Included in the original baseline and current main | Does touch `engine.py:764`: qualification now uses the held object's `switches(version)`. It also changes Chrome qualification/committed reads and their tests. Keep that call and cache behaviour. No storage or owner-oracle change. |
+| PR #97, `4737bb69`, merged 2026-11-17 | Included in the original baseline and current main | Test/CI overlap only: base workflow, `control/ci/test.sh`, integration and service-fix tests. No storage, engine or owner-oracle change. Keep its idle-loop timing and environment checks. |
+| Package 43, Control CLI shortcut removal | Integration dependency owned by `linux-tools` | Drops top-level `log`, keeping `aresos control log`. The lead must land `test_owner_state_channels.py:125`'s change from `['cli', 'log', ...]` to `['cli', 'control', 'log', ...]` together with 43's Control change, so the installed-channel ledger test still contacts the service. This brief only names that dependency. |
+
+Keep the oracle's historical `aresos log` comparison label stable:
+`owner_state_oracle/compare.py:325` calls `control_log` directly, without the CLI
+shortcut. This re-pin does not depend on package 43 or a label migration.
 
 These are the fetched tips, not a promise that concurrent branches will stay
 still. Re-check their diffs before integration and before the final capture.
 
 ## Question for the owner
 
-“After an interrupted storage write, should the tools say that a service restart
-is needed, while continuing to show changes already saved locally? If the first
-journal append was fully undone, the next request would work without a restart.”
+“After an interrupted storage write, should the tools tell you to free storage
+or fix the disk problem, then restart the AresOS tool service, while continuing
+to show changes already saved locally? For example, a saved cancellation stays
+visible even when the request reports a storage error. This recovery resends
+nothing. If the failed save was completely undone, the failed request would
+still stop, but your next explicit request could work without a restart.”
 
 **Recommendation: yes.** This gives useful recovery advice, keeps incomplete
-writes from starting new work, and avoids hiding saved changes. H's row behaviour
-stays as it is; the changed refusal text and the narrow healthy retry are the
-noticeable changes. The lead takes this judgment call to the owner before merge.
+writes from starting new work, and avoids hiding saved changes. Item 1's request
+barrier makes the narrow exception safe: even a caught flush failure cannot let
+that request act after the latch clears; only a new explicit request may proceed.
+H's row behaviour stays as it is; the changed refusal text and the narrow healthy
+retry are the noticeable changes. The lead takes this judgment call to the owner
+before merge.
 
 ## Writer's local evidence
 

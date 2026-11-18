@@ -1,9 +1,64 @@
 # Empire brief 302 — progress
 
-**Brief written; next: brief review.** Lead: `linux-tools`.
+**Revised after BRIEF-REVIEW-1; next: a short recheck**. Lead: `linux-tools`.
 Source baseline: main `4737bb69`, after `git fetch origin` and
 `git merge --ff-only origin/main` (from `67bf1909`). Only the brief and this file
 are committed. No product code, workflow dispatch or running-service change.
+
+## Revision 1 — 2026-11-18
+
+- **1. The write latch / Decision and exact change / Tests and oracle change:**
+  kept the narrow durability predicate, including actual truncate-and-fsync
+  success before indexing or SQLite. Added a request-local barrier before
+  dispatch and at subsequent writable checks, including caught deferred-flush
+  failures. Added the named zero-effects/next-explicit-request regression.
+  **Build order and gates / Reviewer mutations** now require its baseline and
+  barrier-removal mutation; all earlier mutations remain.
+- **What must not change; overlapping work:** named package 43's canonical
+  `['cli', 'control', 'log', ...]` channel-test dependency, which `linux-tools`
+  lands with 43's Control change. Kept the historical `aresos log` oracle label
+  and the re-pin's independence from 43. Updated #98, #97 and #58 (`beb42ec8`)
+  to merged, and #72 to `f282553ba631`, retaining its whole-request `call_time`.
+  Fetched main was `87d86471`; no merge was made in this brief revision.
+- **Build order and gates:** executable exports go under ignored
+  `control/test-work/302-exports/`, without dot-prefixed ancestors; logs remain
+  under `.work/`. FilePolicy stays unchanged.
+- **Question for the owner:** says “the failed save was completely undone,”
+  includes the saved-cancellation example and freeing storage/fixing the disk
+  followed by restarting the tool service, which resends nothing. “Yes” remains
+  recommended because the barrier stops the failed request even after latch
+  clearing. Items 2 and 3, the re-pin plan/expected shape and the “What must not
+  change” rules are unchanged. No disagreement with `BRIEF-REVIEW-1`.
+
+Checks for this revision (scratch: `.work/revision-302/`; bytecode disabled,
+`TMPDIR` resolved inside its `tmp/`; the unit runner also has `PYTHONPATH`
+resolved to `control`, `control/tests`, `control/mail_tests` in that order):
+
+- `python3 .work/review-302/probe.py latch`: reproduced `latch-exact.log`:
+  baseline zero DATA; narrow latch clear alone one DATA in the failed request.
+  `python3 .work/revision-302/barrier-probe.py latch` against this worktree:
+  adding the request barrier gave `storage_limit`, zero effects, unchanged
+  journal, reserved operation and queued notice; the new healthy request gave
+  `ok`, one DATA and one APPEND. Removing the barrier gave one DATA again.
+  These are runtime scratch patches, not an implementation of the brief.
+- `python3 .work/review-302/cli-probe.py`: removing the shortcut gave exit 2
+  and zero proxy calls for `log`; `control log` gave exit 0 and one proxy call.
+- `python3 .work/302/unit.py . base tests.test_owner_state_oracle tests.test_review22_storage tests.test_restore_batches`:
+  **134 tests OK**, 41.669 s (`units.log`); restore peak bytes 217,066 / 217,069.
+- Exported tracked Control and the existing pin with `git archive HEAD` into
+  `control/test-work/302-revision-export/`, an ignored path without dot ancestors.
+  With `REVIEW302_TREE` pointing there, `python3 .work/review-302/run.py mail test_owner_state_sweep.OwnerStateSweep.test_export_repeated_fault_uses_same_caller_path_and_exact_delta`:
+  **1 test OK**, 0.522 s (`export.log`).
+- Checked the cited production/test/oracle code, the current #72 engine diff
+  and merged-commit ancestry. `git diff --check` passed. Full workflows, new
+  implementation tests and the full mutation matrix remain the builder's work;
+  none was dispatched or claimed here. No installed-channel, OS or mod tests.
+- A structural comparison confirmed items 2/3, the complete re-pin section and
+  the “What must not change” rules are unchanged; all 13 earlier mutation rows
+  remain, with one barrier mutation added. No files over 500 MB remain under
+  `.work/` or `control/test-work/`.
+
+## Original brief evidence
 
 Local evidence, 2026-11-17. Scratch output: `.work/302/current/`.
 The unit runner uses the repo's managed-settings stand-in, as the prior package
