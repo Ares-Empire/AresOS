@@ -17,7 +17,7 @@ finish() {
     [[ -z ${host_watch:-} ]] || { kill "$host_watch" 2>/dev/null || true; wait "$host_watch" 2>/dev/null || true; }
     [[ -z $sampler ]] || kill "$sampler" 2>/dev/null || true
     [[ -z $cover ]] || kill "$cover" 2>/dev/null || true
-    if [[ -n $game ]]; then
+    if [[ -n $game && ! -f $RIG/terminal.json ]]; then
         python3 -I "$here/terminal.py" "$game" "$PKG49_GAME_UNIT" "$RIG" || status=1
     fi
     # Stop both owned scopes immediately; never wait for a dead input reader to end the game.

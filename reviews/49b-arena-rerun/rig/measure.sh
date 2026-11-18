@@ -364,6 +364,7 @@ if [[ $SHOTS == 1 ]]; then
     "$WT/reviews/40-real-home/rig/shot.sh" "$RIG" "$RIG/shots/above-south.png" || true
 fi
 if ((QUIT)); then
+    python3 -I "$here/terminal.py" "$game" "$PKG49_GAME_UNIT" "$RIG"
     kill "$health" 2>/dev/null || true; wait "$health" 2>/dev/null || true; health=
     # Close the game's window as he would: the game saves the world and quits; keep that save.
     python3 -I "$WT/reviews/40-real-home/rig/tl.py" "$RIG" close aresos-desktop >/dev/null 2>&1 || true

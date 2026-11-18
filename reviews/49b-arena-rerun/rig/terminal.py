@@ -8,7 +8,7 @@ import time
 pid,unit,rig=sys.argv[1:]
 assert unit.startswith('pkg49b-game-') and unit.endswith('.scope')
 record={'monotonic_ns':time.monotonic_ns(),'unit':unit}
-group=subprocess.check_output(['systemctl','--user','show','-P','ControlGroup',unit],text=True,timeout=2).strip()
+group=subprocess.run(['systemctl','--user','show','-P','ControlGroup',unit],capture_output=True,text=True,timeout=2).stdout.strip()
 if group and Path(group).name==unit:
     base=Path('/sys/fs/cgroup')/group.lstrip('/')
     for file in ('memory.events','memory.peak','memory.swap.current'):
