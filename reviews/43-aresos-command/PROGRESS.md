@@ -910,3 +910,14 @@ These are locations, not another copy of either proposed list:
    bridge windows, then rebind and record real evidence. No rehearsal claim
    was added here. Step 7 hands the dispatcher stages to R29; its route stays
    OPEN until R29's rehearsal. Live/phone proof remains with those steps.
+
+### Step 4 reviewed (2026-11-18)
+
+REVIEW-12 (Astra, on `ee738d1d`): two should-fix in docs/EMERGENCY.md, fixed by the lead in `c9ce1a25` (the routine
+STOP card names the two refusals that are not a STOP; the was-not-applied warning sits inside its branch; both
+pinned in test_owner_path). **REVIEW-13 SAFE.** Open: the card's literal one-page fit on paper and on his phone is
+unverified (it grew by about 45 words); look at it on the phone with the owner before step 6. Calls 1 and 2's
+wording still waits for his OK (the report of step 4 lists every sentence he should see).
+
+**Next:** step 5 (an independent review of steps 1–4 together), then step 5a (the bridge's three generated lines),
+then step 6 (needs published R28 and settled words).
