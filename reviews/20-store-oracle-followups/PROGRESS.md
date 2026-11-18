@@ -9,8 +9,7 @@ Status: **Build part 1 done; next: step 3**.
 - Step 1: baseline at `4a6acc2e`. `git fetch origin` returned exit 0;
   `HEAD` and `origin/main` both resolve to `4a6acc2e`, so no merge was needed.
   The branch is `pkg/302-store-oracle`. Baseline commit: `2de6da86` (pushed).
-- Step 2: the implementation commit containing this section (hash recorded in
-  the closing handoff): `_append` reports actual rollback completion; only
+- Step 2: `b64eb8f4` (pushed): `_append` reports actual rollback completion; only
   `Store.write`'s first fence can clear the persistent latch. Fresh observations
   hold the request barrier before dispatch and at later writable checks, through
   reply finishing. Failed writes/flushes retain the first cause and queued notice.
@@ -170,15 +169,30 @@ causes were fixed and tested; no assertion, FilePolicy rule or allowed set was
 weakened to hide a pin failure. `git diff --check` passes.
 
 Push checks so far: baseline commit's Repo privacy run **44319148928 passed**.
-Control workflows are path-filtered for that documentation-only push. The
-implementation push's observations are recorded in the closing handoff; no
-workflow is dispatched or awaited beyond this work.
+Control workflows are path-filtered for that documentation-only push.
+
+Draft PR: [#111](https://github.com/Ares-Empire/AresOS/pull/111), against `main`.
+After the normal implementation push, the closing read-only Actions query showed:
+
+| Workflow | Run | Observed result |
+|---|---:|---|
+| Control base | 44324138098 | queued |
+| Control boundary | 44324138060 | queued |
+| Control Chrome | 44324138069 | queued |
+| Control Chrome qualification | 44324138105 | queued |
+| Repo privacy | 44324138082 | queued |
+
+Control Mail had not yet appeared in that query; no result is claimed for it.
+Raw snapshots are `push-checks-{implementation,closing}.json`. These are
+observations, not CI passes. No workflow was dispatched, rerun or awaited past
+this work. The closing documentation commit records these results and the
+implementation hash; it changes no product or tests.
 
 ### Left, in order
 
 1. Step 3: item 2, independent startup obligation and pre-confirm proof.
 2. Step 4: item 3, applied history, lifecycle ordering and alterations.
-3. Step 5: all remaining mutations and fresh reviews.
+3. Step 5: all remaining mutations.
 4. Step 6: merge current main, re-pin once, full capture and proof.
 5. Final package/security reviews and independent classification review.
 

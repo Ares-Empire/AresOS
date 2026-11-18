@@ -24,3 +24,7 @@ for the later capture; no pin was changed.
 
 **Open questions / left:** Step 3 item 2; step 4 item 3; step 5 mutations; step 6
 re-pin and full proof; then final reviews. Stop here. PR remains a draft.
+
+Draft PR: [#111](https://github.com/Ares-Empire/AresOS/pull/111). Commits:
+`2de6da86` (step 1), `b64eb8f4` (step 2), followed by the closing documentation
+commit. Observed implementation CI is queued; see PROGRESS for run IDs.
