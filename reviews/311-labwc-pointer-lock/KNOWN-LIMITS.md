@@ -24,3 +24,13 @@ The lead sorted review 1's findings by the safety bar: real harm gets fixed, low
 - The guard 3 and 4 tests run the real Python body, but would not notice if the shell line that starts it were removed.
 
 Both only weaken a proof of checks that review 1 confirmed are wired into the build.
+
+## The digest check reads physical lines (review 2, known limit)
+
+**What:** 311c's check could be fooled by a locked `FROM` line hidden inside a continued `RUN` comment, together with a real `FROM` that has a different digest and puts `AS labwc` on the next line.
+
+**Why it stays:** it takes two deliberate, unusual edits to a reviewed file. A plain digest change or a continued `FROM` on its own is refused.
+
+## The ignore-file wiring test (review 2, nit)
+
+The wiring test would not notice a `Containerfile` rule padded with spaces in `os/.containerignore`. The build would then stop at the new `COPY` line, so nothing unsafe gets through.
