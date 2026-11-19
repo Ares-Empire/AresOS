@@ -1,0 +1,32 @@
+{
+ "run": "verify-b",
+ "source_revision": "456f696985affcc34e04bec2a5e914298b7a1eef",
+ "started": "2026-11-19T04:48:13+01:00",
+ "game": "Minecraft 26.2 development client (Loom runClient) with the worktree's AresOS mod, headless in the rig's own labwc",
+ "mode": "verify",
+ "shown": true,
+ "environment": {
+  "runtime_folder_is_the_runs_own": true,
+  "gate": false,
+  "gate_expected": false,
+  "checked": "before the supervisor started and before any save"
+ },
+ "reopened": [
+  {
+   "block": 16,
+   "in_the_reopened_game": true,
+   "on_the_disk": true
+  },
+  {
+   "block": 17,
+   "in_the_reopened_game": true,
+   "on_the_disk": true
+  },
+  {
+   "block": 18,
+   "in_the_reopened_game": true,
+   "on_the_disk": true
+  }
+ ],
+ "gradle_saw_exit_value": 0
+}

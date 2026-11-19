@@ -70,6 +70,13 @@ every authenticated desktop event, and never reads from it:
   {"event": "desktop_connected"}
   {"event": "world_ready", "world": <save folder name>}
   {"event": "heartbeat", "ready": <bool>, "world": <save folder name or null>}
+and, whether or not a desktop is connected (package 25, the black screen and
+`logout`), how many app windows are open, once at start and at each change:
+  {"event": "windows", "count": <number, or null when it cannot tell>,
+   "names": [<up to 8 of their names>]}
+An app window is every window but the desktop's, the covers', the
+supervisor's message window and the laptop home, minimized ones included. The count is null while
+window tracking is off, and once more when the compositor is lost.
 
 After the supervisor restarts a crashed desktop it sets
 ARESOS_SHELL_KEEP_FOREGROUND=1: when the new desktop window takes focus while
@@ -145,6 +152,16 @@ DESKTOP_APP_IDS = frozenset({'aresos-desktop'})
 # over the game's own loading screens until world_ready. It never counts as covering the world and is never minimized:
 # labwc activates the game's window under it, and minimizing it then would show those loading screens after all.
 STARTUP_COVER_APP_ID = 'aresos.cover'
+# Package 25's black screen (aresos-cover --black) while a shutdown, logout or restart saves the home: treated as the
+# start-up cover is, never an app, never covering, never minimized.
+BLACK_APP_ID = 'aresos.black'
+COVER_APP_IDS = frozenset({STARTUP_COVER_APP_ID, BLACK_APP_ID})
+# The supervisor's own message window (aresos-desktop's VIEW_COMMAND): no app window either.
+MESSAGE_WINDOW_APP_ID = 'aresos.desktop'
+# The `windows` report names at most this many windows, each this short: the line stays far below PIPE_BUF however
+# JSON escapes the names.
+WINDOW_NAMES = 8
+WINDOW_NAME_CHARS = 40
 LAPTOP_HOME_APP_ID = 'aresos.laptop-home'
 BASE_CAPABILITIES = frozenset({'list_apps', 'open_app', 'app_state', 'world_ready', 'heartbeat'})
 DETAIL_CAPABILITIES = frozenset({'app_details', 'apps_changed', 'list_paging'})
@@ -190,7 +207,7 @@ SCREENS = frozenset({'world'})
 # nor the helper's own service plumbing.
 PRIVATE_ENVIRONMENT = ('ARESOS_LAUNCH_NONCE', 'ARESOS_VIEW_TOKEN', 'ARESOS_DESKTOP_INSTANCE', 'ARESOS_SHELL_STATUS_FD',
                        'ARESOS_SHELL_KEEP_FOREGROUND', 'NOTIFY_SOCKET', 'LISTEN_FDS', 'LISTEN_PID', 'LISTEN_FDNAMES',
-                       'WATCHDOG_PID', 'WATCHDOG_USEC')
+                       'WATCHDOG_PID', 'WATCHDOG_USEC', 'ARESOS_DESKTOP_LIFECYCLE')
 
 ENVELOPE = re.compile(r'aresos-shell/(\d{1,3})\.(\d{1,3})\Z')
 REQUEST_ID = re.compile(r'[A-Za-z0-9._:-]{1,128}\Z')
@@ -217,10 +234,11 @@ HELPER_FILE = os.path.abspath(protocol.__code__.co_filename)
 
 
 class StatusPipe:
-    """One-way readiness lines to the desktop supervisor (package 23).
+    """Readiness lines to the desktop supervisor on its private status FD (package 23).
 
-    Each line is far below PIPE_BUF, so it arrives whole. A full pipe drops the line (the next heartbeat repeats
-    the state); a closed pipe switches reporting off. Neither may ever stop the helper.
+    Packet sockets and the original pipe both carry these short lines whole. A full pipe drops the line (the next
+    heartbeat repeats the state); a closed pipe switches reporting off. Neither may ever stop the helper. A call
+    answers False only for a dropped line, so a report that no heartbeat repeats (`windows`) can be written again.
     """
 
     def __init__(self, fd):
@@ -233,9 +251,10 @@ class StatusPipe:
         try:
             os.write(self.fd, (json.dumps(fields, sort_keys=True) + '\n').encode('utf-8'))
         except BlockingIOError:
-            pass
+            return False
         except OSError:
             self.fd = None
+        return True
 
 
 def no_status(**fields):
@@ -2677,7 +2696,8 @@ class Windows:
         An output list the compositor has not sent yet counts as the same screen, as with a single screen: for the
         pause that errs toward pausing. With known_screen only windows on a screen known to be the desktop's count:
         the ones uncovering minimizes, because hiding a window that may be on the other screen is not harmless
-        (package 40, review 1, finding 4). The start-up cover and laptop home never count.
+        (package 40, review 1, finding 4). The start-up cover, package 25's black screen and the laptop home never
+        count.
         """
         desktop = self.of(self.SHELL)
         if not desktop:
@@ -2691,8 +2711,17 @@ class Windows:
 
         return [t for t in self.toplevels.values()
                 if t.ready and t.owner != self.SHELL
-                and t.app_id not in (STARTUP_COVER_APP_ID, LAPTOP_HOME_APP_ID) and not t.minimized
+                and t.app_id not in COVER_APP_IDS and t.app_id != LAPTOP_HOME_APP_ID and not t.minimized
                 and (t.maximized or t.fullscreen) and on_its_screen(t)]
+
+    def app_windows(self):
+        """The app windows open right now (package 25, 3.4): every window but the desktop's, the covers', the
+        supervisor's message window and the laptop home (package 53c, part of the desktop), minimized ones included,
+        whoever owns them. A window counts once the compositor has said what it is (its first done event): until then
+        it could be a cover, and counting the black screen itself would take it down again."""
+        return [t for t in self.toplevels.values()
+                if t.ready and t.owner != self.SHELL and t.app_id not in COVER_APP_IDS
+                and t.app_id not in (MESSAGE_WINDOW_APP_ID, LAPTOP_HOME_APP_ID)]
 
 
 @dataclasses.dataclass
@@ -2817,10 +2846,14 @@ class ForeignToplevels:
         self._send(self.registry, 0, struct.pack('=I', name) + self.string('wl_output')
                    + struct.pack('=II', 1, self.outputs[name]))
 
-    def roundtrip(self):
+    def sync(self):
         callback = self._new('callback')
         self.callbacks.add(callback)
         self._send(1, 0, struct.pack('=I', callback))
+        return callback
+
+    def roundtrip(self):
+        callback = self.sync()
         while callback in self.callbacks:
             data = self.sock.recv(65536)
             if not data:
@@ -3045,6 +3078,9 @@ class Helper:
         self.window_minor = int(any(client == DESKTOP and entry.get('discovered') and entry['state'] not in FINAL
                                     for (client, _), entry in self.journal.entries.items()))
         self.windows_pending = False
+        # What the supervisor was last told about the app windows (package 25): (count, names), or None before the
+        # first report.
+        self.windows_reported = None
         self.catalogue_windows = None
         if windows is not None:
             windows.set_registry(self.window_apps())
@@ -3086,6 +3122,8 @@ class Helper:
         if windows is not None:
             # The compositor has listed its windows by now: tie restarted launches to them, then take stock.
             self.windows_changed()
+        else:
+            self.report_windows()  # window tracking is off: the supervisor hears that the count is not known
 
     # -- restart reconciliation
 
@@ -3889,6 +3927,7 @@ class Helper:
         if self.windows is not None and (self.discovered_closing or self.view_closing or self.windows_pending):
             self.windows_changed()
         self.report_running()
+        self.report_windows()  # again here, for a line the full pipe dropped
 
     def windows_changed(self):
         """Apply the compositor's changes so far.
@@ -3907,6 +3946,32 @@ class Helper:
             self.emit('shell_focus', **fields)
         self.search_landed()
         self.report_covered()
+        self.report_windows()
+
+    def report_windows(self, request=None):
+        """Package 25 (3.4): the supervisor hears how many app windows are open, at each change, coalesced as
+        apps_running is. It goes black for a shutdown, logout or restart only on a count of zero, and takes the
+        black screen away when a window appears, so the report goes out with the compositor's news, not at the
+        next heartbeat. Without window tracking the count is null: not known, which the supervisor reads as open."""
+        if self.windows is None:
+            report = (None, ())
+        else:
+            open_windows = self.windows.app_windows()
+            names = sorted(filter(None, (self.window_name(toplevel) for toplevel in open_windows)))
+            report = (len(open_windows), tuple(names[:WINDOW_NAMES]))
+        if request is not None or report != self.windows_reported:
+            fields = dict(event='windows', count=report[0], names=list(report[1]))
+            if request is not None:
+                fields['request'] = request
+            if self.status(**fields) is not False:
+                self.windows_reported = report
+
+    def window_name(self, toplevel):
+        """What an app window is called in the supervisor's messages: its program's name, else its app_id. The
+        app_id is the client's own text, so only printable characters are passed on."""
+        app = self.apps.get(toplevel.owner)
+        name = (app.name if app is not None else '') or toplevel.app_id
+        return ''.join(char for char in name if char.isprintable())[:WINDOW_NAME_CHARS].strip()
 
     def report_covered(self):
         """Package 40: the game pauses its world while a window hides it, and only then (owner, 2026-11-15)."""
@@ -4412,7 +4477,7 @@ class SearchSignal:
 
 
 class Server:
-    def __init__(self, path, helper, wayland=None, uid=None, search=None):
+    def __init__(self, path, helper, wayland=None, uid=None, search=None, status_fd=None):
         self.path = path
         self.helper = helper
         self.wayland = wayland
@@ -4421,6 +4486,7 @@ class Server:
         self.selector = selectors.DefaultSelector()
         self.peers = {}
         self.stopping = False
+        self.windows_request = self.windows_sync = None
         prepare_socket(path, self.uid)
         self.listener = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         old = os.umask(0o177)
@@ -4438,6 +4504,8 @@ class Server:
         self.selector.register(helper.watcher.reader, selectors.EVENT_READ, 'scopes')
         if search is not None and search.reader is not None:
             self.selector.register(search.reader, selectors.EVENT_READ, 'search')
+        if status_fd is not None and stat.S_ISSOCK(os.fstat(status_fd).st_mode):
+            self.selector.register(status_fd, selectors.EVENT_READ, 'windows')
 
     def watch(self, peer):
         events = selectors.EVENT_READ | (selectors.EVENT_WRITE if peer.outbuf else 0)
@@ -4475,6 +4543,10 @@ class Server:
         # round: a signal that came before the wake-up pipe existed is not lost.
         if self.search is not None and self.search.take():
             self.helper.search()
+        if self.windows_request is not None and (self.wayland is None
+                                                or self.windows_sync not in self.wayland.callbacks):
+            self.helper.report_windows(request=self.windows_request)
+            self.windows_request = self.windows_sync = None
         self.helper.tick()
         self.watch_wayland()
 
@@ -4504,6 +4576,20 @@ class Server:
             return
         if key.data == 'search':
             self.search.drain()
+            return
+        if key.data == 'windows':
+            try:
+                packet = os.read(key.fd, 64)
+            except BlockingIOError:
+                return
+            except OSError:
+                packet = b''
+            if not packet:
+                self.selector.unregister(key.fd)
+            elif re.fullmatch(rb'windows [0-9a-f]{32}', packet):
+                self.windows_request = packet[8:].decode('ascii')
+                # Wait for pending compositor events, also when the helper has just resumed after a stall.
+                self.windows_sync = self.wayland.sync() if self.wayland is not None else None
             return
         peer = key.data
         if mask & selectors.EVENT_WRITE:
@@ -4611,7 +4697,7 @@ def main(argv=None):
     helper, wayland = build(args.registry, instance, nonce, os.path.join(os.path.dirname(path), 'shell-journal.json'),
                             status=status, keep_foreground=os.environ.get('ARESOS_SHELL_KEEP_FOREGROUND') == '1')
     search.wake_through_pipe()
-    server = Server(path, helper, wayland, search=search)
+    server = Server(path, helper, wayland, search=search, status_fd=status.fd if status_fd else None)
 
     def stop(signum, frame):
         server.stopping = True
@@ -4624,6 +4710,7 @@ def main(argv=None):
     except WaylandError as error:
         # Window tracking is part of the negotiated contract; restart rather than silently lose it.
         LOG.error('lost the compositor: %s', error)
+        status(event='windows', count=None, names=[])  # nobody tracks the app windows now (package 25)
         server.close()
         return 1
     return 0

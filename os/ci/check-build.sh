@@ -60,8 +60,7 @@ case $mode in
         date +%s > evidence/build-end-time.txt
         sudo podman image inspect localhost/aresos:check > evidence/image-inspect.json
         bash os/ci/check-image.sh localhost/aresos:check "$kind"
-        # Then boot it once as the release job does, still without publishing:
-        # the CI-only test layer, a file-backed disk and one fresh VM pass. Its
+        # Boot both guardian scenarios on fresh overlays of the same disk. The
         # guest policy checks polkit for the daily account's real active
         # session (os/tests/guest.sh), then recovery login and the power key.
         sudo modprobe nbd max_part=8
@@ -87,6 +86,7 @@ case $mode in
             sudo -E env ARESOS_VM_PASS=1 python3 os/ci/vm.py
             grep -q ARESOS_ACTIVE_SESSION_POLKIT_PASSED evidence/vm-pass-1/policy-result.json
             grep -q CONSOLE_KEYMAP_PASSED evidence/vm-pass-1/console-keymap-result.json
+            sudo -E env ARESOS_VM_PASS=2 python3 os/ci/vm.py
             echo CHECK_BUILD_VM_PASSED
         fi
         ;;
