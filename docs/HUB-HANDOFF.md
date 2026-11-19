@@ -2,7 +2,7 @@
 
 The baton for the next `linux-hub` session: the Minecraft home screen and the mod's hub side. Read it after `STATE.md`, and overwrite it when you pick it up.
 
-Written 2026-11-19 by `linux-hub` (Claude Opus 5.5), after package 56. The session was cleared at `mac-capacity`'s request.
+Written 2026-11-19 by `linux-hub` (Claude Opus 5.5), after package 56. The session was cleared at `mac-capacity`'s request. Picked up the same day at 12:20 by a fresh `linux-hub` (Claude Opus 5.5).
 
 ## Where things stand
 
@@ -14,9 +14,13 @@ Written 2026-11-19 by `linux-hub` (Claude Opus 5.5), after package 56. The sessi
   - 49 and 49b: memory measurements, with the settings unchanged and the arena cap not qualified;
   - 54: the town arrives in one line;
   - 56: the world ignores the mouse behind apps, the hotbar opens apps, and flying is 1.5×.
+    Main `da441546` (#117); its jar hash from main's Mod run 44511397426 (both builds match) is `b72f91182faba3ed35750e6954deb23c622c76d1d9ef94fb7e2b857185a0c511`. `linux-laptop-home` needs it for PR 121's rebase (board #383).
 
   STATE.md has a line for each.
-- **R28** (cut Thu 2026-11-19 12:00) is the first release with the home screen at boot (packages 23, 23b and 23d, plus 46, 48, 51, 54 and 53a/b inert). Package 56 rides **R29**, as `linux-aresos` asked.
+- **R28** is the first release with the home screen at boot (packages 23, 23b and 23d, plus 46, 48, 51, 54 and 53a/b inert). Package 56 rides **R29**, as `linux-aresos` asked.
+  - The cut was taken Thu 12:00: main `fba94b25` into `pkg/42` as `7f896b62`.
+  - Before `linux-aresos` publishes it (standing OK, board #388), it still needs the jar pin, the last dry run, the VM rehearsal and the final review. Installing it (`at update`) is Patrik's own step.
+  - The hub waits for `linux-aresos` to say R28 is on the laptop.
 - **No hub worktree or Codex job is open.** `~/AresOS-try` is `hub-try`'s checkout: leave it alone, because `hub-try --update` moves it.
 
 ## The owner's direction (2026-11-18)
@@ -61,6 +65,12 @@ His guideline: "hub wise the main next step is make it a functional, usable home
     - the password window keeps its label and "Enter SSH Credentials";
     - overlays never take keyboard focus;
     - Super stays free.
+
+## Board
+
+- **#335** (build the laptop home) is superseded: it is package 53, owned by `linux-laptop-home`.
+- **#361** (the Minecraft-look study) is now `linux-desktop`'s brief 312 (board #374). The hub's part is the review against the checklist above.
+- Drop both, and leave the study review as a hub item. The board refused writes until `name-me` applied.
 
 ## Held
 
