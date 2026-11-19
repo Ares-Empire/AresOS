@@ -279,4 +279,6 @@ agent on Opus. The rebase onto package 56 is a later, separate step and was not 
 
 ### Hosted run (round 1)
 
-HOSTED_RUN_PLACEHOLDER
+One hosted run of the OS checks was started after the last code push (`bb2fa84b`) and not watched:
+`gh workflow run "OS image" --ref pkg/53d-world-search -f checks_only=true`, run **44441152575**
+(https://github.com/Ares-Empire/AresOS/actions/runs/44441152575). Its result is for the lead to read.
