@@ -1,5 +1,291 @@
 # Package 28a: Chrome acting progress
 
+## Step 1d, part 1
+
+2026-11-19. **Done to a clean point; stop here.** Items 1 to 6 of the lead's task: the definitions are wired and the
+public catalogue is switched, with descriptions, instructions, declared results, the rule map, size pins, the
+never-list sweep and `TOOL-DESCRIPTIONS.md`; the CI helpers reach brief 20's tools under their new names. **Item 7
+(groups 14 to 16's new browser rows and the side-by-side latency run) is not prepared:** it is first under Left. Code
+commits: `9f7799ce` (the switch), `7e2eee53` (the sweep), `edefaeba` (FEATURES.md), `815420b7` (the CI helpers); this
+section is the next commit. Builder: a Claude Opus 5.5 agent for the lead `linux-tools`. Read the READY brief from
+`origin/main` (item 7 in full, items 1, 6's tool list, 8 steps 1/1d, 9, "What must not change", the Tests rows for
+items 1 and 7 and the never-list sweep, "Stop rules"), and steps 1c, 1b part 2, 0b and 0a below.
+
+### Done
+
+- **The catalogue** (`control/aresos_control/chrome/definitions.py`, `actions`): nineteen actions plus the owner-only
+  `chrome_sites`, in this order: `chrome_read`, `tabs`, `open`, `go`, `do`, `show`, `close`, `take`, `release`,
+  `library`, `upload`, `prepare_read_typed_fields`, `read_typed_fields`, `submit`, `submit_trusted`, `drop`,
+  `operation_status`, `notices`, `notice_ack`. `Chrome.call` routes each to its private entry: `read` → `outline`
+  (brief 28's read, `take_first` as 1b built it); `open`/`go` → `going`; `do` → `doing`; `tabs`, `show`, `close`,
+  `take`, `library` → `small`; `release` → brief 20's `release_tab` through `free()` after `mode(acting=True)`;
+  `upload` → `Chrome.upload`; anything else is `invalid_input`. `chrome_outline` is gone; `call_time` opens the read's
+  clock for `chrome_read`.
+- **Brief 20's replaced tools** (22: tabs, downloads, bookmarks, history, take_tab, release_tab, close_tab, open,
+  navigate, read, find, read_form, wait, click, fill, select, check, press, scroll, upload, fill_form, dialog) are
+  `old_actions`, offered as `chrome_old_<verb>` only when brief 28's switch (`ARESOS_TEST_CHROME_OUTLINE=1`) is set at
+  import; `Chrome.old_call` is brief 20's `call` body unchanged (its `fill_form` calls `old_call('fill')`). The proxy's
+  file branch serves `upload` and `old_upload` (it still reads only `path`). `generate.py` still refuses to run with the
+  switch set, so no generated file carries an old name.
+- **Declared results** (all strict, `additionalProperties: false`): `chrome_do` → `DO_RESULT`; `chrome_close` →
+  `CLOSE_RESULT`; `chrome_open`/`chrome_go` → `GOING_RESULT` (the loaded page, or `NOT_LOADED`: a closing read that
+  failed, its tab error with `line`/`loss` as page text); `chrome_take` → `TAKE_RESULT` (kept page with
+  `reload_due`, `typed_fields` and `untrusted_content.loss`; the owner-dialog handoff; or the open/go shapes after
+  `reload: true`); `chrome_tabs` → `TABS_RESULT`; `chrome_show` → `SHOW_RESULT`; `chrome_library` → `LIBRARY_RESULT`;
+  `chrome_upload` → `PREPARED_RESULT`; `chrome_read_typed_fields` → `TYPED_RESULT` (the operation, the re-asked
+  approval when the list changed, and the values). `DO_STEP`'s `controlled` stays `{"enum": [true, false,
+  "pending"]}`: the generator's subset and the service's validator take it (no `type` is required). `chrome_read`'s
+  result stays brief 28's open object.
+- **`descriptions.named` is wired** into `chrome_read_typed_fields`' result: `untrusted_content.typed_fields` is a list
+  of `{ref, label, description, value}`: the short reference from the table (connected to the current session first;
+  no fingerprint, so an action on it waits for a read), the label and item 3b's description escaped with `visible()`,
+  the value quoted by brief 28's rule. `execute` keeps the raw values and the binding for it.
+- **Descriptions and instructions** (item 7): see "The catalogue as switched" below. Generated: `chrome-tools.json`,
+  `chrome-instructions.txt`, `cli-help.txt`, `docs/control/TOOLS.md`; the ask rules, `managed-settings.draft.json`
+  and `user-mcp.json` are byte-identical.
+- **`reviews/28a-chrome-act/TOOL-DESCRIPTIONS.md`**: the instructions and the nineteen descriptions exactly as
+  generated, written by `document()` in `test_instruction_rules.py`, whose test fails when file and catalogue differ.
+- **The never-list sweep** (`control/chrome_tests/test_excluded_sites_28a.py`): `test_excluded_sites_placeholder.py`
+  isn't on this branch, so the package carries PR #76's sweep for its own list (see "For PR #76" below).
+- **FEATURES.md** (item 9), Tool column only, no State cell changed. Changed rows: Files "Chrome's own downloads"
+  (`chrome_library`); take/give back (`chrome_take`, `chrome_release`); open/close (`chrome_open`, `chrome_close`);
+  back/forward/reload/address (`chrome_go`; `chrome_open` with a link's `ref`); read (`chrome_read` with `find`); one
+  form (`chrome_read` with the form's `ref`); click/type/... (`chrome_do` steps); fill a form, searches, Enter, Delete,
+  page dialogs (`chrome_do`); downloads, bookmarks and history (`chrome_library`). New rows: bring a tab to the front
+  (`chrome_show`), read up to five tabs in one call (`chrome_read` `tabs`), several steps in one call (`chrome_do`).
+  Left as they are: the Feature text "with positions", the State cell of the Enter row that names `chrome_fill`, and
+  the later row "Add and remove bookmarks | `chrome_bookmarks`" (a future tool). `control/README.md` lists no Chrome
+  tool; nothing to change there.
+- **CI helpers** (`815420b7`; for step 2's `HARNESS-MAP.md`; **no browser row changed**): `browser.mjs`' `rpc` now
+  asks the service's tool list once (`method: tools`) and maps the groups' verbs in `toolName`: a verb whose
+  `old_<verb>` is offered goes to `chrome_old_<verb>`, `outline` goes to `chrome_read` when `outline` isn't offered,
+  and a runtime from before the switch (the latency pair's ab7aba92 leg, a qualification of an older build) keeps
+  its names. `call.py` maps the same way from its own `BY_NAME`. Syntax-checked only.
+- **Tests changed deliberately** (no receiver, binding, question or outcome assertion changed):
+  - `test_engine`: `OLD_TOOLS`, `old_tools()` (patches the switch's old actions into `BY_NAME`), `old(verb)`,
+    `tool(name)` and `declared(chrome)` (wraps `going`, `small`, `doing`, `upload`: every returned result validates
+    against its tool's declared result, and its input against the public schema). `Operations` and the modules that
+    reuse it, `test_qualification_service`, `test_loss_errors`, `test_field_descriptions` (and through it
+    `test_operation_projection`), `test_outline_time` and `test_state_crashes`' child call brief 20's tools as
+    `chrome_old_<verb>`; adapter-level `call('outline')` became `call('read')` and `call('click'/'close_tab')`
+    `call('old_click'/'old_close_tab')`. `test_going`, `test_small_tools` and `test_doing` run every result through
+    `declared()`.
+  - `test_outline_action.Switch`: the switch now governs `chrome_old_*` (absent without it everywhere, the proxy and
+    the command refuse; with it all 22 reach the adapter); `chrome_read` is measured through the engine either way.
+    `test_no_generated_file_names_the_action` also refuses `chrome_old_` in generated files. The cleanup test covers
+    `chrome_close` and `chrome_release` beside brief 20's two. `test_fix_x1` and `x1_service_probe.py` call
+    `chrome_read`; `fix-x1.test.mjs` no longer sets the switch.
+  - `test_outline_time`: `Call` needs no registered action; its `chrome_outline` test now says the name is gone.
+  - `test_policy`: the exact verb list; the clipboard pin follows the reworded rule and the tools that click now.
+  - `test_questions`: the discard rule's tools are `chrome_go` and `chrome_close`; the unread-form rule is pinned in
+    `chrome_do`'s description; the 0a size pin is 2,798.
+  - `test_instruction_rules`: the 23 old rules' new homes, item 7's 21 rules and their homes, single-tool rules
+    absent from the instructions, no description or instruction naming a tool the list doesn't offer, the catalogue
+    structure pin (`final_sizes.catalogue_structure_sha256`), the size pins, the 2,800 pin, the document test.
+  - `test_field_descriptions`: the typed read's values through the new names (`returned()` resolves each `ref` to
+    frame and element), plus a hostile label test. `test_small_tools`: `ProxyUpload`.
+
+### The catalogue as switched
+
+Measured with `efficiency-summary.py`'s `sizes()` (names plus compact ASCII input schemas; instructions without the
+generated file's newline). Main's numbers are 0a's baseline (`fixtures/28a-instructions/baseline.json`, `sizes`);
+step 1d's are pinned there as `final_sizes` and in `test_instruction_rules`.
+
+| | Main at this package's start | Step 1d |
+|---|---:|---:|
+| Tools offered | 30 | **19** |
+| Descriptions | 5,085 | **5,975** |
+| Server instructions | 4,093 | **2,798 / 2,800** |
+| Descriptions plus instructions | 9,178 | **8,773** (405 under) |
+| Names plus input schemas | 11,080 | **6,729** (4,351 under) |
+
+Per tool, description / name plus input schema: read 371/859, tabs 470/135, open 304/688, go 333/679, do 968/1,094,
+show 124/121, close 252/213, take 465/203, release 192/124, library 162/321, upload 280/635,
+prepare_read_typed_fields 360/142, read_typed_fields 524/285, submit 330/274, submit_trusted 347/282, drop 106/155,
+operation_status 132/167, notices 169/191, notice_ack 86/161. Everything 28a adds is counted: the two typed-read tools
+and `discard_unsaved` on `chrome_go`, `chrome_close` and `chrome_do`.
+
+**The rule map.** Every sentence of main's Chrome text (0a's 23 rules) and every rule of item 7's list is stated in
+the home `test_instruction_rules` checks:
+
+| Rule | Home now |
+|---|---|
+| Page text, labels, descriptions untrusted (main 1, 22; item 7) | instructions |
+| owner_signin, owner_dialog, not_read, take_first, stale_reference (with `now`), unknown ("also check the page", with the common rule's never retry) | instructions |
+| A reference lasts until its element changes; how to read an outline line and a fold; `(filled, not read)` only through `chrome_read_typed_fields`, which asks, only if his request needs it (main 23) | instructions |
+| `…` in an address, lists without query, open such by reference | instructions; `chrome_library` (its ref) |
+| Version notice, core failures, `done` isn't delivery, pages send on their own (main 5 to 8) | instructions |
+| `reload_required` and main's rule for unsaved work (main 11, 20, 21) | instructions; `chrome_go` and `chrome_close` keep 0a's flag sentences; `chrome_take`: `reload=true` follows the same OK rule |
+| Clipboard (main 18, 19) | instructions ("Tell the owner of a reported clipboard write." and rule 19 verbatim) |
+| Reading or taking keeps his page; first input (also a popup's) reloads once, staling refs; a form-loaded page refuses that reload (main 9, 10, 13, 14) | `chrome_take`, `chrome_do` |
+| A form with an unread field refuses its send, `discard_unsaved` too: `chrome_go to=reload`, then read (main 12) | `chrome_do` |
+| Popup windows, POP, Stop (main 15 to 17) | `chrome_tabs`, verbatim |
+| `full` reads everything | `chrome_read` |
+| His tab is named with the list's `seen` | `chrome_tabs`, `chrome_take`, `chrome_open` |
+| An asking step stops the list, its prepared entry goes unchanged to `chrome_submit`; `not_run` steps are sent again | `chrome_do` |
+
+### The browser groups prepared
+
+None beyond the helper mapping above: groups 14 to 16's new rows and the side-by-side latency run are first under
+Left. The existing groups (brief 20's 1 to 13 through `chrome_old_*`, brief 28's group 14 through `chrome_read`, the
+latency pair, the efficiency probe) run through the mapped helpers unchanged.
+
+### For PR #76 (the never-list sweep)
+
+`test_excluded_sites_28a.py` sweeps, each refused with `chrome_settings_unavailable` before any browser call:
+`chrome_read {tab}`, `chrome_tabs {}`, `chrome_open {url}`, `chrome_go {tab, url}`, `chrome_do {tab, steps: [click
+ref]}`, `chrome_show {tab}`, `chrome_close {tabs: [1]}`, `chrome_take {tab, seen}`, `chrome_release {tab}`,
+`chrome_library {kind: history}`, `chrome_upload {tab, ref, path}`, `chrome_prepare_read_typed_fields`,
+`chrome_read_typed_fields`, `chrome_submit`, `chrome_submit_trusted`, `chrome_sites readonly`, and the 22
+`chrome_old_*` names with PR #76's arguments. `ANSWER_ANYWAY` is 18c-b's, unchanged. PR #76's `UnconfiguredChrome`
+needs a `bounded(end)` that returns a `nullcontext()`: `chrome_read`, `open`, `go`, `take` and `do` open the bridge's
+time bound before their first command, and without it they fail with `internal_error` instead of the gate's refusal.
+The refusal text differs between the branches; the copy compares with this branch's `owner_hosts`.
+
+### Tests and mutations
+
+**Run** (portable Node v22.15.0 from step 0a's `.work/pkg28a-0a/`; Python 3.14.8; logs in `.work/pkg28a-1d1/`):
+
+```sh
+PYTHONPATH=control python3 control/generate.py && PYTHONPATH=control python3 control/generate.py --check
+.work/pkg28a-0a/node-v22.15.0-linux-x64/bin/node --test control/chrome_tests/*.test.mjs
+PYTHONDONTWRITEBYTECODE=1 TMPDIR="$PWD/.work/pkg28a-1d1/tmp" PYTHONPATH=control:control/chrome_tests python3 -m unittest \
+  test_doing test_going test_small_tools test_operation_projection test_acting_references test_view_references \
+  test_questions test_policy test_engine test_loss_errors test_field_descriptions test_instruction_rules \
+  test_qualification_fixture test_excluded_sites_28a test_bridge test_sites test_qualification_service test_credentials \
+  test_fix_x1 test_outline_action test_view_paging test_view_hostile test_efficiency test_view_address test_view_nodes \
+  test_view_outline test_view_budgets test_outline_time test_exclusions test_committed test_owner_confirm test_unit test_latency
+python3 .work/pkg28a-1d1/mutations.py
+node --check control/chrome/ci/*.mjs; python3 -B -m py_compile control/chrome/ci/call.py
+git diff --check
+```
+
+- Generator check: **Generated artifacts match definitions**; the ask rules are main's bytes (`test_instruction_rules`).
+- Node: **617 tests, 617 pass**, 0 fail/cancelled/skipped/todo, 32,644 ms (as at 1c). Log: `node-final.log`.
+- Python, the modules above: **Ran 600 tests in 134.9s, OK** (502 at 1c; added to the list: test_excluded_sites_28a,
+  test_exclusions, test_committed, test_owner_confirm, test_unit, test_latency; and the new tests). Log:
+  `python-final.log`.
+- Base modules the proxy and catalogue reach (`control/tests`: test_approval_questions, test_slim_policy,
+  test_policy_sources, test_strict_json, test_review22_protocol): the same results on `c579a066` and on this head
+  (the first four fail identically here for want of `/etc/claude-code/managed-settings.json`; test_review22_protocol
+  OK). The base's CI runs them.
+- Not run locally: `test_fault_surface`, `test_state_*` (CI; `test_state_crashes`' child and `Operations`' callers
+  now reach `chrome_old_*`). No browser.
+- CI harness: `node --check` on every `control/chrome/ci/*.mjs`, `py_compile` on `call.py`: clean.
+- `git diff --check`: clean.
+
+**Mutations** (`.work/pkg28a-1d1/mutations.py`; log `mutations.log`): **25 mutations, all caught, all restored
+green.**
+
+| # | Mutation | Caught by |
+|---|---|---|
+| 1.1 | `chrome_read` goes to brief 20's read | `test_outline_action` one-tab read |
+| 1.2 | the old tools offered without the switch | `test_policy` exact catalogue; the structure pin |
+| 1.3 / 1.4 | the asking read loses its ask rule / `chrome_library` gains one | the ask rules against main's bytes |
+| 1.5 | `chrome_read` opens no clock | `test_outline_time.Call` |
+| 1.6 | `chrome_release` without `free()` keeps the references | the cleanup test |
+| 1.7 / 1.8 | the proxy reads no file for `chrome_old_upload` / `chrome_upload` | `ProxyUpload` |
+| 2.1 | `take_first` dropped from the instructions | item 7's rule map |
+| 2.2 | a single-tool rule (`chrome_do`'s) in the instructions | single-tool rules test |
+| 2.3 | the instructions past 2,800 | the 2,800 pin; `test_questions` 0a pin |
+| 2.4 | a description names `chrome_navigate` | no unoffered tool named |
+| 2.5 / 2.6 | `chrome_do` loses the first-input rules / `chrome_take` its OK rule | the old rule map (and item 7's) |
+| 2.7 / 2.8 | a description changes / an input schema grows | the document test and size pins / size and structure pins |
+| 4.1 / 4.2 / 4.3 | `chrome_show` calls the browser before the gate / `chrome_release` skips it / `chrome_tabs` lists before it | `test_excluded_sites_28a` |
+| 5.1 to 5.4 | `DO_RESULT` without `deadline`; `GOING_RESULT` without a failed closing read; `TAKE_RESULT` without the kept page; `TABS_RESULT` without `total` | `declared()` in test_doing, test_going, test_small_tools |
+| 5.5 / 5.6 | the typed read gives brief 20's frames again / its label unescaped | test_field_descriptions |
+
+### Instruction size
+
+**2,798 / 2,800**: the common 1,762, two joining newlines, `SHARED` 928, a space and the clipboard rule 105 (Chrome's
+own text 1,034, within the 1,148 the brief names and the 1,036 the measured common text leaves). Pinned in
+`test_instruction_rules` (at most 2,800, exactly 2,798) and `test_questions` (0a's pin, now 2,798); every app stays
+within 4,096 (`test_questions`).
+
+### Left, in order
+
+1. **1d, the rest of item 7 (first):** prepare groups 14 to 16's new browser rows in `control/chrome/ci/` as the brief
+   and 1a to 1c list them (1c's Left 1, 1b part 2's Left 2, 1b part 1's Left 3, 1a's Left 3), and the side-by-side
+   latency run (group 16): brief 20's tools as `chrome_old_*` against the new ones, five runs after a warm-up, the
+   three timed tasks (F1's first read, a free click with its report against brief 20's click and read, F4's six
+   fills and the click up to the question). The efficiency probe and `efficiency-summary.py` still name the new read
+   `outline` and `chrome_outline` in their records (`COMPARED`, the comparison's `tool` labels); the rows of group 16
+   for `chrome_do`, `chrome_tabs`, `chrome_open` and the sizes rows need adding. Register the new cases in
+   `ci/verdicts.mjs` (`password_exclusion`, `classification`, `binding`). Syntax-check, then the lead dispatches.
+2. **1d part 2:** the browser run the lead dispatches (the full `control-chrome.yml`, the boundary workflow for the
+   instructions passed on unshortened, the latency pair), and fixing what it shows.
+3. **2:** harness helpers and `HARNESS-MAP.md`: 0b's nine and 0c's two rows, and this step's two helpers
+   (`browser.mjs` `rpc`/`toolName`/`catalogue`, `call.py`'s verb mapping), which step 2 replaces by moving the
+   helpers to the new tools.
+4. **3:** remove brief 20's replaced tools, `old_actions`, `old_call`, the switch's old names, the proxy's
+   `old_upload`, `test_engine`'s `old_tools`/`old`/`tool` and the tests' `chrome_old_` calls (or move those tests to
+   the new tools), `FILL_FORM_RESULT`; `WITHHELD_FORM` (adapter and `background.js`) names `chrome_go` with
+   `to: reload`; extend the name scan to the refusal texts in `adapter.py` and `background.js`. The FEATURES.md Enter
+   row's State cell still names `chrome_fill` (left: brief says change no State cell). Regenerate, re-pin the sizes.
+5. **4:** the full Chrome suite twice on the final head, with base, Mail, boundary and qualification.
+6. **Two fresh reviews.** The security review looks first at this step's: the asking read's result naming (labels
+   escaped, the table connected to the session, no fingerprint so no action on its refs without a read); every new
+   tool behind the never-list gate (the sweep); `chrome_release` through `free()`; the old tools reachable only with
+   the switch; the instructions' compaction (does every safety meaning survive the telegraphic form? see
+   JUDGMENT-CALL 2).
+
+### What the code doesn't show
+
+- No browser ran locally. Whether Claude Code passes the 2,798-character instructions on whole is the boundary
+  workflow's check (the lead dispatches it); whether the mapped helpers reach `chrome_old_*` in the container, CI's.
+- Whether Claude Code or the MCP SDK checks a structured result against the declared output schema isn't tested
+  here; `declared()` makes the private entries' tested results valid, and the old tools keep open results.
+- How Claude reads the telegraphic instructions is not measured; a model session is outside this package's tests.
+- `Operations`-based tests reach brief 20's tools by patching `BY_NAME`, not through the environment switch; the
+  switch's own path (catalogue, proxy, command, engine) is `test_outline_action.Switch`, in subprocesses.
+
+### JUDGMENT-CALLs
+
+1. **All 22 replaced tools are `chrome_old_<verb>`**, not only the four whose names the new list reuses, so every old
+   call is visibly the old one and no new name has two meanings under the switch.
+2. **The instructions are telegraphic**, as 0b's were, to fit 1,036 characters with item 7's new rules. Moved to
+   descriptions: the first-input reload rules (main 9, 10, 13, 14: `chrome_take`, `chrome_do`), the unread-form rule
+   (main 12: `chrome_do`), `full` (`chrome_read`), `seen` (`chrome_tabs`, `chrome_take`, `chrome_open`). Compacted
+   against what is said elsewhere: `unknown` keeps "also check the page" beside the common rule's "never retry";
+   the version notice keeps its effect (the notice text itself explains it); the clipboard rule 18 is "Tell the owner
+   of a reported clipboard write." (test_policy's pin moves with it). `TYPED_READ_NOTICE` left
+   `chrome_prepare_read_typed_fields`' description for the instructions. Reviewers please read it as Claude will.
+3. **Results are declared strictly** and the tests check every result the private entries give against them;
+   `chrome_read`'s stays open (brief 28's). A re-asked typed read is declared with its approval.
+4. **The asking read's values** are a list of `{ref, label, description, value}`; label and description are escaped
+   with `visible()`, the value quoted by brief 28's rule, all under `untrusted_content`.
+5. **The CI helpers map by the service's own tool list**, so the same harness drives the switched runtime and an
+   older one; no browser row changed.
+6. **`chrome_release`'s description and input are brief 20's `release_tab`'s**, and it commits an operation through
+   `free()` as before.
+
+### PLAN-GAPs
+
+1. **The instruction budget is two characters from full.** Item 7's list fits only in telegraphic form after the
+   single-tool rules moved out; the brief's 1,148 assumed common text of 1,652 (0a's PLAN-GAP: it is 1,762). 28b's
+   own 1,000 under the 3,800 ceiling is unaffected.
+2. **Item 7 lists `full` and the `seen` rule among the instructions' rules**, while its own rule sends single-tool
+   rules to descriptions; both went to the descriptions of the tools that take them.
+3. **`chrome_submit`'s declared result (brief 20's `OP_RESULT`) doesn't cover a re-asked approval**
+   (`changed_destination`/`changed_compose` return `approval` and `state` beside `operation`). If Claude Code or the
+   MCP SDK validated structured results, such a reply would be refused. Not changed: the asking path is frozen and the
+   tool is unchanged; the typed read's equivalent is declared here. For the lead.
+4. **`WITHHELD_FORM` still names `chrome_navigate direction=reload` until step 3** (the brief puts it there), so from
+   this step until then that refusal names a tool the list offers only as `chrome_old_navigate` under the switch.
+5. **PR #76's sweep fake needs the bridge's `bounded`** (see "For PR #76").
+
+No open owner question in 1d part 1.
+
+### Known limits found
+
+- **`DO_STEP`'s `controlled` is an `enum` of two booleans and a string without `type`.** Valid JSON Schema, taken by
+  the generator and the service; a client that insisted on `type` would reject the schema. Low harm: CI's MCP session
+  and the boundary run would show it.
+- **Under the switch, the service's tool list includes the 22 `chrome_old_*` tools.** CI-only by construction (the
+  packaged entries start with `env -i`; `test_outline_action.Switch` pins that).
+- **The asking read's references are issued without a fingerprint**, so an action on one is refused until a read
+  shows the element (1b part 2's design); a read by it shows `(filled, not read)` again.
+
 ## Step 1c
 
 2026-11-19. **Done; stop here.** Item 6's gap, then items 5 and 5a, built behind private entries, tested and
