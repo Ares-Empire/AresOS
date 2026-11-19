@@ -1,7 +1,8 @@
 # 53d progress: the search over the world
 
-Brief: `briefs/53d-world-search.md`. Branch `pkg/53d-world-search`. Step 1 (the bar and its looks, a Claude agent on
-Fable 5.2: design work) is written; **step 2 (the rules, Opus) is not started.** No pull request is open yet.
+Brief: `briefs/53d-world-search.md`. Branch `pkg/53d-world-search`, pushed. **Step 1 (the bar and its looks, a Claude
+agent on Fable 5.2: design work) is done. Step 2 (the rules, Opus) is not started.** No pull request is open.
+**The owner picks the look from the pictures below before this package merges.**
 
 ## Done in step 1
 
@@ -26,6 +27,78 @@ Fable 5.2: design work) is written; **step 2 (the rules, Opus) is not started.**
   suite: the pictures below, and Enter, a click, Escape, blank and no-hit against `FakeHelper` on minor 2 with
   made-up programs ("Test Web 1", "Test Tool 1" to 40) and generated icons.
   Pictures go to `reviews/53d-world-search/screenshots/` (`aresos.worldSearchReviewDir` in `mod/build.gradle`).
+
+- **No crosshair under the bar:** `mod/src/client/java/dev/aresos/client/mixin/SearchCrosshairMixin.java`. Two looks
+  leave the world sharp, and the crosshair showed through the hits and crossed out a letter (first pictures). The
+  pointer is free meanwhile, so there is nothing to aim at.
+
+## The looks
+
+All three do the same and differ only in where things stand and what is behind them. Each line is the Apps screen's
+row: icon, name, his `/name` in gold, the kind of program in gray. The best hit has a white frame and the word
+"Enter" at its right end. The pictures use the laptop screen's size (1920 x 1080 at the game's scale 4) at noon, as
+in his flat home.
+
+**Bar (the default; the one I recommend).** A search box 260 wide, a fifth of the way down the screen, on a dark
+plate with a thin light rule around it. The world behind it stays sharp: no blur, nothing dimmed. With nothing typed
+the plate is just the box. Typing lets it grow downward: the Apps screen's two headings ("My apps", "Other
+programs", each with its count and a rule on both sides), up to nine lines, then the game's own scroll bar. Why: it
+is what the design calls it, a search bar over the world. The world stays the home screen he is in, the framed hit
+stands right under what he types and he reads downward as in any list, and it is wide enough for the name, the
+command and the kind. It stands above the middle, so the hotbar and the ground stay in view.
+
+**Menu.** The Apps screen's sibling: the game's blurred menu background, the title "Search", a box 200 wide, the
+hits in the game's dark band between its two separator lines, 300 wide as the Apps screen's rows, and a gray line
+at the bottom ("Enter opens the framed program · Esc closes"). Why: nothing in it is new, he knows it from E,
+"Apps…". Against it: it blurs the whole world away for one line of typing, so Super feels like opening a menu
+rather than searching over the world, and AresOS would have nearly the same screen twice.
+
+**Hotbar.** The box is exactly as wide as the hotbar (182) and stands on it. The hits stack upward, the best one
+right above the typing; there is no room for headings, so a thin rule sets his apps apart from the other programs.
+The world is sharp. Why: in AresOS apps are hotbar items, so the search reads as the hotbar growing upward. It is
+the most Minecraft-like of the three, the best hit never moves while he types, and two thirds of the world stay
+free. Against it: 182 pixels are narrow (a long kind is cut, and the framed line drops its `/name` to fit
+"Enter"), the list reads from the bottom up, and on a large monitor all of it happens at the screen's lower edge.
+
+**Recommendation: Bar.** It is the only one that is both clearly a bar over the world and comfortable to read.
+Hotbar is the charming alternative if he wants it to feel like part of the game's own HUD.
+
+To change the default: `WorldSearchScreen.look`'s first value and the fallback in `lookForTests(null)` (two places
+in one file). When the owner has picked, the other looks and the switch can be deleted.
+
+### The pictures (`reviews/53d-world-search/screenshots/`)
+
+| | Nothing typed | Several hits ("web") | No hit ("zzz") | A long list ("test", 47) |
+|---|---|---|---|---|
+| Bar | `0095_53d-bar-1-empty.png` | `0096_53d-bar-2-several-hits.png` | `0097_53d-bar-3-no-hit.png` | `0098_53d-bar-4-long-list.png` |
+| Menu | `0099_53d-menu-1-empty.png` | `0100_53d-menu-2-several-hits.png` | `0101_53d-menu-3-no-hit.png` | `0102_53d-menu-4-long-list.png` |
+| Hotbar | `0103_53d-hotbar-1-empty.png` | `0104_53d-hotbar-2-several-hits.png` | `0105_53d-hotbar-3-no-hit.png` | `0106_53d-hotbar-4-long-list.png` |
+
+I looked at all twelve. In "several hits" his two apps come first, "Test Web 1" (a word starts with "web") before
+"Cobweb Test" (inside a word), then the other programs the same way.
+
+## Verified (step 1)
+
+- `mod/dev/build.sh`: `BUILD SUCCESSFUL in 4m 28s` on the last code (unit tests and server game tests; the ten
+  `AppSearchTest` tests pass). Earlier attempts ended with exit 75 (under 6 GiB free) and were retried after a wait.
+- `mod/dev/client-test.sh`, the full suite, run 1: `Client tests ended with exit code 0 after 13 min 8 s` on the
+  RTX 4060, with `53d world search checks passed` in its log.
+- The full suite, run 2: not run yet.
+- Before those, the new test ran alone twice to look at the pictures (the suite list cut down in the working tree
+  only, restored after each run, never committed).
+- After each suite run only the tracked pictures it rewrote were restored, and the untracked pictures it wrote for
+  older packages under new numbers were removed.
+
+## Calls for the report's JUDGMENT-CALL section (step 2 carries them over)
+
+- **The look:** the owner's pick, see above.
+- **Nothing is listed until he types.** Alternative: his apps at once. One line in `WorldSearchScreen.show`.
+- **"Other programs", and each program once.** The Apps screen says "All programs" and lists his apps there again
+  with a check mark; here a hit shows once, so the second group is the rest and is called that.
+- **What counts as a start** in the best-hit rule: see "What step 2 needs to know".
+- **The crosshair is hidden while the bar is open** (a small mixin on the HUD).
+- **With a helper below minor 2 the hint is left out** and the app opens where the pointer is, instead of the
+  launch failing as `malformed`.
 
 ## The test hook that opens the screen
 
