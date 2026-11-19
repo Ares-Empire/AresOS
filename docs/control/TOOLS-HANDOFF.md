@@ -5,7 +5,7 @@ handover `mac-aresos-control` wrote on 2026-11-12. A fresh session that takes ov
 (item 6, the control layer), then the board (`board`, topic `tools`). Docs are claims: check `git log`, `gh pr list`
 and `git worktree list` first.
 
-## Resume here (2026-11-19 07:10, `linux-tools` before a clear)
+## Resume here (2026-11-19 19:35, `linux-tools` after a clear)
 
 The detail behind every line is in `~/codex-queue/linux-tools/QUEUE.md` (newest entries at the top of the dated
 list). Shell watchers started by the old session are gone: start new ones with `gh run watch <id> -R
@@ -45,11 +45,16 @@ Ares-Empire/AresOS --interval 300` in a background shell.
    - **11:30: Codex Sol `28a-1d2-fix2` done** (`4fb4821b`, `18fadda2`, PROGRESS `d42d1890`): the F4 pin (at most
      14,000, under ASK_LIMIT, whole options refused) and its known limit are in; latency (plain)'s cause was the F3
      find at 218.5/291.4 ms against a 207.3 ms median ceiling, so the fingerprint hashing got cheaper; recheck2's
-     empty-owner-page fixture fixed. **Read Chrome 44505065741 and qualification 44505070907** (dispatched on the
-     fix; nobody watches them now). Green: dispatch base, Mail and privacy on the head too, then the browser coverage
-     gaps part 2 lists; then step 2 (HARNESS-MAP), step 3 (removal; CONTROL.md section 6 needs `chrome_show`'s focus
-     exception; `response_checks.check_responses` in the Chrome tests, #122's NIT 2), step 4 (full validation
-     twice), the package and security reviews. Red: one Codex Sol fix step that pushes, dispatches once and stops.
+     empty-owner-page fixture fixed.
+   - **19:35 (after a clear): green on `18fadda2`**, Chrome 44505065741 and qualification 44505070907, every job.
+     Base 44588323576, Mail 44588330029 and privacy 44588336857 dispatched on `d42d1890`. **Codex Sol xhigh
+     `28a-1d2-gaps` running** (prompt `~/codex-queue/linux-tools/28a-1d2-gaps.txt`, log `~/AresOS-28a-1d2-gaps.log`):
+     the four browser cases part 2 left unproven (an input held back at seconds 11 to 13, through an instrumented
+     test build only; the owner typing with real keys during a step; muted playback; an `unknown` outcome with its
+     shape). It pushes, dispatches Chrome and qualification once and stops; read those runs. Then step 2
+     (HARNESS-MAP), step 3 (removal; CONTROL.md section 6 needs `chrome_show`'s focus exception;
+     `response_checks.check_responses` in the Chrome tests, #122's NIT 2), step 4 (full validation twice), the
+     package and security reviews. Red: one Codex Sol fix step that pushes, dispatches once and stops.
 3. **18c-b** (`pkg/18c-b-chrome`, `~/AresOS-18c-b-build`, draft PR #76; rides R29).
    - Step 4 done (`8bcb9504`; `linux-aresos` read its `os/` diff: OK). Step 4b pushed `3cb3687d` (C3, the rest of
      C6, C10, C11) and `1b263438` (fixes); control runs 44452254488 and 44462912726 red, 44468856359 queued. That is
