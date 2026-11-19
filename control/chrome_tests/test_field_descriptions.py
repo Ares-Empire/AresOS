@@ -21,6 +21,7 @@ from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from aresos_control.chrome.adapter import view_identity
 from aresos_control.chrome.bridge import Bridge
+from aresos_control.chrome import projection
 from aresos_control.common import validate, visible
 from aresos_control.definitions import BY_NAME
 from aresos_control.engine import Engine
@@ -31,6 +32,8 @@ import test_engine as fixture
 
 SESSION, VERSION = 'fixture-session', '157.0.1.0'
 SITE = 'https://fixture.test'
+# Item 3 (28a step 1b): a question shows an address in the public form, where https:// isn't written.
+SHOWN = 'fixture.test'
 
 
 def typed_field(element, label, kind='text', unnamed=False):
@@ -168,13 +171,14 @@ class Descriptions(unittest.TestCase):
 
     def test_two_note_fields_have_distinct_descriptions_and_an_unchanged_list_is_read_once(self):
         approval = self.ask()
-        self.assertIn(f'frame 0 ({SITE}): "Note" (1 of 2), "Note" (2 of 2)?', approval['question'])
+        self.assertIn(f'frame 0 ({SHOWN}): "Note" (1 of 2), "Note" (2 of 2)?', approval['question'])
         self.assertEqual(self.assert_distinct(approval, ['"Note" (1 of 2)', '"Note" (2 of 2)']),
                          [(0, 'e1', '"Note" (1 of 2)'), (0, 'e2', '"Note" (2 of 2)')])
         # The binding the extension compares holds no description; the description is the binding plus them.
         [operation] = [item for _, item in self.engine.store.iter_items('op:')]
         self.assertEqual(operation['payload']['binding'], self.host.typed)
-        self.assertEqual(fixture.undescribed(approval['description']['untrusted_content']['fields']), visible(self.host.typed))
+        # Apart from item 3's public addresses (28a step 1b).
+        self.assertEqual(fixture.undescribed(approval['description']['untrusted_content']['fields']), visible(projection.addresses(self.host.typed)))
         result = self.public(self.call('chrome_read_typed_fields', approval), 'chrome_read_typed_fields')
         self.assertEqual(result['operation']['state'], 'done')
         [read] = self.host.sent('read_typed_fields')
@@ -238,7 +242,7 @@ class Descriptions(unittest.TestCase):
         self.host.typed['frames'] = [typed_frame(0, []), typed_frame(3, [typed_field('e1', 'Note')], notes),
                                      typed_frame(4, [typed_field('e1', 'Note')], notes)]
         approval = self.ask()
-        self.assertIn(f'frame 3 ({SITE}): "Note" (1 of 2); frame 4 ({SITE}): "Note" (2 of 2)?', approval['question'])
+        self.assertIn(f'frame 3 ({SHOWN}): "Note" (1 of 2); frame 4 ({SHOWN}): "Note" (2 of 2)?', approval['question'])
         self.assert_distinct(approval, ['"Note" (1 of 2)', '"Note" (2 of 2)'])
         self.host.commands.clear()
         def swap_frames(typed):
@@ -302,7 +306,7 @@ class Descriptions(unittest.TestCase):
                         'target': '', 'browsing_target': '_self', 'search': False, 'fields': fields})
         self.host.targets['e6'] = target('e6', 'Note', value='second text')
         prepared = self.public(self.call('chrome_press', {**self.reference('e6'), 'key': 'Enter'}), 'chrome_press')['approval']
-        self.assertIn("send 'Note' (2 of 2) using Enter to " + SITE + '/save', prepared['question'])
+        self.assertIn("send 'Note' (2 of 2) using Enter to " + SHOWN + '/save', prepared['question'])
         state = prepared['description']['untrusted_content']['page_state']
         self.assertEqual([field['description'] for field in state['form']['fields']], ['"Note" (1 of 2)', '"Note" (2 of 2)', '"Save"'])
         self.assertEqual(state['target']['description'], '"Note" (2 of 2)')
@@ -314,7 +318,9 @@ class Descriptions(unittest.TestCase):
         [operation] = [item for _, item in self.engine.store.iter_items('op:')]
         self.assertEqual(command['binding'], operation['payload']['binding'])
         self.assertNotIn('description', json.dumps(command['binding']), 'the extension compares the binding, never the descriptions')
-        self.assertEqual(fixture.undescribed(state), visible(operation['payload']['binding']))
+        # Apart from item 3's public addresses (28a step 1b); the payload keeps them whole.
+        self.assertEqual(fixture.undescribed(state), visible(projection.addresses(operation['payload']['binding'])))
+        self.assertEqual(operation['payload']['binding']['form']['action'], SITE + '/save')
 
     def test_unnamed_target_says_which_unnamed_field_it_is(self):
         fields = [control('e5', ''), control('e6', '')]

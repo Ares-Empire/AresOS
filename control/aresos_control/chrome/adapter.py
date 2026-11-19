@@ -17,6 +17,8 @@ from . import confirm
 from . import descriptions
 from . import loss
 from . import nodes as outline_nodes
+from . import projection
+from .address import public_address, site_of
 from . import view as outline_view
 from .bridge import Bridge
 from .committed import Projection
@@ -75,6 +77,11 @@ def refuse_withheld_form(state):
 def frame_site(url):
     parts=urlsplit(url)
     return f"{parts.scheme}://{parts.netloc.rpartition('@')[2]}" if parts.netloc else url.split(':',1)[0]+':'
+
+
+def public_site(url):
+    """A frame's site as the public form writes it (item 3)."""
+    return site_of(url) or public_address(url)
 
 
 def owner_refusal(message):
@@ -463,7 +470,12 @@ class Chrome:
         except Stale as exc:
             raise self.stale_shown(args.get('tab'), exc) from None
         if payload['kind']:
-            return self.engine.reserve('chrome', 'submit', payload)
+            try:
+                return self.engine.reserve('chrome', 'submit', payload)
+            except Refused as exc:
+                if exc.code != 'asking_input_too_large':
+                    raise
+                raise self.too_large(exc, verb, payload) from None
         result = self.free(verb, payload)
         page = result['untrusted_content'].get('page') if isinstance(result['untrusted_content'], dict) else None
         self.references.acted(args['tab'], args['ref'], page.get('change') if isinstance(page, dict) else None)
@@ -648,10 +660,12 @@ class Chrome:
             state=self.typed_binding(payload['tab'])
             # Item 3b: each field by its description, which tells equal labels apart; the binding stays as read.
             shown=descriptions.typed(state)
-            labels=[f"frame {frame['frame']} ({frame_site(frame.get('effective_url',frame['url']))}): "+', '.join(field['description'] for field in frame['fields'])
+            # Item 3: the question and the description show addresses in the public form; the binding keeps them whole.
+            labels=[f"frame {frame['frame']} ({public_site(frame.get('effective_url',frame['url']))}): "+', '.join(field['description'] for field in frame['fields'])
                     for frame in shown['frames'] if frame['fields']]
             if not labels:raise Refused('refused','No text fields or textareas in unwatched documents need approval; use the normal read.')
-            question=f"On {state['url']}, tab '{state['title']}', read the typed text once from these fields, as the page shows them: "+'; '.join(labels)+'?'
+            shown=projection.addresses(shown)
+            question=f"On {shown['url']}, tab '{state['title']}', read the typed text once from these fields, as the page shows them: "+'; '.join(labels)+'?'
             return question,{'action':'chrome_read_typed_fields','untrusted_content':{'fields':shown}},{'typed_read':True,'process_session':self.process_session,'read_connection':self.bridge.connection_identity,'binding':state}
         state = payload['binding']
         refuse_withheld_form(state)
@@ -660,7 +674,9 @@ class Chrome:
             payload['confirmation'] = {**payload['adapter']['confirmation'], 'frame':state['frame']}
         # Item 3b: the description and the question name fields from one described copy; the payload keeps the binding.
         shown, mark = descriptions.described(state)
-        description = {'action':'chrome_submit','untrusted_content':{'page_state':shown,'input':payload['input'],
+        # Items 3 and 3a: on that copy, addresses in the public form and each list as its chosen options.
+        shown = projection.shown(shown, payload)
+        description = {'action':'chrome_submit','untrusted_content':{'page_state':shown,'input':projection.addresses(payload['input']),
                        'kind':payload.get('kind'),'resume_kind':payload.get('resume_kind'),'file':payload.get('file'),
                        'confirmation':payload.get('confirmation')}}
         if payload.get('changed_compose'):
@@ -674,6 +690,22 @@ class Chrome:
         }.get(semantic.get('kind'))
         question = self.question(verb, description, mark)
         return question, description, copy.deepcopy(payload)
+
+    def too_large(self, exc, verb, payload):
+        """Item 3a: a refusal for size with Chrome's advice after its own sentence.
+
+        The advice says to shorten the text only when the same approval would
+        fit with every typed field's value and the text next to Send left
+        empty, measured with the base's own count on a copy. Nothing is
+        prepared or reserved from that copy.
+        """
+        try:
+            question, description, _ = self.prepare(verb, projection.blank(payload))
+            shorter = projection.fits(question, description, self.store.generation + ':' + uuid.uuid4().hex,
+                                      time.time() + self.engine.ttl)
+        except Refused:
+            shorter = False
+        return projection.advised(exc, projection.SHORTEN if shorter else projection.OWNER)
 
     def typed_binding(self,tab):
         self.mode()
@@ -911,9 +943,10 @@ class Chrome:
         stage('checked', 'Page matched the bound approval immediately before input.')
         if reply.get('no_change'):stage('unchanged', 'The requested state was already present; no input was dispatched.')
         else:stage('dispatched', 'Input or same-kind submission dispatched once; delivery is not proven.')
+        # Item 3: the two stage texts are records (Engine.stage writes them to the log), so their addresses are short.
         if reply.get('confirmations'):
-            stage('confirmation', canonical(visible(reply['confirmations'])))
-        stage('page', canonical(visible(reply)))
+            stage('confirmation', canonical(visible(projection.record(reply['confirmations']))))
+        stage('page', canonical(visible(projection.record(reply))))
         self.steps(reply.get('steps', []), operation['payload']['reference']['tab'])
         if any(step['kind']=='activation_unknown' for step in reply.get('steps',[])):
             return 'unknown', 'Input ran, but a page activation may have happened; inspect the page and never replay.'
@@ -986,10 +1019,16 @@ class Chrome:
         # Even free changes have a committed operation/context before any dispatch (R2).
         op_id = self.store.generation + ':' + uuid.uuid4().hex
         # Item 3b: the committed description names fields as prepare's does; the payload keeps the binding.
-        context = descriptions.described(payload['binding'])[0] if payload else {**arguments, **({'before':self.bridge.call('tab_context',tab=arguments['tab'])} if 'tab' in arguments else {})}
-        description = {'action':'chrome_' + verb,'untrusted_content':{'page_state':context,'input':payload['input'] if payload else arguments}}
+        # Items 3 and 3a: it shows addresses in the public form and lists as their chosen options, as prepare's does.
+        if payload:
+            raw = None
+            context = projection.shown(descriptions.described(payload['binding'])[0], payload)
+        else:
+            raw = {**arguments, **({'before':self.bridge.call('tab_context',tab=arguments['tab'])} if 'tab' in arguments else {})}
+            context = projection.addresses(raw)
+        description = {'action':'chrome_' + verb,'untrusted_content':{'page_state':context,'input':projection.addresses(payload['input'] if payload else arguments)}}
         op = {'id':op_id,'generation':self.store.generation,'app':'chrome','action':'chrome_' + verb,
-              'input_hash':digest(description),'approval':{'description':visible(description)},'payload':payload or context,
+              'input_hash':digest(description),'approval':{'description':visible(description)},'payload':payload or raw,
               'state':'submitting','expires':0,'stages':{},'reason':'Free input may start; no replay after an interruption.'}
         self.store.write({'op:' + op_id:op},op['action'],'Chrome free-input context committed',op_id)
         self.store.checkpoint('chrome_before_dispatch')
@@ -1012,7 +1051,8 @@ class Chrome:
                 op['stages']['loss']={'untrusted_content':copy.deepcopy(exc.untrusted_content)}
             self.store.write({'op:'+op_id:op},op['action'],'Chrome input refused before effect' if certain else 'Chrome input outcome unknown',op_id)
             raise
-        op['stages'] = {('unchanged' if reply.get('no_change') else 'dispatched'):('The requested state was already present; no input was dispatched.' if reply.get('no_change') else 'Input dispatched once; delivery not proven.'),'page':visible(reply)}
+        # Item 3: the page stage is a record, so its addresses are in the short form.
+        op['stages'] = {('unchanged' if reply.get('no_change') else 'dispatched'):('The requested state was already present; no input was dispatched.' if reply.get('no_change') else 'Input dispatched once; delivery not proven.'),'page':visible(projection.record(reply))}
         op.update(state='done',reason='The requested state was already present; no input was dispatched.' if reply.get('no_change') else 'Free input dispatched once, as the page shows it.')
         if reply.get('cleanup_pending'):
             op.update(state='unknown',notice=True,reason='Input authority ended; native cleanup is still pending. Close the page dialog and inspect tabs before taking it again; never replay this operation.')
@@ -1024,7 +1064,8 @@ class Chrome:
         if reply.get('uncertain_finish'):
             op.update(state='unknown',reason='Input dispatched, but a page handler completion could not be confirmed. Inspect the page and never replay.')
         self.store.write({'op:' + op_id:op},op['action'],'Chrome free input recorded',op_id)
-        return {'operation_id':op_id,'untrusted_content':visible(reply),'followups':followups}
+        # Item 3: what it returns shows addresses in the public form.
+        return {'operation_id':op_id,'untrusted_content':visible(projection.addresses(reply)),'followups':followups}
 
     def observe_step(self,step,tab):
         source_id=digest([self.bridge.session,tab,step]);key='intent:chrome:'+source_id
@@ -1102,7 +1143,19 @@ class Chrome:
                          'view':view_identity(facts),'element':step.get('submitter') or step['element']}
             if step['kind'] in {'native_submit','submit_event'}:
                 payload, _ = self.payload('click',{'reference':reference},hold=step)
-                prepared=self.engine.reserve('chrome','submit',payload);followups.append(prepared)
+                try:
+                    prepared=self.engine.reserve('chrome','submit',payload)
+                except Refused as exc:
+                    if exc.code!='asking_input_too_large':raise
+                    # Item 3a: a submission too large to ask about stays stopped for good, like a step whose
+                    # document changed: never resumed, recorded as done, acknowledged, and named as stopped.
+                    reason=str(self.too_large(exc,'click',payload))
+                    source.update(state='done',result='too_large',resumable=False,reason=reason)
+                    self.store.write({key:source},'chrome_page_step','Stopped submission too large to ask about; never resumed')
+                    self.bridge.call('ack_steps',tab=tab,steps=[step])
+                    followups.append({'stopped':True,'code':'asking_input_too_large','reason':reason})
+                    continue
+                followups.append(prepared)
                 source.update(state='done',reference=reference,prepared_operation=prepared['approval']['operation_id'])
                 self.store.write({key:source},'chrome_page_step','Stopped submission preparation committed')
             else:

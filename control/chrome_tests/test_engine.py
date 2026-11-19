@@ -155,7 +155,10 @@ class Operations(unittest.TestCase):
         # The extension receives the committed binding verbatim, independent of prior unrelated approvals.
         self.call('submit',approval)
         # Item 3b: the description names each field; the binding the extension gets holds none of those names.
-        self.assertEqual(self.browser.dispatched[0][1]['binding']['editable'],undescribed(state['editable']))
+        # Item 3 (28a step 1b): the description shows the frame's address in the public form, the binding keeps it whole.
+        from aresos_control.chrome.projection import addresses
+        self.assertEqual(addresses(self.browser.dispatched[0][1]['binding']['editable']),undescribed(state['editable']))
+        self.assertEqual(self.browser.dispatched[0][1]['binding']['editable'][0]['url'],'https://fixture.test/')
         self.assertEqual(state['editable'][0]['fields'][0]['description'],'"Body"')
         self.assertNotIn('description',str(self.browser.dispatched[0][1]['binding']))
 

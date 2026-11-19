@@ -374,7 +374,8 @@ class Questions(unittest.TestCase):
         state,reads=self.typed_browser()
         prepared=self.call('prepare_read_typed_fields',{'tab':1});self.assertTrue(prepared['ok'],prepared)
         approval=prepared['data']['approval']
-        for term in ['https://fixture.test/','Fixture','Draft','single-line field 2']:self.assertIn(term,approval['question'])
+        # Item 3 (28a step 1b): the page's address in the public form.
+        for term in ['On fixture.test/,','Fixture','Draft','single-line field 2']:self.assertIn(term,approval['question'])
         self.assertNotIn('APPROVED_PRIVATE_TYPED_20',str(approval))
         self.assertFalse(self.call('read_typed_fields',{**approval,'question':'Changed'})['ok']);self.assertEqual(reads,[])
         result=self.call('read_typed_fields',approval);self.assertTrue(result['ok'],result)
@@ -441,7 +442,8 @@ class Questions(unittest.TestCase):
         state['frames'][0]['fields'][0]['label']=hostile;state['frames'][0]['fields'][1]['label']='L'*200
         state['frames'].append({'frame':4,'document':'document-2','reader':'reader-two','browser_document':'browser-document-two','url':'about:srcdoc','effective_url':'http://second.test:8766/inner','fields':[{'element':'typed3','label':'Inner','type':'text'}]})
         question=self.call('prepare_read_typed_fields',{'tab':1})['data']['approval']['question']
-        self.assertIn("frame 0 (https://fixture.test): \"Draft'; frame 1 (https://other.test): 'Password\", \""+'L'*80,question)
+        # Item 3 (28a step 1b): each frame's site in the public form; the label's own text stays as the page wrote it.
+        self.assertIn("frame 0 (fixture.test): \"Draft'; frame 1 (https://other.test): 'Password\", \""+'L'*80,question)
         self.assertEqual(question.count('"'),6,'each of the three labels is one quoted field')
         self.assertIn('"'+'L'*80+'…" (200 characters)',question);self.assertNotIn('L'*81,question)
         self.assertIn('(200 characters); frame 4 (http://second.test:8766): "Inner"?',question)
