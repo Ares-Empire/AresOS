@@ -3,12 +3,16 @@
 The VM itself runs only in CI (os/ci/vm.py with the check overlay). Here: the home the guest seeds passes the
 supervisor's own checks; the host's reading of a stopped guest's journal accepts the two boots as the brief
 describes them and refuses each way the guard's order can be wrong; and the wiring between vm.py, the overlay and
-the image is in place. No test here starts a unit, a VM or a game.
+the image is in place; and image-checks.sh's rule that no system unit starts the desktop, with the guard as its one
+reviewed exception. No test here starts a unit, a VM or a game.
 """
 import importlib.util
 import json
 import os
 import pathlib
+import subprocess
+import sys
+import tempfile
 import unittest
 
 import test_aresos_desktop as base
@@ -262,6 +266,123 @@ class GuestTest(base.Base):
         self.assertEqual(host.scenario(2), 'hang')
         with self.assertRaises(KeyError):
             host.scenario('3')  # a third pass would need a scenario of its own
+
+
+class SystemUnitRuleTest(unittest.TestCase):
+    """image-checks.sh's SYSTEM_UNITS rule, run as the image runs it, on unit trees made here (step 8: the check build
+    44533435611 stopped on the old rule, a grep for the desktop's name anywhere in a unit, which the guard's own
+    ExecStop and Documentation= lines matched)."""
+    UNIT = base.CONFIG / 'usr/lib/systemd/system' / GUARD
+    DROP_IN = base.CONFIG / 'usr/lib/systemd/system/session-.scope.d/50-aresos-guardian.conf'
+
+    def setUp(self):
+        folder = tempfile.TemporaryDirectory()
+        self.addCleanup(folder.cleanup)
+        self.root = pathlib.Path(folder.name)
+        self.lib, self.etc = self.root / 'usr/lib/systemd/system', self.root / 'etc/systemd/system'
+        source = (CI / 'image-checks.sh').read_text()
+        head = "python3 -I - /usr/lib/systemd/system /etc/systemd/system <<'SYSTEM_UNITS'\n"
+        self.assertEqual(source.count(head), 1)
+        self.rule = source.split(head, 1)[1].split('\nSYSTEM_UNITS\n', 1)[0]
+        # The image's tree as it is: the guard, its link, the session scopes' drop-in, a drop-in for every service
+        # without an Exec line, a mask, a dangling link, and units that mention the desktop without running it.
+        self.write('usr/lib/systemd/system/' + GUARD, self.UNIT.read_text())
+        self.write('usr/lib/systemd/system/session-.scope.d/50-aresos-guardian.conf', self.DROP_IN.read_text())
+        self.write('usr/lib/systemd/system/service.d/10-timeout-abort.conf',
+                   '[Service]\nTimeoutStopFailureMode=abort\n')
+        self.link('etc/systemd/system/graphical.target.wants/' + GUARD, self.lib / GUARD)
+        self.link('etc/systemd/system/masked.service', '/dev/null')
+        self.link('etc/systemd/system/multi-user.target.wants/gone.service', self.lib / 'gone.service')
+        self.write('usr/lib/systemd/system/greetd.service',
+                   '# Logs in ares, whose labwc session starts aresos-desktop.\n[Unit]\n'
+                   'Documentation=file:/usr/libexec/aresos-desktop man:prismlauncher(6)\n'
+                   '[Service]\nExecStart=/usr/bin/greetd\n; ExecStartPre=/usr/libexec/aresos-desktop\n')
+
+    def write(self, name, text):
+        path = self.root / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text)
+        return path
+
+    def link(self, name, target):
+        path = self.root / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.symlink_to(target)
+
+    def check(self):
+        return subprocess.run([sys.executable, '-I', '-', str(self.lib), str(self.etc)], input=self.rule,
+                              capture_output=True, text=True, timeout=30)
+
+    def assert_passes(self):
+        result = self.check()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn('SYSTEM_UNITS_OK', result.stdout)
+
+    def assert_fails(self, *words):
+        result = self.check()
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertIn('SYSTEM_UNITS_FAILED', result.stderr)
+        for word in words:
+            self.assertIn(word, result.stdout + result.stderr)
+        return result
+
+    def test_the_images_tree_with_the_reviewed_guard_passes(self):
+        self.assert_passes()
+
+    def test_a_changed_guard_fails(self):
+        unit = self.UNIT.read_text()
+        stop = 'ExecStop=/usr/libexec/aresos-desktop stop --reason shutdown\n'
+        changed = {
+            'another stop': unit.replace(stop, 'ExecStop=/usr/libexec/aresos-desktop stop\n'),
+            'a start of the desktop': unit.replace('ExecStart=/usr/bin/true\n', 'ExecStart=/usr/libexec/aresos-desktop\n'),
+            'another start': unit.replace('ExecStart=/usr/bin/true\n', 'ExecStart=/usr/bin/sleep 1\n'),
+            'one more line that runs': unit.replace(stop, stop + 'ExecStopPost=/usr/bin/true\n'),
+            'one before the start': unit.replace('[Service]\n', '[Service]\nExecStartPre=-/usr/bin/true\n'),
+            'the stop twice': unit.replace(stop, stop + stop),
+            'no stop': unit.replace(stop, ''),
+            'a continued line': unit.replace('ExecStart=/usr/bin/true\n',
+                                             'ExecStart=/usr/bin/true \\\n# a comment\n  /usr/bin/prismlauncher\n'),
+        }
+        for what, text in changed.items():
+            with self.subTest(what):
+                self.assertNotEqual(text, unit)
+                self.write('usr/lib/systemd/system/' + GUARD, text)
+                self.assert_fails('A system unit starts the desktop or Prism', 'the shutdown guard runs exactly')
+
+    def test_the_guard_only_by_its_exact_path(self):
+        self.write('etc/systemd/system/' + GUARD, self.UNIT.read_text())  # a copy that would override it
+        self.assert_fails(str(self.etc / GUARD) + ': ExecStop=/usr/libexec/aresos-desktop stop --reason shutdown')
+
+    def test_the_guard_as_a_link_fails(self):
+        (self.lib / GUARD).rename(self.root / 'elsewhere.service')
+        self.link('usr/lib/systemd/system/' + GUARD, self.root / 'elsewhere.service')
+        self.assert_fails('must be a file of its own')
+
+    def test_a_drop_in_that_adds_to_what_the_guard_runs_fails(self):
+        for folder in (f'etc/systemd/system/{GUARD}.d', f'usr/lib/systemd/system/{GUARD}.d',
+                       'etc/systemd/system/aresos-.service.d', 'etc/systemd/system/service.d'):
+            with self.subTest(folder):
+                path = self.write(folder + '/50-more.conf', '[Service]\nExecStopPost=/usr/bin/true\n')
+                self.assert_fails('a drop-in adds what the shutdown guard runs', str(path))
+                path.unlink()
+        self.write(f'etc/systemd/system/{GUARD}.d/50-quiet.conf', '[Service]\nTimeoutStopSec=85\n')
+        self.assert_passes()
+
+    def test_a_unit_that_starts_the_desktop_or_prism_fails(self):
+        units = {
+            'usr/lib/systemd/system/aresos-desktop.service': '[Service]\nExecStart=/usr/libexec/aresos-desktop\n',
+            'etc/systemd/system/prism.service': '[Service]\nExecStart = /usr/bin/prismlauncher\n',
+            'etc/systemd/system/wrapper.service': '[Service]\nExecStartPre=-/usr/libexec/aresos-desktop-java x\n',
+            'etc/systemd/system/getty@.service.d/50-x.conf': '[Service]\nExecStartPost=/usr/libexec/aresos-desktop\n',
+            'etc/systemd/system/continued.service': '[Service]\nExecStart=/usr/bin/env \\\n; skipped\n'
+                                                    '  /usr/libexec/aresos-desktop\n',
+        }
+        for name, text in units.items():
+            with self.subTest(name):
+                path = self.write(name, text)
+                self.assert_fails('A system unit starts the desktop or Prism', str(path) + ': Exec')
+                path.unlink()
+        self.assert_passes()
 
 
 if __name__ == '__main__':

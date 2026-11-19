@@ -816,11 +816,67 @@ assert desktop.check_instance(paths, lock) == ["instance.cfg WrapperCommand is '
 print('PROVISIONED', sorted(str(p.relative_to(instance)) for p in instance.rglob('*')))
 PY
 pass 'provisioning as ares creates the managed instance from the image inputs, is idempotent and reports a changed instance'
-if grep -rlE 'aresos-desktop|prismlauncher' /usr/lib/systemd/system /etc/systemd/system 2>/dev/null | grep .; then
-    echo 'A system unit starts the desktop'
-    exit 1
-fi
-pass 'no system service runs the desktop: it starts inside the everyday session only'
+# No system unit starts the desktop or Prism: they start inside the everyday session only. What a unit runs is in its
+# Exec*= lines (continued lines joined, as systemd joins them); a comment or Documentation= line runs nothing. The one
+# exception is package 25's shutdown guard, by its exact path and only as reviewed: its start runs /usr/bin/true, its
+# stop asks the session's supervisor to save the home and close the game, and nothing else of it executes, in the unit
+# or in a drop-in that applies to it.
+python3 -I - /usr/lib/systemd/system /etc/systemd/system <<'SYSTEM_UNITS'
+import os
+import re
+import sys
+
+NAMES = re.compile(r'aresos-desktop|prismlauncher')
+EXEC = re.compile(r'Exec[A-Za-z]*\s*=')
+GUARD = 'aresos-guardian.service'
+GUARD_LINES = ['ExecStart=/usr/bin/true', 'ExecStop=/usr/libexec/aresos-desktop stop --reason shutdown']
+# Drop-in folders systemd applies to the guard: its own, its dash prefix's, and every service's.
+GUARD_DROP_INS = {GUARD + '.d', 'aresos-.service.d', 'service.d'}
+
+
+def exec_lines(path):
+    with open(path, 'rb') as unit:
+        text = unit.read().decode('utf-8', 'replace')
+    lines, line = [], ''
+    for raw in text.splitlines():
+        if raw.lstrip().startswith(('#', ';')):
+            continue  # a comment, also one inside a continued line, which systemd skips there too
+        if raw.endswith('\\'):
+            line += raw[:-1] + ' '
+            continue
+        lines.append((line + raw).strip())
+        line = ''
+    lines.append(line.strip())
+    return [line for line in lines if EXEC.match(line)]
+
+
+roots = sys.argv[1:]
+guard = os.path.join(roots[0], GUARD)
+if os.path.islink(guard):
+    sys.exit(f'SYSTEM_UNITS_FAILED {guard} must be a file of its own, not a link')
+problems = []
+for root in roots:
+    for folder, folders, files in os.walk(root):
+        folders.sort()
+        for name in sorted(files):
+            path = os.path.join(folder, name)
+            if not os.path.isfile(path):
+                continue  # a dangling link or a mask (a link to /dev/null) runs nothing
+            lines = exec_lines(path)
+            if os.path.realpath(path) == os.path.realpath(guard):
+                if sorted(lines) != sorted(GUARD_LINES):
+                    problems.append(f'{path}: the shutdown guard runs exactly {GUARD_LINES}, but its Exec lines are '
+                                    f'{lines}')
+            elif os.path.basename(folder) in GUARD_DROP_INS and lines:
+                problems.append(f'{path}: a drop-in adds what the shutdown guard runs: {lines}')
+            else:
+                problems += [f'{path}: {line}' for line in lines if NAMES.search(line)]
+if problems:
+    print('A system unit starts the desktop or Prism:', *problems, sep='\n  ')
+    sys.exit('SYSTEM_UNITS_FAILED')
+print('SYSTEM_UNITS_OK no system unit runs the desktop or Prism; the shutdown guard runs only its two reviewed lines')
+SYSTEM_UNITS
+pass 'no system service runs the desktop: it starts inside the everyday session only; the shutdown guard only asks it to stop'
 
 # --- Package 30: the icon conversion route must survive base-image updates.
 test -x /usr/bin/magick

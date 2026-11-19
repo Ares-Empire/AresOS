@@ -1,6 +1,7 @@
 # Package 25, the guardian: progress
 
-Updated after **step 7** (2026-11-19). Builder: a Claude agent on Fable 5.2, one fresh agent per step.
+Updated after **step 8a** (2026-11-19). Builder: a Claude agent on Fable 5.2, one fresh agent per step (step 8a:
+Opus 5.5, started by the lead for the merge, the image rule and the docs).
 Brief: `briefs/25-guardian.md`; its last section ("The lead's fixes after the recheck") overrides the rest.
 
 ## Done
@@ -389,11 +390,121 @@ otherwise).
 `/etc/systemd/system/graphical.target.wants/aresos-guardian.service`. New state file on his disk:
 `~/.local/state/aresos/desktop-guard.json` (only after a shutdown with no answer; R28 never reads it).
 
+**Step 8a: main merged, the image rule the check build stopped on, section 5's docs.** The lead's check build
+(run **44533435611**, `check_build=build`) failed in "Throwaway image build and checks", before the VM, at the old
+rule in `os/ci/image-checks.sh`: `grep -rlE 'aresos-desktop|prismlauncher'` over `/usr/lib/systemd/system` and
+`/etc/systemd/system`, "A system unit starts the desktop". It matched the guard's own unit (its `ExecStop` and its
+`Documentation=` line). Every image check before it had passed.
+
+- **`origin/main` merged** (37 commits: 53c, 53d, 53f, 56, 311, 311b and handoffs; merge commit `df167952`). Two
+  files conflicted; every other overlap merged by itself:
+  - `os/config/usr/libexec/aresos-shell`, three hunks. **Constants:** 25's `BLACK_APP_ID`, `COVER_APP_IDS`,
+    `MESSAGE_WINDOW_APP_ID`, `WINDOW_NAMES`, `WINDOW_NAME_CHARS` kept beside 53c's `LAPTOP_HOME_APP_ID`.
+    **`Windows.covering()`:** leaves out both covers (25) and the laptop home (53c); its docstring names all three.
+    **`Windows.app_windows()`** (no conflict, but the same question): the laptop home is left out of the `windows`
+    count too, so it never keeps the screens from going black and never refuses a `logout` (decision 95). The module
+    docstring's status-pipe section says so. Merged by themselves and unchanged: 53c's `view_focus` gate and
+    foreground bookkeeping, 53d's `shell_search` with its SIGUSR1 handler first in `main()` (25's `windows` line
+    when the compositor is lost stays in the `WaylandError` branch), 56's `focus_reported` and background
+    `shell_focus` in `windows_changed()` (25's `report_windows()` stays its last call, after `search_landed()` and
+    `report_covered()`).
+  - `os/manifest/ci/16/pending-rebind.json`: both sides' `changes` rows kept (main's 311 and 311b, then 25's). The
+    `files` list merged by itself; every bound file's bytes match its row (`os/ci/vm.py` is 25's, main did not
+    change it).
+  - Merged by themselves: `os/ci/image-checks.sh` (main's 311 labwc checks and 53f laptop-home check beside 25's
+    guard and `aresos.black` checks), `os/tests/test_aresos_desktop.py` (main's labwc stages in the Containerfile
+    test, 25's guard and scope changes), `os/tests/test_aresos_shell_views.py` (main's 53c tests beside step 4's
+    two-line status assertion).
+- **The image rule** (`os/ci/image-checks.sh`, the heredoc `SYSTEM_UNITS`; it replaces the grep). A Python check over
+  the same two trees, run as root in the image:
+  - it reads every file's `Exec*=` lines (continued lines joined and comment lines skipped, as systemd does);
+    comments, `Documentation=` and every other key are not read;
+  - any `Exec*=` line naming `aresos-desktop` or `prismlauncher` (the old rule's names and case) fails, in a unit
+    or a drop-in, in either tree;
+  - the one exception is `/usr/lib/systemd/system/aresos-guardian.service` by that exact path (a link to it, such as
+    `graphical.target.wants/aresos-guardian.service`, is the same file and checked the same way): its `Exec*=`
+    lines must be exactly `ExecStart=/usr/bin/true` and `ExecStop=/usr/libexec/aresos-desktop stop --reason
+    shutdown`, each once, nothing else; the guard's path being a link fails;
+  - a drop-in that systemd applies to the guard (`aresos-guardian.service.d`, `aresos-.service.d`, `service.d`, in
+    either tree) must have no `Exec*=` line at all; other keys pass;
+  - a copy of the guard anywhere else (such as `/etc/systemd/system/aresos-guardian.service`, which would override
+    it) fails like any unit that names the desktop;
+  - links to `/dev/null` (masks) and dangling links are skipped; links to folders are not followed (as `grep -r`).
+  - The failure prints `A system unit starts the desktop or Prism:` and one line per finding (the file and its line,
+    or what the guard runs against what it may run), then exits 1 with `SYSTEM_UNITS_FAILED`. The pass prints
+    `SYSTEM_UNITS_OK …` and the `PASS` line `no system service runs the desktop: it starts inside the everyday
+    session only; the shutdown guard only asks it to stop`.
+- **Its tests:** `SystemUnitRuleTest` in `os/tests/test_guardian_vm.py` (6 new tests) cuts the heredoc out of
+  `image-checks.sh` and runs it with `python3 -I -` against unit trees made in a temporary folder, as the image runs
+  it: the image's tree as shipped (the real guard unit and its drop-in, the `wants` link, `service.d` with no
+  `Exec`, a mask, a dangling link, a unit that names the desktop and Prism only in a comment, `Documentation=` and a
+  `;` line) passes; eight changed guards fail (another stop, a start of the desktop, another start, one more `Exec`
+  line after the stop, one before the start, the stop twice, no stop, a continued line that adds Prism); a copy at
+  `/etc/systemd/system/aresos-guardian.service` fails; the guard as a link fails; a drop-in with an `Exec` line fails
+  in each of the four folders that apply to the guard (and one without passes); five units that start the desktop or
+  Prism fail (`ExecStart`, `ExecStart = …` with spaces, `ExecStartPre=-…aresos-desktop-java`, a `getty@.service.d`
+  drop-in, a continued line with a `;` comment inside).
+- **Proved by hand as well**, the rule cut out of the script into the scratchpad and run on three temporary trees:
+  | Tree | The old grep | The new rule |
+  |---|---|---|
+  | `good`: the shipped guard and its `wants` link | fails (`A system unit starts the desktop`): the check build's failure | exit 0, `SYSTEM_UNITS_OK` |
+  | `changed`: the guard's `ExecStop` made `aresos-desktop restart` | fails | exit 1: `…/lib/aresos-guardian.service: the shutdown guard runs exactly [...], but its Exec lines are [...]`, and the same for the `wants` link |
+  | `desktop`: `etc/aresos-desktop.service` with `ExecStart=/usr/libexec/aresos-desktop` | fails | exit 1: `…/etc/aresos-desktop.service: ExecStart=/usr/libexec/aresos-desktop` |
+
+  And read-only on this laptop's own trees (the running AresOS image, 612 files, no guard there): `python3 -I -
+  /usr/lib/systemd/system /etc/systemd/system < rule.py` → exit 0, `SYSTEM_UNITS_OK` (the old grep also found
+  nothing there). So no unit of the current base trips the new rule; its `service.d` holds only
+  `10-timeout-abort.conf`, without an `Exec` line.
+- **Section 5's docs:**
+  - `docs/design/OS-BASE.md` B1: the `prepare_stop`/`save_complete` row says it is not built and why (2.6: a
+    confirmed `save_world`, then SIGTERM; no stop certifies the closing save; confirmed or unsaved); the `save_world`
+    row says both ends are built and gives the supervisor's acceptance rules (1.2 to 1.5) in place of "the
+    supervisor's side waits for package 25".
+  - B2: a **Built (package 25)** paragraph: `STOPPING`, the one routine and its deadline, what confirms a save,
+    called off or `unsaved`, `overrun`, `stopped`, the admission block, the `unsaved` latch, and section 4 in two
+    sentences.
+  - B3: a **Built (package 25)** block: the guard (its order, armed first, its fallback, the game scope's 15 s, why
+    not a delay lock), the black screen, the lid block, and what is not as B3 proposes (60 s, not 120 s; an app
+    window open closes as before). The coordinator, its block inhibitor, "close your apps first", the battery and
+    `request_power` stay proposals.
+  - The supervisor's docstring: B3 in its design line; `STOPPING` in its states; planned stops never restart; the
+    commands `save`, `stop`, `restart`, `logout`, `use-home`; `restart`, `logout`, the signals and labwc's end, the
+    admission block and the `unsaved` latch; a paragraph on the guard.
+  - Not touched: `os/owner-tools/`, `os/release/`, the install guides, `STATE.md`.
+
+**The `aresos-shell` lines 25 changes, after the merge** (for the lead's notice; step 4's list above has the numbers
+before it): 73 to 79 (the docstring's `windows` line); 155 to 164 (the constants); 210 (`PRIVATE_ENVIRONMENT`); 240,
+241, 254, 257 (`StatusPipe`); 2699, 2700, 2714 (`covering()`); 2717 to 2725 (`app_windows()`); 3077 to 3079 and 3121,
+3122 (`Helper.__init__`); 3926 (`tick()`); 3945 to 3967 (`windows_changed()`, `report_windows()`,
+`window_name()`); 4685 (`main()`). `rc.xml`: lines 41 to 43, unchanged by the merge.
+
+| Pattern (step 8a, each run alone as `env -i HOME=$HOME PATH=/usr/bin:/bin python3 -B -m unittest discover -s os/tests -p '<pattern>'`, on the final code) | Result |
+|---|---|
+| `test_aresos_desktop*.py` | 189 tests, OK (1 skipped), 177 s |
+| `test_aresos_guardian*.py` (`test_aresos_guardian.py`, `test_aresos_guardian_loop.py`) | 132 tests, OK (2 skipped: the two stand-in JVM tests, no Java on that PATH), 58 s. `test_aresos_guardian_loop.py` once more with `PATH=<the local JDK 25>/bin:/usr/bin:/bin`: 26 tests, OK, nothing skipped, 62 s |
+| `test_aresos_shell*.py` (all 15 modules, `test_aresos_shell_search.py` from main among them) | 407 tests, OK, 14 s |
+| `test_aresos_laptop_home*.py` (main's two modules) | 54 tests, OK (3 skipped: two opt-in memory runs, one needs gtk4-layer-shell), 61 s |
+| `test_guardian_vm.py` (the image rule's tests are here) | 13 tests, OK (6 new: `SystemUnitRuleTest`) |
+| `test_console_keymap.py` (it cuts another heredoc out of `image-checks.sh`) | 21 tests, OK |
+
+Existing assertions changed: `test_every_window_counts_but_the_desktops_the_covers_and_the_message_window`
+(`test_aresos_shell_guardian.py`) also opens an `aresos.laptop-home` window and is renamed `…_and_the_laptop_home`;
+`test_the_names_the_three_programs_share` also checks that the helper's `LAPTOP_HOME_APP_ID` is the laptop home
+program's own `APP_ID`. Not run: the whole `os/tests` suite, `test_owner_update`, `test_inherited_homebrew`,
+`test_sysusers`, and the rig (nothing under it changed). No GitHub run was started or watched.
+
 ## Left, in order
 
-8. Started by the lead with the check build's run ID: fix what its new checks show, section 5 (docs), the report,
-   the pull request. If the guard, the stop routine or the VM check changes, ask the lead for a new check build on
-   the final commit (the lead's fix 7).
+8b. Started by the lead with the next check build's run ID (the lead starts it on this step's last commit):
+   1. Read the VM's results (`evidence/vm-pass-N/guardian-arm-result.json`, `guardian.json`, the pictures,
+      `offline-boot.txt`; "What the code does not show" lists where it is most likely to stop first) and fix what
+      they show. Also read the hosted `checks_only` run **44458416374** (step 7's, never read).
+   2. If the guard, the stop routine or the VM check changes, ask the lead for a new check build on the final commit
+      (the lead's fix 7); a `checks_only` run boots no VM and is no proof.
+   3. The report (AGENTS.md format) into this file, with the VM's measured times, the texts, the new image files,
+      the Known limits and every JUDGMENT-CALL; the lead commits it as `REPORT.md`.
+   4. Merge `origin/main` again before the last push, one `checks_only=true` run, then the pull request "Package 25:
+      the guardian saves the world before every planned stop". Never merge.
 
 ## linux-aresos's read checklist (2026-11-19)
 
@@ -696,6 +807,24 @@ Step 7:
     `test_control_vm.py` carry `checks.py` with only `channel.py` and `console_keymap.py` beside it, and a top-level
     import broke that test here.
 
+Step 8a:
+
+95. **JUDGMENT-CALL (light; for the lead and `linux-hub`): the laptop home is no app window.** 53c's
+    `aresos.laptop-home` window has no owner, so without a rule it would have counted like Prism's own window: the
+    screens would never go black while it shows, and `logout` would be refused with "an app is still open
+    (aresos.laptop-home)". It is part of the desktop (as `covering()`, `active()` and `unowned_windows()` already
+    treat it on main), so `app_windows()` leaves it out: a shutdown with only the laptop home and the world shows
+    black, and `logout` goes through. It is inert until 23c starts it, so nothing changes in the image today.
+    Changing it back is one name in `app_windows()` and one in its test.
+96. **The image rule's reach.** The same two trees as the old grep, and the same names, case-sensitive. "Executes"
+    means an `Exec*=` key (any `Exec` key, so also `ExecCondition`, `ExecReload` and `ExecSearchPath`, which is
+    stricter than needed). A drop-in "that applies to the guard" is one in a folder systemd reads for it: its own,
+    `aresos-.service.d` and `service.d`; one with an `Exec*=` line fails even if it names nothing of ours, because it
+    would change what runs at every shutdown. A link is judged by the file it points to.
+97. **The tests sit in `test_guardian_vm.py`** (the guard's CI-side parts), not in a module of their own; they run
+    the heredoc exactly as the image does (`python3 -I -` with the two folders), as `test_labwc_stage.py` and
+    `test_console_keymap.py` run theirs.
+
 **New texts** (the `save` command prints them; for the report's list):
 
 - `Saved: AresHub is on the disk.`
@@ -836,6 +965,20 @@ Step 7:
   AresOS says so.` or `That could not be recorded either (<error>).`
 
 ## What the code does not show
+
+- **Step 8a: the image rule has not run in an image yet.** Its tests run it on trees made here, and it ran
+  read-only on this laptop's own trees; the next check build's "Throwaway image build and checks" runs it on the
+  branch image. If it stops there, its output names each file and line. The steps after it in that job (every
+  image check after line ~819, then the VM) have not run on this branch yet.
+- **Known limits of the image rule** (low harm: it is a tripwire for a mistake in the repo, not a guard against an
+  attacker with root): it reads `/usr/lib/systemd/system` and `/etc/systemd/system` only, as the old grep did, not
+  `/run/systemd`, `/usr/local/lib/systemd/system`, `/etc/systemd/system.control`, user units or generators; a key
+  spelled other than `Exec…` (systemd ignores those anyway) and a desktop started through a script of another name
+  are not seen.
+- **The merge, not run together yet:** the black screen with 53c's laptop home on a second output (the home is not
+  started in the image before 23c), and 53d's search over the world open at the moment a stop goes black (the black
+  window takes the focus like any new window, so the world hears `shell_focus` `background`; what the search does
+  then is 53d's, unchanged). Both helper suites pass on the merged file; nothing ran them in one compositor.
 
 - **Step 7, for step 8: what never ran before the check build.** The unit under a real systemd (its order, a
   cycle, `User=ares`, `RequiresMountsFor`); `systemctl is-active` asked from the session; the real

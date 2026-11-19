@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 """AresOS desktop supervisor: boots the session into the AresHub world (package 23).
 
-Design: docs/design/OS-BASE.md section 5 and Appendices B1, B2 and B5.
+Design: docs/design/OS-BASE.md section 5 and Appendices B1, B2, B3 and B5.
 
 labwc's autostart runs `aresos-desktop session`, a small keeper that runs the
 supervisor (`aresos-desktop supervise`) and restarts it if it fails. The
@@ -31,15 +31,17 @@ when the supervisor stops. It is best effort: a cover that does not start,
 crashes or is missing changes nothing else.
 
 States (B2): SETUP (first start: Prism's own sign-in, then the hub is created
-with the mod's AresOS button), STARTING, IN_WORLD, AUTH_REQUIRED and RECOVERY.
+with the mod's AresOS button), STARTING, IN_WORLD, AUTH_REQUIRED, RECOVERY and
+STOPPING (package 25: a planned stop runs, below; no message window meanwhile).
 SETUP, AUTH_REQUIRED and RECOVERY show a foot terminal with what happened and
 what to do. Restart policy: an unexpected game exit is retried after a short
 backoff; three failures within five minutes or three in a row latch RECOVERY.
 The latch and the counts live in ~/.local/state/aresos/desktop.json and survive
 restarts of the supervisor and of the machine. Only 30 continuous healthy
 minutes in the world (valid heartbeats) or the owner's `retry` reset them.
-Auth states, deliberate quits and kills (memory pressure) never restart by
-themselves, and nothing here ever kills a running game or repairs a world.
+Auth states, deliberate quits, kills (memory pressure) and planned stops never
+restart by themselves, and nothing here ever kills a running game or repairs a
+world.
 
 Only a certain ordinary crash restarts by itself (JUDGMENT-CALL 10): Java's own
 exit status, as its wrapper saw it, other than 0 (his quit) and SIGKILL. An
@@ -51,7 +53,8 @@ user only. The wrapper sends jvm_start, jvm_started, and how Java ended
 (jvm_exited, or jvm_failed for a start that did not become a game); it writes
 the same facts to ~/.local/state/aresos/desktop-exit.json first. The owner's
 commands (`aresos-desktop status|retry|forget-hub|reset-instance`) use status,
-retry and forget_hub; `use-home <folder>` (package 25, below) uses use_home.
+retry and forget_hub; `save`, `stop`, `restart`, `logout` and `use-home
+<folder>` (package 25, below) use the ops of the same names.
 
 The lifecycle channel (package 25; OS-BASE B1, `save_world`): the game gets
 ARESOS_DESKTOP_LIFECYCLE=1, and its mod then connects to the same socket with
@@ -73,7 +76,27 @@ record names it is `stopped`: never counted, restarted or latched `killed`.
 A stop is confirmed (saved, or nothing to save) or unsaved. A plain stop whose
 save is not confirmed is called off and the game keeps running; `stop --reason
 shutdown` cannot be called off, closes anyway and latches `unsaved` for the
-next start. The supervisor never sends SIGKILL to the game.
+next start. The supervisor never sends SIGKILL to the game. `restart` stops and
+starts the game again. `logout`, refused while an app window is open or the
+helper has not said, stops and then sends SIGTERM to labwc through its pidfd.
+SIGTERM, SIGHUP or SIGINT to the supervisor, and the end of its labwc (watched
+by pidfd, and only a labwc of this supervisor's runtime folder), run a stop
+that cannot be called off before the supervisor exits. A shutdown or logout
+leaves an admission block in the runtime folder: no game starts again in that
+session (a logout that does not go through lifts it). A stop record still open at the next start is closed; if its save was
+not confirmed, the latch `unsaved` says so and why, and `retry` opens the home
+as it is on the disk.
+
+The shutdown guard (package 25, brief 3.1; OS-BASE B3): the system unit
+aresos-guardian.service is ordered after greetd, ares's user manager and
+runtime folder and the home's mount, with every session scope ordered before
+it, so at a shutdown its stop, `aresos-desktop stop --reason shutdown`, saves
+and closes the game while all of them are still there. No game is started
+unless the guard is active (window `guard`). If no supervisor answers, the
+command takes the desktop lock itself: free means no game runs; held or
+unknown means one more attempt, then a fallback record
+(~/.local/state/aresos/desktop-guard.json) that the next start turns into the
+`unsaved` latch. The command never signals anything.
 
 The black screen and the lid (package 25, brief 3.4; the owner on board #379:
 no visible shutdown wait, and a lid closed right after must not suspend the
