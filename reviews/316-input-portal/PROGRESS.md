@@ -106,6 +106,7 @@ All of it ran in rootless podman containers of the pinned image, with no host fo
 | `91418fc5` | Activation by `Exec=` only (the systemd unit is gone); `data/allowed-apps`, shipped with comments only. |
 | `5e882222` | The screens module, the trust model, the log scrub, the diagnostics removed, 65 unit tests. |
 | `0da6e78a` | A barrier covers its last pixel, as the specification counts it; its example is the 66th test. |
+| `1636ae4b` | A late notice about new screens keeps barriers that were set against the snapshot as it is now. |
 
 ### What was shown
 
@@ -113,7 +114,7 @@ All of it ran in rootless podman containers of the pinned image, with no host fo
   warning, `cargo test --locked --offline`: **66 passed** (step 1 had 16, and upstream's 16 are all still
   there with their assertions: the 7 placement tests unchanged, the 4 transfer tests with the session argument
   added, the 5 region tests against the snapshot). Binary SHA-256
-  `f5710d99f7590db053f5633cecdccc7355629d96c0fc70c7df7d217c3697902e`. The cached build gives the same binary
+  `ce32fb675cd1db93152245e37ab78bcb05ce8ce4a54529c0f040713c768273d6`. The cached build gives the same binary
   and ran the tests three more times, all green.
 - **`cargo audit`** (`evidence/step2-audit.txt`, same cargo-audit and advisory database as step 1): **no
   vulnerabilities, and the three "unsound" warnings are gone.** Left: the three "unmaintained" warnings
@@ -131,10 +132,10 @@ All of it ran in rootless podman containers of the pinned image, with no host fo
 | A crossing goes only to the session its barrier was armed for; otherwise the capture ends at once | `wayland/state.rs:307` (the surface's session), `portal.rs:1137` (`activated`) |
 | Barriers are checked against the snapshot's zone set, twice | `portal.rs:674`, `wayland/state.rs:185` |
 | EIS offers only what `Start` granted, whatever is bound | `eis_server.rs:73`, `:87`, `:544`; `ConnectToEIS` needs `Start` (`portal.rs:732`) |
-| A clipboard transfer goes only to its session, serial and claim | `portal.rs:224` (`take_transfer`), `:914`, `:1284` |
-| Close, frontend loss, EIS death: the session is removed whole | `portal.rs:526` (`remove_session`), called from `:989`, `:1001` (watch: `:1795`), `:1019` |
+| A clipboard transfer goes only to its session, serial and claim | `portal.rs:224` (`take_transfer`), `:914`, `:1291` |
+| Close, frontend loss, EIS death: the session is removed whole | `portal.rs:526` (`remove_session`), called from `:989`, `:1001` (watch: `:1802`), `:1019` |
 | Screens: one snapshot from `zwlr_output_manager_v1`, committed at `done` | `screens.rs:113`, `:218`; `wayland/heads.rs:82`, `:141`; `wayland/state.rs:126` |
-| A change of screens: capture ended, surfaces removed, barriers cleared, new EIS region, `ZonesChanged` | `wayland/state.rs:126`, `portal.rs:1230`, `eis_server.rs:408` |
+| A change of screens: capture ended, surfaces removed, barriers cleared, new EIS region, `ZonesChanged` | `wayland/state.rs:126`, `portal.rs:1234`, `eis_server.rs:408` |
 | Logs: names only in `{:?}`; one level word; libraries at warnings; wire dumps off | `eis_server.rs:52`, `wayland/mod.rs:137`, `portal.rs:304`, `main.rs:35`, `:48`, `:65` |
 
 ### Decisions
