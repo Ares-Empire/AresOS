@@ -776,9 +776,16 @@ class SurfaceTest(unittest.TestCase):
 
 @unittest.skipUnless(os.environ.get('LAPTOP_HOME_MEMORY_GUARD'), 'opt-in: three fresh measured runs, about 90 s')
 class MemoryGuardTest(unittest.TestCase):
-    """53f's limit in set-up S: a median of at most 60 MiB PSS at rest after a redraw (laptop_home_memory.py)."""
+    """53f's regression guard in set-up S: a median of at most 64,000 KiB PSS at rest after a redraw.
 
-    LIMIT_KIB = 61440
+    The 60 MiB limit itself is judged in set-up I (the real compositor on the Intel chip, one window picture) at the
+    laptop trial: the lead's call, 2026-11-19. Set-up S's headless pixman compositor keeps the shown picture until the
+    next frame, so from the second frame on it counts two 8,100 KiB pictures; step B measured 62,358 KiB there
+    (62,310-62,488) and 53,462 KiB with one picture. This guard pins today's two-picture number with about 1.6 MiB of
+    room, so it catches a regression without failing on the test compositor's spare picture.
+    """
+
+    LIMIT_KIB = 64000
 
     def test_median_of_three_after_a_redraw(self):
         import statistics
