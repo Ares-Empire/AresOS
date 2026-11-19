@@ -129,3 +129,16 @@ Everything open is reviewed SAFE with green checks; nothing runs. STATE.md (pack
 at a time; fresh agents with short handoffs; Opus by default, Fable only for installs, rollback, credentials and
 security, so package 25's step 8 goes to Opus (or Codex Sol, within Codex's 12% a day). No agent waits on CI; shell
 watchers do.
+
+## Thu 2026-11-19 afternoon (the new linux-laptop-home, from 12:20)
+
+- **#114 (53c) merged** as `e01cd6a1` (OS run 44511583671 green). Board #359 done.
+- **#120 (53f) merged** as `3048b221`: rebased with `git rebase --onto origin/main 88d5afe6` (no conflicts), OS run
+  44515384290 green, `linux-aresos` read its os/ diff. Board #384 done. No mod files, so no jar line.
+- **#121 (53d):** an Opus agent rebased it onto `3048b221` (head `80610929`, then REVIEW-5 as `fcd32fde` [skip ci]);
+  `reviews/53d-world-search/REBASE.md` has the resolutions and checks. Codex gpt-6.2-sol recheck SAFE,
+  `linux-aresos` re-read the helper, Mod run 44522674318 green. **Left:** OS run 44522704032 (checks only), which
+  failed twice on Ubuntu's mirrors (503) before any test ran. Rerun its failed job once
+  `security.ubuntu.com` answers, then squash-merge with `--match-head-commit` of the PR head, send `linux-aresos`
+  and `linux-hub` the jar hash from main's Mod run, `board done 383`.
+- **Package 25:** still waits for `linux-aresos` to say R28 is through (its dry runs were still going at 13:30).
