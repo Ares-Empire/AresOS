@@ -485,3 +485,9 @@ Builder: the same Claude agent on Fable 5.2, on the same branch. No rebase onto 
 - **Another window's activation already on its way at the press** ends the handoff; Super's request then still
   activates the world, by the ordinary rule (uncovered, no bar).
 - A text widget of another mod that is not one of the game's text boxes still cannot be seen (round 2's PLAN-GAP).
+
+### Hosted run (round 2b)
+
+One hosted run of the OS checks was started after the last code push (the last code commit is `d1de3042`) and not
+watched: `gh workflow run "OS image" --ref pkg/53d-world-search -f checks_only=true`, run **44453278865**
+(https://github.com/Ares-Empire/AresOS/actions/runs/44453278865). Its result is for the lead to read.
