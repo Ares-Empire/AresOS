@@ -76,7 +76,10 @@ class Results23(unittest.TestCase):
                 self.assertIn('Storage I/O' if number == errno.EIO else 'Disk full', result['error']['message'])
                 self.assertEqual(result['observations']['stages'][approval['operation_id']]['message_id'],
                                  self.mail.message_id(approval['operation_id']))
-                self.assertTrue(self.engine.store.write_failed)
+                self.assertFalse(self.engine.store.write_failed)
+                # The failed stage was rolled back; the next explicit local
+                # write works. Restart still classifies the earlier submitting.
+                self.data('compose', {'account': 'box', 'to': ['peer@mail.invalid'], 'text': 'Healthy retry'})
                 self.restart()
                 self.assertEqual(self.data('operation_status', {'operation_id': approval['operation_id']})['operation']['state'], 'unknown')
                 with patch.object(self.mail, 'send_smtp', side_effect=AssertionError('Must never resubmit')):

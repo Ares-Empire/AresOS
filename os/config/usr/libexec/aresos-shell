@@ -27,6 +27,9 @@ covers the desktop's window on its screen: {"covered": true|false}. A connection
 starts uncovered on both sides; the helper sends the value whenever it changes
 and once after hello when it is true. The game pauses the world while covered.
 
+A new tracked desktop connection also receives existing background focus after hello, even when the app took focus
+before that connection (package 56). The existing shell_focus capability gates this in every minor version.
+
 Minor 2 adds views, view_focus, home_state and apps_running (LAPTOP-HOME.md section 5).
 The desktop can publish_home in parts, and views can get_home in pages. Up to
 four named views authenticate with the session instance and ARESOS_VIEW_TOKEN.
@@ -3101,6 +3104,7 @@ class Helper:
         conn.focused = False
         # What this connection was last told about covering; both sides start a connection uncovered.
         conn.covered = False
+        conn.focus_reported = False
         conn.capabilities = frozenset()
         conn.minor = 1
         conn.opened = self.clock()
@@ -3220,6 +3224,8 @@ class Helper:
                 return
             conn.event_number += 1
             serial = conn.event_number
+        if event == 'shell_focus':
+            conn.focus_reported = True
         self.send(conn, dict({'id': f'e-{serial}', 'event': event}, **fields))
 
     def report_running(self, conn=None):
@@ -3797,6 +3803,13 @@ class Helper:
         and the outcome is the same however the bytes were split.
         """
         self.follow_windows()
+        # A new desktop connection missed any focus change before hello. Tell it after the reply, even when the
+        # compositor has kept the same app in front throughout (including keep_foreground on a game restart).
+        if self.desktop is not None and not self.desktop.focus_reported and self.shell == 'background':
+            fields = {'focus': 'background', 'reason': 'app_activated' if self.foreground_app else 'other_window'}
+            if self.foreground_app:
+                fields['app_id'] = self.foreground_app
+            self.emit('shell_focus', **fields)
         self.report_covered()
 
     def report_covered(self):

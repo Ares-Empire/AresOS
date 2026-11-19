@@ -124,6 +124,7 @@ public final class TownKeeper {
     private boolean stale, due, pending;
     private long retryAt;
     private final TownLines.FirstBuild firstBuild = new TownLines.FirstBuild();
+    private final TownHome home = new TownHome();
 
     public static void register() {
         ServerTickEvents.END_SERVER_TICK.register(TownKeeper::tick);
@@ -131,6 +132,10 @@ public final class TownKeeper {
             if (!DesktopWorld.isHost(server, handler.player)) return;
             notice(server).ifPresent(line -> handler.player.sendSystemMessage(Component.literal(line)));
             ask();
+        });
+        ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
+            var keeper = KEEPERS.get(server);
+            if (keeper != null) keeper.home.clear();
         });
         ServerLifecycleEvents.SERVER_STOPPED.register(KEEPERS::remove);
     }
@@ -212,7 +217,23 @@ public final class TownKeeper {
     static TownKeeper keeper(MinecraftServer server) { return KEEPERS.computeIfAbsent(server, ignored -> new TownKeeper()); }
 
     private static void tick(MinecraftServer server) {
-        if (complete) keeper(server).step(server);
+        if (!complete) return;
+        var keeper = keeper(server);
+        keeper.step(server);
+        var shell = AresOs.shell();
+        if (shell != null && shell.tracksHome()) keeper.publishHome(server);
+    }
+
+    private void publishHome(MinecraftServer server) {
+        var host = host(server);
+        if (host.isEmpty() || !DesktopWorld.isEnabled(server)) {
+            home.clear();
+            return;
+        }
+        if (stale || due || reading != null || preparingHome(server)) return;
+        var hub = HubData.get(server);
+        if (hub != null && HubLayout.LOOK.equals(hub.look()) && hub.refusal().isEmpty() && !hub.frozen())
+            home.publish(host.get(), hub, this::picture);
     }
 
     static boolean wanted(AppDefinition app) { return app.mine() && !app.absent(); }
@@ -242,6 +263,7 @@ public final class TownKeeper {
             }
             try {
                 reading.join().forEach(pictures::put);
+                home.picturesChanged();
             } catch (RuntimeException error) {
                 AresOs.LOGGER.error("Could not read the town's pictures", error);
             }
@@ -319,7 +341,11 @@ public final class TownKeeper {
     Optional<GatePicture> picture(AppDefinition app) {
         var read = pictures.get(app.id());
         if (read == null || !Objects.equals(read.path(), AppIcons.path(app))) return Optional.empty();
-        return Optional.of(read.icon().orElseGet(() -> GatePicture.plain(GateBuilder.concrete(app), HubLayout.SIZE)));
+        return Optional.of(read.icon().orElseGet(() -> plainFront(app)));
+    }
+
+    static GatePicture plainFront(AppDefinition app) {
+        return GatePicture.plain(GateBuilder.concrete(app), HubLayout.SIZE);
     }
 
     /**
@@ -443,6 +469,8 @@ public final class TownKeeper {
         doorways(server, hub, lines, scope);
         // 5. Roads and names.
         boolean roads = scope.whole() ? roads(level, hub, round.assignment()) : roads(level, hub, scope, from);
+        // Observe the actual pass, even when its first-build or replacement messages are still waiting.
+        if (scope.whole()) home.passed(server.getTickCount(), first, round.pending() || !need.isEmpty());
         var spoken = new ArrayList<String>();
         if (scope.whole()) spoken.addAll(firstBuild.said(lines, first, rebuilt, round.waiting(),
                 round.pending() || !need.isEmpty(), server.getTickCount(), wanted));

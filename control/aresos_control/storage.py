@@ -563,9 +563,13 @@ class Store:
         except OSError as exc:
             self.observations.storage(exc, generic=True)
             self.write_failed = True
+            rolled_back = False
             with cleanup('journal truncation', exc):
                 self._truncate_journal(offset)
-            raise storage_refusal(exc) or Refused('storage_error', 'Journal storage write failed; restart the service and check the recorded operation.') from exc
+                rolled_back = True
+            error = storage_refusal(exc) or Refused('storage_error', 'Journal storage write failed; restart the service and check the recorded operation.')
+            error.journal_rolled_back = rolled_back
+            raise error from exc
         return offset
 
     def _truncate_journal(self, offset):
@@ -723,7 +727,16 @@ class Store:
         # A crash here may need owner confirmation: compact metadata cannot
         # reconstruct the full event, and absence cannot prove no restore.
         self.write_failed = True
-        offset = self._append(record)
+        try:
+            offset = self._append(record)
+        except Refused as exc:
+            if getattr(exc, 'journal_rolled_back', False):
+                # Only this first fence can be undone before any index or
+                # SQLite work. The failed request still cannot start effects.
+                if getattr(self, 'in_request', False):
+                    self.observations.write_barrier = self.observations.storage(exc)
+                self.write_failed = False
+            raise
         self._index_record(record, offset)
         self.checkpoint("journal_appended")
         with self.db:
@@ -767,14 +780,15 @@ class Store:
                 retention.admit(self, prefixes, count, total, additions, label)
 
     def ensure_writable(self):
+        if getattr(self, 'in_request', False):
+            self.observations.require_writable()
         if not self.write_failed:
             # The only persistent refusal is a transaction that may have begun.
             # Ledger/quota checks and optional derived-state admission run anew.
             self.storage_cause = None
         if self.write_failed:
-            if self.storage_cause is not None:
-                raise self.storage_cause
-            raise Refused('journal_incomplete', 'A journal transaction did not finish; all writes are refused until service restart recovery has run.')
+            from .results import RESTART_ADVICE
+            raise Refused('journal_incomplete', RESTART_ADVICE)
 
     def remember_storage(self, exc):
         error = self.observations.error or storage_refusal(exc)

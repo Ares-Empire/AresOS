@@ -154,6 +154,14 @@ public final class AresOsClient implements ClientModInitializer {
     }
 
     private static void launch(String id, long visit) {
+        launch(id, visit, null);
+    }
+
+    static void launchFromPointer(String id, Runnable opened) {
+        launch(id, 0, opened);
+    }
+
+    private static void launch(String id, long visit, Runnable opened) {
         Minecraft client = Minecraft.getInstance();
         finishZone(false);
         var app = AresOs.app(id);
@@ -177,6 +185,7 @@ public final class AresOsClient implements ClientModInitializer {
                     });
                     AresOs.LOGGER.warn("Could not launch app {}", id, error);
                 }
+                if (error == null && opened != null) client.execute(opened);
             });
         } catch (RuntimeException error) {
             FOCUS_RETURN.cancel(token);

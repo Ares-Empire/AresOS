@@ -7,6 +7,10 @@ import uuid
 from .common import RESULT_LIMIT, WIRE_LIMIT, Refused, canonical, storage_refusal, shortened
 from .paging import fragment_window
 
+RESTART_ADVICE = ('A storage write did not finish. Fix the storage problem, then ask the owner '
+                  'to restart the AresOS tool service. Check the recorded request or operation '
+                  'after restart before trying another change.')
+
 
 def owner_warnings(value, path=()):
     if isinstance(value, dict):
@@ -34,6 +38,7 @@ def observation_page(store, cursor):
 class Observations:
     def __init__(self):
         self.error = None
+        self.write_barrier = None
         self.stages = {}
         self.evidence = {}
 
@@ -64,6 +69,10 @@ class Observations:
         if self.error is not None:
             raise self.error
 
+    def require_writable(self):
+        if self.write_barrier is not None:
+            raise self.write_barrier
+
     def finish(self, result, store):
         if self.error is not None:
             result = {**result, 'ok': False,
@@ -72,6 +81,11 @@ class Observations:
                 result['error']['notes'] = list(dict.fromkeys(self.error.__notes__))
         if not result['ok'] and (self.stages or self.evidence):
             result['observations'] = {'stages': self.stages, 'evidence': self.evidence}
+        if (not result['ok'] and store.write_failed and
+                result.get('error', {}).get('code') in {'storage_limit', 'storage_error', 'journal_incomplete', 'restore_required'}):
+            result = {**result, 'error': dict(result['error'])}
+            if RESTART_ADVICE not in result['error']['message']:
+                result['error']['message'] += ' ' + RESTART_ADVICE
         return bound_result(result, store, WIRE_LIMIT // 4 if 'tools' in result.get('data', {}) else RESULT_LIMIT)
 
 
@@ -114,7 +128,10 @@ def bound_result(result, store=None, limit=RESULT_LIMIT):
     # plain diagnostic prefix and page the exact original, with a cut count.
     if len(canonical(error).encode()) > limit // 4:
         facts.setdefault('error', {})['message'] = error['message']
-        error['message'] = shortened(error['message'], 1024)
+        if error['message'].endswith(RESTART_ADVICE):
+            error['message'] = shortened(error['message'][:-len(RESTART_ADVICE)].rstrip(), 1024) + ' ' + RESTART_ADVICE
+        else:
+            error['message'] = shortened(error['message'], 1024)
     warnings = list(owner_warnings(facts))
     pending = result.get('pending', {})
     if len(canonical(pending).encode()) > limit // 3:
@@ -168,7 +185,9 @@ def recorded_write(method):
         try:
             result = method(store, *args, **kwargs)
         except Exception as exc:
-            store.observations.storage(exc, generic=True)
+            error = store.observations.storage(exc, generic=True)
+            if error is not None and getattr(store, 'in_request', False):
+                store.observations.write_barrier = store.observations.error
             store.remember_storage(exc)
             raise
         store.storage_cause = None

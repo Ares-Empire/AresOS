@@ -1,5 +1,5 @@
 """Independent oracle tests run in the base container, without a mail server."""
-from contextlib import closing
+from contextlib import closing, nullcontext
 import ast
 import copy
 import json
@@ -9,6 +9,8 @@ import sqlite3
 import sys
 import tempfile
 import unittest
+
+from unittest.mock import MagicMock, patch
 
 from owner_state_oracle.model import Fact, Oracle
 from owner_state_oracle.records import Record, canonical, decode, fingerprint
@@ -145,7 +147,8 @@ class OwnerOracle(unittest.TestCase):
                     self.assertEqual(lock in consistency_errors(record), locked != interrupted)
             # The alteration suite's recompute keeps the term too: these bytes decode unlocked.
             record = decode(*self.history(2, 2, 2))
-            record.interrupted_confirm = record.locked = interrupted
+            record.interrupted_confirm = interrupted
+            record.locked = not interrupted
             with self.subTest(recompute=True, interrupted=interrupted):
                 self.assertIs(coherent_change(Oracle(), record, 'fixture:2')[1].locked, interrupted)
 
@@ -265,10 +268,12 @@ class OwnerOracle(unittest.TestCase):
                 _, changed = coherent_change(Oracle(), record, 'fixture:2')
                 self.assertIs(changed.locked, locked)
 
-    def test_decoder_distinguishes_prepared_and_committed_without_kv(self):
+    def test_decoder_keeps_applied_prepared_separate_from_marked_without_kv(self):
         state, evidence = self.disk(False)
         record = decode(state, evidence)
-        self.assertEqual(record.rows, {})
+        self.assertEqual(record.rows, {'generation': 'g'})
+        self.assertEqual(record.events, [])
+        self.assertEqual(record.committed, set())
         self.assertEqual(len(record.prepared), 1)
         state, evidence = self.disk()
         self.assertEqual(decode(state, evidence).generation, 'g')
@@ -1987,3 +1992,359 @@ class StageTwoPartA(unittest.TestCase):
         self.assertIn('identities', differences(event, script)[1])
         del rows['op:second']
         self.assertIsNone(bind(event, script)[0])
+
+
+class WriteLatch302(unittest.TestCase):
+    def test_live_sent_copy_recheck_refused_by_latch_without_a_fresh_fault_is_unchecked(self):
+        from owner_state_oracle.records import JournalAttempt
+        operation = {'id': 'g:send', 'app': 'mail', 'state': 'done',
+                     'sent_copy_check': {'state': 'checked', 'clean': True}}
+        failed_marker = JournalAttempt('marker', 1, 'hash', 0, False, False, True, True)
+        for live, attempted, latched, expected in ((True, True, True, True),
+                                                  (False, True, True, False),
+                                                  (True, False, True, False),
+                                                  (True, True, False, False)):
+            with self.subTest(live=live, attempted=attempted, latched=latched):
+                oracle = Oracle()
+                record = Record(rows={'op:g:send': operation},
+                                journal_history=(failed_marker,) if latched else ())
+                oracle.call('control_pending', {}, 123)
+                oracle.script[-1].update(write_attempted=attempted,
+                                        latch_checks=[0] if attempted and latched else [])
+                self.assertFalse(oracle.script[-1]['faults'].get('trace'))
+                self.assertEqual(Fact('op:g:send', 'unchecked') in oracle.expected(record, live=live), expected)
+
+    def test_journal_phases_and_actual_cleanup_determine_the_latch(self):
+        from owner_state_oracle.records import JournalAttempt, write_latched
+        from owner_state_oracle.perturb import RECORD_EXCLUSIONS, field_paths
+        oracle = Oracle()
+        for phase in ('fence', 'marker'):
+            for written, synced in ((False, False), (True, False), (True, True)):
+                for truncate, rollback_sync in ((False, False), (True, False), (True, True)):
+                    complete = written and synced
+                    undone = not complete and truncate and rollback_sync
+                    committed = {1} if phase == 'marker' and (complete or not truncate) else set()
+                    fences = [{'seq': 1, 'hash': 'hash'}] if phase == 'marker' or complete else []
+                    record = Record(fences=fences, committed=committed, head=(1, 'hash') if fences else (0, ''))
+                    record.journal_history = (JournalAttempt(phase, 1, 'hash', 0, written, synced, truncate, rollback_sync),)
+                    expected = (not undone) if phase == 'fence' else not complete
+                    with self.subTest(phase=phase, written=written, synced=synced, truncate=truncate, rollback_sync=rollback_sync):
+                        self.assertEqual(write_latched(record), expected)
+                        call = {'action': 'mail_accounts', 'write_attempted': True}
+                        self.assertEqual('journal_incomplete' in oracle.permitted_status(record, call), expected)
+                        self.assertEqual(oracle.request_state(record, call), {Fact('request', 'journal_incomplete' if expected else 'allowed')})
+                        # A later read without a write attempt is still answered.
+                        self.assertEqual(oracle.permitted_status(record, {'action': 'mail_accounts'}), {'allowed'})
+                        # A fresh I/O failure wins over an existing latch.
+                        fresh = {**call, 'faults': {'trace': [(1, 'file.close', 'EIO'), (2, 'file.close', 'ENOSPC')]}}
+                        self.assertEqual(oracle.request_state(record, fresh), {Fact('request', 'storage_error')})
+                        self.assertNotIn('journal_incomplete', oracle.permitted_status(record, fresh))
+                        if expected:
+                            # Latch check at point zero precedes the passive
+                            # pending fault; the same fault before the check
+                            # must keep its original I/O error instead.
+                            earlier = {**fresh, 'latch_checks': [0]}
+                            later = {**fresh, 'latch_checks': [1]}
+                            self.assertEqual(oracle.request_state(record, earlier), {Fact('request', 'journal_incomplete')})
+                            self.assertEqual(oracle.permitted_status(record, earlier), {'journal_incomplete'})
+                            self.assertEqual(oracle.request_state(record, later), {Fact('request', 'storage_error')})
+                            ignored = {**call, 'latch_checks': [5], 'faults': {'trace': [(1, 'sqlite.main.close', 'ENOSPC')]}}
+                            self.assertEqual(oracle.request_state(record, ignored), {Fact('request', 'journal_incomplete')})
+        self.assertIn('journal_history', RECORD_EXCLUSIONS)
+        field_paths(Record())
+        from dataclasses import FrozenInstanceError
+        with self.assertRaises(FrozenInstanceError):
+            record.journal_history[0].sync = False
+
+    def test_fault_count_read_only_and_admission_failures_are_not_latch_evidence(self):
+        from owner_state_oracle.records import write_latched
+        oracle, record = Oracle(), Record()
+        for faults in ({}, {'admission': 'full'}, {'trace': [(1, 'file.close', 'ENOSPC'), (2, 'file.close', 'EIO')]}):
+            with self.subTest(faults=faults):
+                self.assertFalse(write_latched(record))
+                self.assertNotIn('journal_incomplete', oracle.permitted_status(record, {'action': 'mail_accounts', 'faults': faults, 'write_attempted': True}))
+        record.prepared = [{'seq': 3}]
+        self.assertTrue(write_latched(record))
+        record.startup_sequence = 3
+        self.assertFalse(write_latched(record), 'Restart ends live history; prepared startup bytes are separate')
+
+    def test_completed_marker_must_match_the_validated_fence(self):
+        from owner_state_oracle.records import JournalAttempt, write_latched
+        record = Record(fences=[{'seq': 1, 'hash': 'real'}], committed={1},
+                        journal_history=(JournalAttempt('marker', 1, 'wrong', 0, True, True, False, False),))
+        self.assertTrue(write_latched(record))
+
+
+class StartupObligations(unittest.TestCase):
+    def recording(self, final=True):
+        from owner_state_oracle.records import startup_obligation
+        fence = {'format': 2, 'seq': 1, 'previous': '', 'time': 10, 'operations': []}
+        fence['hash'] = fingerprint(fence)
+        changes = {'fixture:restored': {'value': 7}, 'restore_pending': None if final else True}
+        if final:
+            changes['generation'] = 'new'
+        event = {'seq': 1, 'time': 10, 'record': fence, 'action': 'control_restore_confirm',
+                 'set': changes, 'space': {'restoring': True, 'updates': {'restore': 4096}, 'consume': []}}
+        before = Record(fences=[fence], prepared=[event], head=(0, ''), locked=True)
+        calls = [dict(action='control_restore_confirm', restore_precondition=True, start_seq=0, staged_end_seq=1)]
+        return before, calls, startup_obligation(before, calls, 'old')
+
+    def test_only_matching_full_restore_plan_with_scripted_confirmation_creates_obligation(self):
+        from owner_state_oracle.records import startup_obligation
+        before, calls, obligation = self.recording()
+        self.assertIsNotNone(obligation)
+        for variant in ('missing', 'mismatch', 'ordinary', 'no-plan', 'no-confirm', 'unlocked', 'wrong-range'):
+            record, script = copy.deepcopy(before), copy.deepcopy(calls)
+            if variant == 'missing': record.prepared = []
+            if variant == 'mismatch': record.prepared[0]['record'] = {'hash': 'wrong'}
+            if variant == 'ordinary': record.prepared[0]['action'] = 'fixture'
+            if variant == 'no-plan': record.prepared[0]['space'] = {}
+            if variant == 'no-confirm': script = []
+            if variant == 'unlocked': script[0]['restore_precondition'] = False
+            if variant == 'wrong-range': script[0]['staged_end_seq'] = 0
+            with self.subTest(variant=variant):
+                self.assertIsNone(startup_obligation(record, script, 'old'))
+
+    def test_exact_startup_effects_head_marker_generation_and_lock_are_independent(self):
+        from owner_state_oracle.records import startup_errors
+        for final in (False, True):
+            before, _, obligation = self.recording(final)
+            event = copy.deepcopy(before.prepared[0])
+            record = Record(events=[event], fences=before.fences, committed={1}, head=(1, event['record']['hash']))
+            rows = {'generation': 'new' if final else 'old', 'fixture:restored': {'value': 7}}
+            if not final: rows['restore_pending'] = True
+            self.assertEqual(startup_errors(obligation, record, rows, not final), [])
+            for variant in ('marker', 'head', 'head-hash', 'chain', 'event', 'effect', 'generation', 'pending', 'lock'):
+                post, actual = copy.deepcopy(record), copy.deepcopy(rows)
+                locked = not final
+                if variant == 'marker': post.committed = set()
+                if variant == 'head': post.head = (0, '')
+                if variant == 'head-hash': post.head = (1, 'wrong')
+                if variant == 'chain': post.fences[0]['previous'] = 'wrong'
+                if variant == 'event': post.events = []
+                if variant == 'effect': actual.pop('fixture:restored')
+                if variant == 'generation': actual['generation'] = 'invented'
+                if variant == 'pending': actual['restore_pending'] = final
+                if variant == 'lock': locked = final
+                with self.subTest(final=final, variant=variant):
+                    self.assertTrue(startup_errors(obligation, post, actual, locked))
+            before.prepared[0]['set']['fixture:restored']['value'] = 999
+            self.assertIn('7', obligation.event)
+            self.assertNotIn('999', obligation.event)
+
+    def test_driver_checks_before_requests_consumes_once_and_second_restart_has_no_old_obligation(self):
+        from owner_state_oracle.driver import Driver
+        from types import SimpleNamespace
+        from unittest.mock import Mock
+        before, calls, obligation = self.recording()
+        event = json.loads(obligation.event)
+        post = Record(events=[event], fences=before.fences, committed={1}, head=(1, event['record']['hash']))
+        db = Mock()
+        rows = {k: v for k, v in event['set'].items() if v is not None}
+        cursor = MagicMock()
+        cursor.__iter__.return_value = iter((k, canonical(v)) for k, v in rows.items())
+        db.execute.return_value = cursor
+        driver = Driver.__new__(Driver)
+        driver.startup_obligation = obligation
+        driver.scenario = SimpleNamespace(fixture=SimpleNamespace(engine=SimpleNamespace(store=SimpleNamespace(db=db, locked=False))))
+        driver.snapshot = lambda: post
+        checks = []
+        # This base-only fixture has mock SQL, not Mail's SQLite VFS injector.
+        with patch('owner_state_oracle.driver.outside_faults', nullcontext):
+            driver.started(lambda *args: checks.append(args))
+            self.assertEqual(checks, [('startup-replay', set(), set())])
+            self.assertIsNone(driver.startup_obligation)
+            driver.oracle = Oracle()
+            driver.oracle.script = calls
+            driver.restart_index = len(calls)
+            db.execute.return_value.fetchone.return_value = (canonical('new'),)
+            driver.restarted()
+            self.assertIsNone(driver.startup_obligation)
+
+    def test_every_decoded_lock_term_and_wrong_input_recompute(self):
+        from owner_state_oracle.records import decoded_lock
+        from owner_state_oracle.perturb import coherent_change
+        fence = {'seq': 1, 'hash': 'h'}
+        for label, rows, fences, committed, head, locked in (
+                ('pending', {'restore_pending': True}, {}, set(), (0, ''), True),
+                ('empty', {}, {}, set(), None, False),
+                ('missing', {}, {1: fence}, {1}, None, True),
+                ('hash', {}, {1: fence}, {1}, (1, 'wrong'), True),
+                ('behind', {}, {1: fence}, {2}, (1, 'h'), True),
+                ('equal', {}, {1: fence}, {1}, (1, 'h'), False),
+                ('ahead', {}, {1: fence}, set(), (1, 'h'), False)):
+            with self.subTest(term=label):
+                self.assertIs(decoded_lock(rows, fences, committed, head), locked)
+                record = Record(rows=rows, fences=list(fences.values()), committed=committed, head=head, locked=not locked)
+                self.assertIs(coherent_change(Oracle(), record, 'fixture:absent')[1].locked, locked)
+
+
+class AppliedHistory(unittest.TestCase):
+    history = OwnerOracle.history
+
+    def test_decoder_applied_tail_matrix_and_missing_projection_row(self):
+        from owner_state_oracle.records import visible_history, consistency_errors
+        for variant in ('applied', 'marked', 'staged', 'fence-only', 'hash', 'wrong-head', 'restored', 'restore-batch', 'removed-row'):
+            state, evidence = self.history(3, 2, 3)
+            with closing(sqlite3.connect(state / 'control.sqlite')) as db:
+                if variant == 'staged': db.execute("UPDATE head SET seq=2,hash=(SELECT json_extract(value,'$.record.hash') FROM events WHERE seq=2)")
+                if variant == 'fence-only': db.execute('DELETE FROM events WHERE seq=3')
+                if variant == 'hash': db.execute("UPDATE head SET hash='wrong'")
+                if variant == 'wrong-head': db.execute("UPDATE head SET seq=4")
+                if variant == 'restored': db.execute("UPDATE head SET seq=1,hash=(SELECT json_extract(value,'$.record.hash') FROM events WHERE seq=1)")
+                if variant == 'restore-batch':
+                    event = json.loads(db.execute('SELECT value FROM events WHERE seq=3').fetchone()[0])
+                    event.update(action='control_restore_confirm', space={'restoring': True})
+                    db.execute('UPDATE events SET value=? WHERE seq=3', (canonical(event),))
+                db.commit()
+            if variant == 'marked':
+                fence = decode(state, evidence).fences[-1]
+                with (evidence / 'operations.jsonl').open('a') as f:
+                    f.write(canonical({'commit': 3, 'hash': fence['hash']}) + '\n')
+            record = decode(state, evidence)
+            with self.subTest(variant=variant):
+                visible = variant in ('applied', 'marked', 'removed-row')
+                self.assertEqual('fixture:3' in record.rows, visible)
+                self.assertEqual(len(visible_history(record)), 3 if visible else 2)
+                self.assertEqual(record.committed, {1, 2, 3} if variant == 'marked' else {1, 2})
+                self.assertEqual(len(record.events), 3 if variant == 'marked' else 2)
+                self.assertEqual(len(record.prepared), 0 if variant in ('marked', 'fence-only') else 1)
+                if variant == 'removed-row':
+                    record.rows.pop('fixture:3')
+                    self.assertIn(('fixture:3', 'changed-decoded-projection', ''), consistency_errors(record))
+
+    def tail(self, ack=False):
+        from owner_state_oracle.records import history_rows
+        key = 'op:g:p'
+        reserved = dict(id='g:p', app='testapp', action='testapp_send', state='reserved',
+                        generation='g', input_hash='h', expires=100, reason='Awaiting exact approval; nothing submitted.')
+        cancelled = {**reserved, 'state': 'failed', 'reason': 'cancelled: nothing submitted', 'notice': True}
+        old = cancelled if ack else reserved
+        row = {**old, 'ack': True} if ack else cancelled
+        fences, events, previous = [], [], ''
+        for seq, value in ((1, old), (2, row)):
+            fence = dict(format=2, seq=seq, previous=previous, time=seq, generation='g',
+                         operations=[{k: value[k] for k in ('id', 'generation', 'input_hash', 'state')}])
+            fence['hash'] = previous = fingerprint(fence)
+            event = dict(seq=seq, time=seq, action='fixture' if seq == 1 else 'testapp_notice_ack' if ack else 'testapp_operation_cancel',
+                         set={key: value}, record=fence, operation_id='g:p', outcome=value['state'],
+                         summary='seed' if seq == 1 else 'notice acknowledged' if ack else 'cancelled before submission')
+            fences.append(fence); events.append(event)
+        record = Record(events=events[:1], prepared=events[1:], fences=fences, head=(2, fences[-1]['hash']),
+                        committed={1}, rows=history_rows(events))
+        oracle = Oracle()
+        oracle.seed_sequence, oracle.seed_events = 1, copy.deepcopy(events[:1])
+        oracle.call(events[-1]['action'], {'operation_id': 'g:p'}, 2)
+        oracle.script[-1].update(start_seq=1, end_seq=2)
+        return oracle, record, key
+
+    def test_applied_cancellation_and_acknowledgement_still_require_exact_script_identity(self):
+        from owner_state_oracle.perturb import evaluate, clone
+        for ack in (False, True):
+            oracle, record, key = self.tail(ack)
+            expected, errors = evaluate(oracle, record)
+            self.assertFalse(errors, errors)
+            self.assertEqual(any(f.kind == 'operation-notice' for f in expected), not ack)
+            self.assertEqual(oracle.projection(record).rows[key]['state'], 'failed')
+            wrong = clone(oracle)
+            wrong.script = copy.deepcopy(oracle.script)
+            wrong.script[-1]['arguments']['operation_id'] = 'g:other'
+            _, errors = evaluate(wrong, record)
+            self.assertTrue(any(f.kind in {'unjustified-ack', 'unsupported-resolution'} for _, f in errors), errors)
+
+    def test_coherent_applied_identity_outcome_and_missing_effect_are_rejected(self):
+        from owner_state_oracle.perturb import coherent_change, evaluate
+        for ack, path, replacement in ((False, ('id',), 'g:other'), (False, ('state',), 'done'),
+                                       (False, ('reason',), 'invented outcome'), (False, ('generation',), 'other'),
+                                       (False, ('input_hash',), 'changed'), (True, ('id',), 'g:other')):
+            oracle, record, key = self.tail(ack)
+            replay, changed = coherent_change(oracle, record, key, path, 'effect', replacement, since=2)
+            self.assertEqual(changed.committed, {1})
+            self.assertEqual(changed.events, record.events)
+            _, errors = evaluate(replay, changed)
+            self.assertTrue(any(f.kind not in {'changed-decoded-projection', 'changed-independent-fence', 'changed-fenced-operation'} for _, f in errors), errors)
+
+    def test_applied_context_cannot_authorize_a_remote_command_before_its_marker(self):
+        from owner_state_oracle.driver import Driver
+        from types import SimpleNamespace
+        oracle, record, key = self.tail()
+        record.prepared[0]['set'][key]['context'] = {'command': 'DATA'}
+        driver = Driver.__new__(Driver)
+        driver.oracle, driver.snapshot = oracle, lambda: record
+        # This synthetic context test has no active physical I/O injector.
+        with patch.dict(sys.modules, {'storage_faults': SimpleNamespace(ACTIVE=None)}):
+            snapshot = driver.precommit()
+        self.assertEqual(snapshot['before_seq'], 1)
+        self.assertNotIn('context', snapshot['committed_before'][key])
+        self.assertEqual(snapshot['created_before'][key], 1)
+        event = oracle.server('DATA', 'fixture', identities=[], accepted=True, **snapshot)
+        self.assertTrue(oracle.context_errors())
+
+
+    def test_staged_applied_and_marked_boundaries_are_distinct(self):
+        from owner_state_oracle.records import staged_sequence, applied_sequence, visible_history
+        _, record, _ = self.tail()
+        self.assertEqual((staged_sequence(record), applied_sequence(record), max(record.committed)), (2, 2, 1))
+        record.head = (1, record.fences[0]['hash'])
+        self.assertEqual((staged_sequence(record), applied_sequence(record), max(record.committed)), (2, 1, 1))
+        self.assertEqual(visible_history(record), record.events)
+
+    def test_unmarked_applied_manifest_cannot_discover_archive_history(self):
+        state, evidence = self.history(3, 2, 3)
+        with closing(sqlite3.connect(state / 'control.sqlite')) as db:
+            event = json.loads(db.execute('SELECT value FROM events WHERE seq=3').fetchone()[0])
+            event['set']['archive:future'] = {'path': str(evidence / 'missing.jsonl'), 'sha256': '0' * 64}
+            db.execute('UPDATE events SET value=? WHERE seq=3', (canonical(event),))
+            db.commit()
+        record = decode(state, evidence)
+        self.assertIn('archive:future', record.rows)
+        self.assertEqual([e['seq'] for e in record.events], [1, 2])
+        self.assertEqual([e['seq'] for e in record.prepared], [3])
+
+
+    def test_coherent_applied_identity_deletion_reaches_semantic_checker(self):
+        from owner_state_oracle.perturb import coherent_change, evaluate
+        oracle, record, key = self.tail()
+        replay, changed = coherent_change(oracle, record, key, ('id',), 'key-deletion', None, since=2)
+        _, errors = evaluate(replay, changed)
+        self.assertTrue(any(f.kind == 'operation-identity' for _, f in errors), errors)
+
+    def test_a_lost_working_event_does_not_hide_a_changed_independent_fence(self):
+        from owner_state_oracle.records import consistency_errors
+        record = decode(*self.history(3, 2, 3))
+        record.events = record.events[:1]
+        before = set(consistency_errors(record))
+        record.fences[1] = copy.deepcopy(record.fences[1])
+        record.fences[1]['operations'].append({'id': 'g:invented'})
+        self.assertIn(('sequence:2', 'changed-independent-chain', ''), set(consistency_errors(record)) - before)
+
+    def test_applied_cancellation_keeps_its_recovery_right_until_the_marker(self):
+        oracle, record, key = self.tail()
+        self.assertEqual(oracle.projection(record).rows[key]['state'], 'failed')
+        self.assertIn(Fact('cancel:g:p', 'held'), oracle.holds(record))
+        record.events = record.events + record.prepared
+        record.prepared = []
+        record.committed.add(2)
+        self.assertNotIn(Fact('cancel:g:p', 'held'), oracle.holds(record))
+
+
+    def test_coherent_reencoding_preserves_independent_transaction_evidence(self):
+        from owner_state_oracle.perturb import coherent_change
+        from owner_state_oracle.records import JournalAttempt
+        for completed in (False, True):
+            oracle, record, key = self.tail()
+            record.events += record.prepared
+            record.prepared = []
+            record.committed.add(2)
+            physical_hash = record.fences[-1]['hash']
+            record.journal_history = (JournalAttempt('marker', 2, physical_hash, 100, True, completed, False, False),)
+            call = oracle.script[-1]
+            call['write_attempted'] = True
+            statuses = oracle.permitted_status(record, call), oracle.request_state(record, call)
+            replay, changed = coherent_change(oracle, record, key, ('generation',), 'effect', 'different', since=2)
+            self.assertNotEqual(changed.fences[-1]['hash'], physical_hash)
+            self.assertEqual(changed.journal_history, record.journal_history)
+            self.assertEqual(changed.committed, record.committed)
+            self.assertIs(replay.transaction_record, record)
+            self.assertEqual((replay.permitted_status(changed, call), replay.request_state(changed, call)), statuses)
+            self.assertEqual(statuses[0], {'allowed'} if completed else {'journal_incomplete'})

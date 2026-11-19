@@ -439,7 +439,7 @@ helper that does not know them works as today.
 
   - `revision` is a nonempty string as in 1.1, bounded here to 128 characters without control characters.
     `part` is an integer starting at 0 and increasing by one, with at most 16 parts. `last` is a boolean.
-  - `palette` is required in part 0 and absent in later parts. It holds at most 64 keys, each one character
+  - `palette` is required in part 0 and absent in later parts. It holds at most 62 keys (the characters `[A-Za-z0-9]`; `.` is no block), each one character
     matching `[A-Za-z0-9]`, and each value is `#rrggbb` with hexadecimal digits.
   - `apps` holds at most 200 entries across all parts. Each has a unique 1.1 app ID matching
     `[a-z0-9_-]{1,64}`, a required `short` of 1–64 characters without control characters and a required
