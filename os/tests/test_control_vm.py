@@ -12,6 +12,7 @@ import py_compile
 import re
 import shutil
 import socket
+import stat
 import subprocess
 import sys
 import tarfile
@@ -215,7 +216,7 @@ class ChromePassTest(unittest.TestCase):
         self.assertEqual(self.slept, [runner.KEYS_SETTLE] * len(keys))
         self.assertGreaterEqual(runner.KEYS_SETTLE, 1)
         managed = [step[1] for step in runner.CHROME_STEPS].index('c2-managed')
-        self.assertEqual(runner.CHROME_STEPS[managed - 1], ('keys', ['alt', 'f'], None))
+        self.assertEqual(runner.CHROME_STEPS[managed - 2:managed], [('keys', ['alt', 'f'], None), ('keys', ['up'], None)])
 
     def test_a_failed_part_hides_only_its_own_checks_line(self):
         runner, asked, printed, code = self.run_pass(failing=('chrome-hand-loaded',))
@@ -287,16 +288,28 @@ class ChromePassTest(unittest.TestCase):
         self.assertEqual(chrome.service_env(unit.read_text()), ['/usr/bin/env', '-i', 'PATH=/usr/bin:/bin', 'LANG=C.UTF-8'])
         with self.assertRaises(chrome.Failure):
             chrome.service_env('[Service]\nExecStart=/usr/bin/python3 service\n')
-        with mock.patch.object(chrome, 'UNIT_FILE', unit), mock.patch.object(chrome.subprocess, 'run') as run:
-            run.return_value = mock.Mock(returncode=0, stdout='{"read": 1}\n', stderr='')
+        handed = {}
+
+        def run(command, stdin, stdout, stderr, timeout):
+            # What systemd-run gets: /dev/null and two regular files, never a pipe (run 44452254488).
+            handed.update(command=command, stdin=stdin, kinds=[os.fstat(f.fileno()).st_mode for f in (stdout, stderr)])
+            stdout.write(b'Running as unit: name.service\n{"read": 1}\n')
+            stderr.write(b'Finished with result: success\n')
+            return mock.Mock(returncode=0)
+        with mock.patch.object(chrome, 'UNIT_FILE', unit), mock.patch.object(chrome, 'RUN', self.folder / 'run'), \
+                mock.patch.object(chrome, 'owner_ids', return_value=(os.getuid(), os.getgid(), [])), \
+                mock.patch.object(chrome.subprocess, 'run', run):
             done = chrome.sandboxed('name', ['/usr/bin/python3', '-c', 'x'])
-        command = run.call_args.args[0]
+        command = handed['command']
         self.assertEqual(command[:2], ['systemd-run', '--unit=name'])
         self.assertIn('--property=ProtectSystem=strict', command)
         self.assertEqual(command[command.index('--') + 1:],
                          ['/usr/bin/env', '-i', 'PATH=/usr/bin:/bin', 'LANG=C.UTF-8', '/usr/bin/python3', '-c', 'x'])
-        self.assertIs(run.call_args.kwargs['stdin'], subprocess.DEVNULL)
+        self.assertIs(handed['stdin'], subprocess.DEVNULL)
+        self.assertTrue(all(stat.S_ISREG(mode) for mode in handed['kinds']), handed['kinds'])
         self.assertEqual(chrome.last_json(done['stdout']), {'read': 1})
+        self.assertEqual(done['stderr'], 'Finished with result: success\n')
+        self.assertEqual(sorted(path.name for path in (self.folder / 'run').iterdir()), ['probe.jsonl'])
 
     def test_c6s_write_probe_names_what_each_attempt_got_and_writes_nothing(self):
         chrome = self.actions()

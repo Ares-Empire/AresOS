@@ -1058,11 +1058,20 @@ def service_env(unit_text):
 
 
 def sandboxed(name, argv, timeout=120):
-    """argv as the service's user under the unit's sandbox, with the service's environment; stdin is /dev/null, as
-    systemd-run --pipe hands it on."""
+    """argv as the service's user under the unit's sandbox, with the service's environment. systemd-run --pipe hands
+    its own descriptors on through the bus: /dev/null and files in the run folder, as the polkit probe's; pipes of the
+    CI service ended in "Failed to start transient service unit: Connection reset by peer" (run 44452254488)."""
     command = as_service(name, [*service_env(UNIT_FILE.read_text()), *argv])
-    done = subprocess.run(command, stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=timeout)
-    return dict(argv=command, returncode=done.returncode, stdout=done.stdout, stderr=done.stderr)
+    prepare_run()
+    out, err = RUN / f'{name}.out', RUN / f'{name}.err'
+    try:
+        with open(out, 'wb') as stdout, open(err, 'wb') as stderr:
+            done = subprocess.run(command, stdin=subprocess.DEVNULL, stdout=stdout, stderr=stderr, timeout=timeout)
+        return dict(argv=command, returncode=done.returncode, stdout=out.read_text(errors='replace'),
+                    stderr=err.read_text(errors='replace'))
+    finally:
+        out.unlink(missing_ok=True)
+        err.unlink(missing_ok=True)
 
 
 def last_json(text):

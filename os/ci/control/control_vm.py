@@ -77,8 +77,10 @@ CHROME_STEPS = [
     ('act', 'chrome-install', None),
     ('screen', 'c2-pinned', None),
     ('act', 'chrome-his-tab', None),
-    # Alt+F opens Chrome's menu, whose last line says the browser is managed; Escape closes it again.
+    # Alt+F opens Chrome's menu, whose last line says the browser is managed; Up from no selection selects that last
+    # line and scrolls the menu to it (run 44452254488's menu ended at More tools, 800 pixels down); Escape closes it.
     ('keys', ['alt', 'f'], None),
+    ('keys', ['up'], None),
     ('screen', 'c2-managed', None),
     ('keys', ['esc'], 'CONTROL_CHROME_INSTALL_PASS'),
     ('act', 'chrome-sites-first-use', 'CONTROL_CHROME_SITES_FIRST_USE_PASS'),
