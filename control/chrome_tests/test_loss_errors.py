@@ -260,6 +260,26 @@ class LossEnvelope(unittest.TestCase):
         self.extension.answer = lambda command: {**original(command), 'error': 'reload_required: ' + LABEL} if command['name'] == 'close_tab' else original(command)
         self.assert_loss_error('chrome_close_tab', self.call('chrome_close_tab', {'tab': 1}), public_report('close'))
 
+    def test_two_equal_labels_keep_their_positions_and_a_report_where_two_read_alike_is_unavailable(self):
+        # Item 3b: the extension numbers fields that read alike, over every frame and before the cut
+        # (background.test.mjs, '28a 3b'); the service carries those words as they are, values never.
+        alike = lambda descriptions: {'act': 'close', 'fields': [{'description': text, 'by': by} for text, by in descriptions],
+                                      'more_fields': 1, 'frames_uninspected': 0, 'media': False}
+        numbered = alike([('field "Note" (1 of 3)', 'owner'), ('field "Note" (2 of 3)', 'claude'), ('an unlabelled field', 'owner')])
+        self.extension.report = numbered
+        result = self.call('chrome_close_tab', {'tab': 1})
+        for form in (result, *carried(result)):
+            self.assertEqual(form['error'], {'code': 'reload_required', 'message': loss.MESSAGE, 'untrusted_content': {'loss': numbered}})
+            validate(form, BY_NAME['chrome_close_tab'].tool()['outputSchema'], 'result')
+        # Two that still read alike can't be told apart, so the report counts as malformed.
+        for duplicated in (alike([('field "Note"', 'owner'), ('field "Note"', 'claude')]),
+                           alike([('an unlabelled field', 'owner'), ('an unlabelled field', 'owner')])):
+            self.extension.report = duplicated
+            result = self.call('chrome_close_tab', {'tab': 1})
+            for form in (result, *carried(result)):
+                self.assertEqual(form['error'], {'code': 'reload_required', 'message': loss.MESSAGE, 'untrusted_content': {'loss': {'unavailable': True}}})
+        self.assertNotIn('close_tab', [command['name'] for command in self.extension.commands if command.get('discard_unsaved') is True])
+
     def test_other_errors_and_other_apps_keep_their_envelope(self):
         self.assertEqual(untrusted(Refused('refused', 'plain')), {})
         self.extension.answer = lambda command: {'ok': False, 'error': 'refused: no history entry in that direction'} \

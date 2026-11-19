@@ -21,6 +21,13 @@ WORK=ROOT/'.work/20-chrome'; WORK.mkdir(parents=True,exist_ok=True)
 qualification_fixture.install(WORK/'fixture-runtime')
 
 
+def undescribed(value):
+    """A description's page facts without item 3b's field descriptions: what the binding holds."""
+    if isinstance(value,dict):return {key:undescribed(item) for key,item in value.items() if key!='description'}
+    if isinstance(value,list):return [undescribed(item) for item in value]
+    return value
+
+
 class Browser:
     session='fixture-session'; version='157.0.1.0'; connection_identity='fixture-connection'
     def __init__(self):
@@ -147,7 +154,10 @@ class Operations(unittest.TestCase):
         self.assertIn("isn't visible to the tool",approval['question'])
         # The extension receives the committed binding verbatim, independent of prior unrelated approvals.
         self.call('submit',approval)
-        self.assertEqual(self.browser.dispatched[0][1]['binding']['editable'],state['editable'])
+        # Item 3b: the description names each field; the binding the extension gets holds none of those names.
+        self.assertEqual(self.browser.dispatched[0][1]['binding']['editable'],undescribed(state['editable']))
+        self.assertEqual(state['editable'][0]['fields'][0]['description'],'"Body"')
+        self.assertNotIn('description',str(self.browser.dispatched[0][1]['binding']))
 
     def test_failed_upload_staging_releases_copy_and_idle_cleanup_expires_old_copies(self):
         import os,time

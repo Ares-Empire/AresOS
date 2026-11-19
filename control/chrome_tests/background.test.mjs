@@ -206,7 +206,8 @@ test('step 5 the report lets Claude discard only his own typing without asking',
   const f=fixture();f.run("excludedHosts=[];controlled.set(7,{epoch:'epoch'});requireTab=async()=>({});globalThis.navigations=0;chrome.webNavigation={getAllFrames:async()=>[{frameId:0,documentId:'doc',url:'http://fixture.test/'},{frameId:2,documentId:'child',url:'http://fixture.test/child'}]};cdp=async(tab,method)=>{if(method==='Page.navigate'){navigations++;return {loaderId:'next'};}};observation=async()=>({});chrome.tabs.get=async()=>({audible:false});");
   const go="dispatch({name:'navigate',tab:7,url:'http://fixture.test/next'})";
   f.run("content=async(tab,frame)=>({unsaved:true,fields:[{description:'field \\\"Search\\\"',by:'claude'}],claude_only:true,playing:false})");
-  {const loss=await lossOf(f.run(go));assert.deepEqual(loss,report('navigate',{fields:[claude('field "Search"'),claude('field "Search"')]}));assert.equal(asksOwner(loss),false);}
+  // Two frames' fields that read alike carry their positions (item 3b).
+  {const loss=await lossOf(f.run(go));assert.deepEqual(loss,report('navigate',{fields:[claude('field "Search" (1 of 2)'),claude('field "Search" (2 of 2)')]}));assert.equal(asksOwner(loss),false);}
   // One frame with the owner's typing, a frame without the mark (even where
   // its fields say Claude), playing media or an uninspected frame: ask him.
   const search="{unsaved:true,fields:[{description:'field \\\"Search\\\"',by:'claude'}],claude_only:true,playing:false}";
@@ -239,6 +240,30 @@ test('28a 5b a loss refusal on the native wire is the bare code with its report 
   f.run("enqueue({id:'native-2',command:{name:'navigate',tab:7,url:'http://fixture.test/next'}})");
   await spin(f,'posted.length===2');
   const done=JSON.parse(JSON.stringify(f.run('posted[1]')));assert.equal(done.ok,true);assert.equal(done.loss,undefined);assert.equal(f.run('navigations'),1);
+});
+
+test('28a 3b loss reports number fields that read alike over every frame, after repair and before the cut',async()=>{
+  const f=fixture();
+  f.run("excludedHosts=[];controlled.set(7,{epoch:'epoch'});requireTab=async()=>({});globalThis.posted=[];port={postMessage:message=>posted.push(message)};globalThis.navigations=0;chrome.webNavigation={getAllFrames:async()=>[{frameId:0,documentId:'doc',url:'http://fixture.test/'},{frameId:3,documentId:'left',url:'http://fixture.test/notes'},{frameId:4,documentId:'right',url:'http://fixture.test/notes'}]};cdp=async(tab,method)=>{if(method==='Page.navigate'){navigations++;return {loaderId:'next'};}};observation=async()=>({});chrome.tabs.get=async()=>({audible:false});");
+  // Two equal labels in the top document, one more in each of two frames that look alike, two labels that
+  // repair to the same text, and unlabelled fields of one kind; the frames answer in Chrome's order.
+  f.run(`globalThis.frameFields={0:[{description:'field "Note"',by:'owner'},{description:'field "Note"',by:'claude'},{description:'field "A\\ud800"',by:'owner'},{description:'an unlabelled field',by:'owner'}],
+    3:[{description:'field "Note"',by:'owner'},{description:'field "A\\udc00"',by:'owner'}],4:[{description:'field "Note"',by:'owner'},{description:'an unlabelled field',by:'owner'}]};
+    content=async(tab,frame)=>({unsaved:true,fields:frameFields[frame],playing:false});`);
+  f.run("enqueue({id:'native-1',command:{name:'close_tab',tab:7}})");
+  await spin(f,'posted.length===1');
+  const reply=JSON.parse(JSON.stringify(f.run('posted[0]')));
+  assert.equal(reply.error,'reload_required');
+  assert.deepEqual(reply.loss.fields,[owner('field "Note" (1 of 4)'),claude('field "Note" (2 of 4)'),owner('field "A\ufffd" (1 of 2)'),owner('an unlabelled field (1 of 2)'),
+    owner('field "Note" (3 of 4)'),owner('field "A\ufffd" (2 of 2)'),owner('field "Note" (4 of 4)'),owner('an unlabelled field (2 of 2)')]);
+  assert.equal(new Set(reply.loss.fields.map(field=>field.description)).size,reply.loss.fields.length,'no two fields read alike');
+  // Positions count every field, also those past the first ten that the report only counts.
+  f.run("chrome.webNavigation.getAllFrames=async()=>[{frameId:0,documentId:'doc',url:'http://fixture.test/'}];content=async()=>({unsaved:true,fields:Array.from({length:12},()=>({description:'field \\\"F\\\"',by:'owner'})),playing:false})");
+  f.run("enqueue({id:'native-2',command:{name:'close_tab',tab:7}})");
+  await spin(f,'posted.length===2');
+  const cut=JSON.parse(JSON.stringify(f.run('posted[1]'))).loss;
+  assert.deepEqual(cut,report('close',{fields:Array.from({length:10},(_,index)=>owner('field "F" ('+(index+1)+' of 12)')),more:2}));
+  assert.equal(f.run('navigations'),0,'nothing was done');
 });
 
 test('a POST document arriving during reload inspection is never reloaded',async()=>{

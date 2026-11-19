@@ -14,6 +14,7 @@ from ..definitions import BY_NAME
 from ..paging import fragment_window, ordered_page
 from ..warnings import check_result
 from . import confirm
+from . import descriptions
 from . import loss
 from . import nodes as outline_nodes
 from . import view as outline_view
@@ -69,13 +70,6 @@ WITHHELD_FORM=('This form holds unread typed text; send it yourself, or reload t
 def refuse_withheld_form(state):
     if any(field.get('unknown_history') for field in (state.get('form') or {}).get('fields',[])):
         raise Refused('refused',WITHHELD_FORM)
-
-
-def typed_label(label, limit=80):
-    # Each label sits in double quotes it can't contain, and long ones are cut,
-    # so one hostile label can't pass for several fields.
-    shown='"'+label[:limit].replace('"',"'")+('…' if len(label)>limit else '')+'"'
-    return shown+(f' ({len(label)} characters)' if len(label)>limit else '')
 
 
 def frame_site(url):
@@ -590,17 +584,21 @@ class Chrome:
     def prepare(self, verb, payload):
         if verb=='read_typed_fields':
             state=self.typed_binding(payload['tab'])
-            labels=[f"frame {frame['frame']} ({frame_site(frame.get('effective_url',frame['url']))}): "+', '.join(typed_label(field['label']) for field in frame['fields'])
-                    for frame in state['frames'] if frame['fields']]
+            # Item 3b: each field by its description, which tells equal labels apart; the binding stays as read.
+            shown=descriptions.typed(state)
+            labels=[f"frame {frame['frame']} ({frame_site(frame.get('effective_url',frame['url']))}): "+', '.join(field['description'] for field in frame['fields'])
+                    for frame in shown['frames'] if frame['fields']]
             if not labels:raise Refused('refused','No text fields or textareas in unwatched documents need approval; use the normal read.')
             question=f"On {state['url']}, tab '{state['title']}', read the typed text once from these fields, as the page shows them: "+'; '.join(labels)+'?'
-            return question,{'action':'chrome_read_typed_fields','untrusted_content':{'fields':state}},{'typed_read':True,'process_session':self.process_session,'read_connection':self.bridge.connection_identity,'binding':state}
+            return question,{'action':'chrome_read_typed_fields','untrusted_content':{'fields':shown}},{'typed_read':True,'process_session':self.process_session,'read_connection':self.bridge.connection_identity,'binding':state}
         state = payload['binding']
         refuse_withheld_form(state)
         if payload.get('adapter', {}).get('confirmation') if payload.get('adapter') else False:
             payload = copy.deepcopy(payload)
             payload['confirmation'] = {**payload['adapter']['confirmation'], 'frame':state['frame']}
-        description = {'action':'chrome_submit','untrusted_content':{'page_state':state,'input':payload['input'],
+        # Item 3b: the description and the question name fields from one described copy; the payload keeps the binding.
+        shown, mark = descriptions.described(state)
+        description = {'action':'chrome_submit','untrusted_content':{'page_state':shown,'input':payload['input'],
                        'kind':payload.get('kind'),'resume_kind':payload.get('resume_kind'),'file':payload.get('file'),
                        'confirmation':payload.get('confirmation')}}
         if payload.get('changed_compose'):
@@ -612,7 +610,7 @@ class Chrome:
             'gmail_delete': 'Gmail: delete the selected message',
             'whatsapp_message': 'WhatsApp: send a message',
         }.get(semantic.get('kind'))
-        question = self.question(verb, description)
+        question = self.question(verb, description, mark)
         return question, description, copy.deepcopy(payload)
 
     def typed_binding(self,tab):
@@ -629,7 +627,7 @@ class Chrome:
         self.store.write({'op:'+operation['id']:operation},'chrome_typed_fields_changed',operation['reason'],operation['id'])
         return {'operation':self.engine.public_operation(operation)}|self.engine.reserve('chrome','read_typed_fields',{'tab':operation['payload']['binding']['tab']})
 
-    def question(self, verb, description):
+    def question(self, verb, description, mark=None):
         data = description['untrusted_content']
         state = data['page_state']
         def bounded(value, kind='name', position=1):
@@ -660,7 +658,10 @@ class Chrome:
         action = description.get('adapter_action')
         kind=data.get('kind')
         generic={'delete':'delete', 'pay':'pay for', 'item':'unsubscribe from', 'send':'send', 'confirmation':'confirm sending', 'form':'submit', 'upload':'upload to'}.get(kind, 'activate')
-        summary = f"On {site}, page '{bounded(state.get('title',''))}', as the page shows it, " + (f"{action} (control '{bounded(label)}')" if action else f"{generic} '{bounded(state.get('item') or label)}'")
+        # Item 3b: a target that reads like another listed field says which one it is.
+        named = target.get('name') and not data.get('resume_kind')
+        position = '' if not mark else f' ({mark[1]} of {mark[2]})' if named else f' ({descriptions.description(mark)})'
+        summary = f"On {site}, page '{bounded(state.get('title',''))}', as the page shows it, " + (f"{action} (control '{bounded(label)}'{position})" if action else f"{generic} '{bounded(state.get('item') or label)}'"+('' if state.get('item') else position))
         if data['input'].get('key'):summary += f" using {data['input']['key']}"
         if target.get('page_dialog'):
             summary += f" in {target['page_dialog']['kind']} '{target['page_dialog']['text']}'"
@@ -810,7 +811,8 @@ class Chrome:
                     raise stopped from exc
                 raise NothingLeft(str(exc)) from exc
             stage('checked','The approved field list matched immediately before the one-call read.')
-            self.typed_result=values
+            # Each value comes back under the description the owner approved (item 3b).
+            self.typed_result=descriptions.read_values(values,payload['binding'])
             return 'done','Approved fields read once; ordinary reads remain filled/empty.'
         self.check_readonly(payload)
         command = self.command(payload, operation['id'], approved=True)
@@ -916,7 +918,8 @@ class Chrome:
     def free(self, verb, payload=None, **arguments):
         # Even free changes have a committed operation/context before any dispatch (R2).
         op_id = self.store.generation + ':' + uuid.uuid4().hex
-        context = payload['binding'] if payload else {**arguments, **({'before':self.bridge.call('tab_context',tab=arguments['tab'])} if 'tab' in arguments else {})}
+        # Item 3b: the committed description names fields as prepare's does; the payload keeps the binding.
+        context = descriptions.described(payload['binding'])[0] if payload else {**arguments, **({'before':self.bridge.call('tab_context',tab=arguments['tab'])} if 'tab' in arguments else {})}
         description = {'action':'chrome_' + verb,'untrusted_content':{'page_state':context,'input':payload['input'] if payload else arguments}}
         op = {'id':op_id,'generation':self.store.generation,'app':'chrome','action':'chrome_' + verb,
               'input_hash':digest(description),'approval':{'description':visible(description)},'payload':payload or context,

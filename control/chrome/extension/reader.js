@@ -317,7 +317,13 @@
     return element.validity?.badInput||!copy.validity.valueMissing?'filled':'empty';
   }
   function typedFields() {
-    return {document:documentId,reader:readerInstance,fields:all().filter(element=>typedField(element)&&!password(element)&&unknownHistory(element)).map((element,index)=>({element:id(element),label:name(element)||(html(element,HTMLTextAreaElement,'textarea')?'textarea ':'single-line field ')+(index+1),type:element.type}))};
+    // An unnamed field keeps its numbered label for the binding and says it has
+    // no name, so the question calls it unnamed and counts it among its kind
+    // (brief 28a, item 3b), never as a label the page could also have written.
+    return {document:documentId,reader:readerInstance,fields:all().filter(element=>typedField(element)&&!password(element)&&unknownHistory(element)).map((element,index)=>{
+      const label=name(element);
+      return {element:id(element),label:label||(html(element,HTMLTextAreaElement,'textarea')?'textarea ':'single-line field ')+(index+1),type:element.type,...(label?{}:{unnamed:true})};
+    })};
   }
   function readTypedFields(message) {
     if(message.approved!==true||!message.operation||typedReads.has(message.operation))throw Error('refused: typed fields require a fresh one-call approval');

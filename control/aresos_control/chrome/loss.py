@@ -64,10 +64,18 @@ class LossRefused(Refused):
 
 
 def checked(raw):
-    """The extension's report, checked and escaped like page text, or `unavailable`."""
+    """The extension's report, checked and escaped like page text, or `unavailable`.
+
+    Its descriptions are the reader's, with the extension's positions for those
+    that read alike (brief 28a, item 3b); a report where two still read alike
+    is malformed too.
+    """
     try:
         validate(raw, WIRE, 'loss report')
     except Refused:
+        return {'unavailable': True}
+    # The extension numbers fields that read alike (item 3b); two that still read alike can't be told apart.
+    if len({field['description'] for field in raw['fields']}) != len(raw['fields']):
         return {'unavailable': True}
     return {'act': raw['act'],
             'fields': [{'description': visible(field['description']), 'by': field['by']} for field in raw['fields']],

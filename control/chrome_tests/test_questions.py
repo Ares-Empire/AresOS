@@ -121,7 +121,8 @@ class Questions(unittest.TestCase):
         frame['item_fields']=[{'element':'quantity','label':'Quantity','type':'number','value':'1'}]
         approval=self.prepare()
         state=approval['description']['untrusted_content']['page_state']
-        self.assertEqual(state.get('item_fields'),frame['item_fields'])
+        self.assertEqual(test_engine.undescribed(state.get('item_fields')),frame['item_fields'])
+        self.assertEqual(state['item_fields'][0]['description'],'"Quantity"')
         before=copy.deepcopy(binding(self.browser.facts,{'frame':0},'pay',None))
         frame['item_fields'][0]['value']='2'
         self.assertNotEqual(before,binding(self.browser.facts,{'frame':0},'pay',None))

@@ -27,10 +27,19 @@ export async function outlineAskingMatrix({check,call,rpc,read,fixture,eventuall
   const changed=async mode=>{
     const id=await take(mode),before=await prepare(),binding=before.approval.description.untrusted_content.fields;
     const top=binding.frames.find(frame=>frame.frame===0);assert.ok(top.document&&top.browser_document&&top.reader);
-    if(mode==='duplicate')assert.equal(new Set(top.fields.filter(field=>field.label==='Same').map(field=>field.element)).size,2);
+    // Brief 28a, item 3b: the two fields read apart in the question and in the description, by position.
+    const alike=(frames,test)=>frames.find(frame=>frame.frame===0).fields.filter(test);
+    const same=field=>field.label==='Same',bareField=field=>field.unnamed===true;
+    if(mode==='duplicate'){
+      assert.equal(new Set(alike(binding.frames,same).map(field=>field.element)).size,2);
+      assert.deepEqual(alike(binding.frames,same).map(field=>field.description),['"Same" (1 of 2)','"Same" (2 of 2)']);
+      assert.ok(before.approval.question.includes('"Same" (1 of 2), "Same" (2 of 2)'),before.approval.question);
+    }
     if(mode==='unlabelled'){
-      const bare=top.fields.filter(field=>field.label.startsWith('single-line field '));assert.equal(bare.length,2);
-      assert.equal(new Set(bare.map(field=>field.label)).size,2);for(const field of bare)assert.ok(before.approval.question.includes(field.label));
+      const bare=alike(binding.frames,bareField);assert.equal(bare.length,2);
+      assert.ok(bare.every(field=>field.label.startsWith('single-line field ')));assert.equal(new Set(bare.map(field=>field.element)).size,2);
+      assert.deepEqual(bare.map(field=>field.description),['unnamed single-line field (1 of 2)','unnamed single-line field (2 of 2)']);
+      for(const field of bare)assert.ok(before.approval.question.includes(field.description),before.approval.question);
     }
     const start=ingress().length;await fixture.mutate(id,'review-change');
     if(mode==='frame')await eventually(()=>fixture.compatibility.find(row=>row.id===id&&row.phase==='ask-frame-next'),'listed frame navigated');
@@ -43,6 +52,12 @@ export async function outlineAskingMatrix({check,call,rpc,read,fixture,eventuall
       assert.notEqual(next.frames.find(frame=>frame.frame!==0).browser_document,binding.frames.find(frame=>frame.frame!==0).browser_document);
     }
     if(mode==='added')assert.ok(refused.approval.question.includes('Added field'));
+    // The swapped pair keeps its words; the fresh question binds them to the new order.
+    if(mode==='duplicate'||mode==='unlabelled'){
+      const test=mode==='duplicate'?same:bareField,old=alike(binding.frames,test),fresh=alike(next.frames,test);
+      assert.deepEqual(fresh.map(field=>field.element),old.map(field=>field.element).reverse());
+      assert.deepEqual(fresh.map(field=>field.description),old.map(field=>field.description));
+    }
     if(mode==='replacement'){
       const field=frames=>frames.find(frame=>frame.frame===0).fields.find(field=>field.label==='Text note');
       assert.notEqual(field(next.frames).element,field(binding.frames).element,'same label, another element');

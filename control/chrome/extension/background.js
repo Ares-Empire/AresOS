@@ -700,6 +700,18 @@ async function reloadIdentity(tab){
 // report goes beside it as data, bounded, for the service to put under
 // untrusted_content.loss with its own fixed sentence.
 const LOSS_FIELDS=10;
+// Item 3b: descriptions that read the same after item 0's repair (unlabelled
+// fields of one kind among them) get their position among them, counted over
+// every frame in order and before the cut, so no two fields of a report read alike.
+function distinctDescriptions(fields){
+  const totals=new Map(),seen=new Map();
+  for(const field of fields){const key=wellFormed(field.description);totals.set(key,(totals.get(key)||0)+1);}
+  for(const field of fields){
+    const key=wellFormed(field.description),total=totals.get(key);
+    if(total>1){seen.set(key,(seen.get(key)||0)+1);field.description+=' ('+seen.get(key)+' of '+total+')';}
+  }
+  return fields;
+}
 async function requireDiscard(tab,command,act,frames,uninspected=0){
   if(command.discard_unsaved===true)return;
   const fields=[];let media=!!(await chrome.tabs.get(tab)).audible;
@@ -715,7 +727,7 @@ async function requireDiscard(tab,command,act,frames,uninspected=0){
   }
   if(!fields.length&&!uninspected&&!media)return;
   const error=Error('reload_required');
-  error.loss={act,fields:fields.slice(0,LOSS_FIELDS),more_fields:Math.max(0,fields.length-LOSS_FIELDS),frames_uninspected:uninspected,media};
+  error.loss={act,fields:distinctDescriptions(fields).slice(0,LOSS_FIELDS),more_fields:Math.max(0,fields.length-LOSS_FIELDS),frames_uninspected:uninspected,media};
   throw error;
 }
 async function reloadChecked(tab,initial,command){

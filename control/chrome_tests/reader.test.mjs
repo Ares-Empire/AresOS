@@ -917,6 +917,16 @@ test('post18df exact element identities distinguish same-label replacement dupli
   assert.equal(f.command({command:'read_typed_fields',approved:true,operation:'replaced',expected}).ok,false);assert.equal(f.calls(),0);
   const fresh=f.command({command:'typed_fields'}).data;assert.equal(f.command({command:'read_typed_fields',approved:true,operation:'fresh',expected:fresh}).ok,true);assert.equal(f.calls(),3);
 });
+test('28a 3b typed fields say which have no name, keep their numbered label and bind the mark',()=>{
+  const f=fixture([{attrs:{'aria-label':'Note'}},{attrs:{'aria-label':'Note'}},{attrs:{}},{attrs:{}},{attrs:{placeholder:'single-line field 5'}}],{watched:false});
+  const expected=f.command({command:'typed_fields'}).data;
+  assert.deepEqual(JSON.parse(JSON.stringify(expected.fields.map(field=>[field.label,field.unnamed??null]))),
+    [['Note',null],['Note',null],['single-line field 3',true],['single-line field 4',true],['single-line field 5',null]]);
+  assert.equal(f.calls(),0,'no value was read to describe a field');
+  // Naming an unnamed field changes the approved list: nothing is read.
+  f.nodes[2].attrs['aria-label']='Named now';
+  assert.equal(f.command({command:'read_typed_fields',approved:true,operation:'renamed',expected}).ok,false);assert.equal(f.calls(),0);
+});
 test('post18df reader instance replacement refuses even with the same document labels and element ids',()=>{
   const f=fixture([{attrs:{'aria-label':'Draft'}}],{watched:false}),expected=f.command({command:'typed_fields'}).data;f.reinject();
   const current=f.command({command:'typed_fields'}).data;assert.equal(current.document,expected.document);assert.deepEqual(current.fields,expected.fields);assert.notEqual(current.reader,expected.reader);

@@ -7,7 +7,7 @@ export async function lateBindingMatrix({check,call,rpc,read,target,fixture,even
     for(const variant of ['replacement','relabel','frame','credential']){
       const id='post18df-binding-'+variant;await take('late-binding',id,'&variant='+variant);
       await eventually(()=>fixture.compatibility.find(row=>row.id===id&&row.phase==='late-frame-ready'&&row.version==='first'),'owner frame loaded before take');await call('take_tab',{tab:getTab()});
-      const prepared=await call('prepare_read_typed_fields',{tab:getTab()});assert.ok(prepared.approval);assert.match(prepared.approval.question,/single-line field 3/);
+      const prepared=await call('prepare_read_typed_fields',{tab:getTab()});assert.ok(prepared.approval);assert.match(prepared.approval.question,/"Value" \(1 of 2\), "Value" \(2 of 2\), unnamed single-line field[;?]/);
       const manifest=prepared.approval.description.untrusted_content.fields;
       assert(manifest.frames.every(frame=>frame.reader&&frame.document&&frame.browser_document));
       const top=manifest.frames.find(frame=>frame.frame===0);assert.equal(top.fields.filter(field=>field.label==='Value').length,2);assert.equal(new Set(top.fields.map(field=>field.element)).size,3);
