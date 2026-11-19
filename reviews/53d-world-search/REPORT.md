@@ -178,3 +178,105 @@ One hosted run of the OS checks was started after the last code push and not wat
 ## The lead (2026-11-19)
 
 The owner chose Bar (board #382). JUDGMENT-CALLs beyond the brief are accepted as technical: an immediate uncover when the world is already active (same `uncover()` rule), a focused text box counts as typing, Super clears a restored desktop's keep-in-front rule as a click on the world would, coalescing from the first signal of a burst, and a duplicate `open_app` keeps the first hint.
+
+## Review fix round 1
+
+Fixes for `reviews/53d-world-search/REVIEW-1.md` (CHANGES-NEEDED), brief `briefs/53d-review-fix-1.md`. Builder: a Claude
+agent on Opus. The rebase onto package 56 is a later, separate step and was not done here.
+
+### Done
+
+1. **The bar opens only once the world really has the keyboard** (blocking 1).
+   - **Helper** (`Helper.search`, `search_activated`, `search_expired`): Super requests the world's activation and
+     waits for the compositor to report the world activated; `follow_windows` then uncovers and sends `shell_search`
+     (after the usual `shell_focus` `desktop_activated`). Another window still reported active: nothing is sent. No
+     activation within 1 s (`SEARCH_ACTIVATION`): nothing is sent and it is logged (also when the activation comes
+     late, before the next tick). With the world reported active already, it uncovers and sends at once, as before.
+   - **Mod** (`SearchFocusWait`, `SearchMoment.NO_FOCUS`, `WorldSearchScreen.requested`/`register`): the bar opens only
+     while `client.isWindowActive()`; an event before the focus waits up to ten client ticks (500 ms), then decides
+     again (it opens, or a typing screen opened meanwhile keeps it shut) or is dropped and logged.
+2. **No draft is ever discarded** (blocking 2): `WorldSearchScreen.typing` counts `BookSignScreen` (new),
+   `BookEditScreen`, the sign screens (`AbstractSignEditScreen`: sign and hanging sign), `AnvilScreen`, the command
+   block screens, `ChatScreen`, and also the structure, jigsaw, test and test-instance block screens, whatever widget
+   has their focus; plus any screen whose focus is in a text box, now followed down through lists and tabs.
+3. **Current readiness only** (should-fix 1): `search_blocked()` is read at the signal and again when the activation
+   comes (a not-ready heartbeat, or a new desktop connection without its own `world_ready`, drops the waiting search).
+   The world is uncovered only on the compositor's current activation, never because it was the last active window.
+4. **A Wayland write never ends the helper** (should-fix 2): `ForeignToplevels._send` queues every request in
+   `outbuf` and `flush()` writes what the socket takes; `BlockingIOError` keeps the rest (partial writes tracked).
+   `Server.watch_wayland` asks for the socket's writability only while something waits, and the writable event
+   flushes. Any other write error raises `WaylandError`, the existing compositor-loss path (`main` returns 1).
+5. **Super works again after a quick reload of the same world** (should-fix 3): the watchdog's heartbeat
+   (`ShellClient.heartbeat`) reads the world once, and a not-ready heartbeat clears the connection's
+   `reportedWorld`, so the same save's next ready sends `world_ready` again.
+6. **The best hit stays visible** (should-fix 4): the best hit and its heading are pinned at the top; the rest
+   scrolls under them, and the scroll bar runs beside the scrolling lines only. The four pictures are taken unscrolled;
+   only the long list's scroll bar starts two lines lower (`0098_53d-bar-4-long-list.png`).
+- `docs/design/LAPTOP-HOME.md` section 5: the 1.2 contract says the event follows the world's activation, the
+  1 s limit, the re-check, the typing screens and the mod's 500 ms focus wait.
+
+### Tests
+
+- **Helper** (`os/tests/test_aresos_shell_search.py`, 15 → 23): `HandoffTest`: no event while the terminal is still
+  reported active (also across other compositor news), one once the world's activation arrives, and only once;
+  nothing after 1 s without it (logged), also for a late activation before the tick; a not-ready heartbeat or a new
+  connection while waiting sends nothing; no uncover on the last active handle alone, the uncover on the current
+  activation; nothing minimized when the activation never comes. `WaylandWriteTest`: a mocked `send` raising
+  `BlockingIOError` queues the activation and minimize requests, a partial write keeps the rest in order;
+  `BrokenPipeError` and `ConnectionResetError` raise `WaylandError`; Super over a really full socket pair queues the
+  activation, `Server.step` watches for writability, writes the request whole once the other end reads, and stops
+  watching. The existing maximized-window test now checks the event comes after the activation and after
+  `shell_focus`.
+- **Mutation check:** sending the event at the request, re-raising `BlockingIOError`, uncovering on the last active
+  handle, and skipping the re-check at activation each made `test_aresos_shell_search` fail (file restored after each).
+- **Mod unit tests:** `SearchMomentTest` (5 → 8): `NO_FOCUS` and its order after the other reasons; the wait opens once
+  the focus comes, only once; it drops after ten ticks, and a cancel ends it. `WorldSearchShellTest` (6 → 7): the
+  writer held so a heartbeat runs while the world is gone and the same save is ready before its report: `world_ready`
+  goes out again.
+- **Client test** (`WorldSearchClientGameTest`, still last; new checks at its end, no new pictures): after a page on
+  in the long list the best hit is still in view and the line after it scrolled past; a book with a written page,
+  Sign clicked, a title typed and Tab to "Sign and Close": `shell_search` leaves that same signing screen and its title,
+  and Cancel returns to the same editor; with the window's focus taken away (a test switch) the bar does not open, then
+  opens once the focus is back; after the wait runs out it does not open; the test client's window really has the
+  keyboard, so every earlier opening passed the focus rule.
+
+### Verified
+
+- **Helper, in-process, each module by name** (`python3 -m unittest <module>` in `os/tests`):
+  `test_aresos_shell_search` 23 OK; `test_aresos_shell` 74 OK; `test_aresos_shell_windows` 33 OK;
+  `test_aresos_shell_home` 13 OK; `test_aresos_shell_views` 23 OK; `test_aresos_shell_protocol` 21 OK;
+  `test_aresos_shell_hardening` 26 OK; `test_aresos_shell_review_fixes` 31 OK, `_2` 16 OK, `_3` 12 OK, `_4` 11 OK;
+  `test_aresos_shell_launch_hints` 13 OK; `test_aresos_shell_discovery` 36 OK. Never the whole `os/tests`, never
+  `test_owner_update`, no helper subprocess, no real `WAYLAND_DISPLAY` or `XDG_RUNTIME_DIR`.
+- **`mod/dev/build.sh`:** `BUILD SUCCESSFUL in 3m 57s` (324 unit tests, 6 Windows-only skipped, none failed, and the
+  server game tests); again after both suite runs on the final code: `BUILD SUCCESSFUL in 3m 21s`, the same counts.
+- **`mod/dev/client-test.sh`, the full suite, run 1:** `Client tests ended with exit code 0 after 12 min 54 s` (RTX 4060,
+  headless), with `53d world search checks passed: …` and the drop path's log line `Super: the game's window did not
+  get the keyboard within 500 ms; no search`. It rewrote `0098_53d-bar-4-long-list.png` (the scroll bar now starts
+  beside the second hit, under the pinned best hit; looked at, committed); 0095–0097 came out byte for byte the same.
+- **Run 2** (on the committed picture): `Client tests ended with exit code 0 after 13 min 4 s`, the same lines; all
+  four 53d pictures byte for byte as committed.
+- After each run only the tracked pictures it rewrote for other packages were restored, and the untracked pictures it
+  wrote for other packages were deleted.
+
+### Known limits
+
+- **Typing in the instant between the focus arriving and the bar opening** goes to the game, not the bar: the mod
+  sees the window's focus once a client tick (up to 50 ms), and keys pressed in that gap act in the world (a letter
+  key may move him or open a screen; it never reaches the window that had the keyboard). In the usual order the
+  window's focus is there before the helper's event, and the bar opens as the event is handled.
+- The live compositor handoff is still unverified here (no private labwc; that rig is 23c's). **The laptop trial**
+  (in "Not verified" above) must check immediate typing and Enter right after Super from a terminal: the letters land
+  in the bar and Enter opens the best hit, never in the terminal.
+
+### JUDGMENT-CALL (round 1)
+
+- **The structure, jigsaw, test and test-instance block screens also count as typing** (beyond the brief's list):
+  they hold unsaved fields like a command block. Changing it is one line in `WorldSearchScreen.typing`.
+- **The focus wait is counted in client ticks** (ten, 500 ms at 20 a second) rather than wall time, so the tests hold
+  it exactly; a lagging game waits a little longer.
+- **The long list's scroll bar starts below the pinned best hit**, beside the lines that move.
+
+### Hosted run (round 1)
+
+HOSTED_RUN_PLACEHOLDER
