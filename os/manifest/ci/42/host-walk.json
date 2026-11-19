@@ -169,7 +169,7 @@
       "path": "os/ci/registry_auth.py"
     },
     {
-      "sha256": "5cd1ad8f239b27cfbf8e169aa265b2eb0fd57726e75b6415f534baaee5e19691",
+      "sha256": "edcae47a22a76cd5d9fcb861ad653b81f501da787fa540b8e5f26ba2e8a7fd57",
       "path": "os/ci/rehearsal-packages.json"
     },
     {
@@ -1049,7 +1049,7 @@
       "path": "os/tests/test_rehearsal_retry.py"
     },
     {
-      "sha256": "70b0d89f983dcead7a04e2637a9b1415a098851d11f358cdeda34d5ab0449747",
+      "sha256": "cccff9e865faaf2deb6e2b08ae9accf5f63348c007b8be1345ba2366b410952b",
       "path": "os/tests/test_release28_rehearsal.py"
     },
     {
