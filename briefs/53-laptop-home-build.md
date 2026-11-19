@@ -135,10 +135,24 @@ watchers do.
 - **#114 (53c) merged** as `e01cd6a1` (OS run 44511583671 green). Board #359 done.
 - **#120 (53f) merged** as `3048b221`: rebased with `git rebase --onto origin/main 88d5afe6` (no conflicts), OS run
   44515384290 green, `linux-aresos` read its os/ diff. Board #384 done. No mod files, so no jar line.
-- **#121 (53d):** an Opus agent rebased it onto `3048b221` (head `80610929`, then REVIEW-5 as `fcd32fde` [skip ci]);
-  `reviews/53d-world-search/REBASE.md` has the resolutions and checks. Codex gpt-6.2-sol recheck SAFE,
-  `linux-aresos` re-read the helper, Mod run 44522674318 green. **Left:** OS run 44522704032 (checks only), which
-  failed twice on Ubuntu's mirrors (503) before any test ran. Rerun its failed job once
-  `security.ubuntu.com` answers, then squash-merge with `--match-head-commit` of the PR head, send `linux-aresos`
-  and `linux-hub` the jar hash from main's Mod run, `board done 383`.
-- **Package 25:** still waits for `linux-aresos` to say R28 is through (its dry runs were still going at 13:30).
+- **#121 (53d) merged** as `c576818b` after OS run 44522704032 went green on attempt 3 (attempts 1 and 2 hit
+  Ubuntu mirror 503s before any test). Jar `4f7324f5…` (main's Mod run 44532278666) sent to `linux-aresos` and
+  `linux-hub`. Board #383 done. The 53c, 53d, 53e and 53f worktrees and local branches are removed (remote branches
+  kept).
+- **Package 53 is done on this side:** steps 1, 2, 3 and 5 are on main; step 4 is 23c (`linux-aresos`, after R28 is
+  published); step 6 (the laptop trial) waits for 23c. #358 stays open (53a's three low-harm follow-ups).
+
+## Where the next lead starts (Thu 2026-11-19 14:35)
+
+Only **package 25** is open (`pkg/25-guardian` at `e203e527`, worktree `~/AresOS-25-guardian`, brief
+`briefs/25-guardian.md`, `reviews/25-guardian/PROGRESS.md`; board #357 and #387).
+1. Its check build is **OS run 44533435611** (`check_build=build`, dispatched 14:30; `linux-aresos` said it need not
+   wait for R28's last steps on pkg/42). Watch it from a shell (`gh run watch 44533435611 --exit-status --interval
+   300`), never from a Claude agent.
+2. **Step 8** with that run's ID, one fresh Opus agent (the budget rule; or Codex gpt-6.2-sol within its 12% a day):
+   fix what the VM checks show, section 5's docs, the REPORT, the PR. PROGRESS.md lists what the check build must
+   show. Rebase onto main before the PR (main moved a lot: R28 work, 53c/53d/53f in the helper).
+3. A fresh Codex gpt-6.2-astra `high` review with a data-safety pass (it guards the world through save and
+   shutdown), state decision 24's bar; then `linux-aresos` reads the os/ diff; merge on SAFE with green checks.
+4. Once 25 is on main, tell `linux-hub` that hub-try and `~/AresOS-try` need a stand-in SYSTEMCTL answering active.
+5. Then `board done 357 387`, this handoff and STATE.md, and "ready to clear" to `mac-capacity` (board #369).
