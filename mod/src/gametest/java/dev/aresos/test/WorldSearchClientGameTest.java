@@ -4,6 +4,7 @@ import com.google.gson.JsonObject;
 import com.mojang.blaze3d.platform.InputConstants;
 import dev.aresos.AresOs;
 import dev.aresos.client.AresOsClient;
+import dev.aresos.client.ShellFocusClient;
 import dev.aresos.client.WorldSearchScreen;
 import dev.aresos.client.launch.LinuxAppLauncher;
 import dev.aresos.config.AppDefinition;
@@ -15,6 +16,7 @@ import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.fabricmc.fabric.api.client.gametest.v1.screenshot.TestScreenshotOptions;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.ChatScreen;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.client.gui.screens.worldselection.WorldCreationUiState;
 
@@ -25,15 +27,16 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Locale;
+import java.util.Map;
 
 /**
- * Package 53d, step 1: the search over the world. Its pictures for the owner, every look in four states (nothing
- * typed, several hits, no hit, a long list), and what the bar does: the best hit and its order, Enter, a click,
- * Escape, and {@code open_app} naming the world's screen.
+ * Package 53d: the search over the world. Its pictures, the bar the owner chose (board #382) in four states (nothing
+ * typed, several hits, no hit, a long list), and what it does: the best hit and its order, Enter, a click, Escape,
+ * and {@code open_app} naming the world's screen.
  *
- * <p>Nothing sends {@code shell_search} yet (step 2): the test opens the bar through {@link WorldSearchScreen#open}.
- * The programs are made up ("Test Web 1") and their icons are generated.
+ * <p>Every opening is the helper's {@code shell_search} (Super), through the session's own wiring
+ * ({@link ShellFocusClient#register}), and the moments it is ignored: chat open, the bar open already. The programs
+ * are made up ("Test Web 1") and their icons are generated.
  */
 public final class WorldSearchClientGameTest implements FabricClientGameTest {
     /** His apps in the fixture: two starters of the image and four programs he installed. */
@@ -72,6 +75,8 @@ public final class WorldSearchClientGameTest implements FabricClientGameTest {
             context.runOnClient(client -> {
                 AppsTestAccess.aresos$setApps(firstStart);
                 AppsTestAccess.aresos$startHelper(connection, true);
+                // As in the session: shell_search opens the bar.
+                ShellFocusClient.register(connection);
             });
             check(shell.awaitCatalogue(Duration.ofSeconds(5)).apps().size() == programs.size(), "The helper's list did not arrive");
             context.waitFor(client -> AresOs.apps().size() == programs.size());
@@ -98,21 +103,21 @@ public final class WorldSearchClientGameTest implements FabricClientGameTest {
                 // The name of the item in his hand stands over the hotbar for two seconds after he gets it.
                 context.waitTicks(80);
 
-                for (var look : WorldSearchScreen.Look.values()) pictures(context, look);
-                context.runOnClient(client -> WorldSearchScreen.lookForTests(null));
+                pictures(context, helper);
                 behaviour(context, helper);
+                ignored(context, helper);
             } finally {
                 context.runOnClient(client -> {
-                    WorldSearchScreen.lookForTests(null);
                     AresOsClient.replaceLauncher(previousLauncher);
                     AresOsClient.FOCUS_RETURN.reset();
                 });
             }
-            AresOs.LOGGER.info("53d world search checks passed: three looks in four states each; nothing is listed until "
-                    + "he types; his apps first, then a start of the name or of a word, then by name; Enter opens the "
-                    + "framed best hit and a click any hit, both with open_app's screen \"world\", and the bar closes; "
-                    + "a blank query and no hit leave Enter without effect; Escape returns to the world, from over the "
-                    + "inventory too; the world keeps moving");
+            AresOs.LOGGER.info("53d world search checks passed: shell_search opens the bar, in four states; nothing is "
+                    + "listed until he types; his apps first, then a start of the name or of a word, then by name; Enter "
+                    + "opens the framed best hit and a click any hit, both with open_app's screen \"world\", and the bar "
+                    + "closes; a blank query and no hit leave Enter without effect; Escape returns to the world, from over "
+                    + "the inventory too, which closes first; shell_search leaves chat and an open bar alone; the world "
+                    + "keeps moving");
         } catch (Exception error) {
             throw new RuntimeException(error);
         } finally {
@@ -134,12 +139,11 @@ public final class WorldSearchClientGameTest implements FabricClientGameTest {
         }
     }
 
-    /** One look in its four states, each checked for what it shows before its picture is taken. */
-    private static void pictures(ClientGameTestContext context, WorldSearchScreen.Look look) {
-        String name = "53d-" + look.name().toLowerCase(Locale.ROOT);
-        context.runOnClient(client -> WorldSearchScreen.lookForTests(look));
+    /** The bar in its four states, each checked for what it shows before its picture is taken. */
+    private static void pictures(ClientGameTestContext context, FakeHelper helper) {
+        String name = "53d-bar";
 
-        search(context, "");
+        search(context, helper, "");
         context.runOnClient(client -> {
             var bar = bar(client);
             check(bar.found().isEmpty() && bar.best() == null && bar.note() == null && bar.headings().isEmpty(),
@@ -149,20 +153,18 @@ public final class WorldSearchClientGameTest implements FabricClientGameTest {
         screenshot(context, name + "-1-empty");
         escape(context);
 
-        search(context, "web");
+        search(context, helper, "web");
         context.runOnClient(client -> {
             var bar = bar(client);
             check(bar.found().equals(WEB), "\"web\" finds " + bar.found());
             check("test-web-1".equals(bar.best()), "The best hit for \"web\" is " + bar.best());
-            // The hotbar look sets his apps apart with a rule; the others name the two groups.
-            check(bar.headings().equals(look == WorldSearchScreen.Look.HOTBAR ? List.of() : List.of("My apps  2", "Other programs  4")),
-                    "The headings are " + bar.headings());
+            check(bar.headings().equals(List.of("My apps  2", "Other programs  4")), "The headings are " + bar.headings());
             for (String id : WEB) check(bar.middleOf(id) != null, id + " is not in view among several hits");
         });
         screenshot(context, name + "-2-several-hits");
         escape(context);
 
-        search(context, "zzz");
+        search(context, helper, "zzz");
         context.runOnClient(client -> {
             var bar = bar(client);
             check(bar.found().isEmpty() && bar.best() == null, "\"zzz\" finds " + bar.found());
@@ -171,7 +173,7 @@ public final class WorldSearchClientGameTest implements FabricClientGameTest {
         screenshot(context, name + "-3-no-hit");
         escape(context);
 
-        search(context, "test");
+        search(context, helper, "test");
         context.runOnClient(client -> {
             var bar = bar(client);
             // Every "Test …" program and the two "… Test": his four first, by name.
@@ -181,23 +183,21 @@ public final class WorldSearchClientGameTest implements FabricClientGameTest {
             check(bar.middleOf("cobweb-test") != null && bar.middleOf("webcam-test") == null, "The long list is not cut to the bar's room");
         });
         screenshot(context, name + "-4-long-list");
-        // The keys move through a long list; the best hit stays the one Enter opens. Where the hits stack upward
-        // (the hotbar look), up is the way to the later ones.
-        boolean upward = look == WorldSearchScreen.Look.HOTBAR;
-        context.getInput().pressKey(upward ? InputConstants.KEY_PAGEUP : InputConstants.KEY_PAGEDOWN);
+        // The keys move through a long list; the best hit stays the one Enter opens.
+        context.getInput().pressKey(InputConstants.KEY_PAGEDOWN);
         context.waitTick();
         context.runOnClient(client -> check(bar(client).scrolled() > 1 && "cobweb-test".equals(bar(client).best()),
                 "A page on moved the long list by " + bar(client).scrolled()));
-        context.getInput().pressKey(upward ? InputConstants.KEY_PAGEDOWN : InputConstants.KEY_PAGEUP);
+        context.getInput().pressKey(InputConstants.KEY_PAGEUP);
         context.waitTick();
         context.runOnClient(client -> check(bar(client).scrolled() == 0, "A page back did not come back to the best hit"));
         escape(context);
     }
 
-    /** In the default look: what Enter, a click and Escape do, and what the helper is asked. */
+    /** What Enter, a click and Escape do, and what the helper is asked. */
     private static void behaviour(ClientGameTestContext context, FakeHelper helper) throws InterruptedException {
         // Nothing typed, then nothing found: Enter does nothing and the bar stays.
-        search(context, "");
+        search(context, helper, "");
         context.getInput().pressKey(InputConstants.KEY_RETURN);
         context.waitTicks(3);
         context.runOnClient(client -> check(client.gui.screen() instanceof WorldSearchScreen, "Enter with nothing typed closed the bar"));
@@ -210,7 +210,7 @@ public final class WorldSearchClientGameTest implements FabricClientGameTest {
         escape(context);
 
         // Enter opens the framed best hit on the world's screen, and he is back in the world.
-        search(context, "web");
+        search(context, helper, "web");
         context.getInput().pressKey(InputConstants.KEY_RETURN);
         context.waitFor(client -> client.gui.screen() == null);
         FakeHelper.await(() -> helper.received("open_app").size() == 1, "Enter's open_app");
@@ -218,7 +218,7 @@ public final class WorldSearchClientGameTest implements FabricClientGameTest {
         context.runOnClient(client -> AresOsClient.FOCUS_RETURN.reset());
 
         // A click opens the program under it, his or not, the same way.
-        search(context, "web");
+        search(context, helper, "web");
         double[] at = context.computeOnClient(client -> {
             int[] middle = bar(client).middleOf("webcam-test");
             double scale = (double) client.getWindow().getScreenWidth() / client.getWindow().getGuiScaledWidth();
@@ -241,11 +241,40 @@ public final class WorldSearchClientGameTest implements FabricClientGameTest {
         // Over the inventory: it closes the normal way, and Escape goes to the world, not back to the inventory.
         context.getInput().pressKey(options -> options.keyInventory);
         context.waitForScreen(InventoryScreen.class);
-        search(context, "web");
+        search(context, helper, "web");
         escape(context);
         context.waitTicks(3);
         context.runOnClient(client -> check(client.gui.screen() == null && client.player.containerMenu == client.player.inventoryMenu,
                 "Escape after a search over the inventory did not end in the world"));
+    }
+
+    /** Moments shell_search must not take: chat he types in, and the bar itself with what he typed. */
+    private static void ignored(ClientGameTestContext context, FakeHelper helper) {
+        context.getInput().pressKey(options -> options.keyChat);
+        context.waitForScreen(ChatScreen.class);
+        context.getInput().typeChars("hello");
+        context.waitTicks(2);
+        superPressed(helper);
+        context.waitTicks(10);
+        context.runOnClient(client -> check(client.gui.screen() instanceof ChatScreen, "shell_search took the chat away: " + client.gui.screen()));
+        context.getInput().pressKey(InputConstants.KEY_ESCAPE);
+        context.waitFor(client -> client.gui.screen() == null);
+
+        search(context, helper, "web");
+        var open = context.computeOnClient(client -> client.gui.screen());
+        superPressed(helper);
+        context.waitTicks(10);
+        context.runOnClient(client -> check(client.gui.screen() == open && bar(client).found().equals(WEB),
+                "A second shell_search replaced the open bar or what he typed: " + client.gui.screen()));
+        escape(context);
+    }
+
+    private static void superPressed(FakeHelper helper) {
+        try {
+            helper.event("shell_search", Map.of());
+        } catch (IOException error) {
+            throw new AssertionError("The fake helper could not send shell_search", error);
+        }
     }
 
     private static void opened(JsonObject request, String app, String screen) {
@@ -254,9 +283,9 @@ public final class WorldSearchClientGameTest implements FabricClientGameTest {
                 "open_app names the wrong screen: " + request);
     }
 
-    /** Opens the bar as step 2's event will, and types. The pointer waits in a corner, so no line is under it. */
-    private static void search(ClientGameTestContext context, String query) {
-        context.runOnClient(WorldSearchScreen::open);
+    /** Super: the helper's shell_search opens the bar, and he types. The pointer waits in a corner, so no line is under it. */
+    private static void search(ClientGameTestContext context, FakeHelper helper, String query) {
+        superPressed(helper);
         context.waitForScreen(WorldSearchScreen.class);
         // Only now, with the pointer free: in the world a moved pointer would turn his head.
         context.getInput().setCursorPos(1, 1);
