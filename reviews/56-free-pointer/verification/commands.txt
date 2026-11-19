@@ -1,0 +1,244 @@
+Package 56 development verification
+Commands run from the repository root. Full final runs on 81b1018e are recorded separately below.
+
+Log: .work/56-build-1.log
+$ mod/dev/build.sh
+Compile failed: Options.hideGui does not exist in 26.2; corrected to Hud.isHidden().
+BUILD FAILED in 6s
+
+Log: .work/56-build-2.log
+$ mod/dev/build.sh
+Compile failed: FakeHelper.event IOException needed wrapping in the new test helper.
+BUILD FAILED in 13s
+
+Log: .work/56-build-3.log
+$ mod/dev/build.sh
+First complete build.
+[22:12:49] [Server thread/INFO] (Minecraft) ========= 106 GAME TESTS COMPLETE IN 1.495 min ======================
+[22:12:49] [Server thread/INFO] (Minecraft) All 106 required tests passed :)
+BUILD SUCCESSFUL in 2m 57s
+
+Log: .work/56-client-1.log
+$ mod/dev/client-test.sh --session
+Gradle configuration failed: projectDir resolved to a task property; corrected to project file(...).
+BUILD FAILED in 4s
+client-test.sh: Client tests ended with exit code 1 after 0 min 6 s (nvidia: NVIDIA GeForce RTX 4060 Laptop GPU/PCIe/SSE2).
+
+Log: .work/56-client-2.log
+$ mod/dev/client-test.sh --session
+All earlier client packages completed; new fixture failed hover because its apps were not owned and were swept from inventory.
+java.lang.AssertionError: App slot did not highlight
+net.fabricmc.loader.impl.FormattedException: java.lang.AssertionError: App slot did not highlight
+Caused by: java.lang.AssertionError: App slot did not highlight
+BUILD FAILED in 12m 47s
+client-test.sh: Client tests ended with exit code 1 after 12 min 49 s (nvidia: NVIDIA GeForce RTX 4060 Laptop GPU/PCIe/SSE2 (NVIDIA Corporation)).
+
+Log: .work/56-pointer-debug-1.log
+$ mod/dev/client-test.sh --session --init-script "$PWD/.work/56-pointer-only.gradle"
+Diagnostic package-only run; temporary generated entrypoint filter restored after every run.
+java.lang.AssertionError: App slot did not highlight: slot=-1 free=true x=193.0 y=229.0 gui=427x240 hidden=false stack=0 minecraft:air screen=null
+net.fabricmc.loader.impl.FormattedException: java.lang.AssertionError: App slot did not highlight: slot=-1 free=true x=193.0 y=229.0 gui=427x240 hidden=false stack=0 minecraft:air screen=null
+Caused by: java.lang.AssertionError: App slot did not highlight: slot=-1 free=true x=193.0 y=229.0 gui=427x240 hidden=false stack=0 minecraft:air screen=null
+BUILD FAILED in 29s
+client-test.sh: Client tests ended with exit code 1 after 0 min 30 s (nvidia: NVIDIA GeForce RTX 4060 Laptop GPU/PCIe/SSE2 (NVIDIA Corporation)).
+
+Log: .work/56-pointer-debug-2.log
+$ mod/dev/client-test.sh --session --init-script "$PWD/.work/56-pointer-only.gradle"
+Diagnostic package-only run; temporary generated entrypoint filter restored after every run.
+java.lang.AssertionError: Timed out waiting for predicate
+net.fabricmc.loader.impl.FormattedException: java.lang.AssertionError: Timed out waiting for predicate
+Caused by: java.lang.AssertionError: Timed out waiting for predicate
+BUILD FAILED in 37s
+client-test.sh: Client tests ended with exit code 1 after 0 min 39 s (nvidia: NVIDIA GeForce RTX 4060 Laptop GPU/PCIe/SSE2 (NVIDIA Corporation)).
+
+Log: .work/56-pointer-debug-3.log
+$ mod/dev/client-test.sh --session --init-script "$PWD/.work/56-pointer-only.gradle"
+Diagnostic package-only run; temporary generated entrypoint filter restored after every run.
+java.lang.AssertionError: Timed out waiting for predicate
+net.fabricmc.loader.impl.FormattedException: java.lang.AssertionError: Timed out waiting for predicate
+Caused by: java.lang.AssertionError: Timed out waiting for predicate
+BUILD FAILED in 37s
+client-test.sh: Client tests ended with exit code 1 after 0 min 39 s (nvidia: NVIDIA GeForce RTX 4060 Laptop GPU/PCIe/SSE2 (NVIDIA Corporation)).
+
+Log: .work/56-pointer-debug-4.log
+$ mod/dev/client-test.sh --session --init-script "$PWD/.work/56-pointer-only.gradle"
+Diagnostic package-only run; temporary generated entrypoint filter restored after every run.
+BUILD FAILED in 8s
+client-test.sh: Client tests ended with exit code 1 after 0 min 9 s (nvidia: NVIDIA GeForce RTX 4060 Laptop GPU/PCIe/SSE2).
+
+Log: .work/56-pointer-debug-5.log
+$ mod/dev/client-test.sh --session --init-script "$PWD/.work/56-pointer-only.gradle"
+Diagnostic package-only run; temporary generated entrypoint filter restored after every run.
+java.lang.AssertionError: Timed out waiting for predicate
+net.fabricmc.loader.impl.FormattedException: java.lang.AssertionError: Timed out waiting for predicate
+Caused by: java.lang.AssertionError: Timed out waiting for predicate
+BUILD FAILED in 38s
+client-test.sh: Client tests ended with exit code 1 after 0 min 40 s (nvidia: NVIDIA GeForce RTX 4060 Laptop GPU/PCIe/SSE2 (NVIDIA Corporation)).
+
+Log: .work/56-pointer-debug-6.log
+$ mod/dev/client-test.sh --session --init-script "$PWD/.work/56-pointer-only.gradle"
+Diagnostic package-only run; temporary generated entrypoint filter restored after every run.
+[22:38:42] [Test thread/INFO] (aresos) 56 measured SURVIVAL plain flight: 16.30891004696162 blocks/s; FOV 1.1 (vanilla 10.872928568836553 blocks/s, FOV 1.1)
+[22:38:46] [Test thread/INFO] (aresos) 56 measured SURVIVAL sprint flight: 32.61782009392324 blocks/s; FOV 1.265 (vanilla 21.74521285590064 blocks/s, FOV 1.2650001)
+[22:38:51] [Test thread/INFO] (aresos) 56 measured CREATIVE plain flight: 16.30891004696162 blocks/s; FOV 1.1 (vanilla 10.872928568836553 blocks/s, FOV 1.1)
+[22:38:55] [Test thread/INFO] (aresos) 56 measured CREATIVE sprint flight: 32.61782009392324 blocks/s; FOV 1.265 (vanilla 21.74521285590064 blocks/s, FOV 1.2650001)
+[22:38:55] [Test thread/INFO] (aresos) 56 free-pointer checks passed: early focus and screen-close capture, all edges slow/fast, Alt+Tab and close, live unpaused world, hover/name screenshot, open_app and failure chat, both activation/click orders, empty/non-app/world entry without item use, vanilla gates and measured Live/Build/vanilla flight with/without sprint and unchanged FOV
+BUILD SUCCESSFUL in 54s
+client-test.sh: Client tests ended with exit code 0 after 0 min 56 s (nvidia: NVIDIA GeForce RTX 4060 Laptop GPU/PCIe/SSE2 (NVIDIA Corporation)).
+
+Log: .work/56-pointer-debug-7.log
+$ mod/dev/client-test.sh --session --init-script "$PWD/.work/56-pointer-only.gradle"
+Diagnostic package-only run; temporary generated entrypoint filter restored after every run.
+[22:45:18] [Test thread/INFO] (aresos) 56 measured SURVIVAL plain flight: 16.30891004696162 blocks/s; FOV 1.1 (vanilla 10.872928568836553 blocks/s, FOV 1.1)
+[22:45:23] [Test thread/INFO] (aresos) 56 measured SURVIVAL sprint flight: 32.61782009392324 blocks/s; FOV 1.265 (vanilla 21.74521285590064 blocks/s, FOV 1.2650001)
+[22:45:27] [Test thread/INFO] (aresos) 56 measured CREATIVE plain flight: 16.30891004696162 blocks/s; FOV 1.1 (vanilla 10.872928568836553 blocks/s, FOV 1.1)
+[22:45:31] [Test thread/INFO] (aresos) 56 measured CREATIVE sprint flight: 32.61782009392324 blocks/s; FOV 1.265 (vanilla 21.74521285590064 blocks/s, FOV 1.2650001)
+[22:45:31] [Test thread/INFO] (aresos) 56 free-pointer checks passed: early focus and screen-close capture, all edges slow/fast, Alt+Tab and close, live unpaused world, hover/name screenshot, open_app and failure chat, both activation/click orders, empty/non-app/world entry without item use, vanilla gates and measured Live/Build/vanilla flight with/without sprint and unchanged FOV
+BUILD SUCCESSFUL in 1m
+client-test.sh: Client tests ended with exit code 0 after 1 min 1 s (nvidia: NVIDIA GeForce RTX 4060 Laptop GPU/PCIe/SSE2 (NVIDIA Corporation)).
+
+Log: .work/56-build-final-1.log
+$ mod/dev/build.sh --rerun-tasks
+Complete rebuild; all 17 tasks executed, before the later two-line reviewer fix.
+[22:42:33] [Server thread/INFO] (Minecraft) ========= 106 GAME TESTS COMPLETE IN 1.254 min ======================
+[22:42:33] [Server thread/INFO] (Minecraft) All 106 required tests passed :)
+BUILD SUCCESSFUL in 2m 42s
+
+Log: .work/56-pointer-debug-8.log
+$ mod/dev/client-test.sh --session --init-script "$PWD/.work/56-pointer-only.gradle"
+Corrected native forwarding queries GLFW actual dimensions and asserts maximized desktop; targeted run.
+[23:08:12] [Test thread/INFO] (aresos) 56 measured SURVIVAL plain flight: 16.30891004696162 blocks/s; FOV 1.1 (vanilla 10.872928568836553 blocks/s, FOV 1.1)
+[23:08:16] [Test thread/INFO] (aresos) 56 measured SURVIVAL sprint flight: 32.61782009392324 blocks/s; FOV 1.265 (vanilla 21.74521285590064 blocks/s, FOV 1.2650001)
+[23:08:20] [Test thread/INFO] (aresos) 56 measured CREATIVE plain flight: 16.30891004696162 blocks/s; FOV 1.1 (vanilla 10.872928568836553 blocks/s, FOV 1.1)
+[23:08:24] [Test thread/INFO] (aresos) 56 measured CREATIVE sprint flight: 32.61782009392324 blocks/s; FOV 1.265 (vanilla 21.74521285590064 blocks/s, FOV 1.2650001)
+[23:08:25] [Test thread/INFO] (aresos) 56 free-pointer checks passed: early focus and screen-close capture, all edges slow/fast, Alt+Tab and close, live unpaused world, hover/name screenshot, open_app and failure chat, both activation/click orders, lost mouse releases, empty/non-app/world entry without item use, vanilla gates and measured Live/Build/vanilla flight with/without sprint and unchanged FOV
+BUILD SUCCESSFUL in 56s
+client-test.sh: Client tests ended with exit code 0 after 0 min 58 s (nvidia: NVIDIA GeForce RTX 4060 Laptop GPU/PCIe/SSE2 (NVIDIA Corporation)).
+
+Log: .work/56-full-1.log
+$ mod/dev/client-test.sh --session build
+Earlier full run passed, then screenshot inspection revealed stale fixture dimensions; superseded by corrected-harness final pair.
+[22:59:45] [Test thread/INFO] (aresos) 56 measured SURVIVAL plain flight: 16.30891004696162 blocks/s; FOV 1.1 (vanilla 10.872928568836553 blocks/s, FOV 1.1)
+[22:59:49] [Test thread/INFO] (aresos) 56 measured SURVIVAL sprint flight: 32.61782009392324 blocks/s; FOV 1.265 (vanilla 21.74521285590064 blocks/s, FOV 1.2650001)
+[22:59:53] [Test thread/INFO] (aresos) 56 measured CREATIVE plain flight: 16.30891004696162 blocks/s; FOV 1.1 (vanilla 10.872928568836553 blocks/s, FOV 1.1)
+[22:59:57] [Test thread/INFO] (aresos) 56 measured CREATIVE sprint flight: 32.61782009392324 blocks/s; FOV 1.265 (vanilla 21.74521285590064 blocks/s, FOV 1.2650001)
+[22:59:58] [Test thread/INFO] (aresos) 56 free-pointer checks passed: early focus and screen-close capture, all edges slow/fast, Alt+Tab and close, live unpaused world, hover/name screenshot, open_app and failure chat, both activation/click orders, lost mouse releases, empty/non-app/world entry without item use, vanilla gates and measured Live/Build/vanilla flight with/without sprint and unchanged FOV
+[23:01:08] [Server thread/INFO] (Minecraft) ========= 106 GAME TESTS COMPLETE IN 1.040 min ======================
+[23:01:08] [Server thread/INFO] (Minecraft) All 106 required tests passed :)
+BUILD SUCCESSFUL in 15m 52s
+client-test.sh: Client tests ended with exit code 0 after 15 min 53 s (nvidia: NVIDIA GeForce RTX 4060 Laptop GPU/PCIe/SSE2 (NVIDIA Corporation)).
+
+Log: .work/56-full-2.log
+$ mod/dev/client-test.sh --session build
+Intentionally stopped after 4m52s to correct native test instrumentation; no assertion failure in the stopped run.
+client-test.sh: The headless session ended before Gradle returned.
+client-test.sh: Client tests ended with exit code 1 after 4 min 52 s (nvidia: NVIDIA GeForce RTX 4060 Laptop GPU/PCIe/SSE2 (NVIDIA Corporation)).
+
+Log: .work/56-final-full-1.log
+$ mod/dev/client-test.sh --session build
+First complete corrected-harness full run on 3d287df0.
+[23:22:42] [Test thread/INFO] (aresos) 56 measured SURVIVAL plain flight: 16.30891004696162 blocks/s; FOV 1.1 (vanilla 10.872928568836553 blocks/s, FOV 1.1)
+[23:22:46] [Test thread/INFO] (aresos) 56 measured SURVIVAL sprint flight: 32.61782009392324 blocks/s; FOV 1.265 (vanilla 21.74521285590064 blocks/s, FOV 1.2650001)
+[23:22:51] [Test thread/INFO] (aresos) 56 measured CREATIVE plain flight: 16.30891004696162 blocks/s; FOV 1.1 (vanilla 10.872928568836553 blocks/s, FOV 1.1)
+[23:22:55] [Test thread/INFO] (aresos) 56 measured CREATIVE sprint flight: 32.61782009392324 blocks/s; FOV 1.265 (vanilla 21.74521285590064 blocks/s, FOV 1.2650001)
+[23:22:55] [Test thread/INFO] (aresos) 56 free-pointer checks passed: early focus and screen-close capture, all edges slow/fast, Alt+Tab and close, live unpaused world, hover/name screenshot, open_app and failure chat, both activation/click orders, lost mouse releases, empty/non-app/world entry without item use, vanilla gates and measured Live/Build/vanilla flight with/without sprint and unchanged FOV
+[23:24:24] [Server thread/INFO] (Minecraft) ========= 106 GAME TESTS COMPLETE IN 1.360 min ======================
+[23:24:24] [Server thread/INFO] (Minecraft) All 106 required tests passed :)
+BUILD SUCCESSFUL in 14m 58s
+client-test.sh: Client tests ended with exit code 0 after 14 min 59 s (nvidia: NVIDIA GeForce RTX 4060 Laptop GPU/PCIe/SSE2 (NVIDIA Corporation)).
+
+Log: .work/56-final-full-2.log
+$ mod/dev/client-test.sh --session build
+Second complete corrected-harness full run on 3d287df0.
+[23:37:44] [Test thread/INFO] (aresos) 56 measured SURVIVAL plain flight: 16.30891004696162 blocks/s; FOV 1.1 (vanilla 10.872928568836553 blocks/s, FOV 1.1)
+[23:37:48] [Test thread/INFO] (aresos) 56 measured SURVIVAL sprint flight: 32.61782009392324 blocks/s; FOV 1.265 (vanilla 21.74521285590064 blocks/s, FOV 1.2650001)
+[23:37:52] [Test thread/INFO] (aresos) 56 measured CREATIVE plain flight: 16.30891004696162 blocks/s; FOV 1.1 (vanilla 10.872928568836553 blocks/s, FOV 1.1)
+[23:37:57] [Test thread/INFO] (aresos) 56 measured CREATIVE sprint flight: 32.61782009392324 blocks/s; FOV 1.265 (vanilla 21.74521285590064 blocks/s, FOV 1.2650001)
+[23:37:57] [Test thread/INFO] (aresos) 56 free-pointer checks passed: early focus and screen-close capture, all edges slow/fast, Alt+Tab and close, live unpaused world, hover/name screenshot, open_app and failure chat, both activation/click orders, lost mouse releases, empty/non-app/world entry without item use, vanilla gates and measured Live/Build/vanilla flight with/without sprint and unchanged FOV
+[23:39:16] [Server thread/INFO] (Minecraft) ========= 106 GAME TESTS COMPLETE IN 1.186 min ======================
+[23:39:16] [Server thread/INFO] (Minecraft) All 106 required tests passed :)
+BUILD SUCCESSFUL in 14m 56s
+client-test.sh: Client tests ended with exit code 0 after 14 min 57 s (nvidia: NVIDIA GeForce RTX 4060 Laptop GPU/PCIe/SSE2 (NVIDIA Corporation)).
+
+Intermediate JUnit XML aggregate before the startup regressions: {'tests': 308, 'failures': 0, 'errors': 0, 'skipped': 6}
+Six existing skips are Windows-only catalogue/identity tests on Linux; all three PointerRules tests passed.
+Log: .work/56-build-startup.log
+$ mod/dev/build.sh
+Startup-delivery build, 305 unit passes, six Windows-only skips, all106 server tests.
+[23:57:28] [Server thread/INFO] (Minecraft) ========= 106 GAME TESTS COMPLETE IN 57.73 s ======================
+[23:57:28] [Server thread/INFO] (Minecraft) All 106 required tests passed :)
+BUILD SUCCESSFUL in 2m 44s
+
+Log: .work/56-pointer-startup.log
+$ mod/dev/client-test.sh --session --init-script "$PWD/.work/56-pointer-only.gradle"
+Stronger late-subscription test caught an existing load-time capture flag; guard now releases before cancelling.
+java.lang.AssertionError: A loading/screen-close path recaptured behind an app
+net.fabricmc.loader.impl.FormattedException: java.lang.AssertionError: A loading/screen-close path recaptured behind an app
+Caused by: java.lang.AssertionError: A loading/screen-close path recaptured behind an app
+BUILD FAILED in 20s
+client-test.sh: Client tests ended with exit code 1 after 0 min 22 s (nvidia: NVIDIA GeForce RTX 4060 Laptop GPU/PCIe/SSE2 (NVIDIA Corporation)).
+
+Log: .work/56-pointer-startup-2.log
+$ mod/dev/client-test.sh --session --init-script "$PWD/.work/56-pointer-only.gradle"
+Complete targeted startup and delayed-reconnect regression passed.
+[00:02:15] [Test thread/INFO] (aresos) 56 measured SURVIVAL plain flight: 16.30891004696162 blocks/s; FOV 1.1 (vanilla 10.872928568836553 blocks/s, FOV 1.1)
+[00:02:19] [Test thread/INFO] (aresos) 56 measured SURVIVAL sprint flight: 32.61782009392324 blocks/s; FOV 1.265 (vanilla 21.74521285590064 blocks/s, FOV 1.2650001)
+[00:02:24] [Test thread/INFO] (aresos) 56 measured CREATIVE plain flight: 16.30891004696162 blocks/s; FOV 1.1 (vanilla 10.872928568836553 blocks/s, FOV 1.1)
+[00:02:28] [Test thread/INFO] (aresos) 56 measured CREATIVE sprint flight: 32.61782009392324 blocks/s; FOV 1.265 (vanilla 21.74521285590064 blocks/s, FOV 1.2650001)
+[00:02:28] [Test thread/INFO] (aresos) 56 free-pointer checks passed: early focus and screen-close capture, all edges slow/fast, Alt+Tab and close, live unpaused world, hover/name screenshot, open_app and failure chat, both activation/click orders, lost mouse releases, empty/non-app/world entry without item use, vanilla gates and measured Live/Build/vanilla flight with/without sprint and unchanged FOV
+BUILD SUCCESSFUL in 55s
+client-test.sh: Client tests ended with exit code 0 after 0 min 56 s (nvidia: NVIDIA GeForce RTX 4060 Laptop GPU/PCIe/SSE2 (NVIDIA Corporation)).
+
+Log: .work/56-complete-1.log
+$ mod/dev/client-test.sh --session build
+First full run on complete fix 81b1018e.
+[00:19:24] [Test thread/INFO] (aresos) 56 measured SURVIVAL plain flight: 16.30891004696162 blocks/s; FOV 1.1 (vanilla 10.872928568836553 blocks/s, FOV 1.1)
+[00:19:28] [Test thread/INFO] (aresos) 56 measured SURVIVAL sprint flight: 32.61782009392324 blocks/s; FOV 1.265 (vanilla 21.74521285590064 blocks/s, FOV 1.2650001)
+[00:19:33] [Test thread/INFO] (aresos) 56 measured CREATIVE plain flight: 16.30891004696162 blocks/s; FOV 1.1 (vanilla 10.872928568836553 blocks/s, FOV 1.1)
+[00:19:37] [Test thread/INFO] (aresos) 56 measured CREATIVE sprint flight: 32.61782009392324 blocks/s; FOV 1.265 (vanilla 21.74521285590064 blocks/s, FOV 1.2650001)
+[00:19:37] [Test thread/INFO] (aresos) 56 free-pointer checks passed: early focus and screen-close capture, all edges slow/fast, Alt+Tab and close, live unpaused world, hover/name screenshot, open_app and failure chat, both activation/click orders, lost mouse releases, empty/non-app/world entry without item use, vanilla gates and measured Live/Build/vanilla flight with/without sprint and unchanged FOV
+[00:20:49] [Server thread/INFO] (Minecraft) ========= 106 GAME TESTS COMPLETE IN 1.059 min ======================
+[00:20:49] [Server thread/INFO] (Minecraft) All 106 required tests passed :)
+BUILD SUCCESSFUL in 15m 43s
+client-test.sh: Client tests ended with exit code 0 after 15 min 45 s (nvidia: NVIDIA GeForce RTX 4060 Laptop GPU/PCIe/SSE2 (NVIDIA Corporation)).
+
+Focused helper: python3 -m unittest discover -s os/tests -p 'test_aresos_shell_home.py'
+Ran 15 tests in 0.013s
+OK
+
+Log: .work/56-complete-2.log
+$ mod/dev/client-test.sh --session build
+Second full run on complete fix 81b1018e; all 27 client entrypoints, unchanged source between runs.
+[00:35:14] [Test thread/INFO] (aresos) 56 measured SURVIVAL plain flight: 16.30891004696162 blocks/s; FOV 1.1 (vanilla 10.872928568836553 blocks/s, FOV 1.1)
+[00:35:18] [Test thread/INFO] (aresos) 56 measured SURVIVAL sprint flight: 32.61782009392324 blocks/s; FOV 1.265 (vanilla 21.74521285590064 blocks/s, FOV 1.2650001)
+[00:35:22] [Test thread/INFO] (aresos) 56 measured CREATIVE plain flight: 16.30891004696162 blocks/s; FOV 1.1 (vanilla 10.872928568836553 blocks/s, FOV 1.1)
+[00:35:26] [Test thread/INFO] (aresos) 56 measured CREATIVE sprint flight: 32.61782009392324 blocks/s; FOV 1.265 (vanilla 21.74521285590064 blocks/s, FOV 1.2650001)
+[00:35:27] [Test thread/INFO] (aresos) 56 free-pointer checks passed: early focus and screen-close capture, all edges slow/fast, Alt+Tab and close, live unpaused world, hover/name screenshot, open_app and failure chat, both activation/click orders, lost mouse releases, empty/non-app/world entry without item use, vanilla gates and measured Live/Build/vanilla flight with/without sprint and unchanged FOV
+[00:37:55] [Server thread/INFO] (Minecraft) ========= 106 GAME TESTS COMPLETE IN 2.337 min ======================
+[00:37:55] [Server thread/INFO] (Minecraft) All 106 required tests passed :)
+BUILD SUCCESSFUL in 16m 1s
+client-test.sh: Client tests ended with exit code 0 after 16 min 2 s (nvidia: NVIDIA GeForce RTX 4060 Laptop GPU/PCIe/SSE2 (NVIDIA Corporation)).
+
+Final JUnit XML aggregate: {'tests': 311, 'failures': 0, 'errors': 0, 'skipped': 6}
+305 passes; six existing Windows-only tests skipped on Linux.
+
+Hosted full OS checks on 81b1018e:
+$ gh workflow run 'OS image' --ref pkg/56-free-pointer -f checks_only=true
+$ gh run watch 44417752912 --exit-status --interval 60
+Watch exit: 0
+https://github.com/Ares-Empire/AresOS/actions/runs/44417752912
+Regression checks only (no image build or VM): SUCCESS in 22m47s
+Ran 1797 tests in 1277.089s
+OK (skipped=4)
+Four existing skips require headless labwc/GTK on AresOS. Full discovery was unfiltered on the disposable hosted runner.
+Hosted Mod build/reproducibility and Repo privacy checks on 81b1018e: SUCCESS.
+
+Closing checks:
+$ bash -n mod/dev/client-test.sh
+$ python3 -m py_compile reviews/56-free-pointer/rig/pointer.py
+$ git diff --check
+All exit 0.
+Repository home-path check: No file holds a home path with a real user name.
+No Java process from this worktree or package-56 preview scope remains. No Gradle --stop used.
+.work inventory: 99 MB total, no file over 500 MB, no large downloads or extracted images.
+Final main sync: merged planning-only origin/main 5c3457b5 in a2bb88ed; no tested source changed.
