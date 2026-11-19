@@ -1,5 +1,86 @@
 # Package 28a: Chrome acting progress
 
+## Step 2
+
+2026-11-19. Draft PR #116, branch `pkg/28a-chrome-act`. The `linux-tools` lead owns the hosted results.
+
+### Done
+
+- `21a06d7c` committed the helper and hand-built argument map before harness edits.
+  `205c7219` moved the calls and reconciled the map. The final count is **23 helpers
+  changed or introduced and 23 hand-built cases rewritten**. The map names the counted cases
+  and the evidence that still needs an old surface. [Harness map](HARNESS-MAP.md)
+- Every inherited Group 1 asking action on the switched catalogue, including the preliminary
+  smoke and the engine approval regression, uses a short ref and `chrome_do`. The existing
+  receiver checks still require zero arrivals before approval, one after and none on replay.
+  The public tool supplies the approval, refusal and followup evidence. Cases that assert
+  detailed post-input observations read the committed stage of the operation that ran.
+- The migrated cases exercise item 2's per-element staleness, item 3b's distinct descriptions,
+  and item 5b's bare, step and kept-tab envelopes. Brief 28's field checks, approved typed-read
+  identities, owner UI actions and contextual find grammar remain in place. The CI-only
+  catalogue and measured old-tool calls are available for step 3.
+
+### Verified
+
+- `.work/pkg28a-0a/node-v22.15.0-linux-x64/bin/node --test --test-concurrency=2 control/chrome_tests/*.test.mjs`
+  passed **634/634** in **56.768 s**. The first pass found a POST stand-in still supplying its
+  old read interface. The stand-in now observes the same exact child tab through the new helper.
+- `PYTHONPATH=control:control/chrome_tests python3 -m unittest test_questions test_policy test_engine test_doing test_qualification_fixture test_field_descriptions test_loss_errors test_acting_references`
+  ran **160 tests in 43.269 s, OK**. Python emitted a `ResourceWarning` for a GitHub HTTP 403 response
+  during the tests. Both workflow dispatch commands returned run URLs.
+- `python3 control/generate.py --check` printed `Generated artifacts match definitions`.
+  `git diff --check` passed and `git diff --exit-code origin/main -- control/settings/ask-rules.json`
+  confirmed the generated ask rules match main.
+
+### Runs
+
+Dispatched once each on `205c7219`.
+
+- Control Chrome **44617691792**. [Run](https://github.com/Ares-Empire/AresOS/actions/runs/44617691792)
+- Control Chrome qualification **44617724806**. [Run](https://github.com/Ares-Empire/AresOS/actions/runs/44617724806)
+
+### Left, in order
+
+1. **Step 3.** Reconcile the remaining legacy evidence in the map, then remove the replaced
+   tools, test-only switch and unused reader rows and paging. Update refusal text, regenerate
+   and pin final sizes. Preserve **CONTROL.md section 6's `chrome_show` focus exception**
+   and install **`response_checks.check_responses` in the Chrome tests**.
+2. **Step 4.** Two full final-head Chrome runs with base, Mail, boundary and qualification.
+3. **Two fresh reviews.** Package and security, using CONTROL.md's reasonable MCP bar and
+   recording low-harm product limits in `KNOWN-LIMITS.md`.
+
+### What the code doesn't show
+
+The hosted browser and qualification results are pending the lead's inspection. No browser,
+owner environment, fault-surface test or state suite ran locally. No files over 500 MB
+remain in this worktree's `.work/`.
+
+### JUDGMENT-CALLs
+
+- Capture the short ref when the fixture picks a target. Looking it up again immediately
+  before dispatch could turn a deliberately stale attempt into a fresh input. Matching by
+  name across roles requires a single candidate in each observation. Two same-name
+  buttons keep the original ordinal and its recipient/binding assertions.
+- Keep the raw evidence where a public response omits facts the assertion needs.
+  Using the old transport in those cases preserves the evidence until step 3 supplies an
+  equivalent observation or the lead decides how to handle the difference.
+
+### PLAN-GAPs
+
+- Public outlines and tab lists abbreviate structured fields, exact URLs, identity and
+  native focus/cleanup data. The password checks retain the old surfaces required by
+  brief 28's map. The feature form still checks a hidden value and the catalogue still checks
+  native snapshot IDs. `chrome_library` address refs can coincide for separate records.
+- The preexisting-dialog handoff checks the old take operation ID and its committed status.
+  Public `chrome_take` has no such result field. The guarded click after the handoff runs
+  through `chrome_do`.
+- Before a taken tab's first guarded reload, `chrome_go` can return a `first_input` loss
+  report before the requested navigation. The exact original loss-action/reload sequences
+  and the setup moves out of the POST and cross-frame password fixtures retain the old route.
+  The later history refusal and the other migrated loss cases use the public tools.
+- Two cleanup calls close owner-opened tabs in the old fixture flow. Public `chrome_close`
+  keeps those tabs. The popup and borrowed-child receiver and control assertions stay in place.
+
 ## Step 1d, part 2, coverage fix
 
 2026-11-19. Pushed fixture fix `a28720dd` to draft PR #116. The `linux-tools` lead owns the hosted results.
