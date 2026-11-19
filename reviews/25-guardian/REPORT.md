@@ -255,6 +255,10 @@ reopening the world.
 
 ## Known limits
 
+- The helper's status connection is now two-way (logout's fresh window report). A process that inherited its file
+  descriptor could read a request and answer it. Only a program running as ares with a leaked descriptor could, and
+  such a program can close windows itself. The helper's launches use `close_fds=True` (`aresos-shell` about :1937
+  and :2308; `linux-aresos`'s note, 2026-11-19).
 - A power cut, a forced power-off or a shutdown that skips unit stops can bypass the save. A confirmed flush
   covers work through the request. Later ticks and Minecraft's own closing save have no separate acknowledgement.
 - Loading, switching home or sitting at the title screen can use the 30-second save allowance and end
