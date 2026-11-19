@@ -11,7 +11,6 @@ import traceback
 
 from channel import Frames, export_bytes, frame
 import console_keymap
-import guardian
 
 HERE = pathlib.Path(__file__).parent
 EXPORTS = {'backend.json': '/run/aresos-backend.json',
@@ -522,7 +521,9 @@ def check(action, request):
     if action == 'cover-stop':
         return cover_stop()
     if action == 'guardian-arm':
-        # Package 25: the stand-in game, the seeded home and the watchers for the power key that follows.
+        # Package 25: the stand-in game, the seeded home and the watchers for the power key that follows. Imported
+        # here: a layer that carries this file without guardian.py loses only this action.
+        import guardian
         return guardian.arm(request)
     if action == 'export':
         return dict(returncode=0, files={name: export_bytes(pathlib.Path(path).read_bytes())
