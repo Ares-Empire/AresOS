@@ -15,6 +15,7 @@ from ..paging import fragment_window, ordered_page
 from ..warnings import check_result
 from . import confirm
 from . import descriptions
+from . import going
 from . import loss
 from . import nodes as outline_nodes
 from . import projection
@@ -480,6 +481,18 @@ class Chrome:
         page = result['untrusted_content'].get('page') if isinstance(result['untrusted_content'], dict) else None
         self.references.acted(args['tab'], args['ref'], page.get('change') if isinstance(page, dict) else None)
         return result
+
+    def going(self, verb, args):
+        """Brief 28a, item 4, before item 8's step 1d offers it: chrome_open (`open`) or chrome_go (`go`).
+
+        Not in the public catalogue. Brief 20's open and navigate run through
+        `free`; the call then waits until the page loaded and returns its outline.
+        """
+        return going.Going(self, verb, args).run()
+
+    def seen_address(self, seen, tab):
+        """The full address a tab list showed for `tab` (item 6); no list is kept yet."""
+        raise Refused('stale_reference', 'list the tabs again')
 
     def read(self, verb, args):
         mode = self.mode()
@@ -965,6 +978,22 @@ class Chrome:
                 'kind':payload['kind'],'conservative':payload.get('conservative',False),'adapter':bool(payload.get('adapter')),'binding':payload['binding'],
                 'operation':operation,'approved':approved,'confirmation':payload.get('confirmation'),'primary_submission':bool(payload['binding'].get('form') and (payload['binding']['target'].get('submit') or payload['input'].get('verb')=='press' and payload['input'].get('key','').split('+')[-1]=='Enter' and payload['binding']['target'].get('editable'))),**({'hold':payload['hold']} if payload.get('hold') else {})}
 
+    def classified(self, verb, args, facts, frame, mode):
+        """What an input on this target would be: its asking kind (None when free) and the site adapter that read it.
+
+        The one classification of an input's fresh facts: `payload` uses it for
+        every step, and opening a link reference (item 4) for the click it stands for.
+        """
+        readonly = any(self.store.get('chrome:readonly:' + hostname(url), False) for url in [facts['url'],frame.get('effective_url',frame['url'])])
+        href=frame['target'].get('href')
+        if href and not href.startswith('javascript:') and (verb=='click' or verb=='press' and args.get('key','').split('+')[-1] in {'Enter','Space'}):
+            self.allowed_url(href)
+        adapter = recognize(frame.get('effective_url',frame['url']), frame['adapter'], frame['target'], verb, args, self.hosts, mode['adapters'])
+        kind = classify(verb,args,frame,conservative=mode['conservative'],readonly=readonly,adapter=adapter)
+        if adapter and kind in {'delete', 'pay', 'item'} and kind != adapter['effect']:
+            adapter = None
+        return kind, adapter
+
     def payload(self, verb, args, *, hold=None):
         mode = self.mode(acting=True)
         if verb == 'press':
@@ -977,14 +1006,7 @@ class Chrome:
             facts, frame = self.facts(args['reference'])
             if args.get('expected') is not None and args['expected'] != visible(frame['target']):
                 raise Refused('stale_reference', 'Element no longer holds its expected state; read again.')
-        readonly = any(self.store.get('chrome:readonly:' + hostname(url), False) for url in [facts['url'],frame.get('effective_url',frame['url'])])
-        href=frame['target'].get('href')
-        if href and not href.startswith('javascript:') and (verb=='click' or verb=='press' and args.get('key','').split('+')[-1] in {'Enter','Space'}):
-            self.allowed_url(href)
-        adapter = recognize(frame.get('effective_url',frame['url']), frame['adapter'], frame['target'], verb, args, self.hosts, mode['adapters'])
-        kind = classify(verb,args,frame,conservative=mode['conservative'],readonly=readonly,adapter=adapter)
-        if adapter and kind in {'delete', 'pay', 'item'} and kind != adapter['effect']:
-            adapter = None
+        kind, adapter = self.classified(verb, args, facts, frame, mode)
         key = args.get('key','').split('+')[-1]
         target = frame['target']
         submitting = target.get('submit') and (verb in {'click','check','select'} or verb == 'press' and key in {'Enter','Space',' '}) or verb == 'press' and key == 'Enter' and target.get('editable')

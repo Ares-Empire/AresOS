@@ -280,6 +280,55 @@ class LossEnvelope(unittest.TestCase):
                 self.assertEqual(form['error'], {'code': 'reload_required', 'message': loss.MESSAGE, 'untrusted_content': {'loss': {'unavailable': True}}})
         self.assertNotIn('close_tab', [command['name'] for command in self.extension.commands if command.get('discard_unsaved') is True])
 
+    def private(self, verb, args):
+        """A private entry's refusal in the public error envelope, as engine.request builds it (step 1d wires the tools)."""
+        # The new tools bound their commands by time (`Bridge.bounded`), so the bridge waits on the socket
+        # with select; this fake host has answered by the time it is asked.
+        with self.assertRaises(Refused) as caught, patch('aresos_control.chrome.bridge.select.select', lambda r, w, x, t: (r, w, x)):
+            getattr(self.chrome, verb[0])(verb[1], args)
+        exc = caught.exception
+        return {'ok': False, 'error': {'code': exc.code, 'message': str(exc), **untrusted(exc)}, 'pending': {}}
+
+    def going_extension(self):
+        """The fake host also answers what chrome_go asks before it navigates: whose tab, the page's state, its reload."""
+        answer = self.extension.answer
+        def going(command):
+            if command['name'] == 'tab_context':
+                return {'ok': True, 'data': {'tab': command['tab'], 'url': self.extension.facts['url'], 'session': SESSION, 'control': 'epoch-1'}}
+            if command['name'] == 'page_state':
+                return {'ok': True, 'data': {'session': SESSION, 'tab': command['tab'], 'control': 'epoch-1', 'queued': False, 'dialog': False,
+                                             'document': 'browser-1', 'address': 'a' * 64, 'ready': True, 'token': 'token-1'}}
+            if command['name'] == 'outline':
+                return {'ok': True, 'data': {'session': SESSION, 'tab': command['tab'], 'url': self.extension.facts['url'], 'title': 'Fixture',
+                                             'dialog': None, 'needs_reload': self.extension.facts['needs_reload'], 'frames': []}}
+            return answer(command)
+        self.extension.answer = going
+
+    def test_chrome_go_keeps_labels_in_untrusted_loss_in_a_claude_tab_and_before_a_taken_tabs_reload(self):
+        # Item 4 inherits item 5b's envelope: navigate in a Claude tab, and the guarded reload a taken tab gets first.
+        self.going_extension()
+        for act, args in [('navigate', {'tab': 1, 'url': 'https://fixture.test/next'}), ('reload', {'tab': 1, 'to': 'reload'}),
+                          ('back', {'tab': 1, 'to': 'back'}), ('forward', {'tab': 1, 'to': 'forward'})]:
+            with self.subTest(act=act):
+                self.extension.report = wire_report(act)
+                before = len(self.extension.commands)
+                result = self.private(('going', 'go'), args)
+                self.assert_loss_error('chrome_navigate', result, public_report(act))
+                sent = [command['name'] for command in self.extension.commands[before:] if command['name'] != 'configure']
+                self.assertEqual(sent, ['tab_context', 'page_state', 'outline', 'tab_context', 'navigate'], 'one refused navigate, nothing after it')
+        self.assertEqual(sorted(operation['stages']['loss']['untrusted_content']['loss']['act'] for operation in self.stored('chrome_navigate')),
+                         ['back', 'forward', 'navigate', 'reload'])
+        for operation in self.stored('chrome_navigate'):
+            self.assertEqual(operation['reason'], 'Nothing dispatched: ' + loss.MESSAGE)
+            self.assert_only_untrusted(operation)
+        self.extension.facts['needs_reload'] = True
+        self.extension.report = wire_report('first_input')
+        before = len(self.extension.commands)
+        result = self.private(('going', 'go'), {'tab': 1, 'url': 'https://fixture.test/next'})
+        self.assert_loss_error('chrome_navigate', result, public_report('first_input'))
+        self.assertNotIn('navigate', [command['name'] for command in self.extension.commands[before:]], 'the page is not replaced')
+        self.assert_stored('chrome_prepare_control', public_report('first_input'))
+
     def test_other_errors_and_other_apps_keep_their_envelope(self):
         self.assertEqual(untrusted(Refused('refused', 'plain')), {})
         self.extension.answer = lambda command: {'ok': False, 'error': 'refused: no history entry in that direction'} \

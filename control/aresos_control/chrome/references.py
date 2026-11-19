@@ -86,6 +86,13 @@ class References:
             raise Stale()
         return entry
 
+    def tab_of(self, reference):
+        """The tab a reference was issued for, or the refusal: one this run didn't issue or has dropped."""
+        entry = self._references.get(reference) if isinstance(reference, str) else None
+        if entry is None:
+            raise Stale()
+        return entry.tab
+
     def acting(self, reference, tab, session):
         """The entry an action names, or the refusal (brief 28a, item 2).
 
