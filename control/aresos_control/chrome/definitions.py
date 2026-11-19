@@ -119,6 +119,10 @@ ENTRY = obj({'title': TEXT, 'file': TEXT, 'state': TEXT, 'url': TEXT, 'visited':
 LIBRARY_RESULT = obj({'kind': LIBRARY['properties']['kind'], 'total': {'anyOf': [WHOLE, NULL]},
                       'cursor': {'anyOf': [TEXT, NULL]}, 'untrusted_content': obj({'items': array(ENTRY, 10)}),
                       'version_notice': NOTICE})
+# When the page changed after approval, a submit stops that operation and returns
+# a fresh approval beside it (the adapter's changed_destination and changed_compose).
+# The same shape as main's (PR #122), so a merge of main overlaps cleanly.
+REASK_RESULT = obj({**OP_RESULT['properties'], **PREPARED_RESULT['properties']}, ['operation'])
 # Item 6: the asking read's values, each named by its description (item 3b), its
 # label and its short reference; labels and values are page text. A changed
 # list stops the approval and comes with the new question (changed_typed_fields).
@@ -226,8 +230,8 @@ def actions(Action):
         'always remain unreadable. The connection, frames, reader and exact field identities are bound; changes refuse and '
         "require a fresh question; ordinary reads retain filled/empty. Returns each field's label, ref and value as page text.",
         TYPED_RESULT, asking_read=True)
-    add('submit', 'send', APPROVAL, 'Run exactly the prepared operation after approval, with question first and unchanged. Rechecks bound page state, dispatches once; no automatic retries.', OP_RESULT)
-    add('submit_trusted', 'send', APPROVAL, 'Run a prepared adapter kind only if the owner-only exact-site/account/parameters entry still allows it. No prompt; deleting, paying and WhatsApp messages always refuse.', OP_RESULT)
+    add('submit', 'send', APPROVAL, 'Run exactly the prepared operation after approval, with question first and unchanged. Rechecks bound page state, dispatches once; no automatic retries.', REASK_RESULT)
+    add('submit_trusted', 'send', APPROVAL, 'Run a prepared adapter kind only if the owner-only exact-site/account/parameters entry still allows it. No prompt; deleting, paying and WhatsApp messages always refuse.', REASK_RESULT)
     add('drop', 'change', OP, 'Cancel only reserved work; its stopped page step stays stopped and no input is dispatched.', OP_RESULT)
     add('operation_status', 'read', OP, 'Read committed stages and uncertainty. checked then dispatched, followed by what the page showed; nothing is replayed.')
     add('notices', 'read', PAGE, 'Read every Chrome warning occurrence through bounded pages, including open checks after a storage failure. Acknowledgement and action outcome are separate.')
