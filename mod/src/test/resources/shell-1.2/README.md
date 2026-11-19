@@ -6,6 +6,7 @@ are test values.
 
 - `view-hello-*` shows a view joining and the helper's refusals. A successful reply is followed by
   `apps-running-empty-event.json` when there are no windows.
+- `view-focus-*` shows a view reporting keyboard focus in and out and the helper acknowledging each change.
 - `publish-home-*` shows a complete publish and a separate two-part publish. The desktop gets an
   acknowledgement for each part. Views get `home-changed-event.json` after a complete publish.
 - `get-home-*` shows the initial empty snapshot, the single-part home, and the two-part home split

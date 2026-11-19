@@ -1,0 +1,6 @@
+{
+  "protocol": "aresos-shell/1.2",
+  "id": "f-1",
+  "op": "view_focus",
+  "focused": true
+}

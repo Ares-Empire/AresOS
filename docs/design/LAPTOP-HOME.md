@@ -160,7 +160,7 @@ picture of the world. A thing is added only when he asks for it.
 
 ### 2.4 Motion
 
-**At rest nothing moves, so nothing is drawn again.** Anything that moves makes the engine draw new pictures, up
+**At rest nothing moves, so nothing is drawn again.** Anything that moves makes the program draw new pictures, up
 to 60 a second, on a screen he is mostly not looking at. Section 4 has what that costs.
 - No animation that runs without end. No drifting, no video, no blinking without end. The typing caret blinks a
   few times after each key and then stays.
@@ -275,75 +275,69 @@ and its ends fade into the wall.
 
 ## 4. What it is built from
 
-**The system's web engine in a window program of its own.**
+**A native window program: GTK 4 draws the town with Cairo and Pango.** No web engine (the owner's choice on board
+#375, 2026-11-18: "yea sounds good"; built in package 53f).
 
 | Part | What | Where |
 |---|---|---|
-| The window program | Python, GTK 4, WebKitGTK 6.0, `gtk4-layer-shell`. One layer surface, one web view, no network. Holds the connection to the app helper. | `/usr/libexec/aresos-laptop-home` |
-| The page | Plain HTML, CSS and JavaScript modules, no build step. Draws the town. | `/usr/share/aresos/laptop-home/` |
+| The window program | Python, GTK 4, Cairo, Pango, `gtk4-layer-shell`. One layer surface with one drawing area, no network. Holds the connection to the app helper. Three sections in one file: the layout model (pure Python, the rules of section 3), the painter (Cairo and Pango) and the window. | `/usr/libexec/aresos-laptop-home` |
 | The fonts | Space Grotesk is in the image. JetBrains Mono is added. | `/usr/share/fonts/aresos/` |
 
-Why a web engine: the companions run on a web runtime and move into a web page as they are (section 7). A native
-drawing would be lighter but would mean rebuilding them.
+**Why native.** The study chose a web page so that the companions could move in as they are (section 7). Package
+53e then measured it: the page at best 418 MiB PSS at rest with smooth motion, against 46.6 MiB for a bare GTK 4
+and Cairo drawing (five-run medians, software rendering). He had said 300 MB for a home screen "seems crazy much …
+thats not a good OS is it?". The companions now bring their own web view, only while they are switched on
+(section 7).
 
 **Rules for the window program.**
 - **The layer library from Python.** `gtk4-layer-shell` must be loaded before `libwayland-client`, and its own
   notes give `LD_PRELOAD` for Python. Without it the layer surface silently does not happen. The supervisor starts
   the program with `LD_PRELOAD` set to the library. The program checks that the layer surface is supported, and
   uses the fallback of section 6 when it is not.
-- **The page's own address scheme.** The page is served as `aresos-home:`, from the page's folder only. The scheme
-  is registered as secure and as CORS-enabled (WebKit's security manager). JavaScript is served as
-  `text/javascript`, CSS as `text/css` and JSON as `application/json`. Otherwise module imports and `fetch` fail.
-  Loose files would not let the page load modules or fetch data either, and the companions' runtime needs both.
-- Every other address is refused. The network session is ephemeral. No developer tools, no context menu, no
-  downloads, no new windows.
-- App pictures of programs outside My apps (the finder's list) are served as `aresos-home://icon/<app id>`, read
-  only from the path the helper gave for that ID.
-- **The secret stays out of the engine.** The program reads the view token (section 5) and then removes it, and
-  `LD_PRELOAD`, from its own environment before it creates the web view. The engine's processes start from that
-  environment and never inherit them. The page never sees the token either way.
-- **It draws on the compositor's chip.** The laptop has two graphics chips. GTK must hand its pictures to the
-  compositor on the chip the compositor draws with, or every frame is copied between the two (see "Motion" below).
-  The program never gets the game's NVIDIA environment.
+- **It draws with Cairo only.** Before it imports GTK the program sets `GDK_DISABLE=gl,vulkan` and
+  `GSK_RENDERER=cairo` (an explicit outside choice still wins), so it opens no GPU device and loads no GPU driver.
+  Its frames are shared-memory pictures the compositor puts on screen, so the two-chip trap of "Motion" below does
+  not apply to the town.
+- **It draws only when something changes:** the clock once a minute, at night one star every 4 seconds, and frames
+  on GTK's frame clock only while a street glides (0.3 s) or a puff rises (0.6 s). The caret blinks five times after
+  a keystroke on timers, then stays.
+- **Text is untrusted.** Names, keywords and the helper's failure words go to Pango as plain text, never markup.
+- **Typing** goes through GTK's own input method, so dead keys and compose work on his German layout.
+- **App pictures** of programs outside My apps (the finder's list) are read only from the path the helper gave for
+  that ID: a regular file, not a symlink, of at most 1 MiB, holding a PNG of at most 512 × 512. A short-lived child
+  (`python3 -I -S`) with only `PATH` and `LC_ALL` in its environment decodes the bytes (never the path) to at most
+  512 × 512 RGBA. On any failure the row shows no picture.
+- **The secret stays out.** The program reads the view token (section 5) and then removes it, and `LD_PRELOAD`,
+  from its own environment, in Python's and in libc's view alike. The picture decoder starts from a bare
+  environment.
 - **Its drawing libraries are pinned to Mesa and Intel.** The supervisor starts it with
   `__EGL_VENDOR_LIBRARY_FILENAMES` naming Mesa's EGL vendor file (`/usr/share/glvnd/egl_vendor.d/50_mesa.json`)
-  and `VK_DRIVER_FILES` naming Intel's Vulkan driver file (`/usr/share/vulkan/icd.d/intel_icd.x86_64.json`). Both
-  stay in the environment the engine's processes start from. Without them libglvnd loads NVIDIA's libraries into
-  every process, even where Intel draws. It draws on the compositor's chip anyway, and the pin about halves its
-  memory ("Memory" below). The build package measures it in the real session.
+  and `VK_DRIVER_FILES` naming Intel's Vulkan driver file (`/usr/share/vulkan/icd.d/intel_icd.x86_64.json`). GTK 4
+  links libglvnd's dispatchers and the Vulkan loader into every process; they load no driver by themselves, and the
+  pins keep NVIDIA's libraries out should anything ask. The tests check that no driver is mapped (vendor EGL, GLX
+  or Vulkan libraries, gallium, LLVM, NVIDIA, `/dri/`).
 - It runs in a systemd scope of its own with `MemoryHigh=640M`.
 
-**What the page gets** (`window.aresosHome`):
+**Memory** (PSS from `smaps_rollup`, set-up S: a private headless labwc with software rendering, `/dev` masked, 45
+houses and 47 programs, the study's fonts; five fresh runs, each sampled at rest 15 s after one redraw):
 
-| Call or event | Meaning |
-|---|---|
-| `home()` | his apps as the mod published them: ID, name, short name, group, place, hotbar slot, the logo's cells and colours |
-| `programs()` | every program the helper lists: ID, name, generic name and keywords as the helper gives them, whether it has a picture. No group. |
-| `open(id)` | asks the helper to open it; resolves with the launch's state or the helper's failure words |
-| `status()` | battery level and whether it charges |
-| event `home` | the town changed: read `home()` again |
-| event `programs` | the program list changed |
-| event `running` | the IDs of the apps that have a window now |
-| event `status` | the battery changed |
-| event `helper` | the helper went away or came back (opening is off in between, section 5) |
+| Process (set-up S) | Sampled | Median PSS | Spread | Pss_Anon median | Window buffers |
+|---|---|---:|---:|---:|---:|
+| 53e's WebKit home, final shipped settings (53e's report) | at rest | 418.1 MiB | 417.1–419.5 MiB | — | — |
+| **53f's native home** | **15 s after one redraw, 5 runs** | **62,358 KiB (60.9 MiB)** | 62,310–62,488 KiB | 27,804 KiB | 2 |
+| 53f's native home | 15 s after the first draw, 3 runs | 53,462 KiB (52.2 MiB) | 53,453–53,486 KiB | 27,560 KiB | 1 |
+| 53e's native prototype (the control, same session) | 15 s after one redraw, 5 runs | 64,075 KiB (62.6 MiB) | 63,778–64,179 KiB | 31,144 KiB | 2 |
 
-The page never gets a command, a path, the socket, the view token or the launch nonce.
+The limit is a median of at most 60 MiB (61,440 KiB) at rest **after a redraw**; the native home is 918 KiB over it
+in set-up S. 15.8 of its 60.9 MiB are the window's two 8,100 KiB pictures: from its second frame on, GTK keeps the
+picture on screen and one spare, because the headless compositor's software renderer reads the shown picture in
+place. A compositor that draws on the graphics chip copies each picture as it arrives and gives it back at once,
+so GTK reuses one; that is the 52.2 MiB of the first-draw row, and what the laptop trial (set-up I) measures.
+Measured settings the program keeps for this (package 53f): a fixed malloc mmap threshold, so each frame's 8 MiB
+temporary picture never stays in the heap (−8.8 MiB); no OpenSSL in the process; GIO's local file system only.
 
-**Memory** (PSS from `smaps_rollup`, the window program and the engine's processes together, at rest):
-**about 335 MiB unpinned, and about 150 to 180 MiB with the EGL and Vulkan vendor pinned to Mesa and Intel**, as
-the rule above does. Each number's source:
-- **About 335 MiB unpinned** (this study: 40 test apps, WebKitGTK 2.54.1, a headless compositor). 127 MiB of it is
-  working memory and 208 MiB the program and library files it maps: the engine, GTK and the graphics driver's
-  libraries. Shared memory is under 1 MiB. His session is near this number without the pin, because libglvnd loads
-  NVIDIA's libraries into every process.
-- **About 150 to 180 MiB pinned** (research: `reviews/49-memory-cuts/RESEARCH.md` section 6, on branch
-  `pkg/49-memory-cuts`, commit `fc1d31de`, until package 49 merges), with `__EGL_VENDOR_LIBRARY_FILENAMES` and
-  `VK_DRIVER_FILES` set as above. The research measured the bare engine at about 150 MiB pinned (85 MiB working
-  memory), against 356 unpinned in its own noisy run, and gives the home about 150 to 180. It also advises
-  WebKitGTK 2.54.2 or later, which frees idle processes under memory pressure.
-- Under 2 % of one processor core at rest. Memory the graphics chip holds for it does not show in these numbers.
-
-**Motion** (measured, review fix 7): one figure the size of a companion (80 x 80 pixels) walks along a street. It is
+**Motion on a web engine** (the study's measurement, review fix 7; it now concerns the companions' own web view,
+section 7): one figure the size of a companion (80 x 80 pixels) walks along a street. It is
 drawn on a see-through canvas over the whole town that is cleared and drawn again every frame, as the companions'
 runtime draws, at 60 frames a second, for a minute.
 
@@ -405,7 +399,8 @@ helper that does not know them works as today.
   - **Connections.** A same-name hello replaces only that view. A fifth distinct connected view gets `busy`.
     View hello leaves the desktop connection, window rules, pending returns and status pipe alone. Only the
     desktop counts for readiness.
-  - A view may send `hello`, `list_apps`, `open_app` and `get_home`. Any other operation gets `invalid_state`.
+  - A view may send `hello`, `list_apps`, `open_app`, `get_home` and `view_focus`. Any other operation gets
+    `invalid_state`.
     A successful hello advertises the catalogue, launch and 1.2 view capabilities to a view. It gets
     `apps_changed`, `home_changed`, `apps_running` and `app_state` for its own launches. The desktop gets
     `shell_focus` and `shell_covered` under its existing capability rules.
@@ -421,6 +416,11 @@ helper that does not know them works as today.
     outputs and carries the decision through the discovered-app delay. The closing window's location decides,
     including after a move and regardless of who opened the app. With unknown outputs, one screen or no view,
     the existing return applies. An actual compositor activation of the world still reaches the game.
+- **`view_focus`** (view to helper, under `views`). A view sends `{"op": "view_focus", "focused": true}` when it
+  gets the keyboard, sends `false` when it loses it, and reports its current state after each hello. The helper
+  acknowledges the report. A non-boolean or missing `focused` gets `malformed`. A desktop gets `invalid_state`.
+  While any connected view has the keyboard, app closes leave focus there. A disconnect releases that view's
+  focus record. App deactivation alone preserves eligibility for a return when its last window closes.
 - **`publish_home`** (minor-2 desktop to helper). The mod sends it after hello and after every change of My apps,
   a short name, a place, a hotbar slot or a logo. Example fields inside the request envelope:
 
@@ -491,6 +491,8 @@ restarts (with each new game start), opening is off for those seconds, as above.
     `ToggleAlwaysOnBottom`.
   - The helper must then leave that app-id out of covering, of the return of focus and of the list of unknown
     windows, as it does for `aresos.cover`, and the window program must refuse to close.
+  - Mapping the fullscreen fallback can take keyboard focus from the world. Package 23c's unattended restart
+    rule must account for this when the fallback is in use.
 - **From the world to the laptop home.** While the world on the monitor has the focus, the game holds the pointer
   and the keyboard (package 40: it lets go of the mouse only while an app is in front). So from inside the world
   he presses Esc (or E, or T), moves the pointer down to the laptop screen and clicks. From an app the pointer is
@@ -541,14 +543,19 @@ The town is that city. What their runtime needs from a host (`~/companions/runti
 | The runtime asks for | The laptop home gives |
 |---|---|
 | a canvas it may draw on | a see-through canvas over the town, under the typing line and the hotbar |
-| a world: floor, ledges, boxes | the home line as the floor; each street and each roof as a ledge with its free height; each house as a box (the prototype's `laptopHome.world.snapshot()`). A street that slides moves its roofs' ledges and its houses' boxes with it (by day the road's own ledge runs across the whole screen and stays); the runtime reads a snapshot every frame, so companions standing there ride along. |
-| input | the page's own pointer |
-| storage | a small file kept by the window program, given to the page at its start |
-| its files as modules over an address | the `aresos-home:` scheme (section 4) |
+| a world: floor, ledges, boxes | the home line as the floor; each street and each roof as a ledge with its free height; each house as a box (from the native layout model, as the study's `laptopHome.world.snapshot()` gave them). A street that slides moves its roofs' ledges and its houses' boxes with it (by day the road's own ledge runs across the whole screen and stays); the runtime reads a snapshot every frame, so companions standing there ride along. |
+| input | their web view's own pointer, over the town |
+| storage | a small file kept by the window program, given to their page at its start |
+| its files as modules over an address | a scheme of their own web view (their package) |
+
+**They bring their own web view, only while they are switched on** (53f). The town is drawn natively (section 4);
+the companions' runtime needs a web engine, so their package adds a see-through web view over the town that starts
+when he switches them on and is gone when he switches them off. The home at rest stays native. Their world comes
+from the native model: each street's drawn offset (`shift` in the model) every frame while it glides.
 
 The menu for opening apps stays what it is: houses, hotbar, typing.
 
-**What their motion costs on this engine** (section 4, "Motion"): about a fifth of one processor core while they
+**What their motion costs on a web engine** (section 4, "Motion on a web engine"): about a fifth of one processor core while they
 move at 60 frames a second, on one graphics chip. That is affordable for a screen beside the world. It is still
 far from the near-zero of the town at rest, so the companions version needs a budget of its own:
 - **Fewer frames.** The runtime takes its clock from the host, so the host can give it 30 frames a second or fewer.
@@ -576,8 +583,8 @@ memory, and that budget.
   that look like the game's.
 - **All four avenues as one panorama**, rows getting smaller with distance. The far rows become too small to click
   while space stays free elsewhere.
-- **A native GTK drawing instead of a web page.** Lighter (an estimate: 50 to 80 MiB), but the companions would be
-  rebuilt for it.
+- **A web page instead of a native drawing** (rejected in 53f; the study had chosen it). The page cost at best
+  418 MiB at rest (53e) for the companions' sake; they now bring their own web view only while switched on.
 - **A browser in app mode.** Heavier than the bare engine, and it is his browser with his profile.
 - **The page reading the mod's `apps.json`.** A second parser of a file that is the mod's own, and the logos would
   be converted twice.
@@ -616,7 +623,8 @@ memory, and that budget.
      the right MIME types, the token and `LD_PRELOAD` removed from the environment before the web view starts.
    - The vendor pin (section 4): a test that neither the program nor the engine's processes map an NVIDIA library.
    - The image gets `gtk4-layer-shell` and JetBrains Mono, and a check that WebKitGTK 6.0 and its Python binding are
-     there.
+     there. (53f replaced the page with the native drawing; the image check now loads the program's own
+     `load_gui()`, section 4.)
 4. **The supervisor makes the view token and starts and stops the laptop home** with package 23c's screens, in its
    scope, with the restart rule and the vendor pin (section 4), and keeps the token out of what it starts
    (`PRIVATE_ENVIRONMENT`). This is package 23c's side (`linux-aresos`, the PLAN-GAP of section 5).

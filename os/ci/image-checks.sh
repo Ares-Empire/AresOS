@@ -576,6 +576,43 @@ test "$(sha256sum /etc/subuid /etc/subgid)" = "$before"
 test "$(systemctl --root=/ is-enabled aresos-subids.service)" = enabled
 pass 'ares has subordinate ID ranges; the boot service is enabled and idempotent'
 
+# --- Package 311: labwc is our rebuild of Fedora's source package, the only labwc, unchanged since it was installed.
+labwc_nevra=$(python3 -c 'import json; print(json.load(open("/usr/share/aresos/manifest/labwc.lock.json"))["result"]["nevra"])')
+test "$labwc_nevra" = labwc-0.9.6-1.fc44.aresos1.x86_64
+test "$(rpm -q --qf '%{NEVRA}\n' labwc)" = "$labwc_nevra"
+labwc_verify=$(rpm -V labwc)
+test -z "$labwc_verify"
+pass "labwc is the locked rebuild ($labwc_nevra), the only labwc installed, and rpm -V labwc is clean"
+# labwc is built on fedora:44 and runs on this image: every library must be found here, and every Requires must be
+# met by a package of this image. labwc is the only package that comes from that stage. rpm -V above checks versions.
+python3 -I - <<'LABWC_RUNTIME'
+import subprocess
+import sys
+
+
+def run(*command):
+    return subprocess.run(command, capture_output=True, text=True)
+
+
+ldd = run('ldd', '/usr/bin/labwc')
+missing = [line.strip() for line in ldd.stdout.splitlines() if 'not found' in line]
+if ldd.returncode != 0 or missing:
+    sys.exit(f'LABWC_RUNTIME_FAILED ldd exit {ldd.returncode}, not found: {missing}')
+requires = run('rpm', '-q', '--qf', '[%{REQUIRENAME}\\n]', 'labwc')
+names = sorted({name for name in requires.stdout.split('\n') if name and not name.startswith('rpmlib(')})
+if requires.returncode != 0 or not names:
+    sys.exit(f'LABWC_RUNTIME_FAILED cannot read the Requires of labwc: {requires.stderr.strip()}')
+unmet = []
+for name in names:
+    providers = run('rpm', '-q', '--whatprovides', '--qf', '%{NAME}\\n', name)
+    if providers.returncode != 0 or not set(providers.stdout.split()) - {'labwc'}:
+        unmet.append(name)
+if unmet:
+    sys.exit(f'LABWC_RUNTIME_FAILED no package of this image provides: {unmet}')
+print(f'LABWC_RUNTIME_OK {len(names)} requirements')
+LABWC_RUNTIME
+pass 'labwc finds every library, and packages of this image provide everything it requires'
+
 # --- Package 23: Minecraft starts in AresOS.
 lock=/usr/share/aresos/minecraft/desktop.lock.json
 java=$(python3 -c 'import json, sys; print(json.load(open(sys.argv[1]))["java"]["path"])' "$lock")
@@ -678,6 +715,39 @@ PY
 font=$(runuser -u ares -- env -i HOME=/tmp PATH=/usr/bin /usr/bin/fc-match --format '%{file}' 'Space Grotesk:bold')
 test "$font" = /usr/share/fonts/aresos/SpaceGrotesk-Variable.ttf
 pass "the startup cover is installed and loads GTK 4 as ares; fontconfig finds Space Grotesk ($font); its labwc rule is set"
+# Package 53f: the laptop home draws natively. Load the program's own load_gui() without a display, as the cover's
+# check does: GTK 4, Pango and Cairo as ares, with the Cairo renderer and no GPU device asked for.
+test -x /usr/libexec/aresos-laptop-home
+runuser -u ares -- env -i HOME=/tmp PATH=/usr/bin /usr/bin/python3 - <<'PY'
+import importlib.machinery, importlib.util, os
+loader = importlib.machinery.SourceFileLoader('aresos_laptop_home', '/usr/libexec/aresos-laptop-home')
+spec = importlib.util.spec_from_loader('aresos_laptop_home', loader)
+home = importlib.util.module_from_spec(spec)
+loader.exec_module(home)
+gui = home.load_gui()
+print('LAPTOP_HOME_GTK', gui.Gtk.get_major_version(), gui.Gtk.get_minor_version(), 'cairo', gui.cairo.version)
+assert gui.Gtk.get_major_version() == 4
+assert (os.environ['GDK_DISABLE'], os.environ['GSK_RENDERER']) == ('gl,vulkan', 'cairo')
+import struct, zlib
+def chunk(name, data):
+    return struct.pack('>I', len(data)) + name + data + struct.pack('>I', zlib.crc32(name + data))
+png = (b'\x89PNG\r\n\x1a\n' + chunk(b'IHDR', struct.pack('>IIBBBBB', 1, 1, 8, 6, 0, 0, 0))
+       + chunk(b'IDAT', zlib.compress(b'\0\1\2\3\4')) + chunk(b'IEND', b''))
+# The decoder runs only in bubblewrap (53f review fix 1). Where this container allows no user namespace, bubblewrap
+# itself cannot start, and the home must then refuse to decode rather than decode unsandboxed.
+import subprocess
+assert home.BWRAP == '/usr/bin/bwrap' and os.access(home.BWRAP, os.X_OK)
+try:
+    decoded = home.decode_png(png)
+except (OSError, ValueError, subprocess.SubprocessError) as error:
+    alone = subprocess.run([home.BWRAP, '--ro-bind', '/', '/', '--', '/usr/bin/true'], capture_output=True)
+    assert alone.returncode != 0, f'bubblewrap runs here, yet the decoder failed: {error}'
+    print('LAPTOP_HOME_DECODER refused: bubblewrap cannot start in this container, and no icon is decoded')
+else:
+    assert decoded == (1, 1, b'\1\2\3\4')
+    print('LAPTOP_HOME_DECODER decoded in bubblewrap')
+PY
+pass 'the laptop home loads GTK 4, Pango and Cairo as ares with the Cairo renderer, and its icon decoder is sandboxed'
 # Super+Ctrl+Escape opens the recovery terminal, then ends the cover through the supervisor (PLAN-GAP 2). The
 # supervisor takes the command as ares; with no supervisor running here it says so and exits 1.
 python3 - <<'PY'
