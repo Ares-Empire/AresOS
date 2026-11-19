@@ -67,7 +67,7 @@ class JournalClosed(EngineCase):
         self.assertTrue(self.engine.store.write_failed)
         self.assertEqual(self.engine.receiver.evidence(approval['operation_id'])['arrivals'], ['alpha'])
         before = self.snapshot()
-        self.assertEqual(self.call('testapp_send', approval)['error']['code'], 'storage_error')
+        self.assertEqual(self.call('testapp_send', approval)['error']['code'], 'journal_incomplete')
         self.assertEqual(self.snapshot(), before)
 
     def test_incomplete_transaction_blocks_requests_blobs_expiry_and_restore_until_restart(self):
@@ -84,11 +84,11 @@ class JournalClosed(EngineCase):
                         ('testapp_fixture_configure', {'failure': 'none', 'refuse': []}, True),
                         ('mail_compose', {'account': 'box'}, False),
                         ('control_restore_confirm', {'confirm': 'invalidate earlier approvals'}, True)]:
-                    self.assertEqual(self.call(action, args, admin)['error']['code'], 'storage_error')
+                    self.assertEqual(self.call(action, args, admin)['error']['code'], 'journal_incomplete')
                 for blob_store in (self.engine.blobs, self.engine.adapters['mail'].wires):
                     with self.assertRaises(Refused) as error:
                         blob_store.put(b'no write')
-                    self.assertEqual(error.exception.code, 'storage_error')
+                    self.assertEqual(error.exception.code, 'journal_incomplete')
                 self.engine.expire()
                 self.data('testapp_list')
                 self.assertEqual(self.snapshot(), before)

@@ -90,7 +90,7 @@ class Filing24(unittest.TestCase):
         evidence = next(iter(result['observations']['evidence'].values()))
         self.assertEqual(evidence['records'][0]['destination']['uid'], 1)
         self.assertEqual(evidence['observed_role'], 'Trash')
-        self.assertTrue(self.engine.store.write_failed)
+        self.assertFalse(self.engine.store.write_failed)
         self.assertFalse(self.engine.store.items('notice:'))
         for action, args in [('mail_accounts', {}), ('control_log', {})]:
             following = self.engine.request({'v': 1, 'method': 'call', 'action': action, 'arguments': args})
@@ -109,12 +109,101 @@ class Filing24(unittest.TestCase):
                         self.engine.expire()
                 expected = 'Storage I/O' if number == errno.EIO else 'Disk full'
                 self.assertIn(expected, logs.output[0])
-                for _ in range(2):
-                    result = self.call('compose', {'account': 'box', 'to': ['recipient@mail.invalid'], 'text': 'Synthetic'})
-                    self.assertFalse(result['ok'], result)
-                    self.assertIn(expected, result['error']['message'])
-                    self.assertIn(expected, result['pending']['notices'][0]['untrusted_content']['reason'])
+                self.assertFalse(self.engine.store.write_failed)
+                result = self.call('compose', {'account': 'box', 'to': ['recipient@mail.invalid'], 'text': 'Synthetic'})
+                self.assertTrue(result['ok'], result)
+                self.assertIn(expected, result['pending']['notices'][0]['untrusted_content']['reason'])
                 self.restart()
                 self.data('compose', {'account': 'box', 'to': ['recipient@mail.invalid'], 'text': 'Synthetic'})
                 self.assertIsNone(self.engine.store.storage_cause)
                 self.assertFalse(self.engine.store.write_failed)
+
+    def test_failed_predispatch_flush_blocks_effect_until_next_request(self):
+        import json
+        import os
+        from test_review23_sweep import Scenario
+        from aresos_control.common import storage_refusal
+        # Exercise both gates: flush/catch before dispatch, and a caller which
+        # catches the same failure after admission and reaches a command check.
+        for where in ('predispatch', 'admitted'):
+            for kind in ('zero', 'short', 'fence-sync'):
+                with self.subTest(where=where, kind=kind):
+                    scenario = Scenario('send')
+                    try:
+                        f, store = scenario.fixture, scenario.fixture.engine.store
+                        notice = {'id': 'queued', 'app': 'mail', 'state': 'partial', 'ack': False,
+                                  'untrusted_content': {'reason': 'Synthetic queued warning.'}}
+                        def queue():
+                            store.defer_notice('queued', {'notice:queued': notice}, 'control_maintenance', 'Synthetic deferred warning')
+                        if where == 'predispatch': queue()
+                        before = (store.evidence_dir / 'operations.jsonl').read_bytes()
+                        write, sync, failed = store.journal.write, os.fsync, []
+                        def journal_write(data):
+                            if not failed and kind != 'fence-sync':
+                                self.assertNotIn('commit', json.loads(data))
+                                failed.append(kind)
+                                return write(data[:0 if kind == 'zero' else 13])
+                            return write(data)
+                        def journal_sync(fd):
+                            if fd == store.journal.fileno() and not failed and kind == 'fence-sync':
+                                failed.append(kind)
+                                raise OSError(errno.ENOSPC, 'Synthetic fence sync failure')
+                            return sync(fd)
+                        admitted = f.engine._request
+                        refused_checks = []
+                        def caught(*args, **kwargs):
+                            queue()
+                            try: store.flush_notices()
+                            except Refused: pass
+                            # Catching must not remove the barrier at the next
+                            # storage check, even though the store is unlatched.
+                            try:
+                                store.ensure_writable()
+                            except Refused as exc:
+                                refused_checks.append(exc.code)
+                            return admitted(*args, **kwargs)
+                        from contextlib import ExitStack
+                        with ExitStack() as stack:
+                            stack.enter_context(patch.object(store.journal, 'write', side_effect=journal_write))
+                            stack.enter_context(patch('os.fsync', side_effect=journal_sync))
+                            if where == 'admitted': stack.enter_context(patch.object(f.engine, '_request', side_effect=caught))
+                            result = scenario.call()
+                        self.assertEqual(scenario.remote['DATA'], 0, 'Failed flush must cause zero SMTP DATA')
+                        self.assertFalse(scenario.remote, scenario.remote)
+                        if where == 'admitted':
+                            self.assertEqual(refused_checks, ['storage_limit'])
+                        self.assertEqual(result['error']['code'], 'storage_limit', result)
+                        self.assertEqual(result['error']['message'], str(storage_refusal(OSError(errno.ENOSPC, 'Synthetic'))))
+                        self.assertEqual(f.engine.operation(scenario.operation_id)['state'], 'reserved')
+                        self.assertIn('queued', store.deferred_notices)
+                        self.assertEqual((store.evidence_dir / 'operations.jsonl').read_bytes(), before)
+                        self.assertFalse(store.write_failed)
+                        reply = scenario.call()
+                        self.assertTrue(reply['ok'], reply)
+                        self.assertFalse(store.deferred_notices)
+                        self.assertEqual(scenario.remote['DATA'], 1)
+                        self.assertEqual(scenario.remote['APPEND'], 1)
+                    finally:
+                        scenario.close()
+
+    def test_failed_predispatch_flush_blocks_reads_and_cancellation_until_next_request(self):
+        from test_review23_sweep import Scenario
+        for action in ('mail_accounts', 'mail_operation_cancel', 'control_pending'):
+            with self.subTest(action=action):
+                scenario = Scenario('send')
+                try:
+                    f, store = scenario.fixture, scenario.fixture.engine.store
+                    store.defer_notice('queued', {}, 'control_maintenance', 'Synthetic deferred warning')
+                    args = {'operation_id': scenario.operation_id} if action.endswith('_cancel') else {}
+                    envelope = {'v': 1, 'method': 'call', 'action': action, 'arguments': args}
+                    with patch.object(store.journal, 'write', return_value=0):
+                        reply = f.engine.request(envelope)
+                    self.assertEqual(reply['error']['code'], 'storage_limit', reply)
+                    self.assertEqual(f.engine.operation(scenario.operation_id)['state'], 'reserved')
+                    self.assertFalse(store.write_failed)
+                    self.assertIn('queued', store.deferred_notices)
+                    self.assertTrue(f.engine.request(envelope)['ok'])
+                    self.assertFalse(store.deferred_notices)
+                    self.assertFalse(scenario.remote)
+                finally:
+                    scenario.close()
