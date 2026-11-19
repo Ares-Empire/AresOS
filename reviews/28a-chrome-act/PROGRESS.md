@@ -1,5 +1,21 @@
 # Package 28a: Chrome acting progress
 
+## Step 1d, part 2, coverage fix
+
+2026-11-19. Pushed fixture fix `a28720dd` to draft PR #116. The `linux-tools` lead owns the hosted results.
+
+**Cause and evidence.** The fixture typed after `chrome_show` without establishing keyboard focus in Draft. In all four `df24623d` artifacts, the receiver recorded zero Draft inputs, the last facts showed an empty Draft and `Waiting for keys`, and all 84 page-state replies in each case kept the same revision and field digest. The proxy call timed out in 8.208–8.251 seconds. The third page-state command was the wait's initial read, so the old gate could also send keys before the first poll. The logs confirm Chrome accepted the show request. The old artifacts lack X11 focus and keydown observations, so they cannot identify the surface that got the keys. Read `gh run view --log-failed` for both runs, the job logs through `gh api`, and the four uploaded `recheck2` artifacts. [Browser run 44590799388](https://github.com/Ares-Empire/AresOS/actions/runs/44590799388), [qualification run 44590799642](https://github.com/Ares-Empire/AresOS/actions/runs/44590799642).
+
+**Fix.** The case clicks Draft in the exact native Chrome window and verifies the selected Chrome tab and focused, visible field. The existing X11 typing path sends `Owner words` once the wait starts polling. The case still requires `done`, then `stale_reference` with the Draft's present line, the owner's text on a fresh read, and trusted input prefixes. Focus, keydown, input and timing evidence are retained in `receiver.jsonl` and `act/owner-draft.jsonl`. The change is confined to the CI harness and fixture.
+
+**Verified locally.** Portable Node `--test control/chrome_tests/*.test.mjs` passed **628/628**. Python `-m unittest` ran **118 tests in 36.414s, OK** across `test_questions`, `test_policy`, `test_engine`, `test_doing` and the six qualification-fixture methods that avoid the local state-test ban. A simulated event check confirmed the fixture sets `Draft entered` only after the full trusted value. Changed-module syntax and `git diff --check` passed. `control/generate.py --check` printed `Generated artifacts match definitions`. Browser verification is hosted. No files over 500 MB under `.work/`.
+
+**Dispatched once each at `a28720dd`.** [Control Chrome 44604152322](https://github.com/Ares-Empire/AresOS/actions/runs/44604152322) and [Control Chrome qualification 44604152624](https://github.com/Ares-Empire/AresOS/actions/runs/44604152624).
+
+**JUDGMENT-CALLs.** Use a native click on a generously sized fixture field and gate key delivery on the first poll. Autofocus alone left keyboard routing unproved, and a fixed delay would depend on runner load. Revisiting this costs a fixture edit and a hosted replay.
+
+**PLAN-GAPs.** None identified. The lead will verify the real-browser evidence in the dispatched runs.
+
 ## Step 1d, part 2, coverage
 
 2026-11-19. The four Group 15 cases are in the `recheck2` browser shard of draft PR #116.
