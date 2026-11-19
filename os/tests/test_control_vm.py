@@ -325,6 +325,21 @@ class ChromePassTest(unittest.TestCase):
             runner.type_password(guest, password)
         self.assertEqual(guest.keys.call_args_list, [mock.call([char]) for char in password] + [mock.call(['ret'])])
 
+    def test_c7_reads_changes_and_verifies_only_the_live_polkit_log_level(self):
+        chrome = self.actions()
+        actions = mock.Mock()
+        actions.ok.side_effect = lambda result: result
+        actions.run.side_effect = [{'stdout': 's "notice"\n'}, {}, {'stdout': 's "info"\n'},
+                                   {}, {'stdout': 's "notice"\n'}]
+        get = ['busctl', '--system', 'get-property', *chrome.POLKIT_LOG]
+        set_ = ['busctl', '--system', 'set-property', *chrome.POLKIT_LOG, 's']
+        with mock.patch.object(chrome, 'control', return_value=actions):
+            original = chrome.polkit_log_level()
+            self.assertEqual(chrome.polkit_log_level('info'), 'info')
+            self.assertEqual(chrome.polkit_log_level(original), 'notice')
+        self.assertEqual(actions.run.call_args_list,
+                         [mock.call(argv) for argv in (get, [*set_, 'info'], get, [*set_, 'notice'], get)])
+
     def test_c8_uses_the_current_button_reference_and_checks_the_exact_post(self):
         chrome = self.actions()
         row = dict(reference={'tab': 42, 'element': 'v3'},

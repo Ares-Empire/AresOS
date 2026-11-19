@@ -155,7 +155,8 @@ def ours_on_screen(folder, first, last, prompt):
     return lines
 
 
-def session(evidence, steps, flags, answers, before_turn=None, turn_seconds=180, *, model_factory=Model, before_answer=None):
+def session(evidence, steps, flags, answers, before_turn=None, turn_seconds=180, *,
+            model_factory=Model, before_answer=None, terminal_height=None):
     """One fresh claude as ares. answers[i]: None (no prompt may show), 'Yes' or 'No' (the managed ask must show
     and gets that answer), or 'hook' (a PermissionRequest hook may flash the prompt; never answered)."""
     evidence.mkdir(parents=True, exist_ok=True)
@@ -164,6 +165,11 @@ def session(evidence, steps, flags, answers, before_turn=None, turn_seconds=180,
     with model_factory(steps, evidence / 'model', port=PORT) as model:
         argv = [str(CLAUDE), *flags, steps[0]['prompt']]
         with Terminal(owner_run, screens, SOCKETS / 'session.sock', str(WORK), argv, ENV) as terminal:
+            if terminal_height is not None:
+                # The Chrome approval shows a form binding whose details push the question out of 40 rows.
+                terminal.tmux('resize-window', '-t', 'case:0', '-y', str(terminal_height))
+                launch = screens / 'launch.json'
+                launch.write_text(json.dumps(dict(json.loads(launch.read_text()), height=terminal_height), indent=2))
             for index, (step, answer) in enumerate(zip(steps, answers)):
                 if before_turn:
                     before_turn(index)

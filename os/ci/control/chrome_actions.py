@@ -1708,6 +1708,7 @@ def no_store(request):
 EDIT_SITE = 'editing.localhost'
 EDIT_ACTION = 'org.aresos.control.chrome-loosen'
 EDIT_CHANGE = f'Read-only off for {EDIT_SITE}'
+POLKIT_LOG = ['org.freedesktop.PolicyKit1', '/org/freedesktop/LogControl1', 'org.freedesktop.LogControl1', 'LogLevel']
 
 
 def shadow_value():
@@ -1722,6 +1723,16 @@ def set_shadow(value):
     result = subprocess.run(['/usr/sbin/chpasswd', '-e'], input=f'{OWNER}:{value}\n', text=True,
                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=30)
     expect(result.returncode == 0, 'could not set the temporary guest shadow entry')
+
+
+def polkit_log_level(level=None):
+    actions = control()
+    if level is not None:
+        actions.ok(actions.run(['busctl', '--system', 'set-property', *POLKIT_LOG, 's', level]))
+    shown = actions.ok(actions.run(['busctl', '--system', 'get-property', *POLKIT_LOG]))['stdout'].strip()
+    matched = re.fullmatch(r's "([a-z]+)"', shown)
+    expect(matched and (level is None or matched[1] == level), f'polkit log level: {shown}')
+    return matched[1]
 
 
 def read_only():
@@ -1750,12 +1761,15 @@ def edit_start(request):
     peer = dict(pid=host['pid'], start=confirm.start_time(host['pid']), uid=owner_ids()[0])
     expect(re.fullmatch(r'\$6\$[./A-Za-z0-9$]+', request['password_hash']), 'invalid guest password hash')
     STATE['edit'] = dict(peer=peer, argv=confirm.command(peer, EDIT_CHANGE), shadow=shadow_value(),
-                         session=his_session(sessions()), journal_count=0, outcomes=[])
+                         session=his_session(sessions()), journal_count=0, outcomes=[], log_level=polkit_log_level())
+    # polkit 127 defaults to notice. Its successful ONE-SHOT entry is info. Change only the live guest log level.
+    polkit_log_level('info')
     set_shadow(request['password_hash'])
     mark_read_only()
     identity = shipped_extension()['id']
     expect(installed(link, identity)['enabled'], 'the details page is from the shipped extension')
-    return dict(returncode=0, summary=dict(extension_id=identity, site=EDIT_SITE, host_pid=host['pid']))
+    return dict(returncode=0, summary=dict(extension_id=identity, site=EDIT_SITE, host_pid=host['pid'],
+                                          journal_log_level='info', original_log_level=STATE['edit']['log_level']))
 
 
 def edit_prompt():
@@ -1788,7 +1802,10 @@ def edit_result(allowed):
                                            '_COMM=polkitd']))
         lines = edit_journal(done['stdout'].splitlines(), state['session'], state['peer'])
         return lines if len(lines) > state['journal_count'] else None
-    lines = eventually(journal, 'polkit records the action for the native host', 10)
+    try:
+        lines = eventually(journal, 'polkit records the action for the native host', 10)
+    except Failure as error:
+        raise Failure(f'{error}; read_only after the answer: {read_only()}') from error
     new = lines[state['journal_count']:]
     expect(len(new) == 1, f'one journal outcome per attempt: {new}')
     marker = f'successfully authenticated as unix-user:{OWNER} to gain ONE-SHOT authorization' if allowed else 'FAILED to authenticate'
@@ -1810,8 +1827,11 @@ def edit_reset(request):
 def edit_finish(request):
     state = STATE.pop('edit', None)
     expect(state is not None, 'no C7 test was prepared')
-    set_shadow(state.pop('shadow'))
-    summary = dict(site=EDIT_SITE, subject=state['peer'], attempts=state['outcomes'])
+    try:
+        set_shadow(state.pop('shadow'))
+    finally:
+        restored_level = polkit_log_level(state['log_level'])
+    summary = dict(site=EDIT_SITE, subject=state['peer'], attempts=state['outcomes'], restored_log_level=restored_level)
     expect([row['readonly'] for row in summary['attempts']] == [True, False, True],
            f'C7 needs cancel, password and a fresh dialog: {summary}')
     return dict(returncode=0, summary=summary, files=control().files_out({'chrome/c7-polkit.json': summary}))
@@ -1913,7 +1933,7 @@ def ask_form(request):
                     prepare={'name': 'mcp__chrome__click', 'input': None})
         try:
             before = form_arrivals(pages, expected)
-            result = sessions_.session(folder, [step], sessions_.NORMAL, [answer],
+            result = sessions_.session(folder, [step], sessions_.NORMAL, [answer], terminal_height=120,
                                        model_factory=form_model(url),
                                        before_answer=lambda: form_arrivals(pages, expected))
             turn = result['turns'][0]
