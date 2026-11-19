@@ -1,6 +1,6 @@
 # Package 25, the guardian: progress
 
-Updated after **step 6** (2026-11-19). Builder: a Claude agent on Fable 5.2, one fresh agent per step.
+Updated after **step 7** (2026-11-19). Builder: a Claude agent on Fable 5.2, one fresh agent per step.
 Brief: `briefs/25-guardian.md`; its last section ("The lead's fixes after the recheck") overrides the rest.
 
 ## Done
@@ -288,10 +288,112 @@ measuring parts; a development aid, nothing ships):
 Exit 75 (short of memory while another session's client test ran) came 11 times in all; each was waited out
 for five minutes, never forced. No `os/tests` module was run: nothing under `os/` changed.
 
+**Step 7: 3.1, the shutdown guard, and the VM checks.** Nothing of it ran on the laptop's own systemd: the unit
+is only written here, and every test uses a stand-in `systemctl`.
+
+- **The unit** `os/config/usr/lib/systemd/system/aresos-guardian.service`: `Type=oneshot`, `RemainAfterExit=yes`,
+  `User=ares`, `Environment=XDG_RUNTIME_DIR=/run/user/1001`, `ExecStart=/usr/bin/true`,
+  `ExecStop=/usr/libexec/aresos-desktop stop --reason shutdown`, `TimeoutStopSec=85`, `WantedBy=graphical.target`.
+  Enabled in `os/build.sh`.
+- **Its order.** `After=greetd.service user@1001.service user-runtime-dir@1001.service` and
+  `RequiresMountsFor=/var/home/ares` (the home's mount, whichever unit that is). The drop-in
+  `session-.scope.d/50-aresos-guardian.conf` (`Before=aresos-guardian.service`) orders every session scope before
+  it. systemd stops in reverse: the guard's stop ends before any of them begins to stop.
+- **Armed first.** `Supervisor.guard_armed()` → `Runner.guard_active()` (`systemctl is-active
+  aresos-guardian.service`, 2 s at most; only `active` counts; `activating` is asked again inside the same 2 s).
+  Asked in `begin()` (before Prism is started) and in `on_jvm_start()` (every JVM). Not active: the window `guard`
+  (`RECOVERY`, no latch, in `STICKY`), with systemd's word in it; `retry` asks again.
+- **The guard's command** (`guard_command()`; `main()` sends `stop --reason shutdown` there, every other stop
+  keeps `stop_command()` and its 70 s):
+  1. No runtime folder: no session, exit 0, nothing asked.
+  2. Ask the supervisor, `GUARD_REPLY_WAIT` 62 s for all of it. A reply that was recorded: its message, exit 0
+     only for `ok`.
+  3. No answer: the guard takes the desktop lock itself (`desktop_lock_state()` over `take_desktop_lock()`).
+     Free: no game runs, exit 0 at once. Held or unknown: one recovery attempt, `GUARD_RECOVERY_WAIT` 10 s, asked
+     again each second.
+  4. Still no answer with the lock held or unknown, or a reply with `recorded: false`: the fallback record
+     `~/.local/state/aresos/desktop-guard.json` (`Paths.guard_file`; `write_durable`, 0600; `schema`, `why`
+     (`no_answer`, `unrecorded`), `lock` (`held`, `unknown`, `free`), `save`, `launch` from the runtime file,
+     `written`), exit 1. It never signals anything.
+- **The next start** (`apply_guard_fallback()`, in `start()` after `close_stale_stop()`, only when no game was
+  adopted): latch `unsaved` with what the guard found, unless the supervisor's word is that the home was saved (its
+  own stop record of that launch, or the `save` the guard passed on). Applied once: the file is removed after the
+  latch is on the disk.
+- **The game's scope** has `--property=TimeoutStopSec=15s` (`GAME_STOP_TIMEOUT`, `game_scope()`).
+- **`os/ci/image-checks.sh`**: the guard is enabled (the link in `graphical.target.wants`), each of its lines, the
+  drop-in's line, and the `aresos.black` rule in `rc.xml` (step 4's decision 52).
+- **The VM checks** (run only in the lead's check build):
+  - `os/ci/overlay/guardian.py` (the guest; action `guardian-arm` in `checks.py`), `os/ci/overlay/GuardianGame.java`
+    (the stand-in game), `os/ci/guardian_host.py` (the host), and four places in `os/ci/vm.py` (bound: recorded
+    with `rebind.py pending`, `os/manifest/ci/16/pending-rebind.json`). `.github/workflows/os-image.yml` is
+    unchanged: vm.py's pass 1 is the brief's boot 1 (`save`), pass 2 is boot 2 (`hang`).
+  - **`guardian-arm`**, after the existing checks and before the power key: the guard as systemd loaded it
+    (`active`/`exited`, `enabled`, `1min 25s`, `User=ares`, its `ExecStop`, its `After` with the three units and
+    the home's mount unit that `findmnt` names; the session scope's `Before` has the guard; no "ordering cycle"
+    line in the boot's journal); `status` has `labwc: true`; the image's Java has `jdk.compiler`; a disposable
+    home `AresHub` is seeded as ares (`seed_world()`: it passes `check_world`); the recovery terminal is ended;
+    `retry` until the `killed` latch clears; the stand-in game is started through the real wrapper in the
+    transient unit `aresos-ci-game.service` (as ares, `DefaultDependencies=no`); wait for `jvm_pid` and
+    `lifecycle: true`; Prism is ended; wait for `windows == []`; the game scope's `TimeoutStopUSec` is `15s`
+    (asserted), the session scope's is printed; the guard's `ActiveEnterTimestampMonotonic` is before the
+    session's first `the game is starting` line. Then three watchers: `aresos-ci-guardian-probe` (as ares: twice a
+    second labwc, the JVM, the wrapper, the socket by a `status` request, the home by a written and fsynced file,
+    the units' states, the black window, the console; and one connection that asks `status` 64 times a tick from
+    the moment the guard's stop begins and never reads), `aresos-ci-guardian-lid` (boot 1: a uinput lid that closes
+    when the game writes its save marker, then logind's `LidClosed` and its list of AresOS's lid blocks),
+    `aresos-ci-guardian-record` (`Before=aresos-guardian.service`, so its `ExecStop` runs after the guard's stop
+    has ended: the stop record's allowlisted fields from `desktop.json`, whether Java is alive, whether a fallback
+    record exists).
+  - **The host**, after `system_powerdown`: waits for the game's `save_asked` line on the serial console, takes
+    the screen until it is black (at most 0.1 % of the pixels brighter than 8; the frame before the key must not
+    be black), in boot 2 presses Ctrl+Alt+F3 and takes the screen again; waits for the power-off inside
+    85 + 15 + 20 s; then `guardian_host.check()` on `evidence/vm-pass-N/offline-boot.jsonl`:
+    - both boots: power key < the guard's stop began < the save asked < the guard's stop ended; the session scope,
+      `greetd.service`, `user@1001.service` and the home's mount began to stop only after it (systemd's own
+      `Stopping …`/`Unmounting …` records); labwc gone only after it; every probe sample in between has labwc, the
+      wrapper, the socket (answering, `stopping: true`), a writable home and the four units `active`; a black
+      window and `black: true`; no sleep; no ordering cycle;
+    - boot 1: the save answered at least 4.5 s after it was asked, then `closing` (SIGTERM), then the wrapper's
+      exit with status 143, all before the guard's stop ended; the record says `saved`, `exited`, 143, closed,
+      `shutdown`, no latch, no fallback record; the guard printed `Stopped: the home was saved first; Minecraft
+      closed.`; the peer that never reads was dropped; the lid closed between asked and answered and logind saw it;
+    - boot 2: no answer; `sigterm_ignored` 25 to 35 s after the save was asked; the guard's stop took 55 to 85 s;
+      Java alive when it ended; the record says `overrun`, a save that is not `saved`, `sigterm`; the guard printed
+      `Not a confirmed stop: the home could not be confirmed as saved first; …`; the wrapper ended 10 to 30 s after
+      `user@1001.service` began to stop (the scope's 15 s); the probe saw `tty3`.
+    The summary is `evidence/vm-pass-N/guardian.json`; the guest's facts are `guardian-arm-result.json`.
+
+| Module (step 7, run by name as above) | Result |
+|---|---|
+| `test_aresos_guardian.py` | 106 tests, OK (12 new: `GuardTest`) |
+| `test_aresos_guardian_loop.py` | 26 tests, OK, 63 s, twice (5 new: no game until the guard is active; the guard's command with nothing running and with a game; no supervisor while the game runs: the fallback record and `unsaved` at the next start; the check build's stand-in game as a real JVM, saving and ending with 143, and hanging). Run with `PATH=<a JDK 25>/bin:/usr/bin:/bin`; with the plain PATH the two JVM tests skip here (no Java on this laptop's PATH). No process left behind |
+| `test_guardian_vm.py` (new: the VM proof's unit-level parts) | 7 tests, OK |
+| `test_aresos_desktop.py` | 189 tests, OK (1 skipped), 182 s, on the final code (and once before the last edit, 184 s) |
+| `test_control_vm.py`, `test_everyday_account.py`, `test_console_keymap.py` (they load or read `checks.py` and the overlay's `Containerfile`) | 62, 34 and 21 tests, OK |
+
+Existing assertions changed: `game_scope()`'s exact command in `test_aresos_desktop.py` (two places: the new
+property); the inventory of every `os.unlink` in `UseHomeTest.test_one_function_moves_a_world_folder_and_nothing_
+deletes_one` (one more: the guard's fallback record, the supervisor's own small file); and the loop test of a game
+that ignores SIGTERM now sets systemd's word through the harness's stand-in (`control/system`) instead of a script
+of its own. `test_aresos_cover.py`, the `test_aresos_shell*.py` modules and the rig's `test_rig.py` were not touched
+or run. After the tests `origin/main` was merged (7 commits, none in a file of this step).
+
+**The hosted run** (`checks_only=true`, the whole `os/tests` suite, no VM): run **44458416374**, started on
+`bda87419` (the step's last code commit) and not watched. It boots no VM and is no proof of the guard (the lead's
+fix 7). Step 8 reads its result first: it is the first run of the whole suite with this step's changes, and the
+first with a Java on the runner's `PATH` for the two stand-in game tests (they need 16 or newer, and skip
+otherwise).
+
+**New image files** (for the release diff): `/usr/lib/systemd/system/aresos-guardian.service`,
+`/usr/lib/systemd/system/session-.scope.d/50-aresos-guardian.conf`, the link
+`/etc/systemd/system/graphical.target.wants/aresos-guardian.service`. New state file on his disk:
+`~/.local/state/aresos/desktop-guard.json` (only after a shutdown with no answer; R28 never reads it).
+
 ## Left, in order
 
-7. 3.1 and the VM checks.
-8. The check build's findings, section 5 (docs), the report, the pull request.
+8. Started by the lead with the check build's run ID: fix what its new checks show, section 5 (docs), the report,
+   the pull request. If the guard, the stop routine or the VM check changes, ask the lead for a new check build on
+   the final commit (the lead's fix 7).
 
 ## linux-aresos's read checklist (2026-11-19)
 
@@ -305,6 +407,23 @@ From the lead, for steps 7 and 8:
 3. **`windows` names** are app names, never window titles (already so; keep titles out of every log).
 4. **`rc.xml`:** step 7 checks whether `os/ci/image-checks.sh` pins anything in `rc.xml`. The merge must keep 21b's
    key bindings and 23c's `Super_L` keybind; the lead coordinates the order.
+
+**Step 7's answers:**
+
+1. Tests: a refused save, an overrun and Java's own end were there (`BlackTest`, step 4). Added: a save that hangs
+   (`GuardTest.test_a_save_that_hangs_takes_the_black_screen_away_when_the_stop_is_called_off`, `restart` and
+   `logout`: at the save deadline the stop is called off, the black screen and the lid block end, the window
+   shows, the game runs on). The VM presses Ctrl+Alt+F3 behind the black screen in boot 2 and requires the probe
+   to see `tty3`.
+2. The lid block is taken by the supervisor in the session (never by the check). The VM reads the supervisor's
+   `lid_block` and, in boot 1, logind's own list. A block that logind does not list is printed as `REPORTED, NOT
+   BLOCKING` and never fails the check or the stop; the lid event itself, and that nothing slept, are asserted.
+3. Unchanged: names only. The VM's evidence takes the count of windows, never a name or a title.
+4. `os/ci/image-checks.sh` pins no hash of `rc.xml`. It pins: the exact lines of the `aresos-desktop` rule and
+   the `aresos.cover` rule (and now `aresos.black`); the brightness, volume and mute bindings' commands;
+   `W-C-Escape` (exactly one binding with its two actions, in order); `theme/name`, `theme/titlebar/layout`, the
+   window switcher's `style`; and every absolute command path in the file must be in its list of startup commands.
+   A new keybind such as 23c's `Super_L` breaks none of these unless it runs a command outside that list.
 
 ## Decisions taken where the brief left room
 
@@ -527,6 +646,56 @@ Step 6:
 78. **The launch's id stays out of the evidence** (`launch <id>` in the stop's phases), with the nonce, the
     environment and every path.
 
+Step 7:
+
+79. **`TimeoutStopSec=85`** (the lead's fix 1; 3.1 says 75). `WantedBy=graphical.target`, as
+    `aresos-console-keymap.service`: the guard is ordered after greetd, which belongs to that target, and
+    `multi-user.target` would be one more unit ordered after it. `ExecStart=/usr/bin/true` is spelled out. The home's
+    mount is named by `RequiresMountsFor=/var/home/ares`, not by a unit name: it is `var-home.mount` on an installed
+    laptop and may be `var.mount` or the root in the VM. It also means that unmounting the home stops the guard first.
+80. **Armed first is asked twice per start**: in `begin()`, so no Prism opens for a start that would be refused,
+    and in `on_jvm_start()` for every JVM (after the "already running" check, so a refused second wrapper changes
+    nothing). A guard that goes away while the game runs stops nothing; only the next start is refused.
+81. **`activating` is asked again** each 0.1 s inside the same 2 s (a login in the first moment after boot);
+    every other word, an error and no answer are "not active" at once.
+82. **JUDGMENT-CALL: with no answer the guard looks at the lock first**, and exits 0 at once when it is free. The
+    brief's order is ten seconds of asking again, then the lock. That would add ten seconds to every shutdown with
+    no supervisor (after a logout, from a console, from the greeter), and the owner asked for no visible lag (board
+    #379). A free lock is the same positive evidence before the ten seconds as after them; with the lock held or
+    unknown the recovery attempt runs as the brief says. Changing it back is one condition in `guard_command()`.
+83. **No runtime folder is "no session"**: exit 0 without asking. The folder goes after the user's last process,
+    and the guard is ordered before `user-runtime-dir@1001.service` stops. Without this rule the lock could not even
+    be opened there, which would read "unknown" and leave a fallback record at every shutdown from the greeter.
+84. **A reply with `recorded: false` is not asked again** (decision 22: that would be a new stop). The fallback
+    record is written unless the reply is `confirmed` and the lock is free; it carries the reply's `save`, and a
+    `saved` or `nothing` there keeps the next start from latching.
+85. **The fallback latch** overrides another latch, as `close_record()` does, and clears a pending backoff restart.
+    A record that cannot be read latches too (it exists, so the guard had no answer). If the latch cannot be
+    written, the record stays for the next start. A supervisor that adopts the game leaves the record alone.
+86. **A launch the fallback names is not made `stopped`.** After a reboot its runtime file is gone, so nothing
+    counts it; a replacement supervisor in the same session accounts for it as before this step.
+87. **No test asks the laptop's systemd about the guard.** The loop harness always points `SYSTEMCTL` at a
+    stand-in (`control/guard`, `control/system`); `test_aresos_desktop.py`'s loops use `systemctl_stand_in()`; the
+    fake runners have `guard`.
+88. **The stand-in game is one Java file run by the pinned Java itself** (`java GuardianGame.java`), if the
+    image's Java has `jdk.compiler`; `guardian-arm` asserts that first and says what to do if not (build the class
+    into the overlay). It says only `GUARDIAN_GAME <what> [id=n|mode=…]`.
+89. **The wrapper runs in a transient system unit** as ares with no default dependencies, so neither the check
+    service's stop nor the shutdown's first transaction ends it; the JVM itself sits in the real game scope under
+    `user@1001.service`, where the wrapper puts it.
+90. **The stop record reaches the host through the journal**: a check-only unit ordered before the guard reads
+    `desktop.json` in its own stop, after the guard's stop ended, and the journal is read offline. The disk image's
+    file is not read directly: `offline_journal.py`'s second reader restores journal paths only.
+91. **The lead's fix 5, "each fixture answered it"**: boot 2's game never answers by design. Asserted: both were
+    asked; boot 1's answered after its 5 s.
+92. **Ctrl+Alt+F3 is pressed in boot 2**, where the screen stays black for 30 s, not in boot 1's 5 s beside the
+    lid and the peer.
+93. **`image-checks.sh` greps the unit's lines** and runs no `systemd-analyze verify`: that container has no
+    systemd, and the VM's boot shows whether there is a cycle.
+94. **`checks.py` imports `guardian` inside its action**, not at its top: package 18c's control layer and
+    `test_control_vm.py` carry `checks.py` with only `channel.py` and `console_keymap.py` beside it, and a top-level
+    import broke that test here.
+
 **New texts** (the `save` command prints them; for the report's list):
 
 - `Saved: AresHub is on the disk.`
@@ -649,8 +818,66 @@ deleted). State: SETUP`, or `The unfinished home was not moved: <one of the refu
 retry to try again.` The wrapper's refusal there: `Your first home was not finished; the AresOS window says what to
 do.`
 
+Step 7:
+
+- `guard` (state `RECOVERY`, no latch): `Minecraft is not started yet. The part of AresOS that saves your home when
+  the laptop shuts down` / `is not running (aresos-guardian.service: <systemd's word>), and without it a shutdown
+  could cut a save short.` / (blank) / `Type  retry  and press Enter to try again.` / `If this window comes back,
+  restart the laptop.`
+- The wrapper's refusal there: `AresOS could not save your home at a shutdown right now, so Minecraft is not
+  started; the AresOS window says more.`
+- `unsaved`, three more `<why>` lines: `The AresOS desktop supervisor did not answer when the laptop shut down, and
+  Minecraft was still running.` / `… and AresOS could not tell whether Minecraft was still running.` / (existing)
+  `The stop could not be recorded on the disk.`
+- The guard's command (the journal only; nobody sees it): `Nothing to stop: no AresOS session is running.`,
+  `Nothing to stop: the AresOS desktop supervisor did not answer (<error>), and no Minecraft holds the desktop
+  lock.`, `Not a confirmed stop: the AresOS desktop supervisor did not answer (<error>), and Minecraft is still
+  running.` (or `nobody can tell whether Minecraft is still running (<why>).`), followed by `The next start of
+  AresOS says so.` or `That could not be recorded either (<error>).`
+
 ## What the code does not show
 
+- **Step 7, for step 8: what never ran before the check build.** The unit under a real systemd (its order, a
+  cycle, `User=ares`, `RequiresMountsFor`); `systemctl is-active` asked from the session; the real
+  `systemd-inhibit`; the image's Java running a single file; the uinput lid; the black window over the startup
+  cover in a real labwc; the journal carrying the game's lines. Each has its own assertion with a message; read
+  `evidence/vm-pass-N/guardian-arm-result.json` (the guest's facts, or its traceback), `guardian.json` (the times,
+  written before the assertions run), `guardian-black.png`, `guardian-tty3.png`, `last-vm-frame.png` and
+  `offline-boot.txt`.
+- **Where the check build is most likely to stop first**, in the order it would:
+  1. `desktop_session` (the existing `shortcut` step) expects `SETUP` at the first start. If the guard is not active
+     when the supervisor first asks, it finds `RECOVERY`/`guard` instead: then the unit failed to start
+     (`systemctl status aresos-guardian` in the journal: `User=`, the mount) or the order at boot is not what
+     decision 81 assumes.
+  2. `jdk.compiler` missing in `java-25-openjdk-headless`: build `GuardianGame.class` into the overlay (the
+     brief's second way) and start it with `-cp`.
+  3. `retry` does not clear `killed` within 240 s (memory pressure after the pressure step).
+  4. `windows` never becomes `[]`: something else in the VM's session counts as an app window; the assertion
+     prints the names.
+  5. The frame before the power key is black, or the frame during the save is not: the startup cover (`retry` shows
+     it) should be up before, and `aresos.black` above it during. If black is below the cover, that is a real
+     finding about two always-on-top windows, not about the check.
+  6. `the game scope's 15 s`: `systemd-run --user --scope --property=TimeoutStopSec=15s` was never run on a real
+     user manager here.
+  7. Boot 1's order. If a unit "began to stop before the guard's stop ended", `guardian.json` has every time.
+  8. The lid: `logind_lid_closed` must be `b true` (the device is made as `os/tests/power-events.py` makes its
+     own). The lid block is only reported.
+  9. Boot 2's bounds (55 to 85 s for the guard, 10 to 30 s from the user manager's stop to the wrapper's end).
+- **The VM step's time.** `Boot QEMU and assert session, policy and recovery` has 20 minutes for both passes. This
+  step adds about a minute of `retry` waiting and 15 s to each pass, and boot 2's shutdown takes about 80 s more.
+  Its limit is in the workflow, a bound file, which this step did not change.
+- **Not proven by the VM as built:** plymouth's shutdown screen (it is ordered after greetd's stop, so after the
+  guard); a real lid with a real `HandleLidSwitch` other than `ignore`; a shutdown with an app window open (the
+  black screen stays away; not exercised); the fallback record (no supervisor at a shutdown: the loop test stands
+  for it); `use-home` in the image (step 5's note).
+- **Other rigs and tries.** A supervisor from this branch on a machine without the unit shows `guard` and starts
+  nothing: every rig or try that lets a wrapper ask a real supervisor needs a stand-in `SYSTEMCTL` that answers
+  `active` (as the loop harness has). Step 6's rig adopts its game and never asks; `test_rig.py` was not run again.
+  **For the lead:** `linux-hub`'s tries (`hub-try`, `~/AresOS-try`) meet this once 25 is on main.
+- **A rollback to R28** leaves `desktop-guard.json` unread (R28 knows no such file); R29's next start applies it.
+- **The loop harness, step 7:** `start(wait=False)` returns without waiting for the home; `control/guard` and
+  `control/system` hold the stand-in systemd's words; `fixture(mode, **numbers)` runs the Java stand-in in place
+  of the Python one (needs a Java 16 or newer on `PATH`, or the pinned one).
 - **Step 6, what the game does by itself.** A changed chunk is in its region file within a tick, but the same chunk
   at most once in ten seconds. So up to ten seconds of building in a chunk are in memory only; the flush save and
   the closing save are what bring them to the disk. That is what the stop routine's save is for, and it works.
