@@ -752,8 +752,9 @@ with the restart advice and the passive pending section.
 pins the barrier. The brief asks for it, so the check does not call it a regression.
 The brief also says "Successful reads keep their replies" (item 1.5), and the owner's
 question spoke of "continuing to show changes already saved locally". Whether this
-reach is wanted is the owner's decision: board #385, open. If it is, the model can
-stop expecting a page in a reply it expects refused.
+reach is wanted was the owner's decision: board #385, answered 2026-11-19 "Merge, fix
+reads later". So N9 stays pinned for now, and the follow-up (board #386, with N8)
+brings reads back while a latch survives, then re-pins once.
 
 Regenerate from this capture's actual lists, using the same converter as above:
 

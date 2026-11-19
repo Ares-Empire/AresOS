@@ -142,14 +142,14 @@ tests (CI ledger only); full Mail, sweep and alteration runs locally (hosted onl
   case-phases (`filing_copy`, `filing_move`, `filing_rename`, `expiry`, `maintenance`; 7,140 of them new audit keys),
   1,056 of CC's N4 keys on top. While a latch survives and a notice is queued, every later request, reads included, is refused
   until the service restarts, with the restart advice and the passive pending section; before, such a read was
-  answered with the error attached. Owner's decision: board #385, open.
+  answered with the error attached. Owner's decision (board #385, 2026-11-19): "Merge, fix reads later".
 
 ## Open questions / left
 
-One open owner question: board #385, whether N9's reach is wanted (Known limits). Done since: the package/security cross-review
+No open owner question: board #385 was answered "Merge, fix reads later" (N9, Known limits). Done since: the package/security cross-review
 ([REVIEW-1.md](REVIEW-1.md), SAFE, no findings) and the independent classification check
-([CLASSIFICATION-CHECK.md](CLASSIFICATION-CHECK.md), CONFIRMED). Left: CI round 2 (the lead records it), the owner's
-answer to #385, then the lead's merge. After it, a `linux-tools` follow-up for N8 (board #386, CC's SHOULD-FIX 1): decide
+([CLASSIFICATION-CHECK.md](CLASSIFICATION-CHECK.md), CONFIRMED). CI round 2 on `a3b42851` is green (attempt 2 of the
+same six runs). Left: the lead's merge. After it, a `linux-tools` follow-up for N8 and N9 (board #386, CC's SHOULD-FIX 1 and 2): decide
 whether the store drops the queued notice once the replay finishes its source (as it does for Chrome) or the model
-expects it, with one re-pin. No file
+expects it, and bring reads back while a latch survives (N9), with one re-pin. No file
 over 500 MB under `.work/` (`.work/302/` holds about 534 MB of evidence, checked 2026-11-19).
