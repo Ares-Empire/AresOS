@@ -9,6 +9,8 @@ Step 1 covers section 1: the gate, the hello, `save` and its failures, and peers
 section 2 through `aresos-desktop stop`: a confirmed stop, saves that fail, and a game that ignores SIGTERM. Step 3
 covers 3.2 and 3.3: a signal (also through the keeper), the stand-in labwc's end, `logout` and `restart`. The only
 labwc ever signalled is the stand-in this test started, and only by the supervisor through its watched pidfd.
+Step 4 covers 3.4: the black screen and the lid block, as stand-ins that only note their start and their end. No
+test here takes a logind inhibitor or draws on a screen.
 """
 import json
 import os
@@ -39,6 +41,7 @@ HARNESS = textwrap.dedent('''\
     sys.modules[loader.name] = desktop
     loader.exec_module(desktop)
     desktop.HELPER, desktop.COVER, desktop.VIEW_COMMAND = config['helper'], config['cover'], [config['view']]
+    desktop.SYSTEMD_INHIBIT = config['inhibit']  # always the stand-in: no test takes a real logind inhibitor
     desktop.prism_command = lambda lock, launch_id, world=None: (
         [config['prism'], '--launch', lock['instance']] + (['--world', world] if world else []))
     desktop.game_scope = lambda launch_id: []
@@ -168,6 +171,16 @@ HELPER = textwrap.dedent('''\
 ''')
 
 WINDOW = "#!/bin/sh\ntrap 'exit 0' TERM\nwhile :; do sleep 0.05; done\n"
+# Stands in for aresos-cover (`cover`) and for systemd-inhibit (`inhibit`): it notes its start with its arguments,
+# and its end by SIGTERM, in the control file `covers` or `inhibits`. It never runs the command it is given and
+# never talks to logind or to a compositor.
+RECORDER = textwrap.dedent('''\
+    #!/bin/sh
+    log="$(dirname "$0")/../control/$(basename "$0")s"
+    echo "start $$ $*" >> "$log"
+    trap 'echo "end $$" >> "$log"; exit 0' TERM
+    while :; do sleep 0.05; done
+''')
 # A process named labwc that waits on its standard input, with the supervisor's runtime folder in its environment.
 LABWC = '#!/bin/sh\nread line\n'
 
@@ -180,8 +193,8 @@ class GuardianLoopTest(base.Base):
         self.control = self.root / 'control'
         self.bin.mkdir()
         self.control.mkdir()
-        for name, text in (('prism', PRISM), ('java', GAME), ('helper', HELPER), ('cover', WINDOW), ('view', WINDOW),
-                           ('labwc', LABWC)):
+        for name, text in (('prism', PRISM), ('java', GAME), ('helper', HELPER), ('cover', RECORDER),
+                           ('view', WINDOW), ('labwc', LABWC), ('inhibit', RECORDER)):
             (self.bin / name).write_text(text)
             (self.bin / name).chmod(0o755)
         (self.bin / 'harness.py').write_text(HARNESS)
@@ -209,7 +222,7 @@ class GuardianLoopTest(base.Base):
         (self.bin / 'self').chmod(0o755)
         (self.root / 'harness.json').write_text(json.dumps({
             'desktop': str(SUPERVISOR), 'share': self.paths.share, 'numbers': numbers,
-            **{name: str(self.bin / name) for name in ('prism', 'helper', 'cover', 'view', 'self')}}))
+            **{name: str(self.bin / name) for name in ('prism', 'helper', 'cover', 'view', 'self', 'inhibit')}}))
         self.output = open(self.root / 'supervisor.log', 'wb')
         self.process = subprocess.Popen(
             ['/usr/bin/env', '-i', *self.environment, f'LABWC_PID={self.labwc.pid}', *harness,
@@ -690,6 +703,87 @@ class GuardianLoopTest(base.Base):
         self.assertEqual(desktop.request(self.paths, {'op': 'restart', 'reason': 'shutdown'}, timeout=5)['error'],
                          'bad_reason')
         self.assertEqual(self.games(), 2)
+
+    # -- 3.4: the black screen and the lid block
+
+    BLACK = '--black --limit 90'
+    LID = ('--what=handle-lid-switch:sleep --who=AresOS --mode=block --why=AresOS is saving your home before '
+           'Minecraft stops /usr/bin/sleep 90')
+
+    def noted(self, name):
+        """What the stand-in covers (`covers`) or lid blocks (`inhibits`) noted: [start or end, PID, arguments]."""
+        path = self.control / name
+        return [line.split(' ', 2) for line in path.read_text().splitlines()] if path.exists() else []
+
+    def up(self, name, arguments):
+        """The PIDs of the stand-ins started with these arguments that have not ended."""
+        notes = self.noted(name)
+        ended = {note[1] for note in notes if note[0] == 'end'}
+        return [note[1] for note in notes if note[:1] == ['start'] and note[2:] == [arguments] and note[1] not in ended]
+
+    def test_a_restart_goes_black_holds_the_lid_block_and_hands_over_to_the_startup_cover(self):
+        self.start()
+        self.windows()
+        self.assertEqual((self.status()['black'], self.noted('inhibits')), (False, []))
+        self.assertEqual(self.command('restart')[0], 0)
+        self.wait(lambda: self.games() == 2 and self.status()['state'] == 'IN_WORLD')
+        self.wait(lambda: not self.up('covers', self.BLACK) and not self.up('covers', '--again'))
+        notes = [note[0] + ' ' + note[2] if note[0] == 'start' else 'end' for note in self.noted('covers')]
+        # The session's first cover and its end; then black, the restart's cover over it, and both end.
+        self.assertEqual(notes, ['start ', 'end', 'start ' + self.BLACK, 'start --again', 'end', 'end'])
+        # One lid block for the length of the stop: it ended with it, and the session goes on.
+        self.wait(lambda: len(self.noted('inhibits')) == 2)
+        (start, pid, arguments), (end, ended) = self.noted('inhibits')
+        self.assertEqual((start, arguments, end, ended), ('start', self.LID, 'end', pid))
+        status = self.status()
+        self.assertEqual((status['black'], status['lid_block']), (False, False))
+        log = self.log()
+        self.assertLess(log.index('the screens go black'), log.index('SIGTERM sent to Java'))
+        self.assertFalse(self.mine(int(pid)))
+
+    def test_an_app_window_that_appears_while_the_screens_are_black_takes_the_black_away_at_once(self):
+        self.start(STOP_SAVE_WAIT=4.0)
+        self.windows()
+        pid, _ = self.game()
+        self.mode('hang')
+        replies = []
+        thread = threading.Thread(
+            target=lambda: replies.append(desktop.request(self.paths, {'op': 'restart'}, timeout=30)))
+        thread.start()
+        self.addCleanup(thread.join, 30)
+        self.wait(lambda: self.up('covers', self.BLACK) and self.up('inhibits', self.LID))
+        self.assertIs(self.status()['black'], True)
+        started = time.monotonic()
+        (self.control / 'windows').write_text(json.dumps({'event': 'windows', 'count': 1, 'names': ['Mail']}))
+        self.wait(lambda: not self.up('covers', self.BLACK))
+        self.assertLess(time.monotonic() - started, 2.0)
+        status = self.status()
+        # The stop goes on behind his app, with its lid block.
+        self.assertEqual((status['stopping'], status['black'], status['lid_block'], status['windows']),
+                         (True, False, True, ['Mail']))
+        self.assertTrue(self.up('inhibits', self.LID))
+        thread.join(30)
+        self.assertEqual((replies[0]['result'], self.mine(pid), self.games()), ('called_off', True, 1))
+        self.wait(lambda: not self.up('inhibits', self.LID))
+        self.assertIs(self.status()['lid_block'], False)
+
+    def test_a_session_that_ends_stays_black_until_the_supervisor_exits_and_leaves_nothing_behind(self):
+        self.start()
+        self.windows()
+        pid, _ = self.game()
+        self.process.terminate()
+        self.assertIsNotNone(self.process.wait(15))
+        self.assertFalse(self.mine(pid))
+        self.wait(lambda: len(self.noted('inhibits')) == 2 and len(self.noted('covers')) == 4)
+        self.assertEqual([note[0] + ' ' + note[2] if note[0] == 'start' else 'end' for note in self.noted('covers')],
+                         ['start ', 'end', 'start ' + self.BLACK, 'end'])
+        self.assertEqual(self.noted('inhibits')[0][2], self.LID)
+        log = self.log()
+        # Black from the stop's start, and never taken away while the supervisor lived: it ended with its exit.
+        self.assertLess(log.index('the screens go black'), log.index('SIGTERM sent to Java'))
+        self.assertNotIn('the black screen ends', log)
+        for note in self.noted('covers') + self.noted('inhibits'):
+            self.assertFalse(self.mine(int(note[1])), note)
 
     def test_the_command_without_a_supervisor_says_not_saved(self):
         empty = self.root / 'empty-run'

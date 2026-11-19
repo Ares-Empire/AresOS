@@ -74,6 +74,18 @@ A stop is confirmed (saved, or nothing to save) or unsaved. A plain stop whose
 save is not confirmed is called off and the game keeps running; `stop --reason
 shutdown` cannot be called off, closes anyway and latches `unsaved` for the
 next start. The supervisor never sends SIGKILL to the game.
+
+The black screen and the lid (package 25, brief 3.4; the owner on board #379:
+no visible shutdown wait, and a lid closed right after must not suspend the
+laptop mid-save). A shutdown, logout or restart goes black at its start
+(`aresos-cover --black`, one window on every output) when the helper's last
+`windows` report says that no app window is open; with an app window open, or
+no report, the screens stay as they are. It ends when the stop is called off,
+fails or overruns (a window must be seen), when an app window appears, when a
+restart's startup cover has taken over, when labwc ends, or by its own limit;
+at a shutdown it stays until the session is torn down. For the length of every
+stop a `systemd-inhibit` child holds a logind block on the lid switch and on
+sleep; it is started and never waited for.
 """
 import argparse
 import dataclasses
@@ -229,6 +241,17 @@ STOP_EXIT_RESERVE = 3.0
 CLOSE_WAIT = 5.0
 # A `windows` report names at most this many app windows; a `logout` reply shows the first few.
 MAX_WINDOWS = 64
+# The black screen and the lid block (package 25, 3.4; board #379). Which stops go black at their start, when the
+# helper's last report says that no app window is open. Both end by themselves BLACK_EXTRA after the stop's
+# deadline, whatever becomes of the supervisor.
+BLACK_KINDS = ('shutdown', 'logout', 'restart')
+BLACK_EXTRA = 30.0
+# After a `restart` its startup cover takes over: the black screen stays below it this long, until that cover is
+# up, so the desktop never shows in between.
+BLACK_HANDOVER = 2.0
+SYSTEMD_INHIBIT = '/usr/bin/systemd-inhibit'
+SLEEP = '/usr/bin/sleep'
+LID_BLOCK = 'handle-lid-switch:sleep'
 
 SETUP, STARTING, IN_WORLD, AUTH_REQUIRED, RECOVERY = 'SETUP', 'STARTING', 'IN_WORLD', 'AUTH_REQUIRED', 'RECOVERY'
 STOPPING = 'STOPPING'  # a stop runs, or the session is ending: no message window, and nothing starts (section 2)
@@ -1319,6 +1342,11 @@ class Supervisor:
         # The startup cover (package 23b): whether one is up, and when stopped covers get SIGKILL.
         self.cover = False
         self.cover_kill_at = None
+        # The black screen (package 25, 3.4): whether it is up, and when it ends once a restart's startup cover has
+        # taken over. And whether a stop's lid block is held.
+        self.black = False
+        self.black_end_at = None
+        self.lid_held = False
         # After a memory kill: since when every pressure sample was clear (review 2, finding 2). Never persisted, so a
         # supervisor restart starts the minute again instead of skipping it.
         self.pressure_clear_since = None
@@ -1369,6 +1397,9 @@ class Supervisor:
             # The cover only hides a start: the hub (IN_WORLD) and every message window (SETUP, AUTH_REQUIRED,
             # RECOVERY, the slow-start view among them) must be seen, so it ends before a view opens (package 23b).
             self.hide_cover()
+        if state not in (STOPPING, STARTING):
+            # A message window and the home must be seen, never the black screen over them (package 25, 3.4).
+            self.hide_black('something must be seen')
         if state in (SETUP, AUTH_REQUIRED, RECOVERY):
             text = self.message()
             if self.view != text:
@@ -1414,6 +1445,11 @@ class Supervisor:
     def owner_hides_cover(self):
         """Super+Ctrl+Escape (`aresos-desktop hide-cover`): the recovery terminal it opens must be seen (OS-BASE
         section 6), so the cover ends. Nothing else changes (package 23b, PLAN-GAP 2)."""
+        if self.black:
+            # The black screen too (package 25): the terminal counts as an app window anyway, once the helper says.
+            self.hide_black('hide-cover (Super+Ctrl+Escape): the recovery terminal must be seen')
+            if not self.cover:
+                return 'The black screen is gone.'
         if not self.cover:
             LOG.info('hide-cover (Super+Ctrl+Escape): no startup cover is up')
             return 'No startup cover is up.'
@@ -1426,6 +1462,86 @@ class Supervisor:
         if self.cover:
             self.cover = False
             LOG.warning('the startup cover ended by itself (%s); the start goes on', describe_status(code))
+
+    # The black screen and the lid block (package 25, 3.4).
+
+    def go_black(self, stop):
+        """A shutdown, logout or restart goes black at its start, if the helper's last report says that no app
+        window is open. With an app window open, or no report, the screens stay as they are: he sees his apps,
+        never black. Best effort, as the startup cover: a black screen that does not start changes nothing else."""
+        if self.black or stop.kind not in BLACK_KINDS or self.labwc_gone:
+            return
+        names = self.app_windows()
+        if names != []:
+            self.log_phase(stop, 'the screens stay as they are: ' + (
+                'the app helper has not said whether an app is open' if names is None else open_apps(names, 'open')))
+            return
+        try:
+            self.runner.start_black(STOP_BUDGET + BLACK_EXTRA)
+        except (OSError, subprocess.SubprocessError) as error:
+            LOG.warning('the black screen did not start (%s); the stop goes on without it', error)
+            return
+        self.black, self.black_end_at = True, None
+        self.log_phase(stop, 'the screens go black')
+
+    def hide_black(self, why=''):
+        """SIGTERM to the black screen now, SIGKILL after COVER_STOP_WAIT if it is still there (tick): never
+        waits."""
+        self.black_end_at = None
+        if not self.black:
+            return
+        self.black = False
+        LOG.info('the black screen ends%s', f': {why}' if why else '')
+        kill_at = self.clock() + COVER_STOP_WAIT
+        if self.runner.stop_black(kill_at) and self.cover_kill_at is None:
+            self.cover_kill_at = kill_at
+
+    def on_black_exit(self, code):
+        """The black screen ended without being stopped (its own limit, a crash, its display gone)."""
+        if self.black:
+            self.black, self.black_end_at = False, None
+            LOG.warning('the black screen ended by itself (%s)', describe_status(code))
+
+    def black_after_stop(self):
+        """A stop ended and the session goes on: the black screen ends, so that what shows next is seen. Only a
+        `restart` whose startup cover has just been started keeps it BLACK_HANDOVER longer, below that cover."""
+        if not self.black:
+            return
+        if self.state == STARTING and self.cover:
+            self.black_end_at = self.clock() + BLACK_HANDOVER
+        else:
+            self.hide_black('the stop has ended')
+
+    def hold_lid(self):
+        """For the length of every stop: a logind block on the lid switch and on sleep, held by a child that dies
+        with the supervisor. It is started and never waited for, so it cannot delay the stop; a failure is one log
+        line. A block left from an earlier stop counts its limit from that stop's start, so this stop gets its own."""
+        self.release_lid()
+        try:
+            self.runner.start_lid_block(STOP_BUDGET + BLACK_EXTRA)
+        except (OSError, subprocess.SubprocessError) as error:
+            LOG.warning('the lid block did not start (%s): a lid closed during this stop is handled as logind is '
+                        'set up', error)
+            return
+        self.lid_held = True
+
+    def release_lid(self):
+        if not self.lid_held:
+            return
+        self.lid_held = False
+        kill_at = self.clock() + COVER_STOP_WAIT
+        if self.runner.stop_lid_block(kill_at) and self.cover_kill_at is None:
+            self.cover_kill_at = kill_at
+
+    def on_lid_block_exit(self, code):
+        """The lid block ended without being released: its own limit (0), or logind refused it."""
+        if self.lid_held:
+            self.lid_held = False
+            if code == 0:
+                LOG.info('the lid block ended at its own limit')
+            else:
+                LOG.warning('the lid block ended by itself (%s): a lid closed now is handled as logind is set up',
+                            describe_status(code))
 
     def latch(self, reason, detail=''):
         self.persisted.latched, self.persisted.reason, self.persisted.detail = True, reason, detail
@@ -1683,6 +1799,7 @@ class Supervisor:
     def on_helper_exit(self, code):
         LOG.warning('the app helper exited (%s)', code)
         self.windows = None  # nobody tracks the app windows now: unknown counts as open
+        self.hide_black('the app helper ended, so nobody can tell whether an app is open')
         recent = [t for t in self.helper_starts if self.clock() - t < HELPER_BUDGET[1]]
         if len(recent) >= HELPER_BUDGET[0]:
             LOG.error('the app helper failed %d times within %d s; not restarting it until the next launch',
@@ -1737,6 +1854,10 @@ class Supervisor:
         if new != self.windows:
             LOG.info('app windows open: %s', 'not known' if new is None else len(new))
             self.windows = new
+        if new != []:
+            # An app window that appears while the screens are black takes the black away at once (the lead's
+            # fix 4); a count that is no longer known counts as open.
+            self.hide_black('an app window is open now' if new else 'the app helper lost track of the app windows')
 
     def app_windows(self):
         """The app windows open right now, by name (empty: none), or None when that is not known: no report from
@@ -2074,6 +2195,8 @@ class Supervisor:
             items.append((self.helper_restart_at, self.restart_helper))
         if self.cover_kill_at is not None:
             items.append((self.cover_kill_at, self.kill_covers))
+        if self.black_end_at is not None:
+            items.append((self.black_end_at, self.hide_black))
         if self.cover and launch is not None and not launch.accepted:
             # The covered launch started Prism a moment after `started` (start_launch); jvm_start ends this wait.
             items.append((launch.started + COVER_PRISM_WAIT, self.uncover_prism))
@@ -2231,6 +2354,8 @@ class Supervisor:
                     launch=launch.id if launch else None, jvm_pid=launch.jvm_pid if launch else None,
                     ready=bool(launch and launch.ready), nvidia=self.nvidia,
                     helper=self.runner.helper_running(), cover=self.cover,
+                    # The black screen and the lid block of a stop (package 25, 3.4).
+                    black=self.black, lid_block=self.lid_held,
                     # Whether the game's lifecycle hello is accepted (package 25, 1.2): saves can be asked for.
                     lifecycle=self.lifecycle_peer() is not None,
                     # Whether a stop runs, and the stop record: the open one, or the last stop's outcome (2.3).
@@ -2568,6 +2693,9 @@ class Supervisor:
                 return
         now = self.clock()
         stop = self.stop = Stop(kind, now, now + STOP_BUDGET, now + STOP_SAVE_WAIT, callers=[done])
+        # First what he would notice (3.4): a lid closed right now must not suspend, and the screens go black.
+        self.hold_lid()
+        self.go_black(stop)
         if kind in SESSION_ENDING_KINDS:
             self.block_admission(kind)
         self.retry_at = None  # no backoff restart fires (2.8); a stop that is called off has a game that runs
@@ -2610,6 +2738,7 @@ class Supervisor:
         off: it no longer can."""
         self.log_phase(stop, 'a shutdown joined: the stop can no longer be called off')
         stop.kind = 'shutdown'
+        self.go_black(stop)  # the shutdown begins here for him (3.4)
         self.block_admission('shutdown')
         if self.open_stop() is not None and not self.record_stop(kind='shutdown'):
             stop.recorded = False
@@ -2829,6 +2958,7 @@ class Supervisor:
         """The watched labwc ended: the session is over. The loop ends the session next (end_session)."""
         self.labwc_watched, self.labwc_gone = False, True
         LOG.info('labwc ended: the session is over')
+        self.hide_black('labwc ended')
 
     def overran(self):
         """Whether a stop already sent SIGTERM to the launch that is still there and ran out of its deadline."""
@@ -2919,6 +3049,12 @@ class Supervisor:
                 self.settle(RECOVERY, 'quit')
         except OSError as error:
             LOG.error('after the stop: %s', error)
+        if not (stop.kind == 'shutdown' or self.blocked()):
+            # The session goes on: what the stop held ends with it (3.4). While the session is ending, the black
+            # screen and the lid block stay until it is torn down: they end with this supervisor, or by their
+            # own limit.
+            self.release_lid()
+            self.black_after_stop()
         ok = confirmed and stop.close in ('exited', 'none') and stop.recorded
         if stop.kind == 'restart':
             ok = ok and stop.restart in ('started', 'starting')
@@ -3039,6 +3175,7 @@ class Supervisor:
             stop.phase, stop.sigterm = 'close', True
             stop.save, stop.why = record.get('save'), str(record.get('why') or '')
         self.stop = stop
+        self.hold_lid()  # the black screen went with the previous supervisor, and no helper has reported yet
         self.log_phase(stop, f'goes on after a supervisor restart ({kind}, phase {stop.phase})')
         self.enter(STOPPING, stop.kind)
 
@@ -3104,7 +3241,10 @@ class Runner:
         self.view_process = None
         self.jvm_fd = None
         self.cover = None
-        self.covers_ending = []  # (process, when it gets SIGKILL): covers sent SIGTERM that have not ended yet
+        # (process, when it gets SIGKILL): covers, black screens and lid blocks sent SIGTERM that have not ended yet
+        self.covers_ending = []
+        self.black = None
+        self.lid_block = None
         self.labwc_fd = None
 
     # helper
@@ -3269,7 +3409,9 @@ class Runner:
     def start_cover(self, again):
         """The cover, a child of the supervisor (its scope, never the game's), with the views' cleaned environment.
         Started and never waited for: the loop reaps it."""
-        command = [COVER, '--again'] if again else [COVER]
+        self.cover = self.spawn_cover([COVER, '--again'] if again else [COVER])
+
+    def spawn_cover(self, command):
         process = subprocess.Popen(command, env=session_environment(self.loop.environ), cwd=self.paths.home,
                                    stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                                    preexec_fn=lambda: set_parent_death_signal(signal.SIGTERM))
@@ -3279,16 +3421,58 @@ class Runner:
             process.kill()
             process.wait()
             raise
-        self.cover = process
+        return process
 
     def stop_cover(self, kill_at):
         """SIGTERM to the cover; kill_covers() sends SIGKILL at kill_at if it is still there. False: none ran."""
         cover, self.cover = self.cover, None
-        if cover is None or cover.poll() is not None:
+        return self.end_later(cover, kill_at)
+
+    def end_later(self, process, kill_at):
+        if process is None or process.poll() is not None:
             return False
-        cover.terminate()
-        self.covers_ending.append((cover, kill_at))
+        process.terminate()
+        self.covers_ending.append((process, kill_at))
         return True
+
+    # the black screen and the lid block (package 25, 3.4)
+    def start_black(self, limit):
+        """The cover's black face on every output, a child like the startup cover: it dies with the supervisor,
+        and by itself after `limit` seconds. Started and never waited for."""
+        self.black = self.spawn_cover([COVER, '--black', '--limit', f'{limit:g}'])
+
+    def stop_black(self, kill_at):
+        black, self.black = self.black, None
+        return self.end_later(black, kill_at)
+
+    def start_lid_block(self, limit):
+        """A logind block on the lid switch and on sleep, held by `systemd-inhibit` for as long as its command
+        runs: `limit` seconds at most. Die-with-parent, so the block never outlives the supervisor; started and
+        never waited for. Its own words about a refusal go to the supervisor's stderr (the journal)."""
+        command = [SYSTEMD_INHIBIT, f'--what={LID_BLOCK}', '--who=AresOS', '--mode=block',
+                   '--why=AresOS is saving your home before Minecraft stops', SLEEP, f'{limit:g}']
+        process = subprocess.Popen(command, env=session_environment(self.loop.environ), cwd='/',
+                                   stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                                   preexec_fn=lambda: set_parent_death_signal(signal.SIGTERM))
+        try:
+            self.loop.watch_child('lid', process)
+        except OSError:
+            process.kill()
+            process.wait()
+            raise
+        self.lid_block = process
+
+    def stop_lid_block(self, kill_at):
+        block, self.lid_block = self.lid_block, None
+        return self.end_later(block, kill_at)
+
+    def lid_block_ended(self, process):
+        """The loop reaped a lid block: True when it was the one held (it ended by itself)."""
+        self.covers_ending = [(other, at) for other, at in self.covers_ending if other is not process]
+        if process is self.lid_block:
+            self.lid_block = None
+            return True
+        return False
 
     def kill_covers(self, now):
         """SIGKILL to each stopped cover still there at its time; returns the next such time, or None."""
@@ -3304,17 +3488,22 @@ class Runner:
         return min((kill_at for _, kill_at in waiting), default=None)
 
     def cover_ended(self, process):
-        """The loop reaped a cover: True when it was the one up (it ended by itself, not by stop_cover)."""
+        """The loop reaped a cover: `cover` or `black` when it was the one up (it ended by itself, not by
+        stop_cover or stop_black), else None."""
         self.covers_ending = [(cover, at) for cover, at in self.covers_ending if cover is not process]
         if process is self.cover:
             self.cover = None
-            return True
-        return False
+            return 'cover'
+        if process is self.black:
+            self.black = None
+            return 'black'
+        return None
 
     def end_children(self, by=None):
-        """The supervisor's exit: the helper, the message window and every cover get SIGTERM at once and share one
-        wait (CLOSE_WAIT, or what `by` leaves of the session-ending stop's deadline); what is still there then
-        gets SIGKILL and CLEANUP_KILL_WAIT, and is left to the system after that (2.1)."""
+        """The supervisor's exit: the helper, the message window, every cover, the black screen and the lid block
+        get SIGTERM at once and share one wait (CLOSE_WAIT, or what `by` leaves of the session-ending stop's
+        deadline); what is still there then gets SIGKILL and CLEANUP_KILL_WAIT, and is left to the system after
+        that (2.1)."""
         children = []
         helper, self.helper = self.helper, None
         if helper is not None:
@@ -3326,10 +3515,11 @@ class Runner:
         view, self.view_process = self.view_process, None
         if view is not None:
             children.append((view, 'the message window'))
-        children += [(cover, 'a startup cover') for cover, _ in self.covers_ending]
-        if self.cover is not None:
-            children.append((self.cover, 'a startup cover'))
-        self.cover, self.covers_ending = None, []
+        children += [(process, 'a cover or lid block that was ending') for process, _ in self.covers_ending]
+        children += [(process, what) for process, what in ((self.cover, 'a startup cover'),
+                                                           (self.black, 'the black screen'),
+                                                           (self.lid_block, 'the lid block')) if process is not None]
+        self.cover, self.black, self.lid_block, self.covers_ending = None, None, None, []
         children = [(process, what) for process, what in children if process.poll() is None]
         for process, _ in children:
             process.terminate()
@@ -3730,8 +3920,16 @@ class Loop:
 
     def on_cover(self, key, process):
         code = self.reap(key, process)
-        if self.runner.cover_ended(process):
+        which = self.runner.cover_ended(process)
+        if which == 'black':
+            self.supervisor.on_black_exit(code)
+        elif which:
             self.supervisor.on_cover_exit(code)
+
+    def on_lid(self, key, process):
+        code = self.reap(key, process)
+        if self.runner.lid_block_ended(process):
+            self.supervisor.on_lid_block_exit(code)
 
     def on_jvm(self, key, data):
         self.forget_fd(key.fd)

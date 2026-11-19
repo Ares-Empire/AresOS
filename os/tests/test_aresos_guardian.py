@@ -3,7 +3,8 @@
 Step 1 covers section 1: the lifecycle channel's gate, the hello, what counts as saved, one request in flight and
 one waiting, and each caller's own deadline. Step 2 covers section 2, the one stop routine, driven as the socket op
 `stop` drives it. Step 3 covers 3.2 and 3.3: the session ending under the supervisor (a signal, labwc), `restart`
-and `logout`. Nothing here starts a process.
+and `logout`. Step 4 covers 3.4: when the screens go black and when the black screen ends, and the lid block.
+Nothing here starts a process.
 """
 import itertools
 import json
@@ -52,6 +53,39 @@ class StopRunner(base.FakeRunner):
         self.labwc = 'watched'
         self.labwc_watches = []
         self.labwc_signals = 0
+        # The black screen and the lid block (3.4): each start's limit, whether one is up, and the kill time each
+        # stop was given. An error to raise stands for a program that cannot be started.
+        self.blacks, self.black_up, self.black_stops, self.black_error = [], False, [], None
+        self.lid_blocks, self.lid_up, self.lid_stops, self.lid_error = [], False, [], None
+        self.behind_black = []  # for each message window: whether the black screen was up when it opened
+
+    def show_view(self, text):
+        self.behind_black.append(self.black_up)
+        super().show_view(text)
+
+    def start_black(self, limit):
+        if self.black_error is not None:
+            raise self.black_error
+        self.blacks.append(limit)
+        self.black_up = True
+
+    def stop_black(self, kill_at):
+        running, self.black_up = self.black_up, False
+        if running:
+            self.black_stops.append(kill_at)
+        return running
+
+    def start_lid_block(self, limit):
+        if self.lid_error is not None:
+            raise self.lid_error
+        self.lid_blocks.append(limit)
+        self.lid_up = True
+
+    def stop_lid_block(self, kill_at):
+        running, self.lid_up = self.lid_up, False
+        if running:
+            self.lid_stops.append(kill_at)
+        return running
 
     def system_stopping(self):
         return self.system
@@ -1040,8 +1074,8 @@ class StopTest(StopBase):
         self.assertEqual((seen['latched'], seen['reason']), (True, 'unsaved'))
 
 
-class SessionTest(StopBase):
-    """3.2 and 3.3: the session ends under the supervisor (a signal, labwc's end), `logout` and `restart`."""
+class SessionBase(StopBase):
+    """A session with a labwc of its own, and what the helper said about the app windows."""
 
     def supervisor(self, nvidia=False):
         return desktop.Supervisor(self.paths, self.lock, self.runner, clock=lambda: self.now[0],
@@ -1078,6 +1112,10 @@ class SessionTest(StopBase):
     def close_game(self, sup, pid, peer, status=143, ident=1):
         self.confirm(sup, peer, ident)
         self.end_game(sup, pid, status)
+
+
+class SessionTest(SessionBase):
+    """3.2 and 3.3: the session ends under the supervisor (a signal, labwc's end), `logout` and `restart`."""
 
     # -- 3.2: a signal
 
@@ -1460,6 +1498,252 @@ class SessionTest(StopBase):
         source = (base.CONFIG / 'usr/libexec/aresos-desktop').read_text(encoding='utf-8')
         self.assertEqual(source.count('pidfd_send_signal('), 2)  # Java's and labwc's watched pidfds, nothing else
         self.assertNotIn("'--exit'", source)  # never `labwc --exit`
+
+
+class BlackTest(SessionBase):
+    """3.4 (the owner's answer on board #379): the black screen and the lid block."""
+    LIMIT = desktop.STOP_BUDGET + desktop.BLACK_EXTRA
+    NONE = {'event': 'windows', 'count': 0, 'names': []}
+
+    def logged(self, level):
+        """The supervisor's log lines from this level up (the tests keep its logger switched off otherwise)."""
+        desktop.LOG.disabled = False
+        self.addCleanup(setattr, desktop.LOG, 'disabled', True)
+        return self.assertLogs('aresos-desktop', level)
+
+    def test_a_shutdown_a_logout_and_a_restart_go_black_at_their_start_and_a_plain_stop_never(self):
+        for kind in ('shutdown', 'logout', 'restart'):
+            sup, pid, peer = self.session()
+            self.stop(sup, kind)
+            self.assertEqual((self.runner.blacks, self.runner.black_up, sup.black, sup.state),
+                             ([self.LIMIT], True, True, 'STOPPING'), kind)
+            self.assertEqual((self.runner.lid_blocks, self.runner.lid_up), ([self.LIMIT], True), kind)
+            status = sup.status()
+            self.assertEqual((status['black'], status['lid_block']), (True, True), kind)
+            # The save and the close run on behind it: nothing is closed before the save is in.
+            self.assertEqual((self.runner.signals, sup.stop.phase), ([], 'save'), kind)
+        self.assertEqual(self.LIMIT, 90.0)  # the stop's deadline and half a minute: its own limit (the cover's --limit)
+        sup, pid, peer = self.session()
+        self.stop(sup)
+        self.assertEqual((self.runner.blacks, sup.black, self.runner.lid_blocks), ([], False, [self.LIMIT]))
+        # A shutdown that systemd clearly says is none is a plain stop: the quit window, never black.
+        sup, pid, peer = self.session()
+        self.runner.system = False
+        self.stop(sup, 'shutdown')
+        self.assertEqual((sup.stop.kind, self.runner.blacks, self.runner.lid_up), ('stop', [], True))
+
+    def test_with_an_app_window_open_or_no_report_the_screens_stay_as_they_are(self):
+        for windows in (1, None):
+            for kind in ('shutdown', 'restart'):  # a logout is refused then
+                sup, pid, peer = self.session(windows=windows, names=['Mail'])
+                with self.logged('INFO') as logs:
+                    self.stop(sup, kind)
+                self.assertEqual((self.runner.blacks, sup.black, self.runner.lid_up), ([], False, True))
+                self.assertTrue(any('the screens stay as they are' in line for line in logs.output), logs.output)
+        # A helper that is gone tracks nothing: its last count of zero is no count.
+        sup, pid, peer = self.session()
+        self.runner.helper_alive = False
+        self.stop(sup, 'shutdown')
+        self.assertEqual(self.runner.blacks, [])
+        # Black comes only at the start: an app that closes during the stop does not bring it.
+        sup, pid, peer = self.session(windows=1, names=['Mail'])
+        self.stop(sup, 'shutdown')
+        sup.on_helper_status(self.NONE)
+        self.assertEqual((sup.app_windows(), self.runner.blacks), ([], []))
+
+    def test_an_app_window_that_appears_during_the_stop_takes_the_black_screen_away_at_once(self):
+        for report in ({'count': 1, 'names': ['Mail']}, {'count': None}, None):
+            sup, pid, peer = self.session()
+            replies = self.stop(sup, 'shutdown')
+            self.assertTrue(self.runner.black_up)
+            if report is None:  # the helper ends: nobody can tell any more
+                self.runner.helper_alive = False
+                sup.on_helper_exit(1)
+            else:
+                sup.on_helper_status(dict(report, event='windows'))
+            kill_at = self.now[0] + desktop.COVER_STOP_WAIT
+            self.assertEqual((self.runner.black_up, sup.black, self.runner.black_stops), (False, False, [kill_at]))
+            # SIGTERM now and SIGKILL after two seconds if it is still there: never waited for.
+            self.assertIn((kill_at, sup.kill_covers), sup.pending())
+            # The stop itself goes on, with its lid block.
+            self.assertEqual((sup.stop.kind, sup.state, self.runner.lid_up, replies), ('shutdown', 'STOPPING', True, []))
+            # It does not come back when that window closes again.
+            sup.on_helper_status(self.NONE)
+            self.close_game(sup, pid, peer)
+            self.assertEqual((len(self.runner.blacks), replies[0]['result'], replies[0]['close']),
+                             (1, 'confirmed', 'exited'))
+
+    def test_the_black_screen_ends_before_a_window_that_must_be_seen(self):
+        # Called off: the save failed, and the window says so.
+        sup, pid, peer = self.session()
+        replies = self.stop(sup, 'restart')
+        sup.on_lifecycle_message(peer, self.refused(1, 'error'))
+        sup.tick()
+        self.assertEqual((sup.reason, replies[0]['result']), ('save_failed_restart', 'called_off'))
+        self.assertEqual((self.runner.black_up, sup.black, self.runner.lid_up, self.runner.behind_black[-1]),
+                         (False, False, False, False))
+        self.assertEqual((len(self.runner.black_stops), len(self.runner.lid_stops)), (1, 1))
+        # Overrun: Java had its SIGTERM and is still there at the deadline.
+        sup, pid, peer = self.session()
+        replies = self.stop(sup, 'logout')
+        self.confirm(sup, peer)
+        self.assertTrue(self.runner.black_up)
+        self.advance(desktop.STOP_BUDGET)
+        sup.tick()
+        self.assertEqual((sup.reason, replies[0]['close']), ('stuck', 'overrun'))
+        self.assertEqual((self.runner.black_up, self.runner.lid_up, self.runner.behind_black[-1]), (False, False, False))
+        # A logout whose session stays: black while labwc is asked to end, then the quit window.
+        sup, pid, peer = self.session()
+        replies = self.stop(sup, 'logout')
+        self.close_game(sup, pid, peer)
+        self.assertEqual((self.runner.labwc_signals, self.runner.black_up, replies), (1, True, []))
+        self.advance(desktop.STOP_BUDGET)
+        sup.tick()
+        self.assertEqual((sup.reason, replies[0]['logout']), ('quit', 'stayed'))
+        self.assertEqual((self.runner.black_up, self.runner.lid_up, self.runner.behind_black[-1]), (False, False, False))
+        # Java gone before the save was confirmed: the restart ends at the `unsaved` window.
+        sup, pid, peer = self.session()
+        replies = self.stop(sup, 'restart')
+        self.end_game(sup, pid, 1)
+        self.assertEqual((sup.reason, replies[0]['result']), ('unsaved', 'unsaved'))
+        self.assertEqual((self.runner.black_up, self.runner.lid_up, self.runner.behind_black[-1]), (False, False, False))
+
+    def test_at_a_shutdown_they_stay_until_the_session_is_torn_down(self):
+        sup, pid, peer = self.session()
+        views = len(self.runner.views)
+        replies = self.stop(sup, 'shutdown')
+        self.close_game(sup, pid, peer)
+        self.assertEqual((replies[0]['result'], replies[0]['close'], sup.state), ('confirmed', 'exited', 'STOPPING'))
+        self.assertEqual((self.runner.black_up, sup.black, sup.black_end_at, self.runner.lid_up, sup.lid_held),
+                         (True, True, None, True, True))
+        self.assertEqual((self.runner.black_stops, self.runner.lid_stops, len(self.runner.views)), ([], [], views))
+        self.assertNotIn(sup.hide_black, [action for _, action in sup.pending()])
+        # Their own limit ends them, if the session is not torn down after all: nothing is stopped twice.
+        sup.on_black_exit(0)
+        sup.on_lid_block_exit(0)
+        self.assertEqual((sup.black, sup.lid_held, self.runner.black_stops, self.runner.lid_stops),
+                         (False, False, [], []))
+        # Unsaved and overrun too: a shutdown shows no window, so nothing has to be seen.
+        sup, pid, peer = self.session()
+        replies = self.stop(sup, 'shutdown')
+        self.advance(desktop.STOP_SAVE_WAIT)
+        sup.tick()
+        self.assertEqual(self.runner.signals, ['SIGTERM'])
+        self.advance(desktop.STOP_BUDGET - desktop.STOP_SAVE_WAIT)
+        sup.tick()
+        self.assertEqual((replies[0]['result'], replies[0]['close'], sup.state), ('unsaved', 'overrun', 'STOPPING'))
+        self.assertEqual((self.runner.black_up, self.runner.lid_up), (True, True))
+        # A logout that goes through: labwc's end takes the black screen with it, and nothing goes black again.
+        sup, pid, peer = self.session()
+        replies = self.stop(sup, 'logout')
+        self.close_game(sup, pid, peer)
+        sup.on_labwc_gone()
+        self.assertEqual((self.runner.black_up, sup.black), (False, False))
+        self.end(sup, 'labwc ended')
+        self.assertEqual((replies[0]['logout'], self.runner.blacks, self.runner.lid_up), ('exited', [self.LIMIT], True))
+
+    def test_a_restart_hands_the_black_screen_over_to_its_startup_cover(self):
+        sup, pid, peer = self.session()
+        covers = len(self.runner.covers)
+        replies = self.stop(sup, 'restart')
+        self.close_game(sup, pid, peer)
+        self.assertEqual((replies[0]['restart'], sup.state, self.runner.covers[covers:], self.runner.cover_up),
+                         ('started', 'STARTING', [True], True))
+        # The startup cover has only been started: the black screen stays below it until it is up.
+        self.assertEqual((self.runner.black_up, sup.black_end_at), (True, self.now[0] + desktop.BLACK_HANDOVER))
+        self.assertEqual((self.runner.lid_up, len(self.runner.lid_stops)), (False, 1))  # the stop has ended
+        self.advance(desktop.BLACK_HANDOVER - 0.1)
+        sup.tick()
+        self.assertTrue(self.runner.black_up)
+        self.advance(0.1)
+        sup.tick()
+        self.assertEqual((self.runner.black_up, sup.black, sup.black_end_at, self.runner.cover_up),
+                         (False, False, None, True))
+        # A home that is ready sooner is never behind it.
+        sup, pid, peer = self.session()
+        self.stop(sup, 'restart')
+        self.close_game(sup, pid, peer)
+        self.run_game(sup)
+        self.assertTrue(self.runner.black_up)
+        self.ready(sup)
+        self.assertEqual((sup.state, self.runner.black_up, sup.black_end_at), ('IN_WORLD', False, None))
+        # No startup cover (it did not start): what the start shows must be seen at once.
+        sup, pid, peer = self.session()
+        self.runner.cover_error = OSError('no cover')
+        replies = self.stop(sup, 'restart')
+        self.close_game(sup, pid, peer)
+        self.assertEqual((replies[0]['restart'], self.runner.black_up, sup.black_end_at), ('started', False, None))
+
+    def test_a_shutdown_that_joins_a_plain_stop_goes_black_then(self):
+        sup, pid, peer = self.session()
+        self.stop(sup)
+        self.assertEqual(self.runner.blacks, [])
+        self.stop(sup, 'shutdown')
+        self.assertEqual((sup.stop.kind, self.runner.blacks, self.runner.lid_blocks),
+                         ('shutdown', [self.LIMIT], [self.LIMIT]))
+        # The session's signal joins the same way, and begins a stop of its own the same way.
+        sup, pid, peer = self.session()
+        self.stop(sup)
+        self.end(sup)
+        self.assertEqual((sup.stop.kind, self.runner.black_up), ('shutdown', True))
+        sup, pid, peer = self.session()
+        self.end(sup)
+        self.assertEqual((sup.stop.kind, self.runner.black_up, self.runner.lid_up), ('shutdown', True, True))
+        # labwc's own end leaves no screen to go black on.
+        sup, pid, peer = self.session()
+        sup.on_labwc_gone()
+        self.end(sup, 'labwc ended')
+        self.assertEqual((sup.stop.kind, self.runner.blacks, self.runner.lid_up), ('shutdown', [], True))
+
+    def test_every_stop_holds_the_lid_block_and_lets_go_when_the_session_goes_on(self):
+        sup, pid, peer = self.session()
+        replies = self.stop(sup)
+        self.assertEqual((self.runner.lid_blocks, self.runner.lid_up, self.runner.signals), ([self.LIMIT], True, []))
+        self.close_game(sup, pid, peer)
+        self.assertEqual((replies[0]['ok'], self.runner.lid_up, self.runner.lid_stops),
+                         (True, False, [self.now[0] + desktop.COVER_STOP_WAIT]))
+        self.assertIs(sup.status()['lid_block'], False)
+        # With nothing running the stop ends at once, and its block with it.
+        sup, _, _ = self.session(game=False)
+        self.stop(sup)
+        self.assertEqual((self.runner.lid_blocks, self.runner.lid_up), ([self.LIMIT], False))
+        # A supervisor that replaces one in the middle of a stop holds a block of its own (the first one's went
+        # with it); the black screen went too, and no helper has reported to the new one.
+        sup, pid, peer = self.session()
+        self.stop(sup, 'shutdown')
+        second = self.supervisor()
+        second.start()
+        self.assertEqual((second.stop.kind, second.lid_held, second.black), ('shutdown', True, False))
+        self.assertEqual((self.runner.lid_blocks, self.runner.blacks), ([self.LIMIT, self.LIMIT], [self.LIMIT]))
+
+    def test_a_black_screen_or_a_lid_block_that_fails_is_one_log_line_and_changes_nothing_else(self):
+        sup, pid, peer = self.session()
+        self.runner.black_error = OSError('no cover')
+        self.runner.lid_error = OSError('no systemd-inhibit')
+        with self.logged('WARNING') as logs:
+            replies = self.stop(sup, 'shutdown')
+        self.assertEqual(len(logs.output), 2, logs.output)
+        self.assertEqual((sup.black, sup.lid_held, sup.stop.kind, sup.stop.phase), (False, False, 'shutdown', 'save'))
+        self.close_game(sup, pid, peer)
+        self.assertEqual((replies[0]['ok'], replies[0]['result'], replies[0]['close']), (True, 'confirmed', 'exited'))
+        self.assertEqual((self.runner.black_stops, self.runner.lid_stops), ([], []))
+        # One that ends by itself (logind refused the block, the black screen lost its display): one line each.
+        sup, pid, peer = self.session()
+        replies = self.stop(sup, 'restart')
+        with self.logged('WARNING') as logs:
+            sup.on_lid_block_exit(1)
+            sup.on_black_exit(1)
+        self.assertEqual(len(logs.output), 2, logs.output)
+        self.assertEqual((sup.black, sup.lid_held), (False, False))
+        self.close_game(sup, pid, peer)
+        self.assertEqual((replies[0]['restart'], self.runner.black_stops, self.runner.lid_stops), ('started', [], []))
+
+    def test_hide_cover_takes_the_black_screen_away_too(self):
+        sup, pid, peer = self.session()
+        self.stop(sup, 'shutdown')
+        self.assertEqual(sup.owner_hides_cover(), 'The black screen is gone.')
+        self.assertEqual((self.runner.black_up, sup.black, sup.stop.kind), (False, False, 'shutdown'))
+        self.assertEqual(sup.owner_hides_cover(), 'No startup cover is up.')
 
 
 class CommandTest(unittest.TestCase):
