@@ -2,7 +2,8 @@
 """Package 311: Fedora's labwc rebuilt with one patch, from exact inputs (labwc.lock.json).
 
   stage.py fetch <lock folder> <inputs>             labwc-inputs stage: download every input and check it
-  stage.py build <lock folder> <inputs> <out>       labwc stage, on the locked fedora:44: the RPM and nothing else
+  stage.py build <lock folder> <inputs> <out>       labwc stage, on the locked fedora:44: the RPM and nothing else,
+                                                    once its binaries match the lock's normalized pins
   stage.py install <rpm folder> <lock folder>       final stage: our RPM replaces Fedora's labwc
   stage.py resolve <lock folder> <resolved> <out>   check_build=resolve: a candidate from resolve-download.sh's folder
 
@@ -36,6 +37,14 @@ RELEASE_EDIT = 'Release:    %{autorelease}.aresos1\n'
 DIST = '.fc44'
 # labwc links this library: the headers it builds against must be the build the image runs.
 WLROOTS, WLROOTS_DEVEL = 'wlroots0.19', 'wlroots0.19-devel'
+# 311d: the RPM is not byte-reproducible, so the binaries are pinned without the three sections that vary between
+# builds of the same inputs. Everything that stays in the file is pinned: never add a section here to make a pin hold.
+VARYING_SECTIONS = ('.note.gnu.build-id', '.gnu_debuglink', '.gnu_debugdata')
+PINNED_BINARIES = ('/usr/bin/labnag', '/usr/bin/labwc')
+PIN_RENEWAL = ('LABWC_PINS_KEPT a candidate keeps the lock\'s result.normalized_sha256 and no build ever writes it. '
+               'After a change to the patch or the locked build environment, run podman build --no-cache --target labwc '
+               'twice: each run prints LABWC_NORMALIZED lines and stops with LABWC_REFUSED. If both runs print the same '
+               'hashes, review the change and write them into result.normalized_sha256 by hand.')
 
 
 class Refusal(Exception):
@@ -114,9 +123,15 @@ def validate_lock(lock):
     need(isinstance(patch['file'], str) and re.fullmatch(r'[0-9A-Za-z][0-9A-Za-z.-]*\.patch', patch['file']),
          'patch.file must be a plain .patch file name')
     need(isinstance(patch['sha256'], str) and SHA256.fullmatch(patch['sha256']), 'patch.sha256 is not a SHA-256')
-    need(isinstance(result, dict) and set(result) == {'nevra', 'replaces'}, 'result needs exactly nevra and replaces')
+    need(isinstance(result, dict) and set(result) == {'nevra', 'replaces', 'normalized_sha256'},
+         'result needs exactly nevra, replaces and normalized_sha256')
     need(result['nevra'] == 'labwc-0.9.6-1.fc44.aresos1.x86_64', 'result.nevra is not the reviewed build')
     need(result['replaces'] == 'labwc-0.9.6-1.fc44.x86_64', "result.replaces is not Fedora's labwc")
+    pins = result['normalized_sha256']
+    need(isinstance(pins, dict) and set(pins) == set(PINNED_BINARIES),
+         f'result.normalized_sha256 needs exactly {", ".join(PINNED_BINARIES)}')
+    need(all(isinstance(pin, str) and SHA256.fullmatch(pin) for pin in pins.values()),
+         'result.normalized_sha256 holds something that is not a SHA-256')
     need(isinstance(dependencies, list) and dependencies, 'build_dependencies must list every build dependency')
     names = []
     for entry in dependencies:
@@ -238,6 +253,51 @@ def edit_spec(spec, patch_name):
     spec.write_text(text)
 
 
+def normalized_sha256(binary):
+    """The SHA-256 of a copy of this ELF file without VARYING_SECTIONS. The file itself is not changed.
+
+    objcopy writes the headers and the sections, so bytes outside every section (padding, anything appended to the
+    file) are not part of this hash.
+    """
+    with tempfile.TemporaryDirectory(prefix='aresos-labwc-normalize-') as folder:
+        copy = pathlib.Path(folder) / 'binary'
+        shutil.copyfile(binary, copy)
+        removals = [argument for section in VARYING_SECTIONS for argument in ('--remove-section', section)]
+        query('objcopy', *removals, str(copy))
+        return sha256(copy)
+
+
+def unpack_pinned_binaries(rpm, folder):
+    """The pinned binaries from the RPM's own payload, under folder."""
+    members = [f'.{path}' for path in PINNED_BINARIES]
+    payload = subprocess.Popen(['rpm2cpio', str(rpm)], stdout=subprocess.PIPE)
+    result = subprocess.run(['cpio', '-idm', '--quiet', '--no-absolute-filenames', *members], stdin=payload.stdout,
+                            cwd=folder, capture_output=True, text=True)
+    payload.stdout.close()
+    if payload.wait() != 0 or result.returncode != 0:
+        detail = result.stderr.strip() or 'rpm2cpio failed'
+        raise Refusal(f'the payload of {pathlib.Path(rpm).name} cannot be unpacked: {detail}')
+
+
+def require_pinned_binaries(rpm, lock):
+    """The code in this RPM is the reviewed code: its binaries match the lock once the varying sections are gone."""
+    pins = lock['result']['normalized_sha256']
+    actual = {}
+    with tempfile.TemporaryDirectory(prefix='aresos-labwc-payload-') as folder:
+        unpack_pinned_binaries(rpm, folder)
+        for path in PINNED_BINARIES:
+            binary = pathlib.Path(folder) / path.lstrip('/')
+            if binary.is_symlink() or not binary.is_file():
+                raise Refusal(f'the RPM holds no file {path}')
+            actual[path] = normalized_sha256(binary)
+    for path in PINNED_BINARIES:
+        print(f'LABWC_NORMALIZED {path} {actual[path]}', flush=True)
+    wrong = [f'{path} is {actual[path]}, the lock says {pins[path]}'
+             for path in PINNED_BINARIES if actual[path] != pins[path]]
+    if wrong:
+        raise Refusal(f'the normalized SHA-256 of {"; ".join(wrong)}')
+
+
 def build(lock_folder, inputs, out):
     lock_folder, inputs, out = pathlib.Path(lock_folder), pathlib.Path(inputs), pathlib.Path(out)
     lock = load_lock(lock_folder)
@@ -267,6 +327,7 @@ def build(lock_folder, inputs, out):
     built = top / 'RPMS/x86_64' / f'{nevra}.rpm'
     if not built.is_file() or file_nevra(built) != nevra:
         raise Refusal(f'the build did not produce {nevra}')
+    require_pinned_binaries(built, lock)
     out.mkdir(parents=True, exist_ok=True)
     if any(out.iterdir()):
         raise Refusal(f'{out} is not empty: the stage outputs the RPM and nothing else')
@@ -380,6 +441,7 @@ def resolve(lock_folder, resolved, out):
     except Refusal as refusal:
         print(f'WLROOTS_DIFFERS {refusal}')
         same_wlroots = False
+    print(PIN_RENEWAL)
     current = fresh == locked and same_base and same_wlroots and not unavailable
     print('LABWC_LOCK_CURRENT' if current else 'LABWC_LOCK_DIFFERS')
     shutil.rmtree(work)

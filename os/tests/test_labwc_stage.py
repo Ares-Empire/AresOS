@@ -1,11 +1,13 @@
 """Package 311: the lock for our labwc rebuild, and every refusal of os/labwc/stage.py.
 
-The stage's tools (curl, rpm, rpmbuild, dnf5) are stand-ins on PATH that act on a small state file, so nothing here
-needs root, the network or a Fedora system.
+The stage's tools (curl, rpm, rpmbuild, dnf5, rpm2cpio, cpio) are stand-ins on PATH that act on a small state file, so
+nothing here needs root, the network or a Fedora system. objcopy is the real one, on small ELF files made here: what it
+leaves in a file is what the pins of 311d rest on.
 """
 import contextlib
 import copy
 import fnmatch
+import functools
 import hashlib
 import importlib.util
 import io
@@ -13,7 +15,9 @@ import json
 import os
 import pathlib
 import re
+import shutil
 import stat
+import struct
 import subprocess
 import sys
 import tempfile
@@ -40,6 +44,8 @@ SPEC = ('Name:       labwc\nRelease:    %autorelease\nSummary:    A compositor\n
 FAKE_TOOL = r'''
 import json, os, pathlib, shutil, sys
 tool, args = pathlib.Path(sys.argv[0]).name, sys.argv[1:]
+# cpio is the second half of a pipeline: at the end of its input, rpm2cpio has saved the state.
+archive = sys.stdin.read() if tool == 'cpio' else ''
 state_path = pathlib.Path(os.environ['FAKE_STATE'])
 state = json.loads(state_path.read_text())
 state['calls'].append([tool, *args])
@@ -67,6 +73,17 @@ elif tool == 'dnf5':
         if removed is None:
             removed = [state['fedora']] if state['result'] in added else []
         state['installed'] = sorted((set(state['installed']) | set(added)) - set(removed))
+elif tool == 'rpm2cpio':
+    code = state['rpm2cpio_exit']
+    if code == 0:
+        sys.stdout.write(json.dumps(state['payload']))
+elif tool == 'cpio':
+    code = state['cpio_exit']
+    members = json.loads(archive) if code == 0 and archive else {}
+    for member in [arg.removeprefix('./') for arg in args if arg.startswith('./')]:
+        if member in members:
+            pathlib.Path(member).parent.mkdir(parents=True, exist_ok=True)
+            pathlib.Path(member).write_bytes(bytes.fromhex(members[member]))
 elif tool == 'rpmbuild':
     top = pathlib.Path(args[args.index('--define') + 1].split(' ', 1)[1])
     if state['build_exit']:
@@ -113,6 +130,90 @@ def digest(data):
     return hashlib.sha256(data).hexdigest()
 
 
+SHT_PROGBITS, SHT_STRTAB, SHT_NOTE = 1, 3, 7
+SHF_ALLOC, SHF_EXECINSTR = 2, 4
+VARYING = ('.note.gnu.build-id', '.gnu_debuglink', '.gnu_debugdata')
+# Sections of a real labwc, and three whose names only look like the ones that are removed.
+ELF_SECTIONS = (
+    ('.note.gnu.build-id', SHT_NOTE, SHF_ALLOC, struct.pack('<III', 4, 20, 3) + b'GNU\0' + bytes(range(20))),
+    ('.text', SHT_PROGBITS, SHF_ALLOC | SHF_EXECINSTR, b'\x90' * 32 + b'\xc3'),
+    ('.rodata', SHT_PROGBITS, SHF_ALLOC, b'reviewed strings\0'),
+    ('.comment', SHT_PROGBITS, 0, b'compiler\0'),
+    ('.note.gnu.build-id.kept', SHT_PROGBITS, 0, b'not the build id'),
+    ('.gnu_debuglink.kept', SHT_PROGBITS, 0, b'not the debug link'),
+    ('.gnu_debugdata.kept', SHT_PROGBITS, 0, b'not the debug data'),
+    ('.gnu_debuglink', SHT_PROGBITS, 0, b'labwc.debug\0\x01\x02\x03\x04'),
+    ('.gnu_debugdata', SHT_PROGBITS, 0, b'\xfd7zXZ compressed symbols'),
+)
+
+
+def elf_file(**changes):
+    """A small x86-64 executable. changes replaces a section's bytes; its key is the name, with _ for each dot."""
+    keys = {name.replace('.', '_').replace('-', '_'): name for name, _, _, _ in ELF_SECTIONS}
+    contents = {name: data for name, _, _, data in ELF_SECTIONS} | {keys[key]: data for key, data in changes.items()}
+    names = b'\0'
+    offset = 64 + 2 * 56
+    body = bytearray()
+    headers = [bytes(64)]
+    load_end = note = None
+
+    def place(name, kind, flags, data, align):
+        nonlocal names, offset
+        padding = -offset % align
+        body.extend(bytes(padding))
+        offset += padding
+        address = offset if flags & SHF_ALLOC else 0
+        headers.append(struct.pack('<IIQQQQIIQQ', len(names), kind, flags, address, offset, len(data), 0, 0, align, 0))
+        names += name.encode() + b'\0'
+        body.extend(data)
+        offset += len(data)
+        return address
+
+    for name, kind, flags, _ in ELF_SECTIONS:
+        address = place(name, kind, flags, contents[name], 16 if flags & SHF_ALLOC else 1)
+        if flags & SHF_ALLOC:
+            load_end = offset
+        if name == '.note.gnu.build-id':
+            note = address, len(contents[name])
+        if name == '.text':
+            entry = address
+    name_offset = len(names)
+    names += b'.shstrtab\0'
+    headers.append(struct.pack('<IIQQQQIIQQ', name_offset, SHT_STRTAB, 0, 0, offset, len(names), 0, 0, 1, 0))
+    body.extend(names)
+    offset += len(names)
+    padding = -offset % 8
+    body.extend(bytes(padding))
+    offset += padding
+    identity = b'\x7fELF\x02\x01\x01' + bytes(9)
+    header = identity + struct.pack('<HHIQQQIHHHHHH', 3, 62, 1, entry, 64, offset, 0, 64, 56, 2, 64, len(headers),
+                                    len(headers) - 1)
+    segments = (struct.pack('<IIQQQQQQ', 1, 5, 0, 0, 0, load_end, load_end, 0x1000) +
+                struct.pack('<IIQQQQQQ', 4, 4, note[0], note[0], note[0], note[1], note[1], 4))
+    return header + segments + bytes(body) + b''.join(headers)
+
+
+def section_names(data):
+    """The section names of an ELF file, in order."""
+    table = struct.unpack_from('<Q', data, 40)[0]
+    size, count, strings = struct.unpack_from('<HHH', data, 58)
+    rows = [struct.unpack_from('<IIQQQQ', data, table + index * size) for index in range(count)]
+    names = data[rows[strings][4]:rows[strings][4] + rows[strings][5]]
+    return [names[row[0]:names.index(b'\0', row[0])].decode() for row in rows[1:]]
+
+
+@functools.lru_cache
+def normalized(data):
+    with tempfile.TemporaryDirectory() as folder:
+        path = pathlib.Path(folder) / 'binary'
+        path.write_bytes(data)
+        return stage.normalized_sha256(path)
+
+
+LABWC_ELF = elf_file(_text=b'\x90' * 16 + b'\xc3')
+LABNAG_ELF = elf_file(_text=b'\x90' * 8 + b'\xc3')
+
+
 class StageCase(unittest.TestCase):
     def setUp(self):
         folder = tempfile.TemporaryDirectory()
@@ -123,8 +224,9 @@ class StageCase(unittest.TestCase):
         program = self.tools / 'fake-tool'
         program.write_text(f'#!{sys.executable} -I\n{FAKE_TOOL}')
         program.chmod(program.stat().st_mode | stat.S_IEXEC)
-        for name in ('curl', 'rpm', 'rpmbuild', 'dnf5'):
+        for name in ('curl', 'rpm', 'rpmbuild', 'dnf5', 'rpm2cpio', 'cpio'):
             (self.tools / name).symlink_to(program)
+        (self.tools / 'objcopy').symlink_to(shutil.which('objcopy'))
 
         self.lock_dir = self.tmp / 'labwc'
         self.lock_dir.mkdir()
@@ -138,7 +240,9 @@ class StageCase(unittest.TestCase):
             base=dict(reference=FEDORA_BASE, packages=BUILD_BASE),
             source=dict(url=self.source_url, sha256=digest(self.source_bytes)),
             patch=dict(file='fix.patch', sha256=digest(self.patch_bytes)),
-            result=dict(nevra=RESULT, replaces=FEDORA),
+            result=dict(nevra=RESULT, replaces=FEDORA,
+                        normalized_sha256={'/usr/bin/labnag': normalized(LABNAG_ELF),
+                                           '/usr/bin/labwc': normalized(LABWC_ELF)}),
             build_dependencies=[dict(nevra=nevra, url=self.dep_url(nevra), sha256=digest(data))
                                 for nevra, data in sorted(self.dependencies.items())])
         self.write_lock()
@@ -149,6 +253,7 @@ class StageCase(unittest.TestCase):
                             **{self.dep_url(n): data.hex() for n, data in self.dependencies.items()}},
             nevra_of={}, installed=list(BASE_PACKAGES), dnf_exit=0, dnf_adds=None, dnf_removes=None, build_exit=0,
             built=RESULT, spec=SPEC, verify_output='', verify_exit=0, labwc_query=None, fedora=FEDORA, result=RESULT,
+            payload={'usr/bin/labnag': LABNAG_ELF.hex(), 'usr/bin/labwc': LABWC_ELF.hex()}, rpm2cpio_exit=0, cpio_exit=0,
             signature='RSA/SHA256, Mon 1 Jan 2026, Key ID abcdef0123456789')
         self.manifest = self.tmp / 'manifest'
         self.manifest.mkdir()
@@ -428,6 +533,142 @@ class BuildTest(StageCase):
         self.assert_refused(self.build(), 'the RPM and nothing else')
 
 
+class NormalizedHashTest(unittest.TestCase):
+    """311d: what the pins cover, measured with the real objcopy."""
+    def test_the_three_sections_are_the_only_ones_named(self):
+        self.assertEqual(stage.VARYING_SECTIONS, VARYING)
+
+    def test_the_three_sections_are_the_only_ones_removed(self):
+        seen = {}
+        real_query = stage.query
+
+        def recording_query(*command):
+            output = real_query(*command)
+            seen.update(command=command, left=pathlib.Path(command[-1]).read_bytes())
+            return output
+
+        with mock.patch.object(stage, 'query', recording_query):
+            normalized.__wrapped__(LABWC_ELF)
+        self.assertEqual(seen['command'][:-1], ('objcopy', '--remove-section', '.note.gnu.build-id', '--remove-section',
+                                                '.gnu_debuglink', '--remove-section', '.gnu_debugdata'))
+        before = section_names(LABWC_ELF)
+        self.assertLessEqual(set(VARYING), set(before))
+        self.assertEqual(section_names(seen['left']), [name for name in before if name not in VARYING])
+
+    def test_a_change_in_any_other_section_gives_another_hash(self):
+        for name, _, _, data in ELF_SECTIONS:
+            if name in VARYING:
+                continue
+            key = name.replace('.', '_').replace('-', '_')
+            with self.subTest(name):
+                changed = bytes([data[0] ^ 1]) + data[1:]
+                self.assertNotEqual(normalized(elf_file(**{key: changed})), normalized(elf_file()))
+
+    def test_a_change_in_only_the_three_sections_gives_the_same_hash(self):
+        other_id = struct.pack('<III', 4, 20, 3) + b'GNU\0' + bytes(range(100, 120))
+        cases = {
+            'the build id': dict(_note_gnu_build_id=other_id),
+            'the debug link': dict(_gnu_debuglink=b'other.debug\0\x09\x08\x07\x06'),
+            'the debug data': dict(_gnu_debugdata=b'\xfd7zXZ other symbols, and more of them'),
+            'all three': dict(_note_gnu_build_id=other_id, _gnu_debuglink=b'other.debug\0\x09\x08\x07\x06',
+                              _gnu_debugdata=b'\xfd7zXZ other'),
+        }
+        for name, changes in cases.items():
+            with self.subTest(name):
+                self.assertNotEqual(elf_file(**changes), elf_file())
+                self.assertEqual(normalized(elf_file(**changes)), normalized(elf_file()))
+
+    def test_the_binary_itself_is_not_changed(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = pathlib.Path(folder) / 'labwc'
+            path.write_bytes(LABWC_ELF)
+            stage.normalized_sha256(path)
+            self.assertEqual(path.read_bytes(), LABWC_ELF)
+            self.assertEqual(os.listdir(folder), ['labwc'])
+
+    def test_a_file_objcopy_cannot_read_is_refused(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = pathlib.Path(folder) / 'labwc'
+            path.write_bytes(b'not an ELF file')
+            with self.assertRaisesRegex(stage.Refusal, 'objcopy --remove-section .* failed'):
+                stage.normalized_sha256(path)
+
+
+class PinnedBinariesTest(StageCase):
+    """311d: the labwc stage stops unless the RPM's own binaries match the lock."""
+    def setUp(self):
+        super().setUp()
+        self.prepare_inputs()
+
+    def assert_no_rpm_handed_over(self):
+        self.assertFalse(self.out.exists() and any(self.out.iterdir()))
+
+    def test_the_pinned_code_gives_the_rpm_and_prints_both_hashes(self):
+        self.assertEqual(self.build(), 0, self.stderr)
+        self.assertEqual([path.name for path in self.out.iterdir()], [f'{RESULT}.rpm'])
+        self.assertIn(f'LABWC_NORMALIZED /usr/bin/labwc {normalized(LABWC_ELF)}\n', self.stdout)
+        self.assertIn(f'LABWC_NORMALIZED /usr/bin/labnag {normalized(LABNAG_ELF)}\n', self.stdout)
+
+    def test_the_hashes_come_from_the_rpm_that_was_built(self):
+        self.assertEqual(self.build(), 0, self.stderr)
+        calls = self.called('rpm2cpio')
+        self.assertEqual(len(calls), 1)
+        self.assertTrue(calls[0][-1].endswith(f'/rpmbuild/RPMS/x86_64/{RESULT}.rpm'), calls[0])
+        names = [call[0] for call in self.state['calls']]
+        self.assertLess(names.index('rpmbuild'), names.index('rpm2cpio'))
+
+    def test_another_build_of_the_same_code_passes(self):
+        self.state['payload']['usr/bin/labwc'] = elf_file(
+            _text=b'\x90' * 16 + b'\xc3', _gnu_debugdata=b'\xfd7zXZ this build', _gnu_debuglink=b'b.debug\0\1\2\3\4',
+            _note_gnu_build_id=struct.pack('<III', 4, 20, 3) + b'GNU\0' + bytes(range(50, 70))).hex()
+        self.assertEqual(self.build(), 0, self.stderr)
+
+    def test_a_wrong_pin_stops_the_build(self):
+        for path, elf in (('/usr/bin/labwc', LABWC_ELF), ('/usr/bin/labnag', LABNAG_ELF)):
+            with self.subTest(path):
+                lock = copy.deepcopy(self.lock)
+                lock['result']['normalized_sha256'][path] = 'a' * 64
+                (self.lock_dir / 'labwc.lock.json').write_text(json.dumps(lock))
+                self.assert_refused(self.build(), f'normalized SHA-256 of {path} is {normalized(elf)}, '
+                                                  f'the lock says {"a" * 64}$')
+                self.assert_no_rpm_handed_over()
+                self.assertIn(f'LABWC_NORMALIZED {path} {normalized(elf)}\n', self.stdout)
+
+    def test_two_wrong_pins_are_one_line_that_names_both(self):
+        self.lock['result']['normalized_sha256'] = {'/usr/bin/labnag': 'a' * 64, '/usr/bin/labwc': 'b' * 64}
+        self.write_lock()
+        self.assert_refused(self.build(), '/usr/bin/labnag is .*; /usr/bin/labwc is ')
+
+    def test_changed_code_stops_the_build(self):
+        for member, key in (('usr/bin/labwc', '/usr/bin/labwc'), ('usr/bin/labnag', '/usr/bin/labnag')):
+            with self.subTest(member):
+                payload = dict(self.state['payload'])
+                self.state['payload'][member] = elf_file(_rodata=b'unreviewed strings').hex()
+                self.assert_refused(self.build(), f'normalized SHA-256 of {key} is ')
+                self.assert_no_rpm_handed_over()
+                self.state['payload'] = payload
+
+    def test_a_refusal_never_renews_a_pin(self):
+        self.lock['result']['normalized_sha256']['/usr/bin/labwc'] = 'a' * 64
+        self.write_lock()
+        before = (self.lock_dir / 'labwc.lock.json').read_bytes()
+        self.assert_refused(self.build(), 'the lock says')
+        self.assertEqual((self.lock_dir / 'labwc.lock.json').read_bytes(), before)
+
+    def test_a_missing_binary_stops_the_build(self):
+        del self.state['payload']['usr/bin/labnag']
+        self.assert_refused(self.build(), 'the RPM holds no file /usr/bin/labnag')
+        self.assert_no_rpm_handed_over()
+
+    def test_a_payload_that_cannot_be_read_stops_the_build(self):
+        for key in ('rpm2cpio_exit', 'cpio_exit'):
+            with self.subTest(key):
+                self.state[key] = 1
+                self.assert_refused(self.build(), 'cannot be unpacked')
+                self.assert_no_rpm_handed_over()
+                self.state[key] = 0
+
+
 class InstallInputsTest(StageCase):
     def run_script(self):
         state_file = self.tmp / 'state.json'
@@ -585,6 +826,16 @@ class ResolveTest(StageCase):
         self.assertIn('LABWC_LOCK_DIFFERS', self.stdout)
         stage.validate_lock(self.candidate())
 
+    def test_a_new_resolution_keeps_the_pins_and_says_how_they_are_renewed(self):
+        self.add_download('ccc-3-1.fc44.x86_64', b'fourth')
+        self.assertEqual(self.resolve(), 0, self.stderr)
+        self.assertEqual(self.candidate()['result'], self.lock['result'])
+        lines = self.stdout.splitlines()
+        self.assertEqual(lines[-2], stage.PIN_RENEWAL)
+        self.assertEqual(lines[-1], 'LABWC_LOCK_DIFFERS')
+        for words in ('--no-cache --target labwc', 'twice', 'LABWC_NORMALIZED', 'by hand'):
+            self.assertIn(words, stage.PIN_RENEWAL)
+
     def test_a_changed_base_is_reported_and_recorded(self):
         (self.resolved / 'base-packages.txt').write_text('bash-5.4-1.fc44.x86_64\nglibc-2.43-1.fc44.x86_64\n')
         self.assertEqual(self.resolve(), 0, self.stderr)
@@ -665,6 +916,15 @@ class LockShapeTest(StageCase):
             'patch hash': (lambda lock: lock['patch'].update(sha256='ABC'), 'patch.sha256'),
             'result': (lambda lock: lock['result'].update(nevra='labwc-0.9.6-1.fc44.x86_64'), 'result.nevra'),
             'replaces': (lambda lock: lock['result'].update(replaces='labwc-0.9.5-1.fc44.x86_64'), 'result.replaces'),
+            'no pins': (lambda lock: lock['result'].pop('normalized_sha256'), 'result needs exactly'),
+            'pins of one binary': (lambda lock: lock['result']['normalized_sha256'].pop('/usr/bin/labnag'),
+                                   'normalized_sha256 needs exactly'),
+            'a pin too many': (lambda lock: lock['result']['normalized_sha256'].update({'/usr/bin/other': 'a' * 64}),
+                               'normalized_sha256 needs exactly'),
+            'pin that is no hash': (lambda lock: lock['result']['normalized_sha256'].update({'/usr/bin/labwc': 'abc'}),
+                                    'not a SHA-256'),
+            'pins of another type': (lambda lock: lock['result'].update(normalized_sha256=['a' * 64]),
+                                     'normalized_sha256 needs exactly'),
             'no dependencies': (lambda lock: lock.update(build_dependencies=[]), 'must list every'),
             'dependency key': (lambda lock: first(lock).update(extra=1), 'needs exactly nevra'),
             'loose name': (lambda lock: first(lock).update(nevra='gcc'), 'not an exact NEVRA'),
@@ -695,7 +955,10 @@ class ReviewedLockTest(unittest.TestCase):
                                                      'src/labwc-0.9.6-1.fc44.src.rpm')
 
     def test_it_names_the_result(self):
-        self.assertEqual(self.lock['result'], dict(nevra=RESULT, replaces=FEDORA))
+        self.assertEqual((self.lock['result']['nevra'], self.lock['result']['replaces']), (RESULT, FEDORA))
+
+    def test_it_pins_both_binaries_of_the_package(self):
+        self.assertEqual(sorted(self.lock['result']['normalized_sha256']), ['/usr/bin/labnag', '/usr/bin/labwc'])
 
     def test_the_patch_is_its_pin(self):
         patch = self.folder / self.lock['patch']['file']

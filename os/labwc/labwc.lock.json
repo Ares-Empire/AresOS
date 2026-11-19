@@ -160,7 +160,11 @@
   },
   "result": {
     "nevra": "labwc-0.9.6-1.fc44.aresos1.x86_64",
-    "replaces": "labwc-0.9.6-1.fc44.x86_64"
+    "replaces": "labwc-0.9.6-1.fc44.x86_64",
+    "normalized_sha256": {
+      "/usr/bin/labnag": "7c6896e938198e7922105e01b52118e2bfd75d16c431ea9c9a615127b7cc1f6d",
+      "/usr/bin/labwc": "89cd0e901a5cc9f6a7df0d6337d38d817a753318cbdca8b8e620a7cfc0dd71c4"
+    }
   },
   "build_dependencies": [
     {
