@@ -64,6 +64,11 @@ Ares-Empire/AresOS --interval 300` in a background shell.
      4b's `os/` diff (three CI-only files). Next: step 5 (C4, C5, C9, then C7 and C8), then 6. When main is merged
      in after R28: take main's `pending-rebind.json`, rerun `rebind.py pending` with step 4's five notes word for
      word plus the merge note; keep pkg/42's comment and 156 in `os-image.yml`.
+   - **19:55: step 5 running** on Codex gpt-6.2-sol xhigh (`18cb-step5`, prompt in `~/codex-queue/linux-tools/`,
+     log `~/AresOS-18cb-step5.log`): C4 as connection only (28b isn't merged, so CROSS-5's pin case stays with
+     28b's PR), C5, C9, then C7 (F7's loosening dialog only) and C8; at most 3 control runs, then `checks_only`.
+     It dispatches and watches its own runs. When it ends: send `linux-aresos` the `os/` diff from its PROGRESS
+     section, then step 6.
 4. **Package 28** (#72): held until right after R29's cut, then merge and retarget #116 to main.
 5. **Board:** #386 (N8 and N9 follow-up, one re-pin), #298 (live Chrome setup with him). #337 and #385 done.
 6. **Budget (`mac-capacity`, 06:50):** Claude about 2% a day for this lead; one Claude agent at a time; no Claude
