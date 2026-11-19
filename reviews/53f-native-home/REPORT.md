@@ -242,3 +242,14 @@ LLVM, anything NVIDIA's and `/dri/`. None was mapped in any run, and every memor
 
 `layer-test/` (the verified RPM and its extraction, under 1 MiB) and `mem/` (the measurement JSON, under 1 MiB).
 Nothing is over 500 MB.
+
+## The lead's decisions (2026-11-19)
+
+- **The 60 MiB limit is judged in set-up I** (the real compositor on the Intel chip, one window picture: 52.2 MiB
+  measured here with one picture), at the laptop trial. In set-up S the guard pins today's two-picture number:
+  `MemoryGuardTest.LIMIT_KIB = 64000` (step B measured 62,358 KiB). PLAN-GAP 1 is closed by this; the logo-cell
+  change (about 1.4 MiB) is not needed.
+- **JUDGMENT-CALLs 1 to 3 are accepted** as technical: GTK's simple input method (the owner types German with dead
+  keys and runs no input-method program), instant hover and match changes instead of 53c's 0.12 s and 0.15 s fades,
+  and the three process-wide memory settings.
+- The page folder's deletion landed in commit 9c562c9e, whose message does not say so.
