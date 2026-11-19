@@ -3,6 +3,30 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {completeIngress} from './ingress-scan.mjs';
 
+// Keep the original identity assertion across the catalogue switch. Native replies
+// prove which elements were read; the public rows must describe those same values.
+export function approvedTypedFields(result,manifest,boundary){
+  const fields=result.untrusted_content.typed_fields;
+  if(!Array.isArray(fields))return fields.frames.flatMap(frame=>frame.fields.map(field=>({frame:frame.frame,...field})));
+  const replies=boundary.filter(row=>row.ok===true&&row.data?.document&&row.data?.reader&&
+    Array.isArray(row.data.fields)&&row.data.fields.some(field=>'value' in field)).map(row=>row.data);
+  assert.equal(replies.length,manifest.frames.length,'one native value reply per approved frame');
+  const returned=[];
+  for(const frame of manifest.frames){
+    const matches=replies.filter(reply=>reply.document===frame.document&&reply.reader===frame.reader);
+    assert.equal(matches.length,1,'exactly the approved document and reader');
+    const native=matches[0].fields;
+    assert.deepEqual(native.map(({value,...field})=>field),frame.fields.map(({description,...field})=>field),'exactly the approved native fields');
+    returned.push(...native.map((field,index)=>({frame:frame.frame,...field,description:frame.fields[index].description})));
+  }
+  assert.deepEqual(fields.map(({label,description,value})=>({label,description,value})),
+    returned.map(({label,description,value})=>({label,description,value:JSON.stringify(value)})),
+    'public descriptions and quoted fixture values match the approved native read');
+  assert.equal(new Set(fields.map(field=>field.ref)).size,returned.length,'one short reference per field');
+  for(const field of fields)assert.match(field.ref,/^[bcdfghjklmnpqrstvwxyz]{5}\d+$/);
+  return returned;
+}
+
 export async function outlineAskingMatrix({check,call,rpc,read,fixture,eventually,ownerNavigate,getTab}){
   const out='/out/outline-read/asking.jsonl';
   const record=(name,result)=>{fs.appendFileSync(out,JSON.stringify({name,result})+'\n');return result;};
@@ -81,8 +105,9 @@ export async function outlineAskingMatrix({check,call,rpc,read,fixture,eventuall
     const listed=manifest.frames.flatMap(frame=>frame.fields.map(field=>({frame:frame.frame,...field})));
     assert.equal(listed.length,10);assert.ok(!listed.some(field=>['One time','Password','Covered'].includes(field.label)));
     assert.doesNotMatch(JSON.stringify(prepared),/ASK_[A-Z_]+_28|SENTINEL_PRIVATE_PASSWORD_20/);
+    const boundaryStart=completeIngress(fs.readFileSync('/out/browser-boundary.jsonl','utf8')).length;
     const approved=record('approved',await call('read_typed_fields',prepared.approval));assert.equal(approved.operation.state,'done');
-    const returned=approved.untrusted_content.typed_fields.frames.flatMap(frame=>frame.fields.map(field=>({frame:frame.frame,...field})));
+    const returned=approvedTypedFields(approved,manifest,completeIngress(fs.readFileSync('/out/browser-boundary.jsonl','utf8')).slice(boundaryStart));
     assert.deepEqual(returned.map(({value,...field})=>field),listed,'exactly the identities and descriptions approved');
     assert.deepEqual(returned.map(field=>field.value).sort(),['','ASK_TEXT_28','ASK_SEARCH_28','ASK_EMAIL_28','ASK_AREA_28','ASK_SAME_A_28','ASK_SAME_B_28','ASK_BARE_A_28','ASK_BARE_B_28','ASK_FRAME_28'].sort());
     assert.doesNotMatch(JSON.stringify(approved),/SENTINEL_PRIVATE_PASSWORD_20/);
