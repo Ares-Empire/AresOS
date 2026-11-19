@@ -37,7 +37,8 @@
     "42 step 4: test_release28 lists the cut's build.sh fix beside the jar pin as the branch's allowed source changes",
     "42 step 5: publish-28 and publish_cap from 0 to 1 under the owner's standing rule (board #388, 2026-11-19); test_release28 and test_release28_rehearsal hold the opened gate (one publish, the publishing kind only)",
     "42 step 6: release-28 0 to 3, checks 1 to 3 (the model gate on each rehearsal head), minute cap 1200 to 2400; test_release28 and test_release28_rehearsal hold the new caps",
-    "42 step 5: release 28's record (run 44590446680, ghcr.io/ares-empire/aresos@sha256:aa97b2d5…); step 6: the host walk regenerated for it"
+    "42 step 5: release 28's record (run 44590446680, ghcr.io/ares-empire/aresos@sha256:aa97b2d5…); step 6: the host walk regenerated for it",
+    "42 step 6: test_owner_sources keeps main()'s umask 077 from leaking into later modules (checks-only 44597381061: 116 hosted failures); test_control_image and test_owner_devices_native read the cut's -B lines and step 3's workflow line"
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
@@ -108,6 +109,10 @@
     {
       "sha256": "863d2673b18d6a274e4d1ceb52c691e7f7d450227c0a950fc57080df3e1c51be",
       "path": "os/tests/test_owner_capabilities.py"
+    },
+    {
+      "sha256": "1030289ee102fb0fa68c0d42fd3ed2bbf0505547f132d86938a7160de0e0a02a",
+      "path": "os/tests/test_owner_devices_native.py"
     },
     {
       "sha256": "93c66f3c6f18716e349da52323a68114c3431ccb21fc3447dea3adf491b98c08",

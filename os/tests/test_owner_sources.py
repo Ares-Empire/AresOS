@@ -20,6 +20,7 @@ import types
 import unittest
 from unittest.mock import patch
 
+import test_owner_tools as common
 import test_owner_update as base
 from test_owner_devices import FixtureHost, fixture
 from ways_back_keyboard import PowerCut
@@ -147,7 +148,9 @@ class RouteTest(unittest.TestCase):
                             patch.object(owner, 'HOME', root / 'no-installation'), \
                             patch.object(owner, '__file__', str(private / 'ares-tools/owner.py')), \
                             patch.object(sys, 'argv', ['owner.py', 'install']), \
-                            patch.object(owner, 'install', return_value=['installed']) as install, contextlib.redirect_stdout(output):
+                            patch.object(owner, 'install', return_value=['installed']) as install, contextlib.redirect_stdout(output), \
+                            common.kept_umask():
+                        # kept_umask: main() sets umask 077, which would leak into every later test module.
                         owner.main()
                     (payload, host, source), options = install.call_args
                     self.assertEqual((payload, source, options), (private / 'ares-tools', expected, {}))

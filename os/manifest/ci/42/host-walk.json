@@ -913,7 +913,7 @@
       "path": "os/tests/test_owner_devices.py"
     },
     {
-      "sha256": "2b32a6bfbed6523fff8128673e33f7aafeba784283e02bdc49f63dacfbff9fbb",
+      "sha256": "1030289ee102fb0fa68c0d42fd3ed2bbf0505547f132d86938a7160de0e0a02a",
       "path": "os/tests/test_owner_devices_native.py"
     },
     {
