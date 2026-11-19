@@ -491,3 +491,14 @@ Builder: the same Claude agent on Fable 5.2, on the same branch. No rebase onto 
 One hosted run of the OS checks was started after the last code push (the last code commit is `d1de3042`) and not
 watched: `gh workflow run "OS image" --ref pkg/53d-world-search -f checks_only=true`, run **44453278865**
 (https://github.com/Ares-Empire/AresOS/actions/runs/44453278865). Its result is for the lead to read.
+
+## Review 4 (recheck of round 2b): SAFE at 3a1ad6b4
+
+Known limits it confirms, all rare and low-harm:
+- An unanswered activation request can suppress the automatic uncover on his next manual return to the world (the
+  next Alt+Tab uncovers); the same when a window's deactivation and reactivation arrive in one read.
+- A competing activation already in flight when Super is pressed can drop the search (the world is still activated
+  and uncovered by the ordinary rule).
+
+Next (the lead): after the R28 cut and package 56's merge, the rebase in `briefs/53d-rebase-on-56.md`, the client
+suite twice, and a short recheck of the merge resolution in `AresOsClient.launch`.
