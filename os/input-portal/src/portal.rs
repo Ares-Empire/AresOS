@@ -1224,11 +1224,16 @@ impl State {
     }
 
     /// The snapshot changed. The Wayland thread has already ended any capture
-    /// and removed every barrier surface; here every session loses its barriers
-    /// (they describe the old zone set), its EIS devices get the new geometry,
-    /// and its client is told to read the zones again.
+    /// and removed every barrier surface; here every session loses the barriers
+    /// that describe an old zone set, its EIS devices get the new geometry, and
+    /// its client is told to read the zones again.
+    ///
+    /// Barriers already set against the snapshot as it is now stay: a client can
+    /// have read the new zones before this notice was handled, and its barriers
+    /// are then on screen.
     async fn screens_changed(&self) {
-        let region = self.screens.current().region();
+        let snapshot = self.screens.current();
+        let region = snapshot.region();
         let mut out = Vec::new();
         {
             let mut inner = self.inner.lock().await;
@@ -1239,8 +1244,10 @@ impl State {
                         activation_id,
                     });
                 }
-                session.barriers.clear();
-                session.zone_set = 0;
+                if session.zone_set != snapshot.zone_set {
+                    session.barriers.clear();
+                    session.zone_set = 0;
+                }
                 if let Some(eis) = &session.eis {
                     eis.send(EisCommand::SetRegion(region));
                 }
@@ -2641,6 +2648,12 @@ mod tests {
         }
         assert!(!rig.cmds().iter().any(|c| matches!(c, WaylandCmd::Arm { .. })), "nothing is re-armed from old barriers");
 
+        // A second notice for the same snapshot (the compositor can report one
+        // change in several steps) tells the clients again and takes nothing more.
+        rig.signals();
+        rig.state.handle_event(WaylandEvent::OutputsChanged).await;
+        assert_eq!(rig.signals().len(), 2);
+
         // The old zone set is refused, and so is the old screen's edge even with
         // the new number; the new right edge is accepted and armed.
         let s = &rig.state;
@@ -2658,6 +2671,13 @@ mod tests {
             [WaylandCmd::Disarm, WaylandCmd::Arm { zone_set: armed_for, barriers, .. }]
                 if *armed_for == zone_set && barriers.len() == 1
         ));
+
+        // A late notice about the snapshot these barriers were set against
+        // leaves them in force: they are the ones on screen.
+        s.handle_event(WaylandEvent::OutputsChanged).await;
+        assert_eq!(s.inner.lock().await.sessions[&handle].barriers.len(), 1);
+        s.handle_event(crossing(&handle, 7)).await;
+        assert!(rig.signals().iter().any(|signal| matches!(signal, Signal::Activated { .. })));
     }
 
     // ---- logs ----
