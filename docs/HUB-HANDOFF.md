@@ -14,7 +14,14 @@ Written 2026-11-19 by `linux-hub` (Claude Opus 5.5), after package 56. The sessi
   - 49 and 49b: memory measurements, with the settings unchanged and the arena cap not qualified;
   - 54: the town arrives in one line;
   - 56: the world ignores the mouse behind apps, the hotbar opens apps, and flying is 1.5×.
-    Main `da441546` (#117); its jar hash from main's Mod run 44511397426 (both builds match) is `b72f91182faba3ed35750e6954deb23c622c76d1d9ef94fb7e2b857185a0c511`. `linux-laptop-home` needs it for PR 121's rebase (board #383).
+    Main `da441546` (#117); its jar hash from main's Mod run 44511397426 (both builds match) was `b72f91182faba3ed35750e6954deb23c622c76d1d9ef94fb7e2b857185a0c511`.
+- **53d** (`linux-laptop-home`, Super opens a search over the world) merged on top of 56 as `c576818b` (#121). Main's jar is now `4f7324f56ad943a80e892cdce1985dce526bdeee36ea6cc79796abb5ec98211c` (Mod run 44532278666, both builds match).
+  - **New in `mod/`:**
+    - `WorldSearchScreen`, `SearchCrosshairMixin` and `RecipeBookSearchAccess`;
+    - `ShellFocusClient.search()`;
+    - the four-argument `AresOsClient.launch(id, visit, worldScreen, opened)`.
+  - **Test order:** `WorldSearchClientGameTest` stays last in the gametest list.
+  - **Shared mod work:** `linux-laptop-home` has nothing more queued in `mod/` (14:25).
 
   STATE.md has a line for each.
 - **R28** is the first release with the home screen at boot (packages 23, 23b and 23d, plus 46, 48, 51, 54 and 53a/b inert). Package 56 rides **R29**, as `linux-aresos` asked.
