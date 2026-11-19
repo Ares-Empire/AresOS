@@ -1375,7 +1375,7 @@ for(const [focused,label] of [[2,'a focused popup'],[3,'another focused normal w
 const DUPLICATE='{"code":-32000,"message":"Breakpoint at specified location already exists."}';
 function swappedPopupFixture(){
   const f=lifecycleFixture();
-  f.run(`controlled.set(7,{epoch:'parent'});globalThis.evaluated=[];globalThis.injections=[];globalThis.messages=[];globalThis.audits=[];globalThis.badges=new Map();globalThis.deadContextErrors=['{"code":-32000,"message":"Cannot find context with specified id"}'];globalThis.swapReplay=true;globalThis.injectionReports=false;globalThis.breakpointErrors=[];globalThis.pauseOn=null;globalThis.swapped=false;globalThis.DUPLICATE=${JSON.stringify(DUPLICATE)};recording=true;port={postMessage:message=>audits.push(message)};preloadBundle=Promise.resolve(['// guard fixture','// reader fixture','// wrapper fixture']);
+  f.run(`controlled.set(7,{epoch:'parent'});globalThis.evaluated=[];globalThis.injections=[];globalThis.messages=[];globalThis.audits=[];globalThis.badges=new Map();globalThis.deadContextErrors=['{"code":-32000,"message":"Cannot find context with specified id"}'];globalThis.swapReplay=true;globalThis.injectionReports=false;globalThis.breakpointErrors=[];globalThis.pauseOn=null;globalThis.swapped=false;globalThis.startupExpressions=[];globalThis.nextIdentity='post-popup-document';globalThis.DUPLICATE=${JSON.stringify(DUPLICATE)};recording=true;port={postMessage:message=>audits.push(message)};preloadBundle=Promise.resolve(['// guard fixture','// reader fixture','// wrapper fixture']);
     globalThis.pause=()=>preloadEvent({tabId:8},'Debugger.paused',{hitBreakpoints:['startup'],callFrames:[{location:{scriptId:'3'}}]});
     chrome.action.setBadgeText=async({tabId,text})=>{if(tabId!==undefined)badges.set(tabId,text)};
     chrome.tabs.get=async tab=>({id:tab,url:tab===8?'http://popup.test/post-document':'http://fixture.test/',windowId:tab===7?1:2,index:0,groupId:tab===7?1:-1,openerTabId:tab===8?7:undefined});
@@ -1389,8 +1389,8 @@ function swappedPopupFixture(){
       if(method==='Debugger.setBreakpointByUrl'){if(swapReplay&&!swapped){swapped=true;await parsed('3',2,'chrome-extension://fixture/context.js',false);await parsed('4',1,'http://popup.test/post-document',true);}if(breakpointErrors.length){const error=breakpointErrors.shift();if(pauseOn==='error'&&error===DUPLICATE)await pause();throw Error(error);}return {breakpointId:'startup',locations:[{scriptId:'3'}]};}
       if(method==='Debugger.disable'&&pauseOn==='disable'){pauseOn=null;await pause();}
       if(method==='Target.setAutoAttach'&&pauseOn==='armed'){pauseOn=null;await pause();}
-      if(method==='Runtime.evaluate'){evaluated.push({context:parameters.contextId,dispose:parameters.expression.includes('dispose() ?? true')});if(parameters.contextId===7)throw Error(deadContextErrors.length>1?deadContextErrors.shift():deadContextErrors[0]);return parameters.returnByValue?{result:{value:parameters.expression.endsWith('identity()')?'post-popup-document':true}}:{result:{objectId:'factory-'+parameters.contextId}};}
-      if(method==='Runtime.callFunctionOn')return parameters.returnByValue?{result:{value:'post-popup-document'}}:{result:{objectId:'relay'}};
+      if(method==='Runtime.evaluate'){evaluated.push({context:parameters.contextId,dispose:parameters.expression.includes('dispose() ?? true')});if(parameters.expression.includes('Unrelated isolated world'))startupExpressions.push(parameters.expression);if(parameters.contextId===7)throw Error(deadContextErrors.length>1?deadContextErrors.shift():deadContextErrors[0]);return parameters.returnByValue?{result:{value:parameters.expression.endsWith('identity()')?nextIdentity:true}}:{result:{objectId:'factory-'+parameters.contextId}};}
+      if(method==='Runtime.callFunctionOn')return parameters.returnByValue?{result:{value:nextIdentity}}:{result:{objectId:'relay'}};
       if(method==='DOM.describeNode')return {node:{backendNodeId:1}};
       if(method==='DOM.resolveNode')return {object:{objectId:'node'}};
       return {};};`);
@@ -1637,14 +1637,42 @@ test('popuprace a pause before the re-armed id is known is foreign and resumed: 
     const audits=JSON.parse(f.run('JSON.stringify(audits)'));assert.equal(audits.some(row=>row.event==='reader_error'||row.event==='released'),false,when+': no error and no release');
   }
 });
-test('popuprace a pause on the re-armed breakpoint, its id known, installs the guard at document start',async()=>{
+// Brief 28a, item 5a: a pause after a re-arm can be the stale one the re-arm's
+// Debugger.disable resumed (its event delayed, from the document that is still
+// current, with the re-armed breakpoint's id). No allowed DevTools method shows
+// that a pause still holds, so the first install from a pause after a re-arm
+// is late; the one after that document's guarded reload is document_start. (A
+// session never re-armed has no stale pause: its pauses install at the start,
+// as 'startup evaluates only fixed bundles ...' shows.)
+test('28a 5a popuprace the first pause after a re-arm, its id known, installs late: no document-start mark, needs its reload',async()=>{
   const f=swappedPopupFixture();f.run("breakpointErrors=[DUPLICATE];pauseOn='armed'");
   await f.run('createdTarget({sourceTabId:7,tabId:8})');
   assert.equal(f.run('controlled.get(8)?.virtualGroup'),true,'the popup is controlled');
   assert.deepEqual(debuggerCalls(f),['Debugger.enable','Debugger.setBreakpointByUrl','Debugger.disable','Debugger.enable','Debugger.setBreakpointByUrl','Debugger.resume'],'the startup bootstrap resumes its own pause');
-  assert.deepEqual(JSON.parse(JSON.stringify(f.run('installRecord()'))),[{tab:8,document:'post-popup-document',install:'document_start',ready:true}],'the paused document gets the early path');
+  assert.deepEqual(JSON.parse(JSON.stringify(f.run('installRecord()'))),[{tab:8,document:'post-popup-document',install:'late',ready:true}],'a pause that may be stale installs late');
+  const [bootstrap]=JSON.parse(f.run("JSON.stringify(startupExpressions)"));
+  assert.doesNotMatch(bootstrap,/document-start\.v1/,'no document-start mark: the reader shows its typed fields as (filled, not read)');
+  assert.match(bootstrap,/guard fixture[\s\S]*reader fixture/,'the guard and the reader are still installed');
+  assert.equal(f.run("isPreloaded(8,'post-popup-document')"),false,'not watched from its start: needs_reload until its guarded reload');
   assert.deepEqual(admittedLines(f),[{tab:8,window:2,type:'popup',opener:7,badge:'POP on opener',owner_dialog:false}]);
   const audits=JSON.parse(f.run('JSON.stringify(audits)'));assert.equal(audits.some(row=>row.event==='reader_error'||row.event==='released'),false,'no error and no release');
+  // The guarded reload's new document pauses on the same breakpoint: it is the next install, at its start.
+  f.run("startupExpressions.length=0;globalThis.nextIdentity='reloaded-document'");
+  await f.run("preloadEvent({tabId:8},'Debugger.scriptParsed',{scriptId:'9',executionContextId:5,url:'chrome-extension://fixture/context.js',embedderName:'chrome-extension://fixture/context.js',executionContextAuxData:{isDefault:false,frameId:'popup-frame'}})");
+  await f.run("preloadEvent({tabId:8},'Debugger.paused',{hitBreakpoints:['startup'],callFrames:[{location:{scriptId:'9'}}]})");
+  assert.deepEqual(JSON.parse(JSON.stringify(f.run('installRecord()'))).map(row=>row.install),['late','document_start']);
+  assert.match(JSON.parse(f.run("JSON.stringify(startupExpressions)"))[0],/document-start\.v1"\)\]=true/);
+  assert.equal(f.run("isPreloaded(8,'reloaded-document')"),true,'it can\'t loop: only the first install after the re-arm is late');
+});
+test('28a 5a popuprace a stale pause from the current document after a re-arm installs late too',async()=>{
+  // The pause the re-arm's Debugger.disable resumed arrives after the re-armed id is known, while the
+  // document it came from has already run: the same id, the same (current) context. It never counts as early.
+  const f=swappedPopupFixture();f.run("breakpointErrors=[DUPLICATE]");
+  await f.run('createdTarget({sourceTabId:7,tabId:8})');
+  f.run('preloadTargets.get(\'[8,null]\').documents.clear();startupExpressions.length=0');
+  await f.run('pause()');
+  assert.deepEqual(JSON.parse(JSON.stringify(f.run('installRecord()'))).map(row=>row.install),['late']);
+  assert.doesNotMatch(JSON.parse(f.run("JSON.stringify(startupExpressions)"))[0],/document-start\.v1/);
 });
 test('popuprace a second duplicate reply fails the admission closed with nothing left behind',async()=>{
   const f=swappedPopupFixture();f.run('breakpointErrors=[DUPLICATE,DUPLICATE]');

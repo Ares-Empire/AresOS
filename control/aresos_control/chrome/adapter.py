@@ -1102,12 +1102,15 @@ class Chrome:
             result['file'] = file
         return result, facts
 
-    def free(self, verb, payload=None, dispatch_by=None, **arguments):
+    def free(self, verb, payload=None, dispatch_by=None, replies=None, **arguments):
         """One free change, committed as its own operation before it runs (R2).
 
         `dispatch_by` (brief 28a, item 5, "Time"): the end by which the input
         command must be dispatched. Only that command carries it; what follows
         the dispatch (the page steps it reports) runs with the caller's time.
+        `replies`, a list, gets the extension's reply as it came, for chrome_do's
+        own use (the popups a step opened, item 5a); what is returned and
+        recorded stays projected (item 3).
         """
         # Even free changes have a committed operation/context before any dispatch (R2).
         op_id = self.store.generation + ':' + uuid.uuid4().hex
@@ -1149,6 +1152,8 @@ class Chrome:
             self.store.write({'op:'+op_id:op},op['action'],'Chrome input refused before effect' if certain else 'Chrome input outcome unknown',op_id)
             exc.operation_id=op_id
             raise
+        if replies is not None:
+            replies.append(copy.deepcopy(reply))
         # Item 3: the page stage is a record, so its addresses are in the short form.
         op['stages'] = {('unchanged' if reply.get('no_change') else 'dispatched'):('The requested state was already present; no input was dispatched.' if reply.get('no_change') else 'Input dispatched once; delivery not proven.'),'page':visible(projection.record(reply))}
         op.update(state='done',reason='The requested state was already present; no input was dispatched.' if reply.get('no_change') else 'Free input dispatched once, as the page shows it.')

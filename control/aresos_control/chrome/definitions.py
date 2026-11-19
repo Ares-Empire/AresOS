@@ -60,7 +60,12 @@ COUNT = {'type': 'integer', 'minimum': 0, 'maximum': 20}
 DO_STEP = obj({'do': {'type': 'string', 'enum': ['click', 'fill', 'select', 'check', 'press', 'scroll', 'dialog', 'wait']},
                'ref': string(32),
                'outcome': {'type': 'string', 'enum': ['done', 'unchanged', 'prepared', 'stale', 'refused', 'timeout', 'unknown']},
-               'operation_id': string(80), 'code': {'type': 'string'}, 'message': {'type': 'string'}}, ['do', 'outcome'])
+               'operation_id': string(80), 'code': {'type': 'string'}, 'message': {'type': 'string'},
+               # Item 5a: the popups a step opened, as chrome_tabs would show them; nothing of their content.
+               'popups': array(obj({'tab': TAB, 'controlled': {'enum': [True, False, 'pending']},
+                                    'no': {'type': 'boolean', 'enum': [True]},
+                                    'untrusted_content': obj({'url': {'type': 'string'}})}, ['tab', 'controlled', 'untrusted_content']), 20)},
+              ['do', 'outcome'])
 DO_RESULT = obj({
     'tab': TAB, 'steps': array(DO_STEP, 20), 'not_run': COUNT, 'deadline': {'type': 'boolean'},
     'prepared': array(PREPARED_RESULT, 64), 'unknown': array(string(80), 20),

@@ -39,9 +39,11 @@ import time
 from ..common import RESULT_LIMIT, Refused, canonical, visible
 from . import going
 from . import loss
+from . import tablist
 from . import view as outline_view
 from .address import public_address
 from .deadline import NOT_READ, Deadline
+from .policy import allowed_url
 from .references import Stale
 
 CALL, DISPATCH, REPORT, READ = 18.0, 12.0, 16.0, 17.0
@@ -231,12 +233,13 @@ class Doing:
                 payload, _ = self.chrome.payload(verb, args)
             if payload['kind']:
                 self.prepare(index, step, verb, payload)
-            result = self.chrome.free(verb, payload, dispatch_by=self.clock.at(DISPATCH))
+            raw = []
+            result = self.chrome.free(verb, payload, dispatch_by=self.clock.at(DISPATCH), replies=raw)
         except Refused as exc:
             self.refusal(index, step, exc)
         page = result['untrusted_content'].get('page') if isinstance(result['untrusted_content'], dict) else None
         self.chrome.references.acted(self.tab, step['ref'], page.get('change') if isinstance(page, dict) else None)
-        self.dispatched(index, step, result)
+        self.dispatched(index, step, result, self.popups(raw[0] if raw else {}))
 
     def answer(self, index, step):
         """A dialog step: brief 20's dialog branch, on the dialog the last result showed Claude in this tab."""
@@ -302,7 +305,29 @@ class Doing:
         self.entry(step, 'prepared')
         raise Stop()
 
-    def dispatched(self, index, step, result):
+    def popups(self, reply):
+        """Item 5a: the popups this step opened, as the tab list would show them: number, admission, short address, `no`.
+
+        `controlled` is true (admitted), false (refused or failed) or
+        "pending" (not decided when the step's hold ended). Nothing of a
+        popup's content is in it.
+        """
+        named = []
+        hosts = self.chrome.read_owner_hosts()
+        for popup in reply.get('popups') or []:
+            if not isinstance(popup, dict) or type(popup.get('tab')) is not int or popup.get('controlled') not in (True, False, 'pending'):
+                continue
+            url = popup.get('url') if isinstance(popup.get('url'), str) else ''
+            try:
+                allowed_url(url, hosts)
+                never = False
+            except Refused:
+                never = True
+            named.append({'tab': popup['tab'], 'controlled': popup['controlled'], **({'no': True} if never else {}),
+                          'untrusted_content': {'url': tablist.address(url) if url else ''}})
+        return named
+
+    def dispatched(self, index, step, result, popups=()):
         """A free step that ran: its outcome from the committed operation, and what stops the list after it."""
         self.ran = True
         operation_id = result['operation_id']
@@ -318,6 +343,8 @@ class Doing:
             self.entry(step, 'unknown', operation_id=operation_id, code='unknown', message=operation.get('reason', ''))
             raise Stop()
         self.entry(step, 'unchanged' if reply.get('no_change') else 'done', operation_id=operation_id)
+        if popups:
+            self.entries[-1]['popups'] = list(popups)
         if followups or reply.get('dialog'):
             raise Stop()  # it made the page start something the tool held, or opened a dialog
 

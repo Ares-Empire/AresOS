@@ -87,3 +87,49 @@ test('28a time: an input whose time runs out after its dispatch finishes as befo
   assert.equal((await g.run(`dispatch({name:'input',tab:7,reference:{session,tab:7,frame:0,document:'doc',element:'e1'},input:{verb:'click'}})`)).dispatched,true);
 });
 
+// --- item 5a: the popups a step opened -----------------------------------------
+
+function popupFixture(){
+  const f=inputFixture();
+  f.run(`globalThis.admitted=[];
+    take=(tab,opener)=>{admitted.push([tab,opener]);
+      if(tab===21)return Promise.reject(Error('refused: popup control requires its opener in the Claude group'));
+      if(tab===22)return Promise.reject(Error('debugger attach failed'));
+      if(tab===23)return new Promise(()=>{});
+      return Promise.resolve({tab,session,group:1});};
+    controlled.set(8,{epoch:'other'});
+    globalThis.popupUrls={20:'https://fixture.test/popup?q=red',21:'https://fixture.test/refused',22:'https://fixture.test/failed',23:'about:blank',24:'https://claude.ai/chat'};
+    chrome.tabs.get=async tab=>tab===7?{active:true}:{id:tab,url:popupUrls[tab]};
+    globalThis.opening=[];cdp=(previous=>async(tab,method,parameters)=>{const value=await previous(tab,method,parameters);
+      if(parameters?.type==='mouseReleased')for(const [source,frame,popup] of opening)createdTarget({sourceTabId:source,sourceFrameId:frame,tabId:popup});return value;})(cdp);`);
+  return f;
+}
+const named=reply=>JSON.parse(JSON.stringify(reply.popups||[]));
+
+test('28a 5a: a click names its popups with their admission: admitted, refused, failed, pending, two from one click',async()=>{
+  const f=popupFixture();
+  f.run('opening=[[7,0,20],[7,0,21],[7,0,22],[7,0,23]]');
+  const reply=await f.dispatch({verb:'click'},5000);
+  assert.deepEqual(named(reply),[{tab:20,controlled:true,url:'https://fixture.test/popup?q=red'},{tab:21,controlled:false,url:'https://fixture.test/refused'},
+    {tab:22,controlled:false,url:'https://fixture.test/failed'},{tab:23,controlled:'pending',url:'about:blank'}],'the service writes the short form and the no mark');
+  assert.deepEqual(JSON.parse(f.run('JSON.stringify(admitted.map(([tab,opener])=>[tab,opener.tab]))')),[[20,7],[21,7],[22,7],[23,7]],'admission runs as before, for every one');
+  assert.equal(f.run('popupWatches.size'),0,'the window ended with the hold');
+  // Two popups of one click, one of them a page Claude may never read.
+  const g=popupFixture();g.run('opening=[[7,0,20],[7,0,24]]');
+  assert.deepEqual(named(await g.dispatch({verb:'click'},5000)).map(popup=>[popup.tab,popup.controlled]),[[20,true],[24,true]]);
+});
+
+test('28a 5a: a popup that can\'t be tied to the step isn\'t named: another opener, another frame, after the hold, no input',async()=>{
+  const f=popupFixture();
+  f.run('opening=[[8,0,20],[7,3,21],[7,undefined,22]]');
+  const reply=await f.dispatch({verb:'click'},5000);
+  assert.deepEqual(named(reply),[],'another tab, another frame, and an event without its frame stay in the tab list');
+  assert.equal('popups' in reply,false);
+  // After the reply the window is closed: a later popup of the same tab is admitted, not named anywhere.
+  await f.run('createdTarget({sourceTabId:7,sourceFrameId:0,tabId:25})');
+  assert.equal(f.run('popupWatches.size'),0);
+  // A refused input watches nothing.
+  const g=popupFixture();g.run("factsDelay=60;opening=[[7,0,20]]");
+  await assert.rejects(g.dispatch({verb:'click'},30),/^Error: expired:/);
+  assert.equal(g.run('popupWatches.size'),0);assert.equal(g.run('admitted.length'),0);
+});

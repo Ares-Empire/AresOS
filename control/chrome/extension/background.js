@@ -112,6 +112,11 @@ async function prepareTarget(source,tab=source.tabId,targetId=null){
     // A second refusal, or any other error, ends the admission as before.
     if(!duplicateBreakpoint(error))throw error;
     if(recording)audit({breakpoint_rearmed:{tab,target:targetId,session:source.sessionId||null}});
+    // Brief 28a, item 5a: the disable below may resume a pause whose event is
+    // still on its way, and the re-armed breakpoint keeps that pause's id. No
+    // allowed DevTools method can show that a pause still holds, so the first
+    // install from a pause after this counts as late (see preloadEvent).
+    state.rearmed=true;
     await targetCommand(state,'Debugger.disable');
     await targetCommand(state,'Debugger.enable');
     breakpoint=await targetCommand(state,'Debugger.setBreakpointByUrl',startupBreakpoint());
@@ -217,9 +222,20 @@ async function preloadEvent(source,method,params){
     if(!context.uniqueId)throw Error('refused: startup document identity is unavailable');
     startup={main,isolated:context};
     if(state.documents.has(main.uniqueId))return;
+    // Brief 28a, item 5a: a pause that can't be shown to still hold counts its
+    // document as not watched from its start. Pause events and command replies
+    // travel apart, so a pause the re-arm's Debugger.disable resumed can arrive
+    // late, from the document that is still current, with the re-armed
+    // breakpoint's id: nothing the allowed methods can ask tells it apart from
+    // a live one. So the first install from a pause after a re-arm is `late`:
+    // no document-start mark (the reader shows its typed fields as filled, not
+    // read) and not preloaded (it gets the guarded reload before any input).
+    // Decided before the first await, in the order the pauses arrived; the
+    // next document, after that reload, installs at its start again.
+    const late=state.rearmed===true;state.rearmed=false;
     const [guard,reader,page]=await bundle();
     assertTarget(state);
-    const isolated=await documentCommand('Runtime.evaluate',{contextId:context.id,expression:'if(chrome.runtime.id!=='+JSON.stringify(chrome.runtime.id)+')throw Error("Unrelated isolated world");\n'+guard+'\nglobalThis[Symbol.for("aresos.chrome.document-start.v1")]=true;\n'+reader+'\n;globalThis[Symbol.for("aresos.chrome.guard.v2")].identity()',returnByValue:true,disableBreaks:true});
+    const isolated=await documentCommand('Runtime.evaluate',{contextId:context.id,expression:'if(chrome.runtime.id!=='+JSON.stringify(chrome.runtime.id)+')throw Error("Unrelated isolated world");\n'+guard+(late?'':'\nglobalThis[Symbol.for("aresos.chrome.document-start.v1")]=true;')+'\n'+reader+'\n;globalThis[Symbol.for("aresos.chrome.guard.v2")].identity()',returnByValue:true,disableBreaks:true});
     if(isolated.exceptionDetails||typeof isolated.result?.value!=='string')throw Error('refused: isolated guard did not initialize before page scripts');
     // DOM.resolveNode without an executionContextId resolves in this node's MAIN
     // world. No Runtime subscription, page global or console payload is needed.
@@ -230,7 +246,7 @@ async function preloadEvent(source,method,params){
     const wrapped=await documentCommand('Runtime.callFunctionOn',{objectId:mainNode.object.objectId,functionDeclaration:'function(){return (\n'+page.trim().replace(/;$/, '')+'\n);}',silent:true});
     const mainContext=state.factoryContexts.get(context.auxData.frameId);state.factoryContexts.delete(context.auxData.frameId);
     if(wrapped.exceptionDetails||!wrapped.result?.objectId)throw Error('refused: page wrappers did not initialize before page scripts');
-    const installed={install:'document_start',document:isolated.result.value,frameId:context.auxData.frameId,main:main.uniqueId,isolated:context.uniqueId,cleanup:wrapped.result.objectId,mainContext,relayKey:'data-aresos-'+crypto.randomUUID(),relayValue:crypto.randomUUID(),ready:false};state.documents.set(main.uniqueId,installed);
+    const installed={install:late?'late':'document_start',document:isolated.result.value,frameId:context.auxData.frameId,main:main.uniqueId,isolated:context.uniqueId,cleanup:wrapped.result.objectId,mainContext,relayKey:'data-aresos-'+crypto.randomUUID(),relayValue:crypto.randomUUID(),ready:false};state.documents.set(main.uniqueId,installed);
     assertTarget(state);
     const relay=await documentCommand('Runtime.callFunctionOn',{objectId:installed.cleanup,functionDeclaration:'function(){return this.relay;}'});
     await documentCommand('Runtime.callFunctionOn',{objectId:installed.cleanup,functionDeclaration:'function(key,value){return this.identify(key,value);}',arguments:[{value:installed.relayKey},{value:installed.relayValue}],returnByValue:true});
@@ -262,7 +278,8 @@ async function preloadEvent(source,method,params){
 function installRecord(){
   return [...preloadTargets.values()].filter(state=>controlled.get(state.tab)?.epoch===state.epoch).flatMap(state=>[...state.documents.values()].map(doc=>({tab:state.tab,document:doc.document,install:doc.install,ready:doc.ready===true})));
 }
-function isPreloaded(tab,document){return [...preloadTargets.values()].some(state=>state.tab===tab&&[...state.documents.values()].some(value=>value.ready&&value.document===document));}
+// Watched from its start: installed from a pause that counts (item 5a), and ready.
+function isPreloaded(tab,document){return [...preloadTargets.values()].some(state=>state.tab===tab&&[...state.documents.values()].some(value=>value.ready&&value.install==='document_start'&&value.document===document));}
 function armedDocument(tab,document,nonce){for(const state of preloadTargets.values())if(state.tab===tab)for(const doc of state.documents.values())if(doc.document===document)doc.activeNonce=nonce;}
 function retireNativeDialog(tab,document,token){
   const ended=JSON.stringify([tab,document,token]);nativeDialogEnds.delete(ended);nativeDialogEnds.set(ended,true);
@@ -561,11 +578,24 @@ async function admitTab(tab,generation,opener=null) {
     throw error;
   }
 }
-async function createdTarget({sourceTabId,tabId}){
+// Brief 28a, item 5a (brief 20-popup-race's P3): the popups an input opened
+// are named in its reply, with their admission's outcome. An input watches its
+// tab from its dispatch to the end of its hold; a popup whose opener and frame
+// are the input's, created in that window, is the input's. Admission is as
+// before; only its outcome is carried, through dispatch's result.
+const popupWatches=new Map();
+async function createdTarget({sourceTabId,sourceFrameId,tabId}){
   const parent=controlled.get(sourceTabId);if(!parent)return;
   claudeOpened.add(tabId);
-  try{await take(tabId,{tab:sourceTabId,epoch:parent.epoch});}
-  catch(error){respond({event:'reader_error',error:String(error),tab:tabId});}
+  const watch=popupWatches.get(sourceTabId),named=watch&&watch.epoch===parent.epoch&&sourceFrameId===watch.frame?{tab:tabId,controlled:'pending'}:null;
+  if(named)watch.popups.push(named);
+  try{await take(tabId,{tab:sourceTabId,epoch:parent.epoch});if(named)named.controlled=true;}
+  catch(error){if(named)named.controlled=false;respond({event:'reader_error',error:String(error),tab:tabId});}
+}
+// What the reply says of each: its number, the outcome when the hold ended,
+// and its address (the service writes it in the short form). Nothing of its content.
+function namedPopups(watch){
+  return Promise.all((watch?.popups||[]).map(async({tab,controlled})=>{let url='';try{const current=await chrome.tabs.get(tab);url=current.url||current.pendingUrl||'';}catch{}return {tab,controlled,url};}));
 }
 async function content(tab, frame, command, parameters={},browserDocument=null,expires=null) {
   const effectful=['focus','select','check','install_file'].includes(command);
@@ -755,7 +785,7 @@ async function release(tab) {
   if(!original)return {released:tab};
   const children=[...controlled].filter(([child,value])=>child!==tab&&(value.debuggee?.tabId===tab||value.parentTab===tab)).map(([child])=>child);
   if(original){const key=JSON.stringify([tab,original.epoch]);retiredControls.set(key,original);while(retiredControls.size>32)retiredControls.delete(retiredControls.keys().next().value);setTimeout(()=>{if(retiredControls.get(key)===original)retiredControls.delete(key);},900000);}
-  controlled.delete(tab); dialogs.delete(tab);confirmationPlans.delete(tab);
+  controlled.delete(tab); dialogs.delete(tab);confirmationPlans.delete(tab);popupWatches.delete(tab);
   clearTimeout(networkHolds.get(tab)?.timer);networkHolds.delete(tab);
   for(const key of nativeDialogStarts.keys())if(key.startsWith('['+tab+','))nativeDialogStarts.delete(key);
   for(const key of nativeDialogEnds.keys())if(key.startsWith('['+tab+','))nativeDialogEnds.delete(key);
@@ -1243,7 +1273,7 @@ async function dispatch(command,expires=null) {
   const inputNonce=crypto.randomUUID();controlled.get(tab).inputNonce=inputNonce;
   const owner=controlled.get(tab);owner.hold={nonce:inputNonce,until:Date.now()+POLICY.holdMs,inFlight:true,hasAllowance:command.approved===true,config:{...POLICY,blockedHosts:excludedHosts,conservative:command.conservative,defaultBlock}};
   await holdDefaults(tab,inputNonce);
-  const armed=[];let noChange=false;
+  const armed=[];let noChange=false,watch=null;
   try{
   for(const other of snapshot.frames){
     assertControl(tab);
@@ -1290,6 +1320,7 @@ async function dispatch(command,expires=null) {
   // dispatches nothing and answers `expired`; the finally below releases the
   // armed hold as after any refusal. After this point nothing is cut short.
   if(expires!==null&&performance.now()>=expires){const error=Error(EXPIRED_INPUT);error.notDispatched=true;throw error;}
+  watch={epoch:dispatchEpoch,frame:reference.frame,popups:[]};popupWatches.set(tab,watch);
   if (command.name === 'resume') { effectStarted=true; await content(tab,reference.frame,'resume',{hold:command.hold,operation:command.operation,generation:dispatchEpoch,element:reference.element,form:frame.form?.element}); }
   else {
     const input = command.input;
@@ -1334,11 +1365,13 @@ async function dispatch(command,expires=null) {
   }
   const uncertain_finish=owner.uncertainFinish;
   const steps=await collectSteps(tab,dispatchEpoch);
+  if(popupWatches.get(tab)===watch)popupWatches.delete(tab);
+  const popups=await namedPopups(watch);
   if(recording && command.fixture_cut==='after-input'){
     await new Promise((resolve,reject)=>{fixtureBarriers.set(command.operation,{tab,resolve,reject});respond({event:'fixture_after_input',operation:command.operation});});
   }
   const confirmation=confirmationPlans.get(tab);confirmationPlans.delete(tab);
-  return {checked:!!command.binding,dispatched:!noChange,no_change:noChange,steps,dialog:await readyDialog(tab),uncertain_finish,confirmations:confirmation?.matched || [],page:await observation(tab,reference,dispatchEpoch)};
+  return {checked:!!command.binding,dispatched:!noChange,no_change:noChange,steps,dialog:await readyDialog(tab),uncertain_finish,confirmations:confirmation?.matched || [],page:await observation(tab,reference,dispatchEpoch),...(popups.length?{popups}:{})};
 }
 // Brief 28, item 4: a command of the new read carries the milliseconds it has
 // left (time_left_ms). Its time ends that long after it arrives. When it reaches

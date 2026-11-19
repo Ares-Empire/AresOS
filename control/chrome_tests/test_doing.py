@@ -434,6 +434,28 @@ class Doing(unittest.TestCase):
                 else:
                     self.assertEqual((result['steps'][0]['message'], len(self.browser.inputs)), (expected, before))
 
+    def test_a_popup_the_click_opened_is_named_as_the_tab_list_would_show_it(self):
+        # Item 5a (brief 20-popup-race's P3): number, admission, short address, `no`; nothing of its content.
+        refs = self.refs()
+        self.chrome.read_owner_hosts = lambda: ['owner-dashboard.example']
+        self.browser.replies[4] = {'popups': [
+            {'tab': 20, 'controlled': False, 'url': 'https://claude.ai/chat?session=' + 'Kq7Zr2Lm9Xc4Vb8Nw3Ps6Td1Fg5Hj0Ya2Qe7Ru4Io'},
+            {'tab': 21, 'controlled': True, 'url': SITE + '/pop?q=red+shoes#top'},
+            {'tab': 22, 'controlled': 'pending', 'url': 'https://owner-dashboard.example/'},
+            {'tab': 23, 'controlled': False, 'url': 'about:blank'}]}
+        result = self.do([{'do': 'click', 'ref': refs['Save']}])
+        self.assertEqual(result['steps'][0]['popups'], [
+            {'tab': 20, 'controlled': False, 'no': True, 'untrusted_content': {'url': 'claude.ai/chat?…'}},
+            {'tab': 21, 'controlled': True, 'untrusted_content': {'url': 'fixture.example/pop?…#…'}},
+            {'tab': 22, 'controlled': 'pending', 'no': True, 'untrusted_content': {'url': 'owner-dashboard.example/'}},
+            {'tab': 23, 'controlled': False, 'untrusted_content': {'url': 'about:…'}}])   # as chrome_tabs writes it
+        self.assertNotIn('red', canonical(result['steps']), 'a list shows no query')
+        self.assertNotIn('Kq7Zr', canonical(result))
+        # The committed operation's page stage keeps the short form too (item 3).
+        stage = canonical(self.operation(result['steps'][0]['operation_id'])['stages'])
+        self.assertNotIn('Kq7Zr', stage)
+        self.assertNotIn('red', stage)
+
     def test_check_scroll_and_unchanged(self):
         refs = self.refs()
         self.browser.replies[7] = {'no_change': True, 'dispatched': False}
