@@ -81,7 +81,7 @@ def build_id_descriptors(data, start, size, alignment):
         name_size, descriptor_size, kind = NOTE_HEADER.unpack_from(data, start + position)
         name = position + NOTE_HEADER.size
         descriptor = align_up(name + name_size, alignment)
-        if name + name_size > size or descriptor + descriptor_size > size:
+        if descriptor + descriptor_size > size:
             raise LoadedImageRefused('a note overruns its segment')
         if kind == NT_GNU_BUILD_ID and data[start + name:start + name + name_size] == GNU_NOTE_NAME:
             found.append((start + descriptor, descriptor_size))

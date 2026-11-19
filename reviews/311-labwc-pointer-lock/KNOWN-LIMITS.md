@@ -35,13 +35,17 @@ Both only weaken a proof of checks that review 1 confirmed are wired into the bu
 
 The wiring test would not notice a `Containerfile` rule padded with spaces in `os/.containerignore`. The build would then stop at the new `COPY` line, so nothing unsafe gets through.
 
-## What the normalized pins prove (review 3, known limit)
+## What the normalized pins prove (review 3; the header gap is closed by 311e)
 
-**What:** a match means the binary's sections are the same, not that the whole file is. `objcopy` rewrites the file from its sections and recomputes program header fields, so these edits keep the hash: moving the interpreter's offset, turning `PT_GNU_RELRO` into `PT_NULL`, lowering `e_phnum`, changing padding, and appending bytes. Review 3 showed on a small test program that such an edit can make it run under another interpreter. The lead reproduced the hash results on a copy of `labwc`; a changed code byte did change the hash.
+**What:** a normalized match means the binary's sections are the same, not that the whole file is. `objcopy` rewrites the file from its sections and recomputes program header fields, so these edits keep the normalized hash: moving the interpreter's offset, turning `PT_GNU_RELRO` into `PT_NULL`, lowering `e_phnum`, changing padding, and appending bytes. Review 3 showed on a small test program that such an edit can make it run under another interpreter. The lead reproduced the hash results on a copy of `labwc`; a changed code byte did change the hash.
 
-**Why it stays:** an ordinary rebuild with different code is still refused. A crafted file needs code running inside the `labwc` stage, and `rpmbuild` runs there before the check, so that code could replace `objcopy` anyway. Every input to the stage is locked by hash.
+**Closed by the loaded pins (311e):** `result.loaded_sha256` pins the bytes the loader maps: the file from offset 0 to `end`, the largest `p_offset+p_filesz`, as they are on disk, with only `e_shoff` and the build-id descriptor set to zero (`os/labwc/loaded_image.py`). The `labwc` stage refuses a binary whose loaded hash differs, or a file the function refuses. On copies of the real `labwc`, the interpreter, `PT_GNU_RELRO`, `e_phnum` and padding edits each keep the normalized hash and change the loaded hash (`PROGRESS.md`, 311e).
 
-**Carry into R29's rule:** a normalized match outside the build is the same weak proof. If the rule needs more, also hash the ELF header (with `e_shoff` zeroed) and the program header table, and refuse non-zero bytes outside the sections. Those headers are identical in builds A and B apart from `e_shoff`.
+**What stays open:**
+- Bytes after `end`, which the loader never reads: `.gnu_debuglink`, `.gnu_debugdata`, the section headers and anything appended to the file. A change there keeps both hashes.
+- The two zeroed ranges, because they differ between builds of the same code. `e_shoff` is not used by the loader. The 20-byte build-id descriptor is mapped, in the read-and-execute segment of both binaries, and neither pin covers it. The entry point and every other mapped byte are pinned, so changing the descriptor alone gives pinned code nothing new to run (reasoning, not tested).
+
+**Carry into R29's rule:** use `loaded_sha256` from `os/labwc/loaded_image.py` with the two hashes in `PROGRESS.md`'s final section. A normalized match alone is the weaker proof.
 
 ## Refusal paths (review 3, nits)
 

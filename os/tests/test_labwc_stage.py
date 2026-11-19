@@ -723,6 +723,10 @@ class LoadedImageTest(unittest.TestCase):
         first = elf_note(5, bytes(20), 8) + elf_note(3, BUILD_ID, 8)
         second = elf_note(5, bytes(20), 8) + elf_note(3, bytes(range(100, 120)), 8)
         self.assertEqual(loaded(mapped_file(first, 8)), loaded(mapped_file(second, 8)))
+        # An 8-byte name ends at 20: its descriptor starts at 24 at alignment 8.
+        long_name = elf_note(5, bytes(20), 8, name=b'ABCDEFG\0')
+        self.assertEqual(loaded(mapped_file(long_name + elf_note(3, BUILD_ID, 8), 8)),
+                         loaded(mapped_file(long_name + elf_note(3, bytes(range(100, 120)), 8), 8)))
 
     def test_a_build_id_outside_the_gnu_name_is_not_the_build_id(self):
         self.assert_refused(mapped_file(elf_note(3, BUILD_ID, name=b'XYZ\0')), '0 GNU build-id notes')
@@ -738,6 +742,11 @@ class LoadedImageTest(unittest.TestCase):
         for index in range(HEADER_COUNT):
             short_image = with_field(with_field(short_image, header_field(index, P_OFFSET), '<Q', 0),
                                      header_field(index, P_FILESZ), '<Q', 32 if index == FIRST_LOAD else 0)
+        # One program header read from offset 0: its p_offset is bytes 8 to 16 and its p_filesz is e_phoff, 0.
+        short_of_the_elf_header = with_field(with_field(with_field(MAPPED, 0x20, '<Q', 0), 0x38, '<H', 1), 8, '<Q', 60)
+        # The last four bytes of the file: too few for a note header, and nothing after them to read.
+        cut_at_the_end_of_the_file = with_field(with_field(MAPPED, header_field(BUILD_ID_NOTES, P_OFFSET), '<Q', size - 4),
+                                                header_field(BUILD_ID_NOTES, P_FILESZ), '<Q', 4)
         cases = {
             'not an ELF file': (b'not an ELF file' + bytes(64), 'not an ELF file'),
             'shorter than the ELF header': (MAPPED[:63], 'not an ELF file'),
@@ -752,6 +761,8 @@ class LoadedImageTest(unittest.TestCase):
             'a size outside the file': (with_field(MAPPED, header_field(RELRO, P_FILESZ), '<Q', size + 1), 'program header 5'),
             'a huge size': (with_field(MAPPED, header_field(RELRO, P_FILESZ), '<Q', 2 ** 64 - 1), 'program header 5'),
             'the headers outside the image': (short_image, 'outside the loaded image'),
+            'the ELF header outside the image': (short_of_the_elf_header, 'outside the loaded image'),
+            'a note header cut by the end of the file': (cut_at_the_end_of_the_file, 'overruns its segment'),
             'no build-id note': (mapped_file(elf_note(1, bytes(4))), '0 GNU build-id notes'),
             'two build-id notes': (mapped_file(BUILD_ID_NOTE + BUILD_ID_NOTE), '2 GNU build-id notes'),
             'one note in two segments': (same_note_twice, '2 GNU build-id notes'),
