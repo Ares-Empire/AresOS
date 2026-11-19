@@ -1,5 +1,267 @@
 # Package 28a: Chrome acting progress
 
+## Step 1a
+
+2026-11-19. **Done; stop here.** Code commits: `370e15aa` (item 2 and the reveal), then the test-and-record commit
+that carries this section. Builder: a Claude Opus 5.5 agent for the lead `linux-tools`. Read the READY brief from
+`origin/main` (item 2 in full, item 0, item 5's "On screen first" for the reveal, item 8 steps 1/1a, "What must not
+change", the Tests rows for items 0 and 2, Stop rules), steps 0c, 0b and 0a below, and brief 28's "References that
+can't collide". Built behind private helpers: the public catalogue, the generated files and the instructions are
+unchanged; no tool name is new.
+
+### Done
+
+- **Reader** (`reader.js`): one function, `meaning(element)` hashed by `fingerprint(element)`, computes what an
+  element means. `outline` puts it on every node (`fingerprint`, one more key of brief 28's node), `facts` returns it
+  for the target beside the target's facts together with the reader instance id (`reader`), and `observe` puts it on
+  the element acted on with that element's `document` and `reader`. targetFacts' box and its editable/search/submit
+  rules moved into small helpers (`elementBox`, `clickControl`, `editableTarget`, `searchTarget`, `submitsForm`) that
+  targetFacts and the fingerprint share; targetFacts' facts are unchanged. While `outline` runs, the base target and
+  each form's implicit submitter are looked up once (`outlineMemo`); without that, the fingerprints made a
+  20,000-node outline 60 times slower on the doubles. A new content command, **`reveal`**, scrolls an element whose
+  centre isn't on screen to the centre at once (`scrollIntoView({block:'center',inline:'center',behavior:'instant'})`);
+  it refuses outside the current control generation, for a password-kind element and for a gone one.
+- **Extension** (`background.js`, `input` only): after the frames are armed and the tab is selected, and before the
+  last facts read, a pointer input (`click`, `scroll`, a `check` that changes the box) on a target that isn't
+  password-kind asks its reader to `reveal` it. Brief 20's last facts read, the binding comparison and the hit test
+  follow unchanged. The reveal is not an effect: `content()` doesn't set `effectStarted` for it.
+- **Service:** `nodes.py` accepts `fingerprint` (32 lowercase hex digits, or absent: such an element can be read, not
+  acted on). `view.py` records the node's digest with each reference it writes (the service-side placeholder
+  `fingerprint(node)` that package 28 left is gone) and `stale(view, references, node)` gives a refusal with the
+  element's present line and the references that line carries (`shown`); `fit` records a read refusal's line as shown.
+  `references.py`: `Stale(line, shown)`, `References.acting(ref, tab, session)` (the table's refusals, the connection,
+  folds) and `References.acted(tab, ref, change)` (Claude's own step). `adapter.py`: `Chrome.acting(tab, ref)` resolves
+  and checks, `present` reads the outline for the present line, `stale_shown` gives it as `untrusted_content.now` and
+  records it as shown, and `payload` takes `{'tab', 'ref', ...}` beside brief 20's `{'reference', 'expected', ...}`.
+  The private entry **`Chrome.act(verb, args)`** runs one step: payload, then `engine.reserve` for an asking step or
+  `free` for a free one, then moves the fingerprint from the observe report. Nothing offers it to Claude until 1d.
+- **Tests changed for the deliberate move of the fingerprint into the reader:** `test_view_references`'
+  "fingerprint kept apart from the line" and `test_view_hostile`'s marker test checked the service-side dict
+  (`fingerprint["value"]`, `["href"]`); they now check that the table keeps exactly the reader's digest given with the
+  node, and nothing of the marker in the line. What the dict showed (the whole value, the full address) is now
+  `fingerprint.test.mjs`' "a value the line cuts and a link address the line leaves out count whole". outline-dom's
+  `outline()` asserts every node's `fingerprint` and then drops it, so brief 28's exact node shapes stay as they were;
+  its DOM double gained `closest`, `contains`, `querySelector`, `getBoundingClientRect` and `scrollIntoView`.
+  `reader.test.mjs`' VM gained `TextEncoder`. No receiver, binding, question or outcome assertion changed.
+- **CI browser rows:** none changed (nothing for step 2's `HARNESS-MAP.md` from 1a).
+
+### The fingerprint as built
+
+- **What it covers** (the JSON array `meaning` returns, in this order): the outline's role (`outlineRole`, so the
+  role the line showed); the name by the outline's rule; the `<label>` text; `title`; the link's address, resolved
+  and in full (`hyperlinkAddress`), and where it opens (`browsingTarget`); brief 20's `submit`, whether Enter submits
+  through an implicit submitter, `editable` and `search`; the page dialog it sits in, as that dialog's reader id and
+  kind; ticked (`checked`, or `aria-checked` as written), selected (an option's `selected`, or `aria-selected`),
+  expanded (a `details`' `open`, or `aria-expanded`); a list's every option as label, value and chosen; and the value:
+  the whole value as `safeValue` reads it, a file field's selected file names, `['password']` or `['unread']`.
+- **What it leaves out:** the box and whether it is on screen, `disabled`, `required` and `invalid` (also an
+  option's `disabled`), the element's own text runs (a paragraph's sentence; a link's or button's text is its name),
+  and everything outside the element apart from its dialog's identity.
+- **Password and unread fields.** A password-kind element (`password()`, the reader's rule, ancestors included) is
+  `['password']` and nothing else is read for it. An unread field is `['unread']`: neither its value nor whether it
+  is filled, so its digest doesn't change with its value.
+- **Unicode.** Every string is repaired as the native wire repairs it (lone surrogates become U+FFFD, valid pairs
+  stay) before it is hashed, in all three commands, since they share the function.
+- **Digest:** the first 128 bits of SHA-256 over the repaired JSON, 32 hex digits, by the reader's own synchronous
+  `sha256` (HTTP documents have no SubtleCrypto).
+- **How the service stores it.** The table entry keeps `fingerprint` beside `line`, set by `returned` from what a
+  result gave Claude: a read's page, a `find` hit, a read refusal's present line (`fit`), or an action refusal's
+  present line (`stale_shown`). A reference issued but not returned has none.
+- **How an action checks it** (`Chrome.acting`): the table refuses an unknown, dropped, other-run or other-tab
+  reference, one from another extension connection than the present one (with or without a read since), and a fold's
+  (`invalid_input`, its own sentence); then `facts` with brief 20's internal reference `{session, tab, frame,
+  document, element: 'eN'}` (no `view`, no `expected`) refuses a gone frame, document or element (the extension's own
+  checks); then another reader instance is stale; then a stored fingerprint that is missing or differs from the
+  fresh one is stale **with the present line**: a fresh `outline` of the tab, the element's own line rendered by
+  brief 28's renderer (escaped like every outline line), given as `untrusted_content.now` and recorded as shown with
+  its digest, so the repeated call passes. Every message is the tool's own fixed sentence.
+- **How it moves.** Only through `returned` (a result showed the element) or `acted` (Claude's own free input: the
+  reader's observe report for that element, accepted only when its document, reader instance and element id are the
+  reference's). Time passing, a trim and a neighbouring change move nothing. The counter is never reset.
+
+### Tests and mutations
+
+**Run** (portable Node v22.15.0 from step 0a's `.work/pkg28a-0a/`; Python 3.14.8; logs in `.work/pkg28a-1a/`):
+
+```sh
+PYTHONPATH=control python3 control/generate.py --check
+.work/pkg28a-0a/node-v22.15.0-linux-x64/bin/node --test control/chrome_tests/*.test.mjs
+PYTHONDONTWRITEBYTECODE=1 TMPDIR="$PWD/.work/pkg28a-1a/tmp" PYTHONPATH=control:control/chrome_tests python3 -m unittest \
+  test_acting_references test_view_references test_questions test_policy test_engine test_loss_errors \
+  test_field_descriptions test_instruction_rules test_qualification_fixture test_bridge test_sites \
+  test_qualification_service test_credentials test_fix_x1 test_outline_action test_view_paging test_view_hostile \
+  test_efficiency test_view_address test_view_nodes test_view_outline test_view_budgets test_outline_time
+python3 .work/pkg28a-1a/mutations.py
+git diff --check
+```
+
+- Generator check: **Generated artifacts match definitions** (no definition changed).
+- Node: **605 tests, 605 pass**, 0 fail/cancelled/skipped/todo, 32,649 ms (593 at 0c, plus 12 new). Log: `.work/pkg28a-1a/node-final.log`.
+- Python, the modules above: **Ran 421 tests in 124.1s, OK** (407 at 0c, plus 14 new). Also `test_build test_committed
+  test_exclusions test_unit test_qualification`: **78 tests, OK** (`python-extra.log`) (the six `EFFICIENCY MISS ... not measured` lines are that module's
+  existing negative test). Log: `.work/pkg28a-1a/python-named.log`.
+- Not run locally: `test_fault_surface` and `test_state_*` (CI's python shards), as the lead asked. No browser.
+- `git diff --check`: clean.
+
+**New tests.** `fingerprint.test.mjs` (12, the reader in outline-dom's VM doubles, where a protected value's getter
+throws): outline, facts and observe give one digest for a link, a field, a checkbox, a list, a dialog button, an
+editor, a password field and an expandable button, and facts and observe carry the reader instance and document; a
+change in the 300 characters a line cuts from a 500-character value, a link's query, path or fragment, and where it
+opens each move the digest, the same address doesn't; the value, the label, ticked, the chosen option, an option's
+value, label and number, expanded, title, role and selected each move it; moving the element off screen, `disabled`,
+`required`, `aria-invalid` and a neighbour's text or a new link next to it don't; each form's implicit submitter,
+looked up once by `outline`, gives what `facts` finds; the same button in two dialogs and in none gives three digests;
+three password-kind fields (a password input, a one-time-code field, a credential-labelled textarea) give exactly the
+digest of `["password"]`, also after their value and label changed, with no value getter touched; an unread field in
+an unwatched document keeps its digest when its value changes and when it becomes filled; a lone surrogate hashes as
+U+FFFD in a name and in a value, a valid pair stays itself, and a visible change moves it; `reveal` scrolls a target
+whose centre is off screen to the centre at once, leaves one on screen, refuses outside control, for a password field
+and a gone element; in background.js' `input` the reveal comes after the arming and before the last facts read and the
+hit test, once, for click, scroll and a changing check, never for fill, press, an unchanged check or a password
+target, and a refusal after it leaves `effectStarted` false (background.js' own `content()`).
+`test_acting_references.py` (14, `Chrome.act` with a fake extension answering `outline` and `facts`): the internal
+reference sent is the five facts and the input carries no `ref`, `tab` or `expected`; every stale case (invented,
+another run, not a string, another tab, another document, another reader instance, the element gone, the frame gone,
+the fingerprint changed) dispatches nothing, and only the last carries a line; another connection refuses before and
+after a read and the counter goes on; a dropped reference refuses and its string never comes back; a fold refuses
+for click, fill and scroll without asking the extension; the present line counts as shown so the repeated call runs
+once; it is escaped like an outline line and the message holds no page text; a reference issued but never returned
+refuses with its present line, then runs; a read refusal's line counts as shown; the fingerprint moves after a read,
+a `find` hit and Claude's own fill, and not for an observe report of another element, document, reader instance or a
+malformed digest; position, states and neighbours aren't compared; an asking step still asks and dispatches nothing;
+brief 20's reference/expected route still works and refuses a changed `expected`; and a current-session `released`
+event alone drops tab 1's references for an action (an old session's doesn't), tab 2 keeps its own, and the next read
+issues new strings above the old counter.
+
+**Mutations** (`.work/pkg28a-1a/mutations.py`: apply one, run the named tests, require failure, restore, require
+them green). Log: `.work/pkg28a-1a/mutations.log`. **40 mutations: all caught, all restored green.** The first run
+missed two, both fixed in the tests before this record: R.2 (the reveal test had stubbed `content()`; it now runs
+background.js' own) and I.4's event path (see PLAN-GAPs).
+
+| # | Mutation | Caught by |
+|---|---|---|
+| 2.1 | hash raw facts in one command (`facts`) | fingerprint "repaired text" (facts and outline disagree) |
+| 2.2 | hash raw facts in every command (no repair) | fingerprint "repaired text" |
+| 2.3 | hash the value as the line cuts it (200 characters) | fingerprint "a value the line cuts" |
+| 2.4 | leave the link address out | fingerprint "a value the line cuts" |
+| 2.5 / 2.6 | hash the box / `disabled` | fingerprint "position, enabled, ..." |
+| 2.7 | a password field also hashes its label | fingerprint "password-kind" |
+| 2.8 | an unread field hashes filled/empty | fingerprint "unread field" |
+| 2.9 / 2.10 | leave the page dialog / the options out | fingerprint "page dialog" / "what an element means" |
+| 2.11 | skip the fingerprint comparison | acting: every stale case; present line counts as shown; issued but never shown |
+| 2.12 | skip the reader-instance comparison | acting: every stale case |
+| 2.13 | skip the connection check | acting: another connection |
+| 2.14 | accept a fold's reference | acting: fold |
+| 2.15 / 2.16 | an action's / a read's refusal line not recorded as shown | acting: present line counts as shown / a read's refusal line |
+| 2.17 / 2.18 | move the fingerprint on any observe report / never after Claude's own step | acting: the fingerprint moves only when ... |
+| R.1 | `input` skips the reveal | fingerprint "reveal in input: after the frames are armed" |
+| R.2 | the reveal counts as an effect | fingerprint "reveal in input: a refusal after the reveal" |
+| R.3 / R.4 | the reader never scrolls / reveals outside control | fingerprint "reveal: a target ..." |
+| I.1 (7) | inherited: no fresh-side repair at each comparison in turn (`SERVICE_COMPARISON_MUTATION` = initial binding, final binding, expected, typed list, dialog, confirmation, option value) | `service-comparisons.test.mjs`, unchanged malformed-text cases |
+| I.2 (4) | inherited: remove the first / last input binding comparison, the expected comparison, the confirmation comparison | its "visible changes still refuse" cases |
+| I.3 | inherited: choose the first repaired option match | "repaired select value resolves one raw option ... collisions refuse" |
+| I.4 (3) | inherited: control ends keep references: the `released` event path, the confirmed close/release reply path, `References.close` | acting: control ends (new; see PLAN-GAPs); `test_outline_action` close/release; `test_view_references` closed tab |
+| I.5 | inherited finding 6: remove the mixed-case separator rule | `test_view_address` long token |
+| I.6 (2) | inherited paging limit: cursors stop binding the returned text; an evicted reference still resolves | `test_view_references` >5,000 elements; acting: dropped reference |
+
+### Instruction size
+
+**2,794 / 2,800**, unchanged: 1a adds no instruction or description text and changes no definition; the catalogue
+(30 tools, names and input schemas 11,080) is unchanged.
+
+### Left, in order
+
+1. **1b** (items 3, 3a, 4, 6): addresses, list projections, navigation and the smaller tools. From 1a: a link
+   reference for `chrome_open` and an upload field for `chrome_upload` go through `Chrome.acting(tab, ref)` (the
+   fingerprint check) before classification and before any request; those two give the message alone, so they call
+   `references.trim(tab)` instead of `stale_shown` and put no `now` in the result. The typed read's short references
+   come from the table like any other. Keep 0c's `description` keys (unchanged by 1a).
+2. **1c** (items 5, 5a): `chrome_do`. Each input step is `Chrome.act` (or its parts): `payload` with `{'tab', 'ref'}`,
+   a `Stale` becomes outcome `stale` with `stale_shown`'s `now` (`untrusted_content.now`), a done free step moves the
+   fingerprint with `acted`. The check before each step on fresh facts is `acting` itself. Item 5's time check goes
+   after the reveal (which leaves `effectStarted` false, so `expired` after it stays `expired`; the tab selection
+   before it does set the flag, as before). An approved step's execute is frozen and doesn't move the fingerprint.
+3. **1d**: wire the definitions; the new inputs carry `ref` strings into `act`/`payload`. Groups 14–16 run the
+   fingerprint cases in a real browser (group 14's list in the brief), the reveal ("far below the fold") and H1's
+   cost with fingerprints.
+4. **2**: harness helpers and `HARNESS-MAP.md` (0b's nine and 0c's two rows; none from 1a). Tests that build a
+   `reference`, `expected` or `view` by hand map to `ref`; "any change makes every reference stale" becomes item 2's
+   rule (a neighbouring change runs).
+5. **3**: remove the replaced tools. Then `payload`'s brief 20 branch (`reference` + `expected`) and the `view`
+   comparison in `facts` go, with `view_identity`'s action uses and the reader's `read` rows; `observe`'s `change`
+   keeps its fingerprint for `acted`.
+6. **4**: full final-head validation twice, plus base, Mail, boundary and qualification.
+7. **Two fresh reviews.** The security review looks first at: the reveal's place and that it is no effect; what the
+   fingerprint leaves out (dialog text and fields, an unread field's filled state, file contents); `acted` moving the
+   fingerprint to what observe saw; and the extension not comparing the fingerprint at input time (Known limits).
+
+### What the code doesn't show
+
+- No browser ran locally. The fingerprints of real Chrome elements, `scrollIntoView` crossing frames and the
+  outline's cost on H1 with a SHA-256 per node are CI's (1d). On the doubles a 20,000-node outline went from about
+  0.3 s to about 1.0 s; a SHA-256 by the reader's own function costs about 13 µs (an equivalent unrolled one measured
+  2.4 times faster in `.work/pkg28a-1a/sha-bench.mjs`; not changed, since file hashing shares it).
+- `Chrome.act` is reachable only from Python; no public tool, schema or instruction names it. The asking route
+  through it is the unchanged `engine.reserve`.
+- The Python acting tests use a fake extension; the extension's own checks of a stale internal reference are
+  `background.js`' `facts`, unchanged and covered by its existing Node tests.
+
+### JUDGMENT-CALLs
+
+1. **The page dialog counts by identity and kind, not its text or fields.** Otherwise a fill in a dialog makes its OK
+   button stale every time (and every change of a countdown in it). The asking path still binds the whole dialog.
+   Alternative: hash the dialog's text too. Changing it is one line of `meaning` and one test.
+2. **An unread field is `unread` only, not filled/empty**, as the brief says ("only that it is one") and its test
+   ("doesn't change with its value"). Claude can't type into one anyway.
+3. **A file field hashes the selected files' names** (what the outline shows), not their content identity, which
+   needs hashing that `outline` doesn't wait for. A send still binds `selected_files` with their SHA-256.
+4. **The reveal**: triggered when the target's centre is off screen (what the hit test needs), not brief 20's
+   `onscreen` (any overlap); only for pointer inputs (click, a changing check, scroll; fill and press focus the
+   element, which scrolls it natively; select and upload use no pointer); **not an effect**, so a refusal after it
+   reads "nothing dispatched", which is true of the input. BRIEF-REVIEW-6 S1 called it "an effectful scroll"; 28b's
+   leaving check still goes before it.
+5. **A fold's reference is `invalid_input`** with its own fixed sentence (`FOLD`), not `stale_reference`: it isn't
+   stale, it names a run of elements.
+6. **The extension's own stale sentences pass through** (element gone, document changed, frame gone); the table's and
+   the fingerprint's use brief 28's `STALE`. None carries page text.
+7. **128 bits** of SHA-256 (32 hex digits per node on the native wire); 64 would let a page prepare a colliding pair.
+8. **`observe`'s `change` carries `document`, `reader` and `fingerprint`**, so brief 20's tools show them in their
+   results until step 3 (two random ids and a digest; no page text).
+
+### PLAN-GAPs
+
+- **"The reveal as item 2 describes it"**: the reveal is specified in item 5 ("On screen first") and "What must not
+  change" (the reveal inside `input`); built from those.
+- **The inherited `released`-event test doesn't isolate the event.** `test_outline_action`'s
+  `test_extension_release_forgets_entries_and_ignores_old_sessions` calls `forget_tab` after the event, so removing
+  the event path's cleanup alone stayed green (seen in the first mutation run). 1a's action test of the event alone
+  catches it; the inherited test is unchanged.
+- **Brief 20's `expected` held ids and the whole dialog.** It had `element`, `implicit_submitter` (an id) and
+  `page_dialog` with its text and every field's value. The fingerprint takes identity from the table, the implicit
+  submitter as whether Enter submits through one, and the dialog as in JUDGMENT-CALL 1.
+- **Item 0 for digests.** Both digests come from the one reader function, so the service never compares a raw with
+  a repaired side here; hashing the repaired text makes the digest agree with what Claude was shown, and the
+  "hash raw in one command" mutation is caught.
+
+No open owner question in 1a.
+
+### Known limits found
+
+- **The extension doesn't compare the fingerprint at input time.** The service compares it on the `facts` read
+  right before the command, as brief 20 compared `expected` (`command()` never sent `expected`, so the extension's
+  own `expected` check was unused). In between, the page can change the element; its identity, the hit test and, for
+  an asking step, the whole binding are still checked. "What changes in background.js" doesn't include this check.
+  Low harm: the window is one command; a send still asks.
+- **A page can change the element in the half second between Claude's input and `observe`** (after the hold); the
+  fingerprint then moves to what the page made of it. Low harm: the same element; the next step classifies on fresh
+  facts and asks where it must.
+- **The reveal scrolls the target's own frame.** A target in a child frame whose frame element is off screen relies
+  on Chrome's `scrollIntoView` crossing frames; where it doesn't, brief 20's hit test refuses as before ("parent frame
+  is covered or moved").
+- **A button without a destination keeps its name while the row around it shows another item:** the free click runs
+  (the brief's own limit; its text runs aren't in the fingerprint).
+
+
 ## Step 0c
 
 2026-11-19. **Done; stop here.** Code commit: `7dd97316` (item 3b). Builder: a Claude Opus 5.5 agent for the lead

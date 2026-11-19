@@ -176,6 +176,26 @@ class Acting(unittest.TestCase):
         self.chrome.act('click', {'tab': 1, 'ref': fresh})
         self.assertEqual(len(self.browser.dispatched), 1)
 
+    def test_control_ends_drop_the_tabs_references_for_actions_and_a_new_take_issues_new_ones(self):
+        # Item 0: a current-session `released` event alone (Stop, detach, the
+        # owner's close, a controlled child's release), with no tool reply after it.
+        go = self.ref(self.read(), 'button "Go"')
+        other = self.ref(self.read(tab=2), 'button "Go"')
+        counter = self.chrome.references.counter
+        self.chrome.event({'event': 'released', 'session': 'an old session', 'tab': 1})
+        self.chrome.act('click', {'tab': 1, 'ref': go})                      # an old session's event changes nothing
+        self.chrome.event({'event': 'released', 'session': SESSION, 'tab': 1})
+        calls = len(self.browser.facts_calls)
+        self.stale('click', {'tab': 1, 'ref': go})
+        self.assertEqual(len(self.browser.facts_calls), calls, 'the table refuses it: the entry is gone')
+        self.chrome.act('click', {'tab': 2, 'ref': other})                   # another tab keeps its references
+        again = self.ref(self.read(), 'button "Go"')                         # taken and read again: same document, same reader id
+        self.assertNotEqual(again, go)
+        self.assertGreater(int(again[5:]), counter)
+        self.stale('click', {'tab': 1, 'ref': go})
+        self.chrome.act('click', {'tab': 1, 'ref': again})
+        self.assertEqual(len(self.browser.dispatched), 3)
+
     def test_a_dropped_reference_is_refused_and_never_comes_back(self):
         with patch('aresos_control.chrome.references.LIMIT', 3):
             text = self.read(full=True)

@@ -182,7 +182,8 @@ function inputFixture(){
     globalThis.target={element:'e1',role:'button',name:'Go',states:{checked:false},box:{x:1,y:1,width:10,height:10}};
     facts=async()=>{log.push('facts');return {session,tab:7,control:'epoch',url:'https://fixture.test/',title:'Page',dialog:null,
       frames:[{frame:0,parent:-1,document:'doc',browser_document:'native',url:'https://fixture.test/',title:'Frame',target,form:null,selected_files:[],editable:[],embeds:[]}]};};
-    content=async(tab,frame,command,parameters)=>{log.push(command==='reveal'?'reveal '+JSON.stringify(parameters):command);return command==='hit'?{hit:true}:{};};
+    // background.js' own content(): what it sends the readers, and its effect flag.
+    chrome.tabs.sendMessage=async(tab,{command,...parameters})=>{log.push(command==='reveal'?'reveal '+JSON.stringify(parameters):command);return {ok:true,data:command==='hit'?{hit:true}:{}};};
     pointer=async()=>{log.push('hit');return {x:2,y:2};};cdp=async(tab,method)=>{log.push(method);return {};};`);
   return {run,dispatch:input=>run(`dispatch({name:'input',tab:7,reference:{session,tab:7,frame:0,document:'doc',element:'e1'},input:${JSON.stringify(input)}})`)};
 }

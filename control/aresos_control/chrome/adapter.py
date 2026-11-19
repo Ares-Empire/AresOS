@@ -413,8 +413,9 @@ class Chrome:
         The reference resolves through the table to brief 20's internal
         reference (session, tab, frame, document, element; no `view`), and the
         action then runs brief 20's path unchanged. Returns the facts, the
-        target's frame and that reference. Refused with `stale_reference` when
-        the table refuses it, when the document, the frame or the element is
+        target's frame and that reference. A fold's reference is invalid input.
+        Refused with `stale_reference` when the table refuses it (unknown,
+        another tab, another connection), when the document, the frame or the element is
         gone (the extension's own checks), when another reader instance
         answers, and when the target's fingerprint differs from the one Claude
         last saw: then with the element's present line (`present`).
