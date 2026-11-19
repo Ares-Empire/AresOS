@@ -23,7 +23,7 @@ import {receiverSnapshot} from './receiver-evidence.mjs';
 import {allTabs} from './tabs.mjs';
 import {failBrowserCase} from './failure.mjs';
 
-export async function matrices({call,read,nav,target,counts,eventually,tab,setTab:syncTab=()=>{},fixture,admin,rpc,caller,ownerNavigate,ownerOpenTab,ownerClickPage,ownerOpenPopup,popupEvidence,popupControl,nativeDonor,closeNativeDonor,ownerKey,ownerType,ownerChooseFile,ownerDismiss,ownerHistory,ownerBookmark,lifecycle,restoreControl,stopClick,baseline,isolationAfter,envelopeResults}) {
+export async function matrices({call,read,nav,target,selectedTarget,counts,eventually,tab,setTab:syncTab=()=>{},fixture,admin,rpc,caller,ownerNavigate,ownerOpenTab,ownerClickPage,ownerOpenPopup,popupEvidence,popupControl,nativeDonor,closeNativeDonor,ownerKey,ownerType,ownerChooseFile,ownerDismiss,ownerHistory,ownerBookmark,lifecycle,restoreControl,stopClick,baseline,isolationAfter,envelopeResults}) {
   const results=[];let trustOperation;const shard=process.env.BROWSER_SHARD||null;
   // The owner helpers (ownerNavigate and the others) close over the driver's
   // own current tab, so a matrix that moves to another tab tells the driver
@@ -76,8 +76,8 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,setTa
   if(process.env.DESTINATION_PROBE==='true'){console.log('Post-18d destination and late-reader probes; not full acceptance');return [];}
   if(runs('recheck3'))await recheck3Matrices({check:inBlock('recheck3'),nav,call,rpc,target,approval,receiverEvidence,fixture,eventually,getTab:()=>tab,setTab,nativeDonor,closeNativeDonor});
   if(runs('recheck2'))await recheck2Matrices({check:inBlock('recheck2'),nav,call,rpc,target,approval,receiverEvidence,fixture,eventually,getTab:()=>tab,setTab,nativeDonor,closeNativeDonor,ownerKey,lifecycle,restoreControl});
-  if(runs('review'))await reviewMatrices({check:inBlock('review'),nav,call,rpc,target,read,counts,eventually,approval,receiverEvidence,fixture,getTab:()=>tab,setTab,ownerKey,ownerType,ownerChooseFile,admin,ownerNavigate,ownerDismiss,nativeDonor,closeNativeDonor,lifecycle});
-  if(runs('recheck2'))await popupMatrices({check:inBlock('recheck2'),call,rpc,nav,counts,eventually,getTab:()=>tab,setTab,fixture,ownerOpenPopup,popupEvidence,popupControl,approval});
+  if(runs('review'))await reviewMatrices({check:inBlock('review'),nav,call,rpc,target,read,counts,eventually,approval,receiverEvidence,fixture,getTab:()=>tab,setTab,selectedTarget,ownerKey,ownerType,ownerChooseFile,admin,ownerNavigate,ownerDismiss,nativeDonor,closeNativeDonor,lifecycle});
+  if(runs('recheck2'))await popupMatrices({check:inBlock('recheck2'),call,rpc,nav,counts,eventually,getTab:()=>tab,setTab,fixture,ownerOpenPopup,popupEvidence,popupControl,approval,read,selectedTarget});
   // Brief 28a, groups 14 and 15 (act-matrix.mjs): the new tools, at the end of the recheck2 shard, the
   // shortest of the long shards; its last case restarts the service and Chrome.
   if(runs('recheck2'))await actMatrix({check:inBlock('recheck2'),call,rpc,nav,counts,eventually,fixture,admin,lifecycle,restoreControl,ownerNavigate,ownerOpenTab,ownerClickPage,ownerType,ownerKey,ownerDismiss,getTab:()=>tab,setTab});
@@ -110,9 +110,9 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,setTa
     }
     await call('release_tab',{tab});await ownerNavigate('http://fixture.test:8765/?case=take-post');ownerKey();
     await eventually(()=>counts('taken-post')===1,'one native POST loaded the document');await call('take_tab',{tab});const denied=await rpc('click',await target('Continue'));assert.equal(denied.ok,false);assert.match(denied.error.message,/form submission|request method/);await delay(150);assert.equal(counts('taken-post'),1,'refusal must not resubmit POST');
-    await call('navigate',{tab,url:'http://fixture.test:8765/?case=features&id=post-history',discard_unsaved:true});await eventually(async()=>String((await call('read',{tab})).untrusted_content.url).includes('id=post-history'),'GET after POST');assert.equal((await rpc('navigate',{tab,direction:'back'})).ok,false);assert.equal(counts('taken-post'),1,'history must not resubmit POST');
+    await call('navigate',{tab,url:'http://fixture.test:8765/?case=features&id=post-history',discard_unsaved:true},{legacy:true});await eventually(async()=>String((await call('read',{tab})).untrusted_content.url).includes('id=post-history'),'GET after POST');assert.equal((await rpc('navigate',{tab,direction:'back'})).ok,false);assert.equal(counts('taken-post'),1,'history must not resubmit POST');
   });
-  if(runs('adapters'))results.push(...await collectSiteResults(()=>(import('./sites/matrices.mjs').then(({siteMatrices})=>siteMatrices({call,read,nav,target,counts,eventually,tab,fixture,admin,rpc,lifecycle})))));
+  if(runs('adapters'))results.push(...await collectSiteResults(()=>(import('./sites/matrices.mjs').then(({siteMatrices})=>siteMatrices({call,read,nav,target,selectedTarget,counts,eventually,tab,fixture,admin,rpc,lifecycle})))));
   await check('GROUP 1 submit compose deletion and free-input matrix',async()=>{
     for(const tag of ['default','submit','override','external','empty','invalid','clobbered'])for(const key of ['click','Enter','Space','field']){
       const id='submit-'+tag+'-'+key;await nav('action-matrix&mode=submit&id='+id+'&tag='+tag);
@@ -138,8 +138,8 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,setTa
       if(shard&&wordShard(words.indexOf(word),['name','aria','title','value','labelledby','hidden_labelledby','label','role','formaction'].indexOf(label))!==shard)continue;
       const id='word-'+word+'-'+label;await setup({id,mode:'word',word,label});
       for(const route of ['click','Enter','Space']){
-        const row=(await read()).find(row=>row.expected.role==='button'||row.expected.name==='Continue');assert.ok(row);
-        const args={reference:row.reference,expected:row.expected};
+        const rows=await read();const row=rows.find(row=>row.expected.role==='button'||row.expected.name==='Continue');assert.ok(row);
+        const args=await selectedTarget(row,rows);
         const result=route==='click'?await call('click',args):await call('press',{...args,key:route});
         await approval(result,id+'-'+route);wordCases.push(id+'-'+route);cases++;
       }
@@ -238,7 +238,7 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,setTa
   await check('GROUP 2 uncancellable self navigation is stopped before its source document changes',async()=>{
     tab=await nativeDonor(tab);
     const id='fresh-self';await nav('fresh-activation&id='+id+'&cancel=false&target=self');
-    const result=await call('click',await target('Continue'));
+    const result=await call('click',await target('Continue'),{committed:true});
     assert.equal(counts('handler-'+id),0);assert.equal(receiverEvidence(id,'self default held').count,0);
     assert.ok(result.untrusted_content.steps.some(step=>step.kind==='activation'));
     assert.ok(result.followups.some(item=>item.stopped));assert.ok(!result.followups.some(item=>item.approval),'activation never resumes');
@@ -308,8 +308,21 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,setTa
   await check('GROUP 5 question fields, hidden values, password label, upload path and hash',async()=>{
     await nav('binding&id=question');const prepared=await call('click',await target('Submit'));const text=JSON.stringify(prepared.approval);
     assert.match(text,/Hidden original/);assert.match(text,/Private sign-in/);assert.doesNotMatch(text,/SENTINEL_PRIVATE_PASSWORD_20/);assert.match(prepared.approval.question,/hidden/);
+    const rows=await read(),same=rows.filter(row=>row.expected.name==='Visible'&&row.expected.role==='textbox');
+    assert.equal(same.length,2);
+    const second=await selectedTarget(same[1],rows);
+    if(second.ref){
+      const descriptions=prepared.approval.description.untrusted_content.page_state.form.fields
+        .filter(field=>field.label==='Visible').map(field=>field.description);
+      assert.deepEqual(descriptions,['"Visible" (1 of 2)','"Visible" (2 of 2)']);
+      const entered=await call('press',{...second,key:'Enter'});
+      assert.match(entered.approval.question,/'Visible' \(2 of 2\) using Enter/);
+      assert.equal(entered.approval.description.untrusted_content.page_state.target.description,descriptions[1]);
+      assert.equal(receiverEvidence('question','distinct field descriptions before approval').count,0);
+      await call('drop',{operation_id:entered.approval.operation_id});
+    }
     await nav('upload&id=upload-bytes');await call('fill',{...await target('Message'),text:'Draft Claude typed before the unrelated upload'});fs.mkdirSync('/home/owner/Downloads',{recursive:true});fs.writeFileSync('/home/owner/Downloads/fixture.txt','Exact synthetic upload bytes');
-    const upload=caller('upload',{...await target('Upload'),path:'/home/owner/Downloads/fixture.txt'});assert.ok(upload.ok,JSON.stringify(upload));
+    const upload=await caller('upload',{...await target('Upload'),path:'/home/owner/Downloads/fixture.txt'});assert.ok(upload.ok,JSON.stringify(upload));
     assert.match(upload.data.approval.question,/sha256/);assert.match(upload.data.approval.question,/fixture.txt/);await approval(upload.data,'upload-bytes');
     assert.equal(fixture.arrivals.find(row=>new URL(row.url,'http://fixture.test').searchParams.get('case')==='upload-bytes').body,'Exact synthetic upload bytes');
     const send=await call('click',await target('Send'));await fixture.mutate('upload-bytes','text');await delay(100);const changed=await rpc('submit',send.approval);assert.ok(!changed.ok||changed.data.operation.state==='failed');assert.equal(counts('after-upload'),0);
@@ -342,7 +355,7 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,setTa
     for(const file of ['browser-boundary.jsonl','tool.jsonl','service.txt'])assert.doesNotMatch(file==='browser-boundary.jsonl'?JSON.stringify(completeIngress(fs.readFileSync('/out/'+file,'utf8'))):fs.readFileSync('/out/'+file,'utf8'),/SENTINEL_PRIVATE_PASSWORD_20/,file);
   });
   await check('GROUP 6 schemes links and forward routes',async()=>{
-    await nav('features&id=repeat-reload');let previous=(await target('First')).reference.document;
+    await nav('features&id=repeat-reload',undefined,{legacy:true});let previous=(await target('First')).reference.document;
     for(let index=0;index<2;index++){await call('navigate',{tab,direction:'reload'});await eventually(async()=>{const fresh=(await target('First')).reference.document;if(fresh===previous)return false;previous=fresh;return true;},'fresh guarded GET reload');}
     for(const method of ['get','post'])for(const override of [false,true]){
       const id='excluded-form-'+method+'-'+override;
@@ -461,7 +474,7 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,setTa
   });
   await check('VIEW representative long article/form complete paging',async()=>{
     await setup({id:'long',mode:'long'});let cursor,tree='',pages=0;const started=Date.now();
-    do{const page=await call('read',{tab,...(cursor?{cursor}:{})});assert.ok(page.untrusted_content.tree.length<=16000);tree+=page.untrusted_content.tree;cursor=page.cursor;pages++;}while(cursor);
+    do{const page=await call('read',{tab,...(cursor?{cursor}:{})},{fullOutline:true});assert.ok(page.untrusted_content.tree.length<=16000);tree+=page.untrusted_content.tree;cursor=page.cursor;pages++;}while(cursor);
     assert.match(tree,/Paragraph 119/);assert.match(tree,/Field 79/);
     const measurement={characters:tree.length,utf8_bytes:Buffer.byteLength(tree),pages,milliseconds:Date.now()-started,token_estimate:Math.ceil(tree.length/4)};
     fs.writeFileSync('/out/view-measurements.json',JSON.stringify(measurement,null,2));console.log('VIEW MEASURED',JSON.stringify(measurement));

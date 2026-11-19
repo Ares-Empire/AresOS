@@ -50,7 +50,6 @@ function browser({race='late',answer=extension,records=null,attach='after-naviga
   };
   const byId=id=>[...popups.values()].find(popup=>popup.id===id);
   const url=popup=>popup.loaded?popupChild(popup.id,popup.mode):popup.start?new URL(popupOpenURL(popup.id,popup.mode),opener.url).href:'';
-  const tree=rows=>({untrusted_content:{tree:rows.map(row=>JSON.stringify(row)).join('\n')}});
   const harness={
     getTab:()=>7,setTab:()=>{},
     check:async(name,run)=>{if(name===ROWS)await run();},
@@ -67,13 +66,14 @@ function browser({race='late',answer=extension,records=null,attach='after-naviga
     },
     ownerOpenPopup:async(tab,{id,mode})=>{assert.equal(tab,7);opener.controlled=false;const popup=open(id,mode,false);return {tab:popup.tab,url:url(popup),controlled:false};},
     approval:async(result,id)=>{assert.ok(result.approval);arrive(id);arrive('flow-'+id);},
+    read:async tab=>{
+      if(tab===7)return [{expected:{name:'Open window'},reference:{tab,document:'opener'}}];
+      const popup=popups.get(tab);assert.ok(popup.loaded&&popup.controlled,'read a loaded controlled popup');
+      return [{expected:{name:'Continue'},reference:{tab,document:popup.document}}];
+    },
+    selectedTarget:async row=>row,
     call:async(name,args={})=>{
       if(name==='tabs')return {items:[{tab:7,window:1,url:opener.url,controlled:opener.controlled},...[...popups.values()].map(popup=>({tab:popup.tab,window:popup.tab,url:url(popup),controlled:popup.controlled}))]};
-      if(name==='read'){
-        if(args.tab===7)return tree([{expected:{name:'Open window'},reference:{tab:7,document:'opener'}}]);
-        const popup=popups.get(args.tab);assert.ok(popup.loaded&&popup.controlled,'read a loaded controlled popup');
-        return tree([{expected:{name:'Continue'},reference:{tab:popup.tab,document:popup.document}}]);
-      }
       if(name==='click'){
         if(args.reference.tab===7){assert.equal(opener.controlled,true);open(opener.page.id,opener.page.mode,true);return {};}
         return {approval:{operation:'fixture'}};

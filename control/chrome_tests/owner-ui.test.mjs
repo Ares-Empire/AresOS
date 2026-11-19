@@ -57,7 +57,8 @@ test('popup cases use the recovered opener rather than a captured retired tab',a
   const stop=Error('stop after independently checking the next case target');
   await assert.rejects(popupMatrices({getTab:()=>current,
     check:async(name,fn)=>{if(name!=='GROUP 8 POST popups never resubmit and ordinary openers stay untouched'){current=8;return;}await fn();},
-    nav:async()=>{},call:async(name,args)=>{if(name==='read'){readTab=args.tab;return {untrusted_content:{tree:JSON.stringify({expected:{name:'Open window'},reference:{tab:args.tab}})}};}return {};},
+    nav:async()=>{},read:async tab=>{readTab=tab;return [{expected:{name:'Open window'},reference:{tab}}];},
+    selectedTarget:async row=>row,call:async()=>({}),
     approval:async()=>{throw stop;},
   }),error=>error===stop);
   assert.equal(readTab,8);

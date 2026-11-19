@@ -11,6 +11,7 @@ import {measureCompatibility,nativeNavigate,nativeCompatibilityClick,compareComp
 import {ownerUI} from './owner-ui.mjs';
 import {outlineTime} from './outline-time.mjs';
 import {rpcResult} from './rpc-result.mjs';
+import {harnessTools} from './harness-tools.mjs';
 import {outlineReadMatrix} from './outline-read.mjs';
 if(process.platform !== 'linux' || process.env.GITHUB_ACTIONS !== 'true' || !fs.existsSync('/.dockerenv'))throw Error('Browser runs only in GitHub Linux containers');
 const fixture=await fixtures();
@@ -21,9 +22,8 @@ fs.writeFileSync('/out/launch.json',JSON.stringify(args));
 const descriptor=fs.openSync('/out/chrome.txt','a');
 let chrome;
 // Brief 28a, item 8 step 1d: brief 20's replaced tools are chrome_old_<verb>, offered only behind the CI-only switch,
-// and brief 28's read is chrome_read. The groups keep calling them by their old verbs here, in the helper only,
-// until step 2 moves the helpers to the new tools; a runtime from before the switch (the latency pair's
-// baseline leg, a qualification of an older build) still names them as before. The service's own tool list says which.
+// and brief 28's read is chrome_read. The measured old arm and the remaining native evidence use these aliases.
+// A runtime from before the switch still names them as before. The service's own tool list says which.
 let offered;
 function catalogue(){
   offered??=new Promise((resolve,reject)=>{
@@ -43,23 +43,22 @@ async function toolName(action){
   if(action==='outline'&&!names.has('outline'))return 'chrome_read';
   return 'chrome_'+(names.has('old_'+action)?'old_'+action:action);
 }
-async function rpc(action,arguments_={}) {
+async function wire(action,arguments_={}) {
   const name=await toolName(action);
   return new Promise((resolve,reject)=>{
     const socket=net.createConnection('/run/aresos-tools/act.sock');let buffer='';
     socket.setTimeout(20000,()=>socket.destroy(Error('Tool response timeout')));
     socket.on('connect',()=>socket.write(JSON.stringify({v:1,method:'call',action:name,arguments:arguments_})+'\n'));
-    socket.on('data',data=>{buffer+=data;if(buffer.includes('\n')){socket.end();const result=rpcResult(buffer.slice(0,buffer.indexOf('\n')));fs.appendFileSync('/out/tool.jsonl',JSON.stringify({action,result})+'\n');resolve(result);}});
+    socket.on('data',data=>{buffer+=data;if(buffer.includes('\n')){socket.end();const result=rpcResult(buffer.slice(0,buffer.indexOf('\n')));fs.appendFileSync('/out/tool.jsonl',JSON.stringify({action:name,result})+'\n');resolve(result);}});
     socket.on('end',()=>{if(!buffer.includes('\n'))reject(Error('Service disconnected before its reply; inspect status, never replay'));});
     socket.on('error',reject);
   });
 }
-async function call(action,args={}){const result=await rpc(action,args);assert.ok(result.ok,JSON.stringify(result));return result.data;}
 async function eventually(fn,label,timeout=15000){const until=Date.now()+timeout;let error;while(Date.now()<until){try{const value=await fn();if(value)return value;}catch(e){error=e;}await delay(150);}throw Error(label+': '+error?.message);}
 let tab;const baseline={};
-async function read(){let tree='',cursor;do{const result=await call('read',{tab,...(cursor?{cursor}:{})});tree+=result.untrusted_content.tree;cursor=result.cursor;}while(cursor);return tree.split('\n').filter(line=>line.startsWith('{')).map(JSON.parse);}
-async function target(label){const row=await eventually(async()=>{const rows=(await read()).filter(row=>row.expected.name===label);return rows.find(row=>['button','link','textbox','searchbox','combobox','checkbox','radio','option'].includes(row.expected.role))||rows[0];},label);return {reference:row.reference,expected:row.expected};}
-async function nav(kind,host='fixture'){const url=(host==='localhost'?'http://localhost':'http://'+host+'.test')+':8765/?case='+kind;await call('navigate',{tab,url,discard_unsaved:true});await eventually(async()=>{const page=await call('read',{tab});return page.untrusted_content.url===url&&page.characters>0;},'fixture document committed');await delay(250);}
+const modern=async()=>(await catalogue()).has('do');
+const {rpc,call,readRows:read,target,selectedTarget}=harnessTools({wire,modern,eventually,currentTab:()=>tab});
+async function nav(kind,host='fixture',options){const url=(host==='localhost'?'http://localhost':'http://'+host+'.test')+':8765/?case='+kind;await call('navigate',{tab,url,discard_unsaved:true},options);await eventually(async()=>{const page=await call('read',{tab});return page.untrusted_content.url===url&&page.characters>0;},'fixture document committed');await delay(250);}
 const counts=kind=>fixture.arrivals.filter(row=>new URL(row.url,'http://fixture.test').searchParams.get('case')===kind).length;
 async function run(){
 try {
@@ -85,8 +84,11 @@ try {
   const send=await target('Send');const prepared=await call('click',send);assert.ok(prepared.approval);assert.equal(counts('compose'),0);
   const sent=await call('submit',prepared.approval);assert.equal(sent.operation.state,'done');await eventually(()=>counts('compose')===1,'receiver compose');
   await call('submit',prepared.approval);assert.equal(counts('compose'),1);console.log('GROUP 1 what asks PASS: zero before approval, one after, no replay');
-  if(process.env.LATENCY_PROBE==='true'&&process.env.EFFICIENCY_PROBE==='true'){await efficiencyProbe({rpc,eventually,counts,getTab:()=>tab,toolName});return;}
-  if(process.env.LATENCY_PROBE==='true'){await latencyProbe({call,target,nav,eventually,getTab:()=>tab});return;}
+  if(process.env.LATENCY_PROBE==='true'&&process.env.EFFICIENCY_PROBE==='true'){await efficiencyProbe({rpc:wire,eventually,counts,getTab:()=>tab,toolName});return;}
+  if(process.env.LATENCY_PROBE==='true'){
+    const measured=harnessTools({wire,modern:()=>false,eventually,currentTab:()=>tab});
+    await latencyProbe({call:measured.call,target:measured.target,nav,eventually,getTab:()=>tab});return;
+  }
   // Brief 28, item 4: group 14's time cases, in the core shard while nothing is
   // pending, in Control Chrome's own runs only (the qualification run sets
   // RUNTIME_COMMIT and qualifies brief 20's tools, maybe on an older build).
@@ -119,7 +121,7 @@ try {
   }
   await nav('activation');await call('click',await target('Continue'));await delay(100);assert.equal(counts('activation'),0);console.log('GROUP 2 wrapped non-cancellable activation PASS: no delivery and never resumed');
   await nav('password');const view=JSON.stringify(await read());assert.doesNotMatch(view,/SENTINEL_PRIVATE_PASSWORD_20/);await call('click',await target('Show'));assert.doesNotMatch(JSON.stringify(await read()),/SENTINEL_PRIVATE_PASSWORD_20/);console.log('GROUP 7 password presence and show-password PASS');
-  await nav('residual');const rows=await read();const unlabeled=rows.find(row=>row.expected.role==='button');await call('click',{reference:unlabeled.reference,expected:unlabeled.expected});await eventually(()=>counts('residual-click')===1,'residual fetch');console.log('GROUP 13 residual ordinary-click fetch OBSERVED, NOT HELD');baseline.residual=true;
+  await nav('residual');const rows=await read();const unlabeled=rows.find(row=>row.expected.role==='button');await call('click',await selectedTarget(unlabeled,rows));await eventually(()=>counts('residual-click')===1,'residual fetch');console.log('GROUP 13 residual ordinary-click fetch OBSERVED, NOT HELD');baseline.residual=true;
   fs.writeFileSync('/out/smoke.json',JSON.stringify({core_smoke_passed:true,acceptance_complete:false,kind:'core smoke only',measurements:(await read()).length}));
   console.log('Preliminary core smoke cases passed; acceptance is not complete');
   // A real X input belongs to the owner, even while a task from Claude's input is pending.
@@ -158,7 +160,13 @@ try {
   }
   baseline.forgery=forgedPasses===3;
   const admin=(action,arguments_)=>{const result=JSON.parse(execFileSync('sudo',['-n','/usr/bin/python3','/workspace/control/chrome/ci/admin.py',JSON.stringify({action,arguments:arguments_})],{encoding:'utf8'}));assert.ok(result.ok,JSON.stringify(result));return result.data;};
-  const caller=(verb,args)=>JSON.parse(execFileSync('python3',['control/chrome/ci/call.py',verb,JSON.stringify(args)],{encoding:'utf8',env:{...process.env,GITHUB_ACTIONS:'true'}}));
+  const caller=async(verb,args)=>{
+    if(verb==='upload'&&await modern()){
+      assert.equal(typeof args.ref,'string','select a public reference before upload');
+      verb='chrome_upload';args={tab:args.reference.tab,ref:args.ref,path:args.path};
+    }
+    return JSON.parse(execFileSync('python3',['control/chrome/ci/call.py',verb,JSON.stringify(args)],{encoding:'utf8',env:{...process.env,GITHUB_ACTIONS:'true'}}));
+  };
   let browserWindow=execFileSync('xdotool',['getactivewindow'],{encoding:'utf8'}).trim();
   const owner=ownerUI({call,currentTab:()=>tab,window:()=>browserWindow,eventually});
   const ownerNavigate=owner.navigate,ownerOpenTab=owner.open;
@@ -211,7 +219,7 @@ try {
     if(command==='kill_host'){const lines=execFileSync('ps',['-u','1000','-o','pid=,args='],{encoding:'utf8'}).split('\n');for(const line of lines)if(line.includes('/usr/libexec/aresos-control/chrome/native_host.py'))process.kill(Number(line.trim().split(/\s+/)[0]),'SIGKILL');return;}
     return JSON.parse(execFileSync('sudo',['-n','/usr/bin/python3','/workspace/control/chrome/ci/admin.py',JSON.stringify(command)],{encoding:'utf8'}));
   };
-  for(const failure of await matrices({call,read,nav,target,counts,eventually,tab,setTab:value=>{tab=value;},fixture,admin,rpc,caller,ownerNavigate,ownerOpenTab,ownerClickPage,ownerOpenPopup,nativeDonor,closeNativeDonor,baseline,envelopeResults,
+  for(const failure of await matrices({call,read,nav,target,selectedTarget,counts,eventually,tab,setTab:value=>{tab=value;},fixture,admin,rpc,caller,ownerNavigate,ownerOpenTab,ownerClickPage,ownerOpenPopup,nativeDonor,closeNativeDonor,baseline,envelopeResults,
     popupControl:async(command,value)=>{
       const state=async()=>{await lifecycle({fixture:'control_status'});const value=JSON.parse(fs.readFileSync('/out/control-status.json'));fs.appendFileSync('/out/popup-controls.jsonl',JSON.stringify(value)+'\n');return value;};
       if(command==='state')return state();

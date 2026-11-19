@@ -75,12 +75,12 @@ export function popupPage(url){
   };
 }
 
-export async function popupMatrices({check,call,rpc,nav,counts,eventually,getTab,fixture,ownerOpenPopup,popupEvidence,popupControl,setTab,approval,boundary=boundaryLog}){
-  const rows=async targetTab=>{
-    const page=await call('read',{tab:targetTab});
-    return page.untrusted_content.tree.split('\n').filter(line=>line.startsWith('{')).map(JSON.parse);
+export async function popupMatrices({check,call,rpc,nav,counts,eventually,getTab,fixture,ownerOpenPopup,popupEvidence,popupControl,setTab,approval,read,selectedTarget,boundary=boundaryLog}){
+  const targetFor=async(tab,name)=>{
+    const rows=await read(tab);
+    return selectedTarget(rows.find(row=>row.expected.name===name),rows);
   };
-  const target=async targetTab=>{const row=await eventually(async()=>(await rows(targetTab)).find(row=>row.expected.name==='Continue'),'popup target');return {reference:row.reference,expected:row.expected};};
+  const target=tab=>eventually(()=>targetFor(tab,'Continue'),'popup target');
   const find=async id=>eventually(async()=>(await call('tabs',{limit:10})).items.find(item=>item.tab!==getTab()&&(item.url?.includes('case=popup-child&id='+id)||item.url?.includes('/post-document?case='+id))),'popup admitted '+id);
   const evidence=(id,phase)=>console.log('POPUP RECEIVER',id,phase,JSON.stringify(fixture.arrivals.filter(row=>new URL(row.url,'http://fixture.test').searchParams.get('case')?.includes(id))));
   await check('GROUP 8 popups preserve opener flow and guard first input without moving windows',async()=>{
@@ -95,7 +95,7 @@ export async function popupMatrices({check,call,rpc,nav,counts,eventually,getTab
         await eventually(()=>counts('loaded-'+id)===1,'owner popup loaded before take');
         await call('take_tab',{tab});await call('take_tab',{tab:child.tab});
       }else{
-        await nav('popup-opener&id='+id+'&mode='+mode);const open=(await call('read',{tab})).untrusted_content.tree.split('\n').filter(line=>line.startsWith('{')).map(JSON.parse).find(row=>row.expected.name==='Open window');
+        await nav('popup-opener&id='+id+'&mode='+mode);const open=await targetFor(tab,'Open window');
         // The early path, forced: the fixture holds the gate of the popup's
         // first document (popupOpenURL) until the extension's own
         // popup_admitted line shows its startup breakpoint set; only then does
@@ -104,14 +104,14 @@ export async function popupMatrices({check,call,rpc,nav,counts,eventually,getTab
         const release=mode==='typed-early'?fixture.hold(id):null;
         try{
           const since=release?boundary.size():0;
-          await call('click',{reference:open.reference,expected:open.expected});
+          await call('click',open);
           if(release)await eventually(()=>admittedAfter(boundary.since(since),tab),'popup admitted before its document');
         }finally{release?.();}
       }
       const parent=(await call('tabs',{limit:10})).items.find(item=>item.tab===tab);
       const popup=await find(id);await eventually(async()=>(await find(id)).controlled,'private popup group');
       assert.notEqual(popup.window,parent.window,'the popup must remain separate from its opener window');
-      await eventually(()=>counts('loaded-'+id)===1,'initial popup load');const before=await target(popup.tab);await rows(popup.tab);assert.equal(counts('loaded-'+id),1,'read preserves popup');
+      await eventually(()=>counts('loaded-'+id)===1,'initial popup load');const before=await target(popup.tab);await read(popup.tab);assert.equal(counts('loaded-'+id),1,'read preserves popup');
       const path=mode.startsWith('typed-')?recordedPath(await popupControl('state'),popup.tab,before.reference.document):null;
       const nativeBefore=await popupEvidence(id,'before');
       const first=await rpc('click',before);assert.equal(first.ok,false);
@@ -122,14 +122,14 @@ export async function popupMatrices({check,call,rpc,nav,counts,eventually,getTab
       assert.equal(loads.length,2);assert.ok(loads.every(load=>load.opener));assert.equal(loads[1].name,loads[0].name);
       assert.deepEqual(await popupEvidence(id,'after'),nativeBefore,'native popup window, position and size remain intact');
       await approval(await call('click',fresh),id);await eventually(()=>counts('flow-'+id)===1,'opener receives postMessage after reload');evidence(id,'guarded 0/1/1 and opener complete'+(path?' on the '+path+' path':''));
-      await call('close_tab',{tab:popup.tab,discard_unsaved:true});
+      await call('close_tab',{tab:popup.tab,discard_unsaved:true},{legacy:mode==='typed-late'});
     }
   });
   await check('GROUP 8 opener badges and per-popup Stop preserve windows documents and focus',async()=>{
     const tab=getTab(),id='popup-stop';await nav('popup-opener&id='+id);
     const original=await popupControl('state');
-    const open=(await rows(tab)).find(row=>row.expected.name==='Open window');
-    await call('click',{reference:open.reference,expected:open.expected});const popup=await find(id);
+    const open=await targetFor(tab,'Open window');
+    await call('click',open);const popup=await find(id);
     const active=await eventually(async()=>{const state=await popupControl('state');return state.tabs.find(row=>row.tab===tab)?.badge==='POP'&&state;},'opener popup badge');
     assert.equal(active.windows.length,original.windows.length+1,'only the page popup opens');
     assert.deepEqual(active.windows.filter(row=>row.id!==popup.window).map(({focused,...row})=>row),original.windows.map(({focused,...row})=>row));
@@ -152,7 +152,7 @@ export async function popupMatrices({check,call,rpc,nav,counts,eventually,getTab
   await check('GROUP 8 closing or releasing an opener ends popup control and clears badges',async()=>{
     for(const mode of ['release','close']){
       const tab=getTab(),id='popup-opener-'+mode;await nav('popup-opener&id='+id);
-      const open=(await rows(tab)).find(row=>row.expected.name==='Open window');await call('click',{reference:open.reference,expected:open.expected});const popup=await find(id);
+      const open=await targetFor(tab,'Open window');await call('click',open);const popup=await find(id);
       await eventually(async()=>(await popupControl('state')).tabs.find(row=>row.tab===tab)?.badge==='POP','opener badge before '+mode);
       const before=await target(popup.tab),nativeBefore=await popupEvidence(id,'before-'+mode);
       await eventually(()=>counts('loaded-'+id)===1,'opener lifecycle initial load');
@@ -167,8 +167,8 @@ export async function popupMatrices({check,call,rpc,nav,counts,eventually,getTab
   await check('GROUP 8 POST popups never resubmit and ordinary openers stay untouched',async()=>{
     const tab=getTab();
     const id='popup-post';await nav('popup-opener&id='+id+'&mode=post');
-    const open=(await call('read',{tab})).untrusted_content.tree.split('\n').filter(line=>line.startsWith('{')).map(JSON.parse).find(row=>row.expected.name==='Open window');
-    await approval(await call('click',{reference:open.reference,expected:open.expected}),id);
+    const open=await targetFor(tab,'Open window');
+    await approval(await call('click',open),id);
     const popup=await find(id);await eventually(async()=>(await find(id)).controlled,'POST popup private group');
     const denied=await rpc('click',await target(popup.tab));assert.equal(denied.ok,false);assert.match(denied.error.message,/open its address.*Claude tab/);await delay(100);assert.equal(counts(id),1,'POST refusal makes no second request');evidence(id,'POST refusal');await call('close_tab',{tab:popup.tab,discard_unsaved:true});
     const outside=await ownerOpenPopup(tab);assert.equal(outside.controlled,false);await eventually(()=>counts('loaded-popup-outside')===1,'ordinary popup initial load');await delay(100);assert.equal(counts('loaded-popup-outside'),1);evidence('popup-outside','ordinary opener untouched');

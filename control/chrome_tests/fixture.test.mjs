@@ -131,10 +131,11 @@ test('recheck script POST observes both exact document commits before takeover',
     counts:id=>id==='review-script-post'?Number(posted):id==='review-script-popup'?Number(popupPosted):0,
     eventually:async(predicate,label)=>{const result=await predicate();assert.ok(result,label);if(label==='script POST committed in the exact owner tab')postCommitted=true;return result;},
     target:async()=>({}),nav:async()=>{},
+    read:async tab=>{assert.equal(tab,8,'read the POST popup itself');return [{reference:{tab,element:'e1'},expected:{name:'Continue'}}];},
+    selectedTarget:async row=>row,
     call:async(name)=>{
       if(name==='take_tab'){assert.equal(posted,true);assert.equal(postCommitted,true,'take waits for the exact POST document');}
       if(name==='click')popupPosted=true;
-      if(name==='read')return {untrusted_content:{tree:JSON.stringify({reference:{element:'e1'},expected:{name:'Continue'}})}};
       return {};
     },
     rpc:async()=>({ok:false,error:{message:'request method is POST'}}),

@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import {execFileSync} from 'node:child_process';
 import {setTimeout as delay} from 'node:timers/promises';
 
-export async function siteMatrices({call,read,nav,target,counts,eventually,tab,fixture,admin,rpc,lifecycle}) {
+export async function siteMatrices({call,read,nav,target,selectedTarget,counts,eventually,tab,fixture,admin,rpc,lifecycle}) {
   if(process.platform!=='linux'||process.env.GITHUB_ACTIONS!=='true'||!fs.existsSync('/.dockerenv'))throw Error('Adapter browser cases run only in GitHub Linux containers');
   const results=[];let serial=0;
   const state=result=>result.approval.description.untrusted_content.page_state;
@@ -58,8 +58,8 @@ export async function siteMatrices({call,read,nav,target,counts,eventually,tab,f
     let id=await fresh('gmail','&variant=two');
     const first=await call('click',await target('Send'));assert.equal(state(first).adapter.to,'one@mail.test,two@mail.test');
     await fixture.mutate(id,'text:second');await approved(first,receiver(id,'Send','first'));assert.equal(counts(receiver(id,'Send','second')),0);
-    const rows=(await read()).filter(row=>row.expected.name==='Send'&&row.expected.role==='button');assert.equal(rows.length,2);
-    const second=await call('click',{reference:rows[1].reference,expected:rows[1].expected});assert.equal(state(second).adapter.to,'other@mail.test');assert.equal(state(second).adapter.text,'Changed synthetic text');
+    const rows=await read();const sends=rows.filter(row=>row.expected.name==='Send'&&row.expected.role==='button');assert.equal(sends.length,2);
+    const second=await call('click',await selectedTarget(sends[1],rows));assert.equal(state(second).adapter.to,'other@mail.test');assert.equal(state(second).adapter.text,'Changed synthetic text');
     await approved(second,receiver(id,'Send','second'));assert.equal(counts(receiver(id,'Send','first')),1);
     id=await fresh('gmail');const inbox=await call('press',{...await target('Selected message'),key:'#'});assert.equal(evidence(receiver(id,'Delete shortcut'),'inbox before approval').count,0);assert.ok(inbox.approval);
     await denyTrust(inbox.approval,receiver(id,'Delete shortcut'));await approved(inbox,receiver(id,'Delete shortcut'));
@@ -160,7 +160,7 @@ export async function siteMatrices({call,read,nav,target,counts,eventually,tab,f
   });
   await check('GROUP 10 ADAPTER bank owner restriction all inputs and positive reads links scroll',async()=>{
     admin('chrome_sites',{command:'readonly',site:'http://bank.test:8765/',enabled:true});
-    const id=await fresh('bank');assert.match(JSON.stringify(await call('read',{tab})),/Synthetic read-only balance/);
+    const id=await fresh('bank');assert.match(JSON.stringify(await call('read',{tab},{fullOutline:true})),/Synthetic read-only balance/);
     const scroll=await call('scroll',{...await target('Amount'),x:0,y:30});assert.ok(!scroll.approval);
     for(const [verb,label,args]of [['fill','Amount',{text:'1'}],['click','Continue',{}],['upload','File',{path:'/fixture.txt'}],['check','Tick',{checked:true}],['select','Choice',{value:'b'}],['press','Amount',{key:'Enter'}]]){
       const response=await rpc(verb,{...await target(label),...args});assert.equal(response.ok,false);assert.equal(response.error.code,'readonly_site');assert.equal(counts(receiver(id,'Continue')),0);assert.equal(evidence(receiver(id,'Unexpected bank input'),'read-only input refused').count,0);

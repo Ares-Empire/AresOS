@@ -260,6 +260,20 @@ class Doing(unittest.TestCase):
 
     # --- the checks -----------------------------------------------------------------
 
+    def test_saved_reference_survives_an_unrelated_change_and_stales_when_the_target_changes(self):
+        ref = self.refs()['Save']
+        step = {'do': 'click', 'ref': ref}
+        self.browser.change(10, text=['Another row'])
+        self.assertEqual(self.outcomes(self.do([step])), ['done'])
+        self.assertEqual([(verb, element) for verb, element, _ in self.browser.inputs], [('click', 4)])
+
+        self.browser.change(4, name='Another target', text=['Another target'])
+        result = self.do([step])
+        self.assertEqual(self.outcomes(result), ['stale'])
+        self.assertEqual(result['steps'][0]['code'], 'stale_reference')
+        self.assertEqual(result['untrusted_content']['now'], 'button "Another target" ' + ref)
+        self.assertEqual(len(self.browser.inputs), 1)
+
     def test_every_reference_is_checked_before_the_first_step_and_a_stale_one_runs_nothing(self):
         refs = self.refs()
         self.browser.change(3, value='a draft the page loaded')          # Claude hasn't seen it

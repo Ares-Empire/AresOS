@@ -46,7 +46,7 @@ export async function unreadMatrix({check,call,rpc,read,nav,target,counts,approv
     assert.equal(waited.until_met,false,name+': a password value never meets until');
     if(others.length)assert.equal((await outline(name+': several tabs',{tabs:[tab,...others]})).length,others.length+1);
     const rows=await read();clean(name+': chrome_read',rows);
-    clean(name+': chrome_find',await call('find',{tab,text:'PRIVATE_PASSWORD'}));
+    clean(name+': chrome_find',await call('find',{tab,text:'PRIVATE_PASSWORD'},{legacy:true}));
     return {first,whole,rows,forms:forms.length};
   };
   // Group 7's recording: what the content script's own reads returned, every

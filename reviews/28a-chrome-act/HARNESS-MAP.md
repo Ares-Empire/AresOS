@@ -4,6 +4,12 @@ Step 2 of the [brief](../../briefs/28a-chrome-act.md#8-the-order-of-the-change).
 The [package 28 map](../28-chrome-read/HARNESS-MAP.md) still governs its field-rule assertions.
 The inventory and original receiver, approval, binding and outcome checks are the comparison for this move.
 
+**Counts.** 23 helpers changed or introduced and 23 existing cases with hand-built arguments moved.
+The helper count covers the driver, routing and observation helpers, including the engine fixture's
+two entry points. The case count is by named browser or engine case and includes stale/discard
+replays and dialog arguments. Browser-free stand-ins, fresh assertions, and the legacy evidence
+listed below are outside the case count.
+
 ## Helper calls
 
 | Helper | Before | Step 2 |
@@ -15,16 +21,26 @@ The inventory and original receiver, approval, binding and outcome checks are th
 | Browser `target` / selected-row helper | Return an old row's reference and expected. | Return the public short ref alongside observation metadata. Map direct row choices into the same helper, matching exact labels and roles when the outline supplies them. |
 | Browser `nav` and routed open/navigate | `chrome_old_open` / `chrome_old_navigate`, then an exact committed URL check. | `chrome_open` / `chrome_go` with the same URL or `to`; keep the committed URL check and fixture settle. |
 | Routed take/release/close | `chrome_old_take_tab`, `chrome_old_release_tab`, `chrome_old_close_tab`. | `chrome_tabs` supplies `seen` for `chrome_take`; `chrome_release` preserves release evidence; `chrome_close` supplies each tab's closed or kept result. Preserve old calls explicitly where native/detail or ownership assertions require them. |
-| Routed find/wait and read-dialog observation | Legacy find/wait and read's native dialog object. | `chrome_read` with find, a `chrome_do` wait for the text, and `chrome_read` to show the dialog at observation time. Preserve visible/full dialog evidence and never prime a dialog by rereading at dispatch. |
+| Routed find/wait and read-dialog observation | Legacy find/wait and read's native dialog object. | `chrome_read` with find, a `chrome_do` wait for the text, and `chrome_read` to show the dialog at observation time. Preserve native dialog evidence and never prime a dialog by rereading at dispatch. The long view and the bank's balance check read through the full outline. |
 | Browser caller / `call.py` | The synthetic MCP proxy maps old verbs via `BY_NAME`. | Keep that historical/explicit mapping. Pass `chrome_upload` explicitly with tab/ref/path through the same proxy transport, and keep the independent readonly upload and caller snapshot checks. |
 | Popup `rows` / `target`, review `childTarget` | Parse legacy rows and copy the chosen target facts, also using document IDs for reload/install evidence. | Use the common target capture when the row is used for an action; keep native document and installation checks. |
 | Brief 28 asking helper `approvedTypedFields` | Before 1d, use frame-shaped values; after 1d, match public rows to exact approved native document/reader/fields. | Keep both lanes. Short public references, display labels/descriptions and values still match the approved native evidence. |
 | `ownerUI.open` and owner tab observers | 1d added genuine native tabs via the selected window and exact address. | Keep native creation, tab index, focus, cleanup, and the address observations. Public tabs shorten addresses and omit fields needed by those assertions. |
 | Acting contextual `refOf` / `lineOf` | 1d allows a short ref before the find hit's contextual suffix. | Reuse the same short-ref grammar for migrated find selections, including fold/inlined controls and ` · in …`. Keep the existing acting cases on the raw public result. |
+| Engine `Operations.call` / `prepare_do` | Group 1 uses the legacy target and prepare helper. | The public catalogue is requested explicitly. `prepare_do` reads Send's short ref and prepares the single step through `chrome_do`; the question, wrong-question refusal and exactly-once dispatch checks use the same submit path. |
+
+The 23 helpers are `browser.mjs`'s `wire` (formerly `rpc`), `modern`, `nav` and `caller`;
+`harness-tools.mjs`'s `harnessTools`, `fields`, `targetArgs`, `failure`, `lossReport`, `matchingRefs`,
+`outline`, `readRows`, `selectedTarget`, `target`, `step`, `doResult`, `rpc` and `call`;
+`popups.mjs`'s `targetFor` (replaces the local `rows` reader) and `target`;
+`review-matrices.mjs`'s `childTarget`; and `test_engine`'s `Operations.call` and `prepare_do`.
+The popup, owner-UI and POST stand-ins in `popups.test.mjs`, `owner-ui.test.mjs` and
+`fixture.test.mjs` inject the moved row/target helpers and retain their timing and exact-tab checks.
 
 `efficiency-probe.mjs` and `latency-probe.mjs` keep the measured calls and both old/new arms,
 including the existing call name attribution, counts, ceilings and frozen comparison files.
-The migration applies to the normal browser checks when the installed runtime offers `chrome_do`.
+The migration applies to the normal browser checks, including the smoke before measurements,
+when the installed runtime offers `chrome_do`.
 
 ## Cases assembling a reference, expected or view
 
@@ -42,6 +58,14 @@ The migration applies to the normal browser checks when the installed runtime of
 | Feature fill_form and readonly site fill_form | Send a list of legacy expected/reference fields. Old fill_form has to rebind the full-page view after the first mutation. | Pass the two original short refs as `fill` steps (or the one readonly field). Remaining fields and no dispatch on refusal follow from the real batch result. |
 | Group 8 guarded handoff parser fixture, `review-reload.test.mjs` | Makes `reference.view` snapshots by hand to require two settled observations. | Keep the parser-settle assertion as fixture scheduling evidence. This is different from the item 2 action staleness check below. |
 | Python old-tool contract fixtures and efficiency stand-ins | Construct legacy `reference` / `expected` / `view` explicitly. | Keep the legacy transport/baseline contract tests pending step 3. Public `chrome_do` coverage is additional. |
+| Engine Group 1 exact approval and dispatch once | `Operations.target` used native `reference` with `view`, and `expected`. | `prepare_do` issues the ref through `chrome_read` and passes it to the public batch. Other old-tool Python contract calls keep their fixture. |
+
+The 23 moved cases comprise nine direct row selectors (residual smoke, Group 1 word matrix,
+review borrowed wrappers and POST popup, the four popup cases, and the adapter's second Send);
+eight dialog cases (core confirmation and separately held form, review ordinary/inline/borrowed,
+adapter mismatches and read-only, and H1); four stale/discard cases (initial taken smoke,
+core taken tabs, review preexisting handoff and review iframe drafts); the feature fill batch;
+and the engine's Group 1 approval case. Read-form and legacy parser evidence are mapped for step 3.
 
 ### Item 2 staleness rule
 
@@ -51,14 +75,19 @@ Require the input to dispatch with the same receiver evidence. After a semantic 
 `stale_reference`, the target's present line in `untrusted_content.now`, and zero dispatch from the refused input.
 A genuine document replacement still makes the old reference stale in the smoke, review and popup cases.
 Read cursor staleness keeps its independent whole-read token rule.
+The browser-free `test_saved_reference_survives_an_unrelated_change_and_stales_when_the_target_changes`
+in `test_doing` separately changes the neighbouring row and then the target between calls.
 
 ### Item 3b question descriptions
 
 Keep the existing approvals, unread checks, re-asks and receiver counts. The rule established in step 0c
 is distinct human descriptions in both the question and the content fields with the same native identities
 and order. Keep `approvedTypedFields` and the blocked getter/identity assertions in the asking-read matrix.
-Check the real question's distinct descriptions on a migrated asking action as well. Tests for repaired
-labels, duplicate frames and mutations stay in `test_field_descriptions` and `outline-asking.mjs`.
+Group 5's question case uses two Visible fields. The original Submit question still checks
+hidden text, the password label and absence of its value. Its content describes both Visible
+fields distinctly. Enter in the second field uses the second ref and checks the ordinal in the
+question and in the target description, with zero receiver arrivals. Tests for repaired labels,
+duplicate frames and mutations stay in `test_field_descriptions` and `outline-asking.mjs`.
 
 ### Item 5b loss envelopes
 
@@ -69,3 +98,28 @@ code/fixed prose on the step and the report at `data.untrusted_content.loss` wit
 Check those envelopes before projecting them to the existing loss assertions. Keep labels out of trusted
 prose and values out of the report. The step 0b transport/schema/hostile-label tests in `test_loss_errors`
 and the existing stored-result checks remain.
+
+## PLAN-GAPs kept on the legacy evidence path
+
+- The password/field matrices, native tab and dialog observers, and exact fixture URL/document
+  checks need the old structured rows, full URLs, session/frame/element IDs, field values or
+  native index/focus/cleanup flags. The public outline/list intentionally omit some of this.
+  Group 7 also explicitly checks the old read/form/find surfaces. Moving its action preserves
+  those assertions. The feature form case still checks the hidden field's value, which the
+  public outline omits.
+- The review's preexisting-dialog handoff asserts the returned operation ID and its committed
+  status. The public take result reports the handoff without that ID. The subsequent guarded
+  click uses a short ref and `chrome_do`.
+- The review's two before-first-reload cases assert the prior `reload` and `navigate` loss
+  action and the original sequence of reloads. `chrome_go` first runs the guarded
+  `first_input` check in a newly taken tab. The taken-POST setup also keeps its old
+  same-tab move to a GET so the following public back call can test that POST history is
+  refused. The scheme matrix's setup leaves the cross-frame password fixture directly because
+  the guarded reload can fail on an unproven frame request method. Other reviewed navigation
+  loss cases go through the public envelope.
+- Legacy close is used for cleanup of the owner-opened borrowed child and the forced-late popup.
+  Public close keeps taken owner tabs. Their opener, control and receiver assertions remain.
+- The feature catalogue checks assert unique native snapshot IDs for downloads, bookmarks and
+  history. `chrome_library` gives address references, which can name the same address from
+  separate native entries. Keep the old catalogue checks alongside the existing public library
+  cases until removal work supplies equivalent evidence.

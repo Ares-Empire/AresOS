@@ -50,7 +50,7 @@ export async function guardedHandoffClick({rpc,call,target,eventually,receiverEv
   assert.equal(receiverEvidence(id,'first guarded act after handoff').count,1);
 }
 
-export async function reviewMatrices({check,nav,call,rpc,target,read,counts,eventually,approval,receiverEvidence,fixture,getTab,ownerKey,ownerType,ownerChooseFile,admin,ownerNavigate,ownerDismiss,nativeDonor,closeNativeDonor,setTab,lifecycle}){
+export async function reviewMatrices({check,nav,call,rpc,target,read,counts,eventually,approval,receiverEvidence,fixture,getTab,selectedTarget,ownerKey,ownerType,ownerChooseFile,admin,ownerNavigate,ownerDismiss,nativeDonor,closeNativeDonor,setTab,lifecycle}){
   await check('GROUP 2 RECHECK Claude timer fires inside the owner Enter mark',async()=>{
     const id='recheck-owner-overlap';await nav('review-page&mode=owner-overlap&id='+id);
     const pending=call('click',await target('Continue'));
@@ -104,7 +104,7 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
       assert.equal(typeof session,'string');
       await call('release_tab',{tab});await eventually(async()=>(await allTabs(call)).items.some(row=>row.tab===tab&&!row.controlled&&!row.cleanup_pending),'owner tab fully released');
       await ownerNavigate('http://fixture.test:8765/?case=review-page&mode=preexisting-dialog&dialog='+kind+'&id='+id);await delay(600);
-      const started=Date.now(),taken=await call('take_tab',{tab});assert.ok(Date.now()-started<15000,'handoff is bounded before the transport deadline');assert.equal(taken.untrusted_content.owner_dialog,true);assert.match(taken.untrusted_content.ask_owner,/answer the dialog yourself/);assert.equal(receiverEvidence(id,'bounded handoff').count,0);
+      const started=Date.now(),taken=await call('take_tab',{tab},{legacy:true});assert.ok(Date.now()-started<15000,'handoff is bounded before the transport deadline');assert.equal(taken.untrusted_content.owner_dialog,true);assert.match(taken.untrusted_content.ask_owner,/answer the dialog yourself/);assert.equal(receiverEvidence(id,'bounded handoff').count,0);
       try{fs.unlinkSync('/out/control-status.json');}catch(error){if(error.code!=='ENOENT')throw error;}
       await lifecycle({fixture:'control_status'});const status=await eventually(()=>fs.existsSync('/out/control-status.json')&&JSON.parse(fs.readFileSync('/out/control-status.json')),'native debugger snapshot after handoff');
       assert.equal(status.debugger_targets.find(row=>row.tab===tab)?.attached,false,'no debugger remains attached behind the native dialog');
@@ -166,11 +166,11 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
     for(const outside of [false,true]){
       const id='review-cross-tab-'+outside;await nav('review-page&mode=cross-tab&id='+id);await call('click',await target('Open window'));
       const child=await eventually(async()=>(await allTabs(call)).items.find(row=>row.url?.includes('mode=cross-tab-inner&id='+id)),'controlled other tab');
-      const childTarget=async()=>{const page=await call('read',{tab:child.tab});const row=page.untrusted_content.tree.split('\n').filter(line=>line.startsWith('{')).map(JSON.parse).find(row=>row.expected.name==='Ready');return row&&{reference:row.reference,expected:row.expected};};
+      const childTarget=async()=>{const rows=await read(child.tab);return selectedTarget(rows.find(row=>row.expected.name==='Ready'),rows);};
       await guardedOtherTabClick({rpc,call,childTarget,eventually});
       if(outside)await call('release_tab',{tab:child.tab});
       await call('click',await target('Continue'));
-      if(outside){await eventually(()=>counts(id)===1,'outside document takes native path');await call('take_tab',{tab:child.tab});await call('close_tab',{tab:child.tab,discard_unsaved:true});}
+      if(outside){await eventually(()=>counts(id)===1,'outside document takes native path');await call('take_tab',{tab:child.tab});await call('close_tab',{tab:child.tab,discard_unsaved:true},{legacy:true});}
       else{
         assert.equal(counts(id),0,'the other controlled document cannot take the source native path');
         await call('read',{tab:child.tab});let cursor,prepared;
@@ -200,7 +200,7 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
     for(const native of [false,true])for(const mode of ['open','closed'])for(const composed of [false,true])for(const cancel of [false,true]){
       setTab(await nativeDonor(getTab()));
       const id='review-fallback-'+native+'-'+mode+'-'+composed+'-'+cancel;await nav('review-page&mode=shadow-fallback&variant='+mode+'&composed='+composed+'&cancel='+cancel+'&native='+native+'&id='+id);
-      const result=await call('click',await target('Continue'));assert.equal(receiverEvidence('handler-'+id,'borrowed native handler held').count,0,'borrowed native event never reaches the asking handler');
+      const result=await call('click',await target('Continue'),{committed:true});assert.equal(receiverEvidence('handler-'+id,'borrowed native handler held').count,0,'borrowed native event never reaches the asking handler');
       assert.equal(receiverEvidence(id,'native default stopped before approval').count,0);assert.ok(result.followups.some(row=>row.stopped));assert.ok(!result.followups.some(row=>row.approval),'activations never resume');
       assert.ok(result.untrusted_content.steps.every(step=>step.kind==='activation'));await approval(await call('click',await target('Delete')),id);
       await closeNativeDonor();console.log('REVIEW P5 borrowed native',id,'receiver',counts(id),'handler',counts('handler-'+id));
@@ -266,11 +266,11 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
       // Audio row just played in this same tab: a clean tab waits that out.
       if(mode==='clean')await delay(3500);
       if(mode!=='clean'){
-        const first=await rpc('navigate',{tab,direction:'reload'});const report=lossReport(first,'reload');
+        const first=await rpc('navigate',{tab,direction:'reload'},{legacy:true});const report=lossReport(first,'reload');
         if(mode==='dirty')assert.equal(report.fields[0]?.description,'field "Draft"',JSON.stringify(report));else assert.equal(report.media,true,JSON.stringify(report));
         assert.doesNotMatch(JSON.stringify(first.error),/Saved/,'labels only, never values');await delay(500);assert.equal(counts('loaded-'+id),1,'the owner page stays until the explicit repeat');
       }
-      const reloaded=await rpc('navigate',{tab,direction:'reload',...(mode==='clean'?{}:{discard_unsaved:true})});assert.equal(reloaded.ok,true,JSON.stringify(reloaded));
+      const reloaded=await rpc('navigate',{tab,direction:'reload',...(mode==='clean'?{}:{discard_unsaved:true})},{legacy:true});assert.equal(reloaded.ok,true,JSON.stringify(reloaded));
       await eventually(()=>counts('loaded-'+id)===2,'navigate reload '+mode);
     }
     // discard_unsaved (lead, 2026-11-14): chrome_navigate to an address gives
@@ -289,12 +289,12 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
       if(mode!=='clean'){
         if(mode==='web-audio')await soundRow(id,tab);
         // Before its first reload a taken tab's text fields count as unsaved.
-        const first=await rpc('navigate',{tab,url});const report=lossReport(first,'navigate');
+        const first=await rpc('navigate',{tab,url},{legacy:true});const report=lossReport(first,'navigate');
         assert.equal(report.fields[0]?.description,'field "Draft"',JSON.stringify(report));assert.doesNotMatch(JSON.stringify(first.error),/Saved/,'labels only, never values');
         if(mode==='web-audio')assert.equal(report.media,true,JSON.stringify(report));
         await delay(500);assert.equal(counts('loaded-'+next),0,'the owner page stays until the explicit repeat');
       }
-      const moved=await rpc('navigate',{tab,url,...(mode==='clean'?{}:{discard_unsaved:true})});assert.equal(moved.ok,true,JSON.stringify(moved));
+      const moved=await rpc('navigate',{tab,url,...(mode==='clean'?{}:{discard_unsaved:true})},{legacy:true});assert.equal(moved.ok,true,JSON.stringify(moved));
       await eventually(()=>counts('loaded-'+next)===1,'navigate to an address '+mode);
     }
     // discard_unsaved: chrome_close_tab gives the same report in a tab Claude
@@ -416,14 +416,14 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
     await call('take_tab',{tab});const refused=await rpc('click',await target('Continue'));assert.equal(refused.ok,false);assert.match(refused.error.message,/form submission|request method/);assert.equal(counts(id),1);
     await nav('review-page&mode=script-popup&id=review-script-popup');await call('click',await target('Open window'));await eventually(()=>counts('review-script-popup')===1,'popup script POST');
     const child=await eventually(async()=>(await allTabs(call)).items.find(row=>row.url?.includes('/post-document?case=review-script-popup')),'POST popup exists');
-    const page=await call('read',{tab:child.tab});const row=page.untrusted_content.tree.split('\n').filter(line=>line.startsWith('{')).map(JSON.parse).find(row=>row.expected.name==='Continue');assert.ok(row);
-    const popupRefused=await rpc('click',{reference:row.reference,expected:row.expected});assert.equal(popupRefused.ok,false);assert.match(popupRefused.error.message,/form submission|request method/);assert.equal(counts('review-script-popup'),1);await call('close_tab',{tab:child.tab,discard_unsaved:true});
+    const rows=await read(child.tab);const row=rows.find(row=>row.expected.name==='Continue');assert.ok(row);
+    const popupRefused=await rpc('click',await selectedTarget(row,rows));assert.equal(popupRefused.ok,false);assert.match(popupRefused.error.message,/form submission|request method/);assert.equal(counts('review-script-popup'),1);await call('close_tab',{tab:child.tab,discard_unsaved:true});
   });
   await check('GROUP 8 REVIEW no-op checks and isolated choices leave the owner tab selected',async()=>{
     const tab=getTab();await nav('features&id=review-noop');await call('check',{...await target('Tick'),checked:true});
     const owner=(await call('open',{url:'about:blank'})).untrusted_content.tab;assert.ok(Number.isInteger(owner));await call('release_tab',{tab:owner});
     const active=async()=>(await allTabs(call)).items.find(row=>row.active&&row.focused)?.tab;assert.equal(await active(),owner);
-    const result=await call('check',{...await target('Tick'),checked:true});assert.equal(result.untrusted_content.no_change,true);assert.equal(result.untrusted_content.dispatched,false);assert.equal(await active(),owner);
+    const result=await call('check',{...await target('Tick'),checked:true},{committed:true});assert.equal(result.untrusted_content.no_change,true);assert.equal(result.untrusted_content.dispatched,false);assert.equal(await active(),owner);
     await call('select',{...await target('Choice'),value:'b'});assert.equal(await active(),owner,'isolated selection cannot take focus');
     assert.equal((await allTabs(call)).items.find(row=>row.tab===tab).active,false);
     await call('take_tab',{tab:owner});await call('close_tab',{tab:owner,discard_unsaved:true});
@@ -436,7 +436,7 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
     await ownerNavigate('http://fixture.test:8765/?case=compose');await call('take_tab',{tab});
   });
   await check('GROUP 5 REVIEW page outcome records the actual post-input notice',async()=>{
-    await nav('review-page&mode=notice&id=review-notice');const result=await call('click',await target('Continue'));
+    await nav('review-page&mode=notice&id=review-notice');const result=await call('click',await target('Continue'),{committed:true});
     assert.match(JSON.stringify(result.untrusted_content.page),/ERROR: the change failed/);
   });
 }

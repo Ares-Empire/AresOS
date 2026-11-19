@@ -110,9 +110,10 @@ class Operations(unittest.TestCase):
         self.engine.store.write({'chrome:qualification':record},'chrome_test_setup','Synthetic qualification, test store only')
     def tearDown(self):
         self.engine.close();self.old.stop();self.mock.stop();self.temp.cleanup()
-    def call(self,verb,args=None,admin=False):
-        # Brief 20's verbs reach its replaced tools as chrome_old_<verb> (step 1d).
-        return self.engine.request({'v':1,'method':'call','action':'chrome_'+old(verb),'arguments':args or {}},admin)
+    def call(self,verb,args=None,admin=False,*,public=False):
+        # The remaining brief 20 contract tests still exercise the CI-only catalogue.
+        action='chrome_'+(verb if public else old(verb))
+        return self.engine.request({'v':1,'method':'call','action':action,'arguments':args or {}},admin)
     def target(self):
         frame=self.browser.facts['frames'][0]
         return {'reference':{'session':self.browser.session,'tab':1,'frame':0,'document':frame['document'],'view':view_identity(self.browser.facts),'element':'e1'},'expected':copy.deepcopy(frame['target'])}
@@ -158,8 +159,24 @@ class Operations(unittest.TestCase):
         self.engine.store.write({'chrome:readonly:fixture.test':True},'chrome_test_readonly','Synthetic read-only restriction')
         result=self.call('click',self.target());self.assertFalse(result['ok']);self.assertEqual(len(attempts),2)
 
+    def prepare_do(self):
+        import re
+        from test_doing import Steps
+        self.browser=Steps()
+        self.chrome.bridge=self.browser
+        self.browser.change(5,name='Send',text=['Send'])
+        self.browser.change(3,value='Existing draft')
+        read=self.call('read',{'tab':1},public=True)
+        self.assertTrue(read['ok'],read)
+        outline=read['data']['reads'][0]['untrusted_content']['outline']
+        ref=re.search(r'(?m)^\s*button "Send" ([b-df-hj-np-tv-z]{5}\d+)$',outline).group(1)
+        result=self.call('do',{'tab':1,'steps':[{'do':'click','ref':ref}]},public=True)
+        self.assertTrue(result['ok'],result)
+        self.assertEqual([step['outcome'] for step in result['data']['steps']],['prepared'],result)
+        return result['data']['prepared'][0]['approval']
+
     def test_group1_approval_first_exact_and_dispatch_once(self):
-        approval=self.prepare();self.assertEqual(self.browser.dispatched,[])
+        approval=self.prepare_do();self.assertEqual(self.browser.dispatched,[])
         self.assertEqual(list(approval),['question','operation_id','description'])
         wrong={**approval,'question':'Changed'};self.assertFalse(self.call('submit',wrong)['ok']);self.assertEqual(self.browser.dispatched,[])
         sent=self.call('submit',approval);self.assertTrue(sent['ok'],sent)
