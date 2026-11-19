@@ -174,3 +174,7 @@ closes it first; Super during a home switch or loading does nothing.
 One hosted run of the OS checks was started after the last code push and not watched:
 `gh workflow run "OS image" --ref pkg/53d-world-search -f checks_only=true`, run **44434514723**
 (https://github.com/Ares-Empire/AresOS/actions/runs/44434514723). Its result is for the lead to read.
+
+## The lead (2026-11-19)
+
+The owner chose Bar (board #382). JUDGMENT-CALLs beyond the brief are accepted as technical: an immediate uncover when the world is already active (same `uncover()` rule), a focused text box counts as typing, Super clears a restored desktop's keep-in-front rule as a click on the world would, coalescing from the first signal of a burst, and a duplicate `open_app` keeps the first hint.
