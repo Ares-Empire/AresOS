@@ -7,6 +7,11 @@
 // its task expects, and the baseline records that. efficiency-summary.py turns
 // the record into the numbers. OUTLINE_TASKS are the second half, the read rows
 // with the new read; each run makes both, so old and new are timed in one run.
+// Brief 28a (item 8, step 1d) adds ACT_TASKS, group 16's acting rows with the
+// new tools, and LATENCY_TASKS, the side-by-side timing of F4's six fills and
+// Save up to the question with brief 20's tools and with chrome_do. The record
+// names each call by the tool the service ran (chrome_old_<verb> for brief 20's
+// tools under the CI-only switch, chrome_read for the new read).
 import fs from 'node:fs';
 import os from 'node:os';
 import assert from 'node:assert/strict';
@@ -73,7 +78,11 @@ export const TASKS=[
   // 200 options of Country among them (14,380 bytes alone), over the 16,384
   // bytes an approval may hold (run 43698395453). Its tools, used as well as
   // they allow, end in that refusal; nothing is reserved and nothing received.
-  {name:'f4_fill_send',row:'F4: fill 6 fields and send the form',plan:['read','fill_form','find','find*','click'],page:({run})=>fixtureUrl('f4','&id=r'+run),
+  // Retired from the runs at brief 28a's step 1d (item 3a): brief 20's click on Save
+  // now goes through the same prepare and is asked, so it can't end in the refusal the
+  // frozen baseline records. The task stays as the baseline's definition; the side-by-side
+  // timing of the same work is LATENCY_TASKS' f4_old_to_question.
+  {name:'f4_fill_send',row:'F4: fill 6 fields and send the form',plan:['read','fill_form','find','find*','click'],retired:true,page:({run})=>fixtureUrl('f4','&id=r'+run),
     async run({call,tab}){
       const rows=parseRows((await call('read',{tab})).untrusted_content.tree);
       const fields=F4_FILLED.map((name,index)=>{const row=rows.find(named('textbox',name));assert.ok(row,name+' on the first page');return {...target(row),text:'Efficiency line '+index};});
@@ -119,10 +128,11 @@ export function followsPlan(tools,plan){
   return index===tools.length;
 }
 
-// Group 16's read rows: the new read through chrome_outline (the test-only
-// switch, run.sh), with the rows and the exact calls of the brief's table. The
-// row names the baseline task of the same row; efficiency-summary.py holds the
-// budgets and fails the step when a row misses its budget or the baseline.
+// Group 16's read rows: the new read, chrome_read (its verb `outline` here is the
+// harness's: browser.mjs sends it to chrome_read since brief 28a's switch), with
+// the rows and the exact calls of the brief's table. The row names the baseline
+// task of the same row; efficiency-summary.py holds the budgets and fails the
+// step when a row misses its budget or the baseline.
 const REFERENCE=/ ([bcdfghjklmnpqrstvwxyz]{5}\d+)$/;
 // The reference on the first outline line that starts with these words.
 function lineRef(outline,start){
@@ -156,7 +166,106 @@ export const OUTLINE_TASKS=[
     async run({call,tabs}){const result=await call('outline',{tabs:tabs.slice(0,3)});assert.deepEqual(result.reads.map(entry=>readOf(entry).tab),tabs.slice(0,3));}},
 ];
 
-export async function efficiencyProbe({rpc,eventually,counts,getTab,out='/out'}){
+// Bytes of an approval as the service counts them (common.canonical: sorted keys,
+// no spaces, ASCII escapes), for F4's 9,000-byte row.
+const sortedKeys=value=>Array.isArray(value)?value.map(sortedKeys):value&&typeof value==='object'?
+  Object.fromEntries(Object.keys(value).sort().map(key=>[key,sortedKeys(value[key])])):value;
+export const canonicalBytes=value=>Buffer.byteLength(JSON.stringify(sortedKeys(value)).replace(/[\u0080-\uffff]/g,c=>'\\u'+c.charCodeAt(0).toString(16).padStart(4,'0')));
+const outlineOf=result=>{const text=result?.untrusted_content?.outline;assert.ok(typeof text==='string'&&text,'an outline: '+JSON.stringify(result?.error||result?.untrusted_content));return text;};
+const outcomes=result=>result.steps.map(step=>step.outcome);
+// Six fills on F4's lines and the click on Save, by the references of an outline.
+const f4Steps=(outline,text)=>[...F4_FILLED.map((name,index)=>({do:'fill',ref:lineRef(outline,'textbox "'+name+'"'),text:text+' '+index})),
+  {do:'click',ref:lineRef(outline,'button "Save"')}];
+// Work a task prepared and didn't send is dropped, untimed, so no later result carries it as pending.
+async function dropPrepared(rpc,approval){
+  if(!approval?.operation_id)return;
+  const dropped=await rpc('chrome_drop',{operation_id:approval.operation_id});assert.ok(dropped.ok,JSON.stringify(dropped.error));
+  await rpc('chrome_notice_ack',{operation_id:approval.operation_id});
+}
+async function closeTab(rpc,tab){if(tab!==undefined)assert.ok((await rpc('close_tab',{tab,discard_unsaved:true})).ok,'close tab '+tab);}
+
+// Group 16's acting rows (brief 28a): each with the new tools and exactly the calls of its row. The
+// row names its baseline task; efficiency-summary.py (ACT_ROWS) holds the budgets.
+export const ACT_TASKS=[
+  {name:'act_open_fact',row:'Open a fixture page and return one fact from it',plan:['chrome_open'],
+    async run({call,state}){
+      const opened=await call('chrome_open',{url:fixtureUrl('f7','&page=1')});state.tab=opened.tab;
+      assert.match(outlineOf(opened),/h1 "Results page 1"/,'the fact is in the one result');
+    },
+    async after({rpc,state}){await closeTab(rpc,state.tab);}},
+  {name:'act_f4_fill_send',row:'F4: fill 6 fields and send the form',plan:['chrome_open','do','submit'],
+    async run({call,state,run,counts}){
+      state.id='act-'+run;
+      const opened=await call('chrome_open',{url:fixtureUrl('f4','&id='+state.id)});state.tab=opened.tab;
+      const done=await call('do',{tab:opened.tab,steps:f4Steps(outlineOf(opened),'Efficiency line')});
+      assert.deepEqual(outcomes(done),[...F4_FILLED.map(()=>'done'),'prepared'],JSON.stringify(done.steps));
+      assert.equal(done.prepared.length,1,'one question');
+      const approval=done.prepared[0].approval;state.measures={approval_bytes:canonicalBytes(approval)};
+      assert.equal(counts('efficiency-f4-'+state.id),0,'nothing before chrome_submit');
+      const sent=await call('submit',approval);assert.equal(sent.operation.state,'done',JSON.stringify(sent.operation));
+    },
+    async after({rpc,counts,eventually,state}){
+      await eventually(()=>counts('efficiency-f4-'+state.id)===1,'F4 received once');
+      await delay(250);assert.equal(counts('efficiency-f4-'+state.id),1,'F4 received exactly once');
+      await closeTab(rpc,state.tab);
+    }},
+  {name:'act_f7_three_pages',row:'F7: three result pages, one click each, the titles collected',plan:['do','do','do'],page:()=>fixtureUrl('f7','&page=1'),firstOutline:true,
+    async run({call,tab,first}){
+      let outline=outlineOf(first.reads[0]);const titles=[];
+      for(const page of [2,3,4]){
+        const done=await call('do',{tab,steps:[{do:'click',ref:lineRef(outline,'link "Next page"')}]});
+        assert.deepEqual(outcomes(done),['done'],'a link click is free');
+        outline=outlineOf(done);assert.match(outline,new RegExp('h1 "Results page '+page+'"'),'the next page comes back');
+        titles.push(done.untrusted_content.title);
+      }
+      assert.deepEqual(titles,['Results page 2','Results page 3','Results page 4']);
+    }},
+  {name:'act_f5_free_click',row:'F5: a free click that changes part of the page',plan:['do'],page:()=>fixtureUrl('f5'),firstOutline:true,
+    async run({call,tab,first}){
+      const done=await call('do',{tab,steps:[{do:'click',ref:lineRef(outlineOf(first.reads[0]),'button "Refresh rows"')}]});
+      assert.deepEqual(outcomes(done),['done']);assert.deepEqual([done.prepared,done.untrusted_content.stopped],[[],[]],'a free click');
+      const changed=done.untrusted_content.changed;assert.equal(done.untrusted_content.more_changes,0,'every changed line named');
+      for(let index=0;index<5;index++)assert.ok(changed.includes('refreshed item '+index),changed);
+      for(const part of ['Showing 8 rows, refreshed once','Queue summary, updated'])assert.ok(changed.includes(part),changed);
+      assert.match(changed,/^- .*Tip: rows refresh on request/m,'the removed paragraph is a gone line');
+    }},
+  {name:'act_list_25_tabs',row:'List 25 open tabs (titles of about 30 characters)',plan:['chrome_tabs'],phase:'many',
+    async run({call}){
+      const listed=await call('chrome_tabs',{});
+      assert.equal(listed.total,EFFICIENCY_TAB_COUNT);assert.equal(listed.cursor,null,'one page');
+      assert.ok(listed.untrusted_content.list.includes(tabTitle(1)),'the titles are listed');
+    }},
+];
+
+// Group 16's latency comparison of F4 (brief 28a, "The form is timed up to the question"): the
+// same work with brief 20's tools and with chrome_do, the read or the outline in hand before the
+// clock, until the click on Save comes back prepared. Its prepared work is dropped untimed and
+// the receiver has nothing from either side. Brief 20's references carry the page's view, which
+// its own fills change, so its click needs the fresh reference a find gives (as the frozen
+// baseline's F4 task did); the find is part of its side.
+export const LATENCY_TASKS=[
+  {name:'f4_old_to_question',row:'F4: six fills and the click on Save, up to the question',plan:['fill_form','find','find*','click'],page:({run})=>fixtureUrl('f4','&id=o'+run),firstRead:true,
+    async run({call,tab,first,state}){
+      const rows=parseRows(first.untrusted_content.tree);
+      const fields=F4_FILLED.map((name,index)=>{const row=rows.find(named('textbox',name));assert.ok(row,name+' on the first page');return {...target(row),text:'Old side line '+index};});
+      assert.equal((await call('fill_form',{fields})).remaining,0);
+      const save=await pagedRow(call,'find',{tab,text:'Save'},named('button','Save'));
+      const prepared=await call('click',target(save));state.approval=prepared.approval;
+      assert.ok(prepared.approval?.operation_id,'brief 20\'s click on Save comes back prepared: '+JSON.stringify(prepared));
+    },
+    async after({rpc,counts,run,state}){await dropPrepared(rpc,state.approval);await delay(250);assert.equal(counts('efficiency-f4-o'+run),0,'F4 received nothing');}},
+  {name:'act_f4_to_question',row:'F4: six fills and the click on Save, up to the question',plan:['do'],page:({run})=>fixtureUrl('f4','&id=n'+run),firstOutline:true,
+    async run({call,tab,first,state}){
+      const done=await call('do',{tab,steps:f4Steps(outlineOf(first.reads[0]),'New side line')});
+      state.approval=done.prepared[0]?.approval;
+      assert.deepEqual(outcomes(done),[...F4_FILLED.map(()=>'done'),'prepared'],'chrome_do\'s click on Save comes back prepared: '+JSON.stringify(done.steps));
+    },
+    async after({rpc,counts,run,state}){await dropPrepared(rpc,state.approval);await delay(250);assert.equal(counts('efficiency-f4-n'+run),0,'F4 received nothing');}},
+];
+
+// `toolName` is browser.mjs's: the tool the service runs for a harness verb. Without
+// it (the browser-free test) a verb names chrome_<verb>.
+export async function efficiencyProbe({rpc,eventually,counts,getTab,out='/out',toolName=async action=>action.startsWith('chrome_')?action:'chrome_'+action}){
   const record=fs.openSync(out+'/efficiency-calls.jsonl','a'),timing=fs.openSync(out+'/efficiency-tasks.jsonl','a');
   const tab=getTab();
   async function open(url){
@@ -169,24 +278,24 @@ export async function efficiencyProbe({rpc,eventually,counts,getTab,out='/out'})
   }
   async function nav(url){const result=await rpc('navigate',{tab,url,discard_unsaved:true});assert.ok(result.ok,JSON.stringify(result));await loaded(tab,url);}
   async function perform(task,run,context){
-    const tools=[];let index=0;
+    const tools=[],names=[];let index=0;
     // `refusal` is the one error code a call must end in; any other outcome,
     // success included, fails the task.
     const call=async(action,args={},{refusal}={})=>{
-      const result=await rpc(action,args);
+      const result=await rpc(action,args),name=await toolName(action);
       const refused=refusal!==undefined&&!result.ok&&result.error?.code===refusal;
-      fs.writeSync(record,JSON.stringify({task:task.name,run,warmup:run<EFFICIENCY_WARMUPS,index:index++,action:'chrome_'+action,arguments:args,result,...(refused?{expected_refusal:refusal}:{})})+'\n');
-      tools.push(action);
+      fs.writeSync(record,JSON.stringify({task:task.name,run,warmup:run<EFFICIENCY_WARMUPS,index:index++,action:name,arguments:args,result,...(refused?{expected_refusal:refusal}:{})})+'\n');
+      tools.push(action);names.push(name);
       if(refusal!==undefined){assert.ok(refused,task.name+' '+action+' should be refused with '+refusal+': '+JSON.stringify(result.ok?'it succeeded':result.error));return result.error;}
       assert.ok(result.ok,task.name+' '+action+': '+JSON.stringify(result.error));return result.data;
     };
     const state={};
     const started=performance.now();
     let failed=true;
-    try{await task.run({...context,call,state});failed=false;}
+    try{await task.run({...context,run,counts,call,state});failed=false;}
     finally{
       const milliseconds=performance.now()-started;
-      fs.writeSync(timing,JSON.stringify({task:task.name,row:task.row,plan:task.plan,run,warmup:run<EFFICIENCY_WARMUPS,milliseconds,tools})+'\n');
+      fs.writeSync(timing,JSON.stringify({task:task.name,row:task.row,plan:task.plan,run,warmup:run<EFFICIENCY_WARMUPS,milliseconds,tools,names,...(state.measures?{measures:state.measures}:{})})+'\n');
       // `after` cleans up after a failed run too, but never hides why it failed
       // (run 43698395453 reported F4's receiver, not the click's refusal).
       if(task.after){try{await task.after({rpc,eventually,counts,run,state});}catch(error){if(!failed)throw error;console.error(task.name+' run '+run+', after the failure below: '+error.message);}}
@@ -211,7 +320,8 @@ export async function efficiencyProbe({rpc,eventually,counts,getTab,out='/out'})
       cpu:os.cpus()[0]?.model||null,cpus:os.cpus().length,memory_bytes:os.totalmem(),node:process.version,
       chrome:fs.existsSync(out+'/chrome-version.txt')?fs.readFileSync(out+'/chrome-version.txt','utf8').trim():null,
       run_id:process.env.GITHUB_RUN_ID||null,sha:process.env.GITHUB_SHA||null},null,2));
-    const all=[...TASKS,...OUTLINE_TASKS];
+    // Brief 20's retired F4 task stays in TASKS as the frozen baseline's definition and isn't run.
+    const all=[...TASKS,...OUTLINE_TASKS,...ACT_TASKS,...LATENCY_TASKS].filter(task=>!task.retired);
     await rounds(all.filter(task=>!task.phase),{});
     // Three tabs show F1, F2 and F3, then more tabs until 25 are open in all.
     const tabs=[];for(const name of ['f1','f2','f3'])tabs.push(await open(fixtureUrl(name)));

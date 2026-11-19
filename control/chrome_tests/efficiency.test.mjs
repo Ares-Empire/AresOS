@@ -8,7 +8,7 @@ import path from 'node:path';
 import vm from 'node:vm';
 import {fixtures} from '../chrome/ci/fixture.mjs';
 import {efficiencyPage,f1Body,f2Cell,f2Header,f3Name,F2_ROWS,F2_COLUMNS,F3_UNIQUE,ADDRESS_MARK,ADDRESS_QUERY,ADDRESS_LINKS,addressOf,F4_FILLED,tabTitle,HOSTILE,H1_ROLES,H1_ELEMENTS,H1_REFERENCES,H1_NAME} from '../chrome/ci/efficiency-fixtures.mjs';
-import {TASKS,OUTLINE_TASKS,efficiencyProbe,followsPlan,parseRows,EFFICIENCY_WARMUPS,EFFICIENCY_RUNS,EFFICIENCY_TAB_COUNT} from '../chrome/ci/efficiency-probe.mjs';
+import {TASKS,OUTLINE_TASKS,ACT_TASKS,LATENCY_TASKS,efficiencyProbe,followsPlan,parseRows,canonicalBytes,EFFICIENCY_WARMUPS,EFFICIENCY_RUNS,EFFICIENCY_TAB_COUNT} from '../chrome/ci/efficiency-probe.mjs';
 
 const served=async(base,query)=>{const response=await fetch(base+'/?'+query);return {status:response.status,html:await response.text()};};
 const bodyOf=html=>html.slice(html.indexOf('<body>')+6,html.lastIndexOf('<script>'));
@@ -105,7 +105,8 @@ test('the address fixture carries one marker in every place a sign-in travels, b
 });
 
 // A fake service: just enough of brief 20's results for every task to run.
-// Brief 20 refuses F4's Save (its approval would be over 16,384 bytes).
+// Since brief 28a's item 3a brief 20's click on F4's Save is prepared, as chrome_do's is;
+// the new tools (chrome_open, chrome_do, chrome_submit, chrome_tabs) answer as the service does.
 // F2's first page comes from the setup's load check, the second from the first
 // read; the task then follows two cursors.
 function fakeService(){
@@ -133,11 +134,38 @@ function fakeService(){
     if(name==='f2'&&args.ref)return reads(entry(1,Array.from({length:F2_ROWS},(_,row)=>Array.from({length:F2_COLUMNS},(_,column)=>'"'+f2Cell(row,column)+'"').join(' | ')).join('\n')));
     if(name==='f2')return reads(entry(1,'h1 "Stock"\ntable "Stock" kqtvm3\n  … 200 rows, 6 columns (14400 characters)'));
     if(name==='f3'&&args.find===F3_UNIQUE&&args.role==='link')return reads(entry(1,'link "'+F3_UNIQUE+'" → fixture.test kqtvm4'));
+    if(['f4','f5','f7'].includes(name))return reads(entry(1,newOutline(name)));
     throw Error('unexpected outline of '+name+' '+JSON.stringify(args));
+  }
+  // The new tools' outlines: F4's lines and Save, F5's button, F7's heading and next link.
+  function newOutline(name){
+    if(name==='f4')return 'form "Account" → POST fixture.test kqtvm20\n'+F4_FILLED.map((line,index)=>'  textbox "'+line+'" = "Value '+index+'" kqtvm'+(21+index)).join('\n')+'\n  button "Save" kqtvm40';
+    if(name==='f5')return 'h1 "Queue summary"\nbutton "Refresh rows" kqtvm41';
+    return 'h1 "Results page '+f7+'"\nlink "Next page" kqtvm'+(50+f7);
+  }
+  let operations=0;const received=new Map();
+  const done=(steps,extra={})=>({ok:true,data:{tab:1,steps,not_run:0,deadline:false,prepared:[],unknown:[],loaded:null,
+    untrusted_content:{url:page,title:'',changed:'',more_changes:0,outline:null,dialog:null,clipboard:null,stopped:[],now:null},version_notice:null,...extra}});
+  function act(name,args){
+    const ran=args.steps.map(step=>({do:step.do,ref:step.ref,outcome:'done',operation_id:'op-'+(++operations)}));
+    if(name==='f4'){
+      const approval={question:'Send the form?',operation_id:'op-'+(++operations),description:{untrusted_content:{page_state:{form:{fields:[]}}}}};
+      ran.at(-1).outcome='prepared';delete ran.at(-1).operation_id;return done(ran,{prepared:[{approval,state:'reserved'}]});
+    }
+    if(name==='f7'){f7++;page=page.replace(/page=\d+/,'page='+f7);const result=done(ran,{loaded:true});Object.assign(result.data.untrusted_content,{title:'Results page '+f7,outline:newOutline('f7')});return result;}
+    const result=done(ran);
+    result.data.untrusted_content.changed=['~ h1 "Queue summary, updated"',...Array.from({length:5},(_,index)=>'~   listitem "Row '+index+': refreshed item '+index+'"'),'~ status "Showing 8 rows, refreshed once"','- p "Tip: rows refresh on request"'].join('\n');
+    return result;
   }
   async function rpc(action,args={}){
     calls.push(action);
+    if(action==='chrome_open'){tabs++;page=args.url;const tab=nextTab++;return {ok:true,data:{tab,loaded:true,until_met:null,characters:1,total:1,cursor:null,
+      untrusted_content:{url:page,title:'',scroll:'0/0',dialog:null,outline:newOutline((page.match(/efficiency-(\w+)/)||[])[1])},version_notice:null}};}
     const name=(page.match(/efficiency-(\w+)/)||[])[1];
+    if(action==='do')return act(name,args);
+    if(action==='submit'){received.set('efficiency-f4-'+new URL(page).searchParams.get('id'),1);return {ok:true,data:{operation:{id:args.operation_id,state:'done'}}};}
+    if(action==='chrome_drop'||action==='chrome_notice_ack')return {ok:true,data:{operation:{id:args.operation_id,state:'failed'}}};
+    if(action==='chrome_tabs')return {ok:true,data:{seen:'tabsk1',total:tabs,cursor:null,untrusted_content:{list:Array.from({length:tabs},(_,index)=>index+' claude "'+tabTitle(index)+'" fixture.test:8765/?…').join('\n')},version_notice:null}};
     if(action==='navigate'){page=args.url;f2Page=0;f5Clicked=false;f7=Number(new URL(args.url).searchParams.get('page')||1);return {ok:true,data:{}};}
     if(action==='open'){tabs++;page=args.url;return {ok:true,data:{untrusted_content:{tab:nextTab++}}};}
     if(action==='close_tab'){tabs--;return {ok:true,data:{}};}
@@ -147,14 +175,15 @@ function fakeService(){
     if(action==='read'||action==='find')return view(name==='f7'?trees.f7.replace('page 1','page '+f7):trees[name]||'');
     if(action==='read_form')return {ok:true,data:{untrusted_content:{form:'Synthetic value 0 Synthetic value 79'},cursor:null}};
     if(action==='fill_form')return {ok:true,data:{completed:args.fields,remaining:0}};
-    if(action==='click'&&name==='f4')return {ok:false,error:{code:'asking_input_too_large',message:'The whole approval exceeds 16384 bytes; prepare a smaller operation. Nothing was reserved.'}};
+    if(action==='click'&&name==='f4')return {ok:true,data:{approval:{question:'Send the form?',operation_id:'old-'+(++operations),description:{}},state:'reserved'}};
     if(action==='click'&&name==='f7'){f7++;page=page.replace(/page=\d+/,'page='+f7);return {ok:true,data:{followups:[]}};}
     if(action==='click'){f5Clicked=name==='f5';return {ok:true,data:{followups:[]}};}
     if(action==='outline')return outline(name,args);
     if(action==='wait')return {ok:true,data:{...view(trees.f7.replace('page 1','page '+f7)).data,untrusted_content:{url:page,title:'Results page '+f7,tree:trees.f7.replace('page 1','page '+f7)},condition_met:true}};
     throw Error('unexpected '+action);
   }
-  return {rpc,calls,tabCount:()=>tabs};
+  // The receiver: F4 arrives once when chrome_submit sends it.
+  return {rpc,calls,tabCount:()=>tabs,counts:kind=>received.get(kind)||0};
 }
 
 // The fake reads every page at once, so `loaded` must see the address.
@@ -162,30 +191,47 @@ const probeRpc=(service,change=()=>null)=>async(action,args)=>{
   const changed=change(action,args);if(changed)return changed;
   const result=await service.rpc(action,args);if(action==='read'&&result.data?.untrusted_content&&!result.data.characters)result.data.characters=1;return result;
 };
-const probeOptions=(rpc,out,counts=()=>0)=>({rpc,eventually:async fn=>{assert.ok(await fn());},counts,getTab:()=>1,out});
+const probeOptions=(rpc,out,counts)=>({rpc,eventually:async(fn,label)=>{assert.ok(await fn(),label);},counts,getTab:()=>1,out});
 
 test('every task makes exactly the calls of its plan, recorded and timed, and the tabs reach 25',async()=>{
   const out=fs.mkdtempSync(path.join(os.tmpdir(),'pkg28-efficiency-'));
   try{
     const service=fakeService();
-    await efficiencyProbe(probeOptions(probeRpc(service),out));
+    await efficiencyProbe(probeOptions(probeRpc(service),out,service.counts));
     const timings=fs.readFileSync(out+'/efficiency-tasks.jsonl','utf8').trim().split('\n').map(line=>JSON.parse(line));
     const calls=fs.readFileSync(out+'/efficiency-calls.jsonl','utf8').trim().split('\n').map(line=>JSON.parse(line));
-    const all=[...TASKS,...OUTLINE_TASKS];
+    const all=[...TASKS,...OUTLINE_TASKS,...ACT_TASKS,...LATENCY_TASKS].filter(task=>!task.retired);
+    assert.deepEqual(TASKS.filter(task=>task.retired).map(task=>task.name),['f4_fill_send'],'brief 20\'s F4 task is no longer run');
     assert.equal(timings.length,all.length*(EFFICIENCY_WARMUPS+EFFICIENCY_RUNS));
+    assert.ok(!timings.some(timing=>timing.task==='f4_fill_send'));
     for(const task of all){
       const runs=timings.filter(timing=>timing.task===task.name);
       assert.equal(runs.filter(run=>run.warmup).length,EFFICIENCY_WARMUPS);assert.equal(runs.filter(run=>!run.warmup).length,EFFICIENCY_RUNS);
       for(const run of runs){
         assert.ok(followsPlan(run.tools,task.plan),task.name+': '+run.tools);
-        assert.deepEqual(calls.filter(call=>call.task===task.name&&call.run===run.run).map(call=>call.action),run.tools.map(tool=>'chrome_'+tool));
+        // Each call is named by the tool that ran it (here the default: chrome_<verb>, a chrome_ name as it is).
+        assert.deepEqual(calls.filter(call=>call.task===task.name&&call.run===run.run).map(call=>call.action),run.names);
+        assert.deepEqual(run.names,run.tools.map(tool=>tool.startsWith('chrome_')?tool:'chrome_'+tool));
       }
     }
     assert.deepEqual(timings.find(timing=>timing.task==='f2_table').tools,['read','read']);
-    assert.deepEqual(timings.find(timing=>timing.task==='f4_fill_send').tools,['read','fill_form','find','click']);
-    const f4=calls.filter(call=>call.task==='f4_fill_send');
-    assert.ok(f4.filter(call=>call.action==='chrome_click').every(call=>call.expected_refusal==='asking_input_too_large'));
-    assert.ok(calls.every(call=>call.result.ok||call.expected_refusal===call.result.error.code),'only the expected refusal fails');
+    assert.ok(calls.every(call=>call.result.ok),'no call fails');
+    // Brief 28a's acting rows and the side-by-side F4 timing.
+    assert.deepEqual(timings.find(timing=>timing.task==='act_open_fact').tools,['chrome_open']);
+    assert.deepEqual(timings.find(timing=>timing.task==='act_f4_fill_send').tools,['chrome_open','do','submit']);
+    assert.deepEqual(timings.find(timing=>timing.task==='act_f7_three_pages').tools,['do','do','do']);
+    assert.deepEqual(timings.find(timing=>timing.task==='act_f5_free_click').tools,['do']);
+    assert.deepEqual(timings.find(timing=>timing.task==='act_list_25_tabs').tools,['chrome_tabs']);
+    assert.deepEqual(timings.find(timing=>timing.task==='f4_old_to_question').tools,['fill_form','find','click']);
+    assert.deepEqual(timings.find(timing=>timing.task==='act_f4_to_question').tools,['do']);
+    const sent=timings.filter(timing=>timing.task==='act_f4_fill_send');
+    assert.ok(sent.every(timing=>Number.isInteger(timing.measures?.approval_bytes)&&timing.measures.approval_bytes>0),'F4\'s approval is measured in every run');
+    const fills=calls.find(call=>call.task==='act_f4_fill_send'&&call.action==='chrome_do').arguments;
+    assert.deepEqual(fills.steps.map(step=>step.do),[...F4_FILLED.map(()=>'fill'),'click']);
+    assert.deepEqual(fills.steps.map(step=>step.ref),[...F4_FILLED.map((_,index)=>'kqtvm'+(21+index)),'kqtvm40'],'the references of the open\'s outline');
+    // Prepared work the timed sides leave is dropped and acknowledged, untimed.
+    for(const task of ['f4_old_to_question','act_f4_to_question'])assert.ok(!calls.some(call=>call.task===task&&/drop|notice_ack/.test(call.action)),task);
+    assert.equal(service.calls.filter(action=>action==='chrome_drop').length,2*(EFFICIENCY_WARMUPS+EFFICIENCY_RUNS));
     assert.deepEqual(timings.find(timing=>timing.task==='list_25_tabs').tools,['tabs','tabs','tabs']);
     // The read rows: old and new in every run, in that order, and the new read's first read uncounted.
     assert.deepEqual(timings.filter(timing=>timing.run===1).map(timing=>timing.task).filter(name=>name.endsWith('f1_first_read')),['f1_first_read','outline_f1_first_read']);
@@ -203,17 +249,26 @@ test('every task makes exactly the calls of its plan, recorded and timed, and th
   }finally{fs.rmSync(out,{recursive:true,force:true});}
 });
 
-test('F4 fails when brief 20 sends it, and a failed run is reported over its after check',async()=>{
-  for(const [change,counts,message] of [
+test('a side whose click on Save comes back any other way fails the run, and a failed run is reported over its after check',async()=>{
+  for(const [change,receiver,message] of [
     // Run 43698395453: the click was refused, and the receiver check in `after` hid that.
-    [(action)=>action==='fill_form'?{ok:false,error:{code:'stale_reference'}}:null,()=>1,/f4_fill_send fill_form: \{"code":"stale_reference"\}/],
-    [(action,args)=>action==='click'&&args.expected?.name==='Save'?{ok:true,data:{approval:{operation_id:'op'}}}:null,()=>0,/f4_fill_send click should be refused with asking_input_too_large: "it succeeded"/],
-    [()=>null,()=>1,/F4 received nothing/],
+    [(action)=>action==='fill_form'?{ok:false,error:{code:'stale_reference'}}:null,service=>kind=>kind.startsWith('efficiency-f4-o')?1:service.counts(kind),/f4_old_to_question fill_form: \{"code":"stale_reference"\}/],
+    [(action,args)=>action==='click'&&args.expected?.name==='Save'?{ok:false,error:{code:'asking_input_too_large'}}:null,service=>service.counts,/f4_old_to_question click: \{"code":"asking_input_too_large"\}/],
+    [(action,args)=>action==='do'&&args.steps.length===7&&args.steps[0].text.startsWith('New side')?{ok:true,data:{tab:1,steps:args.steps.map(step=>({do:step.do,outcome:'done'})),not_run:0,deadline:false,prepared:[],unknown:[],loaded:null,untrusted_content:{},version_notice:null}}:null,service=>service.counts,/chrome_do's click on Save comes back prepared/],
+    [()=>null,service=>kind=>kind.startsWith('efficiency-f4-o')?1:service.counts(kind),/F4 received nothing/],
+    [()=>null,()=>()=>0,/F4 received once/],
   ]){
     const out=fs.mkdtempSync(path.join(os.tmpdir(),'pkg28-efficiency-'));
-    try{await assert.rejects(efficiencyProbe(probeOptions(probeRpc(fakeService(),change),out,counts)),message);}
+    const service=fakeService();
+    try{await assert.rejects(efficiencyProbe(probeOptions(probeRpc(service,change),out,receiver(service))),message);}
     finally{fs.rmSync(out,{recursive:true,force:true});}
   }
+});
+
+test('an approval is counted in bytes as the service counts it: sorted keys, no spaces, ASCII escapes',()=>{
+  assert.equal(canonicalBytes({b:1,a:'x'}),'{"a":"x","b":1}'.length);
+  assert.equal(canonicalBytes({a:'…'}),'{"a":"\\u2026"}'.length);
+  assert.equal(canonicalBytes({a:[{d:1,c:2}]}),'{"a":[{"c":2,"d":1}]}'.length);
 });
 
 test('the committed baseline holds every task with its plan, and only F4 ends in a refusal',()=>{

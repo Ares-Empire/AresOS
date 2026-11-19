@@ -38,7 +38,7 @@ function catalogue(){
   return offered;
 }
 async function toolName(action){
-  if(action==='control_pending'||action.startsWith('chrome_'))return action;
+  if(action.startsWith('control_')||action.startsWith('chrome_'))return action;
   const names=await catalogue();
   if(action==='outline'&&!names.has('outline'))return 'chrome_read';
   return 'chrome_'+(names.has('old_'+action)?'old_'+action:action);
@@ -85,7 +85,7 @@ try {
   const send=await target('Send');const prepared=await call('click',send);assert.ok(prepared.approval);assert.equal(counts('compose'),0);
   const sent=await call('submit',prepared.approval);assert.equal(sent.operation.state,'done');await eventually(()=>counts('compose')===1,'receiver compose');
   await call('submit',prepared.approval);assert.equal(counts('compose'),1);console.log('GROUP 1 what asks PASS: zero before approval, one after, no replay');
-  if(process.env.LATENCY_PROBE==='true'&&process.env.EFFICIENCY_PROBE==='true'){await efficiencyProbe({rpc,eventually,counts,getTab:()=>tab});return;}
+  if(process.env.LATENCY_PROBE==='true'&&process.env.EFFICIENCY_PROBE==='true'){await efficiencyProbe({rpc,eventually,counts,getTab:()=>tab,toolName});return;}
   if(process.env.LATENCY_PROBE==='true'){await latencyProbe({call,target,nav,eventually,getTab:()=>tab});return;}
   // Brief 28, item 4: group 14's time cases, in the core shard while nothing is
   // pending, in Control Chrome's own runs only (the qualification run sets
