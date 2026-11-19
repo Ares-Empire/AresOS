@@ -1,7 +1,8 @@
 # Package 25, the guardian: progress
 
-Updated after **step 8b** (2026-11-19). The [package report draft](#package-25-report-draft) includes the failed
-VM's evidence and the release checks still outstanding. Codex built step 8b. Claude built steps 1–8a.
+Updated after **step 8c** (2026-11-19). Run 44594035922 confirmed the shutdown save and exposed a real failure
+of Ctrl+Alt+F3 during a hung shutdown. The [package report draft](#package-25-report-draft) records both boots,
+the unit ordering fix and the remaining release check. Codex built steps 8b and 8c. Claude built steps 1–8a.
 Brief: `briefs/25-guardian.md`; its last section ("The lead's fixes after the recheck") overrides the rest.
 
 ## Done
@@ -495,10 +496,9 @@ program's own `APP_ID`. Not run: the whole `os/tests` suite, `test_owner_update`
 
 ## Left, in order
 
-The lead's next `check_build=build` on the pushed step 8b commit must pass both boots before merge (lead's fix 7).
-Read each boot's `guardian.json`, frames and offline journal, then put its measured times in the report. A failed
-live observation now leaves `guardian-watch.json` alongside the fixture's `guardian-camera.log`. The lead owns
-the check build, final `REPORT.md` and PR.
+The lead's next `check_build=build` on step 8c must pass both boots before merge (lead's fix 7).
+Check `guardian.json` in each pass for the two recovery services' completed stops after the guard. Boot 2 must
+also record `tty3_seen` during the black stop. The lead owns the check build, final `REPORT.md` and PR.
 
 ## linux-aresos's read checklist (2026-11-19)
 
@@ -843,8 +843,91 @@ Step 8a:
   the matching answer on boot 1, Java's exit, the guard's result and teardown in order. Boot 2 must still show
   the request, silence from the save handler, ignored SIGTERM and a recorded overrun. The image check build now
   invokes both passes on fresh overlays. All fixture and camera code lives under `os/ci`.
+- **Step 8c keeps Ctrl+Alt+F3 available during the save.** The guard wants polkit at startup and is ordered
+  after both `polkit.service` and the image's enabled `getty@tty3.service`. Reverse stop order keeps VT
+  authorization and the login prompt available until the guard returns. A polkit startup failure still allows
+  the save guard to arm. The guest checks both units are active before the key. On both boots the host checks
+  PID 1's stop starts and successful completions in the powered-off guest's journal. On boot 2 it also requires
+  the host's keypress and a guest sample of tty3 while the guard is deactivating, the supervisor is stopping and
+  its black window is present. The change adds no release-image path or owner-facing text.
 
 ### Verified
+
+**Run 44594035922, attempt 2, on `bb7bc420`.** Times below are seconds after the power key. Journal and probe
+times use the guest's monotonic clock. Frame, key injection and elapsed power-off times are host measurements.
+
+| Observation | Boot 1, five-second save | Boot 2, hung game |
+| --- | ---: | ---: |
+| Guard stop began | 0.043 | 0.043 |
+| Fixture received save | 0.557 | 0.561 |
+| Black frame captured | 0.63 | 0.63 |
+| Fixture answered save | 5.561 | No answer |
+| Guard stop ended (duration) | 6.097 (6.054) | 60.558 (60.515) |
+| Session scope / greetd / user manager began stopping | 6.103 / 6.105 / 6.319 | 60.561 / 60.564 / 60.837 |
+| Probe first saw labwc gone | 6.332 | 60.834 |
+| Java exited | 5.889 (143) | 75.912 (137) |
+| `var.mount` began stopping | No journal entry | No journal entry |
+| Guest powered off | 7.4 | 76.8 |
+
+- **Boot 1 passed the step 8b save check.** The fixture answered request 1 and the record read after the guard
+  said `saved`, `exited`, status 143, with no fallback or latch. The silent peer was dropped. The lid closed
+  during the save and the VM stayed awake. The probe reported `lid_block_held=false` and logind listed no AresOS
+  inhibitor. Both boots passed the ordinary pre-shutdown Ctrl+Alt+F3 check (`recovery-result.json`, tty3 active,
+  agetty on `/dev/tty3`, login PAM checked). Boot 1 sends no Ctrl+Alt+F3 during the black save.
+- **Boot 2 lost the recovery console during shutdown.** In `vm-pass-2/offline-boot.txt` lines 4629–4636,
+  logind received `Seat.SwitchTo` and polkit authorized `org.freedesktop.login1.chvt` before shutdown.
+  After the power key, PID 1 stopped tty3's getty at +0.445 s and polkit at +0.554 s (lines 5954–5972 and
+  5995–6015). The fixture received the save at line 6022. The host recorded a black frame and a Ctrl+Alt+F3 at
+  about +0.65 s in `guardian-watch.json`. Lines 6026–6038 show that same switch reaching logind. D-Bus could
+  not reactivate polkit during teardown and logind returned `Permission denied` at +0.834 s. Logind itself
+  began stopping at +75.949 s (line 6641). The probe read tty1 50 times and tty63 15 times after the power
+  key, with zero tty3 samples. The black and tty3-labelled PNGs have identical SHA-256 hashes.
+- **The hung-game deadline and record held.** The fixture ignored SIGTERM at +30.545 s. Java was alive when
+  the guard ended and exited 15.075 s after the user manager began stopping. The persistent record said
+  `save=timeout` (unsaved) and `close=overrun`. The guest powered itself off inside the 120 s bound.
+- Replaying the saved journals, camera cues and host measurements under `env -i` with `python3 -B` reproduced
+  `GUARDIAN_VM_PASSED (save)` and the missing-console failure using the checker from `bb7bc420`. The step 8c
+  checker rejected both original journals with `polkit.service began to stop before the guard's stop ended`.
+  Boot 1 also lost getty and polkit early, at +0.451 and +0.547 s. The replays wrote to worktree scratch.
+
+**Step 8c ordering check.** Before editing the shipped unit, staged the proposed unit in worktree scratch.
+An initial verify using the laptop's unit search path found no cycle but exited 1 because the laptop lacked
+`/usr/libexec/aresos-desktop`. A private root contained the vendor units, repo units, the guard and getty
+enablement links, and the real repo stop executable. Ran the following with systemd 259.9 on the candidate,
+then again on the shipped unit with the image's greetd alias and console-keymap enablement link.
+
+```sh
+SYSTEMD_LOG_LEVEL=debug systemd-analyze --system --man=no --generators=no --root="$PWD/.work/8c/root" \
+    verify graphical.target aresos-guardian.service polkit.service getty@tty3.service systemd-poweroff.service poweroff.target
+```
+
+Both private-root runs exited 0. Neither log contained an ordering cycle. Both showed the guard's `After`
+edges to polkit and getty, and each service's default `Conflicts=shutdown.target` and `Before=shutdown.target`.
+`systemd-poweroff.service` follows `shutdown.target`, and `poweroff.target` follows `systemd-poweroff.service`.
+Thus the guard finishes first, both services stop, and only then can systemd power off.
+
+**Step 8c local tests.** Ran each module in its own process, one at a time. `test_path` was `/usr/bin:/bin`,
+with the local JDK 25's `bin` prepended for the guardian loop.
+
+```sh
+env -i HOME="$PWD/.work/8c/home" TMPDIR="$PWD/.work/8c/tmp" PATH="$test_path" \
+    python3 -B -m unittest discover -s os/tests -p "$module.py"
+```
+
+| Module | Tests | Seconds | Result |
+| --- | ---: | ---: | --- |
+| `test_aresos_desktop` | 189 | 206.711 | OK (1 skipped, real user-manager scope) |
+| `test_aresos_guardian` | 106 | 5.602 | OK |
+| `test_aresos_guardian_loop` | 26 | 59.464 | OK, including both Java fixtures |
+| `test_guardian_vm` | 19 | 0.499 | OK |
+| `test_console_keymap` | 21 | 0.018 | OK |
+| `test_checkout_sources` | 8 | 0.876 | OK |
+
+Before the fix, the first run of the updated `test_guardian_vm` reported 17 failures counting subtests. The old
+checker accepted early service teardown and tty3 samples at or after the end of the guard. The final tests
+also reject missing stop completions and a tty3 sample without the black window. `bash -n os/ci/image-checks.sh`,
+in-memory compilation of both changed VM Python files and `git diff --check` passed.
+`find .work -type f -size +500000000c -print` printed nothing.
 
 **Run 44587459044 at `5bdcd2fd` showed (b), a failure in the host's observation. Whether the guard saved that
 particular boot is undecidable from the retained artifact.**
@@ -910,13 +993,10 @@ python3 -B reviews/27-first-update-release/rebind.py pending '25 step 8b: time V
 
 ### Not verified
 
-| Hosted VM measurement | Result |
-| --- | --- |
-| Boot 1 guard start, save request and answer, Java exit, guard end, dependent stops and power-off | from the next check build |
-| Boot 2 save request, ignored SIGTERM, guard end, scope kill and power-off | from the next check build |
-
-Step 8b has no shutdown screenshots. The lead's next build must capture the black frame on both boots and tty3 on
-boot 2, with the independent journal and record evidence. Human checks remain for lid-close on the physical laptop,
+The corrected image still needs both hosted boots. Run 44594035922 supplied black frames for both, but its
+boot 2 never selected tty3. The next check build must show tty3 during the hung stop and both services stopping
+after the guard on both boots. Boot 1's lid-inhibitor observation also remains to be rechecked.
+Human checks remain for lid-close on the physical laptop,
 scaled or mixed outputs, the laptop home and search at shutdown, and restoring a dated home from the real message
 window. The real-game measurements cover a small flat development world.
 
@@ -929,6 +1009,8 @@ window. The real-game measurements cover a small flat development world.
 - **Decision 95 (step 8a).** Both `covering()` and `app_windows()` exclude the laptop home. It is a desktop
   surface. Counting it as an app would keep the screens lit and refuse logout even with all apps closed.
   Changing this needs the helper's window filters and their tests. Step 8b adds no owner-facing behavior.
+- Step 8c adds no new JUDGMENT-CALL. It restores the existing tty3 recovery behavior and keeps the guard's
+  85 s limit, the supervisor's deadline and the 120 s VM power-off bound.
 
 ### PLAN-GAP
 
@@ -960,8 +1042,8 @@ reopening the world.
 
 ### Open questions
 
-Does the final check build establish both shutdown orders, the live observations and the recorded outcomes inside
-their time limits? The release requires that result. The old artifact cannot recover the first fixture's answer.
+Does the final check build establish both shutdown orders, including tty3 during the hung stop, and the recorded
+outcomes inside their time limits? The release requires that result.
 
 ### Exact new texts for the owner
 
