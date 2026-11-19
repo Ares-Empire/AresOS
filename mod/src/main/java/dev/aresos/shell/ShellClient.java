@@ -26,7 +26,8 @@ import java.util.concurrent.atomic.AtomicLong;
  * and then reads replies and events, reconnecting with backoff when the helper is missing or restarts.
  *
  * The client offers minor 2. Minor 1 adds catalogue details, paging and refresh. Minor 2 lets the desktop send
- * its town to helpers that offer home_state. Listeners only ever get a complete app list.
+ * its town to helpers that offer home_state, hear Super's shell_search and name the world's screen in open_app.
+ * Listeners only ever get a complete app list.
  */
 public final class ShellClient implements AutoCloseable {
     public static final int MAJOR = 1;
@@ -43,12 +44,12 @@ public final class ShellClient implements AutoCloseable {
     public static final String DESKTOP_APP_ID = "aresos-desktop";
     /** {@code open_app}'s "screen" for the screen that shows the world (1.2, docs/design/LAPTOP-HOME.md section 5). */
     public static final String SCREEN_WORLD = "world";
-    // app_details, apps_changed and list_paging are 1.1's, shell_covered is package 40's. The helper sends an event
-    // only to a client that offered its name, so the events must be offered; none is required, which keeps a 1.0
-    // helper compatible.
+    // app_details, apps_changed and list_paging are 1.1's, shell_covered is package 40's, shell_search 1.2's
+    // (package 53d). The helper sends an event only to a client that offered its name, so the events must be offered;
+    // none is required, which keeps a 1.0 helper compatible.
     static final List<String> CAPABILITIES = List.of("list_apps", "open_app", "app_state", "shell_focus",
             "world_ready", "heartbeat", "windows", "app_details", "apps_changed", "list_paging", "shell_covered",
-            "home_state");
+            "home_state", "shell_search");
     static final List<String> REQUIRES = List.of("list_apps", "open_app");
     private static final Gson JSON = new Gson();
     private static final System.Logger LOG = System.getLogger("aresos");
@@ -92,6 +93,8 @@ public final class ShellClient implements AutoCloseable {
          * Called on every change, and with false when the connection ends: a helper that is gone covers nothing.
          */
         default void covered(boolean covered) { }
+        /** Super was pressed (package 53d, {@code shell_search}): open the search over the world, if now is a good moment. */
+        default void search() { }
     }
 
     /** A refusal carrying the helper's stable error code (B1), such as unknown_app, unavailable or no_window. */
@@ -800,6 +803,14 @@ public final class ShellClient implements AutoCloseable {
                     else if (watching.containsKey(id)) lateUpdate(id, message);
                 }
                 case "shell_covered" -> setCovered(bool(message, "covered"));
+                // A 1.2 event: an older connection never offered it, and never acts on one that comes anyway.
+                case "shell_search" -> {
+                    if (current.minor < 2) return;
+                    for (var listener : listeners) {
+                        try { listener.search(); }
+                        catch (RuntimeException error) { LOG.log(System.Logger.Level.ERROR, "Shell listener failed", error); }
+                    }
+                }
                 case "shell_focus" -> {
                     var focus = new Focus("foreground".equals(text(message, "focus")), text(message, "reason"),
                             text(message, "app_id"), bool(message, "activated"));
