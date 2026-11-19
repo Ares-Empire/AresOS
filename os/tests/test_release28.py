@@ -425,6 +425,21 @@ class ImageSourcesTest(unittest.TestCase):
         self.assertEqual(differing, [])
         self.assertLessEqual(set(allowed), set(rd.BRANCH_SOURCE_CHANGES))
 
+    def test_the_cut_fix_is_the_only_build_sh_change_allowed(self):
+        # Review 11: exactly CUT_BYTECODE_FIX on main's build.sh at the cut, and nothing else, passes the source stop.
+        with contextlib.chdir(ROOT):
+            try:
+                main_base = rd.main_merge_base()
+            except AssertionError:
+                self.skipTest('this checkout has no origin/main')
+            before = rd.blob(main_base, 'os/build.sh')
+        after = (ROOT / 'os/build.sh').read_bytes()
+        self.assertTrue(rd.cut_bytecode_fix_only(before, after))
+        self.assertFalse(rd.cut_bytecode_fix_only(before, after + b'echo extra\n'))
+        self.assertFalse(rd.cut_bytecode_fix_only(before, before))
+        self.assertFalse(rd.cut_bytecode_fix_only(before, after.replace(b'--clear-groups', b'--keep-groups')))
+        self.assertFalse(rd.cut_bytecode_fix_only(None, after))
+
     def test_the_source_list_covers_what_the_build_reads(self):
         build, containerfile = (ROOT / 'os/build.sh').read_text(), (ROOT / 'os/Containerfile').read_text()
         # check-build.sh builds os/Containerfile with os/ as its context; the Containerfile copies it to /tmp/aresos.
@@ -448,7 +463,8 @@ class ImageSourcesTest(unittest.TestCase):
         # Every listed source exists here, and the branch's exceptions are among them.
         for source in rd.IMAGE_SOURCES:
             self.assertTrue((ROOT / source).exists(), source)
-        self.assertEqual(set(rd.BRANCH_SOURCE_CHANGES), {'os/minecraft/desktop.lock.json'})
+        # The jar pin, and the cut's build.sh fix (review 11), which test_the_cut_fix_is_the_only_build_sh_change_allowed holds.
+        self.assertEqual(set(rd.BRANCH_SOURCE_CHANGES), {'os/minecraft/desktop.lock.json', 'os/build.sh'})
 
 
 class PrismListPinTest(unittest.TestCase):
@@ -1909,9 +1925,9 @@ class Guard42Test(unittest.TestCase):
         self.assertEqual(str(ledger['job_bounds']['resolve']),
                          base.workflow_text(str(WORKFLOW['jobs']['check-build']['timeout-minutes']), resolve))
         titles = ledger['titles']
-        # The dry-run cap (6 since 2026-11-19, the cut's bytecode fix) is read from the ledger, then exceeded by one.
+        # The dry-run cap (7 since 2026-11-19, the cut's bytecode fix) is read from the ledger, then exceeded by one.
         dry_runs = ledger['dispatch_caps']['dry-run-28']
-        self.assertEqual(dry_runs, 6)
+        self.assertEqual(dry_runs, 7)
         runs, api = self.history([titles['resolve']] + [titles['dry-run-28']] * dry_runs)
         with patch.object(guard, 'api', side_effect=api):
             result = guard.budget(0)

@@ -682,11 +682,50 @@ def jar_pin_only(before, after):
     return old is not None and old == without_pin(after)
 
 
+# The cut's fix to build.sh (2026-11-19, review 11): the Control install's Python rewrote the base's bytecode as root
+# (dry run 5, 44514249982), and runuser could not open a session in the build container (dry run 6, 44524016073).
+# Exactly these line replacements, each line once, and nothing else; the fix reaches main when this branch merges back.
+CUT_BYTECODE_FIX = (
+    ('        env -i PATH=/usr/bin:/bin LANG=C.UTF-8 HOME=/tmp/ares-control /usr/bin/python3 -I -m pip install --quiet \\\n',
+     '        # -B on every Python run here: the base\'s own bytecode (pip, the standard library) is timestamp-checked\n'
+     '        # against sources whose mtime is 0, so an import as root would rewrite it (R28\'s fifth dry run, 353 files).\n'
+     '        env -i PATH=/usr/bin:/bin LANG=C.UTF-8 HOME=/tmp/ares-control /usr/bin/python3 -I -B -m pip install --quiet \\\n'),
+    ('        env -i PATH=/usr/bin:/bin LANG=C.UTF-8 /usr/bin/python3 -I -m compileall -q \\\n',
+     '        # compileall writes the vendor tree\'s bytecode explicitly; -B only stops its own imports\' caches.\n'
+     '        env -i PATH=/usr/bin:/bin LANG=C.UTF-8 /usr/bin/python3 -I -B -m compileall -q \\\n'),
+    ('    python3 - "$os_dir" "$control_dir" "$dest" $report <<\'PY\'\n',
+     '    python3 -B - "$os_dir" "$control_dir" "$dest" $report <<\'PY\'\n'),
+    ('    /usr/bin/aresos --help > /tmp/ares-control/help.txt\n',
+     '    # As an ordinary user, as he runs it: its Python (-I -S, no -B) can then write no bytecode into /usr.\n'
+     '    # setpriv, not runuser: no PAM session, which the build container refuses (dry run 6, 44524016073).\n'
+     '    setpriv --reuid=nobody --regid=nobody --clear-groups -- /usr/bin/aresos --help > /tmp/ares-control/help.txt\n'),
+    ('    env -i PATH=/usr/bin:/bin LANG=C.UTF-8 /usr/bin/python3 -I - "$control_dir" <<\'PY\'\n',
+     '    env -i PATH=/usr/bin:/bin LANG=C.UTF-8 /usr/bin/python3 -I -B - "$control_dir" <<\'PY\'\n'),
+)
+
+
+def cut_bytecode_fix_only(before, after):
+    """True when after is before with exactly CUT_BYTECODE_FIX applied: each old line once, nothing else changed."""
+    if before is None or after is None:
+        return False
+    try:
+        text = before.decode()
+    except UnicodeDecodeError:
+        return False
+    for old, new in CUT_BYTECODE_FIX:
+        if text.count(old) != 1:
+            return False
+        text = text.replace(old, new)
+    return text.encode() == after
+
+
 # What this branch changes in the image's sources on purpose. Everything else
 # must be main's at the merge base: what rides is what main has (brief 42).
 BRANCH_SOURCE_CHANGES = {
     'os/minecraft/desktop.lock.json': ("the AresOS jar's pin, renewed on this branch by check_build=resolve (brief 42, A.2)",
                                        jar_pin_only),
+    'os/build.sh': ("the cut's fix: the Control install's Python leaves the base's bytecode alone (review 11)",
+                    cut_bytecode_fix_only),
 }
 
 

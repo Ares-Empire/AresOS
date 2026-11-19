@@ -297,7 +297,8 @@ class ControlBuildBytecodeTest(unittest.TestCase):
 
     def test_the_cli_check_runs_as_an_ordinary_user(self):
         branch = self.control_branch()
-        self.assertIn('runuser -u nobody -- /usr/bin/aresos --help > /tmp/ares-control/help.txt\n', branch)
+        self.assertIn('setpriv --reuid=nobody --regid=nobody --clear-groups -- /usr/bin/aresos --help'
+                      ' > /tmp/ares-control/help.txt\n', branch)
         self.assertNotRegex(branch, r'\n\s+/usr/bin/aresos --help')
 
 

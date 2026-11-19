@@ -271,7 +271,8 @@ PY
     # Self-checks: a broken tree fails the build here. The installed launcher
     # (root-owned, no symlinks, nothing writable: launch.py checks all of it)...
     # As an ordinary user, as he runs it: its Python (-I -S, no -B) can then write no bytecode into /usr.
-    runuser -u nobody -- /usr/bin/aresos --help > /tmp/ares-control/help.txt
+    # setpriv, not runuser: no PAM session, which the build container refuses (dry run 6, 44524016073).
+    setpriv --reuid=nobody --regid=nobody --clear-groups -- /usr/bin/aresos --help > /tmp/ares-control/help.txt
     grep -q '^usage: aresos ' /tmp/ares-control/help.txt
     # ...Chrome's startup files read the way its adapter reads them when the
     # service starts, the baseline checked by the installed code...
