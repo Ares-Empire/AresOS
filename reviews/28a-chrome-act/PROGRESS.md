@@ -1,5 +1,29 @@
 # Package 28a: Chrome acting progress
 
+## Step 1d, part 2, coverage
+
+2026-11-19. The four Group 15 cases are in the `recheck2` browser shard of draft PR #116.
+The `linux-tools` lead owns the hosted results. Started at `d42d1890` after fetching `origin`.
+
+| Case | Assertions |
+|---|---|
+| Held frame answer | The MCP proxy starts the fill at about second 11. The CI worker holds one real frame answer until about second 13. Setup expires while the answer is held. The fill counts in `not_run`, and its committed operation is `failed` with `Nothing dispatched`. The fixture sees zero inputs through ten seconds after release. The next call, through `aresos`, gets a different tab's answer on the same native connection. The fill reference still resolves. |
+| Owner typing | The first step is polling when the native X keyboard types the owner's words. The page records trusted inputs. The second step is `stale`, the result shows the draft's present line, and a fresh read still shows the owner's text. |
+| Muted playback | `chrome_tabs` shows `sound` during playback. The CI worker mutes that Chrome tab. The list shows `muted` without `sound`, and the page reports continuing playback. |
+| Unknown outcome | A click opens a real dialog inside its handler. The list returns one `unknown` step, the same ID in `unknown` and `chrome_operation_status`, and `not_run: 1`. The fixture counts one click and no follow-on fill. |
+
+**Product fix (`e3da3a8d`).** `background.js` carries the deadline through the input's frame setup and checks it again after pointer hit testing. Expiry before dispatch returns `expired` and cleans up the armed hold, including after tab selection. Two Node regressions on `d42d1890` failed with `the native command did not answer` and `Missing expected rejection`; both pass with the fix. The hold instrumentation is in the CI copy (`df24623d`), with `ACT_INPUT_BOUNDARY` off by default and enabled in the two workflows' `recheck2` jobs.
+
+**Verified locally.** Portable Node `--test control/chrome_tests/*.test.mjs` passed **628/628**. Python `-m unittest` passed **124 tests, OK** across `test_questions`, `test_policy`, `test_engine`, `test_doing`, `test_build`, `test_qualification_shards` and six methods of `test_qualification_fixture`. The module's rollback and fixture-runtime replay methods invoke `test_state_fixes` and remain for hosted CI. The generated worker parsed with the overlay off and on, `control/generate.py --check` printed `Generated artifacts match definitions`, and `git diff --check` exited 0. No local browser. No files over 500 MB under `.work/`.
+
+**Dispatched once each at `df24623d`.** [Control Chrome 44590799388](https://github.com/Ares-Empire/AresOS/actions/runs/44590799388) and [Control Chrome qualification 44590799642](https://github.com/Ares-Empire/AresOS/actions/runs/44590799642).
+
+**JUDGMENT-CALLs.** The owner types during a `wait` tied to the trusted input, with polling confirmed through the native audit. Timing keys against a click's short observation window would depend on runner load. Muting uses Chrome's tab API in the CI copy so the case can address one exact tab. Changing either setup costs a fixture edit and hosted replay.
+
+**PLAN-GAPs.** None found in the four cases. No new known limits recorded.
+
+**Left.** The lead checks the hosted browser results, then continues with steps 2–4, final-head validation, boundary evidence and the fresh reviews.
+
 ## Step 1d, part 2, fix 2
 
 2026-11-19. **Local checks pass; hosted results belong to the lead, `linux-tools`.**
@@ -109,7 +133,7 @@ the frozen paths and stop rules, CONTROL.md's bar, and steps 1d part 1 / 1c belo
 | Staged waits through proxy | Stages 1–3 and three fills run; stage 4 times out at the bound, deadline/not_run are right; no later input for ten seconds. |
 | Twenty fills through command | Reply within 18 seconds, each counted input corresponds to a done step, remaining steps counted, no input after the cutoff. |
 | Caller disconnect | Caller socket closes mid-list; no input after the bound; next call works. |
-| Playing sound | A playing tab is marked sound. Muted playback is not yet exercised by this case. |
+| Playing sound | A playing tab shows `sound`. Once muted, the same tab shows `muted` without `sound` while playback continues. |
 | Close flags and taken tab | Multi-tab discard flag refuses with both tabs present; single-tab discard closes; genuine owner tabs stay his, typing prevents navigation, an empty taken page reloads then navigates. |
 | Seen lists | Missing/changed/expired list refuses take; unchanged list takes; opening by tab uses the listed address even after owner navigation. |
 | Password outputs | No password in open/read/do/go/take, change reports, questions or recorded boundary/logs; go uses a fresh GET because guarded reload of this fixture refuses. |
@@ -290,11 +314,9 @@ git diff --check
 - No local browser, owner profile, real site/account, desktop input, system/boot command,
   sudo, mount or process-name stop. No Gradle/Minecraft/OS suite, test_fault_surface or
   test_state_* was run. New hosted results belong to the lead, not this report.
-- The current named browser cases do not yet demonstrate the held-frame input boundary
-  at seconds 11–13, the owner's real typing race during another step, muted playback,
-  or an unknown outcome. Some have unit coverage from 1c; that is not their browser proof.
-  The current audio case proves only sound. The original part-2 code is not all browser
-  acceptance just because its case inventory is registered.
+- The coverage follow-up adds the four Group 15 browser cases to `recheck2`. The held-frame
+  input boundary, real owner typing, muted playback and `unknown` result await the hosted
+  browser evidence from the runs in Step 1d, part 2, coverage above.
 - The two full final-head runs, managed-ask boundary evidence and fresh reviews remain.
   No new screenshot claim; historical container artifacts retain the failure evidence.
 - Files remaining over 500 MB under `.work/`: **none**. Downloaded ZIPs/logs are small,
