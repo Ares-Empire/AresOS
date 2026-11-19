@@ -756,7 +756,11 @@ test('only the exact extension action popup can list or stop a controlled popup'
 
 test('the extension has no companion window creation or focusing path',()=>{
   const source=fs.readFileSync('control/chrome/extension/background.js','utf8');
-  assert.doesNotMatch(source,/chrome\.windows\.(?:create|update|remove)\s*\(/);
+  // Brief 28a, item 6: chrome_show is the one focusing path, asked for by name, for the owner to look:
+  // it brings the named tab's own window to the front. Nothing else focuses, and nothing opens or closes a window.
+  const show=source.match(/^async function showTab\(tab\)\{[\s\S]*?\n\}$/m)[0];
+  assert.deepEqual(show.match(/chrome\.windows\.\w+\s*\([^)]*\)/g),['chrome.windows.update(current.windowId,{focused:true})']);
+  assert.doesNotMatch(source.replace(show,''),/chrome\.windows\.(?:create|update|remove)\s*\(/);
   for(const file of ['popup.html','popup.js','background.js'])assert.doesNotMatch(fs.readFileSync('control/chrome/extension/'+file,'utf8'),/popupPanel|[?]popups|companion|close-note/);
 });
 
@@ -1840,4 +1844,74 @@ test('brief 28 item 4 a popup setup wait ends at the command time and keeps cont
   assert.equal(f.run('controlled.has(7)'),true);assert.equal(f.run('!!controlled.get(7).pendingSetup'),true);assert.equal(f.run('dialogWake.size'),0);
   let settled=false;f.run('requireTab(7)').then(()=>{settled=true;},()=>{settled=true;});
   await pause(150);assert.equal(settled,false,'without a time it waits as before');
+});
+
+// Brief 28a, item 6: the smaller tools' three additions, and nothing else.
+// What the extension's realm returns, as plain values of this one.
+const plain=(f,expression)=>JSON.parse(f.run('JSON.stringify('+expression+')'));
+test('28a 6: every tab at once, whose by who opened it, with its marks and what seen keeps',async()=>{
+  const f=fixture();
+  f.run(`excludedHosts=[];groupId=1;chrome.webNavigation={getFrame:async({tabId})=>tabId===413?undefined:{documentId:'doc-'+tabId}};
+    chrome.windows={getAll:async options=>{globalThis.asked=options;return [
+      {id:3,type:'normal',focused:true,tabs:[
+        {id:413,index:1,active:false,pinned:true,audible:true,mutedInfo:{muted:false},title:'Radio',url:'http://radio.test/live?q=1',groupId:-1},
+        {id:412,index:0,active:true,title:'Timetable',url:'http://uni.test/timetable',groupId:-1},
+        {id:431,index:2,active:false,title:'Docs',url:'http://docs.test/guide',groupId:1},
+        {id:408,index:3,active:false,audible:true,mutedInfo:{muted:true},title:'Basket',url:'http://shop.test/basket',groupId:1},
+        {id:409,index:4,active:false,title:'Dragged in',url:'http://shop.test/other',groupId:1}]},
+      {id:5,type:'normal',focused:false,tabs:[{id:440,index:0,active:true,discarded:true,title:'Listing',url:'http://cars.test/listing/4411',groupId:-1}]},
+      {id:9,type:'popup',focused:false,tabs:[{id:450,index:0,active:true,title:'Pay',url:'http://pay.test/',groupId:-1}]},
+      {id:11,type:'devtools',focused:false,tabs:[{id:460,index:0,active:true,title:'DevTools',url:'devtools://devtools/',groupId:-1}]}];}};
+    claudeOpened.add(431);claudeOpened.add(450);controlled.set(431,{epoch:'a'});controlled.set(408,{epoch:'b'});controlled.set(450,{epoch:'c',virtualGroup:true});`);
+  const reply=JSON.parse(JSON.stringify(await f.run("dispatch({name:'tabs',all:true})")));
+  assert.deepEqual(plain(f,'asked'),{populate:true,windowTypes:['normal','popup']});
+  assert.equal(reply.session,'fixture-session');
+  assert.deepEqual(reply.tabs.map(row=>[row.tab,row.window,row.whose,row.group,row.document]),[
+    [412,3,'his',false,'doc-412'],[413,3,'his',false,null],[431,3,'claude',true,'doc-431'],[408,3,'taken',true,'doc-408'],
+    [409,3,'his',false,'doc-409'],[440,5,'his',false,null],[450,9,'claude',true,'doc-450']],
+    'window by window, in tab order; a tab he dragged into the group stays his; one asleep has no document');
+  const row=tab=>reply.tabs.find(item=>item.tab===tab);
+  assert.deepEqual(row(413),{tab:413,window:3,popup:false,front:true,active:false,index:1,pinned:true,audible:true,muted:false,asleep:false,
+    title:'Radio',url:'http://radio.test/live?q=1',document:null,group:false,whose:'his'},'the full address: the service writes the short form');
+  assert.deepEqual([row(408).audible,row(408).muted,row(440).asleep,row(450).popup,row(440).front],[true,true,true,true,false]);
+  await assert.rejects(f.run("chrome.windows.getAll=async()=>[{id:3,type:'normal',tabs:Array.from({length:10001},(_,index)=>({id:index,index}))}];dispatch({name:'tabs',all:true})"),/more than 10000 tabs/);
+});
+
+test('28a 6: open and a controlled tab\'s new target are Claude\'s; a closed tab is forgotten',async()=>{
+  const f=lifecycleFixture();
+  f.run("chrome.tabs.create=async()=>({id:12});chrome.tabs.get=async()=>({url:'about:blank'});take=async tab=>{controlled.set(tab,{epoch:'e'+tab});return {tab}};");
+  await f.run("dispatch({name:'open',url:'http://fixture.test/'})");
+  assert.equal(f.run('claudeOpened.has(12)'),true);
+  f.run("controlled.set(7,{epoch:'parent'})");await f.run('createdTarget({sourceTabId:7,tabId:13})');
+  await f.run('createdTarget({sourceTabId:99,tabId:14})');
+  assert.deepEqual(plain(f,'[...claudeOpened]'),[12,13],'a target of a tab not under control stays his');
+  const source=fs.readFileSync('control/chrome/extension/background.js','utf8');
+  f.run(source.match(/^function removedTab\(tab\)\{.*\}$/m)[0]);f.run('removedTab(12)');
+  assert.deepEqual(plain(f,'[...claudeOpened]'),[13]);
+});
+
+test('28a 6: take with seen refuses before it attaches, moves or reads anything when the tab shows another page',async()=>{
+  const f=lifecycleFixture();
+  f.run("globalThis.taken=[];take=async tab=>{taken.push(tab);return {tab}};globalThis.page={url:'http://fixture.test/a',document:'doc-1'};chrome.tabs.get=async()=>({url:page.url});chrome.webNavigation.getFrame=async()=>({documentId:page.document});");
+  const seen={url:'http://fixture.test/a',document:'doc-1'};
+  for(const [change,label] of [["page.url='http://fixture.test/b'",'a new document'],["page.url='http://fixture.test/a#part'",'a new address in the same document'],["page.document='doc-2'",'the same address in another document']]){
+    f.run("page={url:'http://fixture.test/a',document:'doc-1'};"+change);
+    await assert.rejects(f.run(`dispatch({name:'take_tab',tab:7,seen:${JSON.stringify(seen)}})`),/stale_reference: this tab shows another page than the list did; list the tabs again/,label);
+  }
+  f.run("chrome.tabs.get=async()=>{throw Error('No tab with id: 7')}");
+  await assert.rejects(f.run(`dispatch({name:'take_tab',tab:7,seen:${JSON.stringify(seen)}})`),/list the tabs again/);
+  assert.deepEqual(plain(f,'taken'),[]);assert.deepEqual(plain(f,'lifecycleCalls'),[],'nothing attached, grouped or moved');
+  f.run("page={url:'http://fixture.test/a',document:'doc-9'};chrome.tabs.get=async()=>({url:page.url})");
+  await f.run(`dispatch({name:'take_tab',tab:7,seen:${JSON.stringify({url:'http://fixture.test/a',document:null})}})`);
+  f.run("page.document='doc-1'");await f.run(`dispatch({name:'take_tab',tab:7,seen:${JSON.stringify(seen)}})`);
+  await f.run("dispatch({name:'take_tab',tab:8})");
+  assert.deepEqual(plain(f,'taken'),[7,7,8],'a tab asleep in the list is checked by its address; Claude\'s and a taken tab need no seen');
+});
+
+test('28a 6: show brings the tab and its window to the front and refuses only an unknown tab',async()=>{
+  const f=fixture();
+  f.run("excludedHosts=[];globalThis.shown=[];chrome.tabs={get:async tab=>{if(tab!==7)throw Error('No tab with id: '+tab);return {id:7,windowId:3,url:'chrome://settings/'}},update:async(tab,value)=>{shown.push(['tab',tab,value])}};chrome.windows={update:async(window,value)=>{shown.push(['window',window,value])}};");
+  assert.deepEqual(JSON.parse(JSON.stringify(await f.run("dispatch({name:'show',tab:7})"))),{shown:7,window:3});
+  assert.deepEqual(plain(f,'shown'),[['tab',7,{active:true}],['window',3,{focused:true}]],'any tab, also one Claude never reads');
+  await assert.rejects(f.run("dispatch({name:'show',tab:8})"),/refused: no tab has this number/);
 });

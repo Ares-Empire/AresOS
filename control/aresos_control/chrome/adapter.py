@@ -19,6 +19,7 @@ from . import going
 from . import loss
 from . import nodes as outline_nodes
 from . import projection
+from . import tablist
 from .address import public_address, site_of
 from . import view as outline_view
 from .bridge import Bridge
@@ -46,7 +47,7 @@ PENDING_DRIFT = 2048
 # A refusal that belongs to one tab becomes that tab's entry in `reads`; every
 # other one (the input, the connection, the qualification, storage) fails the call.
 # A command that ran out of its time (`expired`, item 4) makes its tab `not_read`.
-TAB_ERRORS = frozenset(('refused', 'stale_reference', 'permission_denied', 'owner_signin', 'reload_required', 'not_read'))
+TAB_ERRORS = frozenset(('refused', 'stale_reference', 'permission_denied', 'owner_signin', 'reload_required', 'not_read', 'take_first'))
 
 
 def outline_query(args):
@@ -490,9 +491,40 @@ class Chrome:
         """
         return going.Going(self, verb, args).run()
 
-    def seen_address(self, seen, tab):
-        """The full address a tab list showed for `tab` (item 6); no list is kept yet."""
-        raise Refused('stale_reference', 'list the tabs again')
+    def seen_entry(self, seen, tab):
+        """What the tab list `seen` showed of `tab` (item 6): its full address and top document."""
+        return tablist.seen_entry(self, seen, tab)
+
+    def small(self, verb, args):
+        """Brief 28a, item 6, before item 8's step 1d offers them: chrome_tabs (`tabs`), chrome_show
+        (`show`), chrome_close (`close`), chrome_take (`take`) and chrome_library (`library`).
+        chrome_release is brief 20's release_tab unchanged."""
+        if verb == 'take':
+            return going.Going(self, verb, args).run()
+        return {'tabs': tablist.tabs, 'show': tablist.show, 'close': tablist.close, 'library': tablist.library}[verb](self, args)
+
+    def upload(self, args):
+        """Brief 28a, item 6: chrome_upload by short reference, before step 1d offers it. It always asks.
+
+        A stale reference gives the message alone. Where the first input's reload
+        would lose unsaved work, the refusal says to reload first: there is no
+        discard_unsaved here.
+        """
+        if set(args) - {'tab', 'ref', 'path', 'file'} or not {'tab', 'ref'} <= set(args):
+            raise Refused('invalid_input', 'chrome_upload takes tab, ref and path.')
+        self.mode(acting=True)
+        if self.bridge.call('tab_context', tab=args['tab']).get('control') is None:
+            raise Refused('take_first', going.TAKE_FIRST)
+        try:
+            payload, _ = self.payload('upload', args)
+        except Stale:
+            self.references.trim(args['tab'])
+            raise Stale() from None
+        except loss.LossRefused as exc:
+            refusal = Refused('reload_required', tablist.UPLOAD_RELOAD)
+            refusal.untrusted_content = copy.deepcopy(exc.untrusted_content)
+            raise refusal from None
+        return self.engine.reserve('chrome', 'submit', payload)
 
     def read(self, verb, args):
         mode = self.mode()
@@ -593,7 +625,14 @@ class Chrome:
                 self.references.trim(tab)
 
     def outline_tab(self, tab, args, query, limit, deadline):
-        state, view = self.outline_view(tab)
+        try:
+            state, view = self.outline_view(tab)
+        except Refused as exc:
+            # Brief 28a, item 6: a tab outside Claude's group is the owner's to take first (28b reads it in
+            # place). Asked only after the extension refused, so a read of a Claude tab sends no more commands.
+            if exc.code == 'stale_reference' and self.outside(tab):
+                raise Refused('take_first', going.TAKE_FIRST) from None
+            raise
         if view.dialog is None:
             queued = self.bridge.call('queued_steps', tab=tab)
             self.reconcile_checks({'tab': tab}, queued)
@@ -618,6 +657,13 @@ class Chrome:
         # change between the two only makes the next page stale, never mixed.
         return outline_view.Reading(view, text, state.get('token'), query, args.get('cursor'), limit, until_met=until_met)
 
+    def outside(self, tab):
+        """Whether a tab isn't under Claude's control (brief 20's tab_context); unknown counts as not."""
+        try:
+            return self.bridge.call('tab_context', tab=tab).get('control') is None
+        except Refused:
+            return False
+
     def outline_view(self, tab):
         """One tab's outline, checked as `read` checks its facts, and the state token taken just before it."""
         state = self.bridge.call('page_state', tab=tab)
@@ -628,6 +674,8 @@ class Chrome:
             raise Refused('transport_error', f"The reader's outline didn't have the agreed shape ({exc}); nothing of it is shown.") from exc
         if view.tab != tab or view.session != self.bridge.session:
             raise Refused('transport_error', 'The outline came for another tab or extension session; nothing of it is shown.')
+        # A taken tab (or a popup) that hasn't had its guarded reload yet (brief 20's needs_reload).
+        view.needs_reload = reply.get('needs_reload') is True
         addresses = [reply.get('url', '')] + ([reply['effective_url']] if 'effective_url' in reply else [])
         addresses += [frame.get('effective_url', frame.get('url', '')) for frame in reply['frames']]
         for address in addresses:

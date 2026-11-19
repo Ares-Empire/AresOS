@@ -1,4 +1,5 @@
-"""Brief 28a, item 4: chrome_open and chrome_go, before item 8's step 1d offers them.
+"""Brief 28a, item 4: chrome_open and chrome_go, before item 8's step 1d offers them;
+and item 6's chrome_take, whose explicit reload waits and reads the same way.
 
 Both use brief 20's `open` and `navigate` commands through `Chrome.free`, with
 their rules unchanged, then wait until the page has loaded, or until `until` is
@@ -49,7 +50,12 @@ MAY_HAVE_RUN = ("The time ran out while Chrome was opening or moving the tab; it
 
 def query(verb, args):
     """The cross-field rules of chrome_open's and chrome_go's input, which the schema subset can't say."""
-    if verb == 'open':
+    if verb == 'take':
+        if 'tab' not in args or set(args) - {'tab', 'seen', 'reload'}:
+            raise Refused('invalid_input', 'chrome_take takes tab, and seen and reload.')
+        if 'reload' in args and type(args['reload']) is not bool:
+            raise Refused('invalid_input', 'reload is true or false.')
+    elif verb == 'open':
         chosen = [key for key in ('url', 'tab', 'ref') if key in args]
         if chosen not in (['url'], ['tab'], ['ref'], ['tab', 'ref']):
             raise Refused('invalid_input', 'Give exactly one of url, tab and ref; tab may come with a link\'s ref.')
@@ -91,7 +97,10 @@ class Going:
     def run(self):
         with self.bridge.bounded(self.clock.at(READ)):
             self.mode = self.chrome.mode(acting=True)
-            tab, arrived = self.open() if self.verb == 'open' else self.go()
+            going = {'open': self.open, 'go': self.go, 'take': self.take}[self.verb]()
+            if isinstance(going, dict):
+                return going  # a take that keeps its page
+            tab, arrived = going
             loaded, until_met = (True, None if self.until is None else False) if arrived is None else self.wait(tab, arrived)
         return self.result(tab, loaded, until_met)
 
@@ -100,7 +109,12 @@ class Going:
     def open(self):
         """Create the Claude tab and follow the address; nothing is created before every check passed."""
         if 'ref' in self.args:
-            address = self.linked()
+            # A library entry's reference has no page control to classify: its address keeps the free-URL policy.
+            address = self.chrome.references.library(self.args['ref'])
+            if address is not None and 'tab' in self.args:
+                raise Refused('invalid_input', "A library entry's reference belongs to no tab; give it alone.")
+            if address is None:
+                address = self.linked()
         elif 'tab' in self.args:
             address = self.tab_address()
         else:
@@ -143,6 +157,30 @@ class Going:
             same_document = self.args['to'] != 'reload'
         return tab, arrival(before, same_document)
 
+    def take(self):
+        """Brief 20's take_tab, with the list's `seen` checked by the extension first; the explicit reload has one home here."""
+        tab = self.args['tab']
+        arguments = {'tab': tab}
+        if 'seen' in self.args:
+            arguments['seen'] = self.chrome.seen_entry(self.args['seen'], tab)
+        elif self.bridge.call('tab_context', tab=tab).get('control') is None:
+            raise Refused('invalid_input', SEEN_NEEDED)
+        taken = self.effect('take_tab', **arguments)['untrusted_content']
+        notice = self.mode['notice']
+        if taken.get('owner_dialog') is True:
+            return {'tab': tab, 'owner_dialog': True, 'ask_owner': taken.get('ask_owner'), 'version_notice': notice}
+        if not self.args.get('reload'):
+            # The page is kept: whether its reload is still due, and the typed fields a reload would discard
+            # that the reader can see (filled, not read). The full report comes with the reload itself.
+            _, view = self.chrome.outline_view(tab)
+            return {'tab': tab, 'reload_due': view.needs_reload, 'typed_fields': outline_view.typed_fields(view),
+                    'version_notice': notice}
+        before = self.bridge.call('page_state', tab=tab)
+        reply = self.effect('prepare_control', tab=tab, discard_unsaved=True)
+        if (reply.get('untrusted_content') or {}).get('reloaded') is True:
+            return tab, arrival(before, False)
+        return tab, None  # no reload was due: the page is as it was
+
     def effect(self, verb, **arguments):
         """Brief 20's command through `free`: committed before it runs, recorded after."""
         try:
@@ -157,7 +195,8 @@ class Going:
         """The full address behind `tab`: the list Claude chose it from, or a Claude tab's present address."""
         tab = self.args['tab']
         if 'seen' in self.args:
-            return self.chrome.seen_address(self.args['seen'], tab)
+            # The address the list showed, wherever the tab has gone since; the tab itself isn't touched.
+            return self.chrome.seen_entry(self.args['seen'], tab)['url']
         context = self.bridge.call('tab_context', tab=tab)
         if context.get('control') is None:
             raise Refused('invalid_input', SEEN_NEEDED)

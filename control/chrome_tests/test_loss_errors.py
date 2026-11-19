@@ -329,6 +329,41 @@ class LossEnvelope(unittest.TestCase):
         self.assertNotIn('navigate', [command['name'] for command in self.extension.commands[before:]], 'the page is not replaced')
         self.assert_stored('chrome_prepare_control', public_report('first_input'))
 
+    def test_chrome_close_gives_each_kept_tab_its_own_untrusted_loss_report(self):
+        # Item 6 inherits item 5b's envelope: every kept tab carries its own report, beside its fixed message.
+        from aresos_control.chrome.definitions import CLOSE_RESULT
+        other = {'act': 'close', 'fields': [{'description': 'field "Second draft"', 'by': 'claude'}],
+                 'more_fields': 0, 'frames_uninspected': 0, 'media': False}
+        reports = {1: wire_report('close'), 2: other}
+        answer = self.extension.answer
+        def closing(command):
+            if command['name'] == 'tabs' and command.get('all') is True:
+                return {'ok': True, 'data': {'session': SESSION, 'tabs': [
+                    {'tab': tab, 'window': 1, 'title': 'Tab %d' % tab, 'url': 'https://fixture.test/%d?q=x' % tab, 'whose': 'claude',
+                     'group': True} for tab in (1, 2, 3)]}}
+            if command['name'] == 'close_tab':
+                if command['tab'] not in reports:
+                    return {'ok': True, 'data': {'closed': command['tab']}}
+                return {'ok': False, 'error': 'reload_required', 'loss': copy.deepcopy(reports[command['tab']])}
+            return answer(command)
+        self.extension.answer = closing
+        with patch('aresos_control.chrome.bridge.select.select', lambda r, w, x, t: (r, w, x)):
+            data = self.chrome.small('close', {'tabs': [1, 2, 3]})
+        result = {'ok': True, 'data': data, 'pending': {}}
+        public_other = copy.deepcopy(other)
+        for form in (result, *carried(result)):
+            validate(form['data'], CLOSE_RESULT, 'result')
+            self.assert_only_untrusted(form)
+            self.assertEqual([entry['tab'] for entry in form['data']['closed']], [3])
+            first, second = form['data']['kept']
+            for entry, report in ((first, public_report('close')), (second, public_other)):
+                self.assertEqual((entry['code'], entry['message']), ('reload_required', loss.MESSAGE))
+                self.assertEqual(entry['untrusted_content']['loss'], report, 'its own report, never another tab\'s')
+                self.assertEqual(entry['untrusted_content']['url'], 'fixture.test/%d?…' % entry['tab'])
+        self.assertEqual(sorted(operation['stages']['loss']['untrusted_content']['loss']['fields'][0]['description']
+                                for operation in self.stored('chrome_close_tab') if operation['state'] == 'failed'),
+                         sorted([visible(LABEL), 'field "Second draft"']))
+
     def test_other_errors_and_other_apps_keep_their_envelope(self):
         self.assertEqual(untrusted(Refused('refused', 'plain')), {})
         self.extension.answer = lambda command: {'ok': False, 'error': 'refused: no history entry in that direction'} \

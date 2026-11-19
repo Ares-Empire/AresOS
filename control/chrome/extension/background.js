@@ -23,6 +23,10 @@ const dialogOpenings=new WeakMap();
 const nativeDialogStarts=new Map(),nativeDialogEnds=new Map();
 const preloadTargets=new Map();
 const releasing=new Map(),admissions=new Map();
+// Brief 28a, item 6: whose a tab is follows from who opened it. Claude's are the tabs
+// chrome_open created and those a tab under Claude's control opened; every other tab is
+// the owner's, also while it is taken. Kept for as long as the tab lives.
+const claudeOpened=new Set();
 let stopGeneration=0;
 let badgeUpdates=Promise.resolve();
 const badgedTabs=new Set();
@@ -559,6 +563,7 @@ async function admitTab(tab,generation,opener=null) {
 }
 async function createdTarget({sourceTabId,tabId}){
   const parent=controlled.get(sourceTabId);if(!parent)return;
+  claudeOpened.add(tabId);
   try{await take(tabId,{tab:sourceTabId,epoch:parent.epoch});}
   catch(error){respond({event:'reader_error',error:String(error),tab:tabId});}
 }
@@ -1021,6 +1026,45 @@ async function collection(command) {
   const end=Math.min(record.items.length,offset+(command.limit||5));
   return {session,items:record.items.slice(offset,end),total:record.items.length,cursor:end<record.items.length?record.id+':'+end:null};
 }
+// Brief 28a, item 6: every tab of every normal window, and of the popup windows,
+// at once, with what chrome_tabs shows and what its `seen` record keeps: the
+// top document (Chrome's id; none for a tab asleep) and the full address. The
+// service writes the list and its addresses; nothing of a page is read here.
+const TABS_LIMIT=10000;
+async function everyTab(){
+  const windows=(await chrome.windows.getAll({populate:true,windowTypes:['normal','popup']})).filter(window=>['normal','popup'].includes(window.type));
+  if(windows.reduce((count,window)=>count+(window.tabs||[]).length,0)>TABS_LIMIT)throw Error('refused: more than 10000 tabs; close some first');
+  const tabs=[];
+  for(const window of windows)for(const tab of [...window.tabs||[]].sort((first,second)=>first.index-second.index)){
+    let document=null;
+    if(!tab.discarded)try{document=(await chrome.webNavigation.getFrame({tabId:tab.id,frameId:0}))?.documentId||null;}catch{}
+    const owner=controlled.get(tab.id);
+    tabs.push({tab:tab.id,window:window.id,popup:window.type==='popup',front:window.focused===true,active:tab.active===true,index:tab.index,
+      pinned:tab.pinned===true,audible:tab.audible===true,muted:tab.mutedInfo?.muted===true,asleep:tab.discarded===true,
+      title:typeof tab.title==='string'?tab.title:'',url:typeof tab.url==='string'?tab.url:'',document,
+      group:!!owner&&(owner.virtualGroup||tab.groupId===groupId),whose:claudeOpened.has(tab.id)?'claude':owner?'taken':'his'});
+  }
+  return {session,tabs};
+}
+// The tab still shows the page the list showed: its address, and its top
+// document unless it was asleep then. Checked before take attaches, moves,
+// reads or changes anything.
+const SEEN_CHANGED='stale_reference: this tab shows another page than the list did; list the tabs again';
+async function stillSeen(tab,seen){
+  if(!seen||typeof seen.url!=='string'||!(seen.document===null||typeof seen.document==='string'))throw Error(SEEN_CHANGED);
+  let current;try{current=await chrome.tabs.get(tab);}catch{throw Error(SEEN_CHANGED);}
+  if(current.url!==seen.url)throw Error(SEEN_CHANGED);
+  if(seen.document!==null){
+    let top=null;try{top=await chrome.webNavigation.getFrame({tabId:tab,frameId:0});}catch{}
+    if(!top||top.documentId!==seen.document)throw Error(SEEN_CHANGED);
+  }
+}
+// chrome_show: the tab shows in its window and that window comes to the front, for the owner to look.
+async function showTab(tab){
+  let current;try{current=await chrome.tabs.get(tab);}catch{throw Error('refused: no tab has this number; list the tabs');}
+  await chrome.tabs.update(tab,{active:true});await chrome.windows.update(current.windowId,{focused:true});
+  return {shown:tab,window:current.windowId};
+}
 // `expires` is the end of the command's time (brief 28, item 4), or null for a
 // command without one, which runs as before. Only the read's waits use it.
 async function dispatch(command,expires=null) {
@@ -1042,13 +1086,15 @@ async function dispatch(command,expires=null) {
   }
   if(command.name==='queued_steps')return stepStates(tab).flatMap(current=>[...current.steps?.values()||[]]).slice(0,513);
   if(!excludedHosts)throw Error('refused: owner-only excluded-sites setting is unavailable');
+  if(command.name==='tabs'&&command.all===true)return everyTab();
+  if(command.name==='show')return showTab(tab);
   if (['tabs','downloads','history','bookmarks'].includes(command.name))return collection(command);
-  if (command.name === 'take_tab') return take(tab);
+  if (command.name === 'take_tab') { if(command.seen!==undefined)await stillSeen(tab,command.seen); return take(tab); }
   if (command.name === 'release_tab') return release(tab);
   if (command.name === 'stop') return stop();
   if (command.name === 'open') {
     safeURL(command.url);
-    effectStarted=true;const created=await chrome.tabs.create({url:'about:blank'});
+    effectStarted=true;const created=await chrome.tabs.create({url:'about:blank'});claudeOpened.add(created.id);
     let current;
     for(let attempt=0;attempt<100;attempt++){current=await chrome.tabs.get(created.id);if(current.url)break;await new Promise(resolve=>setTimeout(resolve,20));}
     if(current?.url!=='about:blank')throw Error('unknown: the new private blank tab was not established; inspect tabs before opening again');
@@ -1364,7 +1410,7 @@ chrome.tabs.onUpdated.addListener(async(tab,change)=>{
   if(previous.virtualGroup?current.windowId!==previous.window:current.groupId!==groupId){release(tab);return;}
   if(change.url)try{safeURL(current.url);}catch{release(tab);}
 });
-function removedTab(tab){if(controlled.has(tab))release(tab);for(const state of preloadTargets.values())if(state.tab===tab)destroyedTarget(state);for(const map of [documentMethods,currentDocuments,formLoadedDocuments])for(const key of map.keys())if(key.startsWith('['+tab+','))map.delete(key);}
+function removedTab(tab){claudeOpened.delete(tab);if(controlled.has(tab))release(tab);for(const state of preloadTargets.values())if(state.tab===tab)destroyedTarget(state);for(const map of [documentMethods,currentDocuments,formLoadedDocuments])for(const key of map.keys())if(key.startsWith('['+tab+','))map.delete(key);}
 chrome.tabs.onRemoved.addListener(removedTab);
 chrome.webNavigation.onCreatedNavigationTarget.addListener(createdTarget);
 // Passive, exact-document method metadata only: no headers, bodies or interception.

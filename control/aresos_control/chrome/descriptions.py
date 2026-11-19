@@ -145,3 +145,28 @@ def read_values(values, state):
             if name is not None:
                 field['description'] = name
     return result
+
+
+def named(values, state, references, tab):
+    """Brief 28a, item 6: approved values as the asking read returns them on the new tool list.
+
+    Each field is named by its description (item 3b), its label and the short
+    reference of its element from brief 28's table, in place of brief 20's
+    reference object; the preparation still holds the reader's own elements.
+    Labels and values are page text: the caller puts the list in
+    `untrusted_content`, each value quoted by brief 28's rule. A reference
+    issued here has no fingerprint Claude saw, so an action on it is refused
+    until a read shows the element; a read by it shows `(filled, not read)`.
+    Step 1d wires it into chrome_read_typed_fields' result.
+    """
+    from .view import quoted
+    fields = []
+    for frame in read_values(values, state).get('frames') or []:
+        for field in frame.get('fields') or []:
+            element = field.get('element')
+            number = element[1:] if isinstance(element, str) and element.startswith('e') else ''
+            ref = references.issue(tab, frame.get('frame'), frame.get('document'), frame.get('reader'), int(number)) \
+                if number.isascii() and number.isdigit() else None
+            fields.append({'ref': ref, 'label': field.get('label', ''), 'description': field.get('description'),
+                           'value': quoted(field.get('value') if isinstance(field.get('value'), str) else '')})
+    return fields

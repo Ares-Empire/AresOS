@@ -9,6 +9,7 @@ element again or Claude's own step acted on it.
 """
 from collections import OrderedDict
 import secrets
+import time
 
 from ..common import Refused
 from .nodes import FINGERPRINT
@@ -17,6 +18,13 @@ CONSONANTS = "bcdfghjklmnpqrstvwxyz"
 LETTERS = 5
 LIMIT = 5000
 STALE = "This reference isn't valid for this tab any more; read the page again."
+# Brief 28a, item 6: the tab lists a `seen` can name, and the library snapshots
+# whose entries chrome_open can name. A list goes with the connection; a library
+# entry as its snapshot does in the extension (brief 20's `collection`): five
+# minutes after its last page was asked for, thirty after it was made.
+LISTS, SNAPSHOTS, SNAPSHOT_IDLE, SNAPSHOT_LIFE = 8, 2, 300, 1800
+LIST_AGAIN = 'list the tabs again'
+LIBRARY_AGAIN = "This library entry's list has expired or was replaced; list it again."
 FOLD = "This reference names a folded run of elements, not one element; read it by ref and act on one of them."
 
 
@@ -59,13 +67,81 @@ class References:
         self.session = None
         self._tabs = {}        # tab -> OrderedDict of identity -> Entry, least recently shown first
         self._references = {}  # reference -> Entry
+        self._lists = OrderedDict()      # seen -> what a tab list showed, oldest first
+        self._snapshots = OrderedDict()  # snapshot -> {'created', 'used', 'entries': {reference: address}}
+        self._library = {}               # reference -> snapshot
 
     def connect(self, session):
         """Name the extension connection a read came over. Another one empties the table."""
         if session != self.session:
             self._tabs.clear()
             self._references.clear()
+            self._lists.clear()
+            self._snapshots.clear()
+            self._library.clear()
             self.session = session
+
+    def _next(self):
+        self.counter += 1  # never reset, so no string is issued twice
+        return "%s%d" % (self.letters, self.counter)
+
+    def listed(self, record):
+        """Keep what a tab list showed and return its `seen`. The last LISTS lists are kept."""
+        seen = self._next()
+        self._lists[seen] = record
+        while len(self._lists) > LISTS:
+            self._lists.popitem(last=False)
+        return seen
+
+    def seen(self, seen):
+        """What the list `seen` showed, or the refusal: a list this run doesn't know (dropped, or from before a restart)."""
+        record = self._lists.get(seen) if isinstance(seen, str) else None
+        if record is None:
+            raise Refused("stale_reference", LIST_AGAIN)
+        return record
+
+    def snapshot(self, key=None):
+        """A library snapshot: the one `key` names while it lives, or a new one. Returns its key."""
+        now = time.monotonic()
+        for name, held in list(self._snapshots.items()):
+            if now - held["used"] >= SNAPSHOT_IDLE or now - held["created"] >= SNAPSHOT_LIFE:
+                self._drop_snapshot(name)
+        if key in self._snapshots:
+            self._snapshots[key]["used"] = now
+            self._snapshots.move_to_end(key)
+            return key
+        key = key or self._next()
+        self._snapshots[key] = {"created": now, "used": now, "entries": {}}
+        while len(self._snapshots) > SNAPSHOTS:
+            self._drop_snapshot(next(iter(self._snapshots)))
+        return key
+
+    def _drop_snapshot(self, key):
+        for reference in self._snapshots.pop(key)["entries"]:
+            self._library.pop(reference, None)
+
+    def entry(self, key, address):
+        """A reference for a library entry's full address, kept while its snapshot lives."""
+        reference = self._next()
+        self._snapshots[key]["entries"][reference] = address
+        self._library[reference] = key
+        return reference
+
+    def library(self, reference):
+        """The full address behind a library reference, or None when the reference isn't one.
+
+        Refused when it was one whose snapshot has expired since.
+        """
+        key = self._library.get(reference) if isinstance(reference, str) else None
+        if key is None:
+            return None
+        held = self._snapshots.get(key)
+        now = time.monotonic()
+        if held is None or now - held["used"] >= SNAPSHOT_IDLE or now - held["created"] >= SNAPSHOT_LIFE:
+            if held is not None:
+                self._drop_snapshot(key)
+            raise Refused("stale_reference", LIBRARY_AGAIN)
+        return held["entries"][reference]
 
     def issue(self, tab, frame, document, reader, target):
         """The reference of this element: the one it has, or a new one."""
@@ -73,8 +149,7 @@ class References:
         identity = (frame, document, reader, target)
         entry = entries.get(identity)
         if entry is None:
-            self.counter += 1  # never reset, so no string is issued twice
-            entry = Entry("%s%d" % (self.letters, self.counter), tab, frame, document, reader, target)
+            entry = Entry(self._next(), tab, frame, document, reader, target)
             entries[identity] = entry
             self._references[entry.reference] = entry
         return entry.reference

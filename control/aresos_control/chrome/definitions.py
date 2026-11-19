@@ -3,7 +3,7 @@ import os
 
 from ..definitions import obj, string, array, APPROVAL, OP, BLOB, PAGE, PREPARED_RESULT, OP_RESULT
 from .policy import WORDS, WORD_LIST_VERSION
-from .loss import ERROR, UNTRUSTED
+from .loss import ERROR, LOSS, UNTRUSTED
 
 # Brief 28, item 6: the new read is reachable only as the internal action
 # chrome_outline, and only in a process started with this test-only switch.
@@ -45,6 +45,13 @@ POPUP_NOTICE = ('Popup windows stay in place. Their opener shows POP on the pinn
                 'its popup lists each controlled popup with its own Stop. Stop ends control without closing or reloading it.')
 TYPED_READ_NOTICE = ('To read what the owner typed in a taken tab before its reload, prepare read_typed_fields '
                      'and use its asking tool, only when the task needs it.')
+# Brief 28a, item 6: chrome_close's result, which step 1d declares on the tool. A tab's title and address
+# are page text and sit in untrusted_content; a kept tab's loss report (item 5b) is its own, beside them.
+SHOWN_TAB = {'title': {'type': 'string'}, 'url': {'type': 'string'}}
+CLOSE_RESULT = obj({'closed': array(obj({'tab': TAB, 'untrusted_content': obj(SHOWN_TAB, [])}), 20),
+                    'kept': array(obj({'tab': TAB, 'code': {'type': 'string'}, 'message': {'type': 'string'},
+                                       'untrusted_content': obj({**SHOWN_TAB, 'loss': LOSS}, [])},
+                                      ['tab', 'code', 'message']), 20)})
 # fill_form's result: every field done, or where it stopped. A loss refusal's
 # report sits under untrusted_content.loss with its step (brief 28a, item 5b).
 FILL_FORM_RESULT = {'anyOf': [
