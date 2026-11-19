@@ -66,8 +66,9 @@ Step 1 drew three, all doing the same and differing in where things stand and wh
 - **Menu (removed):** the Apps screen's sibling: blurred menu background, a title, the list in the game's dark band.
 - **Hotbar (removed):** as wide as the hotbar and standing on it; the hits stack upward, a rule instead of headings.
 
-Pictures (`reviews/53d-world-search/screenshots/`): `0095_53d-bar-1-empty.png`, `0096_53d-bar-2-several-hits.png`,
-`0097_53d-bar-3-no-hit.png`, `0098_53d-bar-4-long-list.png`. The Menu and Hotbar pictures (0099–0106) are deleted.
+Pictures (`reviews/53d-world-search/screenshots/`): `0096_53d-bar-1-empty.png`, `0097_53d-bar-2-several-hits.png`,
+`0098_53d-bar-3-no-hit.png`, `0099_53d-bar-4-long-list.png`. The Menu and Hotbar pictures (then 0099–0106) are deleted.
+The rebase onto 56 moved the four up by one, unchanged (`REBASE.md`): below, 0098 is the long list.
 
 ## Verified
 

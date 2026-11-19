@@ -7,6 +7,7 @@ import dev.aresos.client.AppsScreen;
 import dev.aresos.client.AresOsClient;
 import dev.aresos.client.AresOsMenuScreen;
 import dev.aresos.client.HomeCreateScreen;
+import dev.aresos.client.HomeScreen;
 import dev.aresos.client.ShellFocusClient;
 import dev.aresos.client.WorldSearchScreen;
 import dev.aresos.client.launch.LinuxAppLauncher;
@@ -136,11 +137,14 @@ public final class WorldSearchClientGameTest implements FabricClientGameTest {
                 smallBar(context, helper);
                 // Review 3, round 2b: last again.
                 hiddenDrafts(context, helper);
+                // The rebase onto package 56: last again.
+                appInFront(context, helper);
             } finally {
                 context.runOnClient(client -> {
                     AresOsClient.replaceLauncher(previousLauncher);
                     AresOsClient.FOCUS_RETURN.reset();
                     WorldSearchScreen.windowFocus = Minecraft::isWindowActive;
+                    HomeScreen.forTests(null, null);
                 });
             }
             AresOs.LOGGER.info("53d world search checks passed: shell_search opens the bar, in four states; nothing is "
@@ -150,7 +154,9 @@ public final class WorldSearchClientGameTest implements FabricClientGameTest {
                     + "the inventory too, which closes first; shell_search leaves chat and an open bar alone; the world "
                     + "keeps moving; it replaces the game menu, AresOS's menu and the empty Apps screen, and leaves a "
                     + "typed Apps search, an anvil with a name, an unlisted screen, the New home choice with its seed, and an "
-                    + "inventory with a hidden recipe search, also behind an empty Apps screen");
+                    + "inventory with a hidden recipe search, also behind an empty Apps screen; with a small app in front (56's free "
+                    + "pointer) shell_search opens the bar, before and after the news that the world is in front, and "
+                    + "Escape closing it turns no view");
         } catch (Exception error) {
             throw new RuntimeException(error);
         } finally {
@@ -608,6 +614,68 @@ public final class WorldSearchClientGameTest implements FabricClientGameTest {
         context.waitTick();
         context.getInput().pressMouse(0);
         context.waitTick();
+    }
+
+    /**
+     * The rebase onto package 56: with a small app in front the world ignores the mouse (56's free pointer). Super's
+     * shell_search still opens the bar, and Escape closing it does not turn the view. Both orders: the helper's own,
+     * where the news that the world is in front comes just before shell_search, and the bar opening while the mod
+     * still has the app in front. In the second the world takes the mouse only once that news comes.
+     */
+    private static void appInFront(ClientGameTestContext context, FakeHelper helper) {
+        context.runOnClient(client -> HomeScreen.forTests(true, null));
+        try {
+            for (boolean newsFirst : new boolean[] {true, false}) {
+                String order = newsFirst ? " (the news first)" : " (the bar first)";
+                focus(helper, false);
+                context.waitFor(client -> HomeScreen.freePointer(client) && !client.mouseHandler.isMouseGrabbed());
+                float[] view = context.computeOnClient(client -> new float[] {client.player.getYRot(), client.player.getXRot()});
+                // The pointer crosses the small app: 56 keeps the world's view where it was.
+                context.getInput().setCursorPos(40, 30);
+                context.waitTicks(2);
+                sameView(context, view, "The pointer over the app in front turned the view" + order);
+
+                if (newsFirst) focus(helper, true);
+                superPressed(helper);
+                context.waitForScreen(WorldSearchScreen.class);
+                if (!newsFirst) context.runOnClient(client -> check(HomeScreen.freePointer(client),
+                        "The bar opened, but the app is no longer in front for the mod" + order));
+                // The pointer goes elsewhere while the bar is open, and he types.
+                context.getInput().setCursorPos(900, 500);
+                context.getInput().typeChars("web");
+                context.waitTicks(2);
+                context.runOnClient(client -> check(bar(client).found().equals(WEB), "\"web\" finds " + bar(client).found() + order));
+                escape(context);
+                context.waitTicks(3);
+                sameView(context, view, "Escape closing the bar turned the view" + order);
+                if (!newsFirst) {
+                    context.runOnClient(client -> check(HomeScreen.freePointer(client) && !client.mouseHandler.isMouseGrabbed(),
+                            "Escape gave the world the mouse while the app is still in front"));
+                    focus(helper, true);
+                }
+                // The world is in front: it takes the mouse again, still without turning.
+                context.waitFor(client -> !HomeScreen.freePointer(client) && client.mouseHandler.isMouseGrabbed());
+                context.waitTicks(3);
+                sameView(context, view, "The world took the mouse back and turned the view" + order);
+            }
+        } finally {
+            context.runOnClient(client -> HomeScreen.forTests(null, null));
+        }
+    }
+
+    /** The helper's shell_focus: a small app took the front, or the world is in front again (as Super's activation). */
+    private static void focus(FakeHelper helper, boolean world) {
+        try {
+            helper.event("shell_focus", world ? Map.of("focus", "foreground", "reason", "desktop_activated")
+                    : Map.of("focus", "background", "reason", "app_activated", "app_id", "notepad"));
+        } catch (IOException error) {
+            throw new AssertionError("The fake helper could not send shell_focus", error);
+        }
+    }
+
+    private static void sameView(ClientGameTestContext context, float[] view, String message) {
+        context.runOnClient(client -> check(client.player.getYRot() == view[0] && client.player.getXRot() == view[1],
+                message + ": " + view[0] + "/" + view[1] + " became " + client.player.getYRot() + "/" + client.player.getXRot()));
     }
 
     private static boolean focusedButton(Screen screen, String label) {
