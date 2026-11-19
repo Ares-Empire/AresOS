@@ -13,3 +13,10 @@ are test values.
   The real wire limit is 64 KiB. Return the opaque `next` value unchanged as the next request's
   `cursor`.
 - `apps-running-event.json` shows a change to the list of app IDs with windows.
+- `desktop-hello-*` shows a 1.2 desktop with window tracking: it offers `shell_search` and the helper offers it
+  back. A view and an older desktop are never offered it.
+- `shell-search-event.json` (package 53d) asks the desktop for its search over the world: Super was pressed,
+  and the helper has asked the compositor to give the world's window the keyboard.
+- `open-app-world-*` opens an app on the screen that shows the world (the search over the world's Enter).
+  `open-app-bad-screen-*` shows any other `screen` refused as `malformed`, as it is from a view or an older
+  desktop.

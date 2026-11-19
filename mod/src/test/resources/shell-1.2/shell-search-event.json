@@ -1,0 +1,5 @@
+{
+  "protocol": "aresos-shell/1.2",
+  "id": "e-1",
+  "event": "shell_search"
+}

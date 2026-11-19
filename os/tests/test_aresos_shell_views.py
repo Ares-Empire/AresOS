@@ -657,6 +657,21 @@ class ContractExamplesTest(ViewBase):
         helper.windows_changed()
         helper.tick()
         self.assertEqual(view.events('apps_running')[-1], fixture('apps-running-event'))
+
+        # Package 53d: Super's search over the world and open_app's screen hint.
+        helper = self.start(tracked=True)
+        desktop = Conn()
+        helper.connected(desktop)
+        request(desktop, 'desktop-hello')
+        self.show(helper.windows, 1, GAME, active=True, outputs=(1,))
+        helper.windows_changed()
+        self.assertTrue(self.call(helper, desktop, 'world_ready', instance=INSTANCE, nonce=NONCE,
+                                  world={'desktop': True, 'id': 'world'})['ok'])
+        helper.search()
+        self.assertEqual(desktop.events(), [fixture('shell-search-event')])
+        with mock.patch.object(shell.secrets, 'token_hex', return_value='0123456789abcdef'):
+            request(desktop, 'open-app-world')
+        request(desktop, 'open-app-bad-screen')
         self.assertEqual(read, {path.name for path in EXAMPLES.glob('*.json')})
 
 
