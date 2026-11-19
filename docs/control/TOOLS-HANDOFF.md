@@ -57,7 +57,10 @@ Ares-Empire/AresOS --interval 300` in a background shell.
      `e3da3a8d`.
    - **20:52: red in one case only** (the owner typing with real keys: his keys never reached the field). Fix
      `a28720dd` (CI harness: a native click focuses the field first; assertions kept). **Read Chrome 44604152322
-     and qualification 44604152624** on `a28720dd` (shell watcher). Green: step 2. Then step 2
+     and qualification 44604152624** on `a28720dd`: **green (22:03).**
+   - **22:04: step 2 running** (`28a-step2`, gpt-6.2-sol xhigh, prompt `~/codex-queue/linux-tools/28a-step2.txt`):
+     HARNESS-MAP first, then the harness moves in its helpers only; it dispatches Chrome and qualification once and
+     stops; read those runs. Then step 2
      (HARNESS-MAP), step 3 (removal; CONTROL.md section 6 needs `chrome_show`'s focus exception;
      `response_checks.check_responses` in the Chrome tests, #122's NIT 2), step 4 (full validation twice), the
      package and security reviews. Red: one Codex Sol fix step that pushes, dispatches once and stops.
