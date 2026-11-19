@@ -931,8 +931,14 @@ class WindowTest(unittest.TestCase):
 
     def check_rest(self):
         before = self.view.request('counters')
+        self.assertGreater(before['trims_armed'], 0, 'the input before armed the heap trim')
+        # The clock's minute may not fall in these 13 s: ask for its redraw once, through the same path.
+        self.view.request('redraw', reason='clock')
         time.sleep(13)
         after = self.view.request('counters')
+        # REVIEW-2 finding 4: idle clock and star redraws never arm the trim, so no timer waits at rest.
+        self.assertEqual(after['trims_armed'] - before['trims_armed'], 0, 'trim timers armed at rest')
+        self.assertFalse(after['trim_pending'])
         reasons = {name: after['reasons'].get(name, 0) - before['reasons'].get(name, 0) for name in after['reasons']}
         clock, star = reasons.pop('clock', 0), reasons.pop('star', 0)
         self.assertEqual({name: count for name, count in reasons.items() if count}, {})
@@ -1230,21 +1236,36 @@ class MemoryGuardTest(unittest.TestCase):
     # picture (about 8 MiB); the 60 MiB limit itself is judged in set-up I at the laptop trial.
     LIMIT_KIB = 68000
 
+    def setUp(self):
+        # Opted in, a missing prerequisite fails the test by name, as LAPTOP_HOME_REQUIRE_HEADLESS does for the
+        # others: never a skip, never an error (REVIEW-2 finding 8).
+        from laptop_home_memory import missing
+
+        if lacking := missing():
+            self.fail('LAPTOP_HOME_MEMORY_GUARD is set and this is missing: ' + '; '.join(lacking))
+
+    def measure(self, **fields):
+        """One measured run; a measurement that cannot run here (fonts not matched, a device visible, the wrong
+        surface) fails with its reason."""
+        from laptop_home_memory import measure
+
+        try:
+            return measure(**fields)
+        except RuntimeError as error:
+            self.fail(f'the measurement could not run: {error}')
+
     def test_rest_after_typing_sliding_and_finder_results_stays_within_two_percent(self):
         """REVIEW-1 finding 4: typing, slides, rotating finder results (with their icons) and a cleared query leave
         the resting number within 2 % of the first."""
-        from laptop_home_memory import measure
-
-        run = measure(used=True)
+        run = self.measure(used=True)
         self.assertLessEqual(run['after_use']['Pss'], run['Pss'] * 1.02,
                              dict(first=run['Pss'], after=run['after_use']['Pss'],
                                   largest=run['after_use']['mappings']))
 
     def test_median_of_three_after_a_redraw(self):
         import statistics
-        from laptop_home_memory import measure
 
-        runs = [measure() for _ in range(3)]
+        runs = [self.measure() for _ in range(3)]
         self.assertTrue(all(run['redrawn'] and run['renderer'] == 'GskCairoRenderer' for run in runs))
         median = statistics.median(run['Pss'] for run in runs)
         self.assertLessEqual(median, self.LIMIT_KIB, dict(runs=[run['Pss'] for run in runs],

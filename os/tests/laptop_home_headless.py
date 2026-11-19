@@ -357,8 +357,8 @@ def summary(scene):
 def install_channel(program, home, path, setup):
     """Answer the test's requests on the GTK thread, through the program's own handlers."""
     GLib, cairo, town = home.gui.GLib, home.gui.cairo, home.town
-    counters = dict(draws=0, frames=0, ticks=0, reasons={}, first=None)
-    original_draw, original_redraw, original_tick = home.draw, home.redraw, home.tick
+    counters = dict(draws=0, frames=0, ticks=0, reasons={}, first=None, trims_armed=0)
+    original_draw, original_redraw, original_tick, original_after = home.draw, home.redraw, home.tick, home.after
     other_window = None
     clock = None
 
@@ -377,8 +377,15 @@ def install_channel(program, home, path, setup):
         counters['ticks'] += 1
         return original_tick(area, frame_clock)
 
+    def after(milliseconds, callback):
+        # The program arms its heap trim through after(); count each arming (REVIEW-2 finding 4).
+        if callback == home.settled:
+            counters['trims_armed'] += 1
+        return original_after(milliseconds, callback)
+
     home.redraw = redraw
     home.tick = tick
+    home.after = after
     home.area.set_draw_func(draw)
 
     def write(**reply):
@@ -426,7 +433,10 @@ def install_channel(program, home, path, setup):
             town.blur()
             return None
         if op == 'counters':
-            return counters
+            return dict(counters, trim_pending=home.trim_timer is not None)
+        if op == 'redraw':
+            home.redraw(request['reason'])   # as the clock's minute or a star's twinkle asks
+            return None
         if op == 'renderer':
             return home.window.get_renderer().__gtype__.name
         if op == 'surface':

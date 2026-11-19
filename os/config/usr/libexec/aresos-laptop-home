@@ -2228,6 +2228,8 @@ KEY_NAMES = {'Escape': 'Escape', 'BackSpace': 'Backspace', 'Return': 'Enter', 'K
                                       for arrow in ('Left', 'Right', 'Up', 'Down')}}
 ICONS_KEPT = 20
 SETTLE_MS = 2000
+# The redraws of a home at rest: the clock's minute and, at night, a star's twinkle every four seconds.
+IDLE_REDRAWS = frozenset({'clock', 'star'})
 
 
 class IconWorker:
@@ -2406,9 +2408,9 @@ class LaptopHome:
         # Every redraw goes through here with its reason, so the test channel can count them.
         if self.area is not None:
             self.area.queue_draw()
-        # Two seconds after the last redraw, the heap is trimmed once: a timer per burst of input, none at rest
-        # beyond the clock's.
-        if self.trim is not None:
+        # Two seconds after the last redraw of a burst (input, helper news, a glide, an icon), the heap is trimmed
+        # once. The clock and the stars change a few pixels and never arm it, so at rest no timer waits beyond theirs.
+        if self.trim is not None and reason not in IDLE_REDRAWS:
             if self.trim_timer is not None:
                 self.gui.GLib.source_remove(self.trim_timer)
             self.trim_timer = self.after(SETTLE_MS, self.settled)

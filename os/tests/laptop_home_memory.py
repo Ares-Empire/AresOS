@@ -20,7 +20,7 @@ import statistics
 import subprocess
 import time
 
-from laptop_home_headless import Headless, headless_available, scratch, wait_for
+from laptop_home_headless import Headless, headless_available, layer_library, scratch, wait_for
 from laptop_home_helper import STUDY_FONTS, STUDY_PALETTE, StandIn, generated_town, png
 
 LAYER = dict(background=True, on_demand=True, anchored=True, output='HEADLESS-1')
@@ -84,10 +84,24 @@ def use(gui):
     gui.until(lambda scene: settled(scene) and not scene['query'])
 
 
+def missing():
+    """What a measurement needs and this machine lacks, named for a message; empty when everything is here."""
+    lacking = []
+    if not headless_available():
+        lacking.append('labwc, bwrap, wlr-randr, the Mesa pins, GTK 4, Pango or Cairo')
+    if not shutil.which('fc-match', path='/usr/bin'):
+        lacking.append('fontconfig')
+    if not layer_library():
+        lacking.append('gtk4-layer-shell (or LAPTOP_HOME_TEST_LAYER_DIR pointing to its lib64)')
+    if not all((STUDY_FONTS / f'{family}-Variable.ttf').is_file() for family in ('SpaceGrotesk', 'JetBrainsMono')):
+        lacking.append("the study's fonts")
+    return lacking
+
+
 def measure(prototype=False, redraw=True, used=False):
     """One fresh run sampled at rest; with used, a second sample at rest after use() (REVIEW-1 finding 4)."""
-    if not headless_available() or not shutil.which('fc-match', path='/usr/bin'):
-        raise RuntimeError('need labwc, bwrap, wlr-randr, fontconfig, Mesa pins, GTK 4, Pango and Cairo')
+    if lacking := missing():
+        raise RuntimeError('need ' + '; '.join(lacking))
     with scratch() as tmp:
         root = Path(tmp)
         icon = root / 'icon.png'
