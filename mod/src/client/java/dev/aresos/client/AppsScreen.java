@@ -147,8 +147,8 @@ public final class AppsScreen extends Screen {
 
     @Override public void onClose() { minecraft.gui.setScreen(parent); }
 
-    /** Whether it was opened from the inventory, which then closes with it when the search over the world replaces it. */
-    boolean overContainer() { return parent instanceof AbstractContainerScreen<?>; }
+    /** The screen it was opened from and goes back to, or null: the search over the world replaces that one with it. */
+    Screen parent() { return parent; }
 
     /** Builds the rows again. {@code keepPlace}: the list changed under him; a new search starts at the top. */
     private void show(boolean keepPlace) {

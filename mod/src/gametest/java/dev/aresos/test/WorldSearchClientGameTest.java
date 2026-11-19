@@ -10,6 +10,7 @@ import dev.aresos.client.HomeCreateScreen;
 import dev.aresos.client.ShellFocusClient;
 import dev.aresos.client.WorldSearchScreen;
 import dev.aresos.client.launch.LinuxAppLauncher;
+import dev.aresos.client.mixin.RecipeBookSearchAccess;
 import dev.aresos.config.AppDefinition;
 import dev.aresos.config.AppsConfig;
 import dev.aresos.shell.FakeHelper;
@@ -29,6 +30,7 @@ import net.minecraft.client.gui.screens.inventory.AnvilScreen;
 import net.minecraft.client.gui.screens.inventory.BookEditScreen;
 import net.minecraft.client.gui.screens.inventory.BookSignScreen;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
+import net.minecraft.client.gui.screens.recipebook.RecipeBookComponent;
 import net.minecraft.client.gui.screens.worldselection.WorldCreationUiState;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
@@ -132,6 +134,8 @@ public final class WorldSearchClientGameTest implements FabricClientGameTest {
                 keptScreens(context, helper);
                 newHomeDraft(context, helper);
                 smallBar(context, helper);
+                // Review 3, round 2b: last again.
+                hiddenDrafts(context, helper);
             } finally {
                 context.runOnClient(client -> {
                     AresOsClient.replaceLauncher(previousLauncher);
@@ -145,7 +149,8 @@ public final class WorldSearchClientGameTest implements FabricClientGameTest {
                     + "closes; a blank query and no hit leave Enter without effect; Escape returns to the world, from over "
                     + "the inventory too, which closes first; shell_search leaves chat and an open bar alone; the world "
                     + "keeps moving; it replaces the game menu, AresOS's menu and the empty Apps screen, and leaves a "
-                    + "typed Apps search, an anvil with a name, an unlisted screen and the New home choice with its seed");
+                    + "typed Apps search, an anvil with a name, an unlisted screen, the New home choice with its seed, and an "
+                    + "inventory with a hidden recipe search, also behind an empty Apps screen");
         } catch (Exception error) {
             throw new RuntimeException(error);
         } finally {
@@ -518,6 +523,70 @@ public final class WorldSearchClientGameTest implements FabricClientGameTest {
         escape(context);
         context.getInput().resizeWindow(960, 540);
         context.waitTicks(5);
+    }
+
+    /**
+     * Review 3: text that is kept out of sight. A recipe-book search typed and the book hidden again stays in the
+     * inventory screen, so Super must leave that inventory alone, and also the empty Apps screen opened from it.
+     */
+    private static void hiddenDrafts(ClientGameTestContext context, FakeHelper helper) {
+        // First the other side: an empty Apps screen opened from an inventory with nothing typed is replaced, and the
+        // inventory closes the normal way with it.
+        context.getInput().pressKey(options -> options.keyInventory);
+        context.waitForScreen(InventoryScreen.class);
+        context.runOnClient(client -> client.gui.setScreen(new AppsScreen(client.gui.screen())));
+        context.waitForScreen(AppsScreen.class);
+        context.waitTicks(2);
+        search(context, helper, "");
+        escape(context);
+        context.runOnClient(client -> check(client.player.containerMenu == client.player.inventoryMenu,
+                "The inventory behind the Apps screen was not closed"));
+
+        context.getInput().pressKey(options -> options.keyInventory);
+        context.waitForScreen(InventoryScreen.class);
+        var inventory = context.computeOnClient(client -> {
+            var screen = client.gui.screen();
+            var book = recipeBook(screen);
+            if (!book.isVisible()) book.toggleVisibility();
+            recipeQuery(book).setValue("stick");
+            book.toggleVisibility();
+            check(!book.isVisible(), "The recipe book did not hide");
+            check("stick".equals(recipeQuery(book).getValue()), "The hidden recipe book forgot its search: " + recipeQuery(book).getValue());
+            return screen;
+        });
+        superPressed(helper);
+        context.waitTicks(10);
+        context.runOnClient(client -> {
+            check(client.gui.screen() == inventory, "shell_search replaced the inventory with a hidden recipe search: " + client.gui.screen());
+            check("stick".equals(recipeQuery(recipeBook(inventory)).getValue()), "The recipe search is gone");
+            check(!WorldSearchScreen.waitingForFocus(), "shell_search waits to replace that inventory");
+            client.gui.setScreen(new AppsScreen(inventory));
+        });
+        context.waitForScreen(AppsScreen.class);
+        context.waitTicks(2);
+        var apps = context.computeOnClient(client -> client.gui.screen());
+        check(title(apps) != null && title(apps).isEmpty(), "The Apps screen's search is not empty: " + title(apps));
+        superPressed(helper);
+        context.waitTicks(10);
+        context.runOnClient(client -> {
+            check(client.gui.screen() == apps, "shell_search replaced the Apps screen over an inventory with a hidden recipe search: "
+                    + client.gui.screen());
+            check("stick".equals(recipeQuery(recipeBook(inventory)).getValue()), "The recipe search behind the Apps screen is gone");
+            client.player.closeContainer();
+        });
+        context.waitFor(client -> client.gui.screen() == null);
+    }
+
+    private static RecipeBookComponent<?> recipeBook(Screen screen) {
+        return screen.children().stream().filter(child -> child instanceof RecipeBookComponent<?>)
+                .map(child -> (RecipeBookComponent<?>) child).findFirst()
+                .orElseThrow(() -> new AssertionError("No recipe book in " + screen));
+    }
+
+    private static EditBox recipeQuery(RecipeBookComponent<?> book) {
+        EditBox box = ((RecipeBookSearchAccess) book).aresos$searchBox();
+        if (box == null) throw new AssertionError("The recipe book has no search box yet");
+        return box;
     }
 
     private static boolean hasButton(Screen screen, String label) {

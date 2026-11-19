@@ -588,19 +588,56 @@ class OnlyActiveWindowTest(SearchBase):
                 self.assertEqual(helper.shell, 'foreground')
                 self.assertIsNone(helper.search_handoff)
 
-    def test_the_mark_runs_out_when_the_compositor_never_answers(self):
-        self.assertGreater(shell.SEARCH_MARK, shell.SEARCH_ACTIVATION)
-        for ticked in (True, False):
-            with self.subTest(ticked=ticked):
-                helper, conn = self.covered()
-                helper.search()
-                self.now[0] += shell.SEARCH_MARK + 0.01
-                if ticked:
+    def test_a_late_answer_however_late_minimizes_nothing(self):
+        # Review 3: the mark does not run out. An answer long after the press, read in two halves with the terminal
+        # still reported active beside the world, must not minimize that terminal.
+        for first in ('world', 'terminal'):
+            for ticked in (True, False):
+                with self.subTest(listed_first=first, ticked=ticked):
+                    helper, conn = self.covered(first)
+                    helper.search()
+                    self.now[0] += 60
+                    if ticked:
+                        helper.tick()
+                    self.assertIsNotNone(helper.search_handoff)
+                    self.news(helper, (1, True))
+                    self.assertEqual(self.outcome(conn), ([1], [], 0))
+                    self.now[0] += 60
                     helper.tick()
+                    self.news(helper, (2, False))
+                    self.assertEqual(self.outcome(conn), ([1], [], 0))
+                    self.assertEqual(helper.shell, 'foreground')
                     self.assertIsNone(helper.search_handoff)
-                # Long after: his own Alt+Tab to the world is not Super's activation, and uncovers it.
-                self.news(helper, (2, False), (1, True))
-                self.assertEqual(self.outcome(conn), ([1], [2], 0))
+                    # The mark is used up: his own way back to the world uncovers it as ever.
+                    self.news(helper, (1, False), (2, True))
+                    self.news(helper, (2, False), (1, True))
+                    self.assertEqual(self.outcome(conn), ([1], [2], 0))
+
+    def test_another_windows_newer_activation_ends_the_handoff_with_nothing_done(self):
+        for wait in (0.2, 60):
+            with self.subTest(after=wait):
+                helper, conn = self.covered()
+                self.show(helper.windows, 3, NOTEPAD, outputs=(MONITOR,), maximized=True)
+                helper.windows_changed()
+                helper.search()
+                self.now[0] += wait
+                # He went on to the notepad: Super's request is no longer what the next activation answers.
+                self.news(helper, (2, False), (3, True))
+                self.assertIsNone(helper.search_handoff)
+                self.assertEqual(self.outcome(conn), ([1], [], 0))
+                # The world's activation after that is his own (Alt+Tab): it uncovers as ever, and opens no search.
+                self.news(helper, (3, False), (1, True))
+                self.assertEqual(self.outcome(conn), ([1], [2, 3], 0))
+
+    def test_the_same_window_activated_again_is_a_newer_activation_too(self):
+        helper, conn = self.covered()
+        helper.search()
+        self.news(helper, (2, False))
+        self.assertIsNotNone(helper.search_handoff)
+        self.news(helper, (2, True))
+        self.assertIsNone(helper.search_handoff)
+        self.news(helper, (2, False), (1, True))
+        self.assertEqual(self.outcome(conn), ([1], [2], 0))
 
     def test_another_press_while_one_waits_asks_again_and_opens_once(self):
         helper, conn = self.covered()

@@ -480,13 +480,15 @@ helper that does not know them works as today.
   - A search is called off by a heartbeat with `"ready": false` (for good, also if the world is ready again within
     the second), by a new desktop connection, by the 1 s bound, and when the conditions above no longer hold as the
     world gets the keyboard. The activation Super asked for is marked: for a search that was called off it uncovers
-    nothing, so the world simply has the focus and no window is minimized. The mark lasts 5 s (`SEARCH_MARK`), so a
-    request the compositor never answered does not keep a later Alt+Tab to the world from uncovering it.
+    nothing, so the world simply has the focus and no window is minimized. The mark never runs out on a timer: it
+    holds until the compositor reports the world as the only active window, however late, or another window's newer
+    activation, which ends the handoff with nothing done (a later activation of the world is then his own).
   - The mod ignores it with no ready desktop world and while the search is open already. It replaces only what is
     known to hold nothing typed (an allowlist): no screen, the inventory or another container (closed first, the
     normal way), the game menu (the game's own or AresOS's) and the Apps screen, and each of these only while no
-    text box in it holds text (an anvil's name, the creative inventory's or the recipe book's search, the Apps
-    screen's search). Every other screen stays as it is and the event is ignored: the game's (chat, a sign, a book
+    text box in it holds text, shown or hidden (an anvil's name, the creative inventory's search, the recipe
+    book's search also while the book is hidden, the Apps screen's search), and the Apps screen only if the screen
+    it was opened from could be replaced too. Every other screen stays as it is and the event is ignored: the game's (chat, a sign, a book
     and its signing, command and structure blocks, settings), another mod's, and AresOS's own (the New home choice
     with its seed, the recovery and working screens).
   - It opens the search only while the game's window has the keyboard; an event that comes before the focus waits

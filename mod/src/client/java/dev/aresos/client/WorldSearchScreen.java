@@ -103,7 +103,8 @@ public final class WorldSearchScreen extends Screen {
      */
     public static void open(Minecraft client) {
         var screen = client.gui.screen();
-        boolean container = screen instanceof AbstractContainerScreen<?> || screen instanceof AppsScreen apps && apps.overContainer();
+        boolean container = screen instanceof AbstractContainerScreen<?>
+                || screen instanceof AppsScreen apps && apps.parent() instanceof AbstractContainerScreen<?>;
         if (container && client.player != null) client.player.closeContainer();
         client.gui.setScreen(new WorldSearchScreen());
     }
@@ -148,8 +149,10 @@ public final class WorldSearchScreen extends Screen {
      * What is open, for Super's rule. Review 2: an allowlist, after two rounds of listing the screens to keep each
      * missed one (a book being signed, then the New home choice with its seed). The search replaces only screens known
      * to hold nothing typed: the inventory and other containers, the game menu (the game's own class exactly, or
-     * AresOS's) and the Apps screen, and each of them only while no text box in it holds text: an anvil's name, the
-     * creative inventory's search, the recipe book's, the Apps screen's own. Every other screen is
+     * AresOS's) and the Apps screen, and each of them only while no text box in it holds text, shown or hidden: an
+     * anvil's name, the creative inventory's search, the recipe book's (also while the book is hidden: the game keeps
+     * what he typed), the Apps screen's own. The Apps screen goes back to the screen it was opened from, so that one
+     * must be replaceable too (review 3: the inventory behind it, with a recipe search typed). Every other screen is
      * {@link SearchMoment.Open#OTHER} and stays, the game's, another mod's and AresOS's own: nobody has said what would
      * be lost with it.
      */
@@ -159,7 +162,10 @@ public final class WorldSearchScreen extends Screen {
         SearchMoment.Open kind = screen instanceof AbstractContainerScreen<?> ? SearchMoment.Open.CONTAINER
                 : screen.getClass() == PauseScreen.class || screen instanceof AresOsMenuScreen ? SearchMoment.Open.MENU
                 : screen instanceof AppsScreen ? SearchMoment.Open.APPS : SearchMoment.Open.OTHER;
-        return kind != SearchMoment.Open.OTHER && holdsText(screen, 0) ? SearchMoment.Open.OTHER : kind;
+        if (kind == SearchMoment.Open.OTHER || holdsText(screen, 0)) return SearchMoment.Open.OTHER;
+        // Replacing the Apps screen also throws away the screen behind it.
+        if (screen instanceof AppsScreen apps && opened(apps.parent()) == SearchMoment.Open.OTHER) return SearchMoment.Open.OTHER;
+        return kind;
     }
 
     /** Whether a text box in there holds text, typed or put there (an anvil shows the item's name): either way it stays. */
@@ -168,9 +174,9 @@ public final class WorldSearchScreen extends Screen {
             if (child instanceof EditBox box && !box.getValue().isEmpty()) return true;
             if (child instanceof MultiLineEditBox box && !box.getValue().isEmpty()) return true;
             if (child instanceof RecipeBookComponent<?> book) {
-                // What he typed there shows only while the book is open.
+                // Also while the book is hidden: the game keeps what he typed and shows it again with the book.
                 EditBox search = ((RecipeBookSearchAccess) book).aresos$searchBox();
-                if (book.isVisible() && search != null && !search.getValue().isEmpty()) return true;
+                if (search != null && !search.getValue().isEmpty()) return true;
             }
             // A text box can sit in a list or a tab inside the screen: a few levels at most.
             if (child instanceof ContainerEventHandler inner && depth < 8 && holdsText(inner, depth + 1)) return true;
