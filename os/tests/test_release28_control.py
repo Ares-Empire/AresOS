@@ -278,3 +278,27 @@ class BranchRefTest(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class ControlBuildBytecodeTest(unittest.TestCase):
+    """R28's fifth dry run (44514249982): the Control install's Python ran as root without -B and rewrote 353 of the
+    base's own bytecode files (pip, attrs, the standard library), whose sources have mtime 0 in the image. Every
+    Python run of build.sh's Control branch must leave /usr's bytecode alone."""
+
+    def control_branch(self):
+        text = (ROOT / 'os/build.sh').read_text()
+        start = text.index('if [[ $1 == control || $1 == control-tree ]]; then')
+        end = text.index('    rm -rf /tmp/ares-control\n    exit 0\nfi\n', start)
+        return text[start:end]
+
+    def test_every_python_run_writes_no_import_bytecode(self):
+        runs = [line.strip() for line in self.control_branch().splitlines()
+                if not line.lstrip().startswith('#') and ('python3 ' in line or 'python3\t' in line)]
+        self.assertGreaterEqual(len(runs), 5, runs)
+        for line in runs:
+            self.assertRegex(line, r'python3 (-I )?-B ', line)
+
+    def test_the_cli_check_runs_as_an_ordinary_user(self):
+        branch = self.control_branch()
+        self.assertIn('runuser -u nobody -- /usr/bin/aresos --help > /tmp/ares-control/help.txt\n', branch)
+        self.assertNotRegex(branch, r'\n\s+/usr/bin/aresos --help')

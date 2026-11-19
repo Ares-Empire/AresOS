@@ -29,7 +29,8 @@
     "50: boot-only console keymap after Plymouth; vm.py requires boot-key and forced busy-VT repair evidence in the disposable check build",
     "Package 18c's fix round X2 merged main at 04aef030 (packages 48, 50 and 51): bound files main changed wait for the next rehearsal; os/ci/check-build.sh keeps 18c's control|build split, with 50's console keymap check in the build branch",
     "42: main merged at 98363516 (#58, 18c Part A and B2; 52's Prism pin; 46; 79): os-image.yml keeps 42's read-only check-build guard and comment with 18c's control limit (131 for control, 120 otherwise)",
-    "42 step 2: Control Part A provenance verification and the full branch-ref guard; the owner-walk model executes Control's stdin checker, validates metadata and login dependencies on both R28 boots. Only these three existing pending rows' checkout hashes were refreshed; no historical bindings rebound, no VM claim."
+    "42 step 2: Control Part A provenance verification and the full branch-ref guard; the owner-walk model executes Control's stdin checker, validates metadata and login dependencies on both R28 boots. Only these three existing pending rows' checkout hashes were refreshed; no historical bindings rebound, no VM claim.",
+    "42 step 4, the cut's fix: the cut's dry run 44514249982 stopped on 353 bytecode files the Control install's Python rewrote in /usr as root; build.sh runs its Python with -B and the CLI check as nobody, and the dry-run cap goes from 5 to 6 to prove it"
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
@@ -62,7 +63,7 @@
       "path": "os/ci/registry_auth.py"
     },
     {
-      "sha256": "fb704b3aa4696ae2b9f2f934fd078f667f6cd63eec3d5015ed41b850352935cd",
+      "sha256": "a1d33ecb01ce9daae7138871ca12112ddb3555539125c42549213028d5669c28",
       "path": "os/ci/rehearsal-packages.json"
     },
     {
@@ -196,7 +197,7 @@
         "22c review fixes 4, fix 1: forward again takes the newer AresOS's row first; update only where the running system does not start next",
         "22c review fixes 4, fix 2: the failed-update card keeps the result of a check just run",
         "22c one word per meaning, step 1: update only stages and names forward; forward selects the newest installed AresOS; tests and model (bundle, pins and guides follow in step 2)",
-        "22c one word per meaning, step 2: login on plain Bazzite names forward; bundle refreshed (2084c786\u2026); forward waits under unwalked_commands for stage 2's rehearsal",
+        "22c one word per meaning, step 2: login on plain Bazzite names forward; bundle refreshed (2084c786…); forward waits under unwalked_commands for stage 2's rehearsal",
         "22c one word per meaning, step 2: the guides say forward for every way back (the forward-again and back-from-stock box runs forward; no check-first dispatch, boot-menu step or tools' release); update only installs a new release",
         "22c stage 2, step 1: the rehearsal mode ways-back (os-image.yml, the ledger, the mode lists, owner_vm.py, reorder_probe.py), its local walk answered by the tools themselves, the record step (rebind.py rebind, checkout_sources.active_tables), forward typed by a walk",
         "22c stage 2, step 2: the harness reads the installed toolset's folder in the guest before the tools read input (owner_hidden.owner_reader takes it; run 43581458429 stopped on the first install's folder), the local walk's console shows the process the real entry starts, the ledger's raised caps (2400 minutes, six VM dispatches)"

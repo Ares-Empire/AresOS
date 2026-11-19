@@ -1909,12 +1909,16 @@ class Guard42Test(unittest.TestCase):
         self.assertEqual(str(ledger['job_bounds']['resolve']),
                          base.workflow_text(str(WORKFLOW['jobs']['check-build']['timeout-minutes']), resolve))
         titles = ledger['titles']
-        runs, api = self.history([titles['resolve']] + [titles['dry-run-28']] * 5)
+        # The dry-run cap (6 since 2026-11-19, the cut's bytecode fix) is read from the ledger, then exceeded by one.
+        dry_runs = ledger['dispatch_caps']['dry-run-28']
+        self.assertEqual(dry_runs, 6)
+        runs, api = self.history([titles['resolve']] + [titles['dry-run-28']] * dry_runs)
         with patch.object(guard, 'api', side_effect=api):
             result = guard.budget(0)
             # Step 3 added the rehearsal kind release-28 (cap 0; test_release28_rehearsal holds it).
-            self.assertEqual(result['dispatch_counts'], {'dry-run-28': 5, 'publish-28': 0, 'resolve': 1, 'checks': 0, 'release-28': 0})
-            self.assertEqual(result['consumed_minutes'], 360)
+            self.assertEqual(result['dispatch_counts'],
+                             {'dry-run-28': dry_runs, 'publish-28': 0, 'resolve': 1, 'checks': 0, 'release-28': 0})
+            self.assertEqual(result['consumed_minutes'], 60 * (1 + dry_runs))
             runs.append(dict(runs[-1], id=99, display_title=titles['dry-run-28']))
             with self.assertRaisesRegex(AssertionError, 'dry-run-28 dispatch allowance exhausted'):
                 guard.budget(0)
