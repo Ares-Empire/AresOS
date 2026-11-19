@@ -15,6 +15,7 @@ import json
 import os
 import pathlib
 import re
+import secrets
 import shutil
 import socket
 import subprocess
@@ -90,10 +91,29 @@ CHROME_STEPS = [
     ('act', 'chrome-sites-later', 'CONTROL_CHROME_SITES_PASS'),
     ('act', 'chrome-gh', 'CONTROL_GH_PASS'),
     ('act', 'chrome-records', 'CONTROL_CHROME_RECORDS_PASS'),
+    ('act', 'chrome-update', 'CONTROL_CHROME_UPDATE_PASS'),
+    ('act', 'chrome-package-fault', 'CONTROL_CHROME_PACKAGE_FAULT_PASS'),
+    ('act', 'chrome-no-store', 'CONTROL_CHROME_NO_STORE_PASS'),
+    ('act', 'chrome-edit-start', None),
+    ('edit-page', 'cancel', None),
+    ('act', 'chrome-edit-wait-cancel', None),
+    ('keys', ['esc'], None),
+    ('act', 'chrome-edit-cancelled', None),
+    ('edit-page', 'allow', None),
+    ('act', 'chrome-edit-wait-allow', None),
+    ('edit-password', 'allow', None),
+    ('act', 'chrome-edit-reset', None),
+    ('edit-page', 'again', None),
+    ('act', 'chrome-edit-wait-again', None),
+    ('keys', ['esc'], None),
+    ('act', 'chrome-edit-again-cancelled', None),
+    ('act', 'chrome-edit-finish', 'CONTROL_CHROME_POLKIT_PASS'),
+    ('act', 'chrome-ask-form', 'CONTROL_CHROME_ASK_PASS'),
     ('act', 'chrome-selinux', 'CONTROL_CHROME_SELINUX_PASS'),
 ]
 CHROME_WITH_SUMMARY = {'chrome-polkit-finish', 'chrome-files', 'chrome-sites-first-use', 'chrome-sites-after-reboot',
-                       'chrome-host', 'chrome-gh', 'chrome-records'}
+                       'chrome-host', 'chrome-gh', 'chrome-records', 'chrome-update', 'chrome-package-fault',
+                       'chrome-no-store', 'chrome-edit-finish', 'chrome-ask-form'}
 # C6 is one check in three parts around the reboot: its table line also needs the lines of its first two parts.
 CHROME_JOINS = {'CONTROL_CHROME_SITES_PASS': ('CONTROL_CHROME_SITES_FIRST_USE_PASS', 'CONTROL_CHROME_SITES_REBOOT_PASS')}
 # QMP's send-key returns before the guest has drawn its answer (run 44435868192's menu screenshot, 0.0 s after Alt+F,
@@ -356,6 +376,44 @@ def screen_difference(first, second):
         return changed, difference.point(lambda value: 255 if value > 24 else 0).getbbox()
 
 
+def type_keys(guest, text):
+    symbols = {'-': ['minus'], ':': ['shift', 'semicolon'], '/': ['slash'], '.': ['dot']}
+    for char in text:
+        guest.keys(symbols.get(char, [char]))
+        time.sleep(0.13)  # QMP's key down lasts 100 ms; doubled characters need separate presses.
+
+
+def details_button(guest, identity, before):
+    assert re.fullmatch('[a-p]{32}', identity), 'invalid details-page extension ID'
+    guest.keys(['ctrl', 't'])
+    time.sleep(KEYS_SETTLE)
+    type_keys(guest, f'chrome-extension://{identity}/details.html')
+    guest.keys(['ret'])
+    time.sleep(3)
+    guest.keys(['tab'])
+    time.sleep(KEYS_SETTLE)
+    guest.screenshot(before)
+    guest.keys(['ret'])
+    time.sleep(KEYS_SETTLE)
+
+
+def type_password(guest, password):
+    try:
+        type_keys(guest, password)
+        guest.keys(['ret'])
+        time.sleep(KEYS_SETTLE)
+    except Exception:
+        # QMP errors may include an echoed key. The runner never copies them to evidence.
+        raise RuntimeError('Could not enter the temporary password over QMP') from None
+
+
+def password_hash(password):
+    done = subprocess.run(['openssl', 'passwd', '-6', '-stdin'], input=password + '\n', text=True,
+                          capture_output=True, timeout=15)
+    assert done.returncode == 0, 'could not hash the temporary guest password'
+    return done.stdout.strip()
+
+
 def chrome_main():
     """Brief 18c-b, item 5: the Chrome pass, on the same disk with a fresh overlay, after 18c's pass."""
     work = pathlib.Path('vm-work').resolve()
@@ -364,6 +422,7 @@ def chrome_main():
     vm_evidence = chrome_evidence / 'vm'
     vm_evidence.mkdir(parents=True, exist_ok=True)
     results = {}
+    password = secrets.token_hex(16)
 
     def gh_lock():
         return hashlib.sha256(pathlib.Path('os/gh.lock.json').read_bytes()).hexdigest()
@@ -374,7 +433,9 @@ def chrome_main():
                  'chrome-sites-later': lambda: dict(list=results['chrome-sites-after-reboot']['summary']['list']),
                  'chrome-gh': lambda: dict(gh_lock_sha256=gh_lock()),
                  'chrome-records': lambda: dict(
-                     host_pid=results['chrome-sites-after-reboot']['summary']['host']['pid'])}
+                     host_pid=results['chrome-sites-after-reboot']['summary']['host']['pid']),
+                 'chrome-edit-start': lambda: dict(password_hash=password_hash(password)),
+                 'chrome-ask-form': lambda: dict(install=install_step(pathlib.Path('control/README.md').read_text()))}
     guest = Guest(work, vm_evidence, 'chrome')
 
     def dialog_shown(result):
@@ -386,22 +447,47 @@ def chrome_main():
             ('changed_pixels', 'box'), screen_difference(chrome_evidence / 'polkit-before.png',
                                                          chrome_evidence / 'polkit-dialog.png'))))
         assert shown['changed_pixels'] >= DIALOG_PIXELS, f'the dialog did not show and go: {shown}'
-    verify = {'chrome-polkit-finish': dialog_shown}
+
+    def edit_dialog(attempt, result):
+        picture = chrome_evidence / f'c7-{attempt}-dialog.png'
+        guest.screenshot(picture)
+        count, box = screen_difference(chrome_evidence / f'c7-{attempt}-before.png', picture)
+        assert count >= DIALOG_PIXELS, f'the password dialog did not appear: {count} changed pixels'
+        result['summary'].update(dialog_pixels=count, dialog_box=box)
+
+    def private_evidence(_result=None):
+        found = evidence_scan.scan(chrome_evidence, password.encode())
+        for name in found['holding']:
+            (chrome_evidence / name).unlink()
+        assert not found['holding'], f'{len(found["holding"])} evidence files held the password or could not be searched'
+
+    verify = {'chrome-polkit-finish': dialog_shown, 'chrome-edit-finish': private_evidence}
+    attempts = {f'chrome-edit-wait-{attempt}': attempt for attempt in ('cancel', 'allow', 'again')}
     guest.create()
     started = time.monotonic()
     failed, timings, check_failed, summaries, printed = [], {}, False, {}, set()
+    in_edit = False
     try:
         timings['boot_to_channel'] = guest.boot()
         for kind, argument, line in CHROME_STEPS:
             began = time.monotonic()
-            label = argument if kind in ('act', 'screen') else kind
+            label = argument if kind in ('act', 'screen') else f'{kind}-{argument}' if kind.startswith('edit-') else kind
             result = None
+            if argument == 'chrome-edit-start':
+                in_edit = True
+            if in_edit and check_failed and argument != 'chrome-edit-finish':
+                continue
             try:
                 if kind == 'screen':
                     guest.screenshot(chrome_evidence / f'{argument}.png')
                 elif kind == 'keys':
                     guest.keys(argument)
                     time.sleep(KEYS_SETTLE)
+                elif kind == 'edit-page':
+                    details_button(guest, results['chrome-edit-start']['summary']['extension_id'],
+                                   chrome_evidence / f'c7-{argument}-before.png')
+                elif kind == 'edit-password':
+                    type_password(guest, password)
                 elif kind == 'reboot':
                     guest.poweroff()
                     timings['reboot_to_channel'] = guest.boot()
@@ -415,7 +501,15 @@ def chrome_main():
             timings[label] = round(time.monotonic() - began, 1)
             if result is not None:
                 keep_files(result, evidence)
-                if result.get('returncode') == 0 and argument in verify:
+                if argument in attempts:
+                    try:
+                        if result.get('returncode') == 0:
+                            edit_dialog(attempts[argument], result)
+                        elif argument != 'chrome-edit-wait-again':
+                            guest.screenshot(chrome_evidence / f'c7-{attempts[argument]}-failed.png')
+                    except Exception:
+                        result.update(returncode=1, stderr=traceback.format_exc())
+                if (result.get('returncode') == 0 or argument == 'chrome-edit-finish') and argument in verify:
                     try:
                         verify[argument](result)
                     except Exception:
@@ -435,12 +529,15 @@ def chrome_main():
                     print(f'{line} {shown}' if shown else line, flush=True)
                     printed.add(line)
                 check_failed = False
+            if argument == 'chrome-edit-finish':
+                in_edit = False
         guest.poweroff()
         timings['total'] = round(time.monotonic() - started, 1)
         print('CONTROL_CHROME_VM_POWEROFF_CLEAN', flush=True)
     finally:
         (vm_evidence / 'timings.json').write_text(json.dumps(timings, indent=2) + '\n')
         guest.close()
+        private_evidence()
     print(f'Control Chrome VM step times (s): {json.dumps(timings)}', flush=True)
     if failed:
         raise SystemExit(f'Control Chrome checks failed: {", ".join(failed)}')

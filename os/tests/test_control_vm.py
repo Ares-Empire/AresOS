@@ -108,7 +108,8 @@ class ChromePassTest(unittest.TestCase):
         names = [key.value for key in actions.keys]
         runner = load(CONTROL_CI / 'control_vm.py', 'control_vm_for_chrome')
         steps = runner.CHROME_STEPS
-        self.assertTrue(all(len(step) == 3 and step[0] in ('act', 'screen', 'keys', 'reboot') for step in steps))
+        kinds = ('act', 'screen', 'keys', 'reboot', 'edit-page', 'edit-password')
+        self.assertTrue(all(len(step) == 3 and step[0] in kinds for step in steps))
         acts = [step for step in steps if step[0] == 'act']
         self.assertEqual([step[1] for step in acts], names)
         lines = [step[2] for step in steps if step[2]]
@@ -170,7 +171,9 @@ class ChromePassTest(unittest.TestCase):
         runner = load(CONTROL_CI / 'control_vm.py', f'control_vm_pass_{id(self)}_{len(failing)}')
         work = self.folder / ('pass-' + ('-'.join(failing) or 'all'))
         (work / 'os').mkdir(parents=True)
+        (work / 'control').mkdir()
         shutil.copy(ROOT / 'os/gh.lock.json', work / 'os/gh.lock.json')
+        shutil.copy(ROOT / 'control/README.md', work / 'control/README.md')
         asked = []
 
         class Guest:
@@ -181,7 +184,7 @@ class ChromePassTest(unittest.TestCase):
                 asked.append(request['action'])
                 # A failed step still answers with what later steps take from it, so they run and only the lines
                 # decide.
-                summary = dict(list={'sha256': 'x'}, host={'pid': 1})
+                summary = dict(list={'sha256': 'x'}, host={'pid': 1}, extension_id='a' * 32)
                 if request['action'] in failing:
                     return dict(returncode=1, stderr='made to fail', summary=summary)
                 return dict(returncode=0, summary=summary)
@@ -192,6 +195,9 @@ class ChromePassTest(unittest.TestCase):
         self.slept = []
         with mock.patch.object(runner, 'Guest', Guest), \
                 mock.patch.object(runner, 'expected_record', return_value={}), \
+                mock.patch.object(runner, 'password_hash', return_value='test-only-hash'), \
+                mock.patch.object(runner, 'details_button'), \
+                mock.patch.object(runner, 'type_password') as typing, \
                 mock.patch.object(runner, 'screen_difference', return_value=(runner.DIALOG_PIXELS, (0, 0, 1, 1))), \
                 mock.patch.object(runner.time, 'sleep', self.slept.append), \
                 contextlib.chdir(work), contextlib.redirect_stdout(output):
@@ -200,6 +206,7 @@ class ChromePassTest(unittest.TestCase):
                 code = 0
             except SystemExit as error:
                 code = error.code
+        self.password_entries = typing.call_count
         printed = [line.split()[0] for line in output.getvalue().splitlines()
                    if line.startswith(('CONTROL_CHROME_', 'CONTROL_GH_', 'CONTROL_CHECK_FAILED'))]
         return runner, asked, printed, code
@@ -231,16 +238,91 @@ class ChromePassTest(unittest.TestCase):
         runner = load(CONTROL_CI / 'control_vm.py', 'control_vm_for_4b')
         steps = runner.CHROME_STEPS
         start = steps.index(('act', 'chrome-sites-after-reboot', 'CONTROL_CHROME_SITES_REBOOT_PASS'))
-        self.assertEqual(steps[start + 1:], [
+        self.assertEqual(steps[start + 1:start + 5], [
             ('act', 'chrome-host', 'CONTROL_CHROME_NATIVE_HOST_PASS'),
             ('act', 'chrome-sites-later', 'CONTROL_CHROME_SITES_PASS'),
             ('act', 'chrome-gh', 'CONTROL_GH_PASS'),
-            ('act', 'chrome-records', 'CONTROL_CHROME_RECORDS_PASS'),
-            ('act', 'chrome-selinux', 'CONTROL_CHROME_SELINUX_PASS')])
+            ('act', 'chrome-records', 'CONTROL_CHROME_RECORDS_PASS')])
+        self.assertEqual(steps[-1], ('act', 'chrome-selinux', 'CONTROL_CHROME_SELINUX_PASS'))
         self.assertEqual(runner.CHROME_JOINS, {'CONTROL_CHROME_SITES_PASS': (
             'CONTROL_CHROME_SITES_FIRST_USE_PASS', 'CONTROL_CHROME_SITES_REBOOT_PASS')})
         # C11 names the path it took on its line.
         self.assertIn('chrome-records', runner.CHROME_WITH_SUMMARY)
+
+    def test_step5_order_and_failed_dialog_never_gets_a_password(self):
+        _, asked, printed, code = self.run_pass(failing=('chrome-edit-wait-allow',))
+        self.assertNotEqual(code, 0)
+        self.assertEqual(self.password_entries, 0)
+        self.assertNotIn('CONTROL_CHROME_POLKIT_PASS', printed)
+        self.assertLess(asked.index('chrome-edit-finish'), asked.index('chrome-ask-form'))
+        self.assertEqual(printed[printed.index('CONTROL_CHROME_RECORDS_PASS') + 1:][:3], [
+            'CONTROL_CHROME_UPDATE_PASS', 'CONTROL_CHROME_PACKAGE_FAULT_PASS', 'CONTROL_CHROME_NO_STORE_PASS'])
+        self.assertEqual(printed[-3:], ['CONTROL_CHROME_ASK_PASS', 'CONTROL_CHROME_SELINUX_PASS',
+                                       'CONTROL_CHROME_VM_POWEROFF_CLEAN'])
+
+    def test_c4_manifest_refuses_any_previous_origin(self):
+        chrome = self.actions()
+        host = self.folder / 'org.aresos.chrome.json'
+        base = dict(path=str(chrome.CODE / 'chrome/host'), allowed_origins=['chrome-extension://current/'])
+        with mock.patch.object(chrome, 'HOSTS', self.folder):
+            host.write_text(json.dumps(base))
+            self.assertEqual(chrome.host_manifest('current', 'previous'), base)
+            host.write_text(json.dumps(dict(base, allowed_origins=[*base['allowed_origins'],
+                                                                    'chrome-extension://previous/'])))
+            with self.assertRaises(chrome.Failure):
+                chrome.host_manifest('current', 'previous')
+
+    def test_c5_mutates_a_signed_payload_byte_and_restores_the_package(self):
+        chrome = self.actions()
+        good = b'Cr24\x03\0\0\0\x02\0\0\0ABsigned bytes'
+        changed, where = chrome.changed_crx(good)
+        self.assertGreaterEqual(where, 14)
+        self.assertEqual([i for i, (a, b) in enumerate(zip(good, changed, strict=True)) if a != b], [where])
+        package = self.folder / 'extension.crx'
+        chrome.set_package(package, changed)
+        self.assertEqual(package.read_bytes(), changed)
+        chrome.set_package(package, None)
+        self.assertFalse(package.exists())
+        chrome.set_package(package, good)
+        self.assertEqual(package.read_bytes(), good)
+
+    def test_c9_requires_the_positive_control_and_refuses_ours_with_or_without_a_baseline(self):
+        chrome = self.actions()
+        scan = dict(probe_checks=2, probe_checks_served=2, named_elsewhere=[], update_service=[], update_service_asks=[])
+        store = dict(scan, update_service=['/service/update2/'], update_service_asks=['own built-in request'])
+        with mock.patch.object(sys, 'path', [str(ROOT / 'control/chrome/ci/install'), *sys.path]):
+            self.assertEqual(chrome.store_verdict(scan), [])
+            self.assertEqual(chrome.store_verdict(store, store), [])
+            for ours, baseline in ((dict(scan, probe_checks=1), None), (dict(scan, probe_checks_served=3), None),
+                                   (dict(store, named_elsewhere=['own ID']), store), (store, scan), (store, None)):
+                with self.subTest(ours=ours, baseline=baseline), self.assertRaises(chrome.Failure):
+                    chrome.store_verdict(ours, baseline)
+
+    def test_c7_journal_binds_the_action_session_and_native_process(self):
+        chrome = self.actions()
+        peer = dict(pid=802, start=311)
+        entry = ('Operator of unix-session:1 successfully authenticated as unix-user:ares to gain ONE-SHOT '
+                 f'authorization for action {chrome.EDIT_ACTION} for unix-process:802:311 [{chrome.HOST_PROCESS}]')
+        self.assertEqual(chrome.edit_journal([entry, entry.replace('802:311', '802:312'),
+                                              entry.replace('session:1', 'session:2'),
+                                              entry.replace(chrome.HOST_PROCESS, 'other'),
+                                              entry.replace(chrome.EDIT_ACTION, 'other')], '1', peer), [entry])
+
+    def test_c8_uses_the_current_button_reference_and_checks_the_exact_post(self):
+        chrome = self.actions()
+        row = dict(reference={'tab': 42, 'element': 'v3'},
+                   expected={'name': chrome.FORM_BUTTON, 'role': 'button'})
+        page = dict(untrusted_content={'tree': json.dumps(row)})
+        self.assertEqual(chrome.form_target(page, chrome.FORM_BUTTON, 'button'), row)
+        with self.assertRaises(chrome.Failure):
+            chrome.form_target(page, chrome.FORM_BUTTON, 'textbox')
+        expected = dict(path='/form-yes', fields={'message': [chrome.FORM_TEXT]})
+        pages = mock.Mock()
+        pages.arrivals.return_value = [expected]
+        self.assertEqual(chrome.form_arrivals(pages, [expected]), 1)
+        pages.arrivals.return_value += [expected]
+        with self.assertRaises(chrome.Failure):
+            chrome.form_arrivals(pages, [expected])
 
     def test_c6s_line_needs_its_first_use_and_its_reboot(self):
         for failing, kept in ((('chrome-sites-first-use',), 'CONTROL_CHROME_SITES_REBOOT_PASS'),

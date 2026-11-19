@@ -155,13 +155,13 @@ def ours_on_screen(folder, first, last, prompt):
     return lines
 
 
-def session(evidence, steps, flags, answers, before_turn=None, turn_seconds=180):
+def session(evidence, steps, flags, answers, before_turn=None, turn_seconds=180, *, model_factory=Model, before_answer=None):
     """One fresh claude as ares. answers[i]: None (no prompt may show), 'Yes' or 'No' (the managed ask must show
     and gets that answer), or 'hook' (a PermissionRequest hook may flash the prompt; never answered)."""
     evidence.mkdir(parents=True, exist_ok=True)
     screens = evidence / 'screens'
     turns = []
-    with Model(steps, evidence / 'model', port=PORT) as model:
+    with model_factory(steps, evidence / 'model', port=PORT) as model:
         argv = [str(CLAUDE), *flags, steps[0]['prompt']]
         with Terminal(owner_run, screens, SOCKETS / 'session.sock', str(WORK), argv, ENV) as terminal:
             for index, (step, answer) in enumerate(zip(steps, answers)):
@@ -186,6 +186,8 @@ def session(evidence, steps, flags, answers, before_turn=None, turn_seconds=180)
                 question = None
                 if answer in ('Yes', 'No'):
                     assert seen and done not in screen, f'STOP: the managed ask did not ask ({evidence.name})'
+                    if before_answer:
+                        before_answer()
                     terminal.choose(screen, answer)
                 elif answer is None:
                     assert not seen, f'a permission prompt in a turn that needs none ({evidence.name}): {screen}'

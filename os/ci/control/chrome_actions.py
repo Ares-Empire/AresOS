@@ -14,7 +14,9 @@ start of its own, with its own throw-away profile, adds a DevTools pipe to ask a
 decision 5 after step 2b); every other start has no debugging flag.
 """
 import ast
+import contextlib
 import grp
+import gzip
 import hashlib
 import importlib.machinery
 import importlib.util
@@ -28,12 +30,14 @@ import shutil
 import signal
 import socket
 import stat
+import struct
 import subprocess
 import sys
 import threading
 import time
 import types
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from urllib.parse import parse_qs, urlsplit
 
 ACTIONS_D = pathlib.Path(__file__).resolve().parent
 CI = pathlib.Path('/usr/libexec/aresos-ci/control/chrome')
@@ -330,7 +334,7 @@ class Pages:
     """The page server in the guest: the probe's update address, an ordinary page, and what arrived."""
 
     def __init__(self, probe):
-        self.hits, self.lock = [], threading.Lock()
+        self.hits, self.posts, self.lock = [], [], threading.Lock()
         update = ('<?xml version="1.0" encoding="UTF-8"?>\n<gupdate xmlns="http://www.google.com/update2/response" '
                   f'protocol="2.0"><app appid="{probe["id"]}"><updatecheck codebase="{ADDRESS}/probe/extension.crx" '
                   f'version="{probe["version"]}" /></app></gupdate>\n').encode()
@@ -343,10 +347,18 @@ class Pages:
             def do_GET(self):
                 with pages.lock:
                     pages.hits.append((time.monotonic(), self.path))
-                if self.path.startswith('/probe/update.xml'):
+                path = urlsplit(self.path)
+                if path.path == '/probe/update.xml':
                     body, kind = update, 'application/xml'
+                elif path.path == '/probe/extension.crx':
+                    body, kind = (TEST / 'probe/extension.crx').read_bytes(), 'application/x-chrome-extension'
                 elif self.path.startswith('/browse'):
                     body, kind = b'<!doctype html><title>Chrome pass</title><p>An ordinary page.</p>', 'text/html'
+                elif path.path in ('/form-yes', '/form-no'):
+                    body = (f'<!doctype html><title>Chrome form</title><form method="post" action="{path.path}">'
+                            '<label>Test message <input name="message" required></label>'
+                            '<button>Submit test message</button></form>').encode()
+                    kind = 'text/html'
                 else:
                     self.send_error(404)
                     return
@@ -357,12 +369,28 @@ class Pages:
                 self.end_headers()
                 self.wfile.write(body)
 
+            def do_POST(self):
+                size = int(self.headers.get('Content-Length', '0'))
+                if self.path not in ('/form-yes', '/form-no') or not 0 < size <= 4096:
+                    self.send_error(400)
+                    return
+                body = self.rfile.read(size).decode()
+                with pages.lock:
+                    pages.posts.append(dict(path=self.path, fields=parse_qs(body)))
+                self.send_response(200)
+                self.end_headers()
+                self.wfile.write(b'Test message received')
+
         self.server = ThreadingHTTPServer(('127.0.0.1', PORT), Handler)
         threading.Thread(target=self.server.serve_forever, daemon=True).start()
 
     def seen(self, text):
         with self.lock:
             return [path for _, path in self.hits if text in path]
+
+    def arrivals(self):
+        with self.lock:
+            return list(self.posts)
 
 
 class ProbeLink:
@@ -919,13 +947,13 @@ def connection_ends():
     return ends
 
 
-def page_tab():
+def page_tab(step=PAGE_STEP):
     """His tab showing the page server's page: its tab number, and the listing it came from."""
     try:
         listed = eventually(tabs_listed, 'tabs lists his tabs', 60, interval=1)
     except Failure as error:
         raise Failure(f'{error}; the last answer: {STATE.get("last_tabs")}') from error
-    items = [item for item in listed['data']['items'] if f'step={PAGE_STEP}' in str(item.get('url'))]
+    items = [item for item in listed['data']['items'] if item.get('url') == f'{ADDRESS}/browse?step={step}']
     expect(len(items) == 1, f'one tab of his shows the page server: {[item.get("url") for item in listed["data"]["items"]]}')
     return items[0]['tab'], listed
 
@@ -1393,6 +1421,511 @@ def records(request):
     return dict(returncode=0, summary=summary, files=control().files_out(files))
 
 
+# --- C4 replacement and C5 package faults -------------------------------------------------------------------------
+
+def shipped_extension():
+    return json.loads(RECORD.read_text())['chrome_extension']
+
+
+def profile_folder():
+    return pathlib.Path(pwd.getpwnam(OWNER).pw_dir) / '.config/google-chrome'
+
+
+def stop_browser(link):
+    chrome = STATE.get('chrome')
+    if chrome is not None:
+        chrome.stop(link)
+        del STATE['chrome']
+
+
+def start_browser(label, extra=(), devtools=None):
+    chrome = Chrome(label, extra=extra, devtools=devtools)
+    STATE['chrome'] = chrome
+    return chrome
+
+
+@contextlib.contextmanager
+def bind_bundle(source, link):
+    """Only the CI guest substitutes this bundle. Stop Chrome before either policy switch."""
+    stop_browser(link)
+    actions = control()
+    actions.ok(actions.run(['mount', '--bind', str(source), str(BUNDLE)]))
+    try:
+        yield
+    finally:
+        try:
+            stop_browser(link)
+        finally:
+            actions.ok(actions.run(['umount', str(BUNDLE)]))
+
+
+def extension_folders(profile):
+    return sorted(path.name for path in (profile / 'Default/Extensions').glob('*') if path.is_dir())
+
+
+def host_manifest(current, previous):
+    manifest = (HOSTS / 'org.aresos.chrome.json').read_bytes()
+    data = json.loads(manifest)
+    expect(data['allowed_origins'] == [f'chrome-extension://{current}/'] and previous.encode() not in manifest,
+           f'the host manifest names only the current extension: {data}')
+    expect(data['path'] == str(CODE / 'chrome/host'), f'the manifest uses the installed host: {data}')
+    return data
+
+
+def update_switch(label, current, previous, link, probe):
+    manifest = host_manifest(current['id'], previous['id'])
+    chrome = start_browser(label)
+    _, info, times = settle(chrome, link, current['id'])
+    expect(info['version'] == current['version'] and info['installType'] == 'admin', f'current package: {info}')
+    eventually(lambda: installed(link, previous['id']) is None, 'the previous ID leaves Chrome', 60)
+    times['old_id_gone'] = chrome.since()
+    expected = sorted([current['id'], probe])
+    eventually(lambda: extension_folders(profile_folder()) == expected, 'the profile keeps only the two current packages', 60)
+    times['old_folder_gone'] = chrome.since()
+    listed = link.call('all')
+    expect(listed['ok'] and sorted(row['id'] for row in listed['value'] if row['id'] in
+                                  [*expected, previous['id']]) == expected, f'current IDs: {listed}')
+    his_page(label)
+    tab, _ = page_tab(label)
+    actions = control()
+    actions.answered(tool('take_tab', {'tab': tab}))
+    page = actions.answered(tool('read', {'tab': tab}))['data']['untrusted_content']
+    expect(page['title'] == 'Chrome pass' and page['url'] == f'{ADDRESS}/browse?step={label}'
+           and 'An ordinary page.' in page['tree'], f'the current extension reads the local page: {page}')
+    host = one_host(chrome)
+    expect(host['in_chrome_scope'], f'the new Chrome scope owns the connected host: {host}')
+    refusal = probe_refused(link)
+    expect(one_host(chrome)['pid'] == host['pid'] and tabs_listed(), 'the current host still answers')
+    return dict(current=current['id'], previous=previous['id'], version=info['version'], seconds_after_start=times,
+                read=page['title'], host_pid=host['pid'], manifest=manifest['allowed_origins'], probe=refusal)
+
+
+def update(request):
+    """C4: A → B → A, one profile, through the two installed links and the real service."""
+    layer, link, _ = fixtures()
+    a, b, probe = shipped_extension(), layer['bundles']['b'], layer['probe']['id']
+    expect(len({a['id'], b['id'], probe}) == 3, 'the replacement and probe have fresh IDs')
+    expect(a['id'] in extension_folders(profile_folder()), 'the profile starts with A installed')
+    with bind_bundle(TEST / 'bundles/b', link):
+        to_b = update_switch('c4-b', b, a, link, probe)
+    expect(b['id'] in extension_folders(profile_folder()), 'the profile starts the rollback with B installed')
+    to_a = update_switch('c4-a', a, b, link, probe)
+    summary = dict(switches=[to_b, to_a])
+    return dict(returncode=0, summary=summary, files=control().files_out({'chrome/c4-update.json': summary}))
+
+
+def changed_crx(good):
+    # Flip one byte of the signed ZIP, leaving its CRX3 header and signature intact.
+    expect(good[:8] == b'Cr24\x03\0\0\0', 'bundle C has a CRX3 header')
+    header = 12 + struct.unpack_from('<I', good, 8)[0]
+    expect(len(good) > header, 'bundle C has a signed archive')
+    position = header + (len(good) - header) // 2
+    return good[:position] + bytes([good[position] ^ 1]) + good[position + 1:], position
+
+
+def set_package(package, content):
+    if content is None:
+        package.unlink(missing_ok=True)
+        expect(not package.exists(), 'the package is absent')
+    else:
+        package.write_bytes(content)
+        expect(package.read_bytes() == content, 'the intended package bytes are in place')
+
+
+def package_fault(request):
+    """C5: bad bytes and no bytes, first with no installed C and then with an installed C."""
+    layer, link, pages = fixtures()
+    actions = control()
+    profile = profile_folder()
+    a, bundle = shipped_extension(), layer['bundles']['c']
+    identity = bundle['id']
+    expect(identity not in extension_folders(profile) and identity not in {a['id'], layer['probe']['id']},
+           'the guest profile has never held C')
+    unit = actions.show('MainPID', 'NRestarts')
+    staging = RUN / 'bundle-c'
+    shutil.copytree(TEST / 'bundles/c', staging)
+    package = staging / 'extension.crx'
+    good = package.read_bytes()
+    expect(sha256(package) == bundle['crx_sha256'], 'the staged package equals bundle C')
+    changed, position = changed_crx(good)
+    faults = [('changed', changed), ('missing', None)]
+    rows, logs = dict(changed_byte_at=position, package_bytes=len(good)), {}
+    try:
+        with bind_bundle(staging, link):
+            host_manifest(identity, a['id'])
+            for fault, content in faults:
+                stop_browser(link)
+                set_package(package, content)
+                label = f'c5-fresh-{fault}'
+                chrome = start_browser(label, [f'{ADDRESS}/browse?step={label}-start'])
+                eventually(link.hello, 'the probe installs in the faulted start', 90)
+                deadline, samples = time.monotonic() + 20, 0
+                while time.monotonic() < deadline:
+                    expect(installed(link, identity) is None and not host_processes() and not service_peers(),
+                           f'no extension or native connection with a {fault} package')
+                    actions.refused(tool('tabs', {}), 'chrome_unavailable')
+                    expect(chrome.process.poll() is None, f'Chrome stays up with a {fault} package')
+                    samples += 1
+                    time.sleep(1)
+                expect(identity not in extension_folders(profile), f'no installed copy with a {fault} package')
+                expect(pages.seen(f'step={label}-start'), f'Chrome loads its ordinary start page with a {fault} package')
+                his_page(f'{label}-later')
+                actions.refused(tool('tabs', {}), 'chrome_unavailable')
+                rows[f'fresh_{fault}'] = dict(samples=samples, seconds=chrome.since(), browsing=True,
+                                              tools='chrome_unavailable')
+                logs[f'chrome/{label}.txt'] = chrome_log(chrome)
+            stop_browser(link)
+            set_package(package, good)
+            chrome = start_browser('c5-restored')
+            _, info, rows['restored'] = settle(chrome, link, identity)
+            expect(info['version'] == bundle['version'] and tabs_listed(), 'restored C answers the real service')
+            for fault, content in faults:
+                stop_browser(link)
+                set_package(package, content)
+                chrome = start_browser(f'c5-installed-{fault}')
+                _, _, times = settle(chrome, link, identity)
+                host = one_host(chrome)
+                time.sleep(8)
+                info = installed(link, identity)
+                expect(info and info['enabled'] and info['version'] == bundle['version']
+                       and identity in extension_folders(profile), f'installed C runs with a {fault} package: {info}')
+                expect(tabs_listed() and one_host(chrome)['pid'] == host['pid'],
+                       f'installed C stays connected with a {fault} package')
+                rows[f'installed_{fault}'] = dict(times, connected_after_seconds=chrome.since())
+    finally:
+        shutil.rmtree(staging)
+        start_his_chrome('c5-back-to-a')
+    actions.wait_active()
+    expect(actions.show('MainPID', 'NRestarts') == unit, 'the real tool service stayed up through the package faults')
+    return dict(returncode=0, summary=rows, files=actions.files_out(dict(logs, **{'chrome/c5-package.json': rows})))
+
+
+# --- C9: the network log across two update checks ------------------------------------------------------------------
+
+STORE_FLAGS = ('--extensions-update-frequency=30', '--disable-component-update')
+
+
+def store_log(label, link, pages, ours, probe, with_policy):
+    folder = RUN / label
+    folder.mkdir(mode=0o700)
+    os.chown(folder, *owner_ids()[:2])
+    record = folder / 'netlog.json'
+    count = lambda: sum(probe in path for path in pages.seen('/probe/update.xml?'))
+    initial = count()
+    chrome = start_browser(label, [f'--user-data-dir={folder / "profile"}', f'--log-net-log={record}', *STORE_FLAGS],
+                           devtools=())
+    asked = []
+    try:
+        if with_policy:
+            settle(chrome, link, ours)
+        else:
+            eventually(link.hello, 'the probe connects on its own', 90)
+            expect(installed(link, ours) is None and not service_peers(), 'the baseline has only the probe')
+        listeners = tcp_listeners_of([row['pid'] for row in chrome_processes()])
+        expect(not listeners, f'the Chrome test-start pipe opens no TCP listener: {listeners}')
+        page = chrome.devtools.page('chrome://extensions/')
+        eventually(lambda: _evaluate(page, "typeof chrome.developerPrivate?.autoUpdate === 'function'") is True,
+                   'chrome://extensions has loaded', 60)
+        for number in (1, 2):
+            before = count()
+            # Chrome 157 does not honor the interval flag. Use the same explicit all-extension check as item 2.
+            expect(page.evaluate("void chrome.developerPrivate.autoUpdate().catch(() => {}); 'asked'") == 'asked',
+                   'Chrome starts an update check of every extension')
+            eventually(lambda: count() > before, f'update check {number} reaches the probe server', 60)
+            asked.append(chrome.since())
+            time.sleep(3)
+    finally:
+        stop_browser(link)
+    data = record.read_bytes()
+    served = count() - initial
+    shutil.rmtree(folder)
+    if str(CI) not in sys.path:
+        sys.path.insert(0, str(CI))
+    import netlog
+    scan = netlog.scan(data.decode(errors='replace'), ours, probe, f'{ADDRESS}/probe/update.xml?')
+    scan.update(checks_asked_at=asked, probe_checks_served=served)
+    evidence = gzip.compress(data)
+    expect(len(evidence) < 900_000, f'{label}: compressed network log is too large for the CI channel')
+    return scan, evidence
+
+
+def store_verdict(ours, baseline=None):
+    import netlog
+
+    for scan in [ours] if baseline is None else [ours, baseline]:
+        expect(scan['probe_checks'] >= 2 and scan['probe_checks'] == scan['probe_checks_served'],
+               f"the network log shows all of the probe's requests, at least two: {scan}")
+        expect(not scan['named_elsewhere'], f"our ID was requested outside a file: URL: {scan['named_elsewhere'][:3]}")
+    if baseline is None:
+        expect(not ours['update_service'], f"an update-service baseline is required: {ours['update_service'][:3]}")
+        return []
+    added = netlog.added(ours, baseline)
+    expect(not added, f'our extension adds requests to the update service: {added}')
+    return added
+
+
+def no_store(request):
+    """C9 uses its own profiles and, if necessary, the brief's probe-only fallback."""
+    layer, link, pages = fixtures()
+    ours, probe = shipped_extension()['id'], layer['probe']['id']
+    policy = POLICIES / 'aresos.json'
+    aside = POLICIES.parent / 'aresos-ci-c9-policy'
+    outputs, baseline = {}, None
+    stop_browser(link)
+    try:
+        scan, outputs['chrome/c9-ours-netlog.json.gz'] = store_log('c9-ours', link, pages, ours, probe, True)
+        if scan['update_service']:
+            policy.rename(aside)
+            try:
+                baseline, outputs['chrome/c9-probe-netlog.json.gz'] = store_log(
+                    'c9-probe', link, pages, ours, probe, False)
+            finally:
+                aside.rename(policy)
+    finally:
+        stop_browser(link)
+        start_his_chrome('c9-back-to-a')
+    summary = dict(probe_checks=scan['probe_checks'], probe_checks_served=scan['probe_checks_served'],
+                   checks_asked_at=scan['checks_asked_at'], own_id_outside_file=len(scan['named_elsewhere']),
+                   update_service_asks=scan['update_service_asks'], probe_only_baseline=baseline is not None)
+    outputs['chrome/c9-network.json'] = dict(summary, ours=scan, baseline=baseline)
+    try:
+        store_verdict(scan, baseline)
+    except Failure as error:
+        return dict(returncode=1, stderr=str(error), summary=summary, files=control().files_out(outputs))
+    return dict(returncode=0, summary=summary, files=control().files_out(outputs))
+
+
+# --- C7: the owner-details page and the real polkit agent ---------------------------------------------------------
+
+EDIT_SITE = 'editing.localhost'
+EDIT_ACTION = 'org.aresos.control.chrome-loosen'
+EDIT_CHANGE = f'Read-only off for {EDIT_SITE}'
+
+
+def shadow_value():
+    values = [line.split(':')[1] for line in pathlib.Path('/etc/shadow').read_text().splitlines()
+              if line.startswith(f'{OWNER}:')]
+    expect(len(values) == 1 and values[0], 'the disposable guest has an existing owner account')
+    return values[0]
+
+
+def set_shadow(value):
+    # The runner sends a salted hash. The plaintext goes only through the keyboard to PAM.
+    result = subprocess.run(['/usr/sbin/chpasswd', '-e'], input=f'{OWNER}:{value}\n', text=True,
+                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=30)
+    expect(result.returncode == 0, 'could not set the temporary guest shadow entry')
+
+
+def read_only():
+    actions = control()
+    reply = actions.answered(actions.cli('root', 'admin', 'chrome', 'allowed'))['data']['items']
+    values = [row['value'] for row in reply if row['kind'] == 'readonly' and row['id'] == EDIT_SITE]
+    expect(len(values) == 1 and type(values[0]) is bool, f'the details page has one read-only entry for {EDIT_SITE}')
+    return values[0]
+
+
+def mark_read_only():
+    actions = control()
+    actions.answered(actions.cli('root', 'admin', 'chrome', 'readonly', f'http://{EDIT_SITE}:{PORT}/'))
+    expect(read_only(), f'{EDIT_SITE} starts read-only')
+
+
+def edit_start(request):
+    _, link, _ = fixtures()
+    chrome = STATE.get('chrome')
+    if chrome is None:
+        chrome, _, _, _ = start_his_chrome('c7-start')
+    his_page('c7-focus')
+    host = one_host(chrome)
+    expect(host['in_chrome_scope'], 'the details page uses the native host in his Chrome scope')
+    confirm = load('aresos_confirm_for_edit', CODE / 'aresos_control/chrome/confirm.py')
+    peer = dict(pid=host['pid'], start=confirm.start_time(host['pid']), uid=owner_ids()[0])
+    expect(re.fullmatch(r'\$6\$[./A-Za-z0-9$]+', request['password_hash']), 'invalid guest password hash')
+    STATE['edit'] = dict(peer=peer, argv=confirm.command(peer, EDIT_CHANGE), shadow=shadow_value(),
+                         session=his_session(sessions()), journal_count=0, outcomes=[])
+    set_shadow(request['password_hash'])
+    mark_read_only()
+    identity = shipped_extension()['id']
+    expect(installed(link, identity)['enabled'], 'the details page is from the shipped extension')
+    return dict(returncode=0, summary=dict(extension_id=identity, site=EDIT_SITE, host_pid=host['pid']))
+
+
+def edit_prompt():
+    state = STATE['edit']
+    parent = int(control().show('MainPID')['MainPID'])
+    return [row for row in processes() if row['parent'] == parent and row['cmdline'] == state['argv']]
+
+
+def edit_wait(request):
+    expect(read_only(), 'the site remains read-only before any password is entered')
+    rows = eventually(edit_prompt, 'the service waits for the real agent for this host and site', 18)
+    expect(len(rows) == 1, 'one password check is pending')
+    STATE['edit']['pkcheck_pid'] = rows[0]['pid']
+    return dict(returncode=0, summary=dict(pkcheck_waiting=True, subject=STATE['edit']['peer'], site=EDIT_SITE))
+
+
+def edit_journal(lines, session, peer):
+    subject = f"unix-process:{peer['pid']}:{peer['start']} "
+    return [line for line in lines if f'Operator of unix-session:{session} ' in line and subject in line
+            and f'authorization for action {EDIT_ACTION} ' in line and HOST_PROCESS in line]
+
+
+def edit_result(allowed):
+    state = STATE['edit']
+    pid = state.pop('pkcheck_pid')
+    eventually(lambda: not pathlib.Path(f'/proc/{pid}').exists(), 'pkcheck exits after the keyboard answer', 20)
+
+    def journal():
+        done = control().ok(control().run(['journalctl', '-b', '--no-pager', '-o', 'short-iso-precise',
+                                           '_COMM=polkitd']))
+        lines = edit_journal(done['stdout'].splitlines(), state['session'], state['peer'])
+        return lines if len(lines) > state['journal_count'] else None
+    lines = eventually(journal, 'polkit records the action for the native host', 10)
+    new = lines[state['journal_count']:]
+    expect(len(new) == 1, f'one journal outcome per attempt: {new}')
+    marker = f'successfully authenticated as unix-user:{OWNER} to gain ONE-SHOT authorization' if allowed else 'FAILED to authenticate'
+    expect(marker in new[0], f'polkit records the specified answer: {new}')
+    eventually(lambda: read_only() is not allowed, 'the rule reflects exactly this answer', 10)
+    state['journal_count'] = len(lines)
+    summary = dict(answer='password' if allowed else 'cancel', readonly=read_only(), journal=new[0])
+    state['outcomes'].append(summary)
+    return dict(returncode=0, summary=summary)
+
+
+def edit_reset(request):
+    result = edit_result(True)
+    mark_read_only()
+    return result
+
+
+def edit_finish(request):
+    state = STATE.pop('edit', None)
+    expect(state is not None, 'no C7 test was prepared')
+    set_shadow(state.pop('shadow'))
+    summary = dict(site=EDIT_SITE, subject=state['peer'], attempts=state['outcomes'])
+    expect([row['readonly'] for row in summary['attempts']] == [True, False, True],
+           f'C7 needs cancel, password and a fresh dialog: {summary}')
+    return dict(returncode=0, summary=summary, files=control().files_out({'chrome/c7-polkit.json': summary}))
+
+
+# --- C8: one Chrome form through 18c's Claude Code terminal driver -----------------------------------------------
+
+FORM_TEXT = 'AresOS test message'
+FORM_FIELD = 'Test message'
+FORM_BUTTON = 'Submit test message'
+
+
+def form_target(page, label, role):
+    rows = [json.loads(line) for line in page['untrusted_content']['tree'].splitlines() if line.startswith('{')]
+    targets = [row for row in rows if row['expected'].get('name') == label and row['expected'].get('role') == role]
+    expect(len(targets) == 1, f'the form has one {role} named {label}')
+    return {key: targets[0][key] for key in ('reference', 'expected')}
+
+
+def mcp_data(result, texts):
+    expect(not result.get('is_error'), f'Claude Code tool error: {result}')
+    parsed = [json.loads(text) for text in texts(result['content']) if text.startswith('{')]
+    expect(len(parsed) == 1 and parsed[0].get('ok') is True, f'Chrome tool read or action failed: {parsed}')
+    return parsed[0]['data']
+
+
+def form_model(url):
+    """Add navigation and fill before the shared model's real prepare + managed-ask path."""
+    from interactive_model import Model, Script, texts, tool as tool_use
+
+    class FormScript(Script):
+        def respond(self, request):
+            for message in request.get('messages', []):
+                content = message.get('content')
+                for block in content if isinstance(content, list) else []:
+                    if block.get('type') == 'tool_result':
+                        self.results[block['tool_use_id']] = block
+
+            def data(identifier):
+                return mcp_data(self.results[identifier], texts)
+
+            def issue(verb, arguments, identifier):
+                expect(identifier not in self.issued, f'Claude Code returned no result for {identifier}')
+                self.issued.add(identifier)
+                return [tool_use(f'mcp__chrome__{verb}', arguments, identifier)]
+
+            if 'form-open' not in self.results:
+                return issue('open', {'url': url}, 'form-open')
+            tab = data('form-open')['tab']
+            if 'form-wait' not in self.results:
+                return issue('wait', {'tab': tab, 'element': {'name': FORM_FIELD, 'role': 'textbox'},
+                                      'timeout_ms': 8000}, 'form-wait')
+            if 'form-fill' not in self.results:
+                page = data('form-wait')
+                expect(page.get('condition_met') and page['untrusted_content']['url'] == url,
+                       'the guarded test form has loaded in the tab Claude opened')
+                return issue('fill', dict(form_target(page, FORM_FIELD, 'textbox'), text=FORM_TEXT), 'form-fill')
+            expect(not data('form-fill').get('approval'), 'filling a plain text field is free')
+            if 'form-filled-view' not in self.results:
+                return issue('read', {'tab': tab}, 'form-filled-view')
+            if 'prepare-0' not in self.issued:
+                self.steps[0]['prepare']['input'] = form_target(data('form-filled-view'), FORM_BUTTON, 'button')
+            return super().respond(request)
+
+    def create(steps, evidence, port):
+        model = Model(steps, evidence, port)
+        model.script = FormScript(steps)
+        return model
+    return create
+
+
+def form_arrivals(pages, expected):
+    arrived = pages.arrivals()
+    expect(arrived == expected, f'the receiver saw {arrived}; expected {expected}')
+    return len(arrived)
+
+
+def ask_form(request):
+    """C8 uses the same pinned Claude Code, loopback model double and synthetic key as 18c."""
+    _, _, pages = fixtures()
+    actions = control()
+    sessions_, _ = actions.layer_modules()
+    # The second pass is on a fresh overlay, so repeat 18c's usual user install here.
+    actions.user_mcp(dict(install=request['install']))
+    sessions_.prepare_home()
+    managed_path = str(actions.MANAGED_SETTINGS)
+    managed = sha256(managed_path)
+    expect(managed == json.loads(RECORD.read_text())['files'][managed_path]['sha256'],
+           'Claude Code uses the shipped managed settings')
+    sessions_.user_settings([f'mcp__chrome__{verb}' for verb in ('open', 'wait', 'fill', 'read', 'click')])
+    out = RUN / 'c8'
+    rows, expected, errors, files, folders = {}, [], [], {}, {}
+    for answer in ('Yes', 'No'):
+        case = answer.lower()
+        url = f'{ADDRESS}/form-{case}'
+        folder = out / case
+        folders[f'chrome/c8-{case}.tar.gz'] = folder
+        step = dict(prompt=f'CHROME_FORM_ASK_{answer.upper()}', send='mcp__chrome__submit',
+                    prepare={'name': 'mcp__chrome__click', 'input': None})
+        try:
+            before = form_arrivals(pages, expected)
+            result = sessions_.session(folder, [step], sessions_.NORMAL, [answer],
+                                       model_factory=form_model(url),
+                                       before_answer=lambda: form_arrivals(pages, expected))
+            turn = result['turns'][0]
+            expect(result['owner_answers'] == 1 and turn['prompt_shown'] and turn['question'],
+                   f'{case} showed the real managed ask and one owner answer')
+            state = actions.answered(tool('operation_status', {'operation_id': turn['operation_id']}))['data']
+            state = state['operation']['state']
+            expect(state == ('done' if answer == 'Yes' else 'reserved'), f'{case}: unexpected operation state {state}')
+            if answer == 'Yes':
+                expected.append(dict(path='/form-yes', fields={'message': [FORM_TEXT]}))
+            else:
+                actions.answered(tool('drop', {'operation_id': turn['operation_id']}))
+            rows[case] = dict(question=turn['question'], prompt_shown=True, owner_answers=1, state=state,
+                              arrivals=form_arrivals(pages, expected) - before)
+        except Exception as error:
+            errors.append(f'{case}: {type(error).__name__}: {error}')
+    files['chrome/c8-ask.json'] = dict(cases=rows, receiver=pages.arrivals(), managed_settings_sha256=managed)
+    actions.packed(files, folders, errors)
+    return dict(returncode=1 if errors else 0, summary=rows, stderr='\n'.join(errors), files=actions.files_out(files))
+
+
 def selinux(request):
     """18c's SELinux scan again at the end of this pass; a denial naming Chrome's host, the service, gh or pkcheck
     fails it."""
@@ -1415,4 +1948,10 @@ ACTIONS = {'chrome-session': session, 'chrome-polkit-start': polkit_start, 'chro
            'chrome-hand-loaded': hand_loaded, 'chrome-install': install, 'chrome-his-tab': his_tab,
            'chrome-sites-first-use': sites_first_use, 'chrome-sites-after-reboot': sites_after_reboot,
            'chrome-host': native_host, 'chrome-sites-later': sites_later, 'chrome-gh': gh, 'chrome-records': records,
+           'chrome-update': update, 'chrome-package-fault': package_fault, 'chrome-no-store': no_store,
+           'chrome-edit-start': edit_start, 'chrome-edit-wait-cancel': edit_wait,
+           'chrome-edit-cancelled': lambda request: edit_result(False), 'chrome-edit-wait-allow': edit_wait,
+           'chrome-edit-reset': edit_reset, 'chrome-edit-wait-again': edit_wait,
+           'chrome-edit-again-cancelled': lambda request: edit_result(False), 'chrome-edit-finish': edit_finish,
+           'chrome-ask-form': ask_form,
            'chrome-selinux': selinux}
