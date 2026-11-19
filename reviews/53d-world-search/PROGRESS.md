@@ -83,7 +83,7 @@ I looked at all twelve. In "several hits" his two apps come first, "Test Web 1" 
   `AppSearchTest` tests pass). Earlier attempts ended with exit 75 (under 6 GiB free) and were retried after a wait.
 - `mod/dev/client-test.sh`, the full suite, run 1: `Client tests ended with exit code 0 after 13 min 8 s` on the
   RTX 4060, with `53d world search checks passed` in its log.
-- The full suite, run 2: not run yet.
+- The full suite, run 2: `Client tests ended with exit code 0 after 13 min 5 s`, again with `53d world search checks passed`. It wrote the twelve pictures again, byte for byte the same.
 - Before those, the new test ran alone twice to look at the pictures (the suite list cut down in the working tree
   only, restored after each run, never committed).
 - After each suite run only the tracked pictures it rewrote were restored, and the untracked pictures it wrote for
