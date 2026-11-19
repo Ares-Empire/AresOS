@@ -1,5 +1,45 @@
 # Package 28a: Chrome acting progress
 
+## Step 2, fix
+
+2026-11-19. Draft PR #116. `9b482732` fixes two public reader defects exposed by the harness move.
+
+- **Image-map links.** In core's Group 3 destination-binding case (`post18d-destination-area-top-base`)
+  and recheck3's Group 2 native-default case (`recheck3-default-area-self`), `tool.jsonl` showed
+  the legacy `link "Delete"` row, an empty public find, and zero receiver arrivals. Chrome gives
+  an `area` no layout box. The reader now uses the mapped image's existing hit bounds to show
+  the link and issue its reference. [Chromium area style](https://raw.githubusercontent.com/chromium/chromium/main/third_party/blink/renderer/core/html/resources/html.css#L1018-L1022)
+- **Editable native button.** In review's Group 2 payment and delete labels case
+  (`recheck-search-editable-native`), the legacy read showed `button "Pay"` and public find
+  was empty. The outline classified the editable native button as a textbox and lost its
+  visible label. The native button role now takes precedence over generic editability.
+- Both failures reproduced on policy and external installs and in both stable qualification
+  repeats. Both Chrome aggregates received six of nine complete shards. The green `a28720dd`
+  receiver artifacts record zero before approval, one after and one after replay for all three
+  failing rows. The cases still select their original targets and retain those assertions,
+  including the destination case's re-ask and exact binding checks. No cases returned to the
+  legacy action path. [Harness map](HARNESS-MAP.md)
+
+**Verified.** Portable Node `--test --test-concurrency=2 control/chrome_tests/*.test.mjs`
+passed 636/636 in 56.560 s. `PYTHONPATH=control:control/chrome_tests python3 -m unittest
+test_questions test_policy test_engine test_doing test_qualification_fixture test_field_descriptions
+test_loss_errors test_acting_references test_build test_view_outline test_outline_action test_outline_time`
+ran 273 tests in 60.563 s and printed `OK`, with an HTTP 403 `ResourceWarning`.
+`python3 control/generate.py --check` printed `Generated artifacts match definitions`.
+`git diff --check` and the ask-rules comparison with `origin/main` passed. No local browser ran.
+
+**Hosted runs.** Dispatched each workflow once on `9b482732`. `linux-tools` owns the results.
+[Control Chrome 44622916426](https://github.com/Ares-Empire/AresOS/actions/runs/44622916426)
+and [qualification 44622915970](https://github.com/Ares-Empire/AresOS/actions/runs/44622915970).
+
+**JUDGMENT-CALL.** Use the browser's existing hit geometry and native button semantics in
+the public reader. A legacy route for these rows would leave real controls absent from public
+find. Reverting the reader fix would require restoring those cases' legacy action routes.
+Image maps shared by multiple images still use the first associated image. [Known limits](KNOWN-LIMITS.md)
+
+**PLAN-GAPs.** No new step 3a fallback. The existing legacy evidence remains mapped below
+and in the harness map.
+
 ## Step 2
 
 2026-11-19. Draft PR #116, branch `pkg/28a-chrome-act`. The `linux-tools` lead owns the hosted results.

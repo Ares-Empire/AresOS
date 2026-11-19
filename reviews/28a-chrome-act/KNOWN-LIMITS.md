@@ -8,6 +8,13 @@ accepted under decision 24. Browser coverage and unfinished acceptance remain in
 
 ## Limits found while building package 28a
 
+### Shared image maps — step 2
+
+- **A map shared by multiple images uses the first matching image.** The outline and input
+  hit test use the same image lookup. If the first image is hidden and a later image is visible,
+  its links can be absent from the outline. *Harm:* the owner can still use the link directly.
+  The reader uses the existing hit geometry so a surfaced reference points to the image input uses.
+
 ### Large approvals — step 1d, part 2, fix 2
 
 - **A form about a quarter bigger than F4 in affected-item fields refuses.** Conservative

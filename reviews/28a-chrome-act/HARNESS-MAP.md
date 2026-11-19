@@ -99,7 +99,21 @@ Check those envelopes before projecting them to the existing loss assertions. Ke
 prose and values out of the report. The step 0b transport/schema/hostile-label tests in `test_loss_errors`
 and the existing stored-result checks remain.
 
+## Step 2 reader fixes
+
+The failed `205c7219` browser artifacts and both stable qualification repeats showed a legacy
+target row followed by an empty public find. The fix keeps the same row selection and uses its
+public short reference for `chrome_do`.
+
+| Case | Reader repair | Evidence kept |
+|---|---|---|
+| Group 3 absolute destinations and Group 2 RECHECK3 native defaults | Show an image-map `area` as a link when its mapped image gives it usable bounds. | The original destination and browsing target, the re-ask and stale approval checks, the held native default and ping checks, and receiver counts. |
+| Group 2 RECHECK payment and delete labels override GET search | Keep the native button role and visible `Pay` label on the editable submit button. | The handler stays stopped, the payment and delete controls still require approval, and the receiver counts stay zero, one, one. |
+
 ## PLAN-GAPs kept on the legacy evidence path
+
+Step 2's reader fixes returned no additional cases to legacy actions. Step 3a still owns the
+following evidence paths.
 
 - The password/field matrices, native tab and dialog observers, and exact fixture URL/document
   checks need the old structured rows, full URLs, session/frame/element IDs, field values or
