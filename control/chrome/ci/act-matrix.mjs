@@ -205,7 +205,8 @@ export async function actMatrix({check:report,call,rpc,nav,counts,eventually,fix
       assert.deepEqual(shown.choosing.map(option=>[option.label,option.value]),[['Country 12','c12']]);
       assert.deepEqual(shown.chosen.map(option=>[option.label,option.value]),[['Country 7','c7']]);assert.equal(shown.option_count,200);
       const bytes=canonicalBytes(country.prepared[0].approval);
-      assert.ok(bytes<=9000,'the asking select approval is at most 9,000 bytes: '+bytes);
+      // Lead decision, 2026-11-19: retain the repeated affected-item fields.
+      assert.ok(bytes<16384&&bytes<=14000,'the asking select approval is under ASK_LIMIT and at most 14,000 bytes: '+bytes);
       const size=await act(page.tab,[{do:'select',ref:refOf(outline,'combobox "Size"'),value:'L'}]);assert.deepEqual(outcomes(size),['prepared']);
       const sized=size.prepared[0].approval.description.untrusted_content.page_state.target;
       assert.deepEqual(sized.choosing.map(option=>option.label),['L']);assert.deepEqual(sized.chosen.map(option=>option.label),['M']);
@@ -524,9 +525,16 @@ export async function actMatrix({check:report,call,rpc,nav,counts,eventually,fix
     refusal(await tool('go',{tab,url:actUrl('plain',uid('elsewhere'))}),'reload_required');
     const row=(await allTabs(call)).items.find(item=>item.tab===tab);assert.equal(row?.url,url,'the page was not replaced');
     await data('release',{tab});
-    // A taken tab without typing reloads under brief 20's guard, then navigates.
-    const plainId=uid('plain'),other=await ownerOpenTab(actUrl('plain',plainId));opened.push(other);
-    await data('take',{tab:other,seen:await seenOf()});
+    // In an unwatched owner document even an empty textarea has unknown
+    // history. Keep that refusal; the no-typing path uses no editable fields.
+    const unreadUrl=actUrl('plain',uid('unread-empty')),unread=await ownerOpenTab(unreadUrl);opened.push(unread);
+    const unreadTake=await data('take',{tab:unread,seen:await seenOf()});assert.equal(unreadTake.reload_due,true);assert.equal(unreadTake.typed_fields,0,'the field is empty');
+    const unreadGo=refusal(await tool('go',{tab:unread,url:actUrl('plain',uid('unread-target'))}),'reload_required');
+    assert.ok(unreadGo.untrusted_content.loss.fields.some(field=>field.by==='owner'&&field.description==='text area "Note"'));
+    assert.equal((await allTabs(call)).items.find(item=>item.tab===unread)?.url,unreadUrl,'the unread empty field is not discarded');
+    await data('release',{tab:unread});
+    const plainId=uid('plain'),other=await ownerOpenTab(actUrl('plain',plainId,'&mode=empty'));opened.push(other);
+    const empty=await data('take',{tab:other,seen:await seenOf()});assert.equal(empty.reload_due,true);assert.equal(empty.typed_fields,0);
     const target=uid('target'),went=await data('go',{tab:other,url:actUrl('plain',target)});
     assert.equal(went.loaded,true);assert.ok(String(went.untrusted_content.url).includes(target),went.untrusted_content.url);
   });

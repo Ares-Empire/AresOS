@@ -23,7 +23,7 @@ from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from aresos_control.chrome import projection
-from aresos_control.common import Refused, canonical, visible
+from aresos_control.common import ASK_LIMIT, Refused, canonical, visible
 from test_field_descriptions import SESSION, SITE, Host, control, page_frame, target
 import test_field_descriptions
 import test_engine as fixture
@@ -305,6 +305,33 @@ class Projection(unittest.TestCase):
             result = self.call('chrome_click', self.reference('e32'))
         self.assertEqual(result['error']['code'], 'asking_input_too_large')
         self.assertEqual(list(self.engine.store.iter_items('op:')), [])
+
+    def test_conservative_f4_with_affected_item_fields_fits_but_whole_options_refuse(self):
+        # The native select's affected item repeats the visible form fields.
+        # The earlier double omitted them and measured only the qualified send.
+        self.chrome.bridge.version = '159.0.1.0'
+        fields = f4_fields(filled=0)
+        self.f4(fields, item_fields=[copy.deepcopy(field) for field in fields
+                                    if not field['hidden'] and field['type'] not in ('submit', 'fieldset')])
+        field = next(field for field in fields if field['label'] == 'Country')
+        self.host.targets[field['element']] = target(field['element'], 'Country', role='combobox', editable=False,
+                                                     value=field['value'], options=field['options'])
+        args = {**self.reference(field['element']), 'value': 'c12'}
+        prepared = self.public(self.call('chrome_select', args), 'chrome_select')['approval']
+        measured = size(prepared)
+        print('Conservative F4 with item_fields: %d bytes / 14000, ASK_LIMIT %d' % (measured, ASK_LIMIT))
+        self.assertLess(measured, ASK_LIMIT)
+        self.assertLessEqual(measured, 14000)  # lead decision, 2026-11-19; ASK_LIMIT stays unchanged
+        binding = self.operation(prepared['operation_id'])['payload']['binding']
+        self.assert_lists(prepared['description']['untrusted_content']['page_state'], binding)
+        self.assertEqual(len(binding['target']['options']), 200)
+        self.assertEqual(len(binding['item_fields']), 26)
+        before = list(self.engine.store.iter_items('op:'))
+        with patch.object(projection, 'lists', lambda value, choosing=None: value):
+            refused = self.call('chrome_select', args)
+        self.assertEqual(refused['error']['code'], 'asking_input_too_large')
+        self.assertEqual(list(self.engine.store.iter_items('op:')), before, 'whole options reserve nothing')
+        self.assertEqual(self.host.sent('input'), [], 'neither preparation dispatches input')
 
     def test_every_place_a_list_sits_shows_its_chosen_options_and_count(self):
         many = select('e40', 'Toppings', options(5, chosen=(1, 3), prefix='Topping ', value='t'), multiple=True)

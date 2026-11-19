@@ -12,7 +12,7 @@ import {lineOf,refOf} from '../chrome/ci/act-matrix.mjs';
 
 const PAGES=[['steps',''],['f4',''],['large','&mode=fields'],['large','&mode=text'],['far',''],['far','&mode=scroll'],['fingerprint',''],
   ...HOSTILE.map((_,index)=>['hostile','&index='+index]),['look',''],['look','&mode=landed'],['loaded',''],['loaded','&mode=busy'],['address',''],
-  ['links',''],['fold',''],['stage',''],['plain',''],['typed',''],['media',''],['popup',''],['popup','&mode=child']];
+  ['links',''],['fold',''],['stage',''],['plain',''],['plain','&mode=empty'],['typed',''],['media',''],['popup',''],['popup','&mode=child']];
 const lastScript=html=>html.slice(html.lastIndexOf('<script>')+8,html.lastIndexOf('</script>'));
 
 // A stand-in DOM: every property is another stand-in, every call returns one, and what a
@@ -83,6 +83,9 @@ test('the act pages carry what their cases count on',()=>{
   for(const part of ['<input name="alpha">','action="/receive?case=act-send-t2"','<option value="c" disabled>Cherry</option>','Banana  split','id="draft">Load draft','id="later">Notice later'])assert.ok(steps.includes(part),part);
   assert.equal((steps.match(/>Twin</g)||[]).length,2,'two options share a label');
   const f4=page('f4');assert.match(f4.body,/action="\/receive\?case=efficiency-f4-t2"/);assert.equal((f4.body.match(/<option value="c\d+"/g)||[]).length,200);
+  assert.match(page('plain').body,/<textarea name="note">/);
+  assert.doesNotMatch(page('plain','&mode=empty').body,/<input|<textarea|<select|contenteditable/);
+  assert.match(page('plain','&mode=empty').body,/>Press me<\/button>/);
   assert.equal((page('large','&mode=fields').body.match(/<input name="item\d+"/g)||[]).length,LARGE_FIELDS);
   assert.ok(page('large','&mode=text').body.includes('>'+longNote()+'</textarea>'));assert.equal(longNote().length,LONG_NOTE);
   assert.match(page('far').body,/height:10000px.*Far button.*overflow:auto.*Inner button/);

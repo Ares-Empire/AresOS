@@ -175,8 +175,8 @@ function stage(id){
       +'timer=setInterval(()=>{stage++;document.querySelector("#stage").textContent="stage "+stage;},'+STAGE_MS+');};'};
 }
 
-function plain(id){
-  return {body:'<h1>Plain page</h1><button type="button" id="press">Press me</button><label>Note <textarea name="note"></textarea></label>',
+function plain(id,mode){
+  return {body:'<h1>Plain page</h1><button type="button" id="press">Press me</button>'+(mode==='empty'?'':'<label>Note <textarea name="note"></textarea></label>'),
     script:titled('Plain '+id)+reporter(id)+inputs+clicks('#press','press')};
 }
 
@@ -201,7 +201,7 @@ export function actPage(url){
   const id=String(url.searchParams.get('id')||'fixture').slice(0,40),mode=url.searchParams.get('mode');
   const pages={steps:()=>steps(id),f4:()=>f4(id),large:()=>large(id,mode),far:()=>far(id,mode),fingerprint:()=>fingerprint(id),
     hostile:()=>hostile(id,HOSTILE[Math.max(0,Math.min(HOSTILE.length-1,Number.parseInt(url.searchParams.get('index')||'0',10)||0))]),look:()=>look(id,mode),loaded:()=>loaded(id,mode),
-    address:()=>address(id),links:()=>links(id),fold:()=>fold(id),stage:()=>stage(id),plain:()=>plain(id),typed:()=>typed(id),
+    address:()=>address(id),links:()=>links(id),fold:()=>fold(id),stage:()=>stage(id),plain:()=>plain(id,mode),typed:()=>typed(id),
     media:()=>media(id),popup:()=>popup(id,mode)};
   return Object.hasOwn(pages,name)?pages[name]():null;
 }
