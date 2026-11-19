@@ -37,7 +37,7 @@ public final class ShellFocusClient {
                     });
             }
 
-            // Super (package 53d): the helper has asked the compositor to give the world the keyboard.
+            // Super (package 53d): the compositor reports the world active; the bar still waits for the window's focus.
             @Override public void search() {
                 var client = Minecraft.getInstance();
                 client.execute(() -> WorldSearchScreen.requested(client));

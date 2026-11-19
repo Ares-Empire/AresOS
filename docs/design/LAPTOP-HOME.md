@@ -468,13 +468,18 @@ helper that does not know them works as today.
     the serving loop acts, and signals within 300 ms count as one. It acts only for a desktop on minor 2 that
     offered `shell_search` and has sent `world_ready` (and no heartbeat with `"ready": false` since), with window
     tracking on and the world's window known; otherwise Super does nothing.
-  - It requests the world's activation as a click would. Its `uncover()` (`covering(known_screen=True)`) then
-    minimizes a maximized or fullscreen window that hides the world on its screen; smaller windows and windows on
-    the other screen stay. With the world already active it uncovers at once. The event follows the request; no
-    `shell_focus` of the helper's own (the compositor's activation brings the usual `desktop_activated`).
-  - The mod ignores it with no ready desktop world, while a screen he types in is open (chat, a sign, a book,
-    an anvil, a command block, any focused text box), and while the search is open already. An open container
-    closes first, the normal way.
+  - It requests the world's activation as a click would, and sends the event only once the compositor reports the
+    world activated (so typing never reaches the window that had the keyboard), after the usual `shell_focus`
+    `desktop_activated`; no `shell_focus` of the helper's own. No activation within 1 s: nothing is sent (logged).
+    The conditions above are checked again when the activation comes. That activation `uncover()`s
+    (`covering(known_screen=True)`): a maximized or fullscreen window that hides the world on its screen is
+    minimized; smaller windows and windows on the other screen stay. With the world reported active already it
+    uncovers and sends at once; the last active window alone never counts as the world being active.
+  - The mod ignores it with no ready desktop world, while a screen he types in is open, whatever its focus (chat, a
+    sign, a book or its signing screen, an anvil, a command, structure, jigsaw or test block), or any screen whose
+    focus is in a text box, and while the search is open already. It opens the search only while the game's window
+    has the keyboard; an event that comes before the focus waits up to 500 ms for it, then is dropped. An open
+    container closes first, the normal way.
 - **`open_app`'s `"screen": "world"`** (minor-2 desktop to helper). The app opens on the screen that shows the
   world (the search's Enter). From a view or a desktop below minor 2 the key is `malformed`, and so is any value
   but `"world"`. The hint is kept in the launch's journal entry, through a pending check, duplicate requests and a

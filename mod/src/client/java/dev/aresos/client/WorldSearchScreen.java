@@ -5,12 +5,15 @@ import dev.aresos.config.AppDefinition;
 import dev.aresos.config.AppSearch;
 import dev.aresos.item.AppItems;
 import dev.aresos.names.NameRules;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.components.MultiLineEditBox;
+import net.minecraft.client.gui.components.events.ContainerEventHandler;
+import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.screens.ChatScreen;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractCommandBlockEditScreen;
@@ -18,6 +21,11 @@ import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.gui.screens.inventory.AbstractSignEditScreen;
 import net.minecraft.client.gui.screens.inventory.AnvilScreen;
 import net.minecraft.client.gui.screens.inventory.BookEditScreen;
+import net.minecraft.client.gui.screens.inventory.BookSignScreen;
+import net.minecraft.client.gui.screens.inventory.JigsawBlockEditScreen;
+import net.minecraft.client.gui.screens.inventory.StructureBlockEditScreen;
+import net.minecraft.client.gui.screens.inventory.TestBlockEditScreen;
+import net.minecraft.client.gui.screens.inventory.TestInstanceBlockEditScreen;
 import net.minecraft.client.input.CharacterEvent;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
@@ -32,6 +40,7 @@ import org.lwjgl.glfw.GLFW;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Predicate;
 
 /**
  * Package 53d: the search over the world, which Super opens (docs/design/LAPTOP-HOME.md section 6). A search box and
@@ -39,7 +48,8 @@ import java.util.Set;
  * one, a click opens any of them, Escape goes back to the world. It is the quickest way to an app, so it shows nothing
  * until he types and it never pauses the world.
  *
- * <p>Which program is the best hit is {@link AppSearch#ranked}'s rule, not this screen's. An app opened from here
+ * <p>Which program is the best hit is {@link AppSearch#ranked}'s rule, not this screen's. The best hit stays at the
+ * top of the list while the rest scrolls under it, so the program Enter opens is always in view. An app opened from here
  * opens on the screen that shows the world ({@link AresOsClient#launchOnWorldScreen}).
  *
  * <p>Its look is the bar the owner chose from three drawn for him (board #382, 2026-11-19): a search box in the upper
@@ -67,12 +77,22 @@ public final class WorldSearchScreen extends Screen {
     private record Row(AppDefinition app, ItemStack icon, boolean best) implements Line { }
     private record Note(Component text) implements Line { }
 
+    /**
+     * Whether the game's window has the keyboard. Public for the client test, which takes it away to check that the bar
+     * waits for it; the game's own answer otherwise.
+     */
+    public static Predicate<Minecraft> windowFocus = Minecraft::isWindowActive;
+    // Super's request that came before the window had the keyboard (client thread only).
+    private static final SearchFocusWait WAITING = new SearchFocusWait();
+
     private EditBox search;
     private Frame frame;
     private List<Line> lines = List.of();
     // The program Enter opens: the first hit of a query that is not blank.
     private String best;
-    // How many lines are scrolled past, from the best hit on.
+    // The first lines, up to the best hit, stay at the top while the rest scrolls: Enter's program stays in view.
+    private int pinned;
+    // How many of the lines after the pinned ones are scrolled past.
     private int scroll;
     // What the lines were last built from; see AppsScreen.
     private List<AppDefinition> shownApps;
@@ -93,25 +113,62 @@ public final class WorldSearchScreen extends Screen {
 
     /**
      * Super's {@code shell_search} (package 53d), on the client thread: opens the search unless this is the wrong
-     * moment for it ({@link SearchMoment}), and says which moment it was.
+     * moment for it ({@link SearchMoment}), and says which moment it was. Without the window's focus it waits for it
+     * ({@link SearchFocusWait}), then decides again.
      */
     public static SearchMoment requested(Minecraft client) {
-        var screen = client.gui.screen();
-        var moment = SearchMoment.of(ShellFocusClient.readyWorld(client) != null, screen instanceof WorldSearchScreen,
-                typing(screen), screen instanceof AbstractContainerScreen<?>);
+        WAITING.cancel();
+        var moment = moment(client);
+        if (moment == SearchMoment.NO_FOCUS) WAITING.start();
         if (moment.opens()) open(client);
         return moment;
     }
 
+    private static SearchMoment moment(Minecraft client) {
+        var screen = client.gui.screen();
+        return SearchMoment.of(ShellFocusClient.readyWorld(client) != null, screen instanceof WorldSearchScreen,
+                typing(screen), screen instanceof AbstractContainerScreen<?>, windowFocus.test(client));
+    }
+
+    /** Whether Super's request waits for the window's focus now. For the client test. */
+    public static boolean waitingForFocus() { return WAITING.waiting(); }
+
+    /** The wait for the window's focus runs on the client's ticks. Once, from the mod's client start. */
+    public static void register() {
+        ClientTickEvents.END_CLIENT_TICK.register(client -> {
+            if (!WAITING.waiting()) return;
+            switch (WAITING.tick(windowFocus.test(client))) {
+                case OPEN -> {
+                    var moment = moment(client);
+                    if (moment.opens()) open(client);
+                    else AresOs.LOGGER.info("Super: the game has the keyboard now, but the search does not open ({})", moment);
+                }
+                case DROP -> AresOs.LOGGER.info("Super: the game's window did not get the keyboard within 500 ms; no search");
+                case NOTHING -> { }
+            }
+        });
+    }
+
     /**
-     * A screen he types in: the game's chat, sign, book, anvil and command block screens, and any screen whose focus is
-     * in a text box (the Apps screen's search, the creative inventory's).
+     * A screen he types in, whatever has its focus: the game's chat, sign, book and book-signing, anvil, and command,
+     * structure, jigsaw and test block screens. A draft there lives only in the screen: replacing it with the search
+     * would throw it away (review 1: a book's title and unsaved pages, with the focus on "Sign and Close"). And any
+     * screen whose focus is in a text box (the Apps screen's search, the creative inventory's).
      */
     static boolean typing(Screen screen) {
         if (screen == null) return false;
-        return screen instanceof ChatScreen || screen instanceof AbstractSignEditScreen || screen instanceof BookEditScreen
-                || screen instanceof AnvilScreen || screen instanceof AbstractCommandBlockEditScreen
-                || screen.getFocused() instanceof EditBox || screen.getFocused() instanceof MultiLineEditBox;
+        if (screen instanceof ChatScreen || screen instanceof AbstractSignEditScreen || screen instanceof BookEditScreen
+                || screen instanceof BookSignScreen || screen instanceof AnvilScreen
+                || screen instanceof AbstractCommandBlockEditScreen || screen instanceof StructureBlockEditScreen
+                || screen instanceof JigsawBlockEditScreen || screen instanceof TestBlockEditScreen
+                || screen instanceof TestInstanceBlockEditScreen) return true;
+        // The focus can sit in a list or a tab inside the screen: follow it down, a few levels at most.
+        GuiEventListener focused = screen.getFocused();
+        for (int depth = 0; focused != null && depth < 8; depth++) {
+            if (focused instanceof EditBox || focused instanceof MultiLineEditBox) return true;
+            focused = focused instanceof ContainerEventHandler inner ? inner.getFocused() : null;
+        }
+        return false;
     }
 
     @Override protected void init() {
@@ -167,6 +224,10 @@ public final class WorldSearchScreen extends Screen {
             }
         }
         lines = built;
+        // The best hit and its heading stand at the top whatever is scrolled (review 1: Enter's program stays in view).
+        pinned = 0;
+        for (int at = 0; best != null && at < built.size(); at++)
+            if (built.get(at) instanceof Row) { pinned = at + 1; break; }
         scroll = keepPlace ? Math.clamp(scroll, 0, maxScroll()) : 0;
     }
 
@@ -174,9 +235,18 @@ public final class WorldSearchScreen extends Screen {
         return new Heading(Component.literal(name).append(Component.literal("  " + count).withStyle(ChatFormatting.GRAY)));
     }
 
-    private int maxScroll() { return Math.max(0, lines.size() - frame.rows); }
+    /** How many of the pinned lines are shown: all of them, unless the bar has room for fewer lines (then the best hit). */
+    private int pinnedShown() { return Math.min(pinned, frame.rows); }
+
+    private int maxScroll() { return Math.max(0, lines.size() - pinned - (frame.rows - pinnedShown())); }
 
     private int shownLines() { return Math.min(lines.size(), frame.rows); }
+
+    /** The line at shown place {@code place}: the pinned ones first, then the rest from where it is scrolled to. */
+    private Line shown(int place) {
+        int top = pinnedShown();
+        return lines.get(place < top ? pinned - top + place : pinned + scroll + place - top);
+    }
 
     /** The top of the shown line {@code place} (0 is the first one shown). */
     private int lineY(int place) { return frame.top + place * ROW; }
@@ -188,7 +258,7 @@ public final class WorldSearchScreen extends Screen {
         if (x < frame.x || x >= frame.x + lineWidth()) return null;
         for (int place = 0; place < shownLines(); place++) {
             int top = lineY(place);
-            if (y >= top && y < top + ROW) return lines.get(scroll + place);
+            if (y >= top && y < top + ROW) return shown(place);
         }
         return null;
     }
@@ -266,7 +336,7 @@ public final class WorldSearchScreen extends Screen {
         int lineWidth = lineWidth();
         Line hovered = lineAt(mouseX, mouseY);
         for (int place = 0; place < shown; place++) {
-            Line line = lines.get(scroll + place);
+            Line line = shown(place);
             int y = lineY(place);
             switch (line) {
                 case Heading heading -> heading(graphics, heading, frame.x, y, lineWidth);
@@ -274,7 +344,10 @@ public final class WorldSearchScreen extends Screen {
                 case Row row -> row(graphics, row, frame.x, y, lineWidth, line == hovered);
             }
         }
-        if (maxScroll() > 0) scroller(graphics, frame.x + frame.width - SCROLLER_WIDTH, frame.top, listBottom - frame.top);
+        // Beside the lines that scroll, not beside the pinned best hit.
+        int scrolling = lineY(pinnedShown());
+        if (maxScroll() > 0 && listBottom > scrolling)
+            scroller(graphics, frame.x + frame.width - SCROLLER_WIDTH, scrolling, listBottom - scrolling);
     }
 
     /** The Apps screen's heading: the name, the count in gray, and a rule on both sides. */
@@ -318,7 +391,7 @@ public final class WorldSearchScreen extends Screen {
 
     /** The game's own scroll bar, beside the lines. */
     private void scroller(GuiGraphicsExtractor graphics, int x, int top, int span) {
-        int handle = Math.max(8, span * frame.rows / lines.size());
+        int handle = Math.max(8, span * (frame.rows - pinnedShown()) / (lines.size() - pinned));
         int travel = (span - handle) * scroll / maxScroll();
         graphics.blitSprite(RenderPipelines.GUI_TEXTURED, SCROLLER_BACKGROUND, x, top, SCROLLER_WIDTH, span);
         graphics.blitSprite(RenderPipelines.GUI_TEXTURED, SCROLLER, x, top + travel, SCROLLER_WIDTH, handle);
@@ -350,13 +423,13 @@ public final class WorldSearchScreen extends Screen {
         return lines.stream().filter(Heading.class::isInstance).map(line -> ((Heading) line).label.getString()).toList();
     }
 
-    /** How many lines are scrolled past. */
+    /** How many lines under the pinned best hit are scrolled past. */
     public int scrolled() { return scroll; }
 
     /** The middle of a program's line in the screen's pixels, or null while it is not in view. */
     public int[] middleOf(String id) {
         for (int place = 0; place < shownLines(); place++)
-            if (lines.get(scroll + place) instanceof Row row && row.app.id().equals(id))
+            if (shown(place) instanceof Row row && row.app.id().equals(id))
                 return new int[] {frame.x + lineWidth() / 2, lineY(place) + ROW / 2};
         return null;
     }

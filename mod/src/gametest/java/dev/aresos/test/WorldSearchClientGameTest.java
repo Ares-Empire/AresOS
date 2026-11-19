@@ -16,9 +16,21 @@ import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.fabricmc.fabric.api.client.gametest.v1.screenshot.TestScreenshotOptions;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.components.AbstractButton;
+import net.minecraft.client.gui.components.AbstractWidget;
+import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.ChatScreen;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.inventory.BookEditScreen;
+import net.minecraft.client.gui.screens.inventory.BookSignScreen;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.client.gui.screens.worldselection.WorldCreationUiState;
+import net.minecraft.network.chat.CommonComponents;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.component.WritableBookContent;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -106,10 +118,14 @@ public final class WorldSearchClientGameTest implements FabricClientGameTest {
                 pictures(context, helper);
                 behaviour(context, helper);
                 ignored(context, helper);
+                // Review 1, round 1: last, so no earlier picture or check moves.
+                bookDraft(context, helper);
+                windowFocus(context, helper);
             } finally {
                 context.runOnClient(client -> {
                     AresOsClient.replaceLauncher(previousLauncher);
                     AresOsClient.FOCUS_RETURN.reset();
+                    WorldSearchScreen.windowFocus = Minecraft::isWindowActive;
                 });
             }
             AresOs.LOGGER.info("53d world search checks passed: shell_search opens the bar, in four states; nothing is "
@@ -188,6 +204,10 @@ public final class WorldSearchClientGameTest implements FabricClientGameTest {
         context.waitTick();
         context.runOnClient(client -> check(bar(client).scrolled() > 1 && "cobweb-test".equals(bar(client).best()),
                 "A page on moved the long list by " + bar(client).scrolled()));
+        // The framed best hit stays at the top, in view, while the lines under it scroll (review 1).
+        context.runOnClient(client -> check(bar(client).middleOf("cobweb-test") != null && bar(client).middleOf("test-mail") == null,
+                "After a page on, the best hit is " + (bar(client).middleOf("cobweb-test") == null ? "out of view" : "in view")
+                        + " and the line after it " + (bar(client).middleOf("test-mail") == null ? "scrolled past" : "still in view")));
         context.getInput().pressKey(InputConstants.KEY_PAGEUP);
         context.waitTick();
         context.runOnClient(client -> check(bar(client).scrolled() == 0, "A page back did not come back to the best hit"));
@@ -267,6 +287,102 @@ public final class WorldSearchClientGameTest implements FabricClientGameTest {
         context.runOnClient(client -> check(client.gui.screen() == open && bar(client).found().equals(WEB),
                 "A second shell_search replaced the open bar or what he typed: " + client.gui.screen()));
         escape(context);
+    }
+
+    /**
+     * Review 1, blocking 2: a book being signed. Its pages are written, Sign is clicked, a title typed, and Tab moves the
+     * focus to "Sign and Close", off the title box. Super must leave the signing screen, its title and its pages alone:
+     * entering it saved nothing, so replacing it would lose the draft.
+     */
+    private static void bookDraft(ClientGameTestContext context, FakeHelper helper) {
+        // A book of his own on the client: it is never signed or saved here.
+        var editor = context.computeOnClient(client -> {
+            var book = new BookEditScreen(client.player, new ItemStack(Items.WRITABLE_BOOK), InteractionHand.MAIN_HAND,
+                    WritableBookContent.EMPTY);
+            client.gui.setScreen(book);
+            return book;
+        });
+        context.waitForScreen(BookEditScreen.class);
+        context.getInput().typeChars("Dear diary");
+        context.waitTicks(2);
+        click(context, Component.translatable("book.signButton").getString());
+        context.waitForScreen(BookSignScreen.class);
+        context.getInput().typeChars("Draft");
+        context.waitTicks(2);
+        // Tab, as often as it takes (the screen lists Cancel after the title box), to "Sign and Close".
+        String finalize = Component.translatable("book.finalizeButton").getString();
+        for (int press = 0; press < 4 && !context.computeOnClient(client -> focusedButton(client.gui.screen(), finalize)); press++) {
+            context.getInput().pressKey(InputConstants.KEY_TAB);
+            context.waitTicks(2);
+        }
+        var signing = context.computeOnClient(client -> {
+            var screen = client.gui.screen();
+            check(focusedButton(screen, finalize), "Tab did not move the focus to Sign and Close: " + screen.getFocused());
+            check("Draft".equals(title(screen)), "The title box says " + title(screen));
+            return screen;
+        });
+        superPressed(helper);
+        context.waitTicks(10);
+        context.runOnClient(client -> {
+            check(client.gui.screen() == signing, "shell_search replaced the book being signed: " + client.gui.screen());
+            check("Draft".equals(title(signing)), "The book's title is now " + title(signing));
+        });
+        // Cancel goes back to the same editor with its pages: the draft is all there.
+        click(context, CommonComponents.GUI_CANCEL.getString());
+        context.waitFor(client -> client.gui.screen() == editor);
+        context.runOnClient(client -> client.gui.setScreen(null));
+        context.waitFor(client -> client.gui.screen() == null);
+    }
+
+    /**
+     * Review 1, blocking 1: the bar opens only while the game's window has the keyboard. A shell_search that comes
+     * before the focus waits for it and opens once it is there; after half a second without it, nothing opens.
+     */
+    private static void windowFocus(ClientGameTestContext context, FakeHelper helper) {
+        context.runOnClient(client -> check(client.isWindowActive(), "The test client's window does not have the keyboard,"
+                + " so every opening above went past the focus rule"));
+        context.runOnClient(client -> WorldSearchScreen.windowFocus = game -> false);
+        superPressed(helper);
+        context.waitFor(client -> WorldSearchScreen.waitingForFocus());
+        context.waitTicks(3);
+        context.runOnClient(client -> check(client.gui.screen() == null, "The bar opened without the window's focus"));
+        context.runOnClient(client -> WorldSearchScreen.windowFocus = Minecraft::isWindowActive);
+        context.waitForScreen(WorldSearchScreen.class);
+        escape(context);
+
+        context.runOnClient(client -> WorldSearchScreen.windowFocus = game -> false);
+        superPressed(helper);
+        context.waitFor(client -> WorldSearchScreen.waitingForFocus());
+        context.waitFor(client -> !WorldSearchScreen.waitingForFocus());
+        context.runOnClient(client -> WorldSearchScreen.windowFocus = Minecraft::isWindowActive);
+        context.waitTicks(5);
+        context.runOnClient(client -> check(client.gui.screen() == null,
+                "The bar opened after the wait for the window's focus ran out: " + client.gui.screen()));
+    }
+
+    /** Clicks the button that says {@code label} on the open screen, as he would with the pointer. */
+    private static void click(ClientGameTestContext context, String label) {
+        double[] at = context.computeOnClient(client -> {
+            var button = client.gui.screen().children().stream()
+                    .filter(child -> child instanceof AbstractWidget widget && widget.getMessage().getString().equals(label))
+                    .map(AbstractWidget.class::cast).findFirst()
+                    .orElseThrow(() -> new AssertionError("No \"" + label + "\" button on " + client.gui.screen()));
+            double scale = (double) client.getWindow().getScreenWidth() / client.getWindow().getGuiScaledWidth();
+            return new double[] {(button.getX() + button.getWidth() / 2.0) * scale, (button.getY() + button.getHeight() / 2.0) * scale};
+        });
+        context.getInput().setCursorPos(at[0], at[1]);
+        context.waitTick();
+        context.getInput().pressMouse(0);
+        context.waitTick();
+    }
+
+    private static boolean focusedButton(Screen screen, String label) {
+        return screen.getFocused() instanceof AbstractButton button && button.getMessage().getString().equals(label);
+    }
+
+    private static String title(Screen screen) {
+        return screen.children().stream().filter(EditBox.class::isInstance).map(box -> ((EditBox) box).getValue())
+                .findFirst().orElse(null);
     }
 
     private static void superPressed(FakeHelper helper) {

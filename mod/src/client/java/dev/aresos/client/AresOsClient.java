@@ -45,6 +45,7 @@ public final class AresOsClient implements ClientModInitializer {
         HomeButton.register();
         HomeSwitch.register();
         AppsScreen.register();
+        WorldSearchScreen.register();
         IconReload.register(dev.aresos.item.MyAppsGame.icons());
         if (AresOs.shell() != null) ShellFocusClient.register(AresOs.shell());
         // Package 46: the supervisor's lifecycle channel saves the world on request, only where the supervisor asked
