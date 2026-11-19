@@ -17,8 +17,35 @@ from laptop_home_helper import INSTANCE, TOKEN, StandIn, png, town
 home = load_program()
 
 
+SANDBOX_PROBE = r"""
+import json, os, socket, sys
+reached = {}
+for name, path in zip(('socket', 'file', 'parent'), sys.argv[1:]):
+    try:
+        if name == 'socket':
+            with socket.socket(socket.AF_UNIX) as client:
+                client.connect(path)
+        else:
+            os.close(os.open(path, os.O_RDONLY))
+        reached[name] = True
+    except OSError:
+        reached[name] = False
+print(json.dumps(dict(reached=reached, proc=os.path.exists('/proc/self'), root=sorted(os.listdir('/')),
+                      tmp=sorted(os.listdir('/tmp')), environment=sorted(os.environ))))
+"""
+
+
+def sandbox_runs():
+    try:
+        return home.run_sandboxed(home.decoder_command('print(1)'), b'', 16, 10) == b'1\n'
+    except (OSError, ValueError, home.subprocess.SubprocessError):
+        return False
+
+
+@unittest.skipUnless(sandbox_runs(), 'bubblewrap with user namespaces (the icon decoder never runs unsandboxed)')
 class IconTest(unittest.TestCase):
-    """53c's icon limits, now on the native loader: the checks on the opened file, then the decoder child."""
+    """53c's icon limits, now on the native loader: the checks on the opened file, then the decoder child in its
+    sandbox."""
 
     def setUp(self):
         workspace = scratch()
@@ -50,13 +77,18 @@ class IconTest(unittest.TestCase):
         self.assertEqual((width, height, bytes(rgba)), (3, 2, b'\x99\x73\xc2\xff' * 6))
         width, height, _ = home.decode_png(png(512, 512))
         self.assertEqual((width, height), (512, 512))
-        with mock.patch.object(home.subprocess, 'run', wraps=home.subprocess.run) as run:
+        with mock.patch.object(home.subprocess, 'Popen', wraps=home.subprocess.Popen) as popen:
             home.decode_png(png())
-        command, options = run.call_args.args[0], run.call_args.kwargs
-        self.assertEqual(command[1:4], ['-I', '-S', '-c'])
+        command, options = popen.call_args.args[0], popen.call_args.kwargs
+        self.assertEqual(command[0], home.BWRAP)
+        self.assertEqual(command[1:6], ['--unshare-all', '--die-with-parent', '--new-session', '--cap-drop', 'ALL'])
+        python = command.index('--', 1) + 1
+        self.assertEqual(command[python + 1:python + 4], ['-I', '-S', '-c'])
+        self.assertIn('--clearenv', command)
+        self.assertNotIn('--proc', command)
         self.assertEqual(options['env'], {'PATH': '/usr/bin', 'LC_ALL': 'C'})
         self.assertTrue(options['close_fds'])
-        self.assertEqual(options['input'], png())
+        self.assertIsInstance(options['stdin'], int)
         self.assertFalse(any(str(self.root) in part for part in command), 'the path never reaches the child')
         good = png(4, 4)
         broken = bytearray(good)
@@ -64,6 +96,41 @@ class IconTest(unittest.TestCase):
         for data in (bytes(broken), good[:30], b'GIF89a' + good[6:], png(600, 1), png(1, 600), b''):
             with self.subTest(data=data[:12]), self.assertRaises((home.subprocess.SubprocessError, ValueError)):
                 home.decode_png(data)
+
+    def test_decoder_sandbox_hides_the_helper_socket_runtime_folder_and_processes(self):
+        """REVIEW-1 finding 1: the child parsing the PNG reaches neither the helper's socket, a file in the runtime
+        folder, nor the home's process (its environment in /proc held the view credential)."""
+        import socket
+
+        runtime = self.root / 'run'
+        runtime.mkdir(mode=0o700)
+        token = runtime / 'token'
+        token.write_text('secret')
+        with socket.socket(socket.AF_UNIX) as listener:
+            listener.bind(str(runtime / 'shell.sock'))
+            listener.listen()
+            arguments = (str(runtime / 'shell.sock'), str(token), f'/proc/{os.getpid()}/environ')
+            # The probe works: run plainly, it reaches all three.
+            plain = home.run_sandboxed([home.sys.executable, '-I', '-S', '-c', SANDBOX_PROBE, *arguments], b'',
+                                       1 << 20, 10)
+            self.assertEqual(json.loads(plain)['reached'], dict(socket=True, file=True, parent=True))
+            seen = json.loads(home.run_sandboxed(home.decoder_command(SANDBOX_PROBE, *arguments), b'', 65536, 10))
+        self.assertEqual(seen['reached'], dict(socket=False, file=False, parent=False))
+        self.assertEqual(seen['proc'], False, 'no process view')
+        self.assertLessEqual(set(seen['root']), {'usr', 'lib64', 'lib', 'dev', 'tmp'}, 'only the decoder runtime')
+        self.assertNotIn('run', seen['root'])
+        self.assertEqual(seen['tmp'], [])
+        self.assertEqual(seen['environment'], ['LC_ALL', 'PATH', 'PWD'], 'bubblewrap sets PWD to /')
+
+    def test_decoder_output_cap_holds_before_the_reply_is_kept(self):
+        flood = 'import sys\nsys.stdout.buffer.write(bytes(%d))' % (home.MAX_DECODED + 1)
+        with self.assertRaisesRegex(ValueError, 'too large'):
+            home.run_sandboxed(home.decoder_command(flood), b'', home.MAX_DECODED, 10)
+
+    def test_no_sandbox_tool_no_icon(self):
+        with mock.patch.object(home.subprocess, 'Popen') as popen, self.assertRaises(FileNotFoundError):
+            home.decode_png(png(), bwrap=str(self.root / 'missing-bwrap'))
+        popen.assert_not_called()
 
     def test_decoder_handles_filters_palettes_and_alpha(self):
         import struct

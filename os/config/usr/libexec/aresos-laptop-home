@@ -15,6 +15,7 @@ import random
 import os
 from pathlib import Path
 import re
+import selectors
 import signal
 import stat
 import string
@@ -92,8 +93,9 @@ def read_icon(path):
     return png
 
 
-# The decoder runs in a short-lived child (python3 -I -S -c), outside the process that holds the view credential. It
-# reads a PNG's bytes from stdin and writes width, height and RGBA rows; PNG only, non-interlaced, at most 512 x 512.
+# The decoder runs in a short-lived child (python3 -I -S -c in bubblewrap, below), outside the process that holds the
+# view credential. It reads a PNG's bytes from stdin and writes width, height and RGBA rows; PNG only, non-interlaced,
+# at most 512 x 512.
 PNG_DECODER = r"""
 import struct, sys, zlib
 
@@ -192,18 +194,88 @@ sys.exit(main())
 """
 
 
-def decode_png(png, timeout=5):
-    """(width, height, RGBA) from the decoder child, which gets only PATH and LC_ALL, the PNG's bytes on its stdin and
-    no descriptor but its pipes."""
-    result = subprocess.run([sys.executable or '/usr/bin/python3', '-I', '-S', '-c', PNG_DECODER], input=png,
-                            stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, env={'PATH': '/usr/bin', 'LC_ALL': 'C'},
-                            close_fds=True, start_new_session=True, timeout=timeout, check=True)
-    if len(result.stdout) < 8:
+BWRAP = '/usr/bin/bwrap'
+# What the decoder may write back: its 8-byte size and at most 512 x 512 RGBA. Checked while reading, so a wrong child
+# never makes the home buffer more.
+MAX_DECODED = 8 + MAX_ICON_SIDE * MAX_ICON_SIDE * 4
+
+
+def decoder_runtime():
+    """The folders the decoder's Python needs, read-only: its standard library and the shared libraries. Fedora keeps
+    both in /usr/lib64 (as the helper's icon worker mounts it); Debian keeps the library in /usr/lib."""
+    library = os.path.realpath(os.path.dirname(os.__file__))
+    folders = [folder for folder in ('/usr/lib64', '/usr/lib') if os.path.isdir(folder)
+               and (folder == '/usr/lib64' or library.startswith(folder + '/'))]
+    if not any(library.startswith(folder + '/') for folder in folders):
+        folders.append(os.path.realpath(sys.base_prefix))   # a Python of its own, outside /usr
+    return folders
+
+
+def decoder_command(script, *arguments, bwrap=BWRAP):
+    """script run by this Python in bubblewrap, as the helper runs its icon converter: no network, no other
+    process, no host runtime folder, home or /proc; only the runtime above, a private /dev and an empty /tmp."""
+    python = os.path.realpath(sys.executable or '/usr/bin/python3')
+    command = [bwrap, '--unshare-all', '--die-with-parent', '--new-session', '--cap-drop', 'ALL']
+    for folder in decoder_runtime():
+        command += ['--ro-bind', folder, folder]
+        if folder in ('/usr/lib64', '/usr/lib'):
+            command += ['--symlink', folder[1:], folder[4:]]
+    return [*command, '--ro-bind', python, python, '--dev', '/dev', '--dir', '/tmp', '--chdir', '/', '--clearenv',
+            '--setenv', 'PATH', '/usr/bin', '--setenv', 'LC_ALL', 'C', '--', python, '-I', '-S', '-c', script,
+            *arguments]
+
+
+def run_sandboxed(command, data, limit, timeout):
+    """The command's output for data on its stdin, read under the limit and the deadline; its whole process group
+    ends after. Without the sandbox tool nothing runs: the caller shows no icon rather than decode unsandboxed."""
+    if not os.access(command[0], os.X_OK):
+        raise FileNotFoundError(f'sandbox not found: {command[0]}')
+    # The input comes from a memory file, so the child never waits on the home to write while the home waits to read.
+    source = os.memfd_create('aresos-icon', os.MFD_CLOEXEC)
+    try:
+        os.write(source, data)
+        os.lseek(source, 0, os.SEEK_SET)
+        proc = subprocess.Popen(command, stdin=source, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+                                env={'PATH': '/usr/bin', 'LC_ALL': 'C'}, close_fds=True, start_new_session=True)
+    finally:
+        os.close(source)
+    output, deadline = bytearray(), time.monotonic() + timeout
+    try:
+        with selectors.DefaultSelector() as selector:
+            selector.register(proc.stdout, selectors.EVENT_READ)
+            while True:
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    raise subprocess.TimeoutExpired(command[:1], timeout)
+                if not selector.select(remaining):
+                    continue
+                chunk = os.read(proc.stdout.fileno(), 65536)
+                if not chunk:
+                    break
+                if len(output) + len(chunk) > limit:
+                    raise ValueError('icon decoder output too large')
+                output += chunk
+        if proc.wait(timeout=max(0.001, deadline - time.monotonic())):
+            raise ValueError('icon decoder failed')
+        return bytes(output)
+    finally:
+        try:
+            os.killpg(proc.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+        proc.wait()
+        proc.stdout.close()
+
+
+def decode_png(png, timeout=5, bwrap=BWRAP):
+    """(width, height, RGBA) from the decoder child in its sandbox. It gets the PNG's bytes on stdin, never the path."""
+    output = run_sandboxed(decoder_command(PNG_DECODER, bwrap=bwrap), png, MAX_DECODED, timeout)
+    if len(output) < 8:
         raise ValueError('icon decoder failed')
-    width, height = struct.unpack_from('>II', result.stdout)
-    if not (0 < width <= MAX_ICON_SIDE and 0 < height <= MAX_ICON_SIDE) or len(result.stdout) != 8 + width * height * 4:
+    width, height = struct.unpack_from('>II', output)
+    if not (0 < width <= MAX_ICON_SIDE and 0 < height <= MAX_ICON_SIDE) or len(output) != 8 + width * height * 4:
         raise ValueError('icon decoder failed')
-    return width, height, result.stdout[8:]
+    return width, height, output[8:]
 
 
 def page_home(palette, rows, names):

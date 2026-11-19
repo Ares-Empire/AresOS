@@ -696,9 +696,21 @@ def chunk(name, data):
     return struct.pack('>I', len(data)) + name + data + struct.pack('>I', zlib.crc32(name + data))
 png = (b'\x89PNG\r\n\x1a\n' + chunk(b'IHDR', struct.pack('>IIBBBBB', 1, 1, 8, 6, 0, 0, 0))
        + chunk(b'IDAT', zlib.compress(b'\0\1\2\3\4')) + chunk(b'IEND', b''))
-assert home.decode_png(png) == (1, 1, b'\1\2\3\4')
+# The decoder runs only in bubblewrap (53f review fix 1). Where this container allows no user namespace, bubblewrap
+# itself cannot start, and the home must then refuse to decode rather than decode unsandboxed.
+import subprocess
+assert home.BWRAP == '/usr/bin/bwrap' and os.access(home.BWRAP, os.X_OK)
+try:
+    decoded = home.decode_png(png)
+except (OSError, ValueError, subprocess.SubprocessError) as error:
+    alone = subprocess.run([home.BWRAP, '--ro-bind', '/', '/', '--', '/usr/bin/true'], capture_output=True)
+    assert alone.returncode != 0, f'bubblewrap runs here, yet the decoder failed: {error}'
+    print('LAPTOP_HOME_DECODER refused: bubblewrap cannot start in this container, and no icon is decoded')
+else:
+    assert decoded == (1, 1, b'\1\2\3\4')
+    print('LAPTOP_HOME_DECODER decoded in bubblewrap')
 PY
-pass 'the laptop home loads GTK 4, Pango and Cairo as ares with the Cairo renderer, and its icon decoder runs'
+pass 'the laptop home loads GTK 4, Pango and Cairo as ares with the Cairo renderer, and its icon decoder is sandboxed'
 # Super+Ctrl+Escape opens the recovery terminal, then ends the cover through the supervisor (PLAN-GAP 2). The
 # supervisor takes the command as ares; with no supervisor running here it says so and exits 1.
 python3 - <<'PY'
