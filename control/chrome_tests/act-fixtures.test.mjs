@@ -17,24 +17,27 @@ const lastScript=html=>html.slice(html.lastIndexOf('<script>')+8,html.lastIndexO
 
 // A stand-in DOM: every property is another stand-in, every call returns one, and what a
 // page registers (on… handlers, addEventListener, timers, EventSource) is kept to be run.
+// A list holds NODES stand-ins, each (and what hangs off it) reading as its own index, so
+// a handler that picks its work by a node's data runs every branch.
+const NODES=10;
 function standIn(){
   const handlers=[],timers=[];
-  const make=(path)=>{
+  const make=(path,index='')=>{
     const target=function(){};
     return new Proxy(target,{
       get(_,key){
-        if(key===Symbol.toPrimitive)return ()=>'';
-        if(key===Symbol.iterator)return function*(){yield make(path+'[0]');};
+        if(key===Symbol.toPrimitive)return ()=>index;
+        if(key===Symbol.iterator)return function*(){for(let item=0;item<NODES;item++)yield make(path+'['+item+']',String(item));};
         if(key==='then')return undefined;
-        if(key==='length')return 1;
-        return make(path+'.'+String(key));
+        if(key==='length')return NODES;
+        return make(path+'.'+String(key),index);
       },
       set(_,key,value){if(typeof value==='function'&&String(key).startsWith('on'))handlers.push({path:path+'.'+String(key),fn:value});return true;},
       apply(_,__,args){
         if(path.endsWith('.addEventListener'))handlers.push({path,fn:args[1]});
-        return make(path+'()');
+        return make(path+'()',index);
       },
-      construct(){return make(path+'(new)');},
+      construct(){return make(path+'(new)',index);},
     });
   };
   const location={href:'http://fixture.test:8765/?case=act-x&id=one',search:'?case=act-x&id=one',pathname:'/'};
