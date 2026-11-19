@@ -60,8 +60,15 @@ Ares-Empire/AresOS --interval 300` in a background shell.
      and qualification 44604152624** on `a28720dd`: **green (22:03).**
    - **22:04: step 2 running** (`28a-step2`, gpt-6.2-sol xhigh, prompt `~/codex-queue/linux-tools/28a-step2.txt`):
      HARNESS-MAP first, then the harness moves in its helpers only; it dispatches Chrome and qualification once and
-     stops; read those runs. Then step 2
-     (HARNESS-MAP), step 3 (removal; CONTROL.md section 6 needs `chrome_show`'s focus exception;
+     stops. **Done 22:22** (map `21a06d7c`: 23 helpers, 23 hand-built cases; harness `205c7219`; PROGRESS
+     `124e8aee`); Chrome 44617691792 and qualification 44617724806 on its head. Its PLAN-GAPs: six spots still
+     take evidence from the old tools. **Lead decision (22:30):** that evidence comes from channels outside
+     Claude's tools (the fixture's reports, the audit and boundary logs, an observer in the CI's instrumented
+     copy, the owner's and admin's paths), never a public tool or reply field; assertions on an old surface only
+     retire with it, each with a named carrying test on the new surface. **Step 3 is split:** 3a (prompt
+     `28a-step3a.txt`) moves that evidence with the old tools still present; a shell chain launches it only if
+     step 2's two runs are green (log `~/AresOS-28a-step3a.log`). 3b removes the tools. Then step 2
+     (HARNESS-MAP), step 3b (removal; CONTROL.md line 753 "nothing of ours ... takes the focus" needs `chrome_show`'s exception;
      `response_checks.check_responses` in the Chrome tests, #122's NIT 2), step 4 (full validation twice), the
      package and security reviews. Red: one Codex Sol fix step that pushes, dispatches once and stops.
 3. **18c-b** (`pkg/18c-b-chrome`, `~/AresOS-18c-b-build`, draft PR #76; rides R29).
