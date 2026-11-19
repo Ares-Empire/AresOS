@@ -51,3 +51,7 @@ The wiring test would not notice a `Containerfile` rule padded with spaces in `o
 
 - No test covers the symlink refusal in `require_pinned_binaries`. The behaviour was checked by hand with the real `cpio`.
 - A missing `rpm2cpio`, `cpio` or `objcopy` stops the build with a Python error instead of one `LABWC_REFUSED` line. The locked build environment includes all three.
+
+## Loaded-image tests (review 4, nits)
+
+The code behaves correctly in each case. The tests would not notice: the program header table lying after `end` being accepted, a table end one entry short, a segment range that wraps at 2^64, a note name matched only by its prefix, or `result.loaded_sha256` missing from the last sentence of the renewal text. A file changed in any of these ways still cannot match the pins.
