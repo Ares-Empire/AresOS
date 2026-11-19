@@ -1,5 +1,5 @@
 [package]
-name = "niri-input-portal"
+name = "aresos-input-portal"
 version = "0.1.0"
 edition = "2024"
 description = "xdg-desktop-portal InputCapture backend for the niri compositor"

@@ -13,7 +13,7 @@ use anyhow::{Context, Result};
 use tracing::info;
 use tracing_subscriber::EnvFilter;
 
-const BUS_NAME: &str = "org.freedesktop.impl.portal.desktop.niri-input";
+const BUS_NAME: &str = "org.freedesktop.impl.portal.desktop.aresos-input";
 const PORTAL_PATH: &str = "/org/freedesktop/portal/desktop";
 const CONTROL_PATH: &str = "/io/github/niri_input_portal/Control";
 const CONTROL_IFACE: &str = "io.github.niri_input_portal.Control";
@@ -22,7 +22,7 @@ const CONTROL_IFACE: &str = "io.github.niri_input_portal.Control";
 async fn main() -> Result<()> {
     tracing_subscriber::fmt()
         .with_env_filter(
-            EnvFilter::try_from_env("NIRI_INPUT_PORTAL_LOG")
+            EnvFilter::try_from_env("ARESOS_INPUT_PORTAL_LOG")
                 .unwrap_or_else(|_| EnvFilter::new("info")),
         )
         .init();
@@ -66,7 +66,7 @@ where
     let reply: String = conn
         .call_method(Some(BUS_NAME), CONTROL_PATH, Some(CONTROL_IFACE), method, body)
         .await
-        .with_context(|| format!("{method} failed; is niri-input-portal running?"))?
+        .with_context(|| format!("{method} failed; is aresos-input-portal running?"))?
         .body()
         .deserialize()
         .context("unexpected reply")?;

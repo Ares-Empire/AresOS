@@ -177,7 +177,7 @@ pub const DEFAULT_IDLE_TIMEOUT: std::time::Duration = std::time::Duration::from_
 /// `0` disables the watchdog, which is only sensible when something else is
 /// guaranteed to end the capture.
 pub fn idle_timeout_from_env() -> std::time::Duration {
-    match std::env::var("NIRI_INPUT_PORTAL_IDLE_TIMEOUT") {
+    match std::env::var("ARESOS_INPUT_PORTAL_IDLE_TIMEOUT") {
         Ok(raw) => match raw.trim().parse::<u64>() {
             Ok(0) => {
                 warn!("idle watchdog disabled; a stuck capture will need ForceRelease");
@@ -185,7 +185,7 @@ pub fn idle_timeout_from_env() -> std::time::Duration {
             }
             Ok(secs) => std::time::Duration::from_secs(secs),
             Err(_) => {
-                warn!("ignoring unparseable NIRI_INPUT_PORTAL_IDLE_TIMEOUT={raw:?}");
+                warn!("ignoring unparseable ARESOS_INPUT_PORTAL_IDLE_TIMEOUT={raw:?}");
                 DEFAULT_IDLE_TIMEOUT
             }
         },
