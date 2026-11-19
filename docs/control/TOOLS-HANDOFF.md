@@ -32,17 +32,20 @@ Ares-Empire/AresOS --interval 300` in a background shell.
    - **The stopped agent left an unpushed local commit `e4c06925`** ("the stand-in DOM runs every branch a listed
      node picks") **and an uncommitted one-line edit in `control/chrome/ci/act-matrix.mjs`.** Inspect both first.
      No "Step 1d, part 2" PROGRESS section yet.
-   - Next: one fresh worker (a Codex Sol build that pushes and stops) for the CI failures, latency included, and
-     the PROGRESS section; then step 2 (HARNESS-MAP), step 3 (removal; CONTROL.md section 6 needs `chrome_show`'s
-     focus exception; install `response_checks.check_responses` in the Chrome tests, #122's NIT 2), step 4 (full
-     validation twice), then the package review and the security review (each step's PROGRESS lists what the
-     security review reads first).
+   - **09:35: Codex Sol build `28a-1d2-fix` running** (prompt `~/codex-queue/linux-tools/28a-1d2-fix.txt`, log
+     `~/AresOS-28a-1d2-fix.log`, last message `~/AresOS-28a-1d2-fix.last.md`): on `a2ad7c7d` Chrome 44463920809
+     failed in fixtures (external and policy, core and recheck2) and both aggregates, qualification 44463926398
+     failed; it fixes those and the latency miss, writes "Step 1d, part 2", pushes, dispatches Chrome and
+     qualification once and stops. Then: watch those two runs from the shell; step 2 (HARNESS-MAP), step 3
+     (removal; CONTROL.md section 6 needs `chrome_show`'s focus exception; `response_checks.check_responses` in the
+     Chrome tests, #122's NIT 2), step 4 (full validation twice), the package and security reviews.
 3. **18c-b** (`pkg/18c-b-chrome`, `~/AresOS-18c-b-build`, draft PR #76; rides R29).
    - Step 4 done (`8bcb9504`; `linux-aresos` read its `os/` diff: OK). Step 4b pushed `3cb3687d` (C3, the rest of
      C6, C10, C11) and `1b263438` (fixes); control runs 44452254488 and 44462912726 red, 44468856359 queued. That is
      7 of the brief's 12 `check_build=control` runs (4b was given 4). No "Step 4b" PROGRESS section yet.
-   - Next: read 44468856359; one fresh worker for a failure (Codex Sol build, push and stop) or, if green, the
-     PROGRESS section and one `checks_only`; send `linux-aresos` 4b's `os/` diff (net from `8bcb9504`). When main
+   - **Run 44468856359 on `1b263438` is green (4b's C3, the rest of C6, C10, C11).** `checks_only` 44488329704
+     dispatched 09:33. Next: the "Step 4b" PROGRESS section (PASS lines with full-log line numbers, the runs: 7 of
+     12 control runs used) and `linux-aresos` gets 4b's `os/` diff (net from `8bcb9504`); then step 5. When main
      is merged in after R28: take main's `pending-rebind.json`, rerun `rebind.py pending` with step 4's five notes
      word for word plus 4b's and the merge note; keep pkg/42's comment and 156 in `os-image.yml`.
 4. **Package 28** (#72): held until right after R29's cut, then merge and retarget #116 to main.
