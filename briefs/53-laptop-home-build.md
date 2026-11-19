@@ -161,3 +161,11 @@ Only **package 25** is open (`pkg/25-guardian` at `e203e527`, worktree `~/AresOS
    shutdown), state decision 24's bar; then `linux-aresos` reads the os/ diff; merge on SAFE with green checks.
 4. Once 25 is on main, tell `linux-hub` that hub-try and `~/AresOS-try` need a stand-in SYSTEMCTL answering active.
 5. Then `board done 357 387`, this handoff and STATE.md, and "ready to clear" to `mac-capacity` (board #369).
+
+## Thu 2026-11-19 evening to Fri 00:05: package 25 merged
+
+PR #125 merged as `61a66d78` (details in STATE.md and `reviews/25-guardian/REPORT.md`). Board #357, #383, #384, #387 and
+#359 are done. **Nothing of this lead's is open** except #358 (53a's three low-harm follow-ups) and #369 (tell
+`mac-capacity` "ready to clear", done with this note). Package 53's step 4 and the laptop trial belong to 23c
+(`linux-aresos`). Worktree `~/AresOS-25-guardian` removed; the remote branch is kept.
+
