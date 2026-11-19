@@ -37,6 +37,12 @@ public final class ShellFocusClient {
                     });
             }
 
+            // Super (package 53d): the helper has asked the compositor to give the world the keyboard.
+            @Override public void search() {
+                var client = Minecraft.getInstance();
+                client.execute(() -> WorldSearchScreen.requested(client));
+            }
+
             @Override public void launchFailed(String appId, String requestId, ShellClient.ShellException error) {
                 Minecraft.getInstance().execute(() ->
                         AresOsClient.launchFailedLater(requestId, appId, ShellClient.describe(error)));
