@@ -1,5 +1,305 @@
 # Package 28a: Chrome acting progress
 
+## Step 1c
+
+2026-11-19. **Done; stop here.** Item 6's gap, then items 5 and 5a, built behind private entries, tested and
+mutation-checked. Code commits: `d6bd7d96` (item 6: the take's loss report), `965c4fb4` (item 5: `chrome_do`, its time
+and the change report), `666e7934` (item 5a); this section is the next commit. Builder: a Claude Opus 5.5 agent for the
+lead `linux-tools`. Read the READY brief from `origin/main` (items 5, 5a, 5b, item 6's `chrome_take` paragraph, item
+2, item 0, item 8 steps 1/1c, "What must not change", the Tests rows for items 5 and 5a, "Stop rules"), and steps 1b
+(both parts), 1a, 0c and 0b below. The public catalogue, the generated files and the instructions are unchanged; no
+tool name is new.
+
+### Done
+
+- **Item 6's gap (1b part 2, PLAN-GAP 1), `d6bd7d96`.** `background.js`: `requireDiscard`'s body is now
+  `discardReport` (same frames, `audible`, whose-typing rule, item 3b's numbered descriptions, ten fields and the
+  count), which `requireDiscard` refuses with as before; a new read-only command `loss_report` runs it on the frames
+  and uncovered count `prepare_control` would use (`facts(tab)`), as act `first_input`, and returns
+  `{reload_due, loss}` without discarding, reloading or dispatching. `going.py`: `chrome_take` without `reload`, when a
+  reload is due, carries `untrusted_content.loss` = item 5b's checked report (`loss.checked`), or `{unavailable: true}`
+  when the command refuses or the report is malformed; without a due reload it has none.
+- **Item 5, `control/aresos_control/chrome/doing.py`** (new), reached as `Chrome.doing(args)`:
+  - **Input** (`query`): `tab`; `steps`, 1 to 20, each `{do, ...}` with exactly its keys (`click` ref; `fill` ref, text
+    up to 20,000; `select` ref, value; `check` ref, checked; `press` ref, key; `scroll` ref, y; `dialog` accept, text;
+    `wait` until, timeout_ms 0 to 8,000, default 3,000); `max` 500 to 8,000 (2,000); `discard_unsaved`. Anything else,
+    `scroll` without `ref` included, is `invalid_input` before anything is asked of Chrome. A tab without control is
+    `take_first` (`tab_context`), as `Going.go` checks it.
+  - **Check first:** `Chrome.acting` (item 2's rule, the fingerprint included) for every step's reference after the
+    first; the first step's own check comes right before it with nothing before it. A failure is the one entry
+    (`stale` with `untrusted_content.now`, counted as shown; a fold's reference `refused`/`invalid_input`), nothing
+    ran, `not_run` counts the others.
+  - **Each input step** is brief 20's path: `payload(verb, {tab, ref, ...})` (fresh facts, item 2's rule again with
+    the value whole, `Chrome.classified`, the binding), then `engine.reserve` (outcome `prepared`, the base's result in
+    `prepared`; too large: `refused` with item 3a's advice from `Chrome.too_large`) or `free` (its own committed
+    operation, dispatched once). After a free step `References.acted` moves the element's fingerprint to the reader's
+    observe report. `select` resolves `value` first on fresh facts (`chosen_value`): an option's value exactly, else
+    its label trimmed and with runs of spaces joined; "no such option", "that option is disabled", "several options
+    carry this label; pass the value" refuse; the extension gets the value. `scroll` is brief 20's `{x: 0, y}`.
+    `discard_unsaved` reaches `payload`'s first-input reload as on main.
+  - **A dialog step** asks `dialog_facts` and compares the open dialog's kind and text with the one the last result
+    showed Claude in that tab (`References.dialog_shown`, recorded by `view.fit` for every read and by the report);
+    another or none is `stale` with the present dialog in `untrusted_content.dialog`, which then counts as shown.
+    Otherwise `Chrome.dialog_payload` (brief 20's dialog branch of `call`, moved out unchanged) and reserve or `free`.
+  - **A wait** is brief 28's `until` on `outline_view`/`page_state`, `done` when met, else `timeout`; it ends by its
+    own timeout or second 12, and one cut at 12 sets `deadline`.
+  - **The look** after every step that ran (before the next one, and after the last): `page_state`. A dialog, no top
+    document, another top document than the list started on, or a queued page step stops the list; queued steps go
+    through `reconcile_checks` and brief 20's `steps`: a held submission is prepared into `prepared`, every other
+    followup (a stopped activation, one that may have happened, a dropped one, one too large to ask about) is named in
+    `untrusted_content.stopped`, escaped.
+  - **Stops:** after any outcome but `done`/`unchanged`; after a step whose reply brought page steps or opened a
+    dialog; after a look as above. Outcomes: `stale` (`stale_reference`/`stale_approval`, also the taken tab's
+    first-input reload, whose new page then comes as the outline), `refused` (the code and the tool's own message;
+    `reload_required` with item 5b's report under `untrusted_content.loss` with `step`), `unknown` (the committed
+    operation's state, or `unknown`/`transport_error`; the operation id in `unknown`), `timeout`. Nothing is retried.
+  - **Result** (`DO_RESULT` in `chrome/definitions.py`, declared on no tool until 1d): `{tab, steps, not_run, deadline,
+    prepared, unknown, loaded, untrusted_content: {url, title, changed, more_changes, outline, dialog, clipboard,
+    stopped, now, loss?}, version_notice, error?}`. Entries hold `do`, `ref`, `outcome`, and `operation_id`, `code`,
+    `message`, `popups` where they apply. `clipboard` merges the steps' clipboard notices. `error` is a look's or the
+    report read's refusal after steps ran; a bare error comes only before anything ran.
+- **Time** (item 5, "Time"): 18 s in all (`Deadline`). Every command before an input carries the time to second 12
+  (`bridge.bounded`), the input command too (`Chrome.free`'s new `dispatch_by`, which bounds only that command; the
+  page steps after it run with the call's time to 17). No step starts after second 12. `bridge.py`: an input,
+  resume or dialog command is waited for its time plus `INPUT_GRACE` (2 s) and, without a reply, is `unknown`
+  (`GAVE_UP_INPUT`), never `expired`; a late reply is dropped by its id as before. `free`: an input's `expired`
+  (the extension's check, or the bridge before sending) is certain, so its operation is `failed`, "Nothing
+  dispatched: ...", and the refusal carries `operation_id`. `payload`: a first-input reload given up on is `unknown`
+  (going's "may have happened"). `background.js` `input`: one check as the last thing before the dispatch, after the
+  arming, the reveal and the last comparison; it throws `EXPIRED_INPUT` marked `notDispatched`, which `enqueue`
+  answers as `expired` even after the tab was selected (any other refusal after the selection stays `unknown`). The
+  `finally` releases the armed hold as after any refusal. Such a step has no entry, counts in `not_run`, `deadline`.
+- **The change report** (`view.changes`): `_lines` writes every element's own line as `stale` does (one renderer per
+  outline), compared with a stand-in table that issues nothing; `+ ` new, `~ ` changed (the new line), `- ` gone (the
+  old line without references), the lines shown written again with the real table and returned (so a `+`/`~` line's
+  references act). A new element stands under its parent: the parent's line first as unmarked context (two spaces)
+  where it isn't itself in the report, the new one indented below it. At most `max` characters at a line end;
+  `more_changes` counts the change lines left out. The page is taken before the first step and, after the last, once
+  quiet (`settle`: ready and the same token in two looks in a row, the look after the last step counting as the first;
+  at most 1.5 s) or, after another top document, once loaded (to second 16, `loaded` true/false); then the new page's
+  outline (`outline_tab`, `fit`, at most 4,000) and `changed` empty. A dialog at the end gives `dialog` and no changes.
+- **Item 5a, `666e7934`:**
+  - *The popup a step opened (its P3).* `background.js`: `input` watches its tab (`popupWatches`) from just before the
+    dispatch to the end of `collectSteps`; `createdTarget` (now reading `sourceFrameId`) names a popup whose opener tab,
+    control epoch and frame are the input's, `controlled: 'pending'`, then `true` when `take` admitted it or `false`
+    when it refused or failed. The reply carries `popups: [{tab, controlled, url}]` (`namedPopups`: `chrome.tabs.get`'s
+    address, nothing else). Admission, its fail-closed rules and when an input is dispatched are unchanged. Service:
+    each becomes `{tab, controlled, no?, untrusted_content: {url}}` with the short form (`tablist.address`) and `no` by
+    the same `allowed_url` with the owner's never-list as `chrome_tabs`; `free(replies=...)` hands chrome_do the raw
+    reply for it while what `free` returns and records stays projected (item 3).
+  - *"Pause still live" (its security NOTE 1).* Built: **no check can be built** with the allowed DevTools methods
+    (only `Debugger.resume` tells a live pause from a gone one, and it resumes it; `policy.js` and its method list
+    can't change). So the first install from a pause after a re-arm is `late`: `prepareTarget`'s duplicate-breakpoint
+    branch sets `state.rearmed` before its `Debugger.disable`; the bootstrap reads and clears it synchronously before
+    its first await, so in the order the pauses arrived; a `late` install writes no `document-start.v1` mark (its typed
+    fields show `(filled, not read)`) and isn't preloaded (`isPreloaded` now counts only `document_start` installs), so
+    its document reports `needs_reload` and gets the guarded reload before any input. The reload's document is the next
+    install: `document_start`. Why no stale pause gets past it: a pause can only be stale when the re-arm's disable
+    resumed it (PR #77's analysis); a pause that arrives before the re-armed id is known is foreign and resumed (as
+    before); after it, the stale one is the first pause event of that session (one event stream, in order), and that
+    first install is `late` whatever it is.
+- **Tests changed deliberately:** `background.test.mjs`' "popuprace a pause on the re-armed breakpoint, its id known,
+  installs the guard at document start" is now "28a 5a popuprace the first pause after a re-arm ... installs late"
+  (the brief's rule), with the reload's next install `document_start`; the swapped-popup fixture records the bootstrap
+  expressions. No receiver, binding, question or outcome assertion changed.
+- **CI browser rows:** none changed (nothing for step 2's `HARNESS-MAP.md` from 1c).
+
+### Tests and mutations
+
+**Run** (portable Node v22.15.0 from step 0a's `.work/pkg28a-0a/`; Python 3.14.8; logs in `.work/pkg28a-1c/`):
+
+```sh
+PYTHONPATH=control python3 control/generate.py --check
+.work/pkg28a-0a/node-v22.15.0-linux-x64/bin/node --test control/chrome_tests/*.test.mjs
+PYTHONDONTWRITEBYTECODE=1 TMPDIR="$PWD/.work/pkg28a-1c/tmp" PYTHONPATH=control:control/chrome_tests python3 -m unittest \
+  test_doing test_going test_small_tools test_operation_projection test_acting_references test_view_references \
+  test_questions test_policy test_engine test_loss_errors test_field_descriptions test_instruction_rules \
+  test_qualification_fixture test_bridge test_sites test_qualification_service test_credentials test_fix_x1 \
+  test_outline_action test_view_paging test_view_hostile test_efficiency test_view_address test_view_nodes \
+  test_view_outline test_view_budgets test_outline_time
+python3 .work/pkg28a-1c/mutations.py
+git diff --check
+```
+
+- Generator check: **Generated artifacts match definitions** (no definition is wired).
+- Node: **617 tests, 617 pass**, 0 fail/cancelled/skipped/todo, 32,651 ms (609 at 1b part 2: +1 loss report, +6
+  `do-input.test.mjs`, +1 net for the pause rows). Log: `node-final.log`.
+- Python, the modules above: **Ran 502 tests in 100.6s, OK** (474 at 1b part 2: +1 `test_small_tools`, +25
+  `test_doing`, +1 `test_loss_errors`, +1 `test_field_descriptions`). Log: `python-final.log`.
+- Not run locally: `test_fault_surface` and `test_state_*` (CI's python shards). No browser.
+- `git diff --check`: clean. Each code commit's tree was checked green by itself (the item 5 commit without 5a:
+  generator, `background`/`do-input`/`fingerprint` Node and five Python modules).
+
+**New tests.** `test_doing.py` (25: 23 on a fake extension whose inputs change the page, a receiver of every input,
+and the bridge's own time check; 2 on the real `Bridge` over a socket pair): fills and a free click run in order, each
+its own `done` operation, the report's `~` lines, a new element under its parent, the filled field acting again
+without a read; a fill then Enter on the same field passes (prepared, not stale); check first: a draft Claude hasn't
+seen stops the list before anything (one entry, `now`, no operation), then runs once shown, an invented and a fold's
+reference; a step on an element an earlier step changed is `stale`, the draft stays, a value changed in its last
+character of 500; an asking step prepared, the list stops, `chrome_submit` sends exactly it once; too large to ask:
+`refused` with the advice; a page step queued after the reply (the look) and one in the step's own reply both prepared,
+the list stops, acknowledged; an activation named in `stopped` with its hostile label escaped; a held submission too
+large to ask about in `stopped`; a dialog and a new document between steps stop the list (no `loaded` for a dialog;
+the new page's outline whose references act); a dialog step only on the dialog last shown (stale with it shown, then
+answered once; a deleting confirm prepares); `select` by value, by label with joined spaces, a shared label, a
+disabled option by label and by value, a missing one; scroll, an unchanged check; a wait met after some looks, one
+not met, a dialog and a new document during a wait; unknown (uncertain finish, a connection cut after the input)
+stops and is never retried; a read-only site refuses fill and click and allows wait and scroll; a taken tab's
+first-input reload: `refused`/`reload_required` with the hostile report under `loss` with `step`, then with
+`discard_unsaved` the guarded reload, `stale`, the new outline; time: no step (not even its facts) after the cut,
+`not_run` and `deadline`; an input answered `expired` has no entry and its operation says nothing was dispatched; a
+wait cut at the cut is `timeout` with `deadline`; every command before an input carries the time to the cut, the
+outline after it to second 17; invalid input and `take_first` as bare errors before anything; the report bounded by
+`max` with `more_changes`, `-` lines without references, a new button's reference acting next call; the popups of a
+click named with their outcome, short address, `no` for `claude.ai` and the never-list, no query, and the page stage
+in the short form. Bridge: an input, resume or dialog without a reply is `unknown` after its time plus the grace, a
+late reply is dropped and the next command gets its own, other commands are still given up after half a second; the
+extension's `expired` stays `expired`.
+`do-input.test.mjs` (6, `background.js`' own `dispatch` in Node VM doubles): an input whose time runs out during its
+setup (click, fill, press, scroll, check) dispatches nothing, answers `expired`, finishes and releases its hold and
+collects no steps; through `enqueue` after the tab was selected the answer is still `expired`, while another refusal
+there stays `unknown`; the check comes after the arming, the reveal and the last facts read, before any hit test; an
+input whose time runs out after its dispatch finishes as before, and one without a time never meets the check;
+popups: admitted, refused, failed and pending named with their outcome, two from one click, admission run for each,
+the window closed after the hold; another opener, another frame, an event without its frame, a popup after the reply
+and a refused input name nothing.
+`background.test.mjs` (+3, "28a 6: loss_report", "28a 5a popuprace ..."): the read-only report with his typing (a
+hostile label as data), Claude's own, playing media, a frame without a reader and an uncovered frame, nothing
+reloaded or dispatched, the reload still due, none when not due, an empty one when nothing would be lost; the first
+pause after a re-arm installs `late` without the mark and not preloaded, the next `document_start`; a stale pause from
+the current document after a re-arm installs `late`.
+`test_small_tools` (+1): the take reports his typing, Claude's, media and an uninspectable frame, each only under
+`untrusted_content.loss` and valid against `loss.UNTRUSTED`, with nothing reloaded, navigated or dispatched;
+`unavailable` for a malformed report and a refused command; none when no reload is due.
+`test_loss_errors` (+1, the real Bridge, socket framing and MCP/CLI text): a `chrome_do` step refused after an earlier
+step ran: the normal result, `refused`/`reload_required` with the fixed message, the report only under
+`untrusted_content.loss` with `step: 1`, valid against `DO_RESULT` in every form, the second field never typed, the
+stored operation as 0b's. `test_field_descriptions` (+1): a `chrome_do` press whose target reads like another field
+asks "send 'Note' (2 of 2) ...", both form fields distinct, the free fill's committed description `"Note" (1 of 2)`.
+
+**Mutations** (`.work/pkg28a-1c/mutations.py`: apply one, run the named tests, require failure, restore, require them
+green). Log: `.work/pkg28a-1c/mutations.log`. **48 mutations: all caught, all restored green.** The first run missed
+three, each fixed in the tests before this record: D.5 (a dialog is now asserted not to count as a new page), D.9 (a
+page step in the step's own reply), D.13 (the fake refuses a command whose time is up, as the bridge does, and the
+test asserts nothing was even asked after the cut).
+
+| # | Mutation | Caught by |
+|---|---|---|
+| T.1 / T.4 | the take returns no report / an unavailable report reads as empty | take without reload |
+| T.2 / T.3 | `loss_report` reloads / skips uncovered frames | Node "28a 6: loss_report" |
+| D.1 / D.2 / D.3 | no check before the first step / no fingerprint compare (1a's 2.11 through chrome_do) / Claude's own step moves nothing | check first; changed during the list; fill then Enter |
+| D.4 / D.5 / D.6 | the look ignores a queued step / a dialog / a new document | queued page step; dialog or new document (and during a wait) |
+| D.7 / D.8 / D.9 / D.10 | no stop after prepared / unknown / a reply's page steps / stale | asking step; unknown; queued page step; changed during the list |
+| D.11 / D.12 | `not_run` miscounted / a cut connection retried once | asking step; unknown |
+| D.13 / D.14 / D.15 / D.16 / D.17 | a step after the cut / an input without time / an input's `expired` as maybe run / an entry for an expired step / a cut wait without `deadline` | the time tests |
+| D.18 / D.19 | the bridge gives an input up as `expired` / with half a second | `InputWire` |
+| D.20 / D.21 / D.22 | no time check in `input` / `unknown` after the tab's selection / the check before the reveal | `do-input.test.mjs` "28a time" |
+| D.23 / D.24 / D.25 | label without joined spaces / a shared label picks the first / a disabled option by value | select |
+| D.26 / D.27 | a dialog step answers any dialog / a read doesn't record its dialog | dialog step |
+| D.28 – D.33 | the report: no `~` lines / no parent / unbounded / `-` lines keep references / not returned / changes for a new page | the report; fills and a click; dialog or new document |
+| L.M2 / L.M3 / L.M6 | the label into the step's message / the report flattened into it / no step index | `test_loss_errors` batched step; the taken tab's reload |
+| P.1 / P.2 | a popup with its full address / without `no` | popups named (Python) |
+| P.3 / P.4 / P.5 | another frame named / outcome not carried / window left open | `do-input.test.mjs` "28a 5a" |
+| P.6 / P.7 / P.8 | the first install after a re-arm is `document_start` / a late install counts as preloaded / every install after a re-arm is late (loops) | "28a 5a popuprace" |
+
+### Instruction size
+
+**2,794 / 2,800**, unchanged: no instruction or description text, no definition wired (`DO_RESULT` is declared only);
+30 tools, descriptions 5,417, names and input schemas 11,080, as at 1b.
+
+### Left, in order
+
+1. **1d**: wire the definitions and switch the catalogue. From 1c: `chrome_do` → `Chrome.doing` with `DO_RESULT` (its
+   `popups[].controlled` is an `enum` without a `type`; check the generator's schema subset takes it, or write it as
+   `anyOf`); `chrome_take` without `reload` now has `untrusted_content.loss` when a reload is due (declare
+   `loss.UNTRUSTED` beside `reload_due` and `typed_fields`); `chrome_do`'s own rules go into its description (an asking
+   step stops the list and its `prepared` entry goes unchanged to `chrome_submit`; steps in `not_run` are sent again;
+   `stale` shows `now`; a dialog step answers the dialog the last result showed; `popups`). Add `chrome_do` to
+   `SWEPT`. Browser rows of groups 15 and 16 run `chrome_do` for the first time: staged waits, many inputs, an input
+   held back at the boundary (setup waits carry no time, so the held-back answer at second 13 reaches the time check,
+   which answers `expired`), a caller killed, F4 asked once and sent, nothing unseen overwritten, the look between
+   steps, on screen first, the steps as defined, F5's report budget, F7, the latency comparison (chrome_do adds a
+   before and an after outline, a look per step and the settle; see What the code doesn't show). Group 14: the
+   change report and a stale `now` with hostile text. 5a in the browser: a popup named after a click, and the
+   duplicate-breakpoint admission's late install.
+2. **2**: harness helpers and `HARNESS-MAP.md` (0b's nine and 0c's two rows; none from 1a, 1b or 1c).
+3. **3**: remove the replaced tools. With brief 20's `chrome_dialog` the dialog branch of `call` goes, `dialog_payload`
+   stays (chrome_do uses it); with `chrome_fill_form` its `FILL_FORM_RESULT`. `free`'s `dispatch_by` and `replies`
+   and the bridge's input grace stay.
+4. **4**: full final-head validation twice, plus base, Mail, boundary and qualification.
+5. **Two fresh reviews.** The security review looks first at, from 1c: the time check in `input` and `enqueue`'s
+   `notDispatched` (it can only stop a dispatch; it changes the answer from `unknown` to `expired` only for that one
+   refusal); `free` treating an input's `expired` as certain and the bridge's `unknown` on a given-up input; the popup
+   window and its correlation (opener, epoch, frame; no content); the pause check (`rearmed`, consumed before the
+   first await; `isPreloaded` only for `document_start`); the read-only `loss_report`; chrome_do's checks (first,
+   per step with the value whole, `acted` only on Claude's own element) and a dialog step's comparison.
+
+### What the code doesn't show
+
+- No browser ran locally. Real timings, Chrome's `sourceFrameId` on `onCreatedNavigationTarget`, real pause and
+  re-arm ordering, `loss_report` on real frames and the report on real pages are CI's (1d).
+- `Chrome.doing` and the take's report are reachable only from Python; no schema, tool or instruction names them.
+- `test_doing`'s fake extension answers `input` itself (with the time check where background.js has it); the
+  extension's own checks before an input are `do-input.test.mjs`' and brief 20's Node tests.
+- Cost per call beyond its steps: `tab_context`, a `page_state` and an outline before, `facts` for each later step's
+  check first, a `page_state` after each step, the settle (at least one more), and an outline after. The report
+  renders every element's line twice: 0.32 s for a 20,000-node page on this laptop (0.02 s at 1,000).
+
+### JUDGMENT-CALLs
+
+1. **The input's own time check answers `expired` after the tab was selected**: the selection and the reveal are no
+   input, and the hold armed before them is released; every other refusal after the selection keeps brief 20's
+   `unknown`. Alternative: leave it `unknown` (safe, but the step would read "may have run" when nothing was).
+2. **The first step isn't checked twice**: check first covers steps 2 to 20; step 1's check is the one right before it.
+3. **Quiet is two looks in a row with the same token**, the look after the last step counting as the first (each input
+   already waited out its 525 ms hold), at most 1.5 s; not chrome_go's 0.15 s of unchanged token. It saves about
+   0.2 s a call against the latency bound. A new top document waits for it to the second 16 and says `loaded`.
+4. **The report's form**: marks at the start of the line; a new element's parent as an unmarked context line, the new
+   element indented under it; `~` lines at the left; gone lines after the others and without references; context
+   lines don't count in `more_changes`. Inline controls show on their own line and in their parent's.
+5. **A dialog step compares the dialog's kind and text**, what a read shows, and a dialog never shown is `stale` with
+   it shown (then counting as shown).
+6. **`popups` is a list** on the step (two can come from one click), each `{tab, controlled, no?,
+   untrusted_content: {url}}`: the address, page-controlled text, sits under `untrusted_content` as in `chrome_tabs`.
+7. **`wait`'s default `timeout_ms` is 3,000**, brief 28's `until` default.
+8. **After a step ran, a refused look or report read is the result's `error`** beside the steps (as chrome_go's failed
+   closing read, 1b part 2's JUDGMENT-CALL 1), never a bare error; a refused outline before the first step is a bare
+   error (nothing ran).
+9. **A transport cut or `unknown` before an input's dispatch is `unknown`**: payload's first-input reload may have
+   happened; only an explicit `expired` counts as not run.
+10. **`stopped` holds every page-step followup but a prepared submission**, each escaped as it is (an activation that
+    may have happened says so in its own reason).
+11. **The take without `reload` carries no `loss` when no reload is due**, and `unavailable` (never an empty report)
+    when the report can't be had.
+
+### PLAN-GAPs
+
+1. **The brief's result names `popup: {...}`**, one per step; one click can open two (its own test), so it is a list.
+2. **Setup waits in `input` carry no time.** "Brief 28's two checks hold too ... in every wait for a frame, for the
+   reader or for an input's setup" against "This adds one check in `input` ... Nothing else": built the one check. A
+   setup that hangs past the time is given up by the bridge at its time plus 2 s as `unknown` (never retried), and
+   the extension's later `expired` answer is dropped.
+3. **"The frame's site" of a dialog** can't be compared with what Claude saw: the outline shows a dialog's kind and
+   text only. The asking path still binds the whole dialog.
+4. **The pause check: no check is possible** with the allowed DevTools methods (see Done); the brief's fallback is
+   built, and `isPreloaded` had to count only `document_start` installs for the late install to get its reload.
+5. **`loss_report` isn't in the list "What changes in background.js"**; the lead's task assigns it to item 6.
+
+No open owner question in 1c.
+
+### Known limits found
+
+- **A dialog step accepts a re-opened dialog with the same kind and text.** Low harm: a free answer means the same,
+  and an asking one binds the whole dialog.
+- **A popup the page opens by script in the same frame during a step's hold is named as the step's**, even if the
+  click didn't cause it. Low harm: what is named is its number, outcome and short address, as `chrome_tabs` shows.
+- **The take's report can be out of date by the time Claude calls `reload: true`.** Low harm: not worse than main's
+  repeat with `discard_unsaved: true`; brief 28b replaces this reload.
+- **An element that only moved, with an unchanged line, isn't in the report**; gone lines are listed after the others,
+  not at their old place. Low harm: a read shows the order.
+- **The fingerprint check before each step and the extension's checks still leave the one command between them**
+  (1a's known limit), now per step.
+
 ## Step 1b, part 2
 
 2026-11-19. **Done; stop here.** Items 4 and 6 are built behind private entries, tested and mutation-checked; with
