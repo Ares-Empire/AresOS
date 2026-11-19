@@ -3,6 +3,7 @@ import os
 
 from ..definitions import obj, string, array, APPROVAL, OP, BLOB, PAGE, PREPARED_RESULT, OP_RESULT
 from .policy import WORDS, WORD_LIST_VERSION
+from .loss import ERROR, UNTRUSTED
 
 # Brief 28, item 6: the new read is reachable only as the internal action
 # chrome_outline, and only in a process started with this test-only switch.
@@ -44,16 +45,23 @@ POPUP_NOTICE = ('Popup windows stay in place. Their opener shows POP on the pinn
                 'its popup lists each controlled popup with its own Stop. Stop ends control without closing or reloading it.')
 TYPED_READ_NOTICE = ('To read what the owner typed in a taken tab before its reload, prepare read_typed_fields '
                      'and use its asking tool, only when the task needs it.')
+# fill_form's result: every field done, or where it stopped. A loss refusal's
+# report sits under untrusted_content.loss with its step (brief 28a, item 5b).
+FILL_FORM_RESULT = {'anyOf': [
+    obj({'completed': array({'type': 'object'}, 32), 'remaining': {'type': 'integer', 'minimum': 0}}),
+    obj({'state': {'type': 'string', 'enum': ['partial', 'refused']}, 'completed': array({'type': 'object'}, 32),
+         'next_field': {'type': 'integer', 'minimum': 0}, 'reason': {'type': 'string'}, 'untrusted_content': UNTRUSTED},
+        ['state', 'completed', 'next_field', 'reason'])]}
 
 
 def actions(Action):
     result = []
     result.append(Action('chrome','prepare_read_typed_fields','change',obj({'tab':TAB}),
-        'Prepare a one-call read of text-capable inputs and textareas in unwatched documents. Returns the exact field-label question without values; pass its approval to read_typed_fields. ' + TYPED_READ_NOTICE,result=PREPARED_RESULT))
+        'Prepare a one-call read of text-capable inputs and textareas in unwatched documents. Returns the exact field-label question without values; pass its approval to read_typed_fields. ' + TYPED_READ_NOTICE,result=PREPARED_RESULT,error=ERROR))
     result.append(Action('chrome','read_typed_fields','read',APPROVAL,
-        'Read the listed text-capable inputs and textareas once after the exact prepared question is approved. Credentials always remain unreadable. The connection, frames, reader and exact field identities are bound; changes refuse and require a fresh question; ordinary reads retain filled/empty. ',result={'type':'object'},asking_read=True))
+        'Read the listed text-capable inputs and textareas once after the exact prepared question is approved. Credentials always remain unreadable. The connection, frames, reader and exact field identities are bound; changes refuse and require a fresh question; ordinary reads retain filled/empty. ',result={'type':'object'},asking_read=True,error=ERROR))
     def add(verb, effect, schema, purpose, owner=False, output=None):
-        result.append(Action('chrome', verb, effect, schema, purpose, owner, output or {'type': 'object'}, trusted_send=verb == 'submit_trusted'))
+        result.append(Action('chrome', verb, effect, schema, purpose, owner, output or {'type': 'object'}, trusted_send=verb == 'submit_trusted', error=ERROR))
     for verb, purpose in {
         'tabs': 'List all tab titles, addresses, native window/position, active/focused state, Claude-group membership and whether each tab is playing sound (audible) or muted; no page content is read. ' + POPUP_NOTICE,
         'downloads': 'List Chrome downloads and the paths Chrome chose. Changes nothing; Chrome saves normally.',
@@ -83,7 +91,7 @@ def actions(Action):
         required = list(TARGET) + [k for k in extra if k != 'file']
         add(verb, 'change', obj({**TARGET, **extra, **DISCARD}, required), purpose)
     add('fill_form', 'change', obj({'fields': {**array(obj({**TARGET, **DISCARD, 'text': {'type': 'string', 'maxLength': 20000}}, ['reference','expected','text']), 32),'minItems':1}}),
-        'Fill exact fields in order, classifying each separately. Stops at the first prepared or stopped step and reports completed fields; never replays earlier input.')
+        'Fill exact fields in order, classifying each separately. Stops at the first prepared or stopped step and reports completed fields; never replays earlier input.', output=FILL_FORM_RESULT)
     add('dialog', 'change', obj({'tab': TAB, 'expected': EXPECT, 'accept': {'type': 'boolean'}, 'text': {'type': 'string', 'maxLength': 4096}}, ['tab', 'expected', 'accept']),
         'Answer or dismiss Chrome alert, confirm or prompt. Accepting listed confirmation text prepares its own operation unless exactly named by an approved site adapter. '
         'A dialog opened through an outside native function always asks with its exact chosen answer and an unguarded-continuation warning, with no trusted exemption. '

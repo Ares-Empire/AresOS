@@ -12,6 +12,7 @@ It needs no browser. The adapter calls, in this order:
 Everything a page wrote reaches a line through `quoted` and nothing else, and
 every address through `public_address`.
 """
+import copy
 import functools
 import hashlib
 import json
@@ -952,6 +953,9 @@ class Failure:
         entry = {"tab": self.tab, "error": {"code": self.error.code, "message": str(self.error)}}
         if getattr(self.error, "line", None):
             entry["untrusted_content"] = {"line": self.error.line}
+        if self.error.untrusted_content is not None:
+            # A loss refusal (brief 28a, item 5b): its report beside the fixed message, as the tab's untrusted data.
+            entry.setdefault("untrusted_content", {}).update(copy.deepcopy(self.error.untrusted_content))
         return entry
 
 

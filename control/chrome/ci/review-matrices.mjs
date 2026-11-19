@@ -6,6 +6,21 @@ import {allTabs} from './tabs.mjs';
 import {createHash} from 'node:crypto';
 import fs from 'node:fs';
 
+// Brief 28a, item 5b: a loss refusal carries the service's fixed sentence; what
+// would be lost (labels, whose typing, media, frames that couldn't be inspected)
+// is only in error.untrusted_content.loss, and never a field's value.
+const LOSS_MESSAGE='This action may discard work. Nothing was done; inspect the loss report.';
+function lossReport(result,act){
+  assert.equal(result.ok,false,JSON.stringify(result));assert.equal(result.error.code,'reload_required');
+  assert.equal(result.error.message,LOSS_MESSAGE);
+  const report=result.error.untrusted_content.loss;assert.equal(report.act,act,JSON.stringify(report));return report;
+}
+// The old message's words for the report's fields, and its choice: ask the
+// owner first for his typing, playing media or a frame nobody could inspect.
+const lostFields=report=>report.fields.map(field=>field.description+' (typed by '+(field.by==='claude'?'Claude':'the owner')+')');
+const asksOwner=report=>report.fields.some(field=>field.by==='owner')||report.media||report.frames_uninspected>0;
+const onlyField=(report,field)=>{assert.deepEqual(lostFields(report),[field],JSON.stringify(report));assert.equal(report.more_fields+report.frames_uninspected,0);assert.equal(report.media,false);};
+
 export async function guardedOtherTabClick({rpc,call,childTarget,eventually}){
   const old=await eventually(childTarget,'other tab reader');
   const first=await rpc('click',old);assert.equal(first.ok,false);assert.equal(first.error.code,'stale_reference');
@@ -251,8 +266,9 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
       // Audio row just played in this same tab: a clean tab waits that out.
       if(mode==='clean')await delay(3500);
       if(mode!=='clean'){
-        const first=await rpc('navigate',{tab,direction:'reload'});assert.equal(first.ok,false,JSON.stringify(first));assert.equal(first.error.code,'reload_required');
-        assert.match(first.error.message,mode==='dirty'?/Reloading this tab would lose unsaved typing in field "Draft"/:/media that is playing/);assert.doesNotMatch(first.error.message,/Saved/,'labels only, never values');await delay(500);assert.equal(counts('loaded-'+id),1,'the owner page stays until the explicit repeat');
+        const first=await rpc('navigate',{tab,direction:'reload'});const report=lossReport(first,'reload');
+        if(mode==='dirty')assert.equal(report.fields[0]?.description,'field "Draft"',JSON.stringify(report));else assert.equal(report.media,true,JSON.stringify(report));
+        assert.doesNotMatch(JSON.stringify(first.error),/Saved/,'labels only, never values');await delay(500);assert.equal(counts('loaded-'+id),1,'the owner page stays until the explicit repeat');
       }
       const reloaded=await rpc('navigate',{tab,direction:'reload',...(mode==='clean'?{}:{discard_unsaved:true})});assert.equal(reloaded.ok,true,JSON.stringify(reloaded));
       await eventually(()=>counts('loaded-'+id)===2,'navigate reload '+mode);
@@ -273,9 +289,9 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
       if(mode!=='clean'){
         if(mode==='web-audio')await soundRow(id,tab);
         // Before its first reload a taken tab's text fields count as unsaved.
-        const first=await rpc('navigate',{tab,url});assert.equal(first.ok,false,JSON.stringify(first));assert.equal(first.error.code,'reload_required');
-        assert.match(first.error.message,/Navigating this tab away would lose unsaved typing in field "Draft"/);assert.doesNotMatch(first.error.message,/Saved/,'labels only, never values');
-        if(mode==='web-audio')assert.match(first.error.message,/media that is playing/);
+        const first=await rpc('navigate',{tab,url});const report=lossReport(first,'navigate');
+        assert.equal(report.fields[0]?.description,'field "Draft"',JSON.stringify(report));assert.doesNotMatch(JSON.stringify(first.error),/Saved/,'labels only, never values');
+        if(mode==='web-audio')assert.equal(report.media,true,JSON.stringify(report));
         await delay(500);assert.equal(counts('loaded-'+next),0,'the owner page stays until the explicit repeat');
       }
       const moved=await rpc('navigate',{tab,url,...(mode==='clean'?{}:{discard_unsaved:true})});assert.equal(moved.ok,true,JSON.stringify(moved));
@@ -304,10 +320,10 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
           await call('take_tab',{tab});await soundRow(id,tab);
         }
         if(mode!=='clean'){
-          const first=await rpc('close_tab',{tab});assert.equal(first.ok,false,JSON.stringify(first));assert.equal(first.error.code,'reload_required');
-          if(mode==='dirty')assert.match(first.error.message,/Closing this tab would lose unsaved typing in field "Draft" \(typed by the owner\)\./);
-          else{assert.match(first.error.message,/^Closing this tab would lose /);assert.match(first.error.message,/media that is playing/);}
-          assert.doesNotMatch(first.error.message,/Saved/,'labels only, never values');
+          const first=await rpc('close_tab',{tab});const report=lossReport(first,'close');
+          if(mode==='dirty')onlyField(report,'field "Draft" (typed by the owner)');
+          else assert.equal(report.media,true,JSON.stringify(report));
+          assert.doesNotMatch(JSON.stringify(first.error),/Saved/,'labels only, never values');
           await delay(300);assert.ok((await allTabs(call)).items.some(row=>row.tab===tab&&row.controlled),'the tab stays open and controlled until the explicit repeat');
         }
         const closed=await rpc('close_tab',{tab,...(mode==='clean'?{}:{discard_unsaved:true})});assert.equal(closed.ok,true,JSON.stringify(closed));
@@ -325,8 +341,8 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
         const second=await rpc('navigate',{tab,url:page(2),discard_unsaved:true});assert.equal(second.ok,true,JSON.stringify(second));
         await eventually(async()=>await address()===page(2)&&counts('loaded-'+id+'-2')===1,'second page loaded');
         if(mode==='dirty'){
-          const back=await rpc('navigate',{tab,direction:'back'});assert.equal(back.ok,false,JSON.stringify(back));assert.equal(back.error.code,'reload_required');
-          assert.match(back.error.message,/Going back in this tab would lose unsaved typing in field "Draft" \(typed by the owner\)\. Nothing was done\. Tell the owner/);assert.doesNotMatch(back.error.message,/Unsaved|Saved/,'labels only, never values');
+          const back=await rpc('navigate',{tab,direction:'back'});const report=lossReport(back,'back');
+          onlyField(report,'field "Draft" (typed by the owner)');assert.equal(asksOwner(report),true);assert.doesNotMatch(JSON.stringify(back.error),/Unsaved|Saved/,'labels only, never values');
           await delay(500);assert.equal(await address(),page(2),'the page stays until the explicit repeat');
         }
         const back=await rpc('navigate',{tab,direction:'back',...(mode==='dirty'?{discard_unsaved:true}:{})});assert.equal(back.ok,true,JSON.stringify(back));
@@ -334,8 +350,7 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
         if(mode==='dirty'){
           // The first page comes back from the back-forward cache or loads again;
           // either way it holds unsaved typing or can't be inspected.
-          const forward=await rpc('navigate',{tab,direction:'forward'});assert.equal(forward.ok,false,JSON.stringify(forward));assert.equal(forward.error.code,'reload_required');
-          assert.match(forward.error.message,/Going forward in this tab would lose /);await delay(500);assert.equal(await address(),page(1),'the page stays until the explicit repeat');
+          const forward=await rpc('navigate',{tab,direction:'forward'});lossReport(forward,'forward');await delay(500);assert.equal(await address(),page(1),'the page stays until the explicit repeat');
           const moved=await rpc('navigate',{tab,direction:'forward',discard_unsaved:true});assert.equal(moved.ok,true,JSON.stringify(moved));
           await eventually(async()=>await address()===page(2),'forward dirty');
         }
@@ -350,9 +365,9 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
       try{
         if(mode==='typed-by-claude'){
           await call('fill',{...await target('Notes'),text:'Claude notes'});
-          const first=await rpc('navigate',{tab,url:next});assert.equal(first.ok,false,JSON.stringify(first));assert.equal(first.error.code,'reload_required');
-          assert.match(first.error.message,/Navigating this tab away would lose unsaved typing in editor "Notes" \(typed by Claude\)\. Nothing was done\. All of it is Claude's own typing/);
-          assert.doesNotMatch(first.error.message,/Claude notes/,'labels only, never values');await delay(500);assert.equal(counts('loaded-'+id+'-next'),0,'the page stays until the explicit repeat');
+          const first=await rpc('navigate',{tab,url:next});const report=lossReport(first,'navigate');
+          onlyField(report,'editor "Notes" (typed by Claude)');assert.equal(asksOwner(report),false);
+          assert.doesNotMatch(JSON.stringify(first.error),/Claude notes/,'labels only, never values');await delay(500);assert.equal(counts('loaded-'+id+'-next'),0,'the page stays until the explicit repeat');
         }
         const moved=await rpc('navigate',{tab,url:next,...(mode==='typed-by-claude'?{discard_unsaved:true}:{})});assert.equal(moved.ok,true,JSON.stringify(moved));
         await eventually(()=>counts('loaded-'+id+'-next')===1,'editor '+mode);
@@ -368,9 +383,9 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
       try{
         await call('fill',{...await target('Headline'),text:'Claude headline'});
         await eventually(()=>counts('react-synced-'+id)>=1,'the page kept the default in step with Claude\'s typing');
-        const first=await rpc('navigate',{tab,url:next});assert.equal(first.ok,false,JSON.stringify(first));assert.equal(first.error.code,'reload_required');
-        assert.match(first.error.message,/Navigating this tab away would lose unsaved typing in field "Headline" \(typed by Claude\)\. Nothing was done\. All of it is Claude's own typing/);
-        assert.doesNotMatch(first.error.message,/Claude headline/,'labels only, never values');await delay(500);assert.equal(counts('loaded-'+id+'-next'),0,'the page stays until the explicit repeat');
+        const first=await rpc('navigate',{tab,url:next});const report=lossReport(first,'navigate');
+        onlyField(report,'field "Headline" (typed by Claude)');assert.equal(asksOwner(report),false);
+        assert.doesNotMatch(JSON.stringify(first.error),/Claude headline/,'labels only, never values');await delay(500);assert.equal(counts('loaded-'+id+'-next'),0,'the page stays until the explicit repeat');
         // The page empties value and default, as React does on a reset.
         await call('click',await target('Continue'));await eventually(()=>counts('react-reset-'+id)===1,'the page emptied the field');await delay(600);
         const moved=await rpc('navigate',{tab,url:next});assert.equal(moved.ok,true,JSON.stringify(moved));
@@ -387,9 +402,9 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
       await eventually(()=>counts('loaded-'+id)===2,'watched reload');await delay(500);
       ownerType('Owner headline');
       await eventually(()=>fixture.arrivals.some(row=>row.url==='/receive?case=react-synced-'+id&&row.body==='trusted'),'the owner\'s trusted typing reached the React-style field');await delay(300);
-      const first=await rpc('navigate',{tab,url:next});assert.equal(first.ok,false,JSON.stringify(first));assert.equal(first.error.code,'reload_required');
-      assert.match(first.error.message,/Navigating this tab away would lose unsaved typing in field "Headline" \(typed by the owner\)\. Nothing was done\. Tell the owner/);
-      assert.doesNotMatch(first.error.message,/Owner headline/,'labels only, never values');await delay(500);assert.equal(counts('loaded-'+id+'-next'),0,'the page stays until the explicit repeat');
+      const first=await rpc('navigate',{tab,url:next});const report=lossReport(first,'navigate');
+      onlyField(report,'field "Headline" (typed by the owner)');assert.equal(asksOwner(report),true);
+      assert.doesNotMatch(JSON.stringify(first.error),/Owner headline/,'labels only, never values');await delay(500);assert.equal(counts('loaded-'+id+'-next'),0,'the page stays until the explicit repeat');
       const moved=await rpc('navigate',{tab,url:next,discard_unsaved:true});assert.equal(moved.ok,true,JSON.stringify(moved));
       await eventually(()=>counts('loaded-'+id+'-next')===1,'the flag moves on');
     }

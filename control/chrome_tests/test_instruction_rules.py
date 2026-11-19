@@ -53,8 +53,19 @@ class InstructionRules(unittest.TestCase):
         self.assertTrue(instructions_for('chrome').startswith(COMMON_INSTRUCTIONS + '\n\n'))
 
     def test_catalogue_changes_only_descriptions(self):
-        structure = [{key: value for key, value in tool.items() if key != 'description'}
-                     for tool in tools_for('chrome')]
+        # Step 0b (item 5b) declares every tool's error and fill_form's result.
+        # With those two put back as package 28 had them, nothing else moved.
+        from aresos_control.chrome.loss import ERROR
+        structure = []
+        for tool in tools_for('chrome'):
+            entry = {key: value for key, value in tool.items() if key != 'description'}
+            properties = dict(entry['outputSchema']['properties'])
+            self.assertEqual(properties['error'], ERROR, tool['name'])
+            properties['error'] = {'type': 'object'}
+            if tool['name'] == 'fill_form':
+                properties['data'] = {'type': 'object'}
+            entry['outputSchema'] = {**entry['outputSchema'], 'properties': properties}
+            structure.append(entry)
         encoded = json.dumps(structure, sort_keys=True, separators=(',', ':')).encode()
         self.assertEqual(len(structure), BASELINE['sizes']['tools'])
         self.assertEqual(hashlib.sha256(encoded).hexdigest(), BASELINE['catalogue_structure_sha256'])

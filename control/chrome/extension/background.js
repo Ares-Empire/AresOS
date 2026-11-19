@@ -695,29 +695,33 @@ async function reloadIdentity(tab){
 // input's guarded reload, navigate (reload, back, forward or address) and
 // close_tab. It names fields by label, never their values, marks whose typing
 // each is, says whether media is playing, and does nothing unless the call
-// says discard_unsaved=true.
+// says discard_unsaved=true. Labels are page text, so they never enter the
+// error's message (brief 28a, item 5b): the refusal is the bare code, and the
+// report goes beside it as data, bounded, for the service to put under
+// untrusted_content.loss with its own fixed sentence.
+const LOSS_FIELDS=10;
 async function requireDiscard(tab,command,act,frames,uninspected=0){
   if(command.discard_unsaved===true)return;
-  const fields=[];let playing=!!(await chrome.tabs.get(tab)).audible,ownerTyping=false;
+  const fields=[];let media=!!(await chrome.tabs.get(tab)).audible;
   for(const frame of frames){
-    try{const state=await content(tab,frame.frameId,'reload_state');fields.push(...(state.fields||[]));if(state.unsaved&&!state.fields?.length)fields.push('editable content');playing ||= state.playing;
+    try{const state=await content(tab,frame.frameId,'reload_state');
+      const own=(state.fields||[]).map(field=>({description:typeof field?.description==='string'&&field.description?field.description:'an undescribed field',by:field?.by==='claude'?'claude':'owner'}));
+      if(state.unsaved&&!own.length)own.push({description:'editable content',by:state.claude_only===true?'claude':'owner'});
       // Only typing the reader marks as all Claude's is his; anything else may be the owner's.
-      if(state.unsaved&&state.claude_only!==true)ownerTyping=true;}
+      if(state.unsaved&&state.claude_only!==true&&!own.some(field=>field.by==='owner'))for(const field of own)field.by='owner';
+      fields.push(...own);media ||= !!state.playing;}
     // A tab Claude just opened shows about:blank with no reader; it holds nothing.
     catch(error){if(!(error.readerUnavailable&&frame.frameId===0&&frame.url==='about:blank'))uninspected++;}
   }
-  const found=[];
-  if(fields.length)found.push('unsaved typing in '+fields.slice(0,10).join(', ')+(fields.length>10?' and '+(fields.length-10)+' more fields':''));
-  if(uninspected)found.push(uninspected+(uninspected===1?' frame':' frames')+' that could not be inspected and may hold unsaved typing');
-  if(playing)found.push('media that is playing');
-  if(found.length)throw Error('reload_required: '+act+' would lose '+found.join('; and ')+'. Nothing was done. '+(ownerTyping||uninspected||playing?
-    'Tell the owner what would be lost and get his OK in the chat before you repeat with discard_unsaved=true; only typing marked as typed by Claude may be discarded without asking':
-    'All of it is Claude\'s own typing, so it may be discarded without asking: repeat with discard_unsaved=true'));
+  if(!fields.length&&!uninspected&&!media)return;
+  const error=Error('reload_required');
+  error.loss={act,fields:fields.slice(0,LOSS_FIELDS),more_fields:Math.max(0,fields.length-LOSS_FIELDS),frames_uninspected:uninspected,media};
+  throw error;
 }
 async function reloadChecked(tab,initial,command){
   const current=await reloadIdentity(tab);
   if(initial&&stable(current)!==stable(initial))throw Error('stale_reference: the document changed before its guarded reload; read again');
-  await requireDiscard(tab,command,'Reloading this tab',current.frames.map(([frameId,,url])=>({frameId,url})));
+  await requireDiscard(tab,command,'reload',current.frames.map(([frameId,,url])=>({frameId,url})));
   const owner=controlled.get(tab),pending={frameId:current.frameId,document:current.frames.find(frame=>frame[0]===0)?.[1]};owner.getReload=pending;
   try{await cdp(tab,'Page.reload',{loaderId:current.loaderId});owner.popupNeedsReload=false;}catch(error){if(owner.getReload===pending)delete owner.getReload;throw error;}
 }
@@ -1131,13 +1135,13 @@ async function dispatch(command,expires=null) {
     if(!current.needs_reload)return {ready:true};
     const initial=await reloadIdentity(tab);
     // Frames the reader couldn't cover count as possibly unsaved.
-    await requireDiscard(tab,command,'The guarded reload before this first input',current.frames.map(frame=>({frameId:frame.frame,url:frame.url})),current.uncovered?.length||0);
+    await requireDiscard(tab,command,'first_input',current.frames.map(frame=>({frameId:frame.frame,url:frame.url})),current.uncovered?.length||0);
     await reloadChecked(tab,initial,command);
     return {reloaded:true,message:'The taken tab reloaded to install its page guard before page scripts. Every old reference is stale; read again.'};
   }
-  if (command.name === 'close_tab') { await requireDiscard(tab,command,'Closing this tab',await chrome.webNavigation.getAllFrames({tabId:tab})||[]); await release(tab); await chrome.tabs.remove(tab); return {closed:tab}; }
+  if (command.name === 'close_tab') { await requireDiscard(tab,command,'close',await chrome.webNavigation.getAllFrames({tabId:tab})||[]); await release(tab); await chrome.tabs.remove(tab); return {closed:tab}; }
   if (command.name === 'navigate') {
-    if (command.url) { safeURL(command.url);await requireDiscard(tab,command,'Navigating this tab away',await chrome.webNavigation.getAllFrames({tabId:tab})||[]);const navigated=await cdp(tab,'Page.navigate',{url:command.url});rememberGet(tab,navigated?.loaderId); }
+    if (command.url) { safeURL(command.url);await requireDiscard(tab,command,'navigate',await chrome.webNavigation.getAllFrames({tabId:tab})||[]);const navigated=await cdp(tab,'Page.navigate',{url:command.url});rememberGet(tab,navigated?.loaderId); }
     // Same unsaved-typing and playing-media report as the first input's reload.
     else if (command.direction === 'reload') await reloadChecked(tab,null,command);
     else {
@@ -1145,7 +1149,7 @@ async function dispatch(command,expires=null) {
       const entry = history.entries[history.currentIndex + (command.direction === 'back' ? -1:1)];
       if (!entry) throw Error('refused: no history entry in that direction');
       safeURL(entry.url);if(entry.transitionType==='form_submit')throw Error('refused: a form-loaded history entry may resubmit; open its address fresh in a Claude tab');
-      await requireDiscard(tab,command,command.direction==='back'?'Going back in this tab':'Going forward in this tab',await chrome.webNavigation.getAllFrames({tabId:tab})||[]);
+      await requireDiscard(tab,command,command.direction==='back'?'back':'forward',await chrome.webNavigation.getAllFrames({tabId:tab})||[]);
       await cdp(tab,'Page.navigateToHistoryEntry',{entryId:entry.id});
     }
     return {navigated:true,page:await observation(tab)};
@@ -1275,7 +1279,7 @@ function enqueue(message){
     if(expires!==null&&performance.now()>=expires){audit({command:message.command?.name,phase:'expired'});respond({id:message.id,ok:false,error:'expired: the time of this command ran out while it waited in the queue; it was not started'});return;}
     effectStarted=false;dispatchEpoch=null;audit({command:message.command?.name,phase:'begin'});
     try { respond({id:message.id,ok:true,data:await dispatch(message.command,expires)}); }
-    catch(error) { respond({id:message.id,ok:false,error:effectStarted ? 'unknown: Input may have started; inspect status and the page, never retry. '+String(error.message):String(error.message)}); }
+    catch(error) { respond({id:message.id,ok:false,error:effectStarted ? 'unknown: Input may have started; inspect status and the page, never retry. '+String(error.message):String(error.message),...(error.loss&&!effectStarted?{loss:error.loss}:{})}); }
   });
 }
 async function connect() {

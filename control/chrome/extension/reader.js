@@ -753,7 +753,9 @@
   const typist=node=>{const marks=guard.typedBy?.(node);return marks?.claude&&!marks.owner&&marks.release===guard.typingReleases&&guard.typingUnconfirmed?.(node)===false?'Claude':'the owner';};
   function reloadState(){
     const fields=[];let claudeOnly=true;
-    const add=(label,node)=>{const by=typist(node);if(by!=='Claude')claudeOnly=false;fields.push(label+' (typed by '+by+')');};
+    // Each field as data, never as one text (brief 28a, item 5b): its
+    // description is page text and travels apart from whose typing it is.
+    const add=(label,node)=>{const by=typist(node);if(by!=='Claude')claudeOnly=false;fields.push({description:label,by:by==='Claude'?'claude':'owner'});};
     // The guard has listened since before page scripts in a watched document,
     // unless a release left a gap; only then is "no input since load" known.
     // After that gap (a release and a retake of the same document without a

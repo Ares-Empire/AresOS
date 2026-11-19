@@ -11,6 +11,7 @@ import uuid
 
 from ..common import Refused, strict_json_loads, canonical, visible
 from .qualification import version
+from . import loss
 
 LIMIT = 1024 * 1024
 # Brief 28, item 4. A command sent inside `bounded` carries the milliseconds it
@@ -190,6 +191,10 @@ class Bridge(TimeLeft):
                     raw = reply.get('error','refused: Chrome refused input')
                     code, separator, message = raw.partition(':')
                     if not separator: message = raw
+                    # Brief 28a, item 5b: a loss refusal gets the service's own sentence whatever the
+                    # extension wrote, and its report (page labels) only as untrusted data.
+                    if code.strip() == 'reload_required':
+                        raise loss.LossRefused(loss.checked(reply.get('loss')))
                     # Extension errors are literals today; escape them anyway, like page text.
                     # invalid_input comes only from a malformed time_left_ms (brief 28, item 4):
                     # a fault on this side, refused unrun, and the read's call fails with it.

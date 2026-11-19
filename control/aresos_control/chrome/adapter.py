@@ -14,6 +14,7 @@ from ..definitions import BY_NAME
 from ..paging import fragment_window, ordered_page
 from ..warnings import check_result
 from . import confirm
+from . import loss
 from . import nodes as outline_nodes
 from . import view as outline_view
 from .bridge import Bridge
@@ -936,6 +937,9 @@ class Chrome:
         except Refused as exc:
             certain=exc.code in {'stale_reference','stale_approval','reload_required','owner_signin','refused','permission_denied','chrome_unavailable'}
             op.update(state='failed' if certain else 'unknown',reason=('Nothing dispatched: ' if certain else 'Input may have run: ')+str(exc))
+            if exc.untrusted_content is not None:
+                # A loss refusal's report (item 5b) stays structured untrusted data in the stored operation.
+                op['stages']['loss']={'untrusted_content':copy.deepcopy(exc.untrusted_content)}
             self.store.write({'op:'+op_id:op},op['action'],'Chrome input refused before effect' if certain else 'Chrome input outcome unknown',op_id)
             raise
         op['stages'] = {('unchanged' if reply.get('no_change') else 'dispatched'):('The requested state was already present; no input was dispatched.' if reply.get('no_change') else 'Input dispatched once; delivery not proven.'),'page':visible(reply)}
@@ -1140,7 +1144,10 @@ class Chrome:
                     result=self.call('fill',fresh);completed.append(result)
                     if result.get('approval') or result.get('followups'):break
                 except Refused as exc:
-                    return {'state':'partial' if completed else 'refused','completed':completed,'next_field':index,'reason':str(exc)}
+                    stopped={'state':'partial' if completed else 'refused','completed':completed,'next_field':index,'reason':str(exc)}
+                    if exc.untrusted_content is not None:
+                        stopped['untrusted_content']=loss.at_step(exc,index)
+                    return stopped
             return {'completed':completed,'remaining':len(args['fields'])-len(completed)}
         if verb in {'open','navigate','take_tab','release_tab','close_tab'}:
             self.mode(acting=True)

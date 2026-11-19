@@ -64,6 +64,9 @@ class Action:
     result: dict | None = None
     trusted_send: bool = False
     asking_read: bool = False
+    # The declared shape of this action's `error`; None keeps the envelope's open object.
+    # Chrome declares its loss refusals' untrusted_content here (brief 28a, item 5b).
+    error: dict | None = None
 
     def __post_init__(self):
         if self.asking_read and (self.effect != "read" or self.owner_only):
@@ -81,7 +84,8 @@ class Action:
                 (APPROVAL_INSTRUCTION if self.effect in {"send", "delete"} or self.asking_read or self.verb.startswith("prepare_") else "")).strip()
 
     def tool(self):
-        result = {**RESULT, "properties": {**RESULT["properties"], "data": self.result}}
+        result = {**RESULT, "properties": {**RESULT["properties"], "data": self.result,
+                                           **({"error": self.error} if self.error is not None else {})}}
         return {"name": self.verb, "description": self.description, "inputSchema": self.input,
                 "outputSchema": result, "annotations": {"readOnlyHint": self.effect == "read",
                 "destructiveHint": self.effect == "delete", "idempotentHint": self.effect == "read",

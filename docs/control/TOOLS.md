@@ -7122,7 +7122,163 @@ Input:
 Result data:
 ```json
 {
-  "type": "object"
+  "anyOf": [
+    {
+      "type": "object",
+      "properties": {
+        "completed": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          },
+          "maxItems": 32
+        },
+        "remaining": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "completed",
+        "remaining"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "state": {
+          "type": "string",
+          "enum": [
+            "partial",
+            "refused"
+          ]
+        },
+        "completed": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          },
+          "maxItems": 32
+        },
+        "next_field": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "reason": {
+          "type": "string"
+        },
+        "untrusted_content": {
+          "type": "object",
+          "properties": {
+            "loss": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "act": {
+                      "type": "string",
+                      "enum": [
+                        "first_input",
+                        "reload",
+                        "navigate",
+                        "back",
+                        "forward",
+                        "close"
+                      ]
+                    },
+                    "fields": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "description": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 1536
+                          },
+                          "by": {
+                            "type": "string",
+                            "enum": [
+                              "owner",
+                              "claude"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "description",
+                          "by"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "maxItems": 10
+                    },
+                    "more_fields": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 1000000
+                    },
+                    "frames_uninspected": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 1000000
+                    },
+                    "media": {
+                      "type": "boolean"
+                    },
+                    "step": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 1000000
+                    }
+                  },
+                  "required": [
+                    "act",
+                    "fields",
+                    "more_fields",
+                    "frames_uninspected",
+                    "media"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "unavailable": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "step": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 1000000
+                    }
+                  },
+                  "required": [
+                    "unavailable"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            }
+          },
+          "required": [
+            "loss"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "state",
+        "completed",
+        "next_field",
+        "reason"
+      ],
+      "additionalProperties": false
+    }
+  ]
 }
 ```
 
