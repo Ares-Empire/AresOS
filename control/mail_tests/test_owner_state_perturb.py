@@ -19,6 +19,93 @@ import test_review23_sweep as sweep_fixtures
 from test_owner_state_sweep import exercise
 
 
+def recovery_recordings(test):
+    recordings = []
+    # Keep part 1's corpus order stable; append the new recovery boundaries.
+    # Capture ordinary applied tails before comparison reads and staged
+    # restore bytes before constructing any replacement Engine.
+    from test_owner_state_sweep import OwnerScenario
+    from storage_faults import OSWrites
+    from owner_state_oracle.records import visible_history
+    for flow in ('cancel', 'onboarding'):
+        scenario = OwnerScenario(flow)
+        try:
+            driver, fault = Driver(scenario), OSWrites()
+            append, selected = scenario.fixture.engine.store._append, []
+            def appended(value):
+                if 'commit' in value and not selected:
+                    event = next((e for e in driver.snapshot().prepared if e['seq'] == value['commit']), None)
+                    if event is not None and (('mail:account:new' in event['set']) if flow == 'onboarding' else
+                            event['action'] == scenario.action and
+                            event['set'].get('op:' + scenario.operation_id, {}).get('state') == 'failed'):
+                        # Arm the next raw I/O site only after this exact
+                        # event has been applied and before its marker write.
+                        selected.append(len(fault.points) + 1)
+                        fault.fail_at = selected[0]
+                return append(value)
+            with patch.object(scenario.fixture.engine.store, '_append', side_effect=appended), driver.observe(fault), fault.wrap(scenario.fixture.engine.store):
+                result = scenario.call()
+            test.assertEqual(len(selected), 1, (flow, 'Applied-tail boundary was not reached', fault.points))
+            test.assertTrue(fault.failed, (flow, selected, fault.points))
+            test.assertEqual(fault.points[selected[0] - 1], 'journal.write', (flow, selected, fault.points))
+            driver.reply(result)
+            record = driver.snapshot()
+            tail = visible_history(record)[-1]
+            test.assertGreater(tail['seq'], max(record.committed))
+            if flow == 'onboarding':
+                test.assertIn('mail:account:new', tail['set'])
+            else:
+                test.assertEqual(tail['set']['op:' + scenario.operation_id]['state'], 'failed')
+                test.assertEqual(tail['action'], scenario.action)
+            recordings.append(('applied-tail/' + flow, freeze(driver.oracle), copy.deepcopy(record)))
+            print(f'Owner recovery flow={flow} boundary=marker-write point={selected[0]} sequence={tail["seq"]} marked={max(record.committed)}', flush=True)
+        finally:
+            scenario.close()
+    scenario = OwnerScenario('restore')
+    try:
+        driver, fault = Driver(scenario), OSWrites()
+        apply = scenario.fixture.engine.store._apply
+        def fail_final_application(event):
+            test.assertEqual(event['action'], scenario.action)
+            test.assertTrue(event['set'].get('generation'))
+            fault.fail_at = len(fault.points) + 1
+            return apply(event)
+        with patch.object(scenario.fixture.engine.store, '_apply', side_effect=fail_final_application), driver.observe(fault), fault.wrap(scenario.fixture.engine.store):
+            result = scenario.call()
+        test.assertTrue(fault.failed, fault.points)
+        test.assertFalse(result['ok'], result)
+        driver.reply(result)
+        test.assertTrue(driver.snapshot().prepared[-1]['set'].get('generation'))
+        recordings.append(('staged-restore/final', freeze(driver.oracle), copy.deepcopy(driver.snapshot())))
+    finally:
+        scenario.close()
+    approval = sweep_fixtures.results23.Results23.approval
+    def many_approvals(fixture, verb, arguments):
+        test.assertEqual(verb, 'send')
+        # Reusing one composition correctly returns the same prepared operation.
+        return [approval(fixture, verb, fixture.compose(subject='Synthetic restore ' + str(n)))
+                for n in range(35)][-1]
+    with patch.object(sweep_fixtures.results23.Results23, 'approval', many_approvals):
+        scenario = OwnerScenario('restore')
+    try:
+        driver, fault = Driver(scenario), OSWrites()
+        apply = scenario.fixture.engine.store._apply
+        def fail_application(event):
+            fault.fail_at = len(fault.points) + 1
+            return apply(event)
+        with patch.object(scenario.fixture.engine.store, '_apply', side_effect=fail_application), driver.observe(fault), fault.wrap(scenario.fixture.engine.store):
+            result = scenario.call()
+        test.assertFalse(result['ok'], result)
+        driver.reply(result)
+        record = driver.snapshot()
+        test.assertIs(record.prepared[-1]['set'].get('restore_pending'), True)
+        test.assertNotIn('generation', record.prepared[-1]['set'])
+        recordings.append(('staged-restore/intermediate', freeze(driver.oracle), copy.deepcopy(record)))
+    finally:
+        scenario.close()
+    return recordings
+
+
 class SystematicPerturbations(unittest.TestCase):
     def test_recorded_scenarios_have_no_silent_owner_state_change(self):
         recordings = []
@@ -132,6 +219,7 @@ class SystematicPerturbations(unittest.TestCase):
         flag_oracle, flag_record, flag_deltas = record_production('local_flag')
         self.assertFalse(flag_deltas, 'Healthy LOCAL_FLAG must be quiet before alterations')
         recordings.append(('local-flag/healthy', flag_oracle, flag_record))
+        recordings.extend(recovery_recordings(self))
         counts = Counter()
         statistics = Counter()
         states = state_vocabulary([record for _, _, record in recordings])

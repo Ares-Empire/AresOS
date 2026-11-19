@@ -85,10 +85,12 @@ class WindowsReportTest(WindowsBase):
         self.assertEqual(self.reports()[-1], (0, []))
         self.assertEqual(len(self.reports()), 4)
 
-    def test_every_window_counts_but_the_desktops_the_covers_and_the_message_window(self):
+    def test_every_window_counts_but_the_desktops_the_covers_the_message_window_and_the_laptop_home(self):
         self.start()
+        # The laptop home (package 53c) is part of the desktop, as covering() and active() already treat it: it
+        # neither keeps the screens from going black nor refuses a logout.
         for handle, app_id in ((DESKTOP, 'aresos-desktop'), (10, 'aresos.cover'), (11, 'aresos.black'),
-                               (12, 'aresos.desktop')):
+                               (12, 'aresos.desktop'), (13, 'aresos.laptop-home')):
             self.window(handle, app_id)
         self.assertEqual(self.reports(), [(0, [])])
         # Minimized ones included, and the recovery terminal as any other window.
@@ -200,6 +202,8 @@ class WindowsReportTest(WindowsBase):
         self.addCleanup(sys.modules.pop, 'aresos_cover_for_shell', None)
         self.assertEqual(shell.COVER_APP_IDS, {cover.APP_ID, cover.BLACK_APP_ID})
         self.assertIn(f'--app-id={shell.MESSAGE_WINDOW_APP_ID}', desktop.VIEW_COMMAND)
+        home = (CONFIG / 'usr/libexec/aresos-laptop-home').read_text()
+        self.assertIn(f"\nAPP_ID = '{shell.LAPTOP_HOME_APP_ID}'\n", home)
         rules = {rule.get('identifier') for rule in
                  ET.parse(CONFIG / 'usr/share/aresos/labwc/rc.xml').getroot().iter('windowRule')}
         self.assertLessEqual(shell.COVER_APP_IDS | shell.DESKTOP_APP_IDS, rules)

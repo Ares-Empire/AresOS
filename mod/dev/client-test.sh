@@ -2,7 +2,8 @@
 # Runs the mod's client game tests (`./gradlew runClientGameTest`) on Linux (AresOS laptop) without a window on the
 # owner's screen. Extra arguments go to Gradle.
 #
-#   mod/dev/client-test.sh [--force] [--keep-screenshots <dir>] [--gpu auto|nvidia|intel|software] [gradle args...]
+#   mod/dev/client-test.sh [--force] [--session] [--keep-screenshots <dir>] [--gpu auto|nvidia|intel|software] [gradle args...]
+#   --session uses headless labwc with the image's window rules and enables small native-window checks.
 #
 # - The game runs inside its own headless Wayland compositor (cage with WLR_BACKENDS=headless) and that
 #   compositor's own Xwayland (Minecraft asks GLFW for X11). DISPLAY and WAYLAND_DISPLAY point there only, so
@@ -24,14 +25,16 @@
 set -euo pipefail
 source "$(dirname -- "${BASH_SOURCE[0]}")/env.sh"
 
-usage="usage: client-test.sh [--force] [--keep-screenshots <dir>] [--gpu auto|nvidia|intel|software] [gradle args...]"
+usage="usage: client-test.sh [--force] [--session] [--keep-screenshots <dir>] [--gpu auto|nvidia|intel|software] [gradle args...]"
 force=0
+session=0
 keep=
 gpu=auto
 gradle_args=()
 while (($#)); do
     case $1 in
         --force) force=1 ;;
+        --session) session=1 ;;
         --keep-screenshots)
             (($# >= 2)) || aresos_fail 2 "--keep-screenshots needs a directory; $usage"
             keep=$2
@@ -47,6 +50,10 @@ while (($#)); do
 done
 case $gpu in auto | nvidia | intel | software) ;; *) aresos_fail 2 "--gpu must be auto, nvidia, intel or software." ;; esac
 aresos_check_gradle_args "${gradle_args[@]}"
+if ((session)); then
+    [[ -x /usr/bin/labwc ]] || aresos_fail 1 "--session needs labwc."
+    gradle_args+=(-PpointerSession)
+fi
 if [[ -n $keep ]]; then
     [[ $keep == /* ]] || keep="$ARESOS_CALLER_DIR/$keep"
     /usr/bin/mkdir -p -- "$keep" 2>/dev/null && [[ -d $keep && -w $keep && -x $keep ]] \
@@ -174,6 +181,27 @@ aresos_cleanup() {
 }
 
 stamp=$(/usr/bin/mktemp -- "$ARESOS_DEV_CACHE/client-test-started.XXXXXX")
+if ((session)); then
+    # The image's rules, without its autostart: tests may open small stand-in apps on this private compositor.
+    /usr/bin/mkdir -p -- "$ARESOS_MOD_DIR/build"
+    session_dir=$(/usr/bin/mktemp -d -- "$ARESOS_MOD_DIR/build/pointer-session.XXXXXX")
+    /usr/bin/cp -- "$REPO_DIR/os/config/usr/share/aresos/labwc/rc.xml" "$session_dir/rc.xml"
+    {
+        printf '#!/usr/bin/bash\nset +e\n'
+        printf '[[ ${WAYLAND_DISPLAY:-wayland-0} != wayland-0 && ${DISPLAY:-:0} != :0 ]] || exit 1\n'
+        printf 'exec 2>&"${ARESOS_SCOPED_STDERR_FD:-3}"\n'
+        printf '%q ' "${ARESOS_GRADLE[@]}" runClientGameTest "${gradle_args[@]}"
+        printf '\ncode=$?\nprintf "%%s\\n" "$code" > %q\nkill -TERM "$LABWC_PID"\nexit "$code"\n' "$session_dir/status"
+    } > "$session_dir/start.sh"
+    /usr/bin/chmod +x -- "$session_dir/start.sh"
+    aresos_scoped client-test -- /usr/bin/env "${ISOLATE[@]}" "${compositor_env[@]}" "${game_env[@]}" \
+        LABWC_UPDATE_ACTIVATION_ENV=0 ALSOFT_DRIVERS=null /usr/bin/labwc --config-dir "$session_dir" \
+        --startup "$session_dir/start.sh" 3>&2 2>"$COMPOSITOR_LOG"
+    [[ -s $session_dir/status ]] || aresos_fail 1 "The headless session ended before Gradle returned."
+    status=$(<"$session_dir/status")
+    /usr/bin/rm -rf -- "$session_dir"
+    exit "$status"
+fi
 # Gradle and the game keep the terminal's stderr (fd 3 inside); only the compositor's own log goes to the file.
 aresos_scoped client-test -- /usr/bin/env "${ISOLATE[@]}" "${compositor_env[@]}" /usr/bin/cage -- \
     /usr/bin/env "${game_env[@]}" ALSOFT_DRIVERS=null \

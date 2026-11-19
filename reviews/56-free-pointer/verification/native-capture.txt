@@ -1,0 +1,10 @@
+Ordinary headless session preview, checkout helper and runClient (not Fabric client gametest).
+Cause: helper background before hello was missing; cache inspection before helper fix reported helperFocus=null.
+Final fix: startup background snapshot, ordered late replay, handshake preservation, capture guard.
+Before attempted grab/motion:
+front=true active=true glfwFocused=true grabbed=false yaw=180.0 pitch=-8.0 xpos=427.0 ypos=240.0 accumulatedDX=0.0 accumulatedDY=0.0 isWindowActive=true helperFocus=Focus[foreground=false, reason=other_window, appId=null, activated=false]
+After attempted grabMouse + onMove replay + handleAccumulatedMovement:
+front=true active=true glfwFocused=true grabbed=false yaw=180.0 pitch=-8.0 xpos=500.0 ypos=350.0 accumulatedDX=0.0 accumulatedDY=0.0 isWindowActive=true
+After closing the app:
+front=false active=true glfwFocused=true grabbed=true yaw=180.0 pitch=-8.0 xpos=640.0 ypos=360.0 accumulatedDX=0.0 accumulatedDY=0.0 isWindowActive=true helperFocus=Focus[foreground=true, reason=desktop_activated, appId=null, activated=false]
+App focus was confirmed with foreign-toplevel. No pause screen was opened. All preview scopes were stopped.

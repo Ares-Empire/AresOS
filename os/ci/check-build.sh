@@ -8,6 +8,14 @@ base=$(jq -r .reference os/manifest/base.json)
 mkdir -p evidence
 case $mode in
     resolve)
+        # Package 311: what labwc's build needs today, found on its own locked fedora:44. check-resolve.sh turns
+        # this into a candidate lock. A failure here is reported there and does not stop the other resolutions.
+        labwc_base=$(jq -r .base.reference os/labwc/labwc.lock.json)
+        sudo podman pull "$labwc_base"
+        sudo podman run --rm --network=host -v "$PWD/os/labwc:/tmp/aresos-labwc:ro" -v "$PWD/evidence:/evidence" \
+            --entrypoint /usr/bin/bash "$labwc_base" /tmp/aresos-labwc/resolve-download.sh \
+            "$(jq -r .source.url os/labwc/labwc.lock.json)" "$(jq -r .source.sha256 os/labwc/labwc.lock.json)" \
+            /evidence/labwc-resolved || echo 'labwc resolve-download.sh failed; see evidence/resolve/labwc.txt'
         # Inventory and resolve inside the pinned base only; no build.
         sudo podman pull "$base"
         sudo podman run --rm --network=host -v "$PWD/os:/tmp/aresos:ro" -v "$PWD/evidence:/evidence" \

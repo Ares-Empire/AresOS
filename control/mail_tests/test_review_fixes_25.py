@@ -7,7 +7,7 @@ import unittest
 from unittest.mock import patch
 
 from aresos_control.common import RESULT_LIMIT, WIRE_LIMIT, canonical, Refused
-from aresos_control.results import Observations
+from aresos_control.results import Observations, RESTART_ADVICE
 from response_checks import transport_response
 import test_review_fixes_11 as filing11
 import test_review_fixes_23 as results23
@@ -41,15 +41,33 @@ class Responses25(unittest.TestCase):
             self.assertLessEqual(len(canonical(result).encode()), RESULT_LIMIT)
             transport_response(result)
             print(f'Review25 jumbo filing response: {len(canonical(result).encode()) + 1} serialized bytes including newline; 350 observed locations', flush=True)
-            # The failed write's deferred pages are readable without persisting.
+            # Brief 302 item 1: the post-MOVE failure was the write's first fence,
+            # fully rolled back, so the store is not latched. While storage stays
+            # full, the next request's pre-dispatch flush of the queued notice
+            # fails afresh; that request stops before dispatch, reads included,
+            # and shows the queued warning through passive pending information.
             filing_id = evidence['filing_id']
-            page = self.engine.request({'v': 1, 'method': 'call', 'action': 'mail_filing_locations',
-                'arguments': {'filing_id': filing_id, 'cursor': evidence['cursor']}})
+            location_request = {'v': 1, 'method': 'call', 'action': 'mail_filing_locations',
+                                'arguments': {'filing_id': filing_id, 'cursor': evidence['cursor']}}
+            page = self.engine.request(location_request)
             self.assertFalse(page['ok'], page)
+            self.assertEqual(page['error']['code'], 'storage_limit', page)
             self.assertIn('Disk full', page['error']['message'])
-            self.assertGreater(page['data']['untrusted_content']['fragments'][0]['offset'], 0)
-            self.assertEqual(len(fixture.boxes['Target']), 350)
-            self.assertEqual(fixture.mutations, [('MOVE', 1, 'Target')])
+            self.assertNotIn(RESTART_ADVICE, page['error']['message'])
+            self.assertFalse('data' in page, 'The failed request must stop before dispatching the read')
+            notice = page['pending']['notices'][0]
+            self.assertEqual(notice['operation_id'], filing_id)
+            self.assertIn('Nothing was deleted', notice['untrusted_content']['reason'])
+            self.assertIn(filing_id, self.engine.store.deferred_notices)
+        # Storage freed: a new explicit request flushes the queued notice and
+        # reads the failed write's location pages without restart or another MOVE.
+        page = self.engine.request(location_request)
+        self.assertTrue(page['ok'], page)
+        self.assertGreater(page['data']['untrusted_content']['fragments'][0]['offset'], 0)
+        self.assertIn('Nothing was deleted', page['pending']['notices'][0]['untrusted_content']['reason'])
+        self.assertNotIn(filing_id, self.engine.store.deferred_notices)
+        self.assertEqual(len(fixture.boxes['Target']), 350)
+        self.assertEqual(fixture.mutations, [('MOVE', 1, 'Target')])
 
     def test_review25_final_size_check_pages_all_observations_and_keeps_every_warning(self):
         observation = Observations()
