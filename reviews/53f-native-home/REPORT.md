@@ -69,6 +69,82 @@ median **64,993 KiB** (64,867 to 65,286), Pss_Anon 30,532, two window pictures, 
 KiB (step B measured 62,358 with that code). The rise is the laptop's state, not this round's code; the lead decides
 whether to re-pin the guard. Runs: `.work/mem/fix-1.jsonl`.
 
+## Review fix round 2 (REVIEW-2, `briefs/53f-review-fix-2.md`)
+
+Built by a Claude Opus agent on 2026-11-19. Each fix and the test that shows it. Every new test was also run against
+the reviewed program (`301e7084`), loaded into the same test module, and failed there.
+
+1. **The finder never raises on a name** (finding 5, blocking). `natural` passed `character.casefold()` to
+   `unicodedata.digit` as one character. `ß` folds to `ss`, so searching `Straße` raised `TypeError`.
+   - Now each folded character is weighed alone, after NFD. A combining mark that folding produces joins the
+     accents: `İ` sorts as `i` with a dot above.
+   - Each folded letter keeps its character's case, now read with `lower()` (so `ß` counts as lower case). Ties come
+     out as ICU orders them: Strasse, Straße, STRASSE.
+   - Number runs weigh as (significant digits, digits) instead of `int()`, which refuses runs past 4,300 digits.
+   - Tests (`FinderTextTest`):
+     - searches with `Straße`, `ß`, `ﬁ`, `İ`, `²`, `٣` and `Ⅻ`: each finds its own name, the same way twice;
+     - the Strasse order, `ﬁ` against `fi`, and a run of 5,000 digits;
+     - a property test over the BMP's 49,708 letters and numbers: a one-character name (beside six names built from
+       it), searched by itself, raises nothing, keeps its order between two calls and finds the name. On
+       `301e7084` it stops at U+00DF.
+   - A one-off sweep of all 1,114,112 code points (surrogates included) through `natural` and `search`: nothing
+     raised.
+2. **A click opens a house only on what is painted** (finding 2). `logo_shapes` yields the logo's painted parts in
+   painting order: each block's face, plus its top and side where no block covers them.
+   - The painter fills exactly these shapes. Six scenes (day and night, with and without a query) paint
+     byte-identical pictures to `301e7084`'s painter.
+   - `painted` tests a point against the same shapes, so a click on an empty cell or a transparent corner of the logo
+     picture opens nothing.
+   - A framed house's frame takes clicks only on its ring, not its inside. `frame_band` gives the ring: by day from
+     the 2 px shadow to the inner line, by night the 2 px border.
+   - Tests (`HitTest`), by day and night, framed and not:
+     - the transparent lower-right corner of the logo picture opens nothing, and nor does the inside of the frame
+       beside the logo;
+     - the ring and the door open the house.
+   - A pixel test covers one house per logo outline (square, disc, diamond, octagon) and the framed one. Every pixel
+     the painter fills completely is a hit, and every clear pixel is not. For the frame, the test checks the pixels
+     that the ring's edge does not cross.
+   - The cut-end test now clicks a painted block. Its old point was on a logo's empty corner cell.
+3. **No stale icon results** (finding 3). The home updated the worker only while there were rows or a queue. So a
+   cleared finder left the last rows "shown", and an icon still being decoded was kept.
+   - `load_icons` now passes the rows on every draw, also when there are none.
+   - A failure is remembered only for the catalogue generation it was tried with. One that comes back after a refresh
+     is not remembered and, while its row is shown, is queued again.
+   - Tests (`IconWorkerTest`):
+     - through the home's own `load_icons` and `icon_ready`, an icon that is decoding when the finder is cleared is
+       dropped, and decoded anew when the name is typed again;
+     - a failure from before a refresh never blocks a retry, whether its row is still shown or shown later.
+4. **Nothing ticks at rest** (finding 4). `redraw` arms the 2 s trim only for reasons other than `clock` and `star`
+   (`IDLE_REDRAWS`).
+   - Test (`WindowTest.check_rest`, day and night): the channel counts each time the trim timer is armed.
+     - The input before the rest check has armed it.
+     - The test then asks for one clock redraw through the same path, because the minute may not fall in the
+       window.
+     - Over 13 s at rest nothing arms the trim, and no trim timer is waiting at the end.
+   - On `301e7084`: armed once by day and 4 times by night.
+5. **The opt-in memory tests fail by name** (finding 8). `laptop_home_memory.missing()` names what a measurement
+   lacks: the headless stack, fontconfig, the layer library or the study's fonts.
+   - `MemoryGuardTest.setUp` fails with that list.
+   - A measurement that cannot run (fonts not matched, a device visible, the wrong surface) fails with its reason.
+   - With `LAPTOP_HOME_TEST_LAYER_DIR=/nonexistent`: two failures naming gtk4-layer-shell. Before, these were errors.
+
+**One bug of this round:** fix 4's first commit (`1962dc6c`) read `reason` in `redraw`, whose parameter was named
+`_reason`. The headless window tests caught it as channel timeouts. Fixed in `057df6ea` before the runs below.
+
+**Round 2's runs** (headless as above, `LAPTOP_HOME_REQUIRE_HEADLESS=1`, `LAPTOP_HOME_TEST_LAYER_DIR` set to the
+verified extraction):
+- `discover -p 'test_aresos_laptop_home_native.py'`: 37 tests, OK (2 skipped: the opt-in memory tests), 55 s,
+  after the last code change. Second run: 37 tests, OK (2 skipped), 55 s.
+- `discover -p 'test_aresos_laptop_home.py'`: 16 tests, OK.
+- The same module with `LAPTOP_HOME_MEMORY_GUARD=1 -k MemoryGuardTest`: 2 tests, OK, 81 s. These are the 2 % check
+  after use (the trim still runs after a burst) and the median of three under 68,000 KiB.
+- Against `301e7084`, these new tests failed:
+  - `FinderTextTest`'s two (`TypeError`; U+00DF);
+  - `HitTest`'s logo test (the corners and the frame's inside open the house);
+  - `IconWorkerTest`'s two;
+  - `WindowTest` day and night (armed once and 4 times at rest).
+- Pictures: not regenerated. The painter's output is unchanged (above).
+
 ## Known limits
 
 - REVIEW-1 finding 6: Tab and a focused sign's Enter or Space no longer reach the end and group signs (53c's
@@ -323,6 +399,10 @@ LLVM, anything NVIDIA's and `/dri/`. None was mapped in any run, and every memor
    is kept beside it.
 
 ## Open questions
+
+- (Round 2, outside the brief.) The finder matches with `lower()`, as 53c's page did with `toLowerCase()`.
+  So `strasse` does not find `Straße`, and `straße` does not find `Strasse`. Matching with `casefold()` would find
+  both. That changes what the owner's German typing finds, so it is the lead's call.
 
 - Should the limit be judged in set-up I on the laptop (the one-buffer state), or should set-up S's limit change to
   "after a redraw, two window buffers included"? This decides whether PLAN-GAP 1 needs the logo change.
