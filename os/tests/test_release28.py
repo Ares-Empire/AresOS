@@ -1940,10 +1940,13 @@ class Guard42Test(unittest.TestCase):
             runs.append(dict(runs[-1], id=99, display_title=titles['dry-run-28']))
             with self.assertRaisesRegex(AssertionError, 'dry-run-28 dispatch allowance exhausted'):
                 guard.budget(0)
-            # Step 3's rehearsal is known with cap 0: its first dispatch stops until step 6 raises the cap.
+            # Step 3's rehearsal kind (cap 0 until step 6 raised it to 3): three dispatches pass, a fourth stops.
             runs[-1]['display_title'] = 'Two-disk rehearsal (release-28)'
+            self.assertEqual(guard.budget(0)['dispatch_counts']['release-28'], 1)
+            runs.extend(dict(runs[-1], id=200 + n) for n in range(3))
             with self.assertRaisesRegex(AssertionError, 'STOP: release-28 dispatch allowance exhausted'):
                 guard.budget(0)
+            del runs[-3:]
             # A title the ledger does not know stops with a line that names it.
             runs[-1]['display_title'] = 'Two-disk rehearsal (tools-local)'
             with self.assertRaisesRegex(AssertionError, r"^STOP: run 99 is titled 'Two-disk rehearsal \(tools-local\)', "
@@ -2023,8 +2026,10 @@ class Guard42Test(unittest.TestCase):
         titles = guard.PACKAGES['42']['titles']
         with self.assertRaisesRegex(AssertionError, 'STOP: resolve dispatch allowance exhausted'):
             self.run_main('ci', 'resolve', [titles['resolve'], titles['resolve']])
+        # Step 6 raised the checks cap to 3 (the model gate needs one on each rehearsal head): the fourth stops.
+        self.assertIn('42-dispatch-authorization.json', self.run_main('ci', 'checks', [titles['checks']] * 2))
         with self.assertRaisesRegex(AssertionError, 'STOP: checks dispatch allowance exhausted'):
-            self.run_main('ci', 'checks', [titles['checks']])
+            self.run_main('ci', 'checks', [titles['checks']] * 3)
         # A check build of another kind is no dispatch this ledger knows: its own guard names its title.
         with self.assertRaisesRegex(AssertionError, r"STOP: run 50 is titled 'OS image check build \(build, never published\)'"):
             self.run_main('ci', 'resolve', [], title='OS image check build (build, never published)')

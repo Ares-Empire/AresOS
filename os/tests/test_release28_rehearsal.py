@@ -1,6 +1,6 @@
 """Package 42, step 3: release 28's rehearsal mode `release-28` and its wiring (modelled on test_tools_local_wiring).
 
-The ledger kind has cap 0 (step 6 raises it with the lead's OK); the mode runs the rehearsal job on package 42's
+The ledger kind has cap 3 (step 6 raised it from 0 with the lead's OK); the mode runs the rehearsal job on package 42's
 branch and nowhere else; every step script accepts package 42's environment; the guard proves the native step in
 the run itself; the announced bundle is version 4's code with tools_version 5 and release 28's record; the stand-in
 origin holds 634e1237's trees, then that bundle; and the local walk passes with Control riding and without.
@@ -61,8 +61,11 @@ def record(digest='28' * 32, identity=walk.IDENTITY, daily_wheel=True):
 
 
 class LedgerTest(unittest.TestCase):
-    def test_the_kind_is_recorded_with_cap_0_and_22ds_bounds(self):
-        self.assertEqual(LEDGER['dispatch_caps'][MODE], 0)
+    def test_the_kind_is_recorded_with_cap_3_and_22ds_bounds(self):
+        # Step 3 recorded it with cap 0; step 6 raised it to the brief's three rehearsal runs.
+        self.assertEqual(LEDGER['dispatch_caps'][MODE], 3)
+        self.assertEqual((LEDGER['dispatch_caps']['checks'], LEDGER['minute_cap']), (3, 2400))
+        self.assertIn('Step 6 (2026-11-19, the lead): release-28 from 0 to 3', LEDGER['budget'])
         self.assertEqual(LEDGER['job_bounds'][MODE], guard.PACKAGES['22d']['job_bounds']['tools-local'])
         self.assertEqual(LEDGER['titles'][MODE], 'Two-disk rehearsal (release-28)')
         self.assertIn('adds the rehearsal kind release-28', LEDGER['budget'])
@@ -70,7 +73,7 @@ class LedgerTest(unittest.TestCase):
         # The publish gate: shut until step 5 opened it for one publish (review 1, B1; board #388).
         self.assertEqual((LEDGER['dispatch_caps']['publish-28'], LEDGER['publish_cap']), (1, 1))
 
-    def test_cap_0_stops_the_first_dispatch(self):
+    def test_the_cap_stops_the_dispatch_after_it(self):
         run = dict(event='workflow_dispatch', head_sha='a' * 40, run_attempt=1, status='completed', conclusion='failure',
                    created_at='2026-11-17T18:00:00Z', id=1, display_title=LEDGER['titles'][MODE])
         job = dict(name='Pinned live ISO inspection and two-disk rehearsal', conclusion='failure',
@@ -79,10 +82,19 @@ class LedgerTest(unittest.TestCase):
         self.addCleanup(guard.configure, '11c')
         api = lambda path: dict(workflow_runs=[run]) if path.startswith('actions/runs?') else dict(total_count=1, jobs=[job])
         with patch.object(guard, 'api', side_effect=api):
+            # Cap 0 (step 3) stopped the first dispatch.
+            with patch.dict(LEDGER['dispatch_caps'], {MODE: 0}), \
+                    self.assertRaisesRegex(AssertionError, MODE + ' dispatch allowance exhausted'):
+                guard.budget(0)
+            self.assertEqual(guard.budget(0)['dispatch_counts'][MODE], 1)
+        # Cap 3 (step 6): the fourth stops.
+        runs = [dict(run, id=n) for n in range(1, 5)]
+        api = lambda path: dict(workflow_runs=runs) if path.startswith('actions/runs?') else dict(total_count=1, jobs=[job])
+        with patch.object(guard, 'api', side_effect=api):
             with self.assertRaisesRegex(AssertionError, MODE + ' dispatch allowance exhausted'):
                 guard.budget(0)
-            with patch.dict(LEDGER['dispatch_caps'], {MODE: 1}):
-                self.assertEqual(guard.budget(0)['dispatch_counts'][MODE], 1)
+            del runs[-1]
+            self.assertEqual(guard.budget(0)['dispatch_counts'][MODE], 3)
 
 
 class DispatchTest(unittest.TestCase):
@@ -198,10 +210,11 @@ class GuardTest(unittest.TestCase):
                     patch.object(guard, 'api', side_effect=api), patch.object(model_scope, 'decide', return_value=('slice', ['unchanged'])):
                 guard.main()
                 return json.loads(pathlib.Path('evidence/42-dispatch-authorization.json').read_text())
-        with self.assertRaisesRegex(AssertionError, MODE + ' dispatch allowance exhausted'):
+        # Cap 0 (step 3) stopped it; cap 3 (step 6) lets it write the authorization.
+        with patch.dict(LEDGER['dispatch_caps'], {MODE: 0}), \
+                self.assertRaisesRegex(AssertionError, MODE + ' dispatch allowance exhausted'):
             main()
-        with patch.dict(LEDGER['dispatch_caps'], {MODE: 1}):
-            written = main()
+        written = main()
         self.assertEqual((written['allowance'], written['reserved_minutes'], written['native']['status']), ('42', 345, 'pending'))
         self.assertEqual(written['model'], dict(status='not-needed', scope='slice', reasons=['unchanged']))
 
