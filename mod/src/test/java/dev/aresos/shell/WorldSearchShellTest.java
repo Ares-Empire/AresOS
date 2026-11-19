@@ -12,6 +12,7 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.util.Comparator;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.AfterEach;
@@ -119,5 +120,40 @@ class WorldSearchShellTest {
             assertEquals(launch.requestId(), open.get("id").getAsString());
             assertEquals(ShellClient.SCREEN_WORLD, open.get("screen").getAsString());
         }
+    }
+
+    /**
+     * Review 1, should-fix 3: a quick reload of the same save. The watchdog's heartbeat, queued before the world went
+     * away, runs while it is gone and says not ready, which takes Super away on the helper's side; the same save is
+     * ready again before the writer reports the change. It must still send world_ready again, or Super stays off.
+     */
+    @Test void theSameSaveIsReportedAgainAfterANotReadyHeartbeat() throws Exception {
+        connect();
+        client.world("AresHub");
+        FakeHelper.await(() -> helper.received("world_ready").size() == 1, "the first world_ready");
+        // Heartbeats from before the world was ready said not ready too.
+        long notReady = notReadyHeartbeats();
+        var first = new CountDownLatch(1);
+        var second = new CountDownLatch(1);
+        // Hold the writer, so its tasks run in this order: the heartbeat, then the reports of the world's changes.
+        assertTrue(client.later(() -> hold(first)));
+        assertTrue(client.later(client::heartbeatNow));
+        assertTrue(client.later(() -> hold(second)));
+        client.world(null);
+        first.countDown();
+        FakeHelper.await(() -> notReadyHeartbeats() > notReady, "the not-ready heartbeat");
+        client.world("AresHub");
+        second.countDown();
+        FakeHelper.await(() -> helper.received("world_ready").size() == 2, "world_ready again for the same save");
+        assertEquals("AresHub", helper.received("world_ready").get(1).getAsJsonObject("world").get("id").getAsString());
+    }
+
+    private long notReadyHeartbeats() {
+        return helper.received("heartbeat").stream().filter(beat -> !beat.get("ready").getAsBoolean()).count();
+    }
+
+    private static void hold(CountDownLatch latch) {
+        try { latch.await(10, TimeUnit.SECONDS); }
+        catch (InterruptedException stopped) { Thread.currentThread().interrupt(); }
     }
 }

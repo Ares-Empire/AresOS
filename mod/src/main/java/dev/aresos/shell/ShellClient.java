@@ -324,7 +324,8 @@ public final class ShellClient implements AutoCloseable {
         })) homeQueued.set(false);
     }
 
-    private boolean later(Runnable task) {
+    /** Package-private for the tests, which hold the writer to put its tasks in a chosen order. */
+    boolean later(Runnable task) {
         try {
             writer.execute(task);
             return true;
@@ -673,7 +674,7 @@ public final class ShellClient implements AutoCloseable {
         String id = world;
         if (Objects.equals(id, current.reportedWorld)) return;
         try {
-            if (id == null) current.send(heartbeatMessage(false));
+            if (id == null) current.send(heartbeatMessage(null));
             else {
                 var message = request("w", "world_ready");
                 message.addProperty("instance", instance);
@@ -775,22 +776,38 @@ public final class ShellClient implements AutoCloseable {
                 current.close();
                 return;
             }
-            later(() -> {
-                try { current.send(heartbeatMessage(world != null)); }
-                catch (IOException | RuntimeException lost) { current.close(); }
-            });
+            later(() -> heartbeat(current));
         } catch (RuntimeException error) {
             LOG.log(System.Logger.Level.ERROR, "AresOS app helper watchdog failed", error);
         }
     }
 
-    private JsonObject heartbeatMessage(boolean ready) {
+    /**
+     * The periodic heartbeat, on the writer. A not-ready heartbeat takes the world back on the helper's side (Super is
+     * off until a fresh world_ready), so it counts as reporting "no world": when the same save is ready again,
+     * {@link #sendWorld} reports it again instead of taking it as already told (review 1, should-fix 3).
+     */
+    private void heartbeat(Connection current) {
+        String id = world;
+        try {
+            current.send(heartbeatMessage(id));
+            if (id == null) current.reportedWorld = null;
+        } catch (IOException | RuntimeException lost) { current.close(); }
+    }
+
+    /** Package-private for the tests: the watchdog's heartbeat on the current connection, run where it is called. */
+    void heartbeatNow() {
+        var current = connection;
+        if (current != null) heartbeat(current);
+    }
+
+    /** Ready with the world {@code id}, or not ready when it is null. */
+    private JsonObject heartbeatMessage(String id) {
         var message = request("b", "heartbeat");
         message.addProperty("instance", instance);
         message.addProperty("nonce", nonce);
-        message.addProperty("ready", ready);
-        String id = world;
-        if (ready && id != null) message.add("world", worldObject(id));
+        message.addProperty("ready", id != null);
+        if (id != null) message.add("world", worldObject(id));
         return message;
     }
 
