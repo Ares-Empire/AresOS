@@ -130,7 +130,12 @@ test('recheck script POST observes both exact document commits before takeover',
     fixture:{mutate:async(id,change)=>{assert.equal(id,'review-script-post');assert.equal(change,'review-change');assert.equal(ownerCommitted,true);posted=true;}},
     counts:id=>id==='review-script-post'?Number(posted):id==='review-script-popup'?Number(popupPosted):0,
     eventually:async(predicate,label)=>{const result=await predicate();assert.ok(result,label);if(label==='script POST committed in the exact owner tab')postCommitted=true;return result;},
-    target:async()=>({}),nav:async()=>{},
+    target:async()=>({}),nav:async(query,host,options)=>{
+      assert.equal(postCommitted,true);
+      assert.equal(host,'fixture');
+      assert.equal(query,'review-page&mode=script-popup&id=review-script-popup');
+      assert.equal(options.legacy,true,'leave the committed POST without trying to reload it');
+    },
     read:async tab=>{assert.equal(tab,8,'read the POST popup itself');return [{reference:{tab,element:'e1'},expected:{name:'Continue'}}];},
     selectedTarget:async row=>row,
     call:async(name)=>{

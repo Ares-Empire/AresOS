@@ -144,10 +144,18 @@ export function harnessTools({wire,modern,eventually,currentTab}){
       assert.ok(args.fields.every(field=>field.reference.tab===tab),'one tab for a fill batch');
       const result=await wire('chrome_do',{tab,steps:args.fields.map(field=>step('fill',field))});
       if(!result.ok)return result;
-      const {steps,not_run}=result.data;
-      if(steps[0]?.code==='readonly_site')return doResult(result);
-      return {...result,data:{completed:steps.filter(entry=>['done','unchanged'].includes(entry.outcome)),
-        remaining:not_run+steps.filter(entry=>!['done','unchanged'].includes(entry.outcome)).length}};
+      const {steps,prepared,untrusted_content}=result.data;
+      // An approval or interrupted batch is its own outcome. Never count it as a free fill.
+      if(prepared.length||result.data.deadline||result.data.error)return result;
+      const completed=steps.filter(entry=>['done','unchanged'].includes(entry.outcome));
+      const stopped=steps.at(-1);
+      if(stopped?.code){
+        const {code,message}=stopped;
+        const detail=code==='reload_required'?lossReport({...stopped,untrusted_content},steps.length-1):untrusted_content;
+        if(!completed.length)return {...result,ok:false,error:{code,message,untrusted_content:detail}};
+        return {...result,data:{...result.data,state:'partial',completed,next_field:completed.length,reason:message}};
+      }
+      return {...result,data:{...result.data,completed,remaining:args.fields.length-completed.length}};
     }
     if(action==='open'){
       const result=await wire('chrome_open',args);

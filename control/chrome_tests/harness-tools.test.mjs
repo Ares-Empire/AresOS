@@ -93,6 +93,32 @@ test('a committed observation belongs to the exact dispatched operation',async()
   assert.deepEqual(h.requests[1],['chrome_operation_status',{operation_id:'dispatched-one'}]);
 });
 
+test('a batch fill keeps the stopped step and its reason even when pending describes older operations',async()=>{
+  const message='Input may have started; inspect status and the page, never retry. owner_signin: the tool may not read this field, so it does not type into it either';
+  const step={do:'fill',ref:'bcdft7',outcome:'unknown',operation_id:'current',code:'unknown',message};
+  const pending={items:[{operation_id:'older',state:'failed',reason:'Control ended; prepared input was dropped without dispatch.'}]};
+  const raw={...action(step),pending};
+  const h=harness(()=>raw);
+  const args={fields:[{...row('e7','Code','textbox'),ref:'bcdft7',text:'Overwritten'}]};
+  const result=await h.rpc('fill_form',args);
+  assert.equal(result.ok,false);
+  assert.equal(result.error.code,'unknown');
+  assert.equal(result.error.message,message);
+  assert.deepEqual(result.data.steps,[step]);
+  assert.deepEqual(result.data.prepared,[]);
+  assert.equal(result.pending,pending);
+  assert.deepEqual(h.requests,[['chrome_do',{tab:7,steps:[{do:'fill',ref:'bcdft7',text:'Overwritten'}]}]]);
+});
+
+test('a prepared fill cannot pass as either a refused or a completed free fill',async()=>{
+  const raw=ok({...action({do:'fill',outcome:'prepared'}).data,prepared:[{approval:{operation_id:'current'}}]});
+  const h=harness(()=>raw);
+  const result=await h.rpc('fill_form',{fields:[{...row('e1'),ref:'bcdft1',text:'Synthetic'}]});
+  assert.equal(result,raw);
+  assert.equal(result.data.state,undefined);
+  assert.equal(result.data.remaining,undefined);
+});
+
 test('explicit public calls and legacy measurements keep their wire arguments and result',async()=>{
   const a=action({outcome:'done'}),h=harness(()=>a);
   const input={tab:7,steps:[{do:'click',ref:'bcdft1'}]};

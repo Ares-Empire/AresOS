@@ -351,8 +351,9 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
         if(mode==='dirty'){
           // The first page comes back from the back-forward cache or loads again;
           // either way it holds unsaved typing or can't be inspected.
-          const forward=await rpc('navigate',{tab,direction:'forward'});lossReport(forward,'forward');await delay(500);assert.equal(await address(),page(1),'the page stays until the explicit repeat');
-          const moved=await rpc('navigate',{tab,direction:'forward',discard_unsaved:true});assert.equal(moved.ok,true,JSON.stringify(moved));
+          // The restored document can need its guard again. This row measures the direct forward loss and repeat.
+          const forward=await rpc('navigate',{tab,direction:'forward'},{legacy:true});lossReport(forward,'forward');await delay(500);assert.equal(await address(),page(1),'the page stays until the explicit repeat');
+          const moved=await rpc('navigate',{tab,direction:'forward',discard_unsaved:true},{legacy:true});assert.equal(moved.ok,true,JSON.stringify(moved));
           await eventually(async()=>await address()===page(2),'forward dirty');
         }
       }finally{await call('close_tab',{tab,discard_unsaved:true});setTab(main);}
@@ -415,7 +416,8 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
     await fixture.mutate(id,'review-change');await eventually(()=>counts(id)===1,'script POST');
     await eventually(async()=>(await allTabs(call)).items.some(row=>row.tab===tab&&row.url==='http://fixture.test:8765/post-document?case='+id),'script POST committed in the exact owner tab');
     await call('take_tab',{tab});const refused=await rpc('click',await target('Continue'));assert.equal(refused.ok,false);assert.match(refused.error.message,/form submission|request method/);assert.equal(counts(id),1);
-    await nav('review-page&mode=script-popup&id=review-script-popup');await call('click',await target('Open window'));await eventually(()=>counts('review-script-popup')===1,'popup script POST');
+    // Leave the POST directly. A public go would require the very reload just refused above.
+    await nav('review-page&mode=script-popup&id=review-script-popup','fixture',{legacy:true});await call('click',await target('Open window'));await eventually(()=>counts('review-script-popup')===1,'popup script POST');
     const child=await eventually(async()=>(await allTabs(call)).items.find(row=>row.url?.includes('/post-document?case=review-script-popup')),'POST popup exists');
     const rows=await read(child.tab);const row=rows.find(row=>row.expected.name==='Continue');assert.ok(row);
     const popupRefused=await rpc('click',await selectedTarget(row,rows));assert.equal(popupRefused.ok,false);assert.match(popupRefused.error.message,/form submission|request method/);assert.equal(counts('review-script-popup'),1);await call('close_tab',{tab:child.tab,discard_unsaved:true});
