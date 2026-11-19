@@ -357,15 +357,103 @@ class HitTest(unittest.TestCase):
                 self.assertIsNone(town.click(sign['centre'] + sign['painted'] / 2 + 3, y))
             self.assertEqual(opened, ['test-game-1'])
 
+    def test_logo_takes_clicks_only_on_its_painted_blocks(self):
+        """REVIEW-2 finding 2: the logo picture's transparent lower-right corner, below its side, opened the house."""
+        for look in ('day', 'night'):
+            for framed in (False, True):
+                opened = []
+                town, _ = make_town(look, (9, 7, 9, 20), opener=lambda app_id, callback: opened.append(app_id))
+                if framed:
+                    town.set_query('game1')
+                scene = town.scene()
+                house = houses_of(scene)['test-game-1']
+                self.assertEqual(house['framed'], framed)
+                left, base, size = house['left'], house['base'], house['size']
+                corners = [(left + size + 1.5, base - 0.5)]   # inside the frame's ring, below the side
+                if not framed:
+                    corners.append((left + size + house['depth'] - 0.5, base - 0.5))   # the picture's last pixel
+                for x, y in corners:
+                    with self.subTest(look=look, framed=framed, point=(x, y)):
+                        self.assertTrue(program.inside(house['logo'][:2] + house['logo'][2:] * 2, x, y),
+                                        'inside the logo picture, where round 1 took clicks')
+                        self.assertIsNone(program.hit_test(scene, x, y))
+                        self.assertIsNone(town.click(x, y))
+                if framed:
+                    frame = house['frame']
+                    with self.subTest(look=look, part='inside the frame, beside the logo'):
+                        self.assertIsNone(town.click(left - 1.5, base - size / 2))
+                    with self.subTest(look=look, part="the frame's ring"):
+                        self.assertEqual(town.click(frame[0] + 1, base - size / 2)['id'], 'test-game-1')
+                self.assertEqual(opened, ['test-game-1'] if framed else [])
+                with self.subTest(look=look, framed=framed, part='the door'):
+                    self.assertEqual(town.click(*centre(house['door']))['id'], 'test-game-1')
+
+    @needs(pango(), 'pycairo, Pango and PangoCairo')
+    def test_logo_and_frame_hits_are_the_painted_pixels(self):
+        """Every pixel the painter fills completely is a hit, and every pixel it leaves clear is not."""
+        cairo, Pango, PangoCairo = pango()
+        painter = program.Painter(cairo, Pango, PangoCairo)
+        for look in ('day', 'night'):
+            town, _ = make_town(look, (9, 7, 9, 20))
+            town.set_query('game1')
+            scene = town.scene()
+            # One house per logo outline in the fixture (a square, a disc, a diamond, an octagon), and the framed one.
+            chosen, outlines = {'test-game-1'}, set()
+            for house in houses_of(scene).values():
+                outline = tuple(tuple(cell is None for cell in row) for row in scene['logos'][house['id']])
+                if outline not in outlines and program.inside((0, 0, program.WIDTH, program.HEIGHT), *house['logo'][:2]):
+                    outlines.add(outline)
+                    chosen.add(house['id'])
+            self.assertGreaterEqual(len(outlines), 3)
+            logos = cairo.ImageSurface(cairo.FORMAT_ARGB32, program.WIDTH, program.HEIGHT)
+            frames = cairo.ImageSurface(cairo.FORMAT_ARGB32, program.WIDTH, program.HEIGHT)
+            for app_id in chosen:
+                house = houses_of(scene)[app_id]
+                self.assertEqual(house['logo'][:2], [int(value) for value in house['logo'][:2]], 'whole pixels')
+                painter.blit(cairo.Context(logos), painter.house_logo(scene, house), *house['logo'][:2])
+            painter.frame(cairo.Context(frames), houses_of(scene)['test-game-1']['frame'], look == 'day')
+            for surface in (logos, frames):
+                surface.flush()
+
+            def alpha(surface, x, y):
+                return surface.get_data()[y * surface.get_stride() + 4 * x + 3]
+
+            for hit in scene['hits']:
+                if hit['kind'] != 'house' or hit['id'] not in chosen or not ('logo' in hit or 'band' in hit):
+                    continue
+                left, top, width, height = (int(value) for value in hit['rect'])
+                counts = {True: 0, False: 0}
+                for y in range(max(top, 0), min(top + height, program.HEIGHT)):
+                    for x in range(max(left, 0), min(left + width, program.WIDTH)):
+                        inside = program.painted(hit, scene['logos'], x + 0.5, y + 0.5)
+                        if 'logo' in hit:
+                            covered = alpha(logos, x, y)
+                            if covered in (0, 255):   # an edge pixel's coverage is partial: either answer
+                                self.assertEqual(inside, covered == 255, (look, hit['id'], x, y, covered))
+                                counts[inside] += 1
+                        else:
+                            # The frame's shadow and inner line are translucent: compare where the ring's edge
+                            # does not cross the pixel.
+                            samples = {program.painted(hit, scene['logos'], x + dx, y + dy)
+                                       for dx, dy in ((0.05, 0.05), (0.95, 0.05), (0.05, 0.95), (0.95, 0.95))}
+                            if samples == {inside}:
+                                self.assertEqual(inside, alpha(frames, x, y) > 0, (look, 'frame', x, y))
+                                counts[inside] += 1
+                self.assertTrue(counts[True] > 50 and counts[False] > 20, (look, hit['id'], counts))
+
     def test_cut_end_hides_houses_from_clicks(self):
         town, _ = make_town('day', (9, 7, 9, 20))
         scene = town.scene()
         tools = street_of(scene, 'system_tools')
         self.assertTrue(tools['ends']['L']['cut'])
         hidden = next(house for house in tools['houses'] if house['left'] < 10 < house['left'] + house['size'])
-        y = hidden['logo'][1] + 4   # above the end sign
+        # The highest block of the logo's rightmost column: painted, in view and above the end sign.
+        cells = scene['logos'][hidden['id']]
+        column, row = max((column, row) for row in range(12) for column in range(12) if cells[row][column] is not None)
+        x, y = hidden['left'] + (column + 0.5) * hidden['cell'], hidden['base'] - (row + 0.5) * hidden['cell']
+        self.assertTrue(program.EDGE / 2 < x and y < tools['ends']['L']['rect'][1])
         self.assertIsNone(program.hit_test(scene, 10, y), 'under the mask, before EDGE / 2')
-        self.assertEqual(program.hit_test(scene, hidden['left'] + hidden['size'] - 2, y)['id'], hidden['id'])
+        self.assertEqual(program.hit_test(scene, x, y)['id'], hidden['id'])
 
 
 class FinderTextTest(unittest.TestCase):

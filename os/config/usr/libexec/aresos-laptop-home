@@ -883,6 +883,56 @@ def inside(rect, x, y):
     return left <= x < left + width and top <= y < top + height
 
 
+def in_polygon(corners, x, y):
+    """Whether a point lies in a polygon, half-open as inside() is: its left and top edges in, its right and bottom
+    ones out."""
+    result = False
+    for (x1, y1), (x2, y2) in zip(corners, corners[1:] + corners[:1]):
+        if (y1 > y) != (y2 > y) and x < x1 + (y - y1) * (x2 - x1) / (y2 - y1):
+            result = not result
+    return result
+
+
+def inside_rounded(rect, radius, x, y):
+    """Whether a point lies in a box with rounded corners, as Painter.rounded draws it."""
+    left, top, width, height = rect
+    if not inside(rect, x, y):
+        return False
+    radius = min(radius, width / 2, height / 2)
+    nearest_x = min(max(x, left + radius), left + width - radius)
+    nearest_y = min(max(y, top + radius), top + height - radius)
+    return (x - nearest_x) ** 2 + (y - nearest_y) ** 2 <= radius ** 2
+
+
+def logo_shapes(cells, cell, depth):
+    """logo.js's painted parts in painting order, in the logo picture's own coordinates: the face from the ground up
+    (row 0 is the bottom), each block's top and side reaching back by depth where no block stands on or beside it,
+    drawn before every face. Yields (part, u, v, corners). The painter fills exactly these, and a click or hover
+    counts only inside them: the picture's corners and empty cells are transparent."""
+    def solid(u, v):
+        return 0 <= u < 12 and 0 <= v < 12 and cells[v][u] is not None
+
+    blocks = [(u, v, u * cell, depth + (11 - v) * cell) for v in range(12) for u in range(12) if solid(u, v)]
+    if depth:
+        for u, v, x, y in blocks:
+            if not solid(u, v + 1):
+                yield 'top', u, v, ((x, y), (x + cell, y), (x + cell + depth, y - depth), (x + depth, y - depth))
+            if not solid(u + 1, v):
+                yield 'side', u, v, ((x + cell, y), (x + cell, y + cell), (x + cell + depth, y + cell - depth),
+                                     (x + cell + depth, y - depth))
+    for u, v, x, y in blocks:
+        yield 'face', u, v, ((x, y), (x + cell, y), (x + cell, y + cell), (x, y + cell))
+
+
+def frame_band(frame, day):
+    """The framed house's painted ring as Painter.frame draws it: (outer box, its radius, hole, its radius). By day
+    a 2 px shadow outside the box, a 3 px gold border and a 1 px line inside it; by night a 2 px gold border."""
+    x, y, w, h = frame
+    if day:
+        return [x - 2, y - 2, w + 4, h + 4], 7, [x + 4, y + 4, w - 8, h - 8], 1
+    return [x, y, w, h], 5, [x + 2, y + 2, w - 4, h - 4], 3
+
+
 def build_scene(inputs):
     """The whole home for one set of inputs. Coordinates are on the 1920 x 1080 stage; 'fit' maps it to the window."""
     look = inputs['look']
@@ -1046,17 +1096,24 @@ def build_scene(inputs):
         low, high = street['view']
         for house in reversed(street['houses']):
             sign, (logo_left, logo_top, logo_size) = house['sign'], house['logo']
-            # The painted parts: the logo with its side, the mat, the sign's plate (or text) and, while framed, the
-            # frame. The transparent rest of the house's column takes no click.
-            parts = [[logo_left, logo_top, logo_size, logo_size], house['mat'],
-                     [sign['centre'] - sign['painted'] / 2, house['box'][1], sign['painted'],
-                      sign['bottom'] - house['box'][1]]] + ([house['frame']] if house['framed'] else [])
-            for part_left, part_top, part_width, part_height in parts:
+            # The painted parts: the logo's blocks with their tops and sides (logo_shapes), the mat, the sign's
+            # plate (or text) and, while framed, the frame's ring. The transparent rest of the house's column, the
+            # logo picture's empty corners and cells, and the inside of the frame take no click. Each rect bounds
+            # its part; a 'logo' or 'band' narrows it to the painted shape.
+            parts = [([logo_left, logo_top, logo_size, logo_size],
+                      dict(logo=[logo_left, logo_top, house['cell'], house['depth']])),
+                     (house['mat'], {}),
+                     ([sign['centre'] - sign['painted'] / 2, house['box'][1], sign['painted'],
+                       sign['bottom'] - house['box'][1]], {})]
+            if house['framed']:
+                band = frame_band(house['frame'], day)
+                parts.append((band[0], dict(band=band)))
+            for (part_left, part_top, part_width, part_height), shape in parts:
                 # Only the part the view shows: a cut end's mask or wall hides the rest.
                 right, part_left = min(part_left + part_width, high), max(part_left, low)
                 if right > part_left:
                     hits.append(dict(kind='house', id=house['id'], rect=[part_left, part_top, right - part_left,
-                                                                          part_height]))
+                                                                          part_height], **shape))
         hits.append(dict(kind='sign', key=street['key'], rect=street['sign']['rect']))
     return dict(
         look=look, size=[width, height], fit=fit, grid={key: grid[key] for key in ('cell', 'pitch', 'gap', 'size',
@@ -1107,7 +1164,22 @@ def hit_test(scene, x, y):
     x, y = (x - fit['left']) / fit['scale'], (y - fit['top']) / fit['scale']
     if not inside((0, 0, WIDTH, HEIGHT), x, y):
         return None
-    return next((hit for hit in scene['hits'] if inside(hit['rect'], x, y)), None)
+    return next((hit for hit in scene['hits'] if painted(hit, scene['logos'], x, y)), None)
+
+
+def painted(hit, logos, x, y):
+    """Whether a hit region holds a stage point: inside its rect, and for a logo or a frame inside its painted
+    shape. logos: the scene's cells by house id."""
+    if not inside(hit['rect'], x, y):
+        return False
+    if 'logo' in hit:
+        left, top, cell, depth = hit['logo']
+        return any(in_polygon(corners, x - left, y - top)
+                   for *_, corners in logo_shapes(logos[hit['id']], cell, depth))
+    if 'band' in hit:
+        outer, outer_radius, hole, hole_radius = hit['band']
+        return inside_rounded(outer, outer_radius, x, y) and not inside_rounded(hole, hole_radius, x, y)
+    return True
 
 
 class Town:
@@ -1638,48 +1710,27 @@ class Painter:
         size = 12 * cell + depth
         surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, size, size)
         cr = cairo.Context(surface)
-
-        def solid(u, v):
-            return 0 <= u < 12 and 0 <= v < 12 and cells[v][u] is not None
-
-        def colour(u, v):
-            return '#050506' if cells[v][u] == 'door' else cells[v][u]
-
-        if depth:
-            for v in range(12):
-                for u in range(12):
-                    if not solid(u, v):
-                        continue
-                    x, y, c = u * cell, depth + (11 - v) * cell, colour(u, v)
-                    if not solid(u, v + 1):
-                        cr.set_source_rgb(*ink(shade(c, 0.22)))
-                        cr.move_to(x, y)
-                        cr.line_to(x + cell, y)
-                        cr.line_to(x + cell + depth, y - depth)
-                        cr.line_to(x + depth, y - depth)
-                        cr.fill()
-                    if not solid(u + 1, v):
-                        cr.set_source_rgb(*ink(shade(c, -0.45)))
-                        cr.move_to(x + cell, y)
-                        cr.line_to(x + cell, y + cell)
-                        cr.line_to(x + cell + depth, y + cell - depth)
-                        cr.line_to(x + cell + depth, y - depth)
-                        cr.fill()
-        for v in range(12):
-            for u in range(12):
-                if not solid(u, v):
-                    continue
-                x, y, c = u * cell, depth + (11 - v) * cell, rgb(colour(u, v))
-                cr.set_source_rgb(*ink(c))
-                cr.rectangle(x, y, cell, cell)
+        # The same shapes the hit regions use (logo_shapes): tops and sides first, then the faces.
+        for part, u, v, corners in logo_shapes(cells, cell, depth):
+            colour = '#050506' if cells[v][u] == 'door' else cells[v][u]
+            if part != 'face':
+                cr.set_source_rgb(*ink(shade(colour, 0.22 if part == 'top' else -0.45)))
+                cr.move_to(*corners[0])
+                for corner in corners[1:]:
+                    cr.line_to(*corner)
                 cr.fill()
-                if cell >= 6 and cells[v][u] != 'door':   # a hint of single blocks
-                    cr.set_source_rgb(*ink(mix(c, (1, 1, 1), 0.09)))
-                    cr.rectangle(x, y, cell, 1)
-                    cr.fill()
-                    cr.set_source_rgb(*ink(mix(c, (0, 0, 0), 0.16)))
-                    cr.rectangle(x, y + cell - 1, cell, 1)
-                    cr.fill()
+                continue
+            (x, y), c = corners[0], rgb(colour)
+            cr.set_source_rgb(*ink(c))
+            cr.rectangle(x, y, cell, cell)
+            cr.fill()
+            if cell >= 6 and cells[v][u] != 'door':   # a hint of single blocks
+                cr.set_source_rgb(*ink(mix(c, (1, 1, 1), 0.09)))
+                cr.rectangle(x, y, cell, 1)
+                cr.fill()
+                cr.set_source_rgb(*ink(mix(c, (0, 0, 0), 0.16)))
+                cr.rectangle(x, y + cell - 1, cell, 1)
+                cr.fill()
         surface.flush()
         return surface
 
@@ -1957,6 +2008,7 @@ class Painter:
         cr.restore()
 
     def frame(self, cr, frame, day):
+        # frame_band in the model is the union of these rings: change both together.
         if day:
             self.ring(cr, frame, 5, 2, SHADOW, 0.82)
             self.ring(cr, frame, 5, 3, GOLD_HI, outside=False)
@@ -2359,7 +2411,7 @@ class LaptopHome:
         scene = self.town.scene((width, height))
         self.painter.paint(cr, scene)
         # Hover is tested against what was drawn; only the hit regions are kept.
-        self.hits = dict(fit=scene['fit'], hits=scene['hits'])
+        self.hits = dict(fit=scene['fit'], hits=scene['hits'], logos=scene['logos'])
         self.load_icons(scene)
 
     # -- motion ---------------------------------------------------------------------------------------------
