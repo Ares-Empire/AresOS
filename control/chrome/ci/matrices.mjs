@@ -80,7 +80,7 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,setTa
   if(runs('recheck2'))await popupMatrices({check:inBlock('recheck2'),call,rpc,nav,counts,eventually,getTab:()=>tab,setTab,fixture,ownerOpenPopup,popupEvidence,popupControl,approval});
   // Brief 28a, groups 14 and 15 (act-matrix.mjs): the new tools, at the end of the recheck2 shard, the
   // shortest of the long shards; its last case restarts the service and Chrome.
-  if(runs('recheck2'))await actMatrix({check:inBlock('recheck2'),call,rpc,nav,counts,eventually,fixture,admin,lifecycle,restoreControl,ownerNavigate,ownerOpenTab,ownerType,ownerKey,getTab:()=>tab,setTab});
+  if(runs('recheck2'))await actMatrix({check:inBlock('recheck2'),call,rpc,nav,counts,eventually,fixture,admin,lifecycle,restoreControl,ownerNavigate,ownerOpenTab,ownerType,ownerKey,ownerDismiss,getTab:()=>tab,setTab});
   await check('GROUP 7 native compatibility inside and outside Claude tabs',async()=>{
     await nav('native-compat&id=controlled');
     const controlled=await measureCompatibility({id:'controlled',fixture,eventually,start:async()=>call('click',await target('Continue'))});

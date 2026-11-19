@@ -1,3 +1,18 @@
+import fs from 'node:fs';
+
+const BOUNDARY='/out/browser-boundary.jsonl';
+export const boundaryLog={
+  size:()=>fs.statSync(BOUNDARY).size,
+  since(offset){
+    const descriptor=fs.openSync(BOUNDARY,'r');
+    try{
+      const length=Math.max(0,fs.fstatSync(descriptor).size-offset),buffer=Buffer.alloc(length);
+      const read=fs.readSync(descriptor,buffer,0,length,offset);
+      return buffer.toString('utf8',0,read);
+    }finally{fs.closeSync(descriptor);}
+  },
+};
+
 // Audit fragments are consecutive, offset-bound parts of one browser reply.
 export function completeIngress(text){
   const result=[];let pending=null;

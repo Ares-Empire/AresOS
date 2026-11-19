@@ -8,7 +8,8 @@ export function selected(shard,block){
 }
 export function wordInventory(words,shard=null){return words.flatMap((word,wi)=>WORD_LABELS.flatMap((label,li)=>!shard||wordShard(wi,li)===shard?['click','Enter','Space'].map(route=>'word-'+word+'-'+label+'-'+route):[]));}
 
-// The same source inventory used by the qualification completeness regression.
+// The qualification completeness regression discovers every literal case name,
+// including the Group 15 coverage at the end of the recheck2 shard.
 export async function caseInventories(){
   const fs=await import('node:fs');
   const files={core:['matrices.mjs','destination-matrix.mjs','late-reader-matrix.mjs','late-binding-matrix.mjs','animated-default-matrix.mjs','outline-read.mjs','outline-asking.mjs','unread-matrix.mjs'],review:['review-matrices.mjs'],recheck2:['recheck2-matrices.mjs','popups.mjs','act-matrix.mjs'],recheck3:['recheck3-matrices.mjs'],adapters:['sites/matrices.mjs']};

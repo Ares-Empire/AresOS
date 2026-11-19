@@ -12,7 +12,8 @@ import {lineOf,refOf} from '../chrome/ci/act-matrix.mjs';
 
 const PAGES=[['steps',''],['f4',''],['large','&mode=fields'],['large','&mode=text'],['far',''],['far','&mode=scroll'],['fingerprint',''],
   ...HOSTILE.map((_,index)=>['hostile','&index='+index]),['look',''],['look','&mode=landed'],['loaded',''],['loaded','&mode=busy'],['address',''],
-  ['links',''],['fold',''],['stage',''],['plain',''],['plain','&mode=empty'],['typed',''],['media',''],['popup',''],['popup','&mode=child']];
+  ['links',''],['fold',''],['stage',''],['stage','&mode=boundary'],['plain',''],['plain','&mode=empty'],['typed',''],
+  ['owner-draft',''],['input-dialog',''],['media',''],['popup',''],['popup','&mode=child']];
 const lastScript=html=>html.slice(html.lastIndexOf('<script>')+8,html.lastIndexOf('</script>'));
 
 // A stand-in DOM: every property is another stand-in, every call returns one, and what a

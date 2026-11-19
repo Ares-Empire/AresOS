@@ -15,7 +15,7 @@ import net from 'node:net';
 import {execFile} from 'node:child_process';
 import {promisify} from 'node:util';
 import {setTimeout as delay} from 'node:timers/promises';
-import {completeIngress} from './ingress-scan.mjs';
+import {boundaryLog,completeIngress} from './ingress-scan.mjs';
 import {hostileGrammar} from './outline-checks.mjs';
 import {canonicalBytes} from './efficiency-probe.mjs';
 import {F4_FILLED,HOSTILE} from './efficiency-fixtures.mjs';
@@ -40,8 +40,10 @@ export function lineOf(outline,start){
 export function refOf(outline,start){const line=lineOf(outline,start),found=line.match(REFERENCE);assert.ok(found,'a reference on '+line);return found[1];}
 const outcomes=result=>result.steps.map(step=>step.outcome);
 const pad=index=>String(index).padStart(2,'0');
+const auditRows=(offset,key)=>boundaryLog.since(offset).split('\n').slice(0,-1)
+  .filter(line=>line.startsWith('{"'+key+'":')).map(line=>JSON.parse(line));
 
-export async function actMatrix({check:report,call,rpc,nav,counts,eventually,fixture,admin,lifecycle,restoreControl,ownerNavigate,ownerOpenTab,ownerType,ownerKey,getTab,setTab}){
+export async function actMatrix({check:report,call,rpc,nav,counts,eventually,fixture,admin,lifecycle,restoreControl,ownerNavigate,ownerOpenTab,ownerType,ownerKey,ownerDismiss,getTab,setTab}){
   fs.mkdirSync(OUT,{recursive:true});
   let current='',opened=[];
   const results=[];
@@ -104,6 +106,18 @@ export async function actMatrix({check:report,call,rpc,nav,counts,eventually,fix
     const {stdout}=await run('python3',['control/chrome/ci/call.py',...(route==='command'?['--command']:[]),'--timed',verb,JSON.stringify(args)],
       {encoding:'utf8',env:{...process.env,GITHUB_ACTIONS:'true'},maxBuffer:16*1024*1024});
     const out=JSON.parse(stdout);record(route+':'+verb,args,out);return out;
+  }
+  async function throughData(route,verb,args){
+    const out=await through(route,verb,args);
+    assert.equal(out.result.ok,true,JSON.stringify(out.result.error));
+    return {data:out.result.data,seconds:out.seconds};
+  }
+  // Reuse the fixture-only admin route to the instrumented worker.
+  async function fixtureCommand(command,tab){
+    const path='/out/fixture-hold.json';fs.rmSync(path,{force:true});
+    const answer=await lifecycle({fixture:'hold',command,arguments:{tab}});
+    assert.equal(answer.ok,true,JSON.stringify(answer));
+    return JSON.parse(fs.readFileSync(path,'utf8'));
   }
   const countryOf=approval=>{
     const fields=approval.description.untrusted_content.page_state.form.fields;
@@ -273,6 +287,52 @@ export async function actMatrix({check:report,call,rpc,nav,counts,eventually,fix
     const entered=await act(tab,[{do:'fill',ref:alpha,text:'Enter me'},{do:'press',ref:alpha,key:'Enter'}]);
     assert.equal(entered.steps[0].outcome,'done');assert.notEqual(entered.steps[1]?.outcome,'stale',JSON.stringify(entered.steps));
     for(const approval of entered.prepared)await drop(approval.approval);
+  });
+
+  await check('ACT BRIEF28A real owner keys during the first step leave the next fill stale with its present line',async()=>{
+    const id=uid('owner-draft'),page=await open(actUrl('owner-draft',id)),tab=page.tab;
+    await data('show',{tab});
+    const ref=refOf(page.untrusted_content.outline,'textbox "Draft"');
+    const offset=boundaryLog.size();
+    const pending=throughData('proxy','do',{tab,steps:[{do:'wait',until:{text:'Draft entered'},timeout_ms:8000},
+      {do:'fill',ref,text:'Replacement'}]});
+    let result;
+    try{
+      // The list's preflight looks once. Repeated polls show the first step
+      // is waiting, and its condition depends on the real key events below.
+      await eventually(()=>auditRows(offset,'command').filter(row=>row.command==='page_state'&&row.phase==='begin').length>=3,
+        'the first step is polling for the owner draft',6000);
+      ownerType('Owner words');
+    }finally{({data:result}=await pending);}
+    assert.deepEqual(outcomes(result),['done','stale']);
+    assert.equal(result.steps[1].code,'stale_reference');
+    assert.match(lineOf(result.untrusted_content.now,'textbox "Draft"'),/Owner words/);
+    assert.match(lineOf((await readTab(tab)).untrusted_content.outline,'textbox "Draft"'),/Owner words/);
+    const rows=typed(id,'draft');
+    assert.ok(rows.some(row=>row.value==='Owner words'&&row.trusted),'the page received real keys');
+    assert.ok(rows.every(row=>'Owner words'.startsWith(row.value)),'every input was a prefix of the owner draft');
+  });
+
+  await check('ACT BRIEF28A a dialog during input records one unknown operation and stops the list',async()=>{
+    const id=uid('input-dialog'),page=await open(actUrl('input-dialog',id)),tab=page.tab,outline=page.untrusted_content.outline;
+    const ref=refOf(outline,'button "Show notice"');
+    const steps=[{do:'click',ref},{do:'fill',ref:refOf(outline,'textbox "Next field"'),text:'Too late'}];
+    try{
+      const {data:result}=await throughData('proxy','do',{tab,steps});
+      assert.deepEqual(outcomes(result),['unknown']);
+      const [entry]=result.steps;
+      assert.equal(entry.do,'click');assert.equal(entry.ref,ref);
+      assert.ok(entry.operation_id,'the unknown step has a committed operation');
+      assert.deepEqual(result.unknown,[entry.operation_id]);assert.equal(result.not_run,1);
+      assert.match(JSON.stringify(result.untrusted_content.dialog),/Input handler notice/);
+      const {operation}=await data('operation_status',{operation_id:entry.operation_id});
+      assert.equal(operation.id,entry.operation_id);assert.equal(operation.state,'unknown');
+    }finally{ownerDismiss();}
+    await eventually(async()=>!(await readTab(tab)).untrusted_content.dialog,'the owner dismissed the notice');
+    await eventually(()=>reported('act-notice-click-'+id).length>0,'the page handled the click');
+    await delay(500);
+    assert.deepEqual(reported('act-notice-click-'+id).map(row=>row.trusted),[true],'one trusted click, without retry');
+    assert.deepEqual(typed(id,'next'),[],'the next fill did not run');
   });
 
   await check('ACT BRIEF28A the look between steps stops at a held page submission a dialog and a new document',async()=>{
@@ -488,6 +548,47 @@ export async function actMatrix({check:report,call,rpc,nav,counts,eventually,fix
     fs.appendFileSync(OUT+'/time.jsonl',JSON.stringify({case:'many',seconds:out.seconds,ran,not_run:result.not_run})+'\n');
   });
 
+  await check('ACT BRIEF28A a frame answer held at the dispatch boundary leaves its committed fill unrun',async()=>{
+    const otherId=uid('after-boundary'),other=await open(actUrl('plain',otherId));
+    const id=uid('boundary'),page=await open(actUrl('stage',id,'&mode=boundary')),tab=page.tab;
+    const ref=refOf(page.untrusted_content.outline,'textbox "Stage note"');
+    const steps=['stage 1','stage 2'].map(text=>({do:'wait',until:{text},timeout_ms:8000}));
+    steps.push({do:'fill',ref,text:'Beyond the boundary'});
+    assert.deepEqual(await fixtureCommand('fixture_hold_input_boundary',tab),{held:tab});
+    const offset=boundaryLog.size();
+    await fixture.mutate(id,'act-start');
+    const sent=Date.now(),{data:result,seconds}=await throughData('proxy','do',{tab,steps});
+    assert.ok(seconds<=18,'the result within 18 seconds: '+seconds);
+    assert.deepEqual(outcomes(result),['done','done']);
+    assert.equal(result.deadline,true);assert.equal(result.not_run,1);
+    assert.deepEqual(result.unknown,[]);
+    assert.deepEqual(typed(id,'note'),[],'no input at return');
+
+    const {data:next}=await throughData('command','chrome_read',{tab:other.tab});
+    assert.equal(next.reads.length,1);assert.equal(next.reads[0].tab,other.tab);
+    assert.equal(next.reads[0].untrusted_content.title,'Plain '+otherId,'the next call got its own page');
+    const traces=()=>auditRows(offset,'fixture_input_boundary').map(row=>row.fixture_input_boundary).filter(row=>row.tab===tab);
+    await eventually(()=>traces().some(row=>row.phase==='released'),'the held reader answer was released');
+    const [held,ended,released]=traces();
+    assert.deepEqual(traces().map(row=>row.phase),['held','setup-ended','released']);
+    assert.equal(held.answered,true,'a real frame answer was held');
+    assert.ok(held.at-sent>=10500&&held.at-sent<12000,JSON.stringify(held));
+    assert.ok(held.remainingMs>0&&held.remainingMs<=1800,JSON.stringify(held));
+    assert.equal(ended.expired,true);assert.equal(ended.whileHeld,true,'setup expired before the frame answered');
+    assert.ok(released.remainingMs<=-950,JSON.stringify(released));
+    assert.equal(released.sameConnection,true);
+    assert.ok(held.operation&&[ended,released].every(row=>row.session===held.session&&row.operation===held.operation));
+    const {operation}=await data('operation_status',{operation_id:held.operation});
+    assert.equal(operation.id,held.operation);assert.equal(operation.state,'failed');
+    assert.match(operation.reason,/^Nothing dispatched:/);
+    assert.ok(!Object.hasOwn(operation.stages,'dispatched'));
+    await delay(10000);
+    assert.deepEqual(typed(id,'note'),[],'no input after the late answer');
+    const fresh=await readTab(tab);
+    assert.equal(refOf(fresh.untrusted_content.outline,'textbox "Stage note"'),ref,'the undelivered fill kept its reference');
+    fs.appendFileSync(OUT+'/time.jsonl',JSON.stringify({case:'held-frame',seconds,sent,held,ended,released,operation:operation.id})+'\n');
+  });
+
   await check('ACT BRIEF28A a caller killed during a list leaves no later input and the next call works',async()=>{
     const id=uid('killed'),page=await open(actUrl('f4',id)),outline=page.untrusted_content.outline;
     const steps=Array.from({length:20},(_,index)=>({do:'fill',ref:refOf(outline,'textbox "Line '+(index%10)+'"'),text:'Killed '+pad(index)+'.'}));
@@ -501,10 +602,17 @@ export async function actMatrix({check:report,call,rpc,nav,counts,eventually,fix
     await readTab(page.tab);
   });
 
-  await check('ACT BRIEF28A chrome_tabs marks a tab that plays sound',async()=>{
-    const page=await open(actUrl('media',uid('media')));
+  await check('ACT BRIEF28A chrome_tabs marks sound and replaces it with muted during playback',async()=>{
+    const id=uid('media'),page=await open(actUrl('media',id));
     assert.deepEqual(outcomes(await act(page.tab,[{do:'click',ref:refOf(page.untrusted_content.outline,'button "Play"')}])),['done']);
-    await eventually(async()=>/ sound\b/.test(listLine((await data('tabs',{})).untrusted_content.list,page.tab)||''),'the sound mark');
+    const marks=async()=>(listLine((await data('tabs',{})).untrusted_content.list,page.tab)||'').split('"',1)[0].trim().split(/\s+/);
+    const sound=await eventually(async()=>{const row=await marks();return row.includes('sound')&&row;},'the sound mark');
+    assert.ok(!sound.includes('muted'));
+    assert.deepEqual(await fixtureCommand('fixture_mute_tab',page.tab),{muted:true});
+    const mutedAt=Date.now();
+    const muted=await eventually(async()=>{const row=await marks();return row.includes('muted')&&row;},'the muted mark');
+    assert.ok(!muted.includes('sound'),'the muted tab no longer shows sound');
+    await eventually(()=>reported('act-playback-'+id).some(row=>row.at>=mutedAt&&row.position>0),'the audio keeps playing while its tab is muted');
   });
 
   await check('ACT BRIEF28A closing takes one tab per flag and a taken tab stays his',async()=>{

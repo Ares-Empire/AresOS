@@ -167,12 +167,25 @@ function fold(id){
     script:titled('Archive')+reporter(id)+clicks('#delete','delete')};
 }
 
-function stage(id){
+function stage(id,mode){
   // "stage 1", "stage 2", ... one every 3.5 seconds from the fixture's act-start (sent right
   // before the call); the note reports every value.
   return {body:'<h1>Stages</h1><p id="stage">stage 0</p><label>Stage note <input name="note"></label>',
     script:titled('Stages')+reporter(id)+inputs+'let stage=0,timer=null;globalThis.actChange=change=>{if(change==="act-start"&&timer===null)'
-      +'timer=setInterval(()=>{stage++;document.querySelector("#stage").textContent="stage "+stage;},'+STAGE_MS+');};'};
+      +'timer=setInterval(()=>{stage++;document.querySelector("#stage").textContent="stage "+stage;},'+(mode==='boundary'?5500:STAGE_MS)+');};'};
+}
+
+function ownerDraft(id){
+  return {body:'<h1>Owner draft</h1><p id="state">Waiting for keys</p><label>Draft <input name="draft" autofocus></label>',
+    script:titled('Owner draft')+reporter(id)+'document.querySelector("[name=draft]").addEventListener("input",event=>{'
+      +'report("input",{field:"draft",value:event.target.value,trusted:event.isTrusted});'
+      +'if(event.isTrusted&&event.target.value==="Owner words")document.querySelector("#state").textContent="Draft entered";});'};
+}
+
+function inputDialog(id){
+  return {body:'<h1>Input dialog</h1><button type="button" id="notice">Show notice</button><label>Next field <input name="next"></label>',
+    script:titled('Input dialog')+reporter(id)+inputs+'document.querySelector("#notice").onclick=event=>{'
+      +'report("notice-click",{trusted:event.isTrusted});alert("Input handler notice");};'};
 }
 
 function plain(id,mode){
@@ -187,7 +200,9 @@ function typed(id){
 
 function media(id){
   return {body:'<h1>Media</h1><audio src="/tone.wav" loop></audio><button type="button" id="play">Play</button>',
-    script:titled('Media')+'document.querySelector("#play").onclick=()=>document.querySelector("audio").play();'};
+    script:titled('Media')+reporter(id)+'const audio=document.querySelector("audio");'
+      +'document.querySelector("#play").onclick=()=>audio.play();'
+      +'audio.addEventListener("timeupdate",()=>{if(!audio.paused)report("playback",{position:audio.currentTime});});'};
 }
 
 function popup(id,mode){
@@ -201,7 +216,8 @@ export function actPage(url){
   const id=String(url.searchParams.get('id')||'fixture').slice(0,40),mode=url.searchParams.get('mode');
   const pages={steps:()=>steps(id),f4:()=>f4(id),large:()=>large(id,mode),far:()=>far(id,mode),fingerprint:()=>fingerprint(id),
     hostile:()=>hostile(id,HOSTILE[Math.max(0,Math.min(HOSTILE.length-1,Number.parseInt(url.searchParams.get('index')||'0',10)||0))]),look:()=>look(id,mode),loaded:()=>loaded(id,mode),
-    address:()=>address(id),links:()=>links(id),fold:()=>fold(id),stage:()=>stage(id),plain:()=>plain(id,mode),typed:()=>typed(id),
+    address:()=>address(id),links:()=>links(id),fold:()=>fold(id),stage:()=>stage(id,mode),plain:()=>plain(id,mode),typed:()=>typed(id),
+    'owner-draft':()=>ownerDraft(id),'input-dialog':()=>inputDialog(id),
     media:()=>media(id),popup:()=>popup(id,mode)};
   return Object.hasOwn(pages,name)?pages[name]():null;
 }

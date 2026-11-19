@@ -2,6 +2,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {setTimeout as delay} from 'node:timers/promises';
+import {boundaryLog} from './ingress-scan.mjs';
 
 // The typed rows' install path comes from the extension's own record, never
 // from the page: the background's install record (installRecord in
@@ -38,12 +39,6 @@ export function firstAnswer(mode,path){
 export function admittedAfter(text,opener){
   return text.split('\n').some(line=>{try{const row=JSON.parse(line)?.popup_admitted;return row?.opener===opener&&row.type==='popup'&&row.owner_dialog===false;}catch{return false;}});
 }
-const BOUNDARY='/out/browser-boundary.jsonl';
-const boundaryLog={
-  size:()=>fs.statSync(BOUNDARY).size,
-  since(offset){const descriptor=fs.openSync(BOUNDARY,'r');try{const length=Math.max(0,fs.fstatSync(descriptor).size-offset),buffer=Buffer.alloc(length);fs.readSync(descriptor,buffer,0,length,offset);return buffer.toString('utf8');}finally{fs.closeSync(descriptor);}},
-};
-
 // The row's document: cross-site to its opener, as a popup to another site.
 export const popupChild=(id,mode)=>'http://popup.test:8766/?case=popup-child&id='+id+'&mode='+mode;
 // What Claude's click opens. typed-early, the forced early path, opens a first
