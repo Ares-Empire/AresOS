@@ -425,3 +425,63 @@ One hosted run of the OS checks was started after the last code push (the report
 commit is `e1f32e0b`) and not watched: `gh workflow run "OS image" --ref pkg/53d-world-search -f checks_only=true`,
 run **44449047755** (https://github.com/Ares-Empire/AresOS/actions/runs/44449047755). Its result is for the lead to
 read.
+
+## Review fix round 2b
+
+Fixes for `reviews/53d-world-search/REVIEW-3.md` (CHANGES-NEEDED on two narrow cases), as the lead's message asked.
+Builder: the same Claude agent on Fable 5.2, on the same branch. No rebase onto package 56.
+
+### Done
+
+1. **Drafts kept while hidden or behind** (mod, `WorldSearchScreen.opened` and `holdsText`).
+   - The recipe book's search counts while the book is hidden too: the game keeps what he typed, and it shows again
+     with the book. A listed screen now holds text when any of its text boxes does, shown or hidden.
+   - The Apps screen is replaced only if the screen it was opened from could be replaced as well (`AppsScreen.parent()`,
+     the same draft rules applied to it): an empty Apps screen over an inventory with a recipe search typed stays.
+2. **The mark never runs out on a timer** (helper, `search_landed`). `SEARCH_MARK` and its 5 s are gone. Super's
+   handoff ends only on what the compositor reports:
+   - the world as the only active window, however late: the search lands, or, called off, uncovers nothing;
+   - another window's newer activation (`SearchHandoff.others` follows which other windows are reported active; one
+     more than at the last look, the same window again included): the handoff ends with nothing done, and a later
+     activation of the world is his own.
+   This replaces round 2's "The mark's end" and its 5 s judgment call above.
+- `docs/design/LAPTOP-HOME.md` section 5 says both.
+
+### Tests
+
+- **Helper** (`test_aresos_shell_search`, 32 → 34; the mark-runs-out test is replaced):
+  - an answer 60 s and 120 s after the press, read in two halves with the terminal still reported active, in both
+    listing orders, with and without ticks: nothing minimized, no event, the world in front, and afterwards his own
+    Alt+Tab uncovers as ever;
+  - another window activated after the press, 0.2 s or 60 s later: the handoff is gone, nothing minimized; the
+    world's activation after that uncovers by the ordinary rule and opens no search;
+  - the same window activated again counts as newer.
+- **Mutation check** (from a green module, the file restored and compared): the mark running out after 5 s; a newer
+  activation not ending the handoff; the other windows not followed; the ordinary uncover not standing back; a newer
+  activation ending the wait but the search still opening later. Each of the five made the module fail (1 to 20 tests).
+- **Client test** (`WorldSearchClientGameTest`, still last, new checks at its end, no new pictures): an empty Apps
+  screen over an inventory with nothing typed is replaced and the inventory closed; a recipe search set and the book
+  hidden (the game does keep it): `shell_search` leaves that inventory and its search, starts no wait, and leaves the
+  empty Apps screen opened from it and the search behind it.
+
+### Verified
+
+- **Helper, in-process, each module by name:** `test_aresos_shell_search` 34 OK; `test_aresos_shell` 74 OK;
+  `test_aresos_shell_windows` 33 OK; `test_aresos_shell_home` 13 OK; `test_aresos_shell_views` 23 OK;
+  `test_aresos_shell_protocol` 21 OK; `test_aresos_shell_hardening` 26 OK; `test_aresos_shell_review_fixes` 31 OK,
+  `_2` 16 OK, `_3` 12 OK, `_4` 11 OK; `test_aresos_shell_launch_hints` 13 OK; `test_aresos_shell_discovery` 36 OK.
+- **`mod/dev/build.sh`:** `BUILD SUCCESSFUL in 2m 50s` (328 unit tests, 6 Windows-only skipped, none failed).
+- **`mod/dev/client-test.sh`, the full suite, run 1:** `Client tests ended with exit code 0 after 13 min 14 s`;
+  **run 2:** `exit code 0 after 13 min 12 s` (RTX 4060, headless). Both with `53d world search checks passed: …` and
+  the two-slot line; the four 53d pictures byte for byte as committed both times. No exit 75 this round.
+- After each run the tracked pictures it rewrote for other packages were restored (59, then 57) and the 25 untracked
+  ones deleted.
+
+### Known limits (round 2b)
+
+- **A request the compositor never answers stays marked.** If he then stays in the same window and much later
+  Alt+Tabs to the world, that activation is taken for Super's late answer: the world gets the focus once without
+  being uncovered. This is the price of no timer; a second Alt+Tab uncovers.
+- **Another window's activation already on its way at the press** ends the handoff; Super's request then still
+  activates the world, by the ordinary rule (uncovered, no bar).
+- A text widget of another mod that is not one of the game's text boxes still cannot be seen (round 2's PLAN-GAP).
