@@ -4,7 +4,8 @@ Final report for the whole package: draft PR [#111](https://github.com/Ares-Empi
 `pkg/302-store-oracle`, code head `a3b42851`, brief [20-store-oracle-followups](../../briefs/20-store-oracle-followups.md),
 details and logs in [PROGRESS.md](PROGRESS.md). Sources: **P1–P7** = PROGRESS "Build part N"; **PF** = its "Fix after the
 proof (Mail review25)"; **MJ** = [mutations.json](mutations.json); **M4** = [mutations-part4.json](mutations-part4.json); **NK** =
-[new-key-classification.json](new-key-classification.json); **GH** = `gh run view`/`gh api`, 2026-11-19. Where PROGRESS parts
+[new-key-classification.json](new-key-classification.json); **CC** = [CLASSIFICATION-CHECK.md](CLASSIFICATION-CHECK.md);
+**GH** = `gh run view`/`gh api`, 2026-11-19. Where PROGRESS parts
 disagree, the later part wins (part 4's "53 fresh lists" became 52 from part 5; part 3's m15/m17 survivors died in part 4).
 
 ## Done
@@ -132,9 +133,22 @@ tests (CI ledger only); full Mail, sweep and alteration runs locally (hosted onl
   unattributed; boundaries are discovered, never remapped.
 - Accepted gaps stay pinned and visible (P7): N7's changed and identical residuals, the 32 changed and 72 identical saved
   envelopes, 16 new `qualification.mail_account_add` and 959 new history-proof keys; lifecycle/response gaps, not store fixes.
+- **N8** in [KNOWN-GAPS.md](../19b-owner-state/KNOWN-GAPS.md) (CC's N1), notices left after a finished replay: 124,173 of the 146,921
+  new keys, at 7,941 `crash-restart` case-phases in 24 flows. After a crash between staging and marking a call's last event,
+  the restart finishes the event, but the store still shows "outcome unknown, inspect". A caution too many, not hidden
+  harm; this package leaves start-up code untouched, item 3's staged ranges only removed the 12,517 wrong `lifecycle-proof` keys that hid it.
+- **N9** in KNOWN-GAPS.md (CC's N3 and C3), reads refused while a notice stays queued: item 1.2's request barrier, set by
+  every storage refusal in a request (`recorded_write`), refuses the read, and the reply has no page. 46,680 keys in 2,457
+  case-phases (`filing_copy`, `filing_move`, `filing_rename`, `expiry`, `maintenance`; 7,140 of them new audit keys),
+  1,056 of CC's N4 keys on top. While a latch survives and a notice is queued, every later request, reads included, is refused
+  until the service restarts, with the restart advice and the passive pending section; before, such a read was
+  answered with the error attached. Owner's decision: board #385, open.
 
 ## Open questions / left
 
-No open owner question. Left, in order: CI round 2 (the lead records it); the fresh package/security cross-review;
-the independent classification check against the full historical and fresh lists; then the lead's merge. No file
+One open owner question: board #385, whether N9's reach is wanted (Known limits). Left, in order: CI round 2 (the lead
+records it); the fresh package/security cross-review; the independent classification check against the full historical
+and fresh lists; then the lead's merge. After it, a `linux-tools` follow-up for N8 (CC, SHOULD-FIX 1): decide whether the
+store drops the queued notice once the replay finishes its source (as it does for Chrome) or the model expects it, with
+one re-pin. No file
 over 500 MB under `.work/` (`.work/302/` holds about 534 MB of evidence, checked 2026-11-19).

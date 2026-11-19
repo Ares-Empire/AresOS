@@ -167,11 +167,13 @@ The net reduction is 156,080; the large post-start changes are explicitly includ
 | Items 1/3: filing locations and refused-read paging | 16 | 2,246 | 24 |
 | Item 3: applied account qualification in saved refusal | 0 | 0 | 16 |
 
+**Correction, 2026-11-19 (from the [classification check](CLASSIFICATION-CHECK.md), SHOULD-FIX 2).** The row "Items 1/3: visible audit history / admitted checks" names the wrong cause for its 7,140 new keys. They are not newly admitted checks but the opposite: in each, item 1.2's request barrier refuses the read, and the reply shows no audit page. `recorded_write` sets the barrier for every storage refusal in a request (`results.py:188-190`). The row's counts stand. The class is N9 in [KNOWN-GAPS.md](../19b-owner-state/KNOWN-GAPS.md): with the check's N3 and C3 it holds 46,680 keys in 2,457 case-phases, and 1,056 of the check's N4 keys come on top.
+
 These buckets classify the affected comparison, not a claim that every independent residual in that comparison is fixed. In particular the live-check bucket removes an `unchecked` component (or is its matching count/page); its remaining/new other deltas keep their own matrix labels. All 293 phase/fact-change signatures are retained in `.work/302/repin/analyze.json`.
 
 - **Item 1 / G22:** `G22-latch/assertion` closes by the passing unchanged healthy-retry assertion. The other **376 fixed contract/G22/channel keys are byte-identical**. Of status changes, 92,820 keys close, 522 change and 18 appear; these include read-only `stale_reference` residuals and call/page changes, rather than treating every later read as latched. The 18 additions are `stale_reference` against expected `allowed`, not new accepted `journal_incomplete` permissions.
 
-- **Item 2:** **zero `startup-replay` failures**, zero `crash-startup` keys and still **zero `.restore-lock` keys**. The new check adds coverage without adding a pinned startup obligation.
+- **Item 2:** **zero `startup-replay` failures**, zero `crash-startup` keys and still **zero `.restore-lock` keys**. The new check adds coverage without adding a pinned startup obligation. The restore flow's keys do move (classification check, 2026-11-19): 1,434 close and 717 change, 2,151 in all, every one in `crash-restart` at points 26 to 75, because the model now accepts the confirm that start-up finishes; the flow's other 20,764 keys are identical.
 
 - **Item 3 / H:** the original H set remains 1,386 cases. Its old 63,379 keys become **37,328**: **32,478 closed, 7,025 semantically changed, 545 alias-only, 6,427 new, 23,331 identical**. This includes other defects at H; it does not erase the entire set.
 
