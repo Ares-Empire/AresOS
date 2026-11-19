@@ -297,15 +297,116 @@ LABWC_PINS_KEPT a candidate keeps the lock's result.normalized_sha256 and no bui
    2.42 gave the same two hashes for build A, but a future version need not, so a change to the locked binutils can
    require new pins.
 
+## 311e: the bytes the loader maps are pinned
+
+`os/labwc/loaded_image.py` holds one function, `loaded_sha256(path)`. It hashes the file from offset 0 to the end of its
+last segment, with only `e_shoff` and the GNU build-id descriptor set to zero, and it reads program headers only. The
+`labwc` stage computes it on the RPM's own payload, prints `LABWC_LOADED <path> <hash>` and stops with one
+`LABWC_REFUSED` line on a mismatch or on a file the function refuses. `result.loaded_sha256` in the lock holds both pins,
+beside `result.normalized_sha256`, which did not change.
+
+| # | Item | Result | Evidence |
+|---|---|---|---|
+| 1 | Both real builds agree, and match the lead's prototype | PASS | Table below |
+| 2 | One `--no-cache` build from the real files passes and prints the pinned values | PASS | Below, at `ffacc288`, exit 0 |
+| 3 | A wrong loaded pin in a scratch export stops the build with the new line | PASS | Below, exit 1, no image tagged |
+| 4 | `test_labwc_stage` and `test_aresos_desktop` pass, and `test_labwc_stage` passes in `ubuntu:24.04` | PASS | 126 tests OK; 189 tests OK, 1 skipped; 126 tests OK in Ubuntu |
+| 5 | `rebind.py pending` if a bound file changed | PASS | No bound file changed. Run in a scratch export of `ffacc288`: the same 10 waiting files, 0 removed |
+
+### Item 1: the real builds
+
+The RPMs were copied out of `localhost/aresos-labwc:311d-a` and `311d-b`, and `python3 -I os/labwc/loaded_image.py` ran
+on each binary from their payloads.
+
+| | Build A | Build B | Lead's prototype |
+|---|---|---|---|
+| Loaded `/usr/bin/labwc` | `92b42d5f5174a91adab883a3f6196500483ac08e37adff7928568284d70422f2` | the same | the same |
+| Loaded `/usr/bin/labnag` | `789da84fb23e482434c84e300d1a95c90f5cec5ffc1b9a156d2f6b5cdcff47d2` | the same | the same |
+
+### Item 2: the build
+
+```
+podman --cgroup-manager=cgroupfs build --no-cache --target labwc --format=oci --tag localhost/aresos-labwc:311e --file os/Containerfile os
+```
+
+```
+LABWC_NORMALIZED /usr/bin/labnag 7c6896e938198e7922105e01b52118e2bfd75d16c431ea9c9a615127b7cc1f6d
+LABWC_NORMALIZED /usr/bin/labwc 89cd0e901a5cc9f6a7df0d6337d38d817a753318cbdca8b8e620a7cfc0dd71c4
+LABWC_LOADED /usr/bin/labnag 789da84fb23e482434c84e300d1a95c90f5cec5ffc1b9a156d2f6b5cdcff47d2
+LABWC_LOADED /usr/bin/labwc 92b42d5f5174a91adab883a3f6196500483ac08e37adff7928568284d70422f2
+LABWC_BUILT labwc-0.9.6-1.fc44.aresos1.x86_64 8f9f4ea2ab3163ee2a760624cd10d7ceb105a3c84f1d980ed73cbea7aba565c6
+```
+
+This is a third build with its own RPM hash, and all four pins held.
+
+### Item 3: the refusal
+
+From a scratch export of `ffacc288` with the loaded `/usr/bin/labwc` pin replaced by `aaaa...`, the same command with
+`--tag localhost/aresos-labwc:311e-wrongpin` printed the four hash lines and then, with exit 1:
+
+```
+LABWC_REFUSED the loaded SHA-256 of /usr/bin/labwc is 92b42d5f5174a91adab883a3f6196500483ac08e37adff7928568284d70422f2, the lock says aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+```
+
+No image was tagged. The six intermediate images that build left were matched to the IDs in its own log and removed.
+
+### Review 3's edits on the real `labwc`
+
+Each row is one edit to a copy of build A's `/usr/bin/labwc`. No copy was run.
+
+| Edit | Normalized hash | Loaded hash |
+|---|---|---|
+| `PT_INTERP`'s `p_offset` + 1 | same | **differs** |
+| `PT_GNU_RELRO` made `PT_NULL` | same | **differs** |
+| `e_phnum` 13 to 12 | same | **differs** |
+| A zero byte after the executable segment made `0xcc` | same | **differs** |
+| Bytes appended after the end of the file | same | same, as defined |
+
+### Tests
+
+- `python3 -m unittest discover -s os/tests -p 'test_labwc_stage.py'`: 126 tests, OK. The new tests load the real
+  `os/labwc/loaded_image.py`.
+- The same module in `ubuntu:24.04` (Python 3.12.3, objcopy 2.42): 126 tests, OK.
+- `python3 -m unittest discover -s os/tests -p 'test_aresos_desktop.py'`: 189 tests, OK, 1 skipped.
+- 34 mutants of the new code, each caught. The first run of 35 left four: one showed a condition that could never fire
+  alone, which was removed, and three led to new test cases.
+
+### PLAN-GAP
+
+1. **The build-id descriptor is in neither pin.** The brief names bytes after `end` as what stays open. The 20 descriptor
+   bytes stay open too: both binaries map them in their read-and-execute segment, and they differ in every build. The
+   entry point and every other mapped byte are pinned, so changing them alone gives pinned code nothing new to run. That
+   is reasoning, not a test. `KNOWN-LIMITS.md` records it.
+2. **`COPY labwc/` also copies a local `__pycache__`.** `os/.containerignore` does not exclude it, and a normal import
+   would trust a matching `.pyc` over the source. The stage therefore compiles `loaded_image.py` from its source, and a
+   test plants such a file to prove it.
+
+### Not checked
+
+No hosted workflow ran, and the final `aresos` image stage was not built: only `--target labwc`. `check_build=resolve`'s
+new text is covered by unit tests, not by a real resolve run. No crafted binary was executed, by design.
+
 ## Final NEVRA and file list (for `linux-aresos`'s R29 rule)
 
 `labwc-0.9.6-1.fc44.aresos1.x86_64`. The RPM's SHA-256 and the two `.build-id` names change with every build (see 311c
 and 311d), so the rule cannot pin them; the other paths do not change.
 
-What identifies the build is the SHA-256 of each binary after removing exactly these three sections, and no others:
-`.note.gnu.build-id`, `.gnu_debuglink` and `.gnu_debugdata`. A match means "same sections", not "same file": it catches
-any ordinary rebuild with different code, but not a deliberately crafted file (`KNOWN-LIMITS.md`, "What the normalized
-pins prove").
+**Use the loaded hash.** It covers the program headers, the interpreter and every mapped byte except the build-id
+descriptor. The function is `loaded_sha256(path)` in `os/labwc/loaded_image.py`, standard library only. Running
+`python3 -I os/labwc/loaded_image.py <path>` prints the hash, or prints one line on stderr and exits 1 if it refuses the
+file.
+
+| Binary | Loaded SHA-256 |
+|---|---|
+| `/usr/bin/labwc` | `92b42d5f5174a91adab883a3f6196500483ac08e37adff7928568284d70422f2` |
+| `/usr/bin/labnag` | `789da84fb23e482434c84e300d1a95c90f5cec5ffc1b9a156d2f6b5cdcff47d2` |
+
+The lock holds the same values under `result.loaded_sha256`. Bytes after the last segment are outside this hash because
+the loader never reads them (`KNOWN-LIMITS.md`, "What the normalized pins prove").
+
+The normalized hash stays pinned as well. It is the SHA-256 of each binary after removing exactly these three sections,
+and no others: `.note.gnu.build-id`, `.gnu_debuglink` and `.gnu_debugdata`. A match means "same sections", not "same
+file": it catches any ordinary rebuild with different code, but not a deliberately crafted file.
 
 ```
 objcopy --remove-section .note.gnu.build-id --remove-section .gnu_debuglink --remove-section .gnu_debugdata <copy of the binary>
