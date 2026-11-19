@@ -1,6 +1,310 @@
 # Package 28a: Chrome acting progress
 
-## Step 1b
+## Step 1b, part 2
+
+2026-11-19. **Done; stop here.** Items 4 and 6 are built behind private entries, tested and mutation-checked; with
+part 1 (items 3 and 3a, below) step 1b is complete. Code commits: `c8d2f633` (item 4), `a4f90f86` (item 6); this section
+is the next commit. Builder: a Claude Opus 5.5 agent for the lead `linux-tools`. Read the READY brief from
+`origin/main` (items 3, 3a, 4, 6, item 0, item 8 steps 1/1b, "What must not change", the Tests rows for items 3, 3a, 4
+and 6, "Stop rules"), and steps 1b part 1, 1a and 0b below. The public catalogue, the generated files and the
+instructions are unchanged; no tool name is new.
+
+### Done
+
+- **Item 4, `control/aresos_control/chrome/going.py`** (new), reached as `Chrome.going('open'|'go', args)`:
+  - `chrome_open`: exactly one of `url`, `tab` (with `seen` for one of his tabs; a Claude or taken tab's present
+    address from `tab_context` without it) and `ref` (a link's, with or without its `tab`, or a library entry's).
+    Brief 20's `open` runs through `free()` as before (the tab is created on `about:blank`, then navigated).
+  - `chrome_go`: `tab` and exactly one of `url` and `to` (`back`, `forward`, `reload`), `discard_unsaved`. A tab
+    without control answers `take_first`. A taken tab (or popup) whose `needs_reload` is set gets
+    `free('prepare_control')` first, with main's flag: `reload_required` with item 5b's report, or the guarded reload,
+    then the navigation; `to: reload` there is the guarded reload once.
+  - **Loaded:** `page_state` every 0.1 s. Arrived: another top document than before the call, or, where the
+    navigation may stay in its document (an address other than the present one, back, forward; for `open`, any
+    address but `about:blank`), another address. Loaded: arrived, `ready`, and the token unchanged for 0.15 s.
+    `until` (`text` or `gone`, as `find` reads the page) counts only after arrival and replaces ready and quiet;
+    `loaded` then says whether the page was also quiet. A dialog or a refused look ends the wait.
+  - **Time:** 18 s in all. `timeout_ms` (0 to 15,000, default 8,000) counts from the start of the call and the wait
+    ends by second 15; every command carries its time (`Bridge.bounded`) to second 17, by which the closing outline
+    read answers. An effect command given up on is `unknown` ("may have happened"), never `expired`.
+  - **Result:** `{tab, loaded, until_met, characters, total, cursor, untrusted_content: {url, title, scroll, outline,
+    dialog}, version_notice}`, the outline through brief 28's `outline_tab` (queued page steps handled as a read
+    handles them), `render`, `Reading` and `fit` with `max` (default 4,000), so its references and cursor work with
+    the next `chrome_read`. A closing read that fails keeps the tab: `{tab, loaded: false, until_met, error, ...}`.
+  - **A link reference keeps its recognised meaning** (`Going.linked`): the tab from the table (`References.tab_of`)
+    or the one given, which must be its tab; `Chrome.acting` (fingerprint), giving the message alone when stale
+    (`references.trim`, no `now`); the target must be a link to a web address (`invalid_input` otherwise, a
+    `javascript:` link too); then `Chrome.classified('click', {}, facts, frame, mode)`, **the classification
+    `payload` now calls too** (moved out of it unchanged: read-only, `allowed_url` of the link, `recognize`,
+    `classify`, the adapter's effect). A click that would ask refuses with `ASKS`; missing facts refuse with
+    `UNCLASSIFIED`. Nothing is created, followed or committed before that, and `payload` (which may take or reload)
+    is never called. A free reference opens the full `href` of those fresh facts, which the fingerprint just bound.
+- **Item 6, `control/aresos_control/chrome/tablist.py`** (new), reached as `Chrome.small(verb, args)` and
+  `Chrome.upload(args)`:
+  - `chrome_tabs` (`tabs`, input `cursor`): the extension's new all-tabs reply as text in `untrusted_content.list`,
+    window by window (`window 3 (in front)`), Claude's group as an indented `group Claude` block, a line per tab:
+    number, whose (`claude`, `his`, `taken`), the marks `*`, `pinned`, `sound` (audible, not muted), `muted`,
+    `asleep`, `popup`, `no` (`allowed_url` with the owner's never-list refuses it), `look` (read-only site), the title
+    quoted by brief 28's rule and cut at 80, the short-form address cut at 60. The result carries `seen` (a reference
+    from brief 28's table) and `total`; a cursor (`<seen>.<offset>`) only beyond 200 tabs, paging the kept list.
+    `References.listed` keeps the last 8 lists (each tab's top document and full address; a tab asleep by its
+    address alone); `connect` drops them with the connection, and a list is also bound to its session.
+  - `chrome_take` (`take`, input `tab`, `seen`, `reload`) goes through `Going` too: one of his tabs needs `seen`
+    (`invalid_input`, "list the tabs and pass seen"), an unknown `seen` or a tab not in it is `stale_reference`
+    ("list the tabs again"); the list's `{url, document}` goes to the extension with `take_tab`. Without `reload` the
+    page is kept: `{tab, reload_due, typed_fields, version_notice}` (an owner-dialog handoff passes through). With
+    `reload: true`, `free('prepare_control', discard_unsaved=True)` and the outline result as for `chrome_go`.
+  - `chrome_open` with `tab` and `seen` opens the address the list showed (`Chrome.seen_entry`), wherever the tab has
+    gone since, and never touches his tab.
+  - `chrome_show` (`show`, input `tab`): the extension's new `show` command, straight to the bridge.
+  - `chrome_close` (`close`, input `tabs` 1 to 20, `discard_unsaved`): several tabs with the flag refuse before
+    anything (`invalid_input`, "close tabs with unsaved work one at a time"). Whose comes from the all-tabs reply: a
+    taken tab is kept ("this is the owner's tab; release it"), one of his too, an unknown number too; a Claude tab
+    goes through brief 20's `close_tab` via `free()`. Result `{closed: [{tab, untrusted_content: {title, url}}],
+    kept: [{tab, code, message, untrusted_content: {title, url, loss?}}]}`; a kept tab's loss report is its own.
+    `CLOSE_RESULT` in `chrome/definitions.py` declares it (not on a tool until 1d).
+  - `chrome_library` (`library`, input `kind`, `text`, `cursor`, `limit`): brief 20's snapshot commands; entries
+    whitelisted per kind (history: title, url, visited; bookmarks: title, url; downloads: file, state, url, which is
+    where it came from: never `finalUrl` or `referrer`), addresses in the short form, a `ref` per entry with an
+    address. `References.snapshot`/`entry`/`library` keep the full address while its snapshot lives (5 minutes since
+    its last page, 30 since it was made, the last 2, dropped with the connection). `chrome_open(ref=)` opens a library
+    entry's address with the free-URL policy (no control to classify); with a `tab` it is `invalid_input`.
+  - `chrome_upload` (`Chrome.upload`, input `tab`, `ref`, `path`, `file` as the proxy adds it; the proxy reads only
+    `path`, unchanged): `take_first` outside the group, the message alone when stale, `discard_unsaved` refused as
+    input, and a first-input reload that would lose work refuses with `UPLOAD_RELOAD`: the fixed loss message plus
+    "Reload the tab first (chrome_take with reload: true for a taken tab, chrome_go with to: reload for a popup),
+    then repeat the upload.", the report as untrusted data. Otherwise it always prepares.
+  - `take_first` for the read: `outline_tab` asks `tab_context` only after the extension refused a tab with
+    `stale_reference`, so a read of a Claude tab sends no extra command; `take_first` is a tab entry (`TAB_ERRORS`).
+  - `descriptions.named(values, state, references, tab)`: the typed read's values named by item 3b's description,
+    the label and the element's short reference from the table (no fingerprint, so an action on it stays refused
+    until a read), each value quoted by brief 28's rule. Built and tested, wired into the result at 1d.
+- **Extension** (`background.js`, the three additions item 6 names): `claudeOpened` (set by `open` and by
+  `createdTarget` when the opener is controlled, forgotten in `removedTab`) gives `whose`; `everyTab()` answers
+  `{name: 'tabs', all: true}` with every tab of the normal and popup windows (`windows.getAll({populate:true})`, top
+  document by `webNavigation.getFrame`, none for a tab asleep, at most 10,000); `showTab()` answers `show`
+  (`tabs.update({active:true})`, `windows.update({focused:true})`, refused only for an unknown tab); `take_tab` with
+  `seen` runs `stillSeen()` first (same address, same top document unless asleep in the list) and refuses
+  `stale_reference` before `take()` attaches, groups, moves or reads anything. Brief 20's `tabs`, `downloads`,
+  `bookmarks`, `history` and `take_tab` without `seen` are unchanged.
+- **Tests changed deliberately:** `background.test.mjs`' "the extension has no companion window creation or focusing
+  path" now allows exactly one focusing call, `showTab`'s `chrome.windows.update(current.windowId,{focused:true})`,
+  and still refuses every other `chrome.windows.create|update|remove` (see PLAN-GAPs). No receiver, binding, question
+  or outcome assertion changed.
+- **CI browser rows:** none changed (nothing for step 2's `HARNESS-MAP.md` from 1b part 2).
+
+### Tests and mutations
+
+**Run** (portable Node v22.15.0 from step 0a's `.work/pkg28a-0a/`; Python 3.14.8; logs in `.work/pkg28a-1b2/`):
+
+```sh
+PYTHONPATH=control python3 control/generate.py --check
+.work/pkg28a-0a/node-v22.15.0-linux-x64/bin/node --test control/chrome_tests/*.test.mjs
+PYTHONDONTWRITEBYTECODE=1 TMPDIR="$PWD/.work/pkg28a-1b2/tmp" PYTHONPATH=control:control/chrome_tests python3 -m unittest \
+  test_going test_small_tools test_operation_projection test_acting_references test_view_references test_questions \
+  test_policy test_engine test_loss_errors test_field_descriptions test_instruction_rules test_qualification_fixture \
+  test_bridge test_sites test_qualification_service test_credentials test_fix_x1 test_outline_action test_view_paging \
+  test_view_hostile test_efficiency test_view_address test_view_nodes test_view_outline test_view_budgets test_outline_time
+python3 .work/pkg28a-1b2/mutations.py
+git diff --check
+```
+
+- Generator check: **Generated artifacts match definitions**.
+- Node: **609 tests, 609 pass**, 0 fail/cancelled/skipped/todo, 32,644 ms (605 at part 1, plus 4). Log: `node-final.log`.
+- Python, the modules above: **Ran 474 tests in 82.0s, OK** (432 at part 1, plus 24 `test_going`, 16
+  `test_small_tools`, 2 `test_loss_errors`). Log: `python-final.log`.
+- Not run locally: `test_fault_surface` and `test_state_*` (CI's python shards). No browser.
+- `git diff --check`: clean.
+
+**New tests.** `test_going.py` (24, `Chrome.going` on a fake extension whose tabs move: `open`/`navigate` change
+what `outline`, `facts` and `page_state` show, after some looks if asked, in the same document for a fragment or a
+history step, a token that never settles, and a receiver of every address followed): Delete and Unsubscribe links to
+GET endpoints with a hidden token refuse to open (also with their `tab`), the fixed message alone, no tab, no address,
+no operation; their click through `Chrome.act` prepares with nothing sent, the approved `chrome_submit` sends one input,
+a repeat none; an ordinary link opens its whole address (the operation keeps it, the description and result show the
+public form, the new outline's references act); conservative mode refuses every link reference while a supplied URL
+of the Delete endpoint opens; a read-only site follows an ordinary link and refuses Delete; a changed `href` is stale
+with no present line, and the new address opens after a read; another tab, an invented reference, a button and a
+`javascript:` link refuse; missing classification facts refuse and never fall back; open by `url` waits for arrival,
+`about:blank` doesn't wait; open by a Claude tab takes its address, his tab needs `seen`; thirteen input combinations
+refuse before anything; `take_first`; an address loads after a delay; a fragment and back arrive in the same
+document; a reload and the present address wait for a new document although the old one moves its own address in
+place, and time out with the old outline when it never comes; `until` on a page that never goes quiet returns met
+with `loaded: false`, unmet at its timeout, and `gone`; `until` never counts before arrival; the wait ends by its
+second (`WAIT` patched to 0.3 s) whatever `timeout_ms`; a dialog ends the wait; a navigate given up on is `unknown`
+and its operation too; a page that can't be read after opening is the result's `error` with its tab; a taken tab with
+typing answers `reload_required` (item 5b's report, act `first_input`) and isn't navigated, without typing it reloads
+under its guard and then navigates (the flag reaches both), `to: reload` there is one guarded reload; a Claude tab's
+navigation keeps main's guard and needs no guarded reload.
+`test_small_tools.py` (16, `Chrome.small`/`Chrome.upload` on that fake plus the item 6 commands): the sample list,
+exactly (whose, every mark, `no` for claude.ai, the owner's never-list host and `chrome://`, `look`, a query and a
+fragment as `?…`/`#…`, the marker absent); titles quoted and cut at 80, a hostile title escaped, addresses cut at 60;
+25 tabs within 3,500 characters as sent; 450 tabs paged by 200 from the kept list, each page naming its window, bad
+and unknown cursors refused; 9 lists drop the first, a new connection drops all; his tab without `seen`, with an
+unknown one or a tab not listed, refused; navigated to a new document or a new address in the same one, take is
+`stale_reference` and nothing is attached; the extension gets the list's `{url, document}`, `document: null` for a
+tab asleep; take keeps the page and says `reload_due`; `reload: true` reloads with the flag and returns the outline;
+open with his tab and `seen` opens the listed address after he moved on and never touches his tab, a `no` tab refuses;
+show any listed tab, refuse an unknown one; close keeps a taken tab, his tab and an unknown number with their
+reasons and closes only Claude's; several with the flag refused, each kept tab with its own report, the hostile
+label only as data, one tab with the flag closes; the library's short addresses (no marker, no referrer), references
+that open the whole address without classification (a "Delete item" history entry), a library reference with a tab
+refused, folders without a reference, downloads' fields; snapshots expire 300 s after their last page and are kept
+while paged, a third drops the first; upload prepares only, refuses `discard_unsaved`, `take_first`, a stale
+reference with the message alone, and a reload that would lose work with the reload-first advice and the hostile
+label only as data; the typed read's names; a read of a tab outside the group is a `take_first` entry beside a Claude
+tab's outline.
+`test_loss_errors.py` (+2, the real `Bridge` on a fake host's JSON lines, carried through the daemon's socket framing
+and MCP/CLI text): `chrome_go`'s navigate, reload, back and forward in a Claude tab and the guarded reload in a taken
+tab keep the hostile label only in `untrusted_content.loss` with the fixed code and message, stored operations alike;
+`chrome_close` gives each kept tab its own report beside the fixed message, `CLOSE_RESULT` valid in every form.
+`background.test.mjs` (+4, "28a 6"): the all-tabs reply (whose by who opened it, a tab dragged into the group stays
+his, marks, the document only when awake, devtools windows left out, the 10,000 bound); `open` and a controlled
+tab's new target are Claude's, a closed tab is forgotten; take with `seen` refuses for a new document, a new address
+in the same document, the same address in another document and a gone tab, attaching and grouping nothing, and
+passes for a tab asleep by its address; show focuses the tab and its window, also for `chrome://`, and refuses an
+unknown tab.
+
+**Mutations** (`.work/pkg28a-1b2/mutations.py`: apply one, run the named tests, require failure, restore, require them
+green). Log: `.work/pkg28a-1b2/mutations.log`. **43 mutations: all caught, all restored green** (4.15 ran again by
+itself after `take` gave its old anchor a twin; the log ends with that run). The first runs missed three, each fixed in
+the tests before this record: 4.4 (the mutation now gives Claude the present line, as `stale_shown` would), 4.6 (the
+reload test now moves the old document's address in place and waits for more looks), 6.7 (the list test now checks
+that a new connection drops the older lists, beside the session check).
+
+| # | Mutation | Caught by |
+|---|---|---|
+| 4.1 | bypass classification in reference-open | the Delete/Unsubscribe receiver test; conservative mode; read-only site |
+| 4.2 | missing classification facts fall back to the address | missing facts |
+| 4.3 | reference-open classifies with the conservative switch off | conservative mode |
+| 4.4 | a stale link gives its present line | changed link |
+| 4.5 | a button reference opens like a link | the reference must be a link |
+| 4.6 / 4.7 | a reload counts the old document / the old document counts as arrived | reload and present address; until before arrival |
+| 4.8 | a same-document navigation never arrives | fragment and back |
+| 4.9 | loaded without ready and quiet | never-quiet page |
+| 4.10 | the wait has no end of its own | the wait ends by its second |
+| 4.11 | a command given up on is reported `expired` | given up on |
+| 4.12 / 4.13 / 4.14 | no `take_first` / a taken tab skips its guarded reload (main) / `discard_unsaved` dropped | go outside the group; taken tab with and without typing; go's loss envelope |
+| 4.15 | open by tab follows a tab without control or `seen` | open by tab |
+| 5b.M2 / M3 / M3b | the label back into the message / go flattens the report / go drops it | go's loss envelope (real Bridge); reload_required in `test_going` |
+| 6.N1 / N2 | take skips the `seen` check / compares the address only | Node "28a 6: take with seen" |
+| 6.N3 / N4 | whose by control / `open` records nothing | Node "every tab at once" / "open and a controlled tab's new target" |
+| 6.N5 | a second focusing path | Node "no companion window creation or focusing path" |
+| 6.1 / 6.2 | close closes a taken tab / one flag covers several tabs | close; one tab per flag |
+| 6.3 / 6.4 (M6) | a kept tab's report into its message / the kept tabs share one report | one tab per flag; close's loss envelope (real Bridge) |
+| 6.5 / 6.6 | take sends no `seen` / his tab taken without `seen` | his tab named with `seen` |
+| 6.7 / 6.8 | a list survives a new connection / nine lists kept | the last eight lists |
+| 6.9 | open with his tab follows where it went since | open with his tab |
+| 6.10 / 6.11 / 6.19 | the tab list / the library in the public form / no `no` mark | the list; the library |
+| 6.12 / 6.13 | a library reference goes the link route / never expires | the library; snapshots |
+| 6.14 / 6.15 (M3) / 6.16 | the upload refusal: the plain message / the labels in it / a stale present line | upload |
+| 6.17 | a read of his tab stays `stale_reference` | read outside the group |
+| 6.18 | take `reload: true` without the flag | take and reload |
+| 6.20 | a typed value unquoted | the typed read's names |
+
+### Instruction size
+
+**2,794 / 2,800**, unchanged: no instruction or description text, no definition change apart from the unwired
+`CLOSE_RESULT`; 30 tools, descriptions 5,417, names and input schemas 11,080, as at part 1.
+
+### Left, in order
+
+1. **1c** (items 5, 5a): `chrome_do`. Inherits from 1b: `take_first` as `Going.go` and `Chrome.upload` check it (a
+   `tab_context` without control, before anything); a step that navigates waits as `going.py` defines loaded
+   (`arrival`, the `Going.wait` loop; give it `chrome_do`'s own seconds: the report's wait ends by 16, its read by
+   17) and returns the new page's outline through `outline_tab`, `fit` and `shaped`'s keys; `Chrome.classified` is
+   the one classification for every step. From part 1: an asking step's `asking_input_too_large` comes with Chrome's
+   advice from `Chrome.act` (report it as `refused`); a `select` by label resolves to the option's value before
+   `payload`, so `choosing` shows it; `steps`' followup for a held too-large submission goes into
+   `untrusted_content.stopped`. Item 5b: `loss.at_step` for a batched step, declared in the step schema.
+2. **1d**: wire the definitions. `chrome_open`/`chrome_go` → `Chrome.going`; `chrome_tabs`, `chrome_show`,
+   `chrome_close`, `chrome_take`, `chrome_library` → `Chrome.small`; `chrome_release` → brief 20's `release_tab`;
+   `chrome_upload` → `Chrome.upload` (the proxy reads `path` as now); `chrome_read` → `outline` (with `take_first`).
+   Declare the results: `CLOSE_RESULT`; open/go/take-with-reload (`shaped`'s keys, with the optional `error` and
+   `untrusted_content` of a failed closing read); take without reload; tabs (`seen`, `total`, `cursor`,
+   `untrusted_content.list`); library. Wire `descriptions.named` into `chrome_read_typed_fields`' result
+   (`untrusted_content.typed_fields`). Add every new tool to `test_excluded_sites_placeholder`'s `SWEPT` (each entry
+   calls `mode()` before any bridge call; only input checks come first). Browser rows (groups 14 to 16): the link
+   receiver test (Delete and Unsubscribe GET endpoints), "loaded" (fragment, SPA back, reload, never-quiet `until`),
+   the list binds (`seen`, a tab moved on, 8 lists, restarts), one tab per flag, a taken tab stays his, `chrome_tabs`'
+   marks (`sound`, `muted`), the library and tab lists' `?…`, 25 tabs within 3,500 characters.
+3. **2**: harness helpers and `HARNESS-MAP.md` (0b's nine and 0c's two rows; none from 1a or 1b).
+4. **3**: remove the replaced tools: with brief 20's `tabs`/`downloads`/`bookmarks`/`history` tools go `call`'s
+   branch for them and the old `tabs` paging in `collection` (the library keeps the snapshots); `take_tab` without
+   `seen` stays for Claude's and taken tabs. `WITHHELD_FORM` names `chrome_go` with `to: reload`.
+5. **4**: full final-head validation twice, plus base, Mail, boundary and qualification.
+6. **Two fresh reviews.** The security review looks first at: reference-open classification (one function with
+   `payload`, nothing created before it, no fallback); the `seen` check before take attaches; `chrome_show`, the one
+   focusing path; close's service-side whose check (a taken tab is never closed); the upload's reload refusal; library
+   references opening their full address under the free-URL policy; `reload: true` discarding (as main's repeat).
+
+### What the code doesn't show
+
+- No browser ran locally. `everyTab`, `stillSeen` and `showTab` ran on Node doubles only; `webNavigation.getFrame`'s
+  `documentId` for a tab, popup windows in `windows.getAll` and the "loaded" timings on real pages are CI's (1d).
+- `chrome_go` reads the tab's outline once before navigating, to learn `needs_reload` (no cheaper read-only command
+  gives it, and calling `prepare_control` every time would commit an operation per go). That read's cost counts in
+  group 16's latency at 1d.
+- `Chrome.going`, `Chrome.small` and `Chrome.upload` are reachable only from Python; no schema, tool or instruction
+  names them.
+
+### JUDGMENT-CALLs
+
+1. **A closing read that fails keeps the tab** (`{tab, loaded: false, until_met, error, ...}` like a read's tab entry)
+   instead of a bare error, so `chrome_open` never loses the number of the tab it made. 1d declares the key.
+2. **`until_met` is `null` without `until`**; `loaded` alone answers then.
+3. **`timeout_ms` counts from the start of the call**, as brief 28's read does, and the wait ends by second 15.
+4. **An effect command given up on is `unknown`** ("may have happened; read the tab or list the tabs before trying
+   again"), never `expired`: for an input, `expired` promises that nothing ran.
+5. **`to: reload` in a taken tab without its guarded reload is that reload, once**, not a second reload after it.
+6. **The tab list includes popup windows** (their tabs marked `popup`), not devtools or app windows, and writes
+   Claude's group as an indented block of the tabs under Claude's control in it; one of his dragged into the group
+   is `his` and stands outside the block.
+7. **Whose is the extension's record** (`claudeOpened`), kept for the tab's life: a released Claude tab stays
+   `claude`; after an extension restart every tab lists as `his`, the fail-safe side for `chrome_close`.
+8. **`chrome_show` commits no operation**: it changes no page, and `free()`'s `tab_context` would refuse the
+   `chrome://` tab that show must still bring forward.
+9. **`chrome_take` without `reload`** returns `{tab, reload_due, typed_fields}` (see PLAN-GAP 1).
+10. **The library shows few fields**: history title, address, last visit; bookmarks title, address; downloads file,
+    state and the address it came from (the download's `url`). `finalUrl` and `referrer` never leave the service.
+11. **`take_first` in a read is asked lazily**, only after the extension refuses the tab, so a Claude tab's read
+    sends no extra command (brief 28's timing tests stay as they are).
+12. **The typed read's new naming waits for 1d**: `chrome_read_typed_fields` is public and its result changes with
+    the switch, so the helper is built and tested but not wired.
+
+### PLAN-GAPs
+
+1. **"What it would lose" without reloading.** `chrome_take` without `reload` should say what a reload would lose,
+   but the only discard check is inside `prepare_control`, `navigate` and `close_tab` (`requireDiscard`), and a dry
+   run isn't among the changes "What changes in background.js" allows. Built: `reload_due` and `typed_fields` (the
+   fields the read shows as filled, not read); the full report comes with the first input or `chrome_go`
+   (`reload_required`), before Claude sets `reload: true`. If the lead wants the report on the take itself, a
+   read-only `reload_state` command is one small addition (the body of `requireDiscard` returning its report).
+2. **CONTROL.md section 6: "Nothing of ours ever opens a window or takes the focus (brief 20)"** while item 6 makes
+   `chrome_show` bring the tab's window to the front. Built as item 6 says; the Node guard allows exactly that one
+   call. Section 6's sentence needs "except `chrome_show`, which he asks for".
+3. **"Every tab of every normal window" and the `popup` mark** can't both hold; built with popup windows listed.
+4. **The brief's result of `chrome_open`/`chrome_go` has no place for a closing read that fails** (JUDGMENT-CALL 1).
+
+No open owner question in 1b part 2.
+
+### Known limits found
+
+- **`chrome_take` with `reload: true` discards as main's explicit repeat does**, also when Claude hasn't seen a loss
+  report since the take (PLAN-GAP 1). Not worse than `main`, where the first input with `discard_unsaved: true`
+  does the same; the shared instruction requires his OK first, and brief 28b replaces this reload.
+- **The `seen` check runs before `take` in the same command**, but the page can still navigate in the milliseconds
+  between the check and the attach. Low harm: the take reads and changes nothing of the page; the next read shows
+  the page the tab really holds, and the fixed list is refused at admission as before.
+- **A history step to an entry with the same address in the same document never "arrives"**: the call returns at
+  its timeout with `loaded: false` and the outline as it is. Low harm: nothing is wrong, only slower.
+- **A library reference whose snapshot was replaced** (a third list) is refused with the table's generic stale
+  sentence ("read the page again"), not "list it again". Low harm: the code is the same `stale_reference`.
+- **A tab of his showing a non-web page reads as `stale_reference`**, not `take_first` (`tab_context` refuses it).
+  Low harm: taking such a tab is refused anyway.
+
+
+## Step 1b, part 1
 
 2026-11-19. **Partly done; stopped at a clean point between items.** Items 3 and 3a are built, tested and
 mutation-checked; **items 4 and 6 are not started** and come first under "Left". Code commit: `749a7c79`; this
