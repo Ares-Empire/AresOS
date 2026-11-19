@@ -5,7 +5,7 @@ handover `mac-aresos-control` wrote on 2026-11-12. A fresh session that takes ov
 (item 6, the control layer), then the board (`board`, topic `tools`). Docs are claims: check `git log`, `gh pr list`
 and `git worktree list` first.
 
-## Resume here (2026-11-19 19:35, `linux-tools` after a clear)
+## Resume here (2026-11-19 19:50, `linux-tools` after a clear)
 
 The detail behind every line is in `~/codex-queue/linux-tools/QUEUE.md` (newest entries at the top of the dated
 list). Shell watchers started by the old session are gone: start new ones with `gh run watch <id> -R
@@ -46,12 +46,15 @@ Ares-Empire/AresOS --interval 300` in a background shell.
      14,000, under ASK_LIMIT, whole options refused) and its known limit are in; latency (plain)'s cause was the F3
      find at 218.5/291.4 ms against a 207.3 ms median ceiling, so the fingerprint hashing got cheaper; recheck2's
      empty-owner-page fixture fixed.
-   - **19:35 (after a clear): green on `18fadda2`**, Chrome 44505065741 and qualification 44505070907, every job.
+   - **19:30 (after a clear): green on `18fadda2`**, Chrome 44505065741 and qualification 44505070907, every job.
      Base 44588323576, Mail 44588330029 and privacy 44588336857 dispatched on `d42d1890`. **Codex gpt-6.2-sol xhigh
      `28a-1d2-gaps-b` running** (prompt `~/codex-queue/linux-tools/28a-1d2-gaps.txt`, log `~/AresOS-28a-1d2-gaps-b.log`):
      the four browser cases part 2 left unproven (an input held back at seconds 11 to 13, through an instrumented
      test build only; the owner typing with real keys during a step; muted playback; an `unknown` outcome with its
-     shape). It pushes, dispatches Chrome and qualification once and stops; read those runs. Then step 2
+     shape). **Done 19:44** (`e3da3a8d` product fix: `background.js` applies the input deadline during frame setup
+     and rechecks it after pointer hit testing; `df24623d` the four cases; PROGRESS `1511707e`). **Read Chrome
+     44590799388 and qualification 44590799642** on `df24623d` (shell watcher). The package reviews must look at
+     `e3da3a8d`. Then step 2
      (HARNESS-MAP), step 3 (removal; CONTROL.md section 6 needs `chrome_show`'s focus exception;
      `response_checks.check_responses` in the Chrome tests, #122's NIT 2), step 4 (full validation twice), the
      package and security reviews. Red: one Codex Sol fix step that pushes, dispatches once and stops.
@@ -64,7 +67,7 @@ Ares-Empire/AresOS --interval 300` in a background shell.
      4b's `os/` diff (three CI-only files). Next: step 5 (C4, C5, C9, then C7 and C8), then 6. When main is merged
      in after R28: take main's `pending-rebind.json`, rerun `rebind.py pending` with step 4's five notes word for
      word plus the merge note; keep pkg/42's comment and 156 in `os-image.yml`.
-   - **19:55: step 5 running** on Codex gpt-6.2-sol xhigh (`18cb-step5`, prompt in `~/codex-queue/linux-tools/`,
+   - **19:40: step 5 running** on Codex gpt-6.2-sol xhigh (`18cb-step5`, prompt in `~/codex-queue/linux-tools/`,
      log `~/AresOS-18cb-step5.log`): C4 as connection only (28b isn't merged, so CROSS-5's pin case stays with
      28b's PR), C5, C9, then C7 (F7's loosening dialog only) and C8; at most 3 control runs, then `checks_only`.
      It dispatches and watches its own runs. When it ends: send `linux-aresos` the `os/` diff from its PROGRESS
