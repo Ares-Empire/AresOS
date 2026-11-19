@@ -1,5 +1,283 @@
 # Package 28a: Chrome acting progress
 
+## Step 1d, part 2
+
+2026-11-19. **CI repairs prepared; not green. Stop at the F4 budget PLAN-GAP below.**
+The lead is `linux-tools`. This section records the part-2 commits `94ef21c4`, `6dfc9814`,
+`a2ad7c7d`, the stopped builder's `e4c06925`, and fixes `c6b9a2d4` / `790d6151`.
+Read the READY brief from `origin/main`, items 2 and 8/1d, the browser rows, group 16,
+the frozen paths and stop rules, CONTROL.md's bar, and steps 1d part 1 / 1c below.
+
+### Done
+
+- **Re-asking results** (`94ef21c4`, matching main's PR #122): `chrome_submit` and
+  `chrome_submit_trusted` declare `REASK_RESULT`, including the stopped operation and fresh
+  approval/state. Generated schemas and the structure pin follow. No asking behavior changed.
+- **Group 16** (`6dfc9814`): the acting rows in `efficiency-probe.mjs` and
+  `efficiency-summary.py`, named calls as the service actually ran them, size rows, and the
+  three comparisons in one run. The obsolete F4 refusal task stays as the frozen baseline's
+  definition and is retired from current execution. The F4 comparator's extra find is a
+  PLAN-GAP, not evidence that the brief's exact two-call comparison passed.
+- **Groups 14 and 15** (`a2ad7c7d`): fixture pages in `act-fixtures.mjs`, served by
+  `fixture.mjs`; 27 named cases in `act-matrix.mjs` at the end of recheck2, registered in
+  `verdicts.mjs` and `shards.mjs`. The case bodies run before verdict reporting, so a failure
+  records later cases too. Each page reports inputs/clicks/submissions to the fixture receiver.
+  Added cases and their assertions:
+
+| Browser case | What it checks |
+|---|---|
+| Link-reference open | Recognized Delete/Unsubscribe links refuse before any fetch; an ordinary link opens once. |
+| F4 fill and send | Six fills plus Save prepare once; values, Country 7/c7 and 200 options are described; approval at most 9,000 bytes; zero/one/one receiver arrivals before/after/replay. Enter prepares too. |
+| F4 option changes | Rename, revalue, remove/add and chosen-value changes while waiting prevent input/replay; fresh descriptions retain the same chosen option/count for the first three. |
+| Third step asks | First two inputs have their own operations; steps four/five never run; approval dispatches only the third. |
+| Folded Delete | `find` exposes the folded control; clicking still prepares and sends nothing. |
+| Conservative inputs and select | The unqualified notice; F4 chosen/choosing and size bound; selection once; brief 20's activating inputs still ask, filling/scrolling stay free. **F4 size assertion remains failing.** |
+| Step definitions | Select value/label, ambiguous/disabled/missing options, current selection, unchanged check, invalid scroll, timeout, stale unseen dialog, and two operation IDs before third-step refusal. |
+| Unseen draft | A page-written draft stops the following fill with its present line; fill then Enter on the same field can prepare without another read. |
+| Look between steps | A held page submission, dialog, or new document stops further input, including during a wait. |
+| Too-large forms | 120 fields / 5,000-character textarea refuse with the right advice; no reservation or send; the page's own submission remains stopped and a later read works. |
+| Reveal | Click/fill/check below the fold and an inner-box click land; an approved offscreen Send lands once; a scroll-triggered submission is held and asked. |
+| Fingerprints | Changed link path/query, options, tick, expansion and a clipped value's last character refuse with `now`; enabled/required/invalid/moved controls still act; neighboring-row change remains the declared limit. |
+| Hostile changes | Changed lines and stale `now` quote hostile text; trusted refusal prose stays fixed; renamed target is not clicked. |
+| Loaded | Reload waits for a different document; fragment and single-page Back keep the same document; `until` on a busy page can succeed with loaded false. Reload is checked before adding the fragment; see Known limits. |
+| Read-only site | Acting inputs refuse, wait/scroll remain possible, receiver has no inputs/send. |
+| Address surfaces | Sign-in markers disappear from results/questions/records; ordinary query survives reads, lists/records omit it; reference opens and approved sends still reach full addresses; changed hidden query refuses. |
+| Staged waits through proxy | Stages 1–3 and three fills run; stage 4 times out at the bound, deadline/not_run are right; no later input for ten seconds. |
+| Twenty fills through command | Reply within 18 seconds, each counted input corresponds to a done step, remaining steps counted, no input after the cutoff. |
+| Caller disconnect | Caller socket closes mid-list; no input after the bound; next call works. |
+| Playing sound | A playing tab is marked sound. Muted playback is not yet exercised by this case. |
+| Close flags and taken tab | Multi-tab discard flag refuses with both tabs present; single-tab discard closes; genuine owner tabs stay his, typing prevents navigation, an empty taken page reloads then navigates. |
+| Seen lists | Missing/changed/expired list refuses take; unchanged list takes; opening by tab uses the listed address even after owner navigation. |
+| Password outputs | No password in open/read/do/go/take, change reports, questions or recorded boundary/logs; go uses a fresh GET because guarded reload of this fixture refuses. |
+| Asking read | Taken fields stay unread; one exact approved read returns labels/descriptions/quoted values/refs; refs read as unread and cannot fill; question address is public. |
+| Unread form | Click, Enter and page-submission paths send nothing, expose no draft, prepare no approval. |
+| Popup result | Step names one popup with its admission outcome and short address. |
+| Cross-tab/restart identity | Another tab's reference and pre-service/pre-Chrome-restart references/lists refuse; receiver has no click. |
+
+Group 16's added acting tasks (`6dfc9814`):
+
+| Task | What it checks |
+|---|---|
+| act_open_fact | One chrome_open returns a fixture fact, without another read. |
+| act_f4_fill_send | Open, one do with six fills/Save, then submit: one approval within 9,000 bytes and one received form with the filled values. |
+| act_f7_three_pages | Three one-click do calls return the next page and its title each time. |
+| act_list_25_tabs | One tabs call lists 25 tabs within 3,500 characters. |
+| act_f5_free_click | One do names every changed line, more_changes zero, within 2,500 characters. |
+
+The six inherited read rows are measured again through chrome_read: F1 first/full/form,
+F2 table, F3 unique link and three tabs. F1/F5 are compared with their old-side tasks;
+F4 has old/new up-to-question tasks. See Latency numbers and the exact-call PLAN-GAP.
+
+- **Stopped builder's work:** kept `e4c06925` unchanged. Its ten indexed stand-ins exercise
+  all fingerprint handlers; the F.3 undefined-value mutation is caught. The uncommitted edit
+  deleting the current-value select assertion was **superseded**, not kept literally: the
+  call remains and asserts `done`, matching brief 20's dispatch (only an already-matching
+  checkbox uses the no-change path). No reset, amend, or history rewrite.
+- **Asking-read harness repair** (`c6b9a2d4`): `approvedTypedFields` in
+  `outline-asking.mjs` checks native reply document/reader and exact field identities against
+  the approved manifest, then matches public labels/descriptions/quoted values and distinct
+  short refs. The original identity/value assertions remain. The old frame result is still
+  understood for historical runtimes. `asking-result.test.mjs` catches mismatched/reordered
+  identities, changed descriptions/values, missing fields and duplicate refs.
+- **Acting harness repairs** (`790d6151`): contextual `find` refs, explicit finds for
+  folded/inlined fingerprint controls, real native owner-tab creation through `ownerUI.open`
+  (mocked by `owner-ui.test.mjs`), corrected select expectation, independent reload ordering,
+  and fresh-GET password go. The helper is threaded through `browser.mjs` and `matrices.mjs`.
+  Receiver, binding and size assertions remain. The F4 failure now prints its actual bytes.
+
+### Failures, causes and fixes
+
+Fetched all three runs with `gh run view <id> -R Ares-Empire/AresOS --log-failed`, and every
+failed job with `gh api repos/Ares-Empire/AresOS/actions/jobs/<job>/logs --allow-escape-sequences`.
+The first raw-log command refused terminal escape sequences; the explicit flag succeeded.
+Logs/job metadata and selected artifacts are under `.work/28a-ci-fix/`.
+
+**Run 44456571350, c579a066:** only job **latency (plain), 135335062150**, failed. The
+latency gate itself printed `passed: true`, no failures/sync failures and 18 false target_miss
+values. **No call missed a ceiling; no overage exists.** The later efficiency probe failed
+`f4_fill_send click should be refused with asking_input_too_large: "it succeeded"`.
+Item 3a had made Save preparable; the probe still expected the baseline's refusal.
+`6dfc9814` already fixes this by retiring that task from current runs and timing both prepared sides.
+The reported 20,000-node outline cost is not this failure: this gate reads through brief 20's
+reader, not the outline, and its measurements pass. Fingerprint coverage/hash code is unchanged.
+
+**Run 44463920809, a2ad7c7d:** failed jobs were fixtures **external/core (135357291028)**,
+**external/recheck2 (135357291029)**, **policy/recheck2 (135357291083)**,
+**policy/core (135357291107)** and aggregates **policy (135392398081)** /
+**external (135392398093)**. Both installs show the same causes:
+
+| Failure | Cause and disposition |
+|---|---|
+| Core asking-read `frames.flatMap` TypeError | New catalogue returns a list of short-reference fields. Fixed by the native/public mapping above; original identity assertion retained. |
+| Folded Delete and too-large Send refs | `find` appends ` · in ...` after the ref; parser incorrectly required the ref at line end. Fixed; both contextual forms have Node assertions. |
+| Conservative F4 select | Approval is **13,348 bytes**, **4,348 over 9,000** in the external artifact. `form` is 6,311 bytes and `item_fields` repeats 5,127 bytes of affected-item fields. Lists already use chosen/option_count/choosing. **Unfixed under the stop rule**; no field, bound fact or assertion removed. |
+| Current-value select expected unchanged | Brief 20 dispatches the select/input/change path even at the current value. Assert done; keep the call, and the separate unchanged-check assertion. |
+| Fingerprint Change end absent | Default read folds the last five change buttons; Open is also inlined in its row. Find both controls explicitly; clipped field value is still checked whole by the fingerprint. |
+| Loaded case reload stale | CDP frame URL omits its separate `urlFragment: #part2`; webNavigation URL includes it. Frozen reload guard safely refuses. Reload is now tested before fragment navigation, retaining all three loaded/document assertions; record the limit instead of changing frozen policy. |
+| Taken-tab close returned reload_required, seen list said claude | The harness created the supposed owner tab with chrome_open. Release correctly preserves who opened it. Native-created owner tabs now exercise taken ownership; no ownership rule changed. |
+| Password case go reload refused | Fixture subframes lack proven GET metadata; the existing form/unknown-method guard refuses. Exercise the go result with a fresh password-fixture GET; guard unchanged. |
+| Both aggregates | Core/recheck2 failed before producing complete shard evidence: 7 of 9 shards. No aggregate weakening; underlying cases repaired except the explicit F4 budget blocker. |
+
+**Qualification run 44463926398:** four **qualification-pairs** jobs failed: core
+**135370639976 / 135370640001**, recheck2 **135370639973 / 135370640027**;
+two **qualification-combine** jobs failed: **135399275093 / 135399275788**.
+All four pair logs name a2ad7c7d, build 4065d619…, stable 158.0.8127.36, policy install.
+They repeat the core/recheck2 causes above; both combines have 7/9 shards. No qualification
+record, publisher or gate was changed.
+
+### Latency numbers
+
+Milliseconds, **median / p95**. Run 44456571350, plain, c579a066; lead ceilings in the last
+column. The 60 current / 20 historical samples per call/phase, history positions, paired
+runner correction and fixed post-input wait were retained. Every value is below even the
+unscaled lead ceiling, and the paired regression/sync checks passed too.
+
+| Call | Fresh | History 1,000 | History 4,000 | Ceiling |
+|---|---:|---:|---:|---:|
+| read | 7.73 / 9.05 | 9.20 / 10.18 | 19.01 / 19.64 | 35 / 60 |
+| navigate | 28.87 / 34.16 | 32.63 / 36.82 | 41.87 / 44.45 | 100 / 150 |
+| free_click | 554.11 / 568.43 | 560.65 / 570.55 | 575.07 / 578.31 | 650 / 750 |
+| fill | 559.80 / 561.19 | 557.02 / 558.54 | 563.89 / 566.37 | 650 / 750 |
+| asking_click | 13.20 / 15.29 | 16.65 / 18.01 | 26.20 / 27.48 | 60 / 100 |
+| approval_to_done | 569.11 / 571.19 | 563.07 / 566.62 | 577.36 / 579.86 | 700 / 850 |
+
+Run **44463920809**, a2ad7c7d, both plain and audit latency jobs passed. The worst median
+and p95 across its three histories (each column may come from a different phase):
+
+| Call | Plain median / p95 | Audit median / p95 | Ceiling |
+|---|---:|---:|---:|
+| read | 19.59 / 20.48 | 21.56 / 25.03 | 35 / 60 |
+| navigate | 44.33 / 49.28 | 49.22 / 54.68 | 100 / 150 |
+| free_click | 571.46 / 576.54 | 577.95 / 586.67 | 650 / 750 |
+| fill | 563.63 / 579.33 | 576.17 / 579.75 | 650 / 750 |
+| asking_click | 27.48 / 29.01 | 30.35 / 33.85 | 60 / 100 |
+| approval_to_done | 575.35 / 587.18 | 584.18 / 589.11 | 700 / 850 |
+
+Group 16's same-run measurements from that run's efficiency artifact, five runs after
+warm-up. The ceiling applies to the **median**; p95 is reported, not given a separate gate.
+
+| Task | Brief 20 median / p95 | New median / p95 | New median ceiling | Result |
+|---|---:|---:|---:|---|
+| F1 first read | 141.6 / 195.9 | 176.8 / 266.0 | 205.8 | measured pass |
+| F5 click plus report | 749.8 / 859.5 | 666.1 / 714.1 | 874.8 | measured pass |
+| F4 fills up to question | 4,671.4 / 4,882.4 | 4,340.9 / 4,388.8 | 5,188.5 | measured pass, extra old find; PLAN-GAP |
+
+Other group-16 results: F4 send approval **8,279 / 9,000 bytes** (maximum of five),
+F5 report **847 / 2,500 characters**, 25 tabs **2,387 / 3,500 characters**.
+Sizes remain descriptions+instructions **8,773 / 9,178**, names+input schemas
+**6,729 / 11,080**, instructions **2,798 / 2,800**. These are historical measurements,
+not a claim that this repair has passed a new browser run. No ceiling, sample count,
+latency-reference or efficiency-baseline file changed.
+
+### Runs
+
+Local commands (portable Node from step 0a; Python 3.14.8; scratch/logs in
+`.work/pkg28a-ci-fix/`, free memory checked first; suites run one at a time):
+
+```sh
+.work/pkg28a-0a/node-v22.15.0-linux-x64/bin/node --test control/chrome_tests/*.test.mjs
+PYTHONDONTWRITEBYTECODE=1 TMPDIR="$PWD/.work/pkg28a-ci-fix/tmp" PYTHONPATH=control:control/chrome_tests python3 -m unittest \
+  test_questions test_policy test_engine test_doing test_going test_small_tools test_qualification_fixture \
+  test_efficiency test_instruction_rules test_field_descriptions test_operation_projection test_loss_errors test_acting_references
+PYTHONDONTWRITEBYTECODE=1 python3 .work/pkg28a-1d2/mutations.py
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control python3 control/generate.py --check
+git diff --check
+```
+
+- Final Node: **626 tests, 626 pass, 0 fail/cancelled/skipped/todo, 55,561.108337 ms**. `node-final.log`. An earlier tree including an uncommitted
+  fragment-guard experiment passed 627 tests; that experiment and its test were removed to
+  respect the frozen path. It is not final-head evidence. The earlier focused run
+  (act-fixtures, asking-result, owner-ui, background) passed 185 tests in 8,848.981973 ms.
+- Python: **247 tests in 72.877s, OK**. `python-final.log`. Its synthetic negative efficiency
+  tests print 14 EFFICIENCY MISS lines deliberately; those are not browser measurements.
+  It also prints `F4 approval: 7365 bytes, question 163 characters` on doubles, whose facts
+  omit the real browser's duplicated item fields; that is not the conservative browser's size.
+- Mutations: **18 caught, green after every restore; mutations: 18 problems: 0**. `mutations.log`. S.1–S.6 cover budgets, sizes and tool names;
+  P.1–P.5 retirement/prepared outcome/call names/drop/canonical bytes; F.1–F.3 stages,
+  mutation delivery and indexed handlers; V.1/V.2 inventories; R.1/R.2 re-ask schemas.
+  Separately repeated F.3: exit 1, `moved is not defined`; restored fixtures 4/4 pass.
+- Replayed the actual recheck2 artifact's approved read against the new helper:
+  **10 approved identities and public values match**. No browser started.
+- Generator: **Generated artifacts match definitions**. Whitespace check: exit 0, no output.
+  Syntax checks: **50 CI mjs files clean (portable Node --check on each)**.
+- Dispatched once each, after normal push of **790d6151**:
+  **Control Chrome [44491713756](https://github.com/Ares-Empire/AresOS/actions/runs/44491713756)**, **Control Chrome qualification [44491718224](https://github.com/Ares-Empire/AresOS/actions/runs/44491718224)**.
+  No watch/poll or redispatch. The lead's shell owns results. The later report-only commit
+  carries `[skip ci]`; its code is identical to the dispatched commit.
+
+### Left, in order
+
+1. **The lead's CI result first.** Inspect the two dispatched runs and resolve the preserved
+   conservative-F4 size stop with the brief owner; this is not a green 1d handoff. Close the
+   exact-call comparator and coverage gaps below before treating the browser groups as complete.
+2. **Step 2, HARNESS-MAP.md:** list every changed helper/handwritten reference/expected/view
+   case before moving the old harness. Include 0b/0c's envelopes/descriptions, part 1's name
+   mapping and this section's approvedTypedFields/ownerUI.open/contextual ref helpers.
+3. **Step 3, removal:** replaced tools, old_actions/old_call, switch and temporary upload
+   route; update WITHHELD_FORM and the scan, regenerate and pin final sizes. Preserve
+   **CONTROL.md section 6's chrome_show focus exception**; install
+   **response_checks.check_responses in the Chrome tests** as the lead requires.
+4. **Step 4:** full final-head Chrome validation twice, plus base, Mail, boundary and qualification.
+5. **Two fresh reviews:** package and security; reasonable MCP safety, with actual harm fixed
+   and low-harm limitations recorded as CONTROL.md's bar says.
+
+### What the code doesn't show
+
+- No local browser, owner profile, real site/account, desktop input, system/boot command,
+  sudo, mount or process-name stop. No Gradle/Minecraft/OS suite, test_fault_surface or
+  test_state_* was run. New hosted results belong to the lead, not this report.
+- The current named browser cases do not yet demonstrate the held-frame input boundary
+  at seconds 11–13, the owner's real typing race during another step, muted playback,
+  or an unknown outcome. Some have unit coverage from 1c; that is not their browser proof.
+  The current audio case proves only sound. The original part-2 code is not all browser
+  acceptance just because its case inventory is registered.
+- The two full final-head runs, managed-ask boundary evidence and fresh reviews remain.
+  No new screenshot claim; historical container artifacts retain the failure evidence.
+- Files remaining over 500 MB under `.work/`: **none**. Downloaded ZIPs/logs are small,
+  synthetic CI evidence; no large image/download was made.
+
+### JUDGMENT-CALLs
+
+1. **Keep F4's failing 9,000-byte assertion.** Cutting duplicated affected-item fields,
+   deduplicating the description shape, altering the frozen binding or raising the budget
+   need a brief decision. None is silently implemented; the lead gets the actual 13,348 bytes.
+2. **Keep safe reload refusals.** Test loaded reload independently of the fragment, and
+   password go via a fresh GET. The alternative would edit the frozen reload/method guard.
+   This avoids changing safety policy for low-harm refusal cases; a later explicit fix
+   would need targeted full-address/method tests and review. No production code changed here.
+3. **Do not erase ownership on release.** Native-create the test owner tab instead of making
+   release reclassify a Claude-created tab. Reclassification would change ownership across
+   release/retake, contrary to item 6. The test-only helper is reversible.
+
+### PLAN-GAPs
+
+1. **Conservative F4 approval cannot meet 9,000 bytes under the frozen projection.**
+   Actual **13,348**, **+4,348**; form **6,311**, repeated item fields **5,127**. Item 3a's
+   options projection and 3b's distinct descriptions are installed. The brief requires
+   every other description fact to stay and says stop if F4 cannot fit. This run stops
+   with the assertion present; it does not claim CI repaired to green.
+2. **The supplied F4 latency comparator uses an extra timed chrome_old_find.**
+   `LATENCY_TASKS.f4_old_to_question` runs fill_form/find/click, while group 16 names
+   fill_form/click with the button already in hand. Old refs include a view invalidated
+   by the fills; the find refreshes it. The recorded 4,671.4/4,882.4 ms is that three-call
+   comparator, not proof of the exact-call contract. No timings, baseline or gate adjusted.
+   The lead must settle that contract before step 3 removes the old side.
+3. **Part 2's named cases leave browser coverage gaps** listed above; registration and unit
+   tests do not satisfy those rows. No claim of completed steps 2–4 or whole-package acceptance.
+4. Part 1's re-ask-schema PLAN-GAP is closed by `94ef21c4`; the instruction headroom and
+   deferred removed-name/focus/response-validation work remain with the ordered steps.
+
+### Known limits found
+
+- A fragment-bearing tab can safely refuse a reload with stale_reference because the frozen
+  guard compares CDP's fragment-free URL with webNavigation's full URL. No input runs.
+- A password-fixture subframe with unknown method metadata makes guarded reload refuse even
+  with discard_unsaved. That refusal is intentional safety behavior; a fresh address opens.
+- The fingerprint intentionally does not bind neighboring text: a free Open button in a
+  row changed from Apple to Pear can still run. The browser case records this specified limit.
+- No new password-read, unasked-send or replay exception was accepted as a known limit.
+
+
 ## Step 1d, part 1
 
 2026-11-19. **Done to a clean point; stop here.** Items 1 to 6 of the lead's task: the definitions are wired and the
