@@ -32,22 +32,29 @@ Ares-Empire/AresOS --interval 300` in a background shell.
    - **The stopped agent left an unpushed local commit `e4c06925`** ("the stand-in DOM runs every branch a listed
      node picks") **and an uncommitted one-line edit in `control/chrome/ci/act-matrix.mjs`.** Inspect both first.
      No "Step 1d, part 2" PROGRESS section yet.
-   - **09:35: Codex Sol build `28a-1d2-fix` running** (prompt `~/codex-queue/linux-tools/28a-1d2-fix.txt`, log
-     `~/AresOS-28a-1d2-fix.log`, last message `~/AresOS-28a-1d2-fix.last.md`): on `a2ad7c7d` Chrome 44463920809
-     failed in fixtures (external and policy, core and recheck2) and both aggregates, qualification 44463926398
-     failed; it fixes those and the latency miss, writes "Step 1d, part 2", pushes, dispatches Chrome and
-     qualification once and stops. Then: watch those two runs from the shell; step 2 (HARNESS-MAP), step 3
-     (removal; CONTROL.md section 6 needs `chrome_show`'s focus exception; `response_checks.check_responses` in the
-     Chrome tests, #122's NIT 2), step 4 (full validation twice), the package and security reviews.
+   - **10:00: `28a-1d2-fix` done** (`c6b9a2d4`, `790d6151`, PROGRESS "Step 1d, part 2" `efd56521`): the fixture and
+     qualification causes repaired; no latency ceiling missed (worst read 19.01/19.64 ms against 35/60). Chrome
+     44491713756 and qualification 44491718224 run on `790d6151`; F4's 9,000-byte assertion still fails there.
+   - **Lead decisions (10:00):** conservative F4's approval measures 13,348 bytes (form 6,311, `item_fields`
+     repeating 5,127) against the brief's 9,000 (ASK_LIMIT 16,384 stays). Accept it: F4 sends in one approval,
+     which was the point (main refuses it at about 21,700). The assertion becomes "under ASK_LIMIT, pinned at the
+     measured size with a small margin (at most 14,000), and the same facts with whole options are refused".
+     Deduplicating `item_fields` against `form` changes the frozen asking path: a later item with its own review
+     (known limit: a form about a quarter bigger than F4 refuses with `asking_input_too_large`). The old F4
+     comparator's extra `chrome_old_find` stays: brief 20 needs a fresh find after fills.
+   - Next: one Codex Sol step puts those decisions into the test, PROGRESS and KNOWN-LIMITS, then the browser
+     coverage gaps part 2 lists; then step 2 (HARNESS-MAP), step 3 (removal; CONTROL.md section 6 needs
+     `chrome_show`'s focus exception; `response_checks.check_responses` in the Chrome tests, #122's NIT 2), step 4
+     (full validation twice), the package and security reviews.
 3. **18c-b** (`pkg/18c-b-chrome`, `~/AresOS-18c-b-build`, draft PR #76; rides R29).
    - Step 4 done (`8bcb9504`; `linux-aresos` read its `os/` diff: OK). Step 4b pushed `3cb3687d` (C3, the rest of
      C6, C10, C11) and `1b263438` (fixes); control runs 44452254488 and 44462912726 red, 44468856359 queued. That is
      7 of the brief's 12 `check_build=control` runs (4b was given 4). No "Step 4b" PROGRESS section yet.
-   - **Run 44468856359 on `1b263438` is green (4b's C3, the rest of C6, C10, C11).** `checks_only` 44488329704
-     dispatched 09:33. Next: the "Step 4b" PROGRESS section (PASS lines with full-log line numbers, the runs: 7 of
-     12 control runs used) and `linux-aresos` gets 4b's `os/` diff (net from `8bcb9504`); then step 5. When main
-     is merged in after R28: take main's `pending-rebind.json`, rerun `rebind.py pending` with step 4's five notes
-     word for word plus 4b's and the merge note; keep pkg/42's comment and 156 in `os-image.yml`.
+   - **4b green and recorded** (`20eddb77`): C3, the full C6, C10, C11 PASS in 44468856359; `checks_only`
+     44488329704 (1820 tests); the managed-note screenshot exists; 7 of 12 control runs used; `linux-aresos` has
+     4b's `os/` diff (three CI-only files). Next: step 5 (C4, C5, C9, then C7 and C8), then 6. When main is merged
+     in after R28: take main's `pending-rebind.json`, rerun `rebind.py pending` with step 4's five notes word for
+     word plus the merge note; keep pkg/42's comment and 156 in `os-image.yml`.
 4. **Package 28** (#72): held until right after R29's cut, then merge and retarget #116 to main.
 5. **Board:** #386 (N8 and N9 follow-up, one re-pin), #298 (live Chrome setup with him). #337 and #385 done.
 6. **Budget (`mac-capacity`, 06:50):** Claude about 2% a day for this lead; one Claude agent at a time; no Claude
