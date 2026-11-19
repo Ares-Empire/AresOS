@@ -1,5 +1,53 @@
 # Package 28a: Chrome acting progress
 
+## Step 2, fix 2
+
+2026-11-20. Draft PR #116. The failures reproduced in both install modes and both stable
+qualification repeats. [Control Chrome 44622916426](https://github.com/Ares-Empire/AresOS/actions/runs/44622916426)
+and [qualification 44622915970](https://github.com/Ares-Empire/AresOS/actions/runs/44622915970).
+
+- **Shard reporting, `574f05bc`.** The first failed check threw after writing partial
+  evidence. Core stopped at row 71 of 83 and review at 17 of 21. Each aggregate received
+  seven of nine shards. Checks now retain their errors and continue, including smoke checks
+  and each assigned word route. The shard writes the final matrix and lists every failed
+  check before exiting nonzero. Only a passing shard supplies the aggregate's completion marker.
+- **Core Group 7, late shadow root, `35f7af24`.** All four `tool.jsonl` artifacts show the
+  fill on Code returned `unknown` with the reader's `owner_signin` message and zero approvals.
+  The failed pending IDs refer to other operations. On `a28720dd`, the legacy fill's reason
+  carried the same uncertainty. The batch helper had reduced the result to `remaining: 1`.
+  It now exposes the step's own code and message and retains the raw outcome and operation ID.
+  The Code and Comment fills both stay on `chrome_do`. An offline replay of all four replies
+  passed the original refusal assertion and checked the empty approval list.
+- **Review Group 8, guarded navigation, `35f7af24`.** Back returned to the dirty first page
+  of a Claude-opened tab. All four traces then reported `first_input` on Forward. The green
+  direct Forward reported `forward` with the owner's Draft field. The iframe-drafts review
+  case restores only that Forward refusal and its acknowledged repeat to direct navigation.
+  The audit found one later setup with the same guard conflict. The script-started POST case
+  now leaves the taken POST directly to set up the popup in the same tab. Its two clicks
+  still check the POST reload refusals and receiver counts through `chrome_do`.
+- **Approval audit.** Across all nine policy shards, the only additional preparation in
+  the recorded acting calls was the documented Group 5 Enter check on the second Visible
+  field. It checks the ordinal and zero arrivals, then drops the approval. The old core
+  artifact's two later form preparations occur after the failed run ended.
+  [Green comparison 44604152322](https://github.com/Ares-Empire/AresOS/actions/runs/44604152322)
+
+**Verified locally.** Portable Node `--test --test-concurrency=2 control/chrome_tests/*.test.mjs`
+passed 638/638 in 56.702 s. `PYTHONPATH=control:control/chrome_tests python3 -m unittest
+test_questions test_policy test_engine test_doing test_qualification_fixture test_qualification_shards
+test_efficiency test_loss_errors` ran 159 tests in 41.410 s and printed `OK`, with an HTTP 403
+`ResourceWarning`. `python3 control/generate.py --check` printed `Generated artifacts match definitions`.
+`git diff --check 05445483` and the ask-rules comparison with `origin/main` passed.
+No local browser ran. No file over 500 MB remains under `.work/`.
+
+**Hosted runs.** Each workflow was dispatched once on `35f7af24`. The `linux-tools` lead owns
+the hosted verdicts. [Control Chrome 44639875539](https://github.com/Ares-Empire/AresOS/actions/runs/44639875539)
+and [qualification 44639888962](https://github.com/Ares-Empire/AresOS/actions/runs/44639888962).
+
+**JUDGMENT-CALL.** No owner-facing change. The fixes are confined to the harness.
+
+**PLAN-GAPs.** Step 3a needs a direct observation of the restored document's Forward loss
+and a same-tab fixture transition away from the POST without reloading it. [Harness map](HARNESS-MAP.md)
+
 ## Step 2, fix
 
 2026-11-19. Draft PR #116. `9b482732` fixes two public reader defects exposed by the harness move.

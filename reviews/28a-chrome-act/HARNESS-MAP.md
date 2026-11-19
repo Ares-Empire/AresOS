@@ -4,7 +4,7 @@ Step 2 of the [brief](../../briefs/28a-chrome-act.md#8-the-order-of-the-change).
 The [package 28 map](../28-chrome-read/HARNESS-MAP.md) still governs its field-rule assertions.
 The inventory and original receiver, approval, binding and outcome checks are the comparison for this move.
 
-**Counts.** 23 helpers changed or introduced and 23 existing cases with hand-built arguments moved.
+**Original migration counts.** 23 helpers changed or introduced and 23 existing cases with hand-built arguments moved.
 The helper count covers the driver, routing and observation helpers, including the engine fixture's
 two entry points. The case count is by named browser or engine case and includes stale/discard
 replays and dialog arguments. Browser-free stand-ins, fresh assertions, and the legacy evidence
@@ -110,10 +110,31 @@ public short reference for `chrome_do`.
 | Group 3 absolute destinations and Group 2 RECHECK3 native defaults | Show an image-map `area` as a link when its mapped image gives it usable bounds. | The original destination and browsing target, the re-ask and stale approval checks, the held native default and ping checks, and receiver counts. |
 | Group 2 RECHECK payment and delete labels override GET search | Keep the native button role and visible `Pay` label on the editable submit button. | The handler stays stopped, the payment and delete controls still require approval, and the receiver counts stay zero, one, one. |
 
+## Step 2, fix 2
+
+- **Group 7, late shadow root.** Routed `rpc('fill_form')` keeps the public batch alongside its
+  projection. A failed first fill exposes the step's actual code and message. A partial batch
+  keeps the completed steps. An approval, deadline or batch error keeps its own result.
+  In all four failed core artifacts the fill on Code was `unknown` with the reader's
+  `owner_signin` reason and an empty `prepared` list. The failed pending IDs belonged to
+  earlier operations. The green legacy fill reported the same uncertainty in its reason.
+  Both the Code attempt and the successful Comment fill still use short refs and `chrome_do`.
+- **Approval audit.** Compared approval counts by fixture address, kind, input verb and target
+  name across all nine policy shard artifacts from `44604152322` and `44622916426`.
+  The single addition was the item 3b Enter question in Group 5 above. The two preparations
+  missing from the later core artifact belonged to `brief28-known` and `brief28-moved`,
+  past the first failure. The late-shadow case added zero approvals.
+- **Shard reporting.** The browser's `smoke` wrapper and the matrix's `check` use `recordCheck`
+  to collect named results. `writePartialResults` replaces `failBrowserCase` and preserves
+  failure evidence while the matrix continues. `assertChecksPassed` reports the failed names
+  after the last check, before the shard can write its completion marker. Smoke checks and
+  individual word routes participate. `pendingCheck` observes an in-flight rejection until the
+  case awaits the original promise. The qualification inventory and its aggregate gate still
+  require all nine shards.
+
 ## PLAN-GAPs kept on the legacy evidence path
 
-Step 2's reader fixes returned no additional cases to legacy actions. Step 3a still owns the
-following evidence paths.
+Step 3a owns the following evidence paths.
 
 - The password/field matrices, native tab and dialog observers, and exact fixture URL/document
   checks need the old structured rows, full URLs, session/frame/element IDs, field values or
@@ -129,8 +150,16 @@ following evidence paths.
   `first_input` check in a newly taken tab. The taken-POST setup also keeps its old
   same-tab move to a GET so the following public back call can test that POST history is
   refused. The scheme matrix's setup leaves the cross-frame password fixture directly because
-  the guarded reload can fail on an unproven frame request method. Other reviewed navigation
-  loss cases go through the public envelope.
+  the guarded reload can fail on an unproven frame request method.
+- **Group 8 REVIEW iframe drafts and detached or Web Audio report before reload**, dirty history
+  row. Public Back reports `back` and returns to page one on the explicit repeat. In both
+  installs and both qualification repeats, Forward from that restored document then reported
+  `first_input`. Use direct legacy Forward for the refusal and its flagged repeat. The original
+  assertions require `act: forward`, the same address until acknowledged, and arrival at page two.
+- **Group 8 REVIEW script-started POST documents in tabs and popups never reload** uses direct
+  legacy navigation only to leave the taken POST and load the popup opener in that same tab.
+  `chrome_go` would try the guarded reload that the first part just proved is refused. Both
+  POST clicks still use `chrome_do`, check the refusal reason and require exactly one arrival.
 - Legacy close is used for cleanup of the owner-opened borrowed child and the forced-late popup.
   Public close keeps taken owner tabs. Their opener, control and receiver assertions remain.
 - The feature catalogue checks assert unique native snapshot IDs for downloads, bookmarks and
