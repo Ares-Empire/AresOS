@@ -1138,6 +1138,10 @@ class SessionBase(StopBase):
             self.ready(sup)
         if windows is not None:
             sup.on_helper_status({'event': 'windows', 'count': windows, 'names': list(names)})
+        def report_windows(request):
+            sup.on_helper_status(dict(event='windows', request=request, count=windows, names=list(names)))
+            return True
+        self.runner.request_windows = report_windows
         return sup, pid, peer
 
     def end(self, sup, why='SIGTERM'):
@@ -1373,6 +1377,31 @@ class SessionTest(SessionBase):
         self.assertEqual((reply['ok'], reply['logout'], reply['close']), (True, 'ending', 'none'))
         self.assertEqual(reply['message'], 'Logged out: Minecraft was not running.')
         self.assertEqual((done, self.runner.signals, self.runner.labwc_signals), (replies, [], 1))
+
+    def test_only_the_final_window_request_can_authorize_logout(self):
+        for count, reason in ((1, 'apps_open'), (None, 'apps_unknown'), (0, 'apps_unknown')):
+            with self.subTest(count=count):
+                sup, _, _ = self.session(game=False)
+                self.runner.request_windows = mock.Mock(return_value=True)
+                replies = self.stop(sup, 'logout')
+                (request,) = self.runner.request_windows.call_args.args
+                for extra in ({}, {'request': 'old-request'}):
+                    sup.on_helper_status(dict(event='windows', count=0, **extra))
+                self.assertEqual((replies, self.runner.labwc_signals), ([], 0))
+                if count == 0:
+                    self.advance(desktop.LOGOUT_WINDOWS_WAIT)  # a late matching zero also fails
+                sup.on_helper_status(dict(event='windows', count=count, names=['Mail'], request=request))
+                self.assertEqual((replies[0]['logout'], self.runner.labwc_signals, sup.blocked()), (reason, 0, False))
+
+    def test_shutdown_can_join_while_logout_waits_for_a_window_report(self):
+        sup, _, _ = self.session(game=False)
+        self.runner.request_windows = mock.Mock(return_value=True)
+        replies = self.stop(sup, 'logout')
+        (request,) = self.runner.request_windows.call_args.args
+        shutdown = self.stop(sup, 'shutdown')
+        sup.on_helper_status(dict(event='windows', count=0, request=request))
+        self.assertEqual((shutdown, replies[0]['kind'], sup.stop, self.runner.labwc_signals),
+                         (replies, 'shutdown', None, 0))
 
     def test_a_logout_that_does_not_go_on_leaves_the_session_and_says_why(self):
         # An app window that appeared during the stop: the count is fresh right before labwc would be signalled.

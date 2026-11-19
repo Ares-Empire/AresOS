@@ -255,6 +255,7 @@ STOP_BUDGET = 60.0
 STOP_SAVE_WAIT = 30.0
 STOP_ASK_AGAIN = 1.0
 STOP_LOCK_CHECK = 0.2
+LOGOUT_WINDOWS_WAIT = 2.0  # a fresh report from the helper, within the stop's existing deadline
 # The first three kinds can be called off until SIGTERM is sent; a shutdown cannot (2.2). A shutdown or a logout ends
 # the session: from its start no launch is admitted any more (the lead's fix 2).
 CALLED_OFF_KINDS = ('stop', 'restart', 'logout')
@@ -1363,6 +1364,8 @@ class Stop:
     exiting: bool = False  # the supervisor exits when this stop ends: its deadline leaves STOP_EXIT_RESERVE
     restart: str = None   # a restart after its stop: started, starting (one was on its way) or failed
     logout: str = None    # a logout after its stop: asked, exited, ending, or why not (stayed, apps_open, …)
+    windows_request: str = None
+    windows_by: float = None
     note: str = ''        # one more sentence for the reply (why there was no logout)
 
 
@@ -2089,6 +2092,14 @@ class Supervisor:
             # An app window that appears while the screens are black takes the black away at once (the lead's
             # fix 4); a count that is no longer known counts as open.
             self.hide_black('an app window is open now' if new else 'the app helper lost track of the app windows')
+        stop = self.stop
+        if stop is not None and stop.phase == 'windows' and status.get('request') == stop.windows_request:
+            if self.clock() >= stop.windows_by or self.app_windows() is None:
+                self.no_logout('apps_unknown', 'AresOS can no longer tell whether an app is open')
+            elif new:
+                self.no_logout('apps_open', open_apps(new, 'open now'))
+            else:
+                self.end_logout_session(stop)
 
     def app_windows(self):
         """The app windows open right now, by name (empty: none), or None when that is not known: no report from
@@ -3262,6 +3273,8 @@ class Supervisor:
             # A logout that waits for labwc: the session is ending, which is what it asked for.
             stop.logout = 'exited' if self.labwc_gone else 'ending'
             self.finish_stop()
+        elif stop.phase == 'windows':
+            self.finish_stop()  # the game already closed and shutdown is ending the session
 
     # The phases. step_stop() goes on as far as it can without waiting; stop_due() says when it can go on again.
 
@@ -3280,6 +3293,8 @@ class Supervisor:
                 due = stop.save_deadline
             else:
                 due = now if stop.ask_at is None else stop.ask_at
+        elif stop.phase == 'windows':
+            due = stop.windows_by
         elif stop.phase == 'logout':
             due = stop.deadline  # labwc's end is an event (the loop's pidfd); only the deadline is timed
         elif stop.ended:
@@ -3290,6 +3305,10 @@ class Supervisor:
 
     def step_stop(self):
         stop, now = self.stop, self.clock()
+        if stop.phase == 'windows':
+            if now >= min(stop.windows_by, stop.deadline):
+                self.no_logout('apps_unknown', 'AresOS can no longer tell whether an app is open')
+            return
         if now >= stop.deadline:
             if stop.phase == 'logout':
                 self.no_logout('stayed', f'the session did not end within the stop\'s {int(STOP_BUDGET)} seconds')
@@ -3406,13 +3425,21 @@ class Supervisor:
         if not (stop.kind == 'logout' and stop.save in ('saved', 'nothing') and stop.close in ('exited', 'none')):
             self.finish_stop()
             return
-        # The app check is fresh at the moment it matters (the lead's fix 4): right before labwc is signalled.
         names = self.app_windows()
         if names is None:
             self.no_logout('apps_unknown', 'AresOS can no longer tell whether an app is open')
         elif names:
             self.no_logout('apps_open', open_apps(names, 'open now'))
-        elif not self.labwc_watched or not self.runner.signal_labwc():
+        else:
+            # A live helper can be stalled with an old zero in the status pipe. Only the answer to this request
+            # may end labwc. Waiting in the event loop leaves the supervisor available to an incoming shutdown.
+            stop.phase, stop.windows_request = 'windows', secrets.token_hex(16)
+            stop.windows_by = min(stop.deadline, self.clock() + LOGOUT_WINDOWS_WAIT)
+            if not self.runner.request_windows(stop.windows_request):
+                self.no_logout('apps_unknown', 'AresOS can no longer tell whether an app is open')
+
+    def end_logout_session(self, stop):
+        if not self.labwc_watched or not self.runner.signal_labwc():
             self.no_logout('no_session', 'the session could not be asked to end')
         else:
             # SIGTERM through the pidfd the loop watches, never `labwc --exit` (which signals whatever LABWC_PID
@@ -3767,16 +3794,26 @@ class Runner:
         return self.helper is not None and self.helper.poll() is None
 
     def start_helper(self, instance, nonce, env):
-        read, write = os.pipe()
-        env = dict(env, ARESOS_DESKTOP_INSTANCE=instance, ARESOS_LAUNCH_NONCE=nonce,
-                   ARESOS_SHELL_STATUS_FD=str(write))
-        try:
-            self.helper = subprocess.Popen([HELPER], env=env, pass_fds=(write,), stdin=subprocess.DEVNULL,
+        # Keep the private status FD and its line format. A packet socket also carries a logout's request back
+        # to the helper and preserves whole reports on non-blocking writes.
+        parent, child = socket.socketpair(socket.AF_UNIX, socket.SOCK_SEQPACKET)
+        with parent, child:
+            fd = child.fileno()
+            env = dict(env, ARESOS_DESKTOP_INSTANCE=instance, ARESOS_LAUNCH_NONCE=nonce,
+                       ARESOS_SHELL_STATUS_FD=str(fd))
+            self.helper = subprocess.Popen([HELPER], env=env, pass_fds=(fd,), stdin=subprocess.DEVNULL,
                                            preexec_fn=lambda: set_parent_death_signal(signal.SIGTERM))
-        finally:
-            os.close(write)
-        self.helper_pipe = read
-        self.loop.watch_helper(self.helper, read)
+            self.helper_pipe = parent.detach()
+        self.loop.watch_helper(self.helper, self.helper_pipe)
+
+    def request_windows(self, request):
+        if self.helper_pipe is None or not self.helper_running():
+            return False
+        try:
+            os.write(self.helper_pipe, f'windows {request}'.encode('ascii'))
+        except OSError:
+            return False
+        return True
 
     def stop_helper(self):
         helper, self.helper = self.helper, None
@@ -4396,6 +4433,8 @@ class Loop:
             data = os.read(key.fd, 65536)
         except BlockingIOError:
             return
+        except ConnectionResetError:
+            data = b''  # the helper exited with a windows request still unread
         if not data:
             self.forget_fd(key.fd)
             if self.runner.helper_pipe == key.fd:

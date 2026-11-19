@@ -7,6 +7,8 @@ import json
 import os
 import pathlib
 import select
+import socket
+import struct
 import sys
 import types
 import xml.etree.ElementTree as ET
@@ -64,6 +66,41 @@ class WindowsBase(Base):
 
 
 class WindowsReportTest(WindowsBase):
+    def test_requested_reports_wait_for_compositor_events_and_repeat_an_unchanged_count(self):
+        helper = self.start()
+        parent, child = socket.socketpair(socket.AF_UNIX, socket.SOCK_SEQPACKET)
+        display, compositor = socket.socketpair()
+        for sock in (parent, child, display, compositor):
+            self.addCleanup(sock.close)
+            sock.settimeout(1)
+        helper.status = shell.StatusPipe(child.fileno())
+        wayland = shell.ForeignToplevels(display, self.windows)
+        compositor.recv(64)  # initial registry request
+        wayland.kinds[80] = 'manager'
+        server = shell.Server(os.path.join(self.folder.name, 'run', 'shell.sock'), helper, wayland,
+                              status_fd=child.fileno())
+        self.addCleanup(server.close)
+        for request in ('a' * 32, 'b' * 32):
+            parent.sendall(f'windows {request}'.encode())
+            server.step(timeout=0)
+            object_id, size_opcode, callback = struct.unpack('=III', compositor.recv(12))
+            self.assertEqual((object_id, size_opcode), (1, 12 << 16))  # wl_display.sync
+            self.assertFalse(select.select([parent], [], [], 0)[0])
+            events = b''
+            if request.startswith('a'):
+                # A new foreign toplevel, its app_id and done, all ahead of the sync reply.
+                app_id = wayland.string('Mail')
+                events = (struct.pack('=III', 80, 12 << 16, 81)
+                          + struct.pack('=II', 81, ((8 + len(app_id)) << 16) | 1) + app_id
+                          + struct.pack('=II', 81, (8 << 16) | 5))
+            compositor.sendall(events + struct.pack('=III', callback, 12 << 16, 0))
+            server.step(timeout=0)
+            reports = []
+            while select.select([parent], [], [], 0)[0]:
+                reports.append(json.loads(parent.recv(4096)))
+            self.assertEqual([r for r in reports if 'request' in r],
+                             [dict(event='windows', count=1, names=['Mail'], request=request)])
+
     def test_it_says_the_count_once_at_start_and_at_each_change(self):
         helper = self.start()
         self.assertEqual(self.lines, [{'event': 'windows', 'count': 0, 'names': []}])
@@ -181,7 +218,7 @@ class WindowsReportTest(WindowsBase):
         desktop = load('aresos_desktop_for_shell', CONFIG / 'usr/libexec/aresos-desktop')
         self.addCleanup(sys.modules.pop, 'aresos_desktop_for_shell', None)
         hidden = []
-        supervisor = types.SimpleNamespace(windows=None, hide_black=hidden.append)
+        supervisor = types.SimpleNamespace(windows=None, hide_black=hidden.append, stop=None)
         self.start()
         desktop.Supervisor.on_windows(supervisor, self.lines[-1])
         self.assertEqual((supervisor.windows, hidden), ([], []))

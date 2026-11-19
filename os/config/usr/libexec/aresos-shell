@@ -234,11 +234,11 @@ HELPER_FILE = os.path.abspath(protocol.__code__.co_filename)
 
 
 class StatusPipe:
-    """One-way readiness lines to the desktop supervisor (package 23).
+    """Readiness lines to the desktop supervisor on its private status FD (package 23).
 
-    Each line is far below PIPE_BUF, so it arrives whole. A full pipe drops the line (the next heartbeat repeats
-    the state); a closed pipe switches reporting off. Neither may ever stop the helper. A call answers False only
-    for a dropped line, so a report that no heartbeat repeats (`windows`) can be written again.
+    Packet sockets and the original pipe both carry these short lines whole. A full pipe drops the line (the next
+    heartbeat repeats the state); a closed pipe switches reporting off. Neither may ever stop the helper. A call
+    answers False only for a dropped line, so a report that no heartbeat repeats (`windows`) can be written again.
     """
 
     def __init__(self, fd):
@@ -2846,10 +2846,14 @@ class ForeignToplevels:
         self._send(self.registry, 0, struct.pack('=I', name) + self.string('wl_output')
                    + struct.pack('=II', 1, self.outputs[name]))
 
-    def roundtrip(self):
+    def sync(self):
         callback = self._new('callback')
         self.callbacks.add(callback)
         self._send(1, 0, struct.pack('=I', callback))
+        return callback
+
+    def roundtrip(self):
+        callback = self.sync()
         while callback in self.callbacks:
             data = self.sock.recv(65536)
             if not data:
@@ -3944,7 +3948,7 @@ class Helper:
         self.report_covered()
         self.report_windows()
 
-    def report_windows(self):
+    def report_windows(self, request=None):
         """Package 25 (3.4): the supervisor hears how many app windows are open, at each change, coalesced as
         apps_running is. It goes black for a shutdown, logout or restart only on a count of zero, and takes the
         black screen away when a window appears, so the report goes out with the compositor's news, not at the
@@ -3955,9 +3959,12 @@ class Helper:
             open_windows = self.windows.app_windows()
             names = sorted(filter(None, (self.window_name(toplevel) for toplevel in open_windows)))
             report = (len(open_windows), tuple(names[:WINDOW_NAMES]))
-        if report != self.windows_reported and self.status(event='windows', count=report[0],
-                                                           names=list(report[1])) is not False:
-            self.windows_reported = report
+        if request is not None or report != self.windows_reported:
+            fields = dict(event='windows', count=report[0], names=list(report[1]))
+            if request is not None:
+                fields['request'] = request
+            if self.status(**fields) is not False:
+                self.windows_reported = report
 
     def window_name(self, toplevel):
         """What an app window is called in the supervisor's messages: its program's name, else its app_id. The
@@ -4470,7 +4477,7 @@ class SearchSignal:
 
 
 class Server:
-    def __init__(self, path, helper, wayland=None, uid=None, search=None):
+    def __init__(self, path, helper, wayland=None, uid=None, search=None, status_fd=None):
         self.path = path
         self.helper = helper
         self.wayland = wayland
@@ -4479,6 +4486,7 @@ class Server:
         self.selector = selectors.DefaultSelector()
         self.peers = {}
         self.stopping = False
+        self.windows_request = self.windows_sync = None
         prepare_socket(path, self.uid)
         self.listener = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         old = os.umask(0o177)
@@ -4496,6 +4504,8 @@ class Server:
         self.selector.register(helper.watcher.reader, selectors.EVENT_READ, 'scopes')
         if search is not None and search.reader is not None:
             self.selector.register(search.reader, selectors.EVENT_READ, 'search')
+        if status_fd is not None and stat.S_ISSOCK(os.fstat(status_fd).st_mode):
+            self.selector.register(status_fd, selectors.EVENT_READ, 'windows')
 
     def watch(self, peer):
         events = selectors.EVENT_READ | (selectors.EVENT_WRITE if peer.outbuf else 0)
@@ -4533,6 +4543,10 @@ class Server:
         # round: a signal that came before the wake-up pipe existed is not lost.
         if self.search is not None and self.search.take():
             self.helper.search()
+        if self.windows_request is not None and (self.wayland is None
+                                                or self.windows_sync not in self.wayland.callbacks):
+            self.helper.report_windows(request=self.windows_request)
+            self.windows_request = self.windows_sync = None
         self.helper.tick()
         self.watch_wayland()
 
@@ -4562,6 +4576,20 @@ class Server:
             return
         if key.data == 'search':
             self.search.drain()
+            return
+        if key.data == 'windows':
+            try:
+                packet = os.read(key.fd, 64)
+            except BlockingIOError:
+                return
+            except OSError:
+                packet = b''
+            if not packet:
+                self.selector.unregister(key.fd)
+            elif re.fullmatch(rb'windows [0-9a-f]{32}', packet):
+                self.windows_request = packet[8:].decode('ascii')
+                # Wait for pending compositor events, also when the helper has just resumed after a stall.
+                self.windows_sync = self.wayland.sync() if self.wayland is not None else None
             return
         peer = key.data
         if mask & selectors.EVENT_WRITE:
@@ -4669,7 +4697,7 @@ def main(argv=None):
     helper, wayland = build(args.registry, instance, nonce, os.path.join(os.path.dirname(path), 'shell-journal.json'),
                             status=status, keep_foreground=os.environ.get('ARESOS_SHELL_KEEP_FOREGROUND') == '1')
     search.wake_through_pipe()
-    server = Server(path, helper, wayland, search=search)
+    server = Server(path, helper, wayland, search=search, status_fd=status.fd if status_fd else None)
 
     def stop(signum, frame):
         server.stopping = True

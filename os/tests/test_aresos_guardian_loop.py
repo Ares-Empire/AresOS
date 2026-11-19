@@ -160,6 +160,7 @@ HELPER = textwrap.dedent('''\
         json.dump(dict(os.environ), output)
     signal.signal(signal.SIGTERM, lambda *a: sys.exit(0))
     fd = int(os.environ['ARESOS_SHELL_STATUS_FD'])
+    os.set_blocking(fd, False)
     said = None
     while True:
         if not os.path.exists(os.path.join(config['control'], 'quiet')):
@@ -171,6 +172,15 @@ HELPER = textwrap.dedent('''\
             if windows and windows != said:
                 os.write(fd, (windows + '\\n').encode())
                 said = windows
+            try:
+                request = os.read(fd, 64).decode().split()
+            except BlockingIOError:
+                request = []
+            if len(request) == 2 and request[0] == 'windows':
+                report = json.loads(windows) if windows else dict(event='windows', count=None, names=[])
+                os.write(fd, (json.dumps(dict(report, request=request[1])) + '\\n').encode())
+        else:
+            open(os.path.join(config['control'], 'quiet-ack'), 'a').close()
         time.sleep(0.2)
 ''')
 
@@ -817,6 +827,19 @@ class GuardianLoopTest(base.Base):
         self.assertEqual((self.games(), os.path.exists(self.paths.stop_block)), (1, True))
         log = self.log()
         self.assertLess(log.index('stopped (exit code 143)'), log.index('SIGTERM sent to labwc'))
+
+    def test_logout_keeps_the_session_when_the_helper_stalls_after_reporting_zero(self):
+        self.start()
+        self.windows()
+        (self.control / 'quiet').touch()
+        self.wait(lambda: (self.control / 'quiet-ack').exists())
+        (self.control / 'windows').write_text(json.dumps({'event': 'windows', 'count': 1, 'names': ['Mail']}))
+        self.assertEqual(self.status()['windows'], [])  # last report, before Mail opened
+        code, out, err = self.command('logout')
+        self.assertEqual((code, out), (1, ''))
+        self.assertIn('can no longer tell whether an app is open', err)
+        self.assertIsNone(self.labwc.poll())
+        self.assertEqual(self.last_stop(), (False, 'logout', 'saved', 'exited', 143))
 
     def test_a_labwc_of_another_runtime_folder_is_never_watched_or_signalled(self):
         other = self.root / 'other-run'
