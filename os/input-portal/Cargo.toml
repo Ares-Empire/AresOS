@@ -2,7 +2,7 @@
 name = "aresos-input-portal"
 version = "0.1.0"
 edition = "2024"
-description = "xdg-desktop-portal InputCapture backend for the niri compositor"
+description = "xdg-desktop-portal InputCapture and Clipboard backend for labwc (AresOS)"
 license = "MIT"
 
 [dependencies]

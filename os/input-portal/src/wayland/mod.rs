@@ -9,10 +9,12 @@
 //! and talks to the portal through calloop channels.
 
 mod clipboard;
+mod heads;
 mod state;
 
 
 use crate::portal::Barrier;
+use crate::screens::SharedScreens;
 use anyhow::{Context, Result};
 use std::os::fd::OwnedFd;
 use std::thread;
@@ -88,10 +90,18 @@ impl PlacedBarrier {
 }
 
 /// Commands sent to the Wayland thread.
-#[derive(Debug)]
 pub enum WaylandCmd {
-    /// Put barrier surfaces on screen. Replaces any existing set.
-    Arm(Vec<Barrier>),
+    /// Put one session's barrier surfaces on screen. Replaces any existing set.
+    ///
+    /// `zone_set` is the snapshot the barriers were checked against; if the
+    /// screens have changed since, nothing is placed. `session` comes back in
+    /// [`WaylandEvent::Activated`], so a crossing names the session whose
+    /// barrier it was.
+    Arm {
+        session: String,
+        zone_set: u32,
+        barriers: Vec<Barrier>,
+    },
     /// Tear every barrier surface down, freeing the screen edges.
     Disarm,
     /// Attach the EIS connection that captured input should be written to.
@@ -114,23 +124,59 @@ pub enum WaylandCmd {
         mime_type: String,
         reply: oneshot::Sender<Option<OwnedFd>>,
     },
-    /// Take ownership of the clipboard, advertising these types.
-    ClipboardClaim { mime_types: Vec<String> },
+    /// Take ownership of the clipboard, advertising these types. `claim_id`
+    /// comes back with every paste asked of this claim.
+    ClipboardClaim { claim_id: u32, mime_types: Vec<String> },
     /// Give up an earlier claim.
     ClipboardRelease,
     Shutdown,
 }
 
+// Names only, for both enums: they carry cursor positions and clipboard types,
+// and neither may reach a log or an error through a `{:?}`.
+impl std::fmt::Debug for WaylandCmd {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
+            Self::Arm { .. } => "Arm",
+            Self::Disarm => "Disarm",
+            Self::AttachEis(_) => "AttachEis",
+            Self::EndCapture { .. } => "EndCapture",
+            Self::ClipboardRead { .. } => "ClipboardRead",
+            Self::ClipboardClaim { .. } => "ClipboardClaim",
+            Self::ClipboardRelease => "ClipboardRelease",
+            Self::Shutdown => "Shutdown",
+        })
+    }
+}
+
+impl std::fmt::Debug for WaylandEvent {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
+            Self::Activated { .. } => "Activated",
+            Self::CaptureLost => "CaptureLost",
+            Self::OutputsChanged => "OutputsChanged",
+            Self::ClipboardSelection { .. } => "ClipboardSelection",
+            Self::ClipboardSend { .. } => "ClipboardSend",
+            Self::ClipboardCancelled { .. } => "ClipboardCancelled",
+        })
+    }
+}
+
 /// Events raised by the Wayland thread.
-#[derive(Debug)]
 pub enum WaylandEvent {
-    /// The pointer crossed a barrier. Position is in global logical coordinates.
-    Activated { barrier_id: u32, position: (f64, f64) },
+    /// The pointer crossed a barrier that was armed for `session`. Position is
+    /// in global logical coordinates.
+    Activated {
+        session: String,
+        barrier_id: u32,
+        position: (f64, f64),
+    },
     /// Capture ended without the client asking, so the portal still has to emit
     /// `Deactivated`. Happens when the compositor drops the lock or the user
     /// hits the escape combination.
     CaptureLost,
-    /// The output layout changed; zones and barriers are stale.
+    /// A new snapshot of the screens was committed; zones and barriers are
+    /// stale. Any capture has been ended and every barrier surface removed.
     OutputsChanged,
     /// The clipboard selection changed. `is_ours` distinguishes a change this
     /// process caused from one a local application caused.
@@ -138,11 +184,15 @@ pub enum WaylandEvent {
         mime_types: Vec<String>,
         is_ours: bool,
     },
-    /// Somebody is pasting from the selection this process claimed, and wants
+    /// Somebody is pasting from the selection claim `claim_id` made, and wants
     /// the content written into `fd`.
-    ClipboardSend { mime_type: String, fd: OwnedFd },
-    /// The claim was taken over by another client.
-    ClipboardCancelled,
+    ClipboardSend {
+        claim_id: u32,
+        mime_type: String,
+        fd: OwnedFd,
+    },
+    /// Claim `claim_id` was taken over by another client.
+    ClipboardCancelled { claim_id: u32 },
 }
 
 pub struct WaylandHandle {
@@ -151,9 +201,17 @@ pub struct WaylandHandle {
 
 impl WaylandHandle {
     pub fn send(&self, cmd: WaylandCmd) {
-        if let Err(err) = self.cmd_tx.send(cmd) {
-            warn!("Wayland thread is gone, dropping command: {err}");
+        // The error would hand the command back; it is dropped unprinted.
+        if self.cmd_tx.send(cmd).is_err() {
+            warn!("Wayland thread is gone, dropping a command");
         }
+    }
+
+    /// A handle with no Wayland thread behind it: the test reads what was sent.
+    #[cfg(test)]
+    pub fn recording() -> (Self, calloop::channel::Channel<WaylandCmd>) {
+        let (cmd_tx, cmd_rx) = calloop::channel::channel();
+        (Self { cmd_tx }, cmd_rx)
     }
 }
 
@@ -196,6 +254,7 @@ pub fn idle_timeout_from_env() -> std::time::Duration {
 pub fn spawn(
     keymap: crate::eis_server::SharedKeymap,
     idle_timeout: std::time::Duration,
+    screens: SharedScreens,
 ) -> Result<(WaylandHandle, mpsc::UnboundedReceiver<WaylandEvent>)> {
     let (cmd_tx, cmd_rx) = calloop::channel::channel::<WaylandCmd>();
     let (event_tx, event_rx) = mpsc::unbounded_channel::<WaylandEvent>();
@@ -203,7 +262,7 @@ pub fn spawn(
 
     thread::Builder::new()
         .name("wayland-barriers".into())
-        .spawn(move || match state::run(cmd_rx, event_tx, keymap, idle_timeout, &ready_tx) {
+        .spawn(move || match state::run(cmd_rx, event_tx, keymap, idle_timeout, screens, &ready_tx) {
             Ok(()) => info!("Wayland barrier thread stopped"),
             Err(err) => {
                 // If startup failed the error goes to `ready_rx`; a later failure
@@ -221,10 +280,38 @@ pub fn spawn(
     Ok((WaylandHandle { cmd_tx }, event_rx))
 }
 
+/// Whether another output lies directly against the stretch `lo..hi` of an
+/// output's edge: `line` is the edge's coordinate across it (x for a left or
+/// right edge, y for a top or bottom one).
+///
+/// The pointer crossing such an edge is only moving to the next screen, so a
+/// barrier there would capture on every move between the user's own screens.
+/// The portal specification rejects these, and clients count on it: Deskflow
+/// asks for all four edges of every zone and expects the inner ones to fail.
+fn faces_another_output(
+    edge: Edge,
+    line: i32,
+    (lo, hi): (i32, i32),
+    this: usize,
+    outputs: &[(String, (i32, i32), (i32, i32))],
+) -> bool {
+    outputs.iter().enumerate().any(|(index, (_, (x, y), (w, h)))| {
+        let (x, y, w, h) = (*x, *y, *w, *h);
+        let (touches, span) = match edge {
+            Edge::Right => (x == line, (y, y + h)),
+            Edge::Left => (x + w == line, (y, y + h)),
+            Edge::Bottom => (y == line, (x, x + w)),
+            Edge::Top => (y + h == line, (x, x + w)),
+        };
+        index != this && touches && lo.max(span.0) < hi.min(span.1)
+    })
+}
+
 /// Resolve barriers against the output layout.
 ///
-/// A barrier that does not lie exactly on an output edge cannot be represented
-/// as a layer surface, so it is dropped and reported back to the caller.
+/// A barrier that does not lie exactly on an outer output edge cannot be
+/// represented as a layer surface, so it is dropped and reported back to the
+/// caller. That includes a barrier any part of which faces another output.
 pub fn place(
     barriers: &[Barrier],
     outputs: &[(String, (i32, i32), (i32, i32))],
@@ -247,7 +334,7 @@ fn place_one(
     b: &Barrier,
     outputs: &[(String, (i32, i32), (i32, i32))],
 ) -> Option<PlacedBarrier> {
-    for (name, (ox, oy), (ow, oh)) in outputs {
+    for (index, (name, (ox, oy), (ow, oh))) in outputs.iter().enumerate() {
         let (ox, oy, ow, oh) = (*ox, *oy, *ow, *oh);
 
         if b.is_vertical() {
@@ -264,6 +351,9 @@ fn place_one(
             } else {
                 continue;
             };
+            if faces_another_output(edge, b.x1, (top, bottom), index, outputs) {
+                return None;
+            }
             let height = u32::try_from(bottom - top).ok()?;
             // The surface reaches inward from the edge, so a right-anchored one
             // starts BARRIER_DEPTH short of the output's right side.
@@ -296,6 +386,9 @@ fn place_one(
             } else {
                 continue;
             };
+            if faces_another_output(edge, b.y1, (left, right), index, outputs) {
+                return None;
+            }
             let width = u32::try_from(right - left).ok()?;
             let depth = i32::try_from(BARRIER_DEPTH).ok()?;
             let origin_y = if edge == Edge::Bottom {
@@ -397,6 +490,58 @@ mod tests {
         let p = &placed[0];
         assert_eq!(p.release_hint(-5000.0).1, 0.0);
         assert_eq!(p.release_hint(99999.0).1, 1065.0);
+    }
+
+    #[test]
+    fn rejects_a_barrier_between_two_outputs() {
+        let side_by_side: Vec<(String, (i32, i32), (i32, i32))> = vec![
+            ("A".into(), (0, 0), (1920, 1080)),
+            ("B".into(), (1920, 0), (1920, 1080)),
+        ];
+        // A's right edge is B's left edge: crossing it is moving to B.
+        let between = Barrier { id: 1, x1: 1920, y1: 0, x2: 1920, y2: 1080 };
+        let left = Barrier { id: 2, x1: 0, y1: 0, x2: 0, y2: 1080 };
+        let right = Barrier { id: 3, x1: 3840, y1: 0, x2: 3840, y2: 1080 };
+        let top_of_b = Barrier { id: 4, x1: 1920, y1: 0, x2: 3839, y2: 0 };
+        let (placed, rejected) = place(&[between, left, right, top_of_b], &side_by_side);
+        assert_eq!(rejected, vec![1]);
+        let on: Vec<(u32, &str, Edge)> = placed.iter().map(|p| (p.id, p.output.as_str(), p.edge)).collect();
+        assert_eq!(on, [(2, "A", Edge::Left), (3, "B", Edge::Right), (4, "B", Edge::Top)]);
+
+        // The same holds whichever output is listed first.
+        let reversed: Vec<_> = side_by_side.iter().rev().cloned().collect();
+        assert_eq!(place(&[between], &reversed).1, vec![1]);
+    }
+
+    #[test]
+    fn rejects_a_barrier_that_partly_faces_another_output() {
+        // The monitor's bottom edge runs along the laptop panel's top edge for
+        // part of its length; the panel's top edge faces the monitor all along.
+        let monitor_bottom = Barrier { id: 1, x1: 0, y1: 1728, x2: 3071, y2: 1728 };
+        let panel_top = Barrier { id: 2, x1: 298, y1: 1728, x2: 2003, y2: 1728 };
+        // The panel's sides and bottom, and the monitor's top, face nothing.
+        let panel_left = Barrier { id: 3, x1: 298, y1: 1728, x2: 298, y2: 2793 };
+        let panel_bottom = Barrier { id: 4, x1: 298, y1: 2794, x2: 2003, y2: 2794 };
+        let monitor_top = Barrier { id: 5, x1: 0, y1: 0, x2: 3071, y2: 0 };
+        let (placed, rejected) =
+            place(&[monitor_bottom, panel_top, panel_left, panel_bottom, monitor_top], &outputs());
+        assert_eq!(rejected, vec![1, 2]);
+        let ids: Vec<u32> = placed.iter().map(|p| p.id).collect();
+        assert_eq!(ids, [3, 4, 5]);
+    }
+
+    #[test]
+    fn an_output_that_only_touches_at_a_corner_blocks_nothing() {
+        let diagonal: Vec<(String, (i32, i32), (i32, i32))> = vec![
+            ("A".into(), (0, 0), (1920, 1080)),
+            ("B".into(), (1920, 1080), (1920, 1080)),
+        ];
+        let right_of_a = Barrier { id: 1, x1: 1920, y1: 0, x2: 1920, y2: 1079 };
+        let bottom_of_a = Barrier { id: 2, x1: 0, y1: 1080, x2: 1919, y2: 1080 };
+        let (placed, rejected) = place(&[right_of_a, bottom_of_a], &diagonal);
+        assert!(rejected.is_empty());
+        assert_eq!(placed[0].edge, Edge::Right);
+        assert_eq!(placed[1].edge, Edge::Bottom);
     }
 
     #[test]

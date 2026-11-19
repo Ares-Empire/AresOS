@@ -1,8 +1,10 @@
 //! The Wayland client that owns the barrier surfaces and the capture grab.
 
 use super::clipboard::{ClipboardHandler, ClipboardState};
+use super::heads::{HeadsHandler, HeadsState};
 use super::{place, Edge, PlacedBarrier, WaylandCmd, WaylandEvent};
 use crate::eis_server::{EisCommand, EisHandle, SharedKeymap};
+use crate::screens::{screens_from_heads, SharedScreens};
 use anyhow::{Context, Result};
 use smithay_client_toolkit::{
     compositor::{CompositorHandler, CompositorState, Region},
@@ -96,7 +98,12 @@ struct AppState {
     keymap: SharedKeymap,
     modifiers: Modifiers,
     last_enter_serial: u32,
+    /// The compositor's heads, and the snapshot of the screens built from them.
+    heads: HeadsState,
+    screens: SharedScreens,
     surfaces: Vec<BarrierSurface>,
+    /// The session whose barriers `surfaces` are.
+    armed_for: Option<String>,
     capture: Option<Capture>,
     /// Absent when the compositor does not advertise `ext-data-control`, which
     /// costs the clipboard but nothing else.
@@ -108,19 +115,36 @@ struct AppState {
 }
 
 impl AppState {
-    /// Current output layout as `(name, logical position, logical size)`.
-    fn layout(&mut self) -> Vec<(String, (i32, i32), (i32, i32))> {
-        self.output_state
+    /// Build the screens from the heads of the last `done` and the `wl_output`s
+    /// that exist now, and make them the snapshot if they differ from it.
+    ///
+    /// A new snapshot ends everything that was placed against the old one: the
+    /// capture (its edge may be gone) and every barrier surface (they describe
+    /// the old zone set). The portal is told afterwards and tells the clients.
+    ///
+    /// `gone` is an output that is being destroyed and is still in the list.
+    fn refresh_screens(&mut self, gone: Option<&wl_output::WlOutput>) {
+        let Some(heads) = self.heads.committed() else {
+            return;
+        };
+        let names: Vec<String> = self
+            .output_state
             .outputs()
-            .filter_map(|o| {
-                let info = self.output_state.info(&o)?;
-                Some((
-                    info.name.clone()?,
-                    info.logical_position?,
-                    info.logical_size?,
-                ))
-            })
-            .collect()
+            .filter(|output| Some(output) != gone)
+            .filter_map(|output| self.output_state.info(&output)?.name)
+            .collect();
+        let screens = screens_from_heads(heads, |name| names.iter().any(|known| known == name));
+        let Some(snapshot) = self.screens.commit(screens) else {
+            return;
+        };
+        info!(
+            zone_set = snapshot.zone_set,
+            "the screens changed: {} now",
+            snapshot.screens.len()
+        );
+        self.end_capture(None);
+        self.disarm();
+        let _ = self.event_tx.send(WaylandEvent::OutputsChanged);
     }
 
     fn wl_output_named(&mut self, name: &str) -> Option<wl_output::WlOutput> {
@@ -138,20 +162,39 @@ impl AppState {
         }
         // Dropping LayerSurface destroys the underlying wlr surface.
         self.surfaces.clear();
+        self.armed_for = None;
     }
 
-    fn arm(&mut self, barriers: &[crate::portal::Barrier], qh: &QueueHandle<Self>) {
+    fn arm(
+        &mut self,
+        session: String,
+        zone_set: u32,
+        barriers: &[crate::portal::Barrier],
+        qh: &QueueHandle<Self>,
+    ) {
         if self.capture.is_some() {
             debug!("ignoring Arm while a capture is in progress");
             return;
         }
         self.disarm();
 
-        let layout = self.layout();
-        let (placed, rejected) = place(barriers, &layout);
-        if !rejected.is_empty() {
-            warn!("{} barrier(s) do not lie on an output edge: {rejected:?}", rejected.len());
+        // The barriers were checked against one snapshot. If the screens have
+        // changed since, they describe edges that may no longer exist: place
+        // nothing, the client sets new ones after it has read the new zones.
+        let snapshot = self.screens.current();
+        if zone_set != snapshot.zone_set {
+            warn!(
+                zone_set,
+                current = snapshot.zone_set,
+                "not arming barriers that were set for an old zone set"
+            );
+            return;
         }
+        let (placed, rejected) = place(barriers, &snapshot.layout());
+        if !rejected.is_empty() {
+            warn!("{} barrier(s) do not lie on an outer output edge: {rejected:?}", rejected.len());
+        }
+        self.armed_for = Some(session);
 
         for p in placed {
             match self.create_surface(&p, qh) {
@@ -174,7 +217,7 @@ impl AppState {
             qh,
             surface,
             Layer::Overlay,
-            Some("niri-input-barrier"),
+            Some("aresos-input-barrier"),
             Some(&output),
         );
 
@@ -260,6 +303,10 @@ impl AppState {
         if self.capture.is_some() {
             return;
         }
+        // A surface that was armed for nobody has nobody to capture for.
+        let Some(session) = self.armed_for.clone() else {
+            return;
+        };
         let Some(pointer) = self.pointer.clone() else {
             warn!("barrier crossed but there is no pointer to lock");
             return;
@@ -303,7 +350,8 @@ impl AppState {
         // like the pointer really left.
         pointer.set_cursor(self.last_enter_serial, None, 0, 0);
 
-        info!(barrier = barrier_id, ?position, "barrier crossed, capturing input");
+        // Where it was crossed is the cursor's position and stays out of the log.
+        info!(barrier = barrier_id, "barrier crossed, capturing input");
         self.capture = Some(Capture {
             barrier_id,
             lock,
@@ -321,6 +369,7 @@ impl AppState {
         });
 
         let _ = self.event_tx.send(WaylandEvent::Activated {
+            session,
             barrier_id,
             position,
         });
@@ -406,7 +455,7 @@ impl AppState {
         // A hint that does not even fall within the barrier surface is telling
         // us nothing about where along this edge the pointer should land.
         if lx < 0.0 || ly < 0.0 || lx > w || ly > h {
-            debug!(?hint, "ignoring an out-of-range cursor hint from the client");
+            debug!("ignoring an out-of-range cursor hint from the client");
             return None;
         }
         Some(match capture.placed.edge {
@@ -532,20 +581,32 @@ impl OutputHandler for AppState {
         &mut self.output_state
     }
 
+    // A head only counts as a screen once its `wl_output` exists and has told
+    // its name, so each of these can change the snapshot. When it does not, no
+    // zone moved and nobody is told.
     fn new_output(&mut self, _: &Connection, _: &QueueHandle<Self>, _: wl_output::WlOutput) {
-        let _ = self.event_tx.send(WaylandEvent::OutputsChanged);
+        self.refresh_screens(None);
     }
 
     fn update_output(&mut self, _: &Connection, _: &QueueHandle<Self>, _: wl_output::WlOutput) {
-        let _ = self.event_tx.send(WaylandEvent::OutputsChanged);
+        self.refresh_screens(None);
     }
 
-    fn output_destroyed(&mut self, _: &Connection, _: &QueueHandle<Self>, _: wl_output::WlOutput) {
+    fn output_destroyed(&mut self, _: &Connection, _: &QueueHandle<Self>, output: wl_output::WlOutput) {
         // A capture anchored to a vanished output cannot be recovered, and
-        // leaving the grab in place would strand the pointer.
-        self.end_capture(None);
-        self.disarm();
-        let _ = self.event_tx.send(WaylandEvent::OutputsChanged);
+        // leaving the grab in place would strand the pointer: the screen leaves
+        // the snapshot, which ends the capture and removes the barriers.
+        self.refresh_screens(Some(&output));
+    }
+}
+
+impl HeadsHandler for AppState {
+    fn heads(&mut self) -> &mut HeadsState {
+        &mut self.heads
+    }
+
+    fn heads_done(&mut self) {
+        self.refresh_screens(None);
     }
 }
 
@@ -596,7 +657,7 @@ impl SeatHandler for AppState {
                         self.relative_pointer =
                             self.relative_pointer_state.get_relative_pointer(&p, qh).ok();
                         if self.relative_pointer.is_none() {
-                            warn!("niri did not offer zwp_relative_pointer_v1; motion cannot be captured");
+                            warn!("the compositor did not offer zwp_relative_pointer_v1; motion cannot be captured");
                         }
                         self.pointer = Some(p);
                     }
@@ -839,7 +900,8 @@ impl KeyboardHandler for AppState {
             return;
         }
         if self.is_panic_key(&event) {
-            warn!("Ctrl+Alt+Escape pressed, force-releasing the capture");
+            // Not named here: no key name belongs in the log, this one included.
+            warn!("the built-in escape chord was pressed, force-releasing the capture");
             self.end_capture(None);
             let _ = self.event_tx.send(WaylandEvent::CaptureLost);
             return;
@@ -903,7 +965,7 @@ impl KeyboardHandler for AppState {
         keymap: Keymap<'_>,
     ) {
         let text = keymap.as_string();
-        debug!("captured a {} byte xkb keymap from niri", text.len());
+        debug!("captured a {} byte xkb keymap from the compositor", text.len());
         if let Ok(mut slot) = self.keymap.write() {
             *slot = Some(text);
         }
@@ -922,23 +984,27 @@ impl ClipboardHandler for AppState {
     }
 
     fn selection_changed(&mut self, mime_types: Vec<String>, is_ours: bool) {
-        debug!(?mime_types, is_ours, "clipboard selection changed");
+        debug!(types = mime_types.len(), is_ours, "clipboard selection changed");
         let _ = self
             .event_tx
             .send(WaylandEvent::ClipboardSelection { mime_types, is_ours });
     }
 
-    fn selection_send(&mut self, mime_type: String, fd: std::os::fd::OwnedFd) {
+    fn selection_send(&mut self, claim_id: u32, mime_type: String, fd: std::os::fd::OwnedFd) {
         // The fd travels on to whoever holds the clipboard content — the portal
         // client — so that the bytes are never copied through this process.
-        let _ = self
-            .event_tx
-            .send(WaylandEvent::ClipboardSend { mime_type, fd });
+        let _ = self.event_tx.send(WaylandEvent::ClipboardSend {
+            claim_id,
+            mime_type,
+            fd,
+        });
     }
 
-    fn selection_cancelled(&mut self) {
+    fn selection_cancelled(&mut self, claim_id: u32) {
         debug!("another client took the clipboard from us");
-        let _ = self.event_tx.send(WaylandEvent::ClipboardCancelled);
+        let _ = self
+            .event_tx
+            .send(WaylandEvent::ClipboardCancelled { claim_id });
     }
 }
 
@@ -958,6 +1024,7 @@ pub fn run(
     event_tx: mpsc::UnboundedSender<WaylandEvent>,
     keymap: SharedKeymap,
     idle_timeout: std::time::Duration,
+    screens: SharedScreens,
     ready: &std::sync::mpsc::Sender<Result<()>>,
 ) -> Result<()> {
     let conn = Connection::connect_to_env().context("failed to connect to the Wayland display")?;
@@ -968,7 +1035,9 @@ pub fn run(
     let compositor =
         CompositorState::bind(&globals, &qh).context("compositor global is missing")?;
     let layer_shell = LayerShell::bind(&globals, &qh)
-        .context("niri did not advertise zwlr_layer_shell_v1")?;
+        .context("the compositor did not advertise zwlr_layer_shell_v1")?;
+    let heads = HeadsState::bind(&globals, &qh)
+        .context("the compositor did not advertise zwlr_output_manager_v1")?;
     let shm = Shm::bind(&globals, &qh).context("wl_shm global is missing")?;
     let pool = SlotPool::new(4096, &shm).context("failed to create an shm pool")?;
     let pointer_constraints = PointerConstraintsState::bind(&globals, &qh);
@@ -996,7 +1065,10 @@ pub fn run(
         keymap,
         modifiers: Modifiers::default(),
         last_enter_serial: 0,
+        heads,
+        screens,
         surfaces: Vec::new(),
+        armed_for: None,
         capture: None,
         clipboard,
         idle_timeout,
@@ -1020,7 +1092,11 @@ pub fn run(
                 return;
             };
             match cmd {
-                WaylandCmd::Arm(barriers) => state.arm(&barriers, &cmd_qh),
+                WaylandCmd::Arm {
+                    session,
+                    zone_set,
+                    barriers,
+                } => state.arm(session, zone_set, &barriers, &cmd_qh),
                 WaylandCmd::Disarm => state.disarm(),
                 WaylandCmd::AttachEis(eis) => state.attach_eis(eis),
                 WaylandCmd::EndCapture { cursor_hint } => state.end_capture(cursor_hint),
@@ -1032,9 +1108,12 @@ pub fn run(
                     let _ = cmd_conn.flush();
                     let _ = reply.send(fd);
                 }
-                WaylandCmd::ClipboardClaim { mime_types } => {
+                WaylandCmd::ClipboardClaim {
+                    claim_id,
+                    mime_types,
+                } => {
                     if let Some(clipboard) = &mut state.clipboard {
-                        clipboard.claim(&mime_types, &cmd_qh);
+                        clipboard.claim(claim_id, &mime_types, &cmd_qh);
                         let _ = cmd_conn.flush();
                     }
                 }
@@ -1049,13 +1128,29 @@ pub fn run(
         })
         .map_err(|e| anyhow::anyhow!("failed to register the command channel: {e}"))?;
 
-    // Let the registry settle so outputs and the keymap are known before use.
+    // Wait for the output manager's first `done`: before it there is no layout
+    // to make a snapshot from, and a session must never see half of one.
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
+    while state.heads.committed().is_none() {
+        anyhow::ensure!(
+            std::time::Instant::now() < deadline,
+            "zwlr_output_manager_v1 did not describe the screens"
+        );
+        event_loop
+            .dispatch(std::time::Duration::from_millis(100), &mut state)
+            .context("initial Wayland dispatch failed")?;
+    }
+    // Let the registry settle so the outputs' names and the keymap are known
+    // before use.
     event_loop
         .dispatch(std::time::Duration::from_millis(200), &mut state)
         .context("initial Wayland dispatch failed")?;
+    state.refresh_screens(None);
 
-    let layout = state.layout();
-    info!("Wayland barrier thread ready, {} output(s) visible", layout.len());
+    info!(
+        "Wayland barrier thread ready, {} screen(s) in the snapshot",
+        state.screens.current().screens.len()
+    );
     let _ = ready.send(Ok(()));
 
     while !state.exit {

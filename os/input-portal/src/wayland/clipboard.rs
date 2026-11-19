@@ -44,12 +44,13 @@ pub trait ClipboardHandler: Sized {
     /// by [`ClipboardState::claim`] is still standing.
     fn selection_changed(&mut self, mime_types: Vec<String>, is_ours: bool);
 
-    /// Somebody is pasting from the selection this process claimed. The `fd` is
-    /// where the content has to be written; whoever takes it owns closing it.
-    fn selection_send(&mut self, mime_type: String, fd: OwnedFd);
+    /// Somebody is pasting from the selection this process claimed with
+    /// `claim_id`. The `fd` is where the content has to be written; whoever
+    /// takes it owns closing it.
+    fn selection_send(&mut self, claim_id: u32, mime_type: String, fd: OwnedFd);
 
-    /// The claim was taken over by another client.
-    fn selection_cancelled(&mut self);
+    /// The claim made with `claim_id` was taken over by another client.
+    fn selection_cancelled(&mut self, claim_id: u32);
 }
 
 /// User data for the objects that carry no per-object state.
@@ -96,6 +97,10 @@ pub struct ClipboardState {
     offer: Option<ExtDataControlOfferV1>,
     /// The source published while this process holds the selection.
     source: Option<ExtDataControlSourceV1>,
+    /// The portal's name for the claim `source` stands for. It goes back with
+    /// every paste, so a paste is answered by the session that made this claim
+    /// and never by one that claimed before or after.
+    claim_id: u32,
 }
 
 impl ClipboardState {
@@ -104,7 +109,7 @@ impl ClipboardState {
         D: Dispatch<ExtDataControlManagerV1, ClipboardGlobal> + 'static,
     {
         let manager = globals.bind(qh, 1..=1, ClipboardGlobal)?;
-        Ok(Self { manager, device: None, offer: None, source: None })
+        Ok(Self { manager, device: None, offer: None, source: None, claim_id: 0 })
     }
 
     /// Start watching a seat's clipboard. Only the first seat is used: the
@@ -144,7 +149,7 @@ impl ClipboardState {
         let offer = self.offer.as_ref()?;
         let available = self.mime_types();
         if !available.iter().any(|m| m == mime_type) {
-            debug!(mime_type, ?available, "clipboard read asked for an unoffered type");
+            debug!(offered = available.len(), "clipboard read asked for an unoffered type");
             return None;
         }
 
@@ -165,7 +170,7 @@ impl ClipboardState {
     ///
     /// Reads of the claimed selection come back as
     /// [`ClipboardHandler::selection_send`].
-    pub fn claim<D>(&mut self, mime_types: &[String], qh: &QueueHandle<D>)
+    pub fn claim<D>(&mut self, claim_id: u32, mime_types: &[String], qh: &QueueHandle<D>)
     where
         D: Dispatch<ExtDataControlSourceV1, ClipboardGlobal> + 'static,
     {
@@ -187,7 +192,8 @@ impl ClipboardState {
         if let Some(old) = self.source.replace(source) {
             old.destroy();
         }
-        debug!(?mime_types, "claimed the clipboard");
+        self.claim_id = claim_id;
+        debug!(types = mime_types.len(), "claimed the clipboard");
     }
 
     /// Give up a claim made by [`Self::claim`].
@@ -335,21 +341,22 @@ where
             return;
         };
         let is_current = clipboard.source.as_ref() == Some(source);
+        let claim_id = clipboard.claim_id;
 
         match event {
             Event::Send { mime_type, fd } => {
                 // A send for a source already dropped would write into a pipe
                 // nobody promised to fill; dropping `fd` lets the reader see EOF.
                 if !is_current {
-                    debug!(mime_type, "ignoring a send for a stale clipboard source");
+                    debug!("ignoring a send for a stale clipboard source");
                     return;
                 }
-                state.selection_send(mime_type, fd);
+                state.selection_send(claim_id, mime_type, fd);
             }
             Event::Cancelled => {
                 if is_current {
                     clipboard.source = None;
-                    state.selection_cancelled();
+                    state.selection_cancelled(claim_id);
                 }
                 source.destroy();
             }
