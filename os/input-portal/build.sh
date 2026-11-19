@@ -5,7 +5,7 @@
 #
 # <source dir> is this folder and is only read. <output dir> must be missing or empty; it gets
 #   aresos-input-portal   the binary, for /usr/libexec
-#   data/                 the portal file, the D-Bus activation service and the systemd user unit
+#   data/                 the portal file, the D-Bus activation service and the empty allow-list
 #   LICENSE               upstream's MIT text, which has to ship with the binary
 #
 # Package (c)'s image stage calls it as is, as root in that container; on the laptop dev/container.sh does.

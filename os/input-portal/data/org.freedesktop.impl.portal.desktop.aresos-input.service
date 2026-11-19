@@ -1,4 +1,3 @@
 [D-BUS Service]
 Name=org.freedesktop.impl.portal.desktop.aresos-input
 Exec=/usr/libexec/aresos-input-portal
-SystemdService=aresos-input-portal.service
