@@ -675,14 +675,27 @@ PY
 font=$(runuser -u ares -- env -i HOME=/tmp PATH=/usr/bin /usr/bin/fc-match --format '%{file}' 'Space Grotesk:bold')
 test "$font" = /usr/share/fonts/aresos/SpaceGrotesk-Variable.ttf
 pass "the startup cover is installed and loads GTK 4 as ares; fontconfig finds Space Grotesk ($font); its labwc rule is set"
-# Package 53c: import the laptop home's engine without a display in the built image.
+# Package 53f: the laptop home draws natively. Load the program's own load_gui() without a display, as the cover's
+# check does: GTK 4, Pango and Cairo as ares, with the Cairo renderer and no GPU device asked for.
+test -x /usr/libexec/aresos-laptop-home
 runuser -u ares -- env -i HOME=/tmp PATH=/usr/bin /usr/bin/python3 - <<'PY'
-import gi
-gi.require_version('WebKit', '6.0')
-from gi.repository import WebKit
-print('LAPTOP_HOME_WEBKIT', WebKit.get_major_version(), WebKit.get_minor_version(), WebKit.get_micro_version())
+import importlib.machinery, importlib.util, os
+loader = importlib.machinery.SourceFileLoader('aresos_laptop_home', '/usr/libexec/aresos-laptop-home')
+spec = importlib.util.spec_from_loader('aresos_laptop_home', loader)
+home = importlib.util.module_from_spec(spec)
+loader.exec_module(home)
+gui = home.load_gui()
+print('LAPTOP_HOME_GTK', gui.Gtk.get_major_version(), gui.Gtk.get_minor_version(), 'cairo', gui.cairo.version)
+assert gui.Gtk.get_major_version() == 4
+assert (os.environ['GDK_DISABLE'], os.environ['GSK_RENDERER']) == ('gl,vulkan', 'cairo')
+import struct, zlib
+def chunk(name, data):
+    return struct.pack('>I', len(data)) + name + data + struct.pack('>I', zlib.crc32(name + data))
+png = (b'\x89PNG\r\n\x1a\n' + chunk(b'IHDR', struct.pack('>IIBBBBB', 1, 1, 8, 6, 0, 0, 0))
+       + chunk(b'IDAT', zlib.compress(b'\0\1\2\3\4')) + chunk(b'IEND', b''))
+assert home.decode_png(png) == (1, 1, b'\1\2\3\4')
 PY
-pass 'the laptop home can import WebKitGTK 6.0 from Python'
+pass 'the laptop home loads GTK 4, Pango and Cairo as ares with the Cairo renderer, and its icon decoder runs'
 # Super+Ctrl+Escape opens the recovery terminal, then ends the cover through the supervisor (PLAN-GAP 2). The
 # supervisor takes the command as ares; with no supervisor running here it says so and exits 1.
 python3 - <<'PY'
