@@ -189,7 +189,7 @@ class ChromePassTest(unittest.TestCase):
                     return dict(returncode=1, stderr='made to fail', summary=summary)
                 return dict(returncode=0, summary=summary)
 
-            create = poweroff = close = keys = screenshot = lambda *arguments: None
+            create = poweroff = close = keys = click = screenshot = lambda *arguments: None
             boot = lambda self: 1.0
         output = io.StringIO()
         self.slept = []
@@ -198,6 +198,7 @@ class ChromePassTest(unittest.TestCase):
                 mock.patch.object(runner, 'password_hash', return_value='test-only-hash'), \
                 mock.patch.object(runner, 'details_button'), \
                 mock.patch.object(runner, 'type_password') as typing, \
+                mock.patch.object(runner, 'agent_title', return_value=(0, 0, 1280, 800)), \
                 mock.patch.object(runner, 'screen_difference', return_value=(runner.DIALOG_PIXELS, (0, 0, 1, 1))), \
                 mock.patch.object(runner.time, 'sleep', self.slept.append), \
                 contextlib.chdir(work), contextlib.redirect_stdout(output):
@@ -220,7 +221,8 @@ class ChromePassTest(unittest.TestCase):
                          lines + ['CONTROL_CHROME_VM_POWEROFF_CLEAN'])
         # Each key press gets its settle before the next step (the managed note's screenshot follows Alt+F).
         keys = [step for step in runner.CHROME_STEPS if step[0] == 'keys']
-        self.assertEqual(self.slept, [runner.KEYS_SETTLE] * len(keys))
+        edit_prompts = [step for step in runner.CHROME_STEPS if str(step[1]).startswith('chrome-edit-wait-')]
+        self.assertEqual(self.slept, [runner.KEYS_SETTLE] * (len(keys) + len(edit_prompts)))
         self.assertGreaterEqual(runner.KEYS_SETTLE, 1)
         managed = [step[1] for step in runner.CHROME_STEPS].index('c2-managed')
         self.assertEqual(runner.CHROME_STEPS[managed - 2:managed], [('keys', ['alt', 'f'], None), ('keys', ['up'], None)])
@@ -308,6 +310,21 @@ class ChromePassTest(unittest.TestCase):
                                               entry.replace(chrome.HOST_PROCESS, 'other'),
                                               entry.replace(chrome.EDIT_ACTION, 'other')], '1', peer), [entry])
 
+    def test_c7_qmp_errors_cannot_echo_a_password_to_the_runner_log(self):
+        runner = load(CONTROL_CI / 'control_vm.py', 'control_vm_password')
+        password = 'abcd19'
+        guest = mock.Mock()
+        guest.keys.side_effect = RuntimeError(password)
+        with self.assertRaisesRegex(RuntimeError, 'temporary password over QMP') as caught:
+            runner.type_password(guest, password)
+        self.assertNotIn(password, str(caught.exception))
+        self.assertTrue(caught.exception.__suppress_context__)
+        guest.keys.side_effect = None
+        guest.keys.reset_mock()
+        with mock.patch.object(runner.time, 'sleep'):
+            runner.type_password(guest, password)
+        self.assertEqual(guest.keys.call_args_list, [mock.call([char]) for char in password] + [mock.call(['ret'])])
+
     def test_c8_uses_the_current_button_reference_and_checks_the_exact_post(self):
         chrome = self.actions()
         row = dict(reference={'tab': 42, 'element': 'v3'},
@@ -323,6 +340,40 @@ class ChromePassTest(unittest.TestCase):
         pages.arrivals.return_value += [expected]
         with self.assertRaises(chrome.Failure):
             chrome.form_arrivals(pages, [expected])
+
+    def test_c8_fills_through_the_model_then_passes_the_real_prepare_to_the_driver(self):
+        chrome = self.actions()
+        url, tab = f'{chrome.ADDRESS}/form-yes', 42
+        step = dict(prompt='FORM_TEST', send='mcp__chrome__submit',
+                    prepare={'name': 'mcp__chrome__click', 'input': None})
+        path = str(ROOT / 'control/boundary')
+        with mock.patch.object(sys, 'path', [path, *sys.path]):
+            model = chrome.form_model(url)([step], self.folder, 0)
+        self.addCleanup(model.server.server_close)
+        messages = [{'role': 'user', 'content': step['prompt']}]
+
+        def response():
+            result, = model.script.respond({'messages': messages})
+            return result['name'], result['input'], result['id']
+
+        def reply(identifier, data):
+            messages.append({'role': 'user', 'content': [
+                {'type': 'tool_result', 'tool_use_id': identifier, 'content': json.dumps(dict(ok=True, data=data))}]})
+
+        field = dict(reference={'element': 'input'}, expected={'name': chrome.FORM_FIELD, 'role': 'textbox'})
+        button = dict(reference={'element': 'fresh'}, expected={'name': chrome.FORM_BUTTON, 'role': 'button'})
+        self.assertEqual(response(), ('mcp__chrome__open', {'url': url}, 'form-open'))
+        reply('form-open', dict(operation_id='open-op', untrusted_content={'tab': tab}))
+        self.assertEqual(response()[1]['tab'], tab)
+        reply('form-wait', dict(condition_met=True, untrusted_content={'url': url, 'tree': json.dumps(field)}))
+        self.assertEqual(response(), ('mcp__chrome__fill', dict(field, text=chrome.FORM_TEXT), 'form-fill'))
+        reply('form-fill', dict(operation_id='fill-op'))
+        self.assertEqual(response(), ('mcp__chrome__read', {'tab': tab}, 'form-filled-view'))
+        reply('form-filled-view', dict(untrusted_content={'tree': json.dumps(button)}))
+        self.assertEqual(response(), ('mcp__chrome__click', button, 'prepare-0'))
+        approval = dict(question='Submit this form?', operation_id='ask-op', description={'action': 'chrome_submit'})
+        reply('prepare-0', dict(approval=approval))
+        self.assertEqual(response(), ('mcp__chrome__submit', approval, 'send-0'))
 
     def test_c6s_line_needs_its_first_use_and_its_reboot(self):
         for failing, kept in ((('chrome-sites-first-use',), 'CONTROL_CHROME_SITES_REBOOT_PASS'),

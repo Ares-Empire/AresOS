@@ -244,6 +244,13 @@ class Guest:
     def keys(self, names):
         self.monitor.command('send-key', {'keys': [{'type': 'qcode', 'data': name} for name in names], 'hold-time': 100})
 
+    def click(self, x, y, width, height):
+        events = [dict(type='abs', data=dict(axis=axis, value=round(point * 32767 / (size - 1))))
+                  for axis, point, size in (('x', x, width), ('y', y, height))]
+        events.append(dict(type='btn', data={'button': 'left', 'down': True}))
+        self.monitor.command('input-send-event', {'events': events})
+        self.monitor.command('input-send-event', {'events': [dict(type='btn', data={'button': 'left', 'down': False})]})
+
     def screenshot(self, path):
         from PIL import Image  # the runner's, as os/ci/vm.py uses it; not needed to load this file elsewhere
         ppm = self.work / f'{self.name}-screen.ppm'
@@ -376,6 +383,33 @@ def screen_difference(first, second):
         return changed, difference.point(lambda value: 255 if value > 24 else 0).getbbox()
 
 
+def agent_title(probe, candidate):
+    """Find the real agent's title from this run's probe. Compare the glyphs, allowing the window to move."""
+    from PIL import Image
+
+    def mask(image):
+        return image.convert('L').point(lambda value: 255 if value > 150 else 0)
+
+    with Image.open(probe) as known, Image.open(candidate) as shown:
+        # The 1280×800 probe has a centered KDE dialog. This rectangle contains its title and no buttons.
+        title = mask(known.crop((369, 311, 580, 331)))
+        width, height = shown.size
+        tw, th = title.size
+        rows = [title.crop((0, y, tw, y + 1)).tobytes() for y in range(th)]
+        text_counts = [row.count(255) for row in rows]
+        assert sum(text_counts) > 150, 'the polkit probe does not provide a readable dialog title'
+        anchor = max(range(th), key=text_counts.__getitem__)
+        plane = mask(shown).tobytes()
+    for y in range(height - th):
+        offset = (y + anchor) * width
+        x = plane.find(rows[anchor], offset, offset + width)
+        if x >= 0:
+            x -= offset
+            if all(plane[(y + i) * width + x:(y + i) * width + x + tw] == row for i, row in enumerate(rows)):
+                return x + tw // 2, y + th // 2, width, height
+    return None
+
+
 def type_keys(guest, text):
     symbols = {'-': ['minus'], ':': ['shift', 'semicolon'], '/': ['slash'], '.': ['dot']}
     for char in text:
@@ -450,16 +484,34 @@ def chrome_main():
 
     def edit_dialog(attempt, result):
         picture = chrome_evidence / f'c7-{attempt}-dialog.png'
-        guest.screenshot(picture)
+        probe = chrome_evidence / 'polkit-dialog.png'
+        # A pending pkcheck and the details page's waiting line precede the real modal. Wait for its title
+        # before sending any answer. The switcher can bring it forward if Chrome still has focus.
+        for interval in range(24):
+            guest.screenshot(picture)
+            target = agent_title(probe, picture)
+            if target:
+                guest.click(*target)
+                time.sleep(KEYS_SETTLE)
+                guest.screenshot(picture)
+                assert agent_title(probe, picture), 'the polkit dialog lost focus before the keyboard answer'
+                break
+            if interval in (7, 15):
+                guest.keys(['alt', 'tab'])
+            time.sleep(1)
+        else:
+            raise AssertionError('the pending Chrome authorization did not show the real polkit dialog')
         count, box = screen_difference(chrome_evidence / f'c7-{attempt}-before.png', picture)
         assert count >= DIALOG_PIXELS, f'the password dialog did not appear: {count} changed pixels'
         result['summary'].update(dialog_pixels=count, dialog_box=box)
 
-    def private_evidence(_result=None):
+    def private_evidence(result=None):
         found = evidence_scan.scan(chrome_evidence, password.encode())
         for name in found['holding']:
             (chrome_evidence / name).unlink()
         assert not found['holding'], f'{len(found["holding"])} evidence files held the password or could not be searched'
+        if result is not None and result.get('returncode') == 0:
+            result['summary']['password_scan'] = {key: found[key] for key in ('files', 'members', 'hits')}
 
     verify = {'chrome-polkit-finish': dialog_shown, 'chrome-edit-finish': private_evidence}
     attempts = {f'chrome-edit-wait-{attempt}': attempt for attempt in ('cancel', 'allow', 'again')}

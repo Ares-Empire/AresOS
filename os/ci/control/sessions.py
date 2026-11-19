@@ -177,6 +177,7 @@ def session(evidence, steps, flags, answers, before_turn=None, turn_seconds=180,
                 seen = []
 
                 def ready(screen):
+                    assert model.error is None, model.error
                     if any(text == 'Yes' for _, text in options(screen)):
                         seen.append(terminal.sequence)
                         return answer != 'hook'

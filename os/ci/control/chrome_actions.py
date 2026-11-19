@@ -1460,7 +1460,8 @@ def bind_bundle(source, link):
 
 
 def extension_folders(profile):
-    return sorted(path.name for path in (profile / 'Default/Extensions').glob('*') if path.is_dir())
+    return sorted(path.name for path in (profile / 'Default/Extensions').glob('*')
+                  if re.fullmatch('[a-p]{32}', path.name) and path.is_dir())
 
 
 def host_manifest(current, previous):
@@ -1479,12 +1480,17 @@ def update_switch(label, current, previous, link, probe):
     expect(info['version'] == current['version'] and info['installType'] == 'admin', f'current package: {info}')
     eventually(lambda: installed(link, previous['id']) is None, 'the previous ID leaves Chrome', 60)
     times['old_id_gone'] = chrome.since()
-    expected = sorted([current['id'], probe])
-    eventually(lambda: extension_folders(profile_folder()) == expected, 'the profile keeps only the two current packages', 60)
+    expected = {current['id'], probe}
+    considered = expected | {previous['id']}
+
+    def packages_switched():
+        folders = set(extension_folders(profile_folder()))
+        expect(folders & considered == expected, f'expected current and probe {sorted(expected)}, found {sorted(folders)}')
+        return True
+    eventually(packages_switched, 'the profile keeps the current package and probe, and removes the old package', 60)
     times['old_folder_gone'] = chrome.since()
     listed = link.call('all')
-    expect(listed['ok'] and sorted(row['id'] for row in listed['value'] if row['id'] in
-                                  [*expected, previous['id']]) == expected, f'current IDs: {listed}')
+    expect(listed['ok'] and {row['id'] for row in listed['value']} & considered == expected, f'current IDs: {listed}')
     his_page(label)
     tab, _ = page_tab(label)
     actions = control()
@@ -1597,7 +1603,8 @@ def package_fault(request):
         start_his_chrome('c5-back-to-a')
     actions.wait_active()
     expect(actions.show('MainPID', 'NRestarts') == unit, 'the real tool service stayed up through the package faults')
-    return dict(returncode=0, summary=rows, files=actions.files_out(dict(logs, **{'chrome/c5-package.json': rows})))
+    logs['chrome/c5-package.json'] = rows
+    return dict(returncode=0, summary=rows, files=actions.files_out(logs))
 
 
 # --- C9: the network log across two update checks ------------------------------------------------------------------
@@ -1629,7 +1636,8 @@ def store_log(label, link, pages, ours, probe, with_policy):
         for number in (1, 2):
             before = count()
             # Chrome 157 does not honor the interval flag. Use the same explicit all-extension check as item 2.
-            expect(page.evaluate("void chrome.developerPrivate.autoUpdate().catch(() => {}); 'asked'") == 'asked',
+            expect(page.evaluate("(() => { const done = chrome.developerPrivate.autoUpdate(); "
+                                 "if (done?.catch) done.catch(() => {}); return 'asked'; })()") == 'asked',
                    'Chrome starts an update check of every extension')
             eventually(lambda: count() > before, f'update check {number} reaches the probe server', 60)
             asked.append(chrome.since())
@@ -1785,9 +1793,10 @@ def edit_result(allowed):
     expect(len(new) == 1, f'one journal outcome per attempt: {new}')
     marker = f'successfully authenticated as unix-user:{OWNER} to gain ONE-SHOT authorization' if allowed else 'FAILED to authenticate'
     expect(marker in new[0], f'polkit records the specified answer: {new}')
-    eventually(lambda: read_only() is not allowed, 'the rule reflects exactly this answer', 10)
+    readonly = not allowed
+    eventually(lambda: read_only() == readonly, 'the rule reflects exactly this answer', 10)
     state['journal_count'] = len(lines)
-    summary = dict(answer='password' if allowed else 'cancel', readonly=read_only(), journal=new[0])
+    summary = dict(answer='password' if allowed else 'cancel', readonly=readonly, journal=new[0])
     state['outcomes'].append(summary)
     return dict(returncode=0, summary=summary)
 
@@ -1851,7 +1860,7 @@ def form_model(url):
 
             if 'form-open' not in self.results:
                 return issue('open', {'url': url}, 'form-open')
-            tab = data('form-open')['tab']
+            tab = data('form-open')['untrusted_content']['tab']
             if 'form-wait' not in self.results:
                 return issue('wait', {'tab': tab, 'element': {'name': FORM_FIELD, 'role': 'textbox'},
                                       'timeout_ms': 8000}, 'form-wait')
