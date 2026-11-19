@@ -256,8 +256,8 @@ def edit_spec(spec, patch_name):
 def normalized_sha256(binary):
     """The SHA-256 of a copy of this ELF file without VARYING_SECTIONS. The file itself is not changed.
 
-    objcopy writes the headers and the sections, so bytes outside every section (padding, anything appended to the
-    file) are not part of this hash.
+    objcopy rewrites the file from its sections and recomputes program header fields, so a match means the sections
+    are the same, not the whole file: bytes outside every section and some header fields are not part of this hash.
     """
     with tempfile.TemporaryDirectory(prefix='aresos-labwc-normalize-') as folder:
         copy = pathlib.Path(folder) / 'binary'

@@ -34,3 +34,16 @@ Both only weaken a proof of checks that review 1 confirmed are wired into the bu
 ## The ignore-file wiring test (review 2, nit)
 
 The wiring test would not notice a `Containerfile` rule padded with spaces in `os/.containerignore`. The build would then stop at the new `COPY` line, so nothing unsafe gets through.
+
+## What the normalized pins prove (review 3, known limit)
+
+**What:** a match means the binary's sections are the same, not that the whole file is. `objcopy` rewrites the file from its sections and recomputes program header fields, so these edits keep the hash: moving the interpreter's offset, turning `PT_GNU_RELRO` into `PT_NULL`, lowering `e_phnum`, changing padding, and appending bytes. Review 3 showed on a small test program that such an edit can make it run under another interpreter. The lead reproduced the hash results on a copy of `labwc`; a changed code byte did change the hash.
+
+**Why it stays:** an ordinary rebuild with different code is still refused. A crafted file needs code running inside the `labwc` stage, and `rpmbuild` runs there before the check, so that code could replace `objcopy` anyway. Every input to the stage is locked by hash.
+
+**Carry into R29's rule:** a normalized match outside the build is the same weak proof. If the rule needs more, also hash the ELF header (with `e_shoff` zeroed) and the program header table, and refuse non-zero bytes outside the sections. Those headers are identical in builds A and B apart from `e_shoff`.
+
+## Refusal paths (review 3, nits)
+
+- No test covers the symlink refusal in `require_pinned_binaries`. The behaviour was checked by hand with the real `cpio`.
+- A missing `rpm2cpio`, `cpio` or `objcopy` stops the build with a Python error instead of one `LABWC_REFUSED` line. The locked build environment includes all three.

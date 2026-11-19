@@ -289,10 +289,10 @@ LABWC_PINS_KEPT a candidate keeps the lock's result.normalized_sha256 and no bui
    | Padding inside the executable segment (three places), padding after it, ELF identification padding | **same** |
    | Bytes appended to the file | **same** |
 
-   Such bytes cannot run unless a pinned byte points at them, so the pins still prove the code that runs. They do not
-   prove the whole file, which is a little less than the brief's goal says. In builds A and B these bytes are identical
-   and all zero (`labwc` 3202, `labnag` 3734). The code follows the brief and says this in its docstring. If the lead
-   wants the file covered, the small addition is to refuse any non-zero byte outside the sections.
+   A match means the sections are the same, not the whole file. Review 3 showed that some program header fields are
+   not covered either, so a crafted file can keep the hash and run differently (`KNOWN-LIMITS.md`, "What the normalized
+   pins prove"). In builds A and B the bytes outside the sections are identical and all zero (`labwc` 3202, `labnag`
+   3734). The lead keeps this as a known limit.
 2. **The pins depend on what `objcopy` writes.** The stage uses the locked `binutils-2.46.1-1.fc44`. Ubuntu's objcopy
    2.42 gave the same two hashes for build A, but a future version need not, so a change to the locked binutils can
    require new pins.
@@ -302,8 +302,10 @@ LABWC_PINS_KEPT a candidate keeps the lock's result.normalized_sha256 and no bui
 `labwc-0.9.6-1.fc44.aresos1.x86_64`. The RPM's SHA-256 and the two `.build-id` names change with every build (see 311c
 and 311d), so the rule cannot pin them; the other paths do not change.
 
-What identifies the code is the SHA-256 of each binary after removing exactly these three sections, and no others:
-`.note.gnu.build-id`, `.gnu_debuglink` and `.gnu_debugdata`.
+What identifies the build is the SHA-256 of each binary after removing exactly these three sections, and no others:
+`.note.gnu.build-id`, `.gnu_debuglink` and `.gnu_debugdata`. A match means "same sections", not "same file": it catches
+any ordinary rebuild with different code, but not a deliberately crafted file (`KNOWN-LIMITS.md`, "What the normalized
+pins prove").
 
 ```
 objcopy --remove-section .note.gnu.build-id --remove-section .gnu_debuglink --remove-section .gnu_debugdata <copy of the binary>
