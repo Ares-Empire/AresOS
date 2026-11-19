@@ -65,7 +65,7 @@ Use [installer-isos.json](../os/manifest/installer-isos.json) and [media-tools.j
 
 | File | Download / fresh publisher check | Pinned SHA-256 |
 | --- | --- | --- |
-| `bazzite-nvidia-open-stable-live-amd64.iso` | [ISO](https://download.bazzite.gg/bazzite-nvidia-open-stable-live-amd64.iso), [checksum](https://download.bazzite.gg/bazzite-nvidia-open-stable-live-amd64.iso-CHECKSUM) | `776b76f3417723440ee1823d79ec02a2c22860df196d219024edb062ad00d8e6` |
+| `bazzite-nvidia-open-stable-live-amd64.iso` | [ISO](https://download.bazzite.gg/bazzite-nvidia-open-stable-live-amd64.iso), [checksum](https://download.bazzite.gg/bazzite-nvidia-open-stable-live-amd64.iso-CHECKSUM) | `bd043223c30a1814534797d46328ce651d29925d2412fda7700200bc8b49f82e` |
 | `FedoraMediaWriter-win64-5.3.2.exe` | [EXE](https://github.com/FedoraQt/MediaWriter/releases/download/5.3.2/FedoraMediaWriter-win64-5.3.2.exe), [release API assets[].digest](https://api.github.com/repos/FedoraQt/MediaWriter/releases/tags/5.3.2) | `f53e0c1108f83a99ad0d7a9aee846822093b1afe595c78f13b22ba779d9f4bd4` |
 
 On install day require the filename and **all 64 hash characters** to match both pin and fresh official source. `stable` is mutable. Missing version/source or any difference → [Help](#help) for maintainer requalification; never replace a pin yourself. Hash each complete download before running/writing:

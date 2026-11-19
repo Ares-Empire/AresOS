@@ -533,7 +533,7 @@
       "path": "os/manifest/ci/14/parser-sources/source-files.zip"
     },
     {
-      "sha256": "e5124ee8f6a525d67afd03dd735afc6753562656c183e7ca804c04775c0e6720",
+      "sha256": "64e1731473ae5f59e0c03f6603b6914c023fee7a921887a0d2397163ab3b5c49",
       "path": "os/manifest/installer-isos.json"
     },
     {

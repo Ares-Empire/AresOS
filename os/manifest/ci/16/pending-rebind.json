@@ -38,7 +38,8 @@
     "42 step 5: publish-28 and publish_cap from 0 to 1 under the owner's standing rule (board #388, 2026-11-19); test_release28 and test_release28_rehearsal hold the opened gate (one publish, the publishing kind only)",
     "42 step 6: release-28 0 to 3, checks 1 to 3 (the model gate on each rehearsal head), minute cap 1200 to 2400; test_release28 and test_release28_rehearsal hold the new caps",
     "42 step 5: release 28's record (run 44590446680, ghcr.io/ares-empire/aresos@sha256:aa97b2d5…); step 6: the host walk regenerated for it",
-    "42 step 6: test_owner_sources keeps main()'s umask 077 from leaking into later modules (checks-only 44597381061: 116 hosted failures); test_control_image and test_owner_devices_native read the cut's -B lines and step 3's workflow line"
+    "42 step 6: test_owner_sources keeps main()'s umask 077 from leaking into later modules (checks-only 44597381061: 116 hosted failures); test_control_image and test_owner_devices_native read the cut's -B lines and step 3's workflow line",
+    "42 step 6: the live ISO requalified: upstream replaced bazzite-nvidia-open-stable-live-amd64.iso on 2026-11-17 16:50 GMT (bd043223…, 9088845824 bytes; the pinned 776b76f3… is gone, Bazzite keeps no old ISOs); rehearsal 44612480026 stopped at the inspection"
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
@@ -101,6 +102,10 @@
     {
       "sha256": "9a5e0b3fc04d75e2268b7ba17c66d32998fbcb370194b309b1410c2e3ebcb236",
       "path": "os/manifest/ci/14/14zze-preflight/local-privacy.py"
+    },
+    {
+      "sha256": "64e1731473ae5f59e0c03f6603b6914c023fee7a921887a0d2397163ab3b5c49",
+      "path": "os/manifest/installer-isos.json"
     },
     {
       "sha256": "74d708a2f68cf704cbdb8009a35da9e07eaeb13eeee5097890a3aa66713e639e",
