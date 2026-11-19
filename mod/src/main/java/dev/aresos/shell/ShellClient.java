@@ -146,6 +146,8 @@ public final class ShellClient implements AutoCloseable {
     private volatile boolean windows;
     // Reader thread only: what the helper last said about covering. Every connection starts uncovered.
     private boolean covered;
+    // Guarded by listeners: the common initializer starts the helper before the client initializer can subscribe.
+    private Focus lastFocus;
     private volatile String world;
     private volatile HomeState home;
     private volatile boolean homeSupported;
@@ -195,7 +197,13 @@ public final class ShellClient implements AutoCloseable {
         return new ShellClient(path, instance, nonce, settings, problem);
     }
 
-    public void addListener(Listener listener) { listeners.add(Objects.requireNonNull(listener)); }
+    public void addListener(Listener listener) {
+        synchronized (listeners) {
+            listeners.add(Objects.requireNonNull(listener));
+            // Replay under the dispatch lock so a newer event cannot arrive before this snapshot.
+            if (!closed && lastFocus != null) tellFocus(listener, lastFocus);
+        }
+    }
     public Status status() { return status; }
     /** The last complete list; it is kept while the helper is away or its list will not hold still. */
     public List<App> apps() { return catalogue.apps(); }
@@ -377,6 +385,7 @@ public final class ShellClient implements AutoCloseable {
             Status failure;
             ShellException first;
             try {
+                setStatus(new Status(State.STARTING, "connecting to the app helper"));
                 session();
                 retry = settings.firstRetry().toMillis();
                 failure = new Status(State.UNAVAILABLE, "lost the connection to the app helper");
@@ -464,6 +473,7 @@ public final class ShellClient implements AutoCloseable {
             if (connection == current) connection = null;
             if (attempt == current) attempt = null;
             current.close();
+            synchronized (listeners) { lastFocus = null; }
             // A helper that is gone must never leave the world paused.
             setCovered(false);
         }
@@ -786,9 +796,9 @@ public final class ShellClient implements AutoCloseable {
                 case "shell_focus" -> {
                     var focus = new Focus("foreground".equals(text(message, "focus")), text(message, "reason"),
                             text(message, "app_id"), bool(message, "activated"));
-                    for (var listener : listeners) {
-                        try { listener.focus(focus); }
-                        catch (RuntimeException error) { LOG.log(System.Logger.Level.ERROR, "Shell listener failed", error); }
+                    synchronized (listeners) {
+                        lastFocus = focus;
+                        for (var listener : listeners) tellFocus(listener, focus);
                     }
                 }
                 default -> { }
@@ -816,6 +826,11 @@ public final class ShellClient implements AutoCloseable {
             try { listener.covered(now); }
             catch (RuntimeException error) { LOG.log(System.Logger.Level.ERROR, "Shell listener failed", error); }
         }
+    }
+
+    private static void tellFocus(Listener listener, Focus focus) {
+        try { listener.focus(focus); }
+        catch (RuntimeException error) { LOG.log(System.Logger.Level.ERROR, "Shell listener failed", error); }
     }
 
     private void update(PendingOpen open, JsonObject message) {

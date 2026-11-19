@@ -100,3 +100,32 @@ Board brief 306, board #335. This is a handoff from `linux-hub` (2026-11-17) to 
   finishes and stops; Codex Sol for cross-reviews)**, and Codex does the
   cross-reviews (`gpt-6.2-sol` by default, `gpt-6.2-astra` only where the stakes need it, such as 53c's security
   pass). Codex's second-model review is the part Claude can't replace.
+- **The laptop home is native** (owner, board #375, 2026-11-18: "yea sounds good"). 53e measured the WebKit page at 418
+  MiB PSS at rest at best (524 unchanged) against 47 MiB for a native GTK 4 and Cairo town. 53c still merges after the
+  cut (its program skeleton and helper changes stay); 53f replaces its web view and page with a native drawing of the
+  same look and deletes the web engine. The companions later bring their own web view, only while switched on.
+
+## Where the next lead starts (linux-laptop-home, Thu 2026-11-19 07:00)
+
+Everything open is reviewed SAFE with green checks; nothing runs. STATE.md (package 53's entry) has the details.
+1. **Wait for `linux-aresos`'s "cut taken" line** (R28, Thu 12:00). It covers #114 and #121; the order is ours.
+2. **PR #114 (53c):** check its checks are green on its head, then squash-merge.
+3. **PR #120 (53f, draft, based on 53c's branch):** rebase onto main, mark ready, wait for green checks, ask
+   `linux-aresos` to read its os/ diff, merge.
+4. **PR #121 (53d):** after `linux-hub`'s package 56 (PR #117) merges, rebase per `briefs/53d-rebase-on-56.md`, run the
+   client suite twice (`mod/dev/client-test.sh`, the lock), a short Codex Sol recheck of the merge resolution, merge.
+5. **After each mod-PR merge:** send `linux-aresos` one line with the jar hash from main's Mod run log.
+6. **Package 25** (`pkg/25-guardian`, worktree `~/AresOS-25-guardian`, brief `briefs/25-guardian.md`, handoffs and
+   decisions in `reviews/25-guardian/PROGRESS.md`): once `linux-aresos` says R28 is through, start
+   `gh workflow run "OS image" --ref pkg/25-guardian -f check_build=build` and watch it from a shell. Then step 8 with
+   its run ID: fix what the VM checks show, section 5's docs, the REPORT, the PR. Then a fresh Codex `gpt-6.2-astra`
+   `high` review with a data-safety pass, and `linux-aresos`'s os/ read. Once 25 is on main, tell `linux-hub` that
+   hub-try and `~/AresOS-try` need a stand-in SYSTEMCTL answering active. The VM step adds 3–4 minutes to its
+   20-minute limit.
+7. **Then** STATE.md and this handoff, worktrees and branches cleaned up, `board done` on #357, #358, #359, #369, #383,
+   #384, #387 as each closes, and "ready to clear" to `mac-capacity`.
+
+**Claude budget (Patrik, 2026-11-19 through `mac-capacity`):** about 2% of the week per lead per day; one Claude agent
+at a time; fresh agents with short handoffs; Opus by default, Fable only for installs, rollback, credentials and
+security, so package 25's step 8 goes to Opus (or Codex Sol, within Codex's 12% a day). No agent waits on CI; shell
+watchers do.

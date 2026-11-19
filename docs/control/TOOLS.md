@@ -7284,6 +7284,36 @@ Result data:
         "reason"
       ],
       "additionalProperties": false
+    },
+    "approval": {
+      "type": "object",
+      "properties": {
+        "question": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "operation_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "description": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "question",
+        "operation_id",
+        "description"
+      ],
+      "additionalProperties": false
+    },
+    "state": {
+      "type": "string",
+      "enum": [
+        "reserved"
+      ]
     }
   },
   "required": [
@@ -7405,6 +7435,36 @@ Result data:
         "reason"
       ],
       "additionalProperties": false
+    },
+    "approval": {
+      "type": "object",
+      "properties": {
+        "question": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "operation_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "description": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "question",
+        "operation_id",
+        "description"
+      ],
+      "additionalProperties": false
+    },
+    "state": {
+      "type": "string",
+      "enum": [
+        "reserved"
+      ]
     }
   },
   "required": [

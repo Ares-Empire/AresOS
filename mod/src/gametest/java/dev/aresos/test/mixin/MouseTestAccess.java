@@ -9,4 +9,5 @@ import org.spongepowered.asm.mixin.gen.Invoker;
 public interface MouseTestAccess {
     @Invoker("onButton") void aresos$onButton(long handle, MouseButtonInfo button, int action);
     @Invoker("onScroll") void aresos$onScroll(long handle, double xoffset, double yoffset);
+    @Invoker("onMove") void aresos$onMove(long handle, double x, double y);
 }
