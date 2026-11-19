@@ -22,8 +22,6 @@ import tempfile
 import time
 import types
 
-from laptop_home_helper import INSTANCE, TOKEN
-
 ROOT = Path(__file__).resolve().parents[2]
 PROGRAM = ROOT / 'os/config/usr/libexec/aresos-laptop-home'
 VENDORS = {
@@ -85,7 +83,7 @@ def layer_state(window, layer):
 
 class Headless:
     def __init__(self, path, socket_path, *, look='day', size='1920x1080', font_dir=None, battery=True,
-                 program=PROGRAM, prototype=False, broken=None, clock=None):
+                 program=PROGRAM, prototype=False, broken=None, clock=None, redraw=False):
         self.path = path
         self.runtime = path / 'run'
         self.runtime.mkdir(mode=0o700)
@@ -104,6 +102,10 @@ class Headless:
             <allow own="*"/>
           </policy>
         </busconfig>""".replace('RUNTIME', str(self.runtime)))
+        # Imported here, on the test's side only: the program's process (fixture_main) must not carry the stand-in's
+        # modules (hashlib, socketserver; about 2 MiB), or the memory measurement would count them.
+        from laptop_home_helper import INSTANCE, TOKEN
+
         # Keep Wayland, home, data, cache, state and D-Bus private. The program sets its renderer itself.
         self.env = dict(HOME=str(path), PATH='/usr/bin:/bin', XDG_RUNTIME_DIR=str(self.runtime),
                         XDG_STATE_HOME=str(self.state), XDG_CONFIG_HOME=str(config),
@@ -120,7 +122,8 @@ class Headless:
         if broken is not None and broken not in BREAKS:
             raise ValueError(f'unknown painter part {broken}')
         (path / 'setup.json').write_text(json.dumps(dict(size=size, battery=battery, look=look, broken=broken,
-                                                        clock=clock, program=str(Path(program).resolve()))))
+                                                        clock=clock, redraw=redraw,
+                                                        program=str(Path(program).resolve()))))
         layer_dir = os.environ.get('LAPTOP_HOME_TEST_LAYER_DIR')
         lib_dir = Path(layer_dir).resolve() if layer_dir else Path('/usr/lib64')
         lib = lib_dir / 'libgtk4-layer-shell.so.0'
@@ -211,7 +214,9 @@ class Headless:
         return self.request('click', x=x, y=y)
 
     @contextmanager
-    def virtual_click(self):
+    def virtual_input(self, layout='de'):
+        """labwc's virtual pointer and keyboard on this test's display. The keyboard carries an xkb keymap for the
+        layout, so text goes through the program's input method as a real keyboard's would."""
         from test_aresos_shell import shell
 
         # Bind only to the display started in this test's private runtime directory.
@@ -230,23 +235,63 @@ class Headless:
                 return obj
 
             seat = bind('wl_seat')
-            keyboard = bind('zwp_virtual_keyboard_manager_v1')
+            keyboards = bind('zwp_virtual_keyboard_manager_v1')
             pointer = bind('zwlr_virtual_pointer_manager_v1')
-            client._send(keyboard, 0, struct.pack('=II', seat, client._new('virtual keyboard')))
+            keyboard = client._new('virtual keyboard')
+            client._send(keyboards, 0, struct.pack('=II', seat, keyboard))
             device = client._new('virtual pointer')
             client._send(pointer, 0, struct.pack('=II', seat, device))
+            # keymap(format xkb_v1, fd, size): the descriptor travels beside the message.
+            keymap = KEYMAP.replace('LAYOUT', layout).encode() + b'\0'
+            fd = os.memfd_create('keymap')
+            try:
+                os.write(fd, keymap)
+                sock.sendmsg([struct.pack('=IIII', keyboard, (16 << 16) | 0, 1, len(keymap))],
+                             [(socket.SOL_SOCKET, socket.SCM_RIGHTS, struct.pack('i', fd))])
+            finally:
+                os.close(fd)
             client.roundtrip()
+            codes = {**EVDEV, **(QWERTZ if layout == 'de' else {})}
 
-            def click():
+            def click(x=960, y=540):
                 now = int(time.monotonic() * 1000) & 0xffffffff
-                client._send(device, 1, struct.pack('=5I', now, 50, 50, 100, 100))
+                client._send(device, 1, struct.pack('=5I', now, round(x), round(y), 1920, 1080))
                 client._send(device, 4)
                 for pressed in (1, 0):
                     client._send(device, 2, struct.pack('=III', now, 0x110, pressed))
                     client._send(device, 4)
                 client.roundtrip()
 
-            yield click
+            def press(*keys):
+                """Each key is a character on the layout or an xkb key name (Return, Escape, dead_circumflex)."""
+                for key in keys:
+                    for state in (1, 0):
+                        now = int(time.monotonic() * 1000) & 0xffffffff
+                        client._send(keyboard, 1, struct.pack('=III', now, codes[key], state))
+                    client.roundtrip()
+                    time.sleep(0.02)
+
+            yield types.SimpleNamespace(click=click, press=press, type=lambda text: press(*text))
+
+    @contextmanager
+    def virtual_click(self):
+        with self.virtual_input() as device:
+            yield device.click
+
+
+KEYMAP = """xkb_keymap {
+  xkb_keycodes { include "evdev+aliases(qwertz)" };
+  xkb_types { include "complete" };
+  xkb_compat { include "complete" };
+  xkb_symbols { include "pc+LAYOUT+inet(evdev)" };
+  xkb_geometry { include "pc(pc105)" };
+};"""
+# Linux input codes of the keys the tests press; the letters as on a US keyboard, QWERTZ swaps y and z.
+EVDEV = {**dict(zip('1234567890', range(2, 12))), **dict(zip('qwertyuiop', range(16, 26))),
+         **dict(zip('asdfghjkl', range(30, 39))), **dict(zip('zxcvbnm', range(44, 51))),
+         'Escape': 1, 'BackSpace': 14, 'Return': 28, 'dead_circumflex': 41, 'Up': 103, 'Left': 105, 'Right': 106,
+         'Down': 108}
+QWERTZ = {'y': 44, 'z': 21}
 
 
 def summary(scene):
