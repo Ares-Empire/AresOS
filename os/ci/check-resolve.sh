@@ -260,4 +260,13 @@ PY
     section install-preview
     dnf5 --disable-repo='*' --setopt=install_weak_deps=False install --assumeno /tmp/ares-rpms/*.rpm "$chrome/google-chrome.rpm"
 } > "$out/candidate.txt" 2>&1
+
+# Package 311: a candidate lock from what resolve-download.sh found on labwc's locked fedora:44 (os/ci/check-build.sh).
+{
+    section labwc-build-dependencies
+    python3 -I /tmp/aresos/labwc/stage.py resolve /tmp/aresos/labwc /evidence/labwc-resolved "$out"
+    echo "labwc resolve exit=$?"
+} > "$out/labwc.txt" 2>&1
+# The evidence folder is uploaded: the candidate is the result, the packages are not.
+rm -rf /evidence/labwc-resolved
 echo 'Resolution finished; see evidence/resolve/'
