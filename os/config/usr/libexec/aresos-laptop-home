@@ -760,13 +760,13 @@ def hidden(spots, size, offset, side):
 
 
 def squeeze(text):
-    return ''.join(c for c in text.lower() if unicodedata.category(c)[0] in 'LN')
+    return ''.join(c for c in text.casefold() if unicodedata.category(c)[0] in 'LN')
 
 
 def word_starts(text, needle):
     if not text:
         return False
-    words = re.split(r'[^\w]+|_+', text.lower())
+    words = re.split(r'[^\w]+|_+', text.casefold())
     return any(word.startswith(needle) for word in words if word)
 
 

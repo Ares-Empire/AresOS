@@ -403,9 +403,9 @@ LLVM, anything NVIDIA's and `/dri/`. None was mapped in any run, and every memor
 
 ## Open questions
 
-- (Round 2, outside the brief.) The finder matches with `lower()`, as 53c's page did with `toLowerCase()`.
-  So `strasse` does not find `Straße`, and `straße` does not find `Strasse`. Matching with `casefold()` would find
-  both. That changes what the owner's German typing finds, so it is the lead's call.
+- (Round 2, outside the brief.) The finder matched with `lower()`, as 53c's page did with `toLowerCase()`, so
+  `strasse` did not find `Straße`. **Decided by the lead (2026-11-19): match with `casefold()`** (`squeeze` and
+  `word_starts`), so his German typing finds both spellings; `FinderTextTest.test_german_spellings_find_each_other`.
 
 - Should the limit be judged in set-up I on the laptop (the one-buffer state), or should set-up S's limit change to
   "after a redraw, two window buffers included"? This decides whether PLAN-GAP 1 needs the logo change.

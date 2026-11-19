@@ -483,6 +483,15 @@ class FinderTextTest(unittest.TestCase):
         self.assertEqual(program.natural('İ')[:2], program.natural('i\u0307')[:2])   # 'i' and a combining dot
         self.assertEqual(program.natural('Tool ' + '9' * 5000)[0][-1], (1, 5000, '9' * 5000), 'no int() limit')
 
+    def test_german_spellings_find_each_other(self):
+        # The lead's call (2026-11-19): match with casefold(), so his German typing finds both spellings.
+        by_id = apps('Straße', 'Strasse', 'Maßband', 'Notepad')
+        names = lambda query: sorted(by_id[app_id]['name'] for app_id in program.search(by_id, query))
+        self.assertEqual(names('strasse'), ['Strasse', 'Straße'])
+        self.assertEqual(names('straße'), ['Strasse', 'Straße'])
+        self.assertEqual(names('massband'), ['Maßband'])
+        self.assertEqual(names('note'), ['Notepad'])
+
     def test_every_letter_and_number_of_the_bmp_searches_the_same_twice(self):
         """A property over the Basic Multilingual Plane: for each letter or number, a one-character name and a query
         of it neither raise nor change the result's order between two calls."""
