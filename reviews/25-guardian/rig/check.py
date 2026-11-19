@@ -45,6 +45,7 @@ SYSTEM_PATH = 'PATH=/usr/bin:/bin'
 STOP_LINES = re.compile(r'Stopping server|Saving players|Saving worlds|Saving chunks for level|All chunks are saved|'
                         r'All dimensions are saved|Stopping!|[Ll]ifecycle|Client Shutdown')
 PATHS = re.compile(r'(?:/var)?/home/\S+|/run/user/\S+|/tmp/\S+')
+LAUNCH = re.compile(r'launch [0-9a-f]{12}\b')  # a launch's id is the runtime file's: not for the evidence
 
 sys.path.insert(0, str(HERE))
 import region  # noqa: E402
@@ -442,7 +443,7 @@ def stop_path(rig, game, number, health):
         path['written_after_stop_began'] = rewritten(rig, wall)
         path['server_stop_lines'] = stop_lines(rig, offset)
         said = (rig.rig / 'supervisor.txt').read_text(errors='replace')
-        path['stop_phases'] = [PATHS.sub('<path>', line[line.index('stop ('):])[:240]
+        path['stop_phases'] = [LAUNCH.sub('launch <id>', PATHS.sub('<path>', line[line.index('stop ('):]))[:240]
                                for line in said.splitlines() if 'stop (' in line and ' s: ' in line][:20]
         path['prism_started'] = (rig.control / 'prism.calls').exists()
         rig.note(path=path)

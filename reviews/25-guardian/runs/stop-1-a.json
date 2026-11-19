@@ -58,7 +58,7 @@
    "[04:08:34] [Server thread/INFO] (Minecraft) ThreadedAnvilChunkStorage: All dimensions are saved"
   ],
   "stop_phases": [
-   "stop (stop) +0.01 s: begins for launch 06e13e836394",
+   "stop (stop) +0.01 s: begins for launch <id>",
    "stop (stop) +0.10 s: the save is confirmed (saved): Saved: AresHub is on the disk.",
    "stop (stop) +0.10 s: SIGTERM sent to Java",
    "stop (stop) ended after 0.78 s: confirmed, close exited"

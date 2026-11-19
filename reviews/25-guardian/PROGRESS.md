@@ -1,6 +1,6 @@
 # Package 25, the guardian: progress
 
-Updated after **step 5** (2026-11-19). Builder: a Claude agent on Fable 5.2, one fresh agent per step.
+Updated after **step 6** (2026-11-19). Builder: a Claude agent on Fable 5.2, one fresh agent per step.
 Brief: `briefs/25-guardian.md`; its last section ("The lead's fixes after the recheck") overrides the rest.
 
 ## Done
@@ -219,9 +219,77 @@ One existing assertion changed: `test_creating_the_hub_finishes_setup` (`test_ar
 first is never declared ready (`SETUP` stays), and the test now makes the hub on the disk before its report, as the
 mod does; it still ends with `hub_seen` and the window closed.
 
+**Step 6: the real game** (`reviews/25-guardian/rig/`; the evidence is `reviews/25-guardian/runs/*.json`). Nothing
+under `os/` or `mod/` changed.
+
+**The verdict: 2.5's close stands.** With the real Minecraft 26.2 and the worktree's AresOS mod, a confirmed flush
+save, then SIGTERM through the watched pidfd, then Java's own exit leaves everything on the disk. SIGTERM alone does
+too: Minecraft's own shutdown stops the integrated server, which saves once more, and Java ends with 143. So 25 does
+not wait for a mod-side `prepare_stop`, and there is no PLAN-GAP from this step. 2.6 stays as written: no stop
+certifies the closing save; this step shows, with the real game, that it saves.
+
+- **The close alone** (`close-*`): no supervisor runs and nobody asks for a save. The rig sets a block that the disk
+  does not hold, sends SIGTERM to its own game a millisecond later, and waits for Java's exit. After it the block is
+  in the region file, `level.dat` and the player's data were written after the signal, and the status is 143.
+- **The path** (`stop-*`): the real supervisor (`aresos-desktop`'s real loop under `env -i`) takes the rig's game by
+  the adoption runtime file (`mode: hub`). The mod's hello is accepted, the helper's word makes the real home pass
+  `check_world` (`IN_WORLD`). `aresos-desktop save` answers `Saved: AresHub is on the disk.`, and a block the disk did
+  not hold before it is there after it. Then another block and `aresos-desktop stop`: exit 0, `Stopped: the home was
+  saved first; Minecraft closed.`, the record `saved`, `sigterm`, `exited`, 143. Prism's stand-in was never started.
+- **Reopened:** every launch first asks the reopened game itself for the blocks of the launch before (`reopened` in
+  its file: the game's own answer, and the region file's).
+- **First of all,** in every launch: `/proc/<game>/environ` has exactly one `XDG_RUNTIME_DIR`, the run's temporary
+  folder, and the gate only where the run means it (`environment`). A game that fails this is asked nothing.
+
+**The runs** (series `b`, one launch of the real game each; `reviews/25-guardian/runs/<run>.json`): the close alone 3 times, the path 3 times.
+
+| Run | Before | What ran | After Java's exit | Java's status | Time |
+|---|---|---|---|---|---|
+| `close-1-b` | block 5 not on the disk | SIGTERM by the rig, 1 ms after the game's answer; no save asked | block 5 on the disk; `level.dat` written and the player's data written after the signal | 143 | 0.67 s from SIGTERM to exit |
+| `stop-1-b` | block 7 not on the disk before `save`; block 8 not on the disk before `stop` | adopted, hello accepted, `IN_WORLD`; `save`: exit 0, 0.19 s, block 7 on the disk after it; `stop`: exit 0, record `saved`, `exited` | blocks 6, 7, 8 on the disk | 143 | `stop` 0.87 s as a command (+0.08 s: the save is confirmed (saved): Saved: AresHub is on the disk.; +0.08 s: SIGTERM sent to Java; ended after 0.75 s: confirmed, close exited) |
+| `close-2-b` | block 10 not on the disk | SIGTERM by the rig, 1 ms after the game's answer; no save asked | block 10 on the disk; `level.dat` written and the player's data written after the signal | 143 | 0.74 s from SIGTERM to exit |
+| `stop-2-b` | block 12 not on the disk before `save`; block 13 not on the disk before `stop` | adopted, hello accepted, `IN_WORLD`; `save`: exit 0, 0.22 s, block 12 on the disk after it; `stop`: exit 0, record `saved`, `exited` | blocks 11, 12, 13 on the disk | 143 | `stop` 1.03 s as a command (+0.11 s: the save is confirmed (saved): Saved: AresHub is on the disk.; +0.12 s: SIGTERM sent to Java; ended after 0.89 s: confirmed, close exited) |
+| `close-3-b` | block 15 not on the disk | SIGTERM by the rig, 2 ms after the game's answer; no save asked | block 15 on the disk; `level.dat` written and the player's data written after the signal | 143 | 0.69 s from SIGTERM to exit |
+| `stop-3-b` | block 17 not on the disk before `save`; block 18 not on the disk before `stop` | adopted, hello accepted, `IN_WORLD`; `save`: exit 0, 0.25 s, block 17 on the disk after it; `stop`: exit 0, record `saved`, `exited` | blocks 16, 17, 18 on the disk | 143 | `stop` 0.97 s as a command (+0.17 s: the save is confirmed (saved): Saved: AresHub is on the disk.; +0.17 s: SIGTERM sent to Java; ended after 0.86 s: confirmed, close exited) |
+| `verify-b` | | reopened once more, quit by closing the window | | 0 | |
+
+Reopened (15 blocks, each asked of the next launch's game and read from the region file; all there): `stop-1-b`: 4, 5; `close-2-b`: 6, 7, 8; `stop-2-b`: 9, 10; `close-3-b`: 11, 12, 13; `stop-3-b`: 14, 15; `verify-b`: 16, 17, 18.
+
+**What was built** (all in `reviews/25-guardian/rig/`, a copy of `reviews/49b-arena-rerun/rig/` without its
+measuring parts; a development aid, nothing ships):
+
+- `run.sh` (the client-test lock, the memory and owner-game guards, package 47's GPU holder), `start.sh` (its own
+  headless labwc), `inner.sh` (the restricted helper, the virtual keyboard, `gradlew --no-daemon runClient`),
+  `lifecycle.sh`, `health.py`, `input.py`, `vinput.py`, `helper41.py`, `make-apps.py`, `retry.sh`, `jvm.gradle`:
+  copied, with the names changed and the session's identity read from the run's private file.
+- `check.sh` (one launch: `MODE=create|close|stop|verify`) and `check.py` (the check itself, and the public evidence).
+- `java-wrapper.py`: stands in for Prism's wrapper. The game's JVM runs in a scope of its own; only its command line
+  gets the run's `XDG_RUNTIME_DIR` and the gate; the wrapper holds the desktop lock as the real one does, stays Java's
+  parent, and writes Java's real status with the real wrapper's own `end_report`, `write_exit` and `report_again`.
+- `supervisor.py`: the real supervisor with stand-ins for Prism, the helper, the cover, the window and
+  `systemd-inhibit`, as the loop test's harness has them.
+- `probe/`: a data pack. `/trigger pkg25 set <n>` sets a glass block in the air above the home pad, `set <100 + n>`
+  says whether it is there; `/trigger` needs no cheats, so the home keeps its commands off.
+- `region.py`: reads one block from a save's region file, offline.
+- `series.sh <tag> [first block]`: the home if there is none, then the close alone and the path in turn, three each,
+  then one more reopening; started again with the same tag it goes on where it stopped. `summary.py <tag>`: the
+  table below from the evidence, and exit 1 if anything in it is not as the check expects. `test_rig.py`: the rig's
+  own checks without a game.
+
+**Commands run:**
+
+| Command | Result |
+|---|---|
+| `python3 -B reviews/25-guardian/rig/test_rig.py` | 4 tests, OK, 2 s: the region reader on a region file made there; with a stand-in game in a real, disposable user scope: the environment check and its two refusals, the close alone (143), the path (adopted, hello, `save`, `stop`: `saved`, `exited`, 143, nothing left behind) |
+| `bash -n` on the rig's scripts | OK |
+| `reviews/25-guardian/rig/series.sh a` | `create-a` made the home (the supervisor's `check_world`: ok). `close-1-a` and `stop-1-a` ran with one block per check and showed that the game had the lone block on the disk before anything was asked (decision 70); they are kept as they are. Stopped there. |
+| `reviews/25-guardian/rig/series.sh b 4` | the runs in the table above; `summary.py b`: nothing odd, exit 0 |
+
+Exit 75 (short of memory while another session's client test ran) came 11 times in all; each was waited out
+for five minutes, never forced. No `os/tests` module was run: nothing under `os/` changed.
+
 ## Left, in order
 
-6. The real game.
 7. 3.1 and the VM checks.
 8. The check build's findings, section 5 (docs), the report, the pull request.
 
@@ -426,6 +494,39 @@ Step 5:
     as `forget-hub` already relies on.
 67. **A failed fsync of the worlds folder after the rename is one log line**; the reply says moved, because it is.
 
+Step 6:
+
+68. **The rig's java wrapper sets the gate and the runtime folder, not `inner.sh`** (the brief names `inner.sh`).
+    Gradle and its `systemd-run --user` need the session's runtime folder, so the wrapper sets both for the JVM
+    alone (`systemd-run --scope --setenv`). The game gets the run's `XDG_RUNTIME_DIR` in every mode, also without
+    the gate, so no launch of this rig can dial the session's supervisor.
+69. **A block is set by a data pack on the host's `/trigger`,** typed into chat by the rig's virtual keyboard: no
+    cheats, so the home stays as the create flow makes it. It is a glass block in the air above the pad (x 1 to 14,
+    y 90, z 2 to 5), not one placed by hand; the chunk changes the same way.
+70. **Two blocks for each check.** The game writes a changed chunk to its region file within a tick by itself, but
+    the same chunk at most once in ten seconds (seen in `close-1-a` and `stop-1-a`, not read in its code). So each
+    check sets a first block and then at once the block it is about: only a save brings that one to the disk, and
+    the evidence says it was not there before.
+71. **"On the disk" is read twice:** offline from the region file (`region.py`), and by the reopened game.
+72. **Three of each.** The brief asks for the close alone three times and the path once; the lead's handoff for the
+    stop three times. Both run three times, in turn.
+73. **`exited` rests on Java's real status, reported the real way:** the rig's wrapper is Java's parent and uses the
+    real wrapper's functions for the exit record and the `jvm_exited` report. The real wrapper cannot start the game
+    here: it starts only through a supervisor that started Prism.
+74. **The supervisor's helper is a stand-in** that reports `AresHub` ready once the rig has read "joined the game"
+    in the game's log; the supervisor then checks the real home itself (4.4). The game talks to the rig's own
+    restricted helper, as in package 49b.
+75. **The home is made by the real game** (a session's first start with no `AresHub`), in the test supervisor's
+    worlds folder as a real folder. `mod/run/saves` is a link to that worlds folder, as the instance's
+    `minecraft/saves` is in the image; `series.sh` removes the link when it ends.
+76. **`series.sh` waits for the laptop's game lock** (taken and let go at once) before each try. While another
+    session's game runs, its memory is missing and every try would be refused; exit 75 is still retried after five
+    minutes, six times at most.
+77. **The rig's settings:** 1280x720 at 60 Hz, distances 8 and 5, heap 1024 MiB, `MemoryHigh` 2560M, the NVIDIA
+    holder as package 49b.
+78. **The launch's id stays out of the evidence** (`launch <id>` in the stop's phases), with the nonce, the
+    environment and every path.
+
 **New texts** (the `save` command prints them; for the report's list):
 
 - `Saved: AresHub is on the disk.`
@@ -550,6 +651,29 @@ do.`
 
 ## What the code does not show
 
+- **Step 6, what the game does by itself.** A changed chunk is in its region file within a tick, but the same chunk
+  at most once in ten seconds. So up to ten seconds of building in a chunk are in memory only; the flush save and
+  the closing save are what bring them to the disk. That is what the stop routine's save is for, and it works.
+- **Step 6, the log has no server-stop lines.** The brief asks for them. The development client's log ends at
+  SIGTERM (its logging stops with the JVM's shutdown): no "Stopping server", no "Saving players". The `All chunks
+  are saved` lines in the `stop-*` files come from the mod's flush save, before the signal. That the server stopped
+  and saved is on the disk instead: the block, `level.dat` and the player's data written after SIGTERM, status 143.
+  Whether Prism's game logs the lines is for the VM to show, if it matters.
+- **Step 6, the times** are of a small flat home (the rig's 40 test apps, distances 8 and 5) on the laptop: SIGTERM
+  to Java's exit 0.67 to 0.74 s; `save` as a command 0.19 to 0.25 s; in a `stop` the save was confirmed 0.08 to
+  0.17 s after its start, SIGTERM went out in the same moment, and the stop ended after 0.75 to 0.89 s (0.87 to
+  1.03 s as a command). `STOP_BUDGET` and the other numbers are unchanged. A big or old world, and the Nether home, were not timed.
+- **Step 6, what the rig is not.** Loom's development client started by Gradle with Java 25 from the home folder:
+  not Prism's instance, its production jar or its log settings; the same mod sources and the same Minecraft. The
+  real wrapper did not start the game. No black screen, no real helper and no lost focus (the VM's boot 1). "On the
+  disk" means read back from the region file: nothing here shows an fsync or a power cut. Not tried: SIGTERM while
+  the world loads, while the game is paused, or with a save in flight; a game that ignores SIGTERM (the loop test
+  and the VM's boot 2 stand for that).
+- **For step 7.** 2.5 stands: build 3.1 on it. The VM's stand-in JVM should end with 143 after SIGTERM, as the real
+  game does. To run the check again: `reviews/25-guardian/rig/series.sh <tag> <first block>` (the home in
+  `.work/pkg25` has blocks 1 to 18 set: take 19, or remove `.work/pkg25` for a new home); one launch is
+  `reviews/25-guardian/rig/run.sh <name> MODE=…` (`check.sh`'s head says how). `.work/pkg25` (ignored, a few
+  MB; nothing in `.work/` is over 500 MB) holds the home and each run's raw logs. The report lists the rig under Verified; nothing of it ships.
 - **Step 5, where a world folder can move.** `rename_noreplace()` has one caller, `move_home()`, and that has two
   (`move_unfinished()`, `use_home()`); `UseHomeTest.test_one_function_moves_a_world_folder_and_nothing_deletes_one`
   reads the file's syntax tree for that and lists every other rename, replace, unlink and rmtree in the file (the
