@@ -1,5 +1,227 @@
 # Package 28a: Chrome acting progress
 
+## Step 1b
+
+2026-11-19. **Partly done; stopped at a clean point between items.** Items 3 and 3a are built, tested and
+mutation-checked; **items 4 and 6 are not started** and come first under "Left". Code commit: `749a7c79`; this
+section is the next commit. Builder: a Claude Opus 5.5 agent for the lead `linux-tools`. Read the READY brief from
+`origin/main` (items 3, 3a, 4, 6, item 0, item 8 steps 1/1b, "What must not change", the Tests rows for items 3,
+3a, 4 and 6 with F4's stop rule, "Stop rules"), and steps 1a, 0c and 0b below. Built behind private helpers: the
+public catalogue, the generated files and the instructions are unchanged; no tool name is new.
+
+### Done
+
+- **Service** (`control/aresos_control/chrome/projection.py`, new): the one projected copy of what an operation
+  shows of its page. `addresses(value, short)` writes every address through brief 28's `public_address`, wherever it
+  sits: the keys `url`, `frame_url`, `effective_url`, `href`, and a form's `action` (under `form`); `record()` is the
+  short form. `lists(value, choosing)` replaces every `options` list with `chosen` (the selected options, each as the
+  binding holds it) and `option_count`, and for a `select` step adds `choosing` to the top-level target (every option
+  of the binding whose value is the step's). `shown(described, payload)` is item 3b's described copy with both.
+  `blank`, `fits` and `advised` choose Chrome's advice after a refusal for size (below).
+- **Adapter** (`adapter.py`), the lines item 3 and 3a name:
+  - `prepare`: `shown = projection.shown(shown, payload)` right after 0c's `descriptions.described(state)`; the
+    description's `page_state` and `input` and the question all come from it. The returned payload is still
+    `copy.deepcopy(payload)`: full addresses, every option. `question()` itself is unchanged; it reads the projected
+    copy it is given.
+  - the typed read's question: `On {shown['url']}` with `shown = projection.addresses(descriptions.typed(state))`,
+    and each frame's site as `public_site(url)` (`site_of`, else `public_address`); the binding is unchanged.
+  - `free`: the committed description is `projection.shown(...)` for an input and `projection.addresses(...)` of the
+    arguments and `tab_context` for a navigation, open, take, release or close (the payload keeps the raw copy); its
+    `page` stage is `visible(projection.record(reply))`; it returns `visible(projection.addresses(reply))`.
+  - `execute`: `stage('confirmation', canonical(visible(projection.record(reply['confirmations']))))` and
+    `stage('page', canonical(visible(projection.record(reply))))`. Nothing else in `execute` changed.
+  - `steps`: a held submission whose `reserve` refuses `asking_input_too_large` is recorded `done`, `result:
+    'too_large'`, `resumable: False`, acknowledged, and returned as `{'stopped': True, 'code':
+    'asking_input_too_large', 'reason': <sentence and advice>}`; it is never prepared, resumed or met again as open.
+  - `act` (1a's private step entry): an asking step's `asking_input_too_large` from `reserve` comes back with
+    `too_large()`'s advice. `too_large()` prepares a copy with every typed field's value, the target's value, a fill's
+    text and the text next to Send left empty, measures it with the base's count, and chooses "Shorten the text you
+    filled ..." when that copy fits, else "This form sends more than a question can show ...". Nothing is reserved
+    from the copy.
+- **Tests changed for the deliberate address change** (questions now show `fixture.test/...`, the public form, which
+  writes no `https://`): `test_field_descriptions` (three question sentences; two "description equals binding"
+  comparisons now compare with `projection.addresses(binding)`, plus one assertion that the payload keeps the full
+  action), `test_questions` (two typed-read question assertions), `test_engine` (the group 3 draft comparison, plus an
+  assertion that the dispatched binding keeps the full address). No receiver, binding or outcome assertion changed.
+- **CI browser rows:** none changed (nothing for step 2's `HARNESS-MAP.md` from 1b). A scan of `control/chrome/ci/`
+  for address assertions on questions, descriptions and free results found only `destination-matrix.mjs` and
+  `destination-evidence.mjs`, which parse `form.action`/`target.href` with `new URL(...)` and compare the path: the
+  fixtures are `http://` addresses, which the public form writes with their scheme, and `/first/receive`,
+  `/second/receive` aren't hidden. Brief 20's `tabs`/`read` rows are untouched (see JUDGMENT-CALL 3).
+
+### The projections as built, and F4
+
+- **Addresses.** A description, a question and a free result show the public form: `fixture.test/shop?q=red+shoes&code=…#access_token=…`
+  for `https://fixture.test/shop?q=red+shoes&code=<40-character token>#access_token=<token>`. A stage text (the log
+  holds it) shows `fixture.test/shop?…#…`. The payload's `binding` (`url`, `frame_url`, `effective_url`,
+  `form.action`, `target.href`, `editable[].url`, a dialog's `frame_url`), the `reference` and every command keep
+  the full address; the extension's comparison before an approved input is unchanged.
+- **Lists.** `{"label": "Country", ..., "chosen": [{"label": "Country 7", "value": "c7", "selected": true, "disabled":
+  false}], "option_count": 200}`, and for an asking `select` of `c12` also `"choosing": [{"label": "Country 12",
+  "value": "c12", "selected": false, "disabled": false}]`. It holds in the form's fields, a list target, a page dialog's
+  fields, the editable fields of a send outside a form and an item's fields, and in `free`'s committed description.
+- **F4, measured** (`test_operation_projection`, F4 as `efficiency-fixtures.mjs` builds it: 3 hidden fields, 10 lines
+  of which 6 filled, the date, three checkboxes, the radio group and its fieldset, Country of 200 and Size of 3, the
+  email, password, one-time code and the rest, Save; descriptions of item 3b included): **7,365 bytes** with a
+  question of 163 characters (the test's host is short; CI's `127.0.0.1:port/receive?case=...` adds about 40).
+  Within the 9,000-byte bound; the same facts with the options left whole are refused (`asking_input_too_large`).
+  An asking `select` on F4's Country list stays within 9,000 as well. The stop rule didn't apply.
+
+### Tests and mutations
+
+**Run** (portable Node v22.15.0 from step 0a's `.work/pkg28a-0a/`; Python 3.14.8; logs in `.work/pkg28a-1b/`):
+
+```sh
+PYTHONPATH=control python3 control/generate.py --check
+.work/pkg28a-0a/node-v22.15.0-linux-x64/bin/node --test control/chrome_tests/*.test.mjs
+PYTHONDONTWRITEBYTECODE=1 TMPDIR="$PWD/.work/pkg28a-1b/tmp" PYTHONPATH=control:control/chrome_tests python3 -m unittest \
+  test_operation_projection test_acting_references test_view_references test_questions test_policy test_engine \
+  test_loss_errors test_field_descriptions test_instruction_rules test_qualification_fixture test_bridge test_sites \
+  test_qualification_service test_credentials test_fix_x1 test_outline_action test_view_paging test_view_hostile \
+  test_efficiency test_view_address test_view_nodes test_view_outline test_view_budgets test_outline_time
+python3 .work/pkg28a-1b/mutations.py
+git diff --check
+```
+
+- Generator check: **Generated artifacts match definitions** (no definition changed).
+- Node: **605 tests, 605 pass**, 0 fail/cancelled/skipped/todo, 32,694 ms (no JS changed). Log: `node-final.log`.
+- Python, the modules above: **Ran 432 tests in 70.7s, OK** (421 at 1a, plus 11 new; the six `EFFICIENCY MISS ...
+  not measured` lines are that module's existing negative test). Log: `python-3-3a.log`.
+- Not run locally: `test_fault_surface` and `test_state_*` (CI's python shards), as the lead asked. No browser.
+- `git diff --check`: clean.
+
+**New tests** (`test_operation_projection.py`, 11, on item 3b's harness: the real `Bridge` against a fake native host,
+the `Engine`, and each public result through the socket and MCP/CLI text validated against its schema). Item 3, with
+a marker token in the page's address (under `code` and in the fragment), a frame's (after `/reset/` and under
+`session`), a form action (under `sig`), a link (as a random value under `v`), a native dialog's frame (as user
+info and under `state`) and a confirmation: a prepared send's question and description, its two stage texts after
+`chrome_submit`, `chrome_operation_status` and the audit log hold no marker, the stage texts no query at all
+(`red` of `q=red+shoes` absent), while the payload and the command the host got hold every full address; a free link
+click's committed description, result and page stage, and a send outside a form's frame addresses; a native dialog's
+question and description; a navigation's committed description, result and page stage, with the payload keeping
+its address; the typed read's question; the page-step warning in the log. Item 3a: F4 asked within 9,000 bytes with
+Country as its chosen option and 200, every other key equal to the binding's apart from addresses and descriptions,
+the payload and the submitted command with all 200 options; F4 with options whole refused; a multiple-choice list with
+two chosen, one with none, a page dialog's list, an item's list and one among the editable fields of a send outside
+a form; an asking `select` (conservative mode) on a three-option list and on F4's Country, and a free `select`'s
+committed description, with `choosing`; still refused with no operation and no input, with the advice: 120 fields,
+a hidden value of 20,000 characters, a multiple-choice list of 250 all chosen (owner advice), a textarea of 5,000
+characters with the text next to Send (shorten advice), while F4 itself is reserved through the same entry; a held
+submission of a too-large form stays stopped, acknowledged, not resumable, writes no operation, and a read meeting it
+returns normally.
+
+**Mutations** (`.work/pkg28a-1b/mutations.py`: apply one, run the named tests, require failure, restore, require them
+green). Log: `.work/pkg28a-1b/mutations.log`. **18 mutations: all caught, all restored green.**
+
+| # | Mutation | Caught by |
+|---|---|---|
+| 3.1 | `prepare` shows full addresses (lists only) | prepared operation; native dialog |
+| 3.2 / 3.3 | `execute`'s page stage in the public form / its confirmation stage whole | prepared operation |
+| 3.4 / 3.5 | `free` returns the reply whole / writes its page stage in the public form | link and send outside a form; native dialog and navigation |
+| 3.6 | `free` commits a navigation's description whole | native dialog and navigation |
+| 3.7 | the typed question shows the full address | typed read question |
+| 3.8 | the payload gets the projected copy | prepared operation; F4 payload keeps every option |
+| 3.9 | a form's `action` isn't treated as an address | prepared operation |
+| 3a.1 | lists keep every option | F4 within 9,000; every place a list sits |
+| 3a.2 | no `choosing` | asking and free `select` |
+| 3a.3 | `chosen` holds every option | F4; every place a list sits |
+| 3a.4 / 3a.5 | the advice always the owner's / always "shorten" | still too large |
+| 3a.6 | the step entry gives no advice | still too large |
+| 3a.7 / 3a.8 / 3a.9 | a held too-large submission leaves `steps` as an error / isn't acknowledged / stays resumable | held submission |
+
+### Instruction size
+
+**2,794 / 2,800**, unchanged: 1b adds no instruction or description text and changes no definition; 30 tools,
+descriptions 5,417, as at 1a.
+
+### Left, in order
+
+1. **The rest of 1b: item 4, then item 6** (not started), each with its tests and brief-named mutations. What they
+   inherit:
+   - From 1a: a link reference for `chrome_open` and an upload field for `chrome_upload` go through
+     `Chrome.acting(tab, ref)` before classification and before any request; they give the message alone, so they
+     call `references.trim(tab)` instead of `stale_shown` and put no `now` in the result. Reference-open then
+     classifies a click on the fresh target facts (`classify` with `recognize`, the read-only and qualification
+     rules) without calling `payload` (it may take or reload the source tab) and refuses before any open, with no
+     fallback to the `url` route; the mutation "bypass classification" must fail the receiver test.
+   - From 0b: `chrome_close`'s kept entries each carry their own `untrusted_content.loss` (`loss.UNTRUSTED` in the
+     kept-entry schema); `chrome_go`, `chrome_take` and `chrome_upload` reach the bridge through `free()` and inherit
+     the envelope; extend `test_loss_errors` with the hostile label and M2/M3/M6-style mutations for each new branch.
+   - From 1b: `free()` without a payload already commits its arguments and `tab_context` in the public form and
+     returns and records the reply's addresses projected, so `chrome_open`/`chrome_go`/`chrome_take` built on it
+     inherit item 3. `chrome_tabs` and `chrome_library` write their addresses with `public_address(short=True)`
+     (brief 20's `tabs`/`downloads`/`bookmarks`/`history` are untouched until step 3). `chrome_close`'s `closed`/`kept`
+     lists use the short form too. The typed read's result keeps 0c's `description` per value.
+   - Item 6 needs `background.js`' `show` command, the all-tabs `tabs` reply and the `seen` check in `take`, with
+     Node tests.
+2. **1c** (items 5, 5a): `chrome_do`. Its asking steps go through `Chrome.act`, which now raises
+   `asking_input_too_large` with the advice: report it as a `refused` step with that code and message. A `select` by
+   label must resolve to the option's value before `payload`, so `choosing` (which matches by value) shows it; test
+   it. A held too-large submission met between two steps: `steps`' followup `{'stopped', 'code', 'reason'}` goes into
+   `untrusted_content.stopped`; brief 28's read doesn't surface `steps`' followups today.
+3. **1d**: wire the definitions. Group 15's "a form with a long list is asked once and sent" and group 16's F4 row
+   (approval at most 9,000 bytes) measure F4 in a browser; group 14's address rows check stage texts and the log.
+4. **2**: harness helpers and `HARNESS-MAP.md` (0b's nine and 0c's two rows; none from 1a or 1b).
+5. **3**: remove the replaced tools. Brief 20's read tools (`read`, `find`, `read_form`, `wait`) and lists still show
+   full addresses until then (JUDGMENT-CALL 3).
+6. **4**: full final-head validation twice, plus base, Mail, boundary and qualification.
+7. **Two fresh reviews.** The security review looks at item 3a's projection (only the description; payload and both
+   comparisons in `input` keep every option), the advice measurement on a copy, and the held too-large submission
+   stopped for good.
+
+### What the code doesn't show
+
+- No browser ran locally. F4's real approval size (CI's longer host and action, the reader's real labels) is
+  measured in a browser at 1d; the Python fixture mirrors `efficiency-fixtures.mjs` field by field.
+- The free results of brief 20's acting tools (click, fill, navigate, ...) now show the public form of
+  `page.url`; a CI row that compared that address exactly would see `…` for a token-like part. The scan above found
+  none; CI will tell.
+- `too_large()` prepares a second time on a copy only after a refusal; on F4-sized forms that is one more
+  `descriptions.described` and question build, no command to the extension.
+
+### JUDGMENT-CALLs
+
+1. **One recursive projection over address keys**, not only the brief's enumerated paths: it also covers a
+   confirmation's `frame_url`, a dialog's `effective_url`, the page the extension reports after an input and a dialog
+   answer's `expected` (the description's `input`). `action` counts only under `form`, since elsewhere it names a
+   tool. Alternative: enumerate the paths; a new address key would then leak until someone adds it.
+2. **The description's `input` is projected too** (a dialog answer's `expected` holds its frame address).
+3. **Brief 20's read tools and lists stay unprojected** until step 3 removes them: their `expected` objects are
+   compared whole with fresh target facts, so a projected `href` would make every link click stale. `free()`'s results
+   are projected for every tool.
+4. **A held submission too large to ask about** is stored as `result: 'too_large'` (a new value; nothing reads
+   `result`) and returned as `{'stopped': True, 'code': 'asking_input_too_large', 'reason': ...}`; its reason is the
+   base's fixed sentence plus Chrome's fixed advice, so it sits outside `untrusted_content`.
+5. **The advice only on `Chrome.act`**, the `chrome_do` step entry; brief 20's public click and press keep the base's
+   sentence alone until step 3.
+6. **"Typed fields" for the advice** are text-capable inputs (text, search, email, tel, url, number, password, the
+   date and time kinds), textareas and editable regions, plus a fill's own text and the text next to Send; not hidden
+   fields, lists or boxes. A long value the page prefilled in a visible field therefore counts as shortenable.
+
+### PLAN-GAPs
+
+- **`steps`' page-step warning holds no address** (only the step's label: steps carry no URL from `guard.js`), so
+  there is nothing to project; the test asserts the log holds no marker and no query.
+- **Item 3a's sizes predate item 3b**, as 0c said: measured with descriptions, F4 is 7,365 bytes, close to the
+  brief's estimate of about 7,300 made without them, and within its 9,000-byte bound.
+- **The textarea case needs the text next to Send.** A form's textarea of 5,000 characters fits by itself (about 5
+  KB); it is refused because the same text stands in `compose` too, which the question quotes (4,096 limit). The test
+  builds it that way, as the brief's size notes describe.
+- `free`'s page stage is a structured dict, not text; it is in the short form all the same.
+
+No open owner question in 1b.
+
+### Known limits found
+
+- **The public form writes no `https://`**, so a question reads `On fixture.test/...` (brief 28's address rule; an
+  `http://` address keeps its scheme). Low harm: the site and path are shown, and the payload binds the full address.
+- **The advice can say "shorten"** when the long text is a visible field the page prefilled rather than text Claude
+  filled (JUDGMENT-CALL 6). Low harm: nothing is sent either way, and the advice also says the owner can send it.
+- **`choosing` matches the step's value exactly** against the binding's (repaired) option values; a `select` by label
+  must be resolved to its value first (1c). The extension still refuses unless exactly one enabled option has the
+  value, so a mismatch can't choose an unshown option.
+
+
 ## Step 1a
 
 2026-11-19. **Done; stop here.** Code commits: `370e15aa` (item 2 and the reveal), then the test-and-record commit
