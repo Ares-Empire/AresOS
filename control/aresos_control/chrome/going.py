@@ -1,4 +1,4 @@
-"""Brief 28a, item 4: chrome_open and chrome_go, before item 8's step 1d offers them;
+"""Brief 28a, item 4: chrome_open and chrome_go (offered since item 8's step 1d);
 and item 6's chrome_take, whose explicit reload waits and reads the same way.
 
 Both use brief 20's `open` and `navigate` commands through `Chrome.free`, with

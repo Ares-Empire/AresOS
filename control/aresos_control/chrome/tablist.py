@@ -1,4 +1,4 @@
-"""Brief 28a, item 6: the smaller tools, before item 8's step 1d offers them.
+"""Brief 28a, item 6: the smaller tools, offered since item 8's step 1d.
 
 - `tabs`: every tab of every normal window (and of the popup windows) in one
   list, the extension's all-tabs reply written as text: whose a tab is (who

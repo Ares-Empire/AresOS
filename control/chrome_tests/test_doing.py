@@ -28,7 +28,7 @@ from aresos_control.chrome import bridge as bridge_module, doing, loss
 from aresos_control.chrome.bridge import Bridge
 from aresos_control.chrome.references import STALE
 from aresos_control.common import Refused, canonical, validate, visible
-from test_engine import WORK
+from test_engine import WORK, declared
 from aresos_control.chrome.definitions import DO_RESULT   # after the base's definitions, which import it
 from test_going import SESSION, Pages, arrived_page
 from test_outline_action import engine_with
@@ -194,7 +194,7 @@ class Doing(unittest.TestCase):
         self.mock.start()
         self.browser = Steps()
         self.engine = engine_with(Path(self.temp.name), self.browser)
-        self.chrome = self.engine.adapters['chrome']
+        self.chrome = declared(self.engine.adapters['chrome'])  # every result as its tool declares it (step 1d)
 
     def tearDown(self):
         self.engine.close()
@@ -202,7 +202,7 @@ class Doing(unittest.TestCase):
         self.temp.cleanup()
 
     def read(self, tab=1):
-        entry = self.chrome.call('outline', {'tab': tab})['reads'][0]
+        entry = self.chrome.call('read', {'tab': tab})['reads'][0]
         self.assertNotIn('error', entry, entry)
         return entry['untrusted_content']['outline']
 

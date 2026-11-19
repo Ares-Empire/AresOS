@@ -1,4 +1,4 @@
-"""Brief 28a, item 5: chrome_do, before item 8's step 1d offers it.
+"""Brief 28a, item 5: chrome_do, offered since item 8's step 1d.
 
 Up to 20 steps in one Claude tab: click, fill, select, check, press, scroll
 (each by the short reference a read gave), dialog and wait.

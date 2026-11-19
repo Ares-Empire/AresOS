@@ -29,7 +29,7 @@ CHILD=r'''
 import json,os,sys
 from pathlib import Path
 from unittest.mock import patch
-from test_engine import Browser
+from test_engine import Browser, old_tools
 from aresos_control.engine import Engine
 from aresos_control.chrome.adapter import view_identity
 from chrome_oracle import history
@@ -37,7 +37,7 @@ root=Path(sys.argv[1]);boundary=sys.argv[2];phase=sys.argv[3]
 receiver=root/'receiver.jsonl'
 def checkpoint(name):
     if name==boundary and receiver.exists()==(phase=='after_input'):os._exit(73)
-with patch('aresos_control.engine.Boundary'):
+with patch('aresos_control.engine.Boundary'), old_tools():
     engine=Engine(root/'state',root/'evidence')
     chrome=engine.adapters['chrome'];browser=Browser();chrome.bridge=browser;chrome.read_owner_hosts=lambda:[]
     target=browser.facts['frames'][0]['target'];target['name']=target['label']='Ordinary'
@@ -52,7 +52,7 @@ with patch('aresos_control.engine.Boundary'):
     browser.call=call;engine.store.checkpoint=checkpoint
     frame=browser.facts['frames'][0]
     reference={'session':browser.session,'tab':1,'frame':0,'document':frame['document'],'view':view_identity(browser.facts),'element':'e1'}
-    result=engine.request({'v':1,'method':'call','action':'chrome_click','arguments':{'reference':reference,'expected':dict(target)}})
+    result=engine.request({'v':1,'method':'call','action':'chrome_old_click','arguments':{'reference':reference,'expected':dict(target)}})
     print(result)
     engine.close()
 '''

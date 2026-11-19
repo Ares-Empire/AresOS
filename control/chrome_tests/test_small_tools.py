@@ -18,7 +18,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from aresos_control.chrome import going, loss, references as table, tablist
 from aresos_control.chrome.references import LIST_AGAIN, STALE
 from aresos_control.common import Refused, canonical, digest as hashed, untrusted, validate, visible
-from test_engine import WORK
+from test_engine import WORK, declared
 from aresos_control.chrome.definitions import CLOSE_RESULT   # after the base's definitions, which import it
 from test_going import DELETE, MARKER, SESSION, SITE, Pages, links, sha
 from test_outline_action import engine_with
@@ -92,7 +92,7 @@ class Small(unittest.TestCase):
         self.mock.start()
         self.browser = Tabs()
         self.engine = engine_with(Path(self.temp.name), self.browser)
-        self.chrome = self.engine.adapters['chrome']
+        self.chrome = declared(self.engine.adapters['chrome'])  # every result as its tool declares it (step 1d)
         self.chrome.read_owner_hosts = lambda: ['owner-dashboard.example']
 
     def tearDown(self):
@@ -388,7 +388,7 @@ class Small(unittest.TestCase):
 
     def test_upload_by_reference_always_asks_and_its_reload_refusal_says_to_reload_first(self):
         self.sample()
-        text = self.chrome.call('outline', {'tab': 1})['reads'][0]['untrusted_content']['outline']
+        text = self.chrome.call('read', {'tab': 1})['reads'][0]['untrusted_content']['outline']
         ref = re.search(r'button "Go" (\S+)', text).group(1)
         file = self.file()
         prepared = self.chrome.upload({'tab': 1, 'ref': ref, 'path': '/fixture/source.txt', 'file': file})
@@ -402,7 +402,7 @@ class Small(unittest.TestCase):
         exc = self.refused('upload', {'tab': 1, 'ref': ref, 'path': 'x', 'file': file}, 'stale_reference', self.chrome.upload)
         self.assertEqual((str(exc), untrusted(exc)), (STALE, {}), 'the message alone')
         # Where the first input's reload would lose work: reload first, then repeat.
-        text = self.chrome.call('outline', {'tab': 1})['reads'][0]['untrusted_content']['outline']
+        text = self.chrome.call('read', {'tab': 1})['reads'][0]['untrusted_content']['outline']
         ref = re.search(r'button "Gone" (\S+)', text).group(1)
         self.browser.needs_reload.add(1)
         self.browser.report = {'act': 'first_input', 'fields': [{'description': 'field "%s"' % HOSTILE, 'by': 'owner'}],
@@ -451,10 +451,48 @@ class Small(unittest.TestCase):
                 raise Refused('stale_reference', 'tab is outside the Claude group')
             return original(name, **args)
         self.browser.call = outside
-        reads = self.chrome.call('outline', {'tabs': [1, 412]})['reads']
+        reads = self.chrome.call('read', {'tabs': [1, 412]})['reads']
         self.assertNotIn('error', reads[0])
         self.assertEqual(reads[1]['error'], {'code': 'take_first', 'message': going.TAKE_FIRST})
 
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class ProxyUpload(unittest.TestCase):
+    """Brief 28a, item 6: the proxy's file branch for chrome_upload reads `path` as before; behind the CI-only
+    switch chrome_old_upload goes the same way (step 1d)."""
+    BLOB = {'sha256': 'a' * 64, 'size': 4, 'name': 'note.txt', 'real_path': '/home/owner/Downloads/note.txt'}
+
+    class Client:
+        def __init__(self, socket):
+            self.sent = []
+        def upload(self, app, file_ref, data):
+            self.sent.append(('upload', app, data))
+            return {'ok': True, 'data': {'file': ProxyUpload.BLOB}}
+        def call(self, name, arguments):
+            self.sent.append(('call', name, arguments))
+            return {'ok': True, 'data': {}, 'pending': {}}
+
+    class Files:
+        def read(self, path):
+            return b'text', {'path': path}
+
+    def upload(self, verb, arguments):
+        from aresos_control.proxy import Proxy
+        with patch('aresos_control.proxy.Client', self.Client):
+            proxy = Proxy('chrome', {'act_socket': 'unused', 'admin_socket': 'unused'})
+        proxy.files = self.Files()
+        self.assertTrue(proxy.call(verb, arguments)['ok'])
+        return proxy.client.sent
+
+    def test_the_new_upload_and_the_old_one_read_the_path_on_the_callers_side(self):
+        from test_engine import old_tools
+        path = '/home/owner/Downloads/note.txt'
+        sent = self.upload('upload', {'tab': 1, 'ref': 'kqtvm5', 'path': path})
+        self.assertEqual(sent, [('upload', 'chrome', b'text'), ('call', 'chrome_upload', {'tab': 1, 'ref': 'kqtvm5', 'path': path, 'file': self.BLOB})])
+        target = {'reference': {'session': 's', 'tab': 1, 'frame': 0, 'document': 'd', 'view': 'v', 'element': 'e1'}, 'expected': {}}
+        with old_tools():
+            sent = self.upload('old_upload', {**target, 'path': path})
+        self.assertEqual(sent, [('upload', 'chrome', b'text'), ('call', 'chrome_old_upload', {**target, 'path': path, 'file': self.BLOB})])

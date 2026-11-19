@@ -1,11 +1,12 @@
-"""Brief 28, item 6: chrome_outline, the new read behind its test-only switch.
+"""Brief 28's read, chrome_outline behind its test-only switch until brief 28a's step 1d made it chrome_read.
 
 `Switch` starts Python processes of its own, because the catalogue is built
-when `aresos_control.definitions` is imported: without the switch the action
-exists nowhere (the catalogue, the tool list, the proxy, the command, the
-engine, every generated file); with it, it reaches the adapter through the
-engine. `Adapter` calls the adapter directly, which works whatever the switch
-says, with a fake bridge that answers with the node lists of view_fixtures.py.
+when `aresos_control.definitions` is imported. Since 28a's step 1d the switch
+offers brief 20's replaced tools as chrome_old_<verb>: without it they exist
+nowhere (the catalogue, the tool list, the proxy, the command, the engine,
+every generated file); with it, they reach the adapter through the engine.
+chrome_read is public either way. `Adapter` calls the adapter directly, with a
+fake bridge that answers with the node lists of view_fixtures.py.
 """
 import contextlib
 import copy
@@ -26,7 +27,7 @@ from aresos_control.common import RESULT_LIMIT, Refused, canonical, validate
 from aresos_control.chrome.adapter import PENDING_DRIFT
 from aresos_control.chrome.references import STALE, Stale
 from aresos_control.chrome.bridge import TimeLeft
-from aresos_control.chrome.definitions import OUTLINE, OUTLINE_SWITCH
+from aresos_control.chrome.definitions import OLD_VERBS, OUTLINE, OUTLINE_SWITCH
 from aresos_control.engine import Engine
 from test_engine import WORK, Browser
 from test_policy import entry
@@ -135,11 +136,13 @@ config = {'act_socket': 'unused', 'admin_socket': 'unused'}
 from aresos_control.chrome import adapter as chrome_adapter
 out = {'runtime': str(chrome_adapter.RUNTIME),
        'shipped': json.loads((Path(chrome_adapter.RUNTIME) / 'chrome' / 'qualification.json').read_text()),
-       'catalogue': 'chrome_outline' in BY_NAME, 'tools': [tool['name'] for tool in tools_for('chrome')].count('outline'),
-       'proxy': code(lambda: Proxy('chrome', config).call('outline', {'tab': 1}))}
+       'old': sorted(name[len('chrome_old_'):] for name in BY_NAME if name.startswith('chrome_old_')),
+       'outline': 'chrome_outline' in BY_NAME,
+       'tools': [tool['name'] for tool in tools_for('chrome') if tool['name'].startswith('old_')],
+       'proxy': code(lambda: Proxy('chrome', config).call('old_tabs', {}))}
 printed = io.StringIO()
 with contextlib.redirect_stdout(printed):
-    out['command_exit'] = code(lambda: cli.main(config, ['chrome', 'outline', '--input', '{"tab": 1}']))
+    out['command_exit'] = code(lambda: cli.main(config, ['chrome', 'old_tabs', '--input', '{}']))
 out['command'] = code(lambda: json.loads(printed.getvalue()))
 out['sent'] = Service.sent
 sys.path.insert(0, str(here.ROOT / 'control'))
@@ -157,7 +160,9 @@ with tempfile.TemporaryDirectory(dir=here.WORK) as temp:
         return {**result, 'padding': 'x' * 30000} if app == 'chrome' else result
     engine.pending = pending
     try:
-        result = engine.request({'v': 1, 'method': 'call', 'action': 'chrome_outline',
+        old = engine.request({'v': 1, 'method': 'call', 'action': 'chrome_old_tabs', 'arguments': {}})
+        out['old_engine'] = {'ok': old['ok'], 'error': old.get('error')}
+        result = engine.request({'v': 1, 'method': 'call', 'action': 'chrome_read',
                                  'arguments': {'tab': 1, 'full': True, 'max': 40000}})
         out['engine'] = {'ok': result['ok'], 'error': result.get('error'), 'bounds': 'bounds' in result,
                          'notice': result.get('pending', {}).get('chrome_version_notice') is not None,
@@ -190,26 +195,31 @@ class Switch(unittest.TestCase):
         self.assertEqual(Path(found['runtime']).parent, WORK / 'fixture-runtime')
         self.assertEqual(found['shipped'], {'format': 1, 'entries': []})
 
-    def test_without_the_switch_the_action_exists_nowhere(self):
+    def test_without_the_switch_brief_20s_tools_exist_nowhere(self):
         found = probe(False)
         self.assert_fixture_runtime(found)
-        self.assertEqual((found['catalogue'], found['tools']), (False, 0))
+        self.assertEqual((found['old'], found['outline'], found['tools']), ([], False, []))
         self.assertEqual((found['proxy'], found['command'], found['command_exit']), ('permission_denied', 'permission_denied', 1))
         self.assertEqual(found['sent'], [])  # nothing reached the service's socket
         self.assertEqual(found['generate'], 'generated')
-        # The engine refuses it as an action it doesn't know, before any adapter.
-        self.assertFalse(found['engine']['ok'])
-        self.assertEqual(found['engine']['error'], {'code': 'invalid_input', 'message': 'Unknown action; inspect the tool list.'})
+        # The engine refuses them as actions it doesn't know, before any adapter.
+        self.assertEqual(found['old_engine'], {'ok': False, 'error': {'code': 'invalid_input', 'message': 'Unknown action; inspect the tool list.'}})
+        self.assert_measured(found['engine'])
 
-    def test_with_the_switch_it_reaches_the_adapter_through_the_engine(self):
+    def test_with_the_switch_brief_20s_tools_reach_the_adapter_through_the_engine(self):
         found = probe(True)
         self.assert_fixture_runtime(found)
-        self.assertEqual((found['catalogue'], found['tools']), (True, 1))
-        # The MCP proxy and the aresos command know it and send it on to the service.
-        self.assertEqual((found['proxy'], found['command'], found['command_exit']), ('sent chrome_outline', 'sent chrome_outline', 0))
-        self.assertEqual(found['sent'], ['chrome_outline', 'chrome_outline'])
+        self.assertEqual((found['old'], found['outline']), (sorted(OLD_VERBS), False))
+        self.assertEqual(found['tools'], ['old_' + verb for verb in OLD_VERBS])
+        # The MCP proxy and the aresos command know them and send them on to the service.
+        self.assertEqual((found['proxy'], found['command'], found['command_exit']), ('sent chrome_old_tabs', 'sent chrome_old_tabs', 0))
+        self.assertEqual(found['sent'], ['chrome_old_tabs', 'chrome_old_tabs'])
         self.assertTrue(found['generate'].startswith('exit: Refused: unset ' + OUTLINE_SWITCH), found['generate'])
-        result = found['engine']
+        self.assertTrue(found['old_engine']['ok'], found['old_engine'])
+        self.assert_measured(found['engine'])
+
+    def assert_measured(self, result):
+        """chrome_read through the engine, the same with or without the switch."""
         self.assertTrue(result['ok'], result)
         # Measured as sent: the reads, both version notices and a pending part of 30,000 bytes. The page
         # shrank to fit, nothing was shortened afterwards, and the measure is exactly what was sent.
@@ -229,11 +239,13 @@ class Switch(unittest.TestCase):
     def test_no_generated_file_names_the_action(self):
         tools = json.loads((ROOT / 'control/generated/chrome-tools.json').read_text())
         self.assertNotIn('outline', [tool['name'] for tool in tools])
+        self.assertEqual([tool['name'] for tool in tools if tool['name'].startswith('old_')], [])
         files = [*sorted((ROOT / 'control/generated').iterdir()), *sorted((ROOT / 'control/settings').iterdir()),
                  ROOT / 'docs/control/TOOLS.md']
         for path in files:
             text = path.read_text()
-            for word in ('chrome_outline', 'chrome outline', 'mcp__chrome__outline', OUTLINE_SWITCH):
+            for word in ('chrome_outline', 'chrome outline', 'mcp__chrome__outline', 'chrome_old_', 'chrome old_',
+                         'mcp__chrome__old_', OUTLINE_SWITCH):
                 self.assertNotIn(word, text, path)
 
     def test_the_packaged_entries_cannot_pass_it_on(self):
@@ -285,7 +297,7 @@ class Adapter(unittest.TestCase):
         self.temp.cleanup()
 
     def read(self, **args):
-        return self.chrome.call('outline', args)
+        return self.chrome.call('read', args)
 
     def outline(self, **args):
         reads = self.read(**args)['reads']
@@ -347,8 +359,10 @@ class Adapter(unittest.TestCase):
             self.assertEqual(result['error'], {'code': 'stale_reference', 'message': STALE})
 
     def test_tool_close_and_release_forget_entries_without_an_event(self):
-        for verb, key in (('close_tab', 'closed'), ('release_tab', 'released')):
-            with self.subTest(verb=verb):
+        # Brief 28a, item 0: on the renamed tools too (chrome_close, chrome_release), and on brief 20's until step 3.
+        for tool, verb, key, given in (('old_close_tab', 'close_tab', 'closed', {'tab': 1}), ('old_release_tab', 'release_tab', 'released', {'tab': 1}),
+                                       ('close', 'close_tab', 'closed', {'tabs': [1]}), ('release', 'release_tab', 'released', {'tab': 1})):
+            with self.subTest(tool=tool):
                 self.outline(tab=1)
                 self.browser.outlines[2] = fixture(f2, tab=2)
                 self.outline(tab=2)
@@ -360,11 +374,14 @@ class Adapter(unittest.TestCase):
                 def answer(name, **args):
                     if name == 'tab_context':
                         return {'tab': args['tab']}
+                    if name == 'tabs' and args.get('all') is True:
+                        return {'session': self.browser.session,
+                                'tabs': [{'tab': 1, 'window': 1, 'url': 'https://fixture.test/', 'whose': 'claude'}]}
                     if name == verb:
                         return {key: args['tab']}
                     return original(name, **args)
                 with patch.object(self.browser, 'call', answer):
-                    self.chrome.call(verb, {'tab': 1})
+                    self.chrome.call(tool, given)
                 self.assert_forgotten(1, old, counter)
                 for ref in kept:
                     self.assertEqual(table.resolve(ref, 2).tab, 2)
@@ -396,7 +413,7 @@ class Adapter(unittest.TestCase):
                 raise Refused('refused', 'Unsaved typing; nothing closed.')
             return original(name, **args)
         with patch.object(self.browser, 'call', answer), self.assertRaises(Refused):
-            self.chrome.call('close_tab', {'tab': 1})
+            self.chrome.call('old_close_tab', {'tab': 1})
         self.assertTrue(all(ref in table._references for ref in old))
 
     def test_references_live_as_long_as_the_adapter(self):

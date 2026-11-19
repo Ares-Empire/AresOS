@@ -137,8 +137,11 @@ ACTIONS = [
 ]
 from .mail.definitions import actions as mail_actions
 ACTIONS += mail_actions(Action)
-from .chrome.definitions import actions as chrome_actions
+from .chrome.definitions import actions as chrome_actions, old_actions as chrome_old_actions, outline_switch
 ACTIONS += chrome_actions(Action)
+if outline_switch():
+    # Brief 28a, item 8 step 1d: brief 20's replaced tools, for CI only, until step 3.
+    ACTIONS += chrome_old_actions(Action)
 BY_NAME = {a.name: a for a in ACTIONS}
 APPS = {a.app for a in ACTIONS}
 

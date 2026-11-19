@@ -32,6 +32,7 @@ class Service(unittest.TestCase):
         self.temporary = tempfile.TemporaryDirectory(dir=WORK)
         self.root = Path(self.temporary.name)
         self.boundary = patch('aresos_control.engine.Boundary'); self.boundary.start()
+        self.old = test_engine.old_tools(); self.old.start()
         self.engine = Engine(self.root/'state', self.root/'evidence')
         self.chrome = self.engine.adapters['chrome']
         self.peer = test_engine.Browser()
@@ -41,13 +42,13 @@ class Service(unittest.TestCase):
         self.set_record(entry(build=self.build))
 
     def tearDown(self):
-        self.engine.close(); self.boundary.stop(); self.temporary.cleanup()
+        self.engine.close(); self.old.stop(); self.boundary.stop(); self.temporary.cleanup()
 
     def set_record(self, *entries):
         self.engine.store.write({'chrome:qualification': {'format': 1, 'entries': list(entries)}}, 'chrome_fixture', 'Synthetic qualification state')
 
     def call(self, verb, args=None, admin=False):
-        return self.engine.request({'v':1, 'method':'call', 'action':'chrome_'+verb, 'arguments':args or {}}, admin)
+        return self.engine.request({'v':1, 'method':'call', 'action':'chrome_'+test_engine.old(verb), 'arguments':args or {}}, admin)
 
     def target(self):
         frame = self.peer.facts['frames'][0]
@@ -193,7 +194,7 @@ class Service(unittest.TestCase):
         self.peer.version = '999.0.1.0'
         for action in [action for action in ACTIONS if action.app == 'chrome']:
             with self.subTest(action=action.name):
-                result = self.call(action.verb)
+                result = self.engine.request({'v': 1, 'method': 'call', 'action': action.name, 'arguments': {}})
                 self.assertIn('not qualified', result['pending']['chrome_version_notice'])
 
     def test_runtime_connection_refresh_for_uncovered_version_once_and_daily_caller(self):

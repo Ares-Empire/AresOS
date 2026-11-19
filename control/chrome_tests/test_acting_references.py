@@ -103,7 +103,7 @@ class Acting(unittest.TestCase):
         self.temp.cleanup()
 
     def read(self, tab=1, **args):
-        entry = self.chrome.call('outline', {'tab': tab, **args})['reads'][0]
+        entry = self.chrome.call('read', {'tab': tab, **args})['reads'][0]
         self.assertNotIn('error', entry, entry)
         return entry['untrusted_content']['outline']
 
@@ -242,7 +242,7 @@ class Acting(unittest.TestCase):
         fold = self.ref(text, '… 7 more')
         item = next(item for item in self.nodes() if item['id'] == 15)     # the fold's first hidden child
         item.update(role='button', name='Row 5 now', text=['Row 5 now'], fingerprint=digest(30))
-        entry = self.chrome.call('outline', {'tab': 1, 'ref': fold})['reads'][0]
+        entry = self.chrome.call('read', {'tab': 1, 'ref': fold})['reads'][0]
         self.assertEqual(entry['error']['code'], 'stale_reference')
         line = entry['untrusted_content']['line']
         shown = re.search(r'([b-df-hj-np-tv-z]{5}\d+)$', line).group(1)
@@ -253,7 +253,7 @@ class Acting(unittest.TestCase):
 
     def test_a_reference_that_was_issued_but_never_shown_is_checked_against_nothing(self):
         # A page cut before it: Claude may guess the number, but has seen no fingerprint for it.
-        text = self.chrome.call('outline', {'tab': 1, 'max': 60})['reads'][0]['untrusted_content']['outline']
+        text = self.chrome.call('read', {'tab': 1, 'max': 60})['reads'][0]['untrusted_content']['outline']
         unseen = [reference for reference, entry in self.chrome.references._references.items()
                   if entry.line is None and type(entry.target) is int]
         self.assertTrue(unseen, text)
@@ -318,9 +318,9 @@ class Acting(unittest.TestCase):
         self.read()
         reference = {'session': SESSION, 'tab': 1, 'frame': 0, 'document': self.browser.outlines[1]['frames'][0]['document'], 'element': 'e2'}
         facts = self.browser.call('facts', reference=reference)
-        self.chrome.call('click', {'reference': reference, 'expected': facts['frames'][0]['target']})
+        self.chrome.call('old_click', {'reference': reference, 'expected': facts['frames'][0]['target']})
         with self.assertRaises(Refused):
-            self.chrome.call('click', {'reference': reference, 'expected': {**facts['frames'][0]['target'], 'name': 'Other'}})
+            self.chrome.call('old_click', {'reference': reference, 'expected': {**facts['frames'][0]['target'], 'name': 'Other'}})
         self.assertEqual(len(self.browser.dispatched), 1)
 
 

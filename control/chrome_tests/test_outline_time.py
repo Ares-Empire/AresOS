@@ -12,7 +12,6 @@ real transports in CI (control/chrome/ci/outline-time.mjs).
 import contextlib
 import json
 import math
-import os
 from pathlib import Path
 import re
 import select
@@ -33,11 +32,10 @@ from aresos_control.chrome import bridge as bridge_module
 from aresos_control.chrome import deadline as deadline_module
 from aresos_control.chrome.bridge import GRACE, Bridge, TimeLeft
 from aresos_control.chrome.deadline import CALL, COMMANDS, FIRST_LOOK, LAST_LOOKS, NOT_READ, UNTIL
-from aresos_control.chrome.definitions import OUTLINE_SWITCH
 from aresos_control.daemon import Daemon
-from aresos_control.definitions import BY_NAME, Action
+from aresos_control.definitions import BY_NAME
 from aresos_control.protocol import READ_TIMEOUT
-from test_engine import WORK
+from test_engine import WORK, old_tools
 from test_outline_action import Outlines, engine_with, small
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -327,19 +325,12 @@ class Timed(Outlines):
         return [row for row in self.sent if row[0] == name]
 
 
-def outline_action():
-    """chrome_outline as the switch registers it, for a test process that runs without the switch."""
-    from aresos_control.chrome.definitions import actions
-    with patch.dict(os.environ, {OUTLINE_SWITCH: '1'}):
-        return next(action for action in actions(Action) if action.name == 'chrome_outline')
-
-
 class Read(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(dir=WORK)
         self.clock = Clock()
         self.patches = [patch('aresos_control.engine.Boundary'), patch.object(adapter_module, 'time', self.clock),
-                        patch.object(deadline_module, 'time', self.clock)]
+                        patch.object(deadline_module, 'time', self.clock), old_tools()]
         for item in self.patches:
             item.start()
         self.browser = Timed(self.clock)
@@ -358,7 +349,7 @@ class Read(unittest.TestCase):
         self.temp.cleanup()
 
     def read(self, **args):
-        return self.chrome.call('outline', args)
+        return self.chrome.call('read', args)
 
     def request(self, action, **args):
         return self.engine.request({'v': 1, 'method': 'call', 'action': action, 'arguments': args})
@@ -377,7 +368,7 @@ class Read(unittest.TestCase):
         target = {'reference': {'session': self.browser.session, 'tab': 1, 'frame': 0, 'document': frame['document'],
                                 'view': adapter_module.view_identity(self.browser.facts), 'element': 'e1'},
                   'expected': dict(frame['target'])}
-        result = self.request('chrome_click', **target)
+        result = self.request('chrome_old_click', **target)
         self.assertTrue(result['ok'], result)
         self.assertTrue(all(row[2] is None for row in self.browser.sent))
         self.browser.sent.clear()
@@ -464,13 +455,14 @@ class Read(unittest.TestCase):
     def test_brief_20s_read_carries_no_time_with_an_approval_outstanding(self):
         self.prepare()
         self.browser.costs['validity'] = 1.5
-        result = self.request('chrome_read', tab=1)
+        result = self.request('chrome_old_read', tab=1)
         self.assertTrue(result['ok'], result)
         self.assertTrue(self.browser.named('validity'))
         self.assertTrue(all(row[2] is None for row in self.browser.sent), self.browser.sent)
         self.assertEqual([row['validity'] for row in result['pending']['items']], ['current'])
 
-    def test_without_the_switch_no_request_opens_the_clock(self):
+    def test_brief_28s_internal_name_is_gone_and_opens_no_clock(self):
+        # Brief 28a, item 8 step 1d: the read is chrome_read; chrome_outline exists nowhere, switch or not.
         self.assertNotIn('chrome_outline', BY_NAME)
         self.prepare()
         result = self.request('chrome_outline', tab=1)
@@ -480,23 +472,12 @@ class Read(unittest.TestCase):
 
 
 class Call(Read):
-    """The whole call through engine.request, with chrome_outline registered as the switch does."""
-
-    def setUp(self):
-        super().setUp()
-        self.registered = patch.dict(BY_NAME, {'chrome_outline': outline_action()})
-        self.registered.start()
-
-    def tearDown(self):
-        self.registered.stop()
-        super().tearDown()
-
-    test_without_the_switch_no_request_opens_the_clock = None
+    """The whole call through engine.request, as chrome_read."""
 
     def test_an_approval_whose_check_never_answers_is_unchecked_and_the_call_ends_in_time(self):
         operation = self.prepare()
         self.browser.costs['validity'] = NEVER
-        result = self.request('chrome_outline', tab=1)
+        result = self.request('chrome_read', tab=1)
         self.assertTrue(result['ok'], result)
         self.assertNotIn('error', result['data']['reads'][0])
         row = next(item for item in result['pending']['items'] if item['operation_id'] == operation)
@@ -510,7 +491,7 @@ class Call(Read):
         self.assertIsNone(self.chrome.deadline)
         # The next call checks it again, from its own start.
         self.browser.costs['validity'] = .01
-        result = self.request('chrome_outline', tab=1)
+        result = self.request('chrome_read', tab=1)
         row = next(item for item in result['pending']['items'] if item['operation_id'] == operation)
         self.assertEqual(row['validity'], 'current')
 
@@ -519,7 +500,7 @@ class Call(Read):
         # It answers in the first look (which, as ordered_page walks the rows twice, asks twice),
         # and never once the read has begun.
         self.browser.costs['validity'] = lambda now: NEVER if self.chrome.deadline.reading else .01
-        result = self.request('chrome_outline', tab=1)
+        result = self.request('chrome_read', tab=1)
         self.assertTrue(result['ok'], result)
         row = next(item for item in result['pending']['items'] if item['operation_id'] == operation)
         self.assertEqual(row['validity'], 'unchecked')
@@ -537,13 +518,13 @@ class Call(Read):
     def test_a_refusal_in_a_look_stays_a_refusal(self):
         operation = self.prepare()
         self.browser.facts['frames'][0]['document'] = 'another-document'
-        result = self.request('chrome_outline', tab=1)
+        result = self.request('chrome_read', tab=1)
         row = next(item for item in result['pending']['items'] if item['operation_id'] == operation)
         self.assertEqual((row['validity'], row['refusal_code']), ('refused', 'stale_approval'))
 
     def test_an_invalid_input_closes_the_clock_too(self):
         self.prepare()
-        result = self.request('chrome_outline', tab=1, tabs=[1, 2])
+        result = self.request('chrome_read', tab=1, tabs=[1, 2])
         self.assertEqual(result['error']['code'], 'invalid_input')
         self.assertIsNone(self.chrome.deadline)
         self.assertTrue(all(left is not None and left <= FIRST_LOOK for left in self.lefts('validity')))
@@ -552,7 +533,7 @@ class Call(Read):
         for tab in range(1, 6):
             self.browser.costs[('outline', tab)] = 1.0
         self.browser.costs[('outline', 3)] = NEVER
-        result = self.request('chrome_outline', tabs=[1, 2, 3, 4, 5])
+        result = self.request('chrome_read', tabs=[1, 2, 3, 4, 5])
         self.assertTrue(result['ok'], result)
         self.assertEqual([read.get('error', {}).get('code') for read in result['data']['reads']], [None, None, 'not_read', None, None])
         self.assertLessEqual(self.seconds(), COMMANDS)

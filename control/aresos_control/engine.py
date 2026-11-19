@@ -748,7 +748,7 @@ class Engine:
         previous_request = getattr(self.store, 'in_request', False)
         self.store.in_request = True
         try:
-            # Brief 28, item 4: chrome_outline has one deadline, from before the
+            # Brief 28, item 4: chrome_read has one deadline, from before the
             # first look at pending to the response; no other request has one.
             with self.adapters['chrome'].call_time(request):
                 self.store.observations = Observations()

@@ -26,6 +26,7 @@ from . import view as outline_view
 from .bridge import Bridge
 from .committed import Projection
 from .deadline import COMMANDS, NOT_READ, UNCHECKED, UNTIL, Deadline
+from .definitions import OLD
 from .exclusions import owner_hosts
 from .policy import allowed_url, classify, HOSTS, hostname, canonical_key, key_input, explicit_effect
 from .qualification import Qualification, switches
@@ -52,7 +53,7 @@ TAB_ERRORS = frozenset(('refused', 'stale_reference', 'permission_denied', 'owne
 
 
 def outline_query(args):
-    """The cross-field rules of chrome_outline's input, which the schema subset can't say."""
+    """The cross-field rules of chrome_read's input, which the schema subset can't say."""
     if ('tab' in args) == ('tabs' in args):
         raise Refused('invalid_input', 'Give either tab or tabs.')
     if 'tabs' in args:
@@ -143,7 +144,7 @@ class Chrome:
         self.bridge = Bridge()
         self.bridge.on_event = self.event
         self._references = None
-        # Brief 28, item 4: the clock of the chrome_outline call in progress, if any (call_time).
+        # Brief 28, item 4: the clock of the chrome_read call in progress, if any (call_time).
         self.deadline = None
         self.trusted_context = False
         self.refresh_qualification = True
@@ -179,15 +180,15 @@ class Chrome:
 
     @contextmanager
     def call_time(self, request=None):
-        """Brief 28, item 4: the one deadline of a chrome_outline call.
+        """Brief 28, item 4: the one deadline of a chrome_read call (brief 28's chrome_outline until 28a's step 1d).
 
-        `engine.request` opens it for a chrome_outline request before its first
+        `engine.request` opens it for a chrome_read request before its first
         look at pending and closes it when the response is built; `outline`
         opens it too, which does nothing inside the engine's and starts the
         clock for a direct call. Every other request has none.
         """
         outline = request is None or (isinstance(request, dict) and request.get('method') == 'call' and
-                                      request.get('action') == 'chrome_outline' and 'chrome_outline' in BY_NAME)
+                                      request.get('action') == 'chrome_read')
         opening = outline and self.deadline is None
         if opening:
             self.deadline = Deadline()
@@ -318,7 +319,7 @@ class Chrome:
     def pending_state(self, operation, projection=False):
         payload = operation.get('payload', {})
         state = payload.get('binding', {})
-        # Brief 28, item 4: inside a chrome_outline call a check gets the time of
+        # Brief 28, item 4: inside a chrome_read call a check gets the time of
         # its look at pending; one that runs out of it is unchecked, never refused,
         # and isn't asked again in the same call.
         deadline = self.deadline
@@ -462,9 +463,9 @@ class Chrome:
         return exc
 
     def act(self, verb, args):
-        """Brief 28a, item 2, before item 8's step 1d offers it: one input step named by `tab` and `ref`.
+        """Brief 28a, item 2: one input step named by `tab` and `ref`, as chrome_do runs it.
 
-        Not in the public catalogue. The payload, the classification, the
+        Not a tool of its own. The payload, the classification, the
         question and the dispatch are brief 20's; after a free input the
         fingerprint moves to what the reader observed of the element acted on.
         """
@@ -485,17 +486,17 @@ class Chrome:
         return result
 
     def going(self, verb, args):
-        """Brief 28a, item 4, before item 8's step 1d offers it: chrome_open (`open`) or chrome_go (`go`).
+        """Brief 28a, item 4: chrome_open (`open`) or chrome_go (`go`).
 
-        Not in the public catalogue. Brief 20's open and navigate run through
+        Brief 20's open and navigate run through
         `free`; the call then waits until the page loaded and returns its outline.
         """
         return going.Going(self, verb, args).run()
 
     def doing(self, args):
-        """Brief 28a, item 5, before item 8's step 1d offers it: chrome_do, up to 20 steps in one tab.
+        """Brief 28a, item 5: chrome_do, up to 20 steps in one tab.
 
-        Not in the public catalogue. Each input step is brief 20's path by short
+        Each input step is brief 20's path by short
         reference (`payload`, then `free` or `engine.reserve`), checked first and
         again right before it runs; the result says what each step did, what
         changed and what didn't run.
@@ -507,7 +508,7 @@ class Chrome:
         return tablist.seen_entry(self, seen, tab)
 
     def small(self, verb, args):
-        """Brief 28a, item 6, before item 8's step 1d offers them: chrome_tabs (`tabs`), chrome_show
+        """Brief 28a, item 6: chrome_tabs (`tabs`), chrome_show
         (`show`), chrome_close (`close`), chrome_take (`take`) and chrome_library (`library`).
         chrome_release is brief 20's release_tab unchanged."""
         if verb == 'take':
@@ -515,7 +516,7 @@ class Chrome:
         return {'tabs': tablist.tabs, 'show': tablist.show, 'close': tablist.close, 'library': tablist.library}[verb](self, args)
 
     def upload(self, args):
-        """Brief 28a, item 6: chrome_upload by short reference, before step 1d offers it. It always asks.
+        """Brief 28a, item 6: chrome_upload by short reference. It always asks.
 
         A stale reference gives the message alone. Where the first input's reload
         would lose unsaved work, the refusal says to reload first: there is no
@@ -593,7 +594,7 @@ class Chrome:
                 'view':token,'characters':len(tree),'offset':offset,'cursor':cursor,'version_notice':mode['notice'],**({'condition_met':condition_met} if verb=='wait' else {})}
 
     def outline(self, args):
-        """Brief 28's read, reachable only as chrome_outline behind the test-only switch (item 6).
+        """Brief 28's read, offered as chrome_read since brief 28a's step 1d (item 1).
 
         Each tab goes through the checks of `read` above and then the view
         module's order: View, render, Reading, fit. Every command it sends
@@ -978,7 +979,7 @@ class Chrome:
                 raise NothingLeft(str(exc)) from exc
             stage('checked','The approved field list matched immediately before the one-call read.')
             # Each value comes back under the description the owner approved (item 3b).
-            self.typed_result=descriptions.read_values(values,payload['binding'])
+            self.typed_result=(values,payload['binding'])
             return 'done','Approved fields read once; ordinary reads remain filled/empty.'
         self.check_readonly(payload)
         command = self.command(payload, operation['id'], approved=True)
@@ -1324,6 +1325,13 @@ class Chrome:
         return self.allow_id(operation), {'adapter':adapter,'kind_hash':adapter['kind_hash'],'revoked':False}, operation
 
     def call(self, verb, args):
+        """Brief 28a, item 7: the new tool list, each to the private entry steps 1a to 1c built.
+
+        Brief 20's replaced tools reach `old_call` as chrome_old_<verb>, which
+        only a process started with the test-only switch offers (item 8, 1d).
+        """
+        if verb.startswith(OLD):
+            return self.old_call(verb[len(OLD):], args)
         if verb=='read_typed_fields':
             require_question(args)
             # Values belong only to this response, never the replayable operation.
@@ -1331,7 +1339,12 @@ class Chrome:
             try:
                 result=self.engine.submit(BY_NAME['chrome_read_typed_fields'],args)
                 if self.typed_result is not None and result.get('operation',{}).get('state')=='done':
-                    result['untrusted_content']={'typed_fields':visible(self.typed_result)}
+                    # Item 6: each value named by its description, label and short reference; all of it page text.
+                    values,state=self.typed_result
+                    self.references.connect(self.bridge.session)
+                    named=descriptions.named(values,state,self.references,state['tab'])
+                    result['untrusted_content']={'typed_fields':[{**field,'label':visible(field['label']),
+                        'description':visible(field['description'])} for field in named]}
                 return result
             finally:self.typed_result=None
         if verb == 'sites': return self.sites(args)
@@ -1351,8 +1364,20 @@ class Chrome:
         if verb == 'notices':
             self.reconcile_open_checks()
             return self.notice_page(args)
+        if verb == 'read': return self.outline(args)
+        if verb in {'open', 'go'}: return self.going(verb, args)
+        if verb == 'do': return self.doing(args)
+        if verb in {'tabs', 'show', 'close', 'take', 'library'}: return self.small(verb, args)
+        if verb == 'release':
+            # Brief 20's release_tab, unchanged: ending control drops the tab's references (item 0).
+            self.mode(acting=True)
+            return self.free('release_tab', tab=args['tab'])
+        if verb == 'upload': return self.upload(args)
+        raise Refused('invalid_input', 'Unknown action; inspect the tool list.')
+
+    def old_call(self, verb, args):
+        """Brief 20's replaced tools as they were, reached only as chrome_old_<verb> until item 8's step 3."""
         if verb in {'read','read_form','find','wait'}: return self.read(verb,args)
-        if verb == 'outline': return self.outline(args)
         if verb in {'tabs','downloads','bookmarks','history'}:
             self.mode()
             reply = self.bridge.call(verb,**args)
@@ -1367,7 +1392,7 @@ class Chrome:
                     frame=next(frame for frame in current['frames'] if frame['frame']==field['reference']['frame'])
                     expected={**field['expected'],'box':frame['target']['box'],'onscreen':frame['target']['onscreen']}
                     fresh={**field,'reference':{**field['reference'],'view':view_identity(current)},'expected':expected}
-                    result=self.call('fill',fresh);completed.append(result)
+                    result=self.old_call('fill',fresh);completed.append(result)
                     if result.get('approval') or result.get('followups'):break
                 except Refused as exc:
                     stopped={'state':'partial' if completed else 'refused','completed':completed,'next_field':index,'reason':str(exc)}

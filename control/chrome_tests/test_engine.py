@@ -9,7 +9,9 @@ from unittest.mock import patch
 
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 from aresos_control.engine import Engine
+from aresos_control.definitions import Action, BY_NAME
 from aresos_control.chrome.adapter import view_identity
+from aresos_control.chrome.definitions import OLD, OLD_VERBS, old_actions
 from aresos_control.chrome.policy import HOSTS
 from test_policy import entry
 import qualification_fixture
@@ -19,6 +21,50 @@ WORK=ROOT/'.work/20-chrome'; WORK.mkdir(parents=True,exist_ok=True)
 # The held records below are the fixtures' own, so every Chrome these tests
 # start trusts the fixture baseline, never what the shipped copy holds (#79).
 qualification_fixture.install(WORK/'fixture-runtime')
+
+
+# Brief 28a, item 8 step 1d: brief 20's replaced tools are callable as
+# chrome_old_<verb> only behind the CI-only switch, which a test process
+# doesn't set. The tests of brief 20's paths reach them the same way, with the
+# switch's catalogue patched in, until step 3 removes them.
+OLD_TOOLS={action.name:action for action in old_actions(Action)}
+
+
+def old_tools():
+    """Brief 20's replaced tools in the engine's catalogue, as the test-only switch offers them."""
+    return patch.dict(BY_NAME,OLD_TOOLS)
+
+
+def old(verb):
+    """A brief 20 verb as the service names it now: old_<verb> for a replaced tool, the rest unchanged."""
+    return OLD+verb if verb in OLD_VERBS else verb
+
+
+def tool(name):
+    """A brief 20 tool's name as the service names it now: chrome_old_<verb> for a replaced tool."""
+    return 'chrome_'+old(name.removeprefix('chrome_')) if name.startswith('chrome_') else name
+
+
+def declared(chrome):
+    """Brief 28a, step 1d: every result the new tools' entries give validates against its tool's declared result.
+
+    Wraps this adapter's entries (`going`, `small`, `doing`, `upload`); a call
+    that returns also had an input the public schema takes.
+    """
+    from aresos_control.common import validate
+    def wrap(method, name):
+        def run(*args):
+            result = method(*args)
+            action = BY_NAME[name(*args)]
+            validate(args[-1], action.input, action.name)
+            validate(result, action.result, action.name + ' result')
+            return result
+        return run
+    chrome.going = wrap(chrome.going, lambda verb, args: 'chrome_' + verb)
+    chrome.small = wrap(chrome.small, lambda verb, args: 'chrome_' + verb)
+    chrome.doing = wrap(chrome.doing, lambda args: 'chrome_do')
+    chrome.upload = wrap(chrome.upload, lambda args: 'chrome_upload')
+    return chrome
 
 
 def undescribed(value):
@@ -56,15 +102,17 @@ class Operations(unittest.TestCase):
         self.temp=tempfile.TemporaryDirectory(dir=WORK)
         self.root=Path(self.temp.name)
         self.mock=patch('aresos_control.engine.Boundary'); self.mock.start()
+        self.old=old_tools(); self.old.start()
         self.engine=Engine(self.root/'state',self.root/'evidence')
         self.chrome=self.engine.adapters['chrome']; self.browser=Browser(); self.chrome.bridge=self.browser
         self.chrome.read_owner_hosts=lambda: []
         record={'format':1,'entries':[entry(build=self.chrome.qualification.build)]}
         self.engine.store.write({'chrome:qualification':record},'chrome_test_setup','Synthetic qualification, test store only')
     def tearDown(self):
-        self.engine.close();self.mock.stop();self.temp.cleanup()
+        self.engine.close();self.old.stop();self.mock.stop();self.temp.cleanup()
     def call(self,verb,args=None,admin=False):
-        return self.engine.request({'v':1,'method':'call','action':'chrome_'+verb,'arguments':args or {}},admin)
+        # Brief 20's verbs reach its replaced tools as chrome_old_<verb> (step 1d).
+        return self.engine.request({'v':1,'method':'call','action':'chrome_'+old(verb),'arguments':args or {}},admin)
     def target(self):
         frame=self.browser.facts['frames'][0]
         return {'reference':{'session':self.browser.session,'tab':1,'frame':0,'document':frame['document'],'view':view_identity(self.browser.facts),'element':'e1'},'expected':copy.deepcopy(frame['target'])}

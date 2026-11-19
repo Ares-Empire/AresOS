@@ -123,6 +123,7 @@ class LossEnvelope(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory(dir=WORK)
         self.root = Path(self.temp.name)
         self.mock = patch('aresos_control.engine.Boundary'); self.mock.start()
+        self.old = fixture.old_tools(); self.old.start()
         self.engine = Engine(self.root / 'state', self.root / 'evidence')
         self.chrome = self.engine.adapters['chrome']
         self.chrome.read_owner_hosts = lambda: []
@@ -137,10 +138,10 @@ class LossEnvelope(unittest.TestCase):
         self.engine.store.write({'chrome:qualification': record}, 'chrome_test_setup', 'Synthetic qualification, test store only')
 
     def tearDown(self):
-        self.engine.close(); self.mock.stop(); self.temp.cleanup()
+        self.engine.close(); self.old.stop(); self.mock.stop(); self.temp.cleanup()
 
     def call(self, name, args=None):
-        return self.engine.request({'v': 1, 'method': 'call', 'action': name, 'arguments': args or {}})
+        return self.engine.request({'v': 1, 'method': 'call', 'action': fixture.tool(name), 'arguments': args or {}})
 
     def target(self, element):
         facts = self.extension.answer({'name': 'facts', 'reference': {'element': element}})['data']
@@ -161,7 +162,7 @@ class LossEnvelope(unittest.TestCase):
             self.assertEqual(form['error']['code'], 'reload_required')
             self.assertEqual(form['error']['message'], loss.MESSAGE)
             self.assertEqual(form['error']['untrusted_content'], {'loss': report})
-            validate(form, BY_NAME[name].tool()['outputSchema'], 'result')
+            validate(form, BY_NAME[fixture.tool(name)].tool()['outputSchema'], 'result')
             self.assert_only_untrusted(form)
         for field in report.get('fields', []):
             # Page text keeps brief 28's escaping: a newline or line separator is written out, never raw.
@@ -186,7 +187,7 @@ class LossEnvelope(unittest.TestCase):
             public = form['data']['operation']
             self.assertEqual(public['reason'], 'Nothing dispatched: ' + loss.MESSAGE)
             self.assertEqual(public['stages']['loss'], {'untrusted_content': {'loss': report}})
-            validate(form, BY_NAME['chrome_operation_status'].tool()['outputSchema'], 'result')
+            validate(form, BY_NAME[fixture.tool('chrome_operation_status')].tool()['outputSchema'], 'result')
             self.assert_only_untrusted(form)
         for name in ('control_log', 'control_pending', 'chrome_notices'):
             listed = self.call(name)
@@ -231,7 +232,7 @@ class LossEnvelope(unittest.TestCase):
             self.assertEqual((data['state'], data['next_field'], len(data['completed'])), ('partial', 1, 1))
             self.assertEqual(data['reason'], loss.MESSAGE)
             self.assertEqual(data['untrusted_content'], {'loss': public_report('first_input', step=1)})
-            validate(form, BY_NAME['chrome_fill_form'].tool()['outputSchema'], 'result')
+            validate(form, BY_NAME[fixture.tool('chrome_fill_form')].tool()['outputSchema'], 'result')
             self.assert_only_untrusted(form)
         self.assertEqual([command['name'] for command in self.extension.commands].count('input'), 1, 'the second field was never typed')
         self.assert_stored('chrome_prepare_control', public_report('first_input'))
@@ -270,7 +271,7 @@ class LossEnvelope(unittest.TestCase):
         result = self.call('chrome_close_tab', {'tab': 1})
         for form in (result, *carried(result)):
             self.assertEqual(form['error'], {'code': 'reload_required', 'message': loss.MESSAGE, 'untrusted_content': {'loss': numbered}})
-            validate(form, BY_NAME['chrome_close_tab'].tool()['outputSchema'], 'result')
+            validate(form, BY_NAME[fixture.tool('chrome_close_tab')].tool()['outputSchema'], 'result')
         # Two that still read alike can't be told apart, so the report counts as malformed.
         for duplicated in (alike([('field "Note"', 'owner'), ('field "Note"', 'claude')]),
                            alike([('an unlabelled field', 'owner'), ('an unlabelled field', 'owner')])):
@@ -414,14 +415,14 @@ class LossEnvelope(unittest.TestCase):
             if command['name'] == 'navigate' else Extension.answer(self.extension, command)
         result = self.call('chrome_navigate', {'tab': 1, 'direction': 'back'})
         self.assertEqual(result['error'], {'code': 'refused', 'message': 'no history entry in that direction'})
-        validate(result, BY_NAME['chrome_navigate'].tool()['outputSchema'], 'result')
+        validate(result, BY_NAME[fixture.tool('chrome_navigate')].tool()['outputSchema'], 'result')
         for app in ('mail', 'testapp', 'control'):
             for tool in tools_for(app):
                 self.assertEqual(tool['outputSchema']['properties']['error'], {'type': 'object'}, tool['name'])
         for tool in tools_for('chrome'):
             self.assertEqual(tool['outputSchema']['properties']['error'], loss.ERROR, tool['name'])
         # The declared shape refuses a report flattened into text or carrying anything else.
-        schema = BY_NAME['chrome_close_tab'].tool()['outputSchema']
+        schema = BY_NAME[fixture.tool('chrome_close_tab')].tool()['outputSchema']
         for flattened in ['field "Draft" (typed by the owner)', {**public_report('close'), 'note': 'x'}, {'unavailable': False}]:
             with self.assertRaises(Refused):
                 validate({'ok': False, 'error': {'code': 'reload_required', 'message': loss.MESSAGE, 'untrusted_content': {'loss': flattened}},
