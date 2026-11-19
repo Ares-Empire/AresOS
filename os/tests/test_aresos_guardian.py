@@ -2,7 +2,8 @@
 
 Step 1 covers section 1: the lifecycle channel's gate, the hello, what counts as saved, one request in flight and
 one waiting, and each caller's own deadline. Step 2 covers section 2, the one stop routine, driven as the socket op
-`stop` drives it. Nothing here starts a process.
+`stop` drives it. Step 3 covers 3.2 and 3.3: the session ending under the supervisor (a signal, labwc), `restart`
+and `logout`. Nothing here starts a process.
 """
 import itertools
 import json
@@ -46,9 +47,22 @@ class StopRunner(base.FakeRunner):
         super().__init__()
         self.system = None  # True: the system is stopping; False: clearly not; None: no clear answer
         self.signals = []
+        # The session's labwc (3.2): what watching it comes to, each (pid, runtime folder) asked for, and every
+        # SIGTERM sent through its pidfd.
+        self.labwc = 'watched'
+        self.labwc_watches = []
+        self.labwc_signals = 0
 
     def system_stopping(self):
         return self.system
+
+    def watch_labwc(self, pid, runtime):
+        self.labwc_watches.append((pid, runtime))
+        return self.labwc
+
+    def signal_labwc(self):
+        self.labwc_signals += 1
+        return True
 
     def signal_jvm(self):
         self.signals.append('SIGTERM')
@@ -1024,6 +1038,428 @@ class StopTest(StopBase):
         self.end_game(sup, pid, 143)
         seen = through_r28()  # closed, with the latch: R28 shows it as a recovery it does not know, and retry clears
         self.assertEqual((seen['latched'], seen['reason']), (True, 'unsaved'))
+
+
+class SessionTest(StopBase):
+    """3.2 and 3.3: the session ends under the supervisor (a signal, labwc's end), `logout` and `restart`."""
+
+    def supervisor(self, nvidia=False):
+        return desktop.Supervisor(self.paths, self.lock, self.runner, clock=lambda: self.now[0],
+                                  wall=lambda: self.wall[0], nvidia=nvidia,
+                                  environ={'HOME': self.paths.home, 'XDG_RUNTIME_DIR': self.paths.runtime,
+                                           'LABWC_PID': '77'})
+
+    def session(self, labwc='watched', game=True, windows=0, names=()):
+        """A session whose supervisor got LABWC_PID 77: (supervisor, the game's PID, its lifecycle peer). The
+        helper reported `windows` app windows (None: it has not said). Each call is a machine of its own: no state
+        from an earlier case."""
+        self.runner = StopRunner()
+        self.runner.labwc = labwc
+        for path in (self.paths.runtime_file, self.paths.stop_block, self.paths.state_file):
+            pathlib.Path(path).unlink(missing_ok=True)
+        sup = self.supervisor()
+        sup.start()
+        pid = peer = None
+        if game:
+            pid, _ = self.run_game(sup)
+            peer = FakePeer(pid)
+            self.assertTrue(sup.on_lifecycle_hello(peer, self.hello(sup)))
+            self.ready(sup)
+        if windows is not None:
+            sup.on_helper_status({'event': 'windows', 'count': windows, 'names': list(names)})
+        return sup, pid, peer
+
+    def end(self, sup, why='SIGTERM'):
+        """The session ends under the supervisor: the list its `done` lands in. The loop exits once it has one."""
+        done = []
+        sup.end_session(why, done.append)
+        return done
+
+    def close_game(self, sup, pid, peer, status=143, ident=1):
+        self.confirm(sup, peer, ident)
+        self.end_game(sup, pid, status)
+
+    # -- 3.2: a signal
+
+    def test_a_signal_runs_the_stop_routine_before_the_supervisor_exits(self):
+        sup, pid, peer = self.session()
+        self.runner.system = False  # a command's shutdown would be a plain stop now; the session's end is not asked
+        views = len(self.runner.views)
+        done = self.end(sup)
+        self.assertEqual(done, [])  # the supervisor does not exit yet
+        self.assertEqual((sup.state, sup.stop.kind, sup.session_over), ('STOPPING', 'shutdown', 'SIGTERM'))
+        self.assertEqual(peer.sent, [{'op': 'save_world', 'id': 1, 'reason': 'shutdown'}])
+        self.assertTrue(sup.blocked())
+        self.assertEqual((self.record()['open'], self.record()['kind']), (True, 'shutdown'))
+        # The last seconds of the one deadline are the supervisor's own exit.
+        self.assertEqual(sup.stop.deadline, self.now[0] + desktop.STOP_BUDGET - desktop.STOP_EXIT_RESERVE)
+        self.assertEqual(sup.exit_by, self.now[0] + desktop.STOP_BUDGET)
+        # It cannot be called off: a save that fails closes the game anyway, and the record says unsaved.
+        sup.on_lifecycle_message(peer, self.refused(1, 'error'))
+        sup.tick()
+        self.assertEqual(self.runner.signals, ['SIGTERM'])
+        self.end_game(sup, pid, 143)
+        (reply,) = done
+        self.assertEqual((reply['kind'], reply['result'], reply['close']), ('shutdown', 'unsaved', 'exited'))
+        self.assertEqual((sup.state, sup.reason, len(self.runner.views)), ('STOPPING', 'session', views))
+        stored = self.stored()
+        self.assertEqual((stored['latched'], stored['reason'], stored['stop']['open']), (True, 'unsaved', False))
+        self.assertEqual((self.runner.labwc_signals, len(self.runner.prisms)), (0, 1))
+
+    def test_a_signal_that_joins_a_stop_makes_it_final_and_never_extends_it(self):
+        sup, pid, peer = self.session()
+        replies = self.stop(sup)  # a plain stop: it could be called off
+        deadline = sup.stop.deadline
+        self.advance(5)
+        done = self.end(sup, 'SIGHUP')
+        again = self.end(sup, 'SIGTERM')  # a second signal joins too
+        self.assertEqual((sup.stop.kind, self.record()['kind'], sup.session_over), ('shutdown', 'shutdown', 'SIGHUP'))
+        self.assertEqual(sup.stop.deadline, deadline - desktop.STOP_EXIT_RESERVE)  # the reserve, taken once
+        self.assertEqual(sup.exit_by, deadline)
+        self.assertEqual(len(peer.sent), 1)  # no second stop, no second save
+        sup.on_lifecycle_message(peer, self.refused(1, 'error'))
+        sup.tick()
+        self.assertEqual((self.runner.signals, replies), (['SIGTERM'], []))  # closed anyway, not called off
+        self.end_game(sup, pid, 143)
+        (reply,) = replies
+        self.assertEqual((reply['kind'], reply['result']), ('shutdown', 'unsaved'))
+        self.assertEqual((done, again), (replies, replies))  # every caller hears the one stop's end
+
+    def test_a_signal_with_nothing_running_or_after_an_overrun_ends_at_once(self):
+        sup, _, _ = self.session(game=False)  # Prism is up, no Java
+        views = len(self.runner.views)
+        done = self.end(sup, 'SIGINT')
+        self.assertEqual((len(done), sup.stop, sup.state, sup.reason), (1, None, 'STOPPING', 'session'))
+        self.assertEqual((done[0]['close'], sup.blocked(), len(self.runner.views)), ('none', True, views))
+        self.assertEqual(sup.exit_by, self.now[0] + desktop.STOP_EXIT_RESERVE)
+        self.assertIsNone(sup.persisted.stop)  # a stop with nothing running writes no record
+        # 2.7: a shutdown stop overran and answered; when the session's signal comes, the supervisor just exits.
+        sup, pid, peer = self.session()
+        replies = self.stop(sup, 'shutdown')
+        self.confirm(sup, peer)
+        self.advance(desktop.STOP_BUDGET)
+        sup.tick()
+        self.assertEqual(replies[0]['close'], 'overrun')
+        done = self.end(sup)
+        self.assertEqual((done, sup.stop, sup.state, sup.reason), ([None], None, 'STOPPING', 'overrun'))
+        self.assertEqual(self.runner.signals, ['SIGTERM'])  # no second SIGTERM, no second deadline
+        self.assertEqual((self.record()['open'], self.record()['close']), (True, 'overrun'))
+
+    def test_a_signals_stop_gives_up_early_enough_for_the_supervisors_own_exit(self):
+        sup, pid, peer = self.session()
+        began = self.now[0]
+        done = self.end(sup)
+        self.confirm(sup, peer)
+        self.advance(desktop.STOP_BUDGET - desktop.STOP_EXIT_RESERVE - 0.1)
+        sup.tick()
+        self.assertEqual(done, [])
+        self.advance(0.1)
+        sup.tick()
+        (reply,) = done
+        self.assertEqual((reply['close'], self.runner.signals), ('overrun', ['SIGTERM']))  # never killed
+        # What is left covers the exit's two waits at their shortest: SIGTERM's and SIGKILL's.
+        self.assertEqual(sup.exit_by, began + desktop.STOP_BUDGET)
+        self.assertGreater(sup.exit_by - self.now[0], desktop.CLEANUP_KILL_WAIT)
+
+    # -- 3.2: labwc
+
+    def test_only_this_sessions_labwc_passes_the_check(self):
+        proc = self.root / 'proc'
+        mine = f'XDG_RUNTIME_DIR={self.paths.runtime}'
+
+        def process(pid, name, *environ):
+            (proc / str(pid)).mkdir(parents=True)
+            (proc / str(pid) / 'comm').write_text(name + '\n')
+            (proc / str(pid) / 'environ').write_bytes(b''.join(item.encode() + b'\0' for item in environ))
+
+        process(1, 'labwc', 'PATH=/usr/bin', mine)
+        process(2, 'labwc', 'XDG_RUNTIME_DIR=/run/user/1001')
+        process(3, 'bash', mine)
+        process(4, 'labwc', mine + '-other', 'NOTE=' + mine)
+
+        def problem(pid):
+            return desktop.labwc_problem(pid, self.paths.runtime, str(proc))
+
+        self.assertIsNone(problem(1))
+        self.assertIn('another runtime folder', problem(2))  # the owner's session, seen from a private runtime folder
+        self.assertIn('named bash', problem(3))
+        self.assertIn('another runtime folder', problem(4))
+        with mock.patch.object(desktop.os, 'getuid', return_value=os.getuid() + 1):
+            self.assertIn('another user', problem(1))
+        with self.assertRaises(ProcessLookupError):
+            problem(5)
+
+    def test_a_labwc_with_another_runtime_folder_is_never_watched_or_signalled(self):
+        sup, pid, peer = self.session(labwc='that labwc runs on another runtime folder')
+        self.assertEqual(self.runner.labwc_watches, [(77, self.paths.runtime)])  # LABWC_PID, and our own folder
+        self.assertEqual((sup.labwc_watched, sup.labwc_gone, sup.status()['labwc']), (False, False, False))
+        (reply,) = self.stop(sup, 'logout')
+        self.assertEqual((reply['ok'], reply['result'], reply['error']), (False, 'refused', 'no_session'))
+        self.assertEqual((self.runner.labwc_signals, self.runner.signals, peer.sent, sup.state),
+                         (0, [], [], 'IN_WORLD'))
+        # Without a LABWC_PID of its own the supervisor asks about no process at all.
+        self.runner = StopRunner()
+        pathlib.Path(self.paths.runtime_file).unlink()
+        plain = base.Base.supervisor(self)
+        plain.start()
+        self.assertEqual((self.runner.labwc_watches, plain.labwc_watched), ([], False))
+
+    def test_a_supervisor_started_after_its_labwc_ended_starts_nothing_and_stops_what_it_adopts(self):
+        sup, _, _ = self.session(labwc='gone', game=False, windows=None)
+        self.assertEqual((sup.state, sup.reason, sup.labwc_gone), ('STOPPING', 'session', True))
+        self.assertEqual((self.runner.prisms, self.runner.views), ([], []))
+        self.assertEqual(len(self.end(sup, 'its labwc had ended')), 1)  # the loop exits at once
+        # With a game from before: adopted, stopped (it is asked to save first), and then the supervisor exits.
+        first, pid, _ = self.session()
+        self.runner.labwc = 'gone'
+        later = self.supervisor()
+        later.start()
+        self.assertEqual((later.launch.jvm_pid, later.labwc_gone), (pid, True))
+        done = self.end(later, 'its labwc had ended')
+        self.assertEqual((later.stop.kind, done, len(self.runner.prisms)), ('shutdown', [], 1))
+        later.tick()  # the adopted game has not said hello to this supervisor yet: asked again in a second
+        peer = FakePeer(pid)
+        self.assertTrue(later.on_lifecycle_hello(peer, self.hello(later)))
+        self.advance(desktop.STOP_ASK_AGAIN)
+        later.tick()
+        (asked,) = peer.sent
+        self.close_game(later, pid, peer, ident=asked['id'])
+        (reply,) = done
+        self.assertEqual((reply['result'], reply['save'], reply['close']), ('confirmed', 'saved', 'exited'))
+
+    # -- 3.3: logout
+
+    def test_logout_is_refused_while_an_app_window_is_open_or_the_helper_has_not_said(self):
+        sup, pid, peer = self.session(windows=2, names=['Mail', 'Files'])
+        (reply,) = self.stop(sup, 'logout')
+        self.assertEqual((reply['ok'], reply['result'], reply['error'], reply['windows']),
+                         (False, 'refused', 'apps_open', ['Mail', 'Files']))
+        self.assertEqual(reply['message'], 'Not logged out: 2 apps are still open (Mail, Files). Close them first; '
+                                           'nothing was stopped.')
+        # It stopped nothing: no save, no signal, no record, no block, and the hub stays.
+        self.assertEqual((peer.sent, self.runner.signals, self.runner.labwc_signals), ([], [], 0))
+        self.assertEqual((self.record(), sup.blocked(), sup.state, sup.stop), (None, False, 'IN_WORLD', None))
+        self.assertEqual(sup.status()['windows'], ['Mail', 'Files'])
+        # A count without names, and one that is no number (the helper lost track): unknown counts as open.
+        sup.on_helper_status({'event': 'windows', 'count': 1})
+        self.assertIn('an app is still open (an app without a name). Close it first',
+                      self.stop(sup, 'logout')[0]['message'])
+        for count in (None, True, -1, '0'):
+            sup.on_helper_status({'event': 'windows', 'count': 0})
+            self.assertEqual(sup.app_windows(), [])
+            sup.on_helper_status({'event': 'windows', 'count': count})
+            self.assertIsNone(sup.app_windows(), count)
+            self.assertEqual(self.stop(sup, 'logout')[0]['error'], 'apps_unknown')
+        # The helper has not said; and a helper that said zero and then died.
+        sup, pid, peer = self.session(windows=None)
+        self.assertEqual(self.stop(sup, 'logout')[0]['error'], 'apps_unknown')
+        sup, pid, peer = self.session()
+        self.assertEqual(sup.app_windows(), [])
+        self.runner.helper_alive = False
+        sup.on_helper_exit(1)
+        self.assertEqual(self.stop(sup, 'logout')[0]['error'], 'apps_unknown')
+        sup.restart_helper()  # the new helper has not said yet
+        self.assertEqual((self.runner.helper_alive, sup.app_windows()), (True, None))
+        self.assertEqual((peer.sent, self.runner.signals, self.runner.labwc_signals), ([], [], 0))
+
+    def test_a_logout_stops_the_game_then_ends_labwc_through_its_pidfd(self):
+        sup, pid, peer = self.session()
+        views = len(self.runner.views)
+        replies = self.stop(sup, 'logout')
+        self.assertEqual((sup.stop.kind, sup.blocked(), self.runner.labwc_signals), ('logout', True, 0))
+        self.confirm(sup, peer)
+        self.assertEqual(self.runner.labwc_signals, 0)  # not before Java is really gone
+        self.end_game(sup, pid, 143)
+        self.assertEqual((self.runner.labwc_signals, replies, sup.stop.phase, sup.state), (1, [], 'logout', 'STOPPING'))
+        sup.tick()
+        self.assertEqual(self.runner.labwc_signals, 1)
+        # labwc ends: the loop tells the supervisor, and ends the session.
+        sup.on_labwc_gone()
+        done = self.end(sup, 'labwc ended')
+        (reply,) = replies
+        self.assertEqual((reply['ok'], reply['logout'], reply['save'], reply['close']),
+                         (True, 'exited', 'saved', 'exited'))
+        self.assertEqual(reply['message'], 'Logged out: the home was saved first; Minecraft closed.')
+        self.assertEqual((done, sup.stop, sup.state, sup.blocked()), (replies, None, 'STOPPING', True))
+        # The logout's block became the ending session's: nothing lifts it any more.
+        self.assertEqual(json.loads(pathlib.Path(self.paths.stop_block).read_text())['kind'], 'shutdown')
+        sup.unblock_admission()
+        self.assertTrue(sup.blocked())
+        self.assertEqual((len(self.runner.views), len(self.runner.prisms), self.runner.signals),
+                         (views, 1, ['SIGTERM']))
+
+    def test_a_logout_with_no_game_running_still_logs_out(self):
+        sup, _, _ = self.session(game=False)
+        replies = self.stop(sup, 'logout')
+        self.assertEqual((self.runner.labwc_signals, replies, sup.stop.phase), (1, [], 'logout'))
+        self.assertTrue(sup.blocked())  # written also with nothing running (the lead's fix 2)
+        done = self.end(sup, 'SIGTERM')  # the session's signal can come before labwc's end is seen
+        (reply,) = replies
+        self.assertEqual((reply['ok'], reply['logout'], reply['close']), (True, 'ending', 'none'))
+        self.assertEqual(reply['message'], 'Logged out: Minecraft was not running.')
+        self.assertEqual((done, self.runner.signals, self.runner.labwc_signals), (replies, [], 1))
+
+    def test_a_logout_that_does_not_go_on_leaves_the_session_and_says_why(self):
+        # An app window that appeared during the stop: the count is fresh right before labwc would be signalled.
+        sup, pid, peer = self.session()
+        replies = self.stop(sup, 'logout')
+        sup.on_helper_status({'event': 'windows', 'count': 1, 'names': ['Mail']})
+        self.close_game(sup, pid, peer)
+        (reply,) = replies
+        self.assertEqual((reply['ok'], reply['result'], reply['close'], reply['logout']),
+                         (False, 'confirmed', 'exited', 'apps_open'))
+        self.assertEqual(reply['message'], 'Stopped: the home was saved first; Minecraft closed. Not logged out: an '
+                                           'app is open now (Mail).')
+        self.assertEqual((self.runner.labwc_signals, sup.blocked(), sup.state, sup.reason),
+                         (0, False, 'RECOVERY', 'quit'))
+        # labwc stays: the wait ends at the stop's deadline, the reply says so and the quit window shows.
+        sup, pid, peer = self.session()
+        replies = self.stop(sup, 'logout')
+        began = self.now[0]
+        self.close_game(sup, pid, peer)
+        self.assertEqual(sup.exit_by, began + desktop.STOP_BUDGET)  # labwc's end would be the supervisor's exit too
+        self.advance(desktop.STOP_BUDGET - desktop.STOP_EXIT_RESERVE - 0.1)
+        sup.tick()
+        self.assertEqual((replies, self.runner.labwc_signals), ([], 1))
+        self.advance(0.1)
+        sup.tick()
+        (reply,) = replies
+        self.assertEqual((reply['ok'], reply['logout']), (False, 'stayed'))
+        self.assertTrue(reply['message'].endswith('Not logged out: the session did not end within the stop\'s 60 '
+                                                  'seconds.'), reply['message'])
+        self.assertEqual((self.runner.labwc_signals, sup.blocked(), sup.state, sup.reason, sup.exit_by),
+                         (1, False, 'RECOVERY', 'quit', None))
+        # Java ended, but not by closing in its own way: not "confirmed and exited", so no logout.
+        sup, pid, peer = self.session()
+        replies = self.stop(sup, 'logout')
+        self.close_game(sup, pid, peer, status=1)
+        self.assertEqual((replies[0]['ok'], replies[0]['close'], self.runner.labwc_signals, sup.blocked()),
+                         (False, 'failed', 0, False))
+        self.assertTrue(replies[0]['message'].endswith(' Not logged out.'), replies[0]['message'])
+        # A logout tried after a shutdown's stop never lifts the shutdown's block, whatever labwc does.
+        sup, pid, peer = self.session()
+        self.stop(sup, 'shutdown')
+        self.close_game(sup, pid, peer)
+        replies = self.stop(sup, 'logout')
+        self.advance(desktop.STOP_BUDGET)
+        sup.tick()
+        self.assertEqual((replies[0]['logout'], sup.blocked(), sup.state), ('stayed', True, 'STOPPING'))
+        self.assertEqual(json.loads(pathlib.Path(self.paths.stop_block).read_text())['kind'], 'shutdown')
+        # The save is not confirmed: called off before anything is closed, and its window survives a heartbeat.
+        sup, pid, peer = self.session()
+        replies = self.stop(sup, 'logout')
+        sup.on_lifecycle_message(peer, self.refused(1, 'error'))
+        sup.tick()
+        self.assertTrue(replies[0]['message'].startswith('Not logged out: Minecraft keeps running. Not saved:'))
+        self.assertEqual((self.runner.signals, self.runner.labwc_signals, sup.blocked()), ([], 0, False))
+        self.ready(sup)
+        self.assertEqual((sup.state, sup.reason), ('RECOVERY', 'save_failed_logout'))
+        self.assertIn('AresOS did not log out, because your home could not be confirmed as saved first.',
+                      sup.message())
+
+    # -- 3.3: restart
+
+    def test_a_restart_stops_and_starts_again_under_the_cover_when_no_app_is_open(self):
+        sup, pid, peer = self.session()
+        instance, launch, covers = sup.instance, sup.launch.id, len(self.runner.covers)
+        replies = self.stop(sup, 'restart')
+        self.confirm(sup, peer)
+        self.assertEqual(len(self.runner.prisms), 1)  # nothing starts before Java is gone and the lock is free
+        self.end_game(sup, pid, 143)
+        (reply,) = replies
+        self.assertEqual((reply['ok'], reply['kind'], reply['result'], reply['close'], reply['restart']),
+                         (True, 'restart', 'confirmed', 'exited', 'started'))
+        self.assertEqual(reply['message'], 'Stopped: the home was saved first; Minecraft closed. Minecraft is '
+                                           'starting again.')
+        self.assertEqual((sup.state, sup.instance, sup.blocked()), ('STARTING', instance, False))
+        self.assertNotEqual(sup.launch.id, launch)
+        self.assertEqual((len(self.runner.prisms), self.runner.covers[covers:], sup.launch.automatic),
+                         (2, [True], False))  # as retry does: "Starting again…"
+        stored = self.stored()
+        self.assertEqual((stored['latched'], stored['consecutive'], stored['stop']['kind'], stored['stop']['close']),
+                         (False, 0, 'restart', 'exited'))
+        self.run_game(sup)  # the new launch is admitted
+        self.assertEqual(sup.app_windows(), None)  # its new helper has not said yet
+
+    def test_a_restart_with_an_app_open_or_unknown_starts_below_it(self):
+        for windows in (1, None):
+            sup, pid, peer = self.session(windows=windows, names=['Mail'])
+            covers = len(self.runner.covers)
+            replies = self.stop(sup, 'restart')
+            self.close_game(sup, pid, peer)
+            self.assertEqual((replies[0]['ok'], replies[0]['restart']), (True, 'started'), windows)
+            self.assertEqual((len(self.runner.prisms), len(self.runner.covers), sup.launch.automatic),
+                             (2, covers, True))  # as an automatic restart does: no cover over his app
+            self.assertEqual(self.runner.helpers[-1][2].get('ARESOS_SHELL_KEEP_FOREGROUND'), '1')
+
+    def test_a_restart_that_cannot_stop_cleanly_starts_no_second_game(self):
+        # The save is not confirmed: the game keeps running and the window says so.
+        sup, pid, peer = self.session()
+        replies = self.stop(sup, 'restart')
+        sup.on_lifecycle_message(peer, self.refused(1, 'error'))
+        sup.tick()
+        self.assertTrue(replies[0]['message'].startswith('Not restarted: Minecraft keeps running. Not saved:'))
+        self.assertEqual((sup.state, sup.reason, self.runner.signals, len(self.runner.prisms)),
+                         ('RECOVERY', 'save_failed_restart', [], 1))
+        self.assertIn('Minecraft was not restarted, because', sup.message())
+        self.assertNotIn('restart', replies[0])
+        # Java does not close: `stuck`, and nothing is started while it is there.
+        sup, pid, peer = self.session()
+        replies = self.stop(sup, 'restart')
+        self.confirm(sup, peer)
+        self.advance(desktop.STOP_BUDGET)
+        sup.tick()
+        self.assertEqual((replies[0]['ok'], replies[0]['close']), (False, 'overrun'))
+        self.assertTrue(replies[0]['message'].endswith(' Minecraft is not started again.'))
+        self.assertEqual((sup.state, sup.reason, len(self.runner.prisms)), ('RECOVERY', 'stuck', 1))
+        # Java went before the save was confirmed: the latch must be seen first, so nothing starts by itself.
+        sup, pid, peer = self.session()
+        replies = self.stop(sup, 'restart')
+        self.end_game(sup, pid, 137)
+        self.assertEqual((replies[0]['ok'], replies[0]['result']), (False, 'unsaved'))
+        self.assertEqual((sup.state, sup.reason, len(self.runner.prisms)), ('RECOVERY', 'unsaved', 1))
+        # While the session is ending nothing is started.
+        sup, pid, peer = self.session()
+        self.stop(sup, 'shutdown')
+        self.close_game(sup, pid, peer)
+        (reply,) = self.stop(sup, 'restart')
+        self.assertEqual((reply['ok'], sup.state, len(self.runner.prisms)), (False, 'STOPPING', 1))
+        self.assertEqual(reply['message'], 'Nothing to stop: Minecraft is not running. Minecraft is not started '
+                                           'again.')
+
+    def test_a_restart_with_nothing_running_starts_as_retry_does_and_never_twice(self):
+        sup, pid, peer = self.session()
+        self.stop(sup)
+        self.close_game(sup, pid, peer)
+        self.assertEqual((sup.state, sup.reason), ('RECOVERY', 'quit'))
+        (reply,) = self.stop(sup, 'restart')
+        self.assertEqual((reply['ok'], reply['close'], reply['restart']), (True, 'none', 'started'))
+        self.assertEqual(reply['message'], 'Nothing to stop: Minecraft is not running. Minecraft is starting again.')
+        self.assertEqual((sup.state, len(self.runner.prisms)), ('STARTING', 2))
+        # Prism has not handed the game over yet: a second `restart` starts no second Prism.
+        (reply,) = self.stop(sup, 'restart')
+        self.assertEqual((reply['ok'], reply['restart'], len(self.runner.prisms)), (True, 'starting', 2))
+        self.assertTrue(reply['message'].endswith('Minecraft is already starting.'))
+
+    # -- the windows' texts
+
+    def test_the_windows_say_what_was_not_done_and_offer_restart(self):
+        for kind, lead in (('stop', 'Minecraft was not stopped'), ('restart', 'Minecraft was not restarted'),
+                           ('logout', 'AresOS did not log out')):
+            reason = desktop.SAVE_FAILED[kind]
+            text = desktop.message('RECOVERY', reason, 'Not saved: why.', self.lock, desktop.Persisted())
+            self.assertIn(f'{lead}, because your home could not be confirmed as saved first.\nNot saved: why.\n',
+                          text)
+            self.assertIn('Minecraft keeps running and nothing is lost.', text)
+            self.assertIn(reason, desktop.STICKY)  # it stays until `retry`
+        helper = desktop.message('RECOVERY', 'helper', '', self.lock, desktop.Persisted())
+        self.assertIn('Type  restart  and press Enter to save your home and start both again.', helper)
+        rc = (base.CONFIG / 'usr/share/aresos/desktop-view.bashrc').read_text(encoding='utf-8')
+        self.assertIn('restart() { /usr/libexec/aresos-desktop restart; }', rc)
+        self.assertNotIn('logout', rc)  # bash's own word; the message window offers retry and restart only
+        source = (base.CONFIG / 'usr/libexec/aresos-desktop').read_text(encoding='utf-8')
+        self.assertEqual(source.count('pidfd_send_signal('), 2)  # Java's and labwc's watched pidfds, nothing else
+        self.assertNotIn("'--exit'", source)  # never `labwc --exit`
 
 
 class CommandTest(unittest.TestCase):

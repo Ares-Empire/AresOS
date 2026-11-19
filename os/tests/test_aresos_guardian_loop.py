@@ -6,7 +6,9 @@ WAYLAND_DISPLAY, DBUS_SESSION_BUS_ADDRESS or LABWC_PID. Commands reach it only t
 folder, and a process is ended only if its own environment names that folder.
 
 Step 1 covers section 1: the gate, the hello, `save` and its failures, and peers that do not read. Step 2 covers
-section 2 through `aresos-desktop stop`: a confirmed stop, saves that fail, and a game that ignores SIGTERM.
+section 2 through `aresos-desktop stop`: a confirmed stop, saves that fail, and a game that ignores SIGTERM. Step 3
+covers 3.2 and 3.3: a signal (also through the keeper), the stand-in labwc's end, `logout` and `restart`. The only
+labwc ever signalled is the stand-in this test started, and only by the supervisor through its watched pidfd.
 """
 import json
 import os
@@ -43,7 +45,11 @@ HARNESS = textwrap.dedent('''\
     desktop.Runner.real = False
     for name, value in config['numbers'].items():
         setattr(desktop, name, value)
-    sys.exit(desktop.supervise(desktop.Paths(os.environ['HOME'], os.environ['XDG_RUNTIME_DIR'], config['share'])))
+    paths = desktop.Paths(os.environ['HOME'], os.environ['XDG_RUNTIME_DIR'], config['share'])
+    if sys.argv[2:] == ['session']:  # the keeper, whose supervisor is this harness again
+        desktop.SELF = config['self']
+        sys.exit(desktop.session(paths))
+    sys.exit(desktop.supervise(paths))
 ''')
 
 # Stands in for systemd-run and Prism: runs the instance's real wrapper with the stand-in game, as Prism does.
@@ -137,7 +143,8 @@ GAME = textwrap.dedent('''\
             sock.sendall((json.dumps(answer) + '\\n').encode())
 ''')
 
-# Stands in for aresos-shell: reports the hub ready on the status pipe.
+# Stands in for aresos-shell: reports the hub ready on the status pipe, and the app windows as the file `windows`
+# says (one `windows` event at each change; no file: it has not said). While the file `quiet` exists it says nothing.
 HELPER = textwrap.dedent('''\
     #!/usr/bin/python3
     import json, os, signal, sys, time
@@ -146,8 +153,17 @@ HELPER = textwrap.dedent('''\
         json.dump(dict(os.environ), output)
     signal.signal(signal.SIGTERM, lambda *a: sys.exit(0))
     fd = int(os.environ['ARESOS_SHELL_STATUS_FD'])
+    said = None
     while True:
-        os.write(fd, (json.dumps({'event': 'world_ready', 'world': 'AresHub'}) + '\\n').encode())
+        if not os.path.exists(os.path.join(config['control'], 'quiet')):
+            os.write(fd, (json.dumps({'event': 'world_ready', 'world': 'AresHub'}) + '\\n').encode())
+            try:
+                windows = open(os.path.join(config['control'], 'windows')).read().strip()
+            except OSError:
+                windows = None
+            if windows and windows != said:
+                os.write(fd, (windows + '\\n').encode())
+                said = windows
         time.sleep(0.2)
 ''')
 
@@ -182,17 +198,22 @@ class GuardianLoopTest(base.Base):
 
     # -- the supervisor under test
 
-    def start(self, **numbers):
-        """The supervisor, as a process of its own under `env -i` (the machine rules)."""
+    def start(self, keeper=False, labwc_runtime=None, **numbers):
+        """The supervisor, as a process of its own under `env -i` (the machine rules). `keeper`: the session's
+        keeper, which starts the supervisor itself. `labwc_runtime`: the stand-in labwc is another session's."""
         self.labwc = subprocess.Popen([str(self.bin / 'labwc')], stdin=subprocess.PIPE, cwd=self.root,
-                                      env={'XDG_RUNTIME_DIR': self.paths.runtime, 'PATH': '/usr/bin:/bin'})
+                                      env={'XDG_RUNTIME_DIR': labwc_runtime or self.paths.runtime,
+                                           'PATH': '/usr/bin:/bin'})
+        harness = [sys.executable, '-B', str(self.bin / 'harness.py'), str(self.root / 'harness.json')]
+        (self.bin / 'self').write_text('#!/bin/sh\nexec ' + ' '.join(harness) + '\n')  # "$@" is `supervise`
+        (self.bin / 'self').chmod(0o755)
         (self.root / 'harness.json').write_text(json.dumps({
             'desktop': str(SUPERVISOR), 'share': self.paths.share, 'numbers': numbers,
-            **{name: str(self.bin / name) for name in ('prism', 'helper', 'cover', 'view')}}))
+            **{name: str(self.bin / name) for name in ('prism', 'helper', 'cover', 'view', 'self')}}))
         self.output = open(self.root / 'supervisor.log', 'wb')
         self.process = subprocess.Popen(
-            ['/usr/bin/env', '-i', *self.environment, f'LABWC_PID={self.labwc.pid}', sys.executable, '-B',
-             str(self.bin / 'harness.py'), str(self.root / 'harness.json')],
+            ['/usr/bin/env', '-i', *self.environment, f'LABWC_PID={self.labwc.pid}', *harness,
+             *(['session'] if keeper else [])],
             stdin=subprocess.DEVNULL, stdout=self.output, stderr=subprocess.STDOUT, cwd=self.root)
         # The game runs, its hello is accepted (a hello before jvm_started is refused and tried again), and the
         # helper has reported the hub ready.
@@ -209,11 +230,10 @@ class GuardianLoopTest(base.Base):
 
     def stop(self):
         if self.process is not None and self.process.poll() is None:
+            # SIGTERM runs the stop routine now (3.2): let the stand-in game save and close at once.
+            (self.control / 'ignore-term').unlink(missing_ok=True)
+            self.mode('saved')
             self.process.terminate()
-            try:
-                self.status()  # a loop with nothing due sleeps: any request wakes it, and it sees that it must stop
-            except (OSError, ValueError):
-                pass
             try:
                 self.process.wait(10)
             except subprocess.TimeoutExpired:
@@ -228,6 +248,11 @@ class GuardianLoopTest(base.Base):
             self.labwc.kill()
             self.labwc.wait()
             self.labwc.stdin.close()
+        # Whatever else this test's supervisor left behind (a keeper's supervisor, a helper): its own environment
+        # names this test's runtime folder, or it is not touched.
+        for entry in os.listdir('/proc'):
+            if entry.isdigit() and int(entry) != os.getpid() and self.mine(int(entry)):
+                os.kill(int(entry), signal.SIGKILL)
         if self.output is not None:
             self.output.close()
 
@@ -501,6 +526,170 @@ class GuardianLoopTest(base.Base):
         self.assertEqual((self.games(), self.mine(pid)), (1, True))
         self.assertIsNone(self.process.poll())
         self.assertNotIn('SIGKILL', self.log())
+
+    # -- step 3: the session ends under the supervisor, `logout` and `restart`
+
+    def windows(self, *names):
+        """What the stand-in helper reports as open app windows; waits until the supervisor has it."""
+        (self.control / 'windows').write_text(json.dumps({'event': 'windows', 'count': len(names),
+                                                          'names': list(names)}))
+        self.wait(lambda: self.status()['windows'] == list(names))
+
+    def last_stop(self):
+        stop = self.stored()['stop']
+        return stop['open'], stop['kind'], stop['save'], stop['close'], stop['status']
+
+    def test_sigterm_to_an_idle_loop_begins_the_stop_within_a_second_and_the_keeper_waits(self):
+        self.start(keeper=True)
+        pid, _ = self.game()
+        keeper = self.process.pid
+        (supervisor,) = pathlib.Path(f'/proc/{keeper}/task/{keeper}/children').read_text().split()
+        self.assertTrue(self.mine(int(supervisor)))
+        (self.control / 'quiet').write_text('')  # the helper falls silent: nothing wakes the loop any more
+        time.sleep(1.0)  # its next deadline is the heartbeat gap, 20 s away
+        began = time.monotonic()
+        self.process.terminate()  # SIGTERM to the keeper, which passes it on to its supervisor
+        self.wait(lambda: 'begins for launch' in self.log(), timeout=5)
+        self.assertLess(time.monotonic() - began, 1.0)
+        self.assertEqual(self.process.wait(15), 0)
+        # The keeper ended only after its supervisor had: the home saved, Java closed, the socket gone.
+        self.assertFalse(self.mine(int(supervisor)))
+        self.assertFalse(self.mine(pid))
+        self.assertFalse(os.path.exists(self.paths.socket))
+        self.assertEqual(self.asked(), [{'op': 'save_world', 'id': 1, 'reason': 'shutdown'}])
+        self.assertEqual(self.last_stop(), (False, 'shutdown', 'saved', 'exited', 143))
+        self.assertEqual((self.stored()['latched'], self.games()), (False, 1))
+        self.assertTrue(os.path.exists(self.paths.stop_block))  # nothing is admitted in this session any more
+        log = self.log()
+        self.assertIn('the session is ending (SIGTERM)', log)
+        self.assertLess(log.index('SIGTERM sent to Java'), log.index('stop (shutdown) ended after'))
+
+    def test_sigterm_in_the_middle_of_a_save_closes_anyway_and_records_unsaved(self):
+        self.start(STOP_SAVE_WAIT=1.5, STOP_BUDGET=8.0, STOP_EXIT_RESERVE=1.0)
+        pid, _ = self.game()
+        self.mode('hang')
+        replies = []
+
+        def save():
+            try:
+                replies.append(self.save())
+            except (OSError, ValueError) as error:
+                replies.append({'ok': False, 'error': str(error)})
+
+        thread = threading.Thread(target=save, daemon=True)
+        thread.start()
+        self.wait(lambda: len(self.asked()) == 1)
+        began = time.monotonic()
+        self.process.terminate()
+        self.assertEqual(self.process.wait(15), 0)
+        self.assertLess(time.monotonic() - began, 8.0)
+        thread.join(10)
+        self.assertEqual([reply['ok'] for reply in replies], [False])  # the save in flight is never a save
+        self.assertFalse(self.mine(pid))  # the session was ending: closed anyway, by SIGTERM
+        self.assertEqual(self.last_stop(), (False, 'shutdown', 'timeout', 'exited', 143))
+        self.assertEqual((self.stored()['latched'], self.stored()['reason']), (True, 'unsaved'))
+        self.assertNotIn('SIGKILL', self.log())
+
+    def test_a_signal_with_a_game_that_ignores_sigterm_exits_inside_the_deadline_and_never_kills(self):
+        self.start(STOP_BUDGET=4.0, STOP_EXIT_RESERVE=1.0)
+        pid, _ = self.game()
+        (self.control / 'ignore-term').write_text('')
+        began = time.monotonic()
+        self.process.terminate()
+        self.assertEqual(self.process.wait(15), 0)
+        took = time.monotonic() - began
+        self.assertTrue(2.8 < took < 4.0, took)  # it stopped waiting at 3 s, and its own exit fits in the rest
+        self.assertTrue(self.mine(pid))  # never killed: the system's teardown ends it
+        stop = self.stored()['stop']  # it still names the launch, so its end will be `stopped`
+        self.assertEqual((stop['open'], stop['kind'], stop['save'], stop['sigterm'], stop['close']),
+                         (True, 'shutdown', 'saved', True, 'overrun'))
+        self.assertEqual(self.games(), 1)
+        self.assertNotIn('SIGKILL', self.log())
+
+    def test_the_stand_in_labwc_ending_ends_the_supervisor_and_the_keeper_inside_the_deadline(self):
+        self.start(keeper=True, STOP_BUDGET=8.0, STOP_EXIT_RESERVE=1.0)
+        pid, _ = self.game()
+        self.assertIs(self.status()['labwc'], True)
+        began = time.monotonic()
+        self.labwc.stdin.close()  # the stand-in labwc ends by itself
+        self.assertEqual(self.labwc.wait(5), 1)
+        self.assertEqual(self.process.wait(15), 0)
+        self.assertLess(time.monotonic() - began, 8.0)
+        self.assertFalse(self.mine(pid))
+        self.assertEqual(self.asked(), [{'op': 'save_world', 'id': 1, 'reason': 'shutdown'}])
+        self.assertEqual(self.last_stop(), (False, 'shutdown', 'saved', 'exited', 143))
+        self.assertEqual(self.games(), 1)
+        self.assertIn('the session is ending (labwc ended)', self.log())
+        self.assertFalse([entry for entry in os.listdir('/proc')
+                          if entry.isdigit() and int(entry) != self.labwc.pid and self.mine(int(entry))])
+
+    def test_logout_is_refused_with_an_app_open_and_otherwise_ends_the_stand_in_labwc(self):
+        self.start()
+        pid, _ = self.game()
+        code, out, err = self.command('logout')  # the helper has not said
+        self.assertEqual((code, out), (1, ''))
+        self.assertIn('cannot tell whether an app is still open', err)
+        self.windows('Mail')
+        self.assertEqual(self.command('logout'), (1, '', 'Not logged out: an app is still open (Mail). Close it '
+                                                         'first; nothing was stopped.\n'))
+        self.assertEqual((self.mine(pid), self.labwc.poll(), self.asked()), (True, None, []))
+        self.assertEqual((self.status()['state'], os.path.exists(self.paths.stop_block)), ('IN_WORLD', False))
+        self.windows()
+        self.assertEqual(self.command('logout'),
+                         (0, 'Logged out: the home was saved first; Minecraft closed.\n', ''))
+        self.assertEqual(self.labwc.wait(5), -signal.SIGTERM)  # ended by the supervisor, through its pidfd
+        self.assertEqual(self.process.wait(10), 0)  # the session is over: the supervisor exits too
+        self.assertFalse(self.mine(pid))
+        self.assertEqual(self.asked(), [{'op': 'save_world', 'id': 1, 'reason': 'shutdown'}])
+        self.assertEqual(self.last_stop(), (False, 'logout', 'saved', 'exited', 143))
+        self.assertEqual((self.games(), os.path.exists(self.paths.stop_block)), (1, True))
+        log = self.log()
+        self.assertLess(log.index('stopped (exit code 143)'), log.index('SIGTERM sent to labwc'))
+
+    def test_a_labwc_of_another_runtime_folder_is_never_watched_or_signalled(self):
+        other = self.root / 'other-run'
+        other.mkdir()
+        self.start(labwc_runtime=str(other))
+        pid, _ = self.game()
+        self.windows()
+        self.assertIs(self.status()['labwc'], False)
+        self.assertIn('is not watched (that labwc runs on another runtime folder', self.log())
+        code, out, err = self.command('logout')
+        self.assertEqual((code, out), (1, ''))
+        self.assertIn('watches no session of its own', err)
+        self.assertEqual((self.mine(pid), self.labwc.poll(), self.asked()), (True, None, []))
+        self.labwc.stdin.close()  # and that labwc's end is not this supervisor's session's
+        self.labwc.wait(5)
+        time.sleep(0.5)
+        self.assertEqual((self.process.poll(), self.status()['state'], self.status()['session_over']),
+                         (None, 'IN_WORLD', None))
+
+    def test_restart_saves_closes_and_starts_the_game_again_in_the_same_session(self):
+        self.start()
+        self.windows()
+        pid, _ = self.game()
+        instance = self.status()['instance']
+        self.assertEqual(self.command('restart'), (0, 'Stopped: the home was saved first; Minecraft closed. '
+                                                      'Minecraft is starting again.\n', ''))
+        self.assertFalse(self.mine(pid))
+        self.wait(lambda: self.games() == 2 and (lambda status: status['state'] == 'IN_WORLD'
+                                                 and status['lifecycle'] is True)(self.status()))
+        new, env = self.game()
+        self.assertNotEqual(new, pid)
+        self.assertEqual((self.status()['instance'], env['ARESOS_DESKTOP_INSTANCE']), (instance, instance))
+        self.assertEqual(self.save()['result'], 'saved')  # the new game's channel is the one in use
+        self.assertEqual(self.last_stop(), (False, 'restart', 'saved', 'exited', 143))
+        # A restart whose save fails leaves the game running and says why.
+        self.mode('error')
+        code, out, err = self.command('restart')
+        self.assertEqual((code, out), (1, ''))
+        self.assertTrue(err.startswith('Not restarted: Minecraft keeps running. Not saved:'), err)
+        status = self.status()
+        self.assertEqual((self.mine(new), self.games(), status['reason']), (True, 2, 'save_failed_restart'))
+        self.assertIn('Minecraft was not restarted, because', status['message'])
+        self.assertEqual(desktop.request(self.paths, {'op': 'restart', 'reason': 'shutdown'}, timeout=5)['error'],
+                         'bad_reason')
+        self.assertEqual(self.games(), 2)
 
     def test_the_command_without_a_supervisor_says_not_saved(self):
         empty = self.root / 'empty-run'
