@@ -1,7 +1,7 @@
 # Package 25, the guardian: progress
 
-Updated after **step 8a** (2026-11-19). Builder: a Claude agent on Fable 5.2, one fresh agent per step (step 8a:
-Opus 5.5, started by the lead for the merge, the image rule and the docs).
+Updated after **step 8b** (2026-11-19). The [package report draft](#package-25-report-draft) includes the failed
+VM's evidence and the release checks still outstanding. Codex built step 8b. Claude built steps 1–8a.
 Brief: `briefs/25-guardian.md`; its last section ("The lead's fixes after the recheck") overrides the rest.
 
 ## Done
@@ -495,16 +495,10 @@ program's own `APP_ID`. Not run: the whole `os/tests` suite, `test_owner_update`
 
 ## Left, in order
 
-8b. Started by the lead with the next check build's run ID (the lead starts it on this step's last commit):
-   1. Read the VM's results (`evidence/vm-pass-N/guardian-arm-result.json`, `guardian.json`, the pictures,
-      `offline-boot.txt`; "What the code does not show" lists where it is most likely to stop first) and fix what
-      they show. Also read the hosted `checks_only` run **44458416374** (step 7's, never read).
-   2. If the guard, the stop routine or the VM check changes, ask the lead for a new check build on the final commit
-      (the lead's fix 7); a `checks_only` run boots no VM and is no proof.
-   3. The report (AGENTS.md format) into this file, with the VM's measured times, the texts, the new image files,
-      the Known limits and every JUDGMENT-CALL; the lead commits it as `REPORT.md`.
-   4. Merge `origin/main` again before the last push, one `checks_only=true` run, then the pull request "Package 25:
-      the guardian saves the world before every planned stop". Never merge.
+The lead's next `check_build=build` on the pushed step 8b commit must pass both boots before merge (lead's fix 7).
+Read each boot's `guardian.json`, frames and offline journal, then put its measured times in the report. A failed
+live observation now leaves `guardian-watch.json` alongside the fixture's `guardian-camera.log`. The lead owns
+the check build, final `REPORT.md` and PR.
 
 ## linux-aresos's read checklist (2026-11-19)
 
@@ -825,7 +819,156 @@ Step 8a:
     the heredoc exactly as the image does (`python3 -I -` with the two folders), as `test_labwc_stage.py` and
     `test_console_keymap.py` run theirs.
 
-**New texts** (the `save` command prints them; for the report's list):
+## Package 25 report draft
+
+### Done
+
+- The desktop supervisor and wrapper authenticate the game's lifecycle connection, confirm a flush-save for the
+  active home and record the outcome before closing Java. Stop, restart, logout and session-end share the same
+  deadline. Recovery can identify an unfinished first home and offer a checked, no-overwrite rename.
+- The shutdown guard asks the running supervisor to save before systemd tears down the session. The shell reports
+  app windows. The cover, labwc rule and lid inhibitor let the shutdown run behind black when the desktop is alone.
+  The message window provides `restart`. OS-BASE B1–B3 and the supervisor's help describe these behaviors.
+- **New release-image paths** are `/usr/lib/systemd/system/aresos-guardian.service`,
+  `/usr/lib/systemd/system/session-.scope.d/50-aresos-guardian.conf` and the enablement link
+  `/etc/systemd/system/graphical.target.wants/aresos-guardian.service`. Existing files changed in place are
+  `aresos-desktop`, `aresos-desktop-java`, `aresos-shell` and `aresos-cover` under `/usr/libexec`, plus
+  `/usr/share/aresos/desktop-view.bashrc` and `/usr/share/aresos/labwc/rc.xml`. At runtime the supervisor
+  adds optional keys to `desktop.json`, can write `~/.local/state/aresos/desktop-guard.json` after a guard
+  failure and uses `$XDG_RUNTIME_DIR/aresos/desktop-stopping.json` to keep admission closed during teardown.
+- **Step 8b changes only the verification path.** The fixture holds open a dedicated virtio port from startup.
+  It writes `ready`, `saving` upon receiving the request, and, on boot 1, `answering` before sending the reply.
+  The host checks readiness before the key and accepts the black frame only inside that window. A camera error
+  fails the check and the stopped guest's journal is still extracted. The journal must show the fixture's request,
+  the matching answer on boot 1, Java's exit, the guard's result and teardown in order. Boot 2 must still show
+  the request, silence from the save handler, ignored SIGTERM and a recorded overrun. The image check build now
+  invokes both passes on fresh overlays. All fixture and camera code lives under `os/ci`.
+
+### Verified
+
+**Run 44587459044 at `5bdcd2fd` showed (b), a failure in the host's observation. Whether the guard saved that
+particular boot is undecidable from the retained artifact.**
+
+- The image checks passed. `guardian-arm-result.json` records the guard active and enabled, its 85-second timeout,
+  the four required ordering dependencies, `session-1.scope` ordered before the guard, both scope limits at 15 s,
+  and an accepted fixture hello with an empty app-window list. `prepare-poweroff-result.json` records return code
+  0 and a persistent system journal for that boot. All pixels in the 1280×800 pre-key `last-vm-frame.png`
+  exceeded the host's brightness threshold of 8.
+- `vm-pass-1/serial.log` lines 1394–1396 contain `ARESOS_JOURNAL_READY` (151.829197 s), `ARESOS_POWER_KEY_ARMED`
+  (151.831350 s) and the follower's last journal record, a sync request. Line 1397 switches mid-terminal escape
+  to a status line for the **recorder** stopping. Lines 1399–1401 report the session and user manager stopping.
+  There is no forwarded fixture request, answer or guard result. Line 1559 is `reboot: Power down`.
+  `qmp-events.json` records a guest-requested shutdown 7.152308 s after POWERDOWN. Elapsed time alone cannot
+  establish a five-second save.
+- In that revision `os/ci/vm.py` took the serial byte offset **before** the power key (lines 152–155).
+  `guardian_host.watch` raised on QEMU exit when it could not find the substring in those serial bytes
+  (lines 45–49). That unwound `vm.py` at line 157, before the offline read at line 166. The artifact contains
+  neither the persistent journal export nor `guardian.json`. A missing line on that console could produce the
+  reported assertion even when the fixture answered. The guard's own journal, fixture events and durable stop
+  record from the next boot decide the save question.
+- Replayed `git show 5bdcd2fd:os/ci/guardian_host.py` under `env -i` with `python3 -B`, the archived
+  `serial.log` and a stopped QEMU stand-in. Starting at byte 0 and at byte 128727 (the arming token) both
+  raised `the VM powered off before the game was asked to save`. The entire file contains zero
+  `GUARDIAN_GAME save_asked` markers.
+- The OOM was the earlier pressure check. Serial lines 1374–1375 identify PID 3088, `python3`, in
+  `aresos-ci-pressure.scope`. `shortcut-result.json` records that same PID, 5312 MiB allocated and exit 137.
+  The subsequent arm cleared the latch and found the live fixture connected. The OOM victim was the pressure source.
+- Earlier hosted `checks_only` run 44458416374 succeeded on `bda87419` (regressions and ways-back model).
+  Step 6's headless real-game rig placed blocks, read their region file and reopened the home. Three SIGTERM-only
+  closes exited 143 in 0.67–0.74 s. In three supervisor stops the save took 0.08–0.17 s and the stop finished
+  in 0.75–0.89 s. All 15 blocks checked on reopening were present. The rig commands and per-launch receipts are
+  recorded above under step 6.
+
+Step 8b ran one test module per process from the worktree with this command. `test_path` was `/usr/bin:/bin` or
+the local JDK 25's `bin` prepended to it. Every supervisor in the loop suite used its own runtime and stand-ins.
+
+```sh
+env -i HOME="$PWD/.work/8b/home" TMPDIR="$PWD/.work/8b/tmp" PATH="$test_path" \
+    python3 -B -m unittest discover -s os/tests -p "$module.py"
+```
+
+| Module | Result |
+| --- | --- |
+| `test_aresos_desktop` | 189 tests in 207.301 s and 203.775 s, OK both times (1 skipped, the real user-manager scope test) |
+| `test_aresos_guardian` | 106 tests in 5.536 s, OK |
+| `test_aresos_guardian_loop` | 26 tests in 59.410 s and 60.580 s, OK both times, including both Java fixtures with the guard's shutdown command |
+| `test_guardian_vm` | 17 tests in 0.470 s and 0.489 s, OK both times, including silent serial, missing cue, late frame, wrong answer ID and wiring for both check-build passes |
+| `test_journal_ready` | 6 tests in 0.001 s, OK |
+| `test_console_keymap` | 21 tests in 0.019 s, OK |
+| `test_checkout_sources` | 8 tests in 0.856 s, OK |
+
+The loop exercised the real socket, wrapper and stand-in JVM. The saving JVM answered and closed with 143.
+The hanging JVM received the request, ignored SIGTERM and was still alive at `overrun`. The host tests use
+synthetic journals. `bash -n os/ci/check-build.sh` and `git diff --check` exited 0. Python compiled
+`vm.py`, `guardian_host.py` and the guest's `guardian.py` in memory. The binding refresh command below printed
+`pending: 10 bound files differ from the active bindings, 0 removed`. The worktree has no file over 500 MB in
+`.work/`.
+
+```sh
+python3 -B reviews/27-first-update-release/rebind.py pending '25 step 8b: time VM screenshots from the fixture port and retain the offline journal after a missed frame'
+```
+
+### Not verified
+
+| Hosted VM measurement | Result |
+| --- | --- |
+| Boot 1 guard start, save request and answer, Java exit, guard end, dependent stops and power-off | from the next check build |
+| Boot 2 save request, ignored SIGTERM, guard end, scope kill and power-off | from the next check build |
+
+Step 8b has no shutdown screenshots. The lead's next build must capture the black frame on both boots and tty3 on
+boot 2, with the independent journal and record evidence. Human checks remain for lid-close on the physical laptop,
+scaled or mixed outputs, the laptop home and search at shutdown, and restoring a dated home from the real message
+window. The real-game measurements cover a small flat development world.
+
+### JUDGMENT-CALL
+
+- **Decision 82.** When the supervisor cannot answer, the guard immediately tries to take the desktop lock. A
+  free lock lets a shutdown from the greeter finish without the ten-second recovery wait. A held or unreadable
+  lock still gets the retry and fallback. Waiting before checking would add ten seconds even with no writer.
+  Moving the condition in `guard_command()` would change this choice.
+- **Decision 95 (step 8a).** Both `covering()` and `app_windows()` exclude the laptop home. It is a desktop
+  surface. Counting it as an app would keep the screens lit and refuse logout even with all apps closed.
+  Changing this needs the helper's window filters and their tests. Step 8b adds no owner-facing behavior.
+
+### PLAN-GAP
+
+The check-build entry point selected pass 1 only, though acceptance requires both shutdown scenarios before merge.
+It now runs pass 2 before printing `CHECK_BUILD_VM_PASSED`. For the real-game check, JVM logging ended at
+SIGTERM. Step 6 verified the closing save by reading the newly written block and player data from disk and
+reopening the world.
+
+### Known limits
+
+- A power cut, a forced power-off or a shutdown that skips unit stops can bypass the save. A confirmed flush
+  covers work through the request. Later ticks and Minecraft's own closing save have no separate acknowledgement.
+- Loading, switching home or sitting at the title screen can use the 30-second save allowance and end
+  `unsaved`. Unexpected loss of labwc can take the display away before a save finishes. The supervisor records
+  the result and leaves a hung JVM to systemd during teardown. If the state disk cannot be written, even the
+  fallback can fail.
+- A shutdown with apps open keeps them visible and lets normal teardown close them. A terminal counts as an app,
+  so a logout typed there is refused. An unknown window count also keeps the screens visible and prevents
+  logout. The world can still play sound behind black until Java exits.
+- Before Prism hands off Java, a plain stop can find no writer and a later launch can still start. Shutdown
+  blocks that hand-off. R28 ignores a newer fallback record after rollback. A supervisor that understands the
+  record applies it on a later start.
+- An unfinished first home is recognized by device and inode. Inode reuse could cause a different damaged
+  folder to be moved aside on retry. Filesystems without no-overwrite rename support refuse the move.
+  A damaged or missing world reported ready is logged and stays unready. A hub launch can show slow-start
+  after 120 s. Dated-home lookup checks the 16 newest candidates of each kind.
+- The image check inspects Exec directives in the two shipped system-unit trees. An indirect launch hidden in a
+  differently named script is outside that check.
+
+### Open questions
+
+Does the final check build establish both shutdown orders, the live observations and the recorded outcomes inside
+their time limits? The release requires that result. The old artifact cannot recover the first fixture's answer.
+
+### Exact new texts for the owner
+
+The following are the package's window and command texts. Angle brackets mark substituted values. Recovery
+windows begin with `AresOS: recovery` and a blank line. Step 8b adds only test diagnostics.
+
+`aresos-desktop save` prints one of the following lines.
 
 - `Saved: AresHub is on the disk.`
 - `Not saved: no home is open in Minecraft right now (it is loading, switching homes or closing).`
@@ -839,6 +982,8 @@ Step 8a:
 - `Not saved: Minecraft is not running, or has not connected to AresOS yet.`
 - `Not saved: Minecraft's answer could not be used (<why>).`
 - `Not saved: the AresOS desktop supervisor did not answer (<error>).`
+
+The invalid-answer detail is `the answer names no world` or `the answer is neither a save nor a known refusal`.
 
 Step 2, the windows (`<why>` is one of the `Not saved: …` lines above, or one of the lines below):
 
@@ -897,6 +1042,7 @@ Step 3, `logout`:
 - `Not logged out: this AresOS desktop watches no session of its own that it could end. Nothing was stopped.`
 - `Not logged out: Minecraft keeps running. <why>`
 - `<stop> Not logged out: an app is open now (Mail).`
+- `<stop> Not logged out: 2 apps are open now (Mail, Files).`
 - `<stop> Not logged out: AresOS can no longer tell whether an app is open.`
 - `<stop> Not logged out: the session could not be asked to end.`
 - `<stop> Not logged out: the session did not end within the stop's 60 seconds.`
@@ -922,7 +1068,7 @@ Step 5, the windows:
   `A new home that was still being made, and is complete:` / `  <AresHub-new-date>` /
   `To make that one your home instead:` (alone: `To make it your home:`) /
   `  aresos-desktop use-home <AresHub-new-date>` / `then  retry`.
-  Its next line then begins `Or put the folder back (from a backup), …`; with nothing found the window is unchanged.
+  Its next line then reads `Or put the folder back (from a backup), then type  retry  and press enter to try again.`
 
 Step 5, `use-home` (each refusal begins `Not moved: `):
 
@@ -944,8 +1090,10 @@ Step 5, `use-home` (each refusal begins `Not moved: `):
 
 Step 5, `retry` on `setup_unfinished`: `Moved the unfinished home to AresHub-unfinished-<date> (nothing was
 deleted). State: SETUP`, or `The unfinished home was not moved: <one of the refusals above> Nothing is changed. Type
-retry to try again.` The wrapper's refusal there: `Your first home was not finished; the AresOS window says what to
-do.`
+retry to try again.` The move can also give `AresHub is no longer the folder that was left unfinished.`,
+`AresHub no longer reads as unfinished.`, `A home is one folder inside the worlds folder.` or
+`Every name it could get is taken.` The wrapper's refusal there is `Your first home was not finished; the AresOS
+window says what to do.`
 
 Step 7:
 
@@ -956,7 +1104,8 @@ Step 7:
 - The wrapper's refusal there: `AresOS could not save your home at a shutdown right now, so Minecraft is not
   started; the AresOS window says more.`
 - `unsaved`, three more `<why>` lines: `The AresOS desktop supervisor did not answer when the laptop shut down, and
-  Minecraft was still running.` / `… and AresOS could not tell whether Minecraft was still running.` / (existing)
+  Minecraft was still running.` / `The AresOS desktop supervisor did not answer when the laptop shut down, and
+  AresOS could not tell whether Minecraft was still running.` / (existing)
   `The stop could not be recorded on the disk.`
 - The guard's command (the journal only; nobody sees it): `Nothing to stop: no AresOS session is running.`,
   `Nothing to stop: the AresOS desktop supervisor did not answer (<error>), and no Minecraft holds the desktop
@@ -964,12 +1113,10 @@ Step 7:
   running.` (or `nobody can tell whether Minecraft is still running (<why>).`), followed by `The next start of
   AresOS says so.` or `That could not be recorded either (<error>).`
 
-## What the code does not show
+## Verification notes from steps 1–8a
 
-- **Step 8a: the image rule has not run in an image yet.** Its tests run it on trees made here, and it ran
-  read-only on this laptop's own trees; the next check build's "Throwaway image build and checks" runs it on the
-  branch image. If it stops there, its output names each file and line. The steps after it in that job (every
-  image check after line ~819, then the VM) have not run on this branch yet.
+- **Step 8a image rule.** The next check build, 44587459044, passed the rule and the subsequent image checks.
+  Boot 1 armed the guard. The shutdown evidence ends as described in the report draft.
 - **Known limits of the image rule** (low harm: it is a tripwire for a mistake in the repo, not a guard against an
   attacker with root): it reads `/usr/lib/systemd/system` and `/etc/systemd/system` only, as the old grep did, not
   `/run/systemd`, `/usr/local/lib/systemd/system`, `/etc/systemd/system.control`, user units or generators; a key
