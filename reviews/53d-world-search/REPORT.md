@@ -418,3 +418,10 @@ excluding cases to allowing only safe states). The rebase onto package 56 stays 
   as the judgment call above says.
 - **Text a screen keeps outside the game's text boxes cannot be seen** (another mod's container with a text widget
   of its own). Such a container is replaced, as the brief's "any container screen" says.
+
+### Hosted run (round 2)
+
+One hosted run of the OS checks was started after the last code push (the report's commit `dfc9e08d`; the last code
+commit is `e1f32e0b`) and not watched: `gh workflow run "OS image" --ref pkg/53d-world-search -f checks_only=true`,
+run **44449047755** (https://github.com/Ares-Empire/AresOS/actions/runs/44449047755). Its result is for the lead to
+read.
