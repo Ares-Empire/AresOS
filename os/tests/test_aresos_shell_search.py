@@ -5,7 +5,9 @@ Everything runs in this process: no helper subprocess, no real WAYLAND_DISPLAY o
 import os
 import pathlib
 import select
+import selectors
 import signal
+import socket
 import threading
 import unittest
 from unittest import mock
@@ -243,9 +245,9 @@ class EventTest(SearchBase):
         self.assertEqual(conn.events('shell_covered')[-1]['covered'], True)
         focus = len(conn.events('shell_focus'))
         helper.search()
-        # Activation is asked for and the mod told at once; nothing is minimized before the compositor answers.
+        # Activation is asked for; nothing is minimized and the mod is told nothing before the compositor answers.
         self.assertEqual(self.activations, [1])
-        self.assertEqual(len(conn.events('shell_search')), 1)
+        self.assertEqual(conn.events('shell_search'), [])
         self.assertEqual(self.minimized, [])
         self.assertEqual(len(conn.events('shell_focus')), focus, 'no shell_focus of our own, unlike return_to_desktop')
         self.assertEqual(helper.shell, 'background')
@@ -258,6 +260,9 @@ class EventTest(SearchBase):
         self.assertEqual(self.minimized, [4])
         self.assertEqual(conn.events('shell_focus')[-1], dict(conn.events('shell_focus')[-1], focus='foreground',
                                                               reason='desktop_activated'))
+        # Then the search, after the focus: the world has the keyboard by now.
+        self.assertEqual([event['event'] for event in conn.events() if event['event'] in ('shell_focus', 'shell_search')]
+                         [-2:], ['shell_focus', 'shell_search'])
 
     def test_a_small_window_in_front_is_left_where_it_is(self):
         helper, conn = self.ready()
@@ -310,6 +315,209 @@ class EventTest(SearchBase):
         self.now[0] += 0.02
         helper.search()
         self.assertEqual(len(conn.events('shell_search')), 2)
+
+
+class HandoffTest(SearchBase):
+    """Review 1: the bar opens only once the world really has the keyboard, on current readiness and activation."""
+
+    def setUp(self):
+        super().setUp()
+        # The module quiets the helper's log; these tests read what it says.
+        logging = mock.patch.object(shell.LOG, 'disabled', False)
+        logging.start()
+        self.addCleanup(logging.stop)
+
+    def behind_a_terminal(self):
+        helper, conn = self.ready()
+        helper.windows.state(1, False)
+        helper.windows.done(1)
+        self.show(helper.windows, 2, TERMINAL, active=True, outputs=(MONITOR,))
+        helper.windows_changed()
+        return helper, conn
+
+    def activate_world(self, helper, previous=2):
+        if previous is not None:
+            helper.windows.state(previous, False)
+            helper.windows.done(previous)
+        helper.windows.state(1, True)
+        helper.windows.done(1)
+        helper.windows_changed()
+
+    def test_no_event_while_another_window_is_still_active_and_one_once_the_world_is(self):
+        helper, conn = self.behind_a_terminal()
+        helper.search()
+        self.assertEqual((self.activations, conn.events('shell_search')), ([1], []))
+        # Compositor news that is not the world's activation: the terminal still has the keyboard.
+        self.now[0] += 0.2
+        helper.windows.app_id(2, TERMINAL)
+        helper.windows.done(2)
+        helper.windows_changed()
+        helper.tick()
+        self.assertEqual(conn.events('shell_search'), [])
+        self.now[0] += 0.2
+        self.activate_world(helper)
+        self.assertEqual(len(conn.events('shell_search')), 1)
+        # Once: a later activation of the world (a click, Alt+Tab) is not Super.
+        self.now[0] += 2
+        helper.windows.state(1, False)
+        helper.windows.done(1)
+        helper.windows.state(2, True)
+        helper.windows.done(2)
+        helper.windows_changed()
+        self.activate_world(helper)
+        self.assertEqual(len(conn.events('shell_search')), 1)
+
+    def test_nothing_when_the_world_does_not_get_the_keyboard_within_a_second(self):
+        helper, conn = self.behind_a_terminal()
+        helper.search()
+        self.now[0] += shell.SEARCH_ACTIVATION + 0.01
+        with self.assertLogs(shell.LOG, 'WARNING') as logs:
+            helper.tick()
+        self.assertIn('did not give the world the keyboard', '\n'.join(logs.output))
+        self.activate_world(helper)
+        self.assertEqual(conn.events('shell_search'), [])
+        # Also when the late activation comes before the next tick.
+        self.now[0] += 1
+        helper.windows.state(1, False)
+        helper.windows.done(1)
+        helper.windows.state(2, True)
+        helper.windows.done(2)
+        helper.windows_changed()
+        helper.search()
+        self.now[0] += shell.SEARCH_ACTIVATION + 0.01
+        with self.assertLogs(shell.LOG, 'INFO') as logs:
+            self.activate_world(helper)
+        self.assertIn('too late', '\n'.join(logs.output))
+        self.assertEqual(conn.events('shell_search'), [])
+
+    def test_readiness_taken_back_while_waiting_sends_nothing(self):
+        helper, conn = self.behind_a_terminal()
+        helper.search()
+        self.assertTrue(self.call(helper, conn, 'heartbeat', instance=INSTANCE, nonce=NONCE, ready=False)['ok'])
+        self.activate_world(helper)
+        self.assertEqual(conn.events('shell_search'), [])
+        # The desktop reconnected meanwhile: the new connection has not said its world is ready.
+        self.now[0] += 1
+        helper, conn = self.behind_a_terminal()
+        helper.search()
+        replacement = self.desktop(helper, ready=False)
+        self.activate_world(helper)
+        self.assertEqual((conn.events('shell_search'), replacement.events('shell_search')), ([], []))
+
+    def test_no_uncover_on_the_last_active_handle_alone(self):
+        # The world was active last, then no window is (a menu or a launcher of the compositor's own has the keyboard),
+        # and a maximized window hides the world.
+        helper, conn = self.ready()
+        self.show(helper.windows, 4, NOTEPAD, outputs=(MONITOR,), maximized=True)
+        helper.windows.state(1, False)
+        helper.windows.done(1)
+        helper.windows_changed()
+        self.assertIsNone(helper.windows.active())
+        self.assertEqual(helper.active_handle, 1)
+        helper.search()
+        self.assertEqual((self.activations, self.minimized, conn.events('shell_search')), ([1], [], []))
+        # The compositor's activation is the current one: now it uncovers, and the search opens.
+        self.activate_world(helper, previous=None)
+        self.assertEqual((self.minimized, len(conn.events('shell_search'))), ([4], 1))
+
+    def test_an_activation_that_never_comes_minimizes_nothing(self):
+        helper, conn = self.ready()
+        self.show(helper.windows, 4, NOTEPAD, outputs=(MONITOR,), maximized=True)
+        helper.windows.state(1, False)
+        helper.windows.done(1)
+        helper.windows_changed()
+        helper.search()
+        self.now[0] += shell.SEARCH_ACTIVATION + 0.01
+        helper.tick()
+        self.assertEqual((self.minimized, conn.events('shell_search')), ([], []))
+
+
+class WaylandWriteTest(SearchBase):
+    """Review 1, should-fix 2: a full compositor socket never ends the helper; a closed one is a lost compositor."""
+
+    def client(self, sock):
+        windows = shell.Windows(self.clock)
+        client = shell.ForeignToplevels(sock, windows)
+        client.kinds.update({1000: 'toplevel'})
+        client.seat = client._new('seat')
+        return client
+
+    def test_a_blocked_write_is_queued_and_a_partial_one_keeps_its_rest(self):
+        sock = mock.Mock()
+        sock.send.side_effect = lambda data: len(data)
+        client = self.client(sock)
+        sock.send.side_effect = BlockingIOError()
+        self.assertTrue(client.activate(1000))
+        self.assertTrue(client.minimize(1000))
+        activate = shell.struct.pack('=III', 1000, (12 << 16) | 4, client.seat)
+        minimize = shell.struct.pack('=II', 1000, (8 << 16) | 2)
+        self.assertEqual(bytes(client.outbuf), activate + minimize)
+        # The socket takes five bytes, then is full again: the rest stays queued, in order.
+        sock.send.side_effect = [5, BlockingIOError()]
+        client.flush()
+        self.assertEqual(bytes(client.outbuf), (activate + minimize)[5:])
+        written = []
+        sock.send.side_effect = lambda data: written.append(bytes(data)) or len(data)
+        client.flush()
+        self.assertEqual((client.outbuf, written), (bytearray(), [(activate + minimize)[5:]]))
+
+    def test_a_closed_compositor_socket_is_a_lost_compositor(self):
+        sock = mock.Mock()
+        sock.send.side_effect = lambda data: len(data)
+        client = self.client(sock)
+        for error in (BrokenPipeError(), ConnectionResetError()):
+            with self.subTest(error=type(error).__name__):
+                sock.send.side_effect = error
+                with self.assertRaises(shell.WaylandError):
+                    client.activate(1000)
+
+    def test_super_over_a_full_socket_queues_the_activation_and_the_loop_sends_it_later(self):
+        ours, theirs = socket.socketpair()
+        self.addCleanup(ours.close)
+        self.addCleanup(theirs.close)
+        helper = self.start()
+        wayland = self.client(ours)
+        theirs.recv(65536)
+        ours.setblocking(False)
+        # The compositor is not reading: fill the socket up.
+        try:
+            while True:
+                ours.send(b'\0' * 65536)
+        except BlockingIOError:
+            pass
+        helper.activate_window, helper.minimize_window = wayland.activate, wayland.minimize
+        conn = self.desktop(helper)
+        self.show(helper.windows, 1000, GAME, outputs=(MONITOR,))
+        self.show(helper.windows, 2, TERMINAL, active=True, outputs=(MONITOR,))
+        helper.windows_changed()
+        server = shell.Server(os.path.join(self.folder.name, 'run', 'shell.sock'), helper, wayland)
+        self.addCleanup(server.close)
+        helper.search()   # no BlockingIOError escapes
+        request = shell.struct.pack('=III', 1000, (12 << 16) | 4, wayland.seat)
+        self.assertEqual(bytes(wayland.outbuf), request)
+        server.step(timeout=0)
+        self.assertEqual(server.selector.get_key(ours).events, selectors.EVENT_READ | selectors.EVENT_WRITE)
+        # The compositor reads again: the loop writes the queued request, whole and in order, and stops watching.
+        theirs.setblocking(False)
+        received = bytearray()
+        for _ in range(100):
+            try:
+                while True:
+                    received += theirs.recv(1 << 20)
+            except BlockingIOError:
+                pass
+            server.step(timeout=0.05)
+            if not wayland.outbuf:
+                break
+        try:
+            while True:
+                received += theirs.recv(1 << 20)
+        except BlockingIOError:
+            pass
+        self.assertTrue(received.endswith(request), received[-16:])
+        self.assertEqual(wayland.outbuf, bytearray())
+        self.assertEqual(server.selector.get_key(ours).events, selectors.EVENT_READ)
+        self.assertEqual(conn.events('shell_search'), [])
 
 
 class ScreenHintTest(SearchBase):

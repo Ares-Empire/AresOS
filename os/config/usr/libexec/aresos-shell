@@ -180,6 +180,9 @@ LATER_CAPABILITIES = DETAIL_CAPABILITIES | {'shell_covered'}
 SEARCH_CAPABILITIES = frozenset({'shell_search'})
 # Signals this close together are one press of Super: the search opens once.
 SEARCH_COALESCE = 0.3
+# How long Super waits for the compositor to report the world activated before it gives up: shell_search goes out only
+# once the world really has the keyboard, so typing never reaches the window that had it (review 1, blocking 1).
+SEARCH_ACTIVATION = 1.0
 # open_app's "screen" hint (1.2, minor-2 desktop only): the screen that shows the world.
 SCREENS = frozenset({'world'})
 # The launch secrets stay with the desktop; launched apps never inherit them,
@@ -2697,6 +2700,9 @@ class ForeignToplevels:
         self.sock = sock
         self.windows = windows
         self.buffer = bytearray()
+        # Requests the socket did not take yet, in order: once it is non-blocking a write can stop part-way, and the
+        # rest goes out when the socket is writable again (Server.step), never dropped and never raised.
+        self.outbuf = bytearray()
         self.next_id = 2
         self.kinds = {1: 'display'}
         self.globals = {}
@@ -2737,8 +2743,20 @@ class ForeignToplevels:
         return object_id
 
     def _send(self, object_id, opcode, payload=b''):
-        message = struct.pack('=II', object_id, ((8 + len(payload)) << 16) | opcode) + payload
-        self.sock.sendall(message)
+        self.outbuf += struct.pack('=II', object_id, ((8 + len(payload)) << 16) | opcode) + payload
+        self.flush()
+
+    def flush(self):
+        """Write what the socket takes now. A full socket keeps the rest queued (review 1, should-fix 2): a raised
+        BlockingIOError would have ended the helper. A compositor that went away takes the compositor-loss path."""
+        while self.outbuf:
+            try:
+                sent = self.sock.send(self.outbuf)
+            except BlockingIOError:
+                return
+            except OSError as error:
+                raise WaylandError(f'lost the compositor connection while writing: {error}') from error
+            del self.outbuf[:sent]
 
     @staticmethod
     def string(value):
@@ -3033,6 +3051,8 @@ class Helper:
         self.last_heartbeat = None
         # When Super last asked for the search over the world (package 53d), for coalescing.
         self.search_at = None
+        # Super asked the compositor to activate the world: until when shell_search waits for that activation.
+        self.search_pending = None
         self.reconcile()
         if windows is not None:
             # The compositor has listed its windows by now: tie restarted launches to them, then take stock.
@@ -3793,6 +3813,7 @@ class Helper:
         self.refresh_catalogue()
         self.checks_answered()
         now = self.clock()
+        self.search_expired(now)
         for conn in list(self.connections):
             if not conn.authenticated and now - conn.opened > HELLO_TIMEOUT:
                 conn.finish()
@@ -3995,8 +4016,11 @@ class Helper:
             # not his choice, so the window it gave the focus to is not minimized (review 1, finding 2).
             kept = (self.kept is not None and self.kept[0] == previous_handle
                     and now - self.kept[1] <= KEEP_WINDOW)
-            if previous_handle is not None and previous_handle != active.handle and not kept:
-                # Alt+Tab, a click or our own return: he wants the world, so it must not stay hidden. Not at
+            # Super's activation of the world (package 53d). It uncovers also when the world was the last window
+            # active before no window was, which the rule below does not see as a change.
+            searched = self.search_activated()
+            if (previous_handle is not None and previous_handle != active.handle and not kept) or searched:
+                # Alt+Tab, a click, Super or our own return: he wants the world, so it must not stay hidden. Not at
                 # start-up (no previous window), and not for a restored desktop that gave the focus back above.
                 self.uncover()
             # The compositor already returned us. A pending close must not later
@@ -4008,6 +4032,9 @@ class Helper:
             if self.shell == 'background':
                 self.shell = 'foreground'
                 self.emit('shell_focus', focus='foreground', reason='desktop_activated')
+            if searched:
+                LOG.info('Super: the search over the world')
+                self.emit('shell_search')
             return
         if returned or (self.returning_until is not None and now <= self.returning_until):
             # The compositor's own pick after the close; the desktop's activation is on its way.
@@ -4091,6 +4118,20 @@ class Helper:
         return [t for t in self.windows.toplevels.values()
                 if t.ready and t.owner is None and t.app_id != LAPTOP_HOME_APP_ID]
 
+    def search_blocked(self):
+        """Why Super cannot open the search over the world now, or None. Read again when the world's activation comes:
+        only the current state counts (review 1, should-fix 1)."""
+        conn = self.desktop
+        if conn is None or conn.closing or conn.minor < 2 or 'shell_search' not in conn.capabilities:
+            return 'no desktop that offered shell_search on aresos-shell/1.2'
+        if not conn.world_ready:
+            return 'its world is not ready'
+        if self.windows is None:
+            return 'window tracking is off'
+        if not self.windows.of(Windows.SHELL):
+            return "the world's window is not known"
+        return None
+
     def search(self):
         """Super (package 53d): the world gets the keyboard, then the mod opens its search over the world.
 
@@ -4098,42 +4139,54 @@ class Helper:
         minor-2 desktop that offered shell_search, with window tracking and the world's window known; otherwise Super
         does nothing. Not return_to_desktop: that tells the mod an app closed and marks the world in front before the
         compositor does. Here the compositor's activation of the world comes back through follow_windows like a
-        click on it, whose uncover() minimizes a maximized or fullscreen window hiding the world on its screen.
+        click on it, which uncovers the world and only then sends shell_search (search_activated): the bar never
+        opens while another window still has the keyboard (review 1, blocking 1).
         """
         now = self.clock()
         if self.search_at is not None and now - self.search_at < SEARCH_COALESCE:
             return
         self.search_at = now
-        conn = self.desktop
-        world = self.windows.of(Windows.SHELL) if self.windows is not None else []
-        if conn is None or conn.closing or conn.minor < 2 or 'shell_search' not in conn.capabilities:
-            why = 'no desktop that offered shell_search on aresos-shell/1.2'
-        elif not conn.world_ready:
-            why = 'its world is not ready'
-        elif self.windows is None:
-            why = 'window tracking is off'
-        elif not world:
-            why = "the world's window is not known"
-        else:
-            why = None
+        why = self.search_blocked()
         if why is not None:
             LOG.info('Super ignored: %s', why)
             return
         active = self.windows.active()
-        if active is None or active.owner != Windows.SHELL:
-            if self.activate_window is None or not self.activate_window(world[-1].handle):
-                LOG.warning("Super ignored: the world's window could not be activated")
-                return
-            # His own choice, as a click on the world is: a restored desktop's rule of handing the focus back to the
-            # window in front (B2) must neither undo it nor keep uncover() from running.
-            self.keep_foreground = False
-            self.kept = None
-        if self.active_handle in {toplevel.handle for toplevel in world}:
-            # follow_windows uncovers when the active window changes to the world. It already is the world (or was
-            # the last window active), so no change will come: uncover here, by the same rule.
+        if active is not None and active.owner == Windows.SHELL:
+            # The compositor reports the world active now, so no activation will come: uncover by the same rule as
+            # follow_windows does, and the world already has the keyboard. Never on the last active handle alone: with
+            # no window active the world does not have the keyboard (review 1, should-fix 1).
+            self.search_pending = None
             self.uncover()
-        LOG.info('Super: the search over the world')
-        self.emit('shell_search')
+            LOG.info('Super: the search over the world')
+            self.emit('shell_search')
+            return
+        world = self.windows.of(Windows.SHELL)
+        if self.activate_window is None or not self.activate_window(world[-1].handle):
+            LOG.warning("Super ignored: the world's window could not be activated")
+            return
+        # His own choice, as a click on the world is: a restored desktop's rule of handing the focus back to the window
+        # in front (B2) must neither undo it nor keep the world from being uncovered.
+        self.keep_foreground = False
+        self.kept = None
+        self.search_pending = now + SEARCH_ACTIVATION
+
+    def search_activated(self):
+        """The compositor reports the world active while Super waits for it: whether to uncover and send shell_search.
+        Once only, and only if the search may still open now."""
+        deadline, self.search_pending = self.search_pending, None
+        if deadline is None:
+            return False
+        why = 'the world got the keyboard too late' if self.clock() > deadline else self.search_blocked()
+        if why is not None:
+            LOG.info('Super dropped: %s', why)
+            return False
+        return True
+
+    def search_expired(self, now):
+        if self.search_pending is not None and now > self.search_pending:
+            self.search_pending = None
+            LOG.warning('Super: the compositor did not give the world the keyboard within %.0f s; no search',
+                        SEARCH_ACTIVATION)
 
     def return_to_desktop(self, app):
         """The foreground app's last relevant window closed: give the hub its focus back."""
@@ -4321,6 +4374,7 @@ class Server:
         self.selector.register(self.listener, selectors.EVENT_READ, 'listener')
         if wayland is not None:
             self.selector.register(wayland.sock, selectors.EVENT_READ, 'wayland')
+        self.wayland_events = selectors.EVENT_READ
         self.selector.register(helper.watcher.reader, selectors.EVENT_READ, 'scopes')
         if search is not None and search.reader is not None:
             self.selector.register(search.reader, selectors.EVENT_READ, 'search')
@@ -4362,6 +4416,16 @@ class Server:
         if self.search is not None and self.search.take():
             self.helper.search()
         self.helper.tick()
+        self.watch_wayland()
+
+    def watch_wayland(self):
+        """Wake for the compositor socket's writability only while requests wait for it."""
+        if self.wayland is None:
+            return
+        events = selectors.EVENT_READ | (selectors.EVENT_WRITE if self.wayland.outbuf else 0)
+        if events != self.wayland_events:
+            self.selector.modify(self.wayland.sock, events, 'wayland')
+            self.wayland_events = events
 
     def handle(self, key, mask):
         """One selector event: a new client, compositor news, scope answers or client traffic."""
@@ -4369,8 +4433,11 @@ class Server:
             self.accept()
             return
         if key.data == 'wayland':
-            self.wayland.readable()
-            self.helper.windows_changed()
+            if mask & selectors.EVENT_WRITE:
+                self.wayland.flush()
+            if mask & selectors.EVENT_READ:
+                self.wayland.readable()
+                self.helper.windows_changed()
             return
         if key.data == 'scopes':
             self.helper.scopes_answered()
