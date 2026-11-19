@@ -1,6 +1,6 @@
 # Package 25, the guardian: progress
 
-Updated after **step 1** (2026-11-19). Builder: a Claude agent on Fable 5.2, one fresh agent per step.
+Updated after **step 2** (2026-11-19). Builder: a Claude agent on Fable 5.2, one fresh agent per step.
 Brief: `briefs/25-guardian.md`; its last section ("The lead's fixes after the recheck") overrides the rest.
 
 ## Done
@@ -36,9 +36,45 @@ os/tests -p '<module>.py'`):
 One existing assertion changed: the game's exact environment in
 `test_the_game_runs_on_nvidia_only_when_its_driver_is_there` now includes the gate. `test_aresos_cover.py` and the `test_aresos_shell*.py` modules were not touched or run.
 
+**Step 2: section 2, the one stop routine, with 3.3's `stop` to drive it** (`os/config/usr/libexec/aresos-desktop`).
+
+- **2.1** `STOP_BUDGET` 60 s, absolute (`Stop.deadline`); the save phase ends at `STOP_SAVE_WAIT` 30 s. Every phase is
+  logged with its time since the stop began (`log_phase`: `stop (kind) +1.23 s: …`), to `desktop.log` and, through
+  the supervisor's stderr, to the journal. Cleanup: `kill_and_leave()` in `stop_helper`, `close_view` and
+  `end_covers` waits 1 s after SIGKILL and then leaves the process to the system.
+- **2.2** `request_stop(kind, done)`: `stop`, `restart`, `logout` can be called off (`CALLED_OFF_KINDS`), `shutdown`
+  cannot. `Runner.system_stopping()` asks `systemctl is-system-running` (2 s).
+- **2.3** The record is the optional key `stop` in `desktop.json` (`Persisted.stop`; schema stays 1), written with
+  `write_durable()` (file and folder fsynced) before the save is asked and at each phase: `{open, launch, instance,
+  kind, started, phase, save, why, sigterm, close, status, ended}`.
+- **2.4** `step_save()`; **2.5** `step_close()` and `Runner.signal_jvm()` (`signal.pidfd_send_signal` on the watched
+  pidfd, SIGTERM only), then the launch's end and `jvm_lock_held()`; **2.6** the reply: `ok`, `result` (`confirmed`,
+  `unsaved`, `called_off`), `kind`, `save`, `close` (`exited`, `failed`, `overrun`, `called_off`, `none`),
+  `recorded`, `seconds`, `message`.
+- **2.7** `conclude()` hands a launch that an open record names to `conclude_stopped()`: `stopped`, nothing counted,
+  no restart, no `killed` latch, no scope query. `stop_overrun()` at the deadline: no signal, record `overrun`,
+  window `stuck` (plain stop) or no window (shutdown).
+- **2.8** While a stop runs `on_jvm_start`, `begin` and `retry` refuse; a launch in hand-off is waited for; later
+  `stop` ops join (`make_final()` for a shutdown that joins), `save` ops join through `ask_save()`. A replacement
+  supervisor: `resume_stop()` after `adopt()`.
+- **2.9** `close_stale_stop()` at a start; the latch `unsaved` (set in `close_record()`, shown at once only when the
+  session is not ending); `held()` keeps `save_failed`, `stuck` and `guard` through heartbeats, the start timeout
+  and a helper failure.
+- **The lead's fix 2** `block_admission()`, `blocked()`, `unblock_admission()`: the file
+  `$XDG_RUNTIME_DIR/aresos/desktop-stopping.json`, written when a `shutdown` or `logout` stop begins (also with
+  nothing running) and before its record can close. A blocked start enters `STOPPING` with no window.
+- **3.3 `stop`** Socket op `stop` (`reason: shutdown` or none; anything else `bad_reason`) and `aresos-desktop stop
+  [--reason shutdown]`, one 70 s deadline; exit 0 only for a confirmed, recorded stop whose close `exited`, or when
+  nothing is running. After a plain stop the `quit` window. `status` has `stopping` and `stop` (the record).
+
+| Module (step 2, run by name as above) | Result |
+|---|---|
+| `test_aresos_guardian.py` | 43 tests, OK (17 new: `StopTest`) |
+| `test_aresos_guardian_loop.py` | 10 tests, OK, 19 s (3 new: a confirmed stop, four saves that fail, a game that ignores SIGTERM for both kinds), no process left behind |
+| `test_aresos_desktop.py` | 189 tests, OK (1 skipped), 175 s, no assertion changed |
+
 ## Left, in order
 
-2. Section 2, with 3.3's `stop` to drive it.
 3. 3.2 and 3.3: the signal wake-up, labwc, `restart`, `logout`, the windows' texts.
 4. 3.4: the black screen, the helper's `windows` event, the lid block.
 5. Section 4.
@@ -78,6 +114,41 @@ One existing assertion changed: the game's exact environment in
     from a file beside them, so no test variable rides in the environment. A process is signalled only if its
     `/proc/<pid>/environ` names the test's runtime folder.
 
+Step 2:
+
+12. **A closed record stays in `desktop.json`** (`open: false`, with `save`, `close`, `status`, `ended`) as the last
+    stop's outcome until the next stop replaces it, so the VM can read "confirmed and exited" offline. Only an open
+    record names a launch.
+13. **"Clearly not stopping"** is `initializing`, `starting`, `running`, `degraded` or `maintenance`: systemd answers
+    `stopping` before any of them. `stopping` is yes; anything else, an error or no answer in 2 s stays a shutdown.
+14. **The admission block is bound to the instance and to the session's labwc** (`LABWC_PID` from the supervisor's own
+    environment, with its start ticks; only looked at). The runtime folder, and the instance in it, can outlive a
+    session; by the instance alone an old block would keep the next session's desktop from ever starting. Without a
+    live `LABWC_PID` it is bound to the instance alone. A block that cannot be read is no block.
+15. **Every stop asks its save with reason `shutdown`** (the game is about to be closed).
+16. **Only `no_channel`, `no_world` and `server_stopping` are asked again.** `lost`, `timeout`, `invalid`,
+    `wrong_world`, `not_desktop_world` and `error` are not confirmed at once. The next ask goes out only if a whole
+    second still fits before the save deadline, so with the real numbers a save phase gives up after 29 s.
+17. **Java gone before the save was confirmed** is `stopped` with the latch `unsaved`, for every kind. The one
+    exception is the wrapper's own word that Java never ran (a failed start): nothing to save.
+18. **A stop that could not be recorded answers `ok: false`, `recorded: false`**, also when it was saved and exited
+    (the lead's fix 1: the guard then takes its fallback path).
+19. **"Nothing is running" needs a free desktop lock too.** With the lock held by a game this supervisor cannot see,
+    a stop that can be called off is; a shutdown writes a record with `launch: null`, answers `unsaved`, `failed`,
+    and the next start latches `unsaved`.
+20. **A plain stop with nothing running** calls off a pending backoff restart and shows `quit`, unless a message
+    window already shows something else. It writes no record.
+21. **The close is `exited` by the status alone (143).** Java gone but the lock still held at the deadline is
+    `overrun`.
+22. **A stop asked for after an overrun is a new stop**: a new 60 s and a new record (a second SIGTERM at most).
+23. **A `save` that joined** hears the stop's last save result when the stop ends (`no_channel` if none was asked).
+24. **The texts of `save_failed`, `stuck` and `unsaved` exist now**, because step 2 enters them; step 3 owns the
+    windows' final texts and `desktop-view.bashrc`.
+25. **`retry` on `stuck` or `save_failed` with the game alive** clears the window, as for every other window.
+26. **The game scope's result is not asked for a stopped launch**: `scope_result()` can block up to 10 s.
+27. **R28's key list is frozen from this branch's `Persisted` without `stop`** (`R28_KEYS`, `r28_load` in the test).
+    It was not compared with R28's image: no tag of it is in this checkout. The lead should confirm it.
+
 **New texts** (the `save` command prints them; for the report's list):
 
 - `Saved: AresHub is on the disk.`
@@ -93,6 +164,36 @@ One existing assertion changed: the game's exact environment in
 - `Not saved: Minecraft's answer could not be used (<why>).`
 - `Not saved: the AresOS desktop supervisor did not answer (<error>).`
 
+Step 2, the windows (`<why>` is one of the `Not saved: …` lines above, or one of the lines below):
+
+- `save_failed`: `Minecraft was not stopped, because your home could not be confirmed as saved first.` / `<why>` /
+  `Minecraft keeps running and nothing is lost.` / `Type  retry  and press Enter to close this window.`
+- `stuck`: `Minecraft was asked to close, but it is still running after 60 seconds.` / `AresOS stopped waiting. It
+  never ends Minecraft by force and starts no second one meanwhile.` / `Once Minecraft has closed, type  retry  and
+  press enter to try again.`
+- `unsaved`: `The last time Minecraft was stopped, AresOS could not confirm that your home was saved first.` /
+  `<why>` / `What you built in the last minutes before that stop may be missing.` / `Your home opens as it is on the
+  disk.` / `Type  retry  and press Enter to open it.`
+- More `<why>` lines: `The stop could not be recorded on the disk.`, `Not saved: Minecraft could not be asked in
+  time.`, `Not saved: the stop ran out of time before the home was saved.`, `Not saved: a Minecraft that AresOS
+  cannot see holds the desktop lock.`, `Minecraft ended before your home was confirmed as saved.`, `The stop ran
+  out of its 60 seconds before Minecraft was asked to close.`
+
+Step 2, the `stop` command and `retry`:
+
+- `Stopped: the home was saved first; Minecraft closed.` (or `there was nothing to save`)
+- `Nothing to stop: Minecraft is not running.`
+- `Not stopped: Minecraft keeps running. <why>`
+- `Not a confirmed stop: <the home was saved first | there was nothing to save | the home could not be confirmed as
+  saved first>; <Minecraft closed | Minecraft ended, but not by closing in its own orderly way | Minecraft did not
+  close within 60 seconds, so AresOS stopped waiting (it never ends Minecraft by force)>. <why>`, with ` The stop
+  could not be recorded on the disk.` after it when it could not.
+- `Not stopped: the AresOS desktop supervisor did not answer (<error>).`
+- `retry`: `AresOS is stopping Minecraft right now. Type retry again when that is done.` and `AresOS is shutting
+  down or logging out, so nothing is started any more.`
+- The wrapper's refusal: `AresOS is stopping, so Minecraft is not started now.` `status`: `AresOS is stopping
+  Minecraft.`
+
 ## What the code does not show
 
 - **For step 2: where a save's callback runs.** `done(SaveResult)` can run inside `conclude()` (a launch's end closes
@@ -103,9 +204,30 @@ One existing assertion changed: the game's exact environment in
   for a replacement supervisor's first seconds. The wrapper reports `jvm_started` long before the mod loads, so in
   the real game the first hello is normally accepted; the stand-in game connects earlier and shows the refused-then-
   accepted path.
-- **A planned SIGTERM is still a crash.** Nothing of section 2 exists: a game ended by SIGTERM (143) is counted and
-  restarted after the backoff, `Loop.close()` still waits without a limit, and signals are still noticed late.
-- **`desktop.json` has no new keys yet**, so the test through R28's frozen key list is step 2's.
+- **For step 3: signals are still noticed late and still only set `loop.stopping`.** A stop that runs then loses
+  its callers' replies and the game is left as it is. The seam: `request_stop('shutdown', done)` begins or joins a
+  stop (`make_final()` makes a running one final), and the loop may exit once `done` ran. `Loop.close()` can take
+  5 + 1 s (helper), 5 + 1 s (window) and 2 + 1 s (covers): it has to fit inside the one deadline.
+- **For step 3: `restart` and `logout`.** `request_stop()` takes both kinds already (called off like `stop`, the
+  record's kind, the block for `logout`). Missing is what follows `finish_stop()`: the new start, and labwc.
+  `finish_stop()` removes the block for a `logout` that does not go on (not confirmed, or its close not `exited` or
+  `none`) and leaves it otherwise. A replacement supervisor turns both into a plain stop (`resume_stop()`).
+- **What shows after a stop is decided only in `finish_stop()` and `settle_stopped()`.** While a stop runs, or the
+  state is `STOPPING`, or a sticky window shows, `held()` is true and `ready()`, the start timeout and a helper
+  failure change no state. Step 4's black screen belongs to the same two places.
+- **"Due now" is never `self.clock()`.** `tick()` reads the clock first; a later reading is not due, and the loop
+  then spins until the deadline. The loop test found exactly that; `stop_due()` returns `stop.started` for "at
+  once", and one test runs a stop on a clock that moves between two readings.
+- **A stop while Prism has not handed the game over** finds nothing running and ends at once. After a plain stop
+  Prism may still start the game a moment later (admitted like a start by hand); after a shutdown the block
+  refuses it. A known limit for the report.
+- **An unwritable state folder**: the record's writes are caught (`record_stop()`); `settle()` and `latch()` after
+  the stop still raise as before, and `finish_stop()` logs that.
+- **The stop's times with the stand-in game were not measured** beyond "the command answers in well under a second";
+  the report's numbers come from the real game (step 6) and the VM.
+- **The loop harness, more:** the file `control/ignore-term` makes the stand-in game ignore SIGTERM;
+  `start(SYSTEMCTL=<a script that prints stopping>)` gives systemd's word; `self.games()` counts every game ever
+  started; `STOP_BUDGET` and `STOP_SAVE_WAIT` can be set through `start()`.
 - **`SAVE_WAIT` is read when `request_save()` is called**, so a test can change it; `request()`'s default timeout is
   bound when the function is defined.
 - **The loop test's harness** (`test_aresos_guardian_loop.py`): `start(**numbers)` sets module numbers such as

@@ -63,6 +63,17 @@ ready, else the locked world) reached the disk, with the request's id and on
 the connection the request went out on. `aresos-desktop save` (socket op
 `save`) asks for one and exits 0 only then. No reply blocks the loop: a peer
 that does not take its line at once is dropped.
+
+One stop routine (package 25, brief section 2): `aresos-desktop stop` (socket
+op `stop`) ends the game on purpose, inside one deadline of 60 s. A stop record
+goes into desktop.json first; then the active world is saved and the answer
+checked; then Java gets SIGTERM through its pidfd, and the supervisor waits
+for its real exit and for the desktop lock. A launch that ends while a stop
+record names it is `stopped`: never counted, restarted or latched `killed`.
+A stop is confirmed (saved, or nothing to save) or unsaved. A plain stop whose
+save is not confirmed is called off and the game keeps running; `stop --reason
+shutdown` cannot be called off, closes anyway and latches `unsaved` for the
+next start. The supervisor never sends SIGKILL to the game.
 """
 import argparse
 import dataclasses
@@ -188,8 +199,32 @@ SAVE_REFUSALS = ('no_world', 'not_desktop_world', 'server_stopping', 'error')
 SAVE_WAIT = 60.0
 COMMAND_WAIT = 70.0
 REQUEST_WAIT = 10.0
+# One stop routine (package 25, brief section 2). One absolute deadline from the first request of a stop to its end;
+# the save phase gets at most STOP_SAVE_WAIT of it, and a refusal that passes by itself is asked again each second.
+# Starting values (2.1): the report says what the VM and the real game took.
+STOP_BUDGET = 60.0
+STOP_SAVE_WAIT = 30.0
+STOP_ASK_AGAIN = 1.0
+STOP_LOCK_CHECK = 0.2
+# The first three kinds can be called off until SIGTERM is sent; a shutdown cannot (2.2). A shutdown or a logout ends
+# the session: from its start no launch is admitted any more (the lead's fix 2).
+CALLED_OFF_KINDS = ('stop', 'restart', 'logout')
+SESSION_ENDING_KINDS = ('shutdown', 'logout')
+# What passes by itself (2.4): a game that is loading, switching homes, closing by itself or reconnecting.
+SAVE_PASSING = ('no_world', 'server_stopping')
+# `systemctl is-system-running`: each of these says that no shutdown is queued (systemd answers `stopping` before any
+# of them). Anything else, an error or no answer within SYSTEM_STATE_WAIT is no clear answer.
+SYSTEM_NOT_STOPPING = ('initializing', 'starting', 'running', 'degraded', 'maintenance')
+SYSTEM_STATE_WAIT = 2.0
+# Cleanup never waits without a limit (2.1): what is still there this long after SIGKILL is left to the system.
+CLEANUP_KILL_WAIT = 1.0
+# Java's exit status after SIGTERM when its shutdown hooks ran (Minecraft's stops the server, which saves once more).
+JAVA_SIGTERM_EXIT = 143
+# Windows that are no latch but stay until `retry` or the session's end (2.9): a heartbeat must not close them.
+STICKY = ('save_failed', 'stuck', 'guard')
 
 SETUP, STARTING, IN_WORLD, AUTH_REQUIRED, RECOVERY = 'SETUP', 'STARTING', 'IN_WORLD', 'AUTH_REQUIRED', 'RECOVERY'
+STOPPING = 'STOPPING'  # a stop runs, or the session is ending: no message window, and nothing starts (section 2)
 SIGKILL = 9  # signal.SIGKILL, spelled out so the tests also load this file on Windows
 SIGKILL_STATUSES = (-SIGKILL, 128 + SIGKILL)
 
@@ -266,6 +301,11 @@ class Paths:
         return os.path.join(self.run_dir, 'desktop.lock')
 
     @property
+    def stop_block(self):
+        # While it names this session, no launch is admitted (package 25, the lead's fix 2). It ends with the folder.
+        return os.path.join(self.run_dir, 'desktop-stopping.json')
+
+    @property
     def view_text(self):
         return os.path.join(self.run_dir, 'desktop-view.txt')
 
@@ -288,6 +328,17 @@ def write_atomic(path, data, mode=0o644):
         except FileNotFoundError:
             pass
         raise
+
+
+def write_durable(path, data, mode=0o644):
+    """write_atomic, and the folder's entry on the disk too, as the wrapper writes its exit record (package 25,
+    2.3): what a stop recorded must still be there after the power went off."""
+    write_atomic(path, data, mode)
+    folder = os.open(os.path.dirname(path), os.O_RDONLY | os.O_DIRECTORY)
+    try:
+        os.fsync(folder)
+    finally:
+        os.close(folder)
 
 
 # ---------------------------------------------------------------- pinned inputs
@@ -860,6 +911,11 @@ class Persisted:
     # supervisor restores it and still applies a matching late report or exit record, exactly once (review 4,
     # finding 2), also after a reboot (review 5, finding 3). {launch, pid, ticks, accepted, mode, nonce}
     unresolved: dict = None
+    # The stop record (package 25, 2.3), an optional key: written before a stop asks for its save and kept true at
+    # each phase. {open, launch, instance, kind, started, phase, save, why, sigterm, close, status, ended}. While
+    # `open` it names a launch that a stop is ending: that launch's end is `stopped`, whatever its status. Closed,
+    # it stays as the last stop's outcome until the next stop.
+    stop: dict = None
 
     @classmethod
     def load(cls, path):
@@ -879,13 +935,16 @@ class Persisted:
                    hub_seen=bool(data.get('hub_seen')),
                    accounted=data.get('accounted') if isinstance(data.get('accounted'), str) else None,
                    disposition=data.get('disposition') if isinstance(data.get('disposition'), dict) else None,
-                   unresolved=data.get('unresolved') if isinstance(data.get('unresolved'), dict) else None)
+                   unresolved=data.get('unresolved') if isinstance(data.get('unresolved'), dict) else None,
+                   stop=data.get('stop') if isinstance(data.get('stop'), dict) else None)
 
-    def save(self, path):
+    def save(self, path, durable=False):
         data = dict(schema=1, latched=self.latched, reason=self.reason, detail=self.detail,
                     consecutive=self.consecutive, failures=self.failures, hub_seen=self.hub_seen,
                     accounted=self.accounted, disposition=self.disposition, unresolved=self.unresolved)
-        write_atomic(path, json.dumps(data, indent=2) + '\n', 0o600)
+        if self.stop is not None:
+            data['stop'] = self.stop  # schema 1 with an optional key: an older supervisor never reads it
+        (write_durable if durable else write_atomic)(path, json.dumps(data, indent=2) + '\n', 0o600)
 
     def record_failure(self, now):
         """B2: count one unexpected failure; returns (latch, backoff seconds)."""
@@ -1060,6 +1119,60 @@ def save_reply(result):
                 message=save_text(result))
 
 
+# ---------------------------------------------------------------- stops (package 25, brief section 2)
+
+
+@dataclasses.dataclass
+class Stop:
+    """One stop while it runs. What must outlive this supervisor is the stop record in desktop.json."""
+    kind: str             # stop, restart, logout (can be called off) or shutdown (cannot)
+    started: float        # on the supervisor's clock
+    deadline: float       # absolute: nothing that joins the stop extends it
+    save_deadline: float
+    launch: str = None
+    callers: list = dataclasses.field(default_factory=list)       # each hears the stop's reply once, at its end
+    save_callers: list = dataclasses.field(default_factory=list)  # `save` ops that joined: the stop's save result
+    phase: str = 'save'   # save, then close
+    save: str = None      # saved, nothing (to save), or why it is not confirmed
+    why: str = ''
+    result: object = None  # the last SaveResult
+    answer: object = None  # a SaveResult the save's callback noted; step_stop reads it
+    asking: bool = False
+    ask_at: float = None
+    sigterm: bool = False
+    ended: bool = False   # the launch's end is accounted for
+    close: str = None     # exited, failed, overrun, called_off, or none (nothing was running)
+    lock_at: float = None
+    recorded: bool = True
+
+
+def call_back(done, value):
+    try:
+        done(value)
+    except Exception:  # one caller's failure must never take the supervision or another caller's answer down
+        LOG.exception('a caller\'s answer failed')
+
+
+def stop_text(stop, confirmed):
+    """One line for whoever asked for the stop."""
+    if stop.close == 'none':
+        text = 'Nothing to stop: Minecraft is not running.'
+    elif stop.close == 'called_off':
+        text = f'Not stopped: Minecraft keeps running. {stop.why}'
+    else:
+        saved = {'saved': 'the home was saved first', 'nothing': 'there was nothing to save'}.get(
+            stop.save, 'the home could not be confirmed as saved first')
+        closed = {'exited': 'Minecraft closed',
+                  'failed': 'Minecraft ended, but not by closing in its own orderly way',
+                  'overrun': f'Minecraft did not close within {int(STOP_BUDGET)} seconds, so AresOS stopped waiting '
+                             '(it never ends Minecraft by force)'}[stop.close]
+        lead = 'Stopped' if confirmed and stop.close == 'exited' else 'Not a confirmed stop'
+        text = f'{lead}: {saved}; {closed}.' + ('' if confirmed or not stop.why else ' ' + stop.why)
+    if stop.recorded or stop.close == 'called_off':  # a stop called off for that reason has said so
+        return text
+    return text + ' The stop could not be recorded on the disk.'
+
+
 # ---------------------------------------------------------------- messages
 
 
@@ -1073,6 +1186,8 @@ RETRY = 'Type  retry  and press Enter to try again.'
 
 def message(state, reason, detail, lock, persisted):
     world = f'~/.local/share/aresos/worlds/{lock["world"]}'
+    if state == STOPPING:
+        return 'AresOS is stopping Minecraft.\n'  # no window shows it; `status` and `explain` do
     if state == SETUP:
         steps = ('1. Prism Launcher opens. Sign in there with your own Microsoft account.\n'
                  '2. Minecraft is downloaded (a few minutes the first time) and starts.\n'
@@ -1130,6 +1245,15 @@ def message(state, reason, detail, lock, persisted):
         'state': f'The desktop\'s own state file could not be read ({detail}).\n\n{RETRY}',
         'locked': (f'Minecraft for the desktop is still running from before ({detail}).\n'
                    'Close it, then ' + RETRY.lower()),
+        'save_failed': ('Minecraft was not stopped, because your home could not be confirmed as saved first.\n'
+                        f'{detail}\n\nMinecraft keeps running and nothing is lost.\n'
+                        'Type  retry  and press Enter to close this window.'),
+        'stuck': (f'Minecraft was asked to close, but it is still running after {int(STOP_BUDGET)} seconds.\n'
+                  'AresOS stopped waiting. It never ends Minecraft by force and starts no second one meanwhile.\n\n'
+                  'Once Minecraft has closed, ' + RETRY.lower()),
+        'unsaved': ('The last time Minecraft was stopped, AresOS could not confirm that your home was saved first.\n'
+                    f'{detail}\n\nWhat you built in the last minutes before that stop may be missing.\n'
+                    'Your home opens as it is on the disk.\n\n' + RETRY.replace('try again', 'open it')),
     }
     return 'AresOS: recovery\n\n' + texts.get(reason, f'{reason}: {detail}\n\n{RETRY}') + '\n'
 
@@ -1176,6 +1300,9 @@ class Supervisor:
         self.save_ids = 0
         self.save_flight = None
         self.save_waiting = None
+        # The stop that runs (package 25, section 2), and whether this supervisor wrote or found the admission block.
+        self.stop = None
+        self.admission_blocked = False
 
     # -- persistence
 
@@ -1313,10 +1440,17 @@ class Supervisor:
         first = not runtime.get('instance')
         self.instance = runtime.get('instance') or 'aresdesktop-' + secrets.token_hex(6)
         if self.adopt(runtime):
+            self.resume_stop()  # a stop the previous supervisor began on this game is called off or goes on (2.8)
             return
         # A game that ended while no supervisor ran is accounted for exactly once before anything starts again.
         self.account_for(runtime)
+        self.close_stale_stop()  # a stop record still open whose launch is gone (2.9)
         self.restore_unresolved()
+        if self.blocked():
+            # The session is ending (a shutdown or logout began in it): nothing starts and no window opens. A latch
+            # stays persisted for the next session.
+            self.enter(STOPPING, 'session')
+            return
         if self.persisted.latched:
             self.enter(RECOVERY, self.persisted.reason, self.persisted.detail)
             return
@@ -1437,6 +1571,11 @@ class Supervisor:
         the startup cover over a hub launch; never over setup or an automatic restart (B2: a cover on top would hide
         the app in front)."""
         self.retry_at = None
+        if self.stop is not None or self.blocked():
+            LOG.info('nothing is started: AresOS is stopping')  # 2.8, and the lead's fix 2
+            if self.stop is None:
+                self.enter(STOPPING, 'session')
+            return
         if self.persisted.disposition is not None:
             self.persisted.disposition = None
             self.save()
@@ -1509,7 +1648,7 @@ class Supervisor:
                 # Readiness can no longer be known: say so, without touching the game.
                 launch.ready = False
                 self.healthy_since = None
-                if not self.persisted.latched:
+                if not self.persisted.latched and not self.held():
                     self.enter(RECOVERY, 'helper')
             return
         self.helper_restart_at = self.clock() + HELPER_RESTART
@@ -1558,7 +1697,7 @@ class Supervisor:
         if launch.mode == 'setup' and world == self.lock['world']:
             launch.mode = 'hub'
             self.save_runtime()
-        if self.state != IN_WORLD and not self.persisted.latched:
+        if self.state != IN_WORLD and not self.persisted.latched and not self.held():
             LOG.info('in the world %s', world)
             self.enter(IN_WORLD)
 
@@ -1588,6 +1727,8 @@ class Supervisor:
 
     def on_jvm_start(self, request):
         """The wrapper asks for its launch: (ok, reply fields). Every JVM passes the same gate."""
+        if self.stop is not None or self.blocked():
+            return False, {'message': 'AresOS is stopping, so Minecraft is not started now.'}
         if self.persisted.latched:
             return False, {'message': 'The AresOS desktop is in recovery. Type retry in its window first.'}
         if request.get('instance') != self.lock['instance']:
@@ -1782,6 +1923,10 @@ class Supervisor:
         self.persisted.accounted = launch.id
         self.persisted.unresolved = None
         status, reason = (end.status, end.reason) if end is not None else (None, None)
+        record = self.open_stop()
+        if record is not None and record.get('launch') == launch.id:
+            # 2.7: decided from the supervisor's own record, never from the status or from who sent a signal.
+            return self.conclude_stopped(end)
         if end is None:
             kind = 'unexplained'
         elif status is None:
@@ -1891,6 +2036,8 @@ class Supervisor:
             items.append(((self.last_heartbeat or self.clock()) + HEARTBEAT_GAP, self.heartbeats_stopped))
         if self.healthy_since is not None and (self.persisted.consecutive or self.persisted.failures):
             items.append((self.healthy_since + HEALTHY_RESET, self.healthy_reset))
+        if self.stop is not None:
+            items.append((self.stop_due(), self.step_stop))
         for request in (self.save_flight, self.save_waiting):
             if request is not None:
                 items += [(caller.deadline, self.save_timed_out) for caller in request.callers]
@@ -1943,7 +2090,8 @@ class Supervisor:
     def start_timed_out(self):
         self.launch.timed_out = True
         LOG.warning('launch %s: no ready world after %d s; the game keeps running', self.launch.id, START_TIMEOUT)
-        self.enter(RECOVERY, 'slow_start')
+        if not self.held():
+            self.enter(RECOVERY, 'slow_start')
 
     def heartbeats_stopped(self):
         """Lost readiness shows; the game is left alone and the view closes when heartbeats return."""
@@ -1962,6 +2110,10 @@ class Supervisor:
 
     def retry(self):
         """The owner's Retry: (ok, message). After a memory kill it waits for cleared pressure (B5)."""
+        if self.stop is not None:
+            return False, 'AresOS is stopping Minecraft right now. Type retry again when that is done.'
+        if self.blocked():
+            return False, 'AresOS is shutting down or logging out, so nothing is started any more.'
         if self.persisted.latched and self.persisted.reason == 'killed':
             value = self.sample_pressure()
             clear = 0.0 if self.pressure_clear_since is None else self.clock() - self.pressure_clear_since
@@ -2009,6 +2161,8 @@ class Supervisor:
                     helper=self.runner.helper_running(), cover=self.cover,
                     # Whether the game's lifecycle hello is accepted (package 25, 1.2): saves can be asked for.
                     lifecycle=self.lifecycle_peer() is not None,
+                    # Whether a stop runs, and the stop record: the open one, or the last stop's outcome (2.3).
+                    stopping=self.stop is not None, stop=self.persisted.stop,
                     message=self.message() if self.state else '')
 
     # -- the lifecycle channel (package 25, brief section 1)
@@ -2210,6 +2364,445 @@ class Supervisor:
             tell_caller(caller, result)
 
 
+    # -- one stop routine (package 25, brief section 2)
+
+    def held(self):
+        """Whether what shows must stay as it is: a stop runs or the session is ending (no window, and nothing is
+        declared running), or a window shows that stays until `retry` (2.9: a heartbeat must not close it)."""
+        return (self.stop is not None or self.state == STOPPING
+                or (self.state == RECOVERY and self.reason in STICKY))
+
+    def in_handoff(self):
+        launch = self.launch
+        return launch is not None and launch.accepted and not launch.reported and not launch.failed
+
+    def open_stop(self):
+        """The stop record while it is open (it names a launch that a stop is ending), or None."""
+        record = self.persisted.stop
+        return record if isinstance(record, dict) and record.get('open') is True else None
+
+    def record_stop(self, **changes):
+        """Keep the stop record true (2.3): in desktop.json, file and folder fsynced, before the stop goes on.
+        False: it could not be written."""
+        self.persisted.stop = dict(self.persisted.stop or {}, **changes)
+        try:
+            self.persisted.save(self.paths.state_file, durable=True)
+        except OSError as error:
+            LOG.error('the stop record could not be written: %s', error)
+            return False
+        return True
+
+    def log_phase(self, stop, text):
+        """Every stop logs its phases with their times (2.1): desktop.log, and the journal through stderr."""
+        LOG.info('stop (%s) +%.2f s: %s', stop.kind, self.clock() - stop.started, text)
+
+    # The admission block (the lead's fix 2).
+
+    def session_key(self):
+        """What binds the admission block to this session: its instance, and the session's labwc (PID and start
+        ticks) when LABWC_PID names a live process. The runtime folder can outlive a session (another login of the
+        same user keeps it), and the instance with it; a new session has another labwc, so an old block never holds
+        there. The PID is only looked at, never signalled."""
+        labwc = None
+        try:
+            pid = int(self.environ.get('LABWC_PID', ''))
+            identity = self.runner.identify(pid)
+            labwc = [pid, identity[1]] if identity is not None else None
+        except ValueError:
+            pass
+        return dict(instance=self.instance, labwc=labwc)
+
+    def blocked(self):
+        """Whether a shutdown or logout began in this session: then no launch, retry or hand-off is admitted until
+        the session ends, by this supervisor or by one that replaces it."""
+        if self.admission_blocked:
+            return True
+        try:
+            with open(self.paths.stop_block, encoding='utf-8') as source:
+                data = json.load(source)
+        except (OSError, ValueError):
+            return False
+        key = self.session_key()
+        self.admission_blocked = (isinstance(data, dict) and data.get('instance') == key['instance']
+                                  and data.get('labwc') == key['labwc'])
+        return self.admission_blocked
+
+    def block_admission(self, kind):
+        """Written when a stop that ends the session begins, before its launch's record can close."""
+        if self.blocked():
+            return
+        self.admission_blocked = True  # this supervisor holds it even if the file cannot be written
+        try:
+            write_atomic(self.paths.stop_block,
+                         json.dumps(dict(self.session_key(), kind=kind, since=self.wall())) + '\n', 0o600)
+        except OSError as error:
+            LOG.error('the admission block could not be written (%s); it holds for this supervisor only', error)
+        LOG.info('the session is ending (%s): nothing is started any more', kind)
+
+    def unblock_admission(self):
+        """A stop that would have ended the session was called off or did not end it: launches are admitted again."""
+        if not self.blocked():
+            return
+        self.admission_blocked = False
+        try:
+            os.unlink(self.paths.stop_block)
+        except FileNotFoundError:
+            pass
+        except OSError as error:
+            LOG.error('the admission block could not be removed: %s', error)
+
+    # Requests.
+
+    def ask_save(self, reason, done):
+        """The socket op `save`. While a stop runs it joins the stop (2.8): nothing starts a second save, and the
+        caller hears the stop's save result when the stop ends."""
+        if self.stop is not None:
+            self.stop.save_callers.append(done)
+        else:
+            self.request_save(reason, done)
+
+    def request_stop(self, kind, done):
+        """End the game on purpose (section 2): the record, the save and its answer, SIGTERM to Java, its real exit
+        and the desktop lock, all inside one deadline. `done(reply)` is called once, when the stop has ended.
+
+        `kind` is `stop`, `restart` or `logout` (called off when the save is not confirmed: the game keeps running)
+        or `shutdown` (it closes anyway, recorded as unsaved). A request that arrives while a stop runs joins it:
+        no second stop, no second save, the deadline stays, and a `shutdown` makes it one that cannot be called
+        off."""
+        if kind == 'shutdown' and self.runner.system_stopping() is False:
+            LOG.info('a shutdown stop was asked for, but systemd says the system is not stopping: a plain stop')
+            kind = 'stop'
+        stop = self.stop
+        if stop is not None:
+            stop.callers.append(done)
+            if kind == 'shutdown' and stop.kind != 'shutdown':
+                self.make_final(stop)
+            return
+        now = self.clock()
+        stop = self.stop = Stop(kind, now, now + STOP_BUDGET, now + STOP_SAVE_WAIT, callers=[done])
+        if kind in SESSION_ENDING_KINDS:
+            self.block_admission(kind)
+        self.retry_at = None  # no backoff restart fires (2.8); a stop that is called off has a game that runs
+        launch = self.launch
+        running = (launch is not None and not launch.failed
+                   and (launch.jvm_pid is not None or (launch.accepted and not launch.reported)))
+        unseen = not running and self.runner.jvm_lock_held()
+        if not running and not unseen:
+            # Positive evidence that nothing is running: no Java, none in hand-off, and the desktop lock is free.
+            # Such a stop writes no record (2.9).
+            stop.save, stop.close = 'nothing', 'none'
+            self.log_phase(stop, 'nothing is running')
+            self.finish_stop()
+            return
+        stop.launch = launch.id if running else None
+        self.log_phase(stop, f'begins for launch {stop.launch}')
+        previous = self.persisted.stop
+        self.persisted.stop = None
+        if not self.record_stop(open=True, launch=stop.launch, instance=self.instance, kind=kind,
+                                started=self.wall(), phase='save', save=None, why='', sigterm=False, close=None):
+            stop.recorded = False
+            if kind in CALLED_OFF_KINDS:
+                self.persisted.stop = previous
+                self.call_off('The stop could not be recorded on the disk.')
+                return
+        self.enter(STOPPING, kind)
+        if unseen:
+            # A game this supervisor cannot see holds the desktop lock: it can be neither asked nor closed.
+            self.stop_unconfirmed('unseen', 'Not saved: a Minecraft that AresOS cannot see holds the desktop lock.')
+            if self.stop is stop:
+                stop.close = 'failed'
+                if not self.record_stop(save=stop.save, why=stop.why, close='failed'):
+                    stop.recorded = False
+                self.finish_stop()
+            return
+        self.step_stop()
+
+    def make_final(self, stop):
+        """A `stop --reason shutdown` (or, from step 3, the session's signal) joined a stop that could be called
+        off: it no longer can."""
+        self.log_phase(stop, 'a shutdown joined: the stop can no longer be called off')
+        stop.kind = 'shutdown'
+        self.block_admission('shutdown')
+        if self.open_stop() is not None and not self.record_stop(kind='shutdown'):
+            stop.recorded = False
+        self.enter(STOPPING, 'shutdown')
+
+    # The phases. step_stop() goes on as far as it can without waiting; stop_due() says when it can go on again.
+
+    def stop_due(self):
+        stop, launch = self.stop, self.launch
+        # "At once" is a time that has passed on every later reading of the clock: tick() compares it with its own
+        # reading, taken before this one.
+        now = stop.started
+        gone = launch is not None and launch.jvm_ended is not None  # the pidfd fired; conclude() comes in a moment
+        if stop.phase == 'save':
+            if self.in_handoff() or gone:
+                due = stop.deadline
+            elif stop.answer is not None:
+                due = now
+            elif stop.asking:
+                due = stop.save_deadline
+            else:
+                due = now if stop.ask_at is None else stop.ask_at
+        elif stop.ended:
+            due = now if stop.lock_at is None else stop.lock_at
+        else:
+            due = stop.deadline if stop.sigterm or gone else now
+        return min(due, stop.deadline)
+
+    def step_stop(self):
+        stop, now = self.stop, self.clock()
+        if now >= stop.deadline:
+            self.stop_overrun()
+            return
+        if stop.phase == 'save':
+            self.step_save(stop, now)
+        if self.stop is stop and stop.phase == 'close':
+            self.step_close(stop, now)
+
+    def step_save(self, stop, now):
+        """2.4, in its order: nothing to save (only on positive evidence), saved, what passes by itself (asked
+        again each second until the save deadline), and anything else: not confirmed."""
+        if self.in_handoff() or self.launch.jvm_ended is not None:
+            return  # a launch in hand-off is waited for and then closed (2.8); a Java that is gone is concluded
+        answer, stop.answer = stop.answer, None
+        if answer is None and stop.asking:
+            if now < stop.save_deadline:
+                return
+            answer = self.save_result('timeout')  # save_timed_out() says the same at this moment
+        stop.asking = False
+        if answer is None:
+            if stop.ask_at is not None and now < stop.ask_at:
+                return
+            if self.no_world_folder():
+                self.stop_saved(stop, 'nothing', 'The worlds folder holds no folder at all.')
+            elif now >= stop.save_deadline:
+                self.stop_unconfirmed('timeout', 'Not saved: Minecraft could not be asked in time.')
+            else:
+                stop.asking = True
+                # The callback only notes the answer (it can run inside conclude() or before this returns).
+                self.request_save('shutdown', lambda result: setattr(stop, 'answer', result),
+                                  wait=stop.save_deadline - now)
+            return
+        stop.result = answer
+        if answer.saved:
+            self.stop_saved(stop, 'saved', save_text(answer))
+            return
+        passing = answer.result == 'no_channel' or (answer.result == 'refused' and answer.reason in SAVE_PASSING)
+        if passing and now + STOP_ASK_AGAIN < stop.save_deadline:
+            stop.ask_at = now + STOP_ASK_AGAIN
+            return
+        self.stop_unconfirmed(answer.reason or answer.result, save_text(answer))
+
+    def no_world_folder(self):
+        """Positive evidence that there is nothing to save: the worlds folder was listed and holds no folder (nor a
+        link that could be one). A folder that cannot be listed is unknown, never empty."""
+        try:
+            with os.scandir(self.paths.worlds) as entries:
+                return not any(entry.is_symlink() or entry.is_dir(follow_symlinks=False) for entry in entries)
+        except OSError:
+            return False
+
+    def stop_saved(self, stop, save, why):
+        stop.save, stop.why, stop.phase = save, why, 'close'
+        self.log_phase(stop, f'the save is confirmed ({save}): {why}')
+
+    def stop_unconfirmed(self, save, why):
+        """The save is not confirmed (2.4): a stop that can be called off is; one that cannot closes anyway."""
+        stop = self.stop
+        stop.save, stop.why = save, why
+        self.log_phase(stop, f'the save is not confirmed ({save}): {why}')
+        if stop.kind in CALLED_OFF_KINDS:
+            self.call_off(why)
+        else:
+            stop.phase = 'close'
+
+    def step_close(self, stop, now):
+        """2.5: SIGTERM to Java through its pidfd, then its real exit, then the desktop lock."""
+        if not stop.ended:
+            if stop.sigterm or self.launch.jvm_ended is not None:
+                return  # waiting for the exit, or for a Java that went by itself to be concluded
+            # The record says SIGTERM before it is sent: from here the stop can no longer be called off (2.3).
+            if not self.record_stop(phase='close', save=stop.save, why=stop.why, sigterm=True):
+                stop.recorded = False
+                if stop.kind in CALLED_OFF_KINDS:
+                    self.persisted.stop['sigterm'] = False
+                    self.call_off('The stop could not be recorded on the disk.')
+                    return
+            stop.sigterm = True
+            sent = self.runner.signal_jvm()
+            self.log_phase(stop, 'SIGTERM sent to Java' if sent else 'SIGTERM could not be sent to Java (no pidfd)')
+            return
+        if self.runner.jvm_lock_held():
+            stop.lock_at = now + STOP_LOCK_CHECK  # the wrapper has not let go of the desktop lock yet
+            return
+        self.finish_stop()
+
+    def call_off(self, why):
+        """Before SIGTERM only: the game keeps running as an ordinary launch, and a window says why (2.4)."""
+        stop = self.stop
+        stop.why, stop.close = why, 'called_off'
+        self.log_phase(stop, 'called off; Minecraft keeps running')
+        if self.open_stop() is not None:
+            self.record_stop(open=False, phase='called_off', save=stop.save, why=why, close='called_off',
+                             ended=self.wall())
+        self.finish_stop()
+
+    def stop_overrun(self):
+        """The deadline (2.7): the supervisor stops waiting and never kills. Java, or the lock, is still there."""
+        stop = self.stop
+        if not stop.sigterm and not stop.ended and stop.kind in CALLED_OFF_KINDS:
+            self.call_off(f'The stop ran out of its {int(STOP_BUDGET)} seconds before Minecraft was asked to close.')
+            return
+        if stop.save is None:
+            stop.save, stop.why = 'timeout', 'Not saved: the stop ran out of time before the home was saved.'
+        stop.close = 'overrun'
+        self.log_phase(stop, 'the deadline: no longer waiting; nothing is killed')
+        if isinstance(self.persisted.stop, dict) and self.persisted.stop.get('launch') == stop.launch:
+            self.record_stop(phase='overrun', save=stop.save, why=stop.why, close='overrun')
+        self.finish_stop()
+
+    def finish_stop(self):
+        """The stop has ended: what shows next is decided here, never while it ran, and every caller hears it."""
+        stop, self.stop = self.stop, None
+        confirmed = stop.save in ('saved', 'nothing')
+        took = self.clock() - stop.started
+        result = 'called_off' if stop.close == 'called_off' else 'confirmed' if confirmed else 'unsaved'
+        LOG.info('stop (%s) ended after %.2f s: %s, close %s%s', stop.kind, took, result, stop.close,
+                 '' if stop.recorded else '; it could not be recorded')
+        try:
+            if stop.kind == 'logout' and not (confirmed and stop.close in ('exited', 'none')):
+                self.unblock_admission()  # a logout that does not go on: the session stays (step 3 logs out)
+            if stop.kind == 'shutdown' or self.blocked():
+                # The session is ending: no window. The supervisor exits when the session's signal comes; if Java
+                # is still there, the system's teardown ends it (2.7).
+                self.enter(STOPPING, 'overrun' if stop.close == 'overrun' else 'session')
+            elif stop.close == 'called_off':
+                self.enter(RECOVERY, 'save_failed', stop.why)
+            elif stop.close == 'overrun':
+                self.enter(RECOVERY, 'stuck')
+            elif self.persisted.latched:
+                self.enter(RECOVERY, self.persisted.reason, self.persisted.detail)
+            elif stop.close != 'none' or self.state not in (SETUP, AUTH_REQUIRED, RECOVERY):
+                self.settle(RECOVERY, 'quit')
+        except OSError as error:
+            LOG.error('after the stop: %s', error)
+        reply = dict(ok=confirmed and stop.close in ('exited', 'none') and stop.recorded, result=result,
+                     kind=stop.kind, save=stop.save, close=stop.close, recorded=stop.recorded,
+                     seconds=round(took, 2), message=stop_text(stop, confirmed))
+        for done in stop.callers:
+            call_back(done, reply)
+        for done in stop.save_callers:
+            call_back(done, stop.result if stop.result is not None else self.save_result('no_channel'))
+
+    # The launch's end, and the record across supervisors.
+
+    def close_record(self, end, save, why, never_ran=False):
+        """The launch the open stop record names is gone: the record closes with what the stop came to, in the
+        same write as the accounting. Returns (save, close, why). `never_ran`: no JVM of this launch was ever
+        reported to this supervisor."""
+        status = end.status if end is not None else None
+        if save not in ('saved', 'nothing') and never_ran and end is not None and status is None:
+            # Positive evidence (2.4): the wrapper's own word for a start that did not become a game, and no JVM
+            # was ever handed over.
+            save, why = 'nothing', 'Java never ran.'
+        overran = self.persisted.stop.get('close') == 'overrun'
+        close = 'overrun' if overran else 'exited' if status == JAVA_SIGTERM_EXIT else 'failed'
+        if save not in ('saved', 'nothing'):
+            why = why or 'Minecraft ended before your home was confirmed as saved.'
+            # The latch `unsaved` (2.9), persisted here; whether a window shows it is the caller's.
+            self.persisted.latched, self.persisted.reason, self.persisted.detail = True, 'unsaved', why
+            self.persisted.disposition = None
+        self.record_stop(open=False, phase='ended', save=save, why=why, close=close, status=status,
+                         ended=self.wall())
+        return save, close, why
+
+    def conclude_stopped(self, end):
+        """conclude() for a launch that an open stop record names (2.7): `stopped`. Never counted, never restarted
+        by backoff, never latched `killed`, whatever its status, also for a supervisor that adopted the game."""
+        launch, stop = self.launch, self.stop
+        record = self.persisted.stop
+        mine = stop is not None and stop.launch == launch.id
+        save, why = record.get('save'), record.get('why')
+        if mine:
+            if stop.phase == 'save' and stop.answer is not None and stop.answer.saved:
+                # Answered before Java ended, read only now.
+                stop.save, stop.why, stop.result = 'saved', save_text(stop.answer), stop.answer
+            save, why = stop.save, stop.why
+        save, close, why = self.close_record(end, save, why, never_ran=not launch.reported)
+        LOG.info('launch %s ended: stopped (%s%s); save %s, close %s', launch.id,
+                 describe_status(end.status if end is not None else None),
+                 f'; {end.reason}' if end is not None and end.reason else '', save, close)
+        self.save_runtime()
+        if mine:
+            stop.ended, stop.phase, stop.save, stop.why, stop.close = True, 'close', save, why or '', close
+        else:
+            self.settle_stopped(record)
+        return 'stopped'
+
+    def close_stale_stop(self, settle=True):
+        """2.9, at a start: a record still open whose launch is gone is closed. The launch is `stopped`, and
+        `unsaved` is latched if its save was not confirmed."""
+        record = self.open_stop()
+        if record is None:
+            return
+        launch_id = record.get('launch')
+        if self.launch is not None and self.launch.id == launch_id and not self.launch.failed:
+            return  # its start is still waited for (account_for_start); conclude() closes the record
+        LOG.info('a stop (%s) of launch %s was still open; its launch is gone', record.get('kind'), launch_id)
+        if isinstance(launch_id, str):
+            self.persisted.accounted = launch_id
+        self.close_record(self.record_facts(launch_id) if isinstance(launch_id, str) else None,
+                          record.get('save'), record.get('why'))
+        if settle:
+            self.settle_stopped(record)
+
+    def settle_stopped(self, record):
+        """A stopped launch ended and no stop runs here any more (it overran, or another supervisor began it)."""
+        mine = record.get('instance') == self.instance and record.get('kind') != 'shutdown'
+        if self.state is None:
+            # start() goes on: it shows a latch, restores this session's decision, or begins as a new session does.
+            if mine and not self.persisted.latched:
+                self.persisted.disposition = dict(instance=self.instance, launch=record.get('launch'),
+                                                  state=RECOVERY, reason='quit', detail='', retry_after=None)
+                self.save()
+        elif self.blocked():
+            self.enter(STOPPING, 'session')
+        elif self.persisted.latched:
+            self.enter(RECOVERY, self.persisted.reason, self.persisted.detail)
+        elif mine:
+            self.settle(RECOVERY, 'quit')
+
+    def resume_stop(self):
+        """2.8: this supervisor replaced one in the middle of a stop and adopted its game. A stop that can be
+        called off and had not sent SIGTERM is called off; any other goes on inside what is left of its deadline
+        (by the record's start), and a `restart` or `logout` cut this way ends as a plain stop does."""
+        record = self.open_stop()
+        if record is None:
+            return
+        if record.get('launch') != self.launch.id:
+            self.close_stale_stop(settle=False)
+            return
+        kind = record.get('kind')
+        if kind == 'logout':
+            self.unblock_admission()  # cut this way it ends as a plain stop does: the session stays
+        if kind in CALLED_OFF_KINDS and record.get('sigterm') is not True:
+            LOG.info('the stop (%s) the previous supervisor began is called off; Minecraft keeps running', kind)
+            self.record_stop(open=False, phase='called_off', close='called_off', ended=self.wall())
+            return
+        started = record.get('started')
+        gone = self.wall() - started if type(started) in (int, float) else STOP_BUDGET
+        begun = self.clock() - min(max(gone, 0.0), STOP_BUDGET)
+        stop = Stop('shutdown' if kind == 'shutdown' else 'stop', begun, begun + STOP_BUDGET,
+                    begun + STOP_SAVE_WAIT, launch=self.launch.id)
+        if record.get('sigterm') is True:
+            stop.phase, stop.sigterm = 'close', True
+            stop.save, stop.why = record.get('save'), str(record.get('why') or '')
+        self.stop = stop
+        self.log_phase(stop, f'goes on after a supervisor restart ({kind}, phase {stop.phase})')
+        self.enter(STOPPING, stop.kind)
+
+
 # ---------------------------------------------------------------- processes and the event loop
 
 
@@ -2219,6 +2812,16 @@ def set_parent_death_signal(signum):
     libc = ctypes.CDLL(None, use_errno=True)
     if libc.prctl(1, signum, 0, 0, 0) != 0:  # PR_SET_PDEATHSIG
         raise OSError(ctypes.get_errno(), 'prctl(PR_SET_PDEATHSIG) failed')
+
+
+def kill_and_leave(process, what):
+    """SIGKILL, then at most CLEANUP_KILL_WAIT for it to be gone: cleanup never waits without a limit (package 25,
+    2.1). What is still there after that is left to the system."""
+    process.kill()
+    try:
+        process.wait(CLEANUP_KILL_WAIT)
+    except subprocess.TimeoutExpired:
+        LOG.warning('%s is still there %d s after SIGKILL; it is left to the system', what, CLEANUP_KILL_WAIT)
 
 
 class Runner:
@@ -2264,8 +2867,7 @@ class Runner:
             try:
                 helper.wait(5)
             except subprocess.TimeoutExpired:
-                helper.kill()
-                helper.wait()
+                kill_and_leave(helper, 'the app helper')
 
     # Prism
     def start_prism(self, command, env):
@@ -2335,6 +2937,30 @@ class Runner:
         finally:
             os.close(fd)
 
+    def signal_jvm(self):
+        """SIGTERM to Java through the pidfd the loop watches (package 25, 2.5): never a PID from a file, never
+        through the wrapper, never SIGKILL. False: there is no such pidfd, or the process is gone."""
+        if self.jvm_fd is None:
+            return False
+        try:
+            signal.pidfd_send_signal(self.jvm_fd, signal.SIGTERM)
+        except OSError:
+            return False
+        return True
+
+    def system_stopping(self):
+        """Whether the system is shutting down, on systemd's clear word only (2.2): True, False, or None for no
+        clear answer within SYSTEM_STATE_WAIT."""
+        try:
+            done = subprocess.run([SYSTEMCTL, 'is-system-running'], capture_output=True, text=True,
+                                  stdin=subprocess.DEVNULL, timeout=SYSTEM_STATE_WAIT)
+        except (OSError, subprocess.SubprocessError):
+            return None
+        state = done.stdout.strip()
+        if state == 'stopping':
+            return True
+        return False if state in SYSTEM_NOT_STOPPING else None
+
     # the startup cover (package 23b)
     def start_cover(self, again):
         """The cover, a child of the supervisor (its scope, never the game's), with the views' cleaned environment.
@@ -2393,8 +3019,7 @@ class Runner:
             try:
                 cover.wait(max(0.0, deadline - time.monotonic()))
             except subprocess.TimeoutExpired:
-                cover.kill()
-                cover.wait()
+                kill_and_leave(cover, 'a startup cover')
 
     # views
     def show_view(self, text):
@@ -2420,8 +3045,7 @@ class Runner:
                 try:
                     view.wait(5)
                 except subprocess.TimeoutExpired:
-                    view.kill()
-                    view.wait()
+                    kill_and_leave(view, 'the message window')
 
 
 class Peer:
@@ -2626,6 +3250,8 @@ class Loop:
             return self.lifecycle_hello(peer, request)
         if op == 'save':
             return self.save_op(peer, request)
+        if op == 'stop':
+            return self.stop_op(peer, request)
         if op == 'status':
             return dict(ok=True, **supervisor.status())
         if op == 'retry':
@@ -2661,7 +3287,17 @@ class Loop:
         if reason not in SAVE_REASONS:
             return {'ok': False, 'error': 'bad_reason',
                     'message': 'a save\'s reason is one of: ' + ', '.join(SAVE_REASONS)}
-        self.supervisor.request_save(reason, lambda result: self.reply(peer, save_reply(result)))
+        self.supervisor.ask_save(reason, lambda result: self.reply(peer, save_reply(result)))
+        return None
+
+    def stop_op(self, peer, request):
+        """Socket op `stop` (3.3; `reason: shutdown` for one that cannot be called off). The reply comes when the
+        stop has ended, so nothing waits here."""
+        reason = request.get('reason')
+        if reason not in (None, 'manual', 'shutdown'):
+            return {'ok': False, 'error': 'bad_reason', 'message': 'a stop\'s reason is shutdown, or none'}
+        self.supervisor.request_stop('shutdown' if reason == 'shutdown' else 'stop',
+                                     lambda reply: self.reply(peer, reply))
         return None
 
     def reap(self, key, process):
@@ -2874,6 +3510,20 @@ def save_command(paths, reason):
     return 0 if saved else 1
 
 
+def stop_command(paths, reason):
+    """`aresos-desktop stop [--reason shutdown]` (package 25, 3.3): exit 0 only for a confirmed stop whose close
+    exited, or when nothing is running."""
+    message = {'op': 'stop', 'reason': 'shutdown'} if reason == 'shutdown' else {'op': 'stop'}
+    try:
+        reply = request(paths, message, timeout=COMMAND_WAIT)
+    except (OSError, ValueError) as error:
+        print(f'Not stopped: the AresOS desktop supervisor did not answer ({error}).', file=sys.stderr)
+        return 1
+    stopped = reply.get('ok') is True
+    print(reply.get('message', ''), file=sys.stdout if stopped else sys.stderr)
+    return 0 if stopped else 1
+
+
 def reset_instance(paths):
     lock = load_lock(paths.share)
     runner = Runner(paths, None)
@@ -2897,9 +3547,10 @@ def reset_instance(paths):
 def main(argv=None):
     parser = argparse.ArgumentParser(prog='aresos-desktop', description='AresOS desktop supervisor (package 23)')
     parser.add_argument('command', choices=['session', 'supervise', 'status', 'retry', 'forget-hub',
-                                            'reset-instance', 'explain', 'hide-cover', 'save'])
+                                            'reset-instance', 'explain', 'hide-cover', 'save', 'stop'])
     parser.add_argument('--reason', choices=SAVE_REASONS, default='manual',
-                        help='save: why the world is saved (it is only logged)')
+                        help='save: why the world is saved (it is only logged). stop: `shutdown` for a stop that '
+                             'cannot be called off; anything else is a plain stop')
     args = parser.parse_args(argv)
     paths = Paths.from_environ()
     if args.command == 'session':
@@ -2910,6 +3561,8 @@ def main(argv=None):
         return reset_instance(paths)
     if args.command == 'save':
         return save_command(paths, args.reason)
+    if args.command == 'stop':
+        return stop_command(paths, args.reason)
     op = {'status': 'status', 'explain': 'status', 'retry': 'retry', 'forget-hub': 'forget_hub',
           'hide-cover': 'hide_cover'}[args.command]
     try:

@@ -5,7 +5,8 @@ temporary XDG_RUNTIME_DIR, PATH and the LABWC_PID of a stand-in this test starte
 WAYLAND_DISPLAY, DBUS_SESSION_BUS_ADDRESS or LABWC_PID. Commands reach it only through that temporary runtime
 folder, and a process is ended only if its own environment names that folder.
 
-Step 1 covers section 1: the gate, the hello, `save` and its failures, and peers that do not read.
+Step 1 covers section 1: the gate, the hello, `save` and its failures, and peers that do not read. Step 2 covers
+section 2 through `aresos-desktop stop`: a confirmed stop, saves that fail, and a game that ignores SIGTERM.
 """
 import json
 import os
@@ -63,7 +64,7 @@ PRISM = textwrap.dedent('''\
 # Stands in for Minecraft with the AresOS mod. It speaks the lifecycle channel as LifecycleClient does: only with the
 # gate, a hello first, a fresh hello after a closed connection, and one world_saved per save_world. The file
 # save-mode says what it answers: saved, renamed (another world), hang (never), or one of the mod's refusals.
-# SIGTERM ends it with 143, as it ends Java.
+# SIGTERM ends it with 143, as it ends Java; while the file ignore-term exists it ignores SIGTERM, as a hung game.
 GAME = textwrap.dedent('''\
     #!/usr/bin/python3
     import json, os, signal, socket, sys, time
@@ -73,7 +74,12 @@ GAME = textwrap.dedent('''\
         output.write(f'{os.getpid()} {os.getppid()}\\n')
     with open(os.path.join(control, f'game-env.{os.getpid()}'), 'w') as output:
         json.dump(dict(os.environ), output)
-    signal.signal(signal.SIGTERM, lambda *a: sys.exit(143))
+
+    def term(*args):
+        if not os.path.exists(os.path.join(control, 'ignore-term')):
+            sys.exit(143)
+
+    signal.signal(signal.SIGTERM, term)
     sys.stdin.readline()
 
     def mode():
@@ -408,6 +414,93 @@ class GuardianLoopTest(base.Base):
             pass
         self.assertLess(taken, 5000, sent)
         self.assertIsNone(self.process.poll())
+
+    # -- step 2: the one stop routine, driven by `aresos-desktop stop`
+
+    def games(self):
+        """How many stand-in games were ever started."""
+        return len((self.control / 'game.pids').read_text().splitlines())
+
+    def test_a_stop_saves_closes_and_ends_at_the_quit_window(self):
+        self.start()
+        pid, _ = self.game()
+        self.assertEqual(self.command('stop'), (0, 'Stopped: the home was saved first; Minecraft closed.\n', ''))
+        self.assertFalse(self.mine(pid))  # Java is really gone when the command answers
+        status = self.status()
+        self.assertEqual((status['state'], status['reason'], status['jvm_pid'], status['stopping']),
+                         ('RECOVERY', 'quit', None, False))
+        record = status['stop']
+        self.assertEqual((record['open'], record['kind'], record['save'], record['sigterm'], record['close'],
+                          record['status']), (False, 'stop', 'saved', True, 'exited', 143))
+        self.assertEqual(self.asked(), [{'op': 'save_world', 'id': 1, 'reason': 'shutdown'}])
+        stored = self.stored()
+        self.assertEqual((stored['latched'], stored['consecutive'], stored['failures']), (False, 0, []))
+        for phase in ('begins for launch', 'the save is confirmed (saved)', 'SIGTERM sent to Java',
+                      'stopped (exit code 143)', 'ended after'):
+            self.assertIn(phase, self.log())
+        # A planned stop is never restarted, and a second stop finds nothing to stop.
+        time.sleep(1.0)
+        self.assertEqual(self.games(), 1)
+        self.assertEqual(self.command('stop'), (0, 'Nothing to stop: Minecraft is not running.\n', ''))
+        self.assertEqual(self.status()['reason'], 'quit')
+
+    def test_a_stop_whose_save_is_not_confirmed_is_called_off(self):
+        self.start(STOP_SAVE_WAIT=1.5)
+        pid, _ = self.game()
+        for mode, why, asks in (('error', 'could not write AresHub', 1),
+                                ('renamed', 'which is not the home AresHub', 1),
+                                ('no_world', 'no home is open in Minecraft', 2),  # asked again after a second
+                                ('hang', 'did not answer in time', 1)):
+            self.mode(mode)
+            before = len(self.asked())
+            code, out, err = self.command('stop')
+            self.assertEqual((code, out), (1, ''), mode)
+            self.assertTrue(err.startswith('Not stopped: Minecraft keeps running. Not saved:'), err)
+            self.assertIn(why, err)
+            self.assertEqual(len(self.asked()) - before, asks, mode)
+            self.assertTrue(self.mine(pid), mode)  # never signalled
+            time.sleep(0.5)  # the helper's reports keep coming: the window stays
+            status = self.status()
+            self.assertEqual((status['state'], status['reason'], status['jvm_pid'], status['stop']['close']),
+                             ('RECOVERY', 'save_failed', pid, 'called_off'), mode)
+        self.mode('saved')
+        self.assertEqual(self.command('retry')[0], 0)
+        self.wait(lambda: self.status()['state'] == 'IN_WORLD')
+        self.assertEqual(self.command('stop')[0], 0)
+        self.assertEqual((self.games(), self.mine(pid)), (1, False))
+
+    def test_a_game_that_ignores_sigterm_is_never_killed_and_no_second_game_starts(self):
+        (self.bin / 'systemctl').write_text('#!/bin/sh\necho stopping\n')  # systemd's word: the system is stopping
+        (self.bin / 'systemctl').chmod(0o755)
+        self.start(STOP_BUDGET=3.0, SYSTEMCTL=str(self.bin / 'systemctl'))
+        pid, _ = self.game()
+        (self.control / 'ignore-term').write_text('')
+        began = time.monotonic()
+        code, out, err = self.command('stop')
+        took = time.monotonic() - began
+        self.assertEqual((code, out), (1, ''))
+        self.assertIn('the home was saved first; Minecraft did not close within 3 seconds', err)
+        self.assertTrue(2.5 < took < 6, took)  # it ends at the deadline
+        self.assertTrue(self.mine(pid))
+        status = self.status()
+        self.assertEqual((status['state'], status['reason'], status['jvm_pid']), ('RECOVERY', 'stuck', pid))
+        self.assertEqual((status['stop']['open'], status['stop']['close']), (True, 'overrun'))
+        code, out, err = self.command('retry')
+        self.assertEqual((code, out), (0, 'Minecraft is still running; the recovery state is cleared.\n'))
+        # A stop that cannot be called off ends at the deadline too: the supervisor answers and keeps running.
+        began = time.monotonic()
+        code, out, err = self.command('stop', '--reason', 'shutdown')
+        took = time.monotonic() - began
+        self.assertEqual(code, 1, err)
+        self.assertTrue(2.5 < took < 6, took)
+        status = self.status()
+        self.assertEqual((status['state'], status['stop']['kind'], status['stop']['close']),
+                         ('STOPPING', 'shutdown', 'overrun'))
+        self.assertEqual(self.command('retry')[0], 1)  # the session is ending: nothing is started any more
+        time.sleep(0.5)
+        self.assertEqual((self.games(), self.mine(pid)), (1, True))
+        self.assertIsNone(self.process.poll())
+        self.assertNotIn('SIGKILL', self.log())
 
     def test_the_command_without_a_supervisor_says_not_saved(self):
         empty = self.root / 'empty-run'
