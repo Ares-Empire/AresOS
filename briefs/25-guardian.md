@@ -1,7 +1,8 @@
 # 25: the guardian saves the world before every planned stop
 
-Board #357, brief (lead fills). OS package: `os/` and `docs/design/OS-BASE.md`, nothing under `mod/`. Led by
-`linux-laptop-home`; worktree `~/AresOS-25-guardian`, branch `pkg/25-guardian`.
+Board #357; the owner's answer is board #379; brief (lead fills). OS package: `os/` and `docs/design/OS-BASE.md`,
+nothing under `mod/`. Led by `linux-laptop-home`; worktree `~/AresOS-25-guardian`, branch `pkg/25-guardian`.
+Revision 2 (2026-11-19), after the two brief reviews in `reviews/25-guardian/BRIEF-REVIEW-1-*.md`.
 
 **Builder:** a Claude agent on Fable 5.2, one fresh agent per step. This code stands between the owner's world and
 every shutdown: high-stakes data safety, where a second round costs more than the model.
@@ -12,29 +13,43 @@ every shutdown: high-stakes data safety, where a second round costs more than th
 
 Today nothing saves the home before it is stopped, and nothing checks what reached the disk.
 
-- **Shutdown or restart:** systemd signals labwc and the supervisor together. The game runs through XWayland,
-  loses its display and most likely dies on the spot, or is killed with its launcher a moment later
-  (`die_with_parent`). What he built since Minecraft's last own save can be gone.
+- **Shutdown or restart:** systemd signals labwc and the supervisor together. The game loses its display and most
+  likely dies on the spot (package 40 measured it as an X11 window; which backend GLFW picks is not verified), or
+  is killed with its launcher a moment later (`die_with_parent`). What he built since Minecraft's last own save
+  can be gone.
 - **The next start** calls that end a crash (three in a row latch recovery) or a memory kill with a minute's
   wait: a wrong message for his own shutdown (package 23's known limit 4).
 - **The supervisor** notices SIGTERM up to 30 s late, then leaves the game running. It cannot stop or restart the
   game, and the mod's lifecycle channel (package 46) has no other end.
 - **Package 48's leftovers:** a half-made first home reads as "damaged, restore from a backup"; a home under a
-  dated name opens unchecked; `world_missing` does not say where the home is.
+  dated name opens unchecked; `world_missing` does not say which dated folder holds the home.
 
-After 25: before the system or the supervisor ends the game on purpose, the world is flush-saved, the answer is
-checked, the game closes, and the supervisor waits for Java's real exit and the lock, inside a fixed budget. A
-planned stop never counts as a crash or a kill. A save that cannot be confirmed is never called clean: the stop
+After 25: before the system or the supervisor ends the game on purpose, the world is flush-saved and the answer
+checked; then the game closes and the supervisor waits for Java's real exit and the lock, all inside one deadline.
+A planned stop never counts as a crash or a kill. A stop without a confirmed save is never passed off as one: it
 is called off where it can be, and the next start says so where it cannot.
+
+## Decided
+
+- **The owner (board #379).** Asked whether a shutdown may save first (a few seconds, at most 60 s if the game
+  hangs) and whether an unconfirmed save may show one window at the next start: "Yes but no visible 60s shutdown
+  lag. Let's put a black screen and do it in the background? Because once I press shutdown I close the lid and
+  leave right away". So the screens go black while a stop saves, a closed lid never interrupts it, and logout and
+  restart look the same (3.4).
+- **The lead.** Black only once nothing needs his attention: while an app window is open he sees his apps, never
+  black (OS-BASE B3). A `restart` whose save fails leaves the game running and says why. A first home that was
+  never finished is moved aside. This package deletes nothing. The exact new texts go into the report for the
+  owner. A guard the VM cannot prove blocks the release. The lead starts the check build, never the builder.
 
 ## Read first
 
-`AGENTS.md`. `docs/design/OS-BASE.md` B1 (the `save_world` and `prepare_stop` rows), B2, and B3 (only its
-"shutdown ordering guard" is this package). All of `os/config/usr/libexec/aresos-desktop` and its wrapper
-`aresos-desktop-java`. Read only: `mod/src/main/java/dev/aresos/shell/LifecycleClient.java`, its test,
-`FakeSupervisor`, `HomeSwap.java`; the reports of packages 46 ("Contract readings", the measured times), 48 ("For
-linux-aresos") and 23 (JUDGMENT-CALL 10, known limit 4). `os/tests/test_aresos_desktop.py`; the check build's VM:
-`os/ci/vm.py`, `os/ci/overlay/checks.py`.
+`AGENTS.md`. `docs/design/OS-BASE.md` B1 (the `save_world` and `prepare_stop` rows), B2 and B3. All of
+`os/config/usr/libexec/aresos-desktop`, its wrapper `aresos-desktop-java` and `aresos-cover`; in `aresos-shell` the
+status pipe and `Windows`. Read only: `mod/src/main/java/dev/aresos/shell/LifecycleClient.java` and its test,
+`FakeSupervisor`, `mod/src/client/java/dev/aresos/client/WorldSaves.java` (when each refusal is given),
+`HomeSwap.java`; the reports of packages 46 ("Contract readings"), 48 ("For linux-aresos") and 23 (JUDGMENT-CALL
+10, known limit 4). `os/tests/test_aresos_desktop.py`; the check build's VM: `os/ci/vm.py`,
+`os/ci/overlay/checks.py`. Both brief reviews.
 
 ## Build
 
@@ -48,108 +63,169 @@ linux-aresos") and 23 (JUDGMENT-CALL 10, known limit 4). `os/tests/test_aresos_d
   Accepted: no reply (the mod expects none), one log line. Refused: one log line (never the nonce) and the
   connection closes; the mod tries again, which also covers a hello before `jvm_started`. One peer per launch; a
   newer accepted hello replaces the older. After the hello only `world_saved` is read; anything else is dropped.
-- **1.3 Asking for a save.** `{"op":"save_world","id":n,"reason":…}`, ids counting up, reason `shutdown`,
-  `backup`, `update` or `manual`. At most one request in flight and one waiting: a caller that arrives while one
-  is in flight gets one follow-up request, sent when the first is answered, and later callers join it. Each
-  caller has its own deadline on the supervisor's clock (`pending()`). A caller's result is exactly one of:
-  - `saved`: `ok:true`, the right `id`, `world` is `{"id": <the locked world>, "desktop": true}`; keep `ms`.
-  - `other_world`: the same for a desktop world under another name (`AresHub-<date>`, see 4.3). A stop accepts it
-    (that world did reach the disk); `save` reports it as not saved and names it.
-  - `refused`, with the mod's reason: `no_world`, `not_desktop_world`, `server_stopping` or `error`.
-  - `timeout` (a late answer is logged and dropped), `lost` (the connection closed first), `no_channel` (no
-    accepted hello), `invalid` (anything else, such as `ok:true` without a world).
-- **1.4 `save` for other callers** (package 26's backups, tests, him): socket op `save` and `aresos-desktop save`,
-  deadline 60 s. The reply comes when the result is in, so the loop learns to answer a peer later. Exit 0 only
-  for `saved`.
+  `status` says whether a hello is accepted (a boolean).
+- **1.3 What counts as saved.** The **active world** of a launch is the folder the helper last reported ready and
+  `check_world` passed (4.4), or the locked world while none was reported, so a dead helper never stops saving. A
+  request is `{"op":"save_world","id":n,"reason":…}`, ids counting up, reason `shutdown`, `backup`, `update` or
+  `manual`. Its result is `saved` only if all hold: `ok:true`; the request's `id`; it came on the connection the
+  request went out on; `world` is `{"id": <the active world>, "desktop": true}`; the active world did not change
+  in between. Everything else is not a save: `wrong_world`, `refused` (the mod's `no_world`, `not_desktop_world`,
+  `server_stopping` or `error`), `timeout` (a late answer is logged and dropped), `lost` (the connection closed
+  first), `no_channel` (no accepted hello), `invalid`.
+- **1.4 One in flight, one waiting.** A caller that arrives while a request is in flight gets one follow-up
+  request, sent when the first is answered; later callers join it. Each caller has its own deadline on the
+  supervisor's clock (`pending()`).
+- **1.5 `save` for other callers** (package 26's backups, tests, him): socket op `save` and `aresos-desktop save`,
+  60 s. The reply comes when the result is in and names the world; exit 0 only for `saved`. No reply may block the
+  loop: a peer that does not take its line at once is dropped (today `reply()` waits up to 2 s for each). A
+  command has one deadline for all of it, connecting and waiting included: 70 s for `save`, `stop`, `restart` and
+  `logout` (today `request()` gives every socket step 10 s).
 
 ### 2. One stop routine (state `STOPPING`; no message window while it runs)
 
-- **2.1 The budget.** `STOP_BUDGET = 60` s from the stop's start until Java is gone and the desktop lock is free.
-  The save gets at most `SAVE_DEADLINE = 30` s of it, never more than what is left; the close gets the rest.
-  Every stop logs one line: the save's wait and `ms`, the close's time, the total. These are starting values (46
-  measured saves of 0.02 to 0.7 s): report what the VM and the real game took and whether they should change.
-- **2.2 The record first.** Before the save is asked, write a stop record into `desktop.json` (which launch, why,
-  when, whether a world was ready in this launch) and keep it true at each phase. Fsync the file and the folder,
-  as the wrapper does for its exit record: the power may go seconds later. The file stays schema 1 with optional
-  keys, so R28's supervisor still reads it after `previous`.
-- **2.3 The save, then what.** Stops that can be called off: `restart`, `logout`, `stop`. Stops that cannot:
-  `shutdown` and the session ending. A launch that was in a world but has no accepted hello waits for one up to
-  10 s (the mod's longest backoff) before `no_channel`.
-
-  | Save result | Can be called off | Cannot |
-  |---|---|---|
-  | `saved`, `other_world` | close | close |
-  | `no_world`, `not_desktop_world`; `no_channel` when no world was ready in this launch | close | close |
-  | `server_stopping` (the game is closing by itself) | ask again each second; `timeout` at the deadline | the same |
-  | `error`, `timeout`, `lost`, `invalid`; `no_channel` after a world was ready | call it off: the game keeps running, window `save_failed` | close anyway, latch `unsaved` |
-
-- **2.4 The close.** SIGTERM to Java through the pidfd the supervisor already watches: never a PID from a file,
+- **2.1 One deadline.** `STOP_BUDGET = 60` s, absolute, from the first request or signal of a stop to its end. A
+  save already in flight, the save, the close, the replies, the cleanup and a logout all fit inside it, and
+  nothing that joins the stop extends it. The save phase gets at most 30 s. Cleanup never waits without a limit:
+  a helper, window or cover still there 1 s after SIGKILL is left to the system (today `stop_helper`, `close_view`
+  and `end_covers` wait for ever). Every stop logs its phases with their times, to `desktop.log` and to the
+  journal. The numbers are starting values: package 46's samples (0.02 to 0.7 s) predate its save-failure
+  accounting, so report what the VM and the real game took.
+- **2.2 Two kinds.** A stop that can be called off: `restart`, `logout`, `stop`. One that cannot: `shutdown` and
+  the session ending (3.2). A `shutdown` asked for while systemd clearly says the system is not stopping
+  (`systemctl is-system-running`, 2 s at most) is a plain `stop`; with no clear answer it stays a `shutdown`.
+- **2.3 The record first.** Before the save is asked, write a stop record into `desktop.json` (launch, kind, the
+  wall-clock start) and keep it true at each phase; fsync the file and the folder, as the wrapper does for its
+  exit record. It closes when the stop is called off, which is possible only before SIGTERM is sent (the launch
+  then runs on as an ordinary one), or when the launch it names has ended. Until then it names the launch: after
+  an overrun and across a supervisor restart too. If it cannot be written, a stop that can be called off is; one
+  that cannot goes on, and its reply says so. The file stays schema 1 with optional keys (R28 reads it after
+  `previous`).
+- **2.4 The save.** In this order:
+  - **Nothing to save**, only on positive evidence: no Java is alive and none is in hand-off, or the worlds folder
+    holds no folder at all. Then go to the close.
+  - **`saved`** (1.3): go to the close.
+  - **`no_world`, `server_stopping`, no accepted hello yet:** ask again each second until the save deadline. A
+    game that is loading, switching homes, closing by itself or reconnecting gets there by itself. None of them
+    ever means "nothing to save", for an adopted game either.
+  - **Anything else, and the deadline:** the save is not confirmed. A stop that can be called off is called off:
+    the game keeps running, window `save_failed`. One that cannot closes anyway and is recorded as `unsaved`.
+- **2.5 The close.** SIGTERM to Java through the pidfd the supervisor already watches: never a PID from a file,
   never through the wrapper, never SIGKILL. Minecraft's own shutdown hook stops the integrated server, which saves
   once more and lets go of the world. Then wait for the real exit (the pidfd) and for `jvm_lock_held()` to be
-  false. B1's `prepare_stop` message is not built: the mod has no such op, the system's teardown ends the game by
-  SIGTERM too, and after a confirmed flush save the close can lose only the ticks in between. While `STOPPING`
-  no JVM is authorized, no backoff restart fires, and a launch still in hand-off is waited for and then closed.
-- **2.5 Accounting.** A launch that ends while a stop record names it is `stopped`: never counted, never restarted
-  by backoff, never latched `killed`, whatever status Java ended with (143 is the expected one). That is decided
-  from the supervisor's own record, never from who sent a signal (JUDGMENT-CALL 10 stands). The stop is clean only
-  if the save was confirmed or nothing was open, Java left inside the budget, and not by SIGKILL. A stop that was
-  called off closes its record, and the launch runs on as before; after an overrun the record keeps naming the
-  launch, so its later end is still `stopped`.
-- **2.6 Overrun.** Java is still there when the budget ends: the supervisor stops waiting, records it, and never
-  kills. `restart` and `stop`: window `stuck` (still running; saved first or not), and no second game while the
-  lock is held. `logout`: no logout. `shutdown` and a session ending: exit; the system's teardown ends Java.
-- **2.7 The next start.** A stop record still open at start-up (the laptop went off, the supervisor died) is
-  closed as unclean; a restarted supervisor never resumes a stop, it adopts a game that still runs. `unsaved` (a
-  world was ready and its save was not confirmed) is a latch like the others: the next start shows a window that
-  says the world could not be saved last time and why, and `retry` clears it. A session that is ending persists
-  it without opening a window.
+  false. The close is `exited` (status 143, inside the deadline), `failed` (any other status, a kill, no report)
+  or `overrun`.
+- **2.6 What a stop may claim.** `saved` is the mod's word that everything up to the request is on the disk. What
+  the game writes after it (the ticks until SIGTERM, its own closing save) no stop certifies; step 6 shows once,
+  with the real game, that the SIGTERM close saves. So no stop is called clean. A stop is **confirmed** (saved, or
+  nothing to save) or **unsaved**, and its close is reported beside it. B1's `prepare_stop` and `save_complete`
+  stay unbuilt: the mod has no such op, and the system's own teardown ends the game by SIGTERM too.
+- **2.7 Accounting and overrun.** A launch that ends while a stop record names it is `stopped`: never counted,
+  never restarted by backoff, never latched `killed`, whatever its status, also when a replacement supervisor
+  adopted it. That is decided from the supervisor's own record, never from who sent a signal (JUDGMENT-CALL 10
+  stands). At the deadline with Java still there: the supervisor stops waiting, records `overrun` and never kills.
+  `restart` and `stop`: window `stuck`, and no second game while the lock is held. `logout`: no logout. A stop
+  that cannot be called off ends there: the supervisor answers, exits when the session's signal comes, and the
+  system's teardown ends Java.
+- **2.8 While it runs.** No JVM is authorized, no backoff restart fires, `retry` answers that AresOS is stopping,
+  and a launch in hand-off is waited for and then closed. That holds until the stop is called off, `restart`
+  starts the game again, or the session ends. A supervisor that replaces this one finds the open record and
+  adopts the game: a stop that can be called off and had not sent SIGTERM is called off; any other goes on inside
+  what is left of the deadline (by the record's start), and a `restart` or `logout` cut this way ends at the
+  `quit` window. An op that arrives during a stop joins it: nothing starts a second stop or a second save, every
+  caller gets its reply when the stop ends, `save` gets the stop's save result, and `stop --reason shutdown` or a
+  signal makes it one that cannot be called off.
+- **2.9 The next start.** A record still open whose launch is gone is closed: the launch is `stopped`, and if its
+  save was not confirmed the latch `unsaved` is set. `unsaved` is a latch like the others: a window says the world
+  could not be confirmed as saved last time and why, the home opens as it is on the disk, and `retry` clears it.
+  A session that is ending persists it without opening a window. `save_failed`, `stuck` and `guard` (3.1) are not
+  latches, but they stay until `retry` or the session's end: a heartbeat must not close them, as `ready()` would
+  today. A stop with nothing running writes no record.
 
 ### 3. Who calls it
 
-- **3.1 The laptop shuts down or restarts: an ordering guard (OS-BASE B3).** A system unit
-  `aresos-guardian.service` (oneshot, `RemainAfterExit=yes`, `User=ares`, `XDG_RUNTIME_DIR=/run/user/1001`,
-  `ExecStop=/usr/libexec/aresos-desktop stop --reason shutdown`, `TimeoutStopSec=75`), enabled in `os/build.sh`
-  and ordered so that its stop has finished before `greetd.service`, `user@1001.service` or any session scope (a
-  drop-in beside `session-.scope.d/50-aresos-recovery.conf`) begins to stop: labwc and the game are still up
-  while the world is saved and the game closes. No supervisor running: exit 0 at once. Chosen over a logind delay
-  lock: it covers every orderly shutdown whoever asked for it and needs no D-Bus in the supervisor. It must not
-  create an ordering cycle at boot. If unit ordering cannot give this order in the VM, leave the guard out, finish
-  the rest and say so first in the report. If the session is still up 120 s after a `shutdown` stop (the shutdown
-  was called off), show the `quit` window.
+- **3.1 The laptop shuts down or restarts: the ordering guard (OS-BASE B3).** A system unit
+  `aresos-guardian.service`: oneshot, `RemainAfterExit=yes`, `User=ares`, `XDG_RUNTIME_DIR=/run/user/1001`,
+  `ExecStop=/usr/libexec/aresos-desktop stop --reason shutdown`, `TimeoutStopSec=75`, enabled in `os/build.sh`. It
+  is ordered after `greetd.service`, `user@1001.service`, `user-runtime-dir@1001.service` and the home's mount,
+  and a drop-in beside `session-.scope.d/50-aresos-recovery.conf` orders every session scope before it. So at
+  shutdown its stop ends before any of them begins to stop: labwc, Prism's wrapper, the socket and the disk are
+  still there while the world is saved. Chosen over a logind delay lock: it covers every orderly shutdown whoever
+  asked for it and needs no D-Bus in the supervisor. It must not create an ordering cycle at boot.
+  - **Armed first.** No JVM is authorized unless the guard is active (`systemctl is-active`, 2 s at most).
+    Otherwise window `guard`; `retry` asks again.
+  - **No supervisor answers** (no socket, refused, or no reply inside the command's deadline): try again each
+    second for 10 s (the keeper starts a new supervisor after 2 s). Then, if the desktop lock is free, nothing is
+    running: exit 0. If it is held, a game may be writing: write a fallback record (a file of its own in the state
+    folder, fsynced, naming the launch from the runtime file) and exit 1. The command never signals anything. The
+    next supervisor applies the fallback once: `unsaved` for that launch, unless its own record says `saved`.
+  - **The real wait.** Normally a few seconds. At worst the command gives up after 70 s and the guard after 75 s;
+    a game that ignores SIGTERM is then ended by systemd's own limit for the game scope (90 s by default; the VM
+    prints it), so about 165 s to power-off. It is behind black until the guard ends (3.4).
+  - **Other ends of a session** (labwc killed, `loginctl terminate-session`, greetd restarted) stop no system
+    unit, so the guard does not run: 3.2 does what it can and records the truth. The supported logout is 3.3's.
 - **3.2 The session ends under the supervisor.** SIGTERM, SIGHUP and SIGINT are noticed within a second
   (`signal.set_wakeup_fd` on a pipe in the selector; today `select` sleeps up to 30 s) and run the stop routine
-  before the supervisor exits; the keeper waits for it. A signal during a save or a stop turns it into one that
-  cannot be called off; it never starts a second save and never abandons one. Also watch labwc itself
-  (`LABWC_PID`, by pidfd, checked to be labwc): when it ends, the session is over, and nothing of the old session
-  may outlive it by more than the budget.
-- **3.3 Commands** (socket ops and `aresos-desktop` words; the reply comes when the stop has ended, and the
-  command waits `STOP_BUDGET + 10` s): `stop [--reason shutdown|manual]` (exit 0 for clean or nothing running;
-  after `manual` the `quit` window), `restart` (stop, then `begin(cover=COVER_AGAIN)`; also a word in the message
-  window, `desktop-view.bashrc`), `logout` (stop, and only if clean `labwc --exit`). `retry` stays as it is: it
-  never stops a running game.
+  before the supervisor exits; the keeper waits for it. The supervisor also watches labwc by pidfd. It takes
+  `LABWC_PID` only from its own environment and uses it only if that process is named labwc, has our uid and has
+  this supervisor's `XDG_RUNTIME_DIR` in its environment: a supervisor on a private runtime folder can then never
+  touch the session's labwc; with a `LABWC_PID` that fails this check it watches nothing and logs that once.
+  When labwc ends the session is over, and nothing of the old session outlives it by more than the deadline; a
+  supervisor started after its labwc ended stops what it adopts and exits.
+- **3.3 Commands** (socket ops and `aresos-desktop` words; exit 0 only for a confirmed stop whose close `exited`,
+  or when nothing is running):
+  - `stop [--reason shutdown]`: after a plain stop the `quit` window.
+  - `restart`: stop, then start again: with no app window open as `retry` does (the startup cover), otherwise as
+    an automatic restart does (below the app in front). Also a word in the message window (`desktop-view.bashrc`).
+  - `logout`: refused while an app window is open or the helper has not said (3.4): it names them and stops
+    nothing. Otherwise stop; if confirmed and `exited`, SIGTERM to labwc through the pidfd of 3.2 (never `labwc
+    --exit`, which signals whatever `LABWC_PID` says), and wait for its exit inside the deadline. If labwc stays,
+    the reply says so and the `quit` window shows.
+  - `retry` stays as it is: it never stops a running game.
+- **3.4 The black screen and the lid (board #379).**
+  - **When.** A `shutdown`, `logout` or `restart` goes black at its start if the helper's last report says no app
+    window is open. With an app window open, or no report, the screens stay as they are: he sees his apps. The
+    helper reports the count on its status pipe (event `windows`, at each change, as `apps_running` is coalesced):
+    every window but the desktop's, the covers' and the supervisor's message window, minimized ones included.
+  - **How.** `aresos-cover --black`: plain black, no text, one fullscreen window on every output, app id
+    `aresos.black`, kept on top by a window rule of its own in `rc.xml` (no `ToggleFullscreen`: each window asks
+    for its output itself). The helper treats it as the startup cover: never an app, never covering, never
+    minimized. A surface, not outputs switched off: switching them off rearranges windows under a game that is
+    saving, and only a child with die-with-parent restores the display when the supervisor dies. labwc, the game
+    and the save run on behind it.
+  - **Until.** It ends when the stop is called off, fails or overruns (the window must be seen), when `restart`'s
+    startup cover is up, when labwc ends, or by its own limit (`STOP_BUDGET + 30` s). At a shutdown it stays until
+    the session is torn down.
+  - **The lid.** For the length of every stop the supervisor holds a logind block on `handle-lid-switch:sleep`
+    (a `systemd-inhibit` child with die-with-parent). It is started and never waited for, so it cannot delay the
+    stop; a failure is one log line. The static policy in `logind.conf.d` stays as it is.
 
 ### 4. Package 48's leftovers
 
-- **4.1 The first home died while it was made.** Remember in `desktop.json` that a setup launch started with no
-  `AresHub`; forget it when the hub is first seen. If the world then reads damaged, `hub_seen` is false and that
-  mark is set: `SETUP` with reason `setup_unfinished` instead of the `world_damaged` latch, and `retry` renames
-  the folder to `AresHub-unfinished-<date>` (inside the worlds folder, refused if the name exists, nothing
-  deleted) and starts setup again. Every other damaged world stays exactly as today.
-- **4.2 `world_missing` says where the home is.** It names the newest `AresHub-<date>` that passes the home
-  checks, and an `AresHub-new-<date>` that does, with the `mv` line that puts it back. Nothing is renamed for him.
-  The prefixes and the date pattern equal `HomeSwap`'s; a test reads the Java constants.
-- **4.3 A dated home reported ready** (`ready()`, about lines 1427 to 1446). `check_world` takes the folder name.
-  A world other than the locked one is checked the same way if it is a plain folder inside the worlds folder,
-  and is never declared ready when damaged or outside. It sets `hub_seen` too, so a missing `AresHub` afterwards
-  reads `world_missing`, never a silent new setup beside his old home.
-- **4.4 `AresHub-new-<date>` leftovers.** Nothing is deleted: one may be the home he just made. One log line at
-  start with their count and size, and `status` lists them.
+- **4.1 The first home died while it was made.** While a setup launch that started with no `AresHub` runs,
+  remember in `desktop.json` the folder once it appears (device and inode; looked for at each heartbeat and at
+  the launch's end). At a later start, if `hub_seen` is false and `AresHub` is that same folder and reads damaged:
+  `SETUP` with reason `setup_unfinished` instead of the `world_damaged` latch, and `retry` moves it to
+  `AresHub-unfinished-<date>` and starts setup again. Every other damaged world stays exactly as today, also a
+  half-made one the supervisor never saw appear.
+- **4.2 One way to move a home.** Only while no launch is alive and none is in hand-off, holding the desktop lock
+  (`flock`, as the wrapper takes it) from the checks to the rename, with `renameat2(RENAME_NOREPLACE)` through
+  ctypes, never `os.rename`. 4.1 uses it, and so does a new command `aresos-desktop use-home <folder>`, which
+  makes a dated folder that passes the home checks the home, only while no `AresHub` exists.
+- **4.3 `world_missing` says where the home is.** It names the newest `AresHub-<date>` that passes the home
+  checks, and an `AresHub-new-<date>` that does, with the `use-home` line. Nothing is moved for him. The prefixes
+  and the date pattern equal `HomeSwap`'s, its `-1`, `-2` suffix included; a test reads the Java constants.
+- **4.4 A dated home reported ready** (`ready()`, about lines 1427 to 1446). `check_world` takes the folder name.
+  A world other than the locked one is checked the same way if it is a plain folder inside the worlds folder, and
+  is never declared ready when damaged or outside. It becomes the active world (1.3) and sets `hub_seen`, so a
+  missing `AresHub` afterwards reads `world_missing`, never a silent new setup beside his old home.
+- **4.5 `AresHub-new-<date>` leftovers.** Never deleted: one may be the home he just made. One log line at start
+  with their count and size, and `status` lists them.
 
 ### 5. Docs
 
-`OS-BASE.md` B1 (`save_world`: both ends built; `prepare_stop` as built in 2.4), B2 (`STOPPING`, `stopped`,
-`unsaved`), B3 (the guard is built; the coordinator stays a proposal). The supervisor's docstring. Never
-`os/owner-tools/`, `os/release/`, the install guides or `STATE.md`.
+`OS-BASE.md` B1 (`save_world`: both ends built; `prepare_stop` as 2.6 leaves it), B2 (`STOPPING`, `stopped`,
+`unsaved`), B3 (the guard, the black screen and the lid block are built; the coordinator stays a proposal). The
+supervisor's docstring. Never `os/owner-tools/`, `os/release/`, the install guides or `STATE.md`.
 
 ## Steps
 
@@ -158,91 +234,98 @@ One fresh agent per step, about 250k tokens. Each ends with its tests green by m
 done, left in order, what the code does not show.
 
 1. Section 1.
-2. Section 2, with 3.3's `stop` op and command to drive it.
-3. 3.2, 3.3's `restart` and `logout`, and the windows' texts.
-4. 3.1 with its image wiring and the VM check. Push, start `gh workflow run "OS image" --ref pkg/25-guardian -f
-   check_build=build`, write the run ID into `PROGRESS.md`, stop.
-5. Sections 4 and 5, the real game once, the report, the pull request. Look at step 4's run once
-   (`gh run view <id>`; never a watch, never a loop) and fix what its new checks show. If this step runs short,
-   the real game becomes a step 6: say so in `PROGRESS.md`.
+2. Section 2, with 3.3's `stop` to drive it.
+3. 3.2 and 3.3: the signal wake-up, labwc, `restart`, `logout`, the windows' texts.
+4. 3.4: the black screen, the helper's `windows` event, the lid block. Name the `rc.xml` and `aresos-shell` lines
+   you changed in `PROGRESS.md`: the lead gives notice to `linux-aresos` and `linux-hub`.
+5. Section 4.
+6. The real game (Acceptance). It decides whether 2.5's close stands, so it comes before the guard.
+7. 3.1 and the VM checks. Push, start one `gh workflow run "OS image" --ref pkg/25-guardian -f checks_only=true`,
+   and stop: never watch it, never start a check build. The lead starts the check build once `linux-aresos` says
+   R28 is through.
+8. Started by the lead with the finished check build's run ID: fix what its new checks show, section 5, the
+   report, the pull request.
 
 ## Acceptance
 
 - **`os/tests/test_aresos_guardian.py`** (new; the state machine with `FakeRunner`): every rule of sections 1, 2
-  and 4. Among them: each way a hello is refused, a second hello, an adopted game; five callers on one request in
-  flight and one waiting; a late answer; `ok:true` with a wrong `id`; every row of 2.3's table for both kinds of
-  stop; 143, 0, SIGKILL and no report at all after a stop are `stopped`, and three stops in a row never latch; an
-  open record at start-up; `unsaved` survives a reboot; `desktop.json` keeps `schema` 1 and every key R28's
-  `Persisted.load` reads; the guard's `TimeoutStopSec` is at least `STOP_BUDGET + 10`, and its drop-in and enable
-  line exist.
+  and 4. Among them: each way a hello is refused; five callers on one request in flight and one waiting; a late
+  answer; a reply with a wrong `id`, a wrong world, from an older connection, or after the active world changed;
+  2.4 for both kinds of stop while loading, after an adoption, with a dead helper, during New home, and for
+  `server_stopping` followed by `no_world`; a record that cannot be written; 143, 0, SIGKILL and no report after
+  a stop are `stopped`, also for a replacement supervisor in a teardown, and three stops in a row never latch; an
+  op and a signal that join a stop; a stalled peer; the guard not active; the command's fallback record; the
+  windows that must survive a heartbeat; a `labwc` with another runtime folder is never signalled; `logout` with
+  an app window open; `desktop.json` with the new keys read through R28's frozen key list; 4.1 to 4.5.
 - **`os/tests/test_aresos_guardian_loop.py`** (new; the real loop, the real wrapper, a stand-in game process).
   Failure injection: a save that hangs, one that answers `error`, one that answers `no_world`, a world that
   changed its name, SIGTERM in the middle of a save, a game that ignores SIGTERM (never killed, no second game,
-  and on `shutdown` the supervisor exits at the budget). SIGTERM to an idle loop begins the stop within 1 s and
-  the keeper waits. A stand-in for labwc (a process of the test's, named `labwc` and given as `LABWC_PID`; the
-  hosted runner has no labwc) ends: the supervisor and the keeper end inside the budget.
-- `test_aresos_desktop.py` and `test_aresos_cover.py` still pass, by name, with the hand-off model unchanged.
-- **The VM** (the check build; `os/ci/vm.py` is a bound file: after changing it run
-  `python3 reviews/27-first-update-release/rebind.py pending "25: …"` and commit the list). A stand-in game that
-  is a real JVM (the pinned Java through the real wrapper, speaking the lifecycle channel, so the PID check sees
-  it; a single-file Java program if the image's Java runs one, else a class built into the check overlay) runs
-  when the power key is pressed. Start it so that the check service's own stop cannot reach it, as
-  `prepare-poweroff` starts its journal follower. The journal's monotonic times show: the guard's stop began, the
-  save was answered, Java exited, and only then did labwc, the session scope and greetd begin to stop. The stop
-  record is clean; power-off stays inside `vm.py`'s 120 s; no "ordering cycle" line at boot; the stop limits of
-  the guard, the session scope and `user@1001.service` are each at least `STOP_BUDGET + 10` s (raise one in the
-  drop-in if not).
-- **The real game, once,** headless and under the client-test lock (start from `reviews/49b-arena-rerun/rig/`;
-  never Prism, never his instance). The adoption path lets the real supervisor take a game it did not start (a
-  runtime file naming the rig game's PID, start ticks and nonce). With the gate set: the hello is accepted, `save`
-  answers, then `stop`. Report the log's server-stop lines, Java's exit status and time to exit, and that a block
-  placed just before the request is in the reopened world. If SIGTERM does not close the world cleanly, keep the
-  design (the save is confirmed first) and write it under PLAN-GAP: a mod-side `prepare_stop` would be
-  `linux-hub`'s package. If the rig cannot do this, say so under Not verified.
-- Merge `origin/main` before the last push. After it: `gh workflow run "OS image" --ref pkg/25-guardian -f
-  checks_only=true`, and the check build again if `os/config` or `os/ci` changed since step 4's. Push, then stop:
-  never watch CI.
+  and a stop that cannot be called off exits at the deadline). SIGTERM to an idle loop begins the stop within 1 s
+  and the keeper waits. A stand-in for labwc (a process of the test's, named `labwc`) ends: the supervisor and the
+  keeper end inside the deadline.
+- `test_aresos_desktop.py`, `test_aresos_cover.py` and the `test_aresos_shell*.py` modules you touch still pass,
+  by name, with the hand-off model unchanged.
+- **The real game (step 6), a condition for merging.** Headless, under the client-test lock, on a copy of
+  `reviews/49b-arena-rerun/rig/` in `reviews/25-guardian/rig/`; never Prism, never his instance.
+  - Only the game's own command line in `inner.sh` gets the gate, `XDG_RUNTIME_DIR` set to the test supervisor's
+    temporary runtime folder, the instance and nonce its adoption runtime file names, and an absolute
+    `WAYLAND_DISPLAY` if it needs one. Before the first `save`, check that `/proc/<game>/environ` has that
+    `XDG_RUNTIME_DIR`: with the session's, the mod would dial his live supervisor.
+  - The close alone, three times: place a block, send SIGTERM to the rig's own game, reopen the world: the block
+    is there. Report the log's server-stop lines, the exit status and the time to exit.
+  - The path, once: the adoption path lets the real supervisor take the rig's game; the hello is accepted, `save`
+    answers `saved`, `stop` ends confirmed and `exited`.
+  - If SIGTERM does not close the world soundly, or the rig cannot show it, stop and say so first: the package
+    does not merge on an unverified close. A mod-side `prepare_stop` is then `linux-hub`'s package, and 25 waits.
+- **The VM (the lead's check build), a condition for the release.** `os/ci/vm.py` is a bound file: after changing
+  it run `python3 reviews/27-first-update-release/rebind.py pending "25: …"` and commit the list. The stand-in
+  game is a real JVM (the pinned Java through the real wrapper, speaking the lifecycle channel; a single-file Java
+  program if the image's Java runs one, else a class built into the check overlay), started so that the check
+  service's own stop cannot reach it. The shortcut step leaves the supervisor latched `killed`: clear it with
+  `retry` (it answers after a minute without memory pressure) and wait until `status` shows the game with an
+  accepted hello. Evidence holds allowlisted fields only: never an environment, a runtime file, a nonce or a token.
+  - **Boot 1, the power key with a save that takes 5 s,** a peer that never reads, a lid event during the save,
+    and no app window open (Prism's own window counts as one: end it first). By the journal's monotonic times:
+    the guard's stop began; the screen is black (pixels); the save was answered; Java exited; the guard's stop
+    ended; only then did labwc, the session scope, greetd, `user@1001.service` and the home's mount begin to stop.
+    During the save a probe saw all of them, the game's wrapper and the socket alive and the home writable.
+    Nothing suspended. Read offline, the record says confirmed and `exited`. Power-off stays inside `vm.py`'s
+    120 s. At boot: no "ordering cycle" line, and the guard active before the session's first JVM was authorized.
+    The stop limits of the session and game scopes are printed.
+  - **Boot 2, a game that never answers and ignores SIGTERM.** The guard ends at its limit, the machine powers off
+    by itself inside 3.1's worst case, and the record says `unsaved` and `overrun`.
+- Merge `origin/main` before step 7's and step 8's last push. Step 8 ends as step 7 does: one `checks_only=true`
+  run, then stop.
 - The report (AGENTS.md format) goes into `PROGRESS.md`; the lead commits it as `REPORT.md`. It has the measured
-  times, the exact new texts, the new image files for the release diff, the Known limits and every JUDGMENT-CALL.
-  Open the pull request "Package 25: the guardian saves the world before every planned stop". Never merge.
-- **The reviewer's data-safety pass** looks for: a stop called clean without a checked `world_saved`; a signal to
-  anything but the watched pidfd, or any kill; a second game while the lock is held; a world folder renamed or
-  deleted outside 4.1; a hello or an answer trusted without its PID, nonce or `id`; the guard holding a shutdown
-  past its limit.
+  times, the exact new texts for the owner, the new image files for the release diff, the Known limits and every
+  JUDGMENT-CALL. Open the pull request "Package 25: the guardian saves the world before every planned stop". Never
+  merge.
+- **The reviewer's data-safety pass** looks for: a stop reported as confirmed without a `saved` that passes 1.3 or
+  2.4's positive evidence; a signal to Java or labwc other than SIGTERM through its watched pidfd; a second game
+  while the lock is held or a stop runs; a world folder moved outside 4.2 or deleted anywhere; a hello or an
+  answer trusted without its PID, nonce, connection or `id`; anything that can outlast the one deadline.
 
 ## The safety bar (decision 24; the owner restated it 2026-11-18)
 
-Real harm gets fixed: a lost or damaged world, a stop called clean that was not, anything hard to undo. Low-harm
-edge cases are not built around; they go under Known limits in the report. That list starts with these: a power
-cut or a forced power-off is not a planned stop; a shutdown that skips unit stops (`--force`) skips the guard; a
-stop during New home drops the home being made (the old one is saved and closed first); a normal world open in
-the desktop instance is closed by the game alone, unconfirmed; when labwc dies under the game, 25 can only record
-it (`unsaved`); the supervisor never kills a hung game; other apps' unsaved work is untouched (OS-BASE B3).
-
-## Questions for the owner (the lead asks; build the recommendation, each is one constant or one branch)
-
-1. **How long may a shutdown wait when the game hangs?** Normally the save adds a few seconds. Recommended: at
-   most 60 s, then the laptop goes off anyway and the next start says the world could not be saved.
-2. **After a stop without a confirmed save,** the next start shows one window that says so and waits for `retry`
-   (recommended: he should know before he builds on), or it opens the home at once and only logs it.
-3. **`restart` when the save fails:** the game keeps running and a window says why (recommended), or it restarts
-   anyway.
-4. **A first home that was never finished:** `retry` moves the unfinished folder aside and makes the home again
-   (recommended), instead of today's "damaged, restore from a backup".
-5. **Leftover `AresHub-new-<date>` folders:** 25 deletes nothing (recommended); cleaning waits for backups (26).
-6. **Words and texts:** `restart` in the message window; `aresos-desktop save` and `logout` in a terminal; the
-   texts of `unsaved`, `save_failed`, `stuck`, `setup_unfinished` and `world_missing`'s new lines (in the report).
+Real harm gets fixed: a lost or damaged world, a stop passed off as saved, anything hard to undo. Low-harm edge
+cases are not built around; they go under Known limits in the report. That list starts with these: a power cut or
+a forced power-off is not a planned stop; a shutdown that skips unit stops (`--force`) skips the guard; no stop
+certifies the game's own closing save (2.6); a shutdown while the game is loading or at its title screen waits up
+to 30 s and can still end `unsaved`; when labwc dies under the game, 25 can only record it; the supervisor never
+kills a hung game; a shutdown with an app open closes that app as it does today (B3's "close your apps first" is
+not built), but never behind black.
 
 ## Machine rules
 
 - **Never the owner's session:** no window in it, no input to it (`wayland-0`). Never his `.minecraft`, Lunar
   Client, `~/AresOS-try`, his Prism data, his worlds or his `~/.local/state/aresos`.
-- **Never the live supervisor.** Every test and rig run sets its own `HOME` and `XDG_RUNTIME_DIR` (temporary
-  folders). An `aresos-desktop stop`, `restart`, `logout`, `save` or `retry` with the session's
-  `XDG_RUNTIME_DIR` would reach his running game.
+- **Never the live supervisor or his labwc.** Every supervisor a test, a rig or a try by hand starts runs under
+  `env -i` with `HOME`, a temporary `XDG_RUNTIME_DIR`, `PATH` and the `LABWC_PID` of a stand-in it started; never
+  with the shell's `DISPLAY`, `WAYLAND_DISPLAY`, `DBUS_SESSION_BUS_ADDRESS` or `LABWC_PID`. The supervisor hands
+  its whole environment on and ends labwc at a logout: with the shell's, a test would end his session. An
+  `aresos-desktop` command with the session's `XDG_RUNTIME_DIR` would reach his running game.
 - **No real shutdown, restart or logout of the laptop:** no `systemctl poweroff` or `reboot`, no `loginctl`, no
-  `labwc --exit` outside a headless compositor you started, no system unit installed or started. The guard runs
-  only in the hosted VM.
+  `labwc --exit`, no system unit installed or started. The guard runs only in the hosted VM.
 - Headless only. A game only through the rig or `mod/dev/client-test.sh`, which take the client-test lock; exit 75
   means wait five minutes and try again, never `--force`. Stop only processes you started, by PID.
 - `os/tests`: the modules you touch, by name, one at a time; never the whole folder, never `test_owner_update`.
@@ -252,23 +335,8 @@ it (`unsaved`); the supervisor never kills a hung game; other apps' unsaved work
 
 Package 26 (backups; it will call `save`). Package 23c (the view token, the laptop home, `search`, the screens):
 it changes the same file, so keep your code in functions of its own and do not reshape `Loop.handle`,
-`save_runtime` or `PRIVATE_ENVIRONMENT` beyond what you need. Package 53. OS-BASE B3's power coordinator: block
-inhibitors, "close your apps first", the lid, the battery, `request_power`. A mod-side `prepare_stop`, and
-anything under `mod/`. The owner tools and the `aresos` command. A shutdown button in the hub.
-
-**CI timing (the lead, 2026-11-19):** the R28 release cut has CI first from Thu 2026-11-19 12:00 until `linux-aresos` says it is through. Start the `check_build=build` run only after that; until then, run the `checks_only=true` run alone and say in PROGRESS.md that the check build waits.
-
-## The owner's answer (board #379, 2026-11-19)
-
-Asked: "Shutdown saves your world first: a few seconds normally, at most 60 s if the game hangs. If a save could not
-be confirmed, the next start shows one window and waits for you. OK?" He answered: "Yes but no visible 60s shutdown
-lag. Let's put a black screen and do it in the background? Because once I press shutdown I close the lid and leave
-right away". So, on top of the recommendations above, which he accepted:
-- **No visible wait at shutdown.** The moment a shutdown starts, every screen goes black: turn the outputs off, or
-  cover them with a plain black surface, whichever is reliable in the VM. No text, no progress. The save and the stop
-  run behind it, and the machine powers off by itself when they are done or the budget runs out.
-- **Closing the lid must not stop the save.** While the stop routine runs, it holds a logind block on the lid switch
-  and on sleep (`handle-lid-switch:sleep`, mode `block`), so a lid closed right after pressing shutdown does not
-  suspend the laptop mid-save. It releases the block when it ends. Test in the VM: a lid event during the save does
-  not suspend, and the machine still powers off.
-- Logout and restart behave the same way (the screen black while it saves), so there is one behaviour to learn.
+`save_runtime` or `PRIVATE_ENVIRONMENT` beyond what you need; a `restart` keeps the session's instance and, once
+23c is on main, its view token, which never reaches the game or any evidence. Package 53. OS-BASE B3's power
+coordinator: block inhibitors on shutdown, "close your apps first", the battery, `request_power`. A mod-side
+`prepare_stop` or close acknowledgement (the follow-up that would certify the close; `linux-hub`'s), and anything
+under `mod/`. The owner tools and the `aresos` command. A shutdown button in the hub.
