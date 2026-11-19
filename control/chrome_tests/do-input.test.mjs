@@ -35,7 +35,11 @@ function inputFixture(){
     enqueue:(input,left)=>run(`enqueue({id:'native-1',time_left_ms:${left},command:${command(input)}})`)};
 }
 const dispatched=log=>log.filter(entry=>entry.startsWith('Input.')||['focus','select','install_file','resume'].includes(entry));
-async function settled(f){for(let count=0;count<500&&!f.run('posted.length');count++)await new Promise(resolve=>setTimeout(resolve,2));return JSON.parse(f.run('JSON.stringify(posted[0])'));}
+async function settled(f){
+  for(let count=0;count<500&&!f.run('posted.length');count++)await new Promise(resolve=>setTimeout(resolve,2));
+  assert.ok(f.run('posted.length'),'the native command did not answer');
+  return JSON.parse(f.run('JSON.stringify(posted[0])'));
+}
 
 test('28a time: an input whose time runs out during its setup dispatches nothing, answers expired and releases its hold',async()=>{
   for(const input of [{verb:'click'},{verb:'fill',text:'x'},{verb:'press',key:'Enter'},{verb:'scroll',x:0,y:100},{verb:'check',checked:true}]){
@@ -62,6 +66,26 @@ test('28a time: the native answer is expired even after the tab was selected, an
   assert.match(other.error,/^unknown: Input may have started; .*stale_reference: element is gone/);
 });
 
+test('28a time: expiry releases an armed fill before its final frame reply arrives',async()=>{
+  const f=inputFixture();
+  f.run(`const originalFacts=facts,send=chrome.tabs.sendMessage;
+    chrome.tabs.sendMessage=(tab,message)=>message.command==='facts'?new Promise(done=>{globalThis.releaseReply=done;}):send(tab,message);
+    facts=async(tab,reference,only,expires)=>{
+      const snapshot=await originalFacts();
+      if(reads===2)await content(tab,0,'facts',{},'native',expires??null);
+      return snapshot;
+    };`);
+  f.enqueue({verb:'fill',text:'Still held'},60);
+  const reply=await settled(f);
+  assert.equal(reply?.error,'expired: the time of this input ran out before its dispatch; nothing was dispatched');
+  assert.equal(f.run('typeof releaseReply'),'function','the frame had a pending reply');
+  assert.ok(f.log().includes('release fixture-nonce'));
+  assert.deepEqual(dispatched(f.log()),[]);
+  f.run('releaseReply({ok:true,data:{}})');
+  await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(f.run('posted.length'),1);assert.deepEqual(dispatched(f.log()),[]);
+});
+
 test('28a time: the check is the last thing before the dispatch, after the arming, the reveal and the last comparison',async()=>{
   const f=inputFixture();f.run('factsDelay=60');
   await assert.rejects(f.dispatch({verb:'click'},30),/^Error: expired:/);
@@ -73,6 +97,14 @@ test('28a time: the check is the last thing before the dispatch, after the armin
   const done=await g.dispatch({verb:'click'},5000);
   assert.equal(done.dispatched,true);
   assert.deepEqual(dispatched(g.log()),['Input.dispatchMouseEvent mousePressed','Input.dispatchMouseEvent mouseReleased']);
+});
+
+test('28a time: a hit test that finishes after the deadline cannot dispatch a pointer event',async()=>{
+  const f=inputFixture();
+  f.run("pointer=async()=>{log.push('hit');await new Promise(resolve=>setTimeout(resolve,80));return {x:2,y:2};};");
+  await assert.rejects(f.dispatch({verb:'click'},40),/^Error: expired:/);
+  assert.ok(f.log().includes('hit'));assert.deepEqual(dispatched(f.log()),[]);
+  assert.equal(f.run('popupWatches.size'),0,'the refused input leaves no popup watch');
 });
 
 test('28a time: an input whose time runs out after its dispatch finishes as before',async()=>{

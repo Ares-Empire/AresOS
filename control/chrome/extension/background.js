@@ -1000,10 +1000,10 @@ function binding(facts, reference, kind, adapter) {
     adapter:adapter ? frame.adapter:null,dialog:facts.dialog};
 }
 const stable = value => JSON.stringify(value, function(key,value) { return value && !Array.isArray(value) && typeof value === 'object' ? Object.fromEntries(Object.entries(value).sort(([a],[b])=>a.localeCompare(b))) : value; });
-async function pointer(tab,snapshot,reference,target){
+async function pointer(tab,snapshot,reference,target,expires=null){
   let x=target.box.x+target.box.width/2,y=target.box.y+target.box.height/2;
   let child=snapshot.frames.find(frame=>frame.frame===reference.frame);
-  if(!(await content(tab,child.frame,'hit',{element:target.element,x,y})).hit)throw Error('stale_reference: another element covers the target');
+  if(!(await content(tab,child.frame,'hit',{element:target.element,x,y},null,expires)).hit)throw Error('stale_reference: another element covers the target');
   while(child.parent>=0){
     const parent=snapshot.frames.find(frame=>frame.frame===child.parent);
     if(!parent)throw Error('refused: parent frame is excluded');
@@ -1014,7 +1014,7 @@ async function pointer(tab,snapshot,reference,target){
     if(!embed?.aligned || !embed.width || !embed.height)throw Error('refused: frame geometry cannot be established safely');
     x=embed.box.x+(x+embed.borderX)*embed.box.width/embed.width;
     y=embed.box.y+(y+embed.borderY)*embed.box.height/embed.height;
-    if(!(await content(tab,parent.frame,'hit',{element:embed.element,x,y})).hit)throw Error('stale_reference: parent frame is covered or moved');
+    if(!(await content(tab,parent.frame,'hit',{element:embed.element,x,y},null,expires)).hit)throw Error('stale_reference: parent frame is covered or moved');
     child=parent;
   }
   return {x,y};
@@ -1103,7 +1103,7 @@ async function showTab(tab){
   return {shown:tab,window:current.windowId};
 }
 // `expires` is the end of the command's time (brief 28, item 4), or null for a
-// command without one, which runs as before. Only the read's waits use it.
+// command without one, which runs as before.
 async function dispatch(command,expires=null) {
   const tab = command.tab ?? command.reference?.tab;
   const reference = command.reference;
@@ -1224,7 +1224,7 @@ async function dispatch(command,expires=null) {
     }
     return {offset:stage.size};
   }
-  await requireTab(tab);dispatchEpoch=controlled.get(tab).epoch;
+  await requireTab(tab,['input','resume'].includes(command.name)?expires:null);dispatchEpoch=controlled.get(tab).epoch;
   // Brief 28a, item 6: what the first input's guarded reload (prepare_control
   // below) would lose, from the same frames and checks, without doing it.
   if(command.name==='loss_report'){
@@ -1257,7 +1257,7 @@ async function dispatch(command,expires=null) {
     return {navigated:true,page:await observation(tab)};
   }
   if (command.name !== 'input' && command.name !== 'resume') throw Error('permission_denied: unknown fixed command');
-  let snapshot = await facts(tab,reference);
+  let snapshot = await facts(tab,reference,false,expires);
   refuseWithheldSubmission(snapshot,reference,command);
   if(snapshot.needs_reload)throw Error('stale_reference: the taken document needs its guarded reload before input; read and prepare again');
   if (command.binding && stable(wellFormed(binding(snapshot,reference,command.kind,command.adapter))) !== stable(command.binding)) throw Error('stale_approval: page changed; prepare again');
@@ -1277,9 +1277,9 @@ async function dispatch(command,expires=null) {
   try{
   for(const other of snapshot.frames){
     assertControl(tab);
-    await content(tab,other.frame,'set_control',{generation:dispatchEpoch});
+    await content(tab,other.frame,'set_control',{generation:dispatchEpoch},null,expires);
     armed.push(other);
-    await content(tab,other.frame,'arm',{config:{...POLICY,blockedHosts:excludedHosts,conservative:command.conservative,defaultBlock},target:other.frame===reference.frame ? target.element:null,form:other.frame===reference.frame ? frame.form?.element:null,operation:command.approved && other.frame===reference.frame ? command.operation:null,generation:dispatchEpoch,dispatch_nonce:inputNonce,key_input:other.frame===reference.frame?keyInput:null,primary_submission:!!command.primary_submission && other.frame===reference.frame,implicit:other.frame===reference.frame&&command.input?.verb==='press'&&command.input.key.split('+').at(-1)==='Enter'?target.implicit_submitter:null,approved_form:command.approved&&other.frame===reference.frame?frame.form:null});
+    await content(tab,other.frame,'arm',{config:{...POLICY,blockedHosts:excludedHosts,conservative:command.conservative,defaultBlock},target:other.frame===reference.frame ? target.element:null,form:other.frame===reference.frame ? frame.form?.element:null,operation:command.approved && other.frame===reference.frame ? command.operation:null,generation:dispatchEpoch,dispatch_nonce:inputNonce,key_input:other.frame===reference.frame?keyInput:null,primary_submission:!!command.primary_submission && other.frame===reference.frame,implicit:other.frame===reference.frame&&command.input?.verb==='press'&&command.input.key.split('+').at(-1)==='Enter'?target.implicit_submitter:null,approved_form:command.approved&&other.frame===reference.frame?frame.form:null},null,expires);
     armedDocument(tab,other.document,inputNonce);
   }
   // Native pointer input must address the selected tab in headed Chrome.
@@ -1295,18 +1295,18 @@ async function dispatch(command,expires=null) {
   // read, the binding comparison and brief 20's hit test follow and decide.
   // A scroll is no input: a refusal after it still dispatched nothing.
   if(command.name==='input'&&!target.password&&(['click','scroll'].includes(command.input.verb)||command.input.verb==='check'&&target.states.checked!==command.input.checked)){
-    assertControl(tab);await content(tab,reference.frame,'reveal',{element:reference.element,generation:dispatchEpoch});
+    assertControl(tab);await content(tab,reference.frame,'reveal',{element:reference.element,generation:dispatchEpoch},null,expires);
   }
   if(recording&&command.fixture_arm_delay){respond({event:'fixture_arm_wait',operation:command.operation});await new Promise(resolve=>setTimeout(resolve,command.fixture_arm_delay));}
   // Arming other frames may take time. Compare again at the actual input boundary.
-  snapshot=await facts(tab,reference);
+  snapshot=await facts(tab,reference,false,expires);
   refuseWithheldSubmission(snapshot,reference,command);
   if(command.binding&&stable(wellFormed(binding(snapshot,reference,command.kind,command.adapter)))!==stable(command.binding))throw Error('stale_approval: page changed during frame setup; prepare again');
   for(const added of snapshot.frames){
     if(armed.some(frame=>frame.frame===added.frame&&frame.document===added.document))continue;
     if(!isPreloaded(tab,added.document))throw Error('refused: a new frame has no document-start guard');
-    armed.push(added);await content(tab,added.frame,'set_control',{generation:dispatchEpoch});
-    await content(tab,added.frame,'arm',{generation:dispatchEpoch,dispatch_nonce:inputNonce,config:owner.hold.config});
+    armed.push(added);await content(tab,added.frame,'set_control',{generation:dispatchEpoch},null,expires);
+    await content(tab,added.frame,'arm',{generation:dispatchEpoch,dispatch_nonce:inputNonce,config:owner.hold.config},null,expires);
     armedDocument(tab,added.document,inputNonce);
   }
   const coverage=await chrome.webNavigation.getAllFrames({tabId:tab})||[];
@@ -1319,7 +1319,7 @@ async function dispatch(command,expires=null) {
   // arming, the reveal and the last comparison. A command whose time is up
   // dispatches nothing and answers `expired`; the finally below releases the
   // armed hold as after any refusal. After this point nothing is cut short.
-  if(expires!==null&&performance.now()>=expires){const error=Error(EXPIRED_INPUT);error.notDispatched=true;throw error;}
+  checkInputTime(expires);
   watch={epoch:dispatchEpoch,frame:reference.frame,popups:[]};popupWatches.set(tab,watch);
   if (command.name === 'resume') { effectStarted=true; await content(tab,reference.frame,'resume',{hold:command.hold,operation:command.operation,generation:dispatchEpoch,element:reference.element,form:frame.form?.element}); }
   else {
@@ -1327,7 +1327,8 @@ async function dispatch(command,expires=null) {
     if (target.password) throw Error('owner_signin: password fields belong to the owner');
     if (input.verb === 'click' || input.verb === 'check' && target.states.checked!==input.checked) {
       if (target.href && !target.href.startsWith('javascript:')) safeURL(target.href);
-      const {x,y}=await pointer(tab,snapshot,reference,target);
+      const {x,y}=await pointer(tab,snapshot,reference,target,expires);
+      checkInputTime(expires);
       await cdp(tab,'Input.dispatchMouseEvent',{type:'mousePressed',x,y,button:'left',clickCount:1});
       await cdp(tab,'Input.dispatchMouseEvent',{type:'mouseReleased',x,y,button:'left',clickCount:1});
     } else if (input.verb === 'fill' || input.verb === 'press') {
@@ -1354,10 +1355,20 @@ async function dispatch(command,expires=null) {
       }
       await content(tab,reference.frame,input.verb,{element:reference.element,...input,value});
     }
-    else if (input.verb === 'scroll') {const point=await pointer(tab,snapshot,reference,target);await cdp(tab,'Input.dispatchMouseEvent',{type:'mouseWheel',...point,deltaX:input.x,deltaY:input.y});}
+    else if (input.verb === 'scroll') {
+      const point=await pointer(tab,snapshot,reference,target,expires);
+      checkInputTime(expires);
+      await cdp(tab,'Input.dispatchMouseEvent',{type:'mouseWheel',...point,deltaX:input.x,deltaY:input.y});
+    }
     else throw Error('permission_denied: unsupported input');
   }
   assertControl(tab);
+  }catch(error){
+    // Only setup waits carry the deadline. Tab selection can set effectStarted
+    // during setup, but it did not dispatch the requested input.
+    if(expires!==null&&error.message===EXPIRED)error=inputExpired();
+    if(error.notDispatched===true&&popupWatches.get(tab)===watch)popupWatches.delete(tab);
+    throw error;
   }finally{
     owner.uncertainFinish=await finishFrames(tab,armed,dispatchEpoch,inputNonce);
     for(const {state,context}of owner.hold?.inherited||[]){if(dialogs.has(tab))break;try{await Promise.allSettled([...state.installing||[]]);await targetCommand(state,'Runtime.evaluate',{contextId:context.id,expression:'globalThis[Symbol.for("aresos.chrome.guard.v2")].finish('+JSON.stringify(dispatchEpoch)+','+JSON.stringify(inputNonce)+')',awaitPromise:true,disableBreaks:true,returnByValue:true});}catch{owner.uncertainFinish=true;}}
@@ -1385,6 +1396,8 @@ const EXPIRED='expired: the time of this command ran out before it finished';
 // Nothing reached the page: the input's own time check ran before its dispatch
 // (selecting the tab and the reveal are no input), so it answers `expired`.
 const EXPIRED_INPUT='expired: the time of this input ran out before its dispatch; nothing was dispatched';
+function inputExpired(){const error=Error(EXPIRED_INPUT);error.notDispatched=true;return error;}
+function checkInputTime(expires){if(expires!==null&&performance.now()>=expires)throw inputExpired();}
 const INVALID_TIME='invalid_input: time_left_ms must be a whole number of milliseconds, 0 or more; the command was not run';
 const expired=error=>String(error?.message).startsWith('expired:');
 const validTime=message=>!Object.hasOwn(message,'time_left_ms')||Number.isSafeInteger(message.time_left_ms)&&message.time_left_ms>=0;
