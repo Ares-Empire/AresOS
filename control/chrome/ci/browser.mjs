@@ -162,6 +162,18 @@ try {
   let browserWindow=execFileSync('xdotool',['getactivewindow'],{encoding:'utf8'}).trim();
   const owner=ownerUI({call,currentTab:()=>tab,window:()=>browserWindow,eventually});
   const ownerNavigate=owner.navigate,ownerOpenTab=owner.open;
+  const ownerClickPage=async title=>{
+    assert.match(title,/^[a-zA-Z0-9 -]+$/);
+    const window=await eventually(()=>{
+      const windows=execFileSync('xdotool',['search','--onlyvisible','--name','^'+title+'( -|$)'],{encoding:'utf8',stdio:['ignore','pipe','ignore']}).trim().split('\n');
+      assert.equal(windows.length,1,'one native window displaying '+title);
+      return windows[0];
+    },'the fixture tab is displayed in Chrome',5000);
+    nativeCompatibilityClick(window);
+    const active=execFileSync('xdotool',['getactivewindow'],{encoding:'utf8'}).trim();
+    assert.equal(active,window,'the fixture window owns native focus');
+    return window;
+  };
   let ordinaryPopup;
   // The owner opens a popup from an opener outside Claude's control: the
   // ordinary popup-outside, or a popup row's own (popups.mjs, typed-late).
@@ -199,7 +211,7 @@ try {
     if(command==='kill_host'){const lines=execFileSync('ps',['-u','1000','-o','pid=,args='],{encoding:'utf8'}).split('\n');for(const line of lines)if(line.includes('/usr/libexec/aresos-control/chrome/native_host.py'))process.kill(Number(line.trim().split(/\s+/)[0]),'SIGKILL');return;}
     return JSON.parse(execFileSync('sudo',['-n','/usr/bin/python3','/workspace/control/chrome/ci/admin.py',JSON.stringify(command)],{encoding:'utf8'}));
   };
-  for(const failure of await matrices({call,read,nav,target,counts,eventually,tab,setTab:value=>{tab=value;},fixture,admin,rpc,caller,ownerNavigate,ownerOpenTab,ownerOpenPopup,nativeDonor,closeNativeDonor,baseline,envelopeResults,
+  for(const failure of await matrices({call,read,nav,target,counts,eventually,tab,setTab:value=>{tab=value;},fixture,admin,rpc,caller,ownerNavigate,ownerOpenTab,ownerClickPage,ownerOpenPopup,nativeDonor,closeNativeDonor,baseline,envelopeResults,
     popupControl:async(command,value)=>{
       const state=async()=>{await lifecycle({fixture:'control_status'});const value=JSON.parse(fs.readFileSync('/out/control-status.json'));fs.appendFileSync('/out/popup-controls.jsonl',JSON.stringify(value)+'\n');return value;};
       if(command==='state')return state();

@@ -176,10 +176,17 @@ function stage(id,mode){
 }
 
 function ownerDraft(id){
-  return {body:'<h1>Owner draft</h1><p id="state">Waiting for keys</p><label>Draft <input name="draft" autofocus></label>',
-    script:titled('Owner draft')+reporter(id)+'document.querySelector("[name=draft]").addEventListener("input",event=>{'
-      +'report("input",{field:"draft",value:event.target.value,trusted:event.isTrusted});'
-      +'if(event.isTrusted&&event.target.value==="Owner words")document.querySelector("#state").textContent="Draft entered";});'};
+  // The runner clicks the center of the native Chrome window. Leave space for its browser chrome.
+  return {body:'<h1>Owner draft</h1><p id="state">Waiting for keys</p>'
+    +'<label style="position:fixed;inset:20% 15%;display:grid;grid-template-rows:auto 1fr">Draft <input name="draft"></label>',
+    script:titled('Owner draft '+id)+reporter(id)
+      +'const draft=document.querySelector("[name=draft]");'
+      +'const focus=event=>({trusted:event.isTrusted,field:event.target.name,'
+      +'focused:document.hasFocus()&&document.activeElement===draft,visible:document.visibilityState==="visible"});'
+      +'document.addEventListener("click",event=>report("focus",focus(event)));'
+      +'document.addEventListener("keydown",event=>report("key",focus(event)));'
+      +'draft.addEventListener("input",event=>{report("input",{...focus(event),value:draft.value});'
+      +'if(event.isTrusted&&draft.value==="Owner words")document.querySelector("#state").textContent="Draft entered";});'};
 }
 
 function inputDialog(id){

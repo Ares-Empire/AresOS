@@ -43,7 +43,7 @@ const pad=index=>String(index).padStart(2,'0');
 const auditRows=(offset,key)=>boundaryLog.since(offset).split('\n').slice(0,-1)
   .filter(line=>line.startsWith('{"'+key+'":')).map(line=>JSON.parse(line));
 
-export async function actMatrix({check:report,call,rpc,nav,counts,eventually,fixture,admin,lifecycle,restoreControl,ownerNavigate,ownerOpenTab,ownerType,ownerKey,ownerDismiss,getTab,setTab}){
+export async function actMatrix({check:report,call,rpc,nav,counts,eventually,fixture,admin,lifecycle,restoreControl,ownerNavigate,ownerOpenTab,ownerClickPage,ownerType,ownerKey,ownerDismiss,getTab,setTab}){
   fs.mkdirSync(OUT,{recursive:true});
   let current='',opened=[];
   const results=[];
@@ -291,26 +291,44 @@ export async function actMatrix({check:report,call,rpc,nav,counts,eventually,fix
 
   await check('ACT BRIEF28A real owner keys during the first step leave the next fill stale with its present line',async()=>{
     const id=uid('owner-draft'),page=await open(actUrl('owner-draft',id)),tab=page.tab;
-    await data('show',{tab});
+    const shown=await data('show',{tab});
+    assert.equal(shown.shown,tab);
+    const nativeWindow=await ownerClickPage(page.untrusted_content.title);
+    const evidence=(phase,details)=>fs.appendFileSync(OUT+'/owner-draft.jsonl',JSON.stringify({id,tab,phase,at:Date.now(),...details})+'\n');
+    evidence('native click',{nativeWindow,chromeWindow:shown.window});
+    const inDraft=row=>row.field==='draft'&&row.trusted&&row.focused&&row.visible;
+    const focus=await eventually(()=>reported('act-focus-'+id).find(inDraft),'native click focused the visible Draft field',5000);
+    const active=(await allTabs(call)).items.find(row=>row.tab===tab);
+    assert.ok(active?.active&&active.focused&&active.window===shown.window&&active.url===page.untrusted_content.url,
+      'the fixture tab is active in the focused Chrome window: '+JSON.stringify(active));
+    evidence('draft focused',{focus});
     const ref=refOf(page.untrusted_content.outline,'textbox "Draft"');
+    assert.deepEqual(typed(id,'draft'),[],'the owner has yet to type');
     const offset=boundaryLog.size();
     const pending=throughData('proxy','do',{tab,steps:[{do:'wait',until:{text:'Draft entered'},timeout_ms:8000},
       {do:'fill',ref,text:'Replacement'}]});
-    let result;
+    let result,typingAt;
     try{
-      // The list's preflight looks once. Repeated polls show the first step
-      // is waiting, and its condition depends on the real key events below.
-      await eventually(()=>auditRows(offset,'command').filter(row=>row.command==='page_state'&&row.phase==='begin').length>=3,
+      // Three page states establish the start, pre-step outline and wait outline.
+      // The fourth is the first poll after the wait has checked for Draft entered.
+      const polls=await eventually(()=>{
+        const states=auditRows(offset,'command').filter(row=>row.command==='page_state'&&row.phase==='begin').length;
+        return states>=4&&states;
+      },
         'the first step is polling for the owner draft',6000);
+      typingAt=Date.now();
+      evidence('sending keys',{typingAt,pageStates:polls});
       ownerType('Owner words');
     }finally{({data:result}=await pending);}
     assert.deepEqual(outcomes(result),['done','stale']);
     assert.equal(result.steps[1].code,'stale_reference');
     assert.match(lineOf(result.untrusted_content.now,'textbox "Draft"'),/Owner words/);
     assert.match(lineOf((await readTab(tab)).untrusted_content.outline,'textbox "Draft"'),/Owner words/);
-    const rows=typed(id,'draft');
-    assert.ok(rows.some(row=>row.value==='Owner words'&&row.trusted),'the page received real keys');
-    assert.ok(rows.every(row=>'Owner words'.startsWith(row.value)),'every input was a prefix of the owner draft');
+    await eventually(()=>typed(id,'draft').some(row=>row.value==='Owner words'&&inDraft(row)&&row.at>=typingAt),
+      'the focused Draft received the full trusted text after the wait began',2000);
+    assert.ok(reported('act-key-'+id).some(row=>inDraft(row)&&row.at>=typingAt),'a real key reached the focused Draft during the wait');
+    assert.ok(typed(id,'draft').every(row=>inDraft(row)&&row.at>=typingAt&&'Owner words'.startsWith(row.value)),
+      'every input was a trusted prefix of the owner draft entered during the wait');
   });
 
   await check('ACT BRIEF28A a dialog during input records one unknown operation and stops the list',async()=>{

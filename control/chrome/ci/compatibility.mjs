@@ -35,9 +35,12 @@ document.querySelector('#continue').onclick=()=>{
 }
 
 const key=(...keys)=>execFileSync('xdotool',['key','--clearmodifiers',...keys]);
-export function nativeCompatibilityClick(){
-  const windows=execFileSync('xdotool',['search','--onlyvisible','--class','[Gg]oogle-chrome'],{encoding:'utf8'}).trim().split('\n');
-  const window=windows.at(-1);execFileSync('xdotool',['windowactivate','--sync',window]);
+export function nativeCompatibilityClick(window){
+  if(!window){
+    const windows=execFileSync('xdotool',['search','--onlyvisible','--class','[Gg]oogle-chrome'],{encoding:'utf8'}).trim().split('\n');
+    window=windows.at(-1);
+  }
+  execFileSync('xdotool',['windowactivate','--sync',window]);
   const geometry=execFileSync('xdotool',['getwindowgeometry','--shell',window],{encoding:'utf8'});
   const width=Number(geometry.match(/^WIDTH=(\d+)/m)[1]),height=Number(geometry.match(/^HEIGHT=(\d+)/m)[1]);
   execFileSync('xdotool',['mousemove','--window',window,String(Math.floor(width/2)),String(Math.floor(height/2)),'click','1']);
