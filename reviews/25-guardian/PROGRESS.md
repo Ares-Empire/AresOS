@@ -1,6 +1,6 @@
 # Package 25, the guardian: progress
 
-Updated after **step 2** (2026-11-19). Builder: a Claude agent on Fable 5.2, one fresh agent per step.
+Updated after **step 3** (2026-11-19). Builder: a Claude agent on Fable 5.2, one fresh agent per step.
 Brief: `briefs/25-guardian.md`; its last section ("The lead's fixes after the recheck") overrides the rest.
 
 ## Done
@@ -73,9 +73,44 @@ One existing assertion changed: the game's exact environment in
 | `test_aresos_guardian_loop.py` | 10 tests, OK, 19 s (3 new: a confirmed stop, four saves that fail, a game that ignores SIGTERM for both kinds), no process left behind |
 | `test_aresos_desktop.py` | 189 tests, OK (1 skipped), 175 s, no assertion changed |
 
+**Step 3: 3.2 and 3.3, the session ending under the supervisor, `restart`, `logout`, the windows' texts**
+(`os/config/usr/libexec/aresos-desktop`, `os/config/usr/share/aresos/desktop-view.bashrc`).
+
+- **3.2 Signals.** `Loop.watch_signals()` (called by `supervise()`): `signal.set_wakeup_fd` on a pipe in the selector,
+  so SIGTERM, SIGHUP and SIGINT are noticed at once. `Loop.end_session(why)` calls `Supervisor.end_session(why,
+  done)`, which begins or joins a stop that cannot be called off (systemd is not asked) and lets the loop end only
+  when that stop has ended. The keeper (`session()`) waits for its supervisor as before, and now also passes on a
+  signal that came before it knew its child.
+- **3.2 labwc.** `Supervisor.watch_session()` at start: `LABWC_PID` from the supervisor's own environment only, checked
+  by `labwc_problem()` (named `labwc`, our uid, this supervisor's `XDG_RUNTIME_DIR` in its `/proc/<pid>/environ`), and
+  watched by pidfd (`Runner.watch_labwc()`; the pidfd is opened before the checks and is still alive after them).
+  Three outcomes: watched; gone (the session is over: nothing is started, what is adopted is stopped, the supervisor
+  exits); not watched (one log line, nothing is ever signalled, `logout` is refused). When the watched labwc ends,
+  `Loop.on_labwc` ends the session as a signal does.
+- **The exit fits in the deadline.** A stop that ends with the supervisor's exit stops waiting `STOP_EXIT_RESERVE`
+  (3 s) before its deadline. `Loop.close(by)` → `Runner.end_children(by)`: the helper, the message window and the
+  covers get SIGTERM at once and share one wait (`CLOSE_WAIT` 5 s, or what `by` leaves less 1 s), then SIGKILL and
+  `CLEANUP_KILL_WAIT`. `end_covers()` is gone.
+- **3.3 `restart`.** Socket op and command word, and the word `restart` in the message window. After its stop
+  (`finish_stop()` → `start_again()`): with a known count of zero app windows as `retry` does (`COVER_AGAIN`),
+  otherwise as an automatic restart does. The session's instance stays.
+- **3.3 `logout`.** Socket op and command word. `logout_refusal()` first (an app window open, the count unknown, no
+  watched labwc): nothing is stopped. Then the stop; `after_close()` checks the count again and sends SIGTERM to
+  labwc through the watched pidfd (`Runner.signal_labwc()`), also with no game running (the lead's fix 3); the stop
+  waits in phase `logout` until labwc's pidfd fires, the session's signal comes, or the deadline (`no_logout()`:
+  the reply says so, the admission block is lifted, the `quit` window shows).
+- **The helper's `windows` event, the supervisor's side** (`on_windows()`, `app_windows()`); `status` has `windows`,
+  `labwc` and `session_over`.
+- **The admission block's kind decides who may lift it** (`block_kind`): only a logout's block is ever lifted.
+
+| Module (step 3, run by name as above) | Result |
+|---|---|
+| `test_aresos_guardian.py` | 59 tests, OK (16 new: `SessionTest`) |
+| `test_aresos_guardian_loop.py` | 17 tests, OK, 32 s, three runs in a row (7 new: SIGTERM through the keeper to an idle loop, SIGTERM in the middle of a save, a signal with a game that ignores SIGTERM, the stand-in labwc's end, `logout`, a labwc of another runtime folder, `restart`), no process left behind |
+| `test_aresos_desktop.py` | 189 tests, OK (1 skipped), 175 s, no assertion changed |
+
 ## Left, in order
 
-3. 3.2 and 3.3: the signal wake-up, labwc, `restart`, `logout`, the windows' texts.
 4. 3.4: the black screen, the helper's `windows` event, the lid block.
 5. Section 4.
 6. The real game.
@@ -147,7 +182,48 @@ Step 2:
 25. **`retry` on `stuck` or `save_failed` with the game alive** clears the window, as for every other window.
 26. **The game scope's result is not asked for a stopped launch**: `scope_result()` can block up to 10 s.
 27. **R28's key list is frozen from this branch's `Persisted` without `stop`** (`R28_KEYS`, `r28_load` in the test).
-    It was not compared with R28's image: no tag of it is in this checkout. The lead should confirm it.
+    It was not compared with R28's image: no tag of it is in this checkout. **Confirmed by the lead (2026-11-19):**
+    the list matches main's `Persisted` keys, and main is what R28 is cut from today. Step 3 added no persisted key.
+
+Step 3:
+
+28. **The session's end is never asked about.** `end_session()` skips `systemctl is-system-running`: a signal or
+    labwc's end cannot be called off (2.2), whatever systemd says. It always writes the admission block, so SIGTERM
+    to the supervisor by hand ends this session's desktop until the next login (the keeper ends with exit 0, as
+    before).
+29. **`STOP_EXIT_RESERVE` 3 s.** With a signal, labwc's end, or a logout that waits for labwc, the wait for Java (or
+    labwc) ends at 57 s, so the supervisor's own exit fits inside the 60 s (2.1). A `stop --reason shutdown` from the
+    guard keeps the whole 60 s: the supervisor does not exit after it. The reply's text still says "60 seconds".
+30. **A signal after an overrun exits at once.** If the open record names the launch that is still there, with
+    SIGTERM sent and `overrun`, nothing more is waited for (2.7). Decision 22 stands for commands.
+31. **labwc "gone" is no such process, or one that has exited.** A `LABWC_PID` whose number another process took
+    reads as "not watched", never as gone.
+32. **Without a watched labwc `logout` is refused before anything is stopped** (`error: no_session`), instead of
+    stopping the game and then reporting that labwc stays.
+33. **The `windows` event** is `{"event": "windows", "count": n, "names": [...]}`. A count that is no JSON integer
+    from 0 up makes the count unknown (the helper says so when it lost track). Names are optional (64 at most; a
+    missing one reads "an app without a name"). It is read whether or not a game runs. The count is unknown until
+    the helper that runs now has reported, and again when it exits. "Fresh" means the last report of the running
+    helper: there is no age limit, because reports come only at changes.
+34. **A refused logout** answers `result: refused` with `error` (`apps_open`, `apps_unknown`, `no_session`) and
+    `windows`; no record, no block. The logout phase is logged but not written into `desktop.json` (the launch's
+    record is closed by then). A stop that logged out answers with `kind: shutdown` (the ending session made it
+    final) and `logout: exited` (labwc's pidfd fired) or `ending` (the session's signal came first).
+35. **A `restart` or `logout` that joins a running stop** hears that stop's reply; nothing is restarted or logged
+    out (2.8: nothing starts a second stop).
+36. **`restart` starts again only when the game is gone and no latch is set.** A latch, also `unsaved`, shows its
+    window instead: `retry` stays the only way past a latch. With nothing running and a start already on its way
+    (Prism up, no Java yet) it starts no second Prism (`restart: starting`). An unknown window count starts below
+    the app in front, without the cover. Exit 0 needs confirmed, `exited` or nothing running, and the new start.
+37. **Three windows for a stop that was called off:** `save_failed`, `save_failed_restart`, `save_failed_logout`
+    (the first sentence says what was not done; the rest is the same). All are in `STICKY`.
+38. **The `helper` window offers `restart`** in place of "retry (after closing Minecraft)".
+39. **Only a logout's admission block is lifted.** The block file's `kind` decides; a logout's block that a
+    shutdown joins is rewritten as a shutdown's. Step 2 would have lifted a shutdown's block when a logout was
+    tried after it.
+40. **The exit's cleanup is shared.** At the supervisor's exit the helper has 5 s at most (as before), but the
+    window and the covers share that wait instead of adding 5 s and 2 s of their own. `stop_helper()` and
+    `close_view()` are unchanged for use during a session.
 
 **New texts** (the `save` command prints them; for the report's list):
 
@@ -194,6 +270,40 @@ Step 2, the `stop` command and `retry`:
 - The wrapper's refusal: `AresOS is stopping, so Minecraft is not started now.` `status`: `AresOS is stopping
   Minecraft.`
 
+Step 3, the windows (the body is `save_failed`'s; `<why>` as above):
+
+- `save_failed_restart`: `Minecraft was not restarted, because your home could not be confirmed as saved first.` …
+- `save_failed_logout`: `AresOS did not log out, because your home could not be confirmed as saved first.` …
+- `helper`, last line: `Type  restart  and press Enter to save your home and start both again.`
+- The message window has a second word, `restart`.
+
+Step 3, `restart` (`<stop>` is one of step 2's `Stopped: …`, `Nothing to stop: …` or `Not a confirmed stop: …` lines):
+
+- `<stop> Minecraft is starting again.`
+- `<stop> Minecraft is already starting.`
+- `<stop> Minecraft was not started again; the AresOS window says why.`
+- `<stop> Minecraft is not started again.`
+- `Not restarted: Minecraft keeps running. <why>`
+- `Not restarted: the AresOS desktop supervisor did not answer (<error>).`
+
+Step 3, `logout`:
+
+- `Logged out: the home was saved first; Minecraft closed.` (or `there was nothing to save`)
+- `Logged out: Minecraft was not running.`
+- `Not logged out: an app is still open (Mail). Close it first; nothing was stopped.`
+- `Not logged out: 2 apps are still open (Mail, Files). Close them first; nothing was stopped.`
+- `Not logged out: AresOS cannot tell whether an app is still open (its app helper has not reported). Nothing was
+  stopped.`
+- `Not logged out: this AresOS desktop watches no session of its own that it could end. Nothing was stopped.`
+- `Not logged out: Minecraft keeps running. <why>`
+- `<stop> Not logged out: an app is open now (Mail).`
+- `<stop> Not logged out: AresOS can no longer tell whether an app is open.`
+- `<stop> Not logged out: the session could not be asked to end.`
+- `<stop> Not logged out: the session did not end within the stop's 60 seconds.`
+- `<stop> Not logged out.` (the stop was not confirmed, or Minecraft did not close in its own way)
+- `Not logged out: the AresOS desktop supervisor did not answer (<error>).`
+- A reason on `restart` or `logout`: `only a stop has a reason: shutdown, or none`
+
 ## What the code does not show
 
 - **For step 2: where a save's callback runs.** `done(SaveResult)` can run inside `conclude()` (a launch's end closes
@@ -204,14 +314,28 @@ Step 2, the `stop` command and `retry`:
   for a replacement supervisor's first seconds. The wrapper reports `jvm_started` long before the mod loads, so in
   the real game the first hello is normally accepted; the stand-in game connects earlier and shows the refused-then-
   accepted path.
-- **For step 3: signals are still noticed late and still only set `loop.stopping`.** A stop that runs then loses
-  its callers' replies and the game is left as it is. The seam: `request_stop('shutdown', done)` begins or joins a
-  stop (`make_final()` makes a running one final), and the loop may exit once `done` ran. `Loop.close()` can take
-  5 + 1 s (helper), 5 + 1 s (window) and 2 + 1 s (covers): it has to fit inside the one deadline.
-- **For step 3: `restart` and `logout`.** `request_stop()` takes both kinds already (called off like `stop`, the
-  record's kind, the block for `logout`). Missing is what follows `finish_stop()`: the new start, and labwc.
-  `finish_stop()` removes the block for a `logout` that does not go on (not confirmed, or its close not `exited` or
-  `none`) and leaves it otherwise. A replacement supervisor turns both into a plain stop (`resume_stop()`).
+- **For step 4: the real helper sends no `windows` event yet**, so every `logout` in a real session is refused
+  (`apps_unknown`) and every `restart` starts below the app in front, until `aresos-shell` reports the count. The
+  format is decision 33; when tracking is lost the helper should send `"count": null`. Which windows count is 3.4's
+  (a terminal he types `logout` into is an app window unless the helper says otherwise).
+- **For step 4: where the black screen belongs.** Its start: `request_stop()` for `shutdown`, `logout`, `restart`
+  when `app_windows() == []`. A window that appears: `on_windows()`. Its end: `finish_stop()` (called off, failed,
+  overrun, `no_logout()`), `start_again()` once the startup cover is up, `on_labwc_gone()`. The black cover and the
+  `systemd-inhibit` child belong in `Runner.end_children()`'s list, which is the only cleanup at the supervisor's
+  exit.
+- **Not verified on a real session: that the real labwc passes `labwc_problem()`** (labwc exports `LABWC_PID` to its
+  autostart, and its own environment has `XDG_RUNTIME_DIR`). If it does not, the log says why and `logout` is
+  refused; nothing else changes. Step 7's VM check should read `status` and expect `labwc: true`.
+- **A session with no helper cannot log out through `logout`** (a latch at the session's start means no launch and
+  no helper, so the count stays unknown). A known limit for the report.
+- **Signals in tests.** `watch_signals()` runs only in `supervise()` (the main thread); the in-thread loops of
+  `test_aresos_desktop.py` still stop through `loop.stopping`. A test that starts a supervisor process and sends it
+  SIGTERM now gets the stop routine: the loop harness's cleanup first makes the stand-in game save and close.
+- **The loop harness, step 3:** `start(keeper=True)` runs the keeper (`desktop.SELF` is `bin/self`);
+  `start(labwc_runtime=<folder>)` gives the stand-in labwc another runtime folder; the file `control/windows` holds
+  the stand-in helper's `windows` event (`self.windows('Mail')` writes it and waits) and `control/quiet` silences
+  the helper; set `STOP_EXIT_RESERVE` together with a small `STOP_BUDGET`; the cleanup ends every process whose own
+  environment names the test's runtime folder.
 - **What shows after a stop is decided only in `finish_stop()` and `settle_stopped()`.** While a stop runs, or the
   state is `STOPPING`, or a sticky window shows, `held()` is true and `ready()`, the start timeout and a helper
   failure change no state. Step 4's black screen belongs to the same two places.
