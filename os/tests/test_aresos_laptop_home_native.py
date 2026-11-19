@@ -1039,7 +1039,11 @@ class MemoryGuardTest(unittest.TestCase):
     room, so it catches a regression without failing on the test compositor's spare picture.
     """
 
-    LIMIT_KIB = 64000
+    # Re-pinned by the lead, 2026-11-19: the same reviewed code measured 62,358 KiB in step B and 64,844 KiB a day
+    # later (review fix round 1), so set-up S moves by a few MiB with the laptop's state (shared library pages count
+    # differently with other processes running). 68,000 KiB still catches a real regression such as a leaked window
+    # picture (about 8 MiB); the 60 MiB limit itself is judged in set-up I at the laptop trial.
+    LIMIT_KIB = 68000
 
     def test_rest_after_typing_sliding_and_finder_results_stays_within_two_percent(self):
         """REVIEW-1 finding 4: typing, slides, rotating finder results (with their icons) and a cleared query leave
