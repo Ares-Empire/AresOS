@@ -12,7 +12,8 @@ Wire format: one UTF-8 JSON object per line, at most 64 KiB per line.
   reply    {"protocol": ..., "id": <request id>, "ok": true, ...}
            {"protocol": ..., "id": <request id or null>, "ok": false, "error": <code>, "message": <text>}
   event    {"protocol": ..., "id": <event id>, "event": "app_state" | "shell_focus" | "apps_changed"
-                                                 | "shell_covered" | "home_changed" | "apps_running", ...}
+                                                 | "shell_covered" | "home_changed" | "apps_running"
+                                                 | "shell_search", ...}
 
 Minor 1 adds app_details, list_paging and apps_changed. list_apps returns an
 ID-ordered page with revision and optional next; cursor requests the next page.
@@ -33,6 +34,13 @@ four named views authenticate with the session instance and ARESOS_VIEW_TOKEN.
 Views can list and open apps and see their own launch states, catalogue changes,
 completed home revisions and running apps. Readiness and desktop focus events
 belong to the desktop connection. Examples: mod/src/test/resources/shell-1.2/.
+
+shell_search (package 53d, minor 2, with window tracking, the desktop only) asks
+the mod for its search over the world: {"event": "shell_search"}. Super sends it:
+the supervisor's `aresos-desktop search` (package 23c) signals this helper with
+SIGUSR1, and the serving loop gives the world's window the keyboard first. A
+minor-2 desktop's open_app may carry "screen": "world" (the app opens on the
+screen that shows the world); the hint stays with the launch's journal entry.
 
 Desktop operations (B1): hello, list_apps, open_app, world_ready, heartbeat,
 and publish_home in 1.2. Other desktop operations return unknown_operation.
@@ -163,6 +171,13 @@ MAX_CHECKS = 4
 WINDOW_CAPABILITIES = frozenset({'shell_focus', 'windows', 'shell_covered'})
 # Offered only to a client that speaks minor 1: what a 1.0 desktop hears stays exactly as it was.
 LATER_CAPABILITIES = DETAIL_CAPABILITIES | {'shell_covered'}
+# Package 53d: Super's search over the world. Offered only to a minor-2 desktop with window tracking, never to a view,
+# and sent only on minor 2 (LATER_CAPABILITIES checks minor 1 only).
+SEARCH_CAPABILITIES = frozenset({'shell_search'})
+# Signals this close together are one press of Super: the search opens once.
+SEARCH_COALESCE = 0.3
+# open_app's "screen" hint (1.2, minor-2 desktop only): the screen that shows the world.
+SCREENS = frozenset({'world'})
 # The launch secrets stay with the desktop; launched apps never inherit them,
 # nor the helper's own service plumbing.
 PRIVATE_ENVIRONMENT = ('ARESOS_LAUNCH_NONCE', 'ARESOS_VIEW_TOKEN', 'ARESOS_DESKTOP_INSTANCE', 'ARESOS_SHELL_STATUS_FD',
@@ -3008,6 +3023,8 @@ class Helper:
         self.adopting = set()
         self.world = None
         self.last_heartbeat = None
+        # When Super last asked for the search over the world (package 53d), for coalescing.
+        self.search_at = None
         self.reconcile()
         if windows is not None:
             # The compositor has listed its windows by now: tie restarted launches to them, then take stock.
@@ -3097,6 +3114,9 @@ class Helper:
         conn.covered = False
         conn.capabilities = frozenset()
         conn.minor = 1
+        # Whether this connection has said its world is ready (world_ready), and not taken that back since: the search
+        # over the world needs a world to be over.
+        conn.world_ready = False
         conn.opened = self.clock()
         conn.inbuf = bytearray()
         self.connections.append(conn)
@@ -3204,7 +3224,8 @@ class Helper:
         if conn is None or conn.closing:
             return
         if conn.client == DESKTOP:
-            if event not in conn.capabilities or (event in LATER_CAPABILITIES and conn.minor < 1):
+            if (event not in conn.capabilities or (event in LATER_CAPABILITIES and conn.minor < 1)
+                    or (event in SEARCH_CAPABILITIES and conn.minor < 2)):
                 return
             self.events += 1
             serial = self.events
@@ -3273,10 +3294,12 @@ class Helper:
         offered = self.capabilities if minor >= 1 else self.capabilities - LATER_CAPABILITIES
         if minor >= 2:
             offered |= VIEW_CAPABILITIES
+            if self.windows is not None:
+                offered |= SEARCH_CAPABILITIES
         if client != DESKTOP:
             if minor < 2:
                 raise Failure('incompatible_version', 'views require aresos-shell/1.2', close=True)
-            offered = (offered - WINDOW_CAPABILITIES) - {'world_ready', 'heartbeat'}
+            offered = (offered - WINDOW_CAPABILITIES - SEARCH_CAPABILITIES) - {'world_ready', 'heartbeat'}
             if client not in self.views and len(self.views) >= MAX_VIEWS:
                 raise Failure('busy', 'all view connections are in use', close=True)
         missing = sorted(required - offered)
@@ -3449,8 +3472,17 @@ class Helper:
         app_id = message.get('app_id')
         if not isinstance(app_id, str) or len(app_id) > 128:
             raise Failure('malformed', 'app_id must be a string')
+        screen = message.get('screen')
+        if 'screen' in message:
+            # Package 53d: only the search over the world names a screen, and only a 1.2 desktop has that search.
+            if conn.client != DESKTOP or conn.minor < 2:
+                raise Failure('malformed', 'screen is a hint of an aresos-shell/1.2 desktop')
+            if not isinstance(screen, str) or screen not in SCREENS:
+                raise Failure('malformed', 'screen must be "world"')
         unknown = {'app_id': app_id, 'launch_id': None, 'state': 'failed',
                    'error': 'unknown_app', 'message': 'no reviewed launch definition'}
+        if screen is not None:
+            unknown['screen'] = screen
         key = (conn.client, request_id)
         waiting = self.checking.get(key)
         if waiting is not None:
@@ -3485,10 +3517,12 @@ class Helper:
         check = self.checks.start(app, launch_check, app, self.executable, self.launcher.working_directory)
         if check is None:
             LOG.warning('%s not opened: %d launch checks are still waiting for an answer', app.id, MAX_CHECKS)
-            return self.launch(key, app, None, None, 'checks_busy')
+            return self.launch(key, app, None, None, 'checks_busy', screen)
         if check.done.wait(CHECK_WAIT):
-            return self.launch(key, app, *check.result)
-        self.checking[key] = dict(app=app, check=check, deadline=self.clock() + CHECK_SECONDS, conns=[conn])
+            return self.launch(key, app, *check.result, screen)
+        # A resend while the check runs joins this one; the first request's screen stays with the launch.
+        self.checking[key] = dict(app=app, check=check, deadline=self.clock() + CHECK_SECONDS, conns=[conn],
+                                  screen=screen)
         return None
 
     @staticmethod
@@ -3515,7 +3549,7 @@ class Helper:
             try:
                 if not self.journal.room(client):
                     raise self.journal_full(request_id, app.id)
-                answer = self.launch(key, app, *result)
+                answer = self.launch(key, app, *result, waiting['screen'])
             except Failure as failure:
                 for conn in conns:
                     self.error(conn, request_id, failure)
@@ -3523,16 +3557,21 @@ class Helper:
             for conn in conns:
                 self.reply(conn, request_id, dict(answer))
 
-    def launch(self, key, app, argv, directory, reason):
-        """Start app once its check has answered, or record why it could not start."""
+    def launch(self, key, app, argv, directory, reason, screen=None):
+        """Start app once its check has answered, or record why it could not start.
+
+        screen is open_app's hint (package 53d). It is kept in the launch's journal entry, so a duplicate request and a
+        restarted helper see it too. Where the window goes is package 23c's placement, not built here.
+        """
         app_id = app.id
+        hint = {'screen': screen} if screen is not None else {}
         if reason is not None:
             LOG.warning('%s not opened: %s', app_id, reason)
             return self.record(key, {'app_id': app_id, 'launch_id': None, 'state': 'failed',
-                                     'error': 'unavailable', 'reason': reason, 'message': reason})
+                                     'error': 'unavailable', 'reason': reason, 'message': reason, **hint})
         launch_id = secrets.token_hex(8)
         unit = self.launcher.unit(app, launch_id)
-        entry = {'app_id': app_id, 'launch_id': launch_id, 'state': 'launching', 'unit': unit}
+        entry = {'app_id': app_id, 'launch_id': launch_id, 'state': 'launching', 'unit': unit, **hint}
         if app.discovered:
             entry['started'] = self.clock()
             entry['discovered'] = True
@@ -3596,6 +3635,7 @@ class Helper:
         if self.world != world['id']:
             LOG.info('desktop world ready')
         self.world = world['id']
+        conn.world_ready = True
         self.last_heartbeat = self.clock()
         self.status(event='world_ready', world=self.world)
         return {}
@@ -3606,6 +3646,8 @@ class Helper:
         ready = message.get('ready')
         if not isinstance(ready, bool):
             raise Failure('malformed', 'ready must be a boolean')
+        if not ready:
+            conn.world_ready = False
         if not ready and self.world is not None:
             LOG.info('desktop world no longer ready')
             self.world = None
@@ -4018,6 +4060,50 @@ class Helper:
     def unowned_windows(self):
         return [toplevel for toplevel in self.windows.toplevels.values() if toplevel.ready and toplevel.owner is None]
 
+    def search(self):
+        """Super (package 53d): the world gets the keyboard, then the mod opens its search over the world.
+
+        Runs in the serving loop after SIGUSR1, never in the signal handler (SearchSignal). It acts only for a ready
+        minor-2 desktop that offered shell_search, with window tracking and the world's window known; otherwise Super
+        does nothing. Not return_to_desktop: that tells the mod an app closed and marks the world in front before the
+        compositor does. Here the compositor's activation of the world comes back through follow_windows like a
+        click on it, whose uncover() minimizes a maximized or fullscreen window hiding the world on its screen.
+        """
+        now = self.clock()
+        if self.search_at is not None and now - self.search_at < SEARCH_COALESCE:
+            return
+        self.search_at = now
+        conn = self.desktop
+        world = self.windows.of(Windows.SHELL) if self.windows is not None else []
+        if conn is None or conn.closing or conn.minor < 2 or 'shell_search' not in conn.capabilities:
+            why = 'no desktop that offered shell_search on aresos-shell/1.2'
+        elif not conn.world_ready:
+            why = 'its world is not ready'
+        elif self.windows is None:
+            why = 'window tracking is off'
+        elif not world:
+            why = "the world's window is not known"
+        else:
+            why = None
+        if why is not None:
+            LOG.info('Super ignored: %s', why)
+            return
+        active = self.windows.active()
+        if active is None or active.owner != Windows.SHELL:
+            if self.activate_window is None or not self.activate_window(world[-1].handle):
+                LOG.warning("Super ignored: the world's window could not be activated")
+                return
+            # His own choice, as a click on the world is: a restored desktop's rule of handing the focus back to the
+            # window in front (B2) must neither undo it nor keep uncover() from running.
+            self.keep_foreground = False
+            self.kept = None
+        if self.active_handle in {toplevel.handle for toplevel in world}:
+            # follow_windows uncovers when the active window changes to the world. It already is the world (or was
+            # the last window active), so no change will come: uncover here, by the same rule.
+            self.uncover()
+        LOG.info('Super: the search over the world')
+        self.emit('shell_search')
+
     def return_to_desktop(self, app):
         """The foreground app's last relevant window closed: give the hub its focus back."""
         desktop = self.windows.of(Windows.SHELL)
@@ -4128,11 +4214,61 @@ def prepare_socket(path, uid=None):
     raise SystemExit('another aresos-shell is already serving ' + path)
 
 
+class SearchSignal:
+    """SIGUSR1: the supervisor's `aresos-desktop search` (package 23c, Super) asks for the search over the world.
+
+    The handler only records the request. A Python handler runs between two bytecodes of whatever the serving loop was
+    doing, so activating, minimizing or sending from it could cut into a half-sent Wayland request or a half-sent line
+    to the mod. signal.set_wakeup_fd wakes the loop's select through a non-blocking pipe in Server's selector, and the
+    loop acts (Helper.search). SIGUSR1's default would end the helper, so main() installs this first of all.
+    """
+
+    def __init__(self):
+        self.requested = False
+        self.reader = self.writer = None
+
+    @classmethod
+    def install(cls):
+        search = cls()
+        signal.signal(signal.SIGUSR1, search.record)
+        return search
+
+    def record(self, signum, frame):
+        self.requested = True
+
+    def wake_through_pipe(self):
+        """The wake-up pipe for Server's selector. Main thread only, as signal.set_wakeup_fd is."""
+        self.reader, self.writer = os.pipe2(os.O_NONBLOCK | os.O_CLOEXEC)
+        signal.set_wakeup_fd(self.writer, warn_on_full_buffer=False)
+
+    def drain(self):
+        """Empty the pipe: it says only that some signal came (SIGTERM writes to it too); the flag says which."""
+        try:
+            while os.read(self.reader, 512):
+                pass
+        except BlockingIOError:
+            pass
+
+    def take(self):
+        if not self.requested:
+            return False
+        self.requested = False
+        return True
+
+    def close(self):
+        if self.writer is not None:
+            signal.set_wakeup_fd(-1)
+            os.close(self.writer)
+            os.close(self.reader)
+            self.reader = self.writer = None
+
+
 class Server:
-    def __init__(self, path, helper, wayland=None, uid=None):
+    def __init__(self, path, helper, wayland=None, uid=None, search=None):
         self.path = path
         self.helper = helper
         self.wayland = wayland
+        self.search = search
         self.uid = os.getuid() if uid is None else uid
         self.selector = selectors.DefaultSelector()
         self.peers = {}
@@ -4151,6 +4287,8 @@ class Server:
         if wayland is not None:
             self.selector.register(wayland.sock, selectors.EVENT_READ, 'wayland')
         self.selector.register(helper.watcher.reader, selectors.EVENT_READ, 'scopes')
+        if search is not None and search.reader is not None:
+            self.selector.register(search.reader, selectors.EVENT_READ, 'search')
 
     def watch(self, peer):
         events = selectors.EVENT_READ | (selectors.EVENT_WRITE if peer.outbuf else 0)
@@ -4184,6 +4322,10 @@ class Server:
     def step(self, timeout=0.5):
         for key, mask in self.selector.select(timeout):
             self.handle(key, mask)
+        # After this round's compositor news, so the search sees the windows as they are now. The flag is read every
+        # round: a signal that came before the wake-up pipe existed is not lost.
+        if self.search is not None and self.search.take():
+            self.helper.search()
         self.helper.tick()
 
     def handle(self, key, mask):
@@ -4197,6 +4339,9 @@ class Server:
             return
         if key.data == 'scopes':
             self.helper.scopes_answered()
+            return
+        if key.data == 'search':
+            self.search.drain()
             return
         peer = key.data
         if mask & selectors.EVENT_WRITE:
@@ -4228,6 +4373,8 @@ class Server:
             peer.close()
         self.selector.close()
         self.listener.close()
+        if self.search is not None:
+            self.search.close()
         self.helper.watcher.stop()
         if self.helper.catalogue is not None:
             self.helper.catalogue.stop()
@@ -4263,6 +4410,9 @@ def build(registry_dir, instance, nonce, journal_path, environ=None, launcher=No
 
 
 def main(argv=None):
+    # First of all (package 53d): until this handler is in place SIGUSR1 would end the helper. Package 23c's supervisor
+    # also starts it with SIGUSR1 ignored, for the moments before Python runs this line.
+    search = SearchSignal.install()
     parser = argparse.ArgumentParser(description=f'AresOS app helper ({protocol()})')
     parser.add_argument('--registry', default=REGISTRY, help='folder of reviewed app entries')
     parser.add_argument('--socket', help='socket path (default $XDG_RUNTIME_DIR/aresos/shell.sock)')
@@ -4298,7 +4448,8 @@ def main(argv=None):
     prepare_socket(path)
     helper, wayland = build(args.registry, instance, nonce, os.path.join(os.path.dirname(path), 'shell-journal.json'),
                             status=status, keep_foreground=os.environ.get('ARESOS_SHELL_KEEP_FOREGROUND') == '1')
-    server = Server(path, helper, wayland)
+    search.wake_through_pipe()
+    server = Server(path, helper, wayland, search=search)
 
     def stop(signum, frame):
         server.stopping = True
