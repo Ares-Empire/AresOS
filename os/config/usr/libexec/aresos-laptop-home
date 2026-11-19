@@ -640,6 +640,34 @@ ROW_HEIGHT, LIST_HEAD = 36, 24
 MONO_ADVANCE = 0.59
 
 
+# Text whose painted width sets a hit box or a column: (family, size, weight, letter spacing in em, upper case). The
+# fonts are named here because the model asks the painter's measure for these widths.
+TEXT, MONO = 'Space Grotesk,sans-serif', 'JetBrains Mono,monospace'
+STREET_NAME, STREET_DETAIL, SHORT = (TEXT, 13, 600, 0.16, True), (MONO, 12, 400, -0.01, False), (MONO, 12, 400, -0.01,
+                                                                                                   False)
+# Night's cut ends fade into the wall over 120 px, solid for the first 15 %: nothing shows there.
+NIGHT_FADE, NIGHT_SOLID = 120, 18
+
+
+def house_name_style(size):
+    return (TEXT, size, 500, -0.01, False)
+
+
+def estimate_width(text, style):
+    """A text's width without the painter (the model's own tests): monospace advances 0.6 em, the rest about 0.62."""
+    family, size, _weight, spacing, _upper = style
+    return len(text) * size * ((0.6 if family == MONO else 0.62) + spacing)
+
+
+def row_columns(name_width, kind_width, room):
+    """53c's finder row is a flex line: when its name and kind do not fit, both shrink in proportion to their widths
+    and are ellipsized there."""
+    if name_width + kind_width <= room:
+        return name_width, kind_width
+    share = max(0, room) / (name_width + kind_width)
+    return name_width * share, kind_width * share
+
+
 def js_round(value):
     """JavaScript's Math.round: halves go up."""
     return math.floor(value + 0.5)
@@ -764,9 +792,29 @@ def score(app, needle):
 
 
 def natural(name):
-    """localeCompare('en', {numeric: true}) closely enough: numbers by value, letters without case."""
-    parts = re.split(r'(\d+)', name.casefold())
-    return [(0, int(part)) if part.isdigit() else (1, part) for part in parts if part], name
+    """localeCompare('en', {numeric: true}) closely enough for ties: first by base letters, with runs of decimal
+    digits by value and spaces, punctuation and symbols before digits before letters; then accents; then case, lower
+    first; then the name itself. Only decimal digits (Unicode Nd) are numbers, as in ICU: '²' is a symbol."""
+    primary, accents, case = [], [], []
+    for part in re.split(r'(\d+)', unicodedata.normalize('NFD', name)):
+        if not part:
+            continue
+        if part.isdecimal():
+            primary.append((1, int(part), ''))
+            continue
+        for character in part:
+            if unicodedata.combining(character):
+                if accents:
+                    accents[-1] += character
+                continue
+            accents.append('')
+            case.append(0 if character == character.casefold() else 1)
+            folded = character.casefold()
+            if unicodedata.digit(folded, None) is not None:
+                primary.append((1, unicodedata.digit(folded), ''))   # '²' weighs as a 2, never as a number run
+            else:
+                primary.append((2, 0, folded) if folded.isalnum() else (0, 0, folded))
+    return primary, accents, case, name
 
 
 def search(by_id, query):
@@ -827,6 +875,7 @@ def build_scene(inputs):
     """The whole home for one set of inputs. Coordinates are on the 1920 x 1080 stage; 'fit' maps it to the window."""
     look = inputs['look']
     day = look == 'day'
+    measure = inputs.get('measure') or estimate_width
     width, height = inputs['size']
     scale = min(width / WIDTH, height / HEIGHT)
     fit = dict(scale=scale, left=(width - WIDTH * scale) / 2, top=(height - HEIGHT * scale) / 2)
@@ -875,10 +924,13 @@ def build_scene(inputs):
             end = MID + gap // 2 + (0 if far['R'] < 0 else far['R'] * pitch + size + 2 * cell)
             road = dict(rect=[start + shift, base, end - start, ROAD], joint=start + shift, slides=True)
         sign_bottom = base - js_round(size * 0.42)
-        sign = dict(centre=MID + shift, bottom=sign_bottom, name=group['name'],
-                    detail=f'{group["direction"]} · {len(spots)}',
-                    rect=[MID - 100 + shift, sign_bottom - (51 if day else 38), 200, 51 if day else 38])
-        ends = {}
+        detail = f'{group["direction"]} · {len(spots)}'
+        # The sign is as wide as its text (by day with its plate's 12 px each side), and only that takes a click.
+        sign_width = max(measure(group['name'], STREET_NAME), measure(detail, STREET_DETAIL)) + (24 if day else 0)
+        sign = dict(centre=MID + shift, bottom=sign_bottom, name=group['name'], detail=detail,
+                    rect=[MID + shift - sign_width / 2, sign_bottom - (51 if day else 38), sign_width,
+                          51 if day else 38])
+        ends, view = {}, [0, WIDTH]
         for side in 'LR':
             gone = hidden(spots, size, offset, side)
             count = len([spot for spot in gone if spot['app']['id'] in matches]) if matches is not None else len(gone)
@@ -890,12 +942,20 @@ def build_scene(inputs):
                                      else f'{count} hidden houses'),
                               rect=[10 if side == 'L' else WIDTH - 10 - box, base + ROAD - js_round(size / 2) - 32,
                                     box, 32])
+            if gone:
+                # Where a cut end hides houses: by day the view's mask is clear up to EDGE / 2, at night the wall.
+                hide = EDGE / 2 if day else NIGHT_SOLID
+                view[0 if side == 'L' else 1] = hide if side == 'L' else WIDTH - hide
         drawn = []
         puffs = inputs.get('puffs') or {}
         for spot in spots:
             app = spot['app']
             app_id, left = app['id'], spot['x'] + shift
             puff = puffs.get(app_id)
+            name_size = 14 if cell >= 9 else 13
+            # The sign's painted width: the plate shrinks to its text (by day with 6 px each side), up to the sign.
+            painted = min(max(measure(app['name'], house_name_style(name_size)), measure('/' + app['short'], SHORT))
+                          + (12 if day else 0), pitch - 6)
             states = dict(running=app_id in running, opening=app_id in opening,
                           dim=matches is not None and app_id not in matches,
                           match=matches is not None and app_id in matches, framed=app_id == framed,
@@ -909,7 +969,7 @@ def build_scene(inputs):
                 mat=[left + 5 * cell, base, 2 * cell, (16 if states['running'] else 6) if day else 3],
                 frame=[left - 7, base - size - 7, size + 14, size + 14],
                 sign=dict(centre=left + size / 2, bottom=base - (size + depth + 3), width=pitch - 6,
-                          name_size=14 if cell >= 9 else 13),
+                          name_size=name_size, painted=painted),
                 lit=states['hover'] or states['running'] or states['framed'] or states['match'] or states['opening'],
                 # 53c's purple puff: 5 px squares from the door, rising and fading over 0.6 s.
                 puff=[[left + (4.5 + across * 2) * cell + dx * puff['progress'],
@@ -920,7 +980,7 @@ def build_scene(inputs):
             key=key, name=group['name'], colour=group['colour'], block=group['block'], top=street_top,
             height=street_height, base=base, offset=offset, shift=shift, by_hand=by_hand, range=list(bounds),
             target=follow(spots, size, pitch, day, bounds, offset, by_hand, framed), plots=plots, road=road,
-            sign=sign, ends=ends, houses=drawn, visible=[spot['app']['id'] for spot in spots
+            sign=sign, ends=ends, view=view, houses=drawn, visible=[spot['app']['id'] for spot in spots
                                                         if EDGE <= spot['x'] + offset <= WIDTH - EDGE - size]))
     pinned = {}
     for app in houses:
@@ -958,17 +1018,33 @@ def build_scene(inputs):
                   list=list_rect, heading=(f'All programs · {len(others)}' if len(others) > 5 else 'All programs')
                   if rows else None, rows=rows)
     now = inputs['clock']
+    # Hits in stacking order, top first: the finder (z 40) with its rows over its own plates, the end signs (z 6),
+    # the hotbar, then each street's houses and its sign. A plate takes the click and opens nothing.
     hits = [dict(kind='row', id=row['id'], rect=row['rect']) for row in rows]
+    if list_rect:
+        hits.append(dict(kind='chrome', rect=list_rect))
+    if day or finder['typing'] or finder['message']:
+        hits.append(dict(kind='chrome', rect=finder['rect']))
     for street in streets:
         hits += [dict(kind='end', key=street['key'], side=side, rect=end['rect'])
                  for side, end in street['ends'].items() if end['cut']]
     hits += [dict(kind='slot', id=slot['id'], index=slot['index'], rect=slot['rect']) for slot in slots if slot['id']]
+    hits.append(dict(kind='chrome', rect=[BAR_LEFT, BAR_TOP, BAR_WIDTH, BAR_HEIGHT]))
     for street in reversed(streets):
+        low, high = street['view']
         for house in reversed(street['houses']):
-            sign = house['sign']
-            for rect in (house['box'], house['frame'], [sign['centre'] - sign['width'] / 2, house['box'][1],
-                                                        sign['width'], 54]):
-                hits.append(dict(kind='house', id=house['id'], rect=rect))
+            sign, (logo_left, logo_top, logo_size) = house['sign'], house['logo']
+            # The painted parts: the logo with its side, the mat, the sign's plate (or text) and, while framed, the
+            # frame. The transparent rest of the house's column takes no click.
+            parts = [[logo_left, logo_top, logo_size, logo_size], house['mat'],
+                     [sign['centre'] - sign['painted'] / 2, house['box'][1], sign['painted'],
+                      sign['bottom'] - house['box'][1]]] + ([house['frame']] if house['framed'] else [])
+            for left, top, width, height in parts:
+                # Only the part the view shows: a cut end's mask or wall hides the rest.
+                right = min(left + width, high)
+                left = max(left, low)
+                if right > left:
+                    hits.append(dict(kind='house', id=house['id'], rect=[left, top, right - left, height]))
         hits.append(dict(kind='sign', key=street['key'], rect=street['sign']['rect']))
     return dict(
         look=look, size=[width, height], fit=fit, grid={key: grid[key] for key in ('cell', 'pitch', 'gap', 'size',
@@ -986,7 +1062,7 @@ def build_scene(inputs):
 
 def hover_key(hit):
     """The hover input for a hit: house:<id>, slot:<index>, row:<id>, end:<street>:<side> or sign:<street>."""
-    if hit is None:
+    if hit is None or hit['kind'] == 'chrome':
         return None
     if hit['kind'] == 'slot':
         return f'slot:{hit["index"]}'
@@ -1013,9 +1089,12 @@ def ease_out(progress):
 
 
 def hit_test(scene, x, y):
-    """The topmost clickable thing under a window point, or None."""
+    """The topmost painted thing under a window point, or None. The painter clips to the stage, so a point in the
+    window's margin around it hits nothing; a 'chrome' hit is a plate that takes the click and does nothing."""
     fit = scene['fit']
     x, y = (x - fit['left']) / fit['scale'], (y - fit['top']) / fit['scale']
+    if not inside((0, 0, WIDTH, HEIGHT), x, y):
+        return None
     return next((hit for hit in scene['hits'] if inside(hit['rect'], x, y)), None)
 
 
@@ -1026,8 +1105,8 @@ class Town:
     GLIDE, PUFF, BLINK, BLINKS = 0.3, 0.6, 550, 10
 
     def __init__(self, look, home, *, now=datetime.now, schedule=None, cancel=None, opener=None, changed=None,
-                 motion=None, clock=time.monotonic):
-        self.look, self.home = look, home
+                 motion=None, clock=time.monotonic, measure=None):
+        self.look, self.home, self.measure = look, home, measure
         self.programs, self.running, self.online, self.battery = [], [], False, None
         self.query, self.selected, self.best_cleared, self.error, self.hover = '', None, False, '', None
         self.opening, self.offsets, self.by_hand = set(), {}, {}
@@ -1053,7 +1132,7 @@ class Town:
                     hover=self.hover, opening=sorted(self.opening), error=self.error, clock=self.now(),
                     battery=self.battery, stars=list(self.stars), current=dict(self.current),
                     puffs={app_id: dict(progress=ease_out(puff['progress']), particles=puff['particles'])
-                           for app_id, puff in self.puffs.items()}, caret=self.caret)
+                           for app_id, puff in self.puffs.items()}, caret=self.caret, measure=self.measure)
 
     def scene(self, size=None):
         if size is not None:
@@ -1245,8 +1324,8 @@ class Town:
 
     def click(self, x, y):
         hit = hit_test(self.scene(), x, y)
-        if hit is None:
-            return None
+        if hit is None or hit['kind'] == 'chrome':
+            return hit
         if hit['kind'] in ('house', 'slot', 'row'):
             self.open(hit['id'])
         elif hit['kind'] == 'end':
@@ -1314,7 +1393,6 @@ class Town:
 
 WALL, INK, INK_2, INK_3, LINE = '#0d0d10', '#f3f1ea', '#a6a39a', '#6f6b62', '#262420'
 GOLD, GOLD_HI, GOLD_EDGE = '#cfa24f', '#edca77', '#615640'
-TEXT, MONO = 'Space Grotesk,sans-serif', 'JetBrains Mono,monospace'
 DAY = dict(sky='#6f9df0', sky_low='#aecbf8', turf='#8ab254', bank_edge='#36502a', bank_top='#44642e', bank='#5f8442',
            paving='#2b2832', plot='#b9c7a2', sign_name='#dedcd4', sign_short='#c3a364', hidden=0.16)
 NIGHT = dict(sign_name=INK_2, sign_short='#9c7c40', hidden=0.13, road='#18181c')
@@ -1404,6 +1482,24 @@ class Painter:
         self.options.set_hint_style(cairo.HINT_STYLE_NONE)
         self.options.set_hint_metrics(cairo.HINT_METRICS_OFF)
         self.weights = {400: Pango.Weight.NORMAL, 500: Pango.Weight.MEDIUM, 600: Pango.Weight.SEMIBOLD}
+        self.context, self.widths = None, {}
+
+    def measure(self, text, style):
+        """A text's painted width in a style (see STREET_NAME), for the model's hit boxes: the same layout the
+        painter draws with, on a context of its own."""
+        key = (text, style)
+        width = self.widths.get(key)
+        if width is None:
+            if self.context is None:
+                self.context = self.PangoCairo.FontMap.get_default().create_context()
+                self.PangoCairo.context_set_font_options(self.context, self.options)
+            family, size, weight, spacing, upper = style
+            layout = self.Pango.Layout.new(self.context)
+            self.style(layout, text, family, size, weight, spacing, upper)
+            if len(self.widths) >= 1024:
+                self.widths.clear()   # the names of up to 200 houses and the signs, with room
+            width = self.widths[key] = self.extent(layout)[0]
+        return width
 
     # -- small tools ------------------------------------------------------------------------------------------
     @staticmethod
@@ -1453,15 +1549,7 @@ class Painter:
         layout = self.PangoCairo.create_layout(cr)
         self.PangoCairo.context_set_font_options(layout.get_context(), self.options)
         layout.context_changed()
-        font = Pango.FontDescription()
-        font.set_family(family)
-        font.set_weight(self.weights[weight])
-        font.set_absolute_size(size * Pango.SCALE)
-        layout.set_font_description(font)
-        if spacing:
-            attributes = Pango.AttrList()
-            attributes.insert(Pango.attr_letter_spacing_new(int(spacing * size * Pango.SCALE)))
-            layout.set_attributes(attributes)
+        self.style(layout, text, family, size, weight, spacing, upper)
         if width is not None:
             layout.set_width(int(width * Pango.SCALE))
             layout.set_wrap(Pango.WrapMode.WORD_CHAR)
@@ -1472,8 +1560,20 @@ class Painter:
             layout.set_alignment(Pango.Alignment.CENTER)
         elif align == 'right':
             layout.set_alignment(Pango.Alignment.RIGHT)
-        layout.set_text(text.upper() if upper else text, -1)
         return layout
+
+    def style(self, layout, text, family, size, weight, spacing, upper):
+        Pango = self.Pango
+        font = Pango.FontDescription()
+        font.set_family(family)
+        font.set_weight(self.weights[weight])
+        font.set_absolute_size(size * Pango.SCALE)
+        layout.set_font_description(font)
+        if spacing:
+            attributes = Pango.AttrList()
+            attributes.insert(Pango.attr_letter_spacing_new(int(spacing * size * Pango.SCALE)))
+            layout.set_attributes(attributes)
+        layout.set_text(text.upper() if upper else text, -1)
 
     @staticmethod
     def extent(layout):
@@ -1604,6 +1704,12 @@ class Painter:
 
     # -- the scene --------------------------------------------------------------------------------------------
     def paint(self, cr, scene):
+        # One logo picture per house and per pinned slot of this town only: a house that left, or a slot unpinned,
+        # takes its picture with it.
+        for gone in self.logos.keys() - scene['logos'].keys():
+            del self.logos[gone]
+        for gone in self.slot_logos.keys() - {slot['id'] for slot in scene['slots'] if slot['id']}:
+            del self.slot_logos[gone]
         cr.save()
         self.colour(cr, WALL)
         cr.paint()
@@ -1785,9 +1891,10 @@ class Painter:
         (name_width, name_height), (detail_width, detail_height) = self.extent(name), self.extent(detail)
         block = name_height + 5 + detail_height
         if day:
-            width = max(name_width, detail_width) + 24
+            # The plate is the model's sign box, which the model measured with this painter's text.
+            left, _, width, _ = sign['rect']
             top = sign['bottom'] - block - 13
-            self.fill(cr, (sign['centre'] - width / 2, top, width, block + 13), SHADOW + (0.76,), radius=3)
+            self.fill(cr, (left, top, width, block + 13), SHADOW + (0.76,), radius=3)
             top += 6
         else:
             top = sign['bottom'] - block
@@ -1873,9 +1980,9 @@ class Painter:
         if day:
             bottom_pad = 4 if house['running'] else 2
             top -= bottom_pad
-            # A plate shrinks to its text, up to the sign's width; a name that wraps takes the whole width.
-            text_width = max(self.extent(self.layout(cr, house['name'], TEXT, size, 500))[0], short_width)
-            width = min(text_width + 12, sign['width'])
+            # A plate shrinks to its text, up to the sign's width; a name that wraps takes the whole width. The model
+            # measured it (sign['painted']) for the sign's hit box.
+            width = sign['painted']
             plate = (centre - width / 2, top, width, block + bottom_pad)
             self.fill(cr, plate, SHADOW + ((0.88 if lit else 0.5),), radius=3)
             if house['running']:
@@ -2035,10 +2142,14 @@ class Painter:
                 cr.get_source().set_filter(self.cairo.FILTER_GOOD)
                 cr.paint()
                 cr.restore()
-            kind = self.layout(cr, row['kind'], TEXT, 12)
-            kind_width, kind_height = self.extent(kind)
+            # Both columns are bounded: past the room, each shrinks with its width and ends in an ellipsis (53c).
+            name_width, kind_width = row_columns(self.extent(self.layout(cr, row['name'], TEXT, 15))[0],
+                                                 self.extent(self.layout(cr, row['kind'], TEXT, 12))[0],
+                                                 rw - 8 - 24 - 12 - 12 - 8)
+            kind = self.layout(cr, row['kind'], TEXT, 12, width=kind_width, lines=1)
+            _, kind_height = self.extent(kind)
             self.show(cr, kind, rx + rw - 8 - kind_width, ry + (rh - kind_height) / 2, INK_3)
-            name = self.layout(cr, row['name'], TEXT, 15, width=rw - 8 - 24 - 12 - kind_width - 12 - 8, lines=1)
+            name = self.layout(cr, row['name'], TEXT, 15, width=name_width, lines=1)
             _, name_height = self.extent(name)
             self.show(cr, name, rx + 8 + 24 + 12, ry + (rh - name_height) / 2, '#fff4d4' if lit else INK)
 
@@ -2052,6 +2163,66 @@ KEY_NAMES = {'Escape': 'Escape', 'BackSpace': 'Backspace', 'Return': 'Enter', 'K
              'ISO_Enter': 'Enter', **{f'{pad}{arrow}': f'Arrow{arrow}' for pad in ('', 'KP_')
                                       for arrow in ('Left', 'Right', 'Up', 'Down')}}
 ICONS_KEPT = 20
+
+
+class IconWorker:
+    """One thread decodes the finder's icons, one at a time. Only the rows shown now are wanted: each new set of rows
+    replaces the queue (at most the five rows), a result for a row no longer shown is dropped, and a failed icon is
+    not tried again until the catalogue changes."""
+
+    def __init__(self, decode, deliver, start=None):
+        # decode(path) -> surface, on the worker; deliver(callback) runs callback on the GTK thread.
+        self.decode, self.deliver = decode, deliver
+        self.start = start or (lambda target: threading.Thread(target=target, daemon=True).start())
+        self.condition = threading.Condition()
+        self.wanted, self.shown, self.pending, self.failed = [], {}, set(), set()
+        self.started = False
+
+    def show(self, rows, held):
+        """rows: (app id, icon path) for the rows shown now; held(app id, path) is whether its picture is kept."""
+        with self.condition:
+            self.shown = dict(rows)
+            self.wanted = [job for job in rows if job not in self.pending and job not in self.failed
+                           and not held(*job)]
+            if self.wanted:
+                if not self.started:
+                    self.started = True
+                    self.start(self.run)
+                self.condition.notify()
+
+    def forget_failures(self):
+        with self.condition:
+            self.failed.clear()
+
+    def run(self):
+        while self.step():
+            pass
+
+    def step(self, block=True):
+        with self.condition:
+            while not self.wanted:
+                if not block:
+                    return False
+                self.condition.wait()
+            job = self.wanted.pop(0)
+            self.pending.add(job)
+        try:
+            surface = self.decode(job[1])
+        except (OSError, ValueError, subprocess.SubprocessError):
+            surface = None   # the row keeps its plain square
+        self.deliver(lambda: self.finish(job, surface))
+        return True
+
+    def finish(self, job, surface):
+        """On the GTK thread: (job, surface) to keep, or (None, None) for a failure (remembered) or a row no longer
+        shown (dropped)."""
+        with self.condition:
+            self.pending.discard(job)
+            if surface is None:
+                self.failed.add(job)
+            elif self.shown.get(job[0]) == job[1]:
+                return job, surface
+            return None, None
 
 
 class Allocator:
@@ -2100,17 +2271,26 @@ class LaptopHome:
         self.helper, self.sample_power = helper, sample_power
         self.peer, self.icons, self.window, self.area = None, {}, None, None
         self.initial_lookup, self.shown = False, False
+        self.painter = Painter(gui.cairo, gui.Pango, gui.PangoCairo)
         self.town = Town(look or LOOK, cached, schedule=self.after, cancel=self.cancel_timer, opener=self.open_app,
                          changed=lambda reason='state': self.redraw(reason), motion=self.start_motion,
-                         clock=lambda: gui.GLib.get_monotonic_time() / 1e6)
+                         clock=lambda: gui.GLib.get_monotonic_time() / 1e6, measure=self.painter.measure)
         self.ticking, self.held, self.repeat, self.cursor, self.hits = False, set(), False, None, None
-        self.icon_jobs, self.icon_lock = {}, threading.Lock()
-        self.painter = Painter(gui.cairo, gui.Pango, gui.PangoCairo)
+        # The path each kept icon picture was decoded from.
+        self.icon_paths = {}
+        self.icon_worker = IconWorker(lambda path: icon_surface(gui.cairo, *decode_png(read_icon(path))),
+                                      lambda callback: gui.GLib.idle_add(lambda: self.icon_ready(callback)))
 
     def publish(self, peer, changed, icons):
         self.peer = peer
         if icons is not None:
             self.icons = icons
+            # A new catalogue: icons that failed may work now, and pictures of icons that left or changed go.
+            self.icon_worker.forget_failures()
+            for app_id, path in list(self.icon_paths.items()):
+                if icons.get(app_id) != path:
+                    del self.icon_paths[app_id]
+                    self.painter.icons.pop(app_id, None)
         self.update(changed)
         if 'helper' in changed:
             self.initial_lookup = True
@@ -2219,7 +2399,7 @@ class LaptopHome:
     def pointer_moved(self, _controller, x, y):
         hit = hit_test(self.hits or self.town.scene(), x, y)
         self.town.set_hover(hover_key(hit))
-        cursor = 'pointer' if hit else None
+        cursor = 'pointer' if hit and hit['kind'] != 'chrome' else None
         if cursor != self.cursor:
             self.cursor = cursor
             self.area.set_cursor_from_name(cursor)
@@ -2229,31 +2409,23 @@ class LaptopHome:
 
     # -- finder icons -----------------------------------------------------------------------------------------
     def load_icons(self, scene):
-        """Decode the icons of the finder's rows that have none yet, one child at a time, off the GTK thread."""
-        for row in scene['finder']['rows']:
-            path = self.icons.get(row['id']) if row['has_icon'] else None
-            if path and self.icon_jobs.get(row['id']) != path:
-                self.icon_jobs[row['id']] = path
-                threading.Thread(target=self.decode_icon, args=(row['id'], path), daemon=True).start()
+        """Ask for the icons of the finder's rows shown now; one worker decodes them off the GTK thread."""
+        rows = [(row['id'], self.icons[row['id']]) for row in scene['finder']['rows']
+                if row['has_icon'] and self.icons.get(row['id'])]
+        if rows or self.icon_worker.wanted:
+            self.icon_worker.show(rows, lambda app_id, path: self.icon_paths.get(app_id) == path)
 
-    def decode_icon(self, app_id, path):
-        with self.icon_lock:
-            try:
-                surface = icon_surface(self.gui.cairo, *decode_png(read_icon(path)))
-            except (OSError, ValueError, subprocess.SubprocessError):
-                surface = None   # on any failure the row keeps its plain square
-        self.gui.GLib.idle_add(self.icon_ready, app_id, path, surface)
-
-    def icon_ready(self, app_id, path, surface):
-        if self.icon_jobs.get(app_id) == path:
+    def icon_ready(self, finish):
+        job, surface = finish()
+        if job is not None:
+            app_id, path = job
             icons = self.painter.icons
             icons.pop(app_id, None)
-            if surface is not None:
-                icons[app_id] = surface
-                while len(icons) > ICONS_KEPT:
-                    oldest = next(iter(icons))
-                    del icons[oldest]
-                    self.icon_jobs.pop(oldest, None)
+            icons[app_id], self.icon_paths[app_id] = surface, path
+            while len(icons) > ICONS_KEPT:
+                oldest = next(iter(icons))
+                del icons[oldest]
+                self.icon_paths.pop(oldest, None)
             self.redraw('icon')
         return False
 

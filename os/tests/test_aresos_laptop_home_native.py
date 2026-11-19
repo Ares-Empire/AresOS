@@ -78,6 +78,8 @@ class GeometryTest(unittest.TestCase):
         self.assertTrue(all((house['x'] - houses[0]['x']) % pitch == 0 for house in houses), 'lattice')
         first_right, last_left = 960 + 15 * cell, 960 - 15 * cell
         for street in streets:
+            # REVIEW-1 finding 8: both sides are required, so a street that lost one fails here.
+            self.assertEqual([plots['side'] for plots in street['plots']], ['L', 'R'], street['key'])
             for plots in street['plots']:
                 side = plots['side']
                 local = [house for house in street['houses'] if house['side'] == side]
@@ -280,6 +282,193 @@ class FinderTest(unittest.TestCase):
         town.key('Enter')
         self.assertEqual(opened, [])
         self.assertEqual(town.scene()['finder']['hint'], 'Opening is back in a moment')
+
+
+def pango():
+    """cairo, Pango and PangoCairo for the painter alone, without a display; None where they are missing."""
+    try:
+        import gi
+
+        gi.require_version('Pango', '1.0')
+        gi.require_version('PangoCairo', '1.0')
+        from gi.repository import Pango, PangoCairo
+        import cairo
+    except (ImportError, ValueError):
+        return None
+    return cairo, Pango, PangoCairo
+
+
+def apps(*names, **fields):
+    return {f'app-{index}': dict(id=f'app-{index}', name=name, **fields) for index, name in enumerate(names)}
+
+
+class HitTest(unittest.TestCase):
+    """REVIEW-1 finding 2: a click or hover lands only where something is painted, in stacking order."""
+
+    def test_finder_plates_take_clicks_and_open_nothing(self):
+        opened = []
+        town, _ = make_town('day', (9, 7, 9, 20), opener=lambda app_id, callback: opened.append(app_id))
+        town.set_query('test')
+        scene = town.scene()
+        left, top, width, height = scene['finder']['list']
+        row = scene['finder']['rows'][0]['rect']
+        for x, y in ((left + 40, top + 9 + 12), (left + 3, row[1] + row[3] / 2), (left + width - 4, top + 4)):
+            with self.subTest(point=(x, y)):
+                behind = [house['id'] for house in houses_of(scene).values() if program.inside(house['box'], x, y)]
+                self.assertTrue(behind, 'a house stands behind the finder here')
+                self.assertEqual(town.click(x, y)['kind'], 'chrome')
+                self.assertIsNone(program.hover_key(program.hit_test(scene, x, y)))
+        self.assertEqual(opened, [])
+        self.assertEqual(town.click(*centre(row))['id'], scene['finder']['rows'][0]['id'])
+
+    def test_window_margin_opens_nothing(self):
+        opened = []
+        town, _ = make_town('day', (9, 7, 9, 20), opener=lambda app_id, callback: opened.append(app_id))
+        scene = town.scene((2304, 1080))
+        self.assertEqual((scene['fit']['left'], scene['fit']['scale']), (192, 1))
+        tools = street_of(scene, 'system_tools')
+        stage_x, y = -92, tools['base'] - tools['houses'][0]['size'] / 2
+        self.assertTrue([house for house in tools['houses'] if house['left'] <= stage_x < house['left'] +
+                         house['size']], 'a house lies under the margin, off the stage')
+        self.assertIsNone(town.click(stage_x + 192, y))
+        self.assertIsNone(program.hit_test(scene, stage_x + 192, y))
+        self.assertEqual(opened, [])
+
+    def test_beside_a_short_sign_opens_nothing(self):
+        for look in ('day', 'night'):
+            opened = []
+            town, _ = make_town(look, (7, 4, 5, 8), opener=lambda app_id, callback: opened.append(app_id))
+            town.measure = lambda text, style: 7 * len(text)
+            scene = town.scene()
+            games = street_of(scene, 'games')
+            left, top, width, height = games['sign']['rect']
+            self.assertEqual(width, 7 * len('east · 4') + (24 if look == 'day' else 0))
+            with self.subTest(look=look, sign='group'):
+                self.assertEqual(town.click(left + 2, top + height / 2)['kind'], 'sign')
+                for x in (left - 4, left + width + 4):
+                    self.assertTrue(abs(x - games['sign']['centre']) < 100, 'inside the old 200 px box')
+                    self.assertIsNone(program.hit_test(scene, x, top + height / 2))
+            house = houses_of(scene)['test-game-1']
+            sign = house['sign']
+            self.assertEqual(sign['painted'], 7 * len('Test Game 1') + (12 if look == 'day' else 0))
+            y = house['box'][1] + 10
+            with self.subTest(look=look, sign='house'):
+                self.assertEqual(town.click(sign['centre'], y)['id'], 'test-game-1')
+                self.assertIsNone(town.click(sign['centre'] + sign['painted'] / 2 + 3, y))
+            self.assertEqual(opened, ['test-game-1'])
+
+    def test_cut_end_hides_houses_from_clicks(self):
+        town, _ = make_town('day', (9, 7, 9, 20))
+        scene = town.scene()
+        tools = street_of(scene, 'system_tools')
+        self.assertTrue(tools['ends']['L']['cut'])
+        hidden = next(house for house in tools['houses'] if house['left'] < 10 < house['left'] + house['size'])
+        y = hidden['logo'][1] + 4   # above the end sign
+        self.assertIsNone(program.hit_test(scene, 10, y), 'under the mask, before EDGE / 2')
+        self.assertEqual(program.hit_test(scene, hidden['left'] + hidden['size'] - 2, y)['id'], hidden['id'])
+
+
+class FinderTextTest(unittest.TestCase):
+    """REVIEW-1 finding 5: any Unicode digit, 53c's collation on ties, and both row columns bounded."""
+
+    def test_unicode_digits_never_raise(self):
+        by_id = apps('2²', 'Tool ²', 'Tool ٣', 'Tool 10', 'Tool 2')
+        self.assertEqual(program.search(by_id, '2'), ['app-0', 'app-4'])   # 53f raised ValueError on '2²'
+        self.assertEqual([by_id[app_id]['name'] for app_id in program.search(by_id, 'tool')],
+                         ['Tool 2', 'Tool ²', 'Tool ٣', 'Tool 10'])
+
+    def test_ties_sort_as_numeric_english_collation(self):
+        # localeCompare('en', {numeric: true}): accents after base letters, lower case first, numbers by value.
+        by_id = apps('Zap Tool', 'Eclipse Tool', 'Éclair Tool', 'Resume Tool', 'Résumé Tool', 'Tool A', 'tool a',
+                     'Tool 10', 'Tool 9', 'Tool-x')
+        order = [by_id[app_id]['name'] for app_id in program.search(by_id, 'tool')]
+        self.assertEqual(order, ['Tool 9', 'Tool 10', 'tool a', 'Tool A', 'Tool-x', 'Éclair Tool', 'Eclipse Tool',
+                                 'Resume Tool', 'Résumé Tool', 'Zap Tool'])
+
+    def test_row_columns_share_the_room(self):
+        self.assertEqual(program.row_columns(100, 50, 398), (100, 50))
+        name, kind = program.row_columns(600, 200, 400)
+        self.assertEqual((name, kind), (300, 100))
+        self.assertEqual(program.row_columns(10, 10, -5), (0, 0))
+
+    @unittest.skipUnless(pango(), 'cairo, Pango and PangoCairo')
+    def test_long_names_paint_inside_their_row(self):
+        cairo, Pango, PangoCairo = pango()
+        painter = program.Painter(cairo, Pango, PangoCairo)
+
+        def paint(name, kind):
+            town, _ = make_town('day', (7, 4, 5, 8))
+            viewer = next(app for app in town.programs if app['id'] == 'test-viewer')
+            viewer.update(name=name, generic_name=kind)
+            town.measure = painter.measure
+            town.set_query('pdf')
+            scene = town.scene()
+            surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, program.WIDTH, program.HEIGHT)
+            painter.paint(cairo.Context(surface), scene)
+            row = next(row for row in scene['finder']['rows'] if row['id'] == 'test-viewer')['rect']
+            data, stride = bytes(surface.get_data()), surface.get_stride()
+
+            def band(low, high):
+                return [data[y * stride + 4 * low:y * stride + 4 * high] for y in range(row[1], row[1] + row[3])]
+
+            return row, band
+
+        row, short = paint('Test Viewer', '')
+        left, right = row[0] + 8 + 24 + 12, row[0] + row[2] - 8
+        for name, kind in (('Test Viewer', 'G' * 64), ('Test Viewer ' + 'Long ' * 20, ''),
+                           ('Test Viewer ' + 'Long ' * 20, 'G' * 64)):
+            with self.subTest(name=len(name), kind=len(kind)):
+                _, long = paint(name, kind)
+                self.assertEqual(long(row[0], left - 2), short(row[0], left - 2), 'nothing left of the name column')
+                self.assertEqual(long(right + 1, row[0] + row[2]), short(right + 1, row[0] + row[2]),
+                                 'nothing past the row')
+                self.assertNotEqual(long(left, right), short(left, right))
+
+
+class IconWorkerTest(unittest.TestCase):
+    """REVIEW-1 finding 3: one worker, a queue of the rows shown now, obsolete results dropped."""
+
+    def test_ten_result_changes_start_one_worker_and_decode_only_the_last_rows(self):
+        starts, decoded, kept = [], [], []
+        worker = program.IconWorker(lambda path: decoded.append(path) or f'picture {path}',
+                                    lambda callback: kept.append(callback()), start=starts.append)
+        for change in range(10):
+            worker.show([(f'app-{change}-{row}', f'/icons/{change}-{row}.png') for row in range(5)],
+                        lambda *_: False)
+        while worker.step(block=False):
+            pass
+        self.assertEqual(len(starts), 1)
+        self.assertEqual(decoded, [f'/icons/9-{row}.png' for row in range(5)])
+        self.assertEqual(kept, [((f'app-9-{row}', f'/icons/9-{row}.png'), f'picture /icons/9-{row}.png')
+                                for row in range(5)])
+
+    def test_obsolete_results_drop_and_failures_wait_for_a_new_catalogue(self):
+        decoded, later = [], []
+
+        def decode(path):
+            decoded.append(path)
+            if 'broken' in path:
+                raise ValueError('icon refused')
+            return f'picture {path}'
+
+        worker = program.IconWorker(decode, later.append, start=lambda _target: None)
+        worker.show([('a', '/a.png')], lambda *_: False)
+        worker.step(block=False)
+        worker.show([('b', '/b.png')], lambda *_: False)   # the rows changed while 'a' was decoding
+        self.assertEqual(later.pop()(), (None, None), 'a result for a row no longer shown is dropped')
+        worker.step(block=False)
+        self.assertEqual(later.pop()(), (('b', '/b.png'), 'picture /b.png'))
+        worker.show([('b', '/b.png')], lambda *_: True)   # held now: not decoded again
+        self.assertFalse(worker.step(block=False))
+        worker.show([('c', '/broken.png')], lambda *_: False)
+        worker.step(block=False)
+        self.assertEqual(later.pop()(), (None, None))
+        worker.show([('c', '/broken.png')], lambda *_: False)
+        self.assertFalse(worker.step(block=False), 'a failure is not tried again')
+        worker.forget_failures()
+        worker.show([('c', '/broken.png')], lambda *_: False)
+        self.assertTrue(worker.step(block=False))
+        self.assertEqual(decoded, ['/a.png', '/b.png', '/broken.png', '/broken.png'])
 
 
 def pixel(photo, x, y):
