@@ -10,7 +10,9 @@ Brief: `briefs/316-input-portal.md`. One fresh agent per step; each keeps this f
 | `bb596239` | `install.sh` and `uninstall.sh` deleted. They were never run. |
 | `baf97613` | Names: binary and package `aresos-input-portal`, D-Bus name `org.freedesktop.impl.portal.desktop.aresos-input`, `ARESOS_INPUT_PORTAL_IDLE_TIMEOUT`, `ARESOS_INPUT_PORTAL_LOG`, the three data files. |
 | `1db141b3` | `build.sh`, `toolchain.env`, `dev/container.sh`. |
-| the next commit | `os/input-portal/UPSTREAM.md`, this file, `evidence/step1-*.txt`. |
+| `63799603` | `os/input-portal/UPSTREAM.md`, this file, `evidence/step1-*.txt`. |
+
+Draft PR into `main`: #124.
 
 ### What was shown
 

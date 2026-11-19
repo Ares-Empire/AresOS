@@ -44,7 +44,7 @@ Every change to this folder gets a row here, with the commit that made it.
 | `bb596239` | Deleted `install.sh` and `uninstall.sh`. They call `sudo`, write to `/usr` and `~/.config/xdg-desktop-portal`, and restart the user's portal. AresOS installs the backend from its image (package (c)). |
 | `baf97613` | Names. The package and binary are `aresos-input-portal` (`Cargo.toml`; in `Cargo.lock` only the package's own entry changes: new name, moved to its place in name order). D-Bus name `org.freedesktop.impl.portal.desktop.aresos-input` (`src/main.rs`). Variables `ARESOS_INPUT_PORTAL_IDLE_TIMEOUT` (`src/wayland/mod.rs`) and `ARESOS_INPUT_PORTAL_LOG` (`src/main.rs`). `data/`: the three files renamed to `aresos-input.portal`, `aresos-input-portal.service` and `org.freedesktop.impl.portal.desktop.aresos-input.service`, pointing at `/usr/libexec/aresos-input-portal`; the portal file gains `UseIn=AresOS`. |
 | `1db141b3` | Added, no upstream file touched: `build.sh`, `toolchain.env` (the pinned builder image, compiler, Debian packages, cargo-audit and advisory database) and `dev/container.sh`. |
-| (the commit after `1db141b3`) | Added this file. |
+| `63799603` | Added this file. |
 
 ## Still upstream's wording
 
