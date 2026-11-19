@@ -13,3 +13,15 @@ on main, rebase `pkg/53d-world-search` onto main with these resolutions (from `l
 Then check, as a client test where possible, otherwise as a Known limit: with a small app in front (56 makes the
 world ignore the mouse then), `shell_search` opens the bar, and Escape closing it does not turn the view. Rerun
 `mod/dev/build.sh` and the client suite twice.
+
+## Added after the cut (lead, 2026-11-19 12:10)
+
+PR #114 (53c) merges first, so rebase onto main once it holds both 56 and 53c. The helper
+`os/config/usr/libexec/aresos-shell` then conflicts as well. Keep all three sides:
+- 56: `conn.focus_reported` and the background `shell_focus` sent after hello (its docstring paragraph too);
+- 53c: the `view_focus` gate on app-close focus returns and main's foreground bookkeeping (minor 2's docstring line
+  names `view_focus`);
+- 53d: `shell_search`, the SIGUSR1 handler first in `main()`, the search mark and its timer.
+Run the helper and laptop home test modules by name (`test_aresos_shell*`, `test_aresos_laptop_home`), never the
+whole `os/tests` suite and never `test_owner_update`. Write what you resolved and how you checked it in
+`reviews/53d-world-search/REBASE.md`.
