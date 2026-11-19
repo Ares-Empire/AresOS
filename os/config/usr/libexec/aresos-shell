@@ -180,9 +180,14 @@ LATER_CAPABILITIES = DETAIL_CAPABILITIES | {'shell_covered'}
 SEARCH_CAPABILITIES = frozenset({'shell_search'})
 # Signals this close together are one press of Super: the search opens once.
 SEARCH_COALESCE = 0.3
-# How long Super waits for the compositor to report the world activated before it gives up: shell_search goes out only
-# once the world really has the keyboard, so typing never reaches the window that had it (review 1, blocking 1).
+# How long Super waits for the compositor to report the world as the only active window before it gives up:
+# shell_search goes out only once the world really has the keyboard, so typing never reaches the window that had it
+# (review 1, blocking 1).
 SEARCH_ACTIVATION = 1.0
+# How long the world's next activation is still taken for the one Super asked for. Longer than SEARCH_ACTIVATION, so
+# the late answer to a search that was given up minimizes nothing (review 2, finding 3); bounded, so a request the
+# compositor never answered does not keep a later Alt+Tab to the world from uncovering it.
+SEARCH_MARK = 5.0
 # open_app's "screen" hint (1.2, minor-2 desktop only): the screen that shows the world.
 SCREENS = frozenset({'world'})
 # The launch secrets stay with the desktop; launched apps never inherit them,
@@ -2649,6 +2654,15 @@ class Windows:
         return next((t for t in self.toplevels.values()
                      if t.ready and t.activated and t.app_id != LAPTOP_HOME_APP_ID), None)
 
+    def alone_active(self, handle):
+        """Whether this window is reported activated and no other toplevel is.
+
+        A window's state applies whole at its own done event, but one change of focus is two windows' events, and a
+        read can end between them: then both are reported active for a moment, and active() names whichever comes
+        first. The keyboard is this window's for certain only when it is the one activated toplevel.
+        """
+        return [t.handle for t in self.toplevels.values() if t.activated] == [handle]
+
     def of(self, owner):
         return [t for t in self.toplevels.values() if t.ready and t.owner == owner]
 
@@ -2679,6 +2693,21 @@ class Windows:
                 if t.ready and t.owner != self.SHELL
                 and t.app_id not in (STARTUP_COVER_APP_ID, LAPTOP_HOME_APP_ID) and not t.minimized
                 and (t.maximized or t.fullscreen) and on_its_screen(t)]
+
+
+@dataclasses.dataclass
+class SearchHandoff:
+    """Super's request to the compositor to activate the world (package 53d), until its answer is in."""
+    # The world's window the compositor was asked to activate.
+    handle: int
+    # The desktop connection the search is for: another one calls it off.
+    conn: object
+    # shell_search may follow up to here (SEARCH_ACTIVATION).
+    deadline: float
+    # The world's next activation counts as this request's up to here (SEARCH_MARK).
+    marked_until: float
+    # Why the search was called off, once it was. The request then only marks its activation, which uncovers nothing.
+    off: str = None
 
 
 class WaylandError(Exception):
@@ -3051,8 +3080,8 @@ class Helper:
         self.last_heartbeat = None
         # When Super last asked for the search over the world (package 53d), for coalescing.
         self.search_at = None
-        # Super asked the compositor to activate the world: until when shell_search waits for that activation.
-        self.search_pending = None
+        # Super's request to activate the world that the compositor has not answered yet (SearchHandoff), or None.
+        self.search_handoff = None
         self.reconcile()
         if windows is not None:
             # The compositor has listed its windows by now: tie restarted launches to them, then take stock.
@@ -3691,6 +3720,9 @@ class Helper:
             raise Failure('malformed', 'ready must be a boolean')
         if not ready:
             conn.world_ready = False
+            if self.search_handoff is not None and self.search_handoff.conn is conn:
+                # For good: a world that is ready again within the second may be another one.
+                self.search_off('its world is no longer ready')
         if not ready and self.world is not None:
             LOG.info('desktop world no longer ready')
             self.world = None
@@ -3873,6 +3905,7 @@ class Helper:
             if self.foreground_app:
                 fields['app_id'] = self.foreground_app
             self.emit('shell_focus', **fields)
+        self.search_landed()
         self.report_covered()
 
     def report_covered(self):
@@ -4016,11 +4049,13 @@ class Helper:
             # not his choice, so the window it gave the focus to is not minimized (review 1, finding 2).
             kept = (self.kept is not None and self.kept[0] == previous_handle
                     and now - self.kept[1] <= KEEP_WINDOW)
-            # Super's activation of the world (package 53d). It uncovers also when the world was the last window
-            # active before no window was, which the rule below does not see as a change.
-            searched = self.search_activated()
-            if (previous_handle is not None and previous_handle != active.handle and not kept) or searched:
-                # Alt+Tab, a click, Super or our own return: he wants the world, so it must not stay hidden. Not at
+            # While Super's own activation request is out (package 53d) this activation is taken for its answer, and
+            # search_landed decides whether it uncovers: only once the world alone is active, never here, where
+            # another window can still be reported active beside it (review 2, finding 1), and not at all for a
+            # search that was called off (finding 3).
+            supers = self.search_request(now) is not None
+            if previous_handle is not None and previous_handle != active.handle and not kept and not supers:
+                # Alt+Tab, a click or our own return: he wants the world, so it must not stay hidden. Not at
                 # start-up (no previous window), and not for a restored desktop that gave the focus back above.
                 self.uncover()
             # The compositor already returned us. A pending close must not later
@@ -4032,9 +4067,6 @@ class Helper:
             if self.shell == 'background':
                 self.shell = 'foreground'
                 self.emit('shell_focus', focus='foreground', reason='desktop_activated')
-            if searched:
-                LOG.info('Super: the search over the world')
-                self.emit('shell_search')
             return
         if returned or (self.returning_until is not None and now <= self.returning_until):
             # The compositor's own pick after the close; the desktop's activation is on its way.
@@ -4138,9 +4170,11 @@ class Helper:
         Runs in the serving loop after SIGUSR1, never in the signal handler (SearchSignal). It acts only for a ready
         minor-2 desktop that offered shell_search, with window tracking and the world's window known; otherwise Super
         does nothing. Not return_to_desktop: that tells the mod an app closed and marks the world in front before the
-        compositor does. Here the compositor's activation of the world comes back through follow_windows like a
-        click on it, which uncovers the world and only then sends shell_search (search_activated): the bar never
-        opens while another window still has the keyboard (review 1, blocking 1).
+        compositor does.
+
+        The compositor is always asked to activate the world, also when the world looks active already: what the
+        helper last read can be half of a change of focus (review 2, finding 1). shell_search and the uncovering
+        follow only once the world is the one active window (search_landed), at once if it is that now.
         """
         now = self.clock()
         if self.search_at is not None and now - self.search_at < SEARCH_COALESCE:
@@ -4150,41 +4184,58 @@ class Helper:
         if why is not None:
             LOG.info('Super ignored: %s', why)
             return
-        active = self.windows.active()
-        if active is not None and active.owner == Windows.SHELL:
-            # The compositor reports the world active now, so no activation will come: uncover by the same rule as
-            # follow_windows does, and the world already has the keyboard. Never on the last active handle alone: with
-            # no window active the world does not have the keyboard (review 1, should-fix 1).
-            self.search_pending = None
-            self.uncover()
-            LOG.info('Super: the search over the world')
-            self.emit('shell_search')
-            return
-        world = self.windows.of(Windows.SHELL)
-        if self.activate_window is None or not self.activate_window(world[-1].handle):
+        world = self.windows.of(Windows.SHELL)[-1]
+        if self.activate_window is None or not self.activate_window(world.handle):
             LOG.warning("Super ignored: the world's window could not be activated")
             return
         # His own choice, as a click on the world is: a restored desktop's rule of handing the focus back to the window
         # in front (B2) must neither undo it nor keep the world from being uncovered.
         self.keep_foreground = False
         self.kept = None
-        self.search_pending = now + SEARCH_ACTIVATION
+        self.search_handoff = SearchHandoff(world.handle, self.desktop, now + SEARCH_ACTIVATION, now + SEARCH_MARK)
+        self.search_landed()
 
-    def search_activated(self):
-        """The compositor reports the world active while Super waits for it: whether to uncover and send shell_search.
-        Once only, and only if the search may still open now."""
-        deadline, self.search_pending = self.search_pending, None
-        if deadline is None:
-            return False
-        why = 'the world got the keyboard too late' if self.clock() > deadline else self.search_blocked()
+    def search_request(self, now):
+        """Super's activation request while the world's next activation still counts as its answer, or None."""
+        if self.search_handoff is not None and now > self.search_handoff.marked_until:
+            self.search_handoff = None
+        return self.search_handoff
+
+    def search_landed(self):
+        """Ends Super's handoff once the world Super asked for is the only active window: the one state in which the
+        keyboard is known to be the world's. Then, and only if the search may still open, the world is uncovered and
+        shell_search goes out. While another window is still reported active beside the world this waits for the
+        compositor's next news; a search called off meanwhile ends here too, and uncovers nothing."""
+        now = self.clock()
+        handoff = self.search_request(now)
+        if handoff is None or not self.windows.alone_active(handoff.handle):
+            return
+        self.search_handoff = None
+        why = handoff.off
+        if why is None and now > handoff.deadline:
+            why = 'the world got the keyboard too late'
+        if why is None and self.desktop is not handoff.conn:
+            why = 'the desktop connected anew'
+        if why is None:
+            # Only the current state counts (review 1, should-fix 1).
+            why = self.search_blocked()
         if why is not None:
-            LOG.info('Super dropped: %s', why)
-            return False
-        return True
+            LOG.info('Super dropped: %s; the world has the keyboard and nothing is uncovered', why)
+            return
+        self.uncover()
+        LOG.info('Super: the search over the world')
+        self.emit('shell_search')
+
+    def search_off(self, why):
+        """Calls the waiting search off. Its request stays as the mark on the activation it asked for."""
+        if self.search_handoff.off is None:
+            self.search_handoff.off = why
+            LOG.info('Super called off: %s', why)
 
     def search_expired(self, now):
-        if self.search_pending is not None and now > self.search_pending:
-            self.search_pending = None
+        handoff = self.search_request(now)
+        if handoff is not None and handoff.off is None and now > handoff.deadline:
+            handoff.off = 'the world did not get the keyboard in time'
             LOG.warning('Super: the compositor did not give the world the keyboard within %.0f s; no search',
                         SEARCH_ACTIVATION)
 
