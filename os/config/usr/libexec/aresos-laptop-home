@@ -2404,7 +2404,7 @@ class LaptopHome:
     def cancel_timer(self, handle):
         self.gui.GLib.source_remove(handle)
 
-    def redraw(self, _reason):
+    def redraw(self, reason):
         # Every redraw goes through here with its reason, so the test channel can count them.
         if self.area is not None:
             self.area.queue_draw()
