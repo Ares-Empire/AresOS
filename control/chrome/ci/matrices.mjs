@@ -21,9 +21,9 @@ import {actMatrix} from './act-matrix.mjs';
 import {collectSiteResults} from './site-results.mjs';
 import {receiverSnapshot} from './receiver-evidence.mjs';
 import {allTabs} from './tabs.mjs';
-import {failBrowserCase} from './failure.mjs';
+import {pendingCheck,recordCheck,writePartialResults,assertChecksPassed} from './failure.mjs';
 
-export async function matrices({call,read,nav,target,selectedTarget,counts,eventually,tab,setTab:syncTab=()=>{},fixture,admin,rpc,caller,ownerNavigate,ownerOpenTab,ownerClickPage,ownerOpenPopup,popupEvidence,popupControl,nativeDonor,closeNativeDonor,ownerKey,ownerType,ownerChooseFile,ownerDismiss,ownerHistory,ownerBookmark,lifecycle,restoreControl,stopClick,baseline,isolationAfter,envelopeResults}) {
+export async function matrices({call,read,nav,target,selectedTarget,counts,eventually,tab,setTab:syncTab=()=>{},fixture,admin,rpc,caller,ownerNavigate,ownerOpenTab,ownerClickPage,ownerOpenPopup,popupEvidence,popupControl,nativeDonor,closeNativeDonor,ownerKey,ownerType,ownerChooseFile,ownerDismiss,ownerHistory,ownerBookmark,lifecycle,restoreControl,stopClick,baseline,isolationAfter,envelopeResults,smokeResults}) {
   const results=[];let trustOperation;const shard=process.env.BROWSER_SHARD||null;
   // The owner helpers (ownerNavigate and the others) close over the driver's
   // own current tab, so a matrix that moves to another tab tells the driver
@@ -35,12 +35,9 @@ export async function matrices({call,read,nav,target,selectedTarget,counts,event
   async function check(name,fn,block='core') {
     if(name==='GROUP 1 what asks word/label/key matrix')block='word';
     if(!runs(block))return;
-    try {await fn();results.push({name,passed:true});console.log(name,'PASS');}
-    catch(error){results.push({name,passed:false,error:String(error.stack)});console.error(name,'FAIL',error.stack);
-      // A failed/incomplete inventory cannot qualify. Retain the first failure
-      // and return its evidence promptly; successful runs still require every case.
-      failBrowserCase(results,baseline,error);
-    }
+    const row=await recordCheck(results,name,fn);
+    if(row.passed)console.log(name,'PASS');
+    else writePartialResults(results,baseline);
   }
   async function approval(result,id) {
     const prepared=result.approval ? result:result.followups?.find(item=>item.approval);
@@ -73,7 +70,7 @@ export async function matrices({call,read,nav,target,selectedTarget,counts,event
   if(runs('core'))await lateReaderMatrix({check:inBlock('core'),nav,call,rpc,read,target,fixture,eventually,ownerNavigate,getTab:()=>tab});
   if(runs('core'))await lateBindingMatrix({check:inBlock('core'),call,rpc,read,target,fixture,eventually,ownerNavigate,getTab:()=>tab});
   if(runs('core'))await animatedDefaultMatrix({check:inBlock('core'),nav,call,target,approval,receiverEvidence,eventually,fixture,getTab:()=>tab,setTab,nativeDonor,closeNativeDonor});
-  if(process.env.DESTINATION_PROBE==='true'){console.log('Post-18d destination and late-reader probes; not full acceptance');return [];}
+  if(process.env.DESTINATION_PROBE==='true'){console.log('Post-18d destination and late-reader probes; not full acceptance');assertChecksPassed([...smokeResults,...results]);return;}
   if(runs('recheck3'))await recheck3Matrices({check:inBlock('recheck3'),nav,call,rpc,target,approval,receiverEvidence,fixture,eventually,getTab:()=>tab,setTab,nativeDonor,closeNativeDonor});
   if(runs('recheck2'))await recheck2Matrices({check:inBlock('recheck2'),nav,call,rpc,target,approval,receiverEvidence,fixture,eventually,getTab:()=>tab,setTab,nativeDonor,closeNativeDonor,ownerKey,lifecycle,restoreControl});
   if(runs('review'))await reviewMatrices({check:inBlock('review'),nav,call,rpc,target,read,counts,eventually,approval,receiverEvidence,fixture,getTab:()=>tab,setTab,selectedTarget,ownerKey,ownerType,ownerChooseFile,admin,ownerNavigate,ownerDismiss,nativeDonor,closeNativeDonor,lifecycle});
@@ -133,20 +130,26 @@ export async function matrices({call,read,nav,target,selectedTarget,counts,event
     const link=await call('click',await target('Read more'));assert.ok(!link.approval);await eventually(()=>counts('free')===2,'ordinary link stays free');
   });
   await check('GROUP 1 what asks word/label/key matrix',async()=>{
-    let cases=0;const wordCases=[];
+    const routes=[],wordCases=[];
     for(const word of words)for(const label of ['name','aria','title','value','labelledby','hidden_labelledby','label','role','formaction']){
       if(shard&&wordShard(words.indexOf(word),['name','aria','title','value','labelledby','hidden_labelledby','label','role','formaction'].indexOf(label))!==shard)continue;
-      const id='word-'+word+'-'+label;await setup({id,mode:'word',word,label});
+      const id='word-'+word+'-'+label;
+      const ready=setup({id,mode:'word',word,label});
       for(const route of ['click','Enter','Space']){
-        const rows=await read();const row=rows.find(row=>row.expected.role==='button'||row.expected.name==='Continue');assert.ok(row);
-        const args=await selectedTarget(row,rows);
-        const result=route==='click'?await call('click',args):await call('press',{...args,key:route});
-        await approval(result,id+'-'+route);wordCases.push(id+'-'+route);cases++;
+        const name=id+'-'+route;
+        await recordCheck(routes,name,async()=>{
+          await ready;
+          const rows=await read();const row=rows.find(row=>row.expected.role==='button'||row.expected.name==='Continue');assert.ok(row);
+          const args=await selectedTarget(row,rows);
+          const result=route==='click'?await call('click',args):await call('press',{...args,key:route});
+          await approval(result,name);wordCases.push(name);
+        });
       }
-      if(cases%81===0)console.log('GROUP 1 WORD_PROGRESS',cases,'strict receiver cases passed');
+      if(routes.length%81===0)console.log('GROUP 1 WORD_PROGRESS',wordCases.length,'strict receiver cases passed');
     }
-    assert.deepEqual(wordCases,wordInventory(words,shard));
     fs.writeFileSync('/out/word-cases.json',JSON.stringify(wordCases));
+    await recordCheck(routes,'exact word inventory',()=>assert.deepEqual(wordCases,wordInventory(words,shard)));
+    assertChecksPassed(routes);
   });
   await check('GROUP 1 Unicode word matching agrees across service and guard',async()=>{
     for(const [index,word]of ['ſend','veröﬀentlichen','beﬅellen'].entries()){
@@ -216,7 +219,7 @@ export async function matrices({call,read,nav,target,selectedTarget,counts,event
   await check('GROUP 2 owner synchronous task delayed work and in-flight interleavings',async()=>{
     for(const [id,busy,after] of [['owner-sync',0,130],['owner-replay',0,130],['owner-flight',250,60],['owner-after-limit',0,650]]){
       await nav('owner-task&id='+id+'&busy='+busy+'&delay=100'+(id==='owner-replay'?'&replay=1':''));
-      const continued=call('click',await target('Continue'));
+      const continued=pendingCheck(call('click',await target('Continue')));
       let record;const deadline=Date.now()+5000;
       while(!record&&Date.now()<deadline){record=fixture.arrivals.find(row=>row.url.includes('case=task-start')&&row.body===id);if(!record)await delay(5);}
       assert.ok(record);await delay(Math.max(0,record.time+after-Date.now()));ownerKey();const result=await continued;await delay(150);
@@ -229,7 +232,7 @@ export async function matrices({call,read,nav,target,selectedTarget,counts,event
   await check('GROUP 2 after his mark timers never exempt forms submitters or validation repairs',async()=>{
     for(const variant of ['same-submitter','other-form','other-submitter']){
       const id='owner-timer-'+variant;await nav('owner-timer&id='+id+'&variant='+variant);
-      const continued=call('click',await target('Continue'));
+      const continued=pendingCheck(call('click',await target('Continue')));
       let record;const deadline=Date.now()+5000;while(!record&&Date.now()<deadline){record=fixture.arrivals.find(row=>row.url.includes('case=task-start')&&row.body===id);if(!record)await delay(5);}assert.ok(record);
       await delay(Math.max(0,record.time+130-Date.now()));ownerKey();
       await approval(await continued,id);
@@ -251,7 +254,7 @@ export async function matrices({call,read,nav,target,selectedTarget,counts,event
       await fixture.mutate(id,change);await delay(100);
       const result=await rpc('submit',prepared.approval);assert.ok(!result.ok||result.data.operation.state==='failed',JSON.stringify(result));assert.equal(counts(id),0);
     }
-    await nav('binding&id=before-input-change');const waiting=await call('click',await target('Submit'));await lifecycle({fixture:'arm_delay',milliseconds:650});const pending=rpc('submit',waiting.approval);await eventually(()=>fs.existsSync('/out/arm-ready.json'),'private arming barrier');await fixture.mutate('before-input-change','hidden');const refused=await pending;assert.ok(!refused.ok||refused.data.operation.state==='failed');assert.equal(counts('before-input-change'),0);
+    await nav('binding&id=before-input-change');const waiting=await call('click',await target('Submit'));await lifecycle({fixture:'arm_delay',milliseconds:650});const pending=pendingCheck(rpc('submit',waiting.approval));await eventually(()=>fs.existsSync('/out/arm-ready.json'),'private arming barrier');await fixture.mutate('before-input-change','hidden');const refused=await pending;assert.ok(!refused.ok||refused.data.operation.state==='failed');assert.equal(counts('before-input-change'),0);
     await nav('binding&mode=sibling&id=sibling');const prepared=await call('click',await target('Send'));
     assert.match(JSON.stringify(prepared.approval),/Existing sibling draft/);await fixture.mutate('sibling','text');await delay(100);
     const changed=await rpc('submit',prepared.approval);assert.ok(!changed.ok||changed.data.operation.state==='failed');assert.equal(counts('sibling'),0);
@@ -543,8 +546,9 @@ export async function matrices({call,read,nav,target,selectedTarget,counts,event
   const qualified=verdicts(results,baseline,adapters,precedence);
   fs.writeFileSync('/out/qualification-result.json',JSON.stringify(qualified,null,2));
   fs.writeFileSync('/out/matrices.json',JSON.stringify(results,null,2));
+  // The qualification observer recognises this final error after both evidence files exist.
+  assertChecksPassed([...smokeResults,...results],'Strict owner-input and page-forgery regressions failed');
   if(shard){
     fs.writeFileSync('/out/shard-complete.json',JSON.stringify({shard,baseline,adapters,head:process.env.RUNTIME_COMMIT||process.env.GITHUB_SHA,run:process.env.GITHUB_RUN_ID,install:process.env.INSTALL_MODE}));
   }else assertComplete(results,qualified);
-  return results.filter(item=>!item.passed);
 }

@@ -10,6 +10,7 @@
 // Brief 20's tools are reached as matrices.mjs reaches them (`call`, `rpc` and
 // their old verbs, browser.mjs); the new ones by their full names.
 import assert from 'node:assert/strict';
+import {pendingCheck} from './failure.mjs';
 import fs from 'node:fs';
 import net from 'node:net';
 import {execFile} from 'node:child_process';
@@ -305,8 +306,8 @@ export async function actMatrix({check:report,call,rpc,nav,counts,eventually,fix
     const ref=refOf(page.untrusted_content.outline,'textbox "Draft"');
     assert.deepEqual(typed(id,'draft'),[],'the owner has yet to type');
     const offset=boundaryLog.size();
-    const pending=throughData('proxy','do',{tab,steps:[{do:'wait',until:{text:'Draft entered'},timeout_ms:8000},
-      {do:'fill',ref,text:'Replacement'}]});
+    const pending=pendingCheck(throughData('proxy','do',{tab,steps:[{do:'wait',until:{text:'Draft entered'},timeout_ms:8000},
+      {do:'fill',ref,text:'Replacement'}]}));
     let result,typingAt;
     try{
       // Three page states establish the start, pre-step outline and wait outline.

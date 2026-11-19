@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import {pendingCheck} from './failure.mjs';
 import {assertOwnerOverlap} from './owner-evidence.mjs';
 import {completeIngress} from './ingress-scan.mjs';
 import {setTimeout as delay} from 'node:timers/promises';
@@ -53,7 +54,7 @@ export async function guardedHandoffClick({rpc,call,target,eventually,receiverEv
 export async function reviewMatrices({check,nav,call,rpc,target,read,counts,eventually,approval,receiverEvidence,fixture,getTab,selectedTarget,ownerKey,ownerType,ownerChooseFile,admin,ownerNavigate,ownerDismiss,nativeDonor,closeNativeDonor,setTab,lifecycle}){
   await check('GROUP 2 RECHECK Claude timer fires inside the owner Enter mark',async()=>{
     const id='recheck-owner-overlap';await nav('review-page&mode=owner-overlap&id='+id);
-    const pending=call('click',await target('Continue'));
+    const pending=pendingCheck(call('click',await target('Continue')));
     const start=await eventually(()=>fixture.arrivals.find(row=>row.url.includes('case=task-start')&&row.body===id),'Claude timer started');
     await delay(Math.max(0,start.time+130-Date.now()));ownerKey(true);const result=await pending;
     await eventually(()=>counts('owner-'+id)===1,'his immediate Enter arrival');
@@ -144,7 +145,7 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
   });
   await check('GROUP 3 REVIEW owner chosen attachments show byte digests and bind identical metadata replacements',async()=>{
     const id='review-owner-file';await nav('review-page&mode=owner-file&id='+id);
-    const opening=call('click',await target('File'));opening.catch(()=>{});await ownerChooseFile();await opening;
+    const opening=pendingCheck(call('click',await target('File')));await ownerChooseFile();await opening;
     await eventually(async()=>(await read()).some(row=>row.expected.name==='File'&&row.expected.value?.length===1),'owner chosen File is installed');
     const first=await call('click',await target('Submit'));assert.ok(first.approval);
     assert.doesNotMatch(JSON.stringify(first.approval.description),/GOOD|EVIL/,'file bytes must never enter the approval or binding');
@@ -240,7 +241,7 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
   await check('GROUP 2 REVIEW owner mark exact form submitter and unconsumed delayed work',async()=>{
     for(const variant of ['other-form','other-submitter','delayed-unconsumed']){
       const id='review-owner-'+variant;await nav('review-page&mode=owner-mark&variant='+variant+'&id='+id);
-      const pending=call('click',await target('Continue'));
+      const pending=pendingCheck(call('click',await target('Continue')));
       const start=await eventually(()=>fixture.arrivals.find(row=>row.url.includes('case=task-start')&&row.body===id),'Claude start');
       await delay(Math.max(0,start.time+130-Date.now()));ownerKey();await approval(await pending,id);
       console.log('REVIEW P20 RECEIVER0/1/1',id);

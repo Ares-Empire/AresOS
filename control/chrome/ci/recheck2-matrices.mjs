@@ -1,5 +1,6 @@
 // Loaded only by the GitHub Linux-container harness.
 import assert from 'node:assert/strict';
+import {pendingCheck} from './failure.mjs';
 import fs from 'node:fs';
 import {allTabs} from './tabs.mjs';
 import {assertNativeLimit} from './activation-evidence.mjs';
@@ -48,7 +49,7 @@ export async function recheck2Matrices({check,nav,call,target,approval,receiverE
   });
   await check('GROUP 2 RECHECK2 the owner navigates during the network hold',async()=>{
     const id='recheck2-owner-navigation';await nav('review-page&mode=owner-navigation&id='+id);
-    const pending=call('click',await target('Continue'));
+    const pending=pendingCheck(call('click',await target('Continue')));
     const started=await eventually(()=>fixture.arrivals.find(row=>row.url.includes('case=task-start')&&row.body===id),'owner-navigation start');
     await delay(Math.max(0,started.time+130-Date.now()));ownerKey(true);await pending;
     await eventually(()=>receiverEvidence(id,'owner native navigation').count===1,'owner navigation during hold');

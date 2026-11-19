@@ -7,6 +7,7 @@ import {fixtures} from './fixture.mjs';
 import {latencyProbe} from './latency-probe.mjs';
 import {efficiencyProbe} from './efficiency-probe.mjs';
 import {matrices} from './matrices.mjs';
+import {pendingCheck,recordCheck,assertChecksPassed} from './failure.mjs';
 import {measureCompatibility,nativeNavigate,nativeCompatibilityClick,compareCompatibility} from './compatibility.mjs';
 import {ownerUI} from './owner-ui.mjs';
 import {outlineTime} from './outline-time.mjs';
@@ -65,9 +66,13 @@ try {
   baseline.native=JSON.parse(fs.readFileSync('/out/native-baseline.json','utf8'));
   chrome=spawn('qualification-chrome',args,{stdio:['ignore',descriptor,descriptor]});
   const tabs=await eventually(async()=>{const result=await rpc('tabs');return result.ok && result.data.items.length && result.data.items;},'extension native connection',45000);
-  nativeNavigate('http://fixture.test:8765/?case=native-compat&id=outside');
-  const outside=await measureCompatibility({id:'outside',fixture,eventually,start:nativeCompatibilityClick});
-  compareCompatibility(outside,baseline.native);fs.writeFileSync('/out/native-outside.json',JSON.stringify(outside,null,2));
+  const smokeResults=[];
+  const smoke=(name,run)=>recordCheck(smokeResults,name,run);
+  await smoke('native compatibility outside control',async()=>{
+    nativeNavigate('http://fixture.test:8765/?case=native-compat&id=outside');
+    const outside=await measureCompatibility({id:'outside',fixture,eventually,start:nativeCompatibilityClick});
+    compareCompatibility(outside,baseline.native);fs.writeFileSync('/out/native-outside.json',JSON.stringify(outside,null,2));
+  });
   // The extension is installed before this owner-created document, then take attaches to it.
   execFileSync('xdotool',['key','--clearmodifiers','ctrl+l']);
   execFileSync('xdotool',['type','--clearmodifiers','--delay','1','http://fixture.test:8765/?case=compose']);
@@ -75,15 +80,22 @@ try {
   const current=await eventually(async()=>{const current=await call('tabs');return current.items.some(item=>item.url==='http://fixture.test:8765/?case=compose'&&item.active&&item.focused)&&current;},'native owner GET committed before take');
   tab=current.items.find(item=>item.url==='http://fixture.test:8765/?case=compose'&&item.active&&item.focused)?.tab;assert.ok(tab !== undefined);
   await call('take_tab',{tab});
-  const takenRead=await target('Send');
-  const firstInput=await rpc('click',takenRead);assert.equal(firstInput.ok,false);if(process.env.LATENCY_PROBE==='true'&&process.env.LATENCY_BASELINE==='ab7aba92'){assert.equal(firstInput.error.code,'stale_reference');}else{assert.equal(firstInput.error.code,'reload_required');const acknowledged=await rpc('click',{...takenRead,discard_unsaved:true});assert.equal(acknowledged.ok,false);assert.equal(acknowledged.error.code,'stale_reference');}assert.equal(counts('compose'),0);
-  await eventually(async()=>{const current=await target('Send');return current.reference.document!==takenRead.reference.document;},'taken tab first input reloads and stales old references');
-  execFileSync('import',['-window','root','/out/controlled.png']);
-  const processes=execFileSync('ps',['-C','chrome','-o','pid,args'],{encoding:'utf8'});assert.doesNotMatch(processes,/--no-sandbox|--remote-debugging-(port|pipe)/);
-  const listeners=execFileSync('ss',['-lntp'],{encoding:'utf8'}).split('\n').filter(line=>line.includes('"chrome"'));assert.equal(listeners.length,0);fs.writeFileSync('/out/isolation.json',JSON.stringify({processes,listeners}));baseline.isolation=true;
-  const send=await target('Send');const prepared=await call('click',send);assert.ok(prepared.approval);assert.equal(counts('compose'),0);
-  const sent=await call('submit',prepared.approval);assert.equal(sent.operation.state,'done');await eventually(()=>counts('compose')===1,'receiver compose');
-  await call('submit',prepared.approval);assert.equal(counts('compose'),1);console.log('GROUP 1 what asks PASS: zero before approval, one after, no replay');
+  await smoke('taken-tab first input',async()=>{
+    const takenRead=await target('Send');
+    const firstInput=await rpc('click',takenRead);assert.equal(firstInput.ok,false);if(process.env.LATENCY_PROBE==='true'&&process.env.LATENCY_BASELINE==='ab7aba92'){assert.equal(firstInput.error.code,'stale_reference');}else{assert.equal(firstInput.error.code,'reload_required');const acknowledged=await rpc('click',{...takenRead,discard_unsaved:true});assert.equal(acknowledged.ok,false);assert.equal(acknowledged.error.code,'stale_reference');}assert.equal(counts('compose'),0);
+    await eventually(async()=>{const current=await target('Send');return current.reference.document!==takenRead.reference.document;},'taken tab first input reloads and stales old references');
+  });
+  await smoke('browser isolation',async()=>{
+    execFileSync('import',['-window','root','/out/controlled.png']);
+    const processes=execFileSync('ps',['-C','chrome','-o','pid,args'],{encoding:'utf8'});assert.doesNotMatch(processes,/--no-sandbox|--remote-debugging-(port|pipe)/);
+    const listeners=execFileSync('ss',['-lntp'],{encoding:'utf8'}).split('\n').filter(line=>line.includes('"chrome"'));assert.equal(listeners.length,0);fs.writeFileSync('/out/isolation.json',JSON.stringify({processes,listeners}));baseline.isolation=true;
+  });
+  await smoke('GROUP 1 compose approval',async()=>{
+    const send=await target('Send');const prepared=await call('click',send);assert.ok(prepared.approval);assert.equal(counts('compose'),0);
+    const sent=await call('submit',prepared.approval);assert.equal(sent.operation.state,'done');await eventually(()=>counts('compose')===1,'receiver compose');
+    await call('submit',prepared.approval);assert.equal(counts('compose'),1);console.log('GROUP 1 what asks PASS: zero before approval, one after, no replay');
+  });
+  if(process.env.LATENCY_PROBE==='true')assertChecksPassed(smokeResults);
   if(process.env.LATENCY_PROBE==='true'&&process.env.EFFICIENCY_PROBE==='true'){await efficiencyProbe({rpc:wire,eventually,counts,getTab:()=>tab,toolName});return;}
   if(process.env.LATENCY_PROBE==='true'){
     const measured=harnessTools({wire,modern:()=>false,eventually,currentTab:()=>tab});
@@ -93,10 +105,8 @@ try {
   // pending, in Control Chrome's own runs only (the qualification run sets
   // RUNTIME_COMMIT and qualifies brief 20's tools, maybe on an older build).
   // A failure here fails the shard at its end; brief 20's cases still run first.
-  const groupFourteen=[];
   if(process.env.BROWSER_SHARD==='core'&&!process.env.RUNTIME_COMMIT){
-    try{await outlineTime({call,nav,target,eventually,getTab:()=>tab});console.log('GROUP 14 TIME PASS');}
-    catch(error){groupFourteen.push(error);console.error('GROUP 14 TIME FAIL',error.stack);}
+    await smoke('GROUP 14 TIME',async()=>{await outlineTime({call,nav,target,eventually,getTab:()=>tab});console.log('GROUP 14 TIME PASS');});
     // Group 14's reading, reference and password cases are named cases at the end of the core matrix (matrices.mjs).
   }
   const envelopeResults=[];
@@ -112,52 +122,57 @@ try {
         fs.writeFileSync('/out/outline-read/envelope-cases.json',JSON.stringify(envelopeResults,null,2));
       }});
   }
-  for(const kind of ['native','event']) {
+  for(const kind of ['native','event'])await smoke('GROUP 2 stopped page steps '+kind,async()=>{
     await nav(kind);const item=await target('Continue');await call('click',item);assert.equal(counts(kind),0);
     const pending=await new Promise((resolve,reject)=>{const socket=net.createConnection('/run/aresos-tools/act.sock');let b='';socket.on('connect',()=>socket.write(JSON.stringify({v:1,method:'call',action:'control_pending',arguments:{}})+'\n'));socket.on('data',d=>{b+=d;if(b.includes('\n')){socket.end();resolve(JSON.parse(b));}});socket.on('error',reject);});
     const id=pending.data.items.find(item=>item.state==='reserved')?.operation_id;assert.ok(id,JSON.stringify(pending));
     const status=await call('operation_status',{operation_id:id});await call('submit',status.operation.approval);await eventually(()=>counts(kind)===1,'receiver '+kind);
     console.log('GROUP 2 stopped page steps PASS',kind);
-  }
-  await nav('activation');await call('click',await target('Continue'));await delay(100);assert.equal(counts('activation'),0);console.log('GROUP 2 wrapped non-cancellable activation PASS: no delivery and never resumed');
-  await nav('password');const view=JSON.stringify(await read());assert.doesNotMatch(view,/SENTINEL_PRIVATE_PASSWORD_20/);await call('click',await target('Show'));assert.doesNotMatch(JSON.stringify(await read()),/SENTINEL_PRIVATE_PASSWORD_20/);console.log('GROUP 7 password presence and show-password PASS');
-  await nav('residual');const rows=await read();const unlabeled=rows.find(row=>row.expected.role==='button');await call('click',await selectedTarget(unlabeled,rows));await eventually(()=>counts('residual-click')===1,'residual fetch');console.log('GROUP 13 residual ordinary-click fetch OBSERVED, NOT HELD');baseline.residual=true;
-  fs.writeFileSync('/out/smoke.json',JSON.stringify({core_smoke_passed:true,acceptance_complete:false,kind:'core smoke only',measurements:(await read()).length}));
-  console.log('Preliminary core smoke cases passed; acceptance is not complete');
+  });
+  await smoke('GROUP 2 wrapped activation',async()=>{
+    await nav('activation');await call('click',await target('Continue'));await delay(100);assert.equal(counts('activation'),0);console.log('GROUP 2 wrapped non-cancellable activation PASS: no delivery and never resumed');
+  });
+  await smoke('GROUP 7 show-password',async()=>{
+    await nav('password');const view=JSON.stringify(await read());assert.doesNotMatch(view,/SENTINEL_PRIVATE_PASSWORD_20/);await call('click',await target('Show'));assert.doesNotMatch(JSON.stringify(await read()),/SENTINEL_PRIVATE_PASSWORD_20/);console.log('GROUP 7 password presence and show-password PASS');
+  });
+  await smoke('GROUP 13 ordinary-click fetch',async()=>{
+    await nav('residual');const rows=await read();const unlabeled=rows.find(row=>row.expected.role==='button');await call('click',await selectedTarget(unlabeled,rows));await eventually(()=>counts('residual-click')===1,'residual fetch');console.log('GROUP 13 residual ordinary-click fetch OBSERVED, NOT HELD');baseline.residual=true;
+  });
+  await smoke('smoke measurements',async()=>{
+    fs.writeFileSync('/out/smoke.json',JSON.stringify({core_smoke_passed:smokeResults.every(row=>row.passed),acceptance_complete:false,kind:'core smoke only',measurements:(await read()).length}));
+    if(smokeResults.every(row=>row.passed))console.log('Preliminary core smoke cases passed; acceptance is not complete');
+  });
   // A real X input belongs to the owner, even while a task from Claude's input is pending.
   // Do not substitute a tool click: that would test another Claude input instead.
-  await nav('owner-input');
-  const continued=target('Continue').then(item=>call('click',item));
-  await eventually(()=>counts('owner-start')===1,'Claude handler started');
-  const ownerAt=Date.now();
-  execFileSync('xdotool',['key','--clearmodifiers','Tab','Return']);
-  const ownerDelay=ownerAt-fixture.arrivals.find(row=>row.url.includes('case=owner-start')).time;
-  const continuedResult=await continued;
-  await delay(150);
-  const evidence={ownerInput:'X keyboard Tab then Return, outside the tool',ownerDelayMs:ownerDelay,
-    ownerArrivals:counts('owner-input'),scheduledArrivals:counts('scheduled-input'),result:continuedResult};
-  fs.writeFileSync('/out/owner-input.json',JSON.stringify(evidence,null,2));
-  console.log('GROUP 8 owner input evidence',JSON.stringify(evidence));
-  const failures=[...groupFourteen];
-  try {
+  await smoke('GROUP 8 owner input',async()=>{
+    await nav('owner-input');
+    const continued=pendingCheck(target('Continue').then(item=>call('click',item)));
+    await eventually(()=>counts('owner-start')===1,'Claude handler started');
+    const ownerAt=Date.now();
+    execFileSync('xdotool',['key','--clearmodifiers','Tab','Return']);
+    const ownerDelay=ownerAt-fixture.arrivals.find(row=>row.url.includes('case=owner-start')).time;
+    const continuedResult=await continued;
+    await delay(150);
+    const evidence={ownerInput:'X keyboard Tab then Return, outside the tool',ownerDelayMs:ownerDelay,
+      ownerArrivals:counts('owner-input'),scheduledArrivals:counts('scheduled-input'),result:continuedResult};
+    fs.writeFileSync('/out/owner-input.json',JSON.stringify(evidence,null,2));
+    console.log('GROUP 8 owner input evidence',JSON.stringify(evidence));
     assert.ok(ownerDelay<300,'Owner test missed the active hold window');
     assert.equal(counts('scheduled-input'),0,'Scheduled submission from Claude input must stay held');
     assert.equal(counts('owner-input'),1,'Owner submission must run normally while a Claude task is pending');
     console.log('GROUP 8 owner input PASS');baseline.owner=true;
-  } catch(error) { failures.push(error); console.error('GROUP 8 owner input FAIL',error.message); }
+  });
   // A denial must not conceal an unasked send. Every hostile route keeps receiver checks strict.
-  let forgedPasses=0;for(const attack of ['page-forgery','hostile','relay-hostile']) {
+  let forgedPasses=0;for(const attack of ['page-forgery','hostile','relay-hostile'])await smoke('GROUP 7 page forgery '+attack,async()=>{
     await nav(attack);const forged=await call('click',await target('Continue'));await delay(100);
     const evidence={attack,arrivalsBefore:counts(attack),result:forged};
     fs.writeFileSync('/out/'+attack+'.json',JSON.stringify(evidence,null,2));
-    try {
-      assert.equal(counts(attack),0,'A page-forged control mark must never release a Claude-caused submission without approval');
-      const operation=forged.followups.find(item=>item.approval);assert.ok(operation,JSON.stringify(forged));
-      await call('submit',operation.approval);await eventually(()=>counts(attack)===1,'approved '+attack);
-      await call('submit',operation.approval);await delay(100);assert.equal(counts(attack),1,'A second attempt must not dispatch');
-      forgedPasses++;console.log('GROUP 7 page forgery PASS',attack,'receiver: 0 before, 1 after, 1 after replay');
-    } catch(error) { failures.push(error); console.error('GROUP 7 page forgery FAIL',attack,error.message); }
-  }
+    assert.equal(counts(attack),0,'A page-forged control mark must never release a Claude-caused submission without approval');
+    const operation=forged.followups.find(item=>item.approval);assert.ok(operation,JSON.stringify(forged));
+    await call('submit',operation.approval);await eventually(()=>counts(attack)===1,'approved '+attack);
+    await call('submit',operation.approval);await delay(100);assert.equal(counts(attack),1,'A second attempt must not dispatch');
+    forgedPasses++;console.log('GROUP 7 page forgery PASS',attack,'receiver: 0 before, 1 after, 1 after replay');
+  });
   baseline.forgery=forgedPasses===3;
   const admin=(action,arguments_)=>{const result=JSON.parse(execFileSync('sudo',['-n','/usr/bin/python3','/workspace/control/chrome/ci/admin.py',JSON.stringify({action,arguments:arguments_})],{encoding:'utf8'}));assert.ok(result.ok,JSON.stringify(result));return result.data;};
   const caller=async(verb,args)=>{
@@ -219,7 +234,7 @@ try {
     if(command==='kill_host'){const lines=execFileSync('ps',['-u','1000','-o','pid=,args='],{encoding:'utf8'}).split('\n');for(const line of lines)if(line.includes('/usr/libexec/aresos-control/chrome/native_host.py'))process.kill(Number(line.trim().split(/\s+/)[0]),'SIGKILL');return;}
     return JSON.parse(execFileSync('sudo',['-n','/usr/bin/python3','/workspace/control/chrome/ci/admin.py',JSON.stringify(command)],{encoding:'utf8'}));
   };
-  for(const failure of await matrices({call,read,nav,target,selectedTarget,counts,eventually,tab,setTab:value=>{tab=value;},fixture,admin,rpc,caller,ownerNavigate,ownerOpenTab,ownerClickPage,ownerOpenPopup,nativeDonor,closeNativeDonor,baseline,envelopeResults,
+  await matrices({smokeResults,call,read,nav,target,selectedTarget,counts,eventually,tab,setTab:value=>{tab=value;},fixture,admin,rpc,caller,ownerNavigate,ownerOpenTab,ownerClickPage,ownerOpenPopup,nativeDonor,closeNativeDonor,baseline,envelopeResults,
     popupControl:async(command,value)=>{
       const state=async()=>{await lifecycle({fixture:'control_status'});const value=JSON.parse(fs.readFileSync('/out/control-status.json'));fs.appendFileSync('/out/popup-controls.jsonl',JSON.stringify(value)+'\n');return value;};
       if(command==='state')return state();
@@ -249,8 +264,7 @@ try {
     },
     isolationAfter:()=>{const finalListeners=execFileSync('ss',['-lntp'],{encoding:'utf8'}).split('\n').filter(line=>line.includes('\"chrome\"'));assert.equal(finalListeners.length,0,'Chrome must still have no listening port after all tools');fs.writeFileSync('/out/isolation-after.json',JSON.stringify({listeners:finalListeners}));},
     ownerHistory:async(direction)=>{execFileSync('xdotool',['key','--clearmodifiers',direction==='back'?'alt+Left':'alt+Right']);await delay(400);},
-    ownerBookmark:()=>execFileSync('xdotool',['key','--clearmodifiers','ctrl+d','Return']),lifecycle,restoreControl:async()=>{const active=await eventually(async()=>{const result=await rpc('tabs',{limit:10});return result.ok&&result.data.items.find(item=>item.active&&item.focused&&!item.cleanup_pending);},'native reconnect',45000);tab=active.tab;browserWindow=execFileSync('xdotool',['getactivewindow'],{encoding:'utf8'}).trim();const marker='restored-'+Date.now();await ownerNavigate('http://fixture.test:8765/?case=compose&id='+marker);assert.ok((await call('tabs',{limit:10})).items.some(item=>item.tab===tab&&item.url?.includes(marker)));await call('take_tab',{tab});return tab;},stopClick:()=>{execFileSync('import',['-window','root','/out/stop.png']);execFileSync('xdotool',['key','--clearmodifiers','Return']);},ownerKey:(enterOnly=false)=>execFileSync('xdotool',['key','--clearmodifiers',...(enterOnly?['Return']:['Tab','Return'])]),ownerType:text=>execFileSync('xdotool',['type','--clearmodifiers','--delay','20',text])}))failures.push(Error(failure.name+': '+failure.error));
-  if(failures.length)throw new AggregateError(failures,'Strict owner-input and page-forgery regressions failed');
+    ownerBookmark:()=>execFileSync('xdotool',['key','--clearmodifiers','ctrl+d','Return']),lifecycle,restoreControl:async()=>{const active=await eventually(async()=>{const result=await rpc('tabs',{limit:10});return result.ok&&result.data.items.find(item=>item.active&&item.focused&&!item.cleanup_pending);},'native reconnect',45000);tab=active.tab;browserWindow=execFileSync('xdotool',['getactivewindow'],{encoding:'utf8'}).trim();const marker='restored-'+Date.now();await ownerNavigate('http://fixture.test:8765/?case=compose&id='+marker);assert.ok((await call('tabs',{limit:10})).items.some(item=>item.tab===tab&&item.url?.includes(marker)));await call('take_tab',{tab});return tab;},stopClick:()=>{execFileSync('import',['-window','root','/out/stop.png']);execFileSync('xdotool',['key','--clearmodifiers','Return']);},ownerKey:(enterOnly=false)=>execFileSync('xdotool',['key','--clearmodifiers',...(enterOnly?['Return']:['Tab','Return'])]),ownerType:text=>execFileSync('xdotool',['type','--clearmodifiers','--delay','20',text])});
 } catch(error) {
   try{execFileSync('import',['-window','root','/out/failure.png']);}catch{}
   throw error;
