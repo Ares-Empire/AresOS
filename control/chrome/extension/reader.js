@@ -375,10 +375,10 @@
     if(element.namespaceURI!==XHTML)return null;
     if(tag==='input')return element.type==='hidden'?null:inputRoles.get(element.type)||'textbox';
     if(tag==='select')return element.multiple||element.size>1?'listbox':'combobox';
-    if(element.isContentEditable)return 'textbox';
     // Native controls still take the value/withholding path under presentation roles.
     if(tag==='textarea')return 'textbox';
     if(tag==='button')return 'button';
+    if(element.isContentEditable)return 'textbox';
     if(word==='presentation'||word==='none')return null;
     if(tag==='header'||tag==='footer')return element.parentElement?.localName==='body'?(tag==='header'?'banner':'contentinfo'):null;
     if(tag==='section')return element.hasAttribute('aria-label')||element.hasAttribute('aria-labelledby')?'region':null;
@@ -501,7 +501,14 @@
         const style=getComputedStyle(node);
         // A form's named controls can shadow hidden with an element. Read the
         // native state so a control called "hidden" cannot hide its form.
-        if(html(node,HTMLElement)&&(elementHidden?elementHidden.call(node):node.hidden)||style.display==='none'||style.visibility==='hidden')return;
+        if(html(node,HTMLElement)&&(elementHidden?elementHidden.call(node):node.hidden)||style.visibility==='hidden')return;
+        if(tag==='area'&&hyperlink(node)){
+          // Chrome gives the area no layout box. Its hit region belongs to the image.
+          const image=mappedImage(node);
+          if(!image||image.hidden||getComputedStyle(image).visibility!=='visible')return;
+          const {width,height}=elementBox(node,image);
+          if(!width||!height)return;
+        }else if(style.display==='none')return;
         if(kept){flush(owner);const label=name(node,false);owner.parts.push({element:node,out:{role:'password',...(label?{name:label}:{}),unread:true},parts:[]});return;}
         if(tag==='br'){owner.run+=owner.pre?'\n':' ';return;}
         const role=outlineRole(node,tag);
@@ -613,9 +620,8 @@
     return false;
   }
   // Where an element is on the screen; an image map's area lies inside its image.
-  function elementBox(element) {
+  function elementBox(element,image=mappedImage(element)) {
     let box = element.getBoundingClientRect();
-    const image=mappedImage(element);
     if(image){
       const bounds=image.getBoundingClientRect(),shape=(element.getAttribute('shape')||'rect').toLowerCase(),coords=(element.getAttribute('coords')||'').split(/[ ,]+/).map(Number);
       let left=0,top=0,right=bounds.width,bottom=bounds.height;

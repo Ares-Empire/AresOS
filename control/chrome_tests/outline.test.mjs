@@ -32,6 +32,27 @@ test('inline formatting is text of its element, and only the link stands between
   assert.match(data.document,/^[0-9a-f]{32}$/);assert.match(data.reader,/^[0-9a-f]{32}$/);
 });
 
+test('image map links appear from their image bounds even though Chrome gives areas display none',()=>{
+  const f=page(h=>[
+    h('img',{alt:'Map',usemap:'#map',$box:{x:200,y:1,width:20,height:20}}),
+    h('map',{name:'map'},
+      h('area',{alt:'Delete',href:'/delete',coords:'0,0,20,20'}),
+      h('area',{alt:'Outside image',href:'/outside',coords:'25,25,30,30'}),
+      h('area',{alt:'Hidden',href:'/hidden',coords:'0,0,20,20',hidden:''})),
+    h('map',{name:'unused'},h('area',{alt:'No image',href:'/unmapped',shape:'default'}))]);
+  const links=f.outline().nodes.filter(node=>node.role==='link');
+  assert.deepEqual(links.map(({name,href})=>[name,href]),[['Delete',BASE+'delete']]);
+});
+
+test('editable native buttons keep the visible label and role of the control',()=>{
+  const f=page(h=>[h('form',{role:'search'},
+    h('button',{type:'submit',contenteditable:'true'},'Pay'),
+    h('div',{role:'button',contenteditable:'true'},'Pay by card'),
+    h('div',{contenteditable:'true','aria-label':'Notes'},'Draft'))]);
+  assert.deepEqual(f.outline().nodes.map(({role,name})=>[role,name]),[
+    ['search',undefined],['button','Pay'],['button','Pay by card'],['textbox','Notes']]);
+});
+
 test('a role comes from the list or the tag, never from a page\'s own string',()=>{
   const f=page(h=>[
     h('div',{role:'h1 injected'},'A'),h('div',{role:'password'},'B'),h('span',{role:'BUTTON'},'Go'),h('div',{role:'link\n"evil'},'C'),

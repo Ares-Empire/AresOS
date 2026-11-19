@@ -12,7 +12,10 @@ export function page(build,{watched=true}={}){
   NativeNode.TEXT_NODE=3;
   class Text extends NativeNode{constructor(value){super();this.nodeType=3;this.textContent=value;}}
   const within=node=>node.childNodes.flatMap(child=>child.nodeType===1?[child,...within(child)]:[]);
-  const select=(node,selector)=>within(node).filter(element=>selector==='*'||selector.split(',').some(part=>part==='[contenteditable]'?element.hasAttribute('contenteditable'):element.localName===part));
+  const select=(node,selector)=>within(node).filter(element=>selector==='*'||selector.split(',').some(part=>{
+    const attribute=part.match(/^(\w*)\[([\w-]+)\]$/);
+    return attribute?(!attribute[1]||element.localName===attribute[1])&&element.hasAttribute(attribute[2]):element.localName===part;
+  }));
   let document;
   class Element extends NativeNode{
     constructor(tag,attrs={},children=[]){
@@ -89,7 +92,7 @@ export function page(build,{watched=true}={}){
   const chrome={dom:{openOrClosedShadowRoot:element=>element.shadowRoot||null},runtime:{id:'fixture',getFrameId:element=>element.frameId??-1,sendMessage:async()=>({}),onMessage:{addListener(fn){listener=fn;},removeListener(){}}}};
   class MutationObserver{observe(){}takeRecords(){return [];}disconnect(){}}
   const context=vm.createContext({document,chrome,crypto:{getRandomValues:array=>array.fill(7)},MutationObserver,TextEncoder,URL,console,Element,HTMLElement:Element,HTMLInputElement,HTMLTextAreaElement,HTMLSelectElement,HTMLButtonElement,HTMLAnchorElement,HTMLFormElement,Node:NativeNode,
-    getComputedStyle:element=>({display:element.attrs.style==='display:none'?'none':'block',visibility:'visible',webkitTextSecurity:'none',whiteSpace:element.localName==='pre'?'pre':'normal'}),
+    getComputedStyle:element=>({display:element.attrs.style==='display:none'||element.localName==='area'?'none':'block',visibility:'visible',webkitTextSecurity:'none',whiteSpace:element.localName==='pre'?'pre':'normal'}),
     [Symbol.for('aresos.chrome.document-start.v1')]:watched,[Symbol.for('aresos.chrome.guard.v2')]:{watch(){},reader(){},protectedPeer:()=>false},
     origin:'https://fixture.test',location:{href:BASE+'page'},scrollX:0,scrollY:120.4,innerWidth:100,innerHeight:100});
   vm.runInContext(fs.readFileSync('control/chrome/extension/reader.js','utf8'),context);
