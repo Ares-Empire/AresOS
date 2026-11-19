@@ -162,6 +162,57 @@ class ChromePassTest(unittest.TestCase):
             layer.probe_host(broken)
         self.assertEqual(self.actions().RUN, pathlib.Path(layer.RUN))
 
+    def run_pass(self, failing=()):
+        """chrome_main against a stand-in guest: every action answers, except those named, which fail."""
+        runner = load(CONTROL_CI / 'control_vm.py', f'control_vm_pass_{id(self)}_{len(failing)}')
+        work = self.folder / f'pass-{len(failing)}'
+        (work / 'os').mkdir(parents=True)
+        shutil.copy(ROOT / 'os/gh.lock.json', work / 'os/gh.lock.json')
+        asked = []
+
+        class Guest:
+            def __init__(self, *arguments):
+                pass
+
+            def act(self, request):
+                asked.append(request['action'])
+                if request['action'] in failing:
+                    return dict(returncode=1, stderr='made to fail')
+                return dict(returncode=0, summary=dict(list={'sha256': 'x'}))
+
+            create = poweroff = close = keys = screenshot = lambda *arguments: None
+            boot = lambda self: 1.0
+        output = io.StringIO()
+        with mock.patch.object(runner, 'Guest', Guest), \
+                mock.patch.object(runner, 'expected_record', return_value={}), \
+                mock.patch.object(runner, 'screen_difference', return_value=(runner.DIALOG_PIXELS, (0, 0, 1, 1))), \
+                contextlib.chdir(work), contextlib.redirect_stdout(output):
+            try:
+                runner.chrome_main()
+                code = 0
+            except SystemExit as error:
+                code = error.code
+        printed = [line.split()[0] for line in output.getvalue().splitlines()
+                   if line.startswith(('CONTROL_CHROME_', 'CONTROL_CHECK_FAILED'))]
+        return runner, asked, printed, code
+
+    def test_the_pass_prints_every_line_in_order_when_every_step_succeeds(self):
+        runner, asked, printed, code = self.run_pass()
+        self.assertEqual(code, 0)
+        self.assertEqual(asked, [step[1] for step in runner.CHROME_STEPS if step[0] == 'act'])
+        lines = [step[2] for step in runner.CHROME_STEPS if step[2]]
+        self.assertEqual([line for line in printed if line != 'CONTROL_CHROME_REBOOTED'],
+                         lines + ['CONTROL_CHROME_VM_POWEROFF_CLEAN'])
+
+    def test_a_failed_part_hides_only_its_own_checks_line(self):
+        runner, asked, printed, code = self.run_pass(failing=('chrome-hand-loaded',))
+        self.assertNotEqual(code, 0)
+        self.assertIn('chrome-hand-loaded', asked)
+        self.assertNotIn('CONTROL_CHROME_INSTALL_PASS', printed)
+        self.assertIn('CONTROL_CHECK_FAILED', printed)
+        for line in ('CONTROL_CHROME_FILES_PASS', 'CONTROL_CHROME_SITES_FIRST_USE_PASS', 'CONTROL_CHROME_SELINUX_PASS'):
+            self.assertIn(line, printed)
+
     def setUp(self):
         self.folder = pathlib.Path(tempfile.mkdtemp())
         self.addCleanup(shutil.rmtree, self.folder)

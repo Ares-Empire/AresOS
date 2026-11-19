@@ -409,7 +409,7 @@ def chrome_main():
                     print(f'CONTROL_CHECK_FAILED {argument}\n{result.get("stderr", "")[-6000:]}', flush=True)
             if line:
                 if not check_failed:
-                    shown = summaries.get(argument) if argument in CHROME_WITH_SUMMARY else None
+                    shown = summaries.get(argument) if kind == 'act' and argument in CHROME_WITH_SUMMARY else None
                     print(f'{line} {shown}' if shown else line, flush=True)
                 check_failed = False
         guest.poweroff()
