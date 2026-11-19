@@ -195,15 +195,16 @@ def arm(request):
     guard = show(GUARD, 'ActiveState', 'SubState', 'UnitFileState', 'After', 'TimeoutStopUSec', 'User',
                  'ActiveEnterTimestampMonotonic', 'ExecStop')
     after = guard['After'].split()
+    protected = ('greetd.service', 'user@1001.service', 'user-runtime-dir@1001.service', 'polkit.service',
+                 'getty@tty3.service', mount)
     facts['guard'] = dict(active=guard['ActiveState'], sub=guard['SubState'], enabled=guard['UnitFileState'],
                           timeout_stop=guard['TimeoutStopUSec'], user=guard['User'],
                           active_since_us=int(guard['ActiveEnterTimestampMonotonic']),
-                          after=sorted(unit for unit in after if unit in (
-                              'greetd.service', 'user@1001.service', 'user-runtime-dir@1001.service', mount)))
+                          after=sorted(set(protected).intersection(after)))
     assert (guard['ActiveState'], guard['SubState'], guard['UnitFileState']) == ('active', 'exited', 'enabled'), guard
     assert guard['TimeoutStopUSec'] == '1min 25s' and guard['User'] == 'ares', guard
     assert 'aresos-desktop ; argv[]=/usr/libexec/aresos-desktop stop --reason shutdown' in guard['ExecStop'], guard
-    for unit in ('greetd.service', 'user@1001.service', 'user-runtime-dir@1001.service', mount):
+    for unit in protected:
         assert unit in after, (unit, 'is not ordered before the guard', after)
     scope = show(session, 'ActiveState', 'Before', 'TimeoutStopUSec')
     assert scope['ActiveState'] == 'active' and GUARD in scope['Before'].split(), scope
@@ -281,12 +282,14 @@ def arm(request):
                    f'--property=ExecStop={" ".join(watcher)} record {jvm}', '/usr/bin/true')
     assert recorder['returncode'] == 0, recorder
     time.sleep(3)  # the probe's first samples and the lid's device are there before the power key
-    for unit in ('aresos-ci-guardian-probe.service', 'aresos-ci-guardian-record.service', 'aresos-ci-game.service',
+    for unit in ('polkit.service', 'getty@tty3.service', 'aresos-ci-guardian-probe.service',
+                 'aresos-ci-guardian-record.service', 'aresos-ci-game.service',
                  *(['aresos-ci-guardian-lid.service'] if scenario == 'save' else [])):
         assert show(unit, 'ActiveState')['ActiveState'] == 'active', unit
     facts['stdout'] = (f'GUARDIAN_ARMED ({scenario}): the guard is active and ordered after greetd, the user manager, '
-                       f'the runtime folder and {mount}, with {session} before it; the game scope stops within '
-                       f'{game["TimeoutStopUSec"]}, the session scope within {scope["TimeoutStopUSec"]}; the stand-in '
+                       f'polkit, the tty3 getty, the runtime folder and {mount}, with {session} before it; '
+                       f'the game scope stops within {game["TimeoutStopUSec"]}, the session scope within '
+                       f'{scope["TimeoutStopUSec"]}; the stand-in '
                        'game runs with an accepted hello and no app window is open')
     return dict(returncode=0, **facts)
 

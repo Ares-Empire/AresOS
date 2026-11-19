@@ -56,7 +56,8 @@ guardian=/usr/lib/systemd/system/aresos-guardian.service
 test "$(systemctl --root=/ is-enabled aresos-guardian.service)" = enabled
 test -L /etc/systemd/system/graphical.target.wants/aresos-guardian.service
 test "$(stat -c '%U:%G %a' "$guardian")" = 'root:root 644'
-for line in 'After=greetd.service user@1001.service user-runtime-dir@1001.service' \
+for line in 'Wants=polkit.service' \
+    'After=greetd.service user@1001.service user-runtime-dir@1001.service polkit.service getty@tty3.service' \
     'RequiresMountsFor=/var/home/ares' 'Type=oneshot' 'RemainAfterExit=yes' 'User=ares' \
     'Environment=XDG_RUNTIME_DIR=/run/user/1001' 'ExecStart=/usr/bin/true' \
     'ExecStop=/usr/libexec/aresos-desktop stop --reason shutdown' 'TimeoutStopSec=85' 'WantedBy=graphical.target'; do
@@ -64,7 +65,7 @@ for line in 'After=greetd.service user@1001.service user-runtime-dir@1001.servic
 done
 test "$(grep -c '^Exec' "$guardian")" = 2
 grep -qxF 'Before=aresos-guardian.service' /usr/lib/systemd/system/session-.scope.d/50-aresos-guardian.conf
-pass 'the shutdown guard is enabled, ordered after greetd, the user manager, the runtime folder and the home, and stops through the supervisor within 85 s'
+pass 'the shutdown guard is enabled, keeps the desktop and tty3 available during its stop, and calls the supervisor within its 85 s limit'
 console_link=/etc/systemd/system/graphical.target.wants/aresos-console-keymap.service
 test "$(readlink "$console_link")" = "$console_unit"
 test "$(stat -c '%a %u %g' "$console_link")" = '777 0 0'

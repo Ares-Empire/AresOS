@@ -70,10 +70,10 @@ def capture(kind, camera, running, screenshot, keys, evidence):
                   black_after=round(time.monotonic() - began, 2))
     if kind == 'hang' and running():
         keys(['ctrl', 'alt', 'f3'])
+        result['console_key_sent_after'] = round(time.monotonic() - began, 2)
         time.sleep(3)
         if running():
             screenshot('guardian-tty3.png')
-        result['console_key_sent_after'] = round(time.monotonic() - began - 3, 2)
     return result
 
 
@@ -137,8 +137,13 @@ def check(evidence, kind, armed, watched, seconds, before_lit):
     java_exit = first('the game\'s wrapper ends', lambda r: systemd(r, GAME_UNIT) and 'EXIT_STATUS' in r, guard_began)
     java_status = next(r['EXIT_STATUS'] for r in records if stamp(r) == java_exit and systemd(r, GAME_UNIT)
                        and 'EXIT_STATUS' in r)
-    others = (armed['session_scope'], 'greetd.service', 'user@1001.service', armed['home_mount'])
+    recovery = ('polkit.service', 'getty@tty3.service')
+    others = (armed['session_scope'], 'greetd.service', 'user@1001.service', armed['home_mount'], *recovery)
     stops = {unit: began_to_stop(unit, key) for unit in others}
+    stopped = {unit: first(f'{unit} stopped', lambda r: systemd(r, unit) and r.get('JOB_TYPE') == 'stop'
+                           and r.get('JOB_RESULT') == 'done', key, required=False) for unit in recovery}
+    shutdown = first('shutdown.target reached', lambda r: systemd(r, 'shutdown.target') and r.get('JOB_TYPE') == 'start'
+                     and r.get('JOB_RESULT') == 'done', key, required=False)
     samples = tagged(records, 'aresos-ci-probe', 'GUARDIAN_PROBE')
     samples = [(int(sample['t'] * 1_000_000), sample) for _, sample in samples if isinstance(sample.get('t'), (int, float))]
     labwc_gone = min((when for when, sample in samples if when >= key and not sample['labwc']), default=None)
@@ -158,6 +163,8 @@ def check(evidence, kind, armed, watched, seconds, before_lit):
                    java_status=java_status, guard_stop_ended=seconds_after_key(guard_ended),
                    guard_stop_seconds=round((guard_ended - guard_began) / 1_000_000, 3),
                    began_to_stop={unit: seconds_after_key(when) for unit, when in stops.items()},
+                   recovery_stopped={unit: seconds_after_key(when) for unit, when in stopped.items()},
+                   shutdown_target=seconds_after_key(shutdown),
                    labwc_gone=seconds_after_key(labwc_gone), record=record, guard_said=said[:500],
                    black=watched, frame_before_lit_share=round(before_lit, 5), armed=armed)
     (evidence / 'guardian.json').write_text(json.dumps(summary, indent=2) + '\n')
@@ -170,6 +177,10 @@ def check(evidence, kind, armed, watched, seconds, before_lit):
     for unit, when in stops.items():
         assert when is None or when > guard_ended, (f'{unit} began to stop before the guard\'s stop ended', summary)
     assert stops[armed['session_scope']] is not None and stops['user@1001.service'] is not None, summary
+    # The stopped guest's journal must contain both completions. It can close before the final shutdown targets.
+    for unit, end in stopped.items():
+        assert stops[unit] is not None and end is not None and stops[unit] <= end, (f'missing stop for {unit}', summary)
+        assert shutdown is None or end < shutdown, (f'{unit} stopped after shutdown.target', summary)
     assert labwc_gone is None or labwc_gone > guard_ended, ('labwc ended before the guard\'s stop ended', summary)
     # While the guard's stop ran, the probe saw all of them, the game's wrapper and the socket, and the home writable.
     # A sample's answers are up to a moment older than its time, and the stop ends a moment before the guard's
@@ -229,10 +240,13 @@ def check(evidence, kind, armed, watched, seconds, before_lit):
         killed_after = (java_exit - stops['user@1001.service']) / 1_000_000
         assert 10 <= killed_after <= 30, ('the game scope\'s 15 s limit did not end the game', killed_after, summary)
         # A text console still switches behind the black screen.
-        consoles = [sample['tty'] for when, sample in samples if when >= asked]
-        assert 'tty3' in consoles, ('Ctrl+Alt+F3 did not switch to a text console behind the black screen', consoles[:20])
+        assert 'console_key_sent_after' in watched, ('the host did not send Ctrl+Alt+F3', watched)
+        console = next((when for when, sample in samples if asked <= when < guard_ended and sample['tty'] == 'tty3'
+                        and sample['units'].get('guard') == 'deactivating' and sample['stopping']
+                        and sample['black'] and sample['black_window']), None)
+        assert console is not None, 'the probe did not see tty3 behind the black screen during the guard stop'
         summary.update(sigterm_ignored=seconds_after_key(ignored), game_killed_after_user_stop=round(killed_after, 2),
-                       console_switched=True)
+                       console_switched=True, tty3_seen=seconds_after_key(console))
     (evidence / 'guardian.json').write_text(json.dumps(summary, indent=2) + '\n')
     print(f'GUARDIAN_VM_PASSED ({kind}): guard stop {summary["guard_stop_began"]} s to {summary["guard_stop_ended"]} s '
           f'after the power key, then {", ".join(f"{unit} at {when} s" for unit, when in summary["began_to_stop"].items())}; '

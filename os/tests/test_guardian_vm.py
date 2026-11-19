@@ -67,6 +67,9 @@ class Journal:
         self.systemd(seconds, 'session-2.scope', 'Stopping session-2.scope - Session 2 of User ares...')
         self.systemd(seconds + 0.1, 'greetd.service', 'Stopping greetd.service - Greeter daemon...')
         self.systemd(seconds + 0.2, 'user@1001.service', 'Stopping user@1001.service - User Manager for UID 1001...')
+        for unit in ('polkit.service', 'getty@tty3.service'):
+            self.systemd(seconds + 0.3, unit, f'Stopping {unit}...', JOB_TYPE='stop')
+            self.systemd(seconds + 0.4, unit, f'Stopped {unit}.', JOB_TYPE='stop', JOB_RESULT='done')
         self.probe(seconds + 0.5, labwc=False, socket=False, stopping=False, black=False, black_window=False)
 
     def write(self, folder):
@@ -94,6 +97,7 @@ def save_boot():
                   status=143)))
     journal.teardown(6.5)
     journal.systemd(8.0, 'var-home.mount', 'Unmounting var-home.mount - /var/home...')
+    journal.systemd(9.0, 'shutdown.target', 'Reached target shutdown.target.', JOB_TYPE='start', JOB_RESULT='done')
     return journal
 
 
@@ -116,6 +120,7 @@ def hang_boot():
     journal.teardown(60.5)
     journal.systemd(75.9, GAME, 'aresos-ci-game.service: Main process exited, code=exited, status=137/n/a',
                     EXIT_CODE='exited', EXIT_STATUS='137')
+    journal.systemd(76.0, 'shutdown.target', 'Reached target shutdown.target.', JOB_TYPE='start', JOB_RESULT='done')
     return journal
 
 
@@ -123,8 +128,10 @@ WATCHED = dict(black=True, black_lit_shares=[0.4, 0.0], save_asked_after=0.4, bl
 
 
 class HostCheckTest(base.Base):
-    def check(self, kind, journal, watched=WATCHED, seconds=None, before_lit=0.6, cues=None):
+    def check(self, kind, journal, watched=None, seconds=None, before_lit=0.6, cues=None):
         journal.write(self.root)
+        if watched is None:
+            watched = dict(WATCHED, console_key_sent_after=1.2) if kind == 'hang' else WATCHED
         if cues is None:
             cues = {'save': b'ready\nsaving\nanswering\n', 'hang': b'ready\nsaving\n'}[kind]
         (self.root / 'guardian-camera.log').write_bytes(cues)
@@ -182,7 +189,8 @@ class HostCheckTest(base.Base):
         self.assertEqual((summary['guard_stop_began'], summary['save_asked'], summary['save_answered'],
                           summary['java_exited'], summary['guard_stop_ended']), (0.2, 0.3, 5.3, 6.0, 6.3))
         self.assertEqual(summary['began_to_stop'], {'session-2.scope': 6.5, 'greetd.service': 6.6,
-                                                    'user@1001.service': 6.7, 'var-home.mount': 8.0})
+                                                    'user@1001.service': 6.7, 'var-home.mount': 8.0,
+                                                    'getty@tty3.service': 6.8, 'polkit.service': 6.8})
         self.assertEqual((summary['java_status'], summary['labwc_gone'], summary['peer_dropped']), ('143', 7.0, True))
         self.assertEqual(json.loads((self.root / 'guardian.json').read_text())['record']['stop']['save'], 'saved')
         # A home's mount that is never unmounted while the journal is written (the root's) is no stop before the guard.
@@ -239,10 +247,37 @@ class HostCheckTest(base.Base):
     def test_boot_2_a_game_that_never_answers_and_ignores_sigterm(self):
         summary = self.check('hang', hang_boot())
         self.assertEqual((summary['guard_stop_seconds'], summary['sigterm_ignored'], summary['java_status'],
-                          summary['game_killed_after_user_stop'], summary['console_switched']),
-                         (60.1, 30.3, '137', 15.2, True))
+                          summary['game_killed_after_user_stop'], summary['console_switched'], summary['tty3_seen']),
+                         (60.1, 30.3, '137', 15.2, True, 5.0))
         self.assertEqual((summary['record']['stop']['save'], summary['record']['stop']['close']), ('timeout', 'overrun'))
         self.assertEqual(host.POWER_OFF_BOUND, 85 + 15 + 20)
+
+    def test_recovery_services_stop_between_the_guard_and_poweroff(self):
+        for kind, boot in (('save', save_boot), ('hang', hang_boot)):
+            journal = boot()
+            journal.rows = [r for r in journal.rows if r.get('UNIT') != 'shutdown.target']
+            self.assertIsNone(self.check(kind, journal)['shutdown_target'])
+            for unit in ('getty@tty3.service', 'polkit.service'):
+                with self.subTest(kind=kind, unit=unit, fault='early stop'):
+                    journal = boot()
+                    journal.systemd(0.44, unit, f'Stopping {unit}...', JOB_TYPE='stop')
+                    self.refused(kind, journal)
+                for fault in ('missing stop', 'late stop'):
+                    with self.subTest(kind=kind, unit=unit, fault=fault):
+                        journal = boot()
+                        journal.rows = [r for r in journal.rows if not (r.get('UNIT') == unit and r.get('JOB_RESULT'))]
+                        if fault == 'late stop':
+                            journal.systemd(80, unit, f'Stopped {unit}.', JOB_TYPE='stop', JOB_RESULT='done')
+                        self.refused(kind, journal)
+
+    def test_tty3_must_be_seen_during_the_black_stop(self):
+        for when, changes in ((-1, {}), (60.3, {}), (61, {}), (4, {'black_window': False}), (4, {'black': False}),
+                              (0.9, {'stopping': False}), (0.9, {'units': {'guard': 'active'}})):
+            with self.subTest(when=when, changes=changes):
+                journal = self.changed(hang_boot(), '"tty": "tty3"', '"tty": "tty1"')
+                journal.probe(when, tty='tty3', **changes)
+                self.refused('hang', journal)
+        self.refused('hang', hang_boot(), watched=WATCHED)
 
     def test_boot_2_is_refused_when_the_game_was_killed_early_or_the_record_says_saved(self):
         for name, old, new in (('recorded as saved', '"save": "timeout"', '"save": "saved"'),

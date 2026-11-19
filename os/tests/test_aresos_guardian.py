@@ -2510,7 +2510,8 @@ class GuardTest(SessionBase):
         self.assertEqual({section: dict(unit[section]) for section in unit.sections()}, {
             'Unit': {'Description': 'AresOS guardian: save the Minecraft home before the system stops',
                      'Documentation': 'file:/usr/libexec/aresos-desktop',
-                     'After': 'greetd.service user@1001.service user-runtime-dir@1001.service',
+                     'Wants': 'polkit.service',
+                     'After': 'greetd.service user@1001.service user-runtime-dir@1001.service polkit.service getty@tty3.service',
                      'RequiresMountsFor': '/var/home/ares'},
             'Service': {'Type': 'oneshot', 'RemainAfterExit': 'yes', 'User': 'ares',
                         'Environment': 'XDG_RUNTIME_DIR=/run/user/1001', 'ExecStart': '/usr/bin/true',

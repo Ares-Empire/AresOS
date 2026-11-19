@@ -5,7 +5,8 @@
 # systemd stops units in the reverse of their start order, so everything this
 # unit is ordered after is still there while the home is saved: greetd, the
 # user manager (the game's scope, Prism's wrapper), the runtime folder (the
-# supervisor's socket) and the home's mount. The drop-in
+# supervisor's socket) and the home's mount. Ctrl+Alt+F3 also needs polkit
+# to authorize logind's VT switch and a running getty on tty3. The drop-in
 # session-.scope.d/50-aresos-guardian.conf orders every login session (labwc,
 # the supervisor) the same way.
 #
@@ -15,7 +16,8 @@
 [Unit]
 Description=AresOS guardian: save the Minecraft home before the system stops
 Documentation=file:/usr/libexec/aresos-desktop
-After=greetd.service user@1001.service user-runtime-dir@1001.service
+Wants=polkit.service
+After=greetd.service user@1001.service user-runtime-dir@1001.service polkit.service getty@tty3.service
 RequiresMountsFor=/var/home/ares
 
 [Service]
