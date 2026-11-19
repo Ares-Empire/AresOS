@@ -1,6 +1,6 @@
 # 311 progress: labwc that holds a pointer lock on layer-shell surfaces
 
-**State: ready for review.** Briefs 311, 311b and 311c are built and checked locally. Guard 5 (the session starts in the
+**State: ready for review.** Briefs 311, 311b, 311c and 311d are built and checked locally. Guard 5 (the session starts in the
 check build's VM pass) is `NOT RUN (lead, after the cut)`. Nothing was dispatched, merged or changed on the laptop.
 
 ## Done
@@ -215,21 +215,117 @@ at `--target mod`, so it never runs these stages.
 2. **For `linux-aresos`'s R29 rule:** the SHA-256 and the two `.build-id` paths in the list below describe one build.
    They differ in each build, so the rule cannot pin them.
 
+## 311d: labwc's code is pinned with the varying sections removed
+
+The `labwc` stage now unpacks `/usr/bin/labwc` and `/usr/bin/labnag` from the RPM it just built, removes exactly
+`.note.gnu.build-id`, `.gnu_debuglink` and `.gnu_debugdata` from a copy with `objcopy --remove-section`, prints both
+SHA-256 values and stops with one `LABWC_REFUSED` line if either differs from `result.normalized_sha256` in
+`os/labwc/labwc.lock.json`. The RPM is handed over only after that check.
+
+| # | Item | Result | Evidence |
+|---|---|---|---|
+| 1 | Two `--no-cache` builds: different RPM hashes, same normalized hashes | PASS | Table below |
+| 2 | A wrong pin stops the build with the new line | PASS | Below, exit 1, no image tagged |
+| 3 | `test_labwc_stage` and `test_aresos_desktop` | PASS | 109 tests OK; 189 tests OK, 1 skipped |
+| 4 | `rebind.py pending` if a bound file changed | PASS | No bound file changed. Run in a scratch export of `464918c0`: still 10 pending files, 0 removed |
+| 5 | The final section gives `linux-aresos` what R29's rule needs | PASS | Last section of this file |
+
+### Item 1: two builds
+
+Run one after the other from the worktree at `464918c0`, each with a new tag:
+
+```
+podman --cgroup-manager=cgroupfs build --no-cache --target labwc --format=oci --tag localhost/aresos-labwc:311d-a --file os/Containerfile os
+podman --cgroup-manager=cgroupfs build --no-cache --target labwc --format=oci --tag localhost/aresos-labwc:311d-b --file os/Containerfile os
+```
+
+| | Build A | Build B |
+|---|---|---|
+| RPM SHA-256 | `62b8b0dd54c8b27bdc97972c7e389cd052b0160458c8cfe67987fb95883352db` | `da48fe3c26eef6bff6b161460179691e9ffd180146d3044630c221428181f12d` |
+| Normalized `/usr/bin/labwc` | `89cd0e901a5cc9f6a7df0d6337d38d817a753318cbdca8b8e620a7cfc0dd71c4` | `89cd0e901a5cc9f6a7df0d6337d38d817a753318cbdca8b8e620a7cfc0dd71c4` |
+| Normalized `/usr/bin/labnag` | `7c6896e938198e7922105e01b52118e2bfd75d16c431ea9c9a615127b7cc1f6d` | `7c6896e938198e7922105e01b52118e2bfd75d16c431ea9c9a615127b7cc1f6d` |
+
+Checked again outside the stage, on the RPMs copied out of both images: in both binaries the only sections whose contents
+differ are the three removed ones. The two `.build-id` paths differ too, as expected.
+
+### Item 2: the refusal
+
+From a scratch export of `464918c0` with the `/usr/bin/labwc` pin replaced by `aaaa...`, the same command with
+`--tag localhost/aresos-labwc:311d-wrongpin` printed the two `LABWC_NORMALIZED` lines and then, with exit 1:
+
+```
+LABWC_REFUSED the normalized SHA-256 of /usr/bin/labwc is 89cd0e901a5cc9f6a7df0d6337d38d817a753318cbdca8b8e620a7cfc0dd71c4, the lock says aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+```
+
+### Tests
+
+- `python3 -m unittest discover -s os/tests -p 'test_labwc_stage.py'`: 109 tests, OK. The hashing tests use the real
+  `objcopy` on small ELF files the test module makes.
+- The same module in an `ubuntu:24.04` container, the hosted runners' system (objcopy 2.42, Python 3.12): 109 tests, OK.
+- `python3 -m unittest discover -s os/tests -p 'test_aresos_desktop.py'`: 189 tests, OK, 1 skipped.
+- 18 mutants of the new code, each caught: another section list (three kinds), the hash of the wrong file, `objcopy` on
+  the original, the check missing or after the hand-over, one binary not compared, no printed hashes, a missing binary
+  or a failed unpack ignored (three kinds), the pins' shape unchecked (two kinds), `resolve` silent or changing the pins,
+  and a refusal that rewrites the lock.
+
+### Renewing the pins
+
+`check_build=resolve` prints this line in `evidence/resolve/labwc.txt`, and its candidate lock keeps the current pins:
+
+```
+LABWC_PINS_KEPT a candidate keeps the lock's result.normalized_sha256 and no build ever writes it. After a change to the patch or the locked build environment, run podman build --no-cache --target labwc twice: each run prints LABWC_NORMALIZED lines and stops with LABWC_REFUSED. If both runs print the same hashes, review the change and write them into result.normalized_sha256 by hand.
+```
+
+### PLAN-GAP
+
+1. **The hash does not cover bytes outside every section.** `objcopy` writes the headers and the sections, so padding
+   between sections and anything appended to the file never reach the hash. Measured on the real `labwc`, one changed
+   byte at a time:
+
+   | Changed | Normalized hash |
+   |---|---|
+   | `.text`, `.rodata`, `.data`, `.note.package`, the entry point, a segment's permissions | differs |
+   | Any of the three removed sections | same, as intended |
+   | Padding inside the executable segment (three places), padding after it, ELF identification padding | **same** |
+   | Bytes appended to the file | **same** |
+
+   Such bytes cannot run unless a pinned byte points at them, so the pins still prove the code that runs. They do not
+   prove the whole file, which is a little less than the brief's goal says. In builds A and B these bytes are identical
+   and all zero (`labwc` 3202, `labnag` 3734). The code follows the brief and says this in its docstring. If the lead
+   wants the file covered, the small addition is to refuse any non-zero byte outside the sections.
+2. **The pins depend on what `objcopy` writes.** The stage uses the locked `binutils-2.46.1-1.fc44`. Ubuntu's objcopy
+   2.42 gave the same two hashes for build A, but a future version need not, so a change to the locked binutils can
+   require new pins.
+
 ## Final NEVRA and file list (for `linux-aresos`'s R29 rule)
 
-`labwc-0.9.6-1.fc44.aresos1.x86_64`, built here with SHA-256
-`e5e33686e6e30e9c74132ce145ffe3aaa0948a612c9047f8b2067be04f25364d`. The SHA-256 and the two `.build-id` names change with
-every build (see 311c); the other paths do not.
+`labwc-0.9.6-1.fc44.aresos1.x86_64`. The RPM's SHA-256 and the two `.build-id` names change with every build (see 311c
+and 311d), so the rule cannot pin them; the other paths do not change.
+
+What identifies the code is the SHA-256 of each binary after removing exactly these three sections, and no others:
+`.note.gnu.build-id`, `.gnu_debuglink` and `.gnu_debugdata`.
+
+```
+objcopy --remove-section .note.gnu.build-id --remove-section .gnu_debuglink --remove-section .gnu_debugdata <copy of the binary>
+```
+
+| Binary | Normalized SHA-256 |
+|---|---|
+| `/usr/bin/labwc` | `89cd0e901a5cc9f6a7df0d6337d38d817a753318cbdca8b8e620a7cfc0dd71c4` |
+| `/usr/bin/labnag` | `7c6896e938198e7922105e01b52118e2bfd75d16c431ea9c9a615127b7cc1f6d` |
+
+The lock holds the same values under `result.normalized_sha256`. The list below is from build A of 311d
+(RPM SHA-256 `62b8b0dd54c8b27bdc97972c7e389cd052b0160458c8cfe67987fb95883352db`):
 
 ```
 /usr/bin/lab-sensible-terminal
 /usr/bin/labnag
 /usr/bin/labwc
 /usr/lib/.build-id
-/usr/lib/.build-id/0d
-/usr/lib/.build-id/0d/65667b21a13425316714134871edf36aca3728
-/usr/lib/.build-id/46
-/usr/lib/.build-id/46/b7b1406d74be14d9197545cc6d317b7db65d53
+/usr/lib/.build-id/6c
+/usr/lib/.build-id/6c/06931c13a8ea254717f2eb0d3d0abd8a89c1c4
+/usr/lib/.build-id/78
+/usr/lib/.build-id/78/3eca393f4b394777e06a7e629b40e556bbe3fc
 /usr/share/doc/labwc
 /usr/share/doc/labwc/NEWS.md
 /usr/share/doc/labwc/README
