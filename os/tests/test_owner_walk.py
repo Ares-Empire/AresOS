@@ -7,6 +7,7 @@ import contextlib
 import base64
 import copy
 import hashlib
+import io
 import json
 import os
 import pathlib
@@ -14,7 +15,9 @@ import re
 import shutil
 import shlex
 import string
+import subprocess
 import sys
+import tarfile
 import tempfile
 import unittest
 from types import SimpleNamespace
@@ -31,6 +34,7 @@ from owner_console_shim import execute_idle, execute_hidden, execute_screen, Ins
 from test_owner_hidden import vcsa
 
 FIXTURES = ROOT / 'os/tests/fixtures/owner-tools'
+R27_RECORD = ROOT / 'os/manifest/releases/27.json'
 
 
 def retained(name):
@@ -59,7 +63,7 @@ def laptop_rows(pair, reference=None):
     release 13 pair, and the builder of rpm-ostree's and bootc's status for a list of them."""
     old = next(d for d in pair['rpm']['deployments'] if d['booted'])
     stock = next(d for d in pair['rpm']['deployments'] if d['pinned'])
-    reference = reference or json.loads((ROOT / 'os/manifest/release.json').read_text())['reference']
+    reference = reference or json.loads(R27_RECORD.read_text())['reference']
     new = copy.deepcopy(old)
     new.update(checksum='c2' * 32, serial=0, **{'container-image-reference': 'ostree-unverified-registry:' + reference,
                                                'container-image-reference-digest': reference.split('@')[1]})
@@ -258,11 +262,11 @@ class ToolsLocal:
              'tl-cut-armed', 'tl-cut-frozen', 'tl-install-records', 'tl-install-receipt', 'tl-export-access',
              'tools-next-install-owner-result', 'export-version-2-stick-owner-result')
 
-    def __init__(self, typed, media, ares_password):
+    def __init__(self, typed, media, ares_password, source=ROOT):
         self.typed, self.media, self.ares_password = typed, media, ares_password
-        self.commands = json.loads((ROOT / 'os/owner-tools/commands.json').read_text())
-        self.head = hashlib.sha256((ROOT / 'os/owner-tools/payload/SHA256SUMS').read_bytes()).hexdigest()
-        self.version = json.loads((ROOT / 'os/owner-tools/payload/history.json').read_text())['tools_version']
+        self.commands = json.loads((source / 'os/owner-tools/commands.json').read_text())
+        self.head = hashlib.sha256((source / 'os/owner-tools/payload/SHA256SUMS').read_bytes()).hexdigest()
+        self.version = json.loads((source / 'os/owner-tools/payload/history.json').read_text())['tools_version']
         self.callers, self.windows, self.escaped, self.tampered = {}, {}, False, False
         self.signalled = []
         self.prepared, self.lost, self.hidden, self.shots = {}, {}, set(), []
@@ -435,12 +439,12 @@ class Release28Local(ToolsLocal):
     def __init__(self, typed, media, ares_password, work):
         super().__init__(typed, media, ares_password)
         self.work, self.versions, self.installs = work, {vm.TOOLS_V2: 2}, []
+        self.ran = {}
 
     def known(self, fingerprint, version):
         self.versions[fingerprint] = version
 
     def lines(self, stage):
-        import subprocess
         params = self.callers[stage]
         commands = json.loads(subprocess.check_output(['git', '-C', str(self.work / 'stand-in-28' / 'stand-in.git'), 'show',
                                                         params['commit'] + ':os/owner-tools/commands.json']))
@@ -457,6 +461,7 @@ class Release28Local(ToolsLocal):
 
     def run(self, stage):
         params, lines, machine = self.callers[stage], self.lines(stage), self.machine
+        self.ran[stage] = lines
         done = dict(uid=1001, loginuid='1001', stdin_terminal=False, terminal=False, tty_errno=6, wayland=True,
                     runtime='/run/user/1001', line_sha256={step: hashlib.sha256(line.encode()).hexdigest() for step, line in lines.items()})
         if 'folder' in params['steps']:
@@ -791,6 +796,20 @@ def ast_literal(text):
     return ast.literal_eval(text)
 
 
+def historical_checkout(folder, commit):
+    """Give the historical drivers the tool sources that went with their R27 rehearsal."""
+    sources = subprocess.check_output(['git', '-C', str(ROOT), 'archive', commit, 'os/owner-tools', 'os/release'])
+    with tarfile.open(fileobj=io.BytesIO(sources)) as archive:
+        archive.extractall(folder, filter='data')
+    for name in ('ci', 'tests', 'manifest/base.json', 'manifest/releases'):
+        link = folder / 'os' / name
+        link.parent.mkdir(exist_ok=True)
+        link.symlink_to(ROOT / 'os' / name)
+    # The driver expects the checkout target here. Use the fixed R27 record.
+    (folder / 'os/manifest/release.json').write_bytes(R27_RECORD.read_bytes())
+    return json.loads((folder / 'os/owner-tools/commands.json').read_text())
+
+
 def walk(ps2=False, route='qualification', control=False, faults=()):
     assert route in ('qualification', 'update', 'reorder-probe', 'ways-back', 'tools-local', 'release-28')
     laptop = route in ('update', 'reorder-probe', 'ways-back', 'tools-local', 'release-28')
@@ -821,16 +840,15 @@ def walk(ps2=False, route='qualification', control=False, faults=()):
     hidden_shapes, wait_shapes = [], []
     pinned, pair, staged, queued, rolled = (retained(n) for n in ('after-pin', 'aresos', 'after-switch-staged', 'after-rollback-queued', 'rollback'))
     old_reference = json.loads((ROOT / 'os/manifest/releases/13.json').read_text())['reference']
-    new_reference = json.loads((ROOT / 'os/manifest/release.json').read_text())['reference']
+    new_reference = json.loads(R27_RECORD.read_text())['reference']
     if route == 'release-28':
-        # Package 42 reads release 27 from fixed sources: this checkout's release.json may name release 28.
         record_28 = release28_record()
-        new_reference = json.loads((ROOT / 'os/manifest/releases/27.json').read_text())['reference']
     updates = update_states(pair, new_reference)
     if route == 'release-28':
         updates.update(release28_states(pair, new_reference, json.loads(record_28)['reference']))
         r28_session = Release28Session(control, faults)
     stock = copy.deepcopy(pinned['rpm']['deployments'][0])
+    historical = None
     first = common.stock()
     first['bls'] = copy.deepcopy(pinned['bls'])
     disk = LaptopDisk(pair) if route in ('reorder-probe', 'ways-back') else None
@@ -1181,7 +1199,7 @@ def walk(ps2=False, route='qualification', control=False, faults=()):
         def replace(self, stage, source=None):
             assert guest_media[0] is None
             if stage == 'tools-3':
-                # The rehearsal's second copy: this checkout's bundle (version 3) over version 2.
+                # The historical rehearsal's second copy: version 3 over version 2.
                 assert route == 'ways-back' and source is None and self.fingerprint == vm.TOOLS_V2
             elif route == 'tools-local' and stage in ('tools-next', 'export-version-2'):
                 # Package 22d: the harness-built next version over version 2, then version 2 again.
@@ -1192,7 +1210,10 @@ def walk(ps2=False, route='qualification', control=False, faults=()):
             else:
                 # Package 22c's and 22d's routes copy version 2 from history; the update rehearsal copied its checkout's payload.
                 assert self.fingerprint == vm.LAPTOP_TOOLS and (source is not None) == (route in ('reorder-probe', 'ways-back', 'tools-local', 'release-28'))
-            self.fingerprint = vm.TOOLS_V2 if source is not None else common.bundle.check(ROOT / 'os/owner-tools/payload')
+            if source is None:
+                self.fingerprint = vm.bundle_module('bundle').check(pathlib.Path('os/owner-tools/payload'))
+            else:
+                self.fingerprint = vm.bundle_module('owner').checked_bundle(source)
             checks.append(stage + '-windows-copy')
         def attach(self, guest, stage):
             assert guest.owner_signed_in and guest.owner_physical_signed_in
@@ -1210,7 +1231,7 @@ def walk(ps2=False, route='qualification', control=False, faults=()):
     guest_media = [None]
     cut = [None]
     media = Media()
-    local = ToolsLocal(typed, media, 'abcdefghijklmnopqrstuvwx')
+    local = None
 
     def snapshot(guest, stage):
         if route == 'ways-back' and guest.stage not in UPDATE_STAGES[:4]:
@@ -1229,7 +1250,6 @@ def walk(ps2=False, route='qualification', control=False, faults=()):
     with tempfile.TemporaryDirectory(dir=ROOT / 'os/tests') as temporary, contextlib.ExitStack() as stack:
         if route == 'release-28': stack.callback(r28_session.close)
         if ps2:
-            import subprocess
             from test_owner_ps2 import kernel_result,journal
             original_run=subprocess.run
             def run(argv,*args,**kwargs):
@@ -1267,17 +1287,23 @@ def walk(ps2=False, route='qualification', control=False, faults=()):
         if disk is not None:
             stack.enter_context(patch.object(vm.rp, 'start_at_menu', side_effect=lambda p, h, s: Guest(s, menu=True)))
             stack.enter_context(patch.object(vm.rp, 'read_screen', side_effect=lambda guest, name: disk.screen()))
+        if route in ('update', 'reorder-probe', 'ways-back', 'tools-local'):
+            import release28_walk, tools_local
+            head = {'ways-back': tools_local.V3_COMMIT, 'tools-local': release28_walk.V4_COMMIT}.get(route, vm.TOOLS_V2_COMMIT)
+            historical = pathlib.Path(temporary) / 'historical'
+            historical_commands = historical_checkout(historical, head)
+            version_2 = vm.laptop_payload(pathlib.Path(temporary) / 'tools-version-2', vm.TOOLS_V2_COMMIT, vm.TOOLS_V2)
+            stack.enter_context(contextlib.chdir(historical))
+            stack.enter_context(patch.object(vm, 'COMMANDS', historical_commands))
         if route == 'tools-local':
-            import subprocess, tools_local
-            # The walk builds its stand-in origin from this checkout's HEAD, as the VM does from its commit.
-            head = subprocess.check_output(['git', '-C', str(ROOT), 'rev-parse', 'HEAD'], text=True).strip()
+            local = ToolsLocal(typed, media, 'abcdefghijklmnopqrstuvwx', historical)
             stack.enter_context(patch.dict(os.environ, GITHUB_SHA=head))
             stack.enter_context(patch.object(vm.td, 'WORK', pathlib.Path(temporary)))
             tools_local.rehearsal(vm, audit, media, 'yz-/!ü0123456789abcdef', 'SYNTHETIC-HASH', 'abcdefghijklmnopqrstuvwx',
-                                  pathlib.Path(temporary) / 'tools-version-2')
+                                  version_2)
             result = json.loads((pathlib.Path(temporary) / 'tools-local-rehearsal-result.json').read_text())
         elif route == 'release-28':
-            import subprocess, release28_walk
+            import release28_walk
             head = subprocess.check_output(['git', '-C', str(ROOT), 'rev-parse', 'HEAD'], text=True).strip()
             stack.enter_context(patch.dict(os.environ, GITHUB_SHA=head))
             stack.enter_context(patch.object(vm.td, 'WORK', pathlib.Path(temporary)))
@@ -1292,10 +1318,10 @@ def walk(ps2=False, route='qualification', control=False, faults=()):
         elif route == 'ways-back':
             oracle[0] = Oracle(stack, disk, old_reference, new_reference)
             vm.ways_back_rehearsal(audit, media, 'yz-/!ü0123456789abcdef', 'SYNTHETIC-HASH', 'abcdefghijklmnopqrstuvwx',
-                                   pathlib.Path(temporary) / 'tools-version-2')
+                                   version_2)
             result = json.loads((pathlib.Path(temporary) / 'ways-back-rehearsal-result.json').read_text())
         elif route == 'reorder-probe':
-            vm.reorder_probe(audit, media, 'yz-/!ü0123456789abcdef', 'SYNTHETIC-HASH', pathlib.Path(temporary) / 'tools-version-2')
+            vm.reorder_probe(audit, media, 'yz-/!ü0123456789abcdef', 'SYNTHETIC-HASH', version_2)
             result = json.loads((pathlib.Path(temporary) / 'reorder-probe-result.json').read_text())
         elif route == 'update':
             vm.update_rehearsal(audit, media, 'yz-/!ü0123456789abcdef', 'SYNTHETIC-HASH', 'abcdefghijklmnopqrstuvwx')
@@ -1362,6 +1388,7 @@ class Release28InstallerTest(unittest.TestCase):
         model = object.__new__(Release28Local)
         model.versions = {old: old_version, new: new_version}
         model.installs, model.ares_password = [], 'synthetic-password'
+        model.ran = {}
         model.typed = [(model.ares_password+'\n', 'de')]
         model.windows = dict(retry=dict(typed=0, helper='helper'))
         model.callers = dict(retry=dict(steps=('folder', 'routine', 'no-ticket'), commit='fixture'))
@@ -1433,7 +1460,7 @@ class OwnerWalkTest(unittest.TestCase):
             self.assertTrue(any(name.startswith(stage) and name.endswith('-xhci-health') for name in names),stage)
 
     def test_update_route_walks_the_laptop_tools_update_password_and_previous(self):
-        commands = json.loads((ROOT / 'os/owner-tools/commands.json').read_text())
+        commands = json.loads(vm.git_blob(vm.TOOLS_V2_COMMIT, 'os/owner-tools/commands.json'))
         for ps2 in (False, True):
             with self.subTest(ps2=ps2):
                 result = walk(ps2=ps2, route='update')

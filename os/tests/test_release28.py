@@ -119,8 +119,8 @@ class Release27SourceTest(unittest.TestCase):
                 self.assertEqual(git('rev-parse', rd.PREVIOUS_SOURCE_28 + ':' + row['path']), row['tree'])
         subprocess.run(['git', '-C', str(ROOT), 'merge-base', '--is-ancestor', rd.PREVIOUS_SOURCE_28, 'HEAD'], check=True)
         self.assertEqual(rd.RELEASES['28']['previous_release'], '27')
-        self.assertEqual(json.loads((ROOT / rd.PREVIOUS_28).read_text())['reference'],
-                         json.loads((ROOT / 'os/manifest/release.json').read_text())['reference'])
+        historical = json.loads(git('show', '41b06513:os/owner-tools/payload/release.json'))
+        self.assertEqual(release['reference'], historical['reference'])
 
 
 class PackageDiff28Test(unittest.TestCase):

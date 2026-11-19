@@ -29,6 +29,7 @@ import owner_vm
 import registry_auth
 import rehearsal_guard as guard
 import reorder_probe as rp
+import tools_local
 import test_owner_walk as walk
 import test_release27 as base
 from test_owner_staged_release import condition
@@ -540,7 +541,7 @@ class WalkOrderTest(unittest.TestCase):
         self.assertEqual(sorted(order[0] for order in rp.ORDERS), ['R13', 'R13', 'R27', 'R27', 'S', 'S'])
 
     def test_the_local_walk_types_the_route_and_only_plain_commands_after_the_confirmation(self):
-        commands = json.loads((ROOT / 'os/owner-tools/commands.json').read_text())
+        commands = json.loads(owner_vm.git_blob(owner_vm.TOOLS_V2_COMMIT, 'os/owner-tools/commands.json'))
         for ps2 in (False, True):
             with self.subTest(ps2=ps2):
                 result = walk.walk(ps2=ps2, route='reorder-probe')
@@ -549,7 +550,7 @@ class WalkOrderTest(unittest.TestCase):
                 self.assertEqual(result['disk'].sets, [2, 1, 2, 2, 1, 2])
                 typed = [text.rstrip('\n') for text, profile in result['visible_blocks']]
                 # Package 27's route: the laptop's 15f bootstrap, then version 2's, each once.
-                version_2 = dict(commands, install=owner_vm.bundle_module('bootstrap').command(owner_vm.TOOLS_V2))['install']
+                version_2 = commands['install']
                 self.assertEqual(typed.count(owner_vm.laptop_commands()['install']), 1)
                 self.assertEqual(typed.count(version_2), 1)
                 confirmed = max(index for index, text in enumerate(typed) if text == commands['title'])
@@ -1040,13 +1041,13 @@ class MenuTest(unittest.TestCase):
 
 class ToolsFromHistoryTest(unittest.TestCase):
     def test_version_2_is_the_laptops_bundle_at_the_named_commit(self):
-        """The probe installs in step 8 what the laptop runs today, whatever this checkout's payload is."""
+        """The probe installs the exact tools the laptop used to update to R27."""
         with tempfile.TemporaryDirectory() as folder, contextlib.chdir(ROOT):
             bundle = owner_vm.laptop_payload(pathlib.Path(folder) / 'v2', owner_vm.TOOLS_V2_COMMIT, owner_vm.TOOLS_V2)
             self.assertEqual(owner_vm.bundle_module('owner').checked_bundle(bundle), owner_vm.TOOLS_V2)
             self.assertEqual(json.loads((bundle / 'history.json').read_text())['tools_version'], 2)
             release = json.loads((bundle / 'release.json').read_text())['reference']
-            self.assertEqual(release, json.loads((ROOT / 'os/manifest/release.json').read_text())['reference'])
+            self.assertEqual(release, json.loads(walk.R27_RECORD.read_text())['reference'])
             with self.assertRaisesRegex(AssertionError, 'laptop tools fingerprint'):
                 owner_vm.laptop_payload(pathlib.Path(folder) / 'wrong', owner_vm.TOOLS_V2_COMMIT, owner_vm.LAPTOP_TOOLS)
         self.assertNotEqual(owner_vm.TOOLS_V2, owner_vm.LAPTOP_TOOLS)
@@ -1066,7 +1067,7 @@ class RehearsalWalkTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.result = walk.walk(route='ways-back')
-        cls.commands = json.loads((ROOT / 'os/owner-tools/commands.json').read_text())
+        cls.commands = json.loads(owner_vm.git_blob(tools_local.V3_COMMIT, 'os/owner-tools/commands.json'))
         cls.rows = cls.result['result']['transcript']
         cls.words = {command: name for name, command in cls.commands.items()}
 
@@ -1093,7 +1094,7 @@ class RehearsalWalkTest(unittest.TestCase):
         self.assertEqual(typed.count('sudo -v'), 2)
         self.assertLess(typed.index('sudo passwd ares'), typed.index(commands['install']))
         self.assertEqual(result['markers'][-2:], ['final-unattended-windows', 'final-detached-windows'])
-        self.assertEqual(result['result']['tools_version_3'], walk.common.bundle.check(ROOT / 'os/owner-tools/payload'))
+        self.assertEqual(result['result']['tools_version_3'], tools_local.TOOLS_V3)
 
     def test_forward_where_the_walk_returns_and_update_only_where_it_names_forward(self):
         rows, commands = self.rows, self.commands
@@ -1190,7 +1191,7 @@ class RehearsalWalkTest(unittest.TestCase):
         self.assertEqual(resolved, ['private-owner-dummy-login-toolset', 'private-owner-login-toolset',
                                     'layout-intl-proof-toolset', 'layout-de-proof-toolset'])
         # The 15f tools read the token from tools/; version 2 never reads; version 3 reads both proofs from its own folder.
-        version_3 = '/var/lib/ares/tools-' + walk.common.bundle.check(ROOT / 'os/owner-tools/payload') + '/owner.py'
+        version_3 = '/var/lib/ares/tools-' + tools_local.TOOLS_V3 + '/owner.py'
         python = ['/usr/bin/python3', '-I', '-B']
         self.assertEqual(result['tool_readers'], [dict(boot='corrected-stock', argv=[*python, '/var/lib/ares/tools/owner.py', 'login']),
                                                   dict(boot='release-27', argv=[*python, version_3, 'layout', 'proof']),

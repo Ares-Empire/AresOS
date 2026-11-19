@@ -53,11 +53,11 @@
       "path": "briefs/14zze-checkout-bytes.md"
     },
     {
-      "sha256": "f4c6add3de433c086a572c2993bf40d30ce76ee489dd7384d46ba71e63ea6324",
+      "sha256": "ea92841f2bd786ce5cbcc25a7d69ae163f6d00f8e2558c04fb5467f66a6c6574",
       "path": "docs/EMERGENCY.md"
     },
     {
-      "sha256": "e9e19181a5ba8185f374e51c43c82113671476649334a832bb00e675c21799cb",
+      "sha256": "789b3cac9593f2f1274b3c5d5246451058908926dc0f134a05d60ba298a2b3c0",
       "path": "docs/INSTALL.md"
     },
     {
@@ -537,7 +537,7 @@
       "path": "os/manifest/installer-isos.json"
     },
     {
-      "sha256": "975da14646648fb39f219f52f232d4b674180a2a892bf3a91069035bdf1ea45e",
+      "sha256": "1738474f8541468854804c02cb02a7ffcbeb5a3b27914ae7b6ceefcd7816b15a",
       "path": "os/manifest/release.json"
     },
     {
@@ -561,11 +561,11 @@
       "path": "os/owner-tools/bundle.py"
     },
     {
-      "sha256": "27296db0f9c563b6ab6877f7353412150bc23b96a6654fdd2e8ba12da3b62113",
+      "sha256": "94c417d9e2c66b918d1455ac052f97b65cbd4ea64720f0e093a1d8e46589087e",
       "path": "os/owner-tools/commands.json"
     },
     {
-      "sha256": "5f74f16761ae3b3e86b2ba6968a901a01ab375db5543ac21249713a9a63ab292",
+      "sha256": "7ea757c9e9d03656f54868db5e12c394da759b0c44db464ed15a592e55ddba74",
       "path": "os/owner-tools/history.json"
     },
     {
@@ -577,11 +577,11 @@
       "path": "os/owner-tools/owner.py"
     },
     {
-      "sha256": "cda209c8d509f57aee09fb385d4dbd4ad8253bd47534972c4f89d2c35b76ce66",
+      "sha256": "adf595a62f38137fd768bc26aa439967ac08e7601e1e423c010c5eeefb8680f3",
       "path": "os/owner-tools/payload/SHA256.json"
     },
     {
-      "sha256": "dcbc375faa4b269bacaf316c5ddc24503b9773b2538bcd017065ce8e312597be",
+      "sha256": "df89ac336e13db84934505551ba28163cbd60fa5b3b9fb0ec97b9585945896c6",
       "path": "os/owner-tools/payload/SHA256SUMS"
     },
     {
@@ -589,7 +589,7 @@
       "path": "os/owner-tools/payload/at"
     },
     {
-      "sha256": "5f74f16761ae3b3e86b2ba6968a901a01ab375db5543ac21249713a9a63ab292",
+      "sha256": "7ea757c9e9d03656f54868db5e12c394da759b0c44db464ed15a592e55ddba74",
       "path": "os/owner-tools/payload/history.json"
     },
     {
@@ -601,7 +601,7 @@
       "path": "os/owner-tools/payload/owner.py"
     },
     {
-      "sha256": "975da14646648fb39f219f52f232d4b674180a2a892bf3a91069035bdf1ea45e",
+      "sha256": "1738474f8541468854804c02cb02a7ffcbeb5a3b27914ae7b6ceefcd7816b15a",
       "path": "os/owner-tools/payload/release.json"
     },
     {
@@ -925,7 +925,7 @@
       "path": "os/tests/test_owner_entry.py"
     },
     {
-      "sha256": "93c66f3c6f18716e349da52323a68114c3431ccb21fc3447dea3adf491b98c08",
+      "sha256": "897c16cff99dc466d501b520c2ca1c2331c3b82073720040c82c80af411b7fcb",
       "path": "os/tests/test_owner_equality.py"
     },
     {
@@ -969,7 +969,7 @@
       "path": "os/tests/test_owner_media.py"
     },
     {
-      "sha256": "5e19d417b16166d4d338fc7ceaa0038e9b71443a1f513c9e74cf3440a36ca572",
+      "sha256": "6a8a77d7d3d17a5a571f10b4287253ea54678d8f8c8c68f42b7102ea76186f0a",
       "path": "os/tests/test_owner_path.py"
     },
     {
@@ -1029,11 +1029,11 @@
       "path": "os/tests/test_owner_transport.py"
     },
     {
-      "sha256": "bd9cfa58cde7fbee31a032c0522e9e50b72c16d33282942d34938e4209007289",
+      "sha256": "3de66e5739ad7f629f01fa02cdcd74d15f153a0576523beff5bda568ec2964aa",
       "path": "os/tests/test_owner_update.py"
     },
     {
-      "sha256": "8acf720d8f257fa68e7b7d58c88b786f69e48580299de39d862d9caed31bf122",
+      "sha256": "8cbfc685e3fc373672d26f1fcf5aa8d0502acea8c5180ae2e4524b5a473f6ea8",
       "path": "os/tests/test_owner_walk.py"
     },
     {
@@ -1069,7 +1069,7 @@
       "path": "os/tests/test_serial_staging.py"
     },
     {
-      "sha256": "8813a3dda9dad0dee09354a5315d7519c28910d41fee8c36c764ac28794c9f2e",
+      "sha256": "0c6df3559afe851341cd9ab685f98d7539239eb895533b6e3b979ea375a29342",
       "path": "os/tests/test_tools_local_wiring.py"
     },
     {
@@ -1077,7 +1077,7 @@
       "path": "os/tests/test_ways_back.py"
     },
     {
-      "sha256": "f3fdd35d9d3aa953599df6f92bb8dd271187eb4a7c334a79fcf44864bbc97df2",
+      "sha256": "7ff764417bd09eb5cd50609c9eb97e3231eb1ad9a432915e2b558ba5ffdc13f7",
       "path": "os/tests/test_ways_back_probe.py"
     },
     {

@@ -348,13 +348,12 @@ def driver(host_class=Host):
 
 
 @contextlib.contextmanager
-def checkout_tools(state, host_class=Host):
-    """This checkout's owner tools over Host, in the model's environment, with no ledger: the
-    payload's own release and history (tools version 3, the bundle rehearsal run 43597505549
-    installed; os/owner-tools is unchanged since its head f84041bf)."""
-    known = owner.lineage(base.PAYLOAD)
+def capture_tools(state, host_class=Host):
+    """Replay run 43597505549 with its version 3 release target and history."""
+    bundle = '58738e5e:os/owner-tools/payload/'
+    known = json.loads(git(ROOT, 'show', bundle + 'history.json'))
     with base.route(state, known['releases'], host_class=host_class) as (tools, host, store), environment(tools, host):
-        tools.release = json.loads((base.PAYLOAD / 'release.json').read_text())
+        tools.release = json.loads(git(ROOT, 'show', bundle + 'release.json'))
         tools._lineage = known
         tools.keyboard = host.keyboard
         yield tools, host, store
@@ -453,7 +452,7 @@ class CaptureTest(unittest.TestCase):
 
     def rehearsal(self, host_class=Host, folder=WAYS_BACK):
         """B10, stage 2: the walk of rehearsal run 43597505549 (os/ci/owner_vm.py, ways_back_rehearsal)
-        through this checkout's owner tools over Host, in the run's order.
+        through this checkout's owner code over Host with the run's release target and history.
 
         Fixture inputs: the first capture's rows and entry bytes, what the owner typed (the
         transcript's commands, in order, with the start each was typed in) and the keys pressed
@@ -472,7 +471,7 @@ class CaptureTest(unittest.TestCase):
         menus = {m['stage']: m for m in result['menus']}
         reached = {s['stage']: s['reached'] for s in result['stages']}
         visited, swaps = [], []
-        with checkout_tools(status(rows), host_class) as (tools, h, store):
+        with capture_tools(status(rows), host_class) as (tools, h, store):
             h.entry_files = {e['file']: e['content'] for e in first['bls']}
             words = dict(check=tools.check, title=tools.title, forward=tools.forward, previous=tools.previous,
                          rollback=tools.recover, update=tools.update, reboot=tools.reboot, **{'keep-stock': lambda: tools.recover(True)})

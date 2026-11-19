@@ -3,7 +3,7 @@
 Importing test_owner_update is library use only: nothing here starts the real
 entry, a namespace, sudo or a host tool. The tools of versions 2 and 3 are read
 from their commits with git show (like test_ways_back_compatibility): exactly
-the code that is, or could be, installed when version 4 arrives.
+the code that is, or could be, installed when the new bundle arrives.
 """
 import contextlib
 import functools
@@ -187,7 +187,7 @@ class RouteTest(unittest.TestCase):
             self.assertIsNotNone(common.module('media').find(host, owner.require), 'the fixture stick is attached')
             host.trace.clear()
             lines = run()
-            self.assertEqual(lines[:2], ['Tools updated from version 1 to 4', 'manifest SHA256 ' + fingerprint])
+            self.assertEqual(lines[:2], ['Tools updated from version 1 to 5', 'manifest SHA256 ' + fingerprint])
             harness.updated(home, fingerprint, previous)
             self.assertFalse(any('LABEL' in ' '.join(row['command']) for row in host.trace))
             self.assertFalse(any(row.get('mutation') for row in host.trace))
@@ -217,7 +217,7 @@ class RouteTest(unittest.TestCase):
             with patch.object(host, 'tree', tree), self.assertRaisesRegex(owner.Stop, '^Tools USB label not found$'):
                 run()
             self.assertEqual(before, harness.snapshot(home))
-            self.assertEqual(run()[0], 'Tools updated from version 1 to 4')
+            self.assertEqual(run()[0], 'Tools updated from version 1 to 5')
             harness.updated(home, fingerprint, previous)
             value, written = journal(home), receipt(home)
             self.assertEqual(set(value), JOURNAL_FIELDS | {'source', 'receipt'})
@@ -304,7 +304,7 @@ class ResumeTest(unittest.TestCase):
                             self.assertEqual(before, harness.snapshot(home))
                         resumed = wrote = 'stick' if wrote == 'folder' else wrote
                     self.assertEqual(run(resumed)[0], 'Tools already installed; nothing changed' if done
-                                     else 'Tools updated from version 1 to 4')
+                                     else 'Tools updated from version 1 to 5')
                     harness.updated(home, fingerprint, previous)
                     written = receipt(home)
                     self.assertEqual((journal(home)['source'], written['source'], written['finished_from']), (began, began, wrote))
@@ -347,7 +347,7 @@ class ResumeTest(unittest.TestCase):
 
 
 class OlderToolsTest(unittest.TestCase):
-    """Until publication the installed tools stay current: after a cut their recovery code reads version 4's journal."""
+    """Until publication the installed tools stay current: after a cut their recovery code reads version 5's journal."""
 
     def test_the_exact_older_bundles_and_their_recovery_check(self):
         for version, (commit, fingerprint) in OLD.items():
@@ -358,9 +358,9 @@ class OlderToolsTest(unittest.TestCase):
                     ['git', 'show', commit + ':os/owner-tools/owner.py'], cwd=ROOT))
                 self.assertEqual(old_tools(version).settle_tools.__code__.co_filename, commit + ':owner.py')
                 self.assertNotIn('source', blob(version, 'owner.py').decode().split('def settle_tools():')[1].split('\ndef ')[0])
-        self.assertEqual(owner.lineage(base.PAYLOAD)['tools_version'], 4)
+        self.assertEqual(owner.lineage(base.PAYLOAD)['tools_version'], 5)
 
-    def test_version_4_installs_over_versions_2_and_3_from_both_blocks_in_both_shapes(self):
+    def test_version_5_installs_over_versions_2_and_3_from_both_blocks_in_both_shapes(self):
         for version in OLD:
             for versioned in (True, False):
                 for source in owner.SOURCES:
@@ -369,12 +369,12 @@ class OlderToolsTest(unittest.TestCase):
                         if versioned:
                             self.assertNotIn('source', journal(home))
                         lines = run()
-                        self.assertEqual(lines[:2], ['Tools updated from version ' + str(version) + ' to 4', 'manifest SHA256 ' + fingerprint])
+                        self.assertEqual(lines[:2], ['Tools updated from version ' + str(version) + ' to 5', 'manifest SHA256 ' + fingerprint])
                         harness.updated(home, fingerprint, previous)
                         self.assertEqual(owner.checked_bundle(home / 'retired-tools' / previous), OLD[version][1])
                         written = receipt(home)
                         self.assertEqual((written['previous_version'], written['tools_version'], written['source'], written['caller']['terminal']),
-                                         (version, 4, source, source == 'stick'))
+                                         (version, 5, source, source == 'stick'))
                         self.assertFalse(any(row.get('mutation') for row in host.trace))
                         # The stick the laptop keeps holds the old bundle: installing it again is a downgrade, nothing changes.
                         before = harness.snapshot(home)
@@ -382,7 +382,7 @@ class OlderToolsTest(unittest.TestCase):
                             owner.install(home / 'retired-tools' / previous, host, 'folder')
                         self.assertEqual(before, harness.snapshot(home))
 
-    def test_older_recovery_code_settles_every_cut_before_publication_and_version_4_resumes(self):
+    def test_older_recovery_code_settles_every_cut_before_publication_and_version_5_resumes(self):
         """Brief 22d, decision 7 and review F8: schema and fields as before, one new key, nothing else new on disk."""
         for version in OLD:
             old = old_tools(version)
@@ -403,7 +403,7 @@ class OlderToolsTest(unittest.TestCase):
                             self.assertEqual(set(raw), JOURNAL_FIELDS | {'source'})
                             self.assertEqual((raw['schema'], raw['previous'], raw['previous_directory'], raw['manifest'],
                                               raw['previous_version'], raw['tools_version'], raw['source']),
-                                             ('tools-update1', previous, old_name, fingerprint, version, 4, source))
+                                             ('tools-update1', previous, old_name, fingerprint, version, 5, source))
                             self.assertEqual(raw['tools_volume_uuid'], 'CAFE-1234' if source == 'stick' else None)
                             self.assertIn(raw['phase'], ('copy', 'publish'))
                             # Nothing new under the installation but the journal's key: the names the old update
@@ -419,9 +419,9 @@ class OlderToolsTest(unittest.TestCase):
                             self.assertEqual(old.checked_bundle(home / old_name), previous)
                             self.assertFalse((home / '.tools-held').exists())
                             self.assertEqual(old.settle_tools(), raw)  # every later command of the old tools too
-                            self.assertEqual(run()[0], 'Tools updated from version ' + str(version) + ' to 4')
+                            self.assertEqual(run()[0], 'Tools updated from version ' + str(version) + ' to 5')
                             harness.updated(home, fingerprint, previous)
-                    print('22d: version', version, 'settle_tools read the version 4 journal at', len(cuts),
+                    print('22d: version', version, 'settle_tools read the version 5 journal at', len(cuts),
                           'cuts before publication; versioned=', versioned, 'source=', source)
 
 

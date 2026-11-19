@@ -881,3 +881,114 @@ the CI qualification pipeline, and without the browser side R28's Chrome tools a
   typed commands), `test_ways_back_compatibility` (historical payload and unchanged history; version 2 reads; first
   switch over single stock), `test_owner_sources` (older recovery code at cuts, version 2 stick). Each is a pin or a
   guide quote to move, or a real compatibility question to answer before the pin; none was looked into yet.
+
+## Step 6 preparation: announced payload stopped at compatibility (2026-11-20)
+
+Codex gpt-6.2-sol ran `python3 -B reviews/42-release-28/payload.py announce` against the committed R28 record.
+It printed `PASS announced files written; tools version 5 fingerprint df89ac336e13db84934505551ba28163cbd60fa5b3b9fb0ec97b9585945896c6`.
+A read-only comparison found exactly the eight generated changes relative to `634e1237` across the bound paths.
+Every generated file, including all of `docs/OWNER-TOOLS.md`, is byte-equal to `announced()`'s output. The two
+earlier release history rows are intact and R28 is last. The payload stays in the worktree for review.
+
+**(b) PLAN-GAP — tools version 5 refuses installation over an already-staged R27.** The contract in
+`test_ways_back_compatibility.CompatibilityTest` includes `test_single_stock_prepared_and_first_switch_remain_accepted_and_updatable`
+and `test_tools_update_runs_over_every_historical_resting_and_staged_shape`. Both exercise replacing the exact
+version 2 tools while an R27 deployment is staged. The first-switch subtest raised `Unexpected staged switch`.
+The historical-shapes test failed on both the first switch and the staged update over the R13/stock pair, the
+latter with `Unexpected staged update`. The same fixture, replayed with the exact version 4 bundle from `634e1237`,
+completed the tool replacement in both states. The exact version 5 bundle refused in both states with the fixture
+installation, records and deployment state unchanged. Both bundles installed over the exact version 2 bundle
+with R27 already booted beside R13 and stock. The compatibility assertions stand.
+
+**(a) Pin and quote findings from inspection.** `test_release28`'s previous-source test needs the fixed R27
+reference from the historical bundle or record. `test_owner_walk`'s update route, `test_ways_back_probe`'s bundle
+and walks, and `test_tools_local_wiring`'s walk use R27-era inputs, with some reads still tied to the checkout's
+current release, commands or tool bundle. `test_owner_path` and `test_owner_equality` need the current generated
+guide quotes and fingerprint. INSTALL-STATUS must retain the laptop's recorded R27/version 4 evidence.
+`test_ways_back_compatibility` also has stale literal destination-version and two-row history expectations.
+The version 2 read cases and `test_owner_sources`' cut and stick cases contain literal version 4 expectations.
+Their underlying read, journal and recovery guarantees still need their own passing runs. No pins, guides or
+fixtures were edited after the blocker was reproduced.
+
+**Verified locally.** The module command was `python3 -B -m unittest discover -s os/tests -p '<module>.py'`.
+`pgrep -a -u ares -x ksshaskpass` printed nothing before each invocation. `test_release28` ran 94 tests with
+one failure, the R27 source comparison against the new current manifest. `test_owner_walk` printed two failure
+markers before it was interrupted when the staged-state comparison reproduced the blocker. The two named
+`test_ways_back_compatibility` methods selected with `-k` ran in 1.983 s, with 14 subtest failures and one error.
+Twelve failures were version-string assertions after successful installs. The remaining two failures and the
+error were the staged-state refusals above. The isolated install comparison used the test harness as a library.
+The remaining modules, rebind and host walk are pending. No commit, push or dispatch was made. `.work/` has no
+file over 500 MB.
+
+**What the code doesn't show.** The executable payload is unchanged, but `update_tools.system_ready()` calls
+`qualified_state()` with the incoming bundle's target. That function requires a staged first switch or update to
+match the target, so appending R28 changes which staged states pass readiness. B starts from a confirmed R27,
+which is why even a successful R28 route would leave this compatibility property untested. The host receipt
+still needs regeneration and the VM's `real_commit()` comparison still needs the actual committed payload.
+The current `matches()` implementation checks the guide's two fingerprint lines. The worktree comparison above
+also checked its full bytes. Run 44625380879 stopped before the VM route could qualify R28.
+
+## Step 6 payload pins and verification (2026-11-20)
+
+**(b) Known limit, per the lead.** Version 5 refuses to install while an older release is staged, leaves the installation, records and deployments unchanged, and can be installed after rebooting into the staged release.
+
+**(a) Pins and quotes.** The local R27 walks use the fixed release record and the tool bundles from their original
+commits (version 2 for the update and reorder probe, version 3 for ways back, and version 4 for tools-local).
+The R28 walk reads the folder and routine lines from its announced stand-in, and the guide quotes match the
+current `commands.json` byte for byte. The install guide names the R28 target, and both the install and emergency
+guides carry the version 5 fingerprint. INSTALL-STATUS keeps the R27 and version 4 laptop evidence and marks the
+R28 rehearsal and update pending. The older journal, stick, read and recovery tests still exercise their original
+historical inputs. The two checkout-history expectations in `test_owner_update` require the R27 row to remain
+between R13 and R28. The model's capture replay uses the recorded tools version 3 release target and history
+while still exercising the checkout's owner code.
+
+The compatibility tests accept both R28-staged deployment shapes and the prepared/resting shapes. The R27-staged
+first switches (including single stock) and staged update require the exact refusal and compare the installation
+snapshot (including every record and the entry symlink), both deployment views and the host mutation trace.
+
+### Verified locally
+
+`rebind.py pending '42 step 6: announced R28 and tools version 5 payload'` printed `pending: 37 bound files differ
+from the active bindings, 0 removed`. `walk-host.py` printed `PASS package 42 host walk (release-28): 269 sources;
+no VM started`. Its receipt records eight starts, 176 checks, 824 commands and 542 typed blocks with Control on.
+The eight announced files match both their initial checksums and every byte returned by `announced()`.
+
+Module command was `python3 -B -m unittest discover -s os/tests -p '<module>.py'`, one module at a time.
+`pgrep -a -u ares -x ksshaskpass` printed nothing before each module. The model used `ARESOS_MODEL_SCOPE=slice`.
+
+| Module | Result |
+| --- | --- |
+| `test_release28` | 94 OK in 37.541 s |
+| `test_ways_back_compatibility` | 21 OK in 33.000 s |
+| `test_owner_sources` | 13 OK in 52.765 s |
+| `test_owner_path` | 48 OK in 1.172 s |
+| `test_owner_equality` | 11 OK in 106.320 s |
+| `test_ways_back_probe` | 57 OK in 155.246 s |
+| `test_tools_local_wiring` | 42 OK in 58.020 s |
+| `test_release28_rehearsal` | 44 OK in 35.558 s |
+| `test_release28_control` | 15 OK in 4.223 s |
+| `test_release27` | 41 OK in 6.730 s |
+| `test_checkout_sources` | 8 OK in 1.126 s |
+| `test_owner_step_limits` | 4 OK in 0.011 s |
+| `test_release_squash_binding` | 7 OK in 0.056 s |
+| `test_control_image` | 15 OK in 4.567 s |
+| `test_owner_devices_native` | 14 OK in 1.790 s |
+| `test_ways_back_model` | 26 OK in 175.524 s. Slice processed 120,000 states and discovered 173,130, covering 3,185,862 edges and all eight journal outcomes. |
+| `test_owner_walk` | 34 OK in 407.528 s |
+| `test_owner_update` | Library fixture only. `PASS owner-update fixture: exact R13/R27/R28 history, receipt, prior records and no deployment mutations`. |
+
+The first host walk exposed a local `subprocess` binding error. The first owner-walk module reported six fixture
+errors, and the focused reruns passed 1 update-route test (both subtests) and 4 installer tests after the fixes.
+The first probe run reported three failures from a stale version 3 reader expectation and stale binding hashes
+after that file was edited during the run. The first model run reported three historical capture failures because
+it tried the R28 target in the recorded R27 session. The table gives the passing reruns after fixing those inputs
+and refreshing the bindings. No new compatibility PLAN-GAP surfaced.
+
+### What the code doesn't show
+
+The host receipt covers the synthetic walk. The R28 VM rehearsal, the comparison against the actual committed
+payload in `real_commit()` and physical qualification remain pending. The caller walk exercises the version 4
+export line, and the guide equality check verifies the version 5 line and its updated label. The full
+`test_owner_update` module and `test_owner_reset` remain for hosted checks, along with the two excluded modules
+`test_inherited_homebrew` and `test_sysusers`. All work is in the worktree. HEAD remains `3ae3716a`, with no push
+or dispatch. `.work/` has no file over 500 MB.

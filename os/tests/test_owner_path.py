@@ -43,8 +43,8 @@ STEP8_RECORD = (
      "Installed on the laptop at step 6 and ran there until the owner's step 8 update on 2026-11-13; since then "
      "it is the laptop's rollback.",
      ' Its VM evidence'),
-    ('- **R27 (current):**', 'REPORT.md)). ',
-     "A fresh install's step 6 switches to it. The laptop runs it since 2026-11-13, reached through the step 8 "
+    ('- **R27 (on the laptop):**', 'REPORT.md)). ',
+     "The laptop runs it since 2026-11-13, reached through the step 8 "
      "update route, with R13 as its rollback and the corrected stock still pinned.",
      ''),
     ('| **Physical installation** |', '| ',
@@ -904,7 +904,11 @@ class OwnerPathTest(unittest.TestCase):
         self.assertNotEqual(current, historical)
         self.assertIn('**R06 (historical):** `' + historical + '`', text)
         previous = json.loads((ROOT/'os/manifest/releases/13.json').read_text())['reference']
-        self.assertIn('**R27 (current):** `' + current + '`', text)
+        laptop = json.loads((ROOT/'os/manifest/releases/27.json').read_text())['reference']
+        self.assertIn('**R27 (on the laptop):** `' + laptop + '`', text)
+        self.assertIn('**R28 (announced):** `' + current + '`', text)
+        announced, = [line for line in text.splitlines() if line.startswith('- **R28 ')]
+        self.assertTrue(announced.endswith('The VM rehearsal and laptop update are pending.'))
         self.assertIn('**R13 (previous):** `' + previous + '`', text)
         rows = [[v.strip() for v in line.strip('|').split('|')]
                 for line in section(text, 'current-gates').splitlines() if line.startswith('| ')]
@@ -1762,6 +1766,8 @@ class OwnerPathTest(unittest.TestCase):
         self.assertLess(emergency.index('## A tools command stopped'), emergency.index('## A routine tools command stopped'))
 
     def test_status_names_22c_and_22d_on_the_laptop_with_calm_test_open(self):
+        import release28_walk
+
         status = documents()['INSTALL-STATUS.md']
         fingerprint = hashlib.sha256((ROOT/'os/owner-tools/payload/SHA256SUMS').read_bytes()).hexdigest()
         row = next(line for line in status.splitlines() if line.startswith('| Ways back after an update (package 22c) |'))
@@ -1792,7 +1798,9 @@ class OwnerPathTest(unittest.TestCase):
         rebound = json.loads((ROOT/'os/manifest/ci/22d/source-bindings.json').read_text())
         for value in ('**BUILT AND REVIEWED; VM REHEARSAL PASSED; ON THE LAPTOP 2026-11-17**',
                       'on the laptop since 2026-11-17 over version 2 `851eb742…`',
-                      'Tools fingerprint `' + fingerprint + '`', '[OWNER-TOOLS.md](OWNER-TOOLS.md)', '**Enter SSH Credentials**',
+                      'Tools fingerprint `' + release28_walk.TOOLS_V4 + '`',
+                      'https://github.com/Ares-Empire/AresOS/blob/' + release28_walk.V4_COMMIT + '/docs/OWNER-TOOLS.md',
+                      '**Enter SSH Credentials**',
                       'not a tricked Claude', 'the first installation stays on the stick', '`/run/ares-records`, on this laptop only',
                       'the routine box first', '(EMERGENCY.md#a-routine-tools-command-stopped)', '**VM rehearsal passed**',
                       '(' + rebound['run'] + ')', 'on `' + rebound['commit'][:8] + '`', '(../reviews/22d-tools-without-stick/runs/tools-local-' + rebound['run'].rsplit('/', 1)[1] + '/index.json)',
@@ -1814,6 +1822,7 @@ class OwnerPathTest(unittest.TestCase):
                       'NOT ON THE LAPTOP', 'The laptop has not run this route yet',
                       '**Before this row may say "on the laptop":**', "to install over the laptop's `851eb742…`"):
             self.assertNotIn(value, row)
+        self.assertNotIn(fingerprint, row)
         self.assertEqual(status.splitlines().index(row) - 1,
                          next(i for i, line in enumerate(status.splitlines()) if line.startswith('| Ways back after an update (package 22c) |')))
         update = next(line for line in status.splitlines() if line.startswith('| Update route (packages 22 and 27) |'))

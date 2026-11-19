@@ -323,12 +323,13 @@ class VerifyReleaseTest(unittest.TestCase):
 
 
 class StandInOriginTest(unittest.TestCase):
-    """The guest's stand-in for GitHub (tools_local.standin_origin), built from this checkout."""
+    """The historical 22d stand-in for GitHub, through tools version 4."""
 
-    def test_main_holds_version_3_then_this_head_with_the_real_trees(self):
+    def test_main_holds_version_3_then_version_4_with_the_real_trees(self):
         import subprocess
+        import release28_walk
         import tools_local
-        head = subprocess.check_output(['git', '-C', str(ROOT), 'rev-parse', 'HEAD'], text=True).strip()
+        head = release28_walk.V4_COMMIT
         with tempfile.TemporaryDirectory() as folder:
             made = tools_local.standin_origin(pathlib.Path(folder) / 'origin', head, ROOT)
             clone = pathlib.Path(folder) / 'AresOS'
@@ -346,14 +347,14 @@ class StandInOriginTest(unittest.TestCase):
                 real_tree = subprocess.check_output(['git', '-C', str(ROOT), 'rev-parse', real + ':os/owner-tools'], text=True).strip()
                 self.assertEqual(git('rev-parse', stand + ':os/owner-tools'), real_tree)
                 self.assertEqual(git('ls-tree', '--name-only', stand), 'os')
-            # Version 3's fingerprint and this head's, read as the folder line reads them.
+            # Both fingerprints are read as the folder line reads them.
             import hashlib
             fingerprint = lambda commit: hashlib.sha256(subprocess.check_output(
                 ['git', '-C', str(clone), 'show', commit + ':os/owner-tools/payload/SHA256SUMS'])).hexdigest()
             self.assertEqual(fingerprint(stand_v3), tools_local.TOOLS_V3)
             commands = json.loads(subprocess.check_output(['git', '-C', str(clone), 'show', stand_head + ':os/owner-tools/commands.json']))
-            self.assertEqual(fingerprint(stand_head), hashlib.sha256((ROOT / 'os/owner-tools/payload/SHA256SUMS').read_bytes()).hexdigest())
-            self.assertEqual(commands, json.loads((ROOT / 'os/owner-tools/commands.json').read_text()))
+            self.assertEqual(fingerprint(stand_head), release28_walk.TOOLS_V4)
+            self.assertEqual(commands, json.loads(owner_vm.git_blob(head, 'os/owner-tools/commands.json')))
 
 
 
@@ -367,7 +368,7 @@ def recorder(event, args):
     if into is None:
         return
     if event == 'open' and isinstance(args[0], (str, bytes, os.PathLike)):
-        into['opened'].add(os.path.abspath(os.fsdecode(args[0])))
+        into['opened'].add(os.path.realpath(os.fsdecode(args[0])))
     elif event == 'subprocess.Popen':
         into['commands'].append([os.fsdecode(word) if isinstance(word, (bytes, os.PathLike)) else str(word) for word in args[1]])
 
@@ -406,7 +407,8 @@ class WalkTest(unittest.TestCase):
         self.assertEqual([c for c in git if any(named(w) == x or named(w).startswith(x + '/') for w in c[1:] for x in payload)], [])
         git = [' '.join(c) for c in git]
         # The recorder saw the walk: release 27's record, version 2's route, and git reads of the tools.
-        self.assertLessEqual({'os/manifest/release.json', 'os/manifest/releases/13.json'}, set(inside))
+        self.assertLessEqual({'os/manifest/releases/27.json', 'os/manifest/releases/13.json'}, set(inside))
+        self.assertNotIn('os/manifest/release.json', inside)
         self.assertTrue([c for c in git if ':os/owner-tools' in c])
 
     def test_the_walk_passes_every_stage_of_the_brief(self):
