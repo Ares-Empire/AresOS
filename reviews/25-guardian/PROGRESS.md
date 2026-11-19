@@ -1,6 +1,6 @@
 # Package 25, the guardian: progress
 
-Updated after **step 4** (2026-11-19). Builder: a Claude agent on Fable 5.2, one fresh agent per step.
+Updated after **step 5** (2026-11-19). Builder: a Claude agent on Fable 5.2, one fresh agent per step.
 Brief: `briefs/25-guardian.md`; its last section ("The lead's fixes after the recheck") overrides the rest.
 
 ## Done
@@ -174,12 +174,69 @@ line numbers as of this step's commit):
     black screen takes the focus like any new window, so the mod hears `shell_focus` `background` (`other_window`)
     while it is up, and never `shell_covered` because of it.
 
+**Step 5: section 4, package 48's leftovers** (`os/config/usr/libexec/aresos-desktop`). Nothing in this file deletes
+a world folder, and one is moved in exactly one place.
+
+- **4.2 One way to move a home.** `Supervisor.move_home(source, targets, proof)`:
+  - refused while a stop runs, the session is ending, or a launch is alive, in hand-off or still with Prism
+    (`home_busy()`);
+  - takes the desktop lock itself (`take_desktop_lock()`: `flock`, exclusive, no waiting, as the wrapper takes it; an
+    open or lock error is "unknown", never free) and holds it from the checks to the rename;
+  - opens the worlds folder once; the folder must be a real folder, pass the caller's `proof` under the lock, and be
+    the same folder (device and inode) by its path and through the descriptor before and after the checks;
+  - renames with `rename_noreplace()`: `renameat2(RENAME_NOREPLACE)` through ctypes, inside that descriptor. A name
+    that is taken is never replaced; for a dated target the next of `-1`, `-2`, … is tried. Never `os.rename`.
+  - Its two callers: `move_unfinished()` (4.1) and `use_home()`.
+- **`aresos-desktop use-home <folder>`** (socket op `use_home`): a folder named as HomeSwap names them
+  (`AresHub-<date>`, `AresHub-new-<date>`) that passes `check_world` becomes `AresHub`, only while nothing has that
+  name (a folder, a file or a link). Exit 0 only when it is the home now. It starts nothing: `retry` does.
+- **4.1 The first home died while it was made.** `note_first_home()` (at each helper status line of a running game,
+  and in `conclude()`): while a setup launch runs (`validate()` found no home at its authorization) and no home was
+  ever ready, the optional key `first_home` in `desktop.json` gets `{launch, device, inode, seen}` once `AresHub` is a
+  folder, written with `write_durable`. `validate()` answers `setup_unfinished` in place of `world_damaged` when the
+  damaged `AresHub` is that folder and `hub_seen` is false (`unfinished_home()`); `refuse_start()` then enters `SETUP`
+  with that reason: no latch, nothing started, also for a start from Prism by hand. `retry` on that window moves the
+  folder to `AresHub-unfinished-<date>` and starts setup again. Every other damaged world latches `world_damaged` as
+  before.
+- **4.3 `world_missing` says where the home is.** `dated_home()`, `dated_homes()`, `newest_home()`,
+  `found_homes()`, `found_homes_text()`: the window names the newest `AresHub-<date>` and the newest
+  `AresHub-new-<date>` that pass the home checks, each with its `use-home` line. Nothing is moved. With neither, the
+  text is the old one, byte for byte.
+- **4.4 A dated home reported ready.** `ready()` checks a world when it becomes the ready one (the home as before; any
+  other world if its name is one plain folder in the worlds folder). A world that is damaged, missing or outside is
+  never declared ready. A sound one becomes the active world and sets `hub_seen`.
+- **4.5 Leftovers.** `log_leftovers()` at each supervisor start: one line with the count and size of the
+  `AresHub-new-<date>` folders. `status` has `leftovers` (their names, newest first). Nothing deletes them.
+
+| Module (step 5, run by name as above) | Result |
+|---|---|
+| `test_aresos_guardian.py` | 94 tests, OK (25 new: `FirstHomeTest` 8, `UseHomeTest` 8, `MissingHomeTest` 3, `DatedHomeReadyTest` 3, `LeftoversTest` 2, one in `CommandTest`); the 24 of section 4 also with `TMPDIR` on the home's btrfs, so the real `renameat2` ran there and on tmpfs |
+| `test_aresos_guardian_loop.py` | 21 tests, OK, 41 s (1 new: `use-home` through the real command and loop: no supervisor, a running game, `AresHub` there, then the move and `retry`), no process left behind |
+| `test_aresos_desktop.py` | 189 tests, OK (1 skipped), 178 s; one assertion changed (below). Run before two last edits that touch only docstrings; `test_aresos_guardian.py` was run again after them |
+
+One existing assertion changed: `test_creating_the_hub_finishes_setup` (`test_aresos_desktop.py`) reported a world
+`SomeOtherDesktop` that is no folder and expected `IN_WORLD`, then reported `AresHub` without making it. With 4.4 the
+first is never declared ready (`SETUP` stays), and the test now makes the hub on the disk before its report, as the
+mod does; it still ends with `hub_seen` and the window closed.
+
 ## Left, in order
 
-5. Section 4.
 6. The real game.
 7. 3.1 and the VM checks.
 8. The check build's findings, section 5 (docs), the report, the pull request.
+
+## linux-aresos's read checklist (2026-11-19)
+
+From the lead, for steps 7 and 8:
+
+1. **The black window never outlives its stop.** A cancelled, failed or hung-past-bound stop removes it and the
+   desktop returns. Steps 7 and 8 need tests for a hung save and a cancelled stop if any is missing, and the VM
+   checks that a text console (Ctrl+Alt+F3) still switches behind it.
+2. **The lid inhibitor in the VM** is taken from the supervisor's own context, not a terminal (polkit judges by
+   session). Its result is logged, and a refusal never fails the stop. Step 4 built the logging; step 7 checks it.
+3. **`windows` names** are app names, never window titles (already so; keep titles out of every log).
+4. **`rc.xml`:** step 7 checks whether `os/ci/image-checks.sh` pins anything in `rc.xml`. The merge must keep 21b's
+   key bindings and 23c's `Super_L` keybind; the lead coordinates the order.
 
 ## Decisions taken where the brief left room
 
@@ -304,7 +361,8 @@ Step 4:
     (the child's `sleep 90`); the brief says "for the length of every stop". logind looks at a closed lid again as
     soon as a block is released, and a shutdown that did not go through logind could then suspend in the middle of
     the teardown. For `stop`, `restart`, a stop that is called off and a logout that does not go through it ends with
-    the stop. **For the lead to confirm.**
+    the stop. **Confirmed by the lead (2026-11-19):** the lid block stays with the black screen until the supervisor
+    exits at a shutdown or at a logout that goes through.
 45. **Unknown takes the black away too.** A `windows` report with no count, and the helper's exit, end the black
     screen as an app window does (unknown counts as open). In a teardown the helper can die a moment before labwc;
     then the black screen ends that moment earlier.
@@ -322,6 +380,51 @@ Step 4:
 51. **`hide-cover` (Super+Ctrl+Escape) ends the black screen too.** The recovery terminal it opens counts as an app
     window anyway, once the helper says so.
 52. **No image check was added** for the new rule or `--black` (`os/ci/image-checks.sh` is CI's; step 7).
+
+Step 5:
+
+53. **`use-home` goes through the running supervisor only.** It alone knows that no launch is alive, in hand-off or
+    still with Prism. With no supervisor the command moves nothing and says so (in a session the keeper keeps one
+    running).
+54. **`use-home` takes a name, never a path**: exactly HomeSwap's two dated forms, with the `-1`, `-2` suffix. A
+    trailing `/` from the shell's completion is dropped. `AresHub-unfinished-<date>` and every other name are refused;
+    he can still rename a folder himself.
+55. **`use-home` changes no state**: it clears no latch, sets no `hub_seen` and starts nothing. Its reply ends with
+    `Type retry.`
+56. **"No launch alive and none in hand-off" is read widely** (`home_busy()`): also no stop running, the session not
+    ending, no Prism that is still starting a game, and a game whose end is not accounted for yet counts as alive.
+57. **4.1 takes two retries in the same session.** The launch ends as today (`setup_crashed`, `setup_closed`,
+    `killed`, …). The next start (his `retry`, or the next session) shows `setup_unfinished`; only `retry` on that
+    window moves the folder, because he has read there what it does. If the folder is no longer the remembered one by
+    then, nothing is moved and the start decides anew.
+58. **`setup_unfinished` is no latch and no kept disposition**: each start works it out again from the record and
+    the disk.
+59. **What "saw it appear" means.** The launch is a setup launch by the supervisor's own word at its authorization.
+    A replacement supervisor that adopted that launch goes on looking, and one that accounts for a setup launch that
+    ended while no supervisor ran looks once at that accounting (the runtime file names it as setup). After a reboot
+    the runtime file is gone, and only a record written before counts. **For the reviewer:** the narrower reading
+    counts only what one supervisor process saw itself.
+60. **The record ends early on purpose**: when a home is seen ready, when a start finds the home sound (damage that
+    comes later is `world_damaged` as ever, also when the helper never reported), and when `retry` has moved the
+    folder. `retry` and `forget-hub` otherwise keep it. If another folder takes the name during the same launch, the
+    record follows it.
+61. **`AresHub-unfinished-<date>`** has HomeSwap's date pattern (local time, milliseconds; `-1`, `-2`, … up to 99
+    when taken). It matches neither dated form: never offered by `world_missing`, never taken by `use-home`, never a
+    leftover.
+62. **A world that is not declared ready (4.4) gets no latch and no window.** The next start opens the home, which
+    this world is not, and a latch would block that start with a text about AresHub. One error line per launch and
+    world; the state goes from `IN_WORLD` to `STARTING`; the active world stays, so a save there is `wrong_world`. A
+    folder that is not there counts like one outside. Any sound world other than the home sets `hub_seen`, with a
+    dated name or not.
+63. **A world is checked when it becomes the ready one**, never at every heartbeat. That now also checks the home when
+    he comes back to it straight from another world, which was skipped before.
+64. **"Newest" in 4.3 is the date in the name**, then the suffix; never a file time. At most 16 folders of each kind
+    are read (`HOMES_CHECKED`). The text is worked out when the window opens and at each `status`.
+65. **The leftovers' size is bounded**: 32 folders and 20,000 files each are measured, beyond that the line says "at
+    least". `status` lists at most 64 names.
+66. **`desktop-view.bashrc` is unchanged**: `aresos-desktop` is on the message window's PATH (the `/usr/bin` link),
+    as `forget-hub` already relies on.
+67. **A failed fsync of the worlds folder after the rename is one log line**; the reply says moved, because it is.
 
 **New texts** (the `save` command prints them; for the report's list):
 
@@ -405,7 +508,77 @@ Step 3, `logout`:
 Step 4: `hide-cover` answers `The black screen is gone.` (nobody sees it: a key binding runs it). `systemd-inhibit
 --list` shows the lid block as `AresOS`, `AresOS is saving your home before Minecraft stops`. No window text changed.
 
+Step 5, the windows:
+
+- `setup_unfinished` (state `SETUP`, no latch):
+  `AresOS: your first home was not finished` / (blank) / `Minecraft stopped while it was making your home, so this
+  folder is only half made:` / `  ~/.local/share/aresos/worlds/AresHub` / `  (<what the check found>)` / (blank) /
+  `Type  retry  and press Enter: AresOS moves that folder aside, as` / `AresHub-unfinished-<date> beside it (nothing
+  is deleted), and makes your home again.`
+- `world_missing`, between its first two lines and its last two, when a folder was found:
+  `In the same folder AresOS found (it moves nothing by itself):` / (blank) /
+  `The newest home under a dated name that passes its checks, most likely the home you had:` / `  <AresHub-date>` /
+  `To make it your home again (the folder is renamed, nothing else changes):` /
+  `  aresos-desktop use-home <AresHub-date>` / `then  retry` / (blank) /
+  `A new home that was still being made, and is complete:` / `  <AresHub-new-date>` /
+  `To make that one your home instead:` (alone: `To make it your home:`) /
+  `  aresos-desktop use-home <AresHub-new-date>` / `then  retry`.
+  Its next line then begins `Or put the folder back (from a backup), …`; with nothing found the window is unchanged.
+
+Step 5, `use-home` (each refusal begins `Not moved: `):
+
+- `<folder> is your home AresHub now (the folder was renamed; nothing was deleted). Type retry.`
+- `use-home takes the name of a dated home in ~/.local/share/aresos/worlds: AresHub-<date> or AresHub-new-<date>.`
+- `AresHub exists. use-home only fills the place of a missing home and never replaces one.`
+- `There is no folder <folder> in ~/.local/share/aresos/worlds.`
+- `<folder> is not a folder.`
+- `<folder> does not pass AresOS's checks of a home (<what the check found>).`
+- `Minecraft is running. Stop it first (aresos-desktop stop), then try again.`
+- `Minecraft is starting right now. Try again once it runs or has closed.`
+- `AresOS is stopping Minecraft right now. Try again when that is done.`
+- `AresOS is shutting down or logging out.`
+- `A Minecraft that AresOS cannot see holds the desktop lock. Close it first.`
+- `AresOS cannot tell whether Minecraft is running (the desktop lock: <error>).`
+- `<folder> changed while it was checked.` / `AresHub exists already.` / `The folder could not be moved (<error>).`
+- `the AresOS desktop supervisor did not answer (<error>).`
+- The command's own usage error: `use-home takes one folder name, and no other command takes one`.
+
+Step 5, `retry` on `setup_unfinished`: `Moved the unfinished home to AresHub-unfinished-<date> (nothing was
+deleted). State: SETUP`, or `The unfinished home was not moved: <one of the refusals above> Nothing is changed. Type
+retry to try again.` The wrapper's refusal there: `Your first home was not finished; the AresOS window says what to
+do.`
+
 ## What the code does not show
+
+- **Step 5, where a world folder can move.** `rename_noreplace()` has one caller, `move_home()`, and that has two
+  (`move_unfinished()`, `use_home()`); `UseHomeTest.test_one_function_moves_a_world_folder_and_nothing_deletes_one`
+  reads the file's syntax tree for that and lists every other rename, replace, unlink and rmtree in the file (the
+  instance's staging copy, `reset-instance`, the supervisor's own small files). A new one fails that test.
+- **`renameat2` is glibc's own function, called through ctypes.** A C library without it, or a filesystem that does
+  not know `RENAME_NOREPLACE` (it answers `EINVAL`), means the move is refused; there is no fallback to `os.rename`.
+  Run here on tmpfs and on the home's btrfs. Not run in the image: step 7's VM could try one `use-home`.
+- **Device and inode are all that 4.1 remembers.** If he deletes the half-made folder and another damaged folder gets
+  its name and, by reuse, its inode number while no home was ever ready, `retry` moves that one aside (never
+  deleted). A known limit for the report.
+- **A damaged or missing world that the mod reports ready shows no window** (decision 62): the game goes on, the
+  supervisor's state stays `STARTING`, and a hub launch that was never ready shows `slow_start` after 120 s. A known
+  limit for the report.
+- **For step 6 (the rig).** With 4.4 a world the helper reports ready is declared ready only if it is a sound home at
+  `$HOME/.local/share/aresos/worlds/<name>` of the test supervisor's `HOME`. And 1.3 still wants `world_saved` to
+  name the active world: without a helper that is the locked world, `AresHub`. So the rig's world has to be (or be
+  linked as a real folder, not a symlink: `check_world` refuses a link) `AresHub` in that worlds folder. Give the
+  adoption runtime file `mode: hub`: with `setup` and no home ever ready, the supervisor would remember the rig's
+  world as a first home (harmless while it is sound, but not what the rig shows).
+- **For step 7 (the VM).** `status` has a new key, `leftovers` (folder names): add it to the evidence allowlist only
+  if a check needs it. `desktop.json` has a new optional key, `first_home`, with a device and an inode number and no
+  path. The disposable world the fixture seeds must be a sound home named `AresHub` (the lead's fix 5), or the stop
+  ends `wrong_world`.
+- **`take_desktop_lock(paths)`** is there for step 7's guard command (the lead's fix 1: the guard takes the lock
+  itself, and an error is "unknown"): it returns a descriptor, `None` while the lock is held, and raises `OSError`
+  when nobody can tell.
+- **Not verified:** the mod's side of a first home that dies (which files exist when); the tests stand for it with a
+  home whose completion record, level or marker is missing. And the real `use-home` typed in the real message
+  window.
 
 - **The real `systemd-inhibit` was never run** (the machine rules). Its command line runs first in the VM (step 7):
   the check should see AresOS's block in `systemd-inhibit --list` during the save, and no `the lid block ended by
@@ -422,6 +595,10 @@ Step 4: `hide-cover` answers `The black screen is gone.` (nobody sees it: a key 
   (`test_aresos_cover.py`, `BlackTest`); the supervisor with stand-ins for the cover and `systemd-inhibit`
   (`test_aresos_guardian_loop.py`); the helper's report read by the supervisor's `on_windows()`
   (`test_aresos_shell_guardian.py`). Real hardware with two screens or a scaled screen: not tried.
+- **Behind the black screen the game's world keeps its sounds and music until the game exits**, a few seconds at a
+  shutdown. The mod silences the home only on `shell_covered`, and the black window is deliberately not "covering"
+  (that would arm the uncover rule). `linux-hub` agrees it is low harm (the lead, 2026-11-19). A possible follow-up
+  is a quiet-only signal for the black window. A known limit for the report.
 - **A `logout` typed into a terminal is refused**: that terminal is an app window (3.4's definition). A session with
   no helper (a latch at its start) never goes black and cannot `logout`. Known limits for the report.
 - **Where step 4's code hooks in**, for whoever changes the stop routine: `request_stop()` (start), `make_final()`,
