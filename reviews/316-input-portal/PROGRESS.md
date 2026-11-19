@@ -140,4 +140,6 @@ Only if step 3 leaves something. The last step writes the report here.
 ## Podman, after step 1
 
 Kept: the builder image (`7cc1f85e641d`, 928 MB) and the two cache volumes (1.3 GB together). No container is
-left. Nothing that was there before was removed or changed.
+left. This step ran no `rmi` and no `prune`. While it ran, four older tags of package 311
+(`localhost/aresos-labwc:311b`, `311c`, `311d-a`, `311d-b`) left the shared store, removed by some other session;
+`311e` is still there.
