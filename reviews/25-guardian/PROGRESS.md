@@ -1,6 +1,6 @@
 # Package 25, the guardian: progress
 
-Updated after **step 3** (2026-11-19). Builder: a Claude agent on Fable 5.2, one fresh agent per step.
+Updated after **step 4** (2026-11-19). Builder: a Claude agent on Fable 5.2, one fresh agent per step.
 Brief: `briefs/25-guardian.md`; its last section ("The lead's fixes after the recheck") overrides the rest.
 
 ## Done
@@ -109,9 +109,73 @@ One existing assertion changed: the game's exact environment in
 | `test_aresos_guardian_loop.py` | 17 tests, OK, 32 s, three runs in a row (7 new: SIGTERM through the keeper to an idle loop, SIGTERM in the middle of a save, a signal with a game that ignores SIGTERM, the stand-in labwc's end, `logout`, a labwc of another runtime folder, `restart`), no process left behind |
 | `test_aresos_desktop.py` | 189 tests, OK (1 skipped), 175 s, no assertion changed |
 
+**Step 4: 3.4, the black screen, the helper's `windows` event, the lid block** (`aresos-cover`, `aresos-shell`,
+`aresos-desktop`, `labwc/rc.xml`).
+
+- **The black screen itself.** `aresos-cover --black`: plain black, no text, no pointer, one borderless window on
+  every output (`black_out()`: each window calls `fullscreen_on_monitor` for its own output, and an output plugged in
+  later gets one too), app id `aresos.black`, ended by SIGTERM or `--limit`. `rc.xml` has a rule of its own for it
+  (`ToggleAlwaysOnTop`, no `ToggleFullscreen`).
+- **When (supervisor).** `go_black()` at the start of `request_stop()` for `shutdown`, `logout`, `restart`, and in
+  `make_final()` when a shutdown or the session's signal joins a plain stop: only if `app_windows() == []`. With an app
+  window open, no report or a dead helper the screens stay, and the stop's log says why. Never for a plain `stop`, for
+  a `shutdown` that systemd says is none, or once labwc has ended.
+- **Until.** `hide_black()` (SIGTERM now, SIGKILL after 2 s through the covers' `kill_covers`, never waited for):
+  from `enter()` for every state but `STOPPING` and `STARTING` (a message window or the home must be seen; it runs
+  before the window opens); from `finish_stop()` when the session goes on; from `on_windows()` for any report that is
+  not a known zero and from `on_helper_exit()` (the lead's fix 4); from `on_labwc_gone()`; from `hide-cover`. After a
+  `restart` whose startup cover was started it stays `BLACK_HANDOVER` (2 s) longer, below that cover. At a shutdown, or
+  a logout that goes through, it stays: it ends with the supervisor (`Runner.end_children()`, die-with-parent) or by
+  its own limit, `--limit 90` (`STOP_BUDGET + BLACK_EXTRA`).
+- **The lid block.** `hold_lid()` at the start of every stop (also a plain `stop`, and a stop a replacement supervisor
+  goes on with): the child `/usr/bin/systemd-inhibit --what=handle-lid-switch:sleep --who=AresOS --mode=block
+  --why=… /usr/bin/sleep 90`, die-with-parent, never waited for. `release_lid()` when the stop ends and the session
+  goes on. A start that fails, and a block that ends by itself with an error, are one log line each.
+- **The helper.** `Windows.app_windows()` and `Helper.report_windows()`: the status pipe gets `{"event": "windows",
+  "count": n, "names": [...]}` once at start and at each change. `aresos.black` is treated as the startup cover
+  (`COVER_APP_IDS`): never an app, never covering, never minimized.
+- `status` has `black` and `lid_block`.
+
+| Module (step 4, run by name as above) | Result |
+|---|---|
+| `test_aresos_guardian.py` | 69 tests, OK (10 new: `BlackTest`) |
+| `test_aresos_guardian_loop.py` | 20 tests, OK, 40 s, three runs in a row (3 new: a restart that goes black, holds the lid block and hands over to the startup cover; an app window that appears while the screens are black; a session that ends), no process left behind, no logind inhibitor taken |
+| `test_aresos_cover.py` | 12 tests, OK, 11 s, three runs (3 new: the rule and `--black`'s arguments; in a private headless labwc with two outputs: black on every output above a window, never an app window for the helper's reader, SIGTERM; its own limit) |
+| `test_aresos_shell_guardian.py` (new, the helper in-process) | 11 tests, OK |
+| the other 13 `test_aresos_shell*.py` modules, one at a time | all OK: discovery 36, hardening 26, home 13, icons 43, launch_hints 13, protocol 21, shell 74, review_fixes 31, 16, 12 and 11, views 23, windows 33 |
+| `test_aresos_desktop.py` | 189 tests, OK (1 skipped), 186 s, no assertion changed |
+
+One existing assertion changed: `test_view_leaves_desktop_connection_readiness_window_rules_and_returns_alone`
+(`test_aresos_shell_views.py`) expected the status pipe's only line to be `desktop_connected`; the helper's `windows`
+report at its start now comes before it, and the test asserts exactly those two lines (a view still adds none).
+
+**The `rc.xml` and `aresos-shell` lines step 4 changed** (for the lead's notice to `linux-aresos` and `linux-hub`;
+line numbers as of this step's commit):
+
+- `os/config/usr/share/aresos/labwc/rc.xml`, lines 41 to 43, added after the `aresos.cover` rule (which is unchanged,
+  byte for byte): a two-line comment and
+  `<windowRule identifier="aresos.black" serverDecoration="no"><action name="ToggleAlwaysOnTop" /></windowRule>`.
+- `os/config/usr/libexec/aresos-shell`:
+  - 62 to 68: the docstring's status-pipe section names the `windows` line.
+  - 144 to 153: new constants `BLACK_APP_ID`, `COVER_APP_IDS`, `MESSAGE_WINDOW_APP_ID`, `WINDOW_NAMES`,
+    `WINDOW_NAME_CHARS`.
+  - 187: `PRIVATE_ENVIRONMENT` also lists `ARESOS_DESKTOP_LIFECYCLE` (decision 10; the helper never gets it, so
+    nothing changes for an app).
+  - 217, 218, 231, 234: `StatusPipe.__call__` returns `False` for a line the full pipe dropped, else `True` (`None`
+    when reporting is off). Its callers ignored the result before.
+  - 2660 and 2673: `Windows.covering()` leaves out `COVER_APP_IDS` (was: `STARTUP_COVER_APP_ID` alone).
+  - 2676 to 2684: new `Windows.app_windows()`.
+  - 3006 to 3008 and 3046, 3047: `Helper.__init__` keeps `windows_reported`, and reports once when window tracking
+    is off.
+  - 3807: `Helper.tick()` calls `report_windows()`.
+  - 3818 to 3840: `windows_changed()` calls `report_windows()`; new `report_windows()` and `window_name()`.
+  - 4371: `main()` writes `{"event": "windows", "count": null}` when the compositor is lost, before it exits.
+  - Nothing in `aresos-shell/1.x` changes: no new operation, event or capability for the desktop or a view. The
+    black screen takes the focus like any new window, so the mod hears `shell_focus` `background` (`other_window`)
+    while it is up, and never `shell_covered` because of it.
+
 ## Left, in order
 
-4. 3.4: the black screen, the helper's `windows` event, the lid block.
 5. Section 4.
 6. The real game.
 7. 3.1 and the VM checks.
@@ -225,6 +289,40 @@ Step 3:
     window and the covers share that wait instead of adding 5 s and 2 s of their own. `stop_helper()` and
     `close_view()` are unchanged for use during a session.
 
+Step 4:
+
+41. **Black comes only at a stop's start** (or when a shutdown joins a plain stop). An app that closes during the
+    stop does not bring it, and a replacement supervisor that goes on with a stop does not go black: the first one's
+    black screen died with it, and no helper has reported to the new one.
+42. **Black also with nothing running.** A shutdown or logout from a recovery window goes black the same way; a
+    `restart` with nothing running shows black for a moment and then its startup cover.
+43. **The restart's handover is a fixed 2 s** (`BLACK_HANDOVER`) after the startup cover was started, not a signal
+    that the cover is on the screen: one timed item instead of a pipe from the cover. If the cover needs longer, the
+    desktop shows for a moment. It ends sooner when the home is ready or a window shows, and at once when the new
+    start has no startup cover.
+44. **At a shutdown the lid block stays, as the black screen does**, until the supervisor exits or its own limit
+    (the child's `sleep 90`); the brief says "for the length of every stop". logind looks at a closed lid again as
+    soon as a block is released, and a shutdown that did not go through logind could then suspend in the middle of
+    the teardown. For `stop`, `restart`, a stop that is called off and a logout that does not go through it ends with
+    the stop. **For the lead to confirm.**
+45. **Unknown takes the black away too.** A `windows` report with no count, and the helper's exit, end the black
+    screen as an app window does (unknown counts as open). In a teardown the helper can die a moment before labwc;
+    then the black screen ends that moment earlier.
+46. **Which windows count** (`Windows.app_windows()`): every toplevel the compositor has described (its first `done`)
+    except the desktop's (and its dialogs), `aresos.cover`, `aresos.black` and the message window `aresos.desktop`.
+    Minimized ones count, windows nobody owns count (Prism's own window, the recovery terminal). A toplevel that is
+    not described yet never counts: it could be the black screen itself, and counting that would take it down.
+47. **Names** are the program's name from the catalogue, else the window's app id; printable characters only, 40
+    characters, at most 8 names, sorted. `count` is always the full number.
+48. **A dropped report is written again.** The status pipe drops a line when it is full, and no heartbeat repeats
+    this one, so `StatusPipe` says when it dropped a line and `tick()` (every 0.5 s) writes it again.
+49. **The lid block's stderr goes to the supervisor's** (the journal), so logind's own refusal can be read there.
+    Released with SIGTERM, SIGKILL 2 s later if it is still there (the covers' mechanism).
+50. **The black screen hides the pointer** (`set_cursor_from_name('none')`), and follows outputs that come and go.
+51. **`hide-cover` (Super+Ctrl+Escape) ends the black screen too.** The recovery terminal it opens counts as an app
+    window anyway, once the helper says so.
+52. **No image check was added** for the new rule or `--black` (`os/ci/image-checks.sh` is CI's; step 7).
+
 **New texts** (the `save` command prints them; for the report's list):
 
 - `Saved: AresHub is on the disk.`
@@ -304,8 +402,35 @@ Step 3, `logout`:
 - `Not logged out: the AresOS desktop supervisor did not answer (<error>).`
 - A reason on `restart` or `logout`: `only a stop has a reason: shutdown, or none`
 
+Step 4: `hide-cover` answers `The black screen is gone.` (nobody sees it: a key binding runs it). `systemd-inhibit
+--list` shows the lid block as `AresOS`, `AresOS is saving your home before Minecraft stops`. No window text changed.
+
 ## What the code does not show
 
+- **The real `systemd-inhibit` was never run** (the machine rules). Its command line runs first in the VM (step 7):
+  the check should see AresOS's block in `systemd-inhibit --list` during the save, and no `the lid block ended by
+  itself` in the journal. It needs polkit's `org.freedesktop.login1.inhibit-handle-lid-switch` and
+  `inhibit-block-sleep` for the session's user (the defaults allow a local session).
+- **`logind.conf.d/90-aresos.conf` already ignores the lid** (`HandleLidSwitch=ignore`), so the block is a second line
+  of defence today; it matters once that policy changes.
+- **The black screen takes the keyboard focus from the game**, as any new window does. The helper never calls it
+  covering, so the mod does not pause the world for it; whether Minecraft's own pause on lost focus changes the save's
+  answer is for the VM's boot 1 to show ("the screen is black; the save was answered"). Step 6's rig has no black
+  screen.
+- **Not verified together:** the real supervisor, the real helper and the real cover in one compositor. Verified in
+  parts: the real cover with the helper's real window reader in a private headless labwc with two outputs
+  (`test_aresos_cover.py`, `BlackTest`); the supervisor with stand-ins for the cover and `systemd-inhibit`
+  (`test_aresos_guardian_loop.py`); the helper's report read by the supervisor's `on_windows()`
+  (`test_aresos_shell_guardian.py`). Real hardware with two screens or a scaled screen: not tried.
+- **A `logout` typed into a terminal is refused**: that terminal is an app window (3.4's definition). A session with
+  no helper (a latch at its start) never goes black and cannot `logout`. Known limits for the report.
+- **Where step 4's code hooks in**, for whoever changes the stop routine: `request_stop()` (start), `make_final()`,
+  `finish_stop()` (the one place that releases the lid block and decides the black screen after a stop),
+  `resume_stop()` (lid block only), `enter()` (never a window or the home behind black).
+- **The loop harness, step 4:** the stand-ins `cover` and `inhibit` note `start <pid> <arguments>` and `end <pid>` in
+  `control/covers` and `control/inhibits` (`self.noted()`, `self.up()`); the harness always points
+  `desktop.SYSTEMD_INHIBIT` at the stand-in, so no loop test can take a real inhibitor. `StopRunner` (state machine)
+  has `blacks`, `black_up`, `black_stops`, `black_error`, the same four for `lid_`, and `behind_black`.
 - **For step 2: where a save's callback runs.** `done(SaveResult)` can run inside `conclude()` (a launch's end closes
   the channel first, before the accounting is saved), inside `tick()` (a deadline), or before `request_save()`
   returns (`no_channel`). It must only note the result. Start, stop or account for a launch from `pending()`.
@@ -314,15 +439,6 @@ Step 3, `logout`:
   for a replacement supervisor's first seconds. The wrapper reports `jvm_started` long before the mod loads, so in
   the real game the first hello is normally accepted; the stand-in game connects earlier and shows the refused-then-
   accepted path.
-- **For step 4: the real helper sends no `windows` event yet**, so every `logout` in a real session is refused
-  (`apps_unknown`) and every `restart` starts below the app in front, until `aresos-shell` reports the count. The
-  format is decision 33; when tracking is lost the helper should send `"count": null`. Which windows count is 3.4's
-  (a terminal he types `logout` into is an app window unless the helper says otherwise).
-- **For step 4: where the black screen belongs.** Its start: `request_stop()` for `shutdown`, `logout`, `restart`
-  when `app_windows() == []`. A window that appears: `on_windows()`. Its end: `finish_stop()` (called off, failed,
-  overrun, `no_logout()`), `start_again()` once the startup cover is up, `on_labwc_gone()`. The black cover and the
-  `systemd-inhibit` child belong in `Runner.end_children()`'s list, which is the only cleanup at the supervisor's
-  exit.
 - **Not verified on a real session: that the real labwc passes `labwc_problem()`** (labwc exports `LABWC_PID` to its
   autostart, and its own environment has `XDG_RUNTIME_DIR`). If it does not, the log says why and `logout` is
   refused; nothing else changes. Step 7's VM check should read `status` and expect `labwc: true`.
@@ -338,7 +454,7 @@ Step 3, `logout`:
   environment names the test's runtime folder.
 - **What shows after a stop is decided only in `finish_stop()` and `settle_stopped()`.** While a stop runs, or the
   state is `STOPPING`, or a sticky window shows, `held()` is true and `ready()`, the start timeout and a helper
-  failure change no state. Step 4's black screen belongs to the same two places.
+  failure change no state.
 - **"Due now" is never `self.clock()`.** `tick()` reads the clock first; a later reading is not due, and the loop
   then spins until the deadline. The loop test found exactly that; `stop_due()` returns `stop.started` for "at
   once", and one test runs a stop on a clock that moves between two readings.
