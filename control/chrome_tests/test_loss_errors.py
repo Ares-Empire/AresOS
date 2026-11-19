@@ -329,6 +329,50 @@ class LossEnvelope(unittest.TestCase):
         self.assertNotIn('navigate', [command['name'] for command in self.extension.commands[before:]], 'the page is not replaced')
         self.assert_stored('chrome_prepare_control', public_report('first_input'))
 
+    def doing_extension(self):
+        """The fake host also answers what chrome_do asks: whose tab, the page's state and outline, and each target's fingerprint."""
+        self.going_extension()
+        answer = self.extension.answer
+        nodes = [{'id': 1, 'role': 'textbox', 'name': 'Name', 'value': '', 'fingerprint': '1' * 32},
+                 {'id': 2, 'role': 'textbox', 'name': 'City', 'value': '', 'fingerprint': '2' * 32}]
+        def doing(command):
+            if command['name'] == 'outline':
+                reply = answer(command)
+                reply['data']['frames'] = [{'frame': 0, 'document': 'document-1', 'reader': 'reader-1', 'watched': True,
+                                            'url': self.extension.facts['url'], 'title': '', 'scroll': 0, 'height': 100, 'omitted': 0,
+                                            'nodes': copy.deepcopy(nodes)}]
+                return reply
+            reply = answer(command)
+            if command['name'] == 'facts':
+                frame = reply['data']['frames'][0]
+                frame.update(reader='reader-1', fingerprint={'e1': '1' * 32, 'e2': '2' * 32}[frame['target']['element']])
+            return reply
+        self.extension.answer = doing
+
+    def test_a_chrome_do_step_refused_after_an_earlier_step_ran_carries_its_index_in_untrusted_loss(self):
+        # Item 5b for a batched step (step 1c): the list's normal result, the fixed message on the step,
+        # and the report only under untrusted_content.loss with the step's index.
+        from aresos_control.chrome.definitions import DO_RESULT
+        self.doing_extension()
+        with patch('aresos_control.chrome.bridge.select.select', lambda r, w, x, t: (r, w, x)):
+            text = self.chrome.outline({'tab': 1})['reads'][0]['untrusted_content']['outline']
+            name, city = (line.rsplit(' ', 1)[1] for line in text.splitlines()[:2])
+            self.extension.dirty_after_input = True
+            result = self.chrome.doing({'tab': 1, 'steps': [{'do': 'fill', 'ref': name, 'text': 'first'},
+                                                            {'do': 'fill', 'ref': city, 'text': 'second'},
+                                                            {'do': 'fill', 'ref': name, 'text': 'third'}]})
+        envelope = {'ok': True, 'data': result, 'pending': {}}
+        for form in (envelope, *carried(envelope)):
+            data = form['data']
+            validate(data, DO_RESULT, 'chrome_do')
+            self.assertEqual([entry_['outcome'] for entry_ in data['steps']], ['done', 'refused'])
+            self.assertEqual((data['steps'][1]['code'], data['steps'][1]['message']), ('reload_required', loss.MESSAGE))
+            self.assertEqual(data['not_run'], 1)
+            self.assertEqual(data['untrusted_content']['loss'], public_report('first_input', step=1))
+            self.assert_only_untrusted(form)
+        self.assertEqual([command['name'] for command in self.extension.commands].count('input'), 1, 'the second field was never typed')
+        self.assert_stored('chrome_prepare_control', public_report('first_input'))
+
     def test_chrome_close_gives_each_kept_tab_its_own_untrusted_loss_report(self):
         # Item 6 inherits item 5b's envelope: every kept tab carries its own report, beside its fixed message.
         from aresos_control.chrome.definitions import CLOSE_RESULT

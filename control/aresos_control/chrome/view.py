@@ -784,6 +784,86 @@ def stale(view, references, node):
     return Stale(renderer.out.text(), Text(renderer.out.text(), renderer.out.marks).shown(len(renderer.out.text())))
 
 
+# --- the change report (brief 28a, item 5) -----------------------------------
+
+_UNISSUED = "\x00"
+
+
+class _Unissued:
+    """A stand-in table: a line written with it carries a mark where a reference would stand, and none is issued."""
+
+    def issue(self, *identity):
+        return _UNISSUED
+
+
+def _lines(view, references, wanted=None):
+    """Every element with a line of its own, in the outline's order.
+
+    Yields (identity, the identity of the element it stands under, its line,
+    what the line shows), each line as a refusal's present line writes it
+    (`stale`). `wanted` limits it to those identities.
+    """
+    renderer = _Renderer(view, references)
+    identity = lambda node: None if node is None else (node.document.frame, node.document.document, node.document.reader, node.id)
+    for document in view.documents[:1] + renderer._unanchored():
+        for node, parent in renderer._lined(renderer.roots(document)):
+            key = identity(node)
+            if wanted is not None and key not in wanted:
+                continue
+            renderer.out = _Buffer()
+            renderer._own_line(node, 0, [] if shown_role(node) in TABLES else renderer._split(node, False)[0], CUT)
+            text = renderer.out.text()
+            yield key, identity(parent), text, Text(text, renderer.out.marks).shown(len(text))
+
+
+def changes(before, after, references, limit):
+    """What differs by element between two outlines of one document: (text, the changes left out, what it shows).
+
+    A line `+ ` is a new element, `~ ` one whose line changed (its new line)
+    and `- ` one that is gone (its old line, without references). A new
+    element stands under its new parent: the parent's line comes first, as
+    context without a mark, where it isn't itself in the report. The text is at
+    most `limit` characters and ends at a line end. What it shows (references,
+    lines and fingerprints) is the caller's to record with `returned`.
+    """
+    old = {key: text for key, _, text, _ in _lines(before, _Unissued())}
+    new = [(key, parent, text) for key, parent, text, _ in _lines(after, _Unissued())]
+    present = {key for key, _, _ in new}
+    plan, level = [], {}
+    for key, parent, text in new:
+        if key in old and old[key] == text:
+            continue
+        if key in old:
+            plan.append(("~ ", 0, key))
+            level[key] = 0
+            continue
+        if parent is None:
+            depth = 0
+        elif parent in level:
+            depth = level[parent] + 1
+        else:
+            plan.append(("  ", 0, parent))
+            level[parent], depth = 0, 1
+        plan.append(("+ ", depth, key))
+        level[key] = depth
+    # The lines that are shown, written with the real table: their references are issued and returned.
+    written = {key: (text, shown) for key, _, text, shown in _lines(after, references, {key for _, _, key in plan})}
+    lines = [(mark, "  " * depth + written[key][0], written[key][1]) for mark, depth, key in plan]
+    lines += [("- ", text.replace(" " + _UNISSUED, ""), []) for key, text in old.items() if key not in present]
+    kept, size, shown = [], -1, []
+    for mark, text, marks in lines:
+        if size + 1 + len(mark) + len(text) > limit:
+            break
+        kept.append((mark, text, marks))
+        size += 1 + len(mark) + len(text)
+    while kept and kept[-1][0] == "  ":
+        kept.pop()  # a parent's line without the new element it stood for
+    for _, _, marks in kept:
+        shown += marks
+    total = sum(1 for mark, _, _ in lines if mark != "  ")
+    return "\n".join(mark + text for mark, text, _ in kept), total - sum(1 for mark, _, _ in kept if mark != "  "), shown
+
+
 def present_line(view, references, node):
     """An element's line as it is now, or None where it has no line of its own."""
     return stale(view, references, node).line
@@ -980,6 +1060,8 @@ def fit(parts, measure, references, limit=RESULT_LIMIT):
             end, mid_line = cut(part.text.text, part.start, part.limit, share, part.lines)
             entries.append(part.entry(end, mid_line))
             references.returned(part.view.tab, part.text.shown(end))
+            # The header showed the tab's native dialog, or none (brief 28a, item 5: what a dialog step answers).
+            references.dialog_shown(part.view.tab, part.view.dialog)
         else:
             entries.append(part.entry())
             # A refusal's present line is shown too (brief 28a, item 2).

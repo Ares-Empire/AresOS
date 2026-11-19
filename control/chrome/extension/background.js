@@ -1285,6 +1285,11 @@ async function dispatch(command,expires=null) {
   frame=snapshot.frames.find(frame=>frame.frame===reference.frame);target=frame.target;
   safeDestination(frame,command);
   assertControl(tab);
+  // Brief 28a, item 5 ("Time"): the last thing before the dispatch, after the
+  // arming, the reveal and the last comparison. A command whose time is up
+  // dispatches nothing and answers `expired`; the finally below releases the
+  // armed hold as after any refusal. After this point nothing is cut short.
+  if(expires!==null&&performance.now()>=expires){const error=Error(EXPIRED_INPUT);error.notDispatched=true;throw error;}
   if (command.name === 'resume') { effectStarted=true; await content(tab,reference.frame,'resume',{hold:command.hold,operation:command.operation,generation:dispatchEpoch,element:reference.element,form:frame.form?.element}); }
   else {
     const input = command.input;
@@ -1344,6 +1349,9 @@ async function dispatch(command,expires=null) {
 // in the service's bridge: that command is refused unrun, in its turn
 // (`invalid_input`), never run without a time.
 const EXPIRED='expired: the time of this command ran out before it finished';
+// Nothing reached the page: the input's own time check ran before its dispatch
+// (selecting the tab and the reveal are no input), so it answers `expired`.
+const EXPIRED_INPUT='expired: the time of this input ran out before its dispatch; nothing was dispatched';
 const INVALID_TIME='invalid_input: time_left_ms must be a whole number of milliseconds, 0 or more; the command was not run';
 const expired=error=>String(error?.message).startsWith('expired:');
 const validTime=message=>!Object.hasOwn(message,'time_left_ms')||Number.isSafeInteger(message.time_left_ms)&&message.time_left_ms>=0;
@@ -1359,7 +1367,7 @@ function enqueue(message){
     if(expires!==null&&performance.now()>=expires){audit({command:message.command?.name,phase:'expired'});respond({id:message.id,ok:false,error:'expired: the time of this command ran out while it waited in the queue; it was not started'});return;}
     effectStarted=false;dispatchEpoch=null;audit({command:message.command?.name,phase:'begin'});
     try { respond({id:message.id,ok:true,data:await dispatch(message.command,expires)}); }
-    catch(error) { respond({id:message.id,ok:false,error:effectStarted ? 'unknown: Input may have started; inspect status and the page, never retry. '+String(error.message):String(error.message),...(error.loss&&!effectStarted?{loss:error.loss}:{})}); }
+    catch(error) { respond({id:message.id,ok:false,error:effectStarted&&error.notDispatched!==true ? 'unknown: Input may have started; inspect status and the page, never retry. '+String(error.message):String(error.message),...(error.loss&&!effectStarted?{loss:error.loss}:{})}); }
   });
 }
 async function connect() {

@@ -367,6 +367,51 @@ class Descriptions(unittest.TestCase):
         self.assertEqual([(item['frame'], field['description']) for item in state['editable'] for field in item['fields']],
                          [(0, '"Message" (1 of 3)'), (3, '"Message" (2 of 3)'), (4, '"Message" (3 of 3)')])
 
+    def test_a_chrome_do_step_whose_target_reads_like_another_field_says_which_one_it_is(self):
+        # Step 1c: a batched step asks through the same prepare, so its question names its target distinctly.
+        fields = [control('e5', 'Note', value=''), control('e6', 'Note', value='')]
+        self.page(form={'element': 'e4', 'action': SITE + '/save', 'method': 'post', 'encoding': 'application/x-www-form-urlencoded',
+                        'target': '', 'browsing_target': '_self', 'search': False, 'fields': fields})
+        self.host.targets['e5'] = target('e5', 'Note', value='')
+        self.host.targets['e6'] = target('e6', 'Note', value='')
+        answer = self.host.answer
+        nodes = [{'id': 4, 'role': 'form', 'fingerprint': '4' * 32},
+                 {'id': 5, 'parent': 4, 'role': 'textbox', 'name': 'Note', 'value': '', 'fingerprint': '5' * 32},
+                 {'id': 6, 'parent': 4, 'role': 'textbox', 'name': 'Note', 'value': '', 'fingerprint': '6' * 32}]
+        def doing(command):
+            name = command['name']
+            if name == 'tab_context':
+                return {'ok': True, 'data': {'session': SESSION, 'tab': 1, 'url': SITE + '/', 'title': 'Fixture', 'control': 'control-1'}}
+            if name == 'page_state':
+                return {'ok': True, 'data': {'session': SESSION, 'tab': 1, 'control': 'control-1', 'queued': False, 'dialog': False,
+                                             'document': 'native-0', 'address': 'a' * 64, 'ready': True, 'token': 'token-1'}}
+            if name == 'outline':
+                return {'ok': True, 'data': {'session': SESSION, 'tab': 1, 'url': SITE + '/', 'title': 'Fixture', 'dialog': None,
+                                             'needs_reload': False, 'frames': [{'frame': 0, 'document': 'document-0', 'reader': 'reader-0',
+                                             'watched': True, 'url': SITE + '/', 'title': '', 'scroll': 0, 'height': 100, 'omitted': 0,
+                                             'nodes': copy.deepcopy(nodes)}]}}
+            reply = answer(command)
+            if name == 'facts':
+                frame = reply['data']['frames'][0]
+                frame.update(reader='reader-0', fingerprint={'e5': '5' * 32, 'e6': '6' * 32}[frame['target']['element']])
+            return reply
+        self.host.answer = doing
+        with patch('aresos_control.chrome.bridge.select.select', lambda r, w, x, t: (r, w, x)):
+            text = self.chrome.outline({'tab': 1})['reads'][0]['untrusted_content']['outline']
+            first, second = (line.rsplit(' ', 1)[1] for line in text.splitlines() if line.strip().startswith('textbox'))
+            result = self.chrome.doing({'tab': 1, 'steps': [{'do': 'fill', 'ref': first, 'text': 'typed'},
+                                                            {'do': 'press', 'ref': second, 'key': 'Enter'}]})
+        self.assertEqual([step['outcome'] for step in result['steps']], ['done', 'prepared'])
+        [prepared] = result['prepared']
+        self.assertIn("send 'Note' (2 of 2) using Enter to " + SHOWN + '/save', prepared['approval']['question'])
+        state = prepared['approval']['description']['untrusted_content']['page_state']
+        self.assertEqual(state['target']['description'], '"Note" (2 of 2)')
+        self.assertEqual([field['description'] for field in state['form']['fields']], ['"Note" (1 of 2)', '"Note" (2 of 2)'])
+        # The free fill's committed description names its target the same way.
+        operation = self.engine.store.get('op:' + result['steps'][0]['operation_id'])
+        self.assertEqual(operation['approval']['description']['untrusted_content']['page_state']['target']['description'], '"Note" (1 of 2)')
+        self.assertEqual(len(self.host.sent('input')), 1)
+
     def test_a_free_inputs_committed_description_names_fields_the_same_way(self):
         fields = [control('e5', 'Note', value=''), control('e6', 'Note', value='')]
         self.page(form={'element': 'e4', 'action': SITE + '/save', 'method': 'post', 'encoding': 'application/x-www-form-urlencoded',

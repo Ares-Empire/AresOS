@@ -70,6 +70,9 @@ class References:
         self._lists = OrderedDict()      # seen -> what a tab list showed, oldest first
         self._snapshots = OrderedDict()  # snapshot -> {'created', 'used', 'entries': {reference: address}}
         self._library = {}               # reference -> snapshot
+        # Brief 28a, item 5: the native dialog a result last showed Claude for a tab ({kind, text}, or None
+        # for a page without one). chrome_do's dialog step answers only that dialog.
+        self._dialogs = {}
 
     def connect(self, session):
         """Name the extension connection a read came over. Another one empties the table."""
@@ -79,6 +82,7 @@ class References:
             self._lists.clear()
             self._snapshots.clear()
             self._library.clear()
+            self._dialogs.clear()
             self.session = session
 
     def _next(self):
@@ -229,7 +233,16 @@ class References:
         for identity in (unseen + [identity for identity in entries if entries[identity].line is not None])[:excess]:
             del self._references[entries.pop(identity).reference]
 
+    def dialog_shown(self, tab, dialog):
+        """A result showed Claude this tab's native dialog (the read's `dialog`), or showed it without one."""
+        self._dialogs[tab] = None if dialog is None else {"kind": dialog.get("kind"), "text": dialog.get("text", "")}
+
+    def dialog(self, tab):
+        """The dialog Claude last saw in this tab, or None."""
+        return self._dialogs.get(tab)
+
     def close(self, tab):
         """Forget a closed tab's entries. The counter goes on."""
+        self._dialogs.pop(tab, None)
         for entry in self._tabs.pop(tab, {}).values():
             del self._references[entry.reference]

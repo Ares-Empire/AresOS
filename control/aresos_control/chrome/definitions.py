@@ -52,6 +52,29 @@ CLOSE_RESULT = obj({'closed': array(obj({'tab': TAB, 'untrusted_content': obj(SH
                     'kept': array(obj({'tab': TAB, 'code': {'type': 'string'}, 'message': {'type': 'string'},
                                        'untrusted_content': obj({**SHOWN_TAB, 'loss': LOSS}, [])},
                                       ['tab', 'code', 'message']), 20)})
+# Brief 28a, item 5: chrome_do's result, which step 1d declares on the tool. Each step's entry holds the
+# tool's own words; page text (a present line, a change report, a loss report with its step) sits in
+# untrusted_content.
+NULL = {'type': 'null'}
+COUNT = {'type': 'integer', 'minimum': 0, 'maximum': 20}
+DO_STEP = obj({'do': {'type': 'string', 'enum': ['click', 'fill', 'select', 'check', 'press', 'scroll', 'dialog', 'wait']},
+               'ref': string(32),
+               'outcome': {'type': 'string', 'enum': ['done', 'unchanged', 'prepared', 'stale', 'refused', 'timeout', 'unknown']},
+               'operation_id': string(80), 'code': {'type': 'string'}, 'message': {'type': 'string'}}, ['do', 'outcome'])
+DO_RESULT = obj({
+    'tab': TAB, 'steps': array(DO_STEP, 20), 'not_run': COUNT, 'deadline': {'type': 'boolean'},
+    'prepared': array(PREPARED_RESULT, 64), 'unknown': array(string(80), 20),
+    'loaded': {'anyOf': [{'type': 'boolean'}, NULL]},
+    'untrusted_content': obj({'url': {'anyOf': [{'type': 'string'}, NULL]}, 'title': {'anyOf': [{'type': 'string'}, NULL]},
+                              'changed': {'type': 'string'}, 'more_changes': {'type': 'integer', 'minimum': 0},
+                              'outline': {'anyOf': [{'type': 'string'}, NULL]},
+                              'dialog': {'anyOf': [{'type': 'object'}, NULL]}, 'clipboard': {'anyOf': [{'type': 'object'}, NULL]},
+                              'stopped': array({'type': 'object'}, 1024), 'now': {'anyOf': [{'type': 'string'}, NULL]},
+                              'loss': LOSS},
+                             ['url', 'title', 'changed', 'more_changes', 'outline', 'dialog', 'clipboard', 'stopped', 'now']),
+    'version_notice': {'anyOf': [{'type': 'string'}, NULL]},
+    'error': obj({'code': {'type': 'string'}, 'message': {'type': 'string'}})},
+    ['tab', 'steps', 'not_run', 'deadline', 'prepared', 'unknown', 'loaded', 'untrusted_content', 'version_notice'])
 # fill_form's result: every field done, or where it stopped. A loss refusal's
 # report sits under untrusted_content.loss with its step (brief 28a, item 5b).
 FILL_FORM_RESULT = {'anyOf': [

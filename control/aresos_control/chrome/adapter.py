@@ -15,6 +15,7 @@ from ..paging import fragment_window, ordered_page
 from ..warnings import check_result
 from . import confirm
 from . import descriptions
+from . import doing
 from . import going
 from . import loss
 from . import nodes as outline_nodes
@@ -490,6 +491,16 @@ class Chrome:
         `free`; the call then waits until the page loaded and returns its outline.
         """
         return going.Going(self, verb, args).run()
+
+    def doing(self, args):
+        """Brief 28a, item 5, before item 8's step 1d offers it: chrome_do, up to 20 steps in one tab.
+
+        Not in the public catalogue. Each input step is brief 20's path by short
+        reference (`payload`, then `free` or `engine.reserve`), checked first and
+        again right before it runs; the result says what each step did, what
+        changed and what didn't run.
+        """
+        return doing.Doing(self, args).run()
 
     def seen_entry(self, seen, tab):
         """What the tab list `seen` showed of `tab` (item 6): its full address and top document."""
@@ -1060,7 +1071,13 @@ class Chrome:
         submitting = target.get('submit') and (verb in {'click','check','select'} or verb == 'press' and key in {'Enter','Space',' '}) or verb == 'press' and key == 'Enter' and target.get('editable')
         if frame.get('form') and (kind or hold or submitting):refuse_withheld_form(frame)
         if facts.get('needs_reload'):
-            self.free('prepare_control', tab=args['reference']['tab'], discard_unsaved=args.get('discard_unsaved', False))
+            try:
+                self.free('prepare_control', tab=args['reference']['tab'], discard_unsaved=args.get('discard_unsaved', False))
+            except Refused as exc:
+                if exc.code != 'expired':
+                    raise
+                # Within chrome_do's time (brief 28a, item 5): a reload given up on may have happened.
+                raise Refused('unknown', going.MAY_HAVE_RUN) from None
             raise Refused('stale_reference', 'The taken tab reloaded to install its page guard. Every old reference is stale; read again.')
         if hold:
             kind = 'form'
@@ -1085,7 +1102,13 @@ class Chrome:
             result['file'] = file
         return result, facts
 
-    def free(self, verb, payload=None, **arguments):
+    def free(self, verb, payload=None, dispatch_by=None, **arguments):
+        """One free change, committed as its own operation before it runs (R2).
+
+        `dispatch_by` (brief 28a, item 5, "Time"): the end by which the input
+        command must be dispatched. Only that command carries it; what follows
+        the dispatch (the page steps it reports) runs with the caller's time.
+        """
         # Even free changes have a committed operation/context before any dispatch (R2).
         op_id = self.store.generation + ':' + uuid.uuid4().hex
         # Item 3b: the committed description names fields as prepare's does; the payload keeps the binding.
@@ -1103,7 +1126,8 @@ class Chrome:
         self.store.write({'op:' + op_id:op},op['action'],'Chrome free-input context committed',op_id)
         self.store.checkpoint('chrome_before_dispatch')
         try:
-            reply = self.bridge.call(**self.command(payload, op_id)) if payload else self.bridge.call(verb,**arguments)
+            with self.bridge.bounded(dispatch_by) if dispatch_by is not None else nullcontext():
+                reply = self.bridge.call(**self.command(payload, op_id)) if payload else self.bridge.call(verb,**arguments)
             if verb in {'close_tab', 'release_tab'} and reply.get('closed' if verb == 'close_tab' else 'released') == arguments['tab']:
                 self.forget_tab(arguments['tab'])
             if verb=='open':
@@ -1115,11 +1139,15 @@ class Chrome:
                     self.bridge.call('navigate',tab=reply['tab'],url=arguments['url'],discard_unsaved=True)
         except Refused as exc:
             certain=exc.code in {'stale_reference','stale_approval','reload_required','owner_signin','refused','permission_denied','chrome_unavailable'}
+            # Brief 28a, item 5: an input, resume or dialog command answered `expired` dispatched nothing (the
+            # extension's check right before its dispatch, or the bridge before sending it); one given up on is `unknown`.
+            certain=certain or exc.code=='expired' and payload is not None
             op.update(state='failed' if certain else 'unknown',reason=('Nothing dispatched: ' if certain else 'Input may have run: ')+str(exc))
             if exc.untrusted_content is not None:
                 # A loss refusal's report (item 5b) stays structured untrusted data in the stored operation.
                 op['stages']['loss']={'untrusted_content':copy.deepcopy(exc.untrusted_content)}
             self.store.write({'op:'+op_id:op},op['action'],'Chrome input refused before effect' if certain else 'Chrome input outcome unknown',op_id)
+            exc.operation_id=op_id
             raise
         # Item 3: the page stage is a record, so its addresses are in the short form.
         op['stages'] = {('unchanged' if reply.get('no_change') else 'dispatched'):('The requested state was already present; no input was dispatched.' if reply.get('no_change') else 'Input dispatched once; delivery not proven.'),'page':visible(projection.record(reply))}
@@ -1347,22 +1375,27 @@ class Chrome:
             if 'url' in args: self.allowed_url(args['url'])
             return self.free(verb,**args)
         if verb == 'dialog':
-            mode=self.mode(acting=True)
-            facts=self.bridge.call('dialog_facts',tab=args['tab'])
-            if facts['dialog'] != args['expected']:
-                raise Refused('stale_approval','Dialog or opener changed; read and prepare again.')
-            readonly=any(self.store.get('chrome:readonly:'+hostname(url),False) for url in [facts['url'],facts.get('effective_url',facts['dialog']['frame_url'])])
-            if readonly:
-                raise Refused('readonly_site','This site is read-only; the owner must answer its dialogs.')
-            kind=classify('dialog',args,{'dialog':facts['dialog']},conservative=mode['conservative'])
-            unguarded=bool(facts['dialog'].get('unguarded'))
-            if unguarded:
-                kind='confirmation'
-                facts={**facts,'answer':{'accept':args['accept'],**({'text':args['text']} if 'text' in args else {})}}
-            payload={'process_session':self.process_session,'reference':{'tab':args['tab']},'input':{'verb':'dialog',**args},'binding':facts,'kind':kind,'adapter':None,'native_dialog':True,'conservative':mode['conservative']}
-            if unguarded:payload['unguarded_dialog']=True
+            payload=self.dialog_payload(args)
         else:
             payload, _ = self.payload(verb,args)
         if payload['kind']:
             return self.engine.reserve('chrome','submit',payload)
         return self.free(verb,payload)
+
+    def dialog_payload(self, args):
+        """Brief 20's dialog branch of `call`: its own facts, classification and payload (chrome_do's dialog step too)."""
+        mode=self.mode(acting=True)
+        facts=self.bridge.call('dialog_facts',tab=args['tab'])
+        if facts['dialog'] != args['expected']:
+            raise Refused('stale_approval','Dialog or opener changed; read and prepare again.')
+        readonly=any(self.store.get('chrome:readonly:'+hostname(url),False) for url in [facts['url'],facts.get('effective_url',facts['dialog']['frame_url'])])
+        if readonly:
+            raise Refused('readonly_site','This site is read-only; the owner must answer its dialogs.')
+        kind=classify('dialog',args,{'dialog':facts['dialog']},conservative=mode['conservative'])
+        unguarded=bool(facts['dialog'].get('unguarded'))
+        if unguarded:
+            kind='confirmation'
+            facts={**facts,'answer':{'accept':args['accept'],**({'text':args['text']} if 'text' in args else {})}}
+        payload={'process_session':self.process_session,'reference':{'tab':args['tab']},'input':{'verb':'dialog',**args},'binding':facts,'kind':kind,'adapter':None,'native_dialog':True,'conservative':mode['conservative']}
+        if unguarded:payload['unguarded_dialog']=True
+        return payload
