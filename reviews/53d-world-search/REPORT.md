@@ -282,3 +282,139 @@ agent on Opus. The rebase onto package 56 is a later, separate step and was not 
 One hosted run of the OS checks was started after the last code push (`bb2fa84b`) and not watched:
 `gh workflow run "OS image" --ref pkg/53d-world-search -f checks_only=true`, run **44441152575**
 (https://github.com/Ares-Empire/AresOS/actions/runs/44441152575). Its result is for the lead to read.
+
+## Review fix round 2
+
+Fixes for `reviews/53d-world-search/REVIEW-2.md` (CHANGES-NEEDED), brief `briefs/53d-review-fix-2.md`. Builder: a Claude
+agent on Fable 5.2 (the focus handoff had failed two rounds, each on the next case, so the design changed from
+excluding cases to allowing only safe states). The rebase onto package 56 stays a later step and was not done here.
+
+### Done
+
+1. **The handoff: the world must be the only active window** (REVIEW-2 findings 1 and 3), helper
+   (`os/config/usr/libexec/aresos-shell`).
+   - **The rule.** `Windows.alone_active(handle)`: the window is activated and no other toplevel is. `Helper.search()`
+     always asks the compositor to activate the world, also when the world looks active already, and keeps the
+     request as a `SearchHandoff` (the window, the connection, the 1 s bound, the mark's end). `search_landed()` runs
+     at Super and after every read of compositor news (`windows_changed`), and only when the world's window is the one
+     active window does it uncover and send `shell_search`. A split update, with the world and another window both
+     reported active, waits for the next read, within the 1 s bound. `Windows.active()`, which names the first
+     activated toplevel, no longer decides anything for Super.
+   - **The mark.** While Super's request is out, the world's activation is taken for its answer: the ordinary rule in
+     `follow_windows` ("the world got the focus, so uncover it") stands back, and `search_landed` alone decides. A
+     search that was called off uncovers nothing: the world has the focus, no window is minimized, no event is sent.
+     It is called off by a `ready: false` heartbeat (`search_off`, for good, also if `world_ready` comes again within
+     the second), by a new desktop connection, by the 1 s bound (`search_expired`, logged as before), and when the
+     round-1 conditions no longer hold as the world gets the keyboard.
+   - **The mark's end.** `SEARCH_MARK` = 5 s after the press. A request the compositor never answered then no longer
+     keeps a later Alt+Tab to the world from uncovering it.
+2. **Drafts: an allowlist** (finding 2), mod. `SearchMoment.Open` names what is open, and
+   `WorldSearchScreen.opened(screen)` says which: nothing, a container, the game menu, the Apps screen, the search
+   itself, or `OTHER`. `SearchMoment.of` replaces only the first four; the switch names every kind, so a new kind
+   cannot be replaced by default. The list of typing screens (`typing()`) is gone. `HomeCreateScreen`, the recovery
+   and working screens, chat, signs, books and every screen of the game or another mod are `OTHER`: left alone, the
+   event ignored, with no wait for the focus.
+   - A listed screen is replaced only while none of its text boxes holds text (`holdsText`): the Apps screen's
+     search, an anvil's name, the creative inventory's search and the recipe book's search
+     (`mixin/RecipeBookSearchAccess`, an accessor: that box is not among the screen's widgets).
+   - The Apps screen opened from the inventory closes that container the normal way too (`AppsScreen.overContainer`).
+3. **Pinned best hit** (finding 6): `SearchLines` (new, the bar's line arithmetic alone) pins the best hit and its
+   heading only when the bar has at least four slots; below that the whole list scrolls. `WorldSearchScreen` draws,
+   clicks and scrolls by it.
+- `docs/design/LAPTOP-HOME.md` section 5: the 1.2 contract says all of the above.
+
+### Tests
+
+- **Helper** (`os/tests/test_aresos_shell_search.py`, 23 → 32), new `OnlyActiveWindowTest`, with a maximized terminal
+  on the world's screen, in both listing orders (which decides the window `Windows.active()` names):
+  - a split update across two reads: nothing after the first (also across a tick), the terminal minimized and one
+    event after the second, `shell_focus` before `shell_search`, and only once;
+  - both halves in one read, in either order: the search opens at that read;
+  - a split update that never completes ends at the 1 s bound, and nothing is minimized;
+  - REVIEW-2's case, the world still reported active while the focus is on its way to the terminal: the request is
+    sent, nothing is minimized or sent until the compositor's answer;
+  - the world already the only active window: the request is sent all the same and the search opens at once
+    (`test_the_world_already_active`, changed: it used to assert that no request is sent);
+  - a `ready: false` heartbeat during the handoff, then `world_ready` again, in one read and split: no event, nothing
+    minimized, the world in front; the mark is used up, so his own Alt+Tab back to the world uncovers as ever;
+  - a new connection during the handoff, itself ready and offering the search: no event on either, nothing minimized;
+  - an answer after the 1 s bound, with and without a tick in between: nothing minimized, no event;
+  - no answer at all: after `SEARCH_MARK` his own Alt+Tab to the world uncovers it;
+  - a second press while one waits asks again and opens once.
+- **Mutation check** (as in round 1: one deliberate break of the helper at a time, from a green module, the file
+  restored and compared after): counting the world as active beside another window; skipping the request when the
+  world looks active; the ordinary uncover not standing back for the mark; the heartbeat not calling off; the new
+  connection not checked; the mark ending with the second; the bound not checked at landing; the mark never running
+  out; no landing check after compositor news. Each of the nine made `test_aresos_shell_search` fail (1 to 18 tests).
+- **Mod unit tests** (324 → 328): `SearchMomentTest` (8, six rewritten for the allowlist: only the four listed kinds
+  open, every other kind stays and never waits for the focus); `SearchLinesTest` (new, 4): a two-slot bar pins
+  nothing and scrolls to every line, nothing is pinned below four slots, from four slots the heading and the best hit
+  stay and every line is still reached.
+- **Client test** (`WorldSearchClientGameTest`, still last; new checks at its end, no new pictures):
+  - replaced: the game menu, AresOS's menu, the Apps screen with an empty search (no screen and the inventory were
+    checked already);
+  - left alone, same screen and same text after ten ticks, and no wait started: the Apps screen with "web" typed, an
+    anvil with a name in its box, a screen that is on no list;
+  - the New home choice: Nether chosen, "123" typed after the seed, Tab to a button, then `shell_search`: the same
+    screen, seed `49123`, "Placeholder hub: OFF" and the focus as they were;
+  - the book-signing case stays as it was;
+  - a window 120 high gives the bar two slots: nothing pinned, the best hit first, every one of the 47 hits scrolled
+    into view a line at a time, and the best hit scrolls away with the rest.
+
+### Verified
+
+- **Helper, in-process, each module by name** (`python3 -m unittest <module>` in `os/tests`):
+  `test_aresos_shell_search` 32 OK; `test_aresos_shell` 74 OK; `test_aresos_shell_windows` 33 OK;
+  `test_aresos_shell_home` 13 OK; `test_aresos_shell_views` 23 OK; `test_aresos_shell_protocol` 21 OK;
+  `test_aresos_shell_hardening` 26 OK; `test_aresos_shell_review_fixes` 31 OK, `_2` 16 OK, `_3` 12 OK, `_4` 11 OK;
+  `test_aresos_shell_launch_hints` 13 OK; `test_aresos_shell_discovery` 36 OK. Never the whole `os/tests`, never
+  `test_owner_update`, no helper subprocess, no real `WAYLAND_DISPLAY` or `XDG_RUNTIME_DIR`.
+- **`mod/dev/build.sh`:** `BUILD SUCCESSFUL in 3m 4s` (328 unit tests, 6 Windows-only skipped, none failed, and the
+  server game tests), on the fourth try: three times it refused with exit 75 (5.1 to 5.8 GB free of the 6 GB it
+  needs); each time waited five minutes, never `--force`.
+- **`mod/dev/client-test.sh`, the full suite, run 1:** `Client tests ended with exit code 0 after 13 min 14 s` (RTX 4060,
+  headless), with `53d world search checks passed: …` and `53d: a bar with 2 slots pins nothing and scrolls to all 47
+  hits` (so the small-bar check ran in the game, not only as a unit test).
+- **Run 2:** `Client tests ended with exit code 0 after 13 min 15 s`, the same lines. In both runs the four 53d
+  pictures came out byte for byte as committed.
+- After each run the 60 tracked pictures it rewrote for other packages were restored and the 25 untracked ones it
+  wrote for other packages deleted. Nothing over 500 MB in `.work/` (there is none).
+
+### Known limits
+
+- **The helper knows only what the compositor last told it.** "The world is the only active window" is read from
+  the last complete news. If another window's activation is on its way at that instant, the event goes out a moment
+  early; the request Super always sends then brings the focus back to the world, and the mod's own rule (the bar
+  opens only with the window's focus, waiting up to 500 ms) covers the gap.
+- **The live compositor handoff is still unverified** (no private labwc here; that rig is 23c's). The laptop trial in
+  "Not verified" stands, with two additions: Super while a maximized terminal has the keyboard (the terminal is
+  minimized only as the bar opens), and Super during a home switch (no window is minimized, no bar).
+- Round 1's limit on typing in the instant between the focus and the bar stands.
+
+### JUDGMENT-CALL (round 2)
+
+- **AresOS's own menu counts as "the pause menu"**, beside the game's: in his home Esc opens `AresOsMenuScreen`, not
+  the game's menu, and it holds only buttons. The game's menu is matched by its exact class, so a mod's subclass of
+  it is not replaced. One line in `WorldSearchScreen.opened`.
+- **A listed screen stays while a text box in it holds text.** The brief lists "any container screen", which would
+  include the anvil (a container with a name box) and throw a typed name away. So an anvil with an item in it always
+  stays (its box holds the item's name whether he typed or not), and the inventory stays while a creative or
+  recipe-book search is typed. An empty box does not hold Super back.
+- **A not-ready heartbeat calls the search off for good**, also when the world is ready again within the second: it
+  may be another world. Alternative: only the readiness at the moment the world gets the keyboard.
+- **The mark lasts 5 s** (`SEARCH_MARK`). Longer covers a slower compositor; shorter frees his own Alt+Tab sooner. Its
+  cost when wrong is small either way: one window minimized late, or the world focused once while still covered.
+- **With the world the only active window, Super opens at once** and does not wait for news: the compositor sends
+  none when nothing changes (see PLAN-GAP).
+
+### PLAN-GAP (round 2)
+
+- **"Only after a compositor update" cannot hold literally when the world is already active.** wlroots sends no
+  foreign-toplevel event for an activation that changes nothing, so waiting for one would make Super from inside the
+  world time out every time. Built: the state from the last complete news counts. **An idea outside the brief, not
+  built:** two `wl_display.sync` round trips after the activation request would tell the helper that the compositor
+  has dealt with the request and sent everything that follows from it, which would close the first Known limit.
+- **"Any container screen" includes screens he types in** (the anvil; the creative and recipe-book searches); handled
+  as the judgment call above says.
+- **Text a screen keeps outside the game's text boxes cannot be seen** (another mod's container with a text widget
+  of its own). Such a container is replaced, as the brief's "any container screen" says.
