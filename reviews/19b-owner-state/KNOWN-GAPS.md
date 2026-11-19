@@ -769,9 +769,8 @@ PY
 diff -u reviews/19b-owner-state/KNOWN-GAPS.json .work/302/repin/new-compact.json
 ```
 
-**Proof:** the single dispatch on the committed pin and its run ID are recorded
-in Build part 7 of the progress record. The lead watches it. This capture is
-classification evidence, not strict green verification. Required next gates:
-all 61 proof jobs green and 52 fresh lists byte-identical to the pin, every
-alteration shard slipped=0; Control CI green twice; fresh package/security
-reviews and an independent full classification check.
+**Proof:** 44395635207 on the committed pin: all 61 jobs green, its 52 fresh
+lists byte-identical to the pin, every alteration shard slipped=0. The package
+and security cross-review (REVIEW-1, SAFE) and the independent classification
+check (CLASSIFICATION-CHECK, CONFIRMED, every count matched) are in
+`reviews/20-store-oracle-followups/`. N8's follow-up is board #386.

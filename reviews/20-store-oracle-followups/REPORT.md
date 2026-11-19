@@ -146,9 +146,10 @@ tests (CI ledger only); full Mail, sweep and alteration runs locally (hosted onl
 
 ## Open questions / left
 
-One open owner question: board #385, whether N9's reach is wanted (Known limits). Left, in order: CI round 2 (the lead
-records it); the fresh package/security cross-review; the independent classification check against the full historical
-and fresh lists; then the lead's merge. After it, a `linux-tools` follow-up for N8 (CC, SHOULD-FIX 1): decide whether the
-store drops the queued notice once the replay finishes its source (as it does for Chrome) or the model expects it, with
-one re-pin. No file
+One open owner question: board #385, whether N9's reach is wanted (Known limits). Done since: the package/security cross-review
+([REVIEW-1.md](REVIEW-1.md), SAFE, no findings) and the independent classification check
+([CLASSIFICATION-CHECK.md](CLASSIFICATION-CHECK.md), CONFIRMED). Left: CI round 2 (the lead records it), the owner's
+answer to #385, then the lead's merge. After it, a `linux-tools` follow-up for N8 (board #386, CC's SHOULD-FIX 1): decide
+whether the store drops the queued notice once the replay finishes its source (as it does for Chrome) or the model
+expects it, with one re-pin. No file
 over 500 MB under `.work/` (`.work/302/` holds about 534 MB of evidence, checked 2026-11-19).
