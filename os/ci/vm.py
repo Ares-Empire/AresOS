@@ -13,6 +13,7 @@ from channel import Frames, frame, import_bytes
 from qmp import QMP, assert_guest_poweroff
 from offline_journal import check_offline_poweroff
 from journal_ready import follower_ready
+import guardian_host
 
 work = pathlib.Path('vm-work').resolve()
 evidence = pathlib.Path('evidence').resolve() / f'vm-pass-{os.environ["ARESOS_VM_PASS"]}'
@@ -133,6 +134,10 @@ try:
     request('recovery', password=password)
     screenshot('aresos-tty3-getty.png')
     keys(['ctrl', 'alt', 'f1'])
+    # Package 25: pass 1 is the power key with a save that takes 5 s, pass 2 a game that never answers and ignores
+    # SIGTERM. The guest seeds a home, starts the stand-in game and its watchers; the proof is read offline below.
+    guardian = guardian_host.scenario(os.environ['ARESOS_VM_PASS'])
+    armed = request('guardian-arm', scenario=guardian)
     journal_start = (evidence / 'serial.log').stat().st_size
     prepared = request('prepare-poweroff')
     deadline = time.monotonic() + 60
@@ -146,8 +151,13 @@ try:
     screenshot('last-vm-frame.png')
     shutdown_start = (evidence / 'serial.log').stat().st_size
     event_start = len(monitor.events)
+    before_lit = guardian_host.lit_share(evidence / 'last-vm-frame.png')
     monitor.command('system_powerdown')
-    qemu.wait(timeout=120)
+    powered = time.monotonic()
+    watched = guardian_host.watch(guardian, evidence / 'serial.log', shutdown_start, lambda: qemu.poll() is None,
+                                  screenshot, keys, evidence)
+    qemu.wait(timeout=max(1, guardian_host.POWER_OFF_BOUND - (time.monotonic() - powered)))
+    power_off_seconds = time.monotonic() - powered
     monitor.reader.join(timeout=5)
     assert qemu.returncode == 0, 'Power key did not shut the guest down cleanly'
     shutdown_event = assert_guest_poweroff(monitor.events[event_start:])
@@ -160,6 +170,8 @@ try:
                                                          boot_id=offline['boot_id'],
                                                          offline_journal=offline,
                                                          shutdown=shutdown_event), indent=2) + '\n')
+    guardian_host.check(evidence, guardian, {key: value for key, value in armed.items() if key not in ('id', 'stdout')},
+                        watched, power_off_seconds, before_lit)
     print('UEFI VM checks passed: session, updater/sleep policy, recovery shortcut, tty3 getty, password authentication via login PAM, ignored lid/sleep events, clean ACPI poweroff', flush=True)
 finally:
     if monitor:
