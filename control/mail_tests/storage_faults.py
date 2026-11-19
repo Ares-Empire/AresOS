@@ -8,6 +8,7 @@ import builtins
 import ctypes as C
 import errno
 import io
+import json
 import os
 from pathlib import Path
 import _sqlite3
@@ -135,11 +136,42 @@ class OSWrites:
         self.fail_at, self.points, self.failed = fail_at, [], False
         self.mode, self.cleanup_at = mode, cleanup_at
         self.cleanup_points, self.failures = [], []
+        self.journal_trace = []
+        self.journal_fds = set()
         # A full disk cannot fail closing a file that was only read. The owner
         # oracle's exhausted phase models that disk; other injectors keep
         # failing every reached hit, read-only closes included. hit() keeps
         # its signature: subclasses override it.
         self.fail_read_only_closes, self.sparing = fail_read_only_closes, False
+
+    def journal_write(self, stream, data, method):
+        # Record raw inputs and completed syscalls, never Store's latch or the
+        # request's answer. Short writes and cleanup syncs have distinct facts.
+        value = json.loads(data)
+        entry = dict(phase='marker' if 'commit' in value else 'fence',
+                     sequence=value.get('commit', value.get('seq')), hash=value['hash'],
+                     offset=stream.tell(), write=False, sync=False, truncate=False, rollback_sync=False)
+        self.journal_trace.append(entry)
+        self.journal_fds.add(stream.fileno())
+        result = method(data)
+        entry['write'] = result == len(data)
+        return result
+
+    def journal_truncate(self, method, *args):
+        result = method(*args)
+        if self.journal_trace and CLEANUP.get() == 'journal truncation':
+            self.journal_trace[-1]['truncate'] = True
+        return result
+
+    def fsync(self, method, fd):
+        result = method(fd)
+        if fd in self.journal_fds and self.journal_trace:
+            entry = self.journal_trace[-1]
+            if CLEANUP.get() == 'journal truncation':
+                entry['rollback_sync'] = True
+            else:
+                entry['sync'] = True
+        return result
 
     def hit(self, label, sqlite=False):
         if EXCLUDED:
@@ -179,11 +211,15 @@ class OSWrites:
                         sweep.sparing = False
                         super().close()
             def write(self, data):
-                sweep.hit(label(self.name) + '.write')
-                return super().write(data)
+                def written(data):
+                    sweep.hit(label(self.name) + '.write')
+                    return super(Raw, self).write(data)
+                return sweep.journal_write(self, data, written) if label(self.name) == 'journal' else written(data)
             def truncate(self, size=None):
-                sweep.hit(label(self.name) + '.truncate')
-                return super().truncate(size)
+                def truncated(size):
+                    sweep.hit(label(self.name) + '.truncate')
+                    return super(Raw, self).truncate(size)
+                return sweep.journal_truncate(truncated, size) if label(self.name) == 'journal' else truncated(size)
         def opened(file, mode='r', buffering=-1, encoding=None, errors=None, newline=None,
                    closefd=True, opener=None):
             if any(char in mode for char in 'wax+') and not isinstance(file, int) and not Path(file).exists():
@@ -216,7 +252,11 @@ class OSWrites:
                 for name, kind in [('fsync', 'file.fsync'), ('link', 'file.link'),
                                    ('replace', 'file.rename'), ('rename', 'file.rename'),
                                    ('ftruncate', 'file.truncate'), ('unlink', 'file.unlink')]:
-                    stack.enter_context(patch('os.' + name, side_effect=operation(getattr(os, name), kind)))
+                    method = operation(getattr(os, name), kind)
+                    if name == 'fsync':
+                        stack.enter_context(patch('os.fsync', side_effect=lambda fd, method=method: sweep.fsync(method, fd)))
+                    else:
+                        stack.enter_context(patch('os.' + name, side_effect=method))
                 real_close = os.close
                 def close(fd):
                     try:
@@ -225,9 +265,12 @@ class OSWrites:
                         real_close(fd)
                 stack.enter_context(patch('os.close', side_effect=close))
                 if store is not None and not isinstance(store.journal, Raw):
-                    for name in ('write', 'truncate'):
-                        stack.enter_context(patch.object(store.journal, name,
-                            side_effect=operation(getattr(store.journal, name), 'journal.' + name)))
+                    write = operation(store.journal.write, 'journal.write')
+                    truncate = operation(store.journal.truncate, 'journal.truncate')
+                    stack.enter_context(patch.object(store.journal, 'write',
+                        side_effect=lambda data: sweep.journal_write(store.journal, data, write)))
+                    stack.enter_context(patch.object(store.journal, 'truncate',
+                        side_effect=lambda size=None: sweep.journal_truncate(truncate, size)))
                 yield
         finally:
             ACTIVE = previous

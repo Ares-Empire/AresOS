@@ -163,6 +163,38 @@ class CoveredTest(Base):
     def minimized(self):
         return [handle for handle, opcode, _ in self.screens.requests() if opcode == 2]
 
+    def test_a_new_desktop_gets_existing_app_focus_after_hello_and_on_reconnect(self):
+        self.start()
+        self.screens.window(DESKTOP, 'aresos-desktop', [MAXIMIZED], [self.screens.left])
+        self.screens.window(APP, 'org.kde.kwrite', [ACTIVATED], [self.screens.left])
+        self.changed()  # no desktop connection exists yet
+        self.assertEqual(self.helper_.shell, 'background')
+        conn = self.hello()
+        self.assertEqual(conn.events('shell_focus'), [], 'hello must be answered before the snapshot')
+        self.helper_.tick()
+        events = conn.events('shell_focus')
+        self.assertEqual([(e['focus'], e['reason']) for e in events], [('background', 'app_activated')])
+        self.assertEqual(events[0]['app_id'], 'notepad')
+        self.helper_.tick()
+        self.assertEqual(len(conn.events('shell_focus')), 1, 'unchanged focus must not be repeated')
+        again = self.hello()
+        self.helper_.tick()
+        self.assertEqual([e['focus'] for e in again.events('shell_focus')], ['background'])
+        self.assertEqual(len(conn.events('shell_focus')), 1, 'the old connection gets no new snapshot')
+
+    def test_initial_app_focus_respects_capability_and_legacy_negotiation(self):
+        self.start()
+        self.screens.window(DESKTOP, 'aresos-desktop', [MAXIMIZED], [self.screens.left])
+        self.screens.window(OTHER, 'org.test.other', [ACTIVATED], [self.screens.left])
+        self.changed()
+        quiet = self.hello(capabilities=[c for c in ALL if c != 'shell_focus'])
+        self.helper_.tick()
+        self.assertEqual(quiet.events('shell_focus'), [])
+        legacy = self.hello(minor=0)
+        self.helper_.tick()
+        self.assertEqual([(e['focus'], e['reason']) for e in legacy.events('shell_focus')],
+                         [('background', 'other_window')])
+
     def test_binds_every_screen_before_the_manager_and_follows_screens_plugged_in_and_out(self):
         self.start()
         binds = [payload for object_id, opcode, payload in self.screens.binds]

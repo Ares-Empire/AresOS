@@ -73,6 +73,11 @@ public final class HomeScreen {
         appInFront = inFront;
     }
 
+    public static boolean freePointer(Minecraft client) {
+        return dev.aresos.focus.PointerRules.free(session(), AresOsClient.acceptsAppCommands(client),
+                active(client), appInFront);
+    }
+
     /** The helper said a window hides the world on its screen, or no longer does (false also when it went away). */
     static void covered(boolean now) {
         covered = now;
@@ -116,11 +121,17 @@ public final class HomeScreen {
      */
     public static void frame(Minecraft client) {
         boolean focused = client.getWindow().isFocused();
+        HomePointer.frame(client);
         if (!active(client)) {
             wasFocused = true;
-            appInFront = false;
+            // A helper event can precede the player/world while joining or switching homes. Keep its focus until
+            // the helper changes it; clearing it here used to capture the mouse behind the still-focused app.
+            var shell = dev.aresos.AresOs.shell();
+            var state = shell == null ? ShellClient.State.CLOSED : shell.status().state();
+            if (!session() || (state != ShellClient.State.CONNECTED && state != ShellClient.State.STARTING)) appInFront = false;
             return;
         }
+        if (appInFront && client.mouseHandler.isMouseGrabbed()) client.mouseHandler.releaseMouse();
         if (wasFocused && !focused) {
             KeyMapping.releaseAll();
             AppInput.reset();
@@ -138,5 +149,6 @@ public final class HomeScreen {
         wasFocused = true;
         appInFront = false;
         covered = false;
+        HomePointer.reset();
     }
 }
