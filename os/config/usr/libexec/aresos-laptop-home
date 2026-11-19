@@ -1,0 +1,731 @@
+#!/usr/bin/python3
+"""The laptop-screen home and its aresos-shell/1.2 view connection."""
+
+import asyncio
+from contextlib import ExitStack
+import json
+import math
+import os
+from pathlib import Path
+import re
+import secrets
+import signal
+import stat
+import string
+import struct
+import sys
+import tempfile
+import threading
+from urllib.parse import unquote, urlsplit
+
+APP_ID = 'aresos.laptop-home'
+PAGE_ROOT = Path('/usr/share/aresos/laptop-home')
+SCHEME = 'aresos-home'
+PAGE = f'{SCHEME}://page/index.html'
+PROTOCOL = 'aresos-shell/1.2'
+CAPABILITIES = ['views', 'home_state', 'apps_running', 'apps_changed', 'app_state', 'list_apps', 'list_paging',
+                'app_details', 'open_app']
+MAX_MESSAGE = 64 * 1024
+MAX_ICON = 1024 * 1024
+MAX_HOME_APPS = 200
+PNG_HEADER = b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR'
+ID = re.compile(r'[a-z0-9_-]{1,64}')
+EMPTY_HOME = {'palette': {}, 'apps': []}
+
+
+def encode_home(home):
+    return json.dumps(home, ensure_ascii=False).encode('utf-8')
+
+
+# Match the helper's publish and catalogue limits. Short names can use four-byte UTF-8 characters.
+# The catalogue can retain the name of an invalid registry entry, so allow six bytes for JSON-escaped controls.
+MAX_HOME_BYTES = len(encode_home({
+    'palette': dict.fromkeys(string.ascii_letters + string.digits, '#000000'),
+    'apps': [dict(id='a' * 64, short='\U0001f7e6' * 64, name='\0' * 64,
+                  group='a' * 64, place='a' * 32, slot=8, cells='.' * 144)] * MAX_HOME_APPS,
+}))
+NO_BATTERY = {'battery': None}
+UNAVAILABLE = {'state': 'failed', 'message': 'Opening is back in a moment'}
+FILE_FLAGS = os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK
+MIME = {
+    '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css',
+    '.json': 'application/json', '.woff2': 'font/woff2', '.woff': 'font/woff', '.ttf': 'font/ttf', '.otf': 'font/otf',
+    '.png': 'image/png', '.svg': 'image/svg+xml', '.webp': 'image/webp', '.jpeg': 'image/jpeg',
+    '.jpg': 'image/jpeg', '.gif': 'image/gif', '.avif': 'image/avif', '.ico': 'image/x-icon',
+}
+# CSS may set inline styles for layout. Executable code and fetched data come from the packaged origins.
+CSP = ("default-src 'none'; script-src aresos-home://page; style-src aresos-home://page 'unsafe-inline'; "
+       "connect-src aresos-home://page aresos-home://icon; font-src aresos-home://page; "
+       "img-src aresos-home://page aresos-home://icon; frame-src 'none'; worker-src 'none'; "
+       "base-uri 'none'; form-action 'none'; frame-ancestors 'none'")
+FILTER = [
+    {'trigger': {'url-filter': '.*'}, 'action': {'type': 'block'}},
+    {'trigger': {'url-filter': '^aresos-home:'}, 'action': {'type': 'ignore-previous-rules'}},
+]
+BRIDGE = r"""
+(() => {
+  if (window !== window.top || location.href !== PAGE) return;
+  const post = window.webkit.messageHandlers.laptopHome.postMessage.bind(window.webkit.messageHandlers.laptopHome);
+  const events = new EventTarget();
+  let current = INITIAL;
+  const copy = value => structuredClone(value);
+  Object.defineProperty(window, 'aresosHome', {value: Object.freeze({
+    home: () => copy(current.home),
+    programs: () => copy(current.programs),
+    status: () => copy(current.status),
+    open: id => typeof id === 'string' ? post({key: KEY, op: 'open', id})
+                                      : Promise.resolve({state: 'failed', message: 'No such app'}),
+    addEventListener: events.addEventListener.bind(events),
+    removeEventListener: events.removeEventListener.bind(events)
+  })});
+  window.addEventListener(KEY, ({detail: [state, changed]}) => {
+    current = state;
+    for (const name of changed)
+      events.dispatchEvent(new CustomEvent(name, {detail: name === 'home' ? null : copy(state[name])}));
+  });
+  document.addEventListener('DOMContentLoaded', () => post({key: KEY, op: 'ready'}), {once: true});
+})();
+"""
+
+
+def take_token():
+    token = os.environ.get('ARESOS_VIEW_TOKEN', '')
+    # os.unsetenv also clears entries inherited by libc that Python may never have recorded.
+    for name in ('ARESOS_VIEW_TOKEN', 'LD_PRELOAD'):
+        os.environ.pop(name, None)
+        os.unsetenv(name)
+    return token
+
+
+def valid_id(value):
+    return isinstance(value, str) and ID.fullmatch(value) is not None
+
+
+def read_regular(path, *, dir_fd=None, limit=None):
+    fd = os.open(path, FILE_FLAGS, dir_fd=dir_fd)
+    with os.fdopen(fd, 'rb') as stream:
+        info = os.fstat(stream.fileno())
+        if not stat.S_ISREG(info.st_mode) or (limit is not None and info.st_size > limit):
+            raise ValueError('resource refused')
+        data = stream.read() if limit is None else stream.read(limit + 1)
+        if limit is not None and len(data) > limit:
+            raise ValueError('resource refused')
+        return data
+
+
+class Resources:
+    def __init__(self, root):
+        self.root = root
+        self.icons = {}
+
+    def read(self, uri):
+        url = urlsplit(uri)
+        if url.scheme != SCHEME:
+            raise ValueError('resource refused')
+        parts = unquote(url.path, errors='strict').removeprefix('/').split('/')
+        if url.netloc == 'icon' and len(parts) == 1 and valid_id(parts[0]):
+            path = self.icons.get(parts[0])
+            if path and os.path.isabs(path):
+                png = read_regular(path, limit=MAX_ICON)
+                if png.startswith(PNG_HEADER) and len(png) >= 24:
+                    width, height = struct.unpack_from('>II', png, 16)
+                    if 0 < width <= 512 and 0 < height <= 512:
+                        return 'image/png', png
+            raise ValueError('icon refused')
+        if url.netloc != 'page' or any(part in ('', '.', '..') or '\x00' in part for part in parts):
+            raise ValueError('resource refused')
+        mime = MIME.get(Path(parts[-1]).suffix)
+        if mime is None:
+            raise ValueError('resource refused')
+        # Open relative to directory descriptors, so a rename or a symlink swap cannot redirect a later open.
+        with ExitStack() as opened:
+            folder = None
+            for component in (self.root, *parts[:-1]):
+                folder = os.open(component, FILE_FLAGS | os.O_DIRECTORY, dir_fd=folder)
+                opened.callback(os.close, folder)
+            return mime, read_regular(parts[-1], dir_fd=folder)
+
+
+def page_home(palette, rows, names):
+    return {'palette': {
+        key: value for key, value in palette.items()
+        if re.fullmatch(r'[A-Za-z0-9]', key) and isinstance(value, str) and re.fullmatch(r'#[0-9A-Fa-f]{6}', value)
+    }, 'apps': [
+        dict({field: row[field] for field in ('id', 'short', 'group', 'place', 'slot', 'cells') if field in row},
+             name=names.get(row['id'], row['short'])) for row in rows
+    ]}
+
+
+def cached_home(raw):
+    rows = raw['apps']
+    if not isinstance(rows, list) or len(rows) > MAX_HOME_APPS:
+        raise ValueError('invalid saved town')
+    for row in rows:
+        if (not valid_id(row['id'])
+                or not all(isinstance(row[key], str) for key in ('name', 'short', 'group', 'cells'))
+                or len(row['cells']) != 144 or ('place' in row and not isinstance(row['place'], str))
+                or ('slot' in row and (type(row['slot']) is not int or not 0 <= row['slot'] <= 8))):
+            raise ValueError('invalid saved house')
+    return page_home(raw['palette'], rows, {row['id']: row['name'] for row in rows})
+
+
+def load_home(path):
+    try:
+        return cached_home(json.loads(read_regular(path, limit=MAX_HOME_BYTES)))
+    except (OSError, ValueError, KeyError, TypeError, AttributeError, RecursionError):
+        return EMPTY_HOME
+
+
+def save_home(path, home):
+    data = encode_home(cached_home(home))
+    if len(data) > MAX_HOME_BYTES:
+        raise ValueError('saved town is too large')
+    path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+    fd, temporary = tempfile.mkstemp(prefix='.home-', dir=path.parent)
+    try:
+        with os.fdopen(fd, 'wb') as stream:
+            stream.write(data)
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temporary, path)
+    finally:
+        Path(temporary).unlink(missing_ok=True)
+
+
+def catalogue(rows):
+    programs, icons = [], {}
+    for row in rows:
+        app_id = row['id']
+        icon = row.get('icon')
+        if isinstance(icon, str) and os.path.isabs(icon):
+            icons[app_id] = icon
+        programs.append({'id': app_id, 'name': row['name'], 'generic_name': row.get('generic_name'),
+                         'keywords': row.get('keywords', []), 'has_icon': app_id in icons})
+    return programs, icons
+
+
+def launch_result(reply):
+    if reply['ok'] and reply.get('state') in ('starting', 'focused', 'background', 'closed'):
+        return {'state': reply['state']}
+    # The helper's current failures use fixed text or these reason codes. Never forward arbitrary diagnostics.
+    message = reply.get('message')
+    if message not in ('no reviewed launch definition', 'could not start the app', 'not_installed', 'invalid_entry',
+                       'duplicate_entry', 'duplicate_window_identity', 'checks_busy', 'not_responding',
+                       'too many launches in the last few minutes; try again shortly'):
+        message = 'Could not open the app'
+    return {'state': 'failed', 'message': message}
+
+
+class HelperPeer:
+    def __init__(self, reader, writer):
+        self.reader, self.writer = reader, writer
+        self.prefix = secrets.token_hex(8)
+        self.serial = 0
+        self.requests = {}
+        self.authenticated = False
+        self.running = None
+        self.refresh = asyncio.Event()
+        self.refresh.set()
+
+    def send(self, op, **fields):
+        self.serial += 1
+        request_id = f'{self.prefix}-{self.serial}'
+        message = dict(protocol=PROTOCOL, id=request_id, op=op, **fields)
+        self.writer.write(json.dumps(message).encode() + b'\n')
+        return request_id
+
+    async def request(self, op, **fields):
+        request_id = self.send(op, **fields)
+        future = self.requests[request_id] = asyncio.get_running_loop().create_future()
+        try:
+            await asyncio.wait_for(self.writer.drain(), 5)
+            return await asyncio.wait_for(future, 5)
+        finally:
+            self.requests.pop(request_id, None)
+
+    async def read(self, running_changed):
+        while line := await self.reader.readline():
+            if not line.endswith(b'\n') or len(line) > MAX_MESSAGE:
+                raise ValueError('invalid helper message')
+            message = json.loads(line)
+            if message.get('protocol') != PROTOCOL:
+                raise ValueError('incompatible helper')
+            event = message.get('event')
+            if event == 'apps_running':
+                self.running = [app_id for app_id in message['apps'] if valid_id(app_id)]
+                running_changed(self, self.running)
+            elif event in ('home_changed', 'apps_changed'):
+                self.refresh.set()
+            elif (future := self.requests.get(message.get('id'))) is not None and not future.done():
+                future.set_result(message)
+        raise EOFError
+
+    async def pages(self, op):
+        rows, seen, fields = [], set(), {}
+        cursor = None
+        while True:
+            page = await self.request(op, **({'cursor': cursor} if cursor else {}))
+            if not page['ok']:
+                if page.get('error') == 'invalid_cursor':
+                    return None
+                raise ValueError('helper refused the list')
+            page_fields = {key: page[key] for key in ('revision', 'palette') if key in page}
+            if cursor is None:
+                fields = page_fields
+            elif page_fields != fields:
+                return None
+            for row in page['apps']:
+                app_id = row['id']
+                if not valid_id(app_id) or app_id in seen or len(rows) >= 256:
+                    if app_id in seen:
+                        return None
+                    raise ValueError('invalid catalogue row')
+                seen.add(app_id)
+                rows.append(row)
+            cursor = page.get('next')
+            if cursor is None:
+                return fields, rows
+            if not isinstance(cursor, str) or not page['apps']:
+                raise ValueError('invalid helper cursor')
+
+
+class HelperView:
+    """The socket and its timeouts run on one worker. All page state is published on the GTK thread."""
+
+    def __init__(self, socket_path, instance, token, home_path, publish, schedule):
+        self.socket_path, self.instance, self.token = socket_path, instance, token
+        self.home_path, self.publish, self.schedule = home_path, publish, schedule
+        self.focused = False
+        self.connected_peer = None
+        self.peer = None
+        self.kept_home = None
+
+    def start(self):
+        self.loop = asyncio.new_event_loop()
+        self.task = self.loop.create_task(self.run())
+        self.thread = threading.Thread(target=self.serve, daemon=True)
+        self.thread.start()
+
+    def serve(self):
+        asyncio.set_event_loop(self.loop)
+        try:
+            self.loop.run_until_complete(self.task)
+        except asyncio.CancelledError:
+            pass
+        finally:
+            tasks = asyncio.all_tasks(self.loop)
+            for task in tasks:
+                task.cancel()
+            self.loop.run_until_complete(asyncio.gather(*tasks, return_exceptions=True))
+            self.loop.close()
+            asyncio.set_event_loop(None)
+
+    def stop(self):
+        self.loop.call_soon_threadsafe(self.task.cancel)
+        self.thread.join(timeout=2)
+
+    async def run(self):
+        delays = (0.5, 1, 2)
+        attempt = 0
+        while True:
+            try:
+                reader, writer = await asyncio.wait_for(
+                    asyncio.open_unix_connection(self.socket_path, limit=MAX_MESSAGE), 5)
+                peer = HelperPeer(reader, writer)
+                self.connected_peer = peer
+                read = asyncio.create_task(peer.read(self.running_changed))
+                sync = asyncio.create_task(self.sync(peer))
+                try:
+                    done, _ = await asyncio.wait((read, sync), return_when=asyncio.FIRST_COMPLETED)
+                    for task in done:
+                        await task
+                finally:
+                    was_online = self.peer is peer
+                    self.connected_peer = None
+                    self.peer = None
+                    if was_online:
+                        attempt = 0
+                    read.cancel()
+                    sync.cancel()
+                    writer.close()
+                    await asyncio.gather(read, sync, writer.wait_closed(), return_exceptions=True)
+            except (OSError, EOFError, ValueError, TypeError, KeyError, AttributeError, RecursionError):
+                pass
+            if attempt == 0:
+                self.schedule(self.publish, None, {'helper': False}, None)
+            await asyncio.sleep(delays[min(attempt, len(delays) - 1)])
+            attempt += 1
+
+    async def sync(self, peer):
+        hello = await peer.request('hello', major=1, minor=2, instance=self.instance, role='view', view='laptop-home',
+                                   token=self.token, capabilities=CAPABILITIES, requires=CAPABILITIES[:3])
+        if not hello['ok'] or hello.get('minor') != 2:
+            raise ValueError('helper rejected view')
+        peer.authenticated = True
+        peer.send('view_focus', focused=self.focused)
+        if peer.running is not None:
+            self.running_changed(peer, peer.running)
+        while True:
+            await peer.refresh.wait()
+            peer.refresh.clear()
+            home = await peer.pages('get_home')
+            apps = await peer.pages('list_apps')
+            if peer.refresh.is_set() or home is None or apps is None:
+                # Revisions and row offsets can move while we page. Discard the whole read and start again.
+                peer.refresh.set()
+                await asyncio.sleep(0.05)
+                continue
+            fields, rows = home
+            programs, icons = catalogue(apps[1])
+            changed = {'programs': programs, 'running': peer.running or [], 'helper': True}
+            if fields['revision'] is not None:
+                if not isinstance(fields['revision'], str) or not fields['revision'] or len(rows) > MAX_HOME_APPS:
+                    raise ValueError('invalid home revision')
+                changed['home'] = page_home(fields['palette'], rows, {row['id']: row['name'] for row in programs})
+                try:
+                    if changed['home'] != self.kept_home:
+                        save_home(self.home_path, changed['home'])
+                        self.kept_home = changed['home']
+                except (OSError, ValueError):
+                    print('aresos-laptop-home: could not keep the town', file=sys.stderr)
+            self.peer = peer
+            self.schedule(self.publish, peer, changed, icons)
+
+    def running_changed(self, peer, apps):
+        if peer.authenticated:
+            # The page can light the kept town while opening waits for both paged reads.
+            self.schedule(self.publish, self.peer, {'running': apps}, None)
+
+    def focus_changed(self, focused):
+        self.loop.call_soon_threadsafe(self.report_focus, focused)
+
+    def report_focus(self, focused):
+        self.focused = focused
+        if (peer := self.connected_peer) is not None and peer.authenticated:
+            # A focus snapshot is replayed on reconnect. It does not need an acknowledgement.
+            peer.send('view_focus', focused=focused)
+
+    def open(self, peer, app_id, callback):
+        async def ask():
+            result = UNAVAILABLE
+            if peer is not None and peer is self.peer:
+                try:
+                    result = launch_result(await peer.request('open_app', app_id=app_id))
+                except (OSError, ValueError, TypeError, KeyError):
+                    pass
+            self.schedule(callback, result)
+
+        asyncio.run_coroutine_threadsafe(ask(), self.loop)
+
+
+def battery(percentage, charging):
+    if math.isfinite(percentage) and 0 <= percentage <= 100:
+        return {'battery': {'level': round(percentage), 'charging': charging}}
+    return NO_BATTERY
+
+
+def sysfs_battery(root=Path('/sys/class/power_supply')):
+    try:
+        supplies = sorted(root.iterdir())
+    except OSError:
+        return NO_BATTERY
+    for supply in supplies:
+        def read(name):
+            return (supply / name).read_text().strip()
+
+        try:
+            if read('type') != 'Battery':
+                continue
+            if ((supply / 'scope').exists() and read('scope') == 'Device'
+                    or (supply / 'present').exists() and read('present') == '0'):
+                continue
+            return battery(float(read('capacity')), read('status') == 'Charging')
+        except (OSError, ValueError):
+            continue
+    return NO_BATTERY
+
+
+def power_status(Gio, GLib):
+    try:
+        bus = Gio.bus_get_sync(Gio.BusType.SYSTEM)
+        props, = bus.call_sync('org.freedesktop.UPower', '/org/freedesktop/UPower/devices/DisplayDevice',
+                               'org.freedesktop.DBus.Properties', 'GetAll',
+                               GLib.Variant('(s)', ('org.freedesktop.UPower.Device',)), None,
+                               Gio.DBusCallFlags.NO_AUTO_START, 1000, None).unpack()
+        if props.get('Type') == 2 and props.get('IsPresent'):
+            return battery(float(props['Percentage']), props['State'] == 1)
+    except (GLib.Error, KeyError, ValueError, TypeError):
+        pass
+    return sysfs_battery()
+
+
+def laptop_monitor(monitors):
+    return next((monitor for monitor in monitors if (monitor.get_connector() or '').startswith('eDP')), None)
+
+
+def place_window(window, monitor, layer):
+    window.set_decorated(False)
+    window.connect('close-request', lambda _window: True)
+    if layer is None or not layer.is_supported() or layer.get_protocol_version() < 4:
+        window.fullscreen_on_monitor(monitor)
+        return
+    layer.init_for_window(window)
+    layer.set_namespace(window, APP_ID)
+    layer.set_monitor(window, monitor)
+    layer.set_layer(window, layer.Layer.BACKGROUND)
+    for edge in (layer.Edge.TOP, layer.Edge.BOTTOM, layer.Edge.LEFT, layer.Edge.RIGHT):
+        layer.set_anchor(window, edge, True)
+    layer.set_keyboard_mode(window, layer.KeyboardMode.ON_DEMAND)
+
+
+def load_gui():
+    import gi
+
+    for name, version in (('Gtk', '4.0'), ('Gdk', '4.0'), ('WebKit', '6.0'),
+                          ('JavaScriptCore', '6.0'), ('Soup', '3.0')):
+        gi.require_version(name, version)
+    # Import the optional layer library before GTK/Wayland. The supervisor preloads it for the same ordering.
+    try:
+        gi.require_version('Gtk4LayerShell', '1.0')
+        from gi.repository import Gtk4LayerShell as layer
+    except (ImportError, ValueError):
+        layer = None
+    from gi.repository import Gdk, Gio, GLib, Gtk, JavaScriptCore, Soup, WebKit
+
+    return Gdk, Gio, GLib, Gtk, JavaScriptCore, Soup, WebKit, layer
+
+
+class LaptopHome:
+    def __init__(self, gui, root, cached, helper, sample_power):
+        self.Gdk, self.Gio, self.GLib, self.Gtk, self.JSC, self.Soup, self.WebKit, self.layer = gui
+        self.resources = Resources(root)
+        self.state = {'home': cached, 'programs': [], 'running': [], 'status': NO_BATTERY, 'helper': False}
+        self.helper, self.sample_power = helper, sample_power
+        self.peer, self.key, self.ready = None, None, False
+        self.initial_lookup, self.filter_ready, self.shown = False, False, False
+
+    def publish(self, peer, changed, icons):
+        self.peer = peer
+        if icons is not None:
+            self.resources.icons = icons
+        self.update(changed)
+        if 'helper' in changed:
+            self.initial_lookup = True
+            if self.filter_ready:
+                self.show_page()
+
+    def update(self, changed):
+        events = [name for name, value in changed.items() if self.state[name] != value]
+        self.state.update(changed)
+        if self.ready and events:
+            self.emit(events)
+
+    def emit(self, events):
+        if self.view.get_uri() == PAGE:
+            details = json.dumps([self.state, events])
+            script = f'window.dispatchEvent(new CustomEvent({json.dumps(self.key)}, {{detail: {details}}}))'
+            self.view.evaluate_javascript(script, -1)
+
+    def message(self, _manager, value, reply):
+        def finish(result):
+            reply.return_value(self.JSC.Value.new_from_json(value.get_context(), json.dumps(result)))
+
+        try:
+            message = json.loads(value.to_json(0))
+        except (TypeError, ValueError):
+            message = None
+        if not isinstance(message, dict) or self.view.get_uri() != PAGE or message.get('key') != self.key:
+            reply.return_error_message('Bridge unavailable')
+        elif message.get('op') == 'ready':
+            self.ready = True
+            self.emit(['home', 'programs', 'running', 'status', 'helper'])
+            finish(None)
+        elif message.get('op') == 'open':
+            app_id = message.get('id')
+            if self.peer is None or not self.ready:
+                finish(UNAVAILABLE)
+            elif valid_id(app_id):
+                self.helper.open(self.peer, app_id, finish)
+            else:
+                finish({'state': 'failed', 'message': 'No such app'})
+        else:
+            reply.return_error_message('Bridge unavailable')
+        return True
+
+    def resource(self, request):
+        try:
+            mime, data = self.resources.read(request.get_uri())
+        except (OSError, ValueError):
+            request.finish_error(self.GLib.Error.new_literal(self.Gio.io_error_quark(), 'Resource refused',
+                                                             self.Gio.IOErrorEnum.PERMISSION_DENIED))
+            return
+        response = self.WebKit.URISchemeResponse.new(
+            self.Gio.MemoryInputStream.new_from_bytes(self.GLib.Bytes.new(data)), len(data))
+        headers = self.Soup.MessageHeaders.new(self.Soup.MessageHeadersType.RESPONSE)
+        headers.append('Content-Type', mime)
+        headers.append('X-Content-Type-Options', 'nosniff')
+        headers.append('Access-Control-Allow-Origin', f'{SCHEME}://page')
+        headers.append('Cache-Control', 'no-store')
+        response.set_http_headers(headers)
+        response.set_content_type(mime)
+        response.set_status(200, None)
+        request.finish_with_response(response)
+
+    def decide(self, _view, decision, kind):
+        if kind == self.WebKit.PolicyDecisionType.NAVIGATION_ACTION:
+            uri = decision.get_navigation_action().get_request().get_uri()
+            if uri == PAGE:
+                decision.use()
+                return True
+        elif kind == self.WebKit.PolicyDecisionType.RESPONSE:
+            if (decision.get_request().get_uri() == PAGE and decision.is_mime_type_supported()
+                    and decision.is_main_frame_main_resource()):
+                decision.use()
+                return True
+        decision.ignore()
+        return True
+
+    def create_view(self):
+        WebKit = self.WebKit
+        context = WebKit.WebContext.new()
+        security = context.get_security_manager()
+        security.register_uri_scheme_as_secure(SCHEME)
+        security.register_uri_scheme_as_cors_enabled(SCHEME)
+        context.register_uri_scheme(SCHEME, self.resource)
+        session = WebKit.NetworkSession.new_ephemeral()
+        session.connect('download-started', lambda _session, download: download.cancel())
+        settings = WebKit.Settings(enable_developer_extras=False, javascript_can_open_windows_automatically=False,
+                                   enable_media_stream=False, enable_media=False,
+                                   enable_webrtc=False, allow_modal_dialogs=False)
+        features = settings.get_all_features()
+        for index in range(features.get_length()):
+            feature = features.get(index)
+            if feature.get_identifier() in ('LinkPreconnect', 'LinkPreconnectEarlyHints', 'LinkPrefetch',
+                                            'SpeculationRulesPrefetch', 'ServiceWorkers', 'WebShare', 'WebSocket',
+                                            'WebTransport'):
+                settings.set_feature_enabled(feature, False)
+        self.manager = WebKit.UserContentManager.new()
+        self.manager.connect('script-message-with-reply-received::laptopHome', self.message)
+        self.manager.register_script_message_handler_with_reply('laptopHome')
+        self.view = WebKit.WebView(web_context=context, network_session=session, settings=settings,
+                                   user_content_manager=self.manager, default_content_security_policy=CSP)
+        self.view.connect('decide-policy', self.decide)
+        self.view.connect('context-menu', lambda *_: True)
+        self.view.connect('permission-request', self.deny_permission)
+        self.view.connect('run-file-chooser', self.cancel_chooser)
+        self.view.connect('load-changed', self.load_changed)
+        self.view.connect('create', lambda *_: None)
+
+    @staticmethod
+    def deny_permission(_view, request):
+        request.deny()
+        return True
+
+    @staticmethod
+    def cancel_chooser(_view, request):
+        request.cancel()
+        return True
+
+    def load_changed(self, _view, event):
+        if event == self.WebKit.LoadEvent.STARTED:
+            self.ready = False
+
+    def load_page(self, store, result):
+        try:
+            self.manager.add_filter(store.save_finish(result))
+        except self.GLib.Error:
+            print('aresos-laptop-home: could not install the resource filter', file=sys.stderr)
+            self.failed = True
+            self.app.quit()
+            return
+        self.filter_ready = True
+        if self.initial_lookup:
+            self.show_page()
+        else:
+            # Give the first running-app report a chance to reach the page before its first draw.
+            self.GLib.timeout_add(500, self.show_page)
+
+    def show_page(self):
+        if self.shown:
+            return
+        self.shown = True
+        self.key = secrets.token_hex(24)
+        js = (f'const PAGE = {json.dumps(PAGE)}, KEY = {json.dumps(self.key)}, '
+              f'INITIAL = {json.dumps(self.state)};\n{BRIDGE}')
+        # Keep the capability in the closure of this script, including its bootstrap constants.
+        js = '{\n' + js + '\n}'
+        self.manager.add_script(self.WebKit.UserScript.new(
+            js, self.WebKit.UserContentInjectedFrames.TOP_FRAME,
+            self.WebKit.UserScriptInjectionTime.START, [PAGE], None))
+        self.view.load_uri(PAGE)
+        self.window.present()
+
+    def start_power(self):
+        def sample():
+            result = self.sample_power()
+            self.GLib.idle_add(self.update, {'status': result})
+
+        def poll():
+            threading.Thread(target=sample, daemon=True).start()
+            return True
+
+        poll()
+        self.GLib.timeout_add_seconds(30, poll)
+
+    def activate(self, app, select_monitor, filter_dir):
+        display = self.Gdk.Display.get_default()
+        monitor = select_monitor(display.get_monitors()) if display else None
+        if monitor is None:
+            print('aresos-laptop-home: laptop display unavailable', file=sys.stderr)
+            self.failed = True
+            app.quit()
+            return
+        self.window = self.Gtk.ApplicationWindow(application=app)
+        place_window(self.window, monitor, self.layer)
+        self.create_view()
+        self.window.set_child(self.view)
+        self.helper.start()
+        self.window.connect('notify::is-active', self.focus_changed)
+        self.start_power()
+        store = self.WebKit.UserContentFilterStore.new(filter_dir)
+        store.save('laptop-home', self.GLib.Bytes.new(json.dumps(FILTER).encode()), None, self.load_page)
+
+    def focus_changed(self, window, _property):
+        self.helper.focus_changed(window.is_active())
+
+    def run(self, runtime, select_monitor=laptop_monitor):
+        self.failed = False
+        self.app = self.Gtk.Application(application_id=APP_ID, flags=self.Gio.ApplicationFlags.NON_UNIQUE)
+        self.GLib.unix_signal_add(self.GLib.PRIORITY_DEFAULT, signal.SIGTERM, self.app.quit)
+        with tempfile.TemporaryDirectory(prefix='laptop-home-', dir=runtime) as filter_dir:
+            self.app.connect('activate', self.activate, select_monitor, filter_dir)
+            try:
+                result = self.app.run([])
+            finally:
+                if hasattr(self.helper, 'thread'):
+                    self.helper.stop()
+        return 1 if self.failed else result
+
+
+def run(token, *, root=PAGE_ROOT, select_monitor=laptop_monitor, sample_power=None):
+    runtime = os.environ.get('XDG_RUNTIME_DIR', '')
+    if not os.path.isabs(runtime):
+        print('aresos-laptop-home: runtime directory unavailable', file=sys.stderr)
+        return 1
+    path = Path(os.environ.get('XDG_STATE_HOME') or Path.home() / '.local/state') / 'aresos/laptop-home/home.json'
+    socket_path = os.environ.pop('ARESOS_SHELL_SOCKET', '') or os.path.join(runtime, 'aresos/shell.sock')
+    instance = os.environ.pop('ARESOS_DESKTOP_INSTANCE', '')
+    os.environ.pop('ARESOS_LAUNCH_NONCE', None)
+    try:
+        gui = load_gui()
+    except (ImportError, ValueError):
+        print('aresos-laptop-home: GTK or WebKit unavailable', file=sys.stderr)
+        return 1
+    _, Gio, GLib, *_ = gui
+    home = LaptopHome(gui, root, load_home(path), None, sample_power or (lambda: power_status(Gio, GLib)))
+    home.helper = HelperView(socket_path, instance, token, path, home.publish, GLib.idle_add)
+    return home.run(runtime, select_monitor)
+
+
+if __name__ == '__main__':
+    sys.exit(run(take_token()))

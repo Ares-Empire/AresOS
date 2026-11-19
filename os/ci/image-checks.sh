@@ -678,6 +678,14 @@ PY
 font=$(runuser -u ares -- env -i HOME=/tmp PATH=/usr/bin /usr/bin/fc-match --format '%{file}' 'Space Grotesk:bold')
 test "$font" = /usr/share/fonts/aresos/SpaceGrotesk-Variable.ttf
 pass "the startup cover is installed and loads GTK 4 as ares; fontconfig finds Space Grotesk ($font); its labwc rule is set"
+# Package 53c: import the laptop home's engine without a display in the built image.
+runuser -u ares -- env -i HOME=/tmp PATH=/usr/bin /usr/bin/python3 - <<'PY'
+import gi
+gi.require_version('WebKit', '6.0')
+from gi.repository import WebKit
+print('LAPTOP_HOME_WEBKIT', WebKit.get_major_version(), WebKit.get_minor_version(), WebKit.get_micro_version())
+PY
+pass 'the laptop home can import WebKitGTK 6.0 from Python'
 # Super+Ctrl+Escape opens the recovery terminal, then ends the cover through the supervisor (PLAN-GAP 2). The
 # supervisor takes the command as ares; with no supervisor running here it says so and exits 1.
 python3 - <<'PY'

@@ -405,7 +405,8 @@ helper that does not know them works as today.
   - **Connections.** A same-name hello replaces only that view. A fifth distinct connected view gets `busy`.
     View hello leaves the desktop connection, window rules, pending returns and status pipe alone. Only the
     desktop counts for readiness.
-  - A view may send `hello`, `list_apps`, `open_app` and `get_home`. Any other operation gets `invalid_state`.
+  - A view may send `hello`, `list_apps`, `open_app`, `get_home` and `view_focus`. Any other operation gets
+    `invalid_state`.
     A successful hello advertises the catalogue, launch and 1.2 view capabilities to a view. It gets
     `apps_changed`, `home_changed`, `apps_running` and `app_state` for its own launches. The desktop gets
     `shell_focus` and `shell_covered` under its existing capability rules.
@@ -421,6 +422,11 @@ helper that does not know them works as today.
     outputs and carries the decision through the discovered-app delay. The closing window's location decides,
     including after a move and regardless of who opened the app. With unknown outputs, one screen or no view,
     the existing return applies. An actual compositor activation of the world still reaches the game.
+- **`view_focus`** (view to helper, under `views`). A view sends `{"op": "view_focus", "focused": true}` when it
+  gets the keyboard, sends `false` when it loses it, and reports its current state after each hello. The helper
+  acknowledges the report. A non-boolean or missing `focused` gets `malformed`. A desktop gets `invalid_state`.
+  While any connected view has the keyboard, app closes leave focus there. A disconnect releases that view's
+  focus record. App deactivation alone preserves eligibility for a return when its last window closes.
 - **`publish_home`** (minor-2 desktop to helper). The mod sends it after hello and after every change of My apps,
   a short name, a place, a hotbar slot or a logo. Example fields inside the request envelope:
 
@@ -491,6 +497,8 @@ restarts (with each new game start), opening is off for those seconds, as above.
     `ToggleAlwaysOnBottom`.
   - The helper must then leave that app-id out of covering, of the return of focus and of the list of unknown
     windows, as it does for `aresos.cover`, and the window program must refuse to close.
+  - Mapping the fullscreen fallback can take keyboard focus from the world. Package 23c's unattended restart
+    rule must account for this when the fallback is in use.
 - **From the world to the laptop home.** While the world on the monitor has the focus, the game holds the pointer
   and the keyboard (package 40: it lets go of the mouse only while an app is in front). So from inside the world
   he presses Esc (or E, or T), moves the pointer down to the laptop screen and clicks. From an app the pointer is
