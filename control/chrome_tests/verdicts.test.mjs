@@ -30,7 +30,26 @@ const support=['FEATURE tools forms options find wait fill_form scroll and full 
   'READ BRIEF28 a listed frame navigation refuses the asking read before values',
   'READ BRIEF28 a listed field made password refuses the asking read before values',
   'READ BRIEF28 a listed field masked refuses the asking read before values',
-  'READ BRIEF28 altered asking questions and field lists read no value'];
+  'READ BRIEF28 altered asking questions and field lists read no value',
+  'ACT BRIEF28A the steps as defined give every outcome and a list failing at its third step keeps its two operations',
+  'ACT BRIEF28A nothing unseen is overwritten and a fill then Enter on the same field runs without a read',
+  'ACT BRIEF28A the look between steps stops at a held page submission a dialog and a new document',
+  'ACT BRIEF28A a form too large to ask about is refused with its advice and its page submission stays stopped',
+  'ACT BRIEF28A steps land far below the fold and in a scrolled box and a scroll handler submission is asked',
+  'ACT BRIEF28A the fingerprint refuses a changed element with its present line and keeps unchanged ones acting',
+  'ACT BRIEF28A hostile text stays quoted in a change report and in a stale present line',
+  'ACT BRIEF28A loaded holds for a fragment and a single page back without a new document and a reload waits for its document',
+  'ACT BRIEF28A the read-only site refuses every acting step and still allows wait and scrolling',
+  'ACT BRIEF28A addresses hold no sign-in in any result question stage notice or log line and the full address still reaches the page',
+  'ACT BRIEF28A staged waits carry a list across the cut-off through the proxy and no input is dispatched after 12 seconds',
+  'ACT BRIEF28A twenty fills through the command end by their deadline and the fixture counts exactly the fills that ran',
+  'ACT BRIEF28A a caller killed during a list leaves no later input and the next call works',
+  'ACT BRIEF28A chrome_tabs marks a tab that plays sound',
+  'ACT BRIEF28A closing takes one tab per flag and a taken tab stays his',
+  'ACT BRIEF28A a tab list binds his tab and a tab moved on or an old list is refused while the listed address still opens',
+  'ACT BRIEF28A the asking read on the new list shows typed fields unread and returns exactly the approved fields whose refs stay unread',
+  'ACT BRIEF28A a popup a step opened is named in its step',
+  'ACT BRIEF28A a reference from another tab and references and lists from before a restart are refused for an action'];
 const complete=()=>[...Object.values(REQUIRED).flat(),...support].map(name=>({name,passed:true}));
 const baseline={owner:true,forgery:true,isolation:true,residual:true};
 const adapters=Object.fromEntries(['gmail','whatsapp','github','bank','gemini','deezer'].map(name=>[name,true]));
@@ -83,7 +102,7 @@ test('unmapped additional checks fail closed until explicitly assigned to record
 });
 
 test('every named core popup and adapter case is in the exact required inventory',()=>{
-  const names=['control/chrome/ci/matrices.mjs','control/chrome/ci/destination-matrix.mjs','control/chrome/ci/late-reader-matrix.mjs','control/chrome/ci/late-binding-matrix.mjs','control/chrome/ci/animated-default-matrix.mjs','control/chrome/ci/outline-read.mjs','control/chrome/ci/outline-asking.mjs','control/chrome/ci/unread-matrix.mjs','control/chrome/ci/review-matrices.mjs','control/chrome/ci/recheck2-matrices.mjs','control/chrome/ci/recheck3-matrices.mjs','control/chrome/ci/popups.mjs','control/chrome/ci/sites/matrices.mjs'].flatMap(file=>
+  const names=['control/chrome/ci/matrices.mjs','control/chrome/ci/destination-matrix.mjs','control/chrome/ci/late-reader-matrix.mjs','control/chrome/ci/late-binding-matrix.mjs','control/chrome/ci/animated-default-matrix.mjs','control/chrome/ci/outline-read.mjs','control/chrome/ci/outline-asking.mjs','control/chrome/ci/unread-matrix.mjs','control/chrome/ci/review-matrices.mjs','control/chrome/ci/recheck2-matrices.mjs','control/chrome/ci/recheck3-matrices.mjs','control/chrome/ci/popups.mjs','control/chrome/ci/act-matrix.mjs','control/chrome/ci/sites/matrices.mjs'].flatMap(file=>
     [...fs.readFileSync(file,'utf8').matchAll(/await check\('([^']+)'/g)].flatMap(match=>match[1]==='GROUP 10 adapter '?['gmail','whatsapp','github','gemini','deezer'].map(site=>match[1]+site):[match[1]]));
   assert.deepEqual([...names].sort(),[...Object.values(REQUIRED).flat(),...SUPPORT].sort());
   assert.equal(verdicts(complete(),baseline,adapters).groups[12],false);

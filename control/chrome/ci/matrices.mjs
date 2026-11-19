@@ -17,6 +17,7 @@ import {recheck3Matrices} from './recheck3-matrices.mjs';
 import {recheck2Matrices} from './recheck2-matrices.mjs';
 import {reviewMatrices} from './review-matrices.mjs';
 import {popupMatrices} from './popups.mjs';
+import {actMatrix} from './act-matrix.mjs';
 import {collectSiteResults} from './site-results.mjs';
 import {receiverSnapshot} from './receiver-evidence.mjs';
 import {allTabs} from './tabs.mjs';
@@ -77,6 +78,9 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,setTa
   if(runs('recheck2'))await recheck2Matrices({check:inBlock('recheck2'),nav,call,rpc,target,approval,receiverEvidence,fixture,eventually,getTab:()=>tab,setTab,nativeDonor,closeNativeDonor,ownerKey,lifecycle,restoreControl});
   if(runs('review'))await reviewMatrices({check:inBlock('review'),nav,call,rpc,target,read,counts,eventually,approval,receiverEvidence,fixture,getTab:()=>tab,setTab,ownerKey,ownerType,ownerChooseFile,admin,ownerNavigate,ownerDismiss,nativeDonor,closeNativeDonor,lifecycle});
   if(runs('recheck2'))await popupMatrices({check:inBlock('recheck2'),call,rpc,nav,counts,eventually,getTab:()=>tab,setTab,fixture,ownerOpenPopup,popupEvidence,popupControl,approval});
+  // Brief 28a, groups 14 and 15 (act-matrix.mjs): the new tools, at the end of the recheck2 shard, the
+  // shortest of the long shards; its last case restarts the service and Chrome.
+  if(runs('recheck2'))await actMatrix({check:inBlock('recheck2'),call,rpc,nav,counts,eventually,fixture,admin,lifecycle,restoreControl,ownerNavigate,ownerType,ownerKey,getTab:()=>tab,setTab});
   await check('GROUP 7 native compatibility inside and outside Claude tabs',async()=>{
     await nav('native-compat&id=controlled');
     const controlled=await measureCompatibility({id:'controlled',fixture,eventually,start:async()=>call('click',await target('Continue'))});

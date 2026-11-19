@@ -6,6 +6,7 @@ import {passwordPage} from './password-fixtures.mjs';
 import {unreadPage} from './unread-fixtures.mjs';
 import {reviewPage} from './review-fixtures.mjs';
 import {efficiencyPage} from './efficiency-fixtures.mjs';
+import {actPage} from './act-fixtures.mjs';
 import {outlinePage} from './outline-fixtures.mjs';
 // A React-style controlled field: the page keeps its default (the value
 // attribute) in step with every edit, as React does, and Continue resets both.
@@ -61,6 +62,7 @@ export async function fixtures(options={}) {
     let body,script='';
     if(kind==='latency'){body='<textarea aria-label="Draft">Synthetic latency draft</textarea><button type="button">Continue</button><button type="button">Send</button>';script="document.querySelectorAll('button')[0].onclick=()=>{if(navigator.clipboard)navigator.clipboard.writeText('Synthetic latency clipboard').catch(()=>{});};document.querySelectorAll('button')[1].onclick=()=>{const draft=document.querySelector('textarea');fetch('/receive?case=latency-'+"+JSON.stringify(url.searchParams.get('id'))+",{method:'POST',body:draft.value});draft.defaultValue='';draft.value='';};";}
     else if(kind==='destination-sink'){res.end(page('<p>Destination sink</p>'));return;}
+    else if(kind.startsWith('act-')){const act=actPage(url);if(!act){res.writeHead(404);res.end('Unknown act fixture');return;}({body,script}=act);}
     else if(kind.startsWith('efficiency-')){const efficiency=efficiencyPage(url);if(!efficiency){res.writeHead(404);res.end('Unknown efficiency fixture');return;}({body,script}=efficiency);}
     else if(kind.startsWith('outline-')||kind==='password-outline'){const outline=outlinePage(url);if(!outline)throw Error('Unknown outline fixture');({body,script}=outline);}
     else if(kind==='review-page'){const review=reviewPage(url);if(!review)throw Error('Unknown review fixture');({body,script}=review);}
@@ -277,10 +279,11 @@ export async function fixtures(options={}) {
     } else {res.statusCode=404;res.end('Unknown synthetic fixture');return;}
     // Only the asking parent mutates. Its child shares the reporting id and
     // would otherwise replace the parent's SSE with a handler that has no reviewChange.
-    const mutationId=!lateBindingChild&&!(kind==='password-outline'&&url.searchParams.get('mode')==='child')&&(['outline-state','password-outline','review-page','binding','page-dialog','upload','draft-inner','stop-modal'].includes(kind)||kind==='efficiency-h1'&&url.searchParams.get('id')||kind==='password-unread'&&url.searchParams.get('mode')==='late'||kind==='site'&&url.searchParams.get('id')?.startsWith('adapter-bind-'))?url.searchParams.get('id'):null;
+    const mutationId=!lateBindingChild&&!(kind==='password-outline'&&url.searchParams.get('mode')==='child')&&(['outline-state','password-outline','review-page','binding','page-dialog','upload','draft-inner','stop-modal'].includes(kind)||kind==='efficiency-h1'&&url.searchParams.get('id')||['act-f4','act-address','act-stage'].includes(kind)&&url.searchParams.get('id')||kind==='password-unread'&&url.searchParams.get('mode')==='late'||kind==='site'&&url.searchParams.get('id')?.startsWith('adapter-bind-'))?url.searchParams.get('id'):null;
     if(mutationId)script+=`;new EventSource('/events?id='+${JSON.stringify(mutationId)}).onmessage=event=>{
       const mutation=JSON.parse(event.data),change=mutation.change,form=document.querySelector('form'),button=document.querySelector('button');
       if(change==='review-change')globalThis.reviewChange();
+      if(change.startsWith('act-'))globalThis.actChange(change);
       if(change==='label')button.textContent='Changed label';
       if(change==='element')button.replaceWith(button.cloneNode(true));
       if(change==='visible')document.querySelector('[name=visible]').value='Changed visible';
