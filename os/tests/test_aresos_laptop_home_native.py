@@ -6,6 +6,7 @@ from pathlib import Path
 import shutil
 import threading
 import time
+from types import SimpleNamespace
 import unittest
 
 from laptop_home_headless import ROOT, Headless, layer_library, load_program, needs, needs_headless, scratch, wait_for
@@ -598,6 +599,62 @@ class IconWorkerTest(unittest.TestCase):
         self.assertTrue(worker.step(block=False))
         self.assertEqual(decoded, ['/a.png', '/b.png', '/broken.png', '/broken.png'])
 
+
+    def test_clearing_the_finder_drops_the_icon_in_flight(self):
+        """REVIEW-2 finding 3: with no rows and nothing queued, the home did not tell the worker, which then kept the
+        last icon decoding when the finder was cleared."""
+        later, redraws = [], []
+        worker = program.IconWorker(lambda path: f'picture {path}', later.append, start=lambda _target: None)
+        # The home's own load_icons and icon_ready, on a stand-in for the rest of the home.
+        home = SimpleNamespace(icons={'a': '/a.png'}, icon_paths={}, icon_worker=worker,
+                               painter=SimpleNamespace(icons={}), redraw=redraws.append)
+
+        def draw(*shown):
+            program.LaptopHome.load_icons(home, {'finder': {'rows': [dict(id=app_id, has_icon=True)
+                                                                     for app_id in shown]}})
+
+        draw('a')
+        self.assertTrue(worker.step(block=False))   # 'a' is decoding
+        draw()   # the finder is cleared before it comes back
+        program.LaptopHome.icon_ready(home, later.pop())
+        self.assertEqual((home.painter.icons, home.icon_paths, redraws), ({}, {}, []))
+        draw('a')   # typed again: decoded anew and kept
+        self.assertTrue(worker.step(block=False))
+        program.LaptopHome.icon_ready(home, later.pop())
+        self.assertEqual((home.painter.icons, home.icon_paths, redraws), ({'a': 'picture /a.png'}, {'a': '/a.png'},
+                                                                         ['icon']))
+
+    def test_a_failure_from_before_a_new_catalogue_never_blocks_a_retry(self):
+        """REVIEW-2 finding 3: a failure that came back after a catalogue refresh was remembered against the new
+        catalogue. Failures now count per catalogue generation."""
+        decoded, later = [], []
+
+        def decode(path):
+            decoded.append(path)
+            raise OSError('icon unreadable')
+
+        worker = program.IconWorker(decode, later.append, start=lambda _target: None)
+        worker.show([('c', '/c.png')], lambda *_: False)
+        worker.step(block=False)   # decoding against the first catalogue
+        worker.forget_failures()   # a new catalogue arrives meanwhile
+        worker.show([('c', '/c.png')], lambda *_: False)
+        self.assertFalse(worker.step(block=False), 'still decoding: not queued twice')
+        self.assertEqual(later.pop()(), (None, None))
+        self.assertTrue(worker.step(block=False), 'tried again against the new catalogue, its row still shown')
+        self.assertEqual(later.pop()(), (None, None))
+        worker.show([('c', '/c.png')], lambda *_: False)
+        self.assertFalse(worker.step(block=False), 'a failure against the current catalogue waits for the next')
+        # The same while the row is not shown when the old failure comes back: no retry until it is shown again.
+        worker.forget_failures()
+        worker.show([('c', '/c.png')], lambda *_: False)
+        worker.step(block=False)
+        worker.forget_failures()
+        worker.show([], lambda *_: False)
+        self.assertEqual(later.pop()(), (None, None))
+        self.assertFalse(worker.step(block=False))
+        worker.show([('c', '/c.png')], lambda *_: False)
+        self.assertTrue(worker.step(block=False))
+        self.assertEqual(decoded, ['/c.png'] * 4)
 
 def pixel(photo, x, y):
     return photo.getpixel((int(x), int(y)))[:3]

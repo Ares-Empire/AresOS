@@ -2231,9 +2231,10 @@ SETTLE_MS = 2000
 
 
 class IconWorker:
-    """One thread decodes the finder's icons, one at a time. Only the rows shown now are wanted: each new set of rows
-    replaces the queue (at most the five rows), a result for a row no longer shown is dropped, and a failed icon is
-    not tried again until the catalogue changes."""
+    """One thread decodes the finder's icons, one at a time. Only the rows shown now are wanted: each draw's rows
+    replace the queue (at most the five rows; none once the finder is cleared), a result for a row no longer shown
+    is dropped, and a failed icon is not tried again until the catalogue changes. Failures count per catalogue
+    generation: one that comes back from before a new catalogue is tried again against it."""
 
     def __init__(self, decode, deliver, start=None):
         # decode(path) -> surface, on the worker; deliver(callback) runs callback on the GTK thread.
@@ -2241,7 +2242,7 @@ class IconWorker:
         self.start = start or (lambda target: threading.Thread(target=target, daemon=True).start())
         self.condition = threading.Condition()
         self.wanted, self.shown, self.pending, self.failed = [], {}, set(), set()
-        self.started = False
+        self.started, self.generation = False, 0
 
     def show(self, rows, held):
         """rows: (app id, icon path) for the rows shown now; held(app id, path) is whether its picture is kept."""
@@ -2256,7 +2257,9 @@ class IconWorker:
                 self.condition.notify()
 
     def forget_failures(self):
+        """A new catalogue: icons that failed may work now."""
         with self.condition:
+            self.generation += 1
             self.failed.clear()
 
     def run(self):
@@ -2271,21 +2274,28 @@ class IconWorker:
                 self.condition.wait()
             job = self.wanted.pop(0)
             self.pending.add(job)
+            generation = self.generation
         try:
             surface = self.decode(job[1])
         except (OSError, ValueError, subprocess.SubprocessError):
             surface = None   # the row keeps its plain square
-        self.deliver(lambda: self.finish(job, surface))
+        self.deliver(lambda: self.finish(job, surface, generation))
         return True
 
-    def finish(self, job, surface):
-        """On the GTK thread: (job, surface) to keep, or (None, None) for a failure (remembered) or a row no longer
-        shown (dropped)."""
+    def finish(self, job, surface, generation):
+        """On the GTK thread: (job, surface) to keep, or (None, None) for a failure or a row no longer shown
+        (dropped). A failure is remembered only against the catalogue it was tried with; one from an older
+        catalogue is queued again while its row is shown."""
         with self.condition:
             self.pending.discard(job)
+            shown = self.shown.get(job[0]) == job[1]
             if surface is None:
-                self.failed.add(job)
-            elif self.shown.get(job[0]) == job[1]:
+                if generation == self.generation:
+                    self.failed.add(job)
+                elif shown and job not in self.wanted:
+                    self.wanted.append(job)
+                    self.condition.notify()
+            elif shown:
                 return job, surface
             return None, None
 
@@ -2494,8 +2504,8 @@ class LaptopHome:
         """Ask for the icons of the finder's rows shown now; one worker decodes them off the GTK thread."""
         rows = [(row['id'], self.icons[row['id']]) for row in scene['finder']['rows']
                 if row['has_icon'] and self.icons.get(row['id'])]
-        if rows or self.icon_worker.wanted:
-            self.icon_worker.show(rows, lambda app_id, path: self.icon_paths.get(app_id) == path)
+        # Every draw, also with no rows: a cleared finder must drop the icon still being decoded.
+        self.icon_worker.show(rows, lambda app_id, path: self.icon_paths.get(app_id) == path)
 
     def icon_ready(self, finish):
         job, surface = finish()
