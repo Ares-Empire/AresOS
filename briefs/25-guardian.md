@@ -340,3 +340,7 @@ it changes the same file, so keep your code in functions of its own and do not r
 coordinator: block inhibitors on shutdown, "close your apps first", the battery, `request_power`. A mod-side
 `prepare_stop` or close acknowledgement (the follow-up that would certify the close; `linux-hub`'s), and anything
 under `mod/`. The owner tools and the `aresos` command. A shutdown button in the hub.
+
+**The lead's call on the worst case (2026-11-19):** the game's scope gets `TimeoutStopSec=15s` (one property in
+`game_scope()`), so a game that ignores SIGTERM after the guard has ended does not keep a closed laptop on for
+systemd's default 90 s. The VM prints the effective limit.
