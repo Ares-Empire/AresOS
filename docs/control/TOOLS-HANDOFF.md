@@ -47,8 +47,8 @@ Ares-Empire/AresOS --interval 300` in a background shell.
      find at 218.5/291.4 ms against a 207.3 ms median ceiling, so the fingerprint hashing got cheaper; recheck2's
      empty-owner-page fixture fixed.
    - **19:35 (after a clear): green on `18fadda2`**, Chrome 44505065741 and qualification 44505070907, every job.
-     Base 44588323576, Mail 44588330029 and privacy 44588336857 dispatched on `d42d1890`. **Codex Sol xhigh
-     `28a-1d2-gaps` running** (prompt `~/codex-queue/linux-tools/28a-1d2-gaps.txt`, log `~/AresOS-28a-1d2-gaps.log`):
+     Base 44588323576, Mail 44588330029 and privacy 44588336857 dispatched on `d42d1890`. **Codex gpt-6.2-sol xhigh
+     `28a-1d2-gaps-b` running** (prompt `~/codex-queue/linux-tools/28a-1d2-gaps.txt`, log `~/AresOS-28a-1d2-gaps-b.log`):
      the four browser cases part 2 left unproven (an input held back at seconds 11 to 13, through an instrumented
      test build only; the owner typing with real keys during a step; muted playback; an `unknown` outcome with its
      shape). It pushes, dispatches Chrome and qualification once and stops; read those runs. Then step 2
