@@ -1915,3 +1915,32 @@ test('28a 6: show brings the tab and its window to the front and refuses only an
   assert.deepEqual(plain(f,'shown'),[['tab',7,{active:true}],['window',3,{focused:true}]],'any tab, also one Claude never reads');
   await assert.rejects(f.run("dispatch({name:'show',tab:8})"),/refused: no tab has this number/);
 });
+
+// Brief 28a, item 6: chrome_take without reload reports what the guarded
+// reload would lose. loss_report runs requireDiscard's checks on the same
+// frames (the reader's, plus the uncovered count) and does nothing else.
+test('28a 6: loss_report gives the first input\'s report read only: his typing, Claude\'s, media and uninspected frames',async()=>{
+  const f=fixture();
+  f.run(`excludedHosts=[];controlled.set(7,{epoch:'epoch',popupNeedsReload:true});requireTab=async()=>({});globalThis.posted=[];port={postMessage:message=>posted.push(message)};
+    globalThis.asked=[];globalThis.native=[];globalThis.needsReload=true;
+    facts=async()=>({needs_reload:needsReload,frames:[{frame:0,url:'http://fixture.test/'},{frame:3,url:'http://fixture.test/child'},{frame:4,url:'http://fixture.test/gone'}],uncovered:[{frame:5,eligible:true}]});
+    content=async(tab,frame,command)=>{asked.push([frame,command]);if(frame===4)throw Error('no reader');
+      return frame===0?{unsaved:true,fields:[{description:${JSON.stringify('field "'+HOSTILE+'"')},by:'owner'}],claude_only:false,playing:false}:{unsaved:true,fields:[{description:'field "Search"',by:'claude'}],claude_only:true,playing:false};};
+    chrome.tabs.get=async()=>({audible:true});cdp=async(tab,method)=>{native.push(method);return {};};reloadChecked=async()=>{native.push('reloadChecked');};`);
+  const hostile='field "'+HOSTILE+'"';
+  f.run("enqueue({id:'native-1',command:{name:'loss_report',tab:7}})");
+  await spin(f,'posted.length===1');
+  const reply=JSON.parse(JSON.stringify(f.run('posted[0]')));
+  assert.equal(reply.ok,true,'a report, not a refusal');
+  assert.deepEqual(reply.data,{reload_due:true,loss:report('first_input',{fields:[owner(hostile),claude('field "Search"')],frames:2,media:true})},
+    'his typing, Claude\'s own, playing media, a frame without a reader and an uncovered frame');
+  assert.deepEqual(plain(f,'asked'),[[0,'reload_state'],[3,'reload_state'],[4,'reload_state']],'each frame is asked what it holds, nothing else');
+  assert.deepEqual(plain(f,'native'),[],'nothing reloads, navigates or is dispatched');
+  assert.equal(f.run('effectStarted'),false);assert.equal(f.run('controlled.get(7).popupNeedsReload'),true,'the reload is still due');
+  // A tab whose reload isn't due asks no frame; one that loses nothing gives an empty report.
+  f.run('needsReload=false;asked.length=0');
+  assert.deepEqual(JSON.parse(JSON.stringify(await f.run("dispatch({name:'loss_report',tab:7})"))),{reload_due:false});assert.deepEqual(plain(f,'asked'),[]);
+  f.run("needsReload=true;facts=async()=>({needs_reload:true,frames:[{frame:0,url:'http://fixture.test/'}],uncovered:[]});content=async()=>({unsaved:false,fields:[],playing:false});chrome.tabs.get=async()=>({audible:false})");
+  assert.deepEqual(JSON.parse(JSON.stringify(await f.run("dispatch({name:'loss_report',tab:7})"))),{reload_due:true,loss:report('first_input')});
+  assert.deepEqual(plain(f,'native'),[]);
+});

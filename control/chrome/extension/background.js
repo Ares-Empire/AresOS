@@ -717,8 +717,10 @@ function distinctDescriptions(fields){
   }
   return fields;
 }
-async function requireDiscard(tab,command,act,frames,uninspected=0){
-  if(command.discard_unsaved===true)return;
+// The report itself, read only: it discards, reloads and dispatches nothing.
+// requireDiscard refuses with it; chrome_take without reload returns it
+// (`loss_report`, brief 28a item 6), so Claude sees what a reload would lose.
+async function discardReport(tab,act,frames,uninspected=0){
   const fields=[];let media=!!(await chrome.tabs.get(tab)).audible;
   for(const frame of frames){
     try{const state=await content(tab,frame.frameId,'reload_state');
@@ -730,9 +732,14 @@ async function requireDiscard(tab,command,act,frames,uninspected=0){
     // A tab Claude just opened shows about:blank with no reader; it holds nothing.
     catch(error){if(!(error.readerUnavailable&&frame.frameId===0&&frame.url==='about:blank'))uninspected++;}
   }
-  if(!fields.length&&!uninspected&&!media)return;
+  return {act,fields:distinctDescriptions(fields).slice(0,LOSS_FIELDS),more_fields:Math.max(0,fields.length-LOSS_FIELDS),frames_uninspected:uninspected,media};
+}
+async function requireDiscard(tab,command,act,frames,uninspected=0){
+  if(command.discard_unsaved===true)return;
+  const report=await discardReport(tab,act,frames,uninspected);
+  if(!report.fields.length&&!report.frames_uninspected&&!report.media)return;
   const error=Error('reload_required');
-  error.loss={act,fields:distinctDescriptions(fields).slice(0,LOSS_FIELDS),more_fields:Math.max(0,fields.length-LOSS_FIELDS),frames_uninspected:uninspected,media};
+  error.loss=report;
   throw error;
 }
 async function reloadChecked(tab,initial,command){
@@ -1188,6 +1195,13 @@ async function dispatch(command,expires=null) {
     return {offset:stage.size};
   }
   await requireTab(tab);dispatchEpoch=controlled.get(tab).epoch;
+  // Brief 28a, item 6: what the first input's guarded reload (prepare_control
+  // below) would lose, from the same frames and checks, without doing it.
+  if(command.name==='loss_report'){
+    const current=await facts(tab);
+    if(!current.needs_reload)return {reload_due:false};
+    return {reload_due:true,loss:await discardReport(tab,'first_input',current.frames.map(frame=>({frameId:frame.frame,url:frame.url})),current.uncovered?.length||0)};
+  }
   if(command.name==='prepare_control'){
     const current=await facts(tab);
     if(!current.needs_reload)return {ready:true};

@@ -29,6 +29,7 @@ import hashlib
 import time
 
 from ..common import RESULT_LIMIT, Refused, canonical
+from . import loss
 from . import view as outline_view
 from .deadline import NOT_READ, Deadline
 from .references import Stale
@@ -170,16 +171,34 @@ class Going:
         if taken.get('owner_dialog') is True:
             return {'tab': tab, 'owner_dialog': True, 'ask_owner': taken.get('ask_owner'), 'version_notice': notice}
         if not self.args.get('reload'):
-            # The page is kept: whether its reload is still due, and the typed fields a reload would discard
-            # that the reader can see (filled, not read). The full report comes with the reload itself.
+            # The page is kept: whether its reload is still due, the typed fields the reader shows as (filled,
+            # not read), and what the reload would lose, as its refusal would report it (item 5b's report).
             _, view = self.chrome.outline_view(tab)
-            return {'tab': tab, 'reload_due': view.needs_reload, 'typed_fields': outline_view.typed_fields(view),
-                    'version_notice': notice}
+            kept = {'tab': tab, 'reload_due': view.needs_reload, 'typed_fields': outline_view.typed_fields(view)}
+            if view.needs_reload:
+                kept['reload_due'], report = self.loss_report(tab)
+                if kept['reload_due']:
+                    kept['untrusted_content'] = {'loss': report}
+            return {**kept, 'version_notice': notice}
         before = self.bridge.call('page_state', tab=tab)
         reply = self.effect('prepare_control', tab=tab, discard_unsaved=True)
         if (reply.get('untrusted_content') or {}).get('reloaded') is True:
             return tab, arrival(before, False)
         return tab, None  # no reload was due: the page is as it was
+
+    def loss_report(self, tab):
+        """Whether the guarded reload is still due, and what it would lose: the extension's discard check, read only.
+
+        Page labels stay untrusted data (item 5b). A report that can't be had is
+        `unavailable`, never an empty one: Claude can't tell then what reload: true discards.
+        """
+        try:
+            reply = self.bridge.call('loss_report', tab=tab)
+        except Refused:
+            return True, {'unavailable': True}
+        if not isinstance(reply, dict) or reply.get('reload_due') is False:
+            return (False, None) if isinstance(reply, dict) else (True, {'unavailable': True})
+        return True, loss.checked(reply.get('loss'))
 
     def effect(self, verb, **arguments):
         """Brief 20's command through `free`: committed before it runs, recorded after."""

@@ -238,6 +238,42 @@ class Small(unittest.TestCase):
         self.assertIn('link "Delete"', result['untrusted_content']['outline'])
         self.assertEqual([load[0] for load in self.browser.loads], ['guarded reload'])
 
+    def test_take_without_reload_says_what_the_reload_would_lose_and_changes_nothing(self):
+        # The item 6 gap (1b part 2, PLAN-GAP 1): Claude sees the loss report before it can set reload: true.
+        self.sample()
+        seen = self.small('tabs', {})['seen']
+        self.browser.needs_reload.add(412)
+        hostile = 'field "%s"' % HOSTILE
+        cases = {'his typing': {'fields': [{'description': hostile, 'by': 'owner'}], 'more_fields': 0, 'frames_uninspected': 0, 'media': False},
+                 "Claude's typing": {'fields': [{'description': 'field "Search"', 'by': 'claude'}], 'more_fields': 0, 'frames_uninspected': 0, 'media': False},
+                 'media': {'fields': [], 'more_fields': 0, 'frames_uninspected': 0, 'media': True},
+                 'an uninspectable frame': {'fields': [], 'more_fields': 0, 'frames_uninspected': 1, 'media': False}}
+        for case, report in cases.items():
+            with self.subTest(case):
+                self.browser.report = report
+                before = (list(self.browser.dispatched), list(self.browser.loads))
+                result = self.small('take', {'tab': 412, 'seen': seen})
+                self.assertEqual(self.browser.dispatched[len(before[0]):], [('take_tab', {'tab': 412, 'seen': {'url': 'https://uni.example/timetable?week=4', 'document': 'doc-412'}})],
+                                 'the take alone: no reload, navigation or input')
+                self.assertEqual(self.browser.loads, before[1])
+                self.assertIn(412, self.browser.needs_reload, 'the reload is still due')
+                self.assertTrue(result['reload_due'])
+                expected = {**report, 'act': 'first_input',
+                            'fields': [{'description': visible(field['description']), 'by': field['by']} for field in report['fields']]}
+                self.assertEqual(result['untrusted_content'], {'loss': expected})
+                validate(result['untrusted_content'], loss.UNTRUSTED, 'take')
+                self.assertNotIn('Ignore previous', canonical({key: value for key, value in result.items() if key != 'untrusted_content'}),
+                                 'page text only inside untrusted_content')
+        # A report that can't be had is unavailable, never an empty one; a reload that isn't due has none.
+        self.browser.report = {'fields': 'not a list'}
+        self.assertEqual(self.small('take', {'tab': 412, 'seen': seen})['untrusted_content'], {'loss': {'unavailable': True}})
+        call = self.browser.call
+        self.browser.call = lambda name, **args: (_ for _ in ()).throw(Refused('refused', 'no')) if name == 'loss_report' else call(name, **args)
+        self.assertEqual(self.small('take', {'tab': 412, 'seen': seen})['untrusted_content'], {'loss': {'unavailable': True}})
+        self.browser.call = call
+        self.browser.needs_reload.discard(412)
+        self.assertNotIn('untrusted_content', self.small('take', {'tab': 412, 'seen': seen}))
+
     def test_open_with_his_tab_opens_the_address_the_list_showed_and_leaves_his_tab(self):
         self.sample()
         seen = self.small('tabs', {})['seen']
