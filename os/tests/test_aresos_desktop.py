@@ -121,10 +121,21 @@ def make_world(paths, lock, provisioned='complete\n', marker=MARKER, home=HOME, 
     return world
 
 
+def systemctl_stand_in(folder):
+    """A stand-in for systemctl for the loops that use the real Runner: the shutdown guard is active and the system
+    is running. No test asks the laptop's own systemd about the guard (package 25, the machine rules)."""
+    path = pathlib.Path(folder) / 'systemctl'
+    path.write_text('#!/bin/sh\ncase "$1" in is-active) echo active ;; is-system-running) echo running ;; esac\n')
+    path.chmod(0o755)
+    return str(path)
+
+
 class FakeRunner:
     real = False
 
     def __init__(self):
+        # The shutdown guard (package 25, 3.1): (active, systemd's word).
+        self.guard = (True, 'active')
         self.helpers = []
         self.helper_alive = False
         self.prisms = []
@@ -144,6 +155,9 @@ class FakeRunner:
         self.cover_kills = []
         self.cover_error = None
         self.events = []  # the order of covers, Prism starts and message windows
+
+    def guard_active(self):
+        return self.guard
 
     def helper_running(self):
         return self.helper_alive
@@ -251,7 +265,7 @@ class Base(unittest.TestCase):
         self.next_pid += 10
         ok, reply = sup.on_jvm_start(self.jvm_request())
         self.assertTrue(ok, reply)
-        self.assertEqual(reply['scope'][-2:], ['--property=MemoryHigh=2560M', '--'])
+        self.assertEqual(reply['scope'][-3:], ['--property=MemoryHigh=2560M', '--property=TimeoutStopSec=15s', '--'])
         self.assertEqual(reply['unit'], f'aresos-game-{reply["launch"]}.scope')
         self.runner.processes[pid] = (wrapper_pid, pid * 7,
                                       f'0::/user.slice/user@1001.service/aresos.slice/{reply["unit"]}\n')
@@ -740,7 +754,8 @@ class LaunchTest(unittest.TestCase):
         # Review 1, finding 4: the memory target sits on the JVM's own scope, which the wrapper creates.
         self.assertEqual(desktop.game_scope('abc123'), [
             '/usr/bin/systemd-run', '--user', '--scope', '--quiet', '--slice=aresos.slice',
-            '--unit=aresos-game-abc123.scope', '--property=MemoryHigh=2560M', '--'])
+            '--unit=aresos-game-abc123.scope', '--property=MemoryHigh=2560M', '--property=TimeoutStopSec=15s',
+            '--'])
         self.assertTrue(desktop.game_cgroup_matches(
             '0::/user.slice/user-1001.slice/user@1001.service/aresos.slice/aresos-game-abc123.scope\n', 'abc123'))
         for cgroup in ('0::/user.slice/user-1001.slice/user@1001.service/aresos.slice/aresos-desktop-abc123.scope\n',
@@ -4070,6 +4085,7 @@ class LoopTest(Base):
                                                                          'AresDesktop'] + (['--world', world]
                                                                                            if world else [])),
                    mock.patch.object(desktop, 'BACKOFF', 0.2), mock.patch.object(desktop, 'PRISM_GRACE', 0.5),
+                   mock.patch.object(desktop, 'SYSTEMCTL', systemctl_stand_in(bin_dir)),
                    # No user systemd here: the wrapper runs Java directly (the scope itself is tested separately).
                    mock.patch.object(desktop, 'game_scope', lambda launch_id: [])]
         for patch in patches:

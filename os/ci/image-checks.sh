@@ -49,6 +49,22 @@ assert {section: dict(unit[section]) for section in unit.sections()} == {
 }, 'console keymap unit differs from the reviewed boot-only setup'
 CONSOLE_UNIT
 test "$(systemctl --root=/ is-enabled aresos-console-keymap.service)" = enabled
+# Package 25: the shutdown guard. Enabled; ordered after everything that must still be there while the home is
+# saved, with every login session ordered before it; its stop is the supervisor's command, inside 85 s. The check
+# build's VM proves the order at a real shutdown.
+guardian=/usr/lib/systemd/system/aresos-guardian.service
+test "$(systemctl --root=/ is-enabled aresos-guardian.service)" = enabled
+test -L /etc/systemd/system/graphical.target.wants/aresos-guardian.service
+test "$(stat -c '%U:%G %a' "$guardian")" = 'root:root 644'
+for line in 'After=greetd.service user@1001.service user-runtime-dir@1001.service' \
+    'RequiresMountsFor=/var/home/ares' 'Type=oneshot' 'RemainAfterExit=yes' 'User=ares' \
+    'Environment=XDG_RUNTIME_DIR=/run/user/1001' 'ExecStart=/usr/bin/true' \
+    'ExecStop=/usr/libexec/aresos-desktop stop --reason shutdown' 'TimeoutStopSec=85' 'WantedBy=graphical.target'; do
+    grep -qxF "$line" "$guardian"
+done
+test "$(grep -c '^Exec' "$guardian")" = 2
+grep -qxF 'Before=aresos-guardian.service' /usr/lib/systemd/system/session-.scope.d/50-aresos-guardian.conf
+pass 'the shutdown guard is enabled, ordered after greetd, the user manager, the runtime folder and the home, and stops through the supervisor within 85 s'
 console_link=/etc/systemd/system/graphical.target.wants/aresos-console-keymap.service
 test "$(readlink "$console_link")" = "$console_unit"
 test "$(stat -c '%a %u %g' "$console_link")" = '777 0 0'
@@ -663,6 +679,9 @@ pass 'labwc autostart starts the desktop supervisor (no session terminal); the h
 test -x /usr/libexec/aresos-cover
 test "$(stat -c '%U:%G %a' /usr/libexec/aresos-cover)" = 'root:root 755'
 grep -q '<windowRule identifier="aresos.cover" serverDecoration="no"><action name="ToggleFullscreen" /><action name="ToggleAlwaysOnTop" /></windowRule>' \
+    /usr/share/aresos/labwc/rc.xml
+# Package 25: the black screen of a stop has a rule of its own (each of its windows asks for its output itself).
+grep -q '<windowRule identifier="aresos.black" serverDecoration="no"><action name="ToggleAlwaysOnTop" /></windowRule>' \
     /usr/share/aresos/labwc/rc.xml
 runuser -u ares -- env -i HOME=/tmp PATH=/usr/bin /usr/bin/python3 - <<'PY'
 import importlib.machinery, importlib.util

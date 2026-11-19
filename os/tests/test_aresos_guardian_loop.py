@@ -16,6 +16,8 @@ the only world folders it touches are the ones this test made in its temporary h
 import json
 import os
 import pathlib
+import re
+import shutil
 import signal
 import socket
 import subprocess
@@ -43,6 +45,7 @@ HARNESS = textwrap.dedent('''\
     loader.exec_module(desktop)
     desktop.HELPER, desktop.COVER, desktop.VIEW_COMMAND = config['helper'], config['cover'], [config['view']]
     desktop.SYSTEMD_INHIBIT = config['inhibit']  # always the stand-in: no test takes a real logind inhibitor
+    desktop.SYSTEMCTL = config['systemctl']  # always the stand-in: no test asks the laptop's systemd about the guard
     desktop.prism_command = lambda lock, launch_id, world=None: (
         [config['prism'], '--launch', lock['instance']] + (['--world', world] if world else []))
     desktop.game_scope = lambda launch_id: []
@@ -182,6 +185,16 @@ RECORDER = textwrap.dedent('''\
     trap 'echo "end $$" >> "$log"; exit 0' TERM
     while :; do sleep 0.05; done
 ''')
+# Stands in for systemctl: the shutdown guard's state is what the control file `guard` says (none: active), the
+# system's what `system` says (none: running).
+SYSTEMCTL = textwrap.dedent('''\
+    #!/bin/sh
+    control="$(dirname "$0")/../control"
+    case "$1" in
+        is-active) cat "$control/guard" 2>/dev/null || echo active ;;
+        is-system-running) cat "$control/system" 2>/dev/null || echo running ;;
+    esac
+''')
 # A process named labwc that waits on its standard input, with the supervisor's runtime folder in its environment.
 LABWC = '#!/bin/sh\nread line\n'
 
@@ -195,7 +208,7 @@ class GuardianLoopTest(base.Base):
         self.bin.mkdir()
         self.control.mkdir()
         for name, text in (('prism', PRISM), ('java', GAME), ('helper', HELPER), ('cover', RECORDER),
-                           ('view', WINDOW), ('labwc', LABWC), ('inhibit', RECORDER)):
+                           ('view', WINDOW), ('labwc', LABWC), ('inhibit', RECORDER), ('systemctl', SYSTEMCTL)):
             (self.bin / name).write_text(text)
             (self.bin / name).chmod(0o755)
         (self.bin / 'harness.py').write_text(HARNESS)
@@ -212,7 +225,7 @@ class GuardianLoopTest(base.Base):
 
     # -- the supervisor under test
 
-    def start(self, keeper=False, labwc_runtime=None, **numbers):
+    def start(self, keeper=False, labwc_runtime=None, wait=True, **numbers):
         """The supervisor, as a process of its own under `env -i` (the machine rules). `keeper`: the session's
         keeper, which starts the supervisor itself. `labwc_runtime`: the stand-in labwc is another session's."""
         self.labwc = subprocess.Popen([str(self.bin / 'labwc')], stdin=subprocess.PIPE, cwd=self.root,
@@ -223,7 +236,8 @@ class GuardianLoopTest(base.Base):
         (self.bin / 'self').chmod(0o755)
         (self.root / 'harness.json').write_text(json.dumps({
             'desktop': str(SUPERVISOR), 'share': self.paths.share, 'numbers': numbers,
-            **{name: str(self.bin / name) for name in ('prism', 'helper', 'cover', 'view', 'self', 'inhibit')}}))
+            **{name: str(self.bin / name) for name in ('prism', 'helper', 'cover', 'view', 'self', 'inhibit',
+                                                        'systemctl')}}))
         self.output = open(self.root / 'supervisor.log', 'wb')
         self.process = subprocess.Popen(
             ['/usr/bin/env', '-i', *self.environment, f'LABWC_PID={self.labwc.pid}', *harness,
@@ -231,8 +245,9 @@ class GuardianLoopTest(base.Base):
             stdin=subprocess.DEVNULL, stdout=self.output, stderr=subprocess.STDOUT, cwd=self.root)
         # The game runs, its hello is accepted (a hello before jvm_started is refused and tried again), and the
         # helper has reported the hub ready.
-        self.wait(lambda: (lambda status: status.get('lifecycle') is True and status['state'] == 'IN_WORLD')(
-            self.status()))
+        if wait:
+            self.wait(lambda: (lambda status: status.get('lifecycle') is True and status['state'] == 'IN_WORLD')(
+                self.status()))
 
     def mine(self, pid):
         """Only a process whose own environment names this test's runtime folder is ever signalled."""
@@ -458,7 +473,144 @@ class GuardianLoopTest(base.Base):
 
     def games(self):
         """How many stand-in games were ever started."""
-        return len((self.control / 'game.pids').read_text().splitlines())
+        pids = self.control / 'game.pids'
+        return len(pids.read_text().splitlines()) if pids.exists() else 0
+
+    # -- step 7: the shutdown guard (3.1)
+
+    def test_no_game_starts_until_the_guard_is_active_and_retry_asks_again(self):
+        (self.control / 'guard').write_text('inactive\n')
+        self.start(wait=False)
+        self.wait(lambda: self.status()['reason'] == 'guard')
+        time.sleep(1.0)
+        status = self.status()
+        self.assertEqual((status['state'], status['latched'], status['jvm_pid'], self.games()),
+                         ('RECOVERY', False, None, 0))
+        self.assertIn('aresos-guardian.service: inactive', status['message'])
+        self.assertFalse((self.control / 'prism.pids').exists())  # not even Prism was started
+        code, out, _ = self.command('retry')
+        self.assertEqual((code, self.status()['reason'], self.games()), (0, 'guard', 0))
+        (self.control / 'guard').write_text('active\n')
+        self.assertEqual(self.command('retry')[0], 0)
+        self.wait(lambda: self.status()['state'] == 'IN_WORLD')
+        self.assertEqual(self.games(), 1)
+        self.assertIn('the shutdown guard (aresos-guardian.service) is not active (inactive)', self.log())
+
+    def test_the_guards_command_ends_at_once_when_nothing_runs_and_passes_a_stop_on(self):
+        # No supervisor and nobody holds the desktop lock: nothing is running. No waiting at a shutdown.
+        os.makedirs(self.paths.run_dir, exist_ok=True)
+        began = time.monotonic()
+        code, out, err = self.command('stop', '--reason', 'shutdown')
+        self.assertEqual((code, err), (0, ''))
+        self.assertIn('Nothing to stop: the AresOS desktop supervisor did not answer', out)
+        self.assertLess(time.monotonic() - began, 5)
+        # No runtime folder at all: no session.
+        code, out, err = self.command('stop', '--reason', 'shutdown', runtime=str(self.root / 'none'))
+        self.assertEqual((code, out, err), (0, 'Nothing to stop: no AresOS session is running.\n', ''))
+        # With the game running and systemd's word that the system stops: a shutdown, confirmed and closed.
+        (self.control / 'system').write_text('stopping\n')
+        self.start()
+        pid, _ = self.game()
+        code, out, err = self.command('stop', '--reason', 'shutdown')
+        self.assertEqual((code, out, err), (0, 'Stopped: the home was saved first; Minecraft closed.\n', ''))
+        stop = self.status()['stop']
+        self.assertEqual((stop['kind'], stop['save'], stop['close'], self.mine(pid)), ('shutdown', 'saved', 'exited', False))
+        self.assertFalse(os.path.exists(self.paths.guard_file))
+
+    def test_no_supervisor_while_the_game_runs_leaves_the_fallback_record_and_the_next_start_says_unsaved(self):
+        self.start()
+        pid, _ = self.game()
+        self.process.kill()  # the supervisor is gone, and no keeper brings one back; the game runs on
+        self.process.wait()
+        self.assertTrue(self.mine(pid))
+        began = time.monotonic()
+        code, out, err = self.command('stop', '--reason', 'shutdown')
+        took = time.monotonic() - began
+        self.assertEqual((code, out), (1, ''))
+        self.assertIn('Minecraft is still running. The next start of AresOS says so.', err)
+        self.assertTrue(desktop.GUARD_RECOVERY_WAIT <= took < desktop.GUARD_RECOVERY_WAIT + 5, took)
+        self.assertTrue(self.mine(pid))  # the command never signals anything
+        record = json.loads(pathlib.Path(self.paths.guard_file).read_text())
+        self.assertEqual((record['why'], record['lock'], record['save'], record['launch']),
+                         ('no_answer', 'held', None, json.loads(pathlib.Path(self.paths.runtime_file).read_text())['launch']))
+        # The system's teardown ends the game; the next supervisor finds none and applies the record once.
+        os.kill(pid, signal.SIGKILL)
+        self.wait(lambda: not self.mine(pid))
+        self.wait(lambda: desktop.desktop_lock_state(self.paths) == 'free')
+        self.labwc.kill()
+        self.labwc.wait()
+        self.labwc.stdin.close()
+        self.output.close()
+        self.start(wait=False)
+        self.wait(lambda: self.status()['reason'] == 'unsaved')
+        status = self.status()
+        self.assertEqual((status['state'], status['latched'], status['jvm_pid'], self.games()),
+                         ('RECOVERY', True, None, 1))
+        self.assertIn(desktop.GUARD_FALLBACK['held'], status['message'])
+        self.assertFalse(os.path.exists(self.paths.guard_file))
+
+    def fixture(self, mode, **numbers):
+        """The check build's stand-in game (os/ci/overlay/GuardianGame.java) in place of the Python one: a real
+        JVM, when this machine has a Java that runs a single-file program with Unix sockets (16 or newer)."""
+        java = next((path for path in (self.lock_java(), shutil.which('java')) if path and os.access(path, os.X_OK)), None)
+        if java is None:
+            self.skipTest('no Java on this machine; the hosted run and the check build have one')
+        version = subprocess.run([java, '-version'], capture_output=True, text=True, timeout=60).stderr
+        major = re.search(r'version "(\d+)', version)
+        if not major or int(major.group(1)) < 16:
+            self.skipTest(f'this Java is too old for Unix sockets: {version.splitlines()[:1]}')
+        game = base.CONFIG.parent / 'ci/overlay/GuardianGame.java'
+        (self.bin / 'java').write_text(textwrap.dedent(f'''\
+            #!/bin/sh
+            echo "$$ $PPID" >> "{self.control}/game.pids"
+            exec "{java}" "{game}" {mode} 400 "{self.control}/save-asked" >> "{self.control}/game.out" 2>&1
+        '''))
+        self.start(wait=False, **numbers)
+        # A JVM that first compiles its one file takes a moment longer than the Python stand-in.
+        self.wait(lambda: (lambda status: status.get('lifecycle') is True and status['state'] == 'IN_WORLD')(
+            self.status()), timeout=90)
+        return int((self.control / 'game.pids').read_text().split()[0])
+
+    @staticmethod
+    def lock_java():
+        return json.loads((base.CONFIG.parent / 'minecraft/desktop.lock.json').read_text())['java']['path']
+
+    def test_the_vm_fixture_game_saves_and_ends_with_143_as_the_real_game_does(self):
+        pid = self.fixture('save')
+        self.assertEqual(pathlib.Path(f'/proc/{pid}/comm').read_text().strip(), 'java')
+        began = time.monotonic()
+        reply = self.save()
+        self.assertEqual((reply['ok'], reply['result']), (True, 'saved'))
+        self.assertGreaterEqual(time.monotonic() - began, 0.4)
+        self.assertTrue((self.control / 'save-asked').exists())
+        code, out, err = self.command('stop')
+        self.assertEqual((code, out, err), (0, 'Stopped: the home was saved first; Minecraft closed.\n', ''))
+        stop = self.status()['stop']
+        self.assertEqual((stop['save'], stop['close'], stop['status']), ('saved', 'exited', 143))
+        said = (self.control / 'game.out').read_text()
+        for marker in ('GUARDIAN_GAME started mode=save', 'GUARDIAN_GAME save_asked id=1',
+                       'GUARDIAN_GAME save_answered id=1', 'GUARDIAN_GAME save_asked id=2', 'GUARDIAN_GAME closing'):
+            self.assertIn(marker, said)
+        # It never says its nonce, its instance or its environment: only its mode and the saves' ids.
+        lines = [line for line in said.splitlines() if line.startswith('GUARDIAN_GAME ')]
+        self.assertEqual(sorted({item.split('=')[0] for line in lines for item in line.split() if '=' in item}),
+                         ['id', 'mode'])
+
+    def test_the_vm_fixture_game_that_hangs_never_answers_and_ignores_sigterm(self):
+        (self.control / 'system').write_text('stopping\n')
+        pid = self.fixture('hang', STOP_BUDGET=4.0, STOP_SAVE_WAIT=1.5)
+        code, out, err = self.command('stop', '--reason', 'shutdown')
+        self.assertEqual((code, out), (1, ''))
+        self.assertIn('Not a confirmed stop: the home could not be confirmed as saved first; Minecraft did not close', err)
+        stop = self.status()['stop']
+        self.assertEqual((stop['kind'], stop['close'], stop['sigterm'], stop['open']), ('shutdown', 'overrun', True, True))
+        self.assertNotIn(stop['save'], ('saved', 'nothing'))
+        self.assertTrue(self.mine(pid))  # never killed
+        said = (self.control / 'game.out').read_text()
+        self.assertIn('GUARDIAN_GAME save_asked id=1', said)
+        self.assertIn('GUARDIAN_GAME sigterm_ignored', said)
+        self.assertNotIn('save_answered', said)
+        self.assertFalse(os.path.exists(self.paths.guard_file))  # the supervisor answered and recorded: no fallback
 
     def test_a_stop_saves_closes_and_ends_at_the_quit_window(self):
         self.start()
@@ -509,9 +661,8 @@ class GuardianLoopTest(base.Base):
         self.assertEqual((self.games(), self.mine(pid)), (1, False))
 
     def test_a_game_that_ignores_sigterm_is_never_killed_and_no_second_game_starts(self):
-        (self.bin / 'systemctl').write_text('#!/bin/sh\necho stopping\n')  # systemd's word: the system is stopping
-        (self.bin / 'systemctl').chmod(0o755)
-        self.start(STOP_BUDGET=3.0, SYSTEMCTL=str(self.bin / 'systemctl'))
+        (self.control / 'system').write_text('stopping\n')  # systemd's word: the system is stopping
+        self.start(STOP_BUDGET=3.0)
         pid, _ = self.game()
         (self.control / 'ignore-term').write_text('')
         began = time.monotonic()

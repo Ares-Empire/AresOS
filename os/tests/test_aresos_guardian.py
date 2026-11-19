@@ -8,6 +8,7 @@ Step 5 covers section 4, package 48's leftovers: world folders that are moved as
 makes, moves or reads is in its own temporary home; nothing here starts a process.
 """
 import ast
+import configparser
 import contextlib
 import fcntl
 import io
@@ -17,6 +18,7 @@ import os
 import pathlib
 import re
 import shutil
+import time
 import unittest
 from unittest import mock
 
@@ -2178,8 +2180,10 @@ class UseHomeTest(HomeBase):
         self.assertEqual(re.findall(r'os\.rename\((.*?)\)', source), ['staging, target', 'root, aside'])
         self.assertEqual(re.findall(r'os\.replace\((.*?)\)', source), ['temporary, path'])
         self.assertEqual(re.findall(r'shutil\.\w+\((.*?)\)', source), ['staging'])
+        # Step 7 added one: the shutdown guard's fallback record, removed once the start has applied it.
         self.assertEqual(re.findall(r'os\.(?:unlink|remove)\((.*?)\)', source),
-                         ['temporary', 'self.paths.stop_block', 'path', 'self.paths.socket', 'saves'])
+                         ['temporary', 'self.paths.guard_file', 'self.paths.stop_block', 'path', 'self.paths.socket',
+                          'saves'])
         for call in ('os.rmdir(', 'os.removedirs(', 'os.renames(', '.rmtree(self', '.unlink()', '.rmdir()',
                      'os.truncate(', 'os.system('):
             self.assertNotIn(call, source)
@@ -2397,6 +2401,310 @@ class LeftoversTest(HomeBase):
             sup = self.next_session()
         self.assertEqual(len([line for line in logs.output if '1 new home that never became the home is in the '
                               'worlds folder (0.0 MB: ' + self.NEW in line]), 1)
+
+
+class GuardTest(SessionBase):
+    """3.1: the shutdown guard. Armed first; the unit and its order; the guard's command and its fallback record."""
+
+    UNITS = base.CONFIG / 'usr/lib/systemd/system'
+
+    def held_lock(self):
+        """The desktop lock, held as a game's wrapper holds it, until the test ends."""
+        fd = desktop.take_desktop_lock(self.paths)
+        self.assertIsNotNone(fd)
+        self.addCleanup(os.close, fd)
+        return fd
+
+    def command(self, answers, **numbers):
+        """The guard's command with the supervisor's answers in turn (a dict, or an error to raise; the last one
+        repeats): (exit code, stdout, stderr, how often it asked, the fallback record or None)."""
+        asked = []
+
+        def request(paths, message, timeout=None):
+            self.assertEqual(message, {'op': 'stop', 'reason': 'shutdown'})
+            asked.append(timeout)
+            answer = answers[min(len(asked), len(answers)) - 1]
+            if isinstance(answer, Exception):
+                raise answer
+            return answer
+        out, err = io.StringIO(), io.StringIO()
+        patches = [mock.patch.object(desktop, 'request', request),
+                   *(mock.patch.object(desktop, name, value) for name, value in numbers.items())]
+        with contextlib.ExitStack() as stack, contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+            for patch in patches:
+                stack.enter_context(patch)
+            code = desktop.guard_command(self.paths)
+        try:
+            record = json.loads(pathlib.Path(self.paths.guard_file).read_text())
+        except FileNotFoundError:
+            record = None
+        return code, out.getvalue(), err.getvalue(), asked, record
+
+    # -- armed first
+
+    def test_no_game_is_started_or_authorized_unless_the_guard_is_active(self):
+        self.runner.guard = (False, 'inactive')
+        sup = self.supervisor()
+        sup.start()
+        self.assertEqual((sup.state, sup.reason, sup.detail), ('RECOVERY', 'guard', 'inactive'))
+        self.assertEqual((self.runner.prisms, sup.persisted.latched), ([], False))
+        self.assertIn('aresos-guardian.service: inactive', self.runner.views[-1])
+        self.assertIn('Type  retry  and press Enter to try again.', self.runner.views[-1])
+        # A game started from Prism by hand passes the same gate.
+        ok, reply = sup.on_jvm_start(self.jvm_request())
+        self.assertEqual((ok, sup.reason), (False, 'guard'))
+        self.assertIn('Minecraft is not', reply['message'])
+        # The window is no latch, and a heartbeat or the start timeout must not close it (2.9).
+        self.assertIn('guard', desktop.STICKY)
+        self.assertTrue(sup.held())
+        self.advance(desktop.START_TIMEOUT + 1)
+        sup.tick()
+        self.assertEqual((sup.state, sup.reason), ('RECOVERY', 'guard'))
+        # `retry` asks again: still not active, then active.
+        self.runner.guard = (False, 'failed')
+        self.assertTrue(sup.retry()[0])
+        self.assertEqual((sup.reason, sup.detail, self.runner.prisms), ('guard', 'failed', []))
+        self.runner.guard = (True, 'active')
+        self.assertTrue(sup.retry()[0])
+        self.assertEqual((sup.state, len(self.runner.prisms)), ('STARTING', 1))
+        pid, _ = self.run_game(sup)
+        # A guard that goes away later stops nothing that runs; only the next start is refused.
+        self.runner.guard = (False, 'inactive')
+        sup.tick()
+        self.assertEqual((sup.state, sup.launch.jvm_pid), ('STARTING', pid))
+        self.assertEqual(self.runner.signals, [])
+
+    def test_systemd_s_word_decides_and_only_active_counts(self):
+        runner = desktop.Runner(self.paths, None)
+        script = self.root / 'systemctl'
+        for text, expected in (('echo active', (True, 'active')), ('echo inactive; exit 3', (False, 'inactive')),
+                               ('echo failed; exit 3', (False, 'failed')),
+                               ('exit 1', (False, 'systemd gave no answer')),
+                               ('sleep 5', (False, 'systemd did not answer within 0 s'))):
+            script.write_text(f'#!/bin/sh\ntest "$1 $2" = "is-active aresos-guardian.service" || exit 9\n{text}\n')
+            script.chmod(0o755)
+            with mock.patch.object(desktop, 'SYSTEMCTL', str(script)), \
+                    mock.patch.object(desktop, 'GUARD_STATE_WAIT', 0.3 if 'sleep' in text else 2.0):
+                self.assertEqual(runner.guard_active(), expected, text)
+        # A guard that is just starting is asked again inside the same wait: active then, or still not.
+        script.write_text(f'#!/bin/sh\nif test -e {self.root}/asked; then echo active; else : > {self.root}/asked; '
+                          'echo activating; fi\n')
+        with mock.patch.object(desktop, 'SYSTEMCTL', str(script)):
+            self.assertEqual(runner.guard_active(), (True, 'active'))
+        script.write_text('#!/bin/sh\necho activating\n')
+        with mock.patch.object(desktop, 'SYSTEMCTL', str(script)), mock.patch.object(desktop, 'GUARD_STATE_WAIT', 0.5):
+            began = time.monotonic()
+            self.assertEqual(runner.guard_active(), (False, 'activating'))
+            self.assertLess(time.monotonic() - began, 1.5)
+        with mock.patch.object(desktop, 'SYSTEMCTL', str(self.root / 'missing')):
+            active, state = runner.guard_active()
+        self.assertEqual((active, state.startswith('systemd could not be asked')), (False, True))
+        self.assertEqual((desktop.GUARD_UNIT, desktop.GUARD_STATE_WAIT), ('aresos-guardian.service', 2.0))
+
+    # -- the unit
+
+    def test_the_unit_is_ordered_after_everything_that_must_outlive_the_save(self):
+        unit = configparser.ConfigParser(interpolation=None, strict=True)
+        unit.optionxform = str
+        self.assertTrue(unit.read(self.UNITS / 'aresos-guardian.service'))
+        self.assertEqual({section: dict(unit[section]) for section in unit.sections()}, {
+            'Unit': {'Description': 'AresOS guardian: save the Minecraft home before the system stops',
+                     'Documentation': 'file:/usr/libexec/aresos-desktop',
+                     'After': 'greetd.service user@1001.service user-runtime-dir@1001.service',
+                     'RequiresMountsFor': '/var/home/ares'},
+            'Service': {'Type': 'oneshot', 'RemainAfterExit': 'yes', 'User': 'ares',
+                        'Environment': 'XDG_RUNTIME_DIR=/run/user/1001', 'ExecStart': '/usr/bin/true',
+                        'ExecStop': '/usr/libexec/aresos-desktop stop --reason shutdown', 'TimeoutStopSec': '85'},
+            'Install': {'WantedBy': 'graphical.target'}})
+        # The lead's fix 1: the supervisor's stop, the command's wait for it, one recovery attempt, and room for the
+        # fallback record, all inside the unit's limit; the worst case to power-off adds the game scope's limit.
+        self.assertEqual((desktop.STOP_BUDGET, desktop.GUARD_REPLY_WAIT, desktop.GUARD_RECOVERY_WAIT), (60.0, 62.0, 10.0))
+        limit = float(unit['Service']['TimeoutStopSec'])
+        self.assertGreaterEqual(limit - desktop.GUARD_REPLY_WAIT - desktop.GUARD_RECOVERY_WAIT, 10.0)
+        self.assertEqual((desktop.GAME_STOP_TIMEOUT, desktop.game_scope('abc')[-2]), ('15s', '--property=TimeoutStopSec=15s'))
+        # Every login session is ordered before the guard, beside the memory drop-in, which is unchanged.
+        drop_in = [line for line in (self.UNITS / 'session-.scope.d/50-aresos-guardian.conf').read_text().splitlines()
+                   if line and not line.startswith('#')]
+        self.assertEqual(drop_in, ['[Unit]', 'Before=aresos-guardian.service'])
+        self.assertTrue((self.UNITS / 'session-.scope.d/50-aresos-recovery.conf').is_file())
+        # Enabled in the image; the supervisor asks about the same unit; the command is the guard's.
+        build = (base.CONFIG.parent / 'build.sh').read_text()
+        self.assertIn('\nsystemctl enable aresos-guardian.service\n', build)
+        self.assertEqual(unit['Service']['ExecStop'].split()[0], desktop.SELF)
+        with mock.patch.object(desktop, 'guard_command', lambda paths: 41), \
+                mock.patch.object(desktop, 'stop_command', lambda paths, word, reason=None: 42), \
+                mock.patch.dict(os.environ, {'HOME': self.paths.home, 'XDG_RUNTIME_DIR': self.paths.runtime}):
+            self.assertEqual(desktop.main(unit['Service']['ExecStop'].split()[1:]), 41)
+            self.assertEqual([desktop.main(words) for words in (['stop'], ['stop', '--reason', 'manual'],
+                                                                 ['restart'], ['logout'])], [42] * 4)
+
+    # -- the guard's command
+
+    def test_the_command_passes_the_supervisors_answer_on(self):
+        done = {'ok': True, 'result': 'confirmed', 'recorded': True, 'message': 'Stopped: the home was saved first; '
+                                                                              'Minecraft closed.'}
+        self.assertEqual(self.command([done]), (0, done['message'] + '\n', '', [desktop.GUARD_REPLY_WAIT], None))
+        unsaved = {'ok': False, 'result': 'unsaved', 'recorded': True, 'message': 'Not a confirmed stop: …'}
+        self.held_lock()  # an overrun: the game is still there, and the supervisor's own record says so
+        self.assertEqual(self.command([unsaved]), (1, '', unsaved['message'] + '\n', [62.0], None))
+
+    def test_no_session_and_no_game_are_positive_evidence_and_end_at_once(self):
+        gone = desktop.Paths(self.paths.home, str(self.root / 'no-runtime'), self.paths.share)
+        with contextlib.redirect_stdout(io.StringIO()) as out:
+            self.assertEqual(desktop.guard_command(gone), 0)  # it never asks: there is no socket to ask
+        self.assertEqual(out.getvalue(), 'Nothing to stop: no AresOS session is running.\n')
+        # No supervisor answers and nobody holds the lock: no game runs. No ten seconds of waiting at a shutdown.
+        code, out, err, asked, record = self.command([ConnectionRefusedError('refused')])
+        self.assertEqual((code, err, asked, record), (0, '', [62.0], None))
+        self.assertIn('did not answer (refused), and no Minecraft holds the desktop lock', out)
+        self.assertEqual(desktop.desktop_lock_state(self.paths), 'free')  # the guard let go of the lock again
+
+    def test_no_answer_while_a_game_may_be_writing_is_one_recovery_attempt_and_then_the_fallback_record(self):
+        pathlib.Path(self.paths.run_dir).mkdir(parents=True, exist_ok=True)
+        pathlib.Path(self.paths.runtime_file).write_text(json.dumps({'launch': 'abc123', 'nonce': 'never-copied'}))
+        self.held_lock()
+        began = time.monotonic()
+        code, out, err, asked, record = self.command([TimeoutError('no reply within 62 s'), FileNotFoundError(2, 'gone')],
+                                                     GUARD_RECOVERY_WAIT=0.5, GUARD_ASK_AGAIN=0.2)
+        self.assertLess(time.monotonic() - began, 3)
+        self.assertEqual((code, out, asked[0]), (1, '', 62.0))
+        self.assertTrue(3 <= len(asked) <= 5 and all(0 < wait <= 0.5 for wait in asked[1:]), asked)
+        self.assertIn('did not answer', err)
+        self.assertIn('Minecraft is still running. The next start of AresOS says so.', err)
+        self.assertEqual({key: record[key] for key in ('schema', 'why', 'lock', 'save', 'launch')},
+                         {'schema': 1, 'why': 'no_answer', 'lock': 'held', 'save': None, 'launch': 'abc123'})
+        self.assertEqual(sorted(record), ['launch', 'lock', 'save', 'schema', 'why', 'written'])  # never the nonce
+        self.assertEqual(os.stat(self.paths.guard_file).st_mode & 0o777, 0o600)
+        # A new supervisor that answers inside the recovery attempt: its answer counts, and no record is written.
+        os.unlink(self.paths.guard_file)
+        done = {'ok': True, 'result': 'confirmed', 'recorded': True, 'message': 'Stopped.'}
+        code, out, err, asked, record = self.command([ConnectionRefusedError('refused'), ConnectionRefusedError('refused'),
+                                                      done], GUARD_RECOVERY_WAIT=2.0, GUARD_ASK_AGAIN=0.1)
+        self.assertEqual((code, out, err, len(asked), record), (0, 'Stopped.\n', '', 3, None))
+
+    def test_a_lock_nobody_can_read_is_unknown_and_never_free(self):
+        pathlib.Path(self.paths.run_dir).mkdir(parents=True, exist_ok=True)
+        os.mkdir(self.paths.jvm_lock)  # the lock cannot be opened: nobody can tell
+        self.assertTrue(desktop.desktop_lock_state(self.paths).startswith('unknown: '))
+        code, out, err, asked, record = self.command([ConnectionRefusedError('refused')],
+                                                     GUARD_RECOVERY_WAIT=0.3, GUARD_ASK_AGAIN=0.1)
+        self.assertEqual((code, out, record['why'], record['lock'], record['launch']),
+                         (1, '', 'no_answer', 'unknown', None))
+        self.assertIn('nobody can tell whether Minecraft is still running', err)
+
+    def test_a_stop_the_supervisor_could_not_record_takes_the_fallback_path(self):
+        unsaved = {'ok': False, 'result': 'unsaved', 'save': 'timeout', 'close': 'exited', 'recorded': False,
+                   'message': 'Not a confirmed stop: … The stop could not be recorded on the disk.'}
+        code, out, err, asked, record = self.command([unsaved])
+        self.assertEqual((code, out, len(asked)), (1, '', 1))  # it answered: nothing is asked again
+        self.assertEqual((record['why'], record['lock'], record['save']), ('unrecorded', 'free', 'timeout'))
+        self.assertTrue(err.startswith(unsaved['message'] + ' The next start of AresOS says so.'))
+        os.unlink(self.paths.guard_file)
+        # Saved and closed: only the supervisor's record is missing. Exit 1 as its answer says, and nothing to add.
+        saved = dict(unsaved, result='confirmed', save='saved')
+        self.assertEqual(self.command([saved])[::4], (1, None))
+        # Saved, but the game is still there: the record carries the supervisor's word that the home was saved.
+        self.held_lock()
+        record = self.command([saved])[4]
+        self.assertEqual((record['why'], record['lock'], record['save']), ('unrecorded', 'held', 'saved'))
+        # A state folder that cannot be written: said, and still exit 1.
+        os.unlink(self.paths.guard_file)
+        with mock.patch.object(desktop, 'write_durable', mock.Mock(side_effect=OSError(28, 'No space left'))):
+            code, out, err, asked, record = self.command([unsaved])
+        self.assertEqual((code, record), (1, None))
+        self.assertIn('That could not be recorded either', err)
+
+    # -- the next supervisor applies the fallback once
+
+    def fallback(self, **record):
+        os.makedirs(self.paths.state_dir, exist_ok=True)
+        pathlib.Path(self.paths.guard_file).write_text(json.dumps(dict(schema=1, **record)))
+
+    def test_the_next_start_latches_unsaved_from_the_fallback_record_once(self):
+        for record, detail in (
+                (dict(why='no_answer', lock='held', launch='abc123', save=None), desktop.GUARD_FALLBACK['held']),
+                (dict(why='no_answer', lock='unknown', launch=None, save=None), desktop.GUARD_FALLBACK['unknown']),
+                (dict(why='unrecorded', lock='free', launch='abc123', save='timeout'),
+                 'The stop could not be recorded on the disk.')):
+            with self.subTest(record):
+                pathlib.Path(self.paths.state_file).unlink(missing_ok=True)
+                self.fallback(**record)
+                sup = self.next_session()
+                self.assertEqual((sup.state, sup.reason, sup.detail), ('RECOVERY', 'unsaved', detail))
+                self.assertEqual((self.stored()['latched'], self.stored()['reason']), (True, 'unsaved'))
+                self.assertIn(detail, self.runner.views[-1])
+                self.assertEqual((self.runner.prisms, os.path.exists(self.paths.guard_file)), ([], False))
+                # Once: `retry` clears the latch, and the next start says nothing more.
+                self.assertTrue(sup.retry()[0])
+                self.assertEqual(len(self.runner.prisms), 1)
+                again = self.next_session()
+                self.assertEqual((again.persisted.latched, again.state), (False, 'STARTING'))
+        # A record that cannot be read was still written by a guard that had no answer.
+        pathlib.Path(self.paths.state_file).unlink(missing_ok=True)
+        os.makedirs(self.paths.state_dir, exist_ok=True)
+        pathlib.Path(self.paths.guard_file).write_text('{"schema": 1, "why"')
+        sup = self.next_session()
+        self.assertEqual((sup.reason, sup.detail, os.path.exists(self.paths.guard_file)),
+                         ('unsaved', desktop.GUARD_FALLBACK['unknown'], False))
+
+    def next_session(self):
+        self.runner = StopRunner()
+        for path in (self.paths.runtime_file, self.paths.stop_block):
+            pathlib.Path(path).unlink(missing_ok=True)
+        sup = self.supervisor()
+        sup.start()
+        return sup
+
+    def test_the_supervisors_own_word_that_the_home_was_saved_stands(self):
+        # Its own stop record of that launch says saved: the guard merely got no answer in time.
+        sup, pid, peer = self.session()
+        replies = []
+        sup.request_stop('shutdown', replies.append)
+        self.close_game(sup, pid, peer)
+        self.assertEqual((replies[0]['result'], self.stored()['stop']['save']), ('confirmed', 'saved'))
+        self.fallback(why='no_answer', lock='held', launch=self.stored()['stop']['launch'], save=None)
+        sup = self.next_session()
+        self.assertEqual((sup.persisted.latched, os.path.exists(self.paths.guard_file)), (False, False))
+        # Another launch's record does not speak for this one.
+        self.fallback(why='no_answer', lock='held', launch='another', save=None)
+        self.assertEqual(self.next_session().reason, 'unsaved')
+        # The answer the guard passed on (the supervisor could not write its own record).
+        pathlib.Path(self.paths.state_file).unlink()
+        self.fallback(why='unrecorded', lock='held', launch='abc123', save='saved')
+        sup = self.next_session()
+        self.assertEqual((sup.persisted.latched, os.path.exists(self.paths.guard_file)), (False, False))
+
+    def test_a_supervisor_that_adopts_the_game_leaves_the_record_for_the_start_that_finds_none(self):
+        sup, pid, peer = self.session()
+        self.fallback(why='no_answer', lock='held', launch=sup.launch.id, save=None)
+        runner, self.runner = self.runner, StopRunner()
+        self.runner.processes = dict(runner.processes)
+        replacement = self.supervisor()
+        replacement.start()
+        self.assertTrue(replacement.launch.adopted)
+        self.assertEqual((replacement.persisted.latched, os.path.exists(self.paths.guard_file)), (False, True))
+        self.assertEqual(self.next_session().reason, 'unsaved')
+
+    # -- linux-aresos's read checklist, 1: the black screen never outlives its stop
+
+    def test_a_save_that_hangs_takes_the_black_screen_away_when_the_stop_is_called_off(self):
+        for kind, window in (('restart', 'save_failed_restart'), ('logout', 'save_failed_logout')):
+            with self.subTest(kind):
+                sup, pid, peer = self.session()
+                replies = []
+                sup.request_stop(kind, replies.append)
+                self.assertEqual((self.runner.black_up, self.runner.lid_up, replies), (True, True, []))
+                self.advance(desktop.STOP_SAVE_WAIT - 1)
+                sup.tick()
+                self.assertEqual((self.runner.black_up, replies), (True, []))  # the game never answers
+                self.advance(1)
+                sup.tick()
+                self.assertEqual((replies[0]['result'], sup.state, sup.reason), ('called_off', 'RECOVERY', window))
+                self.assertEqual((self.runner.black_up, sup.black, self.runner.lid_up, self.runner.behind_black[-1]),
+                                 (False, False, False, False))
+                self.assertEqual((self.runner.signals, sup.launch.jvm_pid), ([], pid))  # the game keeps running
+                # The black screen's own limit is past every stop: it can never stay when a supervisor dies.
+                self.assertEqual(self.runner.blacks, [desktop.STOP_BUDGET + desktop.BLACK_EXTRA])
 
 
 class CommandTest(unittest.TestCase):

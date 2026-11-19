@@ -242,6 +242,27 @@ SAVE_PASSING = ('no_world', 'server_stopping')
 # of them). Anything else, an error or no answer within SYSTEM_STATE_WAIT is no clear answer.
 SYSTEM_NOT_STOPPING = ('initializing', 'starting', 'running', 'degraded', 'maintenance')
 SYSTEM_STATE_WAIT = 2.0
+# The shutdown guard (package 25, 3.1; OS-BASE B3): the system unit whose stop runs `stop --reason shutdown` before
+# the session, the user manager or the home's mount begin to stop. No game is authorized unless it is active.
+GUARD_UNIT = 'aresos-guardian.service'
+GUARD_STATE_WAIT = 2.0
+# The guard's command (the lead's fix 1). The supervisor's stop has STOP_BUDGET; its reply gets 2 s more. With no
+# answer while a game may be writing: one recovery attempt, asked again each second (the keeper starts a new
+# supervisor after 2 s), then the fallback record. The unit's TimeoutStopSec (85 s) leaves room for all of it.
+GUARD_REPLY_WAIT = 62.0
+GUARD_RECOVERY_WAIT = 10.0
+GUARD_ASK_AGAIN = 1.0
+# What the next start says after the guard's fallback record (the detail of the latch `unsaved`), by what the guard
+# found.
+GUARD_FALLBACK = {
+    'held': 'The AresOS desktop supervisor did not answer when the laptop shut down, and Minecraft was still running.',
+    'unknown': ('The AresOS desktop supervisor did not answer when the laptop shut down, and AresOS could not tell '
+                'whether Minecraft was still running.'),
+    'unrecorded': 'The stop could not be recorded on the disk.',
+}
+# The game's scope is ended by systemd this long after its SIGTERM (the lead's call on the worst case): a game that
+# ignores SIGTERM after the guard has ended does not keep a closed laptop on for systemd's default 90 s.
+GAME_STOP_TIMEOUT = '15s'
 # Cleanup never waits without a limit (2.1): what is still there this long after SIGKILL is left to the system.
 CLEANUP_KILL_WAIT = 1.0
 # Java's exit status after SIGTERM when its shutdown hooks ran (Minecraft's stops the server, which saves once more).
@@ -361,6 +382,11 @@ class Paths:
     def stop_block(self):
         # While it names this session, no launch is admitted (package 25, the lead's fix 2). It ends with the folder.
         return os.path.join(self.run_dir, 'desktop-stopping.json')
+
+    @property
+    def guard_file(self):
+        # The shutdown guard's fallback record (package 25, 3.1): in the state folder, so it survives the shutdown.
+        return os.path.join(self.state_dir, 'desktop-guard.json')
 
     @property
     def view_text(self):
@@ -1003,9 +1029,11 @@ def game_scope(launch_id):
     It is applied where the JVM starts, so the limit holds however Prism was started: by this supervisor, by a
     Prism that was already running (Prism hands `--launch` to it), or from Prism's own window. No `--collect`: a
     scope killed for memory stays listed as failed until the supervisor has read why (scope_result).
+    TimeoutStopSec: when the user manager stops the scope (the session's teardown, after the shutdown guard has
+    ended), a game that ignores SIGTERM is ended after GAME_STOP_TIMEOUT, not after systemd's default 90 s.
     """
     return [SYSTEMD_RUN, '--user', '--scope', '--quiet', '--slice=aresos.slice', f'--unit={game_unit(launch_id)}',
-            f'--property=MemoryHigh={MEMORY_HIGH}', '--']
+            f'--property=MemoryHigh={MEMORY_HIGH}', f'--property=TimeoutStopSec={GAME_STOP_TIMEOUT}', '--']
 
 
 def game_cgroup_matches(cgroup, launch_id):
@@ -1470,6 +1498,9 @@ def message(state, reason, detail, lock, persisted, homes=None):
         'unsaved': ('The last time Minecraft was stopped, AresOS could not confirm that your home was saved first.\n'
                     f'{detail}\n\nWhat you built in the last minutes before that stop may be missing.\n'
                     'Your home opens as it is on the disk.\n\n' + RETRY.replace('try again', 'open it')),
+        'guard': ('Minecraft is not started yet. The part of AresOS that saves your home when the laptop shuts down\n'
+                  f'is not running ({GUARD_UNIT}: {detail}), and without it a shutdown could cut a save short.\n\n'
+                  + RETRY + '\nIf this window comes back, restart the laptop.'),
     }
     return 'AresOS: recovery\n\n' + texts.get(reason, f'{reason}: {detail}\n\n{RETRY}') + '\n'
 
@@ -1767,6 +1798,7 @@ class Supervisor:
         # A game that ended while no supervisor ran is accounted for exactly once before anything starts again.
         self.account_for(runtime)
         self.close_stale_stop()  # a stop record still open whose launch is gone (2.9)
+        self.apply_guard_fallback()  # the shutdown guard's own record, left when no supervisor answered it (3.1)
         self.restore_unresolved()
         if self.labwc_gone or self.blocked():
             # The session is ending (a shutdown or logout began in it, or its labwc is gone): nothing starts and no
@@ -1903,6 +1935,8 @@ class Supervisor:
         if self.persisted.disposition is not None:
             self.persisted.disposition = None
             self.save()
+        if not self.guard_armed():
+            return
         if self.runner.jvm_lock_held():
             # Something still holds the desktop's lock (a game this supervisor cannot see): never start a second.
             self.enter(RECOVERY, 'locked', 'the desktop lock is held')
@@ -2124,6 +2158,9 @@ class Supervisor:
         launch = self.launch
         if launch is not None and launch.jvm_pid is not None and self.runner.alive(launch.jvm_pid, launch.jvm_ticks):
             return False, {'message': 'The AresOS desktop is already running.'}
+        if not self.guard_armed():
+            return False, {'message': 'AresOS could not save your home at a shutdown right now, so Minecraft is not '
+                                      'started; the AresOS window says more.'}
         problem, mode = self.validate()
         if problem:
             self.refuse_start(problem, mode)
@@ -2624,6 +2661,56 @@ class Supervisor:
             self.enter(SETUP, 'setup_unfinished', detail)
         else:
             self.latch(problem, detail)
+
+    # -- the shutdown guard (package 25, brief 3.1)
+
+    def guard_armed(self):
+        """Armed first: no game starts unless the shutdown guard is active, on systemd's word. Otherwise the window
+        `guard`, which is no latch and stays until `retry` asks again."""
+        active, state = self.runner.guard_active()
+        if active:
+            return True
+        LOG.error('the shutdown guard (%s) is not active (%s): Minecraft is not started', GUARD_UNIT, state)
+        self.retry_at = None
+        self.enter(RECOVERY, 'guard', state)
+        return False
+
+    def apply_guard_fallback(self):
+        """The guard's command got no usable answer from a supervisor while a game could still be writing, and left
+        a record of its own. Applied once, by a start that finds no game: `unsaved`, unless the supervisor's word
+        (its own stop record of that launch, or the answer the guard passed on) is that the home was saved."""
+        try:
+            with open(self.paths.guard_file, encoding='utf-8') as source:
+                record = json.load(source)
+        except FileNotFoundError:
+            return
+        except (OSError, ValueError) as error:
+            LOG.error('the shutdown guard left a record that cannot be read: %s', error)
+            record = None
+        if not isinstance(record, dict):
+            record = {}  # it exists, so the guard had no answer: nothing in it could make that better
+        launch, own = record.get('launch'), self.persisted.stop
+        saved = record.get('save') in ('saved', 'nothing') or (
+            isinstance(launch, str) and isinstance(own, dict) and own.get('launch') == launch
+            and own.get('save') in ('saved', 'nothing'))
+        if saved:
+            LOG.info('the shutdown guard left a record for launch %s; its home was saved, so nothing is latched', launch)
+        else:
+            why = GUARD_FALLBACK.get('unrecorded' if record.get('why') == 'unrecorded' else
+                                     'held' if record.get('lock') == 'held' else 'unknown')
+            LOG.info('the shutdown guard left a record for launch %s: %s', launch, why)
+            self.persisted.latched, self.persisted.reason, self.persisted.detail = True, 'unsaved', why
+            self.persisted.disposition = None
+            self.retry_at = None  # a latch: nothing starts again by itself
+            try:
+                self.persisted.save(self.paths.state_file, durable=True)
+            except OSError as error:
+                LOG.error('the latch could not be written, so the guard\'s record stays: %s', error)
+                return
+        try:
+            os.unlink(self.paths.guard_file)
+        except OSError as error:
+            LOG.error('the shutdown guard\'s record could not be removed: %s', error)
 
     def home_busy(self):
         """Why no home may be moved right now (4.2), or None: a stop runs, the session is ending, or a launch is
@@ -3802,6 +3889,24 @@ class Runner:
             return True
         return False if state in SYSTEM_NOT_STOPPING else None
 
+    def guard_active(self):
+        """(whether the shutdown guard is active, systemd's word for its state), inside GUARD_STATE_WAIT (3.1).
+        Only `active` counts: an error or no answer is not active. A guard that is just starting (`activating`: a
+        login in the first moment after boot) is asked again inside the same wait."""
+        deadline = time.monotonic() + GUARD_STATE_WAIT
+        while True:
+            try:
+                done = subprocess.run([SYSTEMCTL, 'is-active', GUARD_UNIT], capture_output=True, text=True,
+                                      stdin=subprocess.DEVNULL, timeout=max(0.1, deadline - time.monotonic()))
+            except subprocess.TimeoutExpired:
+                return False, f'systemd did not answer within {GUARD_STATE_WAIT:.0f} s'
+            except (OSError, subprocess.SubprocessError) as error:
+                return False, f'systemd could not be asked: {error}'
+            state = (done.stdout.strip().splitlines() or ['systemd gave no answer'])[0]
+            if state != 'activating' or deadline - time.monotonic() < 0.2:
+                return state == 'active', state
+            time.sleep(0.1)
+
     # the startup cover (package 23b)
     def start_cover(self, again):
         """The cover, a child of the supervisor (its scope, never the game's), with the views' cleaned environment.
@@ -4495,6 +4600,91 @@ def stop_command(paths, word, reason=None):
     return 0 if done else 1
 
 
+def guard_ask(paths, wait):
+    """The guard's question to the supervisor: (reply, None), or (None, why) when no reply came inside `wait`."""
+    try:
+        reply = request(paths, {'op': 'stop', 'reason': 'shutdown'}, timeout=wait)
+    except (OSError, ValueError) as error:
+        return None, str(error) or type(error).__name__
+    if not isinstance(reply, dict):
+        return None, 'its reply could not be read'
+    return reply, None
+
+
+def desktop_lock_state(paths):
+    """Whether a game may be writing, on the guard's own evidence (the lead's fix 1): it takes the desktop lock
+    itself, as the game's wrapper does, and lets go of it at once. `free`: nobody holds it, so no game runs.
+    `held`: a game does. Anything else (an open or lock error): nobody can tell, which is never "free"."""
+    try:
+        fd = take_desktop_lock(paths)
+    except OSError as error:
+        return f'unknown: {error}'
+    if fd is None:
+        return 'held'
+    os.close(fd)
+    return 'free'
+
+
+def guard_command(paths):
+    """`aresos-desktop stop --reason shutdown`: the shutdown guard's ExecStop (package 25, brief 3.1 with the lead's
+    fix 1). It asks the supervisor for a stop that cannot be called off and waits GUARD_REPLY_WAIT for the reply.
+
+    With no answer (no socket, refused, no reply in time) it looks at the desktop lock itself. Free: no game runs,
+    exit 0 at once. Held or unknown: a game may be writing, so it asks again each second for GUARD_RECOVERY_WAIT
+    (a new supervisor adopts the game and goes on with the stop). Still nothing, or the supervisor answered that
+    it could not record its stop: the fallback record, a file of its own in the state folder, fsynced, naming the
+    launch from the runtime file; the next supervisor latches `unsaved` from it. Exit 0 only for a confirmed,
+    recorded stop whose close exited, or on positive evidence that nothing runs. It never signals anything."""
+    if not os.path.isdir(paths.runtime):
+        # The session's runtime folder goes after the user's last process: no session, so no game.
+        print('Nothing to stop: no AresOS session is running.')
+        return 0
+    reply, error = guard_ask(paths, GUARD_REPLY_WAIT)
+    if reply is None and desktop_lock_state(paths) != 'free':
+        deadline = time.monotonic() + GUARD_RECOVERY_WAIT
+        while reply is None and deadline - time.monotonic() > 0:
+            began = time.monotonic()
+            reply, error = guard_ask(paths, deadline - began)
+            if reply is None:
+                time.sleep(max(0.0, min(began + GUARD_ASK_AGAIN, deadline) - time.monotonic()))
+    if reply is not None and reply.get('recorded') is not False:
+        done = reply.get('ok') is True
+        print(reply.get('message', ''), file=sys.stdout if done else sys.stderr)
+        return 0 if done else 1
+    lock = desktop_lock_state(paths)
+    if reply is None:
+        if lock == 'free':
+            print(f'Nothing to stop: the AresOS desktop supervisor did not answer ({error}), and no Minecraft holds '
+                  'the desktop lock.')
+            return 0
+        why, save = 'no_answer', None
+        said = (f'Not a confirmed stop: the AresOS desktop supervisor did not answer ({error}), and '
+                + ('Minecraft is still running.' if lock == 'held' else
+                   f'nobody can tell whether Minecraft is still running ({lock}).'))
+    else:
+        said = str(reply.get('message', ''))
+        if reply.get('result') == 'confirmed' and lock == 'free':
+            # Saved, and no game is left: only the supervisor's own record is missing, and there is nothing to add.
+            print(said, file=sys.stderr)
+            return 1
+        why, save = 'unrecorded', reply.get('save')
+    try:
+        with open(paths.runtime_file, encoding='utf-8') as source:
+            launch = json.load(source).get('launch')
+    except (OSError, ValueError, AttributeError):
+        launch = None
+    record = dict(schema=1, why=why, lock=lock if lock in ('free', 'held') else 'unknown',
+                  save=save if isinstance(save, str) else None, launch=launch if isinstance(launch, str) else None,
+                  written=time.time())
+    try:
+        write_durable(paths.guard_file, json.dumps(record) + '\n', 0o600)
+        kept = 'The next start of AresOS says so.'
+    except OSError as failure:
+        kept = f'That could not be recorded either ({failure}).'
+    print(f'{said} {kept}', file=sys.stderr)
+    return 1
+
+
 def use_home_command(paths, folder):
     """`aresos-desktop use-home <folder>` (package 25, 4.2). The running supervisor moves the folder: it alone knows
     that no game is alive or being started. Exit 0 only when the folder is the home now."""
@@ -4553,6 +4743,8 @@ def main(argv=None):
         return reset_instance(paths)
     if args.command == 'save':
         return save_command(paths, args.reason)
+    if args.command == 'stop' and args.reason == 'shutdown':
+        return guard_command(paths)
     if args.command in ('stop', 'restart', 'logout'):
         return stop_command(paths, args.command, args.reason)
     op = {'status': 'status', 'explain': 'status', 'retry': 'retry', 'forget-hub': 'forget_hub',
