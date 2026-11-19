@@ -344,3 +344,36 @@ under `mod/`. The owner tools and the `aresos` command. A shutdown button in the
 **The lead's call on the worst case (2026-11-19):** the game's scope gets `TimeoutStopSec=15s` (one property in
 `game_scope()`), so a game that ignores SIGTERM after the guard has ended does not keep a closed laptop on for
 systemd's default 90 s. The VM prints the effective limit.
+
+## The lead's fixes after the recheck (2026-11-19, `reviews/25-guardian/BRIEF-RECHECK-1-codex.md`)
+
+These override anything above that disagrees.
+1. **Time budget with room for the fallback.**
+   - The supervisor's stop keeps its one 60 s deadline.
+   - The guard's command waits at most 62 s for the supervisor's reply, then makes at most one 10 s recovery attempt,
+     then writes its fallback record.
+   - The guard unit's `TimeoutStopSec` is **85 s**, so the fallback always has time.
+   - An explicit failure to write the stop record takes the same fallback path as no answer.
+   - **"No writer" needs positive evidence:** the desktop lock is opened and taken with `flock` by the guard itself.
+     An open or lock error counts as "unknown", never as free, so the fallback record is written and the command
+     exits 1.
+   - The worst case to power-off is then 85 s plus the game scope's 15 s, all behind the black screen.
+2. **Launch admission stays closed for the whole teardown.** When a stop of kind `shutdown` or `logout` begins, the
+   supervisor writes a session-bound admission block in its runtime folder. It is written before the launch record
+   can close. It holds for any later or replacement supervisor until the session ends, and it is written also for a
+   logout with no game running. No launch, `retry` or hand-off is admitted while it exists.
+3. **A logout with no game running still logs out.** With positive evidence that no writer exists, `logout` goes on
+   to signal labwc through the watched pidfd and checks that it exited within the deadline. "Nothing to save" is
+   never a reason to skip the logout itself.
+4. **The app check is fresh at the moment it matters.**
+   - The helper's window count is invalidated when tracking is lost or the helper dies; unknown counts as open.
+   - An app window that appears during the stop removes the black screen at once.
+   - `logout` requires a fresh count of zero immediately before it signals labwc, not only at the start.
+5. **The VM fixture really saves.** Seed a disposable world folder before each boot, so the stop takes the save path,
+   and assert from the evidence that each fixture received the save request and answered it.
+6. **The hung-shutdown gate is consistent.**
+   - The VM asserts the game scope's effective `TimeoutStopSec` is 15 s.
+   - Boot 2's power-off bound is 85 s + 15 s + 20 s of margin.
+7. **The release proof is on the final code.** If step 8 changes the guard, the stop routine or the VM check after the
+   lead's check build, the step ends by asking the lead for a new check build on its final commit. That build must
+   pass before merge. A `checks_only` run boots no VM and does not count as this proof.
