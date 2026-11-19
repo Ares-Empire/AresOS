@@ -20,11 +20,35 @@ assert.ok(!args.some(arg=>arg==='--no-sandbox'||arg.startsWith('--remote-debuggi
 fs.writeFileSync('/out/launch.json',JSON.stringify(args));
 const descriptor=fs.openSync('/out/chrome.txt','a');
 let chrome;
-function rpc(action,arguments_={}) {
+// Brief 28a, item 8 step 1d: brief 20's replaced tools are chrome_old_<verb>, offered only behind the CI-only switch,
+// and brief 28's read is chrome_read. The groups keep calling them by their old verbs here, in the helper only,
+// until step 2 moves the helpers to the new tools; a runtime from before the switch (the latency pair's
+// baseline leg, a qualification of an older build) still names them as before. The service's own tool list says which.
+let offered;
+function catalogue(){
+  offered??=new Promise((resolve,reject)=>{
+    const socket=net.createConnection('/run/aresos-tools/act.sock');let buffer='';
+    socket.setTimeout(20000,()=>socket.destroy(Error('Tool list timeout')));
+    socket.on('connect',()=>socket.write(JSON.stringify({v:1,method:'tools',app:'chrome'})+'\n'));
+    socket.on('data',data=>{buffer+=data;if(buffer.includes('\n')){socket.end();const reply=JSON.parse(buffer.slice(0,buffer.indexOf('\n')));
+      if(!reply.ok){offered=undefined;reject(Error('Tool list refused: '+JSON.stringify(reply.error)));return;}
+      resolve(new Set(reply.data.tools.map(tool=>tool.name)));}});
+    socket.on('error',error=>{offered=undefined;reject(error);});
+  });
+  return offered;
+}
+async function toolName(action){
+  if(action==='control_pending'||action.startsWith('chrome_'))return action;
+  const names=await catalogue();
+  if(action==='outline'&&!names.has('outline'))return 'chrome_read';
+  return 'chrome_'+(names.has('old_'+action)?'old_'+action:action);
+}
+async function rpc(action,arguments_={}) {
+  const name=await toolName(action);
   return new Promise((resolve,reject)=>{
     const socket=net.createConnection('/run/aresos-tools/act.sock');let buffer='';
     socket.setTimeout(20000,()=>socket.destroy(Error('Tool response timeout')));
-    socket.on('connect',()=>socket.write(JSON.stringify({v:1,method:'call',action:action==='control_pending'?action:'chrome_'+action,arguments:arguments_})+'\n'));
+    socket.on('connect',()=>socket.write(JSON.stringify({v:1,method:'call',action:name,arguments:arguments_})+'\n'));
     socket.on('data',data=>{buffer+=data;if(buffer.includes('\n')){socket.end();const result=rpcResult(buffer.slice(0,buffer.indexOf('\n')));fs.appendFileSync('/out/tool.jsonl',JSON.stringify({action,result})+'\n');resolve(result);}});
     socket.on('end',()=>{if(!buffer.includes('\n'))reject(Error('Service disconnected before its reply; inspect status, never replay'));});
     socket.on('error',reject);
