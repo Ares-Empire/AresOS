@@ -1,6 +1,6 @@
 # Package 25 report: the guardian saves the world before every planned stop
 
-Built in steps: 1–7 on Claude Fable, 8a on Claude Opus, 8b and 8c on Codex gpt-6.2-astra. The step handoffs were in
+Built in steps: 1–7 on Claude Fable, 8a on Claude Opus, 8b, 8c and review fix 1 on Codex gpt-6.2-astra. The step handoffs were in
 `PROGRESS.md`; its decisions, read checklist and verification notes are kept at the end of this report.
 
 ## Done
@@ -32,11 +32,51 @@ Built in steps: 1–7 on Claude Fable, 8a on Claude Opus, 8b and 8c on Codex gpt
   PID 1's stop starts and successful completions in the powered-off guest's journal. On boot 2 it also requires
   the host's keypress and a guest sample of tty3 while the guard is deactivating, the supervisor is stopping and
   its black window is present. The change adds no release-image path or owner-facing text.
+- **Review 1, writer lock.** The supervisor uses the same nonblocking lock probe as the guard. If the supervisor
+  cannot identify a JVM and cannot open or test the lock, shutdown records `lock_unknown` and the error, reports
+  `unsaved` and leaves the record for the next start. Launch and instance reset require a free lock. An
+  interrupted hand-off with no exit record waits for the wrapper's report, and after Java exits the close
+  continues to wait for a verified lock release within its original deadline.
+- **Review 1, logout.** After the game closes, the supervisor requests a new window count over the helper's
+  private status FD. The helper waits for a Wayland sync callback so compositor events queued before the request
+  are reflected in its answer. Only a matching zero received within two seconds and inside the stop deadline
+  permits SIGTERM to labwc. An open app, unknown count or missing answer leaves the session running.
 
 ## Verified
 
-**The release proof on the final code: check build OS run 44603436437 on `35ce377e`, both boots passed**
-(`CHECK_BUILD_VM_PASSED`). Seconds after the power key:
+**Review fix 1, local verification.** Ran each module in a separate process under the following environment.
+`test_path` was `/usr/bin:/bin`, with the local JDK 25's `bin` prepended for the guardian loop.
+
+```sh
+env -i HOME="$PWD/.work/review1/home" TMPDIR="$PWD/.work/review1/tmp" PATH="$test_path" \
+    python3 -B -m unittest discover -s os/tests -p "$module.py"
+```
+
+| Module | Tests | Seconds | Result |
+| --- | ---: | ---: | --- |
+| `test_aresos_desktop` | 189 | 206.142 | OK (1 skipped, real user-manager scope) |
+| `test_aresos_guardian` | 110 | 5.809 | OK |
+| `test_aresos_guardian_loop` | 27 | 63.409 | OK, including both Java fixtures |
+| `test_guardian_vm` | 19 | 0.543 | OK, synthetic journal checks |
+| `test_aresos_shell_guardian` | 12 | 0.080 | OK |
+| `test_aresos_shell` | 75 | 13.849 | OK, printed unclosed stream-socket warnings |
+| `test_aresos_shell_search` | 34 | 0.272 | OK |
+
+- Before the lock fix, the new guardian regression got `confirmed` and `close=none` when opening the lock
+  failed. Injecting an error in `flock` raised `OSError`. The fix passed both cases, including the durable
+  reason and the next session's `unsaved` latch. A second regression checks refusal to launch or reset the instance.
+- Before the logout fix, running the guardian loop module with `-k helper_stalls` returned exit 0 and
+  `Logged out` after the helper reported zero, stalled, and Mail opened. The same test now gets a refusal,
+  verifies that labwc is still alive and reads the game's successful save and close from disk. The state
+  tests also reject unrequested, stale, late, unknown and nonzero reports. The helper test sends window
+  events ahead of a Wayland sync reply and checks that repeat requests get an answer even with an unchanged count.
+- The shell guardian module initially reported one fixture error. Its stand-in supervisor now sets `stop=None`
+  for ordinary status reports. All 12 tests passed on rerun. Both changed executables compiled in memory,
+  `git diff --check` passed, and `find .work -type f -size +500000000c -print` printed nothing.
+
+**Release proof before review fix 1.** Both boots passed in check build OS run 44603436437 on `35ce377e`
+(`CHECK_BUILD_VM_PASSED`). Times below are seconds after the power key.
+
 - Boot 1, a five-second save: `GUARDIAN_VM_PASSED (save): guard stop 0.138 s to 6.319 s after the power key, then
   session-1.scope at 6.33 s, greetd.service at 6.338 s, user@1001.service at 6.871 s, var.mount at None s,
   polkit.service at 6.338 s, getty@tty3.service at 6.334 s; record save=saved close=exited; power-off after 9 s`.
@@ -189,7 +229,8 @@ python3 -B reviews/27-first-update-release/rebind.py pending '25 step 8b: time V
 
 ## Not verified
 
-Boot 1's lid-inhibitor observation was not rechecked on the final image. Human checks remain for lid-close on the physical laptop,
+A new `check_build=build` on the final review-fix commit must pass both VM boots before merge (lead fix 7).
+Boot 1's lid-inhibitor observation was not rechecked on the step 8c image. Human checks remain for lid-close on the physical laptop,
 scaled or mixed outputs, the laptop home and search at shutdown, and restoring a dated home from the real message
 window. The real-game measurements cover a small flat development world.
 
@@ -227,21 +268,38 @@ reopening the world.
   blocks that hand-off. R28 ignores a newer fallback record after rollback. A supervisor that understands the
   record applies it on a later start.
 - An unfinished first home is recognized by device and inode. Inode reuse could cause a different damaged
-  folder to be moved aside on retry. Filesystems without no-overwrite rename support refuse the move.
+  folder to be moved aside on retry. During first setup, a heartbeat or the launch's exit can also remember a
+  replacement inode if someone swaps the home by hand. A subsequent retry can move that replacement aside.
+  The no-overwrite rename preserves its files. Filesystems without no-overwrite rename support refuse the move.
   A damaged or missing world reported ready is logged and stays unready. A hub launch can show slow-start
   after 120 s. Dated-home lookup checks the 16 newest candidates of each kind.
-- The image check inspects Exec directives in the two shipped system-unit trees. An indirect launch hidden in a
-  differently named script is outside that check.
+- If the active world switches away and back to the same name during one save request, a delayed answer for the
+  original world can pass validation. Switching homes also saves the world.
+- The image rule checks literal program names in `Exec*=` directives in `/usr/lib/systemd/system` and
+  `/etc/systemd/system`. It can miss a launch through a differently named script or a name supplied through
+  `Environment=` and invoked through `env`. The image ships no units under `/run/systemd/system` or
+  `/usr/local/lib/systemd/system`, and the rule does not inspect those directories.
+- An unconfirmed stop intentionally exits 1. The guard unit appears as failed in that shutdown's journal.
+- On boot 2, `guardian_host.py` accepts a guard duration of 55–85 s. Run 44603436437 measured 60.632 s
+  against the supervisor's 60 s deadline.
 
 ## Open questions
 
-None for the build. The check build 44603436437 answered the last one (both shutdown orders, tty3 during the
-hung stop, the recorded outcomes inside their limits).
+The release check on the review fixes is pending. Run 44603436437 established both shutdown orders, tty3 during
+the hung stop and the recorded outcomes inside their limits for step 8c.
 
 ## Exact new texts for the owner
 
 The following are the package's window and command texts. Angle brackets mark substituted values. Recovery
 windows begin with `AresOS: recovery` and a blank line. Step 8b adds only test diagnostics.
+
+If checking the desktop lock fails, the review fix adds these messages. `<state>` includes the operating
+system's error (for example, `unknown: [Errno 13] Permission denied`).
+
+- Shutdown reports `Not a confirmed stop: AresOS could not check the desktop lock (<state>).` The reason is
+  also kept in the stop record.
+- A refused launch shows `AresOS could not check the desktop lock (<state>).` followed by the usual retry instruction.
+- Instance reset prints `Instance reset refused: AresOS could not check the desktop lock (<state>).`
 
 `aresos-desktop save` prints one of the following lines.
 
