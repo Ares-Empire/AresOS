@@ -3,6 +3,196 @@
 Brief: `briefs/18c-b-chrome-image.md` (on `main` since PR #73).
 Branch `pkg/18c-b-chrome`, one builder at a time. Each step is a fresh agent; this file is the handoff.
 
+## Step 4b (2026-11-19): record of the completed builder runs
+
+**Documentation handoff to `linux-tools` (the lead).** Read from builder commits `3cb3687d` and `1b263438`,
+their net diff from `8bcb9504`, and the existing OS image runs below. C3, full C6, C10 and C11 are green on
+`1b263438` in run 44468856359; C2's managed-note screenshot now exists and shows the note. **7 of the brief's
+12 `check_build=control` runs used**, counting dispatched run IDs, with infrastructure reruns recorded separately.
+This record changes documentation only; no tests, builds, VMs, dispatches, reruns or cancellations were performed
+for it. Step 5 is next; the package's final "Done" conditions are not met yet.
+
+### Done
+
+- **Read, `3cb3687d`:** `os/ci/control/chrome_actions.py` adds `chrome-host` (C3), `chrome-sites-later` (C6),
+  `chrome-gh` (C10) and `chrome-records` (C11), after the reboot with Chrome connected and the list written.
+  C3 joins both socket ends to the service and the daily user's native host, takes and reads the page-server tab,
+  and checks the probe's refusal without another host or socket peer. C6 checks permissions, the fixed and test
+  hosts, four unsafe/missing-list states and restoration. C10 checks the pinned binary as both users, including
+  the unit's sandbox and clean environment, and the absence of credentials. C11 reads the real service's refresh
+  result through `aresos control log`, its state, AVCs and verifier cache.
+- **Read, `3cb3687d`:** `os/ci/control/control_vm.py` sequences those actions before the final SELinux scan;
+  `CHROME_JOINS` makes `CONTROL_CHROME_SITES_PASS` require first use, reboot and the later part. Every QMP key step
+  gets a 1 s settle. `os/tests/test_control_vm.py` adds nine tests for this ordering, joined verdict, socket
+  holders, sandbox/environment, write probe, installed host policy, gh credentials and record-log pagination.
+- **Read, `1b263438`:** the sandbox helper retains `systemd-run --pipe` but gives it `/dev/null` and regular
+  output/error files instead of subprocess pipes; it reads and removes those files afterwards. C2 adds Up after
+  Alt+F to scroll the menu to its last line. The tests check the regular descriptors, cleanup and key sequence.
+- **Read, run 44468856359 artifact:** `check-build-evidence` (artifact 14504583710),
+  `control/chrome/c2-managed.png`, visually inspected: **"Managed by your organization" is visible** at the
+  bottom of the menu. `control/chrome/c2-pinned.png` is also present. These are existing CI screenshots,
+  downloaded under `.work/18c-b-4b-record/evidence/`; this documentation commit adds no screenshot files.
+
+### Checks (run 44468856359, attempt 1, on `1b263438`)
+
+**Read, full log:** numbers below count lines of `gh run view 44468856359 -R Ares-Empire/AresOS --log`,
+including setup and build output, not `--log-failed` or an individual step. The full job log was also read with
+`gh api repos/Ares-Empire/AresOS/actions/jobs/135373159029/logs --allow-escape-sequences`; its line numbers agree.
+
+| Check | Result read from the log | Line |
+|---|---|---|
+| polkit probe | `CONTROL_CHROME_POLKIT_PROBE_PASS`: dialog appeared, Escape gave exit 1, journal named his session, dialog area changed by 59,429 pixels | 4377 |
+| C1 files | `CONTROL_CHROME_FILES_PASS`: 16 paths, two policy files including the probe, placeholder, gh 2.103.3; checkout build `c689b9c8…` | 4379 |
+| C2 install | `CONTROL_CHROME_INSTALL_PASS`; installed 1.26 s and host connected 1.55 s after start (summary 4381); admin, enabled, not disableable, uninstall refused; managed-note screenshot inspected above | 4383 |
+| C6 first use | `CONTROL_CHROME_SITES_FIRST_USE_PASS`: tabs/read/open/take_tab refused with the setup message, page-server hits 0; root wrote the empty format-1 list, tabs 2 | 4385 |
+| reboot | `CONTROL_CHROME_REBOOTED` | 4386 |
+| C6 reboot | `CONTROL_CHROME_SITES_REBOOT_PASS`: hash `9ef58307…a6ce`, UID 0, GID 250 and 0640 unchanged; host reconnected, tabs 2 | 4388 |
+| C3 host | `CONTROL_CHROME_NATIVE_HOST_PASS`: peer UID 1001, one host in Chrome's scope connected to the service; tabs 2, page title "Chrome pass", 582 characters read, no new page-server request from reading; probe refused "Access to the specified native messaging host is forbidden.", 24 samples without a second host/peer | 4390 |
+| C6 full | `CONTROL_CHROME_SITES_PASS`: all three parts passed. Later-part summary (4391): daily user's read/write/create each EACCES; service reads 24 bytes, write EACCES, create EROFS; all three FIXED_HOSTS plus excluded.localhost and sub.excluded.localhost refused; group-writable, missing, link to a valid list and placeholder each refuse tabs/read with chrome_settings_unavailable; six restorations preserve the hash and metadata | 4392 |
+| C10 gh | `CONTROL_GH_PASS`: 2.103.3 as both users, pinned hash `b7681845…ad34d`, auth status exit 1 (not logged in), credentials empty, service environment LANG/PATH only | 4394 |
+| C11 records | `CONTROL_CHROME_RECORDS_PASS`: path accepted; "Verified append-only Chrome qualification update", then "Verified record accepted." once this boot; service restarts 0; verifier cache under /var/lib/aresos-tools/qualification-verifier-cache, 12 files; 10 boot AVCs, none naming the checked processes | 4396 |
+| SELinux scan | `CONTROL_CHROME_SELINUX_PASS`: Enforcing, 10 boot denials, naming ours 0 (summary 4397) | 4398 |
+| clean poweroff | `CONTROL_CHROME_VM_POWEROFF_CLEAN` | 4399 |
+| end | `CHECK_BUILD_CONTROL_CHROME_PASSED` | 4401 |
+
+**Every earlier 18c VM result on the same run** (including the recorded/reachable lines, which are not named PASS):
+
+| Result | Full-log line |
+|---|---|
+| `CONTROL_IMAGE_FILES_PASS` | 4331 |
+| `CONTROL_ETC_CLAUDE_CODE_PASS` | 4333 |
+| `CONTROL_RELEASE_CHECKS_PASS` | 4335 |
+| `CONTROL_IDLE_FOOTPRINT_RECORDED` | 4337 |
+| `CONTROL_FIXTURES_REACHABLE` | 4339 |
+| `CONTROL_ENTRY_POINTS_PASS` | 4341 |
+| `CONTROL_PRECONDITION_PASS` | 4343 |
+| `CONTROL_USER_MCP_INSTALL_PASS` | 4345 |
+| `CONTROL_SERVICE_SANDBOX_PASS` | 4347 |
+| `CONTROL_ORDINARY_SESSION_PASS` | 4349 |
+| `CONTROL_MAIL_FLOWS_PASS` | 4351 |
+| `CONTROL_PERMISSION_REQUEST_RECORDED` | 4353 |
+| `CONTROL_INTERACTIVE_ASK_PASS` | 4354 |
+| `CONTROL_PASSWORDS_PRIVATE_PASS` | 4356 |
+| `CONTROL_SELINUX_AFTER_CHECKS_PASS` | 4358 |
+| `CONTROL_STORAGE_TESTS_PASS` (11 image-Python/SQLite tests) | 4360 |
+| `CONTROL_SERVICE_RESTART_PASS` | 4362 |
+| `CONTROL_VM_POWEROFF_CLEAN` | 4364 |
+| `CHECK_BUILD_CONTROL_PASSED` | 4366 |
+
+**Earlier image/build proof on that run:** `CONTROL_GH_PAYLOAD_PASS` 1589 (240 paths), `CONTROL_GH_RPM_PASS` 1590,
+`CONTROL_GH_INSTALL_PASS` 1591, `CONTROL_GH_KEYRING_PASS` 1592, `CONTROL_GH_IMAGE_PASS` 2364;
+`CONTROL_CHROME_BUNDLE_PASS` 2956, `CONTROL_CHROME_KEY_SCAN_PASS` 2957;
+`IMAGE_CHECKS_PASSED` 3593, `ROOTLESS_MAPPING_PASSED` 3604, `POLKIT_CHECK_PASSED` 3607;
+`CONTROL_GH_CHECKOUT_PASS` 3614, `CONTROL_CHROME_CHECKOUT_PASS` 3615, `CHECK_BUILD_PASSED` 3618,
+`CONTROL_CHROME_BUILD_LOG_PASS` 3619, `CHECK_BUILD_CONTROL_DISK_READY` 4323.
+
+**Read, timing line 4400:** Chrome pass 104.9 s; boot to channel 24.9 s, reboot to channel 20.7 s;
+C3 2.4 s, later C6 6.1 s, C10 0.4 s, C11 0.5 s. The hosted job took about 29 minutes.
+
+### Runs
+
+All are existing `.github/workflows/os-image.yml` runs on `pkg/18c-b-chrome`, read without changing their state.
+Read with `gh run view <id> -R Ares-Empire/AresOS --log-failed` (empty for the two successful runs), with
+`--attempt 1 --log-failed` as well for 44462912726, and `gh api repos/Ares-Empire/AresOS/actions/jobs/<job>/logs
+--allow-escape-sequences` for the full job logs. The full-run logs of both successful runs were also read.
+Failure references below are full **job-log** line numbers from the jobs API; the green control references
+above are full-run line numbers. Both failed attempts of 44462912726 were read.
+
+| Run / attempt | Head | Input and result read from its log |
+|---|---|---|
+| 44452254488 / 1 | `3cb3687d` | control **FAIL**. Job 135318798936: C3 passed (4456), C11 passed (4491); C6 later failed parsing empty sandbox stdout (4457–4471), C10 failed because the sandboxed gh never started: "Failed to start transient service unit: Connection reset by peer" (4473–4488). The commit message of 1b263438 attributes both to passing the CI service's pipes to systemd-run; its regular-file fix is the subsequent change. |
+| 44462912726 / 1 | `1b263438` | control **FAIL before either VM pass**. Job 135353749541, 1639–1692: mod image-build stage could not resolve Gradle classpath artifacts (gson 2.14.0, ASM 9.10.1's ow2 parent 1.5.1, kotlin-metadata-jvm 2.4.10, Cadix at/lorenz; 19 more failures). "BUILD FAILED in 7s", image build exit 1. No Chrome verdict from this attempt. |
+| 44462912726 / 2 | `1b263438` | control **FAIL before either VM pass**. Job 135357784576, 1639–1692: the same dependency-resolution failures and "BUILD FAILED in 7s", image build exit 1. The logs establish unavailable dependencies, not their upstream cause. |
+| 44468856359 / 1 | `1b263438` | control **PASS**; all earlier 18c and implemented Chrome checks above, clean poweroffs and both pass endings. |
+| 44488329704 / 1 | `1b263438` | checks_only **PASS**: "Ran 1820 tests in 1275.131s" (full log 3842), "OK (skipped=4)" (3844). Regression job 135437315751 has the same lines at 3610/3612. |
+
+Step 4 used four dispatched control runs; 4b adds three, so **7/12 used, five left**. The rerun of
+44462912726 is attempt 2 of the same run ID; step 4 also recorded an infrastructure rerun. No fresh allowance
+is inferred. There is one green control run on this builder head, not the two final-head greens with all C1–C11
+that the brief's "Done" requires.
+
+### Left, in order
+
+1. **5:** C4, C5, C9, then C7 and C8. Bundles B/C already live in the test layer. C4/C5 imitate replacement in
+   the guest; C9 needs the positive control and network proof; C7 must drive the real guest agent for rule
+   loosening, then C8 the session's asking action. Follow the brief's CROSS-5 dependency if 28b pinning is present;
+   do not treat this connection proof as profile identity or bypass its gate.
+2. **6:** rehearsal checks, the two greens on the final head with every required line, README lines and full
+   report text with run/read/assumed marks, guide lines, JUDGMENT-CALLs, PLAN-GAPs and Not verified. The lead
+   `linux-tools` coordinates the handoff; `linux-aresos` reads the net OS diff below. No release or merge here.
+
+### What the code doesn't show
+
+- **Read from code/log:** C11 follows the **published attested record / accepted** branch, not the brief's
+  no-record fallback. It reads all pages of `aresos control log` and requires exactly the held/accepted pair
+  since this boot, the same host PID as after reboot and zero service restarts. "Fetches once" is evidenced by
+  that one refresh result, not by a network request counter. The verifier cache contains gh/Sigstore trust data.
+- **Read from code:** the refusal diagnostic runs the installed verifier under the sandbox for the expected
+  and wrong signer only when the service records one refusal. That path was not exercised by the green run;
+  a refusal fails C11 because an attested record is already published.
+- **Read from code/log:** C3 reads the tab's existing document after taking it into the Claude group. Zero
+  page-server requests during that read is expected; it is not a missing page load. Peer UID is checked through
+  ss socket inodes and /proc descriptor holders; the test does not itself call SO_PEERCRED.
+- **Read from code/log:** sandbox probes derive properties and the env-i prefix from the installed unit;
+  changing file descriptors in 1b263438 leaves that sandbox intact. C10 runs without a login/token and proves
+  the verifier's paths, not the absence of every possible credential elsewhere on the disk.
+
+### JUDGMENT-CALLs (read from the builder's code/log; not decisions by this recorder)
+
+1. **Read, control_vm.py:** C6 has one joined PASS requiring all three parts across the reboot, while keeping
+   the two earlier part lines for diagnosis. A partial success cannot print the full C6 line; ordering and
+   failure tests pin this choice. Changing the sequence requires updating that join and its tests.
+2. **Read, chrome_actions.py and 1b263438's message:** regular files replace captured pipes for transient
+   sandbox runs, following the working polkit probe. This keeps the unit's restrictions and deletes the temporary
+   output files afterwards; reverting it would reintroduce run 44452254488's failure.
+3. **Read, control_vm.py and screenshot:** settle for 1 s after every key step and use Alt+F, Up, screenshot,
+   Escape for the managed note. Up brings the bottom of the 800-pixel menu into view. This is a CI navigation
+   choice; a later Chrome menu change would require adjusting that sequence.
+4. **Read, chrome_actions.py records():** an already-published attested record makes "Verified record accepted."
+   mandatory; a refusal is diagnostic evidence and a failure. It does not silently pass the other branch of C11.
+
+### PLAN-GAPs (read from code/log; not decisions by this recorder)
+
+- **Read, code/log:** the brief says `aresos log`; this head uses `aresos control log` (as step 4's handoff
+  already noted after PR #109). The guest follows the installed CLI.
+- **Read, 1b263438 and run 44452254488:** systemd-run's descriptor handoff matters under the CI service; the
+  brief's sandbox requirement alone did not describe that harness constraint.
+- **Read, code and inspected artifact:** step 4's managed screenshot gap is closed. A settle alone opened the
+  menu but left its last line below the screen; scrolling was also needed. C2's automated PASS still does not
+  recognize the screenshot's text; the visual inspection above supplies that evidence.
+
+### Known limits found
+
+- **Read, code/log:** later C6's "every read" helper calls tabs and read for each broken-list state. It is not
+  a fresh sweep of every Chrome tool in those states; the separate adapter sweep from step 1a supplies the wider
+  placeholder coverage. The recorded PASS must not be described as that wider VM sweep.
+- **Read, sessions and host summaries:** the step 4 SELinux-context limit remains: Chrome/host run in
+  unconfined_service_t through the CI service, whereas the session agent is unconfined_t. The cgroup/user/env
+  proof and zero relevant denials do not prove the laptop's own launch context or agent.
+- **Read, polkit summary 4377:** Escape still gives pkcheck exit 1, and the service would say "the password was
+  wrong or the request was denied". C7's actual details-page/password path remains unverified here.
+- **Read, code and remaining step list:** no real deployment switch with Chrome open, real excluded hosts,
+  profile continuity/confirmation, C4/C5 faults, C9 no-store proof, C7 password or C8 Chrome ask is established by
+  this run. Step 4b's overall pass covers only the checks currently in CHROME_STEPS.
+- **Read, failed build logs:** both attempts of 44462912726 stopped at dependency resolution. A later success
+  does not explain that failure's upstream cause or prove it cannot recur.
+
+### The os/ and os-image.yml diff for linux-aresos
+
+**Read, net `git diff 8bcb9504 1b263438`: exactly three files.**
+
+- `os/ci/control/chrome_actions.py`: C3/C6-later/C10/C11 actions and helpers, regular-file sandbox output;
+  test-layer guest checks only.
+- `os/ci/control/control_vm.py`: four actions after reboot, joined C6 verdict, their arguments/summaries,
+  1 s key settle and Up to the bottom of C2's menu.
+- `os/tests/test_control_vm.py`: nine new tests plus updates for joined verdicts, C10's line name, regular
+  descriptors and menu navigation.
+
+**`.github/workflows/os-image.yml` did not change** in this net diff. No installed runtime, unit, lock, manifest,
+production image content or workflow changed in 4b. The workflow change in step 4 below remains history, outside this diff.
+Scratch logs and downloaded evidence for this record are under `.work/18c-b-4b-record/`; a closing scan of the
+worktree's `.work/` found **no files over 500 MB**.
+
 ## Step 4 (2026-11-19, Claude Opus 5.5): the VM's first half, split at 4b
 
 **Split at 4b.** The polkit probe, the Chrome pass with its layer and workflow step, C1, C2 and C6's first use with
