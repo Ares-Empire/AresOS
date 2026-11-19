@@ -3,7 +3,78 @@
 Branch `pkg/53f-native-home`, based on 53c's branch (PR #114); the lead rebases it onto main after #114 merges.
 Built by Claude Opus agents in two steps on 2026-11-19. Step A built the model, the painter, the test channel and the
 checks against injected state. Step B built input, motion, icons, memory and the clean-up. This text replaces step A's
-handoff; the lead moves it to `REPORT.md`. Hosted checks-only run: **44426761677** (started on `246441f4`, not waited for).
+handoff; the lead moves it to `REPORT.md`. Step B's hosted checks-only run 44426761677 failed on GitHub's runner (no
+bwrap, no pycairo; fixed in review fix round 1). Round 1's hosted run: **RUN_ID** (started on `HEAD_SHA`, not waited for).
+
+## Review fix round 1 (REVIEW-1, `briefs/53f-review-fix-1.md`)
+
+Built by a Claude Opus agent on 2026-11-19. Each fix and the test that shows it; every new test was also run against
+the reviewed program (`ff28bf01`) and failed there.
+
+1. **The icon decoder runs in bubblewrap** (finding 1). `decoder_command` follows the helper's icon worker:
+   `--unshare-all --die-with-parent --new-session --cap-drop ALL --clearenv`, read-only `/usr/lib64` (and `/usr/lib`
+   where the interpreter's library lives there, as on Debian), the interpreter, a private `/dev` and an empty `/tmp`;
+   no `/proc`, no `/run`, no home. The PNG comes on a memory file as stdin. `run_sandboxed` reads the reply under a cap
+   of 8 + 512 × 512 × 4 bytes (`MAX_DECODED`) and a deadline, and kills the process group after. Without
+   `/usr/bin/bwrap` nothing runs and the row keeps its plain square. Tests (`test_aresos_laptop_home.IconTest`): a
+   probe through the same command cannot connect to a helper socket, open a file in a runtime folder or open
+   `/proc/<parent>/environ` (run plainly, the probe reaches all three); `/` holds only `usr`, `lib64`, `dev`, `tmp`;
+   a child writing one byte past the cap is refused; a missing bwrap starts no process. The image check now decodes
+   through bubblewrap, or, where the container allows no user namespace, checks that the home refuses.
+2. **Clicks and hover only where something is painted** (finding 2). `hit_test` rejects points outside the stage.
+   The finder's list and line and the hotbar are `chrome` hits that take a click and open nothing; rows still open.
+   A house takes clicks on its logo, its mat, its sign's painted plate and, while framed, its frame; a cut end's
+   mask (by day up to `EDGE/2`) or wall (night, 18 px) hides the rest. The street sign's box is its measured text
+   (plus the day plate's 24 px): the model asks `Painter.measure` (the painter's own Pango settings; an estimate in
+   the model's tests), and the day plate is painted from that box. Tests (`HitTest`, and `WindowTest.check_signs`
+   with the program's real fonts): the finder header, its padding, a 2304 × 1080 window's margin and the side of a
+   short group or house sign open nothing; the day plate's painted edges are where its box ends.
+3. **One icon worker** (finding 3). `IconWorker`: one thread; each draw replaces its queue with the rows shown now
+   (at most five); a result for a row no longer shown is dropped; a failure is not retried until the catalogue
+   changes, which also drops pictures of icons that left. Tests (`IconWorkerTest`): ten result changes start one
+   worker and decode only the last five rows; an obsolete result is dropped; a failure waits for a new catalogue.
+4. **Logo caches pruned** (finding 4): every paint drops logo pictures of houses that left and slots unpinned. The
+   memory check: `laptop_home_memory.py --used` and the opt-in
+   `MemoryGuardTest.test_rest_after_typing_sliding_and_finder_results_stays_within_two_percent` type ten queries
+   (finder rows with icons among them), slide a street by hand, clear the query and sample again 15 s after a
+   redraw. Without more, the second sample was 2.9 to 3.9 % above the first, and the reviewed program grew the same
+   (3.5 %): glibc kept the heap's freed space. The home now calls `malloc_trim(0)` once, 2 s after the last redraw
+   of a burst (`SETTLE_MS`; no timer at rest beyond the clock's). With it: 1.3 % and 1.5 %.
+5. **Finder text** (finding 5). `natural` sorts as `localeCompare('en', {numeric: true})` for ties: base letters
+   first, accents next, lower case before upper, runs of decimal digits (Unicode Nd) by value, spaces and
+   punctuation before digits before letters; `²` weighs as a 2 and never reaches `int()`. A row's name and kind
+   shrink in proportion when they do not fit (53c's flex line, `row_columns`), each ellipsized. Tests
+   (`FinderTextTest`): `2²` searched with `2`; accented, cased and numeric ties; the shares; and painted rows with a
+   64-character kind and a long name leave the icon column and the row's outside untouched.
+6. **Checks that can fail** (finding 8): the grid check requires both plot sides; the idle colour is compared with
+   53c's own `day-home.png` and `night-home.png` at the same point (the `idle` paint break fails it:
+   `(25, 130, 143)` against 53c's `(76, 112, 116)`); the rest check counts the program's tick callbacks (none in
+   13 s); a real labwc pointer click on `test-game-1` makes the stand-in helper receive `test-game-1`; focus and
+   reconnect run as two tests, on the layer surface and in the fallback window.
+7. **The harness hides the host's `/run`** (finding 9): a tmpfs on `/run` before labwc starts, then only the
+   fixture's own folders bound back. The fixture reports an empty `/run`, a reachable private display and stand-in
+   socket, in both surface modes.
+
+**Also fixed:** step B's hosted run failed because `WindowTest` had no skip (its decorator sat on `MotionTest`,
+which needs nothing) and the icon tests needed pycairo and bwrap. Now `needs(...)` in `laptop_home_headless.py` skips
+a test whose stack is missing; with `LAPTOP_HOME_REQUIRE_HEADLESS=1` (AresOS, where all is present) it fails
+instead. A run with bwrap, labwc and pycairo hidden gives 16 skips, no errors. One bug of this round, caught by the
+memory script: the new hit loop's names shadowed `build_scene`'s `width` and `height`, so `scene['size']` was wrong;
+the margin test now checks `size` too.
+
+**Memory remeasure** (set-up S, 15 s after one redraw, `laptop_home_memory.py --runs 3 --used`, before the trim):
+median **64,993 KiB** (64,867 to 65,286), Pss_Anon 30,532, two window pictures, heap 12,184 KiB; after use
+66,873 to 67,852. With the trim (two runs): 65,154 and 64,929 at rest, 66,030 and 65,892 after use. **The
+64,000 KiB guard fails today, for the reviewed program too:** `ff28bf01`, measured in the same session, gave 64,844
+KiB (step B measured 62,358 with that code). The rise is the laptop's state, not this round's code; the lead decides
+whether to re-pin the guard. Runs: `.work/mem/fix-1.jsonl`.
+
+## Known limits
+
+- REVIEW-1 finding 6: Tab and a focused sign's Enter or Space no longer reach the end and group signs (53c's
+  focusable buttons); the keyboard has the finder, the arrows and 1 to 9.
+- REVIEW-1 finding 7: night glides paint at about 65 ms a frame in software (two full-stage gradients per frame);
+  the day look, at about 15 ms, is the default.
 
 ## Done
 
@@ -33,14 +104,14 @@ handoff; the lead moves it to `REPORT.md`. Hosted checks-only run: **44426761677
 - **Finder icons** (B.3):
   - `read_icon` keeps 53c's checks on the opened file: an absolute path, a regular file and not a symlink
     (`O_NOFOLLOW`), at most 1 MiB, a PNG header and an IHDR of at most 512 × 512.
-  - `decode_png` runs a short-lived `python3 -I -S -c` child. Its environment holds only `PATH` and `LC_ALL`, it
-    has no descriptor but its pipes and no helper socket, and it gets the bytes on stdin, never the path.
+  - `decode_png` runs a short-lived `python3 -I -S -c` child in bubblewrap (review fix 1). It gets the bytes on
+    stdin, never the path.
   - The decoder is PNG only and non-interlaced: grey, RGB, palette (with `tRNS`), grey with alpha and RGBA, at 1
     to 16 bits, with the CRC checked and the inflated size bounded. It returns at most 512 × 512 RGBA.
   - `icon_surface` fits the result into a 48 × 48 picture, drawn at 24 × 24 (object-fit: contain). Cairo
     premultiplies it through an A8 mask.
-  - Decoding runs on a worker thread, one child at a time. On any failure the row keeps its plain square. At most
-    20 icons are kept.
+  - Decoding runs on one worker thread for the rows shown (review fix 3). On any failure the row keeps its plain
+    square. At most 20 icons are kept.
 - **Memory settings** (B.4, each measured on its own, below):
   - `Allocator` fixes glibc's mmap threshold at 128 KiB.
   - The program puts `None` in `sys.modules['ssl']` before importing asyncio (no OpenSSL), and makes the
@@ -104,7 +175,8 @@ through the child.
 
 ## Verified
 
-Every run was headless: a private labwc, `/dev` masked and the network unshared before it started, and its own
+Every run was headless: a private labwc, `/dev` and (since round 1) `/run` masked and the network unshared before it
+started, and its own
 `HOME`, `XDG_*` folders, session bus and stand-in helper. `DISPLAY`, `WAYLAND_DISPLAY` and `WAYLAND_SOCKET` were
 removed. `LAPTOP_HOME_TEST_LAYER_DIR` pointed to the verified Fedora 44 `gtk4-layer-shell` extraction, as in step A.
 
@@ -117,6 +189,24 @@ removed. `LAPTOP_HOME_TEST_LAYER_DIR` pointed to the verified Fedora 44 `gtk4-la
 | `cd os/tests && python3 laptop_home_memory.py --runs 5`, the same with `--prototype`, and `--runs 3 --first-draw` | The table below; the runs are in `memory-step-b.jsonl` |
 | The image check's Python, run locally against the worktree's program with `env -i HOME=/tmp PATH=/usr/bin` | `LAPTOP_HOME_GTK 4 22 cairo 1.28.0`; the decoder assertion held. `bash -n os/ci/image-checks.sh`: OK |
 | Hosted: `gh workflow run "OS image" --ref pkg/53f-native-home -f checks_only=true` | Run **44426761677**, started, not watched |
+
+**Step A's paint breaks** (commit `a58b608a`; `LAPTOP_HOME_TEST_BROKEN=<part>`, each check failed):
+
+| Broken part | Look | The check that failed |
+|---|---|---|
+| `background` | day | terraces: `[(13,13,16), (43,40,50), (13,13,16), (13,13,16)]` against turf, paving, turf, bank edge |
+| `plots` | day | empty plot slab: `(138,178,84) != (185,199,162)` |
+| `idle` (no idle filter) | day | idle house: `(25,130,143)`, expected `(77,112,116)`; round 1, against 53c's picture: `(76,112,116)` |
+| `gold_door` | day | gold door, row 1: `(5,5,6)`, expected `(253,226,158)` |
+| `frame` | day | frame |
+| `view_mask` (no fade) | day | fade at `EDGE/2`: `(38,38,40) != (138,178,84)` |
+| `street_ends` | day | end sign plate: 127 > 26 |
+| `fades` | night | night fade: `(24,24,28) != (13,13,16)` |
+
+**Round 1's runs** (headless as above, `LAPTOP_HOME_REQUIRE_HEADLESS=1`):
+`discover -p 'test_aresos_laptop_home.py'`: 16 tests, OK. `discover -p 'test_aresos_laptop_home_native.py'`: 31
+tests, OK (2 skipped: the opt-in memory tests), 47 s, after the last code change. Pictures: unchanged apart from
+the night stars' random twinkle.
 
 **The debugging that set a design choice:** with `Gtk.IMMulticontext`, a dead circumflex and then `a` gave a bare
 `a` under labwc. GTK picked its Wayland text-input method, and that composes nothing while no input-method program

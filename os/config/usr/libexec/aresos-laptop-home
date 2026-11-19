@@ -1039,12 +1039,12 @@ def build_scene(inputs):
             parts = [[logo_left, logo_top, logo_size, logo_size], house['mat'],
                      [sign['centre'] - sign['painted'] / 2, house['box'][1], sign['painted'],
                       sign['bottom'] - house['box'][1]]] + ([house['frame']] if house['framed'] else [])
-            for left, top, width, height in parts:
+            for part_left, part_top, part_width, part_height in parts:
                 # Only the part the view shows: a cut end's mask or wall hides the rest.
-                right = min(left + width, high)
-                left = max(left, low)
-                if right > left:
-                    hits.append(dict(kind='house', id=house['id'], rect=[left, top, right - left, height]))
+                right, part_left = min(part_left + part_width, high), max(part_left, low)
+                if right > part_left:
+                    hits.append(dict(kind='house', id=house['id'], rect=[part_left, part_top, right - part_left,
+                                                                          part_height]))
         hits.append(dict(kind='sign', key=street['key'], rect=street['sign']['rect']))
     return dict(
         look=look, size=[width, height], fit=fit, grid={key: grid[key] for key in ('cell', 'pitch', 'gap', 'size',
@@ -2163,6 +2163,7 @@ KEY_NAMES = {'Escape': 'Escape', 'BackSpace': 'Backspace', 'Return': 'Enter', 'K
              'ISO_Enter': 'Enter', **{f'{pad}{arrow}': f'Arrow{arrow}' for pad in ('', 'KP_')
                                       for arrow in ('Left', 'Right', 'Up', 'Down')}}
 ICONS_KEPT = 20
+SETTLE_MS = 2000
 
 
 class IconWorker:
@@ -2241,6 +2242,12 @@ class Allocator:
         except (OSError, AttributeError):
             self.libc = None   # not glibc: nothing to adjust
 
+    def trim(self):
+        """Give the heap's free pages back. Typing and the finder's rows leave free space in the heap that glibc
+        keeps; trimmed once the screen has settled, the resting number stays where it was (REVIEW-1 finding 4)."""
+        if self.libc is not None:
+            self.libc.malloc_trim(0)
+
 
 def load_gui():
     # Draw with Cairo only, so the home opens no GPU device. An explicit outside choice still wins.
@@ -2276,6 +2283,7 @@ class LaptopHome:
                          changed=lambda reason='state': self.redraw(reason), motion=self.start_motion,
                          clock=lambda: gui.GLib.get_monotonic_time() / 1e6, measure=self.painter.measure)
         self.ticking, self.held, self.repeat, self.cursor, self.hits = False, set(), False, None, None
+        self.trim, self.trim_timer = None, None   # set by run(): the allocator's trim
         # The path each kept icon picture was decoded from.
         self.icon_paths = {}
         self.icon_worker = IconWorker(lambda path: icon_surface(gui.cairo, *decode_png(read_icon(path))),
@@ -2324,6 +2332,16 @@ class LaptopHome:
         # Every redraw goes through here with its reason, so the test channel can count them.
         if self.area is not None:
             self.area.queue_draw()
+        # Two seconds after the last redraw, the heap is trimmed once: a timer per burst of input, none at rest
+        # beyond the clock's.
+        if self.trim is not None:
+            if self.trim_timer is not None:
+                self.gui.GLib.source_remove(self.trim_timer)
+            self.trim_timer = self.after(SETTLE_MS, self.settled)
+
+    def settled(self):
+        self.trim_timer = None
+        self.trim()
 
     def draw(self, _area, cr, width, height):
         scene = self.town.scene((width, height))
@@ -2526,7 +2544,7 @@ def run(token, *, select_monitor=laptop_monitor, sample_power=None, look=None):
     socket_path = os.environ.pop('ARESOS_SHELL_SOCKET', '') or os.path.join(runtime, 'aresos/shell.sock')
     instance = os.environ.pop('ARESOS_DESKTOP_INSTANCE', '')
     os.environ.pop('ARESOS_LAUNCH_NONCE', None)
-    Allocator()
+    allocator = Allocator()
     try:
         gui = load_gui()
     except (ImportError, ValueError):
@@ -2534,6 +2552,7 @@ def run(token, *, select_monitor=laptop_monitor, sample_power=None, look=None):
         return 1
     home = LaptopHome(gui, load_home(path), None, sample_power or (lambda: power_status(gui.Gio, gui.GLib)), look)
     home.helper = HelperView(socket_path, instance, token, path, home.publish, gui.GLib.idle_add)
+    home.trim = allocator.trim
     return home.run(select_monitor)
 
 

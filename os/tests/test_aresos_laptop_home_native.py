@@ -325,7 +325,7 @@ class HitTest(unittest.TestCase):
         opened = []
         town, _ = make_town('day', (9, 7, 9, 20), opener=lambda app_id, callback: opened.append(app_id))
         scene = town.scene((2304, 1080))
-        self.assertEqual((scene['fit']['left'], scene['fit']['scale']), (192, 1))
+        self.assertEqual((scene['size'], scene['fit']['left'], scene['fit']['scale']), ([2304, 1080], 192, 1))
         tools = street_of(scene, 'system_tools')
         stage_x, y = -92, tools['base'] - tools['houses'][0]['size'] / 2
         self.assertTrue([house for house in tools['houses'] if house['left'] <= stage_x < house['left'] +
