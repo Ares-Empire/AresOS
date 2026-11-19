@@ -4,7 +4,7 @@ Branch `pkg/53f-native-home`, based on 53c's branch (PR #114); the lead rebases 
 Built by Claude Opus agents in two steps on 2026-11-19. Step A built the model, the painter, the test channel and the
 checks against injected state. Step B built input, motion, icons, memory and the clean-up. This text replaces step A's
 handoff; the lead moves it to `REPORT.md`. Step B's hosted checks-only run 44426761677 failed on GitHub's runner (no
-bwrap, no pycairo; fixed in review fix round 1). Round 1's hosted run: **RUN_ID** (started on `HEAD_SHA`, not waited for).
+bwrap, no pycairo; fixed in review fix round 1). Round 1's hosted run: **44432045490** (started on `af0b16c4`, not waited for; an earlier start, 44431977176, ran on `3b0b4c2f` after a push that had failed and is superseded).
 
 ## Review fix round 1 (REVIEW-1, `briefs/53f-review-fix-1.md`)
 
