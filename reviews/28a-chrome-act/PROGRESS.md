@@ -1,5 +1,69 @@
 # Package 28a: Chrome acting progress
 
+## Step 1d, part 2, fix 2
+
+2026-11-19. **Local checks pass; hosted results belong to the lead, `linux-tools`.**
+Fetched `origin`; no merge. Started at `efd56521` (code `790d6151`); kept draft PR #116
+stacked on `pkg/28-chrome`. Fix commits: **`4fb4821b`**, **`18fadda2`**.
+
+**Causes and fixes** (both previous runs' failed-job logs read through `gh run view`
+and `gh api`; job IDs and commands in [FIX2-VERIFICATION.md](FIX2-VERIFICATION.md)):
+
+- **Latency (plain):** F3's `chrome_read` find (`outline_f3_find_link`) had median/p95
+  **218.5/291.4 ms**, against a **207.3 ms median ceiling** (`1.10 × 143.0 + 50`);
+  old p95 **198.1 ms**. The comparison has no p95 ceiling. The main gate passed all
+  18 measurements; F1/F5/F4's comparisons passed. `reader.js` now avoids SHA-256 round
+  arrays and hashes identical complete meanings once per outline, still reading every
+  element freshly. Paired local 603-node VM median/p95 **25.25/30.07 → 20.46/22.87 ms**,
+  with identical whole replies/fingerprints. This is CPU evidence, not a hosted pass.
+  Samples, all gate numbers and comparator calls: [LATENCY-FIX2.md](LATENCY-FIX2.md).
+- **Both recheck2 shards and both qualification pairs:** conservative F4 measured
+  **13,348–13,349 bytes**, failing 9,000. The browser assertion now pins it **under
+  ASK_LIMIT and at most 14,000**. A new projection test retains all 26 affected-item
+  fields and proves whole options refuse without reservation/input. Replaying the
+  actual **13,349-byte** approval accepts it; restoring Country options alone gives
+  **56,144 bytes**, refused. The ordinary F4 send's existing 9,000 pin stays.
+- **The same four jobs also failed the taken-tab case:** its supposedly empty owner
+  page had an unwatched textarea. The frozen loss guard correctly refused navigation
+  with `reload_required`. The case now checks that exact refusal and unchanged address,
+  keeps the genuine owner-typing refusal, and checks successful guarded reload/navigation
+  on an explicit fixture mode without editable fields. The guard is unchanged.
+- **Both aggregates and both qualification combines:** `every browser shard is required`
+  follows those recheck2 failures. No separate combine defect appeared; no check changed.
+
+**Lead decisions, 2026-11-19:** accept conservative F4 under the 14,000-byte growth pin,
+keeping **ASK_LIMIT = 16,384**, the form (**6,311 bytes**) and repeated affected-item
+fields (**5,127 bytes**) whole. Sending F4 in one approval was the point; main refuses
+it at about 21,700. No value, field or asking-path change; deduplication is a later
+reviewed item. Keep F4's timed **fill_form/find/click** comparator: fills invalidate
+brief 20's view, so fresh `chrome_old_find` is its honest path. These close the prior
+size/comparator **PLAN-GAPs**, without changing any latency ceiling, sample count,
+reference or efficiency-baseline file.
+
+**JUDGMENT-CALL:** retain the safe empty-unwatched-field refusal and test the no-work
+path without editable fields. Reject changing the frozen guard to infer field history;
+changing that later needs loss/history tests and review. [KNOWN-LIMITS.md](KNOWN-LIMITS.md)
+records this extra refusal and that a form about a quarter bigger than F4 in affected-item
+fields can refuse with `asking_input_too_large`, so the owner sends it himself.
+
+**Verified:** Node **626/626**, Python **200 tests, OK**, qualification-fixture subset
+**6, OK**, generator matches, changed-file syntax and `git diff --check` clean.
+Two qualification-fixture tests internally invoke `test_state_fixes`; left unchanged
+for hosted CI under the explicit local state-test ban. Exact commands, durations,
+intermediate failures/fixes and limits: [FIX2-VERIFICATION.md](FIX2-VERIFICATION.md).
+Instructions **2,798/2,800**; `.work/` files over 500 MB: **none**. No local browser.
+
+Normal push of **18fadda2**, then exactly one dispatch each:
+**Control Chrome [44505065741](https://github.com/Ares-Empire/AresOS/actions/runs/44505065741)**;
+**qualification [44505070907](https://github.com/Ares-Empire/AresOS/actions/runs/44505070907)**.
+No watch, poll or redispatch. This later progress-only commit has `[skip ci]`.
+
+**Left:** the lead's shell owns results, including the repaired conservative case's
+previously blocked inputs and the full qualification-fixture module. If F3 still misses,
+report its new numbers and make the code cheaper or stop; keep every ceiling. The prior
+browser-coverage PLAN-GAP, steps 2–4, two full final-head runs, boundary evidence and fresh
+package/security reviews remain as listed below. No hosted-green or whole-package claim.
+
 ## Step 1d, part 2
 
 2026-11-19. **CI repairs prepared; not green. Stop at the F4 budget PLAN-GAP below.**
