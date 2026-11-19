@@ -36,7 +36,8 @@
     "42 step 4: release_diff allows exactly the cut's build.sh fix (CUT_BYTECODE_FIX, review 11) beside the jar pin; anything else in build.sh still differs from main",
     "42 step 4: test_release28 lists the cut's build.sh fix beside the jar pin as the branch's allowed source changes",
     "42 step 5: publish-28 and publish_cap from 0 to 1 under the owner's standing rule (board #388, 2026-11-19); test_release28 and test_release28_rehearsal hold the opened gate (one publish, the publishing kind only)",
-    "42 step 6: release-28 0 to 3, checks 1 to 3 (the model gate on each rehearsal head), minute cap 1200 to 2400; test_release28 and test_release28_rehearsal hold the new caps"
+    "42 step 6: release-28 0 to 3, checks 1 to 3 (the model gate on each rehearsal head), minute cap 1200 to 2400; test_release28 and test_release28_rehearsal hold the new caps",
+    "42 step 5: release 28's record (run 44590446680, ghcr.io/ares-empire/aresos@sha256:aa97b2d5…); step 6: the host walk regenerated for it"
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
